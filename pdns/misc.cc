@@ -1375,20 +1375,27 @@ uint64_t getCPUSteal(const std::string& /* str */)
 
 bool getTSIGHashEnum(const DNSName& algoName, TSIGHashEnum& algoEnum)
 {
-  if (algoName == g_hmacmd5dnsname_long || algoName == g_hmacmd5dnsname)
+  if (algoName == g_hmacmd5dnsname_long || algoName == g_hmacmd5dnsname) {
     algoEnum = TSIG_MD5;
-  else if (algoName == g_hmacsha1dnsname)
+  }
+  else if (algoName == g_hmacsha1dnsname) {
     algoEnum = TSIG_SHA1;
-  else if (algoName == g_hmacsha224dnsname)
+  }
+  else if (algoName == g_hmacsha224dnsname) {
     algoEnum = TSIG_SHA224;
-  else if (algoName == g_hmacsha256dnsname)
+  }
+  else if (algoName == g_hmacsha256dnsname) {
     algoEnum = TSIG_SHA256;
-  else if (algoName == g_hmacsha384dnsname)
+  }
+  else if (algoName == g_hmacsha384dnsname) {
     algoEnum = TSIG_SHA384;
-  else if (algoName == g_hmacsha512dnsname)
+  }
+  else if (algoName == g_hmacsha512dnsname) {
     algoEnum = TSIG_SHA512;
-  else if (algoName == g_gsstsigdnsname)
+  }
+  else if (algoName == g_gsstsigdnsname) {
     algoEnum = TSIG_GSS;
+  }
   else {
      return false;
   }

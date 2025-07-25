@@ -683,8 +683,9 @@ int TCPNameserver::doAXFR(const ZoneName &targetZone, std::unique_ptr<DNSPacket>
   if(haveTSIGDetails && !tsigkeyname.empty()) {
     string tsig64;
     DNSName algorithm=trc.d_algoName;
-    if (algorithm == g_hmacmd5dnsname_long)
+    if (algorithm == g_hmacmd5dnsname_long) {
       algorithm = g_hmacmd5dnsname;
+    }
     if (algorithm != g_gsstsigdnsname) {
       if(!db.getTSIGKey(tsigkeyname, algorithm, tsig64)) {
         g_log<<Logger::Warning<<logPrefix<<"TSIG key not found"<<endl;
@@ -1289,8 +1290,9 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock)
     if(haveTSIGDetails && !tsigkeyname.empty()) {
       string tsig64;
       DNSName algorithm=trc.d_algoName; // FIXME400: was toLowerCanonic, compare output
-      if (algorithm == g_hmacmd5dnsname_long)
+      if (algorithm == g_hmacmd5dnsname_long) {
         algorithm = g_hmacmd5dnsname;
+      }
       if (!db.getTSIGKey(tsigkeyname, algorithm, tsig64)) {
         g_log << Logger::Error << "TSIG key '" << tsigkeyname << "' for domain '" << target << "' not found" << endl;
         return 0;
