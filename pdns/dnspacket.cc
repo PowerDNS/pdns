@@ -333,8 +333,7 @@ void DNSPacket::wrapup(bool throwsOnTruncation)
     }
   }
 
-  if (d_trc.d_algoName.countLabels())
-  {
+  if (d_trc.d_algoName.hasLabels()) {
     // TSIG is not OPT, but we count it in optsize anyway
     optsize += d_trc.d_algoName.wirelength() + 3 + 1 + 2; // algo + time + fudge + maclen
     optsize += EVP_MAX_MD_SIZE + 2 + 2 + 2 + 0; // mac + origid + ercode + otherdatalen + no other data
@@ -400,8 +399,9 @@ void DNSPacket::wrapup(bool throwsOnTruncation)
     }
   }
 
-  if(d_trc.d_algoName.countLabels())
+  if(d_trc.d_algoName.hasLabels()) {
     addTSIG(pw, d_trc, d_tsigkeyname, d_tsigsecret, d_tsigprevious, d_tsigtimersonly);
+  }
 
   d_rawpacket.assign((char*)&packet[0], packet.size()); // XXX we could do this natively on a vector..
 
@@ -458,7 +458,7 @@ std::unique_ptr<DNSPacket> DNSPacket::replyPacket() const
   r->d_ednsrcode = 0;
   r->d_xfr = d_xfr;
 
-  if(d_tsigkeyname.countLabels()) {
+  if(d_tsigkeyname.hasLabels()) {
     r->d_tsigkeyname = d_tsigkeyname;
     r->d_tsigprevious = d_tsigprevious;
     r->d_trc = d_trc;

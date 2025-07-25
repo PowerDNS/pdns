@@ -91,11 +91,11 @@ static void callback_simple( unsigned int domain_id, const DNSName &domain, cons
         std::string stripped=stripDot(content);
         std::string rrvalue = stripped + ((stripped.empty() || stripped[stripped.size()-1]==' ') ? "." : "");
         std::string dn = "dc=";
-        if( host.countLabels() ) { dn += host.toStringNoDot() + ",dc="; }
+        if( host.hasLabels() ) { dn += host.toStringNoDot() + ",dc="; }
         dn += g_zonename.toStringNoDot() + "," + g_basedn;
         cout << "dn: " << dn << endl;
 
-        if( host.countLabels() == 0 ) { host = g_zonename.operator const DNSName&(); }
+        if( !host.hasLabels() ) { host = g_zonename.operator const DNSName&(); }
 
         if( !g_entries[dn] )
         {

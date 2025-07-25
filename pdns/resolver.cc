@@ -202,7 +202,7 @@ namespace pdns {
       if(mdp.d_header.rcode)
         return mdp.d_header.rcode;
 
-      if(origQname.countLabels()) {  // not AXFR
+      if(origQname.hasLabels()) {  // not AXFR
         if(mdp.d_header.id != id)
           throw ResolverException("Remote nameserver replied with wrong id");
         if(mdp.d_header.qdcount != 1)
