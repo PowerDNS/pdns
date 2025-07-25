@@ -902,6 +902,48 @@ static void loadCustomPolicies(const ::rust::Vec<dnsdist::rust::settings::Custom
   }
 }
 
+static void loadPacketCaches(const ::rust::Vec<dnsdist::rust::settings::PacketCacheConfiguration>& packetCaches)
+{
+  for (const auto& cache : packetCaches) {
+    DNSDistPacketCache::CacheSettings settings{
+      .d_maxEntries = cache.size,
+      .d_maxTTL = cache.max_ttl,
+      .d_minTTL = cache.min_ttl,
+      .d_tempFailureTTL = cache.temporary_failure_ttl,
+      .d_maxNegativeTTL = cache.max_negative_ttl,
+      .d_staleTTL = cache.stale_ttl,
+      .d_shardCount = cache.shards,
+      .d_dontAge = cache.dont_age,
+      .d_deferrableInsertLock = cache.deferrable_insert_lock,
+      .d_parseECS = cache.parse_ecs,
+      .d_keepStaleData = cache.keep_stale_data,
+    };
+    std::unordered_set<uint16_t> ranks;
+    for (const auto& option : cache.options_to_skip) {
+      settings.d_optionsToSkip.insert(pdns::checked_stoi<uint16_t>(std::string(option)));
+    }
+    if (cache.cookie_hashing) {
+      settings.d_optionsToSkip.erase(EDNSOptionCode::COOKIE);
+    }
+    if (cache.maximum_entry_size >= sizeof(dnsheader)) {
+      settings.d_maximumEntrySize = cache.maximum_entry_size;
+    }
+    for (const auto& rank : cache.payload_ranks) {
+      if (rank < 512 || rank > settings.d_maximumEntrySize) {
+        continue;
+      }
+      ranks.insert(rank);
+    }
+    if (!ranks.empty()) {
+      settings.d_payloadRanks.assign(ranks.begin(), ranks.end());
+      std::sort(settings.d_payloadRanks.begin(), settings.d_payloadRanks.end());
+    }
+    auto packetCacheObj = std::make_shared<DNSDistPacketCache>(settings);
+
+    registerType<DNSDistPacketCache>(packetCacheObj, cache.name);
+  }
+}
+
 static void handleOpenSSLSettings(const dnsdist::rust::settings::TlsTuningConfiguration& tlsSettings)
 {
   for (const auto& engine : tlsSettings.engines) {
@@ -1143,45 +1185,7 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
       });
     }
 
-    for (const auto& cache : globalConfig.packet_caches) {
-      DNSDistPacketCache::CacheSettings settings{
-        .d_maxEntries = cache.size,
-        .d_maxTTL = cache.max_ttl,
-        .d_minTTL = cache.min_ttl,
-        .d_tempFailureTTL = cache.temporary_failure_ttl,
-        .d_maxNegativeTTL = cache.max_negative_ttl,
-        .d_staleTTL = cache.stale_ttl,
-        .d_shardCount = cache.shards,
-        .d_dontAge = cache.dont_age,
-        .d_deferrableInsertLock = cache.deferrable_insert_lock,
-        .d_parseECS = cache.parse_ecs,
-        .d_keepStaleData = cache.keep_stale_data,
-      };
-      std::unordered_set<uint16_t> ranks;
-      for (const auto& option : cache.options_to_skip) {
-        settings.d_optionsToSkip.insert(pdns::checked_stoi<uint16_t>(std::string(option)));
-      }
-      if (cache.cookie_hashing) {
-        settings.d_optionsToSkip.erase(EDNSOptionCode::COOKIE);
-      }
-      if (cache.maximum_entry_size >= sizeof(dnsheader)) {
-        settings.d_maximumEntrySize = cache.maximum_entry_size;
-      }
-      for (const auto& rank : cache.payload_ranks) {
-        if (rank < 512 || rank > settings.d_maximumEntrySize) {
-          continue;
-        }
-        ranks.insert(rank);
-      }
-      if (!ranks.empty()) {
-        settings.d_payloadRanks.assign(ranks.begin(), ranks.end());
-        std::sort(settings.d_payloadRanks.begin(), settings.d_payloadRanks.end());
-      }
-      auto packetCacheObj = std::make_shared<DNSDistPacketCache>(settings);
-
-      registerType<DNSDistPacketCache>(packetCacheObj, cache.name);
-    }
-
+    loadPacketCaches(globalConfig.packet_caches);
     loadCustomPolicies(globalConfig.load_balancing_policies.custom_policies);
 
     if (!globalConfig.load_balancing_policies.default_policy.empty()) {

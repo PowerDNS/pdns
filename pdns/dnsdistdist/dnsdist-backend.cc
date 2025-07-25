@@ -1044,11 +1044,11 @@ const ServerPolicy::NumberedServerVector& ServerPool::getServers() const
 
 void ServerPool::addServer(std::shared_ptr<DownstreamState>& server)
 {
-  unsigned int count = static_cast<unsigned int>(d_servers.size());
+  auto count = static_cast<unsigned int>(d_servers.size());
   d_servers.emplace_back(++count, server);
   /* we need to reorder based on the server 'order' */
-  std::stable_sort(d_servers.begin(), d_servers.end(), [](const std::pair<unsigned int,std::shared_ptr<DownstreamState> >& a, const std::pair<unsigned int,std::shared_ptr<DownstreamState> >& b) {
-      return a.second->d_config.order < b.second->d_config.order;
+  std::stable_sort(d_servers.begin(), d_servers.end(), [](const std::pair<unsigned int,std::shared_ptr<DownstreamState> >& lhs, const std::pair<unsigned int,std::shared_ptr<DownstreamState> >& rhs) {
+      return lhs.second->d_config.order < rhs.second->d_config.order;
     });
   /* and now we need to renumber for Lua (custom policies) */
   size_t idx = 1;
