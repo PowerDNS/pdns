@@ -38,7 +38,7 @@ void Bind2Backend::setupDNSSEC()
 
 unsigned int Bind2Backend::getCapabilities()
 {
-  unsigned int caps = CAP_LIST;
+  unsigned int caps = CAP_LIST | CAP_SEARCH;
   if (d_hybrid) {
     caps |= CAP_DNSSEC;
   }
@@ -203,7 +203,7 @@ void Bind2Backend::freeStatements()
 
 unsigned int Bind2Backend::getCapabilities()
 {
-  unsigned int caps = CAP_LIST;
+  unsigned int caps = CAP_LIST | CAP_SEARCH;
   if (d_dnssecdb || d_hybrid) {
     caps |= CAP_DNSSEC;
   }

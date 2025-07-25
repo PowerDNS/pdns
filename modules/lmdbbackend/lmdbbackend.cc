@@ -846,7 +846,7 @@ void LMDBBackend::openAllTheDatabases()
 
 unsigned int LMDBBackend::getCapabilities()
 {
-  unsigned int caps = CAP_DNSSEC | CAP_DIRECT | CAP_LIST | CAP_CREATE;
+  unsigned int caps = CAP_DNSSEC | CAP_DIRECT | CAP_LIST | CAP_CREATE | CAP_SEARCH;
   if (d_views) {
     caps |= CAP_VIEWS;
   }
@@ -1424,32 +1424,6 @@ bool LMDBBackend::replaceComments([[maybe_unused]] domainid_t domain_id, [[maybe
   // if the vector is empty, good, that's what we do here (LMDB does not store comments)
   // if it's not, report failure
   return comments.empty();
-}
-
-bool LMDBBackend::searchRecords(const string& pattern, size_t maxResults, vector<DNSResourceRecord>& result)
-{
-  SimpleMatch simpleMatch(pattern, true);
-  std::vector<DomainInfo> domains;
-  getAllDomains(&domains, false, true);
-  for (const auto& info : domains) {
-    if (!list(info.zone, info.id, true)) {
-      return false;
-    }
-    DNSResourceRecord rec;
-    while (get(rec)) {
-      if (maxResults == 0) {
-        continue;
-      }
-      if (simpleMatch.match(rec.qname.toStringNoDot()) || simpleMatch.match(rec.content)) {
-        result.emplace_back(rec);
-        --maxResults;
-      }
-    }
-    if (maxResults == 0) {
-      break;
-    }
-  }
-  return true;
 }
 
 // FIXME: this is not very efficient

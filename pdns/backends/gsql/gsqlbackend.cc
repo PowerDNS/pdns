@@ -874,7 +874,7 @@ bool GSQLBackend::updateEmptyNonTerminals(domainid_t domain_id, set<DNSName>& in
 
 unsigned int GSQLBackend::getCapabilities()
 {
-  unsigned int caps = CAP_COMMENTS | CAP_DIRECT | CAP_LIST | CAP_CREATE;
+  unsigned int caps = CAP_COMMENTS | CAP_DIRECT | CAP_LIST | CAP_CREATE | CAP_SEARCH;
   if (d_dnssecQueries) {
     caps |= CAP_DNSSEC;
   }
