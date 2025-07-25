@@ -528,6 +528,8 @@ static void controlClientThread(ConsoleConnection&& conn)
 
       line = dnsdist::crypto::authenticated::decryptSym(line, consoleKey, readingNonce);
 
+      dnsdist::configuration::refreshLocalRuntimeConfiguration();
+
       string response;
       try {
         bool withReturn = true;
@@ -648,6 +650,7 @@ void controlThread(Socket&& acceptFD)
     infolog("Accepting control connections on %s", local.toStringWithPort());
 
     while ((sock = SAccept(acceptFD.getHandle(), client)) >= 0) {
+      dnsdist::configuration::refreshLocalRuntimeConfiguration();
       const auto& consoleKey = dnsdist::configuration::getCurrentRuntimeConfiguration().d_consoleKey;
       FDWrapper socket(sock);
       if (!dnsdist::crypto::authenticated::isValidKey(consoleKey)) {

@@ -1019,6 +1019,8 @@ void doh3Thread(ClientState* clientState)
       readyFDs.clear();
       mplexer->getAvailableFDs(readyFDs, 500);
 
+      dnsdist::configuration::refreshLocalRuntimeConfiguration();
+
       try {
         if (std::find(readyFDs.begin(), readyFDs.end(), sock.getHandle()) != readyFDs.end()) {
           handleSocketReadable(*frontend, *clientState, sock, buffer);

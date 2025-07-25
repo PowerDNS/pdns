@@ -878,6 +878,8 @@ static void dohClientThread(pdns::channel::Receiver<CrossProtocolQuery>&& receiv
     for (;;) {
       data.mplexer->run(&now, 1000);
 
+      dnsdist::configuration::refreshLocalRuntimeConfiguration();
+
       if (now.tv_sec > lastTimeoutScan) {
         lastTimeoutScan = now.tv_sec;
 

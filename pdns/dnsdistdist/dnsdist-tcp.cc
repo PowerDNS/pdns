@@ -1717,6 +1717,8 @@ static void tcpClientThread(pdns::channel::Receiver<ConnectionInfo>&& queryRecei
     for (;;) {
       data.mplexer->run(&now);
 
+      dnsdist::configuration::refreshLocalRuntimeConfiguration();
+
       try {
         t_downstreamTCPConnectionsManager.cleanupClosedConnections(now);
         dnsdist::IncomingConcurrentTCPConnectionsManager::cleanup(time(nullptr));
@@ -1880,6 +1882,7 @@ void tcpAcceptorThread(const std::vector<ClientState*>& states)
     timeval now{};
     while (true) {
       mplexer->run(&now, -1);
+      dnsdist::configuration::refreshLocalRuntimeConfiguration();
     }
   }
 }
