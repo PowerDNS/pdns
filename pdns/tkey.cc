@@ -28,7 +28,7 @@ void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& 
 
   auto inception = time(nullptr);
   // retain original name for response
-  tkey_out->d_error = 0;
+  tkey_out->d_error = RCode::NoError;
   tkey_out->d_mode = tkey_in.d_mode;
   tkey_out->d_algo = tkey_in.d_algo;
   // coverity[store_truncates_time_t]
@@ -48,26 +48,26 @@ void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& 
         } while(tmpName.chopOff());
 
         if (meta.size() == 0) {
-          tkey_out->d_error = 20;
+          tkey_out->d_error = ERCode::BADNAME;
         } else {
           GssContext ctx(name);
           ctx.setLocalPrincipal(meta[0]);
           // try to get a context
           if (!ctx.accept(tkey_in.d_key, tkey_out->d_key)) {
             ctx.destroy();
-            tkey_out->d_error = 19;
+            tkey_out->d_error = ERCode::BADMODE;
           }
           else {
             sign = true;
           }
         }
       } else {
-        tkey_out->d_error = 21; // BADALGO
+        tkey_out->d_error = ERCode::BADALG;
       }
     } else
 #endif
       {
-      tkey_out->d_error = 21; // BADALGO
+      tkey_out->d_error = ERCode::BADALG;
 #ifdef ENABLE_GSS_TSIG
       g_log<<Logger::Debug<<"GSS-TSIG request but feature not enabled by enable-gss-tsig setting"<<endl;
 #else
@@ -87,7 +87,7 @@ void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& 
       ctx.destroy();
     }
     else {
-      tkey_out->d_error = 20; // BADNAME (because we have no support for anything here)
+      tkey_out->d_error = ERCode::BADNAME; // (because we have no support for anything here)
     }
   } else {
     if (p.d_havetsig == false && tkey_in.d_mode != 2) { // unauthenticated
@@ -97,7 +97,7 @@ void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& 
         r->setRcode(RCode::NotAuth);
       return;
     }
-    tkey_out->d_error = 19; // BADMODE
+    tkey_out->d_error = ERCode::BADMODE;
   }
 
   tkey_out->d_keysize = tkey_out->d_key.size();
