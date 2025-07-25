@@ -406,9 +406,7 @@ bool PacketHandler::getBestWildcard(DNSPacket& p, const DNSName &target, DNSName
 #ifdef HAVE_LUA_RECORDS
   bool doLua=g_doLuaRecord;
   if(!doLua) {
-    string val;
-    d_dk.getFromMeta(d_sd.zonename, "ENABLE-LUA-RECORDS", val);
-    doLua = (val=="1");
+    doLua = d_dk.isMetadataOne(d_sd.zonename, "ENABLE-LUA-RECORDS", true);
   }
 #endif
 
@@ -716,9 +714,7 @@ void PacketHandler::emitNSEC(std::unique_ptr<DNSPacket>& r, const DNSName& name,
       first = false;
       doLua = g_doLuaRecord;
       if (!doLua) {
-        string val;
-        d_dk.getFromMeta(d_sd.zonename, "ENABLE-LUA-RECORDS", val);
-        doLua = (val == "1");
+        doLua = d_dk.isMetadataOne(d_sd.zonename, "ENABLE-LUA-RECORDS", true);
       }
     }
 
@@ -808,9 +804,7 @@ void PacketHandler::emitNSEC3(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const
         first = false;
         doLua = g_doLuaRecord;
         if (!doLua) {
-          string val;
-          d_dk.getFromMeta(d_sd.zonename, "ENABLE-LUA-RECORDS", val);
-          doLua = (val == "1");
+          doLua = d_dk.isMetadataOne(d_sd.zonename, "ENABLE-LUA-RECORDS", true);
         }
       }
 
@@ -1762,9 +1756,7 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state, bool re
 
 #ifdef HAVE_LUA_RECORDS
   if(!doLua) {
-    string val;
-    d_dk.getFromMeta(d_sd.zonename, "ENABLE-LUA-RECORDS", val);
-    doLua = (val=="1");
+    doLua = d_dk.isMetadataOne(d_sd.zonename, "ENABLE-LUA-RECORDS", true);
   }
 #endif
 
