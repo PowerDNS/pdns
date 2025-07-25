@@ -152,6 +152,7 @@ public:
   size_t wirelength() const; //!< Number of total bytes in the name
   bool empty() const { return d_storage.empty(); }
   bool isRoot() const { return d_storage.size()==1 && d_storage[0]==0; }
+  bool hasLabels() const { return !empty() && !isRoot(); }
   void clear() { d_storage.clear(); }
   void trimToLabels(unsigned int);
   size_t hash(size_t init=0) const

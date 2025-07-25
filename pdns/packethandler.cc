@@ -382,8 +382,8 @@ void PacketHandler::getBestDNAMESynth(DNSPacket& p, DNSName &target, vector<DNSZ
     if(!ret.empty()) {
       return;
     }
-    if(subdomain.countLabels() != 0) {
-      prefix.appendRawLabel(subdomain.getRawLabels()[0]); // XXX DNSName pain this feels wrong
+    if(subdomain.hasLabels()) {
+      prefix.appendRawLabel(subdomain.getRawLabel(0)); // XXX DNSName pain this feels wrong
     }
     if(subdomain == d_sd.qname()) { // stop at SOA
       break;
@@ -1337,7 +1337,7 @@ void PacketHandler::completeANYRecords(DNSPacket& p, std::unique_ptr<DNSPacket>&
 bool PacketHandler::tryAuthSignal(DNSPacket& p, std::unique_ptr<DNSPacket>& r, DNSName &target) // NOLINT(readability-identifier-length)
 {
   DLOG(g_log<<Logger::Warning<<"Let's try authenticated DNSSEC bootstrapping (RFC 9615) ..."<<endl);
-  if(d_sd.zonename.operator const DNSName&().countLabels() == 0 || !pdns_iequals(d_sd.zonename.operator const DNSName&().getRawLabel(0), "_signal") || !d_dk.isSignalingZone(d_sd.zonename)) {
+  if(!d_sd.zonename.operator const DNSName&().hasLabels() || !pdns_iequals(d_sd.zonename.operator const DNSName&().getRawLabel(0), "_signal") || !d_dk.isSignalingZone(d_sd.zonename)) {
     return false;
   }
 
@@ -1353,7 +1353,7 @@ bool PacketHandler::tryAuthSignal(DNSPacket& p, std::unique_ptr<DNSPacket>& r, D
   }
 
   // Check for prefix mismatch
-  if(target.countLabels() == 0 || !pdns_iequals(target.getRawLabel(0), "_dsboot")) {
+  if(!target.hasLabels() || !pdns_iequals(target.getRawLabel(0), "_dsboot")) {
     makeNOError(p, r, target, DNSName(), 0); // could be ENT
     return true;
   }
