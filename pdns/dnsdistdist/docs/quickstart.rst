@@ -35,17 +35,17 @@ The ``yaml`` equivalent, from 2.0+ onwards, would be:
   backends:
     - address: "2001:db8::1"
       protocol: Do53
-      qps: 1
+      queries_per_second: 1
     - address: "2001:db8::2"
       protocol: Do53
-      qps: 1
+      queries_per_second: 1
     - address: "[2001:db8::3]:5300"
       protocol: Do53
-      qps: 10
+      queries_per_second: 10
     - address: "[2001:db8::4]"
       name: "dns1"
       protocol: Do53
-      qps: 10
+      queries_per_second: 10
     - address: "192.0.2.1"
       protocol: Do53
   load_balancing_policies:
