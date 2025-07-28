@@ -1,1 +1,0 @@
-remove-on-upgrade /etc/powerdns/recursor.lua
