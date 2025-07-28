@@ -1568,6 +1568,95 @@ BOOST_AUTO_TEST_CASE(test_following_cname_chain_with_a)
   BOOST_CHECK_EQUAL(ret[2].getContent()->getZoneRepresentation(), "192.0.2.2");
 }
 
+BOOST_AUTO_TEST_CASE(test_following_cname_chain_with_rpz)
+{
+  std::unique_ptr<SyncRes> resolver;
+  initSR(resolver);
+  resolver->setQNameMinimization(true);
+
+  primeHints();
+
+  const DNSName target("rpzhit.powerdns.com.");
+  const DNSName cnameTargeta("cname-targeta.powerdns.com");
+  const DNSName cnameTargetb("cname-targetb.powerdns.com");
+
+  resolver->setAsyncCallback([&](const ComboAddress& address, const DNSName& domain, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
+    if (isRootServer(address)) {
+      setLWResult(res, 0, false, false, true);
+      addRecordToLW(res, domain, QType::NS, "a.gtld-servers.net.", DNSResourceRecord::AUTHORITY, 172800);
+      addRecordToLW(res, "a.gtld-servers.net.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+      return LWResult::Result::Success;
+    }
+    if (address == ComboAddress("192.0.2.1:53")) {
+
+      if (domain == cnameTargeta) {
+        setLWResult(res, 0, true, false, false);
+        addRecordToLW(res, cnameTargeta, QType::CNAME, cnameTargetb.toString());
+        return LWResult::Result::Success;
+      }
+      if (domain == cnameTargetb) {
+        setLWResult(res, 0, true, false, false);
+        addRecordToLW(res, domain, QType::A, "192.0.2.2", DNSResourceRecord::ANSWER, 10);
+      }
+
+      return LWResult::Result::Success;
+    }
+
+    return LWResult::Result::Timeout;
+  });
+
+  DNSFilterEngine::Policy pol;
+  pol.d_ttl = 600;
+  pol.d_kind = DNSFilterEngine::PolicyKind::Custom;
+  auto customRecord = DNSRecordContent::make(QType::CNAME, QClass::IN, cnameTargeta.toString());
+  std::vector<std::shared_ptr<const DNSRecordContent>> custom = {customRecord};
+  pol.setCustom(custom);
+  std::shared_ptr<DNSFilterEngine::Zone> zone = std::make_shared<DNSFilterEngine::Zone>();
+  zone->setName("Unit test policy 0");
+  zone->addQNameTrigger(target, std::move(pol));
+  auto luaconfsCopy = g_luaconfs.getCopy();
+  luaconfsCopy.dfe.clearZones();
+  luaconfsCopy.dfe.addZone(zone);
+  g_luaconfs.setState(luaconfsCopy);
+
+  time_t now = time(nullptr);
+
+  vector<DNSRecord> ret;
+  int res = resolver->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_REQUIRE_EQUAL(ret.size(), 3U);
+  BOOST_CHECK(ret[0].d_type == QType::CNAME);
+  BOOST_CHECK_EQUAL(ret[0].d_name, target);
+  BOOST_CHECK_EQUAL(ret[0].getContent()->getZoneRepresentation(), cnameTargeta.toString());
+  BOOST_CHECK(ret[1].d_type == QType::CNAME);
+  BOOST_CHECK_EQUAL(ret[1].d_name, cnameTargeta);
+  BOOST_CHECK_EQUAL(ret[1].getContent()->getZoneRepresentation(), cnameTargetb.toString());
+  BOOST_CHECK(ret[2].d_type == QType::A);
+  BOOST_CHECK_EQUAL(ret[2].d_name, cnameTargetb);
+  BOOST_CHECK_EQUAL(ret[2].getContent()->getZoneRepresentation(), "192.0.2.2");
+
+  // Let the final record expire. If an RPZ producing a custom CNAME was hit, we used to not follow
+  // the CNAME as aggressively as needed.  The symptom being the final record missing from the
+  // result.
+  resolver->setNow(timeval{now + 20, 0});
+  resolver->setQNameMinimization(true); // XXX find out why this is needed
+
+  ret.clear();
+  resolver->d_appliedPolicy = DNSFilterEngine::Policy();
+  res = resolver->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_REQUIRE_EQUAL(ret.size(), 3U);
+  BOOST_CHECK(ret[0].d_type == QType::CNAME);
+  BOOST_CHECK_EQUAL(ret[0].d_name, target);
+  BOOST_CHECK_EQUAL(ret[0].getContent()->getZoneRepresentation(), cnameTargeta.toString());
+  BOOST_CHECK(ret[1].d_type == QType::CNAME);
+  BOOST_CHECK_EQUAL(ret[1].d_name, cnameTargeta);
+  BOOST_CHECK_EQUAL(ret[1].getContent()->getZoneRepresentation(), cnameTargetb.toString());
+  BOOST_CHECK(ret[2].d_type == QType::A);
+  BOOST_CHECK_EQUAL(ret[2].d_name, cnameTargetb);
+  BOOST_CHECK_EQUAL(ret[2].getContent()->getZoneRepresentation(), "192.0.2.2");
+}
+
 BOOST_AUTO_TEST_CASE(test_cname_nxdomain)
 {
   std::unique_ptr<SyncRes> sr;
