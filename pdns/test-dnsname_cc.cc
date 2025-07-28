@@ -1042,7 +1042,7 @@ BOOST_AUTO_TEST_CASE(test_raw_data_comparison) {
     const std::string_view raw(reinterpret_cast<const char*>(query.data()) + sizeof(dnsheader), query.size() - sizeof(dnsheader));
     BOOST_CHECK(aroot.matches(raw));
 
-    DNSName differentCase("A.RooT-Servers.NET");
+    const DNSName differentCase("A.RooT-Servers.NET");
     BOOST_CHECK(differentCase.matches(raw));
 
     const DNSName broot("b.root-servers.net");
