@@ -1038,7 +1038,7 @@ BOOST_AUTO_TEST_CASE(test_raw_data_comparison) {
   GenericDNSPacketWriter<PacketBuffer> packetWriter(query, aroot, QType::A, QClass::IN, 0);
 
   {
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     const std::string_view raw(reinterpret_cast<const char*>(query.data()) + sizeof(dnsheader), query.size() - sizeof(dnsheader));
     BOOST_CHECK(aroot.matches(raw));
 
