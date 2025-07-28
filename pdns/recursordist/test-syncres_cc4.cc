@@ -1908,7 +1908,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_bad_algo)
 BOOST_AUTO_TEST_CASE(test_dnssec_bogus_unsigned_ds)
 {
   std::unique_ptr<SyncRes> sr;
-  initSR(sr, true);
+  initSR(sr, true, false);
 
   setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
@@ -1968,7 +1968,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_unsigned_ds)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusNoRRSIG);
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
-  BOOST_CHECK_EQUAL(queriesCount, 3U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
 
   /* again, to test the cache */
   ret.clear();
@@ -1976,7 +1976,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_unsigned_ds)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusNoRRSIG);
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
-  BOOST_CHECK_EQUAL(queriesCount, 3U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
 
   /* now we ask directly for the DS */
   ret.clear();
@@ -1984,7 +1984,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_unsigned_ds)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusNoRRSIG);
   BOOST_REQUIRE_EQUAL(ret.size(), 1U);
-  BOOST_CHECK_EQUAL(queriesCount, 3U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_bogus_unsigned_ds_direct)

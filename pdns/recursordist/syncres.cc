@@ -2266,7 +2266,7 @@ bool SyncRes::canUseRecords(const std::string& prefix, const DNSName& qname, con
     LOG(prefix << qname << ": Cannot use " << name << '/' << qtype << " records from cache: Bogus" << endl);
     return false;
   }
-  // We could validate Indeterminete authoritative records here.
+  // We could validate Indeterminate authoritative records here.
   return true;
 }
 
@@ -2289,8 +2289,7 @@ void SyncRes::getBestNSFromCache(const DNSName& qname, const QType qtype, vector
     *flawedNSSet = false;
 
     vState state{vState::Indeterminate};
-    if (bool isAuth = false; g_recCache->get(d_now.tv_sec, subdomain, QType::NS, flags, &nsVector, d_cacheRemote, d_routingTag, nullptr, nullptr, nullptr, nullptr, &isAuth) > 0 &&
-        canUseRecords(prefix, qname, subdomain, QType::NS, state)) {
+    if (bool isAuth = false; g_recCache->get(d_now.tv_sec, subdomain, QType::NS, flags, &nsVector, d_cacheRemote, d_routingTag, nullptr, nullptr, nullptr, &state, &isAuth) > 0 && canUseRecords(prefix, qname, subdomain, QType::NS, state)) {
       if (s_maxnsperresolve > 0 && nsVector.size() > s_maxnsperresolve) {
         vector<DNSRecord> selected;
         selected.reserve(s_maxnsperresolve);
@@ -4681,6 +4680,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
     }
   }
 
+  bool seenBogusRRSet = false;
   for (auto tCacheEntry = tcache.begin(); tCacheEntry != tcache.end(); ++tCacheEntry) {
 
     if (tCacheEntry->second.records.empty()) { // this happens when we did store signatures, but passed on the records themselves
@@ -4785,6 +4785,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
     }
 
     if (vStateIsBogus(recordState)) {
+      seenBogusRRSet = true;
       /* this is a TTD by now, be careful */
       for (auto& record : tCacheEntry->second.records) {
         auto newval = std::min(record.d_ttl, static_cast<uint32_t>(s_maxbogusttl + d_now.tv_sec));
@@ -4805,7 +4806,11 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
     if (tCacheEntry->first.type != QType::NSEC3 && (tCacheEntry->first.type == QType::DS || tCacheEntry->first.type == QType::NS || tCacheEntry->first.type == QType::A || tCacheEntry->first.type == QType::AAAA || isAA || wasForwardRecurse)) {
 
       bool doCache = true;
-      if (tCacheEntry->first.place == DNSResourceRecord::ANSWER && ednsmask) {
+      if (!isAA && seenBogusRRSet) {
+        LOG(prefix << qname << ": Not caching non-authoritative rrsets received with Bogus answer" << endl);
+        doCache = false;
+      }
+      if (doCache && tCacheEntry->first.place == DNSResourceRecord::ANSWER && ednsmask) {
         const bool isv4 = ednsmask->isIPv4();
         if ((isv4 && s_ecsipv4nevercache) || (!isv4 && s_ecsipv6nevercache)) {
           doCache = false;
