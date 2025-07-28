@@ -443,6 +443,24 @@ void IncomingHTTP2Connection::handleIO()
       if (nghttp2_session_want_read(d_session.get()) != 0) {
         updateIO(IOState::NeedRead, handleReadableIOCallback);
       }
+      else {
+        if (getConcurrentStreamsCount() == 0) {
+          d_connectionDied = true;
+          stopIO();
+        }
+        else {
+          updateIO(IOState::Done, handleReadableIOCallback);
+        }
+      }
+    }
+    else {
+      if (getConcurrentStreamsCount() == 0) {
+        d_connectionDied = true;
+        stopIO();
+      }
+      else {
+        updateIO(IOState::Done, handleReadableIOCallback);
+      }
     }
   }
   catch (const std::exception& e) {
@@ -1262,6 +1280,9 @@ void IncomingHTTP2Connection::updateIO(IOState newState, const FDMultiplexer::ca
   else if (newState == IOState::NeedWrite) {
     ttd = getClientWriteTTD(now);
     d_ioState->update(newState, callback, shared, ttd);
+  }
+  else if (newState == IOState::Done) {
+    d_ioState->reset();
   }
 }
 
