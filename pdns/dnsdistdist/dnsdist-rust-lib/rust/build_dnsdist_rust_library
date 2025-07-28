@@ -1,5 +1,7 @@
 #!/bin/sh -e
 
+export CARGO="${CARGO:-$_defaultCARGO}"
+
 #echo "PWD=$PWD"
 #echo "srcdir=$srcdir"
 #echo "builddir=$builddir"
