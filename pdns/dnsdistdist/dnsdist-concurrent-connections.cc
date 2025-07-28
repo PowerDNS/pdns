@@ -72,6 +72,8 @@ using map_t = boost::multi_index_container<
                                            boost::multi_index::member<ClientEntry, time_t, &ClientEntry::d_lastSeen>>>>;
 
 static std::vector<LockGuarded<map_t>> s_tcpClientsConnectionMetrics{NB_SHARDS};
+static std::atomic<time_t> s_nextCleanup{0};
+static constexpr time_t INACTIVITY_DELAY{60};
 
 static AddressAndPortRange getRange(const ComboAddress& from)
 {
@@ -94,7 +96,7 @@ static bool checkTCPConnectionsRate(const boost::circular_buffer<ClientActivity>
   uint64_t connectionsSeen = 0;
   uint64_t tlsNewSeen = 0;
   uint64_t tlsResumedSeen = 0;
-  time_t cutOff = now - (interval * 60);
+  time_t cutOff = now - (interval * 60); // interval is in seconds
   for (const auto& entry : activity) {
     if (entry.bucketEndTime < cutOff) {
       continue;
@@ -130,9 +132,14 @@ static bool checkTCPConnectionsRate(const boost::circular_buffer<ClientActivity>
 
 void IncomingConcurrentTCPConnectionsManager::cleanup(time_t now)
 {
+  if (s_nextCleanup.load() > now) {
+    return;
+  }
+  s_nextCleanup.store(now + 60);
+
   const auto& immutable = dnsdist::configuration::getImmutableConfiguration();
   const auto interval = immutable.d_tcpConnectionsRatePerClientInterval;
-  time_t cutOff = now - (interval * 60);
+  time_t cutOff = now - (interval * 60); // interval in minutes
   for (auto& shard : s_tcpClientsConnectionMetrics) {
     auto db = shard.lock();
     auto& index = db->get<TimeTag>();
@@ -152,7 +159,7 @@ static ClientActivity& getCurrentClientActivity(const ClientEntry& entry, time_t
 {
   auto& activity = entry.d_activity;
   if (activity.empty() || activity.front().bucketEndTime < now) {
-    activity.push_front(ClientActivity{1, 0, 0, now + 60});
+    activity.push_front(ClientActivity{1, 0, 0, now + INACTIVITY_DELAY});
   }
   return activity.front();
 }
