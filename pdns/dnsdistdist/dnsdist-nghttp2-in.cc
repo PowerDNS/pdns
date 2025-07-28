@@ -752,17 +752,18 @@ bool IncomingHTTP2Connection::sendResponse(IncomingHTTP2Connection::StreamID str
     NGHTTP2Headers::addCustomDynamicHeader(headers, key, value);
   }
 
+  context.d_sendingResponse = true;
   auto ret = nghttp2_submit_response(d_session.get(), streamID, headers.data(), headers.size(), &data_provider);
   if (ret != 0) {
-    d_currentStreams.erase(streamID);
     vinfolog("Error submitting HTTP response for stream %d: %s", streamID, nghttp2_strerror(ret));
+    d_currentStreams.erase(streamID);
     return false;
   }
 
   ret = nghttp2_session_send(d_session.get());
   if (ret != 0) {
-    d_currentStreams.erase(streamID);
     vinfolog("Error flushing HTTP response for stream %d: %s", streamID, nghttp2_strerror(ret));
+    d_currentStreams.erase(streamID);
     return false;
   }
 
@@ -958,9 +959,16 @@ int IncomingHTTP2Connection::on_stream_close_callback(nghttp2_session* session, 
   (void)error_code;
   auto* conn = static_cast<IncomingHTTP2Connection*>(user_data);
 
-  if (conn->d_currentStreams.erase(stream_id) > 0) {
+  auto streamIt = conn->d_currentStreams.find(stream_id);
+  if (streamIt == conn->d_currentStreams.end()) {
+    return 0;
+  }
+
+  if (!streamIt->second.d_sendingResponse) {
     conn->d_killedStreams.emplace(stream_id);
   }
+
+  conn->d_currentStreams.erase(streamIt);
   return 0;
 }
 

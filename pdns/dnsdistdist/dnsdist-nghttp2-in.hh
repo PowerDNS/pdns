@@ -55,6 +55,7 @@ public:
     size_t d_queryPos{0};
     uint32_t d_statusCode{0};
     Method d_method{Method::Unknown};
+    bool d_sendingResponse{false};
   };
 
   IncomingHTTP2Connection(ConnectionInfo&& connectionInfo, TCPClientThreadData& threadData, const struct timeval& now);
