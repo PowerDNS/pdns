@@ -2304,6 +2304,16 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName& qname, unsigned int depth,
   return ret;
 }
 
+bool SyncRes::canUseRecords(const std::string& prefix, const DNSName& qname, const DNSName& name, QType qtype, vState state)
+{
+  if (vStateIsBogus(state)) {
+    LOG(prefix << qname << ": Cannot use " << name << '/' << qtype << " records from cache: Bogus" << endl);
+    return false;
+  }
+  // We could validate Indeterminete authoritative records here.
+  return true;
+}
+
 void SyncRes::getBestNSFromCache(const DNSName& qname, const QType qtype, vector<DNSRecord>& bestns, bool* flawedNSSet, unsigned int depth, const string& prefix, set<GetBestNSAnswer>& beenthere, const boost::optional<DNSName>& cutOffDomain) // NOLINT(readability-function-cognitive-complexity)
 {
   DNSName subdomain(qname);
@@ -2322,7 +2332,9 @@ void SyncRes::getBestNSFromCache(const DNSName& qname, const QType qtype, vector
     vector<DNSRecord> nsVector;
     *flawedNSSet = false;
 
-    if (bool isAuth = false; g_recCache->get(d_now.tv_sec, subdomain, QType::NS, flags, &nsVector, d_cacheRemote, d_routingTag, nullptr, nullptr, nullptr, nullptr, &isAuth) > 0) {
+    vState state{vState::Indeterminate};
+    if (bool isAuth = false; g_recCache->get(d_now.tv_sec, subdomain, QType::NS, flags, &nsVector, d_cacheRemote, d_routingTag, nullptr, nullptr, nullptr, nullptr, &isAuth) > 0 &&
+        canUseRecords(prefix, qname, subdomain, QType::NS, state)) {
       if (s_maxnsperresolve > 0 && nsVector.size() > s_maxnsperresolve) {
         vector<DNSRecord> selected;
         selected.reserve(s_maxnsperresolve);
@@ -2344,7 +2356,12 @@ void SyncRes::getBestNSFromCache(const DNSName& qname, const QType qtype, vector
           }
 
           auto nrr = getRR<NSRecordContent>(nsRecord);
-          if (nrr && (!nrr->getNS().isPartOf(subdomain) || g_recCache->get(d_now.tv_sec, nrr->getNS(), nsqt, flags, doLog() ? &aset : nullptr, d_cacheRemote, d_routingTag) > 0)) {
+          state = vState::Indeterminate;
+          if (nrr && (!nrr->getNS().isPartOf(subdomain) || g_recCache->get(d_now.tv_sec, nrr->getNS(), nsqt, flags, doLog() ? &aset : nullptr, d_cacheRemote, d_routingTag, nullptr, nullptr, nullptr, &state) > 0)) {
+            // We make use of the fact that if get() is not called the state is still Indeterminate
+            if (!canUseRecords(prefix, qname, nrr->getNS(), nsqt, state)) {
+              continue;
+            }
             bestns.push_back(nsRecord);
             LOG(prefix << qname << ": NS (with ip, or non-glue) in cache for '" << subdomain << "' -> '" << nrr->getNS() << "'");
             LOG(", within bailiwick: " << nrr->getNS().isPartOf(subdomain));
