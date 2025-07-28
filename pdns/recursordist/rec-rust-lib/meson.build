@@ -14,6 +14,7 @@ generated = [
 python = find_program('python3')
 
 recrust = custom_target(
+  'rec-rust-sources',
   command: [python, '@INPUT0@', '@SOURCE_ROOT@/rec-rust-lib', '@BUILD_ROOT@/rec-rust-lib'],
   input: sources,
   output: generated,
