@@ -133,7 +133,11 @@ private:
   struct CacheEntry
   {
     CacheEntry(const std::tuple<DNSName, QType, OptTag, Netmask>& key, bool auth) :
-      d_qname(std::get<0>(key)), d_netmask(std::get<3>(key).getNormalized()), d_rtag(std::get<2>(key)), d_qtype(std::get<1>(key)), d_auth(auth)
+      d_rtag(std::get<2>(key)),
+      d_netmask(std::get<3>(key).getNormalized()),
+      d_qname(std::get<0>(key)),
+      d_qtype(std::get<1>(key)),
+      d_auth(auth)
     {
     }
 
@@ -160,22 +164,22 @@ private:
     [[nodiscard]] size_t authRecsSizeEstimate() const;
     [[nodiscard]] size_t sigRecsSizeEstimate() const;
 
-    records_t d_records;
-    SigRecs d_signatures;
-    AuthRecs d_authorityRecs;
-    DNSName d_qname;
-    DNSName d_authZone;
-    ComboAddress d_from;
-    Netmask d_netmask;
-    OptTag d_rtag;
-    mutable vState d_state{vState::Indeterminate};
-    mutable time_t d_ttd{0};
-    uint32_t d_orig_ttl{0};
-    mutable uint16_t d_servedStale{0};
-    QType d_qtype;
-    bool d_auth;
-    mutable bool d_submitted{false}; // whether this entry has been queued for refetch
-    bool d_tooBig{false};
+    OptTag d_rtag; // 40 (sizes for typical 64 bit system)
+    Netmask d_netmask; // 36
+    ComboAddress d_from; // 28
+    records_t d_records; // 24
+    DNSName d_qname; // 24
+    DNSName d_authZone; // 24
+    SigRecs d_signatures; // 16
+    AuthRecs d_authorityRecs; // 16
+    mutable time_t d_ttd{0}; // 8
+    uint32_t d_orig_ttl{0}; // 4
+    mutable uint16_t d_servedStale{0}; // 2
+    QType d_qtype; // 2
+    mutable vState d_state{vState::Indeterminate}; // 1
+    bool d_auth; // 1
+    mutable bool d_submitted{false}; // 1, whether this entry has been queued for refetch
+    bool d_tooBig{false}; // 1
   };
 
   bool replace(CacheEntry&& entry);
