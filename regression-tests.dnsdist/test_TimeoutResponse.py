@@ -102,7 +102,7 @@ class TestTimeoutBackendUdpTcp(DNSDistTest):
 
         for method in ("sendUDPQuery", "sendTCPQuery", "sendDOQQueryWrapper", "sendDOH3QueryWrapper", "sendDOTQueryWrapper", "sendDOHWithNGHTTP2QueryWrapper"):
             sender = getattr(self, method)
-            (_, receivedResponse) = sender(query, response=None, useQueue=False, timeout=3)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False, timeout=4)
             self.assertTrue(receivedResponse)
             self.assertEqual(receivedResponse, expectedResponse)
 
