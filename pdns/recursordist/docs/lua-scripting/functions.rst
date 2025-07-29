@@ -67,6 +67,7 @@ These are some functions that don't really have a place in one of the other cate
 
 .. function:: getConfigDirAndName() -> str, str
 
+   .. versionadded:: 5.2.5
    .. versionadded:: 5.3.0
 
    Get the configuration directory and the instance name.

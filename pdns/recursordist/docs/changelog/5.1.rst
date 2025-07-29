@@ -4,6 +4,31 @@ Changelogs for 5.1.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
+  :version: 5.1.7
+  :released: 29th of July 2025
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15911
+    :tickets: 15651, 15652
+
+    When using ZTC, do not store non-auth data if the name is subject to recursive forwarding.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15911
+    :tickets: 15893
+
+    If a RPZ hit has a custom CNAME record, we should try harder to follow it.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15909
+    :tickets: 15010
+
+    Fix protobufServer(.. {taggedOnly=true}) logic for cache-returned responses.
+
+.. changelog::
   :version: 5.1.6
   :released: 21st of July 2025
 

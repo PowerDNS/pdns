@@ -4,6 +4,38 @@ Changelogs for 5.2.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
+  :version: 5.2.5
+  :released: 29th of July 2025
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15908
+    :tickets: 15893
+
+    If a RPZ hit has a custom CNAME record, we should try harder to follow it.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15907
+    :tickets: 15651, 15652
+
+    When using ZTC, do not store non-auth data if the name is subject to recursive forwarding.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15906
+    :tickets: 15435
+
+    Add a Lua function to get the config dir and name.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15905
+    :tickets: 15367, 15368
+
+    Fix generation of recursor config if PDNS_RECURSOR_API_KEY is set.
+
+.. changelog::
   :version: 5.2.4
   :released: 21st of July 2025
 
