@@ -1713,11 +1713,15 @@ static void tcpClientThread(pdns::channel::Receiver<ConnectionInfo>&& queryRecei
     timeval now{};
     gettimeofday(&now, nullptr);
     time_t lastTimeoutScan = now.tv_sec;
+    time_t lastConfigRefresh = now.tv_sec;
 
     for (;;) {
       data.mplexer->run(&now);
 
-      dnsdist::configuration::refreshLocalRuntimeConfiguration();
+      if (now.tv_sec > lastConfigRefresh) {
+        lastConfigRefresh = now.tv_sec;
+        dnsdist::configuration::refreshLocalRuntimeConfiguration();
+      }
 
       try {
         t_downstreamTCPConnectionsManager.cleanupClosedConnections(now);
@@ -1864,6 +1868,7 @@ void tcpAcceptorThread(const std::vector<ClientState*>& states)
 
   if (params.size() == 1) {
     while (true) {
+      dnsdist::configuration::refreshLocalRuntimeConfiguration();
       acceptNewConnection(params.at(0), nullptr);
     }
   }
@@ -1880,9 +1885,14 @@ void tcpAcceptorThread(const std::vector<ClientState*>& states)
     }
 
     timeval now{};
+    time_t lastConfigRefresh = now.tv_sec;
     while (true) {
       mplexer->run(&now, -1);
-      dnsdist::configuration::refreshLocalRuntimeConfiguration();
+
+      if (now.tv_sec > lastConfigRefresh) {
+        lastConfigRefresh = now.tv_sec;
+        dnsdist::configuration::refreshLocalRuntimeConfiguration();
+      }
     }
   }
 }
