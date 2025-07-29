@@ -96,7 +96,7 @@ static bool checkTCPConnectionsRate(const boost::circular_buffer<ClientActivity>
   uint64_t connectionsSeen = 0;
   uint64_t tlsNewSeen = 0;
   uint64_t tlsResumedSeen = 0;
-  time_t cutOff = now - (interval * 60); // interval is in seconds
+  const auto cutOff = static_cast<time_t>(now - (interval * 60)); // interval is in seconds
   for (const auto& entry : activity) {
     if (entry.bucketEndTime < cutOff) {
       continue;
@@ -139,7 +139,7 @@ void IncomingConcurrentTCPConnectionsManager::cleanup(time_t now)
 
   const auto& immutable = dnsdist::configuration::getImmutableConfiguration();
   const auto interval = immutable.d_tcpConnectionsRatePerClientInterval;
-  time_t cutOff = now - (interval * 60); // interval in minutes
+  const auto cutOff = static_cast<time_t>(now - (interval * 60)); // interval in minutes
   for (auto& shard : s_tcpClientsConnectionMetrics) {
     auto db = shard.lock();
     auto& index = db->get<TimeTag>();
