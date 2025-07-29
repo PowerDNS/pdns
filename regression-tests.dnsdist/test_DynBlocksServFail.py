@@ -47,13 +47,14 @@ class TestDynBlockServFailsCached(DynBlocksTest):
             print(method, "()")
             sender = getattr(self, method)
 
-            # fill the cache
-            (receivedQuery, receivedResponse) = sender(query, expectedResponse)
-            receivedQuery.id = query.id
-            self.assertEqual(query, receivedQuery)
-            self.assertEqual(expectedResponse, receivedResponse)
+            if method == 'sendUDPQuery':
+                # fill the cache
+                (receivedQuery, receivedResponse) = sender(query, expectedResponse)
+                receivedQuery.id = query.id
+                self.assertEqual(query, receivedQuery)
+                self.assertEqual(expectedResponse, receivedResponse)
 
-            waitForMaintenanceToRun()
+                waitForMaintenanceToRun()
 
             # we should NOT be dropped!
             (_, receivedResponse) = sender(query, response=None)

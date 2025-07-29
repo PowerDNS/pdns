@@ -694,7 +694,9 @@ void IncomingTCPConnectionState::handleResponse(const struct timeval& now, TCPRe
     dnsheader_aligned responseDH(response.d_buffer.data());
 
     if (responseDH.get()->tc && ids.d_packet && ids.d_packet->size() > ids.d_proxyProtocolPayloadSize && ids.d_packet->size() - ids.d_proxyProtocolPayloadSize > sizeof(dnsheader)) {
-      vinfolog("Response received from backend %s via UDP, for query received from %s via TCP/DoT, is truncated, retrying over TCP", response.d_ds->getNameWithAddr(), ids.origRemote.toStringWithPort());
+      VERBOSESLOG(infolog("Response received from backend %s via UDP, for query received from %s via TCP/DoT, is truncated, retrying over TCP", response.d_ds->getNameWithAddr(), ids.origRemote.toStringWithPort()),
+                  getLogger()->info(Logr::Info, "Response received from backend via UDP, for query received via TCP/DoT, is truncated, retrying over TCP"));
+
       auto& query = *ids.d_packet;
       dnsdist::PacketMangling::editDNSHeaderFromRawPacket(&query.at(ids.d_proxyProtocolPayloadSize), [origID = ids.origID](dnsheader& header) {
         /* restoring the original ID */
@@ -711,7 +713,8 @@ void IncomingTCPConnectionState::handleResponse(const struct timeval& now, TCPRe
       if (g_tcpclientthreads && g_tcpclientthreads->passCrossProtocolQueryToThread(std::move(cpq))) {
         return;
       }
-      vinfolog("Unable to pass TCP/DoT query to a TCP worker thread after getting a TC response over UDP");
+      VERBOSESLOG(infolog("Unable to pass TCP/DoT query to a TCP worker thread after getting a TC response over UDP"),
+                  getLogger()->info(Logr::Info, "Unable to pass TCP/DoT query to a TCP worker thread after getting a TC response over UDP"));
       notifyIOError(now, std::move(response));
       return;
     }

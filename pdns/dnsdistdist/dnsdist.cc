@@ -404,7 +404,6 @@ bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse,
     }
     uint32_t cacheKey = dnsResponse.ids.cacheKey;
     if (dnsResponse.ids.protocol == dnsdist::Protocol::DoH && !dnsResponse.ids.forwardedOverUDP) {
-      cacheKey = dnsResponse.ids.cacheKeyTCP;
       // disable zeroScope in that case, as we only have the "no-ECS" cache key for UDP
       zeroScope = false;
     }
@@ -414,7 +413,7 @@ bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse,
     }
     {
       auto cacheInsertCloser = dnsResponse.ids.getCloser("packetCacheInsert"); // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
-      dnsResponse.ids.packetCache->insert(cacheKey, zeroScope ? std::nullopt : dnsResponse.ids.subnet, dnsResponse.ids.cacheFlags, dnsResponse.ids.dnssecOK ? *dnsResponse.ids.dnssecOK : false, dnsResponse.ids.qname, dnsResponse.ids.qtype, dnsResponse.ids.qclass, response, dnsResponse.ids.forwardedOverUDP, dnsResponse.getHeader()->rcode, dnsResponse.ids.tempFailureTTL);
+      dnsResponse.ids.packetCache->insert(cacheKey, zeroScope ? std::nullopt : dnsResponse.ids.subnet, dnsResponse.ids.cacheFlags, dnsResponse.ids.dnssecOK ? *dnsResponse.ids.dnssecOK : false, dnsResponse.ids.qname, dnsResponse.ids.qtype, dnsResponse.ids.qclass, response, dnsResponse.getHeader()->rcode, dnsResponse.ids.tempFailureTTL);
     }
     const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
     const auto& cacheInsertedRespRuleActions = dnsdist::rules::getResponseRuleChain(chains, dnsdist::rules::ResponseRuleChain::CacheInsertedResponseRules);
@@ -1182,28 +1181,15 @@ static ServerPolicy::SelectedBackend selectBackendForOutgoingQuery(DNSQuestion& 
   return selectedBackend;
 }
 
-enum class CacheProtocolLookup : uint8_t
-{
-  UDP = 0,
-  TCP = 1,
-};
-
-enum class CacheTruncationPolicy : uint8_t
-{
-  DisallowTruncated = 0,
-  AllowTruncated = 1,
-};
-
 enum class CacheRecordMissPolicy : uint8_t
 {
   DoNotRecordMiss = 0,
   RecordMiss = 1,
 };
 
-
-static std::optional<ProcessQueryResult> doCacheLookup(const ServerPool& serverPool, DNSQuestion& dnsQuestion, uint32_t allowExpired, CacheProtocolLookup udpBasedLookup, CacheTruncationPolicy allowTruncated, CacheRecordMissPolicy recordMiss, uint32_t* cacheKeyOut)
+static std::optional<ProcessQueryResult> doCacheLookup(const ServerPool& serverPool, DNSQuestion& dnsQuestion, uint32_t allowExpired, CacheRecordMissPolicy recordMiss, uint32_t* cacheKeyOut)
 {
-  if (!serverPool.packetCache->get(dnsQuestion, dnsQuestion.getHeader()->id, cacheKeyOut, dnsQuestion.ids.subnet, *dnsQuestion.ids.dnssecOK, udpBasedLookup == CacheProtocolLookup::UDP, allowExpired, false, allowTruncated == CacheTruncationPolicy::AllowTruncated, recordMiss == CacheRecordMissPolicy::RecordMiss)) {
+  if (!serverPool.packetCache->get(dnsQuestion, dnsQuestion.getHeader()->id, cacheKeyOut, dnsQuestion.ids.subnet, *dnsQuestion.ids.dnssecOK, allowExpired, false, recordMiss == CacheRecordMissPolicy::RecordMiss)) {
     return std::nullopt;
   }
 
@@ -1224,19 +1210,16 @@ static std::optional<ProcessQueryResult> doCacheLookup(const ServerPool& serverP
 
 static std::optional<ProcessQueryResult> handleCacheLookups(const ServerPool& serverPool, DNSQuestion& dnsQuestion, ServerPolicy::SelectedBackend& selectedBackend, bool zeroScopeLookup, bool& backendLookupDone)
 {
+  if (!serverPool.packetCache || dnsQuestion.ids.skipCache) {
+    return std::nullopt;
+  }
   uint32_t allowExpired = 0;
   if (!selectedBackend && dnsdist::configuration::getCurrentRuntimeConfiguration().d_staleCacheEntriesTTL > 0 && (backendLookupDone || !serverPool.hasAtLeastOneServerAvailable())) {
     allowExpired = dnsdist::configuration::getCurrentRuntimeConfiguration().d_staleCacheEntriesTTL;
   }
 
   uint32_t* cacheKey = zeroScopeLookup ? &dnsQuestion.ids.cacheKeyNoECS : &dnsQuestion.ids.cacheKey;
-  auto cacheResult = doCacheLookup(serverPool, dnsQuestion, allowExpired, CacheProtocolLookup::UDP, dnsQuestion.overTCP() ? CacheTruncationPolicy::DisallowTruncated : CacheTruncationPolicy::AllowTruncated, CacheRecordMissPolicy::DoNotRecordMiss, cacheKey);
-  if (cacheResult) {
-    return cacheResult;
-  }
-
-  cacheKey = zeroScopeLookup ? &dnsQuestion.ids.cacheKeyNoECSTCP : &dnsQuestion.ids.cacheKeyTCP;
-  cacheResult = doCacheLookup(serverPool, dnsQuestion, allowExpired, CacheProtocolLookup::TCP, CacheTruncationPolicy::DisallowTruncated, zeroScopeLookup ? CacheRecordMissPolicy::DoNotRecordMiss : CacheRecordMissPolicy::RecordMiss, cacheKey);
+  auto cacheResult = doCacheLookup(serverPool, dnsQuestion, allowExpired, zeroScopeLookup ? CacheRecordMissPolicy::DoNotRecordMiss : CacheRecordMissPolicy::RecordMiss, cacheKey);
   if (cacheResult) {
     return cacheResult;
   }
@@ -1309,7 +1292,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
       // we special case our cache in case a downstream explicitly gave us a universally valid response with a 0 scope
       // we need ECS parsing (parseECS) to be true so we can be sure that the initial incoming query did not have an existing
       // ECS option, which would make it unsuitable for the zero-scope feature.
-      if (useZeroScope && dnsQuestion.ids.packetCache->isECSParsingEnabled()) {
+      if (useZeroScope && serverPool.packetCache && serverPool.packetCache->isECSParsingEnabled()) {
         auto cacheLookupResult = handleCacheLookups(serverPool, dnsQuestion, selectedBackend, true, backendLookupDone);
         if (cacheLookupResult) {
           if (*cacheLookupResult == ProcessQueryResult::SendAnswer) {
