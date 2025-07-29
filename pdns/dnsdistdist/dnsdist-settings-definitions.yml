@@ -1949,6 +1949,8 @@ packet_cache:
       type: "u32"
       default: 0
       description: "On a truncated (TC=1, no records) response from the backend, cache for this amount of seconds. 0, the default, means that truncated answers are not cached"
+      changes:
+        - version_removed: 2.1.0
     - name: "cookie_hashing"
       type: "bool"
       default: "false"

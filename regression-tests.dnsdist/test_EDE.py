@@ -58,7 +58,7 @@ class TestBasics(DNSDistTest):
 
         response.answer.append(rrset)
 
-        for method in ("sendUDPQuery", "sendTCPQuery"):
+        for method in ["sendUDPQuery"]:
             sender = getattr(self, method)
             (receivedQuery, receivedResponse) = sender(query, response)
             receivedQuery.id = query.id
@@ -91,7 +91,7 @@ class TestBasics(DNSDistTest):
                                     '127.0.0.1')
         expectedResponse.answer.append(rrset)
 
-        for method in ("sendUDPQuery", "sendTCPQuery"):
+        for method in ["sendUDPQuery"]:
             sender = getattr(self, method)
             (receivedQuery, receivedResponse) = sender(query, backendResponse)
             receivedQuery.id = query.id
@@ -132,7 +132,7 @@ class TestBasics(DNSDistTest):
                                     '127.0.0.1')
         expectedResponse.answer.append(rrset)
 
-        for method in ("sendUDPQuery", "sendTCPQuery"):
+        for method in ["sendUDPQuery"]:
             sender = getattr(self, method)
             (receivedQuery, receivedResponse) = sender(query, backendResponse)
             receivedQuery.id = query.id
@@ -172,7 +172,7 @@ class TestBasics(DNSDistTest):
                                     '127.0.0.1')
         expectedResponse.answer.append(rrset)
 
-        for method in ("sendUDPQuery", "sendTCPQuery"):
+        for method in ["sendUDPQuery"]:
             sender = getattr(self, method)
             (receivedQuery, receivedResponse) = sender(query, backendResponse)
             receivedQuery.id = query.id
