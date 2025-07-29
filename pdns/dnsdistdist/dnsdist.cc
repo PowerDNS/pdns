@@ -292,7 +292,7 @@ bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, 
       return false;
     }
 
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     const std::string_view packetView(reinterpret_cast<const char*>(response.data() + sizeof(dnsheader)), response.size() - sizeof(dnsheader));
     if (qname.matches(packetView)) {
       size_t pos = sizeof(dnsheader) + qname.wirelength();
