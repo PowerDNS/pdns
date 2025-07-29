@@ -6111,7 +6111,7 @@ void SyncRes::parseEDNSSubnetAllowlist(const std::string& alist)
   stringtok(parts, alist, ",; ");
   for (const auto& allow : parts) {
     try {
-      s_ednsremotesubnets.addMask(Netmask(allow));
+      s_ednsremotesubnets.addMask(allow);
     }
     catch (...) {
       s_ednsdomains.add(DNSName(allow));
