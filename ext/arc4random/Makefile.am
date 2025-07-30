@@ -9,3 +9,6 @@ libarc4random_la_SOURCES = \
 	explicit_bzero.c \
 	includes.h \
 	log.h
+
+EXTRA_DIST = \
+	meson.build
