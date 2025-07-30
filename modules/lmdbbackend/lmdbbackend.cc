@@ -1687,8 +1687,8 @@ bool LMDBBackend::deleteDomain(const ZoneName& domain)
     auto txn = d_tdomains->getROTransaction();
 
     DomainInfo di;
-    if (auto id = txn.get<0>(domain, di); id != 0) {
-      idvec.push_back(id);
+    if (auto domain_id = txn.get<0>(domain, di); domain_id != 0) {
+      idvec.push_back(domain_id);
     }
   }
   else {
@@ -2031,7 +2031,7 @@ bool LMDBBackend::getDomainInfo(const ZoneName& domain, DomainInfo& info, bool g
   return true;
 }
 
-int LMDBBackend::genChangeDomain(const ZoneName& domain, const std::function<void(DomainInfo&)>& func)
+bool LMDBBackend::genChangeDomain(const ZoneName& domain, const std::function<void(DomainInfo&)>& func)
 {
   auto txn = d_tdomains->getRWTransaction();
 
@@ -2049,7 +2049,7 @@ int LMDBBackend::genChangeDomain(const ZoneName& domain, const std::function<voi
 }
 
 // NOLINTNEXTLINE(readability-identifier-length)
-int LMDBBackend::genChangeDomain(domainid_t id, const std::function<void(DomainInfo&)>& func)
+bool LMDBBackend::genChangeDomain(domainid_t id, const std::function<void(DomainInfo&)>& func)
 {
   DomainInfo di;
 
