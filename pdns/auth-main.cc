@@ -744,15 +744,23 @@ static void mainthread()
     // User wants cookie processing
 #ifdef HAVE_CRYPTO_SHORTHASH // we can do siphash-based cookies
     DNSPacket::s_doEDNSCookieProcessing = true;
-    try {
-      if (::arg()["edns-cookie-secret"].size() != EDNSCookiesOpt::EDNSCookieSecretSize) {
-        throw std::range_error("wrong size (" + std::to_string(::arg()["edns-cookie-secret"].size()) + "), must be " + std::to_string(EDNSCookiesOpt::EDNSCookieSecretSize));
-      }
-      DNSPacket::s_EDNSCookieKey = makeBytesFromHex(::arg()["edns-cookie-secret"]);
+    const std::string& secret = ::arg()["edns-cookie-secret"];
+    if (secret == "random") {
+      std::array<char, EDNSCookiesOpt::EDNSCookieSecretSize / 2> key{};
+      dns_random(key.data(), key.size());
+      DNSPacket::s_EDNSCookieKey = std::string(key.data(), key.size());
     }
-    catch (const std::range_error& e) {
-      g_log << Logger::Error << "edns-cookie-secret invalid: " << e.what() << endl;
-      exit(1);
+    else {
+      try {
+        if (secret.size() != EDNSCookiesOpt::EDNSCookieSecretSize) {
+          throw std::range_error("wrong size (" + std::to_string(secret.size()) + "), must be " + std::to_string(EDNSCookiesOpt::EDNSCookieSecretSize));
+        }
+        DNSPacket::s_EDNSCookieKey = makeBytesFromHex(secret);
+      }
+      catch (const std::range_error& e) {
+        g_log << Logger::Error << "edns-cookie-secret invalid: " << e.what() << endl;
+        exit(1); // NOLINT(concurrency-mt-unsafe) we're single threaded at this point
+      }
     }
 #else
     g_log << Logger::Error << "Support for EDNS Cookies is not available because of missing cryptographic functions (libsodium support should be enabled, with the crypto_shorthash() function available)" << endl;
