@@ -95,7 +95,7 @@ using boost::context::detail::jump_fcontext;
 using boost::context::detail::transfer_t;
 #endif /* BOOST_VERSION < 106100 */
 
-static_assert(std::is_pointer<fcontext_t>::value,
+static_assert(std::is_pointer_v<fcontext_t>,
               "Boost Context has changed the fcontext_t type again :-(");
 #endif
 
@@ -224,7 +224,7 @@ void pdns_swapcontext(pdns_ucontext_t& __restrict octx, pdns_ucontext_t const& _
   if (origctx && origctx->exception)
     std::rethrow_exception(origctx->exception);
 #else
-  transfer_t res = jump_fcontext(static_cast<fcontext_t>(ctx.uc_mcontext), &octx.uc_mcontext);
+  transfer_t res = jump_fcontext(static_cast<fcontext_t>(ctx.uc_mcontext), static_cast<void*>(&octx.uc_mcontext));
   CET_ENDBR;
   if (res.data != nullptr) {
     /* if res.data is not a nullptr, it holds a pointer to the context

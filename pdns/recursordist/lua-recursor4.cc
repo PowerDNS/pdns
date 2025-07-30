@@ -380,29 +380,29 @@ void RecursorLua4::postPrepareContext() // NOLINT(readability-function-cognitive
   d_lw->registerFunction("check",(bool (SuffixMatchNode::*)(const DNSName&) const) &SuffixMatchNode::check);
   d_lw->registerFunction("toString",(string (SuffixMatchNode::*)() const) &SuffixMatchNode::toString);
 
-  d_pd.push_back({"policykinds", in_t {
+  d_pd.emplace_back("policykinds", in_t {
     {"NoAction", (int)DNSFilterEngine::PolicyKind::NoAction},
     {"Drop",     (int)DNSFilterEngine::PolicyKind::Drop    },
     {"NXDOMAIN", (int)DNSFilterEngine::PolicyKind::NXDOMAIN},
     {"NODATA",   (int)DNSFilterEngine::PolicyKind::NODATA  },
     {"Truncate", (int)DNSFilterEngine::PolicyKind::Truncate},
     {"Custom",   (int)DNSFilterEngine::PolicyKind::Custom  }
-    }});
+    });
 
-  d_pd.push_back({"policytypes", in_t {
+  d_pd.emplace_back("policytypes", in_t {
     {"None",       (int)DNSFilterEngine::PolicyType::None       },
     {"QName",      (int)DNSFilterEngine::PolicyType::QName      },
     {"ClientIP",   (int)DNSFilterEngine::PolicyType::ClientIP   },
     {"ResponseIP", (int)DNSFilterEngine::PolicyType::ResponseIP },
     {"NSDName",    (int)DNSFilterEngine::PolicyType::NSDName    },
     {"NSIP",       (int)DNSFilterEngine::PolicyType::NSIP       }
-    }});
+    });
 
   for(const auto& name : QType::names) {
     d_pd.emplace_back(name.first, name.second);
   }
 
-  d_pd.push_back({"validationstates", in_t{
+  d_pd.emplace_back("validationstates", in_t{
         {"Indeterminate", static_cast<unsigned int>(vState::Indeterminate) },
         {"BogusNoValidDNSKEY", static_cast<unsigned int>(vState::BogusNoValidDNSKEY) },
         {"BogusInvalidDenial", static_cast<unsigned int>(vState::BogusInvalidDenial) },
@@ -423,7 +423,7 @@ void RecursorLua4::postPrepareContext() // NOLINT(readability-function-cognitive
         {"Secure", static_cast<unsigned int>(vState::Secure) },
         /* in order not to break compatibility with older scripts: */
         {"Bogus", static_cast<unsigned int>(255) },
-  }});
+  });
 
   d_lw->writeFunction("isValidationStateBogus", [](vState state) {
     return vStateIsBogus(state);
@@ -1356,5 +1356,5 @@ const char* pdns_postresolve_ffi_handle_get_authip(pdns_postresolve_ffi_handle_t
 
 void pdns_postresolve_ffi_handle_get_authip_raw(pdns_postresolve_ffi_handle_t* ref, const void** addr, size_t* addrSize)
 {
-  return pdns_ffi_comboaddress_to_raw(*ref->getHandle().d_dq.fromAuthIP, addr, addrSize);
+  pdns_ffi_comboaddress_to_raw(*ref->getHandle().d_dq.fromAuthIP, addr, addrSize);
 }

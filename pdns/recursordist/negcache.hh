@@ -21,7 +21,6 @@
  */
 #pragma once
 
-#include <vector>
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index/hashed_index.hpp>
@@ -45,11 +44,11 @@ using namespace ::boost::multi_index;
  *
  * typedef vector<recsig_t> recordsAndSignatures;
  */
-typedef struct
+struct recordsAndSignatures
 {
   vector<DNSRecord> records;
   vector<DNSRecord> signatures;
-} recordsAndSignatures;
+};
 
 class NegCache : public boost::noncopyable
 {
@@ -80,9 +79,7 @@ public:
       if (s_maxServedStaleExtensions > 0) {
         return d_ttd + static_cast<time_t>(s_maxServedStaleExtensions) * std::min(s_serveStaleExtensionPeriod, d_orig_ttl) < now;
       }
-      else {
-        return d_ttd < now;
-      }
+      return d_ttd < now;
     };
 
     bool isEntryUsable(time_t now, bool serveStale) const
@@ -92,18 +89,18 @@ public:
     }
   };
 
-  void add(const NegCacheEntry& ne);
+  void add(const NegCacheEntry& negEntry);
   void updateValidationStatus(const DNSName& qname, QType qtype, vState newState, boost::optional<time_t> capTTD);
-  bool get(const DNSName& qname, QType qtype, const struct timeval& now, NegCacheEntry& ne, bool typeMustMatch = false, bool serverStale = false, bool refresh = false);
+  bool get(const DNSName& qname, QType qtype, const struct timeval& now, NegCacheEntry& negEntry, bool typeMustMatch = false, bool serveStale = false, bool refresh = false);
   bool getRootNXTrust(const DNSName& qname, const struct timeval& now, NegCacheEntry& negEntry, bool serveStale, bool refresh);
   size_t count(const DNSName& qname);
   size_t count(const DNSName& qname, QType qtype);
   void prune(time_t now, size_t maxEntries);
   void clear();
-  size_t doDump(int fd, size_t maxCacheEntries, time_t now = time(nullptr));
+  size_t doDump(int fileDesc, size_t maxCacheEntries, time_t now = time(nullptr));
   size_t wipe(const DNSName& name, bool subtree = false);
   size_t wipeTyped(const DNSName& name, QType qtype);
-  size_t size() const;
+  [[nodiscard]] size_t size() const;
 
 private:
   struct CompositeKey
@@ -112,7 +109,7 @@ private:
   struct SequenceTag
   {
   };
-  typedef boost::multi_index_container<
+  using negcache_t = boost::multi_index_container<
     NegCacheEntry,
     indexed_by<
       ordered_unique<tag<CompositeKey>,
@@ -121,19 +118,21 @@ private:
                        member<NegCacheEntry, DNSName, &NegCacheEntry::d_name>,
                        member<NegCacheEntry, QType, &NegCacheEntry::d_qtype>>,
                      composite_key_compare<
-                       CanonDNSNameCompare, std::less<QType>>>,
+                       CanonDNSNameCompare, std::less<>>>,
       sequenced<tag<SequenceTag>>,
       hashed_non_unique<tag<NegCacheEntry>,
-                        member<NegCacheEntry, DNSName, &NegCacheEntry::d_name>>>>
-    negcache_t;
+                        member<NegCacheEntry, DNSName, &NegCacheEntry::d_name>>>>;
 
-  void updateStaleEntry(time_t now, negcache_t::iterator& entry, QType qtype);
+  static void updateStaleEntry(time_t now, negcache_t::iterator& entry, QType qtype);
 
   struct MapCombo
   {
-    MapCombo() {}
+    MapCombo() = default;
     MapCombo(const MapCombo&) = delete;
     MapCombo& operator=(const MapCombo&) = delete;
+    ~MapCombo() = default;
+    MapCombo(MapCombo&&) = delete;
+    MapCombo& operator=(MapCombo&&) = delete;
     struct LockedContent
     {
       negcache_t d_map;
@@ -185,7 +184,7 @@ private:
   {
     return d_maps.at(qname.hash() % d_maps.size());
   }
-  const MapCombo& getMap(const DNSName& qname) const
+  [[nodiscard]] const MapCombo& getMap(const DNSName& qname) const
   {
     return d_maps.at(qname.hash() % d_maps.size());
   }

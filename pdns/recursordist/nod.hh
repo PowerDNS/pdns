@@ -20,10 +20,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
-#include <atomic>
+
 #include <mutex>
 #include <thread>
 #include <boost/filesystem.hpp>
+
 #include "dnsname.hh"
 #include "lock.hh"
 #include "stable-bloom.hh"

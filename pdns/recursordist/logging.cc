@@ -50,7 +50,7 @@ void Logger::info(Logr::Priority prio, const std::string& msg) const
 
 void Logger::logMessage(const std::string& msg, boost::optional<const std::string> err) const
 {
-  return logMessage(msg, Logr::Absent, std::move(err));
+  logMessage(msg, Logr::Absent, std::move(err));
 }
 
 void Logger::logMessage(const std::string& msg, Logr::Priority prio, boost::optional<const std::string> err) const

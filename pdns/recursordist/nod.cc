@@ -24,12 +24,10 @@
 #include <fstream>
 #include "pdnsexception.hh"
 #include <iostream>
-#include <iomanip>
 #include <ctime>
 #include <thread>
 #include "threadname.hh"
 #include <cstdlib>
-#include "logger.hh"
 #include "logging.hh"
 #include "misc.hh"
 

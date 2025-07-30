@@ -1,22 +1,39 @@
-#ifdef HAVE_CONFIG_H
+/*
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+
 #include "config.h"
-#endif
+
 #include "rec_channel.hh"
-#include "utility.hh"
+
 #include <sys/socket.h>
 #include <cerrno>
-#include "misc.hh"
-#include <string.h>
 #include <cstdlib>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <iostream>
-#include <limits.h>
 
-#include "pdnsexception.hh"
-
+#include "misc.hh"
 #include "namespaces.hh"
+#include "pdnsexception.hh"
 
 /* g++ defines __SANITIZE_THREAD__
    clang++ supports the nice __has_feature(thread_sanitizer),
@@ -32,71 +49,80 @@
 
 std::atomic<bool> RecursorControlChannel::stop = false;
 
-RecursorControlChannel::RecursorControlChannel()
+RecursorControlChannel::RecursorControlChannel() :
+  d_fd(-1)
 {
-  d_fd = -1;
-  *d_local.sun_path = 0;
-  d_local.sun_family = 0;
+  memset(&d_local, 0, sizeof(d_local));
 }
 
 RecursorControlChannel::~RecursorControlChannel()
 {
-  if (d_fd > 0)
+  if (d_fd > 0) {
     close(d_fd);
-  if (*d_local.sun_path)
-    unlink(d_local.sun_path);
+  }
+  if (d_local.sun_path[0] != '\0') {
+    unlink(d_local.sun_path); // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+  }
 }
 
-int RecursorControlChannel::listen(const string& fname)
+int RecursorControlChannel::listen(const string& filename)
 {
   d_fd = socket(AF_UNIX, SOCK_STREAM, 0);
+
+  if (d_fd < 0) {
+    throw PDNSException("Creating UNIX domain socket: " + stringerror());
+  }
   setCloseOnExec(d_fd);
 
-  if (d_fd < 0)
-    throw PDNSException("Creating UNIX domain socket: " + stringerror());
-
   int tmp = 1;
-  if (setsockopt(d_fd, SOL_SOCKET, SO_REUSEADDR, (char*)&tmp, sizeof tmp) < 0)
+  if (setsockopt(d_fd, SOL_SOCKET, SO_REUSEADDR, &tmp, sizeof tmp) < 0) {
     throw PDNSException("Setsockopt failed: " + stringerror());
+  }
 
-  int err = unlink(fname.c_str());
-  if (err < 0 && errno != ENOENT)
-    throw PDNSException("Can't remove (previous) controlsocket '" + fname + "': " + stringerror() + " (try --socket-dir)");
+  int err = unlink(filename.c_str());
+  if (err < 0 && errno != ENOENT) {
+    throw PDNSException("Can't remove (previous) controlsocket '" + filename + "': " + stringerror() + " (try --socket-dir)");
+  }
 
-  if (makeUNsockaddr(fname, &d_local))
-    throw PDNSException("Unable to bind to controlsocket, path '" + fname + "' is not a valid UNIX socket path.");
+  if (makeUNsockaddr(filename, &d_local) != 0) {
+    throw PDNSException("Unable to bind to controlsocket, path '" + filename + "' is not a valid UNIX socket path.");
+  }
 
-  if (bind(d_fd, (sockaddr*)&d_local, sizeof(d_local)) < 0)
-    throw PDNSException("Unable to bind to controlsocket '" + fname + "': " + stringerror());
+  if (bind(d_fd, reinterpret_cast<sockaddr*>(&d_local), sizeof(d_local)) < 0) { // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    throw PDNSException("Unable to bind to controlsocket '" + filename + "': " + stringerror());
+  }
   if (::listen(d_fd, 0) == -1) {
-    throw PDNSException("Unable to listen on controlsocket '" + fname + "': " + stringerror());
+    throw PDNSException("Unable to listen on controlsocket '" + filename + "': " + stringerror());
   }
   return d_fd;
 }
 
-void RecursorControlChannel::connect(const string& path, const string& fname)
+void RecursorControlChannel::connect(const string& path, const string& filename)
 {
-  struct sockaddr_un remote;
+  struct sockaddr_un remote{};
 
   d_fd = socket(AF_UNIX, SOCK_STREAM, 0);
   setCloseOnExec(d_fd);
 
-  if (d_fd < 0)
+  if (d_fd < 0) {
     throw PDNSException("Creating UNIX domain socket: " + stringerror());
-
+  }
   try {
     int tmp = 1;
-    if (setsockopt(d_fd, SOL_SOCKET, SO_REUSEADDR, (char*)&tmp, sizeof tmp) < 0)
+    if (setsockopt(d_fd, SOL_SOCKET, SO_REUSEADDR, &tmp, sizeof tmp) < 0) {
       throw PDNSException("Setsockopt failed: " + stringerror());
+    }
 
-    string remotename = path + "/" + fname;
-    if (makeUNsockaddr(remotename, &remote))
+    string remotename = path + "/" + filename;
+    if (makeUNsockaddr(remotename, &remote) != 0) {
       throw PDNSException("Unable to connect to controlsocket, path '" + remotename + "' is not a valid UNIX socket path.");
+    }
 
-    if (::connect(d_fd, (sockaddr*)&remote, sizeof(remote)) < 0) {
-      if (*d_local.sun_path)
-        unlink(d_local.sun_path);
-      throw PDNSException("Unable to connect to remote '" + string(remote.sun_path) + "': " + stringerror());
+    if (::connect(d_fd, reinterpret_cast<const sockaddr*>(&remote), sizeof(remote)) < 0) { // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+      if (d_local.sun_path[0] != '\0') {
+        unlink(d_local.sun_path); // NOLINT
+      }
+      throw PDNSException("Unable to connect to remote '" + remotename + "': " + stringerror());
     }
   }
   catch (...) {
@@ -107,72 +133,72 @@ void RecursorControlChannel::connect(const string& path, const string& fname)
   }
 }
 
-static void sendfd(int s, int fd)
+static void sendfd(int socket, int fd_to_pass)
 {
-  struct msghdr msg;
-  struct cmsghdr* cmsg;
+  struct msghdr msg{};
+  struct cmsghdr* cmsg{};
   union
   {
     struct cmsghdr hdr;
-    unsigned char buf[CMSG_SPACE(sizeof(int))];
-  } cmsgbuf;
-  struct iovec io_vector[1];
-  char ch = 'X';
+    std::array<unsigned char, CMSG_SPACE(sizeof(int))> buf;
+  } cmsgbuf{};
+  std::array<iovec, 1> io_vector{};
+  char character = 'X';
 
-  io_vector[0].iov_base = &ch;
+  io_vector[0].iov_base = &character;
   io_vector[0].iov_len = 1;
 
   memset(&msg, 0, sizeof(msg));
-  msg.msg_control = &cmsgbuf.buf;
-  msg.msg_controllen = sizeof(cmsgbuf.buf);
-  msg.msg_iov = io_vector;
-  msg.msg_iovlen = 1;
+  msg.msg_control = cmsgbuf.buf.data();
+  msg.msg_controllen = cmsgbuf.buf.size();
+  msg.msg_iov = io_vector.data();
+  msg.msg_iovlen = io_vector.size();
 
   cmsg = CMSG_FIRSTHDR(&msg);
   cmsg->cmsg_len = CMSG_LEN(sizeof(int));
   cmsg->cmsg_level = SOL_SOCKET;
   cmsg->cmsg_type = SCM_RIGHTS;
-  *(int*)CMSG_DATA(cmsg) = fd;
+  *reinterpret_cast<int*>(CMSG_DATA(cmsg)) = fd_to_pass; // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 
-  if (sendmsg(s, &msg, 0) == -1) {
+  if (sendmsg(socket, &msg, 0) == -1) {
     throw PDNSException("Unable to send fd message over control channel: " + stringerror());
   }
 }
 
-void RecursorControlChannel::send(int fd, const Answer& msg, unsigned int timeout, int fd_to_pass)
+void RecursorControlChannel::send(int fileDesc, const Answer& msg, unsigned int timeout, int fd_to_pass)
 {
-  int ret = waitForRWData(fd, false, timeout, 0);
+  int ret = waitForRWData(fileDesc, false, static_cast<int>(timeout), 0);
   if (ret == 0) {
     throw PDNSException("Timeout sending message over control channel");
   }
-  else if (ret < 0) {
+  if (ret < 0) {
     throw PDNSException("Error sending message over control channel:" + stringerror());
   }
 
-  if (::send(fd, &msg.d_ret, sizeof(msg.d_ret), 0) < 0) {
+  if (::send(fileDesc, &msg.d_ret, sizeof(msg.d_ret), 0) < 0) {
     throw PDNSException("Unable to send return code over control channel: " + stringerror());
   }
   size_t len = msg.d_str.length();
-  if (::send(fd, &len, sizeof(len), 0) < 0) {
+  if (::send(fileDesc, &len, sizeof(len), 0) < 0) {
     throw PDNSException("Unable to send length over control channel: " + stringerror());
   }
-  if (::send(fd, msg.d_str.c_str(), len, 0) != static_cast<ssize_t>(len)) {
+  if (::send(fileDesc, msg.d_str.c_str(), len, 0) != static_cast<ssize_t>(len)) {
     throw PDNSException("Unable to send message over control channel: " + stringerror());
   }
 
   if (fd_to_pass != -1) {
-    sendfd(fd, fd_to_pass);
+    sendfd(fileDesc, fd_to_pass);
   }
 }
 
-static void waitForRead(int fd, unsigned int timeout, time_t start)
+static void waitForRead(int fileDesc, unsigned int timeout, time_t start)
 {
   time_t elapsed = time(nullptr) - start;
   if (elapsed >= timeout) {
     throw PDNSException("Timeout waiting for control channel data");
   }
   // coverity[store_truncates_time_t]
-  int ret = waitForData(fd, timeout - elapsed, 0);
+  int ret = waitForData(fileDesc, static_cast<int>(timeout - static_cast<unsigned int>(elapsed)), 0);
   if (ret == 0) {
     throw PDNSException("Timeout waiting for control channel data");
   }
@@ -194,14 +220,14 @@ static size_t getArgMax()
   return 4096;
 }
 
-RecursorControlChannel::Answer RecursorControlChannel::recv(int fd, unsigned int timeout)
+RecursorControlChannel::Answer RecursorControlChannel::recv(int fileDesc, unsigned int timeout)
 {
   // timeout covers the operation of all read ops combined
   const time_t start = time(nullptr);
 
-  waitForRead(fd, timeout, start);
+  waitForRead(fileDesc, timeout, start);
   int err{};
-  auto ret = ::recv(fd, &err, sizeof(err), 0);
+  auto ret = ::recv(fileDesc, &err, sizeof(err), 0);
   if (ret == 0) {
 #if defined(__SANITIZE_THREAD__)
     return {0, "bye nicely\n"}; // Hack because TSAN enabled build justs _exits on quit-nicely
@@ -212,9 +238,9 @@ RecursorControlChannel::Answer RecursorControlChannel::recv(int fd, unsigned int
     throw PDNSException("Unable to receive return status over control channel: " + stringerror());
   }
 
-  waitForRead(fd, timeout, start);
-  size_t len;
-  if (::recv(fd, &len, sizeof(len), 0) != sizeof(len)) {
+  waitForRead(fileDesc, timeout, start);
+  size_t len{};
+  if (::recv(fileDesc, &len, sizeof(len), 0) != sizeof(len)) {
     throw PDNSException("Unable to receive length over control channel: " + stringerror());
   }
 
@@ -225,15 +251,15 @@ RecursorControlChannel::Answer RecursorControlChannel::recv(int fd, unsigned int
   string str;
   str.reserve(len);
   while (str.length() < len) {
-    char buffer[1024];
-    waitForRead(fd, timeout, start);
-    size_t toRead = std::min(len - str.length(), sizeof(buffer));
-    ssize_t recvd = ::recv(fd, buffer, toRead, 0);
+    std::array<char, 1024> buffer{};
+    waitForRead(fileDesc, timeout, start);
+    size_t toRead = std::min(len - str.length(), buffer.size());
+    ssize_t recvd = ::recv(fileDesc, buffer.data(), toRead, 0);
     if (recvd <= 0) {
       // EOF means we have a length error
       throw PDNSException("Unable to receive message over control channel: " + stringerror());
     }
-    str.append(buffer, recvd);
+    str.append(buffer.data(), recvd);
   }
 
   return {err, std::move(str)};

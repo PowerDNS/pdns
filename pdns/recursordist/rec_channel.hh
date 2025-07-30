@@ -26,9 +26,7 @@
 #include <map>
 #include <optional>
 #include <vector>
-#include <inttypes.h>
 #include <sys/un.h>
-#include <signal.h>
 #include <pthread.h>
 #include "iputils.hh"
 #include "dnsname.hh"
@@ -44,6 +42,10 @@ class RecursorControlChannel
 public:
   RecursorControlChannel();
 
+  RecursorControlChannel(const RecursorControlChannel&) = delete;
+  RecursorControlChannel(RecursorControlChannel&&) = delete;
+  RecursorControlChannel& operator=(const RecursorControlChannel&) = delete;
+  RecursorControlChannel& operator=(RecursorControlChannel&&) = delete;
   ~RecursorControlChannel();
 
   int listen(const std::string& filename);
@@ -65,14 +67,19 @@ public:
     std::string d_str;
   };
 
-  void send(int remote, const Answer&, unsigned int timeout = 5, int fd_to_pass = -1);
-  RecursorControlChannel::Answer recv(int fd, unsigned int timeout = 5);
+  static void send(int fileDesc, const Answer&, unsigned int timeout = 5, int fd_to_pass = -1);
+  static RecursorControlChannel::Answer recv(int fileDesc, unsigned int timeout = 5);
 
-  int d_fd;
   static std::atomic<bool> stop;
 
+  [[nodiscard]] int getDescriptor() const
+  {
+    return d_fd;
+  }
+
 private:
-  struct sockaddr_un d_local;
+  int d_fd;
+  struct sockaddr_un d_local{};
 };
 
 class RecursorControlParser
@@ -85,7 +92,7 @@ public:
   static RecursorControlChannel::Answer getAnswer(int socket, const std::string& question, func_t** command);
 };
 
-enum class StatComponent
+enum class StatComponent : uint8_t
 {
   API,
   Carbon,
@@ -102,13 +109,13 @@ struct StatsMapEntry
 class PrefixDashNumberCompare
 {
 private:
-  static std::pair<std::string, std::string> prefixAndTrailingNum(const std::string& a);
+  static std::pair<std::string, std::string> prefixAndTrailingNum(const std::string& arg);
 
 public:
-  bool operator()(const std::string& a, const std::string& b) const;
+  bool operator()(const std::string& lhs, const std::string& rhs) const;
 };
 
-typedef std::map<std::string, StatsMapEntry, PrefixDashNumberCompare> StatsMap;
+using StatsMap = std::map<std::string, StatsMapEntry, PrefixDashNumberCompare>;
 
 StatsMap getAllStatsMap(StatComponent component);
 

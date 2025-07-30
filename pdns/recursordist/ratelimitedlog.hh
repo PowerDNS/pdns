@@ -22,7 +22,6 @@
 #pragma once
 
 #include "lock.hh"
-#include "logger.hh"
 #include "logging.hh"
 
 namespace pdns
