@@ -127,6 +127,15 @@ private:
   std::unique_ptr<DNSPacket> opcodeUpdate(DNSPacket&, bool);
   std::unique_ptr<DNSPacket> opcodeNotImplemented(DNSPacket&, bool);
 
+  bool doLuaRecords();
+  std::optional<bool> d_doLua;
+  // Wrapper around d_dk.isPresigned(d_sd.zonename), caching its result
+  bool isPresigned();
+  std::optional<bool> d_ispresigned;
+  // Wrapper around d_dk.isSecuredZone(d_sd.zonename), caching its result
+  bool isSecuredZone();
+  std::optional<bool> d_issecuredzone;
+
   static AtomicCounter s_count;
   static std::mutex s_rfc2136lock;
   bool d_logDNSDetails;
