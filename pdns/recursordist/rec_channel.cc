@@ -61,7 +61,7 @@ RecursorControlChannel::~RecursorControlChannel()
     close(d_fd);
   }
   if (d_local.sun_path[0] != '\0') {
-    unlink(d_local.sun_path); // NOLINT
+    unlink(d_local.sun_path); // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
   }
 }
 
@@ -149,8 +149,8 @@ static void sendfd(int socket, int fd_to_pass)
   io_vector[0].iov_len = 1;
 
   memset(&msg, 0, sizeof(msg));
-  msg.msg_control = &cmsgbuf.buf;
-  msg.msg_controllen = sizeof(cmsgbuf.buf);
+  msg.msg_control = cmsgbuf.buf.data();
+  msg.msg_controllen = cmsgbuf.buf.size();
   msg.msg_iov = io_vector.data();
   msg.msg_iovlen = io_vector.size();
 
@@ -253,7 +253,7 @@ RecursorControlChannel::Answer RecursorControlChannel::recv(int fileDesc, unsign
   while (str.length() < len) {
     std::array<char, 1024> buffer{};
     waitForRead(fileDesc, timeout, start);
-    size_t toRead = std::min(len - str.length(), sizeof(buffer));
+    size_t toRead = std::min(len - str.length(), buffer.size());
     ssize_t recvd = ::recv(fileDesc, buffer.data(), toRead, 0);
     if (recvd <= 0) {
       // EOF means we have a length error

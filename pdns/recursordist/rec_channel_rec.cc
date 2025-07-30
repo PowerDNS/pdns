@@ -332,8 +332,8 @@ getfd(int socket)
   io_vector[0].iov_len = 1;
 
   memset(&msg, 0, sizeof(msg));
-  msg.msg_control = &cmsgbuf.buf;
-  msg.msg_controllen = sizeof(cmsgbuf.buf);
+  msg.msg_control = cmsgbuf.buf.data();
+  msg.msg_controllen = cmsgbuf.buf.size();
   msg.msg_iov = io_vector.data();
   msg.msg_iovlen = io_vector.size();
 
