@@ -158,7 +158,7 @@ static void sendfd(int socket, int fd_to_pass)
   cmsg->cmsg_len = CMSG_LEN(sizeof(int));
   cmsg->cmsg_level = SOL_SOCKET;
   cmsg->cmsg_type = SCM_RIGHTS;
-  *reinterpret_cast<int*>(CMSG_DATA(cmsg)) = fd_to_pass; // NOLINT(cppcoreguidelines-pro-reinterpret-cast>
+  *reinterpret_cast<int*>(CMSG_DATA(cmsg)) = fd_to_pass; // NOLINT(cppcoreguidelines-pro-reinterpret-cast)
 
   if (sendmsg(socket, &msg, 0) == -1) {
     throw PDNSException("Unable to send fd message over control channel: " + stringerror());
