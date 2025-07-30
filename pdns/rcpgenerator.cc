@@ -362,10 +362,7 @@ void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val) // NOLINT(readabil
       throw RecordTextException(e.what());
     }
 
-    if (key != SvcParam::no_default_alpn) {
-      if (d_pos == d_end || d_string.at(d_pos) != '=') {
-        throw RecordTextException("expected '=' after " + k);
-      }
+    if (d_pos != d_end && d_string.at(d_pos) == '=') {
       d_pos++; // Now on the first character after '='
       if (d_pos == d_end || d_string.at(d_pos) == ' ') {
         throw RecordTextException("expected value after " + k + "=");
@@ -374,7 +371,7 @@ void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val) // NOLINT(readabil
 
     switch (key) {
     case SvcParam::no_default_alpn:
-      if (d_pos != d_end && d_string.at(d_pos) == '=') {
+      if (d_pos != d_end && d_string.at(d_pos) != ' ') {
         throw RecordTextException(k + " key can not have values");
       }
       val.insert(SvcParam(key));
@@ -406,6 +403,9 @@ void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val) // NOLINT(readabil
           hints.push_back(ComboAddress(v));
         }
       }
+      if (!doAuto && hints.empty()) {
+        throw RecordTextException("value is required for SVC Param " + k);
+      }
       try {
         auto p = SvcParam(key, std::move(hints));
         p.setAutoHint(doAuto);
@@ -425,6 +425,9 @@ void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val) // NOLINT(readabil
         while (spos < v.length()) {
           len = v.at(spos);
           spos += 1;
+          if (len == 0) {
+            throw RecordTextException("ALPN values cannot be empty strings");
+          }
           if (len > v.length() - spos) {
             throw RecordTextException("Length of ALPN value goes over total length of alpn SVC Param");
           }
@@ -434,6 +437,14 @@ void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val) // NOLINT(readabil
       } else {
         xfrSVCBValueList(value);
       }
+      if (value.empty()) {
+        throw RecordTextException("value is required for SVC Param " + k);
+      }
+      for (const auto &alpn_value : value) {
+        if (alpn_value.empty()) {
+          throw RecordTextException("ALPN values cannot be empty strings");
+        }
+      }
       val.insert(SvcParam(key, std::move(value)));
       break;
     }
@@ -441,6 +452,9 @@ void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val) // NOLINT(readabil
       if (generic) {
         string v;
         xfrRFC1035CharString(v);
+        if (v.empty()) {
+          throw RecordTextException("value is required for SVC Param " + k);
+        }
         if (v.length() % 2 != 0) {
           throw RecordTextException("Wrong number of bytes in SVC Param " + k);
         }
@@ -455,6 +469,9 @@ void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val) // NOLINT(readabil
       }
       vector<string> parts;
       xfrSVCBValueList(parts);
+      if (parts.empty()) {
+        throw RecordTextException("value is required for SVC Param " + k);
+      }
       set<string> values(parts.begin(), parts.end());
       val.insert(SvcParam(key, std::move(values)));
       break;
@@ -472,6 +489,9 @@ void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val) // NOLINT(readabil
       } else {
         string portstring;
         xfrRFC1035CharString(portstring);
+        if (portstring.empty()) {
+          throw RecordTextException("value is required for SVC Param " + k);
+        }
         try {
           pdns::checked_stoi_into(port, portstring);
         } catch (const std::exception &e) {
@@ -498,12 +518,20 @@ void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val) // NOLINT(readabil
           d_pos++;
         }
       }
+      if (value.empty()) {
+        throw RecordTextException("value is required for SVC Param " + k);
+      }
       val.insert(SvcParam(key, value));
       break;
     }
     default: {
       string value;
       xfrRFC1035CharString(value);
+      if (!generic && value.empty()) {
+        // for generic format, we do not know.
+        // Known keys which forbid having a value need to implement a switch case, above.
+        throw RecordTextException("value is required for SVC Param " + k);
+      }
       val.insert(SvcParam(key, value));
       break;
     }

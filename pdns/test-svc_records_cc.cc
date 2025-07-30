@@ -53,6 +53,9 @@ BOOST_AUTO_TEST_CASE(test_SvcParam_keyFromString) {
     k = SvcParam::keyFromString("key666");
     BOOST_CHECK(k == 666);
 
+    k = SvcParam::keyFromString("key00666");
+    BOOST_CHECK(k == 666);
+
     BOOST_CHECK_THROW(SvcParam::keyFromString("MANDATORY"), std::invalid_argument);
 }
 
