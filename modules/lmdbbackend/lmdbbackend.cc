@@ -1687,7 +1687,9 @@ bool LMDBBackend::deleteDomain(const ZoneName& domain)
     auto txn = d_tdomains->getROTransaction();
 
     DomainInfo di;
-    idvec.push_back(txn.get<0>(domain, di));
+    if (auto id = txn.get<0>(domain, di); id != 0) {
+      idvec.push_back(id);
+    }
   }
   else {
     // this transaction used to be RO.
@@ -2036,6 +2038,9 @@ int LMDBBackend::genChangeDomain(const ZoneName& domain, const std::function<voi
   DomainInfo di;
 
   auto id = txn.get<0>(domain, di);
+  if (id == 0) {
+    return false;
+  }
   func(di);
   txn.put(di, id);
 
