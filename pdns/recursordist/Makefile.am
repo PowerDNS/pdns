@@ -185,6 +185,7 @@ pdns_recursor_SOURCES = \
 	ratelimitedlog.hh \
 	rcpgenerator.cc rcpgenerator.hh \
 	rec-carbon.cc \
+	rec-cookiestore.cc rec-cookiestore.hh \
 	rec-eventtrace.cc rec-eventtrace.hh \
 	rec-lua-conf.hh rec-lua-conf.cc \
 	rec-main.hh rec-main.cc \
