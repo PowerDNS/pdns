@@ -231,7 +231,7 @@ time_t CommunicatorClass::doNotifications(PacketHandler* P)
     p.setRemote(&from);
 
     if (p.parse(buffer, (size_t)size) < 0) {
-      g_log << Logger::Warning << "Unable to parse SOA notification answer from " << p.getRemote() << endl;
+      g_log << Logger::Warning << "Unable to parse SOA notification answer from " << p.getInnerRemote() << endl;
       continue;
     }
 
