@@ -1317,96 +1317,97 @@ void CommunicatorClass::secondaryRefresh(PacketHandler* P)
 
 // Used above with T = Answer
 template <typename T>
-void CommunicatorClass::processDomain(UeberBackend* B, DNSSECKeeper& dk, bool checkSignatures, time_t now, const T& info, DomainInfo& di)
+void CommunicatorClass::processDomain(UeberBackend* B, DNSSECKeeper& dk, bool checkSignatures, time_t now, const T& info, DomainInfo& di) // NOLINT(readability-identifier-length)
 {
-    {
-      auto data = d_data.lock();
-      const auto wasFailedDomain = data->d_failedSecondaryRefresh.find(di.zone);
-      if (wasFailedDomain != data->d_failedSecondaryRefresh.end())
-        data->d_failedSecondaryRefresh.erase(di.zone);
+  {
+    auto data = d_data.lock();
+    const auto wasFailedDomain = data->d_failedSecondaryRefresh.find(di.zone);
+    if (wasFailedDomain != data->d_failedSecondaryRefresh.end()) {
+      data->d_failedSecondaryRefresh.erase(di.zone);
     }
+  }
 
-    bool hasSOA = false;
-    SOAData sd;
-    try {
-      // Use UeberBackend cache for SOA. Cache gets cleared after AXFR/IXFR.
-      B->lookup(QType(QType::SOA), di.zone.operator const DNSName&(), di.id, nullptr);
+  bool hasSOA = false;
+  SOAData sd; // NOLINT(readability-identifier-length)
+  try {
+    // Use UeberBackend cache for SOA. Cache gets cleared after AXFR/IXFR.
+    B->lookup(QType(QType::SOA), di.zone.operator const DNSName&(), di.id, nullptr);
+    DNSZoneRecord zr;
+    hasSOA = B->get(zr);
+    if (hasSOA) {
+      fillSOAData(zr, sd);
+      B->lookupEnd();
+    }
+  }
+  catch (...) {
+  }
+
+  uint32_t theirserial = info.theirSerial;
+  uint32_t ourserial = sd.serial;
+  const ComboAddress remote = *di.primaries.begin();
+
+  if (hasSOA && rfc1982LessThan(theirserial, ourserial) && !::arg().mustDo("axfr-lower-serial")) {
+    g_log << Logger::Warning << "Domain '" << di.zone << "' more recent than primary " << remote.toStringWithPortExcept(53) << ", our serial " << ourserial << " > their serial " << theirserial << endl;
+    di.backend->setFresh(di.id);
+  }
+  else if (hasSOA && theirserial == ourserial) {
+    uint32_t maxExpire = 0, maxInception = 0;
+    if (checkSignatures && dk.isPresigned(di.zone)) {
+      B->lookup(QType(QType::RRSIG), di.zone.operator const DNSName&(), di.id); // can't use DK before we are done with this lookup!
       DNSZoneRecord zr;
-      hasSOA = B->get(zr);
-      if (hasSOA) {
-        fillSOAData(zr, sd);
-        B->lookupEnd();
-      }
-    }
-    catch (...) {
-    }
-
-    uint32_t theirserial = info.theirSerial;
-    uint32_t ourserial = sd.serial;
-    const ComboAddress remote = *di.primaries.begin();
-
-    if (hasSOA && rfc1982LessThan(theirserial, ourserial) && !::arg().mustDo("axfr-lower-serial")) {
-      g_log << Logger::Warning << "Domain '" << di.zone << "' more recent than primary " << remote.toStringWithPortExcept(53) << ", our serial " << ourserial << " > their serial " << theirserial << endl;
-      di.backend->setFresh(di.id);
-    }
-    else if (hasSOA && theirserial == ourserial) {
-      uint32_t maxExpire = 0, maxInception = 0;
-      if (checkSignatures && dk.isPresigned(di.zone)) {
-        B->lookup(QType(QType::RRSIG), di.zone.operator const DNSName&(), di.id); // can't use DK before we are done with this lookup!
-        DNSZoneRecord zr;
-        while (B->get(zr)) {
-          auto rrsig = getRR<RRSIGRecordContent>(zr.dr);
-          if (rrsig->d_type == QType::SOA) {
-            maxInception = std::max(maxInception, rrsig->d_siginception);
-            maxExpire = std::max(maxExpire, rrsig->d_sigexpire);
-          }
+      while (B->get(zr)) {
+        auto rrsig = getRR<RRSIGRecordContent>(zr.dr);
+        if (rrsig->d_type == QType::SOA) {
+          maxInception = std::max(maxInception, rrsig->d_siginception);
+          maxExpire = std::max(maxExpire, rrsig->d_sigexpire);
         }
       }
-
-      SuckRequest::RequestPriority prio = SuckRequest::SignaturesRefresh;
-      if (di.receivedNotify) {
-        prio = SuckRequest::Notify;
-      }
-
-      if (!maxInception && !info.theirInception) {
-        g_log << Logger::Info << "Domain '" << di.zone << "' is fresh (no DNSSEC), serial is " << ourserial << " (checked primary " << remote.toStringWithPortExcept(53) << ")" << endl;
-        di.backend->setFresh(di.id);
-      }
-      else if (maxInception == info.theirInception && maxExpire == info.theirExpire) {
-        g_log << Logger::Info << "Domain '" << di.zone << "' is fresh and SOA RRSIGs match, serial is " << ourserial << " (checked primary " << remote.toStringWithPortExcept(53) << ")" << endl;
-        di.backend->setFresh(di.id);
-      }
-      else if (maxExpire >= now && !info.theirInception) {
-        g_log << Logger::Info << "Domain '" << di.zone << "' is fresh, primary " << remote.toStringWithPortExcept(53) << " is no longer signed but (some) signatures are still valid, serial is " << ourserial << endl;
-        di.backend->setFresh(di.id);
-      }
-      else if (maxInception && !info.theirInception) {
-        g_log << Logger::Notice << "Domain '" << di.zone << "' is stale, primary " << remote.toStringWithPortExcept(53) << " is no longer signed and all signatures have expired, serial is " << ourserial << endl;
-        addSuckRequest(di.zone, remote, prio);
-      }
-      else if (dk.doesDNSSEC() && !maxInception && info.theirInception) {
-        g_log << Logger::Notice << "Domain '" << di.zone << "' is stale, primary " << remote.toStringWithPortExcept(53) << " has signed, serial is " << ourserial << endl;
-        addSuckRequest(di.zone, remote, prio);
-      }
-      else {
-        g_log << Logger::Notice << "Domain '" << di.zone << "' is fresh, but RRSIGs differ on primary " << remote.toStringWithPortExcept(53) << ", so DNSSEC is stale, serial is " << ourserial << endl;
-        addSuckRequest(di.zone, remote, prio);
-      }
     }
-    else {
-      SuckRequest::RequestPriority prio = SuckRequest::SerialRefresh;
-      if (di.receivedNotify) {
-        prio = SuckRequest::Notify;
-      }
 
-      if (hasSOA) {
-        g_log << Logger::Notice << "Domain '" << di.zone << "' is stale, primary " << remote.toStringWithPortExcept(53) << " serial " << theirserial << ", our serial " << ourserial << endl;
-      }
-      else {
-        g_log << Logger::Notice << "Domain '" << di.zone << "' is empty, primary " << remote.toStringWithPortExcept(53) << " serial " << theirserial << endl;
-      }
+    SuckRequest::RequestPriority prio = SuckRequest::SignaturesRefresh;
+    if (di.receivedNotify) {
+      prio = SuckRequest::Notify;
+    }
+
+    if (!maxInception && !info.theirInception) {
+      g_log << Logger::Info << "Domain '" << di.zone << "' is fresh (no DNSSEC), serial is " << ourserial << " (checked primary " << remote.toStringWithPortExcept(53) << ")" << endl;
+      di.backend->setFresh(di.id);
+    }
+    else if (maxInception == info.theirInception && maxExpire == info.theirExpire) {
+      g_log << Logger::Info << "Domain '" << di.zone << "' is fresh and SOA RRSIGs match, serial is " << ourserial << " (checked primary " << remote.toStringWithPortExcept(53) << ")" << endl;
+      di.backend->setFresh(di.id);
+    }
+    else if (maxExpire >= now && !info.theirInception) {
+      g_log << Logger::Info << "Domain '" << di.zone << "' is fresh, primary " << remote.toStringWithPortExcept(53) << " is no longer signed but (some) signatures are still valid, serial is " << ourserial << endl;
+      di.backend->setFresh(di.id);
+    }
+    else if (maxInception && !info.theirInception) {
+      g_log << Logger::Notice << "Domain '" << di.zone << "' is stale, primary " << remote.toStringWithPortExcept(53) << " is no longer signed and all signatures have expired, serial is " << ourserial << endl;
       addSuckRequest(di.zone, remote, prio);
     }
+    else if (dk.doesDNSSEC() && !maxInception && info.theirInception) {
+      g_log << Logger::Notice << "Domain '" << di.zone << "' is stale, primary " << remote.toStringWithPortExcept(53) << " has signed, serial is " << ourserial << endl;
+      addSuckRequest(di.zone, remote, prio);
+    }
+    else {
+      g_log << Logger::Notice << "Domain '" << di.zone << "' is fresh, but RRSIGs differ on primary " << remote.toStringWithPortExcept(53) << ", so DNSSEC is stale, serial is " << ourserial << endl;
+      addSuckRequest(di.zone, remote, prio);
+    }
+  }
+  else {
+    SuckRequest::RequestPriority prio = SuckRequest::SerialRefresh;
+    if (di.receivedNotify) {
+      prio = SuckRequest::Notify;
+    }
+
+    if (hasSOA) {
+      g_log << Logger::Notice << "Domain '" << di.zone << "' is stale, primary " << remote.toStringWithPortExcept(53) << " serial " << theirserial << ", our serial " << ourserial << endl;
+    }
+    else {
+      g_log << Logger::Notice << "Domain '" << di.zone << "' is empty, primary " << remote.toStringWithPortExcept(53) << " serial " << theirserial << endl;
+    }
+    addSuckRequest(di.zone, remote, prio);
+  }
 }
 
 vector<pair<ZoneName, ComboAddress>> CommunicatorClass::getSuckRequests()
