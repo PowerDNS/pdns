@@ -309,6 +309,8 @@ static void carbonHandler(const Carbon::Endpoint& endpoint)
   try {
     uint8_t consecutiveFailures = 0;
     do {
+      dnsdist::configuration::refreshLocalRuntimeConfiguration();
+
       DTime dtimer;
       dtimer.set();
       if (doOneCarbonExport(endpoint)) {

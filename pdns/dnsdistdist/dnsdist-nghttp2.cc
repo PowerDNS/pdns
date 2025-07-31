@@ -874,9 +874,15 @@ static void dohClientThread(pdns::channel::Receiver<CrossProtocolQuery>&& receiv
 
     gettimeofday(&now, nullptr);
     time_t lastTimeoutScan = now.tv_sec;
+    time_t lastConfigRefresh = now.tv_sec;
 
     for (;;) {
       data.mplexer->run(&now, 1000);
+
+      if (now.tv_sec > lastConfigRefresh) {
+        lastConfigRefresh = now.tv_sec;
+        dnsdist::configuration::refreshLocalRuntimeConfiguration();
+      }
 
       if (now.tv_sec > lastTimeoutScan) {
         lastTimeoutScan = now.tv_sec;
