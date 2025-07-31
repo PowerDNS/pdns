@@ -1311,6 +1311,14 @@ void CommunicatorClass::secondaryRefresh(PacketHandler* P)
       continue;
     }
 
+    processDomain(B, dk, checkSignatures, now, ssr.d_freshness[di.id], di);
+  }
+}
+
+// Used above with T = Answer
+template <typename T>
+void CommunicatorClass::processDomain(UeberBackend* B, DNSSECKeeper& dk, bool checkSignatures, time_t now, const T& info, DomainInfo& di)
+{
     {
       auto data = d_data.lock();
       const auto wasFailedDomain = data->d_failedSecondaryRefresh.find(di.zone);
@@ -1333,7 +1341,7 @@ void CommunicatorClass::secondaryRefresh(PacketHandler* P)
     catch (...) {
     }
 
-    uint32_t theirserial = ssr.d_freshness[di.id].theirSerial;
+    uint32_t theirserial = info.theirSerial;
     uint32_t ourserial = sd.serial;
     const ComboAddress remote = *di.primaries.begin();
 
@@ -1360,23 +1368,23 @@ void CommunicatorClass::secondaryRefresh(PacketHandler* P)
         prio = SuckRequest::Notify;
       }
 
-      if (!maxInception && !ssr.d_freshness[di.id].theirInception) {
+      if (!maxInception && !info.theirInception) {
         g_log << Logger::Info << "Domain '" << di.zone << "' is fresh (no DNSSEC), serial is " << ourserial << " (checked primary " << remote.toStringWithPortExcept(53) << ")" << endl;
         di.backend->setFresh(di.id);
       }
-      else if (maxInception == ssr.d_freshness[di.id].theirInception && maxExpire == ssr.d_freshness[di.id].theirExpire) {
+      else if (maxInception == info.theirInception && maxExpire == info.theirExpire) {
         g_log << Logger::Info << "Domain '" << di.zone << "' is fresh and SOA RRSIGs match, serial is " << ourserial << " (checked primary " << remote.toStringWithPortExcept(53) << ")" << endl;
         di.backend->setFresh(di.id);
       }
-      else if (maxExpire >= now && !ssr.d_freshness[di.id].theirInception) {
+      else if (maxExpire >= now && !info.theirInception) {
         g_log << Logger::Info << "Domain '" << di.zone << "' is fresh, primary " << remote.toStringWithPortExcept(53) << " is no longer signed but (some) signatures are still valid, serial is " << ourserial << endl;
         di.backend->setFresh(di.id);
       }
-      else if (maxInception && !ssr.d_freshness[di.id].theirInception) {
+      else if (maxInception && !info.theirInception) {
         g_log << Logger::Notice << "Domain '" << di.zone << "' is stale, primary " << remote.toStringWithPortExcept(53) << " is no longer signed and all signatures have expired, serial is " << ourserial << endl;
         addSuckRequest(di.zone, remote, prio);
       }
-      else if (dk.doesDNSSEC() && !maxInception && ssr.d_freshness[di.id].theirInception) {
+      else if (dk.doesDNSSEC() && !maxInception && info.theirInception) {
         g_log << Logger::Notice << "Domain '" << di.zone << "' is stale, primary " << remote.toStringWithPortExcept(53) << " has signed, serial is " << ourserial << endl;
         addSuckRequest(di.zone, remote, prio);
       }
@@ -1399,7 +1407,6 @@ void CommunicatorClass::secondaryRefresh(PacketHandler* P)
       }
       addSuckRequest(di.zone, remote, prio);
     }
-  }
 }
 
 vector<pair<ZoneName, ComboAddress>> CommunicatorClass::getSuckRequests()

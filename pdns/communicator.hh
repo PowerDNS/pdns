@@ -196,6 +196,9 @@ private:
   void primaryUpdateCheck(PacketHandler* P);
   void getUpdatedProducers(UeberBackend* B, vector<DomainInfo>& domains, const std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes);
 
+  template <typename T>
+  void processDomain(UeberBackend* B, DNSSECKeeper& dk, bool checkSignatures, time_t now, const T& info, DomainInfo& di);
+
   Semaphore d_suck_sem;
   Semaphore d_any_sem;
 
