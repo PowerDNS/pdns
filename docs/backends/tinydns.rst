@@ -11,7 +11,7 @@ TinyDNS Backend
 * DNSSEC: No
 * Disabled data: No
 * Comments: No
-* Search: No
+* Search: since version 5.1.0
 * Views: No
 * API: Read-only
 * Multiple Instances: Yes

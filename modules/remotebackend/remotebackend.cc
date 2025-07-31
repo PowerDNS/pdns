@@ -544,7 +544,7 @@ bool RemoteBackend::unpublishDomainKey(const ZoneName& name, unsigned int keyId)
 
 unsigned int RemoteBackend::getCapabilities()
 {
-  unsigned int caps = CAP_DIRECT | CAP_LIST;
+  unsigned int caps = CAP_DIRECT | CAP_LIST | CAP_SEARCH;
   if (d_dnssec) {
     caps |= CAP_DNSSEC;
   }

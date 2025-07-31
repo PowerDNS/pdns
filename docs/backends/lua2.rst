@@ -11,7 +11,7 @@ Lua2 Backend
 * DNSSEC: Yes
 * Disabled data: No
 * Comments: No
-* Search: No
+* Search: Yes\*
 * Views: No
 * API: Read-Write
 * Multiple instances: Yes
@@ -19,7 +19,7 @@ Lua2 Backend
 * Module name: lua2
 * Launch name: ``lua2``
 
-\* If provided by the responder (your script).
+\* If the responder (your script) implements ``dns_get_all_domains``, see below.
 
 This is a rewrite of existing Lua backend.
 This backend is stub between your Lua script and PowerDNS authoritative server.
@@ -123,7 +123,9 @@ OUTPUT:
  domaininfo. See :ref:`dns_get_domaininfo() <backends_lua2_dns_get_domaininfo>`.
 
 NOTES:
- This function is **optional**, except if you need primary functionality.
+ This function is **optional**, except if you need primary functionality. It
+ is required if you want to be able to enable the zone cache or to search
+ records.
 
 ``dns_get_domain_metadata(domain, kind)``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
