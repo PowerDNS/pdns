@@ -1107,7 +1107,7 @@ static std::shared_ptr<DNSRecordContent> deserializeContentZR(uint16_t qtype, co
 #define StringView string
 #endif
 
-void LMDBBackend::deleteDomainRecords(RecordsRWTransaction& txn, const std::string& match)
+void LMDBBackend::deleteDomainRecords(RecordsRWTransaction& txn, const std::string& match, QType qtype)
 {
   auto cursor = txn.txn->getCursor(txn.db->dbi);
   MDBOutVal key{};
@@ -1115,7 +1115,9 @@ void LMDBBackend::deleteDomainRecords(RecordsRWTransaction& txn, const std::stri
 
   if (cursor.prefix(match, key, val) == 0) {
     do {
-      cursor.del(key);
+      if (qtype == QType::ANY || compoundOrdername::getQType(key.getNoStripHeader<StringView>()) == qtype) {
+        cursor.del(key);
+      }
     } while (cursor.next(key, val) == 0);
   }
 }
@@ -3178,6 +3180,25 @@ bool LMDBBackend::hasCreatedLocalFiles() const
   // But since this information is for the sake of pdnsutil, this is not
   // really a problem.
   return MDBDbi::d_creationCount != 0;
+}
+
+// Hook for rectifyZone operation.
+// Before the operation starts, we forcibly remove all NSEC3 records from the
+// domain, since logic flaws in older versions may have left us with dangling
+// records. The appropriate records will be regenerated with
+// updateDNSSECOrderNameAndAuth() calls anyway.
+void LMDBBackend::rectifyZoneHook(domainid_t domain_id, bool before) const
+{
+  if (!before) {
+    return;
+  }
+
+  if (!d_rwtxn) {
+    throw DBException("rectifyZoneHook invoked outside of a transaction");
+  }
+
+  compoundOrdername order;
+  LMDBBackend::deleteDomainRecords(*d_rwtxn, order(domain_id), QType::NSEC3);
 }
 
 class LMDBFactory : public BackendFactory
