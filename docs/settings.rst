@@ -744,6 +744,9 @@ PowerDNS will also respond with BADCOOKIE to clients that have sent only a clien
 
 This setting MUST be 32 hexadecimal characters, as the siphash algorithm's key used to create the cookie requires a 128-bit key.
 
+Alternatively, starting with version 5.0.0, this parameter can be set to
+`random`, in which case a random cookie value will be generated upon startup.
+
 .. _setting-edns-subnet-processing:
 
 ``edns-subnet-processing``

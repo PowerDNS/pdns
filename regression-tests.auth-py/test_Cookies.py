@@ -3,7 +3,6 @@ import dns
 
 from authtests import AuthTest
 
-
 class TestEdnsCookies(AuthTest):
     _config_template = """
 launch={backend}
@@ -108,3 +107,9 @@ www.example.org.             3600 IN A    192.0.2.5
                 self.assertNotEqual(opt.data, opts[0].data)
                 return
         self.fail()
+
+class TestEdnsRandomCookies(TestEdnsCookies):
+    _config_template = """
+launch={backend}
+edns-cookie-secret=random
+"""
