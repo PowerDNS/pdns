@@ -29,7 +29,22 @@
 
 #include <boost/functional/hash.hpp>
 
-const DNSName g_rootdnsname("."), g_wildcarddnsname("*");
+const DNSName g_rootdnsname(".");
+const DNSName g_wildcarddnsname("*");
+const DNSName g_coodnsname("coo");
+const DNSName g_groupdnsname("group");
+const DNSName g_versiondnsname("version");
+const DNSName g_zonesdnsname("zones");
+
+const DNSName g_gsstsigdnsname("gss-tsig");
+const DNSName g_hmacmd5dnsname("hmac-md5");
+const DNSName g_hmacmd5dnsname_long("hmac-md5.sig-alg.reg.int");
+const DNSName g_hmacsha1dnsname("hmac-sha1");
+const DNSName g_hmacsha224dnsname("hmac-sha224");
+const DNSName g_hmacsha256dnsname("hmac-sha256");
+const DNSName g_hmacsha384dnsname("hmac-sha384");
+const DNSName g_hmacsha512dnsname("hmac-sha512");
+
 const ZoneName g_rootzonename(".");
 
 /* raw storage
@@ -617,8 +632,8 @@ unsigned int DNSName::countLabels() const
 
 void DNSName::trimToLabels(unsigned int to)
 {
-  while(countLabels() > to && chopOff()) {
-    ;
+  for (auto nlabels = countLabels(); nlabels > to; --nlabels) {
+    chopOff();
   }
 }
 

@@ -337,7 +337,7 @@ static bool catalogProcess(const DomainInfo& di, vector<DNSResourceRecord>& rrs,
       }
     }
 
-    else if (rr.qname == DNSName("version") + di.zone.operator const DNSName&() && rr.qtype == QType::TXT) {
+    else if (rr.qname == g_versiondnsname + di.zone.operator const DNSName&() && rr.qtype == QType::TXT) {
       if (hasVersion) {
         g_log << Logger::Warning << logPrefix << "zone '" << di.zone << "', multiple version records found, aborting" << endl;
         return false;
@@ -355,13 +355,13 @@ static bool catalogProcess(const DomainInfo& di, vector<DNSResourceRecord>& rrs,
       }
     }
 
-    else if (rr.qname.isPartOf(DNSName("zones") + di.zone.operator const DNSName&())) {
+    else if (rr.qname.isPartOf(g_zonesdnsname + di.zone.operator const DNSName&())) {
       if (rel.empty() && !hasVersion) {
         g_log << Logger::Warning << logPrefix << "zone '" << di.zone << "', catalog zone schema version missing, aborting" << endl;
         return false;
       }
 
-      rel = rr.qname.makeRelative(DNSName("zones") + di.zone.operator const DNSName&());
+      rel = rr.qname.makeRelative(g_zonesdnsname + di.zone.operator const DNSName&());
 
       if (rel.countLabels() == 1 && rr.qtype == QType::PTR) {
         if (!unique.empty()) {
@@ -388,7 +388,7 @@ static bool catalogProcess(const DomainInfo& di, vector<DNSResourceRecord>& rrs,
       }
 
       else if (hasVersion == 2) {
-        if (rel == (DNSName("coo") + unique) && rr.qtype == QType::PTR) {
+        if (rel == (g_coodnsname + unique) && rr.qtype == QType::PTR) {
           if (!ci.d_coo.empty()) {
             g_log << Logger::Warning << logPrefix << "zone '" << di.zone << "', duplicate COO for unique '" << unique << "'" << endl;
             zoneInvalid = true;
@@ -397,7 +397,7 @@ static bool catalogProcess(const DomainInfo& di, vector<DNSResourceRecord>& rrs,
             ci.d_coo = DNSName(rr.content);
           }
         }
-        else if (rel == (DNSName("group") + unique) && rr.qtype == QType::TXT) {
+        else if (rel == (g_groupdnsname + unique) && rr.qtype == QType::TXT) {
           std::string content = rr.content;
           if (content.length() >= 2 && content.at(0) == '\"' && content.at(content.length() - 1) == '\"') { // TXT pain
             content = content.substr(1, content.length() - 2);

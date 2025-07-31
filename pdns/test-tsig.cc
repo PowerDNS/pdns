@@ -160,7 +160,7 @@ BOOST_AUTO_TEST_CASE(test_TSIG_different_name_same_algo) {
 
   vector<uint8_t> packet = generateTSIGQuery(qname, tsigName, tsigAlgo, tsigSecret);
 
-  checkTSIG(tsigName, DNSName("hmac-md5."), tsigSecret, packet);
+  checkTSIG(tsigName, g_hmacmd5dnsname, tsigSecret, packet);
 }
 
 BOOST_AUTO_TEST_CASE(test_TSIG_bad_key_name) {

@@ -382,8 +382,8 @@ void PacketHandler::getBestDNAMESynth(DNSPacket& p, DNSName &target, vector<DNSZ
     if(!ret.empty()) {
       return;
     }
-    if(subdomain.countLabels() != 0) {
-      prefix.appendRawLabel(subdomain.getRawLabels()[0]); // XXX DNSName pain this feels wrong
+    if(subdomain.hasLabels()) {
+      prefix.appendRawLabel(subdomain.getRawLabel(0)); // XXX DNSName pain this feels wrong
     }
     if(subdomain == d_sd.qname()) { // stop at SOA
       break;
@@ -406,9 +406,7 @@ bool PacketHandler::getBestWildcard(DNSPacket& p, const DNSName &target, DNSName
 #ifdef HAVE_LUA_RECORDS
   bool doLua=g_doLuaRecord;
   if(!doLua) {
-    string val;
-    d_dk.getFromMeta(d_sd.zonename, "ENABLE-LUA-RECORDS", val);
-    doLua = (val=="1");
+    doLua = d_dk.isMetadataOne(d_sd.zonename, "ENABLE-LUA-RECORDS", true);
   }
 #endif
 
@@ -716,9 +714,7 @@ void PacketHandler::emitNSEC(std::unique_ptr<DNSPacket>& r, const DNSName& name,
       first = false;
       doLua = g_doLuaRecord;
       if (!doLua) {
-        string val;
-        d_dk.getFromMeta(d_sd.zonename, "ENABLE-LUA-RECORDS", val);
-        doLua = (val == "1");
+        doLua = d_dk.isMetadataOne(d_sd.zonename, "ENABLE-LUA-RECORDS", true);
       }
     }
 
@@ -808,9 +804,7 @@ void PacketHandler::emitNSEC3(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const
         first = false;
         doLua = g_doLuaRecord;
         if (!doLua) {
-          string val;
-          d_dk.getFromMeta(d_sd.zonename, "ENABLE-LUA-RECORDS", val);
-          doLua = (val == "1");
+          doLua = d_dk.isMetadataOne(d_sd.zonename, "ENABLE-LUA-RECORDS", true);
         }
       }
 
@@ -1343,7 +1337,7 @@ void PacketHandler::completeANYRecords(DNSPacket& p, std::unique_ptr<DNSPacket>&
 bool PacketHandler::tryAuthSignal(DNSPacket& p, std::unique_ptr<DNSPacket>& r, DNSName &target) // NOLINT(readability-identifier-length)
 {
   DLOG(g_log<<Logger::Warning<<"Let's try authenticated DNSSEC bootstrapping (RFC 9615) ..."<<endl);
-  if(d_sd.zonename.operator const DNSName&().countLabels() == 0 || !pdns_iequals(d_sd.zonename.operator const DNSName&().getRawLabel(0), "_signal") || !d_dk.isSignalingZone(d_sd.zonename)) {
+  if(!d_sd.zonename.operator const DNSName&().hasLabels() || !pdns_iequals(d_sd.zonename.operator const DNSName&().getRawLabel(0), "_signal") || !d_dk.isSignalingZone(d_sd.zonename)) {
     return false;
   }
 
@@ -1359,7 +1353,7 @@ bool PacketHandler::tryAuthSignal(DNSPacket& p, std::unique_ptr<DNSPacket>& r, D
   }
 
   // Check for prefix mismatch
-  if(target.countLabels() == 0 || !pdns_iequals(target.getRawLabel(0), "_dsboot")) {
+  if(!target.hasLabels() || !pdns_iequals(target.getRawLabel(0), "_dsboot")) {
     makeNOError(p, r, target, DNSName(), 0); // could be ENT
     return true;
   }
@@ -1762,9 +1756,7 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state, bool re
 
 #ifdef HAVE_LUA_RECORDS
   if(!doLua) {
-    string val;
-    d_dk.getFromMeta(d_sd.zonename, "ENABLE-LUA-RECORDS", val);
-    doLua = (val=="1");
+    doLua = d_dk.isMetadataOne(d_sd.zonename, "ENABLE-LUA-RECORDS", true);
   }
 #endif
 
@@ -2096,11 +2088,11 @@ bool PacketHandler::checkForCorrectTSIG(const DNSPacket& packet, DNSName* tsigke
   TSIGTriplet tsigTriplet;
   tsigTriplet.name = *tsigkeyname;
   tsigTriplet.algo = tsigContent->d_algoName;
-  if (tsigTriplet.algo == DNSName("hmac-md5.sig-alg.reg.int")) {
-    tsigTriplet.algo = DNSName("hmac-md5");
+  if (tsigTriplet.algo == g_hmacmd5dnsname_long) {
+    tsigTriplet.algo = g_hmacmd5dnsname;
   }
 
-  if (tsigTriplet.algo != DNSName("gss-tsig")) {
+  if (tsigTriplet.algo != g_gsstsigdnsname) {
     string secret64;
     if (!B.getTSIGKey(*tsigkeyname, tsigTriplet.algo, secret64)) {
       g_log << Logger::Error << "Packet for domain '" << packet.qdomain << "' denied: can't find TSIG key with name '" << *tsigkeyname << "' and algorithm '" << tsigTriplet.algo << "'" << endl;
