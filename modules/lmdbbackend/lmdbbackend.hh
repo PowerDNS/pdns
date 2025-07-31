@@ -333,8 +333,8 @@ private:
   void openAllTheDatabases();
   std::shared_ptr<RecordsRWTransaction> getRecordsRWTransaction(domainid_t id);
   std::shared_ptr<RecordsROTransaction> getRecordsROTransaction(domainid_t id, const std::shared_ptr<LMDBBackend::RecordsRWTransaction>& rwtxn = nullptr);
-  int genChangeDomain(const ZoneName& domain, const std::function<void(DomainInfo&)>& func);
-  int genChangeDomain(domainid_t id, const std::function<void(DomainInfo&)>& func);
+  bool genChangeDomain(const ZoneName& domain, const std::function<void(DomainInfo&)>& func);
+  bool genChangeDomain(domainid_t id, const std::function<void(DomainInfo&)>& func);
   static void deleteDomainRecords(RecordsRWTransaction& txn, const std::string& match);
 
   void getAllDomainsFiltered(vector<DomainInfo>* domains, const std::function<bool(DomainInfo&)>& allow);
