@@ -539,6 +539,8 @@ common_sources += files(
   src_dir / 'ednscookies.hh',
   src_dir / 'ednsoptions.cc',
   src_dir / 'ednsoptions.hh',
+  src_dir / 'ednspadding.cc',
+  src_dir / 'ednspadding.hh',
   src_dir / 'ednssubnet.cc',
   src_dir / 'ednssubnet.hh',
   src_dir / 'gss_context.cc',
