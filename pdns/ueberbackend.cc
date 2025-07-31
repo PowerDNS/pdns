@@ -896,11 +896,7 @@ bool UeberBackend::get(DNSZoneRecord& resourceRecord)
 void UeberBackend::lookupEnd()
 {
   if (!d_negcached && !d_cached) {
-    DNSZoneRecord zoneRecord;
-    while (d_handle.get(zoneRecord)) {
-      // Read all answers so the backends will close any database handles they might have allocated.
-      // One day this could be optimized.
-    }
+    d_handle.lookupEnd();
   }
 
   d_answers.clear();
@@ -1105,4 +1101,11 @@ bool UeberBackend::handle::get(DNSZoneRecord& record)
   DLOG(g_log << "Found an answering backend - will not try another one" << endl);
   i = parent->backends.size(); // don't go on to the next backend
   return true;
+}
+
+void UeberBackend::handle::lookupEnd() const
+{
+  if (d_hinterBackend != nullptr) {
+    d_hinterBackend->lookupEnd();
+  }
 }
