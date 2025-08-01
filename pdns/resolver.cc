@@ -245,7 +245,7 @@ namespace pdns {
   } // namespace resolver
 } // namespace pdns
 
-bool Resolver::tryGetSOASerial(DNSName& domain, ComboAddress& remote, uint32_t *theirSerial, uint32_t *theirInception, uint32_t *theirExpire, uint16_t& id, bool *tc)
+bool Resolver::tryGetSOASerial(DNSName& domain, ComboAddress& remote, uint32_t *theirSerial, uint32_t *theirInception, uint32_t *theirExpire, uint16_t& reqid, bool *truncated)
 {
   auto fds = std::make_unique<struct pollfd[]>(locals.size());
   size_t i = 0, k;
@@ -273,34 +273,39 @@ bool Resolver::tryGetSOASerial(DNSName& domain, ComboAddress& remote, uint32_t *
 
   if (sock < 0) return false; // false alarm
 
-  int err;
   remote.sin6.sin6_family = AF_INET6; // make sure getSocklen() below returns a large enough value
   socklen_t addrlen=remote.getSocklen();
-  char buf[3000];
-  err = recvfrom(sock, buf, sizeof(buf), 0,(struct sockaddr*)(&remote), &addrlen);
-  if(err < 0) {
-    if(errno == EAGAIN)
+  std::array<char, 3000> buf{};
+  ssize_t len{0};
+  len = recvfrom(sock, buf.data(), buf.size(), 0, reinterpret_cast<struct sockaddr*>(&remote), &addrlen); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+  if(len < 0) {
+    if(errno == EAGAIN) {
       return false;
+    }
 
     throw ResolverException("recvfrom error waiting for answer: "+stringerror());
   }
 
-  MOADNSParser mdp(false, (char*)buf, err);
-  id = mdp.d_header.id;
-  *tc = mdp.d_header.tc != 0;
+  MOADNSParser mdp(false, buf.data(), len);
+  reqid = mdp.d_header.id;
+  *truncated = mdp.d_header.tc != 0;
   domain = mdp.d_qname;
 
-  if(domain.empty())
+  if(domain.empty()) {
     throw ResolverException("SOA query to '" + remote.toLogString() + "' produced response without domain name (RCode: " + RCode::to_s(mdp.d_header.rcode) + ")");
+  }
 
-  if(mdp.d_answers.empty())
+  if(mdp.d_answers.empty()) {
     throw ResolverException("Query to '" + remote.toLogString() + "' for SOA of '" + domain.toLogString() + "' produced no results (RCode: " + RCode::to_s(mdp.d_header.rcode) + ")");
+  }
 
-  if(mdp.d_qtype != QType::SOA)
+  if(mdp.d_qtype != QType::SOA) {
     throw ResolverException("Query to '" + remote.toLogString() + "' for SOA of '" + domain.toLogString() + "' returned wrong record type");
+  }
 
-  if(mdp.d_header.rcode != 0)
+  if(mdp.d_header.rcode != 0) {
     throw ResolverException("Query to '" + remote.toLogString() + "' for SOA of '" + domain.toLogString() + "' returned Rcode " + RCode::to_s(mdp.d_header.rcode));
+  }
 
   *theirInception = *theirExpire = 0;
   bool gotSOA=false;
@@ -322,7 +327,7 @@ bool Resolver::tryGetSOASerial(DNSName& domain, ComboAddress& remote, uint32_t *
   }
   // Do not raise an exception if we got a truncated answer; caller is
   // expected to check for this and retry using TCP in this case.
-  if(!gotSOA && !*tc) {
+  if(!gotSOA && !*truncated) {
     throw ResolverException("Query to '" + remote.toLogString() + "' for SOA of '" + domain.toLogString() + "' did not return a SOA");
   }
   return true;
@@ -334,10 +339,10 @@ int Resolver::resolve(const ComboAddress& to, const DNSName &domain, int type, R
   try {
     for (;;) {
       int sock{-1};
-      int id = sendResolve(to, local, domain, type, sock, useTCP);
+      int reqid = sendResolve(to, local, domain, type, sock, useTCP);
       int err=waitForData(sock, 3, 0);
 
-      if(!err) {
+      if (err == 0) {
         throw ResolverException("Timeout waiting for answer");
       }
       if(err < 0) {
@@ -346,10 +351,10 @@ int Resolver::resolve(const ComboAddress& to, const DNSName &domain, int type, R
 
       ComboAddress from;
       socklen_t addrlen = sizeof(from);
-      char buffer[3000];
-      ssize_t len;
+      std::array<char, 3000> buffer{};
+      ssize_t len{0};
 
-      if((len=recvfrom(sock, buffer, sizeof(buffer), 0,(struct sockaddr*)(&from), &addrlen)) < 0) {
+      if((len=recvfrom(sock, buffer.data(), buffer.size(), 0, reinterpret_cast<struct sockaddr*>(&from), &addrlen)) < 0) { // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
         throw ResolverException("recvfrom error waiting for answer: "+stringerror());
       }
 
@@ -357,7 +362,7 @@ int Resolver::resolve(const ComboAddress& to, const DNSName &domain, int type, R
         throw ResolverException("Got answer from the wrong peer while resolving ('"+from.toLogString()+"' instead of '"+to.toLogString()+"', discarding");
       }
 
-      MOADNSParser mdp(false, buffer, len);
+      MOADNSParser mdp(false, buffer.data(), len);
       // If we got a truncated answer and we have been using UDP, try again
       // using TCP.
       if (mdp.d_header.tc != 0 && !useTCP) {
@@ -369,7 +374,7 @@ int Resolver::resolve(const ComboAddress& to, const DNSName &domain, int type, R
       if (useTCP) {
         close(sock);
       }
-      return parseResult(mdp, domain, type, id, res);
+      return parseResult(mdp, domain, type, reqid, res);
     }
   }
   catch(ResolverException &re) {

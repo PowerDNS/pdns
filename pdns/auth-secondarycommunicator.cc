@@ -1091,13 +1091,13 @@ struct SecondarySenderReceiver
     }
   }
 
-  bool receive(Identifier& id, Answer& a, int /*userdata*/)
+  bool receive(Identifier& ident, Answer& answer, int /*userdata*/)
   {
-    auto& [name, address, randomid] = id;
-    return d_resolver.tryGetSOASerial(name, address, &a.theirSerial, &a.theirInception, &a.theirExpire, randomid, &a.tc);
+    auto& [name, address, randomid] = ident;
+    return d_resolver.tryGetSOASerial(name, address, &answer.theirSerial, &answer.theirInception, &answer.theirExpire, randomid, &answer.tc);
   }
 
-  void deliverAnswer(DomainNotificationInfo& dni, const Answer& a, unsigned int /* usec */, int passno)
+  void deliverAnswer(DomainNotificationInfo& dni, const Answer& answer, unsigned int /* usec */, int passno)
   {
     bool useTCP = passno != 0;
     // Be sure to close the socket if TCP, for sendResolve did not store it
@@ -1106,7 +1106,7 @@ struct SecondarySenderReceiver
       close(dni.sock);
       dni.sock = -1;
     }
-    d_freshness[dni.di.id] = a;
+    d_freshness[dni.di.id] = answer;
   }
 
   Resolver d_resolver;
@@ -1142,6 +1142,7 @@ void CommunicatorClass::addTryAutoPrimaryRequest(const DNSPacket& p)
   }
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void CommunicatorClass::secondaryRefresh(PacketHandler* P)
 {
   // not unless we are secondary
@@ -1288,7 +1289,7 @@ void CommunicatorClass::secondaryRefresh(PacketHandler* P)
       }
     }
 
-    if (ifl.getTimeouts()) {
+    if (ifl.getTimeouts() != 0) {
       g_log << Logger::Warning << "Received serial number updates for " << ssr.d_freshness.size() << " zone" << addS(ssr.d_freshness.size()) << ", had " << ifl.getTimeouts() << " timeout" << addS(ifl.getTimeouts()) << endl;
     }
     else {
@@ -1297,11 +1298,11 @@ void CommunicatorClass::secondaryRefresh(PacketHandler* P)
 
     time_t now = time(nullptr);
     for (auto iter = sdomains.begin(); iter != sdomains.end();) {
-      DomainInfo& di(iter->di);
+      DomainInfo& di(iter->di); // NOLINT(readability-identifier-length)
       // If our di comes from packethandler (caused by incoming NOTIFY), di.backend will not be filled out,
       // and di.serial will not either.
       // Conversely, if our di came from getUnfreshSecondaryInfos, di.backend and di.serial are valid.
-      if (!di.backend) {
+      if (di.backend == nullptr) {
         // Do not overwrite received DI just to make sure it exists in backend:
         // di.primaries should contain the picked primary (as first entry)!
         DomainInfo tempdi;
@@ -1315,13 +1316,14 @@ void CommunicatorClass::secondaryRefresh(PacketHandler* P)
         di.backend = tempdi.backend;
       }
 
-      if (!ssr.d_freshness.count(di.id)) { // If we don't have an answer for the domain
+      if (ssr.d_freshness.count(di.id) == 0) { // If we don't have an answer for the domain
         uint64_t newCount = 1;
         auto data = d_data.lock();
         const auto failedEntry = data->d_failedSecondaryRefresh.find(di.zone);
-        if (failedEntry != data->d_failedSecondaryRefresh.end())
+        if (failedEntry != data->d_failedSecondaryRefresh.end()) {
           newCount = data->d_failedSecondaryRefresh[di.zone].first + 1;
-        time_t nextCheck = now + std::min(newCount * d_tickinterval, (uint64_t)::arg().asNum("default-ttl"));
+        }
+        time_t nextCheck = now + static_cast<time_t>(std::min(newCount * d_tickinterval, (uint64_t)::arg().asNum("default-ttl")));
         data->d_failedSecondaryRefresh[di.zone] = {newCount, nextCheck};
         if (newCount == 1) {
           g_log << Logger::Warning << "Unable to retrieve SOA for " << di.zone << ", this was the first time. NOTE: For every subsequent failed SOA check the domain will be suspended from freshness checks for 'num-errors x " << d_tickinterval << " seconds', with a maximum of " << (uint64_t)::arg().asNum("default-ttl") << " seconds. Skipping SOA checks until " << humanTime(nextCheck) << endl;
@@ -1368,7 +1370,7 @@ void CommunicatorClass::processDomain(UeberBackend* B, DNSSECKeeper& dk, bool ch
   try {
     // Use UeberBackend cache for SOA. Cache gets cleared after AXFR/IXFR.
     B->lookup(QType(QType::SOA), di.zone.operator const DNSName&(), di.id, nullptr);
-    DNSZoneRecord zr;
+    DNSZoneRecord zr; // NOLINT(readability-identifier-length)
     hasSOA = B->get(zr);
     if (hasSOA) {
       fillSOAData(zr, sd);
@@ -1387,10 +1389,11 @@ void CommunicatorClass::processDomain(UeberBackend* B, DNSSECKeeper& dk, bool ch
     di.backend->setFresh(di.id);
   }
   else if (hasSOA && theirserial == ourserial) {
-    uint32_t maxExpire = 0, maxInception = 0;
+    uint32_t maxExpire = 0;
+    uint32_t maxInception = 0;
     if (checkSignatures && dk.isPresigned(di.zone)) {
       B->lookup(QType(QType::RRSIG), di.zone.operator const DNSName&(), di.id); // can't use DK before we are done with this lookup!
-      DNSZoneRecord zr;
+      DNSZoneRecord zr; // NOLINT(readability-identifier-length)
       while (B->get(zr)) {
         auto rrsig = getRR<RRSIGRecordContent>(zr.dr);
         if (rrsig->d_type == QType::SOA) {
