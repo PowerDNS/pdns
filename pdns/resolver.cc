@@ -128,7 +128,7 @@ Resolver::~Resolver()
 }
 
 uint16_t Resolver::sendResolve(const ComboAddress& remote, const ComboAddress& local,
-                               const DNSName &domain, int type, int& localsock, bool dnssecOK,
+                               const DNSName &domain, int type, int& localsock, bool useTCP, bool dnssecOK,
                                const DNSName& tsigkeyname, const DNSName& tsigalgorithm,
                                const string& tsigsecret)
 {
@@ -167,8 +167,21 @@ uint16_t Resolver::sendResolve(const ComboAddress& remote, const ComboAddress& l
       string ipv = remote.sin4.sin_family == AF_INET ? "4" : "6";
       throw ResolverException("No IPv" + ipv + " socket available, is such an address configured in query-local-address?");
     }
-    sock = remote.sin4.sin_family == AF_INET ? locals["default4"] : locals["default6"];
+    if (useTCP) {
+      // This is similar to what our constructor does to setup default4 and
+      // default6, but creating TCP sockets instead of UDP.
+      if (remote.sin4.sin_family == AF_INET) {
+        sock = makeQuerySocket(pdns::getQueryLocalAddress(AF_INET, 0), false, d_nonlocalbind);
+      }
+      else {
+        sock = makeQuerySocket(pdns::getQueryLocalAddress(AF_INET6, 0), false, d_nonlocalbind);
+      }
+    }
+    else {
+      sock = remote.sin4.sin_family == AF_INET ? locals["default4"] : locals["default6"];
+    }
   } else {
+    bool saveSocket{false};
     std::string lstr = local.toString();
     std::map<std::string, int>::iterator lptr;
 
@@ -177,10 +190,14 @@ uint16_t Resolver::sendResolve(const ComboAddress& remote, const ComboAddress& l
       sock = lptr->second;
     } else {
       // try to make socket
-      sock = makeQuerySocket(local, true);
+      sock = makeQuerySocket(local, !useTCP);
       if (sock < 0)
         throw ResolverException("Unable to create local socket on '"+lstr+"'' to '"+remote.toLogString()+"': "+stringerror());
       setNonBlocking( sock );
+      // Prefer not to keep TCP sockets
+      saveSocket = !useTCP;
+    }
+    if (saveSocket) {
       locals[lstr] = sock;
     }
   }
@@ -270,7 +287,7 @@ bool Resolver::tryGetSOASerial(DNSName& domain, ComboAddress& remote, uint32_t *
 
   MOADNSParser mdp(false, (char*)buf, err);
   id = mdp.d_header.id;
-  *tc = mdp.d_header.tc;
+  *tc = mdp.d_header.tc != 0;
   domain = mdp.d_qname;
 
   if(domain.empty())
@@ -303,38 +320,57 @@ bool Resolver::tryGetSOASerial(DNSName& domain, ComboAddress& remote, uint32_t *
       }
     }
   }
-  if(!gotSOA)
+  // Do not raise an exception if we got a truncated answer; caller is
+  // expected to check for this and retry using TCP in this case.
+  if(!gotSOA && !*tc) {
     throw ResolverException("Query to '" + remote.toLogString() + "' for SOA of '" + domain.toLogString() + "' did not return a SOA");
+  }
   return true;
 }
 
 int Resolver::resolve(const ComboAddress& to, const DNSName &domain, int type, Resolver::res_t* res, const ComboAddress &local)
 {
+  bool useTCP{false};
   try {
-    int sock{-1};
-    int id = sendResolve(to, local, domain, type, sock);
-    int err=waitForData(sock, 3, 0);
+    for (;;) {
+      int sock{-1};
+      int id = sendResolve(to, local, domain, type, sock, useTCP);
+      int err=waitForData(sock, 3, 0);
 
-    if(!err) {
-      throw ResolverException("Timeout waiting for answer");
+      if(!err) {
+        throw ResolverException("Timeout waiting for answer");
+      }
+      if(err < 0) {
+        throw ResolverException("Error waiting for answer: "+stringerror());
+      }
+
+      ComboAddress from;
+      socklen_t addrlen = sizeof(from);
+      char buffer[3000];
+      ssize_t len;
+
+      if((len=recvfrom(sock, buffer, sizeof(buffer), 0,(struct sockaddr*)(&from), &addrlen)) < 0) {
+        throw ResolverException("recvfrom error waiting for answer: "+stringerror());
+      }
+
+      if (from != to) {
+        throw ResolverException("Got answer from the wrong peer while resolving ('"+from.toLogString()+"' instead of '"+to.toLogString()+"', discarding");
+      }
+
+      MOADNSParser mdp(false, buffer, len);
+      // If we got a truncated answer and we have been using UDP, try again
+      // using TCP.
+      if (mdp.d_header.tc != 0 && !useTCP) {
+        useTCP = true;
+        continue;
+      }
+      // Be sure to close the socket if TCP, for sendResolve did not store it
+      // for possible reuse.
+      if (useTCP) {
+        close(sock);
+      }
+      return parseResult(mdp, domain, type, id, res);
     }
-    if(err < 0)
-      throw ResolverException("Error waiting for answer: "+stringerror());
-
-    ComboAddress from;
-    socklen_t addrlen = sizeof(from);
-    char buffer[3000];
-    int len;
-
-    if((len=recvfrom(sock, buffer, sizeof(buffer), 0,(struct sockaddr*)(&from), &addrlen)) < 0)
-      throw ResolverException("recvfrom error waiting for answer: "+stringerror());
-
-    if (from != to) {
-      throw ResolverException("Got answer from the wrong peer while resolving ('"+from.toLogString()+"' instead of '"+to.toLogString()+"', discarding");
-    }
-
-    MOADNSParser mdp(false, buffer, len);
-    return parseResult(mdp, domain, type, id, res);
   }
   catch(ResolverException &re) {
     throw ResolverException(re.reason+" from "+to.toLogString());
