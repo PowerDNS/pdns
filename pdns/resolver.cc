@@ -128,7 +128,7 @@ Resolver::~Resolver()
 }
 
 uint16_t Resolver::sendResolve(const ComboAddress& remote, const ComboAddress& local,
-                               const DNSName &domain, int type, int *localsock, bool dnssecOK,
+                               const DNSName &domain, int type, int& localsock, bool dnssecOK,
                                const DNSName& tsigkeyname, const DNSName& tsigalgorithm,
                                const string& tsigsecret)
 {
@@ -185,12 +185,10 @@ uint16_t Resolver::sendResolve(const ComboAddress& remote, const ComboAddress& l
     }
   }
 
-  if (localsock != nullptr) {
-    *localsock = sock;
-  }
   if(sendto(sock, &packet[0], packet.size(), 0, (struct sockaddr*)(&remote), remote.getSocklen()) < 0) {
     throw ResolverException("Unable to ask query of '"+remote.toLogString()+"': "+stringerror());
   }
+  localsock = sock;
   return randomid;
 }
 
@@ -313,8 +311,8 @@ bool Resolver::tryGetSOASerial(DNSName& domain, ComboAddress& remote, uint32_t *
 int Resolver::resolve(const ComboAddress& to, const DNSName &domain, int type, Resolver::res_t* res, const ComboAddress &local)
 {
   try {
-    int sock = -1;
-    int id = sendResolve(to, local, domain, type, &sock);
+    int sock{-1};
+    int id = sendResolve(to, local, domain, type, sock);
     int err=waitForData(sock, 3, 0);
 
     if(!err) {

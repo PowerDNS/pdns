@@ -1030,6 +1030,7 @@ struct DomainNotificationInfo
   ComboAddress localaddr;
   DNSName tsigkeyname, tsigalgname;
   string tsigsecret;
+  int sock{-1};
 };
 }
 
@@ -1057,10 +1058,9 @@ struct SecondarySenderReceiver
     try {
       auto primary = *dni.di.primaries.begin();
       auto randomid = d_resolver.sendResolve(primary, dni.localaddr,
-                                     dni.di.zone.operator const DNSName&(),
-                                     QType::SOA,
-                                     nullptr,
-                                     dni.dnssecOk, dni.tsigkeyname, dni.tsigalgname, dni.tsigsecret);
+                                             dni.di.zone.operator const DNSName&(),
+                                             QType::SOA, dni.sock, dni.dnssecOk,
+                                             dni.tsigkeyname, dni.tsigalgname, dni.tsigsecret);
       return {dni.di.zone.operator const DNSName&(), primary, randomid};
     }
     catch (PDNSException& e) {
