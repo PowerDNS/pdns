@@ -1050,7 +1050,7 @@ struct SecondarySenderReceiver
   {
   }
 
-  Identifier send(DomainNotificationInfo& dni)
+  Identifier send(DomainNotificationInfo& dni, int /*cookie*/)
   {
     shuffle(dni.di.primaries.begin(), dni.di.primaries.end(), pdns::dns_random_engine());
     try {
@@ -1067,13 +1067,13 @@ struct SecondarySenderReceiver
     }
   }
 
-  bool receive(Identifier& id, Answer& a)
+  bool receive(Identifier& id, Answer& a, int /*cookie*/)
   {
     auto& [name, address, randomid] = id;
     return d_resolver.tryGetSOASerial(name, address, &a.theirSerial, &a.theirInception, &a.theirExpire, randomid);
   }
 
-  void deliverAnswer(const DomainNotificationInfo& dni, const Answer& a, unsigned int /* usec */)
+  void deliverAnswer(const DomainNotificationInfo& dni, const Answer& a, unsigned int /* usec */, int /*cookie*/)
   {
     d_freshness[dni.di.id] = a;
   }
@@ -1245,7 +1245,7 @@ void CommunicatorClass::secondaryRefresh(PacketHandler* P)
 
   for (;;) {
     try {
-      ifl.run();
+      ifl.run(0);
       break;
     }
     catch (std::exception& e) {
