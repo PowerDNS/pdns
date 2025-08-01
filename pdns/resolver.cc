@@ -99,14 +99,15 @@ int makeQuerySocket(const ComboAddress& local, bool udpOrTCP, bool nonLocalBind)
 
 Resolver::Resolver()
 {
+  d_nonlocalbind = ::arg().mustDo("non-local-bind");
   locals["default4"] = -1;
   locals["default6"] = -1;
   try {
     if (pdns::isQueryLocalAddressFamilyEnabled(AF_INET)) {
-      locals["default4"] = makeQuerySocket(pdns::getQueryLocalAddress(AF_INET, 0), true, ::arg().mustDo("non-local-bind"));
+      locals["default4"] = makeQuerySocket(pdns::getQueryLocalAddress(AF_INET, 0), true, d_nonlocalbind);
     }
     if (pdns::isQueryLocalAddressFamilyEnabled(AF_INET6)) {
-      locals["default6"] = makeQuerySocket(pdns::getQueryLocalAddress(AF_INET6, 0), true, ::arg().mustDo("non-local-bind"));
+      locals["default6"] = makeQuerySocket(pdns::getQueryLocalAddress(AF_INET6, 0), true, d_nonlocalbind);
     }
   }
   catch(...) {
@@ -229,7 +230,7 @@ namespace pdns {
   } // namespace resolver
 } // namespace pdns
 
-bool Resolver::tryGetSOASerial(DNSName *domain, ComboAddress* remote, uint32_t *theirSerial, uint32_t *theirInception, uint32_t *theirExpire, uint16_t* id)
+bool Resolver::tryGetSOASerial(DNSName& domain, ComboAddress& remote, uint32_t *theirSerial, uint32_t *theirInception, uint32_t *theirExpire, uint16_t& id)
 {
   auto fds = std::make_unique<struct pollfd[]>(locals.size());
   size_t i = 0, k;
@@ -258,10 +259,10 @@ bool Resolver::tryGetSOASerial(DNSName *domain, ComboAddress* remote, uint32_t *
   if (sock < 0) return false; // false alarm
 
   int err;
-  remote->sin6.sin6_family = AF_INET6; // make sure getSocklen() below returns a large enough value
-  socklen_t addrlen=remote->getSocklen();
+  remote.sin6.sin6_family = AF_INET6; // make sure getSocklen() below returns a large enough value
+  socklen_t addrlen=remote.getSocklen();
   char buf[3000];
-  err = recvfrom(sock, buf, sizeof(buf), 0,(struct sockaddr*)(remote), &addrlen);
+  err = recvfrom(sock, buf, sizeof(buf), 0,(struct sockaddr*)(&remote), &addrlen);
   if(err < 0) {
     if(errno == EAGAIN)
       return false;
@@ -270,32 +271,32 @@ bool Resolver::tryGetSOASerial(DNSName *domain, ComboAddress* remote, uint32_t *
   }
 
   MOADNSParser mdp(false, (char*)buf, err);
-  *id=mdp.d_header.id;
-  *domain = mdp.d_qname;
+  id=mdp.d_header.id;
+  domain = mdp.d_qname;
 
-  if(domain->empty())
-    throw ResolverException("SOA query to '" + remote->toLogString() + "' produced response without domain name (RCode: " + RCode::to_s(mdp.d_header.rcode) + ")");
+  if(domain.empty())
+    throw ResolverException("SOA query to '" + remote.toLogString() + "' produced response without domain name (RCode: " + RCode::to_s(mdp.d_header.rcode) + ")");
 
   if(mdp.d_answers.empty())
-    throw ResolverException("Query to '" + remote->toLogString() + "' for SOA of '" + domain->toLogString() + "' produced no results (RCode: " + RCode::to_s(mdp.d_header.rcode) + ")");
+    throw ResolverException("Query to '" + remote.toLogString() + "' for SOA of '" + domain.toLogString() + "' produced no results (RCode: " + RCode::to_s(mdp.d_header.rcode) + ")");
 
   if(mdp.d_qtype != QType::SOA)
-    throw ResolverException("Query to '" + remote->toLogString() + "' for SOA of '" + domain->toLogString() + "' returned wrong record type");
+    throw ResolverException("Query to '" + remote.toLogString() + "' for SOA of '" + domain.toLogString() + "' returned wrong record type");
 
   if(mdp.d_header.rcode != 0)
-    throw ResolverException("Query to '" + remote->toLogString() + "' for SOA of '" + domain->toLogString() + "' returned Rcode " + RCode::to_s(mdp.d_header.rcode));
+    throw ResolverException("Query to '" + remote.toLogString() + "' for SOA of '" + domain.toLogString() + "' returned Rcode " + RCode::to_s(mdp.d_header.rcode));
 
   *theirInception = *theirExpire = 0;
   bool gotSOA=false;
   for(const MOADNSParser::answers_t::value_type& drc :  mdp.d_answers) {
-    if(drc.d_type == QType::SOA && drc.d_name == *domain) {
+    if(drc.d_type == QType::SOA && drc.d_name == domain) {
       auto src = getRR<SOARecordContent>(drc);
       if (src) {
         *theirSerial = src->d_st.serial;
         gotSOA = true;
       }
     }
-    if(drc.d_type == QType::RRSIG && drc.d_name == *domain) {
+    if(drc.d_type == QType::RRSIG && drc.d_name == domain) {
       auto rrc = getRR<RRSIGRecordContent>(drc);
       if(rrc && rrc->d_type == QType::SOA) {
         *theirInception= std::max(*theirInception, rrc->d_siginception);
@@ -304,7 +305,7 @@ bool Resolver::tryGetSOASerial(DNSName *domain, ComboAddress* remote, uint32_t *
     }
   }
   if(!gotSOA)
-    throw ResolverException("Query to '" + remote->toLogString() + "' for SOA of '" + domain->toLogString() + "' did not return a SOA");
+    throw ResolverException("Query to '" + remote.toLogString() + "' for SOA of '" + domain.toLogString() + "' did not return a SOA");
   return true;
 }
 

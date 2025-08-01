@@ -1043,7 +1043,7 @@ struct DomainNotificationInfo
 
 struct SecondarySenderReceiver
 {
-  typedef std::tuple<DNSName, ComboAddress, uint16_t> Identifier;
+  using Identifier = std::tuple<DNSName, ComboAddress, uint16_t>;
 
   struct Answer
   {
@@ -1062,14 +1062,13 @@ struct SecondarySenderReceiver
   {
     shuffle(dni.di.primaries.begin(), dni.di.primaries.end(), pdns::dns_random_engine());
     try {
-      return {dni.di.zone.operator const DNSName&(),
-              *dni.di.primaries.begin(),
-              d_resolver.sendResolve(*dni.di.primaries.begin(),
-                                     dni.localaddr,
+      auto primary = *dni.di.primaries.begin();
+      auto randomid = d_resolver.sendResolve(primary, dni.localaddr,
                                      dni.di.zone.operator const DNSName&(),
                                      QType::SOA,
                                      nullptr,
-                                     dni.dnssecOk, dni.tsigkeyname, dni.tsigalgname, dni.tsigsecret)};
+                                     dni.dnssecOk, dni.tsigkeyname, dni.tsigalgname, dni.tsigsecret);
+      return {dni.di.zone.operator const DNSName&(), primary, randomid};
     }
     catch (PDNSException& e) {
       throw runtime_error("While attempting to query freshness of '" + dni.di.zone.toLogString() + "': " + e.reason);
@@ -1078,7 +1077,8 @@ struct SecondarySenderReceiver
 
   bool receive(Identifier& id, Answer& a)
   {
-    return d_resolver.tryGetSOASerial(&(std::get<0>(id)), &(std::get<1>(id)), &a.theirSerial, &a.theirInception, &a.theirExpire, &(std::get<2>(id)));
+    auto& [name, address, randomid] = id;
+    return d_resolver.tryGetSOASerial(name, address, &a.theirSerial, &a.theirInception, &a.theirExpire, randomid);
   }
 
   void deliverAnswer(const DomainNotificationInfo& dni, const Answer& a, unsigned int /* usec */)
