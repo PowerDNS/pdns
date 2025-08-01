@@ -230,7 +230,7 @@ namespace pdns {
   } // namespace resolver
 } // namespace pdns
 
-bool Resolver::tryGetSOASerial(DNSName& domain, ComboAddress& remote, uint32_t *theirSerial, uint32_t *theirInception, uint32_t *theirExpire, uint16_t& id)
+bool Resolver::tryGetSOASerial(DNSName& domain, ComboAddress& remote, uint32_t *theirSerial, uint32_t *theirInception, uint32_t *theirExpire, uint16_t& id, bool *tc)
 {
   auto fds = std::make_unique<struct pollfd[]>(locals.size());
   size_t i = 0, k;
@@ -271,7 +271,8 @@ bool Resolver::tryGetSOASerial(DNSName& domain, ComboAddress& remote, uint32_t *
   }
 
   MOADNSParser mdp(false, (char*)buf, err);
-  id=mdp.d_header.id;
+  id = mdp.d_header.id;
+  *tc = mdp.d_header.tc;
   domain = mdp.d_qname;
 
   if(domain.empty())
