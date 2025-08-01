@@ -111,7 +111,7 @@ struct SendReceive
     }
   }
 
-  Identifier send(TypedQuery& domain)
+  Identifier send(TypedQuery& domain, int /*userdata*/)
   {
     //cerr<<"Sending query for '"<<domain<<"'"<<endl;
 
@@ -139,7 +139,7 @@ struct SendReceive
     return pw.getHeader()->id;
   }
 
-  bool receive(Identifier& iden, DNSResult& dnsResult)
+  bool receive(Identifier& iden, DNSResult& dnsResult, int /*userdata*/)
   {
     if (waitForData(d_socket.getHandle(), 0, 500) > 0) {
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init): no need to initialize the buffer
@@ -190,7 +190,7 @@ struct SendReceive
     d_idqueue.push_back(id);
   }
 
-  void deliverAnswer(TypedQuery& domain, const DNSResult& dnsResult, unsigned int usec)
+  void deliverAnswer(TypedQuery& domain, const DNSResult& dnsResult, unsigned int usec, int /*userdata*/)
   {
     (*d_acc)(usec / 1000.0);
     //  if(usec > 1000000)
