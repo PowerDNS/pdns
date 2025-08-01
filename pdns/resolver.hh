@@ -67,7 +67,7 @@ public:
     const DNSName& tsigkeyname=DNSName(), const DNSName& tsigalgorithm=DNSName(), const string& tsigsecret="");
 
   //! see if we got a SOA response from our sendResolve
-  bool tryGetSOASerial(DNSName& theirDomain, ComboAddress& remote, uint32_t* theirSerial, uint32_t* theirInception, uint32_t* theirExpire, uint16_t& id);
+  bool tryGetSOASerial(DNSName& theirDomain, ComboAddress& remote, uint32_t* theirSerial, uint32_t* theirInception, uint32_t* theirExpire, uint16_t& id, bool *tc);
   
   //! convenience function that calls resolve above
   void getSoaSerial(const ComboAddress&, const DNSName &, uint32_t *);

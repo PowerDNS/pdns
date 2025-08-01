@@ -1042,6 +1042,7 @@ struct SecondarySenderReceiver
     uint32_t theirSerial;
     uint32_t theirInception;
     uint32_t theirExpire;
+    bool tc;
   };
 
   map<uint32_t, Answer> d_freshness;
@@ -1070,7 +1071,7 @@ struct SecondarySenderReceiver
   bool receive(Identifier& id, Answer& a, int /*cookie*/)
   {
     auto& [name, address, randomid] = id;
-    return d_resolver.tryGetSOASerial(name, address, &a.theirSerial, &a.theirInception, &a.theirExpire, randomid);
+    return d_resolver.tryGetSOASerial(name, address, &a.theirSerial, &a.theirInception, &a.theirExpire, randomid, &a.tc);
   }
 
   void deliverAnswer(const DomainNotificationInfo& dni, const Answer& a, unsigned int /* usec */, int /*cookie*/)
