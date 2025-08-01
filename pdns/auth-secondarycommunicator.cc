@@ -1039,6 +1039,13 @@ struct DomainNotificationInfo
   DNSName tsigkeyname, tsigalgname;
   string tsigsecret;
   int sock{-1};
+
+  ~DomainNotificationInfo()
+  {
+    if (sock != -1) {
+      close(sock);
+    }
+  }
 };
 }
 
@@ -1060,15 +1067,23 @@ struct SecondarySenderReceiver
   {
   }
 
-  Identifier send(DomainNotificationInfo& dni, int /*cookie*/)
+  Identifier send(DomainNotificationInfo& dni, int passno)
   {
     shuffle(dni.di.primaries.begin(), dni.di.primaries.end(), pdns::dns_random_engine());
     try {
+      bool useTCP = passno != 0;
+      int sock{-1};
       auto primary = *dni.di.primaries.begin();
       auto randomid = d_resolver.sendResolve(primary, dni.localaddr,
                                              dni.di.zone.operator const DNSName&(),
-                                             QType::SOA, dni.sock, dni.dnssecOk,
+                                             QType::SOA, sock, useTCP, dni.dnssecOk,
                                              dni.tsigkeyname, dni.tsigalgname, dni.tsigsecret);
+      // Only remember the socket if TCP, for sendResolve takes care of UDP
+      // sockets, and we do not want the DomainNotificationInfo destructor
+      // risk close()ing a socket cached by d_resolver.
+      if (useTCP) {
+        dni.sock = sock;
+      }
       return {dni.di.zone.operator const DNSName&(), primary, randomid};
     }
     catch (PDNSException& e) {
@@ -1082,8 +1097,15 @@ struct SecondarySenderReceiver
     return d_resolver.tryGetSOASerial(name, address, &a.theirSerial, &a.theirInception, &a.theirExpire, randomid, &a.tc);
   }
 
-  void deliverAnswer(const DomainNotificationInfo& dni, const Answer& a, unsigned int /* usec */, int /*cookie*/)
+  void deliverAnswer(DomainNotificationInfo& dni, const Answer& a, unsigned int /* usec */, int passno)
   {
+    bool useTCP = passno != 0;
+    // Be sure to close the socket if TCP, for sendResolve did not store it
+    // for possible reuse in this case.
+    if (useTCP) {
+      close(dni.sock);
+      dni.sock = -1;
+    }
     d_freshness[dni.di.id] = a;
   }
 
@@ -1248,71 +1270,84 @@ void CommunicatorClass::secondaryRefresh(PacketHandler* P)
 
   SecondarySenderReceiver ssr;
 
-  Inflighter<vector<DomainNotificationInfo>, SecondarySenderReceiver> ifl(sdomains, ssr);
+  // First pass: UDP; second pass: TCP
+  for (int passno = 0; passno < 2; ++passno) {
+    Inflighter<vector<DomainNotificationInfo>, SecondarySenderReceiver> ifl(sdomains, ssr);
+    ifl.d_maxInFlight = 200;
 
-  ifl.d_maxInFlight = 200;
-
-  for (;;) {
-    try {
-      ifl.run(0);
-      break;
+    for (;;) {
+      try {
+        ifl.run(passno);
+        break;
+      }
+      catch (std::exception& e) {
+        g_log << Logger::Error << "While checking domain freshness: " << e.what() << endl;
+      }
+      catch (PDNSException& re) {
+        g_log << Logger::Error << "While checking domain freshness: " << re.reason << endl;
+      }
     }
-    catch (std::exception& e) {
-      g_log << Logger::Error << "While checking domain freshness: " << e.what() << endl;
-    }
-    catch (PDNSException& re) {
-      g_log << Logger::Error << "While checking domain freshness: " << re.reason << endl;
-    }
-  }
 
-  if (ifl.getTimeouts()) {
-    g_log << Logger::Warning << "Received serial number updates for " << ssr.d_freshness.size() << " zone" << addS(ssr.d_freshness.size()) << ", had " << ifl.getTimeouts() << " timeout" << addS(ifl.getTimeouts()) << endl;
-  }
-  else {
-    g_log << Logger::Info << "Received serial number updates for " << ssr.d_freshness.size() << " zone" << addS(ssr.d_freshness.size()) << endl;
-  }
+    if (ifl.getTimeouts()) {
+      g_log << Logger::Warning << "Received serial number updates for " << ssr.d_freshness.size() << " zone" << addS(ssr.d_freshness.size()) << ", had " << ifl.getTimeouts() << " timeout" << addS(ifl.getTimeouts()) << endl;
+    }
+    else {
+      g_log << Logger::Info << "Received serial number updates for " << ssr.d_freshness.size() << " zone" << addS(ssr.d_freshness.size()) << endl;
+    }
 
-  time_t now = time(nullptr);
-  for (auto& val : sdomains) {
-    DomainInfo& di(val.di);
-    // If our di comes from packethandler (caused by incoming NOTIFY), di.backend will not be filled out,
-    // and di.serial will not either.
-    // Conversely, if our di came from getUnfreshSecondaryInfos, di.backend and di.serial are valid.
-    if (!di.backend) {
-      // Do not overwrite received DI just to make sure it exists in backend:
-      // di.primaries should contain the picked primary (as first entry)!
-      DomainInfo tempdi;
-      if (!B->getDomainInfo(di.zone, tempdi, false)) {
-        g_log << Logger::Info << "Ignore domain " << di.zone << " since it has been removed from our backend" << endl;
+    time_t now = time(nullptr);
+    for (auto iter = sdomains.begin(); iter != sdomains.end();) {
+      DomainInfo& di(iter->di);
+      // If our di comes from packethandler (caused by incoming NOTIFY), di.backend will not be filled out,
+      // and di.serial will not either.
+      // Conversely, if our di came from getUnfreshSecondaryInfos, di.backend and di.serial are valid.
+      if (!di.backend) {
+        // Do not overwrite received DI just to make sure it exists in backend:
+        // di.primaries should contain the picked primary (as first entry)!
+        DomainInfo tempdi;
+        if (!B->getDomainInfo(di.zone, tempdi, false)) {
+          g_log << Logger::Info << "Ignore domain " << di.zone << " since it has been removed from our backend" << endl;
+          iter = sdomains.erase(iter);
+          continue;
+        }
+        // Backend for di still doesn't exist and this might cause us to
+        // SEGFAULT on the setFresh command later on
+        di.backend = tempdi.backend;
+      }
+
+      if (!ssr.d_freshness.count(di.id)) { // If we don't have an answer for the domain
+        uint64_t newCount = 1;
+        auto data = d_data.lock();
+        const auto failedEntry = data->d_failedSecondaryRefresh.find(di.zone);
+        if (failedEntry != data->d_failedSecondaryRefresh.end())
+          newCount = data->d_failedSecondaryRefresh[di.zone].first + 1;
+        time_t nextCheck = now + std::min(newCount * d_tickinterval, (uint64_t)::arg().asNum("default-ttl"));
+        data->d_failedSecondaryRefresh[di.zone] = {newCount, nextCheck};
+        if (newCount == 1) {
+          g_log << Logger::Warning << "Unable to retrieve SOA for " << di.zone << ", this was the first time. NOTE: For every subsequent failed SOA check the domain will be suspended from freshness checks for 'num-errors x " << d_tickinterval << " seconds', with a maximum of " << (uint64_t)::arg().asNum("default-ttl") << " seconds. Skipping SOA checks until " << humanTime(nextCheck) << endl;
+        }
+        else if (newCount % 10 == 0) {
+          g_log << Logger::Notice << "Unable to retrieve SOA for " << di.zone << ", this was the " << std::to_string(newCount) << "th time. Skipping SOA checks until " << humanTime(nextCheck) << endl;
+        }
+        // Make sure we recheck SOA for notifies
+        if (di.receivedNotify) {
+          di.backend->setStale(di.id);
+        }
+        iter = sdomains.erase(iter);
         continue;
       }
-      // Backend for di still doesn't exist and this might cause us to
-      // SEGFAULT on the setFresh command later on
-      di.backend = tempdi.backend;
-    }
 
-    if (!ssr.d_freshness.count(di.id)) { // If we don't have an answer for the domain
-      uint64_t newCount = 1;
-      auto data = d_data.lock();
-      const auto failedEntry = data->d_failedSecondaryRefresh.find(di.zone);
-      if (failedEntry != data->d_failedSecondaryRefresh.end())
-        newCount = data->d_failedSecondaryRefresh[di.zone].first + 1;
-      time_t nextCheck = now + std::min(newCount * d_tickinterval, (uint64_t)::arg().asNum("default-ttl"));
-      data->d_failedSecondaryRefresh[di.zone] = {newCount, nextCheck};
-      if (newCount == 1) {
-        g_log << Logger::Warning << "Unable to retrieve SOA for " << di.zone << ", this was the first time. NOTE: For every subsequent failed SOA check the domain will be suspended from freshness checks for 'num-errors x " << d_tickinterval << " seconds', with a maximum of " << (uint64_t)::arg().asNum("default-ttl") << " seconds. Skipping SOA checks until " << humanTime(nextCheck) << endl;
+      // If we got a truncated answer, we need to query again using TCP,
+      // in the next pass.
+      const auto& answer = ssr.d_freshness[di.id];
+      if (answer.tc) {
+        ++iter;
+        continue;
       }
-      else if (newCount % 10 == 0) {
-        g_log << Logger::Notice << "Unable to retrieve SOA for " << di.zone << ", this was the " << std::to_string(newCount) << "th time. Skipping SOA checks until " << humanTime(nextCheck) << endl;
-      }
-      // Make sure we recheck SOA for notifies
-      if (di.receivedNotify) {
-        di.backend->setStale(di.id);
-      }
-      continue;
+      // Otherwise, process the domain and remove it from the vector.
+      processDomain(B, dk, checkSignatures, now, answer, di);
+      iter = sdomains.erase(iter);
     }
-
-    processDomain(B, dk, checkSignatures, now, ssr.d_freshness[di.id], di);
   }
 }
 
