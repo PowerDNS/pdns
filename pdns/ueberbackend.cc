@@ -427,11 +427,7 @@ bool UeberBackend::fillSOAFromZoneRecord(ZoneName& shorter, const domainid_t zon
   }
   catch (...) {
     g_log << Logger::Warning << "Backend returned a broken SOA for zone '" << shorter.toLogString() << "'" << endl;
-
-    while (get(zoneRecord)) {
-      ;
-    }
-
+    lookupEnd();
     return false;
   }
 
