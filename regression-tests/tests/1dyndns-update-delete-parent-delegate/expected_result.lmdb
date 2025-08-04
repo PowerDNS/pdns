@@ -6,8 +6,8 @@ Answer:
 
 Check if delegates are added.
 --- Start: diff start step.1 ---
-> a.b.c.delegate.test.dyndns	3600	IN	NS	ns1.test.dyndns.
-> c.delegate.test.dyndns	3600	IN	NS	ns1.test.dyndns.
+> a.b.c.delegate.test.dyndns	NS	0	ns1.test.dyndns	3600
+> c.delegate.test.dyndns	NS	0	ns1.test.dyndns	3600
 --- End: diff start step.1 ---
 
 Answer:
@@ -18,7 +18,7 @@ Answer:
 
 Check if c.delegate.test.dyndns. was removed correctly.
 --- Start: diff start step.2 ---
-> a.b.c.delegate.test.dyndns	3600	IN	NS	ns1.test.dyndns.
+> a.b.c.delegate.test.dyndns	NS	0	ns1.test.dyndns	3600
 --- End: diff start step.2 ---
 
 Answer:

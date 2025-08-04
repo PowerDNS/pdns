@@ -6,10 +6,10 @@ Answer:
 
 Check delegate1 added correctly
 --- Start: diff start step.1 ---
-> delegate1.test.dyndns	3600	IN	NS	ns1.delegate1.test.dyndns.
-> delegate1.test.dyndns	3600	IN	NS	ns2.delegate1.test.dyndns.
-> ns1.delegate1.test.dyndns	3600	IN	A	127.0.0.1
-> ns2.delegate1.test.dyndns	3600	IN	A	127.0.0.1
+> delegate1.test.dyndns	NS	0	ns1.delegate1.test.dyndns	3600
+> delegate1.test.dyndns	NS	0	ns2.delegate1.test.dyndns	3600
+> ns1.delegate1.test.dyndns	A	0	127.0.0.1	3600
+> ns2.delegate1.test.dyndns	A	0	127.0.0.1	3600
 --- End: diff start step.1 ---
 
 Answer:
@@ -20,14 +20,14 @@ Answer:
 
 Check delegate2 added correctly
 --- Start: diff start step.2 ---
-> delegate1.test.dyndns	3600	IN	NS	ns1.delegate1.test.dyndns.
-> delegate1.test.dyndns	3600	IN	NS	ns2.delegate1.test.dyndns.
-> delegate2.test.dyndns	3600	IN	NS	ns1.delegate2.test.dyndns.
-> delegate2.test.dyndns	3600	IN	NS	ns2.example.com.
-> ns1.delegate1.test.dyndns	3600	IN	A	127.0.0.1
-> ns1.delegate2.test.dyndns	3600	IN	A	127.0.0.1
-> ns2.delegate1.test.dyndns	3600	IN	A	127.0.0.1
-> ns2.delegate2.test.dyndns	3600	IN	A	127.0.0.1
+> delegate1.test.dyndns	NS	0	ns1.delegate1.test.dyndns	3600
+> delegate1.test.dyndns	NS	0	ns2.delegate1.test.dyndns	3600
+> delegate2.test.dyndns	NS	0	ns1.delegate2.test.dyndns	3600
+> delegate2.test.dyndns	NS	0	ns2.example.com	3600
+> ns1.delegate1.test.dyndns	A	0	127.0.0.1	3600
+> ns1.delegate2.test.dyndns	A	0	127.0.0.1	3600
+> ns2.delegate1.test.dyndns	A	0	127.0.0.1	3600
+> ns2.delegate2.test.dyndns	A	0	127.0.0.1	3600
 --- End: diff start step.2 ---
 
 Answer:
@@ -38,10 +38,12 @@ Answer:
 
 check delegate delete
 --- Start: diff start step.3 ---
-> ns1.delegate1.test.dyndns	3600	IN	A	127.0.0.1
-> ns1.delegate2.test.dyndns	3600	IN	A	127.0.0.1
-> ns2.delegate1.test.dyndns	3600	IN	A	127.0.0.1
-> ns2.delegate2.test.dyndns	3600	IN	A	127.0.0.1
+> delegate1.test.dyndns	TYPE0	0		0
+> delegate2.test.dyndns	TYPE0	0		0
+> ns1.delegate1.test.dyndns	A	0	127.0.0.1	3600
+> ns1.delegate2.test.dyndns	A	0	127.0.0.1	3600
+> ns2.delegate1.test.dyndns	A	0	127.0.0.1	3600
+> ns2.delegate2.test.dyndns	A	0	127.0.0.1	3600
 --- End: diff start step.3 ---
 
 Answer:
