@@ -205,8 +205,6 @@ inline string stringerror(int err = errno)
   return pdns::getMessageFromErrno(err);
 }
 
-string bitFlip(const string &str);
-
 void dropPrivs(int uid, int gid);
 void cleanSlashes(string &str);
 
