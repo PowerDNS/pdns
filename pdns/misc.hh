@@ -108,7 +108,6 @@ std::string getCarbonHostName();
 string urlEncode(const string &text);
 int waitForData(int fileDesc, int seconds, int mseconds = 0);
 int waitForData(int fileDesc, struct timeval timeout);
-int waitFor2Data(int fd1, int fd2, int seconds, int mseconds, int* fd);
 int waitForMultiData(const set<int>& fds, const int seconds, const int mseconds, int* fd);
 int waitForRWData(int fileDesc, bool waitForRead, int seconds, int mseconds, bool* error = nullptr, bool* disconnected = nullptr);
 int waitForRWData(int fileDesc, bool waitForRead, struct timeval timeout, bool* error = nullptr, bool* disconnected = nullptr);
