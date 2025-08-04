@@ -4,7 +4,8 @@ pkglib_LTLIBRARIES = libgpgsqlbackend.la
 
 EXTRA_DIST = \
 	OBJECTFILES \
-	OBJECTLIBS
+	OBJECTLIBS \
+	meson.build
 
 dist_doc_DATA = \
 	schema.pgsql.sql \
