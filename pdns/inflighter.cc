@@ -230,7 +230,7 @@ struct SendReceive
   
   bool receive(Identifier& id, int& i)
   {
-    if(waitForData(d_socket, 0, 500000) > 0) {
+    if(waitForData(d_socket, 0, 500) > 0) {
       char buf[512];
     
       int len = recv(d_socket, buf, sizeof(buf), 0);

@@ -110,7 +110,7 @@ struct SendReceive
   
   bool receive(Identifier& id, DNSResult& dr)
   {
-    if(waitForData(d_socket, 0, 500000) > 0) {
+    if(waitForData(d_socket, 0, 500) > 0) {
       char buf[512];
       ComboAddress from;
       from.sin4.sin_family = AF_INET;
@@ -244,7 +244,7 @@ struct SendReceiveRes
   
   bool receive(Identifier& id, RESResult& dr)
   {
-    if(waitForData(d_socket, 0, 500000) > 0) {
+    if(waitForData(d_socket, 0, 500) > 0) {
       char buf[512];
       ComboAddress from;
       from.sin4.sin_family = AF_INET;

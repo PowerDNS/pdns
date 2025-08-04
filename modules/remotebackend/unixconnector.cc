@@ -77,7 +77,7 @@ int UnixsocketConnector::recv_message(Json& output)
   s_output = "";
 
   while ((t.tv_sec - t0.tv_sec) * 1000 + (t.tv_usec - t0.tv_usec) / 1000 < this->timeout) {
-    int avail = waitForData(this->fd, 0, this->timeout * 500); // use half the timeout as poll timeout
+    int avail = waitForData(this->fd, 0, this->timeout / 2); // use half the timeout as poll timeout
     if (avail < 0) { // poll error
       return -1;
     }

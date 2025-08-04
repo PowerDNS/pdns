@@ -356,7 +356,7 @@ int HTTPConnector::send_message(const Json& input)
   if (this->d_socket != nullptr) {
     fd = this->d_socket->getHandle();
     // there should be no data waiting
-    if (waitForRWData(fd, true, 0, 1000) < 1) {
+    if (waitForRWData(fd, true, 0, 1) < 1) {
       try {
         d_socket->writenWithTimeout(out.str().c_str(), out.str().size(), timeout);
         rv = 1;
