@@ -511,6 +511,10 @@ public:
     return false;
   }
 
+  virtual void rectifyZoneHook(domainid_t /*domain_id*/, bool /*before*/) const
+  {
+  }
+
   const string& getPrefix() { return d_prefix; };
 
 protected:
