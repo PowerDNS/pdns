@@ -982,7 +982,6 @@ static void reportOtherTypes(const ReportIsOnlyCallableByReportAllTypes& guard)
    L32RecordContent::report(guard);
    L64RecordContent::report(guard);
    LPRecordContent::report(guard);
-   DNSRecordContent::regist(QClass::ANY, QType::WALLET, &WALLETRecordContent::make, &WALLETRecordContent::make, "WALLET");
    WALLETRecordContent::report(guard);
    ZONEMDRecordContent::report(guard);
 }
