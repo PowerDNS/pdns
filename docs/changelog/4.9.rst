@@ -2,6 +2,21 @@ Changelogs for 4.9.x
 ====================
 
 .. changelog::
+  :version: 4.9.8
+  :released: 7th of August 2025
+
+  This is release 4.9.8 of the Authoritative Server.
+  It contains a minor feature.
+
+  Please review the :doc:`Upgrade Notes <../upgrading>` before upgrading from versions < 4.9.x.
+
+  .. change::
+    :tags: New Features
+    :pullreq: 15961
+
+    Return record last modification time in the API when known.
+
+.. changelog::
   :version: 4.9.7
   :released: 7th of July 2025
 
