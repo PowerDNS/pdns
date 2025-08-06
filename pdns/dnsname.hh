@@ -149,7 +149,7 @@ public:
   DNSName getCommonLabels(const DNSName& other) const; //!< Return the list of common labels from the top, for example 'c.d' for 'a.b.c.d' and 'x.y.c.d'
   DNSName labelReverse() const;
   bool isWildcard() const;
-  bool isHostname() const;
+  bool isHostname(bool allowUnderscore = false) const;
   unsigned int countLabels() const;
   size_t wirelength() const; //!< Number of total bytes in the name
   bool empty() const { return d_storage.empty(); }

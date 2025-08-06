@@ -31,6 +31,6 @@ namespace Check
 //   *) no exact duplicates
 //   *) no duplicates for QTypes that can only be present once per RRset
 //   *) hostnames are hostnames
-void checkRRSet(const vector<DNSResourceRecord>& oldrrs, vector<DNSResourceRecord>& allrrs, const ZoneName& zone, vector<pair<DNSResourceRecord, string>>& errors);
+void checkRRSet(const vector<DNSResourceRecord>& oldrrs, vector<DNSResourceRecord>& allrrs, const ZoneName& zone, bool allowUnderscores, vector<pair<DNSResourceRecord, string>>& errors);
 
 } // namespace Check
