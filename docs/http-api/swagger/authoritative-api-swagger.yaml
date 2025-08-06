@@ -1110,6 +1110,9 @@ definitions:
       disabled:
         type: boolean
         description: 'Whether or not this record is disabled. When unset, the record is not disabled'
+      modified_at:
+        type: integer
+        description: 'Timestamp of the last change to the record'
 
   Comment:
     title: Comment

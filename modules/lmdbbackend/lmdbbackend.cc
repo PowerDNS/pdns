@@ -1513,6 +1513,7 @@ bool LMDBBackend::get(DNSZoneRecord& zr)
       }
 
       serFromString(d_currentVal.get<string_view>(), d_currentrrset);
+      d_currentrrsettime = static_cast<time_t>(LMDBLS::LSgetTimestamp(d_currentVal.getNoStripHeader<string_view>()) / (1000UL * 1000UL * 1000UL));
       d_currentrrsetpos = 0;
     }
     else {
@@ -1567,6 +1568,7 @@ bool LMDBBackend::get(DNSResourceRecord& rr)
   rr.domain_id = zr.domain_id;
   rr.auth = zr.auth;
   rr.disabled = zr.disabled;
+  rr.last_modified = d_currentrrsettime;
 
   return true;
 }
