@@ -1043,7 +1043,7 @@ ComboAddress getAddr(const DNSRecord& dr, uint16_t defport)
 /**
  * Check if the DNSNames that should be hostnames, are hostnames
  */
-void checkHostnameCorrectness(const DNSResourceRecord& rr)
+void checkHostnameCorrectness(const DNSResourceRecord& rr, bool allowUnderscore) // NOLINT(readability-identifier-length)
 {
   if (rr.qtype.getCode() == QType::NS || rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV) {
     DNSName toCheck;
@@ -1064,7 +1064,7 @@ void checkHostnameCorrectness(const DNSResourceRecord& rr)
     }
     else if ((rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV) && toCheck == g_rootdnsname) {
       // allow null MX/SRV
-    } else if(!toCheck.isHostname()) {
+    } else if(!toCheck.isHostname(allowUnderscore)) {
       throw std::runtime_error(boost::str(boost::format("non-hostname content %s") % toCheck.toString()));
     }
   }

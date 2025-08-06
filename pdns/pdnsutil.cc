@@ -870,6 +870,14 @@ static std::string terminalSafe(const std::string& input)
   return output;
 }
 
+static bool areUnderscoresAllowed(const ZoneName& zonename, DomainInfo& info)
+{
+  string underscores{};
+  info.backend->getDomainMetadataOne(zonename, "RFC1123-CONFORMANCE", underscores);
+  // Metadata absent implies strict conformance
+  return underscores == "0";
+}
+
 static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& zone, const vector<DNSResourceRecord>* suppliedrecords=nullptr) // NOLINT(readability-function-cognitive-complexity,readability-identifier-length)
 {
   int numerrors=0;
@@ -1028,6 +1036,8 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& zone, co
   }
   else
     records=*suppliedrecords;
+
+  bool allowUnderscores = areUnderscoresAllowed(zone, di);
 
   for(auto &rr : records) { // we modify this
     if(rr.qtype.getCode() == QType::TLSA)
@@ -1240,7 +1250,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& zone, co
 
     // Check if the DNSNames that should be hostnames, are hostnames
     try {
-      checkHostnameCorrectness(rr);
+      checkHostnameCorrectness(rr, allowUnderscores);
     } catch (const std::exception& e) {
       cout << "[Warning] " << rr.qtype.toString() << " record in zone '" << zone << ": " << e.what() << endl;
       numwarnings++;
@@ -2683,6 +2693,8 @@ static int addOrReplaceRecord(bool isAdd, const vector<string>& cmds)
     }
   }
 
+  bool allowUnderscores = areUnderscoresAllowed(zone, di);
+
   di.backend->startTransaction(zone, UnknownDomainID);
 
   DNSResourceRecord oldrr;
@@ -2704,7 +2716,7 @@ static int addOrReplaceRecord(bool isAdd, const vector<string>& cmds)
   }
 
   std::vector<std::pair<DNSResourceRecord, string>> errors;
-  Check::checkRRSet(oldrrs, newrrs, zone, errors);
+  Check::checkRRSet(oldrrs, newrrs, zone, allowUnderscores, errors);
   oldrrs.clear(); // no longer needed
   if (!errors.empty()) {
     for (const auto& error : errors) {

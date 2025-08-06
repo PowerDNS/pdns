@@ -214,6 +214,14 @@ Global defaults for these values can be set via :ref:`setting-default-publish-cd
 
 .. _metadata-signaling-zone:
 
+RFC1123-CONFORMANCE
+-------------------
+.. versionadded:: 5.1.0
+
+If set to 0, hostnames within the zone are allowed to deviate from :rfc:`1123`
+by allowing underscore (``_``) characters to appear anywhere a letter or a
+digit is allowed.
+
 SIGNALING-ZONE
 --------------
 .. versionadded:: 5.0.0
