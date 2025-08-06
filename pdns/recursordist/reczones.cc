@@ -209,8 +209,10 @@ string reloadZoneConfiguration(bool yaml)
     // these explicitly-named captures should not be necessary, as lambda
     // capture of tuple-like structured bindings is permitted, but some
     // compilers still don't allow it
-    broadcastFunction([dmap = newDomainMap] { return pleaseUseNewSDomainsMap(dmap); });
-    broadcastFunction([nsset = newNotifySet] { return pleaseSupplantAllowNotifyFor(nsset); });
+    broadcastFunction([dmap = newDomainMap, nsset = newNotifySet] { 
+        pleaseUseNewSDomainsMap(dmap);
+        return pleaseSupplantAllowNotifyFor(nsset);
+    });
 
     // Wipe the caches *after* the new auth domain info has been set
     // up, as a query during setting up might fill the caches
