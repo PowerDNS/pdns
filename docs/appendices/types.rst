@@ -243,6 +243,14 @@ The RRSIG DNSSEC record type is fully supported, as described in :rfc:`4034`.
 
 .. _types-soa:
 
+SMIMEA
+------
+
+Since 4.1. The SMIMEA record type, specified in :rfc:`8162`, is used to bind S/MIME
+certificates to domains.
+
+.. _types-txt:
+
 SOA
 ---
 
@@ -328,14 +336,6 @@ certificate to named hosts and ports.
 
 .. _types-smimea:
 
-SMIMEA
-------
-
-Since 4.1. The SMIMEA record type, specified in :rfc:`8162`, is used to bind S/MIME
-certificates to domains.
-
-.. _types-txt:
-
 TXT
 ---
 
@@ -406,4 +406,4 @@ PowerDNS supports (:rfc:`3597`) syntax for serving unknown record types. For exa
    e.example.   IN          TYPE1               \# 4 0A000001
 
 Beware that PowerDNS will attempt to parse known record types even if written in this syntax.
-This bug will be fixed in future release.
+This bug will be fixed in a future release.
