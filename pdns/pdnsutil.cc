@@ -812,6 +812,47 @@ static bool rectifyAllZones(DNSSECKeeper &dk, bool quiet = false)
   return result;
 }
 
+// Returns a terminal-friendly version of its input, with non-printable
+// characters replaced with hex sequences.
+// Filters fewer printable characters than makeLuaString().
+static std::string terminalSafe(const std::string& input)
+{
+  size_t toRewrite{0};
+  for (const auto& chr : input) {
+    if (::isprint(static_cast<int>(chr)) == 0) {
+      ++toRewrite;
+    }
+  }
+  if (toRewrite == 0) {
+    return input;
+  }
+  std::string output;
+  std::array<char, 5> tmp{};
+  output.reserve(input.size() + 3 * toRewrite);
+  for (const auto& chr : input) {
+    if (::isprint(static_cast<int>(chr)) != 0) {
+      output.push_back(chr);
+    }
+    else {
+      switch (chr) {
+      case '\n':
+        output.append("\\n");
+        break;
+      case '\r':
+        output.append("\\r");
+        break;
+      case '\t':
+        output.append("\\t");
+        break;
+      default:
+        snprintf(tmp.data(), tmp.size(), "\\x%02x", static_cast<int>(chr));
+        output.append(tmp.data());
+      }
+    }
+  }
+  return output;
+}
+
 static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& zone, const vector<DNSResourceRecord>* suppliedrecords=nullptr) // NOLINT(readability-function-cognitive-complexity,readability-identifier-length)
 {
   int numerrors=0;
@@ -931,10 +972,36 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& zone, co
 
   vector<DNSResourceRecord> records;
   if(suppliedrecords == nullptr) {
+    std::vector<std::pair<std::string, std::string>> invalid;
     DNSResourceRecord drr;
     sd.db->list(zone, sd.domain_id, g_verbose);
-    while(sd.db->get(drr)) {
-      records.push_back(drr);
+    while (sd.db->get_unsafe(drr, invalid)) {
+      if (invalid.empty()) {
+        records.push_back(drr);
+        continue;
+      }
+      // Emit this alert as a warning, as this is not something which pdnsutil
+      // can fix by itself, and that record will be silently ignored during
+      // regular operation.
+      cout << "[Warning] Ill-formed ";
+      // The invalid part might be the record name itself, only output it if
+      // non-empty.
+      if (!drr.qname.empty()) {
+	cout << "'" << drr.qname << "' ";
+      }
+      cout << "record in backend storage: ";
+      bool first = true;
+      for (const auto& pair : invalid) {
+        if (first) {
+          first = false;
+        }
+        else {
+          cout << ", ";
+        }
+        cout << "field " << pair.first << " has invalid content '" << terminalSafe(pair.second) << "'";
+      }
+      cout << std::endl;
+      numwarnings++;
     }
   }
   else
@@ -5656,7 +5723,7 @@ try
          << endl;
     for (const auto& group : topLevelDispatcher) {
       if (!group.second.first) { // toplevel synonyms (sugar), don't list
-	continue;
+        continue;
       }
       for (const auto& dispatcher : group.second.second) {
         displayCommandGroup(dispatcher, group.first);
