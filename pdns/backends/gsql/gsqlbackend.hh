@@ -261,10 +261,12 @@ public:
   string directBackendCmd(const string &query) override;
   bool searchRecords(const string &pattern, size_t maxResults, vector<DNSResourceRecord>& result) override;
   bool searchComments(const string &pattern, size_t maxResults, vector<Comment>& result) override;
+  bool get_unsafe(DNSResourceRecord& rec, std::vector<std::pair<std::string, std::string>>& invalid) override;
 
 protected:
   string pattern2SQLPattern(const string& pattern);
   void extractRecord(SSqlStatement::row_t& row, DNSResourceRecord& rr);
+  void extractRecord_unsafe(SSqlStatement::row_t& row, DNSResourceRecord& rec, std::vector<std::pair<std::string, std::string>>& invalid);
   void extractComment(SSqlStatement::row_t& row, Comment& c);
   void setLastCheck(domainid_t domain_id, time_t lastcheck);
   bool isConnectionUsable() {
