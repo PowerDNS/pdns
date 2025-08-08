@@ -1655,23 +1655,34 @@ static void gatherRecordsFromZone(const std::string& zonestring, vector<DNSResou
   }
 }
 
-/** Throws ApiException if records which violate RRset constraints are present.
- *  NOTE: sorts records in-place.
- *
- *  Constraints being checked:
- *   *) no exact duplicates
- *   *) no duplicates for QTypes that can only be present once per RRset
- *   *) hostnames are hostnames
- */
-static void checkNewRecords(vector<DNSResourceRecord>& records, const ZoneName& zone)
+// Wrapper around checkRRSet; returns true if all checks successful, false if
+// not, in which case the response body and status have been filled up.
+static bool checkNewRecords(HttpResponse* resp, vector<DNSResourceRecord>& records, const ZoneName& zone)
 {
   std::vector<std::pair<DNSResourceRecord, string>> errors;
 
-  Check::checkRRSet(records, zone, errors, true);
-  if (!errors.empty()) {
-    const auto [rec, why] = errors.front();
-    throw ApiException("RRset " + rec.qname.toString() + " IN " + rec.qtype.toString() + why);
+  Check::checkRRSet(records, zone, errors);
+  if (errors.empty()) {
+    return true;
   }
+
+  Json::array errs;
+  for (const auto& error : errors) {
+    const auto& [rec, why] = error;
+    errs.emplace_back(std::string{"RRset "} + rec.qname.toString() + " IN " + rec.qtype.toString() + ": " + why);
+  }
+
+  Json::object body;
+  if (errs.size() == 1) {
+    body["error"] = errs[0];
+  }
+  else {
+    body["error"] = "Multiple errors found in RRset";
+    body["errors"] = errs;
+  }
+  resp->setJsonBody(body);
+  resp->status = 422;
+  return false;
 }
 
 static void checkTSIGKey(UeberBackend& backend, const DNSName& keyname, const DNSName& algo, const string& content)
@@ -2024,7 +2035,9 @@ static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp)
     }
   }
 
-  checkNewRecords(new_records, zonename);
+  if (!checkNewRecords(resp, new_records, zonename)) {
+    return;
+  }
 
   if (boolFromJson(document, "dnssec", false)) {
     checkDefaultDNSSECAlgos();
@@ -2198,7 +2211,9 @@ static void apiServerZoneDetailPUT(HttpRequest* req, HttpResponse* resp)
       throw ApiException("Modifying RRsets in Consumer zones is unsupported");
     }
 
-    checkNewRecords(new_records, zoneData.zoneName);
+    if (!checkNewRecords(resp, new_records, zoneData.zoneName)) {
+      return;
+    }
 
     zoneData.domainInfo.backend->startTransaction(zoneData.zoneName, zoneData.domainInfo.id);
     for (auto& resourceRecord : new_records) {
@@ -2472,7 +2487,9 @@ static void patchZone(UeberBackend& backend, const ZoneName& zonename, DomainInf
                 soa_edit_done = increaseSOARecord(resourceRecord, soa_edit_api_kind, soa_edit_kind, zonename);
               }
             }
-            checkNewRecords(new_records, zonename);
+            if (!checkNewRecords(resp, new_records, zonename)) {
+              return;
+            }
           }
 
           if (replace_comments) {

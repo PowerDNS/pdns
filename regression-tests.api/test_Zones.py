@@ -60,7 +60,6 @@ def assert_eq_rrsets(rrsets, expected):
     key = lambda rrset: (rrset['name'], rrset['type'])
     assert sorted(rrsets, key=key) == sorted(expected, key=key)
 
-
 def templated_rrsets(rrsets: list, zonename: str):
     """
     Replace $NAME$ in `name` and `content` of given rrsets with `zonename`.
@@ -80,8 +79,18 @@ def templated_rrsets(rrsets: list, zonename: str):
 
     return new_rrsets
 
+class ZonesApiTestCase(ApiTestCase):
 
-class Zones(ApiTestCase):
+    def assert_in_json_error(self, expected, json):
+        if expected not in json['error']:
+            found = False
+            for item in json['errors']:
+                if expected in item:
+                    found = True
+            assert found, "%r not found in %r" (expected, errors)
+
+
+class Zones(ZonesApiTestCase):
 
     def _test_list_zones(self, dnssec=True):
         path = "/api/v1/servers/localhost/zones"
@@ -169,7 +178,7 @@ class AuthZonesHelperMixin(object):
             if expect_error is True:
                 pass
             else:
-                self.assertIn(expect_error, r.json()['error'])
+                self.assert_in_json_error(expect_error, r.json())
         else:
             # expect success
             self.assert_success_json(r)
@@ -191,13 +200,13 @@ class AuthZonesHelperMixin(object):
             if expect_error is True:
                 pass
             else:
-                self.assertIn(expect_error, reply['error'])
+                self.assert_in_json_error(expect_error, reply)
         else:
             # expect success (no content)
             self.assertEqual(r.status_code, 204, r.content)
 
 @unittest.skipIf(not is_auth(), "Not applicable")
-class AuthZones(ApiTestCase, AuthZonesHelperMixin):
+class AuthZones(ZonesApiTestCase, AuthZonesHelperMixin):
 
     def test_create_zone(self):
         # soa_edit_api has a default, override with empty for this test
@@ -418,7 +427,7 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assertEqual(r.status_code, 422)
-        self.assertIn('Nameserver is not canonical', r.json()['error'])
+        self.assert_in_json_error('Nameserver is not canonical', r.json())
 
     def test_create_auth_zone_no_name(self):
         name = unique_zone_name()
@@ -432,7 +441,7 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assertEqual(r.status_code, 422)
-        self.assertIn('is not canonical', r.json()['error'])
+        self.assert_in_json_error('is not canonical', r.json())
 
     def test_create_zone_with_custom_soa(self):
         name = unique_zone_name()
@@ -465,7 +474,7 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assertEqual(r.status_code, 422)
-        self.assertIn('Unable to parse Zone Name', r.json()['error'])
+        self.assert_in_json_error('Unable to parse Zone Name', r.json())
 
     def test_create_zone_restricted_chars(self):
         name = 'test:' + unique_zone_name()  # : isn't good as a name.
@@ -480,7 +489,7 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assertEqual(r.status_code, 422)
-        self.assertIn('contains unsupported characters', r.json()['error'])
+        self.assert_in_json_error('contains unsupported characters', r.json())
 
     def test_create_zone_mixed_nameservers_ns_rrset_zonelevel(self):
         name = unique_zone_name()
@@ -505,7 +514,7 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assertEqual(r.status_code, 422)
-        self.assertIn('Nameservers list MUST NOT be mixed with zone-level NS in rrsets', r.json()['error'])
+        self.assert_in_json_error('Nameservers list MUST NOT be mixed with zone-level NS in rrsets', r.json())
 
     def test_create_zone_mixed_nameservers_ns_rrset_below_zonelevel(self):
         name = unique_zone_name()
@@ -767,7 +776,7 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
                               data=json.dumps(payload_metadata))
         self.assertEqual(r.status_code, 404)
         # Note: errors should probably contain json (see #5988)
-        # self.assertIn('Could not find domain ', r.json()['error'])
+        # self.assert_in_json_error('Could not find domain ', r.json())
 
     def test_create_slave_zone(self):
         # Test that nameservers can be absent for slave zones.
@@ -1061,7 +1070,7 @@ example.org.   3600    IN      AAAA    2001:888:2000:1d::2
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assertEqual(r.status_code, 422)
-        self.assertEqual(r.json()['error'], 'RRset example.org. IN AAAA: Name is out of zone')
+        self.assert_in_json_error('RRset example.org. IN AAAA: Name is out of zone', r.json())
 
     def test_import_zone_axfr(self):
         payload = {
@@ -1203,7 +1212,7 @@ $ORIGIN %NAME%
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assertEqual(r.status_code, 422)
-        self.assertIn('conflicts with existing NS RRset', r.json()['error'])
+        self.assert_in_json_error('conflicts with existing NS RRset', r.json())
 
     def test_export_zone_json(self):
         name, payload, zone = self.create_zone(nameservers=['ns1.foo.com.', 'ns2.foo.com.'], soa_edit_api='')
@@ -1352,7 +1361,7 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assertEqual(r.status_code, 422)
-        self.assertIn('non-hostname content', r.json()['error'])
+        self.assert_in_json_error('non-hostname content', r.json())
         data = self.get_zone(name)
         self.assertIsNone(get_rrset(data, name, 'MX'))
 
@@ -1428,7 +1437,7 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assertEqual(r.status_code, 422)
-        self.assertIn('OPT: invalid type given', r.json()['error'])
+        self.assert_in_json_error('OPT: invalid type given', r.json())
 
     def test_zone_rr_update_multiple_rrsets(self):
         name, payload, zone = self.create_zone()
@@ -1489,7 +1498,7 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assertEqual(r.status_code, 422)
-        self.assertIn('duplicate record with content', r.json()['error'])
+        self.assert_in_json_error('duplicate record with content', r.json())
 
     def test_zone_rr_update_duplicate_rrset(self):
         name, payload, zone = self.create_zone()
@@ -1523,7 +1532,7 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assertEqual(r.status_code, 422)
-        self.assertIn('Duplicate RRset', r.json()['error'])
+        self.assert_in_json_error('Duplicate RRset', r.json())
 
     def test_zone_rr_delete(self):
         name, payload, zone = self.create_zone()
@@ -1639,7 +1648,7 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assertEqual(r.status_code, 422)
-        self.assertIn('out of zone', r.json()['error'])
+        self.assert_in_json_error('out of zone', r.json())
 
     def test_zone_rr_update_restricted_chars(self):
         name, payload, zone = self.create_zone()
@@ -1662,7 +1671,7 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assertEqual(r.status_code, 422)
-        self.assertIn('contains unsupported characters', r.json()['error'])
+        self.assert_in_json_error('contains unsupported characters', r.json())
 
     def test_rrset_unknown_type(self):
         name, payload, zone = self.create_zone()
@@ -1682,7 +1691,7 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         r = self.session.patch(self.url("/api/v1/servers/localhost/zones/" + name), data=json.dumps(payload),
                                headers={'content-type': 'application/json'})
         self.assertEqual(r.status_code, 422)
-        self.assertIn('unknown type', r.json()['error'])
+        self.assert_in_json_error('unknown type', r.json())
 
     @parameterized.expand([
         ('CNAME', ),
@@ -1705,7 +1714,7 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         r = self.session.patch(self.url("/api/v1/servers/localhost/zones/" + name), data=json.dumps(payload),
                                headers={'content-type': 'application/json'})
         self.assertEqual(r.status_code, 422)
-        self.assertIn('Conflicts with pre-existing RRset', r.json()['error'])
+        self.assert_in_json_error('Conflicts with pre-existing RRset', r.json())
 
     @parameterized.expand([
         ('CNAME', ),
@@ -1744,7 +1753,7 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         r = self.session.patch(self.url("/api/v1/servers/localhost/zones/" + name), data=json.dumps(payload),
                                headers={'content-type': 'application/json'})
         self.assertEqual(r.status_code, 422)
-        self.assertIn('Conflicts with pre-existing RRset', r.json()['error'])
+        self.assert_in_json_error('Conflicts with pre-existing RRset', r.json())
 
     @parameterized.expand([
         ('', 'SOA', ['ns1.example.org. test@example.org. 10 10800 3600 604800 3600', 'ns2.example.org. test@example.org. 10 10800 3600 604800 3600']),
@@ -1772,7 +1781,7 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         r = self.session.patch(self.url("/api/v1/servers/localhost/zones/" + name), data=json.dumps(payload),
                                headers={'content-type': 'application/json'})
         self.assertEqual(r.status_code, 422)
-        self.assertIn('IN ' + qtype + ': only one such record', r.json()['error'])
+        self.assert_in_json_error('IN ' + qtype + ': only one such record', r.json())
 
     def test_rrset_zone_apex(self):
         name, payload, zone = self.create_zone()
@@ -1850,7 +1859,7 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         r = self.session.patch(self.url("/api/v1/servers/localhost/zones/" + name), data=json.dumps(payload),
                                headers={'content-type': 'application/json'})
         self.assertEqual(r.status_code, 422)
-        self.assertIn('only allowed at apex', r.json()['error'])
+        self.assert_in_json_error('only allowed at apex', r.json())
         data = self.get_zone(name)
         self.assertIsNone(get_rrset(data, 'sub.' + name, qtype))
 
@@ -1875,7 +1884,7 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         r = self.session.patch(self.url("/api/v1/servers/localhost/zones/" + name), data=json.dumps(payload),
                                headers={'content-type': 'application/json'})
         self.assertEqual(r.status_code, 422)
-        self.assertIn('not allowed at apex', r.json()['error'])
+        self.assert_in_json_error('not allowed at apex', r.json())
         data = self.get_zone(name)
         self.assertIsNone(get_rrset(data, 'sub.' + name, qtype))
 
@@ -1954,7 +1963,7 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         r = self.session.patch(self.url("/api/v1/servers/localhost/zones/" + name), data=json.dumps(payload),
                                headers={'content-type': 'application/json'})
         self.assertEqual(r.status_code, 422)
-        self.assertIn('Cannot have both NS and DNAME except in zone apex', r.json()['error'])
+        self.assert_in_json_error('Cannot have both NS and DNAME except in zone apex', r.json())
 
 ## FIXME: Enable this when it's time for it
 #    def test_rrset_dname_nothing_under(self):
@@ -1991,7 +2000,7 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
 #        r = self.session.patch(self.url("/api/v1/servers/localhost/zones/" + name), data=json.dumps(payload),
 #                               headers={'content-type': 'application/json'})
 #        self.assertEqual(r.status_code, 422)
-#        self.assertIn('You cannot have record(s) under CNAME/DNAME', r.json()['error'])
+#        self.assert_in_json_error('You cannot have record(s) under CNAME/DNAME', r.json())
 
     def test_create_zone_with_leading_space(self):
         name, payload, zone = self.create_zone()
@@ -2132,7 +2141,7 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assertEqual(r.status_code, 422)
-        self.assertIn("Key 'modified_at' is out of range", r.json()['error'])
+        self.assert_in_json_error("Key 'modified_at' is out of range", r.json())
 
     @unittest.skipIf(is_auth_lmdb(), "No comments in LMDB")
     def test_zone_comment_stay_intact(self):
@@ -2641,7 +2650,7 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         self.assertGreater(modified_at_new, modified_at)
 
 @unittest.skipIf(not is_auth(), "Not applicable")
-class AuthRootZone(ApiTestCase, AuthZonesHelperMixin):
+class AuthRootZone(ZonesApiTestCase, AuthZonesHelperMixin):
 
     def setUp(self):
         super(AuthRootZone, self).setUp()
@@ -2704,7 +2713,7 @@ class AuthRootZone(ApiTestCase, AuthZonesHelperMixin):
 
 
 @unittest.skipIf(not is_recursor(), "Not applicable")
-class RecursorZones(ApiTestCase):
+class RecursorZones(ZonesApiTestCase):
 
     def create_zone(self, name=None, kind=None, rd=False, servers=None, notify_allowed=False):
         if name is None:
@@ -2743,7 +2752,7 @@ class RecursorZones(ApiTestCase):
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assertEqual(r.status_code, 422)
-        self.assertIn('is not canonical', r.json()['error'])
+        self.assert_in_json_error('is not canonical', r.json())
 
     def test_create_forwarded_zone(self):
         payload, data = self.create_zone(kind='Forwarded', rd=False, servers=['8.8.8.8'])
@@ -2816,7 +2825,7 @@ class RecursorZones(ApiTestCase):
         self.assertEqual(len(r.json()), 2)
 
 @unittest.skipIf(not is_auth(), "Not applicable")
-class AuthZoneKeys(ApiTestCase, AuthZonesHelperMixin):
+class AuthZoneKeys(ZonesApiTestCase, AuthZonesHelperMixin):
 
     def test_get_keys(self):
         r = self.session.get(

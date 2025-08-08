@@ -2559,11 +2559,11 @@ static int addOrReplaceRecord(bool isAdd, const vector<string>& cmds)
   }
 
   std::vector<std::pair<DNSResourceRecord, string>> errors;
-  Check::checkRRSet(newrrs, zone, errors, false);
+  Check::checkRRSet(newrrs, zone, errors);
   if (!errors.empty()) {
     for (const auto& error : errors) {
       const auto [rec, why] = error;
-      cerr << "RRset " << rec.qname.toString() << " IN " << rec.qtype.toString() << why << endl;
+      cerr << "RRset " << rec.qname.toString() << " IN " << rec.qtype.toString() << ": " << why << endl;
     }
     return EXIT_FAILURE;
   }

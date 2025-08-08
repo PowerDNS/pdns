@@ -23,14 +23,13 @@
 namespace Check
 {
 
-/** Throws CheckException if records which violate RRset constraints are present.
- *  NOTE: sorts records in-place.
- *
- *  Constraints being checked:
- *   *) no exact duplicates
- *   *) no duplicates for QTypes that can only be present once per RRset
- *   *) hostnames are hostnames
- */
-void checkRRSet(vector<DNSResourceRecord>& records, const ZoneName& zone, vector<pair<DNSResourceRecord, string>>& errors, bool stopAtFirstError);
+// Returns the list of errors found for records which violate RRset constraints.
+// NOTE: sorts records in-place.
+//
+//  Constraints being checked:
+//   *) no exact duplicates
+//   *) no duplicates for QTypes that can only be present once per RRset
+//   *) hostnames are hostnames
+void checkRRSet(vector<DNSResourceRecord>& records, const ZoneName& zone, vector<pair<DNSResourceRecord, string>>& errors);
 
 } // namespace Check
