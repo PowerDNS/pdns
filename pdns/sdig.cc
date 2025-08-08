@@ -526,7 +526,7 @@ try {
     Socket sock(dest.sin4.sin_family, SOCK_DGRAM);
     question = proxyheader + question;
     sock.sendTo(question, dest);
-    int result = waitForData(sock.getHandle(), timeout.tv_sec, timeout.tv_usec);
+    int result = waitForData(sock.getHandle(), timeout);
     if (result < 0)
       throw std::runtime_error("Error waiting for data: " + stringerror());
     if (!result)

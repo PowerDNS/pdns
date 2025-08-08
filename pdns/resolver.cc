@@ -313,7 +313,7 @@ int Resolver::resolve(const ComboAddress& to, const DNSName &domain, int type, R
   try {
     int sock = -1;
     int id = sendResolve(to, local, domain, type, &sock);
-    int err=waitForData(sock, 0, 3000000);
+    int err=waitForData(sock, 3, 0);
 
     if(!err) {
       throw ResolverException("Timeout waiting for answer");

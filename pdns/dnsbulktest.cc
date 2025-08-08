@@ -141,7 +141,7 @@ struct SendReceive
 
   bool receive(Identifier& iden, DNSResult& dnsResult)
   {
-    if (waitForData(d_socket.getHandle(), 0, 500000) > 0) {
+    if (waitForData(d_socket.getHandle(), 0, 500) > 0) {
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init): no need to initialize the buffer
       std::array<char, 512> buf;
 

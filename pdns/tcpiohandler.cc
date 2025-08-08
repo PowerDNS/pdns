@@ -286,7 +286,7 @@ public:
   {
     auto state = convertIORequestToIOState(res);
     if (state == IOState::NeedRead) {
-      res = waitForData(d_socket, timeout.tv_sec, timeout.tv_usec);
+      res = waitForData(d_socket, timeout);
       if (res == 0) {
         throw std::runtime_error("Timeout while reading from TLS connection");
       }
@@ -295,7 +295,7 @@ public:
       }
     }
     else if (state == IOState::NeedWrite) {
-      res = waitForRWData(d_socket, false, timeout.tv_sec, timeout.tv_usec);
+      res = waitForRWData(d_socket, false, timeout);
       if (res == 0) {
         throw std::runtime_error("Timeout while writing to TLS connection");
       }
@@ -1308,13 +1308,13 @@ public:
         return;
       }
       else if (state == IOState::NeedRead) {
-        int result = waitForData(d_socket, remainingTime.tv_sec, remainingTime.tv_usec);
+        int result = waitForData(d_socket, remainingTime);
         if (result <= 0) {
           throw std::runtime_error("Error reading from TLS connection: " + std::to_string(result));
         }
       }
       else if (state == IOState::NeedWrite) {
-        int result = waitForRWData(d_socket, false, remainingTime.tv_sec, remainingTime.tv_usec);
+        int result = waitForRWData(d_socket, false, remainingTime);
         if (result <= 0) {
           throw std::runtime_error("Error reading from TLS connection: " + std::to_string(result));
         }
@@ -1489,7 +1489,7 @@ public:
           throw std::runtime_error("Fatal error reading from TLS connection: " + std::string(gnutls_strerror(res)));
         }
         else if (res == GNUTLS_E_AGAIN) {
-          int result = waitForData(d_socket, readTimeout.tv_sec, readTimeout.tv_usec);
+          int result = waitForData(d_socket, readTimeout);
           if (result <= 0) {
             throw std::runtime_error("Error while waiting to read from TLS connection: " + std::to_string(result));
           }
@@ -1532,7 +1532,7 @@ public:
           throw std::runtime_error("Fatal error writing to TLS connection: " + std::string(gnutls_strerror(res)));
         }
         else if (res == GNUTLS_E_AGAIN) {
-          int result = waitForRWData(d_socket, false, writeTimeout.tv_sec, writeTimeout.tv_usec);
+          int result = waitForRWData(d_socket, false, writeTimeout);
           if (result <= 0) {
             throw std::runtime_error("Error waiting to write to TLS connection: " + std::to_string(result));
           }
