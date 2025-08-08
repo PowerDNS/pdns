@@ -86,6 +86,7 @@ subdir('meson' / 'doh3')                    # DNS over HTTP/3
 subdir('meson' / 'yaml-configuration')      # YAML configuration
 subdir('meson' / 'catch2')                  # Microbenchmark
 subdir('meson' / 'mmdb')                    # MMDB (MaxmindDB)
+subdir('meson' / 'redis')                   # Redis
 
 common_sources = []
 
@@ -156,6 +157,7 @@ common_sources += files(
   src_dir / 'dnsdist-lua-bindings-dnsquestion.cc',
   src_dir / 'dnsdist-lua-bindings-kvs.cc',
   src_dir / 'dnsdist-lua-bindings-mmdb.cc',
+  src_dir / 'dnsdist-lua-bindings-redis.cc',
   src_dir / 'dnsdist-lua-bindings-network.cc',
   src_dir / 'dnsdist-lua-bindings-opentelemetry.cc',
   src_dir / 'dnsdist-lua-bindings-packetcache.cc',
@@ -254,6 +256,12 @@ conditional_sources = {
       src_dir / 'mmdb.cc',
     ],
     'condition': get_option('mmdb').allowed() and dep_mmdb.found(),
+   },
+  'redis': {
+    'sources': [
+      src_dir / 'redis.cc',
+    ],
+    'condition': get_option('redis').allowed() and dep_redis.found(),
    },
 }
 
@@ -413,6 +421,7 @@ deps = [
   dep_threads,
   dep_libbpf,
   dep_libxdp,
+  dep_redis,
   dep_dnsdist_rust_lib,
   dep_yaml_settings_docs,
 ]
@@ -594,6 +603,7 @@ if get_option('unit-tests')
           dep_ipcrypt2,
           dep_lua,
           dep_protozero,
+          dep_yahttp,
       ],
     )
   )
