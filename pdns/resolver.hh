@@ -63,17 +63,18 @@ public:
   int resolve(const ComboAddress &ip, const DNSName &domain, int type, res_t* result);
 
   //! only send out a resolution request
-  uint16_t sendResolve(const ComboAddress& remote, const ComboAddress& local, const DNSName &domain, int type, int *localsock, bool dnssecOk=false,
+  uint16_t sendResolve(const ComboAddress& remote, const ComboAddress& local, const DNSName &domain, int type, int& localsock, bool useTCP, bool dnssecOk=false,
     const DNSName& tsigkeyname=DNSName(), const DNSName& tsigalgorithm=DNSName(), const string& tsigsecret="");
 
   //! see if we got a SOA response from our sendResolve
-  bool tryGetSOASerial(DNSName *theirDomain, ComboAddress* remote, uint32_t* theirSerial, uint32_t* theirInception, uint32_t* theirExpire, uint16_t* id);
+  bool tryGetSOASerial(DNSName& domain, ComboAddress& remote, uint32_t* theirSerial, uint32_t* theirInception, uint32_t* theirExpire, uint16_t& reqid, bool *truncated);
   
   //! convenience function that calls resolve above
   void getSoaSerial(const ComboAddress&, const DNSName &, uint32_t *);
   
 private:
   std::map<std::string, int> locals;
+  bool d_nonlocalbind;
 };
 
 namespace pdns {
