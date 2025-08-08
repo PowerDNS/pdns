@@ -41,8 +41,11 @@ int PacketHandler::checkUpdatePrerequisites(const DNSRecord *rr, DomainInfo *di)
   while(di->backend->get(rec)) {
     if (!rec.qtype.getCode())
       continue;
-    if ((rr->d_type != QType::ANY && rec.qtype == rr->d_type) || rr->d_type == QType::ANY)
+    if ((rr->d_type != QType::ANY && rec.qtype == rr->d_type) || rr->d_type == QType::ANY) {
       foundRecord=true;
+      di->backend->lookupEnd();
+      break;
+    }
   }
 
   // Section 3.2.1
@@ -952,8 +955,7 @@ int PacketHandler::processUpdate(DNSPacket& packet) { // NOLINT(readability-func
       while (di.backend->get(rec)) {
         if (rec.qtype != QType::CNAME && rec.qtype != QType::ENT && rec.qtype != QType::RRSIG) {
           // leave database handle in a consistent state
-          while (di.backend->get(rec))
-            ;
+          di.backend->lookupEnd();
           g_log<<Logger::Warning<<msgPrefix<<"Refusing update for " << rr->d_name << "/" << QType(rr->d_type).toString() << ": Data other than CNAME exists for the same name"<<endl;
           di.backend->abortTransaction();
           return RCode::Refused;
@@ -967,8 +969,7 @@ int PacketHandler::processUpdate(DNSPacket& packet) { // NOLINT(readability-func
       while (di.backend->get(rec)) {
         if (rec.qtype == QType::CNAME && rr->d_type != QType::RRSIG) {
           // leave database handle in a consistent state
-          while (di.backend->get(rec))
-            ;
+          di.backend->lookupEnd();
           g_log<<Logger::Warning<<msgPrefix<<"Refusing update for " << rr->d_name << "/" << QType(rr->d_type).toString() << ": CNAME exists for the same name"<<endl;
           di.backend->abortTransaction();
           return RCode::Refused;
