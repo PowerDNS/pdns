@@ -1899,11 +1899,23 @@ static bool parseZoneFile(const char* tmpnam, int& errorline, std::vector<DNSRec
   return true;
 }
 
+// Return whether the SOA serial number remains unchanged in the update.
+static bool isSameZoneSerial(const SOAData& soa, DomainInfo& info, std::vector<DNSRecord>& records)
+{
+  auto iter = std::find_if(records.begin(), records.end(), [&info](const DNSRecord& rec) { return rec.d_type == QType::SOA && rec.d_name == info.zone.operator const DNSName&(); });
+  // If there is no SOA record, then, well, we can argue its serial number
+  // did change, because this means someone irresponsible has deleted it.
+  if (iter == records.end()) {
+    return false;
+  }
+  SOAData newsoa;
+  fillSOAData(iter->getContent()->getZoneRepresentation(true), newsoa);
+  return soa.serial == newsoa.serial;
+}
+
 // Increase the serial number of the SOA record according to the
 // SOA-EDIT-INCREASE policy.
-// Returns true if successful, with `update' containing the updated
-// record, false otherwise.
-static bool increaseZoneSerial(UtilBackend &B, DNSSECKeeper& dsk, DomainInfo& info, std::vector<DNSRecord>& records, const PDNSColors& col, DNSRecord& update) // NOLINT(readability-identifier-length)
+static bool increaseZoneSerial(DNSSECKeeper& dsk, DomainInfo& info, std::vector<DNSRecord>& records, const PDNSColors& col)
 {
   auto iter = std::find_if(records.begin(), records.end(), [&info](const DNSRecord& rec) { return rec.d_type == QType::SOA && rec.d_name == info.zone.operator const DNSName&(); });
   // There should be one SOA record, therefore iter should be valid...
@@ -1912,10 +1924,15 @@ static bool increaseZoneSerial(UtilBackend &B, DNSSECKeeper& dsk, DomainInfo& in
   if (iter == records.end()) {
     return false;
   }
+  // Since the user may have modified the SOA record (but not its serial
+  // number), we need to recreate a fresh SOAData from the new record contents.
   DNSRecord oldSoaDR = *iter;
-
   SOAData soa;
-  B.getSOAUncached(info.zone, soa);
+  fillSOAData(oldSoaDR.getContent()->getZoneRepresentation(true), soa);
+  // copy the few fields not set up by fillSOAData() above.
+  soa.zonename = info.zone;
+  soa.ttl = oldSoaDR.d_ttl;
+
   // TODO: do we need to check for presigned? here or maybe even all the way before edit-zone starts?
 
   string soaEditKind;
@@ -1930,9 +1947,8 @@ static bool increaseZoneSerial(UtilBackend &B, DNSSECKeeper& dsk, DomainInfo& in
   str << col.green() << "+" << rec.d_name << " " << rec.d_ttl<< " IN " <<DNSRecordContent::NumberToType(rec.d_type) << " " <<rec.getContent()->getZoneRepresentation(true) << col.rst() <<endl;
   cout << str.str();
 
-  *iter = rec;
+  *iter = std::move(rec);
   cout<<"SOA serial for zone "<<info.zone<<" set to "<<soa.serial;
-  update = std::move(rec);
   return true;
 }
 
@@ -1941,6 +1957,7 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
   UtilBackend B; //NOLINT(readability-identifier-length)
   DomainInfo info;
   DNSSECKeeper dsk(&B);
+  SOAData soa;
   int resp{0};
 
   if (! B.getDomainInfo(zone, info)) {
@@ -1973,6 +1990,9 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
       }
     }
   }
+
+  // Get the original SOA record once, for comparison purposes.
+  B.getSOAUncached(info.zone, soa);
 
   // Ensure that the temporary file will only be accessible by the current user,
   // not even by other users in the same group, and certainly not by other
@@ -2092,7 +2112,7 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
       }
       // If the SOA record has not been modified, ask the user if they want to
       // update the serial number.
-      if (!changed.empty() && changed.find({zone.operator const DNSName&(), QType::SOA}) == changed.end()) {
+      if (!changed.empty() && isSameZoneSerial(soa, info, post)) {
         state = ASKSOA;
       }
       else {
@@ -2100,7 +2120,7 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
       }
       break;
     case ASKSOA:
-      cout<<endl<<"You have not updated the SOA record! Would you like to increase-serial?"<<endl;
+      cout<<endl<<"You have not updated the serial number in the SOA record!"<<endl<<"Would you like to increase-serial?"<<endl;
       cout<<"(y)es - increase serial, (n)o - leave SOA record as is, (e)dit your changes, (q)uit: "<<std::flush;
       resp = ::tolower(read1char());
       if (resp != '\n') {
@@ -2109,9 +2129,9 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
       switch (resp) {
       case 'y':
         {
-          DNSRecord rec;
-          if (increaseZoneSerial(B, dsk, info, post, col, rec)) {
-            changed[{rec.d_name, rec.d_type}]="";
+          if (increaseZoneSerial(dsk, info, post, col)) {
+            // Make sure to mark the SOA record as needing to be written.
+            changed[{info.zone.operator const DNSName&(), QType::SOA}] = "";
             state = ASKAPPLY;
           }
           else {
