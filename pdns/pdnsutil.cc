@@ -1952,6 +1952,7 @@ static bool increaseZoneSerial(DNSSECKeeper& dsk, DomainInfo& info, std::vector<
   return true;
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity): despite moving a lot of it into subroutines, it's still a bit over the threshold as of 20250811
 static int editZone(const ZoneName &zone, const PDNSColors& col)
 {
   UtilBackend B; //NOLINT(readability-identifier-length)
