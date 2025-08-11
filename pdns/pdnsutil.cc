@@ -1844,7 +1844,7 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
   }
 
   if (isatty(STDIN_FILENO) == 0) {
-    cerr << "edit-zone requires a terminal" << endl;
+    cerr << "zone edit requires a terminal" << endl;
     return EXIT_FAILURE;
   }
 
@@ -1865,13 +1865,10 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
     }
   }
 
-  /* ensure that the temporary file will only
-     be accessible by the current user, not even
-     by other users in the same group, and certainly
-     not by other users.
-  */
+  // ensure that the temporary file will only be accessible by the current user,
+  // not even by other users in the same group, and certainly not by other
+  // users.
   umask(S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH);
-  vector<DNSRecord> pre, post;
   char tmpnam[]="/tmp/pdnsutil-XXXXXX";
   int tmpfd=mkstemp(tmpnam);
   if(tmpfd < 0)
@@ -1886,47 +1883,52 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
     string d_name;
   } dm(tmpnam);
 
-  vector<DNSResourceRecord> checkrr;
   int gotoline=0;
   string editor="editor";
   if(auto e=getenv("EDITOR")) // <3
     editor=e;
 
-  map<pair<DNSName,uint16_t>, vector<DNSRecord> > grouped;
+  vector<DNSRecord> pre, post;
+  map<pair<DNSName,uint16_t>, vector<DNSRecord>> grouped;
   map<pair<DNSName,uint16_t>, string> changed;
-  enum { EDITAGAIN, EDITMORE, REASK, REASK2, REASK3, VALIDATE, APPLY } state = EDITAGAIN;
+
+  enum { CREATEZONEFILE, EDITFILE, INVALIDZONE, ASKAPPLY, ASKSOA, VALIDATE, APPLY } state = CREATEZONEFILE;
   while (true) {
     switch (state) {
-    case EDITAGAIN:
+    case CREATEZONEFILE:
       di.backend->list(zone, di.id);
-      pre.clear(); post.clear();
+      pre.clear();
+      post.clear();
       {
-        if(tmpfd < 0 && (tmpfd=open(tmpnam, O_CREAT | O_WRONLY | O_TRUNC, 0600)) < 0)
+        if(tmpfd < 0 && (tmpfd=open(tmpnam, O_CREAT | O_WRONLY | O_TRUNC, 0600)) < 0) {
           unixDie("Error reopening temporary file "+string(tmpnam));
-        string header("; Warning - every name in this file is ABSOLUTE!\n$ORIGIN .\n");
-        if(write(tmpfd, header.c_str(), header.length()) < 0)
+        }
+        const string header("; Warning - every name in this file is ABSOLUTE!\n$ORIGIN .\n");
+        if(write(tmpfd, header.c_str(), header.length()) < 0) {
           unixDie("Writing zone to temporary file");
+        }
         DNSResourceRecord rr;
         while(di.backend->get(rr)) {
-          if(rr.qtype.getCode() == 0) {
+          if(rr.qtype.getCode() == QType::ENT) {
             continue;
           }
           DNSRecord dr(rr);
-          pre.push_back(std::move(dr));
+          pre.emplace_back(std::move(dr));
         }
         sort(pre.begin(), pre.end(), DNSRecord::prettyCompare);
         for(const auto& dr : pre) {
           ostringstream os;
           os<<dr.d_name<<"\t"<<dr.d_ttl<<"\tIN\t"<<DNSRecordContent::NumberToType(dr.d_type)<<"\t"<<dr.getContent()->getZoneRepresentation(true)<<endl;
-          if(write(tmpfd, os.str().c_str(), os.str().length()) < 0)
+          if(write(tmpfd, os.str().c_str(), os.str().length()) < 0) {
             unixDie("Writing zone to temporary file");
+          }
         }
         close(tmpfd);
         tmpfd=-1;
       }
-      state = EDITMORE;
+      state = EDITFILE;
       break;
-    case EDITMORE:
+    case EDITFILE:
       post.clear();
       {
         int result{0};
@@ -1954,32 +1956,33 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
           cerr<<"Problem: "<<e.what()<<" "<<zpt.getLineOfFile()<<endl;
           auto fnum = zpt.getLineNumAndFile();
           gotoline = fnum.second;
-          state = REASK;
+          state = INVALIDZONE;
           break;
         }
         catch(PDNSException& e) {
           cerr<<"Problem: "<<e.reason<<" "<<zpt.getLineOfFile()<<endl;
           auto fnum = zpt.getLineNumAndFile();
           gotoline = fnum.second;
-          state = REASK;
+          state = INVALIDZONE;
           break;
         }
       }
       sort(post.begin(), post.end(), DNSRecord::prettyCompare);
-      checkrr.clear();
-
-      for(const DNSRecord& rr : post) {
-        DNSResourceRecord drr = DNSResourceRecord::fromWire(rr);
-        drr.domain_id = di.id;
-        checkrr.push_back(std::move(drr));
-      }
-      if(checkZone(dk, B, zone, &checkrr) != 0) {
-        state = REASK;
-        break;
+      {
+        vector<DNSResourceRecord> checkrr;
+        for(const DNSRecord& rr : post) {
+          DNSResourceRecord drr = DNSResourceRecord::fromWire(rr);
+          drr.domain_id = di.id;
+          checkrr.push_back(std::move(drr));
+        }
+        if(checkZone(dk, B, zone, &checkrr) != 0) {
+          state = INVALIDZONE;
+          break;
+        }
       }
       state = VALIDATE;
       break;
-    case REASK:
+    case INVALIDZONE:
       cerr << col.red() << col.bold() << "There was a problem with your zone" << col.rst() << "\nOptions are: (e)dit your changes, (r)etry with original zone, (a)pply change anyhow, (q)uit: " << std::flush;
       resp = ::tolower(read1char());
       if (resp != '\n') {
@@ -1987,10 +1990,10 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
       }
       if(resp=='e') {
         post.clear();
-        state = EDITMORE;
+        state = EDITFILE;
       } else if(resp=='r') {
         post.clear();
-        state = EDITAGAIN;
+        state = CREATEZONEFILE;
       } else if(resp=='q') {
         return EXIT_FAILURE;
       } else if(resp=='a') {
@@ -2020,12 +2023,12 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
       for(const auto& c : changed) {
         cout<<c.second;
       }
-      state = REASK2;
+      state = ASKAPPLY;
       if (!changed.empty() && changed.find({zone.operator const DNSName&(), QType::SOA}) == changed.end()) {
-        state = REASK3;
+        state = ASKSOA;
       }
       break;
-    case REASK3:
+    case ASKSOA:
       cout<<endl<<"You have not updated the SOA record! Would you like to increase-serial?"<<endl;
       cout<<"(y)es - increase serial, (n)o - leave SOA record as is, (e)dit your changes, (q)uit: "<<std::flush;
       resp = ::tolower(read1char());
@@ -2055,22 +2058,19 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
           grouped[{dr.d_name, dr.d_type}].at(0) = dr;
           cout<<endl<<"SOA serial for zone "<<zone<<" set to "<<sd.serial;
         }
-        state = REASK2;
+        state = ASKAPPLY;
         break;
       case 'q':
         return EXIT_FAILURE;
       case 'e':
-        state = EDITMORE;
+        state = EDITFILE;
         break;
       case 'n':
-        state = REASK2;
-        break;
-      default:
-        state = REASK3;
+        state = ASKAPPLY;
         break;
       }
       break;
-    case REASK2:
+    case ASKAPPLY:
       if(changed.empty()) {
         cout<<endl<<"No changes to apply."<<endl;
         return(EXIT_SUCCESS);
@@ -2081,21 +2081,19 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
         cout << endl;
       }
       post.clear();
-      if(resp=='q')
+      switch (resp) {
+      case 'q':
         return(EXIT_SUCCESS);
-      if(resp=='e') {
-        state = EDITMORE;
+      case 'e':
+        state = EDITFILE;
+        break;
+      case 'r':
+        state = CREATEZONEFILE;
+        break;
+      case 'a':
+        state = APPLY;
         break;
       }
-      else if(resp=='r') {
-        state = EDITAGAIN;
-        break;
-      }
-      else if(changed.empty() || resp!='a') {
-        state = REASK2;
-        break;
-      }
-      state = APPLY;
       break;
     case APPLY:
       di.backend->startTransaction(zone, UnknownDomainID);
