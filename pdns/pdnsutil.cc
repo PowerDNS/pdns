@@ -1899,6 +1899,36 @@ static bool parseZoneFile(const char* tmpnam, int& errorline, std::vector<DNSRec
   return true;
 }
 
+static bool increaseZoneSerial(UtilBackend &B, DNSSECKeeper& dsk, DomainInfo& info, std::vector<DNSRecord>& records, const PDNSColors& col, DNSRecord& update) // NOLINT(readability-identifier-length)
+{
+  auto iter = std::find_if(records.begin(), records.end(), [&info](const DNSRecord& rec) { return rec.d_type == QType::SOA && rec.d_name == info.zone.operator const DNSName&(); });
+  // There should be one SOA record, therefore iter should be valid...
+  // ...but it is possible to f*ck up a zone well enough to reach this
+  // path with no SOA record at all.
+  if (iter == records.end()) {
+    return false;
+  }
+  DNSRecord oldSoaDR = *iter;
+  ostringstream str;
+  str<< col.red() << "-" << oldSoaDR.d_name << " " << oldSoaDR.d_ttl << " IN " << DNSRecordContent::NumberToType(oldSoaDR.d_type) << " " <<oldSoaDR.getContent()->getZoneRepresentation(true) << col.rst() <<endl;
+
+  SOAData soa;
+  B.getSOAUncached(info.zone, soa);
+  // TODO: do we need to check for presigned? here or maybe even all the way before edit-zone starts?
+
+  string soaEditKind;
+  dsk.getSoaEdit(info.zone, soaEditKind);
+
+  DNSResourceRecord resrec;
+  makeIncreasedSOARecord(soa, "SOA-EDIT-INCREASE", soaEditKind, resrec);
+  DNSRecord rec(resrec);
+
+  *iter = rec;
+  cout<<endl<<"SOA serial for zone "<<info.zone<<" set to "<<soa.serial;
+  update = std::move(rec);
+  return true;
+}
+
 static int editZone(const ZoneName &zone, const PDNSColors& col)
 {
   UtilBackend B; //NOLINT(readability-identifier-length)
@@ -2068,31 +2098,19 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
       switch (resp) {
       case 'y':
         {
-          auto iter = std::find_if(post.begin(), post.end(), [&zone](const DNSRecord& rec) { return rec.d_type == QType::SOA && rec.d_name == zone.operator const DNSName&(); });
-          // There should be one SOA record, therefore iter should be valid...
-          // ...but it is possible to f*ck up a zone well enough to reach this
-          // path with iter being invalid (fix in a forthcoming commit)
-          DNSRecord oldSoaDR = *iter;
-          ostringstream str;
-          str<< col.red() << "-" << oldSoaDR.d_name << " " << oldSoaDR.d_ttl << " IN " << DNSRecordContent::NumberToType(oldSoaDR.d_type) << " " <<oldSoaDR.getContent()->getZoneRepresentation(true) << col.rst() <<endl;
+          DNSRecord rec;
+          if (increaseZoneSerial(B, dsk, info, post, col, rec)) {
+            ostringstream str;
+            str << col.green() << "+" << rec.d_name << " " << rec.d_ttl<< " IN " <<DNSRecordContent::NumberToType(rec.d_type) << " " <<rec.getContent()->getZoneRepresentation(true) << col.rst() <<endl;
 
-          SOAData soa;
-          B.getSOAUncached(zone, soa);
-          // TODO: do we need to check for presigned? here or maybe even all the way before edit-zone starts?
-
-          string soaEditKind;
-          dsk.getSoaEdit(zone, soaEditKind);
-
-          DNSResourceRecord resrec;
-          makeIncreasedSOARecord(soa, "SOA-EDIT-INCREASE", soaEditKind, resrec);
-          DNSRecord rec(resrec);
-          str << col.green() << "+" << rec.d_name << " " << rec.d_ttl<< " IN " <<DNSRecordContent::NumberToType(rec.d_type) << " " <<rec.getContent()->getZoneRepresentation(true) << col.rst() <<endl;
-
-          changed[{rec.d_name, rec.d_type}]+=str.str();
-          *iter = rec;
-          cout<<endl<<"SOA serial for zone "<<zone<<" set to "<<soa.serial;
+            changed[{rec.d_name, rec.d_type}]+=str.str();
+            state = ASKAPPLY;
+          }
+          else {
+            cout << "SOA record is missing!" << endl;
+            state = INVALIDZONE;
+          }
         }
-        state = ASKAPPLY;
         break;
       case 'q':
         return EXIT_FAILURE;
