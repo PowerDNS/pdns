@@ -2076,8 +2076,12 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
         }
       }
       cout<<"Detected the following changes:"<<endl;
-      for(const auto& change : changed) {
+      for(auto& change : changed) {
         cout<<change.second;
+        // After this display, we only need the keys of `changed' to know which
+        // records need updates, but not the text representation anymore (we
+        // will use the contents of `post' for that purpose).
+        change.second.clear();
       }
       // If the SOA record has not been modified, ask the user if they want to
       // update the serial number.
@@ -2100,10 +2104,7 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
         {
           DNSRecord rec;
           if (increaseZoneSerial(B, dsk, info, post, col, rec)) {
-            ostringstream str;
-            str << col.green() << "+" << rec.d_name << " " << rec.d_ttl<< " IN " <<DNSRecordContent::NumberToType(rec.d_type) << " " <<rec.getContent()->getZoneRepresentation(true) << col.rst() <<endl;
-
-            changed[{rec.d_name, rec.d_type}]+=str.str();
+            changed[{rec.d_name, rec.d_type}]="";
             state = ASKAPPLY;
           }
           else {
@@ -2162,7 +2163,8 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
             resrec.domain_id = info.id;
             records.push_back(std::move(resrec));
           }
-          info.backend->replaceRRSet(info.id, change.first.first, QType(change.first.second), records);
+          auto [qname, qtype] = change.first;
+          info.backend->replaceRRSet(info.id, qname, QType(qtype), records);
         }
       }
       post.clear();
