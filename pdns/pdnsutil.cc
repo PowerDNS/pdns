@@ -1965,7 +1965,6 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
 
   vector<DNSRecord> pre;
   vector<DNSRecord> post;
-  map<pair<DNSName,uint16_t>, vector<DNSRecord>> grouped;
   map<pair<DNSName,uint16_t>, string> changed;
 
   enum { CREATEZONEFILE, EDITFILE, INVALIDZONE, ASKAPPLY, ASKSOA, VALIDATE, APPLY } state{CREATEZONEFILE};
@@ -1989,10 +1988,6 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
       if (!parseZoneFile(static_cast<const char *>(tmpnam), gotoline, post)) {
         state = INVALIDZONE;
         break;
-      }
-      grouped.clear();
-      for (const auto& rec : post) {
-        grouped[{rec.d_name,rec.d_type}].push_back(rec);
       }
       {
         vector<DNSResourceRecord> checkrr;
@@ -2073,7 +2068,11 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
       switch (resp) {
       case 'y':
         {
-          DNSRecord oldSoaDR = grouped[{zone.operator const DNSName&(), QType::SOA}].at(0); // there should be only one SOA record, so we can use .at(0);
+          auto iter = std::find_if(post.begin(), post.end(), [&zone](const DNSRecord& rec) { return rec.d_type == QType::SOA && rec.d_name == zone.operator const DNSName&(); });
+          // There should be one SOA record, therefore iter should be valid...
+          // ...but it is possible to f*ck up a zone well enough to reach this
+          // path with iter being invalid (fix in a forthcoming commit)
+          DNSRecord oldSoaDR = *iter;
           ostringstream str;
           str<< col.red() << "-" << oldSoaDR.d_name << " " << oldSoaDR.d_ttl << " IN " << DNSRecordContent::NumberToType(oldSoaDR.d_type) << " " <<oldSoaDR.getContent()->getZoneRepresentation(true) << col.rst() <<endl;
 
@@ -2090,7 +2089,7 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
           str << col.green() << "+" << rec.d_name << " " << rec.d_ttl<< " IN " <<DNSRecordContent::NumberToType(rec.d_type) << " " <<rec.getContent()->getZoneRepresentation(true) << col.rst() <<endl;
 
           changed[{rec.d_name, rec.d_type}]+=str.str();
-          grouped[{rec.d_name, rec.d_type}].at(0) = rec;
+          *iter = rec;
           cout<<endl<<"SOA serial for zone "<<zone<<" set to "<<soa.serial;
         }
         state = ASKAPPLY;
@@ -2132,17 +2131,23 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
     case APPLY:
       // Free some memory
       pre.clear();
-      post.clear();
       info.backend->startTransaction(zone, UnknownDomainID);
-      for(const auto& change : changed) {
-        vector<DNSResourceRecord> records;
-        for(const DNSRecord& rec : grouped[change.first]) {
-          DNSResourceRecord resrec = DNSResourceRecord::fromWire(rec);
-          resrec.domain_id = info.id;
-          records.push_back(std::move(resrec));
+      {
+        map<pair<DNSName,uint16_t>, vector<DNSRecord>> grouped;
+        for (const auto& rec : post) {
+          grouped[{rec.d_name,rec.d_type}].push_back(rec);
         }
-        info.backend->replaceRRSet(info.id, change.first.first, QType(change.first.second), records);
+        for(const auto& change : changed) {
+          vector<DNSResourceRecord> records;
+          for(const DNSRecord& rec : grouped[change.first]) {
+            DNSResourceRecord resrec = DNSResourceRecord::fromWire(rec);
+            resrec.domain_id = info.id;
+            records.push_back(std::move(resrec));
+          }
+          info.backend->replaceRRSet(info.id, change.first.first, QType(change.first.second), records);
+        }
       }
+      post.clear();
       rectifyZone(dsk, zone, false, false);
       info.backend->commitTransaction();
       return EXIT_SUCCESS;
