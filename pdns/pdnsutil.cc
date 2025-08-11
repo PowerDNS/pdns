@@ -1827,6 +1827,78 @@ static bool spawnEditor(const std::string& editor, std::string_view tmpfile, int
   return false;
 }
 
+// Fill the file `tmpnam' (possibly already open if `tmpfd' is valid) with the
+// contents of zone `info', in bind format.
+// Returns the zone records in sorted order, with the file closed and `tmpfd'
+// reset to -1.
+static std::vector<DNSRecord> fillZoneFile(int& tmpfd, const char* tmpnam, DomainInfo& info)
+{
+  std::vector<DNSRecord> records;
+
+  info.backend->list(info.zone, info.id);
+  if (tmpfd < 0 && (tmpfd = open(tmpnam, O_CREAT | O_WRONLY | O_TRUNC, 0600)) < 0) {
+    unixDie("Error reopening temporary file "+string(tmpnam));
+  }
+  const std::string_view header("; Warning - every name in this file is ABSOLUTE!\n$ORIGIN .\n");
+  if (write(tmpfd, header.data(), header.length()) < 0) {
+    unixDie("Writing zone to temporary file");
+  }
+  DNSResourceRecord rr;
+  while (info.backend->get(rr)) {
+    if (rr.qtype.getCode() == QType::ENT) {
+      continue;
+    }
+    DNSRecord dr(rr);
+    records.emplace_back(std::move(dr));
+  }
+  sort(records.begin(), records.end(), DNSRecord::prettyCompare);
+  for (const auto& dr : records) {
+    ostringstream os;
+    os<<dr.d_name<<"\t"<<dr.d_ttl<<"\tIN\t"<<DNSRecordContent::NumberToType(dr.d_type)<<"\t"<<dr.getContent()->getZoneRepresentation(true)<<endl;
+    if (write(tmpfd, os.str().c_str(), os.str().length()) < 0) {
+      unixDie("Writing zone to temporary file");
+    }
+  }
+  close(tmpfd);
+  tmpfd = -1;
+  return records;
+}
+
+// Try and parse the file `tmpnam' as a zone file.
+// Returns true with the zone records in sorted order in `records' if
+// successful, false with the line number of the first error in `errorline' if
+// not.
+static bool parseZoneFile(const char* tmpnam, int& errorline, std::vector<DNSRecord>& records)
+{
+  records.clear();
+  ZoneParserTNG zpt(tmpnam, g_rootzonename);
+  zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
+  zpt.setMaxIncludes(::arg().asNum("max-include-depth"));
+  DNSResourceRecord zrr;
+  try {
+    while(zpt.get(zrr)) {
+      DNSRecord dr(zrr);
+      records.push_back(dr);
+    }
+  }
+  catch(std::exception& e) {
+    cerr<<"Problem: "<<e.what()<<" "<<zpt.getLineOfFile()<<endl;
+    auto fnum = zpt.getLineNumAndFile();
+    errorline = fnum.second;
+    records.clear();
+    return false;
+  }
+  catch(PDNSException& e) {
+    cerr<<"Problem: "<<e.reason<<" "<<zpt.getLineOfFile()<<endl;
+    auto fnum = zpt.getLineNumAndFile();
+    errorline = fnum.second;
+    records.clear();
+    return false;
+  }
+  sort(records.begin(), records.end(), DNSRecord::prettyCompare);
+  return true;
+}
+
 static int editZone(const ZoneName &zone, const PDNSColors& col)
 {
   UtilBackend B; //NOLINT(readability-identifier-length)
@@ -1865,14 +1937,15 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
     }
   }
 
-  // ensure that the temporary file will only be accessible by the current user,
+  // Ensure that the temporary file will only be accessible by the current user,
   // not even by other users in the same group, and certainly not by other
   // users.
   umask(S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH);
   char tmpnam[]="/tmp/pdnsutil-XXXXXX";
   int tmpfd=mkstemp(tmpnam);
-  if(tmpfd < 0)
+  if(tmpfd < 0) {
     unixDie("Making temporary filename in "+string(tmpnam));
+  }
   struct deleteme {
     ~deleteme() { unlink(d_name.c_str()); }
     deleteme(string name) : d_name(std::move(name)) {}
@@ -1896,38 +1969,9 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
   while (true) {
     switch (state) {
     case CREATEZONEFILE:
-      di.backend->list(zone, di.id);
-      pre.clear();
-      post.clear();
-      {
-        if(tmpfd < 0 && (tmpfd=open(tmpnam, O_CREAT | O_WRONLY | O_TRUNC, 0600)) < 0) {
-          unixDie("Error reopening temporary file "+string(tmpnam));
-        }
-        const string header("; Warning - every name in this file is ABSOLUTE!\n$ORIGIN .\n");
-        if(write(tmpfd, header.c_str(), header.length()) < 0) {
-          unixDie("Writing zone to temporary file");
-        }
-        DNSResourceRecord rr;
-        while(di.backend->get(rr)) {
-          if(rr.qtype.getCode() == QType::ENT) {
-            continue;
-          }
-          DNSRecord dr(rr);
-          pre.emplace_back(std::move(dr));
-        }
-        sort(pre.begin(), pre.end(), DNSRecord::prettyCompare);
-        for(const auto& dr : pre) {
-          ostringstream os;
-          os<<dr.d_name<<"\t"<<dr.d_ttl<<"\tIN\t"<<DNSRecordContent::NumberToType(dr.d_type)<<"\t"<<dr.getContent()->getZoneRepresentation(true)<<endl;
-          if(write(tmpfd, os.str().c_str(), os.str().length()) < 0) {
-            unixDie("Writing zone to temporary file");
-          }
-        }
-        close(tmpfd);
-        tmpfd=-1;
-      }
+      pre = fillZoneFile(tmpfd, tmpnam, di);
       state = EDITFILE;
-      break;
+      [[fallthrough]];
     case EDITFILE:
       post.clear();
       {
@@ -1939,37 +1983,17 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
           throw std::runtime_error("Editing file with: '" + editor + "' returned non-zero status " + std::to_string(result));
         }
       }
-      grouped.clear();
-      {
-        ZoneParserTNG zpt(static_cast<const char *>(tmpnam), g_rootzonename);
-        zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
-        zpt.setMaxIncludes(::arg().asNum("max-include-depth"));
-        DNSResourceRecord zrr;
-        try {
-          while(zpt.get(zrr)) {
-            DNSRecord dr(zrr);
-            post.push_back(dr);
-            grouped[{dr.d_name,dr.d_type}].push_back(dr);
-          }
-        }
-        catch(std::exception& e) {
-          cerr<<"Problem: "<<e.what()<<" "<<zpt.getLineOfFile()<<endl;
-          auto fnum = zpt.getLineNumAndFile();
-          gotoline = fnum.second;
-          state = INVALIDZONE;
-          break;
-        }
-        catch(PDNSException& e) {
-          cerr<<"Problem: "<<e.reason<<" "<<zpt.getLineOfFile()<<endl;
-          auto fnum = zpt.getLineNumAndFile();
-          gotoline = fnum.second;
-          state = INVALIDZONE;
-          break;
-        }
+      if (!parseZoneFile(tmpnam, gotoline, post)) {
+        state = INVALIDZONE;
+        break;
       }
-      sort(post.begin(), post.end(), DNSRecord::prettyCompare);
+      grouped.clear();
+      for (const auto& dr : post) {
+        grouped[{dr.d_name,dr.d_type}].push_back(dr);
+      }
       {
         vector<DNSResourceRecord> checkrr;
+        checkrr.reserve(post.size());
         for(const DNSRecord& rr : post) {
           DNSResourceRecord drr = DNSResourceRecord::fromWire(rr);
           drr.domain_id = di.id;
@@ -1988,16 +2012,20 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
       if (resp != '\n') {
         cerr << endl;
       }
-      if(resp=='e') {
+      switch (resp) {
+      case 'e':
         post.clear();
         state = EDITFILE;
-      } else if(resp=='r') {
+        break;
+      case 'r':
         post.clear();
         state = CREATEZONEFILE;
-      } else if(resp=='q') {
+        break;
+      case 'q':
         return EXIT_FAILURE;
-      } else if(resp=='a') {
+      case 'a':
         state = VALIDATE;
+        break;
       }
       break;
     case VALIDATE:
@@ -2023,9 +2051,13 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
       for(const auto& c : changed) {
         cout<<c.second;
       }
-      state = ASKAPPLY;
+      // If the SOA record has not been modified, ask the user if they want to
+      // update the serial number.
       if (!changed.empty() && changed.find({zone.operator const DNSName&(), QType::SOA}) == changed.end()) {
         state = ASKSOA;
+      }
+      else {
+        state = ASKAPPLY;
       }
       break;
     case ASKSOA:
@@ -2080,7 +2112,6 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
       if (resp != '\n') {
         cout << endl;
       }
-      post.clear();
       switch (resp) {
       case 'q':
         return(EXIT_SUCCESS);
@@ -2096,6 +2127,9 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
       }
       break;
     case APPLY:
+      // Free some memory
+      pre.clear();
+      post.clear();
       di.backend->startTransaction(zone, UnknownDomainID);
       for(const auto& change : changed) {
         vector<DNSResourceRecord> vrr;
