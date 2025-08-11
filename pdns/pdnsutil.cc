@@ -2102,6 +2102,10 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
           changed[{diff.d_name,diff.d_type}]+=str.str();
         }
       }
+      if (changed.empty()) {
+        cout<<endl<<"No changes to apply."<<endl;
+        return(EXIT_SUCCESS);
+      }
       cout<<"Detected the following changes:"<<endl;
       for(auto& change : changed) {
         cout<<change.second;
@@ -2112,7 +2116,7 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
       }
       // If the SOA record has not been modified, ask the user if they want to
       // update the serial number.
-      if (!changed.empty() && isSameZoneSerial(soa, info, post)) {
+      if (isSameZoneSerial(soa, info, post)) {
         state = ASKSOA;
       }
       else {
@@ -2151,10 +2155,6 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
       }
       break;
     case ASKAPPLY:
-      if(changed.empty()) {
-        cout<<endl<<"No changes to apply."<<endl;
-        return(EXIT_SUCCESS);
-      }
       cout<<endl<<"(a)pply these changes, (e)dit again, (r)etry with original zone, (q)uit: "<<std::flush;
       resp = ::tolower(read1char());
       if (resp != '\n') {
