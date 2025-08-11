@@ -1899,6 +1899,10 @@ static bool parseZoneFile(const char* tmpnam, int& errorline, std::vector<DNSRec
   return true;
 }
 
+// Increase the serial number of the SOA record according to the
+// SOA-EDIT-INCREASE policy.
+// Returns true if successful, with `update' containing the updated
+// record, false otherwise.
 static bool increaseZoneSerial(UtilBackend &B, DNSSECKeeper& dsk, DomainInfo& info, std::vector<DNSRecord>& records, const PDNSColors& col, DNSRecord& update) // NOLINT(readability-identifier-length)
 {
   auto iter = std::find_if(records.begin(), records.end(), [&info](const DNSRecord& rec) { return rec.d_type == QType::SOA && rec.d_name == info.zone.operator const DNSName&(); });
@@ -1909,8 +1913,6 @@ static bool increaseZoneSerial(UtilBackend &B, DNSSECKeeper& dsk, DomainInfo& in
     return false;
   }
   DNSRecord oldSoaDR = *iter;
-  ostringstream str;
-  str<< col.red() << "-" << oldSoaDR.d_name << " " << oldSoaDR.d_ttl << " IN " << DNSRecordContent::NumberToType(oldSoaDR.d_type) << " " <<oldSoaDR.getContent()->getZoneRepresentation(true) << col.rst() <<endl;
 
   SOAData soa;
   B.getSOAUncached(info.zone, soa);
@@ -1923,8 +1925,13 @@ static bool increaseZoneSerial(UtilBackend &B, DNSSECKeeper& dsk, DomainInfo& in
   makeIncreasedSOARecord(soa, "SOA-EDIT-INCREASE", soaEditKind, resrec);
   DNSRecord rec(resrec);
 
+  ostringstream str;
+  str<< col.red() << "-" << oldSoaDR.d_name << " " << oldSoaDR.d_ttl << " IN " << DNSRecordContent::NumberToType(oldSoaDR.d_type) << " " <<oldSoaDR.getContent()->getZoneRepresentation(true) << col.rst() <<endl;
+  str << col.green() << "+" << rec.d_name << " " << rec.d_ttl<< " IN " <<DNSRecordContent::NumberToType(rec.d_type) << " " <<rec.getContent()->getZoneRepresentation(true) << col.rst() <<endl;
+  cout << str.str();
+
   *iter = rec;
-  cout<<endl<<"SOA serial for zone "<<info.zone<<" set to "<<soa.serial;
+  cout<<"SOA serial for zone "<<info.zone<<" set to "<<soa.serial;
   update = std::move(rec);
   return true;
 }
