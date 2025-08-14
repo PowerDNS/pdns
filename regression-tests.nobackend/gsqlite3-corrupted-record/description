@@ -1,0 +1,2 @@
+This test checks that an intentionally crafted incorrect record gets ignored
+during regular lookups and reported as incorrect by pdnsutil zone check.
