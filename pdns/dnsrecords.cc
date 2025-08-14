@@ -172,7 +172,9 @@ boilerplate_conv(OPT,
                    conv.xfrBlob(d_data)
                  );
 
+// NOLINTBEGIN
 boilerplate_conv(WALLET, conv.xfrText(d_text, true));
+// NOLINTEND
 
 #ifdef HAVE_LUA_RECORDS
 
