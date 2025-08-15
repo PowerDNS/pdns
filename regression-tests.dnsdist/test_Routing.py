@@ -395,7 +395,7 @@ class TestRoutingCustomLuaRoundRobinLB(RoundRobinTest, DNSDistTest):
     local counter = 0
     function luaroundrobin(servers_list, dq)
       counter = counter + 1
-      return servers_list[(counter %% #servers_list)+1]
+      return (counter %% #servers_list)+1
     end
     setServerPolicy(newServerPolicy("custom lua round robin policy", luaroundrobin))
 
