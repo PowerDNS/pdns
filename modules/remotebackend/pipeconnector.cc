@@ -173,7 +173,7 @@ int PipeConnector::recv_message(Json& output)
   while (1) {
     receive.clear();
     if (d_timeout != 0) {
-      int ret = waitForData(fileno(d_fp.get()), 0, d_timeout * 1000);
+      int ret = waitForData(fileno(d_fp.get()), 0, d_timeout);
       if (ret < 0) {
         throw PDNSException("Error waiting on data from coprocess: " + stringerror());
       }

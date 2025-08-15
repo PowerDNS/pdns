@@ -92,7 +92,7 @@ try
 
     udpsock.sendTo(string(packet.begin(), packet.end()), g_dest);
     ComboAddress origin;
-    res = waitForData(udpsock.getHandle(), 0, 1000 * g_timeoutMsec);
+    res = waitForData(udpsock.getHandle(), 0, static_cast<int>(g_timeoutMsec));
     if(res < 0)
       throw NetworkError("Error waiting for response");
     if(!res) {
@@ -129,7 +129,7 @@ try
 
   sock.writen(tcppacket);
 
-  res = waitForData(sock.getHandle(), 0, 1000 * g_timeoutMsec);
+  res = waitForData(sock.getHandle(), 0, static_cast<int>(g_timeoutMsec));
   if(res < 0)
     throw NetworkError("Error waiting for response");
   if(!res) {

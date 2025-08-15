@@ -52,7 +52,7 @@ template <class T>
 int ObjectPipe<T>::readTimeout(T* t, double msec)
 {
   while (true) {
-    int ret = waitForData(d_receiver.getDescriptor(), 0, 1000 * msec);
+    int ret = waitForData(d_receiver.getDescriptor(), 0, msec);
     if (ret < 0) {
       if (errno == EINTR) {
         continue;

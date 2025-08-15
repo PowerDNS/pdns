@@ -186,7 +186,7 @@ void CoProcess::receive(string& received)
       }
       if (saved == EAGAIN) {
         if (d_timeout) {
-          int ret = waitForData(d_fd2[0], 0, d_timeout * 1000);
+          int ret = waitForData(d_fd2[0], 0, d_timeout);
           if (ret < 0)
             throw PDNSException("Error waiting on data from coprocess: " + string(strerror(saved)));
           if (!ret)

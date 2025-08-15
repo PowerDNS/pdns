@@ -77,7 +77,7 @@ int SConnectWithTimeout(int sockfd, const ComboAddress& remote, const struct tim
       /* we wait until the connection has been established */
       bool error = false;
       bool disconnected = false;
-      int res = waitForRWData(sockfd, false, static_cast<int>(timeout.tv_sec), static_cast<int>(timeout.tv_usec), &error, &disconnected);
+      int res = waitForRWData(sockfd, false, timeout, &error, &disconnected);
       if (res == 1) {
         if (error) {
           savederrno = 0;
