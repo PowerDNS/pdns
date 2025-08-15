@@ -282,6 +282,7 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assertEqual(r.status_code, 409)  # Conflict - already exists
+        self.assertIn("Conflict", r.json()['error'])
 
     def test_create_zone_with_soa_edit(self):
         name, payload, data = self.create_zone(soa_edit='INCEPTION-INCREMENT', soa_edit_api='SOA-EDIT-INCREASE')

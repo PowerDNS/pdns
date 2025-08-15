@@ -268,9 +268,14 @@ void WebServer::handleRequest(HttpRequest& req, HttpResponse& resp) const
     SLOG(g_log<<Logger::Debug<<req.logprefix<<"Handling request \"" << req.url.path << "\"" << endl,
          log->info(Logr::Debug, "Handling request"));
 
-    YaHTTP::strstr_map_t::iterator header;
-
-    if ((header = req.headers.find("accept")) != req.headers.end()) {
+    // Decide which content type to use for the answer, based on the
+    // `accept' request header. If this header is missing, we try to
+    // reply with the same content type as the request.
+    auto header = req.headers.find("accept");
+    if (header == req.headers.end()) {
+      header = req.headers.find("content-type");
+    }
+    if (header != req.headers.end()) {
       // yaml wins over json, json wins over html
       if (header->second.find("application/x-yaml") != std::string::npos) {
         req.accept_yaml = true;
