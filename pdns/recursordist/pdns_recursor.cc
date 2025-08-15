@@ -1913,10 +1913,12 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
         }
         g_log << " answer-is-variable=" << resolver.wasVariable() << ", into-packetcache=" << intoPC;
         g_log << " maxdepth=" << resolver.d_maxdepth;
+        g_log << " tc=" <<packetWriter.getHeader()->tc;
         g_log << endl;
       }
       else {
         resolver.d_slog->info(Logr::Info, "Answer", "rd", Logging::Loggable(comboWriter->d_mdp.d_header.rd),
+                              "tc", Logging::Loggable(packetWriter.getHeader()->tc),
                               "answers", Logging::Loggable(ntohs(packetWriter.getHeader()->ancount)),
                               "additional", Logging::Loggable(ntohs(packetWriter.getHeader()->arcount)),
                               "outqueries", Logging::Loggable(resolver.d_outqueries),
