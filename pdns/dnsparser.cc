@@ -639,9 +639,10 @@ void PacketReader::xfrSvcParamKeyVals(set<SvcParam> &kvs) {
       kvs.insert(SvcParam(key, std::move(alpns)));
       break;
     }
+    case SvcParam::ohttp: /* fall-through */
     case SvcParam::no_default_alpn: {
       if (len != 0) {
-        throw std::out_of_range("invalid length for no-default-alpn");
+        throw std::out_of_range("invalid length for " + SvcParam::keyToString(key));
       }
       kvs.insert(SvcParam(key));
       break;
@@ -685,6 +686,23 @@ void PacketReader::xfrSvcParamKeyVals(set<SvcParam> &kvs) {
       kvs.insert(SvcParam(key, blob));
       break;
     }
+    case SvcParam::tls_supported_groups: {
+      if (len % 2 != 0) {
+        throw std::out_of_range("invalid length for " + SvcParam::keyToString(key));
+      }
+      vector<uint16_t> groups;
+      auto stop = d_pos + len;
+      while (d_pos < stop)
+      {
+        uint16_t group = 0;
+        xfr16BitInt(group);
+        groups.push_back(group);
+      }
+      auto param = SvcParam(key, std::move(groups));
+      kvs.insert(std::move(param));
+      break;
+    }
+    case SvcParam::dohpath: /* fall-through */
     default: {
       std::string blob;
       blob.reserve(len);
