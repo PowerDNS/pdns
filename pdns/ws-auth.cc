@@ -2448,9 +2448,7 @@ static void patchZone(UeberBackend& backend, const ZoneName& zonename, DomainInf
                     || exclusiveEntryTypes.count(resourceRecord.qtype.getCode()) != 0)) {
 
               // leave database handle in a consistent state
-              while (domainInfo.backend->get(resourceRecord)) {
-                ;
-              }
+              domainInfo.backend->lookupEnd();
 
               throw ApiException("RRset " + qname.toString() + " IN " + qtype.toString() + ": Conflicts with pre-existing RRset");
             }

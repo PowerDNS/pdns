@@ -416,7 +416,9 @@ bool PacketHandler::getBestWildcard(DNSPacket& p, const DNSName &target, DNSName
     }
     while(B.get(rr)) {
       if (haveCNAME) {
-        continue;
+        // No need to look any further
+        B.lookupEnd();
+        break;
       }
 #ifdef HAVE_LUA_RECORDS
       if (rr.dr.d_type == QType::LUA && !isPresigned()) {
@@ -932,9 +934,13 @@ void PacketHandler::addNSEC3(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const 
       DNSZoneRecord rr;
       while( closest.chopOff() && (closest != d_sd.qname()))  { // stop at SOA
         B.lookup(QType(QType::ANY), closest, d_sd.domain_id, &p);
-        while(B.get(rr))
-          if (rr.auth)
+        while (B.get(rr)) {
+          if (rr.auth) {
+            B.lookupEnd();
             doBreak = true;
+            break;
+          }
+        }
         if(doBreak)
           break;
       }

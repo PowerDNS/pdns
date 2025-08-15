@@ -1319,8 +1319,7 @@ void CommunicatorClass::secondaryRefresh(PacketHandler* P)
       hasSOA = B->get(zr);
       if (hasSOA) {
         fillSOAData(zr, sd);
-        while (B->get(zr))
-          ;
+        B->lookupEnd();
       }
     }
     catch (...) {
