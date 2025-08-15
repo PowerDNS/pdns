@@ -23,11 +23,13 @@
 
 #include "dnsdist-resolver.hh"
 #include "iputils.hh"
+#include "threadname.hh"
 
 namespace dnsdist::resolver
 {
 void asynchronousResolver(const std::string& hostname, const std::function<void(const std::string& hostname, std::vector<ComboAddress>& ips)>& callback)
 {
+  setThreadName("dnsdist/resolve");
   addrinfo hints{};
   hints.ai_family = AF_UNSPEC;
   hints.ai_flags = AI_ADDRCONFIG;

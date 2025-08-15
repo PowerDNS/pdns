@@ -29,15 +29,27 @@ static GlobalStateHolder<RuntimeConfiguration> s_currentRuntimeConfiguration;
 static ImmutableConfiguration s_immutableConfiguration;
 static std::atomic<bool> s_immutableConfigurationDone{false};
 
-const RuntimeConfiguration& getCurrentRuntimeConfiguration()
+static const RuntimeConfiguration& getCurrentRuntimeConfigurationInternal(bool refresh)
 {
   static thread_local auto t_threadLocalConfiguration = s_currentRuntimeConfiguration.getLocal();
-  return *t_threadLocalConfiguration;
+  return t_threadLocalConfiguration.get(!refresh);
+}
+
+const RuntimeConfiguration& getCurrentRuntimeConfiguration()
+{
+  return getCurrentRuntimeConfigurationInternal(false);
+}
+
+const RuntimeConfiguration& refreshLocalRuntimeConfiguration()
+{
+  return getCurrentRuntimeConfigurationInternal(true);
 }
 
 void updateRuntimeConfiguration(const std::function<void(RuntimeConfiguration&)>& mutator)
 {
   s_currentRuntimeConfiguration.modify(mutator);
+  /* refresh the local "cache" right away */
+  refreshLocalRuntimeConfiguration();
 }
 
 void updateImmutableConfiguration(const std::function<void(ImmutableConfiguration&)>& mutator)
