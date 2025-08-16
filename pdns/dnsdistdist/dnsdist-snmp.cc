@@ -337,7 +337,7 @@ static int backendStatTable_handler(netsnmp_mib_handler* handler,
         break;
       case COLUMN_BACKENDQPSLIMIT:
         DNSDistSNMPAgent::setCounter64Value(request,
-                                            server->qps.getRate());
+                                            server->getQPSLimit());
         break;
       case COLUMN_BACKENDREUSED:
         DNSDistSNMPAgent::setCounter64Value(request, server->reuseds.load());

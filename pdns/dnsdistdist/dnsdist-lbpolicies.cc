@@ -75,7 +75,7 @@ shared_ptr<DownstreamState> leastOutstanding(const ServerPolicy::NumberedServerV
 shared_ptr<DownstreamState> firstAvailable(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq)
 {
   for (auto& d : servers) {
-    if (d.second->isUp() && d.second->qps.checkOnly()) {
+    if (d.second->isUp() && (!d.second->d_qpsLimiter || d.second->d_qpsLimiter->checkOnly())) {
       return d.second;
     }
   }

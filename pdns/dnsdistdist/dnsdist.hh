@@ -722,7 +722,7 @@ public:
   std::shared_ptr<TLSCtx> d_tlsCtx{nullptr};
   std::vector<int> sockets;
   StopWatch sw;
-  QPSLimiter qps;
+  std::optional<QPSLimiter> d_qpsLimiter;
 #ifdef HAVE_XSK
   std::vector<std::shared_ptr<XskWorker>> d_xskInfos;
   std::vector<std::shared_ptr<XskSocket>> d_xskSockets;
@@ -874,7 +874,9 @@ public:
   void incQueriesCount()
   {
     ++queries;
-    qps.addHit();
+    if (d_qpsLimiter) {
+      d_qpsLimiter->addHit();
+    }
   }
 
   void incCurrentConnectionsCount();
@@ -932,6 +934,8 @@ public:
     }
     return latencyUsec;
   }
+
+  unsigned int getQPSLimit() const;
 };
 
 void responderThread(std::shared_ptr<DownstreamState> dss);
