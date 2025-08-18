@@ -1072,14 +1072,16 @@ static inline size_t deserializeRRFromBuffer(const string_view& str, LMDBBackend
   if (str.size() < serialize_prefix_size + len + serialize_trailing_size) {
     return 0;
   }
+  // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic): due to the above size check, this is safe
   data += sizeof(len);
   lrr.content.assign(data, len); // len bytes
   data += len;
   memcpy(&lrr.ttl, data, sizeof(uint32_t));
   data += sizeof(uint32_t);
-  lrr.auth = *data++;
-  lrr.disabled = *data++;
+  lrr.auth = *data++ != 0;
+  lrr.disabled = *data++ != 0;
   lrr.hasOrderName = *data++ != 0;
+  // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
   lrr.wildcardname.clear();
 
   return data - str.data();
