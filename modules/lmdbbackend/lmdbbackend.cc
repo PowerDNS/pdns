@@ -1007,6 +1007,24 @@ BOOST_SERIALIZATION_SPLIT_FREE(LMDBBackend::KeyDataDB);
 BOOST_SERIALIZATION_SPLIT_FREE(DomainInfo);
 BOOST_IS_BITWISE_SERIALIZABLE(ComboAddress);
 
+// Resource records are serialized in the following format:
+// - length of record content (16 bits)
+// - record content (variable size)
+// - ttl (32 bits)
+// - auth flag (8 bits)
+// - disabled flag (8 bits)
+// - hasOrderName flag (8 bits)
+
+// The following constants try and make the logic in the following few routines
+// less obscure and more future-proof.
+constexpr size_t serialize_prefix_size = sizeof(uint16_t); // 2
+constexpr size_t serialize_trailing_size = sizeof(uint32_t) + 3; // 7
+constexpr size_t serialize_minimum_size = serialize_prefix_size + serialize_trailing_size;
+constexpr size_t serialize_offset_ttl = 0;
+constexpr size_t serialize_offset_auth = serialize_offset_ttl + sizeof(uint32_t);
+constexpr size_t serialize_offset_disabled = serialize_offset_auth + sizeof(char);
+constexpr size_t serialize_offset_ordername = serialize_offset_disabled + sizeof(char);
+
 template <>
 std::string serializeToBuffer(const LMDBBackend::LMDBResourceRecord& value)
 {
@@ -1048,31 +1066,43 @@ std::string serializeToBuffer(const vector<LMDBBackend::LMDBResourceRecord>& val
 
 static inline size_t deserializeRRFromBuffer(const string_view& str, LMDBBackend::LMDBResourceRecord& lrr)
 {
+  const auto* data = str.data();
   uint16_t len;
-  memcpy(&len, &str[0], 2);
-  lrr.content.assign(&str[2], len); // len bytes
-  memcpy(&lrr.ttl, &str[2] + len, 4);
-  lrr.auth = str[2 + len + 4];
-  lrr.disabled = str[2 + len + 4 + 1];
-  lrr.hasOrderName = str[2 + len + 4 + 2] != 0;
+  memcpy(&len, data, sizeof(len));
+  if (str.size() < serialize_prefix_size + len + serialize_trailing_size) {
+    return 0;
+  }
+  data += sizeof(len);
+  lrr.content.assign(data, len); // len bytes
+  data += len;
+  memcpy(&lrr.ttl, data, sizeof(uint32_t));
+  data += sizeof(uint32_t);
+  lrr.auth = *data++;
+  lrr.disabled = *data++;
+  lrr.hasOrderName = *data++ != 0;
   lrr.wildcardname.clear();
 
-  return 2 + len + 7;
+  return data - str.data();
 }
 
 template <>
 void deserializeFromBuffer(const string_view& buffer, LMDBBackend::LMDBResourceRecord& value)
 {
-  deserializeRRFromBuffer(buffer, value);
+  if (buffer.size() >= serialize_minimum_size) {
+    deserializeRRFromBuffer(buffer, value);
+  }
 }
 
 template <>
 void deserializeFromBuffer(const string_view& buffer, vector<LMDBBackend::LMDBResourceRecord>& value)
 {
   auto str_copy = buffer;
-  while (str_copy.size() >= 9) { // minimum length for a record is 10
+  while (str_copy.size() >= serialize_minimum_size) {
     LMDBBackend::LMDBResourceRecord lrr;
     auto rrLength = deserializeRRFromBuffer(str_copy, lrr);
+    if (rrLength == 0) {
+      break;
+    }
     value.emplace_back(lrr);
     str_copy.remove_prefix(rrLength);
   }
@@ -1102,8 +1132,8 @@ static std::shared_ptr<DNSRecordContent> deserializeContentZR(uint16_t qtype, co
 static bool peekAtHasOrderName(const string_view& buffer)
 {
   uint16_t len{0};
-  memcpy(&len, buffer.data(), 2);
-  bool hasOrderName = buffer[2 + len + 4 + 2] != 0;
+  memcpy(&len, buffer.data(), sizeof(uint16_t));
+  bool hasOrderName = buffer[serialize_prefix_size + len + serialize_offset_ordername] != 0;
   return hasOrderName;
 }
 
@@ -1111,8 +1141,8 @@ static bool peekAtHasOrderName(const string_view& buffer)
 static bool peekAtAuth(const string_view& buffer)
 {
   uint16_t len{0};
-  memcpy(&len, buffer.data(), 2);
-  bool auth = buffer[2 + len + 4] != 0;
+  memcpy(&len, buffer.data(), sizeof(uint16_t));
+  bool auth = buffer[serialize_prefix_size + len + serialize_offset_auth] != 0;
   return auth;
 }
 
@@ -1120,9 +1150,9 @@ static bool peekAtAuth(const string_view& buffer)
 static uint32_t peekAtTtl(const string_view& buffer)
 {
   uint16_t len{0};
-  memcpy(&len, buffer.data(), 2);
+  memcpy(&len, buffer.data(), sizeof(uint16_t));
   uint32_t ttl{0};
-  memcpy(&ttl, buffer.data() + 2 + len, 4);
+  memcpy(&ttl, buffer.data() + serialize_prefix_size + len + serialize_offset_ttl, sizeof(uint32_t));
   return ttl;
 }
 
