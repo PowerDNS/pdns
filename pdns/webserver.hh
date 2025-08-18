@@ -177,6 +177,16 @@ public:
     d_server_socket.bind(d_local);
     d_server_socket.listen();
   }
+  // we hardcode 0.0.0.0 here even though this socket is not an inet v4 socket
+  // (it's a socket built from a file descriptor) because code that accesses the
+  // d_local field does not matter in this case
+  Server(int server_socket) : d_local("0.0.0.0", 0), d_server_socket(server_socket) {
+    sockaddr_storage addr;
+    int addrlen = sizeof(addr);
+    if (getsockname(server_socket, (struct sockaddr*)&addr, (socklen_t *)&addrlen) == 0) {
+      d_local = SockaddrWrapper((struct sockaddr*)&addr, (socklen_t)addrlen);
+    }
+  }
   virtual ~Server() = default;
 
   SockaddrWrapper d_local;
@@ -287,7 +297,13 @@ protected:
   void logResponse(const HttpResponse& resp, const ComboAddress& remote, const string& logprefix) const;
 
   virtual std::shared_ptr<Server> createServer() {
-    return std::make_shared<Server>(d_listenaddress, d_port);
+    if (d_listenaddress.find("fd:") == 0) {
+      int fd;
+      pdns::checked_stoi_into(fd, d_listenaddress.substr(3, d_listenaddress.length()-3));
+      return std::make_shared<Server>(fd);
+    } else {
+      return std::make_shared<Server>(d_listenaddress, d_port);
+    }
   }
 
   void apiWrapper(const WebServer::HandlerFunction& handler, HttpRequest* req, HttpResponse* resp, bool allowPassword);
