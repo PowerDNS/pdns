@@ -79,7 +79,14 @@ std::vector<pdns::trace::Span> RecEventTrace::convertToOT(const InitialSpanInfo&
   ret.reserve((d_events.size() / 2) + 1);
 
   // The parent of all Spans
-  ret.emplace_back(Span{.trace_id = span.trace_id, .span_id = span.span_id, .parent_span_id = span.parent_span_id, .end_time_unix_nano = timestamp()});
+  ret.emplace_back(Span{
+    .trace_id = span.trace_id,
+    .span_id = span.span_id,
+    .parent_span_id = span.parent_span_id,
+    .name = "RecRequest",
+    .start_time_unix_nano = span.start_time_unix_nano,
+    .end_time_unix_nano = timestamp(),
+  });
 
   std::vector<SpanID> spanIDs; // mapping of span index in ret vector to SpanID
   std::map<size_t, size_t> ids; // mapping from event record index to index in ret vector (Spans)
