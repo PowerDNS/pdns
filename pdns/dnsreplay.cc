@@ -393,7 +393,7 @@ try
 {
   PacketBuffer packet;
   ComboAddress remote;
-  int res=waitForData(s_socket->getHandle(), g_timeoutMsec/1000, 1000*(g_timeoutMsec%1000));
+  int res=waitForData(s_socket->getHandle(), g_timeoutMsec/1000, g_timeoutMsec%1000);
 
   if(res < 0 || res==0)
     return;

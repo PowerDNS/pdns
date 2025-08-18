@@ -143,7 +143,7 @@ size_t readn2WithTimeout(int fd, void* buffer, size_t len, const struct timeval&
     else {
       if (errno == EAGAIN) {
         struct timeval w = ((totalTimeout.tv_sec == 0 && totalTimeout.tv_usec == 0) || idleTimeout <= remainingTime) ? idleTimeout : remainingTime;
-        int res = waitForData(fd, w.tv_sec, w.tv_usec);
+        int res = waitForData(fd, w);
         if (res > 0) {
           /* there is data available */
         }
@@ -187,7 +187,7 @@ size_t writen2WithTimeout(int fd, const void * buffer, size_t len, const struct 
       throw runtime_error("EOF while writing message");
     else {
       if (errno == EAGAIN) {
-        int res = waitForRWData(fd, false, timeout.tv_sec, timeout.tv_usec);
+        int res = waitForRWData(fd, false, timeout);
         if (res > 0) {
           /* there is room available */
         }
@@ -309,12 +309,17 @@ string nowTime()
 }
 
 // returns -1 in case if error, 0 if no data is available, 1 if there is. In the first two cases, errno is set
-int waitForData(int fileDesc, int seconds, int useconds)
+int waitForData(int fileDesc, int seconds, int mseconds)
 {
-  return waitForRWData(fileDesc, true, seconds, useconds);
+  return waitForRWData(fileDesc, true, seconds, mseconds);
 }
 
-int waitForRWData(int fileDesc, bool waitForRead, int seconds, int useconds, bool* error, bool* disconnected)
+int waitForData(int fileDesc, struct timeval timeout)
+{
+  return waitForRWData(fileDesc, true, timeout);
+}
+
+int waitForRWData(int fileDesc, bool waitForRead, int seconds, int mseconds, bool* error, bool* disconnected)
 {
   struct pollfd pfd{};
   memset(&pfd, 0, sizeof(pfd));
@@ -327,7 +332,7 @@ int waitForRWData(int fileDesc, bool waitForRead, int seconds, int useconds, boo
     pfd.events = POLLOUT;
   }
 
-  int ret = poll(&pfd, 1, seconds * 1000 + useconds/1000);
+  int ret = poll(&pfd, 1, seconds * 1000 + mseconds);
   if (ret > 0) {
     if ((error != nullptr) && (pfd.revents & POLLERR) != 0) {
       *error = true;
@@ -340,8 +345,13 @@ int waitForRWData(int fileDesc, bool waitForRead, int seconds, int useconds, boo
   return ret;
 }
 
+int waitForRWData(int fileDesc, bool waitForRead, struct timeval timeout, bool* error, bool* disconnected)
+{
+  return waitForRWData(fileDesc, waitForRead, static_cast<int>(timeout.tv_sec), static_cast<int>(timeout.tv_usec / 1000), error, disconnected);
+}
+
 // returns -1 in case of error, 0 if no data is available, 1 if there is. In the first two cases, errno is set
-int waitForMultiData(const set<int>& fds, const int seconds, const int useconds, int* fdOut) {
+int waitForMultiData(const set<int>& fds, const int seconds, const int mseconds, int* fdOut) {
   set<int> realFDs;
   for (const auto& fd : fds) {
     if (fd >= 0 && realFDs.count(fd) == 0) {
@@ -360,7 +370,7 @@ int waitForMultiData(const set<int>& fds, const int seconds, const int useconds,
 
   int ret;
   if(seconds >= 0)
-    ret = poll(pfds.data(), realFDs.size(), seconds * 1000 + useconds/1000);
+    ret = poll(pfds.data(), realFDs.size(), seconds * 1000 + mseconds);
   else
     ret = poll(pfds.data(), realFDs.size(), -1);
   if(ret <= 0)
@@ -377,46 +387,6 @@ int waitForMultiData(const set<int>& fds, const int seconds, const int useconds,
   *fdOut = *it;
   return 1;
 }
-
-// returns -1 in case of error, 0 if no data is available, 1 if there is. In the first two cases, errno is set
-int waitFor2Data(int fd1, int fd2, int seconds, int useconds, int* fdPtr)
-{
-  std::array<pollfd,2> pfds{};
-  memset(pfds.data(), 0, pfds.size() * sizeof(struct pollfd));
-  pfds[0].fd = fd1;
-  pfds[1].fd = fd2;
-
-  pfds[0].events= pfds[1].events = POLLIN;
-
-  int nsocks = 1 + static_cast<int>(fd2 >= 0); // fd2 can optionally be -1
-
-  int ret{};
-  if (seconds >= 0) {
-    ret = poll(pfds.data(), nsocks, seconds * 1000 + useconds / 1000);
-  }
-  else {
-    ret = poll(pfds.data(), nsocks, -1);
-  }
-  if (ret <= 0) {
-    return ret;
-  }
-
-  if ((pfds[0].revents & POLLIN) != 0 && (pfds[1].revents & POLLIN) == 0) {
-    *fdPtr = pfds[0].fd;
-  }
-  else if ((pfds[1].revents & POLLIN) != 0 && (pfds[0].revents & POLLIN) == 0) {
-    *fdPtr = pfds[1].fd;
-  }
-  else if(ret == 2) {
-    *fdPtr = pfds.at(dns_random_uint32() % 2).fd;
-  }
-  else {
-    *fdPtr = -1; // should never happen
-  }
-
-  return 1;
-}
-
 
 string humanDuration(time_t passed)
 {
@@ -508,16 +478,6 @@ std::string getCarbonHostName()
 
   std::replace(hostname->begin(), hostname->end(), '.', '_');
   return *hostname;
-}
-
-string bitFlip(const string &str)
-{
-  string::size_type pos=0, epos=str.size();
-  string ret;
-  ret.reserve(epos);
-  for(;pos < epos; ++pos)
-    ret.append(1, ~str[pos]);
-  return ret;
 }
 
 void cleanSlashes(string &str)

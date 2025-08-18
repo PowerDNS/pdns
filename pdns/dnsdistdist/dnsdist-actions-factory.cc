@@ -272,7 +272,7 @@ void TeeAction::worker()
   ssize_t res = 0;
   const dnsheader_aligned dnsheader(packet.data());
   for (;;) {
-    res = waitForData(d_socket.getHandle(), 0, 250000);
+    res = waitForData(d_socket.getHandle(), 0, 250);
     if (d_pleaseQuit) {
       break;
     }
