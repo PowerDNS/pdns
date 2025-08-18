@@ -619,6 +619,11 @@ bool GeoIPBackend::get(DNSResourceRecord& r)
   return true;
 }
 
+void GeoIPBackend::lookupEnd()
+{
+  d_result.clear();
+}
+
 static string queryGeoIP(const Netmask& addr, GeoIPInterface::GeoIPQueryAttribute attribute, GeoIPNetmask& gl)
 {
   string ret = "unknown";

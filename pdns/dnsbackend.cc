@@ -93,7 +93,9 @@ bool DNSBackend::searchRecords(const string& pattern, size_t maxResults, vector<
     DNSResourceRecord rec;
     while (get(rec)) {
       if (maxResults == 0) {
-        continue;
+        // No need to look any further
+        lookupEnd();
+        break;
       }
       if (simpleMatch.match(rec.qname) || simpleMatch.match(rec.content)) {
         result.emplace_back(rec);
@@ -315,9 +317,7 @@ bool DNSBackend::getSOA(const ZoneName& domain, domainid_t zoneId, SOAData& soaD
     }
   }
   catch (...) {
-    while (this->get(resourceRecord)) {
-      ;
-    }
+    this->lookupEnd();
     throw;
   }
 
@@ -347,6 +347,18 @@ bool DNSBackend::get(DNSZoneRecord& zoneRecord)
     throw;
   }
   return true;
+}
+
+// This is a naive implementation which invokes get() until there are no more
+// records available and the backend closes any database handle it might have
+// allocated. Backends which can do better shall override this with smarter
+// code.
+void DNSBackend::lookupEnd()
+{
+  DNSZoneRecord zoneRecord;
+  while (get(zoneRecord)) {
+    // do nothing
+  }
 }
 
 bool DNSBackend::getBeforeAndAfterNames(domainid_t domainId, const ZoneName& zonename, const DNSName& qname, DNSName& before, DNSName& after)

@@ -1950,6 +1950,12 @@ bool LMDBBackend::get(DNSResourceRecord& rr)
   return true;
 }
 
+void LMDBBackend::lookupEnd()
+{
+  d_getcursor.reset();
+  d_rotxn.reset();
+}
+
 bool LMDBBackend::getSerial(DomainInfo& di)
 {
   auto txn = getRecordsROTransaction(di.id);

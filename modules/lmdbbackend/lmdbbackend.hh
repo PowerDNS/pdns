@@ -102,6 +102,7 @@ public:
   void APILookup(const QType& type, const DNSName& qdomain, domainid_t zoneId, bool include_disabled = false) override { lookupInternal(type, qdomain, zoneId, nullptr, include_disabled); }
   bool get(DNSResourceRecord& rr) override;
   bool get(DNSZoneRecord& dzr) override;
+  void lookupEnd() override;
 
   // secondary support
   void getUnfreshSecondaryInfos(vector<DomainInfo>* domains) override;
