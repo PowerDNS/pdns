@@ -1831,7 +1831,7 @@ static bool spawnEditor(const std::string& editor, std::string_view tmpfile, int
 // contents of zone `info', in bind format.
 // Returns the zone records in sorted order, with the file closed and `tmpfd'
 // reset to -1.
-static std::vector<DNSRecord> fillZoneFile(int& tmpfd, const char* tmpnam, DomainInfo& info)
+static std::vector<DNSRecord>fillTempZoneFile(int& tmpfd, const char* tmpnam, DomainInfo& info)
 {
   std::vector<DNSRecord> records;
 
@@ -2029,7 +2029,7 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
   while (true) {
     switch (state) {
     case CREATEZONEFILE:
-      pre = fillZoneFile(tmpfd, static_cast<const char *>(tmpnam), info);
+      pre = fillTempZoneFile(tmpfd, static_cast<const char *>(tmpnam), info);
       //state = EDITFILE;
       [[fallthrough]];
     case EDITFILE:
