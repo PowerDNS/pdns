@@ -1671,13 +1671,12 @@ static int listZone(const ZoneName &zone) {
     return EXIT_FAILURE;
   }
 
-  di.backend->list(zone, di.id);
+  std::vector<DNSResourceRecord> records;
   DNSResourceRecord rr;
-  cout<<"$ORIGIN ."<<endl;
-  std::ostream::sync_with_stdio(false);
 
+  di.backend->list(zone, di.id);
   while(di.backend->get(rr)) {
-    if(rr.qtype.getCode() != 0) {
+    if(rr.qtype.getCode() != QType::ENT) {
       switch (rr.qtype.getCode()) {
       case QType::ALIAS:
       case QType::CNAME:
@@ -1689,9 +1688,14 @@ static int listZone(const ZoneName &zone) {
         }
         break;
       }
-
-      cout<<rr.qname<<"\t"<<rr.ttl<<"\tIN\t"<<rr.qtype.toString()<<"\t"<<rr.content<<"\n";
+      records.emplace_back(rr);
     }
+  }
+
+  cout<<"$ORIGIN ."<<endl;
+  std::ostream::sync_with_stdio(false);
+  for (const auto& rec : records) {
+    std::cout<<rec.qname<<"\t"<<rec.ttl<<"\tIN\t"<<rec.qtype.toString()<<"\t"<<rec.content<<std::endl;
   }
   cout.flush();
   return EXIT_SUCCESS;
