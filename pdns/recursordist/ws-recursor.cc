@@ -665,8 +665,7 @@ static void validatePrometheusMetrics()
     MetricDefinition metricDetails;
 
     if (!s_metricDefinitions.getMetricDetails(metricName, metricDetails)) {
-      SLOG(g_log << Logger::Debug << "{ \"" << metricName << "\", MetricDefinition(PrometheusMetricType::counter, \"\")}," << endl,
-           g_slog->info(Logr::Debug, "{ \"" + metricName + "\", MetricDefinition(PrometheusMetricType::counter, \"\")},"));
+      g_slog->info(Logr::Debug, "{ \"" + metricName + "\", MetricDefinition(PrometheusMetricType::counter, \"\")},");
     }
   }
 }
@@ -849,14 +848,11 @@ void AsyncServerNewConnectionMT(void* arg)
   }
   catch (NetworkError& e) {
     // we're running in a shared process/thread, so can't just terminate/abort.
-    SLOG(g_log << Logger::Warning << "Network error in web thread: " << e.what() << endl,
-         g_slog->withName("webserver")->error(Logr::Warning, e.what(), "Exception in web tread", Logging::Loggable("NetworkError")));
+    g_slog->withName("webserver")->error(Logr::Warning, e.what(), "Exception in web tread", Logging::Loggable("NetworkError"));
     return;
   }
   catch (...) {
-    SLOG(g_log << Logger::Warning << "Unknown error in web thread" << endl,
-         g_slog->withName("webserver")->info(Logr::Warning, "Exception in web tread"));
-
+    g_slog->withName("webserver")->info(Logr::Warning, "Exception in web tread");
     return;
   }
 }
@@ -923,8 +919,7 @@ void AsyncWebServer::serveConnection(const std::shared_ptr<Socket>& socket) cons
     }
     catch (YaHTTP::ParseError& e) {
       // request stays incomplete
-      SLOG(g_log << Logger::Warning << logprefix << "Unable to parse request: " << e.what() << endl,
-           req.d_slog->error(Logr::Warning, e.what(), "Unable to parse request"));
+      req.d_slog->error(Logr::Warning, e.what(), "Unable to parse request");
     }
 
     if (!validURL(req.url)) {
@@ -942,30 +937,25 @@ void AsyncWebServer::serveConnection(const std::shared_ptr<Socket>& socket) cons
 
     // now send the reply
     if (asendtcp(reply, handler) != LWResult::Result::Success || reply.empty()) {
-      SLOG(g_log << Logger::Error << logprefix << "Failed sending reply to HTTP client" << endl,
-           req.d_slog->info(Logr::Error, "Failed sending reply to HTTP client"));
+      req.d_slog->info(Logr::Error, "Failed sending reply to HTTP client");
     }
     handler->close(); // needed to signal "done" to client
     if (d_loglevel >= WebServer::LogLevel::Normal) {
-      SLOG(g_log << Logger::Notice << logprefix << remote << " \"" << req.method << " " << req.url.path << " HTTP/" << req.versionStr(req.version) << "\" " << resp.status << " " << reply.size() << endl,
-           req.d_slog->info(Logr::Info, "Request", "remote", Logging::Loggable(remote), "method", Logging::Loggable(req.method),
-                            "urlpath", Logging::Loggable(req.url.path), "HTTPVersion", Logging::Loggable(req.versionStr(req.version)),
-                            "status", Logging::Loggable(resp.status), "respsize", Logging::Loggable(reply.size())));
+      req.d_slog->info(Logr::Info, "Request", "remote", Logging::Loggable(remote), "method", Logging::Loggable(req.method),
+                       "urlpath", Logging::Loggable(req.url.path), "HTTPVersion", Logging::Loggable(req.versionStr(req.version)),
+                       "status", Logging::Loggable(resp.status), "respsize", Logging::Loggable(reply.size()));
     }
   }
   catch (PDNSException& e) {
-    SLOG(g_log << Logger::Error << logprefix << "Exception: " << e.reason << endl,
-         req.d_slog->error(Logr::Error, e.reason, "Exception handing request", "exception", Logging::Loggable("PDNSException")));
+    req.d_slog->error(Logr::Error, e.reason, "Exception handing request", "exception", Logging::Loggable("PDNSException"));
   }
   catch (std::exception& e) {
     if (strstr(e.what(), "timeout") == nullptr) {
-      SLOG(g_log << Logger::Error << logprefix << "STL Exception: " << e.what() << endl,
-           req.d_slog->error(Logr::Error, e.what(), "Exception handing request", "exception", Logging::Loggable("std::exception")));
+      req.d_slog->error(Logr::Error, e.what(), "Exception handing request", "exception", Logging::Loggable("std::exception")))
     }
   }
   catch (...) {
-    SLOG(g_log << Logger::Error << logprefix << "Unknown exception" << endl,
-         req.d_slog->error(Logr::Error, "Exception handing request"));
+    req.d_slog->error(Logr::Error, "Exception handing request");
   }
 }
 
