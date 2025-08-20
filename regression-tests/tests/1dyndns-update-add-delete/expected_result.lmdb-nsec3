@@ -1,0 +1,22 @@
+Answer:
+;; ->>HEADER<<- opcode: UPDATE, status: NOERROR, id: [id]
+;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+;; ZONE SECTION:
+;test.dyndns.			IN	SOA
+
+Check if add-delete.test.dyndns. 3600 A 127.0.0.108 exists
+--- Start: diff start step.1 ---
+> add-delete.test.dyndns	A	0	127.0.0.108	3600	'gkhs0ms64101fs1dj19h7no8vn2tp4fk'	1
+--- End: diff start step.1 ---
+
+Answer:
+;; ->>HEADER<<- opcode: UPDATE, status: NOERROR, id: [id]
+;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+;; ZONE SECTION:
+;test.dyndns.			IN	SOA
+
+Check if record is gone
+--- Start: diff step.1 step.2 ---
+< add-delete.test.dyndns	A	0	127.0.0.108	3600	'gkhs0ms64101fs1dj19h7no8vn2tp4fk'	1
+--- End: diff step.1 step.2 ---
+
