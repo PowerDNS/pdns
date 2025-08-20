@@ -1075,18 +1075,24 @@ static int listZone(const DNSName &zone) {
     cerr << "Zone '" << zone << "' not found!" << endl;
     return EXIT_FAILURE;
   }
-  di.backend->list(zone, di.id);
+
+  std::vector<DNSResourceRecord> records;
   DNSResourceRecord rr;
-  cout<<"$ORIGIN ."<<endl;
-  cout.sync_with_stdio(false);
 
+  di.backend->list(zone, di.id);
   while(di.backend->get(rr)) {
-    if(rr.qtype.getCode()) {
-      if ( (rr.qtype.getCode() == QType::NS || rr.qtype.getCode() == QType::SRV || rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::CNAME) && !rr.content.empty() && rr.content[rr.content.size()-1] != '.')
-	rr.content.append(1, '.');
-
-      cout<<rr.qname<<"\t"<<rr.ttl<<"\tIN\t"<<rr.qtype.toString()<<"\t"<<rr.content<<"\n";
+    if(rr.qtype.getCode() != QType::ENT) {
+      if ( (rr.qtype.getCode() == QType::NS || rr.qtype.getCode() == QType::SRV || rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::CNAME) && !rr.content.empty() && rr.content[rr.content.size()-1] != '.') {
+        rr.content.append(1, '.');
+      }
+      records.emplace_back(rr);
     }
+  }
+
+  cout<<"$ORIGIN ."<<endl;
+  std::ostream::sync_with_stdio(false);
+  for (const auto& rec : records) {
+    std::cout<<rec.qname<<"\t"<<rec.ttl<<"\tIN\t"<<rec.qtype.toString()<<"\t"<<rec.content<<std::endl;
   }
   cout.flush();
   return EXIT_SUCCESS;
