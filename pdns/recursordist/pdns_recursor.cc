@@ -1186,17 +1186,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
     }
 
     if (!g_quiet || tracedQuery) {
-      if (!g_slogStructured) {
-        g_log << Logger::Warning << RecThreadInfo::thread_local_id() << " [" << g_multiTasker->getTid() << "/" << g_multiTasker->numProcesses() << "] " << (comboWriter->d_tcp ? "TCP " : "") << "question for '" << comboWriter->d_mdp.d_qname << "|"
-              << QType(comboWriter->d_mdp.d_qtype) << "' from " << comboWriter->getRemote();
-        if (!comboWriter->d_ednssubnet.getSource().empty()) {
-          g_log << " (ecs " << comboWriter->d_ednssubnet.getSource().toString() << ")";
-        }
-        g_log << endl;
-      }
-      else {
-        resolver.d_slog->info(Logr::Info, "Question");
-      }
+      resolver.d_slog->info(Logr::Info, "Question");
     }
 
     if (!comboWriter->d_mdp.d_header.rd) {
@@ -1878,34 +1868,21 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
     // Now it always uses an integral number of microseconds, except for averages, which use doubles
     uint64_t spentUsec = uSec(resolver.getNow() - comboWriter->d_now);
     if (!g_quiet) {
-      if (!g_slogStructured) {
-        g_log << Logger::Error << RecThreadInfo::thread_local_id() << " [" << g_multiTasker->getTid() << "/" << g_multiTasker->numProcesses() << "] answer to " << (comboWriter->d_mdp.d_header.rd ? "" : "non-rd ") << "question '" << comboWriter->d_mdp.d_qname << "|" << DNSRecordContent::NumberToType(comboWriter->d_mdp.d_qtype);
-        g_log << "': " << ntohs(packetWriter.getHeader()->ancount) << " answers, " << ntohs(packetWriter.getHeader()->arcount) << " additional, took " << resolver.d_outqueries << " packets, " << resolver.d_totUsec / 1000.0 << " netw ms, " << static_cast<double>(spentUsec) / 1000.0 << " tot ms, " << resolver.d_throttledqueries << " throttled, " << resolver.d_timeouts << " timeouts, " << resolver.d_tcpoutqueries << "/" << resolver.d_dotoutqueries << " tcp/dot connections, rcode=" << res;
-
-        if (!shouldNotValidate && resolver.isDNSSECValidationRequested()) {
-          g_log << ", dnssec=" << resolver.getValidationState();
-        }
-        g_log << " answer-is-variable=" << resolver.wasVariable() << ", into-packetcache=" << intoPC;
-        g_log << " maxdepth=" << resolver.d_maxdepth;
-        g_log << endl;
-      }
-      else {
-        resolver.d_slog->info(Logr::Info, "Answer", "rd", Logging::Loggable(comboWriter->d_mdp.d_header.rd),
-                              "answers", Logging::Loggable(ntohs(packetWriter.getHeader()->ancount)),
-                              "additional", Logging::Loggable(ntohs(packetWriter.getHeader()->arcount)),
-                              "outqueries", Logging::Loggable(resolver.d_outqueries),
-                              "netms", Logging::Loggable(resolver.d_totUsec / 1000.0),
-                              "totms", Logging::Loggable(static_cast<double>(spentUsec) / 1000.0),
-                              "throttled", Logging::Loggable(resolver.d_throttledqueries),
-                              "timeouts", Logging::Loggable(resolver.d_timeouts),
-                              "tcpout", Logging::Loggable(resolver.d_tcpoutqueries),
-                              "dotout", Logging::Loggable(resolver.d_dotoutqueries),
-                              "rcode", Logging::Loggable(res),
-                              "validationState", Logging::Loggable(resolver.getValidationState()),
-                              "answer-is-variable", Logging::Loggable(resolver.wasVariable()),
-                              "into-packetcache", Logging::Loggable(intoPC),
-                              "maxdepth", Logging::Loggable(resolver.d_maxdepth));
-      }
+      resolver.d_slog->info(Logr::Info, "Answer", "rd", Logging::Loggable(comboWriter->d_mdp.d_header.rd),
+                            "answers", Logging::Loggable(ntohs(packetWriter.getHeader()->ancount)),
+                            "additional", Logging::Loggable(ntohs(packetWriter.getHeader()->arcount)),
+                            "outqueries", Logging::Loggable(resolver.d_outqueries),
+                            "netms", Logging::Loggable(resolver.d_totUsec / 1000.0),
+                            "totms", Logging::Loggable(static_cast<double>(spentUsec) / 1000.0),
+                            "throttled", Logging::Loggable(resolver.d_throttledqueries),
+                            "timeouts", Logging::Loggable(resolver.d_timeouts),
+                            "tcpout", Logging::Loggable(resolver.d_tcpoutqueries),
+                            "dotout", Logging::Loggable(resolver.d_dotoutqueries),
+                            "rcode", Logging::Loggable(res),
+                            "validationState", Logging::Loggable(resolver.getValidationState()),
+                            "answer-is-variable", Logging::Loggable(resolver.wasVariable()),
+                            "into-packetcache", Logging::Loggable(intoPC),
+                            "maxdepth", Logging::Loggable(resolver.d_maxdepth));
     }
 
     if (comboWriter->d_mdp.d_header.opcode == static_cast<unsigned>(Opcode::Query)) {
@@ -1957,9 +1934,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
       resolver.d_slog->error(Logr::Error, ne.what(), "Nested exception in resolver context", Logging::Loggable("std::exception"));
     }
     catch (...) {
-    }
-    if (!g_slogStructured) {
-      g_log << endl;
+      ;
     }
   }
   catch (...) {

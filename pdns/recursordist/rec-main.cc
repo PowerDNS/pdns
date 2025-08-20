@@ -201,28 +201,10 @@ static void setCPUMap(const std::map<unsigned int, std::set<int>>& cpusMap, unsi
   }
   int ret = mapThreadToCPUList(tid, cpuMapping->second);
   if (ret == 0) {
-    if (!g_slogStructured) {
-      g_log << Logger::Info << "CPU affinity for thread " << n << " has been set to CPU map:";
-      for (const auto cpu : cpuMapping->second) {
-        g_log << Logger::Info << " " << cpu;
-      }
-      g_log << Logger::Info << endl;
-    }
-    else {
-      log->info(Logr::Info, "CPU affinity has been set", "thread", Logging::Loggable(n), "cpumap", Logging::IterLoggable(cpuMapping->second.begin(), cpuMapping->second.end()));
-    }
+    log->info(Logr::Info, "CPU affinity has been set", "thread", Logging::Loggable(n), "cpumap", Logging::IterLoggable(cpuMapping->second.begin(), cpuMapping->second.end()));
   }
   else {
-    if (!g_slogStructured) {
-      g_log << Logger::Warning << "Error setting CPU affinity for thread " << n << " to CPU map:";
-      for (const auto cpu : cpuMapping->second) {
-        g_log << Logger::Info << " " << cpu;
-      }
-      g_log << Logger::Info << ' ' << stringerror(ret) << endl;
-    }
-    else {
-      log->error(Logr::Warning, ret, "Error setting CPU affinity", "thread", Logging::Loggable(n), "cpumap", Logging::IterLoggable(cpuMapping->second.begin(), cpuMapping->second.end()));
-    }
+    log->error(Logr::Warning, ret, "Error setting CPU affinity", "thread", Logging::Loggable(n), "cpumap", Logging::IterLoggable(cpuMapping->second.begin(), cpuMapping->second.end()));
   }
 }
 
@@ -1330,19 +1312,7 @@ static std::shared_ptr<NetmaskGroup> parseACL(const std::string& aclFile, const 
     for (const auto& address : ips) {
       result->addMask(address);
     }
-    if (!g_slogStructured) {
-      g_log << Logger::Info << aclSetting << ": ";
-      for (auto i = ips.begin(); i != ips.end(); ++i) {
-        if (i != ips.begin()) {
-          g_log << Logger::Info << ", ";
-        }
-        g_log << Logger::Info << *i;
-      }
-      g_log << Logger::Info << endl;
-    }
-    else {
-      log->info(Logr::Info, "Setting access control", "acl", Logging::Loggable(aclSetting), "addresses", Logging::IterLoggable(ips.begin(), ips.end()));
-    }
+    log->info(Logr::Info, "Setting access control", "acl", Logging::Loggable(aclSetting), "addresses", Logging::IterLoggable(ips.begin(), ips.end()));
   }
 
   return result;
@@ -1723,19 +1693,7 @@ static int initDNSSEC(Logr::log_t log)
     }
   }
   if (!nums.empty()) {
-    if (!g_slogStructured) {
-      g_log << Logger::Warning << (automatic ? "Automatically" : "Manually") << " disabled DNSSEC algorithms: ";
-      for (auto i = nums.begin(); i != nums.end(); ++i) {
-        if (i != nums.begin()) {
-          g_log << Logger::Warning << ", ";
-        }
-        g_log << Logger::Warning << *i;
-      }
-      g_log << Logger::Warning << endl;
-    }
-    else {
-      log->info(Logr::Notice, "Disabled DNSSEC algorithms", "automatically", Logging::Loggable(automatic), "algorithms", Logging::IterLoggable(nums.begin(), nums.end()));
-    }
+    log->info(Logr::Notice, "Disabled DNSSEC algorithms", "automatically", Logging::Loggable(automatic), "algorithms", Logging::IterLoggable(nums.begin(), nums.end()));
   }
 
   return 0;
@@ -1752,19 +1710,7 @@ static void initDontQuery(Logr::log_t log)
     for (const auto& anIP : ips) {
       SyncRes::addDontQuery(anIP);
     }
-    if (!g_slogStructured) {
-      g_log << Logger::Warning << "Will not send queries to: ";
-      for (auto i = ips.begin(); i != ips.end(); ++i) {
-        if (i != ips.begin()) {
-          g_log << Logger::Warning << ", ";
-        }
-        g_log << Logger::Warning << *i;
-      }
-      g_log << Logger::Warning << endl;
-    }
-    else {
-      log->info(Logr::Notice, "Will not send queries to", "addresses", Logging::IterLoggable(ips.begin(), ips.end()));
-    }
+    log->info(Logr::Notice, "Will not send queries to", "addresses", Logging::IterLoggable(ips.begin(), ips.end()));
   }
 }
 

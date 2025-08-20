@@ -78,27 +78,7 @@ static void convertServersForAD(const std::string& zone, const std::string& inpu
     }
   }
   if (verbose) {
-    if (!g_slogStructured) {
-      g_log << Logger::Info << "Redirecting queries for zone '" << zone << "' ";
-      if (authDomain.d_rdForward) {
-        g_log << "with recursion ";
-      }
-      g_log << "to: ";
-      bool first = true;
-      for (const auto& address : addresses) {
-        if (!first) {
-          g_log << ", ";
-        }
-        else {
-          first = false;
-        }
-        g_log << address;
-      }
-      g_log << endl;
-    }
-    else {
-      log->info(Logr::Info, "Redirecting queries", "zone", Logging::Loggable(zone), "recursion", Logging::Loggable(authDomain.d_rdForward), "addresses", Logging::IterLoggable(addresses.begin(), addresses.end()));
-    }
+    log->info(Logr::Info, "Redirecting queries", "zone", Logging::Loggable(zone), "recursion", Logging::Loggable(authDomain.d_rdForward), "addresses", Logging::IterLoggable(addresses.begin(), addresses.end()));
   }
 }
 
