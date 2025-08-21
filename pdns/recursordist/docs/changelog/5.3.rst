@@ -4,6 +4,52 @@ Changelogs for 5.3.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
+  :version: 5.3.0-rc1
+  :released: 21st of August 2025
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15993
+    :tickets: 15972, 15991
+
+    Fix Boost system lib dependency: it is no longer available since 1.89.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15986
+    :tickets: 15934
+
+    Move back to a single debian control file.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15985
+    :tickets: 15974, 15981
+
+    Add back parent span attributes, they were lost in #15756.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15984
+    :tickets: 15893
+
+    If an RPZ hit has a custom CNAME record, we should try harder to follow it.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15983
+    :tickets: 15938
+
+    Put lib.rs into dist tarball.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15982
+    :tickets: 15802
+
+    Recursor/auth: remove obsolete pre install files.
+
+.. changelog::
   :version: 5.3.0-beta1
   :released: 24th of July 2025
 
