@@ -969,7 +969,7 @@ static void doh_dispatch_query(DOHServerConfig* dsc, h2o_handler_t* self, h2o_re
       }
     }
 
-    if (conn) {
+    if (conn != nullptr) {
       ++conn->d_concurrentStreams;
     }
 #ifdef HAVE_H2O_SOCKET_GET_SSL_SERVER_NAME
@@ -989,27 +989,27 @@ static void doh_dispatch_query(DOHServerConfig* dsc, h2o_handler_t* self, h2o_re
       if (!dsc->d_querySender.send(std::move(dohUnit))) {
         ++dnsdist::metrics::g_stats.dohQueryPipeFull;
         vinfolog("Unable to pass a DoH query to the DoH worker thread because the pipe is full");
-        h2o_send_error_500(req, "Internal Server Error", "Internal Server Error", 0);
-        if (conn) {
+        if (conn != nullptr) {
           --conn->d_concurrentStreams;
         }
+        h2o_send_error_500(req, "Internal Server Error", "Internal Server Error", 0);
       }
     }
     catch (...) {
       vinfolog("Unable to pass a DoH query to the DoH worker thread because we couldn't write to the pipe: %s", stringerror());
-      h2o_send_error_500(req, "Internal Server Error", "Internal Server Error", 0);
-      if (conn) {
+      if (conn != nullptr) {
         --conn->d_concurrentStreams;
       }
+      h2o_send_error_500(req, "Internal Server Error", "Internal Server Error", 0);
     }
 #endif /* USE_SINGLE_ACCEPTOR_THREAD */
   }
   catch (const std::exception& e) {
     vinfolog("Had error parsing DoH DNS packet from %s: %s", remote.toStringWithPort(), e.what());
-    h2o_send_error_400(req, "Bad Request", "The DNS query could not be parsed", 0);
-    if (conn) {
+    if (conn != nullptr) {
       --conn->d_concurrentStreams;
     }
+    h2o_send_error_400(req, "Bad Request", "The DNS query could not be parsed", 0);
   }
 }
 
@@ -1078,13 +1078,11 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
     }
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): h2o API
     auto* dsc = static_cast<DOHServerConfig*>(req->conn->ctx->storage.entries[0].data);
-    h2o_socket_t* sock = req->conn->callbacks->get_socket(req->conn);
-    const int descriptor = h2o_socket_get_fd(sock);
-    if (descriptor == -1) {
+    auto* connPtr = getConnectionFromQuery(req);
+    if (connPtr == nullptr) {
       return 0;
     }
-
-    auto& conn = t_conns.at(descriptor);
+    auto& conn = *connPtr;
     if (conn.d_concurrentStreams >= dnsdist::doh::MAX_INCOMING_CONCURRENT_STREAMS) {
       vinfolog("Too many concurrent streams on connection from %d", conn.d_remote.toStringWithPort());
       return 0;
@@ -1092,6 +1090,7 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
 
     ++conn.d_nbQueries;
 
+    h2o_socket_t* sock = req->conn->callbacks->get_socket(req->conn);
     if (conn.d_nbQueries == 1) {
       if (h2o_socket_get_ssl_session_reused(sock) == 0) {
         ++dsc->clientState->tlsNewSessions;
