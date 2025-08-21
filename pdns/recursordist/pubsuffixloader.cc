@@ -24,12 +24,10 @@
 #include <stdexcept>
 
 #include "dnsname.hh"
-#include "logger.hh"
 #include "logging.hh"
 #include "misc.hh"
 #include "pubsuffix.hh"
 
-extern const char* g_pubsuffix[];
 std::vector<std::vector<std::string>> g_pubs;
 
 void initPublicSuffixList(const std::string& file)
@@ -60,10 +58,11 @@ void initPublicSuffixList(const std::string& file)
           if (name.countLabels() < 2) {
             continue;
           }
-          pbList.push_back(name.labelReverse().getRawLabels());
+          pbList.emplace_back(name.labelReverse().getRawLabels());
         }
         catch (...) {
           /* not a DNS name, ignoring */
+          continue;
         }
       }
 
@@ -78,16 +77,16 @@ void initPublicSuffixList(const std::string& file)
   if (!loaded) {
     pbList.clear();
 
-    for (const char** p = g_pubsuffix; *p; ++p) {
-      string low = toLower(*p);
-
-      vector<string> parts;
+    for (const auto& entry : g_pubsuffix) {
+      const auto low = toLower(entry);
+      std::vector<std::string> parts;
       stringtok(parts, low, ".");
-      reverse(parts.begin(), parts.end());
-      pbList.push_back(std::move(parts));
+      std::reverse(parts.begin(), parts.end());
+      parts.shrink_to_fit();
+      pbList.emplace_back(std::move(parts));
     }
   }
 
-  sort(pbList.begin(), pbList.end());
+  std::sort(pbList.begin(), pbList.end());
   g_pubs = std::move(pbList);
 }
