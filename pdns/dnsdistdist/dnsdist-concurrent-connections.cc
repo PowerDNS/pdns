@@ -96,7 +96,7 @@ static bool checkTCPConnectionsRate(const boost::circular_buffer<ClientActivity>
   uint64_t connectionsSeen = 0;
   uint64_t tlsNewSeen = 0;
   uint64_t tlsResumedSeen = 0;
-  const auto cutOff = static_cast<time_t>(now - (interval * 60)); // interval is in seconds
+  const auto cutOff = static_cast<time_t>(now - (interval * 60)); // interval is in minutes
   for (const auto& entry : activity) {
     if (entry.bucketEndTime < cutOff) {
       continue;
