@@ -89,7 +89,51 @@ void CommunicatorClass::queueNotifyDomain(const DomainInfo& di, UeberBackend* B)
     return;
   }
 
-  set<string> alsoNotify(d_alsoNotify);
+  set<string> alsoNotify;
+  for(const auto & ns : d_alsoNotify) {
+    try {
+      ComboAddress caIp(ns, 53);
+      alsoNotify.insert(caIp.toStringWithPort());
+    }
+    catch(PDNSException &e) {
+      try {
+        int port;
+
+        string::size_type pos = ns.find(':');
+        if(pos == string::npos) { // no port specified, not touching the port
+          port = 53;
+        } else {
+          if(!*(ns.c_str() + pos + 1)) { // trailing :
+            g_log<<Logger::Error<<"Unparseable domain '"<<ns<<"' in also-notify. Error: contains a trailing :"<<endl;
+            break;
+          }
+
+          char *eptr = const_cast<char*>(ns.c_str()) + ns.size();
+          port = strtol(ns.c_str() + pos + 1, &eptr, 10);
+          if (port < 0 || port > 65535) {
+            g_log<<Logger::Error<<"Unparseable domain '"<<ns<<"' in also-notify. Error: port number '"<<port<<" not in valid port range 0-65535'"<<endl;
+            break;
+          }
+        }
+
+        DNSName dn(ns.substr(0, pos));
+        vector<string> nsips=fns.lookup(dn, B);
+        if(nsips.empty()) {
+          g_log<<Logger::Warning<<"Unable to queue notification of domain '"<<di.zone<<"' to nameserver '"<<ns<<"': nameserver does not resolve!"<<endl;
+          break;
+        }
+
+        for(const auto & nsip : nsips) {
+          const ComboAddress caIp(nsip, port);
+          alsoNotify.insert(caIp.toStringWithPort());
+        }
+      }
+      catch(PDNSException &en) {
+        g_log<<Logger::Error<<"Unparseable IP or domain in also-notify. Error: "<<en.reason<<endl;
+      }
+    }
+  }
+
   B->alsoNotifies(di.zone, &alsoNotify);
 
   for (const auto& j : alsoNotify) {

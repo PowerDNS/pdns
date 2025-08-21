@@ -113,7 +113,10 @@ void CommunicatorClass::go()
     _exit(1);
   }
 
-  loadArgsIntoSet("also-notify", d_alsoNotify);
+  vector<string> alsoNotify_parts;
+  stringtok(alsoNotify_parts, ::arg()["also-notify"], ", \t");
+  for (const auto & part : alsoNotify_parts)
+    d_alsoNotify.insert(part);
 
   loadArgsIntoSet("forward-notify", PacketHandler::s_forwardNotify);
 }
