@@ -112,7 +112,12 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
   /* DownstreamState */
   luaCtx.registerFunction<void (std::shared_ptr<DownstreamState>::*)(int)>("setQPS", [](std::shared_ptr<DownstreamState>& state, int lim) {
     if (state) {
-      state->qps = lim > 0 ? QPSLimiter(lim, lim) : QPSLimiter();
+      if (lim > 0) {
+        state->d_qpsLimiter = QPSLimiter(lim, lim);
+      }
+      else {
+        state->d_qpsLimiter.reset();
+      }
     }
   });
   luaCtx.registerFunction<void (std::shared_ptr<DownstreamState>::*)(string)>("addPool", [](const std::shared_ptr<DownstreamState>& state, const string& pool) {

@@ -296,7 +296,7 @@ DownstreamState::DownstreamState(DownstreamState::Config&& config, std::shared_p
   threadStarted.clear();
 
   if (d_config.d_qpsLimit > 0) {
-    qps = QPSLimiter(d_config.d_qpsLimit, d_config.d_qpsLimit);
+    d_qpsLimiter = QPSLimiter(d_config.d_qpsLimit, d_config.d_qpsLimit);
   }
 
   if (d_config.id) {
@@ -1008,6 +1008,11 @@ bool DownstreamState::parseAvailabilityConfigFromStr(DownstreamState::Config& co
     return true;
   }
   return false;
+}
+
+unsigned int DownstreamState::getQPSLimit() const
+{
+  return d_qpsLimiter ? d_qpsLimiter->getRate() : 0U;
 }
 
 size_t ServerPool::countServers(bool upOnly)
