@@ -246,6 +246,7 @@ cvstrac
 CXXFLAGS
 cxxsettings
 cxxsupport
+Cybertinus
 daemonized
 daemonizing
 daemontools
