@@ -294,7 +294,7 @@ bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, 
 
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     const std::string_view packetView(reinterpret_cast<const char*>(response.data() + sizeof(dnsheader)), response.size() - sizeof(dnsheader));
-    if (qname.matches(packetView)) {
+    if (qname.matchesUncompressedName(packetView)) {
       size_t pos = sizeof(dnsheader) + qname.wirelength();
       rqtype = response.at(pos) * 256 + response.at(pos + 1);
       rqclass = response.at(pos + 2) * 256 + response.at(pos + 3);
