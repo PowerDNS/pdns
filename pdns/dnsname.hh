@@ -192,8 +192,8 @@ public:
   }
 
   int slowCanonCompare_three_way(const DNSName& rhs) const;
-  int canonCompare_three_way(const DNSName& rhs) const;
-  inline bool canonCompare(const DNSName& rhs) const { return canonCompare_three_way(rhs) < 0; }
+  int canonCompare_three_way(const DNSName& rhs, bool pretty = false) const;
+  inline bool canonCompare(const DNSName& rhs, bool pretty = false) const { return canonCompare_three_way(rhs, pretty) < 0; }
 
   typedef boost::container::string string_t;
 

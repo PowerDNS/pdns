@@ -398,7 +398,7 @@ public:
     auto aType = (a.d_type == QType::SOA) ? 0 : a.d_type;
     auto bType = (b.d_type == QType::SOA) ? 0 : b.d_type;
 
-    int res = a.d_name.canonCompare_three_way(b.d_name);
+    int res = a.d_name.canonCompare_three_way(b.d_name, true);
     if (res < 0) {
       return true;
     }
