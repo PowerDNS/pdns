@@ -302,8 +302,7 @@ static void rpzPrimary(LuaConfigItems& lci, const boost::variant<string, std::ve
       if (have.count("refresh") != 0) {
         params.zoneXFRParams.refreshFromConf = boost::get<uint32_t>(have.at("refresh"));
         if (params.zoneXFRParams.refreshFromConf == 0) {
-          SLOG(g_log << Logger::Warning << "rpzPrimary refresh value of 0 ignored" << endl,
-               lci.d_slog->info(Logr::Warning, "rpzPrimary refresh value of 0 ignored"));
+          lci.d_slog->info(Logr::Warning, "rpzPrimary refresh value of 0 ignored");
         }
       }
 
@@ -340,12 +339,10 @@ static void rpzPrimary(LuaConfigItems& lci, const boost::variant<string, std::ve
     lci.rpzs.emplace_back(params);
   }
   catch (const std::exception& e) {
-    SLOG(g_log << Logger::Error << "Problem configuring 'rpzPrimary': " << e.what() << endl,
-         lci.d_slog->error(Logr::Error, e.what(), "Exception configuring 'rpzPrimary'", "exception", Logging::Loggable("std::exception")));
+    lci.d_slog->error(Logr::Error, e.what(), "Exception configuring 'rpzPrimary'", "exception", Logging::Loggable("std::exception"));
   }
   catch (const PDNSException& e) {
-    SLOG(g_log << Logger::Error << "Problem configuring 'rpzPrimary': " << e.reason << endl,
-         lci.d_slog->error(Logr::Error, e.reason, "Exception configuring 'rpzPrimary'", Logging::Loggable("PDNSException")));
+    lci.d_slog->error(Logr::Error, e.reason, "Exception configuring 'rpzPrimary'", Logging::Loggable("PDNSException"));
   }
 }
 
@@ -423,8 +420,7 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
   });
 
   Lua->writeFunction("rpzMaster", [&lci](const boost::variant<string, std::vector<std::pair<int, string>>>& primaries_, const string& zoneName, const boost::optional<rpzOptions_t>& options) {
-    SLOG(g_log << Logger::Warning << "'rpzMaster' is deprecated and will be removed in a future release, use 'rpzPrimary' instead" << endl,
-         lci.d_slog->info(Logr::Warning, "'rpzMaster' is deprecated and will be removed in a future release, use 'rpzPrimary' instead"));
+    lci.d_slog->info(Logr::Warning, "'rpzMaster' is deprecated and will be removed in a future release, use 'rpzPrimary' instead");
     rpzPrimary(lci, primaries_, zoneName, options);
   });
   Lua->writeFunction("rpzPrimary", [&lci](const boost::variant<string, std::vector<std::pair<int, string>>>& primaries_, const string& zoneName, const boost::optional<rpzOptions_t>& options) {
@@ -509,9 +505,8 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
       lci.ztcConfigs[validZoneName] = std::move(conf);
     }
     catch (const std::exception& e) {
-      SLOG(g_log << Logger::Error << "Problem configuring zoneToCache for zone '" << zoneName << "': " << e.what() << endl,
-           lci.d_slog->error(Logr::Error, e.what(), "Problem configuring zoneToCache", "zone", Logging::Loggable(zoneName),
-                             "exception", Logging::Loggable("std::exception")));
+      lci.d_slog->error(Logr::Error, e.what(), "Problem configuring zoneToCache", "zone", Logging::Loggable(zoneName),
+                        "exception", Logging::Loggable("std::exception"));
     }
   });
 
@@ -542,8 +537,7 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
                          }
                        }
                        catch (std::exception& e) {
-                         SLOG(g_log << Logger::Error << "Error in addSortList: " << e.what() << endl,
-                              lci.d_slog->error(Logr::Error, e.what(), "Error in addSortList", "exception",  Logging::Loggable("std::exception")));
+                         lci.d_slog->error(Logr::Error, e.what(), "Error in addSortList", "exception",  Logging::Loggable("std::exception"));
                        }
                      });
 
@@ -562,8 +556,7 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
 
   /* Remove in 4.3 */
   Lua->writeFunction("addDS", [&lci](const std::string& who, const std::string& what) {
-    SLOG(g_log << Logger::Warning << "addDS is deprecated and will be removed in the future, switch to addTA" << endl,
-         lci.d_slog->info(Logr::Warning, "addDS is deprecated and will be removed in the future, switch to addTA"));
+    lci.d_slog->info(Logr::Warning, "addDS is deprecated and will be removed in the future, switch to addTA");
     DNSName zone(who);
     auto ds = std::dynamic_pointer_cast<DSRecordContent>(DSRecordContent::make(what));
     lci.dsAnchors[zone].insert(*ds);
@@ -571,8 +564,7 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
 
   /* Remove in 4.3 */
   Lua->writeFunction("clearDS", [&lci](boost::optional<string> who) {
-    SLOG(g_log << Logger::Warning << "clearDS is deprecated and will be removed in the future, switch to clearTA" << endl,
-         lci.d_slog->info(Logr::Warning, "clearDS is deprecated and will be removed in the future, switch to clearTA"));
+    lci.d_slog->info(Logr::Warning, "clearDS is deprecated and will be removed in the future, switch to clearTA");
     if (who)
       lci.dsAnchors.erase(DNSName(*who));
     else
@@ -628,17 +620,14 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
         parseProtobufOptions(vars, lci.protobufExportConfig);
       }
       catch (std::exception& e) {
-        SLOG(g_log << Logger::Error << "Error while adding protobuf logger: " << e.what() << endl,
-             lci.d_slog->error(Logr::Error, e.what(), "Exception while adding protobuf logger", "exception", Logging::Loggable("std::exception")));
+        lci.d_slog->error(Logr::Error, e.what(), "Exception while adding protobuf logger", "exception", Logging::Loggable("std::exception"));
       }
       catch (PDNSException& e) {
-        SLOG(g_log << Logger::Error << "Error while adding protobuf logger: " << e.reason << endl,
-             lci.d_slog->error(Logr::Error, e.reason, "Exception while adding protobuf logger", "exception", Logging::Loggable("PDNSException")));
+        lci.d_slog->error(Logr::Error, e.reason, "Exception while adding protobuf logger", "exception", Logging::Loggable("PDNSException"));
       }
     }
     else {
-      SLOG(g_log << Logger::Error << "Only one protobufServer() directive can be configured, we already have " << lci.protobufExportConfig.servers.at(0).toString() << endl,
-           lci.d_slog->info(Logr::Error, "Only one protobufServer() directive can be configured", "existing", Logging::Loggable(lci.protobufExportConfig.servers.at(0).toString())));
+      lci.d_slog->info(Logr::Error, "Only one protobufServer() directive can be configured", "existing", Logging::Loggable(lci.protobufExportConfig.servers.at(0).toString()));
     }
   });
 
@@ -663,17 +652,14 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
         parseProtobufOptions(vars, lci.outgoingProtobufExportConfig);
       }
       catch (std::exception& e) {
-        SLOG(g_log << Logger::Error << "Error while starting outgoing protobuf logger: " << e.what() << endl,
-             lci.d_slog->error(Logr::Error, "Exception while starting outgoing protobuf logger", "exception", Logging::Loggable("std::exception")));
+        lci.d_slog->error(Logr::Error, "Exception while starting outgoing protobuf logger", "exception", Logging::Loggable("std::exception"));
       }
       catch (PDNSException& e) {
-        SLOG(g_log << Logger::Error << "Error while starting outgoing protobuf logger: " << e.reason << endl,
-             lci.d_slog->error(Logr::Error, "Exception while starting outgoing protobuf logger", "exception", Logging::Loggable("PDNSException")));
+        lci.d_slog->error(Logr::Error, "Exception while starting outgoing protobuf logger", "exception", Logging::Loggable("PDNSException"));
       }
     }
     else {
-      SLOG(g_log << Logger::Error << "Only one outgoingProtobufServer() directive can be configured, we already have " << lci.outgoingProtobufExportConfig.servers.at(0).toString() << endl,
-           lci.d_slog->info(Logr::Error, "Only one outgoingProtobufServer() directive can be configured", "existing", Logging::Loggable(lci.outgoingProtobufExportConfig.servers.at(0).toString())));
+      lci.d_slog->info(Logr::Error, "Only one outgoingProtobufServer() directive can be configured", "existing", Logging::Loggable(lci.outgoingProtobufExportConfig.servers.at(0).toString()));
     }
   });
 
@@ -701,17 +687,14 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
         parseFrameStreamOptions(vars, lci.frameStreamExportConfig);
       }
       catch (std::exception& e) {
-        SLOG(g_log << Logger::Error << "Error reading config for dnstap framestream logger: " << e.what() << endl,
-              lci.d_slog->error(Logr::Error, "Exception reading config for dnstap framestream logger", "exception", Logging::Loggable("std::exception")));
+        lci.d_slog->error(Logr::Error, "Exception reading config for dnstap framestream logger", "exception", Logging::Loggable("std::exception"));
       }
       catch (PDNSException& e) {
-        SLOG(g_log << Logger::Error << "Error reading config for dnstap framestream logger: " << e.reason << endl,
-             lci.d_slog->error(Logr::Error, "Exception reading config for dnstap framestream logger", "exception", Logging::Loggable("PDNSException")));
+        lci.d_slog->error(Logr::Error, "Exception reading config for dnstap framestream logger", "exception", Logging::Loggable("PDNSException"));
       }
     }
     else {
-      SLOG(g_log << Logger::Error << "Only one dnstapFrameStreamServer() directive can be configured, we already have " << lci.frameStreamExportConfig.servers.at(0) << endl,
-           lci.d_slog->info(Logr::Error,  "Only one dnstapFrameStreamServer() directive can be configured",  "existing", Logging::Loggable(lci.frameStreamExportConfig.servers.at(0))));
+      lci.d_slog->info(Logr::Error,  "Only one dnstapFrameStreamServer() directive can be configured",  "existing", Logging::Loggable(lci.frameStreamExportConfig.servers.at(0)));
     }
   });
   Lua->writeFunction("dnstapNODFrameStreamServer", [&lci](boost::variant<const std::string, const std::unordered_map<int, std::string>> servers, boost::optional<frameStreamOptions_t> vars) {
@@ -736,17 +719,14 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
         parseFrameStreamOptions(vars, lci.nodFrameStreamExportConfig);
       }
       catch (std::exception& e) {
-        SLOG(g_log << Logger::Error << "Error reading config for dnstap NOD framestream logger: " << e.what() << endl,
-              lci.d_slog->error(Logr::Error, "Exception reading config for dnstap NOD framestream logger", "exception", Logging::Loggable("std::exception")));
+        lci.d_slog->error(Logr::Error, "Exception reading config for dnstap NOD framestream logger", "exception", Logging::Loggable("std::exception"));
       }
       catch (PDNSException& e) {
-        SLOG(g_log << Logger::Error << "Error reading config for dnstap NOD framestream logger: " << e.reason << endl,
-             lci.d_slog->error(Logr::Error, "Exception reading config for dnstap NOD framestream logger", "exception", Logging::Loggable("PDNSException")));
+        lci.d_slog->error(Logr::Error, "Exception reading config for dnstap NOD framestream logger", "exception", Logging::Loggable("PDNSException"));
       }
     }
     else {
-      SLOG(g_log << Logger::Error << "Only one dnstapNODFrameStreamServer() directive can be configured, we already have " << lci.nodFrameStreamExportConfig.servers.at(0) << endl,
-           lci.d_slog->info(Logr::Error,  "Only one dnstapNODFrameStreamServer() directive can be configured",  "existing", Logging::Loggable(lci.nodFrameStreamExportConfig.servers.at(0))));
+      lci.d_slog->info(Logr::Error,  "Only one dnstapNODFrameStreamServer() directive can be configured",  "existing", Logging::Loggable(lci.nodFrameStreamExportConfig.servers.at(0)));
     }
   });
 #endif /* HAVE_FSTRM */
@@ -760,8 +740,7 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
     case QType::NAPTR:
       break;
     default:
-      SLOG(g_log << Logger::Error << "addAllowedAdditionalQType does not support " << QType(qtype).toString() << endl,
-           lci.d_slog->info(Logr::Error, "addAllowedAdditionalQType does not support this qtype", "qtype", Logging::Loggable(QType(qtype).toString())));
+      lci.d_slog->info(Logr::Error, "addAllowedAdditionalQType does not support this qtype", "qtype", Logging::Loggable(QType(qtype).toString()));
       return;
     }
 
@@ -776,8 +755,7 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
       if (const auto it = options->find("mode"); it != options->end()) {
         mode = static_cast<AdditionalMode>(it->second);
         if (mode > AdditionalMode::ResolveDeferred) {
-          SLOG(g_log << Logger::Error << "addAllowedAdditionalQType: unknown mode " << it->second << endl,
-               lci.d_slog->info(Logr::Error, "addAllowedAdditionalQType: unknown mode", "mode", Logging::Loggable( it->second)));
+          lci.d_slog->info(Logr::Error, "addAllowedAdditionalQType: unknown mode", "mode", Logging::Loggable( it->second));
         }
       }
     }
@@ -798,12 +776,10 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
       proxyMapping.insert_or_assign(netmask, {address, smn});
     }
     catch (std::exception& e) {
-      SLOG(g_log << Logger::Error << "Error processing addProxyMapping: " << e.what() << endl,
-           lci.d_slog->error(Logr::Error, e.what(), "Exception processing addProxyMapping", "exception", Logging::Loggable("std::exception")));
+      lci.d_slog->error(Logr::Error, e.what(), "Exception processing addProxyMapping", "exception", Logging::Loggable("std::exception"));
     }
     catch (PDNSException& e) {
-      SLOG(g_log << Logger::Error << "Error processing addProxyMapping: " << e.reason << endl,
-           lci.d_slog->error(Logr::Error, e.reason, "Exception processing addProxyMapping", "exception", Logging::Loggable("PDNSException")));
+      lci.d_slog->error(Logr::Error, e.reason, "Exception processing addProxyMapping", "exception", Logging::Loggable("PDNSException"));
     }
   });
 
@@ -812,26 +788,22 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
     newLuaConfig = std::move(lci);
   }
   catch (const LuaContext::ExecutionErrorException& e) {
-    SLOG(g_log << Logger::Error << "Unable to load Lua script from '" + fname + "': ",
-         lci.d_slog->error(Logr::Error, e.what(),  "Unable to load Lua script", "file", Logging::Loggable(fname)));
+    lci.d_slog->error(Logr::Error, e.what(),  "Unable to load Lua script", "file", Logging::Loggable(fname));
     try {
       std::rethrow_if_nested(e);
     }
     catch (const std::exception& exp) {
       // exp is the exception that was thrown from inside the lambda
-      SLOG(g_log << exp.what() << std::endl,
-           lci.d_slog->error(Logr::Error, exp.what(), "Exception loading Lua", "exception", Logging::Loggable("std::exception")));
+      lci.d_slog->error(Logr::Error, exp.what(), "Exception loading Lua", "exception", Logging::Loggable("std::exception"));
     }
     catch (const PDNSException& exp) {
       // exp is the exception that was thrown from inside the lambda
-      SLOG(g_log << exp.reason << std::endl,
-           lci.d_slog->error(Logr::Error, exp.reason, "Exception loading Lua", "exception", Logging::Loggable("PDNSException")));
+      lci.d_slog->error(Logr::Error, exp.reason, "Exception loading Lua", "exception", Logging::Loggable("PDNSException"));
     }
     throw;
   }
   catch (std::exception& err) {
-    SLOG(g_log << Logger::Error << "Unable to load Lua script from '" + fname + "': " << err.what() << endl,
-         lci.d_slog->error(Logr::Error, err.what(),  "Unable to load Lua script", "file", Logging::Loggable(fname), "exception", Logging::Loggable("std::exception")));
+    lci.d_slog->error(Logr::Error, err.what(),  "Unable to load Lua script", "file", Logging::Loggable(fname), "exception", Logging::Loggable("std::exception"));
     throw;
   }
 }

@@ -104,18 +104,15 @@ bool readHintsIntoCache(time_t now, const std::string& hintfile, std::vector<DNS
 
   auto log = g_slog->withName("config");
   if (SyncRes::s_doIPv4 && !SyncRes::s_doIPv6 && !reachableA) {
-    SLOG(g_log << Logger::Error << "Running IPv4 only but no IPv4 root hints" << endl,
-         log->info(Logr::Error, "Running IPv4 only but no IPv4 root hints"));
+    log->info(Logr::Error, "Running IPv4 only but no IPv4 root hints");
     return false;
   }
   if (!SyncRes::s_doIPv4 && SyncRes::s_doIPv6 && !reachableAAAA) {
-    SLOG(g_log << Logger::Error << "Running IPv6 only but no IPv6 root hints" << endl,
-         log->info(Logr::Error, "Running IPv6 only but no IPv6 root hints"));
+    log->info(Logr::Error, "Running IPv6 only but no IPv6 root hints");
     return false;
   }
   if (SyncRes::s_doIPv4 && SyncRes::s_doIPv6 && !reachableA && !reachableAAAA) {
-    SLOG(g_log << Logger::Error << "No valid root hints" << endl,
-         log->info(Logr::Error, "No valid root hints"));
+    log->info(Logr::Error, "No valid root hints");
     return false;
   }
   return true;
@@ -198,15 +195,13 @@ static void addToDomainMap(SyncRes::domainmap_t& newMap,
                            const bool reverse = false)
 {
   if (newMap.count(name) != 0) {
-    SLOG(g_log << Logger::Warning << "Will not overwrite zone '" << name << "' already loaded" << endl,
-         log->info(Logr::Warning, "Will not overwrite already loaded zone", "zone",
-                   Logging::Loggable(name)));
+    log->info(Logr::Warning, "Will not overwrite already loaded zone", "zone",
+              Logging::Loggable(name));
   }
   else {
     if (!partial) {
       const auto direction = reverse ? std::string{"reverse"} : std::string{"forward"};
-      SLOG(g_log << Logger::Warning << "Inserting " << direction << " zone '" << name << "' based on hosts file" << endl,
-           log->info(Logr::Notice, "Inserting " + direction + " zone based on hosts file", "zone", Logging::Loggable(name)));
+      log->info(Logr::Notice, "Inserting " + direction + " zone based on hosts file", "zone", Logging::Loggable(name));
     }
     ad.d_name = name;
     newMap[ad.d_name] = ad;

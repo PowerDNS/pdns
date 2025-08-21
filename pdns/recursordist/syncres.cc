@@ -6153,28 +6153,23 @@ int directResolve(const DNSName& qname, const QType qtype, const QClass qclass, 
     res = resolver.beginResolve(qname, qtype, qclass, ret, 0);
   }
   catch (const PDNSException& e) {
-    SLOG(g_log << Logger::Warning << "Failed to resolve " << qname << ", got pdns exception: " << e.reason << endl,
-         log->error(Logr::Warning, e.reason, msg, "exception", Logging::Loggable("PDNSException")));
+    log->error(Logr::Warning, e.reason, msg, "exception", Logging::Loggable("PDNSException"));
     ret.clear();
   }
   catch (const ImmediateServFailException& e) {
-    SLOG(g_log << Logger::Warning << "Failed to resolve " << qname << ", got ImmediateServFailException: " << e.reason << endl,
-         log->error(Logr::Warning, e.reason, msg, "exception", Logging::Loggable("ImmediateServFailException")));
+    log->error(Logr::Warning, e.reason, msg, "exception", Logging::Loggable("ImmediateServFailException"));
     ret.clear();
   }
   catch (const PolicyHitException& e) {
-    SLOG(g_log << Logger::Warning << "Failed to resolve " << qname << ", got a policy hit" << endl,
-         log->info(Logr::Warning, msg, "exception", Logging::Loggable("PolicyHitException")));
+    log->info(Logr::Warning, msg, "exception", Logging::Loggable("PolicyHitException"));
     ret.clear();
   }
   catch (const std::exception& e) {
-    SLOG(g_log << Logger::Warning << "Failed to resolve " << qname << ", got STL error: " << e.what() << endl,
-         log->error(Logr::Warning, e.what(), msg, "exception", Logging::Loggable("std::exception")));
+    log->error(Logr::Warning, e.what(), msg, "exception", Logging::Loggable("std::exception"));
     ret.clear();
   }
   catch (...) {
-    SLOG(g_log << Logger::Warning << "Failed to resolve " << qname << ", got an exception" << endl,
-         log->info(Logr::Warning, msg));
+    log->info(Logr::Warning, msg);
     ret.clear();
   }
 
@@ -6208,35 +6203,28 @@ int SyncRes::getRootNS(struct timeval now, asyncresolve_t asyncCallback, unsigne
     }
   }
   catch (const PDNSException& e) {
-    SLOG(g_log << Logger::Error << "Failed to update . records, got an exception: " << e.reason << endl,
-         log->error(Logr::Error, e.reason, msg, "exception", Logging::Loggable("PDNSException")));
+    log->error(Logr::Error, e.reason, msg, "exception", Logging::Loggable("PDNSException"));
   }
   catch (const ImmediateServFailException& e) {
-    SLOG(g_log << Logger::Error << "Failed to update . records, got an exception: " << e.reason << endl,
-         log->error(Logr::Error, e.reason, msg, "exception", Logging::Loggable("ImmediateServFailException")));
+    log->error(Logr::Error, e.reason, msg, "exception", Logging::Loggable("ImmediateServFailException"));
   }
   catch (const PolicyHitException& policyHit) {
-    SLOG(g_log << Logger::Error << "Failed to update . records, got a policy hit" << endl,
-         log->info(Logr::Error, msg, "exception", Logging::Loggable("PolicyHitException"),
-                   "policyName", Logging::Loggable(resolver.d_appliedPolicy.getName())));
+    log->info(Logr::Error, msg, "exception", Logging::Loggable("PolicyHitException"),
+              "policyName", Logging::Loggable(resolver.d_appliedPolicy.getName()));
     ret.clear();
   }
   catch (const std::exception& e) {
-    SLOG(g_log << Logger::Error << "Failed to update . records, got an exception: " << e.what() << endl,
-         log->error(Logr::Error, e.what(), msg, "exception", Logging::Loggable("std::exception")));
+    log->error(Logr::Error, e.what(), msg, "exception", Logging::Loggable("std::exception"));
   }
   catch (...) {
-    SLOG(g_log << Logger::Error << "Failed to update . records, got an exception" << endl,
-         log->info(Logr::Error, msg));
+    log->info(Logr::Error, msg);
   }
 
   if (res == 0) {
-    SLOG(g_log << Logger::Debug << "Refreshed . records" << endl,
-         log->info(Logr::Debug, "Refreshed . records"));
+    log->info(Logr::Debug, "Refreshed . records");
   }
   else {
-    SLOG(g_log << Logger::Warning << "Failed to update root NS records, RCODE=" << res << endl,
-         log->info(Logr::Warning, msg, "rcode", Logging::Loggable(res)));
+    log->info(Logr::Warning, msg, "rcode", Logging::Loggable(res));
   }
   return res;
 }

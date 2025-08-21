@@ -59,8 +59,7 @@ void doSecPoll(time_t* last_secpoll, Logr::log_t log)
 
   auto vlog = log->withValues("version", Logging::Loggable(pkgv), "query", Logging::Loggable(query));
   if (vStateIsBogus(state)) {
-    SLOG(g_log << Logger::Error << "Failed to retrieve security status update for '" + pkgv + "' on '" << query << "', DNSSEC validation result was Bogus!" << endl,
-         vlog->info(Logr::Error, "Failed to retrieve security status update", "validationResult", Logging::Loggable(vStateToString(state))));
+    vlog->info(Logr::Error, "Failed to retrieve security status update", "validationResult", Logging::Loggable(vStateToString(state)));
     if (g_security_status == 1) { // If we were OK, go to unknown
       g_security_status = 0;
     }
@@ -68,8 +67,7 @@ void doSecPoll(time_t* last_secpoll, Logr::log_t log)
   }
 
   if (res == RCode::NXDomain && !isReleaseVersion(pkgv)) {
-    SLOG(g_log << Logger::Warning << "Not validating response for security status update, this is a non-release version" << endl,
-         vlog->info(Logr::Warning, "Not validating response for security status update, this is a non-release version"));
+    vlog->info(Logr::Warning, "Not validating response for security status update, this is a non-release version");
     return;
   }
 
@@ -81,23 +79,19 @@ void doSecPoll(time_t* last_secpoll, Logr::log_t log)
   }
   catch (const PDNSException& pe) {
     g_security_status = security_status;
-    SLOG(g_log << Logger::Warning << "Failed to retrieve security status update for '" << pkgv << "' on '" << query << "': " << pe.reason << endl,
-         vlog->error(Logr::Warning, pe.reason, "Failed to retrieve security status update"));
+    vlog->error(Logr::Warning, pe.reason, "Failed to retrieve security status update");
     return;
   }
 
   auto rlog = vlog->withValues("securitymessage", Logging::Loggable(security_message), "status", Logging::Loggable(security_status));
   if (g_security_status != 1 && security_status == 1) {
-    SLOG(g_log << Logger::Warning << "Polled security status of version " << pkgv << ", no known issues reported: " << security_message << endl,
-         rlog->info(Logr::Notice, "Polled security status of version, no known issues reported"));
+    rlog->info(Logr::Notice, "Polled security status of version, no known issues reported");
   }
   if (security_status == 2) {
-    SLOG(g_log << Logger::Error << "PowerDNS Security Update Recommended: " << security_message << endl,
-         rlog->info(Logr::Error, "PowerDNS Security Update Recommended"));
+    rlog->info(Logr::Error, "PowerDNS Security Update Recommended");
   }
   if (security_status == 3) {
-    SLOG(g_log << Logger::Error << "PowerDNS Security Update Mandatory: " << security_message << endl,
-         rlog->info(Logr::Error, "PowerDNS Security Update Mandatory"));
+    rlog->info(Logr::Error, "PowerDNS Security Update Mandatory");
   }
 
   g_security_status = security_status;

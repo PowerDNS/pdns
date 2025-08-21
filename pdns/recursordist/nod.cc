@@ -81,8 +81,7 @@ bool PersistentSBF::init(bool ignore_pid)
           std::ifstream infile;
           try {
             infile.open(filename, std::ios::in | std::ios::binary);
-            SLOG(g_log << Logger::Warning << "Found SBF file " << filename << endl,
-                 log->info(Logr::Warning, "Found SBF File", "file", Logging::Loggable(filename)));
+            log->info(Logr::Warning, "Found SBF File", "file", Logging::Loggable(filename));
             // read the file into the sbf
             d_sbf.lock()->restore(infile);
             infile.close();
@@ -94,15 +93,13 @@ bool PersistentSBF::init(bool ignore_pid)
           catch (const std::runtime_error& e) {
             infile.close();
             filesystem::remove(newest_file);
-            SLOG(g_log << Logger::Warning << "NODDB init: Cannot parse file: " << filename << ": " << e.what() << "; removed" << endl,
-                 log->error(Logr::Warning, e.what(), "NODDB init: Cannot parse file, removed", "file", Logging::Loggable(filename)));
+            log->error(Logr::Warning, e.what(), "NODDB init: Cannot parse file, removed", "file", Logging::Loggable(filename));
           }
         }
       }
     }
     catch (const filesystem::filesystem_error& e) {
-      SLOG(g_log << Logger::Warning << "NODDB init failed: " << e.what() << endl,
-           log->error(Logr::Warning, e.what(), "NODDB init failed", "exception", Logging::Loggable("filesystem::filesystem_error")));
+      log->error(Logr::Warning, e.what(), "NODDB init failed", "exception", Logging::Loggable("filesystem::filesystem_error"));
       return false;
     }
   }
@@ -161,21 +158,18 @@ bool PersistentSBF::snapshotCurrent(std::thread::id tid)
           filesystem::rename(ftmp, file);
         }
         catch (const std::runtime_error& e) {
-          SLOG(g_log << Logger::Warning << "NODDB snapshot: Cannot rename file: " << e.what() << endl,
-               log->error(Logr::Warning, e.what(), "NODDB snapshot: Cannot rename file", "exception", Logging::Loggable("std::runtime_error")));
+          log->error(Logr::Warning, e.what(), "NODDB snapshot: Cannot rename file", "exception", Logging::Loggable("std::runtime_error"));
           filesystem::remove(ftmp);
           throw;
         }
         return true;
       }
       catch (const std::runtime_error& e) {
-        SLOG(g_log << Logger::Warning << "NODDB snapshot: Cannot write file: " << e.what() << endl,
-             log->error(Logr::Warning, e.what(), "NODDB snapshot: Cannot write file", "exception", Logging::Loggable("std::runtime_error")));
+        log->error(Logr::Warning, e.what(), "NODDB snapshot: Cannot write file", "exception", Logging::Loggable("std::runtime_error"));
       }
     }
     else {
-      SLOG(g_log << Logger::Warning << "NODDB snapshot: Cannot write file: " << file.string() << endl,
-           log->info(Logr::Warning, "NODDB snapshot: Cannot write file", "file", Logging::Loggable(file.string())));
+      log->info(Logr::Warning, "NODDB snapshot: Cannot write file", "file", Logging::Loggable(file.string()));
     }
   }
   return false;

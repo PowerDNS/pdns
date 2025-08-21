@@ -21,8 +21,7 @@ bool warnIfDNSSECDisabled(const string& msg)
   if (g_dnssecmode == DNSSECMode::Off) {
     if (!msg.empty()) {
       auto log = g_slog->withName("config");
-      SLOG(g_log << Logger::Warning << msg << endl,
-           log->info(Logr::Warning, msg));
+      log->info(Logr::Warning, msg);
     }
     return true;
   }
@@ -69,12 +68,10 @@ bool updateTrustAnchorsFromFile(const std::string& fname, map<DNSName, dsset_t>&
       }
     }
     if (dsAnchors == newDSAnchors) {
-      SLOG(g_log << Logger::Debug << "Read Trust Anchors from file, no changes detected" << endl,
-           log->info(Logr::Debug, "Read Trust Anchors from file, no changes detected"));
+      log->info(Logr::Debug, "Read Trust Anchors from file, no changes detected");
       return false;
     }
-    SLOG(g_log << Logger::Info << "Read changed Trust Anchors from file, updating" << endl,
-         log->info(Logr::Info, "Read changed Trust Anchors from file, updating"));
+    log->info(Logr::Info, "Read changed Trust Anchors from file, updating");
     dsAnchors = std::move(newDSAnchors);
     return true;
   }
