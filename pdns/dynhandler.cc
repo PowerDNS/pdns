@@ -251,7 +251,7 @@ string DLNotifyRetrieveHandler(const vector<string>& parts, Utility::pid_t /* pp
   try {
     domain = ZoneName(parts[1]);
   } catch (...) {
-    return "Failed to parse zone as valid DNS name";
+    return "Failed to parse '" + parts[1] + "' as a valid zone name";
   }
 
   ComboAddress primary_ip;
@@ -299,7 +299,7 @@ string DLNotifyHostHandler(const vector<string>& parts, Utility::pid_t /* ppid *
   try {
     domain = ZoneName(parts[1]);
   } catch (...) {
-    return "Failed to parse zone as valid DNS name";
+    return "Failed to parse '" + parts[1] + "' as a valid zone name";
   }
 
   try {
@@ -346,12 +346,12 @@ string DLNotifyHandler(const vector<string>& parts, Utility::pid_t /* ppid */)
     try {
       domain = ZoneName(parts[1]);
     } catch (...) {
-      return "Failed to parse zone as valid DNS name";
+      return "Failed to parse '" + parts[1] + "' as a valid zone name";
     }
     if(!Communicator.notifyDomain(domain, &B)) {
-      return "Failed to add to the queue - see log";
+      return "Failed to add " + domain.toLogString() + " to the queue - see log";
     }
-    return "Added to queue";
+    return "Added " + domain.toLogString() + " to queue";
   }
 }
 
