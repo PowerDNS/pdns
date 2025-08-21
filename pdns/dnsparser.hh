@@ -398,10 +398,13 @@ public:
     auto aType = (a.d_type == QType::SOA) ? 0 : a.d_type;
     auto bType = (b.d_type == QType::SOA) ? 0 : b.d_type;
 
-    if(a.d_name.canonCompare(b.d_name))
+    int res = a.d_name.canonCompare_three_way(b.d_name);
+    if (res < 0) {
       return true;
-    if(b.d_name.canonCompare(a.d_name))
+    }
+    if (res > 0) {
       return false;
+    }
 
     if(std::tie(aType, a.d_class, a.d_ttl) < std::tie(bType, b.d_class, b.d_ttl))
       return true;
