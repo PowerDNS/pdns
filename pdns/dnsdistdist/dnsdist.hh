@@ -208,10 +208,6 @@ using pdns::stat_t;
 class BasicQPSLimiter
 {
 public:
-  BasicQPSLimiter()
-  {
-  }
-
   BasicQPSLimiter(unsigned int burst) :
     d_tokens(burst)
   {
@@ -270,11 +266,6 @@ protected:
 class QPSLimiter : public BasicQPSLimiter
 {
 public:
-  QPSLimiter() :
-    BasicQPSLimiter()
-  {
-  }
-
   QPSLimiter(unsigned int rate, unsigned int burst) :
     BasicQPSLimiter(burst), d_rate(rate), d_burst(burst), d_passthrough(false)
   {
