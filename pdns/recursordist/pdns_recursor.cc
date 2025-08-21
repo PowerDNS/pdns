@@ -1869,6 +1869,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
     uint64_t spentUsec = uSec(resolver.getNow() - comboWriter->d_now);
     if (!g_quiet) {
       resolver.d_slog->info(Logr::Info, "Answer", "rd", Logging::Loggable(comboWriter->d_mdp.d_header.rd),
+                            "tc", Logging::Loggable(packetWriter.getHeader()->tc),
                             "answers", Logging::Loggable(ntohs(packetWriter.getHeader()->ancount)),
                             "additional", Logging::Loggable(ntohs(packetWriter.getHeader()->arcount)),
                             "outqueries", Logging::Loggable(resolver.d_outqueries),
