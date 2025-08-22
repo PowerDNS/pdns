@@ -44,7 +44,7 @@ def init_argparser():
                                                  'test PowerDNS repositories.')
     parser.add_argument('release', metavar='RELEASE',
                         choices=[# Authoritative Server
-                                 'auth-47', 'auth-48', 'auth-49', 'auth-50',
+                                 'auth-48', 'auth-49', 'auth-50',
                                  'auth-master',
                                  # Recursor
                                  'rec-48', 'rec-49', 'rec-50', 'rec-51', 'rec-52', 'rec-53',
@@ -136,7 +136,7 @@ def write_release_files (release):
     if g_verbose:
         print("Writing release files...")
 
-    if release in ['auth-47', 'auth-48', 'auth-49', 'auth-50', 'auth-master',
+    if release in ['auth-48', 'auth-49', 'auth-50', 'auth-master',
                    'rec-48', 'rec-49', 'rec-50', 'rec-51', 'rec-52', 'rec-53', 'rec-master',
                    'dnsdist-17', 'dnsdist-18', 'dnsdist-19', 'dnsdist-20', 'dnsdist-master']:
         write_pkg_pin_file(release)
