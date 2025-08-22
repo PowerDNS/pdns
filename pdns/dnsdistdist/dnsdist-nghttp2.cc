@@ -344,7 +344,7 @@ void DoHConnectionToBackend::queueQuery(std::shared_ptr<TCPQuerySender>& sender,
       d_connectionDied = true;
       ++d_ds->tcpDiedSendingQuery;
       d_currentStreams.erase(streamId);
-      throw std::runtime_error("Error in nghttp2_session_send:" + std::to_string(rtv));
+      throw std::runtime_error("Error in nghttp2_session_send: " + std::to_string(rtv));
     }
   }
 
