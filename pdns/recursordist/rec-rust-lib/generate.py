@@ -792,6 +792,12 @@ def gen_newstyle_docs(srcdir, argentries):
 
 RUNTIME = '*runtime determined*'
 
+def unlinkMissingOK(path):
+    try:
+        path.unlink()
+    except FileNotFoundError:
+        pass
+
 def generate():
     """Read table, validate and generate C++, Rust and .rst files"""
     srcdir = '.'
@@ -841,11 +847,11 @@ def generate():
         gen_newstyle_docs(srcdir, entries)
     # Remove cxx generated files, they need to be re-generated after a table change and the rust dependency tracking does
     # not do that in some cases.
-    Path(gendir, 'rust', 'librecrust.a').unlink(True)
-    Path(gendir, 'rust', 'lib.rs.h').unlink(True)
-    Path(gendir, 'rust', 'web.rs.h').unlink(True)
-    Path(gendir, 'rust', 'cxx.h').unlink(True)
-    Path(gendir, 'rust', 'misc.rs.h').unlink(True)
+    unlinkMissingOK(Path(gendir, 'rust', 'librecrust.a'))
+    unlinkMissingOK(Path(gendir, 'rust', 'lib.rs.h'))
+    unlinkMissingOK(Path(gendir, 'rust', 'web.rs.h'))
+    unlinkMissingOK(Path(gendir, 'rust', 'cxx.h'))
+    unlinkMissingOK(Path(gendir, 'rust', 'misc.rs.h'))
     # Path.walk exists only in very recent versions of Python
     # With meson, target is in toplevel build dir
     # With autotools, target exists in rec-rust-lib/rust and this Python script is executed with cwd rec-rust-lib
