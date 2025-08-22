@@ -15,7 +15,7 @@ PowerDNS Authoritative Server 4.7 will only receive critical updates; it will be
 
 PowerDNS Authoritative Server 4.0 through 4.6, 3.x, and 2.x are End of Life.
 
-Note: Users with a commercial agreement with PowerDNS.COM BV or Open-Xchange
+Note: Users with a commercial agreement with PowerDNS.com BV or Open-Xchange
 can receive extended support for releases which are End Of Life. If you are
 such a user, these EOL statements do not apply to you.
 
