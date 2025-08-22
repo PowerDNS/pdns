@@ -1,3 +1,3 @@
 Set 'example.com' meta ALLOW-AXFR-FROM = 127.0.0.2
 Set 'test.com' meta ALLOW-AXFR-FROM = 127.0.0.2
-Added to queue
+Added test.com to queue
