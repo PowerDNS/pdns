@@ -299,9 +299,12 @@ void IncomingHTTP2Connection::handleConnectionReady()
     throw std::runtime_error("Fatal error: " + std::string(nghttp2_strerror(ret)));
   }
   d_needFlush = true;
-  ret = nghttp2_session_send(d_session.get());
-  if (ret != 0) {
-    throw std::runtime_error("Fatal error: " + std::string(nghttp2_strerror(ret)));
+
+  if (!d_inReadFunction) {
+    ret = nghttp2_session_send(d_session.get());
+    if (ret != 0) {
+      throw std::runtime_error("Fatal error: " + std::string(nghttp2_strerror(ret)));
+    }
   }
 }
 
@@ -549,25 +552,38 @@ static const std::string s_methodHeaderName(":method");
 static const std::string s_schemeHeaderName(":scheme");
 static const std::string s_xForwardedForHeaderName("x-forwarded-for");
 
+static void addHeader(std::vector<nghttp2_nv>& headers, const std::string_view& name, bool nameIsStatic, const std::string_view& value, bool valueIsStatic)
+{
+  /* Be careful when setting NGHTTP2_NV_FLAG_NO_COPY_NAME or NGHTTP2_NV_FLAG_NO_COPY_VALUE, the corresponding name or value needs to exist until after nghttp2_session_send() has been called, not just nghttp2_submit_response */
+  uint8_t flag{NGHTTP2_NV_FLAG_NONE};
+  if (nameIsStatic) {
+    flag |= NGHTTP2_NV_FLAG_NO_COPY_NAME;
+  }
+  if (valueIsStatic) {
+    flag |= NGHTTP2_NV_FLAG_NO_COPY_VALUE;
+  }
+
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast,cppcoreguidelines-pro-type-reinterpret-cast): nghttp2 API
+  headers.push_back({const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(name.data())), const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(value.data())), name.size(), value.size(), flag});
+}
+
 void NGHTTP2Headers::addStaticHeader(std::vector<nghttp2_nv>& headers, NGHTTP2Headers::HeaderConstantIndexes nameKey, NGHTTP2Headers::HeaderConstantIndexes valueKey)
 {
   const auto& name = s_headerConstants.at(static_cast<size_t>(nameKey));
   const auto& value = s_headerConstants.at(static_cast<size_t>(valueKey));
 
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast,cppcoreguidelines-pro-type-reinterpret-cast): nghttp2 API
-  headers.push_back({const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(name.c_str())), const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(value.c_str())), name.size(), value.size(), NGHTTP2_NV_FLAG_NO_COPY_NAME | NGHTTP2_NV_FLAG_NO_COPY_VALUE});
+  addHeader(headers, name, true, value, true);
 }
 
 void NGHTTP2Headers::addCustomDynamicHeader(std::vector<nghttp2_nv>& headers, const std::string& name, const std::string_view& value)
 {
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast,cppcoreguidelines-pro-type-reinterpret-cast): nghttp2 API
-  headers.push_back({const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(name.data())), const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(value.data())), name.size(), value.size(), NGHTTP2_NV_FLAG_NO_COPY_NAME | NGHTTP2_NV_FLAG_NO_COPY_VALUE});
+  addHeader(headers, name, false, value, false);
 }
 
 void NGHTTP2Headers::addDynamicHeader(std::vector<nghttp2_nv>& headers, NGHTTP2Headers::HeaderConstantIndexes nameKey, const std::string_view& value)
 {
   const auto& name = s_headerConstants.at(static_cast<size_t>(nameKey));
-  NGHTTP2Headers::addCustomDynamicHeader(headers, name, value);
+  addHeader(headers, name, true, value, false);
 }
 
 std::unordered_map<IncomingHTTP2Connection::StreamID, IncomingHTTP2Connection::PendingQuery>::iterator IncomingHTTP2Connection::getStreamContext(StreamID streamID)
@@ -778,11 +794,13 @@ bool IncomingHTTP2Connection::sendResponse(IncomingHTTP2Connection::StreamID str
     return false;
   }
 
-  ret = nghttp2_session_send(d_session.get());
-  if (ret != 0) {
-    vinfolog("Error flushing HTTP response for stream %d: %s", streamID, nghttp2_strerror(ret));
-    d_currentStreams.erase(streamID);
-    return false;
+  if (!d_inReadFunction) {
+    ret = nghttp2_session_send(d_session.get());
+    if (ret != 0) {
+      d_currentStreams.erase(streamID);
+      vinfolog("Error flushing HTTP response for stream %d: %s", streamID, nghttp2_strerror(ret));
+      return false;
+    }
   }
 
   return true;
@@ -998,29 +1016,23 @@ int IncomingHTTP2Connection::on_begin_headers_callback(nghttp2_session* session,
   }
 
   auto* conn = static_cast<IncomingHTTP2Connection*>(user_data);
-  auto close_connection = [](IncomingHTTP2Connection* connection, int32_t streamID, const ComboAddress& remote) -> int {
+  auto close_connection = [](IncomingHTTP2Connection* connection) -> int {
     connection->d_connectionClosing = true;
     connection->d_needFlush = true;
     nghttp2_session_terminate_session(connection->d_session.get(), NGHTTP2_REFUSED_STREAM);
-    auto ret = nghttp2_session_send(connection->d_session.get());
-    if (ret != 0) {
-      vinfolog("Error flushing HTTP response for stream %d from %s: %s", streamID, remote.toStringWithPort(), nghttp2_strerror(ret));
-      return NGHTTP2_ERR_CALLBACK_FAILURE;
-    }
-
     return 0;
   };
 
   if (conn->getConcurrentStreamsCount() >= dnsdist::doh::MAX_INCOMING_CONCURRENT_STREAMS) {
     vinfolog("Too many concurrent streams on connection from %s", conn->d_ci.remote.toStringWithPort());
-    return close_connection(conn, frame->hd.stream_id, conn->d_ci.remote);
+    return close_connection(conn);
   }
 
   auto insertPair = conn->d_currentStreams.emplace(frame->hd.stream_id, PendingQuery());
   if (!insertPair.second) {
     /* there is a stream ID collision, something is very wrong! */
     vinfolog("Stream ID collision (%d) on connection from %s", frame->hd.stream_id, conn->d_ci.remote.toStringWithPort());
-    return close_connection(conn, frame->hd.stream_id, conn->d_ci.remote);
+    return close_connection(conn);
   }
 
   return 0;
@@ -1149,11 +1161,6 @@ int IncomingHTTP2Connection::on_error_callback(nghttp2_session* session, int lib
   conn->d_connectionClosing = true;
   conn->d_needFlush = true;
   nghttp2_session_terminate_session(conn->d_session.get(), NGHTTP2_NO_ERROR);
-  auto ret = nghttp2_session_send(conn->d_session.get());
-  if (ret != 0) {
-    vinfolog("Error flushing HTTP response on connection from %s: %s", conn->d_ci.remote.toStringWithPort(), nghttp2_strerror(ret));
-    return NGHTTP2_ERR_CALLBACK_FAILURE;
-  }
 
   return 0;
 }
