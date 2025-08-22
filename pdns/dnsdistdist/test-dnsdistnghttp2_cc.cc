@@ -189,9 +189,6 @@ public:
     int rv = nghttp2_submit_response(d_session.get(), streamId, hdrs, sizeof(hdrs) / sizeof(*hdrs), &dataProvider);
     // cerr<<"Submitting response for stream ID "<<streamId<<": "<<rv<<endl;
     BOOST_CHECK_EQUAL(rv, 0);
-    /* just in case, see if we have anything to send */
-    rv = nghttp2_session_send(d_session.get());
-    BOOST_CHECK_EQUAL(rv, 0);
   }
 
   void submitError(uint32_t streamId, uint16_t status, const std::string& msg)
@@ -202,18 +199,17 @@ public:
 
     int rv = nghttp2_submit_response(d_session.get(), streamId, hdrs, sizeof(hdrs) / sizeof(*hdrs), nullptr);
     BOOST_CHECK_EQUAL(rv, 0);
-    /* just in case, see if we have anything to send */
-    rv = nghttp2_session_send(d_session.get());
-    BOOST_CHECK_EQUAL(rv, 0);
   }
 
-  void submitGoAway()
+  void submitGoAway(bool flush) const
   {
     int rv = nghttp2_submit_goaway(d_session.get(), NGHTTP2_FLAG_NONE, 0, NGHTTP2_INTERNAL_ERROR, nullptr, 0);
     BOOST_CHECK_EQUAL(rv, 0);
-    /* just in case, see if we have anything to send */
-    rv = nghttp2_session_send(d_session.get());
-    BOOST_CHECK_EQUAL(rv, 0);
+    if (flush) {
+      /* just in case, see if we have anything to send */
+      rv = nghttp2_session_send(d_session.get());
+      BOOST_CHECK_EQUAL(rv, 0);
+    }
   }
 
 private:
@@ -276,7 +272,7 @@ private:
 
       DNSName qname(reinterpret_cast<const char*>(query.data()), query.size(), sizeof(dnsheader), false);
       if (qname == DNSName("goaway.powerdns.com.")) {
-        conn->submitGoAway();
+        conn->submitGoAway(false);
       }
       else if (qname == DNSName("500.powerdns.com.") && (id % 2) == 0) {
         /* we return a 500 on the first query only */
@@ -639,7 +635,7 @@ BOOST_FIXTURE_TEST_CASE(test_SingleQuery, TestFixture)
      }},
     /* acknowledge settings */
     {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc) {
-       s_connectionBuffers.at(desc)->submitGoAway();
+       s_connectionBuffers.at(desc)->submitGoAway(true);
        dynamic_cast<MockupFDMultiplexer*>(s_mplexer.get())->setReady(desc);
      }},
     {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, std::numeric_limits<size_t>::max()},
@@ -723,7 +719,7 @@ BOOST_FIXTURE_TEST_CASE(test_ConcurrentQueries, TestFixture)
     {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, std::numeric_limits<size_t>::max()},
     /* acknowledge settings */
     {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc) {
-       s_connectionBuffers.at(desc)->submitGoAway();
+       s_connectionBuffers.at(desc)->submitGoAway(true);
        dynamic_cast<MockupFDMultiplexer*>(s_mplexer.get())->setReady(desc);
      }},
     {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, std::numeric_limits<size_t>::max()},
@@ -823,7 +819,7 @@ BOOST_FIXTURE_TEST_CASE(test_ConnectionReuse, TestFixture)
     /* later the backend sends a go away frame */
     {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc) {
        (void)desc;
-       s_connectionBuffers.at(desc)->submitGoAway();
+       s_connectionBuffers.at(desc)->submitGoAway(true);
      }},
     {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
   };
@@ -923,7 +919,7 @@ BOOST_FIXTURE_TEST_CASE(test_InvalidDNSAnswer, TestFixture)
     {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max()},
     /* try to read, the backend says to go away */
     {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc) {
-       s_connectionBuffers.at(desc)->submitGoAway();
+       s_connectionBuffers.at(desc)->submitGoAway(true);
      }},
     {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
   };

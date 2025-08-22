@@ -306,6 +306,29 @@ private:
   const uint64_t d_maxthreads{0};
 };
 
+namespace dnsdist::tcp
+{
+class HandlingIOGuard
+{
+public:
+  HandlingIOGuard(bool& handlingIO) :
+    d_handlingIO(handlingIO)
+  {
+  }
+  HandlingIOGuard(const HandlingIOGuard&) = delete;
+  HandlingIOGuard(HandlingIOGuard&&) = delete;
+  HandlingIOGuard& operator=(const HandlingIOGuard& rhs) = delete;
+  HandlingIOGuard& operator=(HandlingIOGuard&&) = delete;
+  ~HandlingIOGuard()
+  {
+    d_handlingIO = false;
+  }
+
+private:
+  bool& d_handlingIO;
+};
+}
+
 extern std::unique_ptr<TCPClientCollection> g_tcpclientthreads;
 
 std::unique_ptr<CrossProtocolQuery> getTCPCrossProtocolQueryFromDQ(DNSQuestion& dnsQuestion);
