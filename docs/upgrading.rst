@@ -8,8 +8,8 @@ Please upgrade to the PowerDNS Authoritative Server 4.0.0 from 3.4.2+.
 See the `3.X <https://doc.powerdns.com/3/authoritative/upgrading/>`__
 upgrade notes if your version is older than 3.4.2.
 
-4.9.0 to 5.0.0/master
----------------------
+4.9.0 to 5.0.0
+--------------
 
 LMDB backend, views
 ^^^^^^^^^^^^^^^^^^^

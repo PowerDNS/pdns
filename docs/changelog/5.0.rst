@@ -2,6 +2,33 @@ Changelogs for 5.0.x
 ====================
 
 .. changelog::
+  :version: 5.0.0
+  :released: 22nd of August 2025
+
+  This is release 5.0.0 of the Authoritative Server.
+  It contains minor bugfixes and improvements over the 5.0.0-beta1
+  release.
+
+  .. change::
+    :tags: New Features
+    :pullreq: 15948
+    :tickets: 15941
+
+    Auth: random edns cookies
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14927
+
+    Update pdnsutil.bash_completion.d (Cybertinus)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15603
+
+    SVCB: allow parsing keys in generic format without value (Chris Hofstaedtler)
+
+.. changelog::
   :version: 5.0.0-beta1
   :released: 24th of July 2025
 
