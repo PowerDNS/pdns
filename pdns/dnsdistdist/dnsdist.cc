@@ -2150,6 +2150,7 @@ static void MultipleMessagesUDPClientThread(ClientState* clientState)
       }
 
       recvData[msgIdx].packet.resize(got);
+      dnsdist::configuration::refreshLocalRuntimeConfiguration();
       processUDPQuery(*clientState, msgh, remote, recvData[msgIdx].dest, recvData[msgIdx].packet, &outMsgVec, &msgsToSend, &recvData[msgIdx].iov, &recvData[msgIdx].cbuf);
     }
 
