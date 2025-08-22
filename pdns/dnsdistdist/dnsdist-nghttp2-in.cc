@@ -554,7 +554,7 @@ static const std::string s_xForwardedForHeaderName("x-forwarded-for");
 
 static void addHeader(std::vector<nghttp2_nv>& headers, const std::string_view& name, bool nameIsStatic, const std::string_view& value, bool valueIsStatic)
 {
-  /* Be careful when setting NGHTTP2_NV_FLAG_NO_COPY_NAME or NGHTTP2_NV_FLAG_NO_COPY_VALUE, the corresponding name or value needs to exist until after nghttp2_session_send() has been called, not just nghttp2_submit_response */
+  /* Be careful when setting NGHTTP2_NV_FLAG_NO_COPY_NAME or NGHTTP2_NV_FLAG_NO_COPY_VALUE, the corresponding name or value needs to exist until after nghttp2_session_send() has been called, not just nghttp2_submit_response(). */
   uint8_t flag{NGHTTP2_NV_FLAG_NONE};
   if (nameIsStatic) {
     flag |= NGHTTP2_NV_FLAG_NO_COPY_NAME;
