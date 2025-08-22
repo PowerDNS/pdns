@@ -37,7 +37,6 @@ jobs:
         os:
           - centos-9-stream
           - centos-10-stream
-          - ubuntu-oracular
           - amazon-2023
         runner-os: ${{ fromJson(needs.prepare.outputs.runnerlist )}}
       fail-fast: false
