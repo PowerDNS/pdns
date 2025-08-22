@@ -326,12 +326,14 @@ void DoHConnectionToBackend::queueQuery(std::shared_ptr<TCPQuerySender>& sender,
     throw std::runtime_error("Error submitting HTTP request:" + std::string(nghttp2_strerror(newStreamId)));
   }
 
-  auto rv = nghttp2_session_send(d_session.get());
-  if (rv != 0) {
-    d_connectionDied = true;
-    ++d_ds->tcpDiedSendingQuery;
-    d_currentStreams.erase(streamId);
-    throw std::runtime_error("Error in nghttp2_session_send:" + std::to_string(rv));
+  if (!d_inIOCallback) {
+    auto rv = nghttp2_session_send(d_session.get());
+    if (rv != 0) {
+      d_connectionDied = true;
+      ++d_ds->tcpDiedSendingQuery;
+      d_currentStreams.erase(streamId);
+      throw std::runtime_error("Error in nghttp2_session_send:" + std::to_string(rv));
+    }
   }
 
   d_highestStreamID = newStreamId;
