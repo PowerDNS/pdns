@@ -144,3 +144,109 @@ class TestDNSParser(DNSDistTest):
             receivedQuery.id = query.id
             self.assertEqual(query, receivedQuery)
             self.assertEqual(receivedResponse, response)
+
+
+class TestDNSRecordParser(DNSDistTest):
+
+    _verboseMode = True
+    _config_template = """
+  function checkResponsePacket(dq)
+    local packet = dq:getContent()
+    local overlay = newDNSPacketOverlay(packet)
+    local count = overlay:getRecordsCountInSection(DNSSection.Answer)
+    for i = 0, count - 1 do
+      local record = overlay:getRecord(i)
+      local parsedAsA = parseARecord(packet, record)
+      local parsedAsAAAA = parseAAAARecord(packet, record)
+      local parsedAsAddress = parseAddressRecord(packet, record)
+      local parsedAsCNAME = parseCNAMERecord(packet, record)
+      if record.type == DNSQType.A then
+        if parsedAsA:toString() ~= "192.0.2.1" then
+          print(parsedAsA:toString()..".invalid.parsed.a.record.")
+          return DNSResponseAction.ServFail
+        end
+        if parsedAsAddress:toString() ~= "192.0.2.1" then
+          print(parsedAsAddress:toString()..".invalid.parsed.a.record. as address")
+          return DNSResponseAction.ServFail
+        end
+      else
+        if parsedAsA then
+          print("Unexpected A parse success")
+          return DNSResponseAction.ServFail
+        end
+      end
+
+      if record.type == DNSQType.AAAA then
+        if parsedAsAAAA:toString() ~= "ff:db8::ffff" then
+          print(parsedAsAAAA:toString()..".invalid.parsed.aaaa.record.")
+          return DNSResponseAction.ServFail
+        end
+        if parsedAsAddress:toString() ~= "ff:db8::ffff" then
+          print(parsedAsAddress:toString()..".invalid.parsed.aaaa.record. as address")
+          return DNSResponseAction.ServFail
+        end
+      else
+        if parsedAsAAAA then
+          print("Unexpected AAAA parse success")
+          return DNSResponseAction.ServFail
+        end
+      end
+
+      if record.type == DNSQType.CNAME then
+        if parsedAsCNAME:toString() ~= "not-powerdns.com." then
+          print(parsedAsCNAME:toString()..".invalid.parsed.cname.record.")
+          return DNSResponseAction.ServFail
+        end
+        if parsedAsAddress then
+          print("Unexpected address parse success")
+          return DNSResponseAction.ServFail
+        end
+      else
+        if parsedAsCNAME then
+          print("Unexpected CNAME parse success")
+          return DNSResponseAction.ServFail
+        end
+      end
+    end
+    return DNSAction.None
+  end
+
+  addResponseAction(AllRule(), LuaResponseAction(checkResponsePacket))
+  newServer{address="127.0.0.1:%s"}
+    """
+
+    def testQuestionAndResponseWithParsers(self):
+        """
+        DNS Parser: parsers checks
+        """
+        name = 'powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=True)
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.0.2.1')
+        response.answer.append(rrset)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.AAAA,
+                                    'ff:db8::ffff')
+        response.answer.append(rrset)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.CNAME,
+                                    'not-powerdns.com.')
+        response.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            print(receivedResponse)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = query.id
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(receivedResponse, response)
