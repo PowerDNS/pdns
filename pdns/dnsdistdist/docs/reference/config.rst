@@ -2305,6 +2305,12 @@ Other functions
   Code is supplied as a string, not as a function object.
   Note that this function does nothing in 'client' or 'config-check' modes.
 
+.. function:: refreshRuntimeConfiguration()
+
+  .. versionadded:: 2.0.1
+
+  This function is only useful when executed from a separate Lua thread created by :func:`newThread`, to ensure that the runtime-modifiable configuration is up-to-date.
+
 .. function:: setTicketsKeyAddedHook(callback)
 
   .. versionadded:: 1.9.6
