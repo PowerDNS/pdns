@@ -137,7 +137,7 @@ class BB2DomainInfo
 {
 public:
   BB2DomainInfo();
-  void setCtime();
+  void updateCtime();
   bool current();
   //! configure how often this domain should be checked for changes (on disk)
   void setCheckInterval(time_t seconds);
@@ -148,13 +148,12 @@ public:
 
   ZoneName d_name; //!< actual name of the domain
   DomainInfo::DomainKind d_kind{DomainInfo::Native}; //!< the kind of domain
-  string d_filename; //!< full absolute filename of the zone on disk
+  std::vector<std::pair<std::string, time_t>> d_fileinfo; //!< list of full absolute filename of the zone on disk, and any included file, with their last verified ctime
   string d_status; //!< message describing status of a domain, for human consumption
   vector<ComboAddress> d_primaries; //!< IP address of the primary of this domain
   set<string> d_also_notify; //!< IP list of hosts to also notify
   LookButDontTouch<recordstorage_t> d_records; //!< the actual records belonging to this domain
-  time_t d_ctime{0}; //!< last known ctime of the file on disk
-  time_t d_lastcheck{0}; //!< last time domain was checked for freshness
+  time_t d_lastcheck{0}; //!< last time files were checked for freshness
   uint32_t d_lastnotified{0}; //!< Last serial number we notified our secondaries of
   domainid_t d_id{0}; //!< internal id of the domain
   mutable bool d_checknow; //!< if this domain has been flagged for a check
@@ -164,7 +163,7 @@ public:
   NSEC3PARAMRecordContent d_nsec3param;
 
 private:
-  time_t getCtime();
+  static time_t getCtime(const std::string&);
   time_t d_checkinterval{0};
 };
 
@@ -184,7 +183,6 @@ public:
   void getUnfreshSecondaryInfos(vector<DomainInfo>* unfreshDomains) override;
   void getUpdatedPrimaries(vector<DomainInfo>& changedDomains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes) override;
   bool getDomainInfo(const ZoneName& domain, DomainInfo& info, bool getSerial = true) override;
-  time_t getCtime(const string& fname);
   // DNSSEC
   bool getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after) override;
   void lookup(const QType& qtype, const DNSName& qname, domainid_t zoneId, DNSPacket* p = nullptr) override;
@@ -309,7 +307,7 @@ private:
   bool d_hybrid;
   bool d_upgradeContent;
 
-  BB2DomainInfo createDomainEntry(const ZoneName& domain, const string& filename); //!< does not insert in s_state
+  BB2DomainInfo createDomainEntry(const ZoneName& domain); //!< does not insert in s_state
 
   void queueReloadAndStore(domainid_t id);
   static bool findBeforeAndAfterUnhashed(std::shared_ptr<const recordstorage_t>& records, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after);

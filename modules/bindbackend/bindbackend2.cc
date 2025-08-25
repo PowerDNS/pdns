@@ -107,28 +107,34 @@ bool BB2DomainInfo::current()
   if (time(nullptr) - d_lastcheck < d_checkinterval)
     return true;
 
-  if (d_filename.empty())
-    return true;
-
-  return (getCtime() == d_ctime);
+  d_lastcheck = time(nullptr);
+  for (const auto& fileinfo : d_fileinfo) {
+    if (getCtime(fileinfo.first) != fileinfo.second) {
+      return false;
+    }
+  }
+  return true;
 }
 
-time_t BB2DomainInfo::getCtime()
+time_t BB2DomainInfo::getCtime(const std::string& filename)
 {
   struct stat buf;
 
-  if (d_filename.empty() || stat(d_filename.c_str(), &buf) < 0)
+  if (filename.empty() || stat(filename.c_str(), &buf) < 0)
     return 0;
-  d_lastcheck = time(nullptr);
   return buf.st_ctime;
 }
 
-void BB2DomainInfo::setCtime()
+void BB2DomainInfo::updateCtime()
 {
   struct stat buf;
-  if (stat(d_filename.c_str(), &buf) < 0)
-    return;
-  d_ctime = buf.st_ctime;
+
+  for (auto& fileinfo : d_fileinfo) {
+    if (stat(fileinfo.first.c_str(), &buf) < 0) {
+      buf.st_ctime = 0;
+    }
+    fileinfo.second = buf.st_ctime;
+  }
 }
 
 // NOLINTNEXTLINE(readability-identifier-length)
@@ -221,7 +227,7 @@ bool Bind2Backend::startTransaction(const ZoneName& qname, domainid_t domainId)
   d_transaction_qname = qname;
   BB2DomainInfo bbd;
   if (safeGetBBDomainInfo(domainId, &bbd)) {
-    d_transaction_tmpname = bbd.d_filename + "XXXXXX";
+    d_transaction_tmpname = bbd.d_fileinfo.front().first + "XXXXXX";
     int fd = mkstemp(&d_transaction_tmpname.at(0));
     if (fd == -1) {
       throw DBException("Unable to create a unique temporary zonefile '" + d_transaction_tmpname + "': " + stringerror());
@@ -258,8 +264,8 @@ bool Bind2Backend::commitTransaction()
 
   BB2DomainInfo bbd;
   if (safeGetBBDomainInfo(d_transaction_id, &bbd)) {
-    if (rename(d_transaction_tmpname.c_str(), bbd.d_filename.c_str()) < 0)
-      throw DBException("Unable to commit (rename to: '" + bbd.d_filename + "') AXFRed zone: " + stringerror());
+    if (rename(d_transaction_tmpname.c_str(), bbd.d_fileinfo.front().first.c_str()) < 0)
+      throw DBException("Unable to commit (rename to: '" + bbd.d_fileinfo.front().first + "') AXFRed zone: " + stringerror());
     queueReloadAndStore(bbd.d_id);
   }
 
@@ -572,7 +578,7 @@ void Bind2Backend::parseZoneFile(BB2DomainInfo* bbd)
     nsec3zone = getNSEC3PARAMuncached(bbd->d_name, &ns3pr);
 
   auto records = std::make_shared<recordstorage_t>();
-  ZoneParserTNG zpt(bbd->d_filename, bbd->d_name, s_binddirectory, d_upgradeContent);
+  ZoneParserTNG zpt(bbd->d_fileinfo.front().first, bbd->d_name, s_binddirectory, d_upgradeContent);
   zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
   zpt.setMaxIncludes(::arg().asNum("max-include-depth"));
   DNSResourceRecord rr;
@@ -585,7 +591,7 @@ void Bind2Backend::parseZoneFile(BB2DomainInfo* bbd)
   }
   fixupOrderAndAuth(records, bbd->d_name, nsec3zone, ns3pr);
   doEmptyNonTerminals(records, bbd->d_name, nsec3zone, ns3pr);
-  bbd->setCtime();
+  bbd->d_fileinfo = zpt.getFileset();
   bbd->d_loaded = true;
   bbd->d_checknow = false;
   bbd->d_status = "parsed into memory at " + nowTime();
@@ -691,7 +697,7 @@ static void printDomainExtendedStatus(ostringstream& ret, const BB2DomainInfo& i
   ret << info.d_name << ": " << std::endl;
   ret << "\t Status: " << info.d_status << std::endl;
   ret << "\t Internal ID: " << info.d_id << std::endl;
-  ret << "\t On-disk file: " << info.d_filename << " (" << info.d_ctime << ")" << std::endl;
+  ret << "\t On-disk file: " << info.d_fileinfo.front().first << " (" << info.d_fileinfo.front().second << ")" << std::endl;
   ret << "\t Kind: ";
   switch (info.d_kind) {
   case DomainInfo::Primary:
@@ -779,13 +785,12 @@ string Bind2Backend::DLAddDomainHandler(const vector<string>& parts, Utility::pi
     return "Unable to load zone " + domainname.toLogString() + " from " + filename + ": " + strerror(errno);
 
   Bind2Backend bb2; // createdomainentry needs access to our configuration
-  bbd = bb2.createDomainEntry(domainname, filename);
-  bbd.d_filename = filename;
+  bbd = bb2.createDomainEntry(domainname);
+  bbd.d_fileinfo.emplace_back(std::make_pair(filename, buf.st_ctime));
   bbd.d_checknow = true;
   bbd.d_loaded = true;
   bbd.d_lastcheck = 0;
   bbd.d_status = "parsing into memory";
-  bbd.setCtime();
 
   safePutBBDomainInfo(bbd);
 
@@ -1025,9 +1030,13 @@ void Bind2Backend::loadConfig(string* status) // NOLINT(readability-function-cog
 
       // overwrite what we knew about the domain
       bbd.d_name = domain.name;
-      bool filenameChanged = (bbd.d_filename != domain.filename);
+      bool filenameChanged = bbd.d_fileinfo.empty() || (bbd.d_fileinfo.front().first != domain.filename);
       bool addressesChanged = (bbd.d_primaries != domain.primaries || bbd.d_also_notify != domain.alsoNotify);
-      bbd.d_filename = domain.filename;
+      // Preserve existing fileinfo in case we won't reread anything.
+      if (filenameChanged) {
+        bbd.d_fileinfo.clear();
+        bbd.d_fileinfo.emplace_back(std::make_pair(domain.filename, 0));
+      }
       bbd.d_primaries = domain.primaries;
       bbd.d_also_notify = domain.alsoNotify;
 
@@ -1128,12 +1137,12 @@ void Bind2Backend::queueReloadAndStore(domainid_t id)
     parseZoneFile(&bbnew);
     bbnew.d_wasRejectedLastReload = false;
     safePutBBDomainInfo(bbnew);
-    g_log << Logger::Warning << "Zone '" << bbnew.d_name << "' (" << bbnew.d_filename << ") reloaded" << endl;
+    g_log << Logger::Warning << "Zone '" << bbnew.d_name << "' (" << bbnew.d_fileinfo.front().first << ") reloaded" << endl;
   }
   catch (PDNSException& ae) {
     ostringstream msg;
-    msg << " error at " + nowTime() + " parsing '" << bbold.d_name << "' from file '" << bbold.d_filename << "': " << ae.reason;
-    g_log << Logger::Warning << "Error parsing '" << bbold.d_name << "' from file '" << bbold.d_filename << "': " << ae.reason << endl;
+    msg << " error at " + nowTime() + " parsing '" << bbold.d_name << "' from file '" << bbold.d_fileinfo.front().first << "': " << ae.reason;
+    g_log << Logger::Warning << "Error parsing '" << bbold.d_name << "' from file '" << bbold.d_fileinfo.front().first << "': " << ae.reason << endl;
     bbold.d_status = msg.str();
     bbold.d_lastcheck = time(nullptr);
     bbold.d_wasRejectedLastReload = true;
@@ -1141,8 +1150,8 @@ void Bind2Backend::queueReloadAndStore(domainid_t id)
   }
   catch (std::exception& ae) {
     ostringstream msg;
-    msg << " error at " + nowTime() + " parsing '" << bbold.d_name << "' from file '" << bbold.d_filename << "': " << ae.what();
-    g_log << Logger::Warning << "Error parsing '" << bbold.d_name << "' from file '" << bbold.d_filename << "': " << ae.what() << endl;
+    msg << " error at " + nowTime() + " parsing '" << bbold.d_name << "' from file '" << bbold.d_fileinfo.front().first << "': " << ae.what();
+    g_log << Logger::Warning << "Error parsing '" << bbold.d_name << "' from file '" << bbold.d_fileinfo.front().first << "': " << ae.what() << endl;
     bbold.d_status = msg.str();
     bbold.d_lastcheck = time(nullptr);
     bbold.d_wasRejectedLastReload = true;
@@ -1262,15 +1271,15 @@ void Bind2Backend::lookup(const QType& qtype, const DNSName& qname, domainid_t z
   d_handle.domain = std::move(domain);
 
   if (!bbd.current()) {
-    g_log << Logger::Warning << "Zone '" << d_handle.domain << "' (" << bbd.d_filename << ") needs reloading" << endl;
+    g_log << Logger::Warning << "Zone '" << d_handle.domain << "' (" << bbd.d_fileinfo.front().first << ") needs reloading" << endl;
     queueReloadAndStore(bbd.d_id);
     if (!safeGetBBDomainInfo(d_handle.domain, &bbd))
-      throw DBException("Zone '" + bbd.d_name.toLogString() + "' (" + bbd.d_filename + ") gone after reload"); // if we don't throw here, we crash for some reason
+      throw DBException("Zone '" + bbd.d_name.toLogString() + "' (" + bbd.d_fileinfo.front().first + ") gone after reload"); // if we don't throw here, we crash for some reason
   }
 
   if (!bbd.d_loaded) {
     d_handle.reset();
-    throw DBException("Zone for '" + d_handle.domain.toLogString() + "' in '" + bbd.d_filename + "' not loaded (file missing, corrupt or primary dead)"); // fsck
+    throw DBException("Zone for '" + d_handle.domain.toLogString() + "' in '" + bbd.d_fileinfo.front().first + "' not loaded (file missing, corrupt or primary dead)"); // fsck
   }
 
   d_handle.d_records = bbd.d_records.get();
@@ -1472,7 +1481,7 @@ bool Bind2Backend::autoPrimaryBackend(const string& ipAddress, const ZoneName& /
   return true;
 }
 
-BB2DomainInfo Bind2Backend::createDomainEntry(const ZoneName& domain, const string& filename)
+BB2DomainInfo Bind2Backend::createDomainEntry(const ZoneName& domain)
 {
   domainid_t newid = 1;
   { // Find a free zone id nr.
@@ -1490,7 +1499,6 @@ BB2DomainInfo Bind2Backend::createDomainEntry(const ZoneName& domain, const stri
   bbd.d_records = std::make_shared<recordstorage_t>();
   bbd.d_name = domain;
   bbd.setCheckInterval(getArgAsNum("check-interval"));
-  bbd.d_filename = filename;
 
   return bbd;
 }
@@ -1522,10 +1530,11 @@ bool Bind2Backend::createSecondaryDomain(const string& ipAddress, const ZoneName
     c_of.close();
   }
 
-  BB2DomainInfo bbd = createDomainEntry(domain, filename);
+  BB2DomainInfo bbd = createDomainEntry(domain);
   bbd.d_kind = DomainInfo::Secondary;
   bbd.d_primaries.emplace_back(ComboAddress(ipAddress, 53));
-  bbd.setCtime();
+  bbd.d_fileinfo.emplace_back(std::make_pair(filename, 0));
+  bbd.updateCtime();
   safePutBBDomainInfo(bbd);
 
   return true;
