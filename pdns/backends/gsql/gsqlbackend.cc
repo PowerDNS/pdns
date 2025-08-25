@@ -1141,8 +1141,6 @@ bool GSQLBackend::unpublishDomainKey(const ZoneName& name, unsigned int keyId)
   return true;
 }
 
-
-
 bool GSQLBackend::removeDomainKey(const ZoneName& name, unsigned int keyId)
 {
   if(!d_dnssecQueries)
@@ -1339,7 +1337,6 @@ bool GSQLBackend::getAllDomainMetadata(const ZoneName& name, std::map<std::strin
 
   return true;
 }
-
 
 bool GSQLBackend::getDomainMetadata(const ZoneName& name, const std::string& kind, std::vector<std::string>& meta)
 {
@@ -1589,6 +1586,35 @@ skiprow:
   return false;
 }
 
+bool GSQLBackend::get_unsafe(DNSResourceRecord& rec, std::vector<std::pair<std::string, std::string>>& invalid)
+{
+  SSqlStatement::row_t row;
+
+  if ((*d_query_stmt)->hasNextRow()) {
+    try {
+      (*d_query_stmt)->nextRow(row);
+      if (!d_list) {
+        ASSERT_ROW_COLUMNS(d_query_name, row, 8); // lookup(), listSubZone()
+      }
+      else {
+        ASSERT_ROW_COLUMNS(d_query_name, row, 9); // list()
+      }
+    } catch (SSqlException &e) {
+      throw PDNSException("GSQLBackend get: "+e.txtReason());
+    }
+    extractRecord_unsafe(row, rec, invalid);
+    return true;
+  }
+
+  try {
+    (*d_query_stmt)->reset();
+  } catch (SSqlException &e) {
+      throw PDNSException("GSQLBackend get: "+e.txtReason());
+  }
+  d_query_stmt = nullptr;
+  return false;
+}
+
 bool GSQLBackend::autoPrimaryAdd(const AutoPrimary& primary)
 {
   try{
@@ -1607,7 +1633,6 @@ bool GSQLBackend::autoPrimaryAdd(const AutoPrimary& primary)
     throw PDNSException("GSQLBackend unable to insert an autoprimary with IP " + primary.ip + " and nameserver name '" + primary.nameserver + "' and account '" + primary.account + "': " + e.txtReason());
   }
   return true;
-
 }
 
 bool GSQLBackend::autoPrimaryRemove(const AutoPrimary& primary)
@@ -1627,7 +1652,6 @@ bool GSQLBackend::autoPrimaryRemove(const AutoPrimary& primary)
     throw PDNSException("GSQLBackend unable to remove an autoprimary with IP " + primary.ip + " and nameserver name '" + primary.nameserver + "': " + e.txtReason());
   }
   return true;
-
 }
 
 bool GSQLBackend::autoPrimariesList(std::vector<AutoPrimary>& primaries)
@@ -2372,6 +2396,97 @@ void GSQLBackend::extractRecord(SSqlStatement::row_t& row, DNSResourceRecord& r)
   }
   else {
     r.ordername.clear();
+  }
+}
+
+// Similar logic to extractRecord() above, but returns the invalid field names
+// and their contents.
+void GSQLBackend::extractRecord_unsafe(SSqlStatement::row_t& row, DNSResourceRecord& rec, std::vector<std::pair<std::string, std::string>>& invalid)
+{
+  invalid.clear();
+
+  try {
+    static const int defaultTTL = ::arg().asNum( "default-ttl" );
+
+    if (row[1].empty()) {
+      rec.ttl = defaultTTL;
+    }
+    else {
+      pdns::checked_stoi_into(rec.ttl, row[1]);
+    }
+  }
+  catch (...) {
+    invalid.emplace_back(std::make_pair("ttl", row[1]));
+    rec.ttl = 0;
+  }
+
+  try {
+    if (!d_qname.empty()) {
+      rec.qname = d_qname;
+    }
+    else {
+      rec.qname = DNSName(row[6]);
+    }
+  }
+  catch (...) {
+    invalid.emplace_back(std::make_pair("qname", row[6]));
+    rec.qname.clear();
+  }
+
+  rec.qtype=row[3];
+
+  try {
+    if (d_upgradeContent && DNSRecordContent::isUnknownType(row[3]) && DNSRecordContent::isRegisteredType(rec.qtype, rec.qclass)) {
+      rec.content = DNSRecordContent::upgradeContent(rec.qname, rec.qtype, row[0]);
+    }
+    else if (rec.qtype==QType::MX || rec.qtype==QType::SRV) {
+      rec.content.reserve(row[2].size() + row[0].size() + 1);
+      rec.content=row[2]+" "+row[0];
+    }
+    else {
+      rec.content=std::move(row[0]);
+    }
+  }
+  catch (...) {
+    invalid.emplace_back(std::make_pair("content", row[0]));
+    rec.content.clear();
+  }
+
+  rec.last_modified=0;
+
+  if (d_dnssecQueries) {
+    rec.auth = !row[7].empty() && row[7][0]=='1';
+  }
+  else {
+    rec.auth = true;
+  }
+
+  rec.disabled = !row[5].empty() && row[5][0]=='1';
+
+  try {
+    pdns::checked_stoi_into(rec.domain_id, row[4]);
+  }
+  catch (...) {
+    invalid.emplace_back(std::make_pair("domain_id", row[4]));
+    rec.domain_id = 0;
+  }
+
+  if (row.size() > 8) {   // if column 8 exists, it holds an ordername
+    try {
+      if (!row.at(8).empty()) {
+        rec.ordername=DNSName(boost::replace_all_copy(row.at(8), " ", ".")).labelReverse();
+      }
+      else {
+        rec.ordername.clear();
+      }
+    }
+    catch (...) {
+      invalid.emplace_back(std::make_pair("ordername", row.at(8)));
+      rec.ordername.clear();
+    }
+  }
+  else {
+    rec.ordername.clear();
   }
 }
 
