@@ -108,20 +108,19 @@ bool BB2DomainInfo::current()
     return true;
 
   d_lastcheck = time(nullptr);
-  for (const auto& fileinfo : d_fileinfo) {
-    if (getCtime(fileinfo.first) != fileinfo.second) {
-      return false;
-    }
-  }
-  return true;
+  // Our data is still current if all the files it has been obtained from have
+  // their modification times unchanged since the last parse.
+  return std::all_of(d_fileinfo.cbegin(), d_fileinfo.cend(),
+                     [](const auto& fileinfo) { return getCtime(fileinfo.first) == fileinfo.second; });
 }
 
 time_t BB2DomainInfo::getCtime(const std::string& filename)
 {
   struct stat buf;
 
-  if (filename.empty() || stat(filename.c_str(), &buf) < 0)
+  if (filename.empty() || stat(filename.c_str(), &buf) < 0) {
     return 0;
+  }
   return buf.st_ctime;
 }
 
@@ -264,8 +263,9 @@ bool Bind2Backend::commitTransaction()
 
   BB2DomainInfo bbd;
   if (safeGetBBDomainInfo(d_transaction_id, &bbd)) {
-    if (rename(d_transaction_tmpname.c_str(), bbd.d_fileinfo.front().first.c_str()) < 0)
+    if (rename(d_transaction_tmpname.c_str(), bbd.d_fileinfo.front().first.c_str()) < 0) {
       throw DBException("Unable to commit (rename to: '" + bbd.d_fileinfo.front().first + "') AXFRed zone: " + stringerror());
+    }
     queueReloadAndStore(bbd.d_id);
   }
 
