@@ -811,9 +811,12 @@ static uint8_t updateRecords(MOADNSParser& mdp, DNSSECKeeper& dsk, DomainInfo& i
   vector<const DNSRecord *> nonCnamesToAdd;
   vector<const DNSRecord *> nsRRtoDelete;
 
+  bool anyRecordProcessed{false};
+  bool anyRecordAcceptedByLua{false};
   for(const auto & answer : mdp.d_answers) {
     const DNSRecord *dnsRecord = &answer;
     if (dnsRecord->d_place == DNSResourceRecord::AUTHORITY) {
+      anyRecordProcessed = true;
       /* see if it's permitted by policy */
       if (update_policy_lua != nullptr) {
         if (!update_policy_lua->updatePolicy(dnsRecord->d_name, QType(dnsRecord->d_type), info.zone.operator const DNSName&(), packet)) {
@@ -821,6 +824,7 @@ static uint8_t updateRecords(MOADNSParser& mdp, DNSSECKeeper& dsk, DomainInfo& i
           continue;
         }
         g_log<<Logger::Debug<<msgPrefix<<"Accepting update for " << dnsRecord->d_name << "/" << QType(dnsRecord->d_type).toString() << ": Permitted by policy"<<endl;
+        anyRecordAcceptedByLua = true;
       }
 
       if (dnsRecord->d_class == QClass::NONE  && dnsRecord->d_type == QType::NS && dnsRecord->d_name == info.zone.operator const DNSName&()) {
@@ -836,6 +840,14 @@ static uint8_t updateRecords(MOADNSParser& mdp, DNSSECKeeper& dsk, DomainInfo& i
       else {
         changedRecords += performUpdate(dsk, msgPrefix, dnsRecord, &info, isPresigned, narrow, haveNSEC3, ns3pr, updatedSerial);
       }
+    }
+  }
+
+  if (update_policy_lua != nullptr) {
+    // If the Lua update policy script has been invoked, and has rejected
+    // everything, better return Refused.
+    if (anyRecordProcessed && !anyRecordAcceptedByLua) {
+      return RCode::Refused;
     }
   }
 
