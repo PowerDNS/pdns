@@ -25,13 +25,10 @@
 
 #include "rust/cxx.h"
 #include "credentials.hh"
+#include "logr.hh"
 
 class NetmaskGroup;
 union ComboAddress;
-namespace Logr
-{
-class Logger;
-}
 
 namespace pdns::rust::misc
 {
