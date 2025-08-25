@@ -291,6 +291,7 @@ static void LuaThread(const std::string& code)
 
   for (;;) {
     try {
+      dnsdist::configuration::refreshLocalRuntimeConfiguration();
       context.executeCode(code);
       errlog("Lua thread exited, restarting in 5 seconds");
     }

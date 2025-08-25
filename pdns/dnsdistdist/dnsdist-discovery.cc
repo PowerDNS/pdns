@@ -500,6 +500,7 @@ void ServiceDiscovery::worker()
 {
   setThreadName("dnsdist/discove");
   while (true) {
+    dnsdist::configuration::refreshLocalRuntimeConfiguration();
     time_t now = time(nullptr);
 
     auto upgradeables = *(s_upgradeableBackends.lock());

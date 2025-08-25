@@ -74,6 +74,17 @@ public:
     return *operator->();
   }
 
+  // fast const-only access, see "read-only" above.
+  // if allowedOutdated is true, the current local version is returned
+  // without checking if there has been an update.
+  const T& get(bool allowedOutdated = false)
+  {
+    if (!allowedOutdated || !d_state) {
+      return *operator->();
+    }
+    return *d_state;
+  }
+
   void reset()
   {
     d_generation = 0;

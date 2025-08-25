@@ -701,6 +701,8 @@ static void processDOHQuery(DOHUnitUniquePtr&& unit, bool inMainThread = false)
     }
   };
 
+  dnsdist::configuration::refreshLocalRuntimeConfiguration();
+
   auto& ids = unit->ids;
   uint16_t queryId = 0;
   ComboAddress remote;
@@ -1072,6 +1074,8 @@ static std::optional<ComboAddress> processForwardedForHeader(const h2o_req_t* re
  */
 static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
 {
+  dnsdist::configuration::refreshLocalRuntimeConfiguration();
+
   try {
     if (req->conn->ctx->storage.size == 0) {
       return 0; // although we might was well crash on this
