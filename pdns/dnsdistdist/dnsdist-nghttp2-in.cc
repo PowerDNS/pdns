@@ -1004,14 +1004,14 @@ int IncomingHTTP2Connection::on_begin_headers_callback(nghttp2_session* session,
   };
 
   if (conn->getConcurrentStreamsCount() >= dnsdist::doh::MAX_INCOMING_CONCURRENT_STREAMS) {
-    vinfolog("Too many concurrent streams on connection from %d", conn->d_ci.remote.toStringWithPort());
+    vinfolog("Too many concurrent streams on connection from %s", conn->d_ci.remote.toStringWithPort());
     return close_connection(conn, frame->hd.stream_id, conn->d_ci.remote);
   }
 
   auto insertPair = conn->d_currentStreams.emplace(frame->hd.stream_id, PendingQuery());
   if (!insertPair.second) {
     /* there is a stream ID collision, something is very wrong! */
-    vinfolog("Stream ID collision (%d) on connection from %d", frame->hd.stream_id, conn->d_ci.remote.toStringWithPort());
+    vinfolog("Stream ID collision (%d) on connection from %s", frame->hd.stream_id, conn->d_ci.remote.toStringWithPort());
     return close_connection(conn, frame->hd.stream_id, conn->d_ci.remote);
   }
 
