@@ -23,9 +23,7 @@
 #include "config.h"
 #endif
 #include <boost/version.hpp>
-#if BOOST_VERSION >= 105400
 #include <boost/container/static_vector.hpp>
-#endif
 #include "dnswriter.hh"
 #include "misc.hh"
 #include "dnsparser.hh"

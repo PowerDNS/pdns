@@ -1478,9 +1478,7 @@ BB2DomainInfo Bind2Backend::createDomainEntry(const ZoneName& domain, const stri
   { // Find a free zone id nr.
     auto state = s_state.read_lock();
     if (!state->empty()) {
-      // older (1.53) versions of boost have an expression for s_state.rbegin()
-      // that is ambiguous in C++17. So construct it explicitly
-      newid = boost::make_reverse_iterator(state->end())->d_id + 1;
+      newid = state->rbegin()->d_id + 1;
     }
   }
 
