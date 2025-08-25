@@ -1,5 +1,5 @@
 # our chosen base image
-FROM debian:11-slim AS builder
+FROM debian:trixie-slim AS builder
 
 ENV NO_LUA_JIT="s390x arm64"
 
@@ -67,14 +67,14 @@ RUN cd /tmp && mkdir /build/tmp/ && mkdir debian && \
     dpkg-deb -I equivs-dummy_1.0_all.deb && cp equivs-dummy_1.0_all.deb /build/tmp/
 
 # Runtime
-FROM debian:11-slim
+FROM debian:trixie-slim
 
 # Reusable layer for base update - Should be cached from builder
 RUN apt-get update && apt-get -y dist-upgrade && apt-get clean
 
 # Ensure python3 and jinja2 is present (for startup script), and sqlite3 (for db schema), and tini (for signal management),
 #   and vim (for pdnsutil edit-zone) , and supervisor (for special use cases requiring advanced process management)
-RUN apt-get install -y python3 python3-jinja2 sqlite3 tini libcap2-bin vim-tiny supervisor && apt-get clean
+RUN apt-get install -y python3 python3-jinja2 sqlite3 tini libcap2-bin vim-tiny supervisor adduser && apt-get clean
 
 # Output from builder
 COPY --from=builder /build /
