@@ -2979,7 +2979,10 @@ static void reportFeatures()
   cout << "snmp ";
 #endif
 #ifdef HAVE_SYSTEMD
-  cout << "systemd";
+  cout << "systemd ";
+#endif
+#ifdef HAVE_YAML_CONFIGURATION
+  cout << "yaml ";
 #endif
   cout << endl;
 // NOLINTBEGIN(cppcoreguidelines-macro-usage)
