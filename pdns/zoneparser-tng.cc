@@ -90,6 +90,7 @@ void ZoneParserTNG::stackFile(const std::string& fname)
   filestate fs(fp, fname);
   d_filestates.push(fs);
   d_fromfile = true;
+  d_fileset.emplace_back(std::make_pair(fname, st.st_ctime));
 }
 
 ZoneParserTNG::~ZoneParserTNG()
