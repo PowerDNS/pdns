@@ -732,6 +732,15 @@ bool DNSName::RawLabelsVisitor::empty() const
   return d_position == 0;
 }
 
+bool DNSName::matchesUncompressedName(const std::string_view& wire_uncompressed) const
+{
+  if (wire_uncompressed.empty() != empty() || wire_uncompressed.size() < d_storage.size()) {
+    return false;
+  }
+
+  return pdns_ilexicographical_compare_three_way(std::string_view(wire_uncompressed.data(), d_storage.size()), d_storage) == 0;
+}
+
 #if defined(PDNS_AUTH) // [
 std::ostream & operator<<(std::ostream &ostr, const ZoneName& zone)
 {

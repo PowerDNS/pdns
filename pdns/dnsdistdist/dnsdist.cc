@@ -285,12 +285,22 @@ bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, 
     return false;
   }
 
-  uint16_t rqtype{};
-  uint16_t rqclass{};
-  DNSName rqname;
   try {
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    rqname = DNSName(reinterpret_cast<const char*>(response.data()), response.size(), sizeof(dnsheader), false, &rqtype, &rqclass);
+    uint16_t rqtype{};
+    uint16_t rqclass{};
+    if (response.size() < (sizeof(dnsheader) + qname.wirelength() + sizeof(rqtype) + sizeof(rqclass))) {
+      return false;
+    }
+
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    const std::string_view packetView(reinterpret_cast<const char*>(response.data() + sizeof(dnsheader)), response.size() - sizeof(dnsheader));
+    if (qname.matchesUncompressedName(packetView)) {
+      size_t pos = sizeof(dnsheader) + qname.wirelength();
+      rqtype = response.at(pos) * 256 + response.at(pos + 1);
+      rqclass = response.at(pos + 2) * 256 + response.at(pos + 3);
+      return rqtype == qtype && rqclass == qclass;
+    }
+    return false;
   }
   catch (const std::exception& e) {
     if (remote && !response.empty() && static_cast<size_t>(response.size()) > sizeof(dnsheader)) {
@@ -302,8 +312,6 @@ bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, 
     }
     return false;
   }
-
-  return rqtype == qtype && rqclass == qclass && rqname == qname;
 }
 
 static void restoreFlags(struct dnsheader* dnsHeader, uint16_t origFlags)

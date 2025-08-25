@@ -1032,6 +1032,35 @@ BOOST_AUTO_TEST_CASE(test_getcommonlabels) {
   BOOST_CHECK_EQUAL(name5.getCommonLabels(name1), DNSName());
 }
 
+BOOST_AUTO_TEST_CASE(test_raw_data_comparison) {
+  const DNSName aroot("a.root-servers.net");
+  PacketBuffer query;
+  GenericDNSPacketWriter<PacketBuffer> packetWriter(query, aroot, QType::A, QClass::IN, 0);
+
+  {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    const std::string_view raw(reinterpret_cast<const char*>(query.data()) + sizeof(dnsheader), query.size() - sizeof(dnsheader));
+    BOOST_CHECK(aroot.matchesUncompressedName(raw));
+
+    const DNSName differentCase("A.RooT-Servers.NET");
+    BOOST_CHECK(differentCase.matchesUncompressedName(raw));
+
+    const DNSName broot("b.root-servers.net");
+    BOOST_CHECK(!(broot.matchesUncompressedName(raw)));
+
+    /* last character differs */
+    const DNSName notaroot("a.root-servers.nes");
+    BOOST_CHECK(!(notaroot.matchesUncompressedName(raw)));
+  }
+
+  {
+    /* too short */
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    const std::string_view raw(reinterpret_cast<const char*>(query.data() + sizeof(dnsheader)), aroot.wirelength() - 1);
+    BOOST_CHECK(!(aroot.matchesUncompressedName(raw)));
+  }
+}
+
 #if defined(PDNS_AUTH)
 BOOST_AUTO_TEST_CASE(test_variantnames) {
   ZoneName zone1("..variant");
