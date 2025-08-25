@@ -138,7 +138,7 @@ lua-dnsupdate-policy-script=kerberos-client/update-policy.lua
 """
     def testDisallowedByLuaUpdate(self):
         self.kinit("testuser1")
-        self.nsupdate("add inserted10.example.net 10 A 1.2.3.10", 0) # Lua deny is still a NOERROR
+        self.nsupdate("add inserted10.example.net 10 A 1.2.3.10", 2)
         self.checkNotInDB('example.net', 'inserted10.example.net')
 
     def testAllowedByLuaUpdate(self):
