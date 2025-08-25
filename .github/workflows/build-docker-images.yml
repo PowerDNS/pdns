@@ -76,14 +76,16 @@ jobs:
     steps:
       - run: sudo apt-get update && sudo apt-get -y install jo
       - id: get-runnerlist
+        env:
+          INPUT_PLATFORMS: ${{ inputs.platforms }}"
         run: |
           runner_os_arch=()
-          [[ -n "${{ contains(inputs.platforms, 'amd64') || '' }}" ]] && runner_os_arch+=($(jo arch=linux/amd64 runner=ubuntu-24.04))
-          [[ -n "${{ contains(inputs.platforms, 'arm64') || '' }}" ]] && runner_os_arch+=($(jo arch=linux/arm64 runner=ubuntu-24.04-arm))
+          echo $INPUT_PLATFORMS | grep -qq arm64 && runner_os_arch+=($(jo arch=linux/amd64 runner=ubuntu-24.04))
+          echo $INPUT_PLATFORMS | grep -qq arm64 && runner_os_arch+=($(jo arch=linux/arm64 runner=ubuntu-24.04-arm))
           echo "runnerlist=$(jo -a ${runner_os_arch[@]})" >> "$GITHUB_OUTPUT"
           # Fail if there are no runners for the requested architecture
           if [[ -z "${runner_os_arch[@]}" ]]; then
-            echo "No runners available for ${{ inputs.platforms }}" && exit 1
+            echo "No runners available for $INPUT_PLATFORMS" && exit 1
           fi
 
   build:
@@ -139,13 +141,14 @@ jobs:
           repository: ${{ secrets.DOCKERHUB_ORGANIZATION_NAME }}/${{ inputs.image-name }}
           short-description: ${{ inputs.image-description }}
       - name: Export output digest
+        env:
+          ARCH: ${{ matrix.platform.arch }}
+          DIGEST: ${{ steps.build-image.outputs.digest }}
         run: |
-          mkdir -p ${{ runner.temp }}/digests
-          digest="${{ steps.build-image.outputs.digest }}"
-          touch "${{ runner.temp }}/digests/${digest#sha256:}"
+          mkdir -p $RUNNER_TEMP/digests
+          touch "$RUNNER_TEMP/digests/${DIGEST#sha256:}"
           # generate suffix for digest file 
-          platform=${{ matrix.platform.arch }}
-          echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
+          echo "PLATFORM_PAIR=${ARCH//\//-}" >> $GITHUB_ENV
       - name: Upload digest
         uses: actions/upload-artifact@v4
         with:
@@ -161,6 +164,8 @@ jobs:
     needs: build
     outputs:
       image-digest: ${{ steps.get-image-digest.outputs.image-digest }}
+    env:
+      IMAGE_NAME: ${{ secrets.DOCKERHUB_ORGANIZATION_NAME }}/${{ inputs.image-name }}
     steps:
       - name: Download digests
         uses: actions/download-artifact@v4
@@ -180,17 +185,19 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ secrets.DOCKERHUB_ORGANIZATION_NAME }}/${{ inputs.image-name }}
+          images: ${{ env.IMAGE_NAME }}
           tags: ${{ inputs.image-tags }}
       - name: Create manifest list and push
         working-directory: ${{ runner.temp }}/digests
         run: |
           docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-            $(printf '${{ secrets.DOCKERHUB_ORGANIZATION_NAME }}/${{ inputs.image-name }}@sha256:%s ' *)
+            $(printf $IMAGE_NAME'@sha256:%s ' *)
       - name: Get image digest
         id: get-image-digest
+        env:
+          TAG: ${{ steps.meta.outputs.version }}
         run: |
-          echo "image-digest=$(docker buildx imagetools inspect ${{ secrets.DOCKERHUB_ORGANIZATION_NAME }}/${{ inputs.image-name }}:${{ steps.meta.outputs.version }} --format="{{json .Manifest}}" | jq -r .digest)" >> "$GITHUB_OUTPUT"
+          echo "image-digest=$(docker buildx imagetools inspect $IMAGE_NAME:$TAG --format="{{json .Manifest}}" | jq -r .digest)" >> "$GITHUB_OUTPUT"
 
   test-uploaded-images:
     name: test ${{ matrix.platform.arch }} uploaded images
@@ -204,37 +211,34 @@ jobs:
         platform: ${{ fromJson(needs.prepare-runner-os-list.outputs.runnerlist) }}
       fail-fast: false
     env:
-      INPUT_IMAGE_NAME: ${{ inputs.image-name }}
       INPUT_IMAGE_TAGS: ${{ inputs.image-tags }}
       INPUT_PLATFORMS: ${{ inputs.platforms }}
+      IMAGE_NAME: ${{ secrets.DOCKERHUB_ORGANIZATION_NAME }}/${{ inputs.image-name }}
     steps:
       - name: Check running image
         run: |
-          image_name="${{ secrets.DOCKERHUB_ORGANIZATION_NAME }}/${INPUT_IMAGE_NAME}"
           for tag in `echo "${INPUT_IMAGE_TAGS}" | tr '\n' ' '`; do
-            echo 'Testing: '${image_name}':'${tag};
+            echo 'Testing: '${IMAGE_NAME}':'${tag};
             # recent pdns-auth images of tags older than 4.9.x image return a exit code 99
-            docker run ${image_name}:${tag} --version || [ "$?" == "99" ]
+            docker run ${IMAGE_NAME}:${tag} --version || [ "$?" == "99" ]
           done
       - name: Check image digest matches
         env:
           EXPECTED_DIGEST: ${{ needs.publish-tag.outputs.image-digest }}
         run: |
-          image_name="${{ secrets.DOCKERHUB_ORGANIZATION_NAME }}/${INPUT_IMAGE_NAME}"
           for tag in `echo "${INPUT_IMAGE_TAGS}" | tr '\n' ' '`; do
-            image_digest=$(docker inspect --format='{{index .RepoDigests 0}}' ${image_name}:${tag} | cut -d '@' -f 2)
+            image_digest=$(docker inspect --format='{{index .RepoDigests 0}}' ${IMAGE_NAME}:${tag} | cut -d '@' -f 2)
             [[ "${EXPECTED_DIGEST}" == "${image_digest}" ]] || \
-              ( echo "Image digest does not match => output_digest: "${EXPECTED_DIGEST}" - image_digest: "${image_digest} && exit 1 )
+              ( echo "Image digest does not match => expected_digest: "${EXPECTED_DIGEST}" - actual_digest: "${image_digest} && exit 1 )
           done
       - name: Check SBOM and Provenance
         run: |
-          image_name="${{ secrets.DOCKERHUB_ORGANIZATION_NAME }}/${INPUT_IMAGE_NAME}"
           for tag in `echo "${INPUT_IMAGE_TAGS}" | tr '\n' ' '`; do
             if $(echo "${INPUT_PLATFORMS}" | grep -qq ','); then
-              docker buildx imagetools inspect ${image_name}:${tag} --format "{{json .Provenance}}" | jq -e '."linux/'$(dpkg --print-architecture)'" | has("SLSA")'
-              docker buildx imagetools inspect ${image_name}:${tag} --format "{{json .SBOM}}" | jq -e '."linux/'$(dpkg --print-architecture)'" | has("SPDX")'
+              docker buildx imagetools inspect ${IMAGE_NAME}:${tag} --format "{{json .Provenance}}" | jq -e '."linux/'$(dpkg --print-architecture)'" | has("SLSA")'
+              docker buildx imagetools inspect ${IMAGE_NAME}:${tag} --format "{{json .SBOM}}" | jq -e '."linux/'$(dpkg --print-architecture)'" | has("SPDX")'
             else
-              docker buildx imagetools inspect ${image_name}:${tag} --format "{{json .Provenance}}" | jq -e 'has("SLSA")'
-              docker buildx imagetools inspect ${image_name}:${tag} --format "{{json .SBOM}}" | jq -e 'has("SPDX")'
+              docker buildx imagetools inspect ${IMAGE_NAME}:${tag} --format "{{json .Provenance}}" | jq -e 'has("SLSA")'
+              docker buildx imagetools inspect ${IMAGE_NAME}:${tag} --format "{{json .SBOM}}" | jq -e 'has("SPDX")'
             fi
           done
