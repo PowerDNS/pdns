@@ -102,8 +102,8 @@ int PacketHandler::checkUpdatePrescan(const DNSRecord *rr) {
 
 // Implements section 3.4.2 of RFC2136
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-static uint performUpdate(DNSSECKeeper& dsk, const string &msgPrefix, const DNSRecord *rr, DomainInfo *di, bool isPresigned, bool& narrow, bool& haveNSEC3, NSEC3PARAMRecordContent& ns3pr, bool& updatedSerial) {
-
+static uint performUpdate(DNSSECKeeper& dsk, const string &msgPrefix, const DNSRecord *rr, DomainInfo *di, bool isPresigned, bool& narrow, bool& haveNSEC3, NSEC3PARAMRecordContent& ns3pr, bool& updatedSerial) // NOLINT(readability-identifier-length)
+{
   QType rrType = QType(rr->d_type);
 
   if (rrType == QType::NSEC || rrType == QType::NSEC3) {
@@ -398,12 +398,15 @@ static uint performUpdate(DNSSECKeeper& dsk, const string &msgPrefix, const DNSR
       }
       else if (rr->d_class == QClass::NONE) {
         NSEC3PARAMRecordContent nsec3rr(rr->getContent()->getZoneRepresentation(), di->zone);
-        if (haveNSEC3 && ns3pr.getZoneRepresentation() == nsec3rr.getZoneRepresentation())
+        if (haveNSEC3 && ns3pr.getZoneRepresentation() == nsec3rr.getZoneRepresentation()) {
           dsk.unsetNSEC3PARAM(zonename);
-        else
+	}
+        else {
           return 0;
-      } else
+	}
+      } else {
         return 0;
+      }
 
       // Update NSEC3 variables, other RR's in this update package might need them as well.
       haveNSEC3 = false;
