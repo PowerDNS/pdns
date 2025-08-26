@@ -1448,10 +1448,12 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
     }
 
     bool willBeForwardedOverUDP = !dnsQuestion.overTCP() || dnsQuestion.ids.protocol == dnsdist::Protocol::DoH;
-    if (selectedBackend && selectedBackend->isTCPOnly()) {
-      willBeForwardedOverUDP = false;
+    if (selectedBackend) {
+      if (selectedBackend->isTCPOnly()) {
+        willBeForwardedOverUDP = false;
+      }
     }
-    else if (!selectedBackend && serverPool.isTCPOnly()) {
+    else if (serverPool.isTCPOnly()) {
       willBeForwardedOverUDP = false;
     }
 
