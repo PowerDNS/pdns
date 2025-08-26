@@ -43,7 +43,7 @@ cp -vp dnsdist-*generated.hh dnsdist-*generated-body.hh "$MESON_PROJECT_DIST_ROO
 
 # Generate the sources for our Rust-based library
 meson compile rust-lib-sources
-cp -vp dnsdist-rust-lib/*.cc *.hh "$MESON_PROJECT_DIST_ROOT"/dnsdist-rust-lib/
+cp -vp dnsdist-rust-lib/*.cc dnsdist-rust-lib/*.hh "$MESON_PROJECT_DIST_ROOT"/dnsdist-rust-lib/
 cp -vp "$MESON_SOURCE_ROOT"/dnsdist-rust-lib/rust/src/lib.rs "$MESON_PROJECT_DIST_ROOT"/dnsdist-rust-lib/rust/src/
 
 # Generate man pages
