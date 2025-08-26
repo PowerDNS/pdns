@@ -38,13 +38,23 @@ struct ServerPool
     return d_useECS;
   }
 
-  void setECS(bool useECS)
+  void setECS(bool useECS);
+
+  bool getZeroScope() const
   {
-    d_useECS = useECS;
+    return d_zeroScope;
+  }
+
+  void setZeroScope(bool enabled);
+
+  bool isConsistent() const
+  {
+    return d_isConsistent;
   }
 
   size_t poolLoad() const;
   size_t countServers(bool upOnly) const;
+  bool hasAtLeastOneServerAvailable() const;
   const ServerPolicy::NumberedServerVector& getServers() const;
   void addServer(std::shared_ptr<DownstreamState>& server);
   void removeServer(std::shared_ptr<DownstreamState>& server);
@@ -57,7 +67,11 @@ struct ServerPool
   std::shared_ptr<ServerPolicy> policy{nullptr};
 
 private:
+  void updateConsistency();
+
   ServerPolicy::NumberedServerVector d_servers;
   bool d_useECS{false};
+  bool d_zeroScope{true};
   bool d_tcpOnly{false};
+  bool d_isConsistent{true};
 };

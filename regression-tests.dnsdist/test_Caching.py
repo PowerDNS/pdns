@@ -2267,13 +2267,17 @@ class TestCachingECSWithoutPoolECS(DNSDistTest):
 
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
-    _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort']
+    _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_testServerPort']
     _config_template = """
     pc = newPacketCache(100, {maxTTL=86400, minTTL=1})
     getPool(""):setCache(pc)
     setKey("%s")
     controlSocket("127.0.0.1:%d")
     newServer{address="127.0.0.1:%d", useClientSubnet=true}
+    -- add a second server without ECS, which will never be used
+    -- but makes the pool inconsistent
+    newServer{address="127.0.0.1:%d", useClientSubnet=false}:setDown()
+    getPool(""):setECS(false)
     """
 
     def testCached(self):
@@ -2325,10 +2329,10 @@ class TestCachingECSWithPoolECS(DNSDistTest):
     _config_template = """
     pc = newPacketCache(100, {maxTTL=86400, minTTL=1})
     getPool(""):setCache(pc)
-    getPool(""):setECS(true)
     setKey("%s")
     controlSocket("127.0.0.1:%d")
     newServer{address="127.0.0.1:%d", useClientSubnet=true}
+    getPool(""):setECS(true)
     """
 
     def testCached(self):

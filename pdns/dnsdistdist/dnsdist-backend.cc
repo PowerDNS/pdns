@@ -1039,6 +1039,17 @@ size_t ServerPool::poolLoad() const
   return load;
 }
 
+bool ServerPool::hasAtLeastOneServerAvailable() const
+{
+  // NOLINTNEXTLINE(readability-use-anyofallof): no it's not more readable
+  for (const auto& server : d_servers) {
+    if (std::get<1>(server)->isUp()) {
+      return true;
+    }
+  }
+  return false;
+}
+
 const ServerPolicy::NumberedServerVector& ServerPool::getServers() const
 {
   return d_servers;
@@ -1058,22 +1069,15 @@ void ServerPool::addServer(std::shared_ptr<DownstreamState>& server)
     serv.first = idx++;
   }
 
-  if (d_servers.size() == 1) {
-    d_tcpOnly = server->isTCPOnly();
-  }
-  else if (!server->isTCPOnly()) {
-    d_tcpOnly = false;
-  }
+  updateConsistency();
 }
 
 void ServerPool::removeServer(shared_ptr<DownstreamState>& server)
 {
   size_t idx = 1;
   bool found = false;
-  bool tcpOnly = true;
   for (auto it = d_servers.begin(); it != d_servers.end();) {
     if (found) {
-      tcpOnly = tcpOnly && it->second->isTCPOnly();
       /* we need to renumber the servers placed
          after the removed one, for Lua (custom policies) */
       it->first = idx++;
@@ -1083,12 +1087,61 @@ void ServerPool::removeServer(shared_ptr<DownstreamState>& server)
       it = d_servers.erase(it);
       found = true;
     } else {
-      tcpOnly = tcpOnly && it->second->isTCPOnly();
       idx++;
       it++;
     }
   }
+
+  if (found && !d_isConsistent) {
+    updateConsistency();
+  }
+}
+
+void ServerPool::updateConsistency()
+{
+  bool first{true};
+  bool useECS{false};
+  bool tcpOnly{false};
+  bool zeroScope{false};
+
+  for (const auto& serverPair : d_servers) {
+    const auto& server = serverPair.second;
+    if (first) {
+      first = false;
+      useECS = server->d_config.useECS;
+      tcpOnly = server->isTCPOnly();
+      zeroScope = !server->d_config.disableZeroScope;
+    }
+    else {
+      if (server->d_config.useECS != useECS ||
+          server->isTCPOnly() != tcpOnly ||
+          server->d_config.disableZeroScope == zeroScope) {
+        d_tcpOnly = false;
+        d_isConsistent = false;
+        return;
+      }
+    }
+  }
+
   d_tcpOnly = tcpOnly;
+  /* at this point we know that all servers agree
+     on these settings, so let's just use the same
+     values for the pool itself */
+  d_useECS = useECS;
+  d_zeroScope = zeroScope;
+  d_isConsistent = true;
+}
+
+void ServerPool::setZeroScope(bool enabled)
+{
+  d_zeroScope = enabled;
+  updateConsistency();
+}
+
+void ServerPool::setECS(bool useECS)
+{
+  d_useECS = useECS;
+  updateConsistency();
 }
 
 namespace dnsdist::backend
