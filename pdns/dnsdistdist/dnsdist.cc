@@ -1451,8 +1451,8 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
     if (selectedBackend && selectedBackend->isTCPOnly()) {
       willBeForwardedOverUDP = false;
     }
-    else if (!selectedBackend) {
-      willBeForwardedOverUDP = !serverPool.isTCPOnly();
+    else if (!selectedBackend && serverPool.isTCPOnly()) {
+      willBeForwardedOverUDP = false;
     }
 
     uint32_t allowExpired = 0;
