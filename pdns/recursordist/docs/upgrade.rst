@@ -13,6 +13,7 @@ Changed behaviour
 Reloading ACLs using ``rec_control reload-acls`` now also reloads the proxy-protocol related settings.
 
 The :program:`Recursor` now listens on ``::1`` in addition to ``127.0.0.1`` by default.
+It is not an error if listening on ``::1`` fails.
 
 New Settings
 ^^^^^^^^^^^^
@@ -29,8 +30,8 @@ Changed Settings
 
 The :ref:`setting-yaml-recursor.event_trace_enabled` setting has gained a value to allow openTelemetry Trace data to be included in the Protobuf log stream.
 
-5.0.12, 5.1.6 and 5.2.4
------------------------
+5.0.12, 5.1.6, 5.2.4 and 5.3.0
+------------------------------
 
 New settings
 ^^^^^^^^^^^^
