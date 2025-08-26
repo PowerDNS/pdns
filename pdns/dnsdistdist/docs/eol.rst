@@ -12,7 +12,7 @@ PowerDNS DNSdist 1.9 will only receive critical updates and will be End of Life 
 Older versions are End of Life.
 
 .. note::
-  Users with a commercial agreement with PowerDNS.com BV or Open-Xchange can receive extended support for releases which are End Of Life. If you are such a user, these EOL statements do not apply to you. Please refer to the support commitment for details. Note that for the Open Source support channels we only support the latest minor release of a release train. That means that we ask you to reproduce potential issues on the latest minor release first.
+  Users with a commercial agreement with PowerDNS.com B.V. or Open-Xchange can receive support for releases which are End Of Life. If you are such a user, these EOL statements do not apply to you. Please refer to the support commitment for details. Note that for the Open Source support channels we only support the latest minor release of a release train. That means that we ask you to reproduce potential issues on the latest minor release first.
 
 .. list-table:: PowerDNS dnsdist Release Life Cycle
    :header-rows: 1
