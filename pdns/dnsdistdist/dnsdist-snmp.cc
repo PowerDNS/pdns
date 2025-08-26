@@ -284,7 +284,7 @@ static netsnmp_variable_list* backendStatTable_get_first_data_point(void** loop_
 
   /* get a copy of the shared_ptrs so they are not
      destroyed while we process the request */
-  auto backends = dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends;
+  const auto& backends = dnsdist::configuration::refreshLocalRuntimeConfiguration().d_backends;
   s_servers.clear();
   s_servers.reserve(backends.size());
   for (auto& server : backends) {

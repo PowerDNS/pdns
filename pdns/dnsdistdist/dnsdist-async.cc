@@ -96,6 +96,8 @@ void AsynchronousHolder::mainThread(std::shared_ptr<Data> data)
   while (true) {
     bool shouldWait = true;
     int timeout = -1;
+    dnsdist::configuration::refreshLocalRuntimeConfiguration();
+
     {
       auto content = data->d_content.lock();
       if (data->d_done) {

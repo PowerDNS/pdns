@@ -1027,4 +1027,8 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
     });
     newThread.detach();
   });
+
+  luaCtx.writeFunction("refreshRuntimeConfiguration", []() {
+    dnsdist::configuration::refreshLocalRuntimeConfiguration();
+  });
 }

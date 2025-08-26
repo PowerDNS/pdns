@@ -144,6 +144,7 @@ void NetworkListener::runOnce(ListenerData& data, timeval& now, uint32_t timeout
     return;
   }
 
+  dnsdist::configuration::refreshLocalRuntimeConfiguration();
   data.d_running = true;
   if (data.d_sockets.empty()) {
     throw runtime_error("NetworkListener started with no sockets");
