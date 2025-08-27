@@ -1355,6 +1355,29 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         data = self.get_zone(name)
         self.assertIsNone(get_rrset(data, name, 'MX'))
 
+    def test_zone_rr_update_invalid_txt(self):
+        name, payload, zone = self.create_zone()
+        # do a replace (= update)
+        rrset = {
+            'changetype': 'replace',
+            'name': 'ill-formed-txt.' + name,
+            'type': 'txt',
+            'ttl': 3600,
+            'records': [
+                {
+                    "content": "\"TEST\\1\" \"TEST2\"",
+                    "disabled": False
+                }
+            ]
+        }
+        payload = {'rrsets': [rrset]}
+        r = self.session.patch(
+            self.url("/api/v1/servers/localhost/zones/" + name),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertEqual(r.status_code, 422)
+        self.assertIn('contains an invalid escape', r.json()['error'])
+
     def test_zone_rr_update_opt(self):
         name, payload, zone = self.create_zone()
         # do a replace (= update)
