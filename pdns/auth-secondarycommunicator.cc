@@ -438,13 +438,12 @@ void CommunicatorClass::ixfrSuck(const ZoneName& domain, const TSIGTriplet& tsig
   try {
     DNSSECKeeper dk(&B); // reuse our UeberBackend copy for DNSSECKeeper
 
-    bool wrongDomainKind = false;
-    // this checks three error conditions, and sets wrongDomainKind if we hit the third & had an error
-    if (!B.getDomainInfo(domain, di) || !di.backend || (wrongDomainKind = true, di.kind != DomainInfo::Secondary)) { // di.backend and B are mostly identical
-      if (wrongDomainKind)
-        g_log << Logger::Warning << logPrefix << "can't determine backend, not configured as secondary" << endl;
-      else
-        g_log << Logger::Warning << logPrefix << "can't determine backend" << endl;
+    if (!B.getDomainInfo(domain, di) || di.backend == nullptr) {
+      g_log << Logger::Error << logPrefix << "zone '" << domain << "' not found" << endl;
+      return;
+    }
+    if (di.kind != DomainInfo::Secondary) {
+      g_log << Logger::Error << logPrefix << "zone '" << domain << "' not configured as secondary" << endl;
       return;
     }
 
@@ -658,15 +657,16 @@ void CommunicatorClass::suck(const ZoneName& domain, const ComboAddress& remote,
   bool transaction = false;
   try {
     DNSSECKeeper dk(&B); // reuse our UeberBackend copy for DNSSECKeeper
-    bool wrongDomainKind = false;
-    // this checks three error conditions & sets wrongDomainKind if we hit the third
-    if (!B.getDomainInfo(domain, di) || !di.backend || (wrongDomainKind = true, !force && !di.isSecondaryType())) { // di.backend and B are mostly identical
-      if (wrongDomainKind)
-        g_log << Logger::Warning << logPrefix << "can't determine backend, not configured as secondary" << endl;
-      else
-        g_log << Logger::Warning << logPrefix << "can't determine backend" << endl;
+
+    if (!B.getDomainInfo(domain, di) || di.backend == nullptr) {
+      g_log << Logger::Error << logPrefix << "zone '" << domain << "' not found" << endl;
       return;
     }
+    if (!force && !di.isSecondaryType()) {
+      g_log << Logger::Error << logPrefix << "zone '" << domain << "' not configured as secondary" << endl;
+      return;
+    }
+
     ZoneStatus zs;
     zs.domain_id = di.id;
 
