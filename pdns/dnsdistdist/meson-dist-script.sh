@@ -19,6 +19,8 @@ cmp "$MESON_SOURCE_ROOT"/../../builder-support/gen-version "$MESON_PROJECT_DIST_
 tar -C "$MESON_SOURCE_ROOT" -hcf - $symlinks | tar -xf - -C "$MESON_PROJECT_DIST_ROOT"
 
 # Run autoconf for people using autotools to build, this creates a configure script with VERSION set
+# set the proper version in configure.ac
+"$MESON_SOURCE_ROOT"/../../builder/helpers/set-configure-ac-version.sh
 echo Running autoreconf -vi so distfile is still usable for autotools building
 # Run autoconf for people using autotools to build, this creates a configure sc
 autoreconf -vi
