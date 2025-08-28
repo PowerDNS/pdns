@@ -136,9 +136,9 @@ jinja2==3.0.3 \
     # via
     #   -r requirements.in
     #   sphinx
-jsonschema==4.25.0 \
-    --hash=sha256:24c2e8da302de79c8b9382fee3e76b355e44d2a4364bb207159ce10b517bd716 \
-    --hash=sha256:e63acf5c11762c0e6672ffb61482bdf57f0876684d8d249c0fe2d730d48bc55f
+jsonschema==4.25.1 \
+    --hash=sha256:3fba0169e345c7175110351d456342c364814cfcf3b964ba4587f22915230a63 \
+    --hash=sha256:e4a9655ce0da0c0b67a085847e00a3a51449e1157f4f75e9fb5aa545e122eb85
     # via sphinxcontrib-openapi
 jsonschema-specifications==2025.4.1 \
     --hash=sha256:4653bffbd6584f7de83a67e0d620ef16900b390ddc7939d56684d6c81e33f1af \
@@ -213,9 +213,9 @@ packaging==25.0 \
     # via
     #   setuptools-scm
     #   sphinx
-pbr==7.0.0 \
-    --hash=sha256:b447e63a2bc04fd975fc0480b8d5ebf979179e2c0ae203bf1eff9ea20073bc38 \
-    --hash=sha256:cf4127298723dafbce3afd13775ccf3885be5d3c8435751b867f9a6a10b71a39
+pbr==7.0.1 \
+    --hash=sha256:32df5156fbeccb6f8a858d1ebc4e465dcf47d6cc7a4895d5df9aa951c712fc35 \
+    --hash=sha256:3ecbcb11d2b8551588ec816b3756b1eb4394186c3b689b17e04850dfc20f7e57
     # via -r requirements.in
 pygments==2.19.2 \
     --hash=sha256:636cb2477cec7f8952536970bc533bc43743542f70392ae026374600add5b887 \
@@ -286,9 +286,9 @@ referencing==0.36.2 \
     # via
     #   jsonschema
     #   jsonschema-specifications
-requests==2.32.4 \
-    --hash=sha256:27babd3cda2a6d50b30443204ee89830707d396671944c998b5975b031ac2b2c \
-    --hash=sha256:27d0316682c8a29834d3264820024b62a36942083d52caf2f14c0591336d3422
+requests==2.32.5 \
+    --hash=sha256:2462f94637a34fd532264295e186976db0f5d453d1cdd31473c85a6a161affb6 \
+    --hash=sha256:dbba0bac56e100853db0ea71b82b4dfd5fe2bf6d3754a8893c3af500cec7d7cf
     # via sphinx
 rpds-py==0.27.0 \
     --hash=sha256:010c4843a3b92b54373e3d2291a7447d6c3fc29f591772cc2ea0e9f5c1da434b \
