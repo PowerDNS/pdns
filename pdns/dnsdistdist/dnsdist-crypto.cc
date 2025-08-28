@@ -287,8 +287,8 @@ void Nonce::increment()
 {
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
   auto* ptr = reinterpret_cast<uint32_t*>(value.data());
-  uint32_t count = htonl(*ptr);
-  *ptr = ntohl(++count);
+  uint32_t count = htonl(*ptr) + 1;
+  *ptr = ntohl(count);
 }
 
 #else
