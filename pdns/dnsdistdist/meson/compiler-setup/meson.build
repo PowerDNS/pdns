@@ -15,3 +15,8 @@ add_project_arguments(
 
 cxx = meson.get_compiler('cpp')
 system = target_machine.system()
+
+if cxx.get_id() == 'gcc' and cxx.version().version_compare('>=8.0,<9.0')
+  add_global_link_arguments('-lstdc++fs', language: ['c', 'cpp'])
+endif
+
