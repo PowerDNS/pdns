@@ -4,6 +4,31 @@ Changelogs for 5.3.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
+  :version: 5.3.0
+  :released: 28th of August 2025
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16028
+    :tickets: 16010
+
+    Check for pubsuffix.cc presence when building with autotools, followup to #15782.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16027
+    :tickets: 16011
+
+    Path.unlink(True) requires python 3.8, rewrite so it works on older versions.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16026
+    :tickets: 16021
+
+    Include proper file in bridge.hh to avoid a case of creating a smart pointer to an incomplete class.
+
+.. changelog::
   :version: 5.3.0-rc1
   :released: 21st of August 2025
 
@@ -257,7 +282,7 @@ Before upgrading, it is advised to read the :doc:`../upgrade`.
     :tags: Improvements
     :pullreq: 15293
 
-    Ddd libcap feature and sync build-and-test-all options with autotools variants.
+    Add libcap feature and sync build-and-test-all options with autotools variants.
 
   .. change::
     :tags: Improvements
