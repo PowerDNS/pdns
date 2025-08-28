@@ -55,6 +55,7 @@ public:
     size_t d_queryPos{0};
     uint32_t d_statusCode{0};
     Method d_method{Method::Unknown};
+    bool d_sendingResponse{false};
   };
 
   IncomingHTTP2Connection(ConnectionInfo&& connectionInfo, TCPClientThreadData& threadData, const struct timeval& now);
@@ -86,6 +87,7 @@ private:
   std::unique_ptr<DOHUnitInterface> getDOHUnit(uint32_t streamID) override;
 
   void stopIO();
+  std::unordered_map<StreamID, PendingQuery>::iterator getStreamContext(StreamID streamID);
   uint32_t getConcurrentStreamsCount() const;
   void updateIO(IOState newState, const FDMultiplexer::callbackfunc_t& callback);
   void handleIOError();
@@ -101,6 +103,7 @@ private:
 
   std::unique_ptr<nghttp2_session, decltype(&nghttp2_session_del)> d_session{nullptr, nghttp2_session_del};
   std::unordered_map<StreamID, PendingQuery> d_currentStreams;
+  std::unordered_set<StreamID> d_killedStreams;
   PacketBuffer d_out;
   PacketBuffer d_in;
   size_t d_outPos{0};
