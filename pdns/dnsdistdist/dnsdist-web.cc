@@ -1931,6 +1931,7 @@ void WebserverThread(ComboAddress listeningAddress, Socket sock)
     try {
       ComboAddress remote(listeningAddress);
       int fileDesc = SAccept(sock.getHandle(), remote);
+      dnsdist::configuration::refreshLocalRuntimeConfiguration();
 
       if (!isClientAllowedByACL(remote)) {
         vinfolog("Connection to webserver from client %s is not allowed, closing", remote.toStringWithPort());
