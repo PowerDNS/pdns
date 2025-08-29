@@ -58,6 +58,7 @@ public:
     d_defaultttl = ttl;
     d_havespecificttl = true;
   }
+  std::vector<std::pair<std::string, time_t>> getFileset() const { return d_fileset; }
 private:
   bool getLine();
   bool getTemplateLine();
@@ -91,4 +92,5 @@ private:
   bool d_generateEnabled{true};
   bool d_upgradeContent;
   bool d_templateCounterWrapped{false};
+  std::vector<std::pair<std::string, time_t>> d_fileset;
 };
