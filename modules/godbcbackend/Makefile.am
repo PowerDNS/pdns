@@ -3,7 +3,8 @@ pkglib_LTLIBRARIES = libgodbcbackend.la
 
 EXTRA_DIST = \
 	OBJECTFILES \
-	OBJECTLIBS
+	OBJECTLIBS \
+	meson.build
 
 dist_doc_DATA = \
 	schema.mssql.sql \
