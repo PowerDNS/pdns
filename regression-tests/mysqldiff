@@ -41,6 +41,11 @@ gmysql)
 		-e "SELECT r.name, r.type, r.prio, r.content, r.ttl, CONCAT('''', CONCAT(r.ordername, '''')), r.auth FROM domains d JOIN records r ON d.id=r.domain_id WHERE d.name='$zonewithvariant' AND(r.type != 'SOA' OR r.type IS NULL) ORDER BY r.name, r.type, r.content, r.ttl, r.prio" > ${testsdir}/${testname}/$step
     fi
     ;;
+lmdb)
+    $PDNSUTIL --config-dir=. --config-name=$backend \
+        backend-cmd $backend "list $zonewithvariant" | grep -vwF SOA | \
+        $SORT > ${testsdir}/${testname}/$step
+    ;;
 *)
     # Not as selective as the queries above, not as precise with DNSSEC details,
     # but hopefully good enough for the sake of most tests.

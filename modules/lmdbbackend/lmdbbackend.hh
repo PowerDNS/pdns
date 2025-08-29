@@ -344,6 +344,7 @@ private:
   void lookupStart(domainid_t domain_id, const std::string& match, bool dolog);
   void lookupInternal(const QType& type, const DNSName& qdomain, domainid_t zoneId, DNSPacket* p, bool include_disabled);
   bool getSerial(DomainInfo& di);
+  bool getInternal(DNSName& basename, std::string_view& key);
 
   static bool getAfterForward(MDBROCursor& cursor, MDBOutVal& key, MDBOutVal& val, domainid_t id, DNSName& after);
   static bool getAfterForwardFromStart(MDBROCursor& cursor, MDBOutVal& key, MDBOutVal& val, domainid_t id, DNSName& after);
@@ -352,6 +353,8 @@ private:
   static bool hasOrphanedNSEC3Record(MDBRWCursor& cursor, domainid_t domain_id, const DNSName& qname);
   static void deleteNSEC3RecordPair(const std::shared_ptr<RecordsRWTransaction>& txn, domainid_t domain_id, const DNSName& qname);
   void writeNSEC3RecordPair(const std::shared_ptr<RecordsRWTransaction>& txn, domainid_t domain_id, const DNSName& qname, const DNSName& ordername);
+
+  string directBackendCmd_list(std::vector<string>& argv);
 
   ZoneName d_lookupdomain;
   DNSName d_lookupsubmatch;

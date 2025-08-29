@@ -729,6 +729,22 @@ static int usage(const std::string_view synopsis)
   return EXIT_FAILURE;
 }
 
+// Build a string with the record textual (bind-style) representation,
+// with explicit trailing dots.
+static std::string formatRecord(const DNSRecord& rec, std::string_view separator = "\t")
+{
+  std::string ret = rec.d_name.toString();
+  ret.append(separator);
+  ret.append(std::to_string(rec.d_ttl));
+  ret.append(separator);
+  ret.append(QClass(rec.d_class).toString());
+  ret.append(separator);
+  ret.append(DNSRecordContent::NumberToType(rec.d_type));
+  ret.append(separator);
+  ret.append(rec.getContent()->getZoneRepresentation(true));
+  return ret;
+}
+
 static bool rectifyZone(DNSSECKeeper& dsk, const ZoneName& zone, bool quiet = false, bool rectifyTransaction = true)
 {
   string output;
@@ -1925,7 +1941,7 @@ static std::vector<DNSRecord>fillTempZoneFile(int& tmpfd, const char* tmpnam, Do
   sort(records.begin(), records.end(), DNSRecord::prettyCompare);
   for (const auto& rec : records) {
     ostringstream oss;
-    oss<<rec.d_name<<"\t"<<rec.d_ttl<<"\tIN\t"<<DNSRecordContent::NumberToType(rec.d_type)<<"\t"<<rec.getContent()->getZoneRepresentation(true)<<endl;
+    oss << formatRecord(rec) << endl;
     if (write(tmpfd, oss.str().c_str(), oss.str().length()) < 0) {
       unixDie("Writing zone to temporary file");
     }
@@ -2014,8 +2030,8 @@ static bool increaseZoneSerial(DNSSECKeeper& dsk, DomainInfo& info, std::vector<
   DNSRecord rec(resrec);
 
   ostringstream str;
-  str<< col.red() << "-" << oldSoaDR.d_name << " " << oldSoaDR.d_ttl << " IN " << DNSRecordContent::NumberToType(oldSoaDR.d_type) << " " <<oldSoaDR.getContent()->getZoneRepresentation(true) << col.rst() <<endl;
-  str << col.green() << "+" << rec.d_name << " " << rec.d_ttl<< " IN " <<DNSRecordContent::NumberToType(rec.d_type) << " " <<rec.getContent()->getZoneRepresentation(true) << col.rst() <<endl;
+  str<< col.red() << "-" << formatRecord(oldSoaDR, " ") << col.rst() <<endl;
+  str << col.green() << "+" << formatRecord(rec, " ") << col.rst() <<endl;
   cout << str.str();
 
   *iter = std::move(rec);
@@ -2163,14 +2179,14 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
         set_difference(pre.cbegin(), pre.cend(), post.cbegin(), post.cend(), back_inserter(diffs), DNSRecord::prettyCompare);
         for(const auto& diff : diffs) {
           ostringstream str;
-          str << col.red() << "-" << diff.d_name << " " << diff.d_ttl << " IN " << DNSRecordContent::NumberToType(diff.d_type) << " " <<diff.getContent()->getZoneRepresentation(true) << col.rst() <<endl;
+          str << col.red() << "-" << formatRecord(diff, " ") << col.rst() <<endl;
           changed[{diff.d_name,diff.d_type}] += str.str();
         }
         diffs.clear();
         set_difference(post.cbegin(), post.cend(), pre.cbegin(), pre.cend(), back_inserter(diffs), DNSRecord::prettyCompare);
         for(const auto& diff : diffs) {
           ostringstream str;
-          str<<col.green() << "+" << diff.d_name << " " << diff.d_ttl << " IN " <<DNSRecordContent::NumberToType(diff.d_type) << " " << diff.getContent()->getZoneRepresentation(true) << col.rst() <<endl;
+          str<<col.green() << "+" << formatRecord(diff, " ") << col.rst() <<endl;
           changed[{diff.d_name,diff.d_type}]+=str.str();
         }
       }
@@ -5336,7 +5352,9 @@ static int backendCmd(vector<string>& cmds, const std::string_view synopsis)
   }
 
   for (auto i = next(begin(cmds), 1); i != end(cmds); ++i) {
-    cerr << "== " << *i << endl;
+    if (cmds.size() != 2 && !g_quiet) {
+      cerr << "== " << *i << endl;
+    }
     cout << matchingBackend->directBackendCmd(*i);
   }
 
@@ -5397,7 +5415,7 @@ static int backendLookup(vector<string>& cmds, const std::string_view synopsis)
   bool found = false;
   DNSZoneRecord resultZoneRecord;
   while (matchingBackend->get(resultZoneRecord)) {
-    cout << resultZoneRecord.dr.d_name.toString() << "\t" << std::to_string(resultZoneRecord.dr.d_ttl) << "\t" << QClass(resultZoneRecord.dr.d_class).toString() << "\t" << DNSRecordContent::NumberToType(resultZoneRecord.dr.d_type, resultZoneRecord.dr.d_class) << "\t" << resultZoneRecord.dr.getContent()->getZoneRepresentation();
+    cout << formatRecord(resultZoneRecord.dr, " ");
     if (resultZoneRecord.scopeMask > 0) {
       clientNetmask.setBits(resultZoneRecord.scopeMask);
       cout << "\t" << "; " << clientNetmask.toString();
