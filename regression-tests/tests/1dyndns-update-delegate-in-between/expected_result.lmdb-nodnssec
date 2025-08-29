@@ -50,7 +50,7 @@ Answer:
 
 Check if delegate and glue are added correctly.
 --- Start: diff start step.1 ---
-> c.host.test.dyndns.	3600	IN	NS	ns1.c.host.test.dyndns
+> c.host.test.dyndns.	3600	IN	NS	ns1.c.host.test.dyndns.
 > ns1.c.host.test.dyndns.	3600	IN	A	192.168.0.1
 --- End: diff start step.1 ---
 

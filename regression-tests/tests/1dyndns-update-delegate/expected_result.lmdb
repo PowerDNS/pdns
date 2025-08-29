@@ -6,8 +6,8 @@ Answer:
 
 Check delegate1 added correctly
 --- Start: diff start step.1 ---
-> delegate1.test.dyndns.	3600	IN	NS	ns1.delegate1.test.dyndns
-> delegate1.test.dyndns.	3600	IN	NS	ns2.delegate1.test.dyndns
+> delegate1.test.dyndns.	3600	IN	NS	ns1.delegate1.test.dyndns.
+> delegate1.test.dyndns.	3600	IN	NS	ns2.delegate1.test.dyndns.
 > ns1.delegate1.test.dyndns.	3600	IN	A	127.0.0.1
 > ns2.delegate1.test.dyndns.	3600	IN	A	127.0.0.1
 --- End: diff start step.1 ---
@@ -20,10 +20,10 @@ Answer:
 
 Check delegate2 added correctly
 --- Start: diff start step.2 ---
-> delegate1.test.dyndns.	3600	IN	NS	ns1.delegate1.test.dyndns
-> delegate1.test.dyndns.	3600	IN	NS	ns2.delegate1.test.dyndns
-> delegate2.test.dyndns.	3600	IN	NS	ns1.delegate2.test.dyndns
-> delegate2.test.dyndns.	3600	IN	NS	ns2.example.com
+> delegate1.test.dyndns.	3600	IN	NS	ns1.delegate1.test.dyndns.
+> delegate1.test.dyndns.	3600	IN	NS	ns2.delegate1.test.dyndns.
+> delegate2.test.dyndns.	3600	IN	NS	ns1.delegate2.test.dyndns.
+> delegate2.test.dyndns.	3600	IN	NS	ns2.example.com.
 > ns1.delegate1.test.dyndns.	3600	IN	A	127.0.0.1
 > ns1.delegate2.test.dyndns.	3600	IN	A	127.0.0.1
 > ns2.delegate1.test.dyndns.	3600	IN	A	127.0.0.1

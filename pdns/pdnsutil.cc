@@ -741,7 +741,7 @@ static std::string formatRecord(const DNSRecord& rec, std::string_view separator
   ret.append(separator);
   ret.append(DNSRecordContent::NumberToType(rec.d_type));
   ret.append(separator);
-  ret.append(rec.getContent()->getZoneRepresentation(true));
+  ret.append(rec.getContent()->getZoneRepresentation());
   return ret;
 }
 
