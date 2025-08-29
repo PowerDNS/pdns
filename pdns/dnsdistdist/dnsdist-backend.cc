@@ -1049,6 +1049,18 @@ size_t ServerPool::poolLoad()
   return load;
 }
 
+bool ServerPool::hasAtLeastOneServerAvailable()
+{
+  auto servers = d_servers.read_lock();
+  // NOLINTNEXTLINE(readability-use-anyofallof): no it's not more readable
+  for (const auto& server : **servers) {
+    if (std::get<1>(server)->isUp()) {
+      return true;
+    }
+  }
+  return false;
+}
+
 const std::shared_ptr<const ServerPolicy::NumberedServerVector> ServerPool::getServers()
 {
   std::shared_ptr<const ServerPolicy::NumberedServerVector> result;
@@ -1060,59 +1072,117 @@ const std::shared_ptr<const ServerPolicy::NumberedServerVector> ServerPool::getS
 
 void ServerPool::addServer(shared_ptr<DownstreamState>& server)
 {
-  auto servers = d_servers.write_lock();
-  /* we can't update the content of the shared pointer directly even when holding the lock,
-     as other threads might hold a copy. We can however update the pointer as long as we hold the lock. */
-  unsigned int count = static_cast<unsigned int>((*servers)->size());
-  auto newServers = ServerPolicy::NumberedServerVector(*(*servers));
-  newServers.emplace_back(++count, server);
-  /* we need to reorder based on the server 'order' */
-  std::stable_sort(newServers.begin(), newServers.end(), [](const std::pair<unsigned int,std::shared_ptr<DownstreamState> >& a, const std::pair<unsigned int,std::shared_ptr<DownstreamState> >& b) {
-      return a.second->d_config.order < b.second->d_config.order;
+  {
+    auto servers = d_servers.write_lock();
+    /* we can't update the content of the shared pointer directly even when holding the lock,
+       as other threads might hold a copy. We can however update the pointer as long as we hold the lock. */
+    auto count = static_cast<unsigned int>((*servers)->size());
+    auto newServers = ServerPolicy::NumberedServerVector(*(*servers));
+    newServers.emplace_back(++count, server);
+    /* we need to reorder based on the server 'order' */
+    std::stable_sort(newServers.begin(), newServers.end(), [](const std::pair<unsigned int,std::shared_ptr<DownstreamState> >& lhs, const std::pair<unsigned int,std::shared_ptr<DownstreamState> >& rhs) {
+      return lhs.second->d_config.order < rhs.second->d_config.order;
     });
-  /* and now we need to renumber for Lua (custom policies) */
-  size_t idx = 1;
-  for (auto& serv : newServers) {
-    serv.first = idx++;
-  }
-  *servers = std::make_shared<const ServerPolicy::NumberedServerVector>(std::move(newServers));
+    /* and now we need to renumber for Lua (custom policies) */
+    size_t idx = 1;
+    for (auto& serv : newServers) {
+      serv.first = idx++;
+    }
+    *servers = std::make_shared<const ServerPolicy::NumberedServerVector>(std::move(newServers));
 
-  if ((*servers)->size() == 1) {
-    d_tcpOnly = server->isTCPOnly();
+    if ((*servers)->size() == 1) {
+      d_tcpOnly = server->isTCPOnly();
+    }
+    else if (!server->isTCPOnly()) {
+      d_tcpOnly = false;
+    }
   }
-  else if (!server->isTCPOnly()) {
-    d_tcpOnly = false;
-  }
+
+  updateConsistency();
 }
 
 void ServerPool::removeServer(shared_ptr<DownstreamState>& server)
 {
-  auto servers = d_servers.write_lock();
-  /* we can't update the content of the shared pointer directly even when holding the lock,
-     as other threads might hold a copy. We can however update the pointer as long as we hold the lock. */
-  auto newServers = std::make_shared<ServerPolicy::NumberedServerVector>(*(*servers));
   size_t idx = 1;
   bool found = false;
-  bool tcpOnly = true;
-  for (auto it = newServers->begin(); it != newServers->end();) {
-    if (found) {
-      tcpOnly = tcpOnly && it->second->isTCPOnly();
-      /* we need to renumber the servers placed
-         after the removed one, for Lua (custom policies) */
-      it->first = idx++;
-      it++;
+  {
+    auto servers = d_servers.write_lock();
+    /* we can't update the content of the shared pointer directly even when holding the lock,
+       as other threads might hold a copy. We can however update the pointer as long as we hold the lock. */
+    auto newServers = std::make_shared<ServerPolicy::NumberedServerVector>(*(*servers));
+
+    for (auto it = newServers->begin(); it != newServers->end();) {
+      if (found) {
+        /* we need to renumber the servers placed
+           after the removed one, for Lua (custom policies) */
+        it->first = idx++;
+        it++;
+      }
+      else if (it->second == server) {
+        it = newServers->erase(it);
+        found = true;
+      } else {
+        idx++;
+        it++;
+      }
     }
-    else if (it->second == server) {
-      it = newServers->erase(it);
-      found = true;
-    } else {
-      tcpOnly = tcpOnly && it->second->isTCPOnly();
-      idx++;
-      it++;
+
+    if (found) {
+      *servers = std::move(newServers);
     }
   }
+
+  if (found && !d_isConsistent) {
+    updateConsistency();
+  }
+}
+
+void ServerPool::updateConsistency()
+{
+  bool first{true};
+  bool useECS{false};
+  bool tcpOnly{false};
+  bool disableZeroScope{false};
+
+  auto servers = d_servers.read_lock();
+  for (const auto& serverPair : **servers) {
+    const auto& server = serverPair.second;
+    if (first) {
+      first = false;
+      useECS = server->d_config.useECS;
+      tcpOnly = server->isTCPOnly();
+      disableZeroScope = server->d_config.disableZeroScope;
+    }
+    else {
+      if (server->d_config.useECS != useECS ||
+          server->isTCPOnly() != tcpOnly ||
+          server->d_config.disableZeroScope != disableZeroScope) {
+        d_tcpOnly = false;
+        d_isConsistent = false;
+        return;
+      }
+    }
+  }
+
   d_tcpOnly = tcpOnly;
-  *servers = std::move(newServers);
+  /* at this point we know that all servers agree
+     on these settings, so let's just use the same
+     values for the pool itself */
+  d_useECS = useECS;
+  d_disableZeroScope = disableZeroScope;
+  d_isConsistent = true;
+}
+
+void ServerPool::setDisableZeroScope(bool disable)
+{
+  d_disableZeroScope = disable;
+  updateConsistency();
+}
+
+void ServerPool::setECS(bool useECS)
+{
+  d_useECS = useECS;
+  updateConsistency();
 }
 
 namespace dnsdist::backend

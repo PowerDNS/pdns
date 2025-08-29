@@ -1443,26 +1443,39 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
     }
     std::shared_ptr<ServerPool> serverPool = getPool(dnsQuestion.ids.poolName);
     dnsQuestion.ids.packetCache = serverPool->packetCache;
-    selectBackendForOutgoingQuery(dnsQuestion, serverPool, selectedBackend);
-    bool willBeForwardedOverUDP = !dnsQuestion.overTCP() || dnsQuestion.ids.protocol == dnsdist::Protocol::DoH;
-    if (selectedBackend && selectedBackend->isTCPOnly()) {
-      willBeForwardedOverUDP = false;
-    }
-    else if (!selectedBackend) {
-      willBeForwardedOverUDP = !serverPool->isTCPOnly();
+
+    bool backendLookupDone = false;
+    if (!dnsQuestion.ids.packetCache || !serverPool->isConsistent()) {
+      selectBackendForOutgoingQuery(dnsQuestion, serverPool, selectedBackend);
+      backendLookupDone = true;
     }
 
-    uint32_t allowExpired = selectedBackend ? 0 : dnsdist::configuration::getCurrentRuntimeConfiguration().d_staleCacheEntriesTTL;
+    bool willBeForwardedOverUDP = !dnsQuestion.overTCP() || dnsQuestion.ids.protocol == dnsdist::Protocol::DoH;
+    if (selectedBackend) {
+      if (selectedBackend->isTCPOnly()) {
+        willBeForwardedOverUDP = false;
+      }
+    }
+    else if (serverPool->isTCPOnly()) {
+      willBeForwardedOverUDP = false;
+    }
+
+    uint32_t allowExpired = 0;
+    if (!selectedBackend && dnsdist::configuration::getCurrentRuntimeConfiguration().d_staleCacheEntriesTTL > 0 && (backendLookupDone || !serverPool->hasAtLeastOneServerAvailable())) {
+      allowExpired = dnsdist::configuration::getCurrentRuntimeConfiguration().d_staleCacheEntriesTTL;
+    }
 
     if (dnsQuestion.ids.packetCache && !dnsQuestion.ids.skipCache && !dnsQuestion.ids.dnssecOK) {
       dnsQuestion.ids.dnssecOK = (dnsdist::getEDNSZ(dnsQuestion) & EDNS_HEADER_FLAG_DO) != 0;
     }
 
-    if (dnsQuestion.useECS && ((selectedBackend && selectedBackend->d_config.useECS) || (!selectedBackend && serverPool->getECS()))) {
+    const bool useECS = dnsQuestion.useECS && ((selectedBackend && selectedBackend->d_config.useECS) || (!selectedBackend && serverPool->getECS()));
+    if (useECS) {
+      const bool useZeroScope = (selectedBackend && !selectedBackend->d_config.disableZeroScope) || (!selectedBackend && !serverPool->getDisableZeroScope());
       // we special case our cache in case a downstream explicitly gave us a universally valid response with a 0 scope
       // we need ECS parsing (parseECS) to be true so we can be sure that the initial incoming query did not have an existing
       // ECS option, which would make it unsuitable for the zero-scope feature.
-      if (dnsQuestion.ids.packetCache && !dnsQuestion.ids.skipCache && (!selectedBackend || !selectedBackend->d_config.disableZeroScope) && dnsQuestion.ids.packetCache->isECSParsingEnabled()) {
+      if (dnsQuestion.ids.packetCache && !dnsQuestion.ids.skipCache && useZeroScope && dnsQuestion.ids.packetCache->isECSParsingEnabled()) {
         if (dnsQuestion.ids.packetCache->get(dnsQuestion, dnsQuestion.getHeader()->id, &dnsQuestion.ids.cacheKeyNoECS, dnsQuestion.ids.subnet, *dnsQuestion.ids.dnssecOK, willBeForwardedOverUDP, allowExpired, false, true, false)) {
 
           vinfolog("Packet cache hit for query for %s|%s from %s (%s, %d bytes)", dnsQuestion.ids.qname.toLogString(), QType(dnsQuestion.ids.qtype).toString(), dnsQuestion.ids.origRemote.toStringWithPort(), dnsQuestion.ids.protocol.toString(), dnsQuestion.getData().size());
@@ -1545,7 +1558,12 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
         serverPool = getPool(dnsQuestion.ids.poolName);
         dnsQuestion.ids.packetCache = serverPool->packetCache;
         selectBackendForOutgoingQuery(dnsQuestion, serverPool, selectedBackend);
+        backendLookupDone = true;
       }
+    }
+
+    if (!backendLookupDone) {
+      selectBackendForOutgoingQuery(dnsQuestion, serverPool, selectedBackend);
     }
 
     if (!selectedBackend) {
