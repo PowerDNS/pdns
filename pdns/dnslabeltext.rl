@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <string>
+#include <string_view>
 #include "dnsname.hh"
 #include "namespaces.hh"
 #include "dnswriter.hh"
@@ -172,11 +173,11 @@ DNSName::string_t segmentDNSNameRaw(const char* realinput, size_t inputlen)
 
 // Reads an RFC 1035 character string from 'in', puts the resulting bytes in 'out'.
 // Returns the amount of bytes read from 'in'
-size_t parseRFC1035CharString(const std::string &in, std::string &val) {
+size_t parseRFC1035CharString(std::string_view in, std::string &val) {
 
   val.clear();
   val.reserve(in.size());
-  const char *p = in.c_str();
+  const char *p = in.data();
   const char *pe = p + in.size();
   int cs = 0;
   uint8_t escaped_octet = 0;
