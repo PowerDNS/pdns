@@ -1,20 +1,20 @@
 $ORIGIN .
-example.com.	100000	IN	SOA	ns1.example.com ahu.example.com 2847484148 28800 7200 604800 86400
-example.com.	120	IN	NS	ns1.example.com
-example.com.	120	IN	NS	ns2.example.com
-example.com.	120	IN	MX	10 smtp-servers.example.com
-example.com.	120	IN	MX	15 smtp-servers.test.com
-_imap._tcp.example.com.	120	IN	SRV	0 1 143 blah.test.com
-cname-to-insecure.example.com.	120	IN	CNAME	www.insecure.dnssec-parent.com
+example.com.	100000	IN	SOA	ns1.example.com. ahu.example.com. 2847484148 28800 7200 604800 86400
+example.com.	120	IN	NS	ns1.example.com.
+example.com.	120	IN	NS	ns2.example.com.
+example.com.	120	IN	MX	10 smtp-servers.example.com.
+example.com.	120	IN	MX	15 smtp-servers.test.com.
+_imap._tcp.example.com.	120	IN	SRV	0 1 143 blah.test.com.
+cname-to-insecure.example.com.	120	IN	CNAME	www.insecure.dnssec-parent.com.
 double.example.com.	120	IN	A	192.168.5.1
-dsdelegation.example.com.	120	IN	NS	ns.example.com
+dsdelegation.example.com.	120	IN	NS	ns.example.com.
 dsdelegation.example.com.	120	IN	DS	28129 8 1 caf1eaaecdabe7616670788f9022454bf5fd9fda
 escapedtext.example.com.	120	IN	TXT	"begin" "the \"middle\" p\\art" "the end"
-external.example.com.	120	IN	CNAME	somewhere.else.net
-external-mail.example.com.	120	IN	MX	25 server1.test.com
-france.example.com.	120	IN	NS	ns1.otherprovider.net
-france.example.com.	120	IN	NS	ns2.otherprovider.net
-google-alias.example.com.	120	IN	ALIAS	google-public-dns-a.google.com
+external.example.com.	120	IN	CNAME	somewhere.else.net.
+external-mail.example.com.	120	IN	MX	25 server1.test.com.
+france.example.com.	120	IN	NS	ns1.otherprovider.net.
+france.example.com.	120	IN	NS	ns2.otherprovider.net.
+google-alias.example.com.	120	IN	ALIAS	google-public-dns-a.google.com.
 hightype.example.com.	120	IN	A	192.168.1.5
 hightype.example.com.	120	IN	TYPE65534	\# 5 07ed260001
 host-0.example.com.	120	IN	A	192.168.1.0
@@ -20022,8 +20022,8 @@ host-9999.example.com.	120	IN	A	192.168.1.15
 host-for-auto-ptr.example.com.	120	IN	A	192.0.2.1
 hwinfo.example.com.	120	IN	HINFO	"abc" "def"
 ipv6.example.com.	120	IN	AAAA	2001:6a8:0:1:210:4bff:fe4b:4c61
-italy.example.com.	120	IN	NS	italy-ns1.example.com
-italy.example.com.	120	IN	NS	italy-ns2.example.com
+italy.example.com.	120	IN	NS	italy-ns1.example.com.
+italy.example.com.	120	IN	NS	italy-ns2.example.com.
 italy-ns1.example.com.	120	IN	A	192.168.5.1
 italy-ns2.example.com.	120	IN	A	192.168.5.2
 largettl.example.com.	1073741724	IN	TXT	"this record has a huge TTL"
@@ -20032,31 +20032,31 @@ location.example.com.	120	IN	LOC	51 56 0.123 N 5 54 0.000 E 4.00m 1.00m 10000.00
 location.example.com.	120	IN	LOC	51 56 1.456 S 5 54 0.000 E 4.00m 2.00m 10000.00m 10.00m
 location.example.com.	120	IN	LOC	51 56 2.789 N 5 54 0.000 W 4.00m 3.00m 10000.00m 10.00m
 location.example.com.	120	IN	LOC	51 56 3.012 S 5 54 0.000 W 4.00m 4.00m 10000.00m 10.00m
-loop1.example.com.	120	IN	CNAME	loop2.example.com
-loop2.example.com.	120	IN	CNAME	loop3.example.com
-loop3.example.com.	120	IN	CNAME	loop1.example.com
-mail.example.com.	120	IN	MX	25 smtp1.example.com
-hostmaster.mb.example.com.	120	IN	MG	phil.mb.example.com
-hostmaster.mb.example.com.	120	IN	MG	sheila.mb.example.com
-phil.mb.example.com.	120	IN	MB	pc.mb.example.com
-philip.mb.example.com.	120	IN	MR	phil.mb.example.com
-sheila.mb.example.com.	120	IN	MB	bill.mb.example.com
+loop1.example.com.	120	IN	CNAME	loop2.example.com.
+loop2.example.com.	120	IN	CNAME	loop3.example.com.
+loop3.example.com.	120	IN	CNAME	loop1.example.com.
+mail.example.com.	120	IN	MX	25 smtp1.example.com.
+hostmaster.mb.example.com.	120	IN	MG	phil.mb.example.com.
+hostmaster.mb.example.com.	120	IN	MG	sheila.mb.example.com.
+phil.mb.example.com.	120	IN	MB	pc.mb.example.com.
+philip.mb.example.com.	120	IN	MR	phil.mb.example.com.
+sheila.mb.example.com.	120	IN	MB	bill.mb.example.com.
 multitext.example.com.	120	IN	TXT	"text part one" "text part two" "text part three"
 ns1.example.com.	120	IN	A	192.168.1.1
 ns2.example.com.	120	IN	A	192.168.1.2
-nxd.example.com.	120	IN	CNAME	nxdomain.example.com
+nxd.example.com.	120	IN	CNAME	nxdomain.example.com.
 outpost.example.com.	120	IN	A	192.168.2.1
-rhs-at-expansion.example.com.	120	IN	CNAME	example.com
-semi-external.example.com.	120	IN	CNAME	bla.something.wtest.com
-server1.example.com.	120	IN	CNAME	server1.france.example.com
+rhs-at-expansion.example.com.	120	IN	CNAME	example.com.
+semi-external.example.com.	120	IN	CNAME	bla.something.wtest.com.
+server1.example.com.	120	IN	CNAME	server1.france.example.com.
 smtp-servers.example.com.	120	IN	A	192.168.0.2
 smtp-servers.example.com.	120	IN	A	192.168.0.3
 smtp-servers.example.com.	120	IN	A	192.168.0.4
-smtp1.example.com.	120	IN	CNAME	outpost.example.com
-start.example.com.	120	IN	CNAME	x.y.z.w1.example.com
-start1.example.com.	120	IN	CNAME	start2.example.com
-start2.example.com.	120	IN	CNAME	start3.example.com
-start3.example.com.	120	IN	CNAME	start4.example.com
+smtp1.example.com.	120	IN	CNAME	outpost.example.com.
+start.example.com.	120	IN	CNAME	x.y.z.w1.example.com.
+start1.example.com.	120	IN	CNAME	start2.example.com.
+start2.example.com.	120	IN	CNAME	start3.example.com.
+start3.example.com.	120	IN	CNAME	start4.example.com.
 start4.example.com.	120	IN	A	192.168.2.2
 host.*.sub.example.com.	120	IN	A	192.168.6.1
 text.example.com.	120	IN	TXT	"Hi, this is some text"
@@ -20064,8 +20064,8 @@ text0.example.com.	120	IN	TXT	"k=rsa; p=one"
 text1.example.com.	120	IN	TXT	"k=rsa; p=one"
 text2.example.com.	120	IN	TXT	"k=rsa\\; p=one"
 text3.example.com.	120	IN	TXT	"k=rsa\\; p=one"
-together-too-much.example.com.	120	IN	MX	25 toomuchinfo-a.example.com
-together-too-much.example.com.	120	IN	MX	25 toomuchinfo-b.example.com
+together-too-much.example.com.	120	IN	MX	25 toomuchinfo-a.example.com.
+together-too-much.example.com.	120	IN	MX	25 toomuchinfo-b.example.com.
 toomuchinfo-a.example.com.	120	IN	A	192.168.99.1
 toomuchinfo-a.example.com.	120	IN	A	192.168.99.10
 toomuchinfo-a.example.com.	120	IN	A	192.168.99.11
@@ -20141,36 +20141,36 @@ toomuchinfo-b.example.com.	120	IN	A	192.168.99.87
 toomuchinfo-b.example.com.	120	IN	A	192.168.99.88
 toomuchinfo-b.example.com.	120	IN	A	192.168.99.89
 toomuchinfo-b.example.com.	120	IN	A	192.168.99.90
-unauth.example.com.	120	IN	CNAME	no-idea.example.org
-usa.example.com.	120	IN	NS	usa-ns1.usa.example.com
-usa.example.com.	120	IN	NS	usa-ns2.usa.example.com
+unauth.example.com.	120	IN	CNAME	no-idea.example.org.
+usa.example.com.	120	IN	NS	usa-ns1.usa.example.com.
+usa.example.com.	120	IN	NS	usa-ns2.usa.example.com.
 usa-ns1.usa.example.com.	120	IN	A	192.168.4.1
 usa-ns2.usa.example.com.	120	IN	A	192.168.4.2
-*.w1.example.com.	120	IN	CNAME	x.y.z.w2.example.com
-*.w2.example.com.	120	IN	CNAME	x.y.z.w3.example.com
-*.w3.example.com.	120	IN	CNAME	x.y.z.w4.example.com
-*.w4.example.com.	120	IN	CNAME	x.y.z.w5.example.com
+*.w1.example.com.	120	IN	CNAME	x.y.z.w2.example.com.
+*.w2.example.com.	120	IN	CNAME	x.y.z.w3.example.com.
+*.w3.example.com.	120	IN	CNAME	x.y.z.w4.example.com.
+*.w4.example.com.	120	IN	CNAME	x.y.z.w5.example.com.
 *.w5.example.com.	120	IN	A	1.2.3.5
-www.example.com.	120	IN	CNAME	outpost.example.com
+www.example.com.	120	IN	CNAME	outpost.example.com.
 $ORIGIN .
-test.com.	3600	IN	SOA	ns1.test.com ahu.example.com 2005092501 28800 7200 604800 86400
-test.com.	3600	IN	NS	ns1.test.com
-test.com.	3600	IN	NS	ns2.test.com
+test.com.	3600	IN	SOA	ns1.test.com. ahu.example.com. 2005092501 28800 7200 604800 86400
+test.com.	3600	IN	NS	ns1.test.com.
+test.com.	3600	IN	NS	ns2.test.com.
 test.com.	3600	IN	MX	10 .
-test.com.	3600	IN	MX	15 smtp-servers.test.com
+test.com.	3600	IN	MX	15 smtp-servers.test.com.
 _underscore.test.com.	3600	IN	TXT	"underscores are terrible"
 aland.test.com.	3600	IN	TXT	"\195\133LAND ISLANDS"
 blah.test.com.	3600	IN	A	192.168.6.1
-blah.test.com.	3600	IN	NS	blah.test.com
+blah.test.com.	3600	IN	NS	blah.test.com.
 b.c.test.com.	3600	IN	A	5.6.7.8
 *.a.b.c.test.com.	3600	IN	A	8.7.6.5
 counter.test.com.	3600	IN	A	1.1.1.5
-d.test.com.	3600	IN	DNAME	d2.test2.com
-_double._tcp.dc.test.com.	3600	IN	SRV	0 100 389 server1.test.com
-_double._tcp.dc.test.com.	3600	IN	SRV	1 100 389 server1.test.com
-_ldap._tcp.dc.test.com.	3600	IN	SRV	0 100 389 server2.example.net
+d.test.com.	3600	IN	DNAME	d2.test2.com.
+_double._tcp.dc.test.com.	3600	IN	SRV	0 100 389 server1.test.com.
+_double._tcp.dc.test.com.	3600	IN	SRV	1 100 389 server1.test.com.
+_ldap._tcp.dc.test.com.	3600	IN	SRV	0 100 389 server2.example.net.
 _root._tcp.dc.test.com.	3600	IN	SRV	0 0 0 .
-enum.test.com.	3600	IN	NAPTR	100 50 "u" "e2u+sip" "" testuser.domain.com
+enum.test.com.	3600	IN	NAPTR	100 50 "u" "e2u+sip" "" testuser.domain.com.
 hightxt.test.com.	3600	IN	TXT	"v=spf1 mx ip4:78.46.192.210 \226\128\147all"
 hightxt.test.com.	3600	IN	SPF	"v=spf1 mx ip4:78.46.192.210 \226\128\147all"
 interrupted-rrset.test.com.	3600	IN	A	1.1.1.1
@@ -20179,23 +20179,23 @@ interrupted-rrset.test.com.	3600	IN	TXT	"check AXFR signpipe"
 ns1.test.com.	3600	IN	A	1.1.1.1
 ns2.test.com.	3600	IN	A	2.2.2.2
 server1.test.com.	3600	IN	A	1.2.3.4
-server1.test.com.	3600	IN	RP	ahu.ds9a.nl counter.test.com
-*.test.test.com.	3600	IN	CNAME	server1.test.com
-sub.test.test.com.	3600	IN	NS	ns-test.example.net.test.com
+server1.test.com.	3600	IN	RP	ahu.ds9a.nl. counter.test.com.
+*.test.test.com.	3600	IN	CNAME	server1.test.com.
+sub.test.test.com.	3600	IN	NS	ns-test.example.net.test.com.
 www.test.test.com.	3600	IN	A	4.3.2.1
 toroot.test.com.	3600	IN	CNAME	.
 urc65226.test.com.	3600	IN	TYPE65226	\# 3 414243
 very-long-txt.test.com.	3600	IN	TXT	"A very long TXT record! boy you won't believe how long. A very long TXT record! boy you won't believe how long. A very long TXT record! boy you won't believe how long. A very long TXT record! boy you won't believe how long. A very long TXT record! boy you" " won't believe how long!"
-within-server.test.com.	3600	IN	CNAME	outpost.example.com
-www.test.com.	3600	IN	CNAME	server1.test.com
+within-server.test.com.	3600	IN	CNAME	outpost.example.com.
+www.test.com.	3600	IN	CNAME	server1.test.com.
 $ORIGIN .
-test.dyndns.	3600	IN	SOA	ns1.test.dyndns ahu.example.dyndns 2012060701 28800 7200 604800 86400
-test.dyndns.	3600	IN	NS	ns1.test.dyndns
-test.dyndns.	3600	IN	NS	ns2.test.dyndns
-test.dyndns.	3600	IN	MX	10 host-1.test.dyndns
-test.dyndns.	3600	IN	MX	20 host-2.test.dyndns
-cname1.test.dyndns.	3600	IN	CNAME	host-1.test.dyndns
-cname2.test.dyndns.	3600	IN	CNAME	host-2.test.dyndns
+test.dyndns.	3600	IN	SOA	ns1.test.dyndns. ahu.example.dyndns. 2012060701 28800 7200 604800 86400
+test.dyndns.	3600	IN	NS	ns1.test.dyndns.
+test.dyndns.	3600	IN	NS	ns2.test.dyndns.
+test.dyndns.	3600	IN	MX	10 host-1.test.dyndns.
+test.dyndns.	3600	IN	MX	20 host-2.test.dyndns.
+cname1.test.dyndns.	3600	IN	CNAME	host-1.test.dyndns.
+cname2.test.dyndns.	3600	IN	CNAME	host-2.test.dyndns.
 delete-add.test.dyndns.	3600	IN	A	127.0.0.108
 delete-add.test.dyndns.	3600	IN	TXT	"Should be gone after a while"
 a.host.test.dyndns.	3600	IN	A	1.1.1.1
@@ -20209,103 +20209,103 @@ multi.test.dyndns.	3600	IN	A	127.0.0.3
 ns1.test.dyndns.	3600	IN	A	127.0.0.1
 ns2.test.dyndns.	3600	IN	A	127.0.0.2
 replace.test.dyndns.	3600	IN	A	127.0.0.1
-sub.test.dyndns.	3600	IN	NS	ns1.test.dyndns
-sub.test.dyndns.	3600	IN	NS	ns2.test.dyndns
+sub.test.dyndns.	3600	IN	NS	ns1.test.dyndns.
+sub.test.dyndns.	3600	IN	NS	ns2.test.dyndns.
 ttl.test.dyndns.	3600	IN	A	127.0.0.1
 txt.test.dyndns.	3600	IN	TXT	"This is some text"
 *.wild.test.dyndns.	3600	IN	A	127.0.1.255
 $ORIGIN .
-sub.test.dyndns.	3600	IN	SOA	ns1.test.dyndns ahu.example.dyndns 2012060701 28800 7200 604800 86400
-sub.test.dyndns.	3600	IN	NS	ns1.test.dyndns
-sub.test.dyndns.	3600	IN	NS	ns2.test.dyndns
+sub.test.dyndns.	3600	IN	SOA	ns1.test.dyndns. ahu.example.dyndns. 2012060701 28800 7200 604800 86400
+sub.test.dyndns.	3600	IN	NS	ns1.test.dyndns.
+sub.test.dyndns.	3600	IN	NS	ns2.test.dyndns.
 $ORIGIN .
-wtest.com.	3600	IN	SOA	ns1.wtest.com ahu.example.com 2005092501 28800 7200 604800 86400
+wtest.com.	3600	IN	SOA	ns1.wtest.com. ahu.example.com. 2005092501 28800 7200 604800 86400
 wtest.com.	3600	IN	A	9.9.9.9
 wtest.com.	3600	IN	NS	.
-wtest.com.	3600	IN	NS	ns1.wtest.com
-wtest.com.	3600	IN	MX	10 smtp-servers.example.com
-wtest.com.	3600	IN	MX	15 smtp-servers.wtest.com
-*.wtest.com.	3600	IN	CNAME	server1.wtest.com
+wtest.com.	3600	IN	NS	ns1.wtest.com.
+wtest.com.	3600	IN	MX	10 smtp-servers.example.com.
+wtest.com.	3600	IN	MX	15 smtp-servers.wtest.com.
+*.wtest.com.	3600	IN	CNAME	server1.wtest.com.
 *.a.b.c.d.e.wtest.com.	3600	IN	A	6.7.8.9
 ns1.wtest.com.	3600	IN	A	2.3.4.5
-secure.wtest.com.	3600	IN	MX	10 server1.wtest.com
+secure.wtest.com.	3600	IN	MX	10 server1.wtest.com.
 server1.wtest.com.	3600	IN	A	1.2.3.4
 *.something.wtest.com.	3600	IN	A	4.3.2.1
 a.something.wtest.com.	3600	IN	A	10.11.12.13
 $ORIGIN .
-dnssec-parent.com.	3600	IN	SOA	ns1.dnssec-parent.com ahu.example.com 2005092501 28800 7200 604800 86400
+dnssec-parent.com.	3600	IN	SOA	ns1.dnssec-parent.com. ahu.example.com. 2005092501 28800 7200 604800 86400
 dnssec-parent.com.	3600	IN	A	9.9.9.9
-dnssec-parent.com.	3600	IN	NS	ns1.dnssec-parent.com
-dnssec-parent.com.	3600	IN	NS	ns2.dnssec-parent.com
-insecure-delegated.ent.ent.auth-ent.dnssec-parent.com.	3600	IN	NS	ns.example.com
+dnssec-parent.com.	3600	IN	NS	ns1.dnssec-parent.com.
+dnssec-parent.com.	3600	IN	NS	ns2.dnssec-parent.com.
+insecure-delegated.ent.ent.auth-ent.dnssec-parent.com.	3600	IN	NS	ns.example.com.
 something1.auth-ent.dnssec-parent.com.	3600	IN	A	1.1.2.3
-delegated.dnssec-parent.com.	3600	IN	NS	ns1.delegated.dnssec-parent.com
-delegated.dnssec-parent.com.	3600	IN	NS	ns2.delegated.dnssec-parent.com
+delegated.dnssec-parent.com.	3600	IN	NS	ns1.delegated.dnssec-parent.com.
+delegated.dnssec-parent.com.	3600	IN	NS	ns2.delegated.dnssec-parent.com.
 ns1.delegated.dnssec-parent.com.	3600	IN	A	4.5.6.7
 ns2.delegated.dnssec-parent.com.	3600	IN	A	5.6.7.8
-insecure.dnssec-parent.com.	3600	IN	NS	ns.example.com
+insecure.dnssec-parent.com.	3600	IN	NS	ns.example.com.
 ns1.dnssec-parent.com.	3600	IN	A	1.2.3.4
 ns2.dnssec-parent.com.	3600	IN	A	4.3.2.1
-secure-delegated.dnssec-parent.com.	3600	IN	NS	ns1.secure-delegated.dnssec-parent.com
-secure-delegated.dnssec-parent.com.	3600	IN	NS	ns2.secure-delegated.dnssec-parent.com
+secure-delegated.dnssec-parent.com.	3600	IN	NS	ns1.secure-delegated.dnssec-parent.com.
+secure-delegated.dnssec-parent.com.	3600	IN	NS	ns2.secure-delegated.dnssec-parent.com.
 secure-delegated.dnssec-parent.com.	3600	IN	DS	54319 8 2 a0b9c38cd324182af0ef66830d0a0e85a1d58979c9834e18c871779e040857b7
 ns1.secure-delegated.dnssec-parent.com.	3600	IN	A	1.2.3.4
 ns2.secure-delegated.dnssec-parent.com.	3600	IN	A	5.6.7.8
-www.dnssec-parent.com.	3600	IN	CNAME	www.insecure.dnssec-parent.com
+www.dnssec-parent.com.	3600	IN	CNAME	www.insecure.dnssec-parent.com.
 $ORIGIN .
-insecure.dnssec-parent.com.	120	IN	SOA	ns1.example.com ahu.example.com 2000081501 28800 7200 604800 86400
-insecure.dnssec-parent.com.	120	IN	NS	ns1.example.com
-insecure.dnssec-parent.com.	120	IN	NS	ns2.example.com
+insecure.dnssec-parent.com.	120	IN	SOA	ns1.example.com. ahu.example.com. 2000081501 28800 7200 604800 86400
+insecure.dnssec-parent.com.	120	IN	NS	ns1.example.com.
+insecure.dnssec-parent.com.	120	IN	NS	ns2.example.com.
 www.insecure.dnssec-parent.com.	120	IN	A	192.0.2.88
 $ORIGIN .
-delegated.dnssec-parent.com.	3600	IN	SOA	ns1.delegated.dnssec-parent.com ahu.example.com 2005092501 28800 7200 604800 86400
+delegated.dnssec-parent.com.	3600	IN	SOA	ns1.delegated.dnssec-parent.com. ahu.example.com. 2005092501 28800 7200 604800 86400
 delegated.dnssec-parent.com.	3600	IN	A	9.9.9.9
-delegated.dnssec-parent.com.	3600	IN	NS	ns1.delegated.dnssec-parent.com
-delegated.dnssec-parent.com.	3600	IN	NS	ns2.delegated.dnssec-parent.com
+delegated.dnssec-parent.com.	3600	IN	NS	ns1.delegated.dnssec-parent.com.
+delegated.dnssec-parent.com.	3600	IN	NS	ns2.delegated.dnssec-parent.com.
 delegated.dnssec-parent.com.	3600	IN	DS	44030 8 2 d4c3d5552b8679faeebc317e5f048b614b2e5f607dc57f1553182d49ab2179f7
 ns1.delegated.dnssec-parent.com.	3600	IN	A	4.5.6.7
 ns2.delegated.dnssec-parent.com.	3600	IN	A	5.6.7.8
-www.delegated.dnssec-parent.com.	3600	IN	CNAME	delegated.dnssec-parent.com
+www.delegated.dnssec-parent.com.	3600	IN	CNAME	delegated.dnssec-parent.com.
 $ORIGIN .
-secure-delegated.dnssec-parent.com.	3600	IN	SOA	ns1.secure-delegated.dnssec-parent.com ahu.example.com 2005092501 28800 7200 604800 86400
+secure-delegated.dnssec-parent.com.	3600	IN	SOA	ns1.secure-delegated.dnssec-parent.com. ahu.example.com. 2005092501 28800 7200 604800 86400
 secure-delegated.dnssec-parent.com.	3600	IN	A	9.9.9.9
-secure-delegated.dnssec-parent.com.	3600	IN	NS	ns1.secure-delegated.dnssec-parent.com
-secure-delegated.dnssec-parent.com.	3600	IN	NS	ns2.secure-delegated.dnssec-parent.com
+secure-delegated.dnssec-parent.com.	3600	IN	NS	ns1.secure-delegated.dnssec-parent.com.
+secure-delegated.dnssec-parent.com.	3600	IN	NS	ns2.secure-delegated.dnssec-parent.com.
 ns1.secure-delegated.dnssec-parent.com.	3600	IN	A	1.2.3.4
 ns2.secure-delegated.dnssec-parent.com.	3600	IN	A	5.6.7.8
-www.secure-delegated.dnssec-parent.com.	3600	IN	CNAME	secure-delegated.dnssec-parent.com
+www.secure-delegated.dnssec-parent.com.	3600	IN	CNAME	secure-delegated.dnssec-parent.com.
 $ORIGIN .
-minimal.com.	120	IN	SOA	ns1.example.com ahu.example.com 2000081501 28800 7200 604800 86400
-minimal.com.	120	IN	NS	ns1.example.com
-minimal.com.	120	IN	NS	ns2.example.com
+minimal.com.	120	IN	SOA	ns1.example.com. ahu.example.com. 2000081501 28800 7200 604800 86400
+minimal.com.	120	IN	NS	ns1.example.com.
+minimal.com.	120	IN	NS	ns2.example.com.
 $ORIGIN .
-tsig.com.	120	IN	SOA	ns1.example.com ahu.example.com 2000081501 28800 7200 604800 86400
-tsig.com.	120	IN	NS	ns1.example.com
-tsig.com.	120	IN	NS	ns2.example.com
+tsig.com.	120	IN	SOA	ns1.example.com. ahu.example.com. 2000081501 28800 7200 604800 86400
+tsig.com.	120	IN	NS	ns1.example.com.
+tsig.com.	120	IN	NS	ns2.example.com.
 $ORIGIN .
-stest.com.	120	IN	SOA	ns1.example.com ahu.example.com 2000081501 28800 7200 604800 86400
-stest.com.	120	IN	NS	ns1.example.com
-stest.com.	120	IN	NS	ns2.example.com
+stest.com.	120	IN	SOA	ns1.example.com. ahu.example.com. 2000081501 28800 7200 604800 86400
+stest.com.	120	IN	NS	ns1.example.com.
+stest.com.	120	IN	NS	ns2.example.com.
 $ORIGIN .
-cdnskey-cds-test.com.	3600	IN	SOA	ns1.cdnskey-cds-test ahu.example.com 2005092501 28800 7200 604800 86400
+cdnskey-cds-test.com.	3600	IN	SOA	ns1.cdnskey-cds-test. ahu.example.com. 2005092501 28800 7200 604800 86400
 cdnskey-cds-test.com.	3600	IN	A	127.0.0.1
-cdnskey-cds-test.com.	3600	IN	NS	ns1.cdnskey-cds-test.com
-cdnskey-cds-test.com.	3600	IN	NS	ns2.cdnskey-cds-test.com
+cdnskey-cds-test.com.	3600	IN	NS	ns1.cdnskey-cds-test.com.
+cdnskey-cds-test.com.	3600	IN	NS	ns2.cdnskey-cds-test.com.
 ns1.cdnskey-cds-test.com.	3600	IN	A	1.1.1.1
 ns2.cdnskey-cds-test.com.	3600	IN	A	2.2.2.2
 $ORIGIN .
-2.0.192.in-addr.arpa.	120	IN	SOA	ns1.example.com ahu.example.com 2000081501 28800 7200 604800 86400
-2.0.192.in-addr.arpa.	120	IN	NS	ns1.example.com
-2.0.192.in-addr.arpa.	120	IN	NS	ns2.example.com
+2.0.192.in-addr.arpa.	120	IN	SOA	ns1.example.com. ahu.example.com. 2000081501 28800 7200 604800 86400
+2.0.192.in-addr.arpa.	120	IN	NS	ns1.example.com.
+2.0.192.in-addr.arpa.	120	IN	NS	ns2.example.com.
 $ORIGIN .
-cryptokeys.org.	3600	IN	SOA	cryptokeys.ds9a.nl ahu.ds9a.nl 2009071301 14400 3600 604800 3600
+cryptokeys.org.	3600	IN	SOA	cryptokeys.ds9a.nl. ahu.ds9a.nl. 2009071301 14400 3600 604800 3600
 cryptokeys.org.	3600	IN	A	212.123.148.70
-cryptokeys.org.	3600	IN	NS	cryptokeys.ds9a.nl
-cryptokeys.org.	3600	IN	MX	10 cryptokeys.easy-server.com
+cryptokeys.org.	3600	IN	NS	cryptokeys.ds9a.nl.
+cryptokeys.org.	3600	IN	MX	10 cryptokeys.easy-server.com.
 zbefore.a.cryptokeys.org.	3600	IN	TXT	"before"
 after.cryptokeys.org.	3600	IN	TXT	"after"
-delegated.cryptokeys.org.	3600	IN	NS	ns1.delegated.cryptokeys.org
-delegated.cryptokeys.org.	3600	IN	NS	ns2.delegated.cryptokeys.org
+delegated.cryptokeys.org.	3600	IN	NS	ns1.delegated.cryptokeys.org.
+delegated.cryptokeys.org.	3600	IN	NS	ns2.delegated.cryptokeys.org.
 ns1.delegated.cryptokeys.org.	3600	IN	A	1.2.3.4
 ns2.delegated.cryptokeys.org.	3600	IN	A	4.3.2.1
 ipv6.cryptokeys.org.	3600	IN	AAAA	2001:888:1036:0:208:a1ff:fe19:f000
@@ -20313,29 +20313,29 @@ localhost.cryptokeys.org.	3600	IN	A	127.0.0.1
 localhost.cryptokeys.org.	3600	IN	AAAA	::1
 smtp.cryptokeys.org.	3600	IN	A	4.3.2.1
 webserver.cryptokeys.org.	3600	IN	A	1.2.3.4
-www.cryptokeys.org.	3600	IN	CNAME	cryptokeys.org
+www.cryptokeys.org.	3600	IN	CNAME	cryptokeys.org.
 zzz.cryptokeys.org.	3600	IN	TXT	"this is the end.."
 $ORIGIN .
-hiddencryptokeys.org.	3600	IN	SOA	cryptokeys.ds9a.nl ahu.ds9a.nl 2009071301 14400 3600 604800 3600
+hiddencryptokeys.org.	3600	IN	SOA	cryptokeys.ds9a.nl. ahu.ds9a.nl. 2009071301 14400 3600 604800 3600
 hiddencryptokeys.org.	3600	IN	A	212.123.148.70
-hiddencryptokeys.org.	3600	IN	NS	cryptokeys.ds9a.nl
+hiddencryptokeys.org.	3600	IN	NS	cryptokeys.ds9a.nl.
 $ORIGIN .
-example.com.	100000	IN	SOA	ns1.example.com ahu.example.com 2847484148 28800 7200 604800 86400
-example.com.	120	IN	NS	ns1.example.com
-example.com.	120	IN	NS	ns2.example.com
-example.com.	120	IN	MX	10 smtp-servers.example.com
-example.com.	120	IN	MX	15 smtp-servers.test.com
-_imap._tcp.example.com.	120	IN	SRV	0 1 143 blah.test.com
-cname-to-insecure.example.com.	120	IN	CNAME	www.insecure.dnssec-parent.com
+example.com.	100000	IN	SOA	ns1.example.com. ahu.example.com. 2847484148 28800 7200 604800 86400
+example.com.	120	IN	NS	ns1.example.com.
+example.com.	120	IN	NS	ns2.example.com.
+example.com.	120	IN	MX	10 smtp-servers.example.com.
+example.com.	120	IN	MX	15 smtp-servers.test.com.
+_imap._tcp.example.com.	120	IN	SRV	0 1 143 blah.test.com.
+cname-to-insecure.example.com.	120	IN	CNAME	www.insecure.dnssec-parent.com.
 double.example.com.	120	IN	A	192.168.5.1
-dsdelegation.example.com.	120	IN	NS	ns.example.com
+dsdelegation.example.com.	120	IN	NS	ns.example.com.
 dsdelegation.example.com.	120	IN	DS	28129 8 1 caf1eaaecdabe7616670788f9022454bf5fd9fda
 escapedtext.example.com.	120	IN	TXT	"begin" "the \"middle\" p\\art" "the end"
-external.example.com.	120	IN	CNAME	somewhere.else.net
-external-mail.example.com.	120	IN	MX	25 server1.test.com
-france.example.com.	120	IN	NS	ns1.otherprovider.net
-france.example.com.	120	IN	NS	ns2.otherprovider.net
-google-alias.example.com.	120	IN	ALIAS	google-public-dns-a.google.com
+external.example.com.	120	IN	CNAME	somewhere.else.net.
+external-mail.example.com.	120	IN	MX	25 server1.test.com.
+france.example.com.	120	IN	NS	ns1.otherprovider.net.
+france.example.com.	120	IN	NS	ns2.otherprovider.net.
+google-alias.example.com.	120	IN	ALIAS	google-public-dns-a.google.com.
 hightype.example.com.	120	IN	A	192.168.1.5
 hightype.example.com.	120	IN	TYPE65534	\# 5 07ed260001
 host-0.example.com.	120	IN	A	192.168.1.0
@@ -40343,8 +40343,8 @@ host-9999.example.com.	120	IN	A	192.168.1.15
 host-for-auto-ptr.example.com.	120	IN	A	192.0.2.1
 hwinfo.example.com.	120	IN	HINFO	"abc" "def"
 ipv6.example.com.	120	IN	AAAA	2001:6a8:0:1:210:4bff:fe4b:4c61
-italy.example.com.	120	IN	NS	italy-ns1.example.com
-italy.example.com.	120	IN	NS	italy-ns2.example.com
+italy.example.com.	120	IN	NS	italy-ns1.example.com.
+italy.example.com.	120	IN	NS	italy-ns2.example.com.
 italy-ns1.example.com.	120	IN	A	192.168.5.1
 italy-ns2.example.com.	120	IN	A	192.168.5.2
 largettl.example.com.	1073741724	IN	TXT	"this record has a huge TTL"
@@ -40353,31 +40353,31 @@ location.example.com.	120	IN	LOC	51 56 0.123 N 5 54 0.000 E 4.00m 1.00m 10000.00
 location.example.com.	120	IN	LOC	51 56 1.456 S 5 54 0.000 E 4.00m 2.00m 10000.00m 10.00m
 location.example.com.	120	IN	LOC	51 56 2.789 N 5 54 0.000 W 4.00m 3.00m 10000.00m 10.00m
 location.example.com.	120	IN	LOC	51 56 3.012 S 5 54 0.000 W 4.00m 4.00m 10000.00m 10.00m
-loop1.example.com.	120	IN	CNAME	loop2.example.com
-loop2.example.com.	120	IN	CNAME	loop3.example.com
-loop3.example.com.	120	IN	CNAME	loop1.example.com
-mail.example.com.	120	IN	MX	25 smtp1.example.com
-hostmaster.mb.example.com.	120	IN	MG	phil.mb.example.com
-hostmaster.mb.example.com.	120	IN	MG	sheila.mb.example.com
-phil.mb.example.com.	120	IN	MB	pc.mb.example.com
-philip.mb.example.com.	120	IN	MR	phil.mb.example.com
-sheila.mb.example.com.	120	IN	MB	bill.mb.example.com
+loop1.example.com.	120	IN	CNAME	loop2.example.com.
+loop2.example.com.	120	IN	CNAME	loop3.example.com.
+loop3.example.com.	120	IN	CNAME	loop1.example.com.
+mail.example.com.	120	IN	MX	25 smtp1.example.com.
+hostmaster.mb.example.com.	120	IN	MG	phil.mb.example.com.
+hostmaster.mb.example.com.	120	IN	MG	sheila.mb.example.com.
+phil.mb.example.com.	120	IN	MB	pc.mb.example.com.
+philip.mb.example.com.	120	IN	MR	phil.mb.example.com.
+sheila.mb.example.com.	120	IN	MB	bill.mb.example.com.
 multitext.example.com.	120	IN	TXT	"text part one" "text part two" "text part three"
 ns1.example.com.	120	IN	A	192.168.1.1
 ns2.example.com.	120	IN	A	192.168.1.2
-nxd.example.com.	120	IN	CNAME	nxdomain.example.com
+nxd.example.com.	120	IN	CNAME	nxdomain.example.com.
 outpost.example.com.	120	IN	A	192.168.2.1
-rhs-at-expansion.example.com.	120	IN	CNAME	example.com
-semi-external.example.com.	120	IN	CNAME	bla.something.wtest.com
-server1.example.com.	120	IN	CNAME	server1.france.example.com
+rhs-at-expansion.example.com.	120	IN	CNAME	example.com.
+semi-external.example.com.	120	IN	CNAME	bla.something.wtest.com.
+server1.example.com.	120	IN	CNAME	server1.france.example.com.
 smtp-servers.example.com.	120	IN	A	192.168.0.2
 smtp-servers.example.com.	120	IN	A	192.168.0.3
 smtp-servers.example.com.	120	IN	A	192.168.0.4
-smtp1.example.com.	120	IN	CNAME	outpost.example.com
-start.example.com.	120	IN	CNAME	x.y.z.w1.example.com
-start1.example.com.	120	IN	CNAME	start2.example.com
-start2.example.com.	120	IN	CNAME	start3.example.com
-start3.example.com.	120	IN	CNAME	start4.example.com
+smtp1.example.com.	120	IN	CNAME	outpost.example.com.
+start.example.com.	120	IN	CNAME	x.y.z.w1.example.com.
+start1.example.com.	120	IN	CNAME	start2.example.com.
+start2.example.com.	120	IN	CNAME	start3.example.com.
+start3.example.com.	120	IN	CNAME	start4.example.com.
 start4.example.com.	120	IN	A	192.168.2.2
 host.*.sub.example.com.	120	IN	A	192.168.6.1
 text.example.com.	120	IN	TXT	"Hi, this is some text"
@@ -40385,8 +40385,8 @@ text0.example.com.	120	IN	TXT	"k=rsa; p=one"
 text1.example.com.	120	IN	TXT	"k=rsa; p=one"
 text2.example.com.	120	IN	TXT	"k=rsa\\; p=one"
 text3.example.com.	120	IN	TXT	"k=rsa\\; p=one"
-together-too-much.example.com.	120	IN	MX	25 toomuchinfo-a.example.com
-together-too-much.example.com.	120	IN	MX	25 toomuchinfo-b.example.com
+together-too-much.example.com.	120	IN	MX	25 toomuchinfo-a.example.com.
+together-too-much.example.com.	120	IN	MX	25 toomuchinfo-b.example.com.
 toomuchinfo-a.example.com.	120	IN	A	192.168.99.1
 toomuchinfo-a.example.com.	120	IN	A	192.168.99.10
 toomuchinfo-a.example.com.	120	IN	A	192.168.99.11
@@ -40462,36 +40462,36 @@ toomuchinfo-b.example.com.	120	IN	A	192.168.99.87
 toomuchinfo-b.example.com.	120	IN	A	192.168.99.88
 toomuchinfo-b.example.com.	120	IN	A	192.168.99.89
 toomuchinfo-b.example.com.	120	IN	A	192.168.99.90
-unauth.example.com.	120	IN	CNAME	no-idea.example.org
-usa.example.com.	120	IN	NS	usa-ns1.usa.example.com
-usa.example.com.	120	IN	NS	usa-ns2.usa.example.com
+unauth.example.com.	120	IN	CNAME	no-idea.example.org.
+usa.example.com.	120	IN	NS	usa-ns1.usa.example.com.
+usa.example.com.	120	IN	NS	usa-ns2.usa.example.com.
 usa-ns1.usa.example.com.	120	IN	A	192.168.4.1
 usa-ns2.usa.example.com.	120	IN	A	192.168.4.2
-*.w1.example.com.	120	IN	CNAME	x.y.z.w2.example.com
-*.w2.example.com.	120	IN	CNAME	x.y.z.w3.example.com
-*.w3.example.com.	120	IN	CNAME	x.y.z.w4.example.com
-*.w4.example.com.	120	IN	CNAME	x.y.z.w5.example.com
+*.w1.example.com.	120	IN	CNAME	x.y.z.w2.example.com.
+*.w2.example.com.	120	IN	CNAME	x.y.z.w3.example.com.
+*.w3.example.com.	120	IN	CNAME	x.y.z.w4.example.com.
+*.w4.example.com.	120	IN	CNAME	x.y.z.w5.example.com.
 *.w5.example.com.	120	IN	A	1.2.3.5
-www.example.com.	120	IN	CNAME	outpost.example.com
+www.example.com.	120	IN	CNAME	outpost.example.com.
 $ORIGIN .
-test.com.	3600	IN	SOA	ns1.test.com ahu.example.com 2005092501 28800 7200 604800 86400
-test.com.	3600	IN	NS	ns1.test.com
-test.com.	3600	IN	NS	ns2.test.com
+test.com.	3600	IN	SOA	ns1.test.com. ahu.example.com. 2005092501 28800 7200 604800 86400
+test.com.	3600	IN	NS	ns1.test.com.
+test.com.	3600	IN	NS	ns2.test.com.
 test.com.	3600	IN	MX	10 .
-test.com.	3600	IN	MX	15 smtp-servers.test.com
+test.com.	3600	IN	MX	15 smtp-servers.test.com.
 _underscore.test.com.	3600	IN	TXT	"underscores are terrible"
 aland.test.com.	3600	IN	TXT	"\195\133LAND ISLANDS"
 blah.test.com.	3600	IN	A	192.168.6.1
-blah.test.com.	3600	IN	NS	blah.test.com
+blah.test.com.	3600	IN	NS	blah.test.com.
 b.c.test.com.	3600	IN	A	5.6.7.8
 *.a.b.c.test.com.	3600	IN	A	8.7.6.5
 counter.test.com.	3600	IN	A	1.1.1.5
-d.test.com.	3600	IN	DNAME	d2.test2.com
-_double._tcp.dc.test.com.	3600	IN	SRV	0 100 389 server1.test.com
-_double._tcp.dc.test.com.	3600	IN	SRV	1 100 389 server1.test.com
-_ldap._tcp.dc.test.com.	3600	IN	SRV	0 100 389 server2.example.net
+d.test.com.	3600	IN	DNAME	d2.test2.com.
+_double._tcp.dc.test.com.	3600	IN	SRV	0 100 389 server1.test.com.
+_double._tcp.dc.test.com.	3600	IN	SRV	1 100 389 server1.test.com.
+_ldap._tcp.dc.test.com.	3600	IN	SRV	0 100 389 server2.example.net.
 _root._tcp.dc.test.com.	3600	IN	SRV	0 0 0 .
-enum.test.com.	3600	IN	NAPTR	100 50 "u" "e2u+sip" "" testuser.domain.com
+enum.test.com.	3600	IN	NAPTR	100 50 "u" "e2u+sip" "" testuser.domain.com.
 hightxt.test.com.	3600	IN	TXT	"v=spf1 mx ip4:78.46.192.210 \226\128\147all"
 hightxt.test.com.	3600	IN	SPF	"v=spf1 mx ip4:78.46.192.210 \226\128\147all"
 interrupted-rrset.test.com.	3600	IN	A	1.1.1.1
@@ -40500,23 +40500,23 @@ interrupted-rrset.test.com.	3600	IN	TXT	"check AXFR signpipe"
 ns1.test.com.	3600	IN	A	1.1.1.1
 ns2.test.com.	3600	IN	A	2.2.2.2
 server1.test.com.	3600	IN	A	1.2.3.4
-server1.test.com.	3600	IN	RP	ahu.ds9a.nl counter.test.com
-*.test.test.com.	3600	IN	CNAME	server1.test.com
-sub.test.test.com.	3600	IN	NS	ns-test.example.net.test.com
+server1.test.com.	3600	IN	RP	ahu.ds9a.nl. counter.test.com.
+*.test.test.com.	3600	IN	CNAME	server1.test.com.
+sub.test.test.com.	3600	IN	NS	ns-test.example.net.test.com.
 www.test.test.com.	3600	IN	A	4.3.2.1
 toroot.test.com.	3600	IN	CNAME	.
 urc65226.test.com.	3600	IN	TYPE65226	\# 3 414243
 very-long-txt.test.com.	3600	IN	TXT	"A very long TXT record! boy you won't believe how long. A very long TXT record! boy you won't believe how long. A very long TXT record! boy you won't believe how long. A very long TXT record! boy you won't believe how long. A very long TXT record! boy you" " won't believe how long!"
-within-server.test.com.	3600	IN	CNAME	outpost.example.com
-www.test.com.	3600	IN	CNAME	server1.test.com
+within-server.test.com.	3600	IN	CNAME	outpost.example.com.
+www.test.com.	3600	IN	CNAME	server1.test.com.
 $ORIGIN .
-test.dyndns.	3600	IN	SOA	ns1.test.dyndns ahu.example.dyndns 2012060701 28800 7200 604800 86400
-test.dyndns.	3600	IN	NS	ns1.test.dyndns
-test.dyndns.	3600	IN	NS	ns2.test.dyndns
-test.dyndns.	3600	IN	MX	10 host-1.test.dyndns
-test.dyndns.	3600	IN	MX	20 host-2.test.dyndns
-cname1.test.dyndns.	3600	IN	CNAME	host-1.test.dyndns
-cname2.test.dyndns.	3600	IN	CNAME	host-2.test.dyndns
+test.dyndns.	3600	IN	SOA	ns1.test.dyndns. ahu.example.dyndns. 2012060701 28800 7200 604800 86400
+test.dyndns.	3600	IN	NS	ns1.test.dyndns.
+test.dyndns.	3600	IN	NS	ns2.test.dyndns.
+test.dyndns.	3600	IN	MX	10 host-1.test.dyndns.
+test.dyndns.	3600	IN	MX	20 host-2.test.dyndns.
+cname1.test.dyndns.	3600	IN	CNAME	host-1.test.dyndns.
+cname2.test.dyndns.	3600	IN	CNAME	host-2.test.dyndns.
 delete-add.test.dyndns.	3600	IN	A	127.0.0.108
 delete-add.test.dyndns.	3600	IN	TXT	"Should be gone after a while"
 a.host.test.dyndns.	3600	IN	A	1.1.1.1
@@ -40530,103 +40530,103 @@ multi.test.dyndns.	3600	IN	A	127.0.0.3
 ns1.test.dyndns.	3600	IN	A	127.0.0.1
 ns2.test.dyndns.	3600	IN	A	127.0.0.2
 replace.test.dyndns.	3600	IN	A	127.0.0.1
-sub.test.dyndns.	3600	IN	NS	ns1.test.dyndns
-sub.test.dyndns.	3600	IN	NS	ns2.test.dyndns
+sub.test.dyndns.	3600	IN	NS	ns1.test.dyndns.
+sub.test.dyndns.	3600	IN	NS	ns2.test.dyndns.
 ttl.test.dyndns.	3600	IN	A	127.0.0.1
 txt.test.dyndns.	3600	IN	TXT	"This is some text"
 *.wild.test.dyndns.	3600	IN	A	127.0.1.255
 $ORIGIN .
-sub.test.dyndns.	3600	IN	SOA	ns1.test.dyndns ahu.example.dyndns 2012060701 28800 7200 604800 86400
-sub.test.dyndns.	3600	IN	NS	ns1.test.dyndns
-sub.test.dyndns.	3600	IN	NS	ns2.test.dyndns
+sub.test.dyndns.	3600	IN	SOA	ns1.test.dyndns. ahu.example.dyndns. 2012060701 28800 7200 604800 86400
+sub.test.dyndns.	3600	IN	NS	ns1.test.dyndns.
+sub.test.dyndns.	3600	IN	NS	ns2.test.dyndns.
 $ORIGIN .
-wtest.com.	3600	IN	SOA	ns1.wtest.com ahu.example.com 2005092501 28800 7200 604800 86400
+wtest.com.	3600	IN	SOA	ns1.wtest.com. ahu.example.com. 2005092501 28800 7200 604800 86400
 wtest.com.	3600	IN	A	9.9.9.9
 wtest.com.	3600	IN	NS	.
-wtest.com.	3600	IN	NS	ns1.wtest.com
-wtest.com.	3600	IN	MX	10 smtp-servers.example.com
-wtest.com.	3600	IN	MX	15 smtp-servers.wtest.com
-*.wtest.com.	3600	IN	CNAME	server1.wtest.com
+wtest.com.	3600	IN	NS	ns1.wtest.com.
+wtest.com.	3600	IN	MX	10 smtp-servers.example.com.
+wtest.com.	3600	IN	MX	15 smtp-servers.wtest.com.
+*.wtest.com.	3600	IN	CNAME	server1.wtest.com.
 *.a.b.c.d.e.wtest.com.	3600	IN	A	6.7.8.9
 ns1.wtest.com.	3600	IN	A	2.3.4.5
-secure.wtest.com.	3600	IN	MX	10 server1.wtest.com
+secure.wtest.com.	3600	IN	MX	10 server1.wtest.com.
 server1.wtest.com.	3600	IN	A	1.2.3.4
 *.something.wtest.com.	3600	IN	A	4.3.2.1
 a.something.wtest.com.	3600	IN	A	10.11.12.13
 $ORIGIN .
-dnssec-parent.com.	3600	IN	SOA	ns1.dnssec-parent.com ahu.example.com 2005092501 28800 7200 604800 86400
+dnssec-parent.com.	3600	IN	SOA	ns1.dnssec-parent.com. ahu.example.com. 2005092501 28800 7200 604800 86400
 dnssec-parent.com.	3600	IN	A	9.9.9.9
-dnssec-parent.com.	3600	IN	NS	ns1.dnssec-parent.com
-dnssec-parent.com.	3600	IN	NS	ns2.dnssec-parent.com
-insecure-delegated.ent.ent.auth-ent.dnssec-parent.com.	3600	IN	NS	ns.example.com
+dnssec-parent.com.	3600	IN	NS	ns1.dnssec-parent.com.
+dnssec-parent.com.	3600	IN	NS	ns2.dnssec-parent.com.
+insecure-delegated.ent.ent.auth-ent.dnssec-parent.com.	3600	IN	NS	ns.example.com.
 something1.auth-ent.dnssec-parent.com.	3600	IN	A	1.1.2.3
-delegated.dnssec-parent.com.	3600	IN	NS	ns1.delegated.dnssec-parent.com
-delegated.dnssec-parent.com.	3600	IN	NS	ns2.delegated.dnssec-parent.com
+delegated.dnssec-parent.com.	3600	IN	NS	ns1.delegated.dnssec-parent.com.
+delegated.dnssec-parent.com.	3600	IN	NS	ns2.delegated.dnssec-parent.com.
 ns1.delegated.dnssec-parent.com.	3600	IN	A	4.5.6.7
 ns2.delegated.dnssec-parent.com.	3600	IN	A	5.6.7.8
-insecure.dnssec-parent.com.	3600	IN	NS	ns.example.com
+insecure.dnssec-parent.com.	3600	IN	NS	ns.example.com.
 ns1.dnssec-parent.com.	3600	IN	A	1.2.3.4
 ns2.dnssec-parent.com.	3600	IN	A	4.3.2.1
-secure-delegated.dnssec-parent.com.	3600	IN	NS	ns1.secure-delegated.dnssec-parent.com
-secure-delegated.dnssec-parent.com.	3600	IN	NS	ns2.secure-delegated.dnssec-parent.com
+secure-delegated.dnssec-parent.com.	3600	IN	NS	ns1.secure-delegated.dnssec-parent.com.
+secure-delegated.dnssec-parent.com.	3600	IN	NS	ns2.secure-delegated.dnssec-parent.com.
 secure-delegated.dnssec-parent.com.	3600	IN	DS	54319 8 2 a0b9c38cd324182af0ef66830d0a0e85a1d58979c9834e18c871779e040857b7
 ns1.secure-delegated.dnssec-parent.com.	3600	IN	A	1.2.3.4
 ns2.secure-delegated.dnssec-parent.com.	3600	IN	A	5.6.7.8
-www.dnssec-parent.com.	3600	IN	CNAME	www.insecure.dnssec-parent.com
+www.dnssec-parent.com.	3600	IN	CNAME	www.insecure.dnssec-parent.com.
 $ORIGIN .
-insecure.dnssec-parent.com.	120	IN	SOA	ns1.example.com ahu.example.com 2000081501 28800 7200 604800 86400
-insecure.dnssec-parent.com.	120	IN	NS	ns1.example.com
-insecure.dnssec-parent.com.	120	IN	NS	ns2.example.com
+insecure.dnssec-parent.com.	120	IN	SOA	ns1.example.com. ahu.example.com. 2000081501 28800 7200 604800 86400
+insecure.dnssec-parent.com.	120	IN	NS	ns1.example.com.
+insecure.dnssec-parent.com.	120	IN	NS	ns2.example.com.
 www.insecure.dnssec-parent.com.	120	IN	A	192.0.2.88
 $ORIGIN .
-delegated.dnssec-parent.com.	3600	IN	SOA	ns1.delegated.dnssec-parent.com ahu.example.com 2005092501 28800 7200 604800 86400
+delegated.dnssec-parent.com.	3600	IN	SOA	ns1.delegated.dnssec-parent.com. ahu.example.com. 2005092501 28800 7200 604800 86400
 delegated.dnssec-parent.com.	3600	IN	A	9.9.9.9
-delegated.dnssec-parent.com.	3600	IN	NS	ns1.delegated.dnssec-parent.com
-delegated.dnssec-parent.com.	3600	IN	NS	ns2.delegated.dnssec-parent.com
+delegated.dnssec-parent.com.	3600	IN	NS	ns1.delegated.dnssec-parent.com.
+delegated.dnssec-parent.com.	3600	IN	NS	ns2.delegated.dnssec-parent.com.
 delegated.dnssec-parent.com.	3600	IN	DS	44030 8 2 d4c3d5552b8679faeebc317e5f048b614b2e5f607dc57f1553182d49ab2179f7
 ns1.delegated.dnssec-parent.com.	3600	IN	A	4.5.6.7
 ns2.delegated.dnssec-parent.com.	3600	IN	A	5.6.7.8
-www.delegated.dnssec-parent.com.	3600	IN	CNAME	delegated.dnssec-parent.com
+www.delegated.dnssec-parent.com.	3600	IN	CNAME	delegated.dnssec-parent.com.
 $ORIGIN .
-secure-delegated.dnssec-parent.com.	3600	IN	SOA	ns1.secure-delegated.dnssec-parent.com ahu.example.com 2005092501 28800 7200 604800 86400
+secure-delegated.dnssec-parent.com.	3600	IN	SOA	ns1.secure-delegated.dnssec-parent.com. ahu.example.com. 2005092501 28800 7200 604800 86400
 secure-delegated.dnssec-parent.com.	3600	IN	A	9.9.9.9
-secure-delegated.dnssec-parent.com.	3600	IN	NS	ns1.secure-delegated.dnssec-parent.com
-secure-delegated.dnssec-parent.com.	3600	IN	NS	ns2.secure-delegated.dnssec-parent.com
+secure-delegated.dnssec-parent.com.	3600	IN	NS	ns1.secure-delegated.dnssec-parent.com.
+secure-delegated.dnssec-parent.com.	3600	IN	NS	ns2.secure-delegated.dnssec-parent.com.
 ns1.secure-delegated.dnssec-parent.com.	3600	IN	A	1.2.3.4
 ns2.secure-delegated.dnssec-parent.com.	3600	IN	A	5.6.7.8
-www.secure-delegated.dnssec-parent.com.	3600	IN	CNAME	secure-delegated.dnssec-parent.com
+www.secure-delegated.dnssec-parent.com.	3600	IN	CNAME	secure-delegated.dnssec-parent.com.
 $ORIGIN .
-minimal.com.	120	IN	SOA	ns1.example.com ahu.example.com 2000081501 28800 7200 604800 86400
-minimal.com.	120	IN	NS	ns1.example.com
-minimal.com.	120	IN	NS	ns2.example.com
+minimal.com.	120	IN	SOA	ns1.example.com. ahu.example.com. 2000081501 28800 7200 604800 86400
+minimal.com.	120	IN	NS	ns1.example.com.
+minimal.com.	120	IN	NS	ns2.example.com.
 $ORIGIN .
-tsig.com.	120	IN	SOA	ns1.example.com ahu.example.com 2000081501 28800 7200 604800 86400
-tsig.com.	120	IN	NS	ns1.example.com
-tsig.com.	120	IN	NS	ns2.example.com
+tsig.com.	120	IN	SOA	ns1.example.com. ahu.example.com. 2000081501 28800 7200 604800 86400
+tsig.com.	120	IN	NS	ns1.example.com.
+tsig.com.	120	IN	NS	ns2.example.com.
 $ORIGIN .
-stest.com.	120	IN	SOA	ns1.example.com ahu.example.com 2000081501 28800 7200 604800 86400
-stest.com.	120	IN	NS	ns1.example.com
-stest.com.	120	IN	NS	ns2.example.com
+stest.com.	120	IN	SOA	ns1.example.com. ahu.example.com. 2000081501 28800 7200 604800 86400
+stest.com.	120	IN	NS	ns1.example.com.
+stest.com.	120	IN	NS	ns2.example.com.
 $ORIGIN .
-cdnskey-cds-test.com.	3600	IN	SOA	ns1.cdnskey-cds-test ahu.example.com 2005092501 28800 7200 604800 86400
+cdnskey-cds-test.com.	3600	IN	SOA	ns1.cdnskey-cds-test. ahu.example.com. 2005092501 28800 7200 604800 86400
 cdnskey-cds-test.com.	3600	IN	A	127.0.0.1
-cdnskey-cds-test.com.	3600	IN	NS	ns1.cdnskey-cds-test.com
-cdnskey-cds-test.com.	3600	IN	NS	ns2.cdnskey-cds-test.com
+cdnskey-cds-test.com.	3600	IN	NS	ns1.cdnskey-cds-test.com.
+cdnskey-cds-test.com.	3600	IN	NS	ns2.cdnskey-cds-test.com.
 ns1.cdnskey-cds-test.com.	3600	IN	A	1.1.1.1
 ns2.cdnskey-cds-test.com.	3600	IN	A	2.2.2.2
 $ORIGIN .
-2.0.192.in-addr.arpa.	120	IN	SOA	ns1.example.com ahu.example.com 2000081501 28800 7200 604800 86400
-2.0.192.in-addr.arpa.	120	IN	NS	ns1.example.com
-2.0.192.in-addr.arpa.	120	IN	NS	ns2.example.com
+2.0.192.in-addr.arpa.	120	IN	SOA	ns1.example.com. ahu.example.com. 2000081501 28800 7200 604800 86400
+2.0.192.in-addr.arpa.	120	IN	NS	ns1.example.com.
+2.0.192.in-addr.arpa.	120	IN	NS	ns2.example.com.
 $ORIGIN .
-cryptokeys.org.	3600	IN	SOA	cryptokeys.ds9a.nl ahu.ds9a.nl 2009071301 14400 3600 604800 3600
+cryptokeys.org.	3600	IN	SOA	cryptokeys.ds9a.nl. ahu.ds9a.nl. 2009071301 14400 3600 604800 3600
 cryptokeys.org.	3600	IN	A	212.123.148.70
-cryptokeys.org.	3600	IN	NS	cryptokeys.ds9a.nl
-cryptokeys.org.	3600	IN	MX	10 cryptokeys.easy-server.com
+cryptokeys.org.	3600	IN	NS	cryptokeys.ds9a.nl.
+cryptokeys.org.	3600	IN	MX	10 cryptokeys.easy-server.com.
 zbefore.a.cryptokeys.org.	3600	IN	TXT	"before"
 after.cryptokeys.org.	3600	IN	TXT	"after"
-delegated.cryptokeys.org.	3600	IN	NS	ns1.delegated.cryptokeys.org
-delegated.cryptokeys.org.	3600	IN	NS	ns2.delegated.cryptokeys.org
+delegated.cryptokeys.org.	3600	IN	NS	ns1.delegated.cryptokeys.org.
+delegated.cryptokeys.org.	3600	IN	NS	ns2.delegated.cryptokeys.org.
 ns1.delegated.cryptokeys.org.	3600	IN	A	1.2.3.4
 ns2.delegated.cryptokeys.org.	3600	IN	A	4.3.2.1
 ipv6.cryptokeys.org.	3600	IN	AAAA	2001:888:1036:0:208:a1ff:fe19:f000
@@ -40634,29 +40634,29 @@ localhost.cryptokeys.org.	3600	IN	A	127.0.0.1
 localhost.cryptokeys.org.	3600	IN	AAAA	::1
 smtp.cryptokeys.org.	3600	IN	A	4.3.2.1
 webserver.cryptokeys.org.	3600	IN	A	1.2.3.4
-www.cryptokeys.org.	3600	IN	CNAME	cryptokeys.org
+www.cryptokeys.org.	3600	IN	CNAME	cryptokeys.org.
 zzz.cryptokeys.org.	3600	IN	TXT	"this is the end.."
 $ORIGIN .
-hiddencryptokeys.org.	3600	IN	SOA	cryptokeys.ds9a.nl ahu.ds9a.nl 2009071301 14400 3600 604800 3600
+hiddencryptokeys.org.	3600	IN	SOA	cryptokeys.ds9a.nl. ahu.ds9a.nl. 2009071301 14400 3600 604800 3600
 hiddencryptokeys.org.	3600	IN	A	212.123.148.70
-hiddencryptokeys.org.	3600	IN	NS	cryptokeys.ds9a.nl
+hiddencryptokeys.org.	3600	IN	NS	cryptokeys.ds9a.nl.
 $ORIGIN .
-example.com.	100000	IN	SOA	ns1.example.com ahu.example.com 2847484148 28800 7200 604800 86400
-example.com.	120	IN	NS	ns1.example.com
-example.com.	120	IN	NS	ns2.example.com
-example.com.	120	IN	MX	10 smtp-servers.example.com
-example.com.	120	IN	MX	15 smtp-servers.test.com
-_imap._tcp.example.com.	120	IN	SRV	0 1 143 blah.test.com
-cname-to-insecure.example.com.	120	IN	CNAME	www.insecure.dnssec-parent.com
+example.com.	100000	IN	SOA	ns1.example.com. ahu.example.com. 2847484148 28800 7200 604800 86400
+example.com.	120	IN	NS	ns1.example.com.
+example.com.	120	IN	NS	ns2.example.com.
+example.com.	120	IN	MX	10 smtp-servers.example.com.
+example.com.	120	IN	MX	15 smtp-servers.test.com.
+_imap._tcp.example.com.	120	IN	SRV	0 1 143 blah.test.com.
+cname-to-insecure.example.com.	120	IN	CNAME	www.insecure.dnssec-parent.com.
 double.example.com.	120	IN	A	192.168.5.1
-dsdelegation.example.com.	120	IN	NS	ns.example.com
+dsdelegation.example.com.	120	IN	NS	ns.example.com.
 dsdelegation.example.com.	120	IN	DS	28129 8 1 caf1eaaecdabe7616670788f9022454bf5fd9fda
 escapedtext.example.com.	120	IN	TXT	"begin" "the \"middle\" p\\art" "the end"
-external.example.com.	120	IN	CNAME	somewhere.else.net
-external-mail.example.com.	120	IN	MX	25 server1.test.com
-france.example.com.	120	IN	NS	ns1.otherprovider.net
-france.example.com.	120	IN	NS	ns2.otherprovider.net
-google-alias.example.com.	120	IN	ALIAS	google-public-dns-a.google.com
+external.example.com.	120	IN	CNAME	somewhere.else.net.
+external-mail.example.com.	120	IN	MX	25 server1.test.com.
+france.example.com.	120	IN	NS	ns1.otherprovider.net.
+france.example.com.	120	IN	NS	ns2.otherprovider.net.
+google-alias.example.com.	120	IN	ALIAS	google-public-dns-a.google.com.
 hightype.example.com.	120	IN	A	192.168.1.5
 hightype.example.com.	120	IN	TYPE65534	\# 5 07ed260001
 host-0.example.com.	120	IN	A	192.168.1.0
@@ -60664,8 +60664,8 @@ host-9999.example.com.	120	IN	A	192.168.1.15
 host-for-auto-ptr.example.com.	120	IN	A	192.0.2.1
 hwinfo.example.com.	120	IN	HINFO	"abc" "def"
 ipv6.example.com.	120	IN	AAAA	2001:6a8:0:1:210:4bff:fe4b:4c61
-italy.example.com.	120	IN	NS	italy-ns1.example.com
-italy.example.com.	120	IN	NS	italy-ns2.example.com
+italy.example.com.	120	IN	NS	italy-ns1.example.com.
+italy.example.com.	120	IN	NS	italy-ns2.example.com.
 italy-ns1.example.com.	120	IN	A	192.168.5.1
 italy-ns2.example.com.	120	IN	A	192.168.5.2
 largettl.example.com.	1073741724	IN	TXT	"this record has a huge TTL"
@@ -60674,31 +60674,31 @@ location.example.com.	120	IN	LOC	51 56 0.123 N 5 54 0.000 E 4.00m 1.00m 10000.00
 location.example.com.	120	IN	LOC	51 56 1.456 S 5 54 0.000 E 4.00m 2.00m 10000.00m 10.00m
 location.example.com.	120	IN	LOC	51 56 2.789 N 5 54 0.000 W 4.00m 3.00m 10000.00m 10.00m
 location.example.com.	120	IN	LOC	51 56 3.012 S 5 54 0.000 W 4.00m 4.00m 10000.00m 10.00m
-loop1.example.com.	120	IN	CNAME	loop2.example.com
-loop2.example.com.	120	IN	CNAME	loop3.example.com
-loop3.example.com.	120	IN	CNAME	loop1.example.com
-mail.example.com.	120	IN	MX	25 smtp1.example.com
-hostmaster.mb.example.com.	120	IN	MG	phil.mb.example.com
-hostmaster.mb.example.com.	120	IN	MG	sheila.mb.example.com
-phil.mb.example.com.	120	IN	MB	pc.mb.example.com
-philip.mb.example.com.	120	IN	MR	phil.mb.example.com
-sheila.mb.example.com.	120	IN	MB	bill.mb.example.com
+loop1.example.com.	120	IN	CNAME	loop2.example.com.
+loop2.example.com.	120	IN	CNAME	loop3.example.com.
+loop3.example.com.	120	IN	CNAME	loop1.example.com.
+mail.example.com.	120	IN	MX	25 smtp1.example.com.
+hostmaster.mb.example.com.	120	IN	MG	phil.mb.example.com.
+hostmaster.mb.example.com.	120	IN	MG	sheila.mb.example.com.
+phil.mb.example.com.	120	IN	MB	pc.mb.example.com.
+philip.mb.example.com.	120	IN	MR	phil.mb.example.com.
+sheila.mb.example.com.	120	IN	MB	bill.mb.example.com.
 multitext.example.com.	120	IN	TXT	"text part one" "text part two" "text part three"
 ns1.example.com.	120	IN	A	192.168.1.1
 ns2.example.com.	120	IN	A	192.168.1.2
-nxd.example.com.	120	IN	CNAME	nxdomain.example.com
+nxd.example.com.	120	IN	CNAME	nxdomain.example.com.
 outpost.example.com.	120	IN	A	192.168.2.1
-rhs-at-expansion.example.com.	120	IN	CNAME	example.com
-semi-external.example.com.	120	IN	CNAME	bla.something.wtest.com
-server1.example.com.	120	IN	CNAME	server1.france.example.com
+rhs-at-expansion.example.com.	120	IN	CNAME	example.com.
+semi-external.example.com.	120	IN	CNAME	bla.something.wtest.com.
+server1.example.com.	120	IN	CNAME	server1.france.example.com.
 smtp-servers.example.com.	120	IN	A	192.168.0.2
 smtp-servers.example.com.	120	IN	A	192.168.0.3
 smtp-servers.example.com.	120	IN	A	192.168.0.4
-smtp1.example.com.	120	IN	CNAME	outpost.example.com
-start.example.com.	120	IN	CNAME	x.y.z.w1.example.com
-start1.example.com.	120	IN	CNAME	start2.example.com
-start2.example.com.	120	IN	CNAME	start3.example.com
-start3.example.com.	120	IN	CNAME	start4.example.com
+smtp1.example.com.	120	IN	CNAME	outpost.example.com.
+start.example.com.	120	IN	CNAME	x.y.z.w1.example.com.
+start1.example.com.	120	IN	CNAME	start2.example.com.
+start2.example.com.	120	IN	CNAME	start3.example.com.
+start3.example.com.	120	IN	CNAME	start4.example.com.
 start4.example.com.	120	IN	A	192.168.2.2
 host.*.sub.example.com.	120	IN	A	192.168.6.1
 text.example.com.	120	IN	TXT	"Hi, this is some text"
@@ -60706,8 +60706,8 @@ text0.example.com.	120	IN	TXT	"k=rsa; p=one"
 text1.example.com.	120	IN	TXT	"k=rsa; p=one"
 text2.example.com.	120	IN	TXT	"k=rsa\\; p=one"
 text3.example.com.	120	IN	TXT	"k=rsa\\; p=one"
-together-too-much.example.com.	120	IN	MX	25 toomuchinfo-a.example.com
-together-too-much.example.com.	120	IN	MX	25 toomuchinfo-b.example.com
+together-too-much.example.com.	120	IN	MX	25 toomuchinfo-a.example.com.
+together-too-much.example.com.	120	IN	MX	25 toomuchinfo-b.example.com.
 toomuchinfo-a.example.com.	120	IN	A	192.168.99.1
 toomuchinfo-a.example.com.	120	IN	A	192.168.99.10
 toomuchinfo-a.example.com.	120	IN	A	192.168.99.11
@@ -60783,36 +60783,36 @@ toomuchinfo-b.example.com.	120	IN	A	192.168.99.87
 toomuchinfo-b.example.com.	120	IN	A	192.168.99.88
 toomuchinfo-b.example.com.	120	IN	A	192.168.99.89
 toomuchinfo-b.example.com.	120	IN	A	192.168.99.90
-unauth.example.com.	120	IN	CNAME	no-idea.example.org
-usa.example.com.	120	IN	NS	usa-ns1.usa.example.com
-usa.example.com.	120	IN	NS	usa-ns2.usa.example.com
+unauth.example.com.	120	IN	CNAME	no-idea.example.org.
+usa.example.com.	120	IN	NS	usa-ns1.usa.example.com.
+usa.example.com.	120	IN	NS	usa-ns2.usa.example.com.
 usa-ns1.usa.example.com.	120	IN	A	192.168.4.1
 usa-ns2.usa.example.com.	120	IN	A	192.168.4.2
-*.w1.example.com.	120	IN	CNAME	x.y.z.w2.example.com
-*.w2.example.com.	120	IN	CNAME	x.y.z.w3.example.com
-*.w3.example.com.	120	IN	CNAME	x.y.z.w4.example.com
-*.w4.example.com.	120	IN	CNAME	x.y.z.w5.example.com
+*.w1.example.com.	120	IN	CNAME	x.y.z.w2.example.com.
+*.w2.example.com.	120	IN	CNAME	x.y.z.w3.example.com.
+*.w3.example.com.	120	IN	CNAME	x.y.z.w4.example.com.
+*.w4.example.com.	120	IN	CNAME	x.y.z.w5.example.com.
 *.w5.example.com.	120	IN	A	1.2.3.5
-www.example.com.	120	IN	CNAME	outpost.example.com
+www.example.com.	120	IN	CNAME	outpost.example.com.
 $ORIGIN .
-test.com.	3600	IN	SOA	ns1.test.com ahu.example.com 2005092501 28800 7200 604800 86400
-test.com.	3600	IN	NS	ns1.test.com
-test.com.	3600	IN	NS	ns2.test.com
+test.com.	3600	IN	SOA	ns1.test.com. ahu.example.com. 2005092501 28800 7200 604800 86400
+test.com.	3600	IN	NS	ns1.test.com.
+test.com.	3600	IN	NS	ns2.test.com.
 test.com.	3600	IN	MX	10 .
-test.com.	3600	IN	MX	15 smtp-servers.test.com
+test.com.	3600	IN	MX	15 smtp-servers.test.com.
 _underscore.test.com.	3600	IN	TXT	"underscores are terrible"
 aland.test.com.	3600	IN	TXT	"\195\133LAND ISLANDS"
 blah.test.com.	3600	IN	A	192.168.6.1
-blah.test.com.	3600	IN	NS	blah.test.com
+blah.test.com.	3600	IN	NS	blah.test.com.
 b.c.test.com.	3600	IN	A	5.6.7.8
 *.a.b.c.test.com.	3600	IN	A	8.7.6.5
 counter.test.com.	3600	IN	A	1.1.1.5
-d.test.com.	3600	IN	DNAME	d2.test2.com
-_double._tcp.dc.test.com.	3600	IN	SRV	0 100 389 server1.test.com
-_double._tcp.dc.test.com.	3600	IN	SRV	1 100 389 server1.test.com
-_ldap._tcp.dc.test.com.	3600	IN	SRV	0 100 389 server2.example.net
+d.test.com.	3600	IN	DNAME	d2.test2.com.
+_double._tcp.dc.test.com.	3600	IN	SRV	0 100 389 server1.test.com.
+_double._tcp.dc.test.com.	3600	IN	SRV	1 100 389 server1.test.com.
+_ldap._tcp.dc.test.com.	3600	IN	SRV	0 100 389 server2.example.net.
 _root._tcp.dc.test.com.	3600	IN	SRV	0 0 0 .
-enum.test.com.	3600	IN	NAPTR	100 50 "u" "e2u+sip" "" testuser.domain.com
+enum.test.com.	3600	IN	NAPTR	100 50 "u" "e2u+sip" "" testuser.domain.com.
 hightxt.test.com.	3600	IN	TXT	"v=spf1 mx ip4:78.46.192.210 \226\128\147all"
 hightxt.test.com.	3600	IN	SPF	"v=spf1 mx ip4:78.46.192.210 \226\128\147all"
 interrupted-rrset.test.com.	3600	IN	A	1.1.1.1
@@ -60821,23 +60821,23 @@ interrupted-rrset.test.com.	3600	IN	TXT	"check AXFR signpipe"
 ns1.test.com.	3600	IN	A	1.1.1.1
 ns2.test.com.	3600	IN	A	2.2.2.2
 server1.test.com.	3600	IN	A	1.2.3.4
-server1.test.com.	3600	IN	RP	ahu.ds9a.nl counter.test.com
-*.test.test.com.	3600	IN	CNAME	server1.test.com
-sub.test.test.com.	3600	IN	NS	ns-test.example.net.test.com
+server1.test.com.	3600	IN	RP	ahu.ds9a.nl. counter.test.com.
+*.test.test.com.	3600	IN	CNAME	server1.test.com.
+sub.test.test.com.	3600	IN	NS	ns-test.example.net.test.com.
 www.test.test.com.	3600	IN	A	4.3.2.1
 toroot.test.com.	3600	IN	CNAME	.
 urc65226.test.com.	3600	IN	TYPE65226	\# 3 414243
 very-long-txt.test.com.	3600	IN	TXT	"A very long TXT record! boy you won't believe how long. A very long TXT record! boy you won't believe how long. A very long TXT record! boy you won't believe how long. A very long TXT record! boy you won't believe how long. A very long TXT record! boy you" " won't believe how long!"
-within-server.test.com.	3600	IN	CNAME	outpost.example.com
-www.test.com.	3600	IN	CNAME	server1.test.com
+within-server.test.com.	3600	IN	CNAME	outpost.example.com.
+www.test.com.	3600	IN	CNAME	server1.test.com.
 $ORIGIN .
-test.dyndns.	3600	IN	SOA	ns1.test.dyndns ahu.example.dyndns 2012060701 28800 7200 604800 86400
-test.dyndns.	3600	IN	NS	ns1.test.dyndns
-test.dyndns.	3600	IN	NS	ns2.test.dyndns
-test.dyndns.	3600	IN	MX	10 host-1.test.dyndns
-test.dyndns.	3600	IN	MX	20 host-2.test.dyndns
-cname1.test.dyndns.	3600	IN	CNAME	host-1.test.dyndns
-cname2.test.dyndns.	3600	IN	CNAME	host-2.test.dyndns
+test.dyndns.	3600	IN	SOA	ns1.test.dyndns. ahu.example.dyndns. 2012060701 28800 7200 604800 86400
+test.dyndns.	3600	IN	NS	ns1.test.dyndns.
+test.dyndns.	3600	IN	NS	ns2.test.dyndns.
+test.dyndns.	3600	IN	MX	10 host-1.test.dyndns.
+test.dyndns.	3600	IN	MX	20 host-2.test.dyndns.
+cname1.test.dyndns.	3600	IN	CNAME	host-1.test.dyndns.
+cname2.test.dyndns.	3600	IN	CNAME	host-2.test.dyndns.
 delete-add.test.dyndns.	3600	IN	A	127.0.0.108
 delete-add.test.dyndns.	3600	IN	TXT	"Should be gone after a while"
 a.host.test.dyndns.	3600	IN	A	1.1.1.1
@@ -60851,103 +60851,103 @@ multi.test.dyndns.	3600	IN	A	127.0.0.3
 ns1.test.dyndns.	3600	IN	A	127.0.0.1
 ns2.test.dyndns.	3600	IN	A	127.0.0.2
 replace.test.dyndns.	3600	IN	A	127.0.0.1
-sub.test.dyndns.	3600	IN	NS	ns1.test.dyndns
-sub.test.dyndns.	3600	IN	NS	ns2.test.dyndns
+sub.test.dyndns.	3600	IN	NS	ns1.test.dyndns.
+sub.test.dyndns.	3600	IN	NS	ns2.test.dyndns.
 ttl.test.dyndns.	3600	IN	A	127.0.0.1
 txt.test.dyndns.	3600	IN	TXT	"This is some text"
 *.wild.test.dyndns.	3600	IN	A	127.0.1.255
 $ORIGIN .
-sub.test.dyndns.	3600	IN	SOA	ns1.test.dyndns ahu.example.dyndns 2012060701 28800 7200 604800 86400
-sub.test.dyndns.	3600	IN	NS	ns1.test.dyndns
-sub.test.dyndns.	3600	IN	NS	ns2.test.dyndns
+sub.test.dyndns.	3600	IN	SOA	ns1.test.dyndns. ahu.example.dyndns. 2012060701 28800 7200 604800 86400
+sub.test.dyndns.	3600	IN	NS	ns1.test.dyndns.
+sub.test.dyndns.	3600	IN	NS	ns2.test.dyndns.
 $ORIGIN .
-wtest.com.	3600	IN	SOA	ns1.wtest.com ahu.example.com 2005092501 28800 7200 604800 86400
+wtest.com.	3600	IN	SOA	ns1.wtest.com. ahu.example.com. 2005092501 28800 7200 604800 86400
 wtest.com.	3600	IN	A	9.9.9.9
 wtest.com.	3600	IN	NS	.
-wtest.com.	3600	IN	NS	ns1.wtest.com
-wtest.com.	3600	IN	MX	10 smtp-servers.example.com
-wtest.com.	3600	IN	MX	15 smtp-servers.wtest.com
-*.wtest.com.	3600	IN	CNAME	server1.wtest.com
+wtest.com.	3600	IN	NS	ns1.wtest.com.
+wtest.com.	3600	IN	MX	10 smtp-servers.example.com.
+wtest.com.	3600	IN	MX	15 smtp-servers.wtest.com.
+*.wtest.com.	3600	IN	CNAME	server1.wtest.com.
 *.a.b.c.d.e.wtest.com.	3600	IN	A	6.7.8.9
 ns1.wtest.com.	3600	IN	A	2.3.4.5
-secure.wtest.com.	3600	IN	MX	10 server1.wtest.com
+secure.wtest.com.	3600	IN	MX	10 server1.wtest.com.
 server1.wtest.com.	3600	IN	A	1.2.3.4
 *.something.wtest.com.	3600	IN	A	4.3.2.1
 a.something.wtest.com.	3600	IN	A	10.11.12.13
 $ORIGIN .
-dnssec-parent.com.	3600	IN	SOA	ns1.dnssec-parent.com ahu.example.com 2005092501 28800 7200 604800 86400
+dnssec-parent.com.	3600	IN	SOA	ns1.dnssec-parent.com. ahu.example.com. 2005092501 28800 7200 604800 86400
 dnssec-parent.com.	3600	IN	A	9.9.9.9
-dnssec-parent.com.	3600	IN	NS	ns1.dnssec-parent.com
-dnssec-parent.com.	3600	IN	NS	ns2.dnssec-parent.com
-insecure-delegated.ent.ent.auth-ent.dnssec-parent.com.	3600	IN	NS	ns.example.com
+dnssec-parent.com.	3600	IN	NS	ns1.dnssec-parent.com.
+dnssec-parent.com.	3600	IN	NS	ns2.dnssec-parent.com.
+insecure-delegated.ent.ent.auth-ent.dnssec-parent.com.	3600	IN	NS	ns.example.com.
 something1.auth-ent.dnssec-parent.com.	3600	IN	A	1.1.2.3
-delegated.dnssec-parent.com.	3600	IN	NS	ns1.delegated.dnssec-parent.com
-delegated.dnssec-parent.com.	3600	IN	NS	ns2.delegated.dnssec-parent.com
+delegated.dnssec-parent.com.	3600	IN	NS	ns1.delegated.dnssec-parent.com.
+delegated.dnssec-parent.com.	3600	IN	NS	ns2.delegated.dnssec-parent.com.
 ns1.delegated.dnssec-parent.com.	3600	IN	A	4.5.6.7
 ns2.delegated.dnssec-parent.com.	3600	IN	A	5.6.7.8
-insecure.dnssec-parent.com.	3600	IN	NS	ns.example.com
+insecure.dnssec-parent.com.	3600	IN	NS	ns.example.com.
 ns1.dnssec-parent.com.	3600	IN	A	1.2.3.4
 ns2.dnssec-parent.com.	3600	IN	A	4.3.2.1
-secure-delegated.dnssec-parent.com.	3600	IN	NS	ns1.secure-delegated.dnssec-parent.com
-secure-delegated.dnssec-parent.com.	3600	IN	NS	ns2.secure-delegated.dnssec-parent.com
+secure-delegated.dnssec-parent.com.	3600	IN	NS	ns1.secure-delegated.dnssec-parent.com.
+secure-delegated.dnssec-parent.com.	3600	IN	NS	ns2.secure-delegated.dnssec-parent.com.
 secure-delegated.dnssec-parent.com.	3600	IN	DS	54319 8 2 a0b9c38cd324182af0ef66830d0a0e85a1d58979c9834e18c871779e040857b7
 ns1.secure-delegated.dnssec-parent.com.	3600	IN	A	1.2.3.4
 ns2.secure-delegated.dnssec-parent.com.	3600	IN	A	5.6.7.8
-www.dnssec-parent.com.	3600	IN	CNAME	www.insecure.dnssec-parent.com
+www.dnssec-parent.com.	3600	IN	CNAME	www.insecure.dnssec-parent.com.
 $ORIGIN .
-insecure.dnssec-parent.com.	120	IN	SOA	ns1.example.com ahu.example.com 2000081501 28800 7200 604800 86400
-insecure.dnssec-parent.com.	120	IN	NS	ns1.example.com
-insecure.dnssec-parent.com.	120	IN	NS	ns2.example.com
+insecure.dnssec-parent.com.	120	IN	SOA	ns1.example.com. ahu.example.com. 2000081501 28800 7200 604800 86400
+insecure.dnssec-parent.com.	120	IN	NS	ns1.example.com.
+insecure.dnssec-parent.com.	120	IN	NS	ns2.example.com.
 www.insecure.dnssec-parent.com.	120	IN	A	192.0.2.88
 $ORIGIN .
-delegated.dnssec-parent.com.	3600	IN	SOA	ns1.delegated.dnssec-parent.com ahu.example.com 2005092501 28800 7200 604800 86400
+delegated.dnssec-parent.com.	3600	IN	SOA	ns1.delegated.dnssec-parent.com. ahu.example.com. 2005092501 28800 7200 604800 86400
 delegated.dnssec-parent.com.	3600	IN	A	9.9.9.9
-delegated.dnssec-parent.com.	3600	IN	NS	ns1.delegated.dnssec-parent.com
-delegated.dnssec-parent.com.	3600	IN	NS	ns2.delegated.dnssec-parent.com
+delegated.dnssec-parent.com.	3600	IN	NS	ns1.delegated.dnssec-parent.com.
+delegated.dnssec-parent.com.	3600	IN	NS	ns2.delegated.dnssec-parent.com.
 delegated.dnssec-parent.com.	3600	IN	DS	44030 8 2 d4c3d5552b8679faeebc317e5f048b614b2e5f607dc57f1553182d49ab2179f7
 ns1.delegated.dnssec-parent.com.	3600	IN	A	4.5.6.7
 ns2.delegated.dnssec-parent.com.	3600	IN	A	5.6.7.8
-www.delegated.dnssec-parent.com.	3600	IN	CNAME	delegated.dnssec-parent.com
+www.delegated.dnssec-parent.com.	3600	IN	CNAME	delegated.dnssec-parent.com.
 $ORIGIN .
-secure-delegated.dnssec-parent.com.	3600	IN	SOA	ns1.secure-delegated.dnssec-parent.com ahu.example.com 2005092501 28800 7200 604800 86400
+secure-delegated.dnssec-parent.com.	3600	IN	SOA	ns1.secure-delegated.dnssec-parent.com. ahu.example.com. 2005092501 28800 7200 604800 86400
 secure-delegated.dnssec-parent.com.	3600	IN	A	9.9.9.9
-secure-delegated.dnssec-parent.com.	3600	IN	NS	ns1.secure-delegated.dnssec-parent.com
-secure-delegated.dnssec-parent.com.	3600	IN	NS	ns2.secure-delegated.dnssec-parent.com
+secure-delegated.dnssec-parent.com.	3600	IN	NS	ns1.secure-delegated.dnssec-parent.com.
+secure-delegated.dnssec-parent.com.	3600	IN	NS	ns2.secure-delegated.dnssec-parent.com.
 ns1.secure-delegated.dnssec-parent.com.	3600	IN	A	1.2.3.4
 ns2.secure-delegated.dnssec-parent.com.	3600	IN	A	5.6.7.8
-www.secure-delegated.dnssec-parent.com.	3600	IN	CNAME	secure-delegated.dnssec-parent.com
+www.secure-delegated.dnssec-parent.com.	3600	IN	CNAME	secure-delegated.dnssec-parent.com.
 $ORIGIN .
-minimal.com.	120	IN	SOA	ns1.example.com ahu.example.com 2000081501 28800 7200 604800 86400
-minimal.com.	120	IN	NS	ns1.example.com
-minimal.com.	120	IN	NS	ns2.example.com
+minimal.com.	120	IN	SOA	ns1.example.com. ahu.example.com. 2000081501 28800 7200 604800 86400
+minimal.com.	120	IN	NS	ns1.example.com.
+minimal.com.	120	IN	NS	ns2.example.com.
 $ORIGIN .
-tsig.com.	120	IN	SOA	ns1.example.com ahu.example.com 2000081501 28800 7200 604800 86400
-tsig.com.	120	IN	NS	ns1.example.com
-tsig.com.	120	IN	NS	ns2.example.com
+tsig.com.	120	IN	SOA	ns1.example.com. ahu.example.com. 2000081501 28800 7200 604800 86400
+tsig.com.	120	IN	NS	ns1.example.com.
+tsig.com.	120	IN	NS	ns2.example.com.
 $ORIGIN .
-stest.com.	120	IN	SOA	ns1.example.com ahu.example.com 2000081501 28800 7200 604800 86400
-stest.com.	120	IN	NS	ns1.example.com
-stest.com.	120	IN	NS	ns2.example.com
+stest.com.	120	IN	SOA	ns1.example.com. ahu.example.com. 2000081501 28800 7200 604800 86400
+stest.com.	120	IN	NS	ns1.example.com.
+stest.com.	120	IN	NS	ns2.example.com.
 $ORIGIN .
-cdnskey-cds-test.com.	3600	IN	SOA	ns1.cdnskey-cds-test ahu.example.com 2005092501 28800 7200 604800 86400
+cdnskey-cds-test.com.	3600	IN	SOA	ns1.cdnskey-cds-test. ahu.example.com. 2005092501 28800 7200 604800 86400
 cdnskey-cds-test.com.	3600	IN	A	127.0.0.1
-cdnskey-cds-test.com.	3600	IN	NS	ns1.cdnskey-cds-test.com
-cdnskey-cds-test.com.	3600	IN	NS	ns2.cdnskey-cds-test.com
+cdnskey-cds-test.com.	3600	IN	NS	ns1.cdnskey-cds-test.com.
+cdnskey-cds-test.com.	3600	IN	NS	ns2.cdnskey-cds-test.com.
 ns1.cdnskey-cds-test.com.	3600	IN	A	1.1.1.1
 ns2.cdnskey-cds-test.com.	3600	IN	A	2.2.2.2
 $ORIGIN .
-2.0.192.in-addr.arpa.	120	IN	SOA	ns1.example.com ahu.example.com 2000081501 28800 7200 604800 86400
-2.0.192.in-addr.arpa.	120	IN	NS	ns1.example.com
-2.0.192.in-addr.arpa.	120	IN	NS	ns2.example.com
+2.0.192.in-addr.arpa.	120	IN	SOA	ns1.example.com. ahu.example.com. 2000081501 28800 7200 604800 86400
+2.0.192.in-addr.arpa.	120	IN	NS	ns1.example.com.
+2.0.192.in-addr.arpa.	120	IN	NS	ns2.example.com.
 $ORIGIN .
-cryptokeys.org.	3600	IN	SOA	cryptokeys.ds9a.nl ahu.ds9a.nl 2009071301 14400 3600 604800 3600
+cryptokeys.org.	3600	IN	SOA	cryptokeys.ds9a.nl. ahu.ds9a.nl. 2009071301 14400 3600 604800 3600
 cryptokeys.org.	3600	IN	A	212.123.148.70
-cryptokeys.org.	3600	IN	NS	cryptokeys.ds9a.nl
-cryptokeys.org.	3600	IN	MX	10 cryptokeys.easy-server.com
+cryptokeys.org.	3600	IN	NS	cryptokeys.ds9a.nl.
+cryptokeys.org.	3600	IN	MX	10 cryptokeys.easy-server.com.
 zbefore.a.cryptokeys.org.	3600	IN	TXT	"before"
 after.cryptokeys.org.	3600	IN	TXT	"after"
-delegated.cryptokeys.org.	3600	IN	NS	ns1.delegated.cryptokeys.org
-delegated.cryptokeys.org.	3600	IN	NS	ns2.delegated.cryptokeys.org
+delegated.cryptokeys.org.	3600	IN	NS	ns1.delegated.cryptokeys.org.
+delegated.cryptokeys.org.	3600	IN	NS	ns2.delegated.cryptokeys.org.
 ns1.delegated.cryptokeys.org.	3600	IN	A	1.2.3.4
 ns2.delegated.cryptokeys.org.	3600	IN	A	4.3.2.1
 ipv6.cryptokeys.org.	3600	IN	AAAA	2001:888:1036:0:208:a1ff:fe19:f000
@@ -60955,9 +60955,9 @@ localhost.cryptokeys.org.	3600	IN	A	127.0.0.1
 localhost.cryptokeys.org.	3600	IN	AAAA	::1
 smtp.cryptokeys.org.	3600	IN	A	4.3.2.1
 webserver.cryptokeys.org.	3600	IN	A	1.2.3.4
-www.cryptokeys.org.	3600	IN	CNAME	cryptokeys.org
+www.cryptokeys.org.	3600	IN	CNAME	cryptokeys.org.
 zzz.cryptokeys.org.	3600	IN	TXT	"this is the end.."
 $ORIGIN .
-hiddencryptokeys.org.	3600	IN	SOA	cryptokeys.ds9a.nl ahu.ds9a.nl 2009071301 14400 3600 604800 3600
+hiddencryptokeys.org.	3600	IN	SOA	cryptokeys.ds9a.nl. ahu.ds9a.nl. 2009071301 14400 3600 604800 3600
 hiddencryptokeys.org.	3600	IN	A	212.123.148.70
-hiddencryptokeys.org.	3600	IN	NS	cryptokeys.ds9a.nl
+hiddencryptokeys.org.	3600	IN	NS	cryptokeys.ds9a.nl.
