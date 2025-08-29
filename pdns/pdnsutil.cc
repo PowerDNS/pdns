@@ -729,6 +729,22 @@ static int usage(const std::string_view synopsis)
   return EXIT_FAILURE;
 }
 
+// Build a string with the record textual (bind-style) representation,
+// with explicit trailing dots.
+static std::string formatRecord(const DNSRecord& rec, std::string_view separator = "\t")
+{
+  std::string ret = rec.d_name.toString();
+  ret.append(separator);
+  ret.append(std::to_string(rec.d_ttl));
+  ret.append(separator);
+  ret.append(QClass(rec.d_class).toString());
+  ret.append(separator);
+  ret.append(DNSRecordContent::NumberToType(rec.d_type));
+  ret.append(separator);
+  ret.append(rec.getContent()->getZoneRepresentation());
+  return ret;
+}
+
 static bool rectifyZone(DNSSECKeeper& dsk, const ZoneName& zone, bool quiet = false, bool rectifyTransaction = true)
 {
   string output;
@@ -1741,27 +1757,20 @@ static int listZone(const ZoneName &zone) {
     return EXIT_FAILURE;
   }
 
-  di.backend->list(zone, di.id);
+  std::vector<DNSRecord> records;
   DNSResourceRecord rr;
+
+  di.backend->list(zone, di.id);
+  while(di.backend->get(rr)) {
+    if(rr.qtype.getCode() != QType::ENT) {
+      records.emplace_back(DNSRecord(rr));
+    }
+  }
+  sort(records.begin(), records.end(), DNSRecord::prettyCompare);
   cout<<"$ORIGIN ."<<endl;
   std::ostream::sync_with_stdio(false);
-
-  while(di.backend->get(rr)) {
-    if(rr.qtype.getCode() != 0) {
-      switch (rr.qtype.getCode()) {
-      case QType::ALIAS:
-      case QType::CNAME:
-      case QType::MX:
-      case QType::NS:
-      case QType::SRV:
-        if (!rr.content.empty() && rr.content[rr.content.size()-1] != '.') {
-          rr.content.append(1, '.');
-        }
-        break;
-      }
-
-      cout<<rr.qname<<"\t"<<rr.ttl<<"\tIN\t"<<rr.qtype.toString()<<"\t"<<rr.content<<"\n";
-    }
+  for (const auto& rec : records) {
+    std::cout << formatRecord(rec) << std::endl;
   }
   cout.flush();
   return EXIT_SUCCESS;
@@ -1925,7 +1934,7 @@ static std::vector<DNSRecord>fillTempZoneFile(int& tmpfd, const char* tmpnam, Do
   sort(records.begin(), records.end(), DNSRecord::prettyCompare);
   for (const auto& rec : records) {
     ostringstream oss;
-    oss<<rec.d_name<<"\t"<<rec.d_ttl<<"\tIN\t"<<DNSRecordContent::NumberToType(rec.d_type)<<"\t"<<rec.getContent()->getZoneRepresentation(true)<<endl;
+    oss << formatRecord(rec) << endl;
     if (write(tmpfd, oss.str().c_str(), oss.str().length()) < 0) {
       unixDie("Writing zone to temporary file");
     }
@@ -2014,8 +2023,8 @@ static bool increaseZoneSerial(DNSSECKeeper& dsk, DomainInfo& info, std::vector<
   DNSRecord rec(resrec);
 
   ostringstream str;
-  str<< col.red() << "-" << oldSoaDR.d_name << " " << oldSoaDR.d_ttl << " IN " << DNSRecordContent::NumberToType(oldSoaDR.d_type) << " " <<oldSoaDR.getContent()->getZoneRepresentation(true) << col.rst() <<endl;
-  str << col.green() << "+" << rec.d_name << " " << rec.d_ttl<< " IN " <<DNSRecordContent::NumberToType(rec.d_type) << " " <<rec.getContent()->getZoneRepresentation(true) << col.rst() <<endl;
+  str<< col.red() << "-" << formatRecord(oldSoaDR, " ") << col.rst() <<endl;
+  str << col.green() << "+" << formatRecord(rec, " ") << col.rst() <<endl;
   cout << str.str();
 
   *iter = std::move(rec);
@@ -2163,14 +2172,14 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
         set_difference(pre.cbegin(), pre.cend(), post.cbegin(), post.cend(), back_inserter(diffs), DNSRecord::prettyCompare);
         for(const auto& diff : diffs) {
           ostringstream str;
-          str << col.red() << "-" << diff.d_name << " " << diff.d_ttl << " IN " << DNSRecordContent::NumberToType(diff.d_type) << " " <<diff.getContent()->getZoneRepresentation(true) << col.rst() <<endl;
+          str << col.red() << "-" << formatRecord(diff, " ") << col.rst() <<endl;
           changed[{diff.d_name,diff.d_type}] += str.str();
         }
         diffs.clear();
         set_difference(post.cbegin(), post.cend(), pre.cbegin(), pre.cend(), back_inserter(diffs), DNSRecord::prettyCompare);
         for(const auto& diff : diffs) {
           ostringstream str;
-          str<<col.green() << "+" << diff.d_name << " " << diff.d_ttl << " IN " <<DNSRecordContent::NumberToType(diff.d_type) << " " << diff.getContent()->getZoneRepresentation(true) << col.rst() <<endl;
+          str<<col.green() << "+" << formatRecord(diff, " ") << col.rst() <<endl;
           changed[{diff.d_name,diff.d_type}]+=str.str();
         }
       }
@@ -2593,8 +2602,13 @@ static int addOrReplaceRecord(bool isAdd, const vector<string>& cmds) {
   // need to be explicit to bypass the ueberbackend cache!
   di.backend->lookup(rr.qtype, name, di.id);
   cout<<"New rrset:"<<endl;
+  std::vector<DNSRecord> finalrrs;
   while(di.backend->get(rr)) {
-    cout<<rr.qname.toString()<<" "<<rr.ttl<<" IN "<<rr.qtype.toString()<<" "<<rr.content<<endl;
+    finalrrs.emplace_back(DNSRecord(rr));
+  }
+  sort(finalrrs.begin(), finalrrs.end(), DNSRecord::prettyCompare);
+  for (const auto& rec : finalrrs) {
+    std::cout << formatRecord(rec, " ") << std::endl;
   }
   di.backend->commitTransaction();
   return EXIT_SUCCESS;
@@ -5397,7 +5411,7 @@ static int backendLookup(vector<string>& cmds, const std::string_view synopsis)
   bool found = false;
   DNSZoneRecord resultZoneRecord;
   while (matchingBackend->get(resultZoneRecord)) {
-    cout << resultZoneRecord.dr.d_name.toString() << "\t" << std::to_string(resultZoneRecord.dr.d_ttl) << "\t" << QClass(resultZoneRecord.dr.d_class).toString() << "\t" << DNSRecordContent::NumberToType(resultZoneRecord.dr.d_type, resultZoneRecord.dr.d_class) << "\t" << resultZoneRecord.dr.getContent()->getZoneRepresentation();
+    cout << formatRecord(resultZoneRecord.dr, " ");
     if (resultZoneRecord.scopeMask > 0) {
       clientNetmask.setBits(resultZoneRecord.scopeMask);
       cout << "\t" << "; " << clientNetmask.toString();
