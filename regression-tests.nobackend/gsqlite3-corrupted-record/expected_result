@@ -1,0 +1,12 @@
+New rrset:
+bug.less. 3600 IN NS no.bug.less
+New rrset:
+no.bug.less. 3600 IN A 1.2.3.4
+New rrset:
+never.bug.less. 3600 IN A 1.2.3.4
+$ORIGIN .
+bug.less	3600	IN	NS	no.bug.less.
+bug.less	3600	IN	SOA	a.misconfigured.dns.server.invalid hostmaster.bug.less 0 10800 3600 604800 3600
+[Warning] Ill-formed 'never.bug.less' record in backend storage: field ordername has invalid content '..'
+[Warning] Ill-formed record in backend storage: field qname has invalid content 'this-name-turns-out-to-be-an-invalid-dns-name-because-it-is-way-larger-than-sixty-three-characters-and-this-is-not-allowed-for-labels.bug.less'
+Checked 2 records of 'bug.less', 0 errors, 2 warnings.

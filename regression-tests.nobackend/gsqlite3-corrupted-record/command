@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+
+## source ../regression-tests/common
+
+rm -f pdns-gsqlite3.conf pdns.sqlite3
+
+cat > pdns-gsqlite3.conf << __EOF__
+launch=gsqlite3
+gsqlite3-database=pdns.sqlite3
+module-dir=../regression-tests/modules
+__EOF__
+
+ARGS="--config-dir=. --config-name=gsqlite3"
+
+sqlite3 pdns.sqlite3 < ../modules/gsqlite3backend/schema.sqlite3.sql
+tosql gsqlite | sqlite3 pdns.sqlite3
+echo ANALYZE\; | sqlite3 pdns.sqlite3
+
+# Create zone
+$PDNSUTIL $ARGS zone create bug.less
+
+# Add some valid records
+$PDNSUTIL $ARGS rrset add bug.less bug.less NS no.bug.less
+$PDNSUTIL $ARGS rrset add bug.less no.bug.less A 1.2.3.4
+$PDNSUTIL $ARGS rrset add bug.less never.bug.less A 1.2.3.4
+
+# Alter some records to make their contents invalid
+echo "UPDATE records SET name='this-name-turns-out-to-be-an-invalid-dns-name-because-it-is-way-larger-than-sixty-three-characters-and-this-is-not-allowed-for-labels.bug.less' WHERE name='no.bug.less';" | sqlite3 pdns.sqlite3 2>&1
+echo "UPDATE records SET ordername='..' WHERE name='never.bug.less';" | sqlite3 pdns.sqlite3 2>&1
+
+# Check that pdnsutil zone list doesn't show the invalid records
+$PDNSUTIL $ARGS zone list bug.less
+
+# Check that pdnsutil zone check reports the invalid records
+$PDNSUTIL $ARGS zone check bug.less
+
+exit 0

@@ -519,6 +519,18 @@ public:
 
   const string& getPrefix() { return d_prefix; };
 
+  // The following routine allows callers to retrieve invalid records from
+  // the backend, which would not be returned by get(). This is used by
+  // pdnsutil for diagnostic purposes.
+  // The default implementation simply wraps get() and pretends there are
+  // no invalid or corrupted records in the backend storage.
+
+  virtual bool get_unsafe(DNSResourceRecord& rec, std::vector<std::pair<std::string, std::string>>& invalid)
+  {
+    invalid.clear();
+    return get(rec);
+  }
+
 protected:
   bool mustDo(const string& key);
   const string& getArg(const string& key);
