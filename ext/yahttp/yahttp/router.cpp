@@ -101,7 +101,13 @@ namespace YaHTTP {
       if (matched && !method.empty() && req->method != method) {
          // method did not match, record it though so we can return correct result
          matched = false;
-         seen = true;
+         // The OPTIONS handler registered in pdns/webserver.cc matches every
+         // url, and would cause "not found" errors to always be superseded
+         // with "found, but wrong method" errors, so don't pretend there has
+         // been a match in this case.
+         if (method != "OPTIONS") {
+           seen = true;
+         }
          continue;
       }
       if (matched) {
