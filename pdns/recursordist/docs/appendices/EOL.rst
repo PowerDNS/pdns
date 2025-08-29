@@ -18,8 +18,8 @@ PowerDNS Recursor 5.1 will only receive critical updates and will be End of Life
 
 PowerDNS Recursor 5.0, 4.x, 3.x, and 2.x are End of Life.
 
-Note: Users with a commercial agreement with PowerDNS.COM BV or Open-Xchange
-can receive extended support for releases which are End Of Life. If you are
+Note: Users with a commercial agreement with PowerDNS.com B.V. or Open-Xchange
+can receive support for releases which are End Of Life. If you are
 such a user, these EOL statements do not apply to you.
 Please refer to the support `commitment
 <https://www.powerdns.com/support-commitment>`_
