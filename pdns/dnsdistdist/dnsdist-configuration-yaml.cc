@@ -1158,8 +1158,12 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
         .d_keepStaleData = cache.keep_stale_data,
       };
       std::unordered_set<uint16_t> ranks;
-      for (const auto& option : cache.options_to_skip) {
-        settings.d_optionsToSkip.insert(pdns::checked_stoi<uint16_t>(std::string(option)));
+      if (!cache.options_to_skip.empty()) {
+        settings.d_optionsToSkip.clear();
+        settings.d_optionsToSkip.insert(EDNSOptionCode::COOKIE);
+        for (const auto& option : cache.options_to_skip) {
+          settings.d_optionsToSkip.insert(pdns::checked_stoi<uint16_t>(std::string(option)));
+        }
       }
       if (cache.cookie_hashing) {
         settings.d_optionsToSkip.erase(EDNSOptionCode::COOKIE);
