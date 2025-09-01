@@ -89,7 +89,7 @@ public:
 
   size_t getMaximumEntrySize() const { return d_settings.d_maximumEntrySize; }
 
-  uint32_t getKey(const DNSName::string_t& qname, size_t qnameWireLength, const PacketBuffer& packet);
+  uint32_t getKey(const DNSName::string_t& qname, size_t qnameWireLength, const PacketBuffer& packet) const;
 
   static uint32_t getMinTTL(const char* packet, uint16_t length, bool* seenNoDataSOA);
   static bool getClientSubnet(const PacketBuffer& packet, size_t qnameWireLength, boost::optional<Netmask>& subnet);
