@@ -78,6 +78,7 @@ public:
 
   ~TCPQueryForwardedOverUDP() override = default;
 
+#if defined(HAVE_DNS_OVER_HTTPS)
   [[nodiscard]] std::string getHTTPPath() const override
   {
     throw std::runtime_error("called HTTP method on non DoH query");
@@ -108,11 +109,6 @@ public:
     throw std::runtime_error("called HTTP method on non DoH query");
   }
 
-  [[nodiscard]] std::shared_ptr<TCPQuerySender> getQuerySender() const override
-  {
-    return std::dynamic_pointer_cast<TCPQuerySender>(d_connection);
-  }
-
   void handleUDPResponse(PacketBuffer&& response, InternalQueryState&& state, const std::shared_ptr<DownstreamState>& downstream_) override
   {
     std::unique_ptr<DOHUnitInterface> unit(this);
@@ -132,6 +128,12 @@ public:
     gettimeofday(&now, nullptr);
     TCPResponse resp;
     conn->notifyIOError(now, std::move(resp));
+  }
+#endif /* defined(HAVE_DNS_OVER_HTTPS) */
+
+  [[nodiscard]] std::shared_ptr<TCPQuerySender> getQuerySender() const override
+  {
+    return std::dynamic_pointer_cast<TCPQuerySender>(d_connection);
   }
 
 private:
