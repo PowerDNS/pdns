@@ -467,7 +467,7 @@ Webserver configuration
   .. versionchanged:: 1.8.0
     ``apiRequiresAuthentication``, ``dashboardRequiresAuthentication`` optional parameters added.
 
-  Setup webserver configuration. See :func:`webserver`.
+  Setup webserver configuration. See :func:`webserver` and :doc:`../guides/webserver`.
 
   :param table options: A table with key: value pairs with webserver options.
 
