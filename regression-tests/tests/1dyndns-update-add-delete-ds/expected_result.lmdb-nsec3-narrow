@@ -1,1 +1,48 @@
-expected_result.lmdb
+Answer:
+;; ->>HEADER<<- opcode: UPDATE, status: NOERROR, id: [id]
+;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+;; ZONE SECTION:
+;test.dyndns.			IN	SOA
+
+Check delegate and DS added correctly
+--- Start: diff start step.1 ---
+> del.test.dyndns	DS	0	39274 8 2 8e8a8cfb40fd0c30bfa82e53752e1c257dafb7b6206d12b9eda43af3eab2157d	3600
+> del.test.dyndns	NS	0	ns1.del.test.dyndns	3600
+> ns1.del.test.dyndns	A	0	127.0.0.1	3600
+--- End: diff start step.1 ---
+
+Answer:
+;; ->>HEADER<<- opcode: UPDATE, status: NOERROR, id: [id]
+;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+;; ZONE SECTION:
+;test.dyndns.			IN	SOA
+
+Check if record is gone
+--- Start: diff start step.2 ---
+no difference
+--- End: diff start step.2 ---
+
+Answer:
+;; ->>HEADER<<- opcode: UPDATE, status: NOERROR, id: [id]
+;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+;; ZONE SECTION:
+;test.dyndns.			IN	SOA
+
+Check delegate and DS added correctly again (other way around)
+--- Start: diff start step.3 ---
+> del.test.dyndns	DS	0	39274 8 2 8e8a8cfb40fd0c30bfa82e53752e1c257dafb7b6206d12b9eda43af3eab2157d	3600
+> del.test.dyndns	NS	0	ns1.del.test.dyndns	3600
+> ns1.del.test.dyndns	A	0	127.0.0.1	3600
+--- End: diff start step.3 ---
+
+Answer:
+;; ->>HEADER<<- opcode: UPDATE, status: NOERROR, id: [id]
+;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+;; ZONE SECTION:
+;test.dyndns.			IN	SOA
+
+Check if record is gone again
+--- Start: diff start step.4 ---
+no difference
+--- End: diff start step.4 ---
+
