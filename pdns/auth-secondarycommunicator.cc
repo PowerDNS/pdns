@@ -48,6 +48,14 @@
 
 #include "ixfr.hh"
 
+static std::string humanTime(time_t time)
+{
+  std::array<char, 80> buf{};
+  struct tm tm0{};
+  strftime(buf.data(), buf.size() - 1, "%F %H:%M:%S", localtime_r(&time, &tm0));
+  return {buf.data(), strlen(buf.data())};
+}
+
 void CommunicatorClass::addSuckRequest(const ZoneName& domain, const ComboAddress& primary, SuckRequest::RequestPriority priority, bool force)
 {
   auto data = d_data.lock();
@@ -1006,7 +1014,7 @@ void CommunicatorClass::suck(const ZoneName& domain, const ComboAddress& remote,
       }
       time_t nextCheck = now + std::min(newCount * d_tickinterval, (uint64_t)::arg().asNum("default-ttl"));
       data->d_failedSecondaryRefresh[domain] = {newCount, nextCheck};
-      g_log << Logger::Warning << logPrefix << "unable to xfr zone (ResolverException): " << re.reason << " (This was attempt number " << newCount << ". Excluding zone from secondary-checks until " << nextCheck << ")" << endl;
+      g_log << Logger::Warning << logPrefix << "unable to xfr zone (ResolverException): " << re.reason << " (This was attempt number " << newCount << ". Excluding zone from secondary-checks until " << humanTime(nextCheck) << ")" << endl;
     }
     if (di.backend && transaction) {
       g_log << Logger::Info << "aborting possible open transaction" << endl;
@@ -1172,7 +1180,7 @@ void CommunicatorClass::secondaryRefresh(PacketHandler* P)
       const auto failed = data->d_failedSecondaryRefresh.find(di.zone);
       if (failed != data->d_failedSecondaryRefresh.end() && now < failed->second.second) {
         // If the domain has failed before and the time before the next check has not expired, skip this domain
-        g_log << Logger::Debug << "Zone '" << di.zone << "' is on the list of failed SOA checks. Skipping SOA checks until " << failed->second.second << endl;
+        g_log << Logger::Debug << "Zone '" << di.zone << "' is on the list of failed SOA checks. Skipping SOA checks until " << humanTime(failed->second.second) << endl;
         continue;
       }
       std::vector<std::string> localaddr;
@@ -1291,10 +1299,10 @@ void CommunicatorClass::secondaryRefresh(PacketHandler* P)
       time_t nextCheck = now + std::min(newCount * d_tickinterval, (uint64_t)::arg().asNum("default-ttl"));
       data->d_failedSecondaryRefresh[di.zone] = {newCount, nextCheck};
       if (newCount == 1) {
-        g_log << Logger::Warning << "Unable to retrieve SOA for " << di.zone << ", this was the first time. NOTE: For every subsequent failed SOA check the domain will be suspended from freshness checks for 'num-errors x " << d_tickinterval << " seconds', with a maximum of " << (uint64_t)::arg().asNum("default-ttl") << " seconds. Skipping SOA checks until " << nextCheck << endl;
+        g_log << Logger::Warning << "Unable to retrieve SOA for " << di.zone << ", this was the first time. NOTE: For every subsequent failed SOA check the domain will be suspended from freshness checks for 'num-errors x " << d_tickinterval << " seconds', with a maximum of " << (uint64_t)::arg().asNum("default-ttl") << " seconds. Skipping SOA checks until " << humanTime(nextCheck) << endl;
       }
       else if (newCount % 10 == 0) {
-        g_log << Logger::Notice << "Unable to retrieve SOA for " << di.zone << ", this was the " << std::to_string(newCount) << "th time. Skipping SOA checks until " << nextCheck << endl;
+        g_log << Logger::Notice << "Unable to retrieve SOA for " << di.zone << ", this was the " << std::to_string(newCount) << "th time. Skipping SOA checks until " << humanTime(nextCheck) << endl;
       }
       // Make sure we recheck SOA for notifies
       if (di.receivedNotify) {
