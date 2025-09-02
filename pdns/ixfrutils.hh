@@ -37,7 +37,7 @@ struct CIContentCompareStruct
 {
   bool operator()(const shared_ptr<const DNSRecordContent>&a, const shared_ptr<const DNSRecordContent>& b) const
   {
-    return toLower(a->getZoneRepresentation()) < toLower(b->getZoneRepresentation());
+    return a->getZoneRepresentation() < b->getZoneRepresentation();
   }
 };
 
