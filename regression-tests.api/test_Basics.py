@@ -61,4 +61,13 @@ class TestBasics(ApiTestCase):
         r = self.session.options(self.url("/api/v1/servers/localhost/invalid"))
         self.assertEqual(r.status_code, requests.codes.not_found)
 
+        r = self.session.options(self.url("/api/v1/servers/remotehost"))
+        self.assertEqual(r.status_code, requests.codes.not_found)
+
+        r = self.session.get(self.url("/api/v1/servers/remotehost"))
+        if is_auth():
+            self.assertEqual(r.status_code, requests.codes.not_found)
+        else:
+            self.assertEqual(r.status_code, requests.codes.unauthorized)
+
         print("response", repr(r.headers))
