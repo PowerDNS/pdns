@@ -1909,6 +1909,8 @@ static void processUDPQuery(ClientState& clientState, const struct msghdr* msgh,
     // the buffer might have been invalidated by now (resized)
     const auto dnsHeader = dnsQuestion.getHeader();
     if (result == ProcessQueryResult::SendAnswer) {
+      /* ensure payload size is not exceeded */
+      handleResponseTC4UDPClient(dnsQuestion, udpPayloadSize, query);
 #ifndef DISABLE_RECVMMSG
 #if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
       if (dnsQuestion.ids.delayMsec == 0 && responsesVect != nullptr) {
@@ -1919,8 +1921,6 @@ static void processUDPQuery(ClientState& clientState, const struct msghdr* msgh,
       }
 #endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
 #endif /* DISABLE_RECVMMSG */
-      /* ensure payload size is not exceeded */
-      handleResponseTC4UDPClient(dnsQuestion, udpPayloadSize, query);
       /* we use dest, always, because we don't want to use the listening address to send a response since it could be 0.0.0.0 */
       sendUDPResponse(clientState.udpFD, query, dnsQuestion.ids.delayMsec, dest, remote);
 
