@@ -69,6 +69,7 @@
 #include "doq-common.hh"
 #include "dolog.hh"
 #include "threadname.hh"
+#include "iputils.hh"
 
 #ifdef HAVE_LIBSSL
 #include "libssl.hh"
@@ -459,7 +460,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          bool fastOpen{false};
                          if (getOptionalValue<bool>(vars, "tcpFastOpen", fastOpen) > 0) {
                            if (fastOpen) {
-#ifdef MSG_FASTOPEN
+#if defined(MSG_FASTOPEN) || defined(CONNECTX_FASTOPEN)
                              config.tcpFastOpen = true;
 #else
           warnlog("TCP Fast Open has been configured on downstream server %s but is not supported", serverAddressStr);
