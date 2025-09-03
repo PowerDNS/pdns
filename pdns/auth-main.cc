@@ -877,7 +877,7 @@ static void mainthread()
 
   pdns::parseTrustedNotificationProxy(::arg()["trusted-notification-proxy"]);
 
-  { 
+  {
     vector<string> addrs;
     stringtok(addrs, ::arg()["protobuf-servers"], ", ;");
 
