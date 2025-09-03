@@ -969,182 +969,25 @@ static void handleLoggingConfiguration(const dnsdist::rust::settings::LoggingCon
   }
 }
 
-#endif /* defined(HAVE_YAML_CONFIGURATION) */
-
-bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] bool isClient, [[maybe_unused]] bool configCheck)
+static void handleConsoleConfiguration(const dnsdist::rust::settings::ConsoleConfiguration& consoleConf)
 {
-#if defined(HAVE_YAML_CONFIGURATION)
-  // this is not very elegant but passing a context to the functions called by the
-  // Rust code would be quite cumbersome so for now let's settle for this
-  s_inConfigCheckMode.store(configCheck);
-  s_inClientMode.store(isClient);
-
-  auto data = loadContentFromConfigurationFile(fileName);
-  if (!data) {
-    errlog("Unable to open YAML file %s: %s", fileName, stringerror(errno));
-    return false;
-  }
-
-  /* register built-in policies */
-  for (const auto& policy : dnsdist::lbpolicies::getBuiltInPolicies()) {
-    registerType<ServerPolicy>(policy, ::rust::string(policy->d_name));
-  }
-
-  try {
-    auto globalConfig = dnsdist::rust::settings::from_yaml_string(*data);
-
-    dnsdist::configuration::updateImmutableConfiguration([&globalConfig](dnsdist::configuration::ImmutableConfiguration& config) {
-      convertImmutableFlatSettingsFromRust(globalConfig, config);
+  if (!consoleConf.listen_address.empty()) {
+    dnsdist::configuration::updateRuntimeConfiguration([consoleConf](dnsdist::configuration::RuntimeConfiguration& config) {
+      config.d_consoleServerAddress = ComboAddress(std::string(consoleConf.listen_address), 5199);
+      config.d_consoleEnabled = true;
+      config.d_consoleACL.clear();
+      for (const auto& aclEntry : consoleConf.acl) {
+        config.d_consoleACL.addMask(std::string(aclEntry));
+      }
+      B64Decode(std::string(consoleConf.key), config.d_consoleKey);
     });
+  }
+}
 
-    dnsdist::configuration::updateRuntimeConfiguration([&globalConfig](dnsdist::configuration::RuntimeConfiguration& config) {
-      convertRuntimeFlatSettingsFromRust(globalConfig, config);
-    });
-
-    handleLoggingConfiguration(globalConfig.logging);
-
-    if (!globalConfig.console.listen_address.empty()) {
-      const auto& consoleConf = globalConfig.console;
-      dnsdist::configuration::updateRuntimeConfiguration([consoleConf](dnsdist::configuration::RuntimeConfiguration& config) {
-        config.d_consoleServerAddress = ComboAddress(std::string(consoleConf.listen_address), 5199);
-        config.d_consoleEnabled = true;
-        config.d_consoleACL.clear();
-        for (const auto& aclEntry : consoleConf.acl) {
-          config.d_consoleACL.addMask(std::string(aclEntry));
-        }
-        B64Decode(std::string(consoleConf.key), config.d_consoleKey);
-      });
-    }
-
-    if (isClient) {
-      return true;
-    }
-
-    if (!globalConfig.acl.empty()) {
-      dnsdist::configuration::updateRuntimeConfiguration([&acl = globalConfig.acl](dnsdist::configuration::RuntimeConfiguration& config) {
-        config.d_ACL.clear();
-        for (const auto& aclEntry : acl) {
-          config.d_ACL.addMask(std::string(aclEntry));
-        }
-      });
-    }
-
-    handleOpenSSLSettings(globalConfig.tuning.tls);
-
-#if defined(HAVE_EBPF)
-    if (!configCheck && globalConfig.ebpf.ipv4.max_entries > 0 && globalConfig.ebpf.ipv6.max_entries > 0 && globalConfig.ebpf.qnames.max_entries > 0) {
-      BPFFilter::MapFormat format = globalConfig.ebpf.external ? BPFFilter::MapFormat::WithActions : BPFFilter::MapFormat::Legacy;
-      std::unordered_map<std::string, BPFFilter::MapConfiguration> mapsConfig;
-
-      const auto convertParamsToConfig = [&mapsConfig](const std::string& name, BPFFilter::MapType type, const dnsdist::rust::settings::EbpfMapConfiguration& mapConfig) {
-        if (mapConfig.max_entries == 0) {
-          return;
-        }
-        BPFFilter::MapConfiguration config;
-        config.d_type = type;
-        config.d_maxItems = mapConfig.max_entries;
-        config.d_pinnedPath = std::string(mapConfig.pinned_path);
-        mapsConfig[name] = std::move(config);
-      };
-
-      convertParamsToConfig("ipv4", BPFFilter::MapType::IPv4, globalConfig.ebpf.ipv4);
-      convertParamsToConfig("ipv6", BPFFilter::MapType::IPv6, globalConfig.ebpf.ipv6);
-      convertParamsToConfig("qnames", BPFFilter::MapType::QNames, globalConfig.ebpf.qnames);
-      convertParamsToConfig("cidr4", BPFFilter::MapType::CIDR4, globalConfig.ebpf.cidr_ipv4);
-      convertParamsToConfig("cidr6", BPFFilter::MapType::CIDR6, globalConfig.ebpf.cidr_ipv6);
-      auto filter = std::make_shared<BPFFilter>(mapsConfig, format, globalConfig.ebpf.external);
-      g_defaultBPFFilter = std::move(filter);
-    }
-#endif /* defined(HAVE_EBPF) */
-
-#if defined(HAVE_XSK)
-    for (const auto& xskEntry : globalConfig.xsk) {
-      auto map = std::shared_ptr<XSKMap>();
-      for (size_t counter = 0; counter < xskEntry.queues; ++counter) {
-        auto socket = std::make_shared<XskSocket>(xskEntry.frames, std::string(xskEntry.interface), counter, std::string(xskEntry.map_path));
-        dnsdist::xsk::g_xsk.push_back(socket);
-        map->push_back(std::move(socket));
-      }
-      registerType<XSKMap>(map, xskEntry.name);
-    }
-#endif /* defined(HAVE_XSK) */
-
-    loadBinds(globalConfig.binds);
-
-    for (const auto& backend : globalConfig.backends) {
-      auto downstream = createBackendFromConfiguration(backend, configCheck);
-
-      if (!downstream->d_config.pools.empty()) {
-        for (const auto& poolName : downstream->d_config.pools) {
-          addServerToPool(poolName, downstream);
-        }
-      }
-      else {
-        addServerToPool("", downstream);
-      }
-
-      dnsdist::backend::registerNewBackend(downstream);
-    }
-
-    if (!globalConfig.proxy_protocol.acl.empty()) {
-      dnsdist::configuration::updateRuntimeConfiguration([&globalConfig](dnsdist::configuration::RuntimeConfiguration& config) {
-        config.d_proxyProtocolACL.clear();
-        for (const auto& aclEntry : globalConfig.proxy_protocol.acl) {
-          config.d_proxyProtocolACL.addMask(std::string(aclEntry));
-        }
-      });
-    }
-
-#ifndef DISABLE_CARBON
-    if (!globalConfig.metrics.carbon.empty()) {
-      dnsdist::configuration::updateRuntimeConfiguration([&globalConfig](dnsdist::configuration::RuntimeConfiguration& config) {
-        for (const auto& carbonConfig : globalConfig.metrics.carbon) {
-          auto newEndpoint = dnsdist::Carbon::newEndpoint(std::string(carbonConfig.address),
-                                                          std::string(carbonConfig.name),
-                                                          carbonConfig.interval,
-                                                          carbonConfig.name_space.empty() ? "dnsdist" : std::string(carbonConfig.name_space),
-                                                          carbonConfig.instance.empty() ? "main" : std::string(carbonConfig.instance));
-          config.d_carbonEndpoints.push_back(std::move(newEndpoint));
-        }
-      });
-    }
-#endif /* DISABLE_CARBON */
-
-    if (!globalConfig.webserver.listen_addresses.empty()) {
-      const auto& webConfig = globalConfig.webserver;
-      loadWebServer(webConfig);
-    }
-
-    if (globalConfig.query_count.enabled) {
-      dnsdist::configuration::updateRuntimeConfiguration([&globalConfig](dnsdist::configuration::RuntimeConfiguration& config) {
-        config.d_queryCountConfig.d_enabled = true;
-        getLuaFunctionFromConfiguration(config.d_queryCountConfig.d_filter, globalConfig.query_count.filter_function_name, globalConfig.query_count.filter_function_code, globalConfig.query_count.filter_function_file, "query count filter function");
-      });
-    }
-
-    loadDynamicBlockConfiguration(globalConfig.dynamic_rules_settings, globalConfig.dynamic_rules);
-
-    if (!globalConfig.tuning.tcp.fast_open_key.empty()) {
-      std::vector<uint32_t> key(4);
-      auto ret = sscanf(globalConfig.tuning.tcp.fast_open_key.c_str(), "%" SCNx32 "-%" SCNx32 "-%" SCNx32 "-%" SCNx32, &key.at(0), &key.at(1), &key.at(2), &key.at(3));
-      if (ret < 0 || static_cast<size_t>(ret) != key.size()) {
-        throw std::runtime_error("Invalid value passed to tuning.tcp.fast_open_key!\n");
-      }
-      dnsdist::configuration::updateImmutableConfiguration([&key](dnsdist::configuration::ImmutableConfiguration& config) {
-        config.d_tcpFastOpenKey = std::move(key);
-      });
-    }
-
-    if (!globalConfig.general.capabilities_to_retain.empty()) {
-      dnsdist::configuration::updateImmutableConfiguration([capabilities = globalConfig.general.capabilities_to_retain](dnsdist::configuration::ImmutableConfiguration& config) {
-        for (const auto& capability : capabilities) {
-          config.d_capabilitiesToRetain.emplace(std::string(capability));
-        }
-      });
-    }
-
-    for (const auto& cache : globalConfig.packet_caches) {
-      DNSDistPacketCache::CacheSettings settings{
+static void handlePacketCacheConfiguration(const ::rust::Vec<dnsdist::rust::settings::PacketCacheConfiguration>& caches)
+{
+  for (const auto& cache : caches) {
+    DNSDistPacketCache::CacheSettings settings{
         .d_maxEntries = cache.size,
         .d_maxTTL = cache.max_ttl,
         .d_minTTL = cache.min_ttl,
@@ -1185,6 +1028,182 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
 
       registerType<DNSDistPacketCache>(packetCacheObj, cache.name);
     }
+}
+
+static void handleEBPFConfiguration([[maybe_unused]] const dnsdist::rust::settings::EbpfConfiguration& ebpf, [[maybe_unused]] bool configCheck)
+{
+#if defined(HAVE_EBPF)
+  if (!configCheck && ebpf.ipv4.max_entries > 0 && ebpf.ipv6.max_entries > 0 && ebpf.qnames.max_entries > 0) {
+    BPFFilter::MapFormat format = ebpf.external ? BPFFilter::MapFormat::WithActions : BPFFilter::MapFormat::Legacy;
+    std::unordered_map<std::string, BPFFilter::MapConfiguration> mapsConfig;
+
+    const auto convertParamsToConfig = [&mapsConfig](const std::string& name, BPFFilter::MapType type, const dnsdist::rust::settings::EbpfMapConfiguration& mapConfig) {
+      if (mapConfig.max_entries == 0) {
+        return;
+      }
+      BPFFilter::MapConfiguration config;
+      config.d_type = type;
+      config.d_maxItems = mapConfig.max_entries;
+      config.d_pinnedPath = std::string(mapConfig.pinned_path);
+      mapsConfig[name] = std::move(config);
+    };
+
+    convertParamsToConfig("ipv4", BPFFilter::MapType::IPv4, ebpf.ipv4);
+    convertParamsToConfig("ipv6", BPFFilter::MapType::IPv6, ebpf.ipv6);
+    convertParamsToConfig("qnames", BPFFilter::MapType::QNames, ebpf.qnames);
+    convertParamsToConfig("cidr4", BPFFilter::MapType::CIDR4, ebpf.cidr_ipv4);
+    convertParamsToConfig("cidr6", BPFFilter::MapType::CIDR6, ebpf.cidr_ipv6);
+    auto filter = std::make_shared<BPFFilter>(mapsConfig, format, ebpf.external);
+    g_defaultBPFFilter = std::move(filter);
+  }
+#endif /* defined(HAVE_EBPF) */
+}
+
+static void handleCarbonConfiguration([[maybe_unused]] const ::rust::Vec<dnsdist::rust::settings::CarbonConfiguration>& carbonConfigs)
+{
+#ifndef DISABLE_CARBON
+  if (!carbonConfigs.empty()) {
+    dnsdist::configuration::updateRuntimeConfiguration([&carbonConfigs](dnsdist::configuration::RuntimeConfiguration& config) {
+      for (const auto& carbonConfig : carbonConfigs) {
+        auto newEndpoint = dnsdist::Carbon::newEndpoint(std::string(carbonConfig.address),
+                                                        std::string(carbonConfig.name),
+                                                        carbonConfig.interval,
+                                                        carbonConfig.name_space.empty() ? "dnsdist" : std::string(carbonConfig.name_space),
+                                                        carbonConfig.instance.empty() ? "main" : std::string(carbonConfig.instance));
+        config.d_carbonEndpoints.push_back(std::move(newEndpoint));
+      }
+    });
+  }
+#endif /* DISABLE_CARBON */
+}
+
+#endif /* defined(HAVE_YAML_CONFIGURATION) */
+
+bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] bool isClient, [[maybe_unused]] bool configCheck)
+{
+#if defined(HAVE_YAML_CONFIGURATION)
+  // this is not very elegant but passing a context to the functions called by the
+  // Rust code would be quite cumbersome so for now let's settle for this
+  s_inConfigCheckMode.store(configCheck);
+  s_inClientMode.store(isClient);
+
+  auto data = loadContentFromConfigurationFile(fileName);
+  if (!data) {
+    errlog("Unable to open YAML file %s: %s", fileName, stringerror(errno));
+    return false;
+  }
+
+  /* register built-in policies */
+  for (const auto& policy : dnsdist::lbpolicies::getBuiltInPolicies()) {
+    registerType<ServerPolicy>(policy, ::rust::string(policy->d_name));
+  }
+
+  try {
+    auto globalConfig = dnsdist::rust::settings::from_yaml_string(*data);
+
+    dnsdist::configuration::updateImmutableConfiguration([&globalConfig](dnsdist::configuration::ImmutableConfiguration& config) {
+      convertImmutableFlatSettingsFromRust(globalConfig, config);
+    });
+
+    dnsdist::configuration::updateRuntimeConfiguration([&globalConfig](dnsdist::configuration::RuntimeConfiguration& config) {
+      convertRuntimeFlatSettingsFromRust(globalConfig, config);
+    });
+
+    handleLoggingConfiguration(globalConfig.logging);
+
+    handleConsoleConfiguration(globalConfig.console);
+
+    if (isClient) {
+      return true;
+    }
+
+    if (!globalConfig.acl.empty()) {
+      dnsdist::configuration::updateRuntimeConfiguration([&acl = globalConfig.acl](dnsdist::configuration::RuntimeConfiguration& config) {
+        config.d_ACL.clear();
+        for (const auto& aclEntry : acl) {
+          config.d_ACL.addMask(std::string(aclEntry));
+        }
+      });
+    }
+
+    handleOpenSSLSettings(globalConfig.tuning.tls);
+
+    handleEBPFConfiguration(globalConfig.ebpf, configCheck);
+
+#if defined(HAVE_XSK)
+    for (const auto& xskEntry : globalConfig.xsk) {
+      auto map = std::shared_ptr<XSKMap>();
+      for (size_t counter = 0; counter < xskEntry.queues; ++counter) {
+        auto socket = std::make_shared<XskSocket>(xskEntry.frames, std::string(xskEntry.interface), counter, std::string(xskEntry.map_path));
+        dnsdist::xsk::g_xsk.push_back(socket);
+        map->push_back(std::move(socket));
+      }
+      registerType<XSKMap>(map, xskEntry.name);
+    }
+#endif /* defined(HAVE_XSK) */
+
+    loadBinds(globalConfig.binds);
+
+    for (const auto& backend : globalConfig.backends) {
+      auto downstream = createBackendFromConfiguration(backend, configCheck);
+
+      if (!downstream->d_config.pools.empty()) {
+        for (const auto& poolName : downstream->d_config.pools) {
+          addServerToPool(poolName, downstream);
+        }
+      }
+      else {
+        addServerToPool("", downstream);
+      }
+
+      dnsdist::backend::registerNewBackend(downstream);
+    }
+
+    if (!globalConfig.proxy_protocol.acl.empty()) {
+      dnsdist::configuration::updateRuntimeConfiguration([&globalConfig](dnsdist::configuration::RuntimeConfiguration& config) {
+        config.d_proxyProtocolACL.clear();
+        for (const auto& aclEntry : globalConfig.proxy_protocol.acl) {
+          config.d_proxyProtocolACL.addMask(std::string(aclEntry));
+        }
+      });
+    }
+
+    handleCarbonConfiguration(globalConfig.metrics.carbon);
+
+    if (!globalConfig.webserver.listen_addresses.empty()) {
+      const auto& webConfig = globalConfig.webserver;
+      loadWebServer(webConfig);
+    }
+
+    if (globalConfig.query_count.enabled) {
+      dnsdist::configuration::updateRuntimeConfiguration([&globalConfig](dnsdist::configuration::RuntimeConfiguration& config) {
+        config.d_queryCountConfig.d_enabled = true;
+        getLuaFunctionFromConfiguration(config.d_queryCountConfig.d_filter, globalConfig.query_count.filter_function_name, globalConfig.query_count.filter_function_code, globalConfig.query_count.filter_function_file, "query count filter function");
+      });
+    }
+
+    loadDynamicBlockConfiguration(globalConfig.dynamic_rules_settings, globalConfig.dynamic_rules);
+
+    if (!globalConfig.tuning.tcp.fast_open_key.empty()) {
+      std::vector<uint32_t> key(4);
+      auto ret = sscanf(globalConfig.tuning.tcp.fast_open_key.c_str(), "%" SCNx32 "-%" SCNx32 "-%" SCNx32 "-%" SCNx32, &key.at(0), &key.at(1), &key.at(2), &key.at(3));
+      if (ret < 0 || static_cast<size_t>(ret) != key.size()) {
+        throw std::runtime_error("Invalid value passed to tuning.tcp.fast_open_key!\n");
+      }
+      dnsdist::configuration::updateImmutableConfiguration([&key](dnsdist::configuration::ImmutableConfiguration& config) {
+        config.d_tcpFastOpenKey = std::move(key);
+      });
+    }
+
+    if (!globalConfig.general.capabilities_to_retain.empty()) {
+      dnsdist::configuration::updateImmutableConfiguration([capabilities = globalConfig.general.capabilities_to_retain](dnsdist::configuration::ImmutableConfiguration& config) {
+        for (const auto& capability : capabilities) {
+          config.d_capabilitiesToRetain.emplace(std::string(capability));
+        }
+      });
+    }
+
+    handlePacketCacheConfiguration(globalConfig.packet_caches);
 
     loadCustomPolicies(globalConfig.load_balancing_policies.custom_policies);
 
