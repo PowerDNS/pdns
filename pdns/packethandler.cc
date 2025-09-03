@@ -2038,6 +2038,7 @@ std::unique_ptr<DNSPacket> PacketHandler::opcodeQuery(DNSPacket& pkt, bool noCac
 
   msg.setTime(now.tv_sec, now.tv_usec);
   msg.setServerIdentity("turin-train");
+  msg.setHeaderFlags(*getFlagsFromDNSHeader(&pkt.d));
 
   g_remote_loggers.front()->queueData(data); // FIXME: make a loop; also so we don't try to deref empty
 
