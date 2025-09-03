@@ -245,7 +245,7 @@ void doClient(const std::string& command)
     cerr << "Unable to connect to " << server.toStringWithPort() << endl;
     return;
   }
-  SConnect(fileDesc.getHandle(), server);
+  SConnect(fileDesc.getHandle(), false, server);
   setTCPNoDelay(fileDesc.getHandle());
   dnsdist::crypto::authenticated::Nonce theirs;
   dnsdist::crypto::authenticated::Nonce ours;

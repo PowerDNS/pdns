@@ -313,12 +313,12 @@ public:
     }
     else {
       if (!s_disableConnectForUnitTests) {
-        SConnectWithTimeout(d_socket, remote, /* no timeout, we will handle it ourselves */ timeval{0,0});
+        SConnectWithTimeout(d_socket, fastOpen, remote, /* no timeout, we will handle it ourselves */ timeval{0,0});
       }
     }
 #else
     if (!s_disableConnectForUnitTests) {
-      SConnectWithTimeout(d_socket, remote, /* no timeout, we will handle it ourselves */ timeval{0,0});
+      SConnectWithTimeout(d_socket, fastOpen, remote, /* no timeout, we will handle it ourselves */ timeval{0,0});
     }
 #endif /* MSG_FASTOPEN */
 
@@ -349,12 +349,12 @@ public:
     }
     else {
       if (!s_disableConnectForUnitTests) {
-        SConnectWithTimeout(d_socket, remote, timeout);
+        SConnectWithTimeout(d_socket, fastOpen, remote, timeout);
       }
     }
 #else
     if (!s_disableConnectForUnitTests) {
-      SConnectWithTimeout(d_socket, remote, timeout);
+      SConnectWithTimeout(d_socket, fastOpen, remote, timeout);
     }
 #endif /* MSG_FASTOPEN */
 
