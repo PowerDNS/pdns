@@ -20137,6 +20137,7 @@
 :text1.example.com:16:\014k\075rsa\073\040p\075one:120
 :text2.example.com:16:\015k\075rsa\134\073\040p\075one:120
 :text3.example.com:16:\015k\075rsa\134\073\040p\075one:120
+:wallet.example.com:262:\022currency-identifer\021wallet-identifier:120
 @example.com::smtp-servers.example.com.:10:120
 @example.com::smtp-servers.test.com.:15:120
 @external-mail.example.com::server1.test.com.:25:120
@@ -20191,13 +20192,13 @@ Zexample.com:ns1.example.com.:ahu.example.com.:2847484148:28800:7200:604800:8640
 :aland.test.com:16:\016\303\205LAND\040ISLANDS:3600
 :d.test.com:39:\002d2\005test2\003com\000:3600
 :enam.test.com:35:\000d\0002\001a\007e2u\053sip\000\007server1\004test\003com\000:3600
-:ensm.test.com:35:\000d\0002\001s\007e2u\053sip\000\007_double\004_tcp\002dc\004test\003com\000:3600
+:ensm.test.com:35:\000d\0002\001s\007e2u\053sip\000\007\137double\004\137tcp\002dc\004test\003com\000:3600
 :enum.test.com:35:\000d\0002\001u\007e2u\053sip\000\007server1\004test\003com\000:3600
 :hightxt.test.com:16:\042v\075spf1\040mx\040ip4\07278.46.192.210\040\342\200\223all:3600
 :hightxt.test.com:99:\042v\075spf1\040mx\040ip4\07278.46.192.210\040\342\200\223all:3600
 :interrupted-rrset.test.com:16:\023check\040AXFR\040signpipe:3600
 :naptr.test.com:35:\000d\0002\001a\007e2u\053sip\000\007server1\004test\003com\000:3600
-:naptr.test.com:35:\000d\0002\001s\007e2u\053sip\000\007_double\004_tcp\002dc\004test\003com\000:3600
+:naptr.test.com:35:\000d\0002\001s\007e2u\053sip\000\007\137double\004\137tcp\002dc\004test\003com\000:3600
 :naptr.test.com:35:\000d\0002\001u\007e2u\053sip\000\007server1\004test\003com\000:3600
 :server1.test.com:17:\003ahu\004ds9a\002nl\000\007counter\004test\003com\000:3600
 :urc65226.test.com:65226:ABC:3600

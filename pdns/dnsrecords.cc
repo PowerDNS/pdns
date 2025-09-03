@@ -172,6 +172,10 @@ boilerplate_conv(OPT,
                    conv.xfrBlob(d_data)
                  );
 
+// NOLINTBEGIN
+boilerplate_conv(WALLET, conv.xfrText(d_text, true));
+// NOLINTEND
+
 #ifdef HAVE_LUA_RECORDS
 
 bool g_luaRecordInsertWhitespace;
@@ -980,6 +984,7 @@ static void reportOtherTypes(const ReportIsOnlyCallableByReportAllTypes& guard)
    L32RecordContent::report(guard);
    L64RecordContent::report(guard);
    LPRecordContent::report(guard);
+   WALLETRecordContent::report(guard);
    ZONEMDRecordContent::report(guard);
 }
 
