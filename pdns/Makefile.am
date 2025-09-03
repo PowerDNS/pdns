@@ -184,8 +184,6 @@ EXTRA_PROGRAMS = \
 	zone2ldap
 
 pdns_server_SOURCES = \
-	remote_logger.cc remote_logger.hh \
-	protozero.cc protozero.hh \
 	arguments.cc arguments.hh \
 	auth-caches.cc auth-caches.hh \
 	auth-carbon.cc \
@@ -253,10 +251,12 @@ pdns_server_SOURCES = \
 	packetcache.hh \
 	packethandler.cc packethandler.hh \
 	pdnsexception.hh \
+	protozero.cc protozero.hh \
 	proxy-protocol.cc proxy-protocol.hh \
 	qtype.cc qtype.hh \
 	query-local-address.hh query-local-address.cc \
 	rcpgenerator.cc \
+	remote_logger.cc remote_logger.hh \
 	resolver.cc resolver.hh \
 	responsestats.cc responsestats.hh responsestats-auth.cc \
 	rfc2136handler.cc \
