@@ -50,7 +50,6 @@
 #include "trusted-notification-proxy.hh"
 #include "gss_context.hh"
 #include "gettime.hh"
-#include "remote_logger.hh"
 
 #if 0
 #undef DLOG
@@ -1252,19 +1251,6 @@ std::unique_ptr<DNSPacket> PacketHandler::question(DNSPacket& p)
     rdqueries++;
   }
 
-  std::string data;
-  // data.reserve()
-  pdns::ProtoZero::Message msg{data};
-
-  msg.setType(pdns::ProtoZero::Message::MessageType::DNSQueryType);
-
-  struct timeval now;
-  gettimeofday(&now,0);
-  msg.setTime(now.tv_sec, now.tv_usec);
-  msg.setServerIdentity("turin-train");
-
-  g_remote_loggers.front()->queueData(data);
-
   return doQuestion(p);
 }
 
@@ -2038,6 +2024,19 @@ std::unique_ptr<DNSPacket> PacketHandler::opcodeQuery(DNSPacket& pkt, bool noCac
       PC.insert(pkt, *state.r, state.r->getMinTTL(), pkt.d_view); // in the packet cache
     }
   }
+
+  std::string data;
+  // data.reserve()
+  pdns::ProtoZero::Message msg{data};
+
+  msg.setType(pdns::ProtoZero::Message::MessageType::DNSQueryType);
+
+  struct timeval now;
+  gettimeofday(&now,0);
+  msg.setTime(now.tv_sec, now.tv_usec);
+  msg.setServerIdentity("turin-train");
+
+  g_remote_loggers.front()->queueData(data); // FIXME: make a loop; also so we don't try to deref empty
 
   return std::move(state.r);
 }
