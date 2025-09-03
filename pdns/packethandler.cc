@@ -1263,9 +1263,7 @@ std::unique_ptr<DNSPacket> PacketHandler::question(DNSPacket& p)
   msg.setTime(now.tv_sec, now.tv_usec);
   msg.setServerIdentity("turin-train");
 
-  RemoteLogger rl(ComboAddress("127.0.0.1", 9999));
-
-  rl.queueData(data);
+  g_remote_loggers.front()->queueData(data);
 
   return doQuestion(p);
 }

@@ -19,6 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include "remote_logger.hh"
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -124,6 +125,8 @@ StatBag S; //!< Statistics are gathered across PDNS via the StatBag class S
 AuthPacketCache PC; //!< This is the main PacketCache, shared across all threads
 AuthQueryCache QC;
 AuthZoneCache g_zoneCache;
+std::vector<std::unique_ptr<RemoteLogger>> g_remote_loggers;
+
 std::unique_ptr<DNSProxy> DP{nullptr};
 static std::unique_ptr<DynListener> s_dynListener{nullptr};
 CommunicatorClass Communicator;
@@ -871,6 +874,8 @@ static void mainthread()
   pdns::parseQueryLocalAddress(::arg()["query-local-address"]);
 
   pdns::parseTrustedNotificationProxy(::arg()["trusted-notification-proxy"]);
+
+  g_remote_loggers.emplace_back(make_unique<RemoteLogger>(ComboAddress("127.0.0.1", 9999))); // FIXME get from config
 
   UeberBackend::go();
 
