@@ -19,6 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include "protozero.hh"
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -48,6 +49,8 @@
 #include "auth-main.hh"
 #include "trusted-notification-proxy.hh"
 #include "gss_context.hh"
+#include "gettime.hh"
+#include "remote_logger.hh"
 
 #if 0
 #undef DLOG
@@ -1248,6 +1251,21 @@ std::unique_ptr<DNSPacket> PacketHandler::question(DNSPacket& p)
     static AtomicCounter &rdqueries=*S.getPointer("rd-queries");
     rdqueries++;
   }
+
+  std::string data;
+  // data.reserve()
+  pdns::ProtoZero::Message msg{data};
+
+  msg.setType(pdns::ProtoZero::Message::MessageType::DNSQueryType);
+
+  struct timeval now;
+  gettimeofday(&now,0);
+  msg.setTime(now.tv_sec, now.tv_usec);
+  msg.setServerIdentity("turin-train");
+
+  RemoteLogger rl(ComboAddress("127.0.0.1", 9999));
+
+  rl.queueData(data);
 
   return doQuestion(p);
 }

@@ -184,6 +184,7 @@ EXTRA_PROGRAMS = \
 	zone2ldap
 
 pdns_server_SOURCES = \
+	remote_logger.cc remote_logger.hh \
 	arguments.cc arguments.hh \
 	auth-caches.cc auth-caches.hh \
 	auth-carbon.cc \
