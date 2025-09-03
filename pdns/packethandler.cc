@@ -2011,7 +2011,7 @@ std::unique_ptr<DNSPacket> PacketHandler::opcodeQuery(DNSPacket& pkt, bool noCac
 
   struct timeval now;
   gettimeofday(&now,0);
-  msg.setRequest(getUniqueID(), pkt.getRemote(), pkt.getLocal(), pkt.qdomain, pkt.qtype, pkt.qclass, pkt.d.id, pdns::ProtoZero::Message::TransportProtocol::UDP /* lie */, pkt.getString().length());
+  msg.setRequest(getUniqueID(), pkt.getRemote(), pkt.getLocal(), pkt.qdomain, pkt.qtype, pkt.qclass, pkt.d.id, pkt.d_tcp ? pdns::ProtoZero::Message::TransportProtocol::TCP : pdns::ProtoZero::Message::TransportProtocol::UDP, pkt.getString().length());
 
   msg.setTime(now.tv_sec, now.tv_usec);
   msg.setServerIdentity("turin-train");
@@ -2044,7 +2044,7 @@ std::unique_ptr<DNSPacket> PacketHandler::opcodeQuery(DNSPacket& pkt, bool noCac
   msg.setType(pdns::ProtoZero::Message::MessageType::DNSResponseType);
 
   gettimeofday(&now,0);
-  msg.setRequest(getUniqueID(), state.r->getRemote(), state.r->getLocal(), state.r->qdomain, state.r->qtype, state.r->qclass, state.r->d.id, pdns::ProtoZero::Message::TransportProtocol::UDP /* lie */, state.r->getString().length());
+  msg.setRequest(getUniqueID(), state.r->getRemote(), state.r->getLocal(), state.r->qdomain, state.r->qtype, state.r->qclass, state.r->d.id, state.r->d_tcp ? pdns::ProtoZero::Message::TransportProtocol::TCP : pdns::ProtoZero::Message::TransportProtocol::UDP, state.r->getString().length());
 
   msg.setTime(now.tv_sec, now.tv_usec);
   msg.setServerIdentity("turin-train");
