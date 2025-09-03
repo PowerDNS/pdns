@@ -2035,6 +2035,9 @@ std::unique_ptr<DNSPacket> PacketHandler::opcodeQuery(DNSPacket& pkt, bool noCac
   gettimeofday(&now,0);
   msg.setTime(now.tv_sec, now.tv_usec);
   msg.setServerIdentity("turin-train");
+  msg.setFrom(pkt.getRemote());
+  msg.setTo(pkt.getLocal());
+  msg.setQuestion(pkt.qdomain, pkt.qtype, pkt.qclass);
 
   g_remote_loggers.front()->queueData(data); // FIXME: make a loop; also so we don't try to deref empty
 

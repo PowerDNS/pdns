@@ -185,6 +185,7 @@ EXTRA_PROGRAMS = \
 
 pdns_server_SOURCES = \
 	remote_logger.cc remote_logger.hh \
+	protozero.cc protozero.hh \
 	arguments.cc arguments.hh \
 	auth-caches.cc auth-caches.hh \
 	auth-carbon.cc \
