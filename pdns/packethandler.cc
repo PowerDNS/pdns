@@ -1998,7 +1998,8 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state, bool re
   return true;
 }
 
-static void fillProtoZeroMessageFromDNSPacket(pdns::ProtoZero::Message& msg, DNSPacket& pkt) {
+static void fillProtoZeroMessageFromDNSPacket(pdns::ProtoZero::Message& msg, DNSPacket& pkt)
+{
   struct timeval now;
   gettimeofday(&now,0);
   msg.setRequest(getUniqueID(), pkt.getRemote(), pkt.getLocal(), pkt.qdomain, pkt.qtype, pkt.qclass, pkt.d.id, pkt.d_tcp ? pdns::ProtoZero::Message::TransportProtocol::TCP : pdns::ProtoZero::Message::TransportProtocol::UDP, pkt.getString().length());
@@ -2010,6 +2011,25 @@ static void fillProtoZeroMessageFromDNSPacket(pdns::ProtoZero::Message& msg, DNS
   msg.setTime(now.tv_sec, now.tv_usec);
   msg.setServerIdentity("turin-train");
   msg.setHeaderFlags(*getFlagsFromDNSHeader(&pkt.d));
+
+  if (pkt.d.qr == 0) {
+    msg.setType(pdns::ProtoZero::Message::MessageType::DNSQueryType);
+  }
+  else {
+    msg.setType(pdns::ProtoZero::Message::MessageType::DNSResponseType);
+  }
+}
+
+static bool mustSendProtoBuf(void)
+{
+  return g_remote_loggers.size() > 0;
+}
+
+static void sendProtobuf(const std::string& data)
+{
+  for (const auto& logger : g_remote_loggers) {
+    logger->queueData(data);
+  }
 }
 
 std::unique_ptr<DNSPacket> PacketHandler::opcodeQuery(DNSPacket& pkt, bool noCache)
@@ -2022,10 +2042,7 @@ std::unique_ptr<DNSPacket> PacketHandler::opcodeQuery(DNSPacket& pkt, bool noCac
   pdns::ProtoZero::Message msg{data};
 
   fillProtoZeroMessageFromDNSPacket(msg, pkt);
-
-  msg.setType(pdns::ProtoZero::Message::MessageType::DNSQueryType);
-
-  g_remote_loggers.front()->queueData(data); // FIXME: make a loop; also so we don't try to deref empty
+  sendProtobuf(data);
 
   if (opcodeQueryInner(pkt, state)) {
     doAdditionalProcessing(pkt, state.r);
@@ -2052,8 +2069,7 @@ std::unique_ptr<DNSPacket> PacketHandler::opcodeQuery(DNSPacket& pkt, bool noCac
   msg.setType(pdns::ProtoZero::Message::MessageType::DNSResponseType);
 
   fillProtoZeroMessageFromDNSPacket(msg, *state.r);
-
-  g_remote_loggers.front()->queueData(data); // FIXME: make a loop; also so we don't try to deref empty
+  sendProtobuf(data);
 
   return std::move(state.r);
 }
