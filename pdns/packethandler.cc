@@ -2013,6 +2013,10 @@ std::unique_ptr<DNSPacket> PacketHandler::opcodeQuery(DNSPacket& pkt, bool noCac
   gettimeofday(&now,0);
   msg.setRequest(getUniqueID(), pkt.getRemote(), pkt.getLocal(), pkt.qdomain, pkt.qtype, pkt.qclass, pkt.d.id, pkt.d_tcp ? pdns::ProtoZero::Message::TransportProtocol::TCP : pdns::ProtoZero::Message::TransportProtocol::UDP, pkt.getString().length());
 
+  if (pkt.hasEDNS()) {
+    msg.setEDNSVersion(pkt.getEDNSVersion());
+  }
+
   msg.setTime(now.tv_sec, now.tv_usec);
   msg.setServerIdentity("turin-train");
   msg.setHeaderFlags(*getFlagsFromDNSHeader(&pkt.d));
@@ -2045,6 +2049,10 @@ std::unique_ptr<DNSPacket> PacketHandler::opcodeQuery(DNSPacket& pkt, bool noCac
 
   gettimeofday(&now,0);
   msg.setRequest(getUniqueID(), state.r->getRemote(), state.r->getLocal(), state.r->qdomain, state.r->qtype, state.r->qclass, state.r->d.id, state.r->d_tcp ? pdns::ProtoZero::Message::TransportProtocol::TCP : pdns::ProtoZero::Message::TransportProtocol::UDP, state.r->getString().length());
+
+  if (state.r->hasEDNS()) {
+    msg.setEDNSVersion(state.r->getEDNSVersion());
+  }
 
   msg.setTime(now.tv_sec, now.tv_usec);
   msg.setServerIdentity("turin-train");
