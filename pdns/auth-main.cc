@@ -344,6 +344,8 @@ static void declareArguments()
 
   ::arg().set("default-catalog-zone", "Catalog zone to assign newly created primary zones (via the API) to") = "";
 
+  ::arg().set("protobuf-servers", "Servers to send protobuf logging to");
+
 #ifdef ENABLE_GSS_TSIG
   ::arg().setSwitch("enable-gss-tsig", "Enable GSS TSIG processing") = "no";
 #endif
@@ -875,7 +877,14 @@ static void mainthread()
 
   pdns::parseTrustedNotificationProxy(::arg()["trusted-notification-proxy"]);
 
-  g_remote_loggers.emplace_back(make_unique<RemoteLogger>(ComboAddress("127.0.0.1", 9999))); // FIXME get from config
+  { 
+    vector<string> addrs;
+    stringtok(addrs, ::arg()["protobuf-servers"], ", ;");
+
+    for(const string& addr : addrs) {
+      g_remote_loggers.emplace_back(make_unique<RemoteLogger>(ComboAddress(addr)));
+    }
+  }
 
   UeberBackend::go();
 
