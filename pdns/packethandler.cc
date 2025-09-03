@@ -2033,11 +2033,11 @@ std::unique_ptr<DNSPacket> PacketHandler::opcodeQuery(DNSPacket& pkt, bool noCac
 
   struct timeval now;
   gettimeofday(&now,0);
+  cerr<<pkt.d.id<<endl;
+  msg.setRequest(getUniqueID(), pkt.getRemote(), pkt.getLocal(), pkt.qdomain, pkt.qtype, pkt.qclass, pkt.d.id, pdns::ProtoZero::Message::TransportProtocol::UDP /* lie */, 42 /* lie */);
+
   msg.setTime(now.tv_sec, now.tv_usec);
   msg.setServerIdentity("turin-train");
-  msg.setFrom(pkt.getRemote());
-  msg.setTo(pkt.getLocal());
-  msg.setQuestion(pkt.qdomain, pkt.qtype, pkt.qclass);
 
   g_remote_loggers.front()->queueData(data); // FIXME: make a loop; also so we don't try to deref empty
 
