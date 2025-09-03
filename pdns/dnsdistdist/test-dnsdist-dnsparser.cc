@@ -386,6 +386,7 @@ BOOST_AUTO_TEST_CASE(test_Response)
 BOOST_AUTO_TEST_CASE(test_Overlay)
 {
   const DNSName target("powerdns.com.");
+  const DNSName notTheTarget("not-powerdns.com.");
 
   {
     PacketBuffer response;
@@ -459,6 +460,56 @@ BOOST_AUTO_TEST_CASE(test_Overlay)
       BOOST_CHECK_GE(record.d_contentOffset, lastOffset);
       lastOffset = record.d_contentOffset + record.d_contentLength;
     }
+  }
+
+  {
+    /* response with A and AAAA records, using parsers */
+    PacketBuffer response;
+    GenericDNSPacketWriter<PacketBuffer> pwR(response, target, QType::A, QClass::IN, 0);
+    pwR.getHeader()->qr = 1;
+    pwR.getHeader()->rd = 1;
+    pwR.getHeader()->ra = 1;
+    pwR.getHeader()->id = htons(42);
+    pwR.startRecord(target, QType::A, 7200, QClass::IN, DNSResourceRecord::ANSWER);
+    ComboAddress v4("192.0.2.1");
+    pwR.xfrCAWithoutPort(4, v4);
+    pwR.commit();
+    pwR.startRecord(target, QType::AAAA, 7200, QClass::IN, DNSResourceRecord::ADDITIONAL);
+    ComboAddress v6("2001:db8::1");
+    pwR.xfrCAWithoutPort(6, v6);
+    pwR.commit();
+    pwR.addOpt(4096, 0, 0);
+    pwR.commit();
+
+    auto packet = std::string_view(reinterpret_cast<const char*>(response.data()), response.size());
+    dnsdist::DNSPacketOverlay overlay(packet);
+    BOOST_CHECK_EQUAL(overlay.d_records[0].d_type, QType::A);
+    BOOST_CHECK(*dnsdist::RecordParsers::parseARecord(packet, overlay.d_records[0]) == v4);
+    BOOST_CHECK(*dnsdist::RecordParsers::parseAddressRecord(packet, overlay.d_records[0]) == v4);
+
+    BOOST_CHECK_EQUAL(overlay.d_records[1].d_type, QType::AAAA);
+    BOOST_CHECK(*dnsdist::RecordParsers::parseAAAARecord(packet, overlay.d_records[1]) == v6);
+    BOOST_CHECK(*dnsdist::RecordParsers::parseAddressRecord(packet, overlay.d_records[1]) == v6);
+  }
+
+  {
+    /* response with CNAME record, using parser */
+    PacketBuffer response;
+    GenericDNSPacketWriter<PacketBuffer> pwR(response, target, QType::A, QClass::IN, 0);
+    pwR.getHeader()->qr = 1;
+    pwR.getHeader()->rd = 1;
+    pwR.getHeader()->ra = 1;
+    pwR.getHeader()->id = htons(42);
+    pwR.startRecord(target, QType::CNAME, 7200, QClass::IN, DNSResourceRecord::ANSWER);
+    pwR.xfrName(notTheTarget);
+    pwR.commit();
+    pwR.addOpt(4096, 0, 0);
+    pwR.commit();
+
+    auto packet = std::string_view(reinterpret_cast<const char*>(response.data()), response.size());
+    dnsdist::DNSPacketOverlay overlay(packet);
+    BOOST_CHECK_EQUAL(overlay.d_records[0].d_type, QType::CNAME);
+    BOOST_CHECK_EQUAL(*dnsdist::RecordParsers::parseCNAMERecord(packet, overlay.d_records[0]), notTheTarget);
   }
 }
 
