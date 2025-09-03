@@ -2029,7 +2029,7 @@ std::unique_ptr<DNSPacket> PacketHandler::opcodeQuery(DNSPacket& pkt, bool noCac
   // data.reserve()
   pdns::ProtoZero::Message msg{data};
 
-  msg.setType(pdns::ProtoZero::Message::MessageType::DNSResponseType);
+  msg.setType(pdns::ProtoZero::Message::MessageType::DNSQueryType);
 
   struct timeval now;
   gettimeofday(&now,0);
