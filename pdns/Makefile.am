@@ -252,10 +252,12 @@ pdns_server_SOURCES = \
 	packetcache.hh \
 	packethandler.cc packethandler.hh \
 	pdnsexception.hh \
+	protozero.cc protozero.hh \
 	proxy-protocol.cc proxy-protocol.hh \
 	qtype.cc qtype.hh \
 	query-local-address.hh query-local-address.cc \
 	rcpgenerator.cc \
+	remote_logger.cc remote_logger.hh \
 	resolver.cc resolver.hh \
 	responsestats.cc responsestats.hh responsestats-auth.cc \
 	rfc2136handler.cc \

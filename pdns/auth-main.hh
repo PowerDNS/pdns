@@ -34,6 +34,7 @@
 #include "statbag.hh"
 #include "tcpreceiver.hh"
 #include "dnsseckeeper.hh"
+#include "remote_logger.hh"
 
 extern time_t g_starttime;
 extern ArgvMap theArg;
@@ -57,3 +58,4 @@ extern time_t g_luaConsistentHashesExpireDelay;
 extern time_t g_luaConsistentHashesCleanupInterval;
 #endif // HAVE_LUA_RECORDS
 extern bool g_views;
+extern std::vector<std::unique_ptr<RemoteLogger>> g_remote_loggers;
