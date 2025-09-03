@@ -2003,6 +2003,22 @@ std::unique_ptr<DNSPacket> PacketHandler::opcodeQuery(DNSPacket& pkt, bool noCac
   queryState state;
   state.noCache = noCache;
 
+  std::string data;
+  // data.reserve()
+  pdns::ProtoZero::Message msg{data};
+
+  msg.setType(pdns::ProtoZero::Message::MessageType::DNSQueryType);
+
+  struct timeval now;
+  gettimeofday(&now,0);
+  msg.setRequest(getUniqueID(), pkt.getRemote(), pkt.getLocal(), pkt.qdomain, pkt.qtype, pkt.qclass, pkt.d.id, pdns::ProtoZero::Message::TransportProtocol::UDP /* lie */, pkt.getString().length());
+
+  msg.setTime(now.tv_sec, now.tv_usec);
+  msg.setServerIdentity("turin-train");
+  msg.setHeaderFlags(*getFlagsFromDNSHeader(&pkt.d));
+
+  g_remote_loggers.front()->queueData(data); // FIXME: make a loop; also so we don't try to deref empty
+
   if (opcodeQueryInner(pkt, state)) {
     doAdditionalProcessing(pkt, state.r);
 
@@ -2025,20 +2041,14 @@ std::unique_ptr<DNSPacket> PacketHandler::opcodeQuery(DNSPacket& pkt, bool noCac
     }
   }
 
-  std::string data;
-  // data.reserve()
-  pdns::ProtoZero::Message msg{data};
+  msg.setType(pdns::ProtoZero::Message::MessageType::DNSResponseType);
 
-  msg.setType(pdns::ProtoZero::Message::MessageType::DNSQueryType);
-
-  struct timeval now;
   gettimeofday(&now,0);
-  cerr<<pkt.d.id<<endl;
-  msg.setRequest(getUniqueID(), pkt.getRemote(), pkt.getLocal(), pkt.qdomain, pkt.qtype, pkt.qclass, pkt.d.id, pdns::ProtoZero::Message::TransportProtocol::UDP /* lie */, 42 /* lie */);
+  msg.setRequest(getUniqueID(), state.r->getRemote(), state.r->getLocal(), state.r->qdomain, state.r->qtype, state.r->qclass, state.r->d.id, pdns::ProtoZero::Message::TransportProtocol::UDP /* lie */, state.r->getString().length());
 
   msg.setTime(now.tv_sec, now.tv_usec);
   msg.setServerIdentity("turin-train");
-  msg.setHeaderFlags(*getFlagsFromDNSHeader(&pkt.d));
+  msg.setHeaderFlags(*getFlagsFromDNSHeader(&state.r->d));
 
   g_remote_loggers.front()->queueData(data); // FIXME: make a loop; also so we don't try to deref empty
 
