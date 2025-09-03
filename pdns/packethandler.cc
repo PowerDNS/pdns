@@ -1998,17 +1998,7 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state, bool re
   return true;
 }
 
-std::unique_ptr<DNSPacket> PacketHandler::opcodeQuery(DNSPacket& pkt, bool noCache)
-{
-  queryState state;
-  state.noCache = noCache;
-
-  std::string data;
-  // data.reserve()
-  pdns::ProtoZero::Message msg{data};
-
-  msg.setType(pdns::ProtoZero::Message::MessageType::DNSQueryType);
-
+static void fillProtoZeroMessageFromDNSPacket(pdns::ProtoZero::Message& msg, DNSPacket& pkt) {
   struct timeval now;
   gettimeofday(&now,0);
   msg.setRequest(getUniqueID(), pkt.getRemote(), pkt.getLocal(), pkt.qdomain, pkt.qtype, pkt.qclass, pkt.d.id, pkt.d_tcp ? pdns::ProtoZero::Message::TransportProtocol::TCP : pdns::ProtoZero::Message::TransportProtocol::UDP, pkt.getString().length());
@@ -2020,6 +2010,20 @@ std::unique_ptr<DNSPacket> PacketHandler::opcodeQuery(DNSPacket& pkt, bool noCac
   msg.setTime(now.tv_sec, now.tv_usec);
   msg.setServerIdentity("turin-train");
   msg.setHeaderFlags(*getFlagsFromDNSHeader(&pkt.d));
+}
+
+std::unique_ptr<DNSPacket> PacketHandler::opcodeQuery(DNSPacket& pkt, bool noCache)
+{
+  queryState state;
+  state.noCache = noCache;
+
+  std::string data;
+  // data.reserve()
+  pdns::ProtoZero::Message msg{data};
+
+  fillProtoZeroMessageFromDNSPacket(msg, pkt);
+
+  msg.setType(pdns::ProtoZero::Message::MessageType::DNSQueryType);
 
   g_remote_loggers.front()->queueData(data); // FIXME: make a loop; also so we don't try to deref empty
 
@@ -2047,16 +2051,7 @@ std::unique_ptr<DNSPacket> PacketHandler::opcodeQuery(DNSPacket& pkt, bool noCac
 
   msg.setType(pdns::ProtoZero::Message::MessageType::DNSResponseType);
 
-  gettimeofday(&now,0);
-  msg.setRequest(getUniqueID(), state.r->getRemote(), state.r->getLocal(), state.r->qdomain, state.r->qtype, state.r->qclass, state.r->d.id, state.r->d_tcp ? pdns::ProtoZero::Message::TransportProtocol::TCP : pdns::ProtoZero::Message::TransportProtocol::UDP, state.r->getString().length());
-
-  if (state.r->hasEDNS()) {
-    msg.setEDNSVersion(state.r->getEDNSVersion());
-  }
-
-  msg.setTime(now.tv_sec, now.tv_usec);
-  msg.setServerIdentity("turin-train");
-  msg.setHeaderFlags(*getFlagsFromDNSHeader(&state.r->d));
+  fillProtoZeroMessageFromDNSPacket(msg, *state.r);
 
   g_remote_loggers.front()->queueData(data); // FIXME: make a loop; also so we don't try to deref empty
 
