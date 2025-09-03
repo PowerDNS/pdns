@@ -792,8 +792,6 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
           break;
         }
 
-        dnsdist::configuration::refreshLocalRuntimeConfiguration();
-
         for (const auto& sockDesc : sockets) {
           /* allocate one more byte so we can detect truncation */
           // NOLINTNEXTLINE(bugprone-use-after-move): resizing a vector has no preconditions so it is valid to do so after moving it
@@ -822,6 +820,7 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
             continue;
           }
 
+          dnsdist::configuration::refreshLocalRuntimeConfiguration();
           if (processResponderPacket(dss, response, std::move(*ids)) && ids->isXSK() && ids->cs->xskInfoResponder) {
 #ifdef HAVE_XSK
             auto& xskInfo = ids->cs->xskInfoResponder;
