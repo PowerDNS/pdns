@@ -284,7 +284,7 @@ unsigned int authWaitTimeMSec(const std::unique_ptr<MT_t>& mtasker)
 
 /* these two functions are used by LWRes */
 LWResult::Result asendto(const void* data, size_t len, int /* flags */,
-                         const ComboAddress& toAddress,  std::optional<ComboAddress>& localAddress, uint16_t qid, const DNSName& domain, uint16_t qtype, const std::optional<EDNSSubnetOpts>& ecs, int* fileDesc, timeval& now)
+                         const ComboAddress& toAddress, std::optional<ComboAddress>& localAddress, uint16_t qid, const DNSName& domain, uint16_t qtype, const std::optional<EDNSSubnetOpts>& ecs, int* fileDesc, timeval& now)
 {
 
   auto pident = std::make_shared<PacketID>();

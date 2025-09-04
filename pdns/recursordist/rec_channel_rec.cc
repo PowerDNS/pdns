@@ -2066,7 +2066,7 @@ static std::string reloadZoneConfigurationWithSysResolveReset()
   return ret;
 }
 
-RecursorControlChannel::Answer RecursorControlParser::getAnswer(int socket, const string& question, RecursorControlParser::func_t** command)
+RecursorControlChannel::Answer RecursorControlParser::getAnswer(int socket, const string& question, RecursorControlParser::func_t** command) // NOLINT(readability-function-cognitive-complexity)
 {
   *command = nop;
   vector<string> words;
