@@ -70,10 +70,29 @@ bool g_ECSHardening;
 
 static LockGuarded<CookieStore> s_cookiestore;
 
-void clearCookies()
+uint64_t clearCookies(vector<string>::iterator begin, vector<string>::iterator end)
 {
   auto lock = s_cookiestore.lock();
-  lock->clear();
+  uint64_t count = 0;
+  if (begin == end) {
+    return 0;
+  }
+  if (*begin == "*") {
+    count = lock->size();
+    lock->clear();
+  }
+  else {
+    while (begin != end) {
+      try {
+        count += lock->erase(ComboAddress(*begin, 53));
+      }
+      catch (const PDNSException &) {
+        ;
+      }
+      ++begin;
+    }
+  }
+  return count;
 }
 
 void pruneCookies(time_t cutoff)

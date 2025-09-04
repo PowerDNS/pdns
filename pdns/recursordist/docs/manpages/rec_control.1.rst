@@ -70,6 +70,9 @@ add-ta *DOMAIN* *DSRECORD*
 current-queries
     Shows the currently active queries.
 
+clear-cookies [*IP*...]
+    Remove entries from cookie table. If *IP* is ``*``, remove all.
+
 clear-dont-throttle-names *NAME* [*NAME*...]
     Remove names that are not allowed to be throttled. If *NAME* is ``*``, remove all
 

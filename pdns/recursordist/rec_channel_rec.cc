@@ -1888,7 +1888,7 @@ static RecursorControlChannel::Answer help()
           "add-nta DOMAIN [REASON]          add a Negative Trust Anchor for DOMAIN with the comment REASON\n"
           "add-ta DOMAIN DSRECORD           add a Trust Anchor for DOMAIN with data DSRECORD\n"
           "current-queries                  show currently active queries\n"
-          // "clear-cookies                    clear cookie table\n" XXX undocumented for now
+          "clear-cookies [IP...]            clear entries from cookie table, if IP is '*' remove all entries\n"
           "clear-dont-throttle-names [N...] remove names that are not allowed to be throttled. If N is '*', remove all\n"
           "clear-dont-throttle-netmasks [N...]\n"
           "                                 remove netmasks that are not allowed to be throttled. If N is '*', remove all\n"
@@ -2108,8 +2108,8 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int socket, cons
     return doDumpCache(socket, begin, end);
   }
   if (cmd == "clear-cookies") {
-    clearCookies();
-    return {0, ""};
+    auto count = clearCookies(begin, end);
+    return {0, "Cleared " + std::to_string(count) + " entr" + addS(count, "y", "ies") + " from cookies table\n"};
   }
   if (cmd == "dump-cookies") {
     return doDumpToFile(socket, pleaseDumpCookiesMap, cmd, false);
