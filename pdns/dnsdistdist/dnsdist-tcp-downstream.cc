@@ -304,8 +304,37 @@ IOState TCPConnectionToBackend::sendQuery(std::shared_ptr<TCPConnectionToBackend
   return state;
 }
 
+class HandlingIOGuard
+{
+public:
+  HandlingIOGuard(bool& handlingIO) :
+    d_handlingIO(handlingIO)
+  {
+  }
+  HandlingIOGuard(const HandlingIOGuard&) = delete;
+  HandlingIOGuard(HandlingIOGuard&&) = delete;
+  HandlingIOGuard& operator=(const HandlingIOGuard& rhs) = delete;
+  HandlingIOGuard& operator=(HandlingIOGuard&&) = delete;
+  ~HandlingIOGuard()
+  {
+    d_handlingIO = false;
+  }
+
+private:
+  bool& d_handlingIO;
+};
+
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& conn, const struct timeval& now)
 {
+  if (conn->d_handlingIO) {
+    conn->d_handleSkipped = true;
+    return;
+  }
+
+  conn->d_handlingIO = true;
+  HandlingIOGuard reentryGuard(conn->d_handlingIO);
+
   if (conn->d_handler == nullptr) {
     throw std::runtime_error("No downstream socket in " + std::string(__PRETTY_FUNCTION__) + "!");
   }
@@ -314,6 +343,7 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
   IOState iostate = IOState::Done;
   IOStateGuard ioGuard(conn->d_ioState);
   bool reconnected = false;
+  bool skipped = false;
 
   do {
     reconnected = false;
@@ -505,8 +535,10 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
         conn->d_ioState->update(iostate, handleIOCallback, conn, ttd);
       }
     }
+    skipped = conn->d_handleSkipped;
+    conn->d_handleSkipped = false;
   }
-  while (reconnected);
+  while (reconnected || skipped);
 
   ioGuard.release();
 }
@@ -763,6 +795,10 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
   else if (!d_pendingResponses.empty()) {
     DEBUGLOG("still have some responses to read");
     return IOState::NeedRead;
+  }
+  else if (d_state == State::sendingQueryToBackend) {
+    DEBUGLOG("another query already being sent from elsewhere");
+    return IOState::Done;
   }
   else {
     DEBUGLOG("nothing to do, waiting for a new query");

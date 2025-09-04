@@ -302,6 +302,8 @@ private:
   size_t d_currentPos{0};
   uint16_t d_responseSize{0};
   State d_state{State::idle};
+  bool d_handlingIO{false};
+  bool d_handleSkipped{false};
 };
 
 void setTCPDownstreamMaxIdleConnectionsPerBackend(uint64_t max);
