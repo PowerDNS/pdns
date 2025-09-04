@@ -635,6 +635,23 @@ void RecordTextReader::xfrText(string& val, bool multi, bool /* lenField */)
     while(++d_pos < d_end && d_string[d_pos]!='"') {
       if(d_string[d_pos]=='\\' && d_pos+1!=d_end) {
         val.append(1, d_string[d_pos++]);
+        char chr = d_string[d_pos];
+        if (chr >= '0' && chr <= '9') {
+          bool valid{false};
+          // Must be a three-digit character escape sequence
+          if (d_end - d_pos >= 3) {
+            char chr2 = d_string[d_pos + 1];
+            char chr3 = d_string[d_pos + 2];
+            if (chr2 >= '0' && chr2 <= '9' && chr3 >= '0' && chr3 <= '9') {
+              valid = true;
+            }
+          }
+          if (!valid) {
+            throw RecordTextException("Data field in DNS contains an invalid escape at position "+std::to_string(d_pos)+" of '"+d_string+"'");
+          }
+        }
+        // Not advancing d_pos, we'll append the next 1 or 3 characters as
+        // part of the regular case.
       }
       val.append(1, d_string[d_pos]);
     }
