@@ -8,7 +8,7 @@ project(
   default_options: [
     'buildtype=debugoptimized',
     'warning_level=2',          # TODO Move this to 3 to enable -Wpedantic
-    'cpp_std=c++17',
+    'cpp_std=c++20',
   ],
 )
 meson.add_dist_script('meson-dist-script.sh')
