@@ -62,6 +62,8 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
     }
 
     if (getOptionalValue<decltype(skipOptions)>(vars, "skipOptions", skipOptions) > 0) {
+      settings.d_optionsToSkip.clear();
+      settings.d_optionsToSkip.insert(EDNSOptionCode::COOKIE);
       for (const auto& option : skipOptions) {
         settings.d_optionsToSkip.insert(option.second);
       }
