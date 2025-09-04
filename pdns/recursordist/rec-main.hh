@@ -176,14 +176,14 @@ public:
   {
   }
 
-  LWResult::Result getSocket(const ComboAddress& toaddr, int* fileDesc);
+  LWResult::Result getSocket(const ComboAddress& toaddr, const std::optional<ComboAddress>& localAddress, int* fileDesc);
 
   // return a socket to the pool, or simply erase it
   void returnSocket(int fileDesc);
 
 private:
   // returns -1 for errors which might go away, throws for ones that won't
-  static int makeClientSocket(int family);
+  static int makeClientSocket(int family, const std::optional<ComboAddress>& localAddress);
 };
 
 enum class PaddingMode
