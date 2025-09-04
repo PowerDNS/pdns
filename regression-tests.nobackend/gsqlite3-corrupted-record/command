@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-## source ../regression-tests/common
+MAKE=${MAKE:-make}
+source ../regression-tests/common
 
 rm -f pdns-gsqlite3.conf pdns.sqlite3
 
