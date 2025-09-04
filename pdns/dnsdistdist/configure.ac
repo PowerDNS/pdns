@@ -148,7 +148,7 @@ PDNS_CHECK_LMDB
 PDNS_ENABLE_IPCIPHER
 PDNS_CHECK_AARCH64_UINT64X2_T
 
-AX_CXX_COMPILE_STDCXX_17([noext], [mandatory])
+AX_CXX_COMPILE_STDCXX_20([noext], [mandatory])
 
 AC_MSG_CHECKING([whether we will enable compiler security checks])
 AC_ARG_ENABLE([hardening],
