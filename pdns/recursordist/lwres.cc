@@ -70,6 +70,29 @@ bool g_ECSHardening;
 
 static LockGuarded<CookieStore> s_cookiestore;
 
+uint64_t addCookiesUnsupported(vector<string>::iterator begin, vector<string>::iterator end)
+{
+  auto lock = s_cookiestore.lock();
+  uint64_t count = 0;
+  while (begin != end) {
+    try {
+      CookieEntry entry;
+      entry.d_address = ComboAddress(*begin, 53);
+      entry.setSupport(CookieEntry::Support::Unsupported, std::numeric_limits<time_t>::max());
+      auto [iter, inserted] = lock->insert(entry);
+      if (!inserted) {
+        lock->replace(iter, entry);
+      }
+      ++count;
+    }
+    catch (const PDNSException &) {
+      ;
+    }
+    ++begin;
+  }
+  return count;
+}
+
 uint64_t clearCookies(vector<string>::iterator begin, vector<string>::iterator end)
 {
   auto lock = s_cookiestore.lock();

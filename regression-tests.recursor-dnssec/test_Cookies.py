@@ -94,7 +94,7 @@ packetcache:
     def testAuthRepliesWithCookie(self):
         confdir = os.path.join('configs', self._confdir)
         # Case: rec gets a proper client and server cookie back
-        self.recControl(confdir, 'clear-cookies')
+        self.recControl(confdir, 'clear-cookies', '*')
         query = dns.message.make_query('supported.cookies.example.', 'A')
         expected = dns.rrset.from_text('supported.cookies.example.', 15, dns.rdataclass.IN, 'A', '127.0.0.1')
         res = self.sendUDPQuery(query)
@@ -114,7 +114,7 @@ packetcache:
     def testAuthSendsIncorrectClientCookie(self):
         confdir = os.path.join('configs', self._confdir)
         # Case: rec gets a an incorrect client cookie back, we ignore that over TCP
-        self.recControl(confdir, 'clear-cookies')
+        self.recControl(confdir, 'clear-cookies', '*')
         query = dns.message.make_query('wrongcc.cookies.example.', 'A')
         expected = dns.rrset.from_text('wrongcc.cookies.example.', 15, dns.rdataclass.IN, 'A', '127.0.0.1')
         res = self.sendUDPQuery(query)
@@ -125,7 +125,7 @@ packetcache:
     def testAuthSendsBADCOOKIEOverUDP(self):
         confdir = os.path.join('configs', self._confdir)
         # Case: rec gets a BADCOOKIE, even on retry and should fall back to TCP
-        self.recControl(confdir, 'clear-cookies')
+        self.recControl(confdir, 'clear-cookies', '*')
         query = dns.message.make_query('badcookie.cookies.example.', 'A')
         expected = dns.rrset.from_text('badcookie.cookies.example.', 15, dns.rdataclass.IN, 'A', '127.0.0.1')
         res = self.sendUDPQuery(query)
@@ -136,7 +136,7 @@ packetcache:
     def testAuthSendsMalformedCookie(self):
         confdir = os.path.join('configs', self._confdir)
         # Case: rec gets a malformed cookie, should ignore packet
-        self.recControl(confdir, 'clear-cookies')
+        self.recControl(confdir, 'clear-cookies', '*')
         query = dns.message.make_query('malformed.cookies.example.', 'A')
         expected = dns.rrset.from_text('malformed.cookies.example.', 15, dns.rdataclass.IN, 'A', '127.0.0.1')
         res = self.sendUDPQuery(query)
@@ -148,7 +148,7 @@ packetcache:
     def testForgottenCookie(self):
         confdir = os.path.join('configs', self._confdir)
         # Case: rec gets a proper client and server cookie back
-        self.recControl(confdir, 'clear-cookies')
+        self.recControl(confdir, 'clear-cookies', '*')
         query = dns.message.make_query('supported3.cookies.example.', 'A')
         expected = dns.rrset.from_text('supported3.cookies.example.', 15, dns.rdataclass.IN, 'A', '127.0.0.1')
         res = self.sendUDPQuery(query)
@@ -158,7 +158,7 @@ packetcache:
 
         # Case: we get a an correct client and server cookie back
         # We HAVE cleared the cookie tables, so the old server cookie is fogotten
-        self.recControl(confdir, 'clear-cookies')
+        self.recControl(confdir, 'clear-cookies', '*')
         query = dns.message.make_query('supported4.cookies.example.', 'A')
         expected = dns.rrset.from_text('supported4.cookies.example.', 15, dns.rdataclass.IN, 'A', '127.0.0.1')
         res = self.sendUDPQuery(query)

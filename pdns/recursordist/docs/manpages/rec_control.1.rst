@@ -53,6 +53,9 @@ Options
 
 Commands
 --------
+add-cookies-unsupported *IP* [*IP*...]
+    Add non-expiring IPs of servers that do not support cookies to the cookie table.
+
 add-dont-throttle-names *NAME* [*NAME*...]
     Add names for nameserver domains that may not be throttled.
 

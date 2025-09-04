@@ -1882,6 +1882,7 @@ static void* pleaseSupplantProxyMapping(const ProxyMapping& proxyMapping)
 static RecursorControlChannel::Answer help()
 {
   return {0,
+          "add-cookies-unsupported [IP...]  add non-expiring 'Unsupported' entry for IP to cookie table\n"
           "add-dont-throttle-names [N...]   add names that are not allowed to be throttled\n"
           "add-dont-throttle-netmasks [N...]\n"
           "                                 add netmasks that are not allowed to be throttled\n"
@@ -2110,6 +2111,10 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int socket, cons
   if (cmd == "clear-cookies") {
     auto count = clearCookies(begin, end);
     return {0, "Cleared " + std::to_string(count) + " entr" + addS(count, "y", "ies") + " from cookies table\n"};
+  }
+  if (cmd == "add-cookies-unsupported") {
+    auto count = addCookiesUnsupported(begin, end);
+    return {0, "Added " + std::to_string(count) + " entr" + addS(count, "y", "ies") + " to cookies table\n"};
   }
   if (cmd == "dump-cookies") {
     return doDumpToFile(socket, pleaseDumpCookiesMap, cmd, false);
