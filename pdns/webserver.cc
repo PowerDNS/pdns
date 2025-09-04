@@ -206,7 +206,7 @@ void WebServer::apiWrapper(const WebServer::HandlerFunction& handler, HttpReques
 }
 
 void WebServer::registerApiHandler(const string& url, const HandlerFunction& handler, const std::string& method, bool allowPassword) {
-  auto f = [=](HttpRequest *req, HttpResponse* resp){apiWrapper(handler, req, resp, allowPassword);};
+  auto f = [=,this](HttpRequest *req, HttpResponse* resp){apiWrapper(handler, req, resp, allowPassword);};
   registerBareHandler(url, f, method);
 }
 
@@ -224,7 +224,7 @@ void WebServer::webWrapper(const WebServer::HandlerFunction& handler, HttpReques
 }
 
 void WebServer::registerWebHandler(const string& url, const HandlerFunction& handler, const std::string& method) {
-  auto f = [=](HttpRequest *req, HttpResponse *resp){webWrapper(handler, req, resp);};
+  auto f = [=,this](HttpRequest *req, HttpResponse *resp){webWrapper(handler, req, resp);};
   registerBareHandler(url, f, method);
 }
 
