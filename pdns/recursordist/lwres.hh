@@ -103,4 +103,4 @@ uint64_t dumpCookies(int fileDesc);
 uint64_t clearCookies(vector<string>::iterator begin, vector<string>::iterator end);
 uint64_t addCookiesUnsupported(vector<string>::iterator begin, vector<string>::iterator end);
 void pruneCookies(time_t cutoff);
-void enableOutgoingCookies(bool flag);
+void enableOutgoingCookies(bool flag, const std::string& unsupported);

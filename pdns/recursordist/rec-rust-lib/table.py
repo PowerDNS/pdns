@@ -3630,4 +3630,16 @@ Enable DNS cookies (:rfc:`7873`, :rfc:`9018`) when contacting authoritative serv
 ''',
         'versionadded': '5.3.0',
     },
+    {
+        'name' : 'cookies_unsupported',
+        'section' : 'outgoing',
+        'oldname': 'outgoing-cookies-unsupported',
+        'type': LType.ListStrings,
+        'default': '',
+        'help': 'Addresses of authoritative servers that do not support cookies',
+        'doc': '''
+Addresses of servers that do not properly support DNS cookies (:rfc:`7873`, :rfc:`9018`). Recursor wil not even try to probe these servers for cookie support.
+''',
+        'versionadded': '5.3.0',
+    },
 ]

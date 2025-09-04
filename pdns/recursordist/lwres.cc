@@ -58,9 +58,14 @@
 
 static bool g_cookies = false;
 
-void enableOutgoingCookies(bool flag)
+void enableOutgoingCookies(bool flag, const string& unsupported)
 {
   g_cookies = flag;
+  if (g_cookies) {
+    std::vector<std::string> parts;
+    stringtok(parts, unsupported, ", ");
+    addCookiesUnsupported(parts.begin(), parts.end());
+  }
 }
 
 thread_local TCPOutConnectionManager t_tcp_manager;
@@ -85,7 +90,7 @@ uint64_t addCookiesUnsupported(vector<string>::iterator begin, vector<string>::i
       }
       ++count;
     }
-    catch (const PDNSException &) {
+    catch (const PDNSException&) {
       ;
     }
     ++begin;
@@ -109,7 +114,7 @@ uint64_t clearCookies(vector<string>::iterator begin, vector<string>::iterator e
       try {
         count += lock->erase(ComboAddress(*begin, 53));
       }
-      catch (const PDNSException &) {
+      catch (const PDNSException&) {
         ;
       }
       ++begin;

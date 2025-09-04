@@ -2203,7 +2203,7 @@ static int serviceMain(Logr::log_t log)
   g_paddingOutgoing = ::arg().mustDo("edns-padding-out");
   g_ECSHardening = ::arg().mustDo("edns-subnet-harden");
 
-  enableOutgoingCookies(::arg().mustDo("outgoing-cookies"));
+  enableOutgoingCookies(::arg().mustDo("outgoing-cookies"), ::arg()["outgoing-cookies-unsupported"]);
 
   RecThreadInfo::setNumDistributorThreads(::arg().asNum("distributor-threads"));
   RecThreadInfo::setNumUDPWorkerThreads(::arg().asNum("threads"));
