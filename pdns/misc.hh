@@ -38,6 +38,7 @@
 #include <syslog.h>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <cctype>
 #include <utility>
 #include <vector>
@@ -803,7 +804,7 @@ std::vector<ComboAddress> getResolvers(const std::string& resolvConfPath);
 
 DNSName reverseNameFromIP(const ComboAddress& ip);
 
-size_t parseRFC1035CharString(const std::string &in, std::string &val); // from ragel
+size_t parseRFC1035CharString(std::string_view in, std::string &val); // from ragel
 size_t parseSVCBValueListFromParsedRFC1035CharString(const std::string &in, vector<std::string> &val); // from ragel
 size_t parseSVCBValueList(const std::string &in, vector<std::string> &val);
 

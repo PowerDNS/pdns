@@ -588,6 +588,56 @@ static void validateGatheredRRType(const DNSResourceRecord& resourceRecord)
   }
 }
 
+// Clean and unescape a record content string, in order to minimize the
+// risk of mismatch between it and its canonical form returned by
+// makeApiRecordContent().
+// To do so, we remove leading and trailing whitespace, and perform
+// RFC1035 processing on the data until all the chunks have been processed.
+static std::string normalizeJsonString(const std::string& jsonContent)
+{
+  std::ostringstream ret;
+
+  std::string copy{jsonContent};
+  // Trim surrounding whitespace
+  boost::trim_right(copy);
+  boost::trim_left(copy);
+
+  std::string_view input{copy};
+  auto len = input.size();
+  size_t pos = 0;
+  while (pos < len) {
+    std::string chunk;
+    // Preserve quotes in the result if the chunk is quoted.
+    bool quote = input[pos] == '"';
+    auto chunksize = parseRFC1035CharString(input.substr(pos), chunk);
+    if (quote) {
+      ret << '"';
+    }
+    // We would love to simply feed chunk to ret here, but unfortunately
+    // we need to RFC1035 escape non-printable characters again.
+    for (char chr : chunk) {
+      if (chr >= 0x20 && chr < 0x7f) {
+        ret << chr;
+      }
+      else {
+        ret << '\\' << std::setfill('0') << std::setw(3) << static_cast<unsigned int>(chr) << std::setw(0);
+      }
+    }
+    if (quote) {
+      ret << '"';
+    }
+    pos += chunksize;
+    // Keep only one space for space-separated chunks.
+    if (pos < len && std::isspace(static_cast<unsigned char>(input[pos])) != 0) {
+      while (pos < len && std::isspace(static_cast<unsigned char>(input[pos])) != 0) {
+        ++pos;
+      }
+      ret << ' ';
+    }
+  }
+  return ret.str();
+}
+
 static void gatherRecords(const Json& container, const DNSName& qname, const QType& qtype, const uint32_t ttl, vector<DNSResourceRecord>& new_records)
 {
   DNSResourceRecord resourceRecord;
@@ -599,7 +649,7 @@ static void gatherRecords(const Json& container, const DNSName& qname, const QTy
   validateGatheredRRType(resourceRecord);
   const auto& items = container["records"].array_items();
   for (const auto& record : items) {
-    string content = stringFromJson(record, "content");
+    string content = normalizeJsonString(stringFromJson(record, "content"));
     if (record.object_items().count("priority") > 0) {
       throw std::runtime_error("`priority` element is not allowed in record");
     }
