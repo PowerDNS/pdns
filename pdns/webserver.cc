@@ -206,8 +206,8 @@ void WebServer::apiWrapper(const WebServer::HandlerFunction& handler, HttpReques
 }
 
 void WebServer::registerApiHandler(const string& url, const HandlerFunction& handler, const std::string& method, bool allowPassword) {
-  auto f = [=,this](HttpRequest *req, HttpResponse* resp){apiWrapper(handler, req, resp, allowPassword);};
-  registerBareHandler(url, f, method);
+  auto func = [handler, allowPassword, this](HttpRequest *req, HttpResponse* resp){apiWrapper(handler, req, resp, allowPassword);};
+  registerBareHandler(url, func, method);
 }
 
 void WebServer::webWrapper(const WebServer::HandlerFunction& handler, HttpRequest* req, HttpResponse* resp) {
@@ -224,8 +224,8 @@ void WebServer::webWrapper(const WebServer::HandlerFunction& handler, HttpReques
 }
 
 void WebServer::registerWebHandler(const string& url, const HandlerFunction& handler, const std::string& method) {
-  auto f = [=,this](HttpRequest *req, HttpResponse *resp){webWrapper(handler, req, resp);};
-  registerBareHandler(url, f, method);
+  auto func = [handler, this](HttpRequest *req, HttpResponse *resp){webWrapper(handler, req, resp);};
+  registerBareHandler(url, func, method);
 }
 
 static void* WebServerConnectionThreadStart(const WebServer* webServer, const std::shared_ptr<Socket>& client)
