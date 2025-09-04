@@ -28,6 +28,7 @@
 #include <sys/stat.h>
 
 #include "namespaces.hh"
+#include "iputils.hh"
 
 class BindDomainInfo 
 {
