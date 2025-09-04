@@ -162,6 +162,9 @@ public:
   bool d_nsec3zone{false};
   NSEC3PARAMRecordContent d_nsec3param;
 
+  // Sugar for the main filename. Only use if d_fileinfo is NOT empty!
+  const std::string& main_filename() const { return d_fileinfo.front().first; }
+
 private:
   static time_t getCtime(const std::string&);
   time_t d_checkinterval{0};

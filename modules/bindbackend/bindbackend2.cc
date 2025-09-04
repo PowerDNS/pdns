@@ -226,7 +226,7 @@ bool Bind2Backend::startTransaction(const ZoneName& qname, domainid_t domainId)
   d_transaction_qname = qname;
   BB2DomainInfo bbd;
   if (safeGetBBDomainInfo(domainId, &bbd)) {
-    d_transaction_tmpname = bbd.d_fileinfo.front().first + "XXXXXX";
+    d_transaction_tmpname = bbd.main_filename() + "XXXXXX";
     int fd = mkstemp(&d_transaction_tmpname.at(0));
     if (fd == -1) {
       throw DBException("Unable to create a unique temporary zonefile '" + d_transaction_tmpname + "': " + stringerror());
@@ -263,8 +263,8 @@ bool Bind2Backend::commitTransaction()
 
   BB2DomainInfo bbd;
   if (safeGetBBDomainInfo(d_transaction_id, &bbd)) {
-    if (rename(d_transaction_tmpname.c_str(), bbd.d_fileinfo.front().first.c_str()) < 0) {
-      throw DBException("Unable to commit (rename to: '" + bbd.d_fileinfo.front().first + "') AXFRed zone: " + stringerror());
+    if (rename(d_transaction_tmpname.c_str(), bbd.main_filename().c_str()) < 0) {
+      throw DBException("Unable to commit (rename to: '" + bbd.main_filename() + "') AXFRed zone: " + stringerror());
     }
     queueReloadAndStore(bbd.d_id);
   }
@@ -578,7 +578,7 @@ void Bind2Backend::parseZoneFile(BB2DomainInfo* bbd)
     nsec3zone = getNSEC3PARAMuncached(bbd->d_name, &ns3pr);
 
   auto records = std::make_shared<recordstorage_t>();
-  ZoneParserTNG zpt(bbd->d_fileinfo.front().first, bbd->d_name, s_binddirectory, d_upgradeContent);
+  ZoneParserTNG zpt(bbd->main_filename(), bbd->d_name, s_binddirectory, d_upgradeContent);
   zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
   zpt.setMaxIncludes(::arg().asNum("max-include-depth"));
   DNSResourceRecord rr;
@@ -697,7 +697,7 @@ static void printDomainExtendedStatus(ostringstream& ret, const BB2DomainInfo& i
   ret << info.d_name << ": " << std::endl;
   ret << "\t Status: " << info.d_status << std::endl;
   ret << "\t Internal ID: " << info.d_id << std::endl;
-  ret << "\t On-disk file: " << info.d_fileinfo.front().first << " (" << info.d_fileinfo.front().second << ")" << std::endl;
+  ret << "\t On-disk file: " << info.main_filename() << " (" << info.d_fileinfo.front().second << ")" << std::endl;
   ret << "\t Kind: ";
   switch (info.d_kind) {
   case DomainInfo::Primary:
@@ -1030,7 +1030,7 @@ void Bind2Backend::loadConfig(string* status) // NOLINT(readability-function-cog
 
       // overwrite what we knew about the domain
       bbd.d_name = domain.name;
-      bool filenameChanged = bbd.d_fileinfo.empty() || (bbd.d_fileinfo.front().first != domain.filename);
+      bool filenameChanged = bbd.d_fileinfo.empty() || (bbd.main_filename() != domain.filename);
       bool addressesChanged = (bbd.d_primaries != domain.primaries || bbd.d_also_notify != domain.alsoNotify);
       // Preserve existing fileinfo in case we won't reread anything.
       if (filenameChanged) {
@@ -1137,12 +1137,12 @@ void Bind2Backend::queueReloadAndStore(domainid_t id)
     parseZoneFile(&bbnew);
     bbnew.d_wasRejectedLastReload = false;
     safePutBBDomainInfo(bbnew);
-    g_log << Logger::Warning << "Zone '" << bbnew.d_name << "' (" << bbnew.d_fileinfo.front().first << ") reloaded" << endl;
+    g_log << Logger::Warning << "Zone '" << bbnew.d_name << "' (" << bbnew.main_filename() << ") reloaded" << endl;
   }
   catch (PDNSException& ae) {
     ostringstream msg;
-    msg << " error at " + nowTime() + " parsing '" << bbold.d_name << "' from file '" << bbold.d_fileinfo.front().first << "': " << ae.reason;
-    g_log << Logger::Warning << "Error parsing '" << bbold.d_name << "' from file '" << bbold.d_fileinfo.front().first << "': " << ae.reason << endl;
+    msg << " error at " + nowTime() + " parsing '" << bbold.d_name << "' from file '" << bbold.main_filename() << "': " << ae.reason;
+    g_log << Logger::Warning << "Error parsing '" << bbold.d_name << "' from file '" << bbold.main_filename() << "': " << ae.reason << endl;
     bbold.d_status = msg.str();
     bbold.d_lastcheck = time(nullptr);
     bbold.d_wasRejectedLastReload = true;
@@ -1150,8 +1150,8 @@ void Bind2Backend::queueReloadAndStore(domainid_t id)
   }
   catch (std::exception& ae) {
     ostringstream msg;
-    msg << " error at " + nowTime() + " parsing '" << bbold.d_name << "' from file '" << bbold.d_fileinfo.front().first << "': " << ae.what();
-    g_log << Logger::Warning << "Error parsing '" << bbold.d_name << "' from file '" << bbold.d_fileinfo.front().first << "': " << ae.what() << endl;
+    msg << " error at " + nowTime() + " parsing '" << bbold.d_name << "' from file '" << bbold.main_filename() << "': " << ae.what();
+    g_log << Logger::Warning << "Error parsing '" << bbold.d_name << "' from file '" << bbold.main_filename() << "': " << ae.what() << endl;
     bbold.d_status = msg.str();
     bbold.d_lastcheck = time(nullptr);
     bbold.d_wasRejectedLastReload = true;
@@ -1271,15 +1271,15 @@ void Bind2Backend::lookup(const QType& qtype, const DNSName& qname, domainid_t z
   d_handle.domain = std::move(domain);
 
   if (!bbd.current()) {
-    g_log << Logger::Warning << "Zone '" << d_handle.domain << "' (" << bbd.d_fileinfo.front().first << ") needs reloading" << endl;
+    g_log << Logger::Warning << "Zone '" << d_handle.domain << "' (" << bbd.main_filename() << ") needs reloading" << endl;
     queueReloadAndStore(bbd.d_id);
     if (!safeGetBBDomainInfo(d_handle.domain, &bbd))
-      throw DBException("Zone '" + bbd.d_name.toLogString() + "' (" + bbd.d_fileinfo.front().first + ") gone after reload"); // if we don't throw here, we crash for some reason
+      throw DBException("Zone '" + bbd.d_name.toLogString() + "' (" + bbd.main_filename() + ") gone after reload"); // if we don't throw here, we crash for some reason
   }
 
   if (!bbd.d_loaded) {
     d_handle.reset();
-    throw DBException("Zone for '" + d_handle.domain.toLogString() + "' in '" + bbd.d_fileinfo.front().first + "' not loaded (file missing, corrupt or primary dead)"); // fsck
+    throw DBException("Zone for '" + d_handle.domain.toLogString() + "' in '" + bbd.main_filename() + "' not loaded (file missing, corrupt or primary dead)"); // fsck
   }
 
   d_handle.d_records = bbd.d_records.get();
