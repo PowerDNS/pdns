@@ -1,5 +1,5 @@
 New rrset:
-cname.bug.less. 3600 IN CNAME host
+cname.bug.less. 3600 IN CNAME host.
 New rrset:
 host.bug.less. 3600 IN A 127.0.0.1
 Ignoring duplicate record content "127.0.0.2"
@@ -15,11 +15,11 @@ no.bug.less. 3600 IN A 1.2.3.4
 New rrset:
 no.bug.less. 3600 IN TXT "insert your favorite zen quote here"
 $ORIGIN .
-bug.less	3600	IN	SOA	a.misconfigured.dns.server.invalid hostmaster.bug.less 0 10800 3600 604800 3600
-cname.bug.less	3600	IN	CNAME	host.
-host.bug.less	3600	IN	A	127.0.0.1
-host2.bug.less	3600	IN	A	127.0.0.2
-host2.bug.less	3600	IN	A	127.0.0.3
+bug.less.	3600	IN	SOA	a.misconfigured.dns.server.invalid. hostmaster.bug.less. 0 10800 3600 604800 3600
+cname.bug.less.	3600	IN	CNAME	host.
+host.bug.less.	3600	IN	A	127.0.0.1
+host2.bug.less.	3600	IN	A	127.0.0.2
+host2.bug.less.	3600	IN	A	127.0.0.3
 This is a Native zone (936255546)
 Zone is not actively secured
 Metadata items: 

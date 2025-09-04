@@ -741,7 +741,7 @@ static std::string formatRecord(const DNSRecord& rec, std::string_view separator
   ret.append(separator);
   ret.append(DNSRecordContent::NumberToType(rec.d_type));
   ret.append(separator);
-  ret.append(rec.getContent()->getZoneRepresentation(true));
+  ret.append(rec.getContent()->getZoneRepresentation());
   return ret;
 }
 
@@ -1757,27 +1757,20 @@ static int listZone(const ZoneName &zone) {
     return EXIT_FAILURE;
   }
 
-  di.backend->list(zone, di.id);
+  std::vector<DNSRecord> records;
   DNSResourceRecord rr;
+
+  di.backend->list(zone, di.id);
+  while(di.backend->get(rr)) {
+    if(rr.qtype.getCode() != QType::ENT) {
+      records.emplace_back(DNSRecord(rr));
+    }
+  }
+  sort(records.begin(), records.end(), DNSRecord::prettyCompare);
   cout<<"$ORIGIN ."<<endl;
   std::ostream::sync_with_stdio(false);
-
-  while(di.backend->get(rr)) {
-    if(rr.qtype.getCode() != 0) {
-      switch (rr.qtype.getCode()) {
-      case QType::ALIAS:
-      case QType::CNAME:
-      case QType::MX:
-      case QType::NS:
-      case QType::SRV:
-        if (!rr.content.empty() && rr.content[rr.content.size()-1] != '.') {
-          rr.content.append(1, '.');
-        }
-        break;
-      }
-
-      cout<<rr.qname<<"\t"<<rr.ttl<<"\tIN\t"<<rr.qtype.toString()<<"\t"<<rr.content<<"\n";
-    }
+  for (const auto& rec : records) {
+    std::cout << formatRecord(rec) << std::endl;
   }
   cout.flush();
   return EXIT_SUCCESS;
@@ -2609,8 +2602,13 @@ static int addOrReplaceRecord(bool isAdd, const vector<string>& cmds) {
   // need to be explicit to bypass the ueberbackend cache!
   di.backend->lookup(rr.qtype, name, di.id);
   cout<<"New rrset:"<<endl;
+  std::vector<DNSRecord> finalrrs;
   while(di.backend->get(rr)) {
-    cout<<rr.qname.toString()<<" "<<rr.ttl<<" IN "<<rr.qtype.toString()<<" "<<rr.content<<endl;
+    finalrrs.emplace_back(DNSRecord(rr));
+  }
+  sort(finalrrs.begin(), finalrrs.end(), DNSRecord::prettyCompare);
+  for (const auto& rec : finalrrs) {
+    std::cout << formatRecord(rec, " ") << std::endl;
   }
   di.backend->commitTransaction();
   return EXIT_SUCCESS;

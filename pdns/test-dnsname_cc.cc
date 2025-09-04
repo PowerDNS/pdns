@@ -738,6 +738,14 @@ BOOST_AUTO_TEST_CASE(test_compare_canonical) {
   BOOST_CHECK(vec==right);
 }
 
+BOOST_AUTO_TEST_CASE(test_compare_pretty) {
+  BOOST_CHECK(DNSName("99.2.1.10.in-addr.arpa").canonCompare(DNSName("101.2.1.10.in-addr.arpa"), true));
+  BOOST_CHECK(!DNSName("101.2.1.10.in-addr.arpa").canonCompare(DNSName("99.2.1.10.in-addr.arpa"), true));
+  BOOST_CHECK(DNSName("ns12.example.com").canonCompare(DNSName("ns8.example.com"), true));
+  BOOST_CHECK(!DNSName("ns8.example.com").canonCompare(DNSName("ns12.example.com"), true));
+  BOOST_CHECK(DNSName("135.org").canonCompare(DNSName("2x.org"), true));
+  BOOST_CHECK(!DNSName("2x.org").canonCompare(DNSName("135.org"), true));
+}
 
 BOOST_AUTO_TEST_CASE(test_empty_label) { // empty label
 

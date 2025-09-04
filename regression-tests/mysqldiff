@@ -52,8 +52,8 @@ lmdb)
     # Maybe we should add a pdnsutil backend-cmd to retrieve these results in
     # same format as the mysql query...
     $PDNSUTIL --config-dir=. --config-name=$backend \
-        list-zone $zonewithvariant | grep -vwF SOA | \
-        $SORT > ${testsdir}/${testname}/$step
+        list-zone $zonewithvariant | grep -vwF SOA \
+        > ${testsdir}/${testname}/$step
     ;;
 esac
 
