@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
 
-MAKE=${MAKE:-make}
-source ../regression-tests/common
-
 rm -f pdns-gsqlite3.conf pdns.sqlite3
 
 cat > pdns-gsqlite3.conf << __EOF__
@@ -14,7 +11,6 @@ __EOF__
 ARGS="--config-dir=. --config-name=gsqlite3"
 
 sqlite3 pdns.sqlite3 < ../modules/gsqlite3backend/schema.sqlite3.sql
-tosql gsqlite | sqlite3 pdns.sqlite3
 echo ANALYZE\; | sqlite3 pdns.sqlite3
 
 # Create zone
