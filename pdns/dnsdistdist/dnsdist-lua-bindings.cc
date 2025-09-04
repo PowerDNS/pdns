@@ -107,6 +107,8 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
   });
   luaCtx.registerFunction("getECS", &ServerPool::getECS);
   luaCtx.registerFunction("setECS", &ServerPool::setECS);
+  luaCtx.registerFunction("getDisableZeroScope", &ServerPool::getDisableZeroScope);
+  luaCtx.registerFunction("setDisableZeroScope", &ServerPool::setDisableZeroScope);
 
 #ifndef DISABLE_DOWNSTREAM_BINDINGS
   /* DownstreamState */
