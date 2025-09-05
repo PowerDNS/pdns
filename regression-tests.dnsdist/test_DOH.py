@@ -4,6 +4,7 @@ import base64
 import dns
 import os
 import time
+import subprocess
 import unittest
 import clientsubnetoption
 
@@ -754,6 +755,27 @@ class DOHTests(object):
         self.assertEqual(data, b'C0FFEE')
         self.assertIn('foo: bar', headers)
         self.assertNotIn(self._customResponseHeader2, headers)
+
+    def testFrontendAccessViaBuiltInClient(self):
+        """
+        DOH: Built-in client
+        """
+        if self._yaml_config_template:
+            return
+
+        output = None
+        try:
+            confFile = os.path.join('configs', 'dnsdist_%s.conf' % (self.__class__.__name__))
+            testcmd = [os.environ['DNSDISTBIN'], '--client', '-C', confFile ]
+            process = subprocess.Popen(testcmd, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.STDOUT, close_fds=True)
+            output = process.communicate(input=b'showVersion()\n')
+        except subprocess.CalledProcessError as exc:
+            raise AssertionError('%s failed (%d): %s' % (testcmd, process.returncode, process.output))
+
+        if process.returncode != 0:
+          raise AssertionError('%s failed (%d): %s' % (testcmd, process.returncode, output))
+
+        self.assertTrue(output[0].startswith(b'dnsdist '))
 
 class TestDoHNGHTTP2(DOHTests, DNSDistDOHTest):
     _dohLibrary = 'nghttp2'
