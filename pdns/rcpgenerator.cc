@@ -988,7 +988,12 @@ void RecordTextWriter::xfrText(const string& val, bool /* multi */, bool /* lenF
   if(!d_string.empty())
     d_string.append(1,' ');
 
-  d_string.append(val);
+  if (val.empty()) {
+    d_string.append(2, '"');
+  }
+  else {
+    d_string.append(val);
+  }
 }
 
 void RecordTextWriter::xfrUnquotedText(const string& val, bool /* lenField */)
