@@ -1,49 +1,46 @@
-#include "dnsname.hh"
-#include "dnsparser.hh"
-#include "dnsrecords.hh"
-#include "iputils.hh"
-#include "qtype.hh"
-#include <boost/smart_ptr/make_shared_array.hpp>
+#include <cerrno>
+#include <csignal>
+#include <fcntl.h>
+#include <fstream>
+#include <termios.h>            //termios, TCSANOW, ECHO, ICANON
+#include <utility>
+#include <sys/stat.h>
+#include <sys/wait.h>
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
-#include <fcntl.h>
-#include <csignal>
-#include <sys/wait.h>
-
-#include "credentials.hh"
-#include "dnsseckeeper.hh"
-#include "dnssecinfra.hh"
-#include "statbag.hh"
-#include "base32.hh"
-#include "base64.hh"
-#include "dns.hh"
-
 #include <boost/program_options.hpp>
-#include <boost/assign/std/vector.hpp>
-#include <boost/assign/list_of.hpp>
-#include "json11.hpp"
-#include "tsigutils.hh"
-#include "dnsbackend.hh"
-#include "ueberbackend.hh"
+
 #include "arguments.hh"
 #include "auth-packetcache.hh"
 #include "auth-querycache.hh"
 #include "auth-zonecache.hh"
-#include "zoneparser-tng.hh"
-#include "signingpipe.hh"
-#include "dns_random.hh"
-#include "ipcipher.hh"
-#include "misc.hh"
-#include "zonemd.hh"
+#include "base32.hh"
+#include "base64.hh"
 #include "check-zone.hh"
-#include <fstream>
-#include <utility>
-#include <cerrno>
-#include <sys/stat.h>
-#include <termios.h>            //termios, TCSANOW, ECHO, ICANON
+#include "credentials.hh"
+#include "dns.hh"
+#include "dns_random.hh"
+#include "dnsbackend.hh"
+#include "dnsname.hh"
+#include "dnsparser.hh"
+#include "dnsrecords.hh"
+#include "dnssecinfra.hh"
+#include "dnsseckeeper.hh"
+#include "ipcipher.hh"
+#include "iputils.hh"
+#include "json11.hpp"
+#include "misc.hh"
 #include "opensslsigners.hh"
+#include "qtype.hh"
+#include "signingpipe.hh"
+#include "statbag.hh"
+#include "tsigutils.hh"
+#include "ueberbackend.hh"
+#include "zonemd.hh"
+#include "zoneparser-tng.hh"
 #ifdef HAVE_LIBSODIUM
 #include <sodium.h>
 #endif
