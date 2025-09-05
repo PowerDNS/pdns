@@ -376,6 +376,10 @@ void DoHConnectionToBackend::handleReadableIOCallback(int fd, FDMultiplexer::fun
     throw std::runtime_error("Unexpected socket descriptor " + std::to_string(fd) + " received in " + std::string(__PRETTY_FUNCTION__) + ", expected " + std::to_string(conn->getHandle()));
   }
 
+  if (conn->d_inIOCallback) {
+    return;
+  }
+  conn->d_inIOCallback = true;
   dnsdist::tcp::HandlingIOGuard handlingIOGuard(conn->d_inIOCallback);
   IOStateGuard ioGuard(conn->d_ioState);
   do {
