@@ -1963,7 +1963,7 @@ static bool parseZoneFile(const char* tmpnam, int& errorline, std::vector<DNSRec
   try {
     while(zpt.get(zrr)) {
       DNSRecord rec(zrr);
-      records.push_back(rec);
+      records.push_back(std::move(rec));
     }
   }
   catch(std::exception& e) {
@@ -2078,7 +2078,9 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
   }
 
   // Get the original SOA record once, for comparison purposes.
-  B.getSOAUncached(info.zone, soa);
+  // Note that this may fail if there is no active SOA record, which is not a
+  // problem here, as we are only interested into the _current_ serial number.
+  (void)B.getSOAUncached(info.zone, soa);
 
   // Ensure that the temporary file will only be accessible by the current user,
   // not even by other users in the same group, and certainly not by other
