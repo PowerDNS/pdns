@@ -773,9 +773,15 @@ public:
           // flags = MDB_APPEND;
         }
       }
+#ifndef DNSDIST
+      std::string ser = MDBRWTransactionImpl::stringWithHeader();
+      serializeToBuffer(ser, value);
+      (*d_txn)->put_header_in_place(d_parent->d_main, itemId, ser, flags);
+#else
       std::string ser;
       serializeToBuffer(ser, value);
       (*d_txn)->put(d_parent->d_main, itemId, ser, flags);
+#endif
 
       insert<0>(value, itemId);
       insert<1>(value, itemId);
