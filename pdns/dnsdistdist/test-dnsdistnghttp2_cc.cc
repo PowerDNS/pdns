@@ -790,7 +790,6 @@ BOOST_FIXTURE_TEST_CASE(test_ConnectionReuse, TestFixture)
     {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, std::numeric_limits<size_t>::max()},
     /* later the backend sends a go away frame */
     {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc) {
-       (void)desc;
        s_connectionBuffers.at(desc)->submitGoAway(true);
      }},
     {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
