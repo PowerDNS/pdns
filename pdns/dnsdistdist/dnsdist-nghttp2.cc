@@ -49,6 +49,8 @@ std::optional<uint16_t> g_outgoingDoHWorkerThreads{std::nullopt};
 class DoHConnectionToBackend : public ConnectionToBackend
 {
 public:
+  using StreamID = int32_t;
+
   DoHConnectionToBackend(const std::shared_ptr<DownstreamState>& ds, std::unique_ptr<FDMultiplexer>& mplexer, const struct timeval& now, std::string&& proxyProtocolPayload);
 
   void handleTimeout(const struct timeval& now, bool write) override;
@@ -77,8 +79,8 @@ public:
 private:
   static ssize_t send_callback(nghttp2_session* session, const uint8_t* data, size_t length, int flags, void* user_data);
   static int on_frame_recv_callback(nghttp2_session* session, const nghttp2_frame* frame, void* user_data);
-  static int on_data_chunk_recv_callback(nghttp2_session* session, uint8_t flags, int32_t stream_id, const uint8_t* data, size_t len, void* user_data);
-  static int on_stream_close_callback(nghttp2_session* session, int32_t stream_id, uint32_t error_code, void* user_data);
+  static int on_data_chunk_recv_callback(nghttp2_session* session, uint8_t flags, StreamID stream_id, const uint8_t* data, size_t len, void* user_data);
+  static int on_stream_close_callback(nghttp2_session* session, StreamID stream_id, uint32_t error_code, void* user_data);
   static int on_header_callback(nghttp2_session* session, const nghttp2_frame* frame, const uint8_t* name, size_t namelen, const uint8_t* value, size_t valuelen, uint8_t flags, void* user_data);
   static int on_error_callback(nghttp2_session* session, int lib_error_code, const char* msg, size_t len, void* user_data);
   static void handleReadableIOCallback(int fd, FDMultiplexer::funcparam_t& param);
@@ -109,7 +111,7 @@ private:
 
   static const std::unordered_map<std::string, std::string> s_constants;
 
-  std::unordered_map<int32_t, PendingRequest> d_currentStreams;
+  std::unordered_map<StreamID, PendingRequest> d_currentStreams;
   std::string d_proxyProtocolPayload;
   PacketBuffer d_out;
   PacketBuffer d_in;
@@ -118,6 +120,7 @@ private:
   size_t d_inPos{0};
   bool d_healthCheckQuery{false};
   bool d_firstWrite{true};
+  bool d_inIOCallback{false};
 };
 
 using DownstreamDoHConnectionsManager = DownstreamConnectionsManager<DoHConnectionToBackend>;
@@ -286,7 +289,15 @@ void DoHConnectionToBackend::queueQuery(std::shared_ptr<TCPQuerySender>& sender,
   pending.d_query = std::move(query);
   pending.d_sender = std::move(sender);
 
-  uint32_t streamId = nghttp2_session_get_next_stream_id(d_session.get());
+  uint32_t tentativeStreamId = nghttp2_session_get_next_stream_id(d_session.get());
+  if (tentativeStreamId == static_cast<uint32_t>(1 << 31)) {
+    /* running out of stream IDs */
+    d_connectionDied = true;
+    nghttp2_session_terminate_session(d_session.get(), NGHTTP2_NO_ERROR);
+    throw std::runtime_error("No more stream IDs");
+  }
+
+  auto streamId = static_cast<StreamID>(tentativeStreamId);
   auto insertPair = d_currentStreams.insert({streamId, std::move(pending)});
   if (!insertPair.second) {
     /* there is a stream ID collision, something is very wrong! */
@@ -300,7 +311,9 @@ void DoHConnectionToBackend::queueQuery(std::shared_ptr<TCPQuerySender>& sender,
   nghttp2_data_provider data_provider;
 
   data_provider.source.ptr = this;
-  data_provider.read_callback = [](nghttp2_session* session, int32_t stream_id, uint8_t* buf, size_t length, uint32_t* data_flags, nghttp2_data_source* source, void* user_data) -> ssize_t {
+  data_provider.read_callback = [](nghttp2_session* session, StreamID stream_id, uint8_t* buf, size_t length, uint32_t* data_flags, nghttp2_data_source* source, void* user_data) -> ssize_t {
+    (void)session;
+    (void)source;
     auto* conn = static_cast<DoHConnectionToBackend*>(user_data);
     auto& request = conn->d_currentStreams.at(stream_id);
     size_t toCopy = 0;
@@ -325,12 +338,14 @@ void DoHConnectionToBackend::queueQuery(std::shared_ptr<TCPQuerySender>& sender,
     throw std::runtime_error("Error submitting HTTP request:" + std::string(nghttp2_strerror(newStreamId)));
   }
 
-  auto rv = nghttp2_session_send(d_session.get());
-  if (rv != 0) {
-    d_connectionDied = true;
-    ++d_ds->tcpDiedSendingQuery;
-    d_currentStreams.erase(streamId);
-    throw std::runtime_error("Error in nghttp2_session_send:" + std::to_string(rv));
+  if (!d_inIOCallback) {
+    auto rtv = nghttp2_session_send(d_session.get());
+    if (rtv != 0) {
+      d_connectionDied = true;
+      ++d_ds->tcpDiedSendingQuery;
+      d_currentStreams.erase(streamId);
+      throw std::runtime_error("Error in nghttp2_session_send: " + std::to_string(rtv));
+    }
   }
 
   d_highestStreamID = newStreamId;
@@ -356,6 +371,7 @@ void DoHConnectionToBackend::handleReadableIOCallback(int fd, FDMultiplexer::fun
     throw std::runtime_error("Unexpected socket descriptor " + std::to_string(fd) + " received in " + std::string(__PRETTY_FUNCTION__) + ", expected " + std::to_string(conn->getHandle()));
   }
 
+  dnsdist::tcp::HandlingIOGuard handlingIOGuard(conn->d_inIOCallback);
   IOStateGuard ioGuard(conn->d_ioState);
   do {
     conn->d_inPos = 0;
@@ -626,7 +642,7 @@ int DoHConnectionToBackend::on_frame_recv_callback(nghttp2_session* session, con
   return 0;
 }
 
-int DoHConnectionToBackend::on_data_chunk_recv_callback(nghttp2_session* session, uint8_t flags, int32_t stream_id, const uint8_t* data, size_t len, void* user_data)
+int DoHConnectionToBackend::on_data_chunk_recv_callback(nghttp2_session* session, uint8_t flags, StreamID stream_id, const uint8_t* data, size_t len, void* user_data)
 {
   DoHConnectionToBackend* conn = reinterpret_cast<DoHConnectionToBackend*>(user_data);
   // cerr<<"Got data of size "<<len<<" for stream "<<stream_id<<endl;
@@ -674,7 +690,7 @@ int DoHConnectionToBackend::on_data_chunk_recv_callback(nghttp2_session* session
   return 0;
 }
 
-int DoHConnectionToBackend::on_stream_close_callback(nghttp2_session* session, int32_t stream_id, uint32_t error_code, void* user_data)
+int DoHConnectionToBackend::on_stream_close_callback(nghttp2_session* session, StreamID stream_id, uint32_t error_code, void* user_data)
 {
   DoHConnectionToBackend* conn = reinterpret_cast<DoHConnectionToBackend*>(user_data);
 
