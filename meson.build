@@ -1054,6 +1054,7 @@ if get_option('unit-tests')
 endif
 
 if get_option('unit-tests-backends')
+  socat = find_program('socat', required: true)
   # Remote Backend Tests #################################################################
   if get_option('module-remote') != 'disabled'
     libpdns_module_remotebackend_test_common = declare_dependency(

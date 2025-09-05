@@ -46,6 +46,7 @@ auth_build_deps = [    # FIXME: perhaps we should be stealing these from the deb
     'libyaml-cpp-dev',
     'libzmq3-dev',
     'python3-venv',
+    'socat',
     'sqlite3',
     'unixodbc-dev',
     'cmake',
