@@ -11,9 +11,12 @@ class TestBasics(DNSDistTest):
     getPool(""):setCache(pc)
 
     local ffi = require("ffi")
-    function ffiAction(dq)
-      local extraText = 'Synthesized from Lua'
-      ffi.C.dnsdist_ffi_dnsquestion_set_extended_dns_error(dq, 29, extraText, #extraText)
+    local function addEDEPlusRecord(dq, code, extraText)
+      local extraTextLen = 0
+      if extraText ~= nil then
+        extraTextLen = #extraText
+      end
+      ffi.C.dnsdist_ffi_dnsquestion_set_extended_dns_error(dq, 29, extraText, extraTextLen)
       local str = "192.0.2.2"
       local buf = ffi.new("char[?]", #str + 1)
       ffi.copy(buf, str)
@@ -21,8 +24,19 @@ class TestBasics(DNSDistTest):
       return DNSAction.Spoof
     end
 
+    function ffiAction(dq)
+      local extraText = 'Synthesized from Lua'
+      return addEDEPlusRecord(dq, 29, extraText)
+    end
+
+    function ffiActionNoExtra(dq)
+      local extraText = nil
+      return addEDEPlusRecord(dq, 29, extraText)
+    end
+
     addAction("self-answered.ede.tests.powerdns.com.", SpoofAction("192.0.2.1"))
     addAction("self-answered-ffi.ede.tests.powerdns.com.", LuaFFIAction(ffiAction))
+    addAction("self-answered-ffi-no-extra.ede.tests.powerdns.com.", LuaFFIAction(ffiActionNoExtra))
     addSelfAnsweredResponseAction("self-answered.ede.tests.powerdns.com.", SetExtendedDNSErrorResponseAction(42, "my self-answered extended error status"))
     addAction(AllRule(), SetExtendedDNSErrorAction(16, "my extended error status"))
 
@@ -201,6 +215,30 @@ class TestBasics(DNSDistTest):
         """
         name = 'self-answered-ffi.ede.tests.powerdns.com.'
         ede = extendederrors.ExtendedErrorOption(29, b'Synthesized from Lua')
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=True)
+        # dnsdist sets RA = RD for self-generated responses
+        query.flags &= ~dns.flags.RD
+
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.use_edns(edns=True, payload=1232, options=[ede])
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.0.2.2')
+        expectedResponse.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.checkMessageEDNS(expectedResponse, receivedResponse)
+
+    def testExtendedErrorNoExtraTextLuaFFI(self):
+        """
+        EDE: Self-answered via Lua FFI without any extra text
+        """
+        name = 'self-answered-ffi-no-extra.ede.tests.powerdns.com.'
+        ede = extendederrors.ExtendedErrorOption(29, b'')
         query = dns.message.make_query(name, 'A', 'IN', use_edns=True)
         # dnsdist sets RA = RD for self-generated responses
         query.flags &= ~dns.flags.RD
