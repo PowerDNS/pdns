@@ -47,14 +47,12 @@ uint32_t MDBGetRandomID(MDBRWTransaction& txn, MDBDbi& dbi, uint32_t seed=0);
  * This is our serialization interface. It can be specialized for other types.
  */
 template <typename T>
-std::string serializeToBuffer(const T& value)
+void serializeToBuffer(std::string& buffer, const T& value)
 {
-  std::string buffer;
   boost::iostreams::back_insert_device<std::string> inserter(buffer);
   boost::iostreams::stream<boost::iostreams::back_insert_device<std::string>> inserterStream(inserter);
   boost::archive::binary_oarchive outputArchive(inserterStream, boost::archive::no_header | boost::archive::no_codecvt);
   outputArchive << value;
-  return buffer;
 }
 
 template <typename T>
@@ -775,7 +773,15 @@ public:
           // flags = MDB_APPEND;
         }
       }
-      (*d_txn)->put(d_parent->d_main, itemId, serializeToBuffer(value), flags);
+#ifndef DNSDIST
+      std::string ser = MDBRWTransactionImpl::stringWithEmptyHeader();
+      serializeToBuffer(ser, value);
+      (*d_txn)->put_header_in_place(d_parent->d_main, itemId, ser, flags);
+#else
+      std::string ser;
+      serializeToBuffer(ser, value);
+      (*d_txn)->put(d_parent->d_main, itemId, ser, flags);
+#endif
 
       insert<0>(value, itemId);
       insert<1>(value, itemId);

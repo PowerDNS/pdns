@@ -795,6 +795,22 @@ public:
   void clear(MDB_dbi dbi);
 
 #ifndef DNSDIST
+  // Write `val' without any change
+  void put_raw(MDB_dbi dbi, const MDBInVal& key, const MDBInVal& val, int flags = 0)
+  {
+    if (d_txn == nullptr) {
+      throw std::runtime_error("Attempt to use a closed RW transaction for put");
+    }
+
+    int mdbPutRc = mdb_put(d_txn, dbi,
+                           // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
+                           const_cast<MDB_val*>(&key.d_mdbval),
+                           const_cast<MDB_val*>(&val.d_mdbval), flags);
+    if (mdbPutRc != 0) {
+      throw std::runtime_error("putting data: " + MDBError(mdbPutRc));
+    }
+  }
+  // Write `val' with a LSheader prepended
   void put(MDB_dbi dbi, const MDBInVal& key, const MDBInVal& val, int flags = 0)
   {
     if (d_txn == nullptr) {
@@ -802,7 +818,6 @@ public:
     }
 
     size_t txid = mdb_txn_id(d_txn);
-
     if (d_txtime == 0) {
       throw std::runtime_error("got zero txtime");
     }
@@ -811,14 +826,37 @@ public:
     std::string ins = LMDBLS::LSheader(d_txtime, txid).toString() + std::string((const char*)val.d_mdbval.mv_data, val.d_mdbval.mv_size);
 
     MDBInVal pval = ins;
-
-    int mdbPutRc = mdb_put(d_txn, dbi,
-                           // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
-                           const_cast<MDB_val*>(&key.d_mdbval),
-                           const_cast<MDB_val*>(&pval.d_mdbval), flags);
-    if (mdbPutRc != 0) {
-      throw std::runtime_error("putting data: " + MDBError(mdbPutRc));
+    return put_raw(dbi, key, pval, flags);
+  }
+  // Write `val', containing room for a LSheader at its beginning, with the
+  // header updated.
+  void put_header_in_place(MDB_dbi dbi, const MDBInVal& key, const MDBInVal& val, int flags = 0)
+  {
+    if (d_txn == nullptr) {
+      throw std::runtime_error("Attempt to use a closed RW transaction for put");
     }
+
+    size_t txid = mdb_txn_id(d_txn);
+    if (d_txtime == 0) {
+      throw std::runtime_error("got zero txtime");
+    }
+
+    std::string header = LMDBLS::LSheader(d_txtime, txid).toString();
+    // This should never happen, but better be safe than sorry.
+    if (val.d_mdbval.mv_size < header.length()) {
+      throw std::runtime_error("Data too short to contain header");
+    }
+    memcpy(val.d_mdbval.mv_data, header.c_str(), header.length());
+
+    return put_raw(dbi, key, val, flags);
+  }
+  // Return an empty string with reserved space for a LSheader (without any
+  // extension blocks) at its beginning.
+  // This string should only be appended to, not assigned!
+  static std::string stringWithEmptyHeader()
+  {
+    std::string result(LMDBLS::LS_MIN_HEADER_SIZE, '\0');
+    return result;
   }
 #else
   void put(MDB_dbi dbi, const MDBInVal& key, const MDBInVal& val, int flags = 0)
@@ -920,6 +958,17 @@ public:
   ~MDBRWCursor() = default;
 
 #ifndef DNSDIST
+  // Write `val' without any change
+  void put_raw(const MDBOutVal& key, const MDBInVal& data)
+  {
+    int rc = mdb_cursor_put(*this,
+                            const_cast<MDB_val*>(&key.d_mdbval),
+                            const_cast<MDB_val*>(&data.d_mdbval), MDB_CURRENT);
+    if(rc != 0) {
+      throw std::runtime_error("mdb_cursor_put: " + MDBError(rc));
+    }
+  }
+  // Write `val' with a LSheader prepended
   void put(const MDBOutVal& key, const MDBInVal& data)
   {
     size_t txid = mdb_txn_id(this->d_txn);
@@ -931,13 +980,23 @@ public:
       std::string((const char*)data.d_mdbval.mv_data, data.d_mdbval.mv_size);
 
     MDBInVal pval = ins;
+    return put_raw(key, pval);
+  }
+  // Write `val', containing room for a LSheader at its beginning, with the
+  // header updated.
+  void put_header_in_place(const MDBOutVal& key, const MDBInVal& val)
+  {
+    size_t txid = mdb_txn_id(this->d_txn);
 
-    int rc = mdb_cursor_put(*this,
-                            const_cast<MDB_val*>(&key.d_mdbval),
-                            const_cast<MDB_val*>(&pval.d_mdbval), MDB_CURRENT);
-    if(rc != 0) {
-      throw std::runtime_error("mdb_cursor_put: " + MDBError(rc));
+    if (d_txtime == 0) { throw std::runtime_error("got zero txtime"); }
+
+    std::string header = LMDBLS::LSheader(d_txtime, txid).toString();
+    // This should never happen, but better be safe than sorry.
+    if (val.d_mdbval.mv_size < header.length()) {
+      throw std::runtime_error("Data too short to contain header");
     }
+    memcpy(val.d_mdbval.mv_data, header.c_str(), header.length());
+    return put_raw(key, val);
   }
 #else
   void put(const MDBOutVal& key, const MDBInVal& data)
