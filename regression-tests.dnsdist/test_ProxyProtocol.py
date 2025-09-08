@@ -963,6 +963,8 @@ class TestProxyProtocolIncomingValuesViaLua(DNSDistTest):
     Check that dnsdist can retrieve incoming Proxy Protocol TLV values via Lua
     """
 
+    af_inet6 = str(socket.AF_INET6)
+
     _config_template = """
     setProxyProtocolACL( { "127.0.0.1/32" } )
 
@@ -1008,12 +1010,12 @@ class TestProxyProtocolIncomingValuesViaLua(DNSDistTest):
 
     function checkValuesFFI(dqffi)
       C.dnsdist_ffi_dnsquestion_get_localaddr(dqffi, ret_ptr_param, ret_size_param)
-      local addr = C.inet_ntop(10, ret_ptr[0], inet_buffer, 256)
+      local addr = C.inet_ntop("""+af_inet6+""", ret_ptr[0], inet_buffer, 256)
       if addr == nil or ffi.string(addr) ~= '2001:db8::9' then
         return sendResult(dqffi, "invalid.local.addr.")
       end
       C.dnsdist_ffi_dnsquestion_get_remoteaddr(dqffi, ret_ptr_param, ret_size_param)
-      local addr = C.inet_ntop(10, ret_ptr[0], inet_buffer, 256)
+      local addr = C.inet_ntop("""+af_inet6+""", ret_ptr[0], inet_buffer, 256)
       if addr == nil or ffi.string(addr) ~= '2001:db8::8' then
         return sendResult(dqffi, "invalid.remote.addr.")
       end
