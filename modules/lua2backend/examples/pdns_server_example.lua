@@ -8,6 +8,12 @@
 --
 -- test: dig 4.3.2.1.aa-td-bq.666666.c.example.hu
 --       dig 4.3.2.1.aa-td-qq-bq.666666.c.example.hu
+--
+-- config:
+--  launch += lua2
+--  lua2-api = 2
+--  # lua2-query-logging = yes
+--  lua2-filename = /etc/powerdns/pdns_server_example.lua
 
 pdnslog( "lua: starting the backend")
 
