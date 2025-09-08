@@ -1054,6 +1054,7 @@ if get_option('unit-tests')
 endif
 
 if get_option('unit-tests-backends')
+  socat = find_program('socat', required: true)
   # Remote Backend Tests #################################################################
   if get_option('module-remote') != 'disabled'
     libpdns_module_remotebackend_test_common = declare_dependency(
@@ -1119,6 +1120,7 @@ if get_option('unit-tests-backends')
       test(
         'pdns-auth-backend-' + module,
         start_test_stop,
+        env: {'PDNS_BUILD_PATH': meson.build_root()},
         args: ['5300', module],
         workdir: product_source_dir / 'regression-tests',
         depends: [pdns_auth, pdns_auth_util, sdig, saxfr, pdns_auth_notify, nsec3dig],
