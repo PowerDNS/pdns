@@ -642,7 +642,7 @@ void RecordTextReader::xfrText(string& val, bool multi, bool /* lenField */)
             char chr2 = d_string[d_pos + 1];
             char chr3 = d_string[d_pos + 2];
             if (chr2 >= '0' && chr2 <= '9' && chr3 >= '0' && chr3 <= '9') {
-              valid = true;
+              valid = 100 * (chr - '0') + 10 * (chr2 - '0') + chr3 - '0' < 256;
             }
           }
           if (!valid) {
@@ -651,6 +651,12 @@ void RecordTextReader::xfrText(string& val, bool multi, bool /* lenField */)
         }
         // Not advancing d_pos, we'll append the next 1 or 3 characters as
         // part of the regular case.
+      }
+      if (!quoted && d_string[d_pos] == '"') {
+        // Bind allows a non-quoted text to be immediately followed by a
+        // quoted text, without any whitespace in between, so handle this
+        // as a delimiter.
+        break;
       }
       val.append(1, d_string[d_pos]);
       ++d_pos;

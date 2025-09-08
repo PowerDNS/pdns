@@ -100,7 +100,6 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
      (CASE_S(QType::TXT,  "\"\\195\\133LAND ISLANDS\"", "\x0e\xc3\x85LAND ISLANDS"))
      (CASE_S(QType::TXT,  "\"text with DEL in there: \\127\"", "\x19text with DEL in there: \x7f"))
      (CASE_L(QType::TXT, "\"\xc3\x85LAND ISLANDS\"", "\"\\195\\133LAND ISLANDS\"", "\x0e\xc3\x85LAND ISLANDS"))
-     (CASE_S(QType::TXT, "\"nonbreakingtxt\"", "\x0enonbreakingtxt"))
 // local name
      (CASE_S(QType::RP, "admin.rec.test. admin-info.rec.test.", "\x05""admin\x03rec\x04test\x00\x0a""admin-info\x03rec\x04test\x00"))
 // non-local name
@@ -384,6 +383,8 @@ BOOST_AUTO_TEST_CASE(test_record_types_bad_values) {
 // non-local overly large name (256), must be broken
      (ZONE_CASE(QType::CNAME, "123456789012345678901234567890123456789012345678901234567890123.123456789012345678901234567890123456789012345678901234567890123.123456789012345678901234567890123456789012345678901234567890123.12345678901234567890123456789012345678901234567890123456789012."))
      (ZONE_CASE(QType::SOA, "ns.rec.test hostmaster.test.rec 20130512010 3600 3600 604800 120")) // too long serial
+     (ZONE_CASE(QType::TXT, "\\02unlimited")) // incorrect escape
+     (ZONE_CASE(QType::TXT, "\\384excessive")) // incorrect escape
 ;
 
   int n=0;
