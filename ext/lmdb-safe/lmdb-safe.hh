@@ -850,10 +850,10 @@ public:
 
     return put_raw(dbi, key, val, flags);
   }
-  // Return an empty string with reserved space for a LSheader without extra
-  // bytes at its beginning.
+  // Return an empty string with reserved space for a LSheader (without any
+  // extension blocks) at its beginning.
   // This string should only be appended to, not assigned!
-  static std::string stringWithHeader()
+  static std::string stringWithEmptyHeader()
   {
     std::string result(LMDBLS::LS_MIN_HEADER_SIZE, '\0');
     return result;

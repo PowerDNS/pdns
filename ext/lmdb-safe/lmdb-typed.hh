@@ -774,7 +774,7 @@ public:
         }
       }
 #ifndef DNSDIST
-      std::string ser = MDBRWTransactionImpl::stringWithHeader();
+      std::string ser = MDBRWTransactionImpl::stringWithEmptyHeader();
       serializeToBuffer(ser, value);
       (*d_txn)->put_header_in_place(d_parent->d_main, itemId, ser, flags);
 #else

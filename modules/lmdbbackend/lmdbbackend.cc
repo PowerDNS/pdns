@@ -1300,14 +1300,14 @@ void LMDBBackend::writeNSEC3RecordPair(const std::shared_ptr<RecordsRWTransactio
   // Write ordername -> qname back chain record with ttl set to 0
   lrr.ttl = 0;
   lrr.content = qname.toDNSStringLC();
-  std::string ser = MDBRWTransactionImpl::stringWithHeader();
+  std::string ser = MDBRWTransactionImpl::stringWithEmptyHeader();
   serializeToBuffer(ser, lrr);
   txn->txn->put_header_in_place(txn->db->dbi, co(domain_id, ordername, QType::NSEC3), ser);
 
   // Write qname -> ordername forward chain record with ttl set to 1
   lrr.ttl = 1;
   lrr.content = ordername.toDNSString();
-  ser = MDBRWTransactionImpl::stringWithHeader();
+  ser = MDBRWTransactionImpl::stringWithEmptyHeader();
   serializeToBuffer(ser, lrr);
   txn->txn->put_header_in_place(txn->db->dbi, co(domain_id, qname, QType::NSEC3), ser);
 }
@@ -1352,7 +1352,7 @@ bool LMDBBackend::feedRecord(const DNSResourceRecord& r, const DNSName& ordernam
   compoundOrdername co;
   string matchName = co(lrr.domain_id, lrr.qname, lrr.qtype.getCode());
 
-  string rrs = MDBRWTransactionImpl::stringWithHeader();
+  string rrs = MDBRWTransactionImpl::stringWithEmptyHeader();
   MDBOutVal _rrs;
   if (!d_rwtxn->txn->get(d_rwtxn->db->dbi, matchName, _rrs)) {
     rrs.append(_rrs.get<string>());
@@ -1376,7 +1376,7 @@ bool LMDBBackend::feedEnts(domainid_t domain_id, map<DNSName, bool>& nonterm)
     lrr.auth = nt.second;
     lrr.hasOrderName = false;
 
-    std::string ser = MDBRWTransactionImpl::stringWithHeader();
+    std::string ser = MDBRWTransactionImpl::stringWithEmptyHeader();
     serializeToBuffer(ser, lrr);
     d_rwtxn->txn->put_header_in_place(d_rwtxn->db->dbi, co(domain_id, lrr.qname, QType::ENT), ser);
   }
@@ -1393,7 +1393,7 @@ bool LMDBBackend::feedEnts3(domainid_t domain_id, const DNSName& domain, map<DNS
     lrr.ttl = 0;
     lrr.auth = nt.second;
     lrr.hasOrderName = lrr.auth && !narrow;
-    std::string ser = MDBRWTransactionImpl::stringWithHeader();
+    std::string ser = MDBRWTransactionImpl::stringWithEmptyHeader();
     serializeToBuffer(ser, lrr);
     d_rwtxn->txn->put_header_in_place(d_rwtxn->db->dbi, co(domain_id, lrr.qname, QType::ENT), ser);
 
@@ -1478,7 +1478,7 @@ bool LMDBBackend::replaceRRSet(domainid_t domain_id, const DNSName& qname, const
 
       adjustedRRSet.emplace_back(lrr);
     }
-    std::string ser = MDBRWTransactionImpl::stringWithHeader();
+    std::string ser = MDBRWTransactionImpl::stringWithEmptyHeader();
     serializeToBuffer(ser, adjustedRRSet);
     txn->txn->put_header_in_place(txn->db->dbi, match, ser);
   }
@@ -1604,7 +1604,7 @@ bool LMDBBackend::viewAddZone(const string& view, const ZoneName& zone)
   auto txn = d_tdomains->getEnv()->getRWTransaction();
 
   string key = view + string(1, (char)0) + keyConv(zone.operator const DNSName&());
-  std::string val = MDBRWTransactionImpl::stringWithHeader();
+  std::string val = MDBRWTransactionImpl::stringWithEmptyHeader();
   val.append(zone.getVariant()); // variant goes here
 
   txn->put_header_in_place(d_tviews, key, val);
@@ -2904,7 +2904,7 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSNa
       newRRs.push_back(std::move(lrr));
     }
     if (changed) {
-      std::string ser = MDBRWTransactionImpl::stringWithHeader();
+      std::string ser = MDBRWTransactionImpl::stringWithEmptyHeader();
       serializeToBuffer(ser, newRRs);
       cursor.put_header_in_place(key, ser);
     }
@@ -3008,7 +3008,7 @@ bool LMDBBackend::updateEmptyNonTerminals(domainid_t domain_id, set<DNSName>& in
     lrr.qname = name.makeRelative(info.zone);
     lrr.ttl = 0;
     lrr.auth = true;
-    std::string ser = MDBRWTransactionImpl::stringWithHeader();
+    std::string ser = MDBRWTransactionImpl::stringWithEmptyHeader();
     serializeToBuffer(ser, lrr);
     txn->txn->put_header_in_place(txn->db->dbi, order(domain_id, lrr.qname, QType::ENT), ser);
     // cout <<" +"<<name<<endl;
