@@ -32,7 +32,7 @@ CPPFLAGS="-DRECURSOR $CPPFLAGS"
 # Warn when pkg.m4 is missing
 m4_pattern_forbid([^_?PKG_[A-Z_]+$], [*** pkg.m4 missing, please install pkg-config])
 
-AX_CXX_COMPILE_STDCXX_20([noext], [mandatory])
+AX_CXX_COMPILE_STDCXX_20([ext], [mandatory])
 PDNS_CHECK_CARGO([1.64])
 
 # Rust runtime used dlopen from its static lib
