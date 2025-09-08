@@ -2484,10 +2484,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 
 #ifdef HAVE_DNS_OVER_QUIC
-  luaCtx.writeFunction("getDOQFrontend", [client](uint64_t index) {
+  luaCtx.writeFunction("getDOQFrontend", [client](uint64_t index) -> boost::optional<std::shared_ptr<DOQFrontend>> {
     boost::optional<std::shared_ptr<DOQFrontend>> result{boost::none};
     if (client) {
-      return result;
+      return std::shared_ptr<DOQFrontend>();
     }
     setLuaNoSideEffect();
     try {
@@ -2566,10 +2566,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 
 #ifdef HAVE_DNS_OVER_HTTP3
-  luaCtx.writeFunction("getDOH3Frontend", [client](uint64_t index) {
+  luaCtx.writeFunction("getDOH3Frontend", [client](uint64_t index) -> boost::optional<std::shared_ptr<DOH3Frontend>> {
     boost::optional<std::shared_ptr<DOH3Frontend>> result{boost::none};
     if (client) {
-      return result;
+      return std::shared_ptr<DOH3Frontend>();
     }
     setLuaNoSideEffect();
     try {
@@ -2635,10 +2635,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 #endif
   });
 
-  luaCtx.writeFunction("getDOHFrontend", [client]([[maybe_unused]] uint64_t index) {
+  luaCtx.writeFunction("getDOHFrontend", [client]([[maybe_unused]] uint64_t index) -> boost::optional<std::shared_ptr<DOHFrontend>> {
     boost::optional<std::shared_ptr<DOHFrontend>> result{boost::none};
     if (client) {
-      return result;
+      return std::shared_ptr<DOHFrontend>();
     }
 #ifdef HAVE_DNS_OVER_HTTPS
     setLuaNoSideEffect();
@@ -2865,8 +2865,11 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 #endif
   });
 
-  luaCtx.writeFunction("getTLSFrontend", []([[maybe_unused]] uint64_t index) {
+  luaCtx.writeFunction("getTLSFrontend", [client]([[maybe_unused]] uint64_t index) -> boost::optional<std::shared_ptr<TLSFrontend>> {
     boost::optional<std::shared_ptr<TLSFrontend>> result{boost::none};
+    if (client) {
+      return std::shared_ptr<TLSFrontend>();
+    }
 #ifdef HAVE_DNS_OVER_TLS
     setLuaNoSideEffect();
     try {
