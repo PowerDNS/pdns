@@ -556,7 +556,9 @@ public:
 
   static void joinThread0()
   {
-    info(0).thread.join();
+    if (!s_threadInfos.empty()) {
+      info(0).thread.join();
+    }
   }
 
   static void resize(size_t size)
