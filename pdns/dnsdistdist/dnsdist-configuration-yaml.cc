@@ -1245,7 +1245,7 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
   return false;
 #else
   (void)fileName;
-  throw std::runtime_error("Unsupported YAML configuration");
+  throw std::runtime_error("YAML configuration is not supported by this build of dnsdist");
 #endif /* HAVE_YAML_CONFIGURATION */
 }
 
