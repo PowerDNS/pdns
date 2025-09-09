@@ -69,7 +69,7 @@ jobs:
           [[ "${REF}" == "master" ]] || git describe --tags --exact-match
 
   prepare-runner-os-list:
-    name: generate runner list
+    name: generate list of runner-architecture pairs based on the input "platforms"
     runs-on: ubuntu-24.04
     outputs:
       runnerlist: ${{ steps.get-runnerlist.outputs.runnerlist }}
@@ -83,10 +83,6 @@ jobs:
           echo $INPUT_PLATFORMS | grep -qq arm64 && runner_os_arch+=($(jo arch=linux/amd64 runner=ubuntu-24.04))
           echo $INPUT_PLATFORMS | grep -qq arm64 && runner_os_arch+=($(jo arch=linux/arm64 runner=ubuntu-24.04-arm))
           echo "runnerlist=$(jo -a ${runner_os_arch[@]})" >> "$GITHUB_OUTPUT"
-          # Fail if there are no runners for the requested architecture
-          if [[ -z "${runner_os_arch[@]}" ]]; then
-            echo "No runners available for $INPUT_PLATFORMS" && exit 1
-          fi
 
   build:
     name: build ${{ matrix.platform.arch }} docker image for a product
