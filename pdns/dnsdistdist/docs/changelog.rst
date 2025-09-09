@@ -2,6 +2,184 @@ Changelog
 =========
 
 .. changelog::
+  :version: 2.0.1
+  :released: 18th of September 2025
+
+  .. change::
+    :tags: Bug Fixes, Security, DNS over QUIC, DNS over HTTP3
+    :pullreq: 15920, 16003
+
+    Upgrade Cloudflare's Quiche to 0.24.5 in our packages (CVE-2025-4820, CVE-2025-4821, CVE-2025-7054)
+
+  .. change::
+    :tags: Improvements, Performance
+    :pullreq: 15925
+
+    Update rings' atomic counter without holding the lock
+
+  .. change::
+    :tags: Improvements, Performance
+    :pullreq: 15926
+
+    Return early when a rule chain is empty
+
+  .. change::
+    :tags: Improvements, Performance
+    :pullreq: 15927
+
+    Update a cache's atomic counter without holding the lock
+
+  .. change::
+    :tags: Bug Fixes, YAML
+    :pullreq: 16017
+
+    Fix QType rate dynamic block with YAML
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16018
+
+    Fix systemd template unit and restricted network families when building with meson
+
+  .. change::
+    :tags: Bug Fixes, Performance
+    :pullreq: 16019
+
+    Clean up incoming TCP connections counters once per minute
+
+  .. change::
+    :tags: Improvements, Performance
+    :pullreq: 16020
+
+    Speed up response content matching
+
+  .. change::
+    :tags: Improvements, YAML
+    :pullreq: 16029
+
+    ``dnsdist --version``: report yaml support
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16031
+
+    Switch Docker images to Debian Trixie
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16032
+
+    Support mnemonics for the ``Opcode`` selector
+
+  .. change::
+    :tags: Bug Fixes, Security, DNS over HTTPS
+    :pullreq: 16045
+
+    Add mitigations for the HTTP/2 MadeYouReset attack (CVE-2025-8671), fix a possible DoS in incoming DoH with ``nghttp2`` (CVE-2025-30187)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16048
+
+    Add missing generated files to the dist tarball
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16049
+
+    Don't increment in a potential macro argument
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16052
+
+    Allow building with gcc8, which needs ``-lstdc++fs`` as link argument
+
+  .. change::
+    :tags: Improvements, Performance
+    :pullreq: 16053
+
+    Only check the freshness of the configuration when needed
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 16080
+
+    Don't call ``nghttp2_session_send`` from a callback
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16081
+
+    Properly handle truncation for UDP responses sent via ``sendmmsg``
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16093
+
+    dnsdist-resolver: Fix a bug when we get new IPs for a server
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16095
+
+    Fix access to frontends while in client mode
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 16096
+
+    Fix the IO reentry guard in outgoing DoH
+
+.. changelog::
+  :version: 1.9.11
+  :released: 18th of September 2025
+
+  .. change::
+    :tags: New Features
+    :pullreq: 15635
+    :tickets: 15610
+
+    Add SetEDNSOptionResponseAction (Samir Aguiar)
+
+  .. change::
+    :tags: Bug Fixes, Security, DNS over QUIC, DNS over HTTP3
+    :pullreq: 15921, 16004
+
+    Upgrade Cloudflare's Quiche to 0.24.5 in our packages (CVE-2025-4820, CVE-2025-4821, CVE-2025-7054)
+
+  .. change::
+    :tags: Bug Fixes, Security, DNS over HTTPS
+    :pullreq: 16036
+
+    Upgrade h2o to 2.2.6-pdns3 in our packages (CVE-2025-8671)
+
+  .. change::
+    :tags: Bug Fixes, Security, DNS over HTTPS
+    :pullreq: 16047
+
+    Add mitigations for the HTTP/2 MadeYouReset attack (CVE-2025-8671), fix a possible DoS in incoming DoH with ``nghttp2`` (CVE-2025-30187)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16051
+
+    Don't increment in a potential macro argument
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 16086
+    :tickets: 16015
+
+    Don't call ``nghttp2_session_send`` from a callback
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 16097
+
+    Fix the IO reentry guard in outgoing DoH
+
+.. changelog::
   :version: 2.0.0
   :released: 21st of July 2025
 
