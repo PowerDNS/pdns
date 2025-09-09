@@ -329,6 +329,12 @@ bool DNSDistPacketCache::get(DNSQuestion& dnsQuestion, uint16_t queryId, uint32_
     }
   }
 
+  if (d_settings.d_shuffle) {
+    dnsheader_aligned dh_aligned(response.data());
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    shuffleDNSPacket(reinterpret_cast<char*>(response.data()), response.size(), dh_aligned);
+  }
+
   ++d_hits;
   return true;
 }

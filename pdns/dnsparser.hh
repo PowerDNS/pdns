@@ -531,6 +531,7 @@ private:
 };
 
 string simpleCompress(const string& label, const string& root="");
+void shuffleDNSPacket(char* packet, size_t length, const dnsheader_aligned& aligned_dh);
 void ageDNSPacket(char* packet, size_t length, uint32_t seconds, const dnsheader_aligned&);
 void ageDNSPacket(std::string& packet, uint32_t seconds, const dnsheader_aligned&);
 void editDNSPacketTTL(char* packet, size_t length, const std::function<uint32_t(uint8_t, uint16_t, uint16_t, uint32_t)>& visitor);
@@ -566,17 +567,20 @@ public:
   /*! Advances past a wire-format domain name
    * The name is not checked for adherence to length restrictions.
    * Compression pointers are not followed.
+   * Returns offset of a compression pointer if the domain name ends
+   * with a pointer, or nullopt if it doesn't.
    */
-  void skipDomainName()
+  std::optional<size_t> skipDomainName()
   {
     uint8_t len;
     while((len=get8BitInt())) {
       if(len >= 0xc0) { // extended label
-        get8BitInt();
-        return;
+        len &= (~0xc0);
+        return (len << 8) + get8BitInt();
       }
       skipBytes(len);
     }
+    return std::nullopt;
   }
 
   void skipBytes(uint16_t bytes)
@@ -646,6 +650,64 @@ public:
   {
     return d_offset;
   }
+
+  int32_t swapInPlace(size_t a, size_t end_a, size_t b, size_t end_b)
+  {
+    char *s = d_packet;
+    if (b<a) {
+      std::swap(a, b);
+      std::swap(end_a, end_b);
+    }
+    // some basic range checks
+    if (end_a < a) {
+      throw std::out_of_range("swap: ending of segment before start of segment");
+    }
+    if (end_b < b) {
+      throw std::out_of_range("swap: ending of segment before start of segment");
+    }
+    if (end_a > b) {
+      throw std::out_of_range("swap: overlapping segments");
+    }
+    if (end_b > d_length) {
+      throw std::out_of_range("swap: ending of segment after end of array");
+    }
+    // don't allow to swap what we haven't read yet
+    if (end_b > d_offset) {
+      throw std::out_of_range("swap: ending of segment after current offset");
+    }
+
+    const size_t len_b = end_b - b;
+    const size_t len_a = end_a - a;
+
+    int32_t diff = len_b-len_a;
+
+    // simple case 1: same lengths
+    if (diff == 0) {
+      std::swap_ranges(s+a, s+end_a, s+b);
+      return 0;
+    }
+
+    const size_t len_gap = b - end_a;
+    // simple case 2: adjacent blocks
+    if (len_gap == 0) {
+      std::rotate(s+a, s+end_a, s+end_b);
+      return diff;
+    }
+
+    if (diff > 0) {
+      // 1234GGGGGabcdef
+      // abcdGGGGG1234ef
+      std::swap_ranges(s+a, s+end_a, s+b);
+      std::rotate(s+end_a, s+b+end_a, s+end_b);
+      return diff;
+    } else {
+      // 123456GGGGGabcd
+      // abcd56GGGGG1234
+      std::swap_ranges(s+a, s+a+end_b, s+b);
+      std::rotate(s+a+end_b, s+b, s+end_b);
+      return diff;
+    }
+}
 
 private:
   void moveOffset(uint16_t by)
