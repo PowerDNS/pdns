@@ -163,6 +163,8 @@ jobs:
     env:
       IMAGE_NAME: ${{ secrets.DOCKERHUB_ORGANIZATION_NAME }}/${{ inputs.image-name }}
     steps:
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3.7.0
       - name: Download digests
         uses: actions/download-artifact@v4
         with:
@@ -194,6 +196,14 @@ jobs:
           TAG: ${{ steps.meta.outputs.version }}
         run: |
           echo "image-digest=$(docker buildx imagetools inspect $IMAGE_NAME:$TAG --format="{{json .Manifest}}" | jq -r .digest)" >> "$GITHUB_OUTPUT"
+      - name: Sign product image
+        id: sign-image
+        env:
+          TAG: |
+            ${{ env.IMAGE_NAME }}@${{ steps.get-image-digest.outputs.image-digest }}
+        # This step uses the identity token to provision an ephemeral certificate
+        # against the sigstore community Fulcio instance.
+        run: cosign sign --yes ${TAG}
 
   test-uploaded-images:
     name: test ${{ matrix.platform.arch }} uploaded images
