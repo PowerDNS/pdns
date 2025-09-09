@@ -1398,7 +1398,7 @@ bool pdns::settings::rec::luaItemSet(const pdns::rust::settings::rec::Recursorse
   return !alldefault;
 }
 
-pdns::settings::rec::YamlSettingsStatus pdns::settings::rec::tryReadYAML(const string& yamlconfigname, bool setGlobals, bool& yamlSettings, bool& luaSettingsInYAML, rust::settings::rec::Recursorsettings& settings, Logr::log_t startupLog)
+pdns::settings::rec::YamlSettingsStatus pdns::settings::rec::tryReadYAML(const string& yamlconfigname, bool setGlobals, bool& yamlSettings, bool& luaSettingsInYAML, rust::settings::rec::Recursorsettings& settings, Logr::log_t startupLog, Logr::Priority level)
 {
   string msg;
   // TODO: handle include-dir on command line
@@ -1406,7 +1406,7 @@ pdns::settings::rec::YamlSettingsStatus pdns::settings::rec::tryReadYAML(const s
 
   switch (yamlstatus) {
   case pdns::settings::rec::YamlSettingsStatus::CannotOpen:
-    startupLog->error(Logr::Debug, msg, "No YAML config found", "configname", Logging::Loggable(yamlconfigname));
+    startupLog->error(level, msg, "No YAML config found", "configname", Logging::Loggable(yamlconfigname));
     break;
 
   case pdns::settings::rec::YamlSettingsStatus::PresentButFailed:
