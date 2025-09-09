@@ -103,6 +103,8 @@ uint64_t RecursorPacketCache::doWipePacketCache(const DNSName& name, uint16_t qt
   return count;
 }
 
+static const std::unordered_set<uint16_t> s_skipOptions = {EDNSOptionCode::ECS, EDNSOptionCode::COOKIE, EDNSOptionCode::OTTRACEIDS};
+
 bool RecursorPacketCache::qrMatch(const packetCache_t::index<HashTag>::type::iterator& iter, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass)
 {
   // this ignores checking on the EDNS subnet flags!
@@ -110,8 +112,7 @@ bool RecursorPacketCache::qrMatch(const packetCache_t::index<HashTag>::type::ite
     return false;
   }
 
-  static const std::unordered_set<uint16_t> optionsToSkip{EDNSOptionCode::COOKIE, EDNSOptionCode::ECS};
-  return queryMatches(iter->d_query, queryPacket, qname, optionsToSkip);
+  return queryMatches(iter->d_query, queryPacket, qname, s_skipOptions);
 }
 
 bool RecursorPacketCache::checkResponseMatches(MapCombo::LockedContent& shard, std::pair<packetCache_t::index<HashTag>::type::iterator, packetCache_t::index<HashTag>::type::iterator> range, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now, std::string* responsePacket, uint32_t* age, vState* valState, OptPBData* pbdata)
@@ -170,8 +171,6 @@ bool RecursorPacketCache::checkResponseMatches(MapCombo::LockedContent& shard, s
 
   return false;
 }
-
-static const std::unordered_set<uint16_t> s_skipOptions = {EDNSOptionCode::ECS, EDNSOptionCode::COOKIE};
 
 bool RecursorPacketCache::getResponsePacket(unsigned int tag, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now,
                                             std::string* responsePacket, uint32_t* age, vState* valState, uint32_t* qhash, OptPBData* pbdata, bool tcp)
