@@ -1093,6 +1093,7 @@ See :doc:`../guides/cache` for a how to.
   * ``skipOptions={10, 12}``: Extra list of EDNS option codes to skip when hashing the packet (if ``cookieHashing`` above is true, EDNS cookie option number will be removed from this list internally).
   * ``maximumEntrySize=4096``: int - The maximum size, in bytes, of a DNS packet that can be inserted into the packet cache. Default is 4096 bytes, which was the fixed size before 1.9.0, and is also a hard limit for UDP responses.
   * ``payloadRanks={}``: List of payload size used when hashing the packet. The list will be sorted in ascending order and searched to find a lower bound value for the payload size in the packet. If found then it will be used for packet hashing. Values less than 512 or greater than ``maximumEntrySize`` above will be discarded. This option is to enable cache entry sharing between clients using different payload sizes when needed.
+  * ``shuffle=false``: bool - Whether A and AAAA records should be shuffled when serving from cache, for load-balancing. The cache might not be shuffled if the cached packet is too complex for the simple parser used for this feature.
 
 .. class:: PacketCache
 

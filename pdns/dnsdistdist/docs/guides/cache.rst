@@ -5,7 +5,7 @@ Caching Responses
 It is enabled per-pool, but the same cache can be shared between several pools.
 The first step is to define a cache with :func:`newPacketCache`, then to assign that cache to the chosen pool, the default one being represented by the empty string::
 
-  pc = newPacketCache(10000, {maxTTL=86400, minTTL=0, temporaryFailureTTL=60, staleTTL=60, dontAge=false})
+  pc = newPacketCache(10000, {maxTTL=86400, minTTL=0, temporaryFailureTTL=60, staleTTL=60, dontAge=false, shuffle=false})
   getPool(""):setCache(pc)
 
 + The first parameter (10000) is the maximum number of entries stored in the cache, and is the only one required. All the other parameters are optional and in seconds, except the last one which is a boolean.
@@ -37,6 +37,7 @@ The equivalent ``yaml`` configuration would be:
       temporary_failure_ttl: 60
       state_ttl: 60
       dont_age: false
+      shuffle: false
   pools:
     - name: ""
       packet_cache: "pc"
