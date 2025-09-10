@@ -1377,7 +1377,7 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assertEqual(r.status_code, 422)
-        self.assertIn('Data field in DNS should start with quote (") at position 9', r.json()['error'])
+        self.assertIn('Not in expected format (parsed as', r.json()['error'])
 
     def test_zone_rr_update_with_escapes(self):
         name, payload, zone = self.create_zone()
