@@ -34,7 +34,7 @@ The following webserver related configuration items are available:
 
 .. warning::
 
-   Not setting a password will allow password-less access to the frontpage showing statistics, the :doc:`endpoint-jsonstat`, the :doc:`../common/api/endpoint-statistics` and the ``localhost`` specific endpoint of the :doc:`../common/api/endpoint-servers`.
+   Not setting a password will allow passwordless access to the frontpage showing statistics, the :doc:`endpoint-jsonstat`, the :doc:`../common/api/endpoint-statistics` and the ``localhost`` specific endpoint of the :doc:`../common/api/endpoint-servers`.
 
 Enabling the API
 ----------------
