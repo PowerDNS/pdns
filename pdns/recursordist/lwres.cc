@@ -486,8 +486,7 @@ static void addPadding(const DNSPacketWriter& pw, size_t bufsize, DNSPacketWrite
 static void outgoingCookie(const OptLog& log, const ComboAddress& address, const timeval& now, DNSPacketWriter::optvect_t& opts, std::optional<EDNSCookiesOpt>& cookieSentOut, std::optional<ComboAddress>& addressToBindTo)
 {
   auto lock = s_cookiestore.lock();
-  auto found = lock->find(address);
-  if (found != lock->end()) {
+  if (auto found = lock->find(address); found != lock->end()) {
     switch (found->getSupport()) {
     case CookieEntry::Support::Supported:
     case CookieEntry::Support::Probing:
@@ -501,18 +500,17 @@ static void outgoingCookie(const OptLog& log, const ComboAddress& address, const
       VLOG(log, "Server " << address.toString() << " does not support cookies" << endl);
       break;
     }
+    return;
   }
-  else {
-    // Server not in table, it's either new or was purged
-    CookieEntry entry;
-    entry.d_address = address;
-    entry.d_cookie.makeClientCookie();
-    cookieSentOut = entry.d_cookie;
-    entry.setSupport(CookieEntry::Support::Probing, now.tv_sec);
-    lock->emplace(entry);
-    opts.emplace_back(EDNSOptionCode::COOKIE, cookieSentOut->makeOptString());
-    VLOG(log, "Sending new client cookie info to " << address.toString() << ": " << entry.d_cookie.toDisplayString() << endl);
-  }
+  // Server not in table, it's either new or was purged
+  CookieEntry entry;
+  entry.d_address = address;
+  entry.d_cookie.makeClientCookie();
+  cookieSentOut = entry.d_cookie;
+  entry.setSupport(CookieEntry::Support::Probing, now.tv_sec);
+  lock->emplace(entry);
+  opts.emplace_back(EDNSOptionCode::COOKIE, cookieSentOut->makeOptString());
+  VLOG(log, "Sending new client cookie info to " << address.toString() << ": " << entry.d_cookie.toDisplayString() << endl);
 }
 
 static std::pair<bool, LWResult::Result> incomingCookie(const OptLog& log, const ComboAddress& address, const ComboAddress& localip, const timeval& now, const std::optional<EDNSCookiesOpt>& cookieSentOut, const EDNSOpts& edo, bool doTCP, LWResult& lwr, bool& cookieFoundInReply)
@@ -674,7 +672,7 @@ static LWResult::Result asyncresolve(const OptLog& log, const ComboAddress& addr
     }
     catch (const PDNSException& e) {
       if (addressToBindTo) {
-        // Cookie info already has been added to packet, so we must retry from a higher level
+        // Cookie info already has been added to packet, so we must retry from a higher level: SyncRes::asyncresolveWrapper
         auto lock = s_cookiestore.lock();
         lock->erase(address);
         return LWResult::Result::BindError;

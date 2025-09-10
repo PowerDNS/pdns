@@ -15,23 +15,18 @@ IMPORTS
         FROM SNMPv2-CONF;
 
 rec MODULE-IDENTITY
-<<<<<<< HEAD
-    LAST-UPDATED "202505270000Z"
-=======
-    LAST-UPDATED "202504290000Z"
->>>>>>> 86b0c8c41 (Typos in comments and docs from Miod)
+
+    LAST-UPDATED "202509100000Z"
     ORGANIZATION "PowerDNS BV"
     CONTACT-INFO "support@powerdns.com"
     DESCRIPTION
        "This MIB module describes information gathered through PowerDNS Recursor."
 
-<<<<<<< HEAD
+    REVISION "202509100000Z"
+    DESCRIPTION "Added metrics related to cookies"
+
     REVISION "202505270000Z"
     DESCRIPTION "Added metric for missing ECS in reply"
-=======
-    REVISION "202504290000Z"
-    DESCRIPTION "Added metrics related to cookies"
->>>>>>> 86b0c8c41 (Typos in comments and docs from Miod)
 
     REVISION "202408280000Z"
     DESCRIPTION "Added metric for too many incoming TCP connections"

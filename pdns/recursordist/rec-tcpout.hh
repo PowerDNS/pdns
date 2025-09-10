@@ -55,7 +55,7 @@ public:
 
   using endpoints_t = std::pair<ComboAddress, std::optional<ComboAddress>>;
 
-  void store(const struct timeval& now, const endpoints_t& pair, Connection&& connection);
+  void store(const struct timeval& now, const endpoints_t& endpoints, Connection&& connection);
   Connection get(const endpoints_t& pair);
   void cleanup(const struct timeval& now);
 

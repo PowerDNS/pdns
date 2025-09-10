@@ -2558,7 +2558,7 @@ static void houseKeepingWork(Logr::log_t log)
 
     static PeriodicTask pruneCookiesTask{"pruneCookiesTask", 30};
     pruneCookiesTask.runIfDue(now, [now]() {
-      pruneCookies(now.tv_sec - 1800);
+      pruneCookies(now.tv_sec - 3000);
     });
 
     // By default, refresh at 80% of max-cache-ttl with a minimum period of 10s
