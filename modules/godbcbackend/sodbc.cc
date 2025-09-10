@@ -85,6 +85,7 @@ public:
     SQLLEN* LenPtr;
     SQLSMALLINT ParameterType;
     SQLSMALLINT ValueType;
+    size_t ParameterAllocSize; // size allocated for ParameterValuePtr, if ParameterType == SQL_INTEGER
   };
 
   vector<ODBCParam> d_req_bind;
@@ -144,6 +145,7 @@ public:
     p.LenPtr = new SQLLEN{sizeof(UDWORD)};
     p.ParameterType = SQL_INTEGER;
     p.ValueType = SQL_INTEGER;
+    p.ParameterAllocSize = sizeof(UDWORD);
     return bind(name, p);
   }
 
@@ -155,6 +157,7 @@ public:
     p.LenPtr = new SQLLEN{sizeof(ULONG)};
     p.ParameterType = SQL_INTEGER;
     p.ValueType = SQL_INTEGER;
+    p.ParameterAllocSize = sizeof(ULONG);
     return bind(name, p);
   }
 
@@ -262,12 +265,23 @@ public:
     SQLCloseCursor(d_statement); // hack, this probably violates some state transitions
 
     for (auto& i : d_req_bind) {
-      if (i.ParameterType == SQL_VARCHAR)
-        delete[](char*) i.ParameterValuePtr;
-      else if (i.ParameterType == SQL_INTEGER)
-        delete (ULONG*)i.ParameterValuePtr;
-      else if (i.ParameterType == SQL_C_UBIGINT)
-        delete (unsigned long long*)i.ParameterValuePtr;
+      // NOLINTBEGIN(cppcoreguidelines-owning-memory)
+      if (i.ParameterType == SQL_VARCHAR) {
+        delete[] static_cast<char*>(i.ParameterValuePtr);
+      }
+      else if (i.ParameterType == SQL_INTEGER) {
+        if (i.ParameterAllocSize == sizeof(UDWORD)) {
+          delete static_cast<UDWORD*>(i.ParameterValuePtr);
+        }
+        else {
+          delete static_cast<ULONG*>(i.ParameterValuePtr);
+        }
+      }
+      else if (i.ParameterType == SQL_C_UBIGINT) {
+        delete static_cast<unsigned long long*>(i.ParameterValuePtr);
+      }
+      // NOLINTEND(cppcoreguidelines-owning-memory)
+
       delete i.LenPtr;
     }
     d_req_bind.clear();
