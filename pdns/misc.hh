@@ -895,3 +895,6 @@ using UniqueFilePtr = std::unique_ptr<FILE, FilePtrDeleter>;
 
 UniqueFilePtr openFileForWriting(const std::string& filePath, mode_t permissions, bool mustNotExist = true, bool appendIfExists = false);
 }
+
+using timebuf_t = std::array<char, 64>;
+const char* timestamp(time_t arg, timebuf_t& buf);

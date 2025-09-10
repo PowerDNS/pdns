@@ -23,10 +23,6 @@
 #include "misc.hh"
 #include "rec-cookiestore.hh"
 
-using timebuf_t = std::array<char, 64>;
-
-extern const char* timestamp(time_t arg, timebuf_t& buf); // XXX
-
 void CookieStore::prune(time_t cutoff)
 {
   auto& ind = get<time_t>();
