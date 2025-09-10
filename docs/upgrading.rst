@@ -17,6 +17,14 @@ zone display
 Display of records in various :doc:`pdnsutil <manpages/pdnsutil.1>` commands
 will now always contain explicit trailing dots, for consistency.
 
+Record handling in the API
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Record data sent through the API will now be normalized to be closer to their
+actual zone representation.
+As a result of this change, reading back these records may show a different
+representation than expected.
+
 4.9.0 to 5.0.0
 --------------
 
