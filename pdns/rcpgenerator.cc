@@ -613,28 +613,27 @@ void RecordTextReader::xfrText(string& val, bool multi, bool /* lenField */)
   val.clear();
   val.reserve(d_end - d_pos);
 
-  while(d_pos != d_end) {
-    if(!val.empty())
+  while (d_pos != d_end) {
+    if (!val.empty()) {
       val.append(1, ' ');
+    }
 
     skipSpaces();
-    if(d_string[d_pos]!='"') { // special case 'plenus' - without quotes
-      string::size_type pos = d_pos;
-      while(pos != d_end && isalnum(d_string[pos]))
-        pos++;
-      if(pos == d_end) {
-        val.append(1, '"');
-        val.append(d_string.c_str() + d_pos, d_end - d_pos);
-        val.append(1, '"');
-        d_pos = d_end;
-        break;
-      }
-      throw RecordTextException("Data field in DNS should start with quote (\") at position "+std::to_string(d_pos)+" of '"+d_string+"'");
-    }
+    char delimiter{'"'};
+    bool quoted = d_string[d_pos] == '"';
+    // If the word is quoted, process up to the next quote; otherwise,
+    // process up to the next whitespace (but output it in quotes).
     val.append(1, '"');
-    while(++d_pos < d_end && d_string[d_pos]!='"') {
-      if(d_string[d_pos]=='\\' && d_pos+1!=d_end) {
-        val.append(1, d_string[d_pos++]);
+    if (quoted) {
+      ++d_pos;
+    }
+    else {
+      // RFC1035: ``a contiguous set of characters without interior spaces''
+      delimiter = ' ';
+    }
+    while (d_pos != d_end && d_string[d_pos] != delimiter) {
+      if (d_string[d_pos] == '\\' && d_pos + 1 != d_end) {
+        val.append(1, d_string[d_pos++]); // copy escape slash
         char chr = d_string[d_pos];
         if (chr >= '0' && chr <= '9') {
           bool valid{false};
@@ -643,7 +642,7 @@ void RecordTextReader::xfrText(string& val, bool multi, bool /* lenField */)
             char chr2 = d_string[d_pos + 1];
             char chr3 = d_string[d_pos + 2];
             if (chr2 >= '0' && chr2 <= '9' && chr3 >= '0' && chr3 <= '9') {
-              valid = true;
+              valid = 100 * (chr - '0') + 10 * (chr2 - '0') + chr3 - '0' < 256;
             }
           }
           if (!valid) {
@@ -653,14 +652,27 @@ void RecordTextReader::xfrText(string& val, bool multi, bool /* lenField */)
         // Not advancing d_pos, we'll append the next 1 or 3 characters as
         // part of the regular case.
       }
+      if (!quoted && d_string[d_pos] == '"') {
+        // Bind allows a non-quoted text to be immediately followed by a
+        // quoted text, without any whitespace in between, so handle this
+        // as a delimiter.
+        break;
+      }
       val.append(1, d_string[d_pos]);
+      ++d_pos;
     }
     val.append(1,'"');
-    if(d_pos == d_end)
-      throw RecordTextException("Data field in DNS should end on a quote (\") in '"+d_string+"'");
-    d_pos++;
-    if(!multi)
+    if (quoted) {
+      // If we reached the end in a quoted section, the closing quote is missing.
+      if (d_pos == d_end) {
+        throw RecordTextException("Data field in DNS should end on a quote (\") in '"+d_string+"'");
+      }
+      // Skip closing quote
+      ++d_pos;
+    }
+    if (!multi) {
       break;
+    }
   }
 }
 
@@ -982,7 +994,12 @@ void RecordTextWriter::xfrText(const string& val, bool /* multi */, bool /* lenF
   if(!d_string.empty())
     d_string.append(1,' ');
 
-  d_string.append(val);
+  if (val.empty()) {
+    d_string.append(2, '"');
+  }
+  else {
+    d_string.append(val);
+  }
 }
 
 void RecordTextWriter::xfrUnquotedText(const string& val, bool /* lenField */)
