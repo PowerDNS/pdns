@@ -2510,7 +2510,6 @@ static int addOrReplaceRecord(bool isAdd, const vector<string>& cmds)
   rr.auth = true;
   rr.domain_id = di.id;
   rr.qname = name;
-  DNSResourceRecord oldrr;
 
   unsigned int contentStart = 3;
   if(cmds.size() > 4) {
@@ -2540,10 +2539,11 @@ static int addOrReplaceRecord(bool isAdd, const vector<string>& cmds)
 
   di.backend->startTransaction(zone, UnknownDomainID);
 
+  DNSResourceRecord oldrr;
+  vector<DNSResourceRecord> oldrrs;
   if (isAdd) {
     // the 'add' case; preserve existing records, making sure to discard
     // would-be new records which contents are identical to the existing ones.
-    vector<DNSResourceRecord> oldrrs;
     di.backend->lookup(QType(QType::ANY), rr.qname, static_cast<int>(di.id));
     while (di.backend->get(oldrr)) {
       oldrrs.push_back(oldrr);
@@ -2554,12 +2554,12 @@ static int addOrReplaceRecord(bool isAdd, const vector<string>& cmds)
         }
       }
     }
-    oldrrs.insert(oldrrs.end(), newrrs.begin(), newrrs.end());
-    newrrs = std::move(oldrrs);
+    newrrs.insert(newrrs.end(), oldrrs.begin(), oldrrs.end());
   }
 
   std::vector<std::pair<DNSResourceRecord, string>> errors;
-  Check::checkRRSet(newrrs, zone, errors);
+  Check::checkRRSet(oldrrs, newrrs, zone, errors);
+  oldrrs.clear(); // no longer needed
   if (!errors.empty()) {
     for (const auto& error : errors) {
       const auto [rec, why] = error;

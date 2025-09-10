@@ -1661,7 +1661,7 @@ static bool checkNewRecords(HttpResponse* resp, vector<DNSResourceRecord>& recor
 {
   std::vector<std::pair<DNSResourceRecord, string>> errors;
 
-  Check::checkRRSet(records, zone, errors);
+  Check::checkRRSet({}, records, zone, errors);
   if (errors.empty()) {
     return true;
   }

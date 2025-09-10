@@ -28,7 +28,7 @@
 namespace Check
 {
 
-void checkRRSet(vector<DNSResourceRecord>& records, const ZoneName& zone, vector<pair<DNSResourceRecord, string>>& errors)
+void checkRRSet(const vector<DNSResourceRecord>& oldrrs, vector<DNSResourceRecord>& allrrs, const ZoneName& zone, vector<pair<DNSResourceRecord, string>>& errors)
 {
   // QTypes that MUST NOT have multiple records of the same type in a given RRset.
   static const std::set<uint16_t> onlyOneEntryTypes = {QType::CNAME, QType::DNAME, QType::SOA};
@@ -37,14 +37,14 @@ void checkRRSet(vector<DNSResourceRecord>& records, const ZoneName& zone, vector
   // QTypes that are NOT allowed at apex.
   static const std::set<uint16_t> nonApexTypes = {QType::DS};
 
-  sort(records.begin(), records.end(),
+  sort(allrrs.begin(), allrrs.end(),
        [](const DNSResourceRecord& rec_a, const DNSResourceRecord& rec_b) -> bool {
          /* we need _strict_ weak ordering */
          return std::tie(rec_a.qname, rec_a.qtype, rec_a.content) < std::tie(rec_b.qname, rec_b.qtype, rec_b.content);
        });
 
   DNSResourceRecord previous;
-  for (const auto& rec : records) {
+  for (const auto& rec : allrrs) {
     if (previous.qname == rec.qname) {
       if (previous.qtype == rec.qtype) {
         if (onlyOneEntryTypes.count(rec.qtype.getCode()) != 0) {
@@ -57,7 +57,18 @@ void checkRRSet(vector<DNSResourceRecord>& records, const ZoneName& zone, vector
       else {
         if (QType::exclusiveEntryTypes.count(rec.qtype.getCode()) != 0
             || QType::exclusiveEntryTypes.count(previous.qtype.getCode()) != 0) {
-          errors.emplace_back(std::make_pair(rec, std::string{"conflicts with existing "} + previous.qtype.toString() + " RRset of the same name"));
+          // The `rec' record can't be added because of `previous'. However
+          // `rec' might be one of the existing records, and `previous' the
+          // added one. Or they might both be new records.
+          // We thus check if `rec' appears in the existing records in
+          // order to decide which record to blame in order to make the error
+          // message as less confusing as possible.
+          if (std::find(oldrrs.begin(), oldrrs.end(), rec) != oldrrs.end()) {
+            errors.emplace_back(std::make_pair(previous, std::string{"conflicts with existing "} + rec.qtype.toString() + " RRset of the same name"));
+          }
+          else {
+            errors.emplace_back(std::make_pair(rec, std::string{"conflicts with existing "} + previous.qtype.toString() + " RRset of the same name"));
+          }
         }
       }
     }
