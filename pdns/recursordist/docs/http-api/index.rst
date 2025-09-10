@@ -32,6 +32,10 @@ The following webserver related configuration items are available:
 * :ref:`setting-yaml-webservice.port`: Port to bind the webserver to.
 * :ref:`setting-yaml-webservice.allow_from`: Netmasks that are allowed to connect to the webserver
 
+.. warning::
+
+   Not setting a password will allow passwordless access to the frontpage showing statistics, the :doc:`endpoint-jsonstat`, the :doc:`../common/api/endpoint-statistics` and the ``localhost`` specific endpoint of the :doc:`../common/api/endpoint-servers`.
+
 Enabling the API
 ----------------
 

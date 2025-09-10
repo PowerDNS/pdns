@@ -1009,6 +1009,9 @@ void serveRustWeb()
 
   auto logPtr = g_slog->withName("webserver");
 
+  if (arg()["webserver-password"].empty()) {
+    logPtr->info(Logr::Warning, "Webserver launched without a password set!");
+  }
   pdns::rust::misc::LogLevel loglevel = pdns::rust::misc::LogLevel::Normal;
   const auto& configLevel = ::arg()["webserver-loglevel"];
   if (configLevel == "none") {
