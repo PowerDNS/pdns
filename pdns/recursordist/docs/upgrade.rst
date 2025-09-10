@@ -18,8 +18,8 @@ New Settings
 
 - The ``dump-cookies`` subcommand has been added to dump a table showing cookie support for each
 authoritative server contacted recently.
-- The ``clear-cookies`` subcommand has been added to clear entries from the cookie support table
-- The ``add-cookies-unsupported`` subcommand has been added to mark an authoritative server as not supporing cookies.
+- The ``clear-cookies`` subcommand has been added to clear entries from the cookie support table.
+- The ``add-cookies-unsupported`` subcommand has been added to mark an authoritative server as not supporting cookies.
 
 5.2.0 to 5.3.0
 --------------

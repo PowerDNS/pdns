@@ -32,8 +32,8 @@ export PDNS=${PDNS:-${PWD}/../pdns/pdns_server}
 export PDNSUTIL=${PDNSUTIL:-${PWD}/../pdns/pdnsutil}
 export PDNSMODULEDIR=${PDNSMODULEDIR:-${PWD}/../regression-tests/modules}
 
-export PDNSRECURSOR=${PDNSRECURSOR:-${PWD}/../pdns/recursordist/pdns_recursor}
-export RECCONTROL=${RECCONTROL:-${PWD}/../pdns/recursordist/rec_control}
+export PDNSRECURSOR=${PDNSRECURSOR:-${PWD}/../pdns/recursordist/build/pdns_recursor}
+export RECCONTROL=${RECCONTROL:-${PWD}/../pdns/recursordist/build/rec_control}
 
 LIBFAKETIME_DEFAULT=/usr/lib/$(arch)-linux-gnu/faketime/libfaketimeMT.so.1 # ubuntu default
 LIBAUTHBIND_DEFAULT=/usr/lib/authbind/libauthbind.so.1

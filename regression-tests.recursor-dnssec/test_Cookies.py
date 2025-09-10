@@ -22,6 +22,7 @@ recursor:
   forward_zones:
   - zone: cookies.example
     forwarders: [%s.25, %s.26]
+  devonly_regression_test_mode: true
 outgoing:
   cookies: true
 packetcache:
@@ -95,12 +96,15 @@ packetcache:
         confdir = os.path.join('configs', self._confdir)
         # Case: rec gets a proper client and server cookie back
         self.recControl(confdir, 'clear-cookies', '*')
+        tcp1 = self.recControl(confdir, 'get tcp-outqueries')
         query = dns.message.make_query('supported.cookies.example.', 'A')
         expected = dns.rrset.from_text('supported.cookies.example.', 15, dns.rdataclass.IN, 'A', '127.0.0.1')
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertRRsetInAnswer(res, expected)
         self.checkCookies('Supported')
+        tcp2 = self.recControl(confdir, 'get tcp-outqueries')
+        self.assertEqual(tcp1, tcp2)
 
         # Case: we get a an correct client and server cookie back
         # We do not clear the cookie tables, so the old server cookie gets re-used
@@ -113,14 +117,17 @@ packetcache:
 
     def testAuthSendsIncorrectClientCookie(self):
         confdir = os.path.join('configs', self._confdir)
-        # Case: rec gets a an incorrect client cookie back, we ignore that over TCP
+        # Case: rec gets a an incorrect client cookie back, we ignore that and go to TCP
         self.recControl(confdir, 'clear-cookies', '*')
+        tcp1 = self.recControl(confdir, 'get tcp-outqueries')
         query = dns.message.make_query('wrongcc.cookies.example.', 'A')
         expected = dns.rrset.from_text('wrongcc.cookies.example.', 15, dns.rdataclass.IN, 'A', '127.0.0.1')
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertRRsetInAnswer(res, expected)
         self.checkCookies('Probing')
+        tcp2 = int(self.recControl(confdir, 'get tcp-outqueries'))
+        self.assertEqual(int(tcp1) + 1, int(tcp2))
 
     def testAuthSendsBADCOOKIEOverUDP(self):
         confdir = os.path.join('configs', self._confdir)
