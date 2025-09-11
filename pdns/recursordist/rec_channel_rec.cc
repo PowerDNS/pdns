@@ -1989,9 +1989,9 @@ RecursorControlChannel::Answer luaconfig(bool broadcast)
     bool dummy1{};
     bool dummy2{};
     pdns::rust::settings::rec::Recursorsettings settings;
-    auto yamlstat = pdns::settings::rec::tryReadYAML(configname + g_yamlSettingsSuffix, false, dummy1, dummy2, settings, g_slog);
+    auto yamlstat = pdns::settings::rec::tryReadYAML(configname + g_yamlSettingsSuffix, false, dummy1, dummy2, settings, g_slog, Logr::Error);
     if (yamlstat != pdns::settings::rec::YamlSettingsStatus::OK) {
-      return {1, "Not reloading dynamic part of YAML configuration\n"};
+      return {1, "Reloading dynamic part of YAML configuration failed\n"};
     }
     auto generation = g_luaconfs.getLocal()->generation;
     lci.generation = generation + 1;
