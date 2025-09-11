@@ -311,6 +311,10 @@ static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, s
     comboWriter->d_otTrace.clear();
     comboWriter->d_otTrace.start_time_unix_nano = traceTS;
   }
+  auto newParent = comboWriter->d_eventTrace.add(RecEventTrace::ProcessTCP);
+  auto oldParent = comboWriter->d_eventTrace.setParent(newParent);
+  RecEventTrace::EventScope traceScope(oldParent, comboWriter->d_eventTrace);
+
   auto luaconfsLocal = g_luaconfs.getLocal();
   if (checkProtobufExport(luaconfsLocal)) {
     needEDNSParse = true;
@@ -321,12 +325,14 @@ static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, s
   if (needEDNSParse || (t_pdl && (t_pdl->hasGettagFFIFunc() || t_pdl->hasGettagFunc())) || comboWriter->d_mdp.d_header.opcode == static_cast<unsigned>(Opcode::Notify)) {
 
     try {
+      auto parseMatch = comboWriter->d_eventTrace.add(RecEventTrace::PacketParse);
       EDNSOptionViewMap ednsOptions;
       comboWriter->d_ecsParsed = true;
       comboWriter->d_ecsFound = false;
       getQNameAndSubnet(conn->data, &qname, &qtype, &qclass,
                         comboWriter->d_ecsFound, &comboWriter->d_ednssubnet,
                         (g_gettagNeedsEDNSOptions || SyncRes::eventTraceEnabled(SyncRes::event_trace_to_ot)) ? &ednsOptions : nullptr, ednsVersion);
+      comboWriter->d_eventTrace.add(RecEventTrace::PacketParse, 0, false, parseMatch);
       qnameParsed = true;
 
       if (SyncRes::eventTraceEnabled(SyncRes::event_trace_to_ot)) {
@@ -452,13 +458,15 @@ static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, s
                             "source", Logging::Loggable(comboWriter->d_source), "remote", Logging::Loggable(comboWriter->d_remote));
         }
 
+        auto answerMatch = comboWriter->d_eventTrace.add(RecEventTrace::AnswerSent);
         bool hadError = sendResponseOverTCP(comboWriter, response);
         finishTCPReply(comboWriter, hadError, false);
         struct timeval now{};
         Utility::gettimeofday(&now, nullptr);
         uint64_t spentUsec = uSec(now - start);
         t_Counters.at(rec::Histogram::cumulativeAnswers)(spentUsec);
-        comboWriter->d_eventTrace.add(RecEventTrace::AnswerSent);
+        comboWriter->d_eventTrace.add(RecEventTrace::AnswerSent, 0, false, answerMatch);
+        traceScope.close(0);
 
         if (t_protobufServers.servers && comboWriter->d_logResponse && (!luaconfsLocal->protobufExportConfig.taggedOnly || (pbData && pbData->d_tagged))) {
           struct timeval tval{
@@ -500,6 +508,7 @@ static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, s
       t_fdm->setReadTTD(fileDesc, ttd, g_tcpTimeout);
     }
     tcpGuard.keep();
+    traceScope.close(0);
     g_multiTasker->makeThread(startDoResolve, comboWriter.release()); // deletes dc
   } // good query
 }

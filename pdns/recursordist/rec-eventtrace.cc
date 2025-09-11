@@ -40,6 +40,9 @@ const std::unordered_map<RecEventTrace::EventType, std::string> RecEventTrace::s
   NameEntry(LuaNXDomain),
   NameEntry(LuaPostResolveFFI),
   NameEntry(AuthRequest),
+  NameEntry(PacketParse),
+  NameEntry(ProcessUDP),
+  NameEntry(ProcessTCP),
 };
 
 using namespace pdns::trace;
