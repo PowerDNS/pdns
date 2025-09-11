@@ -1197,7 +1197,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& zone, co
 
     if (isSecure && isOptOut && (rr.qname.hasLabels() && rr.qname.getRawLabel(0) == "*")) {
       cout<<"[Warning] wildcard record '"<<rr.qname<<" IN " <<rr.qtype.toString()<<" "<<rr.content<<"' is insecure"<<endl;
-      cout<<"[Info] Wildcard records in opt-out zones are insecure. Disable the opt-out flag for this zone to avoid this warning. Command: pdnsutil set-nsec3 "<<zone<<endl;
+      cout<<"[Info] Wildcard records in opt-out zones are insecure. Disable the opt-out flag for this zone to avoid this warning. Command: 'pdnsutil zone set-nsec3 "<<zone<<"'"<<endl;
       numwarnings++;
     }
 
@@ -1485,7 +1485,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& zone, co
       numwarnings++;
     }
     if( ! ok && suppliedrecords == nullptr ) {
-      cout << "[Error] Following record is auth=" << rr.auth << ", run pdnsutil rectify-zone?: " << rr.qname << " IN " << rr.qtype.toString() << " " << rr.content << endl;
+      cout << "[Error] Following record is auth=" << rr.auth << ", run 'pdnsutil zone rectify'?: " << rr.qname << " IN " << rr.qtype.toString() << " " << rr.content << endl;
       numerrors++;
     }
   }
@@ -2477,7 +2477,7 @@ static int createZone(const ZoneName &zone, const DNSName& nsname) {
   if (sd.serial == 0) {
     string edit_kind = ::arg()["default-soa-edit"];
     if (!edit_kind.empty() && !pdns_iequals(edit_kind, "NONE")) {
-      cout << "Consider invoking 'pdnsutil increase-serial " << zone << "'" << endl;
+      cout << "Consider invoking 'pdnsutil zone increase-serial " << zone << "'" << endl;
     }
   }
 
@@ -3155,7 +3155,7 @@ static bool showZone(DNSSECKeeper& dnsseckeeper, const ZoneName& zone, bool expo
         cout<<"ID = "<<value.second.id<<" ("<<DNSSECKeeper::keyTypeToString(value.second.keyType)<<")";
       }
       if (value.first.getKey()->getBits() < 1) {
-        cout<<" <key missing or defunct, perhaps you should run pdnsutil hsm create-key>" <<endl;
+        cout<<" <key missing or defunct, perhaps you should run 'pdnsutil hsm create-key'>" <<endl;
         continue;
       }
       if (!exportDS) {
@@ -3228,7 +3228,7 @@ static bool secureZone(DNSSECKeeper& dsk, const ZoneName& zone)
   }
 
   if(dsk.isSecuredZone(zone)) {
-    cerr << "Zone '"<<zone<<"' already secure, remove keys with pdnsutil remove-zone-key if needed"<<endl;
+    cerr << "Zone '"<<zone<<"' already secure, remove keys with 'pdnsutil zone remove-key' if needed"<<endl;
     return false;
   }
 
@@ -3242,7 +3242,7 @@ static bool secureZone(DNSSECKeeper& dsk, const ZoneName& zone)
 
   if (di.kind == DomainInfo::Secondary) {
     cerr << "Warning! This is a secondary zone! If this was a mistake, please run" << endl;
-    cerr<<"pdnsutil disable-dnssec "<<zone<<" right now!"<<endl;
+    cerr<<"'pdnsutil zone dnssec-disable "<<zone<<"' right now!"<<endl;
   }
 
   if (!k_algo.empty()) { // Add a KSK
@@ -4428,7 +4428,7 @@ static int setSignalingZone(vector<string>& cmds, const std::string_view synopsi
 
   DNSSECKeeper dk; //NOLINT(readability-identifier-length)
 
-  // pdnsutil secure-zone $zone
+  // pdnsutil zone secure $zone
   if(!dk.isSecuredZone(zone)) {
     dk.startTransaction(zone);
     bool success = secureZone(dk, zone);
@@ -4438,7 +4438,7 @@ static int setSignalingZone(vector<string>& cmds, const std::string_view synopsi
     }
   }
 
-  // pdnsutil set-nsec3 $zone "1 0 0 -" narrow
+  // pdnsutil zone set-nsec3 $zone "1 0 0 -" narrow
   try {
     if (!dk.setNSEC3PARAM(zone, NSEC3PARAMRecordContent("1 0 0 -"), true)) {
       cerr<<"Cannot set NSEC3 param for " << zone << endl;
@@ -4450,13 +4450,13 @@ static int setSignalingZone(vector<string>& cmds, const std::string_view synopsi
     return 1;
   }
 
-  // pdnsutil rectify-zone $zone
+  // pdnsutil zone rectify $zone
   if(!rectifyZone(dk, zone)) {
     cerr<<"Cannot rectify zone " << zone << endl;
     return 1;
   }
 
-  // pdnsutil set-meta $zone SIGNALING-ZONE 1
+  // pdnsutil metadata set $zone SIGNALING-ZONE 1
   if(addOrSetMeta(zone, "SIGNALING-ZONE", {"1"}, true) != 0) {
     cerr<<"Cannot set meta for zone " << zone << endl;
     return 1;
@@ -5471,7 +5471,7 @@ static int viewAddZone(vector<string>& cmds, const std::string_view synopsis)
     DomainInfo info;
     if (!B.getDomainInfo(zone, info)) {
       cout << "Zone '" << zone << "' does not exist yet."<< endl;
-      cout << "Consider creating it with 'pdnsutil create-zone " << zone << "'" << endl;
+      cout << "Consider creating it with 'pdnsutil zone create " << zone << "'" << endl;
     }
   }
   return 0;

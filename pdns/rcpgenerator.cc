@@ -47,9 +47,11 @@ RecordTextReader::RecordTextReader(string str, ZoneName zone) :
 
 void RecordTextReader::xfr48BitInt(uint64_t &val)
 {
+  auto oldpos = d_pos;
   xfr64BitInt(val);
-  if (val > 281474976710655LL)
-    throw RecordTextException("Overflow reading 48 bit integer from record content"); // fixme improve
+  if (val >= (1ULL << 48)) {
+    throw RecordTextException("Numerical value " + d_string.substr(oldpos, d_pos - oldpos) + " at position " + std::to_string(oldpos) + " is too large for a 48-bit integer");
+  }
 }
 
 void RecordTextReader::xfrNodeOrLocatorID(NodeOrLocatorID& val) {
@@ -234,20 +236,24 @@ bool RecordTextReader::eof()
 
 void RecordTextReader::xfr16BitInt(uint16_t &val)
 {
-  uint32_t tmp;
+  auto oldpos = d_pos;
+  uint32_t tmp{0};
   xfr32BitInt(tmp);
   val=tmp;
-  if(val!=tmp)
-    throw RecordTextException("Overflow reading 16 bit integer from record content"); // fixme improve
+  if(val!=tmp) {
+    throw RecordTextException("Numerical value " + d_string.substr(oldpos, d_pos - oldpos) + " at position " + std::to_string(oldpos) + " is too large for a 16-bit integer");
+  }
 }
 
 void RecordTextReader::xfr8BitInt(uint8_t &val)
 {
-  uint32_t tmp;
+  auto oldpos = d_pos;
+  uint32_t tmp{0};
   xfr32BitInt(tmp);
   val=tmp;
-  if(val!=tmp)
-    throw RecordTextException("Overflow reading 8 bit integer from record content"); // fixme improve
+  if(val!=tmp) {
+    throw RecordTextException("Numerical value " + d_string.substr(oldpos, d_pos - oldpos) + " at position " + std::to_string(oldpos) + " is too large for a 8-bit integer");
+  }
 }
 
 // this code should leave all the escapes around
@@ -294,12 +300,15 @@ static bool isbase64(char c, bool acceptspace)
   return false;
 }
 
-void RecordTextReader::xfrBlobNoSpaces(string& val, int len) {
+void RecordTextReader::xfrBlobNoSpaces(string& val, int len)
+{
   skipSpaces();
-  int pos=(int)d_pos;
+  auto pos = d_pos;
   const char* strptr=d_string.c_str();
-  while(d_pos < d_end && isbase64(strptr[d_pos], false))
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+  while(d_pos < d_end && isbase64(strptr[d_pos], false)) {
     d_pos++;
+  }
 
   string tmp;
   tmp.assign(d_string.c_str()+pos, d_string.c_str() + d_pos);
@@ -314,10 +323,12 @@ void RecordTextReader::xfrBlobNoSpaces(string& val, int len) {
 void RecordTextReader::xfrBlob(string& val, int)
 {
   skipSpaces();
-  int pos=(int)d_pos;
+  auto pos = d_pos;
   const char* strptr=d_string.c_str();
-  while(d_pos < d_end && isbase64(strptr[d_pos], true))
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+  while(d_pos < d_end && isbase64(strptr[d_pos], true)) {
     d_pos++;
+  }
 
   string tmp;
   tmp.assign(d_string.c_str()+pos, d_string.c_str() + d_pos);
@@ -344,7 +355,7 @@ void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val) // NOLINT(readabil
       return;
 
     // Find the SvcParamKey
-    size_t pos = d_pos;
+    auto pos = d_pos;
     while (d_pos != d_end) {
       if (d_string.at(d_pos) == '=' || d_string.at(d_pos) == ' ') {
         break;
@@ -552,48 +563,52 @@ static inline uint8_t hextodec(uint8_t val)
 }
 
 
-static void HEXDecode(const char* begin, const char* end, string& out)
+static void HEXDecode(std::string_view chunk, string& out)
 {
-  if(end - begin == 1 && *begin=='-') {
-    out.clear();
+  out.clear();
+  if (chunk.length() == 1 && chunk[0] == '-') {
     return;
   }
-  out.clear();
-  out.reserve((end-begin)/2);
-  uint8_t mode=0, val=0;
-  for(; begin != end; ++begin) {
-    if(!isalnum(*begin))
+  out.reserve(chunk.length() / 2);
+  bool lowdigit{false};
+  uint8_t val{0};
+  for (auto chr : chunk) {
+    if(isalnum(chr) == 0) {
       continue;
-    if(mode==0) {
-      val = 16*hextodec(*begin);
-      mode=1;
+    }
+    if (!lowdigit) {
+      val = 16*hextodec(chr);
+      lowdigit = true;
     } else {
-      val += hextodec(*begin);
+      val += hextodec(chr);
       out.append(1, (char) val);
-      mode = 0;
+      lowdigit = false;
       val = 0;
     }
   }
-  if(mode)
-    throw RecordTextException("Hexadecimal blob with odd number of characters");
+  if (lowdigit) {
+    throw RecordTextException("Hexadecimal blob '" + std::string(chunk) + "' contains an odd number of hex digits");
+  }
 }
 
 void RecordTextReader::xfrHexBlob(string& val, bool keepReading)
 {
   skipSpaces();
-  int pos=(int)d_pos;
-  while(d_pos < d_end && (keepReading || !dns_isspace(d_string[d_pos])))
+  auto pos = d_pos;
+  while(d_pos < d_end && (keepReading || !dns_isspace(d_string[d_pos]))) {
     d_pos++;
+  }
 
-  HEXDecode(d_string.c_str()+pos, d_string.c_str() + d_pos, val);
+  HEXDecode(std::string_view(d_string).substr(pos, d_pos - pos), val);
 }
 
 void RecordTextReader::xfrBase32HexBlob(string& val)
 {
   skipSpaces();
-  int pos=(int)d_pos;
-  while(d_pos < d_end && !dns_isspace(d_string[d_pos]))
+  auto pos = d_pos;
+  while(d_pos < d_end && !dns_isspace(d_string[d_pos])) {
     d_pos++;
+  }
 
   val=fromBase32Hex(string(d_string.c_str()+pos, d_pos-pos));
 }
@@ -694,9 +709,10 @@ void RecordTextReader::xfrUnquotedText(string& val, bool /* lenField */)
 void RecordTextReader::xfrType(uint16_t& val)
 {
   skipSpaces();
-  int pos=(int)d_pos;
-  while(d_pos < d_end && !dns_isspace(d_string[d_pos]))
+  auto pos = d_pos;
+  while(d_pos < d_end && !dns_isspace(d_string[d_pos])) {
     d_pos++;
+  }
 
   string tmp;
   tmp.assign(d_string.c_str()+pos, d_string.c_str() + d_pos);
