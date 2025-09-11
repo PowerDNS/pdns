@@ -449,7 +449,7 @@ static bool isIPv6Supported()
     ComboAddress addr("[2001:db8:53::1]:53");
     auto socket = std::make_unique<Socket>(addr.sin4.sin_family, SOCK_STREAM, 0);
     socket->setNonBlocking();
-    int res = SConnectWithTimeout(socket->getHandle(), addr, timeval{0, 0});
+    int res = SConnectWithTimeout(socket->getHandle(), false, addr, timeval{0, 0});
     if (res == 0 || res == EINPROGRESS) {
       return true;
     }
