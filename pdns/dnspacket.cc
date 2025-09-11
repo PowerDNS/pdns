@@ -116,6 +116,40 @@ ComboAddress DNSPacket::getInnerRemote() const
   return d_inner_remote ? *d_inner_remote : d_remote;
 }
 
+string DNSPacket::getLocalString() const
+{
+  string ret;
+
+  ret = getLocal().toString();
+
+  if (d_inner_local) {
+    ret += "(" + d_inner_local->toString() + ")";
+  }
+
+  return ret;
+}
+
+string DNSPacket::getLocalStringWithPort() const
+{
+  string ret;
+
+  ret = getLocal().toStringWithPort();
+
+  if (d_inner_local) {
+    ret += "(" + d_inner_local->toStringWithPort() + ")";
+  }
+
+  return ret;
+}
+
+ComboAddress DNSPacket::getInnerLocal() const
+{
+  if (d_inner_local) {
+    return *d_inner_local;
+  }
+  return getLocal();
+}
+
 uint16_t DNSPacket::getRemotePort() const
 {
   return d_remote.sin4.sin_port;
