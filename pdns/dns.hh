@@ -104,7 +104,7 @@ public:
   bool auth{true};
   bool disabled{};
 
-  bool operator==(const DNSResourceRecord& rhs);
+  bool operator==(const DNSResourceRecord& rhs) const;
 
   bool operator<(const DNSResourceRecord& other) const
   {

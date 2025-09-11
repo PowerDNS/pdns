@@ -37,6 +37,7 @@
 #include "ipcipher.hh"
 #include "misc.hh"
 #include "zonemd.hh"
+#include "check-zone.hh"
 #include <fstream>
 #include <utility>
 #include <cerrno>
@@ -2484,7 +2485,8 @@ static int createZone(const ZoneName &zone, const DNSName& nsname) {
 }
 
 // add-record ZONE name type [ttl] "content" ["content"]
-static int addOrReplaceRecord(bool isAdd, const vector<string>& cmds) {
+static int addOrReplaceRecord(bool isAdd, const vector<string>& cmds)
+{
   DNSResourceRecord rr;
   vector<DNSResourceRecord> newrrs;
   ZoneName zone(cmds.at(0));
@@ -2508,7 +2510,6 @@ static int addOrReplaceRecord(bool isAdd, const vector<string>& cmds) {
   rr.auth = true;
   rr.domain_id = di.id;
   rr.qname = name;
-  DNSResourceRecord oldrr;
 
   unsigned int contentStart = 3;
   if(cmds.size() > 4) {
@@ -2516,44 +2517,6 @@ static int addOrReplaceRecord(bool isAdd, const vector<string>& cmds) {
     if (std::to_string(ttl) == cmds.at(3)) {
       rr.ttl = ttl;
       contentStart++;
-    }
-  }
-
-  di.backend->startTransaction(zone, UnknownDomainID);
-
-  // Enforce that CNAME records can not be mixed with any other.
-  // If we add a CNAME: there should be no existing records except for one
-  // possible previous CNAME, which will get replaced.
-  // If we add something else: there should be no existing CNAME record.
-  bool reject{false};
-  if (rr.qtype.getCode() == QType::CNAME) {
-    di.backend->lookup(QType(QType::ANY), rr.qname, static_cast<int>(di.id));
-    while (di.backend->get(oldrr)) {
-      if (oldrr.qtype.getCode() == QType::CNAME) {
-        if (not isAdd) {
-          // Replacement operation: ok to replace CNAME with another
-          continue;
-        }
-      }
-      reject = true;
-      di.backend->lookupEnd();
-      break;
-    }
-    if (reject) {
-      cerr<<"Attempting to add CNAME to "<<rr.qname<<" which already has existing records"<<endl;
-      return EXIT_FAILURE;
-    }
-  }
-  else {
-    di.backend->lookup(QType(QType::CNAME), rr.qname, static_cast<int>(di.id));
-    while (di.backend->get(oldrr)) {
-      reject = true;
-      di.backend->lookupEnd();
-      break;
-    }
-    if (reject) {
-      cerr<<"Attempting to add record to "<<rr.qname<<" which already has a CNAME record"<<endl;
-      return EXIT_FAILURE;
     }
   }
 
@@ -2574,11 +2537,14 @@ static int addOrReplaceRecord(bool isAdd, const vector<string>& cmds) {
     }
   }
 
-  if(isAdd) {
+  di.backend->startTransaction(zone, UnknownDomainID);
+
+  DNSResourceRecord oldrr;
+  vector<DNSResourceRecord> oldrrs;
+  if (isAdd) {
     // the 'add' case; preserve existing records, making sure to discard
     // would-be new records which contents are identical to the existing ones.
-    vector<DNSResourceRecord> oldrrs;
-    di.backend->lookup(rr.qtype, rr.qname, static_cast<int>(di.id));
+    di.backend->lookup(QType(QType::ANY), rr.qname, static_cast<int>(di.id));
     while (di.backend->get(oldrr)) {
       oldrrs.push_back(oldrr);
       for (auto iter = newrrs.begin(); iter != newrrs.end(); ++iter) {
@@ -2588,8 +2554,28 @@ static int addOrReplaceRecord(bool isAdd, const vector<string>& cmds) {
         }
       }
     }
-    oldrrs.insert(oldrrs.end(), newrrs.begin(), newrrs.end());
-    newrrs = std::move(oldrrs);
+    newrrs.insert(newrrs.end(), oldrrs.begin(), oldrrs.end());
+  }
+
+  std::vector<std::pair<DNSResourceRecord, string>> errors;
+  Check::checkRRSet(oldrrs, newrrs, zone, errors);
+  oldrrs.clear(); // no longer needed
+  if (!errors.empty()) {
+    for (const auto& error : errors) {
+      const auto [rec, why] = error;
+      cerr << "RRset " << rec.qname.toString() << " IN " << rec.qtype.toString() << ": " << why << endl;
+    }
+    return EXIT_FAILURE;
+  }
+
+  if (isAdd) {
+    // We had collected all record types earlier in order to be able to
+    // perform the proper checks. Trim the list to only keep those of the
+    // qtype we are modifying, for the sake of the replaceRRSet call below.
+    newrrs.erase(
+      std::remove_if(newrrs.begin(), newrrs.end(),
+        [&rr](const DNSResourceRecord& rec) -> bool { return rec.qtype != rr.qtype; }),
+      newrrs.end());
   }
   else {
     cout<<"All existing records for "<<rr.qname<<" IN "<<rr.qtype.toString()<<" will be replaced"<<endl;

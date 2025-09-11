@@ -85,7 +85,7 @@ string DNSResourceRecord::getZoneRepresentation(bool noDot) const {
   return ret.str();
 }
 
-bool DNSResourceRecord::operator==(const DNSResourceRecord& rhs)
+bool DNSResourceRecord::operator==(const DNSResourceRecord& rhs) const
 {
   string lcontent=toLower(content);
   string rcontent=toLower(rhs.content);

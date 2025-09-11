@@ -53,6 +53,7 @@
 #include "auth-zonecache.hh"
 #include "threadname.hh"
 #include "tsigutils.hh"
+#include "check-zone.hh"
 
 using json11::Json;
 
@@ -93,15 +94,6 @@ double Ewma::getMax() const
 }
 
 static void patchZone(UeberBackend& backend, const ZoneName& zonename, DomainInfo& domainInfo, const vector<Json>& rrsets, HttpResponse* resp);
-
-// QTypes that MUST NOT have multiple records of the same type in a given RRset.
-static const std::set<uint16_t> onlyOneEntryTypes = {QType::CNAME, QType::DNAME, QType::SOA};
-// QTypes that MUST NOT be used with any other QType on the same name.
-static const std::set<uint16_t> exclusiveEntryTypes = {QType::CNAME};
-// QTypes that MUST be at apex.
-static const std::set<uint16_t> atApexTypes = {QType::SOA, QType::DNSKEY};
-// QTypes that are NOT allowed at apex.
-static const std::set<uint16_t> nonApexTypes = {QType::DS};
 
 AuthWebServer::AuthWebServer() :
   d_start(time(nullptr))
@@ -1663,57 +1655,34 @@ static void gatherRecordsFromZone(const std::string& zonestring, vector<DNSResou
   }
 }
 
-/** Throws ApiException if records which violate RRset constraints are present.
- *  NOTE: sorts records in-place.
- *
- *  Constraints being checked:
- *   *) no exact duplicates
- *   *) no duplicates for QTypes that can only be present once per RRset
- *   *) hostnames are hostnames
- */
-static void checkNewRecords(vector<DNSResourceRecord>& records, const ZoneName& zone)
+// Wrapper around checkRRSet; returns true if all checks successful, false if
+// not, in which case the response body and status have been filled up.
+static bool checkNewRecords(HttpResponse* resp, vector<DNSResourceRecord>& records, const ZoneName& zone)
 {
-  sort(records.begin(), records.end(),
-       [](const DNSResourceRecord& rec_a, const DNSResourceRecord& rec_b) -> bool {
-         /* we need _strict_ weak ordering */
-         return std::tie(rec_a.qname, rec_a.qtype, rec_a.content) < std::tie(rec_b.qname, rec_b.qtype, rec_b.content);
-       });
+  std::vector<std::pair<DNSResourceRecord, string>> errors;
 
-  DNSResourceRecord previous;
-  for (const auto& rec : records) {
-    if (previous.qname == rec.qname) {
-      if (previous.qtype == rec.qtype) {
-        if (onlyOneEntryTypes.count(rec.qtype.getCode()) != 0) {
-          throw ApiException("RRset " + rec.qname.toString() + " IN " + rec.qtype.toString() + " has more than one record");
-        }
-        if (previous.content == rec.content) {
-          throw ApiException("Duplicate record in RRset " + rec.qname.toString() + " IN " + rec.qtype.toString() + " with content \"" + rec.content + "\"");
-        }
-      }
-      else if (exclusiveEntryTypes.count(rec.qtype.getCode()) != 0 || exclusiveEntryTypes.count(previous.qtype.getCode()) != 0) {
-        throw ApiException("RRset " + rec.qname.toString() + " IN " + rec.qtype.toString() + ": Conflicts with another RRset");
-      }
-    }
-
-    if (rec.qname == zone.operator const DNSName&()) {
-      if (nonApexTypes.count(rec.qtype.getCode()) != 0) {
-        throw ApiException("Record " + rec.qname.toString() + " IN " + rec.qtype.toString() + " is not allowed at apex");
-      }
-    }
-    else if (atApexTypes.count(rec.qtype.getCode()) != 0) {
-      throw ApiException("Record " + rec.qname.toString() + " IN " + rec.qtype.toString() + " is only allowed at apex");
-    }
-
-    // Check if the DNSNames that should be hostnames, are hostnames
-    try {
-      checkHostnameCorrectness(rec);
-    }
-    catch (const std::exception& e) {
-      throw ApiException("RRset " + rec.qname.toString() + " IN " + rec.qtype.toString() + ": " + e.what());
-    }
-
-    previous = rec;
+  Check::checkRRSet({}, records, zone, errors);
+  if (errors.empty()) {
+    return true;
   }
+
+  Json::array errs;
+  for (const auto& error : errors) {
+    const auto& [rec, why] = error;
+    errs.emplace_back(std::string{"RRset "} + rec.qname.toString() + " IN " + rec.qtype.toString() + ": " + why);
+  }
+
+  Json::object body;
+  if (errs.size() == 1) {
+    body["error"] = errs[0];
+  }
+  else {
+    body["error"] = "Multiple errors found in RRset";
+    body["errors"] = errs;
+  }
+  resp->setJsonBody(body);
+  resp->status = 422;
+  return false;
 }
 
 static void checkTSIGKey(UeberBackend& backend, const DNSName& keyname, const DNSName& algo, const string& content)
@@ -2066,7 +2035,9 @@ static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp)
     }
   }
 
-  checkNewRecords(new_records, zonename);
+  if (!checkNewRecords(resp, new_records, zonename)) {
+    return;
+  }
 
   if (boolFromJson(document, "dnssec", false)) {
     checkDefaultDNSSECAlgos();
@@ -2240,7 +2211,9 @@ static void apiServerZoneDetailPUT(HttpRequest* req, HttpResponse* resp)
       throw ApiException("Modifying RRsets in Consumer zones is unsupported");
     }
 
-    checkNewRecords(new_records, zoneData.zoneName);
+    if (!checkNewRecords(resp, new_records, zoneData.zoneName)) {
+      return;
+    }
 
     zoneData.domainInfo.backend->startTransaction(zoneData.zoneName, zoneData.domainInfo.id);
     for (auto& resourceRecord : new_records) {
@@ -2426,8 +2399,8 @@ static void replaceZoneRecords(DomainInfo& domainInfo, const ZoneName& zonename,
     dname_seen |= resourceRecord.qtype == QType::DNAME;
     ns_seen |= resourceRecord.qtype == QType::NS;
     if (qtype.getCode() != resourceRecord.qtype.getCode()
-        && (exclusiveEntryTypes.count(qtype.getCode()) != 0
-            || exclusiveEntryTypes.count(resourceRecord.qtype.getCode()) != 0)) {
+        && (QType::exclusiveEntryTypes.count(qtype.getCode()) != 0
+            || QType::exclusiveEntryTypes.count(resourceRecord.qtype.getCode()) != 0)) {
       // leave database handle in a consistent state
       domainInfo.backend->lookupEnd();
       throw ApiException("RRset " + qname.toString() + " IN " + qtype.toString() + ": Conflicts with pre-existing RRset");
@@ -2514,7 +2487,9 @@ static void patchZone(UeberBackend& backend, const ZoneName& zonename, DomainInf
                 soa_edit_done = increaseSOARecord(resourceRecord, soa_edit_api_kind, soa_edit_kind, zonename);
               }
             }
-            checkNewRecords(new_records, zonename);
+            if (!checkNewRecords(resp, new_records, zonename)) {
+              return;
+            }
           }
 
           if (replace_comments) {
