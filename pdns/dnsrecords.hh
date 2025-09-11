@@ -1264,7 +1264,7 @@ RNAME##RecordContent::RNAME##RecordContent(const string& zoneData)              
     xfrPacket(rtr);                                                                                \
   }                                                                                                \
   catch(RecordTextException& rte) {                                                                \
-    throw MOADNSException("Parsing record content (try 'pdnsutil check-zone'): "+string(rte.what()));  \
+    throw MOADNSException("Parsing record content (try 'pdnsutil zone check'): "+string(rte.what()));  \
   }                                                                                                \
 }                                                                                                  \
                                                                                                    \

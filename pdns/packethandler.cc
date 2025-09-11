@@ -1984,9 +1984,9 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state, bool re
     }
     // check whether this could be fixed easily
     // if (*(rrset.back().dr.d_name.rbegin()) == '.') {
-    //      g_log<<Logger::Error<<"Should not get here ("<<pkt.qdomain<<"|"<<pkt.qtype.toString()<<"): you have a trailing dot, this could be the problem (or run pdnsutil rectify-zone " <<d_sd.qname()<<")"<<endl;
+    //      g_log<<Logger::Error<<"Should not get here ("<<pkt.qdomain<<"|"<<pkt.qtype.toString()<<"): you have a trailing dot, this could be the problem (or run 'pdnsutil zone rectify " <<d_sd.qname()<<"')"<<endl;
     // } else {
-         g_log<<Logger::Error<<"Should not get here ("<<pkt.qdomain<<"|"<<pkt.qtype.toString()<<"): please run pdnsutil rectify-zone "<<d_sd.qname()<<endl;
+         g_log<<Logger::Error<<"Should not get here ("<<pkt.qdomain<<"|"<<pkt.qtype.toString()<<"): please run 'pdnsutil zone rectify "<<d_sd.qname()<<"'"<<endl;
     // }
   }
   else {
