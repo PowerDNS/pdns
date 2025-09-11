@@ -3053,7 +3053,10 @@ static bool showZone(DNSSECKeeper& dnsseckeeper, const ZoneName& zone, bool expo
 
     meta.clear();
     if (B.getDomainMetadata(zone, "AXFR-MASTER-TSIG", meta) && !meta.empty()) {
-      cout << "Zone uses following TSIG key(s): " << boost::join(meta, ",") << endl;
+      // Although AXFR-MASTER-TSIG may contain a list of keys, the current
+      // state of DNSSECKeeper::getTSIGForAccess() causes only the first one
+      // to be ever used, so only list the first item here.
+      cout << "Zone uses following TSIG key: " << meta.front() << endl;
     }
 
     std::map<std::string, std::vector<std::string> > metamap;
@@ -4884,13 +4887,16 @@ static int activateTSIGKey(vector<string>& cmds, const std::string_view synopsis
   }
   if (!found) {
     meta.push_back(name);
-  }
-  if (B.setDomainMetadata(zname, metaKey, meta)) {
-    cout << "Enabled TSIG key " << name << " for " << zname << endl;
+    if (B.setDomainMetadata(zname, metaKey, meta)) {
+      cout << "Enabled TSIG key " << name << " for " << zname << endl;
+    }
+    else {
+      cerr << "Failure enabling TSIG key " << name << " for " << zname << endl;
+      return 1;
+    }
   }
   else {
-    cerr << "Failure enabling TSIG key " << name << " for " << zname << endl;
-    return 1;
+    cout << "TSIG key " << name << " is already enabled in zone " << zname << endl;
   }
   return 0;
 }
@@ -4932,13 +4938,16 @@ static int deactivateTSIGKey(vector<string>& cmds, const std::string_view synops
   }
   if (iter != meta.end()) {
     meta.erase(iter);
-  }
-  if (B.setDomainMetadata(zname, metaKey, meta)) {
-    cout << "Disabled TSIG key " << name << " for " << zname << endl;
+    if (B.setDomainMetadata(zname, metaKey, meta)) {
+      cout << "Disabled TSIG key " << name << " for " << zname << endl;
+    }
+    else {
+      cerr << "Failure disabling TSIG key " << name << " for " << zname << endl;
+      return 1;
+    }
   }
   else {
-    cerr << "Failure disabling TSIG key " << name << " for " << zname << endl;
-    return 1;
+    cout << "TSIG key " << name << " is not currently enabled in zone " << zname << endl;
   }
   return 0;
 }
