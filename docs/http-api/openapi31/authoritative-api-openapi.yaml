@@ -796,6 +796,152 @@ paths:
         default:
           $ref: "#/components/responses/Error"
 
+  '/servers/{server_id}/views':
+    get:
+      summary: List all views in a server
+      operationId: listViews
+      tags:
+        - views
+      parameters:
+        - $ref: "#/components/parameters/server_id"
+      responses:
+        '200':
+          description: An array of view names
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Views'
+        default:
+          $ref: "#/components/responses/Error"
+
+  '/servers/{server_id}/views/{view}':
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+      - $ref: "#/components/parameters/view"
+
+    get:
+      summary: List the contents of a given view
+      operationId: listView
+      tags:
+        - views
+      responses:
+        '200':
+          description: An array of zone names
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/View'
+        default:
+          $ref: "#/components/responses/Error"
+
+    post:
+      summary: Adds a zone to a given view, creating it if needed
+      operationId: addToView
+      tags:
+        - views
+      requestBody:
+        required: true
+        description: The zone to add to the view
+        content:
+          application/json:
+            schema:
+              type: string
+      responses:
+        '204':
+          description: 'Returns 204 No Content on success.'
+        default:
+          $ref: "#/components/responses/Error"
+
+  '/servers/{server_id}/views/{view}/{id}':
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+      - $ref: "#/components/parameters/view"
+      - name: id
+        description: The zone to remove from the view
+        required: true
+        in: path
+        schema:
+          type: string
+    delete:
+      summary: Removes the given zone from the given view
+      operationId: deleteFromView
+      tags:
+        - views
+      responses:
+        '204':
+          description: 'Returns 204 No Content on success.'
+        default:
+          $ref: "#/components/responses/Error"
+
+  '/servers/{server_id}/networks':
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+    get:
+      summary: List all registered networks and views in a server
+      operationId: listNetworks
+      tags:
+        - networks
+      responses:
+        '200':
+          description: An array of networks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Networks'
+        default:
+          $ref: "#/components/responses/Error"
+
+  '/servers/{server_id}/networks/{ip}/{prefixlen}':
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+      - name: ip
+        schema:
+          type: string
+        in: path
+        required: true
+        description: The base address of the network
+      - name: prefixlen
+        schema:
+          type: string
+        in: path
+        required: true
+        description: The length of the network prefix
+    get:
+      summary: Return the view associated to the given network
+      operationId: getNetwork
+      tags:
+        - networks
+      responses:
+        '200':
+          description: An array of networks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Networks'
+        default:
+          $ref: "#/components/responses/Error"
+
+    put:
+      summary: Sets the view associated to the given network
+      operationId: setNetwork
+      tags:
+        - networks
+      requestBody:
+        required: true
+        description: The name of the view to use for to this network
+        content:
+          application/json:
+            schema:
+              type: string
+
+      responses:
+        '204':
+          description: 'Returns 204 No Content on success.'
+        default:
+          $ref: "#/components/responses/Error"
+
+
+
 components:
   securitySchemes:
     # X-API-Key: abcdef12345
@@ -819,6 +965,14 @@ components:
       in: path
       required: true
       description: The id of the zone to retrieve
+    view:
+      name: view
+      schema:
+        type: string
+      in: path
+      required: true
+      description: The name of the view to update
+
 
   responses:
     Error:
@@ -1316,3 +1470,39 @@ components:
         result:
           type: string
           description: 'A message about the result like "Flushed cache"'
+
+    View:
+      title: View
+      properties:
+        zones:
+          type: array
+          items:
+            type: string
+          description: 'An array of zone names'
+
+    Views:
+      title: Views
+      properties:
+        views:
+          type: array
+          items:
+            type: string
+          description: 'An array of view names'
+
+    Network:
+      title: Network
+      properties:
+        network:
+          type: string
+          description: 'Network specification in human-readable form base address/prefix length'
+        view:
+          type: string
+          description: 'The name of the view'
+
+    Networks:
+      title: Networks
+      properties:
+        networks:
+          type: array
+          items:
+            $ref: '#/components/schemas/Network'
