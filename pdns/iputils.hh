@@ -1299,11 +1299,11 @@ public:
       return &d_node->node;
     }
 
-    bool operator==(const Iterator& rhs)
+    bool operator==(const Iterator& rhs) const
     {
       return (d_tree == rhs.d_tree && d_node == rhs.d_node);
     }
-    bool operator!=(const Iterator& rhs)
+    bool operator!=(const Iterator& rhs) const
     {
       return !(*this == rhs);
     }
