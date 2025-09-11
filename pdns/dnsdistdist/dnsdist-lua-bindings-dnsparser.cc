@@ -62,5 +62,17 @@ void setupLuaBindingsDNSParser(LuaContext& luaCtx)
   luaCtx.registerMember<uint16_t(dnsdist::DNSPacketOverlay::Record::*)>(std::string("contentLength"), [](const dnsdist::DNSPacketOverlay::Record& record) { return record.d_contentLength; });
   luaCtx.registerMember<uint16_t(dnsdist::DNSPacketOverlay::Record::*)>(std::string("contentOffset"), [](const dnsdist::DNSPacketOverlay::Record& record) { return record.d_contentOffset; });
 
+  luaCtx.writeFunction("parseARecord", [](const std::string& packet, const dnsdist::DNSPacketOverlay::Record& record) {
+    return dnsdist::RecordParsers::parseARecord(packet, record);
+  });
+  luaCtx.writeFunction("parseAAAARecord", [](const std::string& packet, const dnsdist::DNSPacketOverlay::Record& record) {
+    return dnsdist::RecordParsers::parseAAAARecord(packet, record);
+  });
+  luaCtx.writeFunction("parseAddressRecord", [](const std::string& packet, const dnsdist::DNSPacketOverlay::Record& record) {
+    return dnsdist::RecordParsers::parseAddressRecord(packet, record);
+  });
+  luaCtx.writeFunction("parseCNAMERecord", [](const std::string& packet, const dnsdist::DNSPacketOverlay::Record& record) {
+    return dnsdist::RecordParsers::parseCNAMERecord(packet, record);
+  });
 #endif /* DISABLE_DNSPACKET_BINDINGS */
 }
