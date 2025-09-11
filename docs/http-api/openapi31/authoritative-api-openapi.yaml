@@ -109,7 +109,7 @@ paths:
           schema:
             type: boolean
             default: true
-          description: '“true” (default) or “false”, whether to include the “dnssec” and ”edited_serial” fields in the Zone objects. Setting this to ”false” will make the query a lot faster.'
+          description: '“true” (default) or “false”, whether to include the “dnssec” and “edited_serial” fields in the Zone objects. Setting this to ”false” will make the query a lot faster.'
       responses:
         '200':
           description: An array of Zones
@@ -913,11 +913,11 @@ paths:
         - networks
       responses:
         '200':
-          description: An array of networks
+          description: A network
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Networks'
+                $ref: '#/components/schemas/Network'
         default:
           $ref: "#/components/responses/Error"
 
@@ -928,7 +928,7 @@ paths:
         - networks
       requestBody:
         required: true
-        description: The name of the view to use for to this network
+        description: The name of the view to use for this network
         content:
           application/json:
             schema:
@@ -1167,6 +1167,9 @@ components:
         disabled:
           type: boolean
           description: 'Whether or not this record is disabled. When unset, the record is not disabled'
+      modified_at:
+        type: integer
+        description: 'Timestamp of the last change to the record'
 
     Comment:
       title: Comment
