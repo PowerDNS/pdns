@@ -405,6 +405,7 @@ testrunner_SOURCES = \
 	threadname.hh threadname.cc \
 	tsigverifier.cc tsigverifier.hh \
 	unix_utility.cc \
+	uuid-utils.hh uuid-utils.cc \
 	validate-recursor.cc validate-recursor.hh \
 	validate.cc validate.hh \
 	version.cc version.hh \
@@ -554,7 +555,8 @@ rec_control_SOURCES = \
 	sortlist.cc sortlist.hh \
 	svc-records.cc svc-records.hh \
 	threadname.cc threadname.hh \
-	unix_utility.cc
+	unix_utility.cc \
+	uuid-utils.hh uuid-utils.cc
 
 nodist_rec_control_SOURCES = \
 	rec-rust-lib/cxxsettings-generated.cc

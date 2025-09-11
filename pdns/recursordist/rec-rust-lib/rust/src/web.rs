@@ -538,8 +538,8 @@ async fn process_request(
     ctx: Arc<Context>,
     remote: SocketAddr,
 ) -> MyResult<Response<BoxBody>> {
-    let unique = uuid::Uuid::new_v4();
-    let my_logger = rustmisc::withValue(&ctx.logger, "uniqueid", &unique.to_string());
+    let unique = rustmisc::getUUID();
+    let my_logger = rustmisc::withValue(&ctx.logger, "uniqueid", &unique);
 
     // Convert  query part of URI into vars table
     let mut vars: Vec<rustweb::KeyValue> = vec![];

@@ -19,6 +19,8 @@ lib_dnsdist_rust = custom_target('libdnsdist_rust.a',
   command: [build,
   ],
   depend_files: [
+    'Cargo.toml',
+    'Cargo.lock',
     'src/helpers.rs',
   ],
   depends: rust_lib_sources,

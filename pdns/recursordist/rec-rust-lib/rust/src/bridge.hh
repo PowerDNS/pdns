@@ -66,6 +66,7 @@ bool matches(const std::unique_ptr<NetmaskGroup>& nmg, const std::unique_ptr<Com
 std::shared_ptr<Logger> withValue(const std::shared_ptr<Logger>& logger, ::rust::Str key, ::rust::Str val);
 void log(const std::shared_ptr<Logger>& logger, Priority log_level, ::rust::Str msg, const ::rust::Vec<KeyValue>& values);
 void error(const std::shared_ptr<Logger>& logger, Priority log_level, ::rust::Str err, ::rust::Str msg, const ::rust::Vec<KeyValue>& values);
+::rust::String getUUID();
 }
 
 namespace pdns::rust::web::rec

@@ -43,6 +43,7 @@
 #include "bridge.hh"
 #include "rec-rust-lib/rust/web.rs.h"
 #include "rec-rust-lib/rust/misc.rs.h"
+#include "uuid-utils.hh"
 
 ::rust::Vec<::rust::String> pdns::settings::rec::getStrings(const std::string& name)
 {
@@ -1507,4 +1508,9 @@ std::shared_ptr<Logger> withValue(const std::shared_ptr<Logger>& logger, ::rust:
   return ret;
 }
 
+::rust::String getUUID()
+{
+  auto uuid = getUniqueID();
+  return to_string(uuid);
+}
 }
