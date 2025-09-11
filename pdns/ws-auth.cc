@@ -521,9 +521,21 @@ static void fillZone(UeberBackend& backend, const ZoneName& zonename, HttpRespon
 
       while (rit != records.end() && rit->qname == current_qname && rit->qtype == current_qtype) {
         ttl = min(ttl, rit->ttl);
+        std::string content;
+        try {
+          content = makeApiRecordContent(rit->qtype, rit->content);
+        }
+        catch (std::exception& e) {
+          // makeApiRecordContent may throw an exception if the backend data
+          // is not well-formed (e.g. corrupted bind zone file).
+          // The exception gets caught here and rethrown as ApiException in
+          // order to return a 422 error code with a (hopefully) useful error
+          // message instead of a 500 error.
+          throw ApiException("Ill-formed record contents found for " + current_qname.toString() + ": " + e.what());
+        }
         auto object = Json::object{
           {"disabled", rit->disabled},
-          {"content", makeApiRecordContent(rit->qtype, rit->content)}};
+          {"content", content}};
         if (rit->last_modified != 0) {
           object["modified_at"] = (double)rit->last_modified;
         }
@@ -2314,9 +2326,21 @@ static void apiServerZoneExport(HttpRequest* req, HttpResponse* resp)
       continue; // skip empty non-terminals
     }
 
+    std::string content;
+    try {
+      content = makeApiRecordContent(resourceRecord.qtype, resourceRecord.content);
+    }
+    catch (std::exception& e) {
+      // makeApiRecordContent may throw an exception if the backend data
+      // is not well-formed (e.g. corrupted bind zone file).
+      // The exception gets caught here and rethrown as ApiException in
+      // order to return a 422 error code with a (hopefully) useful error
+      // message instead of a 500 error.
+      throw ApiException("Ill-formed record contents found for " + resourceRecord.qname.toString() + ": " + e.what());
+    }
     outputStringStream << resourceRecord.qname.toString() << "\t" << resourceRecord.ttl << "\t"
                        << "IN"
-                       << "\t" << resourceRecord.qtype.toString() << "\t" << makeApiRecordContent(resourceRecord.qtype, resourceRecord.content) << endl;
+                       << "\t" << resourceRecord.qtype.toString() << "\t" << content << endl;
   }
 
   if (req->accept_json) {
@@ -2632,13 +2656,25 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp)
         continue; // skip empty non-terminals
       }
 
+      std::string content;
+      try {
+        content = makeApiRecordContent(resourceRecord.qtype, resourceRecord.content);
+      }
+      catch (std::exception& e) {
+        // makeApiRecordContent may throw an exception if the backend data
+        // is not well-formed (e.g. corrupted bind zone file).
+        // The exception gets caught here and rethrown as ApiException in
+        // order to return a 422 error code with a (hopefully) useful error
+        // message instead of a 500 error.
+        throw ApiException("Ill-formed record contents found for " + resourceRecord.qname.toString() + ": " + e.what());
+      }
       auto object = Json::object{
         {"object_type", "record"},
         {"name", resourceRecord.qname.toString()},
         {"type", resourceRecord.qtype.toString()},
         {"ttl", (double)resourceRecord.ttl},
         {"disabled", resourceRecord.disabled},
-        {"content", makeApiRecordContent(resourceRecord.qtype, resourceRecord.content)}};
+        {"content", content}};
       if (resourceRecord.last_modified != 0) {
         object["modified_at"] = (double)resourceRecord.last_modified;
       }

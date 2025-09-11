@@ -7,7 +7,7 @@ import requests.exceptions
 from copy import deepcopy
 from parameterized import parameterized
 from pprint import pprint
-from test_helper import ApiTestCase, unique_zone_name, is_auth, is_auth_lmdb, is_recursor, get_db_records, pdnsutil_rectify, sdig
+from test_helper import ApiTestCase, unique_zone_name, is_auth, is_auth_lmdb, is_recursor, get_auth_db, get_db_records, pdnsutil_rectify, sdig
 
 
 def remove_timestamp(json):
@@ -2648,6 +2648,43 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         data = self.get_zone(example_com['id'], rrset_name="host-18000.example.com.")
         modified_at_new = data['rrsets'][0]['records'][0]['modified_at']
         self.assertGreater(modified_at_new, modified_at)
+
+    @unittest.skipIf(is_auth_lmdb(), "Needs to perform database update")
+    def test_access_zone_with_invalid_content(self):
+        name, payload, zone = self.create_zone()
+        rrset = {
+            'changetype': 'replace',
+            'name': name,
+            'type': 'TXT',
+            'ttl': 3600,
+            'records': [
+                {
+                    "content": "\"innocuous data\"",
+                    "disabled": False
+                }
+            ]
+        }
+        payload = {'rrsets': [rrset]}
+        r = self.session.patch(self.url("/api/v1/servers/localhost/zones/" + name), data=json.dumps(payload),
+                               headers={'content-type': 'application/json'})
+        self.assert_success(r)
+        # Now alter the data - see get_db_records() for inspiration
+        badcontent = 'invalid \"TXT data'
+        db, placeholder = get_auth_db()
+        cur = db.cursor()
+        cur.execute("""
+            UPDATE records
+            SET content="""+placeholder+"""
+            WHERE name="""+placeholder+""" AND type='TXT'"""
+            ,
+            (badcontent, name.rstrip('.')))
+        cur.execute('COMMIT') # Figuring out how many hours I wasted on this test because of this missing line is left as an exercize to the reader
+        cur.close()
+        db.close()
+        # Try and get the zone data
+        r = self.session.get(self.url("/api/v1/servers/localhost/zones/" + name))
+        self.assertEqual(r.status_code, 422)
+        self.assertIn('Data field in DNS should end on a quote', r.json()['error'])
 
 @unittest.skipIf(not is_auth(), "Not applicable")
 class AuthRootZone(ZonesApiTestCase, AuthZonesHelperMixin):
