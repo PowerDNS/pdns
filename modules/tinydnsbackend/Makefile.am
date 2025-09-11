@@ -2,7 +2,10 @@ AM_CPPFLAGS += $(CDB_CFLAGS) $(LIBCRYPTO_INCLUDES)
 
 pkglib_LTLIBRARIES = libtinydnsbackend.la
 
-EXTRA_DIST = OBJECTFILES OBJECTLIBS
+EXTRA_DIST = \
+	OBJECTFILES \
+	OBJECTLIBS \
+	meson.build
 
 libtinydnsbackend_la_SOURCES = \
 	../../pdns/cdb.cc ../../pdns/cdb.hh \

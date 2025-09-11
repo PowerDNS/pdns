@@ -49,7 +49,28 @@ endif
 
 man_MANS = $(MANPAGES_INSTALL)
 
-EXTRA_DIST = $(MANPAGES_DIST)
+EXTRA_DIST = \
+	$(MANPAGES_DIST) \
+	*.rst \
+	appendices/*.rst \
+	backends/*.rst \
+	changelog/*.rst \
+	common/*.rst \
+	common/api/*.rst \
+	conf.py \
+	depfile.py \
+	dnssec/*.rst \
+	generate-docs.py \
+	generate-man-pages.py \
+	guides/*.rst \
+	guides/imgs/*.png \
+	http-api/swagger/authoritative-api-swagger.yaml \
+	http-api/*.rst \
+	lua-records/*.rst \
+	lua-records/reference/*.rst \
+	manpages/*.rst \
+	requirements.txt \
+	security-advisories/*.rst
 
 if HAVE_VENV
 if !HAVE_MANPAGES

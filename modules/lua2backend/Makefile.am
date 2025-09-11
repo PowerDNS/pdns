@@ -2,7 +2,10 @@ AM_CPPFLAGS += $(LUA_CFLAGS) \
 	-I$(top_srcdir)/ext/luawrapper/include \
 	$(LIBCRYPTO_INCLUDES)
 
-EXTRA_DIST = OBJECTFILES OBJECTLIBS
+EXTRA_DIST = \
+	OBJECTFILES \
+	OBJECTLIBS \
+	meson.build
 
 pkglib_LTLIBRARIES = liblua2backend.la
 
