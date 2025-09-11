@@ -196,31 +196,40 @@ static uint performUpdate(DNSSECKeeper& dsk, const string &msgPrefix, const DNSR
         int updateTTL=0;
         foundRecord = false;
         bool lowerCase = false;
-        if (rrType.getCode() == QType::PTR ||
-            rrType.getCode() == QType::MX ||
-            rrType.getCode() == QType::SRV) {
+        switch (rrType.getCode()) {
+        case QType::MX:
+        case QType::PTR:
+        case QType::SRV:
           lowerCase = true;
+          break;
         }
         string content = rr->getContent()->getZoneRepresentation();
-        if (lowerCase) content = toLower(content);
+        if (lowerCase) {
+          content = toLower(content);
+        }
         for (auto& i : rrset) {
-          string icontent = i.getZoneRepresentation();
-          if (lowerCase) icontent = toLower(icontent);
-          if (rrType == i.qtype.getCode()) {
+          if (rrType != i.qtype.getCode()) {
+            continue;
+          }
+          if (!foundRecord) {
+            string icontent = i.getZoneRepresentation();
+            if (lowerCase) {
+              icontent = toLower(icontent);
+            }
             if (icontent == content) {
               foundRecord=true;
             }
-            if (i.ttl != rr->d_ttl)  {
-              i.ttl = rr->d_ttl;
-              updateTTL++;
-            }
+          }
+          if (i.ttl != rr->d_ttl)  {
+            i.ttl = rr->d_ttl;
+            updateTTL++;
           }
         }
         if (updateTTL > 0) {
           di->backend->replaceRRSet(di->id, rr->d_name, rrType, rrset);
           g_log<<Logger::Notice<<msgPrefix<<"Updating TTLs for "<<rr->d_name<<"|"<<rrType.toString()<<endl;
           changedRecords += updateTTL;
-        } else {
+        } else if (foundRecord) {
           g_log<<Logger::Notice<<msgPrefix<<"Replace for recordset "<<rr->d_name<<"|"<<rrType.toString()<<" requested, but no changes made."<<endl;
         }
       }
