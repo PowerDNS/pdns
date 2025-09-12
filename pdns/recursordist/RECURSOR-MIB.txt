@@ -15,11 +15,15 @@ IMPORTS
         FROM SNMPv2-CONF;
 
 rec MODULE-IDENTITY
-    LAST-UPDATED "202505270000Z"
+
+    LAST-UPDATED "202509100000Z"
     ORGANIZATION "PowerDNS BV"
     CONTACT-INFO "support@powerdns.com"
     DESCRIPTION
        "This MIB module describes information gathered through PowerDNS Recursor."
+
+    REVISION "202509100000Z"
+    DESCRIPTION "Added metrics related to cookies"
 
     REVISION "202505270000Z"
     DESCRIPTION "Added metric for missing ECS in reply"
@@ -1302,6 +1306,70 @@ ecsMissing OBJECT-TYPE
         "Number of answers where ECS info was missing"
     ::= { stats 153 }
 
+cookieMalformed OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of malformed cookies received"
+    ::= { stats 154 }
+
+cookieMatched OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of matching cookies received"
+    ::= { stats 155 }
+
+cookieMismatchTcp OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of mismatched cookies received over TCP"
+    ::= { stats 156 }
+
+cookieMismatchUdp OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of mismatched cookies received over UDP"
+    ::= { stats 157 }
+
+cookieNotInReply OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of times an authoritative server sent a reply without a cookie"
+    ::= { stats 158 }
+
+cookieRetry OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of retries because authoritative server sent a BADCOOKIE reply"
+    ::= { stats 159 }
+
+cookiesSupported OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of authoritative server cookie probes resulting in success"
+    ::= { stats 160 }
+
+cookiesUnsupported OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of authoritative server cookie probes not resulting in success"
+    ::= { stats 161 }
+
 ---
 --- Traps / Notifications
 ---
@@ -1501,7 +1569,15 @@ recGroup OBJECT-GROUP
         maxChainWeight,
         chainLimits,
         tcpOverflow,
-        ecsMissing
+        ecsMissing,
+        cookieMalformed,
+        cookieMatched,
+        cookieMismatchTcp,
+        cookieMismatchUdp,
+        cookieNotInReply,
+        cookieRetry,
+        cookiesSupported,
+        cookiesUnsupported
     }
     STATUS current
     DESCRIPTION "Objects conformance group for PowerDNS Recursor"

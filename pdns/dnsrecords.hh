@@ -1301,6 +1301,10 @@ struct EDNSOpts
   uint8_t d_extRCode, d_version;
 
   [[nodiscard]] vector<pair<uint16_t, string>>::const_iterator getFirstOption(uint16_t optionCode) const;
+  [[nodiscard]] uint16_t getCombinedERCode(uint8_t rcode) const
+  {
+    return (static_cast<uint16_t>(d_extRCode) << 4) | rcode;
+  }
 };
 //! Convenience function that fills out EDNS0 options, and returns true if there are any
 

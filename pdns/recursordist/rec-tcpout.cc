@@ -51,33 +51,33 @@ void TCPOutConnectionManager::cleanup(const struct timeval& now)
   }
 }
 
-void TCPOutConnectionManager::store(const struct timeval& now, const ComboAddress& ip, Connection&& connection)
+void TCPOutConnectionManager::store(const struct timeval& now, const endpoints_t& endpoints, Connection&& connection)
 {
   ++connection.d_numqueries;
   if (s_maxQueries > 0 && connection.d_numqueries >= s_maxQueries) {
     return;
   }
 
-  if (d_idle_connections.size() >= s_maxIdlePerThread || d_idle_connections.count(ip) >= s_maxIdlePerAuth) {
+  if (d_idle_connections.size() >= s_maxIdlePerThread || d_idle_connections.count(endpoints) >= s_maxIdlePerAuth) {
     cleanup(now);
   }
 
   if (d_idle_connections.size() >= s_maxIdlePerThread) {
     return;
   }
-  if (d_idle_connections.count(ip) >= s_maxIdlePerAuth) {
+  if (d_idle_connections.count(endpoints) >= s_maxIdlePerAuth) {
     return;
   }
 
   gettimeofday(&connection.d_last_used, nullptr);
-  d_idle_connections.emplace(ip, std::move(connection));
+  d_idle_connections.emplace(endpoints, std::move(connection));
 }
 
-TCPOutConnectionManager::Connection TCPOutConnectionManager::get(const ComboAddress& ip)
+TCPOutConnectionManager::Connection TCPOutConnectionManager::get(const endpoints_t& pair)
 {
-  if (d_idle_connections.count(ip) > 0) {
-    auto h = d_idle_connections.extract(ip);
-    return h.mapped();
+  if (d_idle_connections.count(pair) > 0) {
+    auto connection = d_idle_connections.extract(pair);
+    return connection.mapped();
   }
   return Connection{};
 }

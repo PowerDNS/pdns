@@ -1014,20 +1014,6 @@ const char* isoDateTimeMillis(const struct timeval& tval, timebuf_t& buf)
   return buf.data();
 }
 
-static const char* timestamp(time_t arg, timebuf_t& buf)
-{
-  const std::string s_timestampFormat = "%Y-%m-%dT%T";
-  struct tm tmval{};
-  size_t len = strftime(buf.data(), buf.size(), s_timestampFormat.c_str(), localtime_r(&arg, &tmval));
-  if (len == 0) {
-    int ret = snprintf(buf.data(), buf.size(), "%lld", static_cast<long long>(arg));
-    if (ret < 0 || static_cast<size_t>(ret) >= buf.size()) {
-      buf[0] = '\0';
-    }
-  }
-  return buf.data();
-}
-
 struct ednsstatus_t : public multi_index_container<SyncRes::EDNSStatus,
                                                    indexed_by<
                                                      ordered_unique<tag<ComboAddress>, member<SyncRes::EDNSStatus, ComboAddress, &SyncRes::EDNSStatus::address>>,
@@ -1437,7 +1423,7 @@ uint64_t SyncRes::doDumpDoTProbeMap(int fileDesc)
    For now this means we can't be clever, but will turn off DNSSEC if you reply with FormError or gibberish.
 */
 
-LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& address, bool ednsMANDATORY, const DNSName& domain, [[maybe_unused]] const DNSName& auth, int type, bool doTCP, bool sendRDQuery, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult* res, bool* chained, const DNSName& nsName) const
+LWResult::Result SyncRes::asyncresolveWrapper(const OptLog& log, const ComboAddress& address, bool ednsMANDATORY, const DNSName& domain, [[maybe_unused]] const DNSName& auth, int type, bool doTCP, bool sendRDQuery, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult* res, bool* chained, const DNSName& nsName) const
 {
   /* what is your QUEST?
      the goal is to get as many remotes as possible on the best level of EDNS support
@@ -1474,9 +1460,7 @@ LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& address, bool 
   int EDNSLevel = 0;
   auto luaconfsLocal = g_luaconfs.getLocal();
   ResolveContext ctx(d_initialRequestId, nsName);
-#ifdef HAVE_FSTRM
   ctx.d_auth = auth;
-#endif
 
   LWResult::Result ret{};
 
@@ -1499,7 +1483,7 @@ LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& address, bool 
       ret = d_asyncResolve(address, sendQname, type, doTCP, sendRDQuery, EDNSLevel, now, srcmask, ctx, res, chained);
     }
     else {
-      ret = asyncresolve(address, sendQname, type, doTCP, sendRDQuery, EDNSLevel, now, srcmask, ctx, d_outgoingProtobufServers, d_frameStreamServers, luaconfsLocal->outgoingProtobufExportConfig.exportTypes, res, chained);
+      ret = asyncresolve(log, address, sendQname, type, doTCP, sendRDQuery, EDNSLevel, now, srcmask, ctx, d_outgoingProtobufServers, d_frameStreamServers, luaconfsLocal->outgoingProtobufExportConfig.exportTypes, res, chained);
     }
 
     if (ret == LWResult::Result::PermanentError || LWResult::isLimitError(ret) || ret == LWResult::Result::Spoofed) {
@@ -1517,12 +1501,24 @@ LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& address, bool 
       auto lock = s_ednsstatus.lock(); // all three branches below need a lock
 
       // Determine new mode
+      if (ret == LWResult::Result::BindError) {
+        // BindError is only generated when cookies are active and we failed to bind to a local
+        // address associated with a cookie, see RFC9018 section 3 last paragraph. We assume the
+        // called code has already erased the cookie info.
+        // This is the first path that re-iterates the loop
+        continue;
+      }
+      if (res->d_validpacket && res->d_haveEDNS && ret == LWResult::Result::BadCookie) {
+        // We assume the received cookie was stored and will be used in the second iteration
+        // This is the second path that re-iterates the loop
+        continue;
+      }
       if (res->d_validpacket && !res->d_haveEDNS && res->d_rcode == RCode::FormErr) {
         mode = EDNSStatus::NOEDNS;
         auto ednsstatus = lock->insert(address).first;
         auto& ind = lock->get<ComboAddress>();
         lock->setMode(ind, ednsstatus, mode, d_now.tv_sec);
-        // This is the only path that re-iterates the loop
+        // This is the third path that re-iterates the loop
         continue;
       }
       if (!res->d_haveEDNS) {
@@ -5459,7 +5455,7 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
     }
     auto match = d_eventTrace.add(RecEventTrace::AuthRequest, qname.toLogString() + '/' + qtype.toString(), true, 0);
     updateQueryCounts(prefix, qname, remoteIP, doTCP, doDoT);
-    resolveret = asyncresolveWrapper(remoteIP, d_doDNSSEC, qname, auth, qtype.getCode(),
+    resolveret = asyncresolveWrapper(LogObject(prefix), remoteIP, d_doDNSSEC, qname, auth, qtype.getCode(),
                                      doTCP, sendRDQuery, &d_now, ednsmask, &lwr, &chained, nsName); // <- we go out on the wire!
     d_eventTrace.add(RecEventTrace::AuthRequest, static_cast<int64_t>(lwr.d_rcode), false, match);
     ednsStats(ednsmask, qname, prefix);
@@ -5468,7 +5464,7 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
       LOG(prefix << qname << ": Answer has no ECS, trying again without EDNS Client Subnet Mask" << endl);
       updateQueryCounts(prefix, qname, remoteIP, doTCP, doDoT);
       match = d_eventTrace.add(RecEventTrace::AuthRequest, qname.toLogString() + '/' + qtype.toString(), true, 0);
-      resolveret = asyncresolveWrapper(remoteIP, d_doDNSSEC, qname, auth, qtype.getCode(),
+      resolveret = asyncresolveWrapper(LogObject(prefix), remoteIP, d_doDNSSEC, qname, auth, qtype.getCode(),
                                        doTCP, sendRDQuery, &d_now, ednsmask, &lwr, &chained, nsName); // <- we go out on the wire!
       d_eventTrace.add(RecEventTrace::AuthRequest, static_cast<int64_t>(lwr.d_rcode), false, match);
     }
@@ -5481,7 +5477,7 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
 
   d_totUsec += lwr.d_usec;
 
-  if (resolveret == LWResult::Result::Spoofed) {
+  if (resolveret == LWResult::Result::Spoofed || resolveret == LWResult::Result::BadCookie) {
     spoofed = true;
     return false;
   }
@@ -5497,26 +5493,28 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
 
   if (resolveret != LWResult::Result::Success) {
     /* Error while resolving */
-    if (resolveret == LWResult::Result::Timeout) {
+    switch (resolveret) {
+    case LWResult::Result::Timeout:
       LOG(prefix << qname << ": Timeout resolving after " << lwr.d_usec / 1000.0 << " ms " << (doTCP ? "over TCP" : "") << endl);
       incTimeoutStats(remoteIP);
-    }
-    else if (resolveret == LWResult::Result::OSLimitError) {
+      break;
+    case LWResult::Result::OSLimitError:
       /* OS resource limit reached */
       LOG(prefix << qname << ": Hit a local resource limit resolving" << (doTCP ? " over TCP" : "") << ", probable error: " << stringerror() << endl);
       t_Counters.at(rec::Counter::resourceLimits)++;
-    }
-    else if (resolveret == LWResult::Result::ChainLimitError) {
+      break;
+    case LWResult::Result::ChainLimitError:
       /* Chain resource limit reached */
       LOG(prefix << qname << ": Hit a chain limit resolving" << (doTCP ? " over TCP" : ""));
       t_Counters.at(rec::Counter::chainLimits)++;
-    }
-    else {
+      break;
+    default:
       /* LWResult::Result::PermanentError */
       t_Counters.at(rec::Counter::unreachables)++;
       d_unreachables++;
       // XXX questionable use of errno
       LOG(prefix << qname << ": Error resolving from " << remoteIP.toString() << (doTCP ? " over TCP" : "") << ", possible error: " << stringerror() << endl);
+      break;
     }
 
     // don't account for resource limits, they are our own fault
@@ -5983,6 +5981,9 @@ int SyncRes::doResolveAt(NsSet& nameservers, DNSName auth, bool flawedNSSet, con
           if (!forceTCP) {
             gotAnswer = doResolveAtThisIP(prefix, qname, qtype, lwr, ednsmask, auth, sendRDQuery, wasForwarded,
                                           tns->first, *remoteIP, false, false, truncated, spoofed, context.extendedError);
+          }
+          if (spoofed) {
+            LOG(prefix << qname << ": potentially spoofed, retrying over TCP" << endl);
           }
           if (forceTCP || (spoofed || (gotAnswer && truncated))) {
             /* retry, over TCP this time */
