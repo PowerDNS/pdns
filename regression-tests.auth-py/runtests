@@ -13,6 +13,8 @@ mkdir -p configs
 
 [ -f ./vars ] && . ./vars
 
+protoc -I=../pdns/ --python_out=. ../pdns/dnsmessage.proto
+
 if [ -z "$PDNS_BUILD_PATH" ]; then
   # PDNS_BUILD_PATH is unset or empty. Assume an autotools build.
   PDNS_BUILD_PATH=.
