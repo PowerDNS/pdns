@@ -84,7 +84,7 @@ struct SendReceive
     close(d_socket);
   }
   
-  Identifier send(NSQuery& domain)
+  Identifier send(NSQuery& domain, int /*userdata*/)
   {
     //cerr<<"Sending query for '"<<domain<<"'"<<endl;
     
@@ -108,7 +108,7 @@ struct SendReceive
     return pw.getHeader()->id;
   }
   
-  bool receive(Identifier& id, DNSResult& dr)
+  bool receive(Identifier& id, DNSResult& dr, int /*userdata*/)
   {
     if(waitForData(d_socket, 0, 500) > 0) {
       char buf[512];
@@ -157,7 +157,7 @@ struct SendReceive
     d_idqueue.push_back(id);
   }
   
-  void deliverAnswer(NSQuery& domain, const DNSResult& dr, unsigned int usec)
+  void deliverAnswer(NSQuery& domain, const DNSResult& dr, unsigned int usec, int /*userdata*/)
   {
     cout<<domain.a.toString()<<"\t"<<domain.qname<<"\t";
     for(const auto& n : domain.nsnames)
@@ -216,7 +216,7 @@ struct SendReceiveRes
     close(d_socket);
   }
   
-  Identifier send(RESQuery& domain)
+  Identifier send(RESQuery& domain, int /*userdata*/)
   {
     //cerr<<"Sending query for '"<<domain<<"'"<<endl;
     
@@ -242,7 +242,7 @@ struct SendReceiveRes
     return pw.getHeader()->id;
   }
   
-  bool receive(Identifier& id, RESResult& dr)
+  bool receive(Identifier& id, RESResult& dr, int /*userdata*/)
   {
     if(waitForData(d_socket, 0, 500) > 0) {
       char buf[512];
@@ -293,7 +293,7 @@ struct SendReceiveRes
     d_idqueue.push_back(id);
   }
   
-  void deliverAnswer(DNSName& domain, const RESResult& dr, unsigned int usec)
+  void deliverAnswer(DNSName& domain, const RESResult& dr, unsigned int usec, int /*userdata*/)
   {
     d_out[domain]=dr.addrs;
     cout<<domain<<"\t"<<dr.rcode<<'\t';

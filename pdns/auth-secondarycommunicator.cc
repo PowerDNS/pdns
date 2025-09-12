@@ -1038,18 +1038,27 @@ struct DomainNotificationInfo
   ComboAddress localaddr;
   DNSName tsigkeyname, tsigalgname;
   string tsigsecret;
+  int sock{-1};
+
+  ~DomainNotificationInfo()
+  {
+    if (sock != -1) {
+      close(sock);
+    }
+  }
 };
 }
 
 struct SecondarySenderReceiver
 {
-  typedef std::tuple<DNSName, ComboAddress, uint16_t> Identifier;
+  using Identifier = std::tuple<DNSName, ComboAddress, uint16_t>;
 
   struct Answer
   {
     uint32_t theirSerial;
     uint32_t theirInception;
     uint32_t theirExpire;
+    bool tc;
   };
 
   map<uint32_t, Answer> d_freshness;
@@ -1058,32 +1067,46 @@ struct SecondarySenderReceiver
   {
   }
 
-  Identifier send(DomainNotificationInfo& dni)
+  Identifier send(DomainNotificationInfo& dni, int passno)
   {
     shuffle(dni.di.primaries.begin(), dni.di.primaries.end(), pdns::dns_random_engine());
     try {
-      return {dni.di.zone.operator const DNSName&(),
-              *dni.di.primaries.begin(),
-              d_resolver.sendResolve(*dni.di.primaries.begin(),
-                                     dni.localaddr,
-                                     dni.di.zone.operator const DNSName&(),
-                                     QType::SOA,
-                                     nullptr,
-                                     dni.dnssecOk, dni.tsigkeyname, dni.tsigalgname, dni.tsigsecret)};
+      bool useTCP = passno != 0;
+      int sock{-1};
+      auto primary = *dni.di.primaries.begin();
+      auto randomid = d_resolver.sendResolve(primary, dni.localaddr,
+                                             dni.di.zone.operator const DNSName&(),
+                                             QType::SOA, sock, useTCP, dni.dnssecOk,
+                                             dni.tsigkeyname, dni.tsigalgname, dni.tsigsecret);
+      // Only remember the socket if TCP, for sendResolve takes care of UDP
+      // sockets, and we do not want the DomainNotificationInfo destructor
+      // risk close()ing a socket cached by d_resolver.
+      if (useTCP) {
+        dni.sock = sock;
+      }
+      return {dni.di.zone.operator const DNSName&(), primary, randomid};
     }
     catch (PDNSException& e) {
       throw runtime_error("While attempting to query freshness of '" + dni.di.zone.toLogString() + "': " + e.reason);
     }
   }
 
-  bool receive(Identifier& id, Answer& a)
+  bool receive(Identifier& ident, Answer& answer, int /*userdata*/)
   {
-    return d_resolver.tryGetSOASerial(&(std::get<0>(id)), &(std::get<1>(id)), &a.theirSerial, &a.theirInception, &a.theirExpire, &(std::get<2>(id)));
+    auto& [name, address, randomid] = ident;
+    return d_resolver.tryGetSOASerial(name, address, &answer.theirSerial, &answer.theirInception, &answer.theirExpire, randomid, &answer.tc);
   }
 
-  void deliverAnswer(const DomainNotificationInfo& dni, const Answer& a, unsigned int /* usec */)
+  void deliverAnswer(DomainNotificationInfo& dni, const Answer& answer, unsigned int /* usec */, int passno)
   {
-    d_freshness[dni.di.id] = a;
+    bool useTCP = passno != 0;
+    // Be sure to close the socket if TCP, for sendResolve did not store it
+    // for possible reuse in this case.
+    if (useTCP) {
+      close(dni.sock);
+      dni.sock = -1;
+    }
+    d_freshness[dni.di.id] = answer;
   }
 
   Resolver d_resolver;
@@ -1119,6 +1142,7 @@ void CommunicatorClass::addTryAutoPrimaryRequest(const DNSPacket& p)
   }
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void CommunicatorClass::secondaryRefresh(PacketHandler* P)
 {
   // not unless we are secondary
@@ -1247,158 +1271,181 @@ void CommunicatorClass::secondaryRefresh(PacketHandler* P)
 
   SecondarySenderReceiver ssr;
 
-  Inflighter<vector<DomainNotificationInfo>, SecondarySenderReceiver> ifl(sdomains, ssr);
+  // First pass: UDP; second pass: TCP
+  for (int passno = 0; passno < 2; ++passno) {
+    Inflighter<vector<DomainNotificationInfo>, SecondarySenderReceiver> ifl(sdomains, ssr);
+    ifl.d_maxInFlight = 200;
 
-  ifl.d_maxInFlight = 200;
-
-  for (;;) {
-    try {
-      ifl.run();
-      break;
-    }
-    catch (std::exception& e) {
-      g_log << Logger::Error << "While checking domain freshness: " << e.what() << endl;
-    }
-    catch (PDNSException& re) {
-      g_log << Logger::Error << "While checking domain freshness: " << re.reason << endl;
-    }
-  }
-
-  if (ifl.getTimeouts()) {
-    g_log << Logger::Warning << "Received serial number updates for " << ssr.d_freshness.size() << " zone" << addS(ssr.d_freshness.size()) << ", had " << ifl.getTimeouts() << " timeout" << addS(ifl.getTimeouts()) << endl;
-  }
-  else {
-    g_log << Logger::Info << "Received serial number updates for " << ssr.d_freshness.size() << " zone" << addS(ssr.d_freshness.size()) << endl;
-  }
-
-  time_t now = time(nullptr);
-  for (auto& val : sdomains) {
-    DomainInfo& di(val.di);
-    // If our di comes from packethandler (caused by incoming NOTIFY), di.backend will not be filled out,
-    // and di.serial will not either.
-    // Conversely, if our di came from getUnfreshSecondaryInfos, di.backend and di.serial are valid.
-    if (!di.backend) {
-      // Do not overwrite received DI just to make sure it exists in backend:
-      // di.primaries should contain the picked primary (as first entry)!
-      DomainInfo tempdi;
-      if (!B->getDomainInfo(di.zone, tempdi, false)) {
-        g_log << Logger::Info << "Ignore domain " << di.zone << " since it has been removed from our backend" << endl;
-        continue;
+    for (;;) {
+      try {
+        ifl.run(passno);
+        break;
       }
-      // Backend for di still doesn't exist and this might cause us to
-      // SEGFAULT on the setFresh command later on
-      di.backend = tempdi.backend;
+      catch (std::exception& e) {
+        g_log << Logger::Error << "While checking domain freshness: " << e.what() << endl;
+      }
+      catch (PDNSException& re) {
+        g_log << Logger::Error << "While checking domain freshness: " << re.reason << endl;
+      }
     }
 
-    if (!ssr.d_freshness.count(di.id)) { // If we don't have an answer for the domain
-      uint64_t newCount = 1;
-      auto data = d_data.lock();
-      const auto failedEntry = data->d_failedSecondaryRefresh.find(di.zone);
-      if (failedEntry != data->d_failedSecondaryRefresh.end())
-        newCount = data->d_failedSecondaryRefresh[di.zone].first + 1;
-      time_t nextCheck = now + std::min(newCount * d_tickinterval, (uint64_t)::arg().asNum("default-ttl"));
-      data->d_failedSecondaryRefresh[di.zone] = {newCount, nextCheck};
-      if (newCount == 1) {
-        g_log << Logger::Warning << "Unable to retrieve SOA for " << di.zone << ", this was the first time. NOTE: For every subsequent failed SOA check the domain will be suspended from freshness checks for 'num-errors x " << d_tickinterval << " seconds', with a maximum of " << (uint64_t)::arg().asNum("default-ttl") << " seconds. Skipping SOA checks until " << humanTime(nextCheck) << endl;
-      }
-      else if (newCount % 10 == 0) {
-        g_log << Logger::Notice << "Unable to retrieve SOA for " << di.zone << ", this was the " << std::to_string(newCount) << "th time. Skipping SOA checks until " << humanTime(nextCheck) << endl;
-      }
-      // Make sure we recheck SOA for notifies
-      if (di.receivedNotify) {
-        di.backend->setStale(di.id);
-      }
-      continue;
-    }
-
-    {
-      auto data = d_data.lock();
-      const auto wasFailedDomain = data->d_failedSecondaryRefresh.find(di.zone);
-      if (wasFailedDomain != data->d_failedSecondaryRefresh.end())
-        data->d_failedSecondaryRefresh.erase(di.zone);
-    }
-
-    bool hasSOA = false;
-    SOAData sd;
-    try {
-      // Use UeberBackend cache for SOA. Cache gets cleared after AXFR/IXFR.
-      B->lookup(QType(QType::SOA), di.zone.operator const DNSName&(), di.id, nullptr);
-      DNSZoneRecord zr;
-      hasSOA = B->get(zr);
-      if (hasSOA) {
-        fillSOAData(zr, sd);
-        B->lookupEnd();
-      }
-    }
-    catch (...) {
-    }
-
-    uint32_t theirserial = ssr.d_freshness[di.id].theirSerial;
-    uint32_t ourserial = sd.serial;
-    const ComboAddress remote = *di.primaries.begin();
-
-    if (hasSOA && rfc1982LessThan(theirserial, ourserial) && !::arg().mustDo("axfr-lower-serial")) {
-      g_log << Logger::Warning << "Domain '" << di.zone << "' more recent than primary " << remote.toStringWithPortExcept(53) << ", our serial " << ourserial << " > their serial " << theirserial << endl;
-      di.backend->setFresh(di.id);
-    }
-    else if (hasSOA && theirserial == ourserial) {
-      uint32_t maxExpire = 0, maxInception = 0;
-      if (checkSignatures && dk.isPresigned(di.zone)) {
-        B->lookup(QType(QType::RRSIG), di.zone.operator const DNSName&(), di.id); // can't use DK before we are done with this lookup!
-        DNSZoneRecord zr;
-        while (B->get(zr)) {
-          auto rrsig = getRR<RRSIGRecordContent>(zr.dr);
-          if (rrsig->d_type == QType::SOA) {
-            maxInception = std::max(maxInception, rrsig->d_siginception);
-            maxExpire = std::max(maxExpire, rrsig->d_sigexpire);
-          }
-        }
-      }
-
-      SuckRequest::RequestPriority prio = SuckRequest::SignaturesRefresh;
-      if (di.receivedNotify) {
-        prio = SuckRequest::Notify;
-      }
-
-      if (!maxInception && !ssr.d_freshness[di.id].theirInception) {
-        g_log << Logger::Info << "Domain '" << di.zone << "' is fresh (no DNSSEC), serial is " << ourserial << " (checked primary " << remote.toStringWithPortExcept(53) << ")" << endl;
-        di.backend->setFresh(di.id);
-      }
-      else if (maxInception == ssr.d_freshness[di.id].theirInception && maxExpire == ssr.d_freshness[di.id].theirExpire) {
-        g_log << Logger::Info << "Domain '" << di.zone << "' is fresh and SOA RRSIGs match, serial is " << ourserial << " (checked primary " << remote.toStringWithPortExcept(53) << ")" << endl;
-        di.backend->setFresh(di.id);
-      }
-      else if (maxExpire >= now && !ssr.d_freshness[di.id].theirInception) {
-        g_log << Logger::Info << "Domain '" << di.zone << "' is fresh, primary " << remote.toStringWithPortExcept(53) << " is no longer signed but (some) signatures are still valid, serial is " << ourserial << endl;
-        di.backend->setFresh(di.id);
-      }
-      else if (maxInception && !ssr.d_freshness[di.id].theirInception) {
-        g_log << Logger::Notice << "Domain '" << di.zone << "' is stale, primary " << remote.toStringWithPortExcept(53) << " is no longer signed and all signatures have expired, serial is " << ourserial << endl;
-        addSuckRequest(di.zone, remote, prio);
-      }
-      else if (dk.doesDNSSEC() && !maxInception && ssr.d_freshness[di.id].theirInception) {
-        g_log << Logger::Notice << "Domain '" << di.zone << "' is stale, primary " << remote.toStringWithPortExcept(53) << " has signed, serial is " << ourserial << endl;
-        addSuckRequest(di.zone, remote, prio);
-      }
-      else {
-        g_log << Logger::Notice << "Domain '" << di.zone << "' is fresh, but RRSIGs differ on primary " << remote.toStringWithPortExcept(53) << ", so DNSSEC is stale, serial is " << ourserial << endl;
-        addSuckRequest(di.zone, remote, prio);
-      }
+    if (ifl.getTimeouts() != 0) {
+      g_log << Logger::Warning << "Received serial number updates for " << ssr.d_freshness.size() << " zone" << addS(ssr.d_freshness.size()) << ", had " << ifl.getTimeouts() << " timeout" << addS(ifl.getTimeouts()) << endl;
     }
     else {
-      SuckRequest::RequestPriority prio = SuckRequest::SerialRefresh;
-      if (di.receivedNotify) {
-        prio = SuckRequest::Notify;
+      g_log << Logger::Info << "Received serial number updates for " << ssr.d_freshness.size() << " zone" << addS(ssr.d_freshness.size()) << endl;
+    }
+
+    time_t now = time(nullptr);
+    for (auto iter = sdomains.begin(); iter != sdomains.end();) {
+      DomainInfo& di(iter->di); // NOLINT(readability-identifier-length)
+      // If our di comes from packethandler (caused by incoming NOTIFY), di.backend will not be filled out,
+      // and di.serial will not either.
+      // Conversely, if our di came from getUnfreshSecondaryInfos, di.backend and di.serial are valid.
+      if (di.backend == nullptr) {
+        // Do not overwrite received DI just to make sure it exists in backend:
+        // di.primaries should contain the picked primary (as first entry)!
+        DomainInfo tempdi;
+        if (!B->getDomainInfo(di.zone, tempdi, false)) {
+          g_log << Logger::Info << "Ignore domain " << di.zone << " since it has been removed from our backend" << endl;
+          iter = sdomains.erase(iter);
+          continue;
+        }
+        // Backend for di still doesn't exist and this might cause us to
+        // SEGFAULT on the setFresh command later on
+        di.backend = tempdi.backend;
       }
 
-      if (hasSOA) {
-        g_log << Logger::Notice << "Domain '" << di.zone << "' is stale, primary " << remote.toStringWithPortExcept(53) << " serial " << theirserial << ", our serial " << ourserial << endl;
+      if (ssr.d_freshness.count(di.id) == 0) { // If we don't have an answer for the domain
+        uint64_t newCount = 1;
+        auto data = d_data.lock();
+        const auto failedEntry = data->d_failedSecondaryRefresh.find(di.zone);
+        if (failedEntry != data->d_failedSecondaryRefresh.end()) {
+          newCount = data->d_failedSecondaryRefresh[di.zone].first + 1;
+        }
+        time_t nextCheck = now + static_cast<time_t>(std::min(newCount * d_tickinterval, (uint64_t)::arg().asNum("default-ttl")));
+        data->d_failedSecondaryRefresh[di.zone] = {newCount, nextCheck};
+        if (newCount == 1) {
+          g_log << Logger::Warning << "Unable to retrieve SOA for " << di.zone << ", this was the first time. NOTE: For every subsequent failed SOA check the domain will be suspended from freshness checks for 'num-errors x " << d_tickinterval << " seconds', with a maximum of " << (uint64_t)::arg().asNum("default-ttl") << " seconds. Skipping SOA checks until " << humanTime(nextCheck) << endl;
+        }
+        else if (newCount % 10 == 0) {
+          g_log << Logger::Notice << "Unable to retrieve SOA for " << di.zone << ", this was the " << std::to_string(newCount) << "th time. Skipping SOA checks until " << humanTime(nextCheck) << endl;
+        }
+        // Make sure we recheck SOA for notifies
+        if (di.receivedNotify) {
+          di.backend->setStale(di.id);
+        }
+        iter = sdomains.erase(iter);
+        continue;
       }
-      else {
-        g_log << Logger::Notice << "Domain '" << di.zone << "' is empty, primary " << remote.toStringWithPortExcept(53) << " serial " << theirserial << endl;
+
+      // If we got a truncated answer, we need to query again using TCP,
+      // in the next pass.
+      const auto& answer = ssr.d_freshness[di.id];
+      if (answer.tc) {
+        ++iter;
+        continue;
       }
+      // Otherwise, process the domain and remove it from the vector.
+      processDomain(B, dk, checkSignatures, now, answer, di);
+      iter = sdomains.erase(iter);
+    }
+  }
+}
+
+// Used above with T = Answer
+template <typename T>
+void CommunicatorClass::processDomain(UeberBackend* B, DNSSECKeeper& dk, bool checkSignatures, time_t now, const T& info, DomainInfo& di) // NOLINT(readability-identifier-length)
+{
+  {
+    auto data = d_data.lock();
+    const auto wasFailedDomain = data->d_failedSecondaryRefresh.find(di.zone);
+    if (wasFailedDomain != data->d_failedSecondaryRefresh.end()) {
+      data->d_failedSecondaryRefresh.erase(di.zone);
+    }
+  }
+
+  bool hasSOA = false;
+  SOAData sd; // NOLINT(readability-identifier-length)
+  try {
+    // Use UeberBackend cache for SOA. Cache gets cleared after AXFR/IXFR.
+    B->lookup(QType(QType::SOA), di.zone.operator const DNSName&(), di.id, nullptr);
+    DNSZoneRecord zr; // NOLINT(readability-identifier-length)
+    hasSOA = B->get(zr);
+    if (hasSOA) {
+      fillSOAData(zr, sd);
+      B->lookupEnd();
+    }
+  }
+  catch (...) {
+  }
+
+  uint32_t theirserial = info.theirSerial;
+  uint32_t ourserial = sd.serial;
+  const ComboAddress remote = *di.primaries.begin();
+
+  if (hasSOA && rfc1982LessThan(theirserial, ourserial) && !::arg().mustDo("axfr-lower-serial")) {
+    g_log << Logger::Warning << "Domain '" << di.zone << "' more recent than primary " << remote.toStringWithPortExcept(53) << ", our serial " << ourserial << " > their serial " << theirserial << endl;
+    di.backend->setFresh(di.id);
+  }
+  else if (hasSOA && theirserial == ourserial) {
+    uint32_t maxExpire = 0;
+    uint32_t maxInception = 0;
+    if (checkSignatures && dk.isPresigned(di.zone)) {
+      B->lookup(QType(QType::RRSIG), di.zone.operator const DNSName&(), di.id); // can't use DK before we are done with this lookup!
+      DNSZoneRecord zr; // NOLINT(readability-identifier-length)
+      while (B->get(zr)) {
+        auto rrsig = getRR<RRSIGRecordContent>(zr.dr);
+        if (rrsig->d_type == QType::SOA) {
+          maxInception = std::max(maxInception, rrsig->d_siginception);
+          maxExpire = std::max(maxExpire, rrsig->d_sigexpire);
+        }
+      }
+    }
+
+    SuckRequest::RequestPriority prio = SuckRequest::SignaturesRefresh;
+    if (di.receivedNotify) {
+      prio = SuckRequest::Notify;
+    }
+
+    if (!maxInception && !info.theirInception) {
+      g_log << Logger::Info << "Domain '" << di.zone << "' is fresh (no DNSSEC), serial is " << ourserial << " (checked primary " << remote.toStringWithPortExcept(53) << ")" << endl;
+      di.backend->setFresh(di.id);
+    }
+    else if (maxInception == info.theirInception && maxExpire == info.theirExpire) {
+      g_log << Logger::Info << "Domain '" << di.zone << "' is fresh and SOA RRSIGs match, serial is " << ourserial << " (checked primary " << remote.toStringWithPortExcept(53) << ")" << endl;
+      di.backend->setFresh(di.id);
+    }
+    else if (maxExpire >= now && !info.theirInception) {
+      g_log << Logger::Info << "Domain '" << di.zone << "' is fresh, primary " << remote.toStringWithPortExcept(53) << " is no longer signed but (some) signatures are still valid, serial is " << ourserial << endl;
+      di.backend->setFresh(di.id);
+    }
+    else if (maxInception && !info.theirInception) {
+      g_log << Logger::Notice << "Domain '" << di.zone << "' is stale, primary " << remote.toStringWithPortExcept(53) << " is no longer signed and all signatures have expired, serial is " << ourserial << endl;
       addSuckRequest(di.zone, remote, prio);
     }
+    else if (dk.doesDNSSEC() && !maxInception && info.theirInception) {
+      g_log << Logger::Notice << "Domain '" << di.zone << "' is stale, primary " << remote.toStringWithPortExcept(53) << " has signed, serial is " << ourserial << endl;
+      addSuckRequest(di.zone, remote, prio);
+    }
+    else {
+      g_log << Logger::Notice << "Domain '" << di.zone << "' is fresh, but RRSIGs differ on primary " << remote.toStringWithPortExcept(53) << ", so DNSSEC is stale, serial is " << ourserial << endl;
+      addSuckRequest(di.zone, remote, prio);
+    }
+  }
+  else {
+    SuckRequest::RequestPriority prio = SuckRequest::SerialRefresh;
+    if (di.receivedNotify) {
+      prio = SuckRequest::Notify;
+    }
+
+    if (hasSOA) {
+      g_log << Logger::Notice << "Domain '" << di.zone << "' is stale, primary " << remote.toStringWithPortExcept(53) << " serial " << theirserial << ", our serial " << ourserial << endl;
+    }
+    else {
+      g_log << Logger::Notice << "Domain '" << di.zone << "' is empty, primary " << remote.toStringWithPortExcept(53) << " serial " << theirserial << endl;
+    }
+    addSuckRequest(di.zone, remote, prio);
   }
 }
 

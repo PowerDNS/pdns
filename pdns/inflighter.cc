@@ -58,7 +58,7 @@ public:
     d_init=true;
   }
   
-  bool run(); //!< keep calling this as long as it returns 1, or if it throws an exception 
+  bool run(int userdata = 0); //!< keep calling this as long as it returns 1, or if it throws an exception 
   
   unsigned int d_maxInFlight;
   unsigned int d_timeoutSeconds;
@@ -105,7 +105,7 @@ private:
   uint64_t d_unexpectedResponse, d_timeouts;
 };
 
-template<typename Container, typename SendReceive> bool Inflighter<Container, SendReceive>::run()
+template<typename Container, typename SendReceive> bool Inflighter<Container, SendReceive>::run(int userdata)
 {
   if(!d_init)
     init();
@@ -117,7 +117,7 @@ template<typename Container, typename SendReceive> bool Inflighter<Container, Se
     while(d_iter != d_container.end() && d_ttdWatch.size() < d_maxInFlight) { 
       TTDItem ttdi;
       ttdi.iter = d_iter++;
-      ttdi.id = d_sr.send(*ttdi.iter);
+      ttdi.id = d_sr.send(*ttdi.iter, userdata);
       gettimeofday(&ttdi.sentTime, 0);
       ttdi.ttd = ttdi.sentTime;
       ttdi.ttd.tv_sec += d_timeoutSeconds;
@@ -139,7 +139,7 @@ template<typename Container, typename SendReceive> bool Inflighter<Container, Se
       typename SendReceive::Identifier id;
       
       // get as many answers as available - 'receive' should block for a short while to wait for an answer
-      while(d_sr.receive(id, answer)) {
+      while(d_sr.receive(id, answer, userdata)) {
         typename ttdwatch_t::iterator ival = d_ttdWatch.find(id); // match up what we received to what we were waiting for
 
         if(ival != d_ttdWatch.end()) { // found something!
@@ -147,7 +147,7 @@ template<typename Container, typename SendReceive> bool Inflighter<Container, Se
           struct timeval now;
           gettimeofday(&now, 0);
           unsigned int usec = 1000000*(now.tv_sec - ival->sentTime.tv_sec) + (now.tv_usec - ival->sentTime.tv_usec);
-          d_sr.deliverAnswer(*ival->iter, answer, usec);    // deliver to sender/receiver
+          d_sr.deliverAnswer(*ival->iter, answer, usec, userdata);    // deliver to sender/receiver
           d_ttdWatch.erase(ival);
           break; // we can send new questions!
         }
@@ -220,7 +220,7 @@ struct SendReceive
     ::send(d_socket, "done\r\n", 6, 0);
   }
   
-  Identifier send(int& i)
+  Identifier send(int& i, int /*userdata*/)
   {
     cerr<<"Sending a '"<<i<<"'"<<endl;
     string msg = (boost::format("%d %d\n") % d_id % i).str();
@@ -228,7 +228,7 @@ struct SendReceive
     return d_id++;
   }
   
-  bool receive(Identifier& id, int& i)
+  bool receive(Identifier& id, int& i, int /*userdata*/)
   {
     if(waitForData(d_socket, 0, 500) > 0) {
       char buf[512];
@@ -243,7 +243,7 @@ struct SendReceive
     return 0;
   }
   
-  void deliverAnswer(int& i, int j)
+  void deliverAnswer(int& i, int j, int /*userdata*/)
   {
     cerr<<"We sent "<<i<<", got back: "<<j<<endl;
   }
