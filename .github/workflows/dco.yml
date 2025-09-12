@@ -7,33 +7,7 @@ permissions:
   contents: read
 
 jobs:
-  build:
-    name: Test Developer Certificate of Origin
+  check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          fetch-depth: 0
-          persist-credentials: false
-      - name: Determine branch name
-        run: |
-          BRANCH="${GITHUB_BASE_REF#refs/heads/}"
-          echo "Checking DCO for every commit on branch ${BRANCH}"
-          echo "BRANCH=${BRANCH}" >> ${GITHUB_ENV}
-      - name: Test DCO for every commit
-        run: |
-          RET=0
-          # this will not work properly if what we are testing is not a pull request
-          for commit in $(git rev-list HEAD ^origin/${BRANCH}); do
-            echo "=== Checking commit '${commit}'"
-            body="$(git show -s --format=%b ${commit})"
-            expected="$(git show -s --format='Signed-off-by: %cN <%cE>' ${commit})"
-            if echo "${body}" | grep -qF "${expected}"; then
-              echo "Signed-off-by matches committer"
-            else
-              echo "Signed-off-by is missing or doesn't match committer (should be '${expected}')"
-              RET=1
-            fi
-          done
-          exit ${RET}
+      - uses: KineticCafe/actions-dco@1c23966ecce077f76671a61caabeb13eefc72a51 # 1.3.8
