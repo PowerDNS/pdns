@@ -1853,7 +1853,7 @@ static bool spawnEditor(const std::string& editor, std::string_view tmpfile, int
   sigset_t mask;
   sigset_t omask;
 
-  // Ignore INT, QUIT and CHLD signals while the editor process runs
+  // Block INT, QUIT and CHLD signals while the editor process runs
   sigemptyset(&mask);
   sigaddset(&mask, SIGCHLD);
   sigaddset(&mask, SIGINT);
