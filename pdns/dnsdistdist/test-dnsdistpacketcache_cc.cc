@@ -144,6 +144,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSharded)
     .d_staleTTL = 60,
     .d_shardCount = 10,
     .d_dontAge = false,
+    .d_shuffle = false,
   };
   DNSDistPacketCache localCache(settings);
   BOOST_CHECK_EQUAL(localCache.getSize(), 0U);
@@ -872,6 +873,7 @@ BOOST_AUTO_TEST_CASE(test_PCCollision)
     .d_dontAge = false,
     .d_deferrableInsertLock = true,
     .d_parseECS = true,
+    .d_shuffle = false,
   };
   DNSDistPacketCache localCache(settings);
   BOOST_CHECK_EQUAL(localCache.getSize(), 0U);
@@ -1012,6 +1014,7 @@ BOOST_AUTO_TEST_CASE(test_PCDNSSECCollision)
     .d_dontAge = false,
     .d_deferrableInsertLock = true,
     .d_parseECS = true,
+    .d_shuffle = false,
   };
   DNSDistPacketCache localCache(settings);
   BOOST_CHECK_EQUAL(localCache.getSize(), 0U);

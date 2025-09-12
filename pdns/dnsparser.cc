@@ -24,6 +24,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
 
+#include "dns_random.hh"
 #include "namespaces.hh"
 #include "noinitvector.hh"
 
@@ -983,6 +984,98 @@ void ageDNSPacket(char* packet, size_t length, uint32_t seconds, const dnsheader
 void ageDNSPacket(std::string& packet, uint32_t seconds, const dnsheader_aligned& aligned_dh)
 {
   ageDNSPacket(packet.data(), packet.length(), seconds, aligned_dh);
+}
+
+void shuffleDNSPacket(char* packet, size_t length, const dnsheader_aligned& aligned_dh)
+{
+  if (length < sizeof(dnsheader)) {
+    return;
+  }
+  try {
+    DNSPacketMangler dpm(packet, length);
+    const dnsheader* dhp = aligned_dh.get();
+    const uint16_t ancount = ntohs(dhp->ancount);
+    if (ancount == 1) {
+      // quick exit, nothing to shuffle
+      return;
+    }
+
+    const uint16_t qdcount = ntohs(dhp->qdcount);
+
+    for(size_t iter = 0; iter < qdcount; ++iter) {
+      dpm.skipDomainName();
+      /* type and class */
+      dpm.skipBytes(4);
+    }
+
+    // Shuffle only if here are only A or AAAA records in answer section,
+    // with the exception of non-A records at the start,
+    // and only if all their pointers are pointing to position the A records.
+    // As we shuffle by swapping memory directly, this is preventing
+    // breaking compression pointers.
+
+    if (ntohs(dhp->nscount) != 0) {
+      // Authority is non-empty - also don't shuffle.
+      return;
+    }
+
+    std::vector<uint32_t> indexes;
+    indexes.reserve(ancount);
+
+    for(size_t iter = 0; iter < ancount; ++iter) {
+      const uint32_t start = dpm.getOffset();
+
+      const std::optional<size_t> domain_pointer = dpm.skipDomainName();
+      const uint16_t dnstype = dpm.get16BitInt();
+
+      if (!(dnstype == QType::A || dnstype == QType::AAAA)) {
+        if (!indexes.empty()) {
+          // non-As after As started - bailing out
+          return;
+        }
+      } else {
+        indexes.push_back(start);
+        const bool pointer_before_as = domain_pointer.value_or(0) < indexes[0];
+        if (!pointer_before_as) {
+          // pointers could break by shuffling - bailing out
+          return;
+        }
+      }
+
+      /* class */
+      dpm.skipBytes(2);
+
+      /* ttl */
+      dpm.skipBytes(4);
+      dpm.skipRData();
+    }
+
+    indexes.push_back(dpm.getOffset());
+
+    if (indexes.size() > 2) {
+      using uid = std::uniform_int_distribution<std::vector<uint32_t>::size_type>;
+      uid dist;
+
+      pdns::dns_random_engine randomEngine;
+      for (auto swapped = indexes.size() - 2; swapped > 0; --swapped) {
+        auto swapped_with = dist(randomEngine, uid::param_type(0, swapped));
+        if (swapped != swapped_with) {
+          auto start_first = indexes[swapped_with];
+          auto end_first = indexes[swapped_with+1];
+          auto start_second = indexes[swapped];
+          auto end_second = indexes[swapped+1];
+          auto diff = dpm.swapInPlace(start_first, end_first, start_second, end_second);
+          if (diff != 0) {
+            for (auto moved = swapped_with+1; moved<swapped; moved++) {
+              indexes[moved] = indexes[moved]+diff;
+            }
+          }
+        }
+      }
+    }
+  }
+  catch(...) {
+  }
 }
 
 uint32_t getDNSPacketMinTTL(const char* packet, size_t length, bool* seenAuthSOA)
