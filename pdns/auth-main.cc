@@ -776,6 +776,14 @@ static void mainthread()
       exit(1); // NOLINT(concurrency-mt-unsafe) we're single threaded at this point
     }
   }
+  // - configurations involving communicator threads need at least one
+  //   such thread configured
+  if (::arg().mustDo("primary") || ::arg().mustDo("secondary") || !::arg()["forward-notify"].empty()) {
+    if (::arg().asNum("retrieval-threads", 1) <= 0) {
+      g_log << Logger::Error << R"(Error: primary or secondary operation requires "retrieval-threads" to be set to a nonzero value.)" << endl;
+      exit(1); // NOLINT(concurrency-mt-unsafe) we're single threaded at this point
+    }
+  }
   // (no more checks yet)
 
   PC.setTTL(::arg().asNum("cache-ttl"));

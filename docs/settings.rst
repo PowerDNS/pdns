@@ -844,6 +844,7 @@ Forward DNS updates sent to a secondary to the primary.
 ------------------
 
 -  IP addresses, separated by commas
+-  Default: empty
 
 IP addresses to forward received notifications to regardless of primary
 or secondary settings.
