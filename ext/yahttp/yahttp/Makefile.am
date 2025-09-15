@@ -11,3 +11,6 @@ libyahttp_la_SOURCES = \
 	utility.hpp \
 	yahttp-config.h \
 	yahttp.hpp
+
+EXTRA_DIST = \
+	meson.build

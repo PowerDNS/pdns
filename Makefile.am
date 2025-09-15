@@ -5,8 +5,12 @@ EXTRA_DIST = \
 	NOTICE \
 	README \
 	COPYING \
+	auth/systemd \
 	codedocs/doxygen.conf \
 	contrib/powerdns.solaris.init.d \
+	meson \
+	meson.build \
+	meson_options.txt \
 	pdns/named.conf.parsertest \
 	regression-tests/zones/unit.test \
 	regression-tests/zones/unit2.test \

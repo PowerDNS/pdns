@@ -13,3 +13,6 @@ DIST_SUBDIRS = \
 	pipebackend \
 	remotebackend \
 	tinydnsbackend
+
+EXTRA_DIST = \
+	meson.build
