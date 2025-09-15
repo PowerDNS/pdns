@@ -7,6 +7,7 @@ AM_CPPFLAGS += $(SYSTEMD_CFLAGS) \
 	$(NET_SNMP_CFLAGS) \
 	$(NGHTTP2_CFLAGS) \
 	$(LIBCAP_CFLAGS) \
+	$(IPCRYPT2_CFLAGS) \
 	-I$(top_srcdir)/ext/protozero/include \
 	-I$(top_srcdir)/dnsdist-rust-lib \
 	-I$(top_builddir)/dnsdist-rust-lib \
@@ -22,6 +23,7 @@ SUBDIRS=dnsdist-rust-lib \
 	dnsdist-rust-lib/rust \
 	ext/arc4random \
 	ext/ipcrypt \
+	ext/ipcrypt2 \
 	ext/yahttp
 
 CLEANFILES = \
@@ -204,6 +206,7 @@ dnsdist_SOURCES = \
 	dnsdist-healthchecks.cc dnsdist-healthchecks.hh \
 	dnsdist-idstate.cc dnsdist-idstate.hh \
 	dnsdist-internal-queries.cc dnsdist-internal-queries.hh \
+	dnsdist-ipcrypt2.cc dnsdist-ipcrypt2.hh \
 	dnsdist-kvs.hh dnsdist-kvs.cc \
 	dnsdist-lbpolicies.cc dnsdist-lbpolicies.hh \
 	dnsdist-lua-actions.cc \
@@ -439,6 +442,7 @@ dnsdist_LDADD = \
 	$(NET_SNMP_LIBS) \
 	$(LIBCAP_LIBS) \
 	$(IPCRYPT_LIBS) \
+	$(IPCRYPT2_LIBS) \
 	$(ARC4RANDOM_LIBS)
 
 testrunner_LDFLAGS = \
