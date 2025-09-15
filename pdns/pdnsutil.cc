@@ -1863,18 +1863,22 @@ static bool spawnEditor(const std::string& editor, std::string_view tmpfile, int
   switch (pid_t child = fork()) {
   case 0:
     {
-      std::array<const char *, 4> args{};
-      size_t pos{0};
+      std::vector<std::string> parts;
       std::string gotolinestr;
-      args.at(pos++) = editor.c_str();
+      stringtok(parts, editor, " \t");
       if (gotoline > 0) {
         // TODO: if editor is 'ed', skip this; if 'ex' or 'vi', use '-c number'
         gotolinestr = "+" + std::to_string(gotoline);
-        args.at(pos++) = gotolinestr.c_str();
+        parts.emplace_back(gotolinestr);
       }
-      args.at(pos++) = tmpfile.data();
-      args.at(pos++) = nullptr;
-      if (::execvp(args.at(0), const_cast<char **>(args.data())) != 0) { // NOLINT(cppcoreguidelines-pro-type-const-cast)
+      std::vector<const char*> argv;
+      argv.reserve(parts.size() + 2);
+      for (const auto& part : parts) {
+        argv.emplace_back(part.c_str());
+      }
+      argv.emplace_back(tmpfile.data());
+      argv.emplace_back(nullptr);
+      if (::execvp(argv.at(0), const_cast<char * const*>(argv.data())) != 0) { // NOLINT(cppcoreguidelines-pro-type-const-cast)
         ::exit(errno); // NOLINT(concurrency-mt-unsafe)
       }
       // std::unreachable();
