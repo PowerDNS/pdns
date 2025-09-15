@@ -354,6 +354,7 @@ void setupLuaActions(LuaContext& luaCtx)
     config.includeCNAME = includeCNAME ? *includeCNAME : false;
     getOptionalValue<std::string>(vars, "serverID", config.serverID);
     getOptionalValue<std::string>(vars, "ipEncryptKey", config.ipEncryptKey);
+    getOptionalValue<std::string>(vars, "ipEncryptMethod", config.ipEncryptMethod);
     getOptionalValue<std::string>(vars, "exportTags", tags);
     getOptionalValue<std::string>(vars, "exportExtendedErrorsToMeta", config.exportExtendedErrorsToMeta);
 
@@ -372,6 +373,9 @@ void setupLuaActions(LuaContext& luaCtx)
           config.tagsToExport->insert(std::move(token));
         }
       }
+    }
+    if (std::find(s_validIpEncryptMethods.begin(), s_validIpEncryptMethods.end(), config.ipEncryptMethod) == s_validIpEncryptMethods.end()) {
+      throw std::runtime_error("Invalid IP Encryption method in RemoteLogResponseAction");
     }
 
     checkAllParametersConsumed("RemoteLogResponseAction", vars);
