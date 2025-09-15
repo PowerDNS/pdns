@@ -133,6 +133,21 @@ Defaults to 100 on 32 bit systems, and 16000 on 64 bit systems.
 Instead of deleting items from the database, flag them as deleted in the item's `Lightning Stream <https://doc.powerdns.com/lightningstream>`_ header.
 Only enable this if you are using Lightning Stream.
 
+``lmdb-skip-notification-update``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+  .. versionadded:: 5.1.0
+
+-  Boolean
+-  Default: no
+
+Do not update the domains table in the database when the last notification
+timestamp is modified. These timestamps will only be written back to the
+database when other changes to the domain (such as accounts) occur.
+
+**Warning**: Running with this flag enabled will cause spurious notifications
+to be sent upon startup.
+
 ``lmdb-lightning-stream``
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 

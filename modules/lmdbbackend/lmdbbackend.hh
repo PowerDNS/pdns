@@ -337,8 +337,10 @@ private:
   int genChangeDomain(domainid_t id, const std::function<void(DomainInfo&)>& func);
   static void deleteDomainRecords(RecordsRWTransaction& txn, const std::string& match);
 
-  bool findDomain(const ZoneName& domain, DomainInfo& info);
-  bool findDomain(domainid_t domainid, DomainInfo& info);
+  bool findDomain(const ZoneName& domain, DomainInfo& info) const;
+  bool findDomain(domainid_t domainid, DomainInfo& info) const;
+  void consolidateDomainInfo(DomainInfo& info) const;
+  void writeDomainInfo(const DomainInfo& info);
 
   void getAllDomainsFiltered(vector<DomainInfo>* domains, const std::function<bool(DomainInfo&)>& allow);
 
@@ -353,6 +355,19 @@ private:
   static bool hasOrphanedNSEC3Record(MDBRWCursor& cursor, domainid_t domain_id, const DNSName& qname);
   static void deleteNSEC3RecordPair(const std::shared_ptr<RecordsRWTransaction>& txn, domainid_t domain_id, const DNSName& qname);
   void writeNSEC3RecordPair(const std::shared_ptr<RecordsRWTransaction>& txn, domainid_t domain_id, const DNSName& qname, const DNSName& ordername);
+
+  // Cache of DomainInfo notified_serial values
+  class SerialCache : public boost::noncopyable
+  {
+  public:
+    bool get(domainid_t domainid, uint32_t& serial) const;
+    void remove(domainid_t domainid);
+    void update(domainid_t domainid, uint32_t serial);
+
+  private:
+    std::unordered_map<domainid_t, uint32_t> d_serials;
+  };
+  static SharedLockGuarded<SerialCache> s_notified_serial;
 
   ZoneName d_lookupdomain;
   DNSName d_lookupsubmatch;
@@ -369,6 +384,7 @@ private:
   bool d_random_ids;
   bool d_handle_dups;
   bool d_views;
+  bool d_skip_notification_update;
   DTime d_dtime; // used only for logging
   uint64_t d_mapsize;
 };
