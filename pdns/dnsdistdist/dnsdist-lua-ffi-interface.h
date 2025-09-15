@@ -247,6 +247,10 @@ uint32_t dnsdist_ffi_dnspacket_get_record_ttl(const dnsdist_ffi_dnspacket_t* pac
 uint16_t dnsdist_ffi_dnspacket_get_record_content_length(const dnsdist_ffi_dnspacket_t* packet, size_t idx) __attribute__ ((visibility ("default")));
 uint16_t dnsdist_ffi_dnspacket_get_record_content_offset(const dnsdist_ffi_dnspacket_t* packet, size_t idx) __attribute__ ((visibility ("default")));
 size_t dnsdist_ffi_dnspacket_get_name_at_offset_raw(const char* packet, size_t packetSize, size_t offset, char* name, size_t nameSize) __attribute__ ((visibility ("default")));
+bool dnsdist_ffi_dnspacket_parse_a_record(const char* raw, const dnsdist_ffi_dnspacket_t* packet, size_t idx, char* addr, size_t* addrSize) __attribute__ ((visibility ("default")));
+bool dnsdist_ffi_dnspacket_parse_aaaa_record(const char* raw, const dnsdist_ffi_dnspacket_t* packet, size_t idx, char* addr, size_t* addrSize) __attribute__ ((visibility ("default")));
+bool dnsdist_ffi_dnspacket_parse_address_record(const char* raw, const dnsdist_ffi_dnspacket_t* packet, size_t idx, char* addr, size_t* addrSize) __attribute__ ((visibility ("default")));
+bool dnsdist_ffi_dnspacket_parse_cname_record(const char* raw, const dnsdist_ffi_dnspacket_t* packet, size_t idx, char* name, size_t* nameSize) __attribute__ ((visibility ("default")));
 void dnsdist_ffi_dnspacket_free(dnsdist_ffi_dnspacket_t*) __attribute__ ((visibility ("default")));
 
 bool dnsdist_ffi_metric_declare(const char* name, size_t nameLen, const char* type, const char* description, const char* customName) __attribute__ ((visibility ("default")));

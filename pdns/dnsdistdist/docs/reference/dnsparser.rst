@@ -42,6 +42,50 @@ and then to create a :class:`DNSPacketOverlay` object:
 
   :param str packet: The DNS payload
 
+
+.. function:: parseARecord(packet, record) -> ComboAddress
+
+  .. versionadded:: 2.1.0
+
+  Returns the address from a record, as a :ref:`ComboAddress`, if the record's type is A.
+  Nil is returned otherwise.
+
+  :param str packet: The DNS payload.
+  :param DNSRecord record: The record to parse, obtained via :meth:`DNSPacketOverlay:getRecord`.
+
+
+.. function:: parseAAAARecord(packet, record) -> ComboAddress
+
+  .. versionadded:: 2.1.0
+
+  Returns the address from a record, as a :ref:`ComboAddress`, if the record's type is AAAA.
+  Nil is returned otherwise.
+
+  :param str packet: The DNS payload.
+  :param DNSRecord record: The record to parse, obtained via :meth:`DNSPacketOverlay:getRecord`.
+
+
+.. function:: parseAddressRecord(packet, record) -> ComboAddress
+
+  .. versionadded:: 2.1.0
+
+  Returns the address from a record, as a :ref:`ComboAddress`, if the record's type is A or AAAA.
+  Nil is returned otherwise.
+
+  :param str packet: The DNS payload.
+  :param DNSRecord record: The record to parse, obtained via :meth:`DNSPacketOverlay:getRecord`.
+
+
+.. function:: parseCNAMERecord(packet, record) -> DNSName
+
+  .. versionadded:: 2.1.0
+
+  Returns the name from a record, as a :ref:`DNSName`, if the record's type is CNAME.
+  Nil is returned otherwise.
+
+  :param str packet: The DNS payload.
+  :param DNSRecord record: The record to parse, obtained via :meth:`DNSPacketOverlay:getRecord`.
+
 .. _DNSPacketOverlay:
 
 DNSPacketOverlay

@@ -22,6 +22,7 @@
 #pragma once
 
 #include "dnsparser.hh"
+#include "iputils.hh"
 
 namespace dnsdist
 {
@@ -60,6 +61,14 @@ namespace PacketMangling
   bool editDNSHeaderFromPacket(PacketBuffer& packet, const std::function<bool(dnsheader& header)>& editFunction);
   bool editDNSHeaderFromRawPacket(void* packet, const std::function<bool(dnsheader& header)>& editFunction);
   void restrictDNSPacketTTLs(PacketBuffer& packet, uint32_t minimumValue, uint32_t maximumValue = std::numeric_limits<uint32_t>::max(), const std::unordered_set<QType>& types = {});
+}
+
+namespace RecordParsers
+{
+  std::optional<ComboAddress> parseARecord(const std::string_view& packet, const DNSPacketOverlay::Record& record);
+  std::optional<ComboAddress> parseAAAARecord(const std::string_view& packet, const DNSPacketOverlay::Record& record);
+  std::optional<ComboAddress> parseAddressRecord(const std::string_view& packet, const DNSPacketOverlay::Record& record);
+  std::optional<DNSName> parseCNAMERecord(const std::string_view& packet, const DNSPacketOverlay::Record& record);
 }
 
 struct ResponseConfig

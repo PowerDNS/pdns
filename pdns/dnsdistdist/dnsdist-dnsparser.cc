@@ -21,6 +21,7 @@
  */
 #include "dnsdist-dnsparser.hh"
 #include "dnsparser.hh"
+#include "iputils.hh"
 
 namespace dnsdist
 {
@@ -236,6 +237,54 @@ namespace PacketMangling
     editDNSPacketTTL(reinterpret_cast<char*>(packet.data()), packet.size(), visitor);
   }
 
+}
+
+namespace RecordParsers
+{
+  std::optional<ComboAddress> parseARecord(const std::string_view& packet, const DNSPacketOverlay::Record& record)
+  {
+    if (record.d_type != QType::A || record.d_contentLength != 4) {
+      return {};
+    }
+
+    // NOLINTNEXTLINE(bugprone-suspicious-stringview-data-usage): length is passed in and used to read data
+    return makeComboAddressFromRaw(4, packet.substr(record.d_contentOffset, record.d_contentOffset + 4).data(), record.d_contentLength);
+  }
+
+  std::optional<ComboAddress> parseAAAARecord(const std::string_view& packet, const DNSPacketOverlay::Record& record)
+  {
+    if (record.d_type != QType::AAAA || record.d_contentLength != 16) {
+      return {};
+    }
+
+    // NOLINTNEXTLINE(bugprone-suspicious-stringview-data-usage): length is passed in and used to read data
+    return makeComboAddressFromRaw(6, packet.substr(record.d_contentOffset, record.d_contentOffset + 16).data(), record.d_contentLength);
+  }
+
+  std::optional<ComboAddress> parseAddressRecord(const std::string_view& packet, const DNSPacketOverlay::Record& record)
+  {
+    if (record.d_type == QType::A && record.d_contentLength == 4) {
+      // NOLINTNEXTLINE(bugprone-suspicious-stringview-data-usage): length is passed in and used to read data
+      return makeComboAddressFromRaw(4, packet.substr(record.d_contentOffset, record.d_contentOffset + 4).data(), record.d_contentLength);
+    }
+
+    if (record.d_type == QType::AAAA && record.d_contentLength == 16) {
+      // NOLINTNEXTLINE(bugprone-suspicious-stringview-data-usage): length is passed in and used to read data
+      return makeComboAddressFromRaw(6, packet.substr(record.d_contentOffset, record.d_contentOffset + 16).data(), record.d_contentLength);
+    }
+
+    return {};
+  }
+
+  std::optional<DNSName> parseCNAMERecord(const std::string_view& packet, const DNSPacketOverlay::Record& record)
+  {
+    if (record.d_type != QType::CNAME) {
+      return {};
+    }
+
+    // NOLINTNEXTLINE(bugprone-suspicious-stringview-data-usage): length is passed in and used to read data
+    return DNSName(packet.data(), record.d_contentOffset + record.d_contentLength, record.d_contentOffset, true);
+  }
 }
 
 void setResponseHeadersFromConfig(dnsheader& dnsheader, const ResponseConfig& config)
