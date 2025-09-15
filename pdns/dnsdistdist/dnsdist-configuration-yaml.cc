@@ -1675,6 +1675,7 @@ std::shared_ptr<DNSResponseActionWrapper> getRemoteLogResponseAction(const Remot
   actionConfig.logger = std::move(logger);
   actionConfig.serverID = std::string(config.server_id);
   actionConfig.ipEncryptKey = std::string(config.ip_encrypt_key);
+  actionConfig.ipEncryptMethod = std::string(config.ip_encrypt_method);
   actionConfig.includeCNAME = config.include_cname;
   for (const auto& meta : config.metas) {
     actionConfig.metas.emplace_back(std::string(meta.key), ProtoBufMetaKey(std::string(meta.value)));
