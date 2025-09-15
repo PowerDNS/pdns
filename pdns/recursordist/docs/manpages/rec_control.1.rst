@@ -53,6 +53,11 @@ Options
 
 Commands
 --------
+add-cookies-unsupported *IP* [*IP*...]
+    Add non-expiring IPs of servers that do not support cookies to the cookie table.
+    Optionally *IP:port* can be specified, the default is to use port 53.
+    The listed addresses will be placed as ``Unsupported`` in the cookie support table and will not be pruned.
+
 add-dont-throttle-names *NAME* [*NAME*...]
     Add names for nameserver domains that may not be throttled.
 
@@ -69,6 +74,10 @@ add-ta *DOMAIN* *DSRECORD*
 
 current-queries
     Shows the currently active queries.
+
+clear-cookies [*IP*...]
+    Remove entries from cookie table. If *IP* is ``*``, remove all.
+    Optionally *IP:port* can be specified, the default is to use port 53.
 
 clear-dont-throttle-names *NAME* [*NAME*...]
     Remove names that are not allowed to be throttled. If *NAME* is ``*``, remove all
@@ -93,6 +102,9 @@ dump-cache *FILENAME* [*TYPE*...]
     the packet cache and the aggressive NSEC cache are dumped. To
     select specific caches specify one or more *TYPE*s, separated
     by spaces. The value of *TYPE* can be r, n, p or a.
+
+dump-cookies *FILENAME*
+    Dump the cookie store.
 
 dump-dot-probe-map *FILENAME*
     Dump the contents of the DoT probe map to the *FILENAME* mentioned.

@@ -1357,6 +1357,60 @@
         'snmp': 152,
     },
     {
+        'name': 'ecs-missing',
+        'lambda': '[] { return g_Counters.sum(rec::Counter::ecsMissingCount); }',
+        'desc': 'Number of answers where ECS info was missing',
+        'snmp': 153,
+    },
+    {
+        'name': 'cookie-malformed',
+        'lambda': '[] { return g_Counters.sum(rec::Counter::cookieMalformed); }',
+        'desc': 'Number of malformed cookies received',
+        'snmp': 154,
+    },
+    {
+        'name': 'cookie-matched',
+        'lambda': '[] { return g_Counters.sum(rec::Counter::cookieMatched); }',
+        'desc': 'Number of matching cookies received',
+        'snmp': 155,
+    },
+    {
+        'name': 'cookie-mismatch-tcp',
+        'lambda': '[] { return g_Counters.sum(rec::Counter::cookieMismatchedOverTCP); }',
+        'desc': 'Number of mismatched cookies received over TCP',
+        'snmp': 156,
+    },
+    {
+        'name': 'cookie-mismatch-udp',
+        'lambda': '[] { return g_Counters.sum(rec::Counter::cookieMismatchedOverUDP); }',
+        'desc': 'Number of mismatched cookies received over UDP',
+        'snmp': 157,
+    },
+    {
+        'name': 'cookie-not-in-reply',
+        'lambda': '[] { return g_Counters.sum(rec::Counter::cookieNotInReply); }',
+        'desc': 'Number of times an authoritative server sent a reply without a cookie',
+        'snmp': 158,
+    },
+    {
+        'name': 'cookie-retry',
+        'lambda': '[] { return g_Counters.sum(rec::Counter::cookieRetry); }',
+        'desc': 'Number of retries because authoritative server sent a BADCOOKIE reply',
+        'snmp': 159,
+    },
+    {
+        'name': 'cookies-supported',
+        'lambda': '[] { return g_Counters.sum(rec::Counter::cookieProbeSupported); }',
+        'desc': 'Number of authoritative server cookie probes resulting in success',
+        'snmp': 160,
+    },
+    {
+        'name': 'cookies-unsupported',
+        'lambda': '[] { return g_Counters.sum(rec::Counter::cookieProbeUnsupported); }',
+        'desc': 'Number of authoritative server cookie probes not resulting in success',
+        'snmp': 161,
+    },
+    {
         'name': 'remote-logger-count',
         'lambda':  '''[]() {
     return toRemoteLoggerStatsMap("remote-logger-count");
@@ -1400,11 +1454,5 @@
         'ptype': 'multicounter',
         'pname': 'proxy-mapping-total-n-0', # For multicounters, state the first
         # No SNMP
-    },
-    {
-        'name': 'ecs-missing',
-        'lambda': '[] { return g_Counters.sum(rec::Counter::ecsMissingCount); }',
-        'desc': 'Number of answers where ECS info was missing',
-        'snmp': 153,
     },
 ]

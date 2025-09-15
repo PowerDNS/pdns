@@ -39,7 +39,7 @@ public:
 
   struct Connection
   {
-    std::string toString() const
+    [[nodiscard]] std::string toString() const
     {
       if (d_handler) {
         return std::to_string(d_handler->getDescriptor()) + ' ' + std::to_string(d_handler.use_count());
@@ -48,27 +48,30 @@ public:
     }
 
     std::shared_ptr<TCPIOHandler> d_handler;
+    std::optional<ComboAddress> d_local;
     timeval d_last_used{0, 0};
     size_t d_numqueries{0};
   };
 
-  void store(const struct timeval& now, const ComboAddress& ip, Connection&& connection);
-  Connection get(const ComboAddress& ip);
+  using endpoints_t = std::pair<ComboAddress, std::optional<ComboAddress>>;
+
+  void store(const struct timeval& now, const endpoints_t& endpoints, Connection&& connection);
+  Connection get(const endpoints_t& pair);
   void cleanup(const struct timeval& now);
 
-  size_t size() const
+  [[nodiscard]] size_t size() const
   {
     return d_idle_connections.size();
   }
-  uint64_t* getSize() const
+  [[nodiscard]] uint64_t* getSize() const
   {
-    return new uint64_t(size());
+    return new uint64_t(size()); // NOLINT(cppcoreguidelines-owning-memory): it's the API
   }
 
 private:
   // This does not take into account that we can have multiple connections with different hosts (via SNI) to the same IP.
   // That is OK, since we are connecting by IP only at the moment.
-  std::multimap<ComboAddress, Connection> d_idle_connections;
+  std::multimap<endpoints_t, Connection> d_idle_connections;
 };
 
 extern thread_local TCPOutConnectionManager t_tcp_manager;

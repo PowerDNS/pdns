@@ -3618,4 +3618,28 @@ Sequence of ForwardingCatalogZone. This setting cannot be combined with :ref:`se
         'versionadded': '5.2.0',
         'runtime': ['reload-lua-config', 'reload-yaml'],
     },
+    {
+        'name' : 'cookies',
+        'section' : 'outgoing',
+        'oldname': 'outgoing-cookies',
+        'type': LType.Bool,
+        'default': 'false',
+        'help': 'Enable DNS cookies when contacting authoritative servers or forwarders',
+        'doc': '''
+Enable DNS cookies (:rfc:`7873`, :rfc:`9018`) when contacting authoritative servers or forwarders.
+''',
+        'versionadded': '5.3.0',
+    },
+    {
+        'name' : 'cookies_unsupported',
+        'section' : 'outgoing',
+        'oldname': 'outgoing-cookies-unsupported',
+        'type': LType.ListSocketAddresses,
+        'default': '',
+        'help': 'Addresses (with optional port) of authoritative servers that do not support cookies',
+        'doc': '''
+Addresses of servers that do not properly support DNS cookies (:rfc:`7873`, :rfc:`9018`). Recursor wil not even try to probe these servers for cookie support. If no port is specified port 53 is used.
+''',
+        'versionadded': '5.3.0',
+    },
 ]

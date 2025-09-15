@@ -1796,3 +1796,17 @@ UniqueFilePtr openFileForWriting(const std::string& filePath, mode_t permissions
 }
 
 }
+
+const char* timestamp(time_t arg, timebuf_t& buf)
+{
+  const std::string s_timestampFormat = "%Y-%m-%dT%T";
+  struct tm tmval{};
+  size_t len = strftime(buf.data(), buf.size(), s_timestampFormat.c_str(), localtime_r(&arg, &tmval));
+  if (len == 0) {
+    int ret = snprintf(buf.data(), buf.size(), "%lld", static_cast<long long>(arg));
+    if (ret < 0 || static_cast<size_t>(ret) >= buf.size()) {
+      buf[0] = '\0';
+    }
+  }
+  return buf.data();
+}

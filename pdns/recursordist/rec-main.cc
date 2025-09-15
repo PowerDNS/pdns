@@ -2203,6 +2203,9 @@ static int serviceMain(Logr::log_t log)
   g_paddingOutgoing = ::arg().mustDo("edns-padding-out");
   g_ECSHardening = ::arg().mustDo("edns-subnet-harden");
 
+  // Ignong errors return value, as YAML parsing already checked the format of the entries.
+  enableOutgoingCookies(::arg().mustDo("outgoing-cookies"), ::arg()["outgoing-cookies-unsupported"]);
+
   RecThreadInfo::setNumDistributorThreads(::arg().asNum("distributor-threads"));
   RecThreadInfo::setNumUDPWorkerThreads(::arg().asNum("threads"));
   if (RecThreadInfo::numUDPWorkers() < 1) {
@@ -2552,6 +2555,11 @@ static void houseKeepingWork(Logr::log_t log)
     static PeriodicTask pruneSaveParentSetTask{"pruneSaveParentSetTask", 60};
     pruneSaveParentSetTask.runIfDue(now, [now]() {
       SyncRes::pruneSaveParentsNSSets(now.tv_sec);
+    });
+
+    static PeriodicTask pruneCookiesTask{"pruneCookiesTask", 30};
+    pruneCookiesTask.runIfDue(now, [now]() {
+      pruneCookies(now.tv_sec - 3000);
     });
 
     // By default, refresh at 80% of max-cache-ttl with a minimum period of 10s

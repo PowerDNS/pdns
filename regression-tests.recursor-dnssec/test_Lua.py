@@ -338,10 +338,7 @@ quiet=no
             reactor.listenUDP(port, UDPHooksResponder(), interface=address)
             hooksReactorRunning = True
 
-        if not reactor.running:
-            cls._UDPResponder = threading.Thread(name='UDP Hooks Responder', target=reactor.run, args=(False,))
-            cls._UDPResponder.setDaemon(True)
-            cls._UDPResponder.start()
+        cls.startReactor()
 
     def testNoData(self):
         expected = dns.rrset.from_text('nodata.luahooks.example.', 3600, dns.rdataclass.IN, 'AAAA', '2001:DB8::1')

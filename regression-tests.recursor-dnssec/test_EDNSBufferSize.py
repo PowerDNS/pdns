@@ -65,11 +65,7 @@ edns-outgoing-bufsize=%d
             reactor.listenUDP(port, UDPLargeResponder(), interface=address)
             ednsBufferReactorRunning = True
 
-        if not reactor.running:
-            cls._UDPResponder = threading.Thread(
-                name='UDP Responder', target=reactor.run, args=(False,))
-            cls._UDPResponder.setDaemon(True)
-            cls._UDPResponder.start()
+        cls.startReactor()
 
     def getMessage(self, testnum, payload=0):
         do_edns = payload > 0
