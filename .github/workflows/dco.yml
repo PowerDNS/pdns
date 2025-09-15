@@ -11,3 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: KineticCafe/actions-dco@1c23966ecce077f76671a61caabeb13eefc72a51 # 1.3.8
+        with:
+          exempt-authors: |
+            @powerdns.com
+            @open-xchange.com
