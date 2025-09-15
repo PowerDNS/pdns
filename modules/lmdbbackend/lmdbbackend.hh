@@ -310,6 +310,9 @@ private:
   int genChangeDomain(uint32_t id, const std::function<void(DomainInfo&)>& func);
   void deleteDomainRecords(RecordsRWTransaction& txn, uint32_t domain_id, uint16_t qtype = QType::ANY);
 
+  bool findDomain(const DNSName& domain, DomainInfo& info);
+  bool findDomain(uint32_t domainid, DomainInfo& info);
+
   void getAllDomainsFiltered(vector<DomainInfo>* domains, const std::function<bool(DomainInfo&)>& allow);
 
   bool getSerial(DomainInfo& di);
