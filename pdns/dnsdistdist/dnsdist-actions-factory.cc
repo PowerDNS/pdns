@@ -1772,8 +1772,11 @@ class RemoteLogResponseAction : public DNSResponseAction, public boost::noncopya
 public:
   // this action does not stop the processing
   RemoteLogResponseAction(RemoteLogActionConfiguration& config) :
-    d_tagsToExport(std::move(config.tagsToExport)), d_metas(std::move(config.metas)), d_logger(config.logger), d_alterFunc(std::move(config.alterResponseFunc)), d_serverID(config.serverID), d_ipEncryptKey(config.ipEncryptKey), d_exportExtendedErrorsToMeta(std::move(config.exportExtendedErrorsToMeta)), d_includeCNAME(config.includeCNAME)
+    d_tagsToExport(std::move(config.tagsToExport)), d_metas(std::move(config.metas)), d_logger(config.logger), d_alterFunc(std::move(config.alterResponseFunc)), d_serverID(config.serverID), d_ipEncryptKey(config.ipEncryptKey), d_ipEncryptMethod(config.ipEncryptMethod), d_exportExtendedErrorsToMeta(std::move(config.exportExtendedErrorsToMeta)), d_includeCNAME(config.includeCNAME)
   {
+    if (!d_ipEncryptKey.empty() && d_ipEncryptMethod == "ipcrypt-pfx") {
+      d_ipcrypt2 = pdns::ipcrypt2::IPCrypt2(pdns::ipcrypt2::IPCryptMethod::pfx, d_ipEncryptKey);
+    }
   }
   DNSResponseAction::Action operator()(DNSResponse* response, std::string* ruleresult) const override
   {
@@ -1791,10 +1794,15 @@ public:
     }
 
 #ifdef HAVE_IPCIPHER
-    if (!d_ipEncryptKey.empty()) {
+    if (!d_ipEncryptKey.empty() && d_ipEncryptMethod == "legacy") {
       message.setRequestor(encryptCA(response->ids.origRemote, d_ipEncryptKey));
     }
 #endif /* HAVE_IPCIPHER */
+    if (d_ipcrypt2) {
+      auto encryptedAddress = d_ipcrypt2->encrypt(response->ids.origRemote);
+      encryptedAddress.setPort(response->ids.origRemote.getPort());
+      message.setRequestor(encryptedAddress);
+    }
 
     if (d_tagsToExport) {
       addTagsToProtobuf(message, *response, *d_tagsToExport);
@@ -1833,6 +1841,8 @@ private:
   std::optional<std::function<void(DNSResponse*, DNSDistProtoBufMessage*)>> d_alterFunc;
   std::string d_serverID;
   std::string d_ipEncryptKey;
+  std::string d_ipEncryptMethod;
+  std::optional<pdns::ipcrypt2::IPCrypt2> d_ipcrypt2{std::nullopt};
   std::optional<std::string> d_exportExtendedErrorsToMeta{std::nullopt};
   bool d_includeCNAME;
 };
