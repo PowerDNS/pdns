@@ -113,6 +113,7 @@ struct RemoteLogActionConfiguration
   std::shared_ptr<RemoteLoggerInterface> logger;
   std::string serverID;
   std::string ipEncryptKey;
+  std::string ipEncryptMethod{"legacy"};
   std::optional<std::string> exportExtendedErrorsToMeta{std::nullopt};
   bool includeCNAME{false};
 };

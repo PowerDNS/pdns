@@ -19,6 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include <optional>
 #include <unordered_map>
 
 #include "dnsdist-actions-factory.hh"
@@ -44,6 +45,8 @@
 #include "ednsoptions.hh"
 #include "fstrm_logger.hh"
 #include "ipcipher.hh"
+#include "dnsdist-ipcrypt2.hh"
+#include "iputils.hh"
 #include "remote_logger.hh"
 #include "svc-records.hh"
 #include "threadname.hh"
@@ -1598,8 +1601,11 @@ class RemoteLogAction : public DNSAction, public boost::noncopyable
 public:
   // this action does not stop the processing
   RemoteLogAction(RemoteLogActionConfiguration& config) :
-    d_tagsToExport(std::move(config.tagsToExport)), d_metas(std::move(config.metas)), d_logger(config.logger), d_alterFunc(std::move(config.alterQueryFunc)), d_serverID(config.serverID), d_ipEncryptKey(config.ipEncryptKey)
+    d_tagsToExport(std::move(config.tagsToExport)), d_metas(std::move(config.metas)), d_logger(config.logger), d_alterFunc(std::move(config.alterQueryFunc)), d_serverID(config.serverID), d_ipEncryptKey(config.ipEncryptKey), d_ipEncryptMethod(config.ipEncryptMethod)
   {
+    if (!d_ipEncryptKey.empty() && d_ipEncryptMethod == "ipcrypt-pfx") {
+      d_ipcrypt2 = pdns::ipcrypt2::IPCrypt2(pdns::ipcrypt2::IPCryptMethod::pfx, d_ipEncryptKey);
+    }
   }
 
   DNSAction::Action operator()(DNSQuestion* dnsquestion, std::string* ruleresult) const override
@@ -1618,10 +1624,15 @@ public:
     }
 
 #ifdef HAVE_IPCIPHER
-    if (!d_ipEncryptKey.empty()) {
+    if (!d_ipEncryptKey.empty() && d_ipEncryptMethod == "legacy") {
       message.setRequestor(encryptCA(dnsquestion->ids.origRemote, d_ipEncryptKey));
     }
 #endif /* HAVE_IPCIPHER */
+    if (d_ipcrypt2) {
+      auto encryptedAddress = d_ipcrypt2->encrypt(dnsquestion->ids.origRemote);
+      encryptedAddress.setPort(dnsquestion->ids.origRemote.getPort());
+      message.setRequestor(encryptedAddress);
+    }
 
     if (d_tagsToExport) {
       addTagsToProtobuf(message, *dnsquestion, *d_tagsToExport);
@@ -1656,6 +1667,8 @@ private:
   std::optional<std::function<void(DNSQuestion*, DNSDistProtoBufMessage*)>> d_alterFunc;
   std::string d_serverID;
   std::string d_ipEncryptKey;
+  std::string d_ipEncryptMethod;
+  std::optional<pdns::ipcrypt2::IPCrypt2> d_ipcrypt2{std::nullopt};
 };
 
 #endif /* DISABLE_PROTOBUF */
