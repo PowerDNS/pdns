@@ -471,25 +471,26 @@ BOOST_AUTO_TEST_CASE(test_Overlay)
     pwR.getHeader()->ra = 1;
     pwR.getHeader()->id = htons(42);
     pwR.startRecord(target, QType::A, 7200, QClass::IN, DNSResourceRecord::ANSWER);
-    ComboAddress v4("192.0.2.1");
-    pwR.xfrCAWithoutPort(4, v4);
+    ComboAddress addrV4("192.0.2.1");
+    pwR.xfrCAWithoutPort(4, addrV4);
     pwR.commit();
     pwR.startRecord(target, QType::AAAA, 7200, QClass::IN, DNSResourceRecord::ADDITIONAL);
-    ComboAddress v6("2001:db8::1");
-    pwR.xfrCAWithoutPort(6, v6);
+    ComboAddress addrV6("2001:db8::1");
+    pwR.xfrCAWithoutPort(6, addrV6);
     pwR.commit();
     pwR.addOpt(4096, 0, 0);
     pwR.commit();
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): this is the API we have
     auto packet = std::string_view(reinterpret_cast<const char*>(response.data()), response.size());
     dnsdist::DNSPacketOverlay overlay(packet);
     BOOST_CHECK_EQUAL(overlay.d_records[0].d_type, QType::A);
-    BOOST_CHECK(*dnsdist::RecordParsers::parseARecord(packet, overlay.d_records[0]) == v4);
-    BOOST_CHECK(*dnsdist::RecordParsers::parseAddressRecord(packet, overlay.d_records[0]) == v4);
+    BOOST_CHECK(*dnsdist::RecordParsers::parseARecord(packet, overlay.d_records[0]) == addrV4);
+    BOOST_CHECK(*dnsdist::RecordParsers::parseAddressRecord(packet, overlay.d_records[0]) == addrV4);
 
     BOOST_CHECK_EQUAL(overlay.d_records[1].d_type, QType::AAAA);
-    BOOST_CHECK(*dnsdist::RecordParsers::parseAAAARecord(packet, overlay.d_records[1]) == v6);
-    BOOST_CHECK(*dnsdist::RecordParsers::parseAddressRecord(packet, overlay.d_records[1]) == v6);
+    BOOST_CHECK(*dnsdist::RecordParsers::parseAAAARecord(packet, overlay.d_records[1]) == addrV6);
+    BOOST_CHECK(*dnsdist::RecordParsers::parseAddressRecord(packet, overlay.d_records[1]) == addrV6);
   }
 
   {
@@ -506,6 +507,7 @@ BOOST_AUTO_TEST_CASE(test_Overlay)
     pwR.addOpt(4096, 0, 0);
     pwR.commit();
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): this is the API we have
     auto packet = std::string_view(reinterpret_cast<const char*>(response.data()), response.size());
     dnsdist::DNSPacketOverlay overlay(packet);
     BOOST_CHECK_EQUAL(overlay.d_records[0].d_type, QType::CNAME);
