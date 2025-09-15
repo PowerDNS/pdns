@@ -1761,46 +1761,46 @@ static void setupLuaRecords(LuaContext& lua)
 
 std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, const DNSName& query, const DNSZoneRecord& zone_record, const DNSName& zone, const DNSPacket& dnsp, uint16_t qtype, unique_ptr<AuthLua4>& LUA)
 {
-  if(!LUA ||                  // we don't have a Lua state yet
-     !g_LuaRecordSharedState) { // or we want a new one even if we had one
-    LUA = make_unique<AuthLua4>(::arg()["lua-global-include-dir"]);
-    setupLuaRecords(*LUA->getLua());
-  }
-
   std::vector<shared_ptr<DNSRecordContent>> ret;
 
-  LuaContext& lua = *LUA->getLua();
-
-  s_lua_record_ctx = std::make_unique<lua_record_ctx_t>();
-  s_lua_record_ctx->qname = query;
-  s_lua_record_ctx->zone_record = zone_record;
-  s_lua_record_ctx->zone = zone;
-  s_lua_record_ctx->remote = dnsp.getRealRemote();
-
-  lua.writeVariable("qname", query);
-  lua.writeVariable("zone", zone);
-  lua.writeVariable("zoneid", zone_record.domain_id);
-  lua.writeVariable("who", dnsp.getInnerRemote());
-  lua.writeVariable("localwho", dnsp.getLocal());
-  lua.writeVariable("dh", (dnsheader*)&dnsp.d);
-  lua.writeVariable("dnssecOK", dnsp.d_dnssecOk);
-  lua.writeVariable("tcp", dnsp.d_tcp);
-  lua.writeVariable("ednsPKTSize", dnsp.d_ednsRawPacketSizeLimit);
-  if(dnsp.hasEDNSSubnet()) {
-    lua.writeVariable("ecswho", dnsp.getRealRemote());
-    s_lua_record_ctx->bestwho = dnsp.getRealRemote().getNetwork();
-  }
-  else {
-    lua.writeVariable("ecswho", nullptr);
-    s_lua_record_ctx->bestwho = dnsp.getInnerRemote();
-  }
-  lua.writeVariable("bestwho", s_lua_record_ctx->bestwho);
-
-  if (g_luaRecordExecLimit > 0) {
-    lua.executeCode(boost::str(boost::format("debug.sethook(report, '', %d)") % g_luaRecordExecLimit));
-  }
-
   try {
+    if(!LUA ||                  // we don't have a Lua state yet
+       !g_LuaRecordSharedState) { // or we want a new one even if we had one
+      LUA = make_unique<AuthLua4>(::arg()["lua-global-include-dir"]);
+      setupLuaRecords(*LUA->getLua());
+    }
+
+    LuaContext& lua = *LUA->getLua();
+
+    s_lua_record_ctx = std::make_unique<lua_record_ctx_t>();
+    s_lua_record_ctx->qname = query;
+    s_lua_record_ctx->zone_record = zone_record;
+    s_lua_record_ctx->zone = zone;
+    s_lua_record_ctx->remote = dnsp.getRealRemote();
+
+    lua.writeVariable("qname", query);
+    lua.writeVariable("zone", zone);
+    lua.writeVariable("zoneid", zone_record.domain_id);
+    lua.writeVariable("who", dnsp.getInnerRemote());
+    lua.writeVariable("localwho", dnsp.getLocal());
+    lua.writeVariable("dh", static_cast<const dnsheader*>(&dnsp.d));
+    lua.writeVariable("dnssecOK", dnsp.d_dnssecOk);
+    lua.writeVariable("tcp", dnsp.d_tcp);
+    lua.writeVariable("ednsPKTSize", dnsp.d_ednsRawPacketSizeLimit);
+    if(dnsp.hasEDNSSubnet()) {
+      lua.writeVariable("ecswho", dnsp.getRealRemote());
+      s_lua_record_ctx->bestwho = dnsp.getRealRemote().getNetwork();
+    }
+    else {
+      lua.writeVariable("ecswho", nullptr);
+      s_lua_record_ctx->bestwho = dnsp.getInnerRemote();
+    }
+    lua.writeVariable("bestwho", s_lua_record_ctx->bestwho);
+
+    if (g_luaRecordExecLimit > 0) {
+      lua.executeCode(boost::str(boost::format("debug.sethook(report, '', %d)") % g_luaRecordExecLimit));
+    }
+
     string actual;
     if(!code.empty() && code[0]!=';')
       actual = "return " + code;
