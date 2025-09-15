@@ -1,5 +1,6 @@
 AM_CPPFLAGS += \
 	-I$(top_srcdir)/ext/json11 \
+	-I$(top_srcdir)/ext/protozero/include \
 	$(YAHTTP_CFLAGS) \
 	$(LIBCRYPTO_CFLAGS) \
 	$(LIBCRYPTO_INCLUDES) \
