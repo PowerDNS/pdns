@@ -97,6 +97,7 @@ dep_pdns = declare_dependency(include_directories: include_directories('.', src_
 # Ext
 subdir('ext' / 'arc4random')
 subdir('ext' / 'ipcrypt')
+subdir('ext' / 'ipcrypt2')
 subdir('ext' / 'json11')
 subdir('ext' / 'luawrapper')
 subdir('ext' / 'protozero')
@@ -143,6 +144,7 @@ common_sources += files(
   src_dir / 'dnsdist-healthchecks.cc',
   src_dir / 'dnsdist-idstate.cc',
   src_dir / 'dnsdist-internal-queries.cc',
+  src_dir / 'dnsdist-ipcrypt2.cc',
   src_dir / 'dnsdist-kvs.cc',
   src_dir / 'dnsdist-lbpolicies.cc',
   src_dir / 'dnsdist-lua-actions.cc',
@@ -381,6 +383,7 @@ deps = [
   dep_dnstap,
   dep_htmlfiles,
   dep_ipcrypt,
+  dep_ipcrypt2,
   dep_libcap,
   dep_libcrypto,
   dep_gnutls,

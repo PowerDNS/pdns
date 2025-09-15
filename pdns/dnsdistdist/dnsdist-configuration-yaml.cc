@@ -1643,6 +1643,7 @@ std::shared_ptr<DNSActionWrapper> getRemoteLogAction(const RemoteLogActionConfig
   actionConfig.logger = std::move(logger);
   actionConfig.serverID = std::string(config.server_id);
   actionConfig.ipEncryptKey = std::string(config.ip_encrypt_key);
+  actionConfig.ipEncryptMethod = std::string(config.ip_encrypt_method);
   for (const auto& meta : config.metas) {
     actionConfig.metas.emplace_back(std::string(meta.key), ProtoBufMetaKey(std::string(meta.value)));
   }
