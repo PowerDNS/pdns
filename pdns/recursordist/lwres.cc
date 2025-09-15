@@ -58,14 +58,17 @@
 
 static bool g_cookies = false;
 
-void enableOutgoingCookies(bool flag, const string& unsupported)
+std::string enableOutgoingCookies(bool flag, const string& unsupported)
 {
   g_cookies = flag;
   if (g_cookies) {
     std::vector<std::string> parts;
     stringtok(parts, unsupported, ", ");
-    addCookiesUnsupported(parts.begin(), parts.end());
+    std::string errors;
+    addCookiesUnsupported(parts.begin(), parts.end(), errors);
+    return errors;
   }
+  return {};
 }
 
 thread_local TCPOutConnectionManager t_tcp_manager;
@@ -75,7 +78,7 @@ bool g_ECSHardening;
 
 static LockGuarded<CookieStore> s_cookiestore;
 
-uint64_t addCookiesUnsupported(vector<string>::iterator begin, vector<string>::iterator end)
+uint64_t addCookiesUnsupported(vector<string>::iterator begin, vector<string>::iterator end, string& errors)
 {
   auto lock = s_cookiestore.lock();
   uint64_t count = 0;
@@ -90,15 +93,18 @@ uint64_t addCookiesUnsupported(vector<string>::iterator begin, vector<string>::i
       }
       ++count;
     }
-    catch (const PDNSException&) {
-      ;
+    catch (const PDNSException& error) {
+      if (!errors.empty()) {
+        errors += ", ";
+      }
+      errors += error.reason;
     }
     ++begin;
   }
   return count;
 }
 
-uint64_t clearCookies(vector<string>::iterator begin, vector<string>::iterator end)
+uint64_t clearCookies(vector<string>::iterator begin, vector<string>::iterator end, string& errors)
 {
   auto lock = s_cookiestore.lock();
   uint64_t count = 0;
@@ -114,8 +120,11 @@ uint64_t clearCookies(vector<string>::iterator begin, vector<string>::iterator e
       try {
         count += lock->erase(ComboAddress(*begin, 53));
       }
-      catch (const PDNSException&) {
-        ;
+      catch (const PDNSException& error) {
+        if (!errors.empty()) {
+          errors += ", ";
+        }
+        errors += error.reason;
       }
       ++begin;
     }
@@ -493,7 +502,7 @@ static void outgoingCookie(const OptLog& log, const ComboAddress& address, const
       cookieSentOut = found->d_cookie;
       addressToBindTo = found->d_localaddress;
       opts.emplace_back(EDNSOptionCode::COOKIE, cookieSentOut->makeOptString());
-      found->d_lastupdate = now.tv_sec;
+      found->d_lastused = now.tv_sec;
       VLOG(log, "Sending stored cookie info to " << address.toString() << ": " << found->d_cookie.toDisplayString() << endl);
       break;
     case CookieEntry::Support::Unsupported:

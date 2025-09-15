@@ -50,7 +50,7 @@ uint64_t CookieStore::dump(int fileDesc) const
             entry.d_address.toStringWithPortExcept(53).c_str(), entry.d_localaddress.toString().c_str(),
             entry.d_cookie.toDisplayString().c_str(),
             CookieEntry::toString(entry.d_support).c_str(),
-            entry.d_lastupdate == std::numeric_limits<time_t>::max() ? "Forever" : timestamp(entry.d_lastupdate, tmp));
+            entry.d_lastused == std::numeric_limits<time_t>::max() ? "Forever" : timestamp(entry.d_lastused, tmp));
   }
   return count;
 }

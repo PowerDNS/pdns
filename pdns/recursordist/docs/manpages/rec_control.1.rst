@@ -55,6 +55,8 @@ Commands
 --------
 add-cookies-unsupported *IP* [*IP*...]
     Add non-expiring IPs of servers that do not support cookies to the cookie table.
+    Optionally *IP:port* can be specified, the default is to use port 53.
+    The listed addresses will be placed as ``Unsupported`` in the cookie support table and will not be pruned.
 
 add-dont-throttle-names *NAME* [*NAME*...]
     Add names for nameserver domains that may not be throttled.
@@ -75,6 +77,7 @@ current-queries
 
 clear-cookies [*IP*...]
     Remove entries from cookie table. If *IP* is ``*``, remove all.
+    Optionally *IP:port* can be specified, the default is to use port 53.
 
 clear-dont-throttle-names *NAME* [*NAME*...]
     Remove names that are not allowed to be throttled. If *NAME* is ``*``, remove all

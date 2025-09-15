@@ -106,7 +106,7 @@ packetcache:
         tcp2 = self.recControl(confdir, 'get tcp-outqueries')
         self.assertEqual(tcp1, tcp2)
 
-        # Case: we get a an correct client and server cookie back
+        # Case: we get a correct client and server cookie back
         # We do not clear the cookie tables, so the old server cookie gets re-used
         query = dns.message.make_query('supported2.cookies.example.', 'A')
         expected = dns.rrset.from_text('supported2.cookies.example.', 15, dns.rdataclass.IN, 'A', '127.0.0.1')
@@ -133,12 +133,15 @@ packetcache:
         confdir = os.path.join('configs', self._confdir)
         # Case: rec gets a BADCOOKIE, even on retry and should fall back to TCP
         self.recControl(confdir, 'clear-cookies', '*')
+        tcp1 = self.recControl(confdir, 'get tcp-outqueries')
         query = dns.message.make_query('badcookie.cookies.example.', 'A')
         expected = dns.rrset.from_text('badcookie.cookies.example.', 15, dns.rdataclass.IN, 'A', '127.0.0.1')
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertRRsetInAnswer(res, expected)
         self.checkCookies('Supported')
+        tcp2 = int(self.recControl(confdir, 'get tcp-outqueries'))
+        self.assertEqual(int(tcp1) + 1, int(tcp2))
 
     def testAuthSendsMalformedCookie(self):
         confdir = os.path.join('configs', self._confdir)
@@ -163,8 +166,8 @@ packetcache:
         self.assertRRsetInAnswer(res, expected)
         self.checkCookies('Supported')
 
-        # Case: we get a an correct client and server cookie back
-        # We HAVE cleared the cookie tables, so the old server cookie is fogotten
+        # Case: we get a correct client and server cookie back
+        # We HAVE cleared the cookie tables, so the old server cookie is forgotten
         self.recControl(confdir, 'clear-cookies', '*')
         query = dns.message.make_query('supported4.cookies.example.', 'A')
         expected = dns.rrset.from_text('supported4.cookies.example.', 15, dns.rdataclass.IN, 'A', '127.0.0.1')

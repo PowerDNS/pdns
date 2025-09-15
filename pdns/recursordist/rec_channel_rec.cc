@@ -2109,12 +2109,20 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int socket, cons
     return doDumpCache(socket, begin, end);
   }
   if (cmd == "clear-cookies") {
-    auto count = clearCookies(begin, end);
-    return {0, "Cleared " + std::to_string(count) + " entr" + addS(count, "y", "ies") + " from cookies table\n"};
+    string errors;
+    auto count = clearCookies(begin, end, errors);
+    if (errors.empty()) {
+      return {0, "Cleared " + std::to_string(count) + " entr" + addS(count, "y", "ies") + " from cookies table\n"};
+    }
+    return {1, "Cleared " + std::to_string(count) + " entr" + addS(count, "y", "ies") + " from cookies table, errors: " + errors + "\n"};
   }
   if (cmd == "add-cookies-unsupported") {
-    auto count = addCookiesUnsupported(begin, end);
-    return {0, "Added " + std::to_string(count) + " entr" + addS(count, "y", "ies") + " to cookies table\n"};
+    string errors;
+    auto count = addCookiesUnsupported(begin, end, errors);
+    if (errors.empty()) {
+      return {0, "Added " + std::to_string(count) + " entr" + addS(count, "y", "ies") + " to cookies table\n"};
+    }
+    return {1, "Added " + std::to_string(count) + " entr" + addS(count, "y", "ies") + " to cookies table, errors: " + errors + "\n"};
   }
   if (cmd == "dump-cookies") {
     return doDumpToFile(socket, pleaseDumpCookiesMap, cmd, false);

@@ -25,7 +25,7 @@
   CookieStore is used to keep track of client cookies used for contacting authoritative servers.
   According to RFC 7873 and RFC 9018, it has the following design.
 
-  - Cookies are stored with an auth IP address as primary index and are generated randomly.
+  - Cookies are stored with an auth IP:port address as primary index and are generated randomly.
 
   - If an auth does not support cookies, it is marked as such and no cookies will be sent to it
     for a period of time. When a cookie is sent again, it must be a newly generated one.
@@ -78,7 +78,7 @@ struct CookieEntry
 
   void setSupport(Support support, time_t now) const // modifying mutable field
   {
-    d_lastupdate = now;
+    d_lastused = now;
     d_support = support;
   }
 
@@ -90,13 +90,13 @@ struct CookieEntry
   ComboAddress d_address;
   mutable ComboAddress d_localaddress; // The address we were bound to, see RFC 9018
   mutable EDNSCookiesOpt d_cookie; // Contains both client and server cookie
-  mutable time_t d_lastupdate{};
+  mutable time_t d_lastused{};
   mutable Support d_support{Support::Unsupported};
 };
 
 class CookieStore : public multi_index_container<CookieEntry,
                                                  indexed_by<ordered_unique<tag<ComboAddress>, member<CookieEntry, ComboAddress, &CookieEntry::d_address>>,
-                                                            ordered_non_unique<tag<time_t>, member<CookieEntry, time_t, &CookieEntry::d_lastupdate>>>>
+                                                            ordered_non_unique<tag<time_t>, member<CookieEntry, time_t, &CookieEntry::d_lastused>>>>
 {
 public:
   void prune(time_t cutoff);
