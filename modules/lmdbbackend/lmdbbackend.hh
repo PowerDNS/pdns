@@ -310,8 +310,10 @@ private:
   int genChangeDomain(uint32_t id, const std::function<void(DomainInfo&)>& func);
   void deleteDomainRecords(RecordsRWTransaction& txn, uint32_t domain_id, uint16_t qtype = QType::ANY);
 
-  bool findDomain(const DNSName& domain, DomainInfo& info);
-  bool findDomain(uint32_t domainid, DomainInfo& info);
+  bool findDomain(const DNSName& domain, DomainInfo& info) const;
+  bool findDomain(uint32_t domainid, DomainInfo& info) const;
+  void consolidateDomainInfo(DomainInfo& info) const;
+  void writeDomainInfo(const DomainInfo& info);
 
   void getAllDomainsFiltered(vector<DomainInfo>* domains, const std::function<bool(DomainInfo&)>& allow);
 
@@ -323,6 +325,19 @@ private:
   bool get_lookup(DNSZoneRecord& rr);
   std::string d_matchkey;
   DNSName d_lookupdomain;
+
+  // Cache of DomainInfo notified_serial values
+  class SerialCache : public boost::noncopyable
+  {
+  public:
+    bool get(uint32_t domainid, uint32_t& serial) const;
+    void remove(uint32_t domainid);
+    void update(uint32_t domainid, uint32_t serial);
+
+  private:
+    std::unordered_map<uint32_t, uint32_t> d_serials;
+  };
+  static SharedLockGuarded<SerialCache> s_notified_serial;
 
   vector<LMDBResourceRecord> d_currentrrset;
   size_t d_currentrrsetpos;
@@ -336,6 +351,7 @@ private:
   bool d_dolog;
   bool d_random_ids;
   bool d_handle_dups;
+  bool d_skip_notification_update;
   DTime d_dtime; // used only for logging
   uint64_t d_mapsize;
 };

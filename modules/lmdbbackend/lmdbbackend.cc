@@ -645,6 +645,30 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
   return true;
 }
 
+// Serial number cache
+bool LMDBBackend::SerialCache::get(uint32_t domainid, uint32_t& serial) const
+{
+  if (auto iter = d_serials.find(domainid); iter != d_serials.end()) {
+    serial = iter->second;
+    return true;
+  }
+  return false;
+}
+
+void LMDBBackend::SerialCache::remove(uint32_t domainid)
+{
+  if (auto iter = d_serials.find(domainid); iter != d_serials.end()) {
+    d_serials.erase(iter);
+  }
+}
+
+void LMDBBackend::SerialCache::update(uint32_t domainid, uint32_t serial)
+{
+  d_serials.insert_or_assign(domainid, serial);
+}
+
+SharedLockGuarded<LMDBBackend::SerialCache> LMDBBackend::s_notified_serial;
+
 LMDBBackend::LMDBBackend(const std::string& suffix)
 {
   // overlapping domain ids in combination with relative names are a recipe for disaster
@@ -672,6 +696,8 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
   catch (const std::exception& e) {
     throw std::runtime_error(std::string("Unable to parse the 'map-size' LMDB value: ") + e.what());
   }
+
+  d_skip_notification_update = mustDo("skip-notification-update");
 
   if (mustDo("lightning-stream")) {
     d_random_ids = true;
@@ -1002,7 +1028,7 @@ void LMDBBackend::deleteDomainRecords(RecordsRWTransaction& txn, uint32_t domain
   }
 }
 
-bool LMDBBackend::findDomain(const DNSName& domain, DomainInfo& info)
+bool LMDBBackend::findDomain(const DNSName& domain, DomainInfo& info) const
 {
   auto rotxn = d_tdomains->getROTransaction();
   auto domain_id = rotxn.get<0>(domain, info);
@@ -1013,7 +1039,7 @@ bool LMDBBackend::findDomain(const DNSName& domain, DomainInfo& info)
   return true;
 }
 
-bool LMDBBackend::findDomain(uint32_t domainid, DomainInfo& info)
+bool LMDBBackend::findDomain(uint32_t domainid, DomainInfo& info) const
 {
   auto rotxn = d_tdomains->getROTransaction();
   if (!rotxn.get(domainid, info)) {
@@ -1021,6 +1047,32 @@ bool LMDBBackend::findDomain(uint32_t domainid, DomainInfo& info)
   }
   info.id = domainid;
   return true;
+}
+
+void LMDBBackend::consolidateDomainInfo(DomainInfo& info) const
+{
+  // Update the notified_serial value if we have a cached value in memory.
+  if (d_skip_notification_update) {
+    auto container = s_notified_serial.read_lock();
+    container->get(info.id, info.notified_serial);
+  }
+}
+
+void LMDBBackend::writeDomainInfo(const DomainInfo& info)
+{
+  if (d_skip_notification_update) {
+    uint32_t last_notified_serial{0};
+    auto container = s_notified_serial.write_lock();
+    container->get(info.id, last_notified_serial);
+    // Only remove the in-memory value if it has not been modified since the
+    // DomainInfo data was set up.
+    if (last_notified_serial == info.notified_serial) {
+      container->remove(info.id);
+    }
+  }
+  auto txn = d_tdomains->getRWTransaction();
+  txn.put(info, info.id);
+  txn.commit();
 }
 
 /* Here's the complicated story. Other backends have just one transaction, which is either
@@ -1392,6 +1444,10 @@ bool LMDBBackend::deleteDomain(const DNSName& domain)
     commitTransaction();
 
     // Remove zone
+    {
+      auto container = s_notified_serial.write_lock();
+      container->remove(static_cast<uint32_t>(id));
+    }
     auto txn = d_tdomains->getRWTransaction();
     txn.del(id);
     txn.commit();
@@ -1614,6 +1670,7 @@ bool LMDBBackend::getDomainInfo(const DNSName& domain, DomainInfo& di, bool gets
     return false;
   }
   di.backend = this;
+  consolidateDomainInfo(di);
 
   if (getserial) {
     getSerial(di);
@@ -1628,10 +1685,9 @@ int LMDBBackend::genChangeDomain(const DNSName& domain, const std::function<void
   if (!findDomain(domain, info)) {
     return static_cast<int>(false);
   }
+  consolidateDomainInfo(info);
   func(info);
-  auto txn = d_tdomains->getRWTransaction();
-  txn.put(info, info.id);
-  txn.commit();
+  writeDomainInfo(info);
   return true;
 }
 
@@ -1641,10 +1697,9 @@ int LMDBBackend::genChangeDomain(uint32_t id, const std::function<void(DomainInf
   if (!findDomain(id, info)) {
     return static_cast<int>(false);
   }
+  consolidateDomainInfo(info);
   func(info);
-  auto txn = d_tdomains->getRWTransaction();
-  txn.put(info, id);
-  txn.commit();
+  writeDomainInfo(info);
   return true;
 }
 
@@ -1720,6 +1775,7 @@ void LMDBBackend::getAllDomainsFiltered(vector<DomainInfo>* domains, const std::
 
     for (auto& [k, v] : zonemap) {
       if (allow(v)) {
+        consolidateDomainInfo(v);
         domains->push_back(std::move(v));
       }
     }
@@ -1731,6 +1787,7 @@ void LMDBBackend::getAllDomainsFiltered(vector<DomainInfo>* domains, const std::
       di.backend = this;
 
       if (allow(di)) {
+        consolidateDomainInfo(di);
         domains->push_back(di);
       }
     }
@@ -1826,9 +1883,19 @@ void LMDBBackend::getUpdatedPrimaries(vector<DomainInfo>& updatedDomains, std::u
 
 void LMDBBackend::setNotified(uint32_t domain_id, uint32_t serial)
 {
-  genChangeDomain(domain_id, [serial](DomainInfo& info) {
-    info.notified_serial = serial;
-  });
+  if (!d_skip_notification_update) {
+    genChangeDomain(domain_id, [serial](DomainInfo& info) {
+      info.notified_serial = serial;
+    });
+    return;
+  }
+
+  DomainInfo info;
+  if (findDomain(domain_id, info)) {
+    auto container = s_notified_serial.write_lock();
+    container->update(info.id, serial);
+  }
+  // else throw something? this should be a "can't happen" situation.
 }
 
 class getCatalogMembersReturnFalseException : std::runtime_error
@@ -2763,6 +2830,7 @@ public:
     declare(suffix, "random-ids", "Numeric IDs inside the database are generated randomly instead of sequentially", "no");
     declare(suffix, "map-size", "LMDB map size in megabytes", (sizeof(void*) == 4) ? "100" : "16000");
     declare(suffix, "flag-deleted", "Flag entries on deletion instead of deleting them", "no");
+    declare(suffix, "skip-notification-update", "Do not update domain table upon notification", "no");
     declare(suffix, "lightning-stream", "Run in Lightning Stream compatible mode", "no");
   }
   DNSBackend* make(const string& suffix = "") override
