@@ -337,6 +337,9 @@ private:
   int genChangeDomain(domainid_t id, const std::function<void(DomainInfo&)>& func);
   static void deleteDomainRecords(RecordsRWTransaction& txn, const std::string& match);
 
+  bool findDomain(const ZoneName& domain, DomainInfo& info);
+  bool findDomain(domainid_t domainid, DomainInfo& info);
+
   void getAllDomainsFiltered(vector<DomainInfo>* domains, const std::function<bool(DomainInfo&)>& allow);
 
   void lookupStart(domainid_t domain_id, const std::string& match, bool dolog);
