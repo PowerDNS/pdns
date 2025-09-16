@@ -279,6 +279,7 @@ IOState TCPConnectionToBackend::sendQuery(std::shared_ptr<TCPConnectionToBackend
   IOState state = conn->d_handler->tryWrite(conn->d_currentQuery.d_query.d_buffer, conn->d_currentPos, conn->d_currentQuery.d_query.d_buffer.size());
 
   if (state != IOState::Done) {
+    conn->d_lastIOBlocked = true;
     return state;
   }
 
@@ -310,6 +311,12 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
     throw std::runtime_error("No downstream socket in " + std::string(__PRETTY_FUNCTION__) + "!");
   }
 
+  if (conn->d_handlingIO) {
+    return;
+  }
+  conn->d_handlingIO = true;
+  dnsdist::tcp::HandlingIOGuard reentryGuard(conn->d_handlingIO);
+
   bool connectionDied = false;
   IOState iostate = IOState::Done;
   IOStateGuard ioGuard(conn->d_ioState);
@@ -317,6 +324,7 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
 
   do {
     reconnected = false;
+    conn->d_lastIOBlocked = false;
 
     try {
       if (conn->d_state == State::sendingQueryToBackend) {
@@ -352,8 +360,11 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
           conn->d_currentPos = 0;
           conn->d_lastDataReceivedTime = now;
         }
-        else if (conn->d_state == State::waitingForResponseFromBackend && conn->d_currentPos > 0) {
-          conn->d_state = State::readingResponseSizeFromBackend;
+        else {
+          conn->d_lastIOBlocked = true;
+          if (conn->d_state == State::waitingForResponseFromBackend && conn->d_currentPos > 0) {
+            conn->d_state = State::readingResponseSizeFromBackend;
+          }
         }
       }
 
@@ -372,6 +383,9 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
             conn->release(true);
             return;
           }
+        }
+        else {
+          conn->d_lastIOBlocked = true;
         }
       }
 
@@ -506,7 +520,7 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
       }
     }
   }
-  while (reconnected);
+  while (reconnected || (iostate != IOState::Done && !conn->d_connectionDied && !conn->d_lastIOBlocked));
 
   ioGuard.release();
 }
@@ -760,16 +774,19 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
     DEBUGLOG("still have some queries to send");
     return queueNextQuery(shared);
   }
-  else if (!d_pendingResponses.empty()) {
+  if (d_state == State::sendingQueryToBackend) {
+    DEBUGLOG("still have a query to send");
+    return IOState::NeedWrite;
+  }
+  if (!d_pendingResponses.empty()) {
     DEBUGLOG("still have some responses to read");
     return IOState::NeedRead;
   }
-  else {
-    DEBUGLOG("nothing to do, waiting for a new query");
-    d_state = State::idle;
-    t_downstreamTCPConnectionsManager.moveToIdle(conn);
-    return IOState::Done;
-  }
+
+  DEBUGLOG("nothing to do, waiting for a new query");
+  d_state = State::idle;
+  t_downstreamTCPConnectionsManager.moveToIdle(conn);
+  return IOState::Done;
 }
 
 uint16_t TCPConnectionToBackend::getQueryIdFromResponse() const
