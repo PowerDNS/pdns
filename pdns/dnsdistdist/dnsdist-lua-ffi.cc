@@ -1857,7 +1857,7 @@ bool dnsdist_ffi_dnspacket_parse_a_record(const char* raw, const dnsdist_ffi_dns
     return false;
   }
 
-  auto record = packet->overlay.d_records.at(idx);
+  const auto& record = packet->overlay.d_records.at(idx);
   if (record.d_type != QType::A || record.d_contentLength != 4) {
     return false;
   }
@@ -1875,7 +1875,7 @@ bool dnsdist_ffi_dnspacket_parse_aaaa_record(const char* raw, const dnsdist_ffi_
     return false;
   }
 
-  auto record = packet->overlay.d_records.at(idx);
+  const auto& record = packet->overlay.d_records.at(idx);
   if (record.d_type != QType::AAAA || record.d_contentLength != 16) {
     return false;
   }
@@ -1893,7 +1893,7 @@ bool dnsdist_ffi_dnspacket_parse_address_record(const char* raw, const dnsdist_f
     return false;
   }
 
-  auto record = packet->overlay.d_records.at(idx);
+  const auto& record = packet->overlay.d_records.at(idx);
   if (record.d_type == QType::A && record.d_contentLength == 4) {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): this is a C API
     memcpy(addr, &raw[record.d_contentOffset], 4);
@@ -1919,7 +1919,7 @@ bool dnsdist_ffi_dnspacket_parse_cname_record(const char* raw, const dnsdist_ffi
     return false;
   }
 
-  auto record = packet->overlay.d_records.at(idx);
+  const auto& record = packet->overlay.d_records.at(idx);
   if (record.d_type != QType::CNAME) {
     return false;
   }
