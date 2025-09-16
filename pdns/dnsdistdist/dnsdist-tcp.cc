@@ -66,8 +66,8 @@ std::atomic<uint64_t> g_tcpStatesDumpRequested{0};
 class TCPQueryForwardedOverUDP : public DOHUnitInterface
 {
 public:
-  TCPQueryForwardedOverUDP(const std::shared_ptr<IncomingTCPConnectionState>& connection) :
-    d_connection(connection)
+  TCPQueryForwardedOverUDP(std::shared_ptr<IncomingTCPConnectionState> connection) :
+    d_connection(std::move(connection))
   {
   }
   TCPQueryForwardedOverUDP(const TCPQueryForwardedOverUDP&) = delete;
@@ -103,8 +103,11 @@ public:
     throw std::runtime_error("called HTTP method on non DoH query");
   }
 
-  void setHTTPResponse(uint16_t, PacketBuffer&&, const std::string&) override
+  void setHTTPResponse(uint16_t statusCode, PacketBuffer&& body, const std::string& contentType) override
   {
+    (void)statusCode;
+    (void)body;
+    (void)contentType;
     throw std::runtime_error("called HTTP method on non DoH query");
   }
 
@@ -685,7 +688,7 @@ void IncomingTCPConnectionState::handleResponse(const struct timeval& now, TCPRe
   if (ids.forwardedOverUDP) {
     dnsheader_aligned responseDH(response.d_buffer.data());
 
-    if (responseDH.get()->tc && ids.d_packet && ids.d_packet->size() > ids.d_proxyProtocolPayloadSize && ids.d_packet->size() - ids.d_proxyProtocolPayloadSize > sizeof(dnsheader)) {
+    if (responseDH->tc && ids.d_packet && ids.d_packet->size() > ids.d_proxyProtocolPayloadSize && ids.d_packet->size() - ids.d_proxyProtocolPayloadSize > sizeof(dnsheader)) {
       vinfolog("Response received from backend %s via UDP, for query received from %s via TCP/DoT, is truncated, retrying over TCP", response.d_ds->getNameWithAddr(), ids.origRemote.toStringWithPort());
       auto& query = *ids.d_packet;
       dnsdist::PacketMangling::editDNSHeaderFromRawPacket(&query.at(ids.d_proxyProtocolPayloadSize), [origID = ids.origID](dnsheader& header) {
@@ -864,8 +867,9 @@ void IncomingTCPConnectionState::handleCrossProtocolResponse(const struct timeva
   }
 }
 
-std::unique_ptr<DOHUnitInterface> IncomingTCPConnectionState::getDOHUnit(uint32_t)
+std::unique_ptr<DOHUnitInterface> IncomingTCPConnectionState::getDOHUnit(uint32_t streamID)
 {
+  (void)streamID;
   return std::make_unique<TCPQueryForwardedOverUDP>(shared_from_this());
 }
 
