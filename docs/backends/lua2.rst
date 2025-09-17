@@ -119,13 +119,16 @@ NOTES:
 Get domain information for all domains.
 
 OUTPUT:
- Return false if not supported or found; otherwise, return a table of string,
- domaininfo. See :ref:`dns_get_domaininfo() <backends_lua2_dns_get_domaininfo>`.
+ Return false if not supported or found; otherwise, return a table of 
+`{ [DNSName] = domaininfo, … }`. See :ref:`dns_get_domaininfo() <backends_lua2_dns_get_domaininfo>`.
 
 NOTES:
  This function is **optional**, except if you need primary functionality. It
  is required if you want to be able to enable the zone cache or to search
  records.
+ It is also required if you want to serve a zone **without a SOA in _another_ backend**: if you
+ don't list your zone here, pdns server will not recognize the zone as valid (and will treat it as unknown), causing the requests to
+ never reach lua2 backend.
 
 ``dns_get_domain_metadata(domain, kind)``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
