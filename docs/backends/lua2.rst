@@ -127,7 +127,7 @@ NOTES:
  is required if you want to be able to enable the zone cache or to search
  records.
  It is also required if you want to serve a zone **without a SOA in _another_ backend**: if you
- don't list your zone here pdns server will reject it (as unknown zone) and the requests will
+ don't list your zone here, pdns server will not recognize the zone as valid (and will treat it as unknown), causing the requests to
  never reach lua2 backend.
 
 ``dns_get_domain_metadata(domain, kind)``
