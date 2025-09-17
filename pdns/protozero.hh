@@ -104,6 +104,9 @@ namespace ProtoZero
       headerFlags = 28,
       ednsVersion = 29,
       openTelemetryData = 30,
+      ede = 31,
+      edeText = 32,
+      openTelemetryTraceID = 33,
     };
     enum class QuestionField : protozero::pbf_tag_type
     {
@@ -320,6 +323,23 @@ namespace ProtoZero
       if (!data.empty()) {
         add_string(d_message, Field::openTelemetryData, data);
       }
+    }
+
+    void setEDE(const uint16_t ede)
+    {
+      add_uint32(d_message, Field::ede, ede);
+    }
+
+    void setEDEText(const std::string edeText)
+    {
+      if (!edeText.empty()) {
+        add_string(d_message, Field::edeText, edeText);
+      }
+    }
+
+    void setOpenTelemtryTraceID(const std::array<uint8_t, 16>& traceID)
+    {
+      add_bytes(d_message, Field::openTelemetryTraceID, reinterpret_cast<const char*>(traceID.data()), traceID.size()); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast): it's the API
     }
 
     void startResponse()
