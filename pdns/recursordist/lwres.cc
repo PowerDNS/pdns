@@ -395,10 +395,10 @@ static bool tcpconnect(const OptLog& log, const ComboAddress& remote, const std:
   // Bind to the same address the cookie is associated with (RFC 9018 section 3 last paragraph)
   ComboAddress localip = localBind ? *localBind : pdns::getQueryLocalAddress(remote.sin4.sin_family, 0);
   if (localBind) {
-    VLOG(log, "Connecting TCP to " << remote.toString() << " with specific local address " << localip.toString() << endl);
+    VLOG(log, "Connecting TCP to " << remote.toStringWithPortExcept(53) << " with specific local address " << localip.toString() << endl);
   }
   else {
-    VLOG(log, "Connecting TCP to " << remote.toString() << " with no specific local address" << endl);
+    VLOG(log, "Connecting TCP to " << remote.toStringWithPortExcept(53) << " with no specific local address" << endl);
   }
 
   try {
@@ -545,6 +545,7 @@ static std::pair<bool, LWResult::Result> incomingCookie(const OptLog& log, const
         VLOG(log, "Client cookie from " << address.toString() << " matched! Storing with localAddress " << localip.toString() << endl);
         ++t_Counters.at(rec::Counter::cookieMatched);
         found->d_localaddress = localip;
+        found->d_localaddress.setPort(0);
         found->d_cookie = received;
         if (found->getSupport() == CookieEntry::Support::Probing) {
           ++t_Counters.at(rec::Counter::cookieProbeSupported);
