@@ -5448,6 +5448,9 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
     LOG(prefix << qname << ": Query handled by Lua" << endl);
   }
   else {
+    if (doTCP && SyncRes::s_dot_to_port_853 && remoteIP.getPort() == 853) {
+      doDoT = true;
+    }
     ednsmask = getEDNSSubnetMask(qname, remoteIP);
     if (ednsmask) {
       LOG(prefix << qname << ": Adding EDNS Client Subnet Mask " << ednsmask->toString() << " to query" << endl);
