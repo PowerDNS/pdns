@@ -18,9 +18,9 @@ To compare the address (so not the port) of two :class:`ComboAddresses` instance
 
     a = newCA("[::1]:56")
     b = newCA("[::1]:53")
-    a == b                       -- false, reference mismatch
-    a:toString() == b:toString() -- false, port mismatch
-    a:equal(b)                   -- true
+    a == b                                       -- false, reference mismatch
+    a:toStringWithPort() == b:toStringWithPort() -- false, port mismatch
+    a:equal(b)                                   -- true
 
 To convert an address to human-friendly representation, use :meth:`:toString <ComboAddress:toString>` or :meth:`:toStringWithPort <ComboAddress:toStringWithPort()>`.
 To get only the port number, use :meth:`:getPort() <ComboAddress:getPort>`.
@@ -35,7 +35,7 @@ To get only the port number, use :meth:`:getPort() <ComboAddress:getPort>`.
 
   An object representing an IP address and port tuple.
 
-  .. method:: ComboAddress:equal(comboaddress) -> bool
+  .. method:: ComboAddress:equal(ComboAddress) -> bool
 
       Compare the address to another :class:`ComboAddress` object. The port numbers are *not* relevant.
 
