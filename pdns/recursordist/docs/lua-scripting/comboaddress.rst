@@ -10,16 +10,17 @@ Make a :class:`ComboAddress` with:
 
     newCA("::1")
 
-A :class:`ComboAddress` can be compared against a NetmaskGroup with the :meth:`NetMaskGroup:match` function.
+A :class:`ComboAddress` object can be compared against a :class:`NetMaskGroup` object with the :meth:`NetMaskGroup:match` function.
 
-To compare the address (so not the port) of two ComboAddresses, use :meth:`:equal <ComboAddress:equal>`:
+To compare the address (so not the port) of two :class:`ComboAddresses` instances, use :meth:`:equal <ComboAddress:equal>`:
 
 .. code-block:: Lua
 
     a = newCA("[::1]:56")
     b = newCA("[::1]:53")
-    a == b     -- false, port mismatch
-    a:equal(b) -- true
+    a == b                                       -- false, reference mismatch
+    a:toStringWithPort() == b:toStringWithPort() -- false, port mismatch
+    a:equal(b)                                   -- true
 
 To convert an address to human-friendly representation, use :meth:`:toString <ComboAddress:toString>` or :meth:`:toStringWithPort <ComboAddress:toStringWithPort()>`.
 To get only the port number, use :meth:`:getPort() <ComboAddress:getPort>`.
@@ -33,6 +34,10 @@ To get only the port number, use :meth:`:getPort() <ComboAddress:getPort>`.
 .. class:: ComboAddress
 
   An object representing an IP address and port tuple.
+
+  .. method:: ComboAddress:equal(ComboAddress) -> bool
+
+      Compare the address to another :class:`ComboAddress` object. The port numbers are *not* relevant.
 
   .. method:: ComboAddress:getPort() -> int
 
