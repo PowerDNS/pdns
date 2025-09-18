@@ -305,6 +305,85 @@ IOState TCPConnectionToBackend::sendQuery(std::shared_ptr<TCPConnectionToBackend
   return state;
 }
 
+void TCPConnectionToBackend::handleReconnectionAttempt(std::shared_ptr<TCPConnectionToBackend>& conn, const struct timeval& now, IOStateGuard& ioGuard, IOState& iostate, bool& reconnected, bool& connectionDied)
+{
+  DEBUGLOG("connection died, number of failures is "<<conn->d_downstreamFailures<<", retries is "<<conn->d_ds->d_config.d_retries);
+
+  if (conn->d_downstreamFailures < conn->d_ds->d_config.d_retries) {
+
+    conn->d_ioState.reset();
+    ioGuard.release();
+
+    try {
+      if (conn->reconnect()) {
+        conn->d_ioState = make_unique<IOStateHandler>(*conn->d_mplexer, conn->d_handler->getDescriptor());
+
+        /* we need to resend the queries that were in flight, if any */
+        if (conn->d_state == State::sendingQueryToBackend) {
+          /* we need to edit this query so it has the correct ID */
+          auto query = std::move(conn->d_currentQuery);
+          uint16_t id = conn->d_highestStreamID;
+          prepareQueryForSending(query.d_query, id, ConnectionState::needProxy);
+          conn->d_currentQuery = std::move(query);
+        }
+
+        /* if we notify the sender it might terminate us so we need to move these first */
+        auto pendingResponses = std::move(conn->d_pendingResponses);
+        conn->d_pendingResponses.clear();
+        for (auto& pending : pendingResponses) {
+          --conn->d_ds->outstanding;
+
+          if (pending.second.d_query.isXFR() && pending.second.d_query.d_xfrStarted) {
+            /* this one can't be restarted, sorry */
+            DEBUGLOG("A XFR for which a response has already been sent cannot be restarted");
+            try {
+              TCPResponse response(std::move(pending.second.d_query));
+              pending.second.d_sender->notifyIOError(now, std::move(response));
+            }
+            catch (const std::exception& e) {
+              vinfolog("Got an exception while notifying: %s", e.what());
+            }
+            catch (...) {
+              vinfolog("Got exception while notifying");
+            }
+          }
+          else {
+            conn->d_pendingQueries.push_back(std::move(pending.second));
+          }
+        }
+        conn->d_currentPos = 0;
+
+        if (conn->d_state == State::sendingQueryToBackend) {
+          iostate = IOState::NeedWrite;
+          // resume sending query
+        }
+        else {
+          if (conn->d_pendingQueries.empty()) {
+            throw std::runtime_error("TCP connection to a backend in state " + std::to_string((int)conn->d_state) + " with no pending queries");
+          }
+
+          iostate = queueNextQuery(conn);
+        }
+
+        reconnected = true;
+        connectionDied = false;
+      }
+    }
+    catch (const std::exception& e) {
+      // reconnect might throw on failure, let's ignore that, we just need to know
+      // it failed
+    }
+  }
+
+  if (!reconnected) {
+    /* reconnect failed, we give up */
+    DEBUGLOG("reconnect failed, we give up");
+    ++conn->d_ds->tcpGaveUp;
+    conn->notifyAllQueriesFailed(now, FailureReason::gaveUp);
+  }
+}
+
+
 void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& conn, const struct timeval& now)
 {
   if (conn->d_handler == nullptr) {
@@ -422,81 +501,7 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
     }
 
     if (connectionDied) {
-
-      DEBUGLOG("connection died, number of failures is "<<conn->d_downstreamFailures<<", retries is "<<conn->d_ds->d_config.d_retries);
-
-      if (conn->d_downstreamFailures < conn->d_ds->d_config.d_retries) {
-
-        conn->d_ioState.reset();
-        ioGuard.release();
-
-        try {
-          if (conn->reconnect()) {
-            conn->d_ioState = make_unique<IOStateHandler>(*conn->d_mplexer, conn->d_handler->getDescriptor());
-
-            /* we need to resend the queries that were in flight, if any */
-            if (conn->d_state == State::sendingQueryToBackend) {
-              /* we need to edit this query so it has the correct ID */
-              auto query = std::move(conn->d_currentQuery);
-              uint16_t id = conn->d_highestStreamID;
-              prepareQueryForSending(query.d_query, id, ConnectionState::needProxy);
-              conn->d_currentQuery = std::move(query);
-            }
-
-            /* if we notify the sender it might terminate us so we need to move these first */
-            auto pendingResponses = std::move(conn->d_pendingResponses);
-            conn->d_pendingResponses.clear();
-            for (auto& pending : pendingResponses) {
-              --conn->d_ds->outstanding;
-
-              if (pending.second.d_query.isXFR() && pending.second.d_query.d_xfrStarted) {
-                /* this one can't be restarted, sorry */
-                DEBUGLOG("A XFR for which a response has already been sent cannot be restarted");
-                try {
-                  TCPResponse response(std::move(pending.second.d_query));
-                  pending.second.d_sender->notifyIOError(now, std::move(response));
-                }
-                catch (const std::exception& e) {
-                  vinfolog("Got an exception while notifying: %s", e.what());
-                }
-                catch (...) {
-                  vinfolog("Got exception while notifying");
-                }
-              }
-              else {
-                conn->d_pendingQueries.push_back(std::move(pending.second));
-              }
-            }
-            conn->d_currentPos = 0;
-
-            if (conn->d_state == State::sendingQueryToBackend) {
-              iostate = IOState::NeedWrite;
-              // resume sending query
-            }
-            else {
-              if (conn->d_pendingQueries.empty()) {
-                throw std::runtime_error("TCP connection to a backend in state " + std::to_string((int)conn->d_state) + " with no pending queries");
-              }
-
-              iostate = queueNextQuery(conn);
-            }
-
-            reconnected = true;
-            connectionDied = false;
-          }
-        }
-        catch (const std::exception& e) {
-          // reconnect might throw on failure, let's ignore that, we just need to know
-          // it failed
-        }
-      }
-
-      if (!reconnected) {
-        /* reconnect failed, we give up */
-        DEBUGLOG("reconnect failed, we give up");
-        ++conn->d_ds->tcpGaveUp;
-        conn->notifyAllQueriesFailed(now, FailureReason::gaveUp);
-      }
+      handleReconnectionAttempt(conn, now, ioGuard, iostate, reconnected, connectionDied);
     }
 
     if (conn->d_ioState) {
