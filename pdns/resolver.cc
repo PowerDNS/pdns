@@ -99,14 +99,15 @@ int makeQuerySocket(const ComboAddress& local, bool udpOrTCP, bool nonLocalBind)
 
 Resolver::Resolver()
 {
+  d_nonlocalbind = ::arg().mustDo("non-local-bind");
   locals["default4"] = -1;
   locals["default6"] = -1;
   try {
     if (pdns::isQueryLocalAddressFamilyEnabled(AF_INET)) {
-      locals["default4"] = makeQuerySocket(pdns::getQueryLocalAddress(AF_INET, 0), true, ::arg().mustDo("non-local-bind"));
+      locals["default4"] = makeQuerySocket(pdns::getQueryLocalAddress(AF_INET, 0), true, d_nonlocalbind);
     }
     if (pdns::isQueryLocalAddressFamilyEnabled(AF_INET6)) {
-      locals["default6"] = makeQuerySocket(pdns::getQueryLocalAddress(AF_INET6, 0), true, ::arg().mustDo("non-local-bind"));
+      locals["default6"] = makeQuerySocket(pdns::getQueryLocalAddress(AF_INET6, 0), true, d_nonlocalbind);
     }
   }
   catch(...) {
@@ -127,7 +128,7 @@ Resolver::~Resolver()
 }
 
 uint16_t Resolver::sendResolve(const ComboAddress& remote, const ComboAddress& local,
-                               const DNSName &domain, int type, int *localsock, bool dnssecOK,
+                               const DNSName &domain, int type, int& localsock, bool useTCP, bool dnssecOK,
                                const DNSName& tsigkeyname, const DNSName& tsigalgorithm,
                                const string& tsigsecret)
 {
@@ -166,8 +167,21 @@ uint16_t Resolver::sendResolve(const ComboAddress& remote, const ComboAddress& l
       string ipv = remote.sin4.sin_family == AF_INET ? "4" : "6";
       throw ResolverException("No IPv" + ipv + " socket available, is such an address configured in query-local-address?");
     }
-    sock = remote.sin4.sin_family == AF_INET ? locals["default4"] : locals["default6"];
+    if (useTCP) {
+      // This is similar to what our constructor does to setup default4 and
+      // default6, but creating TCP sockets instead of UDP.
+      if (remote.sin4.sin_family == AF_INET) {
+        sock = makeQuerySocket(pdns::getQueryLocalAddress(AF_INET, 0), false, d_nonlocalbind);
+      }
+      else {
+        sock = makeQuerySocket(pdns::getQueryLocalAddress(AF_INET6, 0), false, d_nonlocalbind);
+      }
+    }
+    else {
+      sock = remote.sin4.sin_family == AF_INET ? locals["default4"] : locals["default6"];
+    }
   } else {
+    bool saveSocket{false};
     std::string lstr = local.toString();
     std::map<std::string, int>::iterator lptr;
 
@@ -176,20 +190,22 @@ uint16_t Resolver::sendResolve(const ComboAddress& remote, const ComboAddress& l
       sock = lptr->second;
     } else {
       // try to make socket
-      sock = makeQuerySocket(local, true);
+      sock = makeQuerySocket(local, !useTCP);
       if (sock < 0)
         throw ResolverException("Unable to create local socket on '"+lstr+"'' to '"+remote.toLogString()+"': "+stringerror());
       setNonBlocking( sock );
+      // Prefer not to keep TCP sockets
+      saveSocket = !useTCP;
+    }
+    if (saveSocket) {
       locals[lstr] = sock;
     }
   }
 
-  if (localsock != nullptr) {
-    *localsock = sock;
-  }
   if(sendto(sock, &packet[0], packet.size(), 0, (struct sockaddr*)(&remote), remote.getSocklen()) < 0) {
     throw ResolverException("Unable to ask query of '"+remote.toLogString()+"': "+stringerror());
   }
+  localsock = sock;
   return randomid;
 }
 
@@ -229,7 +245,7 @@ namespace pdns {
   } // namespace resolver
 } // namespace pdns
 
-bool Resolver::tryGetSOASerial(DNSName *domain, ComboAddress* remote, uint32_t *theirSerial, uint32_t *theirInception, uint32_t *theirExpire, uint16_t* id)
+bool Resolver::tryGetSOASerial(DNSName& domain, ComboAddress& remote, uint32_t *theirSerial, uint32_t *theirInception, uint32_t *theirExpire, uint16_t& reqid, bool *truncated)
 {
   auto fds = std::make_unique<struct pollfd[]>(locals.size());
   size_t i = 0, k;
@@ -257,45 +273,51 @@ bool Resolver::tryGetSOASerial(DNSName *domain, ComboAddress* remote, uint32_t *
 
   if (sock < 0) return false; // false alarm
 
-  int err;
-  remote->sin6.sin6_family = AF_INET6; // make sure getSocklen() below returns a large enough value
-  socklen_t addrlen=remote->getSocklen();
-  char buf[3000];
-  err = recvfrom(sock, buf, sizeof(buf), 0,(struct sockaddr*)(remote), &addrlen);
-  if(err < 0) {
-    if(errno == EAGAIN)
+  remote.sin6.sin6_family = AF_INET6; // make sure getSocklen() below returns a large enough value
+  socklen_t addrlen=remote.getSocklen();
+  std::array<char, 3000> buf{};
+  ssize_t len{0};
+  len = recvfrom(sock, buf.data(), buf.size(), 0, reinterpret_cast<struct sockaddr*>(&remote), &addrlen); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+  if(len < 0) {
+    if(errno == EAGAIN) {
       return false;
+    }
 
     throw ResolverException("recvfrom error waiting for answer: "+stringerror());
   }
 
-  MOADNSParser mdp(false, (char*)buf, err);
-  *id=mdp.d_header.id;
-  *domain = mdp.d_qname;
+  MOADNSParser mdp(false, buf.data(), len);
+  reqid = mdp.d_header.id;
+  *truncated = mdp.d_header.tc != 0;
+  domain = mdp.d_qname;
 
-  if(domain->empty())
-    throw ResolverException("SOA query to '" + remote->toLogString() + "' produced response without domain name (RCode: " + RCode::to_s(mdp.d_header.rcode) + ")");
+  if(domain.empty()) {
+    throw ResolverException("SOA query to '" + remote.toLogString() + "' produced response without domain name (RCode: " + RCode::to_s(mdp.d_header.rcode) + ")");
+  }
 
-  if(mdp.d_answers.empty())
-    throw ResolverException("Query to '" + remote->toLogString() + "' for SOA of '" + domain->toLogString() + "' produced no results (RCode: " + RCode::to_s(mdp.d_header.rcode) + ")");
+  if(mdp.d_answers.empty()) {
+    throw ResolverException("Query to '" + remote.toLogString() + "' for SOA of '" + domain.toLogString() + "' produced no results (RCode: " + RCode::to_s(mdp.d_header.rcode) + ")");
+  }
 
-  if(mdp.d_qtype != QType::SOA)
-    throw ResolverException("Query to '" + remote->toLogString() + "' for SOA of '" + domain->toLogString() + "' returned wrong record type");
+  if(mdp.d_qtype != QType::SOA) {
+    throw ResolverException("Query to '" + remote.toLogString() + "' for SOA of '" + domain.toLogString() + "' returned wrong record type");
+  }
 
-  if(mdp.d_header.rcode != 0)
-    throw ResolverException("Query to '" + remote->toLogString() + "' for SOA of '" + domain->toLogString() + "' returned Rcode " + RCode::to_s(mdp.d_header.rcode));
+  if(mdp.d_header.rcode != 0) {
+    throw ResolverException("Query to '" + remote.toLogString() + "' for SOA of '" + domain.toLogString() + "' returned Rcode " + RCode::to_s(mdp.d_header.rcode));
+  }
 
   *theirInception = *theirExpire = 0;
   bool gotSOA=false;
   for(const MOADNSParser::answers_t::value_type& drc :  mdp.d_answers) {
-    if(drc.d_type == QType::SOA && drc.d_name == *domain) {
+    if(drc.d_type == QType::SOA && drc.d_name == domain) {
       auto src = getRR<SOARecordContent>(drc);
       if (src) {
         *theirSerial = src->d_st.serial;
         gotSOA = true;
       }
     }
-    if(drc.d_type == QType::RRSIG && drc.d_name == *domain) {
+    if(drc.d_type == QType::RRSIG && drc.d_name == domain) {
       auto rrc = getRR<RRSIGRecordContent>(drc);
       if(rrc && rrc->d_type == QType::SOA) {
         *theirInception= std::max(*theirInception, rrc->d_siginception);
@@ -303,38 +325,57 @@ bool Resolver::tryGetSOASerial(DNSName *domain, ComboAddress* remote, uint32_t *
       }
     }
   }
-  if(!gotSOA)
-    throw ResolverException("Query to '" + remote->toLogString() + "' for SOA of '" + domain->toLogString() + "' did not return a SOA");
+  // Do not raise an exception if we got a truncated answer; caller is
+  // expected to check for this and retry using TCP in this case.
+  if(!gotSOA && !*truncated) {
+    throw ResolverException("Query to '" + remote.toLogString() + "' for SOA of '" + domain.toLogString() + "' did not return a SOA");
+  }
   return true;
 }
 
 int Resolver::resolve(const ComboAddress& to, const DNSName &domain, int type, Resolver::res_t* res, const ComboAddress &local)
 {
+  bool useTCP{false};
   try {
-    int sock = -1;
-    int id = sendResolve(to, local, domain, type, &sock);
-    int err=waitForData(sock, 3, 0);
+    for (;;) {
+      int sock{-1};
+      int reqid = sendResolve(to, local, domain, type, sock, useTCP);
+      int err=waitForData(sock, 3, 0);
 
-    if(!err) {
-      throw ResolverException("Timeout waiting for answer");
+      if (err == 0) {
+        throw ResolverException("Timeout waiting for answer");
+      }
+      if(err < 0) {
+        throw ResolverException("Error waiting for answer: "+stringerror());
+      }
+
+      ComboAddress from;
+      socklen_t addrlen = sizeof(from);
+      std::array<char, 3000> buffer{};
+      ssize_t len{0};
+
+      if((len=recvfrom(sock, buffer.data(), buffer.size(), 0, reinterpret_cast<struct sockaddr*>(&from), &addrlen)) < 0) { // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+        throw ResolverException("recvfrom error waiting for answer: "+stringerror());
+      }
+
+      if (from != to) {
+        throw ResolverException("Got answer from the wrong peer while resolving ('"+from.toLogString()+"' instead of '"+to.toLogString()+"', discarding");
+      }
+
+      MOADNSParser mdp(false, buffer.data(), len);
+      // If we got a truncated answer and we have been using UDP, try again
+      // using TCP.
+      if (mdp.d_header.tc != 0 && !useTCP) {
+        useTCP = true;
+        continue;
+      }
+      // Be sure to close the socket if TCP, for sendResolve did not store it
+      // for possible reuse.
+      if (useTCP) {
+        close(sock);
+      }
+      return parseResult(mdp, domain, type, reqid, res);
     }
-    if(err < 0)
-      throw ResolverException("Error waiting for answer: "+stringerror());
-
-    ComboAddress from;
-    socklen_t addrlen = sizeof(from);
-    char buffer[3000];
-    int len;
-
-    if((len=recvfrom(sock, buffer, sizeof(buffer), 0,(struct sockaddr*)(&from), &addrlen)) < 0)
-      throw ResolverException("recvfrom error waiting for answer: "+stringerror());
-
-    if (from != to) {
-      throw ResolverException("Got answer from the wrong peer while resolving ('"+from.toLogString()+"' instead of '"+to.toLogString()+"', discarding");
-    }
-
-    MOADNSParser mdp(false, buffer, len);
-    return parseResult(mdp, domain, type, id, res);
   }
   catch(ResolverException &re) {
     throw ResolverException(re.reason+" from "+to.toLogString());
