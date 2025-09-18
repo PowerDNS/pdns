@@ -79,9 +79,9 @@ bool DNSDistPacketCache::getClientSubnet(const PacketBuffer& packet, size_t qnam
   return false;
 }
 
-bool DNSDistPacketCache::cachedValueMatches(const CacheValue& cachedValue, uint16_t queryFlags, const DNSName& qname, uint16_t qtype, uint16_t qclass, bool receivedOverUDP, bool dnssecOK, const boost::optional<Netmask>& subnet) const
+bool DNSDistPacketCache::cachedValueMatches(const CacheValue& cachedValue, uint16_t queryFlags, const DNSName& qname, uint16_t qtype, uint16_t qclass, bool dnssecOK, const boost::optional<Netmask>& subnet) const
 {
-  if (cachedValue.queryFlags != queryFlags || cachedValue.dnssecOK != dnssecOK || cachedValue.receivedOverUDP != receivedOverUDP || cachedValue.qtype != qtype || cachedValue.qclass != qclass || cachedValue.qname != qname) {
+  if (cachedValue.queryFlags != queryFlags || cachedValue.dnssecOK != dnssecOK || cachedValue.qtype != qtype || cachedValue.qclass != qclass || cachedValue.qname != qname) {
     return false;
   }
 
@@ -112,7 +112,7 @@ bool DNSDistPacketCache::insertLocked(std::unordered_map<uint32_t, CacheValue>& 
   CacheValue& value = mapIt->second;
   bool wasExpired = value.validity <= newValue.added;
 
-  if (!wasExpired && !cachedValueMatches(value, newValue.queryFlags, newValue.qname, newValue.qtype, newValue.qclass, newValue.receivedOverUDP, newValue.dnssecOK, newValue.subnet)) {
+  if (!wasExpired && !cachedValueMatches(value, newValue.queryFlags, newValue.qname, newValue.qtype, newValue.qclass, newValue.dnssecOK, newValue.subnet)) {
     ++d_insertCollisions;
     return false;
   }
@@ -126,7 +126,7 @@ bool DNSDistPacketCache::insertLocked(std::unordered_map<uint32_t, CacheValue>& 
   return false;
 }
 
-void DNSDistPacketCache::insert(uint32_t key, const boost::optional<Netmask>& subnet, uint16_t queryFlags, bool dnssecOK, const DNSName& qname, uint16_t qtype, uint16_t qclass, const PacketBuffer& response, bool receivedOverUDP, uint8_t rcode, boost::optional<uint32_t> tempFailureTTL)
+void DNSDistPacketCache::insert(uint32_t key, const boost::optional<Netmask>& subnet, uint16_t queryFlags, bool dnssecOK, const DNSName& qname, uint16_t qtype, uint16_t qclass, const PacketBuffer& response, uint8_t rcode, boost::optional<uint32_t> tempFailureTTL)
 {
   if (response.size() < sizeof(dnsheader) || response.size() > getMaximumEntrySize()) {
     return;
@@ -150,17 +150,8 @@ void DNSDistPacketCache::insert(uint32_t key, const boost::optional<Netmask>& su
     minTTL = getMinTTL(reinterpret_cast<const char*>(response.data()), response.size(), &seenAuthSOA);
 
     if (minTTL == std::numeric_limits<uint32_t>::max()) {
-      /* no TTL found, we probably don't want to cache this
-         unless it's an empty (no records) truncated answer,
-         and we have been asked to cache these */
-      if (d_settings.d_truncatedTTL == 0) {
-        return;
-      }
-      dnsheader_aligned dh_aligned(response.data());
-      if (dh_aligned->tc == 0) {
-        return;
-      }
-      minTTL = d_settings.d_truncatedTTL;
+      /* no TTL found, we probably don't want to cache this */
+      return;
     }
 
     if (rcode == RCode::NXDomain || (rcode == RCode::NoError && seenAuthSOA)) {
@@ -192,7 +183,6 @@ void DNSDistPacketCache::insert(uint32_t key, const boost::optional<Netmask>& su
   newValue.len = response.size();
   newValue.validity = newValidity;
   newValue.added = now;
-  newValue.receivedOverUDP = receivedOverUDP;
   newValue.dnssecOK = dnssecOK;
   newValue.value = std::string(response.begin(), response.end());
   newValue.subnet = subnet;
@@ -219,7 +209,7 @@ void DNSDistPacketCache::insert(uint32_t key, const boost::optional<Netmask>& su
   }
 }
 
-bool DNSDistPacketCache::get(DNSQuestion& dnsQuestion, uint16_t queryId, uint32_t* keyOut, boost::optional<Netmask>& subnet, bool dnssecOK, bool receivedOverUDP, uint32_t allowExpired, bool skipAging, bool truncatedOK, bool recordMiss)
+bool DNSDistPacketCache::get(DNSQuestion& dnsQuestion, uint16_t queryId, uint32_t* keyOut, boost::optional<Netmask>& subnet, bool dnssecOK, uint32_t allowExpired, bool skipAging, bool recordMiss)
 {
   if (dnsQuestion.ids.qtype == QType::AXFR || dnsQuestion.ids.qtype == QType::IXFR) {
     ++d_misses;
@@ -227,13 +217,13 @@ bool DNSDistPacketCache::get(DNSQuestion& dnsQuestion, uint16_t queryId, uint32_
   }
 
   const auto& dnsQName = dnsQuestion.ids.qname.getStorage();
-  uint32_t key = getKey(dnsQName, dnsQuestion.ids.qname.wirelength(), dnsQuestion.getData(), receivedOverUDP);
+  uint32_t key = getKey(dnsQName, dnsQuestion.ids.qname.wirelength(), dnsQuestion.getData());
 
   if (keyOut != nullptr) {
     *keyOut = key;
   }
 
-  if (d_settings.d_parseECS) {
+  if (d_settings.d_parseECS && !subnet) {
     getClientSubnet(dnsQuestion.getData(), dnsQuestion.ids.qname.wirelength(), subnet);
   }
 
@@ -274,16 +264,9 @@ bool DNSDistPacketCache::get(DNSQuestion& dnsQuestion, uint16_t queryId, uint32_
     }
 
     /* check for collision */
-    if (!cachedValueMatches(value, *(getFlagsFromDNSHeader(dnsQuestion.getHeader().get())), dnsQuestion.ids.qname, dnsQuestion.ids.qtype, dnsQuestion.ids.qclass, receivedOverUDP, dnssecOK, subnet)) {
+    if (!cachedValueMatches(value, *(getFlagsFromDNSHeader(dnsQuestion.getHeader().get())), dnsQuestion.ids.qname, dnsQuestion.ids.qtype, dnsQuestion.ids.qclass, dnssecOK, subnet)) {
       ++d_lookupCollisions;
       return false;
-    }
-
-    if (!truncatedOK) {
-      dnsheader_aligned dh_aligned(value.value.data());
-      if (dh_aligned->tc != 0) {
-        return false;
-      }
     }
 
     response.resize(value.len);
@@ -455,7 +438,7 @@ uint32_t DNSDistPacketCache::getMinTTL(const char* packet, uint16_t length, bool
   return getDNSPacketMinTTL(packet, length, seenNoDataSOA);
 }
 
-uint32_t DNSDistPacketCache::getKey(const DNSName::string_t& qname, size_t qnameWireLength, const PacketBuffer& packet, bool receivedOverUDP)
+uint32_t DNSDistPacketCache::getKey(const DNSName::string_t& qname, size_t qnameWireLength, const PacketBuffer& packet) const
 {
   uint32_t result = 0;
   /* skip the query ID */
@@ -479,8 +462,6 @@ uint32_t DNSDistPacketCache::getKey(const DNSName::string_t& qname, size_t qname
       result = burtle(&packet.at(sizeof(dnsheader) + qnameWireLength), packet.size() - (sizeof(dnsheader) + qnameWireLength), result);
     }
   }
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-  result = burtle(reinterpret_cast<const unsigned char*>(&receivedOverUDP), sizeof(receivedOverUDP), result);
   return result;
 }
 
@@ -529,7 +510,7 @@ uint64_t DNSDistPacketCache::dump(int fileDesc, bool rawResponse)
           rcode = dnsHeader.rcode;
         }
 
-        fprintf(filePtr.get(), "%s %" PRId64 " %s %s ; ecs %s, rcode %" PRIu8 ", key %" PRIu32 ", length %" PRIu16 ", received over UDP %d, added %" PRId64 ", dnssecOK %d, raw query flags %" PRIu16, value.qname.toString().c_str(), static_cast<int64_t>(value.validity - now), QClass(value.qclass).toString().c_str(), QType(value.qtype).toString().c_str(), value.subnet ? value.subnet.get().toString().c_str() : "empty", rcode, entry.first, value.len, value.receivedOverUDP ? 1 : 0, static_cast<int64_t>(value.added), value.dnssecOK ? 1 : 0, value.queryFlags);
+        fprintf(filePtr.get(), "%s %" PRId64 " %s %s ; ecs %s, rcode %" PRIu8 ", key %" PRIu32 ", length %" PRIu16 ", added %" PRId64 ", dnssecOK %d, raw query flags %" PRIu16, value.qname.toString().c_str(), static_cast<int64_t>(value.validity - now), QClass(value.qclass).toString().c_str(), QType(value.qtype).toString().c_str(), value.subnet ? value.subnet.get().toString().c_str() : "empty", rcode, entry.first, value.len, static_cast<int64_t>(value.added), value.dnssecOK ? 1 : 0, value.queryFlags);
 
         if (rawResponse) {
           std::string rawDataResponse = Base64Encode(value.value);

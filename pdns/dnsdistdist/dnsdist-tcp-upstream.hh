@@ -99,15 +99,9 @@ public:
     return d_ci.cs->getTLSFrontend()->d_proxyProtocolOutsideTLS;
   }
 
-  virtual bool forwardViaUDPFirst() const
-  {
-    return false;
-  }
-  virtual std::unique_ptr<DOHUnitInterface> getDOHUnit(uint32_t streamID)
-  {
-    (void)streamID;
-    throw std::runtime_error("Getting a DOHUnit state from a generic TCP/DoT connection is not supported");
-  }
+  virtual bool forwardViaUDPFirst() const;
+
+  virtual std::unique_ptr<DOHUnitInterface> getDOHUnit(uint32_t streamID);
   virtual void restoreDOHUnit(std::unique_ptr<DOHUnitInterface>&&)
   {
     throw std::runtime_error("Restoring a DOHUnit state to a generic TCP/DoT connection is not supported");
