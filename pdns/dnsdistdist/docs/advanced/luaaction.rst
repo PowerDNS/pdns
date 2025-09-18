@@ -75,7 +75,7 @@ A second option is to declare the Lua code inline in the YAML configuration file
       action:
         type: "Lua"
         function_code: |
-          return function lua_route_tc_to_abuse_pool(dq)
+          return function(dq)
             local tc = dq.dh:getTC()
             -- The TC (truncated) bit should not be set in a query
             if tc then
