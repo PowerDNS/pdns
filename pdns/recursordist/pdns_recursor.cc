@@ -1684,7 +1684,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
         }
         eee.emplace(EDNSExtendedError{static_cast<uint16_t>(code), std::move(extra)});
 
-        if (packetWriter.size() < maxanswersize && (maxanswersize - packetWriter.size()) >= (EDNSOptionCodeSize + EDNSOptionLengthSize + sizeof(eee->infoCode) + eee->extraText.size())) {
+        if (packetWriter.size() < maxanswersize && (maxanswersize - packetWriter.size()) >= (EDNSOptionCodeSize + EDNSOptionLengthSize + sizeof(EDNSExtendedError::code) + eee->extraText.size())) {
           returnedEdnsOptions.emplace_back(EDNSOptionCode::EXTENDEDERROR, makeEDNSExtendedErrorOptString(*eee));
         }
       }

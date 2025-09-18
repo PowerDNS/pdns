@@ -311,16 +311,16 @@ class PDNSPBConnHandler(object):
         if msg.HasField('edeText'):
             edeText = msg.edeText
 
-        openTelemetryData = "N/A"
+        openTelemetryDataLen = "N/A"
         if opentelemetryAvailable and msg.HasField('openTelemetryData'):
-            openTelemetryData = str(len(msg.openTelemetryData))
+            openTelemetryDataLen = str(len(msg.openTelemetryData))
 
         openTelemetryTraceID = "N/A"
         if msg.HasField('openTelemetryTraceID'):
             openTelemetryTraceID = binascii.hexlify(msg.openTelemetryTraceID)
 
         print('[%s] %s of size %d: %s%s%s -> %s%s(%s) id: %d uuid: %s%s '
-                  'requestorid: %s deviceid: %s devicename: %s serverid: %s nod: %s workerId: %s pcCacheHit: %s outgoingQueries: %s headerFlags: %s ednsVersion: %s ede: %s edeText: %s openTelemetryData: len %s otTraceID: %s' %
+                  'requestorid: %s deviceid: %s devicename: %s serverid: %s nod: %s workerId: %s pcCacheHit: %s outgoingQueries: %s headerFlags: %s ednsVersion: %s ede: %s edeText: %s otTraceID: %s openTelemetryData: len %s' %
               (datestr,
                typestr,
                msg.inBytes,
@@ -345,8 +345,8 @@ class PDNSPBConnHandler(object):
                ednsVersion,
                ede,
                edeText,
-               openTelemetryData,
-               openTelemetryTraceID))
+               openTelemetryTraceID,
+               openTelemetryDataLen))
 
         for mt in msg.meta:
             values = ''
