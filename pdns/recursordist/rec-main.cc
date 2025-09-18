@@ -502,7 +502,7 @@ bool checkOutgoingProtobufExport(LocalStateHolder<LuaConfigItems>& luaconfsLocal
   return true;
 }
 
-void protobufLogQuery(LocalStateHolder<LuaConfigItems>& luaconfsLocal, const boost::uuids::uuid& uniqueId, const ComboAddress& remote, const ComboAddress& local, const ComboAddress& mappedSource, const Netmask& ednssubnet, bool tcp, size_t len, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::unordered_set<std::string>& policyTags, const std::string& requestorId, const std::string& deviceId, const std::string& deviceName, const std::map<std::string, RecursorLua4::MetaValue>& meta, const boost::optional<uint32_t>& ednsVersion, const dnsheader& header)
+void protobufLogQuery(LocalStateHolder<LuaConfigItems>& luaconfsLocal, const boost::uuids::uuid& uniqueId, const ComboAddress& remote, const ComboAddress& local, const ComboAddress& mappedSource, const Netmask& ednssubnet, bool tcp, size_t len, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::unordered_set<std::string>& policyTags, const std::string& requestorId, const std::string& deviceId, const std::string& deviceName, const std::map<std::string, RecursorLua4::MetaValue>& meta, const boost::optional<uint32_t>& ednsVersion, const dnsheader& header, const pdns::trace::TraceID& traceID)
 {
   auto log = g_slog->withName("pblq");
 
@@ -542,6 +542,9 @@ void protobufLogQuery(LocalStateHolder<LuaConfigItems>& luaconfsLocal, const boo
   msg.setHeaderFlags(*getFlagsFromDNSHeader(&header));
   if (ednsVersion) {
     msg.setEDNSVersion(*ednsVersion);
+  }
+  if (traceID != pdns::trace::s_emptyTraceID) {
+    msg.setOpenTelemtryTraceID(traceID);
   }
 
   std::string strMsg(msg.finishAndMoveBuf());
@@ -635,6 +638,9 @@ void protobufLogResponse(const DNSName& qname, QType qtype,
   if (eventTrace.enabled() && (SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_ot) != 0) {
     auto trace = pdns::trace::TracesData::boilerPlate("rec", qname.toLogString() + '/' + qtype.toString(), eventTrace.convertToOT(otTrace));
     pbMessage.setOpenTelemetryData(trace.encode());
+  }
+  if (otTrace.trace_id != pdns::trace::s_emptyTraceID) {
+    pbMessage.setOpenTelemtryTraceID(otTrace.trace_id);
   }
   pbMessage.addPolicyTags(policyTags);
 

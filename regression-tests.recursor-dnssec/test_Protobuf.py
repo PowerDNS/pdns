@@ -289,6 +289,16 @@ class TestRecursorProtobuf(RecursorTest):
         self.assertEqual(msg.deviceId, deviceId)
         self.assertEqual(msg.deviceName, deviceName)
 
+    def checkProtobufEDE(self, msg, ede, edeText):
+        self.assertTrue((ede == '') == (not msg.HasField('ede')))
+        self.assertTrue((edeText == '') == (not msg.HasField('edeText')))
+        self.assertEqual(msg.ede, ede)
+        self.assertEqual(msg.edeText, edeText)
+
+    def checkProtobufOT(self, msg, openTelemetryData, openTelemetryTraceID):
+        self.assertTrue(openTelemetryData == msg.HasField('openTelemetryData'))
+        self.assertTrue(openTelemetryTraceID == msg.HasField('openTelemetryTraceID'))
+
     def setUp(self):
         super(TestRecursorProtobuf, self).setUp()
         # Make sure the queue is empty, in case
@@ -326,7 +336,9 @@ class ProtobufDefaultTest(TestRecursorProtobuf):
 
     _confdir = 'ProtobufDefault'
     _config_template = """
-auth-zones=example=configs/%s/example.zone""" % _confdir
+auth-zones=example=configs/%s/example.zone
+event-trace-enabled=4
+""" % _confdir
 
     def testA(self):
         name = 'a.example.'
@@ -371,6 +383,8 @@ auth-zones=example=configs/%s/example.zone""" % _confdir
         # we have max-cache-ttl set to 15
         self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15)
         self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.42')
+        self.checkProtobufOT(msg, True, True)
+        self.checkProtobufEDE(msg, '', '')
         self.checkNoRemainingMessage()
 
     def testCNAME(self):
@@ -400,6 +414,8 @@ auth-zones=example=configs/%s/example.zone""" % _confdir
         # we have max-cache-ttl set to 15
         self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, 'a.example.', 15, checkTTL=False)
         self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.42')
+        self.checkProtobufOT(msg, True, True)
+        self.checkProtobufEDE(msg, '', '')
         self.checkNoRemainingMessage()
 
 class ProtobufProxyMappingTest(TestRecursorProtobuf):
@@ -1428,7 +1444,7 @@ class ProtobufRPZTest(TestRecursorProtobuf):
 auth-zones=example=configs/%s/example.rpz.zone""" % _confdir
     _lua_config_file = """
     protobufServer({"127.0.0.1:%d", "127.0.0.1:%d"}, { logQueries=true, logResponses=true } )
-    rpzFile('configs/%s/zone.rpz', { policyName="zone.rpz."})
+    rpzFile('configs/%s/zone.rpz', { policyName="zone.rpz.", extendedErrorCode=99, extendedErrorExtra="EDEText"})
     """ % (protobufServersParameters[0].port, protobufServersParameters[1].port, _confdir)
 
     @classmethod
@@ -1467,6 +1483,8 @@ ip  3600 IN A 33.22.11.99
         msg = self.getFirstProtobufMessage()
         self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, res)
         self.checkProtobufPolicy(msg, dnsmessage_pb2.PBDNSMessage.PolicyType.QNAME, 'zone.rpz.', '*.test.example.', 'sub.test.example', dnsmessage_pb2.PBDNSMessage.PolicyKind.NoAction)
+        self.checkProtobufEDE(msg, 99, 'EDEText')
+        self.checkProtobufOT(msg, False, False)
         self.assertEqual(len(msg.response.rrs), 1)
         rr = msg.response.rrs[0]
         # we have max-cache-ttl set to 15
@@ -1490,6 +1508,8 @@ ip  3600 IN A 33.22.11.99
         msg = self.getFirstProtobufMessage()
         self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, res)
         self.checkProtobufPolicy(msg, dnsmessage_pb2.PBDNSMessage.PolicyType.RESPONSEIP, 'zone.rpz.', '24.0.11.22.33.rpz-ip.', '33.22.11.99', dnsmessage_pb2.PBDNSMessage.PolicyKind.Custom)
+        self.checkProtobufEDE(msg, 99, 'EDEText')
+        self.checkProtobufOT(msg, False, False)
         self.assertEqual(len(msg.response.rrs), 1)
         self.checkNoRemainingMessage()
 

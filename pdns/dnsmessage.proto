@@ -193,6 +193,9 @@ message PBDNSMessage {
   optional uint32 headerFlags = 28;             // Flags field in wire format, 16 bits used
   optional uint32 ednsVersion = 29;             // EDNS version and flags in wire format, see https://www.rfc-editor.org/rfc/rfc6891.html#section-6.1.3
   optional bytes openTelemetryData = 30;        // Protobuf encoded Open Telemetry Data, see https://github.com/open-telemetry/opentelemetry-proto/blob/main/opentelemetry/proto/trace/v1/trace.proto
+  optional uint32 ede = 31;                     // EDNS error code, actually 16 bits
+  optional string edeText = 32;                 // EDNS error text
+  optional bytes openTelemetryTraceID = 33;     // OpenTelemetry TraceID
 }
 
 message PBDNSMessageList {
