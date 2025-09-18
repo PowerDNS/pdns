@@ -187,6 +187,10 @@ Interception Functions
 
     :attr:`dq.isTCP <DNSQuestion.isTcp>` can be set to force TCP or UDP
 
+  .. versionchanged:: 5.4.0
+
+    :attr:`remoteaddr <DNSQuestion.remoteaddr>` can be set to override the remote server
+
   This hook is not called in response to a client packet, but fires when the Recursor wants to talk to an authoritative server.
 
   When this hook sets the special result code ``-3``, the whole DNS client query causing this outgoing query gets a ``ServFail``.
@@ -197,7 +201,7 @@ Interception Functions
 
   In the case of :func:`preoutquery`, only a few attributes if the :class:`dq <DNSQuestion>` object are filled in:
 
-  - :attr:`dq.remoteaddr <DNSQuestion.remoteaddr>` containing the target nameserver address
+  - :attr:`dq.remoteaddr <DNSQuestion.remoteaddr>` containing the target nameserver address; since version 5.4.0 this attribute may be overridden by this hook
   - :attr:`dq.localaddr <DNSQuestion.localaddr>`
   - :attr:`dq.qname <DNSQuestion.qname>`
   - :attr:`dq.qtype <DNSQuestion.qtype>`
