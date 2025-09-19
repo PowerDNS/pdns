@@ -19,7 +19,11 @@ BuildRequires: systemd-units
 BuildRequires: systemd-devel
 %endif
 
+%if 0%{?rhel} == 8
+BuildRequires: boost1.78-devel
+%else
 BuildRequires: boost-devel
+%endif
 BuildRequires: python3-pyyaml
 BuildRequires: clang
 BuildRequires: lld
@@ -70,6 +74,10 @@ dnsdist is a high-performance DNS loadbalancer that is scriptable in Lua.
 
 %build
 # We need to build with LLVM/clang to be able to use LTO, since we are linking against a static Rust library built with LLVM
+%if 0%{?rhel} == 8
+export BOOST_INCLUDEDIR=/usr/include/boost1.78
+export BOOST_LIBRARYDIR=/usr/lib64/boost1.78
+%endif
 export CC=clang
 export CXX=clang++
 # build-id SHA1 prevents an issue with the debug symbols ("export: `-Wl,--build-id=sha1': not a valid identifier")
