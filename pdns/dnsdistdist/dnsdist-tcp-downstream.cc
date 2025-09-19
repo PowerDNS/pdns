@@ -322,8 +322,8 @@ void TCPConnectionToBackend::handleReconnectionAttempt(std::shared_ptr<TCPConnec
         if (conn->d_state == State::sendingQueryToBackend) {
           /* we need to edit this query so it has the correct ID */
           auto query = std::move(conn->d_currentQuery);
-          uint16_t id = conn->d_highestStreamID;
-          prepareQueryForSending(query.d_query, id, ConnectionState::needProxy);
+          uint16_t streamId = conn->d_highestStreamID;
+          prepareQueryForSending(query.d_query, streamId, ConnectionState::needProxy);
           conn->d_currentQuery = std::move(query);
         }
 
@@ -340,8 +340,8 @@ void TCPConnectionToBackend::handleReconnectionAttempt(std::shared_ptr<TCPConnec
               TCPResponse response(std::move(pending.second.d_query));
               pending.second.d_sender->notifyIOError(now, std::move(response));
             }
-            catch (const std::exception& e) {
-              vinfolog("Got an exception while notifying: %s", e.what());
+            catch (const std::exception& exp) {
+              vinfolog("Got an exception while notifying: %s", exp.what());
             }
             catch (...) {
               vinfolog("Got exception while notifying");
@@ -369,7 +369,7 @@ void TCPConnectionToBackend::handleReconnectionAttempt(std::shared_ptr<TCPConnec
         connectionDied = false;
       }
     }
-    catch (const std::exception& e) {
+    catch (const std::exception& exp) {
       // reconnect might throw on failure, let's ignore that, we just need to know
       // it failed
     }
