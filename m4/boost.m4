@@ -22,7 +22,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 m4_define([_BOOST_SERIAL], [m4_translit([
-# serial 38
+# serial 39
 ], [#
 ], [])])
 
@@ -226,7 +226,7 @@ AC_LANG_POP([C++])dnl
   AC_CACHE_CHECK([for Boost's header version],
     [boost_cv_lib_version],
     [m4_pattern_allow([^BOOST_LIB_VERSION$])dnl
-     _BOOST_SED_CPP([[/^boost-lib-version = /{s///;s/[\" ]//g;p;q;}]],
+     _BOOST_SED_CPP([[/^.*boost-lib-version = /{s///;s/[\" ]//g;p;q;}]],
                     [#include <boost/version.hpp>
 boost-lib-version = BOOST_LIB_VERSION],
     [boost_cv_lib_version=`cat conftest.i`])])
@@ -622,6 +622,13 @@ BOOST_DEFUN([Bind],
 [BOOST_FIND_HEADER([boost/bind.hpp])])
 
 
+# BOOST_CAST()
+# ------------
+# Look for Boost.Cast
+BOOST_DEFUN([Cast],
+[BOOST_FIND_HEADER([boost/cast.hpp])])
+
+
 # BOOST_CHRONO([PREFERRED-RT-OPT], [ERROR_ON_UNUSABLE])
 # --------------
 # Look for Boost.Chrono.
@@ -787,6 +794,15 @@ fi
 LIBS=$boost_context_save_LIBS
 LDFLAGS=$boost_context_save_LDFLAGS
 ])# BOOST_CONTEXT
+
+
+# BOOST_CONVERSION()
+# ------------------
+# Look for Boost.Conversion (cast / lexical_cast)
+BOOST_DEFUN([Conversion],
+[BOOST_FIND_HEADER([boost/cast.hpp])
+BOOST_FIND_HEADER([boost/lexical_cast.hpp])
+])# BOOST_CONVERSION
 
 
 # BOOST_COROUTINE([PREFERRED-RT-OPT], [ERROR_ON_UNUSABLE])
@@ -1316,11 +1332,16 @@ BOOST_DEFUN([String_Algo],
 # --------------------------------
 # Look for Boost.System.  For the documentation of PREFERRED-RT-OPT, see the
 # documentation of BOOST_FIND_LIB above.  This library was introduced in Boost
-# 1.35.0.
+# 1.35.0 and is header only since 1.70.
 BOOST_DEFUN([System],
-[BOOST_FIND_LIB([system], [$1],
+[
+if test $boost_major_version -ge 170; then
+  BOOST_FIND_HEADER([boost/system/error_code.hpp])
+else
+  BOOST_FIND_LIB([system], [$1],
                 [boost/system/error_code.hpp],
                 [boost::system::error_code e; e.clear();], [], [], [$2])
+fi
 ])# BOOST_SYSTEM
 
 
