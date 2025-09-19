@@ -3446,9 +3446,6 @@ int main(int argc, char** argv)
     }
 #endif
     dnsdist::initRandom();
-    dnsdist::configuration::updateImmutableConfiguration([](dnsdist::configuration::ImmutableConfiguration& config) {
-      config.d_hashPerturbation = dnsdist::getRandomValue(0xffffffff);
-    });
 
 #ifdef HAVE_XSK
     try {
@@ -3532,6 +3529,14 @@ int main(int argc, char** argv)
       _exit(EXIT_FAILURE);
 #endif
     }
+
+    // we only want to update this value if it has not been set by either the Lua or YAML configuration,
+    // and we need to stop touching this value once the backends' hashes have been computed, in setupPools()
+    dnsdist::configuration::updateImmutableConfiguration([](dnsdist::configuration::ImmutableConfiguration& config) {
+      if (config.d_hashPerturbation == 0) {
+        config.d_hashPerturbation = dnsdist::getRandomValue(0xffffffff);
+      }
+    });
 
     setupPools();
 
