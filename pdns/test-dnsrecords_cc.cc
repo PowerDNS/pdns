@@ -259,6 +259,11 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
      (CASE_L(QType::SVCB, R"XXX(16 foo.example.org. alpn=f\\\092oo\092,bar,h2)XXX", R"XXX(16 foo.example.org. alpn=f\\\\oo\\,bar,h2)XXX", "\x00\x10\3foo\7example\3org\x00\x00\x01\x00\x0c\x08\x66\\oo,bar\x02h2"))
      // END SVCB draft test vectors
 
+     (CASE_S(QType::HHIT, "1234abcd", "\xd7\x6d\xf8\x69\xb7\x1d"))
+     (CASE_L(QType::HHIT, "1234 abcd", "1234abcd", "\xd7\x6d\xf8\x69\xb7\x1d"))
+     (CASE_S(QType::BRID, "1234abcd", "\xd7\x6d\xf8\x69\xb7\x1d"))
+     (CASE_L(QType::BRID, "1234 abcd", "1234abcd", "\xd7\x6d\xf8\x69\xb7\x1d"))
+
      (CASE_S(QType::SPF, "\"v=spf1 a:mail.rec.test ~all\"", "\x1bv=spf1 a:mail.rec.test ~all"))
 
      (CASE_S(QType::NID, "15 0123:4567:89AB:CDEF", "\x00\x0F\x01\x23\x45\x67\x89\xab\xcd\xef"))

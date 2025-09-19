@@ -716,6 +716,30 @@ public:
   std::shared_ptr<SVCBBaseRecordContent> clone() const override;
 };
 
+class DRIPBaseRecordContent : public DNSKEYRecordContent
+{
+public:
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_data.size();
+  }
+  virtual std::shared_ptr<DRIPBaseRecordContent> clone() const = 0;
+protected:
+  string d_data;
+};
+
+class HHITRecordContent : public DRIPBaseRecordContent {
+public:
+  includeboilerplate(HHIT);
+  std::shared_ptr<DRIPBaseRecordContent> clone() const override;
+};
+
+class BRIDRecordContent : public DRIPBaseRecordContent {
+public:
+  includeboilerplate(BRID);
+  std::shared_ptr<DRIPBaseRecordContent> clone() const override;
+};
+
 class RRSIGRecordContent : public DNSRecordContent
 {
 public:
