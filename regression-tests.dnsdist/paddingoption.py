@@ -1,0 +1,1 @@
+../regression-tests.recursor-dnssec/paddingoption.py
