@@ -46,6 +46,7 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
     getOptionalValue<bool>(vars, "deferrableInsertLock", settings.d_deferrableInsertLock);
     getOptionalValue<bool>(vars, "dontAge", settings.d_dontAge);
     getOptionalValue<bool>(vars, "keepStaleData", settings.d_keepStaleData);
+    getOptionalValue<bool>(vars, "shuffle", settings.d_shuffle);
     getOptionalValue<size_t>(vars, "maxNegativeTTL", settings.d_maxNegativeTTL);
     getOptionalValue<size_t>(vars, "maxTTL", settings.d_maxTTL);
     getOptionalValue<size_t>(vars, "minTTL", settings.d_minTTL);

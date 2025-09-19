@@ -1032,6 +1032,7 @@ See :doc:`../guides/cache` for a how to.
   :param bool deferrableInsertLock: Whether the cache should give up insertion if the lock is held by another thread, or simply wait to get the lock
   :param int maxNegativeTTL: Cache a NXDomain or NoData answer from the backend for at most this amount of seconds, even if the TTL of the SOA record is higher
   :param bool parseECS: Whether any EDNS Client Subnet option present in the query should be extracted and stored to be able to detect hash collisions involving queries with the same qname, qtype and qclass but a different incoming ECS value. Enabling this option adds a parsing cost and only makes sense if at least one backend might send different responses based on the ECS value, so it's disabled by default
+  :param bool shuffle: Whether A and AAAA records should be shuffled when serving from cache, for load-balancing. The cache might not be always shuffled when the results are too complex.
 
 .. function:: newPacketCache(maxEntries, [options]) -> PacketCache
 
@@ -1074,6 +1075,7 @@ See :doc:`../guides/cache` for a how to.
   * ``skipOptions={}``: Extra list of EDNS option codes to skip when hashing the packet (if ``cookieHashing`` above is false, EDNS cookie option number will be added to this list internally).
   * ``maximumEntrySize=4096``: int - The maximum size, in bytes, of a DNS packet that can be inserted into the packet cache. Default is 4096 bytes, which was the fixed size before 1.9.0, and is also a hard limit for UDP responses.
   * ``payloadRanks={}``: List of payload size used when hashing the packet. The list will be sorted in ascending order and searched to find a lower bound value for the payload size in the packet. If found then it will be used for packet hashing. Values less than 512 or greater than ``maximumEntrySize`` above will be discarded. This option is to enable cache entry sharing between clients using different payload sizes when needed.
+  * ``shuffle=false``: bool - Whether A and AAAA records should be shuffled when serving from cache, for load-balancing. The cache might not be always shuffled when the results are too complex.
 
 .. class:: PacketCache
 
