@@ -389,7 +389,7 @@ private:
   bool d_random_ids;
   bool d_handle_dups;
   bool d_views;
-  bool d_skip_notification_update;
+  bool d_write_notification_update;
   DTime d_dtime; // used only for logging
   uint64_t d_mapsize;
 };
