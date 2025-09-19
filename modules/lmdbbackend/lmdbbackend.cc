@@ -722,7 +722,7 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
     throw std::runtime_error(std::string("Unable to parse the 'map-size' LMDB value: ") + e.what());
   }
 
-  d_skip_notification_update = mustDo("skip-notification-update");
+  d_write_notification_update = mustDo("write-notification-update");
 
   if (mustDo("lightning-stream")) {
     d_random_ids = true;
@@ -1170,7 +1170,7 @@ bool LMDBBackend::findDomain(domainid_t domainid, DomainInfo& info) const
 void LMDBBackend::consolidateDomainInfo(DomainInfo& info) const
 {
   // Update the notified_serial value if we have a cached value in memory.
-  if (d_skip_notification_update) {
+  if (!d_write_notification_update) {
     auto container = s_notified_serial.read_lock();
     container->get(info.id, info.notified_serial);
   }
@@ -1178,7 +1178,7 @@ void LMDBBackend::consolidateDomainInfo(DomainInfo& info) const
 
 void LMDBBackend::writeDomainInfo(const DomainInfo& info)
 {
-  if (d_skip_notification_update) {
+  if (!d_write_notification_update) {
     uint32_t last_notified_serial{0};
     auto container = s_notified_serial.write_lock();
     container->get(info.id, last_notified_serial);
@@ -2296,7 +2296,7 @@ void LMDBBackend::getUpdatedPrimaries(vector<DomainInfo>& updatedDomains, std::u
 
 void LMDBBackend::setNotified(domainid_t domain_id, uint32_t serial)
 {
-  if (!d_skip_notification_update) {
+  if (d_write_notification_update) {
     genChangeDomain(domain_id, [serial](DomainInfo& info) {
       info.notified_serial = serial;
     });
@@ -2308,7 +2308,6 @@ void LMDBBackend::setNotified(domainid_t domain_id, uint32_t serial)
     auto container = s_notified_serial.write_lock();
     container->update(info.id, serial);
   }
-  // else throw something? this should be a "can't happen" situation.
 }
 
 class getCatalogMembersReturnFalseException : std::runtime_error
@@ -3248,7 +3247,7 @@ public:
     declare(suffix, "random-ids", "Numeric IDs inside the database are generated randomly instead of sequentially", "no");
     declare(suffix, "map-size", "LMDB map size in megabytes", (sizeof(void*) == 4) ? "100" : "16000");
     declare(suffix, "flag-deleted", "Flag entries on deletion instead of deleting them", "no");
-    declare(suffix, "skip-notification-update", "Do not update domain table upon notification", "no");
+    declare(suffix, "write-notification-update", "Do not update domain table upon notification", "yes");
     declare(suffix, "lightning-stream", "Run in Lightning Stream compatible mode", "no");
   }
   DNSBackend* make(const string& suffix = "") override
