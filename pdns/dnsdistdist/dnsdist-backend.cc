@@ -250,8 +250,8 @@ void DownstreamState::stop()
 
 void DownstreamState::hash()
 {
-  vinfolog("Computing hashes for id=%s and weight=%d", *d_config.id, d_config.d_weight);
   const auto hashPerturbation = dnsdist::configuration::getImmutableConfiguration().d_hashPerturbation;
+  vinfolog("Computing hashes for id=%s and weight=%d, hash_perturbation=%d", *d_config.id, d_config.d_weight, hashPerturbation);
   auto w = d_config.d_weight;
   auto idStr = boost::str(boost::format("%s") % *d_config.id);
   auto lockedHashes = hashes.write_lock();

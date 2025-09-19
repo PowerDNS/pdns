@@ -2115,7 +2115,7 @@ load_balancing_policies:
       lua-name: "setWHashedPerturbation"
       internal-field-name: "d_hashPerturbation"
       runtime-configurable: false
-      description: "Set the hash perturbation value to be used in the ``whashed`` policy instead of a random one, allowing to have consistent ``whashed`` results on different instances"
+      description: "Set the hash perturbation value to be used in the ``chashed`` and ``whashed`` policies instead of a random one, allowing to have consistent ``chashed`` and ``whashed`` results on different instances"
 
 query_rule:
   description: "A rule that can applied on queries"
