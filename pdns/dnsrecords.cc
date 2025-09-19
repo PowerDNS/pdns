@@ -371,6 +371,14 @@ boilerplate_conv(HTTPS,
                  }
                  )
 
+boilerplate_conv(HHIT,
+                 conv.xfrBlob(d_data);
+                 )
+
+boilerplate_conv(BRID,
+                 conv.xfrBlob(d_data);
+                 )
+
 boilerplate_conv(SMIMEA,
                  conv.xfr8BitInt(d_certusage);
                  conv.xfr8BitInt(d_selector);
@@ -833,6 +841,16 @@ std::shared_ptr<SVCBBaseRecordContent> HTTPSRecordContent::clone() const
 
 /* SVCB end */
 
+std::shared_ptr<DRIPBaseRecordContent> HHITRecordContent::clone() const
+{
+  return {std::make_shared<HHITRecordContent>(*this)};
+}
+
+std::shared_ptr<DRIPBaseRecordContent> BRIDRecordContent::clone() const
+{
+  return {std::make_shared<BRIDRecordContent>(*this)};
+}
+
 boilerplate_conv(TKEY,
                  conv.xfrName(d_algo);
                  conv.xfr32BitInt(d_inception);
@@ -963,6 +981,8 @@ static void reportOtherTypes(const ReportIsOnlyCallableByReportAllTypes& guard)
    OPENPGPKEYRecordContent::report(guard);
    SVCBRecordContent::report(guard);
    HTTPSRecordContent::report(guard);
+   HHITRecordContent::report(guard);
+   BRIDRecordContent::report(guard);
    DLVRecordContent::report(guard);
    DNSRecordContent::regist(QClass::ANY, QType::TSIG, &TSIGRecordContent::make, &TSIGRecordContent::make, "TSIG");
    DNSRecordContent::regist(QClass::ANY, QType::TKEY, &TKEYRecordContent::make, &TKEYRecordContent::make, "TKEY");
