@@ -951,9 +951,18 @@ struct ServerPool
     return d_useECS;
   }
 
-  void setECS(bool useECS)
+  void setECS(bool useECS);
+
+  bool getDisableZeroScope() const
   {
-    d_useECS = useECS;
+    return d_disableZeroScope;
+  }
+
+  void setDisableZeroScope(bool disable);
+
+  bool isConsistent() const
+  {
+    return d_isConsistent;
   }
 
   std::shared_ptr<DNSDistPacketCache> packetCache{nullptr};
@@ -961,6 +970,7 @@ struct ServerPool
 
   size_t poolLoad();
   size_t countServers(bool upOnly);
+  bool hasAtLeastOneServerAvailable();
   const std::shared_ptr<const ServerPolicy::NumberedServerVector> getServers();
   void addServer(shared_ptr<DownstreamState>& server);
   void removeServer(shared_ptr<DownstreamState>& server);
@@ -971,9 +981,13 @@ struct ServerPool
   }
 
 private:
+  void updateConsistency();
+
   SharedLockGuarded<std::shared_ptr<const ServerPolicy::NumberedServerVector>> d_servers;
   bool d_useECS{false};
   bool d_tcpOnly{false};
+  bool d_disableZeroScope{false};
+  bool d_isConsistent{true};
 };
 
 enum ednsHeaderFlags
