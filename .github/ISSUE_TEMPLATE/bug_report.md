@@ -11,6 +11,7 @@ assignees: ''
 <!-- Also please search the existing issues (both open and closed) to see if your report might be duplicate -->
 - [ ] This is not a support question, I have read [about opensource](https://www.powerdns.com/opensource.html) and will send support questions to the IRC channel, [GitHub Discussions](https://github.com/PowerDNS/pdns/discussions/) or the mailing list.
 - [ ] I have read and understood the ['out in the open' support policy](https://blog.powerdns.com/2016/01/18/open-source-support-out-in-the-open/)
+- [ ] I have read and understood the [PowerDNS AI policy](https://github.com/PowerDNS/pdns/blob/master/AI_POLICY.md)
 
 <!-- Tell us what is issue is about -->
  - Program: Authoritative, Recursor, dnsdist <!-- delete the ones that do not apply -->
