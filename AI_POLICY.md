@@ -3,7 +3,7 @@ PowerDNS AI Usage Policy
 
 Last update: 15th September, 2025
 
-This document tries to summarize the AI Usage Policy within the
+This document tries to summarize the AI Usage Policy within
 PowerDNS Authoritative Server, Recursor and dnsdist, and the rationale behind
 it.
 
