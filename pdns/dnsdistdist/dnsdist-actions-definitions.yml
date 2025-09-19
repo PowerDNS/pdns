@@ -291,7 +291,14 @@ The function will be invoked in a per-thread Lua state, without access to the gl
     - name: "ip_encrypt_key"
       type: "String"
       default: ""
-      description: "A key, that can be generated via the :func:`makeIPCipherKey` function, to encrypt the IP address of the requestor for anonymization purposes. The encryption is done using ipcrypt for IPv4 and a 128-bit AES ECB operation for IPv6"
+      description: "A key to encrypt the IP address of the requestor for anonymization purposes. For the \"legacy\" method, it can be generated via the :func:`makeIPCipherKey` function, The encryption method can be set using ``ip_encrypt_method``"
+    - name: "ip_encrypt_method"
+      type: "String"
+      default: "legacy"
+      description: "
+        The method to encrypt the IP addresses with.
+          * legacy: The encryption is done using ipcrypt for IPv4 and a 128-bit AES ECB operation for IPv6. This is the default.
+          * ipcrypt-pfx: IPCrypt2, using prefix-preserving encryption. See `the ipcrypt website <https://ipcrypt-std.github.io/>__`. ``ip_encrypt_key`` must be 32 bytes."
     - name: "export_tags"
       type: "Vec<String>"
       default: ""
