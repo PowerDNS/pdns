@@ -314,6 +314,7 @@ public:
   HandlingIOGuard(bool& handlingIO) :
     d_handlingIO(handlingIO)
   {
+    d_handlingIO = true;
   }
   HandlingIOGuard(const HandlingIOGuard&) = delete;
   HandlingIOGuard(HandlingIOGuard&&) = delete;

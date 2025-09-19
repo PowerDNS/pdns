@@ -275,6 +275,7 @@ private:
 
   static void handleIO(std::shared_ptr<TCPConnectionToBackend>& conn, const struct timeval& now);
   static void handleIOCallback(int fd, FDMultiplexer::funcparam_t& param);
+  static void handleReconnectionAttempt(std::shared_ptr<TCPConnectionToBackend>& conn, const struct timeval& now, IOStateGuard& ioGuard, IOState& iostate, bool& reconnected, bool& connectionDied);
   static IOState queueNextQuery(std::shared_ptr<TCPConnectionToBackend>& conn);
   static IOState sendQuery(std::shared_ptr<TCPConnectionToBackend>& conn, const struct timeval& now);
   static bool isXFRFinished(const TCPResponse& response, TCPQuery& query);
@@ -302,6 +303,8 @@ private:
   size_t d_currentPos{0};
   uint16_t d_responseSize{0};
   State d_state{State::idle};
+  bool d_handlingIO{false};
+  bool d_lastIOBlocked{false};
 };
 
 void setTCPDownstreamMaxIdleConnectionsPerBackend(uint64_t max);

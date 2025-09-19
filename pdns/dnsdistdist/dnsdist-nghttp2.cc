@@ -379,7 +379,6 @@ void DoHConnectionToBackend::handleReadableIOCallback(int fd, FDMultiplexer::fun
   if (conn->d_inIOCallback) {
     return;
   }
-  conn->d_inIOCallback = true;
   dnsdist::tcp::HandlingIOGuard handlingIOGuard(conn->d_inIOCallback);
   IOStateGuard ioGuard(conn->d_ioState);
   do {

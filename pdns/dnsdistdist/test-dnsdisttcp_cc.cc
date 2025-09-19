@@ -672,7 +672,6 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
   }
 
   {
-#if 1
     TEST_INIT("=> 10k self-generated pipelined on the same connection");
 
     /* 10k self-generated REFUSED pipelined on the same connection */
@@ -699,7 +698,6 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
     auto state = std::make_shared<IncomingTCPConnectionState>(ConnectionInfo(&localCS, getBackendAddress("84", 4242)), threadData, now);
     state->handleIO();
     BOOST_CHECK_EQUAL(s_writeBuffer.size(), query.size() * count);
-#endif
   }
 
   {
@@ -1819,7 +1817,6 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
   }
 
   {
-#if 1
     /* 101 queries on the same connection, check that the maximum number of queries kicks in */
     TEST_INIT("=> 101 queries on the same connection");
 
@@ -1886,7 +1883,6 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
     dnsdist::configuration::updateRuntimeConfiguration([](dnsdist::configuration::RuntimeConfiguration& config) {
       config.d_maxTCPQueriesPerConn = 0;
     });
-#endif
   }
 
   {
@@ -2206,8 +2202,6 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
         /* set the client descriptor as NOT ready */
         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(desc);
       } },
-      /* reading from the client (not ready) */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0 },
       /* reading a response from the backend (5) */
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(4).size() - 2 },
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(4).size() },
@@ -2220,6 +2214,8 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(desc);
         timeout = true;
       } },
+      /* reading from the client (not ready) */
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0 },
 
       /* A timeout occurs */
 
@@ -3964,10 +3960,14 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(0).size() - 2 },
       /* sending it to the client */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(0).size(), [&threadData](int desc) {
+      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(0).size(), [&threadData,&backend1Desc](int desc) {
         /* client becomes readable */
         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
+        /* first backend is no longer readable */
+        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(backend1Desc);
       } },
+      /* no response ready from the backend yet */
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0 },
       /* reading a query from the client (5) */
       { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
       { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(4).size() - 2, [&threadData](int desc) {
@@ -3993,6 +3993,8 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(backend1Desc);
         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(backend2Desc);
       } },
+      /* no more response ready yet from backend 1 */
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0 },
       /* reading response (3) from the second backend (2) */
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(2).size() - 2 },
@@ -4003,6 +4005,8 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(backend2Desc);
         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(backend1Desc);
       } },
+      /* no more response ready yet from backend 2 */
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0 },
       /* reading response (5) from the first backend (1) */
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(4).size() - 2 },
@@ -4013,6 +4017,8 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(backend1Desc);
         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(backend2Desc);
       } },
+      /* no more response ready yet from backend 1 */
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0 },
       /* reading response (4) from the second backend (2) */
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(3).size() - 2 },
