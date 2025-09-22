@@ -615,7 +615,7 @@ try
       else if (s_doEDNSCookieProcessing && option.first == EDNSOptionCode::COOKIE) {
         d_haveednscookie = true;
         d_eco.makeFromString(option.second);
-        d_ednscookievalid = d_eco.isValid(s_EDNSCookieKey, d_remote);
+        d_ednscookievalid = d_eco.isValid(s_EDNSCookieKey, getInnerRemote());
       }
       else {
         // cerr<<"Have an option #"<<iter->first<<": "<<makeHexDump(iter->second)<<endl;
