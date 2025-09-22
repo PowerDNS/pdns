@@ -290,7 +290,8 @@ class TestRecursorProtobuf(RecursorTest):
         self.assertEqual(msg.deviceName, deviceName)
 
     def checkProtobufEDE(self, msg, ede, edeText):
-        self.assertTrue((ede == '') == (not msg.HasField('ede')))
+        print(msg)
+        self.assertTrue((ede == 0) == (not msg.HasField('ede')))
         self.assertTrue((edeText == '') == (not msg.HasField('edeText')))
         self.assertEqual(msg.ede, ede)
         self.assertEqual(msg.edeText, edeText)
@@ -384,7 +385,7 @@ event-trace-enabled=4
         self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15)
         self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.42')
         self.checkProtobufOT(msg, True, True)
-        self.checkProtobufEDE(msg, '', '')
+        self.checkProtobufEDE(msg, 0, '')
         self.checkNoRemainingMessage()
 
     def testCNAME(self):
@@ -415,7 +416,7 @@ event-trace-enabled=4
         self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, 'a.example.', 15, checkTTL=False)
         self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.42')
         self.checkProtobufOT(msg, True, True)
-        self.checkProtobufEDE(msg, '', '')
+        self.checkProtobufEDE(msg, 0, '')
         self.checkNoRemainingMessage()
 
 class ProtobufProxyMappingTest(TestRecursorProtobuf):
