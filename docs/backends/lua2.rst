@@ -120,7 +120,7 @@ Get domain information for all domains.
 
 OUTPUT:
  Return false if not supported or found; otherwise, return a table of 
-`{ [DNSName] = domaininfo, … }`. See :ref:`dns_get_domaininfo() <backends_lua2_dns_get_domaininfo>`.
+ `{ [DNSName] = domaininfo, … }`. See :ref:`dns_get_domaininfo() <backends_lua2_dns_get_domaininfo>`.
 
 NOTES:
  This function is **optional**, except if you need primary functionality. It
