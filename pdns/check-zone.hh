@@ -20,8 +20,19 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+// These validation/verification routines are used by both pdnsutil and
+// the pdns_server REST API.
+// They build error messages, if any, into an object provided by the caller
+// (preferrably a container if it makes sense to report multiple errors);
+// it's up to each caller to decide how to report such errors.
+
 namespace Check
 {
+
+// Validate a view name. Although view names never appear on the wire, we
+// restrict them to [a-zA-Z0-9-_. ], with empty names or names with leading
+// whitespace or a leading dot forbidden.
+bool validateViewName(std::string_view name, std::string& error);
 
 // Returns the list of errors found for new records which violate RRset
 // constraints.

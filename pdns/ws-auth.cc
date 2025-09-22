@@ -2826,6 +2826,10 @@ static void apiServerViewsPOST(HttpRequest* req, HttpResponse* resp)
     throw ApiException("Zone " + zonename.toString() + " does not exist");
   }
   std::string view{req->parameters["view"]};
+  std::string error;
+  if (!Check::validateViewName(view, error)) {
+    throw ApiException(error);
+  }
 
   if (!domainInfo.backend->viewAddZone(view, zonename)) {
     throw ApiException("Failed to add " + zonename.toString() + " to view " + view);
@@ -2850,6 +2854,10 @@ static void apiServerViewsDELETE(HttpRequest* req, HttpResponse* resp)
 {
   ZoneData zoneData{req};
   std::string view{req->parameters["view"]};
+  std::string error;
+  if (!Check::validateViewName(view, error)) {
+    throw ApiException(error);
+  }
 
   if (!zoneData.domainInfo.backend->viewDelZone(view, zoneData.zoneName)) {
     throw ApiException("Failed to remove " + zoneData.zoneName.toString() + " from view " + view);

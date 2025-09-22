@@ -28,6 +28,31 @@
 namespace Check
 {
 
+bool validateViewName(std::string_view name, std::string& error)
+{
+  if (name.empty()) {
+    error = "Empty view names are not allowed";
+    return false;
+  }
+
+  if (auto pos = name.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890 _-."); pos != std::string_view::npos) {
+    error = std::string("View name contains forbidden character '") + name[pos] + "' at position " + std::to_string(pos);
+    return false;
+  }
+
+  if (name[0] == '.') {
+    error = "View names are not allowed to start with a dot";
+    return false;
+  }
+
+  if (name[0] == ' ') {
+    error = "View names are not allowed to start with a space";
+    return false;
+  }
+
+  return true;
+}
+
 void checkRRSet(const vector<DNSResourceRecord>& oldrrs, vector<DNSResourceRecord>& allrrs, const ZoneName& zone, vector<pair<DNSResourceRecord, string>>& errors)
 {
   // QTypes that MUST NOT have multiple records of the same type in a given RRset.

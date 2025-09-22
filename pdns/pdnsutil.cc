@@ -5440,6 +5440,11 @@ static int listView(vector<string>& cmds, const std::string_view synopsis)
 
   UtilBackend B("default"); //NOLINT(readability-identifier-length)
 
+  if ((B.getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+    cerr << "None of the configured backends support views." << endl;
+    return 1;
+  }
+
   vector<ZoneName> ret;
   B.viewListZones(cmds.at(0), ret);
 
@@ -5456,6 +5461,12 @@ static int listViews(vector<string>& cmds, const std::string_view synopsis)
   }
 
   UtilBackend B("default"); //NOLINT(readability-identifier-length)
+
+  if ((B.getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+    // Don't complain about the lack of view support in this case, but
+    // don't list anything either.
+    return 0;
+  }
 
   vector<string> ret;
   B.viewList(ret);
@@ -5474,7 +5485,17 @@ static int viewAddZone(vector<string>& cmds, const std::string_view synopsis)
 
   UtilBackend B("default"); //NOLINT(readability-identifier-length)
 
+  if ((B.getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+    cerr << "None of the configured backends support views." << endl;
+    return 1;
+  }
+
   string view{cmds.at(0)};
+  string error;
+  if (!Check::validateViewName(view, error)) {
+    cerr << error << "." << endl;
+    return 1;
+  }
   ZoneName zone{cmds.at(1)};
   if (!B.viewAddZone(view, zone)) {
     cerr<<"Operation failed."<<endl;
@@ -5498,7 +5519,17 @@ static int viewDelZone(vector<string>& cmds, const std::string_view synopsis)
 
   UtilBackend B("default"); //NOLINT(readability-identifier-length)
 
+  if ((B.getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+    cerr << "None of the configured backends support views." << endl;
+    return 1;
+  }
+
   string view{cmds.at(0)};
+  string error;
+  if (!Check::validateViewName(view, error)) {
+    cerr << error << "." << endl;
+    return 1;
+  }
   ZoneName zone{cmds.at(1)};
   if (!B.viewDelZone(view, zone)) {
     cerr<<"Operation failed."<<endl;
@@ -5514,6 +5545,11 @@ static int listNetwork(vector<string>& cmds, const std::string_view synopsis)
   }
 
   UtilBackend B("default"); //NOLINT(readability-identifier-length)
+
+  if ((B.getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+    cerr << "None of the configured backends support views." << endl;
+    return 1;
+  }
 
   vector<pair<Netmask, string> > ret;
 
@@ -5532,6 +5568,11 @@ static int setNetwork(vector<string>& cmds, const std::string_view synopsis)
   }
 
   UtilBackend B("default"); //NOLINT(readability-identifier-length)
+
+  if ((B.getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+    cerr << "None of the configured backends support views." << endl;
+    return 1;
+  }
 
   Netmask net{cmds.at(0)};
   string view{};
