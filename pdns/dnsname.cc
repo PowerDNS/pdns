@@ -638,9 +638,17 @@ bool DNSName::isWildcard() const
 /*
  * Returns true if the DNSName is a valid RFC 1123 hostname, this function uses
  * a regex on the string, so it is probably best not used when speed is essential.
+ *
+ * If allowUnderscore is set, underscore characters (`_') are allowed anywhere
+ * a letter or a digit would have been. In particular, leading underscores are
+ * allowed.
  */
-bool DNSName::isHostname() const
+bool DNSName::isHostname(bool allowUnderscore) const
 {
+  if (allowUnderscore) {
+    static Regex hostNameRegexWithUnderscore = Regex("^(([A-Za-z0-9_]([A-Za-z0-9-_]*[A-Za-z0-9_])?)\\.)+$");
+    return hostNameRegexWithUnderscore.match(this->toString());
+  }
   static Regex hostNameRegex = Regex("^(([A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)\\.)+$");
   return hostNameRegex.match(this->toString());
 }

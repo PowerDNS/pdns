@@ -1034,6 +1034,7 @@ static bool isValidMetadataKind(const string& kind, bool readonly)
     {"PRESIGNED", true},
     {"PUBLISH-CDNSKEY", false},
     {"PUBLISH-CDS", false},
+    {"RFC1123-CONFORMANCE", false},
     {"SIGNALING-ZONE", false},
     {"SLAVE-RENOTIFY", false},
     {"SOA-EDIT", true},
@@ -1674,13 +1675,21 @@ static void gatherRecordsFromZone(const std::string& zonestring, vector<DNSResou
   }
 }
 
+static bool areUnderscoresAllowed(const ZoneName& zonename, DNSBackend& backend)
+{
+  string underscores{};
+  backend.getDomainMetadataOne(zonename, "RFC1123-CONFORMANCE", underscores);
+  // Metadata absent implies strict conformance
+  return underscores == "0";
+}
+
 // Wrapper around checkRRSet; returns true if all checks successful, false if
 // not, in which case the response body and status have been filled up.
-static bool checkNewRecords(HttpResponse* resp, vector<DNSResourceRecord>& records, const ZoneName& zone)
+static bool checkNewRecords(HttpResponse* resp, vector<DNSResourceRecord>& records, const ZoneName& zone, bool allowUnderscores)
 {
   std::vector<std::pair<DNSResourceRecord, string>> errors;
 
-  Check::checkRRSet({}, records, zone, errors);
+  Check::checkRRSet({}, records, zone, allowUnderscores, errors);
   if (errors.empty()) {
     return true;
   }
@@ -2054,7 +2063,7 @@ static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp)
     }
   }
 
-  if (!checkNewRecords(resp, new_records, zonename)) {
+  if (!checkNewRecords(resp, new_records, zonename, false)) { // no RFC1123-CONFORMANCE metadata on new zones
     return;
   }
 
@@ -2230,7 +2239,8 @@ static void apiServerZoneDetailPUT(HttpRequest* req, HttpResponse* resp)
       throw ApiException("Modifying RRsets in Consumer zones is unsupported");
     }
 
-    if (!checkNewRecords(resp, new_records, zoneData.zoneName)) {
+    bool allowUnderscores = areUnderscoresAllowed(zoneData.zoneName, *zoneData.domainInfo.backend);
+    if (!checkNewRecords(resp, new_records, zoneData.zoneName, allowUnderscores)) {
       return;
     }
 
@@ -2460,6 +2470,7 @@ static void patchZone(UeberBackend& backend, const ZoneName& zonename, DomainInf
     domainInfo.backend->getDomainMetadataOne(zonename, "SOA-EDIT-API", soa_edit_api_kind);
     domainInfo.backend->getDomainMetadataOne(zonename, "SOA-EDIT", soa_edit_kind);
     bool soa_edit_done = false;
+    bool allowUnderscores = areUnderscoresAllowed(zonename, *domainInfo.backend);
 
     vector<DNSResourceRecord> new_records;
     vector<Comment> new_comments;
@@ -2518,7 +2529,7 @@ static void patchZone(UeberBackend& backend, const ZoneName& zonename, DomainInf
                 soa_edit_done = increaseSOARecord(resourceRecord, soa_edit_api_kind, soa_edit_kind, zonename);
               }
             }
-            if (!checkNewRecords(resp, new_records, zonename)) {
+            if (!checkNewRecords(resp, new_records, zonename, allowUnderscores)) {
               return;
             }
           }
