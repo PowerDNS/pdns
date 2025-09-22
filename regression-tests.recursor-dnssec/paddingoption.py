@@ -47,6 +47,9 @@ class PaddingOption(dns.edns.Option):
             self.numberOfBytes
         )
 
+    def to_text(self):
+        return self.__repr__()
+
     def __eq__(self, other):
         if not isinstance(other, PaddingOption):
             return False
