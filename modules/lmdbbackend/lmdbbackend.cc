@@ -645,6 +645,30 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
   return true;
 }
 
+// Serial number cache
+bool LMDBBackend::SerialCache::get(uint32_t domainid, uint32_t& serial) const
+{
+  if (auto iter = d_serials.find(domainid); iter != d_serials.end()) {
+    serial = iter->second;
+    return true;
+  }
+  return false;
+}
+
+void LMDBBackend::SerialCache::remove(uint32_t domainid)
+{
+  if (auto iter = d_serials.find(domainid); iter != d_serials.end()) {
+    d_serials.erase(iter);
+  }
+}
+
+void LMDBBackend::SerialCache::update(uint32_t domainid, uint32_t serial)
+{
+  d_serials.insert_or_assign(domainid, serial);
+}
+
+SharedLockGuarded<LMDBBackend::SerialCache> LMDBBackend::s_notified_serial;
+
 LMDBBackend::LMDBBackend(const std::string& suffix)
 {
   // overlapping domain ids in combination with relative names are a recipe for disaster
@@ -672,6 +696,8 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
   catch (const std::exception& e) {
     throw std::runtime_error(std::string("Unable to parse the 'map-size' LMDB value: ") + e.what());
   }
+
+  d_write_notification_update = mustDo("write-notification-update");
 
   if (mustDo("lightning-stream")) {
     d_random_ids = true;
@@ -1002,6 +1028,53 @@ void LMDBBackend::deleteDomainRecords(RecordsRWTransaction& txn, uint32_t domain
   }
 }
 
+bool LMDBBackend::findDomain(const DNSName& domain, DomainInfo& info) const
+{
+  auto rotxn = d_tdomains->getROTransaction();
+  auto domain_id = rotxn.get<0>(domain, info);
+  if (domain_id == 0) {
+    return false;
+  }
+  info.id = static_cast<uint32_t>(domain_id);
+  return true;
+}
+
+bool LMDBBackend::findDomain(uint32_t domainid, DomainInfo& info) const
+{
+  auto rotxn = d_tdomains->getROTransaction();
+  if (!rotxn.get(domainid, info)) {
+    return false;
+  }
+  info.id = domainid;
+  return true;
+}
+
+void LMDBBackend::consolidateDomainInfo(DomainInfo& info) const
+{
+  // Update the notified_serial value if we have a cached value in memory.
+  if (!d_write_notification_update) {
+    auto container = s_notified_serial.read_lock();
+    container->get(info.id, info.notified_serial);
+  }
+}
+
+void LMDBBackend::writeDomainInfo(const DomainInfo& info)
+{
+  if (!d_write_notification_update) {
+    uint32_t last_notified_serial{0};
+    auto container = s_notified_serial.write_lock();
+    container->get(info.id, last_notified_serial);
+    // Only remove the in-memory value if it has not been modified since the
+    // DomainInfo data was set up.
+    if (last_notified_serial == info.notified_serial) {
+      container->remove(info.id);
+    }
+  }
+  auto txn = d_tdomains->getRWTransaction();
+  txn.put(info, info.id);
+  txn.commit();
+}
+
 /* Here's the complicated story. Other backends have just one transaction, which is either
    on or not.
 
@@ -1019,12 +1092,11 @@ bool LMDBBackend::startTransaction(const DNSName& domain, int domain_id)
   // cout <<"startTransaction("<<domain<<", "<<domain_id<<")"<<endl;
   int real_id = domain_id;
   if (real_id < 0) {
-    auto rotxn = d_tdomains->getROTransaction();
-    DomainInfo di;
-    real_id = rotxn.get<0>(domain, di);
-    // cout<<"real_id = "<<real_id << endl;
-    if (!real_id)
+    DomainInfo info;
+    if (!findDomain(domain, info)) {
       return false;
+    }
+    real_id = static_cast<int>(info.id);
   }
   if (d_rwtxn) {
     throw DBException("Attempt to start a transaction while one was open already");
@@ -1167,15 +1239,15 @@ bool LMDBBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const Q
     needCommit = true;
   }
 
-  DomainInfo di;
-  if (!d_tdomains->getROTransaction().get(domain_id, di)) {
+  DomainInfo info;
+  if (!findDomain(domain_id, info)) {
     return false;
   }
 
   compoundOrdername co;
   auto cursor = txn->txn->getCursor(txn->db->dbi);
   MDBOutVal key, val;
-  string match = co(domain_id, qname.makeRelative(di.zone), qt.getCode());
+  string match = co(domain_id, qname.makeRelative(info.zone), qt.getCode());
   if (!cursor.find(match, key, val)) {
     cursor.del();
   }
@@ -1185,7 +1257,7 @@ bool LMDBBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const Q
     for (const auto& rr : rrset) {
       LMDBResourceRecord lrr(rr);
       lrr.content = serializeContent(lrr.qtype.getCode(), lrr.qname, lrr.content);
-      lrr.qname.makeUsRelative(di.zone);
+      lrr.qname.makeUsRelative(info.zone);
 
       adjustedRRSet.emplace_back(lrr);
     }
@@ -1324,10 +1396,10 @@ bool LMDBBackend::deleteDomain(const DNSName& domain)
 
   if (!d_handle_dups) {
     // get domain id
-    auto txn = d_tdomains->getROTransaction();
-
-    DomainInfo di;
-    idvec.push_back(txn.get<0>(domain, di));
+    DomainInfo info;
+    if (findDomain(domain, info)) {
+      idvec.push_back(info.id);
+    }
   }
   else {
     // this transaction used to be RO.
@@ -1372,6 +1444,10 @@ bool LMDBBackend::deleteDomain(const DNSName& domain)
     commitTransaction();
 
     // Remove zone
+    {
+      auto container = s_notified_serial.write_lock();
+      container->remove(static_cast<uint32_t>(id));
+    }
     auto txn = d_tdomains->getRWTransaction();
     txn.del(id);
     txn.commit();
@@ -1386,23 +1462,18 @@ bool LMDBBackend::list(const DNSName& target, int /* id */, bool include_disable
 {
   d_includedisabled = include_disabled;
 
-  DomainInfo di;
-  {
-    auto dtxn = d_tdomains->getROTransaction();
-    if ((di.id = dtxn.get<0>(target, di))) {
-      // cerr << "Found domain " << target << " on domain_id " << di.id << ", list requested " << id << endl;
-    }
-    else {
-      // cerr << "Did not find " << target << endl;
-      return false;
-    }
+  DomainInfo info;
+  if (!findDomain(target, info)) {
+    // cerr << "Did not find " << target << endl;
+    return false;
   }
+  // cerr << "Found domain " << target << " on domain_id " << info.id << ", list requested " << id << endl;
 
-  d_rotxn = getRecordsROTransaction(di.id, d_rwtxn);
+  d_rotxn = getRecordsROTransaction(info.id, d_rwtxn);
   d_getcursor = std::make_shared<MDBROCursor>(d_rotxn->txn->getCursor(d_rotxn->db->dbi));
 
   compoundOrdername co;
-  d_matchkey = co(di.id);
+  d_matchkey = co(info.id);
 
   MDBOutVal key, val;
   if (d_getcursor->prefix(d_matchkey, key, val) != 0) {
@@ -1428,26 +1499,26 @@ void LMDBBackend::lookup(const QType& type, const DNSName& qdomain, int zoneId, 
   d_includedisabled = false;
 
   DNSName hunt(qdomain);
-  DomainInfo di;
+  DomainInfo info;
   if (zoneId < 0) {
-    auto rotxn = d_tdomains->getROTransaction();
-
     do {
-      zoneId = rotxn.get<0>(hunt, di);
-    } while (!zoneId && type != QType::SOA && hunt.chopOff());
-    if (zoneId <= 0) {
+      if (findDomain(hunt, info)) {
+        break;
+      }
+    } while (type != QType::SOA && hunt.chopOff());
+    if (info.id <= 0) {
       //      cout << "Did not find zone for "<< qdomain<<endl;
       d_getcursor.reset();
       return;
     }
   }
   else {
-    if (!d_tdomains->getROTransaction().get(zoneId, di)) {
+    if (!findDomain(zoneId, info)) {
       // cout<<"Could not find a zone with id "<<zoneId<<endl;
       d_getcursor.reset();
       return;
     }
-    hunt = di.zone;
+    hunt = info.zone;
   }
 
   DNSName relqname = qdomain.makeRelative(hunt);
@@ -1455,16 +1526,16 @@ void LMDBBackend::lookup(const QType& type, const DNSName& qdomain, int zoneId, 
     return;
   }
   // cout<<"get will look for "<<relqname<< " in zone "<<hunt<<" with id "<<zoneId<<" and type "<<type.toString()<<endl;
-  d_rotxn = getRecordsROTransaction(zoneId, d_rwtxn);
+  d_rotxn = getRecordsROTransaction(info.id, d_rwtxn);
 
   compoundOrdername co;
   d_getcursor = std::make_shared<MDBROCursor>(d_rotxn->txn->getCursor(d_rotxn->db->dbi));
   MDBOutVal key, val;
   if (type.getCode() == QType::ANY) {
-    d_matchkey = co(zoneId, relqname);
+    d_matchkey = co(info.id, relqname);
   }
   else {
-    d_matchkey = co(zoneId, relqname, type.getCode());
+    d_matchkey = co(info.id, relqname, type.getCode());
   }
 
   if (d_getcursor->prefix(d_matchkey, key, val) != 0) {
@@ -1595,27 +1666,11 @@ bool LMDBBackend::getSerial(DomainInfo& di)
 
 bool LMDBBackend::getDomainInfo(const DNSName& domain, DomainInfo& di, bool getserial)
 {
-  {
-    auto txn = d_tdomains->getROTransaction();
-    // auto range = txn.prefix_range<0>(domain);
-
-    // bool found = false;
-
-    // for (auto& iter = range.first ; iter != range.second; ++iter) {
-    //   found = true;
-    //   di.id = iter.getID();
-    //   di.backend = this;
-    // }
-
-    // if (!found) {
-    //   return false;
-    // }
-    if (!(di.id = txn.get<0>(domain, di))) {
-      return false;
-    }
-
-    di.backend = this;
+  if (!findDomain(domain, di)) {
+    return false;
   }
+  di.backend = this;
+  consolidateDomainInfo(di);
 
   if (getserial) {
     getSerial(di);
@@ -1626,32 +1681,25 @@ bool LMDBBackend::getDomainInfo(const DNSName& domain, DomainInfo& di, bool gets
 
 int LMDBBackend::genChangeDomain(const DNSName& domain, const std::function<void(DomainInfo&)>& func)
 {
-  auto txn = d_tdomains->getRWTransaction();
-
-  DomainInfo di;
-
-  auto id = txn.get<0>(domain, di);
-  func(di);
-  txn.put(di, id);
-
-  txn.commit();
+  DomainInfo info;
+  if (!findDomain(domain, info)) {
+    return static_cast<int>(false);
+  }
+  consolidateDomainInfo(info);
+  func(info);
+  writeDomainInfo(info);
   return true;
 }
 
 int LMDBBackend::genChangeDomain(uint32_t id, const std::function<void(DomainInfo&)>& func)
 {
-  DomainInfo di;
-
-  auto txn = d_tdomains->getRWTransaction();
-
-  if (!txn.get(id, di))
-    return false;
-
-  func(di);
-
-  txn.put(di, id);
-
-  txn.commit();
+  DomainInfo info;
+  if (!findDomain(id, info)) {
+    return static_cast<int>(false);
+  }
+  consolidateDomainInfo(info);
+  func(info);
+  writeDomainInfo(info);
   return true;
 }
 
@@ -1678,20 +1726,20 @@ bool LMDBBackend::setPrimaries(const DNSName& domain, const vector<ComboAddress>
 
 bool LMDBBackend::createDomain(const DNSName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& primaries, const string& account)
 {
-  DomainInfo di;
+  DomainInfo info;
 
+  if (findDomain(domain, info)) {
+    throw DBException("Domain '" + domain.toLogString() + "' exists already");
+  }
   {
     auto txn = d_tdomains->getRWTransaction();
-    if (txn.get<0>(domain, di)) {
-      throw DBException("Domain '" + domain.toLogString() + "' exists already");
-    }
 
-    di.zone = domain;
-    di.kind = kind;
-    di.primaries = primaries;
-    di.account = account;
+    info.zone = domain;
+    info.kind = kind;
+    info.primaries = primaries;
+    info.account = account;
 
-    txn.put(di, 0, d_random_ids);
+    txn.put(info, 0, d_random_ids);
     txn.commit();
   }
 
@@ -1716,22 +1764,18 @@ void LMDBBackend::getAllDomainsFiltered(vector<DomainInfo>* domains, const std::
     }
 
     for (const auto& zone : dups) {
-      DomainInfo di;
-
+      DomainInfo info;
       // this get grabs the oldest item if there are duplicates
-      di.id = txn.get<0>(zone, di);
-
-      if (di.id == 0) {
-        // .get actually found nothing for us
+      if (!findDomain(zone, info)) {
         continue;
       }
-
-      di.backend = this;
-      zonemap[di.zone] = di;
+      info.backend = this;
+      zonemap[info.zone] = info;
     }
 
     for (auto& [k, v] : zonemap) {
       if (allow(v)) {
+        consolidateDomainInfo(v);
         domains->push_back(std::move(v));
       }
     }
@@ -1743,6 +1787,7 @@ void LMDBBackend::getAllDomainsFiltered(vector<DomainInfo>* domains, const std::
       di.backend = this;
 
       if (allow(di)) {
+        consolidateDomainInfo(di);
         domains->push_back(di);
       }
     }
@@ -1838,9 +1883,18 @@ void LMDBBackend::getUpdatedPrimaries(vector<DomainInfo>& updatedDomains, std::u
 
 void LMDBBackend::setNotified(uint32_t domain_id, uint32_t serial)
 {
-  genChangeDomain(domain_id, [serial](DomainInfo& di) {
-    di.notified_serial = serial;
-  });
+  if (d_write_notification_update) {
+    genChangeDomain(domain_id, [serial](DomainInfo& info) {
+      info.notified_serial = serial;
+    });
+    return;
+  }
+
+  DomainInfo info;
+  if (findDomain(domain_id, info)) {
+    auto container = s_notified_serial.write_lock();
+    container->update(info.id, serial);
+  }
 }
 
 class getCatalogMembersReturnFalseException : std::runtime_error
@@ -2052,16 +2106,17 @@ bool LMDBBackend::unpublishDomainKey(const DNSName& name, unsigned int id)
   return true;
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 bool LMDBBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after)
 {
   //  cout << __PRETTY_FUNCTION__<< ": "<<id <<", "<<qname << " " << unhashed<<endl;
 
-  DomainInfo di;
-  if (!d_tdomains->getROTransaction().get(id, di)) {
+  DomainInfo info;
+  if (!findDomain(id, info)) {
     // domain does not exist, tough luck
     return false;
   }
-  // cout <<"Zone: "<<di.zone<<endl;
+  // cout <<"Zone: "<<info.zone<<endl;
 
   compoundOrdername co;
   auto txn = getRecordsROTransaction(id);
@@ -2095,7 +2150,7 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
       }
     }
     before = co.getQName(key.getNoStripHeader<StringView>());
-    unhashed = DNSName(lrr.content.c_str(), lrr.content.size(), 0, false) + di.zone;
+    unhashed = DNSName(lrr.content.c_str(), lrr.content.size(), 0, false) + info.zone;
 
     // now to find after .. at the beginning of the zone
     if (cursor.lower_bound(co(id), key, val)) {
@@ -2193,7 +2248,7 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
           }
         }
         before = co.getQName(key.getNoStripHeader<StringView>());
-        unhashed = DNSName(lrr.content.c_str(), lrr.content.size(), 0, false) + di.zone;
+        unhashed = DNSName(lrr.content.c_str(), lrr.content.size(), 0, false) + info.zone;
         // cout <<"Should still find 'after'!"<<endl;
         // for 'after', we need to find the first hash of this zone
 
@@ -2223,7 +2278,7 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
       ++count;
     }
     before = co.getQName(key.getNoStripHeader<StringView>());
-    unhashed = DNSName(lrr.content.c_str(), lrr.content.size(), 0, false) + di.zone;
+    unhashed = DNSName(lrr.content.c_str(), lrr.content.size(), 0, false) + info.zone;
     // cout<<"Went backwards, found "<<before<<endl;
     // return us to starting point
     while (count--)
@@ -2409,13 +2464,13 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName
     needCommit = true;
   }
 
-  DomainInfo di;
-  if (!d_tdomains->getROTransaction().get(domain_id, di)) {
+  DomainInfo info;
+  if (!findDomain(domain_id, info)) {
     //    cout<<"Could not find domain_id "<<domain_id <<endl;
     return false;
   }
 
-  DNSName rel = qname.makeRelative(di.zone);
+  DNSName rel = qname.makeRelative(info.zone);
 
   compoundOrdername co;
   string matchkey = co(domain_id, rel);
@@ -2518,21 +2573,21 @@ bool LMDBBackend::updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& inse
     needCommit = true;
   }
 
+  DomainInfo info;
+  if (!findDomain(domain_id, info)) {
+    // cout <<"No such domain with id "<<domain_id<<endl;
+    return false;
+  }
+
   // if remove is set, all ENTs should be removed & nothing else should be done
   if (remove) {
     deleteDomainRecords(*txn, domain_id, 0);
   }
   else {
-    DomainInfo di;
-    auto rotxn = d_tdomains->getROTransaction();
-    if (!rotxn.get(domain_id, di)) {
-      // cout <<"No such domain with id "<<domain_id<<endl;
-      return false;
-    }
     compoundOrdername co;
     for (const auto& n : insert) {
       LMDBResourceRecord lrr;
-      lrr.qname = n.makeRelative(di.zone);
+      lrr.qname = n.makeRelative(info.zone);
       lrr.ttl = 0;
       lrr.auth = true;
 
@@ -2544,7 +2599,7 @@ bool LMDBBackend::updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& inse
     }
     for (auto n : erase) {
       // cout <<" -"<<n<<endl;
-      n.makeUsRelative(di.zone);
+      n.makeUsRelative(info.zone);
       txn->txn->del(txn->db->dbi, co(domain_id, n, 0));
     }
   }
@@ -2774,6 +2829,7 @@ public:
     declare(suffix, "random-ids", "Numeric IDs inside the database are generated randomly instead of sequentially", "no");
     declare(suffix, "map-size", "LMDB map size in megabytes", (sizeof(void*) == 4) ? "100" : "16000");
     declare(suffix, "flag-deleted", "Flag entries on deletion instead of deleting them", "no");
+    declare(suffix, "write-notification-update", "Do not update domain table upon notification", "yes");
     declare(suffix, "lightning-stream", "Run in Lightning Stream compatible mode", "no");
   }
   DNSBackend* make(const string& suffix = "") override
