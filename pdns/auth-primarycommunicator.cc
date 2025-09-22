@@ -301,6 +301,14 @@ void CommunicatorClass::sendNotification(int sock, const ZoneName& domain, const
   pwriter.getHeader()->id = notificationId;
   pwriter.getHeader()->aa = true;
 
+
+  if (SOAData soaData; ueber->getSOAUncached(domain, soaData)) {
+    auto soaContent = makeSOAContent(soaData);
+    pwriter.startRecord(domain.operator const DNSName&(), QType::SOA, soaData.ttl, QClass::IN, DNSResourceRecord::ANSWER);
+    soaContent->toPacket(pwriter);
+    pwriter.commit();
+  }
+
   if (tsigkeyname.empty() == false) {
     if (!ueber->getTSIGKey(tsigkeyname, tsigalgorithm, tsigsecret64)) {
       g_log << Logger::Error << "TSIG key '" << tsigkeyname << "' for domain '" << domain << "' not found" << endl;
