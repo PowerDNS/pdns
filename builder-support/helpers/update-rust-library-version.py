@@ -15,14 +15,14 @@ def main():
     version = sys.argv[3]
 
     with tempfile.NamedTemporaryFile(mode='w+t', encoding='utf-8', delete=False) as generated_fp:
-        with open(file_name, "r") as cargo_file:
-            in_dnsdist_rust_package_section = False
+        with open(file_name, 'r', encoding='utf-8') as cargo_file:
+            in_rust_package_section = False
             for line in cargo_file:
                 if line.startswith('['):
-                    in_dnsdist_rust_package_section = False
+                    in_rust_package_section = False
                 elif line == f'name = "{package_name}"\n':
-                    in_dnsdist_rust_package_section = True
-                elif in_dnsdist_rust_package_section and line.startswith("version ="):
+                    in_rust_package_section = True
+                elif in_rust_package_section and line.startswith("version ="):
                     generated_fp.write(f"version = \"{version}\"\n")
                     continue
                 generated_fp.write(line)
