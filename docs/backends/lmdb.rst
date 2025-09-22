@@ -145,6 +145,7 @@ Always update the domains table in the database when the last notification
 timestamp is modified.
 If disabled, these timestamps will only be written back to the database when
 other changes to the domain (such as accounts) occur.
+This setting is also available in version 4.9.9.
 
 **Warning**: Running with this flag disabled will cause spurious notifications
 to be sent upon startup.
