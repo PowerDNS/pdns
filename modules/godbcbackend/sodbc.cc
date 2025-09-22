@@ -85,7 +85,6 @@ public:
     SQLLEN* LenPtr;
     SQLSMALLINT ParameterType;
     SQLSMALLINT ValueType;
-    size_t ParameterAllocSize; // size allocated for ParameterValuePtr, if ParameterType == SQL_INTEGER
   };
 
   vector<ODBCParam> d_req_bind;
@@ -141,11 +140,12 @@ public:
   {
     prepareStatement();
     ODBCParam p;
+    // NOLINTBEGIN(cppcoreguidelines-owning-memory)
     p.ParameterValuePtr = new UDWORD{value};
     p.LenPtr = new SQLLEN{sizeof(UDWORD)};
+    // NOLINTEND(cppcoreguidelines-owning-memory)
     p.ParameterType = SQL_INTEGER;
     p.ValueType = SQL_INTEGER;
-    p.ParameterAllocSize = sizeof(UDWORD);
     return bind(name, p);
   }
 
@@ -153,11 +153,12 @@ public:
   {
     prepareStatement();
     ODBCParam p;
+    // NOLINTBEGIN(cppcoreguidelines-owning-memory)
     p.ParameterValuePtr = new ULONG{value};
     p.LenPtr = new SQLLEN{sizeof(ULONG)};
+    // NOLINTEND(cppcoreguidelines-owning-memory)
     p.ParameterType = SQL_INTEGER;
     p.ValueType = SQL_INTEGER;
-    p.ParameterAllocSize = sizeof(ULONG);
     return bind(name, p);
   }
 
@@ -165,8 +166,10 @@ public:
   {
     prepareStatement();
     ODBCParam p;
+    // NOLINTBEGIN(cppcoreguidelines-owning-memory)
     p.ParameterValuePtr = new unsigned long long{value};
     p.LenPtr = new SQLLEN{sizeof(unsigned long long)};
+    // NOLINTEND(cppcoreguidelines-owning-memory)
     p.ParameterType = SQL_BIGINT;
     p.ValueType = SQL_C_UBIGINT;
     return bind(name, p);
@@ -182,11 +185,12 @@ public:
     prepareStatement();
     ODBCParam p;
 
+    // NOLINTBEGIN(cppcoreguidelines-owning-memory)
     p.ParameterValuePtr = (char*)new char[value.size() + 1];
     value.copy((char*)p.ParameterValuePtr, value.size());
     ((char*)p.ParameterValuePtr)[value.size()] = 0;
-    p.LenPtr = new SQLLEN;
-    *(p.LenPtr) = value.size();
+    p.LenPtr = new SQLLEN{static_cast<SQLLEN>(value.size())};
+    // NOLINTEND(cppcoreguidelines-owning-memory)
     p.ParameterType = SQL_VARCHAR;
     p.ValueType = SQL_C_CHAR;
 
@@ -202,8 +206,9 @@ public:
     ODBCParam p;
 
     p.ParameterValuePtr = NULL;
-    p.LenPtr = new SQLLEN;
-    *(p.LenPtr) = SQL_NULL_DATA;
+    // NOLINTBEGIN(cppcoreguidelines-owning-memory)
+    p.LenPtr = new SQLLEN{SQL_NULL_DATA};
+    // NOLINTEND(cppcoreguidelines-owning-memory)
     p.ParameterType = SQL_VARCHAR;
     p.ValueType = SQL_C_CHAR;
 
@@ -270,7 +275,7 @@ public:
         delete[] static_cast<char*>(i.ParameterValuePtr);
       }
       else if (i.ParameterType == SQL_INTEGER) {
-        if (i.ParameterAllocSize == sizeof(UDWORD)) {
+        if (*i.LenPtr == sizeof(UDWORD)) {
           delete static_cast<UDWORD*>(i.ParameterValuePtr);
         }
         else {
