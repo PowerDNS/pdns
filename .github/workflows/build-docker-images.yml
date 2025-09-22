@@ -152,7 +152,7 @@ jobs:
         run: |
           mkdir -p $RUNNER_TEMP/digests
           touch "$RUNNER_TEMP/digests/${DIGEST#sha256:}"
-          # generate suffix for digest file 
+          # generate suffix for digest file
           echo "PLATFORM_PAIR=${ARCH//\//-}" >> $GITHUB_ENV
       - name: Upload digest
         uses: actions/upload-artifact@v4
