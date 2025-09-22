@@ -5,6 +5,11 @@ echo PWD=$(pwd)
 echo MESON_SOURCE_ROOT=$MESON_SOURCE_ROOT
 echo MESON_PROJECT_DIST_ROOT=$MESON_PROJECT_DIST_ROOT
 
+if [ -z "${BUILDER_VERSION}" ]; then
+    echo "BUILDER_VERSION is not set" >&2
+    exit 1
+fi
+
 cd "$MESON_PROJECT_DIST_ROOT"
 
 # Get all symlinks
