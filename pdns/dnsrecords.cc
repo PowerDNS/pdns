@@ -95,7 +95,9 @@ bool DNSResourceRecord::operator==(const DNSResourceRecord& rhs) const
     std::tie(rhs.qname, rhs.qtype, rcontent, rhs.ttl);
 }
 
+//NOLINTBEGIN
 boilerplate_conv(A, conv.xfrIP(d_ip));
+//NOLINTEND
 
 ARecordContent::ARecordContent(uint32_t ip)
 {
@@ -141,6 +143,7 @@ void ARecordContent::doRecordCheck(const DNSRecord& dr)
     throw MOADNSException("Wrong size for A record ("+std::to_string(dr.d_clen)+")");
 }
 
+//NOLINTBEGIN
 boilerplate_conv(AAAA, conv.xfrIP6(d_ip6); );
 
 boilerplate_conv(NS, conv.xfrName(d_content, true));
@@ -171,6 +174,7 @@ boilerplate_conv(RP,
 boilerplate_conv(OPT,
                    conv.xfrBlob(d_data)
                  );
+//NOLINTEND
 
 #ifdef HAVE_LUA_RECORDS
 
@@ -217,6 +221,7 @@ void OPTRecordContent::getData(vector<pair<uint16_t, string> >& options) const
   }
 }
 
+//NOLINTBEGIN
 boilerplate_conv(TSIG,
                  conv.xfrName(d_algoName);
                  conv.xfr48BitInt(d_time);
@@ -230,11 +235,13 @@ boilerplate_conv(TSIG,
                  conv.xfr16BitInt(size);
                  if (size>0) conv.xfrBlobNoSpaces(d_otherData, size);
                  );
+//NOLINTEND
 
 MXRecordContent::MXRecordContent(uint16_t preference, DNSName  mxname):  d_preference(preference), d_mxname(std::move(mxname))
 {
 }
 
+//NOLINTBEGIN
 boilerplate_conv(MX,
                  conv.xfr16BitInt(d_preference);
                  conv.xfrName(d_mxname, true);
@@ -295,22 +302,26 @@ boilerplate_conv(NAPTR,
                  conv.xfrText(d_flags);        conv.xfrText(d_services);         conv.xfrText(d_regexp);
                  conv.xfrName(d_replacement);
                  )
+//NOLINTEND
 
 
 SRVRecordContent::SRVRecordContent(uint16_t preference, uint16_t weight, uint16_t port, DNSName  target)
 : d_weight(weight), d_port(port), d_target(std::move(target)), d_preference(preference)
 {}
 
+//NOLINTBEGIN
 boilerplate_conv(SRV,
                  conv.xfr16BitInt(d_preference);   conv.xfr16BitInt(d_weight);   conv.xfr16BitInt(d_port);
                  conv.xfrName(d_target);
                  )
+//NOLINTEND
 
 SOARecordContent::SOARecordContent(DNSName  mname, DNSName  rname, const struct soatimes& st)
 : d_mname(std::move(mname)), d_rname(std::move(rname)), d_st(st)
 {
 }
 
+//NOLINTBEGIN
 boilerplate_conv(SOA,
                  conv.xfrName(d_mname, true);
                  conv.xfrName(d_rname, true);
@@ -470,6 +481,7 @@ boilerplate_conv(L64,
 boilerplate_conv(LP,
                  conv.xfr16BitInt(d_preference);
                  conv.xfrName(d_fqdn, false);)
+//NOLINTEND
 
 /* EUI48 start */
 void EUI48RecordContent::report(const ReportIsOnlyCallableByReportAllTypes& /* unused */)
@@ -851,6 +863,7 @@ std::shared_ptr<DRIPBaseRecordContent> BRIDRecordContent::clone() const
   return {std::make_shared<BRIDRecordContent>(*this)};
 }
 
+//NOLINTBEGIN
 boilerplate_conv(TKEY,
                  conv.xfrName(d_algo);
                  conv.xfr32BitInt(d_inception);
@@ -875,6 +888,7 @@ boilerplate_conv(CAA,
                  conv.xfrUnquotedText(d_tag, true);
                  conv.xfrText(d_value, true, false); /* no lenField */
                 )
+//NOLINTEND
 
 static uint16_t makeTag(const std::string& data)
 {
