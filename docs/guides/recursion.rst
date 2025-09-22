@@ -207,12 +207,12 @@ This is where several settings from the existing Authoritative Server
     recursive_ips:addMask('NETWORKMASK1') -- These network masks are the ones from allow-recursion in the Authoritative Server
     recursive_ips:addMask('NETWORKMASK2')
 
-    addAction(NetmaskGroupRule(recursive_ips), PoolAction('recursor'))
+    addAction(AndRule({RDRule(), NetmaskGroupRule(recursive_ips)}), PoolAction('recursor'))
     addAction(AllRule(), PoolAction('auth'))
 
-This configuration will route all queries from the netmasks that are
-allowed to do recursion to the Recursor and all other queries to the
-Authoritative Server.
+This configuration will route all recursive queries from the netmasks
+that are allowed to do recursion to the Recursor and all other queries
+to the Authoritative Server.
 
 5. Restart the Authoritative Server, the Recursor and dnsdist
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
