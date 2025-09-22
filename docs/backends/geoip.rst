@@ -23,7 +23,7 @@ This backend (which is a.k.a. the YAML backend) allows visitors to be sent to a 
 no appreciable delay, as would otherwise be incurred with a protocol
 level redirect. Additionally, the GeoIP backend can be used to provide
 service over several clusters, any of which can be taken out of use
-easily, for example for maintenance purposes, by using :doc:`Lua records <../lua-records>`.
+easily, for example for maintenance purposes, by using :doc:`Lua records <../lua-records/index>`.
 This backend can utilize EDNS Client Subnet extension for decision
 making, if provided in a query and you have turned on
 :ref:`setting-edns-subnet-processing`.
