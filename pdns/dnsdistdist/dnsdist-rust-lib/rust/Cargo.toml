@@ -1,8 +1,12 @@
 [package]
 name = "dnsdist-rust"
-# Convention: major/minor is equal to DNSdist's major/minor
-version = "2.1.0"
 edition = "2021"
+# Convention: major/minor is equal to DNSdist's major/minor
+# Note that this line will be automatically updated to the value
+# BUILDER_VERSION when a release tarball is built
+# See builder-support/helpers/update-rust-library-version.py
+# called from meson-dist-script.sh
+version = "2.1.0"
 
 [lib]
 name = "dnsdist_rust"
