@@ -85,7 +85,6 @@ public:
     SQLLEN* LenPtr;
     SQLSMALLINT ParameterType;
     SQLSMALLINT ValueType;
-    size_t ParameterAllocSize; // size allocated for ParameterValuePtr, if ParameterType == SQL_INTEGER
   };
 
   vector<ODBCParam> d_req_bind;
@@ -145,7 +144,6 @@ public:
     p.LenPtr = new SQLLEN{sizeof(UDWORD)};
     p.ParameterType = SQL_INTEGER;
     p.ValueType = SQL_INTEGER;
-    p.ParameterAllocSize = sizeof(UDWORD);
     return bind(name, p);
   }
 
@@ -157,7 +155,6 @@ public:
     p.LenPtr = new SQLLEN{sizeof(ULONG)};
     p.ParameterType = SQL_INTEGER;
     p.ValueType = SQL_INTEGER;
-    p.ParameterAllocSize = sizeof(ULONG);
     return bind(name, p);
   }
 
@@ -185,8 +182,7 @@ public:
     p.ParameterValuePtr = (char*)new char[value.size() + 1];
     value.copy((char*)p.ParameterValuePtr, value.size());
     ((char*)p.ParameterValuePtr)[value.size()] = 0;
-    p.LenPtr = new SQLLEN;
-    *(p.LenPtr) = value.size();
+    p.LenPtr = new SQLLEN{static_cast<SQLLEN>(value.size())};
     p.ParameterType = SQL_VARCHAR;
     p.ValueType = SQL_C_CHAR;
 
@@ -202,8 +198,7 @@ public:
     ODBCParam p;
 
     p.ParameterValuePtr = NULL;
-    p.LenPtr = new SQLLEN;
-    *(p.LenPtr) = SQL_NULL_DATA;
+    p.LenPtr = new SQLLEN{SQL_NULL_DATA};
     p.ParameterType = SQL_VARCHAR;
     p.ValueType = SQL_C_CHAR;
 
@@ -270,7 +265,7 @@ public:
         delete[] static_cast<char*>(i.ParameterValuePtr);
       }
       else if (i.ParameterType == SQL_INTEGER) {
-        if (i.ParameterAllocSize == sizeof(UDWORD)) {
+        if (*i.LenPtr == sizeof(UDWORD)) {
           delete static_cast<UDWORD*>(i.ParameterValuePtr);
         }
         else {
