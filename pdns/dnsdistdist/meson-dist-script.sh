@@ -25,6 +25,8 @@ echo Running autoreconf -vi so distfile is still usable for autotools building
 # Run autoconf for people using autotools to build, this creates a configure sc
 autoreconf -vi
 rm -rf "$MESON_PROJECT_DIST_ROOT"/autom4te.cache
+echo Updating the version of the Rust library to ${BUILDER_VERSION}
+"$MESON_SOURCE_ROOT"/../../builder-support/helpers/update-rust-library-version.py "$MESON_PROJECT_DIST_ROOT"/dnsdist-rust-lib/rust/Cargo.toml dnsdist-rust ${BUILDER_VERSION}
 
 cd "$MESON_PROJECT_BUILD_ROOT"
 
