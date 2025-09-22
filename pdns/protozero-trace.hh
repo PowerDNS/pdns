@@ -226,6 +226,8 @@ struct InstrumentationScope
 using TraceID = std::array<uint8_t, 16>;
 using SpanID = std::array<uint8_t, 8>;
 
+constexpr TraceID s_emptyTraceID = {};
+
 inline void random(TraceID& trace)
 {
   dns_random(trace.data(), trace.size());

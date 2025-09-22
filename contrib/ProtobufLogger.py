@@ -304,12 +304,23 @@ class PDNSPBConnHandler(object):
         if msg.HasField('ednsVersion'):
             ednsVersion = "0x%08X" % socket.ntohl(msg.ednsVersion)
 
-        openTelemetryData = "N/A"
+        ede = "N/A"
+        if msg.HasField('ede'):
+            ede = str(msg.ede)
+        edeText = "N/A"
+        if msg.HasField('edeText'):
+            edeText = msg.edeText
+
+        openTelemetryDataLen = "N/A"
         if opentelemetryAvailable and msg.HasField('openTelemetryData'):
-            openTelemetryData = str(len(msg.openTelemetryData))
+            openTelemetryDataLen = str(len(msg.openTelemetryData))
+
+        openTelemetryTraceID = "N/A"
+        if msg.HasField('openTelemetryTraceID'):
+            openTelemetryTraceID = binascii.hexlify(msg.openTelemetryTraceID)
 
         print('[%s] %s of size %d: %s%s%s -> %s%s(%s) id: %d uuid: %s%s '
-                  'requestorid: %s deviceid: %s devicename: %s serverid: %s nod: %s workerId: %s pcCacheHit: %s outgoingQueries: %s headerFlags: %s ednsVersion: %s openTelemetryData: len %s' %
+                  'requestorid: %s deviceid: %s devicename: %s serverid: %s nod: %s workerId: %s pcCacheHit: %s outgoingQueries: %s headerFlags: %s ednsVersion: %s ede: %s edeText: %s otTraceID: %s openTelemetryData: len %s' %
               (datestr,
                typestr,
                msg.inBytes,
@@ -332,7 +343,10 @@ class PDNSPBConnHandler(object):
                outgoingQs,
                headerFlags,
                ednsVersion,
-               openTelemetryData))
+               ede,
+               edeText,
+               openTelemetryTraceID,
+               openTelemetryDataLen))
 
         for mt in msg.meta:
             values = ''

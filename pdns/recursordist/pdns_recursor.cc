@@ -1618,6 +1618,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
       }
     }
 
+    std::optional<EDNSExtendedError> eee;
     if (haveEDNS) {
       auto state = resolver.getValidationState();
       if (comboWriter->d_extendedErrorCode || resolver.d_extendedError || (SyncRes::s_addExtendedResolutionDNSErrors && vStateIsBogus(state))) {
@@ -1681,13 +1682,10 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
             throw std::runtime_error("Bogus validation state not handled: " + vStateToString(state));
           }
         }
+        eee.emplace(EDNSExtendedError{static_cast<uint16_t>(code), std::move(extra)});
 
-        EDNSExtendedError eee;
-        eee.infoCode = static_cast<uint16_t>(code);
-        eee.extraText = std::move(extra);
-
-        if (packetWriter.size() < maxanswersize && (maxanswersize - packetWriter.size()) >= (EDNSOptionCodeSize + EDNSOptionLengthSize + sizeof(eee.infoCode) + eee.extraText.size())) {
-          returnedEdnsOptions.emplace_back(EDNSOptionCode::EXTENDEDERROR, makeEDNSExtendedErrorOptString(eee));
+        if (packetWriter.size() < maxanswersize && (maxanswersize - packetWriter.size()) >= (EDNSOptionCodeSize + EDNSOptionLengthSize + sizeof(EDNSExtendedError::code) + eee->extraText.size())) {
+          returnedEdnsOptions.emplace_back(EDNSOptionCode::EXTENDEDERROR, makeEDNSExtendedErrorOptString(*eee));
         }
       }
 
@@ -1750,6 +1748,10 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
       pbMessage.setValidationState(resolver.getValidationState());
       // See if we want to store the policyTags into the PC
       addPolicyTagsToPBMessageIfNeeded(*comboWriter, pbMessage);
+      if (eee) {
+        pbMessage.setEDE(eee->infoCode);
+        pbMessage.setEDEText(eee->extraText);
+      }
 
       // Take s snap of the current protobuf buffer state to store in the PC
       pbDataForCache = boost::make_optional(RecursorPacketCache::PBData{
@@ -1862,6 +1864,10 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
         auto otTrace = pdns::trace::TracesData::boilerPlate("rec", comboWriter->d_mdp.d_qname.toLogString() + '/' + QType(comboWriter->d_mdp.d_qtype).toString(), resolver.d_eventTrace.convertToOT(resolver.d_otTrace));
         string otData = otTrace.encode();
         pbMessage.setOpenTelemetryData(otData);
+      }
+      // Currently only set if an OT trace is generated
+      if (resolver.d_otTrace.trace_id != pdns::trace::s_emptyTraceID) {
+        pbMessage.setOpenTelemtryTraceID(resolver.d_otTrace.trace_id);
       }
       if (comboWriter->d_logResponse) {
         protobufLogResponse(pbMessage);
@@ -2268,7 +2274,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     RecursorPacketCache::OptPBData pbData{boost::none};
     if (t_protobufServers.servers) {
       if (logQuery && !(luaconfsLocal->protobufExportConfig.taggedOnly && policyTags.empty())) {
-        protobufLogQuery(luaconfsLocal, uniqueId, source, destination, mappedSource, ednssubnet.getSource(), false, question.size(), qname, qtype, qclass, policyTags, requestorId, deviceId, deviceName, meta, ednsVersion, *dnsheader);
+        protobufLogQuery(luaconfsLocal, uniqueId, source, destination, mappedSource, ednssubnet.getSource(), false, question.size(), qname, qtype, qclass, policyTags, requestorId, deviceId, deviceName, meta, ednsVersion, *dnsheader, otTrace.trace_id);
       }
     }
 
