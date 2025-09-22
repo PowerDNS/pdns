@@ -4379,9 +4379,9 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
         ++skipCount;
         continue;
       }
-      if (rec->d_type == QType::NS && !d_updatingRootNS && rec->d_name == g_rootdnsname) {
+      if (rec->d_type == QType::NS && (!rec->d_name.isPartOf(auth) || (rec->d_name == auth && !d_updatingRootNS) || !qname.isPartOf(rec->d_name))) {
         /*
-         * We don't want to pick up root NS records in AUTHORITY and their associated ADDITIONAL sections of random queries.
+         * We don't want to pick up irrelevant NS records in AUTHORITY and their associated ADDITIONAL sections.
          * So remove them and don't add them to allowedAdditionals.
          */
         LOG(prefix << qname << ": Removing NS record '" << rec->toString() << "' in the AUTHORITY section of a response received from " << auth << endl);
