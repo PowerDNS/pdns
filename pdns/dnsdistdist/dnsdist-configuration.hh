@@ -170,6 +170,7 @@ struct RuntimeConfiguration
   bool d_logConsoleConnections{true};
   bool d_addEDNSToSelfGeneratedResponses{true};
   bool d_applyACLToProxiedClients{false};
+  bool d_forwardViaUDPFirst{false};
 };
 
 /* Be careful not to hold on this for too long, it can be invalidated

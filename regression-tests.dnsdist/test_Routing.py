@@ -554,12 +554,6 @@ class TestFirstAvailableQPSPacketCacheHits(DNSDistTest):
         receivedQuery.id = query.id
         self.assertEqual(query, receivedQuery)
         self.assertEqual(receivedResponse, response)
-        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = query.id
-        self.assertEqual(query, receivedQuery)
-        self.assertEqual(receivedResponse, response)
 
         for _ in range(numberOfQueries):
             for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -585,12 +579,6 @@ class TestFirstAvailableQPSPacketCacheHits(DNSDistTest):
         receivedQuery.id = query.id
         self.assertEqual(query, receivedQuery)
         self.assertEqual(receivedResponse, response)
-        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = query.id
-        self.assertEqual(query, receivedQuery)
-        self.assertEqual(receivedResponse, response)
 
         for _ in range(numberOfQueries):
             for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -598,7 +586,7 @@ class TestFirstAvailableQPSPacketCacheHits(DNSDistTest):
                 (_, receivedResponse) = sender(query, response=None, useQueue=False)
                 self.assertEqual(receivedResponse, response)
 
-        # 4 queries should made it through, 2 UDP and 2 TCP
+        # 2 queries should made it through, 2 UDP
         #for k,v in self._responsesCounter.items():
         #    print(k)
         #    print(v)
@@ -608,7 +596,8 @@ class TestFirstAvailableQPSPacketCacheHits(DNSDistTest):
         self.assertEqual(self._responsesCounter['UDP Responder 2'], 2)
         if 'TCP Responder' in self._responsesCounter:
             self.assertEqual(self._responsesCounter['TCP Responder'], 0)
-        self.assertEqual(self._responsesCounter['TCP Responder 2'], 2)
+        if 'TCP Responder 2' in self._responsesCounter:
+            self.assertEqual(self._responsesCounter['TCP Responder 2'], 0)
 
 class TestRoutingNoServer(DNSDistTest):
 

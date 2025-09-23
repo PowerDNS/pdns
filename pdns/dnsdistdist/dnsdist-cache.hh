@@ -45,7 +45,6 @@ public:
     uint32_t d_minTTL{0};
     uint32_t d_tempFailureTTL{60};
     uint32_t d_maxNegativeTTL{3600};
-    uint32_t d_truncatedTTL{0};
     uint32_t d_staleTTL{60};
     uint32_t d_shardCount{1};
     bool d_dontAge{false};
@@ -56,8 +55,8 @@ public:
 
   DNSDistPacketCache(CacheSettings settings);
 
-  void insert(uint32_t key, const boost::optional<Netmask>& subnet, uint16_t queryFlags, bool dnssecOK, const DNSName& qname, uint16_t qtype, uint16_t qclass, const PacketBuffer& response, bool receivedOverUDP, uint8_t rcode, boost::optional<uint32_t> tempFailureTTL);
-  bool get(DNSQuestion& dnsQuestion, uint16_t queryId, uint32_t* keyOut, boost::optional<Netmask>& subnet, bool dnssecOK, bool receivedOverUDP, uint32_t allowExpired = 0, bool skipAging = false, bool truncatedOK = true, bool recordMiss = true);
+  void insert(uint32_t key, const boost::optional<Netmask>& subnet, uint16_t queryFlags, bool dnssecOK, const DNSName& qname, uint16_t qtype, uint16_t qclass, const PacketBuffer& response, uint8_t rcode, boost::optional<uint32_t> tempFailureTTL);
+  bool get(DNSQuestion& dnsQuestion, uint16_t queryId, uint32_t* keyOut, boost::optional<Netmask>& subnet, bool dnssecOK, uint32_t allowExpired = 0, bool skipAging = false, bool recordMiss = true);
   size_t purgeExpired(size_t upTo, const time_t now);
   size_t expunge(size_t upTo = 0);
   size_t expungeByName(const DNSName& name, uint16_t qtype = QType::ANY, bool suffixMatch = false);
@@ -90,7 +89,7 @@ public:
 
   size_t getMaximumEntrySize() const { return d_settings.d_maximumEntrySize; }
 
-  uint32_t getKey(const DNSName::string_t& qname, size_t qnameWireLength, const PacketBuffer& packet, bool receivedOverUDP);
+  uint32_t getKey(const DNSName::string_t& qname, size_t qnameWireLength, const PacketBuffer& packet) const;
 
   static uint32_t getMinTTL(const char* packet, uint16_t length, bool* seenNoDataSOA);
   static bool getClientSubnet(const PacketBuffer& packet, size_t qnameWireLength, boost::optional<Netmask>& subnet);
@@ -108,7 +107,6 @@ private:
     time_t added{0};
     time_t validity{0};
     uint16_t len{0};
-    bool receivedOverUDP{false};
     bool dnssecOK{false};
   };
 
@@ -131,7 +129,7 @@ private:
     std::atomic<uint64_t> d_entriesCount{0};
   };
 
-  bool cachedValueMatches(const CacheValue& cachedValue, uint16_t queryFlags, const DNSName& qname, uint16_t qtype, uint16_t qclass, bool receivedOverUDP, bool dnssecOK, const boost::optional<Netmask>& subnet) const;
+  bool cachedValueMatches(const CacheValue& cachedValue, uint16_t queryFlags, const DNSName& qname, uint16_t qtype, uint16_t qclass, bool dnssecOK, const boost::optional<Netmask>& subnet) const;
   uint32_t getShardIndex(uint32_t key) const;
   bool insertLocked(std::unordered_map<uint32_t, CacheValue>& map, uint32_t key, CacheValue& newValue);
 
