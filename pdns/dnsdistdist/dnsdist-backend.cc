@@ -1099,10 +1099,11 @@ void ServerPool::removeServer(shared_ptr<DownstreamState>& server)
 
 void ServerPool::updateConsistency()
 {
+  bool consistent{true};
   bool first{true};
   bool useECS{false};
   bool tcpOnly{false};
-  bool zeroScope{false};
+  bool zeroScope{true};
 
   for (const auto& serverPair : d_servers) {
     const auto& server = serverPair.second;
@@ -1113,23 +1114,30 @@ void ServerPool::updateConsistency()
       zeroScope = !server->d_config.disableZeroScope;
     }
     else {
-      if (server->d_config.useECS != useECS ||
-          server->isTCPOnly() != tcpOnly ||
-          server->d_config.disableZeroScope == zeroScope) {
-        d_tcpOnly = false;
-        d_isConsistent = false;
-        return;
+      if (consistent) {
+        if (server->d_config.useECS != useECS) {
+          consistent = false;
+        }
+        if (server->d_config.disableZeroScope == zeroScope) {
+          consistent = false;
+        }
+      }
+      if (server->isTCPOnly() != tcpOnly) {
+        consistent = false;
+        tcpOnly = false;
       }
     }
   }
 
   d_tcpOnly = tcpOnly;
-  /* at this point we know that all servers agree
-     on these settings, so let's just use the same
-     values for the pool itself */
-  d_useECS = useECS;
-  d_zeroScope = zeroScope;
-  d_isConsistent = true;
+  if (consistent) {
+    /* at this point we know that all servers agree
+       on these settings, so let's just use the same
+       values for the pool itself */
+    d_useECS = useECS;
+    d_zeroScope = zeroScope;
+  }
+  d_isConsistent = consistent;
 }
 
 void ServerPool::setZeroScope(bool enabled)

@@ -38,6 +38,10 @@ struct ServerPool
     return d_useECS;
   }
 
+  /* Note that the pool will do a consistency check,
+     and might decide to override the supplied value
+     if all backends in the pool have the same ECS
+     value and the value differs from the supplied one */
   void setECS(bool useECS);
 
   bool getZeroScope() const
@@ -45,6 +49,10 @@ struct ServerPool
     return d_zeroScope;
   }
 
+  /* Note that the pool will do a consistency check,
+     and might decide to override the supplied value
+     if all backends in the pool have the same disable zero scope setting
+     value and the value differs from the supplied one */
   void setZeroScope(bool enabled);
 
   bool isConsistent() const
@@ -52,6 +60,7 @@ struct ServerPool
     return d_isConsistent;
   }
 
+  /* sum of outstanding queries for all servers in this pool */
   size_t poolLoad() const;
   size_t countServers(bool upOnly) const;
   bool hasAtLeastOneServerAvailable() const;
@@ -60,6 +69,7 @@ struct ServerPool
   void removeServer(std::shared_ptr<DownstreamState>& server);
   bool isTCPOnly() const
   {
+    // coverity[missing_lock]
     return d_tcpOnly;
   }
 
