@@ -5,6 +5,11 @@ echo PWD=$(pwd)
 echo MESON_SOURCE_ROOT=$MESON_SOURCE_ROOT
 echo MESON_PROJECT_DIST_ROOT=$MESON_PROJECT_DIST_ROOT
 
+if [ -z "${BUILDER_VERSION}" ]; then
+    echo "BUILDER_VERSION is not set" >&2
+    exit 1
+fi
+
 cd "$MESON_PROJECT_DIST_ROOT"
 
 # Get all symlinks
@@ -25,6 +30,8 @@ echo Running autoreconf -vi so distfile is still usable for autotools building
 # Run autoconf for people using autotools to build, this creates a configure sc
 autoreconf -vi
 rm -rf "$MESON_PROJECT_DIST_ROOT"/autom4te.cache
+echo Updating the version of the Rust library to ${BUILDER_VERSION}
+"$MESON_SOURCE_ROOT"/../../builder-support/helpers/update-rust-library-version.py "$MESON_PROJECT_DIST_ROOT"/rec-rust-lib/rust/Cargo.toml recrust ${BUILDER_VERSION}
 
 cd "$MESON_PROJECT_BUILD_ROOT"
 
