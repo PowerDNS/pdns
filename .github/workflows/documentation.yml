@@ -3,7 +3,6 @@
 
 # Variables:
 # - PUBLISH_DOCS_TO_AWS: Set to 'true' to enable publishing to AWS
-# - PUBLISH_DOCS_TO_NETLIFY: Set to 'true' to enable publishing to Netlify
 # - PUBLISH_DOCS_TO_WEB1: Set to 'true' to enable publishing to Web1
 # - DOCS_WORKFLOW_BRANCH_OVERRIDE: Set to 'true' to allow publishing from non-master branches (for testing)
 
@@ -11,10 +10,6 @@
 # - AWS_S3_BUCKET_DOCS: S3 bucket name for documentation
 # - AWS_CLOUDFRONT_DISTRIBUTION_ID_DNSDIST: CloudFront distribution ID for DNSdist docs
 # - AWS_CLOUDFRONT_DISTRIBUTION_ID_DOCS: CloudFront distribution ID for PowerDNS docs
-
-# - NETLIFY_SITE_ID_DOCS: Netlify site ID for PowerDNS docs
-# - NETLIFY_SITE_ID_DNSDIST: Netlify site ID for DNSdist docs
-
 
 # - REC_DOCS_DIR: Directory for Recursor docs on Web1
 # - AUTH_DOCS_DIR: Directory for Authoritative Server docs on Web1
@@ -24,7 +19,6 @@
 # Secrets:
 # - AWS_ACCESS_KEY_ID: AWS access key ID
 # - AWS_SECRET_ACCESS_KEY: AWS secret access key
-# - NETLIFY_API_TOKEN: API token for Netlify
 # - WEB1_DOCS_SECRET: SSH key for Web1 access
 
 ---
@@ -36,7 +30,7 @@ on:
   pull_request:
     branches: [master]
   workflow_dispatch: {}
- 
+
 permissions:
   contents: read
 
@@ -142,61 +136,6 @@ jobs:
         with:
           name: website-${{steps.get-version.outputs.pdns_version}}
           path: website.tar
-
-  publish-to-netlify:
-    name: Publish to Netlify
-    needs: build-docs
-    if: ${{ (github.ref_name == 'master' || vars.DOCS_WORKFLOW_BRANCH_OVERRIDE == 'true') && vars.PUBLISH_DOCS_TO_NETLIFY == 'true' }}
-    runs-on: ubuntu-22.04
-    env:
-      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_API_TOKEN }}
-      NETLIFY_SITE_ID_DOCS: ${{ vars.NETLIFY_SITE_ID_DOCS }}
-      NETLIFY_SITE_ID_DNSDIST: ${{ vars.NETLIFY_SITE_ID_DNSDIST }}
-      PDNS_VERSION: ${{needs.build-docs.outputs.pdns_version}}
-    steps:
-      - name: Check required secrets
-        run: |
-          missing_secrets=()
-          [ -z "$NETLIFY_AUTH_TOKEN" ] && missing_secrets+=("NETLIFY_API_TOKEN")
-          [ -z "$NETLIFY_SITE_ID_DOCS" ] && missing_secrets+=("NETLIFY_SITE_ID_DOCS")
-          [ -z "$NETLIFY_SITE_ID_DNSDIST" ] && missing_secrets+=("NETLIFY_SITE_ID_DNSDIST")
-          if [ ${#missing_secrets[@]} -ne 0 ]; then
-            echo "Error: The following secrets are missing: ${missing_secrets[*]}"
-            exit 1
-          fi
-      - name: Install Netlify
-        run: npm install netlify-cli@17.36.3 -g
-      - uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-
-      - name: Deploy docs to Netlify
-        run: |
-          mkdir -p docs_site/temp
-          tar -xf artifacts/website-$PDNS_VERSION/website.tar -C docs_site/temp
-          mv docs_site/temp/website/docs.powerdns.com/* docs_site/
-          rm -rf docs_site/temp
-          tar -xf artifacts/authoritative-html-docs-$PDNS_VERSION/auth-html-docs.tar -C docs_site
-          tar -xf artifacts/recursor-html-docs-$PDNS_VERSION/rec-html-docs.tar -C docs_site
-          mv docs_site/auth-html-docs docs_site/authoritative
-          mv docs_site/rec-html-docs docs_site/recursor
-          cp artifacts/PowerDNS-Authoritative-$PDNS_VERSION.pdf/PowerDNS-Authoritative.pdf docs_site/authoritative/
-          cp artifacts/PowerDNS-Recursor-$PDNS_VERSION.pdf/PowerDNS-Recursor.pdf docs_site/recursor/
-          netlify deploy \
-            --dir ./docs_site \
-            --site $NETLIFY_SITE_ID_DOCS \
-            --auth $NETLIFY_AUTH_TOKEN \
-            --prod
-
-      - name: Deploy DNSdist docs to Netlify
-        run: |
-          tar -xf artifacts/dnsdist-html-docs-$PDNS_VERSION/dnsdist-html-docs.tar
-          cp artifacts/dnsdist-$PDNS_VERSION.pdf/dnsdist.pdf dnsdist-html-docs/
-          netlify deploy \
-            --dir ./dnsdist-html-docs \
-            --site $NETLIFY_SITE_ID_DNSDIST \
-            --auth $NETLIFY_AUTH_TOKEN \
-            --prod
 
   publish-to-web1:
     name: Publish to Web1
@@ -312,7 +251,7 @@ jobs:
             # Copy files to S3
             echo "Copying DNSdist docs to S3..."
             rclone copy --checksum dnsdist-html-docs/ docs-s3:$AWS_S3_BUCKET_DOCS/dnsdist.org/
-            
+
             # Always run invalidation
             echo "Running CloudFront invalidation for DNSdist..."
             aws cloudfront create-invalidation \
@@ -345,4 +284,3 @@ jobs:
               --paths "/*"
             echo "Invalidation completed."
           fi
-
