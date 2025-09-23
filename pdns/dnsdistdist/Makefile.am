@@ -785,3 +785,7 @@ endif
 if !HAVE_LUA_HPP
 include lua_hpp.mk
 endif
+
+dist-hook:
+	@echo "\`make dist' is no longer supported, use \`meson dist'" >&2
+	@false
