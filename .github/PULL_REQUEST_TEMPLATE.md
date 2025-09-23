@@ -5,7 +5,7 @@
 <!-- please indicate if any of these things are done/included with this Pull Request. Not all boxes need to be checked for the Pull Request to be accepted -->
 I have:
 - [ ] read the [CONTRIBUTING.md](https://github.com/PowerDNS/pdns/blob/master/CONTRIBUTING.md) document
-- [ ] read and accepted the [Developer Certificate of Origin](https://github.com/PowerDNS/pdns/blob/master/DCO) document, including the AI policy, and added a ["Signed-off-by"](https://github.com/PowerDNS/pdns/blob/master/CONTRIBUTING.md#developer-certificate-of-origin) to my commits
+- [ ] read and accepted the [Developer Certificate of Origin](https://github.com/PowerDNS/pdns/blob/master/DCO) document, including the [AI Policy](https://github.com/PowerDNS/pdns/blob/master/AI_POLICY.md), and added a ["Signed-off-by"](https://github.com/PowerDNS/pdns/blob/master/CONTRIBUTING.md#developer-certificate-of-origin) to my commits
 - [ ] compiled this code
 - [ ] tested this code
 - [ ] included documentation (including possible behaviour changes)
