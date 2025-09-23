@@ -49,11 +49,16 @@ on:
 
 permissions: # least privileges, see https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
   contents: read
+  # This is used to complete the identity challenge
+  # with sigstore/fulcio when running outside of PRs.
+  id-token: write
 
 jobs:
   validate-push-image:
     name: Check only images built from tags and master are pushed
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
         with:
@@ -71,6 +76,8 @@ jobs:
   prepare-runner-os-list:
     name: generate list of runner-architecture pairs based on the input "platforms"
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     outputs:
       runnerlist: ${{ steps.get-runnerlist.outputs.runnerlist }}
     steps:
@@ -94,6 +101,8 @@ jobs:
       fail-fast: false
       matrix:
         platform: ${{ fromJson(needs.prepare-runner-os-list.outputs.runnerlist) }}
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
         with:
@@ -143,7 +152,7 @@ jobs:
         run: |
           mkdir -p $RUNNER_TEMP/digests
           touch "$RUNNER_TEMP/digests/${DIGEST#sha256:}"
-          # generate suffix for digest file 
+          # generate suffix for digest file
           echo "PLATFORM_PAIR=${ARCH//\//-}" >> $GITHUB_ENV
       - name: Upload digest
         uses: actions/upload-artifact@v4
@@ -158,11 +167,18 @@ jobs:
     runs-on: ubuntu-24.04
     if: ${{ inputs.push }}
     needs: build
+    permissions:
+      contents: read
+      # This is used to complete the identity challenge
+      # with sigstore/fulcio when running outside of PRs.
+      id-token: write
     outputs:
       image-digest: ${{ steps.get-image-digest.outputs.image-digest }}
     env:
       IMAGE_NAME: ${{ secrets.DOCKERHUB_ORGANIZATION_NAME }}/${{ inputs.image-name }}
     steps:
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3.7.0
       - name: Download digests
         uses: actions/download-artifact@v4
         with:
@@ -194,6 +210,14 @@ jobs:
           TAG: ${{ steps.meta.outputs.version }}
         run: |
           echo "image-digest=$(docker buildx imagetools inspect $IMAGE_NAME:$TAG --format="{{json .Manifest}}" | jq -r .digest)" >> "$GITHUB_OUTPUT"
+      - name: Sign product image
+        id: sign-image
+        env:
+          TAG: |
+            ${{ env.IMAGE_NAME }}@${{ steps.get-image-digest.outputs.image-digest }}
+        # This step uses the identity token to provision an ephemeral certificate
+        # against the sigstore community Fulcio instance.
+        run: cosign sign --yes ${TAG}
 
   test-uploaded-images:
     name: test ${{ matrix.platform.arch }} uploaded images
@@ -210,6 +234,8 @@ jobs:
       INPUT_IMAGE_TAGS: ${{ inputs.image-tags }}
       INPUT_PLATFORMS: ${{ inputs.platforms }}
       IMAGE_NAME: ${{ secrets.DOCKERHUB_ORGANIZATION_NAME }}/${{ inputs.image-name }}
+    permissions:
+      contents: read
     steps:
       - name: Check running image
         run: |
