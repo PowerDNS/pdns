@@ -951,6 +951,10 @@ struct ServerPool
     return d_useECS;
   }
 
+  /* Note that the pool will do a consistency check,
+     and might decide to override the supplied value
+     if all backends in the pool have the same ECS
+     value and the value differs from the supplied one */
   void setECS(bool useECS);
 
   bool getDisableZeroScope() const
@@ -958,6 +962,10 @@ struct ServerPool
     return d_disableZeroScope;
   }
 
+  /* Note that the pool will do a consistency check,
+     and might decide to override the supplied value
+     if all backends in the pool have the same disable zero scope setting
+     value and the value differs from the supplied one */
   void setDisableZeroScope(bool disable);
 
   bool isConsistent() const
@@ -968,6 +976,7 @@ struct ServerPool
   std::shared_ptr<DNSDistPacketCache> packetCache{nullptr};
   std::shared_ptr<ServerPolicy> policy{nullptr};
 
+  /* sum of outstanding queries for all servers in this pool */
   size_t poolLoad();
   size_t countServers(bool upOnly);
   bool hasAtLeastOneServerAvailable();
