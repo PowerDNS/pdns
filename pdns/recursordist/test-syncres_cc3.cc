@@ -180,14 +180,11 @@ BOOST_AUTO_TEST_CASE(test_extra_answers)
   BOOST_REQUIRE_EQUAL(QType(cached.at(0).d_type).toString(), QType(QType::A).toString());
   BOOST_CHECK_EQUAL(getRR<ARecordContent>(cached.at(0))->getCA().toString(), ComboAddress("192.0.2.2").toString());
 
-  // The cache should also have an authoritative record for the extra in-bailiwick record
-  BOOST_REQUIRE_GT(g_recCache->get(now, target2, QType(QType::A), MemRecursorCache::RequireAuth, &cached, who), 0);
-  BOOST_REQUIRE_EQUAL(cached.size(), 1U);
-  BOOST_REQUIRE_EQUAL(QType(cached.at(0).d_type).toString(), QType(QType::A).toString());
-  BOOST_CHECK_EQUAL(getRR<ARecordContent>(cached.at(0))->getCA().toString(), ComboAddress("192.0.2.3").toString());
+  // The cache should not have an authoritative record for the extra in-bailiwick record
+  BOOST_REQUIRE_LE(g_recCache->get(now, target2, QType(QType::A), MemRecursorCache::RequireAuth, &cached, who), 0);
 
-  // But the out-of-bailiwick record should not be there
-  BOOST_REQUIRE_LT(g_recCache->get(now, target3, QType(QType::A), MemRecursorCache::RequireAuth, &cached, who), 0);
+  // And the out-of-bailiwick record should not be there
+  BOOST_REQUIRE_LE(g_recCache->get(now, target3, QType(QType::A), MemRecursorCache::RequireAuth, &cached, who), 0);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_extra_answers)
@@ -251,14 +248,11 @@ BOOST_AUTO_TEST_CASE(test_dnssec_extra_answers)
   BOOST_REQUIRE_EQUAL(QType(cached.at(0).d_type).toString(), QType(QType::A).toString());
   BOOST_CHECK_EQUAL(getRR<ARecordContent>(cached.at(0))->getCA().toString(), ComboAddress("192.0.2.2").toString());
 
-  // The cache should also have an authoritative record for the extra in-bailiwick record
-  BOOST_REQUIRE_GT(g_recCache->get(now, target2, QType(QType::A), MemRecursorCache::RequireAuth, &cached, who), 0);
-  BOOST_REQUIRE_EQUAL(cached.size(), 1U);
-  BOOST_REQUIRE_EQUAL(QType(cached.at(0).d_type).toString(), QType(QType::A).toString());
-  BOOST_CHECK_EQUAL(getRR<ARecordContent>(cached.at(0))->getCA().toString(), ComboAddress("192.0.2.3").toString());
+  // The cache should not have an authoritative record for the extra in-bailiwick record
+  BOOST_REQUIRE_LE(g_recCache->get(now, target2, QType(QType::A), MemRecursorCache::RequireAuth, &cached, who), 0);
 
-  // But the out-of-bailiwick record should not be there
-  BOOST_REQUIRE_LT(g_recCache->get(now, target3, QType(QType::A), MemRecursorCache::RequireAuth, &cached, who), 0);
+  // And the out-of-bailiwick record should not be there
+  BOOST_REQUIRE_LE(g_recCache->get(now, target3, QType(QType::A), MemRecursorCache::RequireAuth, &cached, who), 0);
 }
 
 BOOST_AUTO_TEST_CASE(test_skip_opt_any)

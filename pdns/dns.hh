@@ -66,6 +66,7 @@ public:
     ADDITIONAL = 3
   }; //!< Type describing the positioning within, say, a DNSPacket
 
+  [[nodiscard]] static std::string placeString(uint8_t place);
   void setContent(const string& content);
   [[nodiscard]] string getZoneRepresentation(bool noDot = false) const;
 
