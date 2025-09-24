@@ -633,7 +633,7 @@ void protobufLogResponse(const DNSName& qname, QType qtype,
     pbMessage.addEvents(eventTrace);
   }
   if (eventTrace.enabled() && (SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_ot) != 0) {
-    auto trace = pdns::trace::TracesData::boilerPlate("rec", qname.toLogString() + '/' + qtype.toString(), eventTrace.convertToOT(otTrace));
+    auto trace = pdns::trace::TracesData::boilerPlate("rec", qname.toLogString(), eventTrace.convertToOT(otTrace), {{"qtype", {qtype.toString()}}});
     pbMessage.setOpenTelemetryData(trace.encode());
   }
   pbMessage.addPolicyTags(policyTags);

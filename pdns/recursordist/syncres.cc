@@ -5453,7 +5453,8 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
       LOG(prefix << qname << ": Adding EDNS Client Subnet Mask " << ednsmask->toString() << " to query" << endl);
       s_ecsqueries++;
     }
-    auto match = d_eventTrace.add(RecEventTrace::AuthRequest, qname.toLogString() + '/' + qtype.toString() + '/' + remoteIP.toString(), true, 0);
+    auto match = d_eventTrace.add(RecEventTrace::AuthRequest, qname.toLogString(), true, 0);
+    d_eventTrace.addExtraValues(match, {{ "qtype", qtype.toString()}, {"ip", remoteIP.toStringWithPortExcept(53)}});
     updateQueryCounts(prefix, qname, remoteIP, doTCP, doDoT);
     resolveret = asyncresolveWrapper(LogObject(prefix), remoteIP, d_doDNSSEC, qname, auth, qtype.getCode(),
                                      doTCP, sendRDQuery, &d_now, ednsmask, &lwr, &chained, nsName); // <- we go out on the wire!

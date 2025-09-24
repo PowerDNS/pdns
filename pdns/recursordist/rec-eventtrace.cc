@@ -65,6 +65,20 @@ static void addValue(const RecEventTrace::Entry& event, Span& work, bool start)
   else {
     work.attributes.emplace_back(KeyValue{std::move(key), {RecEventTrace::toString(event.d_value)}});
   }
+  for (const auto& [ekey, value] : event.d_extraValues) {
+    if (std::holds_alternative<bool>(value)) {
+      work.attributes.emplace_back(KeyValue{ekey, {std::get<bool>(value)}});
+    }
+    else if (std::holds_alternative<int64_t>(value)) {
+      work.attributes.emplace_back(KeyValue{ekey, {std::get<int64_t>(value)}});
+    }
+    else if (std::holds_alternative<std::string>(value)) {
+      work.attributes.emplace_back(KeyValue{ekey, {std::get<std::string>(value)}});
+    }
+    else {
+      work.attributes.emplace_back(KeyValue{ekey, {RecEventTrace::toString(value)}});
+    }
+  }
 }
 
 // The event trace uses start-stop records which need to be mapped to OpenTelemetry Spans, which is a
