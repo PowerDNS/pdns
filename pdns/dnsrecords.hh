@@ -1115,6 +1115,20 @@ private:
   DNSName d_fqdn;
 };
 
+class WALLETRecordContent : public DNSRecordContent
+{
+public:
+  includeboilerplate(WALLET)
+
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_text.size();
+  }
+
+  string d_text;
+};
+
+
 class EUI48RecordContent : public DNSRecordContent
 {
 public:
