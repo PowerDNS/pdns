@@ -303,10 +303,9 @@ void CommunicatorClass::sendNotification(int sock, const ZoneName& domain, const
 
 
   if (SOAData soaData; ueber->getSOAUncached(domain, soaData)) {
-    DNSSECKeeper dnssecKeeper;
+    DNSSECKeeper dnssecKeeper(ueber);
     auto editedSOA = makeEditedDNSZRFromSOAData(dnssecKeeper, soaData, DNSResourceRecord::ANSWER);
     auto soaContent = editedSOA.dr.getContent();
-    cerr << soaData.serial << ' ' << soaContent->getZoneRepresentation() << endl;
     pwriter.startRecord(domain.operator const DNSName&(), QType::SOA, soaData.ttl, QClass::IN, DNSResourceRecord::ANSWER);
     soaContent->toPacket(pwriter);
     pwriter.commit();
