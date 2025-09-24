@@ -133,6 +133,8 @@ Defaults to 100 on 32 bit systems, and 16000 on 64 bit systems.
 Instead of deleting items from the database, flag them as deleted in the item's `Lightning Stream <https://doc.powerdns.com/lightningstream>`_ header.
 Only enable this if you are using Lightning Stream.
 
+.. _setting-lmdb-write-notification-update:
+
 ``lmdb-write-notification-update``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
