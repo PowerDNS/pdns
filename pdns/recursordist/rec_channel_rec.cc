@@ -1881,78 +1881,92 @@ static void* pleaseSupplantProxyMapping(const ProxyMapping& proxyMapping)
 
 static RecursorControlChannel::Answer help()
 {
-  return {0,
-          "add-cookies-unsupported [IP...]  add non-expiring 'Unsupported' entry for IP to cookie table\n"
-          "add-dont-throttle-names [N...]   add names that are not allowed to be throttled\n"
-          "add-dont-throttle-netmasks [N...]\n"
-          "                                 add netmasks that are not allowed to be throttled\n"
-          "add-nta DOMAIN [REASON]          add a Negative Trust Anchor for DOMAIN with the comment REASON\n"
-          "add-ta DOMAIN DSRECORD           add a Trust Anchor for DOMAIN with data DSRECORD\n"
-          "current-queries                  show currently active queries\n"
-          "clear-cookies [IP...]            clear entries from cookie table, if IP is '*' remove all entries\n"
-          "clear-dont-throttle-names [N...] remove names that are not allowed to be throttled. If N is '*', remove all\n"
-          "clear-dont-throttle-netmasks [N...]\n"
-          "                                 remove netmasks that are not allowed to be throttled. If N is '*', remove all\n"
-          "clear-nta [DOMAIN]...            Clear the Negative Trust Anchor for DOMAINs, if no DOMAIN is specified, remove all\n"
-          "clear-ta [DOMAIN]...             Clear the Trust Anchor for DOMAINs\n"
-          "dump-cache <filename> [type...]  dump cache contents to the named file, type is r, n, p or a\n"
-          "dump-cookies <filename>          dump the contents of the cookie jar to the named file\n"
-          "dump-dot-probe-map <filename>    dump the contents of the DoT probe map to the named file\n"
-          "dump-edns [status] <filename>    dump EDNS status to the named file\n"
-          "dump-failedservers <filename>    dump the failed servers to the named file\n"
-          "dump-non-resolving <filename>    dump non-resolving nameservers addresses to the named file\n"
-          "dump-nsspeeds <filename>         dump nsspeeds statistics to the named file\n"
-          "dump-saved-parent-ns-sets <filename>\n"
-          "                                 dump saved parent ns sets that were successfully used as fallback\n"
-          "dump-rpz <zone name> <filename>  dump the content of a RPZ zone to the named file\n"
-          "dump-throttlemap <filename>      dump the contents of the throttle map to the named file\n"
-          "get [key1] [key2] ..             get specific statistics\n"
-          "get-all                          get all statistics\n"
-          "get-dont-throttle-names          get the list of names that are not allowed to be throttled\n"
-          "get-dont-throttle-netmasks       get the list of netmasks that are not allowed to be throttled\n"
-          "get-ntas                         get all configured Negative Trust Anchors\n"
-          "get-tas                          get all configured Trust Anchors\n"
-          "get-parameter [key1] [key2] ..   get configuration parameters\n"
-          "get-proxymapping-stats           get proxy mapping statistics\n"
-          "get-qtypelist                    get QType statistics\n"
-          "                                 notice: queries from cache aren't being counted yet\n"
-          "get-remotelogger-stats           get remote logger statistics\n"
-          "hash-password [work-factor]      ask for a password then return the hashed version\n"
-          "help                             get this list (from the running recursor)\n"
-          "list-dnssec-algos                list supported DNSSEC algorithms\n"
-          "ping                             check that all threads are alive\n"
-          "quit                             stop the recursor daemon\n"
-          "quit-nicely or stop              stop the recursor daemon nicely\n"
-          "reload-acls                      reload ACLS\n"
-          "reload-lua-script [filename]     (re)load Lua script\n"
-          "reload-yaml                      Reload runtime settable parts of YAML settings\n"
-          "reload-lua-config [filename]     (re)load Lua configuration file or equivalent YAML clauses\n"
-          "reload-zones                     reload all auth and forward zones\n"
-          "set-ecs-minimum-ttl value        set ecs-minimum-ttl-override\n"
-          "set-max-aggr-nsec-cache-size value set new maximum aggressive NSEC cache size\n"
-          "set-max-cache-entries value      set new maximum record cache size\n"
-          "set-max-packetcache-entries val  set new maximum packet cache size\n"
-          "set-minimum-ttl value            set minimum-ttl-override\n"
-          "set-carbon-server                set a carbon server for telemetry\n"
-          "set-dnssec-log-bogus SETTING     enable (SETTING=yes) or disable (SETTING=no) logging of DNSSEC validation failures\n"
-          "set-event-trace-enabled SETTING  set logging of event trace messages, 0 = disabled, 1 = protobuf, 2 = log file, 4 = opentelemetry traces, combinations allowed by adding\n"
-          "show-yaml [file]                 show yaml config derived from old-style config\n"
-          "trace-regex [regex file]         emit resolution trace for matching queries (no arguments clears tracing)\n"
-          "top-largeanswer-remotes          show top remotes receiving large answers\n"
-          "top-queries                      show top queries\n"
-          "top-pub-queries                  show top queries grouped by public suffix list\n"
-          "top-remotes                      show top remotes\n"
-          "top-timeouts                     show top downstream timeouts\n"
-          "top-servfail-queries             show top queries receiving servfail answers\n"
-          "top-bogus-queries                show top queries validating as bogus\n"
-          "top-pub-servfail-queries         show top queries receiving servfail answers grouped by public suffix list\n"
-          "top-pub-bogus-queries            show top queries validating as bogus grouped by public suffix list\n"
-          "top-servfail-remotes             show top remotes receiving servfail answers\n"
-          "top-bogus-remotes                show top remotes receiving bogus answers\n"
-          "unload-lua-script                unload Lua script\n"
-          "version                          return version number of running Recursor\n"
-          "wipe-cache domain0 [domain1] ..  wipe domain data from cache\n"
-          "wipe-cache-typed type domain0 [domain1] ..  wipe domain data with qtype from cache\n"};
+  static const std::map<std::string, std::string> commands = {
+    {"add-cookies-unsupported [IP...]", "Add non-expiring 'Unsupported' entry for IP to cookie table"},
+    {"add-dont-throttle-names [N...]", "Add names that are not allowed to be throttled"},
+    {"add-dont-throttle-netmasks [N...]", "Add netmasks that are not allowed to be throttled"},
+    {"add-nta DOMAIN [REASON]", "Add a Negative Trust Anchor for DOMAIN with the comment REASON"},
+    {"add-ta DOMAIN DSRECORD", "Add a Trust Anchor for DOMAIN with data DSRECORD"},
+    {"current-queries", "Show currently active queries"},
+    {"clear-cookies [IP...]", "Clear entries from cookie table, if IP is '*' remove all entries"},
+    {"clear-dont-throttle-names [N...]", "Remove names that are not allowed to be throttled. If N is '*', remove all"},
+    {"clear-dont-throttle-netmasks [N...]", "Remove netmasks that are not allowed to be throttled. If N is '*', remove all"},
+    {"clear-nta [DOMAIN]...", "Clear the Negative Trust Anchor for DOMAINs, if no DOMAIN is specified, remove all"},
+    {"clear-ta [DOMAIN]...", "Clear the Trust Anchor for DOMAINs"},
+    {"dump-cache <filename> [type...]", "Dump cache contents to the named file, type is r, n, p or a"},
+    {"dump-cookies <filename>", "Dump the contents of the cookie jar to the named file"},
+    {"dump-dot-probe-map <filename>", "Dump the contents of the DoT probe map to the named file"},
+    {"dump-edns [status] <filename>", "Dump EDNS status to the named file"},
+    {"dump-failedservers <filename>", "Dump the failed servers to the named file"},
+    {"dump-non-resolving <filename>", "Dump non-resolving nameservers addresses to the named file"},
+    {"dump-nsspeeds <filename>", "Dump nsspeeds statistics to the named file"},
+    {"dump-saved-parent-ns-sets <filename>", "Dump saved parent ns sets that were successfully used as fallback"},
+    {"dump-rpz <zone name> <filename>", "Dump the content of a RPZ zone to the named file"},
+    {"dump-throttlemap <filename>", "Dump the contents of the throttle map to the named file"},
+    {"get [key1] [key2] ..", "Get specific statistics"},
+    {"get-all", "Get all statistics"},
+    {"get-dont-throttle-names", "Get the list of names that are not allowed to be throttled"},
+    {"get-dont-throttle-netmasks", "Get the list of netmasks that are not allowed to be throttled"},
+    {"get-ntas", "Get all configured Negative Trust Anchors"},
+    {"get-tas", "Get all configured Trust Anchors"},
+    {"get-parameter [key1] [key2] ..", "Get configuration parameters"},
+    {"get-proxymapping-stats", "Get proxy mapping statistics"},
+    {"get-qtypelist", "Get QType statistics. Note queries from cache aren't being counted yet"},
+    {"get-remotelogger-stats", "Get remote logger statistics"},
+    {"hash-password [work-factor]", "Ask for a password then return the hashed version"},
+    {"help", "Get this list (from the running recursor)"},
+    {"list-dnssec-algos", "List supported DNSSEC algorithms"},
+    {"ping", "Check that all threads are alive"},
+    {"quit", "Stop the recursor daemon"},
+    {"quit-nicely or stop", "Stop the recursor daemon nicely"},
+    {"reload-acls", "Reload ACLS"},
+    {"reload-lua-script [filename]", "Reload Lua script"},
+    {"reload-yaml", "Reload runtime settable parts of YAML settings"},
+    {"reload-lua-config [filename]", "Reload Lua configuration file or equivalent YAML clauses"},
+    {"reload-zones", "Reload all auth and forward zones"},
+    {"set-ecs-minimum-ttl value", "Set ecs-minimum-ttl-override"},
+    {"set-max-aggr-nsec-cache-size value", "Set new maximum aggressive NSEC cache size"},
+    {"set-max-cache-entries value", "Set new maximum record cache size"},
+    {"set-max-packetcache-entries value", "Set new maximum packet cache size"},
+    {"set-minimum-ttl value", "Set minimum-ttl-override"},
+    {"set-carbon-server", "Set a carbon server for telemetry"},
+    {"set-dnssec-log-bogus SETTING", "Enable (yes) or disable (no) logging of DNSSEC validation failures"},
+    {"set-event-trace-enabled SETTING", "Set logging of event traces, 0=disabled, 1=protobuf, 2=log file, 4=opentelemetry, combine by adding"},
+    {"show-yaml [file]", "Show yaml config derived from old-style config"},
+    {"trace-regex [regex file]", "Emit resolution trace for matching queries (no arguments clears tracing)"},
+    {"top-largeanswer-remotes", "Show top remotes receiving large answers"},
+    {"top-queries", "Show top queries"},
+    {"top-pub-queries", "Show top queries grouped by public suffix list"},
+    {"top-remotes", "Show top remotes"},
+    {"top-timeouts", "Show top downstream timeouts"},
+    {"top-servfail-queries", "Show top queries receiving servfail answers"},
+    {"top-bogus-queries", "Show top queries validating as bogus"},
+    {"top-pub-servfail-queries", "Show top queries receiving servfail answers grouped by public suffix list"},
+    {"top-pub-bogus-queries", "Show top queries validating as bogus grouped by public suffix list"},
+    {"top-servfail-remotes", "Show top remotes receiving servfail answers"},
+    {"top-bogus-remotes", "Show top remotes receiving bogus answers"},
+    {"unload-lua-script", "Unload Lua script"},
+    {"version", "Return version number of running Recursor"},
+    {"wipe-cache domain0 [domain1] ..", "Wipe domain data from cache"},
+    {"wipe-cache-typed type domain0 [domain1] ..", "Wipe domain data with qtype from cache"},
+
+  };
+  ostringstream str;
+  for (const auto& command : commands) {
+    const size_t maxwidth = 32;
+    auto len = command.first.length();
+    if (len < maxwidth) {
+      str << command.first;
+      str << std::string(maxwidth - len, ' ');
+    }
+    else {
+      str << command.first << endl;
+      str << std::string(maxwidth, ' ');
+    }
+    str << command.second;
+    str << endl;
+  }
+  return {0, str.str()};
 }
 
 RecursorControlChannel::Answer luaconfig(bool broadcast)
