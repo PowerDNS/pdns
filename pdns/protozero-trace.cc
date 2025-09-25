@@ -22,6 +22,7 @@
 
 #include "protozero-trace.hh"
 #include "base64.hh"
+#include "misc.hh"
 #include <string>
 #include <variant>
 
@@ -575,6 +576,11 @@ void extractOTraceIDs(const EDNSOptionViewMap& map, pdns::trace::InitialSpanInfo
   }
   // Empty parent span id indicated the client did not set one, thats fine
   random(span.span_id);
+}
+
+std::string SpanID::toLogString() const
+{
+  return makeHexDump(std::string(this->begin(), this->end()), "");
 }
 
 } // namespace pdns::trace
