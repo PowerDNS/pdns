@@ -247,6 +247,12 @@ This state can be modified from the various hooks.
 
     :returns: A table of tags, using strings as keys and values
 
+  .. method:: DNSQuestion:getTraceID() -> string
+
+    When :doc:`OpenTelemetry tracing <ottrace>` is enabled, get the ID of the trace. This is an opaque binary string.
+
+    :returns: A binary string containing the OpenTelemetry trace identifier
+
   .. method:: DNSQuestion:getTrailingData() -> string
 
     .. versionadded:: 1.4.0
