@@ -400,6 +400,12 @@ are processed after this action"
     - name: "ttl"
       type: "u32"
       description: "The TTL to use"
+- name: "SetTrace"
+  description: "Enable or disable OpenTelemetry tracing for this query. Don't forget to also use a RemoteLog action to actually send the trace. Subsequent rules are processed after this action"
+  parameters:
+    - name: "value"
+      type: "bool"
+      description: "Whether or not to enable tracing"
 - name: "SNMPTrap"
   description: "Send an SNMP trap, adding the message string as the query description. Subsequent rules are processed after this action"
   parameters:

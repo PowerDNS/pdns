@@ -234,6 +234,7 @@ dnsdist_SOURCES = \
 	dnsdist-metrics.cc dnsdist-metrics.hh \
 	dnsdist-nghttp2-in.hh \
 	dnsdist-nghttp2.hh \
+	dnsdist-opentelemetry.cc dnsdist-opentelemetry.hh \
 	dnsdist-prometheus.hh \
 	dnsdist-protobuf.cc dnsdist-protobuf.hh \
 	dnsdist-protocols.cc dnsdist-protocols.hh \
@@ -290,6 +291,7 @@ dnsdist_SOURCES = \
 	packetcache.hh \
 	pdnsexception.hh \
 	pollmplexer.cc \
+	protozero-trace.cc protozero-trace.hh \
 	protozero.cc protozero.hh \
 	proxy-protocol.cc proxy-protocol.hh \
 	qtype.cc qtype.hh \

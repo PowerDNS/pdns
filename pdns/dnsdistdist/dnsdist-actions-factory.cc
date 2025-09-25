@@ -47,6 +47,8 @@
 #include "ipcipher.hh"
 #include "dnsdist-ipcrypt2.hh"
 #include "iputils.hh"
+#include "protozero-trace.hh"
+#include "qtype.hh"
 #include "remote_logger.hh"
 #include "svc-records.hh"
 #include "threadname.hh"
@@ -1670,8 +1672,40 @@ private:
   std::string d_ipEncryptMethod;
   std::optional<pdns::ipcrypt2::IPCrypt2> d_ipcrypt2{std::nullopt};
 };
-
 #endif /* DISABLE_PROTOBUF */
+
+class SetTraceAction : public DNSAction
+{
+public:
+  SetTraceAction(bool value) :
+    d_value{value} {};
+
+  DNSAction::Action operator()([[maybe_unused]] DNSQuestion* dnsquestion, std::string* ruleresult) const override
+  {
+    (void)ruleresult;
+#ifndef DISABLE_PROTOBUF
+    if (d_value) {
+      dnsquestion->ids.d_OTTracer->activate();
+      dnsquestion->ids.d_OTTracer->setTraceAttribute("query.qname", AnyValue{dnsquestion->ids.qname.toStringNoDot()});
+      dnsquestion->ids.d_OTTracer->setTraceAttribute("query.qtype", AnyValue{QType(dnsquestion->ids.qtype).toString()});
+      dnsquestion->ids.d_OTTracer->setTraceAttribute("query.remote", AnyValue{dnsquestion->ids.origRemote.toLogString()});
+    }
+    else {
+      dnsquestion->ids.d_OTTracer->deactivate();
+    }
+    dnsquestion->ids.tracingEnabled = d_value;
+#endif
+    return Action::None;
+  }
+
+  [[nodiscard]] std::string toString() const override
+  {
+    return string((d_value ? "en" : "dis")) + string("able OpenTelemetry Tracing");
+  }
+
+private:
+  bool d_value;
+};
 
 class SNMPTrapAction : public DNSAction
 {

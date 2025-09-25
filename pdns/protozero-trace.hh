@@ -238,6 +238,13 @@ inline void random(SpanID& span)
   dns_random(span.data(), span.size());
 }
 
+inline SpanID randomSpanID()
+{
+  SpanID ret;
+  random(ret);
+  return ret;
+}
+
 inline void clear(TraceID& trace)
 {
   trace.fill(0);

@@ -20,6 +20,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include "config.h"
+#include "protozero-trace.hh"
+#include <vector>
 
 #ifndef DISABLE_PROTOBUF
 #include "base64.hh"
@@ -240,6 +242,11 @@ void DNSDistProtoBufMessage::serialize(std::string& data) const
       /* the MetaValue field is _required_ to exist, even if we have no value */
       msg.setMeta(key, {std::string()}, {});
     }
+  }
+
+  if (d_dq.ids.tracingEnabled) {
+    msg.setOpenTelemtryTraceID(d_dq.ids.d_OTTracer->getTraceID());
+    msg.setOpenTelemetryData(d_dq.ids.d_OTTracer->getOTProtobuf());
   }
 }
 

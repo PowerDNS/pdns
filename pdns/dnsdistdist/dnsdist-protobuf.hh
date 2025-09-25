@@ -22,6 +22,7 @@
 #pragma once
 
 #include "dnsname.hh"
+#include <optional>
 
 #ifndef DISABLE_PROTOBUF
 #include <boost/multi_index_container.hpp>
@@ -29,6 +30,7 @@
 #include <boost/multi_index/key_extractors.hpp>
 
 #include "protozero.hh"
+#include "protozero-trace.hh"
 
 struct DNSQuestion;
 struct DNSResponse;
@@ -110,6 +112,8 @@ private:
 
   pdns::ProtoZero::Message::MessageType d_type{pdns::ProtoZero::Message::MessageType::DNSQueryType};
   bool d_includeCNAME{false};
+
+  std::optional<std::vector<pdns::trace::Span>> d_traceSpans{std::nullopt};
 };
 
 class ProtoBufMetaKey

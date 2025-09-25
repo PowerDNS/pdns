@@ -29,12 +29,17 @@
 #include <grp.h>
 #include <limits>
 #include <netinet/tcp.h>
+#include <optional>
 #include <pwd.h>
 #include <set>
 #include <sys/resource.h>
 #include <unistd.h>
 
+#include "dns.hh"
+#include "dnsdist-idstate.hh"
+#include "dnsdist-opentelemetry.hh"
 #include "dnsdist-systemd.hh"
+#include "protozero-trace.hh"
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-daemon.h>
 #endif
@@ -451,6 +456,10 @@ static bool encryptResponse(PacketBuffer& response, size_t maximumSize, bool tcp
 
 bool applyRulesToResponse(const std::vector<dnsdist::rules::ResponseRuleAction>& respRuleActions, DNSResponse& dnsResponse)
 {
+  pdns::trace::dnsdist::Tracer::Closer closer;
+  if (dnsResponse.ids.tracingEnabled) {
+    closer = dnsResponse.ids.d_OTTracer->openSpan("applyRulesToResponse", dnsResponse.ids.d_OTTracer->getLastSpanID());
+  }
   if (respRuleActions.empty()) {
     return true;
   }
@@ -511,8 +520,15 @@ bool applyRulesToResponse(const std::vector<dnsdist::rules::ResponseRuleAction>&
 
 bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse, [[maybe_unused]] bool muted)
 {
+  pdns::trace::dnsdist::Tracer::Closer closer;
+  if (dnsResponse.ids.tracingEnabled) {
+    closer = dnsResponse.ids.d_OTTracer->openSpan("processResponseAfterRules");
+  }
   bool zeroScope = false;
   if (!fixUpResponse(response, dnsResponse.ids.qname, dnsResponse.ids.origFlags, dnsResponse.ids.ednsAdded, dnsResponse.ids.ecsAdded, dnsResponse.ids.useZeroScope ? &zeroScope : nullptr)) {
+    if (dnsResponse.ids.tracingEnabled) {
+      dnsResponse.ids.d_OTTracer->setSpanAttribute(closer.getSpanID(), "result", AnyValue{"fixUpResponse->false"});
+    }
     return false;
   }
 
@@ -538,8 +554,13 @@ bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse,
       // if zeroScope, pass the pre-ECS hash-key and do not pass the subnet to the cache
       cacheKey = dnsResponse.ids.cacheKeyNoECS;
     }
-    dnsResponse.ids.packetCache->insert(cacheKey, zeroScope ? boost::none : dnsResponse.ids.subnet, dnsResponse.ids.cacheFlags, dnsResponse.ids.dnssecOK ? *dnsResponse.ids.dnssecOK : false, dnsResponse.ids.qname, dnsResponse.ids.qtype, dnsResponse.ids.qclass, response, dnsResponse.ids.forwardedOverUDP, dnsResponse.getHeader()->rcode, dnsResponse.ids.tempFailureTTL);
-
+    {
+      pdns::trace::dnsdist::Tracer::Closer cacheInsertCloser;
+      if (dnsResponse.ids.tracingEnabled) {
+        cacheInsertCloser = dnsResponse.ids.d_OTTracer->openSpan("packetCacheInsert", closer.getSpanID());
+      }
+      dnsResponse.ids.packetCache->insert(cacheKey, zeroScope ? boost::none : dnsResponse.ids.subnet, dnsResponse.ids.cacheFlags, dnsResponse.ids.dnssecOK ? *dnsResponse.ids.dnssecOK : false, dnsResponse.ids.qname, dnsResponse.ids.qtype, dnsResponse.ids.qclass, response, dnsResponse.ids.forwardedOverUDP, dnsResponse.getHeader()->rcode, dnsResponse.ids.tempFailureTTL);
+    }
     const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
     const auto& cacheInsertedRespRuleActions = dnsdist::rules::getResponseRuleChain(chains, dnsdist::rules::ResponseRuleChain::CacheInsertedResponseRules);
     if (!applyRulesToResponse(cacheInsertedRespRuleActions, dnsResponse)) {
@@ -568,6 +589,11 @@ bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse,
 
 bool processResponse(PacketBuffer& response, DNSResponse& dnsResponse, bool muted)
 {
+  pdns::trace::dnsdist::Tracer::Closer closer;
+  if (dnsResponse.ids.tracingEnabled) {
+    closer = dnsResponse.ids.d_OTTracer->openSpan("processResponse");
+  }
+
   const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
   const auto& respRuleActions = dnsdist::rules::getResponseRuleChain(chains, dnsdist::rules::ResponseRuleChain::ResponseRules);
 
@@ -1021,6 +1047,7 @@ static bool applyRulesChainToQuery(const std::vector<dnsdist::rules::RuleAction>
 
 static bool applyRulesToQuery(DNSQuestion& dnsQuestion, const timespec& now)
 {
+  auto closer = dnsQuestion.ids.d_OTTracer->openSpan("applyRulesToQuery", dnsQuestion.ids.d_OTTracer->getLastSpanID());
   if (g_rings.shouldRecordQueries()) {
     g_rings.insertQuery(now, dnsQuestion.ids.origRemote, dnsQuestion.ids.qname, dnsQuestion.ids.qtype, dnsQuestion.getData().size(), *dnsQuestion.getHeader(), dnsQuestion.getProtocol());
   }
@@ -1426,9 +1453,18 @@ static ProcessQueryResult handleQueryTurnedIntoSelfAnsweredResponse(DNSQuestion&
 
 static ServerPolicy::SelectedBackend selectBackendForOutgoingQuery(DNSQuestion& dnsQuestion, const ServerPool& serverPool)
 {
+  auto closer = dnsQuestion.ids.d_OTTracer->openSpan("selectBackendForOutgoingQuery", dnsQuestion.ids.d_OTTracer->getLastSpanID());
+
   const auto& policy = serverPool.policy != nullptr ? *serverPool.policy : *dnsdist::configuration::getCurrentRuntimeConfiguration().d_lbPolicy;
   const auto& servers = serverPool.getServers();
-  return policy.getSelectedBackend(servers, dnsQuestion);
+  auto selectedBackend = policy.getSelectedBackend(servers, dnsQuestion);
+
+  if (dnsQuestion.ids.tracingEnabled) {
+    dnsQuestion.ids.d_OTTracer->setSpanAttribute(closer.getSpanID(), "backend.name", AnyValue{selectedBackend->getNameWithAddr()});
+    dnsQuestion.ids.d_OTTracer->setSpanAttribute(closer.getSpanID(), "backend.id", AnyValue{boost::uuids::to_string(selectedBackend->getID())});
+  }
+
+  return selectedBackend;
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity): refactoring will be done in https://github.com/PowerDNS/pdns/pull/16124
@@ -1742,8 +1778,9 @@ std::unique_ptr<CrossProtocolQuery> getUDPCrossProtocolQueryFromDQ(DNSQuestion& 
 
 ProcessQueryResult processQuery(DNSQuestion& dnsQuestion, std::shared_ptr<DownstreamState>& selectedBackend)
 {
-  const uint16_t queryId = ntohs(dnsQuestion.getHeader()->id);
 
+  auto closer = dnsQuestion.ids.d_OTTracer->openSpan("processQuery", dnsQuestion.ids.d_OTTracer->getLastSpanID());
+  const uint16_t queryId = ntohs(dnsQuestion.getHeader()->id);
   try {
     /* we need an accurate ("real") value for the response and
        to store into the IDS, but not for insertion into the
@@ -1774,6 +1811,8 @@ ProcessQueryResult processQuery(DNSQuestion& dnsQuestion, std::shared_ptr<Downst
 
 bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& downstream, uint16_t queryID, DNSQuestion& dnsQuestion, PacketBuffer& query, bool actuallySend)
 {
+  auto closer = dnsQuestion.ids.d_OTTracer->openSpan("assignOutgoingUDPQueryToBackend", dnsQuestion.ids.d_OTTracer->getLastSpanID());
+
   bool doh = dnsQuestion.ids.du != nullptr;
 
   bool failed = false;
@@ -1847,6 +1886,9 @@ static void processUDPQuery(ClientState& clientState, const struct msghdr* msgh,
   assert(responsesVect == nullptr || (queuedResponses != nullptr && respIOV != nullptr && respCBuf != nullptr));
   uint16_t queryId = 0;
   InternalQueryState ids;
+
+  auto closer = ids.d_OTTracer->openSpan("processUDPQuery");
+
   ids.cs = &clientState;
   ids.origRemote = remote;
   ids.hopRemote = remote;
