@@ -583,4 +583,9 @@ std::string SpanID::toLogString() const
   return makeHexDump(std::string(this->begin(), this->end()), "");
 }
 
+std::string TraceID::toLogString() const
+{
+  return makeHexDump(std::string(this->begin(), this->end()), "");
+}
+
 } // namespace pdns::trace
