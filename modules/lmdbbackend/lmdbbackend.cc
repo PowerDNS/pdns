@@ -1921,14 +1921,14 @@ void LMDBBackend::lookupInternal(const QType& type, const DNSName& qdomain, doma
     } while (type != QType::SOA && hunt.chopOff());
     if (info.id == 0) {
       //      cout << "Did not find zone for "<< qdomain<<endl;
-      d_lookupstate.cursor.reset();
+      d_lookupstate.reset();
       return;
     }
   }
   else {
     if (!findDomain(zoneId, info)) {
       // cout<<"Could not find a zone with id "<<zoneId<<endl;
-      d_lookupstate.cursor.reset();
+      d_lookupstate.reset();
       return;
     }
   }
@@ -1968,7 +1968,7 @@ void LMDBBackend::lookupStart(domainid_t domain_id, const std::string& match, bo
   MDBOutVal key{};
   MDBOutVal val{};
   if (d_lookupstate.cursor->prefix(match, key, val) != 0) {
-    d_lookupstate.cursor.reset(); // will cause get() to fail
+    d_lookupstate.reset(); // will cause get() to fail
     if (dolog) {
       g_log << Logger::Warning << "Query " << ((long)(void*)this) << ": " << d_dtime.udiffNoReset() << " us to execute (found nothing)" << endl;
     }
@@ -1988,7 +1988,7 @@ bool LMDBBackend::getInternal(DNSName& basename, std::string_view& key)
         d_lookupstate.rrset.clear(); // will invalidate lrr
         if (d_lookupstate.cursor && d_lookupstate.cursor->next(d_lookupstate.key, d_lookupstate.val) != 0) {
           // cerr<<"resetting d_lookupstate.cursor 2"<<endl;
-          d_lookupstate.cursor.reset();
+          d_lookupstate.reset();
         }
       }
     }
@@ -2009,7 +2009,7 @@ bool LMDBBackend::getInternal(DNSName& basename, std::string_view& key)
         // Hit a special NSEC3 record, skip it
         if (d_lookupstate.cursor->next(d_lookupstate.key, d_lookupstate.val) != 0) {
           // cerr<<"resetting d_lookupstate.cursor 1"<<endl;
-          d_lookupstate.cursor.reset();
+          d_lookupstate.reset();
         }
         continue;
       }
@@ -2092,7 +2092,7 @@ bool LMDBBackend::get(DNSResourceRecord& rr)
 
 void LMDBBackend::lookupEnd()
 {
-  d_lookupstate.cursor.reset();
+  d_lookupstate.reset();
   d_rotxn.reset();
 }
 

@@ -393,6 +393,15 @@ private:
     MDBOutVal val;
     // whether to include disabled records in the results
     bool includedisabled;
+
+    void reset()
+    {
+      domain.clear();
+      submatch.clear();
+      rrset.clear();
+      rrsetpos = 0;
+      cursor.reset();
+    }
   } d_lookupstate;
 
   ZoneName d_transactiondomain;
