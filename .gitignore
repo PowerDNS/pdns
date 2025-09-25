@@ -61,6 +61,3 @@ compile_commands.*
 .ccls-cache
 .gdb_history
 .venv
-
-# Local Netlify folder
-.netlify
