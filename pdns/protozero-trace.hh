@@ -236,6 +236,15 @@ struct TraceID : public std::array<uint8_t, 16>
     return ostrm << val.toLogString();
   }
 };
+constexpr TraceID s_emptyTraceID = {};
+inline void random(TraceID& trace)
+{
+  dns_random(trace.data(), trace.size());
+}
+inline void clear(TraceID& trace)
+{
+  trace.fill(0);
+}
 
 struct SpanID : public std::array<uint8_t, 8>
 {
@@ -245,34 +254,20 @@ struct SpanID : public std::array<uint8_t, 8>
     return ostrm << val.toLogString();
   }
 };
-
-constexpr TraceID s_emptyTraceID = {};
-
-inline void random(TraceID& trace)
-{
-  dns_random(trace.data(), trace.size());
-}
-
+constexpr SpanID s_emptySpanID = {};
 inline void random(SpanID& span)
 {
   dns_random(span.data(), span.size());
 }
-
+inline void clear(SpanID& span)
+{
+  span.fill(0);
+}
 inline SpanID randomSpanID()
 {
   SpanID ret;
   random(ret);
   return ret;
-}
-
-inline void clear(TraceID& trace)
-{
-  trace.fill(0);
-}
-
-inline void clear(SpanID& span)
-{
-  span.fill(0);
 }
 
 inline void fill(TraceID& trace, const std::string& data)
