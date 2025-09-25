@@ -318,9 +318,6 @@ private:
   };
 
   vector<RecordsDB> d_trecords;
-  ;
-
-  std::shared_ptr<MDBROCursor> d_getcursor;
 
   shared_ptr<tdomains_t> d_tdomains;
   shared_ptr<tmeta_t> d_tmeta;
@@ -374,14 +371,38 @@ private:
   };
   static SharedLockGuarded<SerialCache> s_notified_serial;
 
-  ZoneName d_lookupdomain;
-  DNSName d_lookupsubmatch;
-  vector<LMDBResourceRecord> d_currentrrset;
-  size_t d_currentrrsetpos;
-  time_t d_currentrrsettime;
-  MDBOutVal d_currentKey;
-  MDBOutVal d_currentVal;
-  bool d_includedisabled;
+  // Domain lookup shared state, set by list/lookup, used by get
+  struct
+  {
+    // current domain being processed (appended to the results' names)
+    ZoneName domain;
+    // relative name used for submatching (by listSubZone)
+    DNSName submatch;
+    // temporary vector of results (records found at the same cursor, i.e.
+    // same qname but possibly different qtype)
+    vector<LMDBResourceRecord> rrset;
+    // position in the above when returning its elements one by one
+    size_t rrsetpos;
+    // timestamp of rrset (can't be stored in DNSZoneRecord)
+    time_t rrsettime;
+    // database cursor
+    std::shared_ptr<MDBROCursor> cursor;
+    // database key at cursor
+    MDBOutVal key;
+    // database contents at cursor
+    MDBOutVal val;
+    // whether to include disabled records in the results
+    bool includedisabled;
+
+    void reset()
+    {
+      domain.clear();
+      submatch.clear();
+      rrset.clear();
+      rrsetpos = 0;
+      cursor.reset();
+    }
+  } d_lookupstate;
 
   ZoneName d_transactiondomain;
   domainid_t d_transactiondomainid;

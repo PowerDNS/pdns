@@ -1864,28 +1864,11 @@ bool LMDBBackend::deleteDomain(const ZoneName& domain)
   return true;
 }
 
-/*
- * Domain lookup shared state, set by list/lookup, used by get:
- *
- * d_lookupdomain: current domain being processed (appended to the
- *                 results' names)
- * d_lookupsubmatch: relative name used for submatching (for listSubZone)
- * d_currentrrset: temporary vector of results (records found at the same
- *                 cursor, i.e. same qname but possibly different qtype)
- * d_currentrrsetpos: position in the above when returning its elements one
- *                    by one
- * d_currentrrsettime: timestamp of d_currentrrset (can't be stored in
- *                     DNSZoneRecord)
- * d_currentKey: database key at cursor
- * d_currentVal: database contents at cursor
- * d_includedisabled: whether to include disabled records in the results
- */
-
 bool LMDBBackend::list(const ZoneName& target, domainid_t domain_id, bool include_disabled)
 {
-  d_lookupdomain = target;
-  d_lookupsubmatch.clear();
-  d_includedisabled = include_disabled;
+  d_lookupstate.domain = target;
+  d_lookupstate.submatch.clear();
+  d_lookupstate.includedisabled = include_disabled;
 
   compoundOrdername order;
   std::string match = order(domain_id);
@@ -1910,9 +1893,9 @@ bool LMDBBackend::listSubZone(const ZoneName& target, domainid_t domain_id)
 
   // 3. enumerate complete domain, but tell get() to ignore entries which are
   //    not subsets of target
-  d_lookupdomain = std::move(info.zone);
-  d_lookupsubmatch = std::move(relqname);
-  d_includedisabled = true;
+  d_lookupstate.domain = std::move(info.zone);
+  d_lookupstate.submatch = std::move(relqname);
+  d_lookupstate.includedisabled = true;
 
   compoundOrdername order;
   std::string match = order(domain_id);
@@ -1938,14 +1921,14 @@ void LMDBBackend::lookupInternal(const QType& type, const DNSName& qdomain, doma
     } while (type != QType::SOA && hunt.chopOff());
     if (info.id == 0) {
       //      cout << "Did not find zone for "<< qdomain<<endl;
-      d_getcursor.reset();
+      d_lookupstate.reset();
       return;
     }
   }
   else {
     if (!findDomain(zoneId, info)) {
       // cout<<"Could not find a zone with id "<<zoneId<<endl;
-      d_getcursor.reset();
+      d_lookupstate.reset();
       return;
     }
   }
@@ -1956,9 +1939,9 @@ void LMDBBackend::lookupInternal(const QType& type, const DNSName& qdomain, doma
   }
   // cout<<"get will look for "<<relqname<< " in zone "<<info.zone<<" with id "<<info.id<<" and type "<<type.toString()<<endl;
 
-  d_lookupdomain = std::move(info.zone);
-  d_lookupsubmatch.clear();
-  d_includedisabled = include_disabled;
+  d_lookupstate.domain = std::move(info.zone);
+  d_lookupstate.submatch.clear();
+  d_lookupstate.includedisabled = include_disabled;
 
   compoundOrdername order;
   std::string match;
@@ -1976,16 +1959,16 @@ void LMDBBackend::lookupStart(domainid_t domain_id, const std::string& match, bo
 {
   d_rotxn = getRecordsROTransaction(domain_id, d_rwtxn);
   d_txnorder = true;
-  d_getcursor = std::make_shared<MDBROCursor>(d_rotxn->txn->getCursor(d_rotxn->db->dbi));
+  d_lookupstate.cursor = std::make_shared<MDBROCursor>(d_rotxn->txn->getCursor(d_rotxn->db->dbi));
 
   // Make sure we start with fresh data
-  d_currentrrset.clear();
-  d_currentrrsetpos = 0;
+  d_lookupstate.rrset.clear();
+  d_lookupstate.rrsetpos = 0;
 
   MDBOutVal key{};
   MDBOutVal val{};
-  if (d_getcursor->prefix(match, key, val) != 0) {
-    d_getcursor.reset(); // will cause get() to fail
+  if (d_lookupstate.cursor->prefix(match, key, val) != 0) {
+    d_lookupstate.reset(); // will cause get() to fail
     if (dolog) {
       g_log << Logger::Warning << "Query " << ((long)(void*)this) << ": " << d_dtime.udiffNoReset() << " us to execute (found nothing)" << endl;
     }
@@ -2000,52 +1983,52 @@ void LMDBBackend::lookupStart(domainid_t domain_id, const std::string& match, bo
 bool LMDBBackend::getInternal(DNSName& basename, std::string_view& key)
 {
   for (;;) {
-    if (!d_currentrrset.empty()) {
-      if (++d_currentrrsetpos >= d_currentrrset.size()) {
-        d_currentrrset.clear(); // will invalidate lrr
-        if (d_getcursor && d_getcursor->next(d_currentKey, d_currentVal) != 0) {
-          // cerr<<"resetting d_getcursor 2"<<endl;
-          d_getcursor.reset();
+    if (!d_lookupstate.rrset.empty()) {
+      if (++d_lookupstate.rrsetpos >= d_lookupstate.rrset.size()) {
+        d_lookupstate.rrset.clear(); // will invalidate lrr
+        if (d_lookupstate.cursor && d_lookupstate.cursor->next(d_lookupstate.key, d_lookupstate.val) != 0) {
+          // cerr<<"resetting d_lookupstate.cursor 2"<<endl;
+          d_lookupstate.reset();
         }
       }
     }
 
-    // std::cerr<<"d_getcursor="<<d_getcursor<<std::endl;
-    if (!d_getcursor) {
+    // std::cerr<<"d_lookupstate.cursor="<<d_lookupstate.cursor<<std::endl;
+    if (!d_lookupstate.cursor) {
       d_rotxn.reset();
       return false;
     }
 
-    if (d_currentrrset.empty()) {
-      d_getcursor->current(d_currentKey, d_currentVal);
+    if (d_lookupstate.rrset.empty()) {
+      d_lookupstate.cursor->current(d_lookupstate.key, d_lookupstate.val);
 
-      key = d_currentKey.getNoStripHeader<string_view>();
+      key = d_lookupstate.key.getNoStripHeader<string_view>();
       QType qtype = compoundOrdername::getQType(key).getCode();
 
       if (qtype == QType::NSEC3) {
-        // Hit a magic NSEC3 skipping
-        if (d_getcursor->next(d_currentKey, d_currentVal) != 0) {
-          // cerr<<"resetting d_getcursor 1"<<endl;
-          d_getcursor.reset();
+        // Hit a special NSEC3 record, skip it
+        if (d_lookupstate.cursor->next(d_lookupstate.key, d_lookupstate.val) != 0) {
+          // cerr<<"resetting d_lookupstate.cursor 1"<<endl;
+          d_lookupstate.reset();
         }
         continue;
       }
 
-      deserializeFromBuffer(d_currentVal.get<string_view>(), d_currentrrset);
-      d_currentrrsettime = static_cast<time_t>(LMDBLS::LSgetTimestamp(d_currentVal.getNoStripHeader<string_view>()) / (1000UL * 1000UL * 1000UL));
-      d_currentrrsetpos = 0;
+      deserializeFromBuffer(d_lookupstate.val.get<string_view>(), d_lookupstate.rrset);
+      d_lookupstate.rrsettime = static_cast<time_t>(LMDBLS::LSgetTimestamp(d_lookupstate.val.getNoStripHeader<string_view>()) / (1000UL * 1000UL * 1000UL));
+      d_lookupstate.rrsetpos = 0;
     }
     else {
-      key = d_currentKey.getNoStripHeader<string_view>();
+      key = d_lookupstate.key.getNoStripHeader<string_view>();
     }
     try {
-      const auto& lrr = d_currentrrset.at(d_currentrrsetpos);
-      bool validRecord = d_includedisabled || !lrr.disabled;
+      const auto& lrr = d_lookupstate.rrset.at(d_lookupstate.rrsetpos);
+      bool validRecord = d_lookupstate.includedisabled || !lrr.disabled;
 
       if (validRecord) {
         basename = compoundOrdername::getQName(key);
-        if (!d_lookupsubmatch.empty()) {
-          validRecord = basename.isPartOf(d_lookupsubmatch);
+        if (!d_lookupstate.submatch.empty()) {
+          validRecord = basename.isPartOf(d_lookupstate.submatch);
         }
       }
 
@@ -2071,9 +2054,9 @@ bool LMDBBackend::get(DNSZoneRecord& zr) // NOLINT(readability-identifier-length
   if (!getInternal(basename, key)) {
     return false;
   }
-  const auto& lrr = d_currentrrset.at(d_currentrrsetpos);
+  const auto& lrr = d_lookupstate.rrset.at(d_lookupstate.rrsetpos);
   try {
-    zr.dr.d_name = basename + d_lookupdomain.operator const DNSName&();
+    zr.dr.d_name = basename + d_lookupstate.domain.operator const DNSName&();
     zr.domain_id = compoundOrdername::getDomainID(key);
     zr.dr.d_type = compoundOrdername::getQType(key).getCode();
     zr.dr.d_ttl = lrr.ttl;
@@ -2102,14 +2085,14 @@ bool LMDBBackend::get(DNSResourceRecord& rr)
   rr.domain_id = zr.domain_id;
   rr.auth = zr.auth;
   rr.disabled = zr.disabled;
-  rr.last_modified = d_currentrrsettime;
+  rr.last_modified = d_lookupstate.rrsettime;
 
   return true;
 }
 
 void LMDBBackend::lookupEnd()
 {
-  d_getcursor.reset();
+  d_lookupstate.reset();
   d_rotxn.reset();
 }
 
@@ -3341,8 +3324,8 @@ string LMDBBackend::directBackendCmd_list(std::vector<string>& argv)
     DNSName basename;
     std::string_view key;
     while (getInternal(basename, key)) {
-      const auto& lrr = d_currentrrset.at(d_currentrrsetpos);
-      DNSName qname = basename + d_lookupdomain.operator const DNSName&();
+      const auto& lrr = d_lookupstate.rrset.at(d_lookupstate.rrsetpos);
+      DNSName qname = basename + d_lookupstate.domain.operator const DNSName&();
       QType qtype = compoundOrdername::getQType(key);
       DNSRecord record;
       record.setContent(deserializeContentZR(qtype, qname, lrr.content));
