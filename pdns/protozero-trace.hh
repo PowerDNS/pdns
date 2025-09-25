@@ -176,6 +176,11 @@ struct AnyValue : public std::variant<NoValue, std::string, bool, int64_t, doubl
 {
   void encode(protozero::pbf_writer& writer) const;
   static AnyValue decode(protozero::pbf_reader& reader);
+  [[nodiscard]] std::string toLogString() const;
+  friend std::ostream& operator<<(std::ostream& ostrm, const AnyValue& val)
+  {
+    return ostrm << val.toLogString();
+  }
 };
 
 struct EntityRef
