@@ -393,7 +393,6 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
   if (conn->d_handlingIO) {
     return;
   }
-  conn->d_handlingIO = true;
   dnsdist::tcp::HandlingIOGuard reentryGuard(conn->d_handlingIO);
 
   bool connectionDied = false;
