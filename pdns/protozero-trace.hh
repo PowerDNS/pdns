@@ -229,7 +229,14 @@ struct InstrumentationScope
 };
 
 using TraceID = std::array<uint8_t, 16>;
-using SpanID = std::array<uint8_t, 8>;
+struct SpanID : public std::array<uint8_t, 8>
+{
+  [[nodiscard]] std::string toLogString() const;
+  friend std::ostream& operator<<(std::ostream& ostrm, const SpanID& val)
+  {
+    return ostrm << val.toLogString();
+  }
+};
 
 constexpr TraceID s_emptyTraceID = {};
 
