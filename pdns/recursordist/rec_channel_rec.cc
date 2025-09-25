@@ -35,6 +35,7 @@
 #include "negcache.hh"
 #include <boost/format.hpp>
 #include <boost/algorithm/string.hpp>
+#include <iomanip>
 
 #include "version.hh"
 #include <sys/types.h>
@@ -1953,18 +1954,8 @@ static RecursorControlChannel::Answer help()
   };
   ostringstream str;
   for (const auto& command : commands) {
-    const size_t maxwidth = 32;
-    auto len = command.first.length();
-    if (len < maxwidth) {
-      str << command.first;
-      str << std::string(maxwidth - len, ' ');
-    }
-    else {
-      str << command.first << endl;
-      str << std::string(maxwidth, ' ');
-    }
-    str << command.second;
-    str << endl;
+    str << command.first << endl;
+    str << std::setw(8) << ' ' << command.second << endl;
   }
   return {0, str.str()};
 }
