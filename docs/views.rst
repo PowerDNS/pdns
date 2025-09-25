@@ -166,7 +166,11 @@ to create these zones, like you would do for any other "regular" zone::
   pdnsutil zone create example.com..trusted
 
 and then use `zone load`, `zone edit`, or `rrset add` to add contents to these
-zones.
+zones; or you may copy the contents of an existing zone::
+
+  pdnsutil zone copy example.com..internal example.com..trusted
+
+and then use `zone edit` to adjust the contents as needed.
 
 With these settings in place, queries for the `example.com.` zone will be
 performed on the `example.com..internal` zone when originating from the internal

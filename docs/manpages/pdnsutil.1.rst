@@ -191,6 +191,12 @@ zone clear *ZONE*
     Clear the records in zone *ZONE*, but leave actual zone and
     settings unchanged
 
+zone copy *ZONE* *NEW-ZONE*
+
+    Copies the contents of *ZONE* (records, comments, metadata, keys) to a
+    new zone *NEW-ZONE*. The new zone must not exist and gets created as
+    part of the copy, in the same backend as *ZONE*.
+
 zone create *ZONE*
 
     Create an empty zone named *ZONE*.
