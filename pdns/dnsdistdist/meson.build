@@ -539,6 +539,7 @@ test_sources += files(
   src_dir / 'test-dnsdistluanetwork.cc',
   src_dir / 'test-dnsdistnghttp2_cc.cc',
   src_dir / 'test-dnsdistnghttp2-in_cc.cc',
+  src_dir / 'test-dnsdist-opentelemetry_cc.cc',
   src_dir / 'test-dnsdistpacketcache_cc.cc',
   src_dir / 'test-dnsdistrings_cc.cc',
   src_dir / 'test-dnsdistrules_cc.cc',
