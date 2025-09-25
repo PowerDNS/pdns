@@ -20,6 +20,7 @@ These chapters contain extensive information on all functions and object availab
   dnscrypt
   dnsparser
   protobuf
+  ottrace
   dnstap
   carbon
   snmp

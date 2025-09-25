@@ -148,7 +148,7 @@ In addition to these options, more features can be disabled at compile-time by d
 * ``DISABLE_OPENSSL_ERROR_STRINGS`` to disable the loading of OpenSSL's error strings, reducing the memory use at the cost of human-readable error messages
 * ``DISABLE_NPN`` for Next Protocol Negotiation, superseded by ALPN
 * ``DISABLE_PROMETHEUS`` for prometheus
-* ``DISABLE_PROTOBUF`` for protocol-buffer support, including dnstap
+* ``DISABLE_PROTOBUF`` for protocol-buffer support, including dnstap and Open Telemetry Tracing
 * ``DISABLE_RECVMMSG`` for ``recvmmsg`` support
 * ``DISABLE_RULES_ALTERING_QUERIES`` to remove rules altering the content of queries
 * ``DISABLE_SECPOLL`` for security polling
