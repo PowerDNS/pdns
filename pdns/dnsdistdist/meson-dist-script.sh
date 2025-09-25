@@ -30,8 +30,6 @@ echo Running autoreconf -vi so distfile is still usable for autotools building
 # Run autoconf for people using autotools to build, this creates a configure sc
 autoreconf -vi
 rm -rf "$MESON_PROJECT_DIST_ROOT"/autom4te.cache
-echo Updating the version of the Rust library to ${BUILDER_VERSION}
-"$MESON_SOURCE_ROOT"/../../builder-support/helpers/update-rust-library-version.py "$MESON_PROJECT_DIST_ROOT"/dnsdist-rust-lib/rust/Cargo.toml dnsdist-rust ${BUILDER_VERSION}
 
 cd "$MESON_PROJECT_BUILD_ROOT"
 
@@ -52,6 +50,16 @@ cp -vp dnsdist-*generated.hh dnsdist-*generated-body.hh "$MESON_PROJECT_DIST_ROO
 meson compile rust-lib-sources
 cp -vp dnsdist-rust-lib/*.cc dnsdist-rust-lib/*.hh "$MESON_PROJECT_DIST_ROOT"/dnsdist-rust-lib/
 cp -vp "$MESON_SOURCE_ROOT"/dnsdist-rust-lib/rust/src/lib.rs "$MESON_PROJECT_DIST_ROOT"/dnsdist-rust-lib/rust/src/
+
+echo Updating the version of the Rust library to ${BUILDER_VERSION}
+"$MESON_SOURCE_ROOT"/../../builder-support/helpers/update-rust-library-version.py "$MESON_PROJECT_DIST_ROOT"/dnsdist-rust-lib/rust/Cargo.toml dnsdist-rust ${BUILDER_VERSION}
+# Update the version of the Rust library in Cargo.lock as well,
+# This needs to be done AFTER the sources of the Rust library have been generated
+# Unfortunately we cannot use --offline because for some reason cargo-update wants
+# to check all dependencies even though we are telling it exactly what to update
+cd "$MESON_PROJECT_DIST_ROOT"/dnsdist-rust-lib/rust/
+cargo update --verbose --precise ${BUILDER_VERSION} dnsdist-rust
+cd "$MESON_PROJECT_BUILD_ROOT"
 
 # Generate man pages
 meson compile man-pages
