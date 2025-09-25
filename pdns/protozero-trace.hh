@@ -228,7 +228,15 @@ struct InstrumentationScope
   static InstrumentationScope decode(protozero::pbf_reader& reader);
 };
 
-using TraceID = std::array<uint8_t, 16>;
+struct TraceID : public std::array<uint8_t, 16>
+{
+  [[nodiscard]] std::string toLogString() const;
+  friend std::ostream& operator<<(std::ostream& ostrm, const TraceID& val)
+  {
+    return ostrm << val.toLogString();
+  }
+};
+
 struct SpanID : public std::array<uint8_t, 8>
 {
   [[nodiscard]] std::string toLogString() const;
