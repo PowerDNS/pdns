@@ -21,7 +21,12 @@
  */
 #pragma once
 
+#include <cstdint>
+#include <ctime>
+#include <optional>
 #include <unordered_map>
+#include <utility>
+#include <vector>
 
 #include "config.h"
 #include "dnscrypt.hh"
@@ -31,6 +36,7 @@
 #include "gettime.hh"
 #include "iputils.hh"
 #include "noinitvector.hh"
+#include "dnsdist-opentelemetry.hh"
 #include "uuid-utils.hh"
 
 struct ClientState;
@@ -106,6 +112,13 @@ struct InternalQueryState
     std::string d_deviceID;
     std::string d_requestorID;
   };
+
+  // Whether or not Open Telemetry tracing is enabled for this query
+  bool tracingEnabled = false;
+
+  // TODO: Do we want to keep some data *without* creating a tracer for each query?
+  // TODO: shard_ptr to work with Tracer::Closer?
+  std::unique_ptr<pdns::trace::dnsdist::Tracer> d_OTTracer{new pdns::trace::dnsdist::Tracer};
 
   InternalQueryState()
   {
