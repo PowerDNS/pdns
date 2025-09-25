@@ -1637,8 +1637,8 @@ public:
     static thread_local std::string data;
     data.clear();
     message.serialize(data);
-    if (!dnsquestion->d_rawProtobufContent.empty()) {
-      data.insert(data.end(), dnsquestion->d_rawProtobufContent.begin(), dnsquestion->d_rawProtobufContent.end());
+    if (!dnsquestion->ids.d_rawProtobufContent.empty()) {
+      data.insert(data.end(), dnsquestion->ids.d_rawProtobufContent.begin(), dnsquestion->ids.d_rawProtobufContent.end());
     }
     remoteLoggerQueueData(*d_logger, data);
 
@@ -1801,8 +1801,8 @@ public:
     static thread_local std::string data;
     data.clear();
     message.serialize(data);
-    if (!response->d_rawProtobufContent.empty()) {
-      data.insert(data.end(), response->d_rawProtobufContent.begin(), response->d_rawProtobufContent.end());
+    if (!response->ids.d_rawProtobufContent.empty()) {
+      data.insert(data.end(), response->ids.d_rawProtobufContent.begin(), response->ids.d_rawProtobufContent.end());
     }
     d_logger->queueData(data);
 
