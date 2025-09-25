@@ -325,6 +325,9 @@ This state can be modified from the various hooks.
 
     .. versionadded:: 2.0.0
 
+    .. versionchanged:: 2.0.2
+      Prior to 2.0.2 meta-data entries were not propagated from questions to responses, which was especially unexpected for self-answered responses.
+
     Set a meta-data entry to be exported in the ``meta`` field of ProtoBuf messages.
 
     :param string key: The key
