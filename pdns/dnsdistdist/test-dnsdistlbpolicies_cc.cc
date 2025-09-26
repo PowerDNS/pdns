@@ -553,7 +553,7 @@ BOOST_AUTO_TEST_CASE(test_lua)
     local counter = 0
     function luaroundrobin(servers, dq)
       counter = counter + 1
-      return servers[1 + (counter % #servers)]
+      return 1 + (counter % #servers)
     end
 
     setServerPolicyLua("luaroundrobin", luaroundrobin)
@@ -582,7 +582,9 @@ BOOST_AUTO_TEST_CASE(test_lua)
 
     for (const auto& name : names) {
       auto dnsQuestion = getDQ(&name);
-      auto server = pol->getSelectedBackend(servers, dnsQuestion);
+      auto selectedServer = pol->getSelectedBackend(servers, dnsQuestion);
+      BOOST_REQUIRE(selectedServer);
+      const auto& server = selectedServer.get();
       BOOST_REQUIRE(serversMap.count(server) == 1);
       ++serversMap[server];
     }
