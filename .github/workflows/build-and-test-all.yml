@@ -289,7 +289,9 @@ jobs:
         working-directory: ./pdns/dnsdistdist/
       - run: ${{ env.INV_CMD }} ci-dnsdist-configure ${{ matrix.features }} ${{ matrix.builder }} dnsdist-${{ env.BUILDER_VERSION }}
         working-directory: ./pdns/dnsdistdist/
-      - run: ${{ env.INV_CMD }} ci-make-distdir
+        if: ${{ matrix.builder != 'autotools' }}
+      - run: |
+          mkdir -p dnsdist-${{ env.BUILDER_VERSION }}
         if: ${{ matrix.builder == 'autotools' }}
         working-directory: ./pdns/dnsdistdist/
       - run: ${{ env.INV_CMD }} ci-dnsdist-configure ${{ matrix.features }} ${{ matrix.builder }} dnsdist-${{ env.BUILDER_VERSION }}

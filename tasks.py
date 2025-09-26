@@ -470,7 +470,7 @@ def get_cxxflags():
     ])
 
 
-def get_base_configure_cmd(additional_c_flags='', additional_cxx_flags='', additional_ld_flags='', enable_systemd=True, enable_sodium=True):
+def get_base_configure_cmd(additional_c_flags='', additional_cxx_flags='', additional_ld_flags='', enable_systemd=True, enable_sodium=True, out_of_tree_build=False):
     cflags = " ".join([get_cflags(), additional_c_flags])
     cxxflags = " ".join([get_cxxflags(), additional_cxx_flags])
     ldflags = additional_ld_flags
@@ -478,7 +478,7 @@ def get_base_configure_cmd(additional_c_flags='', additional_cxx_flags='', addit
         f'CFLAGS="{cflags}"',
         f'CXXFLAGS="{cxxflags}"',
         f'LDFLAGS="{ldflags}"',
-        './configure',
+        './configure' if not out_of_tree_build else '../configure',
         f"CC='{get_c_compiler()}'",
         f"CXX='{get_cxx_compiler()}'",
         "--enable-option-checking=fatal",
@@ -718,7 +718,7 @@ def ci_dnsdist_configure(c, features, builder, build_dir):
         cmd = ci_dnsdist_configure_meson(c, features, additional_flags, additional_ld_flags, build_dir)
         logfile = 'meson-logs/meson-log.txt'
     else:
-        cmd = ci_dnsdist_configure_autotools(features, additional_flags, additional_ld_flags)
+        cmd = ci_dnsdist_configure_autotools(features, additional_flags, additional_ld_flags, build_dir)
         logfile = 'config.log'
 
     res = c.run(cmd, warn=True)
@@ -726,7 +726,7 @@ def ci_dnsdist_configure(c, features, builder, build_dir):
         c.run(f'cat {logfile}')
         raise UnexpectedExit(res)
 
-def ci_dnsdist_configure_autotools(features, additional_flags, additional_ld_flags):
+def ci_dnsdist_configure_autotools(features, additional_flags, additional_ld_flags, build_dir):
     if features == 'full':
       features_set = '--enable-dnstap \
                       --enable-dnscrypt \
@@ -763,9 +763,10 @@ def ci_dnsdist_configure_autotools(features, additional_flags, additional_ld_fla
     unittests = get_unit_tests()
     fuzztargets = get_fuzzing_targets()
     tools = f'''AR=llvm-ar-{clang_version} RANLIB=llvm-ranlib-{clang_version}''' if is_compiler_clang() else ''
+    out_of_tree_build = build_dir != ''
     return " ".join([
         tools,
-        get_base_configure_cmd(additional_c_flags='', additional_cxx_flags=additional_flags, additional_ld_flags=additional_ld_flags, enable_systemd=False, enable_sodium=False),
+        get_base_configure_cmd(additional_c_flags='', additional_cxx_flags=additional_flags, additional_ld_flags=additional_ld_flags, enable_systemd=False, enable_sodium=False, out_of_tree_build=out_of_tree_build),
         features_set,
         unittests,
         fuzztargets,
