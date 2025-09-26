@@ -93,7 +93,7 @@ private:
   bool hasDNSSECkey(const ZoneName& name);
   bool lookup_static(const GeoIPDomain& dom, const DNSName& search, const QType& qtype, const DNSName& qdomain, const Netmask& addr, GeoIPNetmask& gl);
   void setupNetmasks(const YAML::Node& domain, GeoIPDomain& dom);
-  bool loadDomain(const YAML::Node& domain, domainid_t domainID, GeoIPDomain& dom);
+  bool loadDomain(const std::string& origin, const YAML::Node& domain, domainid_t domainID, GeoIPDomain& dom);
   void loadDomainsFromDirectory(const std::string& dir, vector<GeoIPDomain>& domains);
   vector<DNSResourceRecord> d_result;
   vector<GeoIPInterface> d_files;

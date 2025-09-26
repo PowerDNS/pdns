@@ -232,12 +232,22 @@ void GeoIPBackend::setupNetmasks(const YAML::Node& domain, GeoIPDomain& dom)
   }
 }
 
-bool GeoIPBackend::loadDomain(const YAML::Node& domain, domainid_t domainID, GeoIPDomain& dom)
+bool GeoIPBackend::loadDomain(const std::string& origin, const YAML::Node& domain, domainid_t domainID, GeoIPDomain& dom)
 {
   try {
     dom.id = domainID;
-    dom.domain = ZoneName(domain["domain"].as<string>());
-    dom.ttl = domain["ttl"].as<int>();
+    if (auto node = domain["domain"]) {
+      dom.domain = ZoneName(node.as<string>());
+    }
+    else {
+      throw PDNSException("missing 'domain' node");
+    }
+    if (auto node = domain["ttl"]) {
+      dom.ttl = node.as<int>();
+    }
+    else {
+      throw PDNSException("missing 'ttl' node");
+    }
 
     for (auto recs = domain["records"].begin(); recs != domain["records"].end(); recs++) {
       ZoneName qname = ZoneName(recs->first.as<string>());
@@ -355,11 +365,11 @@ bool GeoIPBackend::loadDomain(const YAML::Node& domain, domainid_t domainID, Geo
     }
   }
   catch (std::exception& ex) {
-    g_log << Logger::Error << ex.what() << endl;
+    g_log << Logger::Error << "Could not load zone from " << origin << ": " << ex.what() << endl;
     return false;
   }
   catch (PDNSException& ex) {
-    g_log << Logger::Error << ex.reason << endl;
+    g_log << Logger::Error << "Could not load zone from " << origin << ": " << ex.reason << endl;
     return false;
   }
   return true;
@@ -375,17 +385,18 @@ void GeoIPBackend::loadDomainsFromDirectory(const std::string& dir, vector<GeoIP
   }
   std::sort(paths.begin(), paths.end());
   for (const auto& p : paths) {
+    std::string path = p.string();
     try {
       GeoIPDomain dom;
-      const auto& zoneRoot = YAML::LoadFile(p.string());
+      const auto& zoneRoot = YAML::LoadFile(path);
       // expect zone key
       const auto& zone = zoneRoot["zone"];
-      if (loadDomain(zone, domains.size(), dom)) {
+      if (loadDomain(path, zone, static_cast<domainid_t>(domains.size()), dom)) {
         domains.push_back(dom);
       }
     }
     catch (std::exception& ex) {
-      g_log << Logger::Warning << "Cannot load zone from " << p << ": " << ex.what() << endl;
+      g_log << Logger::Warning << "Cannot load zone from " << path << ": " << ex.what() << endl;
     }
   }
 }
@@ -438,9 +449,13 @@ void GeoIPBackend::initialize()
     d_global_custom_mapping = mapping.as<map<std::string, std::string>>();
   }
 
+  std::string origin;
   for (YAML::const_iterator _domain = config["domains"].begin(); _domain != config["domains"].end(); _domain++) {
     GeoIPDomain dom;
-    if (loadDomain(*_domain, tmp_domains.size(), dom)) {
+    if (origin.empty()) {
+      origin = "'domains' section in " + zonesFile;
+    }
+    if (loadDomain(origin, *_domain, static_cast<domainid_t>(tmp_domains.size()), dom)) {
       tmp_domains.push_back(std::move(dom));
     }
   }
