@@ -66,9 +66,9 @@ struct dnsdist_ffi_dnsquestion_t
   std::unique_ptr<std::vector<dnsdist_ffi_proxy_protocol_value_t>> proxyProtocolValuesVect;
   std::unique_ptr<std::unordered_map<std::string, std::string>> httpHeaders;
 #if !defined(DISABLE_PROTOBUF)
-  protozero::pbf_writer pbfWriter;
-  protozero::pbf_writer pbfMetaWriter;
-  protozero::pbf_writer pbfMetaValueWriter;
+  protozero::pbf_writer pbfWriter{};
+  protozero::pbf_writer pbfMetaWriter{};
+  protozero::pbf_writer pbfMetaValueWriter{};
 #endif /* DISABLE_PROTOBUF */
 };
 
@@ -95,6 +95,11 @@ struct dnsdist_ffi_dnsresponse_t
 
   DNSResponse* dr{nullptr};
   std::optional<std::string> result{std::nullopt};
+#if !defined(DISABLE_PROTOBUF)
+  protozero::pbf_writer pbfWriter{};
+  protozero::pbf_writer pbfMetaWriter{};
+  protozero::pbf_writer pbfMetaValueWriter{};
+#endif /* DISABLE_PROTOBUF */
 };
 
 // dnsdist_ffi_server_t is a lightuserdata

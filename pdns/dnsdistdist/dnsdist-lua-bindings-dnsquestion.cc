@@ -34,7 +34,7 @@
 static void addMetaKeyAndValuesToProtobufContent([[maybe_unused]] DNSQuestion& dnsQuestion, [[maybe_unused]] const std::string& key, [[maybe_unused]] const LuaArray<boost::variant<int64_t, std::string>>& values)
 {
 #if !defined(DISABLE_PROTOBUF)
-  protozero::pbf_writer pbfWriter{dnsQuestion.d_rawProtobufContent};
+  protozero::pbf_writer pbfWriter{dnsQuestion.ids.d_rawProtobufContent};
   protozero::pbf_writer pbfMetaWriter{pbfWriter, static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::Field::meta)};
   pbfMetaWriter.add_string(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::MetaField::key), key);
   protozero::pbf_writer pbfMetaValueWriter{pbfMetaWriter, static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::MetaField::value)};

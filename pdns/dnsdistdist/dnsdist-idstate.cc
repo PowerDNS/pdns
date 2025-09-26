@@ -52,5 +52,8 @@ InternalQueryState InternalQueryState::partialCloneForXFR() const
   ids.cs = cs;
   /* in case we want to support XFR over DoH, or the stream ID becomes used for QUIC */
   ids.d_streamID = d_streamID;
+#if !defined(DISABLE_PROTOBUF)
+  ids.d_rawProtobufContent = d_rawProtobufContent;
+#endif
   return ids;
 }
