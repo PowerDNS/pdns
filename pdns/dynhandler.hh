@@ -34,6 +34,7 @@ bool DLQuitPlease();
 void setStatus(const string &str);
 string DLCCHandler(const vector<string>&parts, Utility::pid_t ppid);
 string DLCurrentConfigHandler(const vector<string>&parts, Utility::pid_t ppid);
+string DLFlushHandler(const vector<string>&parts, Utility::pid_t ppid);
 string DLListZones(const vector<string>&parts, Utility::pid_t ppid);
 string DLNotifyHandler(const vector<string>&parts, Utility::pid_t ppid);
 string DLNotifyHostHandler(const vector<string>&parts, Utility::pid_t ppid);

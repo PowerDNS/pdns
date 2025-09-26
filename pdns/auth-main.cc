@@ -1456,6 +1456,7 @@ int main(int argc, char** argv)
     DynListener::registerExitFunc("QUIT", &DLRQuitHandler);
     DynListener::registerFunc("CCOUNTS", &DLCCHandler, "get cache statistics");
     DynListener::registerFunc("CURRENT-CONFIG", &DLCurrentConfigHandler, "retrieve the current configuration", "[diff]");
+    DynListener::registerFunc("FLUSH", &DLFlushHandler, "flush backend data");
     DynListener::registerFunc("LIST-ZONES", &DLListZones, "show list of zones", "[primary|secondary|native|consumer|producer]");
     DynListener::registerFunc("NOTIFY", &DLNotifyHandler, "queue a notification", "<zone>");
     DynListener::registerFunc("NOTIFY-HOST", &DLNotifyHostHandler, "notify host for specific zone", "<zone> <host>");

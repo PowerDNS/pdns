@@ -150,7 +150,9 @@ other changes to the domain (such as accounts) occur.
 This setting is also available in version 4.9.9.
 
 **Warning**: Running with this flag disabled will cause spurious notifications
-to be sent upon startup.
+to be sent upon startup, unless a ``flush'' command is sent using
+:doc:`pdns_control <../manpages/pdns_control.1>` before stopping the
+PowerDNS Authoritative Server.
 
 ``lmdb-lightning-stream``
 ^^^^^^^^^^^^^^^^^^^^^^^^^

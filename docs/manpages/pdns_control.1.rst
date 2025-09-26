@@ -74,6 +74,13 @@ cycle
 Restart the nameserver so it reloads its configuration. Only works
 when the server is running in guardian mode.
 
+flush
+^^^^^
+
+Flush all backend data to stable storage.
+There is usually no such data during regular operation, unless the LMDB backend
+is used with :ref:`setting-lmdb-write-notification-update` set to ``no``.
+
 list
 ^^^^
 

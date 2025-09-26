@@ -149,6 +149,8 @@ public:
 
   unsigned int getCapabilities();
 
+  void flush();
+
 private:
   handle d_handle;
   vector<DNSZoneRecord> d_answers;

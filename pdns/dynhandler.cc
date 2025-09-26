@@ -407,6 +407,14 @@ string DLListZones(const vector<string>& parts, Utility::pid_t /* ppid */)
   return ret.str();
 }
 
+string DLFlushHandler(const vector<string>& /*parts*/, Utility::pid_t /*ppid*/)
+{
+  UeberBackend B; // NOLINT(readability-identifier-length)
+  B.flush();
+  g_log<<Logger::Error<<"Backend flush was requested"<<endl;
+  return "Ok";
+}
+
 #ifdef HAVE_P11KIT1
 extern bool PKCS11ModuleSlotLogin(const std::string& module, const string& tokenId, const std::string& pin);
 #endif

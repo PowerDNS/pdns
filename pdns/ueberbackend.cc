@@ -1056,6 +1056,13 @@ unsigned int UeberBackend::getCapabilities()
   return capabilities;
 }
 
+void UeberBackend::flush()
+{
+  for (auto& backend : backends) {
+    backend->flush();
+  }
+}
+
 AtomicCounter UeberBackend::handle::instances(0);
 
 UeberBackend::handle::handle()
