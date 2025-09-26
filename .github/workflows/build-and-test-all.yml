@@ -280,7 +280,6 @@ jobs:
       - run: ${{ env.INV_CMD }} install-lld-linker-if-needed
         working-directory: ./pdns/dnsdistdist/
       - run: ${{ env.INV_CMD }} ci-install-rust ${REPO_HOME}
-        if: ${{ matrix.features != 'least' }}
         working-directory: ./pdns/dnsdistdist/
       - run: ${{ env.INV_CMD }} ci-build-and-install-quiche ${REPO_HOME}
         if: ${{ matrix.features != 'least' }}
