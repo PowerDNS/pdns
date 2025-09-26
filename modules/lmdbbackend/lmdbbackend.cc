@@ -669,6 +669,8 @@ bool LMDBBackend::upgradeToSchemav6(std::string& /* filename */)
 }
 
 // Serial number cache
+
+// Retrieve the serial number entry for the given domain, if any
 bool LMDBBackend::SerialCache::get(domainid_t domainid, uint32_t& serial) const
 {
   if (auto iter = d_serials.find(domainid); iter != d_serials.end()) {
@@ -678,6 +680,7 @@ bool LMDBBackend::SerialCache::get(domainid_t domainid, uint32_t& serial) const
   return false;
 }
 
+// Remove the serial number entry for the given domain
 void LMDBBackend::SerialCache::remove(domainid_t domainid)
 {
   if (auto iter = d_serials.find(domainid); iter != d_serials.end()) {
@@ -685,9 +688,23 @@ void LMDBBackend::SerialCache::remove(domainid_t domainid)
   }
 }
 
+// Create or update the serial number entry for the given domain
 void LMDBBackend::SerialCache::update(domainid_t domainid, uint32_t serial)
 {
   d_serials.insert_or_assign(domainid, serial);
+}
+
+// Return the contents of the first element and remove it
+bool LMDBBackend::SerialCache::pop(domainid_t& domainid, uint32_t& serial)
+{
+  auto iter = d_serials.begin();
+  if (iter == d_serials.end()) {
+    return false;
+  }
+  domainid = iter->first;
+  serial = iter->second;
+  (void)d_serials.erase(iter);
+  return true;
 }
 
 SharedLockGuarded<LMDBBackend::SerialCache> LMDBBackend::s_notified_serial;
@@ -3390,6 +3407,42 @@ void LMDBBackend::rectifyZoneHook(domainid_t domain_id, bool before) const
 
   compoundOrdername order;
   LMDBBackend::deleteDomainRecords(*d_rwtxn, order(domain_id), QType::NSEC3);
+}
+
+void LMDBBackend::flush()
+{
+  if (d_write_notification_update) {
+    return; // no data needs to be synchronized
+  }
+
+  // We flush in chunks of 10 domains, in order not to keep the serial number
+  // cache locked for too long.
+  while (true) {
+    unsigned int done = 0;
+    auto container = s_notified_serial.write_lock();
+    for (; done < 10; ++done) {
+      domainid_t domid{};
+      uint32_t serial{};
+      if (!container->pop(domid, serial)) {
+        break;
+      }
+      DomainInfo info;
+      if (findDomain(domid, info)) {
+        info.notified_serial = serial;
+        auto txn = d_tdomains->getRWTransaction();
+        txn.put(info, info.id);
+        txn.commit();
+      }
+      else {
+        // Domain has been removed. This should not happen because deletion
+        // is supposed to take care of removing the entry here too.
+        // Is it worth logging something here?
+      }
+    }
+    if (done == 0) {
+      break; // no more work to do!
+    }
+  }
 }
 
 class LMDBFactory : public BackendFactory

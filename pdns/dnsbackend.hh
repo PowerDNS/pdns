@@ -531,6 +531,10 @@ public:
     return get(rec);
   }
 
+  virtual void flush()
+  {
+  }
+
 protected:
   bool mustDo(const string& key);
   const string& getArg(const string& key);

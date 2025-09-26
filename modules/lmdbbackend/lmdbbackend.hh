@@ -166,6 +166,8 @@ public:
 
   bool updateEmptyNonTerminals(domainid_t domain_id, set<DNSName>& insert, set<DNSName>& erase, bool remove) override;
 
+  void flush() override;
+
   // other
   string directBackendCmd(const string& query) override;
 
@@ -365,6 +367,7 @@ private:
     bool get(domainid_t domainid, uint32_t& serial) const;
     void remove(domainid_t domainid);
     void update(domainid_t domainid, uint32_t serial);
+    bool pop(domainid_t& domainid, uint32_t& serial);
 
   private:
     std::unordered_map<domainid_t, uint32_t> d_serials;

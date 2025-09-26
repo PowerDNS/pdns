@@ -1453,25 +1453,26 @@ int main(int argc, char** argv)
 
       writePid();
     }
-    DynListener::registerFunc("SHOW", &DLShowHandler, "show a specific statistic or * to get a list", "<statistic>");
-    DynListener::registerFunc("RPING", &DLPingHandler, "ping instance");
     DynListener::registerExitFunc("QUIT", &DLRQuitHandler);
-    DynListener::registerFunc("UPTIME", &DLUptimeHandler, "get instance uptime");
-    DynListener::registerFunc("NOTIFY-HOST", &DLNotifyHostHandler, "notify host for specific zone", "<zone> <host>");
-    DynListener::registerFunc("NOTIFY", &DLNotifyHandler, "queue a notification", "<zone>");
-    DynListener::registerFunc("RELOAD", &DLReloadHandler, "reload all zones");
-    DynListener::registerFunc("REDISCOVER", &DLRediscoverHandler, "discover any new zones");
-    DynListener::registerFunc("VERSION", &DLVersionHandler, "get instance version");
-    DynListener::registerFunc("PURGE", &DLPurgeHandler, "purge entries from packet cache", "[<record>]");
     DynListener::registerFunc("CCOUNTS", &DLCCHandler, "get cache statistics");
-    DynListener::registerFunc("QTYPES", &DLQTypesHandler, "get QType statistics");
-    DynListener::registerFunc("RESPSIZES", &DLRSizesHandler, "get histogram of response sizes");
-    DynListener::registerFunc("REMOTES", &DLRemotesHandler, "get top remotes");
-    DynListener::registerFunc("SET", &DLSettingsHandler, "set config variables", "<var> <value>");
-    DynListener::registerFunc("RETRIEVE", &DLNotifyRetrieveHandler, "retrieve secondary zone", "<zone> [<ip>]");
     DynListener::registerFunc("CURRENT-CONFIG", &DLCurrentConfigHandler, "retrieve the current configuration", "[diff]");
+    DynListener::registerFunc("FLUSH", &DLFlushHandler, "flush backend data");
     DynListener::registerFunc("LIST-ZONES", &DLListZones, "show list of zones", "[primary|secondary|native|consumer|producer]");
+    DynListener::registerFunc("NOTIFY", &DLNotifyHandler, "queue a notification", "<zone>");
+    DynListener::registerFunc("NOTIFY-HOST", &DLNotifyHostHandler, "notify host for specific zone", "<zone> <host>");
+    DynListener::registerFunc("PURGE", &DLPurgeHandler, "purge entries from packet cache", "[<record>]");
+    DynListener::registerFunc("QTYPES", &DLQTypesHandler, "get QType statistics");
+    DynListener::registerFunc("REDISCOVER", &DLRediscoverHandler, "discover any new zones");
+    DynListener::registerFunc("RELOAD", &DLReloadHandler, "reload all zones");
+    DynListener::registerFunc("REMOTES", &DLRemotesHandler, "get top remotes");
+    DynListener::registerFunc("RESPSIZES", &DLRSizesHandler, "get histogram of response sizes");
+    DynListener::registerFunc("RETRIEVE", &DLNotifyRetrieveHandler, "retrieve secondary zone", "<zone> [<ip>]");
+    DynListener::registerFunc("RPING", &DLPingHandler, "ping instance");
+    DynListener::registerFunc("SET", &DLSettingsHandler, "set config variables", "<var> <value>");
+    DynListener::registerFunc("SHOW", &DLShowHandler, "show a specific statistic or * to get a list", "<statistic>");
     DynListener::registerFunc("TOKEN-LOGIN", &DLTokenLogin, "Login to a PKCS#11 token", "<module> <slot> <pin>");
+    DynListener::registerFunc("UPTIME", &DLUptimeHandler, "get instance uptime");
+    DynListener::registerFunc("VERSION", &DLVersionHandler, "get instance version");
     DynListener::registerFunc("XFR-QUEUE", &DLSuckRequests, "Get all requests for XFR in queue");
 
     if (!::arg()["tcp-control-address"].empty()) {
