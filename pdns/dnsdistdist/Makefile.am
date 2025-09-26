@@ -231,6 +231,7 @@ dnsdist_SOURCES = \
 	dnsdist-metrics.cc dnsdist-metrics.hh \
 	dnsdist-nghttp2-in.hh \
 	dnsdist-nghttp2.hh \
+	dnsdist-opentelemetry.cc dnsdist-opentelemetry.hh \
 	dnsdist-prometheus.hh \
 	dnsdist-protobuf.cc dnsdist-protobuf.hh \
 	dnsdist-protocols.cc dnsdist-protocols.hh \
@@ -287,6 +288,7 @@ dnsdist_SOURCES = \
 	pdnsexception.hh \
 	pollmplexer.cc \
 	protozero.cc protozero.hh \
+	protozero-trace.cc protozero-trace.hh \
 	proxy-protocol.cc proxy-protocol.hh \
 	qtype.cc qtype.hh \
 	remote_logger.cc remote_logger.hh \
@@ -347,6 +349,7 @@ testrunner_SOURCES = \
 	dnsdist-metrics.cc dnsdist-metrics.hh \
 	dnsdist-nghttp2-in.hh \
 	dnsdist-nghttp2.hh \
+	dnsdist-opentelemetry.cc dnsdist-opentelemetry.hh \
 	dnsdist-protocols.cc dnsdist-protocols.hh \
 	dnsdist-proxy-protocol.cc dnsdist-proxy-protocol.hh \
 	dnsdist-random.cc dnsdist-random.hh \
@@ -380,6 +383,8 @@ testrunner_SOURCES = \
 	noinitvector.hh \
 	pdnsexception.hh \
 	pollmplexer.cc \
+	protozero.cc protozero.hh \
+	protozero-trace.cc protozero-trace.hh \
 	proxy-protocol.cc proxy-protocol.hh \
 	qtype.cc qtype.hh \
 	sholder.hh \
@@ -397,6 +402,7 @@ testrunner_SOURCES = \
 	test-dnsdist-connections-cache.cc \
 	test-dnsdist-dnsparser.cc \
 	test-dnsdist-lua-ffi.cc \
+	test-dnsdist-opentelemetry_cc.cc \
 	test-dnsdist_cc.cc \
 	test-dnsdistasync.cc \
 	test-dnsdistbackend_cc.cc \
