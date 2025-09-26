@@ -715,7 +715,7 @@ def ci_dnsdist_configure(c, features, builder, build_dir):
                             -DDISABLE_NPN'
 
     if builder == 'meson':
-        cmd = ci_dnsdist_configure_meson(features, additional_flags, additional_ld_flags, build_dir)
+        cmd = ci_dnsdist_configure_meson(c, features, additional_flags, additional_ld_flags, build_dir)
         logfile = 'meson-logs/meson-log.txt'
     else:
         cmd = ci_dnsdist_configure_autotools(features, additional_flags, additional_ld_flags)
@@ -773,7 +773,7 @@ def ci_dnsdist_configure_autotools(features, additional_flags, additional_ld_fla
         '--prefix=/opt/dnsdist'
     ])
 
-def ci_dnsdist_configure_meson(features, additional_flags, additional_ld_flags, build_dir):
+def ci_dnsdist_configure_meson(c, features, additional_flags, additional_ld_flags, build_dir):
     if features == 'full':
       features_set = '-D cdb=enabled \
                       -D dnscrypt=enabled \
@@ -829,8 +829,15 @@ def ci_dnsdist_configure_meson(features, additional_flags, additional_ld_flags, 
         f"CC='{get_c_compiler()}'",
         f"CXX='{get_cxx_compiler()}'",
     ])
+
+    builder_version = os.getenv('BUILDER_VERSION')
+    c.run(f'. {repo_home}/.venv/bin/activate && meson setup /tmp/dnsdist-meson-dist-build && meson dist -C /tmp/dnsdist-meson-dist-build --no-tests')
+    with c.cd('/tmp/dnsdist-meson-dist-build/meson-dist/'):
+        c.run(f'tar xf dnsdist-{builder_version}.tar.xz')
+
+    src_dir = f'/tmp/dnsdist-meson-dist-build/meson-dist/dnsdist-{builder_version}'
     return " ".join([
-        f'. {repo_home}/.venv/bin/activate && {env} meson setup {build_dir}',
+        f'. {repo_home}/.venv/bin/activate && {env} meson setup {build_dir} {src_dir}',
         features_set,
         unittests,
         fuzztargets,
