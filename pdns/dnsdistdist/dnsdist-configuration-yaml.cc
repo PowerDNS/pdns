@@ -1156,6 +1156,7 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
         .d_deferrableInsertLock = cache.deferrable_insert_lock,
         .d_parseECS = cache.parse_ecs,
         .d_keepStaleData = cache.keep_stale_data,
+        .d_shuffle = cache.shuffle,
       };
       std::unordered_set<uint16_t> ranks;
       for (const auto& option : cache.options_to_skip) {
