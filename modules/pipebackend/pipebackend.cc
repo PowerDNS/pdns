@@ -266,6 +266,12 @@ PipeBackend::~PipeBackend()
   cleanup();
 }
 
+void PipeBackend::throwTooShortDataError(const std::string& what)
+{
+  g_log << Logger::Error << kBackendId << " Coprocess returned incomplete or empty line in data section for query for " << d_qname << endl;
+  throw PDNSException("Format error communicating with coprocess in data section" + what);
+}
+
 bool PipeBackend::get(DNSResourceRecord& r)
 {
   if (d_disavow) // this query has been blocked
@@ -275,9 +281,6 @@ bool PipeBackend::get(DNSResourceRecord& r)
 
   // The answer format:
   // DATA    qname           qclass  qtype   ttl     id      content
-  unsigned int extraFields = 0;
-  if (d_abiVersion >= 3)
-    extraFields = 2;
 
   try {
     launch();
@@ -300,40 +303,49 @@ bool PipeBackend::get(DNSResourceRecord& r)
         continue;
       }
       else if (parts[0] == "DATA") { // yay
-        if (parts.size() < 7 + extraFields) {
-          g_log << Logger::Error << kBackendId << " Coprocess returned incomplete or empty line in data section for query for " << d_qname << endl;
-          throw PDNSException("Format error communicating with coprocess in data section");
-          // now what?
+        // The shortest records (ENT) require 6 fields. Other may require more
+        // and will have a stricter check once the record type has been
+        // computed.
+        if (parts.size() < 6 + (d_abiVersion >= 3 ? 2 : 0)) {
+          throwTooShortDataError("");
         }
 
         if (d_abiVersion >= 3) {
           r.scopeMask = std::stoi(parts[1]);
           r.auth = (parts[2] == "1");
+          parts.erase(parts.begin() + 1, parts.begin() + 3);
         }
         else {
           r.scopeMask = 0;
           r.auth = true;
         }
-        r.qname = DNSName(parts[1 + extraFields]);
-        r.qtype = parts[3 + extraFields];
-        pdns::checked_stoi_into(r.ttl, parts[4 + extraFields]);
-        pdns::checked_stoi_into(r.domain_id, parts[5 + extraFields]);
+        r.qname = DNSName(parts[1]);
+        r.qtype = parts[3];
+        pdns::checked_stoi_into(r.ttl, parts[4]);
+        pdns::checked_stoi_into(r.domain_id, parts[5]);
 
-        if (r.qtype.getCode() != QType::MX && r.qtype.getCode() != QType::SRV) {
+        switch (r.qtype.getCode()) {
+        case QType::ENT:
+          // No other data to process
           r.content.clear();
-          for (unsigned int n = 6 + extraFields; n < parts.size(); ++n) {
-            if (n != 6 + extraFields)
-              r.content.append(1, ' ');
-            r.content.append(parts[n]);
+          break;
+        case QType::MX:
+        case QType::SRV:
+          if (parts.size() < 8) {
+            throwTooShortDataError("of MX/SRV record");
           }
-        }
-        else {
-          if (parts.size() < 8 + extraFields) {
-            g_log << Logger::Error << kBackendId << " Coprocess returned incomplete MX/SRV line in data section for query for " << d_qname << endl;
-            throw PDNSException("Format error communicating with coprocess in data section of MX/SRV record");
+          r.content = parts[6] + " " + parts[7];
+          break;
+        default:
+          if (parts.size() < 7) {
+            throwTooShortDataError("");
           }
-
-          r.content = parts[6 + extraFields] + " " + parts[7 + extraFields];
+          r.content = parts[6];
+          for (std::vector<std::string>::size_type pos = 7; pos < parts.size(); ++pos) {
+            r.content.append(1, ' ');
+            r.content.append(parts[pos]);
+          }
+          break;
         }
         break;
       }
