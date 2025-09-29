@@ -144,13 +144,13 @@ Only enable this if you are using Lightning Stream.
 -  Default: yes
 
 Always update the domains table in the database when the last notification
-timestamp is modified.
+or the freshness check timestamp are modified.
 If disabled, these timestamps will only be written back to the database when
 other changes to the domain (such as accounts) occur.
 This setting is also available in version 4.9.9.
 
 **Warning**: Running with this flag disabled will cause spurious notifications
-to be sent upon startup, unless a ``flush'' command is sent using
+to be sent upon startup, unless a ``flush`` command is sent using
 :doc:`pdns_control <../manpages/pdns_control.1>` before stopping the
 PowerDNS Authoritative Server.
 

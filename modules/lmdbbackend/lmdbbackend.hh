@@ -343,6 +343,8 @@ private:
   void consolidateDomainInfo(DomainInfo& info) const;
   void writeDomainInfo(const DomainInfo& info);
 
+  void setLastCheckTime(domainid_t domain_id, time_t last_check);
+
   void getAllDomainsFiltered(vector<DomainInfo>* domains, const std::function<bool(DomainInfo&)>& allow);
 
   void lookupStart(domainid_t domain_id, const std::string& match, bool dolog);
@@ -364,6 +366,7 @@ private:
   // database.
   struct TransientDomainInfo
   {
+    time_t last_check{};
     uint32_t notified_serial{};
   };
   // Cache of DomainInfo notified_serial values
