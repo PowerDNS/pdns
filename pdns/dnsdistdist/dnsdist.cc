@@ -1424,15 +1424,14 @@ static ProcessQueryResult handleQueryTurnedIntoSelfAnsweredResponse(DNSQuestion&
   return ProcessQueryResult::SendAnswer;
 }
 
-static void selectBackendForOutgoingQuery(DNSQuestion& dnsQuestion, const std::shared_ptr<ServerPool>& serverPool, std::shared_ptr<DownstreamState>& selectedBackend)
+static ServerPolicy::SelectedBackend selectBackendForOutgoingQuery(DNSQuestion& dnsQuestion, const ServerPool& serverPool)
 {
-  std::shared_ptr<ServerPolicy> poolPolicy = serverPool->policy;
-  const auto& policy = poolPolicy != nullptr ? *poolPolicy : *dnsdist::configuration::getCurrentRuntimeConfiguration().d_lbPolicy;
-  const auto servers = serverPool->getServers();
-  selectedBackend = policy.getSelectedBackend(*servers, dnsQuestion);
+  const auto& policy = serverPool.policy != nullptr ? *serverPool.policy : *dnsdist::configuration::getCurrentRuntimeConfiguration().d_lbPolicy;
+  const auto& servers = serverPool.getServers();
+  return policy.getSelectedBackend(servers, dnsQuestion);
 }
 
-ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_ptr<DownstreamState>& selectedBackend)
+ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_ptr<DownstreamState>& outgoingBackend)
 {
   const uint16_t queryId = ntohs(dnsQuestion.getHeader()->id);
 
@@ -1440,29 +1439,28 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
     if (dnsQuestion.getHeader()->qr) { // something turned it into a response
       return handleQueryTurnedIntoSelfAnsweredResponse(dnsQuestion);
     }
-    std::shared_ptr<ServerPool> serverPool = getPool(dnsQuestion.ids.poolName);
-    dnsQuestion.ids.packetCache = serverPool->packetCache;
-    selectBackendForOutgoingQuery(dnsQuestion, serverPool, selectedBackend);
+    const auto& serverPool = getPool(dnsQuestion.ids.poolName);
+    auto selectedBackend = selectBackendForOutgoingQuery(dnsQuestion, serverPool);
     bool willBeForwardedOverUDP = !dnsQuestion.overTCP() || dnsQuestion.ids.protocol == dnsdist::Protocol::DoH;
     if (selectedBackend && selectedBackend->isTCPOnly()) {
       willBeForwardedOverUDP = false;
     }
     else if (!selectedBackend) {
-      willBeForwardedOverUDP = !serverPool->isTCPOnly();
+      willBeForwardedOverUDP = !serverPool.isTCPOnly();
     }
 
     uint32_t allowExpired = selectedBackend ? 0 : dnsdist::configuration::getCurrentRuntimeConfiguration().d_staleCacheEntriesTTL;
 
-    if (dnsQuestion.ids.packetCache && !dnsQuestion.ids.skipCache && !dnsQuestion.ids.dnssecOK) {
+    if (serverPool.packetCache && !dnsQuestion.ids.skipCache && !dnsQuestion.ids.dnssecOK) {
       dnsQuestion.ids.dnssecOK = (dnsdist::getEDNSZ(dnsQuestion) & EDNS_HEADER_FLAG_DO) != 0;
     }
 
-    if (dnsQuestion.useECS && ((selectedBackend && selectedBackend->d_config.useECS) || (!selectedBackend && serverPool->getECS()))) {
+    if (dnsQuestion.useECS && ((selectedBackend && selectedBackend->d_config.useECS) || (!selectedBackend && serverPool.getECS()))) {
       // we special case our cache in case a downstream explicitly gave us a universally valid response with a 0 scope
       // we need ECS parsing (parseECS) to be true so we can be sure that the initial incoming query did not have an existing
       // ECS option, which would make it unsuitable for the zero-scope feature.
-      if (dnsQuestion.ids.packetCache && !dnsQuestion.ids.skipCache && (!selectedBackend || !selectedBackend->d_config.disableZeroScope) && dnsQuestion.ids.packetCache->isECSParsingEnabled()) {
-        if (dnsQuestion.ids.packetCache->get(dnsQuestion, dnsQuestion.getHeader()->id, &dnsQuestion.ids.cacheKeyNoECS, dnsQuestion.ids.subnet, *dnsQuestion.ids.dnssecOK, willBeForwardedOverUDP, allowExpired, false, true, false)) {
+      if (serverPool.packetCache && !dnsQuestion.ids.skipCache && (!selectedBackend || !selectedBackend->d_config.disableZeroScope) && serverPool.packetCache->isECSParsingEnabled()) {
+        if (serverPool.packetCache->get(dnsQuestion, dnsQuestion.getHeader()->id, &dnsQuestion.ids.cacheKeyNoECS, dnsQuestion.ids.subnet, *dnsQuestion.ids.dnssecOK, willBeForwardedOverUDP, allowExpired, false, true, false)) {
 
           vinfolog("Packet cache hit for query for %s|%s from %s (%s, %d bytes)", dnsQuestion.ids.qname.toLogString(), QType(dnsQuestion.ids.qtype).toString(), dnsQuestion.ids.origRemote.toStringWithPort(), dnsQuestion.ids.protocol.toString(), dnsQuestion.getData().size());
 
@@ -1487,12 +1485,12 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
       }
     }
 
-    if (dnsQuestion.ids.packetCache && !dnsQuestion.ids.skipCache) {
+    if (serverPool.packetCache && !dnsQuestion.ids.skipCache) {
       /* First lookup, which takes into account how the protocol over which the query will be forwarded.
          For DoH, this lookup is done with the protocol set to TCP but we will retry over UDP below,
          therefore we do not record a miss for queries received over DoH and forwarded over TCP
          yet, as we will do a second-lookup */
-      if (dnsQuestion.ids.packetCache->get(dnsQuestion, dnsQuestion.getHeader()->id, dnsQuestion.ids.protocol == dnsdist::Protocol::DoH ? &dnsQuestion.ids.cacheKeyTCP : &dnsQuestion.ids.cacheKey, dnsQuestion.ids.subnet, *dnsQuestion.ids.dnssecOK, dnsQuestion.ids.protocol != dnsdist::Protocol::DoH && willBeForwardedOverUDP, allowExpired, false, true, dnsQuestion.ids.protocol != dnsdist::Protocol::DoH || !willBeForwardedOverUDP)) {
+      if (serverPool.packetCache->get(dnsQuestion, dnsQuestion.getHeader()->id, dnsQuestion.ids.protocol == dnsdist::Protocol::DoH ? &dnsQuestion.ids.cacheKeyTCP : &dnsQuestion.ids.cacheKey, dnsQuestion.ids.subnet, *dnsQuestion.ids.dnssecOK, dnsQuestion.ids.protocol != dnsdist::Protocol::DoH && willBeForwardedOverUDP, allowExpired, false, true, dnsQuestion.ids.protocol != dnsdist::Protocol::DoH || !willBeForwardedOverUDP)) {
 
         dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [flags = dnsQuestion.ids.origFlags](dnsheader& header) {
           restoreFlags(&header, flags);
@@ -1512,7 +1510,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
       if (dnsQuestion.ids.protocol == dnsdist::Protocol::DoH && willBeForwardedOverUDP) {
         /* do a second-lookup for responses received over UDP, but we do not want TC=1 answers */
         /* we need to be careful to keep the existing cache-key (TCP) */
-        if (dnsQuestion.ids.packetCache->get(dnsQuestion, dnsQuestion.getHeader()->id, &dnsQuestion.ids.cacheKey, dnsQuestion.ids.subnet, *dnsQuestion.ids.dnssecOK, true, allowExpired, false, false, true)) {
+        if (serverPool.packetCache->get(dnsQuestion, dnsQuestion.getHeader()->id, &dnsQuestion.ids.cacheKey, dnsQuestion.ids.subnet, *dnsQuestion.ids.dnssecOK, true, allowExpired, false, false, true)) {
           if (!prepareOutgoingResponse(*dnsQuestion.ids.cs, dnsQuestion, true)) {
             return ProcessQueryResult::Drop;
           }
@@ -1541,9 +1539,12 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
       /* let's be nice and allow the selection of a different pool,
          but no second cache-lookup for you */
       if (dnsQuestion.ids.poolName != existingPool) {
-        serverPool = getPool(dnsQuestion.ids.poolName);
-        dnsQuestion.ids.packetCache = serverPool->packetCache;
-        selectBackendForOutgoingQuery(dnsQuestion, serverPool, selectedBackend);
+        const auto& newServerPool = getPool(dnsQuestion.ids.poolName);
+        dnsQuestion.ids.packetCache = newServerPool.packetCache;
+        selectedBackend = selectBackendForOutgoingQuery(dnsQuestion, newServerPool);
+      }
+      else {
+        dnsQuestion.ids.packetCache = serverPool.packetCache;
       }
     }
 
@@ -1580,6 +1581,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
     }
 
     selectedBackend->incQueriesCount();
+    outgoingBackend = selectedBackend.get();
     return ProcessQueryResult::PassToBackend;
   }
   catch (const std::exception& e) {
@@ -2341,7 +2343,7 @@ static void maintThread()
       for (const auto& entry : pools) {
         const auto& pool = entry.second;
 
-        auto packetCache = pool->packetCache;
+        const auto& packetCache = pool.packetCache;
         if (!packetCache) {
           continue;
         }
@@ -2353,7 +2355,7 @@ static void maintThread()
            has all its backends down) */
         if (packetCache->keepStaleData() && !iter->second) {
           /* so far all pools had at least one backend up */
-          if (pool->countServers(true) == 0) {
+          if (pool.countServers(true) == 0) {
             iter->second = true;
           }
         }
@@ -3147,7 +3149,7 @@ static void setupPools()
   }
   else {
     for (const auto& entry : currentConfig.d_pools) {
-      if (entry.second->policy != nullptr && entry.second->policy->getName() == "chashed") {
+      if (entry.second.policy != nullptr && entry.second.policy->getName() == "chashed") {
         precompute = true;
         break;
       }
