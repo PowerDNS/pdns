@@ -61,6 +61,8 @@ public:
 private:
   void launch();
   void cleanup();
+  void throwTooShortDataError(const std::string& what);
+
   std::unique_ptr<CoWrapper> d_coproc;
   std::unique_ptr<Regex> d_regex;
   DNSName d_qname;
