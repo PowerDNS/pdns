@@ -1,49 +1,46 @@
-#include "dnsname.hh"
-#include "dnsparser.hh"
-#include "dnsrecords.hh"
-#include "iputils.hh"
-#include "qtype.hh"
-#include <boost/smart_ptr/make_shared_array.hpp>
+#include <cerrno>
+#include <csignal>
+#include <fcntl.h>
+#include <fstream>
+#include <termios.h>            //termios, TCSANOW, ECHO, ICANON
+#include <utility>
+#include <sys/stat.h>
+#include <sys/wait.h>
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
-#include <fcntl.h>
-#include <csignal>
-#include <sys/wait.h>
-
-#include "credentials.hh"
-#include "dnsseckeeper.hh"
-#include "dnssecinfra.hh"
-#include "statbag.hh"
-#include "base32.hh"
-#include "base64.hh"
-#include "dns.hh"
-
 #include <boost/program_options.hpp>
-#include <boost/assign/std/vector.hpp>
-#include <boost/assign/list_of.hpp>
-#include "json11.hpp"
-#include "tsigutils.hh"
-#include "dnsbackend.hh"
-#include "ueberbackend.hh"
+
 #include "arguments.hh"
 #include "auth-packetcache.hh"
 #include "auth-querycache.hh"
 #include "auth-zonecache.hh"
-#include "zoneparser-tng.hh"
-#include "signingpipe.hh"
-#include "dns_random.hh"
-#include "ipcipher.hh"
-#include "misc.hh"
-#include "zonemd.hh"
+#include "base32.hh"
+#include "base64.hh"
 #include "check-zone.hh"
-#include <fstream>
-#include <utility>
-#include <cerrno>
-#include <sys/stat.h>
-#include <termios.h>            //termios, TCSANOW, ECHO, ICANON
+#include "credentials.hh"
+#include "dns.hh"
+#include "dns_random.hh"
+#include "dnsbackend.hh"
+#include "dnsname.hh"
+#include "dnsparser.hh"
+#include "dnsrecords.hh"
+#include "dnssecinfra.hh"
+#include "dnsseckeeper.hh"
+#include "ipcipher.hh"
+#include "iputils.hh"
+#include "json11.hpp"
+#include "misc.hh"
 #include "opensslsigners.hh"
+#include "qtype.hh"
+#include "signingpipe.hh"
+#include "statbag.hh"
+#include "tsigutils.hh"
+#include "ueberbackend.hh"
+#include "zonemd.hh"
+#include "zoneparser-tng.hh"
 #ifdef HAVE_LIBSODIUM
 #include <sodium.h>
 #endif
@@ -91,6 +88,7 @@ static int changeSecondaryZonePrimary(vector<string>& cmds, std::string_view syn
 static int checkAllZones(vector<string>& cmds, std::string_view synopsis);
 static int checkZone(vector<string>& cmds, std::string_view synopsis);
 static int clearZone(vector<string>& cmds, std::string_view synopsis);
+static int copyZone(vector<string>& cmds, std::string_view synopsis);
 static int createBindDb(vector<string>& cmds, std::string_view synopsis);
 static int createSecondaryZone(vector<string>& cmds, std::string_view synopsis);
 static int createZone(vector<string>& cmds, std::string_view synopsis);
@@ -340,6 +338,9 @@ static const groupCommandDispatcher zoneMainCommands{
    {"clear", {true, clearZone,
     "ZONE",
     "\tClear all records of a zone, but keep everything else"}},
+   {"copy", {true, copyZone,
+    "ZONE NEW-ZONE",
+    "\tCreate zone NEW-ZONE with the contents of ZONE"}},
    {"create", {true, createZone,
     "ZONE [NSNAME]",
     "\tCreate empty zone ZONE"}},
@@ -1821,6 +1822,107 @@ static int clearZone(const ZoneName &zone) {
   return EXIT_SUCCESS;
 }
 
+// Copy the contents of zone `srcinfo` to zone `dstzone` in backend `tgt`.
+// Used by both "zone copy" and "b2b-migrate".
+static void copyZoneContents(const DomainInfo& srcinfo, const ZoneName& dstzone, DNSBackend* tgt)
+{
+  DNSBackend* src = srcinfo.backend;
+  size_t num_records{0};
+  size_t num_comments{0};
+  size_t num_metadata{0};
+  size_t num_keys{0};
+  bool rewriteNames{false};
+
+  DomainInfo dstinfo;
+  DNSResourceRecord rr; // NOLINT(readability-identifier-length)
+
+  // Check target backend fits the requirements (only matters for b2b-migrate)
+  // TODO: figure a way to quickly know if there are comments and reject a
+  // target backend without comments support
+  if (srcinfo.zone.hasVariant() && (tgt->getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+    cerr << "Target backend does not support views." << endl;
+    throw PDNSException("Failed to create zone");
+  }
+
+  // Create zone
+  if (!tgt->createDomain(dstzone, srcinfo.kind, srcinfo.primaries, srcinfo.account)) {
+    throw PDNSException("Failed to create zone " + dstzone.toLogString());
+  }
+  if (!tgt->getDomainInfo(dstzone, dstinfo)) {
+    throw PDNSException("Failed to create zone " + dstzone.toLogString());
+  }
+
+  // Copy records
+  if (!src->list(srcinfo.zone, srcinfo.id, true)) {
+    throw PDNSException("Failed to list records of " + srcinfo.zone.toLogString());
+  }
+
+  rewriteNames = srcinfo.zone != dstzone;
+
+  tgt->startTransaction(dstzone, dstinfo.id);
+
+  while(src->get(rr)) {
+    rr.domain_id = dstinfo.id;
+    if (rewriteNames) {
+      rr.qname.makeUsRelative(srcinfo.zone);
+      rr.qname += dstzone.operator const DNSName&();
+    }
+    // FIXME: this should pass rr.ordername but only SQL-based backends
+    // will fill this field correctly.
+    if (!tgt->feedRecord(rr, DNSName())) {
+      tgt->abortTransaction();
+      throw PDNSException("Failed to feed record '" + rr.qname.toLogString() + "' to zone " + dstzone.toLogString());
+    }
+    num_records++;
+  }
+
+  // Copy comments
+  if (src->listComments(srcinfo.id)) {
+    if ((tgt->getCapabilities() & DNSBackend::CAP_COMMENTS) == 0) {
+      tgt->abortTransaction();
+      throw PDNSException("Target backend does not support comments - remove them first");
+    }
+    Comment comm;
+    while(src->getComment(comm)) {
+      comm.domain_id = dstinfo.id;
+      if (rewriteNames) {
+        comm.qname.makeUsRelative(srcinfo.zone);
+        comm.qname += dstzone.operator const DNSName&();
+      }
+      if (!tgt->feedComment(comm)) {
+        tgt->abortTransaction();
+        throw PDNSException("Failed to feed zone comments");
+      }
+      num_comments++;
+    }
+  }
+
+  // Copy metadata
+  std::map<std::string, std::vector<std::string>> metas;
+  if (src->getAllDomainMetadata(srcinfo.zone, metas)) {
+    for (const auto& meta : metas) {
+      if (!tgt->setDomainMetadata(dstzone, meta.first, meta.second)) {
+        tgt->abortTransaction();
+        throw PDNSException("Failed to feed zone metadata");
+      }
+      num_metadata++;
+    }
+  }
+
+  // Copy keys
+  int64_t keyID{-1}; // temp var for KeyID
+  std::vector<DNSBackend::KeyData> keys;
+  if (src->getDomainKeys(srcinfo.zone, keys)) {
+    for(const DNSBackend::KeyData& key: keys) {
+      tgt->addDomainKey(dstzone, key, keyID);
+      num_keys++;
+    }
+  }
+
+  tgt->commitTransaction();
+  cout << "Copied " << num_records << " record(s), " << num_comments << " comment(s), " << num_metadata << " metadata(s) and " << num_keys << " cryptokey(s)" << endl;
+}
+
 class PDNSColors
 {
 public:
@@ -1963,7 +2065,7 @@ static bool parseZoneFile(const char* tmpnam, int& errorline, std::vector<DNSRec
   try {
     while(zpt.get(zrr)) {
       DNSRecord rec(zrr);
-      records.push_back(rec);
+      records.push_back(std::move(rec));
     }
   }
   catch(std::exception& e) {
@@ -2078,7 +2180,9 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
   }
 
   // Get the original SOA record once, for comparison purposes.
-  B.getSOAUncached(info.zone, soa);
+  // Note that this may fail if there is no active SOA record, which is not a
+  // problem here, as we are only interested into the _current_ serial number.
+  (void)B.getSOAUncached(info.zone, soa);
 
   // Ensure that the temporary file will only be accessible by the current user,
   // not even by other users in the same group, and certainly not by other
@@ -2484,6 +2588,44 @@ static int createZone(const ZoneName &zone, const DNSName& nsname) {
       cout << "Consider invoking 'pdnsutil zone increase-serial " << zone << "'" << endl;
     }
   }
+
+  return EXIT_SUCCESS;
+}
+
+static int copyZone(vector<string>& cmds, const std::string_view synopsis)
+{
+  if(cmds.size() != 2) {
+    return usage(synopsis);
+  }
+
+  ZoneName src(cmds.at(0));
+  ZoneName dst(cmds.at(1));
+
+  UtilBackend B; //NOLINT(readability-identifier-length)
+  DomainInfo srcinfo;
+  DomainInfo dstinfo;
+  if (B.getDomainInfo(dst, dstinfo)) {
+    cerr << "Zone '" << dst << "' already exists." << endl;
+    return EXIT_FAILURE;
+  }
+  if ((B.getCapabilities() & DNSBackend::CAP_CREATE) == 0) {
+    cerr << "None of the configured backends support zone creation." << endl;
+    cerr << "Zone '" << dst << "' was not created." << endl;
+    return EXIT_FAILURE;
+  }
+  if (dst.hasVariant() && (B.getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+    cerr << "None of the configured backends support views." << endl;
+    cerr << "Zone '" << dst << "' was not created." << endl;
+    return EXIT_FAILURE;
+  }
+  if (!B.getDomainInfo(src, srcinfo)) {
+    cerr << "Zone '" << src << "' does not exist" << endl;
+    return EXIT_FAILURE;
+  }
+  cout << "Creating '" << dst << "'" << endl;
+  copyZoneContents(srcinfo, dst, srcinfo.backend);
+
+  cout << "Remember to check the contents of '" << dst << "' and rectify the new zone." << endl;
 
   return EXIT_SUCCESS;
 }
@@ -5231,79 +5373,9 @@ static int B2BMigrate(vector<string>& cmds, const std::string_view synopsis)
   src->getAllDomains(&domains, false, true);
   // iterate zones
   for(const DomainInfo& di: domains) { // NOLINT(readability-identifier-length)
-    size_t nr{0}; // NOLINT(readability-identifier-length)
-    size_t nc{0}; // NOLINT(readability-identifier-length)
-    size_t nm{0}; // NOLINT(readability-identifier-length)
-    size_t nk{0}; // NOLINT(readability-identifier-length)
-    DomainInfo di_new;
-    DNSResourceRecord rr; // NOLINT(readability-identifier-length)
     cout<<"Processing '"<<di.zone<<"'"<<endl;
-    // create zone
-    if (di.zone.hasVariant() && (tgt->getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
-      cerr << "Target backend does not support views." << endl;
-      throw PDNSException("Failed to create zone");
-    }
-    if (!tgt->createDomain(di.zone, di.kind, di.primaries, di.account)) {
-      throw PDNSException("Failed to create zone");
-    }
-    if (!tgt->getDomainInfo(di.zone, di_new)) {
-      throw PDNSException("Failed to create zone");
-    }
-    // move records
-    if (!src->list(di.zone, di.id, true)) {
-      throw PDNSException("Failed to list records");
-    }
-    nr=0;
 
-    tgt->startTransaction(di.zone, di_new.id);
-
-    while(src->get(rr)) {
-      rr.domain_id = di_new.id;
-      if (!tgt->feedRecord(rr, DNSName())) {
-        throw PDNSException("Failed to feed record");
-      }
-      nr++;
-    }
-
-    // move comments
-    nc=0;
-    if (src->listComments(di.id)) {
-      if ((tgt->getCapabilities() & DNSBackend::CAP_COMMENTS) == 0) {
-        throw PDNSException("Target backend does not support comments - remove them first");
-      }
-      Comment c; // NOLINT(readability-identifier-length)
-      while(src->getComment(c)) {
-        c.domain_id = di_new.id;
-        if (!tgt->feedComment(c)) {
-          throw PDNSException("Failed to feed zone comments");
-        }
-        nc++;
-      }
-    }
-    // move metadata
-    nm=0;
-    std::map<std::string, std::vector<std::string> > meta;
-    if (src->getAllDomainMetadata(di.zone, meta)) {
-      for (const auto& i : meta) { // NOLINT(readability-identifier-length)
-        if (!tgt->setDomainMetadata(di.zone, i.first, i.second)) {
-          throw PDNSException("Failed to feed zone metadata");
-        }
-        nm++;
-      }
-    }
-    // move keys
-    nk=0;
-    // temp var for KeyID
-    int64_t keyID{-1};
-    std::vector<DNSBackend::KeyData> keys;
-    if (src->getDomainKeys(di.zone, keys)) {
-      for(const DNSBackend::KeyData& k: keys) { // NOLINT(readability-identifier-length)
-        tgt->addDomainKey(di.zone, k, keyID);
-        nk++;
-      }
-    }
-    tgt->commitTransaction();
-    cout<<"Moved "<<nr<<" record(s), "<<nc<<" comment(s), "<<nm<<" metadata(s) and "<<nk<<" cryptokey(s)"<<endl;
+    copyZoneContents(di, di.zone, tgt.get());
   }
 
   int ntk=0;
@@ -5319,7 +5391,7 @@ static int B2BMigrate(vector<string>& cmds, const std::string_view synopsis)
   }
   cout<<"Moved "<<ntk<<" TSIG key(s)"<<endl;
 
-  cout<<"Remember to drop the old backend and run rectify-all-zones"<<endl;
+  cout<<"Remember to drop the old backend and run 'pdnsutil zone rectify-all'"<<endl;
 
   return 0;
 }
