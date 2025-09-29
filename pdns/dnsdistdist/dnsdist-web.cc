@@ -612,7 +612,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   output << "# TYPE " << statesbase << "healthcheckfailuresmismatch "     << "counter"                                                                              << "\n";
   output << "# HELP " << statesbase << "healthcheckfailuresinvalid "      << "Number of health check attempts where the DNS response was invalid"                   << "\n";
   output << "# TYPE " << statesbase << "healthcheckfailuresinvalid "      << "counter"                                                                              << "\n";
-  output << "# HELP " << statesbase << "healthchecklatency "              << "Latency of the last successfull health check attempt, in milliseconds"                << "\n";
+  output << "# HELP " << statesbase << "healthchecklatency "              << "Latency of the last successful health check attempt, in milliseconds"                << "\n";
   output << "# TYPE " << statesbase << "healthchecklatency "              << "gauge"                                                                                << "\n";
 
   for (const auto& state : dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends) {
