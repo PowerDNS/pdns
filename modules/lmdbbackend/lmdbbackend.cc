@@ -1251,13 +1251,14 @@ bool LMDBBackend::findDomain(domainid_t domainid, DomainInfo& info) const
 
 void LMDBBackend::consolidateDomainInfo(DomainInfo& info) const
 {
-  // Update the notified_serial value if we have a cached value in memory.
+  // Update the DomainInfo values if we have cached data in memory.
   if (!d_write_notification_update) {
     auto container = s_transient_domain_info.read_lock();
     TransientDomainInfo tdi;
-    container->get(info.id, tdi);
-    info.notified_serial = tdi.notified_serial;
-    info.last_check = tdi.last_check;
+    if (container->get(info.id, tdi)) {
+      info.notified_serial = tdi.notified_serial;
+      info.last_check = tdi.last_check;
+    }
   }
 }
 
@@ -1266,11 +1267,12 @@ void LMDBBackend::writeDomainInfo(const DomainInfo& info)
   if (!d_write_notification_update) {
     auto container = s_transient_domain_info.write_lock();
     TransientDomainInfo tdi;
-    container->get(info.id, tdi);
-    // Only remove the in-memory value if it has not been modified since the
-    // DomainInfo data was set up.
-    if (tdi.notified_serial == info.notified_serial && tdi.last_check == info.last_check) {
-      container->remove(info.id);
+    if (container->get(info.id, tdi)) {
+      // Only remove the in-memory value if it has not been modified since the
+      // DomainInfo data was set up.
+      if (tdi.notified_serial == info.notified_serial && tdi.last_check == info.last_check) {
+        container->remove(info.id);
+      }
     }
   }
   auto txn = d_tdomains->getRWTransaction();
@@ -2343,7 +2345,10 @@ void LMDBBackend::setLastCheckTime(domainid_t domain_id, time_t last_check)
   if (findDomain(domain_id, info)) {
     auto container = s_transient_domain_info.write_lock();
     TransientDomainInfo tdi;
-    container->get(info.id, tdi);
+    if (!container->get(info.id, tdi)) {
+      // No data yet, initialize from DomainInfo
+      tdi.notified_serial = info.notified_serial;
+    }
     tdi.last_check = last_check;
     container->update(info.id, tdi);
   }
@@ -2391,7 +2396,10 @@ void LMDBBackend::setNotified(domainid_t domain_id, uint32_t serial)
   if (findDomain(domain_id, info)) {
     auto container = s_transient_domain_info.write_lock();
     TransientDomainInfo tdi;
-    container->get(info.id, tdi);
+    if (!container->get(info.id, tdi)) {
+      // No data yet, initialize from DomainInfo
+      tdi.last_check = info.last_check;
+    }
     tdi.notified_serial = serial;
     container->update(info.id, tdi);
   }
