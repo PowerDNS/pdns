@@ -343,6 +343,8 @@ private:
   void consolidateDomainInfo(DomainInfo& info) const;
   void writeDomainInfo(const DomainInfo& info);
 
+  void setLastCheckTime(domainid_t domain_id, time_t last_check);
+
   void getAllDomainsFiltered(vector<DomainInfo>* domains, const std::function<bool(DomainInfo&)>& allow);
 
   void lookupStart(domainid_t domain_id, const std::string& match, bool dolog);
@@ -360,19 +362,26 @@ private:
 
   string directBackendCmd_list(std::vector<string>& argv);
 
+  // Transient DomainInfo data, not necessarily synchronized with the
+  // database.
+  struct TransientDomainInfo
+  {
+    time_t last_check{};
+    uint32_t notified_serial{};
+  };
   // Cache of DomainInfo notified_serial values
-  class SerialCache : public boost::noncopyable
+  class TransientDomainInfoCache : public boost::noncopyable
   {
   public:
-    bool get(domainid_t domainid, uint32_t& serial) const;
+    bool get(domainid_t domainid, TransientDomainInfo& data) const;
     void remove(domainid_t domainid);
-    void update(domainid_t domainid, uint32_t serial);
-    bool pop(domainid_t& domainid, uint32_t& serial);
+    void update(domainid_t domainid, const TransientDomainInfo& data);
+    bool pop(domainid_t& domainid, TransientDomainInfo& data);
 
   private:
-    std::unordered_map<domainid_t, uint32_t> d_serials;
+    std::unordered_map<domainid_t, TransientDomainInfo> d_data;
   };
-  static SharedLockGuarded<SerialCache> s_notified_serial;
+  static SharedLockGuarded<TransientDomainInfoCache> s_transient_domain_info;
 
   // Domain lookup shared state, set by list/lookup, used by get
   struct
