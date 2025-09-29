@@ -34,6 +34,8 @@
 #include "statbag.hh"
 StatBag S;
 
+bool g_slogStructured{false};
+
 static void usage()
 {
   cerr<<"This program reads DNS queries from a PCAP file and outputs them in the calidns format."<<endl;

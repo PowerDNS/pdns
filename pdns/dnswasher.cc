@@ -49,6 +49,7 @@ StatBag S;
 #include <boost/program_options.hpp>
 #include "base64.hh"
 
+bool g_slogStructured{false};
 
 namespace po = boost::program_options;
 po::variables_map g_vm;

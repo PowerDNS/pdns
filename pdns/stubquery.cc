@@ -7,6 +7,8 @@
 #include "stubresolver.hh"
 #include "statbag.hh"
 
+bool g_slogStructured{false};
+
 StatBag S;
 
 ArgvMap &arg()
