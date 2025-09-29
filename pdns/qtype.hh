@@ -120,6 +120,8 @@ public:
     ZONEMD = 63,
     SVCB = 64,
     HTTPS = 65,
+    HHIT = 67,
+    BRID = 68,
     SPF = 99,
     NID = 104,
     L32 = 105,
