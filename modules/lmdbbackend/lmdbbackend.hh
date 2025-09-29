@@ -356,18 +356,25 @@ private:
   static void deleteNSEC3RecordPair(const std::shared_ptr<RecordsRWTransaction>& txn, domainid_t domain_id, const DNSName& qname);
   void writeNSEC3RecordPair(const std::shared_ptr<RecordsRWTransaction>& txn, domainid_t domain_id, const DNSName& qname, const DNSName& ordername);
 
+  // Transient DomainInfo data, not necessarily synchronized with the
+  // database.
+  struct TransientDomainInfo
+  {
+    uint32_t notified_serial{};
+  };
   // Cache of DomainInfo notified_serial values
-  class SerialCache : public boost::noncopyable
+  class TransientDomainInfoCache : public boost::noncopyable
   {
   public:
-    bool get(domainid_t domainid, uint32_t& serial) const;
+    bool get(domainid_t domainid, TransientDomainInfo& data) const;
     void remove(domainid_t domainid);
-    void update(domainid_t domainid, uint32_t serial);
+    void update(domainid_t domainid, const TransientDomainInfo& data);
+    bool pop(domainid_t& domainid, TransientDomainInfo& data);
 
   private:
-    std::unordered_map<domainid_t, uint32_t> d_serials;
+    std::unordered_map<domainid_t, TransientDomainInfo> d_data;
   };
-  static SharedLockGuarded<SerialCache> s_notified_serial;
+  static SharedLockGuarded<TransientDomainInfoCache> s_transient_domain_info;
 
   ZoneName d_lookupdomain;
   DNSName d_lookupsubmatch;
