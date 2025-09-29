@@ -696,7 +696,7 @@ struct TracesData
 
   static TracesData boilerPlate(std::string&& service, std::string&& req, std::vector<Span>&& spans, const std::vector<KeyValue>& attributes)
   {
-    auto& spanAttrs =  spans.at(0).attributes;
+    auto& spanAttrs = spans.at(0).attributes;
     spanAttrs.push_back({"arg", {std::move(req)}});
     spanAttrs.insert(spanAttrs.end(), attributes.begin(), attributes.end());
     return TracesData{

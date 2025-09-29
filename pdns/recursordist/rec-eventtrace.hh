@@ -142,7 +142,7 @@ public:
     {
     }
     Value_t d_value;
-    std::vector<std::pair<string,Value_t>> d_extraValues;
+    std::vector<std::pair<string, Value_t>> d_extraValues;
     std::string d_custom;
     int64_t d_ts;
     size_t d_parent;
