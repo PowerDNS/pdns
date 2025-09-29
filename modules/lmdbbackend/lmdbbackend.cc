@@ -1192,6 +1192,7 @@ void LMDBBackend::consolidateDomainInfo(DomainInfo& info) const
     TransientDomainInfo tdi;
     container->get(info.id, tdi);
     info.notified_serial = tdi.notified_serial;
+    info.last_check = tdi.last_check;
   }
 }
 
@@ -1203,7 +1204,7 @@ void LMDBBackend::writeDomainInfo(const DomainInfo& info)
     container->get(info.id, tdi);
     // Only remove the in-memory value if it has not been modified since the
     // DomainInfo data was set up.
-    if (tdi.notified_serial == info.notified_serial) {
+    if (tdi.notified_serial == info.notified_serial && tdi.last_check == info.last_check) {
       container->remove(info.id);
     }
   }
@@ -2272,16 +2273,31 @@ void LMDBBackend::getUnfreshSecondaryInfos(vector<DomainInfo>* domains)
 
 void LMDBBackend::setStale(domainid_t domain_id)
 {
-  genChangeDomain(domain_id, [](DomainInfo& di) {
-    di.last_check = 0;
-  });
+  setLastCheckTime(domain_id, 0);
 }
 
 void LMDBBackend::setFresh(domainid_t domain_id)
 {
-  genChangeDomain(domain_id, [](DomainInfo& di) {
-    di.last_check = time(nullptr);
-  });
+  setLastCheckTime(domain_id, time(nullptr));
+}
+
+void LMDBBackend::setLastCheckTime(domainid_t domain_id, time_t last_check)
+{
+  if (d_write_notification_update) {
+    genChangeDomain(domain_id, [last_check](DomainInfo& info) {
+      info.last_check = last_check;
+    });
+    return;
+  }
+
+  DomainInfo info;
+  if (findDomain(domain_id, info)) {
+    auto container = s_transient_domain_info.write_lock();
+    TransientDomainInfo tdi;
+    container->get(info.id, tdi);
+    tdi.last_check = last_check;
+    container->update(info.id, tdi);
+  }
 }
 
 void LMDBBackend::getUpdatedPrimaries(vector<DomainInfo>& updatedDomains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes)
@@ -2326,8 +2342,7 @@ void LMDBBackend::setNotified(domainid_t domain_id, uint32_t serial)
   if (findDomain(domain_id, info)) {
     auto container = s_transient_domain_info.write_lock();
     TransientDomainInfo tdi;
-    // will need container->get(info.id, tdi); once TransientDomainInfo grows
-    // more fields.
+    container->get(info.id, tdi);
     tdi.notified_serial = serial;
     container->update(info.id, tdi);
   }

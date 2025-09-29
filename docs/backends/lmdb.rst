@@ -142,7 +142,7 @@ Only enable this if you are using Lightning Stream.
 -  Default: yes
 
 Always update the domains table in the database when the last notification
-timestamp is modified.
+or the freshness check timestamp are modified.
 If disabled, these timestamps will only be written back to the database when
 other changes to the domain (such as accounts) occur.
 
