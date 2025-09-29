@@ -1053,6 +1053,8 @@ BOOST_AUTO_TEST_CASE(test_meta_values)
 
   DNSQuestion dnsQuestion(ids, query);
   dnsdist_ffi_dnsquestion_t lightDQ(&dnsQuestion);
+  DNSResponse dnsResponse(ids, query, nullptr);
+  dnsdist_ffi_dnsresponse_t lightDR(&dnsResponse);
 
   {
     /* check invalid parameters */
@@ -1064,18 +1066,28 @@ BOOST_AUTO_TEST_CASE(test_meta_values)
     dnsdist_ffi_dnsquestion_meta_add_str_value_to_key(&lightDQ, "some-str-value", 0);
     dnsdist_ffi_dnsquestion_meta_add_int64_value_to_key(nullptr, 0);
     dnsdist_ffi_dnsquestion_meta_end_key(nullptr);
+
+    dnsdist_ffi_dnsresponse_meta_begin_key(nullptr, nullptr, 0);
+    dnsdist_ffi_dnsresponse_meta_begin_key(&lightDR, nullptr, 0);
+    dnsdist_ffi_dnsresponse_meta_begin_key(&lightDR, "some-key", 0);
+    dnsdist_ffi_dnsresponse_meta_add_str_value_to_key(nullptr, nullptr, 0);
+    dnsdist_ffi_dnsresponse_meta_add_str_value_to_key(&lightDR, nullptr, 0);
+    dnsdist_ffi_dnsresponse_meta_add_str_value_to_key(&lightDR, "some-str-value", 0);
+    dnsdist_ffi_dnsresponse_meta_add_int64_value_to_key(nullptr, 0);
+    dnsdist_ffi_dnsresponse_meta_end_key(nullptr);
   }
 
   {
     /* trying to end a key that has not been started */
     dnsdist_ffi_dnsquestion_meta_end_key(&lightDQ);
+    dnsdist_ffi_dnsresponse_meta_end_key(&lightDR);
   }
 
   {
     const std::string key{"some-key"};
     const std::string value1{"first value"};
     const std::string value2{"second value"};
-    BOOST_CHECK_EQUAL(dnsQuestion.d_rawProtobufContent.size(), 0U);
+    BOOST_CHECK_EQUAL(dnsQuestion.ids.d_rawProtobufContent.size(), 0U);
     dnsdist_ffi_dnsquestion_meta_begin_key(&lightDQ, key.data(), key.size());
     /* we should not be able to begin a new key without ending it first */
     dnsdist_ffi_dnsquestion_meta_begin_key(&lightDQ, key.data(), key.size());
@@ -1084,8 +1096,28 @@ BOOST_AUTO_TEST_CASE(test_meta_values)
     dnsdist_ffi_dnsquestion_meta_add_str_value_to_key(&lightDQ, value2.data(), value2.size());
     dnsdist_ffi_dnsquestion_meta_add_int64_value_to_key(&lightDQ, -42);
     dnsdist_ffi_dnsquestion_meta_end_key(&lightDQ);
-    BOOST_CHECK_EQUAL(dnsQuestion.d_rawProtobufContent.size(), 55U);
-    BOOST_CHECK_EQUAL(Base64Encode(dnsQuestion.d_rawProtobufContent), "sgE0Cghzb21lLWtleRIoCgtmaXJzdCB2YWx1ZRAqCgxzZWNvbmQgdmFsdWUQ1v//////////AQ==");
+    BOOST_CHECK_EQUAL(dnsQuestion.ids.d_rawProtobufContent.size(), 55U);
+    BOOST_CHECK_EQUAL(Base64Encode(dnsQuestion.ids.d_rawProtobufContent), "sgE0Cghzb21lLWtleRIoCgtmaXJzdCB2YWx1ZRAqCgxzZWNvbmQgdmFsdWUQ1v//////////AQ==");
+    BOOST_CHECK_EQUAL(dnsResponse.ids.d_rawProtobufContent.size(), 55U);
+    BOOST_CHECK_EQUAL(Base64Encode(dnsResponse.ids.d_rawProtobufContent), "sgE0Cghzb21lLWtleRIoCgtmaXJzdCB2YWx1ZRAqCgxzZWNvbmQgdmFsdWUQ1v//////////AQ==");
+  }
+
+  {
+    const std::string key{"some-key"};
+    const std::string value1{"first value"};
+    const std::string value2{"second value"};
+    /* be careful: IDS is shared with the DNS question */
+    dnsResponse.ids.d_rawProtobufContent.clear();
+    dnsdist_ffi_dnsresponse_meta_begin_key(&lightDR, key.data(), key.size());
+    /* we should not be able to begin a new key without ending it first */
+    dnsdist_ffi_dnsresponse_meta_begin_key(&lightDR, key.data(), key.size());
+    dnsdist_ffi_dnsresponse_meta_add_str_value_to_key(&lightDR, value1.data(), value1.size());
+    dnsdist_ffi_dnsresponse_meta_add_int64_value_to_key(&lightDR, 42);
+    dnsdist_ffi_dnsresponse_meta_add_str_value_to_key(&lightDR, value2.data(), value2.size());
+    dnsdist_ffi_dnsresponse_meta_add_int64_value_to_key(&lightDR, -42);
+    dnsdist_ffi_dnsresponse_meta_end_key(&lightDR);
+    BOOST_CHECK_EQUAL(dnsResponse.ids.d_rawProtobufContent.size(), 55U);
+    BOOST_CHECK_EQUAL(Base64Encode(dnsResponse.ids.d_rawProtobufContent), "sgE0Cghzb21lLWtleRIoCgtmaXJzdCB2YWx1ZRAqCgxzZWNvbmQgdmFsdWUQ1v//////////AQ==");
   }
 }
 #endif /* DISABLE_PROTOBUF */

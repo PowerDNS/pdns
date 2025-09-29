@@ -131,6 +131,9 @@ struct InternalQueryState
 
   boost::optional<Netmask> subnet{boost::none}; // 40
   std::string poolName; // 32
+#if !defined(DISABLE_PROTOBUF)
+  std::string d_rawProtobufContent; // protobuf-encoded content to add to protobuf messages // 32
+#endif /* DISABLE_PROTOBUF */
   ComboAddress origRemote; // 28
   ComboAddress origDest; // 28
   ComboAddress hopRemote;
