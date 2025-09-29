@@ -101,6 +101,8 @@ AuthWebServer::AuthWebServer() :
 {
   if (arg().mustDo("webserver") || arg().mustDo("api")) {
     d_ws = std::make_unique<WebServer>(arg()["webserver-address"], arg().asNum("webserver-port"));
+    d_ws->setSLog(g_slog->withName("webserver"));
+
     d_ws->setApiKey(arg()["api-key"], arg().mustDo("webserver-hash-plaintext-credentials"));
     d_ws->setPassword(arg()["webserver-password"], arg().mustDo("webserver-hash-plaintext-credentials"));
     d_ws->setLogLevel(arg()["webserver-loglevel"]);

@@ -128,7 +128,7 @@ public:
   void gatherIncludes(const std::string& dir, const std::string& suffix, std::vector<std::string>& extraConfigs);
   void warnIfDeprecated(const string& var) const;
   [[nodiscard]] static string isDeprecated(const string& var);
-#ifdef RECURSOR
+#if defined(PDNS_AUTH) || defined(RECURSOR)
   void setSLog(Logr::log_t log)
   {
     d_log = log;
@@ -144,7 +144,7 @@ private:
   map<string, string> d_typeMap;
   vector<string> d_cmds;
   std::set<string> d_cleared;
-#ifdef RECURSOR
+#if defined(PDNS_AUTH) || defined(RECURSOR)
   std::shared_ptr<Logr::Logger> d_log;
 #endif
 };

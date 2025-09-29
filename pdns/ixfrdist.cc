@@ -78,6 +78,8 @@ ArgvMap &arg()
 }
 /* END Needed because of deeper dependencies */
 
+bool g_slogStructured{false};
+
 // Allows reading/writing ComboAddresses and ZoneNames in YAML-cpp
 namespace YAML {
 template<>

@@ -24,8 +24,6 @@
 
 #include "config.h"
 
-#if defined(RECURSOR) || defined(DNSDIST)
-
 #include <map>
 #include <memory>
 #include <string>
@@ -222,8 +220,9 @@ private:
 };
 }
 
-#if !defined(DNSDIST)
 extern std::shared_ptr<Logging::Logger> g_slog;
+
+#ifdef RECURSOR // [
 
 // Prefer structured logging? Since Recursor 5.1.0, we always do. We keep a const, to allow for
 // step-by-step removal of old style logging code (for recursor-only code). Note that code shared
@@ -245,7 +244,10 @@ constexpr bool g_slogStructured = true;
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define VERBOSESLOG(nonStructured, structured)
 
-#else // DNSdist
+#elif defined(DNSDIST) // ] [
+
+// Still able to choose between old-style and structured logging
+
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define SLOG(nonStructured, structured)            \
   do {                                             \
@@ -265,17 +267,24 @@ constexpr bool g_slogStructured = true;
     }                                           \
   } while (0)
 
-#endif /* ! DNSDIST */
+#else // ] [ PDNS_AUTH
 
-#else // !RECURSOR && !DNSDIST
+// Still able to choose between old-style and structured logging
+extern bool g_slogStructured;
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define SLOG(oldStyle, slogCall) \
   do {                           \
-    oldStyle;                    \
+    if (g_slogStructured) {      \
+      slogCall;                  \
+    }                            \
+    else {                       \
+      oldStyle;                  \
+    }                            \
   } while (0)
 
+// VERBOSESLOG is not used in Auth.
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define VERBOSESLOG(nonStructured, structured)
 
-#endif // !RECURSOR && !DNSDIST
+#endif // ]

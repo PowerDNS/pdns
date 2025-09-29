@@ -46,6 +46,8 @@
 using std::thread;
 using std::unique_ptr;
 
+bool g_slogStructured{false};
+
 StatBag S;
 
 static std::atomic<unsigned int> g_recvcounter, g_recvbytes;

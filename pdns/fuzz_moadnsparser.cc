@@ -26,6 +26,8 @@
 
 StatBag S;
 
+bool g_slogStructured{false};
+
 static void init()
 {
   reportAllTypes();

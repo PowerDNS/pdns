@@ -22,6 +22,8 @@
 
 #include "misc.hh"
 
+bool g_slogStructured{false};
+
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size);
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)

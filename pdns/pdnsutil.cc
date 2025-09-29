@@ -2,6 +2,7 @@
 #include <csignal>
 #include <fcntl.h>
 #include <fstream>
+#include <iomanip>
 #include <string>
 #include <termios.h>            //termios, TCSANOW, ECHO, ICANON
 #include <utility>
@@ -58,6 +59,9 @@ uint16_t g_maxNSEC3Iterations{0};
 
 namespace po = boost::program_options;
 po::variables_map g_vm;
+
+bool g_slogStructured{false};
+static Logger::Urgency s_logUrgency;
 
 string g_programname="pdns";
 
@@ -607,6 +611,40 @@ static std::string comboAddressVecToString(const std::vector<ComboAddress>& vec)
   return boost::join(strs, ",");
 }
 
+static void pdnsutilLoggerBackend(const Logging::Entry& entry)
+{
+  static thread_local std::stringstream buf;
+
+  // First map SL priority to syslog's Urgency
+  Logger::Urgency urg = entry.d_priority != 0 ? Logger::Urgency(entry.d_priority) : Logger::Info;
+  if (urg > s_logUrgency) {
+    // We do not log anything if the Urgency of the message is lower than the requested loglevel.
+    // Not that lower Urgency means higher number.
+    return;
+  }
+  buf.str("");
+  buf << "msg=" << std::quoted(entry.message);
+  if (entry.error) {
+    buf << " error=" << std::quoted(entry.error.value());
+  }
+
+  if (entry.name) {
+    buf << " subsystem=" << std::quoted(entry.name.value());
+  }
+  buf << " level=" << std::quoted(std::to_string(entry.level));
+  if (entry.d_priority != 0) {
+    buf << " prio=" << std::quoted(Logr::Logger::toString(entry.d_priority));
+  }
+  std::array<char, 64> timebuf{};
+  buf << " ts=" << std::quoted(Logging::toTimestampStringMilli(entry.d_timestamp, timebuf));
+  for (auto const& value : entry.values) {
+    buf << " ";
+    buf << value.first << "=" << std::quoted(value.second);
+  }
+
+  g_log << urg << buf.str() << endl;
+}
+
 static void loadMainConfig(const std::string& configdir)
 {
   // FIXME520: remove when branching 5.2
@@ -674,6 +712,13 @@ static void loadMainConfig(const std::string& configdir)
   }
 
   g_log.toConsole(Logger::Error);   // so we print any errors
+
+  s_logUrgency = (Logger::Urgency)(::arg().asNum("loglevel"));
+
+  g_slog = Logging::Logger::create(pdnsutilLoggerBackend);
+  auto log = g_slog->withName("config");
+  ::arg().setSLog(log);
+
   BackendMakers().launch(::arg()["launch"]); // vrooooom!
   if(::arg().asNum("loglevel") >= 3) // so you can't kill our errors
     g_log.toConsole((Logger::Urgency)::arg().asNum("loglevel"));

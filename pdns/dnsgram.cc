@@ -34,7 +34,8 @@
 #include "anadns.hh"
 
 #include "namespaces.hh"
-#include "namespaces.hh"
+
+bool g_slogStructured{false};
 
 StatBag S;
 

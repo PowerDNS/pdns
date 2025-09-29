@@ -266,7 +266,7 @@ void BaseLua4::prepareContext() {
   d_lw->registerFunction<void (DNSRecord::*)(const std::string&)>("changeContent", [](DNSRecord& dr, const std::string& newContent) { dr.setContent(shared_ptr<DNSRecordContent>(DNSRecordContent::make(dr.d_type, 1, newContent))); });
 
   // pdnslog
-#ifdef RECURSOR
+#if defined(PDNS_AUTH)||defined(RECURSOR)
   d_lw->writeFunction("pdnslog", [](const std::string& msg, boost::optional<int> loglevel, boost::optional<std::map<std::string, std::string>> values) {
     auto log = g_slog->withName("lua");
     if (values) {

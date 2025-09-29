@@ -63,13 +63,11 @@ public:
   bool compareHeader(const string &header_name, const CredentialsHolder& expectedCredentials) const;
   bool compareHeader(const string &header_name, const string &expected_value) const;
 
-#ifdef RECURSOR
   void setSLog(Logr::log_t log)
   {
     d_slog = log;
   }
   std::shared_ptr<Logr::Logger> d_slog;
-#endif
 };
 
 class HttpResponse: public YaHTTP::Response {
@@ -84,13 +82,11 @@ public:
   void setErrorResult(const std::string& message, const int status);
   void setSuccessResult(const std::string& message, const int status = 200);
 
-#ifdef RECURSOR
   void setSLog(Logr::log_t log)
   {
     d_slog = log;
   }
   std::shared_ptr<Logr::Logger> d_slog;
-#endif
 };
 
 
@@ -195,12 +191,10 @@ public:
   WebServer(string listenaddress, int port);
   virtual ~WebServer() = default;
 
-#ifdef RECURSOR
   void setSLog(Logr::log_t log)
   {
     d_slog = log;
   }
-#endif
 
   void setApiKey(const string &apikey, bool hashPlaintext) {
     if (!apikey.empty()) {
@@ -277,9 +271,7 @@ public:
     return d_loglevel;
   };
 
-#ifdef RECURSOR
   std::shared_ptr<Logr::Logger> d_slog;
-#endif
 
 protected:
   static void registerBareHandler(const string& url, const HandlerFunction& handler, const std::string& method);
