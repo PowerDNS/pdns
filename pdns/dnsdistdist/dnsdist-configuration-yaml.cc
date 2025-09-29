@@ -969,6 +969,114 @@ static void handleLoggingConfiguration(const dnsdist::rust::settings::LoggingCon
   }
 }
 
+static void handleConsoleConfiguration(const dnsdist::rust::settings::ConsoleConfiguration& consoleConf)
+{
+  if (!consoleConf.listen_address.empty()) {
+    dnsdist::configuration::updateRuntimeConfiguration([consoleConf](dnsdist::configuration::RuntimeConfiguration& config) {
+      config.d_consoleServerAddress = ComboAddress(std::string(consoleConf.listen_address), 5199);
+      config.d_consoleEnabled = true;
+      config.d_consoleACL.clear();
+      for (const auto& aclEntry : consoleConf.acl) {
+        config.d_consoleACL.addMask(std::string(aclEntry));
+      }
+      B64Decode(std::string(consoleConf.key), config.d_consoleKey);
+    });
+  }
+}
+
+static void handlePacketCacheConfiguration(const ::rust::Vec<dnsdist::rust::settings::PacketCacheConfiguration>& caches)
+{
+  for (const auto& cache : caches) {
+    DNSDistPacketCache::CacheSettings settings{
+      .d_maxEntries = cache.size,
+      .d_maxTTL = cache.max_ttl,
+      .d_minTTL = cache.min_ttl,
+      .d_tempFailureTTL = cache.temporary_failure_ttl,
+      .d_maxNegativeTTL = cache.max_negative_ttl,
+      .d_staleTTL = cache.stale_ttl,
+      .d_shardCount = cache.shards,
+      .d_dontAge = cache.dont_age,
+      .d_deferrableInsertLock = cache.deferrable_insert_lock,
+      .d_parseECS = cache.parse_ecs,
+      .d_keepStaleData = cache.keep_stale_data,
+    };
+    std::unordered_set<uint16_t> ranks;
+    if (!cache.options_to_skip.empty()) {
+      settings.d_optionsToSkip.clear();
+      settings.d_optionsToSkip.insert(EDNSOptionCode::COOKIE);
+      for (const auto& option : cache.options_to_skip) {
+        settings.d_optionsToSkip.insert(pdns::checked_stoi<uint16_t>(std::string(option)));
+      }
+    }
+    if (cache.cookie_hashing) {
+      settings.d_optionsToSkip.erase(EDNSOptionCode::COOKIE);
+    }
+    if (cache.maximum_entry_size >= sizeof(dnsheader)) {
+      settings.d_maximumEntrySize = cache.maximum_entry_size;
+    }
+    for (const auto& rank : cache.payload_ranks) {
+      if (rank < 512 || rank > settings.d_maximumEntrySize) {
+        continue;
+      }
+      ranks.insert(rank);
+    }
+    if (!ranks.empty()) {
+      settings.d_payloadRanks.assign(ranks.begin(), ranks.end());
+      std::sort(settings.d_payloadRanks.begin(), settings.d_payloadRanks.end());
+    }
+    auto packetCacheObj = std::make_shared<DNSDistPacketCache>(settings);
+
+    registerType<DNSDistPacketCache>(packetCacheObj, cache.name);
+  }
+}
+
+static void handleEBPFConfiguration([[maybe_unused]] const dnsdist::rust::settings::EbpfConfiguration& ebpf, [[maybe_unused]] bool configCheck)
+{
+#if defined(HAVE_EBPF)
+  if (!configCheck && ebpf.ipv4.max_entries > 0 && ebpf.ipv6.max_entries > 0 && ebpf.qnames.max_entries > 0) {
+    BPFFilter::MapFormat format = ebpf.external ? BPFFilter::MapFormat::WithActions : BPFFilter::MapFormat::Legacy;
+    std::unordered_map<std::string, BPFFilter::MapConfiguration> mapsConfig;
+
+    const auto convertParamsToConfig = [&mapsConfig](const std::string& name, BPFFilter::MapType type, const dnsdist::rust::settings::EbpfMapConfiguration& mapConfig) {
+      if (mapConfig.max_entries == 0) {
+        return;
+      }
+      BPFFilter::MapConfiguration config;
+      config.d_type = type;
+      config.d_maxItems = mapConfig.max_entries;
+      config.d_pinnedPath = std::string(mapConfig.pinned_path);
+      mapsConfig[name] = std::move(config);
+    };
+
+    convertParamsToConfig("ipv4", BPFFilter::MapType::IPv4, ebpf.ipv4);
+    convertParamsToConfig("ipv6", BPFFilter::MapType::IPv6, ebpf.ipv6);
+    convertParamsToConfig("qnames", BPFFilter::MapType::QNames, ebpf.qnames);
+    convertParamsToConfig("cidr4", BPFFilter::MapType::CIDR4, ebpf.cidr_ipv4);
+    convertParamsToConfig("cidr6", BPFFilter::MapType::CIDR6, ebpf.cidr_ipv6);
+    auto filter = std::make_shared<BPFFilter>(mapsConfig, format, ebpf.external);
+    g_defaultBPFFilter = std::move(filter);
+  }
+#endif /* defined(HAVE_EBPF) */
+}
+
+static void handleCarbonConfiguration([[maybe_unused]] const ::rust::Vec<dnsdist::rust::settings::CarbonConfiguration>& carbonConfigs)
+{
+#ifndef DISABLE_CARBON
+  if (!carbonConfigs.empty()) {
+    dnsdist::configuration::updateRuntimeConfiguration([&carbonConfigs](dnsdist::configuration::RuntimeConfiguration& config) {
+      for (const auto& carbonConfig : carbonConfigs) {
+        auto newEndpoint = dnsdist::Carbon::newEndpoint(std::string(carbonConfig.address),
+                                                        std::string(carbonConfig.name),
+                                                        carbonConfig.interval,
+                                                        carbonConfig.name_space.empty() ? "dnsdist" : std::string(carbonConfig.name_space),
+                                                        carbonConfig.instance.empty() ? "main" : std::string(carbonConfig.instance));
+        config.d_carbonEndpoints.push_back(std::move(newEndpoint));
+      }
+    });
+  }
+#endif /* DISABLE_CARBON */
+}
+
 #endif /* defined(HAVE_YAML_CONFIGURATION) */
 
 bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] bool isClient, [[maybe_unused]] bool configCheck)
@@ -1003,18 +1111,7 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
 
     handleLoggingConfiguration(globalConfig.logging);
 
-    if (!globalConfig.console.listen_address.empty()) {
-      const auto& consoleConf = globalConfig.console;
-      dnsdist::configuration::updateRuntimeConfiguration([consoleConf](dnsdist::configuration::RuntimeConfiguration& config) {
-        config.d_consoleServerAddress = ComboAddress(std::string(consoleConf.listen_address), 5199);
-        config.d_consoleEnabled = true;
-        config.d_consoleACL.clear();
-        for (const auto& aclEntry : consoleConf.acl) {
-          config.d_consoleACL.addMask(std::string(aclEntry));
-        }
-        B64Decode(std::string(consoleConf.key), config.d_consoleKey);
-      });
-    }
+    handleConsoleConfiguration(globalConfig.console);
 
     if (isClient) {
       return true;
@@ -1031,31 +1128,7 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
 
     handleOpenSSLSettings(globalConfig.tuning.tls);
 
-#if defined(HAVE_EBPF)
-    if (!configCheck && globalConfig.ebpf.ipv4.max_entries > 0 && globalConfig.ebpf.ipv6.max_entries > 0 && globalConfig.ebpf.qnames.max_entries > 0) {
-      BPFFilter::MapFormat format = globalConfig.ebpf.external ? BPFFilter::MapFormat::WithActions : BPFFilter::MapFormat::Legacy;
-      std::unordered_map<std::string, BPFFilter::MapConfiguration> mapsConfig;
-
-      const auto convertParamsToConfig = [&mapsConfig](const std::string& name, BPFFilter::MapType type, const dnsdist::rust::settings::EbpfMapConfiguration& mapConfig) {
-        if (mapConfig.max_entries == 0) {
-          return;
-        }
-        BPFFilter::MapConfiguration config;
-        config.d_type = type;
-        config.d_maxItems = mapConfig.max_entries;
-        config.d_pinnedPath = std::string(mapConfig.pinned_path);
-        mapsConfig[name] = std::move(config);
-      };
-
-      convertParamsToConfig("ipv4", BPFFilter::MapType::IPv4, globalConfig.ebpf.ipv4);
-      convertParamsToConfig("ipv6", BPFFilter::MapType::IPv6, globalConfig.ebpf.ipv6);
-      convertParamsToConfig("qnames", BPFFilter::MapType::QNames, globalConfig.ebpf.qnames);
-      convertParamsToConfig("cidr4", BPFFilter::MapType::CIDR4, globalConfig.ebpf.cidr_ipv4);
-      convertParamsToConfig("cidr6", BPFFilter::MapType::CIDR6, globalConfig.ebpf.cidr_ipv6);
-      auto filter = std::make_shared<BPFFilter>(mapsConfig, format, globalConfig.ebpf.external);
-      g_defaultBPFFilter = std::move(filter);
-    }
-#endif /* defined(HAVE_EBPF) */
+    handleEBPFConfiguration(globalConfig.ebpf, configCheck);
 
 #if defined(HAVE_XSK)
     for (const auto& xskEntry : globalConfig.xsk) {
@@ -1095,20 +1168,7 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
       });
     }
 
-#ifndef DISABLE_CARBON
-    if (!globalConfig.metrics.carbon.empty()) {
-      dnsdist::configuration::updateRuntimeConfiguration([&globalConfig](dnsdist::configuration::RuntimeConfiguration& config) {
-        for (const auto& carbonConfig : globalConfig.metrics.carbon) {
-          auto newEndpoint = dnsdist::Carbon::newEndpoint(std::string(carbonConfig.address),
-                                                          std::string(carbonConfig.name),
-                                                          carbonConfig.interval,
-                                                          carbonConfig.name_space.empty() ? "dnsdist" : std::string(carbonConfig.name_space),
-                                                          carbonConfig.instance.empty() ? "main" : std::string(carbonConfig.instance));
-          config.d_carbonEndpoints.push_back(std::move(newEndpoint));
-        }
-      });
-    }
-#endif /* DISABLE_CARBON */
+    handleCarbonConfiguration(globalConfig.metrics.carbon);
 
     if (!globalConfig.webserver.listen_addresses.empty()) {
       const auto& webConfig = globalConfig.webserver;
@@ -1143,44 +1203,7 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
       });
     }
 
-    for (const auto& cache : globalConfig.packet_caches) {
-      DNSDistPacketCache::CacheSettings settings{
-        .d_maxEntries = cache.size,
-        .d_maxTTL = cache.max_ttl,
-        .d_minTTL = cache.min_ttl,
-        .d_tempFailureTTL = cache.temporary_failure_ttl,
-        .d_maxNegativeTTL = cache.max_negative_ttl,
-        .d_staleTTL = cache.stale_ttl,
-        .d_shardCount = cache.shards,
-        .d_dontAge = cache.dont_age,
-        .d_deferrableInsertLock = cache.deferrable_insert_lock,
-        .d_parseECS = cache.parse_ecs,
-        .d_keepStaleData = cache.keep_stale_data,
-      };
-      std::unordered_set<uint16_t> ranks;
-      for (const auto& option : cache.options_to_skip) {
-        settings.d_optionsToSkip.insert(pdns::checked_stoi<uint16_t>(std::string(option)));
-      }
-      if (cache.cookie_hashing) {
-        settings.d_optionsToSkip.erase(EDNSOptionCode::COOKIE);
-      }
-      if (cache.maximum_entry_size >= sizeof(dnsheader)) {
-        settings.d_maximumEntrySize = cache.maximum_entry_size;
-      }
-      for (const auto& rank : cache.payload_ranks) {
-        if (rank < 512 || rank > settings.d_maximumEntrySize) {
-          continue;
-        }
-        ranks.insert(rank);
-      }
-      if (!ranks.empty()) {
-        settings.d_payloadRanks.assign(ranks.begin(), ranks.end());
-        std::sort(settings.d_payloadRanks.begin(), settings.d_payloadRanks.end());
-      }
-      auto packetCacheObj = std::make_shared<DNSDistPacketCache>(settings);
-
-      registerType<DNSDistPacketCache>(packetCacheObj, cache.name);
-    }
+    handlePacketCacheConfiguration(globalConfig.packet_caches);
 
     loadCustomPolicies(globalConfig.load_balancing_policies.custom_policies);
 
