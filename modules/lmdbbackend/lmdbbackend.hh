@@ -326,18 +326,24 @@ private:
   std::string d_matchkey;
   DNSName d_lookupdomain;
 
+  // Transient DomainInfo data, not necessarily synchronized with the
+  // database.
+  struct TransientDomainInfo
+  {
+    uint32_t notified_serial{};
+  };
   // Cache of DomainInfo notified_serial values
-  class SerialCache : public boost::noncopyable
+  class TransientDomainInfoCache : public boost::noncopyable
   {
   public:
-    bool get(uint32_t domainid, uint32_t& serial) const;
+    bool get(uint32_t domainid, TransientDomainInfo& data) const;
     void remove(uint32_t domainid);
-    void update(uint32_t domainid, uint32_t serial);
+    void update(uint32_t domainid, const TransientDomainInfo& data);
 
   private:
-    std::unordered_map<uint32_t, uint32_t> d_serials;
+    std::unordered_map<uint32_t, TransientDomainInfo> d_data;
   };
-  static SharedLockGuarded<SerialCache> s_notified_serial;
+  static SharedLockGuarded<TransientDomainInfoCache> s_transient_domain_info;
 
   vector<LMDBResourceRecord> d_currentrrset;
   size_t d_currentrrsetpos;
