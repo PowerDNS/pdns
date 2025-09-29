@@ -291,7 +291,7 @@ jobs:
         working-directory: ./pdns/dnsdistdist/
         if: ${{ matrix.builder != 'autotools' }}
       - run: |
-          mkdir -p dnsdist-${{ env.BUILDER_VERSION }}
+          mkdir dnsdist-${{ env.BUILDER_VERSION }}
         if: ${{ matrix.builder == 'autotools' }}
         working-directory: ./pdns/dnsdistdist/
       - run: ${{ env.INV_CMD }} ci-dnsdist-configure ${{ matrix.features }} ${{ matrix.builder }} dnsdist-${{ env.BUILDER_VERSION }}
