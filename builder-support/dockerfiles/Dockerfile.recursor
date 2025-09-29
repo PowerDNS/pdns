@@ -3,7 +3,7 @@ ARG BUILDER_CACHE_BUSTER=
 
 RUN apk add --no-cache gcc g++ make tar autoconf automake protobuf-dev lua-dev \
                        libtool file boost-dev curl openssl-dev ragel python3 \
-                       flex bison git bash jq meson
+                       flex bison git bash jq meson cargo
 
 COPY . /pdns-recursor
 WORKDIR /pdns-recursor
