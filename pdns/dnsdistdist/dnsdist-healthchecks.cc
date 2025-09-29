@@ -134,7 +134,7 @@ static bool handleResponse(std::shared_ptr<HealthCheckData>& data)
     return false;
   }
 
-  data->d_ds->d_healthCheckLatency = data->d_elapsed.udiff();
+  data->d_ds->d_healthCheckLatency.store(data->d_elapsed.udiff());
   return true;
 }
 
