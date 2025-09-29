@@ -245,7 +245,7 @@ void DNSDistProtoBufMessage::serialize(std::string& data) const
   }
 
   if (d_dq.ids.tracingEnabled) {
-    msg.setOpenTelemtryTraceID(d_dq.ids.d_OTTracer->getTraceID());
+    msg.setOpenTelemetryTraceID(d_dq.ids.d_OTTracer->getTraceID());
     msg.setOpenTelemetryData(d_dq.ids.d_OTTracer->getOTProtobuf());
   }
 }

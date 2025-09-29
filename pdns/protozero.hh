@@ -337,7 +337,7 @@ namespace ProtoZero
       }
     }
 
-    void setOpenTelemtryTraceID(const std::array<uint8_t, 16>& traceID)
+    void setOpenTelemetryTraceID(const std::array<uint8_t, 16>& traceID)
     {
       add_bytes(d_message, Field::openTelemetryTraceID, reinterpret_cast<const char*>(traceID.data()), traceID.size()); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast): it's the API
     }
