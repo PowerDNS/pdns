@@ -670,44 +670,44 @@ bool LMDBBackend::upgradeToSchemav6(std::string& /* filename */)
 
 // Serial number cache
 
-// Retrieve the serial number entry for the given domain, if any
-bool LMDBBackend::SerialCache::get(domainid_t domainid, uint32_t& serial) const
+// Retrieve the transient domain info for the given domain, if any
+bool LMDBBackend::TransientDomainInfoCache::get(domainid_t domainid, TransientDomainInfo& data) const
 {
-  if (auto iter = d_serials.find(domainid); iter != d_serials.end()) {
-    serial = iter->second;
+  if (auto iter = d_data.find(domainid); iter != d_data.end()) {
+    data = iter->second;
     return true;
   }
   return false;
 }
 
-// Remove the serial number entry for the given domain
-void LMDBBackend::SerialCache::remove(domainid_t domainid)
+// Remove the transient domain info for the given domain
+void LMDBBackend::TransientDomainInfoCache::remove(domainid_t domainid)
 {
-  if (auto iter = d_serials.find(domainid); iter != d_serials.end()) {
-    d_serials.erase(iter);
+  if (auto iter = d_data.find(domainid); iter != d_data.end()) {
+    d_data.erase(iter);
   }
 }
 
-// Create or update the serial number entry for the given domain
-void LMDBBackend::SerialCache::update(domainid_t domainid, uint32_t serial)
+// Create or update the transient domain info for the given domain
+void LMDBBackend::TransientDomainInfoCache::update(domainid_t domainid, const TransientDomainInfo& data)
 {
-  d_serials.insert_or_assign(domainid, serial);
+  d_data.insert_or_assign(domainid, data);
 }
 
 // Return the contents of the first element and remove it
-bool LMDBBackend::SerialCache::pop(domainid_t& domainid, uint32_t& serial)
+bool LMDBBackend::TransientDomainInfoCache::pop(domainid_t& domainid, TransientDomainInfo& data)
 {
-  auto iter = d_serials.begin();
-  if (iter == d_serials.end()) {
+  auto iter = d_data.begin();
+  if (iter == d_data.end()) {
     return false;
   }
   domainid = iter->first;
-  serial = iter->second;
-  (void)d_serials.erase(iter);
+  data = iter->second;
+  (void)d_data.erase(iter);
   return true;
 }
 
-SharedLockGuarded<LMDBBackend::SerialCache> LMDBBackend::s_notified_serial;
+SharedLockGuarded<LMDBBackend::TransientDomainInfoCache> LMDBBackend::s_transient_domain_info;
 
 LMDBBackend::LMDBBackend(const std::string& suffix)
 {
@@ -1253,20 +1253,22 @@ void LMDBBackend::consolidateDomainInfo(DomainInfo& info) const
 {
   // Update the notified_serial value if we have a cached value in memory.
   if (!d_write_notification_update) {
-    auto container = s_notified_serial.read_lock();
-    container->get(info.id, info.notified_serial);
+    auto container = s_transient_domain_info.read_lock();
+    TransientDomainInfo tdi;
+    container->get(info.id, tdi);
+    info.notified_serial = tdi.notified_serial;
   }
 }
 
 void LMDBBackend::writeDomainInfo(const DomainInfo& info)
 {
   if (!d_write_notification_update) {
-    uint32_t last_notified_serial{0};
-    auto container = s_notified_serial.write_lock();
-    container->get(info.id, last_notified_serial);
+    auto container = s_transient_domain_info.write_lock();
+    TransientDomainInfo tdi;
+    container->get(info.id, tdi);
     // Only remove the in-memory value if it has not been modified since the
     // DomainInfo data was set up.
-    if (last_notified_serial == info.notified_serial) {
+    if (tdi.notified_serial == info.notified_serial) {
       container->remove(info.id);
     }
   }
@@ -1868,7 +1870,7 @@ bool LMDBBackend::deleteDomain(const ZoneName& domain)
 
     // Remove zone
     {
-      auto container = s_notified_serial.write_lock();
+      auto container = s_transient_domain_info.write_lock();
       container->remove(static_cast<domainid_t>(id));
     }
     auto txn = d_tdomains->getRWTransaction();
@@ -2371,8 +2373,12 @@ void LMDBBackend::setNotified(domainid_t domain_id, uint32_t serial)
 
   DomainInfo info;
   if (findDomain(domain_id, info)) {
-    auto container = s_notified_serial.write_lock();
-    container->update(info.id, serial);
+    auto container = s_transient_domain_info.write_lock();
+    TransientDomainInfo tdi;
+    // will need container->get(info.id, tdi); once TransientDomainInfo grows
+    // more fields.
+    tdi.notified_serial = serial;
+    container->update(info.id, tdi);
   }
 }
 
@@ -3419,16 +3425,16 @@ void LMDBBackend::flush()
   // cache locked for too long.
   while (true) {
     unsigned int done = 0;
-    auto container = s_notified_serial.write_lock();
+    auto container = s_transient_domain_info.write_lock();
     for (; done < 10; ++done) {
       domainid_t domid{};
-      uint32_t serial{};
-      if (!container->pop(domid, serial)) {
+      TransientDomainInfo tdi;
+      if (!container->pop(domid, tdi)) {
         break;
       }
       DomainInfo info;
       if (findDomain(domid, info)) {
-        info.notified_serial = serial;
+        info.notified_serial = tdi.notified_serial;
         auto txn = d_tdomains->getRWTransaction();
         txn.put(info, info.id);
         txn.commit();
