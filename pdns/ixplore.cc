@@ -40,6 +40,8 @@
 #include "ixfrutils.hh"
 StatBag S;
 
+bool g_slogStructured{false};
+
 ArgvMap &arg()
 {
   static ArgvMap theArg;

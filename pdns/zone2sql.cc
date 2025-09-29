@@ -46,7 +46,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-
+bool g_slogStructured{false};
 
 StatBag S;
 

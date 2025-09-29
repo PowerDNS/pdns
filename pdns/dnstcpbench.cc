@@ -46,6 +46,7 @@
 #include <boost/array.hpp>
 #include <boost/program_options.hpp>
 
+bool g_slogStructured{false};
 
 StatBag S;
 namespace po = boost::program_options;

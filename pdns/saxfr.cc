@@ -14,6 +14,8 @@
 #include "dns_random.hh"
 #include "gss_context.hh"
 
+bool g_slogStructured{false};
+
 StatBag S;
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
