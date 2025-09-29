@@ -23,6 +23,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <sys/socket.h>
 
 #include "dnsdist-ipcrypt2.hh"
 #include "ipcrypt2.h"
@@ -68,12 +69,23 @@ ComboAddress IPCrypt2::encrypt(const ComboAddress& address) const
 {
   switch (d_method) {
   case IPCryptMethod::pfx: {
-    std::string encryptedIP;
-    encryptedIP.resize(IPCRYPT_MAX_IP_STR_BYTES);
-    auto ret = ipcrypt_pfx_encrypt_ip_str(d_ipcryptCtxPfx.get(), encryptedIP.data(), address.toString().c_str());
-    // XXX: Do we *need* to resize?
-    encryptedIP.resize(ret);
-    return ComboAddress(encryptedIP);
+    uint8_t ip16[16];
+    struct sockaddr_storage sa;
+    if (address.isIPv4()) {
+      std::memcpy(&sa, &address.sin4, sizeof(sockaddr_in));
+    }
+    else {
+      std::memcpy(&sa, &address.sin6, sizeof(sockaddr_in6));
+    }
+    ipcrypt_sockaddr_to_ip16(ip16, reinterpret_cast<sockaddr*>(&sa));
+    ipcrypt_pfx_encrypt_ip16(d_ipcryptCtxPfx.get(), ip16);
+    ipcrypt_ip16_to_sockaddr(&sa, ip16);
+    if (address.isIPv4()) {
+      return ComboAddress(reinterpret_cast<sockaddr_in*>(&sa));
+    }
+    else {
+      return ComboAddress(reinterpret_cast<sockaddr_in6*>(&sa));
+    }
   } break;
   default:
     throw std::runtime_error("Unsupported method");
