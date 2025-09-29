@@ -530,7 +530,6 @@ bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse,
     }
     uint32_t cacheKey = dnsResponse.ids.cacheKey;
     if (dnsResponse.ids.protocol == dnsdist::Protocol::DoH && !dnsResponse.ids.forwardedOverUDP) {
-      cacheKey = dnsResponse.ids.cacheKeyTCP;
       // disable zeroScope in that case, as we only have the "no-ECS" cache key for UDP
       zeroScope = false;
     }
@@ -538,7 +537,7 @@ bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse,
       // if zeroScope, pass the pre-ECS hash-key and do not pass the subnet to the cache
       cacheKey = dnsResponse.ids.cacheKeyNoECS;
     }
-    dnsResponse.ids.packetCache->insert(cacheKey, zeroScope ? boost::none : dnsResponse.ids.subnet, dnsResponse.ids.cacheFlags, dnsResponse.ids.dnssecOK ? *dnsResponse.ids.dnssecOK : false, dnsResponse.ids.qname, dnsResponse.ids.qtype, dnsResponse.ids.qclass, response, dnsResponse.ids.forwardedOverUDP, dnsResponse.getHeader()->rcode, dnsResponse.ids.tempFailureTTL);
+    dnsResponse.ids.packetCache->insert(cacheKey, zeroScope ? boost::none : dnsResponse.ids.subnet, dnsResponse.ids.cacheFlags, dnsResponse.ids.dnssecOK ? *dnsResponse.ids.dnssecOK : false, dnsResponse.ids.qname, dnsResponse.ids.qtype, dnsResponse.ids.qclass, response, dnsResponse.getHeader()->rcode, dnsResponse.ids.tempFailureTTL);
 
     const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
     const auto& cacheInsertedRespRuleActions = dnsdist::rules::getResponseRuleChain(chains, dnsdist::rules::ResponseRuleChain::CacheInsertedResponseRules);
@@ -1432,6 +1431,78 @@ static void selectBackendForOutgoingQuery(DNSQuestion& dnsQuestion, const std::s
   selectedBackend = policy.getSelectedBackend(*servers, dnsQuestion);
 }
 
+enum class CacheRecordMissPolicy : uint8_t
+{
+  DoNotRecordMiss = 0,
+  RecordMiss = 1,
+};
+
+static std::optional<ProcessQueryResult> doCacheLookup(DNSQuestion& dnsQuestion, uint32_t allowExpired, CacheRecordMissPolicy recordMiss, uint32_t* cacheKeyOut)
+{
+  if (!dnsQuestion.ids.packetCache->get(dnsQuestion, dnsQuestion.getHeader()->id, cacheKeyOut, dnsQuestion.ids.subnet, *dnsQuestion.ids.dnssecOK, allowExpired, false, recordMiss == CacheRecordMissPolicy::RecordMiss)) {
+    return std::nullopt;
+  }
+
+  dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [flags = dnsQuestion.ids.origFlags](dnsheader& header) {
+    restoreFlags(&header, flags);
+    return true;
+  });
+
+  vinfolog("Packet cache hit for query for %s|%s from %s (%s, %d bytes)", dnsQuestion.ids.qname.toLogString(), QType(dnsQuestion.ids.qtype).toString(), dnsQuestion.ids.origRemote.toStringWithPort(), dnsQuestion.ids.protocol.toString(), dnsQuestion.getData().size());
+
+  if (!prepareOutgoingResponse(*dnsQuestion.ids.cs, dnsQuestion, true)) {
+    return ProcessQueryResult::Drop;
+  }
+
+  ++dnsdist::metrics::g_stats.responses;
+  ++dnsQuestion.ids.cs->responses;
+  return ProcessQueryResult::SendAnswer;
+}
+
+static std::optional<ProcessQueryResult> handleCacheLookups(DNSQuestion& dnsQuestion, std::shared_ptr<ServerPool>& serverPool, std::shared_ptr<DownstreamState>& selectedBackend, bool zeroScopeLookup)
+{
+  if (!dnsQuestion.ids.packetCache || dnsQuestion.ids.skipCache) {
+    return std::nullopt;
+  }
+
+  uint32_t allowExpired = selectedBackend ? 0 : dnsdist::configuration::getCurrentRuntimeConfiguration().d_staleCacheEntriesTTL;
+
+  uint32_t* cacheKey = zeroScopeLookup ? &dnsQuestion.ids.cacheKeyNoECS : &dnsQuestion.ids.cacheKey;
+  auto cacheResult = doCacheLookup(dnsQuestion, allowExpired, zeroScopeLookup ? CacheRecordMissPolicy::DoNotRecordMiss : CacheRecordMissPolicy::RecordMiss, cacheKey);
+  if (cacheResult) {
+    return *cacheResult;
+  }
+
+  if (zeroScopeLookup) {
+    return std::nullopt;
+  }
+
+  vinfolog("Packet cache miss for query for %s|%s from %s (%s, %d bytes)", dnsQuestion.ids.qname.toLogString(), QType(dnsQuestion.ids.qtype).toString(), dnsQuestion.ids.origRemote.toStringWithPort(), dnsQuestion.ids.protocol.toString(), dnsQuestion.getData().size());
+
+  ++dnsdist::metrics::g_stats.cacheMisses;
+
+  // coverity[auto_causes_copy]
+  const auto existingPool = dnsQuestion.ids.poolName;
+  const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
+  const auto& cacheMissRuleActions = dnsdist::rules::getRuleChain(chains, dnsdist::rules::RuleChain::CacheMissRules);
+
+  if (!applyRulesChainToQuery(cacheMissRuleActions, dnsQuestion)) {
+    return ProcessQueryResult::Drop;
+  }
+  if (dnsQuestion.getHeader()->qr) { // something turned it into a response
+    return handleQueryTurnedIntoSelfAnsweredResponse(dnsQuestion);
+  }
+  /* let's be nice and allow the selection of a different pool,
+     but no second cache-lookup for you */
+  if (dnsQuestion.ids.poolName != existingPool) {
+    serverPool = getPool(dnsQuestion.ids.poolName);
+    dnsQuestion.ids.packetCache = serverPool->packetCache;
+    selectBackendForOutgoingQuery(dnsQuestion, serverPool, selectedBackend);
+  }
+
+  return std::nullopt;
+}
+
 ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_ptr<DownstreamState>& selectedBackend)
 {
   const uint16_t queryId = ntohs(dnsQuestion.getHeader()->id);
@@ -1440,18 +1511,10 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
     if (dnsQuestion.getHeader()->qr) { // something turned it into a response
       return handleQueryTurnedIntoSelfAnsweredResponse(dnsQuestion);
     }
+
     std::shared_ptr<ServerPool> serverPool = getPool(dnsQuestion.ids.poolName);
     dnsQuestion.ids.packetCache = serverPool->packetCache;
     selectBackendForOutgoingQuery(dnsQuestion, serverPool, selectedBackend);
-    bool willBeForwardedOverUDP = !dnsQuestion.overTCP() || dnsQuestion.ids.protocol == dnsdist::Protocol::DoH;
-    if (selectedBackend && selectedBackend->isTCPOnly()) {
-      willBeForwardedOverUDP = false;
-    }
-    else if (!selectedBackend) {
-      willBeForwardedOverUDP = !serverPool->isTCPOnly();
-    }
-
-    uint32_t allowExpired = selectedBackend ? 0 : dnsdist::configuration::getCurrentRuntimeConfiguration().d_staleCacheEntriesTTL;
 
     if (dnsQuestion.ids.packetCache && !dnsQuestion.ids.skipCache && !dnsQuestion.ids.dnssecOK) {
       dnsQuestion.ids.dnssecOK = (dnsdist::getEDNSZ(dnsQuestion) & EDNS_HEADER_FLAG_DO) != 0;
@@ -1461,18 +1524,10 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
       // we special case our cache in case a downstream explicitly gave us a universally valid response with a 0 scope
       // we need ECS parsing (parseECS) to be true so we can be sure that the initial incoming query did not have an existing
       // ECS option, which would make it unsuitable for the zero-scope feature.
-      if (dnsQuestion.ids.packetCache && !dnsQuestion.ids.skipCache && (!selectedBackend || !selectedBackend->d_config.disableZeroScope) && dnsQuestion.ids.packetCache->isECSParsingEnabled()) {
-        if (dnsQuestion.ids.packetCache->get(dnsQuestion, dnsQuestion.getHeader()->id, &dnsQuestion.ids.cacheKeyNoECS, dnsQuestion.ids.subnet, *dnsQuestion.ids.dnssecOK, willBeForwardedOverUDP, allowExpired, false, true, false)) {
-
-          vinfolog("Packet cache hit for query for %s|%s from %s (%s, %d bytes)", dnsQuestion.ids.qname.toLogString(), QType(dnsQuestion.ids.qtype).toString(), dnsQuestion.ids.origRemote.toStringWithPort(), dnsQuestion.ids.protocol.toString(), dnsQuestion.getData().size());
-
-          if (!prepareOutgoingResponse(*dnsQuestion.ids.cs, dnsQuestion, true)) {
-            return ProcessQueryResult::Drop;
-          }
-
-          ++dnsdist::metrics::g_stats.responses;
-          ++dnsQuestion.ids.cs->responses;
-          return ProcessQueryResult::SendAnswer;
+      if ((!selectedBackend || !selectedBackend->d_config.disableZeroScope) && dnsQuestion.ids.packetCache && dnsQuestion.ids.packetCache->isECSParsingEnabled()) {
+        auto cacheLookupResult = handleCacheLookups(dnsQuestion, serverPool, selectedBackend, true);
+        if (cacheLookupResult) {
+          return *cacheLookupResult;
         }
 
         if (!dnsQuestion.ids.subnet) {
@@ -1487,64 +1542,9 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
       }
     }
 
-    if (dnsQuestion.ids.packetCache && !dnsQuestion.ids.skipCache) {
-      /* First lookup, which takes into account how the protocol over which the query will be forwarded.
-         For DoH, this lookup is done with the protocol set to TCP but we will retry over UDP below,
-         therefore we do not record a miss for queries received over DoH and forwarded over TCP
-         yet, as we will do a second-lookup */
-      if (dnsQuestion.ids.packetCache->get(dnsQuestion, dnsQuestion.getHeader()->id, dnsQuestion.ids.protocol == dnsdist::Protocol::DoH ? &dnsQuestion.ids.cacheKeyTCP : &dnsQuestion.ids.cacheKey, dnsQuestion.ids.subnet, *dnsQuestion.ids.dnssecOK, dnsQuestion.ids.protocol != dnsdist::Protocol::DoH && willBeForwardedOverUDP, allowExpired, false, true, dnsQuestion.ids.protocol != dnsdist::Protocol::DoH || !willBeForwardedOverUDP)) {
-
-        dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [flags = dnsQuestion.ids.origFlags](dnsheader& header) {
-          restoreFlags(&header, flags);
-          return true;
-        });
-
-        vinfolog("Packet cache hit for query for %s|%s from %s (%s, %d bytes)", dnsQuestion.ids.qname.toLogString(), QType(dnsQuestion.ids.qtype).toString(), dnsQuestion.ids.origRemote.toStringWithPort(), dnsQuestion.ids.protocol.toString(), dnsQuestion.getData().size());
-
-        if (!prepareOutgoingResponse(*dnsQuestion.ids.cs, dnsQuestion, true)) {
-          return ProcessQueryResult::Drop;
-        }
-
-        ++dnsdist::metrics::g_stats.responses;
-        ++dnsQuestion.ids.cs->responses;
-        return ProcessQueryResult::SendAnswer;
-      }
-      if (dnsQuestion.ids.protocol == dnsdist::Protocol::DoH && willBeForwardedOverUDP) {
-        /* do a second-lookup for responses received over UDP, but we do not want TC=1 answers */
-        /* we need to be careful to keep the existing cache-key (TCP) */
-        if (dnsQuestion.ids.packetCache->get(dnsQuestion, dnsQuestion.getHeader()->id, &dnsQuestion.ids.cacheKey, dnsQuestion.ids.subnet, *dnsQuestion.ids.dnssecOK, true, allowExpired, false, false, true)) {
-          if (!prepareOutgoingResponse(*dnsQuestion.ids.cs, dnsQuestion, true)) {
-            return ProcessQueryResult::Drop;
-          }
-
-          ++dnsdist::metrics::g_stats.responses;
-          ++dnsQuestion.ids.cs->responses;
-          return ProcessQueryResult::SendAnswer;
-        }
-      }
-
-      vinfolog("Packet cache miss for query for %s|%s from %s (%s, %d bytes)", dnsQuestion.ids.qname.toLogString(), QType(dnsQuestion.ids.qtype).toString(), dnsQuestion.ids.origRemote.toStringWithPort(), dnsQuestion.ids.protocol.toString(), dnsQuestion.getData().size());
-
-      ++dnsdist::metrics::g_stats.cacheMisses;
-
-      // coverity[auto_causes_copy]
-      const auto existingPool = dnsQuestion.ids.poolName;
-      const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
-      const auto& cacheMissRuleActions = dnsdist::rules::getRuleChain(chains, dnsdist::rules::RuleChain::CacheMissRules);
-
-      if (!applyRulesChainToQuery(cacheMissRuleActions, dnsQuestion)) {
-        return ProcessQueryResult::Drop;
-      }
-      if (dnsQuestion.getHeader()->qr) { // something turned it into a response
-        return handleQueryTurnedIntoSelfAnsweredResponse(dnsQuestion);
-      }
-      /* let's be nice and allow the selection of a different pool,
-         but no second cache-lookup for you */
-      if (dnsQuestion.ids.poolName != existingPool) {
-        serverPool = getPool(dnsQuestion.ids.poolName);
-        dnsQuestion.ids.packetCache = serverPool->packetCache;
-        selectBackendForOutgoingQuery(dnsQuestion, serverPool, selectedBackend);
-      }
+    auto cacheLookupResult = handleCacheLookups(dnsQuestion, serverPool, selectedBackend, false);
+    if (cacheLookupResult) {
+      return *cacheLookupResult;
     }
 
     if (!selectedBackend) {

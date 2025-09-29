@@ -58,16 +58,7 @@ class TestCacheHitResponses(DNSDistTest):
 
         self.assertEqual(total, 2)
 
-        # TCP should not be cached
-        # first query to fill the cache
-        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = query.id
-        self.assertEqual(query, receivedQuery)
-        self.assertEqual(receivedResponse, response)
-
-        # now the result should be cached, and so dropped
+        # TCP should be cached as well, and so dropped
         (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
         self.assertEqual(receivedResponse, None)
 
@@ -86,7 +77,7 @@ class TestCacheHitResponses(DNSDistTest):
             total += self._responsesCounter[key]
             TestCacheHitResponses._responsesCounter[key] = 0
 
-        self.assertEqual(total, 2)
+        self.assertEqual(total, 1)
 
 class TestStaleCacheHitResponses(DNSDistTest):
 

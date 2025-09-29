@@ -54,8 +54,8 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
     unsigned int consumed;
     PacketBuffer vect(data, data + size);
     const DNSName qname(reinterpret_cast<const char*>(data), size, sizeof(dnsheader), false, &qtype, &qclass, &consumed);
-    pcSkipCookies.getKey(qname.getStorage(), consumed, vect, false);
-    pcHashCookies.getKey(qname.getStorage(), consumed, vect, false);
+    pcSkipCookies.getKey(qname.getStorage(), consumed, vect);
+    pcHashCookies.getKey(qname.getStorage(), consumed, vect);
     boost::optional<Netmask> subnet;
     DNSDistPacketCache::getClientSubnet(vect, consumed, subnet);
   }

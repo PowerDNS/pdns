@@ -141,9 +141,8 @@ class AsyncTests(object):
 
         for method in ("sendUDPQuery", "sendTCPQuery", "sendDOTQueryWrapper", "sendDOHWithNGHTTP2QueryWrapper", "sendDOHWithH2OQueryWrapper", "sendDOQQueryWrapper"):
             sender = getattr(self, method)
-            if method != 'sendDOTQueryWrapper' and method != 'sendDOHWithH2OQueryWrapper' and method != 'sendDOQQueryWrapper':
+            if method in ['sendUDPQuery', 'sendDOHWithNGHTTP2QueryWrapper']:
                 # first time to fill the cache
-                # disabled for DoT since it was already filled via TCP
                 (receivedQuery, receivedResponse) = sender(query, response)
                 receivedQuery.id = query.id
                 self.assertEqual(query, receivedQuery)
