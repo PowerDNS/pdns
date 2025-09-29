@@ -727,6 +727,7 @@ public:
   size_t socketsOffset{0};
   double latencyUsec{0.0};
   double latencyUsecTCP{0.0};
+  double d_healthCheckLatency{0.0};
   unsigned int d_nextCheck{0};
   uint16_t currentCheckFailures{0};
   std::atomic<bool> hashesComputed{false};
