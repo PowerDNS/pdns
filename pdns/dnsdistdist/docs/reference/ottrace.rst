@@ -43,8 +43,8 @@ Example configuration
          type: RemoteLog
          logger_name: pblog
 
-Passing Trace ID to downstream servers
-======================================
+Passing Trace ID and Span ID to downstream servers
+==================================================
 
 When storing traces, it is beneficial to correlate traces of the same query through different applications.
 The `PowerDNS Recursor <https://doc.powerdns.com/recursor>`__ (since 5.3.0) supports the experimental `draft-edns-otel-trace-ids <https://github.com/PowerDNS/draft-edns-otel-trace-ids>`__ EDNS option to pass the trace identifier.
@@ -64,6 +64,27 @@ Combining all this, a :func:`LuaAction` can be used to add this EDNS option to t
            if (tid ~= nil) then
              -- PowerDNS Recursor uses EDNS Option Code 65500.
              dq:setEDNSOption(65500, "\000\000" .. tid)
+           end
+           return DNSAction.None
+         end
+
+Optionally, the Span ID can also be added to the query.
+This value is retrieved with the :func:`getSpanID <DNSQuestion:getSpanID>` function and can be added to the query as follows:
+
+.. code-block:: yaml
+
+   - name: Add TraceID and SpanID to EDNS for backend
+     selector:
+       type: All
+     action:
+       type: Lua
+       function_code: |
+         return function (dq)
+           tid = dq:getTraceID()
+           sid = dq:getSpanID()
+           if (tid ~= nil and sid ~= nil) then
+             -- PowerDNS Recursor uses EDNS Option Code 65500.
+             dq:setEDNSOption(65500, "\000\000" .. tid .. sid)
            end
            return DNSAction.None
          end
