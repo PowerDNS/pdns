@@ -337,6 +337,7 @@ testrunner_SOURCES = \
 	dnsdist-edns.cc dnsdist-edns.hh \
 	dnsdist-frontend.cc dnsdist-frontend.hh \
 	dnsdist-idstate.cc dnsdist-idstate.hh \
+	dnsdist-ipcrypt2.cc dnsdist-ipcrypt2.hh \
 	dnsdist-kvs.cc dnsdist-kvs.hh \
 	dnsdist-lbpolicies.cc dnsdist-lbpolicies.hh \
 	dnsdist-lua-bindings-dnsquestion.cc \
@@ -399,6 +400,7 @@ testrunner_SOURCES = \
 	test-dnscrypt_cc.cc \
 	test-dnsdist-connections-cache.cc \
 	test-dnsdist-dnsparser.cc \
+	test-dnsdist-ipcrypt2_cc.cc \
 	test-dnsdist-lua-ffi.cc \
 	test-dnsdist_cc.cc \
 	test-dnsdistasync.cc \
@@ -458,6 +460,7 @@ testrunner_LDADD = \
 	$(LUA_LIBS) \
 	$(RT_LIBS) \
 	$(LIBCAP_LIBS) \
+	$(IPCRYPT2_LIBS) \
 	$(ARC4RANDOM_LIBS)
 
 if HAVE_CDB

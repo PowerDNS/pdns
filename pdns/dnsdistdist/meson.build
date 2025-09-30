@@ -528,6 +528,7 @@ test_sources += files(
   src_dir / 'test-dnsdist_cc.cc',
   src_dir / 'test-dnsdist-connections-cache.cc',
   src_dir / 'test-dnsdist-dnsparser.cc',
+  src_dir / 'test-dnsdist-ipcrypt2_cc.cc',
   src_dir / 'test-dnsdistdynblocks_hh.cc',
   src_dir / 'test-dnsdistedns.cc',
   src_dir / 'test-dnsdistkvs_cc.cc',
@@ -559,6 +560,7 @@ if get_option('unit-tests')
       dependencies: [
           dep_boost,
           dep_boost_test,
+          dep_ipcrypt2,
           dep_lua,
           dep_protozero,
       ],
