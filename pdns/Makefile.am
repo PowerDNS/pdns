@@ -53,6 +53,7 @@ EXTRA_DIST = \
 	bindparser.hh \
 	named.conf.parsertest \
 	pdns.service.in \
+	pdns.socket \
 	ixfrdist.service.in \
 	ixfrdist.example.yml \
 	lua-record.cc \

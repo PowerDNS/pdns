@@ -93,71 +93,23 @@ void UDPNameserver::bindAddresses()
   vector<string>locals;
   stringtok(locals,::arg()["local-address"]," ,");
 
-  int one = 1;
-
   if(locals.empty())
     throw PDNSException("No local address specified");
 
   int s;
   // for(vector<string>::const_iterator i=locals.begin();i!=locals.end();++i) {
   for (const auto &local : locals) {
-    ComboAddress locala(local, ::arg().asNum("local-port"));
 
-    s = socket(locala.sin4.sin_family, SOCK_DGRAM, 0);
-
-    if(s < 0) {
-      if(errno == EAFNOSUPPORT) {
-        g_log<<Logger::Error<<"Binding "<<locala.toStringWithPort()<<": Address Family is not supported - skipping bind" << endl;
-        return;
-      }
-      throw PDNSException("Unable to acquire a UDP socket: "+stringerror());
-    }
-
-    setCloseOnExec(s);
-    if(!setNonBlocking(s))
-      throw PDNSException("Unable to set UDP socket " + locala.toStringWithPort() + " to non-blocking: "+stringerror());
-
-    if(IsAnyAddress(locala)) {
-      (void)setsockopt(s, IPPROTO_IP, GEN_IP_PKTINFO, &one, sizeof(one));
-      if (locala.isIPv6()) {
-        (void)setsockopt(s, IPPROTO_IPV6, IPV6_V6ONLY, &one, sizeof(one));      // if this fails, we report an error in tcpreceiver too
-#ifdef IPV6_RECVPKTINFO
-        (void)setsockopt(s, IPPROTO_IPV6, IPV6_RECVPKTINFO, &one, sizeof(one));
-#endif
-      }
-    }
-
-    if (!setSocketTimestamps(s))
-      g_log<<Logger::Warning<<"Unable to enable timestamp reporting for socket "<<locala.toStringWithPort()<<endl;
-
-    try {
-      setSocketIgnorePMTU(s, locala.sin4.sin_family);
-    }
-    catch(const std::exception& e) {
-      g_log<<Logger::Warning<<"Failed to set IP_MTU_DISCOVER on UDP server socket: "<<e.what()<<endl;
-    }
-
-    if (d_can_reuseport) {
-      if (!setReusePort(s)) {
-        d_can_reuseport = false;
-      }
-    }
-
-    if( ::arg().mustDo("non-local-bind") )
-      Utility::setBindAny(locala.sin4.sin_family, s);
-
-    if( !d_additional_socket )
-        g_localaddresses.push_back(locala);
-
-    if(::bind(s, (sockaddr*)&locala, locala.getSocklen()) < 0) {
-      int err = errno;
-      close(s);
-      if (err == EADDRNOTAVAIL && !::arg().mustDo("local-address-nonexist-fail")) {
-        g_log<<Logger::Error<<"Address " << locala << " does not exist on this server - skipping UDP bind" << endl;
+    if (local.find("fdgram:") == 0) {
+      pdns::checked_stoi_into(s, local.substr(7, local.length()-7));
+      g_log<<Logger::Error<<"UDP server listening on "<<local<<" fd "<<s<<endl;
+    } else if (local.find("fd:") == 0) {
+      continue;
+    } else {
+      ComboAddress locala(local, ::arg().asNum("local-port"));
+      s = createSocket(locala);
+      if (s == -1) {
         continue;
-      } else {
-        g_log<<Logger::Error<<"Unable to bind UDP socket to '"+locala.toStringWithPort()+"': "<<stringerror(err)<<endl;
-        throw PDNSException("Unable to bind to UDP socket");
       }
     }
     d_sockets.push_back(s);
@@ -166,8 +118,71 @@ void UDPNameserver::bindAddresses()
     pfd.events = POLLIN;
     pfd.revents = 0;
     d_rfds.push_back(pfd);
-    g_log<<Logger::Error<<"UDP server bound to "<<locala.toStringWithPort()<<endl;
   }
+}
+
+int UDPNameserver::createSocket(ComboAddress &locala)
+{
+  int s = socket(locala.sin4.sin_family, SOCK_DGRAM, 0);
+
+  if(s < 0) {
+    if(errno == EAFNOSUPPORT) {
+      g_log<<Logger::Error<<"Binding "<<locala.toStringWithPort()<<": Address Family is not supported - skipping bind" << endl;
+      return -1;
+    }
+    throw PDNSException("Unable to acquire a UDP socket: "+stringerror());
+  }
+
+  setCloseOnExec(s);
+  if(!setNonBlocking(s))
+    throw PDNSException("Unable to set UDP socket " + locala.toStringWithPort() + " to non-blocking: "+stringerror());
+
+  if(IsAnyAddress(locala)) {
+    int one = 1;
+    (void)setsockopt(s, IPPROTO_IP, GEN_IP_PKTINFO, &one, sizeof(one));
+    if (locala.isIPv6()) {
+      (void)setsockopt(s, IPPROTO_IPV6, IPV6_V6ONLY, &one, sizeof(one));      // if this fails, we report an error in tcpreceiver too
+#ifdef IPV6_RECVPKTINFO
+      (void)setsockopt(s, IPPROTO_IPV6, IPV6_RECVPKTINFO, &one, sizeof(one));
+#endif
+    }
+  }
+
+  if (!setSocketTimestamps(s))
+    g_log<<Logger::Warning<<"Unable to enable timestamp reporting for socket "<<locala.toStringWithPort()<<endl;
+
+  try {
+    setSocketIgnorePMTU(s, locala.sin4.sin_family);
+  }
+  catch(const std::exception& e) {
+    g_log<<Logger::Warning<<"Failed to set IP_MTU_DISCOVER on UDP server socket: "<<e.what()<<endl;
+  }
+
+  if (d_can_reuseport) {
+    if (!setReusePort(s)) {
+      d_can_reuseport = false;
+    }
+  }
+
+  if( ::arg().mustDo("non-local-bind") )
+    Utility::setBindAny(locala.sin4.sin_family, s);
+
+  if( !d_additional_socket )
+      g_localaddresses.push_back(locala);
+
+  if(::bind(s, (sockaddr*)&locala, locala.getSocklen()) < 0) {
+    int err = errno;
+    close(s);
+    if (err == EADDRNOTAVAIL && !::arg().mustDo("local-address-nonexist-fail")) {
+      g_log<<Logger::Error<<"Address " << locala << " does not exist on this server - skipping UDP bind" << endl;
+      return -1;
+    } else {
+      g_log<<Logger::Error<<"Unable to bind UDP socket to '"+locala.toStringWithPort()+"': "<<stringerror(err)<<endl;
+      throw PDNSException("Unable to bind to UDP socket");
+    }
+  }
+  g_log<<Logger::Error<<"UDP server bound to "<<locala.toStringWithPort()<<endl;
+  return s;
 }
 
 bool AddressIsUs(const ComboAddress& remote)
