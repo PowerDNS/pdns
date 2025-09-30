@@ -351,6 +351,20 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
 #endif
     });
 
+  luaCtx.registerFunction<std::optional<std::string> (DNSQuestion::*)()>(
+    "getSpanID",
+    []([[maybe_unused]] const DNSQuestion& dnsQuestion) -> std::optional<std::string> {
+#ifdef DISABLE_PROTOBUF
+      return std::nullopt;
+#else
+      if (dnsQuestion.ids.tracingEnabled) {
+        auto spanID = dnsQuestion.ids.d_OTTracer->getLastSpanID();
+        return std::string(spanID.begin(), spanID.end());
+      }
+      return std::nullopt;
+#endif
+    });
+
   class AsynchronousObject
   {
   public:
