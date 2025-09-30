@@ -238,7 +238,7 @@ def generate_coverage_info(c, binary, product, outputDir):
     if is_coverage_enabled():
         version = os.getenv('BUILDER_VERSION')
         c.run(f'llvm-profdata-{clang_version} merge -sparse -o {outputDir}/temp.profdata /tmp/code-*.profraw')
-        c.run(f'llvm-cov-{clang_version} export --format=lcov --ignore-filename-regex=\'^/usr/\' -instr-profile={outputDir}/temp.profdata -object {binary} > {outputDir}/coverage.lcov')
+        c.run(f'llvm-cov-{clang_version} export --format=lcov --ignore-filename-regex=\'^/usr/\' --ignore-filename-regex=\'ext/\' -instr-profile={outputDir}/temp.profdata -object {binary} > {outputDir}/coverage.lcov')
         c.run(f'{outputDir}/.github/scripts/normalize_paths_in_coverage.py {outputDir} {product} {version} {outputDir}/coverage.lcov {outputDir}/normalized_coverage.lcov 0')
         c.run(f'mv {outputDir}/normalized_coverage.lcov {outputDir}/coverage.lcov')
 
