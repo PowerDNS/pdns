@@ -266,19 +266,20 @@ StatsMap getAllStatsMap(StatComponent component)
   return ret;
 }
 
-static string getAllStats()
+using ArgIterator = vector<string>::iterator;
+using Answer = RecursorControlChannel::Answer;
+
+static Answer getAllStats(ArgIterator /* begin */, ArgIterator /* end */)
 {
   auto varmap = getAllStatsMap(StatComponent::RecControl);
   string ret;
   for (const auto& tup : varmap) {
     ret += tup.first + "\t" + tup.second.d_value + "\n";
   }
-  return ret;
+  return {0, ret};
 }
 
-using ArgIterator = vector<string>::iterator;
-
-static string doGet(ArgIterator begin, ArgIterator end)
+static Answer doGet(ArgIterator begin, ArgIterator end)
 {
   string ret;
 
@@ -291,10 +292,10 @@ static string doGet(ArgIterator begin, ArgIterator end)
       ret += "UNKNOWN\n";
     }
   }
-  return ret;
+  return {0, ret};
 }
 
-string static doGetParameter(ArgIterator begin, ArgIterator end)
+static Answer doGetParameter(ArgIterator begin, ArgIterator end)
 {
   string ret;
   string parm;
@@ -311,7 +312,7 @@ string static doGetParameter(ArgIterator begin, ArgIterator end)
       ret += *i + " not known\n";
     }
   }
-  return ret;
+  return {0, ret};
 }
 
 /* Read an (open) fd from the control channel */
@@ -535,7 +536,7 @@ static RecursorControlChannel::Answer doDumpRPZ(int socket, ArgIterator begin, A
   return {0, "done\n"};
 }
 
-static string doWipeCache(ArgIterator begin, ArgIterator end, uint16_t qtype)
+static Answer doWipeCache(ArgIterator begin, ArgIterator end, uint16_t qtype)
 {
   vector<pair<DNSName, bool>> toWipe;
   for (auto i = begin; i != end; ++i) {
@@ -552,7 +553,7 @@ static string doWipeCache(ArgIterator begin, ArgIterator end, uint16_t qtype)
       }
     }
     catch (std::exception& e) {
-      return "Error: " + std::string(e.what()) + ", nothing wiped\n";
+      return {1, "Error: " + std::string(e.what()) + ", nothing wiped\n"};
     }
     toWipe.emplace_back(canon, subtree);
   }
@@ -572,16 +573,16 @@ static string doWipeCache(ArgIterator begin, ArgIterator end, uint16_t qtype)
     }
   }
 
-  return "wiped " + std::to_string(count) + " records, " + std::to_string(countNeg) + " negative records, " + std::to_string(pcount) + " packets\n";
+  return {0, "wiped " + std::to_string(count) + " records, " + std::to_string(countNeg) + " negative records, " + std::to_string(pcount) + " packets\n"};
 }
 
-static string doSetCarbonServer(ArgIterator begin, ArgIterator end)
+static Answer doSetCarbonServer(ArgIterator begin, ArgIterator end)
 {
   auto config = g_carbonConfig.getCopy();
   if (begin == end) {
     config.servers.clear();
     g_carbonConfig.setState(std::move(config));
-    return "cleared carbon-server setting\n";
+    return {0, "cleared carbon-server setting\n"};
   }
 
   string ret;
@@ -595,7 +596,7 @@ static string doSetCarbonServer(ArgIterator begin, ArgIterator end)
   }
   else {
     g_carbonConfig.setState(std::move(config));
-    return ret;
+    return {0, ret};
   }
 
   ++begin;
@@ -605,7 +606,7 @@ static string doSetCarbonServer(ArgIterator begin, ArgIterator end)
   }
   else {
     g_carbonConfig.setState(std::move(config));
-    return ret;
+    return {0, ret};
   }
 
   ++begin;
@@ -615,45 +616,45 @@ static string doSetCarbonServer(ArgIterator begin, ArgIterator end)
   }
 
   g_carbonConfig.setState(std::move(config));
-  return ret;
+  return {0, ret};
 }
 
-static string doSetDnssecLogBogus(ArgIterator begin, ArgIterator end)
+static Answer doSetDnssecLogBogus(ArgIterator begin, ArgIterator end)
 {
   if (checkDNSSECDisabled()) {
-    return "DNSSEC is disabled in the configuration, not changing the Bogus logging setting\n";
+    return {1, "DNSSEC is disabled in the configuration, not changing the Bogus logging setting\n"};
   }
   if (begin == end) {
-    return "No DNSSEC Bogus logging setting specified\n";
+    return {1, "No DNSSEC Bogus logging setting specified\n"};
   }
   if (pdns_iequals(*begin, "on") || pdns_iequals(*begin, "yes")) {
     if (!g_dnssecLogBogus) {
       g_log << Logger::Warning << "Enabling DNSSEC Bogus logging, requested via control channel" << endl;
       g_dnssecLogBogus = true;
-      return "DNSSEC Bogus logging enabled\n";
+      return {0, "DNSSEC Bogus logging enabled\n"};
     }
-    return "DNSSEC Bogus logging was already enabled\n";
+    return {0, "DNSSEC Bogus logging was already enabled\n"};
   }
 
   if (pdns_iequals(*begin, "off") || pdns_iequals(*begin, "no")) {
     if (g_dnssecLogBogus) {
       g_log << Logger::Warning << "Disabling DNSSEC Bogus logging, requested via control channel" << endl;
       g_dnssecLogBogus = false;
-      return "DNSSEC Bogus logging disabled\n";
+      return {0, "DNSSEC Bogus logging disabled\n"};
     }
-    return "DNSSEC Bogus logging was already disabled\n";
+    return {0, "DNSSEC Bogus logging was already disabled\n"};
   }
 
-  return "Unknown DNSSEC Bogus setting: '" + *begin + "'\n";
+  return {1, "Unknown DNSSEC Bogus setting: '" + *begin + "'\n"};
 }
 
-static string doAddNTA(ArgIterator begin, ArgIterator end)
+static Answer doAddNTA(ArgIterator begin, ArgIterator end)
 {
   if (checkDNSSECDisabled()) {
-    return "DNSSEC is disabled in the configuration, not adding a Negative Trust Anchor\n";
+    return {1, "DNSSEC is disabled in the configuration, not adding a Negative Trust Anchor\n"};
   }
   if (begin == end) {
-    return "No NTA specified, doing nothing\n";
+    return {1, "No NTA specified, doing nothing\n"};
   }
   DNSName who;
   try {
@@ -663,7 +664,7 @@ static string doAddNTA(ArgIterator begin, ArgIterator end)
     string ret("Can't add Negative Trust Anchor: ");
     ret += e.what();
     ret += "\n";
-    return ret;
+    return {1, ret};
   }
   begin++;
 
@@ -684,32 +685,32 @@ static string doAddNTA(ArgIterator begin, ArgIterator end)
   }
   catch (std::exception& e) {
     g_log << Logger::Warning << ", failed: " << e.what() << endl;
-    return "Unable to clear caches while adding Negative Trust Anchor for " + who.toStringRootDot() + ": " + e.what() + "\n";
+    return {1, "Unable to clear caches while adding Negative Trust Anchor for " + who.toStringRootDot() + ": " + e.what() + "\n"};
   }
-  return "Added Negative Trust Anchor for " + who.toLogString() + " with reason '" + why + "'\n";
+  return {0, "Added Negative Trust Anchor for " + who.toLogString() + " with reason '" + why + "'\n"};
 }
 
-static string doClearNTA(ArgIterator begin, ArgIterator end)
+static Answer doClearNTA(ArgIterator begin, ArgIterator end)
 {
   if (checkDNSSECDisabled()) {
-    return "DNSSEC is disabled in the configuration, not removing a Negative Trust Anchor\n";
+    return {1, "DNSSEC is disabled in the configuration, not removing a Negative Trust Anchor\n"};
   }
   if (begin == end) {
-    return "No Negative Trust Anchor specified, doing nothing.\n";
+    return {1, "No Negative Trust Anchor specified, doing nothing.\n"};
   }
   if (begin + 1 == end && *begin == "*") {
     g_log << Logger::Warning << "Clearing all Negative Trust Anchors, requested via control channel" << endl;
     g_luaconfs.modify([](LuaConfigItems& lci) {
       lci.negAnchors.clear();
     });
-    return "Cleared all Negative Trust Anchors.\n";
+    return {0, "Cleared all Negative Trust Anchors.\n"};
   }
 
   vector<DNSName> toRemove;
   DNSName who;
   while (begin != end) {
     if (*begin == "*") {
-      return "Don't mix all Negative Trust Anchor removal with multiple Negative Trust Anchor removal. Nothing removed\n";
+      return {1, "Don't mix all Negative Trust Anchor removal with multiple Negative Trust Anchor removal. Nothing removed\n"};
     }
     try {
       who = DNSName(*begin);
@@ -718,7 +719,7 @@ static string doClearNTA(ArgIterator begin, ArgIterator end)
       string ret("Error: ");
       ret += e.what();
       ret += ". No Negative Anchors removed\n";
-      return ret;
+      return {1, ret};
     }
     toRemove.push_back(who);
     begin++;
@@ -742,32 +743,32 @@ static string doClearNTA(ArgIterator begin, ArgIterator end)
   }
   catch (std::exception& e) {
     g_log << Logger::Warning << ", failed: " << e.what() << endl;
-    return "Unable to clear caches while clearing Negative Trust Anchor for " + who.toStringRootDot() + ": " + e.what() + "\n";
+    return {1, "Unable to clear caches while clearing Negative Trust Anchor for " + who.toStringRootDot() + ": " + e.what() + "\n"};
   }
 
-  return "Removed Negative Trust Anchors for " + removed + "\n";
+  return {0, "Removed Negative Trust Anchors for " + removed + "\n"};
 }
 
-static string getNTAs()
+static Answer getNTAs(ArgIterator /* begin */, ArgIterator /* end */)
 {
   if (checkDNSSECDisabled()) {
-    return "DNSSEC is disabled in the configuration\n";
+    return {1, "DNSSEC is disabled in the configuration\n"};
   }
   string ret("Configured Negative Trust Anchors:\n");
   auto luaconf = g_luaconfs.getLocal();
   for (const auto& negAnchor : luaconf->negAnchors) {
     ret += negAnchor.first.toLogString() + "\t" + negAnchor.second + "\n";
   }
-  return ret;
+  return {0, ret};
 }
 
-static string doAddTA(ArgIterator begin, ArgIterator end)
+static Answer doAddTA(ArgIterator begin, ArgIterator end)
 {
   if (checkDNSSECDisabled()) {
-    return "DNSSEC is disabled in the configuration, not adding a Trust Anchor\n";
+    return {1, "DNSSEC is disabled in the configuration, not adding a Trust Anchor\n"};
   }
   if (begin == end) {
-    return "No TA specified, doing nothing\n";
+    return {1, "No TA specified, doing nothing\n"};
   }
   DNSName who;
   try {
@@ -777,7 +778,7 @@ static string doAddTA(ArgIterator begin, ArgIterator end)
     string ret("Can't add Trust Anchor: ");
     ret += e.what();
     ret += "\n";
-    return ret;
+    return {1, ret};
   }
   begin++;
 
@@ -795,21 +796,21 @@ static string doAddTA(ArgIterator begin, ArgIterator end)
     });
     wipeCaches(who, true, 0xffff);
     g_log << Logger::Warning << endl;
-    return "Added Trust Anchor for " + who.toStringRootDot() + " with data " + what + "\n";
+    return {0, "Added Trust Anchor for " + who.toStringRootDot() + " with data " + what + "\n"};
   }
   catch (std::exception& e) {
     g_log << Logger::Warning << ", failed: " << e.what() << endl;
-    return "Unable to add Trust Anchor for " + who.toStringRootDot() + ": " + e.what() + "\n";
+    return {1, "Unable to add Trust Anchor for " + who.toStringRootDot() + ": " + e.what() + "\n"};
   }
 }
 
-static string doClearTA(ArgIterator begin, ArgIterator end)
+static Answer doClearTA(ArgIterator begin, ArgIterator end)
 {
   if (checkDNSSECDisabled()) {
-    return "DNSSEC is disabled in the configuration, not removing a Trust Anchor\n";
+    return {1, "DNSSEC is disabled in the configuration, not removing a Trust Anchor\n"};
   }
   if (begin == end) {
-    return "No Trust Anchor to clear\n";
+    return {1, "No Trust Anchor to clear\n"};
   }
   vector<DNSName> toRemove;
   DNSName who;
@@ -821,10 +822,10 @@ static string doClearTA(ArgIterator begin, ArgIterator end)
       string ret("Error: ");
       ret += e.what();
       ret += ". No Anchors removed\n";
-      return ret;
+      return {1, ret};
     }
     if (who.isRoot()) {
-      return "Refusing to remove root Trust Anchor, no Anchors removed\n";
+      return {1, "Refusing to remove root Trust Anchor, no Anchors removed\n"};
     }
     toRemove.push_back(who);
     begin++;
@@ -848,16 +849,16 @@ static string doClearTA(ArgIterator begin, ArgIterator end)
   }
   catch (std::exception& e) {
     g_log << Logger::Warning << ", failed: " << e.what() << endl;
-    return "Unable to clear caches while clearing Trust Anchor for " + who.toStringRootDot() + ": " + e.what() + "\n";
+    return {1, "Unable to clear caches while clearing Trust Anchor for " + who.toStringRootDot() + ": " + e.what() + "\n"};
   }
 
-  return "Removed Trust Anchor(s) for" + removed + "\n";
+  return {0, "Removed Trust Anchor(s) for" + removed + "\n"};
 }
 
-static string getTAs()
+static Answer getTAs(ArgIterator /* begin */, ArgIterator /* end */)
 {
   if (checkDNSSECDisabled()) {
-    return "DNSSEC is disabled in the configuration\n";
+    return {1, "DNSSEC is disabled in the configuration\n"};
   }
   string ret("Configured Trust Anchors:\n");
   auto luaconf = g_luaconfs.getLocal();
@@ -868,66 +869,66 @@ static string getTAs()
     }
   }
 
-  return ret;
+  return {0, ret};
 }
 
-static string setMinimumTTL(ArgIterator begin, ArgIterator end)
+static Answer setMinimumTTL(ArgIterator begin, ArgIterator end)
 {
   if (end - begin != 1) {
-    return "Need to supply new minimum TTL number\n";
+    return {1, "Need to supply new minimum TTL number\n"};
   }
   try {
     pdns::checked_stoi_into(SyncRes::s_minimumTTL, *begin);
-    return "New minimum TTL: " + std::to_string(SyncRes::s_minimumTTL) + "\n";
+    return {0, "New minimum TTL: " + std::to_string(SyncRes::s_minimumTTL) + "\n"};
   }
   catch (const std::exception& e) {
-    return "Error parsing the new minimum TTL number: " + std::string(e.what()) + "\n";
+    return {1, "Error parsing the new minimum TTL number: " + std::string(e.what()) + "\n"};
   }
 }
 
-static string setMinimumECSTTL(ArgIterator begin, ArgIterator end)
+static Answer setMinimumECSTTL(ArgIterator begin, ArgIterator end)
 {
   if (end - begin != 1) {
-    return "Need to supply new ECS minimum TTL number\n";
+    return {1, "Need to supply new ECS minimum TTL number\n"};
   }
   try {
     pdns::checked_stoi_into(SyncRes::s_minimumECSTTL, *begin);
-    return "New minimum ECS TTL: " + std::to_string(SyncRes::s_minimumECSTTL) + "\n";
+    return {0, "New minimum ECS TTL: " + std::to_string(SyncRes::s_minimumECSTTL) + "\n"};
   }
   catch (const std::exception& e) {
-    return "Error parsing the new ECS minimum TTL number: " + std::string(e.what()) + "\n";
+    return {1, "Error parsing the new ECS minimum TTL number: " + std::string(e.what()) + "\n"};
   }
 }
 
-static string setMaxCacheEntries(ArgIterator begin, ArgIterator end)
+static Answer setMaxCacheEntries(ArgIterator begin, ArgIterator end)
 {
   if (end - begin != 1) {
-    return "Need to supply new cache size\n";
+    return {1, "Need to supply new cache size\n"};
   }
   try {
     g_maxCacheEntries = pdns::checked_stoi<uint32_t>(*begin);
-    return "New max cache entries: " + std::to_string(g_maxCacheEntries) + "\n";
+    return {0, "New max cache entries: " + std::to_string(g_maxCacheEntries) + "\n"};
   }
   catch (const std::exception& e) {
-    return "Error parsing the new cache size: " + std::string(e.what()) + "\n";
+    return {1, "Error parsing the new cache size: " + std::string(e.what()) + "\n"};
   }
 }
 
-static string setMaxPacketCacheEntries(ArgIterator begin, ArgIterator end)
+static Answer setMaxPacketCacheEntries(ArgIterator begin, ArgIterator end)
 {
   if (end - begin != 1) {
-    return "Need to supply new packet cache size\n";
+    return {0, "Need to supply new packet cache size\n"};
   }
   if (::arg().mustDo("disable-packetcache")) {
-    return "Packet cache is disabled\n";
+    return {1, "Packet cache is disabled\n"};
   }
   try {
     g_maxPacketCacheEntries = pdns::checked_stoi<uint32_t>(*begin);
     g_packetCache->setMaxSize(g_maxPacketCacheEntries);
-    return "New max packetcache entries: " + std::to_string(g_maxPacketCacheEntries) + "\n";
+    return {0, "New max packetcache entries: " + std::to_string(g_maxPacketCacheEntries) + "\n"};
   }
   catch (const std::exception& e) {
-    return "Error parsing the new packet cache size: " + std::string(e.what()) + "\n";
+    return {1, "Error parsing the new packet cache size: " + std::string(e.what()) + "\n"};
   }
 }
 
@@ -1028,7 +1029,7 @@ static RemoteLoggerStats_t* pleaseGetRemoteLoggerStats()
   return ret.release();
 }
 
-static string doGetProxyMappingStats()
+static Answer doGetProxyMappingStats(ArgIterator /* begin */, ArgIterator /* end */)
 {
   ostringstream ret;
   ret << "subnet\t\t\tmatches\tsuffixmatches" << endl;
@@ -1036,7 +1037,7 @@ static string doGetProxyMappingStats()
   for (const auto& [key, entry] : proxyMappingStats) {
     ret << key.toString() << '\t' << entry.netmaskMatches << '\t' << entry.suffixMatches << endl;
   }
-  return ret.str();
+  return {0, ret.str()};
 }
 
 static RemoteLoggerStats_t* pleaseGetOutgoingRemoteLoggerStats()
@@ -1087,7 +1088,7 @@ static void remoteLoggerStats(const string& type, const RemoteLoggerStats_t& sta
   }
 }
 
-static string getRemoteLoggerStats()
+static Answer getRemoteLoggerStats(ArgIterator /* begin */, ArgIterator /* end */)
 {
   ostringstream outputStream;
   outputStream << "Queued\tPipe-\tToo-\tOther-\tAddress\tType" << endl;
@@ -1102,7 +1103,7 @@ static string getRemoteLoggerStats()
   stats = broadcastAccFunction<RemoteLoggerStats_t>(pleaseGetNODFramestreamLoggerStats);
   remoteLoggerStats("dnstapNODFrameStream", stats, outputStream);
 #endif
-  return outputStream.str();
+  return {0, outputStream.str()};
 }
 
 static string* pleaseGetCurrentQueries()
@@ -1134,9 +1135,9 @@ static string* pleaseGetCurrentQueries()
   return new string(ostr.str()); // NOLINT(cppcoreguidelines-owning-memory)
 }
 
-static string doCurrentQueries()
+static Answer doCurrentQueries(ArgIterator /* begin */, ArgIterator /* end */)
 {
-  return broadcastAccFunction<string>(pleaseGetCurrentQueries);
+  return {0, broadcastAccFunction<string>(pleaseGetCurrentQueries)};
 }
 
 static uint64_t getNegCacheSize()
@@ -1386,7 +1387,7 @@ void registerAllStats()
   }
 }
 
-static auto clearLuaScript()
+static auto clearLuaScript(ArgIterator /* begin */, ArgIterator /* end */)
 {
   vector<string> empty;
   empty.emplace_back();
@@ -1418,7 +1419,7 @@ static void doExitGeneric(bool nicely)
     // rec_control quit case. Is that still used by test code? bulktests and regression test use quit-nicely
     g_rcc.~RecursorControlChannel();
 #if defined(__SANITIZE_ADDRESS__) && defined(HAVE_LEAK_SANITIZER_INTERFACE)
-    clearLuaScript();
+    clearLuaScript(ArgIterator{}, ArgIterator{});
     pdns::coverage::dumpCoverageData();
     __lsan_do_leak_check();
     _exit(0); // let the regression test distinguish between leaks and no leaks as __lsan_do_leak_check() exits 1 on leaks
@@ -1550,12 +1551,12 @@ vector<ComboAddress>* pleaseGetTimeouts()
 }
 // NOLINTEND(cppcoreguidelines-owning-memory)
 
-static string doGenericTopRemotes(const pleaseremotefunc_t& func)
+static Answer doGenericTopRemotes(const pleaseremotefunc_t& func)
 {
   auto remotes = broadcastAccFunction<vector<ComboAddress>>(func);
   const unsigned int total = remotes.size();
   if (total == 0) {
-    return "No qualifying data available\n";
+    return {0, "No qualifying data available\n"};
   }
 
   std::map<ComboAddress, unsigned int, ComboAddress::addressOnlyLessThan> counts;
@@ -1579,7 +1580,7 @@ static string doGenericTopRemotes(const pleaseremotefunc_t& func)
   }
   ret << '\n'
       << fmt % (100.0 * (total - accounted) / total) % "rest";
-  return ret.str();
+  return {0, ret.str()};
 }
 
 // XXX DNSName Pain - this function should benefit from native DNSName methods
@@ -1620,13 +1621,13 @@ static DNSName nopFilter(const DNSName& name)
   return name;
 }
 
-static string doGenericTopQueries(const pleasequeryfunc_t& func, const std::function<DNSName(const DNSName&)>& filter = nopFilter)
+static Answer doGenericTopQueries(const pleasequeryfunc_t& func, const std::function<DNSName(const DNSName&)>& filter = nopFilter)
 {
   using query_t = pair<DNSName, uint16_t>;
   auto queries = broadcastAccFunction<vector<query_t>>(func);
   const unsigned int total = queries.size();
   if (total == 0) {
-    return "No qualifying data available\n";
+    return {0, "No qualifying data available\n"};
   }
 
   map<query_t, unsigned int> counts;
@@ -1651,7 +1652,7 @@ static string doGenericTopQueries(const pleasequeryfunc_t& func, const std::func
   ret << '\n'
       << fmt % (100.0 * (total - accounted) / total) % "rest";
 
-  return ret.str();
+  return {0, ret.str()};
 }
 
 static string* nopFunction()
@@ -1659,22 +1660,22 @@ static string* nopFunction()
   return new string("pong " + RecThreadInfo::self().getName() + '\n'); // NOLINT(cppcoreguidelines-owning-memory)
 }
 
-static string getDontThrottleNames()
+static Answer getDontThrottleNames(ArgIterator /* begin */, ArgIterator /* end */)
 {
   auto dtn = g_dontThrottleNames.getLocal();
-  return dtn->toString() + "\n";
+  return {0, dtn->toString() + "\n"};
 }
 
-static string getDontThrottleNetmasks()
+static Answer getDontThrottleNetmasks(ArgIterator /* begin */, ArgIterator /* end */)
 {
   auto dtn = g_dontThrottleNetmasks.getLocal();
-  return dtn->toString() + "\n";
+  return {0, dtn->toString() + "\n"};
 }
 
-static string addDontThrottleNames(ArgIterator begin, ArgIterator end)
+static Answer addDontThrottleNames(ArgIterator begin, ArgIterator end)
 {
   if (begin == end) {
-    return "No names specified, keeping existing list\n";
+    return {1, "No names specified, keeping existing list\n"};
   }
   vector<DNSName> toAdd;
   while (begin != end) {
@@ -1683,7 +1684,7 @@ static string addDontThrottleNames(ArgIterator begin, ArgIterator end)
       toAdd.emplace_back(std::move(name));
     }
     catch (const std::exception& e) {
-      return "Problem parsing '" + *begin + "': " + e.what() + ", nothing added\n";
+      return {1, "Problem parsing '" + *begin + "': " + e.what() + ", nothing added\n"};
     }
     begin++;
   }
@@ -1704,13 +1705,13 @@ static string addDontThrottleNames(ArgIterator begin, ArgIterator end)
 
   ret += " to the list of nameservers that may not be throttled";
   g_log << Logger::Info << ret << ", requested via control channel" << endl;
-  return ret + "\n";
+  return {0, ret + "\n"};
 }
 
-static string addDontThrottleNetmasks(ArgIterator begin, ArgIterator end)
+static Answer addDontThrottleNetmasks(ArgIterator begin, ArgIterator end)
 {
   if (begin == end) {
-    return "No netmasks specified, keeping existing list\n";
+    return {1, "No netmasks specified, keeping existing list\n"};
   }
   vector<Netmask> toAdd;
   while (begin != end) {
@@ -1719,10 +1720,10 @@ static string addDontThrottleNetmasks(ArgIterator begin, ArgIterator end)
       toAdd.push_back(netmask);
     }
     catch (const std::exception& e) {
-      return "Problem parsing '" + *begin + "': " + e.what() + ", nothing added\n";
+      return {1, "Problem parsing '" + *begin + "': " + e.what() + ", nothing added\n"};
     }
     catch (const PDNSException& e) {
-      return "Problem parsing '" + *begin + "': " + e.reason + ", nothing added\n";
+      return {1, "Problem parsing '" + *begin + "': " + e.reason + ", nothing added\n"};
     }
     begin++;
   }
@@ -1743,32 +1744,32 @@ static string addDontThrottleNetmasks(ArgIterator begin, ArgIterator end)
 
   ret += " to the list of nameserver netmasks that may not be throttled";
   g_log << Logger::Info << ret << ", requested via control channel" << endl;
-  return ret + "\n";
+  return {0, ret + "\n"};
 }
 
-static string clearDontThrottleNames(ArgIterator begin, ArgIterator end)
+static Answer clearDontThrottleNames(ArgIterator begin, ArgIterator end)
 {
   if (begin == end) {
-    return "No names specified, doing nothing.\n";
+    return {0, "No names specified, doing nothing.\n"};
   }
   if (begin + 1 == end && *begin == "*") {
     SuffixMatchNode smn;
     g_dontThrottleNames.setState(std::move(smn));
     string ret = "Cleared list of nameserver names that may not be throttled";
     g_log << Logger::Warning << ret << ", requested via control channel" << endl;
-    return ret + "\n";
+    return {0, ret + "\n"};
   }
 
   vector<DNSName> toRemove;
   while (begin != end) {
     try {
       if (*begin == "*") {
-        return "Please don't mix '*' with other names, nothing removed\n";
+        return {1, "Please don't mix '*' with other names, nothing removed\n"};
       }
       toRemove.emplace_back(*begin);
     }
     catch (const std::exception& e) {
-      return "Problem parsing '" + *begin + "': " + e.what() + ", nothing removed\n";
+      return {1, "Problem parsing '" + *begin + "': " + e.what() + ", nothing removed\n"};
     }
     begin++;
   }
@@ -1789,13 +1790,13 @@ static string clearDontThrottleNames(ArgIterator begin, ArgIterator end)
 
   ret += " from the list of nameservers that may not be throttled";
   g_log << Logger::Info << ret << ", requested via control channel" << endl;
-  return ret + "\n";
+  return {0, ret + "\n"};
 }
 
-static string clearDontThrottleNetmasks(ArgIterator begin, ArgIterator end)
+static Answer clearDontThrottleNetmasks(ArgIterator begin, ArgIterator end)
 {
   if (begin == end) {
-    return "No netmasks specified, doing nothing.\n";
+    return {1, "No netmasks specified, doing nothing.\n"};
   }
   if (begin + 1 == end && *begin == "*") {
     auto nmg = g_dontThrottleNetmasks.getCopy();
@@ -1804,23 +1805,23 @@ static string clearDontThrottleNetmasks(ArgIterator begin, ArgIterator end)
 
     string ret = "Cleared list of nameserver addresses that may not be throttled";
     g_log << Logger::Warning << ret << ", requested via control channel" << endl;
-    return ret + "\n";
+    return {0, ret + "\n"};
   }
 
   std::vector<Netmask> toRemove;
   while (begin != end) {
     try {
       if (*begin == "*") {
-        return "Please don't mix '*' with other netmasks, nothing removed\n";
+        return {1, "Please don't mix '*' with other netmasks, nothing removed\n"};
       }
       auto netmask = Netmask(*begin);
       toRemove.push_back(netmask);
     }
     catch (const std::exception& e) {
-      return "Problem parsing '" + *begin + "': " + e.what() + ", nothing added\n";
+      return {1, "Problem parsing '" + *begin + "': " + e.what() + ", nothing added\n"};
     }
     catch (const PDNSException& e) {
-      return "Problem parsing '" + *begin + "': " + e.reason + ", nothing added\n";
+      return {1, "Problem parsing '" + *begin + "': " + e.reason + ", nothing added\n"};
     }
     begin++;
   }
@@ -1841,20 +1842,20 @@ static string clearDontThrottleNetmasks(ArgIterator begin, ArgIterator end)
 
   ret += " from the list of nameservers that may not be throttled";
   g_log << Logger::Info << ret << ", requested via control channel" << endl;
-  return ret + "\n";
+  return {0, ret + "\n"};
 }
 
-static string setEventTracing(ArgIterator begin, ArgIterator end)
+static Answer setEventTracing(ArgIterator begin, ArgIterator end)
 {
   if (begin == end) {
-    return "No event trace enabled value specified\n";
+    return {1, "No event trace enabled value specified\n"};
   }
   try {
     pdns::checked_stoi_into(SyncRes::s_event_trace_enabled, *begin);
-    return "New event trace enabled value: " + std::to_string(SyncRes::s_event_trace_enabled) + "\n";
+    return {0, "New event trace enabled value: " + std::to_string(SyncRes::s_event_trace_enabled) + "\n"};
   }
   catch (const std::exception& e) {
-    return "Error parsing the new event trace enabled value: " + std::string(e.what()) + "\n";
+    return {1, "Error parsing the new event trace enabled value: " + std::string(e.what()) + "\n"};
   }
 }
 
@@ -1880,7 +1881,7 @@ static void* pleaseSupplantProxyMapping(const ProxyMapping& proxyMapping)
   return nullptr;
 }
 
-static RecursorControlChannel::Answer help()
+static RecursorControlChannel::Answer help(ArgIterator /* begin */, ArgIterator /* end */)
 {
   static const std::map<std::string, std::string> commands = {
     {"add-cookies-unsupported [IP...]", "Add non-expiring 'Unsupported' entry for IP to cookie table"},
@@ -2030,7 +2031,7 @@ RecursorControlChannel::Answer luaconfig(bool broadcast)
   }
 }
 
-static RecursorControlChannel::Answer luaconfig(ArgIterator begin, ArgIterator end)
+static RecursorControlChannel::Answer luaconfig1(ArgIterator begin, ArgIterator end)
 {
   if (begin != end) {
     if (g_luaSettingsInYAML) {
@@ -2041,7 +2042,7 @@ static RecursorControlChannel::Answer luaconfig(ArgIterator begin, ArgIterator e
   return luaconfig(true);
 }
 
-static RecursorControlChannel::Answer reloadACLs()
+static RecursorControlChannel::Answer reloadACLs(ArgIterator /* begin */, ArgIterator /* end */)
 {
   if (!::arg()["chroot"].empty()) {
     g_log << Logger::Error << "Unable to reload ACL when chroot()'ed, requested via control channel" << endl;
@@ -2082,229 +2083,174 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int socket, cons
     return {1, "invalid command\n"};
   }
 
-  string cmd = toLower(words[0]);
-  auto begin = words.begin() + 1;
-  auto end = words.end();
+  string cmd = toLower(words.at(0));
 
-  // should probably have a smart dispatcher here, like auth has
-  if (cmd == "help") {
-    return help();
-  }
-  if (cmd == "get-all") {
-    return {0, getAllStats()};
-  }
-  if (cmd == "get") {
-    return {0, doGet(begin, end)};
-  }
-  if (cmd == "get-parameter") {
-    return {0, doGetParameter(begin, end)};
-  }
-  if (cmd == "quit") {
-    *command = &doExit;
-    return {0, "bye\n"};
-  }
-  if (cmd == "version") {
-    return {0, getPDNSVersion() + "\n"};
-  }
-  if (cmd == "quit-nicely" || cmd == "stop") {
-    *command = &doExitNicely;
-    return {0, "bye nicely\n"};
-  }
-  if (cmd == "dump-cache") {
-    return doDumpCache(socket, begin, end);
-  }
-  if (cmd == "clear-cookies") {
-    string errors;
-    auto count = clearCookies(begin, end, errors);
-    if (errors.empty()) {
-      return {0, "Cleared " + std::to_string(count) + " entr" + addS(count, "y", "ies") + " from cookies table\n"};
-    }
-    return {1, "Cleared " + std::to_string(count) + " entr" + addS(count, "y", "ies") + " from cookies table, errors: " + errors + "\n"};
-  }
-  if (cmd == "add-cookies-unsupported") {
-    string errors;
-    auto count = addCookiesUnsupported(begin, end, errors);
-    if (errors.empty()) {
-      return {0, "Added " + std::to_string(count) + " entr" + addS(count, "y", "ies") + " to cookies table\n"};
-    }
-    return {1, "Added " + std::to_string(count) + " entr" + addS(count, "y", "ies") + " to cookies table, errors: " + errors + "\n"};
-  }
-  if (cmd == "dump-cookies") {
-    return doDumpToFile(socket, pleaseDumpCookiesMap, cmd, false);
-  }
-  if (cmd == "dump-dot-probe-map") {
-    return doDumpToFile(socket, pleaseDumpDoTProbeMap, cmd, false);
-  }
-  if (cmd == "dump-ednsstatus" || cmd == "dump-edns") {
-    return doDumpToFile(socket, pleaseDumpEDNSMap, cmd, false);
-  }
-  if (cmd == "dump-nsspeeds") {
-    return doDumpToFile(socket, pleaseDumpNSSpeeds, cmd, false);
-  }
-  if (cmd == "dump-failedservers") {
-    return doDumpToFile(socket, pleaseDumpFailedServers, cmd, false);
-  }
-  if (cmd == "dump-saved-parent-ns-sets") {
-    return doDumpToFile(socket, pleaseDumpSavedParentNSSets, cmd, false);
-  }
-  if (cmd == "dump-rpz") {
-    return doDumpRPZ(socket, begin, end);
-  }
-  if (cmd == "dump-throttlemap") {
-    return doDumpToFile(socket, pleaseDumpThrottleMap, cmd, false);
-  }
-  if (cmd == "dump-non-resolving") {
-    return doDumpToFile(socket, pleaseDumpNonResolvingNS, cmd, false);
-  }
-  if (cmd == "wipe-cache" || cmd == "flushname") {
-    return {0, doWipeCache(begin, end, 0xffff)};
-  }
-  if (cmd == "wipe-cache-typed") {
-    if (begin == end) {
-      return {1, "Need a qtype\n"};
-    }
-    uint16_t qtype = QType::chartocode(begin->c_str());
-    if (qtype == 0) {
-      return {1, "Unknown qtype " + *begin + "\n"};
-    }
-    ++begin;
-    return {0, doWipeCache(begin, end, qtype)};
-  }
-  if (cmd == "reload-lua-script") {
-    return doQueueReloadLuaScript(begin, end);
-  }
-  if (cmd == "reload-lua-config") {
-    return luaconfig(begin, end);
-  }
-  if (cmd == "reload-yaml") {
-    return luaconfig(begin, end);
-  }
-  if (cmd == "set-carbon-server") {
-    return {0, doSetCarbonServer(begin, end)};
-  }
-  if (cmd == "trace-regex") {
-    return {0, doTraceRegex(begin == end ? FDWrapper(-1) : getfd(socket), begin, end)};
-  }
-  if (cmd == "unload-lua-script") {
-    return clearLuaScript();
-  }
-  if (cmd == "reload-acls") {
-    return reloadACLs();
-  }
-  if (cmd == "top-remotes") {
-    return {0, doGenericTopRemotes(pleaseGetRemotes)};
-  }
-  if (cmd == "top-queries") {
-    return {0, doGenericTopQueries(pleaseGetQueryRing)};
-  }
-  if (cmd == "top-pub-queries") {
-    return {0, doGenericTopQueries(pleaseGetQueryRing, getRegisteredName)};
-  }
-  if (cmd == "top-servfail-queries") {
-    return {0, doGenericTopQueries(pleaseGetServfailQueryRing)};
-  }
-  if (cmd == "top-pub-servfail-queries") {
-    return {0, doGenericTopQueries(pleaseGetServfailQueryRing, getRegisteredName)};
-  }
-  if (cmd == "top-bogus-queries") {
-    return {0, doGenericTopQueries(pleaseGetBogusQueryRing)};
-  }
-  if (cmd == "top-pub-bogus-queries") {
-    return {0, doGenericTopQueries(pleaseGetBogusQueryRing, getRegisteredName)};
-  }
-  if (cmd == "top-servfail-remotes") {
-    return {0, doGenericTopRemotes(pleaseGetServfailRemotes)};
-  }
-  if (cmd == "top-bogus-remotes") {
-    return {0, doGenericTopRemotes(pleaseGetBogusRemotes)};
-  }
-  if (cmd == "top-largeanswer-remotes") {
-    return {0, doGenericTopRemotes(pleaseGetLargeAnswerRemotes)};
-  }
-  if (cmd == "top-timeouts") {
-    return {0, doGenericTopRemotes(pleaseGetTimeouts)};
-  }
-  if (cmd == "current-queries") {
-    return {0, doCurrentQueries()};
-  }
-  if (cmd == "ping") {
-    return {0, broadcastAccFunction<string>(nopFunction)};
-  }
-  if (cmd == "reload-zones") {
-    if (!::arg()["chroot"].empty()) {
-      g_log << Logger::Error << "Unable to reload zones and forwards when chroot()'ed, requested via control channel" << endl;
-      return {1, "Unable to reload zones and forwards when chroot()'ed, please restart\n"};
-    }
-    return {0, reloadZoneConfigurationWithSysResolveReset()};
-  }
-  if (cmd == "set-ecs-minimum-ttl") {
-    return {0, setMinimumECSTTL(begin, end)};
-  }
-  if (cmd == "set-max-cache-entries") {
-    return {0, setMaxCacheEntries(begin, end)};
-  }
-  if (cmd == "set-max-packetcache-entries") {
-    return {0, setMaxPacketCacheEntries(begin, end)};
-  }
-  if (cmd == "set-minimum-ttl") {
-    return {0, setMinimumTTL(begin, end)};
-  }
-  if (cmd == "get-qtypelist") {
-    return {0, g_Counters.sum(rec::ResponseStats::responseStats).getQTypeReport()};
-  }
-  if (cmd == "add-nta") {
-    return {0, doAddNTA(begin, end)};
-  }
-  if (cmd == "clear-nta") {
-    return {0, doClearNTA(begin, end)};
-  }
-  if (cmd == "get-ntas") {
-    return {0, getNTAs()};
-  }
-  if (cmd == "add-ta") {
-    return {0, doAddTA(begin, end)};
-  }
-  if (cmd == "clear-ta") {
-    return {0, doClearTA(begin, end)};
-  }
-  if (cmd == "get-tas") {
-    return {0, getTAs()};
-  }
-  if (cmd == "set-dnssec-log-bogus") {
-    return {0, doSetDnssecLogBogus(begin, end)};
-  }
-  if (cmd == "get-dont-throttle-names") {
-    return {0, getDontThrottleNames()};
-  }
-  if (cmd == "get-dont-throttle-netmasks") {
-    return {0, getDontThrottleNetmasks()};
-  }
-  if (cmd == "add-dont-throttle-names") {
-    return {0, addDontThrottleNames(begin, end)};
-  }
-  if (cmd == "add-dont-throttle-netmasks") {
-    return {0, addDontThrottleNetmasks(begin, end)};
-  }
-  if (cmd == "clear-dont-throttle-names") {
-    return {0, clearDontThrottleNames(begin, end)};
-  }
-  if (cmd == "clear-dont-throttle-netmasks") {
-    return {0, clearDontThrottleNetmasks(begin, end)};
-  }
-  if (cmd == "set-event-trace-enabled") {
-    return {0, setEventTracing(begin, end)};
-  }
-  if (cmd == "get-proxymapping-stats") {
-    return {0, doGetProxyMappingStats()};
-  }
-  if (cmd == "get-remotelogger-stats") {
-    return {0, getRemoteLoggerStats()};
-  }
-  if (cmd == "list-dnssec-algos") {
-    return {0, DNSCryptoKeyEngine::listSupportedAlgoNames()};
-  }
-  if (cmd == "set-aggr-nsec-cache-size") {
-    return setAggrNSECCacheSize(begin, end);
+  // The standard command function signature is (ArgIterator, ArgIterator) -> Answer
+  // Answer is a pair of a status code and a message.
+  // If you need to
+  // specify a different signature, define a lambda, potentially capturing the socket and cmd by ref
+
+  static const std::unordered_map<std::string, std::function<Answer(ArgIterator, ArgIterator)>> commands = {
+    {"help", help},
+    {"get-all", getAllStats},
+    {"get", doGet},
+    {"get-parameter", doGetParameter},
+    {"quit", [&](ArgIterator, ArgIterator) -> Answer { *command = doExit; return {0, "bye\n"}; }},
+    {"version", [&](ArgIterator, ArgIterator) -> Answer { return {0, getPDNSVersion() + "\n"}; }},
+    {"quit-nicely", [&](ArgIterator, ArgIterator) -> Answer { *command = doExitNicely; return {0, "bye nicely\n"}; }},
+    {"stop", [&](ArgIterator, ArgIterator) -> Answer { *command = doExitNicely; return {0, "bye nicely\n"}; }},
+    {"dump-cache", [&](ArgIterator begin, ArgIterator end) {
+       return doDumpCache(socket, begin, end);
+     }},
+    {"clear-cookies", [](ArgIterator begin, ArgIterator end) -> Answer {
+       string errors;
+       auto count = clearCookies(begin, end, errors);
+       if (errors.empty()) {
+         return {0, "Cleared " + std::to_string(count) + " entr" + addS(count, "y", "ies") + " from cookies table\n"};
+       }
+       return {1, "Cleared " + std::to_string(count) + " entr" + addS(count, "y", "ies") + " from cookies table, errors: " + errors + "\n"};
+     }},
+    {"add-cookies-unsupported", [](ArgIterator begin, ArgIterator end) -> Answer {
+       string errors;
+       auto count = addCookiesUnsupported(begin, end, errors);
+       if (errors.empty()) {
+         return {0, "Added " + std::to_string(count) + " entr" + addS(count, "y", "ies") + " to cookies table\n"};
+       }
+       return {1, "Added " + std::to_string(count) + " entr" + addS(count, "y", "ies") + " to cookies table, errors: " + errors + "\n"};
+     }},
+    {"dump-cookies", [&](ArgIterator, ArgIterator) -> Answer {
+       return doDumpToFile(socket, pleaseDumpCookiesMap, cmd, false);
+     }},
+    {"dump-dot-probe-map", [&](ArgIterator, ArgIterator) -> Answer {
+       return doDumpToFile(socket, pleaseDumpDoTProbeMap, cmd, false);
+     }},
+    {"dump-ednsstatus", [&](ArgIterator, ArgIterator) -> Answer {
+       return doDumpToFile(socket, pleaseDumpEDNSMap, cmd, false);
+     }},
+    {"dump-edns", [&](ArgIterator, ArgIterator) -> Answer {
+       return doDumpToFile(socket, pleaseDumpEDNSMap, cmd, false);
+     }},
+    {"dump-nsspeeds", [&](ArgIterator, ArgIterator) -> Answer {
+       return doDumpToFile(socket, pleaseDumpNSSpeeds, cmd, false);
+     }},
+    {"dump-failedservers", [&](ArgIterator, ArgIterator) -> Answer {
+       return doDumpToFile(socket, pleaseDumpFailedServers, cmd, false);
+     }},
+    {"dump-saved-parent-ns-sets", [&](ArgIterator, ArgIterator) -> Answer {
+       return doDumpToFile(socket, pleaseDumpSavedParentNSSets, cmd, false);
+     }},
+    {"dump-rpz", [&](ArgIterator begin, ArgIterator end) -> Answer {
+       return doDumpRPZ(socket, begin, end);
+     }},
+    {"dump-throttlemap", [&](ArgIterator, ArgIterator) -> Answer {
+       return doDumpToFile(socket, pleaseDumpThrottleMap, cmd, false);
+     }},
+    {"dump-non-resolving", [&](ArgIterator, ArgIterator) -> Answer {
+       return doDumpToFile(socket, pleaseDumpNonResolvingNS, cmd, false);
+     }},
+    {"wipe-cache", [](ArgIterator begin, ArgIterator end) -> Answer {
+       return doWipeCache(begin, end, 0xffff);
+     }},
+    {"flushname", [](ArgIterator begin, ArgIterator end) -> Answer {
+       return doWipeCache(begin, end, 0xffff);
+     }},
+    {"wipe-cache-typed", [](ArgIterator begin, ArgIterator end) -> Answer {
+       if (begin == end) {
+         return {1, "Need a qtype\n"};
+       }
+       uint16_t qtype = QType::chartocode(begin->c_str());
+       if (qtype == 0) {
+         return {1, "Unknown qtype " + *begin + "\n"};
+       }
+       ++begin;
+       return doWipeCache(begin, end, qtype);
+     }},
+    {"reload-lua-script", doQueueReloadLuaScript},
+    {"reload-lua-config", luaconfig1},
+    {"reload-yaml", luaconfig1},
+    {"set-carbon-server", doSetCarbonServer},
+    {"trace-regex", [&](ArgIterator begin, ArgIterator end) -> Answer {
+       return {0, doTraceRegex(begin == end ? FDWrapper(-1) : getfd(socket), begin, end)};
+     }},
+    {"unload-lua-script", clearLuaScript},
+    {"reload-acls", reloadACLs},
+    {"top-remotes", [](ArgIterator, ArgIterator) -> Answer {
+       return doGenericTopRemotes(pleaseGetRemotes);
+     }},
+    {"top-queries", [](ArgIterator, ArgIterator) {
+       return doGenericTopQueries(pleaseGetQueryRing);
+     }},
+    {"top-pub-queries", [](ArgIterator, ArgIterator) {
+       return doGenericTopQueries(pleaseGetQueryRing, getRegisteredName);
+     }},
+    {"top-servfail-queries", [](ArgIterator, ArgIterator) {
+       return doGenericTopQueries(pleaseGetServfailQueryRing);
+     }},
+    {"top-pub-servfail-queries", [](ArgIterator, ArgIterator) {
+       return doGenericTopQueries(pleaseGetServfailQueryRing, getRegisteredName);
+     }},
+    {"top-bogus-queries", [](ArgIterator, ArgIterator) {
+       return doGenericTopQueries(pleaseGetBogusQueryRing);
+     }},
+    {"top-pub-bogus-queries", [](ArgIterator, ArgIterator) {
+       return doGenericTopQueries(pleaseGetBogusQueryRing, getRegisteredName);
+     }},
+    {"top-servfail-remotes", [](ArgIterator, ArgIterator) {
+       return doGenericTopRemotes(pleaseGetServfailRemotes);
+     }},
+    {"top-bogus-remotes", [](ArgIterator, ArgIterator) {
+       return doGenericTopRemotes(pleaseGetBogusRemotes);
+     }},
+    {"top-largeanswer-remotes", [](ArgIterator, ArgIterator) {
+       return doGenericTopRemotes(pleaseGetLargeAnswerRemotes);
+     }},
+    {"top-timeouts", [](ArgIterator, ArgIterator) {
+       return doGenericTopRemotes(pleaseGetTimeouts);
+     }},
+    {"current-queries", doCurrentQueries},
+    {"ping", [](ArgIterator, ArgIterator) -> Answer {
+       return {0, broadcastAccFunction<string>(nopFunction)};
+     }},
+    {"reload-zones", [](ArgIterator, ArgIterator) -> Answer {
+       if (!::arg()["chroot"].empty()) {
+         g_log << Logger::Error << "Unable to reload zones and forwards when chroot()'ed, requested via control channel" << endl;
+         return {1, "Unable to reload zones and forwards when chroot()'ed, please restart\n"};
+       }
+       return {0, reloadZoneConfigurationWithSysResolveReset()};
+     }},
+    {"set-ecs-minimum-ttl", setMinimumECSTTL},
+    {"set-max-cache-entries", setMaxCacheEntries},
+    {"set-max-packetcache-entries", setMaxPacketCacheEntries},
+    {"set-minimum-ttl", setMinimumTTL},
+    {"get-qtypelist", [](ArgIterator, ArgIterator) -> Answer {
+       return {0, g_Counters.sum(rec::ResponseStats::responseStats).getQTypeReport()};
+     }},
+    {"add-nta", doAddNTA},
+    {"clear-nta", doClearNTA},
+    {"get-ntas", getNTAs},
+    {"add-ta", doAddTA},
+    {"clear-ta", doClearTA},
+    {"get-tas", getTAs},
+    {"set-dnssec-log-bogus", doSetDnssecLogBogus},
+    {"get-dont-throttle-names", getDontThrottleNames},
+    {"get-dont-throttle-netmasks", getDontThrottleNetmasks},
+    {"add-dont-throttle-names", addDontThrottleNames},
+    {"add-dont-throttle-netmasks", addDontThrottleNetmasks},
+    {"clear-dont-throttle-names", clearDontThrottleNames},
+    {"clear-dont-throttle-netmasks", clearDontThrottleNetmasks},
+    {"set-event-trace-enabled", setEventTracing},
+    {"get-proxymapping-stats", doGetProxyMappingStats},
+    {"get-remotelogger-stats", getRemoteLoggerStats},
+    {"list-dnssec-algos", [](ArgIterator, ArgIterator) -> Answer {
+       return {0, DNSCryptoKeyEngine::listSupportedAlgoNames()};
+     }},
+    {"set-aggr-nsec-cache-size", setAggrNSECCacheSize},
+  };
+
+  if (const auto entry = commands.find(cmd); entry != commands.end()) {
+    auto begin = words.begin() + 1;
+    auto end = words.end();
+    return entry->second(begin, end);
   }
 
   return {1, "Unknown command '" + cmd + "', try 'help'\n"};
