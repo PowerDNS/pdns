@@ -30,9 +30,7 @@ git clone https://github.com/PowerDNS/pdns.git
 ```
 
 This repository contains the sources for the PowerDNS Recursor, the PowerDNS
-Authoritative Server, and dnsdist (a powerful DNS loadbalancer). All three can
-be built from this repository. However, all three released separately as .tar.bz2,
-.deb and .rpm.
+Authoritative Server, and dnsdist (a powerful DNS loadbalancer). All three can be built from this repository. However, they are also released separately as .tar.bz2, .deb, and .rpm packages.
 
 The different releases can be built by the help of pdns-builder, which uses a
 docker-based build process. To get started with this, run these commands in the root
