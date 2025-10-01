@@ -73,7 +73,7 @@ static thread_local std::unique_ptr<tcpClientCounts_t> t_tcpClientCounts = std::
 
 static void handleRunningTCPQuestion(int fileDesc, FDMultiplexer::funcparam_t& var);
 
-#if 0
+#if 1
 #define TCPLOG(tcpsock, x)                                 \
   do {                                                     \
     cerr << []() { timeval t; gettimeofday(&t, nullptr); return t.tv_sec % 10  + t.tv_usec/1000000.0; }() << " FD " << (tcpsock) << ' ' << x; \
@@ -989,7 +989,7 @@ LWResult::Result asendtcp(const PacketBuffer& data, shared_ptr<TCPIOHandler>& ha
   }
   if (packet.size() != data.size()) { // main loop tells us what it sent out, or empty in case of an error
     // fd housekeeping done by TCPIOHandlerIO
-    TCPLOG(pident->tcpsock, "PermanentError size mismatch" << endl);
+    TCPLOG(pident->tcpsock, "PermanentError size mismatch " << endl);
     return LWResult::Result::PermanentError;
   }
 

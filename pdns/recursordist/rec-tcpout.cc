@@ -82,6 +82,15 @@ TCPOutConnectionManager::Connection TCPOutConnectionManager::get(const endpoints
   return Connection{};
 }
 
+std::shared_ptr<TLSCtx> TCPOutConnectionManager::getTLSContext(const std::string& name, const ComboAddress& address)
+{
+  TLSContextParameters tlsParams;
+  tlsParams.d_provider = "openssl";
+  tlsParams.d_validateCertificates = true;
+  // tlsParams.d_caStore
+  return ::getTLSContext(tlsParams);
+}
+
 uint64_t getCurrentIdleTCPConnections()
 {
   return broadcastAccFunction<uint64_t>([] { return t_tcp_manager.getSize(); });

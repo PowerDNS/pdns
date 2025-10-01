@@ -39,6 +39,7 @@ public:
   virtual bool isUsable() const = 0;
   virtual std::vector<int> getAsyncFDs() = 0;
   virtual void close() = 0;
+  [[nodiscard]] virtual std::pair<long, std::string> getVerifyResult() const = 0;
 
   void setUnknownTicketKey()
   {
@@ -522,6 +523,14 @@ public:
   bool isTLS() const
   {
     return d_conn != nullptr;
+  }
+
+  [[nodiscard]] std::pair<long, std::string> getVerifyResult() const
+  {
+    if (d_conn) {
+      return d_conn->getVerifyResult();
+    }
+    return {0, ""};
   }
 
   bool hasTLSSessionBeenResumed() const

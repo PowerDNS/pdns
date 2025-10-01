@@ -439,6 +439,11 @@ public:
     return LibsslTLSVersion::TLS13;
   }
 
+  [[nodiscard]] std::pair<long, std::string> getVerifyResult() const override
+  {
+    return {-1, "Not implemented yet"};
+  }
+
   bool hasSessionBeenResumed() const override
   {
     return false;

@@ -413,11 +413,7 @@ static bool tcpconnect(const OptLog& log, const ComboAddress& remote, const std:
 
   std::shared_ptr<TLSCtx> tlsCtx{nullptr};
   if (dnsOverTLS) {
-    TLSContextParameters tlsParams;
-    tlsParams.d_provider = "openssl";
-    tlsParams.d_validateCertificates = false;
-    // tlsParams.d_caStore
-    tlsCtx = getTLSContext(tlsParams);
+    tlsCtx = TCPOutConnectionManager::getTLSContext(nsName, remote);
     if (tlsCtx == nullptr) {
       g_slogout->info(Logr::Error, "DoT requested but not available", "server", Logging::Loggable(remote));
       dnsOverTLS = false;
@@ -451,6 +447,8 @@ static LWResult::Result tcpsendrecv(const ComboAddress& ip, TCPOutConnectionMana
 
   LWResult::Result ret = asendtcp(packet, connection.d_handler);
   if (ret != LWResult::Result::Success) {
+    auto result = connection.d_handler->getVerifyResult();
+    cerr << "ASENDTCP RETURNED FAIL " << ip.toString() << ' ' << result.first << ' ' << result.second << endl;
     return ret;
   }
 

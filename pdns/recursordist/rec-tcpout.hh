@@ -68,6 +68,8 @@ public:
     return new uint64_t(size()); // NOLINT(cppcoreguidelines-owning-memory): it's the API
   }
 
+  static std::shared_ptr<TLSCtx> getTLSContext(const std::string& name, const ComboAddress& address);
+
 private:
   // This does not take into account that we can have multiple connections with different hosts (via SNI) to the same IP.
   // That is OK, since we are connecting by IP only at the moment.
