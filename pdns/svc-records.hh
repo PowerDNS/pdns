@@ -28,7 +28,7 @@
 class SvcParam {
   public:
     enum SvcParamKey: uint16_t {
-      // TODO link to IANA registry
+      // https://www.iana.org/assignments/dns-svcb/dns-svcb.xhtml#dns-svcparamkeys
       /* When adding new values, you *must* update SvcParam::SvcParam(const std::string &key, const std::string &value)
        * in svc-record.cc with the new numbers
        */
@@ -38,7 +38,10 @@ class SvcParam {
       port = 3,
       ipv4hint = 4,
       ech = 5,
-      ipv6hint = 6
+      ipv6hint = 6,
+      dohpath = 7,
+      ohttp = 8,
+      tls_supported_groups = 9,  /* https://datatracker.ietf.org/doc/draft-ietf-tls-key-share-prediction/ */
     };
 
   //! empty Param, unusable
@@ -59,8 +62,11 @@ class SvcParam {
   //! To create a multi-value SvcParam with key values (like mandatory)
   SvcParam(const SvcParamKey &key, std::set<SvcParamKey> &&value);
 
-  //! To create and ipv{4,6}hists SvcParam
+  //! To create an ipv{4,6}hists SvcParam
   SvcParam(const SvcParamKey &key, std::vector<ComboAddress> &&value);
+
+  //! To create a tls-supported-groups SvcParam
+  SvcParam(const SvcParamKey &key, std::vector<uint16_t> &&value);
 
   //! To create a port SvcParam
   SvcParam(const SvcParamKey &key, const uint16_t value);
@@ -91,6 +97,7 @@ class SvcParam {
   const std::set<SvcParamKey>& getMandatory() const;
   const std::string& getECH() const;
   const std::string& getValue() const;
+  const std::vector<uint16_t>& getTLSSupportedGroups() const;
 
   bool getAutoHint() const { return d_autohint; };
   void setAutoHint(const bool value) { d_autohint = value; };
@@ -103,6 +110,7 @@ class SvcParam {
     std::set<SvcParamKey> d_mandatory; // For mandatory
     std::vector<ComboAddress> d_ipHints; // For ipv{6,4}hints
     std::string d_ech; // For Encrypted Client Hello
+    std::vector<uint16_t> d_tls_supported_groups; // For tls-supported-groups
     uint16_t d_port{0}; // For port
 
     // Set to true if we encountered an "auto" field in hints

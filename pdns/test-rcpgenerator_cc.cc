@@ -102,6 +102,46 @@ BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_alpn) {
         BOOST_CHECK_THROW(rtr7.xfrSvcParamKeyVals(v), RecordTextException);
 }
 
+BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_dohpath) {
+        string source("dohpath=\"foo/bar\"");
+        set<SvcParam> vals;
+        RecordTextReader(source).xfrSvcParamKeyVals(vals);
+        BOOST_CHECK_EQUAL(vals.size(), 1U);
+        BOOST_CHECK_EQUAL(vals.begin()->getKey(), SvcParam::dohpath);
+        BOOST_CHECK_EQUAL(vals.begin()->getValue(), "foo/bar");
+
+        // Check the writer
+        string target;
+        RecordTextWriter rtw(target);
+        rtw.xfrSvcParamKeyVals(vals);
+        BOOST_CHECK_EQUAL(target, source);
+
+        vals.clear();
+        BOOST_CHECK_THROW(RecordTextReader("dohpath=").xfrSvcParamKeyVals(vals), RecordTextException);
+
+        // Generic
+        vals.clear();
+        RecordTextReader ("key7=\"foo/bar\"").xfrSvcParamKeyVals(vals);
+        BOOST_CHECK_EQUAL(vals.size(), 1U);
+        BOOST_CHECK_EQUAL(vals.begin()->getKey(), SvcParam::dohpath);
+        BOOST_CHECK_EQUAL(vals.begin()->getValue(), "foo/bar");
+
+        vals.clear();
+        RecordTextReader ("key7=foo/bar").xfrSvcParamKeyVals(vals);
+        BOOST_CHECK_EQUAL(vals.size(), 1U);
+        BOOST_CHECK_EQUAL(vals.begin()->getKey(), SvcParam::dohpath);
+        BOOST_CHECK_EQUAL(vals.begin()->getValue(), "foo/bar");
+
+        vals.clear();
+        BOOST_CHECK_THROW(RecordTextReader("key7").xfrSvcParamKeyVals(vals), RecordTextException);
+
+        vals.clear();
+        BOOST_CHECK_THROW(RecordTextReader("key7=").xfrSvcParamKeyVals(vals), RecordTextException);
+
+        vals.clear();
+        BOOST_CHECK_THROW(RecordTextReader("key7=\"\"").xfrSvcParamKeyVals(vals), RecordTextException);
+}
+
 BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_mandatory) {
         string source("mandatory=alpn");
         RecordTextReader rtr(source);
@@ -397,6 +437,88 @@ BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_ipv6hint) {
         v.clear();
         RecordTextReader rtr9("ipv6hint=");  // must have a value
         BOOST_CHECK_THROW(rtr9.xfrSvcParamKeyVals(v), RecordTextException);
+}
+
+BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_tls_supported_groups) {
+        string source("tls-supported-groups=29,23");
+        std::vector<uint16_t> expected_value{29, 23};
+        set<SvcParam> vals;
+        RecordTextReader (source).xfrSvcParamKeyVals(vals);
+        BOOST_CHECK_EQUAL(vals.size(), 1U);
+        BOOST_CHECK_EQUAL(vals.begin()->getKey(), SvcParam::tls_supported_groups);
+        BOOST_CHECK(vals.begin()->getTLSSupportedGroups() == expected_value);
+
+        // Check the writer
+        string target;
+        RecordTextWriter(target).xfrSvcParamKeyVals(vals);
+        BOOST_CHECK_EQUAL(target, source);
+
+        vals.clear();
+        BOOST_CHECK_THROW(RecordTextReader("tls-supported-groups=").xfrSvcParamKeyVals(vals), RecordTextException);
+
+        vals.clear();
+        BOOST_CHECK_THROW(RecordTextReader("tls-supported-groups=foo,bar").xfrSvcParamKeyVals(vals), RecordTextException);
+
+        // Generic
+        vals.clear();
+        RecordTextReader ("key9=29,23").xfrSvcParamKeyVals(vals);
+        BOOST_CHECK_EQUAL(vals.size(), 1U);
+        BOOST_CHECK_EQUAL(vals.begin()->getKey(), SvcParam::tls_supported_groups);
+        BOOST_CHECK(vals.begin()->getTLSSupportedGroups() == expected_value);
+
+        vals.clear();
+        BOOST_CHECK_THROW(RecordTextReader("key9").xfrSvcParamKeyVals(vals), RecordTextException);
+
+        vals.clear();
+        BOOST_CHECK_THROW(RecordTextReader("key9=").xfrSvcParamKeyVals(vals), RecordTextException);
+
+        vals.clear();
+        BOOST_CHECK_THROW(RecordTextReader("key9=\"\"").xfrSvcParamKeyVals(vals), RecordTextException);
+
+        vals.clear();
+        BOOST_CHECK_THROW(RecordTextReader("key9=foo,bar").xfrSvcParamKeyVals(vals), RecordTextException);
+}
+
+BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_ohttp) {
+        string source("ohttp");
+        set<SvcParam> vals;
+        RecordTextReader(source).xfrSvcParamKeyVals(vals);
+        BOOST_CHECK_EQUAL(vals.size(), 1U);
+        BOOST_CHECK(vals.begin()->getKey() == SvcParam::ohttp);
+
+        // Check the writer
+        string target;
+        RecordTextWriter(target).xfrSvcParamKeyVals(vals);
+        BOOST_CHECK_EQUAL(target, source);
+
+        vals.clear();
+        BOOST_CHECK_THROW(RecordTextReader("ohttp=").xfrSvcParamKeyVals(vals), RecordTextException);
+
+        // Generic
+        vals.clear();
+        RecordTextReader("key8").xfrSvcParamKeyVals(vals);
+        BOOST_CHECK_EQUAL(vals.size(), 1U);
+        BOOST_CHECK_EQUAL(vals.begin()->getKey(), SvcParam::ohttp);
+        BOOST_CHECK(vals.begin()->getKey() == SvcParam::SvcParamKey::ohttp);
+
+        vals.clear();
+        BOOST_CHECK_THROW(RecordTextReader("key8=").xfrSvcParamKeyVals(vals), RecordTextException);
+
+        vals.clear();
+        RecordTextReader("key8 ipv4hint=1.2.3.4").xfrSvcParamKeyVals(vals);
+        BOOST_CHECK_EQUAL(vals.size(), 2U);
+        BOOST_CHECK_EQUAL(std::count_if(vals.begin(), vals.end(), [](const SvcParam& param) { return param.getKey() == SvcParam::ohttp; }), 1);
+
+        vals.clear();
+        RecordTextReader("ipv4hint=1.2.3.4 key8").xfrSvcParamKeyVals(vals);
+        BOOST_CHECK_EQUAL(vals.size(), 2U);
+        BOOST_CHECK_EQUAL(std::count_if(vals.begin(), vals.end(), [](const SvcParam& param) { return param.getKey() == SvcParam::ohttp; }), 1);
+
+        vals.clear();
+        BOOST_CHECK_THROW(RecordTextReader("key8=port=123 ipv4hint=1.2.3.4").xfrSvcParamKeyVals(vals), RecordTextException);
+
+        vals.clear();
+        BOOST_CHECK_THROW(RecordTextReader("key8=port=123").xfrSvcParamKeyVals(vals), RecordTextException);
 }
 
 BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_port) {
