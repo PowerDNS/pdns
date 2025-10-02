@@ -40,6 +40,9 @@ const std::unordered_map<RecEventTrace::EventType, std::string> RecEventTrace::s
   NameEntry(LuaNXDomain),
   NameEntry(LuaPostResolveFFI),
   NameEntry(AuthRequest),
+  NameEntry(PacketParse),
+  NameEntry(ProcessUDP),
+  NameEntry(ProcessTCP),
 };
 
 using namespace pdns::trace;
@@ -61,6 +64,20 @@ static void addValue(const RecEventTrace::Entry& event, Span& work, bool start)
   }
   else {
     work.attributes.emplace_back(KeyValue{std::move(key), {RecEventTrace::toString(event.d_value)}});
+  }
+  for (const auto& [ekey, value] : event.d_extraValues) {
+    if (std::holds_alternative<bool>(value)) {
+      work.attributes.emplace_back(KeyValue{ekey, {std::get<bool>(value)}});
+    }
+    else if (std::holds_alternative<int64_t>(value)) {
+      work.attributes.emplace_back(KeyValue{ekey, {std::get<int64_t>(value)}});
+    }
+    else if (std::holds_alternative<std::string>(value)) {
+      work.attributes.emplace_back(KeyValue{ekey, {std::get<std::string>(value)}});
+    }
+    else {
+      work.attributes.emplace_back(KeyValue{ekey, {RecEventTrace::toString(value)}});
+    }
   }
 }
 

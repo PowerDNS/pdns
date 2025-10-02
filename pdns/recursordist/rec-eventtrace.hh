@@ -56,6 +56,9 @@ public:
     LuaPostResolveFFI = 110,
 
     AuthRequest = 120,
+    PacketParse = 121,
+    ProcessUDP = 122,
+    ProcessTCP = 123,
   };
 
   static const std::unordered_map<EventType, std::string> s_eventNames;
@@ -139,6 +142,7 @@ public:
     {
     }
     Value_t d_value;
+    std::vector<std::pair<string, Value_t>> d_extraValues;
     std::string d_custom;
     int64_t d_ts;
     size_t d_parent;
@@ -224,6 +228,15 @@ public:
   size_t add(E eventType, T value, bool start, size_t match)
   {
     return add(eventType, Value_t(value), start, match, 0);
+  }
+
+  void addExtraValues(size_t index, std::vector<std::pair<std::string, Value_t>>&& values)
+  {
+    assert(d_status != Invalid);
+    if (d_status == Disabled) {
+      return;
+    }
+    d_events.at(index).d_extraValues = std::move(values);
   }
 
   void clear()
