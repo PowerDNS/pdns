@@ -11,6 +11,10 @@ project(
     'cpp_std=c++17',
   ],
 )
+
+env = environment()
+cargo = find_program('cargo')
+env.set('_defaultCARGO', cargo.full_path())
 meson.add_dist_script('meson-dist-script.sh')
 
 # When running meson dist, the command below produces multiple lines on stderr:
