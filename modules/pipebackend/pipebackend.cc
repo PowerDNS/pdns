@@ -332,7 +332,7 @@ bool PipeBackend::get(DNSResourceRecord& r)
         case QType::MX:
         case QType::SRV:
           if (parts.size() < 8) {
-            throwTooShortDataError("of MX/SRV record");
+            throwTooShortDataError(" of MX/SRV record");
           }
           r.content = parts[6] + " " + parts[7];
           break;
