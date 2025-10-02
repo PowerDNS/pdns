@@ -31,7 +31,7 @@
 namespace pdns::trace::dnsdist
 {
 
-TracesData Tracer::getTracesData() const
+TracesData Tracer::getTracesData()
 {
 #ifdef DISABLE_PROTOBUF
   return 0;
@@ -51,27 +51,33 @@ TracesData Tracer::getTracesData() const
     d_attributes.begin(),
     d_attributes.end());
 
-  for (auto const& preActivationTrace : d_preActivationSpans) {
-    otTrace.resource_spans.at(0).scope_spans.at(0).spans.push_back(
-      {
-        .trace_id = d_traceid,
-        .span_id = preActivationTrace.span_id,
-        .parent_span_id = preActivationTrace.parent_span_id,
-        .name = preActivationTrace.name,
-        .start_time_unix_nano = preActivationTrace.start_time_unix_nano,
-        .end_time_unix_nano = preActivationTrace.end_time_unix_nano,
-      });
-  }
+  {
+    auto lockedPre = d_preActivationSpans.read_only_lock();
 
-  otTrace.resource_spans.at(0).scope_spans.at(0).spans.insert(
-    otTrace.resource_spans.at(0).scope_spans.at(0).spans.end(),
-    d_postActivationSpans.begin(),
-    d_postActivationSpans.end());
+    for (auto const& preActivationTrace : *lockedPre) {
+      otTrace.resource_spans.at(0).scope_spans.at(0).spans.push_back(
+        {
+          .trace_id = d_traceid,
+          .span_id = preActivationTrace.span_id,
+          .parent_span_id = preActivationTrace.parent_span_id,
+          .name = preActivationTrace.name,
+          .start_time_unix_nano = preActivationTrace.start_time_unix_nano,
+          .end_time_unix_nano = preActivationTrace.end_time_unix_nano,
+        });
+    }
+  }
+  {
+    auto lockedPost = d_postActivationSpans.read_only_lock();
+    otTrace.resource_spans.at(0).scope_spans.at(0).spans.insert(
+      otTrace.resource_spans.at(0).scope_spans.at(0).spans.end(),
+      lockedPost->begin(),
+      lockedPost->end());
+  }
   return otTrace;
 #endif
 }
 
-std::string Tracer::getOTProtobuf() const
+std::string Tracer::getOTProtobuf()
 {
 #ifdef DISABLE_PROTOBUF
   return 0;
@@ -97,7 +103,7 @@ SpanID Tracer::addSpan([[maybe_unused]] const std::string& name, [[maybe_unused]
 #else
   auto spanID = pdns::trace::randomSpanID();
   if (d_activated) {
-    d_postActivationSpans.push_back({
+    d_postActivationSpans.lock()->push_back({
       .trace_id = d_traceid,
       .span_id = spanID,
       .parent_span_id = parentSpanID,
@@ -108,7 +114,7 @@ SpanID Tracer::addSpan([[maybe_unused]] const std::string& name, [[maybe_unused]
   }
 
   // We're not activated, so we are in pre-activation.
-  d_preActivationSpans.push_back({
+  d_preActivationSpans.lock()->push_back({
     .name = name,
     .span_id = spanID,
     .parent_span_id = parentSpanID,
@@ -141,11 +147,12 @@ void Tracer::closeSpan([[maybe_unused]] const SpanID& spanID)
 {
 #ifndef DISABLE_PROTOBUF
   if (d_activated) {
+    auto lockedPost = d_postActivationSpans.lock();
     auto spanIt = std::find_if(
-      d_postActivationSpans.rbegin(),
-      d_postActivationSpans.rend(),
+      lockedPost->rbegin(),
+      lockedPost->rend(),
       [spanID](const pdns::trace::Span& span) { return span.span_id == spanID; });
-    if (spanIt != d_postActivationSpans.rend()) {
+    if (spanIt != lockedPost->rend()) {
       if (spanIt->end_time_unix_nano == 0) {
         spanIt->end_time_unix_nano = pdns::trace::timestamp();
       }
@@ -153,11 +160,12 @@ void Tracer::closeSpan([[maybe_unused]] const SpanID& spanID)
     }
   }
 
+  auto lockedPre = d_preActivationSpans.lock();
   auto spanIt = std::find_if(
-    d_preActivationSpans.rbegin(),
-    d_preActivationSpans.rend(),
+    lockedPre->rbegin(),
+    lockedPre->rend(),
     [spanID](const preActivationSpanInfo& span) { return span.span_id == spanID; });
-  if (spanIt != d_preActivationSpans.rend() && spanIt->end_time_unix_nano == 0) {
+  if (spanIt != lockedPre->rend() && spanIt->end_time_unix_nano == 0) {
     spanIt->end_time_unix_nano = pdns::trace::timestamp();
     return;
   }
@@ -169,10 +177,11 @@ void Tracer::setSpanAttribute([[maybe_unused]] const SpanID& spanid, [[maybe_unu
 {
 #ifndef DISABLE_PROTOBUF
   if (d_activated) {
-    if (auto iter = std::find_if(d_postActivationSpans.rbegin(),
-                                 d_postActivationSpans.rend(),
+    auto lockedPost = d_postActivationSpans.lock();
+    if (auto iter = std::find_if(lockedPost->rbegin(),
+                                 lockedPost->rend(),
                                  [spanid](const pdns::trace::Span& span) { return span.span_id == spanid; });
-        iter != d_postActivationSpans.rend()) {
+        iter != lockedPost->rend()) {
       iter->attributes.push_back({key, value});
       return;
     }
@@ -181,40 +190,42 @@ void Tracer::setSpanAttribute([[maybe_unused]] const SpanID& spanid, [[maybe_unu
 #endif
 }
 
-SpanID Tracer::getLastSpanID() const
+SpanID Tracer::getLastSpanID()
 {
 #ifdef DISABLE_PROTOBUF
   return 0;
 #else
-  if (d_activated && d_postActivationSpans.size() != 0) {
-    return d_postActivationSpans.back().span_id;
+  if (d_activated && d_postActivationSpans.read_only_lock()->size() != 0) {
+    return d_postActivationSpans.read_only_lock()->back().span_id;
   }
-  if (d_preActivationSpans.size() != 0) {
-    return d_preActivationSpans.back().span_id;
+  if (d_preActivationSpans.read_only_lock()->size() != 0) {
+    return d_preActivationSpans.read_only_lock()->back().span_id;
   }
   return SpanID{};
 #endif
 }
 
-SpanID Tracer::getLastSpanIDForName([[maybe_unused]] const std::string& name) const
+SpanID Tracer::getLastSpanIDForName([[maybe_unused]] const std::string& name)
 {
 #ifdef DISABLE_PROTOBUF
   return 0;
 #else
-  if (d_activated && d_postActivationSpans.size() != 0) {
-    if (auto iter = std::find_if(d_postActivationSpans.rbegin(),
-                                 d_postActivationSpans.rend(),
+  if (d_activated && d_postActivationSpans.read_only_lock()->size() != 0) {
+    auto lockedPost = d_postActivationSpans.read_only_lock();
+    if (auto iter = std::find_if(lockedPost->rbegin(),
+                                 lockedPost->rend(),
                                  [name](const pdns::trace::Span& span) { return span.name == name; });
-        iter != d_postActivationSpans.rend()) {
+        iter != lockedPost->rend()) {
       return iter->span_id;
     }
   }
 
-  if (d_preActivationSpans.size() != 0) {
-    if (auto iter = std::find_if(d_preActivationSpans.rbegin(),
-                                 d_preActivationSpans.rend(),
+  if (d_preActivationSpans.read_only_lock()->size() != 0) {
+    auto lockedPre = d_preActivationSpans.read_only_lock();
+    if (auto iter = std::find_if(lockedPre->rbegin(),
+                                 lockedPre->rend(),
                                  [name](const preActivationSpanInfo& span) { return span.name == name; });
-        iter != d_preActivationSpans.rend()) {
+        iter != lockedPre->rend()) {
       return iter->span_id;
     }
   }

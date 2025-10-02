@@ -40,6 +40,8 @@ using AnyValue = std::variant<std::string, int>;
 using TracesData = int;
 #endif
 
+#include "lock.hh"
+
 /*
  * This namespace contains all the bits and pieces required to do OpenTelemetry
  * traces in dnsdist. It is contained in this header and cc-file to ensure the rest
@@ -140,7 +142,7 @@ public:
    *
    * @return The last generated SpanID, or empty SpanID when none exist
    */
-  [[nodiscard]] SpanID getLastSpanID() const;
+  [[nodiscard]] SpanID getLastSpanID();
 
   /**
    * @brief Get the SpanID for the most recently added span with a name
@@ -148,7 +150,7 @@ public:
    * @param name The name of the Span
    * @return The SpanID, or empty SpanID when none are found
    */
-  [[nodiscard]] SpanID getLastSpanIDForName(const std::string& name) const;
+  [[nodiscard]] SpanID getLastSpanIDForName(const std::string& name);
 
   /**
    * @brief Retrieve the TraceID for this Tracer
@@ -160,12 +162,12 @@ public:
    *
    * @return pdns::trace::TracesData
    */
-  [[nodiscard]] TracesData getTracesData() const;
+  [[nodiscard]] TracesData getTracesData();
 
   /**
    * @brief Get the TracesData as protobuf encoded OpenTelemetry data
    */
-  [[nodiscard]] std::string getOTProtobuf() const;
+  [[nodiscard]] std::string getOTProtobuf();
 
   /**
    * @class Closer
@@ -295,11 +297,11 @@ private:
   /**
    * @brief Stores all preActivationSpanInfos. It is used until d_activated is true
    */
-  std::vector<preActivationSpanInfo> d_preActivationSpans;
+  LockGuarded<std::vector<preActivationSpanInfo>> d_preActivationSpans;
   /**
    * @brief Stores all Spans. It is used when d_activated is true
    */
-  std::vector<Span> d_postActivationSpans;
+  LockGuarded<std::vector<Span>> d_postActivationSpans;
   /**
    * @brief All attributes related to this Trace
    */
