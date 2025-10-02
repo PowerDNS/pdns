@@ -8,9 +8,6 @@ RUN apk add --no-cache gcc g++ make tar autoconf automake protobuf-dev lua-dev \
 COPY . /pdns-recursor
 WORKDIR /pdns-recursor
 
-#ADD builder-support/helpers/ /pdns/builder-support/helpers/
-RUN cd /pdns-recursor/builder-support/helpers/ && \
-    ./install_rust.sh
 
 RUN mkdir /sdist
 
@@ -19,5 +16,8 @@ ARG BUILDER_VERSION
 RUN cd /pdns-recursor/pdns/recursordist && \
     meson setup /tmp/rec-meson-dist-build && \
     meson dist -C /tmp/rec-meson-dist-build --no-tests
+
+RUN cd /pdns-recursor/builder-support/helpers/ && \
+    ./install_rust.sh
 
 RUN cp /tmp/rec-meson-dist-build/meson-dist/pdns-recursor-${BUILDER_VERSION}.tar.xz /sdist/
