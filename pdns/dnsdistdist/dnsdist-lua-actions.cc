@@ -29,6 +29,7 @@
 #include "dnsdist-rule-chains.hh"
 #include "dnstap.hh"
 #include "remote_logger.hh"
+#include <stdexcept>
 
 template <typename ActionT, typename IdentifierT>
 static void addAction(IdentifierT identifier, const luadnsrule_t& var, const std::shared_ptr<ActionT>& action, boost::optional<luaruleparams_t>& params)
@@ -284,6 +285,9 @@ void setupLuaActions(LuaContext& luaCtx)
   });
 
 #ifndef DISABLE_PROTOBUF
+  // Used for both RemoteLogAction and RemoteLogResponseAction
+  static const std::array<std::string, 2> s_validIpEncryptMethods = {"legacy", "ipcrypt-pfx"};
+
   luaCtx.writeFunction("RemoteLogAction", [](std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<dnsdist::actions::ProtobufAlterFunction> alterFunc, boost::optional<LuaAssociativeTable<std::string>> vars, boost::optional<LuaAssociativeTable<std::string>> metas) {
     if (logger) {
       // avoids potentially-evaluated-expression warning with clang.
@@ -302,12 +306,17 @@ void setupLuaActions(LuaContext& luaCtx)
     }
     getOptionalValue<std::string>(vars, "serverID", config.serverID);
     getOptionalValue<std::string>(vars, "ipEncryptKey", config.ipEncryptKey);
+    getOptionalValue<std::string>(vars, "ipEncryptMethod", config.ipEncryptMethod);
     getOptionalValue<std::string>(vars, "exportTags", tags);
 
     if (metas) {
       for (const auto& [key, value] : *metas) {
         config.metas.emplace_back(key, ProtoBufMetaKey(value));
       }
+    }
+
+    if (std::find(s_validIpEncryptMethods.begin(), s_validIpEncryptMethods.end(), config.ipEncryptMethod) == s_validIpEncryptMethods.end()) {
+      throw std::runtime_error("Invalid IP Encryption method in RemoteLogAction");
     }
 
     if (!tags.empty()) {
@@ -345,6 +354,7 @@ void setupLuaActions(LuaContext& luaCtx)
     config.includeCNAME = includeCNAME ? *includeCNAME : false;
     getOptionalValue<std::string>(vars, "serverID", config.serverID);
     getOptionalValue<std::string>(vars, "ipEncryptKey", config.ipEncryptKey);
+    getOptionalValue<std::string>(vars, "ipEncryptMethod", config.ipEncryptMethod);
     getOptionalValue<std::string>(vars, "exportTags", tags);
     getOptionalValue<std::string>(vars, "exportExtendedErrorsToMeta", config.exportExtendedErrorsToMeta);
 
@@ -363,6 +373,9 @@ void setupLuaActions(LuaContext& luaCtx)
           config.tagsToExport->insert(std::move(token));
         }
       }
+    }
+    if (std::find(s_validIpEncryptMethods.begin(), s_validIpEncryptMethods.end(), config.ipEncryptMethod) == s_validIpEncryptMethods.end()) {
+      throw std::runtime_error("Invalid IP Encryption method in RemoteLogResponseAction");
     }
 
     checkAllParametersConsumed("RemoteLogResponseAction", vars);
