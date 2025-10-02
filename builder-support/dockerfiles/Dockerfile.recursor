@@ -8,9 +8,6 @@ RUN apk add --no-cache gcc g++ make tar autoconf automake protobuf-dev lua-dev \
 COPY . /pdns-recursor
 WORKDIR /pdns-recursor
 
-#ADD builder-support/helpers/ /pdns/builder-support/helpers/
-RUN cd /pdns-recursor/builder-support/helpers/ && \
-    ./install_rust.sh
 
 RUN mkdir /sdist
 
