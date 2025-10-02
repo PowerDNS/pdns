@@ -236,7 +236,7 @@ Tracer::Closer Tracer::getCloser([[maybe_unused]] const SpanID& spanid)
 #ifdef DISABLE_PROTOBUF
   return Tracer::Closer();
 #else
-  return {this, spanid};
+  return {shared_from_this(), spanid};
 #endif
 }
 

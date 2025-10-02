@@ -37,51 +37,51 @@ BOOST_AUTO_TEST_SUITE(dnsdistopentelemetry_cc)
 BOOST_AUTO_TEST_CASE(getTraceID)
 {
   // Ensure we always have a TraceID after activation
-  auto tracer = pdns::trace::dnsdist::Tracer();
-  BOOST_CHECK_EQUAL(tracer.getTraceID(), TraceID{});
+  auto tracer = pdns::trace::dnsdist::Tracer::getTracer();
+  BOOST_CHECK_EQUAL(tracer->getTraceID(), TraceID{});
 
   // Ensure we have one *after* activation
-  tracer.activate();
-  auto traceid = tracer.getTraceID();
+  tracer->activate();
+  auto traceid = tracer->getTraceID();
   BOOST_CHECK_NE(traceid, TraceID{});
 
   // Ensure we have the same one *after* deactivation
-  tracer.deactivate();
-  BOOST_CHECK_EQUAL(tracer.getTraceID(), traceid);
+  tracer->deactivate();
+  BOOST_CHECK_EQUAL(tracer->getTraceID(), traceid);
 
   // Ensure we have the same one *after* reactivation
-  tracer.deactivate();
-  BOOST_CHECK_EQUAL(tracer.getTraceID(), traceid);
+  tracer->deactivate();
+  BOOST_CHECK_EQUAL(tracer->getTraceID(), traceid);
 }
 
 BOOST_AUTO_TEST_CASE(getLastSpanID)
 {
-  auto tracer = pdns::trace::dnsdist::Tracer();
+  auto tracer = pdns::trace::dnsdist::Tracer::getTracer();
 
   // Empty SpanID returned when there are no spans
-  auto lastSpanID = tracer.getLastSpanID();
+  auto lastSpanID = tracer->getLastSpanID();
   BOOST_CHECK_EQUAL(lastSpanID, SpanID{});
 
   // Add event before activation
-  auto spanid = tracer.openSpan("myevent").getSpanID();
-  lastSpanID = tracer.getLastSpanID();
+  auto spanid = tracer->openSpan("myevent").getSpanID();
+  lastSpanID = tracer->getLastSpanID();
   BOOST_CHECK_EQUAL(spanid, lastSpanID);
 
   for (auto i = 0; i < 4; i++) {
-    spanid = tracer.openSpan("myevent" + std::to_string(i)).getSpanID();
+    spanid = tracer->openSpan("myevent" + std::to_string(i)).getSpanID();
   }
-  lastSpanID = tracer.getLastSpanID();
+  lastSpanID = tracer->getLastSpanID();
   BOOST_CHECK_EQUAL(spanid, lastSpanID);
 
-  tracer.activate();
-  spanid = tracer.openSpan("post-activation-myevent").getSpanID();
-  lastSpanID = tracer.getLastSpanID();
+  tracer->activate();
+  spanid = tracer->openSpan("post-activation-myevent").getSpanID();
+  lastSpanID = tracer->getLastSpanID();
   BOOST_CHECK_EQUAL(spanid, lastSpanID);
 
   for (auto i = 0; i < 4; i++) {
-    spanid = tracer.openSpan("post-activation-myevent" + std::to_string(i)).getSpanID();
+    spanid = tracer->openSpan("post-activation-myevent" + std::to_string(i)).getSpanID();
   }
-  lastSpanID = tracer.getLastSpanID();
+  lastSpanID = tracer->getLastSpanID();
   BOOST_CHECK_EQUAL(spanid, lastSpanID);
 }
 
@@ -89,61 +89,61 @@ BOOST_AUTO_TEST_CASE(getLastSpanIDForName)
 {
   // We only create spans with the same name
   std::string eventName{"myEvent"};
-  auto tracer = pdns::trace::dnsdist::Tracer();
+  auto tracer = pdns::trace::dnsdist::Tracer::getTracer();
 
   // Empty SpanID returned when there are no spans
-  auto lastSpanID = tracer.getLastSpanIDForName(eventName);
+  auto lastSpanID = tracer->getLastSpanIDForName(eventName);
   BOOST_CHECK_EQUAL(lastSpanID, SpanID{});
 
   // Add event before activation
-  auto spanid = tracer.openSpan(eventName).getSpanID();
-  lastSpanID = tracer.getLastSpanIDForName(eventName);
+  auto spanid = tracer->openSpan(eventName).getSpanID();
+  lastSpanID = tracer->getLastSpanIDForName(eventName);
   BOOST_CHECK_EQUAL(spanid, lastSpanID);
 
   for (auto i = 0; i < 4; i++) {
-    spanid = tracer.openSpan(eventName).getSpanID();
+    spanid = tracer->openSpan(eventName).getSpanID();
   }
-  lastSpanID = tracer.getLastSpanIDForName(eventName);
+  lastSpanID = tracer->getLastSpanIDForName(eventName);
   BOOST_CHECK_EQUAL(spanid, lastSpanID);
   auto preactivationSpanID = spanid;
 
-  tracer.activate();
-  spanid = tracer.openSpan(eventName).getSpanID();
-  lastSpanID = tracer.getLastSpanIDForName(eventName);
+  tracer->activate();
+  spanid = tracer->openSpan(eventName).getSpanID();
+  lastSpanID = tracer->getLastSpanIDForName(eventName);
   BOOST_CHECK_EQUAL(spanid, lastSpanID);
 
   for (auto i = 0; i < 4; i++) {
-    spanid = tracer.openSpan(eventName).getSpanID();
+    spanid = tracer->openSpan(eventName).getSpanID();
   }
-  lastSpanID = tracer.getLastSpanIDForName(eventName);
+  lastSpanID = tracer->getLastSpanIDForName(eventName);
   BOOST_CHECK_EQUAL(spanid, lastSpanID);
 
-  tracer.deactivate();
-  lastSpanID = tracer.getLastSpanIDForName(eventName);
+  tracer->deactivate();
+  lastSpanID = tracer->getLastSpanIDForName(eventName);
   BOOST_CHECK_EQUAL(preactivationSpanID, lastSpanID);
 }
 
 BOOST_AUTO_TEST_CASE(activate)
 {
-  auto tracer = pdns::trace::dnsdist::Tracer();
+  auto tracer = pdns::trace::dnsdist::Tracer::getTracer();
 
   // We don't actually check the internal state, but we infer it from the order
   // of the output.
-  auto preActivationSpanID = tracer.openSpan("pre-activation-event").getSpanID();
-  tracer.activate();
-  auto postActivationSpanID = tracer.openSpan("post-activation-event").getSpanID();
+  auto preActivationSpanID = tracer->openSpan("pre-activation-event").getSpanID();
+  tracer->activate();
+  auto postActivationSpanID = tracer->openSpan("post-activation-event").getSpanID();
 
   // Ensure order is pre1, post1
-  auto trace = tracer.getTracesData();
+  auto trace = tracer->getTracesData();
   BOOST_ASSERT(trace.resource_spans.at(0).scope_spans.at(0).spans.size() == 2);
   BOOST_CHECK_EQUAL(trace.resource_spans.at(0).scope_spans.at(0).spans.at(0).span_id, preActivationSpanID);
   BOOST_CHECK_EQUAL(trace.resource_spans.at(0).scope_spans.at(0).spans.at(1).span_id, postActivationSpanID);
 
   // Now deactivate and check if the order will be pre1, pre2, post1
-  tracer.deactivate();
-  auto preActivationSpanID2 = tracer.openSpan("pre-activation-event2").getSpanID();
+  tracer->deactivate();
+  auto preActivationSpanID2 = tracer->openSpan("pre-activation-event2").getSpanID();
 
-  trace = tracer.getTracesData();
+  trace = tracer->getTracesData();
   BOOST_ASSERT(trace.resource_spans.at(0).scope_spans.at(0).spans.size() == 3);
   BOOST_CHECK_EQUAL(trace.resource_spans.at(0).scope_spans.at(0).spans.at(0).span_id, preActivationSpanID);
   BOOST_CHECK_EQUAL(trace.resource_spans.at(0).scope_spans.at(0).spans.at(1).span_id, preActivationSpanID2);
@@ -152,22 +152,22 @@ BOOST_AUTO_TEST_CASE(activate)
 
 BOOST_AUTO_TEST_CASE(Closer)
 {
-  auto tracer = pdns::trace::dnsdist::Tracer();
+  auto tracer = pdns::trace::dnsdist::Tracer::getTracer();
 
-  auto prespanid = tracer.openSpan("foo").getSpanID();
-  tracer.activate();
-  auto postspanid = tracer.openSpan("bar").getSpanID();
+  auto prespanid = tracer->openSpan("foo").getSpanID();
+  tracer->activate();
+  auto postspanid = tracer->openSpan("bar").getSpanID();
 
   SpanID openeventSpanID;
   SpanID openevent2SpanID;
 
   {
-    auto precloser = tracer.getCloser(prespanid);
-    auto postcloser = tracer.getCloser(postspanid);
+    auto precloser = tracer->getCloser(prespanid);
+    auto postcloser = tracer->getCloser(postspanid);
 
-    auto openEventCloser = tracer.openSpan("openEvent");
+    auto openEventCloser = tracer->openSpan("openEvent");
     openeventSpanID = openEventCloser.getSpanID();
-    auto openEventCloser2 = tracer.openSpan("openEvent2", openeventSpanID);
+    auto openEventCloser2 = tracer->openSpan("openEvent2", openeventSpanID);
     openevent2SpanID = openEventCloser2.getSpanID();
 
     // Make sure the destructor does not segfault when it is empty
@@ -175,7 +175,7 @@ BOOST_AUTO_TEST_CASE(Closer)
   }
 
   // Closer is out of scope, so each event should have a closing time
-  auto trace = tracer.getTracesData();
+  auto trace = tracer->getTracesData();
   BOOST_ASSERT(trace.resource_spans.at(0).scope_spans.at(0).spans.size() == 4);
 
   BOOST_CHECK_EQUAL(trace.resource_spans.at(0).scope_spans.at(0).spans.at(0).span_id, prespanid);
@@ -197,20 +197,20 @@ BOOST_AUTO_TEST_CASE(Closer)
 
 BOOST_AUTO_TEST_CASE(attributes)
 {
-  auto tracer = pdns::trace::dnsdist::Tracer();
-  tracer.setTraceAttribute("foo", AnyValue{"bar"});
+  auto tracer = pdns::trace::dnsdist::Tracer::getTracer();
+  tracer->setTraceAttribute("foo", AnyValue{"bar"});
 
   // Test that no attributes are added when the tracer is not activated
-  auto trace = tracer.getTracesData();
+  auto trace = tracer->getTracesData();
   BOOST_CHECK_EQUAL(trace.resource_spans.at(0).resource.attributes.size(), 1);
   BOOST_CHECK_EQUAL(trace.resource_spans.at(0).resource.attributes.at(0).key, "service.name");
 
   // Now activate and add 2 attributes
-  tracer.activate();
-  tracer.setTraceAttribute("foo", AnyValue{"bar"});
-  tracer.setTraceAttribute("baz", AnyValue{256});
+  tracer->activate();
+  tracer->setTraceAttribute("foo", AnyValue{"bar"});
+  tracer->setTraceAttribute("baz", AnyValue{256});
 
-  trace = tracer.getTracesData();
+  trace = tracer->getTracesData();
 
   BOOST_ASSERT(trace.resource_spans.at(0).resource.attributes.size() == 3);
   BOOST_CHECK_EQUAL(trace.resource_spans.at(0).resource.attributes.at(1).key, "foo");
@@ -220,10 +220,10 @@ BOOST_AUTO_TEST_CASE(attributes)
   BOOST_CHECK_EQUAL(trace.resource_spans.at(0).resource.attributes.at(2).value, AnyValue{256});
 
   // Add a span and some attributes
-  auto spanid = tracer.openSpan("anEvent").getSpanID();
-  tracer.setSpanAttribute(spanid, "spanattr", AnyValue{"exciting"});
+  auto spanid = tracer->openSpan("anEvent").getSpanID();
+  tracer->setSpanAttribute(spanid, "spanattr", AnyValue{"exciting"});
 
-  trace = tracer.getTracesData();
+  trace = tracer->getTracesData();
 
   BOOST_ASSERT(trace.resource_spans.at(0).scope_spans.at(0).spans.at(0).attributes.size() == 1);
   BOOST_CHECK_EQUAL(trace.resource_spans.at(0).scope_spans.at(0).spans.at(0).attributes.front().key, "spanattr");
@@ -232,13 +232,13 @@ BOOST_AUTO_TEST_CASE(attributes)
 
 BOOST_AUTO_TEST_CASE(getOTProtobuf)
 {
-  auto tracer = pdns::trace::dnsdist::Tracer();
-  auto data = tracer.getOTProtobuf();
+  auto tracer = pdns::trace::dnsdist::Tracer::getTracer();
+  auto data = tracer->getOTProtobuf();
   BOOST_TEST(data.size() == 31U);
 
-  tracer.activate();
-  tracer.setTraceAttribute("foo", AnyValue{"bar"});
-  data = tracer.getOTProtobuf();
+  tracer->activate();
+  tracer->setTraceAttribute("foo", AnyValue{"bar"});
+  data = tracer->getOTProtobuf();
   BOOST_TEST(data.size() == 45U);
 }
 
