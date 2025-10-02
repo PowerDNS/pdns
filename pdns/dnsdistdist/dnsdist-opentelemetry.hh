@@ -21,6 +21,7 @@
  */
 #pragma once
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -59,15 +60,22 @@ namespace pdns::trace::dnsdist
  * @brief This class holds a single trace instance
  *
  */
-class Tracer
+class Tracer : public std::enable_shared_from_this<Tracer>
 {
 public:
-  Tracer() = default;
   ~Tracer() = default;
   Tracer(const Tracer&) = delete;
   Tracer& operator=(const Tracer) = delete;
   Tracer& operator=(Tracer&&) = delete;
   Tracer(Tracer&&) = delete;
+
+  /**
+   * @brief get a new Tracer
+   */
+  static std::shared_ptr<Tracer> getTracer()
+  {
+    return std::shared_ptr<Tracer>(new Tracer);
+  }
 
   /**
    * @brief Activate the Tracer
@@ -189,7 +197,7 @@ public:
      * @param tracer A pointer to the Tracer where we want to close a Span
      * @param spanid The SpanID to close in the Tracer
      */
-    Closer(Tracer* tracer, const SpanID& spanid) :
+    Closer(std::shared_ptr<Tracer> tracer, const SpanID& spanid) :
       d_tracer(tracer), d_spanID(spanid) {};
 #endif
 
@@ -218,8 +226,7 @@ public:
 
   private:
 #ifndef DISABLE_PROTOBUF
-    // XXX: Should we make this a shared_ptr and force all consumers to Tracer to keep it as a shared_ptr as well?
-    Tracer* d_tracer;
+    std::shared_ptr<Tracer> d_tracer;
     SpanID d_spanID;
 #endif
   };
@@ -250,6 +257,8 @@ public:
   Closer openSpan(const std::string& name, const SpanID& parentSpanID);
 
 private:
+  Tracer() = default;
+
   /**
    * @brief Create a new Span
    *

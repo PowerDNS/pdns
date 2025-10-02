@@ -117,8 +117,7 @@ struct InternalQueryState
   bool tracingEnabled = false;
 
   // TODO: Do we want to keep some data *without* creating a tracer for each query?
-  // TODO: shard_ptr to work with Tracer::Closer?
-  std::unique_ptr<pdns::trace::dnsdist::Tracer> d_OTTracer{new pdns::trace::dnsdist::Tracer};
+  std::shared_ptr<pdns::trace::dnsdist::Tracer> d_OTTracer{pdns::trace::dnsdist::Tracer::getTracer()};
 
   InternalQueryState()
   {
