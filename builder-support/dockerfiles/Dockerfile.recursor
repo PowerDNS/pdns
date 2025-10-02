@@ -17,7 +17,4 @@ RUN cd /pdns-recursor/pdns/recursordist && \
     meson setup /tmp/rec-meson-dist-build && \
     meson dist -C /tmp/rec-meson-dist-build --no-tests
 
-RUN cd /pdns-recursor/builder-support/helpers/ && \
-    ./install_rust.sh
-
 RUN cp /tmp/rec-meson-dist-build/meson-dist/pdns-recursor-${BUILDER_VERSION}.tar.xz /sdist/
