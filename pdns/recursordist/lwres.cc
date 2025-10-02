@@ -546,7 +546,7 @@ static std::pair<bool, LWResult::Result> incomingCookie(const OptLog& log, const
         ++t_Counters.at(rec::Counter::cookieMatched);
         found->d_localaddress = localip;
         found->d_localaddress.setPort(0);
-        found->d_cookie = received;
+        found->d_cookie = std::move(received);
         if (found->getSupport() == CookieEntry::Support::Probing) {
           ++t_Counters.at(rec::Counter::cookieProbeSupported);
         }
