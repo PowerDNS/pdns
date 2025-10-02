@@ -716,6 +716,7 @@ public:
   std::vector<std::shared_ptr<XskSocket>> d_xskSockets;
 #endif
   std::atomic<uint64_t> idOffset{0};
+  std::atomic<double> d_healthCheckLatency{0.0};
   size_t socketsOffset{0};
   double latencyUsec{0.0};
   double latencyUsecTCP{0.0};
