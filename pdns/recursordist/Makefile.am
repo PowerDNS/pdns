@@ -46,12 +46,12 @@ CLEANFILES = htmlfiles.h \
 	recursor.yml-dist
 
 htmlfiles.h: incfiles ${srcdir}/html/* ${srcdir}/html/js/*
-	$(AM_V_GEN)$(srcdir)/incfiles > $@.tmp
+	$(AM_V_GEN)$(srcdir)/incfiles ${srcdir} > $@.tmp
 	@mv $@.tmp $@
 
 # Use patterns to avoid having two instances of generate run simultaneously, a well-known hack for GNU make
 rec-metrics-gen%h rec-prometheus-gen%h rec-snmp-gen%h rec-oids-gen%h RECURSOR-MIB%txt: metrics.py metrics_table.py RECURSOR-MIB.in
-	$(PYTHON) metrics.py
+	$(PYTHON) ${srcdir}/metrics.py ${srcdir} .
 
 # We explicitly build rec-rust-lib in two steps, as it modifies files in the rec-rust-lib/rust subdir
 SUBDIRS=ext rec-rust-lib rec-rust-lib/rust
