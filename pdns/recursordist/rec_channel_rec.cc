@@ -276,7 +276,7 @@ static Answer getAllStats(ArgIterator /* begin */, ArgIterator /* end */)
   for (const auto& tup : varmap) {
     ret += tup.first + "\t" + tup.second.d_value + "\n";
   }
-  return {0, ret};
+  return {0, std::move(ret)};
 }
 
 static Answer doGet(ArgIterator begin, ArgIterator end)
@@ -292,7 +292,7 @@ static Answer doGet(ArgIterator begin, ArgIterator end)
       ret += "UNKNOWN\n";
     }
   }
-  return {0, ret};
+  return {0, std::move(ret)};
 }
 
 static Answer doGetParameter(ArgIterator begin, ArgIterator end)
@@ -312,7 +312,7 @@ static Answer doGetParameter(ArgIterator begin, ArgIterator end)
       ret += *i + " not known\n";
     }
   }
-  return {0, ret};
+  return {0, std::move(ret)};
 }
 
 /* Read an (open) fd from the control channel */
@@ -596,7 +596,7 @@ static Answer doSetCarbonServer(ArgIterator begin, ArgIterator end)
   }
   else {
     g_carbonConfig.setState(std::move(config));
-    return {0, ret};
+    return {0, std::move(ret)};
   }
 
   ++begin;
@@ -664,7 +664,7 @@ static Answer doAddNTA(ArgIterator begin, ArgIterator end)
     string ret("Can't add Negative Trust Anchor: ");
     ret += e.what();
     ret += "\n";
-    return {1, ret};
+    return {1, std::move(ret)};
   }
   begin++;
 
@@ -719,7 +719,7 @@ static Answer doClearNTA(ArgIterator begin, ArgIterator end)
       string ret("Error: ");
       ret += e.what();
       ret += ". No Negative Anchors removed\n";
-      return {1, ret};
+      return {1, std::move(ret)};
     }
     toRemove.push_back(who);
     begin++;
@@ -759,7 +759,7 @@ static Answer getNTAs(ArgIterator /* begin */, ArgIterator /* end */)
   for (const auto& negAnchor : luaconf->negAnchors) {
     ret += negAnchor.first.toLogString() + "\t" + negAnchor.second + "\n";
   }
-  return {0, ret};
+  return {0, std::move(ret)};
 }
 
 static Answer doAddTA(ArgIterator begin, ArgIterator end)
@@ -778,7 +778,7 @@ static Answer doAddTA(ArgIterator begin, ArgIterator end)
     string ret("Can't add Trust Anchor: ");
     ret += e.what();
     ret += "\n";
-    return {1, ret};
+    return {1, std::move(ret)};
   }
   begin++;
 
@@ -822,7 +822,7 @@ static Answer doClearTA(ArgIterator begin, ArgIterator end)
       string ret("Error: ");
       ret += e.what();
       ret += ". No Anchors removed\n";
-      return {1, ret};
+      return {1, std::move(ret)};
     }
     if (who.isRoot()) {
       return {1, "Refusing to remove root Trust Anchor, no Anchors removed\n"};
@@ -869,7 +869,7 @@ static Answer getTAs(ArgIterator /* begin */, ArgIterator /* end */)
     }
   }
 
-  return {0, ret};
+  return {0, std::move(ret)};
 }
 
 static Answer setMinimumTTL(ArgIterator begin, ArgIterator end)
