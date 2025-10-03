@@ -17,3 +17,4 @@ cdbx==0.1.2
 h2>=4.0.0
 aioquic
 async_timeout
+opentelemetry-proto>=1.7,<2
