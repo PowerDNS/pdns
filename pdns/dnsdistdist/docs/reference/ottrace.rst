@@ -7,6 +7,10 @@ OpenTelemetry Tracing
 
 Since version 2.1.0, when :program:`dnsdist` is built with ProtoBuf support, sent messages (using e.g. :func:`RemoteLogResponseAction`) can contain `OpenTelemetry traces <https://opentelemetry.io/docs/concepts/signals/traces>`__ data.
 
+To enable tracing, use :func:`setOpenTelemetryTracing(true) <setOpenTelemetryTracing>` in your configuration, or ``logging.open_telemetry_tracing`` to ``true`` in your YAML configuration.
+It is also possible to call :func:`setOpenTelemetryTracing` at runtime.
+Once enabled, Rules can be used to turn on tracing on a per-query basis.
+
 Per-query tracing can be enabled using the :func:`SetTraceAction` or :func:`SetTraceResponseAction`. However :program:`dnsdist` captures some data before rules processing in order to have tracing information from before the rules are evaluated.
 When tracing is enabled in the query, :program:`dnsdist` stores start and end times of certain (but not all) functions that are called during the lifetime of the query and the response.
 It is recommended to send the traces out through a RemoteLogger in ResponseRules, to capture as much information as possible.
@@ -23,6 +27,8 @@ Example configuration
 
 .. code-block:: yaml
 
+   logging:
+     open_telemetry_tracing: true
    remote_logging:
      protobuf_loggers:
        - name: pblog
