@@ -139,7 +139,7 @@ T decode(protozero::pbf_reader& reader)
 
 struct ArrayValue
 {
-  std::vector<AnyValue> values{}; // = 1
+  std::vector<AnyValue> values; // = 1
 
   void encode(protozero::pbf_writer& writer) const
   {
@@ -148,15 +148,12 @@ struct ArrayValue
 
   static ArrayValue decode(protozero::pbf_reader& reader);
 
-  bool operator==(const ArrayValue& rhs) const
-  {
-    return values == rhs.values;
-  }
+  bool operator==(const ArrayValue& rhs) const;
 };
 
 struct KeyValueList
 {
-  std::vector<KeyValue> values{}; // = 1
+  std::vector<KeyValue> values; // = 1
 
   void encode(protozero::pbf_writer& writer) const
   {
@@ -165,10 +162,7 @@ struct KeyValueList
 
   static KeyValueList decode(protozero::pbf_reader& reader);
 
-  bool operator==(const KeyValueList& rhs) const
-  {
-    return values == rhs.values;
-  }
+  bool operator==(const KeyValueList& rhs) const;
 };
 
 using NoValue = char;
@@ -196,10 +190,7 @@ struct KeyValue
   void encode(protozero::pbf_writer& writer) const;
   static KeyValue decode(protozero::pbf_reader& reader);
 
-  bool operator==(const KeyValue& rhs) const
-  {
-    return key == rhs.key && value == rhs.value;
-  }
+  bool operator==(const KeyValue& rhs) const;
 };
 
 struct Resource
@@ -779,5 +770,20 @@ private:
 };
 
 void extractOTraceIDs(const EDNSOptionViewMap& map, pdns::trace::InitialSpanInfo& span);
+
+inline bool ArrayValue::operator==(const ArrayValue& rhs) const
+{
+  return values == rhs.values;
+}
+
+inline bool KeyValueList::operator==(const KeyValueList& rhs) const
+{
+  return values == rhs.values;
+}
+
+inline bool KeyValue::operator==(const KeyValue& rhs) const
+{
+  return key == rhs.key && value == rhs.value;
+}
 
 } // namespace pdns::trace
