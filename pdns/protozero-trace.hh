@@ -176,6 +176,11 @@ struct AnyValue : public std::variant<NoValue, std::string, bool, int64_t, doubl
 {
   void encode(protozero::pbf_writer& writer) const;
   static AnyValue decode(protozero::pbf_reader& reader);
+  [[nodiscard]] std::string toLogString() const;
+  friend std::ostream& operator<<(std::ostream& ostrm, const AnyValue& val)
+  {
+    return ostrm << val.toLogString();
+  }
 };
 
 struct EntityRef
@@ -223,29 +228,46 @@ struct InstrumentationScope
   static InstrumentationScope decode(protozero::pbf_reader& reader);
 };
 
-using TraceID = std::array<uint8_t, 16>;
-using SpanID = std::array<uint8_t, 8>;
-
+struct TraceID : public std::array<uint8_t, 16>
+{
+  [[nodiscard]] std::string toLogString() const;
+  friend std::ostream& operator<<(std::ostream& ostrm, const TraceID& val)
+  {
+    return ostrm << val.toLogString();
+  }
+};
 constexpr TraceID s_emptyTraceID = {};
-
 inline void random(TraceID& trace)
 {
   dns_random(trace.data(), trace.size());
 }
-
-inline void random(SpanID& span)
-{
-  dns_random(span.data(), span.size());
-}
-
 inline void clear(TraceID& trace)
 {
   trace.fill(0);
 }
 
+struct SpanID : public std::array<uint8_t, 8>
+{
+  [[nodiscard]] std::string toLogString() const;
+  friend std::ostream& operator<<(std::ostream& ostrm, const SpanID& val)
+  {
+    return ostrm << val.toLogString();
+  }
+};
+constexpr SpanID s_emptySpanID = {};
+inline void random(SpanID& span)
+{
+  dns_random(span.data(), span.size());
+}
 inline void clear(SpanID& span)
 {
   span.fill(0);
+}
+inline SpanID randomSpanID()
+{
+  SpanID ret;
+  random(ret);
+  return ret;
 }
 
 inline void fill(TraceID& trace, const std::string& data)

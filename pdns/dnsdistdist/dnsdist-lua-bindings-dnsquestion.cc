@@ -30,6 +30,7 @@
 #include "dnsparser.hh"
 
 #include "protozero.hh"
+#include <string>
 
 static void addMetaKeyAndValuesToProtobufContent([[maybe_unused]] DNSQuestion& dnsQuestion, [[maybe_unused]] const std::string& key, [[maybe_unused]] const LuaArray<boost::variant<int64_t, std::string>>& values)
 {
@@ -335,6 +336,34 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
     dnsQuestion.ids.d_packet = std::make_unique<PacketBuffer>(dnsQuestion.getData());
     return true;
   });
+
+  luaCtx.registerFunction<std::optional<std::string> (DNSQuestion::*)()>(
+    "getTraceID",
+    []([[maybe_unused]] const DNSQuestion& dnsQuestion) -> std::optional<std::string> {
+#ifdef DISABLE_PROTOBUF
+      return std::nullopt;
+#else
+      if (auto tracer = dnsQuestion.ids.getTracer(); tracer != nullptr && dnsQuestion.ids.tracingEnabled) {
+        auto traceID = tracer->getTraceID();
+        return std::string(traceID.begin(), traceID.end());
+      }
+      return std::nullopt;
+#endif
+    });
+
+  luaCtx.registerFunction<std::optional<std::string> (DNSQuestion::*)()>(
+    "getSpanID",
+    []([[maybe_unused]] const DNSQuestion& dnsQuestion) -> std::optional<std::string> {
+#ifdef DISABLE_PROTOBUF
+      return std::nullopt;
+#else
+      if (auto tracer = dnsQuestion.ids.getTracer(); tracer != nullptr && dnsQuestion.ids.tracingEnabled) {
+        auto spanID = tracer->getLastSpanID();
+        return std::string(spanID.begin(), spanID.end());
+      }
+      return std::nullopt;
+#endif
+    });
 
   class AsynchronousObject
   {

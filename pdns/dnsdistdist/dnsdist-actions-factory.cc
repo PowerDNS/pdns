@@ -41,9 +41,12 @@
 
 #include "dnstap.hh"
 #include "dnswriter.hh"
+#include "dolog.hh"
 #include "ednsoptions.hh"
 #include "fstrm_logger.hh"
 #include "ipcipher.hh"
+#include "protozero-trace.hh"
+#include "qtype.hh"
 #include "remote_logger.hh"
 #include "svc-records.hh"
 #include "threadname.hh"
@@ -1657,8 +1660,45 @@ private:
   std::string d_serverID;
   std::string d_ipEncryptKey;
 };
-
 #endif /* DISABLE_PROTOBUF */
+
+class SetTraceAction : public DNSAction
+{
+public:
+  SetTraceAction(bool value) :
+    d_value{value} {};
+
+  DNSAction::Action operator()([[maybe_unused]] DNSQuestion* dnsquestion, std::string* ruleresult) const override
+  {
+    (void)ruleresult;
+#ifndef DISABLE_PROTOBUF
+    auto tracer = dnsquestion->ids.getTracer();
+    if (tracer == nullptr) {
+      warnlog("SetTraceAction called, but OpenTelemetry tracing is globally disabled. Did you forget to call setOpenTelemetryTracing?");
+      return Action::None;
+    }
+    if (d_value) {
+      tracer->activate();
+      tracer->setTraceAttribute("query.qname", AnyValue{dnsquestion->ids.qname.toStringNoDot()});
+      tracer->setTraceAttribute("query.qtype", AnyValue{QType(dnsquestion->ids.qtype).toString()});
+      tracer->setTraceAttribute("query.remote", AnyValue{dnsquestion->ids.origRemote.toLogString()});
+    }
+    else {
+      tracer->deactivate();
+    }
+    dnsquestion->ids.tracingEnabled = d_value;
+#endif
+    return Action::None;
+  }
+
+  [[nodiscard]] std::string toString() const override
+  {
+    return string((d_value ? "en" : "dis")) + string("able OpenTelemetry Tracing");
+  }
+
+private:
+  bool d_value;
+};
 
 class SNMPTrapAction : public DNSAction
 {

@@ -21,16 +21,24 @@
  */
 #pragma once
 
+#include <cstdint>
+#include <ctime>
+#include <memory>
+#include <optional>
 #include <unordered_map>
+#include <utility>
+#include <vector>
 
 #include "config.h"
 #include "dnscrypt.hh"
+#include "dnsdist-configuration.hh"
 #include "dnsname.hh"
 #include "dnsdist-protocols.hh"
 #include "ednsextendederror.hh"
 #include "gettime.hh"
 #include "iputils.hh"
 #include "noinitvector.hh"
+#include "dnsdist-opentelemetry.hh"
 #include "uuid-utils.hh"
 
 struct ClientState;
@@ -107,6 +115,31 @@ struct InternalQueryState
     std::string d_requestorID;
   };
 
+  // Whether or not Open Telemetry tracing is enabled for this query
+  bool tracingEnabled = false;
+  /**
+   * @brief Returns the Tracer, but only if OpenTelemetry tracing is globally enabled
+   *
+   * @return
+   */
+  std::shared_ptr<pdns::trace::dnsdist::Tracer> getTracer()
+  {
+#ifdef DISABLE_PROTOBUF
+    return nullptr;
+#else
+    if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_openTelemetryTracing) {
+      if (d_OTTracer != nullptr) {
+        return d_OTTracer;
+      }
+      // OpenTelemetry tracing is enabled, but we don't have a tracer yet
+      // XXX: There *might* be a data race here
+      d_OTTracer = pdns::trace::dnsdist::Tracer::getTracer();
+      return d_OTTracer;
+    }
+    return nullptr;
+#endif
+  }
+
   InternalQueryState()
   {
     origDest.sin4.sin_family = 0;
@@ -181,6 +214,9 @@ struct InternalQueryState
   bool selfGenerated{false};
   bool cacheHit{false};
   bool staleCacheHit{false};
+
+private:
+  std::shared_ptr<pdns::trace::dnsdist::Tracer> d_OTTracer{nullptr};
 };
 
 struct IDState
