@@ -111,7 +111,7 @@ jobs:
       - run: ${{ env.INV_CMD }} ci-auth-run-unit-tests ${{ matrix.builder == 'meson' && '--meson' || '' }}
         env:
           PDNS_BUILD_PATH: ../pdns-${{ env.BUILDER_VERSION }}
-      - run: ${{ env.INV_CMD }} generate-coverage-info ./pdns-auth-testrunner $GITHUB_WORKSPACE
+      - run: ${{ env.INV_CMD }} generate-coverage-info ./pdns-auth-testrunner 'auth' $GITHUB_WORKSPACE
         if: ${{ env.COVERAGE == 'yes' && matrix.builder == 'meson' }}
       - name: Coveralls Parallel auth unit
         if: ${{ env.COVERAGE == 'yes' && matrix.builder == 'meson' }}
@@ -199,7 +199,7 @@ jobs:
         working-directory: ./pdns/recursordist/
       - run: ${{ env.INV_CMD }} ci-rec-build ${{ matrix.builder == 'meson' && '--meson' || '' }}
       - run: ${{ env.INV_CMD }} ci-rec-run-unit-tests ${{ matrix.builder == 'meson' && '--meson' || '' }}
-      - run: ${{ env.INV_CMD }} generate-coverage-info ./testrunner $GITHUB_WORKSPACE
+      - run: ${{ env.INV_CMD }} generate-coverage-info ./testrunner 'recursor' $GITHUB_WORKSPACE
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' && matrix.builder == 'meson' }}
       - name: Coveralls Parallel rec unit
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' && matrix.builder == 'meson' }}
@@ -280,7 +280,6 @@ jobs:
       - run: ${{ env.INV_CMD }} install-lld-linker-if-needed
         working-directory: ./pdns/dnsdistdist/
       - run: ${{ env.INV_CMD }} ci-install-rust ${REPO_HOME}
-        if: ${{ matrix.features != 'least' }}
         working-directory: ./pdns/dnsdistdist/
       - run: ${{ env.INV_CMD }} ci-build-and-install-quiche ${REPO_HOME}
         if: ${{ matrix.features != 'least' }}
@@ -290,14 +289,16 @@ jobs:
         working-directory: ./pdns/dnsdistdist/
       - run: ${{ env.INV_CMD }} ci-dnsdist-configure ${{ matrix.features }} ${{ matrix.builder }} dnsdist-${{ env.BUILDER_VERSION }}
         working-directory: ./pdns/dnsdistdist/
-      - run: ${{ env.INV_CMD }} ci-make-distdir
+        if: ${{ matrix.builder != 'autotools' }}
+      - run: |
+          mkdir dnsdist-${{ env.BUILDER_VERSION }}
         if: ${{ matrix.builder == 'autotools' }}
         working-directory: ./pdns/dnsdistdist/
       - run: ${{ env.INV_CMD }} ci-dnsdist-configure ${{ matrix.features }} ${{ matrix.builder }} dnsdist-${{ env.BUILDER_VERSION }}
         if: ${{ matrix.builder == 'autotools' }}
       - run: ${{ env.INV_CMD }} ci-dnsdist-make-bear ${{ matrix.builder }}
       - run: ${{ env.INV_CMD }} ci-dnsdist-run-unit-tests ${{ matrix.builder }}
-      - run: ${{ env.INV_CMD }} generate-coverage-info ./testrunner $GITHUB_WORKSPACE
+      - run: ${{ env.INV_CMD }} generate-coverage-info ./testrunner 'dnsdist' $GITHUB_WORKSPACE
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' && matrix.builder == 'meson'}}
       - name: Coveralls Parallel dnsdist unit
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' && matrix.builder == 'meson' }}
@@ -383,7 +384,7 @@ jobs:
       - run: ${{ env.INV_CMD }} install-clang-runtime
       - run: ${{ env.INV_CMD }} install-auth-test-deps -b ${{ matrix.backend }}
       - run: ${{ env.INV_CMD }} test-api auth -b ${{ matrix.backend }}
-      - run: ${{ env.INV_CMD }} generate-coverage-info /opt/pdns-auth/sbin/pdns-auth $GITHUB_WORKSPACE
+      - run: ${{ env.INV_CMD }} generate-coverage-info /opt/pdns-auth/sbin/pdns-auth 'auth' $GITHUB_WORKSPACE
         if: ${{ env.COVERAGE == 'yes' }}
       - name: Coveralls Parallel auth API ${{ matrix.backend }}
         if: ${{ env.COVERAGE == 'yes' }}
@@ -515,7 +516,7 @@ jobs:
       - run: ${{ env.INV_CMD }} install-clang-runtime
       - run: ${{ env.INV_CMD }} install-auth-test-deps -b ${{ matrix.backend }}
       - run: ${{ env.INV_CMD }} test-auth-backend -b ${{ matrix.backend }}
-      - run: ${{ env.INV_CMD }} generate-coverage-info /opt/pdns-auth/sbin/pdns-auth $GITHUB_WORKSPACE
+      - run: ${{ env.INV_CMD }} generate-coverage-info /opt/pdns-auth/sbin/pdns-auth 'auth' $GITHUB_WORKSPACE
         if: ${{ env.COVERAGE == 'yes' }}
       - name: Coveralls Parallel auth backend ${{ matrix.backend }}
         if: ${{ env.COVERAGE == 'yes' }}
@@ -558,7 +559,7 @@ jobs:
       - run: ${{ env.INV_CMD }} install-clang-runtime
       - run: ${{ env.INV_CMD }} install-auth-test-deps
       - run: ${{ env.INV_CMD }} test-ixfrdist
-      - run: ${{ env.INV_CMD }} generate-coverage-info /opt/pdns-auth/bin/ixfrdist $GITHUB_WORKSPACE
+      - run: ${{ env.INV_CMD }} generate-coverage-info /opt/pdns-auth/bin/ixfrdist 'auth' $GITHUB_WORKSPACE
         if: ${{ env.COVERAGE == 'yes' }}
       - name: Coveralls Parallel ixfrdist
         if: ${{ env.COVERAGE == 'yes' }}
@@ -610,7 +611,7 @@ jobs:
       - run: ${{ env.INV_CMD }} install-clang-runtime
       - run: ${{ env.INV_CMD }} install-rec-test-deps
       - run: ${{ env.INV_CMD }} test-api recursor
-      - run: ${{ env.INV_CMD }} generate-coverage-info /opt/pdns-recursor/sbin/pdns_recursor $GITHUB_WORKSPACE
+      - run: ${{ env.INV_CMD }} generate-coverage-info /opt/pdns-recursor/sbin/pdns_recursor 'recursor' $GITHUB_WORKSPACE
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
       - name: Coveralls Parallel recursor API
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
@@ -664,7 +665,7 @@ jobs:
       - run: ${{ env.INV_CMD }} install-clang-runtime
       - run: ${{ env.INV_CMD }} install-rec-test-deps
       - run: ${{ env.INV_CMD }} test-regression-recursor
-      - run: ${{ env.INV_CMD }} generate-coverage-info /opt/pdns-recursor/sbin/pdns_recursor $GITHUB_WORKSPACE
+      - run: ${{ env.INV_CMD }} generate-coverage-info /opt/pdns-recursor/sbin/pdns_recursor 'recursor' $GITHUB_WORKSPACE
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
       - name: Coveralls Parallel recursor regression
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
@@ -717,7 +718,7 @@ jobs:
       - run: ${{ env.INV_CMD }} install-clang-runtime
       - run: ${{ env.INV_CMD }} install-rec-bulk-deps
       - run: ${{ env.INV_CMD }} test-bulk-recursor 100 ${{ matrix.threads }} ${{ matrix.mthreads }} ${{ matrix.shards }} ${{ matrix.IPv6 }}
-      - run: ${{ env.INV_CMD }} generate-coverage-info /opt/pdns-recursor/sbin/pdns_recursor $GITHUB_WORKSPACE
+      - run: ${{ env.INV_CMD }} generate-coverage-info /opt/pdns-recursor/sbin/pdns_recursor 'recursor' $GITHUB_WORKSPACE
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
       - name: Coveralls Parallel recursor bulk
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
@@ -768,7 +769,7 @@ jobs:
           ASAN_OPTIONS: detect_leaks=0
           TSAN_OPTIONS: "halt_on_error=1:suppressions=${{ github.workspace }}/pdns/recursordist/recursor-tsan.supp"
       #  Disabled, it gives us: "/bin/bash: line 1: llvm-profdata-13: command not found" due to mismatch between deb and ubuntu versions
-      #- run: . ${{ github.workspace }}/.venv/bin/activate && inv generate-coverage-info /opt/pdns-recursor/sbin/pdns_recursor $GITHUB_WORKSPACE
+      #- run: . ${{ github.workspace }}/.venv/bin/activate && inv generate-coverage-info 'recursor' /opt/pdns-recursor/sbin/pdns_recursor $GITHUB_WORKSPACE
       #  if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
       #- name: Coveralls Parallel recursor bulk
       #  if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
@@ -824,7 +825,7 @@ jobs:
       - run: ${{ env.INV_CMD }} install-clang-runtime
       - run: ${{ env.INV_CMD }} install-dnsdist-test-deps $([ "$(. /etc/os-release && echo $VERSION_CODENAME)" = "bullseye" ] && echo "--skipXDP=True")
       - run: ${{ env.INV_CMD }} test-dnsdist $([ "$(. /etc/os-release && echo $VERSION_CODENAME)" = "bullseye" ] && echo "--skipXDP=True")
-      - run: ${{ env.INV_CMD }} generate-coverage-info /opt/dnsdist/bin/dnsdist $GITHUB_WORKSPACE
+      - run: ${{ env.INV_CMD }} generate-coverage-info /opt/dnsdist/bin/dnsdist 'dnsdist' $GITHUB_WORKSPACE
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
       - name: Coveralls Parallel dnsdist regression
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}

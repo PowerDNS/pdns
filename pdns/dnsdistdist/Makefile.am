@@ -657,11 +657,8 @@ dist_man_MANS=$(MANPAGES)
 if HAVE_VENV
 if !HAVE_MANPAGES
 $(MANPAGES): %: docs/manpages/%.rst .venv
-	$(AM_V_GEN).venv/bin/python -msphinx -b man docs . $<
+	$(AM_V_GEN).venv/bin/python -msphinx -b man ${srcdir}/docs . $<
 endif # if !HAVE_MANPAGES
-
-docs/reference/yaml-settings.rst: dnsdist-settings-documentation-generator.py dnsdist-settings-definitions.yml dnsdist-actions-definitions.yml dnsdist-response-actions-definitions.yml dnsdist-selectors-definitions.yml
-	$(PYTHON) dnsdist-settings-documentation-generator.py .
 
 .venv: docs/requirements.txt
 	$(PYTHON) -m venv .venv

@@ -170,7 +170,7 @@ jobs:
       if: matrix.product == 'dnsdist'
       working-directory: ./pdns/dnsdistdist/
       run: |
-        inv ci-dnsdist-configure full autotools build-dir
+        inv ci-dnsdist-configure full autotools ''
     - name: Build dnsdist
       if: matrix.product == 'dnsdist'
       working-directory: ./pdns/dnsdistdist/
