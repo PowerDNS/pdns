@@ -23,6 +23,7 @@
 
 #include <cstdint>
 #include <ctime>
+#include <memory>
 #include <optional>
 #include <unordered_map>
 #include <utility>
@@ -30,6 +31,7 @@
 
 #include "config.h"
 #include "dnscrypt.hh"
+#include "dnsdist-configuration.hh"
 #include "dnsname.hh"
 #include "dnsdist-protocols.hh"
 #include "ednsextendederror.hh"
@@ -115,9 +117,27 @@ struct InternalQueryState
 
   // Whether or not Open Telemetry tracing is enabled for this query
   bool tracingEnabled = false;
-
-  // TODO: Do we want to keep some data *without* creating a tracer for each query?
-  std::shared_ptr<pdns::trace::dnsdist::Tracer> d_OTTracer{pdns::trace::dnsdist::Tracer::getTracer()};
+  /**
+   * @brief Returns the Tracer, but only if OpenTelemetry tracing is globally enabled
+   *
+   * @return
+   */
+  std::shared_ptr<pdns::trace::dnsdist::Tracer> getTracer()
+  {
+#ifdef DISABLE_PROTOBUF
+    return nullptr;
+#else
+    if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_openTelemetryTracing) {
+      if (d_OTTracer != nullptr) {
+        return d_OTTracer;
+      }
+      // OpenTelemetry tracing is enabled, but we don't have a tracer yet
+      d_OTTracer = pdns::trace::dnsdist::Tracer::getTracer();
+      return d_OTTracer;
+    }
+    return nullptr;
+#endif
+  }
 
   InternalQueryState()
   {
@@ -193,6 +213,9 @@ struct InternalQueryState
   bool selfGenerated{false};
   bool cacheHit{false};
   bool staleCacheHit{false};
+
+private:
+  std::shared_ptr<pdns::trace::dnsdist::Tracer> d_OTTracer{nullptr};
 };
 
 struct IDState

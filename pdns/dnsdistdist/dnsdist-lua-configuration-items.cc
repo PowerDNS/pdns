@@ -70,6 +70,7 @@ static const std::map<std::string, BooleanConfigurationItems> s_booleanConfigIte
   {"setQueryCount", {[](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_queryCountConfig.d_enabled = newValue; }}},
   {"setVerbose", {[](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_verbose = newValue; }}},
   {"setVerboseHealthChecks", {[](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_verboseHealthChecks = newValue; }}},
+  {"setOpenTelemetryTracing", {[](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_openTelemetryTracing = newValue; }}},
   {"setServFailWhenNoServer", {[](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_servFailOnNoPolicy = newValue; }}},
   {"setRoundRobinFailOnNoServer", {[](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_roundrobinFailOnNoServer = newValue; }}},
   {"setDropEmptyQueries", {[](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_dropEmptyQueries = newValue; }}},

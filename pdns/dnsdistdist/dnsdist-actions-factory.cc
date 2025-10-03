@@ -42,6 +42,7 @@
 
 #include "dnstap.hh"
 #include "dnswriter.hh"
+#include "dolog.hh"
 #include "ednsoptions.hh"
 #include "fstrm_logger.hh"
 #include "ipcipher.hh"
@@ -1684,14 +1685,19 @@ public:
   {
     (void)ruleresult;
 #ifndef DISABLE_PROTOBUF
+    auto tracer = dnsquestion->ids.getTracer();
+    if (tracer == nullptr) {
+      vinfolog("SetTraceAction called, but OpenTelemetry tracing is globally disabled. Did you forget to call setOpenTelemetryTracing?");
+      return Action::None;
+    }
     if (d_value) {
-      dnsquestion->ids.d_OTTracer->activate();
-      dnsquestion->ids.d_OTTracer->setTraceAttribute("query.qname", AnyValue{dnsquestion->ids.qname.toStringNoDot()});
-      dnsquestion->ids.d_OTTracer->setTraceAttribute("query.qtype", AnyValue{QType(dnsquestion->ids.qtype).toString()});
-      dnsquestion->ids.d_OTTracer->setTraceAttribute("query.remote", AnyValue{dnsquestion->ids.origRemote.toLogString()});
+      tracer->activate();
+      tracer->setTraceAttribute("query.qname", AnyValue{dnsquestion->ids.qname.toStringNoDot()});
+      tracer->setTraceAttribute("query.qtype", AnyValue{QType(dnsquestion->ids.qtype).toString()});
+      tracer->setTraceAttribute("query.remote", AnyValue{dnsquestion->ids.origRemote.toLogString()});
     }
     else {
-      dnsquestion->ids.d_OTTracer->deactivate();
+      tracer->deactivate();
     }
     dnsquestion->ids.tracingEnabled = d_value;
 #endif
