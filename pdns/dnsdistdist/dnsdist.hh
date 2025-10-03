@@ -949,16 +949,35 @@ struct ServerPool
     return d_useECS;
   }
 
-  void setECS(bool useECS)
+  /* Note that the pool will do a consistency check,
+     and might decide to override the supplied value
+     if all backends in the pool have the same ECS
+     value and the value differs from the supplied one */
+  void setECS(bool useECS);
+
+  bool getDisableZeroScope() const
   {
-    d_useECS = useECS;
+    return d_disableZeroScope;
+  }
+
+  /* Note that the pool will do a consistency check,
+     and might decide to override the supplied value
+     if all backends in the pool have the same disable zero scope setting
+     value and the value differs from the supplied one */
+  void setDisableZeroScope(bool disable);
+
+  bool isConsistent() const
+  {
+    return d_isConsistent;
   }
 
   std::shared_ptr<DNSDistPacketCache> packetCache{nullptr};
   std::shared_ptr<ServerPolicy> policy{nullptr};
 
+  /* sum of outstanding queries for all servers in this pool */
   size_t poolLoad();
   size_t countServers(bool upOnly);
+  bool hasAtLeastOneServerAvailable();
   const std::shared_ptr<const ServerPolicy::NumberedServerVector> getServers();
   void addServer(shared_ptr<DownstreamState>& server);
   void removeServer(shared_ptr<DownstreamState>& server);
@@ -969,9 +988,13 @@ struct ServerPool
   }
 
 private:
+  void updateConsistency();
+
   SharedLockGuarded<std::shared_ptr<const ServerPolicy::NumberedServerVector>> d_servers;
   bool d_useECS{false};
   bool d_tcpOnly{false};
+  bool d_disableZeroScope{false};
+  bool d_isConsistent{true};
 };
 
 enum ednsHeaderFlags
