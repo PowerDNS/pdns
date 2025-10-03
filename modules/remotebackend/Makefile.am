@@ -21,6 +21,7 @@ ARC4RANDOM_LIBS = $(top_builddir)/ext/arc4random/libarc4random.la
 EXTRA_DIST = \
 	OBJECTFILES \
 	OBJECTLIBS \
+	meson.build \
 	testrunner.sh \
 	unittest_http.py \
 	unittest_json.py \

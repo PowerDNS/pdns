@@ -1021,11 +1021,20 @@ if python.found()
   foreach tool, info: tools
     if 'manpages' in info
       foreach man_page: info['manpages']
-        generated_man_pages += man_page
+        if not fs.is_file('docs' / man_page)
+          generated_man_pages += man_page
+        else
+          install_man(
+            'docs' / man_page,
+            install_dir: join_paths(get_option('mandir'), 'man1'),
+          )
+        endif
       endforeach
     endif
   endforeach
-  custom_target(
+  if generated_man_pages.length() != 0
+    summary('Generating man pages', true, section: 'Manual Pages')
+    custom_target(
      'man-pages',
      input: man_pages,
      output: generated_man_pages,
@@ -1041,7 +1050,10 @@ if python.found()
        '--source-directory', docs_dir,
        '--target-directory', '@BUILD_ROOT@',
      ] + man_pages,
-  )
+    )
+  else
+    summary('Generating man pages', false, section: 'Manual Pages')
+  endif
 endif
 
 if get_option('unit-tests')
