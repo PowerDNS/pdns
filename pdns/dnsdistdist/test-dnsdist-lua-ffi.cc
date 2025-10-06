@@ -1125,11 +1125,19 @@ BOOST_AUTO_TEST_CASE(test_set_altername_name)
   BOOST_CHECK_EQUAL(ids.skipCache, true);
   BOOST_REQUIRE(ids.qTag != nullptr);
   BOOST_CHECK_EQUAL(ids.qTag->at(tag), tagValue);
-  BOOST_CHECK_EQUAL(ids.qTag->at(formerTagName), initialQName.getStorage());
+  BOOST_CHECK_EQUAL(ids.qTag->at(formerTagName), std::string(initialQName.getStorage()));
 
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
   MOADNSParser mdp(false, reinterpret_cast<const char*>(dnsQuestion.getData().data()), dnsQuestion.getData().size());
   BOOST_CHECK_EQUAL(mdp.d_qname, target);
   BOOST_CHECK_EQUAL(mdp.d_header.qdcount, 1U);
+
+  /* also check that we can rename without providing any tags */
+  BOOST_CHECK(dnsdist_ffi_dnsquestion_set_alternate_name(&lightDQ, target.getStorage().data(), target.getStorage().size(), nullptr, 0, nullptr, 0, nullptr, 0));
+
+  /* and that we can pass a tag name without a value */
+  BOOST_CHECK(dnsdist_ffi_dnsquestion_set_alternate_name(&lightDQ, target.getStorage().data(), target.getStorage().size(), tag.data(), tag.size(), nullptr, 0, nullptr, 0));
+
 }
 
 BOOST_AUTO_TEST_SUITE_END();
