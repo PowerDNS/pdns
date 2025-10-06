@@ -957,14 +957,14 @@ bool dnsdist_ffi_resume_from_async_with_alternate_name(uint16_t asyncID, uint16_
   return dnsdist::queueQueryResumptionEvent(std::move(query));
 }
 
-bool dnsdist_ffi_dnsquestion_set_alternate_name(dnsdist_ffi_dnsquestion_t* dq, const char* alternateName, size_t alternateNameSize, const char* tag, size_t tagSize, const char* tagValue, size_t tagValueSize, const char* formerNameTagName, size_t formerNameTagSize)
+bool dnsdist_ffi_dnsquestion_set_alternate_name(dnsdist_ffi_dnsquestion_t* dnsQuestion, const char* alternateName, size_t alternateNameSize, const char* tag, size_t tagSize, const char* tagValue, size_t tagValueSize, const char* formerNameTagName, size_t formerNameTagSize)
 {
-  if (dq == nullptr || dq->dq == nullptr || alternateName == nullptr || alternateNameSize == 0) {
+  if (dnsQuestion == nullptr || dnsQuestion->dq == nullptr || alternateName == nullptr || alternateNameSize == 0) {
     return false;
   }
 
-  auto& ids = dq->dq->ids;
-  auto& packet = dq->dq->getMutableData();
+  auto& ids = dnsQuestion->dq->ids;
+  auto& packet = dnsQuestion->dq->getMutableData();
   return setAlternateName(packet, ids, std::string_view(alternateName, alternateNameSize), std::string_view(tag, tagSize), std::string_view(tagValue, tagValueSize), std::string_view(formerNameTagName, formerNameTagSize));
 }
 
