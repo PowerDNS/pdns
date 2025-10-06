@@ -1642,8 +1642,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         }
         string servers;
 
-        const auto& poolServers = pool.getServers();
-        for (const auto& server : poolServers) {
+        for (const auto& server : pool.getServers()) {
           if (!servers.empty()) {
             servers += ", ";
           }

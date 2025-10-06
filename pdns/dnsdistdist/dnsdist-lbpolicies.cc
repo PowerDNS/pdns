@@ -71,10 +71,8 @@ static std::optional<ServerPolicy::SelectedServerPosition> getLeastOutstanding(c
 }
 
 // get server with least outstanding queries, and within those, with the lowest order, and within those: the fastest
-std::optional<ServerPolicy::SelectedServerPosition> leastOutstanding(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq)
+std::optional<ServerPolicy::SelectedServerPosition> leastOutstanding(const ServerPolicy::NumberedServerVector& servers, [[maybe_unused]] const DNSQuestion* dnsQuestion)
 {
-  (void)dq;
-
   if (servers.size() == 1 && servers[0].second->isUp()) {
     return 1;
   }
@@ -84,9 +82,9 @@ std::optional<ServerPolicy::SelectedServerPosition> leastOutstanding(const Serve
 
 std::optional<ServerPolicy::SelectedServerPosition> firstAvailable(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq)
 {
-  for (auto& d : servers) {
-    if (d.second->isUp() && (!d.second->d_qpsLimiter || d.second->d_qpsLimiter->checkOnly())) {
-      return d.first;
+  for (auto& server : servers) {
+    if (server.second->isUp() && (!server.second->d_qpsLimiter || server.second->d_qpsLimiter->checkOnly())) {
+      return server.first;
     }
   }
   return leastOutstanding(servers, dq);
@@ -158,9 +156,8 @@ static std::optional<ServerPolicy::SelectedServerPosition> valrandom(const unsig
   return getValRandom(servers, poss, val, targetLoad);
 }
 
-std::optional<ServerPolicy::SelectedServerPosition> wrandom(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq)
+std::optional<ServerPolicy::SelectedServerPosition> wrandom(const ServerPolicy::NumberedServerVector& servers, [[maybe_unused]] const DNSQuestion* dnsQuestion)
 {
-  (void)dq;
   return valrandom(dns_random_uint32(), servers);
 }
 
@@ -240,9 +237,8 @@ std::optional<ServerPolicy::SelectedServerPosition> chashed(const ServerPolicy::
   return chashedFromHash(servers, dq->ids.qname.hash(hashPerturbation));
 }
 
-std::optional<ServerPolicy::SelectedServerPosition> roundrobin(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq)
+std::optional<ServerPolicy::SelectedServerPosition> roundrobin(const ServerPolicy::NumberedServerVector& servers, [[maybe_unused]] const DNSQuestion* dnsQuestion)
 {
-  (void)dq;
   if (servers.empty()) {
     return std::nullopt;
   }
