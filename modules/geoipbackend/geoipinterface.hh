@@ -64,9 +64,9 @@ public:
 
   virtual ~GeoIPInterface() = default;
 
-  static unique_ptr<GeoIPInterface> makeInterface(const string& dbStr);
+  static unique_ptr<GeoIPInterface> makeInterface(std::shared_ptr<Logr::Logger> slog, const string& dbStr);
 
 private:
-  static unique_ptr<GeoIPInterface> makeMMDBInterface(const string& fname, const map<string, string>& opts);
+  static unique_ptr<GeoIPInterface> makeMMDBInterface(std::shared_ptr<Logr::Logger> slog, const string& fname, const map<string, string>& opts);
   static unique_ptr<GeoIPInterface> makeDATInterface(const string& fname, const map<string, string>& opts);
 };
