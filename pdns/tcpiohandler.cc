@@ -1630,7 +1630,17 @@ public:
 
   [[nodiscard]] std::pair<long, std::string> getVerifyResult() const override
   {
-    return {-1, "Not implemented yet"};
+    if (d_conn) {
+      auto status = gnutls_session_get_verify_cert_status(d_conn.get());
+      gnutls_datum_t out{};
+      if (gnutls_certificate_verification_status_print(status, GNUTLS_CRT_X509, &out, 0) == 0) {
+        auto errString = std::string(reinterpret_cast<const char*>(out.data), out.size);
+        gnutls_free(out.data);
+        return {status, errString};
+      }
+      return {status, ""};
+    }
+    return {0, ""};
   }
 
   bool hasSessionBeenResumed() const override
