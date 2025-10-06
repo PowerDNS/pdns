@@ -652,7 +652,7 @@ void WebServer::bind()
     int err=unlink(d_listenaddress.c_str());
     if(err < 0 && errno!=ENOENT) {
       SLOG(g_log<<Logger::Error<<d_logprefix<<"Listening on HTTP socket failed, unable to remove existing socket at "<<d_listenaddress<<endl,
-           d_slog->error(Logr::Error, e.what(), "Listening on HTTP socket failed, unable to remove existing socket", "exception", d_listenaddress));
+           d_slog->error(Logr::Error, errno, "Listening on HTTP socket failed, unable to remove existing socket", "socket", Logging::Loggable(d_listenaddress)));
       d_server = nullptr;
       return;
     }
