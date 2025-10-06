@@ -244,11 +244,13 @@ bool Bind2Backend::getNSEC3PARAMuncached(const ZoneName& name, NSEC3PARAMRecordC
 
     if (ns3p->d_iterations > maxNSEC3Iterations) {
       ns3p->d_iterations = maxNSEC3Iterations;
-      g_log << Logger::Error << "Number of NSEC3 iterations for zone '" << name << "' is above 'max-nsec3-iterations'. Value adjusted to: " << maxNSEC3Iterations << endl;
+      SLOG(g_log << Logger::Error << "Number of NSEC3 iterations for zone '" << name << "' is above 'max-nsec3-iterations'. Value adjusted to: " << maxNSEC3Iterations << endl,
+           d_slog->info(Logr::Error, "Number of NSEC3 iterations for zone exceeds max-nsec3-iterations, clamping", "zone", Logging::Loggable(name), "max-nsec3-iterations", Logging::Loggable(maxNSEC3Iterations)));
     }
 
     if (ns3p->d_algorithm != 1) {
-      g_log << Logger::Error << "Invalid hash algorithm for NSEC3: '" << std::to_string(ns3p->d_algorithm) << "', setting to 1 for zone '" << name << "'." << endl;
+      SLOG(g_log << Logger::Error << "Invalid hash algorithm for NSEC3: '" << std::to_string(ns3p->d_algorithm) << "', setting to 1 for zone '" << name << "'." << endl,
+           d_slog->info(Logr::Error, "Invalid hash algorithm for NSEC3 on zone, setting to 1", "zone", Logging::Loggable(name), "algorithm", Logging::Loggable(ns3p->d_algorithm)));
       ns3p->d_algorithm = 1;
     }
   }
