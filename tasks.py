@@ -234,12 +234,12 @@ def install_coverage_deps(c):
         c.sudo(f'apt-get install -y --no-install-recommends llvm-{clang_version}')
 
 @task
-def generate_coverage_info(c, binary, outputDir):
+def generate_coverage_info(c, binary, product, outputDir):
     if is_coverage_enabled():
         version = os.getenv('BUILDER_VERSION')
         c.run(f'llvm-profdata-{clang_version} merge -sparse -o {outputDir}/temp.profdata /tmp/code-*.profraw')
         c.run(f'llvm-cov-{clang_version} export --format=lcov --ignore-filename-regex=\'^/usr/\' -instr-profile={outputDir}/temp.profdata -object {binary} > {outputDir}/coverage.lcov')
-        c.run(f'{outputDir}/.github/scripts/normalize_paths_in_coverage.py {outputDir} {version} {outputDir}/coverage.lcov {outputDir}/normalized_coverage.lcov 0')
+        c.run(f'{outputDir}/.github/scripts/normalize_paths_in_coverage.py {outputDir} {product} {version} {outputDir}/coverage.lcov {outputDir}/normalized_coverage.lcov 0')
         c.run(f'mv {outputDir}/normalized_coverage.lcov {outputDir}/coverage.lcov')
 
 def setup_authbind(c):
@@ -472,7 +472,7 @@ def get_cxxflags():
     ])
 
 
-def get_base_configure_cmd(additional_c_flags='', additional_cxx_flags='', additional_ld_flags='', enable_systemd=True, enable_sodium=True):
+def get_base_configure_cmd(additional_c_flags='', additional_cxx_flags='', additional_ld_flags='', enable_systemd=True, enable_sodium=True, out_of_tree_build=False):
     cflags = " ".join([get_cflags(), additional_c_flags])
     cxxflags = " ".join([get_cxxflags(), additional_cxx_flags])
     ldflags = additional_ld_flags
@@ -480,7 +480,7 @@ def get_base_configure_cmd(additional_c_flags='', additional_cxx_flags='', addit
         f'CFLAGS="{cflags}"',
         f'CXXFLAGS="{cxxflags}"',
         f'LDFLAGS="{ldflags}"',
-        './configure',
+        './configure' if not out_of_tree_build else '../configure',
         f"CC='{get_c_compiler()}'",
         f"CXX='{get_cxx_compiler()}'",
         "--enable-option-checking=fatal",
@@ -492,7 +492,7 @@ def get_base_configure_cmd(additional_c_flags='', additional_cxx_flags='', addit
         get_sanitizers()
     ])
 
-def get_base_configure_cmd_meson(build_dir, additional_c_flags='', additional_cxx_flags='', enable_systemd=True, enable_sodium=True):
+def get_base_configure_cmd_meson(build_dir, additional_c_flags='', additional_cxx_flags='', enable_systemd=True, enable_sodium=True, src_dir=''):
     cflags = " ".join([get_cflags(), additional_c_flags])
     cxxflags = " ".join([get_cxxflags(), additional_cxx_flags])
     env = " ".join([
@@ -502,7 +502,7 @@ def get_base_configure_cmd_meson(build_dir, additional_c_flags='', additional_cx
         f"CXX='{get_cxx_compiler()}'"
     ])
     return " ".join([
-        f'{env} meson setup {build_dir}',
+        f'{env} meson setup {build_dir} {src_dir}',
         "-D systemd-service={}".format("enabled" if enable_systemd else "disabled"),
         "-D signers-libsodium={}".format("enabled" if enable_sodium else "disabled"),
         "-D hardening-fortify-source=auto",
@@ -594,11 +594,18 @@ def ci_auth_configure(c, build_dir=None, meson=False):
                 ci_auth_configure_autotools(c)
 
 def ci_rec_configure_meson(c, features, build_dir):
+    builder_version = os.getenv('BUILDER_VERSION')
+    dist_dir = '/tmp/rec-meson-dist-build'
+    c.run(f'meson setup {dist_dir} && meson dist -C {dist_dir} --no-tests')
+    with c.cd(f'{dist_dir}/meson-dist'):
+        c.run(f'tar xf pdns-recursor-{builder_version}.tar.xz')
+    src_dir = f'{dist_dir}/meson-dist/pdns-recursor-{builder_version}'
+
     unittests = get_unit_tests(meson=True, auth=False)
     if features == "full":
         configure_cmd = " ".join([
             "LDFLAGS='-L/usr/local/lib -Wl,-rpath,/usr/local/lib'",
-            get_base_configure_cmd_meson(build_dir),
+            get_base_configure_cmd_meson(build_dir, src_dir=src_dir),
             "-D prefix=/opt/pdns-recursor",
             "-D dns-over-tls=enabled",
             "-D nod=enabled",
@@ -610,7 +617,7 @@ def ci_rec_configure_meson(c, features, build_dir):
     else:
         configure_cmd = " ".join([
             "LDFLAGS='-L/usr/local/lib -Wl,-rpath,/usr/local/lib'",
-            get_base_configure_cmd_meson(build_dir),
+            get_base_configure_cmd_meson(build_dir, src_dir=src_dir),
             "-D prefix=/opt/pdns-recursor",
             "-D dns-over-tls=disabled",
             "-D dnstap=disabled",
@@ -628,11 +635,12 @@ def ci_rec_configure_meson(c, features, build_dir):
         c.run(f'cat {build_dir}/meson-logs/meson-log.txt')
         raise UnexpectedExit(res)
 
-def ci_rec_configure_autotools(c, features):
+def ci_rec_configure_autotools(c, features, build_dir=None):
     unittests = get_unit_tests()
+    out_of_tree_build = build_dir is not None
     if features == 'full':
         configure_cmd = " ".join([
-            get_base_configure_cmd(),
+            get_base_configure_cmd(out_of_tree_build=out_of_tree_build),
             "--prefix=/opt/pdns-recursor",
             "--enable-option-checking",
             "--enable-verbose-logging",
@@ -645,7 +653,7 @@ def ci_rec_configure_autotools(c, features):
         ])
     else:
         configure_cmd = " ".join([
-            get_base_configure_cmd(),
+            get_base_configure_cmd(out_of_tree_build=out_of_tree_build),
             "--prefix=/opt/pdns-recursor",
             "--enable-option-checking",
             "--enable-verbose-logging",
@@ -670,11 +678,12 @@ def ci_rec_configure(c, features, build_dir=None, meson=False):
     if meson:
         ci_rec_configure_meson(c, features, build_dir)
     else:
-        ci_rec_configure_autotools(c, features)
         if build_dir:
-            ci_make_distdir(c)
+            c.run(f'mkdir -p {build_dir}')
             with c.cd(f'{build_dir}'):
-                ci_rec_configure_autotools(c, features)
+                ci_rec_configure_autotools(c, features, build_dir)
+        else:
+            ci_rec_configure_autotools(c, features)
 
 @task
 def ci_dnsdist_configure(c, features, builder, build_dir):
@@ -717,10 +726,10 @@ def ci_dnsdist_configure(c, features, builder, build_dir):
                             -DDISABLE_NPN'
 
     if builder == 'meson':
-        cmd = ci_dnsdist_configure_meson(features, additional_flags, additional_ld_flags, build_dir)
+        cmd = ci_dnsdist_configure_meson(c, features, additional_flags, additional_ld_flags, build_dir)
         logfile = 'meson-logs/meson-log.txt'
     else:
-        cmd = ci_dnsdist_configure_autotools(features, additional_flags, additional_ld_flags)
+        cmd = ci_dnsdist_configure_autotools(features, additional_flags, additional_ld_flags, build_dir)
         logfile = 'config.log'
 
     res = c.run(cmd, warn=True)
@@ -728,7 +737,7 @@ def ci_dnsdist_configure(c, features, builder, build_dir):
         c.run(f'cat {logfile}')
         raise UnexpectedExit(res)
 
-def ci_dnsdist_configure_autotools(features, additional_flags, additional_ld_flags):
+def ci_dnsdist_configure_autotools(features, additional_flags, additional_ld_flags, build_dir):
     if features == 'full':
       features_set = '--enable-dnstap \
                       --enable-dnscrypt \
@@ -765,9 +774,10 @@ def ci_dnsdist_configure_autotools(features, additional_flags, additional_ld_fla
     unittests = get_unit_tests()
     fuzztargets = get_fuzzing_targets()
     tools = f'''AR=llvm-ar-{clang_version} RANLIB=llvm-ranlib-{clang_version}''' if is_compiler_clang() else ''
+    out_of_tree_build = build_dir != ''
     return " ".join([
         tools,
-        get_base_configure_cmd(additional_c_flags='', additional_cxx_flags=additional_flags, additional_ld_flags=additional_ld_flags, enable_systemd=False, enable_sodium=False),
+        get_base_configure_cmd(additional_c_flags='', additional_cxx_flags=additional_flags, additional_ld_flags=additional_ld_flags, enable_systemd=False, enable_sodium=False, out_of_tree_build=out_of_tree_build),
         features_set,
         unittests,
         fuzztargets,
@@ -775,7 +785,7 @@ def ci_dnsdist_configure_autotools(features, additional_flags, additional_ld_fla
         '--prefix=/opt/dnsdist'
     ])
 
-def ci_dnsdist_configure_meson(features, additional_flags, additional_ld_flags, build_dir):
+def ci_dnsdist_configure_meson(c, features, additional_flags, additional_ld_flags, build_dir):
     if features == 'full':
       features_set = '-D cdb=enabled \
                       -D dnscrypt=enabled \
@@ -831,8 +841,17 @@ def ci_dnsdist_configure_meson(features, additional_flags, additional_ld_flags, 
         f"CC='{get_c_compiler()}'",
         f"CXX='{get_cxx_compiler()}'",
     ])
+
+    builder_version = os.getenv('BUILDER_VERSION')
+    dist_dir = '/tmp/dnsdist-meson-dist-build'
+
+    c.run(f'. {repo_home}/.venv/bin/activate && meson setup {dist_dir} && meson dist -C {dist_dir} --no-tests')
+    with c.cd(f'{dist_dir}/meson-dist/'):
+        c.run(f'tar xf dnsdist-{builder_version}.tar.xz')
+
+    src_dir = f'{dist_dir}/meson-dist/dnsdist-{builder_version}'
     return " ".join([
-        f'. {repo_home}/.venv/bin/activate && {env} meson setup {build_dir}',
+        f'. {repo_home}/.venv/bin/activate && {env} meson setup {build_dir} {src_dir}',
         features_set,
         unittests,
         fuzztargets,

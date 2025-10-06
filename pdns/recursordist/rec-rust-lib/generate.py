@@ -842,7 +842,7 @@ def generate():
     # with mixed sources both in build and src dir
     gen_rust(srcdir, entries)
     # Avoid generating doc files in a sdist based build
-    if os.path.isdir('../docs'):
+    if os.path.isdir(srcdir + '/../docs'):
         gen_oldstyle_docs(srcdir, entries)
         gen_newstyle_docs(srcdir, entries)
     # Remove cxx generated files, they need to be re-generated after a table change and the rust dependency tracking does
