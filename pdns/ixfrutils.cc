@@ -31,7 +31,7 @@
 #include "zoneparser-tng.hh"
 #include "dnsparser.hh"
 
-uint32_t getSerialFromPrimary(const ComboAddress& primary, const ZoneName& zone, shared_ptr<const SOARecordContent>& soarecord, const TSIGTriplet& tsig, const uint16_t timeout)
+uint32_t getSerialFromPrimary(Logr::log_t slog, const ComboAddress& primary, const ZoneName& zone, shared_ptr<const SOARecordContent>& soarecord, const TSIGTriplet& tsig, const uint16_t timeout)
 {
   vector<uint8_t> packet;
   DNSPacketWriter pwriter(packet, zone.operator const DNSName&(), QType::SOA);
@@ -42,7 +42,7 @@ uint32_t getSerialFromPrimary(const ComboAddress& primary, const ZoneName& zone,
     trc.d_fudge = 300;
     trc.d_origID=ntohs(pwriter.getHeader()->id);
     trc.d_eRcode=0;
-    addTSIG(pwriter, trc, tsig.name, tsig.secret, "", false);
+    addTSIG(slog, pwriter, trc, tsig.name, tsig.secret, "", false);
   }
 
   Socket s(primary.sin4.sin_family, SOCK_DGRAM);

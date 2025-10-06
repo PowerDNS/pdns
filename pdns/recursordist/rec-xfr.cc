@@ -331,7 +331,7 @@ bool FWCatZoneXFR::zoneTrackerIteration(const DNSName& zoneName, std::shared_ptr
     }
 
     try {
-      deltas = getIXFRDeltas(primary, zoneName, soaRecord, d_params.xfrTimeout, true, d_params.tsigtriplet, &local, d_params.maxReceivedMBytes);
+      deltas = getIXFRDeltas(logger, primary, zoneName, soaRecord, d_params.xfrTimeout, true, d_params.tsigtriplet, &local, d_params.maxReceivedMBytes);
 
       /* no need to try another primary */
       break;

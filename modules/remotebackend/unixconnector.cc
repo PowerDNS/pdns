@@ -30,10 +30,13 @@
 #define UNIX_PATH_MAX 108
 #endif
 
-UnixsocketConnector::UnixsocketConnector(std::map<std::string, std::string> optionsMap)
+UnixsocketConnector::UnixsocketConnector(Logr::log_t log, std::map<std::string, std::string> optionsMap)
 {
+  d_slog = log;
+
   if (optionsMap.count("path") == 0) {
-    g_log << Logger::Error << "Cannot find 'path' option in connection string" << endl;
+    SLOG(g_log << Logger::Error << "Cannot find 'path' option in connection string" << endl,
+         d_slog->info(Logr::Error, "Cannot find 'path' option in connection string"));
     throw PDNSException();
   }
   this->timeout = 2000;
@@ -163,24 +166,28 @@ void UnixsocketConnector::reconnect()
   }
   connected = true;
 
-  g_log << Logger::Info << "Reconnecting to backend" << std::endl;
+  SLOG(g_log << Logger::Info << "Reconnecting to backend" << std::endl,
+       d_slog->info(Logr::Info, "reconnecting to remote"));
   fd = socket(AF_UNIX, SOCK_STREAM, 0);
   if (fd < 0) {
     connected = false;
-    g_log << Logger::Error << "Cannot create socket: " << strerror(errno) << std::endl;
+    SLOG(g_log << Logger::Error << "Cannot create socket: " << strerror(errno) << std::endl,
+         d_slog->error(Logr::Error, errno, "error creating socket"));
     ;
     return;
   }
 
   if (makeUNsockaddr(path, &sock) != 0) {
-    g_log << Logger::Error << "Unable to create UNIX domain socket: Path '" << path << "' is not a valid UNIX socket path." << std::endl;
+    SLOG(g_log << Logger::Error << "Unable to create UNIX domain socket: Path '" << path << "' is not a valid UNIX socket path." << std::endl,
+         d_slog->info(Logr::Error, "error creating socket, path is not a valid UNIX socket path", "path", Logging::Loggable(path)));
     return;
   }
 
   rv = connect(fd, reinterpret_cast<struct sockaddr*>(&sock), sizeof sock);
 
   if (rv != 0 && errno != EISCONN && errno != 0) {
-    g_log << Logger::Error << "Cannot connect to socket: " << strerror(errno) << std::endl;
+    SLOG(g_log << Logger::Error << "Cannot connect to socket: " << strerror(errno) << std::endl,
+         d_slog->error(Logr::Error, errno, "cannot connect to socket"));
     close(fd);
     connected = false;
     return;
@@ -196,7 +203,8 @@ void UnixsocketConnector::reconnect()
   this->send(msg);
   msg = nullptr;
   if (!this->recv(msg)) {
-    g_log << Logger::Warning << "Failed to initialize backend" << std::endl;
+    SLOG(g_log << Logger::Warning << "Failed to initialize backend" << std::endl,
+         d_slog->info(Logr::Error, "remote failed to initialize"));
     close(fd);
     this->connected = false;
   }

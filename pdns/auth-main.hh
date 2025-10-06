@@ -42,7 +42,7 @@ extern AuthPacketCache PC; //!< This is the main PacketCache, shared across all 
 extern AuthQueryCache QC;
 extern std::unique_ptr<DNSProxy> DP;
 extern CommunicatorClass Communicator;
-void carbonDumpThread(); // Implemented in auth-carbon.cc. Avoids having an auth-carbon.hh declaring exactly one function.
+void carbonDumpThread(Logr::log_t slog); // Implemented in auth-carbon.cc. Avoids having an auth-carbon.hh declaring exactly one function.
 extern bool g_anyToTcp;
 extern bool g_8bitDNS;
 extern NetmaskGroup g_proxyProtocolACL;

@@ -65,8 +65,9 @@ static bool realTestResult(SQLRETURN result, SQLSMALLINT type, SQLHANDLE handle,
 class SODBCStatement : public SSqlStatement
 {
 public:
-  SODBCStatement(const string& query, bool dolog, int nparams, SQLHDBC connection)
+  SODBCStatement(Logr::log_t log, const string& query, bool dolog, int nparams, SQLHDBC connection)
   {
+    d_slog = log;
     d_query = query;
     d_conn = connection;
     d_dolog = dolog;
@@ -221,7 +222,8 @@ public:
     SQLRETURN result;
     // cerr<<"execute("<<d_query<<")"<<endl;
     if (d_dolog) {
-      g_log << Logger::Warning << "Query: " << d_query << endl;
+      SLOG(g_log << Logger::Warning << "Query: " << d_query << endl,
+           d_slog->info(Logr::Warning, "execute ODBC query", "query", Logging::Loggable(d_query)));
     }
 
     result = SQLExecute(d_statement);
@@ -348,6 +350,7 @@ private:
 
   string d_query;
   bool d_dolog;
+  std::shared_ptr<Logr::Logger> d_slog;
   bool d_prepared;
   int d_residx;
   size_t d_paridx, d_parnum;
@@ -419,11 +422,14 @@ SSqlStatement* SODBCStatement::nextRow(row_t& row)
 
 // Constructor.
 SODBC::SODBC(
+  Logr::log_t log,
   const std::string& dsn,
   const std::string& username,
   const std::string& password)
 {
   SQLRETURN result;
+
+  d_slog = log;
 
   // Allocate an environment handle.
   result = SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &m_environment);
@@ -479,7 +485,7 @@ SODBC::~SODBC()
 // Executes a command.
 void SODBC::execute(const std::string& command)
 {
-  SODBCStatement stmt(command, m_log, 0, m_connection);
+  SODBCStatement stmt(d_slog, command, m_log, 0, m_connection);
 
   stmt.execute()->reset();
 }
@@ -498,7 +504,7 @@ SSqlException SODBC::sPerrorException(const std::string& reason)
 
 std::unique_ptr<SSqlStatement> SODBC::prepare(const string& query, int nparams)
 {
-  return std::make_unique<SODBCStatement>(query, m_log, nparams, m_connection);
+  return std::make_unique<SODBCStatement>(d_slog, query, m_log, nparams, m_connection);
 }
 
 void SODBC::startTransaction()

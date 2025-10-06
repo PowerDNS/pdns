@@ -40,6 +40,8 @@
 #include "ixfrutils.hh"
 StatBag S;
 
+bool g_slogStructured{false};
+
 ArgvMap &arg()
 {
   static ArgvMap theArg;
@@ -180,7 +182,7 @@ int main(int argc, char** argv) {
       cout<<"Checking for update, our serial number is "<<ourSerial<<".. ";
       cout.flush();
       shared_ptr<const SOARecordContent> sr;
-      uint32_t serial = getSerialFromPrimary(primary, zone, sr, tt);
+      uint32_t serial = getSerialFromPrimary(nullptr /* no structured logging */, primary, zone, sr, tt);
       if(ourSerial == serial) {
         unsigned int sleepTime = sr ? sr->d_st.refresh : 60;
         cout<<"still up to date, their serial is "<<serial<<", sleeping "<<sleepTime<<" seconds"<<endl;
@@ -189,7 +191,7 @@ int main(int argc, char** argv) {
       }
 
       cout<<"got new serial: "<<serial<<", initiating IXFR!"<<endl;
-      auto deltas = getIXFRDeltas(primary, zone.operator const DNSName&(), ourSoa, 20, false, tt);
+      auto deltas = getIXFRDeltas(nullptr /* no structured logging */, primary, zone.operator const DNSName&(), ourSoa, 20, false, tt);
       cout<<"Got "<<deltas.size()<<" deltas, applying.."<<endl;
 
       for(const auto& delta : deltas) {

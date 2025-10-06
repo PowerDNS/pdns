@@ -205,7 +205,7 @@ static auto mapToBN(const std::string& componentName, const std::map<std::string
 class OpenSSLRSADNSCryptoKeyEngine : public DNSCryptoKeyEngine
 {
 public:
-  explicit OpenSSLRSADNSCryptoKeyEngine(unsigned int algo);
+  explicit OpenSSLRSADNSCryptoKeyEngine(Logr::log_t slog, unsigned int algo);
 
   [[nodiscard]] string getName() const override { return "OpenSSL RSA"; }
   [[nodiscard]] int getBits() const override;
@@ -250,9 +250,9 @@ public:
   void fromPublicKeyString(const std::string& content) override;
   [[nodiscard]] bool checkKey(std::optional<std::reference_wrapper<std::vector<std::string>>> errorMessages) const override;
 
-  static std::unique_ptr<DNSCryptoKeyEngine> maker(unsigned int algorithm)
+  static std::unique_ptr<DNSCryptoKeyEngine> maker(Logr::log_t slog, unsigned int algorithm)
   {
-    return make_unique<OpenSSLRSADNSCryptoKeyEngine>(algorithm);
+    return make_unique<OpenSSLRSADNSCryptoKeyEngine>(slog, algorithm);
   }
 
 private:
@@ -289,8 +289,8 @@ private:
   Key d_key;
 };
 
-OpenSSLRSADNSCryptoKeyEngine::OpenSSLRSADNSCryptoKeyEngine(unsigned int algo) :
-  DNSCryptoKeyEngine(algo),
+OpenSSLRSADNSCryptoKeyEngine::OpenSSLRSADNSCryptoKeyEngine(Logr::log_t slog, unsigned int algo) :
+  DNSCryptoKeyEngine(slog, algo),
 #if OPENSSL_VERSION_MAJOR >= 3
   d_key(Key(nullptr, EVP_PKEY_free))
 #else
@@ -299,7 +299,7 @@ OpenSSLRSADNSCryptoKeyEngine::OpenSSLRSADNSCryptoKeyEngine(unsigned int algo) :
 {
   int ret = RAND_status();
   if (ret != 1) {
-    throw runtime_error(getName() + " insufficient entropy");
+    throw runtime_error(OpenSSLRSADNSCryptoKeyEngine::getName() + " insufficient entropy");
   }
 }
 
@@ -994,7 +994,7 @@ void OpenSSLRSADNSCryptoKeyEngine::fromPublicKeyString(const std::string& conten
 class OpenSSLECDSADNSCryptoKeyEngine : public DNSCryptoKeyEngine
 {
 public:
-  explicit OpenSSLECDSADNSCryptoKeyEngine(unsigned int algo);
+  explicit OpenSSLECDSADNSCryptoKeyEngine(Logr::log_t slog, unsigned int algo);
 
   [[nodiscard]] string getName() const override { return "OpenSSL ECDSA"; }
   [[nodiscard]] int getBits() const override;
@@ -1042,9 +1042,9 @@ public:
   [[nodiscard]] std::size_t hashSize() const;
   [[nodiscard]] const EVP_MD* hasher() const;
 
-  static std::unique_ptr<DNSCryptoKeyEngine> maker(unsigned int algorithm)
+  static std::unique_ptr<DNSCryptoKeyEngine> maker(Logr::log_t slog, unsigned int algorithm)
   {
-    return make_unique<OpenSSLECDSADNSCryptoKeyEngine>(algorithm);
+    return make_unique<OpenSSLECDSADNSCryptoKeyEngine>(slog, algorithm);
   }
 
 private:
@@ -1084,8 +1084,8 @@ int OpenSSLECDSADNSCryptoKeyEngine::getBits() const
   return d_len << 3;
 }
 
-OpenSSLECDSADNSCryptoKeyEngine::OpenSSLECDSADNSCryptoKeyEngine(unsigned int algo) :
-  DNSCryptoKeyEngine(algo)
+OpenSSLECDSADNSCryptoKeyEngine::OpenSSLECDSADNSCryptoKeyEngine(Logr::log_t slog, unsigned int algo) :
+  DNSCryptoKeyEngine(slog, algo)
 #if OPENSSL_VERSION_MAJOR < 3
   ,
   d_eckey(Key(EC_KEY_new(), EC_KEY_free))
@@ -1093,12 +1093,12 @@ OpenSSLECDSADNSCryptoKeyEngine::OpenSSLECDSADNSCryptoKeyEngine(unsigned int algo
 {
   int ret = RAND_status();
   if (ret != 1) {
-    throw runtime_error(getName() + " insufficient entropy");
+    throw runtime_error(OpenSSLECDSADNSCryptoKeyEngine::getName() + " insufficient entropy");
   }
 
 #if OPENSSL_VERSION_MAJOR < 3
   if (!d_eckey) {
-    throw runtime_error(getName() + " allocation of key structure failed");
+    throw runtime_error(OpenSSLECDSADNSCryptoKeyEngine::getName() + " allocation of key structure failed");
   }
 #endif
 
@@ -1115,18 +1115,18 @@ OpenSSLECDSADNSCryptoKeyEngine::OpenSSLECDSADNSCryptoKeyEngine(unsigned int algo
     d_id = NID_secp384r1;
   }
   else {
-    throw runtime_error(getName() + " unknown algorithm " + std::to_string(d_algorithm));
+    throw runtime_error(OpenSSLECDSADNSCryptoKeyEngine::getName() + " unknown algorithm " + std::to_string(d_algorithm));
   }
 
   d_group = Group(EC_GROUP_new_by_curve_name(d_id), EC_GROUP_free);
   if (d_group == nullptr) {
-    throw pdns::OpenSSL::error(getName(), std::string() + "Failed to create EC group `" + d_group_name + "` to export public key");
+    throw pdns::OpenSSL::error(OpenSSLECDSADNSCryptoKeyEngine::getName(), std::string() + "Failed to create EC group `" + d_group_name + "` to export public key");
   }
 
 #if OPENSSL_VERSION_MAJOR < 3
   ret = EC_KEY_set_group(d_eckey.get(), d_group.get());
   if (ret != 1) {
-    throw runtime_error(getName() + " setting key group failed");
+    throw runtime_error(OpenSSLECDSADNSCryptoKeyEngine::getName() + " setting key group failed");
   }
 #endif
 }
@@ -1753,7 +1753,7 @@ void OpenSSLECDSADNSCryptoKeyEngine::fromPublicKeyString(const std::string& cont
 class OpenSSLEDDSADNSCryptoKeyEngine : public DNSCryptoKeyEngine
 {
 public:
-  explicit OpenSSLEDDSADNSCryptoKeyEngine(unsigned int algo);
+  explicit OpenSSLEDDSADNSCryptoKeyEngine(Logr::log_t slog, unsigned int algo);
 
   [[nodiscard]] string getName() const override { return "OpenSSL EdDSA"; }
   [[nodiscard]] int getBits() const override;
@@ -1795,9 +1795,9 @@ public:
   void fromPublicKeyString(const std::string& content) override;
   [[nodiscard]] bool checkKey(std::optional<std::reference_wrapper<std::vector<std::string>>> errorMessages) const override;
 
-  static std::unique_ptr<DNSCryptoKeyEngine> maker(unsigned int algorithm)
+  static std::unique_ptr<DNSCryptoKeyEngine> maker(Logr::log_t slog, unsigned int algorithm)
   {
-    return make_unique<OpenSSLEDDSADNSCryptoKeyEngine>(algorithm);
+    return make_unique<OpenSSLEDDSADNSCryptoKeyEngine>(slog, algorithm);
   }
 
   using Key = unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)>;
@@ -1811,13 +1811,13 @@ private:
   Key d_edkey;
 };
 
-OpenSSLEDDSADNSCryptoKeyEngine::OpenSSLEDDSADNSCryptoKeyEngine(unsigned int algo) :
-  DNSCryptoKeyEngine(algo),
+OpenSSLEDDSADNSCryptoKeyEngine::OpenSSLEDDSADNSCryptoKeyEngine(Logr::log_t slog, unsigned int algo) :
+  DNSCryptoKeyEngine(slog, algo),
   d_edkey(Key(nullptr, EVP_PKEY_free))
 {
   int ret = RAND_status();
   if (ret != 1) {
-    throw runtime_error(getName() + " insufficient entropy");
+    throw runtime_error(OpenSSLEDDSADNSCryptoKeyEngine::getName() + " insufficient entropy");
   }
 
 #ifdef HAVE_LIBCRYPTO_ED25519
@@ -1833,7 +1833,7 @@ OpenSSLEDDSADNSCryptoKeyEngine::OpenSSLEDDSADNSCryptoKeyEngine(unsigned int algo
   }
 #endif
   if (d_len == 0) {
-    throw runtime_error(getName() + " unknown algorithm " + std::to_string(d_algorithm));
+    throw runtime_error(OpenSSLEDDSADNSCryptoKeyEngine::getName() + " unknown algorithm " + std::to_string(d_algorithm));
   }
 }
 

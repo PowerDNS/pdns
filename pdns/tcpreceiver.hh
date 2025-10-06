@@ -42,7 +42,7 @@
 class TCPNameserver
 {
 public:
-  TCPNameserver();
+  TCPNameserver(Logr::log_t slog);
   ~TCPNameserver();
   void go();
   unsigned int numTCPConnections();
@@ -50,10 +50,10 @@ private:
 
   static void sendPacket(std::unique_ptr<DNSPacket>& p, int outsock, bool last=true);
   static void getQuestion(int fd, char *mesg, int pktlen, const ComboAddress& remote, unsigned int totalTime);
-  static int doAXFR(const ZoneName &target, std::unique_ptr<DNSPacket>& q, int outsock);
-  static int doIXFR(std::unique_ptr<DNSPacket>& q, int outsock);
-  static bool canDoAXFR(std::unique_ptr<DNSPacket>& q, bool isAXFR, std::unique_ptr<PacketHandler>& packetHandler);
-  static void doConnection(int fd);
+  static int doAXFR(const ZoneName &target, std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_t slog);
+  static int doIXFR(std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_t slog);
+  static bool canDoAXFR(std::unique_ptr<DNSPacket>& q, bool isAXFR, std::unique_ptr<PacketHandler>& packetHandler, Logr::log_t slog);
+  static void doConnection(int fd, Logr::log_t slog);
   static void decrementClientCount(const ComboAddress& remote);
   void thread();
   static LockGuarded<std::map<ComboAddress,size_t,ComboAddress::addressOnlyLessThan>> s_clientsCount;
@@ -68,4 +68,5 @@ private:
 
   vector<int>d_sockets;
   vector<struct pollfd> d_prfds;
+  std::shared_ptr<Logr::Logger> d_slog;
 };

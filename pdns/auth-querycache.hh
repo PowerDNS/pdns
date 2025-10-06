@@ -61,6 +61,9 @@ public:
       shard.reserve(maxEntries / d_maps.size());
     }
   }
+
+  void setSLog(Logr::log_t log) { d_slog = log; }
+
 private:
 
   struct CacheEntry
@@ -121,6 +124,7 @@ private:
   AtomicCounter d_nextclean{4096};
   unsigned int d_cleaninterval{4096};
   bool d_cleanskipped{false};
+  std::shared_ptr<Logr::Logger> d_slog;
 
   static const unsigned int s_mincleaninterval=1000, s_maxcleaninterval=300000;
 };

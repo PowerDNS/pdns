@@ -14,6 +14,8 @@
 #include "dns_random.hh"
 #include "gss_context.hh"
 
+bool g_slogStructured{false};
+
 StatBag S;
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
@@ -174,7 +176,7 @@ try
     trc.d_fudge = 300;
     trc.d_origID=ntohs(pw.getHeader()->id);
     trc.d_eRcode=0;
-    addTSIG(pw, trc, tsig_key, tsig_secret, "", false);
+    addTSIG(nullptr /* no structured logging */, pw, trc, tsig_key, tsig_secret, "", false);
   }
 
   len = htons(packet.size());

@@ -28,11 +28,13 @@
 #ifdef HAVE_MMDB
 
 #include "maxminddb.h"
+#include "pdns/logging.hh"
 
 class GeoIPInterfaceMMDB : public GeoIPInterface
 {
 public:
-  GeoIPInterfaceMMDB(const string& fname, const string& modeStr, const string& language)
+  GeoIPInterfaceMMDB(Logr::log_t slog, const string& fname, const string& modeStr, const string& language) :
+    d_slog(slog)
   {
     int ec;
     int flags = 0;
@@ -49,7 +51,8 @@ public:
     if ((ec = MMDB_open(fname.c_str(), flags, &d_s)) != MMDB_SUCCESS)
       throw PDNSException(string("Cannot open ") + fname + string(": ") + string(MMDB_strerror(ec)));
     d_lang = language;
-    g_log << Logger::Debug << "Opened MMDB database " << fname << "(type: " << d_s.metadata.database_type << " version: " << d_s.metadata.binary_format_major_version << "." << d_s.metadata.binary_format_minor_version << ")" << endl;
+    SLOG(g_log << Logger::Debug << "Opened MMDB database " << fname << "(type: " << d_s.metadata.database_type << " version: " << d_s.metadata.binary_format_major_version << "." << d_s.metadata.binary_format_minor_version << ")" << endl,
+         d_slog->info(Logr::Debug, "Opened MMDB database", "file", Logging::Loggable(fname), "type", Logging::Loggable(d_s.metadata.database_type), "major_version", Logging::Loggable(d_s.metadata.binary_format_major_version), "minor_version", Logging::Loggable(d_s.metadata.binary_format_minor_version)));
   }
 
   bool queryCountry(string& ret, GeoIPNetmask& gl, const string& ip) override
@@ -251,16 +254,21 @@ public:
 private:
   MMDB_s d_s;
   string d_lang;
+  Logr::log_t d_slog;
 
   bool mmdbLookup(const string& ip, bool v6, GeoIPNetmask& gl, MMDB_lookup_result_s& res)
   {
     int gai_ec = 0, mmdb_ec = 0;
     res = MMDB_lookup_string(&d_s, ip.c_str(), &gai_ec, &mmdb_ec);
 
-    if (gai_ec != 0)
-      g_log << Logger::Warning << "MMDB_lookup_string(" << ip << ") failed: " << gai_strerror(gai_ec) << endl;
-    else if (mmdb_ec != MMDB_SUCCESS)
-      g_log << Logger::Warning << "MMDB_lookup_string(" << ip << ") failed: " << MMDB_strerror(mmdb_ec) << endl;
+    if (gai_ec != 0) {
+      SLOG(g_log << Logger::Warning << "MMDB_lookup_string(" << ip << ") failed: " << gai_strerror(gai_ec) << endl,
+           d_slog->error(Logr::Warning, gai_strerror(gai_ec), "MMDB lookup failed", "ip", Logging::Loggable(ip)));
+    }
+    else if (mmdb_ec != MMDB_SUCCESS) {
+      SLOG(g_log << Logger::Warning << "MMDB_lookup_string(" << ip << ") failed: " << MMDB_strerror(mmdb_ec) << endl,
+           d_slog->error(Logr::Warning, MMDB_strerror(mmdb_ec), "MMDB lookup failed", "ip", Logging::Loggable(ip)));
+    }
     else if (res.found_entry) {
       gl.netmask = res.netmask;
       /* If it's a IPv6 database, IPv4 netmasks are reduced from 128, so we need to deduct
@@ -273,7 +281,7 @@ private:
   }
 };
 
-unique_ptr<GeoIPInterface> GeoIPInterface::makeMMDBInterface(const string& fname, const map<string, string>& opts)
+unique_ptr<GeoIPInterface> GeoIPInterface::makeMMDBInterface(Logr::log_t slog, const string& fname, const map<string, string>& opts)
 {
   string mode = "";
   string language = "en";
@@ -283,12 +291,12 @@ unique_ptr<GeoIPInterface> GeoIPInterface::makeMMDBInterface(const string& fname
   const auto& opt_lang = opts.find("language");
   if (opt_lang != opts.end())
     language = opt_lang->second;
-  return std::make_unique<GeoIPInterfaceMMDB>(fname, mode, language);
+  return std::make_unique<GeoIPInterfaceMMDB>(slog, fname, mode, language);
 }
 
 #else
 
-unique_ptr<GeoIPInterface> GeoIPInterface::makeMMDBInterface([[maybe_unused]] const string& fname, [[maybe_unused]] const map<string, string>& opts)
+unique_ptr<GeoIPInterface> GeoIPInterface::makeMMDBInterface([[maybe_unused]] Logr::log_t slog, [[maybe_unused]] const string& fname, [[maybe_unused]] const map<string, string>& opts)
 {
   throw PDNSException("libmaxminddb support not compiled in");
 }

@@ -23,6 +23,7 @@
 #include "config.h"
 #endif
 #include <iostream>
+#include <iomanip>
 #include <cstdio>
 #include <cstring>
 #include <cstdlib>
@@ -36,13 +37,17 @@
 
 
 #include <sys/stat.h>
-#include "pdnsexception.hh"
-#include "misc.hh"
-#include "dynmessenger.hh"
 #include "arguments.hh"
-#include "statbag.hh"
+#include "dynmessenger.hh"
+#include "logger.hh"
+#include "logging.hh"
 #include "misc.hh"
 #include "namespaces.hh"
+#include "pdnsexception.hh"
+#include "statbag.hh"
+
+bool g_slogStructured{false};
+static Logger::Urgency s_logUrgency;
 
 ArgvMap &arg()
 {
@@ -52,11 +57,53 @@ ArgvMap &arg()
 
 StatBag S;
 
+static void pdnsControlLoggerBackend(const Logging::Entry& entry)
+{
+  static thread_local std::stringstream buf;
+
+  // First map SL priority to syslog's Urgency
+  Logger::Urgency urg = entry.d_priority != 0 ? Logger::Urgency(entry.d_priority) : Logger::Info;
+  if (urg > s_logUrgency) {
+    // We do not log anything if the Urgency of the message is lower than the requested loglevel.
+    // Not that lower Urgency means higher number.
+    return;
+  }
+  buf.str("");
+  buf << "msg=" << std::quoted(entry.message);
+  if (entry.error) {
+    buf << " error=" << std::quoted(entry.error.value());
+  }
+
+  if (entry.name) {
+    buf << " subsystem=" << std::quoted(entry.name.value());
+  }
+  buf << " level=" << std::quoted(std::to_string(entry.level));
+  if (entry.d_priority != 0) {
+    buf << " prio=" << std::quoted(Logr::Logger::toString(entry.d_priority));
+  }
+  std::array<char, 64> timebuf{};
+  buf << " ts=" << std::quoted(Logging::toTimestampStringMilli(entry.d_timestamp, timebuf));
+  for (auto const& value : entry.values) {
+    buf << " ";
+    buf << value.first << "=" << std::quoted(value.second);
+  }
+
+  g_log << urg << buf.str() << endl;
+}
+
 int main(int argc, char **argv)
 {
   string programname="pdns";
 
+  if (g_slogStructured) {
+    g_slog = Logging::Logger::create(pdnsControlLoggerBackend);
+    auto log = g_slog->withName("config");
+    ::arg().setSLog(log);
+  }
+
   ::arg().set("config-dir","Location of configuration directory (pdns.conf)")=SYSCONFDIR;
+  // Note pdns_server defaults to 4, but pdnsutil defaults to 3.
+  ::arg().set("loglevel","Amount of logging. Higher is more.")="4";
   ::arg().set("socket-dir",string("Where the controlsocket will live, ")+LOCALSTATEDIR+"/pdns when unset and not chrooted" )="";
   ::arg().set("remote-address","Remote address to query");
   ::arg().set("remote-port","Remote port to query")="53000";
@@ -67,6 +114,8 @@ int main(int argc, char **argv)
   ::arg().set("chroot","")="";
   ::arg().setCmd("help","Provide a helpful message");
   ::arg().laxParse(argc,argv);
+
+  s_logUrgency = (Logger::Urgency)(::arg().asNum("loglevel"));
 
   if(::arg().mustDo("help")) {
     cout<<"syntax:"<<endl<<endl;

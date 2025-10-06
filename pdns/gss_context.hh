@@ -28,6 +28,7 @@
 #include "namespaces.hh"
 #include "pdnsexception.hh"
 #include "dns.hh"
+#include "logr.hh"
 
 #ifdef ENABLE_GSS_TSIG
 #include <gssapi/gssapi.h>
@@ -208,5 +209,5 @@ private:
   std::shared_ptr<GssSecContext> d_secctx; //<! Attached security context
 }; // GssContext
 
-bool gss_add_signature(const DNSName& context, const std::string& message, std::string& mac); //<! Create signature
-bool gss_verify_signature(const DNSName& context, const std::string& message, const std::string& mac); //<! Validate signature
+bool gss_add_signature(Logr::log_t slog, const DNSName& context, const std::string& message, std::string& mac); //<! Create signature
+bool gss_verify_signature(Logr::log_t slog, const DNSName& context, const std::string& message, const std::string& mac); //<! Validate signature

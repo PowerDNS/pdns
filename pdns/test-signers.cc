@@ -301,7 +301,7 @@ struct Fixture
   Fixture()
   {
     BOOST_TEST_MESSAGE("All available/supported algorithms:");
-    auto pairs = DNSCryptoKeyEngine::listAllAlgosWithBackend();
+    auto pairs = DNSCryptoKeyEngine::listAllAlgosWithBackend(nullptr /* no structured logging */);
     for (auto const& pair : pairs) {
       BOOST_TEST_MESSAGE("  " + std::to_string(pair.first) + ": " + pair.second);
     }
@@ -337,7 +337,7 @@ struct Fixture
 static void checkRR(const SignerParams& signer)
 {
   DNSKEYRecordContent drc;
-  auto dcke = std::shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(drc, signer.iscMap));
+  auto dcke = std::shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(nullptr /* no structured logging */, drc, signer.iscMap));
   DNSSECPrivateKey dpk;
   dpk.setKey(dcke, signer.rfcFlags);
 
@@ -414,17 +414,17 @@ static void test_generic_signer(std::shared_ptr<DNSCryptoKeyEngine> dcke, DNSKEY
   BOOST_CHECK_EQUAL(drc.getZoneRepresentation(), signer.zoneRepresentation);
 
   DNSName name(signer.name);
-  auto ds1 = makeDSFromDNSKey(name, drc, DNSSEC::DIGEST_SHA1);
+  auto ds1 = makeDSFromDNSKey(nullptr /* no structured logging */, name, drc, DNSSEC::DIGEST_SHA1);
   if (!signer.dsSHA1.empty()) {
     BOOST_CHECK_EQUAL(ds1.getZoneRepresentation(), signer.dsSHA1);
   }
 
-  auto ds2 = makeDSFromDNSKey(name, drc, DNSSEC::DIGEST_SHA256);
+  auto ds2 = makeDSFromDNSKey(nullptr /* no structured logging */, name, drc, DNSSEC::DIGEST_SHA256);
   if (!signer.dsSHA256.empty()) {
     BOOST_CHECK_EQUAL(ds2.getZoneRepresentation(), signer.dsSHA256);
   }
 
-  auto ds4 = makeDSFromDNSKey(name, drc, DNSSEC::DIGEST_SHA384);
+  auto ds4 = makeDSFromDNSKey(nullptr /* no structured logging */, name, drc, DNSSEC::DIGEST_SHA384);
   if (!signer.dsSHA384.empty()) {
     BOOST_CHECK_EQUAL(ds4.getZoneRepresentation(), signer.dsSHA384);
   }
@@ -458,11 +458,11 @@ BOOST_FIXTURE_TEST_CASE(test_generic_signers, Fixture)
     auto signer = algoSignerPair.second;
 
     DNSKEYRecordContent drc;
-    auto dcke = std::shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(drc, signer.iscMap));
+    auto dcke = std::shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(nullptr /* no structured logging */, drc, signer.iscMap));
     test_generic_signer(dcke, drc, signer, message);
 
     DNSKEYRecordContent pemDRC;
-    shared_ptr<DNSCryptoKeyEngine> pemKey{DNSCryptoKeyEngine::makeFromPEMString(pemDRC, signer.algorithm, signer.pem)};
+    shared_ptr<DNSCryptoKeyEngine> pemKey{DNSCryptoKeyEngine::makeFromPEMString(nullptr /* no structured logging */, pemDRC, signer.algorithm, signer.pem)};
 
     BOOST_CHECK_EQUAL(pemKey->convertToISC(), dcke->convertToISC());
 

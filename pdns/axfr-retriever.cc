@@ -36,7 +36,7 @@ AXFRRetriever::AXFRRetriever(Logr::log_t slog,
                              const ComboAddress* laddr,
                              size_t maxReceivedBytes,
                              uint16_t timeout) :
-  d_tsigVerifier(slog, tsigConf, remote, d_trc), d_buf(65536), d_maxReceivedBytes(maxReceivedBytes)
+  d_slog(slog), d_tsigVerifier(slog, tsigConf, remote, d_trc), d_buf(65536), d_maxReceivedBytes(maxReceivedBytes)
 {
   ComboAddress local;
   if (laddr != nullptr) {
@@ -72,7 +72,7 @@ AXFRRetriever::AXFRRetriever(Logr::log_t slog,
       d_trc.d_fudge = 300;
       d_trc.d_origID=ntohs(pwriter.getHeader()->id);
       d_trc.d_eRcode=0;
-      addTSIG(pwriter, d_trc, tsigConf.name, tsigConf.secret, "", false);
+      addTSIG(d_slog, pwriter, d_trc, tsigConf.name, tsigConf.secret, "", false);
     }
   
     uint16_t replen=htons(packet.size());

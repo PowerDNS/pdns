@@ -916,18 +916,19 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_dnskey_loop)
   generateKeyMaterial(DNSName("com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
 
   /* Generate key material for "powerdns.com." */
-  auto dcke = DNSCryptoKeyEngine::make(DNSSEC::ECDSA256);
+  auto log = g_slog->withName("testrunner");
+  auto dcke = DNSCryptoKeyEngine::make(log, DNSSEC::ECDSA256);
   dcke->create(dcke->getBits());
   DNSSECPrivateKey key;
   key.setKey(std::move(dcke), 257);
-  DSRecordContent drc = makeDSFromDNSKey(DNSName("powerdns.com."), key.getDNSKEY(), DNSSEC::DIGEST_SHA256);
+  DSRecordContent drc = makeDSFromDNSKey(log, DNSName("powerdns.com."), key.getDNSKEY(), DNSSEC::DIGEST_SHA256);
 
   testkeysset_t wrongKeys;
-  auto wrongDcke = DNSCryptoKeyEngine::make(DNSSEC::ECDSA256);
+  auto wrongDcke = DNSCryptoKeyEngine::make(log, DNSSEC::ECDSA256);
   wrongDcke->create(wrongDcke->getBits());
   DNSSECPrivateKey wrongKey;
   wrongKey.setKey(std::move(wrongDcke), 256);
-  DSRecordContent uselessdrc = makeDSFromDNSKey(DNSName("powerdns.com."), wrongKey.getDNSKEY(), DNSSEC::DIGEST_SHA256);
+  DSRecordContent uselessdrc = makeDSFromDNSKey(log, DNSName("powerdns.com."), wrongKey.getDNSKEY(), DNSSEC::DIGEST_SHA256);
 
   wrongKeys[DNSName("powerdns.com.")] = std::pair<DNSSECPrivateKey, DSRecordContent>(wrongKey, uselessdrc);
   keys[DNSName("powerdns.com.")] = std::pair<DNSSECPrivateKey, DSRecordContent>(key, drc);
@@ -1022,11 +1023,12 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_ds_loop)
   generateKeyMaterial(DNSName("com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
 
   /* Generate key material for "powerdns.com." */
-  auto dcke = DNSCryptoKeyEngine::make(DNSSEC::ECDSA256);
+  auto log = g_slog->withName("testrunner");
+  auto dcke = DNSCryptoKeyEngine::make(log, DNSSEC::ECDSA256);
   dcke->create(dcke->getBits());
   DNSSECPrivateKey key;
   key.setKey(std::move(dcke), 257);
-  DSRecordContent drc = makeDSFromDNSKey(DNSName("powerdns.com."), key.getDNSKEY(), DNSSEC::DIGEST_SHA256);
+  DSRecordContent drc = makeDSFromDNSKey(log, DNSName("powerdns.com."), key.getDNSKEY(), DNSSEC::DIGEST_SHA256);
 
   keys[DNSName("powerdns.com.")] = std::pair<DNSSECPrivateKey, DSRecordContent>(key, drc);
   g_luaconfs.setState(luaconfsCopy);

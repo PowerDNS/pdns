@@ -51,10 +51,10 @@ bool TSIGTCPVerifier::check(const string& data, const MOADNSParser& mdp)
 
     try {
       if (!d_prevMac.empty()) {
-        validateTSIG(d_signData, d_tsigPos, d_tt, d_trc, d_prevMac, theirMac, true, d_signData.size()-data.size());
+        validateTSIG(d_slog, d_signData, d_tsigPos, d_tt, d_trc, d_prevMac, theirMac, true, d_signData.size()-data.size());
       }
       else {
-        validateTSIG(d_signData, d_tsigPos, d_tt, d_trc, d_trc.d_mac, theirMac, false);
+        validateTSIG(d_slog, d_signData, d_tsigPos, d_tt, d_trc, d_trc.d_mac, theirMac, false);
       }
     }
     catch(const std::runtime_error& err) {

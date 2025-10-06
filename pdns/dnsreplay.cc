@@ -83,7 +83,8 @@ What to do with timeouts. We keep around at most 65536 outstanding answers.
 
 #include "namespaces.hh"
 using namespace ::boost::multi_index;
-#include "namespaces.hh"
+
+bool g_slogStructured{false};
 
 StatBag S;
 bool g_quiet=true;

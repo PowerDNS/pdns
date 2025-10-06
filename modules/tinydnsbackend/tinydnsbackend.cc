@@ -25,6 +25,7 @@
 #include "tinydnsbackend.hh"
 #include "pdns/misc.hh"
 #include "pdns/dnsrecords.hh"
+#include "pdns/logging.hh"
 #include <utility>
 
 static string backendname = "[TinyDNSBackend] ";
@@ -62,7 +63,8 @@ vector<string> TinyDNSBackend::getLocations()
       ret = reader->findall(searchkey);
     }
     catch (const std::exception& e) {
-      g_log << Logger::Error << e.what() << endl;
+      SLOG(g_log << Logger::Error << e.what() << endl,
+           d_slog->error(Logr::Error, e.what(), "search failure"));
       throw PDNSException(e.what());
     }
 
@@ -142,10 +144,12 @@ void TinyDNSBackend::setNotified(domainid_t id, uint32_t serial)
   TDIById_t& domain_index = state->get<tag_domainid>();
   TDIById_t::iterator itById = domain_index.find(id);
   if (itById == domain_index.end()) {
-    g_log << Logger::Error << backendname << "Received updated serial(" << serial << "), but domain ID (" << id << ") is not known in this backend." << endl;
+    SLOG(g_log << Logger::Error << backendname << "Received updated serial(" << serial << "), but domain ID (" << id << ") is not known in this backend." << endl,
+         d_slog->info(Logr::Error, "Received updated serial for unknown domain", "serial", Logging::Loggable(serial), "domain id", Logging::Loggable(id)));
   }
   else {
-    DLOG(g_log << Logger::Debug << backendname << "Setting serial for " << itById->zone << " to " << serial << endl);
+    DLOG(SLOG(g_log << Logger::Debug << backendname << "Setting serial for " << itById->zone << " to " << serial << endl,
+              d_slog->info(Logr::Debug, "Setting zone serial", "serial", Logging::Loggable(serial), "zone", Logging::Loggable(itById->zone))));
     domain_index.modify(itById, TDI_SerialModifier(serial));
   }
   (*domainInfo)[d_suffix] = *state;
@@ -162,7 +166,8 @@ void TinyDNSBackend::getAllDomains_locked(vector<DomainInfo>* domains, bool getS
     d_currentDomain = UnknownDomainID;
   }
   catch (const std::exception& e) {
-    g_log << Logger::Error << e.what() << endl;
+    SLOG(g_log << Logger::Error << e.what() << endl,
+         d_slog->error(Logr::Error, e.what(), "unable to initialize database reader"));
     throw PDNSException(e.what());
   }
 
@@ -252,7 +257,8 @@ bool TinyDNSBackend::list(const ZoneName& target, domainid_t domain_id, bool /* 
     d_currentDomain = domain_id;
   }
   catch (const std::exception& e) {
-    g_log << Logger::Error << e.what() << endl;
+    SLOG(g_log << Logger::Error << e.what() << endl,
+         d_slog->error(Logr::Error, e.what(), "unable to initialize database reader"));
     throw PDNSException(e.what());
   }
 
@@ -267,8 +273,10 @@ void TinyDNSBackend::lookup(const QType& qtype, const DNSName& qdomain, domainid
 
   string key = simpleCompress(queryDomain);
 
-  DLOG(g_log << Logger::Debug << backendname << "[lookup] query for qtype [" << qtype.toString() << "] qdomain [" << qdomain << "]" << endl);
-  DLOG(g_log << Logger::Debug << "[lookup] key [" << makeHexDump(key) << "]" << endl);
+  DLOG(SLOG(g_log << Logger::Debug << backendname << "[lookup] query for qtype [" << qtype.toString() << "] qdomain [" << qdomain << "]" << endl,
+            d_slog->info(Logr::Debug, "lookup query", "domain", Logging::Loggable(qdomain), "type", Logging::Loggable(qtype))));
+  DLOG(SLOG(g_log << Logger::Debug << "[lookup] key [" << makeHexDump(key) << "]" << endl,
+            d_slog->info(Logr::Debug, "lookup query", "key", Logging::Loggable(makeHexDump(key)))));
 
   d_isWildcardQuery = false;
   if (key[0] == '\001' && key[1] == '\052') {
@@ -283,7 +291,8 @@ void TinyDNSBackend::lookup(const QType& qtype, const DNSName& qdomain, domainid
     d_currentDomain = zoneId;
   }
   catch (const std::exception& e) {
-    g_log << Logger::Error << e.what() << endl;
+    SLOG(g_log << Logger::Error << e.what() << endl,
+         d_slog->error(Logr::Error, e.what(), "unable to initialize database reader"));
     throw PDNSException(e.what());
   }
 
@@ -300,8 +309,10 @@ bool TinyDNSBackend::get(DNSResourceRecord& rr)
     string key = record.first;
 
 #if 0
-    DLOG(g_log<<Logger::Debug<<"[GET] Key: "<<makeHexDump(key)<<endl);
-    DLOG(g_log<<Logger::Debug<<"[GET] Val: "<<makeHexDump(val)<<endl);
+    DLOG(SLOG(g_log<<Logger::Debug<<"[GET] Key: "<<makeHexDump(key)<<endl,
+              d_slog->info(Logr::Debug, "get", "key", Logging::Loggable(makeHexDump(key)))));
+    DLOG(SLOG(g_log<<Logger::Debug<<"[GET] Val: "<<makeHexDump(val)<<endl,
+              d_slog->info(Logr::Debug, "get", "val", Logging::Loggable(makeHexDump(val)))));
 #endif
     if (key[0] == '\000' && key[1] == '\045') { // skip locations
       continue;
@@ -396,23 +407,24 @@ bool TinyDNSBackend::get(DNSResourceRecord& rr)
         DLOG(cerr << "CONTENT: " << rr.content << endl);
       }
       catch (...) {
-        g_log << Logger::Error << backendname << "Failed to parse record content for " << rr.qname << " with type " << rr.qtype.toString();
+        SLOG(g_log << Logger::Error << backendname << "Failed to parse record content for " << rr.qname << " with type " << rr.qtype.toString() << ((d_ignorebogus || d_isGetDomains) ? " (ignoring)" : " (erroring out)") << endl,
+             d_slog->info(Logr::Error, "failed to parse record contents " + std::string((d_ignorebogus || d_isGetDomains) ? "(ignoring)" : "(erroring out)"), "name", Logging::Loggable(rr.qname), "type", Logging::Loggable(rr.qtype)));
         if (d_ignorebogus || d_isGetDomains) {
-          g_log << ". Ignoring!" << endl;
           continue;
         }
         else {
-          g_log << ". Erroring out!" << endl;
           throw;
         }
       }
 #if 0
-      DLOG(g_log<<Logger::Debug<<backendname<<"Returning ["<<rr.content<<"] for ["<<rr.qname<<"] of RecordType ["<<rr.qtype.toString()<<"]"<<endl;);
+      DLOG(SLOG(g_log<<Logger::Debug<<backendname<<"Returning ["<<rr.content<<"] for ["<<rr.qname<<"] of RecordType ["<<rr.qtype.toString()<<"]"<<endl,
+                d_slog->info(Logr::Debug, "returning record", "name", Logging::Loggable(rr.qname), "type", Logging::Loggable(rr.qtype), "contents", Logging::Loggable(rr.content))));
 #endif
       return true;
     }
   } // end of while
-  DLOG(g_log << Logger::Debug << backendname << "No more records to return." << endl);
+  DLOG(SLOG(g_log << Logger::Debug << backendname << "No more records to return." << endl,
+            d_slog->info(Logr::Debug, "no more records to return")));
 
   d_cdbReader = nullptr;
   d_currentDomain = UnknownDomainID;
@@ -448,11 +460,24 @@ public:
   TinyDNSLoader()
   {
     BackendMakers().report(std::make_unique<TinyDNSFactory>());
-    g_log << Logger::Info << "[tinydnsbackend] This is the tinydns backend version " VERSION
+    // If this module is not loaded dynamically at runtime, this code runs
+    // as part of a global constructor, before the structured logger has a
+    // chance to be set up, so fallback to simple logging in this case.
+    if (!g_slogStructured || !g_slog) {
+      g_log << Logger::Info << "[tinydnsbackend] This is the tinydns backend version " VERSION
 #ifndef REPRODUCIBLE
-          << " (" __DATE__ " " __TIME__ ")"
+            << " (" __DATE__ " " __TIME__ ")"
 #endif
-          << " reporting" << endl;
+            << " reporting" << endl;
+    }
+    else {
+      g_slog->withName("tinydnsbackend")->info(Logr::Info, "tinydns backend starting", "version", Logging::Loggable(VERSION)
+#ifndef REPRODUCIBLE
+                                                                                                    ,
+                                               "build date", Logging::Loggable(__DATE__ " " __TIME__)
+#endif
+      );
+    }
   }
 };
 

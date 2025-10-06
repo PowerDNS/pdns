@@ -2379,7 +2379,7 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int socket, cons
     {"get-proxymapping-stats", doGetProxyMappingStats},
     {"get-remotelogger-stats", getRemoteLoggerStats},
     {"list-dnssec-algos", [](ArgIterator, ArgIterator) -> Answer {
-       return {0, DNSCryptoKeyEngine::listSupportedAlgoNames()};
+       return {0, DNSCryptoKeyEngine::listSupportedAlgoNames(g_slog->withName("control"))};
      }},
     {"set-aggr-nsec-cache-size", setAggrNSECCacheSize},
   };

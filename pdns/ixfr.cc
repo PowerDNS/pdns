@@ -124,7 +124,7 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord> > > processIXFRRecords(const Co
 
 // Returns pairs of "remove & add" vectors. If you get an empty remove, it means you got an AXFR!
  // NOLINTNEXTLINE(readability-function-cognitive-complexity): https://github.com/PowerDNS/pdns/issues/12791
-vector<pair<vector<DNSRecord>, vector<DNSRecord>>> getIXFRDeltas(const ComboAddress& primary, const DNSName& zone, const DNSRecord& oursr,
+vector<pair<vector<DNSRecord>, vector<DNSRecord>>> getIXFRDeltas(Logr::log_t slog, const ComboAddress& primary, const DNSName& zone, const DNSRecord& oursr,
                                                                  uint16_t xfrTimeout, bool totalTimeout,
                                                                  const TSIGTriplet& tt, const ComboAddress* laddr, size_t maxReceivedBytes)
 {
@@ -142,7 +142,7 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord>>> getIXFRDeltas(const ComboAddr
 
   pw.commit();
   TSIGRecordContent trc;
-  TSIGTCPVerifier tsigVerifier(nullptr /* TEMPORARY PLUMBING */, tt, primary, trc);
+  TSIGTCPVerifier tsigVerifier(slog, tt, primary, trc);
   if(!tt.algo.empty()) {
     TSIGHashEnum the;
     getTSIGHashEnum(tt.algo, the);
@@ -155,7 +155,7 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord>>> getIXFRDeltas(const ComboAddr
     trc.d_fudge = 300;
     trc.d_origID=ntohs(pw.getHeader()->id);
     trc.d_eRcode=0;
-    addTSIG(pw, trc, tt.name, tt.secret, "", false);
+    addTSIG(slog, pw, trc, tt.name, tt.secret, "", false);
   }
   uint16_t len=htons(packet.size());
   string msg((const char*)&len, 2);

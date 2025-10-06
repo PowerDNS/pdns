@@ -42,6 +42,7 @@
 #include "misc.hh"
 #include "utility.hh"
 #include "logger.hh"
+#include "logging.hh"
 #include "pdnsexception.hh"
 #include "dnsrecords.hh"
 
@@ -50,9 +51,9 @@
 class DNSPacket
 {
 public:
-  DNSPacket(bool isQuery);
+  DNSPacket(Logr::log_t slog, bool isQuery);
   DNSPacket(const DNSPacket &orig) = default;
-  DNSPacket & operator=(const DNSPacket &) = default;
+  DNSPacket & operator=(const DNSPacket &) = delete;
 
   int noparse(const char *mesg, size_t len); //!< just suck the data inward
   int parse(const char *mesg, size_t len); //!< parse a raw UDP or TCP packet and suck the data inward
@@ -209,4 +210,6 @@ private:
   bool d_ednscookievalid{false};
   bool d_haveednssection{false};
   bool d_isQuery;
+
+  Logr::log_t d_slog;
 };
