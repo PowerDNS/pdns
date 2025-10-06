@@ -123,24 +123,6 @@ Since 2.1.0 this should instead be::
 
 Incidentally, this is similar to setting: ``setServerPolicy(roundrobin)`` which uses the C++ based roundrobin policy.
 
-Or::
-
-  newServer("192.168.1.2")
-  newServer({address="8.8.4.4", pool="numbered"})
-
-  function splitSetup(servers, dq)
-    if(string.match(dq.qname:toString(), "%d"))
-    then
-      print("numbered pool")
-      return leastOutstanding.policy(getPoolServers("numbered"), dq)
-    else
-      print("standard pool")
-      return leastOutstanding.policy(servers, dq)
-    end
-  end
-
-  setServerPolicyLua("splitsetup", splitSetup)
-
 A faster, FFI version is also available since 1.5.0:
 
 .. code-block:: lua
