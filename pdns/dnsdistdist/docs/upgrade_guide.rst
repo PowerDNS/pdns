@@ -1,6 +1,11 @@
 Upgrade Guide
 =============
 
+2.0.x to 2.1.0
+--------------
+
+Custom load-balancing policies written in Lua now need to return the index in the servers array of the backend they intend to select, instead of returning a reference the backend itself.
+
 1.9.x to 2.0.0
 --------------
 

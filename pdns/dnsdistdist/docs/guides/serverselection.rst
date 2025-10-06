@@ -97,12 +97,26 @@ If all servers are down, the policy will still select one server by default. Set
 Lua server policies
 -------------------
 
-If you don't like the default policies you can create your own, like this for example::
+.. warning::
+
+  There has been a significant change to the way custom load-balancing policies written in Lua works since 2.1.0: they now need to return the index in the servers array of the backend they intend to select, instead of returning a reference the backend itself.
+
+If you don't like the default policies you can create your own, like this for example (before 2.1.0)::
 
   counter=0
   function luaroundrobin(servers, dq)
        counter=counter+1
        return servers[1+(counter % #servers)]
+  end
+
+  setServerPolicyLua("luaroundrobin", luaroundrobin)
+
+Since 2.1.0 this should instead be::
+
+  counter=0
+  function luaroundrobin(servers, dq)
+       counter=counter+1
+       return 1+(counter % #servers)
   end
 
   setServerPolicyLua("luaroundrobin", luaroundrobin)
