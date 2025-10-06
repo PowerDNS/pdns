@@ -129,3 +129,58 @@ class TestLuaFrontendBindings(DNSDistTest):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertEqual(receivedResponse, expectedResponse)
+
+class TestLuaPoolBindings(DNSDistTest):
+    _config_template = """
+    local serverPort = %d
+    newServer{address="127.0.0.1:" .. serverPort}
+    local pc = newPacketCache(1000, {maxTTL=86400, minTTL=1})
+    -- at the moment getCache() does not return nil but an empty
+    -- shared_pointer when there is not cache, which is annoying
+    -- but necessary to prevent the client mode from failing,
+    -- so we test the result of :toString() instead
+    if getPool(""):getCache():toString() ~= "" then
+      print("The default pool should not have a cache")
+      os.exit(1)
+    end
+    getPool(""):setCache(pc)
+    if getPool(""):getCache():toString() == "" then
+      print("The default pool should have a cache")
+      os.exit(2)
+    end
+    getPool(""):unsetCache()
+    if getPool(""):getCache():toString() ~= "" then
+      print("The default pool should no longer have a cache")
+      os.exit(3)
+    end
+    local servers = getPoolServers("")
+    if #servers ~= 1 then
+      print("The default pool should have only one server")
+      os.exit(4)
+    end
+    if getPool(""):getECS() ~= false then
+      print("The default pool should not have ECS set")
+      os.exit(5)
+    end
+    rmServer(0)
+    newServer{address="127.0.0.1:" .. serverPort, useClientSubnet=true}
+    getPool(""):setECS(true)
+    if getPool(""):getECS() ~= true then
+      print("The default pool should now have ECS set")
+      os.exit(6)
+    end
+    """
+
+    def testLuaBindings(self):
+        """
+        LuaPoolBindings: Test Lua pool bindings
+        """
+        name = 'basic.lua-pool-bindings.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        # dnsdist set RA = RD for spoofed responses
+        query.flags &= ~dns.flags.RD
+        response = dns.message.make_response(query)
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=response)
+            self.assertEqual(receivedResponse, response)
