@@ -1169,7 +1169,6 @@ BOOST_AUTO_TEST_CASE(test_set_altername_name)
 
   /* and that we can pass a tag name without a value */
   BOOST_CHECK(dnsdist_ffi_dnsquestion_set_alternate_name(&lightDQ, target.getStorage().data(), target.getStorage().size(), tag.data(), tag.size(), nullptr, 0, nullptr, 0));
-
 }
 
 BOOST_AUTO_TEST_SUITE_END();
