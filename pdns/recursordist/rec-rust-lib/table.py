@@ -3642,4 +3642,17 @@ Addresses of servers that do not properly support DNS cookies (:rfc:`7873`, :rfc
 ''',
         'versionadded': '5.3.0',
     },
+    {
+        'name' : 'tls_configurations',
+        'section' : 'outgoing',
+        'type' : LType.ListOutgoingTLSConfigurations,
+        'default' : '',
+        'help' : 'Sequence of OutgoingTLSConfiguration',
+        'doc' : '''
+Sequence of OutgoingTLSConfiguration.`
+        ''',
+        'skip-old' : 'No equivalent old style setting',
+        'versionadded': '5.4.0',
+        'runtime': ['reload-lua-config', 'reload-yaml'], # XXX
+    },
 ]

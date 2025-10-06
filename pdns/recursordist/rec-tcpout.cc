@@ -27,6 +27,10 @@
 #undef CERT
 
 #include "syncres.hh"
+#include "dnsname.hh"
+#include "rec-main.hh"
+
+#include "cxxsettings.hh"
 
 timeval TCPOutConnectionManager::s_maxIdleTime;
 size_t TCPOutConnectionManager::s_maxQueries;
@@ -82,12 +86,53 @@ TCPOutConnectionManager::Connection TCPOutConnectionManager::get(const endpoints
   return Connection{};
 }
 
-std::shared_ptr<TLSCtx> TCPOutConnectionManager::getTLSContext(const std::string& name, const ComboAddress& address)
+static SuffixMatchTree<pdns::rust::settings::rec::OutgoingTLSConfiguration> s_suffixToConfig;
+static NetmaskTree<pdns::rust::settings::rec::OutgoingTLSConfiguration> s_netmaskToConfig;
+
+void TCPOutConnectionManager::setupOutgoingTLSTables()
 {
+  auto settings = g_yamlStruct.lock();
+  auto& vec = settings->outgoing.tls_configurations;
+  for (const auto& entry : vec) {
+    for (const auto& element : entry.suffixes) {
+      DNSName name = DNSName(std::string(element));
+      auto copy = entry;
+      s_suffixToConfig.add(name, std::move(copy));
+    }
+    for (const auto& element : entry.subnets) {
+      s_netmaskToConfig.insert(std::string(element)).second = entry;
+    }
+  }
+}
+
+std::shared_ptr<TLSCtx> TCPOutConnectionManager::getTLSContext(const std::string& name, const ComboAddress& address, bool& verboseLogging, std::string& subjectName, std::string &subjectAddress)
+{
+  pdns::rust::settings::rec::OutgoingTLSConfiguration* config{nullptr};
+
+  if (auto* node = s_netmaskToConfig.lookup(address); node != nullptr) {
+    config = &node->second;
+  }
+  else if (auto* found = s_suffixToConfig.lookup(DNSName(name)); found != nullptr) {
+    config = found;
+  }
+
   TLSContextParameters tlsParams;
   tlsParams.d_provider = "openssl";
-  tlsParams.d_validateCertificates = true;
-  // tlsParams.d_caStore
+  tlsParams.d_validateCertificates = false;
+  if (config != nullptr) {
+    tlsParams.d_provider = std::string(config->provider);
+    tlsParams.d_validateCertificates = config->validate_certificate;
+    tlsParams.d_caStore = std::string(config->ca_store);
+    if (!config->subject_name.empty()) {
+      subjectName = std::string(config->subject_name);
+    };
+    if (!config->subject_address.empty()) {
+      subjectAddress = std::string(config->subject_address);
+    };
+    verboseLogging = config->verbose_logging = true;
+    tlsParams.d_ciphers = std::string(config->ciphers);
+    tlsParams.d_ciphers13 = std::string(config->ciphers_tls_13);
+  }
   return ::getTLSContext(tlsParams);
 }
 

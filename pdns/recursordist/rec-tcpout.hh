@@ -51,6 +51,7 @@ public:
     std::optional<ComboAddress> d_local;
     timeval d_last_used{0, 0};
     size_t d_numqueries{0};
+    bool d_verboseLogging{false};
   };
 
   using endpoints_t = std::pair<ComboAddress, std::optional<ComboAddress>>;
@@ -68,7 +69,8 @@ public:
     return new uint64_t(size()); // NOLINT(cppcoreguidelines-owning-memory): it's the API
   }
 
-  static std::shared_ptr<TLSCtx> getTLSContext(const std::string& name, const ComboAddress& address);
+  static void setupOutgoingTLSTables();
+  static std::shared_ptr<TLSCtx> getTLSContext(const std::string& name, const ComboAddress& address, bool& verboseLogging, std::string& subjectName, std::string& subjectAddress);
 
 private:
   // This does not take into account that we can have multiple connections with different hosts (via SNI) to the same IP.
