@@ -1027,4 +1027,47 @@ BOOST_AUTO_TEST_CASE(test_SVC_Generation)
   dnsdist_ffi_svc_record_parameters_free(parameters);
 }
 
+BOOST_AUTO_TEST_CASE(test_set_altername_name)
+{
+  const DNSName initialQName("www.powerdns.com.");
+  InternalQueryState ids;
+  ids.origRemote = ComboAddress("192.0.2.1:4242");
+  ids.origDest = ComboAddress("192.0.2.255:53");
+  ids.qtype = QType::A;
+  ids.qclass = QClass::IN;
+  ids.protocol = dnsdist::Protocol::DoUDP;
+  ids.qname = initialQName;
+  ids.queryRealTime.start();
+  PacketBuffer query;
+  GenericDNSPacketWriter<PacketBuffer> pwQ(query, ids.qname, QType::A, QClass::IN, 0);
+  pwQ.getHeader()->rd = 1;
+  pwQ.getHeader()->id = htons(42);
+
+  DNSQuestion dnsQuestion(ids, query);
+  dnsdist_ffi_dnsquestion_t lightDQ(&dnsQuestion);
+
+  {
+    /* check invalid parameters */
+    dnsdist_ffi_dnsquestion_set_alternate_name(nullptr, nullptr, 0, nullptr, 0, nullptr, 0, nullptr, 0);
+    dnsdist_ffi_dnsquestion_set_alternate_name(&lightDQ, nullptr, 0, nullptr, 0, nullptr, 0, nullptr, 0);
+    dnsdist_ffi_dnsquestion_set_alternate_name(&lightDQ, "alternate", 0, nullptr, 0, nullptr, 0, nullptr, 0);
+  }
+
+  const std::string tag("alternate-name-tag");
+  const std::string tagValue("alternate-name-tag-value");
+  const std::string formerTagName("alternate-name-former-value");
+  const DNSName target("new.target.net.");
+  BOOST_REQUIRE(dnsdist_ffi_dnsquestion_set_alternate_name(&lightDQ, target.getStorage().data(), target.getStorage().size(), tag.data(), tag.size(), tagValue.data(), tagValue.size(), formerTagName.data(), formerTagName.size()));
+
+  BOOST_CHECK_EQUAL(ids.qname.toString(), target.toString());
+  BOOST_CHECK_EQUAL(ids.skipCache, true);
+  BOOST_REQUIRE(ids.qTag != nullptr);
+  BOOST_CHECK_EQUAL(ids.qTag->at(tag), tagValue);
+  BOOST_CHECK_EQUAL(ids.qTag->at(formerTagName), initialQName.getStorage());
+
+  MOADNSParser mdp(false, reinterpret_cast<const char*>(dnsQuestion.getData().data()), dnsQuestion.getData().size());
+  BOOST_CHECK_EQUAL(mdp.d_qname, target);
+  BOOST_CHECK_EQUAL(mdp.d_header.qdcount, 1U);
+}
+
 BOOST_AUTO_TEST_SUITE_END();

@@ -138,6 +138,8 @@ void dnsdist_ffi_dnsquestion_spoof_packet(dnsdist_ffi_dnsquestion_t* dq, const c
 void dnsdist_ffi_dnsquestion_set_max_returned_ttl(dnsdist_ffi_dnsquestion_t* dq, uint32_t max) __attribute__ ((visibility ("default")));
 bool dnsdist_ffi_dnsquestion_set_restartable(dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
 
+bool dnsdist_ffi_dnsquestion_set_alternate_name(dnsdist_ffi_dnsquestion_t* dq, const char* alternateName, size_t alternateNameSize, const char* tag, size_t tagSize, const char* tagValue, size_t tagValueSize, const char* formerNameTagName, size_t formerNameTagSize) __attribute__ ((visibility ("default")));
+
 typedef struct dnsdist_ffi_servers_list_t dnsdist_ffi_servers_list_t;
 typedef struct dnsdist_ffi_server_t dnsdist_ffi_server_t;
 
