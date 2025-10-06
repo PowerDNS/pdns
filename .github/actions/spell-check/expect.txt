@@ -1308,7 +1308,6 @@ SPHINXPROJ
 sphinxsidebar
 sphinxsidebarwrapper
 Spinlocks
-splitsetup
 Spruyt
 SQLs
 srandom
