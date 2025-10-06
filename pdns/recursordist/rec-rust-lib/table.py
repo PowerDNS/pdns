@@ -3653,6 +3653,6 @@ Sequence of OutgoingTLSConfiguration.`
         ''',
         'skip-old' : 'No equivalent old style setting',
         'versionadded': '5.4.0',
-        'runtime': ['reload-lua-config', 'reload-yaml'], # XXX
+        'runtime': ['reload-lua-config', 'reload-yaml'],
     },
 ]

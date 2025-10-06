@@ -25,6 +25,11 @@
 #include "iputils.hh"
 #include "tcpiohandler.hh"
 
+namespace pdns::rust::settings::rec
+{
+struct Recursorsettings;
+}
+
 class TCPOutConnectionManager
 {
 public:
@@ -69,7 +74,7 @@ public:
     return new uint64_t(size()); // NOLINT(cppcoreguidelines-owning-memory): it's the API
   }
 
-  static void setupOutgoingTLSTables();
+  static void setupOutgoingTLSConfigTables(pdns::rust::settings::rec::Recursorsettings& settings);
   static std::shared_ptr<TLSCtx> getTLSContext(const std::string& name, const ComboAddress& address, bool& verboseLogging, std::string& subjectName, std::string& subjectAddress);
 
 private:

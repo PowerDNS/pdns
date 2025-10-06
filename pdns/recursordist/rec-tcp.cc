@@ -73,7 +73,7 @@ static thread_local std::unique_ptr<tcpClientCounts_t> t_tcpClientCounts = std::
 
 static void handleRunningTCPQuestion(int fileDesc, FDMultiplexer::funcparam_t& var);
 
-#if 1
+#if 0
 #define TCPLOG(tcpsock, x)                                 \
   do {                                                     \
     cerr << []() { timeval t; gettimeofday(&t, nullptr); return t.tv_sec % 10  + t.tv_usec/1000000.0; }() << " FD " << (tcpsock) << ' ' << x; \

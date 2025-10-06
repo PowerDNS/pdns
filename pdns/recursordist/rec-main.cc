@@ -2124,6 +2124,7 @@ static int serviceMain(Logr::log_t log)
   }
   g_maxCacheEntries = ::arg().asNum("max-cache-entries");
 
+  cerr << "CALL LUACONFIG" << endl;
   auto luaResult = luaconfig(false);
   if (luaResult.d_ret != 0) {
     log->error(Logr::Error, luaResult.d_str, "Cannot load Lua or equivalent YAML configuration");
@@ -2240,7 +2241,6 @@ static int serviceMain(Logr::log_t log)
   TCPOutConnectionManager::s_maxIdlePerAuth = ::arg().asNum("tcp-out-max-idle-per-auth");
   TCPOutConnectionManager::s_maxQueries = ::arg().asNum("tcp-out-max-queries");
   TCPOutConnectionManager::s_maxIdlePerThread = ::arg().asNum("tcp-out-max-idle-per-thread");
-  TCPOutConnectionManager::setupOutgoingTLSTables();
 
   g_gettagNeedsEDNSOptions = ::arg().mustDo("gettag-needs-edns-options");
 
