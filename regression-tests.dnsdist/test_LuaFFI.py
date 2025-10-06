@@ -430,3 +430,67 @@ class TestLuaFFIHeader(DNSDistTest):
             receivedQuery.id = query.id
             self.assertEqual(query, receivedQuery)
             self.assertEqual(expectedResponse, receivedResponse)
+
+class TestLuaFFISetAlternateName(DNSDistTest):
+
+    _config_template = """
+    local ffi = require("ffi")
+
+    local alternateNameTag = "alternate-name-tag"
+    local alternateNameTagValue = "set"
+    local alternateNameFormerNameTag = "alternate-name-former-name-tag"
+
+    local bufferSize = 256
+    local buffer = ffi.new("char[?]", bufferSize)
+
+    function setAlternateName(dq)
+      local alternateName = "\\7dnsdist\\3org\\0"
+      ffi.C.dnsdist_ffi_dnsquestion_set_alternate_name(dq, alternateName, #alternateName, alternateNameTag, #alternateNameTag, alternateNameTagValue, #alternateNameTagValue, alternateNameFormerNameTag, #alternateNameFormerNameTag)
+      return DNSAction.None
+    end
+
+    function restoreInitialName(dr)
+       local alternateTagValueSize = ffi.C.dnsdist_ffi_dnsquestion_get_tag_raw(dr, alternateNameFormerNameTag, buffer, bufferSize)
+       if alternateTagValueSize ~= 0 then
+          ffi.C.dnsdist_ffi_dnsresponse_rebase(dr, buffer, alternateTagValueSize)
+       end
+       return DNSResponseAction.None
+    end
+
+    addAction(AllRule(), LuaFFIAction(setAlternateName))
+    addResponseAction(TagRule(alternateNameTag, alternateNameTagValue), LuaFFIResponseAction(restoreInitialName))
+
+    newServer{address="127.0.0.1:%d"}
+    """
+
+    def testLuaFFISetAlternateName(self):
+        """
+        Lua FFI: Set alternate name
+        """
+        name = 'alternate-name.luaffi.tests.powerdns.com.'
+        alternateName = 'dnsdist.org.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        alternateQuery = dns.message.make_query(alternateName, 'A', 'IN')
+
+        response = dns.message.make_response(alternateQuery)
+        rrset = dns.rrset.from_text(alternateName,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.0.2.1')
+        response.answer.append(rrset)
+
+        expectedResponse = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.0.2.1')
+        expectedResponse.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            receivedQuery.id = alternateQuery.id
+            self.assertEqual(alternateQuery, receivedQuery)
+            self.assertEqual(expectedResponse, receivedResponse)
