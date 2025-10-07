@@ -460,8 +460,8 @@ void DownstreamState::handleUDPTimeout(IDState& ids)
   }
 
   if (g_rings.shouldRecordResponses()) {
-    timespec ts{};
-    gettime(&ts);
+    timespec now{};
+    gettime(&now);
 
     dnsheader fake{};
     memset(&fake, 0, sizeof(fake));
@@ -469,7 +469,7 @@ void DownstreamState::handleUDPTimeout(IDState& ids)
     uint16_t* flags = getFlagsFromDNSHeader(&fake);
     *flags = ids.internal.origFlags;
 
-    g_rings.insertResponse(ts, ids.internal.origRemote, ids.internal.qname, ids.internal.qtype, std::numeric_limits<unsigned int>::max(), 0, fake, d_config.remote, getProtocol());
+    g_rings.insertResponse(now, ids.internal.origRemote, ids.internal.qname, ids.internal.qtype, std::numeric_limits<unsigned int>::max(), 0, fake, d_config.remote, getProtocol());
   }
 
   reportTimeoutOrError();

@@ -116,7 +116,7 @@ template <class T> static std::optional<ServerPolicy::SelectedServerPosition> ge
     return std::nullopt;
   }
 
-  int randomVal = val % sum;
+  int randomVal = static_cast<int>(val % sum);
   auto selected = std::upper_bound(poss.begin(), poss.begin() + usableServers, randomVal, [](int randomVal_, const typename T::value_type& serverPair) { return  randomVal_ < serverPair.first;});
   if (selected == poss.begin() + usableServers) {
     return std::nullopt;
