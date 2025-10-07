@@ -80,14 +80,14 @@ std::optional<ServerPolicy::SelectedServerPosition> leastOutstanding(const Serve
   return getLeastOutstanding(servers);
 }
 
-std::optional<ServerPolicy::SelectedServerPosition> firstAvailable(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq)
+std::optional<ServerPolicy::SelectedServerPosition> firstAvailable(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dnsQuestion)
 {
-  for (auto& server : servers) {
+  for (const auto& server : servers) {
     if (server.second->isUp() && (!server.second->d_qpsLimiter || server.second->d_qpsLimiter->checkOnly())) {
       return server.first;
     }
   }
-  return leastOutstanding(servers, dq);
+  return leastOutstanding(servers, dnsQuestion);
 }
 
 template <class T> static std::optional<ServerPolicy::SelectedServerPosition> getValRandom(const ServerPolicy::NumberedServerVector& servers, T& poss, const unsigned int val, const double targetLoad)
@@ -97,16 +97,16 @@ template <class T> static std::optional<ServerPolicy::SelectedServerPosition> ge
 
   size_t usableServers = 0;
   const auto weightedBalancingFactor = dnsdist::configuration::getImmutableConfiguration().d_weightedBalancingFactor;
-  for (const auto& d : servers) {      // w=1, w=10 -> 1, 11
-    if (d.second->isUp() && (weightedBalancingFactor == 0 || (static_cast<double>(d.second->outstanding.load()) <= (targetLoad * d.second->d_config.d_weight)))) {
+  for (const auto& server : servers) {      // w=1, w=10 -> 1, 11
+    if (server.second->isUp() && (weightedBalancingFactor == 0 || (static_cast<double>(server.second->outstanding.load()) <= (targetLoad * server.second->d_config.d_weight)))) {
       // Don't overflow sum when adding high weights
-      if (d.second->d_config.d_weight > max - sum) {
+      if (server.second->d_config.d_weight > max - sum) {
         sum = max;
       } else {
-        sum += d.second->d_config.d_weight;
+        sum += server.second->d_config.d_weight;
       }
 
-      poss.at(usableServers) = std::pair(sum, d.first);
+      poss.at(usableServers) = std::pair(sum, server.first);
       usableServers++;
     }
   }
@@ -116,13 +116,13 @@ template <class T> static std::optional<ServerPolicy::SelectedServerPosition> ge
     return std::nullopt;
   }
 
-  int r = val % sum;
-  auto p = std::upper_bound(poss.begin(), poss.begin() + usableServers, r, [](int r_, const typename T::value_type& a) { return  r_ < a.first;});
-  if (p == poss.begin() + usableServers) {
+  int randomVal = val % sum;
+  auto selected = std::upper_bound(poss.begin(), poss.begin() + usableServers, randomVal, [](int randomVal_, const typename T::value_type& serverPair) { return  randomVal_ < serverPair.first;});
+  if (selected == poss.begin() + usableServers) {
     return std::nullopt;
   }
 
-  return p->second;
+  return selected->second;
 }
 
 static std::optional<ServerPolicy::SelectedServerPosition> valrandom(const unsigned int val, const ServerPolicy::NumberedServerVector& servers)
@@ -166,17 +166,18 @@ std::optional<ServerPolicy::SelectedServerPosition> whashedFromHash(const Server
   return valrandom(hash, servers);
 }
 
-std::optional<ServerPolicy::SelectedServerPosition> whashed(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq)
+std::optional<ServerPolicy::SelectedServerPosition> whashed(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dnsQuestion)
 {
   const auto hashPerturbation = dnsdist::configuration::getImmutableConfiguration().d_hashPerturbation;
-  return whashedFromHash(servers, dq->ids.qname.hash(hashPerturbation));
+  return whashedFromHash(servers, dnsQuestion->ids.qname.hash(hashPerturbation));
 }
 
 std::optional<ServerPolicy::SelectedServerPosition> chashedFromHash(const ServerPolicy::NumberedServerVector& servers, size_t qhash)
 {
   unsigned int sel = std::numeric_limits<unsigned int>::max();
   unsigned int min = std::numeric_limits<unsigned int>::max();
-  std::optional<ServerPolicy::SelectedServerPosition> ret, first;
+  std::optional<ServerPolicy::SelectedServerPosition> ret;
+  std::optional<ServerPolicy::SelectedServerPosition> first;
 
   double targetLoad = std::numeric_limits<double>::max();
   const auto consistentHashBalancingFactor = dnsdist::configuration::getImmutableConfiguration().d_consistentHashBalancingFactor;
@@ -196,15 +197,15 @@ std::optional<ServerPolicy::SelectedServerPosition> chashedFromHash(const Server
     }
   }
 
-  for (const auto& d: servers) {
-    if (d.second->isUp() && (consistentHashBalancingFactor == 0 || static_cast<double>(d.second->outstanding.load()) <= (targetLoad * d.second->d_config.d_weight))) {
+  for (const auto& serverPair: servers) {
+    if (serverPair.second->isUp() && (consistentHashBalancingFactor == 0 || static_cast<double>(serverPair.second->outstanding.load()) <= (targetLoad * serverPair.second->d_config.d_weight))) {
       // make sure hashes have been computed
-      if (!d.second->hashesComputed) {
-        d.second->hash();
+      if (!serverPair.second->hashesComputed) {
+        serverPair.second->hash();
       }
       {
-        const auto position = d.first;
-        const auto& server = d.second;
+        const auto position = serverPair.first;
+        const auto& server = serverPair.second;
         auto hashes = server->hashes.read_lock();
         // we want to keep track of the last hash
         if (min > *(hashes->begin())) {
@@ -231,10 +232,10 @@ std::optional<ServerPolicy::SelectedServerPosition> chashedFromHash(const Server
   return std::nullopt;
 }
 
-std::optional<ServerPolicy::SelectedServerPosition> chashed(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq)
+std::optional<ServerPolicy::SelectedServerPosition> chashed(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dnsQuestion)
 {
   const auto hashPerturbation = dnsdist::configuration::getImmutableConfiguration().d_hashPerturbation;
-  return chashedFromHash(servers, dq->ids.qname.hash(hashPerturbation));
+  return chashedFromHash(servers, dnsQuestion->ids.qname.hash(hashPerturbation));
 }
 
 std::optional<ServerPolicy::SelectedServerPosition> roundrobin(const ServerPolicy::NumberedServerVector& servers, [[maybe_unused]] const DNSQuestion* dnsQuestion)
@@ -246,9 +247,9 @@ std::optional<ServerPolicy::SelectedServerPosition> roundrobin(const ServerPolic
   vector<size_t> candidates;
   candidates.reserve(servers.size());
 
-  for (auto& d : servers) {
-    if (d.second->isUp()) {
-      candidates.push_back(d.first);
+  for (const auto& server : servers) {
+    if (server.second->isUp()) {
+      candidates.push_back(server.first);
     }
   }
 
@@ -256,8 +257,8 @@ std::optional<ServerPolicy::SelectedServerPosition> roundrobin(const ServerPolic
     if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_roundrobinFailOnNoServer) {
       return std::nullopt;
     }
-    for (auto& d : servers) {
-      candidates.push_back(d.first);
+    for (const auto& server : servers) {
+      candidates.push_back(server.first);
     }
   }
 
@@ -265,7 +266,7 @@ std::optional<ServerPolicy::SelectedServerPosition> roundrobin(const ServerPolic
   return candidates.at((counter++) % candidates.size());
 }
 
-std::optional<ServerPolicy::SelectedServerPosition> orderedWrandUntag(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dnsq)
+std::optional<ServerPolicy::SelectedServerPosition> orderedWrandUntag(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dnsQuestion)
 {
   if (servers.empty()) {
     return std::nullopt;
@@ -280,13 +281,13 @@ std::optional<ServerPolicy::SelectedServerPosition> orderedWrandUntag(const Serv
   unsigned int curNumber = 1;
 
   for (const auto& svr : servers) {
-    if (svr.second->isUp() && (!dnsq->ids.qTag || dnsq->ids.qTag->count(svr.second->getNameWithAddr()) == 0)) {
+    if (svr.second->isUp() && (!dnsQuestion->ids.qTag || dnsQuestion->ids.qTag->count(svr.second->getNameWithAddr()) == 0)) {
       // the servers in a pool are already sorted in ascending order by its 'order', see ``ServerPool::addServer()``
       if (svr.second->d_config.order > curOrder) {
         break;
       }
       curOrder = svr.second->d_config.order;
-      candidates.push_back(ServerPolicy::NumberedServer(curNumber++, svr.second));
+      candidates.emplace_back(curNumber++, svr.second);
       positionsMap.push_back(svr.first);
     }
   }
@@ -295,7 +296,7 @@ std::optional<ServerPolicy::SelectedServerPosition> orderedWrandUntag(const Serv
     return std::nullopt;
   }
 
-  auto selected = wrandom(candidates, dnsq);
+  auto selected = wrandom(candidates, dnsQuestion);
   if (selected) {
     return positionsMap.at(*selected - 1);
   }
@@ -380,7 +381,7 @@ const ServerPool& getPool(const std::string& poolName)
   const auto& pools = dnsdist::configuration::getCurrentRuntimeConfiguration().d_pools;
   auto poolIt = pools.find(poolName);
   if (poolIt == pools.end()) {
-    throw std::out_of_range("No pool named " + poolName);
+    throw std::out_of_range(std::string("No pool named ") + poolName);
   }
 
   return poolIt->second;
@@ -419,7 +420,7 @@ const ServerPolicy::ffipolicyfunc_t& ServerPolicy::getPerThreadPolicy() const
   return state->d_policies.at(d_name);
 }
 
-ServerPolicy::SelectedBackend ServerPolicy::getSelectedBackend(const ServerPolicy::NumberedServerVector& servers, DNSQuestion& dq) const
+ServerPolicy::SelectedBackend ServerPolicy::getSelectedBackend(const ServerPolicy::NumberedServerVector& servers, DNSQuestion& dnsQuestion) const
 {
   ServerPolicy::SelectedBackend result{servers};
 
@@ -428,7 +429,7 @@ ServerPolicy::SelectedBackend ServerPolicy::getSelectedBackend(const ServerPolic
       std::optional<SelectedServerPosition> position;
       {
         auto lock = g_lua.lock();
-        position = d_policy(servers, &dq);
+        position = d_policy(servers, &dnsQuestion);
       }
       if (position && *position > 0 && *position <= servers.size()) {
         result.setSelected(*position - 1);
@@ -436,7 +437,7 @@ ServerPolicy::SelectedBackend ServerPolicy::getSelectedBackend(const ServerPolic
       return result;
     }
 
-    dnsdist_ffi_dnsquestion_t dnsq(&dq);
+    dnsdist_ffi_dnsquestion_t dnsq(&dnsQuestion);
     dnsdist_ffi_servers_list_t serversList(servers);
     ServerPolicy::SelectedServerPosition selected = 0;
 
@@ -458,7 +459,7 @@ ServerPolicy::SelectedBackend ServerPolicy::getSelectedBackend(const ServerPolic
     return result;
   }
 
-  auto position = d_policy(servers, &dq);
+  auto position = d_policy(servers, &dnsQuestion);
   if (position && *position > 0 && *position <= servers.size()) {
     result.setSelected(*position - 1);
   }

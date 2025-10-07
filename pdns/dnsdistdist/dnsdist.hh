@@ -965,7 +965,7 @@ enum class ProcessQueryResult : uint8_t
 #include "dnsdist-rule-chains.hh"
 
 ProcessQueryResult processQuery(DNSQuestion& dnsQuestion, std::shared_ptr<DownstreamState>& selectedBackend);
-ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_ptr<DownstreamState>& selectedBackend);
+ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_ptr<DownstreamState>& outgoingBackend);
 bool processResponse(PacketBuffer& response, DNSResponse& dnsResponse, bool muted);
 bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dnsQuestion, std::string& ruleresult, bool& drop);
 bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse, bool muted);

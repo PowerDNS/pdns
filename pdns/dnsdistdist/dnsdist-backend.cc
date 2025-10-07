@@ -55,7 +55,8 @@ void DownstreamState::addXSKDestination(int fd)
 {
   auto socklen = d_config.remote.getSocklen();
   ComboAddress local;
-  if (getsockname(fd, reinterpret_cast<sockaddr*>(&local), &socklen)) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): sorry, it's the API
+  if (getsockname(fd, reinterpret_cast<sockaddr*>(&local), &socklen) != 0) {
     return;
   }
 
@@ -73,7 +74,8 @@ void DownstreamState::removeXSKDestination(int fd)
 {
   auto socklen = d_config.remote.getSocklen();
   ComboAddress local;
-  if (getsockname(fd, reinterpret_cast<sockaddr*>(&local), &socklen)) {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): sorry, it's the API
+  if (getsockname(fd, reinterpret_cast<sockaddr*>(&local), &socklen) != 0) {
     return;
   }
 
@@ -86,8 +88,8 @@ void DownstreamState::removeXSKDestination(int fd)
 
 bool DownstreamState::reconnect(bool initialAttempt)
 {
-  std::unique_lock<std::mutex> tl(connectLock, std::try_to_lock);
-  if (!tl.owns_lock() || isStopped()) {
+  std::unique_lock<std::mutex> lock(connectLock, std::try_to_lock);
+  if (!lock.owns_lock() || isStopped()) {
     /* we are already reconnecting or stopped anyway */
     return false;
   }
@@ -199,7 +201,7 @@ bool DownstreamState::reconnect(bool initialAttempt)
   }
 
   if (connected) {
-    tl.unlock();
+    lock.unlock();
     d_connectedWait.notify_all();
     if (!initialAttempt) {
       /* we need to be careful not to start this
@@ -252,17 +254,17 @@ void DownstreamState::hash()
 {
   const auto hashPerturbation = dnsdist::configuration::getImmutableConfiguration().d_hashPerturbation;
   vinfolog("Computing hashes for id=%s and weight=%d, hash_perturbation=%d", *d_config.id, d_config.d_weight, hashPerturbation);
-  auto w = d_config.d_weight;
+  auto weight = d_config.d_weight;
   auto idStr = boost::str(boost::format("%s") % *d_config.id);
   auto lockedHashes = hashes.write_lock();
   lockedHashes->clear();
-  lockedHashes->reserve(w);
-  while (w > 0) {
-    std::string uuid = boost::str(boost::format("%s-%d") % idStr % w);
+  lockedHashes->reserve(weight);
+  while (weight > 0) {
+    std::string uuid = boost::str(boost::format("%s-%d") % idStr % weight);
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): sorry, it's the burtle API
     unsigned int wshash = burtleCI(reinterpret_cast<const unsigned char*>(uuid.c_str()), uuid.size(), hashPerturbation);
     lockedHashes->push_back(wshash);
-    --w;
+    --weight;
   }
   std::sort(lockedHashes->begin(), lockedHashes->end());
   hashesComputed = true;
@@ -458,10 +460,10 @@ void DownstreamState::handleUDPTimeout(IDState& ids)
   }
 
   if (g_rings.shouldRecordResponses()) {
-    struct timespec ts;
+    timespec ts{};
     gettime(&ts);
 
-    struct dnsheader fake;
+    dnsheader fake{};
     memset(&fake, 0, sizeof(fake));
     fake.id = ids.internal.origID;
     uint16_t* flags = getFlagsFromDNSHeader(&fake);
@@ -1044,11 +1046,11 @@ const ServerPolicy::NumberedServerVector& ServerPool::getServers() const
 
 void ServerPool::addServer(std::shared_ptr<DownstreamState>& server)
 {
-  unsigned int count = static_cast<unsigned int>(d_servers.size());
+  auto count = static_cast<unsigned int>(d_servers.size());
   d_servers.emplace_back(++count, server);
   /* we need to reorder based on the server 'order' */
-  std::stable_sort(d_servers.begin(), d_servers.end(), [](const std::pair<unsigned int,std::shared_ptr<DownstreamState> >& a, const std::pair<unsigned int,std::shared_ptr<DownstreamState> >& b) {
-      return a.second->d_config.order < b.second->d_config.order;
+  std::stable_sort(d_servers.begin(), d_servers.end(), [](const std::pair<unsigned int,std::shared_ptr<DownstreamState> >& lhs, const std::pair<unsigned int,std::shared_ptr<DownstreamState> >& rhs) {
+      return lhs.second->d_config.order < rhs.second->d_config.order;
     });
   /* and now we need to renumber for Lua (custom policies) */
   size_t idx = 1;
