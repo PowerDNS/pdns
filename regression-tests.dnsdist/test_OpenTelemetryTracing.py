@@ -62,26 +62,24 @@ class DNSDistOpenTelemetryProtobufBaseTest(DNSDistOpenTelemetryProtobufTest):
         )
 
         self.assertEqual(len(ot_data["resource_spans"]), 1)
-        self.assertEqual(len(ot_data["resource_spans"][0]["resource"]["attributes"]), 4)
+        self.assertEqual(len(ot_data["resource_spans"][0]["resource"]["attributes"]), 1)
 
         # Ensure all attributes exist
         for field in ot_data["resource_spans"][0]["resource"]["attributes"]:
-            self.assertTrue(
-                field["key"]
-                in ["service.name", "query.qname", "query.qtype", "query.remote"]
-            )
+            self.assertTrue(field["key"] in ["service.name"])
 
         # Ensure the values are correct
         # TODO: query.remote with port
-        msg_attrs = {
+        msg_scope_attrs = {
             v["key"]: v["value"]["string_value"]
-            for v in ot_data["resource_spans"][0]["resource"]["attributes"]
+            for v in ot_data["resource_spans"][0]["scope_spans"][0]["scope"][
+                "attributes"
+            ]
             if v["key"] != "query.remote"
         }
         self.assertDictEqual(
-            msg_attrs,
+            msg_scope_attrs,
             {
-                "service.name": "dnsdist",
                 "query.qname": "query.ot.tests.powerdns.com",
                 "query.qtype": "A",
             },

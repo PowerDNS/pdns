@@ -205,6 +205,8 @@ BOOST_AUTO_TEST_CASE(attributes)
   BOOST_CHECK_EQUAL(trace.resource_spans.at(0).resource.attributes.size(), 1);
   BOOST_CHECK_EQUAL(trace.resource_spans.at(0).resource.attributes.at(0).key, "service.name");
 
+  BOOST_ASSERT(trace.resource_spans.at(0).scope_spans.at(0).scope.attributes.size() == 0);
+
   // Now activate and add 2 attributes
   tracer->activate();
   tracer->setTraceAttribute("foo", AnyValue{"bar"});
@@ -212,12 +214,14 @@ BOOST_AUTO_TEST_CASE(attributes)
 
   trace = tracer->getTracesData();
 
-  BOOST_ASSERT(trace.resource_spans.at(0).resource.attributes.size() == 3);
-  BOOST_CHECK_EQUAL(trace.resource_spans.at(0).resource.attributes.at(1).key, "foo");
-  BOOST_CHECK_EQUAL(trace.resource_spans.at(0).resource.attributes.at(1).value, AnyValue{"bar"});
+  BOOST_ASSERT(trace.resource_spans.at(0).resource.attributes.size() == 1);
+  BOOST_ASSERT(trace.resource_spans.at(0).scope_spans.at(0).scope.attributes.size() == 2);
 
-  BOOST_CHECK_EQUAL(trace.resource_spans.at(0).resource.attributes.at(2).key, "baz");
-  BOOST_CHECK_EQUAL(trace.resource_spans.at(0).resource.attributes.at(2).value, AnyValue{256});
+  BOOST_CHECK_EQUAL(trace.resource_spans.at(0).scope_spans.at(0).scope.attributes.at(0).key, "foo");
+  BOOST_CHECK_EQUAL(trace.resource_spans.at(0).scope_spans.at(0).scope.attributes.at(0).value, AnyValue{"bar"});
+
+  BOOST_CHECK_EQUAL(trace.resource_spans.at(0).scope_spans.at(0).scope.attributes.at(1).key, "baz");
+  BOOST_CHECK_EQUAL(trace.resource_spans.at(0).scope_spans.at(0).scope.attributes.at(1).value, AnyValue{256});
 
   // Add a span and some attributes
   auto spanid = tracer->openSpan("anEvent").getSpanID();
@@ -239,7 +243,7 @@ BOOST_AUTO_TEST_CASE(getOTProtobuf)
   tracer->activate();
   tracer->setTraceAttribute("foo", AnyValue{"bar"});
   data = tracer->getOTProtobuf();
-  BOOST_TEST(data.size() == 45U);
+  BOOST_TEST(data.size() == 49U);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
