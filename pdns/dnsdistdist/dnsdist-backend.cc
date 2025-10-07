@@ -1112,20 +1112,19 @@ void ServerPool::updateConsistency()
       useECS = server->d_config.useECS;
       tcpOnly = server->isTCPOnly();
       zeroScope = !server->d_config.disableZeroScope;
+      continue;
     }
-    else {
-      if (consistent) {
-        if (server->d_config.useECS != useECS) {
-          consistent = false;
-        }
-        if (server->d_config.disableZeroScope == zeroScope) {
-          consistent = false;
-        }
-      }
-      if (server->isTCPOnly() != tcpOnly) {
+    if (consistent) {
+      if (server->d_config.useECS != useECS) {
         consistent = false;
-        tcpOnly = false;
       }
+      if (server->d_config.disableZeroScope == zeroScope) {
+        consistent = false;
+      }
+    }
+    if (server->isTCPOnly() != tcpOnly) {
+      consistent = false;
+      tcpOnly = false;
     }
   }
 

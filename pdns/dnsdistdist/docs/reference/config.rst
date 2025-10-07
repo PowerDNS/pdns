@@ -987,11 +987,11 @@ Servers that are not assigned to a specific pool get assigned to the default poo
 
     Returns the :class:`PacketCache` for this pool or nil.
 
-  .. method:: ServerPool:getDisableZeroScope()
+  .. method:: ServerPool:getZeroScope()
 
     .. versionadded:: 2.0.1
 
-    Whether dnsdist will disable the EDNS Client Subnet :doc:`../advanced/zero-scope` feature when looking up into the cache,
+    Whether dnsdist will enable the EDNS Client Subnet :doc:`../advanced/zero-scope` feature when looking up into the cache,
     when all servers from this pool are down.
 
   .. method:: ServerPool:getECS()
@@ -1005,11 +1005,11 @@ Servers that are not assigned to a specific pool get assigned to the default poo
 
     :param PacketCache cache: The new cache to add to the pool
 
-  .. method:: ServerPool:setDisableZeroScope(disable)
+  .. method:: ServerPool:setZeroScope(enabled)
 
     .. versionadded:: 2.0.1
 
-    Set to true if dnsdist should disable the EDNS Client Subnet :doc:`../advanced/zero-scope` feature when looking up into the cache,
+    Set to false if dnsdist should disable the EDNS Client Subnet :doc:`../advanced/zero-scope` feature when looking up into the cache,
     when all servers from this pool are down.
 
   .. method:: ServerPool:setECS()
