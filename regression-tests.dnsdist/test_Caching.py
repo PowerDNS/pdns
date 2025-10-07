@@ -2475,10 +2475,33 @@ class TestCachingScopeZero(DNSDistTest):
     _dohServerPort = pickAvailablePort()
     _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
     _config_template = """
+    local backendPort = %d
     -- Be careful to enable ECS parsing in the packet cache, otherwise scope zero is disabled
     pc = newPacketCache(100, {maxTTL=86400, minTTL=1, temporaryFailureTTL=60, staleTTL=60, dontAge=false, numberOfShards=1, deferrableInsertLock=true, maxNegativeTTL=3600, parseECS=true})
     getPool(""):setCache(pc)
-    newServer{address="127.0.0.1:%d", useClientSubnet=true}
+    newServer{address="127.0.0.1:" .. backendPort, useClientSubnet=true}
+    if not getPool(""):getZeroScope() then
+      print("zero scope should be enabled on this pool")
+      os.exit(1)
+    end
+    -- temporarily insert a new backend with the zero scope feature disabled so the pool is no longer in a consistent state
+    newServer{address="127.0.0.1:" .. backendPort, useClientSubnet=true, disableZeroScope=true}
+    getPool(""):setZeroScope(false)
+    if getPool(""):getZeroScope() then
+      print("zero scope should now be disabled on this pool")
+      os.exit(2)
+    end
+    getPool(""):setZeroScope(true)
+    if not getPool(""):getZeroScope() then
+      print("zero scope should be enabled again on this pool")
+      os.exit(3)
+    end
+    -- remove the additional backend
+    rmServer(1)
+    if not getPool(""):getZeroScope() then
+      print("zero scope should still be enabled on this pool")
+      os.exit(4)
+    end
     -- to simulate a second client coming from a different IP address,
     -- we will force the ECS value added to the query if RD is set (note that we need
     -- to unset it using rules before the first cache lookup)
