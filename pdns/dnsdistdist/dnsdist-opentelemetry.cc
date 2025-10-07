@@ -44,12 +44,10 @@ TracesData Tracer::getTracesData()
             pdns::trace::KeyValue{
               "service.name", pdns::trace::AnyValue{"dnsdist"}},
           }},
-        .scope_spans = std::vector<pdns::trace::ScopeSpans>{{}}}}};
-
-  otTrace.resource_spans.at(0).resource.attributes.insert(
-    otTrace.resource_spans.at(0).resource.attributes.end(),
-    d_attributes.begin(),
-    d_attributes.end());
+        .scope_spans = std::vector<pdns::trace::ScopeSpans>{{.scope = {
+                                                               .attributes = {d_attributes.begin(), d_attributes.end()},
+                                                             },
+                                                             .spans = {}}}}}};
 
   {
     auto lockedPre = d_preActivationSpans.read_only_lock();
