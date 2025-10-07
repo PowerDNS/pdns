@@ -572,10 +572,10 @@ void extractOTraceIDs(const EDNSOptionViewMap& map, pdns::trace::InitialSpanInfo
     }
   }
   if (!traceidset) {
-    random(span.trace_id);
+    span.trace_id.makeRandom();
   }
   // Empty parent span id indicated the client did not set one, thats fine
-  random(span.span_id);
+  span.span_id.makeRandom();
 }
 
 std::string SpanID::toLogString() const

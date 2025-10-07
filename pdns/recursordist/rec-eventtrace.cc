@@ -110,7 +110,7 @@ std::vector<pdns::trace::Span> RecEventTrace::convertToOT(const InitialSpanInfo&
         work.parent_span_id = spanIDs.at(event.d_parent);
       }
       // Assign a span id.
-      random(work.span_id);
+      work.span_id.makeRandom();
       addValue(event, work, true);
       spanIDs.emplace_back(work.span_id);
       ret.emplace_back(work);

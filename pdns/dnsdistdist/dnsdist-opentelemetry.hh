@@ -89,7 +89,7 @@ public:
 #ifndef DISABLE_PROTOBUF
     d_activated = true;
     if (d_traceid == pdns::trace::s_emptyTraceID) {
-      pdns::trace::random(d_traceid);
+      d_traceid.makeRandom();
     }
 #endif
   }
