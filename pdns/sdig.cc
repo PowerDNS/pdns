@@ -370,9 +370,9 @@ try {
           exit(EXIT_FAILURE);
         }
         auto traceIDArg = std::string(argv[++i]);
-        pdns::trace::TraceID traceid{};
+        pdns::trace::TraceID traceid;
         if (traceIDArg == "-") {
-          pdns::trace::random(traceid);
+          traceid.makeRandom();
         }
         else {
           auto traceIDStr = makeBytesFromHex(traceIDArg);

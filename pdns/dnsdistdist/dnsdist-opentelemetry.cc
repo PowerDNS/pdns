@@ -101,7 +101,7 @@ SpanID Tracer::addSpan([[maybe_unused]] const std::string& name, [[maybe_unused]
 #ifdef DISABLE_PROTOBUF
   return 0;
 #else
-  auto spanID = pdns::trace::randomSpanID();
+  auto spanID = pdns::trace::SpanID::getRandomSpanID();
   if (d_activated) {
     d_postActivationSpans.lock()->push_back({
       .trace_id = d_traceid,

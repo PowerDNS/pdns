@@ -235,16 +235,25 @@ struct TraceID : public std::array<uint8_t, 16>
   {
     return ostrm << val.toLogString();
   }
+
+  static TraceID getRandomTraceID()
+  {
+    TraceID ret;
+    dns_random(ret.data(), ret.size());
+    return ret;
+  }
+
+  void makeRandom()
+  {
+    dns_random(this->data(), this->size());
+  }
+
+  void clear()
+  {
+    this->fill(0);
+  }
 };
 constexpr TraceID s_emptyTraceID = {};
-inline void random(TraceID& trace)
-{
-  dns_random(trace.data(), trace.size());
-}
-inline void clear(TraceID& trace)
-{
-  trace.fill(0);
-}
 
 struct SpanID : public std::array<uint8_t, 8>
 {
@@ -253,22 +262,25 @@ struct SpanID : public std::array<uint8_t, 8>
   {
     return ostrm << val.toLogString();
   }
+
+  static SpanID getRandomSpanID()
+  {
+    SpanID ret;
+    dns_random(ret.data(), ret.size());
+    return ret;
+  }
+
+  void makeRandom()
+  {
+    dns_random(this->data(), this->size());
+  }
+
+  void clear()
+  {
+    this->fill(0);
+  }
 };
 constexpr SpanID s_emptySpanID = {};
-inline void random(SpanID& span)
-{
-  dns_random(span.data(), span.size());
-}
-inline void clear(SpanID& span)
-{
-  span.fill(0);
-}
-inline SpanID randomSpanID()
-{
-  SpanID ret;
-  random(ret);
-  return ret;
-}
 
 inline void fill(TraceID& trace, const std::string& data)
 {
@@ -374,9 +386,9 @@ struct InitialSpanInfo
 
   void clear()
   {
-    pdns::trace::clear(trace_id);
-    pdns::trace::clear(span_id);
-    pdns::trace::clear(parent_span_id);
+    trace_id.clear();
+    span_id.clear();
+    parent_span_id.clear();
     start_time_unix_nano = 0;
   }
 };
@@ -580,10 +592,10 @@ struct Span
 
   void clear()
   {
-    pdns::trace::clear(trace_id); // 1
-    pdns::trace::clear(span_id); // 2
+    trace_id.clear(); // 1
+    span_id.clear(); // 2
     trace_state.clear(); // 3
-    pdns::trace::clear(parent_span_id); // 4
+    parent_span_id.clear(); // 4
     name.clear(); // 5
     kind = SpanKind::SPAN_KINUNSPECIFIED; // 6
     start_time_unix_nano = 0; // 7
