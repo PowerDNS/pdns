@@ -1465,9 +1465,11 @@ static void selectBackendForOutgoingQuery(DNSQuestion& dnsQuestion, const std::s
   const auto& policy = poolPolicy != nullptr ? *poolPolicy : *dnsdist::configuration::getCurrentRuntimeConfiguration().d_lbPolicy;
   const auto servers = serverPool->getServers();
   selectedBackend = policy.getSelectedBackend(*servers, dnsQuestion);
-  if (auto tracer = dnsQuestion.ids.getTracer(); tracer != nullptr && dnsQuestion.ids.tracingEnabled) {
-    tracer->setSpanAttribute(closer.getSpanID(), "backend.name", AnyValue{selectedBackend->getNameWithAddr()});
-    tracer->setSpanAttribute(closer.getSpanID(), "backend.id", AnyValue{boost::uuids::to_string(selectedBackend->getID())});
+  if (selectedBackend != nullptr) {
+    if (auto tracer = dnsQuestion.ids.getTracer(); tracer != nullptr && dnsQuestion.ids.tracingEnabled) {
+      tracer->setSpanAttribute(closer.getSpanID(), "backend.name", AnyValue{selectedBackend->getNameWithAddr()});
+      tracer->setSpanAttribute(closer.getSpanID(), "backend.id", AnyValue{boost::uuids::to_string(selectedBackend->getID())});
+    }
   }
 }
 
