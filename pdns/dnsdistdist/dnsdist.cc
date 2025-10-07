@@ -1465,7 +1465,7 @@ static ServerPolicy::SelectedBackend selectBackendForOutgoingQuery(DNSQuestion& 
   const auto& servers = serverPool.getServers();
   auto selectedBackend = policy.getSelectedBackend(servers, dnsQuestion);
 
-  if (auto tracer = dnsQuestion.ids.getTracer(); tracer != nullptr && dnsQuestion.ids.tracingEnabled) {
+  if (auto tracer = dnsQuestion.ids.getTracer(); tracer != nullptr && selectedBackend && dnsQuestion.ids.tracingEnabled) {
     tracer->setSpanAttribute(closer.getSpanID(), "backend.name", AnyValue{selectedBackend->getNameWithAddr()});
     tracer->setSpanAttribute(closer.getSpanID(), "backend.id", AnyValue{boost::uuids::to_string(selectedBackend->getID())});
   }
