@@ -5,7 +5,8 @@ EXTRA_DIST = \
 	NOTICE \
 	README \
 	COPYING \
-	auth/systemd \
+	auth/systemd/ixfrdist.service.in \
+	auth/systemd/pdns-auth.service.in \
 	codedocs/doxygen.conf \
 	contrib/powerdns.solaris.init.d \
 	meson \
