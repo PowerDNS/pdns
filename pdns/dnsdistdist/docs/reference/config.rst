@@ -1414,6 +1414,14 @@ Status, Statistics and More
   * ``levelPrefix=prefix``: string - Set the prefix for the log level. Default is ``prio``.
   * ``timeFormat=format``: string - Set the time format. Supported values are ``ISO8601`` and ``numeric``. Default is ``numeric``.
 
+.. function:: setOpenTelemetryTracing(value)
+
+  .. versionadded:: 2.1.0
+
+  Enable or disable collection of OpenTelemetry trace data. This will allow the use of :func:`SetTraceAction` to trace queries. This can be called at runtime.
+
+  :param bool enable: true to enable, false to disable.
+
 .. function:: setVerbose(verbose)
 
   .. versionadded:: 1.8.0
