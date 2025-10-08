@@ -1867,7 +1867,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
       }
       // Currently only set if an OT trace is generated
       if (resolver.d_otTrace.trace_id != pdns::trace::s_emptyTraceID) {
-        pbMessage.setOpenTelemtryTraceID(resolver.d_otTrace.trace_id);
+        pbMessage.setOpenTelemetryTraceID(resolver.d_otTrace.trace_id);
       }
       if (comboWriter->d_logResponse) {
         protobufLogResponse(pbMessage);
