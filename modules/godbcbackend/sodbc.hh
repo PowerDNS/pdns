@@ -45,11 +45,13 @@ public:
   /*!
   This constructor connects to an ODBC datasource and makes sure it's ready to use.
 
+  \param log The structured logger to use.
   \param dsn The ODBC DSN to use.
   \param username Username to use.
   \param password Password to use.
   */
   SODBC(
+    std::shared_ptr<Logr::Logger> log,
     const std::string& dsn,
     const std::string& username,
     const std::string& password);
