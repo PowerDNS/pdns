@@ -402,9 +402,11 @@ Bug fixes
    zones from the local auth store, go one level down while validating
    when there is a CNAME
 -  `#4187 <https://github.com/PowerDNS/pdns/pull/4187>`__:
--  Don't go bogus on islands of security
--  Check all possible chains for Insecure states
--  Don't go Bogus on a CNAME at the apex
+
+   -  Don't go bogus on islands of security
+   -  Check all possible chains for Insecure states
+   -  Don't go Bogus on a CNAME at the apex
+
 -  `#4215 <https://github.com/PowerDNS/pdns/pull/4215>`__ RPZ: default
    policy should also override local data RRs
 -  `#4243 <https://github.com/PowerDNS/pdns/pull/4243>`__ Fix a crash
