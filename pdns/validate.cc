@@ -23,7 +23,7 @@
 #include "validate.hh"
 #include "misc.hh"
 #include "dnssecinfra.hh"
-#include "dnsseckeeper.hh"
+#include "dnssec.hh"
 #include "rec-lua-conf.hh"
 #include "base32.hh"
 #include "logger.hh"
@@ -1051,7 +1051,7 @@ namespace {
   try {
     auto dke = DNSCryptoKeyEngine::makeFromPublicKeyString(key.d_algorithm, key.d_key);
     result = dke->verify(msg, sig.d_signature);
-    VLOG(log, qname << ": Signature by key with tag "<<sig.d_tag<<" and algorithm "<<DNSSECKeeper::algorithm2name(sig.d_algorithm)<<" was " << (result ? "" : "NOT ")<<"valid"<<endl);
+    VLOG(log, qname << ": Signature by key with tag "<<sig.d_tag<<" and algorithm "<<DNSSEC::algorithm2name(sig.d_algorithm)<<" was " << (result ? "" : "NOT ")<<"valid"<<endl);
     if (!result) {
       ede = vState::BogusNoValidRRSIG;
     }
@@ -1205,7 +1205,7 @@ vState validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsset_t& 
 
     uint16_t dnskeysConsidered = 0;
     auto record = getByTag(tkeys, dsrc.d_tag, dsrc.d_algorithm, log);
-    // cerr<<"looking at DS with tag "<<dsrc.d_tag<<", algo "<<DNSSECKeeper::algorithm2name(dsrc.d_algorithm)<<", digest "<<std::to_string(dsrc.d_digesttype)<<" for "<<zone<<", got "<<r.size()<<" DNSKEYs for tag"<<endl;
+    // cerr<<"looking at DS with tag "<<dsrc.d_tag<<", algo "<<DNSSEC::algorithm2name(dsrc.d_algorithm)<<", digest "<<std::to_string(dsrc.d_digesttype)<<" for "<<zone<<", got "<<r.size()<<" DNSKEYs for tag"<<endl;
 
     for (const auto& drc : record) {
       bool isValid = false;

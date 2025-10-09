@@ -22,9 +22,9 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_various_algos)
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::RSASHA512, DNSSECKeeper::DIGEST_SHA384, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
-  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA384, DNSSECKeeper::DIGEST_SHA384, keys);
+  generateKeyMaterial(g_rootdnsname, DNSSEC::RSASHA512, DNSSEC::DIGEST_SHA384, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("powerdns.com."), DNSSEC::ECDSA384, DNSSEC::DIGEST_SHA384, keys);
 
   g_luaconfs.setState(luaconfsCopy);
 
@@ -124,9 +124,9 @@ static void testFixedPointInTime(time_t fixedNow)
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::RSASHA512, DNSSECKeeper::DIGEST_SHA384, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
-  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA384, DNSSECKeeper::DIGEST_SHA384, keys);
+  generateKeyMaterial(g_rootdnsname, DNSSEC::RSASHA512, DNSSEC::DIGEST_SHA384, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("powerdns.com."), DNSSEC::ECDSA384, DNSSEC::DIGEST_SHA384, keys);
 
   g_luaconfs.setState(luaconfsCopy);
 
@@ -250,9 +250,9 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_a_then_ns)
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
-  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(g_rootdnsname, DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("powerdns.com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
   g_luaconfs.setState(luaconfsCopy);
 
   size_t queriesCount = 0;
@@ -354,8 +354,8 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_a_then_ns)
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(g_rootdnsname, DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
   g_luaconfs.setState(luaconfsCopy);
 
   size_t queriesCount = 0;
@@ -455,9 +455,9 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_with_nta)
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
-  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(g_rootdnsname, DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("powerdns.com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
 
   /* Add a NTA for "powerdns.com" */
   luaconfsCopy.negAnchors[target] = "NTA for PowerDNS.com";
@@ -556,9 +556,9 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_with_nta)
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
-  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(g_rootdnsname, DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("powerdns.com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
 
   /* Add a NTA for "powerdns.com" */
   luaconfsCopy.negAnchors[target] = "NTA for PowerDNS.com";
@@ -643,9 +643,9 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec)
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
-  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(g_rootdnsname, DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("powerdns.com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
 
   g_luaconfs.setState(luaconfsCopy);
 
@@ -734,9 +734,9 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nxdomain_nsec)
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
-  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(g_rootdnsname, DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("powerdns.com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
 
   g_luaconfs.setState(luaconfsCopy);
 
@@ -848,9 +848,9 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard)
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
-  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(g_rootdnsname, DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("powerdns.com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
 
   g_luaconfs.setState(luaconfsCopy);
 
@@ -965,9 +965,9 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_proof_before_rrsig)
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
-  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(g_rootdnsname, DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("powerdns.com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
 
   g_luaconfs.setState(luaconfsCopy);
 
@@ -1085,9 +1085,9 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_proof_cname)
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
-  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(g_rootdnsname, DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("powerdns.com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
 
   g_luaconfs.setState(luaconfsCopy);
 
@@ -1193,8 +1193,8 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_nodata_nowildcard)
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(g_rootdnsname, DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
 
   g_luaconfs.setState(luaconfsCopy);
 
@@ -1273,8 +1273,8 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_nodata_nowildcard)
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(g_rootdnsname, DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
 
   g_luaconfs.setState(luaconfsCopy);
 
@@ -1364,8 +1364,8 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_too_many_nsec3s)
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(g_rootdnsname, DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
 
   g_luaconfs.setState(luaconfsCopy);
 
@@ -1454,8 +1454,8 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_too_many_nsec3s_per_query)
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(g_rootdnsname, DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
 
   g_luaconfs.setState(luaconfsCopy);
 
@@ -1535,8 +1535,8 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_nodata_nowildcard_duplicated_n
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(g_rootdnsname, DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
 
   g_luaconfs.setState(luaconfsCopy);
 
@@ -1631,8 +1631,8 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_nodata_nowildcard_too_many_ite
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(g_rootdnsname, DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
 
   g_luaconfs.setState(luaconfsCopy);
 
@@ -1723,9 +1723,9 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_wildcard)
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
-  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(g_rootdnsname, DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("powerdns.com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
 
   g_luaconfs.setState(luaconfsCopy);
 
@@ -1844,9 +1844,9 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_wildcard_proof_cname)
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
-  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(g_rootdnsname, DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("powerdns.com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
 
   g_luaconfs.setState(luaconfsCopy);
 
@@ -1947,9 +1947,9 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_wildcard_too_many_iterations)
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
-  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(g_rootdnsname, DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("powerdns.com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
 
   g_luaconfs.setState(luaconfsCopy);
 
@@ -2060,9 +2060,9 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_missing)
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
-  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(g_rootdnsname, DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("powerdns.com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
 
   g_luaconfs.setState(luaconfsCopy);
 
@@ -2164,9 +2164,9 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_wildcard_expanded_onto_itself)
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(g_rootdnsname, DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("powerdns.com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
 
   g_luaconfs.setState(luaconfsCopy);
 
@@ -2219,9 +2219,9 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_wildcard_expanded_onto_itself_nodata
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(g_rootdnsname, DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("powerdns.com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
 
   g_luaconfs.setState(luaconfsCopy);
 
@@ -2273,9 +2273,9 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_wildcard_like_expanded_from_wildcard
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(g_rootdnsname, DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("powerdns.com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
 
   g_luaconfs.setState(luaconfsCopy);
 
@@ -2335,11 +2335,11 @@ BOOST_AUTO_TEST_CASE(test_dnssec_incomplete_cache_zonecut_qm)
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
-  generateKeyMaterial(DNSName("net."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
-  generateKeyMaterial(DNSName("herokuapp.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
-  generateKeyMaterial(DNSName("nsone.net."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(g_rootdnsname, DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("net."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("herokuapp.com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("nsone.net."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
   g_luaconfs.setState(luaconfsCopy);
 
   size_t queriesCount = 0;
@@ -2469,9 +2469,9 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_servfail_ds)
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
-  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(g_rootdnsname, DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("powerdns.com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
 
   g_luaconfs.setState(luaconfsCopy);
 
@@ -2580,9 +2580,9 @@ static void dnssec_secure_servfail_dnskey(DNSSECMode mode, vState /* expectedVal
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
-  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(g_rootdnsname, DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("powerdns.com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
 
   g_luaconfs.setState(luaconfsCopy);
 
@@ -2702,9 +2702,9 @@ static void dnssec_secure_servfail_dnskey_insecure(DNSSECMode mode, vState expec
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
-  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, pdnskeys);
+  generateKeyMaterial(g_rootdnsname, DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("powerdns.com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, pdnskeys);
 
   g_luaconfs.setState(luaconfsCopy);
 

@@ -809,9 +809,9 @@ BOOST_AUTO_TEST_CASE(test_rfc8020_nothing_underneath_dnssec)
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(parent1, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
-  generateKeyMaterial(parent2, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(g_rootdnsname, DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(parent1, DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
+  generateKeyMaterial(parent2, DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
   g_luaconfs.setState(luaconfsCopy);
 
   size_t queriesCount = 0;

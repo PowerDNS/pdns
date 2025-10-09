@@ -223,6 +223,7 @@ pdns_server_SOURCES = \
 	dnsparser.cc \
 	dnsproxy.cc dnsproxy.hh \
 	dnsrecords.cc dnsrecords.hh \
+	dnssec.hh \
 	dnssecinfra.cc dnssecinfra.hh \
 	dnsseckeeper.hh \
 	dnssecsigner.cc \
@@ -357,6 +358,7 @@ pdnsutil_SOURCES = \
 	dnspacket.cc \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
+	dnssec.hh \
 	dnssecinfra.cc dnssecinfra.hh \
 	dnssecsigner.cc \
 	dnswriter.cc dnswriter.hh \

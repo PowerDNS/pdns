@@ -36,7 +36,7 @@
 #include "lua-recursor4.hh"
 #include "rec-lua-conf.hh"
 #include "syncres.hh"
-#include "dnsseckeeper.hh"
+#include "dnssec.hh"
 #include "validate-recursor.hh"
 #include "rec-taskqueue.hh"
 #include "shuffle.hh"
@@ -3684,10 +3684,10 @@ vState SyncRes::getDSRecords(const DNSName& zone, dsset_t& dsSet, bool onlyTA, u
       const auto dscontent = getRR<DSRecordContent>(record);
       if (dscontent && isSupportedDS(*dscontent, LogObject(prefix))) {
         // Make GOST a lower prio than SHA256
-        if (dscontent->d_digesttype == DNSSECKeeper::DIGEST_GOST && bestDigestType == DNSSECKeeper::DIGEST_SHA256) {
+        if (dscontent->d_digesttype == DNSSEC::DIGEST_GOST && bestDigestType == DNSSEC::DIGEST_SHA256) {
           continue;
         }
-        if (dscontent->d_digesttype > bestDigestType || (bestDigestType == DNSSECKeeper::DIGEST_GOST && dscontent->d_digesttype == DNSSECKeeper::DIGEST_SHA256)) {
+        if (dscontent->d_digesttype > bestDigestType || (bestDigestType == DNSSEC::DIGEST_GOST && dscontent->d_digesttype == DNSSEC::DIGEST_SHA256)) {
           bestDigestType = dscontent->d_digesttype;
         }
         dsSet.insert(*dscontent);
@@ -3703,7 +3703,7 @@ vState SyncRes::getDSRecords(const DNSName& zone, dsset_t& dsSet, bool onlyTA, u
    * We interpret that as: do not use SHA-1 if SHA-256 or SHA-384 is available
    */
   for (auto dsrec = dsSet.begin(); dsrec != dsSet.end();) {
-    if (dsrec->d_digesttype == DNSSECKeeper::DIGEST_SHA1 && dsrec->d_digesttype != bestDigestType) {
+    if (dsrec->d_digesttype == DNSSEC::DIGEST_SHA1 && dsrec->d_digesttype != bestDigestType) {
       dsrec = dsSet.erase(dsrec);
     }
     else {

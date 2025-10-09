@@ -138,7 +138,7 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_delegation)
   testkeysset_t keys;
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::RSASHA512, DNSSECKeeper::DIGEST_SHA384, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(g_rootdnsname, DNSSEC::RSASHA512, DNSSEC::DIGEST_SHA384, keys, luaconfsCopy.dsAnchors);
   g_luaconfs.setState(luaconfsCopy);
 
   /* make sure that the signature inception and validity times are computed
@@ -440,7 +440,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_rrsig)
 {
   initSR();
 
-  auto dcke = DNSCryptoKeyEngine::make(DNSSECKeeper::ECDSA256);
+  auto dcke = DNSCryptoKeyEngine::make(DNSSEC::ECDSA256);
   dcke->create(dcke->getBits());
   DNSSECPrivateKey dpk;
   dpk.setKey(std::move(dcke), 256);
@@ -470,7 +470,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_future)
 {
   initSR();
 
-  auto dcke = DNSCryptoKeyEngine::make(DNSSECKeeper::ECDSA256);
+  auto dcke = DNSCryptoKeyEngine::make(DNSSEC::ECDSA256);
   dcke->create(dcke->getBits());
   DNSSECPrivateKey dpk;
   dpk.setKey(std::move(dcke), 256);
@@ -512,7 +512,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_extreme_timestamps)
 {
   initSR();
 
-  auto dcke = DNSCryptoKeyEngine::make(DNSSECKeeper::ECDSA256);
+  auto dcke = DNSCryptoKeyEngine::make(DNSSEC::ECDSA256);
   dcke->create(dcke->getBits());
   DNSSECPrivateKey dpk;
   dpk.setKey(std::move(dcke), 256);
@@ -563,7 +563,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_root_validation_csk)
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(target, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(target, DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
   g_luaconfs.setState(luaconfsCopy);
 
   size_t queriesCount = 0;
@@ -630,17 +630,17 @@ BOOST_AUTO_TEST_CASE(test_dnssec_root_validation_ksk_zsk)
   testkeysset_t kskeys;
 
   /* Generate key material for "." */
-  auto dckeZ = DNSCryptoKeyEngine::make(DNSSECKeeper::ECDSA256);
+  auto dckeZ = DNSCryptoKeyEngine::make(DNSSEC::ECDSA256);
   dckeZ->create(dckeZ->getBits());
   DNSSECPrivateKey ksk;
   ksk.setKey(std::move(dckeZ), 257);
-  DSRecordContent kskds = makeDSFromDNSKey(target, ksk.getDNSKEY(), DNSSECKeeper::DIGEST_SHA256);
+  DSRecordContent kskds = makeDSFromDNSKey(target, ksk.getDNSKEY(), DNSSEC::DIGEST_SHA256);
 
-  auto dckeK = DNSCryptoKeyEngine::make(DNSSECKeeper::ECDSA256);
+  auto dckeK = DNSCryptoKeyEngine::make(DNSSEC::ECDSA256);
   dckeK->create(dckeK->getBits());
   DNSSECPrivateKey zsk;
   zsk.setKey(std::move(dckeK), 256);
-  DSRecordContent zskds = makeDSFromDNSKey(target, zsk.getDNSKEY(), DNSSECKeeper::DIGEST_SHA256);
+  DSRecordContent zskds = makeDSFromDNSKey(target, zsk.getDNSKEY(), DNSSEC::DIGEST_SHA256);
 
   kskeys[target] = std::pair<DNSSECPrivateKey, DSRecordContent>(ksk, kskds);
   zskeys[target] = std::pair<DNSSECPrivateKey, DSRecordContent>(zsk, zskds);
@@ -716,7 +716,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_no_dnskey)
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(target, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(target, DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
   g_luaconfs.setState(luaconfsCopy);
 
   size_t queriesCount = 0;
@@ -781,18 +781,18 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_dnskey_without_zone_flag)
   testkeysset_t keys;
 
   /* Generate key material for "." */
-  auto dcke = DNSCryptoKeyEngine::make(DNSSECKeeper::ECDSA256);
+  auto dcke = DNSCryptoKeyEngine::make(DNSSEC::ECDSA256);
   dcke->create(dcke->getBits());
   DNSSECPrivateKey csk;
   csk.setKey(std::move(dcke), 0);
-  DSRecordContent ds = makeDSFromDNSKey(target, csk.getDNSKEY(), DNSSECKeeper::DIGEST_SHA256);
+  DSRecordContent dsContent = makeDSFromDNSKey(target, csk.getDNSKEY(), DNSSEC::DIGEST_SHA256);
 
-  keys[target] = std::pair<DNSSECPrivateKey, DSRecordContent>(csk, ds);
+  keys[target] = std::pair<DNSSECPrivateKey, DSRecordContent>(csk, dsContent);
 
   /* Set the root DS */
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  luaconfsCopy.dsAnchors[g_rootdnsname].insert(ds);
+  luaconfsCopy.dsAnchors[g_rootdnsname].insert(dsContent);
   g_luaconfs.setState(luaconfsCopy);
 
   size_t queriesCount = 0;
@@ -857,18 +857,18 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_dnskey_revoked)
   testkeysset_t keys;
 
   /* Generate key material for "." */
-  auto dcke = DNSCryptoKeyEngine::make(DNSSECKeeper::ECDSA256);
+  auto dcke = DNSCryptoKeyEngine::make(DNSSEC::ECDSA256);
   dcke->create(dcke->getBits());
   DNSSECPrivateKey csk;
   csk.setKey(std::move(dcke), 257 | 128);
-  DSRecordContent ds = makeDSFromDNSKey(target, csk.getDNSKEY(), DNSSECKeeper::DIGEST_SHA256);
+  DSRecordContent dsContent = makeDSFromDNSKey(target, csk.getDNSKEY(), DNSSEC::DIGEST_SHA256);
 
-  keys[target] = std::pair<DNSSECPrivateKey, DSRecordContent>(csk, ds);
+  keys[target] = std::pair<DNSSECPrivateKey, DSRecordContent>(csk, dsContent);
 
   /* Set the root DS */
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  luaconfsCopy.dsAnchors[g_rootdnsname].insert(ds);
+  luaconfsCopy.dsAnchors[g_rootdnsname].insert(dsContent);
   g_luaconfs.setState(luaconfsCopy);
 
   size_t queriesCount = 0;
@@ -934,17 +934,17 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_dnskey_doesnt_match_ds)
   testkeysset_t keys;
 
   /* Generate key material for "." */
-  auto dckeDS = DNSCryptoKeyEngine::make(DNSSECKeeper::ECDSA256);
+  auto dckeDS = DNSCryptoKeyEngine::make(DNSSEC::ECDSA256);
   dckeDS->create(dckeDS->getBits());
   DNSSECPrivateKey dskey;
   dskey.setKey(std::move(dckeDS), 257);
-  DSRecordContent drc = makeDSFromDNSKey(target, dskey.getDNSKEY(), DNSSECKeeper::DIGEST_SHA256);
+  DSRecordContent drc = makeDSFromDNSKey(target, dskey.getDNSKEY(), DNSSEC::DIGEST_SHA256);
 
-  auto dcke = DNSCryptoKeyEngine::make(DNSSECKeeper::ECDSA256);
+  auto dcke = DNSCryptoKeyEngine::make(DNSSEC::ECDSA256);
   dcke->create(dcke->getBits());
   DNSSECPrivateKey dpk;
   dpk.setKey(std::move(dcke), 256);
-  DSRecordContent seconddrc = makeDSFromDNSKey(target, dpk.getDNSKEY(), DNSSECKeeper::DIGEST_SHA256);
+  DSRecordContent seconddrc = makeDSFromDNSKey(target, dpk.getDNSKEY(), DNSSEC::DIGEST_SHA256);
 
   dskeys[target] = std::pair<DNSSECPrivateKey, DSRecordContent>(dskey, drc);
   keys[target] = std::pair<DNSSECPrivateKey, DSRecordContent>(dpk, seconddrc);
@@ -1058,7 +1058,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_too_many_dss)
   luaconfsCopy.dsAnchors.clear();
   /* generate more DSs for the zone than we are willing to consider: only the last one will be used to generate DNSKEY records */
   for (size_t idx = 0; idx < (g_maxDSsToConsider + 10U); idx++) {
-    generateKeyMaterial(g_rootdnsname, DNSSECKeeper::RSASHA512, DNSSECKeeper::DIGEST_SHA384, keys, luaconfsCopy.dsAnchors);
+    generateKeyMaterial(g_rootdnsname, DNSSEC::RSASHA512, DNSSEC::DIGEST_SHA384, keys, luaconfsCopy.dsAnchors);
   }
   g_luaconfs.setState(luaconfsCopy);
 
@@ -1138,7 +1138,7 @@ PrivateKey: Ovj4pzrSh0U6aEVoKaPFhK1D4NMG0xrymj9+6TpwC8o=)PKEY");
   DNSSECPrivateKey dskey;
   dskey.setKey(std::move(dckeDS), 257);
   assert(dskey.getTag() == 31337);
-  DSRecordContent drc = makeDSFromDNSKey(target, dskey.getDNSKEY(), DNSSECKeeper::DIGEST_SHA256);
+  DSRecordContent drc = makeDSFromDNSKey(target, dskey.getDNSKEY(), DNSSEC::DIGEST_SHA256);
   dskeys[target] = std::pair<DNSSECPrivateKey, DSRecordContent>(dskey, drc);
 
   /* Different key, same tag */
@@ -1148,7 +1148,7 @@ PrivateKey: n7SRA4n6NejhZBWQOhjTaICYSpkTl6plJn1ATFG23FI=)PKEY");
   DNSSECPrivateKey dpk;
   dpk.setKey(std::move(dcke), 256);
   assert(dpk.getTag() == dskey.getTag());
-  DSRecordContent uselessdrc = makeDSFromDNSKey(target, dpk.getDNSKEY(), DNSSECKeeper::DIGEST_SHA256);
+  DSRecordContent uselessdrc = makeDSFromDNSKey(target, dpk.getDNSKEY(), DNSSEC::DIGEST_SHA256);
   keys[target] = std::pair<DNSSECPrivateKey, DSRecordContent>(dpk, uselessdrc);
 
   /* Set the root DS (one of them!) */
@@ -1238,7 +1238,7 @@ PrivateKey: Ovj4pzrSh0U6aEVoKaPFhK1D4NMG0xrymj9+6TpwC8o=)PKEY");
   DNSSECPrivateKey dskey;
   dskey.setKey(std::move(dckeDS), 257);
   assert(dskey.getTag() == 31337);
-  DSRecordContent drc = makeDSFromDNSKey(target, dskey.getDNSKEY(), DNSSECKeeper::DIGEST_SHA256);
+  DSRecordContent drc = makeDSFromDNSKey(target, dskey.getDNSKEY(), DNSSEC::DIGEST_SHA256);
   dskeys[target] = std::pair<DNSSECPrivateKey, DSRecordContent>(dskey, drc);
 
   /* Different key, same tag */
@@ -1250,7 +1250,7 @@ PrivateKey: pTaMJcvNrPIIiQiHGvCLZZASroyQpUwew5FvCgjHNsk=)PKEY");
   // so that the validation of the DNSKEY rrset succeeds
   dpk.setKey(std::move(dcke), 258);
   assert(dpk.getTag() == dskey.getTag());
-  DSRecordContent uselessdrc = makeDSFromDNSKey(target, dpk.getDNSKEY(), DNSSECKeeper::DIGEST_SHA256);
+  DSRecordContent uselessdrc = makeDSFromDNSKey(target, dpk.getDNSKEY(), DNSSEC::DIGEST_SHA256);
   keys[target] = std::pair<DNSSECPrivateKey, DSRecordContent>(dpk, uselessdrc);
 
   /* Set the root DSs (only one of them) */
@@ -1332,14 +1332,14 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_rrsig_signed_with_unknown_dnskey)
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(target, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(target, DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
   g_luaconfs.setState(luaconfsCopy);
 
-  auto dckeRRSIG = DNSCryptoKeyEngine::make(DNSSECKeeper::ECDSA256);
+  auto dckeRRSIG = DNSCryptoKeyEngine::make(DNSSEC::ECDSA256);
   dckeRRSIG->create(dckeRRSIG->getBits());
   DNSSECPrivateKey rrsigkey;
   rrsigkey.setKey(std::move(dckeRRSIG), 257);
-  DSRecordContent rrsigds = makeDSFromDNSKey(target, rrsigkey.getDNSKEY(), DNSSECKeeper::DIGEST_SHA256);
+  DSRecordContent rrsigds = makeDSFromDNSKey(target, rrsigkey.getDNSKEY(), DNSSEC::DIGEST_SHA256);
 
   rrsigkeys[target] = std::pair<DNSSECPrivateKey, DSRecordContent>(rrsigkey, rrsigds);
 
@@ -1407,7 +1407,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_no_rrsig)
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(target, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(target, DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
   g_luaconfs.setState(luaconfsCopy);
 
   size_t queriesCount = 0;
@@ -1482,7 +1482,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_no_rrsig_noaa)
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(target, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(target, DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
   g_luaconfs.setState(luaconfsCopy);
 
   size_t queriesCount = 0;
@@ -1557,13 +1557,13 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_unknown_ds_algorithm)
   testkeysset_t keys;
 
   /* Generate key material for "." */
-  auto dcke = DNSCryptoKeyEngine::make(DNSSECKeeper::ECDSA256);
+  auto dcke = DNSCryptoKeyEngine::make(DNSSEC::ECDSA256);
   dcke->create(dcke->getBits());
   DNSSECPrivateKey dpk;
   /* Fake algorithm number (private) */
   dpk.setKey(std::move(dcke), 256, 253);
 
-  DSRecordContent drc = makeDSFromDNSKey(target, dpk.getDNSKEY(), DNSSECKeeper::DIGEST_SHA256);
+  DSRecordContent drc = makeDSFromDNSKey(target, dpk.getDNSKEY(), DNSSEC::DIGEST_SHA256);
   keys[target] = std::pair<DNSSECPrivateKey, DSRecordContent>(dpk, drc);
   /* Fake algorithm number (private) */
   drc.d_algorithm = 253;
@@ -1638,11 +1638,11 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_unknown_ds_digest)
   testkeysset_t keys;
 
   /* Generate key material for "." */
-  auto dcke = DNSCryptoKeyEngine::make(DNSSECKeeper::ECDSA256);
+  auto dcke = DNSCryptoKeyEngine::make(DNSSEC::ECDSA256);
   dcke->create(dcke->getBits());
   DNSSECPrivateKey dpk;
   dpk.setKey(std::move(dcke), 256);
-  DSRecordContent drc = makeDSFromDNSKey(target, dpk.getDNSKEY(), DNSSECKeeper::DIGEST_SHA256);
+  DSRecordContent drc = makeDSFromDNSKey(target, dpk.getDNSKEY(), DNSSEC::DIGEST_SHA256);
   /* Fake digest number (reserved) */
   drc.d_digesttype = 0;
 
@@ -1719,7 +1719,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_bad_sig)
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::RSASHA512, DNSSECKeeper::DIGEST_SHA384, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(g_rootdnsname, DNSSEC::RSASHA512, DNSSEC::DIGEST_SHA384, keys, luaconfsCopy.dsAnchors);
 
   g_luaconfs.setState(luaconfsCopy);
   /* make sure that the signature inception and validity times are computed
@@ -1791,7 +1791,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_too_many_sigs)
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::RSASHA512, DNSSECKeeper::DIGEST_SHA384, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(g_rootdnsname, DNSSEC::RSASHA512, DNSSEC::DIGEST_SHA384, keys, luaconfsCopy.dsAnchors);
 
   g_luaconfs.setState(luaconfsCopy);
   /* make sure that the signature inception and validity times are computed
@@ -1869,7 +1869,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_too_many_sig_validations)
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::RSASHA512, DNSSECKeeper::DIGEST_SHA384, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(g_rootdnsname, DNSSEC::RSASHA512, DNSSEC::DIGEST_SHA384, keys, luaconfsCopy.dsAnchors);
 
   g_luaconfs.setState(luaconfsCopy);
   /* make sure that the signature inception and validity times are computed
@@ -1933,7 +1933,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_bad_algo)
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::RSASHA512, DNSSECKeeper::DIGEST_SHA384, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(g_rootdnsname, DNSSEC::RSASHA512, DNSSEC::DIGEST_SHA384, keys, luaconfsCopy.dsAnchors);
 
   g_luaconfs.setState(luaconfsCopy);
 
@@ -1952,7 +1952,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_bad_algo)
       }
 
       /* FORCE WRONG ALGO */
-      addRRSIG(keys, res->d_records, domain, 300, false, DNSSECKeeper::RSASHA256);
+      addRRSIG(keys, res->d_records, domain, 300, false, DNSSEC::RSASHA256);
 
       addRecordToLW(res, "a.root-servers.net.", QType::A, "198.41.0.4", DNSResourceRecord::ADDITIONAL, 3600);
       addRecordToLW(res, "a.root-servers.net.", QType::AAAA, "2001:503:ba3e::2:30", DNSResourceRecord::ADDITIONAL, 3600);
@@ -2003,8 +2003,8 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_unsigned_ds)
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::RSASHA512, DNSSECKeeper::DIGEST_SHA384, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(g_rootdnsname, DNSSEC::RSASHA512, DNSSEC::DIGEST_SHA384, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
 
   g_luaconfs.setState(luaconfsCopy);
 
@@ -2084,8 +2084,8 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_unsigned_ds_direct)
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::RSASHA512, DNSSECKeeper::DIGEST_SHA384, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(g_rootdnsname, DNSSEC::RSASHA512, DNSSEC::DIGEST_SHA384, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
 
   g_luaconfs.setState(luaconfsCopy);
 

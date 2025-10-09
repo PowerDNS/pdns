@@ -48,7 +48,7 @@
 #include <openssl/pem.h>
 #include "opensslsigners.hh"
 #include "dnssecinfra.hh"
-#include "dnsseckeeper.hh"
+#include "dnssec.hh"
 
 #if (OPENSSL_VERSION_NUMBER < 0x1010000fL || (defined LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER < 0x2090100fL)
 /* OpenSSL < 1.1.0 needs support for threading/locking in the calling application. */
@@ -315,15 +315,15 @@ int OpenSSLRSADNSCryptoKeyEngine::getBits() const
 void OpenSSLRSADNSCryptoKeyEngine::create(unsigned int bits)
 {
   // When changing the bitsizes, also edit them in ::checkKey
-  if ((d_algorithm == DNSSECKeeper::RSASHA1 || d_algorithm == DNSSECKeeper::RSASHA1NSEC3SHA1) && (bits < 512 || bits > 4096)) {
+  if ((d_algorithm == DNSSEC::RSASHA1 || d_algorithm == DNSSEC::RSASHA1NSEC3SHA1) && (bits < 512 || bits > 4096)) {
     /* RFC3110 */
     throw runtime_error(getName() + " RSASHA1 key generation failed for invalid bits size " + std::to_string(bits));
   }
-  if (d_algorithm == DNSSECKeeper::RSASHA256 && (bits < 512 || bits > 4096)) {
+  if (d_algorithm == DNSSEC::RSASHA256 && (bits < 512 || bits > 4096)) {
     /* RFC5702 */
     throw runtime_error(getName() + " RSASHA256 key generation failed for invalid bits size " + std::to_string(bits));
   }
-  if (d_algorithm == DNSSECKeeper::RSASHA512 && (bits < 1024 || bits > 4096)) {
+  if (d_algorithm == DNSSEC::RSASHA512 && (bits < 1024 || bits > 4096)) {
     /* RFC5702 */
     throw runtime_error(getName() + " RSASHA512 key generation failed for invalid bits size " + std::to_string(bits));
   }
@@ -594,14 +594,14 @@ DNSCryptoKeyEngine::storvector_t OpenSSLRSADNSCryptoKeyEngine::convertToISCVecto
 
   string algorithm = std::to_string(d_algorithm);
   switch (d_algorithm) {
-  case DNSSECKeeper::RSASHA1:
-  case DNSSECKeeper::RSASHA1NSEC3SHA1:
+  case DNSSEC::RSASHA1:
+  case DNSSEC::RSASHA1NSEC3SHA1:
     algorithm += " (RSASHA1)";
     break;
-  case DNSSECKeeper::RSASHA256:
+  case DNSSEC::RSASHA256:
     algorithm += " (RSASHA256)";
     break;
-  case DNSSECKeeper::RSASHA512:
+  case DNSSEC::RSASHA512:
     algorithm += " (RSASHA512)";
     break;
   default:
@@ -626,12 +626,12 @@ DNSCryptoKeyEngine::storvector_t OpenSSLRSADNSCryptoKeyEngine::convertToISCVecto
 std::size_t OpenSSLRSADNSCryptoKeyEngine::hashSize() const
 {
   switch (d_algorithm) {
-  case DNSSECKeeper::RSASHA1:
-  case DNSSECKeeper::RSASHA1NSEC3SHA1:
+  case DNSSEC::RSASHA1:
+  case DNSSEC::RSASHA1NSEC3SHA1:
     return SHA_DIGEST_LENGTH;
-  case DNSSECKeeper::RSASHA256:
+  case DNSSEC::RSASHA256:
     return SHA256_DIGEST_LENGTH;
-  case DNSSECKeeper::RSASHA512:
+  case DNSSEC::RSASHA512:
     return SHA512_DIGEST_LENGTH;
   default:
     throw runtime_error(getName() + " does not support hash operations for algorithm " + std::to_string(d_algorithm));
@@ -643,14 +643,14 @@ const EVP_MD* OpenSSLRSADNSCryptoKeyEngine::hasher() const
   const EVP_MD* messageDigest = nullptr;
 
   switch (d_algorithm) {
-  case DNSSECKeeper::RSASHA1:
-  case DNSSECKeeper::RSASHA1NSEC3SHA1:
+  case DNSSEC::RSASHA1:
+  case DNSSEC::RSASHA1NSEC3SHA1:
     messageDigest = EVP_sha1();
     break;
-  case DNSSECKeeper::RSASHA256:
+  case DNSSEC::RSASHA256:
     messageDigest = EVP_sha256();
     break;
-  case DNSSECKeeper::RSASHA512:
+  case DNSSEC::RSASHA512:
     messageDigest = EVP_sha512();
     break;
   default:
@@ -666,7 +666,7 @@ const EVP_MD* OpenSSLRSADNSCryptoKeyEngine::hasher() const
 
 std::string OpenSSLRSADNSCryptoKeyEngine::hash(const std::string& message) const
 {
-  if (d_algorithm == DNSSECKeeper::RSASHA1 || d_algorithm == DNSSECKeeper::RSASHA1NSEC3SHA1) {
+  if (d_algorithm == DNSSEC::RSASHA1 || d_algorithm == DNSSEC::RSASHA1NSEC3SHA1) {
     std::string l_hash{};
     l_hash.resize(SHA_DIGEST_LENGTH);
     // NOLINTNEXTLINE(*-cast): Using OpenSSL C APIs.
@@ -674,7 +674,7 @@ std::string OpenSSLRSADNSCryptoKeyEngine::hash(const std::string& message) const
     return l_hash;
   }
 
-  if (d_algorithm == DNSSECKeeper::RSASHA256) {
+  if (d_algorithm == DNSSEC::RSASHA256) {
     std::string l_hash{};
     l_hash.resize(SHA256_DIGEST_LENGTH);
     // NOLINTNEXTLINE(*-cast): Using OpenSSL C APIs.
@@ -682,7 +682,7 @@ std::string OpenSSLRSADNSCryptoKeyEngine::hash(const std::string& message) const
     return l_hash;
   }
 
-  if (d_algorithm == DNSSECKeeper::RSASHA512) {
+  if (d_algorithm == DNSSEC::RSASHA512) {
     std::string l_hash{};
     l_hash.resize(SHA512_DIGEST_LENGTH);
     // NOLINTNEXTLINE(*-cast): Using OpenSSL C APIs.
@@ -881,13 +881,13 @@ bool OpenSSLRSADNSCryptoKeyEngine::checkKey(std::optional<std::reference_wrapper
 {
   bool retval = true;
   // When changing the bitsizes, also edit them in ::create
-  if ((d_algorithm == DNSSECKeeper::RSASHA1 || d_algorithm == DNSSECKeeper::RSASHA1NSEC3SHA1 || d_algorithm == DNSSECKeeper::RSASHA256) && (getBits() < 512 || getBits() > 4096)) {
+  if ((d_algorithm == DNSSEC::RSASHA1 || d_algorithm == DNSSEC::RSASHA1NSEC3SHA1 || d_algorithm == DNSSEC::RSASHA256) && (getBits() < 512 || getBits() > 4096)) {
     retval = false;
     if (errorMessages.has_value()) {
       errorMessages->get().push_back("key is " + std::to_string(getBits()) + " bytes, should be between 512 and 4096");
     }
   }
-  if (d_algorithm == DNSSECKeeper::RSASHA512 && (getBits() < 1024 || getBits() > 4096)) {
+  if (d_algorithm == DNSSEC::RSASHA512 && (getBits() < 1024 || getBits() > 4096)) {
     retval = false;
     if (errorMessages.has_value()) {
       errorMessages->get().push_back("key is " + std::to_string(getBits()) + " bytes, should be between 1024 and 4096");
@@ -1313,10 +1313,10 @@ const EVP_MD* OpenSSLECDSADNSCryptoKeyEngine::hasher() const
   const EVP_MD* messageDigest = nullptr;
 
   switch (d_algorithm) {
-  case DNSSECKeeper::ECDSA256:
+  case DNSSEC::ECDSA256:
     messageDigest = EVP_sha256();
     break;
-  case DNSSECKeeper::ECDSA384:
+  case DNSSEC::ECDSA384:
     messageDigest = EVP_sha384();
     break;
   default:
@@ -1333,9 +1333,9 @@ const EVP_MD* OpenSSLECDSADNSCryptoKeyEngine::hasher() const
 std::size_t OpenSSLECDSADNSCryptoKeyEngine::hashSize() const
 {
   switch (d_algorithm) {
-  case DNSSECKeeper::ECDSA256:
+  case DNSSEC::ECDSA256:
     return SHA256_DIGEST_LENGTH;
-  case DNSSECKeeper::ECDSA384:
+  case DNSSEC::ECDSA384:
     return SHA384_DIGEST_LENGTH;
   default:
     throw runtime_error(getName() + " does not support hash operations for algorithm " + std::to_string(d_algorithm));
@@ -2053,19 +2053,19 @@ const struct LoaderStruct
 {
   LoaderStruct()
   {
-    DNSCryptoKeyEngine::report(DNSSECKeeper::RSASHA1, &OpenSSLRSADNSCryptoKeyEngine::maker);
-    DNSCryptoKeyEngine::report(DNSSECKeeper::RSASHA1NSEC3SHA1, &OpenSSLRSADNSCryptoKeyEngine::maker);
-    DNSCryptoKeyEngine::report(DNSSECKeeper::RSASHA256, &OpenSSLRSADNSCryptoKeyEngine::maker);
-    DNSCryptoKeyEngine::report(DNSSECKeeper::RSASHA512, &OpenSSLRSADNSCryptoKeyEngine::maker);
+    DNSCryptoKeyEngine::report(DNSSEC::RSASHA1, &OpenSSLRSADNSCryptoKeyEngine::maker);
+    DNSCryptoKeyEngine::report(DNSSEC::RSASHA1NSEC3SHA1, &OpenSSLRSADNSCryptoKeyEngine::maker);
+    DNSCryptoKeyEngine::report(DNSSEC::RSASHA256, &OpenSSLRSADNSCryptoKeyEngine::maker);
+    DNSCryptoKeyEngine::report(DNSSEC::RSASHA512, &OpenSSLRSADNSCryptoKeyEngine::maker);
 #ifdef HAVE_LIBCRYPTO_ECDSA
-    DNSCryptoKeyEngine::report(DNSSECKeeper::ECDSA256, &OpenSSLECDSADNSCryptoKeyEngine::maker);
-    DNSCryptoKeyEngine::report(DNSSECKeeper::ECDSA384, &OpenSSLECDSADNSCryptoKeyEngine::maker);
+    DNSCryptoKeyEngine::report(DNSSEC::ECDSA256, &OpenSSLECDSADNSCryptoKeyEngine::maker);
+    DNSCryptoKeyEngine::report(DNSSEC::ECDSA384, &OpenSSLECDSADNSCryptoKeyEngine::maker);
 #endif
 #ifdef HAVE_LIBCRYPTO_ED25519
-    DNSCryptoKeyEngine::report(DNSSECKeeper::ED25519, &OpenSSLEDDSADNSCryptoKeyEngine::maker);
+    DNSCryptoKeyEngine::report(DNSSEC::ED25519, &OpenSSLEDDSADNSCryptoKeyEngine::maker);
 #endif
 #ifdef HAVE_LIBCRYPTO_ED448
-    DNSCryptoKeyEngine::report(DNSSECKeeper::ED448, &OpenSSLEDDSADNSCryptoKeyEngine::maker);
+    DNSCryptoKeyEngine::report(DNSSEC::ED448, &OpenSSLEDDSADNSCryptoKeyEngine::maker);
 #endif
   }
 } loaderOpenSSL;

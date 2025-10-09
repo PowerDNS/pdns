@@ -12,11 +12,12 @@
 
 #include "base32.hh"
 #include "base64.hh"
-#include "dnsseckeeper.hh"
+#include "dnssec.hh"
 #include "dnssecinfra.hh"
 #include "misc.hh"
 
-#include <cstdio>
+#include <openssl/opensslv.h> // OPENSSL_VERSION_MAJOR
+
 #include <unordered_map>
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables): Boost stuff.
@@ -86,7 +87,7 @@ static const SignerParams rsaSha256SignerParams = SignerParams
   .flags = 256,
   .rfcFlags = 0,
 
-  .algorithm = DNSSECKeeper::RSASHA256,
+  .algorithm = DNSSEC::RSASHA256,
   .isDeterministic = true,
 
 #if OPENSSL_VERSION_MAJOR >= 3
@@ -156,7 +157,7 @@ static const SignerParams ecdsaSha256 = SignerParams
   .flags = 256,
   .rfcFlags = 0,
 
-  .algorithm = DNSSECKeeper::ECDSA256,
+  .algorithm = DNSSEC::ECDSA256,
   .isDeterministic = false,
 
 #if OPENSSL_VERSION_MAJOR >= 3
@@ -223,7 +224,7 @@ static const SignerParams ed25519 = SignerParams{
   .flags = 256,
   .rfcFlags = 257,
 
-  .algorithm = DNSSECKeeper::ED25519,
+  .algorithm = DNSSEC::ED25519,
   .isDeterministic = true,
 
   .pem = "-----BEGIN PRIVATE KEY-----\n"
@@ -285,7 +286,7 @@ static const SignerParams ed448 = SignerParams{
   .flags = 256,
   .rfcFlags = 257,
 
-  .algorithm = DNSSECKeeper::ED448,
+  .algorithm = DNSSEC::ED448,
   .isDeterministic = true,
 
   .pem = "-----BEGIN PRIVATE KEY-----\n"
@@ -307,19 +308,19 @@ struct Fixture
 
     BOOST_TEST_MESSAGE("Setting up signer params:");
 
-    addSignerParams(DNSSECKeeper::RSASHA256, "RSA SHA256", rsaSha256SignerParams);
+    addSignerParams(DNSSEC::RSASHA256, "RSA SHA256", rsaSha256SignerParams);
 
 #ifdef HAVE_LIBCRYPTO_ECDSA
-    addSignerParams(DNSSECKeeper::ECDSA256, "ECDSA SHA256", ecdsaSha256);
+    addSignerParams(DNSSEC::ECDSA256, "ECDSA SHA256", ecdsaSha256);
 #endif
 
 // We need to have HAVE_LIBCRYPTO_ED25519 for the PEM reader/writer.
 #if defined(HAVE_LIBCRYPTO_ED25519)
-    addSignerParams(DNSSECKeeper::ED25519, "ED25519", ed25519);
+    addSignerParams(DNSSEC::ED25519, "ED25519", ed25519);
 #endif
 
 #if defined(HAVE_LIBCRYPTO_ED448)
-    addSignerParams(DNSSECKeeper::ED448, "ED448", ed448);
+    addSignerParams(DNSSEC::ED448, "ED448", ed448);
 #endif
   }
 
@@ -342,13 +343,13 @@ static void checkRR(const SignerParams& signer)
 
   sortedRecords_t rrs;
   /* values taken from rfc8080 for ed25519 and ed448, rfc5933 for gost */
-  DNSName qname(dpk.getAlgorithm() == DNSSECKeeper::ECCGOST ? "www.example.net." : "example.com.");
+  DNSName qname(dpk.getAlgorithm() == DNSSEC::ECCGOST ? "www.example.net." : "example.com.");
 
   RRSIGRecordContent rrc;
   uint32_t expire = 1440021600;
   uint32_t inception = 1438207200;
 
-  if (dpk.getAlgorithm() == DNSSECKeeper::ECCGOST) {
+  if (dpk.getAlgorithm() == DNSSEC::ECCGOST) {
     rrc.d_signer = DNSName("example.net.");
     inception = 946684800;
     expire = 1893456000;
@@ -413,17 +414,17 @@ static void test_generic_signer(std::shared_ptr<DNSCryptoKeyEngine> dcke, DNSKEY
   BOOST_CHECK_EQUAL(drc.getZoneRepresentation(), signer.zoneRepresentation);
 
   DNSName name(signer.name);
-  auto ds1 = makeDSFromDNSKey(name, drc, DNSSECKeeper::DIGEST_SHA1);
+  auto ds1 = makeDSFromDNSKey(name, drc, DNSSEC::DIGEST_SHA1);
   if (!signer.dsSHA1.empty()) {
     BOOST_CHECK_EQUAL(ds1.getZoneRepresentation(), signer.dsSHA1);
   }
 
-  auto ds2 = makeDSFromDNSKey(name, drc, DNSSECKeeper::DIGEST_SHA256);
+  auto ds2 = makeDSFromDNSKey(name, drc, DNSSEC::DIGEST_SHA256);
   if (!signer.dsSHA256.empty()) {
     BOOST_CHECK_EQUAL(ds2.getZoneRepresentation(), signer.dsSHA256);
   }
 
-  auto ds4 = makeDSFromDNSKey(name, drc, DNSSECKeeper::DIGEST_SHA384);
+  auto ds4 = makeDSFromDNSKey(name, drc, DNSSEC::DIGEST_SHA384);
   if (!signer.dsSHA384.empty()) {
     BOOST_CHECK_EQUAL(ds4.getZoneRepresentation(), signer.dsSHA384);
   }

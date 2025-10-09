@@ -20,7 +20,7 @@ BOOST_AUTO_TEST_CASE(test_nsec_denial_nowrap)
   initSR();
 
   testkeysset_t keys;
-  generateKeyMaterial(DNSName("example.org."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("example.org."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
 
   vector<DNSRecord> records;
 
@@ -69,7 +69,7 @@ BOOST_AUTO_TEST_CASE(test_nsec_denial_wrap_case_1)
   initSR();
 
   testkeysset_t keys;
-  generateKeyMaterial(DNSName("example.org."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("example.org."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
 
   vector<DNSRecord> records;
 
@@ -105,7 +105,7 @@ BOOST_AUTO_TEST_CASE(test_nsec_denial_wrap_case_2)
   initSR();
 
   testkeysset_t keys;
-  generateKeyMaterial(DNSName("example.org."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("example.org."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
 
   vector<DNSRecord> records;
 
@@ -141,7 +141,7 @@ BOOST_AUTO_TEST_CASE(test_nsec_denial_only_one_nsec)
   initSR();
 
   testkeysset_t keys;
-  generateKeyMaterial(DNSName("example.org."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("example.org."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
 
   vector<DNSRecord> records;
 
@@ -177,7 +177,7 @@ BOOST_AUTO_TEST_CASE(test_nsec_root_nxd_denial)
   initSR();
 
   testkeysset_t keys;
-  generateKeyMaterial(DNSName("."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
 
   vector<DNSRecord> records;
 
@@ -222,7 +222,7 @@ BOOST_AUTO_TEST_CASE(test_nsec_ancestor_nxqtype_denial)
   initSR();
 
   testkeysset_t keys;
-  generateKeyMaterial(DNSName("."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
 
   vector<DNSRecord> records;
 
@@ -273,8 +273,8 @@ BOOST_AUTO_TEST_CASE(test_nsec_ds_denial_from_child)
   initSR();
 
   testkeysset_t keys;
-  generateKeyMaterial(DNSName("org."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
-  generateKeyMaterial(DNSName("example.org."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("org."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("example.org."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
 
   vector<DNSRecord> records;
 
@@ -305,7 +305,7 @@ BOOST_AUTO_TEST_CASE(test_nsec_insecure_delegation_denial)
   initSR();
 
   testkeysset_t keys;
-  generateKeyMaterial(DNSName("."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
 
   vector<DNSRecord> records;
 
@@ -347,7 +347,7 @@ BOOST_AUTO_TEST_CASE(test_nsec_insecure_delegation_denial_soa)
   initSR();
 
   testkeysset_t keys;
-  generateKeyMaterial(DNSName("."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
 
   vector<DNSRecord> records;
 
@@ -387,7 +387,7 @@ BOOST_AUTO_TEST_CASE(test_nsec_nxqtype_cname)
   initSR();
 
   testkeysset_t keys;
-  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("powerdns.com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
 
   vector<DNSRecord> records;
 
@@ -416,7 +416,7 @@ BOOST_AUTO_TEST_CASE(test_nsec3_nxqtype_ds)
   initSR();
 
   testkeysset_t keys;
-  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("powerdns.com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
 
   vector<DNSRecord> records;
 
@@ -451,7 +451,7 @@ BOOST_AUTO_TEST_CASE(test_nsec3_nxqtype_cname)
   initSR();
 
   testkeysset_t keys;
-  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("powerdns.com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
 
   vector<DNSRecord> records;
 
@@ -480,7 +480,7 @@ BOOST_AUTO_TEST_CASE(test_nsec_nxdomain_denial_missing_wildcard)
   initSR();
 
   testkeysset_t keys;
-  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("powerdns.com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
 
   vector<DNSRecord> records;
 
@@ -508,7 +508,7 @@ BOOST_AUTO_TEST_CASE(test_nsec3_nxdomain_denial_missing_wildcard)
   initSR();
 
   testkeysset_t keys;
-  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("powerdns.com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
 
   vector<DNSRecord> records;
 
@@ -548,7 +548,7 @@ BOOST_AUTO_TEST_CASE(test_nsec_expanded_wildcard_proof)
   initSR();
 
   testkeysset_t keys;
-  generateKeyMaterial(DNSName("example.org."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("example.org."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
 
   vector<DNSRecord> records;
 
@@ -579,7 +579,7 @@ BOOST_AUTO_TEST_CASE(test_nsec_wildcard_with_cname)
   initSR();
 
   testkeysset_t keys;
-  generateKeyMaterial(DNSName("example.org."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("example.org."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
 
   vector<DNSRecord> records;
 
@@ -645,7 +645,7 @@ BOOST_AUTO_TEST_CASE(test_nsec3_wildcard_with_cname)
   initSR();
 
   testkeysset_t keys;
-  generateKeyMaterial(DNSName("example.org."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("example.org."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
 
   vector<DNSRecord> records;
 
@@ -723,7 +723,7 @@ BOOST_AUTO_TEST_CASE(test_nsec_ent_denial)
   initSR();
 
   testkeysset_t keys;
-  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("powerdns.com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
 
   vector<DNSRecord> records;
 
@@ -782,8 +782,8 @@ BOOST_AUTO_TEST_CASE(test_nsec_denial_invalid_signer)
   initSR();
 
   testkeysset_t keys;
-  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
-  generateKeyMaterial(DNSName("sub.powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("powerdns.com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("sub.powerdns.com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
 
   vector<DNSRecord> records;
 
@@ -819,8 +819,8 @@ BOOST_AUTO_TEST_CASE(test_nsec3_denial_invalid_signer)
   initSR();
 
   testkeysset_t keys;
-  generateKeyMaterial(DNSName("example.org."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
-  generateKeyMaterial(DNSName("sub.example.org."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("example.org."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("sub.example.org."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
 
   vector<DNSRecord> records;
 
@@ -875,7 +875,7 @@ BOOST_AUTO_TEST_CASE(test_nsec3_ancestor_nxqtype_denial)
   initSR();
 
   testkeysset_t keys;
-  generateKeyMaterial(DNSName("."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
 
   vector<DNSRecord> records;
 
@@ -955,7 +955,7 @@ BOOST_AUTO_TEST_CASE(test_nsec3_denial_too_many_iterations)
   initSR();
 
   testkeysset_t keys;
-  generateKeyMaterial(DNSName("."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
 
   vector<DNSRecord> records;
 
@@ -985,7 +985,7 @@ BOOST_AUTO_TEST_CASE(test_nsec3_many_labels_between_name_and_closest_encloser)
   initSR();
 
   testkeysset_t keys;
-  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("powerdns.com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
 
   vector<DNSRecord> records;
 
@@ -1047,7 +1047,7 @@ BOOST_AUTO_TEST_CASE(test_nsec3_insecure_delegation_denial)
   initSR();
 
   testkeysset_t keys;
-  generateKeyMaterial(DNSName("."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
 
   vector<DNSRecord> records;
 
@@ -1089,7 +1089,7 @@ BOOST_AUTO_TEST_CASE(test_nsec3_insecure_delegation_denial_soa)
   initSR();
 
   testkeysset_t keys;
-  generateKeyMaterial(DNSName("."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
 
   vector<DNSRecord> records;
 
@@ -1129,7 +1129,7 @@ BOOST_AUTO_TEST_CASE(test_nsec3_ent_opt_out)
   initSR();
 
   testkeysset_t keys;
-  generateKeyMaterial(DNSName("."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
 
   vector<DNSRecord> records;
 
@@ -1191,8 +1191,8 @@ BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_negcache_validity)
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(g_rootdnsname, DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
   g_luaconfs.setState(luaconfsCopy);
 
   size_t queriesCount = 0;
@@ -1259,8 +1259,8 @@ BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_negcache_bogus_validity)
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(g_rootdnsname, DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
   g_luaconfs.setState(luaconfsCopy);
 
   size_t queriesCount = 0;
@@ -1331,8 +1331,8 @@ BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_cache_validity)
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(g_rootdnsname, DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
   g_luaconfs.setState(luaconfsCopy);
 
   size_t queriesCount = 0;
@@ -1401,7 +1401,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_cache_secure)
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(g_rootdnsname, DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
   g_luaconfs.setState(luaconfsCopy);
 
   size_t queriesCount = 0;
@@ -1533,7 +1533,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_cache_bogus)
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(g_rootdnsname, DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
   g_luaconfs.setState(luaconfsCopy);
 
   size_t queriesCount = 0;
@@ -1621,7 +1621,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_cache_secure_any)
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(g_rootdnsname, DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
   g_luaconfs.setState(luaconfsCopy);
 
   size_t queriesCount = 0;

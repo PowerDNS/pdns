@@ -135,8 +135,8 @@ pdns_recursor_SOURCES = \
 	dnspacket.hh \
 	dnsparser.hh dnsparser.cc \
 	dnsrecords.cc dnsrecords.hh \
+	dnssec.hh \
 	dnssecinfra.hh dnssecinfra.cc \
-	dnsseckeeper.hh \
 	dnswriter.cc dnswriter.hh \
 	dolog.hh \
 	ednscookies.cc ednscookies.hh \
@@ -232,7 +232,6 @@ pdns_recursor_SOURCES = \
 	tcpiohandler.cc tcpiohandler.hh \
 	threadname.hh threadname.cc \
 	tsigverifier.cc tsigverifier.hh \
-	ueberbackend.hh \
 	unix_utility.cc \
 	utility.hh \
 	uuid-utils.hh uuid-utils.cc \
@@ -299,8 +298,8 @@ testrunner_SOURCES = \
 	dnsname.cc dnsname.hh \
 	dnsparser.hh dnsparser.cc \
 	dnsrecords.cc \
+	dnssec.hh \
 	dnssecinfra.cc \
-	dnsseckeeper.hh \
 	dnswriter.cc dnswriter.hh \
 	ednscookies.cc ednscookies.hh \
 	ednsextendederror.cc ednsextendederror.hh \
