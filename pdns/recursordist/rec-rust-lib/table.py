@@ -3649,7 +3649,8 @@ Addresses of servers that do not properly support DNS cookies (:rfc:`7873`, :rfc
         'default' : '',
         'help' : 'Sequence of OutgoingTLSConfiguration',
         'doc' : '''
-Sequence of OutgoingTLSConfiguration.`
+Configurations used for outgoing DoT connections.
+A DoT connection is matched against the subnets lists (using the remote IP) and if that does not provide a match the namserver name is matched against the suffixes lists. When a macth is found, the corresponding DoT configuration is used.
         ''',
         'skip-old' : 'No equivalent old style setting',
         'versionadded': '5.4.0',
