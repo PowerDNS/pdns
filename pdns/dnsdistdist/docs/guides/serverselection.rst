@@ -97,7 +97,11 @@ If all servers are down, the policy will still select one server by default. Set
 Lua server policies
 -------------------
 
-If you don't like the default policies you can create your own, like this for example::
+.. warning::
+
+  There has been a significant change to the way custom load-balancing policies written in Lua works since 2.1.0: they now need to return the index in the servers array of the backend they intend to select, instead of returning a reference to the backend itself.
+
+If you don't like the default policies you can create your own, like this for example (before 2.1.0)::
 
   counter=0
   function luaroundrobin(servers, dq)
@@ -107,25 +111,17 @@ If you don't like the default policies you can create your own, like this for ex
 
   setServerPolicyLua("luaroundrobin", luaroundrobin)
 
-Incidentally, this is similar to setting: ``setServerPolicy(roundrobin)`` which uses the C++ based roundrobin policy.
+Since 2.1.0 this should instead be::
 
-Or::
-
-  newServer("192.168.1.2")
-  newServer({address="8.8.4.4", pool="numbered"})
-
-  function splitSetup(servers, dq)
-    if(string.match(dq.qname:toString(), "%d"))
-    then
-      print("numbered pool")
-      return leastOutstanding.policy(getPoolServers("numbered"), dq)
-    else
-      print("standard pool")
-      return leastOutstanding.policy(servers, dq)
-    end
+  counter=0
+  function luaroundrobin(servers, dq)
+       counter=counter+1
+       return 1+(counter % #servers)
   end
 
-  setServerPolicyLua("splitsetup", splitSetup)
+  setServerPolicyLua("luaroundrobin", luaroundrobin)
+
+Incidentally, this is similar to setting: ``setServerPolicy(roundrobin)`` which uses the C++ based roundrobin policy.
 
 A faster, FFI version is also available since 1.5.0:
 

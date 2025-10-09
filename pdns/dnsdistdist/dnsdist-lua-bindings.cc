@@ -94,19 +94,68 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
 #endif /* DISABLE_POLICIES_BINDINGS */
 
   /* ServerPool */
-  luaCtx.registerFunction<void (std::shared_ptr<ServerPool>::*)(std::shared_ptr<DNSDistPacketCache>)>("setCache", [](const std::shared_ptr<ServerPool>& pool, std::shared_ptr<DNSDistPacketCache> cache) {
+  luaCtx.registerFunction<void (std::shared_ptr<dnsdist::lua::LuaServerPoolObject>::*)(std::shared_ptr<DNSDistPacketCache>)>("setCache", [](const std::shared_ptr<dnsdist::lua::LuaServerPoolObject>& pool, std::shared_ptr<DNSDistPacketCache> cache) {
     if (pool) {
-      pool->packetCache = std::move(cache);
+      dnsdist::configuration::updateRuntimeConfiguration([&pool, &cache](dnsdist::configuration::RuntimeConfiguration& config) {
+        auto poolIt = config.d_pools.find(pool->poolName);
+        if (poolIt == config.d_pools.end()) {
+          /* this might happen if the Server Pool has been removed in the meantime, let's gracefully ignore it */
+          return;
+        }
+        poolIt->second.packetCache = std::move(cache);
+      });
     }
   });
-  luaCtx.registerFunction("getCache", &ServerPool::getCache);
-  luaCtx.registerFunction<void (std::shared_ptr<ServerPool>::*)()>("unsetCache", [](const std::shared_ptr<ServerPool>& pool) {
+  luaCtx.registerFunction<std::shared_ptr<DNSDistPacketCache> (std::shared_ptr<dnsdist::lua::LuaServerPoolObject>::*)() const>("getCache", [](const std::shared_ptr<dnsdist::lua::LuaServerPoolObject>& pool) {
+    std::shared_ptr<DNSDistPacketCache> cache;
     if (pool) {
-      pool->packetCache = nullptr;
+      dnsdist::configuration::updateRuntimeConfiguration([&pool, &cache](dnsdist::configuration::RuntimeConfiguration& config) {
+        auto poolIt = config.d_pools.find(pool->poolName);
+        /* this might happen if the Server Pool has been removed in the meantime, let's gracefully ignore it */
+        if (poolIt != config.d_pools.end()) {
+          cache = poolIt->second.packetCache;
+        }
+      });
+    }
+    return cache;
+  });
+  luaCtx.registerFunction<void (std::shared_ptr<dnsdist::lua::LuaServerPoolObject>::*)()>("unsetCache", [](const std::shared_ptr<dnsdist::lua::LuaServerPoolObject>& pool) {
+    if (pool) {
+      dnsdist::configuration::updateRuntimeConfiguration([&pool](dnsdist::configuration::RuntimeConfiguration& config) {
+        auto poolIt = config.d_pools.find(pool->poolName);
+        if (poolIt == config.d_pools.end()) {
+          /* this might happen if the Server Pool has been removed in the meantime, let's gracefully ignore it */
+          return;
+        }
+        poolIt->second.packetCache.reset();
+      });
     }
   });
-  luaCtx.registerFunction("getECS", &ServerPool::getECS);
-  luaCtx.registerFunction("setECS", &ServerPool::setECS);
+  luaCtx.registerFunction<bool (std::shared_ptr<dnsdist::lua::LuaServerPoolObject>::*)() const>("getECS", [](const std::shared_ptr<dnsdist::lua::LuaServerPoolObject>& pool) {
+    bool ecs = false;
+    if (pool) {
+      dnsdist::configuration::updateRuntimeConfiguration([&pool, &ecs](dnsdist::configuration::RuntimeConfiguration& config) {
+        auto poolIt = config.d_pools.find(pool->poolName);
+        /* this might happen if the Server Pool has been removed in the meantime, let's gracefully ignore it */
+        if (poolIt != config.d_pools.end()) {
+          ecs = poolIt->second.getECS();
+        }
+      });
+    }
+    return ecs;
+  });
+  luaCtx.registerFunction<void (std::shared_ptr<dnsdist::lua::LuaServerPoolObject>::*)(bool ecs)>("setECS", [](std::shared_ptr<dnsdist::lua::LuaServerPoolObject>& pool, bool ecs) {
+    if (pool) {
+      dnsdist::configuration::updateRuntimeConfiguration([&pool, ecs](dnsdist::configuration::RuntimeConfiguration& config) {
+        auto poolIt = config.d_pools.find(pool->poolName);
+        if (poolIt == config.d_pools.end()) {
+          /* this might happen if the Server Pool has been removed in the meantime, let's gracefully ignore it */
+          return;
+        }
+        poolIt->second.setECS(ecs);
+      });
+    }
+  });
 
 #ifndef DISABLE_DOWNSTREAM_BINDINGS
   /* DownstreamState */

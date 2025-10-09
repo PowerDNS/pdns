@@ -21,6 +21,9 @@
  */
 #pragma once
 
+#include <memory>
+#include <optional>
+
 struct dnsdist_ffi_servers_list_t;
 struct dnsdist_ffi_server_t;
 struct dnsdist_ffi_dnsquestion_t;
@@ -33,14 +36,15 @@ struct PerThreadPoliciesState;
 class ServerPolicy
 {
 public:
+  using SelectedServerPosition = unsigned int;
   template <class T>
   using Numbered = std::pair<unsigned int, T>;
-  using NumberedServer = Numbered<shared_ptr<DownstreamState>>;
+  using NumberedServer = Numbered<std::shared_ptr<DownstreamState>>;
   template <class T>
   using NumberedVector = std::vector<std::pair<unsigned int, T>>;
-  using NumberedServerVector = NumberedVector<shared_ptr<DownstreamState>>;
-  using policyfunc_t = std::function<std::shared_ptr<DownstreamState>(const NumberedServerVector& servers, const DNSQuestion*)>;
-  using ffipolicyfunc_t = std::function<unsigned int(dnsdist_ffi_servers_list_t* servers, dnsdist_ffi_dnsquestion_t* dq)>;
+  using NumberedServerVector = NumberedVector<std::shared_ptr<DownstreamState>>;
+  using policyfunc_t = std::function<std::optional<SelectedServerPosition>(const NumberedServerVector& servers, const DNSQuestion*)>;
+  using ffipolicyfunc_t = std::function<SelectedServerPosition(dnsdist_ffi_servers_list_t* servers, dnsdist_ffi_dnsquestion_t* dq)>;
 
   ServerPolicy(const std::string& name_, policyfunc_t policy_, bool isLua_) :
     d_name(name_), d_policy(std::move(policy_)), d_isLua(isLua_)
@@ -59,7 +63,43 @@ public:
   {
   }
 
-  std::shared_ptr<DownstreamState> getSelectedBackend(const ServerPolicy::NumberedServerVector& servers, DNSQuestion& dq) const;
+  class SelectedBackend
+  {
+  public:
+    SelectedBackend(const NumberedServerVector& backends) :
+      d_backends(&backends)
+    {
+    }
+
+    void setSelected(SelectedServerPosition selected)
+    {
+      if (selected >= d_backends->size()) {
+        throw std::runtime_error("Setting an invalid backend position (" + std::to_string(selected) + " out of " + std::to_string(d_backends->size()) + ") from the server policy");
+      }
+      d_selected = selected;
+    }
+
+    operator bool() const noexcept
+    {
+      return d_selected.has_value();
+    }
+
+    DownstreamState* operator->() const noexcept
+    {
+      return (*d_backends)[*d_selected].second.get();
+    }
+
+    const std::shared_ptr<DownstreamState>& get() const noexcept
+    {
+      return (*d_backends)[*d_selected].second;
+    }
+
+  private:
+    const NumberedServerVector* d_backends{nullptr};
+    std::optional<SelectedServerPosition> d_selected;
+  };
+
+  SelectedBackend getSelectedBackend(const ServerPolicy::NumberedServerVector& servers, DNSQuestion& dnsQuestion) const;
 
   const std::string& getName() const
   {
@@ -68,7 +108,7 @@ public:
 
   std::string toString() const
   {
-    return string("ServerPolicy") + (d_isLua ? " (Lua)" : "") + " \"" + d_name + "\"";
+    return std::string("ServerPolicy") + (d_isLua ? " (Lua)" : "") + " \"" + d_name + "\"";
   }
 
 private:
@@ -92,24 +132,23 @@ public:
 struct ServerPool;
 
 using pools_t = std::map<std::string, std::shared_ptr<ServerPool>>;
-std::shared_ptr<ServerPool> getPool(const std::string& poolName);
-std::shared_ptr<ServerPool> createPoolIfNotExists(const string& poolName);
-void setPoolPolicy(const string& poolName, std::shared_ptr<ServerPolicy> policy);
-void addServerToPool(const string& poolName, std::shared_ptr<DownstreamState> server);
-void removeServerFromPool(const string& poolName, std::shared_ptr<DownstreamState> server);
+const ServerPool& getPool(const std::string& poolName);
+const ServerPool& createPoolIfNotExists(const std::string& poolName);
+void setPoolPolicy(const std::string& poolName, std::shared_ptr<ServerPolicy> policy);
+void addServerToPool(const std::string& poolName, std::shared_ptr<DownstreamState> server);
+void removeServerFromPool(const std::string& poolName, std::shared_ptr<DownstreamState> server);
 
-std::shared_ptr<const ServerPolicy::NumberedServerVector> getDownstreamCandidates(const std::string& poolName);
+const ServerPolicy::NumberedServerVector& getDownstreamCandidates(const std::string& poolName);
 
-std::shared_ptr<DownstreamState> firstAvailable(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq);
-
-std::shared_ptr<DownstreamState> leastOutstanding(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq);
-std::shared_ptr<DownstreamState> wrandom(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq);
-std::shared_ptr<DownstreamState> whashed(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq);
-std::shared_ptr<DownstreamState> whashedFromHash(const ServerPolicy::NumberedServerVector& servers, size_t hash);
-std::shared_ptr<DownstreamState> chashed(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq);
-std::shared_ptr<DownstreamState> chashedFromHash(const ServerPolicy::NumberedServerVector& servers, size_t hash);
-std::shared_ptr<DownstreamState> roundrobin(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq);
-std::shared_ptr<DownstreamState> orderedWrandUntag(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dnsq);
+std::optional<ServerPolicy::SelectedServerPosition> firstAvailable(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dnsQuestion);
+std::optional<ServerPolicy::SelectedServerPosition> leastOutstanding(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dnsQuestion);
+std::optional<ServerPolicy::SelectedServerPosition> wrandom(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dnsQuestion);
+std::optional<ServerPolicy::SelectedServerPosition> whashed(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dnsQuestion);
+std::optional<ServerPolicy::SelectedServerPosition> whashedFromHash(const ServerPolicy::NumberedServerVector& servers, size_t hash);
+std::optional<ServerPolicy::SelectedServerPosition> chashed(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dnsQuestion);
+std::optional<ServerPolicy::SelectedServerPosition> chashedFromHash(const ServerPolicy::NumberedServerVector& servers, size_t hash);
+std::optional<ServerPolicy::SelectedServerPosition> roundrobin(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dnsQuestion);
+std::optional<ServerPolicy::SelectedServerPosition> orderedWrandUntag(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dnsQuestion);
 
 #include <unordered_map>
 

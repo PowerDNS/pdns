@@ -929,51 +929,6 @@ public:
 
 void responderThread(std::shared_ptr<DownstreamState> dss);
 
-class DNSDistPacketCache;
-
-struct ServerPool
-{
-  ServerPool() :
-    d_servers(std::make_shared<const ServerPolicy::NumberedServerVector>())
-  {
-  }
-
-  ~ServerPool()
-  {
-  }
-
-  const std::shared_ptr<DNSDistPacketCache> getCache() const { return packetCache; };
-
-  bool getECS() const
-  {
-    return d_useECS;
-  }
-
-  void setECS(bool useECS)
-  {
-    d_useECS = useECS;
-  }
-
-  std::shared_ptr<DNSDistPacketCache> packetCache{nullptr};
-  std::shared_ptr<ServerPolicy> policy{nullptr};
-
-  size_t poolLoad();
-  size_t countServers(bool upOnly);
-  const std::shared_ptr<const ServerPolicy::NumberedServerVector> getServers();
-  void addServer(shared_ptr<DownstreamState>& server);
-  void removeServer(shared_ptr<DownstreamState>& server);
-  bool isTCPOnly() const
-  {
-    // coverity[missing_lock]
-    return d_tcpOnly;
-  }
-
-private:
-  SharedLockGuarded<std::shared_ptr<const ServerPolicy::NumberedServerVector>> d_servers;
-  bool d_useECS{false};
-  bool d_tcpOnly{false};
-};
-
 enum ednsHeaderFlags
 {
   EDNS_HEADER_FLAG_NONE = 0,
@@ -1010,7 +965,7 @@ enum class ProcessQueryResult : uint8_t
 #include "dnsdist-rule-chains.hh"
 
 ProcessQueryResult processQuery(DNSQuestion& dnsQuestion, std::shared_ptr<DownstreamState>& selectedBackend);
-ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_ptr<DownstreamState>& selectedBackend);
+ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_ptr<DownstreamState>& outgoingBackend);
 bool processResponse(PacketBuffer& response, DNSResponse& dnsResponse, bool muted);
 bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dnsQuestion, std::string& ruleresult, bool& drop);
 bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse, bool muted);

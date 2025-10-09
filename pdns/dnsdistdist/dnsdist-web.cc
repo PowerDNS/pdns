@@ -867,12 +867,12 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
       poolName = "_default_";
     }
     const string label = "{pool=\"" + poolName + "\"}";
-    const std::shared_ptr<ServerPool> pool = entry.second;
-    output << "dnsdist_pool_servers" << label << " " << pool->countServers(false) << "\n";
-    output << "dnsdist_pool_active_servers" << label << " " << pool->countServers(true) << "\n";
+    const auto& pool = entry.second;
+    output << "dnsdist_pool_servers" << label << " " << pool.countServers(false) << "\n";
+    output << "dnsdist_pool_active_servers" << label << " " << pool.countServers(true) << "\n";
 
-    if (pool->packetCache != nullptr) {
-      const auto& cache = pool->packetCache;
+    if (pool.packetCache != nullptr) {
+      const auto& cache = pool.packetCache;
 
       output << cachebase << "cache_size"              <<label << " " << cache->getMaxEntries()       << "\n";
       output << cachebase << "cache_entries"           <<label << " " << cache->getEntriesCount()     << "\n";
@@ -1251,11 +1251,11 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
     const auto& localPools = dnsdist::configuration::getCurrentRuntimeConfiguration().d_pools;
     pools.reserve(localPools.size());
     for (const auto& pool : localPools) {
-      const auto& cache = pool.second->packetCache;
+      const auto& cache = pool.second.packetCache;
       Json::object entry{
         {"id", num++},
         {"name", pool.first},
-        {"serversCount", (double)pool.second->countServers(false)},
+        {"serversCount", (double)pool.second.countServers(false)},
         {"cacheSize", (double)(cache ? cache->getMaxEntries() : 0)},
         {"cacheEntries", (double)(cache ? cache->getEntriesCount() : 0)},
         {"cacheHits", (double)(cache ? cache->getHits() : 0)},
@@ -1362,10 +1362,10 @@ static void handlePoolStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
   }
 
   const auto& pool = poolIt->second;
-  const auto& cache = pool->packetCache;
+  const auto& cache = pool.packetCache;
   Json::object entry{
     {"name", poolName->second},
-    {"serversCount", (double)pool->countServers(false)},
+    {"serversCount", (double)pool.countServers(false)},
     {"cacheSize", (double)(cache ? cache->getMaxEntries() : 0)},
     {"cacheEntries", (double)(cache ? cache->getEntriesCount() : 0)},
     {"cacheHits", (double)(cache ? cache->getHits() : 0)},
@@ -1379,7 +1379,7 @@ static void handlePoolStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
 
   Json::array servers;
   int num = 0;
-  for (const auto& server : *pool->getServers()) {
+  for (const auto& server : pool.getServers()) {
     addServerToJSON(servers, num, server.second);
     num++;
   }
@@ -1585,7 +1585,7 @@ static void handleCacheManagement(const YaHTTP::Request& req, YaHTTP::Response& 
     type = QType::chartocode(expungeType->second.c_str());
   }
 
-  std::shared_ptr<ServerPool> pool;
+  std::optional<ServerPool> pool;
   try {
     pool = getPool(poolName->second);
   }

@@ -1008,9 +1008,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 
   luaCtx.writeFunction("getPoolServers", [](const string& pool) {
-    // coverity[auto_causes_copy]
-    const auto poolServers = getDownstreamCandidates(pool);
-    return *poolServers;
+    return getDownstreamCandidates(pool);
   });
 
   luaCtx.writeFunction("getServer", [client](boost::variant<unsigned int, std::string> identifier) -> boost::optional<std::shared_ptr<DownstreamState>> {
@@ -1636,16 +1634,15 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       const auto pools = dnsdist::configuration::getCurrentRuntimeConfiguration().d_pools;
       for (const auto& entry : pools) {
         const string& name = entry.first;
-        const std::shared_ptr<ServerPool> pool = entry.second;
-        string cache = pool->packetCache != nullptr ? pool->packetCache->toString() : "";
+        const auto& pool = entry.second;
+        string cache = pool.packetCache != nullptr ? pool.packetCache->toString() : "";
         string policy = defaultPolicyName;
-        if (pool->policy != nullptr) {
-          policy = pool->policy->getName();
+        if (pool.policy != nullptr) {
+          policy = pool.policy->getName();
         }
         string servers;
 
-        const auto poolServers = pool->getServers();
-        for (const auto& server : *poolServers) {
+        for (const auto& server : pool.getServers()) {
           if (!servers.empty()) {
             servers += ", ";
           }
@@ -1680,10 +1677,19 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
   luaCtx.writeFunction("getPool", [client](const string& poolName) {
     if (client) {
-      return std::make_shared<ServerPool>();
+      return std::make_shared<dnsdist::lua::LuaServerPoolObject>(poolName);
     }
-    std::shared_ptr<ServerPool> pool = createPoolIfNotExists(poolName);
-    return pool;
+    bool created = false;
+    dnsdist::configuration::updateRuntimeConfiguration([&poolName, &created](dnsdist::configuration::RuntimeConfiguration& config) {
+      auto [_, inserted] = config.d_pools.emplace(poolName, ServerPool());
+      created = inserted;
+    });
+
+    if (created) {
+      vinfolog("Creating pool %s", poolName);
+    }
+
+    return std::make_shared<dnsdist::lua::LuaServerPoolObject>(poolName);
   });
 
   luaCtx.writeFunction("setVerboseLogDestination", [](const std::string& dest) {
@@ -2069,11 +2075,11 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   luaCtx.writeFunction("showPoolServerPolicy", [](const std::string& pool) {
     setLuaSideEffect();
     auto poolObj = getPool(pool);
-    if (poolObj->policy == nullptr) {
+    if (poolObj.policy == nullptr) {
       g_outputBuffer = dnsdist::configuration::getCurrentRuntimeConfiguration().d_lbPolicy->getName() + "\n";
     }
     else {
-      g_outputBuffer = poolObj->policy->getName() + "\n";
+      g_outputBuffer = poolObj.policy->getName() + "\n";
     }
   });
 #endif /* DISABLE_POLICIES_BINDINGS */
