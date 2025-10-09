@@ -1431,9 +1431,10 @@ static ServerPolicy::SelectedBackend selectBackendForOutgoingQuery(DNSQuestion& 
   return policy.getSelectedBackend(servers, dnsQuestion);
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity): refactoring will be done in https://github.com/PowerDNS/pdns/pull/16124
 ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_ptr<DownstreamState>& outgoingBackend)
 {
-  const auto sendAnswer = [](DNSQuestion& dnsQ) -> ProcessQueryResult{
+  const auto sendAnswer = [](DNSQuestion& dnsQ) -> ProcessQueryResult {
     ++dnsdist::metrics::g_stats.responses;
     ++dnsQ.ids.cs->responses;
     return ProcessQueryResult::SendAnswer;
