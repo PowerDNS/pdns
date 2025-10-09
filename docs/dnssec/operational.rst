@@ -240,6 +240,7 @@ Uses the YYYYMMDDSS format for SOA serial numbers. The "inception day" is determ
 - Otherwise, the serial remains unchanged.
 
 **Important Notes**:
+
 - Avoid using SS=00 in backend zones, as it may prevent proper zone transfers (AXFR/IXFR) to secondaries.
 - Serial overflow can occur if more than 99 updates are made in a single day.
 - This logic is not safe for zones with non-PowerDNS secondaries, as updates may not be detected reliably.
