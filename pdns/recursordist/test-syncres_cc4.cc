@@ -785,14 +785,14 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_dnskey_without_zone_flag)
   dcke->create(dcke->getBits());
   DNSSECPrivateKey csk;
   csk.setKey(std::move(dcke), 0);
-  DSRecordContent ds = makeDSFromDNSKey(target, csk.getDNSKEY(), DNSSEC::DIGEST_SHA256);
+  DSRecordContent dsContent = makeDSFromDNSKey(target, csk.getDNSKEY(), DNSSEC::DIGEST_SHA256);
 
-  keys[target] = std::pair<DNSSECPrivateKey, DSRecordContent>(csk, ds);
+  keys[target] = std::pair<DNSSECPrivateKey, DSRecordContent>(csk, dsContent);
 
   /* Set the root DS */
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  luaconfsCopy.dsAnchors[g_rootdnsname].insert(ds);
+  luaconfsCopy.dsAnchors[g_rootdnsname].insert(dsContent);
   g_luaconfs.setState(luaconfsCopy);
 
   size_t queriesCount = 0;
@@ -861,14 +861,14 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_dnskey_revoked)
   dcke->create(dcke->getBits());
   DNSSECPrivateKey csk;
   csk.setKey(std::move(dcke), 257 | 128);
-  DSRecordContent ds = makeDSFromDNSKey(target, csk.getDNSKEY(), DNSSEC::DIGEST_SHA256);
+  DSRecordContent dsContent = makeDSFromDNSKey(target, csk.getDNSKEY(), DNSSEC::DIGEST_SHA256);
 
-  keys[target] = std::pair<DNSSECPrivateKey, DSRecordContent>(csk, ds);
+  keys[target] = std::pair<DNSSECPrivateKey, DSRecordContent>(csk, dsContent);
 
   /* Set the root DS */
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  luaconfsCopy.dsAnchors[g_rootdnsname].insert(ds);
+  luaconfsCopy.dsAnchors[g_rootdnsname].insert(dsContent);
   g_luaconfs.setState(luaconfsCopy);
 
   size_t queriesCount = 0;
