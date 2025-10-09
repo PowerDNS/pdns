@@ -66,6 +66,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #define LUACONTEXT_GLOBAL_EQ "e5ddced079fc405aa4937b386ca387d2"
+#define LUACONTEXT_DEBUG_TRACEBACK "8d143f0add7ad7fa323d0d1d12f3f114" // I would prefer a lightuserdata in the registry index
 #define EQ_FUNCTION_NAME "__eq"
 #define TOSTRING_FUNCTION_NAME "__tostring"
 
@@ -112,7 +113,12 @@ public:
         if (openDefaultLibs)
             luaL_openlibs(mState);
 
-         writeGlobalEq();
+        writeGlobalEq();
+        lua_pushliteral(mState, LUACONTEXT_DEBUG_TRACEBACK); // ref
+        lua_getglobal(mState, "debug"); // ref, debug
+        lua_getfield(mState, -1, "traceback"); // ref, debug, traceback
+        lua_remove(mState, -2); // ref, traceback
+        lua_settable(mState, LUA_REGISTRYINDEX); // []
     }
 
     void writeGlobalEq() {
@@ -1417,9 +1423,8 @@ private:
     }
     
     static int gettraceback(lua_State* L) {
-        lua_getglobal(L, "debug"); // stack: error, debug library
-        lua_getfield(L, -1, "traceback"); // stack: error, debug library, debug.traceback function
-        lua_remove(L, -2); // stack: error, debug.traceback function
+        lua_pushliteral(L, LUACONTEXT_DEBUG_TRACEBACK); // stack: error, ref
+        lua_rawget(L, LUA_REGISTRYINDEX); // stack: error, debug.traceback
         lua_pushstring(L, ""); // stack: error, debug.traceback, ""
         lua_pushinteger(L, 2); // stack: error, debug.traceback, "", 2
         lua_call(L, 2, 1); // stack: error, traceback
