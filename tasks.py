@@ -932,10 +932,11 @@ def ci_rec_run_unit_tests(c, meson=False):
         logfile = 'meson-logs/testlog.txt'
         res = c.run(f'meson test --verbose -t {suite_timeout_sec}', warn=True)
     else:
+        logfile = 'test-suite.log'
         res = c.run('make check', warn=True)
-        if res.exited != 0:
-          c.run('cat test-suite.log')
-          raise UnexpectedExit(res)
+    if res.exited != 0:
+        c.run(f'cat {logfile}', warn=True)
+        raise UnexpectedExit(res)
 
 @task
 def ci_dnsdist_run_unit_tests(c, builder):
