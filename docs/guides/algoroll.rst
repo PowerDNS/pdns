@@ -18,7 +18,7 @@ Please check that these bigger packets can make it out of your network without t
     For every mutation to your zone (so, every step except updating DS in the parent), make sure that your serial is bumped, so your secondaries pick up the changes too.
     If you are using AXFR replication, this usually is as simple as ``pdnsutil
     zone increase-serial example.com`` (``pdnsutil increase-serial example.com``
-    prior to version 5.0)
+    prior to version 5.0).
 
 Phase: initial
 --------------
