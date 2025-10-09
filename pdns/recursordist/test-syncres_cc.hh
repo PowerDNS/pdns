@@ -23,7 +23,7 @@
 
 #include "arguments.hh"
 #include "dnssecinfra.hh"
-#include "dnsseckeeper.hh"
+#include "dnssec.hh"
 #include "rec-lua-conf.hh"
 #include "syncres.hh"
 #include "test-common.hh"

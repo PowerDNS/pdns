@@ -4,7 +4,7 @@
 #include "logger.hh"
 #include "rec-lua-conf.hh"
 #include "dnssecinfra.hh"
-#include "dnsseckeeper.hh"
+#include "dnssec.hh"
 #include "zoneparser-tng.hh"
 #include "rec-tcounters.hh"
 
@@ -63,7 +63,7 @@ bool updateTrustAnchorsFromFile(const std::string& fname, map<DNSName, dsset_t>&
         if (dnskeyr == nullptr) {
           throw PDNSException("Unable to parse DNSKEY record '" + resourceRecord.qname.toString() + " " + resourceRecord.getZoneRepresentation() + "'");
         }
-        auto dsr = makeDSFromDNSKey(resourceRecord.qname, *dnskeyr, DNSSECKeeper::DIGEST_SHA256);
+        auto dsr = makeDSFromDNSKey(resourceRecord.qname, *dnskeyr, DNSSEC::DIGEST_SHA256);
         newDSAnchors[resourceRecord.qname].insert(std::move(dsr));
       }
     }

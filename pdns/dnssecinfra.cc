@@ -35,7 +35,7 @@
 
 #include <boost/algorithm/string.hpp>
 #include "dnssecinfra.hh"
-#include "dnsseckeeper.hh"
+#include "dnssec.hh"
 #include <openssl/hmac.h>
 #include <openssl/sha.h>
 #include <boost/assign/std/vector.hpp> // for 'operator+=()'
@@ -247,7 +247,7 @@ string DNSCryptoKeyEngine::listSupportedAlgoNames()
     else {
       first = false;
     }
-    ret.append(DNSSECKeeper::algorithm2name(algo));
+    ret.append(DNSSEC::algorithm2name(algo));
     if (isAlgorithmSwitchedOff(algo)) {
       ret.append("(disabled)");
     }
@@ -373,11 +373,11 @@ bool DNSCryptoKeyEngine::testVerify(unsigned int algo, maker_t* verifier)
   string b64pubkey;
   string b64sig;
   switch (algo) {
-  case DNSSECKeeper::RSASHA1:
+  case DNSSEC::RSASHA1:
     b64pubkey = pubkey5;
     b64sig = sig5;
     break;
-  case DNSSECKeeper::RSASHA1NSEC3SHA1:
+  case DNSSEC::RSASHA1NSEC3SHA1:
     b64pubkey = pubkey7;
     b64sig = sig7;
     break;
@@ -428,15 +428,15 @@ void DNSCryptoKeyEngine::testMakers(unsigned int algo, maker_t* creator, maker_t
   auto dckeSign = signer(algo);
   auto dckeVerify = verifier(algo);
 
-  cout<<"Testing algorithm "<<algo<<"("<<DNSSECKeeper::algorithm2name(algo)<<"): '"<<dckeCreate->getName()<<"' ->'"<<dckeSign->getName()<<"' -> '"<<dckeVerify->getName()<<"' ";
+  cout<<"Testing algorithm "<<algo<<"("<<DNSSEC::algorithm2name(algo)<<"): '"<<dckeCreate->getName()<<"' ->'"<<dckeSign->getName()<<"' -> '"<<dckeVerify->getName()<<"' ";
   unsigned int bits;
   if(algo <= 10)
     bits=2048;
-  else if(algo == DNSSECKeeper::ECCGOST || algo == DNSSECKeeper::ECDSA256 || algo == DNSSECKeeper::ED25519)
+  else if(algo == DNSSEC::ECCGOST || algo == DNSSEC::ECDSA256 || algo == DNSSEC::ED25519)
     bits = 256;
-  else if(algo == DNSSECKeeper::ECDSA384)
+  else if(algo == DNSSEC::ECDSA384)
     bits = 384;
-  else if(algo == DNSSECKeeper::ED448)
+  else if(algo == DNSSEC::ED448)
     bits = 456;
   else
     throw runtime_error("Can't guess key size for algorithm "+std::to_string(algo));
@@ -580,14 +580,14 @@ bool DNSCryptoKeyEngine::isAlgorithmSupported(unsigned int algo)
 static unsigned int digestToAlgorithmNumber(uint8_t digest)
 {
   switch(digest) {
-  case DNSSECKeeper::DIGEST_SHA1:
-    return DNSSECKeeper::RSASHA1;
-  case DNSSECKeeper::DIGEST_SHA256:
-    return DNSSECKeeper::RSASHA256;
-  case DNSSECKeeper::DIGEST_GOST:
-    return DNSSECKeeper::ECCGOST;
-  case DNSSECKeeper::DIGEST_SHA384:
-    return DNSSECKeeper::ECDSA384;
+  case DNSSEC::DIGEST_SHA1:
+    return DNSSEC::RSASHA1;
+  case DNSSEC::DIGEST_SHA256:
+    return DNSSEC::RSASHA256;
+  case DNSSEC::DIGEST_GOST:
+    return DNSSEC::ECCGOST;
+  case DNSSEC::DIGEST_SHA384:
+    return DNSSEC::ECDSA384;
   default:
     throw std::runtime_error("Unknown digest type " + std::to_string(digest));
   }
