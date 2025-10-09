@@ -22,7 +22,7 @@ These are all the functions, objects and methods related to :doc:`../advanced/xs
 
   .. versionadded:: 1.9.0
 
-  Represents a ``XSK`` / ``AF_XDP`` socket tied to a specific network interface and queue. This object can be created via :func:`newXSK` and passed to :func:`addLocal` to use XSK for ``UDP`` packets between clients and dnsdist. It can also be passed to ``newServer`` to use XSK for ``UDP`` packets between dnsdist a backend.
+  Represents a ``XSK`` / ``AF_XDP`` socket tied to a specific network interface and queue. This object can be created via :func:`newXSK` and passed to :func:`addLocal` to use XSK for ``UDP`` packets between clients and dnsdist. It can also be passed to :func:`newServer` to use XSK for ``UDP`` packets between dnsdist a backend.
 
   .. method:: XskSocket:getMetrics() -> str
 
