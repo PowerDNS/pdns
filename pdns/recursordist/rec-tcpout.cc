@@ -86,7 +86,8 @@ TCPOutConnectionManager::Connection TCPOutConnectionManager::get(const endpoints
   return Connection{};
 }
 
-struct OutgoingTLSConfigTable {
+struct OutgoingTLSConfigTable
+{
   SuffixMatchTree<pdns::rust::settings::rec::OutgoingTLSConfiguration> d_suffixToConfig;
   NetmaskTree<pdns::rust::settings::rec::OutgoingTLSConfiguration> d_netmaskToConfig;
 };
@@ -111,7 +112,7 @@ void TCPOutConnectionManager::setupOutgoingTLSConfigTables(pdns::rust::settings:
   }
 }
 
-std::shared_ptr<TLSCtx> TCPOutConnectionManager::getTLSContext(const std::string& name, const ComboAddress& address, bool& verboseLogging, std::string& subjectName, std::string &subjectAddress)
+std::shared_ptr<TLSCtx> TCPOutConnectionManager::getTLSContext(const std::string& name, const ComboAddress& address, bool& verboseLogging, std::string& subjectName, std::string& subjectAddress, std::string& configName)
 {
   TLSContextParameters tlsParams;
   tlsParams.d_provider = "openssl";
@@ -119,6 +120,7 @@ std::shared_ptr<TLSCtx> TCPOutConnectionManager::getTLSContext(const std::string
   const pdns::rust::settings::rec::OutgoingTLSConfiguration* config{nullptr};
 
   {
+    configName = "";
     auto table = s_outgoingTLSConfigTable.lock();
     if (auto* node = table->d_netmaskToConfig.lookup(address); node != nullptr) {
       config = &node->second;
@@ -127,6 +129,7 @@ std::shared_ptr<TLSCtx> TCPOutConnectionManager::getTLSContext(const std::string
       config = found;
     }
     if (config != nullptr) {
+      configName = std::string(config->name);
       tlsParams.d_provider = std::string(config->provider);
       tlsParams.d_validateCertificates = config->validate_certificate;
       tlsParams.d_caStore = std::string(config->ca_store);

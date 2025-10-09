@@ -416,14 +416,27 @@ static bool tcpconnect(const OptLog& log, const ComboAddress& remote, const std:
   if (dnsOverTLS) {
     subjectName = nsName;
     std::string subjectAddress;
-    tlsCtx = TCPOutConnectionManager::getTLSContext(nsName, remote, connection.d_verboseLogging, subjectName, subjectAddress);
+    std::string configName;
+    tlsCtx = TCPOutConnectionManager::getTLSContext(nsName, remote, connection.d_verboseLogging, subjectName, subjectAddress, configName);
     if (tlsCtx == nullptr) {
       g_slogout->info(Logr::Error, "DoT requested but not available", "server", Logging::Loggable(remote));
       dnsOverTLS = false;
     }
-    else if (subjectName.empty() && !subjectAddress.empty()) {
-      subjectName = subjectAddress;
-      subjectIsAddress = true;
+    else {
+      if (subjectName.empty() && !subjectAddress.empty()) {
+        subjectName = subjectAddress;
+        subjectIsAddress = true;
+      }
+      if (subjectName.empty()) {
+        subjectName = remote.toString();
+        subjectIsAddress = true;
+      }
+    }
+    if (dnsOverTLS && connection.d_verboseLogging) {
+      g_slogout->info(Logr::Debug, "Connecting with DoT", "server", Logging::Loggable(remote),
+                      "subjectName", Logging::Loggable(subjectName),
+                      "subjectIsAddress", Logging::Loggable(subjectIsAddress),
+                      "configName", Logging::Loggable(configName));
     }
   }
   connection.d_handler = std::make_shared<TCPIOHandler>(subjectName, subjectIsAddress, sock.releaseHandle(), timeout, tlsCtx);
