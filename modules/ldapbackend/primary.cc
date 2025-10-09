@@ -44,10 +44,10 @@ void LdapBackend::getUpdatedPrimaries(vector<DomainInfo>& domains, std::unordere
   }
   catch (LDAPNoConnection& lnc) {
     g_log << Logger::Warning << d_myname << " Connection to LDAP lost, trying to reconnect" << endl;
-    if (reconnect())
-      this->getUpdatedPrimaries(domains, catalogs, catalogHashes);
-    else
-      throw PDNSException("Failed to reconnect to LDAP server");
+    if (reconnect()) {
+      return this->getUpdatedPrimaries(domains, catalogs, catalogHashes);
+    }
+    throw PDNSException("Failed to reconnect to LDAP server");
   }
   catch (LDAPException& le) {
     g_log << Logger::Error << d_myname << " Unable to search LDAP directory: " << le.what() << endl;
@@ -92,10 +92,11 @@ void LdapBackend::setNotified(domainid_t id, uint32_t serial)
   }
   catch (LDAPNoConnection& lnc) {
     g_log << Logger::Warning << d_myname << " Connection to LDAP lost, trying to reconnect" << endl;
-    if (reconnect())
+    if (reconnect()) {
       this->setNotified(id, serial);
-    else
-      throw PDNSException("Failed to reconnect to LDAP server");
+      return;
+    }
+    throw PDNSException("Failed to reconnect to LDAP server");
   }
   catch (LDAPException& le) {
     g_log << Logger::Error << d_myname << " Unable to search LDAP directory: " << le.what() << endl;
@@ -129,10 +130,11 @@ void LdapBackend::setNotified(domainid_t id, uint32_t serial)
   }
   catch (LDAPNoConnection& lnc) {
     g_log << Logger::Warning << d_myname << " Connection to LDAP lost, trying to reconnect" << endl;
-    if (reconnect())
+    if (reconnect()) {
       this->setNotified(id, serial);
-    else
-      throw PDNSException("Failed to reconnect to LDAP server");
+      return;
+    }
+    throw PDNSException("Failed to reconnect to LDAP server");
   }
   catch (LDAPException& le) {
     g_log << Logger::Error << d_myname << " Unable to search LDAP directory: " << le.what() << endl;
