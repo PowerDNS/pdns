@@ -232,7 +232,6 @@ pdns_recursor_SOURCES = \
 	tcpiohandler.cc tcpiohandler.hh \
 	threadname.hh threadname.cc \
 	tsigverifier.cc tsigverifier.hh \
-	ueberbackend.hh \
 	unix_utility.cc \
 	utility.hh \
 	uuid-utils.hh uuid-utils.cc \

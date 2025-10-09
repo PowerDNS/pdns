@@ -40,7 +40,6 @@ using namespace ::boost::multi_index;
 class DNSSECKeeper : public DNSSEC
 {
 public:
-  DNSSECKeeper(const DNSSECKeeper&) = delete;
 
   struct KeyMetaData
   {
@@ -74,6 +73,9 @@ public:
     if(d_ourDB)
       delete d_keymetadb;
   }
+
+  DNSSECKeeper(const DNSSECKeeper&) = delete;
+  DNSSECKeeper operator=(const DNSSECKeeper&) = delete;
 
   static uint64_t dbdnssecCacheSizes(const std::string& str);
   static void clearAllCaches();

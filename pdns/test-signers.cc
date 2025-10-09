@@ -16,7 +16,10 @@
 #include "dnssecinfra.hh"
 #include "misc.hh"
 
-#include <cstdio>
+// Include below is essential, otherwise we get failures I do not understand, maybe some runtime
+// value does not get initialized?
+#include <openssl/sha.h>
+
 #include <unordered_map>
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables): Boost stuff.

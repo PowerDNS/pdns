@@ -27,7 +27,6 @@
 class DNSSEC
 {
 public:
-
   enum keytype_t : uint8_t
   {
     KSK,
