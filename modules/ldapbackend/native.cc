@@ -100,10 +100,10 @@ bool LdapBackend::list(const ZoneName& target, domainid_t domain_id, bool /* inc
   }
   catch (LDAPNoConnection& lnc) {
     g_log << Logger::Warning << d_myname << " Connection to LDAP lost, trying to reconnect" << endl;
-    if (reconnect())
-      this->list(target, domain_id);
-    else
-      throw PDNSException("Failed to reconnect to LDAP server");
+    if (reconnect()) {
+      return this->list(target, domain_id);
+    }
+    throw PDNSException("Failed to reconnect to LDAP server");
   }
   catch (LDAPException& le) {
     g_log << Logger::Error << d_myname << " Unable to get zone " << target << " from LDAP directory: " << le.what() << endl;
@@ -183,10 +183,11 @@ void LdapBackend::lookup(const QType& qtype, const DNSName& qname, domainid_t zo
   }
   catch (LDAPNoConnection& lnc) {
     g_log << Logger::Warning << d_myname << " Connection to LDAP lost, trying to reconnect" << endl;
-    if (reconnect())
+    if (reconnect()) {
       this->lookup(qtype, qname, zoneid, dnspkt);
-    else
-      throw PDNSException("Failed to reconnect to LDAP server");
+      return;
+    }
+    throw PDNSException("Failed to reconnect to LDAP server");
   }
   catch (LDAPException& le) {
     g_log << Logger::Error << d_myname << " Unable to search LDAP directory: " << le.what() << endl;
@@ -413,10 +414,10 @@ bool LdapBackend::getDomainInfo(const ZoneName& domain, DomainInfo& info, bool /
   }
   catch (LDAPNoConnection& lnc) {
     g_log << Logger::Warning << d_myname << " Connection to LDAP lost, trying to reconnect" << endl;
-    if (reconnect())
-      this->getDomainInfo(domain, info);
-    else
-      throw PDNSException("Failed to reconnect to LDAP server");
+    if (reconnect()) {
+      return this->getDomainInfo(domain, info);
+    }
+    throw PDNSException("Failed to reconnect to LDAP server");
   }
   catch (LDAPException& le) {
     g_log << Logger::Error << d_myname << " Unable to search LDAP directory: " << le.what() << endl;
