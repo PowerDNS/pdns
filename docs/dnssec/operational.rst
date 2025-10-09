@@ -6,6 +6,7 @@ Several How to's describe operational practices with DNSSEC:
 -  :doc:`../guides/kskroll`
 -  :doc:`../guides/kskrollcdnskey`
 -  :doc:`../guides/zskroll`
+-  :doc:`../guides/algoroll`
 
 Below, frequently used commands are described:
 
