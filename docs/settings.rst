@@ -2060,7 +2060,10 @@ Start a webserver for monitoring. See :doc:`performance`".
 -  IP Address
 -  Default: 127.0.0.1
 
-IP Address or path to UNIX domain socket for webserver/API to listen on.
+IP Address for webserver/API to listen on.
+
+.. versionchanged:: 5.0.0
+  A path to a UNIX domain socket may be used instead of an IP address.
 
 .. _setting-webserver-allow-from:
 
