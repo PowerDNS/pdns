@@ -1433,6 +1433,11 @@ static ServerPolicy::SelectedBackend selectBackendForOutgoingQuery(DNSQuestion& 
 
 ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_ptr<DownstreamState>& outgoingBackend)
 {
+  const auto sendAnswer = [](DNSQuestion& dnsQ) -> ProcessQueryResult{
+    ++dnsdist::metrics::g_stats.responses;
+    ++dnsQ.ids.cs->responses;
+    return ProcessQueryResult::SendAnswer;
+  };
   const uint16_t queryId = ntohs(dnsQuestion.getHeader()->id);
 
   try {
@@ -1481,9 +1486,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
             return ProcessQueryResult::Drop;
           }
 
-          ++dnsdist::metrics::g_stats.responses;
-          ++dnsQuestion.ids.cs->responses;
-          return ProcessQueryResult::SendAnswer;
+          return sendAnswer(dnsQuestion);
         }
 
         if (!dnsQuestion.ids.subnet) {
@@ -1516,9 +1519,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
           return ProcessQueryResult::Drop;
         }
 
-        ++dnsdist::metrics::g_stats.responses;
-        ++dnsQuestion.ids.cs->responses;
-        return ProcessQueryResult::SendAnswer;
+        return sendAnswer(dnsQuestion);
       }
       if (dnsQuestion.ids.protocol == dnsdist::Protocol::DoH && willBeForwardedOverUDP) {
         /* do a second-lookup for responses received over UDP, but we do not want TC=1 answers */
@@ -1528,9 +1529,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
             return ProcessQueryResult::Drop;
           }
 
-          ++dnsdist::metrics::g_stats.responses;
-          ++dnsQuestion.ids.cs->responses;
-          return ProcessQueryResult::SendAnswer;
+          return sendAnswer(dnsQuestion);
         }
       }
 
@@ -1579,10 +1578,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
         if (!prepareOutgoingResponse(*dnsQuestion.ids.cs, dnsQuestion, false)) {
           return ProcessQueryResult::Drop;
         }
-        ++dnsdist::metrics::g_stats.responses;
-        ++dnsQuestion.ids.cs->responses;
-        // no response-only statistics counter to update.
-        return ProcessQueryResult::SendAnswer;
+        return sendAnswer(dnsQuestion);
       }
 
       return ProcessQueryResult::Drop;
