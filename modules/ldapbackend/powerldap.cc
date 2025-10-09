@@ -214,49 +214,6 @@ void PowerLDAP::bind(LdapAuthenticator* authenticator)
     throw LDAPException("Failed to bind to LDAP server: " + authenticator->getError());
 }
 
-void PowerLDAP::bind(const string& ldapbinddn, const string& ldapsecret, int /* method */)
-{
-  int msgid;
-
-#ifdef HAVE_LDAP_SASL_BIND
-  int rc;
-  struct berval passwd;
-
-  passwd.bv_val = (char*)ldapsecret.c_str();
-  passwd.bv_len = strlen(passwd.bv_val);
-
-  if ((rc = ldap_sasl_bind(d_ld, ldapbinddn.c_str(), LDAP_SASL_SIMPLE, &passwd, NULL, NULL, &msgid)) != LDAP_SUCCESS) {
-    throw LDAPException("Failed to bind to LDAP server: " + getError(rc));
-  }
-#else
-  if ((msgid = ldap_bind(d_ld, ldapbinddn.c_str(), ldapsecret.c_str(), method)) == -1) {
-    throw LDAPException("Failed to bind to LDAP server: " + getError(msgid));
-  }
-#endif
-
-  ldapWaitResult(d_ld, msgid, d_timeout, NULL);
-}
-
-/**
- * Deprecated, use PowerLDAP::bind() instead
- */
-
-void PowerLDAP::simpleBind(const string& ldapbinddn, const string& ldapsecret)
-{
-  this->bind(ldapbinddn, ldapsecret, LDAP_AUTH_SIMPLE);
-}
-
-void PowerLDAP::add(const string& dn, LDAPMod* mods[])
-{
-  int rc;
-
-  rc = ldap_add_ext_s(d_ld, dn.c_str(), mods, NULL, NULL);
-  if (rc == LDAP_SERVER_DOWN || rc == LDAP_CONNECT_ERROR)
-    throw LDAPNoConnection();
-  else if (rc != LDAP_SUCCESS)
-    throw LDAPException("Error adding LDAP entry " + dn + ": " + getError(rc));
-}
-
 void PowerLDAP::modify(const string& dn, LDAPMod* mods[], LDAPControl** scontrols, LDAPControl** ccontrols)
 {
   int rc;
@@ -266,17 +223,6 @@ void PowerLDAP::modify(const string& dn, LDAPMod* mods[], LDAPControl** scontrol
     throw LDAPNoConnection();
   else if (rc != LDAP_SUCCESS)
     throw LDAPException("Error modifying LDAP entry " + dn + ": " + getError(rc));
-}
-
-void PowerLDAP::del(const string& dn)
-{
-  int rc;
-
-  rc = ldap_delete_ext_s(d_ld, dn.c_str(), NULL, NULL);
-  if (rc == LDAP_SERVER_DOWN || rc == LDAP_CONNECT_ERROR)
-    throw LDAPNoConnection();
-  else if (rc != LDAP_SUCCESS && rc != LDAP_NO_SUCH_OBJECT)
-    throw LDAPException("Error deleting LDAP entry " + dn + ": " + getError(rc));
 }
 
 PowerLDAP::SearchResult::Ptr PowerLDAP::search(const string& base, int scope, const string& filter, const char** attr)
@@ -375,16 +321,6 @@ bool PowerLDAP::getSearchEntry(int msgid, sentry_t& entry, bool dn)
 
   ldap_msgfree(result);
   return true;
-}
-
-void PowerLDAP::getSearchResults(int msgid, sresult_t& result, bool dn)
-{
-  sentry_t entry;
-
-  result.clear();
-  while (getSearchEntry(msgid, entry, dn)) {
-    result.push_back(entry);
-  }
 }
 
 const string PowerLDAP::getError(int rc)
