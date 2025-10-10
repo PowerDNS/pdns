@@ -195,8 +195,13 @@ void DNSDistProtoBufMessage::serialize(std::string& data) const
 
   if (d_dr != nullptr) {
     msg.setResponseCode(d_rcode ? *d_rcode : d_dr->getHeader()->rcode);
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    msg.addRRsFromPacket(reinterpret_cast<const char*>(d_dr->getData().data()), d_dr->getData().size(), d_includeCNAME);
+    try {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+      msg.addRRsFromPacket(reinterpret_cast<const char*>(d_dr->getData().data()), d_dr->getData().size(), d_includeCNAME);
+    }
+    catch (const std::exception& exp) {
+      vinfolog("Error while parsing the RRs from a response packet to add them to the protobuf message: %s", exp.what());
+    }
   }
   else {
     if (d_rcode) {
