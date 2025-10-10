@@ -249,18 +249,6 @@ string PipeBackend::directBackendCmd(const string& query)
   return oss.str();
 }
 
-//! For the dynamic loader
-DNSBackend* PipeBackend::maker()
-{
-  try {
-    return new PipeBackend();
-  }
-  catch (...) {
-    g_log << Logger::Error << kBackendId << " Unable to instantiate a pipebackend!" << endl;
-    return nullptr;
-  }
-}
-
 PipeBackend::~PipeBackend()
 {
   cleanup();

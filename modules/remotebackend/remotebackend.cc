@@ -1011,17 +1011,6 @@ void RemoteBackend::setFresh(domainid_t domain_id)
   }
 }
 
-DNSBackend* RemoteBackend::maker()
-{
-  try {
-    return new RemoteBackend();
-  }
-  catch (...) {
-    g_log << Logger::Error << kBackendId << " Unable to instantiate a remotebackend!" << endl;
-    return nullptr;
-  };
-}
-
 class RemoteBackendFactory : public BackendFactory
 {
 public:

@@ -56,7 +56,6 @@ public:
   bool list(const ZoneName& target, domainid_t domain_id, bool include_disabled = false) override;
   bool get(DNSResourceRecord& r) override;
   string directBackendCmd(const string& query) override;
-  static DNSBackend* maker();
 
 private:
   void launch();
