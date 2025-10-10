@@ -1431,35 +1431,54 @@ static ServerPolicy::SelectedBackend selectBackendForOutgoingQuery(DNSQuestion& 
   return policy.getSelectedBackend(servers, dnsQuestion);
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity): refactoring will be done in https://github.com/PowerDNS/pdns/pull/16124
 ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_ptr<DownstreamState>& outgoingBackend)
 {
+  const auto sendAnswer = [](DNSQuestion& dnsQ) -> ProcessQueryResult {
+    ++dnsdist::metrics::g_stats.responses;
+    ++dnsQ.ids.cs->responses;
+    return ProcessQueryResult::SendAnswer;
+  };
   const uint16_t queryId = ntohs(dnsQuestion.getHeader()->id);
 
   try {
     if (dnsQuestion.getHeader()->qr) { // something turned it into a response
       return handleQueryTurnedIntoSelfAnsweredResponse(dnsQuestion);
     }
+    bool backendLookupDone = false;
     const auto& serverPool = getPool(dnsQuestion.ids.poolName);
-    auto selectedBackend = selectBackendForOutgoingQuery(dnsQuestion, serverPool);
-    bool willBeForwardedOverUDP = !dnsQuestion.overTCP() || dnsQuestion.ids.protocol == dnsdist::Protocol::DoH;
-    if (selectedBackend && selectedBackend->isTCPOnly()) {
-      willBeForwardedOverUDP = false;
-    }
-    else if (!selectedBackend) {
-      willBeForwardedOverUDP = !serverPool.isTCPOnly();
+    ServerPolicy::SelectedBackend selectedBackend(serverPool.getServers());
+    if (!serverPool.packetCache || !serverPool.isConsistent()) {
+      selectedBackend = selectBackendForOutgoingQuery(dnsQuestion, serverPool);
+      backendLookupDone = true;
     }
 
-    uint32_t allowExpired = selectedBackend ? 0 : dnsdist::configuration::getCurrentRuntimeConfiguration().d_staleCacheEntriesTTL;
+    bool willBeForwardedOverUDP = !dnsQuestion.overTCP() || dnsQuestion.ids.protocol == dnsdist::Protocol::DoH;
+    if (selectedBackend) {
+      if (selectedBackend->isTCPOnly()) {
+        willBeForwardedOverUDP = false;
+      }
+    }
+    else if (serverPool.isTCPOnly()) {
+      willBeForwardedOverUDP = false;
+    }
+
+    uint32_t allowExpired = 0;
+    if (!selectedBackend && dnsdist::configuration::getCurrentRuntimeConfiguration().d_staleCacheEntriesTTL > 0 && (backendLookupDone || !serverPool.hasAtLeastOneServerAvailable())) {
+      allowExpired = dnsdist::configuration::getCurrentRuntimeConfiguration().d_staleCacheEntriesTTL;
+    }
 
     if (serverPool.packetCache && !dnsQuestion.ids.skipCache && !dnsQuestion.ids.dnssecOK) {
       dnsQuestion.ids.dnssecOK = (dnsdist::getEDNSZ(dnsQuestion) & EDNS_HEADER_FLAG_DO) != 0;
     }
 
-    if (dnsQuestion.useECS && ((selectedBackend && selectedBackend->d_config.useECS) || (!selectedBackend && serverPool.getECS()))) {
+    const bool useECS = dnsQuestion.useECS && ((selectedBackend && selectedBackend->d_config.useECS) || (!selectedBackend && serverPool.getECS()));
+    if (useECS) {
+      const bool useZeroScope = (selectedBackend && !selectedBackend->d_config.disableZeroScope) || (!selectedBackend && serverPool.getZeroScope());
       // we special case our cache in case a downstream explicitly gave us a universally valid response with a 0 scope
       // we need ECS parsing (parseECS) to be true so we can be sure that the initial incoming query did not have an existing
       // ECS option, which would make it unsuitable for the zero-scope feature.
-      if (serverPool.packetCache && !dnsQuestion.ids.skipCache && (!selectedBackend || !selectedBackend->d_config.disableZeroScope) && serverPool.packetCache->isECSParsingEnabled()) {
+      if (serverPool.packetCache && !dnsQuestion.ids.skipCache && useZeroScope && serverPool.packetCache->isECSParsingEnabled()) {
         if (serverPool.packetCache->get(dnsQuestion, dnsQuestion.getHeader()->id, &dnsQuestion.ids.cacheKeyNoECS, dnsQuestion.ids.subnet, *dnsQuestion.ids.dnssecOK, willBeForwardedOverUDP, allowExpired, false, true, false)) {
 
           vinfolog("Packet cache hit for query for %s|%s from %s (%s, %d bytes)", dnsQuestion.ids.qname.toLogString(), QType(dnsQuestion.ids.qtype).toString(), dnsQuestion.ids.origRemote.toStringWithPort(), dnsQuestion.ids.protocol.toString(), dnsQuestion.getData().size());
@@ -1468,9 +1487,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
             return ProcessQueryResult::Drop;
           }
 
-          ++dnsdist::metrics::g_stats.responses;
-          ++dnsQuestion.ids.cs->responses;
-          return ProcessQueryResult::SendAnswer;
+          return sendAnswer(dnsQuestion);
         }
 
         if (!dnsQuestion.ids.subnet) {
@@ -1503,9 +1520,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
           return ProcessQueryResult::Drop;
         }
 
-        ++dnsdist::metrics::g_stats.responses;
-        ++dnsQuestion.ids.cs->responses;
-        return ProcessQueryResult::SendAnswer;
+        return sendAnswer(dnsQuestion);
       }
       if (dnsQuestion.ids.protocol == dnsdist::Protocol::DoH && willBeForwardedOverUDP) {
         /* do a second-lookup for responses received over UDP, but we do not want TC=1 answers */
@@ -1515,9 +1530,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
             return ProcessQueryResult::Drop;
           }
 
-          ++dnsdist::metrics::g_stats.responses;
-          ++dnsQuestion.ids.cs->responses;
-          return ProcessQueryResult::SendAnswer;
+          return sendAnswer(dnsQuestion);
         }
       }
 
@@ -1542,10 +1555,15 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
         const auto& newServerPool = getPool(dnsQuestion.ids.poolName);
         dnsQuestion.ids.packetCache = newServerPool.packetCache;
         selectedBackend = selectBackendForOutgoingQuery(dnsQuestion, newServerPool);
+        backendLookupDone = true;
       }
       else {
         dnsQuestion.ids.packetCache = serverPool.packetCache;
       }
+    }
+
+    if (!backendLookupDone) {
+      selectedBackend = selectBackendForOutgoingQuery(dnsQuestion, serverPool);
     }
 
     if (!selectedBackend) {
@@ -1561,10 +1579,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
         if (!prepareOutgoingResponse(*dnsQuestion.ids.cs, dnsQuestion, false)) {
           return ProcessQueryResult::Drop;
         }
-        ++dnsdist::metrics::g_stats.responses;
-        ++dnsQuestion.ids.cs->responses;
-        // no response-only statistics counter to update.
-        return ProcessQueryResult::SendAnswer;
+        return sendAnswer(dnsQuestion);
       }
 
       return ProcessQueryResult::Drop;

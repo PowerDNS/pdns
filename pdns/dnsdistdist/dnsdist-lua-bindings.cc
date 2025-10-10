@@ -156,6 +156,31 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
       });
     }
   });
+  luaCtx.registerFunction<bool (std::shared_ptr<dnsdist::lua::LuaServerPoolObject>::*)() const>("getZeroScope", [](const std::shared_ptr<dnsdist::lua::LuaServerPoolObject>& pool) {
+    bool zeroScope = false;
+    if (pool) {
+      dnsdist::configuration::updateRuntimeConfiguration([&pool, &zeroScope](dnsdist::configuration::RuntimeConfiguration& config) {
+        auto poolIt = config.d_pools.find(pool->poolName);
+        /* this might happen if the Server Pool has been removed in the meantime, let's gracefully ignore it */
+        if (poolIt != config.d_pools.end()) {
+          zeroScope = poolIt->second.getZeroScope();
+        }
+      });
+    }
+    return zeroScope;
+  });
+  luaCtx.registerFunction<void (std::shared_ptr<dnsdist::lua::LuaServerPoolObject>::*)(bool enabled)>("setZeroScope", [](std::shared_ptr<dnsdist::lua::LuaServerPoolObject>& pool, bool enabled) {
+    if (pool) {
+      dnsdist::configuration::updateRuntimeConfiguration([&pool, enabled](dnsdist::configuration::RuntimeConfiguration& config) {
+        auto poolIt = config.d_pools.find(pool->poolName);
+        if (poolIt == config.d_pools.end()) {
+          /* this might happen if the Server Pool has been removed in the meantime, let's gracefully ignore it */
+          return;
+        }
+        poolIt->second.setZeroScope(enabled);
+      });
+    }
+  });
 
 #ifndef DISABLE_DOWNSTREAM_BINDINGS
   /* DownstreamState */
