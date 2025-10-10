@@ -244,7 +244,7 @@ std::optional<ServerPolicy::SelectedServerPosition> roundrobin(const ServerPolic
     return std::nullopt;
   }
 
-  static unsigned int counter;
+  static std::atomic<unsigned int> counter{0};
 
   size_t serverIdx = (counter++) % servers.size();
   auto currentServer = servers.at(serverIdx);
