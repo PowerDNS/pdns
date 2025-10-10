@@ -23,6 +23,8 @@
 /dnslabeltext.cc
 /ext/ipcrypt/Makefile
 /ext/ipcrypt/Makefile.in
+/ext/ipcrypt2/Makefile
+/ext/ipcrypt2/Makefile.in
 /ext/yahttp/Makefile
 /ext/yahttp/Makefile.in
 /ext/yahttp/yahttp/Makefile

@@ -1,3 +1,5 @@
+./ext/ipcrypt2/include/ipcrypt2.h
+./ext/ipcrypt2/ipcrypt2.c
 ./ext/lmdb-safe/lmdb-safe.cc
 ./ext/lmdb-safe/lmdb-safe.hh
 ./ext/lmdb-safe/lmdb-typed.hh

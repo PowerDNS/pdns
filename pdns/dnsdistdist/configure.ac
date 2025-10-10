@@ -66,6 +66,8 @@ AC_SUBST([YAHTTP_CFLAGS], ['-I$(top_srcdir)/ext/yahttp'])
 AC_SUBST([YAHTTP_LIBS], ['$(top_builddir)/ext/yahttp/yahttp/libyahttp.la'])
 AC_SUBST([IPCRYPT_CFLAGS], ['-I$(top_srcdir)/ext/ipcrypt'])
 AC_SUBST([IPCRYPT_LIBS], ['$(top_builddir)/ext/ipcrypt/libipcrypt.la'])
+AC_SUBST([IPCRYPT2_CFLAGS], ['-I$(top_srcdir)/ext/ipcrypt2/include'])
+AC_SUBST([IPCRYPT2_LIBS], ['$(top_builddir)/ext/ipcrypt2/libipcrypt2.la'])
 AC_SUBST([ARC4RANDOM_LIBS], ['$(top_builddir)/ext/arc4random/libarc4random.la'])
 
 AC_CHECK_HEADERS([sys/random.h])
@@ -204,7 +206,8 @@ AC_CONFIG_FILES([Makefile
         ext/arc4random/Makefile
         ext/yahttp/Makefile
         ext/yahttp/yahttp/Makefile
-        ext/ipcrypt/Makefile])
+        ext/ipcrypt/Makefile
+        ext/ipcrypt2/Makefile])
 
 AC_OUTPUT
 
