@@ -108,24 +108,29 @@ public:
     f_set_notified = d_lw->readVariable<boost::optional<set_notified_call_t>>("dns_set_notified").get_value_or(0);
 
     auto init = d_lw->readVariable<boost::optional<init_call_t>>("dns_init").get_value_or(0);
-    if (init)
+    if (init) {
       init();
+    }
 
     f_deinit = d_lw->readVariable<boost::optional<deinit_call_t>>("dns_deinit").get_value_or(0);
 
-    if (f_lookup == nullptr)
+    if (f_lookup == nullptr) {
       throw PDNSException("dns_lookup missing");
+    }
 
     /* see if dnssec support is wanted */
     d_dnssec = d_lw->readVariable<boost::optional<bool>>("dns_dnssec").get_value_or(false);
     if (d_dnssec) {
-      if (f_get_domain_metadata == nullptr)
+      if (f_get_domain_metadata == nullptr) {
         throw PDNSException("dns_dnssec is true but dns_get_domain_metadata is missing");
-      if (f_get_before_and_after_names_absolute == nullptr)
+      }
+      if (f_get_before_and_after_names_absolute == nullptr) {
         throw PDNSException("dns_dnssec is true but dns_get_before_and_after_names_absolute is missing");
+      }
       /* domain keys is not strictly speaking necessary for dnssec backend */
-      if (f_get_domain_keys == nullptr)
+      if (f_get_domain_keys == nullptr) {
         g_log << Logger::Warning << "dns_get_domain_keys missing - cannot do live signing" << endl;
+      }
     }
   }
 
@@ -147,43 +152,58 @@ public:
       DNSResourceRecord rec;
       for (const auto& item : row.second) {
         if (item.first == "type") {
-          if (item.second.which() == 1)
+          if (item.second.which() == 1) {
             rec.qtype = QType(boost::get<int>(item.second));
-          else if (item.second.which() == 3)
+          }
+          else if (item.second.which() == 3) {
             rec.qtype = boost::get<string>(item.second);
-          else if (item.second.which() == 4)
+          }
+          else if (item.second.which() == 4) {
             rec.qtype = boost::get<QType>(item.second);
-          else
+          }
+          else {
             throw PDNSException("Unsupported value for type");
+          }
         }
         else if (item.first == "name") {
-          if (item.second.which() == 3)
+          if (item.second.which() == 3) {
             rec.qname = DNSName(boost::get<string>(item.second));
-          else if (item.second.which() == 2)
+          }
+          else if (item.second.which() == 2) {
             rec.qname = boost::get<DNSName>(item.second);
-          else
+          }
+          else {
             throw PDNSException("Unsupported value for name");
+          }
         }
-        else if (item.first == "domain_id")
+        else if (item.first == "domain_id") {
           rec.domain_id = boost::get<int>(item.second);
-        else if (item.first == "auth")
+        }
+        else if (item.first == "auth") {
           rec.auth = boost::get<bool>(item.second);
-        else if (item.first == "last_modified")
+        }
+        else if (item.first == "last_modified") {
           rec.last_modified = static_cast<time_t>(boost::get<int>(item.second));
-        else if (item.first == "ttl")
+        }
+        else if (item.first == "ttl") {
           rec.ttl = boost::get<int>(item.second);
-        else if (item.first == "content")
+        }
+        else if (item.first == "content") {
           rec.setContent(boost::get<string>(item.second));
-        else if (item.first == "scopeMask")
+        }
+        else if (item.first == "scopeMask") {
           rec.scopeMask = boost::get<int>(item.second);
-        else
+        }
+        else {
           g_log << Logger::Warning << "Unsupported key '" << item.first << "' in lookup or list result" << endl;
+        }
       }
       logResult(rec.qname << " IN " << rec.qtype.toString() << " " << rec.ttl << " " << rec.getZoneRepresentation());
       d_result.push_back(rec);
     }
-    if (d_result.empty() && d_debug_log)
+    if (d_result.empty() && d_debug_log) {
       g_log << Logger::Debug << "[" << getPrefix() << "] Got empty result" << endl;
+    }
   }
 
   bool list(const ZoneName& target, domainid_t domain_id, bool /* include_disabled */ = false) override
@@ -193,14 +213,16 @@ public:
       return false;
     }
 
-    if (d_result.size() != 0)
+    if (d_result.size() != 0) {
       throw PDNSException("list attempted while another was running");
+    }
 
     logCall("list", "target=" << target << ",domain_id=" << domain_id);
     list_result_t result = f_list(target.operator const DNSName&(), domain_id);
 
-    if (result.which() == 0)
+    if (result.which() == 0) {
       return false;
+    }
 
     parseLookup(boost::get<lookup_result_t>(result));
 
@@ -209,8 +231,9 @@ public:
 
   void lookup(const QType& qtype, const DNSName& qname, domainid_t domain_id, DNSPacket* p = nullptr) override
   {
-    if (d_result.size() != 0)
+    if (d_result.size() != 0) {
       throw PDNSException("lookup attempted while another was running");
+    }
 
     lookup_context_t ctx;
     if (p != NULL) {
@@ -225,8 +248,9 @@ public:
 
   bool get(DNSResourceRecord& rr) override
   {
-    if (d_result.size() == 0)
+    if (d_result.size() == 0) {
       return false;
+    }
     rr = std::move(d_result.front());
     d_result.pop_front();
     return true;
@@ -251,8 +275,9 @@ public:
 
   void setNotified(domainid_t id, uint32_t serial) override
   {
-    if (f_set_notified == NULL)
+    if (f_set_notified == NULL) {
       return;
+    }
     logCall("dns_set_notified", "id=" << id << ",serial=" << serial);
     f_set_notified(id, serial);
   }
@@ -261,23 +286,32 @@ public:
   {
     di.id = UnknownDomainID;
     for (const auto& item : row) {
-      if (item.first == "account")
+      if (item.first == "account") {
         di.account = boost::get<string>(item.second);
-      else if (item.first == "last_check")
+      }
+      else if (item.first == "last_check") {
         di.last_check = static_cast<time_t>(boost::get<long>(item.second));
-      else if (item.first == "masters")
-        for (const auto& primary : boost::get<vector<string>>(item.second))
+      }
+      else if (item.first == "masters") {
+        for (const auto& primary : boost::get<vector<string>>(item.second)) {
           di.primaries.push_back(ComboAddress(primary, 53));
-      else if (item.first == "id")
+        }
+      }
+      else if (item.first == "id") {
         di.id = static_cast<domainid_t>(boost::get<long>(item.second));
-      else if (item.first == "notified_serial")
+      }
+      else if (item.first == "notified_serial") {
         di.notified_serial = static_cast<unsigned int>(boost::get<long>(item.second));
-      else if (item.first == "serial")
+      }
+      else if (item.first == "serial") {
         di.serial = static_cast<unsigned int>(boost::get<long>(item.second));
-      else if (item.first == "kind")
+      }
+      else if (item.first == "kind") {
         di.kind = DomainInfo::stringToKind(boost::get<string>(item.second));
-      else
+      }
+      else {
         g_log << Logger::Warning << "Unsupported key '" << item.first << "' in domaininfo result" << endl;
+      }
     }
     di.backend = this;
     logResult("zone=" << di.zone << ",serial=" << di.serial << ",kind=" << di.getKindString());
@@ -294,8 +328,9 @@ public:
         return false;
       }
       SOAData sd;
-      if (!getAuth(domain, &sd))
+      if (!getAuth(domain, &sd)) {
         return false;
+      }
 
       di.id = sd.domain_id;
       di.zone = domain;
@@ -307,8 +342,9 @@ public:
     logCall("get_domaininfo", "domain=" << domain);
     get_domaininfo_result_t result = f_get_domaininfo(domain.operator const DNSName&());
 
-    if (result.which() == 0)
+    if (result.which() == 0) {
       return false;
+    }
 
     di.zone = domain;
     parseDomainInfo(boost::get<domaininfo_result_t>(result), di);
@@ -318,8 +354,9 @@ public:
 
   void getAllDomains(vector<DomainInfo>* domains, bool /* getSerial */, bool /* include_disabled */) override
   {
-    if (f_get_all_domains == nullptr)
+    if (f_get_all_domains == nullptr) {
       return;
+    }
 
     logCall("get_all_domains", "");
     for (const auto& row : f_get_all_domains()) {
@@ -333,18 +370,21 @@ public:
 
   bool getAllDomainMetadata(const ZoneName& name, std::map<std::string, std::vector<std::string>>& meta) override
   {
-    if (f_get_all_domain_metadata == nullptr)
+    if (f_get_all_domain_metadata == nullptr) {
       return false;
+    }
 
     logCall("get_all_domain_metadata", "name=" << name);
     get_all_domain_metadata_result_t result = f_get_all_domain_metadata(name.operator const DNSName&());
-    if (result.which() == 0)
+    if (result.which() == 0) {
       return false;
+    }
 
     for (const auto& row : boost::get<vector<pair<string, domain_metadata_result_t>>>(result)) {
       meta[row.first].clear();
-      for (const auto& item : row.second)
+      for (const auto& item : row.second) {
         meta[row.first].push_back(item.second);
+      }
       logResult("kind=" << row.first << ",value=" << boost::algorithm::join(meta[row.first], ", "));
     }
 
@@ -353,17 +393,20 @@ public:
 
   bool getDomainMetadata(const ZoneName& name, const std::string& kind, std::vector<std::string>& meta) override
   {
-    if (f_get_domain_metadata == nullptr)
+    if (f_get_domain_metadata == nullptr) {
       return false;
+    }
 
     logCall("get_domain_metadata", "name=" << name << ",kind=" << kind);
     get_domain_metadata_result_t result = f_get_domain_metadata(name.operator const DNSName&(), kind);
-    if (result.which() == 0)
+    if (result.which() == 0) {
       return false;
+    }
 
     meta.clear();
-    for (const auto& item : boost::get<domain_metadata_result_t>(result))
+    for (const auto& item : boost::get<domain_metadata_result_t>(result)) {
       meta.push_back(item.second);
+    }
 
     logResult("value=" << boost::algorithm::join(meta, ", "));
     return true;
@@ -371,31 +414,39 @@ public:
 
   bool getDomainKeys(const ZoneName& name, std::vector<DNSBackend::KeyData>& keys) override
   {
-    if (f_get_domain_keys == nullptr)
+    if (f_get_domain_keys == nullptr) {
       return false;
+    }
 
     logCall("get_domain_keys", "name=" << name);
     get_domain_keys_result_t result = f_get_domain_keys(name.operator const DNSName&());
 
-    if (result.which() == 0)
+    if (result.which() == 0) {
       return false;
+    }
 
     for (const auto& row : boost::get<vector<pair<int, keydata_result_t>>>(result)) {
       DNSBackend::KeyData key;
       key.published = true;
       for (const auto& item : row.second) {
-        if (item.first == "content")
+        if (item.first == "content") {
           key.content = boost::get<string>(item.second);
-        else if (item.first == "id")
+        }
+        else if (item.first == "id") {
           key.id = static_cast<unsigned int>(boost::get<int>(item.second));
-        else if (item.first == "flags")
+        }
+        else if (item.first == "flags") {
           key.flags = static_cast<unsigned int>(boost::get<int>(item.second));
-        else if (item.first == "active")
+        }
+        else if (item.first == "active") {
           key.active = boost::get<bool>(item.second);
-        else if (item.first == "published")
+        }
+        else if (item.first == "published") {
           key.published = boost::get<bool>(item.second);
-        else
+        }
+        else {
           g_log << Logger::Warning << "[" << getPrefix() << "] Unsupported key '" << item.first << "' in keydata result" << endl;
+        }
       }
       logResult("id=" << key.id << ",flags=" << key.flags << ",active=" << (key.active ? "true" : "false") << ",published=" << (key.published ? "true" : "false"));
       keys.emplace_back(std::move(key));
@@ -406,14 +457,16 @@ public:
 
   bool getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after) override
   {
-    if (f_get_before_and_after_names_absolute == nullptr)
+    if (f_get_before_and_after_names_absolute == nullptr) {
       return false;
+    }
 
     logCall("get_before_and_after_names_absolute", "id=<<" << id << ",qname=" << qname);
     get_before_and_after_names_absolute_result_t result = f_get_before_and_after_names_absolute(id, qname);
 
-    if (result.which() == 0)
+    if (result.which() == 0) {
       return false;
+    }
 
     before_and_after_names_result_t row = boost::get<before_and_after_names_result_t>(result);
     if (row.size() != 3) {
@@ -422,16 +475,21 @@ public:
     }
     for (const auto& item : row) {
       DNSName value;
-      if (item.second.which() == 0)
+      if (item.second.which() == 0) {
         value = DNSName(boost::get<string>(item.second));
-      else
+      }
+      else {
         value = DNSName(boost::get<DNSName>(item.second));
-      if (item.first == "unhashed")
+      }
+      if (item.first == "unhashed") {
         unhashed = value;
-      else if (item.first == "before")
+      }
+      else if (item.first == "before") {
         before = value;
-      else if (item.first == "after")
+      }
+      else if (item.first == "after") {
         after = value;
+      }
       else {
         g_log << Logger::Error << "Invalid result from dns_get_before_and_after_names_absolute, unexpected key " << item.first << endl;
         return false;
