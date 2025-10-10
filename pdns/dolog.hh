@@ -20,6 +20,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
+#if defined(PDNS_AUTH)
+#error This file should not be used by auth and related tools.
+#endif
 #include <array>
 #include <fstream>
 #include <iomanip>

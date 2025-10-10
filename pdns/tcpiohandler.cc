@@ -1,11 +1,12 @@
 
 #include "config.h"
-#include "dolog.hh"
 #include "iputils.hh"
 #include "lock.hh"
 #include "tcpiohandler.hh"
 
 const bool TCPIOHandler::s_disableConnectForUnitTests = false;
+
+#if !defined(PDNS_AUTH) // [
 
 #ifdef HAVE_LIBSODIUM
 #include <sodium.h>
@@ -13,7 +14,10 @@ const bool TCPIOHandler::s_disableConnectForUnitTests = false;
 
 TLSCtx::tickets_key_added_hook TLSCtx::s_ticketsKeyAddedHook{nullptr};
 
-#if defined(HAVE_DNS_OVER_TLS) || defined(HAVE_DNS_OVER_HTTPS)
+#if defined(HAVE_DNS_OVER_TLS) || defined(HAVE_DNS_OVER_HTTPS) // [
+
+#include "dolog.hh"
+
 static std::vector<std::vector<uint8_t>> getALPNVector(TLSFrontend::ALPN alpn, bool client)
 {
   if (alpn == TLSFrontend::ALPN::DoT) {
@@ -34,7 +38,7 @@ static std::vector<std::vector<uint8_t>> getALPNVector(TLSFrontend::ALPN alpn, b
   return {};
 }
 
-#ifdef HAVE_LIBSSL
+#ifdef HAVE_LIBSSL // [
 
 namespace {
 bool shouldDoVerboseLogging()
@@ -999,9 +1003,9 @@ private:
   bool d_ktls{false};
 };
 
-#endif /* HAVE_LIBSSL */
+#endif // ] HAVE_LIBSSL
 
-#ifdef HAVE_GNUTLS
+#ifdef HAVE_GNUTLS // [
 #include <gnutls/gnutls.h>
 #include <gnutls/x509.h>
 
@@ -1916,9 +1920,11 @@ private:
   bool d_validateCerts{true};
 };
 
-#endif /* HAVE_GNUTLS */
+#endif // ] HAVE_GNUTLS
 
-#endif /* HAVE_DNS_OVER_TLS || HAVE_DNS_OVER_HTTPS */
+#endif // ] HAVE_DNS_OVER_TLS || HAVE_DNS_OVER_HTTPS
+
+#endif // ] !PDNS_AUTH
 
 bool TLSFrontend::setupTLS()
 {
