@@ -244,6 +244,14 @@ std::optional<ServerPolicy::SelectedServerPosition> roundrobin(const ServerPolic
     return std::nullopt;
   }
 
+  static unsigned int counter;
+
+  size_t serverIdx = (counter++) % servers.size();
+  auto currentServer = servers.at(serverIdx);
+  if (currentServer.second->isUp()) {
+    return currentServer.first;
+  }
+
   vector<size_t> candidates;
   candidates.reserve(servers.size());
 
@@ -262,8 +270,7 @@ std::optional<ServerPolicy::SelectedServerPosition> roundrobin(const ServerPolic
     }
   }
 
-  static unsigned int counter;
-  return candidates.at((counter++) % candidates.size());
+  return candidates.at(counter % candidates.size());
 }
 
 std::optional<ServerPolicy::SelectedServerPosition> orderedWrandUntag(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dnsQuestion)
