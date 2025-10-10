@@ -1611,7 +1611,14 @@ bool handleTimeoutResponseRules(const std::vector<dnsdist::rules::ResponseRuleAc
       return false;
     }
   }
-  (void)applyRulesToResponse(rules, dnsResponse);
+
+  try {
+    (void)applyRulesToResponse(rules, dnsResponse);
+  }
+  catch (const std::exception& exp) {
+    vinfolog("Exception while processing timeout response rules: %s", exp.what());
+  }
+
   return dnsResponse.isAsynchronous();
 }
 
@@ -2425,45 +2432,50 @@ static void healthChecksThread()
     .tv_usec = 0};
 
   for (;;) {
-    checkExiting();
+    try {
+      checkExiting();
 
-    timeval now{};
-    gettimeofday(&now, nullptr);
-    auto elapsedTimeUsec = uSec(now - lastRound);
-    if (elapsedTimeUsec < intervalUsec) {
-      usleep(intervalUsec - elapsedTimeUsec);
-      gettimeofday(&lastRound, nullptr);
-    }
-    else {
-      lastRound = now;
-    }
-
-    std::unique_ptr<FDMultiplexer> mplexer{nullptr};
-    const auto& runtimeConfig = dnsdist::configuration::refreshLocalRuntimeConfiguration();
-
-    // this points to the actual shared_ptrs!
-    // coverity[auto_causes_copy]
-    const auto servers = runtimeConfig.d_backends;
-    for (const auto& dss : servers) {
-      dss->updateStatisticsInfo();
-
-      dss->handleUDPTimeouts();
-
-      if (!dss->healthCheckRequired()) {
-        continue;
+      timeval now{};
+      gettimeofday(&now, nullptr);
+      auto elapsedTimeUsec = uSec(now - lastRound);
+      if (elapsedTimeUsec < intervalUsec) {
+        usleep(intervalUsec - elapsedTimeUsec);
+        gettimeofday(&lastRound, nullptr);
+      }
+      else {
+        lastRound = now;
       }
 
-      if (!mplexer) {
-        mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent(servers.size()));
+      std::unique_ptr<FDMultiplexer> mplexer{nullptr};
+      const auto& runtimeConfig = dnsdist::configuration::refreshLocalRuntimeConfiguration();
+
+      // this points to the actual shared_ptrs!
+      // coverity[auto_causes_copy]
+      const auto servers = runtimeConfig.d_backends;
+      for (const auto& dss : servers) {
+        dss->updateStatisticsInfo();
+
+        dss->handleUDPTimeouts();
+
+        if (!dss->healthCheckRequired()) {
+          continue;
+        }
+
+        if (!mplexer) {
+          mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent(servers.size()));
+        }
+
+        if (!queueHealthCheck(mplexer, dss)) {
+          dss->submitHealthCheckResult(false, false);
+        }
       }
 
-      if (!queueHealthCheck(mplexer, dss)) {
-        dss->submitHealthCheckResult(false, false);
+      if (mplexer) {
+        handleQueuedHealthChecks(*mplexer);
       }
     }
-
-    if (mplexer) {
-      handleQueuedHealthChecks(*mplexer);
+    catch (const std::exception& exp) {
+      vinfolog("Exception in the health-check thread: %s", exp.what());
     }
   }
 }
