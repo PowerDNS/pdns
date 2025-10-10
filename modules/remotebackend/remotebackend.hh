@@ -71,13 +71,15 @@ protected:
     }
     throw JsonException("Json value not convertible to String");
   };
+
+  std::shared_ptr<Logr::Logger> d_slog;
 };
 
 // fwd declarations
 class UnixsocketConnector : public Connector
 {
 public:
-  UnixsocketConnector(std::map<std::string, std::string> options);
+  UnixsocketConnector(std::shared_ptr<Logr::Logger> log, std::map<std::string, std::string> options);
   ~UnixsocketConnector() override;
   int send_message(const Json& input) override;
   int recv_message(Json& output) override;
@@ -96,7 +98,7 @@ private:
 class HTTPConnector : public Connector
 {
 public:
-  HTTPConnector(std::map<std::string, std::string> options);
+  HTTPConnector(std::shared_ptr<Logr::Logger> log, std::map<std::string, std::string> options);
   ~HTTPConnector() override;
 
   int send_message(const Json& input) override;
@@ -123,7 +125,7 @@ private:
 class ZeroMQConnector : public Connector
 {
 public:
-  ZeroMQConnector(std::map<std::string, std::string> options);
+  ZeroMQConnector(std::shared_ptr<Logr::Logger> log, std::map<std::string, std::string> options);
   ~ZeroMQConnector() override;
   int send_message(const Json& input) override;
   int recv_message(Json& output) override;
@@ -142,7 +144,7 @@ private:
 class PipeConnector : public Connector
 {
 public:
-  PipeConnector(std::map<std::string, std::string> options);
+  PipeConnector(std::shared_ptr<Logr::Logger> log, std::map<std::string, std::string> options);
   ~PipeConnector() override;
 
   int send_message(const Json& input) override;
