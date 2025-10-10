@@ -1595,9 +1595,11 @@ bool handleTimeoutResponseRules(const std::vector<dnsdist::rules::ResponseRuleAc
   /* let's be nice and restore the original DNS header as well as we can with what we have */
   PacketBuffer payload(sizeof(dnsheader));
   dnsdist::PacketMangling::editDNSHeaderFromPacket(payload, [&ids](dnsheader& header) {
+    memset(&header, 0, sizeof(header));
     header.id = ids.origID;
-    header.qdcount = htons(1);
     restoreFlags(&header, ids.origFlags);
+    // do not set the qdcount, otherwise the protobuf code will choke on it
+    // while trying to parse the response RRs
     return true;
   });
   DNSResponse dnsResponse(ids, payload, d_ds);
