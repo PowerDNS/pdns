@@ -1244,6 +1244,7 @@ timeout_response_rules:
     _testServerPort = pickAvailablePort()
     _yaml_config_params = ['_dnsDistPort', '_testServerPortNotListening', '_protobufServerPort', '_protobufServerID']
     _config_params = []
+    _verboseMode = True
 
     def testProtobuf(self):
         """
