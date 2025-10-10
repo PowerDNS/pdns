@@ -571,8 +571,8 @@ void GSQLBackend::getUpdatedPrimaries(vector<DomainInfo>& updatedDomains, std::u
     try {
       pdns::checked_stoi_into(di.id, row[0]);
     }
-    catch (const std::exception& e) {
-      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " could not convert id '" << row[0] << "' for zone '" << di.zone << "' into an integer: " << e.what() << endl;
+    catch (const std::exception& exp) {
+      g_log << Logger::Warning << static_cast<const char *>(__PRETTY_FUNCTION__) << " could not convert id '" << row[0] << "' for zone '" << di.zone << "' into an integer: " << exp.what() << endl;
       continue;
     }
 
