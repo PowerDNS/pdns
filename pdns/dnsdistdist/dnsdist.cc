@@ -1592,8 +1592,15 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
 
 bool handleTimeoutResponseRules(const std::vector<dnsdist::rules::ResponseRuleAction>& rules, InternalQueryState& ids, const std::shared_ptr<DownstreamState>& d_ds, const std::shared_ptr<TCPQuerySender>& sender)
 {
-  PacketBuffer empty;
-  DNSResponse dnsResponse(ids, empty, d_ds);
+  /* let's be nice and restore the original DNS header as well as we can with what we have */
+  PacketBuffer payload(sizeof(dnsheader));
+  dnsdist::PacketMangling::editDNSHeaderFromPacket(payload, [&ids](dnsheader& header) {
+    header.id = ids.origID;
+    header.qdcount = htons(1);
+    restoreFlags(&header, ids.origFlags);
+    return true;
+  });
+  DNSResponse dnsResponse(ids, payload, d_ds);
   auto protocol = dnsResponse.getProtocol();
 
   vinfolog("Handling timeout response rules for incoming protocol = %s", protocol.toString());
