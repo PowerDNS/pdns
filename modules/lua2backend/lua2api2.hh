@@ -76,20 +76,6 @@ public:
 
   ~Lua2BackendAPIv2() override;
 
-#define logCall(func, var)                                                                               \
-  {                                                                                                      \
-    if (d_debug_log) {                                                                                   \
-      g_log << Logger::Debug << "[" << getPrefix() << "] Calling " << func << "(" << var << ")" << endl; \
-    }                                                                                                    \
-  }
-#define logResult(var)                                                \
-  {                                                                   \
-    if (d_debug_log) {                                                \
-      g_log << Logger::Debug << "[" << getPrefix() << "] Got result " \
-            << "'" << var << "'" << endl;                             \
-    }                                                                 \
-  }
-
   void postPrepareContext() override
   {
     AuthLua4::postPrepareContext();
@@ -198,7 +184,9 @@ public:
           g_log << Logger::Warning << "Unsupported key '" << item.first << "' in lookup or list result" << endl;
         }
       }
-      logResult(rec.qname << " IN " << rec.qtype.toString() << " " << rec.ttl << " " << rec.getZoneRepresentation());
+      if (d_debug_log) {
+        g_log << Logger::Debug << "[" << getPrefix() << "] Got result " << "'" << rec.qname << " IN " << rec.qtype.toString() << " " << rec.ttl << " " << rec.getZoneRepresentation() << "'" << endl;
+      }
       d_result.push_back(rec);
     }
     if (d_result.empty() && d_debug_log) {
@@ -217,7 +205,9 @@ public:
       throw PDNSException("list attempted while another was running");
     }
 
-    logCall("list", "target=" << target << ",domain_id=" << domain_id);
+    if (d_debug_log) {
+      g_log << Logger::Debug << "[" << getPrefix() << "] Calling " << "list" << "(" << "target=" << target << ",domain_id=" << domain_id << ")" << endl;
+    }
     list_result_t result = f_list(target.operator const DNSName&(), domain_id);
 
     if (result.which() == 0) {
@@ -241,7 +231,9 @@ public:
       ctx.emplace_back(lookup_context_t::value_type{"real_source_address", p->getRealRemote().toString()});
     }
 
-    logCall("lookup", "qtype=" << qtype.toString() << ",qname=" << qname << ",domain_id=" << domain_id);
+    if (d_debug_log) {
+      g_log << Logger::Debug << "[" << getPrefix() << "] Calling " << "lookup" << "(" << "qtype=" << qtype.toString() << ",qname=" << qname << ",domain_id=" << domain_id << ")" << endl;
+    }
     lookup_result_t result = f_lookup(qtype, qname, domain_id, ctx);
     parseLookup(result);
   }
@@ -269,7 +261,9 @@ public:
     if (f == nullptr) {
       return cmd + "not found";
     }
-    logCall(cmd, "parameter=" << par);
+    if (d_debug_log) {
+      g_log << Logger::Debug << "[" << getPrefix() << "] Calling " << cmd << "(" << "parameter=" << par << ")" << endl;
+    }
     return f(par);
   }
 
@@ -278,7 +272,9 @@ public:
     if (f_set_notified == NULL) {
       return;
     }
-    logCall("dns_set_notified", "id=" << id << ",serial=" << serial);
+    if (d_debug_log) {
+      g_log << Logger::Debug << "[" << getPrefix() << "] Calling " << "dns_set_notified" << "(" << "id=" << id << ",serial=" << serial << ")" << endl;
+    }
     f_set_notified(id, serial);
   }
 
@@ -314,7 +310,9 @@ public:
       }
     }
     di.backend = this;
-    logResult("zone=" << di.zone << ",serial=" << di.serial << ",kind=" << di.getKindString());
+    if (d_debug_log) {
+      g_log << Logger::Debug << "[" << getPrefix() << "] Got result " << "'" << "zone=" << di.zone << ",serial=" << di.serial << ",kind=" << di.getKindString() << "'" << endl;
+    }
   }
 
   bool getDomainInfo(const ZoneName& domain, DomainInfo& di, bool /* getSerial */ = true) override
@@ -339,7 +337,9 @@ public:
       return true;
     }
 
-    logCall("get_domaininfo", "domain=" << domain);
+    if (d_debug_log) {
+      g_log << Logger::Debug << "[" << getPrefix() << "] Calling " << "get_domaininfo" << "(" << "domain=" << domain << ")" << endl;
+    }
     get_domaininfo_result_t result = f_get_domaininfo(domain.operator const DNSName&());
 
     if (result.which() == 0) {
@@ -358,11 +358,15 @@ public:
       return;
     }
 
-    logCall("get_all_domains", "");
+    if (d_debug_log) {
+      g_log << Logger::Debug << "[" << getPrefix() << "] Calling " << "get_all_domains" << "(" << "" << ")" << endl;
+    }
     for (const auto& row : f_get_all_domains()) {
       DomainInfo di;
       di.zone = ZoneName(row.first);
-      logResult(di.zone);
+      if (d_debug_log) {
+        g_log << Logger::Debug << "[" << getPrefix() << "] Got result " << "'" << di.zone << "'" << endl;
+      }
       parseDomainInfo(row.second, di);
       domains->push_back(di);
     }
@@ -374,7 +378,9 @@ public:
       return false;
     }
 
-    logCall("get_all_domain_metadata", "name=" << name);
+    if (d_debug_log) {
+      g_log << Logger::Debug << "[" << getPrefix() << "] Calling " << "get_all_domain_metadata" << "(" << "name=" << name << ")" << endl;
+    }
     get_all_domain_metadata_result_t result = f_get_all_domain_metadata(name.operator const DNSName&());
     if (result.which() == 0) {
       return false;
@@ -385,7 +391,9 @@ public:
       for (const auto& item : row.second) {
         meta[row.first].push_back(item.second);
       }
-      logResult("kind=" << row.first << ",value=" << boost::algorithm::join(meta[row.first], ", "));
+      if (d_debug_log) {
+        g_log << Logger::Debug << "[" << getPrefix() << "] Got result " << "'" << "kind=" << row.first << ",value=" << boost::algorithm::join(meta[row.first], ", ") << "'" << endl;
+      }
     }
 
     return true;
@@ -397,7 +405,9 @@ public:
       return false;
     }
 
-    logCall("get_domain_metadata", "name=" << name << ",kind=" << kind);
+    if (d_debug_log) {
+      g_log << Logger::Debug << "[" << getPrefix() << "] Calling " << "get_domain_metadata" << "(" << "name=" << name << ",kind=" << kind << ")" << endl;
+    }
     get_domain_metadata_result_t result = f_get_domain_metadata(name.operator const DNSName&(), kind);
     if (result.which() == 0) {
       return false;
@@ -408,7 +418,9 @@ public:
       meta.push_back(item.second);
     }
 
-    logResult("value=" << boost::algorithm::join(meta, ", "));
+    if (d_debug_log) {
+      g_log << Logger::Debug << "[" << getPrefix() << "] Got result " << "'" << "value=" << boost::algorithm::join(meta, ", ") << "'" << endl;
+    }
     return true;
   }
 
@@ -418,7 +430,9 @@ public:
       return false;
     }
 
-    logCall("get_domain_keys", "name=" << name);
+    if (d_debug_log) {
+      g_log << Logger::Debug << "[" << getPrefix() << "] Calling " << "get_domain_keys" << "(" << "name=" << name << ")" << endl;
+    }
     get_domain_keys_result_t result = f_get_domain_keys(name.operator const DNSName&());
 
     if (result.which() == 0) {
@@ -448,7 +462,9 @@ public:
           g_log << Logger::Warning << "[" << getPrefix() << "] Unsupported key '" << item.first << "' in keydata result" << endl;
         }
       }
-      logResult("id=" << key.id << ",flags=" << key.flags << ",active=" << (key.active ? "true" : "false") << ",published=" << (key.published ? "true" : "false"));
+      if (d_debug_log) {
+        g_log << Logger::Debug << "[" << getPrefix() << "] Got result " << "'" << "id=" << key.id << ",flags=" << key.flags << ",active=" << (key.active ? "true" : "false") << ",published=" << (key.published ? "true" : "false") << "'" << endl;
+      }
       keys.emplace_back(std::move(key));
     }
 
@@ -461,7 +477,9 @@ public:
       return false;
     }
 
-    logCall("get_before_and_after_names_absolute", "id=<<" << id << ",qname=" << qname);
+    if (d_debug_log) {
+      g_log << Logger::Debug << "[" << getPrefix() << "] Calling " << "get_before_and_after_names_absolute" << "(" << "id=<<" << id << ",qname=" << qname << ")" << endl;
+    }
     get_before_and_after_names_absolute_result_t result = f_get_before_and_after_names_absolute(id, qname);
 
     if (result.which() == 0) {
@@ -496,7 +514,9 @@ public:
       }
     }
 
-    logResult("unhashed=" << unhashed << ",before=" << before << ",after=" << after);
+    if (d_debug_log) {
+      g_log << Logger::Debug << "[" << getPrefix() << "] Got result " << "'" << "unhashed=" << unhashed << ",before=" << before << ",after=" << after << "'" << endl;
+    }
     return true;
   }
 
