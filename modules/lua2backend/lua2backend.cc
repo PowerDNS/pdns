@@ -64,11 +64,17 @@ public:
   {
     BackendMakers().report(std::make_unique<Lua2Factory>());
 
-    g_log << Logger::Info << "[lua2backend] This is the lua2 backend version " VERSION
+    SLOG(g_log << Logger::Info << "[lua2backend] This is the lua2 backend version " VERSION
 #ifndef REPRODUCIBLE
-          << " (" __DATE__ " " __TIME__ ")"
+               << " (" __DATE__ " " __TIME__ ")"
 #endif
-          << " reporting" << endl;
+               << " reporting" << endl,
+         g_slog->withName("lua2backend")->info(Logr::Info, "lua2backend starting", "version", Logging::Loggable(VERSION)
+#ifndef REPRODUCIBLE
+                                                                                                ,
+                                               "build date", Logging::Loggable(__DATE__ " " __TIME__)
+#endif
+                                                 ));
   }
 };
 
