@@ -406,13 +406,15 @@ bool GSQLBackend::getDomainInfo(const ZoneName &domain, DomainInfo &info, bool g
     try {
       SOAData sd;
       if(!getSOA(domain, info.id, sd)) {
-        g_log<<Logger::Notice<<"No serial for '"<<domain<<"' found - zone is missing?"<<endl;
+        SLOG(g_log<<Logger::Notice<<"No serial for '"<<domain<<"' found - zone is missing?"<<endl,
+             d_slog->info(Logr::Notice, "no serial found", "zone", Logging::Loggable(domain)));
       }
       else
         info.serial = sd.serial;
     }
     catch(PDNSException &ae){
-      g_log<<Logger::Error<<"Error retrieving serial for '"<<domain<<"': "<<ae.reason<<endl;
+      SLOG(g_log<<Logger::Error<<"Error retrieving serial for '"<<domain<<"': "<<ae.reason<<endl,
+           d_slog->error(Logr::Error, ae.reason, "error retrieving serial", "zone", Logging::Loggable(domain)));
     }
   }
 
@@ -452,11 +454,13 @@ void GSQLBackend::getUnfreshSecondaryInfos(vector<DomainInfo>* unfreshDomains)
       di.zone = ZoneName(row[1]);
     }
     catch (const std::runtime_error& e) {
-      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " zone name '" << row[1] << "' is not a valid DNS name: " << e.what() << endl;
+      SLOG(g_log << Logger::Warning << __PRETTY_FUNCTION__ << " zone name '" << row[1] << "' is not a valid DNS name: " << e.what() << endl,
+           d_slog->error(Logr::Warning, e.what(), "zone name is not a valid DNS name", "zone", Logging::Loggable(row[1])));
       continue;
     }
     catch (PDNSException& ae) {
-      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " zone name '" << row[1] << "' is not a valid DNS name: " << ae.reason << endl;
+      SLOG(g_log << Logger::Warning << __PRETTY_FUNCTION__ << " zone name '" << row[1] << "' is not a valid DNS name: " << ae.reason << endl,
+           d_slog->error(Logr::Warning, ae.reason, "zone name is not a valid DNS name", "zone", Logging::Loggable(row[1])));
       continue;
     }
 
@@ -465,11 +469,13 @@ void GSQLBackend::getUnfreshSecondaryInfos(vector<DomainInfo>* unfreshDomains)
         fillSOAData(row[5], sd);
       }
       catch (const std::exception& exp) {
-        g_log << Logger::Warning << __PRETTY_FUNCTION__ << " error while parsing SOA data for zone '" << di.zone << "': " << exp.what() << endl;
+        SLOG(g_log << Logger::Warning << __PRETTY_FUNCTION__ << " error while parsing SOA data for zone '" << di.zone << "': " << exp.what() << endl,
+           d_slog->error(Logr::Warning, exp.what(), "error while parsing SOA data", "zone", Logging::Loggable(di.zone)));
         continue;
       }
       catch (...) {
-        g_log << Logger::Warning << __PRETTY_FUNCTION__ << " error while parsing SOA data for zone '" << di.zone << endl;
+        SLOG(g_log << Logger::Warning << __PRETTY_FUNCTION__ << " error while parsing SOA data for zone '" << di.zone << endl,
+           d_slog->info(Logr::Warning, "error while parsing SOA data", "zone", Logging::Loggable(di.zone)));
         continue;
       }
 
@@ -478,7 +484,8 @@ void GSQLBackend::getUnfreshSecondaryInfos(vector<DomainInfo>* unfreshDomains)
         pdns::checked_stoi_into(last_check, row[4]);
       }
       catch (const std::exception& e) {
-        g_log << Logger::Warning << __PRETTY_FUNCTION__ << " could not convert last_check '" << row[4] << "' for zone '" << di.zone << "' into an integer: " << e.what() << endl;
+        SLOG(g_log << Logger::Warning << __PRETTY_FUNCTION__ << " could not convert last_check '" << row[4] << "' for zone '" << di.zone << "' into an integer: " << e.what() << endl,
+           d_slog->error(Logr::Warning, e.what(), "secondary 'last check' field is not a valid integer", "zone", Logging::Loggable(di.zone), "field", Logging::Loggable(row[4])));
         continue;
       }
 
@@ -491,7 +498,8 @@ void GSQLBackend::getUnfreshSecondaryInfos(vector<DomainInfo>* unfreshDomains)
     try {
       pdns::checked_stoi_into(di.id, row[0]);
     } catch (const std::exception &e) {
-      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " could not convert id '" << row[0] << "' for zone '" << di.zone << "' into an integer: " << e.what() << endl;
+      SLOG(g_log << Logger::Warning << __PRETTY_FUNCTION__ << " could not convert id '" << row[0] << "' for zone '" << di.zone << "' into an integer: " << e.what() << endl,
+           d_slog->error(Logr::Warning, e.what(), "secondary 'domain id' field is not a valid integer", "zone", Logging::Loggable(di.zone), "field", Logging::Loggable(row[0])));
       continue;
     }
 
@@ -502,11 +510,13 @@ void GSQLBackend::getUnfreshSecondaryInfos(vector<DomainInfo>* unfreshDomains)
       try {
         di.primaries.emplace_back(m, 53);
       } catch(const PDNSException &e) {
-        g_log << Logger::Warning << __PRETTY_FUNCTION__ << " could not parse primary address '" << m << "' for zone '" << di.zone << "': " << e.reason << endl;
+        SLOG(g_log << Logger::Warning << __PRETTY_FUNCTION__ << " could not parse primary address '" << m << "' for zone '" << di.zone << "': " << e.reason << endl,
+           d_slog->error(Logr::Warning, e.reason, "invalid primary address", "zone", Logging::Loggable(di.zone), "primary", Logging::Loggable(m)));
       }
     }
     if (di.primaries.empty()) {
-      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " no primaries for secondary zone '" << di.zone << "' found in the database" << endl;
+      SLOG(g_log << Logger::Warning << __PRETTY_FUNCTION__ << " no primaries for secondary zone '" << di.zone << "' found in the database" << endl,
+           d_slog->info(Logr::Warning, "no primaries for secondary zone", "zone", Logging::Loggable(di.zone)));
       continue;
     }
 
@@ -517,7 +527,8 @@ void GSQLBackend::getUnfreshSecondaryInfos(vector<DomainInfo>* unfreshDomains)
       di.kind = DomainInfo::Consumer;
     }
     else {
-      g_log << Logger::Warning << __PRETTY_FUNCTION__ << "type '" << row[2] << "' for zone '" << di.zone << "' is no secondary type" << endl;
+      SLOG(g_log << Logger::Warning << __PRETTY_FUNCTION__ << "type '" << row[2] << "' for zone '" << di.zone << "' is no secondary type" << endl,
+           d_slog->info(Logr::Warning, "zone type is not fit for a secondary", "zone", Logging::Loggable(di.zone), "type", Logging::Loggable(row[2])));
     }
 
     di.backend = this;
@@ -560,11 +571,13 @@ void GSQLBackend::getUpdatedPrimaries(vector<DomainInfo>& updatedDomains, std::u
       di.zone = ZoneName(row[1]);
     }
     catch (const std::runtime_error& e) {
-      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " zone name '" << row[1] << "' is not a valid DNS name: " << e.what() << endl;
+      SLOG(g_log << Logger::Warning << __PRETTY_FUNCTION__ << " zone name '" << row[1] << "' is not a valid DNS name: " << e.what() << endl,
+           d_slog->error(Logr::Warning, e.what(), "zone name is not a valid DNS name", "zone", Logging::Loggable(row[1])));
       continue;
     }
     catch (PDNSException& ae) {
-      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " zone name '" << row[1] << "' is not a valid DNS name: " << ae.reason << endl;
+      SLOG(g_log << Logger::Warning << __PRETTY_FUNCTION__ << " zone name '" << row[1] << "' is not a valid DNS name: " << ae.reason << endl,
+           d_slog->error(Logr::Warning, ae.reason, "zone name is not a valid DNS name", "zone", Logging::Loggable(row[1])));
       continue;
     }
 
@@ -572,7 +585,8 @@ void GSQLBackend::getUpdatedPrimaries(vector<DomainInfo>& updatedDomains, std::u
       pdns::checked_stoi_into(di.id, row[0]);
     }
     catch (const std::exception& exp) {
-      g_log << Logger::Warning << static_cast<const char *>(__PRETTY_FUNCTION__) << " could not convert id '" << row[0] << "' for zone '" << di.zone << "' into an integer: " << exp.what() << endl;
+      SLOG(g_log << Logger::Warning << static_cast<const char *>(__PRETTY_FUNCTION__) << " could not convert id '" << row[0] << "' for zone '" << di.zone << "' into an integer: " << exp.what() << endl,
+           d_slog->error(Logr::Warning, exp.what(), "primary 'domain id' field is not a valid integer", "zone", Logging::Loggable(di.zone), "field", Logging::Loggable(row[0])));
       continue;
     }
 
@@ -580,11 +594,13 @@ void GSQLBackend::getUpdatedPrimaries(vector<DomainInfo>& updatedDomains, std::u
       di.catalog = ZoneName(row[5]);
     }
     catch (const std::runtime_error& e) {
-      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " zone name '" << row[5] << "' is not a valid DNS name: " << e.what() << endl;
+      SLOG(g_log << Logger::Warning << __PRETTY_FUNCTION__ << " zone name '" << row[5] << "' is not a valid DNS name: " << e.what() << endl,
+           d_slog->error(Logr::Warning, e.what(), "zone name is not a valid DNS name", "zone", Logging::Loggable(row[5])));
       continue;
     }
     catch (PDNSException& ae) {
-      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " zone name '" << row[5] << "' is not a valid DNS name: " << ae.reason << endl;
+      SLOG(g_log << Logger::Warning << __PRETTY_FUNCTION__ << " zone name '" << row[5] << "' is not a valid DNS name: " << ae.reason << endl,
+           d_slog->error(Logr::Warning, ae.reason, "zone name is not a valid DNS name", "zone", Logging::Loggable(row[5])));
       continue;
     }
 
@@ -594,7 +610,8 @@ void GSQLBackend::getUpdatedPrimaries(vector<DomainInfo>& updatedDomains, std::u
       continue; // Producer freshness check is performed elsewhere
     }
     else if (!pdns_iequals(row[2], "MASTER")) {
-      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " type '" << row[2] << "' for zone '" << di.zone << "' is no primary type" << endl;
+      SLOG(g_log << Logger::Warning << __PRETTY_FUNCTION__ << " type '" << row[2] << "' for zone '" << di.zone << "' is no primary type" << endl,
+           d_slog->info(Logr::Warning, "zone type is not fit for a primary", "zone", Logging::Loggable(di.zone), "type", Logging::Loggable(row[2])));
     }
 
     try {
@@ -604,7 +621,8 @@ void GSQLBackend::getUpdatedPrimaries(vector<DomainInfo>& updatedDomains, std::u
       }
     }
     catch (const std::exception& e) {
-      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " catalog hash update failed'" << row[4] << "' for zone '" << di.zone << "' member of '" << di.catalog << "': " << e.what() << endl;
+      SLOG(g_log << Logger::Warning << __PRETTY_FUNCTION__ << " catalog hash update failed'" << row[4] << "' for zone '" << di.zone << "' member of '" << di.catalog << "': " << e.what() << endl,
+           d_slog->error(Logr::Warning, e.what(), "catalog hash update failed", "zone", Logging::Loggable(di.zone), "catalog", Logging::Loggable(di.catalog)));
       continue;
     }
 
@@ -612,7 +630,8 @@ void GSQLBackend::getUpdatedPrimaries(vector<DomainInfo>& updatedDomains, std::u
       pdns::checked_stoi_into(di.notified_serial, row[3]);
     }
     catch (const std::exception& e) {
-      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " could not convert notified_serial '" << row[4] << "' for zone '" << di.zone << "' into an integer: " << e.what() << endl;
+      SLOG(g_log << Logger::Warning << __PRETTY_FUNCTION__ << " could not convert notified_serial '" << row[4] << "' for zone '" << di.zone << "' into an integer: " << e.what() << endl,
+           d_slog->error(Logr::Warning, e.what(), "'notified serial' field is not a valid integer", "zone", Logging::Loggable(di.zone), "field", Logging::Loggable(row[4])));
       continue;
     }
 
@@ -620,11 +639,13 @@ void GSQLBackend::getUpdatedPrimaries(vector<DomainInfo>& updatedDomains, std::u
       fillSOAData(row[6], sd);
     }
     catch (const std::exception& exp) {
-      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " error while parsing SOA content '" << row[6] << "' for zone '" << di.zone << "': " << exp.what() << endl;
+      SLOG(g_log << Logger::Warning << __PRETTY_FUNCTION__ << " error while parsing SOA content '" << row[6] << "' for zone '" << di.zone << "': " << exp.what() << endl,
+           d_slog->error(Logr::Warning, exp.what(), "error while parsing SOA data", "zone", Logging::Loggable(di.zone), "content", Logging::Loggable(row[6])));
       continue;
     }
     catch (...) {
-      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " error while parsing SOA content '" << row[6] << "' for zone '" << di.zone << endl;
+      SLOG(g_log << Logger::Warning << __PRETTY_FUNCTION__ << " error while parsing SOA content '" << row[6] << "' for zone '" << di.zone << endl,
+           d_slog->info(Logr::Warning, "error while parsing SOA data", "zone", Logging::Loggable(di.zone), "content", Logging::Loggable(row[6])));
       continue;
     }
 
@@ -684,12 +705,14 @@ bool GSQLBackend::getCatalogMembers(const ZoneName& catalog, vector<CatalogInfo>
       ci.d_zone = ZoneName(row[1]);
     }
     catch (const std::runtime_error& e) {
-      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " zone name '" << row[1] << "' is not a valid DNS name: " << e.what() << endl;
+      SLOG(g_log << Logger::Warning << __PRETTY_FUNCTION__ << " zone name '" << row[1] << "' is not a valid DNS name: " << e.what() << endl,
+           d_slog->error(Logr::Warning, e.what(), "zone name is not a valid DNS name", "zone", Logging::Loggable(row[1])));
       members.clear();
       return false;
     }
     catch (PDNSException& ae) {
-      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " zone name '" << row[1] << "' is not a valid DNS name: " << ae.reason << endl;
+      SLOG(g_log << Logger::Warning << __PRETTY_FUNCTION__ << " zone name '" << row[1] << "' is not a valid DNS name: " << ae.reason << endl,
+           d_slog->error(Logr::Warning, ae.reason, "zone name is not a valid DNS name", "zone", Logging::Loggable(row[1])));
       members.clear();
       return false;
     }
@@ -698,7 +721,8 @@ bool GSQLBackend::getCatalogMembers(const ZoneName& catalog, vector<CatalogInfo>
       pdns::checked_stoi_into(ci.d_id, row[0]);
     }
     catch (const std::exception& e) {
-      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " could not convert id '" << row[0] << "' for zone '" << ci.d_zone << "' into an integer: " << e.what() << endl;
+      SLOG(g_log << Logger::Warning << __PRETTY_FUNCTION__ << " could not convert id '" << row[0] << "' for zone '" << ci.d_zone << "' into an integer: " << e.what() << endl,
+           d_slog->error(Logr::Warning, e.what(), "catalog 'domain id' field is not a valid integer", "zone", Logging::Loggable(ci.d_zone), "field", Logging::Loggable(row[0])));
       members.clear();
       return false;
     }
@@ -707,7 +731,8 @@ bool GSQLBackend::getCatalogMembers(const ZoneName& catalog, vector<CatalogInfo>
       ci.fromJson(row[2], type);
     }
     catch (const std::runtime_error& e) {
-      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " options '" << row[2] << "' for zone '" << ci.d_zone << "' is no valid JSON: " << e.what() << endl;
+      SLOG(g_log << Logger::Warning << __PRETTY_FUNCTION__ << " options '" << row[2] << "' for zone '" << ci.d_zone << "' is no valid JSON: " << e.what() << endl,
+           d_slog->error(Logr::Warning, e.what(), "catalog 'options' field is not valid JSON", "zone", Logging::Loggable(ci.d_zone), "field", Logging::Loggable(row[2])));
       members.clear();
       return false;
     }
@@ -720,7 +745,8 @@ bool GSQLBackend::getCatalogMembers(const ZoneName& catalog, vector<CatalogInfo>
           ci.d_primaries.emplace_back(m, 53);
         }
         catch (const PDNSException& e) {
-          g_log << Logger::Warning << __PRETTY_FUNCTION__ << " could not parse primary address '" << m << "' for zone '" << ci.d_zone << "': " << e.reason << endl;
+          SLOG(g_log << Logger::Warning << __PRETTY_FUNCTION__ << " could not parse primary address '" << m << "' for zone '" << ci.d_zone << "': " << e.reason << endl,
+               d_slog->error(Logr::Warning, e.reason, "invalid primary address", "zone", Logging::Loggable(ci.d_zone), "primary", Logging::Loggable(m)));
           members.clear();
           return false;
         }
@@ -1500,7 +1526,8 @@ void GSQLBackend::APILookup(const QType& qtype, const DNSName& qname, domainid_t
 
 bool GSQLBackend::list(const ZoneName &target, domainid_t domain_id, bool include_disabled)
 {
-  DLOG(g_log<<"GSQLBackend constructing handle for list of domain id '"<<domain_id<<"'"<<endl);
+  DLOG(SLOG(g_log<<"GSQLBackend constructing handle for list of domain id '"<<domain_id<<"'"<<endl,
+            d_slog->info(Logr::Debug, "preparing a list query", "domain id", Logging::Loggable(domain_id))));
 
   try {
     reconnectIfNeeded();
@@ -1554,7 +1581,8 @@ bool GSQLBackend::listSubZone(const ZoneName &zone, domainid_t domain_id) {
 bool GSQLBackend::get(DNSResourceRecord &r)
 {
 #if 0 // could make sense, but we don't have a qtype to use here...
-  g_log << "GSQLBackend get() was called for "<<qtype.toString() << " record: ";
+  SLOG(g_log << "GSQLBackend get() was called for "<<qtype.toString() << " record: ",
+       d_slog->info(Logr::Debug, "get", "type", Logging::Loggable(qtype)));
 #endif
   SSqlStatement::row_t row;
 
@@ -1819,7 +1847,8 @@ bool GSQLBackend::deleteDomain(const ZoneName &domain)
 
 void GSQLBackend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled)
 {
-  DLOG(g_log<<"GSQLBackend retrieving all domains."<<endl);
+  DLOG(SLOG(g_log<<"GSQLBackend retrieving all domains."<<endl,
+            d_slog->info(Logr::Debug, "preparing a get-all-domains query")));
 
   try {
     reconnectIfNeeded();
@@ -1859,7 +1888,8 @@ void GSQLBackend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, boo
         di.kind = DomainInfo::Consumer;
       }
       else {
-        g_log<<Logger::Warning<<"Could not parse domain kind '"<<row[3]<<"' as one of 'MASTER', 'SLAVE' or 'NATIVE'. Setting zone kind to 'NATIVE'"<<endl;
+        SLOG(g_log<<Logger::Warning<<"Could not parse domain kind '"<<row[3]<<"' as one of 'MASTER', 'SLAVE' or 'NATIVE'. Setting zone kind to 'NATIVE'"<<endl,
+             d_slog->info(Logr::Warning, "zone type is neither 'MASTER', 'SLAVE' or 'NATIVE', defaulting to 'NATIVE'", "zone", Logging::Loggable(di.zone), "type", Logging::Loggable(row[3])));
         di.kind = DomainInfo::Native;
       }
 
@@ -1870,7 +1900,8 @@ void GSQLBackend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, boo
           try {
             di.primaries.emplace_back(m, 53);
           } catch(const PDNSException &e) {
-            g_log << Logger::Warning << "Could not parse primary address (" << m << ") for zone '" << di.zone << "': " << e.reason;
+            SLOG(g_log << Logger::Warning << "Could not parse primary address (" << m << ") for zone '" << di.zone << "': " << e.reason,
+                 d_slog->error(Logr::Warning, e.reason, "invalid primary address", "zone", Logging::Loggable(di.zone), "primary", Logging::Loggable(m)));
           }
         }
       }
