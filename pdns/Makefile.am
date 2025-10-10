@@ -544,7 +544,6 @@ sdig_SOURCES = \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
 	dnswriter.cc dnswriter.hh \
-	dolog.hh \
 	ednscookies.cc ednscookies.hh \
 	ednsextendederror.cc ednsextendederror.hh \
 	ednssubnet.cc iputils.cc \
