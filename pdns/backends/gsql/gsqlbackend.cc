@@ -557,14 +557,6 @@ void GSQLBackend::getUpdatedPrimaries(vector<DomainInfo>& updatedDomains, std::u
     di.backend = this;
 
     try {
-      pdns::checked_stoi_into(di.id, row[0]);
-    }
-    catch (const std::exception& e) {
-      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " could not convert id '" << row[0] << "' for zone '" << di.zone << "' into an integer: " << e.what() << endl;
-      continue;
-    }
-
-    try {
       di.zone = ZoneName(row[1]);
     }
     catch (const std::runtime_error& e) {
@@ -573,6 +565,14 @@ void GSQLBackend::getUpdatedPrimaries(vector<DomainInfo>& updatedDomains, std::u
     }
     catch (PDNSException& ae) {
       g_log << Logger::Warning << __PRETTY_FUNCTION__ << " zone name '" << row[1] << "' is not a valid DNS name: " << ae.reason << endl;
+      continue;
+    }
+
+    try {
+      pdns::checked_stoi_into(di.id, row[0]);
+    }
+    catch (const std::exception& e) {
+      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " could not convert id '" << row[0] << "' for zone '" << di.zone << "' into an integer: " << e.what() << endl;
       continue;
     }
 
