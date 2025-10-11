@@ -313,6 +313,7 @@ pub struct IncomingTLS {
     // #[serde(default, skip_serializing_if = "crate::is_default")]
     // password: String, Not currently supported, as rusttls does not support this out of the box
 }
+
 #[derive(Deserialize, Serialize, Clone, Debug, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct IncomingWSConfig {
@@ -320,6 +321,33 @@ pub struct IncomingWSConfig {
     addresses: Vec<String>,
     #[serde(default, skip_serializing_if = "crate::is_default")]
     tls: IncomingTLS,
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug, PartialEq)]
+#[serde(deny_unknown_fields)]
+struct OutgoingTLSConfiguration {
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    name: String,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    provider: String,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    suffixes: Vec<String>,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    subnets: Vec<String>,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    validate_certificate: bool,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    ca_store: String,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    verbose_logging: bool,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    subject_name: String,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    subject_address: String,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    ciphers: String,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    ciphers_tls_13: String,
 }
 
 // Two structs used to generated YAML based on a vector of name to value mappings

@@ -56,6 +56,7 @@ auth_build_deps = [    # FIXME: perhaps we should be stealing these from the deb
 rec_build_deps = [
     'libcap-dev',
     'libfstrm-dev',
+    'libgnutls28-dev',
     'libsnmp-dev',
 ]
 rec_bulk_deps = [

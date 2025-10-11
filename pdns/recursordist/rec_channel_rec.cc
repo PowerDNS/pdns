@@ -2020,6 +2020,7 @@ RecursorControlChannel::Answer luaconfig(bool broadcast)
       // Initial proxy mapping
       g_proxyMapping = proxyMapping.empty() ? nullptr : std::make_unique<ProxyMapping>(proxyMapping);
     }
+    TCPOutConnectionManager::setupOutgoingTLSConfigTables(settings);
 
     return {0, "Reloaded dynamic part of YAML configuration\n"};
   }

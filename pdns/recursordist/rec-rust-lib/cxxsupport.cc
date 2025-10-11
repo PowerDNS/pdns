@@ -1396,6 +1396,7 @@ bool pdns::settings::rec::luaItemSet(const pdns::rust::settings::rec::Recursorse
   alldefault = alldefault && settings.recordcache.zonetocaches.empty();
   alldefault = alldefault && settings.recursor.allowed_additional_qtypes.empty();
   alldefault = alldefault && settings.incoming.proxymappings.empty();
+  alldefault = alldefault && settings.outgoing.tls_configurations.empty(); // actually not a Lua item, but very much alike
   return !alldefault;
 }
 

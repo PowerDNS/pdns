@@ -773,6 +773,26 @@ impl IncomingWSConfig {
     }
 }
 
+impl OutgoingTLSConfiguration {
+    pub fn validate(&self, field: &str) -> Result<(), ValidationError> {
+        if self.name.is_empty() {
+            let msg = format!("{}: value may not be empty", field);
+            return Err(ValidationError { msg });
+        }
+        validate_vec(
+            &(field.to_string() + ".suffixes"),
+            &self.suffixes,
+            validate_name,
+        )?;
+        validate_vec(
+            &(field.to_string() + ".subnets"),
+            &self.subnets,
+            validate_subnet,
+        )?;
+        Ok(())
+    }
+}
+
 #[allow(clippy::ptr_arg)] //# Avoids creating a rust::Slice object on the C++ side.
 pub fn validate_auth_zones(field: &str, vec: &Vec<AuthZone>) -> Result<(), ValidationError> {
     validate_vec(field, vec, |field, element| element.validate(field))

@@ -592,6 +592,51 @@ If no ``tls`` section is present, plaintext ``http`` connections are accepted on
 
 If a ``tls`` section is present, clients are required to use ``https`` to contact any of the address-port combinations listen in addresses. At the moment it is not possible to list additional properties of the TLS listener and encrypted key files cannot be used.
 
+OutgoingTLSConfiguration
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+As of version 5.4.0, an outgong TLS (DoT) configurations is defined as
+
+.. code-block:: yaml
+
+   name: A name, default not set.
+   provider: either 'openssl' (default) or 'gnutls'.
+   suffixes: A sequence of domain names, default empty.
+   subnets: A sequence of Subnet strings (no negation supported), default empty.
+   validate_certificate: Set to true to enforce certificate validation, default false.
+   ca_store: CA store file containing certificates in PEM format, default is to use the system CA store.
+   verbose_logging: Wether to log more details on DoT connections, default false.
+   subject_name: The subject name passed in the SNI value of the TLS handshake, and against which to validate the certificate presented if applicable. Default is to use the nameserver name if available. If set this value supersedes any subject_addr one.
+   subject_address: The subject IP address passed in the SNI value of the TLS handshake, and against which to validate the certificate presented by the backend. Defaul is to use the remote IP address if no nameserver name is available.
+   ciphers: The TLS ciphers to use. The exact format depends on the provider used. When the OpenSSL provider is used, ciphers for TLS 1.3 must be specified via ciphers_tls_13.
+   ciphers_tls_13: The ciphers to use for TLS 1.3, when the OpenSSL provider is used. When the GnuTLS provider is used, ciphers applies regardless of the TLS protocol and this setting is not used.
+
+A :ref:`setting-yaml-outgoing.tls_configurations` section contains a sequence of `OutgoingTLSConfiguration`_, for example:
+
+.. code-block:: yaml
+
+  outgoing:
+    tls_configurations:
+    - name: dotwithverify
+      suffixes: [powerdns.com]
+      validate_certificate: true
+    - name: fwtoquad1quad9
+      subnets: [1.1.1.0/24,9.9.9.9]
+      validate_certificate: true
+      verbose_logging: true
+    - name: fwtogoogle
+      subnets: [8.8.8.8]
+      subject_name: dns.google
+      validate_certificate: true
+
+The first entry matches on a name server name in ``powerdns.com``, and switches on validation.
+THe second entry matches on a subnet or IP addresses, and enables (IP based) certificate validation and verbose logging.
+The third entry matches on IP, and switches on validation with the SNI name ``dns.google``.
+
+When looking for an outgoing TLS configuration matching is done against the ``subnets`` lists with the remote IP as key.
+This is typically a forwarding target.
+If no match is found on IP, a suffix match against the names in the ``suffixes`` lists is done using the nameserver name as key.
+If again no match is found, the default configuration is used, this mean using the ``openssl`` provider, no certificate validation and no verbose logging.
 
 The YAML settings
 -----------------

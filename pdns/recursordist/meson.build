@@ -83,6 +83,7 @@ subdir('meson' / 'dnstap')                  # DNSTAP through libfstream
 subdir('meson' / 'libcurl')                 # Curl
 subdir('meson' / 'libcap')                  # Capabilities
 subdir('meson' / 'dlopen')                  # our Rust static library needs dlopen
+subdir('meson' / 'gnutls')                  # GNUTLS
 
 subdir('rec-rust-lib')
 
@@ -327,6 +328,7 @@ deps = [
   dep_libsnmp,
   dep_libsodium,
   dep_libssl,
+  dep_gnutls,
   dep_lua,
   dep_protozero,
   dep_yahttp_header_only,
