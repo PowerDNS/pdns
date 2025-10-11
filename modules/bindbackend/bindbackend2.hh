@@ -194,7 +194,6 @@ public:
   void lookupEnd() override;
   void getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled = false) override;
 
-  static DNSBackend* maker();
   static std::mutex s_startup_lock;
 
   void setStale(domainid_t domain_id) override;
