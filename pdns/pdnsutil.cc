@@ -1886,14 +1886,20 @@ static void copyZoneContents(const DomainInfo& srcinfo, const ZoneName& dstzone,
     num_records++;
   }
 
-  // Copy comments
+  // Copy comments, if any
   if (src->listComments(srcinfo.id)) {
-    if ((tgt->getCapabilities() & DNSBackend::CAP_COMMENTS) == 0) {
-      tgt->abortTransaction();
-      throw PDNSException("Target backend does not support comments - remove them first");
-    }
+    bool firstComment{true};
     Comment comm;
-    while(src->getComment(comm)) {
+    while (src->getComment(comm)) {
+      if (firstComment) {
+        firstComment = false;
+        if ((tgt->getCapabilities() & DNSBackend::CAP_COMMENTS) == 0) {
+          // TODO: consider simply warning about comments not being copied, and
+          // skip them, rather than abort everything?
+          tgt->abortTransaction();
+          throw PDNSException("Target backend does not support comments - remove them first");
+        }
+      }
       comm.domain_id = dstinfo.id;
       if (rewriteNames) {
         comm.qname.makeUsRelative(srcinfo.zone);
