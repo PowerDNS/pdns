@@ -7,6 +7,9 @@ import struct
 import sys
 import threading
 import requests
+import json
+import base64
+import argparse
 
 # run: protoc -I=../pdns/ --python_out=. ../pdns/dnsmessage.proto
 # to generate dnsmessage_pb2
@@ -30,9 +33,10 @@ except:
 
 class PDNSPBConnHandler(object):
 
-    def __init__(self, conn, oturl):
+    def __init__(self, conn, oturl, printjson):
         self._conn = conn
         self._oturl = oturl
+        self._printjson = printjson
 
     def run(self):
         while True:
@@ -76,7 +80,7 @@ class PDNSPBConnHandler(object):
         self._conn.close()
 
     def postOT(self, msg):
-        print("- Posting OTData to " + oturl)
+        print("- Posting OTData to " + self._oturl)
         headers = {'Content-Type': 'application/x-protobuf'}
         answer = requests.post(self._oturl, data = msg, headers = headers)
         print('  - ' + str(answer))
@@ -111,13 +115,35 @@ class PDNSPBConnHandler(object):
             print("- Question: %d, %d, %s" % (qclass,
                                               message.question.qType,
                                               message.question.qName))
+
+    def convertKV(self, parent, key, value):
+        if isinstance(value, dict):
+            for key1, value1 in value.items():
+                self.convertKV(value, key1, value1)
+        elif isinstance(value, list):
+            for key1, value1 in enumerate(value):
+                self.convertKV(value, key1, value1)
+        else:
+            if key in ('trace_id', 'span_id', 'parent_span_id'):
+                parent[key] = binascii.hexlify(base64.b64decode(value)).decode("utf-8")
+
+    def convertIDs(self, values):
+        if isinstance(values, dict):
+            for key, value in values.items():
+                self.convertKV(values, key, value)
+        elif isintance(values, list):
+            for key, value in enumerate(values):
+                self.convertKV(values, key, value)
+
     def printOT(self, msg):
-        if opentelemetryAvailable:
+        if self._printjson and opentelemetryAvailable:
             if msg.HasField('openTelemetryData'):
                 json_string = None
                 otmsg = opentelemetry.proto.trace.v1.trace_pb2.TracesData()
                 otmsg.ParseFromString(msg.openTelemetryData)
-                json_string = google.protobuf.json_format.MessageToJson(otmsg, preserving_proto_field_name=True)
+                values = google.protobuf.json_format.MessageToDict(otmsg, preserving_proto_field_name=True)
+                self.convertIDs(values)
+                json_string = json.dumps(values, indent=True)
                 print("- openTelemetry: " + json_string)
         else:
             print("- openTelemetry decoding not available, see the comments in ProtoBuffer.py to make it available.")
@@ -370,8 +396,9 @@ class PDNSPBConnHandler(object):
 
 class PDNSPBListener(object):
 
-    def __init__(self, addr, port, oturl):
+    def __init__(self, addr, port, oturl, printjson):
         self._oturl = oturl
+        self._printjson = printjson
         res = socket.getaddrinfo(addr, port, socket.AF_UNSPEC,
                                  socket.SOCK_STREAM, 0,
                                  socket.AI_PASSIVE)
@@ -393,7 +420,7 @@ class PDNSPBListener(object):
         while True:
             (conn, _) = self._sock.accept()
 
-            handler = PDNSPBConnHandler(conn, self._oturl)
+            handler = PDNSPBConnHandler(conn, self._oturl, self._printjson)
             thread = threading.Thread(name='Connection Handler',
                                       target=PDNSPBConnHandler.run,
                                       args=[handler])
@@ -405,10 +432,17 @@ class PDNSPBListener(object):
 
 if __name__ == "__main__":
     oturl = None
-    if len(sys.argv) == 4:
-        oturl = sys.argv[3]
-    if len(sys.argv) != 3 and len(sys.argv) != 4:
-        sys.exit('Usage: %s <address> <port> [OpenTraceURL]' % (sys.argv[0]))
+    printjson = False
+    parser = argparse.ArgumentParser(
+                    prog='ProtobufLogger',
+                    description='Listens for and prints dnsmessage.proto messages and optionally posts OT Trace data to a collector URL',
+                    epilog='URL is an optional url of a OpenTelemetry Trace collector endpoint'
+    )
 
-    PDNSPBListener(sys.argv[1], sys.argv[2], oturl).run()
+    parser.add_argument('-json', action='store_true')
+    parser.add_argument('address')
+    parser.add_argument('port')
+    parser.add_argument('-url')
+    args = parser.parse_args();
+    PDNSPBListener(args.address, args.port, args.url, args.json).run()
     sys.exit(0)
