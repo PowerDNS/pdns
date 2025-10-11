@@ -110,6 +110,38 @@ BOOST_AUTO_TEST_CASE(test_Basic)
   holder->stop();
 }
 
+BOOST_AUTO_TEST_CASE(test_Collison)
+{
+  auto holder = std::make_unique<dnsdist::AsynchronousHolder>();
+
+  {
+    uint16_t asyncID = 1;
+    uint16_t queryID = 42;
+    timeval ttd{};
+    gettimeofday(&ttd, nullptr);
+    // timeout in 100 ms
+    const timeval add{0, 100000};
+    ttd = ttd + add;
+
+    holder->push(asyncID, queryID, ttd, std::make_unique<DummyCrossProtocolQuery>());
+    BOOST_CHECK(!holder->empty());
+
+    holder->push(asyncID, queryID, ttd, std::make_unique<DummyCrossProtocolQuery>());
+
+    auto query = holder->get(asyncID, queryID);
+    BOOST_CHECK(holder->empty());
+
+    query = holder->get(asyncID, queryID);
+    BOOST_CHECK(query == nullptr);
+
+    // sleep for 200 ms, to be sure the main thread has
+    // been awakened
+    usleep(200000);
+  }
+
+  holder->stop();
+}
+
 BOOST_AUTO_TEST_CASE(test_TimeoutFailClose)
 {
   auto holder = std::make_unique<dnsdist::AsynchronousHolder>(false);
