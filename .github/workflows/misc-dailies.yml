@@ -136,7 +136,7 @@ jobs:
         env:
           ID: ${{ steps.proxpi-docker.outputs.id }}
         run: |
-          docker logs "${ID}" 2>&1 | grep whl | awk '{print $8}' | cut -d "/" -f 4 | awk -F'-' '{print $1"=="$2}' | sort -u --ignore-case | sed 's/_/-/' | egrep -v "pip==|setuptools==" > /tmp/proxpi.log
+          docker logs "${ID}" 2>&1 | grep whl | awk '{print $8}' | cut -d "/" -f 4 | awk -F'-' '{print $1"=="$2}' | sort -u --ignore-case | sed 's/_/-/g' | egrep -v "pip==|setuptools==" > /tmp/proxpi.log
           cat /tmp/proxpi.log
       - name: check only listed packages were installed
         run: for i in `cat /tmp/proxpi.log`; do grep -qq -i $i ${REQUIREMENTS_FILE} || ( echo "$i not found" && exit 1 ); done
