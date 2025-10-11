@@ -321,6 +321,7 @@ testrunner_SOURCES = \
 	opensslsigners.cc opensslsigners.hh \
 	pdnsexception.hh \
 	pollmplexer.cc \
+	protozero-trace.cc protozero-trace.hh \
 	qtype.cc qtype.hh \
 	query-local-address.hh query-local-address.cc \
 	ratelimitedlog.hh \
@@ -374,6 +375,7 @@ testrunner_SOURCES = \
 	test-mtasker.cc \
 	test-negcache_cc.cc \
 	test-packetcache_hh.cc \
+	test-protozero-trace.cc \
 	test-rcpgenerator_cc.cc \
 	test-rec-system-resolve.cc \
 	test-rec-taskqueue.cc \
