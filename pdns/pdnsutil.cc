@@ -1886,24 +1886,36 @@ static void copyZoneContents(const DomainInfo& srcinfo, const ZoneName& dstzone,
     num_records++;
   }
 
-  // Copy comments
+  // Copy comments, if any
   if (src->listComments(srcinfo.id)) {
-    if ((tgt->getCapabilities() & DNSBackend::CAP_COMMENTS) == 0) {
-      tgt->abortTransaction();
-      throw PDNSException("Target backend does not support comments - remove them first");
-    }
+    bool firstComment{true};
+    bool copyComments{true};
     Comment comm;
-    while(src->getComment(comm)) {
-      comm.domain_id = dstinfo.id;
-      if (rewriteNames) {
-        comm.qname.makeUsRelative(srcinfo.zone);
-        comm.qname += dstzone.operator const DNSName&();
+    while (src->getComment(comm)) {
+      if (firstComment) {
+        firstComment = false;
+        if ((tgt->getCapabilities() & DNSBackend::CAP_COMMENTS) == 0) {
+          if (g_force) {
+            copyComments = false;
+          }
+          else {
+            tgt->abortTransaction();
+            throw PDNSException("Target backend does not support comments - remove them first or use --force");
+          }
+        }
       }
-      if (!tgt->feedComment(comm)) {
-        tgt->abortTransaction();
-        throw PDNSException("Failed to feed zone comments");
+      if (copyComments) {
+        comm.domain_id = dstinfo.id;
+        if (rewriteNames) {
+          comm.qname.makeUsRelative(srcinfo.zone);
+          comm.qname += dstzone.operator const DNSName&();
+        }
+        if (!tgt->feedComment(comm)) {
+          tgt->abortTransaction();
+          throw PDNSException("Failed to feed zone comments");
+        }
+        num_comments++;
       }
-      num_comments++;
     }
   }
 
