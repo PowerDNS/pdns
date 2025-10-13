@@ -5056,23 +5056,29 @@ static int B2BMigrate(vector<string>& cmds, const std::string_view synopsis)
     nc=0;
     if (src->listComments(di.id)) {
       bool firstComment{true};
+      bool copyComments{true};
       Comment comm;
       while (src->getComment(comm)) {
         if (firstComment) {
           firstComment = false;
           if ((tgt->getCapabilities() & DNSBackend::CAP_COMMENTS) == 0) {
-            // TODO: consider simply warning about comments not being copied, and
-            // skip them, rather than abort everything?
-            tgt->abortTransaction();
-            throw PDNSException("Target backend does not support comments - remove them first");
+            if (g_force) {
+              copyComments = false;
+            }
+            else {
+              tgt->abortTransaction();
+              throw PDNSException("Target backend does not support comments - remove them first");
+            }
           }
         }
-        comm.domain_id = di_new.id;
-        if (!tgt->feedComment(comm)) {
-          tgt->abortTransaction();
-          throw PDNSException("Failed to feed zone comments");
+        if (copyComments) {
+          comm.domain_id = di_new.id;
+          if (!tgt->feedComment(comm)) {
+            tgt->abortTransaction();
+            throw PDNSException("Failed to feed zone comments");
+          }
+          nc++;
         }
-        nc++;
       }
     }
     // move metadata
