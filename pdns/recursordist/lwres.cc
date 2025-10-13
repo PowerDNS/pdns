@@ -449,7 +449,7 @@ static bool tcpconnect(const OptLog& log, const ComboAddress& remote, const std:
 
 static LWResult::Result tcpsendrecv(const ComboAddress& ip, TCPOutConnectionManager::Connection& connection,
                                     ComboAddress& localip, const vector<uint8_t>& vpacket, size_t& len, PacketBuffer& buf,
-                                    const std::string& nsName, const std::string subjectName)
+                                    const std::string& nsName, const std::string& subjectName)
 {
   socklen_t slen = ip.getSocklen();
   uint16_t tlen = htons(vpacket.size());

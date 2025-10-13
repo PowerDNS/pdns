@@ -246,6 +246,8 @@ def generate_coverage_info(c, binary, product, outputDir):
 def setup_authbind(c):
     c.sudo('touch /etc/authbind/byport/53')
     c.sudo('chmod 755 /etc/authbind/byport/53')
+    c.sudo('touch /etc/authbind/byport/!853')
+    c.sudo('chmod 755 /etc/authbind/byport/!853')
 
 auth_backend_test_deps = dict(
     gsqlite3=['sqlite3'],
