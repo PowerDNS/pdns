@@ -1724,6 +1724,7 @@ std::shared_ptr<DNSResponseActionWrapper> getRemoteLogResponseAction(const Remot
   if (dnsdist::configuration::yaml::getLuaFunctionFromConfiguration(alterFunc, config.alter_function_name, config.alter_function_code, config.alter_function_file, "remote log response action")) {
     actionConfig.alterResponseFunc = std::move(alterFunc);
   }
+  actionConfig.delay = config.delay;
   auto action = dnsdist::actions::getRemoteLogResponseAction(actionConfig);
   return newDNSResponseActionWrapper(std::move(action), config.name);
 #endif

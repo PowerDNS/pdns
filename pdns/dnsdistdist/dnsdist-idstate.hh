@@ -41,6 +41,11 @@
 #include "dnsdist-opentelemetry.hh"
 #include "uuid-utils.hh"
 
+#ifndef DISABLE_PROTOBUF
+#include "dnsdist-protobuf.hh"
+#include "remote_logger.hh"
+#endif
+
 struct ClientState;
 struct DOHUnitInterface;
 struct DOQUnit;
@@ -180,6 +185,9 @@ struct InternalQueryState
   std::unique_ptr<QTag> qTag{nullptr}; // 8
   std::unique_ptr<PacketBuffer> d_packet{nullptr}; // Initial packet, so we can restart the query from the response path if needed // 8
   std::unique_ptr<ProtoBufData> d_protoBufData{nullptr};
+#ifndef DISABLE_PROTOBUF
+  std::vector<std::pair<std::unique_ptr<DNSDistProtoBufMessage>, std::shared_ptr<RemoteLoggerInterface>>> delayedResponseMsgs;
+#endif
   std::unique_ptr<EDNSExtendedError> d_extendedError{nullptr};
   boost::optional<uint32_t> tempFailureTTL{boost::none}; // 8
   ClientState* cs{nullptr}; // 8

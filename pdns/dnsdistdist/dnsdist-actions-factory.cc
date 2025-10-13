@@ -19,8 +19,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include <memory>
 #include <optional>
 #include <unordered_map>
+#include <utility>
 
 #include "dnsdist-actions-factory.hh"
 
@@ -1812,7 +1814,7 @@ class RemoteLogResponseAction : public DNSResponseAction, public boost::noncopya
 public:
   // this action does not stop the processing
   RemoteLogResponseAction(RemoteLogActionConfiguration& config) :
-    d_tagsToExport(std::move(config.tagsToExport)), d_metas(std::move(config.metas)), d_logger(config.logger), d_alterFunc(std::move(config.alterResponseFunc)), d_serverID(config.serverID), d_ipEncryptKey(config.ipEncryptKey), d_ipEncryptMethod(config.ipEncryptMethod), d_exportExtendedErrorsToMeta(std::move(config.exportExtendedErrorsToMeta)), d_includeCNAME(config.includeCNAME)
+    d_tagsToExport(std::move(config.tagsToExport)), d_metas(std::move(config.metas)), d_logger(config.logger), d_alterFunc(std::move(config.alterResponseFunc)), d_serverID(config.serverID), d_ipEncryptKey(config.ipEncryptKey), d_ipEncryptMethod(config.ipEncryptMethod), d_exportExtendedErrorsToMeta(std::move(config.exportExtendedErrorsToMeta)), d_includeCNAME(config.includeCNAME), d_delay(config.delay)
   {
     if (!d_ipEncryptKey.empty() && d_ipEncryptMethod == "ipcrypt-pfx") {
       d_ipcrypt2 = pdns::ipcrypt2::IPCrypt2(pdns::ipcrypt2::IPCryptMethod::pfx, d_ipEncryptKey);
@@ -1859,13 +1861,18 @@ public:
       (*d_alterFunc)(response, &message);
     }
 
-    static thread_local std::string data;
-    data.clear();
-    message.serialize(data);
-    if (!response->ids.d_rawProtobufContent.empty()) {
-      data.insert(data.end(), response->ids.d_rawProtobufContent.begin(), response->ids.d_rawProtobufContent.end());
+    if (d_delay) {
+      response->ids.delayedResponseMsgs.emplace_back(std::unique_ptr<DNSDistProtoBufMessage>(std::make_unique<DNSDistProtoBufMessage>(message)), std::shared_ptr<RemoteLoggerInterface>(d_logger));
     }
-    d_logger->queueData(data);
+    else {
+      static thread_local std::string data;
+      data.clear();
+      message.serialize(data);
+      if (!response->ids.d_rawProtobufContent.empty()) {
+        data.insert(data.end(), response->ids.d_rawProtobufContent.begin(), response->ids.d_rawProtobufContent.end());
+      }
+      d_logger->queueData(data);
+    }
 
     return Action::None;
   }
@@ -1885,6 +1892,7 @@ private:
   std::optional<pdns::ipcrypt2::IPCrypt2> d_ipcrypt2{std::nullopt};
   std::optional<std::string> d_exportExtendedErrorsToMeta{std::nullopt};
   bool d_includeCNAME;
+  bool d_delay{false};
 };
 
 #endif /* DISABLE_PROTOBUF */

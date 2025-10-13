@@ -48,6 +48,11 @@ Example configuration
        action:
          type: RemoteLog
          logger_name: pblog
+         # Delay ensures that the PB message is sent
+         # after the response is sent to client, instead
+         # of immediately. This ensures all Trace Spans
+         # have proper end timestamps.
+         delay: true
 
 Passing Trace ID and Span ID to downstream servers
 ==================================================
