@@ -5,7 +5,7 @@ option('libsodium', type: 'feature', value: 'auto', description: 'Enable libsodi
 option('libcrypto', type: 'feature', value: 'auto', description: 'Enable OpenSSL libcrypto)')
 option('libcrypto-path', type: 'string', value: '', description: 'Custom path to find OpenSSL libcrypto')
 option('tls-gnutls', type: 'feature', value: 'auto', description: 'GnuTLS-based TLS')
-option('lua', type: 'combo', choices: ['auto', 'luajit', 'lua'], value: 'auto', description: 'Lua implementation to use')
+option('lua', type: 'combo', choices: ['auto', 'luajit', 'lua', 'lua51', 'lua-5.1', 'lua5.1', 'lua52', 'lua-5.2', 'lua5.2', 'lua53', 'lua-5.3', 'lua5.3', 'lua54', 'lua-5.4', 'lua5.4'], value: 'auto', description: 'Lua implementation to use')
 option('hardening', type: 'feature', value: 'auto', description: 'Compiler security checks')
 option('hardening-experimental-cf', type: 'combo', choices: ['disabled', 'full', 'branch', 'return', 'check'], value: 'disabled', description: 'Control Flow hardening')
 option('hardening-experimental-scp', type: 'feature', value: 'disabled', description: 'Stack Clash Protection')
