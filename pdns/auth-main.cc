@@ -1085,6 +1085,8 @@ static int guardian(int argc, char** argv)
   if (isGuarded(argv))
     return 0;
 
+  auto slog = g_slog->withName("guardian");
+
   int infd = 0, outfd = 1;
 
   DynListener dlg(g_programname);
@@ -1106,12 +1108,14 @@ static int guardian(int argc, char** argv)
     setStatus("Launching child");
 
     if (pipe(g_fd1) < 0 || pipe(g_fd2) < 0) {
-      g_log << Logger::Critical << "Unable to open pipe for coprocess: " << stringerror() << endl;
+      SLOG(g_log << Logger::Critical << "Unable to open pipe for coprocess: " << stringerror() << endl,
+           slog->error(Logr::Critical, errno, "Unable to open pipe for coprocess"));
       exit(1);
     }
 
     if (!(g_fp = fdopen(g_fd2[0], "r"))) {
-      g_log << Logger::Critical << "Unable to associate a file pointer with pipe: " << stringerror() << endl;
+      SLOG(g_log << Logger::Critical << "Unable to associate a file pointer with pipe: " << stringerror() << endl,
+           slog->error(Logr::Critical, errno, "Unable to associate a file pointer with pipe"));
       exit(1);
     }
     setbuf(g_fp, nullptr); // no buffering please, confuses select
@@ -1128,7 +1132,8 @@ static int guardian(int argc, char** argv)
 
       if (::arg()["config-name"] != "") {
         progname += "-" + ::arg()["config-name"];
-        g_log << Logger::Error << "Virtual configuration name: " << ::arg()["config-name"] << endl;
+        SLOG(g_log << Logger::Error << "Virtual configuration name: " << ::arg()["config-name"] << endl,
+             slog->info(Logr::Error, "Virtual configuration name", "name", Logging::Loggable(::arg()["config-name"])));
       }
 
       newargv[0] = strdup(const_cast<char*>((progname + "-instance").c_str()));
@@ -1137,7 +1142,8 @@ static int guardian(int argc, char** argv)
       }
       newargv[n] = nullptr;
 
-      g_log << Logger::Error << "Guardian is launching an instance" << endl;
+      SLOG(g_log << Logger::Error << "Guardian is launching an instance" << endl,
+           slog->info(Logr::Error, "Guardian is launching an instance"));
       close(g_fd1[1]);
       fclose(g_fp); // this closes g_fd2[0] for us
 
@@ -1151,14 +1157,26 @@ static int guardian(int argc, char** argv)
         close(g_fd2[1]);
       }
       if (execvp(argv[0], newargv) < 0) {
-        g_log << Logger::Error << "Unable to execvp '" << argv[0] << "': " << stringerror() << endl;
-        char** p = newargv;
-        while (*p)
-          g_log << Logger::Error << *p++ << endl;
-
+        if (g_slogStructured) {
+          // This is ugly, but will do until newargv is converted to a
+          // std::array.
+          std::vector<char*> vecargv;
+          vecargv.reserve(argc);
+          for (n = 0; n < argc; ++n) {
+            vecargv[n] = newargv[n];
+          }
+          slog->error(Logr::Error, errno, "Unable to execvp", "command", Logging::Loggable(argv[0]), "arguments", Logging::IterLoggable(vecargv.cbegin(), vecargv.cend()));
+        }
+        else {
+          g_log << Logger::Error << "Unable to execvp '" << argv[0] << "': " << stringerror() << endl;
+          char** p = newargv;
+          while (*p)
+            g_log << Logger::Error << *p++ << endl;
+        }
         exit(1);
       }
-      g_log << Logger::Error << "execvp returned!!" << endl;
+      SLOG(g_log << Logger::Error << "execvp returned!!" << endl,
+           slog->error(Logr::Error, "execv returned!!"));
       // never reached
     }
     else if (pid > 0) { // parent
@@ -1182,8 +1200,13 @@ static int guardian(int argc, char** argv)
         int ret = waitpid(pid, &status, WNOHANG);
 
         if (ret < 0) {
-          g_log << Logger::Error << "In guardian loop, waitpid returned error: " << stringerror() << endl;
-          g_log << Logger::Error << "Dying" << endl;
+          if (g_slogStructured) {
+            slog->error(Logr::Error, errno, "In guardian loop, waitpid returned an error. Dying");
+          }
+          else {
+            g_log << Logger::Error << "In guardian loop, waitpid returned error: " << stringerror() << endl;
+            g_log << Logger::Error << "Dying" << endl;
+          }
           exit(1);
         }
         else if (ret) // something exited
@@ -1206,11 +1229,13 @@ static int guardian(int argc, char** argv)
         int ret = WEXITSTATUS(status);
 
         if (ret == 99) {
-          g_log << Logger::Error << "Child requested a stop, exiting" << endl;
+          SLOG(g_log << Logger::Error << "Child requested a stop, exiting" << endl,
+               slog->error(Logr::Error, "Child requested a stop, exiting"));
           exit(1);
         }
         setStatus("Child died with code " + std::to_string(ret));
-        g_log << Logger::Error << "Our pdns instance exited with code " << ret << ", respawning" << endl;
+        SLOG(g_log << Logger::Error << "Our pdns instance exited with code " << ret << ", respawning" << endl,
+             slog->error(Logr::Error, "Our pdns instance exited, respawning", "pid", Logging::Loggable(pid), "status code", Logging::Loggable(ret)));
 
         sleep(1);
         continue;
@@ -1218,20 +1243,30 @@ static int guardian(int argc, char** argv)
       if (WIFSIGNALED(status)) {
         int sig = WTERMSIG(status);
         setStatus("Child died because of signal " + std::to_string(sig));
-        g_log << Logger::Error << "Our pdns instance (" << pid << ") exited after signal " << sig << endl;
+        if (g_slogStructured) {
+          slog->error(Logr::Error, "Our pdns instance exited after signal, respawning", "pid", Logging::Loggable(pid), "signal", Logging::Loggable(sig),
 #ifdef WCOREDUMP
-        if (WCOREDUMP(status))
-          g_log << Logger::Error << "Dumped core" << endl;
+                      "coredump", Logging::Loggable(WCOREDUMP(status) ? "yes" : "no")
 #endif
-
-        g_log << Logger::Error << "Respawning" << endl;
+          );
+        }
+        else {
+          g_log << Logger::Error << "Our pdns instance (" << pid << ") exited after signal " << sig << endl;
+#ifdef WCOREDUMP
+          if (WCOREDUMP(status))
+            g_log << Logger::Error << "Dumped core" << endl;
+#endif
+          g_log << Logger::Error << "Respawning" << endl;
+        }
         sleep(1);
         continue;
       }
-      g_log << Logger::Error << "No clue what happened! Respawning" << endl;
+      SLOG(g_log << Logger::Error << "No clue what happened! Respawning" << endl,
+           slog->error(Logr::Error, "No clue what happened! Respawning"));
     }
     else {
-      g_log << Logger::Error << "Unable to fork: " << stringerror() << endl;
+      SLOG(g_log << Logger::Error << "Unable to fork: " << stringerror() << endl,
+           slog->error(Logr::Error, errno, "Unable to fork"));
       exit(1);
     }
   }

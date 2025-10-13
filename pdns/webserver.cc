@@ -684,8 +684,10 @@ void WebServer::go()
           webHandler.detach();
         } else {
           ComboAddress remote;
-          if (client->getRemote(remote))
-            g_log<<Logger::Error<<d_logprefix<<"Webserver closing socket: remote ("<< remote.toString() <<") does not match the set ACL("<<d_acl.toString()<<")"<<endl;
+          if (client->getRemote(remote)) {
+            SLOG(g_log<<Logger::Error<<d_logprefix<<"Webserver closing socket: remote ("<< remote.toString() <<") does not match the set ACL("<<d_acl.toString()<<")"<<endl,
+                 d_slog->info(Logr::Error, "Webserver closing socket, remote does not match the set ACL", "remote", Logging::Loggable(remote), "acl", Logging::Loggable(d_acl)));
+          }
         }
       }
       catch(PDNSException &e) {
