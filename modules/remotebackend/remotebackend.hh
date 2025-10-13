@@ -208,8 +208,6 @@ public:
   void setStale(domainid_t domain_id) override;
   void setFresh(domainid_t domain_id) override;
 
-  static DNSBackend* maker();
-
 private:
   int build();
   std::unique_ptr<Connector> connector;
