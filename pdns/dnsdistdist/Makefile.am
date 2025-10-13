@@ -7,6 +7,7 @@ AM_CPPFLAGS += $(SYSTEMD_CFLAGS) \
 	$(NET_SNMP_CFLAGS) \
 	$(NGHTTP2_CFLAGS) \
 	$(LIBCAP_CFLAGS) \
+	$(IPCRYPT2_CFLAGS) \
 	-I$(top_srcdir)/ext/protozero/include \
 	-I$(top_srcdir)/dnsdist-rust-lib \
 	-I$(top_builddir)/dnsdist-rust-lib \
@@ -22,6 +23,7 @@ SUBDIRS=dnsdist-rust-lib \
 	dnsdist-rust-lib/rust \
 	ext/arc4random \
 	ext/ipcrypt \
+	ext/ipcrypt2 \
 	ext/yahttp
 
 CLEANFILES = \
@@ -204,6 +206,7 @@ dnsdist_SOURCES = \
 	dnsdist-healthchecks.cc dnsdist-healthchecks.hh \
 	dnsdist-idstate.cc dnsdist-idstate.hh \
 	dnsdist-internal-queries.cc dnsdist-internal-queries.hh \
+	dnsdist-ipcrypt2.cc dnsdist-ipcrypt2.hh \
 	dnsdist-kvs.hh dnsdist-kvs.cc \
 	dnsdist-lbpolicies.cc dnsdist-lbpolicies.hh \
 	dnsdist-lua-actions.cc \
@@ -335,6 +338,7 @@ testrunner_SOURCES = \
 	dnsdist-edns.cc dnsdist-edns.hh \
 	dnsdist-frontend.cc dnsdist-frontend.hh \
 	dnsdist-idstate.cc dnsdist-idstate.hh \
+	dnsdist-ipcrypt2.cc dnsdist-ipcrypt2.hh \
 	dnsdist-kvs.cc dnsdist-kvs.hh \
 	dnsdist-lbpolicies.cc dnsdist-lbpolicies.hh \
 	dnsdist-lua-bindings-dnsquestion.cc \
@@ -397,6 +401,7 @@ testrunner_SOURCES = \
 	test-dnscrypt_cc.cc \
 	test-dnsdist-connections-cache.cc \
 	test-dnsdist-dnsparser.cc \
+	test-dnsdist-ipcrypt2_cc.cc \
 	test-dnsdist-lua-ffi.cc \
 	test-dnsdist_cc.cc \
 	test-dnsdistasync.cc \
@@ -440,6 +445,7 @@ dnsdist_LDADD = \
 	$(NET_SNMP_LIBS) \
 	$(LIBCAP_LIBS) \
 	$(IPCRYPT_LIBS) \
+	$(IPCRYPT2_LIBS) \
 	$(ARC4RANDOM_LIBS)
 
 testrunner_LDFLAGS = \
@@ -455,6 +461,7 @@ testrunner_LDADD = \
 	$(LUA_LIBS) \
 	$(RT_LIBS) \
 	$(LIBCAP_LIBS) \
+	$(IPCRYPT2_LIBS) \
 	$(ARC4RANDOM_LIBS)
 
 if HAVE_CDB
