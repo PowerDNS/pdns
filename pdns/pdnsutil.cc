@@ -3814,7 +3814,7 @@ static int createBindDb([[maybe_unused]] vector<string>& cmds, [[maybe_unused]] 
     return usage(synopsis);
   }
   try {
-    SSQLite3 db(cmds.at(0), "", true); // create=ok //NOLINT(readability-identifier-length)
+    SSQLite3 db(g_slog, cmds.at(0), "", true); // create=ok //NOLINT(readability-identifier-length)
     vector<string> statements;
     stringtok(statements, static_cast<char *>(sqlCreate), ";");
     for(const string& statement :  statements) {

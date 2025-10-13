@@ -150,7 +150,7 @@ void Bind2Backend::setupDNSSEC()
   if (getArg("dnssec-db").empty() || d_hybrid)
     return;
   try {
-    d_dnssecdb = std::make_shared<SSQLite3>(getArg("dnssec-db"), getArg("dnssec-db-journal-mode"));
+    d_dnssecdb = std::make_shared<SSQLite3>(d_slog, getArg("dnssec-db"), getArg("dnssec-db-journal-mode"));
     setupStatements();
   }
   catch (SSqlException& se) {
