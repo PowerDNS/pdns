@@ -1071,10 +1071,13 @@ void Bind2Backend::loadConfig(string* status) // NOLINT(readability-function-cog
         }
         catch (std::system_error& ae) {
           ostringstream msg;
-          if (ae.code().value() == ENOENT && isNew && domain.type == "slave")
+          bool missingNewSecondary = ae.code().value() == ENOENT && isNew && kind == DomainInfo::Secondary;
+          if (missingNewSecondary) {
             msg << " error at " + nowTime() << " no file found for new secondary domain '" << domain.name << "'. Has not been AXFR'd yet";
-          else
+          }
+          else {
             msg << " error at " + nowTime() + " parsing '" << domain.name << "' from file '" << domain.filename << "': " << ae.what();
+          }
 
           if (status != nullptr)
             *status += msg.str();
