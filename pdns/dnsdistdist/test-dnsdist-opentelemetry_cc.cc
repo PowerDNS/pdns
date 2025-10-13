@@ -238,12 +238,12 @@ BOOST_AUTO_TEST_CASE(getOTProtobuf)
 {
   auto tracer = pdns::trace::dnsdist::Tracer::getTracer();
   auto data = tracer->getOTProtobuf();
-  BOOST_TEST(data.size() == 31U);
+  BOOST_TEST(data.size() == 54U);
 
   tracer->activate();
   tracer->setTraceAttribute("foo", AnyValue{"bar"});
   data = tracer->getOTProtobuf();
-  BOOST_TEST(data.size() == 49U);
+  BOOST_TEST(data.size() == 68U);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

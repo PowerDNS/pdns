@@ -45,6 +45,7 @@ TracesData Tracer::getTracesData()
               "service.name", pdns::trace::AnyValue{"dnsdist"}},
           }},
         .scope_spans = std::vector<pdns::trace::ScopeSpans>{{.scope = {
+                                                               .name = "queryFromFrontend",
                                                                .attributes = {d_attributes.begin(), d_attributes.end()},
                                                              },
                                                              .spans = {}}}}}};
@@ -59,6 +60,7 @@ TracesData Tracer::getTracesData()
           .span_id = preActivationTrace.span_id,
           .parent_span_id = preActivationTrace.parent_span_id,
           .name = preActivationTrace.name,
+          .kind = pdns::trace::Span::SpanKind::SPAN_KINSERVER,
           .start_time_unix_nano = preActivationTrace.start_time_unix_nano,
           .end_time_unix_nano = preActivationTrace.end_time_unix_nano,
         });
