@@ -286,9 +286,9 @@ union ComboAddress
 
   [[nodiscard]] bool isUnspecified() const
   {
+    static const ComboAddress unspecifiedV4("0.0.0.0:0");
+    static const ComboAddress unspecifiedV6("[::]:0");
     const auto compare = ComboAddress::addressOnlyEqual();
-    const ComboAddress unspecifiedV4("0.0.0.0:0");
-    const ComboAddress unspecifiedV6("[::]:0");
     return compare(*this, unspecifiedV4) || compare(*this, unspecifiedV6);
   }
 
