@@ -47,7 +47,7 @@ gSQLite3Backend::gSQLite3Backend(const std::string& mode, const std::string& suf
   }
 
   try {
-    auto ptr = std::unique_ptr<SSql>(new SSQLite3(getArg("database"), getArg("pragma-journal-mode")));
+    auto ptr = std::unique_ptr<SSql>(new SSQLite3(d_slog, getArg("database"), getArg("pragma-journal-mode")));
     if (!getArg("pragma-synchronous").empty()) {
       ptr->execute("PRAGMA synchronous=" + getArg("pragma-synchronous"));
     }
