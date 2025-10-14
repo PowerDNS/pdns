@@ -1012,6 +1012,8 @@ Servers that are not assigned to a specific pool get assigned to the default poo
     Set to false if dnsdist should disable the EDNS Client Subnet :doc:`../advanced/zero-scope` feature when looking up into the cache,
     when all servers from this pool are down.
 
+    :param bool enabled: Whether to enable the zero scope feature for this pool
+
   .. method:: ServerPool:setECS()
 
     Set to true if dnsdist should add EDNS Client Subnet information to the query before looking up into the cache,
