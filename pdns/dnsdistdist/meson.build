@@ -541,6 +541,7 @@ test_sources += files(
   src_dir / 'test-dnsdistrings_cc.cc',
   src_dir / 'test-dnsdistrules_cc.cc',
   src_dir / 'test-dnsdistsvc_cc.cc',
+  src_dir / 'test-dnsdistserverpool.cc',
   src_dir / 'test-dnsdisttcp_cc.cc',
   src_dir / 'test-dnsparser_cc.cc',
   src_dir / 'test-iputils_hh.cc',

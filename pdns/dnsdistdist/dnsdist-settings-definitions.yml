@@ -2040,6 +2040,14 @@ pool:
       type: "String"
       default: ""
       description: "The name of the load-balancing policy associated to this pool. If left empty, the global policy will be used"
+    - name: "use_ecs"
+      type: "bool"
+      default: "false"
+      description: "Whether to add EDNS Client Subnet information to the query before looking up into the cache, when all servers from this pool are down. If at least one server is up, the preference of the selected server is used, this parameter is only useful if all the backends in this pool are down and have EDNS Client Subnet enabled, since the queries in the cache will have been inserted with ECS information"
+    - name: "use_zero_scope"
+      type: "bool"
+      default: "true"
+      description: "Whether to enable the EDNS Client Subnet :doc:`../advanced/zero-scope` feature, which does a cache lookup for an answer valid for all subnets (ECS scope of 0) before adding ECS information to the query and doing the regular lookup, when all servers from this pool are down. If at least one server is up, the preference of the selected server is used, this parameter is only useful if all the backends in this pool are down, have EDNS Client Subnet enabled and zero scope disabled"
 
 custom_load_balancing_policy:
   description: "Settings for a custom load-balancing policy"

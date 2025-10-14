@@ -416,6 +416,7 @@ testrunner_SOURCES = \
 	test-dnsdistpacketcache_cc.cc \
 	test-dnsdistrings_cc.cc \
 	test-dnsdistrules_cc.cc \
+	test-dnsdistserverpool.cc \
 	test-dnsdistsvc_cc.cc \
 	test-dnsdisttcp_cc.cc \
 	test-dnsparser_cc.cc \

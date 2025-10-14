@@ -84,19 +84,19 @@ public:
       return d_selected.has_value();
     }
 
-    DownstreamState* operator->() const noexcept
+    DownstreamState* operator->() const
     {
       return (*d_backends)[*d_selected].second.get();
     }
 
-    const std::shared_ptr<DownstreamState>& get() const noexcept
+    const std::shared_ptr<DownstreamState>& get() const
     {
       return (*d_backends)[*d_selected].second;
     }
 
   private:
     const NumberedServerVector* d_backends{nullptr};
-    std::optional<SelectedServerPosition> d_selected;
+    std::optional<SelectedServerPosition> d_selected{std::nullopt};
   };
 
   SelectedBackend getSelectedBackend(const ServerPolicy::NumberedServerVector& servers, DNSQuestion& dnsQuestion) const;
