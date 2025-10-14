@@ -944,4 +944,28 @@ BOOST_AUTO_TEST_CASE(test_parseIPAndPort)
   }
 }
 
+BOOST_AUTO_TEST_CASE(test_unspecified)
+{
+  struct TestParams
+  {
+    std::string str;
+    bool unspecified;
+  };
+  const std::array<TestParams, 8> tests{{
+    {"0.0.0.0:0", true},
+    {"[::]:0", true},
+    {"0.0.0.0:853", true},
+    {"[::]:853", true},
+    {"192.0.2.1:0", false},
+    {"192.0.2.1:853", false},
+    {"[2001:db8::1]:0", false},
+    {"[2001:db8::1]:853", false}
+  }};
+
+  for (const auto& test : tests) {
+    const ComboAddress address(test.str);
+    BOOST_CHECK_EQUAL(address.isUnspecified(), test.unspecified);
+  }
+}
+
 BOOST_AUTO_TEST_SUITE_END()
