@@ -215,6 +215,21 @@ void Tracer::setSpanAttribute([[maybe_unused]] const SpanID& spanid, [[maybe_unu
 #endif
 }
 
+SpanID Tracer::getRootSpanID()
+{
+#ifdef DISABLE_PROTOBUF
+  return 0;
+#else
+  if (auto spans = d_preActivationSpans.read_only_lock(); spans->size() != 0) {
+    auto iter = std::find_if(spans->cbegin(), spans->cend(), [](const auto& span) { return span.parent_span_id == pdns::trace::s_emptySpanID; });
+    if (iter != spans->cend()) {
+      return iter->span_id;
+    }
+  }
+  return SpanID{};
+#endif
+}
+
 SpanID Tracer::getLastSpanID()
 {
 #ifdef DISABLE_PROTOBUF

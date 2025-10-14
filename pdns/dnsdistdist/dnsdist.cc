@@ -591,7 +591,7 @@ bool processResponse(PacketBuffer& response, DNSResponse& dnsResponse, bool mute
 {
   pdns::trace::dnsdist::Tracer::Closer closer;
   if (auto tracer = dnsResponse.ids.getTracer(); tracer != nullptr && dnsResponse.ids.tracingEnabled) {
-    closer = tracer->openSpan("processResponse");
+    closer = tracer->openSpan("processResponse", tracer->getRootSpanID());
   }
 
   const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;

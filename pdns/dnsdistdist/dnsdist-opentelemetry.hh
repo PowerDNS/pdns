@@ -146,6 +146,13 @@ public:
   void closeSpan(const SpanID& spanID);
 
   /**
+   * @brief Get the top-most SpanID
+   *
+   * @return The SpanID of the root Span
+   */
+  [[nodiscard]] SpanID getRootSpanID();
+
+  /**
    * @brief Get the last SpanID generated
    *
    * @return The last generated SpanID, or empty SpanID when none exist
