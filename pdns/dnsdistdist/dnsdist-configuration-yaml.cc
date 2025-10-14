@@ -1227,6 +1227,8 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
         if (!pool.policy.empty()) {
           poolIt->second.policy = getRegisteredTypeByName<ServerPolicy>(pool.policy);
         }
+        poolIt->second.setECS(pool.use_ecs);
+        poolIt->second.setZeroScope(pool.use_zero_scope);
       });
     }
 
