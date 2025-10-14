@@ -120,8 +120,6 @@ struct InternalQueryState
     std::string d_requestorID;
   };
 
-  // Whether or not Open Telemetry tracing is enabled for this query
-  bool tracingEnabled = false;
   /**
    * @brief Returns the Tracer, but only if OpenTelemetry tracing is globally enabled
    *
@@ -180,6 +178,10 @@ struct InternalQueryState
   PacketBuffer xskPacketHeader; // 24
 #endif /* HAVE_XSK */
   StopWatch queryRealTime{true}; // 24
+private:
+  std::shared_ptr<pdns::trace::dnsdist::Tracer> d_OTTracer{nullptr};
+
+public:
   std::shared_ptr<DNSDistPacketCache> packetCache{nullptr}; // 16
   std::unique_ptr<DNSCryptQuery> dnsCryptQuery{nullptr}; // 8
   std::unique_ptr<QTag> qTag{nullptr}; // 8
@@ -221,9 +223,7 @@ struct InternalQueryState
   bool selfGenerated{false};
   bool cacheHit{false};
   bool staleCacheHit{false};
-
-private:
-  std::shared_ptr<pdns::trace::dnsdist::Tracer> d_OTTracer{nullptr};
+  bool tracingEnabled{false}; // Whether or not Open Telemetry tracing is enabled for this query
 };
 
 struct IDState
