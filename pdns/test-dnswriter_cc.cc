@@ -248,6 +248,84 @@ BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_ipv6hint) {
   32,1,13,184,0,0,0,0,0,0,0,0,0,0,0,2}));
 }
 
+BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_dohpath) {
+  DNSName name("powerdns.com.");
+  vector<uint8_t> packet;
+  DNSPacketWriter pwR(packet, name, QType::SVCB, QClass::IN, 0);
+  pwR.getHeader()->qr = 1;
+
+  set<SvcParam> params({SvcParam(SvcParam::dohpath, "a very bogus dohpath value")});
+
+  pwR.startRecord(name, QType::SVCB);
+  pwR.commit();
+  auto start = pwR.getContent().size();
+
+  pwR.xfrSvcParamKeyVals(params);
+  pwR.commit();
+  auto cit = pwR.getContent().begin();
+  for (size_t i = 0; i<start; i++) {
+    cit++;
+  }
+
+  vector content(cit, pwR.getContent().end());
+  BOOST_CHECK(content == vector<uint8_t>({0, 7, 0, 26,
+    'a',' ','v','e','r','y',' ','b','o','g','u','s',' ',
+    'd','o','h','p','a','t','h',' ','v','a','l','u','e'
+  }));
+}
+
+BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_ohttp) {
+  DNSName name("powerdns.com.");
+  vector<uint8_t> packet;
+  DNSPacketWriter pwR(packet, name, QType::SVCB, QClass::IN, 0);
+  pwR.getHeader()->qr = 1;
+
+  set<SvcParam> params({SvcParam(SvcParam::ohttp)});
+
+  pwR.startRecord(name, QType::SVCB);
+  pwR.commit();
+  auto start = pwR.getContent().size();
+
+  pwR.xfrSvcParamKeyVals(params);
+  pwR.commit();
+  auto cit = pwR.getContent().begin();
+  for (size_t i = 0; i<start; i++) {
+    cit++;
+  }
+
+  vector content(cit, pwR.getContent().end());
+  BOOST_CHECK(content == vector<uint8_t>({0, 8, 0, 0}));
+}
+
+BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_tls_supported_groups) {
+  DNSName name("powerdns.com.");
+  vector<uint8_t> packet;
+  DNSPacketWriter pwR(packet, name, QType::SVCB, QClass::IN, 0);
+  pwR.getHeader()->qr = 1;
+
+  vector<uint16_t> groups({29, 23});
+  set<SvcParam> params({SvcParam(SvcParam::tls_supported_groups, std::move(groups))});
+
+  pwR.startRecord(name, QType::SVCB);
+  pwR.commit();
+  auto start = pwR.getContent().size();
+
+  pwR.xfrSvcParamKeyVals(params);
+  pwR.commit();
+  auto cit = pwR.getContent().begin();
+  for (size_t i = 0; i<start; i++) {
+    cit++;
+  }
+
+  vector<uint8_t> content(cit, pwR.getContent().end());
+  BOOST_CHECK(content == vector<uint8_t>({
+    0, 9,        // key 9
+    0, 4,        // size
+    0, 0x1d,     // 29
+    0, 0x17,     // 23
+  }));
+}
+
 BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_generic) {
   DNSName name("powerdns.com.");
   vector<uint8_t> packet;
@@ -263,11 +341,12 @@ BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_generic) {
   pwR.xfrSvcParamKeyVals(params);
   pwR.commit();
   auto cit = pwR.getContent().begin();
-  for (size_t i = 0; i<start; i++)
+  for (size_t i = 0; i<start; i++) {
     cit++;
+  }
 
-  vector<uint8_t> c(cit, pwR.getContent().end());
-  BOOST_CHECK(c == vector<uint8_t>({2,154,0,11,
+  vector<uint8_t> content(cit, pwR.getContent().end());
+  BOOST_CHECK(content == vector<uint8_t>({2,154,0,11,
   'm','y','c','o','o','l','v','a','l','u','e'
   }));
 }
@@ -289,11 +368,12 @@ BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_multiple) {
   pwR.xfrSvcParamKeyVals(params);
   pwR.commit();
   auto cit = pwR.getContent().begin();
-  for (size_t i = 0; i<start; i++)
+  for (size_t i = 0; i<start; i++) {
     cit++;
+  }
 
-  vector<uint8_t> c(cit, pwR.getContent().end());
-  BOOST_CHECK(c == vector<uint8_t>({
+  vector<uint8_t> content(cit, pwR.getContent().end());
+  BOOST_CHECK(content == vector<uint8_t>({
   0,1,0,10,2,'h','2',3,'h','2','c',2,'h','3',  // alpn
   0,3,0,2,0,53,                                // port    
   0,6,0,32,                                    // ipv6
@@ -317,11 +397,12 @@ BOOST_AUTO_TEST_CASE(test_NodeOrLocatorID) {
   writer.xfrNodeOrLocatorID(in);
   writer.commit();
   auto cit = writer.getContent().begin();
-  for (size_t i = 0; i<start; i++)
+  for (size_t i = 0; i<start; i++) {
     cit++;
+  }
 
-  vector<uint8_t> c(cit, writer.getContent().end());
-  BOOST_CHECK(c == vector<uint8_t>({
+  vector<uint8_t> content(cit, writer.getContent().end());
+  BOOST_CHECK(content == vector<uint8_t>({
     0, 0, 0, 0,
     0, 0, 0, 1}));
 }

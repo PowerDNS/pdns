@@ -30,7 +30,10 @@ const std::map<std::string, SvcParam::SvcParamKey> SvcParam::SvcParams = {
   {"port", SvcParam::SvcParamKey::port},
   {"ipv4hint", SvcParam::SvcParamKey::ipv4hint},
   {"ech", SvcParam::SvcParamKey::ech},
-  {"ipv6hint", SvcParam::SvcParamKey::ipv6hint}
+  {"ipv6hint", SvcParam::SvcParamKey::ipv6hint},
+  {"dohpath", SvcParam::SvcParamKey::dohpath},
+  {"ohttp", SvcParam::SvcParamKey::ohttp},
+  {"tls-supported-groups", SvcParam::SvcParamKey::tls_supported_groups},
 };
 
 SvcParam::SvcParamKey SvcParam::keyFromString(const std::string& k) {
@@ -65,14 +68,14 @@ std::string SvcParam::keyToString(const SvcParam::SvcParamKey& k) {
 
 SvcParam::SvcParam(const SvcParamKey &key) {
   d_key = key;
-  if (d_key != SvcParamKey::no_default_alpn) {
+  if (d_key != SvcParamKey::no_default_alpn && d_key != SvcParamKey::ohttp) {
     throw std::invalid_argument("can not create non-empty SvcParam for key '" + keyToString(key) + "'");
   }
 }
 
 SvcParam::SvcParam(const SvcParamKey &key, const std::string &value) {
   d_key = key;
-  if (d_key != SvcParamKey::ech && d_key < 7) {
+  if (d_key != SvcParamKey::ech && d_key != SvcParamKey::dohpath && d_key < 10) {
     throw std::invalid_argument("can not create SvcParam for " + keyToString(key) + " with a string value");
   }
   if (d_key == SvcParamKey::ech) {
@@ -130,6 +133,13 @@ SvcParam::SvcParam(const SvcParamKey &key, std::vector<ComboAddress> &&value) {
   d_ipHints = std::move(value);
 }
 
+SvcParam::SvcParam(const SvcParamKey &key, std::vector<uint16_t> &&value) : d_key(key) {
+  if (d_key != SvcParamKey::tls_supported_groups) {
+    throw std::invalid_argument("can not create SvcParam for " + keyToString(key) + " with a uint16 value-vector");
+  }
+  d_tls_supported_groups = std::move(value);
+}
+
 SvcParam::SvcParam(const SvcParamKey &key, const uint16_t value) {
   d_key = key;
   if (d_key != SvcParamKey::port) {
@@ -179,8 +189,15 @@ const std::string& SvcParam::getECH() const {
 }
 
 const std::string& SvcParam::getValue() const {
-  if (d_key < 7) {
+  if (d_key != SvcParamKey::dohpath && d_key < 10) {
     throw std::invalid_argument("getValue called for non-single value key '" + keyToString(d_key) + "'");
   }
   return d_value;
+}
+
+const std::vector<uint16_t>& SvcParam::getTLSSupportedGroups() const {
+  if (d_key != SvcParam::tls_supported_groups) {
+    throw std::invalid_argument("getTLSSupportedGroups called for non-tls-supported-groups key '" + keyToString(d_key) + "'");
+  }
+  return d_tls_supported_groups;
 }

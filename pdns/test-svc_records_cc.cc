@@ -46,6 +46,18 @@ BOOST_AUTO_TEST_CASE(test_SvcParam_keyFromString) {
     BOOST_CHECK(k == 6);
     BOOST_CHECK(k == SvcParam::ipv6hint);
 
+    k = SvcParam::keyFromString("dohpath");
+    BOOST_CHECK(k == 7);
+    BOOST_CHECK(k == SvcParam::dohpath);
+
+    k = SvcParam::keyFromString("ohttp");
+    BOOST_CHECK(k == 8);
+    BOOST_CHECK(k == SvcParam::ohttp);
+
+    k = SvcParam::keyFromString("tls-supported-groups");
+    BOOST_CHECK(k == 9);
+    BOOST_CHECK(k == SvcParam::tls_supported_groups);
+
     k = SvcParam::keyFromString("key0");
     BOOST_CHECK(k == 0);
     BOOST_CHECK(k == SvcParam::mandatory);
@@ -67,7 +79,10 @@ BOOST_AUTO_TEST_CASE(test_SvcParam_keyToString) {
     BOOST_CHECK_EQUAL(SvcParam::keyToString(SvcParam::ipv4hint), "ipv4hint");
     BOOST_CHECK_EQUAL(SvcParam::keyToString(SvcParam::ech), "ech");
     BOOST_CHECK_EQUAL(SvcParam::keyToString(SvcParam::ipv6hint), "ipv6hint");
-    BOOST_CHECK_EQUAL(SvcParam::keyToString(SvcParam::SvcParamKey(7)), "key7");
+    BOOST_CHECK_EQUAL(SvcParam::keyToString(SvcParam::dohpath), "dohpath");
+    BOOST_CHECK_EQUAL(SvcParam::keyToString(SvcParam::ohttp), "ohttp");
+    BOOST_CHECK_EQUAL(SvcParam::keyToString(SvcParam::tls_supported_groups), "tls-supported-groups");
+    BOOST_CHECK_EQUAL(SvcParam::keyToString(SvcParam::SvcParamKey(10)), "key10");
     BOOST_CHECK_EQUAL(SvcParam::keyToString(SvcParam::SvcParamKey(666)), "key666");
 }
 
@@ -87,6 +102,8 @@ BOOST_AUTO_TEST_CASE(test_SvcParam_ctor_value) {
     BOOST_CHECK_THROW(SvcParam(SvcParam::port, val), std::invalid_argument);
     BOOST_CHECK_THROW(SvcParam(SvcParam::ipv4hint, val), std::invalid_argument);
     BOOST_CHECK_THROW(SvcParam(SvcParam::ipv6hint, val), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::ohttp, val), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::tls_supported_groups, val), std::invalid_argument);
 
     SvcParam param(SvcParam::keyFromString("no-default-alpn"));
     BOOST_CHECK_NO_THROW(param = SvcParam(SvcParam::ech, base64val));
@@ -96,6 +113,7 @@ BOOST_AUTO_TEST_CASE(test_SvcParam_ctor_value) {
     BOOST_CHECK_THROW(param.getIPHints(), std::invalid_argument);
     BOOST_CHECK_THROW(param.getMandatory(), std::invalid_argument);
     BOOST_CHECK_THROW(param.getPort(), std::invalid_argument);
+    BOOST_CHECK_THROW(param.getTLSSupportedGroups(), std::invalid_argument);
 
     // TODO test bad base64 value
     // BOOST_CHECK_THROW(SvcParam(SvcParam::ech, val), std::invalid_argument);
@@ -111,20 +129,24 @@ BOOST_AUTO_TEST_CASE(test_SvcParam_ctor_value) {
     BOOST_CHECK_THROW(param.getIPHints(), std::invalid_argument);
     BOOST_CHECK_THROW(param.getMandatory(), std::invalid_argument);
     BOOST_CHECK_THROW(param.getPort(), std::invalid_argument);
+    BOOST_CHECK_THROW(param.getTLSSupportedGroups(), std::invalid_argument);
 }
 
 BOOST_AUTO_TEST_CASE(test_SvcParam_ctor_set_string_value) {
     set<string> val({"foo", "bar", "baz"});
 
-    BOOST_CHECK_THROW(SvcParam(SvcParam::alpn, std::move(val)), std::invalid_argument);
-    BOOST_CHECK_THROW(SvcParam(SvcParam::no_default_alpn, std::move(val)), std::invalid_argument);
-    BOOST_CHECK_THROW(SvcParam(SvcParam::port, std::move(val)), std::invalid_argument);
-    BOOST_CHECK_THROW(SvcParam(SvcParam::ipv4hint, std::move(val)), std::invalid_argument);
-    BOOST_CHECK_THROW(SvcParam(SvcParam::ech, std::move(val)), std::invalid_argument);
-    BOOST_CHECK_THROW(SvcParam(SvcParam::ipv6hint, std::move(val)), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::alpn, set<string>(val)), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::no_default_alpn, set<string>(val)), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::port, set<string>(val)), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::ipv4hint, set<string>(val)), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::ech, set<string>(val)), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::ipv6hint, set<string>(val)), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::dohpath, set<string>(val)), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::ohttp, set<string>(val)), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::tls_supported_groups, set<string>(val)), std::invalid_argument);
 
-    set<string> mandatoryVal = {"alpn", "key666"};
-    set<SvcParam::SvcParamKey> mandatoryExpected = {SvcParam::alpn, (SvcParam::SvcParamKey)666};
+    set<string> mandatoryVal = {"alpn", "ohttp", "key666"};
+    set<SvcParam::SvcParamKey> mandatoryExpected = {SvcParam::alpn, SvcParam::ohttp, (SvcParam::SvcParamKey)666};
     SvcParam param(SvcParam::keyFromString("no-default-alpn"));
     BOOST_CHECK_NO_THROW(param = SvcParam(SvcParam::keyFromString("mandatory"), std::move(mandatoryVal)));
 
@@ -135,18 +157,22 @@ BOOST_AUTO_TEST_CASE(test_SvcParam_ctor_set_string_value) {
     BOOST_CHECK_THROW(param.getIPHints(), std::invalid_argument);
     BOOST_CHECK_THROW(param.getPort(), std::invalid_argument);
     BOOST_CHECK_THROW(param.getValue(), std::invalid_argument);
+    BOOST_CHECK_THROW(param.getTLSSupportedGroups(), std::invalid_argument);
 }
 
 BOOST_AUTO_TEST_CASE(test_SvcParam_ctor_vector_string_value) {
     auto val = vector<string>({"h3, h2"});
     auto checkVal = val;
 
-    BOOST_CHECK_THROW(SvcParam(SvcParam::mandatory, std::move(val)), std::invalid_argument);
-    BOOST_CHECK_THROW(SvcParam(SvcParam::no_default_alpn, std::move(val)), std::invalid_argument);
-    BOOST_CHECK_THROW(SvcParam(SvcParam::port, std::move(val)), std::invalid_argument);
-    BOOST_CHECK_THROW(SvcParam(SvcParam::ipv4hint, std::move(val)), std::invalid_argument);
-    BOOST_CHECK_THROW(SvcParam(SvcParam::ech, std::move(val)), std::invalid_argument);
-    BOOST_CHECK_THROW(SvcParam(SvcParam::ipv6hint, std::move(val)), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::mandatory, vector<string>(val)), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::no_default_alpn, vector<string>(val)), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::port, vector<string>(val)), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::ipv4hint, vector<string>(val)), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::ech, vector<string>(val)), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::ipv6hint, vector<string>(val)), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::dohpath, vector<string>(val)), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::ohttp, vector<string>(val)), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::tls_supported_groups, vector<string>(val)), std::invalid_argument);
 
     SvcParam param(SvcParam::keyFromString("no-default-alpn"));
     BOOST_CHECK_NO_THROW(param = SvcParam(SvcParam::keyFromString("alpn"), std::move(val)));
@@ -158,6 +184,7 @@ BOOST_AUTO_TEST_CASE(test_SvcParam_ctor_vector_string_value) {
     BOOST_CHECK_THROW(param.getIPHints(), std::invalid_argument);
     BOOST_CHECK_THROW(param.getPort(), std::invalid_argument);
     BOOST_CHECK_THROW(param.getValue(), std::invalid_argument);
+    BOOST_CHECK_THROW(param.getTLSSupportedGroups(), std::invalid_argument);
 }
 
 BOOST_AUTO_TEST_CASE(test_SvcParam_ctor_set_comboaddress_value) {
@@ -177,6 +204,9 @@ BOOST_AUTO_TEST_CASE(test_SvcParam_ctor_set_comboaddress_value) {
     BOOST_CHECK_THROW(SvcParam(SvcParam::no_default_alpn, std::move(v4Val)), std::invalid_argument);
     BOOST_CHECK_THROW(SvcParam(SvcParam::port, std::move(v4Val)), std::invalid_argument);
     BOOST_CHECK_THROW(SvcParam(SvcParam::ech, std::move(v4Val)), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::dohpath, vector<ComboAddress>(v4Val)), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::ohttp, vector<ComboAddress>(v4Val)), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::tls_supported_groups, vector<ComboAddress>(v4Val)), std::invalid_argument);
 
     BOOST_CHECK_THROW(SvcParam(SvcParam::ipv6hint, std::move(v4Val)), std::invalid_argument);
     BOOST_CHECK_THROW(SvcParam(SvcParam::ipv4hint, std::move(v6Val)), std::invalid_argument);
@@ -193,6 +223,7 @@ BOOST_AUTO_TEST_CASE(test_SvcParam_ctor_set_comboaddress_value) {
     BOOST_CHECK_THROW(param.getECH(), std::invalid_argument);
     BOOST_CHECK_THROW(param.getPort(), std::invalid_argument);
     BOOST_CHECK_THROW(param.getValue(), std::invalid_argument);
+    BOOST_CHECK_THROW(param.getTLSSupportedGroups(), std::invalid_argument);
 
     BOOST_CHECK_NO_THROW(param = SvcParam(SvcParam::ipv6hint, std::move(v6Val)));
     retval.clear();
@@ -203,6 +234,7 @@ BOOST_AUTO_TEST_CASE(test_SvcParam_ctor_set_comboaddress_value) {
     BOOST_CHECK_THROW(param.getECH(), std::invalid_argument);
     BOOST_CHECK_THROW(param.getPort(), std::invalid_argument);
     BOOST_CHECK_THROW(param.getValue(), std::invalid_argument);
+    BOOST_CHECK_THROW(param.getTLSSupportedGroups(), std::invalid_argument);
 }
 
 BOOST_AUTO_TEST_CASE(test_SvcParam_ctor_uint16_value) {
@@ -214,10 +246,38 @@ BOOST_AUTO_TEST_CASE(test_SvcParam_ctor_uint16_value) {
     BOOST_CHECK_THROW(SvcParam(SvcParam::ipv4hint, port), std::invalid_argument);
     BOOST_CHECK_THROW(SvcParam(SvcParam::ech, port), std::invalid_argument);
     BOOST_CHECK_THROW(SvcParam(SvcParam::ipv6hint, port), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::dohpath, port), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::ohttp, port), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::tls_supported_groups, port), std::invalid_argument);
 
     SvcParam param(SvcParam::keyFromString("no-default-alpn"));
     BOOST_CHECK_NO_THROW(param = SvcParam(SvcParam::port, port));
     BOOST_CHECK_EQUAL(param.getPort(), port);
+    BOOST_CHECK_THROW(param.getMandatory(), std::invalid_argument);
+    BOOST_CHECK_THROW(param.getALPN(), std::invalid_argument);
+    BOOST_CHECK_THROW(param.getECH(), std::invalid_argument);
+    BOOST_CHECK_THROW(param.getIPHints(), std::invalid_argument);
+    BOOST_CHECK_THROW(param.getValue(), std::invalid_argument);
+    BOOST_CHECK_THROW(param.getTLSSupportedGroups(), std::invalid_argument);
+}
+
+BOOST_AUTO_TEST_CASE(test_SvcParam_ctor_vector_uint16_value) {
+    vector<uint16_t> groups({29, 23});
+    auto checkVal = groups;
+
+    BOOST_CHECK_THROW(SvcParam(SvcParam::mandatory, vector<uint16_t>(groups)), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::alpn, vector<uint16_t>(groups)), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::no_default_alpn, vector<uint16_t>(groups)), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::ipv4hint, vector<uint16_t>(groups)), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::ech, vector<uint16_t>(groups)), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::ipv6hint, vector<uint16_t>(groups)), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::dohpath, vector<uint16_t>(groups)), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::ohttp, vector<uint16_t>(groups)), std::invalid_argument);
+
+    SvcParam param(SvcParam::keyFromString("no-default-alpn"));
+    BOOST_CHECK_NO_THROW(param = SvcParam(SvcParam::tls_supported_groups, vector<uint16_t>(groups)));
+    auto retval = param.getTLSSupportedGroups();
+    BOOST_CHECK_EQUAL_COLLECTIONS(checkVal.begin(), checkVal.end(), retval.begin(), retval.end());
     BOOST_CHECK_THROW(param.getMandatory(), std::invalid_argument);
     BOOST_CHECK_THROW(param.getALPN(), std::invalid_argument);
     BOOST_CHECK_THROW(param.getECH(), std::invalid_argument);

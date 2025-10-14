@@ -259,6 +259,12 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
      (CASE_L(QType::SVCB, R"XXX(16 foo.example.org. alpn=f\\\092oo\092,bar,h2)XXX", R"XXX(16 foo.example.org. alpn=f\\\\oo\\,bar,h2)XXX", "\x00\x10\3foo\7example\3org\x00\x00\x01\x00\x0c\x08\x66\\oo,bar\x02h2"))
      // END SVCB draft test vectors
 
+     (CASE_S(QType::SVCB, "1 foo.powerdns.org. dohpath=\"path\"", "\0\x01\3foo\x08powerdns\x03org\x00\x00\x07\0\x04path"))
+     (CASE_L(QType::SVCB, "1 foo.powerdns.org. dohpath=/q{?dns}", "1 foo.powerdns.org. dohpath=\"/q{?dns}\"", "\0\x01\3foo\x08powerdns\x03org\x00\x00\x07\0\x08/q{?dns}"))
+     (CASE_S(QType::SVCB, "1 foo.powerdns.org. ohttp", "\0\x01\3foo\x08powerdns\x03org\x00\x00\x08\x00\x00"))
+     (CASE_S(QType::SVCB, "1 foo.powerdns.org. tls-supported-groups=29,23", "\0\x01\3foo\x08powerdns\x03org\x00\x00\x09\x00\x04\x00\x1d\x00\x17"))
+     (CASE_S(QType::SVCB, "1 foo.powerdns.org. port=8004 tls-supported-groups=29,23", "\0\x01\3foo\x08powerdns\x03org\x00\x00\x03\x00\x02\x1f\x44\0\x09\x00\x04\x00\x1d\x00\x17"))
+
      (CASE_S(QType::HHIT, "1234abcd", "\xd7\x6d\xf8\x69\xb7\x1d"))
      (CASE_L(QType::HHIT, "1234 abcd", "1234abcd", "\xd7\x6d\xf8\x69\xb7\x1d"))
      (CASE_S(QType::BRID, "1234abcd", "\xd7\x6d\xf8\x69\xb7\x1d"))
