@@ -179,13 +179,13 @@ BOOST_AUTO_TEST_CASE(Closer)
   BOOST_ASSERT(trace.resource_spans.at(0).scope_spans.at(0).spans.size() == 4);
 
   BOOST_CHECK_EQUAL(trace.resource_spans.at(0).scope_spans.at(0).spans.at(0).span_id, prespanid);
-  BOOST_CHECK_NE(trace.resource_spans.at(0).scope_spans.at(0).spans.at(0).end_time_unix_nano, 0);
+  BOOST_CHECK_NE(trace.resource_spans.at(0).scope_spans.at(0).spans.at(0).end_time_unix_nano, 0U);
 
   BOOST_CHECK_EQUAL(trace.resource_spans.at(0).scope_spans.at(0).spans.at(1).span_id, postspanid);
-  BOOST_CHECK_NE(trace.resource_spans.at(0).scope_spans.at(0).spans.at(1).end_time_unix_nano, 0);
+  BOOST_CHECK_NE(trace.resource_spans.at(0).scope_spans.at(0).spans.at(1).end_time_unix_nano, 0U);
 
-  BOOST_CHECK_NE(trace.resource_spans.at(0).scope_spans.at(0).spans.at(2).end_time_unix_nano, 0);
-  BOOST_CHECK_NE(trace.resource_spans.at(0).scope_spans.at(0).spans.at(3).end_time_unix_nano, 0);
+  BOOST_CHECK_NE(trace.resource_spans.at(0).scope_spans.at(0).spans.at(2).end_time_unix_nano, 0U);
+  BOOST_CHECK_NE(trace.resource_spans.at(0).scope_spans.at(0).spans.at(3).end_time_unix_nano, 0U);
 
   // Check the parent span_id for the second closer
   BOOST_CHECK_EQUAL(trace.resource_spans.at(0).scope_spans.at(0).spans.at(3).span_id, openevent2SpanID);
@@ -202,7 +202,7 @@ BOOST_AUTO_TEST_CASE(attributes)
 
   // Test that no attributes are added when the tracer is not activated
   auto trace = tracer->getTracesData();
-  BOOST_CHECK_EQUAL(trace.resource_spans.at(0).resource.attributes.size(), 1);
+  BOOST_CHECK_EQUAL(trace.resource_spans.at(0).resource.attributes.size(), 1U);
   BOOST_CHECK_EQUAL(trace.resource_spans.at(0).resource.attributes.at(0).key, "service.name");
 
   // Check if we have a hostname
