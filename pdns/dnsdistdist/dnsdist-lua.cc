@@ -2074,7 +2074,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
   luaCtx.writeFunction("showPoolServerPolicy", [](const std::string& pool) {
     setLuaSideEffect();
-    auto poolObj = getPool(pool);
+    const auto& poolObj = getPool(pool);
     if (poolObj.policy == nullptr) {
       g_outputBuffer = dnsdist::configuration::getCurrentRuntimeConfiguration().d_lbPolicy->getName() + "\n";
     }
