@@ -31,6 +31,7 @@
 
 #include "dns_random.hh"
 #include "ednsoptions.hh"
+#include "misc.hh"
 
 // See https://github.com/open-telemetry/opentelemetry-proto/tree/main/opentelemetry/proto
 
@@ -694,13 +695,16 @@ struct TracesData
     return data;
   }
 
-  static TracesData boilerPlate(std::string&& service, std::string&& req, std::vector<Span>&& spans, const std::vector<KeyValue>& attributes)
+  static TracesData boilerPlate(std::string&& service, std::vector<Span>&& spans, const std::vector<KeyValue>& attributes, std::string& serverID)
   {
     auto& spanAttrs = spans.at(0).attributes;
-    spanAttrs.push_back({"arg", {std::move(req)}});
     spanAttrs.insert(spanAttrs.end(), attributes.begin(), attributes.end());
+    auto host = getHostname();
+    std::string hostname = host.value_or("unset");
+    InstrumentationScope scope{
+      .name = "rec", .version = VERSION, .attributes = {{"hostname", {hostname}}, {"server.id", {serverID}}}};
     return TracesData{
-      .resource_spans = {pdns::trace::ResourceSpans{.resource = {.attributes = {{"service.name", {{std::move(service)}}}}}, .scope_spans = {{.spans = std::move(spans)}}}}};
+      .resource_spans = {pdns::trace::ResourceSpans{.resource = {.attributes = {{"service.name", {{std::move(service)}}}}}, .scope_spans = {{.scope = scope, .spans = std::move(spans)}}}}};
   }
 };
 

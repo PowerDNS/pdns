@@ -1860,7 +1860,11 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
         pbMessage.addEvents(resolver.d_eventTrace);
       }
       if (resolver.d_eventTrace.enabled() && SyncRes::eventTraceEnabled(SyncRes::event_trace_to_ot)) {
-        auto otTrace = pdns::trace::TracesData::boilerPlate("rec", comboWriter->d_mdp.d_qname.toLogString(), resolver.d_eventTrace.convertToOT(resolver.d_otTrace), {{"qtype", {QType(comboWriter->d_mdp.d_qtype).toString()}}});
+        auto otTrace = pdns::trace::TracesData::boilerPlate("rec", resolver.d_eventTrace.convertToOT(resolver.d_otTrace), {
+                                                                                                                            {"query.qname", {comboWriter->d_mdp.d_qname.toLogString()}},
+                                                                                                                            {"query.qtype", {QType(comboWriter->d_mdp.d_qtype).toString()}},
+                                                                                                                          },
+                                                            SyncRes::s_serverID);
         string otData = otTrace.encode();
         pbMessage.setOpenTelemetryData(otData);
       }
