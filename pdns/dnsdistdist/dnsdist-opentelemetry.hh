@@ -303,7 +303,7 @@ private:
    */
   LockGuarded<std::vector<Span>> d_postActivationSpans;
   /**
-   * @brief All attributes related to this Trace
+   * @brief All attributes related to this Trace (added to the ScopeSpan)
    */
   std::vector<pdns::trace::KeyValue> d_attributes;
 

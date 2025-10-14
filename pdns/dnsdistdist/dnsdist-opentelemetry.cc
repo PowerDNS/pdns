@@ -21,6 +21,7 @@
  */
 
 #include "dnsdist-opentelemetry.hh"
+#include "misc.hh"
 
 #include <vector>
 
@@ -31,6 +32,10 @@
 namespace pdns::trace::dnsdist
 {
 
+#ifndef DISABLE_PROTOBUF
+static const KeyValue hostnameAttr{.key = "hostname", .value = {getHostname().value_or("")}};
+#endif
+
 TracesData Tracer::getTracesData()
 {
 #ifdef DISABLE_PROTOBUF
@@ -38,17 +43,18 @@ TracesData Tracer::getTracesData()
 #else
   auto otTrace = pdns::trace::TracesData{
     .resource_spans = {
-      pdns::trace::ResourceSpans{
-        .resource = {
-          .attributes = std::vector<pdns::trace::KeyValue>{
-            pdns::trace::KeyValue{
-              "service.name", pdns::trace::AnyValue{"dnsdist"}},
-          }},
-        .scope_spans = std::vector<pdns::trace::ScopeSpans>{{.scope = {
-                                                               .name = "queryFromFrontend",
-                                                               .attributes = {d_attributes.begin(), d_attributes.end()},
-                                                             },
-                                                             .spans = {}}}}}};
+      {.resource = {
+         .attributes = {
+           {"service.name", {"dnsdist"}},
+         }},
+       .scope_spans = {{.scope = {
+                          .name = "dnsdist/queryFromFrontend",
+                          .version = PACKAGE_VERSION,
+                          .attributes = {d_attributes.begin(), d_attributes.end()},
+                        },
+                        .spans = {}}}}}};
+
+  otTrace.resource_spans.at(0).scope_spans.at(0).scope.attributes.push_back(hostnameAttr);
 
   {
     auto lockedPre = d_preActivationSpans.read_only_lock();

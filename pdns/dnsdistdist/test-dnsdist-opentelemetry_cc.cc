@@ -205,7 +205,9 @@ BOOST_AUTO_TEST_CASE(attributes)
   BOOST_CHECK_EQUAL(trace.resource_spans.at(0).resource.attributes.size(), 1);
   BOOST_CHECK_EQUAL(trace.resource_spans.at(0).resource.attributes.at(0).key, "service.name");
 
-  BOOST_ASSERT(trace.resource_spans.at(0).scope_spans.at(0).scope.attributes.size() == 0);
+  // Check if we have a hostname
+  BOOST_CHECK_EQUAL(trace.resource_spans.at(0).scope_spans.at(0).scope.attributes.size(), 1U);
+  BOOST_CHECK_EQUAL(trace.resource_spans.at(0).scope_spans.at(0).scope.attributes.at(0).key, "hostname");
 
   // Now activate and add 2 attributes
   tracer->activate();
@@ -215,7 +217,8 @@ BOOST_AUTO_TEST_CASE(attributes)
   trace = tracer->getTracesData();
 
   BOOST_ASSERT(trace.resource_spans.at(0).resource.attributes.size() == 1);
-  BOOST_ASSERT(trace.resource_spans.at(0).scope_spans.at(0).scope.attributes.size() == 2);
+  // hostname plus the two we set
+  BOOST_ASSERT(trace.resource_spans.at(0).scope_spans.at(0).scope.attributes.size() == 3);
 
   BOOST_CHECK_EQUAL(trace.resource_spans.at(0).scope_spans.at(0).scope.attributes.at(0).key, "foo");
   BOOST_CHECK_EQUAL(trace.resource_spans.at(0).scope_spans.at(0).scope.attributes.at(0).value, AnyValue{"bar"});
@@ -238,12 +241,12 @@ BOOST_AUTO_TEST_CASE(getOTProtobuf)
 {
   auto tracer = pdns::trace::dnsdist::Tracer::getTracer();
   auto data = tracer->getOTProtobuf();
-  BOOST_TEST(data.size() == 54U);
+  BOOST_TEST(data.size() >= 100U);
 
   tracer->activate();
   tracer->setTraceAttribute("foo", AnyValue{"bar"});
   data = tracer->getOTProtobuf();
-  BOOST_TEST(data.size() == 68U);
+  BOOST_TEST(data.size() >= 110U);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
