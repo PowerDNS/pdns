@@ -70,8 +70,17 @@ TracesData Tracer::getTracesData()
           .start_time_unix_nano = preActivationTrace.start_time_unix_nano,
           .end_time_unix_nano = preActivationTrace.end_time_unix_nano,
         });
+
+      if (preActivationTrace.parent_span_id == pdns::trace::s_emptySpanID) {
+        // This is the root span
+        otTrace.resource_spans.at(0).scope_spans.at(0).spans.back().attributes.insert(
+          otTrace.resource_spans.at(0).scope_spans.at(0).spans.back().attributes.cend(),
+          d_rootSpanAttributes.begin(),
+          d_rootSpanAttributes.end());
+      }
     }
   }
+
   {
     auto lockedPost = d_postActivationSpans.read_only_lock();
     otTrace.resource_spans.at(0).scope_spans.at(0).spans.insert(
@@ -175,6 +184,16 @@ void Tracer::closeSpan([[maybe_unused]] const SpanID& spanID)
     spanIt->end_time_unix_nano = pdns::trace::timestamp();
     return;
   }
+#endif
+}
+
+void Tracer::setRootSpanAttribute([[maybe_unused]] const std::string& key, [[maybe_unused]] const AnyValue& value)
+{
+#ifndef DISABLE_PROTOBUF
+  d_rootSpanAttributes.push_back({
+    .key = key,
+    .value = value,
+  });
 #endif
 }
 

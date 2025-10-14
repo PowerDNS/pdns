@@ -70,19 +70,40 @@ class DNSDistOpenTelemetryProtobufBaseTest(DNSDistOpenTelemetryProtobufTest):
 
         # Ensure the values are correct
         # TODO: query.remote with port
-        msg_scope_attrs = {
-            v["key"]: v["value"]["string_value"]
+        msg_scope_attr_keys = [
+            v["key"]
             for v in ot_data["resource_spans"][0]["scope_spans"][0]["scope"][
                 "attributes"
             ]
-            if v["key"] != "query.remote"
+        ]
+        self.assertListEqual(msg_scope_attr_keys, ["hostname"])
+
+        root_span_attr_keys = [
+            v["key"]
+            for v in ot_data["resource_spans"][0]["scope_spans"][0]["spans"][0][
+                "attributes"
+            ]
+        ]
+        self.assertListEqual(
+            root_span_attr_keys,
+            ["query.qname", "query.qtype", "query.remote.address", "query.remote.port"],
+        )
+
+        # No way to guess the test port, but check the rest of the values
+        root_span_attrs = {
+            v["key"]: v["value"]["string_value"]
+            for v in ot_data["resource_spans"][0]["scope_spans"][0]["spans"][0][
+                "attributes"
+            ]
+            if v["key"] not in ["query.remote.port"]
         }
         self.assertDictEqual(
-            msg_scope_attrs,
             {
                 "query.qname": "query.ot.tests.powerdns.com",
                 "query.qtype": "A",
+                "query.remote.address": "127.0.0.1",
             },
+            root_span_attrs,
         )
 
         msg_span_name = [

@@ -1681,9 +1681,8 @@ public:
   SetTraceAction(bool value) :
     d_value{value} {};
 
-  DNSAction::Action operator()([[maybe_unused]] DNSQuestion* dnsquestion, std::string* ruleresult) const override
+  DNSAction::Action operator()([[maybe_unused]] DNSQuestion* dnsquestion, [[maybe_unused]] std::string* ruleresult) const override
   {
-    (void)ruleresult;
 #ifndef DISABLE_PROTOBUF
     auto tracer = dnsquestion->ids.getTracer();
     if (tracer == nullptr) {
@@ -1692,9 +1691,10 @@ public:
     }
     if (d_value) {
       tracer->activate();
-      tracer->setTraceAttribute("query.qname", AnyValue{dnsquestion->ids.qname.toStringNoDot()});
-      tracer->setTraceAttribute("query.qtype", AnyValue{QType(dnsquestion->ids.qtype).toString()});
-      tracer->setTraceAttribute("query.remote", AnyValue{dnsquestion->ids.origRemote.toLogString()});
+      tracer->setRootSpanAttribute("query.qname", AnyValue{dnsquestion->ids.qname.toStringNoDot()});
+      tracer->setRootSpanAttribute("query.qtype", AnyValue{QType(dnsquestion->ids.qtype).toString()});
+      tracer->setRootSpanAttribute("query.remote.address", AnyValue{dnsquestion->ids.origRemote.toString()});
+      tracer->setRootSpanAttribute("query.remote.port", AnyValue{dnsquestion->ids.origRemote.getPort()});
     }
     else {
       tracer->deactivate();

@@ -118,6 +118,14 @@ public:
   bool setTraceAttribute(const std::string& key, const AnyValue& value);
 
   /**
+   * @brief Set an attribute on the root span
+   *
+   * @param key
+   * @param value
+   */
+  void setRootSpanAttribute(const std::string& key, const AnyValue& value);
+
+  /**
    * @brief Set an attribute on a Span
    *
    * This does not work when the Tracer is not active
@@ -306,6 +314,10 @@ private:
    * @brief All attributes related to this Trace (added to the ScopeSpan)
    */
   std::vector<pdns::trace::KeyValue> d_attributes;
+  /**
+   * @brief All attributes related to the root span of this trace
+   */
+  std::vector<pdns::trace::KeyValue> d_rootSpanAttributes;
 
   /**
    * @brief The TraceID for this Tracer. It is stable for the lifetime of the Tracer
