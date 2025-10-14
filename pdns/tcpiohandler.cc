@@ -42,7 +42,7 @@ bool shouldDoVerboseLogging()
 #ifdef DNSDIST
   return dnsdist::configuration::getCurrentRuntimeConfiguration().d_verbose;
 #elif defined(RECURSOR)
-  return true;
+  return false;
 #else
   return true;
 #endif
@@ -575,10 +575,10 @@ public:
           X509_free(cert);
         }
       }
-      const auto* errorMsg = X509_verify_cert_error_string(errorCode);
       if (!certPresented) {
         return {-1, "No certificate presented by peer"};
       }
+      const auto* errorMsg = X509_verify_cert_error_string(errorCode);
       return {errorCode, errorMsg != nullptr ? errorMsg : "No details available"};
     }
     return {0, ""};

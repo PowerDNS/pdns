@@ -2124,7 +2124,6 @@ static int serviceMain(Logr::log_t log)
   }
   g_maxCacheEntries = ::arg().asNum("max-cache-entries");
 
-  cerr << "CALL LUACONFIG" << endl;
   auto luaResult = luaconfig(false);
   if (luaResult.d_ret != 0) {
     log->error(Logr::Error, luaResult.d_str, "Cannot load Lua or equivalent YAML configuration");
