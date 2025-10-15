@@ -2,6 +2,29 @@ Changelogs for 4.9.x
 ====================
 
 .. changelog::
+  :version: 4.9.11
+  :released: 15th of October 2025
+
+  This is release 4.9.10 of the Authoritative Server.
+  It contains a minor feature.
+
+  Please review the :doc:`Upgrade Notes <../upgrading>` before upgrading from versions < 4.9.x.
+
+  .. change::
+    :tags: New Features
+    :pullreq: 16196
+
+    lmdb: optional memory-only freshness check timestamp
+
+.. changelog::
+  :version: 4.9.10
+  :released: never
+
+  Technical issues in the release process prevented the 4.9.10 release to be
+  created correctly.
+  Therefore 4.9.10 was never released, in favour of 4.9.11.
+
+.. changelog::
   :version: 4.9.9
   :released: 24th of September 2025
 
@@ -11,19 +34,19 @@ Changelogs for 4.9.x
   Please review the :doc:`Upgrade Notes <../upgrading>` before upgrading from versions < 4.9.x.
 
   .. change::
-    :tags:
+    :tags: Bug Fixes
     :pullreq: 16158
 
     memory corruption in ODBC plus tweaks to appease coverity
 
   .. change::
-    :tags:
+    :tags: Bug Fixes
     :pullreq: 16157
 
     Fix EDNS Cookie & Proxy protocol
 
   .. change::
-    :tags:
+    :tags: New Features
     :pullreq: 16154
 
     lmdb: optional memory-only notification timestamps (:ref:`setting-lmdb-write-notification-update`)
