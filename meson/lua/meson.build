@@ -12,6 +12,9 @@ endif
 
 if not dep_lua.found() and (opt_lua == 'auto' or opt_lua == 'lua')
   variants = [
+    'lua5.4',
+    'lua-5.4',
+    'lua54',
     'lua5.3',
     'lua-5.3',
     'lua53',
@@ -30,6 +33,10 @@ if not dep_lua.found() and (opt_lua == 'auto' or opt_lua == 'lua')
       break
     endif
   endforeach
+endif
+
+if not dep_lua.found() and opt_lua != 'lua' and opt_lua.startswith('lua')
+  dep_lua = dependency(opt_lua, version: '>= 5.1', required: false)
 endif
 
 if not dep_lua.found()
