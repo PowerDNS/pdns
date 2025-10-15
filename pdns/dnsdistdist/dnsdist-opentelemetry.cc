@@ -123,6 +123,7 @@ SpanID Tracer::addSpan([[maybe_unused]] const std::string& name, [[maybe_unused]
       .span_id = spanID,
       .parent_span_id = parentSpanID,
       .name = name,
+      .kind = pdns::trace::Span::SpanKind::SPAN_KINSERVER,
       .start_time_unix_nano = pdns::trace::timestamp(),
     });
     return spanID;
