@@ -563,6 +563,27 @@ public:
     return result;
   }
 
+  [[nodiscard]] std::pair<long, std::string> getVerifyResult() const override
+  {
+    if (d_conn) {
+      auto errorCode = SSL_get_verify_result(d_conn.get());
+      auto certPresented = errorCode != X509_V_OK;
+      if (!certPresented) {
+        auto* cert = SSL_get_peer_certificate(d_conn.get());
+        if (cert != nullptr) {
+          certPresented = true;
+          X509_free(cert);
+        }
+      }
+      if (!certPresented) {
+        return {-1, "No certificate presented by peer"};
+      }
+      const auto* errorMsg = X509_verify_cert_error_string(errorCode);
+      return {errorCode, errorMsg != nullptr ? errorMsg : "No details available"};
+    }
+    return {0, ""};
+  }
+
   LibsslTLSVersion getTLSVersion() const override
   {
     auto proto = SSL_version(d_conn.get());
@@ -1605,6 +1626,21 @@ public:
     default:
       return LibsslTLSVersion::Unknown;
     }
+  }
+
+  [[nodiscard]] std::pair<long, std::string> getVerifyResult() const override
+  {
+    if (d_conn) {
+      auto status = gnutls_session_get_verify_cert_status(d_conn.get());
+      gnutls_datum_t out{};
+      if (gnutls_certificate_verification_status_print(status, GNUTLS_CRT_X509, &out, 0) == 0) {
+        auto errString = std::string(reinterpret_cast<const char*>(out.data), out.size); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast) It's the API
+        gnutls_free(out.data);
+        return {status, errString};
+      }
+      return {status, ""};
+    }
+    return {0, ""};
   }
 
   bool hasSessionBeenResumed() const override

@@ -56,6 +56,7 @@ auth_build_deps = [    # FIXME: perhaps we should be stealing these from the deb
 rec_build_deps = [
     'libcap-dev',
     'libfstrm-dev',
+    'libgnutls28-dev',
     'libsnmp-dev',
 ]
 rec_bulk_deps = [
@@ -245,6 +246,8 @@ def generate_coverage_info(c, binary, product, outputDir):
 def setup_authbind(c):
     c.sudo('touch /etc/authbind/byport/53')
     c.sudo('chmod 755 /etc/authbind/byport/53')
+    c.sudo('touch /etc/authbind/byport/!853')
+    c.sudo('chmod 755 /etc/authbind/byport/!853')
 
 auth_backend_test_deps = dict(
     gsqlite3=['sqlite3'],

@@ -378,7 +378,7 @@ class BindError
 {
 };
 
-static bool tcpconnect(const OptLog& log, const ComboAddress& remote, const std::optional<ComboAddress> localBind, TCPOutConnectionManager::Connection& connection, bool& dnsOverTLS, const std::string& nsName)
+static bool tcpconnect(const OptLog& log, const ComboAddress& remote, const std::optional<ComboAddress> localBind, TCPOutConnectionManager::Connection& connection, bool& dnsOverTLS, const std::string& nsName, std::string& subjectName)
 {
   dnsOverTLS = SyncRes::s_dot_to_port_853 && remote.getPort() == 853;
 
@@ -412,18 +412,34 @@ static bool tcpconnect(const OptLog& log, const ComboAddress& remote, const std:
   }
 
   std::shared_ptr<TLSCtx> tlsCtx{nullptr};
+  bool subjectIsAddress = false;
   if (dnsOverTLS) {
-    TLSContextParameters tlsParams;
-    tlsParams.d_provider = "openssl";
-    tlsParams.d_validateCertificates = false;
-    // tlsParams.d_caStore
-    tlsCtx = getTLSContext(tlsParams);
+    subjectName = nsName;
+    std::string subjectAddress;
+    std::string configName;
+    tlsCtx = TCPOutConnectionManager::getTLSContext(nsName, remote, connection.d_verboseLogging, subjectName, subjectAddress, configName);
     if (tlsCtx == nullptr) {
       g_slogout->info(Logr::Error, "DoT requested but not available", "server", Logging::Loggable(remote));
       dnsOverTLS = false;
     }
+    else {
+      if (subjectName.empty() && !subjectAddress.empty()) {
+        subjectName = subjectAddress;
+        subjectIsAddress = true;
+      }
+      if (subjectName.empty()) {
+        subjectName = remote.toString();
+        subjectIsAddress = true;
+      }
+    }
+    if (dnsOverTLS && connection.d_verboseLogging) {
+      g_slogout->info(Logr::Debug, "Connecting with DoT", "server", Logging::Loggable(remote),
+                      "subjectName", Logging::Loggable(subjectName),
+                      "subjectIsAddress", Logging::Loggable(subjectIsAddress),
+                      "configName", Logging::Loggable(configName));
+    }
   }
-  connection.d_handler = std::make_shared<TCPIOHandler>(nsName, false, sock.releaseHandle(), timeout, tlsCtx);
+  connection.d_handler = std::make_shared<TCPIOHandler>(subjectName, subjectIsAddress, sock.releaseHandle(), timeout, tlsCtx);
   connection.d_local = localBind;
   // Returned state ignored
   // This can throw an exception, retry will need to happen at higher level
@@ -432,7 +448,8 @@ static bool tcpconnect(const OptLog& log, const ComboAddress& remote, const std:
 }
 
 static LWResult::Result tcpsendrecv(const ComboAddress& ip, TCPOutConnectionManager::Connection& connection,
-                                    ComboAddress& localip, const vector<uint8_t>& vpacket, size_t& len, PacketBuffer& buf)
+                                    ComboAddress& localip, const vector<uint8_t>& vpacket, size_t& len, PacketBuffer& buf,
+                                    const std::string& nsName, const std::string& subjectName)
 {
   socklen_t slen = ip.getSocklen();
   uint16_t tlen = htons(vpacket.size());
@@ -451,6 +468,15 @@ static LWResult::Result tcpsendrecv(const ComboAddress& ip, TCPOutConnectionMana
 
   LWResult::Result ret = asendtcp(packet, connection.d_handler);
   if (ret != LWResult::Result::Success) {
+    if (connection.d_handler->isTLS() && connection.d_verboseLogging) {
+      auto result = connection.d_handler->getVerifyResult();
+      g_slogout->info(Logr::Error, "Failed to setup TLS connection",
+                      "errorcode", Logging::Loggable(result.first),
+                      "remote", Logging::Loggable(ip),
+                      "nsname", Logging::Loggable(nsName),
+                      "subjectName", Logging::Loggable(subjectName),
+                      "tlsmessage", Logging::Loggable(result.second));
+    }
     return ret;
   }
 
@@ -722,8 +748,9 @@ static LWResult::Result asyncresolve(const OptLog& log, const ComboAddress& addr
         // peer has closed it on error, so we retry. At some point we
         // *will* get a new connection, so this loop is not endless.
         isNew = true; // tcpconnect() might throw for new connections. In that case, we want to break the loop, scanbuild complains here, which is a false positive afaik
-        isNew = tcpconnect(log, address, addressToBindTo, connection, dnsOverTLS, nsName);
-        ret = tcpsendrecv(address, connection, localip, vpacket, len, buf);
+        std::string subjectName;
+        isNew = tcpconnect(log, address, addressToBindTo, connection, dnsOverTLS, nsName, subjectName);
+        ret = tcpsendrecv(address, connection, localip, vpacket, len, buf, nsName, subjectName);
 #ifdef HAVE_FSTRM
         if (fstrmQEnabled) {
           logFstreamQuery(fstrmLoggers, queryTime, localip, address, !dnsOverTLS ? DnstapMessage::ProtocolType::DoTCP : DnstapMessage::ProtocolType::DoT, context.d_auth, vpacket);
@@ -738,12 +765,15 @@ static LWResult::Result asyncresolve(const OptLog& log, const ComboAddress& addr
         // Cookie info already has been added to packet, so we must retry from a higher level
         auto lock = s_cookiestore.lock();
         lock->erase(address);
+        VLOG(log, "BindError remote: " << address.toString() << " localAddress: " << (addressToBindTo ? addressToBindTo->toString() : "none") << endl);
         return LWResult::Result::BindError;
       }
-      catch (const NetworkError&) {
+      catch (const NetworkError& nwe) {
+        VLOG(log, "NetworkException: " << address.toString() << ": " << nwe.what() << endl);
         ret = LWResult::Result::OSLimitError; // OS limits error
       }
-      catch (const runtime_error&) {
+      catch (const runtime_error& rte) {
+        VLOG(log, "runtime_error: " << address.toString() << ": " << rte.what() << endl);
         ret = LWResult::Result::OSLimitError; // OS limits error (PermanentError is transport related)
       }
     } while (!isNew);
