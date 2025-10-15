@@ -544,7 +544,7 @@ void protobufLogQuery(LocalStateHolder<LuaConfigItems>& luaconfsLocal, const boo
     msg.setEDNSVersion(*ednsVersion);
   }
   if (traceID != pdns::trace::s_emptyTraceID) {
-    msg.setOpenTelemtryTraceID(traceID);
+    msg.setOpenTelemetryTraceID(traceID);
   }
 
   std::string strMsg(msg.finishAndMoveBuf());
@@ -640,7 +640,7 @@ void protobufLogResponse(const DNSName& qname, QType qtype,
     pbMessage.setOpenTelemetryData(trace.encode());
   }
   if (otTrace.trace_id != pdns::trace::s_emptyTraceID) {
-    pbMessage.setOpenTelemtryTraceID(otTrace.trace_id);
+    pbMessage.setOpenTelemetryTraceID(otTrace.trace_id);
   }
   pbMessage.addPolicyTags(policyTags);
 

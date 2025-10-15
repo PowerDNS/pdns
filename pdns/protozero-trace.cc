@@ -21,6 +21,10 @@
  */
 
 #include "protozero-trace.hh"
+#include "base64.hh"
+#include "misc.hh"
+#include <string>
+#include <variant>
 
 namespace pdns::trace
 {
@@ -94,6 +98,48 @@ AnyValue AnyValue::decode(protozero::pbf_reader& reader)
   }
 
   return {};
+}
+
+std::string AnyValue::toLogString() const
+{
+  if (std::holds_alternative<std::string>(*this)) {
+    return "\"" + std::get<std::string>(*this) + "\"";
+  }
+  if (std::holds_alternative<bool>(*this)) {
+    if (std::get<bool>(*this)) {
+      return "true";
+    }
+    return "false";
+  }
+  if (std::holds_alternative<int64_t>(*this)) {
+    return std::to_string(std::get<int64_t>(*this));
+  }
+  if (std::holds_alternative<double>(*this)) {
+    return std::to_string(std::get<double>(*this));
+  }
+  if (std::holds_alternative<ArrayValue>(*this)) {
+    std::string tmp = "[";
+    for (auto const& val : std::get<ArrayValue>(*this).values) {
+      tmp += val.toLogString() + ", ";
+    }
+    tmp.resize(tmp.size() - 2); // Strip ", "
+    return tmp += "]";
+  }
+  if (std::holds_alternative<KeyValueList>(*this)) {
+    std::string tmp = "{";
+    for (auto const& val : std::get<KeyValueList>(*this).values) {
+      tmp += val.key + ": " + val.value.toLogString() + ", ";
+    }
+    if (tmp.size() > 2) {
+      tmp.resize(tmp.size() - 2); // Strip ", "
+    }
+    return tmp += "}";
+  }
+  if (std::holds_alternative<std::vector<uint8_t>>(*this)) {
+    auto val = std::get<std::vector<uint8_t>>(*this);
+    return Base64Encode(std::string(val.begin(), val.end()));
+  }
+  return "UNSUPPORTED TYPE";
 }
 
 void EntityRef::encode(protozero::pbf_writer& writer) const
@@ -526,10 +572,20 @@ void extractOTraceIDs(const EDNSOptionViewMap& map, pdns::trace::InitialSpanInfo
     }
   }
   if (!traceidset) {
-    random(span.trace_id);
+    span.trace_id.makeRandom();
   }
   // Empty parent span id indicated the client did not set one, thats fine
-  random(span.span_id);
+  span.span_id.makeRandom();
+}
+
+std::string SpanID::toLogString() const
+{
+  return makeHexDump(std::string(this->begin(), this->end()), "");
+}
+
+std::string TraceID::toLogString() const
+{
+  return makeHexDump(std::string(this->begin(), this->end()), "");
 }
 
 } // namespace pdns::trace
