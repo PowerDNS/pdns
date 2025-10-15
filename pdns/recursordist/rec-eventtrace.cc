@@ -52,7 +52,7 @@ static void addValue(const RecEventTrace::Entry& event, Span& work, bool start)
   if (std::holds_alternative<std::nullopt_t>(event.d_value)) {
     return;
   }
-  string key = start ? "arg" : "result";
+  string key = start ? event.d_valueName : "result";
   if (std::holds_alternative<bool>(event.d_value)) {
     work.attributes.emplace_back(KeyValue{std::move(key), {std::get<bool>(event.d_value)}});
   }
