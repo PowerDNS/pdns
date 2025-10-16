@@ -202,13 +202,13 @@ avstr
 AWith
 awithecs
 AWORD
-AXFR
 axfr
+AXFR
 AXFR'd
 AXFRGET
 axfrqlen
-AXFRs
 axfrs
+AXFRs
 AZone
 BACKENDADDRESS
 backendfactory
@@ -755,8 +755,8 @@ dnsdistrules
 dnsdisttcp
 dnsdisttests
 dnserrors
-DNSHEADER
 dnsheader
+DNSHEADER
 DNSID
 DNSIP
 dnskeyr
@@ -799,8 +799,8 @@ docblocks
 DOCD
 docdir
 dockerdata
-Dockerfile
 dockerfile
+Dockerfile
 dockerfiles
 dockerhub
 docstring
@@ -1073,8 +1073,8 @@ evilapikey
 evilsecret
 evloop
 evp
-EWMA
 ewma
+EWMA
 Ewmas
 EWOULDBLOCK
 Ewr
@@ -2310,8 +2310,8 @@ Nro
 nrr
 nsa
 nscount
-NSD
 nsd
+NSD
 nsdname
 nsdomain
 nseconds
@@ -2446,6 +2446,7 @@ opensource
 openssllocks
 opensslsigners
 opensslv
+opentelemetry
 operat
 opie
 opname
@@ -2485,6 +2486,7 @@ otherprovider
 otherrcode
 othersize
 othertag
+ottrace
 otype
 ourcount
 ourdomain
@@ -2544,6 +2546,7 @@ PBDNS
 pbegin
 pbf
 PBKDF
+pblog
 PBpq
 pbr
 pbtag
@@ -2616,8 +2619,8 @@ pkglib
 pkglibdir
 PKGNAME
 pkgv
-PKI
 pki
+PKI
 pkill
 pkthdr
 pktinfo
@@ -3445,8 +3448,8 @@ stex
 stl
 Stogner
 stoi
-Stol
 stol
+Stol
 stoll
 stormap
 storvect
@@ -3490,8 +3493,8 @@ Subnetcheck
 subnetlist
 subqueries
 substr
-SUBSTVARS
 substvars
+SUBSTVARS
 subsys
 suckdomains
 suffixmatch
@@ -3502,8 +3505,8 @@ suse
 suseconds
 sval
 SVBC
-SVCB
 svcb
+SVCB
 svg
 svn
 svr
@@ -3669,8 +3672,8 @@ tje
 tkdb
 tkey
 tkeys
-TLD
 tld
+TLD
 tlen
 TLKA
 tlsdhkeytoosmall
@@ -3741,8 +3744,8 @@ tottime
 toupper
 toxml
 tozero
-TPL
 tpl
+TPL
 tpos
 tptr
 transactiondomain
@@ -4001,7 +4004,6 @@ WCOREDUMP
 wcplusencloser
 wctx
 wday
-We'd
 weanswers
 webetter
 webhndlr
@@ -4012,6 +4014,7 @@ webserv
 webserveropts
 website
 websites
+We'd
 wednserrors
 weekno
 weirdtxt
@@ -4084,8 +4087,8 @@ XFRd
 XFRM
 xfrserver
 xhr
-XHTML
 xhtml
+XHTML
 xit
 xlabel
 xluajit

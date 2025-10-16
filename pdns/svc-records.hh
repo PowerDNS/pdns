@@ -62,7 +62,7 @@ class SvcParam {
   //! To create a multi-value SvcParam with key values (like mandatory)
   SvcParam(const SvcParamKey &key, std::set<SvcParamKey> &&value);
 
-  //! To create an ipv{4,6}hists SvcParam
+  //! To create an ipv{4,6}hints SvcParam
   SvcParam(const SvcParamKey &key, std::vector<ComboAddress> &&value);
 
   //! To create a tls-supported-groups SvcParam

@@ -75,7 +75,7 @@ fi
 
 # LIBFAKETIME is only added to LD_PRELOAD by the pyton code when needed
 if [ "${LIBASAN}" != "" -o "${LIBAUTHBIND}" != "" ]; then
-LD_PRELOAD="${LIBASAN} ${LIBAUTHBIND}" pytest --junitxml=pytest.xml "$@"
+LD_PRELOAD="${LIBASAN} ${LIBAUTHBIND}" authbind pytest --junitxml=pytest.xml "$@"
 else
 pytest --junitxml=pytest.xml "$@"
 fi

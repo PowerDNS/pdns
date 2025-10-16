@@ -14,6 +14,8 @@ import dns
 import dns.message
 import requests
 import threading
+import ssl
+import copy
 from twisted.internet import reactor
 from proxyprotocol import ProxyProtocol
 
@@ -1263,3 +1265,162 @@ distributor-threads={threads}
             cls.Responder = threading.Thread(name='Responder', target=reactor.run, args=(False,))
             cls.Responder.daemon = True
             cls.Responder.start()
+
+
+    @classmethod
+    def _ResponderIncrementCounter(cls):
+        if threading.current_thread().name in cls._responsesCounter:
+            cls._responsesCounter[threading.current_thread().name] += 1
+        else:
+            cls._responsesCounter[threading.current_thread().name] = 1
+
+    @classmethod
+    def _getResponse(cls, request, fromQueue, toQueue, synthesize=None):
+        response = None
+        if len(request.question) != 1:
+            print("Skipping query with question count %d" % (len(request.question)))
+            return None
+        cls._ResponderIncrementCounter()
+        if not fromQueue.empty():
+            toQueue.put(request, True, cls._queueTimeout)
+            response = fromQueue.get(True, cls._queueTimeout)
+            if response:
+                response = copy.copy(response)
+                response.id = request.id
+
+        if synthesize is not None:
+          response = dns.message.make_response(request)
+          response.set_rcode(synthesize)
+
+        if not response:
+            if cls._answerUnexpected:
+                response = dns.message.make_response(request)
+                response.set_rcode(dns.rcode.SERVFAIL)
+
+        return response
+
+    @classmethod
+    def handleTCPConnection(cls, conn, fromQueue, toQueue, trailingDataResponse=False, multipleResponses=False, callback=None, partialWrite=False):
+      ignoreTrailing = trailingDataResponse is True
+      try:
+        data = conn.recv(2)
+      except Exception as err:
+        data = None
+        print(f'Error while reading query size in TCP responder thread {err=}, {type(err)=}')
+      if not data:
+        conn.close()
+        return
+
+      (datalen,) = struct.unpack("!H", data)
+      data = conn.recv(datalen)
+      forceRcode = None
+      try:
+        request = dns.message.from_wire(data, ignore_trailing=ignoreTrailing)
+      except dns.message.TrailingJunk as e:
+        if trailingDataResponse is False or forceRcode is True:
+          raise
+        print("TCP query with trailing data, synthesizing response")
+        request = dns.message.from_wire(data, ignore_trailing=True)
+        forceRcode = trailingDataResponse
+
+      if callback:
+        wire = callback(request)
+      else:
+        if request.edns > 1:
+          forceRcode = dns.rcode.BADVERS
+        response = cls._getResponse(request, fromQueue, toQueue, synthesize=forceRcode)
+        if response:
+          wire = response.to_wire(max_size=65535)
+
+      if not wire:
+        conn.close()
+        return
+      elif isinstance(wire, ResponderDropAction):
+        return
+
+      wireLen = struct.pack("!H", len(wire))
+      if partialWrite:
+        for b in wireLen:
+          conn.send(bytes([b]))
+          time.sleep(0.5)
+      else:
+        conn.send(wireLen)
+      conn.send(wire)
+
+      while multipleResponses:
+        # do not block, and stop as soon as the queue is empty, either the next response is already here or we are done
+        # otherwise we might read responses intended for the next connection
+        if fromQueue.empty():
+          break
+
+        response = fromQueue.get(False)
+        if not response:
+          break
+
+        response = copy.copy(response)
+        response.id = request.id
+        wire = response.to_wire(max_size=65535)
+        try:
+          conn.send(struct.pack("!H", len(wire)))
+          conn.send(wire)
+        except socket.error as e:
+          # some of the tests are going to close
+          # the connection on us, just deal with it
+          break
+
+      conn.close()
+
+    @classmethod
+    def TCPResponder(cls, port, fromQueue, toQueue, trailingDataResponse=False, multipleResponses=False, callback=None, tlsContext=None, multipleConnections=False, listeningAddr='127.0.0.1', partialWrite=False):
+        cls._backgroundThreads[threading.get_native_id()] = True
+        # trailingDataResponse=True means "ignore trailing data".
+        # Other values are either False (meaning "raise an exception")
+        # or are interpreted as a response RCODE for queries with trailing data.
+
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+        try:
+            sock.bind((listeningAddr, port))
+        except socket.error as e:
+            print(listeningAddr)
+            print(port)
+            print("Error binding in the TCP responder: %s" % str(e))
+            sys.exit(1)
+
+        sock.listen(100)
+        sock.settimeout(0.5)
+        if tlsContext:
+          sock = tlsContext.wrap_socket(sock, server_side=True)
+
+        while True:
+            try:
+              (conn, _) = sock.accept()
+            except ssl.SSLError:
+              continue
+            except ConnectionResetError:
+              continue
+            except socket.timeout:
+              if cls._backgroundThreads.get(threading.get_native_id(), False) == False:
+                 del cls._backgroundThreads[threading.get_native_id()]
+                 break
+              else:
+                continue
+
+            conn.settimeout(5.0)
+            if multipleConnections:
+              thread = threading.Thread(name='TCP Connection Handler',
+                                        target=cls.handleTCPConnection,
+                                        args=[conn, fromQueue, toQueue, trailingDataResponse, multipleResponses, callback, partialWrite])
+              thread.daemon = True
+              thread.start()
+            else:
+              cls.handleTCPConnection(conn, fromQueue, toQueue, trailingDataResponse, multipleResponses, callback, partialWrite)
+
+        sock.close()
+
+class ResponderDropAction(object):
+    """
+    An object to indicate a drop action shall be taken
+    """
+    pass

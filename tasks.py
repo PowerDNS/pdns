@@ -56,6 +56,7 @@ auth_build_deps = [    # FIXME: perhaps we should be stealing these from the deb
 rec_build_deps = [
     'libcap-dev',
     'libfstrm-dev',
+    'libgnutls28-dev',
     'libsnmp-dev',
 ]
 rec_bulk_deps = [
@@ -238,13 +239,15 @@ def generate_coverage_info(c, binary, product, outputDir):
     if is_coverage_enabled():
         version = os.getenv('BUILDER_VERSION')
         c.run(f'llvm-profdata-{clang_version} merge -sparse -o {outputDir}/temp.profdata /tmp/code-*.profraw')
-        c.run(f'llvm-cov-{clang_version} export --format=lcov --ignore-filename-regex=\'^/usr/\' -instr-profile={outputDir}/temp.profdata -object {binary} > {outputDir}/coverage.lcov')
+        c.run(f'llvm-cov-{clang_version} export --format=lcov --ignore-filename-regex=\'^/usr/\' --ignore-filename-regex=\'ext/\' -instr-profile={outputDir}/temp.profdata -object {binary} > {outputDir}/coverage.lcov')
         c.run(f'{outputDir}/.github/scripts/normalize_paths_in_coverage.py {outputDir} {product} {version} {outputDir}/coverage.lcov {outputDir}/normalized_coverage.lcov 0')
         c.run(f'mv {outputDir}/normalized_coverage.lcov {outputDir}/coverage.lcov')
 
 def setup_authbind(c):
     c.sudo('touch /etc/authbind/byport/53')
     c.sudo('chmod 755 /etc/authbind/byport/53')
+    c.sudo('touch /etc/authbind/byport/!853')
+    c.sudo('chmod 755 /etc/authbind/byport/!853')
 
 auth_backend_test_deps = dict(
     gsqlite3=['sqlite3'],

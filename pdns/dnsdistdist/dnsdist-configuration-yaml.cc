@@ -1227,6 +1227,8 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
         if (!pool.policy.empty()) {
           poolIt->second.policy = getRegisteredTypeByName<ServerPolicy>(pool.policy);
         }
+        poolIt->second.setECS(pool.use_ecs);
+        poolIt->second.setZeroScope(pool.use_zero_scope);
       });
     }
 
@@ -1243,7 +1245,7 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
   return false;
 #else
   (void)fileName;
-  throw std::runtime_error("Unsupported YAML configuration");
+  throw std::runtime_error("YAML configuration is not supported by this build of dnsdist");
 #endif /* HAVE_YAML_CONFIGURATION */
 }
 
@@ -1722,6 +1724,7 @@ std::shared_ptr<DNSResponseActionWrapper> getRemoteLogResponseAction(const Remot
   if (dnsdist::configuration::yaml::getLuaFunctionFromConfiguration(alterFunc, config.alter_function_name, config.alter_function_code, config.alter_function_file, "remote log response action")) {
     actionConfig.alterResponseFunc = std::move(alterFunc);
   }
+  actionConfig.delay = config.delay;
   auto action = dnsdist::actions::getRemoteLogResponseAction(actionConfig);
   return newDNSResponseActionWrapper(std::move(action), config.name);
 #endif

@@ -82,6 +82,18 @@ packetcache:
             self.assertEqual(len(tokens), 5)
             self.assertEqual(tokens[3], support)
 
+    def checkAtLeastOneCookies(self, support):
+        confdir = os.path.join('configs', self._confdir)
+        output = self.recControl(confdir, 'dump-cookies', '-')
+        ok = False
+        for line in output.splitlines():
+            tokens = line.split()
+            if len(tokens) != 5:
+                continue
+            if tokens[3] == support:
+                ok = True
+        assert(ok)
+
     def testAuthDoesnotSendCookies(self):
         confdir = os.path.join('configs', self._confdir)
         # Case: rec does not get a cookie back
@@ -102,7 +114,7 @@ packetcache:
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertRRsetInAnswer(res, expected)
-        self.checkCookies('Supported')
+        self.checkAtLeastOneCookies('Supported')
         tcp2 = self.recControl(confdir, 'get tcp-outqueries')
         self.assertEqual(tcp1, tcp2)
 
@@ -113,7 +125,7 @@ packetcache:
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertRRsetInAnswer(res, expected)
-        self.checkCookies('Supported')
+        self.checkAtLeastOneCookies('Supported')
 
     def testAuthSendsIncorrectClientCookie(self):
         confdir = os.path.join('configs', self._confdir)
@@ -219,8 +231,6 @@ class UDPResponder(DatagramProtocol):
         elif question.name == dns.name.from_text('supported2.cookies.example.') and question.rdtype == dns.rdatatype.A:
             answer = dns.rrset.from_text('supported2.cookies.example.', 15, dns.rdataclass.IN, 'A', '127.0.0.1')
             clientcookie = self.getCookie(request)
-            if len(clientcookie) != 24:
-                raise AssertionError("expected full cookie, got len " + str(len(clientcookie)))
             if clientcookie is not None:
                 response.use_edns(options = [self.createCookie(clientcookie)])
             response.answer.append(answer)

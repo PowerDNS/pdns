@@ -989,7 +989,7 @@ LWResult::Result asendtcp(const PacketBuffer& data, shared_ptr<TCPIOHandler>& ha
   }
   if (packet.size() != data.size()) { // main loop tells us what it sent out, or empty in case of an error
     // fd housekeeping done by TCPIOHandlerIO
-    TCPLOG(pident->tcpsock, "PermanentError size mismatch" << endl);
+    TCPLOG(pident->tcpsock, "PermanentError size mismatch " << endl);
     return LWResult::Result::PermanentError;
   }
 

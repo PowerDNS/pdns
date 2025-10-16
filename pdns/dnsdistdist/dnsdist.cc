@@ -29,12 +29,17 @@
 #include <grp.h>
 #include <limits>
 #include <netinet/tcp.h>
+#include <optional>
 #include <pwd.h>
 #include <set>
 #include <sys/resource.h>
 #include <unistd.h>
 
+#include "dns.hh"
+#include "dnsdist-idstate.hh"
+#include "dnsdist-opentelemetry.hh"
 #include "dnsdist-systemd.hh"
+#include "protozero-trace.hh"
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-daemon.h>
 #endif
@@ -451,6 +456,10 @@ static bool encryptResponse(PacketBuffer& response, size_t maximumSize, bool tcp
 
 bool applyRulesToResponse(const std::vector<dnsdist::rules::ResponseRuleAction>& respRuleActions, DNSResponse& dnsResponse)
 {
+  pdns::trace::dnsdist::Tracer::Closer closer;
+  if (auto tracer = dnsResponse.ids.getTracer(); tracer != nullptr && dnsResponse.ids.tracingEnabled) {
+    closer = tracer->openSpan("applyRulesToResponse", tracer->getLastSpanID());
+  }
   if (respRuleActions.empty()) {
     return true;
   }
@@ -511,8 +520,15 @@ bool applyRulesToResponse(const std::vector<dnsdist::rules::ResponseRuleAction>&
 
 bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse, [[maybe_unused]] bool muted)
 {
+  pdns::trace::dnsdist::Tracer::Closer closer;
+  if (auto tracer = dnsResponse.ids.getTracer(); tracer != nullptr && dnsResponse.ids.tracingEnabled) {
+    closer = tracer->openSpan("processResponseAfterRules");
+  }
   bool zeroScope = false;
   if (!fixUpResponse(response, dnsResponse.ids.qname, dnsResponse.ids.origFlags, dnsResponse.ids.ednsAdded, dnsResponse.ids.ecsAdded, dnsResponse.ids.useZeroScope ? &zeroScope : nullptr)) {
+    if (auto tracer = dnsResponse.ids.getTracer(); tracer != nullptr && dnsResponse.ids.tracingEnabled) {
+      tracer->setSpanAttribute(closer.getSpanID(), "result", AnyValue{"fixUpResponse->false"});
+    }
     return false;
   }
 
@@ -538,8 +554,13 @@ bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse,
       // if zeroScope, pass the pre-ECS hash-key and do not pass the subnet to the cache
       cacheKey = dnsResponse.ids.cacheKeyNoECS;
     }
-    dnsResponse.ids.packetCache->insert(cacheKey, zeroScope ? boost::none : dnsResponse.ids.subnet, dnsResponse.ids.cacheFlags, dnsResponse.ids.dnssecOK ? *dnsResponse.ids.dnssecOK : false, dnsResponse.ids.qname, dnsResponse.ids.qtype, dnsResponse.ids.qclass, response, dnsResponse.ids.forwardedOverUDP, dnsResponse.getHeader()->rcode, dnsResponse.ids.tempFailureTTL);
-
+    {
+      pdns::trace::dnsdist::Tracer::Closer cacheInsertCloser;
+      if (auto tracer = dnsResponse.ids.getTracer(); tracer != nullptr && dnsResponse.ids.tracingEnabled) {
+        cacheInsertCloser = tracer->openSpan("packetCacheInsert", closer.getSpanID());
+      }
+      dnsResponse.ids.packetCache->insert(cacheKey, zeroScope ? boost::none : dnsResponse.ids.subnet, dnsResponse.ids.cacheFlags, dnsResponse.ids.dnssecOK ? *dnsResponse.ids.dnssecOK : false, dnsResponse.ids.qname, dnsResponse.ids.qtype, dnsResponse.ids.qclass, response, dnsResponse.ids.forwardedOverUDP, dnsResponse.getHeader()->rcode, dnsResponse.ids.tempFailureTTL);
+    }
     const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
     const auto& cacheInsertedRespRuleActions = dnsdist::rules::getResponseRuleChain(chains, dnsdist::rules::ResponseRuleChain::CacheInsertedResponseRules);
     if (!applyRulesToResponse(cacheInsertedRespRuleActions, dnsResponse)) {
@@ -568,6 +589,11 @@ bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse,
 
 bool processResponse(PacketBuffer& response, DNSResponse& dnsResponse, bool muted)
 {
+  pdns::trace::dnsdist::Tracer::Closer closer;
+  if (auto tracer = dnsResponse.ids.getTracer(); tracer != nullptr && dnsResponse.ids.tracingEnabled) {
+    closer = tracer->openSpan("processResponse", tracer->getRootSpanID());
+  }
+
   const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
   const auto& respRuleActions = dnsdist::rules::getResponseRuleChain(chains, dnsdist::rules::ResponseRuleChain::ResponseRules);
 
@@ -625,6 +651,20 @@ bool sendUDPResponse(int origFD, const PacketBuffer& response, [[maybe_unused]] 
 void handleResponseSent(const InternalQueryState& ids, double udiff, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH, dnsdist::Protocol outgoingProtocol, bool fromBackend)
 {
   handleResponseSent(ids.qname, ids.qtype, udiff, client, backend, size, cleartextDH, outgoingProtocol, ids.protocol, fromBackend);
+
+#ifndef DISABLE_PROTOBUF
+  if (ids.tracingEnabled && !ids.delayedResponseMsgs.empty()) {
+    static thread_local std::string data;
+    for (auto const& msg_logger : ids.delayedResponseMsgs) {
+      data.clear();
+      msg_logger.first->serialize(data);
+      if (!ids.d_rawProtobufContent.empty()) {
+        data.insert(data.end(), ids.d_rawProtobufContent.begin(), ids.d_rawProtobufContent.end());
+      }
+      msg_logger.second->queueData(data);
+    }
+  }
+#endif
 }
 
 void handleResponseSent(const DNSName& qname, const QType& qtype, double udiff, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH, dnsdist::Protocol outgoingProtocol, dnsdist::Protocol incomingProtocol, bool fromBackend)
@@ -1021,6 +1061,10 @@ static bool applyRulesChainToQuery(const std::vector<dnsdist::rules::RuleAction>
 
 static bool applyRulesToQuery(DNSQuestion& dnsQuestion, const timespec& now)
 {
+  pdns::trace::dnsdist::Tracer::Closer closer;
+  if (auto tracer = dnsQuestion.ids.getTracer(); tracer != nullptr) {
+    closer = tracer->openSpan("applyRulesToQuery", tracer->getLastSpanID());
+  }
   if (g_rings.shouldRecordQueries()) {
     g_rings.insertQuery(now, dnsQuestion.ids.origRemote, dnsQuestion.ids.qname, dnsQuestion.ids.qtype, dnsQuestion.getData().size(), *dnsQuestion.getHeader(), dnsQuestion.getProtocol());
   }
@@ -1426,40 +1470,71 @@ static ProcessQueryResult handleQueryTurnedIntoSelfAnsweredResponse(DNSQuestion&
 
 static ServerPolicy::SelectedBackend selectBackendForOutgoingQuery(DNSQuestion& dnsQuestion, const ServerPool& serverPool)
 {
+  pdns::trace::dnsdist::Tracer::Closer closer;
+  if (auto tracer = dnsQuestion.ids.getTracer(); tracer != nullptr && dnsQuestion.ids.tracingEnabled) {
+    closer = tracer->openSpan("selectBackendForOutgoingQuery", tracer->getLastSpanID());
+  }
+
   const auto& policy = serverPool.policy != nullptr ? *serverPool.policy : *dnsdist::configuration::getCurrentRuntimeConfiguration().d_lbPolicy;
   const auto& servers = serverPool.getServers();
-  return policy.getSelectedBackend(servers, dnsQuestion);
+  auto selectedBackend = policy.getSelectedBackend(servers, dnsQuestion);
+
+  if (auto tracer = dnsQuestion.ids.getTracer(); tracer != nullptr && selectedBackend && dnsQuestion.ids.tracingEnabled) {
+    tracer->setSpanAttribute(closer.getSpanID(), "backend.name", AnyValue{selectedBackend->getNameWithAddr()});
+    tracer->setSpanAttribute(closer.getSpanID(), "backend.id", AnyValue{boost::uuids::to_string(selectedBackend->getID())});
+  }
+
+  return selectedBackend;
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity): refactoring will be done in https://github.com/PowerDNS/pdns/pull/16124
 ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_ptr<DownstreamState>& outgoingBackend)
 {
+  const auto sendAnswer = [](DNSQuestion& dnsQ) -> ProcessQueryResult {
+    ++dnsdist::metrics::g_stats.responses;
+    ++dnsQ.ids.cs->responses;
+    return ProcessQueryResult::SendAnswer;
+  };
   const uint16_t queryId = ntohs(dnsQuestion.getHeader()->id);
 
   try {
     if (dnsQuestion.getHeader()->qr) { // something turned it into a response
       return handleQueryTurnedIntoSelfAnsweredResponse(dnsQuestion);
     }
+    bool backendLookupDone = false;
     const auto& serverPool = getPool(dnsQuestion.ids.poolName);
-    auto selectedBackend = selectBackendForOutgoingQuery(dnsQuestion, serverPool);
-    bool willBeForwardedOverUDP = !dnsQuestion.overTCP() || dnsQuestion.ids.protocol == dnsdist::Protocol::DoH;
-    if (selectedBackend && selectedBackend->isTCPOnly()) {
-      willBeForwardedOverUDP = false;
-    }
-    else if (!selectedBackend) {
-      willBeForwardedOverUDP = !serverPool.isTCPOnly();
+    ServerPolicy::SelectedBackend selectedBackend(serverPool.getServers());
+    if (!serverPool.packetCache || !serverPool.isConsistent()) {
+      selectedBackend = selectBackendForOutgoingQuery(dnsQuestion, serverPool);
+      backendLookupDone = true;
     }
 
-    uint32_t allowExpired = selectedBackend ? 0 : dnsdist::configuration::getCurrentRuntimeConfiguration().d_staleCacheEntriesTTL;
+    bool willBeForwardedOverUDP = !dnsQuestion.overTCP() || dnsQuestion.ids.protocol == dnsdist::Protocol::DoH;
+    if (selectedBackend) {
+      if (selectedBackend->isTCPOnly()) {
+        willBeForwardedOverUDP = false;
+      }
+    }
+    else if (serverPool.isTCPOnly()) {
+      willBeForwardedOverUDP = false;
+    }
+
+    uint32_t allowExpired = 0;
+    if (!selectedBackend && dnsdist::configuration::getCurrentRuntimeConfiguration().d_staleCacheEntriesTTL > 0 && (backendLookupDone || !serverPool.hasAtLeastOneServerAvailable())) {
+      allowExpired = dnsdist::configuration::getCurrentRuntimeConfiguration().d_staleCacheEntriesTTL;
+    }
 
     if (serverPool.packetCache && !dnsQuestion.ids.skipCache && !dnsQuestion.ids.dnssecOK) {
       dnsQuestion.ids.dnssecOK = (dnsdist::getEDNSZ(dnsQuestion) & EDNS_HEADER_FLAG_DO) != 0;
     }
 
-    if (dnsQuestion.useECS && ((selectedBackend && selectedBackend->d_config.useECS) || (!selectedBackend && serverPool.getECS()))) {
+    const bool useECS = dnsQuestion.useECS && ((selectedBackend && selectedBackend->d_config.useECS) || (!selectedBackend && serverPool.getECS()));
+    if (useECS) {
+      const bool useZeroScope = (selectedBackend && !selectedBackend->d_config.disableZeroScope) || (!selectedBackend && serverPool.getZeroScope());
       // we special case our cache in case a downstream explicitly gave us a universally valid response with a 0 scope
       // we need ECS parsing (parseECS) to be true so we can be sure that the initial incoming query did not have an existing
       // ECS option, which would make it unsuitable for the zero-scope feature.
-      if (serverPool.packetCache && !dnsQuestion.ids.skipCache && (!selectedBackend || !selectedBackend->d_config.disableZeroScope) && serverPool.packetCache->isECSParsingEnabled()) {
+      if (serverPool.packetCache && !dnsQuestion.ids.skipCache && useZeroScope && serverPool.packetCache->isECSParsingEnabled()) {
         if (serverPool.packetCache->get(dnsQuestion, dnsQuestion.getHeader()->id, &dnsQuestion.ids.cacheKeyNoECS, dnsQuestion.ids.subnet, *dnsQuestion.ids.dnssecOK, willBeForwardedOverUDP, allowExpired, false, true, false)) {
 
           vinfolog("Packet cache hit for query for %s|%s from %s (%s, %d bytes)", dnsQuestion.ids.qname.toLogString(), QType(dnsQuestion.ids.qtype).toString(), dnsQuestion.ids.origRemote.toStringWithPort(), dnsQuestion.ids.protocol.toString(), dnsQuestion.getData().size());
@@ -1468,9 +1543,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
             return ProcessQueryResult::Drop;
           }
 
-          ++dnsdist::metrics::g_stats.responses;
-          ++dnsQuestion.ids.cs->responses;
-          return ProcessQueryResult::SendAnswer;
+          return sendAnswer(dnsQuestion);
         }
 
         if (!dnsQuestion.ids.subnet) {
@@ -1503,9 +1576,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
           return ProcessQueryResult::Drop;
         }
 
-        ++dnsdist::metrics::g_stats.responses;
-        ++dnsQuestion.ids.cs->responses;
-        return ProcessQueryResult::SendAnswer;
+        return sendAnswer(dnsQuestion);
       }
       if (dnsQuestion.ids.protocol == dnsdist::Protocol::DoH && willBeForwardedOverUDP) {
         /* do a second-lookup for responses received over UDP, but we do not want TC=1 answers */
@@ -1515,9 +1586,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
             return ProcessQueryResult::Drop;
           }
 
-          ++dnsdist::metrics::g_stats.responses;
-          ++dnsQuestion.ids.cs->responses;
-          return ProcessQueryResult::SendAnswer;
+          return sendAnswer(dnsQuestion);
         }
       }
 
@@ -1542,10 +1611,15 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
         const auto& newServerPool = getPool(dnsQuestion.ids.poolName);
         dnsQuestion.ids.packetCache = newServerPool.packetCache;
         selectedBackend = selectBackendForOutgoingQuery(dnsQuestion, newServerPool);
+        backendLookupDone = true;
       }
       else {
         dnsQuestion.ids.packetCache = serverPool.packetCache;
       }
+    }
+
+    if (!backendLookupDone) {
+      selectedBackend = selectBackendForOutgoingQuery(dnsQuestion, serverPool);
     }
 
     if (!selectedBackend) {
@@ -1561,10 +1635,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
         if (!prepareOutgoingResponse(*dnsQuestion.ids.cs, dnsQuestion, false)) {
           return ProcessQueryResult::Drop;
         }
-        ++dnsdist::metrics::g_stats.responses;
-        ++dnsQuestion.ids.cs->responses;
-        // no response-only statistics counter to update.
-        return ProcessQueryResult::SendAnswer;
+        return sendAnswer(dnsQuestion);
       }
 
       return ProcessQueryResult::Drop;
@@ -1727,8 +1798,12 @@ std::unique_ptr<CrossProtocolQuery> getUDPCrossProtocolQueryFromDQ(DNSQuestion& 
 
 ProcessQueryResult processQuery(DNSQuestion& dnsQuestion, std::shared_ptr<DownstreamState>& selectedBackend)
 {
-  const uint16_t queryId = ntohs(dnsQuestion.getHeader()->id);
 
+  pdns::trace::dnsdist::Tracer::Closer closer;
+  if (auto tracer = dnsQuestion.ids.getTracer(); tracer != nullptr) {
+    closer = tracer->openSpan("processQuery", tracer->getLastSpanID());
+  }
+  const uint16_t queryId = ntohs(dnsQuestion.getHeader()->id);
   try {
     /* we need an accurate ("real") value for the response and
        to store into the IDS, but not for insertion into the
@@ -1759,6 +1834,11 @@ ProcessQueryResult processQuery(DNSQuestion& dnsQuestion, std::shared_ptr<Downst
 
 bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& downstream, uint16_t queryID, DNSQuestion& dnsQuestion, PacketBuffer& query, bool actuallySend)
 {
+  pdns::trace::dnsdist::Tracer::Closer closer;
+  if (auto tracer = dnsQuestion.ids.getTracer(); tracer != nullptr && dnsQuestion.ids.tracingEnabled) {
+    closer = tracer->openSpan("assignOutgoingUDPQueryToBackend", tracer->getLastSpanID());
+  }
+
   bool doh = dnsQuestion.ids.du != nullptr;
 
   bool failed = false;
@@ -1832,6 +1912,12 @@ static void processUDPQuery(ClientState& clientState, const struct msghdr* msgh,
   assert(responsesVect == nullptr || (queuedResponses != nullptr && respIOV != nullptr && respCBuf != nullptr));
   uint16_t queryId = 0;
   InternalQueryState ids;
+
+  pdns::trace::dnsdist::Tracer::Closer closer;
+  if (auto tracer = ids.getTracer(); tracer != nullptr) {
+    closer = tracer->openSpan("processUDPQuery");
+  }
+
   ids.cs = &clientState;
   ids.origRemote = remote;
   ids.hopRemote = remote;

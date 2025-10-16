@@ -116,6 +116,7 @@ struct RemoteLogActionConfiguration
   std::string ipEncryptMethod{"legacy"};
   std::optional<std::string> exportExtendedErrorsToMeta{std::nullopt};
   bool includeCNAME{false};
+  bool delay{false};
 };
 std::shared_ptr<DNSAction> getRemoteLogAction(RemoteLogActionConfiguration& config);
 std::shared_ptr<DNSResponseAction> getRemoteLogResponseAction(RemoteLogActionConfiguration& config);

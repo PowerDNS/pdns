@@ -776,6 +776,17 @@ The following actions exist.
 
   :param int ttl: Cache TTL for temporary failure replies
 
+.. function:: SetTraceAction(value)
+
+  .. versionadded:: 2.1.0
+
+  Enable or disable :doc:`OpenTelemetry tracing <../reference/ottrace>` for this query. Don't forget to use :func:`RemoteLogResponseAction` to actually send the Protobuf with the trace to a collector.
+  Subsequent rules are processed after this action.
+
+  Tracing has to be turned on globally as well using :func:`setOpenTelemetryTracing`.
+
+  :param bool value: Whether to enable or disable query tracing.
+
 .. function:: SkipCacheAction()
 
   .. deprecated:: 1.6.0

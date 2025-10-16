@@ -454,3 +454,73 @@ query_rules:
             receivedQuery.id = query.id
             self.assertEqual(query, receivedQuery)
             self.assertEqual(response, receivedResponse)
+
+class TestYamlPoolECSZeroScope(DNSDistTest):
+
+    _yaml_config_template = """---
+binds:
+  - listen_address: "127.0.0.1:%d"
+    protocol: Do53
+
+backends:
+  - address: "127.0.0.1:%d"
+    protocol: Do53
+    use_client_subnet: true
+  - address: "127.0.0.1:%d"
+    protocol: Do53
+    use_client_subnet: false
+    disable_zero_scope: true
+
+pools:
+  - name: ""
+    use_ecs: true
+    use_zero_scope: false
+
+query_rules:
+  - name: "check the pool configuration"
+    selector:
+      type: "Lua"
+      name: "Match if the pool is not properly configured"
+      function_code: |
+        return function(dq)
+          local pool = getPool("")
+          if not pool:getECS() then
+            errlog("Pool should have ECS enabled")
+            return true
+          end
+          if pool:getZeroScope() then
+            errlog("Pool should have zero scope disabled")
+            return true
+          end
+          return false
+        end
+    action:
+      type: "RCode"
+      rcode: "Refused"
+"""
+    _yaml_config_params = ['_dnsDistPort', '_testServerPort', '_testServerPort']
+    _config_params = []
+
+    def testPoolECSZeroScopeConfig(self):
+        """
+        YAML: Test pool ECS and zero scope
+        """
+        name = 'pool-ecs-zero-scope.yaml.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'SOA', 'IN')
+        query.set_opcode(dns.opcode.UPDATE)
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = query.id
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)

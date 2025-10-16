@@ -24,3 +24,4 @@ option('libcurl', type: 'feature', value: 'auto', description: 'Enable Curl supp
 option('nod', type: 'feature', value: 'enabled', description: 'Enable Newly Observed Domains')
 option('libcap', type: 'feature', value: 'auto', description: 'Enable libcap for capabilities handling')
 option('clang-coverage-format', type: 'boolean', value: false, description: 'Whether to generate coverage data in clang format')
+option('tls-gnutls', type: 'feature', value: 'auto', description: 'GnuTLS-based TLS')

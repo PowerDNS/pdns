@@ -2,6 +2,7 @@
 #include <csignal>
 #include <fcntl.h>
 #include <fstream>
+#include <string>
 #include <termios.h>            //termios, TCSANOW, ECHO, ICANON
 #include <utility>
 #include <sys/stat.h>
@@ -940,6 +941,16 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& zone, co
     if(isSecure && wirelength > 222) {
       numerrors++;
       cout<<"[Error] zone '" << zone << "' has NSEC3 semantics but is too long to have the hash prepended. Zone name is " << wirelength << " bytes long, whereas the maximum is 222 bytes." << endl;
+    }
+
+    if (ns3pr.d_iterations > 0) {
+      numwarnings++;
+      cout<<"[Warning] zone '" << zone << "' has " << std::to_string(ns3pr.d_iterations) << " iterations configured for its NSEC3 parameter. 0 is the recommended value in RFC 9276." << endl;
+    }
+
+    if (!ns3pr.d_salt.empty()) {
+      numwarnings++;
+      cout<<"[Warning] zone '" << zone << "' has a salt configured for its NSEC3 parameter. No salt ('-') is the recommended value in RFC 9276." << endl;
     }
 
     vector<DNSBackend::KeyData> dbkeyset;
@@ -4508,6 +4519,15 @@ static int setNsec3(vector<string>& cmds, const std::string_view synopsis)
 
   DNSSECKeeper dk; //NOLINT(readability-identifier-length)
   ZoneName zone(cmds.at(0));
+
+  if (ns3pr.d_iterations > 0) {
+    cerr<<"[Warning] setting the number of iterations higher than 0 is not recommended by RFC 9276"<<endl;
+  }
+
+  if (!ns3pr.d_salt.empty()) {
+    cerr<<"[Warning] setting a salt is not recommended by RFC 9276"<<endl;
+  }
+
   try {
     if (! dk.setNSEC3PARAM(zone, ns3pr, narrow)) {
       cerr<<"Cannot set NSEC3 param for " << zone << endl;

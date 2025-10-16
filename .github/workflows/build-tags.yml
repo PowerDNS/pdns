@@ -8,6 +8,14 @@ on:
     - 'dnsdist-*'
     - 'rec-*'
 
+# Please be aware that this version of the workflow is NOT the one called
+# when someone pushes a tag on a release branch (rel/**)! The version
+# used is the one present in the tag, which in turns should call the
+# version present in the master branch of the reusable workflow defined
+# in .github/workflows/build-packages.yml
+# This means that any change to this file will very likely need to be
+# backported to all release branches!!
+
 permissions:
   actions: read
   id-token: write
