@@ -87,7 +87,7 @@ public:
   struct DNSQuestion
   {
     // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
-    DNSQuestion(const ComboAddress& prem, const ComboAddress& ploc, const ComboAddress& rem, const ComboAddress& loc, const DNSName& query, uint16_t type, bool tcp, bool& variable_, bool& wantsRPZ_, bool& logResponse_, bool& addPaddingToResponse_, const struct timeval& queryTime_) :
+    DNSQuestion(const ComboAddress& prem, const ComboAddress& ploc, ComboAddress& rem, const ComboAddress& loc, const DNSName& query, uint16_t type, bool tcp, bool& variable_, bool& wantsRPZ_, bool& logResponse_, bool& addPaddingToResponse_, const struct timeval& queryTime_) :
       qname(query), interface_local(ploc), interface_remote(prem), local(loc), remote(rem), variable(variable_), wantsRPZ(wantsRPZ_), logResponse(logResponse_), addPaddingToResponse(addPaddingToResponse_), queryTime(queryTime_), qtype(type), isTcp(tcp)
     {
     }
@@ -95,7 +95,7 @@ public:
     const ComboAddress& interface_local;
     const ComboAddress& interface_remote;
     const ComboAddress& local;
-    const ComboAddress& remote;
+    ComboAddress& remote;
     const ComboAddress* fromAuthIP{nullptr};
     const struct dnsheader* dh{nullptr};
     const std::vector<pair<uint16_t, string>>* ednsOptions{nullptr};
@@ -215,7 +215,7 @@ public:
   bool nodata(DNSQuestion& dnsQuestion, int& ret, RecEventTrace&) const;
   bool postresolve(DNSQuestion& dnsQuestion, int& ret, RecEventTrace&) const;
 
-  bool preoutquery(const ComboAddress& nameserver, const ComboAddress& requestor, const DNSName& query, const QType& qtype, bool& isTcp, vector<DNSRecord>& res, int& ret, RecEventTrace& eventTrace, const struct timeval& theTime) const;
+  bool preoutquery(ComboAddress& nameserver, const ComboAddress& requestor, const DNSName& query, const QType& qtype, bool& isTcp, vector<DNSRecord>& res, int& ret, RecEventTrace& eventTrace, const struct timeval& theTime) const;
   bool ipfilter(const ComboAddress& remote, const ComboAddress& local, const struct dnsheader&, RecEventTrace&) const;
 
   bool policyHitEventFilter(const ComboAddress& remote, const DNSName& qname, const QType& qtype, bool tcp, DNSFilterEngine::Policy& policy, std::unordered_set<std::string>& tags, std::unordered_map<std::string, bool>& discardedPolicies) const;
