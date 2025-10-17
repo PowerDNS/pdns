@@ -48,7 +48,7 @@ class DNSDistOpenTelemetryProtobufTest(test_Protobuf.DNSDistProtobufTest):
 
 
 class DNSDistOpenTelemetryProtobufBaseTest(DNSDistOpenTelemetryProtobufTest):
-    def doTest(self):
+    def doTest(self, wasDelayed=False):
         msg = self.sendQueryAndGetProtobuf()
 
         self.assertTrue(msg.HasField("openTelemetryTraceID"))
@@ -109,18 +109,21 @@ class DNSDistOpenTelemetryProtobufBaseTest(DNSDistOpenTelemetryProtobufTest):
         msg_span_name = [
             v["name"] for v in ot_data["resource_spans"][0]["scope_spans"][0]["spans"]
         ]
-        self.assertListEqual(
-            msg_span_name,
-            [
-                "processUDPQuery",
-                "processQuery",
-                "applyRulesToQuery",
-                "selectBackendForOutgoingQuery",
-                "assignOutgoingUDPQueryToBackend",
-                "processResponse",
-                "applyRulesToResponse",
-            ],
-        )
+
+        funcs = [
+            "processUDPQuery",
+            "processQuery",
+            "applyRulesToQuery",
+            "selectBackendForOutgoingQuery",
+            "assignOutgoingUDPQueryToBackend",
+            "processResponse",
+            "applyRulesToResponse",
+        ]
+
+        if wasDelayed:
+            funcs.append("processResponseAfterRules")
+
+        self.assertListEqual(msg_span_name, funcs)
 
         traceId = base64.b64encode(msg.openTelemetryTraceID).decode()
         for msg_span in ot_data["resource_spans"][0]["scope_spans"][0]["spans"]:
@@ -187,6 +190,46 @@ addResponseAction(AllRule(), RemoteLogResponseAction(rl))
 
     def testBasic(self):
         self.doTest()
+
+
+class TestOpenTelemetryTracingBaseDelayYAML(DNSDistOpenTelemetryProtobufBaseTest):
+    _yaml_config_params = [
+        "_testServerPort",
+        "_protobufServerPort",
+    ]
+    _yaml_config_template = """---
+logging:
+  open_telemetry_tracing: true
+
+backends:
+  - address: 127.0.0.1:%d
+    protocol: Do53
+
+remote_logging:
+ protobuf_loggers:
+   - name: pblog
+     address: 127.0.0.1:%d
+
+query_rules:
+ - name: Enable tracing
+   selector:
+     type: All
+   action:
+     type: SetTrace
+     value: true
+
+response_rules:
+ - name: Do PB logging
+   selector:
+     type: All
+   action:
+     type: RemoteLog
+     logger_name: pblog
+     delay: true
+"""
+
+    def testBasic(self):
+        self.doTest(True)
 
 
 class DNSDistOpenTelemetryProtobufNoOTDataTest(DNSDistOpenTelemetryProtobufTest):
