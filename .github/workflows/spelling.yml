@@ -2,7 +2,8 @@
 name: Workflow should not run!
 on:
   push:
-    branches: ''
+    branches:
+      - should-not-run
 
 permissions: {}
 
