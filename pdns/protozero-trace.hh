@@ -435,20 +435,20 @@ struct Span
   {
     // Unspecified. Do NOT use as default.
     // Implementations MAY assume SpanKind to be INTERNAL when receiving UNSPECIFIED.
-    SPAN_KINUNSPECIFIED = 0,
+    SPAN_KIND_UNSPECIFIED = 0,
     // Indicates that the span represents an internal operation within an application,
     // as opposed to an operation happening at the boundaries. Default value.
-    SPAN_KININTERNAL = 1,
+    SPAN_KIND_INTERNAL = 1,
     // Indicates that the span covers server-side handling of an RPC or other
     // remote network request.
-    SPAN_KINSERVER = 2,
+    SPAN_KIND_SERVER = 2,
     // Indicates that the span describes a request to some remote service.
-    SPAN_KINCLIENT = 3,
+    SPAN_KIND_CLIENT = 3,
     // Indicates that the span describes a producer sending a message to a broker.
     // Unlike CLIENT and SERVER, there is often no direct critical path latency relationship
     // between producer and consumer spans. A PRODUCER span ends when the message was accepted
     // by the broker while the logical processing of the message might span a much longer time.
-    SPAN_KINPRODUCER = 4,
+    SPAN_KIND_PRODUCER = 4,
     // Indicates that the span describes consumer receiving a message from a broker.
     // Like the PRODUCER kind, there is often no direct critical path latency relationship
     // between producer and consumer spans.
@@ -457,7 +457,7 @@ struct Span
   // Distinguishes between spans generated in a particular context. For example,
   // two spans with the same name may be distinguished using `CLIENT` (caller)
   // and `SERVER` (callee) to identify queueing latency associated with the span.
-  SpanKind kind{Span::SpanKind::SPAN_KINUNSPECIFIED}; // = 6
+  SpanKind kind{Span::SpanKind::SPAN_KIND_UNSPECIFIED}; // = 6
   // start_time_unix_nano is the start time of the span. On the client side, this is the time
   // kept by the local machine where the span execution starts. On the server side, this
   // is the time when the server's application handler starts running.
@@ -597,7 +597,7 @@ struct Span
     trace_state.clear(); // 3
     parent_span_id.clear(); // 4
     name.clear(); // 5
-    kind = SpanKind::SPAN_KINUNSPECIFIED; // 6
+    kind = SpanKind::SPAN_KIND_UNSPECIFIED; // 6
     start_time_unix_nano = 0; // 7
     end_time_unix_nano = 0; // 8
     attributes.clear(); // 9

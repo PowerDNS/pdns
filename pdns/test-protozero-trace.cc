@@ -116,7 +116,7 @@ BOOST_AUTO_TEST_CASE(traces1)
     .span_id = {0xEE, 0xE1, 0x9B, 0x7E, 0xC3, 0xC1, 0xB1, 0x74},
     .parent_span_id = {0xEE, 0xE1, 0x9B, 0x7E, 0xC3, 0xC1, 0xB1, 0x73},
     .name = "I'm a server span",
-    .kind = pdns::trace::Span::SpanKind::SPAN_KINSERVER,
+    .kind = pdns::trace::Span::SpanKind::SPAN_KIND_SERVER,
     .start_time_unix_nano = 1544712660000000000UL,
     .end_time_unix_nano = 1544712661000000000UL,
     .attributes = {{"my.span.attr", {"some value"}}}};
@@ -165,7 +165,7 @@ BOOST_AUTO_TEST_CASE(traces2)
     .span_id = {0xEE, 0xE1, 0x9B, 0x7E, 0xC3, 0xC1, 0xB1, 0x74},
     .parent_span_id = {0xEE, 0xE1, 0x9B, 0x7E, 0xC3, 0xC1, 0xB1, 0x73},
     .name = "I'm a server span",
-    .kind = pdns::trace::Span::SpanKind::SPAN_KINSERVER,
+    .kind = pdns::trace::Span::SpanKind::SPAN_KIND_SERVER,
     .start_time_unix_nano = 1544712660000000000UL,
     .end_time_unix_nano = 1544712661000000000UL,
     .attributes = {{"my.span.attr", {"some value"}}, {"attr2", {1.0}}},

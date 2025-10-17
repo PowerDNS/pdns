@@ -66,7 +66,7 @@ TracesData Tracer::getTracesData()
           .span_id = preActivationTrace.span_id,
           .parent_span_id = preActivationTrace.parent_span_id,
           .name = preActivationTrace.name,
-          .kind = pdns::trace::Span::SpanKind::SPAN_KINSERVER,
+          .kind = pdns::trace::Span::SpanKind::SPAN_KIND_SERVER,
           .start_time_unix_nano = preActivationTrace.start_time_unix_nano,
           .end_time_unix_nano = preActivationTrace.end_time_unix_nano,
         });
@@ -123,6 +123,7 @@ SpanID Tracer::addSpan([[maybe_unused]] const std::string& name, [[maybe_unused]
       .span_id = spanID,
       .parent_span_id = parentSpanID,
       .name = name,
+      .kind = pdns::trace::Span::SpanKind::SPAN_KIND_SERVER,
       .start_time_unix_nano = pdns::trace::timestamp(),
     });
     return spanID;
