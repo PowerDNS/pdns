@@ -31,8 +31,8 @@ extern AuthQueryCache QC;
 uint64_t purgeAuthCaches()
 {
   uint64_t ret = 0;
-  ret += PC.purge();
   ret += QC.purge();
+  ret += PC.purge();
   return ret;
 }
 
@@ -40,8 +40,8 @@ uint64_t purgeAuthCaches()
 uint64_t purgeAuthCaches(const std::string& match)
 {
   uint64_t ret = 0;
-  ret += PC.purge(match);
   ret += QC.purge(match);
+  ret += PC.purge(match);
   return ret;
 }
 
@@ -49,8 +49,8 @@ uint64_t purgeAuthCaches(const std::string& match)
 uint64_t purgeAuthCachesExact(const DNSName& qname)
 {
   uint64_t ret = 0;
-  ret += PC.purgeExact(qname);
   ret += QC.purgeExact(qname);
+  ret += PC.purgeExact(qname);
   return ret;
 }
 
