@@ -67,7 +67,6 @@ subdir('meson' / 'clock-gettime')           # Clock_gettime
 subdir('meson' / 'boost')                   # Boost
 subdir('meson' / 'boost-context')           # Boost Context Switching Library
 subdir('meson' / 'boost-test')              # Boost Testing Library
-subdir('meson' / 'boost-filesystem')        # Boost File System Library
 subdir('meson' / 'reproducible')            # Reproducible Builds
 subdir('meson' / 'libsystemd')              # Systemd notification
 subdir('meson' / 'systemd')                 # Systemd and unit file handling

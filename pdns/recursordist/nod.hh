@@ -23,7 +23,7 @@
 
 #include <mutex>
 #include <thread>
-#include <boost/filesystem.hpp>
+#include <filesystem>
 
 #include "dnsname.hh"
 #include "lock.hh"
@@ -65,7 +65,7 @@ public:
   }
 
 private:
-  void remove_tmp_files(const boost::filesystem::path&, std::scoped_lock<std::mutex>&);
+  void remove_tmp_files(const std::filesystem::path&, std::scoped_lock<std::mutex>&);
 
   LockGuarded<bf::stableBF> d_sbf; // Stable Bloom Filter
   std::string d_cachedir;
