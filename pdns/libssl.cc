@@ -373,7 +373,7 @@ int libssl_ocsp_stapling_callback(SSL* ssl, const std::map<int, std::string>& oc
   }
 
   const auto ocsp_resp_size = data->second.size();
-#if OPENSSL_VERSION_NUMBER < 0x30600000L
+#if OPENSSL_VERSION_NUMBER != 0x30600000L
   /* we need to allocate a copy because OpenSSL will free the pointer passed to SSL_set_tlsext_status_ocsp_resp() */
   void* ocsp_resp = OPENSSL_malloc(ocsp_resp_size);
   if (ocsp_resp == nullptr) {
