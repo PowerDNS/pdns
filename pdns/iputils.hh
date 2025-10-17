@@ -52,6 +52,11 @@
 #define htole64(x) OSSwapHostToLittleInt64(x)
 #define be64toh(x) OSSwapBigToHostInt64(x)
 #define le64toh(x) OSSwapLittleToHostInt64(x)
+
+#if defined(CONNECT_DATA_IDEMPOTENT) && defined(CONNECT_RESUME_ON_READ_WRITE)
+#define CONNECTX_FASTOPEN 1
+#endif
+
 #endif
 
 #ifdef __sun
@@ -2041,12 +2046,12 @@ private:
 };
 
 int SSocket(int family, int type, int flags);
-int SConnect(int sockfd, const ComboAddress& remote);
+int SConnect(int sockfd, bool fastopen, const ComboAddress& remote);
 /* tries to connect to remote for a maximum of timeout seconds.
    sockfd should be set to non-blocking beforehand.
    returns 0 on success (the socket is writable), throw a
    runtime_error otherwise */
-int SConnectWithTimeout(int sockfd, const ComboAddress& remote, const struct timeval& timeout);
+int SConnectWithTimeout(int sockfd, bool fastopen, const ComboAddress& remote, const struct timeval& timeout);
 int SBind(int sockfd, const ComboAddress& local);
 int SAccept(int sockfd, ComboAddress& remote);
 int SListen(int sockfd, int limit);
