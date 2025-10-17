@@ -335,7 +335,7 @@ void setupLuaActions(LuaContext& luaCtx)
     return dnsdist::actions::getRemoteLogAction(config);
   });
 
-  luaCtx.writeFunction("RemoteLogResponseAction", [](std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<dnsdist::actions::ProtobufAlterResponseFunction> alterFunc, boost::optional<bool> includeCNAME, boost::optional<LuaAssociativeTable<std::string>> vars, boost::optional<LuaAssociativeTable<std::string>> metas) {
+  luaCtx.writeFunction("RemoteLogResponseAction", [](std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<dnsdist::actions::ProtobufAlterResponseFunction> alterFunc, boost::optional<bool> includeCNAME, boost::optional<LuaAssociativeTable<std::string>> vars, boost::optional<LuaAssociativeTable<std::string>> metas, boost::optional<bool> delay) {
     if (logger) {
       // avoids potentially-evaluated-expression warning with clang.
       RemoteLoggerInterface& remoteLoggerRef = *logger;
@@ -362,6 +362,10 @@ void setupLuaActions(LuaContext& luaCtx)
       for (const auto& [key, value] : *metas) {
         config.metas.emplace_back(key, ProtoBufMetaKey(value));
       }
+    }
+
+    if (delay) {
+      config.delay = *delay;
     }
 
     if (!tags.empty()) {

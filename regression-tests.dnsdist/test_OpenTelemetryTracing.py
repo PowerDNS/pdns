@@ -232,6 +232,25 @@ response_rules:
         self.doTest(True)
 
 
+class TestOpenTelemetryTracingBaseDelayLua(DNSDistOpenTelemetryProtobufBaseTest):
+    _config_params = [
+        "_testServerPort",
+        "_protobufServerPort",
+    ]
+
+    _config_template = """
+newServer{address="127.0.0.1:%d"}
+rl = newRemoteLogger('127.0.0.1:%d')
+setOpenTelemetryTracing(true)
+
+addAction(AllRule(), SetTraceAction(true))
+addResponseAction(AllRule(), RemoteLogResponseAction(rl, nil, false, {}, {}, true))
+"""
+
+    def testBasic(self):
+        self.doTest(True)
+
+
 class DNSDistOpenTelemetryProtobufNoOTDataTest(DNSDistOpenTelemetryProtobufTest):
     def doTest(self):
         msg = self.sendQueryAndGetProtobuf()
