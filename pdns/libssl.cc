@@ -374,20 +374,21 @@ int libssl_ocsp_stapling_callback(SSL* ssl, const std::map<int, std::string>& oc
     return SSL_TLSEXT_ERR_NOACK;
   }
 
+  const auto ocsp_resp_size = data->second.size();
 #if OPENSSL_VERSION_NUMBER < 0x30600000L
   /* we need to allocate a copy because OpenSSL will free the pointer passed to SSL_set_tlsext_status_ocsp_resp() */
-  void* copy = OPENSSL_malloc(data->second.size());
-  if (copy == nullptr) {
+  void* ocsp_resp = OPENSSL_malloc(ocsp_resp_size);
+  if (ocsp_resp == nullptr) {
     return SSL_TLSEXT_ERR_NOACK;
   }
 
-  memcpy(copy, data->second.data(), data->second.size());
+  memcpy(ocsp_resp, data->second.data(), ocsp_resp_size);
 #else
   /* no longer freed after b1b4b154fd389ac6254d49cfb11aee36c1c51b84 3.6.0, https://github.com/openssl/openssl/issues/28888 */
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast): the parameter is no longer freed but the parameter is not marked const..
-  void* copy = const_cast<char*>(data->second.data());
+  void* ocsp_resp = const_cast<char*>(data->second.data());
 #endif
-  SSL_set_tlsext_status_ocsp_resp(ssl, copy, data->second.size());
+  SSL_set_tlsext_status_ocsp_resp(ssl, ocsp_resp, ocsp_resp_size);
   return SSL_TLSEXT_ERR_OK;
 }
 
