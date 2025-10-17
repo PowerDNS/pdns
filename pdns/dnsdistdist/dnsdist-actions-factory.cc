@@ -1861,16 +1861,18 @@ public:
       (*d_alterFunc)(response, &message);
     }
 
+    static thread_local std::string data;
+    data.clear();
+    message.serialize(data, !d_delay);
+
+    if (!response->ids.d_rawProtobufContent.empty()) {
+      data.insert(data.end(), response->ids.d_rawProtobufContent.begin(), response->ids.d_rawProtobufContent.end());
+    }
+
     if (d_delay) {
-      response->ids.delayedResponseMsgs.emplace_back(std::unique_ptr<DNSDistProtoBufMessage>(std::make_unique<DNSDistProtoBufMessage>(message)), std::shared_ptr<RemoteLoggerInterface>(d_logger));
+      response->ids.delayedResponseMsgs.emplace_back(data, std::shared_ptr<RemoteLoggerInterface>(d_logger));
     }
     else {
-      static thread_local std::string data;
-      data.clear();
-      message.serialize(data);
-      if (!response->ids.d_rawProtobufContent.empty()) {
-        data.insert(data.end(), response->ids.d_rawProtobufContent.begin(), response->ids.d_rawProtobufContent.end());
-      }
       d_logger->queueData(data);
     }
 

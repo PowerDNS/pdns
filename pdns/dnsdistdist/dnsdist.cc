@@ -651,20 +651,7 @@ bool sendUDPResponse(int origFD, const PacketBuffer& response, [[maybe_unused]] 
 void handleResponseSent(const InternalQueryState& ids, double udiff, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH, dnsdist::Protocol outgoingProtocol, bool fromBackend)
 {
   handleResponseSent(ids.qname, ids.qtype, udiff, client, backend, size, cleartextDH, outgoingProtocol, ids.protocol, fromBackend);
-
-#ifndef DISABLE_PROTOBUF
-  if (ids.tracingEnabled && !ids.delayedResponseMsgs.empty()) {
-    static thread_local std::string data;
-    for (auto const& msg_logger : ids.delayedResponseMsgs) {
-      data.clear();
-      msg_logger.first->serialize(data);
-      if (!ids.d_rawProtobufContent.empty()) {
-        data.insert(data.end(), ids.d_rawProtobufContent.begin(), ids.d_rawProtobufContent.end());
-      }
-      msg_logger.second->queueData(data);
-    }
-  }
-#endif
+  ids.sendDelayedProtobufMessages();
 }
 
 void handleResponseSent(const DNSName& qname, const QType& qtype, double udiff, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH, dnsdist::Protocol outgoingProtocol, dnsdist::Protocol incomingProtocol, bool fromBackend)

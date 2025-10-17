@@ -125,7 +125,7 @@ void DNSDistProtoBufMessage::addRR(DNSName&& qname, uint16_t uType, uint16_t uCl
   d_additionalRRs.push_back({std::move(qname), strBlob, uTTL, uType, uClass});
 }
 
-void DNSDistProtoBufMessage::serialize(std::string& data) const
+void DNSDistProtoBufMessage::serialize(std::string& data, bool withOpenTelemetryTraceData) const
 {
   if ((data.capacity() - data.size()) < 128) {
     data.reserve(data.size() + 128);
@@ -247,7 +247,9 @@ void DNSDistProtoBufMessage::serialize(std::string& data) const
 
   if (auto tracer = d_dq.ids.getTracer(); tracer != nullptr && d_dq.ids.tracingEnabled) {
     msg.setOpenTelemetryTraceID(tracer->getTraceID());
-    msg.setOpenTelemetryData(tracer->getOTProtobuf());
+    if (withOpenTelemetryTraceData) {
+      msg.setOpenTelemetryData(tracer->getOTProtobuf());
+    }
   }
 }
 
