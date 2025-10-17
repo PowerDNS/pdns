@@ -9,7 +9,6 @@ ADD builder/helpers/ /pdns/builder/helpers/
 ADD builder-support/helpers/ /pdns/builder-support/helpers/
 
 @IF [ -n "$M_recursor$M_all" ]
-COPY --from=pdns-recursor /tmp/rust* /tmp
 RUN cd /pdns/builder-support/helpers/ && ./install_rust.sh
 RUN DEBIAN_FRONTEND=noninteractive apt-get -y install --no-install-recommends git cmake clang
 RUN DEBIAN_FRONTEND=noninteractive apt-get -y install --no-install-recommends python3-pip ninja-build
