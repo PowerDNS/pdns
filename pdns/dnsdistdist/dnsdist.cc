@@ -1119,7 +1119,8 @@ static bool applyRulesToQuery(DNSQuestion& dnsQuestion, const timespec& now)
         const auto& tagValue = got->second.tagSettings->d_value;
         dnsQuestion.setTag(tagName, tagValue);
         vinfolog("Query from %s setting tag %s to %s because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort(), tagName, tagValue);
-        return true;
+        // do not return, the whole point it to set a Tag to be able to do further processing in rules
+        break;
       }
       default:
         updateBlockStats();
@@ -1193,7 +1194,8 @@ static bool applyRulesToQuery(DNSQuestion& dnsQuestion, const timespec& now)
         const auto& tagValue = got->tagSettings->d_value;
         dnsQuestion.setTag(tagName, tagValue);
         vinfolog("Query from %s setting tag %s to %s because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort(), tagName, tagValue);
-        return true;
+        // do not return, the whole point it to set a Tag to be able to do further processing in rules
+        break;
       }
       default:
         updateBlockStats();
