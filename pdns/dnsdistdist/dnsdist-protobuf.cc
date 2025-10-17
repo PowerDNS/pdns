@@ -27,6 +27,7 @@
 #include "base64.hh"
 #include "dnsdist.hh"
 #include "dnsdist-protobuf.hh"
+#include "dolog.hh"
 #include "protozero.hh"
 
 DNSDistProtoBufMessage::DNSDistProtoBufMessage(const DNSQuestion& dnsquestion) :
