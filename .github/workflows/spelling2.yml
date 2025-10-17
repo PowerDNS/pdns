@@ -6,7 +6,7 @@ on:
 
 jobs:
   placeholder:
-    permissions:
+    permissions: {}
     name: Should be disabled
     runs-on: ubuntu-latest
     if: false

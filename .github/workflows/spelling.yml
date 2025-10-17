@@ -4,8 +4,7 @@ on:
   push:
     branches: ''
 
-permissions: # least privileges, see https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
-  contents: read
+permissions: {}
 
 jobs:
   placeholder:
