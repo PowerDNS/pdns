@@ -81,7 +81,7 @@ Number of errors when sending a query to a backend.
 
 downstream-timeouts
 -------------------
-Number of queries not answer in time by a backend.
+Number of queries not answered before the configured timeout, or at all.
 
 dyn-block-nmg-size
 ------------------
