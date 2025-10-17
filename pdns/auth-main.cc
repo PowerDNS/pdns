@@ -557,7 +557,13 @@ static void sendout(std::unique_ptr<DNSPacket>& a, int start)
 static void qthread(unsigned int num)
 {
   try {
+    std::shared_ptr<Logr::Logger> slog;
+
     setThreadName("pdns/receiver");
+
+    if (g_slogStructured) {
+      slog = g_slog->withName("receiver" + std::to_string(num));
+    }
 
     s_distributors[num] = DNSDistributor::Create(::arg().asNum("distributor-threads", 1));
     DNSDistributor* distributor = s_distributors[num]; // the big dispatcher!
@@ -1315,6 +1321,8 @@ static void setupLogging()
   g_log.setTimestamps(::arg().mustDo("log-timestamp"));
 
   g_slog = Logging::Logger::create(loggerBackend);
+
+  Communicator.setSLog(g_slog->withName("communicator"));
 }
 
 //! The main function of pdns, the pdns process
@@ -1589,7 +1597,7 @@ int main(int argc, char** argv)
       }
     }
 
-    s_tcpNameserver = make_unique<TCPNameserver>();
+    s_tcpNameserver = make_unique<TCPNameserver>(g_slog->withName("tcpnameserver"));
   }
   catch (const ArgException& A) {
     g_log << Logger::Error << "Fatal error: " << A.reason << endl;

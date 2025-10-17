@@ -166,6 +166,10 @@ public:
     d_nsock6 = -1;
     d_preventSelfNotification = false;
   }
+  void setSLog(std::shared_ptr<Logr::Logger> slog)
+  {
+    d_slog = slog;
+  }
   time_t doNotifications(PacketHandler* P);
   void go();
 
@@ -208,6 +212,8 @@ private:
   bool d_secondarieschanged;
   bool d_preventSelfNotification;
   time_t d_delayNotifications{0};
+
+  std::shared_ptr<Logr::Logger> d_slog;
 
   struct Data
   {

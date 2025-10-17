@@ -86,7 +86,7 @@ void TCPNameserver::go()
   g_log<<Logger::Error<<"Creating backend connection for TCP"<<endl;
   s_P.lock()->reset();
   try {
-    *(s_P.lock()) = make_unique<PacketHandler>();
+    *(s_P.lock()) = make_unique<PacketHandler>(d_slog);
   }
   catch(PDNSException &ae) {
     g_log<<Logger::Error<<"TCP server is unable to launch backends - will try again when questions come in: "<<ae.reason<<endl;
@@ -227,7 +227,7 @@ void TCPNameserver::decrementClientCount(const ComboAddress& remote)
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-void TCPNameserver::doConnection(int fd)
+void TCPNameserver::doConnection(int fd, std::shared_ptr<Logr::Logger> slog)
 {
   setThreadName("pdns/tcpConnect");
   std::unique_ptr<DNSPacket> packet;
@@ -371,14 +371,14 @@ void TCPNameserver::doConnection(int fd)
       if(packet->qtype.getCode()==QType::AXFR) {
         packet->d_xfr=true;
         g_zoneCache.setZoneVariant(*packet);
-        doAXFR(packet->qdomainzone, packet, fd);
+        doAXFR(packet->qdomainzone, packet, fd, slog);
         continue;
       }
 
       if(packet->qtype.getCode()==QType::IXFR) {
         packet->d_xfr=true;
         g_zoneCache.setZoneVariant(*packet);
-        doIXFR(packet, fd);
+        doIXFR(packet, fd, slog);
         continue;
       }
 
@@ -421,7 +421,7 @@ void TCPNameserver::doConnection(int fd)
         auto packetHandler = s_P.lock();
         if (!*packetHandler) {
           g_log<<Logger::Warning<<"TCP server is without backend connections, launching"<<endl;
-          *packetHandler = make_unique<PacketHandler>();
+          *packetHandler = make_unique<PacketHandler>(slog);
         }
 
         reply = (*packetHandler)->doQuestion(*packet); // we really need to ask the backend :-)
@@ -593,7 +593,7 @@ namespace {
 
 /** do the actual zone transfer. Return 0 in case of error, 1 in case of success */
 // NOLINTNEXTLINE(readability-identifier-length)
-int TCPNameserver::doAXFR(const ZoneName &targetZone, std::unique_ptr<DNSPacket>& q, int outsock)  // NOLINT(readability-function-cognitive-complexity)
+int TCPNameserver::doAXFR(const ZoneName &targetZone, std::unique_ptr<DNSPacket>& q, int outsock, std::shared_ptr<Logr::Logger> slog)  // NOLINT(readability-function-cognitive-complexity)
 {
   const DNSName& target = targetZone.operator const DNSName&();
   string logPrefix="AXFR-out zone '"+targetZone.toLogString()+"', client '"+q->getRemoteStringWithPort()+"', ";
@@ -612,7 +612,7 @@ int TCPNameserver::doAXFR(const ZoneName &targetZone, std::unique_ptr<DNSPacket>
     DLOG(g_log<<logPrefix<<"looking for SOA"<<endl);    // find domain_id via SOA and list complete domain. No SOA, no AXFR
     if(!*packetHandler) {
       g_log<<Logger::Warning<<"TCP server is without backend connections in doAXFR, launching"<<endl;
-      *packetHandler = make_unique<PacketHandler>();
+      *packetHandler = make_unique<PacketHandler>(slog);
     }
 
     // canDoAXFR does all the ACL checks, and has the if(disable-axfr) shortcut, call it first.
@@ -1183,7 +1183,7 @@ send:
   return 1;
 }
 
-int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock)
+int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock, std::shared_ptr<Logr::Logger> slog)
 {
   string logPrefix="IXFR-out zone '"+q->qdomainzone.toLogString()+"', client '"+q->getRemoteStringWithPort()+"', ";
 
@@ -1233,7 +1233,7 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock)
     DLOG(g_log<<logPrefix<<"Looking for SOA"<<endl); // find domain_id via SOA and list complete domain. No SOA, no IXFR
     if(!*packetHandler) {
       g_log<<Logger::Warning<<"TCP server is without backend connections in doIXFR, launching"<<endl;
-      *packetHandler = make_unique<PacketHandler>();
+      *packetHandler = make_unique<PacketHandler>(slog);
     }
 
     // canDoAXFR does all the ACL checks, and has the if(disable-axfr) shortcut, call it first.
@@ -1312,12 +1312,13 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock)
   }
 
   g_log<<Logger::Notice<<logPrefix<<"IXFR fallback to AXFR"<<endl;
-  return doAXFR(q->qdomainzone, q, outsock);
+  return doAXFR(q->qdomainzone, q, outsock, slog);
 }
 
 TCPNameserver::~TCPNameserver() = default;
-TCPNameserver::TCPNameserver()
+TCPNameserver::TCPNameserver(std::shared_ptr<Logr::Logger> slog)
 {
+  d_slog = slog;
   d_maxTransactionsPerConn = ::arg().asNum("max-tcp-transactions-per-conn");
   d_idleTimeout = ::arg().asNum("tcp-idle-timeout");
   d_maxConnectionDuration = ::arg().asNum("max-tcp-connection-duration");
@@ -1441,7 +1442,7 @@ void TCPNameserver::thread()
               g_log<<Logger::Warning<<"Limit of simultaneous TCP connections reached - raise max-tcp-connections"<<endl;
 
             try {
-              std::thread connThread(doConnection, fd);
+              std::thread connThread(doConnection, fd, d_slog);
               connThread.detach();
             }
             catch (std::exception& e) {

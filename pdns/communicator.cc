@@ -129,7 +129,7 @@ void CommunicatorClass::mainloop()
 
     int rc;
     time_t next;
-    PacketHandler P;
+    PacketHandler P(d_slog);
 
     makeNotifySockets();
 

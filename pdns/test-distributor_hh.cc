@@ -32,6 +32,7 @@ struct Question
 
 struct Backend
 {
+  Backend(std::shared_ptr<Logr::Logger> /*slog*/) {}
   std::unique_ptr<DNSPacket> question(Question&)
   {
     return make_unique<DNSPacket>(true);
@@ -51,7 +52,7 @@ BOOST_AUTO_TEST_CASE(test_distributor_basic) {
   S.declare("servfail-packets","Number of times a server-failed packet was sent out");
   S.declare("timedout-packets", "timedout-packets");
 
-  auto d=Distributor<DNSPacket, Question, Backend>::Create(2);
+  auto d=Distributor<DNSPacket, Question, Backend>::Create(2, nullptr);
 
   int n;
   for(n=0; n < 100; ++n)  {
@@ -65,6 +66,7 @@ BOOST_AUTO_TEST_CASE(test_distributor_basic) {
 
 struct BackendSlow
 {
+  BackendSlow(std::shared_ptr<Logr::Logger> /*slog*/) {}
   std::unique_ptr<DNSPacket> question([[maybe_unused]] Question& query)
   {
     if (d_shouldSleep) {
@@ -94,7 +96,7 @@ BOOST_AUTO_TEST_CASE(test_distributor_queue) {
   S.declare("timedout-packets", "timedout-packets");
 
   s_receivedAnswers.store(0);
-  auto* distributor = Distributor<DNSPacket, Question, BackendSlow>::Create(2);
+  auto* distributor = Distributor<DNSPacket, Question, BackendSlow>::Create(2, nullptr);
 
   size_t queued = 0;
   BOOST_CHECK_EXCEPTION( {
@@ -122,7 +124,7 @@ BOOST_AUTO_TEST_CASE(test_distributor_queue) {
 
 struct BackendDies
 {
-  BackendDies()
+  BackendDies(std::shared_ptr<Logr::Logger> /*slog*/)
   {
     d_ourcount=s_count++;
   }
@@ -160,7 +162,7 @@ BOOST_AUTO_TEST_CASE(test_distributor_dies) {
   S.declare("servfail-packets","Number of times a server-failed packet was sent out");
   S.declare("timedout-packets", "timedout-packets");
 
-  auto d=Distributor<DNSPacket, Question, BackendDies>::Create(10);
+  auto d=Distributor<DNSPacket, Question, BackendDies>::Create(10, nullptr);
 
   try {
     for(int n=0; n < 100; ++n)  {
