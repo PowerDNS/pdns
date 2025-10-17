@@ -3320,19 +3320,25 @@ string doTraceRegex(FDWrapper file, vector<string>::const_iterator begin, vector
   return broadcastAccFunction<string>([=] { return pleaseUseNewTraceRegex(begin != end ? *begin : "", fileno); });
 }
 
-struct WipeCacheResult wipeCaches(const DNSName& canon, bool subtree, uint16_t qtype)
+WipeCacheResult wipeCaches(const DNSName& canon, bool subtree, uint16_t qtype)
 {
-  struct WipeCacheResult res;
+  WipeCacheResult res;
 
   try {
     res.record_count = static_cast<int>(g_recCache->doWipeCache(canon, subtree, qtype));
-    // scanbuild complains here about an allocated function object that is being leaked. Needs investigation
-    if (g_packetCache) {
-      res.packet_count = static_cast<int>(g_packetCache->doWipePacketCache(canon, qtype, subtree));
-    }
     res.negative_record_count = static_cast<int>(g_negCache->wipe(canon, subtree));
     if (g_aggressiveNSECCache) {
       g_aggressiveNSECCache->removeZoneInfo(canon, subtree);
+    }
+    /* we need to do the packet cache last otherwise we could re-cache something that was just cleared:
+     - remove entry from the packet cache
+     - query comes in for the removed entry
+     - existing entry found in positive, negative or aggressive NSEC cache
+     - resulting packet inserted into the packet cache
+     - entry removed from the positive, negative or aggressive NSEC3 cache
+    */
+    if (g_packetCache) {
+      res.packet_count = static_cast<int>(g_packetCache->doWipePacketCache(canon, qtype, subtree));
     }
   }
   catch (const std::exception& e) {
