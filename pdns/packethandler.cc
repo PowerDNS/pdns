@@ -65,9 +65,11 @@ extern string g_programname;
 const std::shared_ptr<CDNSKEYRecordContent> PacketHandler::s_deleteCDNSKEYContent = std::make_shared<CDNSKEYRecordContent>("0 3 0 AA==");
 const std::shared_ptr<CDSRecordContent> PacketHandler::s_deleteCDSContent = std::make_shared<CDSRecordContent>("0 0 0 00");
 
-PacketHandler::PacketHandler():B(g_programname), d_dk(&B)
+PacketHandler::PacketHandler(std::shared_ptr<Logr::Logger> slog) :
+  B(g_programname), d_dk(&B)
 {
   ++s_count;
+  d_slog = slog;
   d_doDNAME=::arg().mustDo("dname-processing");
   d_doExpandALIAS = ::arg().mustDo("expand-alias");
   d_doResolveAcrossZones = ::arg().mustDo("resolve-across-zones");

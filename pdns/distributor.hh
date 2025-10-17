@@ -55,7 +55,8 @@ extern StatBag S;
 template<class Answer, class Question, class Backend> class Distributor
 {
 public:
-  static Distributor* Create(int n=1); //!< Create a new Distributor with \param n threads
+  //!< Create a new Distributor with \param n threads
+  static Distributor* Create(int n, std::shared_ptr<Logr::Logger> slog);
   typedef std::function<void(std::unique_ptr<Answer>&, int)> callback_t;
   virtual int question(Question&, callback_t callback) =0; //!< Submit a question to the Distributor
   virtual int getQueueSize() =0; //!< Returns length of question queue
@@ -69,7 +70,7 @@ template<class Answer, class Question, class Backend> class SingleThreadDistribu
 public:
   SingleThreadDistributor(const SingleThreadDistributor&) = delete;
   void operator=(const SingleThreadDistributor&) = delete;
-  SingleThreadDistributor();
+  SingleThreadDistributor(std::shared_ptr<Logr::Logger> slog);
   typedef std::function<void(std::unique_ptr<Answer>&, int)> callback_t;
   int question(Question&, callback_t callback) override; //!< Submit a question to the Distributor
   int getQueueSize() override {
@@ -83,6 +84,7 @@ public:
 
 private:
   std::unique_ptr<Backend> b{nullptr};
+  std::shared_ptr<Logr::Logger> d_slog;
 };
 
 template<class Answer, class Question, class Backend> class MultiThreadDistributor
@@ -91,7 +93,7 @@ template<class Answer, class Question, class Backend> class MultiThreadDistribut
 public:
   MultiThreadDistributor(const MultiThreadDistributor&) = delete;
   void operator=(const MultiThreadDistributor&) = delete;
-  MultiThreadDistributor(int n);
+  MultiThreadDistributor(int n, std::shared_ptr<Logr::Logger> slog);
   typedef std::function<void(std::unique_ptr<Answer>&, int)> callback_t;
   int question(Question&, callback_t callback) override; //!< Submit a question to the Distributor
   void distribute(int n);
@@ -126,21 +128,23 @@ private:
   unsigned int d_maxQueueLength{0};
   int d_nextid{0};
   int d_num_threads{0};
+  std::shared_ptr<Logr::Logger> d_slog;
 };
 
-template<class Answer, class Question, class Backend> Distributor<Answer,Question,Backend>* Distributor<Answer,Question,Backend>::Create(int n)
+template<class Answer, class Question, class Backend> Distributor<Answer,Question,Backend>* Distributor<Answer,Question,Backend>::Create(int n, std::shared_ptr<Logr::Logger> slog)
 {
     if( n == 1 )
-      return new SingleThreadDistributor<Answer,Question,Backend>();
+      return new SingleThreadDistributor<Answer,Question,Backend>(slog);
     else
-      return new MultiThreadDistributor<Answer,Question,Backend>( n );
+      return new MultiThreadDistributor<Answer,Question,Backend>(n, slog);
 }
 
-template<class Answer, class Question, class Backend>SingleThreadDistributor<Answer,Question,Backend>::SingleThreadDistributor()
+template<class Answer, class Question, class Backend>SingleThreadDistributor<Answer,Question,Backend>::SingleThreadDistributor(std::shared_ptr<Logr::Logger> slog)
 {
+  d_slog = slog;
   g_log<<Logger::Error<<"Only asked for 1 backend thread - operating unthreaded"<<endl;
   try {
-    b=make_unique<Backend>();
+    b=make_unique<Backend>(d_slog);
   }
   catch(const PDNSException &AE) {
     g_log<<Logger::Error<<"Distributor caught fatal exception: "<<AE.reason<<endl;
@@ -156,9 +160,10 @@ template<class Answer, class Question, class Backend>SingleThreadDistributor<Ans
   }
 }
 
-template<class Answer, class Question, class Backend>MultiThreadDistributor<Answer,Question,Backend>::MultiThreadDistributor(int numberOfThreads) :
+template<class Answer, class Question, class Backend>MultiThreadDistributor<Answer,Question,Backend>::MultiThreadDistributor(int numberOfThreads, std::shared_ptr<Logr::Logger> slog) :
   d_last_started(time(nullptr)), d_overloadQueueLength(::arg().asNum("overload-queue-length")), d_maxQueueLength(::arg().asNum("max-queue-length")), d_num_threads(numberOfThreads)
 {
+  d_slog = slog;
   if (numberOfThreads < 1) {
     g_log<<Logger::Error<<"Asked for fewer than 1 threads, nothing to do"<<endl;
     _exit(1);
@@ -188,7 +193,7 @@ template<class Answer, class Question, class Backend>void MultiThreadDistributor
   setThreadName("pdns/distributo");
 
   try {
-    auto b = make_unique<Backend>(); // this will answer our questions
+    auto b = make_unique<Backend>(d_slog); // this will answer our questions
     int queuetimeout = ::arg().asNum("queue-limit");
     auto& receiver = d_receivers.at(ournum);
 
@@ -211,7 +216,7 @@ retry:
       try {
         if (!b) {
           allowRetry = false;
-          b = make_unique<Backend>();
+          b = make_unique<Backend>(d_slog);
         }
         a = b->question(questionData->Q);
       }
@@ -278,7 +283,7 @@ retry:
   try {
     if (!b) {
       allowRetry=false;
-      b=make_unique<Backend>();
+      b=make_unique<Backend>(d_slog);
     }
     a=b->question(q); // a can be NULL!
   }
