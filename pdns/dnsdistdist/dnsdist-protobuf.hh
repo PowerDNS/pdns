@@ -61,7 +61,7 @@ public:
   void addMeta(const std::string& key, std::vector<std::string>&& strValues, const std::vector<int64_t>& intValues);
   void addRR(DNSName&& qname, uint16_t uType, uint16_t uClass, uint32_t uTTL, const std::string& data);
 
-  void serialize(std::string& data) const;
+  void serialize(std::string& data, bool withOpenTelemetryTraceData = true) const;
 
   [[nodiscard]] std::string toDebugString() const;
 

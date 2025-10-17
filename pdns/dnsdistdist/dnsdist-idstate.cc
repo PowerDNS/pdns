@@ -57,3 +57,26 @@ InternalQueryState InternalQueryState::partialCloneForXFR() const
 #endif
   return ids;
 }
+
+void InternalQueryState::sendDelayedProtobufMessages() const
+{
+#ifndef DISABLE_PROTOBUF
+  static thread_local string otPBBuf;
+  otPBBuf.clear();
+  if (tracingEnabled) {
+    pdns::ProtoZero::Message msg{otPBBuf};
+    msg.setOpenTelemetryData(d_OTTracer->getOTProtobuf());
+  }
+
+  for (auto const& msg_logger : delayedResponseMsgs) {
+    // TODO: we should probably do something with the return value of queueData
+    if (!tracingEnabled) {
+      msg_logger.second->queueData(msg_logger.first);
+      continue;
+    }
+    // Protobuf wireformat allows us to simply append the second "message"
+    // that only contains the OTTrace data as a single bytes field
+    msg_logger.second->queueData(msg_logger.first + otPBBuf);
+  }
+#endif
+}

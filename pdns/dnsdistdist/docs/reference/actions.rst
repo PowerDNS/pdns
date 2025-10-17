@@ -488,7 +488,7 @@ The following actions exist.
   * ``ipEncryptKey=""``: str - A key, that can be generated via the :func:`makeIPCipherKey` function, to encrypt the IP address of the requestor for anonymization purposes. The encryption is done using ipcrypt for IPv4 and a 128-bit AES ECB operation for IPv6.
   * ``exportTags=""``: str - The comma-separated list of keys of internal tags to export into the ``tags`` Protocol Buffer field, as "key:value" strings. Note that a tag with an empty value will be exported as "<key>", not "<key>:". An empty string means that no internal tag will be exported. The special value ``*`` means that all tags will be exported.
 
-.. function:: RemoteLogResponseAction(remoteLogger[, alterFunction[, includeCNAME [, options [, metas]]]])
+.. function:: RemoteLogResponseAction(remoteLogger[, alterFunction[, includeCNAME [, options [, metas [, delay]]]]])
 
   .. versionchanged:: 1.4.0
     ``ipEncryptKey`` optional key added to the options table.
@@ -499,6 +499,9 @@ The following actions exist.
 
   .. versionchanged:: 1.9.0
     ``exportExtendedErrorsToMeta`` optional key added to the options table.
+
+  .. versionchanged:: 2.1.0
+    ``delay`` optional parameter added.
 
   Send the content of this response to a remote logger via Protocol Buffer.
   ``alterFunction`` is the same callback that receiving a :class:`DNSResponse` and a :class:`DNSDistProtoBufMessage`, that can be used to modify the Protocol Buffer content, for example for anonymization purposes.
@@ -512,6 +515,7 @@ The following actions exist.
   :param bool includeCNAME: Whether or not to parse and export CNAMEs. Default false
   :param table options: A table with key: value pairs.
   :param table metas: A list of ``name``=``key`` pairs, for meta-data to be added to Protocol Buffer message.
+  :param bool delay: Delay sending the protobuf until after the DNS response has been sent to the client. Default false.
 
   Options:
 

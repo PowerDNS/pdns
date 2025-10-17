@@ -837,6 +837,12 @@ IncomingTCPConnectionState::QueryProcessingResult IncomingTCPConnectionState::ha
     }
   }
 
+  pdns::trace::dnsdist::Tracer::Closer closer;
+  if (auto tracer = ids.getTracer(); tracer != nullptr) {
+    // TODO: figure out if this is a root span
+    closer = tracer->openSpan("IncomingTCPConnectionState::handleQuery", tracer->getLastSpanID());
+  }
+
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast
   ids.qname = DNSName(reinterpret_cast<const char*>(query.data()), static_cast<int>(query.size()), sizeof(dnsheader), false, &ids.qtype, &ids.qclass);
   ids.protocol = getProtocol();
