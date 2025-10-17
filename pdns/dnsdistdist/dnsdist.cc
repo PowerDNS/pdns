@@ -522,7 +522,7 @@ bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse,
 {
   pdns::trace::dnsdist::Tracer::Closer closer;
   if (auto tracer = dnsResponse.ids.getTracer(); tracer != nullptr && dnsResponse.ids.tracingEnabled) {
-    closer = tracer->openSpan("processResponseAfterRules");
+    closer = tracer->openSpan("processResponseAfterRules", tracer->getLastSpanID());
   }
   bool zeroScope = false;
   if (!fixUpResponse(response, dnsResponse.ids.qname, dnsResponse.ids.origFlags, dnsResponse.ids.ednsAdded, dnsResponse.ids.ecsAdded, dnsResponse.ids.useZeroScope ? &zeroScope : nullptr)) {
@@ -591,7 +591,7 @@ bool processResponse(PacketBuffer& response, DNSResponse& dnsResponse, bool mute
 {
   pdns::trace::dnsdist::Tracer::Closer closer;
   if (auto tracer = dnsResponse.ids.getTracer(); tracer != nullptr && dnsResponse.ids.tracingEnabled) {
-    closer = tracer->openSpan("processResponse", tracer->getRootSpanID());
+    closer = tracer->openSpan("processResponse");
   }
 
   const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
@@ -1836,7 +1836,7 @@ bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& downstrea
 {
   pdns::trace::dnsdist::Tracer::Closer closer;
   if (auto tracer = dnsQuestion.ids.getTracer(); tracer != nullptr && dnsQuestion.ids.tracingEnabled) {
-    closer = tracer->openSpan("assignOutgoingUDPQueryToBackend", tracer->getLastSpanID());
+    closer = tracer->openSpan("assignOutgoingUDPQueryToBackend", tracer->getLastSpanIDForName("processUDPQuery"));
   }
 
   bool doh = dnsQuestion.ids.du != nullptr;
