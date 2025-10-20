@@ -25,21 +25,21 @@ std::mutex PacketHandler::s_rfc2136lock;
 
 // Context data for RFC2136 operation
 struct updateContext {
-  const DomainInfo *di;
-  bool isPresigned;
+  const DomainInfo *di{nullptr};
+  bool isPresigned{false};
 
   // The following may be modified
-  bool narrow;
-  bool haveNSEC3;
-  NSEC3PARAMRecordContent ns3pr;
-  bool updatedSerial;
+  bool narrow{false};
+  bool haveNSEC3{false};
+  NSEC3PARAMRecordContent ns3pr{};
+  bool updatedSerial{false};
 };
 
 static void increaseSerial(const string& msgPrefix, const string& soaEditSetting, const updateContext& ctx);
 
 // Implement section 3.2.1 and 3.2.2 of RFC2136
 // NOLINTNEXTLINE(readability-identifier-length)
-int PacketHandler::checkUpdatePrerequisites(const DNSRecord* rr, DomainInfo* di)
+static int checkUpdatePrerequisites(const DNSRecord* rr, DomainInfo* di)
 {
   if (rr->d_ttl != 0) {
     return RCode::FormErr;
@@ -89,7 +89,7 @@ int PacketHandler::checkUpdatePrerequisites(const DNSRecord* rr, DomainInfo* di)
 
 // Method implements section 3.4.1 of RFC2136
 // NOLINTNEXTLINE(readability-identifier-length)
-int PacketHandler::checkUpdatePrescan(const DNSRecord* rr)
+static int checkUpdatePrescan(const DNSRecord* rr)
 {
   // The RFC stats that d_class != ZCLASS, but we only support the IN class.
   if (rr->d_class != QClass::IN && rr->d_class != QClass::NONE && rr->d_class != QClass::ANY) {
@@ -150,6 +150,7 @@ static bool mayPerformUpdate(const string& msgPrefix, const DNSRecord* rr, const
 // Caller has checked that we are allowed to insert the record and has handled
 // the NSEC3PARAM case already.
 // ctx is not const, may update updateSerial
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 static uint performInsert(const string& msgPrefix, const DNSRecord* rr, updateContext& ctx, vector<DNSResourceRecord>& rrset, set<DNSName>& insnonterm, set<DNSName>& delnonterm) // NOLINT(readability-identifier-length)
 {
   uint changedRecords = 0;
@@ -409,6 +410,7 @@ static uint performInsert(const string& msgPrefix, const DNSRecord* rr, updateCo
 // the code that calls this performUpdate().
 // Caller has checked that we are allowed to delete the record and has handled
 // the NSEC3PARAM case already.
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 static uint performDelete(const string& msgPrefix, const DNSRecord* rr, const updateContext& ctx, vector<DNSResourceRecord>& rrset, set<DNSName>& insnonterm, set<DNSName>& delnonterm) // NOLINT(readability-identifier-length)
 {
   vector<DNSResourceRecord> recordsToDelete;
