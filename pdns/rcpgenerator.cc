@@ -1044,7 +1044,7 @@ void RecordTextWriter::xfrSvcParamKeyVals(const set<SvcParam>& val) {
         str += std::to_string(group);
         first = false;
       }
-      d_string = str;
+      d_string = std::move(str);
       break;
     }
     case SvcParam::dohpath:

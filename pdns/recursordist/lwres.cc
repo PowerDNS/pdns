@@ -424,7 +424,7 @@ static bool tcpconnect(const OptLog& log, const ComboAddress& remote, const std:
     }
     else {
       if (subjectName.empty() && !subjectAddress.empty()) {
-        subjectName = subjectAddress;
+        subjectName = std::move(subjectAddress);
         subjectIsAddress = true;
       }
       if (subjectName.empty()) {
