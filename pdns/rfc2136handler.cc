@@ -573,7 +573,6 @@ static void updateENT([[maybe_unused]] const string& msgPrefix, const updateCont
   }
 }
 
-// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 static uint performUpdate(DNSSECKeeper& dsk, const string& msgPrefix, const DNSRecord* rr, updateContext& ctx) // NOLINT(readability-identifier-length)
 {
   if (!mayPerformUpdate(msgPrefix, rr, ctx)) {
@@ -582,17 +581,18 @@ static uint performUpdate(DNSSECKeeper& dsk, const string& msgPrefix, const DNSR
 
   auto rrType = QType(rr->d_type);
 
-  uint changedRecords = 0;
-  vector<DNSResourceRecord> rrset;
-  // used to (at the end) fix ENT records.
-  set<DNSName> delnonterm;
-  set<DNSName> insnonterm;
-
+  // Decide which action to take.
   // 3.4.2.2 QClass::IN means insert or update
-  if (rr->d_class == QClass::IN) {
-    DLOG(g_log << msgPrefix << "Add/Update record (QClass == IN) " << rr->d_name << "|" << rrType.toString() << endl);
+  bool insertAction = rr->d_class == QClass::IN;
+  bool deleteAction = (rr->d_class == QClass::ANY || rr->d_class == QClass::NONE) && rrType != QType::SOA; // never delete a SOA.
 
-    if (rrType == QType::NSEC3PARAM) {
+  if (!insertAction && !deleteAction) {
+    return 0; // nothing to do!
+  }
+
+  // Special processing for NSEC3PARAM
+  if (rrType == QType::NSEC3PARAM) {
+    if (insertAction) {
       g_log << Logger::Notice << msgPrefix << "Adding/updating NSEC3PARAM for zone, resetting ordernames." << endl;
 
       ctx.ns3pr = NSEC3PARAMRecordContent(rr->getContent()->getZoneRepresentation(), ctx.di->zone);
@@ -600,24 +600,8 @@ static uint performUpdate(DNSSECKeeper& dsk, const string& msgPrefix, const DNSR
       ctx.narrow = false;
       dsk.setNSEC3PARAM(ctx.di->zone, ctx.ns3pr, ctx.narrow);
       ctx.haveNSEC3 = true;
-
-      string error;
-      string info;
-      if (!dsk.rectifyZone(ctx.di->zone, error, info, false)) {
-        throw PDNSException("Failed to rectify '" + ctx.di->zone.toLogString() + "': " + error);
-      }
-      return 1;
     }
-
-    changedRecords += performInsert(msgPrefix, rr, ctx, rrset, insnonterm, delnonterm);
-  } // rr->d_class == QClass::IN
-
-  // Delete records - section 3.4.2.3 and 3.4.2.4 with the exception of the 'always leave 1 NS rule' as that's handled by
-  // the code that calls this performUpdate().
-  if ((rr->d_class == QClass::ANY || rr->d_class == QClass::NONE) && rrType != QType::SOA) { // never delete a SOA.
-    DLOG(g_log << msgPrefix << "Deleting records: " << rr->d_name << "; QClass:" << rr->d_class << "; rrType: " << rrType.toString() << endl);
-
-    if (rrType == QType::NSEC3PARAM) {
+    else {
       g_log << Logger::Notice << msgPrefix << "Deleting NSEC3PARAM from zone, resetting ordernames." << endl;
       // Be sure to use a ZoneName with a variant matching the domain we are
       // working on, for the sake of unsetNSEC3PARAM.
@@ -625,7 +609,7 @@ static uint performUpdate(DNSSECKeeper& dsk, const string& msgPrefix, const DNSR
       if (rr->d_class == QClass::ANY) {
         dsk.unsetNSEC3PARAM(zonename);
       }
-      else if (rr->d_class == QClass::NONE) {
+      else { // rr->d_class == QClass::NONE then
         NSEC3PARAMRecordContent nsec3rr(rr->getContent()->getZoneRepresentation(), ctx.di->zone);
         if (ctx.haveNSEC3 && ctx.ns3pr.getZoneRepresentation() == nsec3rr.getZoneRepresentation()) {
           dsk.unsetNSEC3PARAM(zonename);
@@ -634,23 +618,33 @@ static uint performUpdate(DNSSECKeeper& dsk, const string& msgPrefix, const DNSR
           return 0;
         }
       }
-      else {
-        return 0;
-      }
 
       // Update NSEC3 variables, other RR's in this update package might need them as well.
-      ctx.haveNSEC3 = false;
       ctx.narrow = false;
+      ctx.haveNSEC3 = false;
+    }
 
-      string error;
-      string info;
-      if (!dsk.rectifyZone(ctx.di->zone, error, info, false)) {
-        throw PDNSException("Failed to rectify '" + ctx.di->zone.toLogString() + "': " + error);
-      }
-      return 1;
-    } // end of NSEC3PARAM delete block
+    string error;
+    string info;
+    if (!dsk.rectifyZone(ctx.di->zone, error, info, false)) {
+      throw PDNSException("Failed to rectify '" + ctx.di->zone.toLogString() + "': " + error);
+    }
+    return 1;
+  }
 
-    changedRecords += performDelete(msgPrefix, rr, ctx, rrset, insnonterm, delnonterm);
+  uint changedRecords = 0;
+  vector<DNSResourceRecord> rrset;
+  // used to (at the end) fix ENT records.
+  set<DNSName> delnonterm;
+  set<DNSName> insnonterm;
+
+  if (insertAction) {
+    DLOG(g_log << msgPrefix << "Add/Update record (QClass == IN) " << rr->d_name << "|" << rrType.toString() << endl);
+    changedRecords = performInsert(msgPrefix, rr, ctx, rrset, insnonterm, delnonterm);
+  }
+  else {
+    DLOG(g_log << msgPrefix << "Deleting records: " << rr->d_name << "; QClass:" << rr->d_class << "; rrType: " << rrType.toString() << endl);
+    changedRecords = performDelete(msgPrefix, rr, ctx, rrset, insnonterm, delnonterm);
   }
 
   //Insert and delete ENT's
