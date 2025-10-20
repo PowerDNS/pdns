@@ -47,7 +47,7 @@ jobs:
     steps:
       - id: get-runner-image
         run: |
-          echo "image-id=ghcr.io/powerdns/$DOCKER_IMAGE" >> "$GITHUB_OUTPUT"
+          echo "image-id=ghcr.io/romeroalx/$DOCKER_IMAGE" >> "$GITHUB_OUTPUT"
           echo "tag=$DEFAULT_IMAGE_TAG" >> "$GITHUB_OUTPUT"
 
   build-auth:
@@ -276,6 +276,8 @@ jobs:
           . ${REPO_HOME}/.venv/bin/activate && pip install -r ${REPO_HOME}/meson/requirements.txt
         working-directory: .
       - run: ${{ env.INV_CMD }} install-clang
+        working-directory: .
+      - run: ${{ env.INV_CMD }} install-dnsdist-build-deps $([ "$(. /etc/os-release && echo $VERSION_CODENAME)" = "bullseye" ] && echo "--skipXDP=True")
         working-directory: .
       - run: ${{ env.INV_CMD }} install-lld-linker-if-needed
         working-directory: ./pdns/dnsdistdist/
