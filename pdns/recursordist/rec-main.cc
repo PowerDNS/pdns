@@ -139,6 +139,9 @@ std::vector<RecThreadInfo> RecThreadInfo::s_threadInfos;
 std::unique_ptr<ProxyMapping> g_proxyMapping; // new threads needs this to be setup
 thread_local std::unique_ptr<ProxyMapping> t_proxyMapping;
 
+std::unique_ptr<OpenTelemetryTraceConditions> g_OTConditions; // new threads needs this to be setup
+thread_local std::unique_ptr<OpenTelemetryTraceConditions> t_OTConditions;
+
 bool RecThreadInfo::s_weDistributeQueries; // if true, 1 or more threads listen on the incoming query sockets and distribute them to workers
 unsigned int RecThreadInfo::s_numDistributorThreads;
 unsigned int RecThreadInfo::s_numUDPWorkerThreads;
@@ -2902,7 +2905,8 @@ static pair<int, bool> doYamlConfig(int argc, char* argv[], const pdns::rust::se
     ::arg().parse(argc, argv);
     ProxyMapping proxyMapping;
     LuaConfigItems lci;
-    pdns::settings::rec::fromBridgeStructToLuaConfig(settings, lci, proxyMapping);
+    OpenTelemetryTraceConditions conditions;
+    pdns::settings::rec::fromBridgeStructToLuaConfig(settings, lci, proxyMapping, conditions);
     auto yaml = settings.to_yaml_string();
     cout << yaml << endl;
   }
