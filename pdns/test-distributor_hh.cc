@@ -40,7 +40,7 @@ struct Backend
 };
 
 static std::atomic<int> g_receivedAnswers;
-static void report(std::unique_ptr<DNSPacket>& /* A */, int /* B */)
+static void report(std::unique_ptr<DNSPacket>& /* A */, std::shared_ptr<Logr::Logger> /* B */, int /* C */)
 {
   g_receivedAnswers++;
 }
@@ -83,7 +83,7 @@ private:
 };
 
 static std::atomic<size_t> s_receivedAnswers;
-static void report1(std::unique_ptr<DNSPacket>& /* A */, int /* B */)
+static void report1(std::unique_ptr<DNSPacket>& /* A */, std::shared_ptr<Logr::Logger> /* B */, int /* C */)
 {
   s_receivedAnswers++;
 }
@@ -149,7 +149,7 @@ std::atomic<int> BackendDies::s_count;
 
 std::atomic<int> g_receivedAnswers2;
 
-static void report2(std::unique_ptr<DNSPacket>& /* A */, int /* B */)
+static void report2(std::unique_ptr<DNSPacket>& /* A */, std::shared_ptr<Logr::Logger> /* B */, int /* C */)
 {
   g_receivedAnswers2++;
 }
