@@ -100,8 +100,8 @@ using ProxyMapping = NetmaskTree<ProxyByTableValue, Netmask>;
 
 struct OpenTelemetryTraceCondition
 {
-  SuffixMatchTree<bool> d_qnames;
-  std::unordered_set<QType> d_qtypes;
+  std::optional<SuffixMatchNode> d_qnames;
+  std::optional<std::unordered_set<QType>> d_qtypes;
   std::optional<uint16_t> d_qid;
   bool d_edns_option_required{false};
   bool d_traceid_only{false};

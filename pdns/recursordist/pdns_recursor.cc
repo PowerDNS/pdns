@@ -1870,7 +1870,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
         string otData = otTrace.encode();
         pbMessage.setOpenTelemetryData(otData);
       }
-      // Currently only set if an OT trace is generated
+      // It can be set even if no OT Trace data was generated
       if (resolver.d_otTrace.trace_id != pdns::trace::s_emptyTraceID) {
         pbMessage.setOpenTelemetryTraceID(resolver.d_otTrace.trace_id);
       }
@@ -2144,6 +2144,40 @@ bool expectProxyProtocol(const ComboAddress& from, const ComboAddress& listenAdd
   return false;
 }
 
+static bool match(const std::unique_ptr<OpenTelemetryTraceConditions>& conditions, const ComboAddress& source, const DNSName& qname, QType qtype, uint16_t qid, bool edns_option_present)
+{
+  if (conditions == nullptr || conditions->size() == 0) {
+    cerr << "match 0 false" << endl;
+    return false;
+  }
+  if (auto const* match = conditions->lookup(source); match != nullptr) {
+    cerr << "match 1" << endl;
+    const auto& condition = match->second;
+    if (condition.d_traceid_only) {
+      cerr << "match 2 false" << endl;
+      return false;
+    }
+    if (condition.d_edns_option_required && !edns_option_present) {
+      cerr << "match 3 false" << endl;
+      return false;
+    }
+    if (condition.d_qid && condition.d_qid != qid) {
+    cerr << "match 4 false" << endl;
+      return false;
+    }
+    if (condition.d_qtypes && condition.d_qtypes->count(qtype) == 0) {
+    cerr << "match 5 false" << endl;
+      return false;
+    }
+    if (condition.d_qnames && !condition.d_qnames->check(qname)) {
+    cerr << "match 6 false" << endl;
+      return false;
+    }
+  }
+  cerr << "match return true" << endl;
+  return true;
+}
+
 // fromaddr: the address the query is coming from
 // destaddr: the address the query was received on
 // source: the address we assume the query is coming from, might be set by proxy protocol
@@ -2249,7 +2283,10 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
         ecsParsed = true;
 
         if (SyncRes::eventTraceEnabled(SyncRes::event_trace_to_ot)) {
-          pdns::trace::extractOTraceIDs(ednsOptions, otTrace);
+          bool ednsFound = pdns::trace::extractOTraceIDs(ednsOptions, otTrace);
+          if (!match(t_OTConditions, source, qname, qtype, ntohs(headerdata->id), ednsFound)) {
+            eventTrace.setEnabled(false);
+          }
         }
 
         if (t_pdl) {

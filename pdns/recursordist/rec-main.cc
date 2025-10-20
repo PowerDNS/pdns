@@ -108,6 +108,7 @@ uint32_t g_disthashseed;
 bool g_useIncomingECS;
 static shared_ptr<NetmaskGroup> g_initialProxyProtocolACL;
 static shared_ptr<std::set<ComboAddress>> g_initialProxyProtocolExceptions;
+static shared_ptr<OpenTelemetryTraceConditions> g_initialOpenTelemetryConditions; // XXX shared ptr needed?
 boost::optional<ComboAddress> g_dns64Prefix{boost::none};
 DNSName g_dns64PrefixReverse;
 unsigned int g_maxChainLength;
@@ -2776,7 +2777,12 @@ static void recursorThread()
       else {
         t_proxyMapping = nullptr;
       }
-
+      if (g_OTConditions) {
+        t_OTConditions = make_unique<OpenTelemetryTraceConditions>(*g_OTConditions);
+      }
+      else {
+        t_OTConditions = nullptr;
+      }
       if (threadInfo.isHandler()) {
         if (!primeHints()) {
           threadInfo.setExitCode(EXIT_FAILURE);
