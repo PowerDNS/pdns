@@ -248,6 +248,7 @@ extern RecursorControlChannel g_rcc; // only active in the handler thread
 
 extern thread_local std::unique_ptr<ProxyMapping> t_proxyMapping;
 using ProxyMappingStats_t = std::unordered_map<Netmask, ProxyMappingCounts>;
+extern thread_local std::unique_ptr<OpenTelemetryTraceConditions> t_OTConditions;
 extern pdns::RateLimitedLog g_rateLimitedLogger;
 
 #ifdef NOD_ENABLED
