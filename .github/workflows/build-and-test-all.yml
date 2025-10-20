@@ -83,6 +83,7 @@ jobs:
           (
             echo "FROM $image"
             echo "COPY --chown=runner:docker __w $REPO_HOME"
+            echo "WORKDIR ${REPO_HOME}"
             echo
             echo -n 'ENV '
           ) > local-action/Dockerfile
