@@ -52,7 +52,7 @@ private:
   static void getQuestion(int fd, char *mesg, int pktlen, const ComboAddress& remote, unsigned int totalTime);
   static int doAXFR(const ZoneName &target, std::unique_ptr<DNSPacket>& q, int outsock, std::shared_ptr<Logr::Logger> slog);
   static int doIXFR(std::unique_ptr<DNSPacket>& q, int outsock, std::shared_ptr<Logr::Logger> slog);
-  static bool canDoAXFR(std::unique_ptr<DNSPacket>& q, bool isAXFR, std::unique_ptr<PacketHandler>& packetHandler);
+  static bool canDoAXFR(std::unique_ptr<DNSPacket>& q, bool isAXFR, std::unique_ptr<PacketHandler>& packetHandler, std::shared_ptr<Logr::Logger> slog);
   static void doConnection(int fd, std::shared_ptr<Logr::Logger> slog);
   static void decrementClientCount(const ComboAddress& remote);
   void thread();
