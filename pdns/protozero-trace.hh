@@ -818,6 +818,6 @@ private:
   const size_t size;
 };
 
-void extractOTraceIDs(const EDNSOptionViewMap& map, pdns::trace::InitialSpanInfo& span);
+bool extractOTraceIDs(const EDNSOptionViewMap& map, pdns::trace::InitialSpanInfo& span);
 
 } // namespace pdns::trace

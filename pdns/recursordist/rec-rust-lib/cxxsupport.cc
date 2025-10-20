@@ -1338,11 +1338,17 @@ void fromRustToOTTraceConditions(const rust::Vec<pdns::rust::settings::rec::Open
 {
   for (const auto& setting : settings) {
     OpenTelemetryTraceCondition condition;
+    if (!setting.qnames.empty()) {
+      condition.d_qnames = SuffixMatchNode();
+    }
     for (const auto& qname : setting.qnames) {
-      condition.d_qnames.add(DNSName(std::string(qname)), true);
+      condition.d_qnames->add(DNSName(std::string(qname)));
+    }
+    if (!setting.qtypes.empty()) {
+      condition.d_qtypes = std::unordered_set<QType>();
     }
     for (const auto& qtype : setting.qtypes) {
-      condition.d_qtypes.insert(QType::chartocode(std::string(qtype).data()));
+      condition.d_qtypes->insert(QType::chartocode(std::string(qtype).data()));
     }
     if (setting.qid != std::numeric_limits<uint32_t>::max()) {
       condition.d_qid = setting.qid;
