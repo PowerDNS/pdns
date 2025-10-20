@@ -55,35 +55,17 @@ jobs:
     if: ${{ !github.event.schedule || vars.SCHEDULED_JOBS_BUILD_AND_TEST_ALL }}
     runs-on: ubuntu-24.04
     needs: get-runner-container-image
-    container:
-      image: "${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"
-      env:
-        FUZZING_TARGETS: yes
-        UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp"
-        UNIT_TESTS: yes
-      options: --sysctl net.ipv6.conf.all.disable_ipv6=0
     strategy:
       matrix:
         builder: [autotools, meson]
       fail-fast: false
-    defaults:
-      run:
-        working-directory: ./pdns-${{ env.BUILDER_VERSION }}
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 5
-          submodules: recursive
-          ref: ${{ inputs.branch-name }}
-          persist-credentials: false
       - name: get timestamp for cache
         id: get-stamp
         run: |
           echo "stamp=$(/bin/date +%s)" >> "$GITHUB_OUTPUT"
         shell: bash
-        working-directory: .
       - run: mkdir -p ~/.ccache
-        working-directory: .
       - name: let GitHub cache our ccache data
         uses: actions/cache@v4
         with:
@@ -92,45 +74,136 @@ jobs:
           restore-keys: auth-ccache-${{ matrix.builder }}
       - name: set sanitizers
         run: echo "SANITIZERS=${{ matrix.builder == 'meson' && 'address,undefined' || 'asan+ubsan' }}" >> "$GITHUB_ENV"
-        working-directory: .
-      - name: install pip build dependencies
+      - name: Define local action
         run: |
+          : Define local action
+          sudo sysctl -w net.ipv6.conf.all.disable_ipv6=0
+          mkdir -p local-action
+          echo 'Defining local action Dockerfile'
+          (
+            echo "FROM $image"
+            echo "COPY --chown=runner:docker __w $REPO_HOME"
+            echo
+            echo -n 'ENV '
+          ) > local-action/Dockerfile
+
+          for a in $env_list; do
+            echo ' \'
+            echo -n " $a='"$(eval echo '$'$a)"'";
+          done >> local-action/Dockerfile
+
+          cat >> local-action/Dockerfile <<'EODocker'
+
+          SHELL ["/bin/bash", "-euxo", "pipefail", "-c"]
+
+          RUN <<'EOCommand'
+
+          # install pip build dependencies
           python3 -m venv ${REPO_HOME}/.venv
           . ${REPO_HOME}/.venv/bin/activate && pip install -r ${REPO_HOME}/meson/requirements.txt
-        working-directory: .
-      - run: ${{ env.INV_CMD }} install-auth-build-deps
-        working-directory: .
-      - run: ${{ env.INV_CMD }} ci-autoconf ${{ matrix.builder == 'meson' && '--meson' || '' }}
-        working-directory: .
-      - run: ${{ env.INV_CMD }} ci-auth-configure ${{ matrix.builder == 'meson' && '--meson' || '' }} -b pdns-${{ env.BUILDER_VERSION }}
-        working-directory: .
-      - run: ${{ env.INV_CMD }} ci-auth-build ${{ matrix.builder == 'meson' && '--meson' || '' }} # This runs under pdns-$BUILDER_VERSION/pdns/ for make bear
-      - run: ${{ env.INV_CMD }} ci-auth-install-remotebackend-test-deps
-      - if: ${{ matrix.builder == 'meson' }}
-        run: ${{ env.INV_CMD }} install-auth-test-deps-only -b geoip
-      - run: ${{ env.INV_CMD }} ci-auth-run-unit-tests ${{ matrix.builder == 'meson' && '--meson' || '' }}
+          EODocker
+
+          cat >> local-action/Dockerfile <<EODockerQQ
+          $INV_CMD install-auth-build-deps
+
+          $INV_CMD ci-autoconf $meson_flags
+
+          $INV_CMD ci-auth-configure $meson_flags -b pdns-$BUILDER_VERSION
+
+          $INV_CMD ci-auth-build $meson_flags # This runs under pdns-$BUILDER_VERSION/pdns/ for make bear
+
+          $INV_CMD ci-auth-install-remotebackend-test-deps
+          EODockerQQ
+
+
+          if [ -n "$meson_flags" ]; then
+            cat >> local-action/Dockerfile <<EODockerQQ
+          $INV_CMD install-auth-test-deps-only -b geoip
+          EODockerQQ
+          fi
+
+          cat >> local-action/Dockerfile <<EODockerQQ
+          PDNS_BUILD_PATH="../pdns-$BUILDER_VERSION" $INV_CMD ci-auth-run-unit-tests $meson_flags
+
+          EODockerQQ
+
+          if [ "$COVERAGE" == 'yes' ] && [ -n "$meson_flags" ]; then
+            cat >> local-action/Dockerfile <<EODockerQQ
+            $INV_CMD generate-coverage-info ./pdns-auth-testrunner 'auth' $GITHUB_WORKSPACE
+
+          EODockerQQ
+          fi
+
+          # Unclear how to convert 'Coveralls Parallel auth unit'
+
+          cat >> local-action/Dockerfile <<EODockerQQ
+          $INV_CMD ci-auth-install $meson_flags
+
+          ccache -s
+
+          EODockerQQ
+
+          # Prepare binaries folder
+          if [ -n "$meson_flags" ]; then
+            cat >> local-action/Dockerfile <<'EODocker'
+            echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
+            mkdir -p /opt/pdns-auth/bin
+            for i in $(find . -maxdepth 1 -type f -executable); do cp ${i} /opt/pdns-auth/bin/; done
+            mkdir -p /opt/pdns-auth/sbin; mv /opt/pdns-auth/bin/pdns-auth /opt/pdns-auth/sbin/
+
+          EODocker
+          fi
+
+          cat >> local-action/Dockerfile <<'EODocker'
+          EOCommand
+          EODocker
+
+          cat local-action/Dockerfile
         env:
-          PDNS_BUILD_PATH: ../pdns-${{ env.BUILDER_VERSION }}
-      - run: ${{ env.INV_CMD }} generate-coverage-info ./pdns-auth-testrunner 'auth' $GITHUB_WORKSPACE
-        if: ${{ env.COVERAGE == 'yes' && matrix.builder == 'meson' }}
-      - name: Coveralls Parallel auth unit
-        if: ${{ env.COVERAGE == 'yes' && matrix.builder == 'meson' }}
-        uses: coverallsapp/github-action@648a8eb78e6d50909eff900e4ec85cab4524a45b
+          image: "${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"
+          meson_flags: ${{ matrix.builder == 'meson' && '--meson' || '' }}
+          FUZZING_TARGETS: yes
+          UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=$REPO_HOME/build-scripts/UBSan.supp"
+          UNIT_TESTS: yes
+          env_list: |
+            FUZZING_TARGETS
+            UBSAN_OPTIONS
+            UNIT_TESTS
+            COMPILER
+            CLANG_VERSION
+            REPO_HOME
+            BUILDER_VERSION
+            COVERAGE
+            LLVM_PROFILE_FILE
+            OPTIMIZATIONS
+            INV_CMD
+            BRANCH_NAME
+      - uses: actions/checkout@v4
         with:
-          flag-name: auth-unit-${{ env.SANITIZERS }}
-          path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
-          parallel: true
-          allow-empty: true
-          fail-on-error: false
-      - run: ${{ env.INV_CMD }} ci-auth-install ${{ matrix.builder == 'meson' && '--meson' || '' }}
-      - run: ccache -s
-      - name: Prepare binaries folder
-        if: ${{ matrix.builder == 'meson' }}
+          path: local-action/__w
+          fetch-depth: 5
+          submodules: recursive
+          ref: ${{ inputs.branch-name }}
+          persist-credentials: false
+      - name: look around
+        shell: bash
         run: |
-          echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
-          mkdir -p /opt/pdns-auth/bin
-          for i in $(find . -maxdepth 1 -type f -executable); do cp ${i} /opt/pdns-auth/bin/; done
-          mkdir -p /opt/pdns-auth/sbin; mv /opt/pdns-auth/bin/pdns-auth /opt/pdns-auth/sbin/
+          ls
+      - name: look at local-action
+        shell: bash
+        run: |
+          ls local-action
+      - name: Run local action
+        uses: ./local-action
+      # - name: Coveralls Parallel auth unit
+      #   if: ${{ env.COVERAGE == 'yes' && matrix.builder == 'meson' }}
+      #   uses: coverallsapp/github-action@648a8eb78e6d50909eff900e4ec85cab4524a45b
+      #   with:
+      #     flag-name: auth-unit-${{ env.SANITIZERS }}
+      #     path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
+      #     parallel: true
+      #     allow-empty: true
+      #     fail-on-error: false
       - if: ${{ matrix.builder == 'meson' }}
         name: Store the binaries
         uses: actions/upload-artifact@v4 # this takes 30 seconds, maybe we want to tar
