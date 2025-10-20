@@ -153,6 +153,12 @@ string getBuildConfiguration()
 #ifdef HAVE_LIBSODIUM
       << " sodium"
 #endif
+#ifdef HAVE_LIBSSL
+      << " libssl"
+#endif
+#ifdef HAVE_GNUTLS
+      << " gnutls"
+#endif
 #ifdef HAVE_LIBCURL
       << " curl"
 #endif
@@ -167,6 +173,9 @@ string getBuildConfiguration()
 #endif
 #ifdef VERBOSELOG
       << " verboselog"
+#endif
+#ifdef HAVE_LIBCAP
+      << " libcap"
 #endif
       << endl;
 #ifdef PDNS_MODULES
