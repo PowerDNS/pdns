@@ -302,19 +302,23 @@ const Json & JsonArray::operator[] (size_t i) const {
  */
 
 bool Json::operator== (const Json &other) const {
-    if (m_ptr == other.m_ptr)
+    if (m_ptr == other.m_ptr) {
         return true;
-    if (m_ptr->type() != other.m_ptr->type())
+    }
+    if (m_ptr->type() != other.m_ptr->type()) {
         return false;
+    }
 
     return m_ptr->equals(other.m_ptr.get());
 }
 
 bool Json::operator< (const Json &other) const {
-    if (m_ptr == other.m_ptr)
+    if (m_ptr == other.m_ptr) {
         return false;
-    if (m_ptr->type() != other.m_ptr->type())
+    }
+    if (m_ptr->type() != other.m_ptr->type()) {
         return m_ptr->type() < other.m_ptr->type();
+    }
 
     return m_ptr->less(other.m_ptr.get());
 }
@@ -429,7 +433,9 @@ struct JsonParser final {
         bool comment_found = false;
         do {
           comment_found = consume_comment();
-          if (failed) return;
+          if (failed) {
+              return;
+          }
           consume_whitespace();
         }
         while(comment_found);
@@ -443,9 +449,12 @@ struct JsonParser final {
      */
     char get_next_token() {
         consume_garbage();
-        if (failed) return (char)0;
-        if (i == str.size())
+        if (failed) {
+            return (char)0;
+        }
+        if (i == str.size()) {
             return fail("unexpected end of input", (char)0);
+        }
 
         return str[i++];
     }
@@ -737,10 +746,12 @@ Json Json::parse(const string &in, string &err, JsonParse strategy) {
 
     // Check for any trailing garbage
     parser.consume_garbage();
-    if (parser.failed)
-        return Json();
-    if (parser.i != in.size())
+    if (parser.failed) {
+        return {};
+    }
+    if (parser.i != in.size()) {
         return parser.fail("unexpected trailing " + esc(in[parser.i]));
+    }
 
     return result;
 }
@@ -755,13 +766,15 @@ vector<Json> Json::parse_multi(const string &in,
     vector<Json> json_vec;
     while (parser.i != in.size() && !parser.failed) {
         json_vec.push_back(parser.parse_json(0));
-        if (parser.failed)
+        if (parser.failed) {
             break;
+        }
 
         // Check for another object
         parser.consume_garbage();
-        if (parser.failed)
+        if (parser.failed) {
             break;
+        }
         parser_stop_pos = parser.i;
     }
     return json_vec;
@@ -779,7 +792,7 @@ bool Json::has_shape(const shape & types, string & err) const {
 
     const auto& obj_items = object_items();
     for (auto & item : types) {
-        const auto it = obj_items.find(item.first);
+        const auto it = obj_items.find(item.first); // NOLINT(readability-identifier-length)
         if (it == obj_items.cend() || it->second.type() != item.second) {
             err = "bad type for " + item.first + " in " + dump();
             return false;
