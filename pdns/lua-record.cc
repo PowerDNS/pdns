@@ -641,6 +641,8 @@ static vector<ComboAddress> useSelector(const std::string &selector, const Combo
 
   if(selector=="all")
     return candidates;
+  else if(selector=="empty")
+    return ret;
   else if(selector=="random")
     ret.emplace_back(pickRandom<ComboAddress>(candidates));
   else if(selector=="pickclosest")
