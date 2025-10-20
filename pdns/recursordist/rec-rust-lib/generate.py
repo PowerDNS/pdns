@@ -114,6 +114,7 @@ class LType(Enum):
     ListTrustAnchors = auto()
     ListZoneToCaches = auto()
     ListOutgoingTLSConfigurations = auto()
+    ListOpenTelemetryTraceConditions = auto()
     String = auto()
     Uint64 = auto()
 
@@ -122,7 +123,7 @@ listOfStructuredTypes = (LType.ListAuthZones, LType.ListForwardZones, LType.List
                          LType.ListProtobufServers, LType.ListDNSTapFrameStreamServers, LType.ListDNSTapNODFrameStreamServers,
                          LType.ListSortLists, LType.ListRPZs, LType.ListZoneToCaches, LType.ListAllowedAdditionalQTypes,
                          LType.ListProxyMappings, LType.ListForwardingCatalogZones, LType.ListIncomingWSConfigs,
-                         LType.ListOutgoingTLSConfigurations)
+                         LType.ListOutgoingTLSConfigurations, LType.ListOpenTelemetryTraceConditions)
 
 def get_olddoc_typename(typ):
     """Given a type from table.py, return the old-style type name"""
@@ -192,6 +193,8 @@ def get_newdoc_typename(typ):
         return 'Sequence of `IncomingWSConfig`_'
     if typ == LType.ListOutgoingTLSConfigurations:
         return 'Sequence of `OutgoingTLSConfiguration`_'
+    if typ == LType.ListOpenTelemetryTraceConditions:
+        return 'Sequence of `OpenTelemetryTraceCondition`_'
     return 'Unknown2' + str(typ)
 
 def get_default_olddoc_value(typ, val):
