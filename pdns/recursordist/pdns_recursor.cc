@@ -1780,6 +1780,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
       t_Counters.updateSnap(g_regressionTestMode);
     }
 
+    auto match = resolver.d_eventTrace.add(RecEventTrace::AnswerSent);
     if (!comboWriter->d_tcp) {
       struct msghdr msgh{};
       struct iovec iov{};
@@ -1801,7 +1802,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
       tcpGuard.setHandled();
     }
 
-    resolver.d_eventTrace.add(RecEventTrace::AnswerSent);
+    resolver.d_eventTrace.add(RecEventTrace::AnswerSent, 0, false, match);
 
     // Now do the per query changing part of the protobuf message
     if (t_protobufServers.servers && !(luaconfsLocal->protobufExportConfig.taggedOnly && appliedPolicy.getName().empty() && comboWriter->d_policyTags.empty())) {
@@ -1861,7 +1862,11 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
         pbMessage.addEvents(resolver.d_eventTrace);
       }
       if (resolver.d_eventTrace.enabled() && SyncRes::eventTraceEnabled(SyncRes::event_trace_to_ot)) {
-        auto otTrace = pdns::trace::TracesData::boilerPlate("rec", comboWriter->d_mdp.d_qname.toLogString() + '/' + QType(comboWriter->d_mdp.d_qtype).toString(), resolver.d_eventTrace.convertToOT(resolver.d_otTrace));
+        auto otTrace = pdns::trace::TracesData::boilerPlate("rec", resolver.d_eventTrace.convertToOT(resolver.d_otTrace), {
+                                                                                                                            {"query.qname", {comboWriter->d_mdp.d_qname.toLogString()}},
+                                                                                                                            {"query.qtype", {QType(comboWriter->d_mdp.d_qtype).toString()}},
+                                                                                                                          },
+                                                            SyncRes::s_serverID);
         string otData = otTrace.encode();
         pbMessage.setOpenTelemetryData(otData);
       }
@@ -2146,6 +2151,9 @@ bool expectProxyProtocol(const ComboAddress& from, const ComboAddress& listenAdd
 // mappedSource: the address we assume the query is coming from. Differs from source if table based mapping has been applied
 static string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fromaddr, const ComboAddress& destaddr, ComboAddress source, ComboAddress destination, const ComboAddress& mappedSource, struct timeval tval, int fileDesc, std::vector<ProxyProtocolValue>& proxyProtocolValues, RecEventTrace& eventTrace, pdns::trace::InitialSpanInfo& otTrace) // NOLINT(readability-function-cognitive-complexity): https://github.com/PowerDNS/pdns/issues/12791
 {
+  auto newParent = eventTrace.add(RecEventTrace::ProcessUDP);
+  auto oldParent = eventTrace.setParent(newParent);
+  RecEventTrace::EventScope traceScope(oldParent, eventTrace);
   RecThreadInfo::self().incNumberOfDistributedQueries();
   gettimeofday(&g_now, nullptr);
   if (tval.tv_sec != 0) {
@@ -2226,6 +2234,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     // We do not have a SyncRes specific Lua context at this point yet, so ok to use t_pdl
     if (needEDNSParse || (t_pdl && (t_pdl->hasGettagFunc() || t_pdl->hasGettagFFIFunc())) || dnsheader->opcode == static_cast<unsigned>(Opcode::Notify)) {
       try {
+        auto parseMatch = eventTrace.add(RecEventTrace::PacketParse);
         EDNSOptionViewMap ednsOptions;
 
         ecsFound = false;
@@ -2235,12 +2244,14 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
                           (g_gettagNeedsEDNSOptions || SyncRes::eventTraceEnabled(SyncRes::event_trace_to_ot)) ? &ednsOptions : nullptr,
                           ednsVersion);
 
+        eventTrace.add(RecEventTrace::PacketParse, 0, false, parseMatch);
         qnameParsed = true;
         ecsParsed = true;
 
         if (SyncRes::eventTraceEnabled(SyncRes::event_trace_to_ot)) {
           pdns::trace::extractOTraceIDs(ednsOptions, otTrace);
         }
+
         if (t_pdl) {
           try {
             if (t_pdl->hasGettagFFIFunc()) {
@@ -2295,6 +2306,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
                             "qname", Logging::Loggable(qname), "qtype", Logging::Loggable(QType(qtype)),
                             "source", Logging::Loggable(source), "remote", Logging::Loggable(fromaddr));
         }
+        match = eventTrace.add(RecEventTrace::AnswerSent);
         struct msghdr msgh{};
         struct iovec iov{};
         cmsgbuf_aligned cbuf{};
@@ -2305,8 +2317,8 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
           addCMsgSrcAddr(&msgh, &cbuf, &destaddr, 0);
         }
         int sendErr = sendOnNBSocket(fileDesc, &msgh);
-        eventTrace.add(RecEventTrace::AnswerSent);
-
+        eventTrace.add(RecEventTrace::AnswerSent, sendErr, false, match);
+        traceScope.close(0);
         if (t_protobufServers.servers && logResponse && (!luaconfsLocal->protobufExportConfig.taggedOnly || (pbData && pbData->d_tagged))) {
           protobufLogResponse(qname, qtype, dnsheader, luaconfsLocal, pbData, tval, false, source, destination, mappedSource, ednssubnet, uniqueId, requestorId, deviceId, deviceName, meta, eventTrace, otTrace, policyTags);
         }
@@ -2410,6 +2422,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   comboWriter->d_responsePaddingDisabled = responsePaddingDisabled;
   comboWriter->d_meta = std::move(meta);
 
+  traceScope.close(0);
   comboWriter->d_eventTrace = std::move(eventTrace);
   comboWriter->d_otTrace = std::move(otTrace);
 
@@ -2448,7 +2461,7 @@ static void handleNewUDPQuestion(int fileDesc, FDMultiplexer::funcparam_t& /* va
       // established the reference point, get an absolute TS as close as possible to the
       // eventTrace start of trace time.
       auto traceTS = pdns::trace::timestamp();
-      eventTrace.add(RecEventTrace::ReqRecv);
+      auto match = eventTrace.add(RecEventTrace::ReqRecv);
       if (SyncRes::eventTraceEnabled(SyncRes::event_trace_to_ot)) {
         otTrace.clear();
         otTrace.start_time_unix_nano = traceTS;
@@ -2598,6 +2611,7 @@ static void handleNewUDPQuestion(int fileDesc, FDMultiplexer::funcparam_t& /* va
             destination = destaddr;
           }
 
+          eventTrace.add(RecEventTrace::ReqRecv, 0, false, match);
           if (RecThreadInfo::weDistributeQueries()) {
             std::string localdata = data;
             distributeAsyncFunction(data, [localdata = std::move(localdata), fromaddr, destaddr, source, destination, mappedSource, tval, fileDesc, proxyProtocolValues, eventTrace, otTrace]() mutable {
