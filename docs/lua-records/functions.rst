@@ -70,7 +70,7 @@ Record creation functions
   Various options can be set in the ``options`` parameter:
 
   - ``selector``: used to pick the address(es) from the list of available addresses. Choices include 'pickclosest', 'random', 'hashed', 'all' (default 'random').
-  - ``backupSelector``: used to pick the address(es) from all addresses if all addresses are down. Choices include 'pickclosest', 'random', 'hashed', 'all' (default 'random').
+  - ``backupSelector``: used to pick the address(es) from all addresses if all addresses are down. Choices include 'pickclosest', 'random', 'hashed', 'all', 'empty' (default 'random').
   - ``source``: Source address to check from
   - ``timeout``: Maximum time in seconds that you allow the check to take (default 2)
   - ``interval``: Time interval between two checks, in seconds. Defaults to :ref:`setting-lua-health-checks-interval` if not specified.
@@ -97,7 +97,7 @@ Record creation functions
   Various options can be set in the ``options`` parameter:
 
   - ``selector``: used to pick the address(es) from the subset of available addresses of the selected set. Choices include 'pickclosest', 'random', 'hashed', 'all' (default 'random').
-  - ``backupSelector``: used to pick the address from all addresses if all addresses are down. Choices include 'pickclosest', 'random', 'hashed', 'all' (default 'random').
+  - ``backupSelector``: used to pick the address from all addresses if all addresses are down. Choices include 'pickclosest', 'random', 'hashed', 'all', 'empty' (default 'random').
   - ``source``: Source address to check from
   - ``timeout``: Maximum time in seconds that you allow the check to take (default 2)
   - ``interval``: Time interval between two checks, in seconds. Defaults to :ref:`setting-lua-health-checks-interval` if not specified.
