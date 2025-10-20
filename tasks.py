@@ -288,7 +288,7 @@ def install_auth_test_deps(c, backend): # FIXME: rename this, we do way more tha
     c.run('touch regression-tests/tests/verify-dnssec-zone/allow-missing regression-tests.nobackend/rectify-axfr/allow-missing') # FIXME: can this go?
     # FIXME we may want to start a background recursor here to make ALIAS tests more robust
     setup_authbind(c)
-    # bandaid, it appears the coverage info is quite a lot and these packages are not needed to run the tests
+    # bandaid, it appears the coverage info has grown quite a lot and these packages are not needed to run the tests anyway
     c.sudo('apt purge -y gfortran-12 g++-12')
     c.sudo('rm -rf /var/cache/apt/*')
     c.run('df -h')
