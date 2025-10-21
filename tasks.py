@@ -796,6 +796,7 @@ def ci_dnsdist_configure_meson(c, features, additional_flags, additional_ld_flag
                       -D ebpf=enabled \
                       -D h2o=enabled \
                       -D ipcipher=enabled \
+                      -D ipcrypt2=enabled \
                       -D libedit=enabled \
                       -D libsodium=enabled \
                       -D lmdb=enabled \
@@ -817,6 +818,7 @@ def ci_dnsdist_configure_meson(c, features, additional_flags, additional_ld_flag
                       -D ebpf=disabled \
                       -D h2o=disabled \
                       -D ipcipher=disabled \
+                      -D ipcrypt2=disabled \
                       -D libedit=disabled \
                       -D libsodium=disabled \
                       -D lmdb=disabled \
