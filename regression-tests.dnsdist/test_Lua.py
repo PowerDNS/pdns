@@ -101,6 +101,7 @@ class TestLuaFrontendBindings(DNSDistTest):
     -- check that all these methods return nil on a non-existing entry
     functions = { 'getServer', 'getDNSCryptBind', 'getBind', 'getDOQFrontend', 'getDOH3Frontend', 'getDOHFrontend', 'getTLSFrontend'}
     for _, func in ipairs(functions) do
+      assert(_G[func] ~= nil, "function "..func.." not compiled in, cannot test")
       assert(_G[func](42) == nil, "function "..func.." did not return nil as expected")
     end
 
