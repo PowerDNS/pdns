@@ -1,3 +1,6 @@
+opt_ipcrypt2 = get_option('ipcrypt2')
+
+can_build=true
 if target_machine.cpu_family() == 'aarch64'
   code = '''
 #    if defined(_MSC_VER) && defined(_M_ARM64)
@@ -12,10 +15,13 @@ int main() {
 }
 '''
   compiler = meson.get_compiler('cpp')
-  result = compiler.compiles(code, name: 'uint64x2_t tests')
-  assert(result, 'Compiler does not support calculation with uint64x2_t on ARM64')
+  can_build = compiler.compiles(code, name: 'uint64x2_t tests')
 endif
 
+
+dep_ipcrypt2 = declare_dependency()
+
+if can_build
 lib_ipcrypt2 = static_library(
   'ipcrypt2',
   'ipcrypt2.c',
@@ -30,3 +36,11 @@ dep_ipcrypt2 = declare_dependency(
   link_with: lib_ipcrypt2,
   include_directories: include_directories('./include'),
 )
+endif
+
+if not can_build and opt_ipcrypt2.enabled()
+  error('ipcrypt2 support was requested but ipcrypt2 can not be built')
+endif
+enable_ipcrypt2 = can_build and not opt_ipcrypt2.disabled()
+conf.set('HAVE_IPCRYPT2', enable_ipcrypt2, description: 'ipcrypt2 support')
+summary('ipcrypt2', enable_ipcrypt2, bool_yn: true, section: 'Configuration')

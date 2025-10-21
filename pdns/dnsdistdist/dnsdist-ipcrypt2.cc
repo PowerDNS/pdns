@@ -20,21 +20,26 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#ifdef HAVE_IPCRYPT2
 #include <memory>
+#endif
 #include <stdexcept>
 #include <string>
 #include <sys/socket.h>
 
 #include "dnsdist-ipcrypt2.hh"
+#ifdef HAVE_IPCRYPT2
 #include "ipcrypt2.h"
+#endif
 #include "iputils.hh"
 
 // ipcrypt2 namespace does not have to be dnsdist-specific
 namespace pdns::ipcrypt2
 {
-IPCrypt2::IPCrypt2(const IPCryptMethod& method, const std::string& key) :
+IPCrypt2::IPCrypt2([[maybe_unused]] const IPCryptMethod& method, [[maybe_unused]] const std::string& key) :
   d_method(method)
 {
+#ifdef HAVE_IPCRYPT2
   switch (method) {
   case IPCryptMethod::pfx: {
     if (key.size() != IPCRYPT_PFX_KEYBYTES) {
@@ -50,10 +55,14 @@ IPCrypt2::IPCrypt2(const IPCryptMethod& method, const std::string& key) :
     throw std::runtime_error("Unsupported IPCrypt2 method");
     break;
   }
+#else
+  throw std::runtime_error("IPCrypt2 is not supported");
+#endif
 }
 
 IPCrypt2::~IPCrypt2()
 {
+#ifdef HAVE_IPCRYPT2
   switch (d_method) {
   case IPCryptMethod::pfx:
     if (d_ipcryptCtxPfx != nullptr) {
@@ -63,10 +72,12 @@ IPCrypt2::~IPCrypt2()
   default:
     return;
   }
+#endif
 };
 
-ComboAddress IPCrypt2::encrypt(const ComboAddress& address) const
+ComboAddress IPCrypt2::encrypt([[maybe_unused]] const ComboAddress& address) const // NOLINT(readability-convert-member-functions-to-static)
 {
+#ifdef HAVE_IPCRYPT2
   switch (d_method) {
   case IPCryptMethod::pfx: {
     uint8_t ip16[16];
@@ -91,5 +102,8 @@ ComboAddress IPCrypt2::encrypt(const ComboAddress& address) const
     throw std::runtime_error("Unsupported method");
     break;
   }
+#else
+  throw std::runtime_error("IPCrypt2 is not supported");
+#endif
 }
 }

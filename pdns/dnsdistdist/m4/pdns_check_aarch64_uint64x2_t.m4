@@ -15,6 +15,8 @@ int main() {
   return 0;
 }
     ])],[
+    dnl We just define this. Proper detection is only done in Meson
+    AC_DEFINE([HAVE_IPCRYPT2], [1], [Define to 1 to build with IPCrypt2])
     AC_MSG_RESULT([ok])
     ],[
     AC_MSG_FAILURE([no])

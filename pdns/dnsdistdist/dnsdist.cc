@@ -3072,6 +3072,9 @@ static void reportFeatures()
 #ifdef HAVE_IPCIPHER
   cout << "ipcipher ";
 #endif
+#ifdef HAVE_IPCRYPT2
+  cout << "ipcrypt2 ";
+#endif
 #ifdef HAVE_LIBEDIT
   cout << "libedit ";
 #endif

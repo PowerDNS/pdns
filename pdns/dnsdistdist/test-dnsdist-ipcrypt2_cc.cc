@@ -19,6 +19,8 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#ifdef HAVE_IPCRYPT2
+
 #ifndef BOOST_TEST_DYN_LINK
 #define BOOST_TEST_DYN_LINK
 #include "iputils.hh"
@@ -93,3 +95,5 @@ BOOST_AUTO_TEST_CASE(unsupported_method)
 }
 
 BOOST_AUTO_TEST_SUITE_END()
+
+#endif // HAVE_IPCRYPT2
