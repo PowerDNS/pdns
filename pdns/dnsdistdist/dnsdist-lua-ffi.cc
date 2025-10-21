@@ -930,6 +930,46 @@ bool dnsdist_ffi_set_rcode_from_async(uint16_t asyncID, uint16_t queryID, uint8_
   return dnsdist::queueQueryResumptionEvent(std::move(query));
 }
 
+static bool setAlternateName(PacketBuffer& packet, InternalQueryState& ids, std::string_view alternateName, std::string_view tag, std::string_view tagValue, std::string_view formerNameTagName)
+{
+  const DNSName originalName = ids.qname;
+  try {
+    DNSName parsed(alternateName.data(), alternateName.size(), 0, false);
+
+    // edit qname in query packet
+    if (!dnsdist::changeNameInDNSPacket(packet, originalName, parsed)) {
+      return false;
+    }
+    if (ids.d_packet) {
+      *ids.d_packet = packet;
+    }
+    // set qname to new one
+    ids.qname = std::move(parsed);
+  }
+  catch (const std::exception& e) {
+    vinfolog("Error rebasing packet on a new DNSName: %s", e.what());
+    return false;
+  }
+
+  // save existing qname in tag
+  if (!formerNameTagName.empty()) {
+    if (!ids.qTag) {
+      ids.qTag = std::make_unique<QTag>();
+    }
+    (*ids.qTag)[std::string(formerNameTagName)] = originalName.getStorage();
+  }
+
+  if (!tag.empty()) {
+    if (!ids.qTag) {
+      ids.qTag = std::make_unique<QTag>();
+    }
+    (*ids.qTag)[std::string(tag)] = tagValue;
+  }
+
+  ids.skipCache = true;
+  return true;
+}
+
 bool dnsdist_ffi_resume_from_async_with_alternate_name(uint16_t asyncID, uint16_t queryID, const char* alternateName, size_t alternateNameSize, const char* tag, size_t tagSize, const char* tagValue, size_t tagValueSize, const char* formerNameTagName, size_t formerNameTagSize)
 {
   if (!dnsdist::g_asyncHolder) {
@@ -943,57 +983,40 @@ bool dnsdist_ffi_resume_from_async_with_alternate_name(uint16_t asyncID, uint16_
   }
 
   auto& ids = query->query.d_idstate;
-  DNSName originalName = ids.qname;
-
-  try {
-    DNSName parsed(alternateName, alternateNameSize, 0, false);
-
-    PacketBuffer initialPacket;
-    if (query->d_isResponse) {
-      if (!ids.d_packet) {
-        return false;
-      }
-      initialPacket = std::move(*ids.d_packet);
-    }
-    else {
-      initialPacket = std::move(query->query.d_buffer);
-    }
-
-    // edit qname in query packet
-    if (!dnsdist::changeNameInDNSPacket(initialPacket, originalName, parsed)) {
+  PacketBuffer packet;
+  if (query->d_isResponse) {
+    if (!ids.d_packet) {
       return false;
     }
-    if (query->d_isResponse) {
-      query->d_isResponse = false;
-    }
-    query->query.d_buffer = std::move(initialPacket);
-    // set qname to new one
-    ids.qname = std::move(parsed);
+    packet = std::move(*ids.d_packet);
   }
-  catch (const std::exception& e) {
-    vinfolog("Error rebasing packet on a new DNSName: %s", e.what());
+  else {
+    packet = std::move(query->query.d_buffer);
+  }
+
+  auto wasOK = setAlternateName(packet, ids, std::string_view(alternateName, alternateNameSize), std::string_view(tag, tagSize), std::string_view(tagValue, tagValueSize), std::string_view(formerNameTagName, formerNameTagSize));
+  if (!wasOK) {
     return false;
   }
 
-  // save existing qname in tag
-  if (formerNameTagName != nullptr && formerNameTagSize > 0) {
-    if (!ids.qTag) {
-      ids.qTag = std::make_unique<QTag>();
-    }
-    (*ids.qTag)[std::string(formerNameTagName, formerNameTagSize)] = originalName.getStorage();
+  if (query->d_isResponse) {
+    query->d_isResponse = false;
   }
-
-  if (tag != nullptr && tagSize > 0) {
-    if (!ids.qTag) {
-      ids.qTag = std::make_unique<QTag>();
-    }
-    (*ids.qTag)[std::string(tag, tagSize)] = std::string(tagValue, tagValueSize);
-  }
-
-  ids.skipCache = true;
+  query->query.d_buffer = std::move(packet);
 
   // resume as query
   return dnsdist::queueQueryResumptionEvent(std::move(query));
+}
+
+bool dnsdist_ffi_dnsquestion_set_alternate_name(dnsdist_ffi_dnsquestion_t* dnsQuestion, const char* alternateName, size_t alternateNameSize, const char* tag, size_t tagSize, const char* tagValue, size_t tagValueSize, const char* formerNameTagName, size_t formerNameTagSize)
+{
+  if (dnsQuestion == nullptr || dnsQuestion->dq == nullptr || alternateName == nullptr || alternateNameSize == 0) {
+    return false;
+  }
+
+  auto& ids = dnsQuestion->dq->ids;
+  auto& packet = dnsQuestion->dq->getMutableData();
+  return setAlternateName(packet, ids, std::string_view(alternateName, alternateNameSize), std::string_view(tag, tagSize), std::string_view(tagValue, tagValueSize), std::string_view(formerNameTagName, formerNameTagSize));
 }
 
 bool dnsdist_ffi_drop_from_async(uint16_t asyncID, uint16_t queryID)
