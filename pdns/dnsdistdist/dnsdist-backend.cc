@@ -143,7 +143,7 @@ bool DownstreamState::reconnect(bool initialAttempt)
 
     try {
       setDscp(fd, d_config.remote.sin4.sin_family, d_config.dscp);
-      SConnect(fd, d_config.remote);
+      SConnect(fd, d_config.tcpFastOpen, d_config.remote);
       if (sockets.size() > 1) {
         (*mplexer.lock())->addReadFD(fd, [](int, boost::any) {});
       }

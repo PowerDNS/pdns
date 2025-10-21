@@ -179,7 +179,7 @@ public:
   //! Connect the socket to a specified endpoint
   void connect(const ComboAddress& address, int timeout = 0) const
   {
-    SConnectWithTimeout(d_socket, address, timeval{timeout, 0});
+    SConnectWithTimeout(d_socket, false, address, timeval{timeout, 0});
   }
 
   //! For datagram sockets, receive a datagram and learn where it came from

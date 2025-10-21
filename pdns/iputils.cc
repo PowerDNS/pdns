@@ -54,9 +54,29 @@ int SSocket(int family, int type, int flags)
   return ret;
 }
 
-int SConnect(int sockfd, const ComboAddress& remote)
+static int doConnect(int sockfd, [[maybe_unused]] bool fastopen, const ComboAddress& remote)
 {
-  int ret = connect(sockfd, reinterpret_cast<const struct sockaddr*>(&remote), remote.getSocklen()); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+#ifdef CONNECTX_FASTOPEN
+  if (fastopen) {
+    sa_endpoints_t endpoints{};
+
+    endpoints.sae_dstaddr = reinterpret_cast<const struct sockaddr*>(&remote); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    endpoints.sae_dstaddrlen = remote.getSocklen();
+
+    int flags = CONNECT_DATA_IDEMPOTENT | CONNECT_RESUME_ON_READ_WRITE;
+    return connectx(sockfd, &endpoints, SAE_ASSOCID_ANY, flags, nullptr, 0, nullptr, nullptr);
+  }
+  else {
+#endif
+    return connect(sockfd, reinterpret_cast<const struct sockaddr*>(&remote), remote.getSocklen()); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+#ifdef CONNECTX_FASTOPEN
+  }
+#endif
+}
+
+int SConnect(int sockfd, bool fastopen, const ComboAddress& remote)
+{
+  int ret = doConnect(sockfd, fastopen, remote);
   if (ret < 0) {
     int savederrno = errno;
     RuntimeError("connecting socket to " + remote.toStringWithPort() + ": " + stringerror(savederrno));
@@ -64,9 +84,9 @@ int SConnect(int sockfd, const ComboAddress& remote)
   return ret;
 }
 
-int SConnectWithTimeout(int sockfd, const ComboAddress& remote, const struct timeval& timeout)
+int SConnectWithTimeout(int sockfd, bool fastopen, const ComboAddress& remote, const struct timeval& timeout)
 {
-  int ret = connect(sockfd, reinterpret_cast<const struct sockaddr*>(&remote), remote.getSocklen()); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+  int ret = doConnect(sockfd, fastopen, remote);
   if (ret < 0) {
     int savederrno = errno;
     if (savederrno == EINPROGRESS) {
