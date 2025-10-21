@@ -332,10 +332,9 @@ public:
   [[nodiscard]] int getChar() const
   {
     char character{};
-
     ssize_t res = ::recv(d_socket, &character, 1, 0);
-    if (res == 0) {
-      return character;
+    if (res > 0) {
+      return static_cast<unsigned char>(character);
     }
     return -1;
   }
