@@ -4,6 +4,16 @@ Changelogs for 5.3.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
+  :version: 5.3.1
+  :released: 22nd of October 2025
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16339
+
+   Fix PowerDNS Security Advisory 2025-06: Crafted delegations or IP fragments can poison cached delegations in Recursor.
+
+.. changelog::
   :version: 5.3.0
   :released: 28th of August 2025
 

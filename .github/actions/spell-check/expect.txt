@@ -95,6 +95,7 @@ bagbug
 Bakhos
 Bakker
 Baltus
+Baojun
 basedn
 basepath
 Bastiaan
@@ -529,6 +530,7 @@ gtld
 guilabel
 gutenberg
 Gyselinck
+Haixin
 Hakulinen
 Hannu
 Harker
@@ -1244,6 +1246,7 @@ setvariable
 Shabanov
 Shafir
 shantikulkarni
+Shiming
 shinsterneck
 shnya
 showdetails
@@ -1584,6 +1587,8 @@ yourdomain
 yourorganization
 yoursecret
 yubikey
+Yunyi
+Yuxiao
 YYYYMMD
 YYYYMMDDSS
 Zash
