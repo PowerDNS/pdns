@@ -596,7 +596,8 @@ endif
 
 benchmark_sources = []
 benchmark_sources += files(
-  src_dir / 'bench-dnsdist-opentelemetry_cc.cc'
+  src_dir / 'bench-dnsdist-dnsparser_cc.cc',
+  src_dir / 'bench-dnsdist-opentelemetry_cc.cc',
 )
 
 if get_option('benchmark')
