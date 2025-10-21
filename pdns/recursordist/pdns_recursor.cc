@@ -1861,7 +1861,8 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
       if (resolver.d_eventTrace.enabled() && SyncRes::eventTraceEnabled(SyncRes::event_trace_to_pb)) {
         pbMessage.addEvents(resolver.d_eventTrace);
       }
-      if (resolver.d_eventTrace.enabled() && SyncRes::eventTraceEnabled(SyncRes::event_trace_to_ot)) {
+
+      if (resolver.d_eventTrace.enabled() && resolver.d_eventTrace.getThisOTTraceEnabled() && SyncRes::eventTraceEnabled(SyncRes::event_trace_to_ot)) {
         auto otTrace = pdns::trace::TracesData::boilerPlate("rec", resolver.d_eventTrace.convertToOT(resolver.d_otTrace), {
                                                                                                                             {"query.qname", {comboWriter->d_mdp.d_qname.toLogString()}},
                                                                                                                             {"query.qtype", {QType(comboWriter->d_mdp.d_qtype).toString()}},
@@ -2158,7 +2159,7 @@ bool matchOTConditions(const std::unique_ptr<OpenTelemetryTraceConditions>& cond
   return true;
 }
 
-bool matchOTConditions(const std::unique_ptr<OpenTelemetryTraceConditions>& conditions, const ComboAddress& source, const DNSName& qname, QType qtype, uint16_t qid, bool edns_option_present)
+bool matchOTConditions(RecEventTrace& eventTrace, const std::unique_ptr<OpenTelemetryTraceConditions>& conditions, const ComboAddress& source, const DNSName& qname, QType qtype, uint16_t qid, bool edns_option_present)
 {
   if (conditions == nullptr || conditions->size() == 0) {
     return false;
@@ -2181,6 +2182,7 @@ bool matchOTConditions(const std::unique_ptr<OpenTelemetryTraceConditions>& cond
       return false;
     }
   }
+  eventTrace.setThisOTTraceEnabled();
   return true;
 }
 
@@ -2290,7 +2292,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
 
         if (SyncRes::eventTraceEnabled(SyncRes::event_trace_to_ot)) {
           bool ednsFound = pdns::trace::extractOTraceIDs(ednsOptions, otTrace);
-          if (SyncRes::eventTraceEnabledOnly(SyncRes::event_trace_to_ot) && !matchOTConditions(t_OTConditions, mappedSource, qname, qtype, ntohs(headerdata->id), ednsFound)) {
+          if (!matchOTConditions(eventTrace, t_OTConditions, mappedSource, qname, qtype, ntohs(headerdata->id), ednsFound) && SyncRes::eventTraceEnabledOnly(SyncRes::event_trace_to_ot)) {
             eventTrace.setEnabled(false);
           }
         }

@@ -647,7 +647,7 @@ void requestWipeCaches(const DNSName& canon);
 void startDoResolve(void*);
 bool expectProxyProtocol(const ComboAddress& from, const ComboAddress& listenAddress);
 bool matchOTConditions(const std::unique_ptr<OpenTelemetryTraceConditions>& conditions, const ComboAddress& source);
-bool matchOTConditions(const std::unique_ptr<OpenTelemetryTraceConditions>& conditions, const ComboAddress& source, const DNSName& qname, QType qtype, uint16_t qid, bool edns_option_present);
+bool matchOTConditions(RecEventTrace& eventTrace, const std::unique_ptr<OpenTelemetryTraceConditions>& conditions, const ComboAddress& source, const DNSName& qname, QType qtype, uint16_t qid, bool edns_option_present);
 void finishTCPReply(std::unique_ptr<DNSComboWriter>&, bool hadError, bool updateInFlight);
 void checkFastOpenSysctl(bool active, Logr::log_t);
 void checkTFOconnect(Logr::log_t);
