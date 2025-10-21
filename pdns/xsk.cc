@@ -709,7 +709,7 @@ uint32_t XskPacket::getFrameLen() const noexcept
 
 size_t XskPacket::getCapacity() const noexcept
 {
-  return frameSize;
+  return frameSize - getDataOffset();
 }
 
 void XskPacket::changeDirectAndUpdateChecksum() noexcept
