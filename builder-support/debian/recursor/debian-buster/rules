@@ -49,6 +49,8 @@ override_dh_auto_configure:
 	-Db_pie=true \
 	-Dhardening-fortify-source=disabled \
 	-Dunit-tests=true \
+	-Dtls-libssl=enabled \
+	-Dtls-gnutls=enabled \
 	-Ddns-over-tls=enabled \
 	-Ddnstap=enabled \
 	-Dlibcap=enabled \
