@@ -92,9 +92,6 @@ private:
   void emitNSEC3(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const NSEC3PARAMRecordContent &ns3prc, const DNSName& name, const string& namehash, const string& nexthash, int mode);
   int processUpdate(DNSPacket& p);
   int forwardPacket(const string &msgPrefix, const DNSPacket& p, const DomainInfo& di);
-  int checkUpdatePrescan(const DNSRecord *rr);
-  int checkUpdatePrerequisites(const DNSRecord *rr, DomainInfo *di);
-  void increaseSerial(const string &msgPrefix, const DomainInfo *di, const string& soaEditSetting, bool haveNSEC3, bool narrow, const NSEC3PARAMRecordContent *ns3pr);
 
   void makeNXDomain(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const DNSName& target, const DNSName& wildcard);
   void makeNOError(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const DNSName& target, const DNSName& wildcard, int mode);
