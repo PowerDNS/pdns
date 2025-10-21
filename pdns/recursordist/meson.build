@@ -61,8 +61,9 @@ subdir('meson' / 'libsodium')               # Libsodium-based signers
 subdir('meson' / 'libcrypto')               # OpenSSL-based signers
 subdir('meson' / 'libssl')                  # OpenSSL libssl
 subdir('meson' / 'libssl-engines')          # OpenSSL libssl engines
-subdir('meson' / 'libsnmp')                 # SNMP
+subdir('meson' / 'gnutls')                  # GNUTLS
 subdir('meson' / 'dot')                     # DNS over TLS
+subdir('meson' / 'libsnmp')                 # SNMP
 subdir('meson' / 'clock-gettime')           # Clock_gettime
 subdir('meson' / 'boost')                   # Boost
 subdir('meson' / 'boost-context')           # Boost Context Switching Library
@@ -83,7 +84,6 @@ subdir('meson' / 'dnstap')                  # DNSTAP through libfstream
 subdir('meson' / 'libcurl')                 # Curl
 subdir('meson' / 'libcap')                  # Capabilities
 subdir('meson' / 'dlopen')                  # our Rust static library needs dlopen
-subdir('meson' / 'gnutls')                  # GNUTLS
 
 subdir('rec-rust-lib')
 
