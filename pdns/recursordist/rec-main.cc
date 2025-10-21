@@ -636,10 +636,10 @@ void protobufLogResponse(const DNSName& qname, QType qtype,
     pbMessage.setNewlyObservedDomain(false);
   }
 #endif
-  if (eventTrace.enabled() && (SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_pb) != 0) {
+  if (eventTrace.enabled() && SyncRes::eventTraceEnabled(SyncRes::event_trace_to_pb)) {
     pbMessage.addEvents(eventTrace);
   }
-  if (eventTrace.enabled() && (SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_ot) != 0) {
+  if (eventTrace.enabled() && SyncRes::eventTraceEnabled(SyncRes::event_trace_to_ot)) {
     auto trace = pdns::trace::TracesData::boilerPlate("rec", eventTrace.convertToOT(otTrace),
                                                       {{"query.qname", {qname.toLogString()}},
                                                        {"query.qtype", {qtype.toString()}}},
