@@ -1449,21 +1449,26 @@ private:
 
         // if pcall failed, analyzing the problem and throwing
         if (pcallReturnValue != 0) {
+            switch (pcallReturnValue) {
+                case LUA_ERRMEM:
+                    throw std::bad_alloc{};
+                case LUA_ERRERR:
+                    throw ExecutionErrorException("while handling a Lua error, the traceback handler failed (LUA_ERRERR)");
+                // all other values should have left us an error and a traceback
+            }
+   
 
-            // stack top: {error, traceback}
-            lua_rawgeti(state, -1, 1); // stack top: {error, traceback}, error
-            lua_rawgeti(state, -2, 2); // stack top: {error, traceback}, error, traceback
-            lua_remove(state, -3); // stack top: error, traceback
+            if (lua_gettop(state) >= 1 && lua_type(state, -1) == LUA_TTABLE) {
+                // stack top: {error, traceback}
+                lua_rawgeti(state, -1, 1); // stack top: {error, traceback}, error
+                lua_rawgeti(state, -2, 2); // stack top: {error, traceback}, error, traceback
+                lua_remove(state, -3); // stack top: error, traceback
 
-            PushedObject traceBackRef{state, 1};
-            const auto traceBack = readTopAndPop<std::string>(state, std::move(traceBackRef)); // stack top: error
-            PushedObject errorCode{state, 1};
+                PushedObject traceBackRef{state, 1};
+                const auto traceBack = readTopAndPop<std::string>(state, std::move(traceBackRef)); // stack top: error
+                PushedObject errorCode{state, 1};
 
-            // an error occurred during execution, either an error message or a std::exception_ptr was pushed on the stack
-            if (pcallReturnValue == LUA_ERRMEM) {
-                throw std::bad_alloc{};
-
-            } else if (pcallReturnValue == LUA_ERRRUN) {
+                // an error occurred during execution, either an error message or a std::exception_ptr was pushed on the stack
                 if (lua_isstring(state, 1)) {
                     // the error is a string
                     const auto str = readTopAndPop<std::string>(state, std::move(errorCode));
@@ -1483,6 +1488,9 @@ private:
                     }
                     throw ExecutionErrorException{"Unknown Lua error"};
                 }
+            }
+            else {
+                throw ExecutionErrorException("while handling a Lua error, the traceback handler did not return a table (" + std::to_string(pcallReturnValue) + ")");
             }
         }
 
