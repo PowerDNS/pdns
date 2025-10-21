@@ -123,7 +123,7 @@ public:
           lua_gettable(lua, -2);
           /* if not found, return false */
           if (lua_isnil(lua, -1)) {
-            lua_pop(lua, -2);
+            lua_pop(lua, 2);
             lua_pushboolean(lua, false);
             return 1;
           }
