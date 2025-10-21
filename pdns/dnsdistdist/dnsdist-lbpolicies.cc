@@ -255,7 +255,7 @@ shared_ptr<DownstreamState> roundrobin(const ServerPolicy::NumberedServerVector&
     }
   }
 
-  static unsigned int counter;
+  static std::atomic<unsigned int> counter{0};
   return servers.at(candidates.at((counter++) % candidates.size()) - 1).second;
 }
 
