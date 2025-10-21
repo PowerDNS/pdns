@@ -25,6 +25,7 @@ BuildRequires: libcap-devel
 BuildRequires: libcurl-devel
 BuildRequires: libsodium-devel
 BuildRequires: net-snmp-devel
+BuildRequires: gnutls-devel
 BuildRequires: openssl-devel
 BuildRequires: systemd
 BuildRequires: systemd-devel
