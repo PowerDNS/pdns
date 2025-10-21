@@ -268,9 +268,10 @@ union ComboAddress {
 
   [[nodiscard]] bool isUnspecified() const
   {
-    const ComboAddress unspecifiedV4("0.0.0.0:0");
-    const ComboAddress unspecifiedV6("[::]:0");
-    return *this == unspecifiedV4 || *this == unspecifiedV6;
+    static const ComboAddress unspecifiedV4("0.0.0.0:0");
+    static const ComboAddress unspecifiedV6("[::]:0");
+    const auto compare = ComboAddress::addressOnlyEqual();
+    return compare(*this, unspecifiedV4) || compare(*this, unspecifiedV6);
   }
 
   ComboAddress mapToIPv4() const
