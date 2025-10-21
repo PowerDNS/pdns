@@ -616,7 +616,7 @@ static Answer doSetCarbonServer(ArgIterator begin, ArgIterator end)
   }
 
   g_carbonConfig.setState(std::move(config));
-  return {0, ret};
+  return {0, std::move(ret)};
 }
 
 static Answer doSetDnssecLogBogus(ArgIterator begin, ArgIterator end)

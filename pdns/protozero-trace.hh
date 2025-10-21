@@ -740,7 +740,7 @@ struct TracesData
     InstrumentationScope scope{
       .name = "rec", .version = VERSION, .attributes = {{"hostname", {hostname}}, {"server.id", {serverID}}}};
     return TracesData{
-      .resource_spans = {pdns::trace::ResourceSpans{.resource = {.attributes = {{"service.name", {{std::move(service)}}}}}, .scope_spans = {{.scope = scope, .spans = std::move(spans)}}}}};
+      .resource_spans = {pdns::trace::ResourceSpans{.resource = {.attributes = {{"service.name", {{std::move(service)}}}}}, .scope_spans = {{.scope = std::move(scope), .spans = std::move(spans)}}}}};
   }
 };
 
