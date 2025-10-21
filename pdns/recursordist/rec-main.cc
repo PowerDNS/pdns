@@ -639,7 +639,8 @@ void protobufLogResponse(const DNSName& qname, QType qtype,
   if (eventTrace.enabled() && SyncRes::eventTraceEnabled(SyncRes::event_trace_to_pb)) {
     pbMessage.addEvents(eventTrace);
   }
-  if (eventTrace.enabled() && SyncRes::eventTraceEnabled(SyncRes::event_trace_to_ot)) {
+
+  if (eventTrace.enabled() && eventTrace.getThisOTTraceEnabled() && SyncRes::eventTraceEnabled(SyncRes::event_trace_to_ot)) {
     auto trace = pdns::trace::TracesData::boilerPlate("rec", eventTrace.convertToOT(otTrace),
                                                       {{"query.qname", {qname.toLogString()}},
                                                        {"query.qtype", {qtype.toString()}}},

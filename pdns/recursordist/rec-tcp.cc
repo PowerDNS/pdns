@@ -302,7 +302,7 @@ static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, s
   boost::optional<uint32_t> ednsVersion;
 
   comboWriter->d_eventTrace.setEnabled(SyncRes::s_event_trace_enabled != 0);
-  if (SyncRes::eventTraceEnabledOnly(SyncRes::event_trace_to_ot) && !matchOTConditions(t_OTConditions, comboWriter->d_mappedSource)) {
+  if (!matchOTConditions(t_OTConditions, comboWriter->d_mappedSource) && SyncRes::eventTraceEnabledOnly(SyncRes::event_trace_to_ot)) {
     comboWriter->d_eventTrace.setEnabled(false);
   }
 
@@ -341,7 +341,7 @@ static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, s
 
       if (SyncRes::eventTraceEnabled(SyncRes::event_trace_to_ot)) {
         bool ednsFound = pdns::trace::extractOTraceIDs(ednsOptions, comboWriter->d_otTrace);
-        if (SyncRes::eventTraceEnabledOnly(SyncRes::event_trace_to_ot) && !matchOTConditions(t_OTConditions, comboWriter->d_mappedSource, qname, qtype, ntohs(comboWriter->d_mdp.d_header.id), ednsFound)) {
+        if (SyncRes::eventTraceEnabledOnly(SyncRes::event_trace_to_ot) && !matchOTConditions(comboWriter->d_eventTrace, t_OTConditions, comboWriter->d_mappedSource, qname, qtype, ntohs(comboWriter->d_mdp.d_header.id), ednsFound)) {
           comboWriter->d_eventTrace.setEnabled(false);
         }
       }
