@@ -329,6 +329,29 @@ cname 3600 IN CNAME a.example.
 """.format(soa=cls._SOA))
         super(TestRecursorProtobuf, cls).generateRecursorConfig(confdir)
 
+    @classmethod
+    def generateRecursorYamlConfig(cls, confdir, flag):
+        authzonepath = os.path.join(confdir, 'example.zone')
+        with open(authzonepath, 'w') as authzone:
+            authzone.write("""$ORIGIN example.
+@ 3600 IN SOA {soa}
+a 3600 IN A 192.0.2.42
+tagged 3600 IN A 192.0.2.84
+taggedtcp 3600 IN A 192.0.2.87
+meta 3600 IN A 192.0.2.85
+query-selected 3600 IN A 192.0.2.84
+answer-selected 3600 IN A 192.0.2.84
+types 3600 IN A 192.0.2.84
+types 3600 IN AAAA 2001:DB8::1
+types 3600 IN TXT "Lorem ipsum dolor sit amet"
+types 3600 IN MX 10 a.example.
+types 3600 IN SPF "v=spf1 -all"
+types 3600 IN SRV 10 20 443 a.example.
+cname 3600 IN CNAME a.example.
+
+""".format(soa=cls._SOA))
+        super(TestRecursorProtobuf, cls).generateRecursorYamlConfig(confdir, flag)
+
 
 class ProtobufDefaultTest(TestRecursorProtobuf):
     """
@@ -337,9 +360,21 @@ class ProtobufDefaultTest(TestRecursorProtobuf):
 
     _confdir = 'ProtobufDefault'
     _config_template = """
-auth-zones=example=configs/%s/example.zone
-event-trace-enabled=4
-""" % _confdir
+recursor:
+    auth_zones:
+    - zone: example
+      file: configs/%s/example.zone
+    event_trace_enabled: 4
+logging:
+  protobuf_servers:
+    - servers: [127.0.0.1:%s, 127.0.0.1:%s]
+  opentelemetry_trace_conditions:
+    - acls: ['0.0.0.0/0']
+""" % (_confdir, protobufServersParameters[0].port, protobufServersParameters[1].port)
+
+    @classmethod
+    def generateRecursorConfig(cls, confdir):
+        super(ProtobufDefaultTest, cls).generateRecursorYamlConfig(confdir, False)
 
     def testA(self):
         name = 'a.example.'
