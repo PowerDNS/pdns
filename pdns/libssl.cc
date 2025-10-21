@@ -374,7 +374,7 @@ int libssl_ocsp_stapling_callback(SSL* ssl, const std::map<int, std::string>& oc
 
   const auto ocsp_resp_size = data->second.size();
   /* the behaviour is alas different in 3.6.0 because of a regression introduced in b1b4b154fd389ac6254d49cfb11aee36c1c51b84:
-     the value passed to SSL_set_tlsext_status_ocsp_resp() is not freed in 3.6.0 as it is in all others OpenSSL versions.
+     the value passed to SSL_set_tlsext_status_ocsp_resp() is not freed in 3.6.0 as it is in all other OpenSSL versions.
      See https://github.com/openssl/openssl/issues/28888 */
 #if OPENSSL_VERSION_NUMBER != 0x30600000L
   /* we need to allocate a copy because OpenSSL will free the pointer passed to SSL_set_tlsext_status_ocsp_resp() */
