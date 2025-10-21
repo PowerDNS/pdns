@@ -2144,37 +2144,43 @@ bool expectProxyProtocol(const ComboAddress& from, const ComboAddress& listenAdd
   return false;
 }
 
-static bool match(const std::unique_ptr<OpenTelemetryTraceConditions>& conditions, const ComboAddress& source, const DNSName& qname, QType qtype, uint16_t qid, bool edns_option_present)
+bool matchOTConditions(const std::unique_ptr<OpenTelemetryTraceConditions>& conditions, const ComboAddress& source)
 {
   if (conditions == nullptr || conditions->size() == 0) {
-    cerr << "match 0 false" << endl;
     return false;
   }
   if (auto const* match = conditions->lookup(source); match != nullptr) {
-    cerr << "match 1" << endl;
     const auto& condition = match->second;
     if (condition.d_traceid_only) {
-      cerr << "match 2 false" << endl;
-      return false;
-    }
-    if (condition.d_edns_option_required && !edns_option_present) {
-      cerr << "match 3 false" << endl;
-      return false;
-    }
-    if (condition.d_qid && condition.d_qid != qid) {
-    cerr << "match 4 false" << endl;
-      return false;
-    }
-    if (condition.d_qtypes && condition.d_qtypes->count(qtype) == 0) {
-    cerr << "match 5 false" << endl;
-      return false;
-    }
-    if (condition.d_qnames && !condition.d_qnames->check(qname)) {
-    cerr << "match 6 false" << endl;
       return false;
     }
   }
-  cerr << "match return true" << endl;
+  return true;
+}
+
+bool matchOTConditions(const std::unique_ptr<OpenTelemetryTraceConditions>& conditions, const ComboAddress& source, const DNSName& qname, QType qtype, uint16_t qid, bool edns_option_present)
+{
+  if (conditions == nullptr || conditions->size() == 0) {
+    return false;
+  }
+  if (auto const* match = conditions->lookup(source); match != nullptr) {
+    const auto& condition = match->second;
+    if (condition.d_traceid_only) {
+      return false;
+    }
+    if (condition.d_edns_option_required && !edns_option_present) {
+      return false;
+    }
+    if (condition.d_qid && condition.d_qid != qid) {
+      return false;
+    }
+    if (condition.d_qtypes && condition.d_qtypes->count(qtype) == 0) {
+      return false;
+    }
+    if (condition.d_qnames && !condition.d_qnames->check(qname)) {
+      return false;
+    }
+  }
   return true;
 }
 
@@ -2284,7 +2290,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
 
         if (SyncRes::eventTraceEnabled(SyncRes::event_trace_to_ot)) {
           bool ednsFound = pdns::trace::extractOTraceIDs(ednsOptions, otTrace);
-          if (!match(t_OTConditions, source, qname, qtype, ntohs(headerdata->id), ednsFound)) {
+          if (SyncRes::eventTraceEnabledOnly(SyncRes::event_trace_to_ot) && !matchOTConditions(t_OTConditions, mappedSource, qname, qtype, ntohs(headerdata->id), ednsFound)) {
             eventTrace.setEnabled(false);
           }
         }
@@ -2648,6 +2654,9 @@ static void handleNewUDPQuestion(int fileDesc, FDMultiplexer::funcparam_t& /* va
             destination = destaddr;
           }
 
+          if (SyncRes::eventTraceEnabledOnly(SyncRes::event_trace_to_ot) && !matchOTConditions(t_OTConditions, mappedSource)) {
+              eventTrace.setEnabled(false);
+          }
           eventTrace.add(RecEventTrace::ReqRecv, 0, false, match);
           if (RecThreadInfo::weDistributeQueries()) {
             std::string localdata = data;

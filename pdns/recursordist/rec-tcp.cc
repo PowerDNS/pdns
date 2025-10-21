@@ -302,6 +302,10 @@ static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, s
   boost::optional<uint32_t> ednsVersion;
 
   comboWriter->d_eventTrace.setEnabled(SyncRes::s_event_trace_enabled != 0);
+  if (SyncRes::eventTraceEnabledOnly(SyncRes::event_trace_to_ot) && !matchOTConditions(t_OTConditions, comboWriter->d_mappedSource)) {
+    comboWriter->d_eventTrace.setEnabled(false);
+  }
+
   // eventTrace uses monotonic time, while OpenTelemetry uses absolute time. setEnabled()
   // established the reference point, get an absolute TS as close as possible to the
   // eventTrace start of trace time.
@@ -336,7 +340,10 @@ static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, s
       qnameParsed = true;
 
       if (SyncRes::eventTraceEnabled(SyncRes::event_trace_to_ot)) {
-        pdns::trace::extractOTraceIDs(ednsOptions, comboWriter->d_otTrace);
+        bool ednsFound = pdns::trace::extractOTraceIDs(ednsOptions, comboWriter->d_otTrace);
+        if (SyncRes::eventTraceEnabledOnly(SyncRes::event_trace_to_ot) && !matchOTConditions(t_OTConditions, comboWriter->d_mappedSource, qname, qtype, ntohs(comboWriter->d_mdp.d_header.id), ednsFound)) {
+          comboWriter->d_eventTrace.setEnabled(false);
+        }
       }
       if (t_pdl) {
         try {
