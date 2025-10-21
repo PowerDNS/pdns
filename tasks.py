@@ -1226,6 +1226,8 @@ def test_bulk_recursor(c, size, threads, mthreads, shards, ipv6):
 
 @task
 def install_swagger_tools(c):
+    c.run('sudo apt-get update && sudo apt-get install -y npm')
+    c.run('sudo mkdir -p /usr/local/lib/node_modules && sudo chmod 777 /usr/local/lib/node_modules')
     c.run('npm install -g @stoplight/spectral-cli')
     c.run('npm install -g api-spec-converter')
 
