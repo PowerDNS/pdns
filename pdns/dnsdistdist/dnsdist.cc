@@ -131,30 +131,6 @@ shared_ptr<BPFFilter> g_defaultBPFFilter{nullptr};
 
 Rings g_rings;
 
-
-static void sendfromto(int sock, const PacketBuffer& buffer, const ComboAddress& from, const ComboAddress& dest)
-{
-  const int flags = 0;
-  if (from.sin4.sin_family == 0) {
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    auto ret = sendto(sock, buffer.data(), buffer.size(), flags, reinterpret_cast<const struct sockaddr*>(&dest), dest.getSocklen());
-    if (ret == -1) {
-      int error = errno;
-      VERBOSESLOG(infolog("Error sending UDP response to %s: %s", dest.toStringWithPort(), stringerror(error)),
-                  dnsdist::logging::getTopLogger("sendfromto")->error(Logr::Info, error, "Error sending UDP response", "client.address", Logging::Loggable(dest)));
-    }
-    return;
-  }
-
-  try {
-    sendMsgWithOptions(sock, buffer.data(), buffer.size(), &dest, &from, 0, 0);
-  }
-  catch (const std::exception& exp) {
-    VERBOSESLOG(infolog("Error sending UDP response from %s to %s: %s", from.toStringWithPort(), dest.toStringWithPort(), exp.what()),
-                dnsdist::logging::getTopLogger("sendfromto")->error(Logr::Info, exp.what(), "Error sending UDP response", "source.address", Logging::Loggable(from), "client.address", Logging::Loggable(dest)));
-  }
-}
-
 static void truncateTC(PacketBuffer& packet, size_t maximumSize, unsigned int qnameWireLength, bool addEDNSToSelfGeneratedResponses)
 {
   try {
@@ -193,7 +169,7 @@ struct DelayedPacket
   ComboAddress origDest;
   void operator()() const
   {
-    sendfromto(fd, packet, origDest, destination);
+    dnsdist::udp::sendfromto(fd, packet, origDest, destination);
   }
 };
 
@@ -631,7 +607,7 @@ bool sendUDPResponse(int origFD, const PacketBuffer& response, [[maybe_unused]] 
   }
 #endif /* DISABLE_DELAY_PIPE */
   // NOLINTNEXTLINE(readability-suspicious-call-argument)
-  sendfromto(origFD, response, origDest, origRemote);
+  dnsdist::udp::sendfromto(origFD, response, origDest, origRemote);
   return true;
 }
 

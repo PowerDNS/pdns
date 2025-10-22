@@ -96,4 +96,26 @@ void setUDPSocketBufferSizes(int socketDesc, const Logr::Logger& logger, Context
   }
 }
 
-} // dnsdist::udp
+void sendfromto(int sock, const PacketBuffer& buffer, const ComboAddress& from, const ComboAddress& dest)
+{
+  const int flags = 0;
+  if (from.sin4.sin_family == 0) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    auto ret = sendto(sock, buffer.data(), buffer.size(), flags, reinterpret_cast<const struct sockaddr*>(&dest), dest.getSocklen());
+    if (ret == -1) {
+      int error = errno;
+      VERBOSESLOG(infolog("Error sending UDP response to %s: %s", dest.toStringWithPort(), stringerror(error)),
+                  dnsdist::logging::getTopLogger("sendfromto")->error(Logr::Info, error, "Error sending UDP response", "client.address", Logging::Loggable(dest)));
+    }
+    return;
+  }
+
+  try {
+    sendMsgWithOptions(sock, buffer.data(), buffer.size(), &dest, &from, 0, 0);
+  }
+  catch (const std::exception& exp) {
+    VERBOSESLOG(infolog("Error sending UDP response from %s to %s: %s", from.toStringWithPort(), dest.toStringWithPort(), exp.what()),
+                dnsdist::logging::getTopLogger("sendfromto")->error(Logr::Info, exp.what(), "Error sending UDP response", "source.address", Logging::Loggable(from), "client.address", Logging::Loggable(dest)));
+  }
+}
+} // namespace dnsdist::udp
