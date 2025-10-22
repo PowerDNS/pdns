@@ -328,33 +328,6 @@ public:
     }
   }
 
-  //! reads one character from the socket
-  [[nodiscard]] int getChar() const
-  {
-    char character{};
-
-    ssize_t res = ::recv(d_socket, &character, 1, 0);
-    if (res == 0) {
-      return character;
-    }
-    return -1;
-  }
-
-  void getline(string& data) const
-  {
-    data.clear();
-    while (true) {
-      int character = getChar();
-      if (character == -1) {
-        break;
-      }
-      data += (char)character;
-      if (character == '\n') {
-        break;
-      }
-    }
-  }
-
   //! Reads a block of data from the socket to a string
   void read(string& data)
   {
