@@ -11,6 +11,7 @@ option('hardening-experimental-cf', type: 'combo', choices: ['disabled', 'full',
 option('hardening-experimental-scp', type: 'feature', value: 'disabled', description: 'Stack Clash Protection')
 option('hardening-fortify-source', type: 'combo', choices: ['auto', 'disabled', '1', '2', '3'], value: '2', description: 'Source fortification level')
 option('ipcipher', type: 'feature', value: 'auto', description: 'IPCipher')
+option('ipcrypt2', type: 'feature', value: 'auto', description: 'IPCrypt2')
 option('tls-libssl', type: 'feature', value: 'auto', description: 'OpenSSL-based TLS')
 option('tls-libssl-dir', type: 'string', value: '', description: 'Alternate OpenSSL location')
 option('tls-libssl-engines', type: 'boolean', value: false, description: 'OpenSSL-based TLS with TLS engines')
