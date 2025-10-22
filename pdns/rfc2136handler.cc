@@ -542,10 +542,10 @@ static void updateENT(const updateContext& ctx, set<DNSName>& insnonterm, set<DN
     return;
   }
 
-  DLOG(g_log << ctx.msgPrefix << "Updating ENT records - " << insnonterm.size() << "|" << delnonterm.size() << endl);
+  DLOG(g_log << msgPrefix << "Updating ENT records - " << insnonterm.size() << "|" << delnonterm.size() << endl);
   ctx.di.backend->updateEmptyNonTerminals(ctx.di.id, insnonterm, delnonterm, false);
-  for (const auto& insert : insnonterm) {
-    if (ctx.haveNSEC3) {
+  if (ctx.haveNSEC3) {
+    for (const auto& insert : insnonterm) {
       DNSName ordername = computeOrdername(ctx, insert);
       ctx.di.backend->updateDNSSECOrderNameAndAuth(ctx.di.id, insert, ordername, true, QType::ANY, !ctx.narrow);
     }
