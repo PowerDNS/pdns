@@ -190,18 +190,18 @@ static bool mayPerformUpdate(const DNSRecord* rr, const updateContext& ctx) // N
 // the NSEC3PARAM case already.
 // ctx is not const, may update updateSerial
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-static uint performInsert(const DNSRecord* rr, updateContext& ctx, vector<DNSResourceRecord>& rrset, set<DNSName>& insnonterm, set<DNSName>& delnonterm) // NOLINT(readability-identifier-length)
+static uint performInsert(const DNSRecord* rr, updateContext& ctx, set<DNSName>& insnonterm, set<DNSName>& delnonterm) // NOLINT(readability-identifier-length)
 {
+  vector<DNSResourceRecord> rrset;
   uint changedRecords = 0;
   DNSResourceRecord rec;
   auto rrType = QType(rr->d_type);
 
-  bool foundRecord = false;
   ctx.di.backend->lookup(rrType, rr->d_name, ctx.di.id);
   while (ctx.di.backend->get(rec)) {
     rrset.push_back(rec);
-    foundRecord = true;
   }
+  bool foundRecord = !rrset.empty();
 
   if (foundRecord) {
     switch (rrType) {
@@ -301,6 +301,7 @@ static uint performInsert(const DNSRecord* rr, updateContext& ctx, vector<DNSRes
         ctx.di.backend->updateDNSSECOrderNameAndAuth(ctx.di.id, rr->d_name, DNSName(), false, QType::AAAA, ctx.haveNSEC3 && !ctx.narrow);
       }
     }
+    rrset.clear(); // no longer needed
   } // if (foundRecord) - note foundRecord may have be set to false at this point
 
   // If we haven't found a record that matches, we must add it.
@@ -399,8 +400,9 @@ static uint performInsert(const DNSRecord* rr, updateContext& ctx, vector<DNSRes
 // the code that calls this performUpdate().
 // Caller has checked that we are allowed to delete the record and has handled
 // the NSEC3PARAM case already.
-static uint performDelete(const DNSRecord* rr, const updateContext& ctx, vector<DNSResourceRecord>& rrset, set<DNSName>& insnonterm, set<DNSName>& delnonterm) // NOLINT(readability-identifier-length)
+static uint performDelete(const DNSRecord* rr, const updateContext& ctx, set<DNSName>& insnonterm, set<DNSName>& delnonterm) // NOLINT(readability-identifier-length)
 {
+  vector<DNSResourceRecord> recordsToKeep;
   vector<DNSResourceRecord> recordsToDelete;
   DNSResourceRecord rec;
   auto rrType = QType(rr->d_type);
@@ -409,7 +411,7 @@ static uint performDelete(const DNSRecord* rr, const updateContext& ctx, vector<
   while (ctx.di.backend->get(rec)) {
     if (rr->d_class == QClass::ANY) { // 3.4.2.3
       if (rec.qname == ctx.di.zone.operator const DNSName&() && (rec.qtype == QType::NS || rec.qtype == QType::SOA)) { // Never delete all SOA and NS's
-        rrset.push_back(rec);
+        recordsToKeep.push_back(rec);
       }
       else {
         recordsToDelete.push_back(rec);
@@ -430,7 +432,7 @@ static uint performDelete(const DNSRecord* rr, const updateContext& ctx, vector<
         recordsToDelete.push_back(rec);
       }
       else {
-        rrset.push_back(rec);
+        recordsToKeep.push_back(rec);
       }
     }
   }
@@ -440,7 +442,8 @@ static uint performDelete(const DNSRecord* rr, const updateContext& ctx, vector<
     return 0;
   }
 
-  ctx.di.backend->replaceRRSet(ctx.di.id, rr->d_name, rrType, rrset);
+  ctx.di.backend->replaceRRSet(ctx.di.id, rr->d_name, rrType, recordsToKeep);
+  recordsToKeep.clear(); // no longer needed
   g_log << Logger::Notice << ctx.msgPrefix << "Deleting record " << rr->d_name << "|" << rrType.toString() << endl;
 
   // If we've removed a delegate, we need to reset ordername/auth for some records.
@@ -541,7 +544,7 @@ static void updateENT(const updateContext& ctx, set<DNSName>& insnonterm, set<DN
     return;
   }
 
-  DLOG(g_log << msgPrefix << "Updating ENT records - " << insnonterm.size() << "|" << delnonterm.size() << endl);
+  DLOG(g_log << ctx.msgPrefix << "Updating ENT records - " << insnonterm.size() << "|" << delnonterm.size() << endl);
   ctx.di.backend->updateEmptyNonTerminals(ctx.di.id, insnonterm, delnonterm, false);
   if (ctx.haveNSEC3) {
     for (const auto& insert : insnonterm) {
@@ -611,18 +614,17 @@ static uint performUpdate(DNSSECKeeper& dsk, const DNSRecord* rr, updateContext&
   }
 
   uint changedRecords = 0;
-  vector<DNSResourceRecord> rrset;
   // used to (at the end) fix ENT records.
   set<DNSName> delnonterm;
   set<DNSName> insnonterm;
 
   if (insertAction) {
     DLOG(g_log << ctx.msgPrefix << "Add/Update record (QClass == IN) " << rr->d_name << "|" << rrType.toString() << endl);
-    changedRecords = performInsert(rr, ctx, rrset, insnonterm, delnonterm);
+    changedRecords = performInsert(rr, ctx, insnonterm, delnonterm);
   }
   else {
     DLOG(g_log << ctx.msgPrefix << "Deleting records: " << rr->d_name << "; QClass:" << rr->d_class << "; rrType: " << rrType.toString() << endl);
-    changedRecords = performDelete(rr, ctx, rrset, insnonterm, delnonterm);
+    changedRecords = performDelete(rr, ctx, insnonterm, delnonterm);
   }
 
   //Insert and delete ENT's
