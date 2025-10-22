@@ -601,25 +601,17 @@ benchmark_sources += files(
 )
 
 if get_option('benchmark')
-  libdnsdist_benchmark = declare_dependency(
-    link_whole: static_library(
-      'dnsdist-benchmark',
-      config_h,
-      benchmark_sources,
-      dependencies: [
-          dep_catch2,
-          dep_protozero,
-      ],
-    )
-  )
-
   tools += {
     'benchmarkrunner' : {
       'main': [
         src_dir / 'benchmarkrunner.cc',
       ],
-        'deps-extra': [
-          libdnsdist_benchmark,
+      'files-extra': [
+        benchmark_sources,
+      ],
+      'deps-extra': [
+        dep_catch2,
+        dep_protozero,
       ],
     }
   }
