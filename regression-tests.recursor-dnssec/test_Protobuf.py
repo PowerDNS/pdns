@@ -296,6 +296,11 @@ class TestRecursorProtobuf(RecursorTest):
         self.assertEqual(msg.ede, ede)
         self.assertEqual(msg.edeText, edeText)
 
+    def getOpenTelemetryEDNS(self, traceid):
+      prefix = b'\0x00\0x00'
+      opt = dns.edns.GenericOption(65500, prefix + traceid)
+      return opt
+
     def checkProtobufOT(self, msg, openTelemetryData, openTelemetryTraceID):
         self.assertTrue(openTelemetryData == msg.HasField('openTelemetryData'))
         self.assertTrue(openTelemetryTraceID == msg.HasField('openTelemetryTraceID'))
@@ -498,7 +503,8 @@ logging:
     def testA(self):
         name = 'a.example.'
         expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.42')
-        query = dns.message.make_query(name, 'A', want_dnssec=True)
+        edns = self.getOpenTelemetryEDNS(b'012345678012345678')
+        query = dns.message.make_query(name, 'A', want_dnssec=True, options=[edns])
         query.flags |= dns.flags.CD
         for method in ('sendUDPQuery', 'sendTCPQuery'):
             sender = getattr(self, method)
@@ -585,7 +591,7 @@ logging:
         # we have max-cache-ttl set to 15
         self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, 'a.example.', 15, checkTTL=False)
         self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.42')
-        self.checkProtobufOT(msg, False, True)
+        self.checkProtobufOT(msg, False, False)
         self.checkProtobufEDE(msg, 0, '')
         self.checkNoRemainingMessage()
 
@@ -680,7 +686,8 @@ logging:
     def testAAAA(self):
         name = 'aaaa.example.'
         expectedAAAA = dns.rrset.from_text('aaaa.example.', 0, dns.rdataclass.IN, 'AAAA', '2001:db8::2')
-        query = dns.message.make_query(name, 'AAAA', want_dnssec=True)
+        edns = self.getOpenTelemetryEDNS(b'012345678012345678')
+        query = dns.message.make_query(name, 'AAAA', want_dnssec=True, options=[edns])
         query.flags |= dns.flags.CD
         raw = self.sendUDPQuery(query, decode=False)
         res = dns.message.from_wire(raw)
