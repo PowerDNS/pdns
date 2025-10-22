@@ -2220,6 +2220,16 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName& qname, unsigned int depth,
   return ret;
 }
 
+bool SyncRes::canUseRecords(const std::string& prefix, const DNSName& qname, const DNSName& name, QType qtype, vState state)
+{
+  if (vStateIsBogus(state)) {
+    LOG(prefix << qname << ": Cannot use " << name << '/' << qtype << " records from cache: Bogus" << endl);
+    return false;
+  }
+  // We could validate Indeterminate authoritative records here.
+  return true;
+}
+
 void SyncRes::getBestNSFromCache(const DNSName& qname, const QType qtype, vector<DNSRecord>& bestns, bool* flawedNSSet, unsigned int depth, const string& prefix, set<GetBestNSAnswer>& beenthere, const boost::optional<DNSName>& cutOffDomain) // NOLINT(readability-function-cognitive-complexity)
 {
   DNSName subdomain(qname);
@@ -2238,7 +2248,8 @@ void SyncRes::getBestNSFromCache(const DNSName& qname, const QType qtype, vector
     vector<DNSRecord> nsVector;
     *flawedNSSet = false;
 
-    if (bool isAuth = false; g_recCache->get(d_now.tv_sec, subdomain, QType::NS, flags, &nsVector, d_cacheRemote, d_routingTag, nullptr, nullptr, nullptr, nullptr, &isAuth) > 0) {
+    vState state{vState::Indeterminate};
+    if (bool isAuth = false; g_recCache->get(d_now.tv_sec, subdomain, QType::NS, flags, &nsVector, d_cacheRemote, d_routingTag, nullptr, nullptr, nullptr, &state, &isAuth) > 0 && canUseRecords(prefix, qname, subdomain, QType::NS, state)) {
       if (s_maxnsperresolve > 0 && nsVector.size() > s_maxnsperresolve) {
         vector<DNSRecord> selected;
         selected.reserve(s_maxnsperresolve);
@@ -2260,7 +2271,12 @@ void SyncRes::getBestNSFromCache(const DNSName& qname, const QType qtype, vector
           }
 
           auto nrr = getRR<NSRecordContent>(nsRecord);
-          if (nrr && (!nrr->getNS().isPartOf(subdomain) || g_recCache->get(d_now.tv_sec, nrr->getNS(), nsqt, flags, doLog() ? &aset : nullptr, d_cacheRemote, d_routingTag) > 0)) {
+          state = vState::Indeterminate;
+          if (nrr && (!nrr->getNS().isPartOf(subdomain) || g_recCache->get(d_now.tv_sec, nrr->getNS(), nsqt, flags, doLog() ? &aset : nullptr, d_cacheRemote, d_routingTag, nullptr, nullptr, nullptr, &state) > 0)) {
+            // We make use of the fact that if get() is not called the state is still Indeterminate
+            if (!canUseRecords(prefix, qname, nrr->getNS(), nsqt, state)) {
+              continue;
+            }
             bestns.push_back(nsRecord);
             LOG(prefix << qname << ": NS (with ip, or non-glue) in cache for '" << subdomain << "' -> '" << nrr->getNS() << "'");
             LOG(", within bailiwick: " << nrr->getNS().isPartOf(subdomain));
@@ -4188,8 +4204,8 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
   std::unordered_set<DNSName> allowedAnswerNames = {qname};
   bool cnameSeen = false;
   bool haveAnswers = false;
-  bool isNXDomain = false;
-  bool isNXQType = false;
+  bool acceptDelegation = false;
+  bool soaInAuth = false;
 
   std::vector<bool> skipvec(lwr.d_records.size(), false);
   unsigned int counter = 0;
@@ -4280,9 +4296,9 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
         ++skipCount;
         continue;
       }
-      if (rec->d_type == QType::NS && !d_updatingRootNS && rec->d_name == g_rootdnsname) {
+      if (rec->d_type == QType::NS && (!rec->d_name.isPartOf(auth) || (rec->d_name == auth && !d_updatingRootNS) || !qname.isPartOf(rec->d_name))) {
         /*
-         * We don't want to pick up root NS records in AUTHORITY and their associated ADDITIONAL sections of random queries.
+         * We don't want to pick up irrelevant NS records in AUTHORITY and their associated ADDITIONAL sections.
          * So remove them and don't add them to allowedAdditionals.
          */
         LOG(prefix << qname << ": Removing NS record '" << rec->toString() << "' in the AUTHORITY section of a response received from " << auth << endl);
@@ -4306,17 +4322,7 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
           ++skipCount;
           continue;
         }
-
-        if (!haveAnswers) {
-          switch (lwr.d_rcode) {
-          case RCode::NXDomain:
-            isNXDomain = true;
-            break;
-          case RCode::NoError:
-            isNXQType = true;
-            break;
-          }
-        }
+        soaInAuth = true;
       }
     }
     /* dealing with records in additional */
@@ -4330,10 +4336,14 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
     }
   } // end of first loop, handled answer and most of authority section
 
-  sanitizeRecordsPass2(prefix, lwr, qname, qtype, auth, allowedAnswerNames, allowedAdditionals, cnameSeen, isNXDomain, isNXQType, skipvec, skipCount);
+  if (!haveAnswers && lwr.d_rcode == RCode::NoError) {
+    acceptDelegation = true;
+  }
+
+  sanitizeRecordsPass2(prefix, lwr, qname, qtype, auth, allowedAnswerNames, allowedAdditionals, cnameSeen, acceptDelegation && !soaInAuth, skipvec, skipCount);
 }
 
-void SyncRes::sanitizeRecordsPass2(const std::string& prefix, LWResult& lwr, const DNSName& qname, const QType qtype, const DNSName& auth, std::unordered_set<DNSName>& allowedAnswerNames, std::unordered_set<DNSName>& allowedAdditionals, bool cnameSeen, bool isNXDomain, bool isNXQType, std::vector<bool>& skipvec, unsigned int& skipCount)
+void SyncRes::sanitizeRecordsPass2(const std::string& prefix, LWResult& lwr, const DNSName& qname, const QType qtype, const DNSName& auth, std::unordered_set<DNSName>& allowedAnswerNames, std::unordered_set<DNSName>& allowedAdditionals, bool cnameSeen, bool acceptDelegation, std::vector<bool>& skipvec, unsigned int& skipCount)
 {
   // Second loop, we know now if the answer was NxDomain or NoData
   unsigned int counter = 0;
@@ -4362,13 +4372,13 @@ void SyncRes::sanitizeRecordsPass2(const std::string& prefix, LWResult& lwr, con
       }
     }
     if (rec->d_place == DNSResourceRecord::AUTHORITY && rec->d_type == QType::NS) {
-      if (isNXDomain || isNXQType) {
+      if (!acceptDelegation) {
         /*
-         * We don't want to pick up NS records in AUTHORITY and their ADDITIONAL sections of NXDomain answers
+         * We don't want to pick up NS records in AUTHORITY and their ADDITIONAL sections of NXDomain answers and answers with answer records
          * because they are somewhat easy to insert into a large, fragmented UDP response
          * for an off-path attacker by injecting spoofed UDP fragments. So do not add these to allowedAdditionals.
          */
-        LOG(prefix << qname << ": Removing NS record '" << rec->toString() << "' in the AUTHORITY section of a " << (isNXDomain ? "NXD" : "NXQTYPE") << " response received from " << auth << endl);
+        LOG(prefix << qname << ": Removing NS record '" << rec->toString() << "' in the AUTHORITY section of a response received from " << auth << endl);
         skipvec[counter] = true;
         ++skipCount;
         continue;
@@ -4643,6 +4653,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
     }
   }
 
+  bool seenBogusRRSet = false;
   for (auto tCacheEntry = tcache.begin(); tCacheEntry != tcache.end(); ++tCacheEntry) {
 
     if (tCacheEntry->second.records.empty()) { // this happens when we did store signatures, but passed on the records themselves
@@ -4747,6 +4758,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
     }
 
     if (vStateIsBogus(recordState)) {
+      seenBogusRRSet = true;
       /* this is a TTD by now, be careful */
       for (auto& record : tCacheEntry->second.records) {
         auto newval = std::min(record.d_ttl, static_cast<uint32_t>(s_maxbogusttl + d_now.tv_sec));
@@ -4767,7 +4779,11 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
     if (tCacheEntry->first.type != QType::NSEC3 && (tCacheEntry->first.type == QType::DS || tCacheEntry->first.type == QType::NS || tCacheEntry->first.type == QType::A || tCacheEntry->first.type == QType::AAAA || isAA || wasForwardRecurse)) {
 
       bool doCache = true;
-      if (tCacheEntry->first.place == DNSResourceRecord::ANSWER && ednsmask) {
+      if (!isAA && seenBogusRRSet) {
+        LOG(prefix << qname << ": Not caching non-authoritative rrsets received with Bogus answer" << endl);
+        doCache = false;
+      }
+      if (doCache && tCacheEntry->first.place == DNSResourceRecord::ANSWER && ednsmask) {
         const bool isv4 = ednsmask->isIPv4();
         if ((isv4 && s_ecsipv4nevercache) || (!isv4 && s_ecsipv6nevercache)) {
           doCache = false;
