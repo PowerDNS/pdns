@@ -593,8 +593,8 @@ if get_option('unit-tests')
   }
 endif
 
-benchmark_sources = []
-benchmark_sources += files(
+benchmark_sources = files(
+  src_dir / 'bench-dnsdist-action-rcode.cc',
   src_dir / 'bench-dnsdist-dnsparser_cc.cc',
   src_dir / 'bench-dnsdist-opentelemetry_cc.cc',
 )
@@ -607,9 +607,18 @@ if get_option('benchmark')
       ],
       'files-extra': [
         benchmark_sources,
+        config_h,
+        mplexer_sources,
+        src_dir / 'dnsdist-lbpolicies.cc',
+        src_dir / 'dnsdist-lua-ffi.cc',
+        src_dir / 'dnstap.cc',
+        src_dir / 'fstrm_logger.cc',
       ],
       'deps-extra': [
         dep_catch2,
+        dep_dnstap,
+        dep_ffi_interface,
+        dep_lua,
         dep_protozero,
       ],
     }
