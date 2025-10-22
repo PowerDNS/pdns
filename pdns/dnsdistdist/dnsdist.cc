@@ -75,6 +75,7 @@
 #include "dnsdist-tcp-upstream.hh"
 #include "dnsdist-web.hh"
 #include "dnsdist-xsk.hh"
+#include "dnsdist-udp.hh"
 
 #include "base64.hh"
 #include "capabilities.hh"
@@ -126,10 +127,6 @@ shared_ptr<BPFFilter> g_defaultBPFFilter{nullptr};
 
 Rings g_rings;
 
-// we are not willing to receive a bigger UDP response than that, no matter what
-static constexpr size_t s_maxUDPResponsePacketSize{4096U};
-static size_t const s_initialUDPPacketBufferSize = s_maxUDPResponsePacketSize + DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE;
-static_assert(s_initialUDPPacketBufferSize <= UINT16_MAX, "Packet size should fit in a uint16_t");
 
 static void sendfromto(int sock, const PacketBuffer& buffer, const ComboAddress& from, const ComboAddress& dest)
 {
@@ -532,7 +529,7 @@ bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse,
     return false;
   }
 
-  if (dnsResponse.ids.packetCache && !dnsResponse.ids.selfGenerated && !dnsResponse.ids.skipCache && (!dnsResponse.ids.forwardedOverUDP || response.size() <= s_maxUDPResponsePacketSize)) {
+  if (dnsResponse.ids.packetCache && !dnsResponse.ids.selfGenerated && !dnsResponse.ids.skipCache && (!dnsResponse.ids.forwardedOverUDP || response.size() <= dnsdist::udp::s_maxUDPResponsePacketSize)) {
     if (!dnsResponse.ids.useZeroScope) {
       /* if the query was not suitable for zero-scope, for
          example because it had an existing ECS entry so the hash is
@@ -610,14 +607,14 @@ bool processResponse(PacketBuffer& response, DNSResponse& dnsResponse, bool mute
 
 static size_t getInitialUDPPacketBufferSize(bool expectProxyProtocol)
 {
-  static_assert(dnsdist::configuration::s_udpIncomingBufferSize <= s_initialUDPPacketBufferSize, "The incoming buffer size should not be larger than s_initialUDPPacketBufferSize");
+  static_assert(dnsdist::configuration::s_udpIncomingBufferSize <= dnsdist::udp::s_initialUDPPacketBufferSize, "The incoming buffer size should not be larger than s_initialUDPPacketBufferSize");
 
   const auto& runtimeConfig = dnsdist::configuration::getCurrentRuntimeConfiguration();
   if (!expectProxyProtocol || runtimeConfig.d_proxyProtocolACL.empty()) {
-    return s_initialUDPPacketBufferSize;
+    return dnsdist::udp::s_initialUDPPacketBufferSize;
   }
 
-  return s_initialUDPPacketBufferSize + runtimeConfig.d_proxyProtocolMaximumSize;
+  return dnsdist::udp::s_initialUDPPacketBufferSize + runtimeConfig.d_proxyProtocolMaximumSize;
 }
 
 static size_t getMaximumIncomingPacketSize(const ClientState& clientState)
