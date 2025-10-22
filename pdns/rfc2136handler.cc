@@ -62,6 +62,20 @@ struct updateContext {
 
 static void increaseSerial(const string& soaEditSetting, const updateContext& ctx);
 
+static DNSName computeOrdername(const updateContext& ctx, const DNSName& qname)
+{
+  DNSName ordername;
+  if (ctx.haveNSEC3) {
+    if (!ctx.narrow) {
+      ordername = DNSName(toBase32Hex(hashQNameWithSalt(ctx.ns3pr, qname)));
+    }
+  }
+  else { // NSEC
+    ordername = qname.makeRelative(ctx.di.zone);
+  }
+  return ordername;
+}
+
 // Implement section 3.2.1 and 3.2.2 of RFC2136
 // NOLINTNEXTLINE(readability-identifier-length)
 static int checkUpdatePrerequisites(const DNSRecord* rr, DomainInfo* di)
@@ -277,17 +291,7 @@ static uint performInsert(const DNSRecord* rr, updateContext& ctx, vector<DNSRes
     // We can take the auth flag from the first RR in the set, as the name is different, so should the auth be.
     if (changedRecords > 0) {
       bool auth = rrset.front().auth;
-
-      DNSName ordername;
-      if (ctx.haveNSEC3) {
-        if (!ctx.narrow) {
-          ordername = DNSName(toBase32Hex(hashQNameWithSalt(ctx.ns3pr, rr->d_name)));
-        }
-      }
-      else { // NSEC
-        ordername = rr->d_name.makeRelative(ctx.di.zone);
-      }
-
+      DNSName ordername = computeOrdername(ctx, rr->d_name);
       ctx.di.backend->updateDNSSECOrderNameAndAuth(ctx.di.id, rr->d_name, ordername, auth, QType::ANY, ctx.haveNSEC3 && !ctx.narrow);
       if (!auth || rrType == QType::DS) {
         if (ctx.haveNSEC3) {
@@ -344,15 +348,7 @@ static uint performInsert(const DNSRecord* rr, updateContext& ctx, vector<DNSRes
     }
 
     {
-      DNSName ordername;
-      if (ctx.haveNSEC3) {
-        if (!ctx.narrow) {
-          ordername = DNSName(toBase32Hex(hashQNameWithSalt(ctx.ns3pr, rr->d_name)));
-        }
-      }
-      else { // NSEC
-        ordername = rr->d_name.makeRelative(ctx.di.zone);
-      }
+      DNSName ordername = computeOrdername(ctx, rr->d_name);
       ctx.di.backend->updateDNSSECOrderNameAndAuth(ctx.di.id, rr->d_name, ordername, auth, QType::ANY, ctx.haveNSEC3 && !ctx.narrow);
       if (fixDS) {
         ctx.di.backend->updateDNSSECOrderNameAndAuth(ctx.di.id, rr->d_name, ordername, true, QType::DS, ctx.haveNSEC3 && !ctx.narrow);
@@ -379,16 +375,7 @@ static uint performInsert(const DNSRecord* rr, updateContext& ctx, vector<DNSRes
         }
       }
       for (const auto& qname : qnames) {
-        DNSName ordername;
-        if (ctx.haveNSEC3) {
-          if (!ctx.narrow) {
-            ordername = DNSName(toBase32Hex(hashQNameWithSalt(ctx.ns3pr, qname)));
-          }
-        }
-        else { // NSEC
-          ordername = DNSName(qname).makeRelative(ctx.di.zone);
-        }
-
+        DNSName ordername = computeOrdername(ctx, qname);
         if (ctx.haveNSEC3) {
           ctx.di.backend->updateDNSSECOrderNameAndAuth(ctx.di.id, qname, ordername, auth, QType::ANY, !ctx.narrow);
           if (ctx.ns3pr.d_flags != 0) {
@@ -486,15 +473,7 @@ static uint performDelete(const DNSRecord* rr, const updateContext& ctx, vector<
     }
 
     for (const auto& changeRec : updateAuthFlag) {
-      DNSName ordername;
-      if (ctx.haveNSEC3) {
-        if (!ctx.narrow) {
-          ordername = DNSName(toBase32Hex(hashQNameWithSalt(ctx.ns3pr, changeRec)));
-        }
-      }
-      else { // NSEC
-        ordername = changeRec.makeRelative(ctx.di.zone);
-      }
+      DNSName ordername = computeOrdername(ctx, changeRec);
       ctx.di.backend->updateDNSSECOrderNameAndAuth(ctx.di.id, changeRec, ordername, true, QType::ANY, ctx.haveNSEC3 && !ctx.narrow);
     }
   }
@@ -567,10 +546,7 @@ static void updateENT(const updateContext& ctx, set<DNSName>& insnonterm, set<DN
   ctx.di.backend->updateEmptyNonTerminals(ctx.di.id, insnonterm, delnonterm, false);
   for (const auto& insert : insnonterm) {
     if (ctx.haveNSEC3) {
-      DNSName ordername;
-      if (!ctx.narrow) {
-        ordername = DNSName(toBase32Hex(hashQNameWithSalt(ctx.ns3pr, insert)));
-      }
+      DNSName ordername = computeOrdername(ctx, insert);
       ctx.di.backend->updateDNSSECOrderNameAndAuth(ctx.di.id, insert, ordername, true, QType::ANY, !ctx.narrow);
     }
   }
@@ -1236,15 +1212,7 @@ static void increaseSerial(const string& soaEditSetting, const updateContext& ct
     g_log << Logger::Notice << ctx.msgPrefix << "Increasing SOA serial (" << oldSerial << " -> " << sd.serial << ")" << endl;
 
     //Correct ordername + auth flag
-    DNSName ordername;
-    if (ctx.haveNSEC3) {
-      if (!ctx.narrow) {
-        ordername = DNSName(toBase32Hex(hashQNameWithSalt(ctx.ns3pr, rr.qname)));
-      }
-    }
-    else { // NSEC
-      ordername = rr.qname.makeRelative(ctx.di.zone);
-    }
+    DNSName ordername = computeOrdername(ctx, rr.qname);
     ctx.di.backend->updateDNSSECOrderNameAndAuth(ctx.di.id, rr.qname, ordername, true, QType::ANY, ctx.haveNSEC3 && !ctx.narrow);
   }
 }
