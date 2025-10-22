@@ -4,8 +4,8 @@ Reply to question for qname='a.www.2.ghost.example.net.', qtype=A
 0	b.www.2.ghost.example.net.	3600	IN	A	192.0.2.8
 Rcode: 0 (No Error), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
 Reply to question for qname='b.www.2.ghost.example.net.', qtype=A
-0	c.www.2.ghost.example.net.	3600	IN	A	192.0.2.8
-Rcode: 0 (No Error), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
+1	ghost.example.net.	3600	IN	SOA	ns.example.net. hostmaster.example.net. 1 3600 1800 1209600 300
+Rcode: 3 (Non-Existent domain), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
 Reply to question for qname='c.www.2.ghost.example.net.', qtype=A
 1	ghost.example.net.	3600	IN	SOA	ns.example.net. hostmaster.example.net. 1 3600 1800 1209600 300
 Rcode: 3 (Non-Existent domain), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
