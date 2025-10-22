@@ -861,7 +861,7 @@ static uint8_t updatePrereqCheck323(MOADNSParser& mdp, const updateContext& ctx)
         if (rec.qtype == rrSet.second) {
           foundRR++;
           for (auto& rrItem : *vec) {
-            rrItem.ttl = rec.ttl; // The compare one line below also compares TTL, so we make them equal because TTL is not user within prerequisite checks.
+            rrItem.ttl = rec.ttl; // The comparison on the next line also compares TTL, so we make them equal because TTL is not used within prerequisite checks.
             if (rrItem == rec) {
               matchRR++;
             }
@@ -958,7 +958,7 @@ static uint8_t updateRecords(MOADNSParser& mdp, DNSSECKeeper& dsk, uint& changed
     while (ctx.di.backend->get(rec)) {
       nsRRInZone.push_back(rec);
     }
-    if (nsRRInZone.size() > nsRRtoDelete.size()) { // only delete if the NS's we delete are less then what we have in the zone (3.4.2.4)
+    if (nsRRInZone.size() > nsRRtoDelete.size()) { // only delete if the NS's we delete are less than what we have in the zone (3.4.2.4)
       for (auto& inZone : nsRRInZone) {
         for (auto& resrec : nsRRtoDelete) {
           if (inZone.getZoneRepresentation() == resrec->getContent()->getZoneRepresentation()) {
