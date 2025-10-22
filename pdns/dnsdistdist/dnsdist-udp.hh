@@ -22,6 +22,13 @@
 #pragma once
 
 #include <cstdint>
+#include <cstddef>
+#include <cstdint>
+#include <limits>
+
+#include "noinitvector.hh"
+#include "iputils.hh"
+#include "dnscrypt.hh"
 
 #include "dnsdist-logging.hh"
 
@@ -34,4 +41,11 @@ enum class Context : uint8_t
 };
 
 void setUDPSocketBufferSizes(int socketDesc, const Logr::Logger& logger, Context context, const ComboAddress& addr);
-}
+
+// we are not willing to receive a bigger UDP response than that, no matter what
+static constexpr size_t s_maxUDPResponsePacketSize{4096U};
+static size_t const s_initialUDPPacketBufferSize = s_maxUDPResponsePacketSize + DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE;
+static_assert(s_initialUDPPacketBufferSize <= std::numeric_limits<uint16_t>::max(), "Packet size should fit in a uint16_t");
+
+void sendfromto(int sock, const PacketBuffer& buffer, const ComboAddress& from, const ComboAddress& dest);
+} // namespace dnsdist::udp
