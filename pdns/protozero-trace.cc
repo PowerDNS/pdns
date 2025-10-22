@@ -554,9 +554,8 @@ KeyValue KeyValue::decode(protozero::pbf_reader& reader)
 
 bool extractOTraceIDs(const EDNSOptionViewMap& map, pdns::trace::InitialSpanInfo& span)
 {
-  // traceid gets set from edns options (if available and well-formed), otherwise random
-  // parent_span_id gets set from edns options (if available and well-formed, otherwise it remains cleared (no parent))
-  // span_id gets inited randomly
+  // traceid gets set from edns options (if available and well-formed)
+  // parent_span_id gets set from edns options (if available and well-formed))
   bool traceidset = false;
 
   if (const auto& option = map.find(EDNSOptionCode::OTTRACEIDS); option != map.end()) {
@@ -571,11 +570,6 @@ bool extractOTraceIDs(const EDNSOptionViewMap& map, pdns::trace::InitialSpanInfo
       (void)data.getSpanID(span.parent_span_id);
     }
   }
-  if (!traceidset) {
-    span.trace_id.makeRandom();
-  }
-  // Empty parent span id indicated the client did not set one, thats fine
-  span.span_id.makeRandom();
   return traceidset;
 }
 

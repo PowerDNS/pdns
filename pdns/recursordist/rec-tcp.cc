@@ -284,7 +284,7 @@ static void doProtobufLogQuery(bool logQuery, LocalStateHolder<LuaConfigItems>& 
   }
 }
 
-static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, shared_ptr<TCPConnection>& conn, RunningTCPQuestionGuard& tcpGuard, int fileDesc)
+static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, shared_ptr<TCPConnection>& conn, RunningTCPQuestionGuard& tcpGuard, int fileDesc) // NOLINT(readability-function-cognitive-complexity) will fix one day
 {
   RecThreadInfo::self().incNumberOfDistributedQueries();
   struct timeval start{};
@@ -302,7 +302,7 @@ static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, s
   boost::optional<uint32_t> ednsVersion;
 
   comboWriter->d_eventTrace.setEnabled(SyncRes::s_event_trace_enabled != 0);
-  if (!matchOTConditions(t_OTConditions, comboWriter->d_mappedSource) && SyncRes::eventTraceEnabledOnly(SyncRes::event_trace_to_ot)) {
+  if (comboWriter->d_eventTrace.enabled() && !matchOTConditions(t_OTConditions, comboWriter->d_mappedSource) && SyncRes::eventTraceEnabledOnly(SyncRes::event_trace_to_ot)) {
     comboWriter->d_eventTrace.setEnabled(false);
   }
 
