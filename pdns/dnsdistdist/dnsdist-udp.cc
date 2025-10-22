@@ -19,22 +19,30 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#pragma once
 
-#include <cstddef>
-#include <cstdint>
-#include <limits>
-
-#include "noinitvector.hh"
-#include "iputils.hh"
-#include "dnscrypt.hh"
+#include "dnsdist-udp.hh"
+#include "dolog.hh"
 
 namespace dnsdist::udp
 {
-// we are not willing to receive a bigger UDP response than that, no matter what
-static constexpr size_t s_maxUDPResponsePacketSize{4096U};
-static size_t const s_initialUDPPacketBufferSize = s_maxUDPResponsePacketSize + DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE;
-static_assert(s_initialUDPPacketBufferSize <= std::numeric_limits<uint16_t>::max(), "Packet size should fit in a uint16_t");
+void sendfromto(int sock, const PacketBuffer& buffer, const ComboAddress& from, const ComboAddress& dest)
+{
+  const int flags = 0;
+  if (from.sin4.sin_family == 0) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    auto ret = sendto(sock, buffer.data(), buffer.size(), flags, reinterpret_cast<const struct sockaddr*>(&dest), dest.getSocklen());
+    if (ret == -1) {
+      int error = errno;
+      vinfolog("Error sending UDP response to %s: %s", dest.toStringWithPort(), stringerror(error));
+    }
+    return;
+  }
 
-void sendfromto(int sock, const PacketBuffer& buffer, const ComboAddress& from, const ComboAddress& dest);
+  try {
+    sendMsgWithOptions(sock, buffer.data(), buffer.size(), &dest, &from, 0, 0);
+  }
+  catch (const std::exception& exp) {
+    vinfolog("Error sending UDP response from %s to %s: %s", from.toStringWithPort(), dest.toStringWithPort(), exp.what());
+  }
+}
 } // namespace dnsdist::udp
