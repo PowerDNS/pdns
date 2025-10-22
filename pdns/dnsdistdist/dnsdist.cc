@@ -265,24 +265,10 @@ bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, 
   }
 }
 
-static void restoreFlags(struct dnsheader* dnsHeader, uint16_t origFlags)
-{
-  static const uint16_t rdMask = 1 << FLAGS_RD_OFFSET;
-  static const uint16_t cdMask = 1 << FLAGS_CD_OFFSET;
-  static const uint16_t restoreFlagsMask = UINT16_MAX & ~(rdMask | cdMask);
-  uint16_t* flags = getFlagsFromDNSHeader(dnsHeader);
-  /* clear the flags we are about to restore */
-  *flags &= restoreFlagsMask;
-  /* only keep the flags we want to restore */
-  origFlags &= ~restoreFlagsMask;
-  /* set the saved flags as they were */
-  *flags |= origFlags;
-}
-
 static bool fixUpQueryTurnedResponse(DNSQuestion& dnsQuestion, const uint16_t origFlags)
 {
   dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [origFlags](dnsheader& header) {
-    restoreFlags(&header, origFlags);
+    dnsdist::PacketMangling::restoreFlags(&header, origFlags);
     return true;
   });
 
@@ -299,7 +285,7 @@ static bool fixUpResponse(PacketBuffer& response, const DNSName& qname, uint16_t
   }
 
   dnsdist::PacketMangling::editDNSHeaderFromPacket(response, [origFlags](dnsheader& header) {
-    restoreFlags(&header, origFlags);
+    dnsdist::PacketMangling::restoreFlags(&header, origFlags);
     return true;
   });
 
@@ -1501,7 +1487,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
       if (serverPool.packetCache->get(dnsQuestion, dnsQuestion.getHeader()->id, dnsQuestion.ids.protocol == dnsdist::Protocol::DoH ? &dnsQuestion.ids.cacheKeyTCP : &dnsQuestion.ids.cacheKey, dnsQuestion.ids.subnet, *dnsQuestion.ids.dnssecOK, dnsQuestion.ids.protocol != dnsdist::Protocol::DoH && willBeForwardedOverUDP, allowExpired, false, true, dnsQuestion.ids.protocol != dnsdist::Protocol::DoH || !willBeForwardedOverUDP)) {
 
         dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [flags = dnsQuestion.ids.origFlags](dnsheader& header) {
-          restoreFlags(&header, flags);
+          dnsdist::PacketMangling::restoreFlags(&header, flags);
           return true;
         });
 
@@ -1603,7 +1589,7 @@ bool handleTimeoutResponseRules(const std::vector<dnsdist::rules::ResponseRuleAc
   dnsdist::PacketMangling::editDNSHeaderFromPacket(payload, [&ids](dnsheader& header) {
     memset(&header, 0, sizeof(header));
     header.id = ids.origID;
-    restoreFlags(&header, ids.origFlags);
+    dnsdist::PacketMangling::restoreFlags(&header, ids.origFlags);
     // do not set the qdcount, otherwise the protobuf code will choke on it
     // while trying to parse the response RRs
     return true;

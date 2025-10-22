@@ -237,6 +237,19 @@ namespace PacketMangling
     editDNSPacketTTL(reinterpret_cast<char*>(packet.data()), packet.size(), visitor);
   }
 
+  void restoreFlags(struct dnsheader* dnsHeader, uint16_t origFlags)
+  {
+    static const uint16_t rdMask = 1 << FLAGS_RD_OFFSET;
+    static const uint16_t cdMask = 1 << FLAGS_CD_OFFSET;
+    static const uint16_t restoreFlagsMask = UINT16_MAX & ~(rdMask | cdMask);
+    uint16_t* flags = getFlagsFromDNSHeader(dnsHeader);
+    /* clear the flags we are about to restore */
+    *flags &= restoreFlagsMask;
+    /* only keep the flags we want to restore */
+    origFlags &= ~restoreFlagsMask;
+    /* set the saved flags as they were */
+    *flags |= origFlags;
+  }
 }
 
 namespace RecordParsers
