@@ -68,6 +68,16 @@ bool Protocol::operator!=(Protocol::typeenum type) const
   return d_protocol != type;
 }
 
+bool Protocol::operator==(const Protocol& rhs) const
+{
+  return d_protocol == rhs.d_protocol;
+}
+
+bool Protocol::operator!=(const Protocol& rhs) const
+{
+  return d_protocol != rhs.d_protocol;
+}
+
 const std::string& Protocol::toString() const
 {
   return s_names.at(static_cast<uint8_t>(d_protocol));
