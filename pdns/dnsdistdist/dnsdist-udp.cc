@@ -20,7 +20,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include "dnsdist.hh"
 #include "dnsdist-udp.hh"
+#include "dnsdist-metrics.hh"
+#include "dnsparser.hh"
+#include "dnsdist-dnsparser.hh"
+#include "dnsdist-ecs.hh"
 #include "dolog.hh"
 
 namespace dnsdist::udp
@@ -43,6 +48,35 @@ void sendfromto(int sock, const PacketBuffer& buffer, const ComboAddress& from, 
   }
   catch (const std::exception& exp) {
     vinfolog("Error sending UDP response from %s to %s: %s", from.toStringWithPort(), dest.toStringWithPort(), exp.what());
+  }
+}
+
+void truncateTC(PacketBuffer& packet, size_t maximumSize, unsigned int qnameWireLength, bool addEDNSToSelfGeneratedResponses)
+{
+  try {
+    bool hadEDNS = false;
+    uint16_t payloadSize = 0;
+    uint16_t zValue = 0;
+
+    if (addEDNSToSelfGeneratedResponses) {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+      hadEDNS = getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(packet.data()), packet.size(), &payloadSize, &zValue);
+    }
+
+    packet.resize(static_cast<uint16_t>(sizeof(dnsheader) + qnameWireLength + DNS_TYPE_SIZE + DNS_CLASS_SIZE));
+    dnsdist::PacketMangling::editDNSHeaderFromPacket(packet, [](dnsheader& header) {
+      header.ancount = 0;
+      header.arcount = 0;
+      header.nscount = 0;
+      return true;
+    });
+
+    if (hadEDNS) {
+      addEDNS(packet, maximumSize, (zValue & EDNS_HEADER_FLAG_DO) != 0, payloadSize, 0);
+    }
+  }
+  catch (...) {
+    ++dnsdist::metrics::g_stats.truncFail;
   }
 }
 } // namespace dnsdist::udp

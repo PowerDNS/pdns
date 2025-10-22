@@ -127,36 +127,6 @@ shared_ptr<BPFFilter> g_defaultBPFFilter{nullptr};
 
 Rings g_rings;
 
-
-static void truncateTC(PacketBuffer& packet, size_t maximumSize, unsigned int qnameWireLength, bool addEDNSToSelfGeneratedResponses)
-{
-  try {
-    bool hadEDNS = false;
-    uint16_t payloadSize = 0;
-    uint16_t zValue = 0;
-
-    if (addEDNSToSelfGeneratedResponses) {
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-      hadEDNS = getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(packet.data()), packet.size(), &payloadSize, &zValue);
-    }
-
-    packet.resize(static_cast<uint16_t>(sizeof(dnsheader) + qnameWireLength + DNS_TYPE_SIZE + DNS_CLASS_SIZE));
-    dnsdist::PacketMangling::editDNSHeaderFromPacket(packet, [](dnsheader& header) {
-      header.ancount = 0;
-      header.arcount = 0;
-      header.nscount = 0;
-      return true;
-    });
-
-    if (hadEDNS) {
-      addEDNS(packet, maximumSize, (zValue & EDNS_HEADER_FLAG_DO) != 0, payloadSize, 0);
-    }
-  }
-  catch (...) {
-    ++dnsdist::metrics::g_stats.truncFail;
-  }
-}
-
 #ifndef DISABLE_DELAY_PIPE
 struct DelayedPacket
 {
@@ -476,7 +446,7 @@ bool applyRulesToResponse(const std::vector<dnsdist::rules::ResponseRuleAction>&
             header.qr = true;
             return true;
           });
-          truncateTC(dnsResponse.getMutableData(), dnsResponse.getMaximumSize(), dnsResponse.ids.qname.wirelength(), dnsdist::configuration::getCurrentRuntimeConfiguration().d_addEDNSToSelfGeneratedResponses);
+          dnsdist::udp::truncateTC(dnsResponse.getMutableData(), dnsResponse.getMaximumSize(), dnsResponse.ids.qname.wirelength(), dnsdist::configuration::getCurrentRuntimeConfiguration().d_addEDNSToSelfGeneratedResponses);
           ++dnsdist::metrics::g_stats.ruleTruncated;
           return true;
         }
@@ -660,14 +630,14 @@ static void handleResponseTC4UDPClient(DNSQuestion& dnsQuestion, uint16_t udpPay
 {
   if (udpPayloadSize != 0 && response.size() > udpPayloadSize) {
     vinfolog("Got a response of size %d while the initial UDP payload size was %d, truncating", response.size(), udpPayloadSize);
-    truncateTC(dnsQuestion.getMutableData(), dnsQuestion.getMaximumSize(), dnsQuestion.ids.qname.wirelength(), dnsdist::configuration::getCurrentRuntimeConfiguration().d_addEDNSToSelfGeneratedResponses);
+    dnsdist::udp::truncateTC(dnsQuestion.getMutableData(), dnsQuestion.getMaximumSize(), dnsQuestion.ids.qname.wirelength(), dnsdist::configuration::getCurrentRuntimeConfiguration().d_addEDNSToSelfGeneratedResponses);
     dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [](dnsheader& header) {
       header.tc = true;
       return true;
     });
   }
   else if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_truncateTC && dnsQuestion.getHeader()->tc) {
-    truncateTC(response, dnsQuestion.getMaximumSize(), dnsQuestion.ids.qname.wirelength(), dnsdist::configuration::getCurrentRuntimeConfiguration().d_addEDNSToSelfGeneratedResponses);
+    dnsdist::udp::truncateTC(response, dnsQuestion.getMaximumSize(), dnsQuestion.ids.qname.wirelength(), dnsdist::configuration::getCurrentRuntimeConfiguration().d_addEDNSToSelfGeneratedResponses);
   }
 }
 

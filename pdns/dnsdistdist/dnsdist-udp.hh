@@ -37,4 +37,5 @@ static size_t const s_initialUDPPacketBufferSize = s_maxUDPResponsePacketSize + 
 static_assert(s_initialUDPPacketBufferSize <= std::numeric_limits<uint16_t>::max(), "Packet size should fit in a uint16_t");
 
 void sendfromto(int sock, const PacketBuffer& buffer, const ComboAddress& from, const ComboAddress& dest);
+void truncateTC(PacketBuffer& packet, size_t maximumSize, unsigned int qnameWireLength, bool addEDNSToSelfGeneratedResponses);
 } // namespace dnsdist::udp
