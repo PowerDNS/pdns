@@ -1863,6 +1863,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
       }
 
       if (resolver.d_eventTrace.enabled() && resolver.d_eventTrace.getThisOTTraceEnabled() && SyncRes::eventTraceEnabled(SyncRes::event_trace_to_ot)) {
+        resolver.d_otTrace.setIDsIfNotSet();
         auto otTrace = pdns::trace::TracesData::boilerPlate("rec", resolver.d_eventTrace.convertToOT(resolver.d_otTrace), {
                                                                                                                             {"query.qname", {comboWriter->d_mdp.d_qname.toLogString()}},
                                                                                                                             {"query.qtype", {QType(comboWriter->d_mdp.d_qtype).toString()}},
@@ -2657,8 +2658,8 @@ static void handleNewUDPQuestion(int fileDesc, FDMultiplexer::funcparam_t& /* va
             destination = destaddr;
           }
 
-          if (SyncRes::eventTraceEnabledOnly(SyncRes::event_trace_to_ot) && !matchOTConditions(t_OTConditions, mappedSource)) {
-              eventTrace.setEnabled(false);
+          if (eventTrace.enabled() && !matchOTConditions(t_OTConditions, mappedSource) && SyncRes::eventTraceEnabledOnly(SyncRes::event_trace_to_ot)) {
+            eventTrace.setEnabled(false);
           }
           eventTrace.add(RecEventTrace::ReqRecv, 0, false, match);
           if (RecThreadInfo::weDistributeQueries()) {

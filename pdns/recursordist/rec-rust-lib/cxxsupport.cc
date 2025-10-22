@@ -1333,7 +1333,6 @@ void fromRustToLuaConfig(const rust::Vec<pdns::rust::settings::rec::ForwardingCa
   }
 }
 
-
 void fromRustToOTTraceConditions(const rust::Vec<pdns::rust::settings::rec::OpenTelemetryTraceCondition>& settings, OpenTelemetryTraceConditions& conditions)
 {
   for (const auto& setting : settings) {

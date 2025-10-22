@@ -392,6 +392,16 @@ struct InitialSpanInfo
     parent_span_id.clear();
     start_time_unix_nano = 0;
   }
+
+  void setIDsIfNotSet()
+  {
+    if (trace_id == s_emptyTraceID) {
+      trace_id.makeRandom();
+    }
+    if (span_id == s_emptySpanID) {
+      span_id.makeRandom();
+    }
+  }
 };
 
 struct Span
