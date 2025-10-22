@@ -1207,7 +1207,6 @@ void IncomingTCPConnectionState::handleIO()
   if (d_handlingIO) {
     return;
   }
-  d_handlingIO = true;
   dnsdist::tcp::HandlingIOGuard reentryGuard(d_handlingIO);
 
   // why do we loop? Because the TLS layer does buffering, and thus can have data ready to read
