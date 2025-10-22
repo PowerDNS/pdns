@@ -399,7 +399,6 @@ static uint performInsert(const DNSRecord* rr, updateContext& ctx, vector<DNSRes
 // the code that calls this performUpdate().
 // Caller has checked that we are allowed to delete the record and has handled
 // the NSEC3PARAM case already.
-// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 static uint performDelete(const DNSRecord* rr, const updateContext& ctx, vector<DNSResourceRecord>& rrset, set<DNSName>& insnonterm, set<DNSName>& delnonterm) // NOLINT(readability-identifier-length)
 {
   vector<DNSResourceRecord> recordsToDelete;
