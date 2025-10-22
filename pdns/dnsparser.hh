@@ -338,6 +338,16 @@ public:
     return s.str();
   }
 
+  [[nodiscard]] std::string toString() const
+  {
+    std::string ret(d_name.toLogString());
+    ret += '|';
+    ret += QType(d_type).toString();
+    ret += '|';
+    ret += getContent()->getZoneRepresentation();
+    return ret;
+  }
+
   void setContent(const std::shared_ptr<const DNSRecordContent>& content)
   {
     d_content = content;

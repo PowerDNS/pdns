@@ -635,6 +635,7 @@ private:
   static domainmap_t::const_iterator getBestAuthZone(DNSName* qname);
   bool doCNAMECacheCheck(const DNSName& qname, QType qtype, vector<DNSRecord>& ret, unsigned int depth, const string& prefix, int& res, Context& context, bool wasAuthZone, bool wasForwardRecurse, bool checkForDups);
   bool doCacheCheck(const DNSName& qname, const DNSName& authname, bool wasForwardedOrAuthZone, bool wasAuthZone, bool wasForwardRecurse, QType qtype, vector<DNSRecord>& ret, unsigned int depth, const string& prefix, int& res, Context& context);
+  bool canUseRecords(const std::string& prefix, const DNSName& qname, const DNSName& name, QType qtype, vState state);
   void getBestNSFromCache(const DNSName& qname, QType qtype, vector<DNSRecord>& bestns, bool* flawedNSSet, unsigned int depth, const string& prefix, set<GetBestNSAnswer>& beenthere, const boost::optional<DNSName>& cutOffDomain = boost::none);
   DNSName getBestNSNamesFromCache(const DNSName& qname, QType qtype, NsSet& nsset, bool* flawedNSSet, unsigned int depth, const string& prefix, set<GetBestNSAnswer>& beenthere);
 
@@ -652,6 +653,7 @@ private:
   vector<ComboAddress> retrieveAddressesForNS(const std::string& prefix, const DNSName& qname, vector<std::pair<DNSName, float>>::const_iterator& tns, unsigned int depth, set<GetBestNSAnswer>& beenthere, const vector<std::pair<DNSName, float>>& rnameservers, NsSet& nameservers, bool& sendRDQuery, bool& pierceDontQuery, bool& flawedNSSet, bool cacheOnly, unsigned int& nretrieveAddressesForNS);
 
   void sanitizeRecords(const std::string& prefix, LWResult& lwr, const DNSName& qname, QType qtype, const DNSName& auth, bool wasForwarded, bool rdQuery);
+  void sanitizeRecordsPass2(const std::string& prefix, LWResult& lwr, const DNSName& qname, QType qtype, const DNSName& auth, std::unordered_set<DNSName>& allowedAnswerNames, std::unordered_set<DNSName>& allowedAdditionals, bool cnameSeen, bool delegationAccepted, std::vector<bool>& skipvec, unsigned int& skipCount);
   /* This function will check whether the answer should have the AA bit set, and will set if it should be set and isn't.
      This is unfortunately needed to deal with very crappy so-called DNS servers */
   void fixupAnswer(const std::string& prefix, LWResult& lwr, const DNSName& qname, QType qtype, const DNSName& auth, bool wasForwarded, bool rdQuery);
