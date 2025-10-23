@@ -828,7 +828,7 @@ private:
   const size_t size;
 };
 
-bool extractOTraceIDs(const EDNSOptionViewMap& map, pdns::trace::InitialSpanInfo& span);
-bool extractOTraceIDs(const EDNSOptionViewMap& map, const EDNSOptionCode::EDNSOptionCodeEnum& eoc, pdns::trace::TraceID& traceID, pdns::trace::SpanID& spanID);
+bool extractOTraceIDs(const EDNSOptionViewMap& map, EDNSOptionCode::EDNSOptionCodeEnum eoc, pdns::trace::InitialSpanInfo& span);
+bool extractOTraceIDs(const EDNSOptionViewMap& map, EDNSOptionCode::EDNSOptionCodeEnum eoc, pdns::trace::TraceID& traceID, pdns::trace::SpanID& spanID);
 
 } // namespace pdns::trace

@@ -340,7 +340,7 @@ static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, s
       qnameParsed = true;
 
       if (SyncRes::eventTraceEnabled(SyncRes::event_trace_to_ot)) {
-        bool ednsFound = pdns::trace::extractOTraceIDs(ednsOptions, comboWriter->d_otTrace);
+        bool ednsFound = pdns::trace::extractOTraceIDs(ednsOptions, EDNSOptionCode::OTTRACEIDS, comboWriter->d_otTrace);
         if (SyncRes::eventTraceEnabledOnly(SyncRes::event_trace_to_ot) && !matchOTConditions(comboWriter->d_eventTrace, t_OTConditions, comboWriter->d_mappedSource, qname, qtype, ntohs(comboWriter->d_mdp.d_header.id), ednsFound)) {
           comboWriter->d_eventTrace.setEnabled(false);
         }
