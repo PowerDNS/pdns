@@ -27,6 +27,9 @@
 #include "dnsdist-metrics.hh"
 #include "dnscrypt.hh"
 
+namespace dnsdist::dnscrypt
+{
+
 bool handleDNSCryptQuery(PacketBuffer& packet, DNSCryptQuery& query, bool tcp, time_t now, PacketBuffer& response)
 {
   query.parsePacket(packet, tcp, now);
@@ -84,3 +87,4 @@ bool checkDNSCryptQuery([[maybe_unused]] const ClientState& clientState, [[maybe
 #endif /* HAVE_DNSCRYPT */
   return false;
 }
+} // namespace dnsdist::dnscrypt

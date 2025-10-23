@@ -803,7 +803,7 @@ IncomingTCPConnectionState::QueryProcessingResult IncomingTCPConnectionState::ha
     ids.d_streamID = *streamID;
   }
 
-  auto dnsCryptResponse = checkDNSCryptQuery(*d_ci.cs, query, ids.dnsCryptQuery, ids.queryRealTime.d_start.tv_sec, true);
+  auto dnsCryptResponse = dnsdist::dnscrypt::checkDNSCryptQuery(*d_ci.cs, query, ids.dnsCryptQuery, ids.queryRealTime.d_start.tv_sec, true);
   if (dnsCryptResponse) {
     TCPResponse response;
     d_state = State::idle;
