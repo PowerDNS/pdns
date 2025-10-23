@@ -342,4 +342,70 @@ std::variant<double, Error> getCustomMetric(const std::string_view& name, const 
   }
   return std::string("Unable to get metric '") + std::string(name) + "': no such metric";
 }
+
+void doLatencyStats(dnsdist::Protocol protocol, double udiff)
+{
+  constexpr auto doAvg = [](pdns::stat_double_t& var, double n, double weight) {
+    var.store((weight - 1) * var.load() / weight + n / weight);
+  };
+
+  if (protocol == dnsdist::Protocol::DoUDP || protocol == dnsdist::Protocol::DNSCryptUDP) {
+    if (udiff < 1000) {
+      ++dnsdist::metrics::g_stats.latency0_1;
+    }
+    else if (udiff < 10000) {
+      ++dnsdist::metrics::g_stats.latency1_10;
+    }
+    else if (udiff < 50000) {
+      ++dnsdist::metrics::g_stats.latency10_50;
+    }
+    else if (udiff < 100000) {
+      ++dnsdist::metrics::g_stats.latency50_100;
+    }
+    else if (udiff < 1000000) {
+      ++dnsdist::metrics::g_stats.latency100_1000;
+    }
+    else {
+      ++dnsdist::metrics::g_stats.latencySlow;
+    }
+
+    dnsdist::metrics::g_stats.latencySum += static_cast<unsigned long>(udiff) / 1000;
+    ++dnsdist::metrics::g_stats.latencyCount;
+
+    doAvg(dnsdist::metrics::g_stats.latencyAvg100, udiff, 100);
+    doAvg(dnsdist::metrics::g_stats.latencyAvg1000, udiff, 1000);
+    doAvg(dnsdist::metrics::g_stats.latencyAvg10000, udiff, 10000);
+    doAvg(dnsdist::metrics::g_stats.latencyAvg1000000, udiff, 1000000);
+  }
+  else if (protocol == dnsdist::Protocol::DoTCP || protocol == dnsdist::Protocol::DNSCryptTCP) {
+    doAvg(dnsdist::metrics::g_stats.latencyTCPAvg100, udiff, 100);
+    doAvg(dnsdist::metrics::g_stats.latencyTCPAvg1000, udiff, 1000);
+    doAvg(dnsdist::metrics::g_stats.latencyTCPAvg10000, udiff, 10000);
+    doAvg(dnsdist::metrics::g_stats.latencyTCPAvg1000000, udiff, 1000000);
+  }
+  else if (protocol == dnsdist::Protocol::DoT) {
+    doAvg(dnsdist::metrics::g_stats.latencyDoTAvg100, udiff, 100);
+    doAvg(dnsdist::metrics::g_stats.latencyDoTAvg1000, udiff, 1000);
+    doAvg(dnsdist::metrics::g_stats.latencyDoTAvg10000, udiff, 10000);
+    doAvg(dnsdist::metrics::g_stats.latencyDoTAvg1000000, udiff, 1000000);
+  }
+  else if (protocol == dnsdist::Protocol::DoH) {
+    doAvg(dnsdist::metrics::g_stats.latencyDoHAvg100, udiff, 100);
+    doAvg(dnsdist::metrics::g_stats.latencyDoHAvg1000, udiff, 1000);
+    doAvg(dnsdist::metrics::g_stats.latencyDoHAvg10000, udiff, 10000);
+    doAvg(dnsdist::metrics::g_stats.latencyDoHAvg1000000, udiff, 1000000);
+  }
+  else if (protocol == dnsdist::Protocol::DoQ) {
+    doAvg(dnsdist::metrics::g_stats.latencyDoQAvg100, udiff, 100);
+    doAvg(dnsdist::metrics::g_stats.latencyDoQAvg1000, udiff, 1000);
+    doAvg(dnsdist::metrics::g_stats.latencyDoQAvg10000, udiff, 10000);
+    doAvg(dnsdist::metrics::g_stats.latencyDoQAvg1000000, udiff, 1000000);
+  }
+  else if (protocol == dnsdist::Protocol::DoH3) {
+    doAvg(dnsdist::metrics::g_stats.latencyDoH3Avg100, udiff, 100);
+    doAvg(dnsdist::metrics::g_stats.latencyDoH3Avg1000, udiff, 1000);
+    doAvg(dnsdist::metrics::g_stats.latencyDoH3Avg10000, udiff, 10000);
+    doAvg(dnsdist::metrics::g_stats.latencyDoH3Avg1000000, udiff, 1000000);
+  }
+}
 }
