@@ -87,7 +87,7 @@ class ZonesApiTestCase(ApiTestCase):
             for item in json['errors']:
                 if expected in item:
                     found = True
-            assert found, "%r not found in %r" (expected, errors)
+            assert found, "%r not found in %r" % (expected, errors)
 
 
 class Zones(ZonesApiTestCase):

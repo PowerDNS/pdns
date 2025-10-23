@@ -2828,21 +2828,19 @@ static void apiServerViewsGET(HttpRequest* req, HttpResponse* resp)
 // POST /views/<view> + name in json adds ZoneName "name" to view "view"
 static void apiServerViewsPOST(HttpRequest* req, HttpResponse* resp)
 {
-  UeberBackend backend;
-  DomainInfo domainInfo;
   const auto& document = req->json();
+  // We can't use a ZoneData object here, as the zone being added to the
+  // view may not exist yet.
   ZoneName zonename = apiNameToZoneName(stringFromJson(document, "name"));
 
-  if (!backend.getDomainInfo(zonename, domainInfo)) {
-    throw ApiException("Zone " + zonename.toString() + " does not exist");
-  }
   std::string view{req->parameters["view"]};
   std::string error;
   if (!Check::validateViewName(view, error)) {
     throw ApiException(error);
   }
 
-  if (!domainInfo.backend->viewAddZone(view, zonename)) {
+  UeberBackend backend;
+  if (!backend.viewAddZone(view, zonename)) {
     throw ApiException("Failed to add " + zonename.toString() + " to view " + view);
   }
   // Notify zone cache of the new association
@@ -2863,20 +2861,24 @@ static void apiServerViewsPOST(HttpRequest* req, HttpResponse* resp)
 // DELETE /views/<view>/<id>     removes ZoneName "id" from view "view"
 static void apiServerViewsDELETE(HttpRequest* req, HttpResponse* resp)
 {
-  ZoneData zoneData{req};
+  // We can't use a ZoneData object here, as the zone being removed from the
+  // view may no longer exist.
+  ZoneName zoneName(apiZoneIdToName(req->parameters["id"]));
+
   std::string view{req->parameters["view"]};
   std::string error;
   if (!Check::validateViewName(view, error)) {
     throw ApiException(error);
   }
 
-  if (!zoneData.domainInfo.backend->viewDelZone(view, zoneData.zoneName)) {
-    throw ApiException("Failed to remove " + zoneData.zoneName.toString() + " from view " + view);
+  UeberBackend backend;
+  if (!backend.viewDelZone(view, zoneName)) {
+    throw ApiException("Failed to remove " + zoneName.toString() + " from view " + view);
   }
   // Notify zone cache of the removed association
   bool emptyView{false};
   if (g_zoneCache.isEnabled()) {
-    emptyView = g_zoneCache.removeFromView(view, zoneData.zoneName);
+    emptyView = g_zoneCache.removeFromView(view, zoneName);
   }
   // Purge packet cache for that zone
   if (PC.enabled()) {
@@ -2884,7 +2886,7 @@ static void apiServerViewsDELETE(HttpRequest* req, HttpResponse* resp)
       (void)PC.purgeView(view);
     }
     else {
-      std::string purgename = zoneData.zoneName.operator const DNSName&().toString();
+      std::string purgename = zoneName.operator const DNSName&().toString();
       purgename.append("$");
       (void)PC.purge(view, purgename);
     }
