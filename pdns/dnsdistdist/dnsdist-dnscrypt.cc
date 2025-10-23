@@ -26,12 +26,14 @@
 #include "dnsdist.hh"
 #include "dnsdist-metrics.hh"
 #include "dnscrypt.hh"
+#endif
 
 namespace dnsdist::dnscrypt
 {
 
 bool handleDNSCryptQuery(PacketBuffer& packet, DNSCryptQuery& query, bool tcp, time_t now, PacketBuffer& response)
 {
+#ifdef HAVE_DNSCRYPT
   query.parsePacket(packet, tcp, now);
 
   if (!query.isValid()) {
@@ -51,10 +53,14 @@ bool handleDNSCryptQuery(PacketBuffer& packet, DNSCryptQuery& query, bool tcp, t
   }
 
   return true;
+#else
+  return false;
+#endif
 }
 
 bool encryptResponse(PacketBuffer& response, size_t maximumSize, bool tcp, std::unique_ptr<DNSCryptQuery>& dnsCryptQuery)
 {
+#ifdef HAVE_DNSCRYPT
   if (dnsCryptQuery) {
     int res = dnsCryptQuery->encryptResponse(response, maximumSize, tcp);
     if (res != 0) {
@@ -64,8 +70,10 @@ bool encryptResponse(PacketBuffer& response, size_t maximumSize, bool tcp, std::
     }
   }
   return true;
-}
+#else
+  return false;
 #endif
+}
 
 bool checkDNSCryptQuery([[maybe_unused]] const ClientState& clientState, [[maybe_unused]] PacketBuffer& query, [[maybe_unused]] std::unique_ptr<DNSCryptQuery>& dnsCryptQuery, [[maybe_unused]] time_t now, [[maybe_unused]] bool tcp)
 {
