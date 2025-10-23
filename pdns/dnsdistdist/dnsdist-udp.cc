@@ -152,4 +152,21 @@ void truncateTC(PacketBuffer& packet, size_t maximumSize, unsigned int qnameWire
     ++dnsdist::metrics::g_stats.truncFail;
   }
 }
+
+void handleResponseTC4UDPClient(DNSQuestion& dnsQuestion, uint16_t udpPayloadSize, PacketBuffer& response)
+{
+  if (udpPayloadSize != 0 && response.size() > udpPayloadSize) {
+    VERBOSESLOG(infolog("Got a response of size %d while the initial UDP payload size was %d, truncating", response.size(), udpPayloadSize),
+                dnsQuestion.getLogger()->withName("udp-response")->info(Logr::Info, "Got a UDP response larger than the initial UDP payload size, truncating", "dns.response.size", Logging::Loggable(response.size()), "dns.query.udp_payload_size", Logging::Loggable(udpPayloadSize)));
+
+    truncateTC(dnsQuestion.getMutableData(), dnsQuestion.getMaximumSize(), dnsQuestion.ids.qname.wirelength(), dnsdist::configuration::getCurrentRuntimeConfiguration().d_addEDNSToSelfGeneratedResponses);
+    dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [](dnsheader& header) {
+      header.tc = true;
+      return true;
+    });
+  }
+  else if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_truncateTC && dnsQuestion.getHeader()->tc) {
+    truncateTC(response, dnsQuestion.getMaximumSize(), dnsQuestion.ids.qname.wirelength(), dnsdist::configuration::getCurrentRuntimeConfiguration().d_addEDNSToSelfGeneratedResponses);
+  }
+}
 } // namespace dnsdist::udp

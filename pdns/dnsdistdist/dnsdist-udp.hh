@@ -29,6 +29,7 @@
 #include "noinitvector.hh"
 #include "iputils.hh"
 #include "dnscrypt.hh"
+#include "dnsdist.hh"
 
 #include "dnsdist-logging.hh"
 
@@ -49,4 +50,5 @@ static_assert(s_initialUDPPacketBufferSize <= std::numeric_limits<uint16_t>::max
 
 void sendfromto(int sock, const PacketBuffer& buffer, const ComboAddress& from, const ComboAddress& dest);
 void truncateTC(PacketBuffer& packet, size_t maximumSize, unsigned int qnameWireLength, bool addEDNSToSelfGeneratedResponses);
+void handleResponseTC4UDPClient(DNSQuestion& dnsQuestion, uint16_t udpPayloadSize, PacketBuffer& response);
 } // namespace dnsdist::udp
