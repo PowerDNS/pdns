@@ -428,17 +428,17 @@ If the proxy protocol is used, the source specified by the proxy protocol header
 If Table Based Proxy Mapping is active, the mapped address is used.
 
 If a matching condition is found, the corresponding subconditions are evaluated.
-If all mentioned subconditions are satisfied, the condittion evalutes to ``true`` and OpenTelemetry Trace data is generated.
+If all mentioned subconditions are satisfied, the condition evaluates to ``true`` and OpenTelemetry Trace data is generated.
 If a subcondition is absent, it is not relevant.
-The following subcondtions can be specified:
+The following subconditions can be specified:
 
 - ``qnames``: a suffixmatch with the incoming qname is done against the suffixes specified in ``qnames``.
 - ``qtypes``: the qtype of the incoming query must be listed in ``qtypes``
 - ``qid``: the query id of the incoming query must match ``qid``.
-- ``edns_option_required``: the incoing query must have an EDSN option specifying the TraceID.
-- ``traceid_only`` if ``true`` only the TraceID is picked up from EDNS data (if present) and placed into the protobuf `openTelemetryTraceID` field; no detailed `openTelemetryData` is produced.
+- ``edns_option_required``: the incoming query must have an EDSN option specifying the TraceID.
+- ``traceid_only``: if ``true`` only the TraceID is picked up from EDNS data (if present) and placed into the protobuf `openTelemetryTraceID` field; no detailed `openTelemetryData` is produced.
 
-In the following example two conditions are specified:
+In the following example, two conditions are specified:
 
 .. code-block:: yaml
 
@@ -461,7 +461,7 @@ Queries coming from an IP not matching any of the mentioned subnets will not gen
 Note that only the source IP is used to select a condition to evaluate.
 It is undefined what happens if a subnet occurs multiple times in all :ref:`setting-yaml-logging.opentelemetry_trace_conditions`.
 
-To generate OpenTelemetry Trace information for all queries (the 5.3.x behaviour), the follwing condition can be used:
+To generate OpenTelemetry Trace information for all queries (matching the 5.3.x behaviour), the follwing condition can be used:
 
 .. code-block:: yaml
 
@@ -485,9 +485,9 @@ To include a TraceID in a query ``sdig`` can be used, or a modern ``dig``, speci
 
    dig +ednsopt=65500:00000102030405060708090a0b0c0d0e0fff ...
 
-The first 4 zeroes after the colon specify the version byte and a reserved byte, followed by a 16 byte (32 hex characters) TraceID.
+The first 4 zeroes after the colon specify the version byte and a reserved byte, followed by a 16 bytes (32 hex characters) TraceID.
 Note that the EDNS option number 65500 is subject to change in the future.
-To also add a parent SpanID to the EDNS value, append 8 bytes (16 hex characters) more.
+To also add a parent SpanID to the EDNS value, append 8 more bytes (16 hex characters.)
 
 Example OpenTelemetry Trace in in JSON representation
 """""""""""""""""""""""""""""""""""""""""""""""""""""

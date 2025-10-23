@@ -555,7 +555,7 @@ KeyValue KeyValue::decode(protozero::pbf_reader& reader)
 bool extractOTraceIDs(const EDNSOptionViewMap& map, pdns::trace::InitialSpanInfo& span)
 {
   // traceid gets set from edns options (if available and well-formed)
-  // parent_span_id gets set from edns options (if available and well-formed))
+  // parent_span_id gets set from edns options (if available and well-formed)
   bool traceidset = false;
 
   if (const auto& option = map.find(EDNSOptionCode::OTTRACEIDS); option != map.end()) {
