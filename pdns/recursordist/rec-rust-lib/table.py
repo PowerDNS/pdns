@@ -3580,7 +3580,7 @@ A DoT connection is matched against the subnets lists (using the remote IP) and 
         'default' : '',
         'help' : 'Sequence of OpenTelemetryTraceCondition',
         'doc' : '''
-        XXX
+        List of conditions specifying when to generate :ref:`opentelemetry_tracing`.
         ''',
         'skip-old' : 'No equivalent old style setting',
         'versionadded': '5.4.0',

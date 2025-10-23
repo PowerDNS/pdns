@@ -182,11 +182,17 @@ RemoteLoggerInterface::Result RemoteLogger::queueData(const std::string& data)
   }
 
   runtime->d_writer.write(data);
+#ifdef RECURSOR
+  extern bool g_regressionTestMode;
+  if (g_regressionTestMode) {
+    runtime->d_writer.flush(runtime->d_socket->getHandle());
+  }
+#endif
   ++runtime->d_stats.d_queued;
   return Result::Queued;
 }
 
-void RemoteLogger::maintenanceThread() 
+void RemoteLogger::maintenanceThread()
 {
   try {
 #ifdef RECURSOR

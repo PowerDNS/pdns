@@ -2183,7 +2183,7 @@ bool matchOTConditions(RecEventTrace& eventTrace, const std::unique_ptr<OpenTele
       return false;
     }
   }
-  cerr << "MC: true " << qname << ' ' << qtype << endl;
+
   eventTrace.setThisOTTraceEnabled();
   return true;
 }
