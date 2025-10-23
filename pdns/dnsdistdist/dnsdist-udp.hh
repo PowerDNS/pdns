@@ -30,6 +30,7 @@
 #include "dnscrypt.hh"
 #include "dnsdist.hh"
 #include "dnsdist-tcp.hh"
+#include "dnsparser.hh"
 
 namespace dnsdist::udp
 {
@@ -42,6 +43,30 @@ void sendfromto(int sock, const PacketBuffer& buffer, const ComboAddress& from, 
 void truncateTC(PacketBuffer& packet, size_t maximumSize, unsigned int qnameWireLength, bool addEDNSToSelfGeneratedResponses);
 void handleResponseTC4UDPClient(DNSQuestion& dnsQuestion, uint16_t udpPayloadSize, PacketBuffer& response);
 void handleResponseForUDPClient(InternalQueryState& ids, PacketBuffer& response, const std::shared_ptr<DownstreamState>& backend, bool isAsync, bool selfGenerated);
+
+#if !defined(DISABLE_RECVMMSG) && defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
+void queueResponse(const PacketBuffer& response, const ComboAddress& dest, const ComboAddress& remote, struct mmsghdr& outMsg, struct iovec* iov, cmsgbuf_aligned* cbuf);
+#elif !defined(HAVE_RECVMMSG)
+struct mmsghdr
+{
+  msghdr msg_hdr;
+  unsigned int msg_len{0};
+};
+#endif
+
+bool isUDPQueryAcceptable(ClientState& clientState, const struct msghdr* msgh, const ComboAddress& remote, ComboAddress& dest, bool& expectProxyProtocol);
+void processUDPQuery(ClientState& clientState, const struct msghdr* msgh, const ComboAddress& remote, ComboAddress& dest, PacketBuffer& query, std::vector<mmsghdr>* responsesVect, unsigned int* queuedResponses, struct iovec* respIOV, cmsgbuf_aligned* respCBuf);
+
+size_t getMaximumIncomingPacketSize(const ClientState& clientState);
+size_t getInitialUDPPacketBufferSize(bool expectProxyProtocol);
+
+#ifndef DISABLE_RECVMMSG
+#if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
+void MultipleMessagesUDPClientThread(ClientState* clientState);
+#endif
+#endif
+
+void udpClientThread(std::vector<ClientState*> states);
 
 class UDPTCPCrossQuerySender : public TCPQuerySender
 {
