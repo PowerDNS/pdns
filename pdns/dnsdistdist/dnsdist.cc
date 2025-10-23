@@ -307,21 +307,6 @@ static bool fixUpResponse(PacketBuffer& response, const DNSName& qname, uint16_t
   return true;
 }
 
-#ifdef HAVE_DNSCRYPT
-static bool encryptResponse(PacketBuffer& response, size_t maximumSize, bool tcp, std::unique_ptr<DNSCryptQuery>& dnsCryptQuery)
-{
-  if (dnsCryptQuery) {
-    int res = dnsCryptQuery->encryptResponse(response, maximumSize, tcp);
-    if (res != 0) {
-      /* dropping response */
-      vinfolog("Error encrypting the response, dropping.");
-      return false;
-    }
-  }
-  return true;
-}
-#endif /* HAVE_DNSCRYPT */
-
 bool applyRulesToResponse(const std::vector<dnsdist::rules::ResponseRuleAction>& respRuleActions, DNSResponse& dnsResponse)
 {
   pdns::trace::dnsdist::Tracer::Closer closer;
