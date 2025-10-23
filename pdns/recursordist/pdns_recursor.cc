@@ -2148,7 +2148,7 @@ bool expectProxyProtocol(const ComboAddress& from, const ComboAddress& listenAdd
 
 bool matchOTConditions(const std::unique_ptr<OpenTelemetryTraceConditions>& conditions, const ComboAddress& source)
 {
-  if (conditions == nullptr || conditions->size() == 0) {
+  if (conditions == nullptr || conditions->empty()) {
     return false;
   }
   if (auto const* match = conditions->lookup(source); match != nullptr) {
@@ -2162,7 +2162,7 @@ bool matchOTConditions(const std::unique_ptr<OpenTelemetryTraceConditions>& cond
 
 bool matchOTConditions(RecEventTrace& eventTrace, const std::unique_ptr<OpenTelemetryTraceConditions>& conditions, const ComboAddress& source, const DNSName& qname, QType qtype, uint16_t qid, bool edns_option_present)
 {
-  if (conditions == nullptr || conditions->size() == 0) {
+  if (conditions == nullptr || conditions->empty()) {
     return false;
   }
   if (auto const* match = conditions->lookup(source); match != nullptr) {
