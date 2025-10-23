@@ -4965,6 +4965,7 @@ static int HSM([[maybe_unused]] vector<string>& cmds, [[maybe_unused]] const std
 
 #endif // ]
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 static int B2BMigrate(vector<string>& cmds, const std::string_view synopsis)
 {
   if (cmds.size() < 2) {
