@@ -435,13 +435,11 @@ bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse,
     dnsdist::edns::addEDNSPadding(dnsResponse.getMutableData(), dnsResponse.getMaximumSize());
   }
 
-#ifdef HAVE_DNSCRYPT
   if (!muted) {
     if (!dnsdist::dnscrypt::encryptResponse(response, dnsResponse.getMaximumSize(), dnsResponse.overTCP(), dnsResponse.ids.dnsCryptQuery)) {
       return false;
     }
   }
-#endif /* HAVE_DNSCRYPT */
 
   return true;
 }
@@ -1221,13 +1219,11 @@ static bool prepareOutgoingResponse([[maybe_unused]] const ClientState& clientSt
     return false;
   }
 
-#ifdef HAVE_DNSCRYPT
   if (!clientState.muted) {
     if (!dnsdist::dnscrypt::encryptResponse(dnsQuestion.getMutableData(), dnsQuestion.getMaximumSize(), dnsQuestion.overTCP(), dnsQuestion.ids.dnsCryptQuery)) {
       return false;
     }
   }
-#endif /* HAVE_DNSCRYPT */
 
   return true;
 }
