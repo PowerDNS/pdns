@@ -648,7 +648,7 @@ As of version 5.4.0, an OpenTelemetry Trace condition is defined as
    acls: sequence of string representing subnets, required
    qnames: sequence of string representing DNS names
    qtypes: a sequence of string representing Query Type names
-   qid: an integer specyfying a Query ID
+   qid: an integer specifying a Query ID
    edns_option_required: bool, default false
    traceid_only: bool, default false
 

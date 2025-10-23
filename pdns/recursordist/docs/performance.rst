@@ -435,7 +435,7 @@ The following subconditions can be specified:
 - ``qnames``: a suffixmatch with the incoming qname is done against the suffixes specified in ``qnames``.
 - ``qtypes``: the qtype of the incoming query must be listed in ``qtypes``
 - ``qid``: the query id of the incoming query must match ``qid``.
-- ``edns_option_required``: the incoming query must have an EDSN option specifying the TraceID.
+- ``edns_option_required``: the incoming query must have an EDNS option specifying the TraceID.
 - ``traceid_only``: if ``true`` only the TraceID is picked up from EDNS data (if present) and placed into the protobuf `openTelemetryTraceID` field; no detailed `openTelemetryData` is produced.
 
 In the following example, two conditions are specified:
@@ -452,7 +452,7 @@ In the following example, two conditions are specified:
          edns_option_required: true
 
 The first condition specifies that all queries coming from ``127.0.0.1`` or ``::1`` should generate trace information.
-No subconditionss are relevant.
+No subconditions are relevant.
 
 The second condition specifies that queries coming from the ``192.167.178.0/24`` subnet should generate trace info only if the query name is ``a.very.specific.suffix`` (or has that suffix), the query type is ``A`` or ``AAAA``, the query id is ``1234`` and the EDNS option containing a TraceID is present.
 
@@ -461,7 +461,7 @@ Queries coming from an IP not matching any of the mentioned subnets will not gen
 Note that only the source IP is used to select a condition to evaluate.
 It is undefined what happens if a subnet occurs multiple times in all :ref:`setting-yaml-logging.opentelemetry_trace_conditions`.
 
-To generate OpenTelemetry Trace information for all queries (matching the 5.3.x behaviour), the follwing condition can be used:
+To generate OpenTelemetry Trace information for all queries (matching the 5.3.x behaviour), the following condition can be used:
 
 .. code-block:: yaml
 

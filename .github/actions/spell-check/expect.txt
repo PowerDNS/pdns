@@ -387,6 +387,7 @@ ecswho
 editline
 edns
 ednsbufsiz
+ednsopt
 ednsoptions
 ednsoptionview
 ednssubnet
@@ -1348,6 +1349,7 @@ stubquery
 stubresolver
 Stussy
 stutiredboy
+subcondition
 subdomain
 subkeys
 submitters
