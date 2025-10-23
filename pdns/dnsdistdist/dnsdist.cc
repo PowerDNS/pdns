@@ -36,6 +36,7 @@
 #include <unistd.h>
 
 #include "dns.hh"
+#include "dnsdist-dnscrypt.hh"
 #include "dnsdist-idstate.hh"
 #include "dnsdist-opentelemetry.hh"
 #include "dnsdist-systemd.hh"

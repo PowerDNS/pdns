@@ -19,34 +19,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#include "dnsdist-dnscrypt.hh"
+#pragma once
+
+#include "config.h"
 
 #ifdef HAVE_DNSCRYPT
-#include "dolog.hh"
 #include "dnsdist.hh"
-#include "dnsdist-metrics.hh"
-#include "dnscrypt.hh"
-
-bool handleDNSCryptQuery(PacketBuffer& packet, DNSCryptQuery& query, bool tcp, time_t now, PacketBuffer& response)
-{
-  query.parsePacket(packet, tcp, now);
-
-  if (!query.isValid()) {
-    vinfolog("Dropping DNSCrypt invalid query");
-    return false;
-  }
-
-  if (!query.isEncrypted()) {
-    query.getCertificateResponse(now, response);
-
-    return false;
-  }
-
-  if (packet.size() < static_cast<uint16_t>(sizeof(struct dnsheader))) {
-    ++dnsdist::metrics::g_stats.nonCompliantQueries;
-    return false;
-  }
-
-  return true;
-}
+bool handleDNSCryptQuery(PacketBuffer& packet, DNSCryptQuery& query, bool tcp, time_t now, PacketBuffer& response);
 #endif
