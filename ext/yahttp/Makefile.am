@@ -1,3 +1,6 @@
 SUBDIRS = yahttp
 
-EXTRA_DIST = LICENSE README.md
+EXTRA_DIST = \
+	LICENSE \
+	README.md \
+	meson.build
