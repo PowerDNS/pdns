@@ -79,4 +79,21 @@ void truncateTC(PacketBuffer& packet, size_t maximumSize, unsigned int qnameWire
     ++dnsdist::metrics::g_stats.truncFail;
   }
 }
+
+void handleResponseTC4UDPClient(DNSQuestion& dnsQuestion, uint16_t udpPayloadSize, PacketBuffer& response)
+{
+  {
+    if (udpPayloadSize != 0 && response.size() > udpPayloadSize) {
+      vinfolog("Got a response of size %d while the initial UDP payload size was %d, truncating", response.size(), udpPayloadSize);
+      dnsdist::udp::truncateTC(dnsQuestion.getMutableData(), dnsQuestion.getMaximumSize(), dnsQuestion.ids.qname.wirelength(), dnsdist::configuration::getCurrentRuntimeConfiguration().d_addEDNSToSelfGeneratedResponses);
+      dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [](dnsheader& header) {
+        header.tc = true;
+        return true;
+      });
+    }
+    else if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_truncateTC && dnsQuestion.getHeader()->tc) {
+      dnsdist::udp::truncateTC(response, dnsQuestion.getMaximumSize(), dnsQuestion.ids.qname.wirelength(), dnsdist::configuration::getCurrentRuntimeConfiguration().d_addEDNSToSelfGeneratedResponses);
+    }
+  }
+}
 } // namespace dnsdist::udp

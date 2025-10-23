@@ -547,26 +547,11 @@ void handleResponseSent(const DNSName& qname, const QType& qtype, double udiff, 
   dnsdist::metrics::doLatencyStats(incomingProtocol, udiff);
 }
 
-static void handleResponseTC4UDPClient(DNSQuestion& dnsQuestion, uint16_t udpPayloadSize, PacketBuffer& response)
-{
-  if (udpPayloadSize != 0 && response.size() > udpPayloadSize) {
-    vinfolog("Got a response of size %d while the initial UDP payload size was %d, truncating", response.size(), udpPayloadSize);
-    dnsdist::udp::truncateTC(dnsQuestion.getMutableData(), dnsQuestion.getMaximumSize(), dnsQuestion.ids.qname.wirelength(), dnsdist::configuration::getCurrentRuntimeConfiguration().d_addEDNSToSelfGeneratedResponses);
-    dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [](dnsheader& header) {
-      header.tc = true;
-      return true;
-    });
-  }
-  else if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_truncateTC && dnsQuestion.getHeader()->tc) {
-    dnsdist::udp::truncateTC(response, dnsQuestion.getMaximumSize(), dnsQuestion.ids.qname.wirelength(), dnsdist::configuration::getCurrentRuntimeConfiguration().d_addEDNSToSelfGeneratedResponses);
-  }
-}
-
 static void handleResponseForUDPClient(InternalQueryState& ids, PacketBuffer& response, const std::shared_ptr<DownstreamState>& backend, bool isAsync, bool selfGenerated)
 {
   DNSResponse dnsResponse(ids, response, backend);
 
-  handleResponseTC4UDPClient(dnsResponse, ids.udpPayloadSize, response);
+  dnsdist::udp::handleResponseTC4UDPClient(dnsResponse, ids.udpPayloadSize, response);
 
   /* when the answer is encrypted in place, we need to get a copy
      of the original header before encryption to fill the ring buffer */
@@ -1869,7 +1854,7 @@ static void processUDPQuery(ClientState& clientState, const struct msghdr* msgh,
     const auto dnsHeader = dnsQuestion.getHeader();
     if (result == ProcessQueryResult::SendAnswer) {
       /* ensure payload size is not exceeded */
-      handleResponseTC4UDPClient(dnsQuestion, udpPayloadSize, query);
+      dnsdist::udp::handleResponseTC4UDPClient(dnsQuestion, udpPayloadSize, query);
 #ifndef DISABLE_RECVMMSG
 #if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
       if (dnsQuestion.ids.delayMsec == 0 && responsesVect != nullptr) {
