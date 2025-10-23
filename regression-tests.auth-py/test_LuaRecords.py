@@ -1250,7 +1250,6 @@ any-to-tcp=no
 enable-lua-records=shared
 lua-records-insert-whitespace=yes
 lua-health-checks-interval=1
-lua-records-exec-limit=1500
 """
 
     def testCounter(self):

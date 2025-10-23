@@ -1635,10 +1635,6 @@ static void setupLuaRecords(LuaContext& lua)
       lua_report(event, line);
     });
 
-  if (g_luaRecordExecLimit > 0) {
-    lua.executeCode(boost::str(boost::format("debug.sethook(report, '', %d)") % g_luaRecordExecLimit));
-  }
-
   lua.writeFunction("latlon", []() -> string {
       return lua_latlon();
     });
@@ -1799,6 +1795,10 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
     s_lua_record_ctx->bestwho = dnsp.getInnerRemote();
   }
   lua.writeVariable("bestwho", s_lua_record_ctx->bestwho);
+
+  if (g_luaRecordExecLimit > 0) {
+    lua.executeCode(boost::str(boost::format("debug.sethook(report, '', %d)") % g_luaRecordExecLimit));
+  }
 
   try {
     string actual;
