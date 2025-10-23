@@ -638,6 +638,36 @@ This is typically a forwarding target.
 If no match is found on IP, a suffix match against the names in the ``suffixes`` lists is done using the nameserver name as key.
 If again no match is found, the default configuration is used, this mean using the ``openssl`` provider, no certificate validation and no verbose logging.
 
+OpenTelemetryTraceCondition
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+As of version 5.4.0, an OpenTelemetry Trace condition is defined as
+
+.. code-block:: yaml
+
+   acls: sequence of string representing subnets, required
+   qnames: sequence of string representing DNS names
+   qtypes: a sequence of string representing Query Type names
+   qid: an integer specyfying a Query ID
+   edns_option_required: bool, default false
+   traceid_only: bool, default false
+
+A :ref:`setting-yaml-logging.opentelemetry_trace_conditions` section contains a sequence of `OpenTelemetryTraceCondition`_, for example:
+
+.. code-block:: yaml
+
+  logging:
+    opentelemetry_trace_conditions:
+      - acls: [127.0.0.1]
+      - acls: [192.168.178.0/24]
+        qnames: [a.very.specific.suffix]
+        qtypes: ['A', 'AAAA']
+        qid: 1234
+        edns_option_required: true
+        traceid_only: false
+
+See :ref:`opentelemetry_tracing` for an explanation how to use OpenTelemetry Trace Conditions.
+
 The YAML settings
 -----------------
 

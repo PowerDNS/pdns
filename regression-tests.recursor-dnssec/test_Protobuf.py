@@ -371,6 +371,7 @@ recursor:
     - zone: example
       file: configs/%s/example.zone
     event_trace_enabled: 4
+    devonly_regression_test_mode: true
 logging:
   protobuf_servers:
     - servers: [127.0.0.1:%s, 127.0.0.1:%s]
@@ -812,6 +813,7 @@ class ProtobufProxyMappingTest(TestRecursorProtobuf):
     _config_template = """
     auth-zones=example=configs/%s/example.zone
     allow-from=3.4.5.0/24
+    devonly-regression-test-mode
     """ % _confdir
 
     _lua_config_file = """
@@ -849,7 +851,8 @@ class ProtobufProxyMappingLogMappedTest(TestRecursorProtobuf):
     _confdir = 'ProtobufProxyMappingLogMapped'
     _config_template = """
     auth-zones=example=configs/%s/example.zone
-    allow-from=3.4.5.0/0"
+    devonly-regression-test-mode
+    allow-from=3.4.5.0/0v
     """ % _confdir
 
     _lua_config_file = """
@@ -889,6 +892,7 @@ class ProtobufProxyTest(TestRecursorProtobuf):
 auth-zones=example=configs/%s/example.zone
 proxy-protocol-from=127.0.0.1/32
 allow-from=127.0.0.1,6.6.6.6
+devonly-regression-test-mode
 """ % _confdir
 
     def testA(self):
@@ -923,6 +927,7 @@ class ProtobufProxyWithProxyByTableTest(TestRecursorProtobuf):
 auth-zones=example=configs/%s/example.zone
 proxy-protocol-from=127.0.0.1/32
 allow-from=3.4.5.6
+devonly-regression-test-mode
 """ % _confdir
 
     _lua_config_file = """
@@ -962,6 +967,7 @@ class ProtobufProxyWithProxyByTableLogMappedTest(TestRecursorProtobuf):
 auth-zones=example=configs/%s/example.zone
 proxy-protocol-from=127.0.0.1/32
 allow-from=3.4.5.6
+devonly-regression-test-mode
 """ % _confdir
 
     _lua_config_file = """
@@ -1006,6 +1012,7 @@ class OutgoingProtobufDefaultTest(TestRecursorProtobuf):
     qname-minimization=no
     max-cache-ttl=600
     loglevel=9
+    devonly-regression-test-mode
 """
     _lua_config_file = """
     outgoingProtobufServer({"127.0.0.1:%d", "127.0.0.1:%d"})
@@ -1075,6 +1082,7 @@ class OutgoingProtobufWithECSMappingTest(TestRecursorProtobuf):
     # this is to not let . queries interfere
     max-cache-ttl=600
     loglevel=9
+    devonly-regression-test-mode
 """
     _lua_config_file = """
     outgoingProtobufServer({"127.0.0.1:%d", "127.0.0.1:%d"})
@@ -1177,6 +1185,7 @@ class OutgoingProtobufNoQueriesTest(TestRecursorProtobuf):
     qname-minimization=no
     max-cache-ttl=600
     loglevel=9
+    devonly-regression-test-mode
 """
     _lua_config_file = """
     outgoingProtobufServer({"127.0.0.1:%d", "127.0.0.1:%d"}, { logQueries=false, logResponses=true })
@@ -1233,6 +1242,7 @@ class ProtobufMasksTest(TestRecursorProtobuf):
 
     _confdir = 'ProtobufMasks'
     _config_template = """
+    devonly-regression-test-mode
 auth-zones=example=configs/%s/example.zone""" % _confdir
     _protobufMaskV4 = 4
     _protobufMaskV6 = 128
@@ -1270,6 +1280,7 @@ class ProtobufQueriesOnlyTest(TestRecursorProtobuf):
 
     _confdir = 'ProtobufQueriesOnly'
     _config_template = """
+    devonly-regression-test-mode
 auth-zones=example=configs/%s/example.zone""" % _confdir
     _lua_config_file = """
     protobufServer({"127.0.0.1:%d", "127.0.0.1:%d"}, { logQueries=true, logResponses=false } )
@@ -1327,6 +1338,7 @@ class ProtobufTaggedOnlyTest(TestRecursorProtobuf):
 
     _confdir = 'ProtobufTaggedOnly'
     _config_template = """
+    devonly-regression-test-mode
 auth-zones=example=configs/%s/example.zone""" % _confdir
     _lua_config_file = """
     protobufServer({"127.0.0.1:%d", "127.0.0.1:%d"}, { logQueries=true, logResponses=true, taggedOnly=true } )
@@ -1522,6 +1534,7 @@ class ProtobufTagCacheFFITest(ProtobufTagCacheBase):
     __test__ = True
     _confdir = 'ProtobufTagCacheFFI'
     _config_template = """
+    devonly-regression-test-mode
 auth-zones=example=configs/%s/example.zone""" % _confdir
     _lua_config_file = """
     protobufServer({"127.0.0.1:%d", "127.0.0.1:%d"}, { logQueries=false, logResponses=true } )
@@ -1633,6 +1646,7 @@ class ProtobufExportTypesTest(TestRecursorProtobuf):
 
     _confdir = 'ProtobufExportTypes'
     _config_template = """
+    devonly-regression-test-mode
 auth-zones=example=configs/%s/example.zone""" % _confdir
     _lua_config_file = """
     protobufServer({"127.0.0.1:%d", "127.0.0.1:%d"}, { exportTypes={"AAAA", "MX", "SPF", "SRV", "TXT"} } )
@@ -1690,6 +1704,7 @@ class ProtobufTaggedExtraFieldsTest(TestRecursorProtobuf):
 
     _confdir = 'ProtobufTaggedExtraFields'
     _config_template = """
+    devonly-regression-test-mode
 auth-zones=example=configs/%s/example.zone""" % _confdir
     _lua_config_file = """
     protobufServer({"127.0.0.1:%d", "127.0.0.1:%d"}, { logQueries=true, logResponses=true } )
@@ -1786,6 +1801,7 @@ class ProtobufTaggedExtraFieldsFFITest(ProtobufTaggedExtraFieldsTest):
     """
     _confdir = 'ProtobufTaggedExtraFieldsFFI'
     _config_template = """
+    devonly-regression-test-mode
 auth-zones=example=configs/%s/example.zone""" % _confdir
     _lua_config_file = """
     protobufServer({"127.0.0.1:%d", "127.0.0.1:%d"}, { logQueries=true, logResponses=true } )
@@ -1824,6 +1840,7 @@ class ProtobufRPZTest(TestRecursorProtobuf):
 
     _confdir = 'ProtobufRPZ'
     _config_template = """
+    devonly-regression-test-mode
 auth-zones=example=configs/%s/example.rpz.zone""" % _confdir
     _lua_config_file = """
     protobufServer({"127.0.0.1:%d", "127.0.0.1:%d"}, { logQueries=true, logResponses=true } )
@@ -1903,6 +1920,7 @@ class ProtobufRPZTagsTest(TestRecursorProtobuf):
 
     _confdir = 'ProtobufRPZTags'
     _config_template = """
+    devonly-regression-test-mode
 auth-zones=example=configs/%s/example.rpz.zone""" % _confdir
     _tags = ['tag1', 'tag2']
     _tags_from_gettag = ['tag1-from-gettag', 'tag2-from-gettag']
@@ -1971,6 +1989,7 @@ class ProtobufMetaFFITest(TestRecursorProtobuf):
     """
     _confdir = 'ProtobufMetaFFI'
     _config_template = """
+    devonly-regression-test-mode
 auth-zones=example=configs/%s/example.zone""" % _confdir
     _lua_config_file = """
     protobufServer({"127.0.0.1:%d", "127.0.0.1:%d"}, { logQueries=true, logResponses=true } )
