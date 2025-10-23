@@ -33,7 +33,7 @@
 #include "dnsdist-internal-queries.hh"
 #include "dnsdist-snmp.hh"
 #include "dnsdist-tcp.hh"
-#include "dnsdist-xsk.hh"
+#include "dnsdist-udp.hh"
 
 #include "dolog.hh"
 #include "dnsname.hh"
@@ -42,6 +42,8 @@
 #include "ednsoptions.hh"
 #include "ednscookies.hh"
 #include "ednssubnet.hh"
+
+std::shared_ptr<dnsdist::udp::UDPTCPCrossQuerySender> dnsdist::udp::UDPCrossProtocolQuery::s_sender = std::make_shared<UDPTCPCrossQuerySender>();
 
 ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_ptr<DownstreamState>& selectedBackend)
 {
@@ -115,18 +117,6 @@ bool DNSDistSNMPAgent::sendBackendStatusChangeTrap([[maybe_unused]] DownstreamSt
 {
   return false;
 }
-
-#ifdef HAVE_XSK
-namespace dnsdist::xsk
-{
-bool XskProcessQuery(ClientState& clientState, XskPacket& packet)
-{
-  (void)clientState;
-  (void)packet;
-  return false;
-}
-}
-#endif /* HAVE_XSK */
 
 bool processResponderPacket(std::shared_ptr<DownstreamState>& dss, PacketBuffer& response, InternalQueryState&& ids)
 {

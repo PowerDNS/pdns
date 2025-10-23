@@ -102,16 +102,6 @@ bool assignOutgoingUDPQueryToBackend([[maybe_unused]] std::shared_ptr<Downstream
   return true;
 }
 
-#ifdef HAVE_XSK
-namespace dnsdist::xsk
-{
-bool XskProcessQuery([[maybe_unused]] ClientState& clientState, [[maybe_unused]] XskPacket& packet)
-{
-  return false;
-}
-}
-#endif /* HAVE_XSK */
-
 bool processResponderPacket([[maybe_unused]] std::shared_ptr<DownstreamState>& dss, [[maybe_unused]] PacketBuffer& response, [[maybe_unused]] InternalQueryState&& ids)
 {
   return false;

@@ -34,12 +34,6 @@
 #endif
 #include <boost/test/unit_test.hpp>
 
-#include "dnsdist-udp.hh"
-
-// Required for the linker, set/defined in dnsdist.cc for dnsdist itself
-// TODO: this should go
-std::shared_ptr<dnsdist::udp::UDPTCPCrossQuerySender> dnsdist::udp::UDPCrossProtocolQuery::s_sender = std::make_shared<UDPTCPCrossQuerySender>();
-
 // entry point:
 int main(int argc, char* argv[])
 {
