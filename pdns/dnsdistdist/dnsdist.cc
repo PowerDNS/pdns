@@ -437,7 +437,7 @@ bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse,
 
 #ifdef HAVE_DNSCRYPT
   if (!muted) {
-    if (!encryptResponse(response, dnsResponse.getMaximumSize(), dnsResponse.overTCP(), dnsResponse.ids.dnsCryptQuery)) {
+    if (!dnsdist::dnscrypt::encryptResponse(response, dnsResponse.getMaximumSize(), dnsResponse.overTCP(), dnsResponse.ids.dnsCryptQuery)) {
       return false;
     }
   }
@@ -1223,7 +1223,7 @@ static bool prepareOutgoingResponse([[maybe_unused]] const ClientState& clientSt
 
 #ifdef HAVE_DNSCRYPT
   if (!clientState.muted) {
-    if (!encryptResponse(dnsQuestion.getMutableData(), dnsQuestion.getMaximumSize(), dnsQuestion.overTCP(), dnsQuestion.ids.dnsCryptQuery)) {
+    if (!dnsdist::dnscrypt::encryptResponse(dnsQuestion.getMutableData(), dnsQuestion.getMaximumSize(), dnsQuestion.overTCP(), dnsQuestion.ids.dnsCryptQuery)) {
       return false;
     }
   }
@@ -1755,7 +1755,7 @@ static void processUDPQuery(ClientState& clientState, const struct msghdr* msgh,
 
     ids.queryRealTime.start();
 
-    auto dnsCryptResponse = checkDNSCryptQuery(clientState, query, ids.dnsCryptQuery, ids.queryRealTime.d_start.tv_sec, false);
+    auto dnsCryptResponse = dnsdist::dnscrypt::checkDNSCryptQuery(clientState, query, ids.dnsCryptQuery, ids.queryRealTime.d_start.tv_sec, false);
     if (dnsCryptResponse) {
       if (!clientState.muted) {
         sendUDPResponse(clientState.udpFD, query, 0, dest, remote);
@@ -1901,7 +1901,7 @@ bool XskProcessQuery(ClientState& clientState, XskPacket& packet)
 
     ids.queryRealTime.start();
 
-    auto dnsCryptResponse = checkDNSCryptQuery(clientState, query, ids.dnsCryptQuery, ids.queryRealTime.d_start.tv_sec, false);
+    auto dnsCryptResponse = dnsdist::dnscrypt::checkDNSCryptQuery(clientState, query, ids.dnsCryptQuery, ids.queryRealTime.d_start.tv_sec, false);
     if (dnsCryptResponse) {
       packet.setPayload(query);
       return true;
