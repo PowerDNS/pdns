@@ -50,4 +50,18 @@ bool handleDNSCryptQuery(PacketBuffer& packet, DNSCryptQuery& query, bool tcp, t
 
   return true;
 }
+
+bool encryptResponse(PacketBuffer& response, size_t maximumSize, bool tcp, std::unique_ptr<DNSCryptQuery>& dnsCryptQuery)
+{
+  if (dnsCryptQuery) {
+    int res = dnsCryptQuery->encryptResponse(response, maximumSize, tcp);
+    if (res != 0) {
+      /* dropping response */
+      VERBOSESLOG(infolog("Error encrypting the response, dropping."),
+                  dnsdist::logging::getTopLogger("dnscrypt")->info(Logr::Error, "Error encrypting response, dropping"));
+      return false;
+    }
+  }
+  return true;
+}
 #endif

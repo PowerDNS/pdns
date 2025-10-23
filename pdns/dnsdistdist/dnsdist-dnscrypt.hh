@@ -26,4 +26,5 @@
 #ifdef HAVE_DNSCRYPT
 #include "dnsdist.hh"
 bool handleDNSCryptQuery(PacketBuffer& packet, DNSCryptQuery& query, bool tcp, time_t now, PacketBuffer& response);
+bool encryptResponse(PacketBuffer& response, size_t maximumSize, bool tcp, std::unique_ptr<DNSCryptQuery>& dnsCryptQuery);
 #endif
