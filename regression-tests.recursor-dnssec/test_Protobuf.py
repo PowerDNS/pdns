@@ -10,14 +10,14 @@ import clientsubnetoption
 
 # Python2/3 compatibility hacks
 try:
-  from queue import Queue
+    from queue import Queue
 except ImportError:
-  from Queue import Queue
+    from Queue import Queue
 
 try:
-  range = xrange
+    range = xrange
 except NameError:
-  pass
+    pass
 
 from recursortests import RecursorTest
 
@@ -382,7 +382,27 @@ logging:
     def generateRecursorConfig(cls, confdir):
         super(ProtobufDefaultTest, cls).generateRecursorYamlConfig(confdir, False)
 
-    def testA(self):
+    def reloadConfig(self, config):
+      confdir = os.path.join('configs', ProtobufDefaultTest._confdir)
+      ProtobufDefaultTest._config_template = config
+      ProtobufDefaultTest.generateRecursorYamlConfig(confdir, False)
+      ProtobufDefaultTest.recControl(confdir, 'reload-yaml')
+
+    config_default = """
+recursor:
+    auth_zones:
+    - zone: example
+      file: configs/%s/example.zone
+    event_trace_enabled: 4
+logging:
+  protobuf_servers:
+    - servers: [127.0.0.1:%s, 127.0.0.1:%s]
+  opentelemetry_trace_conditions:
+    - acls: ['0.0.0.0/0']
+""" % (_confdir, protobufServersParameters[0].port, protobufServersParameters[1].port)
+
+    def testADefault(self):
+        self.reloadConfig(self.config_default)
         name = 'a.example.'
         expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.42')
         query = dns.message.make_query(name, 'A', want_dnssec=True)
@@ -407,9 +427,7 @@ logging:
             self.checkProtobufResponse(msg, protocol, res, '127.0.0.1')
             self.assertEqual(len(msg.response.rrs), 1)
             rr = msg.response.rrs[0]
-            # we have max-cache-ttl set to 15
-            if method == 'sendUDPQuery':
-                self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15)
+            self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15, checkTTL=False)
             self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.42')
             self.checkProtobufOT(msg, True, True)
             self.checkProtobufEDE(msg, 0, '')
@@ -437,15 +455,14 @@ logging:
             self.checkProtobufResponse(msg, protocol, res, '127.0.0.1')
             self.assertEqual(len(msg.response.rrs), 1)
             rr = msg.response.rrs[0]
-            # we have max-cache-ttl set to 15
-            if method == 'sendUDPQuery':
-                self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15)
+            self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15, checkTTL=False)
             self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.42')
             self.checkProtobufOT(msg, True, True)
             self.checkProtobufEDE(msg, 0, '')
             self.checkNoRemainingMessage()
 
-    def testCNAME(self):
+    def testCNAMEDefault(self):
+        self.reloadConfig(self.config_default)
         name = 'cname.example.'
         expectedCNAME = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'CNAME', 'a.example.')
         expectedA = dns.rrset.from_text('a.example.', 0, dns.rdataclass.IN, 'A', '192.0.2.42')
@@ -466,23 +483,17 @@ logging:
         self.assertEqual(len(msg.response.rrs), 2)
         rr = msg.response.rrs[0]
         # we don't want to check the TTL for the A record, it has been cached by the previous test
-        self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.CNAME, name, 15)
+        self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.CNAME, name, 15, checkTTL=False)
         self.assertEqual(rr.rdata, b'a.example.')
         rr = msg.response.rrs[1]
-        # we have max-cache-ttl set to 15
         self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, 'a.example.', 15, checkTTL=False)
         self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.42')
         self.checkProtobufOT(msg, True, True)
         self.checkProtobufEDE(msg, 0, '')
         self.checkNoRemainingMessage()
 
-class ProtobufDefaultTraceIDOnlyTest(TestRecursorProtobuf):
-    """
-    This test makes sure that we correctly export queries and response over protobuf, but not with full OpenTelemetry data
-    """
 
-    _confdir = 'ProtobufDefaultTraceIDOnly'
-    _config_template = """
+    config_traceid_only = """
 recursor:
     auth_zones:
     - zone: example
@@ -496,11 +507,8 @@ logging:
       traceid_only: true
 """ % (_confdir, protobufServersParameters[0].port, protobufServersParameters[1].port)
 
-    @classmethod
-    def generateRecursorConfig(cls, confdir):
-        super(ProtobufDefaultTraceIDOnlyTest, cls).generateRecursorYamlConfig(confdir, False)
-
-    def testA(self):
+    def testATraceIDOnly(self):
+        self.reloadConfig(self.config_traceid_only)
         name = 'a.example.'
         expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.42')
         edns = self.getOpenTelemetryEDNS(b'012345678012345678')
@@ -526,9 +534,7 @@ logging:
             self.checkProtobufResponse(msg, protocol, res, '127.0.0.1')
             self.assertEqual(len(msg.response.rrs), 1)
             rr = msg.response.rrs[0]
-            # we have max-cache-ttl set to 15
-            if method == 'sendUDPQuery':
-                self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15)
+            self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15, checkTTL=False)
             self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.42')
             self.checkProtobufOT(msg, False, True)
             self.checkProtobufEDE(msg, 0, '')
@@ -556,15 +562,14 @@ logging:
             self.checkProtobufResponse(msg, protocol, res, '127.0.0.1')
             self.assertEqual(len(msg.response.rrs), 1)
             rr = msg.response.rrs[0]
-            # we have max-cache-ttl set to 15
-            if method == 'sendUDPQuery':
-                self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15)
+            self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15, checkTTL=False)
             self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.42')
             self.checkProtobufOT(msg, False, True)
             self.checkProtobufEDE(msg, 0, '')
             self.checkNoRemainingMessage()
 
-    def testCNAME(self):
+    def testCNAMETraceIDOnly(self):
+        self.reloadConfig(self.config_traceid_only)
         name = 'cname.example.'
         expectedCNAME = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'CNAME', 'a.example.')
         expectedA = dns.rrset.from_text('a.example.', 0, dns.rdataclass.IN, 'A', '192.0.2.42')
@@ -585,23 +590,16 @@ logging:
         self.assertEqual(len(msg.response.rrs), 2)
         rr = msg.response.rrs[0]
         # we don't want to check the TTL for the A record, it has been cached by the previous test
-        self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.CNAME, name, 15)
+        self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.CNAME, name, 15, checkTTL=False)
         self.assertEqual(rr.rdata, b'a.example.')
         rr = msg.response.rrs[1]
-        # we have max-cache-ttl set to 15
         self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, 'a.example.', 15, checkTTL=False)
         self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.42')
         self.checkProtobufOT(msg, False, False)
         self.checkProtobufEDE(msg, 0, '')
         self.checkNoRemainingMessage()
 
-class ProtobufDefaultOTAOnlyTest(TestRecursorProtobuf):
-    """
-    This test makes sure that we correctly export queries and response over protobuf, but only for A queries
-    """
-
-    _confdir = 'ProtobufDefaultOTAOnly'
-    _config_template = """
+    config_otaonly = """
 recursor:
     auth_zones:
     - zone: example
@@ -616,11 +614,8 @@ logging:
       qtypes: ['A']
 """ % (_confdir, protobufServersParameters[0].port, protobufServersParameters[1].port)
 
-    @classmethod
-    def generateRecursorConfig(cls, confdir):
-        super(ProtobufDefaultOTAOnlyTest, cls).generateRecursorYamlConfig(confdir, False)
-
-    def testA(self):
+    def testAOTAOnly(self):
+        self.reloadConfig(self.config_otaonly)
         name = 'a.example.'
         expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.42')
         query = dns.message.make_query(name, 'A', want_dnssec=True)
@@ -645,9 +640,7 @@ logging:
             self.checkProtobufResponse(msg, protocol, res, '127.0.0.1')
             self.assertEqual(len(msg.response.rrs), 1)
             rr = msg.response.rrs[0]
-            # we have max-cache-ttl set to 15
-            if method == 'sendUDPQuery':
-                self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15)
+            self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15, checkTTL=False)
             self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.42')
             self.checkProtobufOT(msg, True, True)
             self.checkProtobufEDE(msg, 0, '')
@@ -675,15 +668,14 @@ logging:
             self.checkProtobufResponse(msg, protocol, res, '127.0.0.1')
             self.assertEqual(len(msg.response.rrs), 1)
             rr = msg.response.rrs[0]
-            # we have max-cache-ttl set to 15
-            if method == 'sendUDPQuery':
-                self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15)
+            self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15, checkTTL=False)
             self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.42')
             self.checkProtobufOT(msg, True, True)
             self.checkProtobufEDE(msg, 0, '')
             self.checkNoRemainingMessage()
 
-    def testAAAA(self):
+    def testAAAAOTAOnly(self):
+        self.reloadConfig(self.config_otaonly)
         name = 'aaaa.example.'
         expectedAAAA = dns.rrset.from_text('aaaa.example.', 0, dns.rdataclass.IN, 'AAAA', '2001:db8::2')
         edns = self.getOpenTelemetryEDNS(b'012345678012345678')
@@ -702,7 +694,108 @@ logging:
         self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, res, '127.0.0.1', receivedSize=len(raw))
         self.assertEqual(len(msg.response.rrs), 1)
         rr = msg.response.rrs[0]
-        # we have max-cache-ttl set to 15
+        self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.AAAA, 'aaaa.example.', 15, checkTTL=False)
+        self.assertEqual(socket.inet_ntop(socket.AF_INET6, rr.rdata), '2001:db8::2')
+        print(msg)
+        self.checkProtobufOT(msg, False, True)
+        self.checkProtobufEDE(msg, 0, '')
+        self.checkNoRemainingMessage()
+
+    config_nameonly = """
+recursor:
+    auth_zones:
+    - zone: example
+      file: configs/%s/example.zone
+    event_trace_enabled: 4
+logging:
+  protobuf_servers:
+    - servers: [127.0.0.1:%s, 127.0.0.1:%s]
+  opentelemetry_trace_conditions:
+    - acls: ['0.0.0.0/0']
+      traceid_only: false
+      qnames: ['a.example']
+""" % (_confdir, protobufServersParameters[0].port, protobufServersParameters[1].port)
+
+    def testCorrectNameOnly(self):
+        self.reloadConfig(self.config_nameonly)
+        name = 'a.example.'
+        expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.42')
+        query = dns.message.make_query(name, 'A', want_dnssec=True)
+        query.flags |= dns.flags.CD
+        for method in ('sendUDPQuery', 'sendTCPQuery'):
+            sender = getattr(self, method)
+            res = sender(query)
+
+            self.assertRRsetInAnswer(res, expected)
+
+            # check the protobuf messages corresponding to the query and answer
+            msg = self.getFirstProtobufMessage()
+            if method == 'sendUDPQuery':
+                protocol = dnsmessage_pb2.PBDNSMessage.UDP
+            else:
+                protocol = dnsmessage_pb2.PBDNSMessage.TCP
+            self.checkProtobufQuery(msg, protocol, query, dns.rdataclass.IN, dns.rdatatype.A, name)
+            # wire format, RD and CD set in headerflags, plus DO bit in flags part of EDNS Version
+            self.checkProtobufHeaderFlagsAndEDNSVersion(msg, 0x0110, 0x00008000)
+            # then the response
+            msg = self.getFirstProtobufMessage()
+            self.checkProtobufResponse(msg, protocol, res, '127.0.0.1')
+            self.assertEqual(len(msg.response.rrs), 1)
+            rr = msg.response.rrs[0]
+            self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15, checkTTL=False)
+            self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.42')
+            self.checkProtobufOT(msg, True, True)
+            self.checkProtobufEDE(msg, 0, '')
+            self.checkNoRemainingMessage()
+        #
+        # again, for a PC cache hit
+        #
+        for method in ('sendUDPQuery', 'sendTCPQuery'):
+            sender = getattr(self, method)
+            res = sender(query)
+
+            self.assertRRsetInAnswer(res, expected)
+
+            # check the protobuf messages corresponding to the UDP query and answer
+            msg = self.getFirstProtobufMessage()
+            if method == 'sendUDPQuery':
+                protocol = dnsmessage_pb2.PBDNSMessage.UDP
+            else:
+                protocol = dnsmessage_pb2.PBDNSMessage.TCP
+            self.checkProtobufQuery(msg, protocol, query, dns.rdataclass.IN, dns.rdatatype.A, name)
+            # wire format, RD and CD set in headerflags, plus DO bit in flags part of EDNS Version
+            self.checkProtobufHeaderFlagsAndEDNSVersion(msg, 0x0110, 0x00008000)
+            # then the response
+            msg = self.getFirstProtobufMessage()
+            self.checkProtobufResponse(msg, protocol, res, '127.0.0.1')
+            self.assertEqual(len(msg.response.rrs), 1)
+            rr = msg.response.rrs[0]
+            self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15, checkTTL=False)
+            self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.42')
+            self.checkProtobufOT(msg, True, True)
+            self.checkProtobufEDE(msg, 0, '')
+            self.checkNoRemainingMessage()
+
+    def testOtherNameOnly(self):
+        self.reloadConfig(self.config_nameonly)
+        name = 'aaaa.example.'
+        expectedAAAA = dns.rrset.from_text('aaaa.example.', 0, dns.rdataclass.IN, 'AAAA', '2001:db8::2')
+        edns = self.getOpenTelemetryEDNS(b'012345678012345678')
+        query = dns.message.make_query(name, 'AAAA', want_dnssec=True, options=[edns])
+        query.flags |= dns.flags.CD
+        raw = self.sendUDPQuery(query, decode=False)
+        res = dns.message.from_wire(raw)
+        self.assertRRsetInAnswer(res, expectedAAAA)
+
+        # check the protobuf messages corresponding to the UDP query and answer
+        # but first let the protobuf messages the time to get there
+        msg = self.getFirstProtobufMessage()
+        self.checkProtobufQuery(msg, dnsmessage_pb2.PBDNSMessage.UDP, query, dns.rdataclass.IN, dns.rdatatype.AAAA, name)
+        # then the response
+        msg = self.getFirstProtobufMessage()
+        self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, res, '127.0.0.1', receivedSize=len(raw))
+        self.assertEqual(len(msg.response.rrs), 1)
+        rr = msg.response.rrs[0]
         self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.AAAA, 'aaaa.example.', 15, checkTTL=False)
         self.assertEqual(socket.inet_ntop(socket.AF_INET6, rr.rdata), '2001:db8::2')
         print(msg)
