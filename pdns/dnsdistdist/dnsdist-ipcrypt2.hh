@@ -26,7 +26,9 @@
 #include <string>
 
 #include "iputils.hh"
+#ifdef HAVE_IPCRYPT2
 #include "ipcrypt2.h"
+#endif
 
 namespace pdns::ipcrypt2
 {
@@ -55,7 +57,9 @@ public:
   [[nodiscard]] ComboAddress encrypt(const ComboAddress& address) const;
 
 private:
+#ifdef HAVE_IPCRYPT2
   std::unique_ptr<struct IPCryptPFX> d_ipcryptCtxPfx;
+#endif
   IPCryptMethod d_method;
 };
 }
