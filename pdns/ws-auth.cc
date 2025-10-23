@@ -2742,17 +2742,15 @@ static void apiServerViewsGET(HttpRequest* req, HttpResponse* resp)
 // POST /views/<view> + name in json adds ZoneName "name" to view "view"
 static void apiServerViewsPOST(HttpRequest* req, HttpResponse* resp)
 {
-  UeberBackend backend;
-  DomainInfo domainInfo;
   const auto& document = req->json();
+  // We can't use a ZoneData object here, as the zone being added to the
+  // view may not exist yet.
   ZoneName zonename = apiNameToZoneName(stringFromJson(document, "name"));
 
-  if (!backend.getDomainInfo(zonename, domainInfo)) {
-    throw ApiException("Zone " + zonename.toString() + " does not exist");
-  }
   std::string view{req->parameters["view"]};
 
-  if (!domainInfo.backend->viewAddZone(view, zonename)) {
+  UeberBackend backend;
+  if (!backend.viewAddZone(view, zonename)) {
     throw ApiException("Failed to add " + zonename.toString() + " to view " + view);
   }
   // Notify zone cache of the new association
@@ -2776,6 +2774,7 @@ static void apiServerViewsDELETE(HttpRequest* req, HttpResponse* resp)
   // We can't use a ZoneData object here, as the zone being removed from the
   // view may no longer exist.
   ZoneName zoneName(apiZoneIdToName(req->parameters["id"]));
+
   std::string view{req->parameters["view"]};
 
   UeberBackend backend;
