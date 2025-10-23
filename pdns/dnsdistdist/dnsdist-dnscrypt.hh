@@ -22,9 +22,10 @@
 #pragma once
 
 #include "config.h"
+#include "dnsdist.hh"
 
 #ifdef HAVE_DNSCRYPT
-#include "dnsdist.hh"
 bool handleDNSCryptQuery(PacketBuffer& packet, DNSCryptQuery& query, bool tcp, time_t now, PacketBuffer& response);
 bool encryptResponse(PacketBuffer& response, size_t maximumSize, bool tcp, std::unique_ptr<DNSCryptQuery>& dnsCryptQuery);
 #endif
+bool checkDNSCryptQuery(const ClientState& clientState, PacketBuffer& query, std::unique_ptr<DNSCryptQuery>& dnsCryptQuery, time_t now, bool tcp);

@@ -950,8 +950,6 @@ bool checkQueryHeaders(const struct dnsheader& dnsHeader, ClientState& clientSta
 
 class DNSCryptQuery;
 
-bool checkDNSCryptQuery(const ClientState& clientState, PacketBuffer& query, std::unique_ptr<DNSCryptQuery>& dnsCryptQuery, time_t now, bool tcp);
-
 enum class ProcessQueryResult : uint8_t
 {
   Drop,

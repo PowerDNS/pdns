@@ -1111,27 +1111,6 @@ static bool isUDPQueryAcceptable(ClientState& clientState, const struct msghdr* 
   return true;
 }
 
-bool checkDNSCryptQuery(const ClientState& clientState, [[maybe_unused]] PacketBuffer& query, [[maybe_unused]] std::unique_ptr<DNSCryptQuery>& dnsCryptQuery, [[maybe_unused]] time_t now, [[maybe_unused]] bool tcp)
-{
-  if (clientState.dnscryptCtx) {
-#ifdef HAVE_DNSCRYPT
-    PacketBuffer response;
-    dnsCryptQuery = std::make_unique<DNSCryptQuery>(clientState.dnscryptCtx);
-
-    bool decrypted = handleDNSCryptQuery(query, *dnsCryptQuery, tcp, now, response);
-
-    if (!decrypted) {
-      if (!response.empty()) {
-        query = std::move(response);
-        return true;
-      }
-      throw std::runtime_error("Unable to decrypt DNSCrypt query, dropping.");
-    }
-#endif /* HAVE_DNSCRYPT */
-  }
-  return false;
-}
-
 bool checkQueryHeaders(const struct dnsheader& dnsHeader, ClientState& clientState)
 {
   if (dnsHeader.qr) { // don't respond to responses

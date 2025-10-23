@@ -331,6 +331,7 @@ testrunner_SOURCES = \
 	dnsdist-concurrent-connections.cc dnsdist-concurrent-connections.hh \
 	dnsdist-configuration.cc dnsdist-configuration.hh \
 	dnsdist-crypto.cc dnsdist-crypto.hh \
+	dnsdist-dnscrypt.cc \
 	dnsdist-dnsparser.cc dnsdist-dnsparser.hh \
 	dnsdist-dnsquestion.cc \
 	dnsdist-doh-common.cc dnsdist-doh-common.hh \

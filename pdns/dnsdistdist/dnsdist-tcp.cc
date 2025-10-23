@@ -28,6 +28,7 @@
 #include "dnsdist.hh"
 #include "dnsdist-concurrent-connections.hh"
 #include "dnsdist-dnsparser.hh"
+#include "dnsdist-dnscrypt.hh"
 #include "dnsdist-ecs.hh"
 #include "dnsdist-edns.hh"
 #include "dnsdist-nghttp2-in.hh"

@@ -63,3 +63,24 @@ bool encryptResponse(PacketBuffer& response, size_t maximumSize, bool tcp, std::
   return true;
 }
 #endif
+
+bool checkDNSCryptQuery([[maybe_unused]] const ClientState& clientState, [[maybe_unused]] PacketBuffer& query, [[maybe_unused]] std::unique_ptr<DNSCryptQuery>& dnsCryptQuery, [[maybe_unused]] time_t now, [[maybe_unused]] bool tcp)
+{
+#ifdef HAVE_DNSCRYPT
+  if (clientState.dnscryptCtx) {
+    PacketBuffer response;
+    dnsCryptQuery = std::make_unique<DNSCryptQuery>(clientState.dnscryptCtx);
+
+    bool decrypted = handleDNSCryptQuery(query, *dnsCryptQuery, tcp, now, response);
+
+    if (!decrypted) {
+      if (!response.empty()) {
+        query = std::move(response);
+        return true;
+      }
+      throw std::runtime_error("Unable to decrypt DNSCrypt query, dropping.");
+    }
+  }
+#endif /* HAVE_DNSCRYPT */
+  return false;
+}
