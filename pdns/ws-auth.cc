@@ -2773,16 +2773,19 @@ static void apiServerViewsPOST(HttpRequest* req, HttpResponse* resp)
 // DELETE /views/<view>/<id>     removes ZoneName "id" from view "view"
 static void apiServerViewsDELETE(HttpRequest* req, HttpResponse* resp)
 {
-  ZoneData zoneData{req};
+  // We can't use a ZoneData object here, as the zone being removed from the
+  // view may no longer exist.
+  ZoneName zoneName(apiZoneIdToName(req->parameters["id"]));
   std::string view{req->parameters["view"]};
 
-  if (!zoneData.domainInfo.backend->viewDelZone(view, zoneData.zoneName)) {
-    throw ApiException("Failed to remove " + zoneData.zoneName.toString() + " from view " + view);
+  UeberBackend backend;
+  if (!backend.viewDelZone(view, zoneName)) {
+    throw ApiException("Failed to remove " + zoneName.toString() + " from view " + view);
   }
   // Notify zone cache of the removed association
   bool emptyView{false};
   if (g_zoneCache.isEnabled()) {
-    emptyView = g_zoneCache.removeFromView(view, zoneData.zoneName);
+    emptyView = g_zoneCache.removeFromView(view, zoneName);
   }
   // Purge packet cache for that zone
   if (PC.enabled()) {
@@ -2790,7 +2793,7 @@ static void apiServerViewsDELETE(HttpRequest* req, HttpResponse* resp)
       (void)PC.purgeView(view);
     }
     else {
-      std::string purgename = zoneData.zoneName.operator const DNSName&().toString();
+      std::string purgename = zoneName.operator const DNSName&().toString();
       purgename.append("$");
       (void)PC.purge(view, purgename);
     }
