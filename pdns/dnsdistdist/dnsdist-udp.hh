@@ -29,6 +29,7 @@
 #include "iputils.hh"
 #include "dnscrypt.hh"
 #include "dnsdist.hh"
+#include "dnsdist-tcp.hh"
 
 namespace dnsdist::udp
 {
@@ -41,4 +42,81 @@ void sendfromto(int sock, const PacketBuffer& buffer, const ComboAddress& from, 
 void truncateTC(PacketBuffer& packet, size_t maximumSize, unsigned int qnameWireLength, bool addEDNSToSelfGeneratedResponses);
 void handleResponseTC4UDPClient(DNSQuestion& dnsQuestion, uint16_t udpPayloadSize, PacketBuffer& response);
 void handleResponseForUDPClient(InternalQueryState& ids, PacketBuffer& response, const std::shared_ptr<DownstreamState>& backend, bool isAsync, bool selfGenerated);
+
+class UDPTCPCrossQuerySender : public TCPQuerySender
+{
+public:
+  UDPTCPCrossQuerySender() = default;
+  UDPTCPCrossQuerySender(const UDPTCPCrossQuerySender&) = delete;
+  UDPTCPCrossQuerySender& operator=(const UDPTCPCrossQuerySender&) = delete;
+  UDPTCPCrossQuerySender(UDPTCPCrossQuerySender&&) = default;
+  UDPTCPCrossQuerySender& operator=(UDPTCPCrossQuerySender&&) = default;
+  ~UDPTCPCrossQuerySender() override = default;
+
+  [[nodiscard]] bool active() const override
+  {
+    return true;
+  }
+
+  void handleResponse(const struct timeval& now, TCPResponse&& response) override
+  {
+    (void)now;
+    if (!response.d_ds && !response.d_idstate.selfGenerated) {
+      throw std::runtime_error("Passing a cross-protocol answer originated from UDP without a valid downstream");
+    }
+
+    auto& ids = response.d_idstate;
+
+    dnsdist::udp::handleResponseForUDPClient(ids, response.d_buffer, response.d_ds, response.isAsync(), response.d_idstate.selfGenerated);
+  }
+
+  void handleXFRResponse(const struct timeval& now, TCPResponse&& response) override
+  {
+    return handleResponse(now, std::move(response));
+  }
+
+  void notifyIOError([[maybe_unused]] const struct timeval& now, [[maybe_unused]] TCPResponse&& response) override
+  {
+    // nothing to do
+  }
+};
+
+class UDPCrossProtocolQuery : public CrossProtocolQuery
+{
+public:
+  UDPCrossProtocolQuery(PacketBuffer&& buffer_, InternalQueryState&& ids_, std::shared_ptr<DownstreamState> backend) :
+    CrossProtocolQuery(InternalQuery(std::move(buffer_), std::move(ids_)), backend)
+  {
+    auto& ids = query.d_idstate;
+    const auto& buffer = query.d_buffer;
+
+    if (ids.udpPayloadSize == 0) {
+      uint16_t zValue = 0;
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+      getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(buffer.data()), buffer.size(), &ids.udpPayloadSize, &zValue);
+      if (!ids.dnssecOK) {
+        ids.dnssecOK = (zValue & EDNS_HEADER_FLAG_DO) != 0;
+      }
+      if (ids.udpPayloadSize < 512) {
+        ids.udpPayloadSize = 512;
+      }
+    }
+  }
+  UDPCrossProtocolQuery(const UDPCrossProtocolQuery&) = delete;
+  UDPCrossProtocolQuery& operator=(const UDPCrossProtocolQuery&) = delete;
+  UDPCrossProtocolQuery(UDPCrossProtocolQuery&&) = delete;
+  UDPCrossProtocolQuery& operator=(UDPCrossProtocolQuery&&) = delete;
+  ~UDPCrossProtocolQuery() override = default;
+
+  std::shared_ptr<TCPQuerySender> getTCPQuerySender() override
+  {
+    return s_sender;
+  }
+
+private:
+  static std::shared_ptr<UDPTCPCrossQuerySender> s_sender;
+};
+
+std::unique_ptr<CrossProtocolQuery> getUDPCrossProtocolQueryFromDQ(DNSQuestion& dnsQuestion);
+
 } // namespace dnsdist::udp

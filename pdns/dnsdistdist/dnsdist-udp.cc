@@ -149,4 +149,10 @@ void handleResponseForUDPClient(InternalQueryState& ids, PacketBuffer& response,
     handleResponseSent(ids, 0., dnsResponse.ids.origRemote, ComboAddress(), response.size(), cleartextDH, dnsdist::Protocol::DoUDP, false);
   }
 }
+
+std::unique_ptr<CrossProtocolQuery> getUDPCrossProtocolQueryFromDQ(DNSQuestion& dnsQuestion)
+{
+  dnsQuestion.ids.origID = dnsQuestion.getHeader()->id;
+  return std::make_unique<dnsdist::udp::UDPCrossProtocolQuery>(std::move(dnsQuestion.getMutableData()), std::move(dnsQuestion.ids), nullptr);
+}
 } // namespace dnsdist::udp
