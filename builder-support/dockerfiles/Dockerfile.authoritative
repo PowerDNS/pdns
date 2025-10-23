@@ -7,7 +7,7 @@ RUN apk add --no-cache gcc g++ make tar autoconf automake protobuf-dev lua-dev \
 
 # the pdns/ dir is a bit broad, but who cares :)
 ADD configure.ac Makefile.am COPYING INSTALL NOTICE README /pdns-authoritative/
-@EXEC sdist_dirs=(build-aux m4 pdns ext docs modules codedocs contrib regression-tests)
+@EXEC sdist_dirs=(build-aux m4 pdns ext docs modules codedocs contrib regression-tests auth/systemd meson meson.build meson_options.txt)
 @EXEC for d in ${sdist_dirs[@]} ; do echo "COPY $d/ /pdns-authoritative/$d/" ; done
 ADD builder/helpers/set-configure-ac-version.sh /pdns-authoritative/builder/helpers/
 ADD builder-support/gen-version /pdns-authoritative/builder-support/gen-version
