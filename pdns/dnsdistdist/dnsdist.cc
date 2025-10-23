@@ -551,68 +551,6 @@ void handleResponseSent(DNSName&& qname, const QType& qtype, double latencyUs, c
   dnsdist::metrics::doLatencyStats(incomingProtocol, latencyUs);
 }
 
-static void handleResponseForUDPClient(InternalQueryState& ids, PacketBuffer& response, const std::shared_ptr<DownstreamState>& backend, bool isAsync, bool selfGenerated)
-{
-  DNSResponse dnsResponse(ids, response, backend);
-
-  dnsdist::udp::handleResponseTC4UDPClient(dnsResponse, ids.udpPayloadSize, response);
-
-  /* when the answer is encrypted in place, we need to get a copy
-     of the original header before encryption to fill the ring buffer */
-  dnsheader cleartextDH{};
-  memcpy(&cleartextDH, dnsResponse.getHeader().get(), sizeof(cleartextDH));
-
-  if (!isAsync) {
-    if (!processResponse(response, dnsResponse, ids.cs != nullptr && ids.cs->muted)) {
-      return;
-    }
-
-    if (dnsResponse.isAsynchronous()) {
-      return;
-    }
-  }
-
-  ++dnsdist::metrics::g_stats.responses;
-  if (ids.cs != nullptr) {
-    ++ids.cs->responses;
-  }
-
-  bool muted = true;
-  if (ids.cs != nullptr && !ids.cs->muted && !ids.isXSK()) {
-    sendUDPResponse(ids.cs->udpFD, response, dnsResponse.ids.delayMsec, ids.hopLocal, ids.hopRemote);
-    muted = false;
-  }
-
-  if (!selfGenerated) {
-    auto latencyUs = ids.queryRealTime.udiff();
-    if (!muted) {
-      if (!ids.isXSK()) {
-        VERBOSESLOG(infolog("Got answer from %s, relayed to %s (UDP), took %d us", backend->d_config.remote.toStringWithPort(), ids.origRemote.toStringWithPort(), latencyUs),
-                    dnsResponse.getLogger()->withName("udp-response")->info(Logr::Info, "Got answer from backend, relayed to client"));
-      }
-      else {
-        VERBOSESLOG(infolog("Got answer from %s, relayed to %s (UDP via XSK), took %d us", backend->d_config.remote.toStringWithPort(), ids.origRemote.toStringWithPort(), latencyUs),
-                    dnsResponse.getLogger()->withName("udp-xsk-response")->info(Logr::Info, "Got answer from backend, relayed to client"));
-      }
-    }
-    else {
-      if (!ids.isXSK()) {
-        VERBOSESLOG(infolog("Got answer from %s, NOT relayed to %s (UDP) since that frontend is muted, took %d us", backend->d_config.remote.toStringWithPort(), ids.origRemote.toStringWithPort(), latencyUs),
-                    dnsResponse.getLogger()->withName("udp-response")->info(Logr::Info, "Got answer from backend, NOT relayed to client since that frontend is muted"));
-      }
-      else {
-        VERBOSESLOG(infolog("Got answer from %s, relayed to %s (UDP via XSK), took %d us", backend->d_config.remote.toStringWithPort(), ids.origRemote.toStringWithPort(), latencyUs),
-                    dnsResponse.getLogger()->withName("udp-xsk-response")->info(Logr::Info, "Got answer from backend, NOT relayed to client since that frontend is muted"));
-      }
-    }
-
-    handleResponseSent(ids, latencyUs, dnsResponse.ids.origRemote, backend->d_config.remote, response.size(), cleartextDH, backend->getProtocol(), true);
-  }
-  else {
-    handleResponseSent(ids, 0., dnsResponse.ids.origRemote, ComboAddress(), response.size(), cleartextDH, dnsdist::Protocol::DoUDP, false);
-  }
-}
-
 bool processResponderPacket(std::shared_ptr<DownstreamState>& dss, PacketBuffer& response, InternalQueryState&& ids)
 {
 
@@ -645,7 +583,7 @@ bool processResponderPacket(std::shared_ptr<DownstreamState>& dss, PacketBuffer&
     return false;
   }
 
-  handleResponseForUDPClient(ids, response, dss, false, false);
+  dnsdist::udp::handleResponseForUDPClient(ids, response, dss, false, false);
   return true;
 }
 
@@ -1634,7 +1572,7 @@ public:
 
     auto& ids = response.d_idstate;
 
-    handleResponseForUDPClient(ids, response.d_buffer, response.d_ds, response.isAsync(), response.d_idstate.selfGenerated);
+    dnsdist::udp::handleResponseForUDPClient(ids, response.d_buffer, response.d_ds, response.isAsync(), response.d_idstate.selfGenerated);
   }
 
   void handleXFRResponse(const struct timeval& now, TCPResponse&& response) override
