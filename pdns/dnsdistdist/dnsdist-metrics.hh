@@ -31,6 +31,7 @@
 
 #include "lock.hh"
 #include "stat_t.hh"
+#include "dnsdist-protocols.hh"
 
 namespace dnsdist::metrics
 {
@@ -101,6 +102,8 @@ struct Stats
 
   SharedLockGuarded<std::vector<EntryTriple>> entries;
 };
+
+void doLatencyStats(dnsdist::Protocol protocol, double udiff);
 
 extern struct Stats g_stats;
 }

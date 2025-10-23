@@ -61,6 +61,7 @@ namespace PacketMangling
   bool editDNSHeaderFromPacket(PacketBuffer& packet, const std::function<bool(dnsheader& header)>& editFunction);
   bool editDNSHeaderFromRawPacket(void* packet, const std::function<bool(dnsheader& header)>& editFunction);
   void restrictDNSPacketTTLs(PacketBuffer& packet, uint32_t minimumValue, uint32_t maximumValue = std::numeric_limits<uint32_t>::max(), const std::unordered_set<QType>& types = {});
+  void restoreFlags(struct dnsheader* dnsHeader, uint16_t origFlags);
 }
 
 namespace RecordParsers

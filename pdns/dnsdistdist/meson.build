@@ -187,6 +187,7 @@ common_sources += files(
   src_dir / 'dnsdist-systemd.cc',
   src_dir / 'dnsdist-tcp.cc',
   src_dir / 'dnsdist-tcp-downstream.cc',
+  src_dir / 'dnsdist-udp.cc',
   src_dir / 'dnsdist-web.cc',
   src_dir / 'dnsdist-xsk.cc',
   src_dir / 'dnsname.cc',
