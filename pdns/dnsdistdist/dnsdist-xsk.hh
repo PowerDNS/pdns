@@ -29,6 +29,7 @@ class XskSocket;
 class XskWorker;
 
 #include <memory>
+#include "dnsdist.hh"
 
 namespace dnsdist::xsk
 {
