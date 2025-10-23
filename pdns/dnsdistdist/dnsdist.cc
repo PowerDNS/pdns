@@ -144,7 +144,6 @@ struct DelayedPacket
 static std::unique_ptr<DelayPipe<DelayedPacket>> g_delay{nullptr};
 #endif /* DISABLE_DELAY_PIPE */
 
-
 bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const std::shared_ptr<DownstreamState>& remote, bool allowEmptyResponse)
 {
   if (response.size() < sizeof(dnsheader)) {
@@ -504,7 +503,6 @@ void handleResponseSent(const DNSName& qname, const QType& qtype, double udiff, 
 
   dnsdist::metrics::doLatencyStats(incomingProtocol, udiff);
 }
-
 
 bool processResponderPacket(std::shared_ptr<DownstreamState>& dss, PacketBuffer& response, InternalQueryState&& ids)
 {
