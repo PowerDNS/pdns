@@ -147,54 +147,6 @@ struct DelayedPacket
 static std::unique_ptr<DelayPipe<DelayedPacket>> g_delay{nullptr};
 #endif /* DISABLE_DELAY_PIPE */
 
-static void doLatencyStats(dnsdist::Protocol protocol, double latencyUs)
-{
-  constexpr auto doAvg = [](pdns::stat_double_t& var, double n, double weight) {
-    var.store((weight - 1) * var.load() / weight + n / weight);
-  };
-
-  if (protocol == dnsdist::Protocol::DoUDP || protocol == dnsdist::Protocol::DNSCryptUDP) {
-    if (latencyUs >= 0) {
-      dnsdist::metrics::updateLatencyHistogram(dnsdist::metrics::g_stats, static_cast<uint64_t>(latencyUs));
-    }
-
-    doAvg(dnsdist::metrics::g_stats.latencyAvg100, latencyUs, 100);
-    doAvg(dnsdist::metrics::g_stats.latencyAvg1000, latencyUs, 1000);
-    doAvg(dnsdist::metrics::g_stats.latencyAvg10000, latencyUs, 10000);
-    doAvg(dnsdist::metrics::g_stats.latencyAvg1000000, latencyUs, 1000000);
-  }
-  else if (protocol == dnsdist::Protocol::DoTCP || protocol == dnsdist::Protocol::DNSCryptTCP) {
-    doAvg(dnsdist::metrics::g_stats.latencyTCPAvg100, latencyUs, 100);
-    doAvg(dnsdist::metrics::g_stats.latencyTCPAvg1000, latencyUs, 1000);
-    doAvg(dnsdist::metrics::g_stats.latencyTCPAvg10000, latencyUs, 10000);
-    doAvg(dnsdist::metrics::g_stats.latencyTCPAvg1000000, latencyUs, 1000000);
-  }
-  else if (protocol == dnsdist::Protocol::DoT) {
-    doAvg(dnsdist::metrics::g_stats.latencyDoTAvg100, latencyUs, 100);
-    doAvg(dnsdist::metrics::g_stats.latencyDoTAvg1000, latencyUs, 1000);
-    doAvg(dnsdist::metrics::g_stats.latencyDoTAvg10000, latencyUs, 10000);
-    doAvg(dnsdist::metrics::g_stats.latencyDoTAvg1000000, latencyUs, 1000000);
-  }
-  else if (protocol == dnsdist::Protocol::DoH) {
-    doAvg(dnsdist::metrics::g_stats.latencyDoHAvg100, latencyUs, 100);
-    doAvg(dnsdist::metrics::g_stats.latencyDoHAvg1000, latencyUs, 1000);
-    doAvg(dnsdist::metrics::g_stats.latencyDoHAvg10000, latencyUs, 10000);
-    doAvg(dnsdist::metrics::g_stats.latencyDoHAvg1000000, latencyUs, 1000000);
-  }
-  else if (protocol == dnsdist::Protocol::DoQ) {
-    doAvg(dnsdist::metrics::g_stats.latencyDoQAvg100, latencyUs, 100);
-    doAvg(dnsdist::metrics::g_stats.latencyDoQAvg1000, latencyUs, 1000);
-    doAvg(dnsdist::metrics::g_stats.latencyDoQAvg10000, latencyUs, 10000);
-    doAvg(dnsdist::metrics::g_stats.latencyDoQAvg1000000, latencyUs, 1000000);
-  }
-  else if (protocol == dnsdist::Protocol::DoH3) {
-    doAvg(dnsdist::metrics::g_stats.latencyDoH3Avg100, latencyUs, 100);
-    doAvg(dnsdist::metrics::g_stats.latencyDoH3Avg1000, latencyUs, 1000);
-    doAvg(dnsdist::metrics::g_stats.latencyDoH3Avg10000, latencyUs, 10000);
-    doAvg(dnsdist::metrics::g_stats.latencyDoH3Avg1000000, latencyUs, 1000000);
-  }
-}
-
 bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const std::shared_ptr<DownstreamState>& remote, bool allowEmptyResponse)
 {
   if (response.size() < sizeof(dnsheader)) {
@@ -596,7 +548,7 @@ void handleResponseSent(DNSName&& qname, const QType& qtype, double latencyUs, c
     break;
   }
 
-  doLatencyStats(incomingProtocol, latencyUs);
+  dnsdist::metrics::doLatencyStats(incomingProtocol, latencyUs);
 }
 
 static void handleResponseTC4UDPClient(DNSQuestion& dnsQuestion, uint16_t udpPayloadSize, PacketBuffer& response)
