@@ -840,7 +840,7 @@ Regex::Regex(const string& expr):
 /** call this to find out if 'line' matches your expression */
 bool Regex::match(const string &line) const
 {
-  return regexec(d_preg.get(), line.c_str(), 0, 0, 0) == 0;
+  return regexec(d_preg.get(), line.c_str(), 0, nullptr, 0) == 0;
 }
 
 bool Regex::match(const DNSName& name) const
