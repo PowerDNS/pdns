@@ -995,21 +995,21 @@ void CommunicatorClass::suck(const ZoneName& domain, const ComboAddress& remote,
   }
   catch (DBException& re) {
     g_log << Logger::Error << logPrefix << "unable to feed record: " << re.reason << endl;
-    if (ctx.domain.backend != nullptr && transaction) {
+    if (transaction) {
       g_log << Logger::Info << logPrefix << "aborting possible open transaction" << endl;
       ctx.domain.backend->abortTransaction();
     }
   }
   catch (const MOADNSException& mde) {
     g_log << Logger::Error << logPrefix << "unable to parse record (MOADNSException): " << mde.what() << endl;
-    if (ctx.domain.backend != nullptr && transaction) {
+    if (transaction) {
       g_log << Logger::Info << logPrefix << "aborting possible open transaction" << endl;
       ctx.domain.backend->abortTransaction();
     }
   }
   catch (std::exception& re) {
     g_log << Logger::Error << logPrefix << "unable to xfr zone (std::exception): " << re.what() << endl;
-    if (ctx.domain.backend != nullptr && transaction) {
+    if (transaction) {
       g_log << Logger::Info << logPrefix << "aborting possible open transaction" << endl;
       ctx.domain.backend->abortTransaction();
     }
@@ -1022,14 +1022,14 @@ void CommunicatorClass::suck(const ZoneName& domain, const ComboAddress& remote,
       auto [newCount, nextCheck] = markAsFailed(domain);
       g_log << Logger::Warning << logPrefix << "unable to xfr zone (ResolverException): " << re.reason << " (This was attempt number " << newCount << ". Excluding zone from secondary-checks until " << humanTime(nextCheck) << ")" << endl;
     }
-    if (ctx.domain.backend != nullptr && transaction) {
+    if (transaction) {
       g_log << Logger::Info << "aborting possible open transaction" << endl;
       ctx.domain.backend->abortTransaction();
     }
   }
   catch (PDNSException& ae) {
     g_log << Logger::Error << logPrefix << "unable to xfr zone (PDNSException): " << ae.reason << endl;
-    if (ctx.domain.backend != nullptr && transaction) {
+    if (transaction) {
       g_log << Logger::Info << logPrefix << "aborting possible open transaction" << endl;
       ctx.domain.backend->abortTransaction();
     }
