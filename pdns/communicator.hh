@@ -150,7 +150,7 @@ private:
   d_nqueue_t d_nqueue;
 };
 
-struct ZoneStatus;
+struct XFRContext;
 
 /** this class contains a thread that communicates with other nameserver and does housekeeping.
     Initially, it is notified only of zones that need to be pulled in because they have been updated. */
@@ -190,11 +190,12 @@ private:
   LockGuarded<map<pair<ZoneName, string>, time_t>> d_holes;
 
   void suck(const ZoneName& domain, const ComboAddress& remote, bool force = false);
-  static void ixfrSuck(const ZoneName& domain, const TSIGTriplet& tsig, const ComboAddress& laddr, const ComboAddress& remote, ZoneStatus& status, vector<DNSRecord>* axfr);
+  static void ixfrSuck(const TSIGTriplet& tsig, const ComboAddress& laddr, XFRContext& ctx, vector<DNSRecord>* axfr);
 
   void secondaryRefresh(PacketHandler* P);
   void primaryUpdateCheck(PacketHandler* P);
   void getUpdatedProducers(UeberBackend* B, vector<DomainInfo>& domains, const std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes);
+  std::pair<uint64_t, time_t> markAsFailed(const ZoneName& domain);
 
   Semaphore d_suck_sem;
   Semaphore d_any_sem;
