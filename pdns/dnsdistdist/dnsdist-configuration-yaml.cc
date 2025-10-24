@@ -1239,6 +1239,9 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
   catch (const ::rust::Error& exp) {
     errlog("Error while parsing YAML file %s: %s", fileName, exp.what());
   }
+  catch (const PDNSException& exp) {
+    errlog("Error while processing YAML configuration from file %s: %s", fileName, exp.reason);
+  }
   catch (const std::exception& exp) {
     errlog("Error while processing YAML configuration from file %s: %s", fileName, exp.what());
   }
