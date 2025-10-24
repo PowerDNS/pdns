@@ -501,12 +501,18 @@ class RegexRule : public DNSRule
 {
 public:
   RegexRule(const std::string& regex) :
-    d_regex(regex), d_visual(regex)
+    d_visual(regex)
   {
+    try {
+      d_regex = Regex(regex);
+    }
+    catch (const PDNSException& exp) {
+      throw std::runtime_error("Error compiling expression in RegexRule: " + exp.reason);
+    }
   }
   bool matches(const DNSQuestion* dq) const override
   {
-    return d_regex.match(dq->ids.qname.toStringNoDot());
+    return d_regex->match(dq->ids.qname.toStringNoDot());
   }
 
   string toString() const override
@@ -515,7 +521,7 @@ public:
   }
 
 private:
-  Regex d_regex;
+  std::optional<Regex> d_regex{std::nullopt};
   string d_visual;
 };
 
@@ -571,7 +577,7 @@ public:
 
 private:
   string d_header;
-  Regex d_regex;
+  std::optional<Regex> d_regex{std::nullopt};
   string d_visual;
 };
 
@@ -594,7 +600,7 @@ public:
   string toString() const override;
 
 private:
-  Regex d_regex;
+  std::optional<Regex> d_regex{std::nullopt};
   std::string d_visual;
 };
 
