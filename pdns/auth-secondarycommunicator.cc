@@ -1016,18 +1016,10 @@ void CommunicatorClass::suck(const ZoneName& domain, const ComboAddress& remote,
   }
   catch (ResolverException& re) {
     {
-      auto data = d_data.lock();
       // The AXFR probably failed due to a problem on the primary server. If SOA-checks against this primary
       // still succeed, we would constantly try to AXFR the zone. To avoid this, we add the zone to the list of
       // failed secondary-checks. This will suspend secondary-checks (and subsequent AXFR) for this zone for some time.
-      uint64_t newCount = 1;
-      time_t now = time(nullptr);
-      const auto failedEntry = data->d_failedSecondaryRefresh.find(domain);
-      if (failedEntry != data->d_failedSecondaryRefresh.end()) {
-        newCount = data->d_failedSecondaryRefresh[domain].first + 1;
-      }
-      time_t nextCheck = now + std::min(newCount * d_tickinterval, (uint64_t)::arg().asNum("default-ttl")); // NOLINT(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
-      data->d_failedSecondaryRefresh[domain] = {newCount, nextCheck};
+      auto [newCount, nextCheck] = markAsFailed(domain);
       g_log << Logger::Warning << logPrefix << "unable to xfr zone (ResolverException): " << re.reason << " (This was attempt number " << newCount << ". Excluding zone from secondary-checks until " << humanTime(nextCheck) << ")" << endl;
     }
     if (ctx.domain.backend != nullptr && transaction) {
@@ -1308,14 +1300,7 @@ void CommunicatorClass::secondaryRefresh(PacketHandler* P) // NOLINT(readability
     }
 
     if (ssr.d_freshness.count(di.id) == 0) { // If we don't have an answer for the domain
-      uint64_t newCount = 1;
-      auto data = d_data.lock();
-      const auto failedEntry = data->d_failedSecondaryRefresh.find(di.zone);
-      if (failedEntry != data->d_failedSecondaryRefresh.end()) {
-        newCount = data->d_failedSecondaryRefresh[di.zone].first + 1;
-      }
-      time_t nextCheck = now + std::min(newCount * d_tickinterval, (uint64_t)::arg().asNum("default-ttl")); // NOLINT(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
-      data->d_failedSecondaryRefresh[di.zone] = {newCount, nextCheck};
+      auto [newCount, nextCheck] = markAsFailed(di.zone);
       if (newCount == 1) {
         g_log << Logger::Warning << "Unable to retrieve SOA for " << di.zone << ", this was the first time. NOTE: For every subsequent failed SOA check the domain will be suspended from freshness checks for 'num-errors x " << d_tickinterval << " seconds', with a maximum of " << (uint64_t)::arg().asNum("default-ttl") << " seconds. Skipping SOA checks until " << humanTime(nextCheck) << endl;
       }
@@ -1436,4 +1421,18 @@ vector<pair<ZoneName, ComboAddress>> CommunicatorClass::getSuckRequests()
 size_t CommunicatorClass::getSuckRequestsWaiting()
 {
   return d_data.lock()->d_suckdomains.size();
+}
+
+std::pair<uint64_t, time_t> CommunicatorClass::markAsFailed(const ZoneName& domain)
+{
+  uint64_t newCount = 1;
+  auto data = d_data.lock();
+  time_t now = time(nullptr);
+  const auto failedEntry = data->d_failedSecondaryRefresh.find(domain);
+  if (failedEntry != data->d_failedSecondaryRefresh.end()) {
+    newCount = data->d_failedSecondaryRefresh[domain].first + 1;
+  }
+  time_t nextCheck = now + std::min(newCount * d_tickinterval, (uint64_t)::arg().asNum("default-ttl")); // NOLINT(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
+  data->d_failedSecondaryRefresh[domain] = {newCount, nextCheck};
+  return std::make_pair(newCount, nextCheck);
 }

@@ -195,6 +195,7 @@ private:
   void secondaryRefresh(PacketHandler* P);
   void primaryUpdateCheck(PacketHandler* P);
   void getUpdatedProducers(UeberBackend* B, vector<DomainInfo>& domains, const std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes);
+  std::pair<uint64_t, time_t> markAsFailed(const ZoneName& domain);
 
   Semaphore d_suck_sem;
   Semaphore d_any_sem;
