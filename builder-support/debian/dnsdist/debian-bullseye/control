@@ -4,7 +4,7 @@ Priority: optional
 Maintainer: PowerDNS.COM BV <powerdns.support.sales@powerdns.com>
 Uploaders: PowerDNS.COM BV <powerdns.support.sales@powerdns.com>
 Build-Depends: debhelper (>= 10),
-               clang,
+               clang (>= 19),
                libboost-all-dev,
                libcap-dev,
                libcdb-dev,
