@@ -825,10 +825,15 @@ bool readFileIfThere(const char* fname, std::string* line)
   return stringfgets(filePtr.get(), *line);
 }
 
-Regex::Regex(const string &expr)
+Regex::Regex(const string& expr)
 {
-  if(regcomp(&d_preg, expr.c_str(), REG_ICASE|REG_NOSUB|REG_EXTENDED))
-    throw PDNSException("Regular expression did not compile");
+  if (auto ret = regcomp(&d_preg, expr.c_str(), REG_ICASE|REG_NOSUB|REG_EXTENDED); ret != 0) {
+    std::array<char, 1024> errorBuffer{};
+    if (regerror(ret, &d_preg, errorBuffer.data(), errorBuffer.size()) > 0) {
+      throw PDNSException("Regular expression " + expr + " did not compile: " + errorBuffer.data());
+    }
+    throw PDNSException("Regular expression " + expr + " did not compile");
+  }
 }
 
 // if you end up here because valgrind told you were are doing something wrong
