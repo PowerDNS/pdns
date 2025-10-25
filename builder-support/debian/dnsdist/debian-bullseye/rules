@@ -38,8 +38,8 @@ override_dh_auto_clean:
 
 override_dh_auto_configure:
 	LDFLAGS="-latomic -fuse-ld=lld -Wl,--build-id=sha1" \
-	CC=clang \
-	CXX=clang++ \
+	CC=clang-19 \
+	CXX=clang++-19 \
 	PKG_CONFIG_PATH=/opt/lib/pkgconfig dh_auto_configure -- \
 	  --sysconfdir=/etc/dnsdist \
 	  -Dunit-tests=true \
