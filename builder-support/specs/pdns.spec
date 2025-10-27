@@ -20,7 +20,8 @@ BuildRequires: systemd-devel
 BuildRequires: krb5-devel
 BuildRequires: p11-kit-devel
 BuildRequires: libcurl-devel
-%if 0%{?rhel} == 8
+# Only when we move to C++20
+%if 0%{?rhel} == 8 && 0
 BuildRequires: boost1.78-devel
 %else
 BuildRequires: boost-devel
@@ -176,7 +177,8 @@ This package contains the ixfrdist program.
 %autosetup -p1 -n %{name}-%{getenv:BUILDER_VERSION}
 
 %build
-%if 0%{?rhel} == 8
+# Only when we move to C++20
+%if 0%{?rhel} == 8 && 0
 export BOOST_INCLUDEDIR=/usr/include/boost1.78
 export BOOST_LIBRARYDIR=/usr/lib64/boost1.78
 export CPPFLAGS=-I$BOOST_INCLUDEDIR
