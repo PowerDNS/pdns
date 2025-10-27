@@ -372,7 +372,7 @@ jobs:
           persist-credentials: false
       - run: echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: pdns-auth-meson-${{ env.normalized-branch-name }}
           path: /opt/pdns-auth
@@ -504,7 +504,7 @@ jobs:
           persist-credentials: false
       - run: echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: pdns-auth-meson-${{ env.normalized-branch-name }}
           path: /opt/pdns-auth
@@ -548,7 +548,7 @@ jobs:
           persist-credentials: false
       - run: echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: pdns-auth-meson-${{ env.normalized-branch-name }}
           path: /opt/pdns-auth
@@ -598,7 +598,7 @@ jobs:
           persist-credentials: false
       - run: echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: pdns-recursor-full-${{ matrix.sanitizers }}-meson-${{ env.normalized-branch-name }}
           path: /opt/pdns-recursor
@@ -652,7 +652,7 @@ jobs:
           persist-credentials: false
       - run: echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: pdns-recursor-full-${{ matrix.sanitizers }}-meson-${{ env.normalized-branch-name }}
           path: /opt/pdns-recursor
@@ -707,7 +707,7 @@ jobs:
           persist-credentials: false
       - run: echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: pdns-recursor-full-${{ matrix.sanitizers }}-meson-${{ env.normalized-branch-name }}
           path: /opt/pdns-recursor
@@ -753,7 +753,7 @@ jobs:
           persist-credentials: false
       - run: echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: pdns-recursor-full-${{ matrix.sanitizers }}-meson-${{ env.normalized-branch-name }}
           path: /opt/pdns-recursor
@@ -814,7 +814,7 @@ jobs:
           persist-credentials: false
       - run: echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: dnsdist-full-${{ matrix.sanitizers }}-meson-${{ env.normalized-branch-name }}
           path: /opt/dnsdist
