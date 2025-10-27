@@ -430,6 +430,25 @@ void RecursorLua4::postPrepareContext() // NOLINT(readability-function-cognitive
 
   d_pd.emplace_back("now", &g_now);
 
+  d_lw->writeFunction("initMetric", [](const std::string& str, const std::string& maybePrometheusName, const std::string& maybePrometheusTypeName, boost::optional<std::string> maybeDescr){
+    // Shift arguments, because it's actually the second `prometheusName` argument which is optional
+    // to match the optional `prometheusName` in `getMetric`.
+    std::string prometheusName;
+    std::string prometheusTypeName;
+    std::string prometheusDescr;
+    if (maybeDescr) {
+      prometheusName = maybePrometheusName;
+      prometheusTypeName = maybePrometheusTypeName;
+      prometheusDescr = *maybeDescr;
+    } else {
+      prometheusDescr = prometheusTypeName;
+      prometheusTypeName = prometheusName;
+      prometheusName = "";
+    }
+
+    return DynMetric{initDynMetric(str, prometheusName, prometheusTypeName, prometheusDescr)};
+  });
+
   d_lw->writeFunction("getMetric", [](const std::string& str, boost::optional<std::string> prometheusName) {
     return DynMetric{getDynMetric(str, prometheusName ? *prometheusName : "")};
     });

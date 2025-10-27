@@ -104,6 +104,8 @@ struct StatsMapEntry
 {
   std::string d_prometheusName;
   std::string d_value;
+  std::optional<std::string> d_prometheusTypeName = std::nullopt;
+  std::optional<std::string> d_prometheusDescr = std::nullopt;
 };
 
 class PrefixDashNumberCompare
@@ -139,6 +141,7 @@ std::vector<ComboAddress>* pleaseGetLargeAnswerRemotes();
 std::vector<ComboAddress>* pleaseGetTimeouts();
 DNSName getRegisteredName(const DNSName& dom);
 std::atomic<unsigned long>* getDynMetric(const std::string& str, const std::string& prometheusName);
+std::atomic<unsigned long>* initDynMetric(const std::string& str, const std::string& prometheusName, const std::string& prometheusTypeName, const std::string& prometheusDescr);
 std::optional<uint64_t> getStatByName(const std::string& name);
 bool isStatDisabled(StatComponent component, const std::string& name);
 void disableStat(StatComponent component, const string& name);
