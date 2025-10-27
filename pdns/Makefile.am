@@ -204,6 +204,7 @@ pdns_server_SOURCES = \
 	bindparser.cc \
 	burtle.hh \
 	cachecleaner.hh \
+	check-zone.cc check-zone.hh \
 	circular_buffer.hh \
 	comment.hh \
 	communicator.cc communicator.hh \
@@ -344,6 +345,7 @@ pdnsutil_SOURCES = \
 	bindlexer.l \
 	bindparser.yy \
 	cachecleaner.hh \
+	check-zone.cc check-zone.hh \
 	circular_buffer.hh \
 	credentials.cc credentials.hh \
 	dbdnsseckeeper.cc \
