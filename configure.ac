@@ -35,7 +35,7 @@ PDNS_CHECK_FLEX
 # Warn when pkg.m4 is missing
 m4_pattern_forbid([^_?PKG_[A-Z_]+$], [*** pkg.m4 missing, please install pkg-config])
 
-AX_CXX_COMPILE_STDCXX_20([ext], [mandatory])
+AX_CXX_COMPILE_STDCXX_17([noext], [mandatory])
 LT_PREREQ([2.2.2])
 LT_INIT([disable-static dlopen])
 

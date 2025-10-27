@@ -19,7 +19,8 @@ BuildRequires: systemd-units
 BuildRequires: systemd-devel
 %endif
 
-%if 0%{?rhel} == 8
+# Only when we move to C++20
+%if 0%{?rhel} == 8 && 0
 BuildRequires: boost1.78-devel
 %else
 BuildRequires: boost-devel
@@ -74,7 +75,8 @@ dnsdist is a high-performance DNS loadbalancer that is scriptable in Lua.
 
 %build
 # We need to build with LLVM/clang to be able to use LTO, since we are linking against a static Rust library built with LLVM
-%if 0%{?rhel} == 8
+# Only when we move to C++20
+%if 0%{?rhel} == 8 && 0
 export BOOST_INCLUDEDIR=/usr/include/boost1.78
 export BOOST_LIBRARYDIR=/usr/lib64/boost1.78
 %endif
