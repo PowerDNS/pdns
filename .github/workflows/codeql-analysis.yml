@@ -67,7 +67,7 @@ jobs:
         # a pull request then we can checkout the head.
         fetch-depth: 2
         persist-credentials: false
-    - uses: actions/setup-python@v5
+    - uses: actions/setup-python@v6
       with:
         python-version: '3.11'
 
