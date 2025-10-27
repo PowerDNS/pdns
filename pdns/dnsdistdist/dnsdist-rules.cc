@@ -25,10 +25,17 @@ std::atomic<uint64_t> LuaFFIPerThreadRule::s_functionsCounter = 0;
 thread_local std::map<uint64_t, LuaFFIPerThreadRule::PerThreadState> LuaFFIPerThreadRule::t_perThreadStates;
 
 HTTPHeaderRule::HTTPHeaderRule(const std::string& header, const std::string& regex) :
-  d_header(toLower(header)), d_regex(regex), d_visual("http[" + header + "] ~ " + regex)
+  d_header(toLower(header)), d_visual("http[" + header + "] ~ " + regex)
 {
 #if !defined(HAVE_DNS_OVER_HTTPS) && !defined(HAVE_DNS_OVER_HTTP3)
   throw std::runtime_error("Using HTTPHeaderRule while DoH support is not enabled");
+#else
+  try {
+    d_regex = Regex(regex);
+  }
+  catch (const PDNSException& exp) {
+    throw std::runtime_error("Error compiling expression in HTTPHeaderRule: " + exp.reason);
+  }
 #endif /* HAVE_DNS_OVER_HTTPS || HAVE_DNS_OVER_HTTP3 */
 }
 
@@ -39,7 +46,7 @@ bool HTTPHeaderRule::matches([[maybe_unused]] const DNSQuestion* dnsQuestion) co
     const auto& headers = dnsQuestion->ids.du->getHTTPHeaders();
     for (const auto& header : headers) {
       if (header.first == d_header) {
-        return d_regex.match(header.second);
+        return d_regex->match(header.second);
       }
     }
     return false;
@@ -50,7 +57,7 @@ bool HTTPHeaderRule::matches([[maybe_unused]] const DNSQuestion* dnsQuestion) co
     const auto& headers = dnsQuestion->ids.doh3u->getHTTPHeaders();
     for (const auto& header : headers) {
       if (header.first == d_header) {
-        return d_regex.match(header.second);
+        return d_regex->match(header.second);
       }
     }
     return false;
@@ -94,10 +101,17 @@ string HTTPPathRule::toString() const
 }
 
 HTTPPathRegexRule::HTTPPathRegexRule(const std::string& regex) :
-  d_regex(regex), d_visual("http path ~ " + regex)
+  d_visual("http path ~ " + regex)
 {
 #if !defined(HAVE_DNS_OVER_HTTPS) && !defined(HAVE_DNS_OVER_HTTP3)
   throw std::runtime_error("Using HTTPRegexRule while DoH support is not enabled");
+#else
+  try {
+    d_regex = Regex(regex);
+  }
+  catch (const PDNSException& exp) {
+    throw std::runtime_error("Error compiling expression in HTTPPathRegexRule: " + exp.reason);
+  }
 #endif /* HAVE_DNS_OVER_HTTPS || HAVE_DNS_OVER_HTTP3 */
 }
 
@@ -106,12 +120,12 @@ bool HTTPPathRegexRule::matches([[maybe_unused]] const DNSQuestion* dnsQuestion)
 #if defined(HAVE_DNS_OVER_HTTPS)
   if (dnsQuestion->ids.du) {
     const auto path = dnsQuestion->ids.du->getHTTPPath();
-    return d_regex.match(path);
+    return d_regex->match(path);
   }
 #endif /* HAVE_DNS_OVER_HTTPS */
 #if defined(HAVE_DNS_OVER_HTTP3)
   if (dnsQuestion->ids.doh3u) {
-    return d_regex.match(dnsQuestion->ids.doh3u->getHTTPPath());
+    return d_regex->match(dnsQuestion->ids.doh3u->getHTTPPath());
   }
   return false;
 #endif /* HAVE_DNS_OVER_HTTP3 */
