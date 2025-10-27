@@ -31,8 +31,9 @@ extern AuthQueryCache QC;
 uint64_t purgeAuthCaches()
 {
   uint64_t ret = 0;
-  ret += PC.purge();
+  /* Clean query cache before packet cache to avoid potential race condition */
   ret += QC.purge();
+  ret += PC.purge();
   return ret;
 }
 
@@ -40,8 +41,9 @@ uint64_t purgeAuthCaches()
 uint64_t purgeAuthCaches(const std::string& match)
 {
   uint64_t ret = 0;
-  ret += PC.purge(match);
+  /* Clean query cache before packet cache to avoid potential race condition */
   ret += QC.purge(match);
+  ret += PC.purge(match);
   return ret;
 }
 
@@ -49,8 +51,9 @@ uint64_t purgeAuthCaches(const std::string& match)
 uint64_t purgeAuthCachesExact(const DNSName& qname)
 {
   uint64_t ret = 0;
-  ret += PC.purgeExact(qname);
+  /* Clean query cache before packet cache to avoid potential race condition */
   ret += QC.purgeExact(qname);
+  ret += PC.purgeExact(qname);
   return ret;
 }
 
