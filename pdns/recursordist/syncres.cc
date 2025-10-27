@@ -2498,9 +2498,11 @@ bool SyncRes::doCNAMECacheCheck(const DNSName& qname, const QType qtype, vector<
   if (d_serveStale) {
     flags |= MemRecursorCache::ServeStale;
   }
-  if (g_recCache->get(d_now.tv_sec, qname, QType::CNAME, flags, &cset, d_cacheRemote, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &context.state, &wasAuth, &authZone, &d_fromAuthIP) > 0) {
+  MemRecursorCache::Extra extra;
+  if (g_recCache->get(d_now.tv_sec, qname, QType::CNAME, flags, &cset, d_cacheRemote, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &context.state, &wasAuth, &authZone, &extra) > 0) {
     foundName = qname;
     foundQT = QType::CNAME;
+    d_fromAuthIP = extra.d_address;
   }
 
   if (foundName.empty() && qname != g_rootdnsname) {
@@ -2514,9 +2516,10 @@ bool SyncRes::doCNAMECacheCheck(const DNSName& qname, const QType qtype, vector<
       if (dnameName == qname && qtype != QType::DNAME) { // The client does not want a DNAME, but we've reached the QNAME already. So there is no match
         break;
       }
-      if (g_recCache->get(d_now.tv_sec, dnameName, QType::DNAME, flags, &cset, d_cacheRemote, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &context.state, &wasAuth, &authZone, &d_fromAuthIP) > 0) {
+      if (g_recCache->get(d_now.tv_sec, dnameName, QType::DNAME, flags, &cset, d_cacheRemote, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &context.state, &wasAuth, &authZone, &extra) > 0) {
         foundName = std::move(dnameName);
         foundQT = QType::DNAME;
+        d_fromAuthIP = extra.d_address;
         break;
       }
     } while (!labels.empty());
@@ -2938,7 +2941,10 @@ bool SyncRes::doCacheCheck(const DNSName& qname, const DNSName& authname, bool w
   if (d_refresh) {
     flags |= MemRecursorCache::Refresh;
   }
-  if (g_recCache->get(d_now.tv_sec, sqname, sqt, flags, &cset, d_cacheRemote, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &cachedState, &wasCachedAuth, nullptr, &d_fromAuthIP) > 0) {
+
+  MemRecursorCache::Extra extra;
+  if (g_recCache->get(d_now.tv_sec, sqname, sqt, flags, &cset, d_cacheRemote, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &cachedState, &wasCachedAuth, nullptr, &extra) > 0) {
+    d_fromAuthIP = extra.d_address;
 
     LOG(prefix << sqname << ": Found cache hit for " << sqt.toString() << ": ");
 
@@ -4821,7 +4827,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
             thisRRNeedsWildcardProof = true;
           }
         }
-        g_recCache->replace(d_now.tv_sec, tCacheEntry->first.name, tCacheEntry->first.type, tCacheEntry->second.records, tCacheEntry->second.signatures, thisRRNeedsWildcardProof ? authorityRecs : *MemRecursorCache::s_emptyAuthRecs, tCacheEntry->first.type == QType::DS ? true : isAA, auth, tCacheEntry->first.place == DNSResourceRecord::ANSWER ? ednsmask : boost::none, d_routingTag, recordState, remoteIP, overTCP, d_refresh, tCacheEntry->second.d_ttl_time);
+        g_recCache->replace(d_now.tv_sec, tCacheEntry->first.name, tCacheEntry->first.type, tCacheEntry->second.records, tCacheEntry->second.signatures, thisRRNeedsWildcardProof ? authorityRecs : *MemRecursorCache::s_emptyAuthRecs, tCacheEntry->first.type == QType::DS ? true : isAA, auth, tCacheEntry->first.place == DNSResourceRecord::ANSWER ? ednsmask : boost::none, d_routingTag, recordState, MemRecursorCache::Extra{remoteIP, overTCP}, d_refresh, tCacheEntry->second.d_ttl_time);
 
         // Delete potential negcache entry. When a record recovers with serve-stale the negcache entry can cause the wrong entry to
         // be served, as negcache entries are checked before record cache entries
@@ -4846,7 +4852,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
               content.push_back(std::move(nonExpandedRecord));
             }
 
-            g_recCache->replace(d_now.tv_sec, realOwner, QType(tCacheEntry->first.type), content, tCacheEntry->second.signatures, /* no additional records in that case */ {}, tCacheEntry->first.type == QType::DS ? true : isAA, auth, boost::none, boost::none, recordState, remoteIP, overTCP, d_refresh, tCacheEntry->second.d_ttl_time);
+            g_recCache->replace(d_now.tv_sec, realOwner, QType(tCacheEntry->first.type), content, tCacheEntry->second.signatures, /* no additional records in that case */ {}, tCacheEntry->first.type == QType::DS ? true : isAA, auth, boost::none, boost::none, recordState, MemRecursorCache::Extra{remoteIP, overTCP}, d_refresh, tCacheEntry->second.d_ttl_time);
           }
         }
       }

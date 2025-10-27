@@ -207,7 +207,7 @@ static void ptrAssign(T* ptr, const T& value)
   }
 }
 
-time_t MemRecursorCache::handleHit(time_t now, MapCombo::LockedContent& content, OrderedTagIterator_t& entry, const DNSName& qname, uint32_t& origTTL, vector<DNSRecord>* res, SigRecs* signatures, AuthRecs* authorityRecs, bool* variable, boost::optional<vState>& state, bool* wasAuth, DNSName* fromAuthZone, ComboAddress* fromAuthIP, bool* tcp)
+time_t MemRecursorCache::handleHit(time_t now, MapCombo::LockedContent& content, OrderedTagIterator_t& entry, const DNSName& qname, uint32_t& origTTL, vector<DNSRecord>* res, SigRecs* signatures, AuthRecs* authorityRecs, bool* variable, boost::optional<vState>& state, bool* wasAuth, DNSName* fromAuthZone, Extra* extra)
 {
   // MUTEX SHOULD BE ACQUIRED (as indicated by the reference to the content which is protected by a lock)
   if (entry->d_tooBig) {
@@ -269,8 +269,10 @@ time_t MemRecursorCache::handleHit(time_t now, MapCombo::LockedContent& content,
     *wasAuth = *wasAuth && entry->d_auth;
   }
   ptrAssign(fromAuthZone, entry->d_authZone);
-  ptrAssign(fromAuthIP, entry->d_from);
-  ptrAssign(tcp, entry->d_tcp);
+  if (extra != nullptr) {
+    extra->d_address = entry->d_from;
+    extra->d_tcp = entry->d_tcp;
+  }
 
   moveCacheItemToBack<SequencedTag>(content.d_map, entry);
 
@@ -428,7 +430,7 @@ time_t MemRecursorCache::fakeTTD(MemRecursorCache::OrderedTagIterator_t& entry, 
 }
 
 // returns -1 for no hits
-time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qtype, Flags flags, vector<DNSRecord>* res, const ComboAddress& who, const OptTag& routingTag, SigRecs* signatures, AuthRecs* authorityRecs, bool* variable, vState* state, bool* wasAuth, DNSName* fromAuthZone, ComboAddress* fromAuthIP, bool* tcp) // NOLINT(readability-function-cognitive-complexity)
+time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qtype, Flags flags, vector<DNSRecord>* res, const ComboAddress& who, const OptTag& routingTag, SigRecs* signatures, AuthRecs* authorityRecs, bool* variable, vState* state, bool* wasAuth, DNSName* fromAuthZone, Extra* extra) // NOLINT(readability-function-cognitive-complexity)
 {
   bool requireAuth = (flags & RequireAuth) != 0;
   bool refresh = (flags & Refresh) != 0;
@@ -456,11 +458,11 @@ time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qtype
 
       auto entryA = getEntryUsingECSIndex(*lockedShard, now, qname, QType::A, requireAuth, who, serveStale);
       if (entryA != lockedShard->d_map.end()) {
-        ret = handleHit(now, *lockedShard, entryA, qname, origTTL, res, signatures, authorityRecs, variable, cachedState, wasAuth, fromAuthZone, fromAuthIP, tcp);
+        ret = handleHit(now, *lockedShard, entryA, qname, origTTL, res, signatures, authorityRecs, variable, cachedState, wasAuth, fromAuthZone, extra);
       }
       auto entryAAAA = getEntryUsingECSIndex(*lockedShard, now, qname, QType::AAAA, requireAuth, who, serveStale);
       if (entryAAAA != lockedShard->d_map.end()) {
-        time_t ttdAAAA = handleHit(now, *lockedShard, entryAAAA, qname, origTTL, res, signatures, authorityRecs, variable, cachedState, wasAuth, fromAuthZone, fromAuthIP, tcp);
+        time_t ttdAAAA = handleHit(now, *lockedShard, entryAAAA, qname, origTTL, res, signatures, authorityRecs, variable, cachedState, wasAuth, fromAuthZone, extra);
         if (ret > 0) {
           ret = std::min(ret, ttdAAAA);
         }
@@ -477,7 +479,7 @@ time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qtype
     }
     auto entry = getEntryUsingECSIndex(*lockedShard, now, qname, qtype, requireAuth, who, serveStale);
     if (entry != lockedShard->d_map.end()) {
-      time_t ret = handleHit(now, *lockedShard, entry, qname, origTTL, res, signatures, authorityRecs, variable, cachedState, wasAuth, fromAuthZone, fromAuthIP, tcp);
+      time_t ret = handleHit(now, *lockedShard, entry, qname, origTTL, res, signatures, authorityRecs, variable, cachedState, wasAuth, fromAuthZone, extra);
       if (cachedState && ret > now) {
         ptrAssign(state, *cachedState);
       }
@@ -509,7 +511,7 @@ time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qtype
 
         handleServeStaleBookkeeping(now, serveStale, firstIndexIterator);
 
-        ttd = handleHit(now, *lockedShard, firstIndexIterator, qname, origTTL, res, signatures, authorityRecs, variable, cachedState, wasAuth, fromAuthZone, fromAuthIP, tcp);
+        ttd = handleHit(now, *lockedShard, firstIndexIterator, qname, origTTL, res, signatures, authorityRecs, variable, cachedState, wasAuth, fromAuthZone, extra);
 
         if (qtype == QType::ADDR && found == 2) {
           break;
@@ -551,7 +553,7 @@ time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qtype
 
       handleServeStaleBookkeeping(now, serveStale, firstIndexIterator);
 
-      ttd = handleHit(now, *lockedShard, firstIndexIterator, qname, origTTL, res, signatures, authorityRecs, variable, cachedState, wasAuth, fromAuthZone, fromAuthIP, tcp);
+      ttd = handleHit(now, *lockedShard, firstIndexIterator, qname, origTTL, res, signatures, authorityRecs, variable, cachedState, wasAuth, fromAuthZone, extra);
 
       if (qtype == QType::ADDR && found == 2) {
         break;
@@ -631,14 +633,16 @@ bool MemRecursorCache::replace(CacheEntry&& entry)
   return false;
 }
 
-void MemRecursorCache::replace(time_t now, const DNSName& qname, const QType qtype, const vector<DNSRecord>& content, const SigRecsVec& signatures, const AuthRecsVec& authorityRecs, bool auth, const DNSName& authZone, boost::optional<Netmask> ednsmask, const OptTag& routingTag, vState state, boost::optional<ComboAddress> from, bool overTCP, bool refresh, time_t ttl_time)
+void MemRecursorCache::replace(time_t now, const DNSName& qname, const QType qtype, const vector<DNSRecord>& content, const SigRecsVec& signatures, const AuthRecsVec& authorityRecs, bool auth, const DNSName& authZone, const boost::optional<Netmask>& ednsmaskArg, const OptTag& routingTag, vState state, const boost::optional<Extra>& extra, bool refresh, time_t ttl_time)
 {
   auto& shard = getMap(qname);
   auto lockedShard = shard.lock();
 
   lockedShard->d_cachecachevalid = false;
-  if (ednsmask) {
-    ednsmask = ednsmask->getNormalized();
+
+  boost::optional<Netmask> ednsmask;
+  if (ednsmaskArg) {
+    ednsmask = ednsmaskArg->getNormalized();
   }
 
   // We only store with a tag if we have an ednsmask and the tag is available
@@ -705,11 +709,13 @@ void MemRecursorCache::replace(time_t now, const DNSName& qname, const QType qty
   }
   cacheEntry.d_records.clear();
   cacheEntry.d_authZone = authZone;
-  if (from) {
-    cacheEntry.d_from = *from;
+  if (extra) {
+    cacheEntry.d_from = extra->d_address;
+    cacheEntry.d_tcp = extra->d_tcp;
   }
   else {
     cacheEntry.d_from = ComboAddress();
+    cacheEntry.d_tcp = false;
   }
 
   size_t toStore = content.size();
@@ -745,7 +751,6 @@ void MemRecursorCache::replace(time_t now, const DNSName& qname, const QType qty
   }
   cacheEntry.d_submitted = false;
   cacheEntry.d_servedStale = 0;
-  cacheEntry.d_tcp = overTCP;
   lockedShard->d_map.replace(stored, cacheEntry);
 }
 

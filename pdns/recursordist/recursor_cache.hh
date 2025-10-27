@@ -96,9 +96,15 @@ public:
   using SigRecs = std::shared_ptr<const SigRecsVec>; // Also const as it is shared
   const static SigRecs s_emptySigRecs;
 
-  [[nodiscard]] time_t get(time_t, const DNSName& qname, QType qtype, Flags flags, vector<DNSRecord>* res, const ComboAddress& who, const OptTag& routingTag = boost::none, SigRecs* signatures = nullptr, AuthRecs* authorityRecs = nullptr, bool* variable = nullptr, vState* state = nullptr, bool* wasAuth = nullptr, DNSName* fromAuthZone = nullptr, ComboAddress* fromAuthIP = nullptr, bool *tcp = nullptr);
+  struct Extra
+  {
+    ComboAddress d_address;
+    bool d_tcp{false};
+  };
 
-  void replace(time_t, const DNSName& qname, QType qtype, const vector<DNSRecord>& content, const SigRecsVec& signatures, const AuthRecsVec& authorityRecs, bool auth, const DNSName& authZone, boost::optional<Netmask> ednsmask = boost::none, const OptTag& routingTag = boost::none, vState state = vState::Indeterminate, boost::optional<ComboAddress> from = boost::none, bool overTCP = false, bool refresh = false, time_t ttl_time = time(nullptr));
+  [[nodiscard]] time_t get(time_t, const DNSName& qname, QType qtype, Flags flags, vector<DNSRecord>* res, const ComboAddress& who, const OptTag& routingTag = boost::none, SigRecs* signatures = nullptr, AuthRecs* authorityRecs = nullptr, bool* variable = nullptr, vState* state = nullptr, bool* wasAuth = nullptr, DNSName* fromAuthZone = nullptr, Extra* extra = nullptr);
+
+  void replace(time_t, const DNSName& qname, QType qtype, const vector<DNSRecord>& content, const SigRecsVec& signatures, const AuthRecsVec& authorityRecs, bool auth, const DNSName& authZone, const boost::optional<Netmask>& ednsmask = boost::none, const OptTag& routingTag = boost::none, vState state = vState::Indeterminate, const boost::optional<Extra>& extra = boost::none, bool refresh = false, time_t ttl_time = time(nullptr));
 
   void doPrune(time_t now, size_t keep);
   uint64_t doDump(int fileDesc, size_t maxCacheEntries);
@@ -379,7 +385,7 @@ private:
   static Entries getEntries(MapCombo::LockedContent& map, const DNSName& qname, QType qtype, const OptTag& rtag);
   static cache_t::const_iterator getEntryUsingECSIndex(MapCombo::LockedContent& map, time_t now, const DNSName& qname, QType qtype, bool requireAuth, const ComboAddress& who, bool serveStale);
 
-  static time_t handleHit(time_t now, MapCombo::LockedContent& content, OrderedTagIterator_t& entry, const DNSName& qname, uint32_t& origTTL, vector<DNSRecord>* res, SigRecs* signatures, AuthRecs* authorityRecs, bool* variable, boost::optional<vState>& state, bool* wasAuth, DNSName* authZone, ComboAddress* fromAuthIP, bool* tcp);
+  static time_t handleHit(time_t now, MapCombo::LockedContent& content, OrderedTagIterator_t& entry, const DNSName& qname, uint32_t& origTTL, vector<DNSRecord>* res, SigRecs* signatures, AuthRecs* authorityRecs, bool* variable, boost::optional<vState>& state, bool* wasAuth, DNSName* authZone, Extra* extra);
   static void updateStaleEntry(time_t now, OrderedTagIterator_t& entry);
   static void handleServeStaleBookkeeping(time_t, bool, OrderedTagIterator_t&);
 };

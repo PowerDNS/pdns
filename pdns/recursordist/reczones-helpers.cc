@@ -41,7 +41,7 @@ static void putIntoCache(time_t now, QType qtype, vState state, const ComboAddre
     // Put non-default root hints into cache as authoritative.  As argued below in
     // putDefaultHintsIntoCache, this is actually wrong, but people might depend on it by having
     // root-hints that refer to servers that aren't actually capable or willing to serve root data.
-    g_recCache->replace(now, name, qtype, aset, {}, {}, true, g_rootdnsname, boost::none, boost::none, state, from);
+    g_recCache->replace(now, name, qtype, aset, {}, {}, true, g_rootdnsname, boost::none, boost::none, state, MemRecursorCache::Extra{from, false});
   }
 }
 
@@ -158,11 +158,11 @@ void putDefaultHintsIntoCache(time_t now, std::vector<DNSRecord>& nsvec)
        * auth and will expire at the same time. A re-prime is then triggered, as before, when the
        * records were inserted with the auth bit set and the TTD comes.
        */
-      g_recCache->replace(now, DNSName(templ), QType::A, {arr}, {}, {}, false, g_rootdnsname, boost::none, boost::none, vState::Insecure, from);
+      g_recCache->replace(now, DNSName(templ), QType::A, {arr}, {}, {}, false, g_rootdnsname, boost::none, boost::none, vState::Insecure, MemRecursorCache::Extra{from, false});
     }
     if (!rootIps6.at(letter).empty()) {
       aaaarr.setContent(std::make_shared<AAAARecordContent>(ComboAddress(rootIps6.at(letter))));
-      g_recCache->replace(now, DNSName(templ), QType::AAAA, {aaaarr}, {}, {}, false, g_rootdnsname, boost::none, boost::none, vState::Insecure, from);
+      g_recCache->replace(now, DNSName(templ), QType::AAAA, {aaaarr}, {}, {}, false, g_rootdnsname, boost::none, boost::none, vState::Insecure, MemRecursorCache::Extra{from, false});
     }
   }
 }
