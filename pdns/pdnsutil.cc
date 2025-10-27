@@ -4966,6 +4966,7 @@ static int HSM([[maybe_unused]] vector<string>& cmds, [[maybe_unused]] const std
 
 #endif // ]
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 static int B2BMigrate(vector<string>& cmds, const std::string_view synopsis)
 {
   if (cmds.size() < 2) {
@@ -5053,19 +5054,33 @@ static int B2BMigrate(vector<string>& cmds, const std::string_view synopsis)
       nr++;
     }
 
-    // move comments
+    // move comments, if any
     nc=0;
     if (src->listComments(di.id)) {
-      if ((tgt->getCapabilities() & DNSBackend::CAP_COMMENTS) == 0) {
-        throw PDNSException("Target backend does not support comments - remove them first");
-      }
-      Comment c; // NOLINT(readability-identifier-length)
-      while(src->getComment(c)) {
-        c.domain_id = di_new.id;
-        if (!tgt->feedComment(c)) {
-          throw PDNSException("Failed to feed zone comments");
+      bool firstComment{true};
+      bool copyComments{true};
+      Comment comm;
+      while (src->getComment(comm)) {
+        if (firstComment) {
+          firstComment = false;
+          if ((tgt->getCapabilities() & DNSBackend::CAP_COMMENTS) == 0) {
+            if (g_force) {
+              copyComments = false;
+            }
+            else {
+              tgt->abortTransaction();
+              throw PDNSException("Target backend does not support comments - remove them first");
+            }
+          }
         }
-        nc++;
+        if (copyComments) {
+          comm.domain_id = di_new.id;
+          if (!tgt->feedComment(comm)) {
+            tgt->abortTransaction();
+            throw PDNSException("Failed to feed zone comments");
+          }
+          nc++;
+        }
       }
     }
     // move metadata
