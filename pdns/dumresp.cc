@@ -100,6 +100,7 @@ try
 }
 catch(const std::exception& e) {
   cerr<<"TCP connection handler got an exception: "<<e.what()<<endl;
+  close(sock);
 }
 
 static void tcpAcceptor(const ComboAddress local)
