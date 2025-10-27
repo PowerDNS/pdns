@@ -238,6 +238,8 @@ jobs:
             features: least
           - architecture_suffix: '-arm'
             builder: autotools
+          - architecture_suffix: '-arm'
+            features: least
       fail-fast: false
     container:
       image: "${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"

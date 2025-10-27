@@ -1,6 +1,7 @@
 import os
 import time
 import json
+import platform
 import requests
 from invoke import task
 from invoke.exceptions import Failure, UnexpectedExit
@@ -454,6 +455,12 @@ def get_optimizations():
     optimizations = os.getenv('OPTIMIZATIONS', 'yes')
     return '-O1' if optimizations == 'yes' else '-O0'
 
+def get_protections():
+    if platform.machine() in ['aarch64', 'arm64']:
+        return "-fcf-protection=check",
+    return "-fcf-protection=full",
+
+
 def get_cflags():
     return " ".join([
         get_optimizations(),
@@ -463,7 +470,6 @@ def get_cflags():
         "-Werror=format-security",
         "-fstack-clash-protection",
         "-fstack-protector-strong",
-        "-fcf-protection=full",
         "-Werror=string-plus-int" if is_compiler_clang() else '',
     ])
 
