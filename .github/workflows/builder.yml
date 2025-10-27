@@ -41,7 +41,7 @@ jobs:
         runner-os: ${{ fromJson(needs.prepare.outputs.runnerlist )}}
       fail-fast: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0  # for correct version numbers
           submodules: recursive
@@ -58,7 +58,7 @@ jobs:
           echo "target-arch=$(uname -m)" >> $GITHUB_OUTPUT
         id: getarch
       - name: Upload packages
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ${{ matrix.product }}-${{ matrix.os }}-${{ steps.getversion.outputs.version }}-${{ steps.getarch.outputs.target-arch }}
           path: built_pkgs/

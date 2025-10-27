@@ -32,12 +32,12 @@ jobs:
       UNIT_TESTS: no
     steps:
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 5
           submodules: recursive
           persist-credentials: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
       - run: build-scripts/gh-actions-setup-inv-no-dist-upgrade
@@ -62,12 +62,12 @@ jobs:
       REPO_HOME: ${{ github.workspace }}
     steps:
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 5
           submodules: recursive
           persist-credentials: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
       # installing the python3-package does not work because of actions/setup-python which installs a different version in /opt/hostedtoolcache/Python
@@ -105,12 +105,12 @@ jobs:
       UNIT_TESTS: no
     steps:
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 5
           submodules: recursive
           persist-credentials: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
       - run: build-scripts/gh-actions-setup-inv-no-dist-upgrade

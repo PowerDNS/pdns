@@ -47,10 +47,10 @@ jobs:
       pdns_version: ${{ steps.get-version.outputs.pdns_version }}
     steps:
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
       - run: pip install pyyaml
@@ -68,12 +68,12 @@ jobs:
         working-directory: ./docs/_build
       - run: tar cf auth-html-docs.tar auth-html-docs
         working-directory: ./docs/_build
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: authoritative-html-docs-${{steps.get-version.outputs.pdns_version}}
           path: ./docs/_build/auth-html-docs.tar
       - run: inv ci-docs-build-pdf
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: PowerDNS-Authoritative-${{steps.get-version.outputs.pdns_version}}.pdf
           path: ./docs/_build/latex/PowerDNS-Authoritative.pdf
@@ -91,13 +91,13 @@ jobs:
         working-directory: ./pdns/recursordist/docs/_build
       - run: tar cf rec-html-docs.tar rec-html-docs
         working-directory: ./pdns/recursordist/docs/_build
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: recursor-html-docs-${{steps.get-version.outputs.pdns_version}}
           path: ./pdns/recursordist/docs/_build/rec-html-docs.tar
       - run: inv ci-docs-build-pdf
         working-directory: ./pdns/recursordist
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: PowerDNS-Recursor-${{steps.get-version.outputs.pdns_version}}.pdf
           path: ./pdns/recursordist/docs/_build/latex/PowerDNS-Recursor.pdf
@@ -114,13 +114,13 @@ jobs:
         working-directory: ./pdns/dnsdistdist/docs/_build
       - run: tar cf dnsdist-html-docs.tar dnsdist-html-docs
         working-directory: ./pdns/dnsdistdist/docs/_build
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: dnsdist-html-docs-${{steps.get-version.outputs.pdns_version}}
           path: ./pdns/dnsdistdist/docs/_build/dnsdist-html-docs.tar
       - run: inv ci-docs-build-pdf
         working-directory: ./pdns/dnsdistdist
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: dnsdist-${{steps.get-version.outputs.pdns_version}}.pdf
           path: ./pdns/dnsdistdist/docs/_build/latex/dnsdist.pdf
@@ -132,7 +132,7 @@ jobs:
       - name: Build website
         run: |
           tar cf website.tar website
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: website-${{steps.get-version.outputs.pdns_version}}
           path: website.tar
@@ -163,11 +163,11 @@ jobs:
             exit 1
           fi
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
       - run: build-scripts/gh-actions-setup-inv-no-dist-upgrade
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v6
         with:
           path: artifacts
       - id: setup-ssh
@@ -218,7 +218,7 @@ jobs:
             echo "Error: The following secrets/variables are missing: ${missing_secrets[*]}"
             exit 1
           fi
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
       - uses: aws-actions/configure-aws-credentials@v4
@@ -239,7 +239,7 @@ jobs:
           region = $AWS_REGION
           EOF
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           path: artifacts
       - name: Publish to AWS
