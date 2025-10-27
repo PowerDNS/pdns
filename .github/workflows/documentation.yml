@@ -68,12 +68,12 @@ jobs:
         working-directory: ./docs/_build
       - run: tar cf auth-html-docs.tar auth-html-docs
         working-directory: ./docs/_build
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: authoritative-html-docs-${{steps.get-version.outputs.pdns_version}}
           path: ./docs/_build/auth-html-docs.tar
       - run: inv ci-docs-build-pdf
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: PowerDNS-Authoritative-${{steps.get-version.outputs.pdns_version}}.pdf
           path: ./docs/_build/latex/PowerDNS-Authoritative.pdf
@@ -91,13 +91,13 @@ jobs:
         working-directory: ./pdns/recursordist/docs/_build
       - run: tar cf rec-html-docs.tar rec-html-docs
         working-directory: ./pdns/recursordist/docs/_build
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: recursor-html-docs-${{steps.get-version.outputs.pdns_version}}
           path: ./pdns/recursordist/docs/_build/rec-html-docs.tar
       - run: inv ci-docs-build-pdf
         working-directory: ./pdns/recursordist
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: PowerDNS-Recursor-${{steps.get-version.outputs.pdns_version}}.pdf
           path: ./pdns/recursordist/docs/_build/latex/PowerDNS-Recursor.pdf
@@ -114,13 +114,13 @@ jobs:
         working-directory: ./pdns/dnsdistdist/docs/_build
       - run: tar cf dnsdist-html-docs.tar dnsdist-html-docs
         working-directory: ./pdns/dnsdistdist/docs/_build
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: dnsdist-html-docs-${{steps.get-version.outputs.pdns_version}}
           path: ./pdns/dnsdistdist/docs/_build/dnsdist-html-docs.tar
       - run: inv ci-docs-build-pdf
         working-directory: ./pdns/dnsdistdist
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: dnsdist-${{steps.get-version.outputs.pdns_version}}.pdf
           path: ./pdns/dnsdistdist/docs/_build/latex/dnsdist.pdf
@@ -132,7 +132,7 @@ jobs:
       - name: Build website
         run: |
           tar cf website.tar website
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: website-${{steps.get-version.outputs.pdns_version}}
           path: website.tar

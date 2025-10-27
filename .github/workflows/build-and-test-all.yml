@@ -133,7 +133,7 @@ jobs:
           mkdir -p /opt/pdns-auth/sbin; mv /opt/pdns-auth/bin/pdns-auth /opt/pdns-auth/sbin/
       - if: ${{ matrix.builder == 'meson' }}
         name: Store the binaries
-        uses: actions/upload-artifact@v4 # this takes 30 seconds, maybe we want to tar
+        uses: actions/upload-artifact@v5 # this takes 30 seconds, maybe we want to tar
         with:
           name: pdns-auth-${{ matrix.builder}}-${{ env.normalized-branch-name }}
           path: /opt/pdns-auth
@@ -216,7 +216,7 @@ jobs:
         run: echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
       - if: ${{ matrix.builder == 'meson' }}
         name: Store the binaries
-        uses: actions/upload-artifact@v4 # this takes 30 seconds, maybe we want to tar
+        uses: actions/upload-artifact@v5 # this takes 30 seconds, maybe we want to tar
         with:
           name: pdns-recursor-${{ matrix.features }}-${{ matrix.sanitizers }}-${{ matrix.builder}}-${{ env.normalized-branch-name }}
           path: /opt/pdns-recursor
@@ -319,7 +319,7 @@ jobs:
           for i in $(find . -maxdepth 1 -type f -executable); do cp ${i} /opt/dnsdist/bin/; done
       - name: Store the binaries
         if: ${{ matrix.builder == 'meson' }}
-        uses: actions/upload-artifact@v4 # this takes 30 seconds, maybe we want to tar
+        uses: actions/upload-artifact@v5 # this takes 30 seconds, maybe we want to tar
         with:
           name: dnsdist-${{ matrix.features }}-${{ matrix.sanitizers }}-${{ matrix.builder}}-${{ env.normalized-branch-name }}
           path: /opt/dnsdist

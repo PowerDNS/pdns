@@ -176,7 +176,7 @@ jobs:
           TARGET_ARCH: ${{ steps.getarch.outputs.target-arch }}
         run: for f in $(ls ./built_pkgs/*/*/*-${OS}.tar.bz2 | sed 's/\.tar.bz2$//'); do mv $f.tar.bz2 $f-${TARGET_ARCH}.tar.bz2; done
       - name: Upload packages as GH artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ${{ inputs.product }}-${{ matrix.os }}-${{ steps.getversion.outputs.version }}-${{ steps.getarch.outputs.target-arch }}
           path: built_pkgs/
