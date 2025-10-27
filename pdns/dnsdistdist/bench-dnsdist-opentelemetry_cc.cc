@@ -28,24 +28,29 @@
 #include "dnsdist-opentelemetry.hh"
 #include "protozero-trace.hh"
 
-TEST_CASE("OpenTelemetry-base") {
-  BENCHMARK("pdns::trace::dnsdist::Tracer::getTracer") {
+TEST_CASE("OpenTelemetry-base")
+{
+  BENCHMARK("pdns::trace::dnsdist::Tracer::getTracer")
+  {
     return pdns::trace::dnsdist::Tracer::getTracer();
   };
 
   auto tracer = pdns::trace::dnsdist::Tracer::getTracer();
   auto spanID = pdns::trace::SpanID::getRandomSpanID();
 
-  BENCHMARK("pdns::trace::dnsdist::Tracer::getCloser") {
+  BENCHMARK("pdns::trace::dnsdist::Tracer::getCloser")
+  {
     return tracer->getCloser(spanID);
   };
 
-  BENCHMARK("pdns::trace::dnsdist::Tracer::openSpan") {
+  BENCHMARK("pdns::trace::dnsdist::Tracer::openSpan")
+  {
     return tracer->openSpan("foo");
   };
 }
 
-TEST_CASE("OpenTelemetry-spaninfo") {
+TEST_CASE("OpenTelemetry-spaninfo")
+{
   auto tracer = pdns::trace::dnsdist::Tracer::getTracer();
   // Ensures span attributes are actually stored
   tracer->activate();
@@ -53,100 +58,116 @@ TEST_CASE("OpenTelemetry-spaninfo") {
   auto stringvalue = pdns::trace::AnyValue{"hello"};
   auto intvalue = pdns::trace::AnyValue{43854};
 
-  BENCHMARK("dnsdist::trace::Tracer::setSpanAttribute-string one span") {
+  BENCHMARK("dnsdist::trace::Tracer::setSpanAttribute-string one span")
+  {
     tracer->setSpanAttribute(rootSpanID, "key", stringvalue);
   };
 
-  BENCHMARK("dnsdist::trace::Tracer::setSpanAttribute-int one span") {
+  BENCHMARK("dnsdist::trace::Tracer::setSpanAttribute-int one span")
+  {
     tracer->setSpanAttribute(rootSpanID, "key", intvalue);
   };
 
   auto spanID = rootSpanID;
-  for (auto i=0; i < 40; i++) {
+  for (auto i = 0; i < 40; i++) {
     spanID = tracer->openSpan("fooSpan" + std::to_string(i), spanID).getSpanID();
   }
 
-  BENCHMARK("dnsdist::trace::Tracer::setSpanAttribute-string 42 spans, first") {
+  BENCHMARK("dnsdist::trace::Tracer::setSpanAttribute-string 42 spans, first")
+  {
     tracer->setSpanAttribute(rootSpanID, "key", stringvalue);
   };
 
-  BENCHMARK("dnsdist::trace::Tracer::setSpanAttribute-int 42 spans, first") {
+  BENCHMARK("dnsdist::trace::Tracer::setSpanAttribute-int 42 spans, first")
+  {
     tracer->setSpanAttribute(rootSpanID, "key", intvalue);
   };
 
-  BENCHMARK("dnsdist::trace::Tracer::setSpanAttribute-string 42 spans, last") {
+  BENCHMARK("dnsdist::trace::Tracer::setSpanAttribute-string 42 spans, last")
+  {
     tracer->setSpanAttribute(spanID, "key", stringvalue);
   };
 
-  BENCHMARK("dnsdist::trace::Tracer::setSpanAttribute-int 42 spans, last") {
+  BENCHMARK("dnsdist::trace::Tracer::setSpanAttribute-int 42 spans, last")
+  {
     tracer->setSpanAttribute(spanID, "key", intvalue);
   };
-
 }
 
-TEST_CASE("OpenTelemetry-getLastSpanID") {
+TEST_CASE("OpenTelemetry-getLastSpanID")
+{
   auto tracer = pdns::trace::dnsdist::Tracer::getTracer();
   pdns::trace::dnsdist::Tracer::Closer closer;
-  for (auto i=0; i < 40; i++) {
+  for (auto i = 0; i < 40; i++) {
     closer = tracer->openSpan("foo" + std::to_string(i));
   }
 
-  BENCHMARK("getLastSpanID") {
+  BENCHMARK("getLastSpanID")
+  {
     return tracer->getLastSpanID();
   };
 
-  BENCHMARK("getRootSpanID") {
+  BENCHMARK("getRootSpanID")
+  {
     return tracer->getRootSpanID();
   };
 
-  BENCHMARK("getLastSpanIDForName-first") {
+  BENCHMARK("getLastSpanIDForName-first")
+  {
     return tracer->getLastSpanIDForName("foo0");
   };
 
-  BENCHMARK("getLastSpanIDForName-middle") {
+  BENCHMARK("getLastSpanIDForName-middle")
+  {
     return tracer->getLastSpanIDForName("foo20");
   };
 
-  BENCHMARK("getLastSpanIDForName-does-not-exist") {
+  BENCHMARK("getLastSpanIDForName-does-not-exist")
+  {
     return tracer->getLastSpanIDForName("doesnotexist");
   };
 }
 
-TEST_CASE("OpenTelemetry-getTracesData") {
+TEST_CASE("OpenTelemetry-getTracesData")
+{
   auto tracer = pdns::trace::dnsdist::Tracer::getTracer();
 
-  BENCHMARK("empty Tracer") {
+  BENCHMARK("empty Tracer")
+  {
     return tracer->getTracesData();
   };
 
-  for (auto i=0; i < 40; i++) {
+  for (auto i = 0; i < 40; i++) {
     tracer->openSpan("foo" + std::to_string(i));
   }
 
-  BENCHMARK("Tracer with 41 pre-activation spans") {
+  BENCHMARK("Tracer with 41 pre-activation spans")
+  {
     return tracer->getTracesData();
   };
 
   tracer = pdns::trace::dnsdist::Tracer::getTracer();
   tracer->activate();
-  for (auto i=0; i < 40; i++) {
+  for (auto i = 0; i < 40; i++) {
     tracer->openSpan("foo" + std::to_string(i));
   }
 
-  BENCHMARK("Tracer with 41 post-activation spans") {
+  BENCHMARK("Tracer with 41 post-activation spans")
+  {
     return tracer->getTracesData();
   };
 
   tracer = pdns::trace::dnsdist::Tracer::getTracer();
-  for (auto i=0; i < 40; i++) {
+  for (auto i = 0; i < 40; i++) {
     tracer->openSpan("foo" + std::to_string(i));
   }
   tracer->activate();
-  for (auto i=0; i < 40; i++) {
+  for (auto i = 0; i < 40; i++) {
     tracer->openSpan("foo" + std::to_string(i));
   }
 
-  BENCHMARK("Tracer with 41 pre-activation spans and 41 post-activation spans") {
+  BENCHMARK("Tracer with 41 pre-activation spans and 41 post-activation spans")
+  {
     return tracer->getTracesData();
   };
 }

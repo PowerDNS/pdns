@@ -25,7 +25,8 @@
 
 #include "dnsdist-dnsparser.hh"
 
-TEST_CASE("dnsdist-dnsparser") {
+TEST_CASE("dnsdist-dnsparser")
+{
   const DNSName target("powerdns.com.");
   const DNSName newTarget("dnsdist.org.");
   const DNSName notTheTarget("not-powerdns.com.");
@@ -36,7 +37,8 @@ TEST_CASE("dnsdist-dnsparser") {
   pw.getHeader()->id = htons(42);
   pw.commit();
 
-  BENCHMARK("changeNameInDNSPacket") {
+  BENCHMARK("changeNameInDNSPacket")
+  {
     dnsdist::changeNameInDNSPacket(query, target, newTarget);
   };
 }
