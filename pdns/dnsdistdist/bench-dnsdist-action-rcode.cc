@@ -29,7 +29,8 @@
 #include "dnsdist-dnsparser.hh"
 #include "dnsdist-actions-factory.hh"
 
-TEST_CASE("Actions/RCodeAction", "[actions]") {
+TEST_CASE("Actions/RCodeAction", "[actions]")
+{
   InternalQueryState ids;
   PacketBuffer data;
   GenericDNSPacketWriter<PacketBuffer> pwQ(data, DNSName("dnsdist.test.powerdns.com"), QType::A, QClass::IN, 0);
@@ -40,13 +41,15 @@ TEST_CASE("Actions/RCodeAction", "[actions]") {
 
   DNSQuestion dq(ids, data); // NOLINT
   std::string ruleresult;
-  BENCHMARK("set-nxd") {
+  BENCHMARK("set-nxd")
+  {
     return (*action)(&dq, &ruleresult);
   };
 
   rconfig.setAA = true;
   action = dnsdist::actions::getRCodeAction(RCode::NXDomain, rconfig);
-  BENCHMARK("set-nxd-and-AA") {
+  BENCHMARK("set-nxd-and-AA")
+  {
     return (*action)(&dq, &ruleresult);
   };
 }

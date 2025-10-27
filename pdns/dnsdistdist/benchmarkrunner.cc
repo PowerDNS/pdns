@@ -37,11 +37,11 @@ shared_ptr<BPFFilter> g_defaultBPFFilter{nullptr};
 Rings g_rings;
 string g_outputBuffer;
 
-void handleResponseSent([[maybe_unused]] const InternalQueryState& ids, [[maybe_unused]]double udiff, [[maybe_unused]]const ComboAddress& client, [[maybe_unused]]const ComboAddress& backend, [[maybe_unused]]unsigned int size, [[maybe_unused]]const dnsheader& cleartextDH, [[maybe_unused]]dnsdist::Protocol protocol, [[maybe_unused]]bool fromBackend)
+void handleResponseSent([[maybe_unused]] const InternalQueryState& ids, [[maybe_unused]] double udiff, [[maybe_unused]] const ComboAddress& client, [[maybe_unused]] const ComboAddress& backend, [[maybe_unused]] unsigned int size, [[maybe_unused]] const dnsheader& cleartextDH, [[maybe_unused]] dnsdist::Protocol protocol, [[maybe_unused]] bool fromBackend)
 {
 }
 
-void handleResponseSent([[maybe_unused]] const DNSName& qname, [[maybe_unused]]const QType& qtype, [[maybe_unused]]double udiff, [[maybe_unused]]const ComboAddress& client, [[maybe_unused]]const ComboAddress& backend, [[maybe_unused]]unsigned int size, [[maybe_unused]]const dnsheader& cleartextDH, [[maybe_unused]]dnsdist::Protocol outgoingProtocol, [[maybe_unused]]dnsdist::Protocol incomingProtocol, [[maybe_unused]]bool fromBackend)
+void handleResponseSent([[maybe_unused]] const DNSName& qname, [[maybe_unused]] const QType& qtype, [[maybe_unused]] double udiff, [[maybe_unused]] const ComboAddress& client, [[maybe_unused]] const ComboAddress& backend, [[maybe_unused]] unsigned int size, [[maybe_unused]] const dnsheader& cleartextDH, [[maybe_unused]] dnsdist::Protocol outgoingProtocol, [[maybe_unused]] dnsdist::Protocol incomingProtocol, [[maybe_unused]] bool fromBackend)
 {
 }
 
@@ -51,51 +51,51 @@ bool processResponse([[maybe_unused]] PacketBuffer& response, [[maybe_unused]] D
 }
 
 void doExitNicely(int exitCode);
-void doExitNicely([[maybe_unused]] int exitCode){
+void doExitNicely([[maybe_unused]] int exitCode) {
 };
 
-ProcessQueryResult processQuery([[maybe_unused]] DNSQuestion& dnsQuestion, [[maybe_unused]]std::shared_ptr<DownstreamState>& selectedBackend)
+ProcessQueryResult processQuery([[maybe_unused]] DNSQuestion& dnsQuestion, [[maybe_unused]] std::shared_ptr<DownstreamState>& selectedBackend)
 {
   return ProcessQueryResult::Drop;
 };
 
-bool processRulesResult([[maybe_unused]] const DNSAction::Action& action, [[maybe_unused]]DNSQuestion& dnsQuestion, [[maybe_unused]]std::string& ruleresult, [[maybe_unused]]bool& drop)
+bool processRulesResult([[maybe_unused]] const DNSAction::Action& action, [[maybe_unused]] DNSQuestion& dnsQuestion, [[maybe_unused]] std::string& ruleresult, [[maybe_unused]] bool& drop)
 {
   return false;
 }
 
-ProcessQueryResult processQueryAfterRules([[maybe_unused]] DNSQuestion& dnsQuestion, [[maybe_unused]]std::shared_ptr<DownstreamState>& outgoingBackend)
+ProcessQueryResult processQueryAfterRules([[maybe_unused]] DNSQuestion& dnsQuestion, [[maybe_unused]] std::shared_ptr<DownstreamState>& outgoingBackend)
 {
   return ProcessQueryResult::Drop;
 }
 
-bool processResponseAfterRules([[maybe_unused]] PacketBuffer& response, [[maybe_unused]]DNSResponse& dnsResponse, [[maybe_unused]]bool muted)
+bool processResponseAfterRules([[maybe_unused]] PacketBuffer& response, [[maybe_unused]] DNSResponse& dnsResponse, [[maybe_unused]] bool muted)
 {
   return false;
 }
 
-bool applyRulesToResponse([[maybe_unused]] const std::vector<dnsdist::rules::ResponseRuleAction>& respRuleActions, [[maybe_unused]]DNSResponse& dnsResponse)
+bool applyRulesToResponse([[maybe_unused]] const std::vector<dnsdist::rules::ResponseRuleAction>& respRuleActions, [[maybe_unused]] DNSResponse& dnsResponse)
 {
   (void)respRuleActions;
   (void)dnsResponse;
   return true;
 }
 
-bool handleTimeoutResponseRules([[maybe_unused]] const std::vector<dnsdist::rules::ResponseRuleAction>& rules, [[maybe_unused]]InternalQueryState& ids, [[maybe_unused]]const std::shared_ptr<DownstreamState>& d_ds, [[maybe_unused]]const std::shared_ptr<TCPQuerySender>& sender)
+bool handleTimeoutResponseRules([[maybe_unused]] const std::vector<dnsdist::rules::ResponseRuleAction>& rules, [[maybe_unused]] InternalQueryState& ids, [[maybe_unused]] const std::shared_ptr<DownstreamState>& d_ds, [[maybe_unused]] const std::shared_ptr<TCPQuerySender>& sender)
 {
   return false;
 }
 
-void handleServerStateChange([[maybe_unused]] const string& nameWithAddr, [[maybe_unused]]bool newResult)
+void handleServerStateChange([[maybe_unused]] const string& nameWithAddr, [[maybe_unused]] bool newResult)
 {
 }
 
-bool sendUDPResponse([[maybe_unused]] int origFD, [[maybe_unused]]const PacketBuffer& response, [[maybe_unused]]const int delayMsec, [[maybe_unused]]const ComboAddress& origDest, [[maybe_unused]]const ComboAddress& origRemote)
+bool sendUDPResponse([[maybe_unused]] int origFD, [[maybe_unused]] const PacketBuffer& response, [[maybe_unused]] const int delayMsec, [[maybe_unused]] const ComboAddress& origDest, [[maybe_unused]] const ComboAddress& origRemote)
 {
   return false;
 }
 
-bool assignOutgoingUDPQueryToBackend([[maybe_unused]] std::shared_ptr<DownstreamState>& downstream, [[maybe_unused]]uint16_t queryID, [[maybe_unused]]DNSQuestion& dnsQuestion, [[maybe_unused]]PacketBuffer& query, [[maybe_unused]]bool actuallySend)
+bool assignOutgoingUDPQueryToBackend([[maybe_unused]] std::shared_ptr<DownstreamState>& downstream, [[maybe_unused]] uint16_t queryID, [[maybe_unused]] DNSQuestion& dnsQuestion, [[maybe_unused]] PacketBuffer& query, [[maybe_unused]] bool actuallySend)
 {
   return true;
 }
@@ -120,18 +120,20 @@ void responderThread([[maybe_unused]] std::shared_ptr<DownstreamState> dss)
 {
 }
 
-bool checkQueryHeaders([[maybe_unused]] const struct dnsheader& dnsHeader, [[maybe_unused]] ClientState& clientState) {
+bool checkQueryHeaders([[maybe_unused]] const struct dnsheader& dnsHeader, [[maybe_unused]] ClientState& clientState)
+{
   return true;
 }
 
-bool checkDNSCryptQuery([[maybe_unused]] const ClientState& clientState, [[maybe_unused]] PacketBuffer& query, [[maybe_unused]] std::unique_ptr<DNSCryptQuery>& dnsCryptQuery, [[maybe_unused]] time_t now, [[maybe_unused]] bool tcp) {
+bool checkDNSCryptQuery([[maybe_unused]] const ClientState& clientState, [[maybe_unused]] PacketBuffer& query, [[maybe_unused]] std::unique_ptr<DNSCryptQuery>& dnsCryptQuery, [[maybe_unused]] time_t now, [[maybe_unused]] bool tcp)
+{
   return false;
 }
 
-bool responseContentMatches([[maybe_unused]] const PacketBuffer& response, [[maybe_unused]]const DNSName& qname, [[maybe_unused]]const uint16_t qtype, [[maybe_unused]]const uint16_t qclass, [[maybe_unused]]const std::shared_ptr<DownstreamState>& remote, [[maybe_unused]]bool allowEmptyResponse) {
+bool responseContentMatches([[maybe_unused]] const PacketBuffer& response, [[maybe_unused]] const DNSName& qname, [[maybe_unused]] const uint16_t qtype, [[maybe_unused]] const uint16_t qclass, [[maybe_unused]] const std::shared_ptr<DownstreamState>& remote, [[maybe_unused]] bool allowEmptyResponse)
+{
   return false;
 }
-
 
 class UDPTCPCrossQuerySender : public TCPQuerySender
 {
@@ -160,7 +162,6 @@ public:
   {
   }
 };
-
 
 class UDPCrossProtocolQuery : public CrossProtocolQuery
 {
