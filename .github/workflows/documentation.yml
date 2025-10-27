@@ -47,7 +47,7 @@ jobs:
       pdns_version: ${{ steps.get-version.outputs.pdns_version }}
     steps:
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
       - uses: actions/setup-python@v5
@@ -163,7 +163,7 @@ jobs:
             exit 1
           fi
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
       - run: build-scripts/gh-actions-setup-inv-no-dist-upgrade
@@ -218,7 +218,7 @@ jobs:
             echo "Error: The following secrets/variables are missing: ${missing_secrets[*]}"
             exit 1
           fi
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
       - uses: aws-actions/configure-aws-credentials@v4

@@ -70,7 +70,7 @@ jobs:
       run:
         working-directory: ./pdns-${{ env.BUILDER_VERSION }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 5
           submodules: recursive
@@ -164,7 +164,7 @@ jobs:
       run:
         working-directory: ./pdns/recursordist/pdns-recursor-${{ env.BUILDER_VERSION }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 5
           submodules: recursive
@@ -250,7 +250,7 @@ jobs:
     env:
       CLANG_VERSION: ${{ contains(needs.get-runner-container-image.outputs.id, 'debian-11') && '13' || '19' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 5
           submodules: recursive
@@ -364,7 +364,7 @@ jobs:
         options: >-
           --restart always
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 5
           submodules: recursive
@@ -496,7 +496,7 @@ jobs:
         options: >-
           --restart always
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 5
           submodules: recursive
@@ -540,7 +540,7 @@ jobs:
         ASAN_OPTIONS: detect_leaks=0
       options: --sysctl net.ipv6.conf.all.disable_ipv6=0
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 5
           submodules: recursive
@@ -590,7 +590,7 @@ jobs:
         TSAN_OPTIONS: "halt_on_error=1:suppressions=${{ env.REPO_HOME }}/pdns/recursordist/recursor-tsan.supp"
       options: --sysctl net.ipv6.conf.all.disable_ipv6=0
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 5
           submodules: recursive
@@ -644,7 +644,7 @@ jobs:
       options: --sysctl net.ipv6.conf.all.disable_ipv6=0
     steps:
       # - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 5
           submodules: recursive
@@ -699,7 +699,7 @@ jobs:
         TSAN_OPTIONS: "halt_on_error=1:suppressions=${{ env.REPO_HOME }}/pdns/recursordist/recursor-tsan.supp"
       options: --sysctl net.ipv6.conf.all.disable_ipv6=0
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 5
           submodules: recursive
@@ -745,7 +745,7 @@ jobs:
         shards: [1024]
         IPv6: [0, 1]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 5
           submodules: recursive
@@ -806,7 +806,7 @@ jobs:
     env:
       CLANG_VERSION: ${{ contains(needs.get-runner-container-image.outputs.id, 'debian-11') && '13' || '19' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 5
           submodules: recursive
@@ -844,7 +844,7 @@ jobs:
       image: ghcr.io/powerdns/base-pdns-ci-image/debian-12-pdns-base:master
       options: --sysctl net.ipv6.conf.all.disable_ipv6=0
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 5
           submodules: recursive
@@ -886,7 +886,7 @@ jobs:
         run: "sudo apt-get update && sudo apt-get install jq jc"
       - name: Fail job if any of the previous jobs failed
         run: "for i in `echo ${NEEDS} | jq -r '.[].result'`; do if [[ $i == 'failure' ]]; then echo ${NEEDS}; exit 1; fi; done;"
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 5
           submodules: recursive

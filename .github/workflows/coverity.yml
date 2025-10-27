@@ -32,7 +32,7 @@ jobs:
       UNIT_TESTS: no
     steps:
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 5
           submodules: recursive
@@ -62,7 +62,7 @@ jobs:
       REPO_HOME: ${{ github.workspace }}
     steps:
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 5
           submodules: recursive
@@ -105,7 +105,7 @@ jobs:
       UNIT_TESTS: no
     steps:
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 5
           submodules: recursive

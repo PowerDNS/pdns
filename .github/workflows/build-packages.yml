@@ -80,7 +80,7 @@ jobs:
       # but, as this whole workflow needs at least 30 minutes to run, I prefer spending a few seconds here
       # so that the command remains readable, because jo is simpler to use.
       - run: sudo apt-get update && sudo apt-get -y install jo
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 1
           submodules: recursive
@@ -145,7 +145,7 @@ jobs:
       PRODUCT: ${{ inputs.product }}
       OS: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0 # for correct version numbers
           submodules: recursive
@@ -326,7 +326,7 @@ jobs:
         architecture: ${{ fromJson(needs.prepare.outputs.archlist )}}
       fail-fast: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 1
           submodules: recursive
@@ -396,7 +396,7 @@ jobs:
         architecture: ${{ fromJson(needs.prepare.outputs.archlist )}}
       fail-fast: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 1
           submodules: recursive
@@ -448,7 +448,7 @@ jobs:
     continue-on-error: true
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 1
           submodules: recursive
@@ -498,7 +498,7 @@ jobs:
     outputs:
       check-finished: ${{ steps.check-finished.outputs.upload-completed }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 1
           submodules: recursive
@@ -544,7 +544,7 @@ jobs:
         runner-os: ${{ fromJson(needs.prepare.outputs.runnerlist )}}
       fail-fast: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 1
           submodules: recursive
