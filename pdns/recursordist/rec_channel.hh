@@ -31,6 +31,7 @@
 #include "iputils.hh"
 #include "dnsname.hh"
 #include "sholder.hh"
+#include "rec_metrics.hh"
 #include <atomic>
 
 extern GlobalStateHolder<SuffixMatchNode> g_dontThrottleNames;
@@ -104,7 +105,7 @@ struct StatsMapEntry
 {
   std::string d_prometheusName;
   std::string d_value;
-  std::optional<std::string> d_prometheusTypeName = std::nullopt;
+  std::optional<PrometheusMetricType> d_prometheusType = std::nullopt;
   std::optional<std::string> d_prometheusDescr = std::nullopt;
 };
 

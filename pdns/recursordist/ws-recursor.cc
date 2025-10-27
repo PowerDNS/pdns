@@ -577,8 +577,9 @@ static void prometheusMetrics(HttpRequest* /* req */, HttpResponse* resp)
         helpname = helpname.substr(0, helpname.length() - 6);
       }
     } else {
-      if (tup.second.d_prometheusTypeName) {
-        prometheusTypeName = *tup.second.d_prometheusTypeName;
+      if (tup.second.d_prometheusType) {
+        prometheusTypeName = MetricDefinitionStorage::getPrometheusStringMetricType(
+          *tup.second.d_prometheusType);
       }
       if (tup.second.d_prometheusDescr) {
         prometheusDescr = *tup.second.d_prometheusDescr;
