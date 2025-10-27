@@ -1,5 +1,6 @@
 EXTRA_DIST = \
-	LICENSE
+	LICENSE \
+	meson.build
 
 noinst_LTLIBRARIES = libipcrypt.la
 

@@ -2,7 +2,10 @@ AM_CPPFLAGS += $(LMDB_CFLAGS) $(LIBCRYPTO_INCLUDES)
 
 pkglib_LTLIBRARIES = liblmdbbackend.la
 
-EXTRA_DIST = OBJECTFILES OBJECTLIBS
+EXTRA_DIST = \
+	OBJECTFILES \
+	OBJECTLIBS \
+	meson.build
 
 liblmdbbackend_la_SOURCES = \
 	../../ext/lmdb-safe/lmdb-safe.hh ../../ext/lmdb-safe/lmdb-safe.cc \
