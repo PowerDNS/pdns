@@ -430,20 +430,21 @@ void RecursorLua4::postPrepareContext() // NOLINT(readability-function-cognitive
 
   d_pd.emplace_back("now", &g_now);
 
-  d_lw->writeFunction("initMetric", [](const std::string& str, const std::string& maybePrometheusName, const std::string& maybePrometheusTypeName, boost::optional<std::string> maybeDescr){
-    // Shift arguments, because it's actually the second `prometheusName` argument which is optional
-    // to match the optional `prometheusName` in `getMetric`.
+  d_lw->writeFunction("initMetric", [](const std::string& str, boost::optional<boost::variant<std::string, std::unordered_map<std::string, std::string>>> opts){
     std::string prometheusName;
     std::string prometheusTypeName;
     std::string prometheusDescr;
-    if (maybeDescr) {
-      prometheusName = maybePrometheusName;
-      prometheusTypeName = maybePrometheusTypeName;
-      prometheusDescr = *maybeDescr;
-    } else {
-      prometheusDescr = prometheusTypeName;
-      prometheusTypeName = prometheusName;
-      prometheusName = "";
+
+    if (opts) {
+      auto* optPrometheusName = boost::get<std::string>(&opts.get());
+      if (optPrometheusName != nullptr) {
+        prometheusName = *optPrometheusName;
+      } else {
+        boost::optional<std::unordered_map<std::string, std::string>> vars = {boost::get<std::unordered_map<std::string, std::string>>(opts.get())};
+        prometheusName = (*vars)["prometheusName"];
+        prometheusTypeName = (*vars)["type"];
+        prometheusDescr = (*vars)["description"];
+      }
     }
 
     return DynMetric{initDynMetric(str, prometheusName, prometheusTypeName, prometheusDescr)};
