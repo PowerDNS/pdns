@@ -43,7 +43,7 @@ void oldStyleForwardsFileToBridgeStruct(const std::string& filename, ::rust::Vec
 void oldStyleAllowFileToBridgeStruct(const std::string& filename, ::rust::Vec<::rust::String>& vec);
 bool oldKVToBridgeStruct(string& key, const string& value, ::rust::String& section, ::rust::String& fieldname, ::rust::String& type_name, pdns::rust::settings::rec::Value& rustvalue);
 std::string oldStyleSettingsFileToYaml(const string& fname, bool mainFile);
-std::string defaultsToYaml();
+std::string defaultsToYaml(bool postProcess = true);
 YamlSettingsStatus readYamlSettings(const std::string& configname, const std::string& includeDirOnCommandLine, rust::settings::rec::Recursorsettings& settings, std::string& msg, Logr::log_t log);
 void processAPIDir(const string& includeDirOnCommandLine, pdns::rust::settings::rec::Recursorsettings& settings, Logr::log_t log);
 void bridgeStructToOldStyleSettings(const pdns::rust::settings::rec::Recursorsettings& settings);

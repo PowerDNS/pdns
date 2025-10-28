@@ -631,7 +631,7 @@ std::string pdns::settings::rec::oldStyleSettingsFileToYaml(const string& fname,
   return std::string(pdns::rust::settings::rec::map_to_yaml_string(vec));
 }
 
-std::string pdns::settings::rec::defaultsToYaml()
+std::string pdns::settings::rec::defaultsToYaml(bool postProcess)
 {
   // In this function we make use of the fact that we know a little about the formatting of YAML by
   // serde_yaml.  ATM there's no way around that, as serde_yaml itself does not have any support for
@@ -689,6 +689,9 @@ std::string pdns::settings::rec::defaultsToYaml()
   }
   const auto defs = std::string(pdns::rust::settings::rec::map_to_yaml_string(vec));
 
+  if (!postProcess) {
+    return defs;
+  }
   // We now have a YAML string, with all sections and all default values. Do a litle bit of parsing
   // to insert the help text lines.
   std::vector<std::string> lines;

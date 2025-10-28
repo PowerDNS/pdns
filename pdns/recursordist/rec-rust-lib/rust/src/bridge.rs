@@ -942,12 +942,7 @@ impl Recursorsettings {
         }
     }
 
-    pub fn get_value(&self, field: &Vec<String>) -> Result<String, std::io::Error> {
-        let value = serde_yaml::to_value(self);
-        let value = match value {
-            Ok(value) => value,
-            Err(error) => return Err(std::io::Error::other(error.to_string()))
-        };
+    fn get_value1(value: &serde_yaml::Value, field: &[String]) -> Result<String, std::io::Error> {
         if let Some(map) = value.as_mapping() {
             match field.len() {
                 0 => {
@@ -967,6 +962,25 @@ impl Recursorsettings {
             }
         }
         Err(std::io::Error::other(field[0].to_owned() + ": not a map"))
+    }
+
+    pub fn get_value(&self, field: &Vec<String>, defaults: &str) -> Result<String, std::io::Error> {
+        let value = serde_yaml::to_value(self);
+        let value = match value {
+            Ok(value) => value,
+            Err(error) => return Err(std::io::Error::other(error.to_string()))
+        };
+        match Self::get_value1(&value, field) {
+            Ok(result) => Ok(result),
+            Err(_) => {
+                let defaults_value: serde_yaml::Value = serde_yaml::from_str(defaults).unwrap();
+                let yaml = Self::get_value1(&defaults_value, field);
+                match yaml {
+                    Ok(yaml) => Ok("# Not explicitly set, default value is:\n".to_owned() + &yaml),
+                    Err(x) => Err(x)
+                }
+            }
+        }
     }
 
     // validate() is implemented in the (generated) lib.rs

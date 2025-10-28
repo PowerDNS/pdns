@@ -315,7 +315,7 @@ static Answer doGetParameter(ArgIterator begin, ArgIterator end)
   rust::Vec<::rust::String> field;
   stringtok(field, *begin, ".");
   try {
-    auto yaml = settings->get_value(field);
+    auto yaml = settings->get_value(field, pdns::settings::rec::defaultsToYaml(false));
     return {0, std::string(yaml)};
   }
   catch (const std::exception& stdex) {
