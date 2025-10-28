@@ -905,6 +905,70 @@ impl Recursorsettings {
         serde_yaml::to_string(self)
     }
 
+    fn get_value_from_map(map: &serde_yaml::Mapping, fields: &[String]) -> Result<String, std::io::Error>  {
+        match fields.len() {
+            0 => {
+                let result = serde_yaml::to_string(map);
+                if let Err(error) = result {
+                    return Err(std::io::Error::other(error.to_string()))
+                }
+                Ok(result.unwrap())
+            }
+            1 => {
+                if let Some(found) = map.get(&fields[0]) {
+                    let result = serde_yaml::to_string(found);
+                    if let Err(error) = result {
+                        return Err(std::io::Error::other(error.to_string()));
+                    }
+                    Ok(result.unwrap())
+                }
+                else {
+                    Err(std::io::Error::other(fields[0].to_owned() + ": not found"))
+                }
+            }
+            _ => {
+                if let Some(found) = map.get(&fields[0]) {
+                    if let Some(map) = found.as_mapping() {
+                        Self::get_value_from_map(map, &fields[1..])
+                    }
+                    else {
+                        Err(std::io::Error::other(fields[0].to_owned() + ": not a mapping"))
+                    }
+                }
+                else {
+                    Err(std::io::Error::other(fields[0].to_owned() + ": not found"))
+                }
+            }
+        }
+    }
+
+    pub fn get_value(&self, field: &Vec<String>) -> Result<String, std::io::Error> {
+        let value = serde_yaml::to_value(self);
+        let value = match value {
+            Ok(value) => value,
+            Err(error) => return Err(std::io::Error::other(error.to_string()))
+        };
+        if let Some(map) = value.as_mapping() {
+            match field.len() {
+                0 => {
+                    return Self::get_value_from_map(map, field);
+                }
+                _ => {
+                    if let Some(found) = map.get(&field[0]) {
+                        let submap = serde_yaml::from_value(found.clone());
+                        let submap = match submap {
+                            Ok(submap) => submap,
+                            Err(error) => return Err(std::io::Error::other(error.to_string()))
+                        };
+                        return Self::get_value_from_map(&submap, &field[1..]);
+                    }
+                    return Err(std::io::Error::other(field[0].to_owned() + ": not found"));
+                }
+            }
+        }
+        Err(std::io::Error::other(field[0].to_owned() + ": not a map"))
+    }
+
     // validate() is implemented in the (generated) lib.rs
 }
 

@@ -312,8 +312,15 @@ static Answer doGetParameter(ArgIterator begin, ArgIterator end)
     return {0, ret.str()};
   }
   auto settings = g_yamlStruct.lock();
-  auto yaml = settings->to_yaml_string();
-  return {0, std::string(yaml)};
+  rust::Vec<::rust::String> field;
+  stringtok(field, *begin, ".");
+  try {
+    auto yaml = settings->get_value(field);
+    return {0, std::string(yaml)};
+  }
+  catch (const std::exception& stdex) {
+    return {1, std::string(stdex.what()) + '\n'};
+  }
 }
 
 /* Read an (open) fd from the control channel */
