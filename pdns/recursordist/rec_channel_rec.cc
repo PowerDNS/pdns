@@ -297,22 +297,18 @@ static Answer doGet(ArgIterator begin, ArgIterator end)
 
 static Answer doGetParameter(ArgIterator begin, ArgIterator end)
 {
-  string ret;
-  string parm;
-  using boost::replace_all;
+  std::stringstream ret;
+
   for (auto i = begin; i != end; ++i) {
     if (::arg().parmIsset(*i)) {
-      parm = ::arg()[*i];
-      replace_all(parm, "\\", "\\\\");
-      replace_all(parm, "\"", "\\\"");
-      replace_all(parm, "\n", "\\n");
-      ret += *i + "=\"" + parm + "\"\n";
+      const auto& parm = arg()[*i];
+      ret << *i << '=' << parm << endl;
     }
     else {
-      ret += *i + " not known\n";
+      ret << *i << " not known" << endl;
     }
   }
-  return {0, std::move(ret)};
+  return {0, ret.str()};
 }
 
 /* Read an (open) fd from the control channel */
