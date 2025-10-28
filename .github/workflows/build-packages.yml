@@ -343,7 +343,7 @@ jobs:
       - name: Download packages
         uses: actions/download-artifact@v4
         with:
-          pattern: "${{ inputs.product }}-${{ matrix.os }}-*-${{ matrix.architecture }}"
+          pattern: "${{ inputs.product }}-${{ matrix.os }}-${{ needs.build.outputs.version }}-${{ matrix.architecture }}"
       - name: Normalize package name
         id: normalize-name
         run: |
@@ -388,6 +388,7 @@ jobs:
   upload-src-files:
     needs: [prepare, build, provenance-src, provenance-pkgs]
     continue-on-error: true
+    if: ${{ needs.prepare.outputs.publish-packages == 'yes' }}
     name: Upload source and other files
     runs-on: ubuntu-24.04
     strategy:
@@ -413,7 +414,7 @@ jobs:
       - name: Download packages
         uses: actions/download-artifact@v4
         with:
-          pattern: "${{ inputs.product }}-${{ matrix.os }}-*-${{ matrix.architecture }}"
+          pattern: "${{ inputs.product }}-${{ matrix.os }}-${{ needs.build.outputs.version }}-${{ matrix.architecture }}"
       - name: Normalize package name
         id: normalize-name
         run: |
@@ -446,6 +447,7 @@ jobs:
     needs: [build, provenance-src, provenance-pkgs]
     name: Upload provenance files
     continue-on-error: true
+    if: ${{ needs.prepare.outputs.publish-packages == 'yes' }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -465,7 +467,7 @@ jobs:
       - name: Download provenance files
         uses: actions/download-artifact@v4
         with:
-          pattern: "${{ inputs.product }}-*.intoto.jsonl"
+          pattern: "${{ inputs.product }}-${{ needs.build.outputs.version }}-*.intoto.jsonl"
       - name: Normalize package name
         id: normalize-name
         run: |
