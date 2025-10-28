@@ -297,18 +297,23 @@ static Answer doGet(ArgIterator begin, ArgIterator end)
 
 static Answer doGetParameter(ArgIterator begin, ArgIterator end)
 {
-  std::stringstream ret;
+  if (!g_yamlSettings) {
+    std::stringstream ret;
 
-  for (auto i = begin; i != end; ++i) {
-    if (::arg().parmIsset(*i)) {
-      const auto& parm = arg()[*i];
-      ret << *i << '=' << parm << endl;
+    for (auto i = begin; i != end; ++i) {
+      if (::arg().parmIsset(*i)) {
+        const auto& parm = arg()[*i];
+        ret << *i << '=' << parm << endl;
+      }
+      else {
+        ret << *i << " not known" << endl;
+      }
     }
-    else {
-      ret << *i << " not known" << endl;
-    }
+    return {0, ret.str()};
   }
-  return {0, ret.str()};
+  auto settings = g_yamlStruct.lock();
+  auto yaml = settings->to_yaml_string();
+  return {0, std::string(yaml)};
 }
 
 /* Read an (open) fd from the control channel */

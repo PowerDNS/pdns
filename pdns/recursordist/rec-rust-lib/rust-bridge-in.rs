@@ -371,6 +371,8 @@ struct Value {
     vec_allowedadditionalqtype_val: Vec<AllowedAdditionalQType>,
     vec_proxymapping_val: Vec<ProxyMapping>,
     vec_forwardingcatalogzone_val: Vec<ForwardingCatalogZone>,
+    vec_incomingwsconfig_val: Vec<IncomingWSConfig>,
+    vec_outgoingtlsconfiguration_val: Vec<OutgoingTLSConfiguration>,
 }
 
 struct OldStyle {

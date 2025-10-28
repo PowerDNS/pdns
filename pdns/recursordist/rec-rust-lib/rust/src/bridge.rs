@@ -767,6 +767,13 @@ impl ForwardingCatalogZone {
 }
 
 impl IncomingWSConfig {
+
+    fn to_yaml_map(&self) -> serde_yaml::Value {
+        // XXX
+        let map = serde_yaml::Mapping::new();
+        serde_yaml::Value::Mapping(map)
+    }
+
     pub fn validate(&self, _field: &str) -> Result<(), ValidationError> {
         // XXX
         Ok(())
@@ -774,6 +781,13 @@ impl IncomingWSConfig {
 }
 
 impl OutgoingTLSConfiguration {
+
+    fn to_yaml_map(&self) -> serde_yaml::Value {
+        // XXX
+        let map = serde_yaml::Mapping::new();
+        serde_yaml::Value::Mapping(map)
+    }
+
     pub fn validate(&self, field: &str) -> Result<(), ValidationError> {
         if self.name.is_empty() {
             let msg = format!("{}: value may not be empty", field);
@@ -1017,6 +1031,20 @@ pub fn map_to_yaml_string(vec: &Vec<OldStyle>) -> Result<String, serde_yaml::Err
                     "Vec<ForwardingCatalogZone>" => {
                         let mut seq = serde_yaml::Sequence::new();
                         for element in &entry.value.vec_forwardingcatalogzone_val {
+                            seq.push(element.to_yaml_map());
+                        }
+                        serde_yaml::Value::Sequence(seq)
+                    }
+                    "Vec<OutgoingTLSConfiguration>" => {
+                        let mut seq = serde_yaml::Sequence::new();
+                        for element in &entry.value.vec_outgoingtlsconfiguration_val {
+                            seq.push(element.to_yaml_map());
+                        }
+                        serde_yaml::Value::Sequence(seq)
+                    }
+                    "Vec<IncomingWSConfig>" => {
+                        let mut seq = serde_yaml::Sequence::new();
+                        for element in &entry.value.vec_incomingwsconfig_val {
                             seq.push(element.to_yaml_map());
                         }
                         serde_yaml::Value::Sequence(seq)
