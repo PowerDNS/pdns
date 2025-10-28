@@ -216,7 +216,12 @@ fn validate_address_family(
     for addr_str in vec {
         let mut wrong = false;
         let sa = SocketAddr::from_str(addr_str);
-        if sa.is_err() {
+        if let Ok(address) = sa {
+            if local.is_ipv4() != address.is_ipv4() || local.is_ipv6() != address.is_ipv6() {
+                wrong = true;
+            }
+        }
+        else {
             let ip = IpAddr::from_str(addr_str);
             if ip.is_err() {
                 // It is likely a name
@@ -224,11 +229,6 @@ fn validate_address_family(
             }
             let ip = ip.unwrap();
             if local.is_ipv4() != ip.is_ipv4() || local.is_ipv6() != ip.is_ipv6() {
-                wrong = true;
-            }
-        } else {
-            let sa = sa.unwrap();
-            if local.is_ipv4() != sa.is_ipv4() || local.is_ipv6() != sa.is_ipv6() {
                 wrong = true;
             }
         }
@@ -964,20 +964,20 @@ impl Recursorsettings {
         Err(std::io::Error::other(field[0].to_owned() + ": not a map"))
     }
 
-    pub fn get_value(&self, field: &Vec<String>, defaults: &str) -> Result<String, std::io::Error> {
+    pub fn get_value(&self, field: &[String], defaults: &str) -> Result<String, std::io::Error> {
         let value = serde_yaml::to_value(self);
         let value = match value {
             Ok(value) => value,
             Err(error) => return Err(std::io::Error::other(error.to_string()))
         };
         match Self::get_value1(&value, field) {
-            Ok(result) => Ok(result),
+            Ok(yaml) => Ok(yaml),
             Err(_) => {
                 let defaults_value: serde_yaml::Value = serde_yaml::from_str(defaults).unwrap();
                 let yaml = Self::get_value1(&defaults_value, field);
                 match yaml {
-                    Ok(yaml) => Ok("# Not explicitly set, default value is:\n".to_owned() + &yaml),
-                    Err(x) => Err(x)
+                    Ok(yaml) => Ok("# Not explicitly set, default value(s) listed below:\n".to_owned() + &yaml),
+                    x => x
                 }
             }
         }
@@ -1186,7 +1186,7 @@ fn api_read_zones_locked(
             let data: Result<ApiZones, serde_yaml::Error> =
                 serde_yaml::from_reader(BufReader::new(file));
             match data {
-                Err(error) => return Err(std::io::Error::new(ErrorKind::Other, error.to_string())),
+                Err(error) => return Err(std::io::Error::other(error.to_string())),
                 Ok(yaml) => yaml,
             }
         }
@@ -1220,7 +1220,7 @@ fn api_write_zones(path: &str, zones: &ApiZones) -> Result<(), std::io::Error> {
     let file = File::create(tmpfile.as_str())?;
     let mut buffered_writer = BufWriter::new(&file);
     if let Err(error) = serde_yaml::to_writer(&mut buffered_writer, &zones) {
-        return Err(std::io::Error::new(ErrorKind::Other, error.to_string()));
+        return Err(std::io::Error::other(error.to_string()));
     }
     buffered_writer.flush()?;
     file.sync_all()?;

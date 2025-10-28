@@ -314,8 +314,9 @@ static Answer doGetParameter(ArgIterator begin, ArgIterator end)
   auto settings = g_yamlStruct.lock();
   rust::Vec<::rust::String> field;
   stringtok(field, *begin, ".");
+  rust::Slice<const ::rust::String> slice{field};
   try {
-    auto yaml = settings->get_value(field, pdns::settings::rec::defaultsToYaml(false));
+    auto yaml = settings->get_value(slice, pdns::settings::rec::defaultsToYaml(false));
     return {0, std::string(yaml)};
   }
   catch (const std::exception& stdex) {
@@ -1860,6 +1861,9 @@ static Answer setEventTracing(ArgIterator begin, ArgIterator end)
   }
   try {
     pdns::checked_stoi_into(SyncRes::s_event_trace_enabled, *begin);
+    if (g_yamlSettings) {
+      g_yamlStruct.lock()->recursor.event_trace_enabled = SyncRes::s_event_trace_enabled;
+    }
     return {0, "New event trace enabled value: " + std::to_string(SyncRes::s_event_trace_enabled) + "\n"};
   }
   catch (const std::exception& e) {

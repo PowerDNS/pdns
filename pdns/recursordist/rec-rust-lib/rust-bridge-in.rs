@@ -403,7 +403,7 @@ extern "Rust" {
 
     // Prdoduce a YAML formatted string given a data structure known to Serde
     fn to_yaml_string(self: &Recursorsettings) -> Result<String>;
-    fn get_value(self: &Recursorsettings, field: &Vec<String>, defaults: &str) -> Result<String>;
+    fn get_value(self: &Recursorsettings, field: &[String], defaults: &str) -> Result<String>;
     // When doing a conversion of old-style to YAML style we use a vector of OldStyle structs
     fn map_to_yaml_string(map: &Vec<OldStyle>) -> Result<String>;
     fn forward_zones_to_yaml_string(vec: &Vec<ForwardZone>) -> Result<String>;
