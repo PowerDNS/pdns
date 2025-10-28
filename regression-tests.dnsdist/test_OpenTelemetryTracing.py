@@ -117,9 +117,11 @@ class DNSDistOpenTelemetryProtobufBaseTest(DNSDistOpenTelemetryProtobufTest):
         funcs = {
             "processQuery",
             "applyRulesToQuery",
+            "Rule: Enable tracing",
             "selectBackendForOutgoingQuery",
             "processResponse",
             "applyRulesToResponse",
+            "Rule: Do PB logging",
         }
 
         if useTCP:
@@ -195,8 +197,8 @@ newServer{address="127.0.0.1:%d"}
 rl = newRemoteLogger('127.0.0.1:%d')
 setOpenTelemetryTracing(true)
 
-addAction(AllRule(), SetTraceAction(true))
-addResponseAction(AllRule(), RemoteLogResponseAction(rl))
+addAction(AllRule(), SetTraceAction(true), {name="Enable tracing"})
+addResponseAction(AllRule(), RemoteLogResponseAction(rl), {name="Do PB logging"})
 """
 
     def testBasic(self):
@@ -260,8 +262,8 @@ newServer{address="127.0.0.1:%d"}
 rl = newRemoteLogger('127.0.0.1:%d')
 setOpenTelemetryTracing(true)
 
-addAction(AllRule(), SetTraceAction(true))
-addResponseAction(AllRule(), RemoteLogResponseAction(rl, nil, false, {}, {}, true))
+addAction(AllRule(), SetTraceAction(true), {name="Enable tracing"})
+addResponseAction(AllRule(), RemoteLogResponseAction(rl, nil, false, {}, {}, true), {name="Do PB logging"})
 """
 
     def testBasic(self):

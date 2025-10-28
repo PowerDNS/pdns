@@ -466,7 +466,16 @@ bool applyRulesToResponse(const std::vector<dnsdist::rules::ResponseRuleAction>&
 
   DNSResponseAction::Action action = DNSResponseAction::Action::None;
   std::string ruleresult;
+  SpanID parentSpanID;
+  if (auto tracer = dnsResponse.ids.getTracer(); tracer != nullptr && dnsResponse.ids.tracingEnabled) {
+    parentSpanID = tracer->getLastSpanID();
+  }
+
   for (const auto& rrule : respRuleActions) {
+    pdns::trace::dnsdist::Tracer::Closer ruleCloser;
+    if (auto tracer = dnsResponse.ids.getTracer(); tracer != nullptr && dnsResponse.ids.tracingEnabled) {
+      ruleCloser = tracer->openSpan("Rule: " + rrule.d_name, parentSpanID);
+    }
     if (rrule.d_rule->matches(&dnsResponse)) {
       ++rrule.d_rule->d_matches;
       action = (*rrule.d_action)(&dnsResponse, &ruleresult);
@@ -522,7 +531,7 @@ bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse,
 {
   pdns::trace::dnsdist::Tracer::Closer closer;
   if (auto tracer = dnsResponse.ids.getTracer(); tracer != nullptr && dnsResponse.ids.tracingEnabled) {
-    closer = tracer->openSpan("processResponseAfterRules", tracer->getLastSpanID());
+    closer = tracer->openSpan("processResponseAfterRules", tracer->getLastSpanIDForName("processResponse"));
   }
   bool zeroScope = false;
   if (!fixUpResponse(response, dnsResponse.ids.qname, dnsResponse.ids.origFlags, dnsResponse.ids.ednsAdded, dnsResponse.ids.ecsAdded, dnsResponse.ids.useZeroScope ? &zeroScope : nullptr)) {
@@ -1031,9 +1040,19 @@ static bool applyRulesChainToQuery(const std::vector<dnsdist::rules::RuleAction>
   string ruleresult;
   bool drop = false;
 
+  SpanID parentSpanID;
+  if (auto tracer = dnsQuestion.ids.getTracer(); tracer != nullptr) {
+    parentSpanID = tracer->getLastSpanID();
+  }
+
   for (const auto& rule : rules) {
     if (!rule.d_rule->matches(&dnsQuestion)) {
       continue;
+    }
+
+    pdns::trace::dnsdist::Tracer::Closer ruleCloser;
+    if (auto tracer = dnsQuestion.ids.getTracer(); tracer != nullptr) {
+      ruleCloser = tracer->openSpan("Rule: " + rule.d_name, parentSpanID);
     }
 
     rule.d_rule->d_matches++;
@@ -1461,7 +1480,8 @@ static ServerPolicy::SelectedBackend selectBackendForOutgoingQuery(DNSQuestion& 
 {
   pdns::trace::dnsdist::Tracer::Closer closer;
   if (auto tracer = dnsQuestion.ids.getTracer(); tracer != nullptr && dnsQuestion.ids.tracingEnabled) {
-    closer = tracer->openSpan("selectBackendForOutgoingQuery", tracer->getLastSpanID());
+    // Not exactly processQuery, but it works for now
+    closer = tracer->openSpan("selectBackendForOutgoingQuery", tracer->getLastSpanIDForName("processQuery"));
   }
 
   const auto& policy = serverPool.policy != nullptr ? *serverPool.policy : *dnsdist::configuration::getCurrentRuntimeConfiguration().d_lbPolicy;
