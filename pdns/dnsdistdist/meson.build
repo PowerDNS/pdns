@@ -598,6 +598,7 @@ benchmark_sources = files(
   src_dir / 'bench-dnsdist-action-rcode.cc',
   src_dir / 'bench-dnsdist-dnsparser_cc.cc',
   src_dir / 'bench-dnsdist-opentelemetry_cc.cc',
+  src_dir / 'bench-dnsdist-rings_cc.cc',
 )
 
 if get_option('benchmark')
