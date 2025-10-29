@@ -905,22 +905,14 @@ impl Recursorsettings {
         serde_yaml::to_string(self)
     }
 
-    fn get_value_from_map(map: &serde_yaml::Mapping, fields: &[String]) -> Result<String, std::io::Error>  {
+    fn get_value_from_map(map: &serde_yaml::Mapping, fields: &[String]) -> Result<serde_yaml::Value, std::io::Error>  {
         match fields.len() {
             0 => {
-                let result = serde_yaml::to_string(map);
-                if let Err(error) = result {
-                    return Err(std::io::Error::other(error.to_string()))
-                }
-                Ok(result.unwrap())
+                Ok(serde_yaml::Value::Mapping(map.clone()))
             }
             1 => {
                 if let Some(found) = map.get(&fields[0]) {
-                    let result = serde_yaml::to_string(found);
-                    if let Err(error) = result {
-                        return Err(std::io::Error::other(error.to_string()));
-                    }
-                    Ok(result.unwrap())
+                    Ok(found.clone())
                 }
                 else {
                     Err(std::io::Error::other(fields[0].to_owned() + ": not found"))
@@ -942,7 +934,7 @@ impl Recursorsettings {
         }
     }
 
-    fn get_value1(value: &serde_yaml::Value, field: &[String]) -> Result<String, std::io::Error> {
+    fn get_value1(value: &serde_yaml::Value, field: &[String]) -> Result<serde_yaml::Value, std::io::Error> {
         if let Some(map) = value.as_mapping() {
             match field.len() {
                 0 => {
@@ -964,6 +956,17 @@ impl Recursorsettings {
         Err(std::io::Error::other(field[0].to_owned() + ": not a map"))
     }
 
+    fn buildnestedmaps(field: &[String], leaf: &serde_yaml::Value) -> serde_yaml::Value {
+        if field.len() == 0 {
+            return leaf.clone();
+        }
+        let submap = Self::buildnestedmaps(&field[1..], leaf);
+        let mut map = serde_yaml::Mapping::new();
+        map.insert(serde_yaml::Value::String(field[0].clone()),
+                   submap);
+        serde_yaml::Value::Mapping(map)
+    }
+
     pub fn get_value(&self, field: &[String], defaults: &str) -> Result<String, std::io::Error> {
         let value = serde_yaml::to_value(self);
         let value = match value {
@@ -971,13 +974,21 @@ impl Recursorsettings {
             Err(error) => return Err(std::io::Error::other(error.to_string()))
         };
         match Self::get_value1(&value, field) {
-            Ok(yaml) => Ok(yaml),
+            Ok(yaml) => {
+                let map = Self::buildnestedmaps(field, &yaml);
+                Ok(serde_yaml::to_string(&map).unwrap())
+            }
             Err(_) => {
                 let defaults_value: serde_yaml::Value = serde_yaml::from_str(defaults).unwrap();
-                let yaml = Self::get_value1(&defaults_value, field);
-                match yaml {
-                    Ok(yaml) => Ok("# Not explicitly set, default value(s) listed below:\n".to_owned() + &yaml),
-                    x => x
+                let value = Self::get_value1(&defaults_value, field);
+                match value {
+                    Ok(value) => {
+                        let map = Self::buildnestedmaps(field, &value);
+                        let res = serde_yaml::to_string(&map).unwrap();
+                        let msg = format!("# {}: not explicitly set, default value(s) listed below:\n{}", field[0], res);
+                        Ok(msg)
+                    },
+                    Err(x) => Err(x)
                 }
             }
         }

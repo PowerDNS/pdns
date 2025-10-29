@@ -297,8 +297,9 @@ static Answer doGet(ArgIterator begin, ArgIterator end)
 
 static Answer doGetParameter(ArgIterator begin, ArgIterator end)
 {
+  std::stringstream ret;
+  int err = 0;
   if (!g_yamlSettings) {
-    std::stringstream ret;
 
     for (auto i = begin; i != end; ++i) {
       if (::arg().parmIsset(*i)) {
@@ -307,21 +308,34 @@ static Answer doGetParameter(ArgIterator begin, ArgIterator end)
       }
       else {
         ret << *i << " not known" << endl;
+        err = 1;
       }
     }
-    return {0, ret.str()};
   }
-  auto settings = g_yamlStruct.lock();
-  rust::Vec<::rust::String> field;
-  stringtok(field, *begin, ".");
-  rust::Slice<const ::rust::String> slice{field};
-  try {
-    auto yaml = settings->get_value(slice, pdns::settings::rec::defaultsToYaml(false));
-    return {0, std::string(yaml)};
+  else {
+    auto settings = g_yamlStruct.lock();
+    ret << "# YAML settings active" << endl;
+    if (begin == end) {
+      auto yaml = settings->get_value({}, pdns::settings::rec::defaultsToYaml(false));
+      ret << std::string(yaml);
+    }
+    else {
+      for (auto i = begin; i != end; ++i) {
+        rust::Vec<::rust::String> field;
+        stringtok(field, *i, ".");
+        rust::Slice<const ::rust::String> slice{field};
+        try {
+          auto yaml = settings->get_value(slice, pdns::settings::rec::defaultsToYaml(false));
+          ret << std::string(yaml);
+        }
+        catch (const std::exception& stdex) {
+          ret << std::string(stdex.what()) << endl;
+          err = 1;
+        }
+      }
+    }
   }
-  catch (const std::exception& stdex) {
-    return {1, std::string(stdex.what()) + '\n'};
-  }
+  return {err, ret.str()};
 }
 
 /* Read an (open) fd from the control channel */
