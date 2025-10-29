@@ -254,9 +254,6 @@ private:
 
 bool IsUpOracle::isUp(const CheckDesc& cd)
 {
-  if (!d_checkerThreadStarted.test_and_set()) {
-    d_checkerThread = std::make_unique<std::thread>([this] { return checkThread(); });
-  }
   time_t now = time(nullptr);
   {
     auto statuses = d_statuses.read_lock();
@@ -276,6 +273,10 @@ bool IsUpOracle::isUp(const CheckDesc& cd)
     if (statuses->find(cd) == statuses->end()) {
       (*statuses)[cd] = std::make_unique<CheckState>(now);
     }
+  }
+  // Now that we have given it work to do, make sure the checker thread runs.
+  if (!d_checkerThreadStarted.test_and_set()) {
+    d_checkerThread = std::make_unique<std::thread>([this] { return checkThread(); });
   }
   return false;
 }
