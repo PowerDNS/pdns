@@ -2498,9 +2498,11 @@ bool SyncRes::doCNAMECacheCheck(const DNSName& qname, const QType qtype, vector<
   if (d_serveStale) {
     flags |= MemRecursorCache::ServeStale;
   }
-  if (g_recCache->get(d_now.tv_sec, qname, QType::CNAME, flags, &cset, d_cacheRemote, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &context.state, &wasAuth, &authZone, &d_fromAuthIP) > 0) {
+  MemRecursorCache::Extra extra;
+  if (g_recCache->get(d_now.tv_sec, qname, QType::CNAME, flags, &cset, d_cacheRemote, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &context.state, &wasAuth, &authZone, &extra) > 0) {
     foundName = qname;
     foundQT = QType::CNAME;
+    d_fromAuthIP = extra.d_address;
   }
 
   if (foundName.empty() && qname != g_rootdnsname) {
@@ -2514,9 +2516,10 @@ bool SyncRes::doCNAMECacheCheck(const DNSName& qname, const QType qtype, vector<
       if (dnameName == qname && qtype != QType::DNAME) { // The client does not want a DNAME, but we've reached the QNAME already. So there is no match
         break;
       }
-      if (g_recCache->get(d_now.tv_sec, dnameName, QType::DNAME, flags, &cset, d_cacheRemote, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &context.state, &wasAuth, &authZone, &d_fromAuthIP) > 0) {
+      if (g_recCache->get(d_now.tv_sec, dnameName, QType::DNAME, flags, &cset, d_cacheRemote, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &context.state, &wasAuth, &authZone, &extra) > 0) {
         foundName = std::move(dnameName);
         foundQT = QType::DNAME;
+        d_fromAuthIP = extra.d_address;
         break;
       }
     } while (!labels.empty());
@@ -2938,7 +2941,10 @@ bool SyncRes::doCacheCheck(const DNSName& qname, const DNSName& authname, bool w
   if (d_refresh) {
     flags |= MemRecursorCache::Refresh;
   }
-  if (g_recCache->get(d_now.tv_sec, sqname, sqt, flags, &cset, d_cacheRemote, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &cachedState, &wasCachedAuth, nullptr, &d_fromAuthIP) > 0) {
+
+  MemRecursorCache::Extra extra;
+  if (g_recCache->get(d_now.tv_sec, sqname, sqt, flags, &cset, d_cacheRemote, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &cachedState, &wasCachedAuth, nullptr, &extra) > 0) {
+    d_fromAuthIP = extra.d_address;
 
     LOG(prefix << sqname << ": Found cache hit for " << sqt.toString() << ": ");
 
@@ -4461,7 +4467,7 @@ void SyncRes::rememberParentSetIfNeeded(const DNSName& domain, const vector<DNSR
   }
 }
 
-RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string& prefix, LWResult& lwr, const DNSName& qname, const QType qtype, const DNSName& auth, bool wasForwarded, const boost::optional<Netmask>& ednsmask, vState& state, bool& needWildcardProof, bool& gatherWildcardProof, unsigned int& wildcardLabelsCount, bool rdQuery, const ComboAddress& remoteIP) // NOLINT(readability-function-cognitive-complexity)
+RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string& prefix, LWResult& lwr, const DNSName& qname, const QType qtype, const DNSName& auth, bool wasForwarded, const boost::optional<Netmask>& ednsmask, vState& state, bool& needWildcardProof, bool& gatherWildcardProof, unsigned int& wildcardLabelsCount, bool rdQuery, const ComboAddress& remoteIP, bool overTCP) // NOLINT(readability-function-cognitive-complexity)
 {
   bool wasForwardRecurse = wasForwarded && rdQuery;
   tcache_t tcache;
@@ -4821,7 +4827,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
             thisRRNeedsWildcardProof = true;
           }
         }
-        g_recCache->replace(d_now.tv_sec, tCacheEntry->first.name, tCacheEntry->first.type, tCacheEntry->second.records, tCacheEntry->second.signatures, thisRRNeedsWildcardProof ? authorityRecs : *MemRecursorCache::s_emptyAuthRecs, tCacheEntry->first.type == QType::DS ? true : isAA, auth, tCacheEntry->first.place == DNSResourceRecord::ANSWER ? ednsmask : boost::none, d_routingTag, recordState, remoteIP, d_refresh, tCacheEntry->second.d_ttl_time);
+        g_recCache->replace(d_now.tv_sec, tCacheEntry->first.name, tCacheEntry->first.type, tCacheEntry->second.records, tCacheEntry->second.signatures, thisRRNeedsWildcardProof ? authorityRecs : *MemRecursorCache::s_emptyAuthRecs, tCacheEntry->first.type == QType::DS ? true : isAA, auth, tCacheEntry->first.place == DNSResourceRecord::ANSWER ? ednsmask : boost::none, d_routingTag, recordState, MemRecursorCache::Extra{remoteIP, overTCP}, d_refresh, tCacheEntry->second.d_ttl_time);
 
         // Delete potential negcache entry. When a record recovers with serve-stale the negcache entry can cause the wrong entry to
         // be served, as negcache entries are checked before record cache entries
@@ -4846,7 +4852,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
               content.push_back(std::move(nonExpandedRecord));
             }
 
-            g_recCache->replace(d_now.tv_sec, realOwner, QType(tCacheEntry->first.type), content, tCacheEntry->second.signatures, /* no additional records in that case */ {}, tCacheEntry->first.type == QType::DS ? true : isAA, auth, boost::none, boost::none, recordState, remoteIP, d_refresh, tCacheEntry->second.d_ttl_time);
+            g_recCache->replace(d_now.tv_sec, realOwner, QType(tCacheEntry->first.type), content, tCacheEntry->second.signatures, /* no additional records in that case */ {}, tCacheEntry->first.type == QType::DS ? true : isAA, auth, boost::none, boost::none, recordState, MemRecursorCache::Extra{remoteIP, overTCP}, d_refresh, tCacheEntry->second.d_ttl_time);
           }
         }
       }
@@ -5695,7 +5701,7 @@ void SyncRes::handleNewTarget(const std::string& prefix, const DNSName& qname, c
   updateValidationState(qname, state, cnameContext.state, prefix);
 }
 
-bool SyncRes::processAnswer(unsigned int depth, const string& prefix, LWResult& lwr, const DNSName& qname, const QType qtype, DNSName& auth, bool wasForwarded, const boost::optional<Netmask>& ednsmask, bool sendRDQuery, NsSet& nameservers, std::vector<DNSRecord>& ret, const DNSFilterEngine& dfe, bool* gotNewServers, int* rcode, vState& state, const ComboAddress& remoteIP)
+bool SyncRes::processAnswer(unsigned int depth, const string& prefix, LWResult& lwr, const DNSName& qname, const QType qtype, DNSName& auth, bool wasForwarded, const boost::optional<Netmask>& ednsmask, bool sendRDQuery, NsSet& nameservers, std::vector<DNSRecord>& ret, const DNSFilterEngine& dfe, bool* gotNewServers, int* rcode, vState& state, const ComboAddress& remoteIP, bool overTCP)
 {
   if (s_minimumTTL != 0) {
     for (auto& rec : lwr.d_records) {
@@ -5716,7 +5722,7 @@ bool SyncRes::processAnswer(unsigned int depth, const string& prefix, LWResult& 
   bool needWildcardProof = false;
   bool gatherWildcardProof = false;
   unsigned int wildcardLabelsCount = 0;
-  *rcode = updateCacheFromRecords(depth, prefix, lwr, qname, qtype, auth, wasForwarded, ednsmask, state, needWildcardProof, gatherWildcardProof, wildcardLabelsCount, sendRDQuery, remoteIP);
+  *rcode = updateCacheFromRecords(depth, prefix, lwr, qname, qtype, auth, wasForwarded, ednsmask, state, needWildcardProof, gatherWildcardProof, wildcardLabelsCount, sendRDQuery, remoteIP, overTCP);
   if (*rcode != RCode::NoError) {
     return true;
   }
@@ -5920,7 +5926,7 @@ int SyncRes::doResolveAt(NsSet& nameservers, DNSName auth, bool flawedNSSet, con
         lwr.d_aabit = true;
 
         /* we have received an answer, are we done ? */
-        bool done = processAnswer(depth, prefix, lwr, qname, qtype, auth, false, ednsmask, sendRDQuery, nameservers, ret, luaconfsLocal->dfe, &gotNewServers, &rcode, context.state, s_oobRemote);
+        bool done = processAnswer(depth, prefix, lwr, qname, qtype, auth, false, ednsmask, sendRDQuery, nameservers, ret, luaconfsLocal->dfe, &gotNewServers, &rcode, context.state, s_oobRemote, false);
         if (done) {
           return rcode;
         }
@@ -5996,6 +6002,7 @@ int SyncRes::doResolveAt(NsSet& nameservers, DNSName auth, bool flawedNSSet, con
           if (!doDoT && s_max_busy_dot_probes > 0) {
             submitTryDotTask(*remoteIP, auth, tns->first, d_now.tv_sec);
           }
+          bool overTCP = false;
           if (!forceTCP) {
             gotAnswer = doResolveAtThisIP(prefix, qname, qtype, lwr, ednsmask, auth, sendRDQuery, wasForwarded,
                                           tns->first, *remoteIP, false, false, truncated, spoofed, context.extendedError);
@@ -6007,6 +6014,7 @@ int SyncRes::doResolveAt(NsSet& nameservers, DNSName auth, bool flawedNSSet, con
             /* retry, over TCP this time */
             gotAnswer = doResolveAtThisIP(prefix, qname, qtype, lwr, ednsmask, auth, sendRDQuery, wasForwarded,
                                           tns->first, *remoteIP, true, doDoT, truncated, spoofed, context.extendedError);
+            overTCP = true;
           }
 
           if (!gotAnswer) {
@@ -6031,7 +6039,7 @@ int SyncRes::doResolveAt(NsSet& nameservers, DNSName auth, bool flawedNSSet, con
           s_nsSpeeds.lock()->find_or_enter(tns->first.empty() ? DNSName(remoteIP->toStringWithPort()) : tns->first, d_now).submit(*remoteIP, static_cast<int>(lwr.d_usec), d_now);
 
           /* we have received an answer, are we done ? */
-          bool done = processAnswer(depth, prefix, lwr, qname, qtype, auth, wasForwarded, ednsmask, sendRDQuery, nameservers, ret, luaconfsLocal->dfe, &gotNewServers, &rcode, context.state, *remoteIP);
+          bool done = processAnswer(depth, prefix, lwr, qname, qtype, auth, wasForwarded, ednsmask, sendRDQuery, nameservers, ret, luaconfsLocal->dfe, &gotNewServers, &rcode, context.state, *remoteIP, overTCP);
           if (done) {
             return rcode;
           }

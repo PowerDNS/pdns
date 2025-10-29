@@ -1323,6 +1323,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheDumpAndRestore)
 
   const ComboAddress nobody;
   const ComboAddress somebody("::1");
+  const MemRecursorCache::Extra authAddress{ComboAddress{"::2"}, true};
   const time_t ttl_time = 90;
 
   auto checker = [&] {
@@ -1332,7 +1333,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheDumpAndRestore)
       DNSName a = DNSName("hello ") + DNSName(std::to_string(counter));
       BOOST_CHECK_EQUAL(DNSName(a.toString()), a);
 
-      MRC.replace(now, a, QType(QType::A), rset0, signatures, authRecords, true, authZone, boost::none, boost::none, vState::Insecure, somebody, false, ttl_time);
+      MRC.replace(now, a, QType(QType::A), rset0, signatures, authRecords, true, authZone, boost::none, boost::none, vState::Insecure, authAddress, false, ttl_time);
     }
 
     BOOST_CHECK_EQUAL(MRC.size(), expected);
@@ -1347,8 +1348,8 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheDumpAndRestore)
       vState state = vState::Indeterminate;
       bool wasAuth = false;
       DNSName fromZone;
-      ComboAddress from;
-      if (MRC.get(now, DNSName("hello ") + DNSName(std::to_string(counter)), QType(QType::A), MemRecursorCache::None, &retrieved, somebody, boost::none, &sigs, &authRecs, &variable, &state, &wasAuth, &fromZone, &from) > 0) {
+      MemRecursorCache::Extra extra;
+      if (MRC.get(now, DNSName("hello ") + DNSName(std::to_string(counter)), QType(QType::A), MemRecursorCache::None, &retrieved, somebody, boost::none, &sigs, &authRecs, &variable, &state, &wasAuth, &fromZone, &extra) > 0) {
         matches++;
         BOOST_CHECK_EQUAL(retrieved.size(), rset0.size());
         BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr0Content.toString());
@@ -1360,7 +1361,8 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheDumpAndRestore)
         BOOST_CHECK_EQUAL(state, vState::Insecure);
         BOOST_CHECK_EQUAL(wasAuth, true);
         BOOST_CHECK_EQUAL(fromZone, authZone);
-        BOOST_CHECK_EQUAL(from.toString(), somebody.toString());
+        BOOST_CHECK_EQUAL(extra.d_address.toString(), authAddress.d_address.toString());
+        BOOST_CHECK(extra.d_tcp);
       }
     }
     BOOST_CHECK_EQUAL(matches, expected);
@@ -1480,7 +1482,7 @@ struct RecordsSpeedTest
       DNSName a = DNSName("hello ") + DNSName(std::to_string(counter));
       BOOST_CHECK_EQUAL(DNSName(a.toString()), a);
 
-      MRC.replace(now, a, QType(QType::A), rset0, signatures, authRecords, true, authZone, boost::none, boost::none, vState::Insecure, somebody, false, ttl_time);
+      MRC.replace(now, a, QType(QType::A), rset0, signatures, authRecords, true, authZone, boost::none, boost::none, vState::Insecure, MemRecursorCache::Extra{somebody, false}, false, ttl_time);
     }
 
     BOOST_CHECK_EQUAL(MRC.size(), expected);
@@ -1497,8 +1499,10 @@ struct RecordsSpeedTest
         vState state = vState::Indeterminate;
         bool wasAuth = false;
         DNSName fromZone;
-        ComboAddress from;
-        if (MRC.get(now, DNSName("hello ") + DNSName(std::to_string(counter)), QType(QType::A), MemRecursorCache::None, &retrieved, somebody, boost::none, &sigs, &authRecs, &variable, &state, &wasAuth, &fromZone, &from) > 0) {
+        MemRecursorCache::Extra extra;
+        if (MRC.get(now, DNSName("hello ") + DNSName(std::to_string(counter)), QType(QType::A), MemRecursorCache::None, &retrieved, somebody, boost::none, &sigs, &authRecs, &variable, &state, &wasAuth, &fromZone, &extra) > 0) {
+          BOOST_CHECK_EQUAL(somebody.toString(), extra.d_address.toString());
+          BOOST_CHECK(!extra.d_tcp);
           matches++;
         }
       }
