@@ -599,22 +599,40 @@ static Answer doWipeCache(ArgIterator begin, ArgIterator end, uint16_t qtype)
   return {0, "wiped " + std::to_string(count) + " records, " + std::to_string(countNeg) + " negative records, " + std::to_string(pcount) + " packets\n"};
 }
 
+template <typename T, typename U>
+static void setBothYamlAndOldStyle(T& yamlSetting, U& oldstyle, const string& value)
+{
+  pdns::checked_stoi_into(oldstyle, value);
+  if (g_yamlSettings) {
+    yamlSetting = oldstyle;
+  }
+}
+
 static Answer doSetCarbonServer(ArgIterator begin, ArgIterator end)
 {
   auto config = g_carbonConfig.getCopy();
   if (begin == end) {
     config.servers.clear();
+    if (g_yamlSettings) {
+      g_yamlStruct.lock()->carbon.server.clear();
+    }
     g_carbonConfig.setState(std::move(config));
     return {0, "cleared carbon-server setting\n"};
   }
 
   string ret;
   stringtok(config.servers, *begin, ", ");
+  if (g_yamlSettings) {
+    g_yamlStruct.lock()->carbon.server.emplace_back(*begin);
+  }
   ret = "set carbon-server to '" + *begin + "'\n";
 
   ++begin;
   if (begin != end) {
     config.hostname = *begin;
+    if (g_yamlSettings) {
+      g_yamlStruct.lock()->carbon.ourname = *begin;
+    }
     ret += "set carbon-ourname to '" + *begin + "'\n";
   }
   else {
@@ -625,6 +643,9 @@ static Answer doSetCarbonServer(ArgIterator begin, ArgIterator end)
   ++begin;
   if (begin != end) {
     config.namespace_name = *begin;
+    if (g_yamlSettings) {
+      g_yamlStruct.lock()->carbon.ns = *begin;
+    }
     ret += "set carbon-namespace to '" + *begin + "'\n";
   }
   else {
@@ -635,6 +656,9 @@ static Answer doSetCarbonServer(ArgIterator begin, ArgIterator end)
   ++begin;
   if (begin != end) {
     config.instance_name = *begin;
+    if (g_yamlSettings) {
+      g_yamlStruct.lock()->carbon.instance = *begin;
+    }
     ret += "set carbon-instance to '" + *begin + "'\n";
   }
 
@@ -653,7 +677,7 @@ static Answer doSetDnssecLogBogus(ArgIterator begin, ArgIterator end)
   if (pdns_iequals(*begin, "on") || pdns_iequals(*begin, "yes")) {
     if (!g_dnssecLogBogus) {
       g_log << Logger::Warning << "Enabling DNSSEC Bogus logging, requested via control channel" << endl;
-      g_dnssecLogBogus = true;
+      g_yamlStruct.lock()->dnssec.log_bogus = g_dnssecLogBogus = true;
       return {0, "DNSSEC Bogus logging enabled\n"};
     }
     return {0, "DNSSEC Bogus logging was already enabled\n"};
@@ -662,7 +686,7 @@ static Answer doSetDnssecLogBogus(ArgIterator begin, ArgIterator end)
   if (pdns_iequals(*begin, "off") || pdns_iequals(*begin, "no")) {
     if (g_dnssecLogBogus) {
       g_log << Logger::Warning << "Disabling DNSSEC Bogus logging, requested via control channel" << endl;
-      g_dnssecLogBogus = false;
+      g_yamlStruct.lock()->dnssec.log_bogus = g_dnssecLogBogus = false;
       return {0, "DNSSEC Bogus logging disabled\n"};
     }
     return {0, "DNSSEC Bogus logging was already disabled\n"};
@@ -901,7 +925,7 @@ static Answer setMinimumTTL(ArgIterator begin, ArgIterator end)
     return {1, "Need to supply new minimum TTL number\n"};
   }
   try {
-    pdns::checked_stoi_into(SyncRes::s_minimumTTL, *begin);
+    setBothYamlAndOldStyle(g_yamlStruct.lock()->recursor.minimum_ttl_override, SyncRes::s_minimumTTL, *begin);
     return {0, "New minimum TTL: " + std::to_string(SyncRes::s_minimumTTL) + "\n"};
   }
   catch (const std::exception& e) {
@@ -915,7 +939,7 @@ static Answer setMinimumECSTTL(ArgIterator begin, ArgIterator end)
     return {1, "Need to supply new ECS minimum TTL number\n"};
   }
   try {
-    pdns::checked_stoi_into(SyncRes::s_minimumECSTTL, *begin);
+    setBothYamlAndOldStyle(g_yamlStruct.lock()->ecs.minimum_ttl_override, SyncRes::s_minimumECSTTL, *begin);
     return {0, "New minimum ECS TTL: " + std::to_string(SyncRes::s_minimumECSTTL) + "\n"};
   }
   catch (const std::exception& e) {
@@ -929,7 +953,9 @@ static Answer setMaxCacheEntries(ArgIterator begin, ArgIterator end)
     return {1, "Need to supply new cache size\n"};
   }
   try {
-    g_maxCacheEntries = pdns::checked_stoi<uint32_t>(*begin);
+    uint32_t val{};
+    setBothYamlAndOldStyle(g_yamlStruct.lock()->recordcache.max_entries, val, *begin);
+    g_maxCacheEntries = val;
     return {0, "New max cache entries: " + std::to_string(g_maxCacheEntries) + "\n"};
   }
   catch (const std::exception& e) {
@@ -946,7 +972,9 @@ static Answer setMaxPacketCacheEntries(ArgIterator begin, ArgIterator end)
     return {1, "Packet cache is disabled\n"};
   }
   try {
-    g_maxPacketCacheEntries = pdns::checked_stoi<uint32_t>(*begin);
+    uint32_t val{};
+    setBothYamlAndOldStyle(g_yamlStruct.lock()->packetcache.max_entries, val, *begin);
+    g_maxPacketCacheEntries = val;
     g_packetCache->setMaxSize(g_maxPacketCacheEntries);
     return {0, "New max packetcache entries: " + std::to_string(g_maxPacketCacheEntries) + "\n"};
   }
@@ -964,7 +992,8 @@ static RecursorControlChannel::Answer setAggrNSECCacheSize(ArgIterator begin, Ar
     return {1, "Aggressive NSEC cache is disabled by startup config\n"};
   }
   try {
-    auto newmax = pdns::checked_stoi<uint64_t>(*begin);
+    uint64_t newmax{};
+    setBothYamlAndOldStyle(g_yamlStruct.lock()->dnssec.aggressive_nsec_cache_size, newmax, *begin);
     g_aggressiveNSECCache->setMaxEntries(newmax);
     return {0, "New aggressive NSEC cache size: " + std::to_string(newmax) + "\n"};
   }
@@ -1874,10 +1903,7 @@ static Answer setEventTracing(ArgIterator begin, ArgIterator end)
     return {1, "No event trace enabled value specified\n"};
   }
   try {
-    pdns::checked_stoi_into(SyncRes::s_event_trace_enabled, *begin);
-    if (g_yamlSettings) {
-      g_yamlStruct.lock()->recursor.event_trace_enabled = SyncRes::s_event_trace_enabled;
-    }
+    setBothYamlAndOldStyle(g_yamlStruct.lock()->recursor.event_trace_enabled, SyncRes::s_event_trace_enabled, *begin);
     return {0, "New event trace enabled value: " + std::to_string(SyncRes::s_event_trace_enabled) + "\n"};
   }
   catch (const std::exception& e) {
