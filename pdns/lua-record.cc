@@ -259,7 +259,10 @@ private:
       // set thread name again, in case std::async surprised us by doing work in this thread
       setThreadName("pdns/luaupcheck");
 
-      std::this_thread::sleep_until(checkStart + std::chrono::seconds(interval));
+      // Only sleep for 1 second here, even if the health check interval is
+      // larger, in case we get new entries to process in d_statuses in the
+      // meantime.
+      std::this_thread::sleep_for(std::chrono::seconds(1));
     }
   }
 
