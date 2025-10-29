@@ -190,5 +190,65 @@ BOOST_AUTO_TEST_CASE(getOTProtobuf)
   BOOST_TEST(data.size() >= 110U);
 }
 
+BOOST_AUTO_TEST_CASE(setTraceID)
+{
+  auto tracer = pdns::trace::dnsdist::Tracer::getTracer();
+  auto oldTraceID = tracer->getTraceID();
+  auto newTraceID = pdns::trace::TraceID::getRandomTraceID();
+  while (oldTraceID == newTraceID) {
+    newTraceID.makeRandom();
+  }
+  tracer->setTraceID(newTraceID);
+  BOOST_CHECK_EQUAL(tracer->getTraceID(), newTraceID);
+}
+
+BOOST_AUTO_TEST_CASE(setRootSpanID)
+{
+  auto tracer = pdns::trace::dnsdist::Tracer::getTracer();
+  // Setting the root span id without any spans should not error
+  auto newRootSpanID = pdns::trace::SpanID::getRandomSpanID();
+  tracer->setRootSpanID(newRootSpanID);
+  BOOST_CHECK_EQUAL(pdns::trace::s_emptySpanID, tracer->getRootSpanID());
+
+  // Add a Span, this'll be the root span
+  auto originalRootSpanID = tracer->openSpan("rootspan").getSpanID();
+  BOOST_CHECK_EQUAL(originalRootSpanID, tracer->getRootSpanID());
+
+  // Add 4 spans, all children of the root span
+  for (auto i = 0; i < 4; i++) {
+    tracer->openSpan("span " + std::to_string(i), originalRootSpanID);
+  }
+
+  // Now set the new root span ID
+  while (newRootSpanID == originalRootSpanID) {
+    newRootSpanID.makeRandom();
+  }
+  tracer->setRootSpanID(newRootSpanID);
+  BOOST_CHECK_EQUAL(tracer->getRootSpanID(), newRootSpanID);
+
+  // Verify the parent_span_id is updated
+  auto data = tracer->getTracesData();
+  for (auto i = 0; i < 4; i++) {
+    BOOST_CHECK_EQUAL(data.resource_spans.at(0).scope_spans.at(0).spans.at(i + 1).parent_span_id, newRootSpanID);
+  }
+
+  // New tracer, so we can easily test if non-root parent span IDs are not updated
+  tracer = pdns::trace::dnsdist::Tracer::getTracer();
+  // Add a Span, this'll be the root span
+  originalRootSpanID = tracer->openSpan("rootspan").getSpanID();
+  BOOST_CHECK_EQUAL(originalRootSpanID, tracer->getRootSpanID());
+
+  tracer->openSpan("span one", pdns::trace::SpanID::getRandomSpanID());
+  tracer->openSpan("span two", pdns::trace::SpanID::getRandomSpanID());
+  while (newRootSpanID == originalRootSpanID) {
+    newRootSpanID.makeRandom();
+  }
+  tracer->setRootSpanID(newRootSpanID);
+  data = tracer->getTracesData();
+  for (auto i = 0; i < 2; i++) {
+    BOOST_CHECK_NE(data.resource_spans.at(0).scope_spans.at(0).spans.at(i + 1).parent_span_id, newRootSpanID);
+  }
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 #endif // DISABLE_PROTOBUF

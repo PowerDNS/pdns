@@ -114,6 +114,30 @@ SpanID Tracer::addSpan([[maybe_unused]] const std::string& name, [[maybe_unused]
 #endif
 }
 
+void Tracer::setTraceID([[maybe_unused]] const TraceID& traceID)
+{
+#ifndef DISABLE_PROTOBUF
+  *d_traceid.lock() = traceID;
+#endif
+}
+
+void Tracer::setRootSpanID([[maybe_unused]] const SpanID& spanID)
+{
+#ifndef DISABLE_PROTOBUF
+  // XXX: We just assume that the first Span is the RootSpan
+  SpanID oldRootSpanID;
+  if (auto lockedSpans = d_spans.lock(); !lockedSpans->empty()) {
+    oldRootSpanID = lockedSpans->begin()->span_id;
+    lockedSpans->begin()->span_id = spanID;
+    for (auto& span : *lockedSpans) {
+      if (span.parent_span_id == oldRootSpanID) {
+        span.parent_span_id = spanID;
+      }
+    }
+  }
+#endif
+}
+
 // TODO: Figure out what to do with duplicate keys
 bool Tracer::setTraceAttribute([[maybe_unused]] const std::string& key, [[maybe_unused]] const AnyValue& value)
 {
