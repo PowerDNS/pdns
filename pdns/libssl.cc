@@ -374,14 +374,23 @@ int libssl_ocsp_stapling_callback(SSL* ssl, const std::map<int, std::string>& oc
     return SSL_TLSEXT_ERR_NOACK;
   }
 
+  const auto ocsp_resp_size = data->second.size();
+  /* the behaviour is alas different in 3.6.0 because of a regression introduced in b1b4b154fd389ac6254d49cfb11aee36c1c51b84:
+     the value passed to SSL_set_tlsext_status_ocsp_resp() is not freed in 3.6.0 as it is in all other OpenSSL versions.
+     See https://github.com/openssl/openssl/issues/28888 */
+#if OPENSSL_VERSION_NUMBER != 0x30600000L
   /* we need to allocate a copy because OpenSSL will free the pointer passed to SSL_set_tlsext_status_ocsp_resp() */
-  void* copy = OPENSSL_malloc(data->second.size());
-  if (copy == nullptr) {
+  void* ocsp_resp = OPENSSL_malloc(ocsp_resp_size);
+  if (ocsp_resp == nullptr) {
     return SSL_TLSEXT_ERR_NOACK;
   }
 
-  memcpy(copy, data->second.data(), data->second.size());
-  SSL_set_tlsext_status_ocsp_resp(ssl, copy, data->second.size());
+  memcpy(ocsp_resp, data->second.data(), ocsp_resp_size);
+#else
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast): the parameter is not freed in this version (3.6.0, see above) but the parameter is not marked const.
+  void* ocsp_resp = const_cast<char*>(data->second.data());
+#endif
+  SSL_set_tlsext_status_ocsp_resp(ssl, ocsp_resp, ocsp_resp_size);
   return SSL_TLSEXT_ERR_OK;
 }
 
