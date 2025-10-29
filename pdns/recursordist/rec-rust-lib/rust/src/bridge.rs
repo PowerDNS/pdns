@@ -769,13 +769,28 @@ impl ForwardingCatalogZone {
 impl IncomingWSConfig {
 
     fn to_yaml_map(&self) -> serde_yaml::Value {
-        // XXX
-        let map = serde_yaml::Mapping::new();
+        let mut map = serde_yaml::Mapping::new();
+        let mut seq = serde_yaml::Sequence::new();
+        for entry in &self.addresses {
+            seq.push(serde_yaml::Value::String(entry.to_owned()));
+        }
+        insertseq(&mut map, "addresses", &seq);
+        let mut tls = serde_yaml::Mapping::new();
+        inserts(&mut tls, "certificate", &self.tls.certificate);
+        inserts(&mut tls, "key", &self.tls.key);
+        map.insert(
+            serde_yaml::Value::String("tls".to_owned()),
+            serde_yaml::Value::Mapping(tls),
+        );
         serde_yaml::Value::Mapping(map)
     }
 
-    pub fn validate(&self, _field: &str) -> Result<(), ValidationError> {
-        // XXX
+    pub fn validate(&self, field: &str) -> Result<(), ValidationError> {
+        validate_vec(
+            &(field.to_string() + ".addresses"),
+            &self.addresses,
+            validate_socket_address,
+        )?;
         Ok(())
     }
 }
@@ -783,8 +798,26 @@ impl IncomingWSConfig {
 impl OutgoingTLSConfiguration {
 
     fn to_yaml_map(&self) -> serde_yaml::Value {
-        // XXX
-        let map = serde_yaml::Mapping::new();
+        let mut map = serde_yaml::Mapping::new();
+        inserts(&mut map, "name", &self.name);
+        inserts(&mut map, "provider", &self.provider);
+        let mut suffixes = serde_yaml::Sequence::new();
+        for entry in &self.suffixes {
+            suffixes.push(serde_yaml::Value::String(entry.to_owned()));
+        }
+        insertseq(&mut map, "suffixes", &suffixes);
+        let mut subnets = serde_yaml::Sequence::new();
+        for entry in &self.subnets {
+            subnets.push(serde_yaml::Value::String(entry.to_owned()));
+        }
+        insertseq(&mut map, "subnets", &subnets);
+        insertb(&mut map, "validate_certificate", self.validate_certificate);
+        inserts(&mut map, "ca_store", &self.ca_store);
+        insertb(&mut map, "verbose_logging", self.verbose_logging);
+        inserts(&mut map, "subject_name", &self.subject_name);
+        inserts(&mut map, "subject_address", &self.subject_address);
+        inserts(&mut map, "ciphers", &self.ciphers);
+        inserts(&mut map, "ciphers_tls", &self.ciphers_tls_13);
         serde_yaml::Value::Mapping(map)
     }
 
