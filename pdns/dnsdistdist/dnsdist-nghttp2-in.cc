@@ -282,8 +282,20 @@ bool IncomingHTTP2Connection::checkALPN()
     ++d_ci.cs->dohFrontend->d_http1Stats.d_nbQueries;
   }
 
-  const std::string data("HTTP/1.1 400 Bad Request\r\nConnection: Close\r\n\r\n<html><body>This server implements RFC 8484 - DNS Queries over HTTP, and requires HTTP/2 in accordance with section 5.2 of the RFC.</body></html>\r\n");
-  d_out.insert(d_out.end(), data.begin(), data.end());
+  static const std::string data0("HTTP/1.1 400 Bad Request\r\nConnection: Close\r\n");
+
+  std::array<char, 40> data1{};
+  static const std::string dateformat("Date: %a, %d %h %Y %T GMT\r\n");
+  struct tm tmval{};
+  time_t timestamp = time(nullptr);
+  size_t len = strftime(data1.data(), data1.size(), dateformat.data(), gmtime_r(&timestamp, &tmval));
+  assert(len != 0);
+
+  static const std::string data2("\r\n<html><body>This server implements RFC 8484 - DNS Queries over HTTP, and requires HTTP/2 in accordance with section 5.2 of the RFC.</body></html>\r\n");
+
+  d_out.insert(d_out.end(), data0.begin(), data0.end());
+  d_out.insert(d_out.end(), data1.begin(), data1.begin() + len);
+  d_out.insert(d_out.end(), data2.begin(), data2.end());
   writeToSocket(false);
 
   vinfolog("DoH connection from %s expected ALPN value 'h2', got '%s'", d_ci.remote.toStringWithPort(), std::string(protocols.begin(), protocols.end()));
