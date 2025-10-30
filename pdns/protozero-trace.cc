@@ -22,6 +22,7 @@
 
 #include "protozero-trace.hh"
 #include "base64.hh"
+#include "ednsoptions.hh"
 #include "misc.hh"
 #include <string>
 #include <variant>
@@ -557,25 +558,44 @@ void extractOTraceIDs(const EDNSOptionViewMap& map, pdns::trace::InitialSpanInfo
   // traceid gets set from edns options (if available and well-formed), otherwise random
   // parent_span_id gets set from edns options (if available and well-formed, otherwise it remains cleared (no parent))
   // span_id gets inited randomly
-  bool traceidset = false;
+  auto traceidset = extractOTraceIDs(map, EDNSOptionCode::OTTRACEIDS, span.trace_id, span.parent_span_id);
 
-  if (const auto& option = map.find(EDNSOptionCode::OTTRACEIDS); option != map.end()) {
-    const auto& value = option->second.values.at(0);
-    const EDNSOTTraceRecordView data{reinterpret_cast<const uint8_t*>(value.content), value.size}; // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-    // 1 byte version, then tracid then optional spanid
-    uint8_t version{};
-    if (data.getVersion(version) && version == 0) {
-      if (data.getTraceID(span.trace_id)) {
-        traceidset = true;
-      }
-      (void)data.getSpanID(span.parent_span_id);
-    }
-  }
   if (!traceidset) {
     span.trace_id.makeRandom();
   }
   // Empty parent span id indicated the client did not set one, thats fine
   span.span_id.makeRandom();
+}
+
+/**
+ * @brief Extract the Trace and Span IDs from
+ *
+ * @param map an EDNSOptionViewMap where a TraceID option might be
+ * @param eoc the EDNS option code where the TraceID might be, OTTRACEIDS by default
+ * @param traceID will be set to the TraceID in the EDNS option, untouched otherwise
+ * @param spanID will be set to the SpanID in the EDNS options, untouched otherwise
+ * @return true if a traceid was found in the EDNS options
+ */
+bool extractOTraceIDs(const EDNSOptionViewMap& map, const EDNSOptionCode::EDNSOptionCodeEnum& eoc, pdns::trace::TraceID& traceID, pdns::trace::SpanID& spanID)
+{
+  EDNSOptionCode::EDNSOptionCodeEnum realEOC = eoc;
+  if (realEOC == 0) {
+    realEOC = EDNSOptionCode::OTTRACEIDS;
+  }
+  bool traceidset = false;
+  if (const auto& option = map.find(realEOC); option != map.end()) {
+    const auto& value = option->second.values.at(0);
+    const EDNSOTTraceRecordView data{reinterpret_cast<const uint8_t*>(value.content), value.size}; // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    // 1 byte version, then tracid then optional spanid
+    uint8_t version{};
+    if (data.getVersion(version) && version == 0) {
+      if (data.getTraceID(traceID)) {
+        traceidset = true;
+      }
+      (void)data.getSpanID(spanID);
+    }
+  }
+  return traceidset;
 }
 
 std::string SpanID::toLogString() const
