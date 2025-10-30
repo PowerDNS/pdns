@@ -430,6 +430,26 @@ void RecursorLua4::postPrepareContext() // NOLINT(readability-function-cognitive
 
   d_pd.emplace_back("now", &g_now);
 
+  d_lw->writeFunction("initMetric", [](const std::string& str, boost::optional<boost::variant<std::string, std::unordered_map<std::string, std::string>>> opts){
+    std::string prometheusName;
+    std::string prometheusTypeName;
+    std::string prometheusDescr;
+
+    if (opts) {
+      auto* optPrometheusName = boost::get<std::string>(&opts.get());
+      if (optPrometheusName != nullptr) {
+        prometheusName = *optPrometheusName;
+      } else {
+        boost::optional<std::unordered_map<std::string, std::string>> vars = {boost::get<std::unordered_map<std::string, std::string>>(opts.get())};
+        prometheusName = (*vars)["prometheusName"];
+        prometheusTypeName = (*vars)["type"];
+        prometheusDescr = (*vars)["description"];
+      }
+    }
+
+    return DynMetric{initDynMetric(str, prometheusName, prometheusTypeName, prometheusDescr)};
+  });
+
   d_lw->writeFunction("getMetric", [](const std::string& str, boost::optional<std::string> prometheusName) {
     return DynMetric{getDynMetric(str, prometheusName ? *prometheusName : "")};
     });
