@@ -259,7 +259,10 @@ private:
       // set thread name again, in case std::async surprised us by doing work in this thread
       setThreadName("pdns/luaupcheck");
 
-      std::this_thread::sleep_until(checkStart + std::chrono::seconds(interval));
+      // Only sleep for 1 second here, even if the health check interval is
+      // larger, in case we get new entries to process in d_statuses in the
+      // meantime.
+      std::this_thread::sleep_for(std::chrono::seconds(1));
     }
   }
 
@@ -335,9 +338,6 @@ private:
 //NOLINTNEXTLINE(readability-identifier-length)
 int IsUpOracle::isUp(const CheckDesc& cd)
 {
-  if (!d_checkerThreadStarted.test_and_set()) {
-    d_checkerThread = std::make_unique<std::thread>([this] { return checkThread(); });
-  }
   time_t now = time(nullptr);
   {
     auto statuses = d_statuses.read_lock();
@@ -360,6 +360,10 @@ int IsUpOracle::isUp(const CheckDesc& cd)
     if (statuses->find(cd) == statuses->end()) {
       (*statuses)[cd] = std::make_unique<CheckState>(now);
     }
+  }
+  // Now that we have given it work to do, make sure the checker thread runs.
+  if (!d_checkerThreadStarted.test_and_set()) {
+    d_checkerThread = std::make_unique<std::thread>([this] { return checkThread(); });
   }
   // If explicitly asked to fail on incomplete checks, report this (as
   // a negative value).
