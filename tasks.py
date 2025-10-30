@@ -1315,12 +1315,16 @@ def pulp_upload_file_packages_by_folder(c, source):
     for root, dirs, files in os.walk(source):
         for path in files:
             file = os.path.join(root, path).split('/',1)[1]
-            # file repositories have been configured with autopublish set to true
-            cmd = f'file content upload --repository {repo_name} --file {source}/{file} --relative-path {file}'
+            # First upload file as an artifact
+            cmd = f"artifact upload --file {source}/{file} --chunk-size 500MB | jq -r '.sha256' | tr -d '\n'"
+            artifact_sha256 = run_pulp_cmd(c, cmd)
+            # Then create the content of type file
+            cmd = f'file content create --repository {repo_name} --relative-path {file} --sha256 {artifact_sha256}'
             run_pulp_cmd(c, cmd)
 
 @task
 def pulp_create_rpm_publication(c, product, list_os_rel, list_arch):
+    max_push_attempts = 3
     rpm_distros = ["centos", "el"]
     for os_rel in json.loads(list_os_rel):
         if not "el-" in os_rel:
@@ -1329,16 +1333,37 @@ def pulp_create_rpm_publication(c, product, list_os_rel, list_arch):
         for arch in json.loads(list_arch):
             for distro in rpm_distros:
                 repo_name = f"repo-{distro}-{release}-{arch}-{product}"
-                cmd = f'rpm publication create --repository {repo_name} --checksum-type sha256'
-                run_pulp_cmd(c, cmd)
+                attempts = 0
+                while attempts < max_push_attempts:
+                    try:
+                        cmd = f'rpm publication create --repository {repo_name} --checksum-type sha256'
+                        run_pulp_cmd(c, cmd)
+                        break
+                    except UnexpectedExit:
+                        attempts += 1
+                        time.sleep(5)
+                        print(f'Next attempt: {attempts}')
+                        if attempts == max_push_attempts:
+                            raise Failure(f'Error creating rpm publication')
 
 @task
 def pulp_create_deb_publication(c):
+    max_push_attempts = 3
     deb_distros = ["debian", "ubuntu"]
     for distro in deb_distros:
         repo_name = f"repo-{distro}"
-        cmd = f'deb publication create --repository {repo_name}'
-        run_pulp_cmd(c, cmd)
+        attempts = 0
+        while attempts < max_push_attempts:
+            try:
+                cmd = f'deb publication create --repository {repo_name}'
+                run_pulp_cmd(c, cmd)
+                break
+            except UnexpectedExit:
+                attempts += 1
+                time.sleep(5)
+                print(f'Next attempt: {attempts}')
+                if attempts == max_push_attempts:
+                    raise Failure(f'Error creating deb publication')
 
 @task
 def pulp_upload_rpm_packages_by_folder(c, source, product):
@@ -1393,7 +1418,7 @@ def pulp_upload_deb_packages_by_folder(c, source, product):
         for root, dirs, files in os.walk(source):
             for path in files:
                 file = os.path.join(root, path).split('/',1)[1]
-                cmd = f"artifact upload --file {source}/{file} | jq -r '.pulp_href' | tr -d '\n'"
+                cmd = f"artifact upload --file {source}/{file} --chunk-size 500MB | jq -r '.pulp_href' | tr -d '\n'"
                 artifact_href = run_pulp_cmd(c, cmd)
 
                 package_data = {
