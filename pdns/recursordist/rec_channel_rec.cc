@@ -299,8 +299,8 @@ static Answer doGetParameter(ArgIterator begin, ArgIterator end)
 {
   std::stringstream ret;
   int err = 0;
-  if (!g_yamlSettings) {
 
+  if (!g_yamlSettings) {
     for (auto i = begin; i != end; ++i) {
       if (::arg().parmIsset(*i)) {
         const auto& parm = arg()[*i];
@@ -314,9 +314,8 @@ static Answer doGetParameter(ArgIterator begin, ArgIterator end)
   }
   else {
     auto settings = g_yamlStruct.lock();
-    ret << "# YAML settings active" << endl;
     if (begin == end) {
-      auto yaml = settings->get_value({}, pdns::settings::rec::defaultsToYaml(false));
+      auto yaml = settings->get_value({}, pdns::settings::rec::defaultsToYaml(false), true);
       ret << std::string(yaml);
     }
     else {
@@ -325,7 +324,49 @@ static Answer doGetParameter(ArgIterator begin, ArgIterator end)
         stringtok(field, *i, ".");
         rust::Slice<const ::rust::String> slice{field};
         try {
-          auto yaml = settings->get_value(slice, pdns::settings::rec::defaultsToYaml(false));
+          auto yaml = settings->get_value(slice, pdns::settings::rec::defaultsToYaml(false), true);
+          ret << std::string(yaml);
+        }
+        catch (const std::exception& stdex) {
+          ret << std::string(stdex.what()) << endl;
+          err = 1;
+        }
+      }
+    }
+  }
+  return {err, ret.str()};
+}
+
+static Answer doGetDefaultParameter(ArgIterator begin, ArgIterator end)
+{
+  std::stringstream ret;
+  int err = 0;
+
+  if (!g_yamlSettings) {
+    for (auto i = begin; i != end; ++i) {
+      if (::arg().parmIsset(*i)) {
+        ret << *i << '=' << ::arg().getDefault(*i) << endl;
+      }
+      else {
+        ret << *i << " not known" << endl;
+        err = 1;
+      }
+    }
+  }
+  else {
+    auto settings = g_yamlStruct.lock();
+    auto defaults = pdns::rust::settings::rec::parse_yaml_string("");
+    if (begin == end) {
+      auto yaml = pdns::settings::rec::defaultsToYaml(false);
+      ret << std::string(yaml);
+    }
+    else {
+      for (auto i = begin; i != end; ++i) {
+        rust::Vec<::rust::String> field;
+        stringtok(field, *i, ".");
+        rust::Slice<const ::rust::String> slice{field};
+        try {
+          auto yaml = defaults.get_value(slice, pdns::settings::rec::defaultsToYaml(false), false);
           ret << std::string(yaml);
         }
         catch (const std::exception& stdex) {
@@ -1963,7 +2004,8 @@ static RecursorControlChannel::Answer help(ArgIterator /* begin */, ArgIterator 
     {"get-dont-throttle-netmasks", "Get the list of netmasks that are not allowed to be throttled"},
     {"get-ntas", "Get all configured Negative Trust Anchors"},
     {"get-tas", "Get all configured Trust Anchors"},
-    {"get-parameter [key1] [key2] ..", "Get configuration parameters"},
+    {"get-parameter [key1] ..", "Get configuration parameters"},
+    {"get-default-parameter [key1] ..", "Get default configuration parameters"},
     {"get-proxymapping-stats", "Get proxy mapping statistics"},
     {"get-qtypelist", "Get QType statistics. Note queries from cache aren't being counted yet"},
     {"get-remotelogger-stats", "Get remote logger statistics"},
@@ -2148,6 +2190,7 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int socket, cons
     {"get-all", getAllStats},
     {"get", doGet},
     {"get-parameter", doGetParameter},
+    {"get-default-parameter", doGetDefaultParameter},
     {"quit", [&](ArgIterator, ArgIterator) -> Answer { *command = doExit; return {0, "bye\n"}; }},
     {"version", [&](ArgIterator, ArgIterator) -> Answer { return {0, getPDNSVersion() + "\n"}; }},
     {"quit-nicely", [&](ArgIterator, ArgIterator) -> Answer { *command = doExitNicely; return {0, "bye nicely\n"}; }},

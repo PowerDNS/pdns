@@ -1000,7 +1000,7 @@ impl Recursorsettings {
         serde_yaml::Value::Mapping(map)
     }
 
-    pub fn get_value(&self, field: &[String], defaults: &str) -> Result<String, std::io::Error> {
+    pub fn get_value(&self, field: &[String], defaults: &str, with_comment: bool) -> Result<String, std::io::Error> {
         let value = serde_yaml::to_value(self);
         let value = match value {
             Ok(value) => value,
@@ -1018,9 +1018,14 @@ impl Recursorsettings {
                     Ok(value) => {
                         let map = Self::buildnestedmaps(field, &value);
                         let res = serde_yaml::to_string(&map).unwrap();
-                        let name = field.join(".");
-                        let msg = format!("# {}: not explicitly set, default value(s) listed below:\n{}", name, res);
-                        Ok(msg)
+                        if with_comment {
+                            let name = field.join(".");
+                            let msg = format!("# {}: not explicitly set, default value(s) listed below:\n{}", name, res);
+                            Ok(msg)
+                        }
+                        else {
+                            Ok(res)
+                        }
                     },
                     Err(x) => Err(x)
                 }

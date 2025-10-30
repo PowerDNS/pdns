@@ -172,8 +172,15 @@ get-ntas
 get-tas
     Get a list of the currently configured Trust Anchors.
 
-get-parameter *KEY* [*KEY*]...
-    Retrieves the specified configuration parameter(s).
+get-parameter [*KEY*]...
+    Retrieves the configuration parameter(s).
+    If YAML configuration is active, *KEY* is of the form ``section[.name]``
+    and no keys produces a full dump.
+
+get-default-parameter [*KEY*]...
+    Retrieves the default values of configuration parameter(s).
+    If YAML configuration is active, *KEY* is of the form ``section[.name]``
+    and no keys produces a full dump.
 
 get-proxymapping-stats
     Get the list of proxy-mapped subnets and associated counters.

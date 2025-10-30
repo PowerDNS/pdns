@@ -687,7 +687,7 @@ std::string pdns::settings::rec::defaultsToYaml(bool postProcess)
   for (const auto& entry : map) {
     vec.emplace_back(entry.second);
   }
-  const auto defs = std::string(pdns::rust::settings::rec::map_to_yaml_string(vec));
+  auto defs = std::string(pdns::rust::settings::rec::map_to_yaml_string(vec));
 
   if (!postProcess) {
     return defs;
