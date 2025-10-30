@@ -28,6 +28,7 @@
 #include "dnsdist.hh"
 #include "dnsdist-concurrent-connections.hh"
 #include "dnsdist-dnsparser.hh"
+#include "dnsdist-dnscrypt.hh"
 #include "dnsdist-ecs.hh"
 #include "dnsdist-edns.hh"
 #include "dnsdist-nghttp2-in.hh"
@@ -802,7 +803,7 @@ IncomingTCPConnectionState::QueryProcessingResult IncomingTCPConnectionState::ha
     ids.d_streamID = *streamID;
   }
 
-  auto dnsCryptResponse = checkDNSCryptQuery(*d_ci.cs, query, ids.dnsCryptQuery, ids.queryRealTime.d_start.tv_sec, true);
+  auto dnsCryptResponse = dnsdist::dnscrypt::checkDNSCryptQuery(*d_ci.cs, query, ids.dnsCryptQuery, ids.queryRealTime.d_start.tv_sec, true);
   if (dnsCryptResponse) {
     TCPResponse response;
     d_state = State::idle;
