@@ -32,7 +32,7 @@
 #include "misc.hh"
 
 using namespace nod;
-namespace filesystem = boost::filesystem;
+namespace filesystem = std::filesystem;
 
 // PersistentSBF Implementation
 
@@ -42,7 +42,7 @@ void PersistentSBF::remove_tmp_files(const filesystem::path& path, std::scoped_l
 {
   Regex file_regex(d_prefix + ".*\\." + bf_suffix + "\\..{8}$");
   for (const auto& file : filesystem::directory_iterator(path)) {
-    if (filesystem::is_regular_file(file.path()) && file_regex.match(file.path().filename().string())) {
+    if (filesystem::is_regular_file(file.path()) && file_regex.match(file.path().filename().c_str())) {
       filesystem::remove(file);
     }
   }
@@ -63,10 +63,10 @@ bool PersistentSBF::init(bool ignore_pid)
       if (filesystem::exists(path) && filesystem::is_directory(path)) {
         remove_tmp_files(path, lock);
         filesystem::path newest_file;
-        std::time_t newest_time = 0;
+        filesystem::file_time_type newest_time{};
         Regex file_regex(d_prefix + ".*\\." + bf_suffix + "$");
         for (const auto& file : filesystem::directory_iterator(path)) {
-          if (filesystem::is_regular_file(file.path()) && file_regex.match(file.path().filename().string())) {
+          if (filesystem::is_regular_file(file.path()) && file_regex.match(file.path().filename().c_str())) {
             if (ignore_pid || (file.path().filename().string().find(std::to_string(getpid())) == std::string::npos)) {
               // look for the newest file matching the regex
               if (last_write_time(file.path()) > newest_time) {
@@ -77,7 +77,7 @@ bool PersistentSBF::init(bool ignore_pid)
           }
         }
         if (!newest_file.empty() && filesystem::exists(newest_file)) {
-          const std::string& filename = newest_file.string();
+          std::string filename = newest_file.string();
           std::ifstream infile;
           try {
             infile.open(filename, std::ios::in | std::ios::binary);
@@ -147,7 +147,7 @@ bool PersistentSBF::snapshotCurrent(std::thread::id tid)
         const std::string str = oss.str(); // XXX creates a copy, with c++20 we can use view()
         ssize_t len = write(fileDesc, str.data(), str.length());
         if (len != static_cast<ssize_t>(str.length())) {
-          filesystem::remove(ftmp.c_str());
+          filesystem::remove(ftmp);
           throw std::runtime_error("Failed to write to file:" + ftmp);
         }
         if (fileDesc.reset() != 0) {
@@ -169,7 +169,7 @@ bool PersistentSBF::snapshotCurrent(std::thread::id tid)
       }
     }
     else {
-      log->info(Logr::Warning, "NODDB snapshot: Cannot write file", "file", Logging::Loggable(file.string()));
+      log->info(Logr::Warning, "NODDB snapshot: Cannot write file", "file", Logging::Loggable(file.c_str()));
     }
   }
   return false;
