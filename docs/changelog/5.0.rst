@@ -2,6 +2,74 @@ Changelogs for 5.0.x
 ====================
 
 .. changelog::
+  :version: 5.0.1
+  :released: 30th of October 2025
+
+  This is release 5.0.1 of the Authoritative Server.
+  It contains minor bugfixes and improvements over the 5.0.0
+  release, and one new feature for LMDB users.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16360
+
+    api: relax zone name check in view removal
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16359
+
+    Prevent a potential race condition in cache cleaning
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16358
+
+    Allow selecting a specific version of Lua with meson
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16357, 16211
+
+    add missing meson build machinery files to auth source tarballs
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16356
+
+    pdnsutil: fix b2b-migrate from sql to non-sql
+
+  .. change::
+    :tags: New Features
+    :pullreq: 16355, 16147
+
+    lmdb: optional memory-only freshness check and notification timestamps
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16354
+
+    LUA shared exec: reset exec limit for every invocation
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16353
+
+    Fix EDNS Cookie & Proxy protocol
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16210
+
+    auth views: perform character set validation of view names
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16143
+
+    Fix Boost system lib dependency: it is no longer available since 1.89
+
+.. changelog::
   :version: 5.0.0
   :released: 22nd of August 2025
 
