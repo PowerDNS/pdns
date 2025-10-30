@@ -990,7 +990,7 @@ impl Recursorsettings {
     }
 
     fn buildnestedmaps(field: &[String], leaf: &serde_yaml::Value) -> serde_yaml::Value {
-        if field.len() == 0 {
+        if field.is_empty() {
             return leaf.clone();
         }
         let submap = Self::buildnestedmaps(&field[1..], leaf);
@@ -1018,7 +1018,8 @@ impl Recursorsettings {
                     Ok(value) => {
                         let map = Self::buildnestedmaps(field, &value);
                         let res = serde_yaml::to_string(&map).unwrap();
-                        let msg = format!("# {}: not explicitly set, default value(s) listed below:\n{}", field[0], res);
+                        let name = field.join(".");
+                        let msg = format!("# {}: not explicitly set, default value(s) listed below:\n{}", name, res);
                         Ok(msg)
                     },
                     Err(x) => Err(x)
