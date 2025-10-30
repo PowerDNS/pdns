@@ -371,19 +371,29 @@ try {
         }
         auto traceIDArg = std::string(argv[++i]);
         pdns::trace::TraceID traceid;
+        pdns::trace::SpanID spanid;
         if (traceIDArg == "-") {
           traceid.makeRandom();
+          spanid.makeRandom();
         }
         else {
           auto traceIDStr = makeBytesFromHex(traceIDArg);
-          if (traceIDStr.size() > traceid.size()) {
-            cerr << "Maximum length of traceid is " << traceid.size() << " bytes" << endl;
+          if (traceIDStr.size() > traceid.size() + spanid.size()) {
+            cerr << "Maximum length of traceid plus spanid is " << traceid.size() + spanid.size()<< " bytes" << endl;
             exit(EXIT_FAILURE);
           }
+          std::string spanidStr(traceIDStr.begin() + traceid.size(), traceIDStr.end());
           traceIDStr.resize(traceid.size());
           pdns::trace::fill(traceid, traceIDStr);
+          if (spanidStr.empty()) {
+            spanid.makeRandom();
+          } else if (spanidStr.size() != spanid.size()) {
+            cerr << "spanid size must be " << spanid.size()<< " bytes, but is " << spanidStr.size() << endl;
+            exit(EXIT_FAILURE);
+          } else {
+            pdns::trace::fill(spanid, spanidStr);
+          }
         }
-        pdns::trace::SpanID spanid{}; // default: all zero, so no parent
         otdata = std::make_pair(traceid, spanid);
       }
       else {
