@@ -466,7 +466,8 @@ BOOST_AUTO_TEST_CASE(test_yaml_ta_merge)
   settings.validate();
   LuaConfigItems lua1;
   ProxyMapping proxyMapping;
-  pdns::settings::rec::fromBridgeStructToLuaConfig(settings, lua1, proxyMapping);
+  OpenTelemetryTraceConditions conditions;
+  pdns::settings::rec::fromBridgeStructToLuaConfig(settings, lua1, proxyMapping, conditions);
   BOOST_CHECK_EQUAL(lua1.dsAnchors.size(), 2U);
   BOOST_CHECK_EQUAL(lua1.dsAnchors[DNSName(".")].size(), 1U);
   BOOST_CHECK_EQUAL(lua1.dsAnchors[DNSName(".")].begin()->getZoneRepresentation(), "19718 13 2 8acbb0cd28f41250a80a491389424d341522d946b0da0c0291f2d3d771d7805a");
@@ -484,7 +485,7 @@ BOOST_AUTO_TEST_CASE(test_yaml_ta_merge)
   settings = pdns::rust::settings::rec::parse_yaml_string(yaml2);
   settings.validate();
   LuaConfigItems lua2;
-  pdns::settings::rec::fromBridgeStructToLuaConfig(settings, lua2, proxyMapping);
+  pdns::settings::rec::fromBridgeStructToLuaConfig(settings, lua2, proxyMapping, conditions);
   BOOST_CHECK_EQUAL(lua2.dsAnchors.size(), 2U);
   BOOST_CHECK_EQUAL(lua2.dsAnchors[DNSName(".")].size(), 2U);
   BOOST_CHECK_EQUAL(lua2.dsAnchors[DNSName("a")].size(), 2U);
@@ -1054,7 +1055,8 @@ recordcache:
   // create a Lua config based on YAML
   LuaConfigItems luaConfig;
   ProxyMapping proxyMapping;
-  pdns::settings::rec::fromBridgeStructToLuaConfig(settings, luaConfig, proxyMapping);
+  OpenTelemetryTraceConditions conditions;
+  pdns::settings::rec::fromBridgeStructToLuaConfig(settings, luaConfig, proxyMapping, conditions);
 
   // Create YAML, given a Lua config
   auto newsettings = pdns::rust::settings::rec::parse_yaml_string("");

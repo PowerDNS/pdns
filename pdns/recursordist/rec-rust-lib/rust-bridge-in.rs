@@ -350,6 +350,23 @@ struct OutgoingTLSConfiguration {
     ciphers_tls_13: String,
 }
 
+#[derive(Deserialize, Serialize, Clone, Debug, PartialEq)]
+#[serde(deny_unknown_fields)]
+struct OpenTelemetryTraceCondition {
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    acls: Vec<String>,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    qnames: Vec<String>,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    qtypes: Vec<String>,
+    #[serde(default = "crate::U32::<{u32::MAX}>::value", skip_serializing_if = "crate::U32::<{u32::MAX}>::is_equal")]
+    qid: u32,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    edns_option_required: bool,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    traceid_only: bool,
+}
+
 // Two structs used to generated YAML based on a vector of name to value mappings
 // Cannot use Enum as CXX has only very basic Enum support
 struct Value {
