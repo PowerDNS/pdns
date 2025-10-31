@@ -45,7 +45,7 @@ compatible XML report.
 
 If you used meson to build, export `PDNS_BUILD_PATH` and point it to your
 build directory. Also make sure you configured with `-Dtools=true`, and have
-built `pdns-auth`, `pdns-auth-util`, `zone2sql` and `sdig`.
+built `pdns_server`, `pdnsutil`, `zone2sql` and `sdig`.
 Example for invoking the tests:
 
 ```sh
