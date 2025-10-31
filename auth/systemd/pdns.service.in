@@ -1,13 +1,13 @@
 [Unit]
 Description=@Description@
-Documentation=man:pdns-auth(1)
-Documentation=man:pdns-auth-control(1)
+Documentation=man:pdns_server(1)
+Documentation=man:pdns_control(1)
 Documentation=https://doc.powerdns.com
 Wants=network-online.target
 After=network-online.target mysql.service mysqld.service postgresql.service slapd.service mariadb.service time-sync.target
 
 [Service]
-ExecStart=@StaticBinDir@/pdns-auth @ConfigName@ @SocketDir@ --guardian=no --daemon=no --disable-syslog --log-timestamp=no --write-pid=no
+ExecStart=@StaticBinDir@/pdns_server @ConfigName@ @SocketDir@ --guardian=no --daemon=no --disable-syslog --log-timestamp=no --write-pid=no
 SyslogIdentifier=@SyslogIdentifier@
 User=@ServiceUser@
 Group=@ServiceGroup@
