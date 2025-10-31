@@ -1692,14 +1692,10 @@ public:
       return Action::None;
     }
     if (d_value) {
-      tracer->activate();
       tracer->setRootSpanAttribute("query.qname", AnyValue{dnsquestion->ids.qname.toStringNoDot()});
       tracer->setRootSpanAttribute("query.qtype", AnyValue{QType(dnsquestion->ids.qtype).toString()});
       tracer->setRootSpanAttribute("query.remote.address", AnyValue{dnsquestion->ids.origRemote.toString()});
       tracer->setRootSpanAttribute("query.remote.port", AnyValue{dnsquestion->ids.origRemote.getPort()});
-    }
-    else {
-      tracer->deactivate();
     }
     dnsquestion->ids.tracingEnabled = d_value;
 #endif
