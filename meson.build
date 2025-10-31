@@ -231,13 +231,13 @@ if dep_systemd_prog.found()
   auth_service_conf_general.merge_from(auth_service_conf)
   auth_service_conf_general.set('Description', 'PowerDNS Authoritative Server')
   auth_service_conf_general.set('ConfigName', '')
-  auth_service_conf_general.set('SocketDir', enable_socket_dir ? '--socket-dir=%t/pdns-auth' : '')
-  auth_service_conf_general.set('SyslogIdentifier', 'pdns-auth')
-  auth_service_conf_general.set('RuntimeDirectory', 'pdns-auth')
+  auth_service_conf_general.set('SocketDir', enable_socket_dir ? '--socket-dir=%t/pdns' : '')
+  auth_service_conf_general.set('SyslogIdentifier', 'pdns')
+  auth_service_conf_general.set('RuntimeDirectory', 'pdns')
 
   configure_file(
-    input: 'auth' / 'systemd' / 'pdns-auth.service.in',
-    output: 'pdns-auth.service',
+    input: 'auth' / 'systemd' / 'pdns.service.in',
+    output: 'pdns.service',
     configuration: auth_service_conf_general,
   )
 
@@ -245,13 +245,13 @@ if dep_systemd_prog.found()
   auth_service_conf_instance.merge_from(auth_service_conf)
   auth_service_conf_instance.set('Description', 'PowerDNS Authoritative Server %i')
   auth_service_conf_instance.set('ConfigName', '--config-name=%i')
-  auth_service_conf_instance.set('SocketDir', enable_socket_dir ? '--socket-dir=%t/pdns-auth-%i' : '')
-  auth_service_conf_instance.set('SyslogIdentifier', 'pdns-auth-%i')
-  auth_service_conf_instance.set('RuntimeDirectory', have_systemd_percent_t ? 'pdns-auth-%i' : 'pdns-auth')
+  auth_service_conf_instance.set('SocketDir', enable_socket_dir ? '--socket-dir=%t/pdns-%i' : '')
+  auth_service_conf_instance.set('SyslogIdentifier', 'pdns-%i')
+  auth_service_conf_instance.set('RuntimeDirectory', have_systemd_percent_t ? 'pdns-%i' : 'pdns')
 
   configure_file(
-    input: 'auth' / 'systemd' / 'pdns-auth.service.in',
-    output: 'pdns-auth@.service',
+    input: 'auth' / 'systemd' / 'pdns.service.in',
+    output: 'pdns@.service',
     configuration: auth_service_conf_instance,
   )
 
@@ -672,7 +672,7 @@ subdir('modules')
 config_h = configure_file(configuration: conf, output: 'config.h')
 
 tools = {
-  'pdns-auth': {
+  'pdns_server': {
     'main': src_dir / 'auth-main.cc',
     'export-dynamic': true,
     'deps-extra': [
@@ -684,7 +684,7 @@ tools = {
     ],
     'manpages': ['pdns_server.1'],
   },
-  'pdns-auth-util': {
+  'pdnsutil': {
     'main': src_dir / 'pdnsutil.cc',
     'export-dynamic': true,
     'files-extra': libpdns_bind_dnssec_schema_gen,
@@ -696,15 +696,15 @@ tools = {
     ],
     'manpages': ['pdnsutil.1'],
   },
-  'pdns-auth-control': {
+  'pdns_control': {
     'main': src_dir / 'dynloader.cc',
     'manpages': ['pdns_control.1'],
   },
-  'pdns-zone2sql': {
+  'zone2sql': {
     'main': src_dir / 'zone2sql.cc',
     'manpages': ['zone2sql.1'],
   },
-  'pdns-zone2json': {
+  'zone2json': {
     'main': src_dir / 'zone2json.cc',
     'manpages': ['zone2json.1'],
   },
@@ -712,7 +712,7 @@ tools = {
 
 if get_option('module-ldap') != 'disabled'
   tools += {
-    'pdns-zone2ldap': {
+    'zone2ldap': {
       'main': src_dir / 'zone2ldap.cc',
       'manpages': ['zone2ldap.1'],
     }
@@ -721,7 +721,7 @@ endif
 
 if get_option('tools')
   tools += {
-    'pdns-auth-notify': {
+    'pdns_notify': {
       'main': src_dir / 'notify.cc',
       'manpages': ['pdns_notify.1'],
     },
@@ -1135,7 +1135,7 @@ if get_option('unit-tests-backends')
         start_test_stop,
         args: ['5300', module],
         workdir: product_source_dir / 'regression-tests',
-        depends: [pdns_auth, pdns_auth_util, sdig, saxfr, pdns_auth_notify, nsec3dig],
+        depends: [pdns_server, pdnsutil, sdig, saxfr, pdns_notify, nsec3dig],
         is_parallel: false,
       )
     endif
