@@ -712,7 +712,7 @@ tools = {
 
 if get_option('module-ldap') != 'disabled'
   tools += {
-    'pdns-zone2ldap': {
+    'zone2ldap': {
       'main': src_dir / 'zone2ldap.cc',
       'manpages': ['zone2ldap.1'],
     }
