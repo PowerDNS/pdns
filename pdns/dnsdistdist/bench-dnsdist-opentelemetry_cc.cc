@@ -49,11 +49,21 @@ TEST_CASE("OpenTelemetry-base")
   };
 }
 
+TEST_CASE("OpenTelemetry-addSpanThroughCloser")
+{
+  auto tracer = pdns::trace::dnsdist::Tracer::getTracer();
+  auto spanID = pdns::trace::SpanID::getRandomSpanID();
+
+  BENCHMARK("openspan")
+  {
+    return tracer->openSpan("activated", spanID);
+  };
+}
+
 TEST_CASE("OpenTelemetry-spaninfo")
 {
   auto tracer = pdns::trace::dnsdist::Tracer::getTracer();
   // Ensures span attributes are actually stored
-  tracer->activate();
   auto rootSpanID = tracer->openSpan("mySpan").getSpanID();
   auto stringvalue = pdns::trace::AnyValue{"hello"};
   auto intvalue = pdns::trace::AnyValue{43854};
@@ -141,32 +151,7 @@ TEST_CASE("OpenTelemetry-getTracesData")
     tracer->openSpan("foo" + std::to_string(i));
   }
 
-  BENCHMARK("Tracer with 41 pre-activation spans")
-  {
-    return tracer->getTracesData();
-  };
-
-  tracer = pdns::trace::dnsdist::Tracer::getTracer();
-  tracer->activate();
-  for (auto i = 0; i < 40; i++) {
-    tracer->openSpan("foo" + std::to_string(i));
-  }
-
-  BENCHMARK("Tracer with 41 post-activation spans")
-  {
-    return tracer->getTracesData();
-  };
-
-  tracer = pdns::trace::dnsdist::Tracer::getTracer();
-  for (auto i = 0; i < 40; i++) {
-    tracer->openSpan("foo" + std::to_string(i));
-  }
-  tracer->activate();
-  for (auto i = 0; i < 40; i++) {
-    tracer->openSpan("foo" + std::to_string(i));
-  }
-
-  BENCHMARK("Tracer with 41 pre-activation spans and 41 post-activation spans")
+  BENCHMARK("Tracer with 41 spans")
   {
     return tracer->getTracesData();
   };
