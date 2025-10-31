@@ -15,18 +15,12 @@ mkdir -p configs
 
 if [ -z "$PDNS_BUILD_PATH" ]; then
   # PDNS_BUILD_PATH is unset or empty. Assume an autotools build.
-  PDNS_BUILD_PATH=.
-
-  export PDNS=${PDNS:-${PWD}/../pdns/pdns_server}
-  export PDNSUTIL=${PDNSUTIL:-${PWD}/../pdns/pdnsutil}
-  export PDNSCONTROL=${PDNSCONTROL:-${PWD}/../pdns/pdns_control}
-  export PDNS_MODULE_DIR=${PDNS_MODULE_DIR:-${PWD}/modules}
-else
-  export PDNS=${PDNS:-$PDNS_BUILD_PATH/pdns-auth}
-  export PDNSUTIL=${PDNSUTIL:-$PDNS_BUILD_PATH/pdns-auth-util}
-  export PDNSCONTROL=${PDNSCONTROL:-$PDNS_BUILD_PATH/pdns-auth-control}
-  export PDNS_MODULE_DIR=${PDNS_MODULE_DIR:-$PDNS_BUILD_PATH/modules}
+  PDNS_BUILD_PATH=${PWD}/..
 fi
+export PDNS=${PDNS:-$PDNS_BUILD_PATH/pdns_server}
+export PDNSUTIL=${PDNSUTIL:-$PDNS_BUILD_PATH/pdnsutil}
+export PDNSCONTROL=${PDNSCONTROL:-$PDNS_BUILD_PATH/pdns_control}
+export PDNS_MODULE_DIR=${PDNS_MODULE_DIR:-$PDNS_BUILD_PATH/modules}
 
 export PREFIX=127.0.0
 
