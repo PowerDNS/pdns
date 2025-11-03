@@ -348,7 +348,7 @@ Query:
 
 ::
 
-    /dnsapi/getbeforeandafternamesabsolute/0/www.example.com
+    /dnsapi/getbeforeandafternamesabsolute/0/www.
 
 Response:
 
