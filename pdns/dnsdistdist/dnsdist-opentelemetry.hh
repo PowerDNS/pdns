@@ -295,7 +295,7 @@ private:
    *
    * it is mutable because it is set the first time it is accessed
    */
-  mutable TraceID d_traceid{};
+  mutable LockGuarded<TraceID> d_traceid{};
   /**
    * @brief The last SpanID that was added to this Tracer
    */

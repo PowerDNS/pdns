@@ -56,11 +56,11 @@ TracesData Tracer::getTracesData()
 
   otTrace.resource_spans.at(0).scope_spans.at(0).scope.attributes.push_back(hostnameAttr);
 
-  auto lockedSpans = d_spans.read_only_lock();
-  for (auto const& lockedSpan : *lockedSpans) {
+  auto traceid = getTraceID();
+  for (auto const& lockedSpan : *d_spans.read_only_lock()) {
     otTrace.resource_spans.at(0).scope_spans.at(0).spans.push_back(
       {
-        .trace_id = getTraceID(),
+        .trace_id = traceid,
         .span_id = lockedSpan.span_id,
         .parent_span_id = lockedSpan.parent_span_id,
         .name = lockedSpan.name,
@@ -211,10 +211,11 @@ TraceID Tracer::getTraceID() const
 #ifdef DISABLE_PROTOBUF
   return 0;
 #else
-  if (d_traceid == pdns::trace::s_emptyTraceID) {
-    d_traceid.makeRandom();
+  auto lockedTraceID = d_traceid.lock();
+  if (*lockedTraceID == pdns::trace::s_emptyTraceID) {
+    lockedTraceID->makeRandom();
   }
-  return d_traceid;
+  return *lockedTraceID;
 #endif
 }
 
