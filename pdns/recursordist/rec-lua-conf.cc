@@ -419,10 +419,6 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
     lci.rpzs.emplace_back(params);
   });
 
-  Lua->writeFunction("rpzMaster", [&lci](const boost::variant<string, std::vector<std::pair<int, string>>>& primaries_, const string& zoneName, const boost::optional<rpzOptions_t>& options) {
-    lci.d_slog->info(Logr::Warning, "'rpzMaster' is deprecated and will be removed in a future release, use 'rpzPrimary' instead");
-    rpzPrimary(lci, primaries_, zoneName, options);
-  });
   Lua->writeFunction("rpzPrimary", [&lci](const boost::variant<string, std::vector<std::pair<int, string>>>& primaries_, const string& zoneName, const boost::optional<rpzOptions_t>& options) {
     rpzPrimary(lci, primaries_, zoneName, options);
   });
@@ -548,23 +544,6 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
   });
 
   Lua->writeFunction("clearTA", [&lci](boost::optional<string> who) {
-    if (who)
-      lci.dsAnchors.erase(DNSName(*who));
-    else
-      lci.dsAnchors.clear();
-  });
-
-  /* Remove in 4.3 */
-  Lua->writeFunction("addDS", [&lci](const std::string& who, const std::string& what) {
-    lci.d_slog->info(Logr::Warning, "addDS is deprecated and will be removed in the future, switch to addTA");
-    DNSName zone(who);
-    auto ds = std::dynamic_pointer_cast<DSRecordContent>(DSRecordContent::make(what));
-    lci.dsAnchors[zone].insert(*ds);
-  });
-
-  /* Remove in 4.3 */
-  Lua->writeFunction("clearDS", [&lci](boost::optional<string> who) {
-    lci.d_slog->info(Logr::Warning, "clearDS is deprecated and will be removed in the future, switch to clearTA");
     if (who)
       lci.dsAnchors.erase(DNSName(*who));
     else

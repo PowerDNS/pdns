@@ -23,26 +23,6 @@ This page only documents the Lua functions for DNSSEC configuration
 
   :param str name: The name in the DNS tree for which the Trust Anchors should be removed.
 
-.. function:: addDS(name, dscontent)
-
-  .. deprecated:: 4.2.0
-    Please use :func:`addTA` instead
-
-  Adds a DS record (Trust Anchor) to the configuration
-
-  :param str name: The name in the DNS tree from where this Trust Anchor should be used
-  :param str dsrecord: The DS Record content associated with ``name``
-
-.. function:: clearDS([name])
-
-  .. deprecated:: 4.2.0
-    Please use :func:`clearTA` instead
-
-  Remove Trust Anchors for a name from the list of configured trust anchors. When ``name`` is
-  not given, remove *all* trust anchors instead.
-
-  :param str name: The name in the DNS tree for which the Trust Anchors should be removed.
-
 .. function:: addNTA(name[, reason])
 
   .. versionadded:: 5.1.0 Alternative equivalent YAML setting: :ref:`setting-yaml-dnssec.negative_trustanchors`.

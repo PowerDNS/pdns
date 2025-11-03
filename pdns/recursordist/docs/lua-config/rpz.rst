@@ -43,9 +43,6 @@ To transfer from a primary and start IXFR to get updates, use for example:
 
 In this example, 'policy.rpz' denotes the name of the zone to query for.
 
-.. note:: In versions before 4.5.0, ``rpzPrimary`` is called ``rpzMaster``. For backwards compatibility, version 4.5.0 does support ``rpzMaster`` as a synonym for ``rpzPrimary``.
-
-
 The action to be taken on a match is defined by the zone itself, but in some cases it might be interesting to be able to override it, and always apply the same action
 regardless of the one specified in the RPZ zone. To load from file and override the default action with a custom CNAME to badserver.example.com., use for example:
 
