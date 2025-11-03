@@ -576,7 +576,8 @@ static void prometheusMetrics(HttpRequest* /* req */, HttpResponse* resp)
         // name is XXX_count, strip the _count part
         helpname = helpname.substr(0, helpname.length() - 6);
       }
-    } else {
+    }
+    else {
       if (tup.second.d_prometheusType) {
         prometheusTypeName = MetricDefinitionStorage::getPrometheusStringMetricType(
           *tup.second.d_prometheusType);
