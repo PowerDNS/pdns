@@ -1,20 +1,38 @@
+/*
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+
+#include <cstddef>
+
 #include "config.h"
 #include "ext/luawrapper/include/LuaContext.hpp"
-
-#include <fstream>
-#include <thread>
-#include "namespaces.hh"
-#include "logger.hh"
-#include "lua-base4.hh"
 #include "rec-lua-conf.hh"
+
+#include "namespaces.hh"
+#include "lua-base4.hh"
 #include "sortlist.hh"
 #include "filterpo.hh"
 #include "syncres.hh"
 #include "rpzloader.hh"
 #include "base64.hh"
-#include "remote_logger.hh"
-#include "validate.hh"
-#include "validate-recursor.hh"
 #include "root-dnssec.hh"
 #include "rec-system-resolve.hh"
 
@@ -89,16 +107,7 @@ bool operator!=(const FrameStreamExportConfig& configA, const FrameStreamExportC
   return !(configA == configB);
 }
 
-template <typename C>
-typename C::value_type::second_type constGet(const C& c, const std::string& name)
-{
-  auto iter = c.find(name);
-  if (iter == c.end())
-    return 0;
-  return iter->second;
-}
-
-typedef std::unordered_map<std::string, boost::variant<bool, uint32_t, std::string, std::vector<std::pair<int, std::string>>>> rpzOptions_t;
+using rpzOptions_t = std::unordered_map<std::string, boost::variant<bool, uint32_t, std::string, std::vector<std::pair<int, std::string>>>>;
 
 static void parseRPZParameters(const rpzOptions_t& have, RPZTrackerParams& params)
 {
@@ -164,7 +173,7 @@ static void parseRPZParameters(const rpzOptions_t& have, RPZTrackerParams& param
   }
 }
 
-typedef std::unordered_map<std::string, boost::variant<bool, uint64_t, std::string, std::vector<std::pair<int, std::string>>>> protobufOptions_t;
+using protobufOptions_t = std::unordered_map<std::string, boost::variant<bool, uint64_t, std::string, std::vector<std::pair<int, std::string>>>>;
 
 static void parseProtobufOptions(const boost::optional<protobufOptions_t>& vars, ProtobufExportConfig& config)
 {
@@ -228,7 +237,7 @@ static void parseProtobufOptions(const boost::optional<protobufOptions_t>& vars,
 }
 
 #ifdef HAVE_FSTRM
-typedef std::unordered_map<std::string, boost::variant<bool, uint64_t, std::string, std::vector<std::pair<int, std::string>>>> frameStreamOptions_t;
+using frameStreamOptions_t = std::unordered_map<std::string, boost::variant<bool, uint64_t, std::string, std::vector<std::pair<int, std::string>>>>;
 
 static void parseFrameStreamOptions(const boost::optional<frameStreamOptions_t>& vars, FrameStreamExportConfig& config)
 {
@@ -289,7 +298,7 @@ static void rpzPrimary(LuaConfigItems& lci, const boost::variant<string, std::ve
 
   try {
     if (options) {
-      auto& have = *options;
+      const auto& have = *options;
       parseRPZParameters(have, params);
 
       if (have.count("tsigname") != 0) {
@@ -358,13 +367,13 @@ public:
   void postPrepareContext() override
   {
     // clang-format off
-    d_pd.push_back({"AdditionalMode", in_t{
+    d_pd.emplace_back("AdditionalMode", in_t{
           {"Ignore", static_cast<int>(AdditionalMode::Ignore)},
           {"CacheOnly", static_cast<int>(AdditionalMode::CacheOnly)},
           {"CacheOnlyRequireAuth", static_cast<int>(AdditionalMode::CacheOnlyRequireAuth)},
           {"ResolveImmediately", static_cast<int>(AdditionalMode::ResolveImmediately)},
           {"ResolveDeferred", static_cast<int>(AdditionalMode::ResolveDeferred)}
-        }});
+        });
   }
   void postLoad() override
   {
@@ -384,11 +393,13 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
 
   RecLuaConfigContext Lua;
 
-  if (fname.empty())
+  if (fname.empty()) {
     return;
+  }
   ifstream ifs(fname);
-  if (!ifs)
+  if (!ifs) {
     throw PDNSException("Cannot open file '" + fname + "': " + stringerror());
+  }
 
   auto luaconfsLocal = g_luaconfs.getLocal();
   lci.generation = luaconfsLocal->generation + 1;
@@ -409,6 +420,7 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
     {"Custom", DNSFilterEngine::PolicyKind::Custom}};
   Lua->writeVariable("Policy", pmap);
 
+  // NOLINTNEXTLINE(performance-unnecessary-value-param) Lua wrapper does not handle optional &
   Lua->writeFunction("rpzFile", [&lci](const string& filename, boost::optional<rpzOptions_t> options) {
     RPZTrackerParams params;
     params.zoneXFRParams.name = filename;
@@ -419,12 +431,14 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
     lci.rpzs.emplace_back(params);
   });
 
-  Lua->writeFunction("rpzPrimary", [&lci](const boost::variant<string, std::vector<std::pair<int, string>>>& primaries_, const string& zoneName, const boost::optional<rpzOptions_t>& options) {
+  // NOLINTNEXTLINE(performance-unnecessary-value-param) Lua wrapper does not handle optional &
+  Lua->writeFunction("rpzPrimary", [&lci](const boost::variant<string, std::vector<std::pair<int, string>>>& primaries_, const string& zoneName, boost::optional<rpzOptions_t> options) {
     rpzPrimary(lci, primaries_, zoneName, options);
   });
 
-  typedef std::unordered_map<std::string, boost::variant<uint32_t, std::string>> zoneToCacheOptions_t;
+  using zoneToCacheOptions_t = std::unordered_map<std::string, boost::variant<uint32_t, std::string>>;
 
+  // NOLINTNEXTLINE(performance-unnecessary-value-param) Lua wrapper does not handle optional &
   Lua->writeFunction("zoneToCache", [&lci](const string& zoneName, const string& method, const boost::variant<string, std::vector<std::pair<int, string>>>& srcs, boost::optional<zoneToCacheOptions_t> options) {
     try {
       RecZoneToCache::Config conf;
@@ -460,7 +474,7 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
         }
         if (have.count("maxReceivedMBytes")) {
           conf.d_maxReceivedBytes = static_cast<size_t>(boost::get<uint32_t>(have.at("maxReceivedMBytes")));
-          conf.d_maxReceivedBytes *= 1024 * 1024;
+          conf.d_maxReceivedBytes *= static_cast<size_t>(1024 * 1024);
         }
         if (have.count("localAddress")) {
           conf.d_local = ComboAddress(boost::get<string>(have.at("localAddress")));
@@ -478,23 +492,19 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
         };
         if (have.count("zonemd")) {
           string zonemdValidation = boost::get<string>(have.at("zonemd"));
-          auto it = nameToVal.find(zonemdValidation);
-          if (it == nameToVal.end()) {
+          auto iter = nameToVal.find(zonemdValidation);
+          if (iter == nameToVal.end()) {
             throw std::runtime_error(zonemdValidation + " is not a valid value for `zonemd`");
           }
-          else {
-            conf.d_zonemd = it->second;
-          }
+          conf.d_zonemd = iter->second;
         }
         if (have.count("dnssec")) {
           string dnssec = boost::get<string>(have.at("dnssec"));
-          auto it = nameToVal.find(dnssec);
-          if (it == nameToVal.end()) {
+          auto iter = nameToVal.find(dnssec);
+          if (iter == nameToVal.end()) {
             throw std::runtime_error(dnssec + " is not a valid value for `dnssec`");
           }
-          else {
-            conf.d_dnssec = it->second;
-          }
+          conf.d_dnssec = iter->second;
         }
       }
 
@@ -506,7 +516,7 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
     }
   });
 
-  typedef vector<pair<int, boost::variant<string, vector<pair<int, string>>>>> argvec_t;
+  using argvec_t = vector<pair<int, boost::variant<string, vector<pair<int, string>>>>>;
   Lua->writeFunction("addSortList",
                      [&lci](const std::string& formask_,
                             const boost::variant<string, argvec_t>& masks,
@@ -514,19 +524,21 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
                        try {
                          Netmask formask(formask_);
                          int order = order_ ? (*order_) : lci.sortlist.getMaxOrder(formask) + 1;
-                         if (auto str = boost::get<string>(&masks))
+                         if (const auto *str = boost::get<string>(&masks)) {
                            lci.sortlist.addEntry(formask, Netmask(*str), order);
+                         }
                          else {
 
-                           auto vec = boost::get<argvec_t>(&masks);
-                           for (const auto& e : *vec) {
-                             if (auto s = boost::get<string>(&e.second)) {
-                               lci.sortlist.addEntry(formask, Netmask(*s), order);
+                           const auto *vec = boost::get<argvec_t>(&masks);
+                           for (const auto& vecentry : *vec) {
+                             if (const auto *value = boost::get<string>(&vecentry.second)) {
+                               lci.sortlist.addEntry(formask, Netmask(*value), order);
                              }
                              else {
-                               const auto& v = boost::get<vector<pair<int, string>>>(e.second);
-                               for (const auto& entry : v)
+                               const auto& entries = boost::get<vector<pair<int, string>>>(vecentry.second);
+                               for (const auto& entry : entries) {
                                  lci.sortlist.addEntry(formask, Netmask(entry.second), order);
+                               }
                              }
                              ++order;
                            }
@@ -539,32 +551,38 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
 
   Lua->writeFunction("addTA", [&lci](const std::string& who, const std::string& what) {
     DNSName zone(who);
-    auto ds = std::dynamic_pointer_cast<DSRecordContent>(DSRecordContent::make(what));
-    lci.dsAnchors[zone].insert(*ds);
+    auto dsRecordContent = std::dynamic_pointer_cast<DSRecordContent>(DSRecordContent::make(what));
+    lci.dsAnchors[zone].insert(*dsRecordContent);
   });
 
   Lua->writeFunction("clearTA", [&lci](boost::optional<string> who) {
-    if (who)
+    if (who) {
       lci.dsAnchors.erase(DNSName(*who));
-    else
+    }
+    else {
       lci.dsAnchors.clear();
+    }
   });
 
-  Lua->writeFunction("addNTA", [&lci](const std::string& who, const boost::optional<std::string> why) {
-    if (why)
+  Lua->writeFunction("addNTA", [&lci](const std::string& who, boost::optional<std::string> why) {
+    if (why) {
       lci.negAnchors[DNSName(who)] = static_cast<string>(*why);
-    else
+    }
+    else {
       lci.negAnchors[DNSName(who)] = "";
+    }
   });
 
   Lua->writeFunction("clearNTA", [&lci](boost::optional<string> who) {
-    if (who)
+    if (who) {
       lci.negAnchors.erase(DNSName(*who));
-    else
+    }
+    else {
       lci.negAnchors.clear();
+    }
   });
 
-  Lua->writeFunction("readTrustAnchorsFromFile", [&lci](const std::string& fnamearg, const boost::optional<uint32_t> interval) {
+  Lua->writeFunction("readTrustAnchorsFromFile", [&lci](const std::string& fnamearg, boost::optional<uint32_t> interval) {
     uint32_t realInterval = 24;
     if (interval) {
       realInterval = static_cast<uint32_t>(*interval);
@@ -578,6 +596,7 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
     lci.protobufMaskV6 = maskV6;
   });
 
+  // NOLINTNEXTLINE(performance-unnecessary-value-param) Lua wrapper does not handle optional &
   Lua->writeFunction("protobufServer", [&lci](boost::variant<const std::string, const std::unordered_map<int, std::string>> servers, boost::optional<protobufOptions_t> vars) {
     if (!lci.protobufExportConfig.enabled) {
 
@@ -610,6 +629,7 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
     }
   });
 
+  // NOLINTNEXTLINE(performance-unnecessary-value-param) Lua wrapper does not handle optional &
   Lua->writeFunction("outgoingProtobufServer", [&lci](boost::variant<const std::string, const std::unordered_map<int, std::string>> servers, boost::optional<protobufOptions_t> vars) {
     if (!lci.outgoingProtobufExportConfig.enabled) {
 
@@ -643,6 +663,7 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
   });
 
 #ifdef HAVE_FSTRM
+  // NOLINTNEXTLINE(performance-unnecessary-value-param) Lua wrapper does not handle optional &
   Lua->writeFunction("dnstapFrameStreamServer", [&lci](boost::variant<const std::string, const std::unordered_map<int, std::string>> servers, boost::optional<frameStreamOptions_t> vars) {
     if (!lci.frameStreamExportConfig.enabled) {
 
@@ -676,6 +697,7 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
       lci.d_slog->info(Logr::Error,  "Only one dnstapFrameStreamServer() directive can be configured",  "existing", Logging::Loggable(lci.frameStreamExportConfig.servers.at(0)));
     }
   });
+  // NOLINTNEXTLINE(performance-unnecessary-value-param) Lua wrapper does not handle optional &
   Lua->writeFunction("dnstapNODFrameStreamServer", [&lci](boost::variant<const std::string, const std::unordered_map<int, std::string>> servers, boost::optional<frameStreamOptions_t> vars) {
     if (!lci.nodFrameStreamExportConfig.enabled) {
       lci.nodFrameStreamExportConfig.enabled = true;
@@ -710,7 +732,8 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
   });
 #endif /* HAVE_FSTRM */
 
-  Lua->writeFunction("addAllowedAdditionalQType", [&lci](int qtype, std::unordered_map<int, int> targetqtypes, boost::optional<std::map<std::string, int>> options) {
+  // NOLINTNEXTLINE(performance-unnecessary-value-param) Lua wrapper does not handle optional &
+  Lua->writeFunction("addAllowedAdditionalQType", [&lci](int qtype, const std::unordered_map<int, int>& targetqtypes, boost::optional<std::map<std::string, int>> options) {
     switch (qtype) {
     case QType::MX:
     case QType::SRV:
@@ -724,32 +747,33 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
     }
 
     std::set<QType> targets;
-    for (const auto& t : targetqtypes) {
-      targets.emplace(QType(t.second));
+    for (const auto& target : targetqtypes) {
+      targets.emplace(target.second);
     }
 
     AdditionalMode mode = AdditionalMode::CacheOnlyRequireAuth; // Always cheap and should be safe
 
     if (options) {
-      if (const auto it = options->find("mode"); it != options->end()) {
-        mode = static_cast<AdditionalMode>(it->second);
+      if (const auto iter = options->find("mode"); iter != options->end()) {
+        mode = static_cast<AdditionalMode>(iter->second);
         if (mode > AdditionalMode::ResolveDeferred) {
-          lci.d_slog->info(Logr::Error, "addAllowedAdditionalQType: unknown mode", "mode", Logging::Loggable( it->second));
+          lci.d_slog->info(Logr::Error, "addAllowedAdditionalQType: unknown mode", "mode", Logging::Loggable( iter->second));
         }
       }
     }
     lci.allowAdditionalQTypes.insert_or_assign(qtype, pair(targets, mode));
   });
 
-  Lua->writeFunction("addProxyMapping", [&proxyMapping,&lci](const string& netmaskArg, const string& addressArg, boost::optional<std::vector<pair<int,std::string>>> smnStrings) {
+   // NOLINTNEXTLINE(performance-unnecessary-value-param) Lua wrapper does not handle optional &
+ Lua->writeFunction("addProxyMapping", [&proxyMapping,&lci](const string& netmaskArg, const string& addressArg, boost::optional<std::vector<pair<int,std::string>>> smnStrings) {
     try {
       Netmask netmask(netmaskArg);
       ComboAddress address(addressArg);
       boost::optional<SuffixMatchNode> smn;
       if (smnStrings) {
         smn = boost::make_optional(SuffixMatchNode{});
-        for (const auto& el : *smnStrings) {
-          smn->add(el.second);
+        for (const auto& subnet : *smnStrings) {
+          smn->add(subnet.second);
         }
       }
       proxyMapping.insert_or_assign(netmask, {address, smn});
