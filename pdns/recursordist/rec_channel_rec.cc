@@ -203,7 +203,7 @@ std::atomic<unsigned long>* initDynMetric(const std::string& str, const std::str
   if (!prometheusTypeName.empty()) {
     static const std::map<std::string, PrometheusMetricType> namesToTypes = {
       {"counter", PrometheusMetricType::counter},
-      {"gauge",   PrometheusMetricType::gauge},
+      {"gauge", PrometheusMetricType::gauge},
     };
     auto realtype = namesToTypes.find(prometheusTypeName);
     if (realtype != namesToTypes.end()) {
