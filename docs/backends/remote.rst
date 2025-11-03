@@ -29,15 +29,19 @@ connector.
 Important notices
 -----------------
 
-There is a breaking change on v4.0 and later. Before version 4.0, the
-DNS names passed in queries were sent without a trailing dot, after version 4.0
-the DNS names are always sent with trailing dot. F.ex. example.org is now sent
-as example.org.
+Broken networks with ipv6 suffixes
+==================================
 
 In some (broken) network setups, the IP addresses provided in the
 request (when this is an IPv6 address) may be suffixed with a ``%`` and
 the name of the network interface (e.g. ``%eth1``). Keep this in mind
 when checking the IP addresses.
+
+Breaking changes from pre v4.0 to v4.0+
+=======================================
+Before version 4.0, the DNS names passed in queries were sent without a trailing
+dot, after version 4.0 the DNS names are always sent with trailing dot. F.ex.
+example.org is now sent as example.org.
 
 Compiling
 ---------
