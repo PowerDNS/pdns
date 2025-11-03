@@ -204,6 +204,7 @@ are using DNSSEC this can lead into trouble.
 -  Mandatory: yes
 -  Parameters: qtype, qname, zone_id
 -  Optional parameters: remote, local, real-remote
+   - real-remote is a CIDR-netmask
 -  Reply: array of ``qtype,qname,content,ttl,domain_id,scopeMask,auth``
 -  Optional values: domain_id, scopeMask and auth
 
