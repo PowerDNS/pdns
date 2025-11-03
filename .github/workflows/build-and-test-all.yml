@@ -225,15 +225,20 @@ jobs:
   build-dnsdist:
     name: build dnsdist
     if: ${{ !github.event.schedule || vars.SCHEDULED_JOBS_BUILD_AND_TEST_ALL }}
-    runs-on: ${{ ( vars.REPOSITORY_USE_UBICLOUD == '1' ) && 'ubicloud-standard-4-ubuntu-2404' || 'ubuntu-24.04' }}
+    runs-on: ${{ ( vars.REPOSITORY_USE_UBICLOUD == '1' ) && 'ubicloud-standard-4-ubuntu-2404' || format('ubuntu-24.04{0}', matrix.architecture_suffix) }}
     needs: get-runner-container-image
     strategy:
       matrix:
         builder: [autotools, meson]
         sanitizers: [asan+ubsan, tsan]
         features: [least, full]
+        architecture_suffix: ['', '-arm']
         exclude:
           - sanitizers: tsan
+            features: least
+          - architecture_suffix: '-arm'
+            builder: autotools
+          - architecture_suffix: '-arm'
             features: least
       fail-fast: false
     container:
@@ -268,8 +273,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.ccache
-          key: dnsdist-${{ matrix.features }}-${{ matrix.sanitizers }}-${{ matrix.builder}}-ccache-${{ steps.get-stamp.outputs.stamp }}
-          restore-keys: dnsdist-${{ matrix.features }}-${{ matrix.sanitizers }}-${{ matrix.builder}}-ccache-
+          key: dnsdist-${{ matrix.features }}-${{ matrix.sanitizers }}-${{ matrix.builder}}${{ matrix.architecture_suffix }}-ccache-${{ steps.get-stamp.outputs.stamp }}
+          restore-keys: dnsdist-${{ matrix.features }}-${{ matrix.sanitizers }}-${{ matrix.builder}}${{ matrix.architecture_suffix }}-ccache-
       - name: install pip build dependencies
         run: |
           python3 -m venv ${REPO_HOME}/.venv
@@ -321,7 +326,7 @@ jobs:
         if: ${{ matrix.builder == 'meson' }}
         uses: actions/upload-artifact@v4 # this takes 30 seconds, maybe we want to tar
         with:
-          name: dnsdist-${{ matrix.features }}-${{ matrix.sanitizers }}-${{ matrix.builder}}-${{ env.normalized-branch-name }}
+          name: dnsdist-${{ matrix.features }}-${{ matrix.sanitizers }}-${{ matrix.builder}}${{ matrix.architecture_suffix }}-${{ env.normalized-branch-name }}
           path: /opt/dnsdist
           retention-days: 1
 
