@@ -1457,6 +1457,16 @@ RUN apt-get update && apt-get install -y {package_name}={package_version}*
 
     c.run(f'docker build . -t test-build-{product_name}-{distro_release}:latest -f /tmp/Dockerfile')
 
+@task
+def github_more_diskspace(c):
+    c.run('df -h / /hostroot')
+    for path in ['/usr/local/lib/android',
+              '/usr/local/.ghcup',
+              '/usr/share/dotnet',
+              '/usr/share/swift']:
+              c.sudo(f'rm -rf {path} /hostroot{path}')
+    c.run('df -h / /hostroot')
+
 # this is run always
 def setup():
     if '/usr/lib/ccache' not in os.environ['PATH']:
