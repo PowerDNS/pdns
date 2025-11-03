@@ -66,9 +66,9 @@ The same backend configuration in ``yaml``:
      - address: "[2001:DB8::1]:853"
        protocol: "DoT"
        tls:
-         - provider: "OpenSSL"
-           subject_name: "dot.powerdns.com"
-           validate_certificate: true
+         provider: "OpenSSL"
+         subject_name: "dot.powerdns.com"
+         validate_certificate: true
 
 Investigating issues
 --------------------
