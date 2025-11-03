@@ -29,15 +29,24 @@ connector.
 Important notices
 -----------------
 
-There is a breaking change on v4.0 and later. Before version 4.0, the
-DNS names passed in queries were sent without a trailing dot, after version 4.0
-the DNS names are always sent with trailing dot. F.ex. example.org is now sent
-as example.org.
+Broken networks with IPv6 suffixes
+==================================
 
 In some (broken) network setups, the IP addresses provided in the
 request (when this is an IPv6 address) may be suffixed with a ``%`` and
 the name of the network interface (e.g. ``%eth1``). Keep this in mind
 when checking the IP addresses.
+
+Breaking changes from pre v4.0 to v4.0+
+=======================================
+
+Before version 4.0, the DNS names passed in queries were sent without a trailing
+dot, after version 4.0 the DNS names are always sent with trailing dot, e.g.
+example.org is now sent as example.org.
+
+For the :ref:`remote-lookup` method, the priority field was required before 4.0.
+After 4.0, priority is added to content. This applies to any resource record which
+uses priority, for example SRV or MX.
 
 Compiling
 ---------
@@ -196,11 +205,9 @@ are using DNSSEC this can lead into trouble.
 -  Mandatory: yes
 -  Parameters: qtype, qname, zone_id
 -  Optional parameters: remote, local, real-remote
+   - real-remote is a CIDR-netmask
 -  Reply: array of ``qtype,qname,content,ttl,domain_id,scopeMask,auth``
 -  Optional values: domain_id, scopeMask and auth
--  Note: priority field is required before 4.0, after 4.0 priority is
-   added to content. This applies to any resource record which uses
-   priority, for example SRV or MX.
 
 Example JSON/RPC
 ''''''''''''''''
@@ -245,7 +252,7 @@ Response:
 This method is similar to :ref:`remote-lookup`, but also returns disabled
 records. It allows for an extra optional parameter, ``include_disabled`` which,
 if present and set to false, will only return non-disabled records (in which
-case, the behaviour is equivalent to the ``lookup`` method.)
+case, the behaviour is equivalent to the ``lookup`` method).
 
 -  Mandatory: no (required if the HTTP API is to be used)
 -  Parameters: qtype, qname, zone_id
@@ -342,7 +349,7 @@ Query:
 
 ::
 
-    /dnsapi/getbeforeandafternamesabsolute/0/www.example.com
+    /dnsapi/getbeforeandafternamesabsolute/0/www.
 
 Response:
 
@@ -919,7 +926,7 @@ Response:
     HTTP/1.1 200 OK
     content-Type: text/javascript: charset=utf-8
 
-    {"result":{id:1,"zone":"example.com","kind":"NATIVE","serial":2002010100}}
+    {"result":{"id":1,"zone":"example.com","kind":"NATIVE","serial":2002010100}}
 
 ``setNotified``
 ~~~~~~~~~~~~~~~
@@ -1019,7 +1026,7 @@ records.
 -  Mandatory: no
 -  Parameters: ip,domain,nsset,account
 -  Reply: true for success, false for failure. can also return
-   account=>name of account< and nameserver.
+   ``account`` = ``name of account`` and nameserver.
 
 Example JSON/RPC
 ''''''''''''''''
