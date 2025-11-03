@@ -251,7 +251,7 @@ Response:
 This method is similar to :ref:`remote-lookup`, but also returns disabled
 records. It allows for an extra optional parameter, ``include_disabled`` which,
 if present and set to false, will only return non-disabled records (in which
-case, the behaviour is equivalent to the ``lookup`` method.)
+case, the behaviour is equivalent to the ``lookup`` method).
 
 -  Mandatory: no (required if the HTTP API is to be used)
 -  Parameters: qtype, qname, zone_id
