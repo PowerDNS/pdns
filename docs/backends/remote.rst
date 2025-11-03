@@ -1025,7 +1025,7 @@ records.
 -  Mandatory: no
 -  Parameters: ip,domain,nsset,account
 -  Reply: true for success, false for failure. can also return
-   account=>name of account< and nameserver.
+   ``account``=>``name of account`` and nameserver.
 
 Example JSON/RPC
 ''''''''''''''''
