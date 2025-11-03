@@ -925,7 +925,7 @@ Response:
     HTTP/1.1 200 OK
     content-Type: text/javascript: charset=utf-8
 
-    {"result":{id:1,"zone":"example.com","kind":"NATIVE","serial":2002010100}}
+    {"result":{"id":1,"zone":"example.com","kind":"NATIVE","serial":2002010100}}
 
 ``setNotified``
 ~~~~~~~~~~~~~~~
