@@ -43,6 +43,10 @@ Before version 4.0, the DNS names passed in queries were sent without a trailing
 dot, after version 4.0 the DNS names are always sent with trailing dot. F.ex.
 example.org is now sent as example.org.
 
+For the :ref:`remote-lookup` method, the priority field was required before 4.0.
+After 4.0 priority is added to content. This applies to any resource record which
+uses priority, for example SRV or MX.
+
 Compiling
 ---------
 
@@ -202,9 +206,6 @@ are using DNSSEC this can lead into trouble.
 -  Optional parameters: remote, local, real-remote
 -  Reply: array of ``qtype,qname,content,ttl,domain_id,scopeMask,auth``
 -  Optional values: domain_id, scopeMask and auth
--  Note: priority field is required before 4.0, after 4.0 priority is
-   added to content. This applies to any resource record which uses
-   priority, for example SRV or MX.
 
 Example JSON/RPC
 ''''''''''''''''
