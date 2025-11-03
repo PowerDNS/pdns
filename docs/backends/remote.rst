@@ -29,7 +29,7 @@ connector.
 Important notices
 -----------------
 
-Broken networks with ipv6 suffixes
+Broken networks with IPv6 suffixes
 ==================================
 
 In some (broken) network setups, the IP addresses provided in the
@@ -39,12 +39,13 @@ when checking the IP addresses.
 
 Breaking changes from pre v4.0 to v4.0+
 =======================================
+
 Before version 4.0, the DNS names passed in queries were sent without a trailing
-dot, after version 4.0 the DNS names are always sent with trailing dot. F.ex.
+dot, after version 4.0 the DNS names are always sent with trailing dot, e.g.
 example.org is now sent as example.org.
 
 For the :ref:`remote-lookup` method, the priority field was required before 4.0.
-After 4.0 priority is added to content. This applies to any resource record which
+After 4.0, priority is added to content. This applies to any resource record which
 uses priority, for example SRV or MX.
 
 Compiling
@@ -1025,7 +1026,7 @@ records.
 -  Mandatory: no
 -  Parameters: ip,domain,nsset,account
 -  Reply: true for success, false for failure. can also return
-   ``account``=>``name of account`` and nameserver.
+   ``account`` = ``name of account`` and nameserver.
 
 Example JSON/RPC
 ''''''''''''''''
