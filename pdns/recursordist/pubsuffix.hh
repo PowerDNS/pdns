@@ -25,7 +25,7 @@
 #include <vector>
 
 extern std::vector<std::vector<std::string>> g_pubs;
-extern const std::vector<std::string> g_pubsuffix;
+extern const std::string g_pubsuffix;
 
 /* initialize the g_pubs variable with the public suffix list,
    using the file passed in parameter if any, or the built-in
