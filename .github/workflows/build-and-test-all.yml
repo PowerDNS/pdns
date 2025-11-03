@@ -414,7 +414,7 @@ jobs:
         LDAPHOST: ldap://ldapserver/
         ODBCINI: /github/home/.odbc.ini
         AUTH_BACKEND_IP_ADDR: "172.17.0.1"
-      options: --sysctl net.ipv6.conf.all.disable_ipv6=0
+      options: --sysctl net.ipv6.conf.all.disable_ipv6=0 -v /:/hostroot
     strategy:
       matrix:
         include:
@@ -518,6 +518,7 @@ jobs:
         run: |
           python3 -m venv ${REPO_HOME}/.venv
           . ${REPO_HOME}/.venv/bin/activate && pip install -r ${REPO_HOME}/meson/requirements.txt
+      - run: ${{ env.INV_CMD }} github-more-diskspace
       - run: ${{ env.INV_CMD }} install-clang-runtime
       - run: ${{ env.INV_CMD }} install-auth-test-deps -b ${{ matrix.backend }}
       - run: ${{ env.INV_CMD }} test-auth-backend -b ${{ matrix.backend }}
