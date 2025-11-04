@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 This script uses dnf to generate a Software Bill of Materials
-(SBOM) in CycloneDX Protocol Buffer format.
+(SBOM) in CycloneDX JSON format.
 """
 import datetime
 import dnf
