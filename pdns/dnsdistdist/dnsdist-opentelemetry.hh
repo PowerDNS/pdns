@@ -80,36 +80,7 @@ public:
   }
 
   /**
-   * @brief Activate the Tracer
-   *
-   * Once activated, all new events are stored as actual Spans
-   */
-  void activate()
-  {
-#ifndef DISABLE_PROTOBUF
-    d_activated = true;
-    if (d_traceid == pdns::trace::s_emptyTraceID) {
-      d_traceid.makeRandom();
-    }
-#endif
-  }
-
-  /**
-   * @brief Deactivate the tracer
-   */
-  void deactivate()
-  {
-#ifndef DISABLE_PROTOBUF
-    // Set deactivated, but don't delete any data.
-    // The Tracer can be activated later
-    d_activated = false;
-#endif
-  }
-
-  /**
    * @brief Add an attribute to the Trace
-   *
-   * This only works when Tracer is active
    *
    * @param key
    * @param value
@@ -227,10 +198,10 @@ public:
       }
 #endif
     };
-    Closer(const Closer&) = default;
+    Closer(const Closer&) = delete;
     Closer& operator=(const Closer&) = default;
     Closer& operator=(Closer&&) noexcept = default;
-    Closer(Closer&&) = default;
+    Closer(Closer&&) = delete;
 
     /**
      * @brief Get the SpanID
@@ -297,47 +268,38 @@ private:
 
 #ifndef DISABLE_PROTOBUF
   /**
-   * @class preActivationSpanInfo
-   * @brief Used before the Tracer is activated to store Span information
+   * @class miniSpan
+   * @brief Used to store Span information
    */
-  struct preActivationSpanInfo
+  struct miniSpan
   {
     std::string name;
     SpanID span_id;
     SpanID parent_span_id;
     uint64_t start_time_unix_nano;
     uint64_t end_time_unix_nano;
+    std::vector<pdns::trace::KeyValue> attributes;
   };
 
   /**
-   * @brief Stores all preActivationSpanInfos. It is used until d_activated is true
+   * @brief Stores all miniSpans.
    */
-  LockGuarded<std::vector<preActivationSpanInfo>> d_preActivationSpans;
-  /**
-   * @brief Stores all Spans. It is used when d_activated is true
-   */
-  LockGuarded<std::vector<Span>> d_postActivationSpans;
+  LockGuarded<std::vector<miniSpan>> d_spans;
   /**
    * @brief All attributes related to this Trace (added to the ScopeSpan)
    */
   std::vector<pdns::trace::KeyValue> d_attributes;
-  /**
-   * @brief All attributes related to the root span of this trace
-   */
-  std::vector<pdns::trace::KeyValue> d_rootSpanAttributes;
 
   /**
    * @brief The TraceID for this Tracer. It is stable for the lifetime of the Tracer
+   *
+   * it is mutable because it is set the first time it is accessed
    */
-  TraceID d_traceid{};
+  mutable LockGuarded<TraceID> d_traceid{};
   /**
    * @brief The last SpanID that was added to this Tracer
    */
   SpanID d_lastSpanID{};
-  /**
-   * @brief Whether or not we are storing full Spans or minimal Spans
-   */
-  bool d_activated{false};
 #endif
 };
 } // namespace pdns::trace::dnsdist
