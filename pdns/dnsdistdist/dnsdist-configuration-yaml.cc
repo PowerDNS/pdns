@@ -62,7 +62,7 @@ namespace dnsdist::configuration::yaml
 
 using XSKMap = std::vector<std::shared_ptr<XskSocket>>;
 
-using RegisteredTypes = std::variant<std::shared_ptr<DNSDistPacketCache>, std::shared_ptr<dnsdist::rust::settings::DNSSelector>, std::shared_ptr<dnsdist::rust::settings::DNSActionWrapper>, std::shared_ptr<dnsdist::rust::settings::DNSResponseActionWrapper>, std::shared_ptr<NetmaskGroup>, std::shared_ptr<KeyValueStore>, std::shared_ptr<KeyValueLookupKey>, std::shared_ptr<RemoteLoggerInterface>, std::shared_ptr<ServerPolicy>, std::shared_ptr<XSKMap>>;
+using RegisteredTypes = std::variant<std::shared_ptr<DNSDistPacketCache>, std::shared_ptr<dnsdist::rust::settings::DNSSelector>, std::shared_ptr<dnsdist::rust::settings::DNSActionWrapper>, std::shared_ptr<dnsdist::rust::settings::DNSResponseActionWrapper>, std::shared_ptr<NetmaskGroup>, std::shared_ptr<KeyValueStore>, std::shared_ptr<KeyValueLookupKey>, std::shared_ptr<RemoteLoggerInterface>, std::shared_ptr<ServerPolicy>, std::shared_ptr<TimedIPSetRule>, std::shared_ptr<XSKMap>>;
 static LockGuarded<std::unordered_map<std::string, RegisteredTypes>> s_registeredTypesMap;
 static std::atomic<bool> s_inConfigCheckMode;
 static std::atomic<bool> s_inClientMode;
@@ -1234,7 +1234,7 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
 void addLuaBindingsForYAMLObjects([[maybe_unused]] LuaContext& luaCtx)
 {
 #if defined(HAVE_YAML_CONFIGURATION)
-  using ReturnValue = boost::optional<boost::variant<std::shared_ptr<DNSDistPacketCache>, std::shared_ptr<DNSRule>, std::shared_ptr<DNSAction>, std::shared_ptr<DNSResponseAction>, std::shared_ptr<NetmaskGroup>, std::shared_ptr<KeyValueStore>, std::shared_ptr<KeyValueLookupKey>, std::shared_ptr<RemoteLoggerInterface>, std::shared_ptr<ServerPolicy>, std::shared_ptr<XSKMap>>>;
+  using ReturnValue = boost::optional<boost::variant<std::shared_ptr<DNSDistPacketCache>, std::shared_ptr<DNSRule>, std::shared_ptr<DNSAction>, std::shared_ptr<DNSResponseAction>, std::shared_ptr<NetmaskGroup>, std::shared_ptr<KeyValueStore>, std::shared_ptr<KeyValueLookupKey>, std::shared_ptr<RemoteLoggerInterface>, std::shared_ptr<ServerPolicy>, std::shared_ptr<TimedIPSetRule>, std::shared_ptr<XSKMap>>>;
 
   luaCtx.writeFunction("getObjectFromYAMLConfiguration", [](const std::string& name) -> ReturnValue {
     auto map = s_registeredTypesMap.lock();
@@ -1267,6 +1267,9 @@ void addLuaBindingsForYAMLObjects([[maybe_unused]] LuaContext& luaCtx)
       return ReturnValue(*ptr);
     }
     if (auto* ptr = std::get_if<std::shared_ptr<ServerPolicy>>(&item->second)) {
+      return ReturnValue(*ptr);
+    }
+    if (auto* ptr = std::get_if<std::shared_ptr<TimedIPSetRule>>(&item->second)) {
       return ReturnValue(*ptr);
     }
     if (auto* ptr = std::get_if<std::shared_ptr<XSKMap>>(&item->second)) {
@@ -1605,6 +1608,16 @@ std::shared_ptr<DNSSelector> getKeyValueStoreRangeLookupSelector([[maybe_unused]
 #endif
 }
 
+std::shared_ptr<DNSSelector> getTimedIPSetSelector(const TimedIPSetSelectorConfiguration& config)
+{
+  auto obj = dnsdist::configuration::yaml::getRegisteredTypeByName<TimedIPSetRule>(std::string(config.set_name));
+  if (!obj) {
+    throw std::runtime_error("Uanble to find a timed IP set named '" + std::string(config.set_name));
+  }
+  auto selector = std::dynamic_pointer_cast<DNSRule>(obj);
+  return newDNSSelector(std::move(selector), config.name);
+}
+
 std::shared_ptr<DNSActionWrapper> getDnstapLogAction([[maybe_unused]] const DnstapLogActionConfiguration& config)
 {
 #if defined(DISABLE_PROTOBUF) || !defined(HAVE_FSTRM)
@@ -1832,6 +1845,17 @@ void registerNMGObjects(const ::rust::Vec<NetmaskGroupConfiguration>& nmgs)
     }
     if (!registered) {
       dnsdist::configuration::yaml::registerType<NetmaskGroup>(nmg, netmaskGroup.name);
+    }
+  }
+}
+
+void registerTimedIPSetObjects(const ::rust::Vec<TimedIpSetConfiguration>& sets)
+{
+  for (const auto& timedIPSet : sets) {
+    auto obj = dnsdist::configuration::yaml::getRegisteredTypeByName<TimedIPSetRule>(std::string(timedIPSet.name));
+    if (!obj) {
+      obj = std::make_shared<TimedIPSetRule>();
+      dnsdist::configuration::yaml::registerType<TimedIPSetRule>(obj, timedIPSet.name);
     }
   }
 }

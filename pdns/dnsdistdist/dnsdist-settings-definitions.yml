@@ -129,6 +129,10 @@ global:
       type: "SnmpConfiguration"
       default: true
       description: "SNMP-related settings"
+    - name: "timed_ip_sets"
+      type: "Vec<TimedIpSetConfiguration>"
+      default: true
+      description: "Runtime-modifiable IP address sets"
     - name: "tuning"
       type: "TuningConfiguration"
       default: true
@@ -2153,6 +2157,13 @@ response_rule:
     - name: "action"
       type: "ResponseAction"
       description: "The action taken if the selector matches"
+
+timed_ip_set:
+  description: "Runtime-modifiable IP address set"
+  parameters:
+    - name: "name"
+      type: "String"
+      description: "The name of this set"
 
 xsk:
   description: "An ``XSK`` / ``AF_XDP`` sockets map"
