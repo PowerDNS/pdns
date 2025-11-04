@@ -34,6 +34,35 @@ def getPackageDatabase():
         query = db.sack.query()
         return query.installed()
 
+def getPURL(pkg):
+    # from https://github.com/package-url/purl-spec/blob/main/types-doc/rpm-definition.md
+    # pkg:rpm/<namespace>/<name>@<version>?<qualifiers>#<subpath>
+    name = pkg.name
+    version = pkg.version
+    if hasattr(pkg, 'cargo'):
+        return f'pkg:cargo/{name}@{version}'
+
+    vendor = pkg.vendor.lower()
+    if vendor == 'oracle america':
+        vendor = 'oracle'
+    elif vendor == 'rocky enterprise software foundation':
+        vendor = 'rocky'
+    elif vendor == 'fedora project':
+        vendor = 'fedora'
+
+    if pkg.release:
+        version += '-' + pkg.release
+    qualifiers = ''
+    if hasattr(pkg, 'arch'):
+        if len(qualifiers) != 0:
+            qualifiers += '&'
+        qualifiers += 'arch=' + pkg.arch
+    if pkg.epoch != 0:
+        if len(qualifiers) != 0:
+            qualifiers += '&'
+        qualifiers += 'epoch=' + str(pkg.epoch)
+    return f'pkg:rpm/{vendor}/{name}@{version}?{qualifiers}'
+
 def getPackageInformations(pkgDB, packageName):
     matches = pkgDB.filter(name=packageName).run()
     if len(matches) == 0:
@@ -61,6 +90,7 @@ def addDependencyToSBOM(sbom, appInfos, pkg):
         component['licenses'] = [{'license': {'id': spdxLicense}}]
     if hasattr(pkg, 'sha256') and pkg.sha256 is not None:
         component['hashes'] = [{'alg': 'SHA-256', 'content': pkg.sha256}]
+    component['purl'] = getPURL(pkg)
 
     sbom['components'].append(component)
 
@@ -120,6 +150,7 @@ def processAdditionalDependencies(sbom, appInfos, additionalDeps, depRelations):
                 pkg.sha256 = depData['SHA256SUM']
             elif 'SHA256SUM_x86_64' in depData:
                 pkg.sha256 = depData['SHA256SUM_x86_64']
+            pkg.cargo = True
 
             depRef = 'lib:' + pkg.name
             addDependencyToSBOM(sbom, appInfos, pkg)
@@ -135,16 +166,30 @@ def generateSBOM(packageName, additionalDeps):
     appInfos = getPackageInformations(pkgDB, packageName)
     component = { 'name': appName, 'bom-ref': 'pkg:' + appName, 'type': 'application'}
 
+    version = appInfos.version
+    qualifiers = ''
     if appInfos.release:
-        component['version'] = (appInfos.version if appInfos.epoch == 0 else str(appInfos.epoch) + ':' + appInfos.version) + '-' + appInfos.release
-    else:
-        component['version'] = (appInfos.version if appInfos.epoch == 0 else str(appInfos.epoch) + ':' + appInfos.version)
+        version += '-' + appInfos.release
+    version_without_epoch_or_arch = version
 
     if hasattr(appInfos, 'arch'):
-        component['version'] += '.' + appInfos.arch
+        version += '.' + appInfos.arch
+        if len(qualifiers) != 0:
+            qualifiers += '&'
+        qualifiers += 'arch=' + appInfos.arch
+
+    if appInfos.epoch != 0:
+        version = str(appInfos.epoch) + ':' + version
+        if len(qualifiers) != 0:
+            qualifiers += '&'
+        qualifiers += 'epoch=' + str(appInfos.epoch)
+
+    component['version'] = version
 
     component['supplier'] = {'name': appInfos.vendor if appInfos.vendor != '<NULL>' else 'PowerDNS.COM BV', 'url': ['https://www.powerdns.com']}
     component['licenses'] = [{'license': {'id': licenseToSPDXIdentifier(appInfos.license)}}]
+    component['purl'] = f'pkg:rpm/powerdns/{appName}@{version_without_epoch_or_arch}?{qualifiers}'
+
     depRelations['pkg:' + appName] = []
 
     sbom['metadata'] = { 'timestamp': datetime.datetime.now(tz=datetime.timezone.utc).isoformat(),
