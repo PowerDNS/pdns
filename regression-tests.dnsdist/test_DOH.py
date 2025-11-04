@@ -410,6 +410,7 @@ class DOHTests(object):
         wire = query.to_wire()
         b64 = base64.urlsafe_b64encode(wire).decode('UTF8').rstrip('=')
         url = self._dohBaseURL + '?dns=' + b64
+        responseHeaders = BytesIO()
         conn = pycurl.Curl()
         conn.setopt(pycurl.HTTP_VERSION, pycurl.CURL_HTTP_VERSION_1_1)
         conn.setopt(pycurl.HTTPHEADER, ["Content-type: application/dns-message",
@@ -419,13 +420,24 @@ class DOHTests(object):
         conn.setopt(pycurl.SSL_VERIFYPEER, 1)
         conn.setopt(pycurl.SSL_VERIFYHOST, 2)
         conn.setopt(pycurl.CAINFO, self._caCert)
+        conn.setopt(pycurl.HEADERFUNCTION, responseHeaders.write)
         data = conn.perform_rb()
         rcode = conn.getinfo(pycurl.RESPONSE_CODE)
+        responseHeaders = responseHeaders.getvalue()
         self.assertEqual(rcode, 400)
         self.assertEqual(data, b'<html><body>This server implements RFC 8484 - DNS Queries over HTTP, and requires HTTP/2 in accordance with section 5.2 of the RFC.</body></html>\r\n')
         self.assertEqual(self.getHTTPCounter('connects'), httpConnections + 1)
         self.assertEqual(self.getHTTPCounter('http/1.1'), http1 + 1)
         self.assertEqual(self.getHTTPCounter('http/2'), http2)
+
+        dateFound = False
+        for header in responseHeaders.decode().splitlines(False):
+            values = header.split(':')
+            key = values[0]
+            if key.lower() == 'date':
+                dateFound = True
+                break
+        self.assertTrue(dateFound)
 
     def testDOHHTTP1NotSelectedOverH2(self):
         """
