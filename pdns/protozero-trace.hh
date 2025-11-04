@@ -229,8 +229,12 @@ struct InstrumentationScope
   static InstrumentationScope decode(protozero::pbf_reader& reader);
 };
 
+constexpr std::array<uint8_t, 16> s_emptyTraceID{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 struct TraceID : public std::array<uint8_t, 16>
 {
+  TraceID() :
+    array{s_emptyTraceID} {};
+
   [[nodiscard]] std::string toLogString() const;
   friend std::ostream& operator<<(std::ostream& ostrm, const TraceID& val)
   {
@@ -254,10 +258,13 @@ struct TraceID : public std::array<uint8_t, 16>
     this->fill(0);
   }
 };
-constexpr TraceID s_emptyTraceID = {};
 
+constexpr std::array<uint8_t, 8> s_emptySpanID{0, 0, 0, 0, 0, 0, 0, 0};
 struct SpanID : public std::array<uint8_t, 8>
 {
+  SpanID() :
+    array{s_emptySpanID} {};
+
   [[nodiscard]] std::string toLogString() const;
   friend std::ostream& operator<<(std::ostream& ostrm, const SpanID& val)
   {
@@ -281,7 +288,6 @@ struct SpanID : public std::array<uint8_t, 8>
     this->fill(0);
   }
 };
-constexpr SpanID s_emptySpanID = {};
 
 inline void fill(TraceID& trace, const std::string& data)
 {
