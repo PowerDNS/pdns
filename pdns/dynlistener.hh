@@ -39,8 +39,8 @@
 class DynListener : public boost::noncopyable
 {
 public:
-  explicit DynListener(const string &pname="");
-  explicit DynListener(const ComboAddress& addr);
+  explicit DynListener(std::shared_ptr<Logr::Logger> slog, const string &pname="");
+  explicit DynListener(std::shared_ptr<Logr::Logger> slog, const ComboAddress& addr);
   ~DynListener();
   void go();
   void theListener();
@@ -68,6 +68,7 @@ private:
   bool d_nonlocal;
   bool d_tcp{false};
   pid_t d_ppid{0};
+  std::shared_ptr<Logr::Logger> d_slog;
   
   string d_socketname;
   ComboAddress d_socketaddress;

@@ -1142,7 +1142,7 @@ static int guardian(int argc, char** argv)
 
   int infd = 0, outfd = 1;
 
-  DynListener dlg(g_programname);
+  DynListener dlg(slog, g_programname);
   DynListener::registerExitFunc("QUIT", &DLQuitHandler);
   DynListener::registerFunc("CYCLE", &DLCycleHandler, "restart instance");
   DynListener::registerFunc("PING", &DLPingHandler, "ping guardian");
@@ -1633,16 +1633,16 @@ int main(int argc, char** argv)
     if (isGuarded(argv)) {
       SLOG(g_log << Logger::Warning << "This is a guarded instance of pdns" << endl,
            g_slog->info(Logr::Warning, "This is a guarded instance of pdns"));
-      s_dynListener = std::make_unique<DynListener>(); // listens on stdin
+      s_dynListener = std::make_unique<DynListener>(g_slog); // listens on stdin
     }
     else {
       SLOG(g_log << Logger::Warning << "This is a standalone pdns" << endl,
            g_slog->info(Logr::Warning, "This is a standalone pdns"));
 
       if (::arg().mustDo("control-console"))
-        s_dynListener = std::make_unique<DynListener>();
+        s_dynListener = std::make_unique<DynListener>(g_slog);
       else
-        s_dynListener = std::make_unique<DynListener>(g_programname);
+        s_dynListener = std::make_unique<DynListener>(g_slog, g_programname);
 
       writePid(g_slog);
     }
@@ -1669,7 +1669,7 @@ int main(int argc, char** argv)
     DynListener::registerFunc("XFR-QUEUE", &DLSuckRequests, "Get all requests for XFR in queue");
 
     if (!::arg()["tcp-control-address"].empty()) {
-      DynListener* dlTCP = new DynListener(ComboAddress(::arg()["tcp-control-address"], ::arg().asNum("tcp-control-port")));
+      DynListener* dlTCP = new DynListener(g_slog, ComboAddress(::arg()["tcp-control-address"], ::arg().asNum("tcp-control-port")));
       dlTCP->go();
     }
 
