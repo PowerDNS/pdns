@@ -191,31 +191,22 @@ std::atomic<unsigned long>* initDynMetric(const std::string& str, const std::str
     return iter->second.d_ptr;
   }
 
-  std::string name(str);
-  if (!prometheusName.empty()) {
-    name = prometheusName;
-  }
-  else {
-    name = getPrometheusName(name);
-  }
+  std::string name = prometheusName.empty() ? getPrometheusName(str) : prometheusName;
 
   std::optional<PrometheusMetricType> metricType;
-  if (!prometheusTypeName.empty()) {
-    static const std::map<std::string, PrometheusMetricType> namesToTypes = {
-      {"counter", PrometheusMetricType::counter},
-      {"gauge", PrometheusMetricType::gauge},
-    };
-    auto realtype = namesToTypes.find(prometheusTypeName);
-    if (realtype != namesToTypes.end()) {
-      metricType = std::optional(realtype->second);
-    }
+  if (prometheusTypeName == "counter") {
+    metricType = PrometheusMetricType::counter;
   }
-  std::optional<std::string> descr;
-  if (!prometheusDescr.empty()) {
-    descr = std::optional(std::move(prometheusDescr));
+  else if (prometheusTypeName == "gauge") {
+    metricType = PrometheusMetricType::gauge;
   }
 
-  auto ret = dynmetrics{new std::atomic<unsigned long>(), std::move(name), metricType, descr};
+  std::optional<std::string> descr;
+  if (!prometheusDescr.empty()) {
+    descr = prometheusDescr;
+  }
+
+  auto ret = dynmetrics{new std::atomic<unsigned long>(), std::move(name), metricType, std::move(descr)};
   (*locked)[str] = ret;
   return ret.d_ptr;
 }
