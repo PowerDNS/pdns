@@ -3628,7 +3628,7 @@ Sequence of ForwardingCatalogZone. This setting cannot be combined with :ref:`se
         'doc': '''
 Enable DNS cookies (:rfc:`7873`, :rfc:`9018`) when contacting authoritative servers or forwarders.
 ''',
-        'versionadded': '5.3.0',
+        'versionadded': '5.4.0',
     },
     {
         'name' : 'cookies_unsupported',
@@ -3640,7 +3640,7 @@ Enable DNS cookies (:rfc:`7873`, :rfc:`9018`) when contacting authoritative serv
         'doc': '''
 Addresses of servers that do not properly support DNS cookies (:rfc:`7873`, :rfc:`9018`). Recursor wil not even try to probe these servers for cookie support. If no port is specified port 53 is used.
 ''',
-        'versionadded': '5.3.0',
+        'versionadded': '5.4.0',
     },
     {
         'name' : 'tls_configurations',

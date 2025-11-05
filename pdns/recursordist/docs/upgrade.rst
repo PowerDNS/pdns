@@ -12,12 +12,12 @@ New Settings
 
 - The :ref:`setting-yaml-outgoing.cookies` setting has been introduced to implement cookie support for contacting authoritative servers and forwarders. See :rfc:`7873` and :rfc:`9018`.
 - The :ref:`setting-yaml-outgoing.cookies_unsupported` setting has been introduced to permanently mark authoritative servers as not supporting cookies.
+- The :ref:`setting-yaml-outgoing.tls_configurations` setting has been introduced to be able to force certificate validation and other properties of outgoing DoT connections.
 
 :program:`rec_control`
 ^^^^^^^^^^^^^^^^^^^^^^
 
-- The ``dump-cookies`` subcommand has been added to dump a table showing cookie support for each
-authoritative server contacted recently.
+- The ``dump-cookies`` subcommand has been added to dump a table showing cookie support for each authoritative server contacted recently.
 - The ``clear-cookies`` subcommand has been added to clear entries from the cookie support table.
 - The ``add-cookies-unsupported`` subcommand has been added to mark an authoritative server as not supporting cookies.
 
