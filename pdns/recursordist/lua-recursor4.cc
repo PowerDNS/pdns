@@ -436,11 +436,9 @@ void RecursorLua4::postPrepareContext() // NOLINT(readability-function-cognitive
     std::string prometheusDescr;
 
     if (opts) {
-      auto* optPrometheusName = boost::get<std::string>(&opts.get());
-      if (optPrometheusName != nullptr) {
+      if (const auto* optPrometheusName = boost::get<std::string>(&*opts); optPrometheusName != nullptr) {
         prometheusName = *optPrometheusName;
-      } else {
-        boost::optional<std::unordered_map<std::string, std::string>> vars = {boost::get<std::unordered_map<std::string, std::string>>(opts.get())};
+      } else if (auto* vars = boost::get<std::unordered_map<std::string, std::string>>(&*opts); vars != nullptr) {
         prometheusName = (*vars)["prometheusName"];
         prometheusTypeName = (*vars)["type"];
         prometheusDescr = (*vars)["description"];
