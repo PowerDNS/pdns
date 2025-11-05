@@ -883,7 +883,7 @@ static void mainthread()
   Utility::dropUserPrivs(newuid);
 
   if (::arg().mustDo("resolver")) {
-    DP = std::make_unique<DNSProxy>(::arg()["resolver"], ::arg()["dnsproxy-udp-port-range"]);
+    DP = std::make_unique<DNSProxy>(slog, ::arg()["resolver"], ::arg()["dnsproxy-udp-port-range"]);
     DP->go();
   }
 
