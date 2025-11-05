@@ -430,7 +430,7 @@ void RecursorLua4::postPrepareContext() // NOLINT(readability-function-cognitive
 
   d_pd.emplace_back("now", &g_now);
 
-  d_lw->writeFunction("initMetric", [](const std::string& str, boost::optional<boost::variant<std::string, std::unordered_map<std::string, std::string>>> opts){
+  d_lw->writeFunction("getMetric", [](const std::string& str, boost::optional<boost::variant<std::string, std::unordered_map<std::string, std::string>>> opts){
     std::string prometheusName;
     std::string prometheusTypeName;
     std::string prometheusDescr;
@@ -445,11 +445,7 @@ void RecursorLua4::postPrepareContext() // NOLINT(readability-function-cognitive
       }
     }
 
-    return DynMetric{initDynMetric(str, prometheusName, prometheusTypeName, prometheusDescr)};
-  });
-
-  d_lw->writeFunction("getMetric", [](const std::string& str, boost::optional<std::string> prometheusName) {
-    return DynMetric{getDynMetric(str, prometheusName ? *prometheusName : "")};
+    return DynMetric{getDynMetric(str, prometheusName, prometheusTypeName, prometheusDescr)};
     });
 
   d_lw->registerFunction("inc", &DynMetric::inc);
