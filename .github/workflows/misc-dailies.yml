@@ -31,7 +31,7 @@ jobs:
     if: ${{ vars.SCHEDULED_MISC_DAILIES }}
     runs-on: ubuntu-22.04
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
       with:
         fetch-depth: 5
         submodules: recursive
@@ -90,7 +90,7 @@ jobs:
     outputs:
       req-files: ${{ steps.get-list-requirements.outputs.files }}
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
       with:
         persist-credentials: false
     - name: Get all requirements.txt files and export them as outputs
@@ -120,10 +120,10 @@ jobs:
     steps:
       - run: echo "${REQUIREMENTS_FILE}"
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
       # Configure pip index-url set to proxpi
@@ -151,7 +151,7 @@ jobs:
         IPv6: [0, 1]
       max-parallel: 1
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 5
           submodules: recursive

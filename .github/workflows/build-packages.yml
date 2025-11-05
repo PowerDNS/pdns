@@ -80,7 +80,7 @@ jobs:
       # but, as this whole workflow needs at least 30 minutes to run, I prefer spending a few seconds here
       # so that the command remains readable, because jo is simpler to use.
       - run: sudo apt-get update && sudo apt-get -y install jo
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 1
           submodules: recursive
@@ -145,7 +145,7 @@ jobs:
       PRODUCT: ${{ inputs.product }}
       OS: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0 # for correct version numbers
           submodules: recursive
@@ -176,7 +176,7 @@ jobs:
           TARGET_ARCH: ${{ steps.getarch.outputs.target-arch }}
         run: for f in $(ls ./built_pkgs/*/*/*-${OS}.tar.bz2 | sed 's/\.tar.bz2$//'); do mv $f.tar.bz2 $f-${TARGET_ARCH}.tar.bz2; done
       - name: Upload packages as GH artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ${{ inputs.product }}-${{ matrix.os }}-${{ steps.getversion.outputs.version }}-${{ steps.getarch.outputs.target-arch }}
           path: built_pkgs/
@@ -326,7 +326,7 @@ jobs:
         architecture: ${{ fromJson(needs.prepare.outputs.archlist )}}
       fail-fast: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 1
           submodules: recursive
@@ -341,7 +341,7 @@ jobs:
           PULP_CI_USERNAME: ${{ secrets.PULP_CI_USERNAME }}
           PULP_CI_PASSWORD: ${{ secrets.PULP_CI_PASSWORD }}
       - name: Download packages
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           pattern: "${{ inputs.product }}-${{ matrix.os }}-${{ needs.build.outputs.version }}-${{ matrix.architecture }}"
       - name: Normalize package name
@@ -397,7 +397,7 @@ jobs:
         architecture: ${{ fromJson(needs.prepare.outputs.archlist )}}
       fail-fast: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 1
           submodules: recursive
@@ -412,7 +412,7 @@ jobs:
           PULP_CI_USERNAME: ${{ secrets.PULP_CI_USERNAME }}
           PULP_CI_PASSWORD: ${{ secrets.PULP_CI_PASSWORD }}
       - name: Download packages
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           pattern: "${{ inputs.product }}-${{ matrix.os }}-${{ needs.build.outputs.version }}-${{ matrix.architecture }}"
       - name: Normalize package name
@@ -450,7 +450,7 @@ jobs:
     if: ${{ needs.prepare.outputs.publish-packages == 'yes' }}
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 1
           submodules: recursive
@@ -465,7 +465,7 @@ jobs:
           PULP_CI_USERNAME: ${{ secrets.PULP_CI_USERNAME }}
           PULP_CI_PASSWORD: ${{ secrets.PULP_CI_PASSWORD }}
       - name: Download provenance files
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           pattern: "${{ inputs.product }}-${{ needs.build.outputs.version }}-*.intoto.jsonl"
       - name: Normalize package name
@@ -500,7 +500,7 @@ jobs:
     outputs:
       check-finished: ${{ steps.check-finished.outputs.upload-completed }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 1
           submodules: recursive
@@ -546,7 +546,7 @@ jobs:
         runner-os: ${{ fromJson(needs.prepare.outputs.runnerlist )}}
       fail-fast: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 1
           submodules: recursive
