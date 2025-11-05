@@ -165,7 +165,7 @@ void RecursorLua4::postPrepareContext() // NOLINT(readability-function-cognitive
   d_lw->registerMember<uint16_t (DNSQuestion::*)>("qtype", [](const DNSQuestion& dnsQuestion) -> uint16_t { return dnsQuestion.qtype; }, [](DNSQuestion& /* dnsQuestion */, uint16_t newType) { (void) newType; });
   d_lw->registerMember<bool (DNSQuestion::*)>("isTcp", [](const DNSQuestion& dnsQuestion) -> bool { return dnsQuestion.isTcp; }, [](DNSQuestion& dnsQuestion, bool newTcp) { dnsQuestion.isTcp = newTcp; });
   d_lw->registerMember<const ComboAddress (DNSQuestion::*)>("localaddr", [](const DNSQuestion& dnsQuestion) -> const ComboAddress& { return dnsQuestion.local; }, [](DNSQuestion& /* dnsQuestion */, const ComboAddress& newLocal) { (void) newLocal; });
-  d_lw->registerMember<const ComboAddress (DNSQuestion::*)>("remoteaddr", [](const DNSQuestion& dnsQuestion) -> const ComboAddress& { return dnsQuestion.remote; }, [](DNSQuestion& /* dnsQuestion */, const ComboAddress& newRemote) { (void) newRemote; });
+  d_lw->registerMember<const ComboAddress (DNSQuestion::*)>("remoteaddr", [](const DNSQuestion& dnsQuestion) -> const ComboAddress& { return dnsQuestion.remote; }, [](DNSQuestion& dnsQuestion, const ComboAddress& newRemote) { dnsQuestion.remote = newRemote; });
   d_lw->registerMember<const ComboAddress (DNSQuestion::*)>("interface_localaddr", [](const DNSQuestion& dnsQuestion) -> const ComboAddress& { return dnsQuestion.interface_local; }, [](DNSQuestion& /* dnsQuestion */, const ComboAddress& newLocal) { (void) newLocal; });
   d_lw->registerMember<const ComboAddress (DNSQuestion::*)>("interface_remoteaddr", [](const DNSQuestion& dnsQuestion) -> const ComboAddress& { return dnsQuestion.interface_remote; }, [](DNSQuestion& /* dnsQuestion */, const ComboAddress& newRemote) { (void) newRemote; });
   d_lw->registerMember<uint8_t (DNSQuestion::*)>("validationState", [](const DNSQuestion& dnsQuestion) -> uint8_t { return (vStateIsBogus(dnsQuestion.validationState) ? /* in order not to break older scripts */ static_cast<uint8_t>(255) : static_cast<uint8_t>(dnsQuestion.validationState)); }, [](DNSQuestion& /* dnsQuestion */, uint8_t newState) { (void) newState; });
@@ -659,7 +659,7 @@ bool RecursorLua4::postresolve(DNSQuestion& dnsQuestion, int& ret, RecEventTrace
   return isOK;
 }
 
-bool RecursorLua4::preoutquery(const ComboAddress& nameserver, const ComboAddress& requestor, const DNSName& query, const QType& qtype, bool& isTcp, vector<DNSRecord>& res, int& ret, RecEventTrace& eventTrace, const struct timeval& theTime) const
+bool RecursorLua4::preoutquery(ComboAddress& nameserver, const ComboAddress& requestor, const DNSName& query, const QType& qtype, bool& isTcp, vector<DNSRecord>& res, int& ret, RecEventTrace& eventTrace, const struct timeval& theTime) const
 {
   if (!d_preoutquery) {
     return false;
@@ -668,13 +668,15 @@ bool RecursorLua4::preoutquery(const ComboAddress& nameserver, const ComboAddres
   bool wantsRPZ = false;
   bool logQuery = false;
   bool addPaddingToResponse = false;
-  RecursorLua4::DNSQuestion dnsQuestion(nameserver, requestor, nameserver, requestor, query, qtype.getCode(), isTcp, variableAnswer, wantsRPZ, logQuery, addPaddingToResponse, theTime);
+  ComboAddress remote = nameserver;
+  RecursorLua4::DNSQuestion dnsQuestion(nameserver, requestor, remote, requestor, query, qtype.getCode(), isTcp, variableAnswer, wantsRPZ, logQuery, addPaddingToResponse, theTime);
   dnsQuestion.currentRecords = &res;
   auto match = eventTrace.add(RecEventTrace::LuaPreOutQuery);
   bool isOK = genhook(d_preoutquery, dnsQuestion, ret);
   eventTrace.add(RecEventTrace::LuaPreOutQuery, isOK, false, match);
   warnDrop(dnsQuestion);
 
+  nameserver = remote;
   isTcp = dnsQuestion.isTcp;
 
   return isOK;

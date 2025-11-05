@@ -5452,7 +5452,7 @@ void SyncRes::checkTotalTime(const DNSName& qname, QType qtype, boost::optional<
   }
 }
 
-bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname, const QType qtype, LWResult& lwr, boost::optional<Netmask>& ednsmask, const DNSName& auth, bool const sendRDQuery, const bool wasForwarded, const DNSName& nsName, const ComboAddress& remoteIP, bool doTCP, bool doDoT, bool& truncated, bool& spoofed, boost::optional<EDNSExtendedError>& extendedError, bool dontThrottle)
+bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname, const QType qtype, LWResult& lwr, boost::optional<Netmask>& ednsmask, const DNSName& auth, bool const sendRDQuery, const bool wasForwarded, const DNSName& nsName, ComboAddress& remoteIP, bool doTCP, bool doDoT, bool& truncated, bool& spoofed, boost::optional<EDNSExtendedError>& extendedError, bool dontThrottle)
 {
   checkTotalTime(qname, qtype, extendedError);
 
@@ -5464,6 +5464,9 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
     LOG(prefix << qname << ": Query handled by Lua" << endl);
   }
   else {
+    if (doTCP && SyncRes::s_dot_to_port_853 && remoteIP.getPort() == 853) {
+      doDoT = true;
+    }
     ednsmask = getEDNSSubnetMask(qname, remoteIP);
     if (ednsmask) {
       LOG(prefix << qname << ": Adding EDNS Client Subnet Mask " << ednsmask->toString() << " to query" << endl);
