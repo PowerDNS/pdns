@@ -59,7 +59,7 @@ Selectors can be combined via :func:`AndRule`, :func:`OrRule` and :func:`NotRule
   .. versionchanged:: 1.8.0
      see ``keepIncomingHeaders`` on :func:`addDOHLocal`
 
-  Matches DNS over HTTPS queries with a HTTP header ``name`` whose content matches the regular expression ``regex`` in Posix Extended Regular Expressions format.
+  Matches DNS over HTTPS queries with a HTTP header ``name`` whose content matches the regular expression ``regex`` in Posix Extended Regular Expressions format. The match is done in a case-insensitive way.
   Since 1.8.0 it is necessary to set the ``keepIncomingHeaders`` option to true on :func:`addDOHLocal` to be able to use this rule.
 
   :param str name: The case-insensitive name of the HTTP header to match on
@@ -69,7 +69,7 @@ Selectors can be combined via :func:`AndRule`, :func:`OrRule` and :func:`NotRule
 
   .. versionadded:: 1.4.0
 
-  Matches DNS over HTTPS queries with a HTTP path matching the regular expression supplied in ``regex`` in Posix Extended Regular Expressions format. For example, if the query has been sent to the https://192.0.2.1:443/PowerDNS?dns=... URL, the path would be '/PowerDNS'.
+  Matches DNS over HTTPS queries with a HTTP path matching the regular expression supplied in ``regex`` in Posix Extended Regular Expressions format. The match is done in a case-insensitive way. For example, if the query has been sent to the https://192.0.2.1:443/PowerDNS?dns=... URL, the path would be '/PowerDNS'.
   Only valid DNS over HTTPS queries are matched. If you want to match all HTTP queries, see :meth:`DOHFrontend:setResponsesMap` instead.
 
   :param str regex: The regex to match on
@@ -302,7 +302,7 @@ Selectors can be combined via :func:`AndRule`, :func:`OrRule` and :func:`NotRule
 
 .. function:: RegexRule(regex)
 
-  Matches the query name against the ``regex`` in Posix Extended Regular Expressions format.
+  Matches the query name against the ``regex`` in Posix Extended Regular Expressions format. The match is done in a case-insensitive way.
 
   .. code-block:: Lua
 
