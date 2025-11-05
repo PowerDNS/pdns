@@ -178,12 +178,7 @@ static std::string getPrometheusName(const std::string& arg)
   return "pdns_recursor_" + name;
 }
 
-std::atomic<unsigned long>* getDynMetric(const std::string& str, const std::string& prometheusName)
-{
-  return initDynMetric(str, prometheusName, "", "");
-}
-
-std::atomic<unsigned long>* initDynMetric(const std::string& str, const std::string& prometheusName, const std::string& prometheusTypeName, const std::string& prometheusDescr)
+std::atomic<unsigned long>* getDynMetric(const std::string& str, const std::string& prometheusName, const std::string& prometheusTypeName, const std::string& prometheusDescr)
 {
   auto locked = d_dynmetrics.lock();
   auto iter = locked->find(str);
