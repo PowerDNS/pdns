@@ -7,7 +7,7 @@ class NoDSTest(RecursorTest):
     _auth_zones = RecursorTest._default_auth_zones
 
     _config_template = """dnssec=validate"""
-    _lua_config_file = """clearDS(".")"""
+    _lua_config_file = """clearTA(".")"""
 
     def testNoDSInsecure(self):
         """#4430 When the root DS is removed, the result must be Insecure"""

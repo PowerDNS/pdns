@@ -14,7 +14,7 @@ class TrustAnchorsEnabledTest(RecursorTest):
      allow-trust-anchor-query=yes
 """
     _lua_config_file = """
-addDS("powerdns.com", "44030 8 1 B763646757DF621DD1204AD3BFA0675B49BE3279")
+addTA("powerdns.com", "44030 8 1 B763646757DF621DD1204AD3BFA0675B49BE3279")
 addNTA("example")
 addNTA("example.com", "some reason")
 """

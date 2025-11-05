@@ -20,6 +20,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
+
 #include <set>
 #include <boost/variant.hpp>
 
@@ -28,8 +29,6 @@
 #include "filterpo.hh"
 #include "validate.hh"
 #include "rec-zonetocache.hh"
-#include "logging.hh"
-#include "fstrm_logger.hh"
 #include "rpzloader.hh"
 
 struct ProtobufExportConfig
