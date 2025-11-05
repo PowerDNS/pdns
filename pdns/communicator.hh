@@ -181,7 +181,7 @@ public:
   void notify(const ZoneName& domain, const string& ipAddress);
   void mainloop();
   void retrievalLoopThread();
-  static void sendNotification(int sock, const ZoneName& domain, const ComboAddress& remote, uint16_t notificationId, UeberBackend* ueber);
+  void sendNotification(int sock, const ZoneName& domain, const ComboAddress& remote, uint16_t notificationId, UeberBackend* ueber);
   bool notifyDomain(const ZoneName& domain, UeberBackend* ueber);
   vector<pair<ZoneName, ComboAddress>> getSuckRequests();
   size_t getSuckRequestsWaiting();
