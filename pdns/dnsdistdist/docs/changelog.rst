@@ -2,6 +2,180 @@ Changelog
 =========
 
 .. changelog::
+  :version: 2.0.2
+  :released: 2nd of December 2025
+
+  .. change::
+    :tags: Bugs Fixes
+    :pullreq: 16309
+
+    Fix query rules bypass after tagging from a dynblock
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16310
+    :tickets: 16137
+
+    Update the Rust library version when generating a tarball
+
+  .. change::
+    :tags: Improvements, Performance
+    :pullreq: 16315
+
+    Make inserting to the in-memory rings a bit faster
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16316
+    :tickets: 16249
+
+    Allow selecting a specific version of Lua with meson
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16317
+    :tickets: 16248
+
+    ComboAddress: Fix "unspecified address" test when the port is set
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16318
+    :tickets: 16221
+
+    Set up the dns header for timeout response rules
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16319
+    :tickets: 16242
+
+    Fix handling of large XSK frames (ednaq)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16320
+
+    Make the round-robin LB policy internal counter atomic
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16322
+    :tickets: 16221
+
+    Properly handle exceptions when processing timeout rules
+
+  .. change::
+    :tags: Bug Fixes, Protobuf
+    :pullreq: 16325
+
+    Fix setting meta keys on response, pass them from question to response
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16326
+    :tickets: 16139
+
+    Initialize hash perturbation later, and only if needed
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16327
+    :tickets: 16072
+
+    Fix reentry issue in TCP downstream I/O on macOS/BSD (Karel Bilek)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 16328
+    :tickets: 14060
+
+    Add a selector to match the incoming protocol
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16345
+    :tickets: 15173
+
+    luawrapper: don't segfault on failure in traceback handler
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16346
+
+    Refactor the FFI "alternate name" interface
+
+  .. change::
+    :tags: Improvements, DNS over HTTPS
+    :pullreq: 16430
+
+    Include a Date: response header for rejected HTTP1 requests
+
+  .. change::
+    :tags: Bug Fixes, DNS over TLS, DNS over HTTPS
+    :pullreq: 16431
+
+    Fix a memory leak with OCSP and OpenSSL 3.6.0
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16435
+    :tickets: 15173
+
+    Store Lua's ``debug.traceback`` function before user can hide it from us
+
+  .. change::
+    :tags: Bug Fixes, YAML
+    :pullreq: 16439
+    :tickets: 16371
+
+    Properly handle invalid regular expressions
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16508
+
+    Prevent copies of ``dnsheader_aligned`` objects
+
+  .. change::
+    :tags: Improvements, Performance
+    :pullreq: 16524
+
+    Change bogusV4/bogusV6 addresses to static constants to avoid parse in every call (delichik)
+
+  .. change::
+    :tags: Bug Fixes, YAML
+    :pullreq: 16507
+    :tickets: 16462
+
+    Fix a crash when a selector or policy cannot be found
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16559
+
+    Raise the maximum number of descriptors to 1M
+
+  .. change::
+    :tags: Improvements, Performance
+    :pullreq: 16560
+
+    Better performance when using ``recvmmsg``
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16561
+
+    Alter the qname ``BPF`` filter to make it ``const``
+
+  .. change::
+    :tags: Improvements, YAML
+    :pullreq: 16562
+    :tickets: 16428
+
+    Expose ``TimedIPSet`` to ``YAML``-originated ``Lua`` contexts
+
+.. changelog::
   :version: 2.0.1
   :released: 18th of September 2025
 
