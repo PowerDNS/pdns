@@ -130,3 +130,22 @@ class TestLuaFrontendBindings(DNSDistTest):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertEqual(receivedResponse, expectedResponse)
+
+class TestLuaError(DNSDistTest):
+    _consoleKey = DNSDistTest.generateConsoleKey()
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
+
+    _config_params = ['_consoleKeyB64', '_consolePort']
+    _config_template = """
+    setKey("%s")
+    controlSocket("127.0.0.1:%s")
+
+    debug = nil
+    """
+
+    def testLuaError(self):
+        """
+        LuaError: Test exception handling while debug module is obscured
+        """
+        res = self.sendConsoleCommand('error("expected" .. " " .. "error")')
+        self.assertIn('expected error', res)
