@@ -886,7 +886,6 @@ static void setupNODGlobal()
   g_nodEnabled = ::arg().mustDo("new-domain-tracking");
   g_nodLookupDomain = DNSName(::arg()["new-domain-lookup"]);
   g_nodLog = ::arg().mustDo("new-domain-log");
-  parseIgnorelist(::arg()["new-domain-whitelist"], g_nodDomainWL);
   parseIgnorelist(::arg()["new-domain-ignore-list"], g_nodDomainWL);
   if (!::arg().isEmpty("new-domain-ignore-list-file")) {
     parseIgnorelistFile(::arg()["new-domain-ignore-list-file"], g_nodDomainWL);
@@ -1830,7 +1829,6 @@ static int initSyncRes(Logr::log_t log)
     SyncRes::setECSScopeZeroAddress(netmask);
   }
 
-  SyncRes::parseEDNSSubnetAllowlist(::arg()["edns-subnet-whitelist"]);
   SyncRes::parseEDNSSubnetAllowlist(::arg()["edns-subnet-allow-list"]);
   SyncRes::parseEDNSSubnetAddFor(::arg()["ecs-add-for"]);
   g_useIncomingECS = ::arg().mustDo("use-incoming-edns-subnet");
@@ -1966,9 +1964,6 @@ static void initSNMP([[maybe_unused]] Logr::log_t log)
   if (::arg().mustDo("snmp-agent")) {
 #ifdef HAVE_NET_SNMP
     string setting = ::arg()["snmp-daemon-socket"];
-    if (setting.empty()) {
-      setting = ::arg()["snmp-master-socket"];
-    }
     g_snmpAgent = std::make_shared<RecursorSNMPAgent>("recursor", setting);
     g_snmpAgent->run();
 #else
@@ -2318,11 +2313,6 @@ static int serviceMain(Logr::log_t log)
   }
 
   RecThreadInfo::makeThreadPipes(log);
-
-  disableStats(StatComponent::API, ::arg()["stats-api-blacklist"]);
-  disableStats(StatComponent::Carbon, ::arg()["stats-carbon-blacklist"]);
-  disableStats(StatComponent::RecControl, ::arg()["stats-rec-control-blacklist"]);
-  disableStats(StatComponent::SNMP, ::arg()["stats-snmp-blacklist"]);
 
   disableStats(StatComponent::API, ::arg()["stats-api-disabled-list"]);
   disableStats(StatComponent::Carbon, ::arg()["stats-carbon-disabled-list"]);
