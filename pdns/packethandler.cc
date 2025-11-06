@@ -74,8 +74,8 @@ PacketHandler::PacketHandler(std::shared_ptr<Logr::Logger> slog) :
   d_doExpandALIAS = ::arg().mustDo("expand-alias");
   d_doResolveAcrossZones = ::arg().mustDo("resolve-across-zones");
   d_logDNSDetails= ::arg().mustDo("log-dns-details");
-  string fname= ::arg()["lua-prequery-script"];
 
+  string fname= ::arg()["lua-prequery-script"];
   if(fname.empty())
   {
     d_pdl = nullptr;
@@ -85,6 +85,7 @@ PacketHandler::PacketHandler(std::shared_ptr<Logr::Logger> slog) :
     d_pdl = std::make_unique<AuthLua4>(::arg()["lua-global-include-dir"]);
     d_pdl->loadFile(fname);
   }
+
   fname = ::arg()["lua-dnsupdate-policy-script"];
   if (fname.empty())
   {
@@ -445,7 +446,7 @@ bool PacketHandler::getBestWildcard(DNSPacket& p, const DNSName &target, DNSName
           DLOG(SLOG(g_log<<"Executing Lua: '"<<rec->getCode()<<"'"<<endl,
                     d_slog->info("Executing Lua", "code", Logging::Loggable(rec->getCode()))));
           try {
-            auto recvec=luaSynth(rec->getCode(), target, rr, d_sd.qname(), p, rec->d_type, s_LUA);
+            auto recvec=luaSynth(d_slog, rec->getCode(), target, rr, d_sd.qname(), p, rec->d_type, s_LUA);
             for (const auto& r : recvec) {
               rr.dr.d_type = rec->d_type; // might be CNAME
               rr.dr.setContent(r);
@@ -1863,7 +1864,7 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state, bool re
       if(rec->d_type == QType::CNAME || rec->d_type == pkt.qtype.getCode() || (pkt.qtype.getCode() == QType::ANY && rec->d_type != QType::RRSIG)) {
         state.noCache=true;
         try {
-          auto recvec=luaSynth(rec->getCode(), state.target, zrr, d_sd.qname(), pkt, rec->d_type, s_LUA);
+          auto recvec=luaSynth(d_slog, rec->getCode(), state.target, zrr, d_sd.qname(), pkt, rec->d_type, s_LUA);
           if(!recvec.empty()) {
             for (const auto& r_it : recvec) {
               zrr.dr.d_type = rec->d_type; // might be CNAME
