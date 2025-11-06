@@ -48,7 +48,7 @@
       rust-type: "String"
       description: "The full 16bit RCode will be matched. If no EDNS OPT RR is present, the upper 12 bits are treated as 0"
 - name: "HTTPHeader"
-  description: "Matches DNS over HTTPS queries with a HTTP header name whose content matches the supplied regular expression. It is necessary to set the ``keepIncomingHeaders`` to :func:`addDOHLocal()` to use this rule"
+  description: "Matches DNS over HTTPS queries with a HTTP header name whose content matches the supplied regular expression in Posix Extended Regular Expressions format. The match is done in a case-insensitive way. It is necessary to set the ``keepIncomingHeaders`` to :func:`addDOHLocal()` to use this rule"
   parameters:
     - name: "header"
       type: "String"
@@ -70,7 +70,7 @@
   parameters:
     - name: "expression"
       type: "String"
-      description: "The regex to match on"
+      description: "The regex to match on, in Posix Extended Regular Expressions format. The match is done in a case-insensitive way"
 - name: "IncomingProtocol"
   description: "Matches queries received over a specific protocol"
   version_added: 2.1.0
@@ -392,7 +392,7 @@ Set the ``source`` parameter to ``false`` to match against destination address i
   parameters:
     - name: "expression"
       type: "String"
-      description: "The regular expression to match the QNAME"
+      description: "The regular expression to match the QNAME, in Posix Extended Regular Expressions format. The match is done in a case-insensitive way"
 - name: "SNI"
   description: "Matches against the TLS Server Name Indication value sent by the client, if any. Only makes sense for DoT or DoH, and for that last one matching on the HTTP Host header using :ref:`yaml-settings-HTTPHeaderSelector` might provide more consistent results"
   parameters:

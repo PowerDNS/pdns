@@ -528,23 +528,25 @@ class Regex
 public:
   /** constructor that accepts the expression to regex */
   Regex(const string &expr);
-
-  ~Regex()
-  {
-    regfree(&d_preg);
-  }
+  Regex(const Regex&) = delete;
+  Regex& operator=(const Regex&) = delete;
+  Regex(Regex&& rhs) = default;
+  Regex& operator=(Regex&& rhs) = default;
+  ~Regex() = default;
   /** call this to find out if 'line' matches your expression */
-  bool match(const string &line) const
-  {
-    return regexec(&d_preg,line.c_str(),0,0,0)==0;
-  }
-  bool match(const DNSName& name) const
-  {
-    return match(name.toStringNoDot());
-  }
+  bool match(const string &line) const;
+  bool match(const DNSName& name) const;
 
 private:
-  regex_t d_preg;
+  struct Deleter
+  {
+    void operator()(regex_t* ptr) const noexcept {
+      regfree(ptr);
+      delete ptr;
+    }
+  };
+
+  std::unique_ptr<regex_t, Deleter> d_preg;
 };
 
 class SimpleMatch
