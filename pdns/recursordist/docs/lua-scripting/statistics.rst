@@ -15,6 +15,7 @@ Create a custom metric with:
   myMetric = getMetric("myspecialmetric")
 
 .. function:: getMetric(name [, prometheusName]) -> Metric
+              getMetric(name [, prometheusTable]) -> Metric
 
   Returns the :class:`Metric` object with the name ``name``, creating the metric if it does not exist.
 
@@ -24,20 +25,11 @@ Create a custom metric with:
 
   :param string prometheusName: The optional Prometheus specific name.
 
-.. versionadded:: 5.4.0
+  .. versionAdded:: 5.4.0
 
-.. function:: initMetric(name [, prometheusName]) -> Metric
-              initMetric(name [, prometheusTable]) -> Metric
-
-  :param string name: The metric to create
-  :param string prometheusName: The optional Prometheus specific name
   :param table prometheusTable: The optional table of Prometheus specific options
 
-  Creates a new :class:`Metric` object with the name ``name`` and initializes it with optional Prometheus specific details.
-  Calling this function with a string is identical to calling :func:`getMetric`.
-  Calling this function with a table allows passing the desired Prometheus name, type, and description.
-
-  The elements of the table can be:
+  The elements of ``prometheusTable`` can be:
 
   .. csv-table::
     :delim: space
