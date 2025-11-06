@@ -1689,7 +1689,7 @@ int main(int argc, char** argv)
       }
     }
 
-    s_udpNameserver = std::make_shared<UDPNameserver>(); // this fails when we are not root, throws exception
+    s_udpNameserver = std::make_shared<UDPNameserver>(g_slog); // this fails when we are not root, throws exception
     s_udpReceivers.push_back(s_udpNameserver);
 
     size_t rthreads = ::arg().asNum("receiver-threads", 1);
@@ -1698,7 +1698,7 @@ int main(int argc, char** argv)
 
       for (size_t idx = 1; idx < rthreads; idx++) {
         try {
-          s_udpReceivers[idx] = std::make_shared<UDPNameserver>(true);
+          s_udpReceivers[idx] = std::make_shared<UDPNameserver>(g_slog, true);
         }
         catch (const PDNSException& e) {
           SLOG(g_log << Logger::Error << "Unable to reuse port, falling back to original bind" << endl,
