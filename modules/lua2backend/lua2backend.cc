@@ -43,12 +43,16 @@ public:
   {
     const std::string apiSet = "lua2" + suffix + "-api";
     const int api = ::arg().asNum(apiSet);
+    std::shared_ptr<Logr::Logger> slog;
     DNSBackend* be;
     switch (api) {
     case 1:
       throw PDNSException("Use luabackend for api version 1");
     case 2:
-      be = new Lua2BackendAPIv2(suffix);
+      if (g_slogStructured) {
+        slog = g_slog->withName("lua2" + suffix);
+      }
+      be = new Lua2BackendAPIv2(slog, suffix);
       break;
     default:
       throw PDNSException("Unsupported ABI version " + ::arg()[apiSet]);
