@@ -300,20 +300,6 @@ private:
     state->weight = weight;
   }
 
-  void setDown(const ComboAddress& rem, const std::string& url=std::string(), const opts_t& opts = opts_t())
-  {
-    //NOLINTNEXTLINE(readability-identifier-length)
-    CheckDesc cd{rem, url, opts};
-    setStatus(cd, false);
-  }
-
-  void setUp(const ComboAddress& rem, const std::string& url=std::string(), const opts_t& opts = opts_t())
-  {
-    CheckDesc cd{rem, url, opts};
-
-    setStatus(cd, true);
-  }
-
   void setDown(const CheckDesc& cd)
   {
     setStatus(cd, false);
