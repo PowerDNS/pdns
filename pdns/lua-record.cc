@@ -1,12 +1,14 @@
-#include <thread>
+#include <algorithm>
+#include <condition_variable>
 #include <future>
+#include <random>
+#include <thread>
+#include <tuple>
+#include <utility>
 #include <boost/format.hpp>
 #include <boost/uuid/string_generator.hpp>
-#include <utility>
-#include <algorithm>
-#include <random>
+
 #include "qtype.hh"
-#include <tuple>
 #include "version.hh"
 #include "ext/luawrapper/include/LuaContext.hpp"
 #include "lock.hh"
@@ -259,10 +261,15 @@ private:
       // set thread name again, in case std::async surprised us by doing work in this thread
       setThreadName("pdns/luaupcheck");
 
-      // Only sleep for 1 second here, even if the health check interval is
-      // larger, in case we get new entries to process in d_statuses in the
-      // meantime.
-      std::this_thread::sleep_for(std::chrono::seconds(1));
+      // Wait for at most one complete check interval, but allow an earlier
+      // wakeup in case more work is being put in d_statuses.
+      {
+        std::unique_lock<std::mutex> lock(d_mutex);
+	auto sleepTime = std::chrono::seconds(g_luaHealthChecksInterval) - (std::chrono::system_clock::now() - checkStart);
+        if (sleepTime > std::chrono::seconds::zero()) {
+          d_condvar.wait_until(lock, std::chrono::system_clock::now() + std::chrono::seconds(g_luaHealthChecksInterval));
+        }
+      }
     }
   }
 
@@ -271,6 +278,9 @@ private:
 
   std::unique_ptr<std::thread> d_checkerThread;
   std::atomic_flag d_checkerThreadStarted;
+
+  std::mutex d_mutex; // used with the condition variable below
+  std::condition_variable d_condvar;
 
   void setStatus(const CheckDesc& cd, bool status)
   {
@@ -361,9 +371,13 @@ int IsUpOracle::isUp(const CheckDesc& cd)
       (*statuses)[cd] = std::make_unique<CheckState>(now);
     }
   }
-  // Now that we have given it work to do, make sure the checker thread runs.
+  // Now that we have given it work to do, make sure the checker thread runs,
+  // and notify it if it had already been running.
   if (!d_checkerThreadStarted.test_and_set()) {
     d_checkerThread = std::make_unique<std::thread>([this] { return checkThread(); });
+  }
+  else {
+    d_condvar.notify_all();
   }
   // If explicitly asked to fail on incomplete checks, report this (as
   // a negative value).
