@@ -1,5 +1,4 @@
 import dns
-import socket
 import os
 import time
 
@@ -8,7 +7,6 @@ from twisted.internet.protocol import Protocol
 from twisted.internet.protocol import DatagramProtocol
 from twisted.internet import reactor
 
-import clientsubnetoption
 import cookiesoption
 
 from recursortests import RecursorTest

@@ -1,4 +1,4 @@
-from test_helper import ApiTestCase, is_auth, is_recursor, sdig
+from test_helper import ApiTestCase, is_recursor, sdig
 import unittest
 
 

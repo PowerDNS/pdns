@@ -3,7 +3,6 @@ import json
 import operator
 import time
 import unittest
-import requests.exceptions
 from copy import deepcopy
 from parameterized import parameterized
 from pprint import pprint

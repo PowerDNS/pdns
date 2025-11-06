@@ -1,22 +1,18 @@
 import base64
 import copy
 import asyncio
-import pickle
-import ssl
-import struct
 import dns
 import time
 import async_timeout
 
 from collections import deque
-from typing import BinaryIO, Callable, Deque, Dict, List, Optional, Tuple, Union, cast
+from typing import Deque, Dict, Optional, Tuple, Union, cast
 from urllib.parse import urlparse
 
-import aioquic
 from aioquic.asyncio.client import connect
 from aioquic.asyncio.protocol import QuicConnectionProtocol
-from aioquic.h0.connection import H0_ALPN, H0Connection
-from aioquic.h3.connection import H3_ALPN, ErrorCode, H3Connection
+from aioquic.h0.connection import H0Connection
+from aioquic.h3.connection import H3_ALPN, H3Connection
 from aioquic.h3.events import (
     DataReceived,
     H3Event,
@@ -24,8 +20,7 @@ from aioquic.h3.events import (
     PushPromiseReceived,
 )
 from aioquic.quic.configuration import QuicConfiguration
-from aioquic.quic.events import QuicEvent, StreamDataReceived, StreamReset
-from aioquic.tls import CipherSuite, SessionTicket
+from aioquic.quic.events import QuicEvent, StreamReset
 
 from doqclient import StreamResetError
 

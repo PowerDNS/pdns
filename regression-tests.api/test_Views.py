@@ -1,11 +1,9 @@
 # this tests Networks and Views
 
-import subprocess
 import json
 import unittest
-import os
 
-from test_helper import ApiTestCase, is_auth, is_auth_lmdb, pdnsutil
+from test_helper import ApiTestCase, is_auth, is_auth_lmdb
 from test_Zones import AuthZonesHelperMixin
 
 @unittest.skipIf(not is_auth(), "Not applicable")

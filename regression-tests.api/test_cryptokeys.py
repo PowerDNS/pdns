@@ -1,7 +1,5 @@
-import subprocess
 import json
 import unittest
-import os
 
 from test_helper import ApiTestCase, is_auth, pdnsutil, unique_zone_name
 

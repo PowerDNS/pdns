@@ -1,6 +1,5 @@
 import dns
 import dns.zone
-import json
 import os
 import requests
 import socket

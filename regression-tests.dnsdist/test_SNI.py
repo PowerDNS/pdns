@@ -1,9 +1,7 @@
 #!/usr/bin/env python
-import base64
 import dns
 import os
 import unittest
-import pycurl
 import ssl
 
 from dnsdisttests import DNSDistTest, pickAvailablePort

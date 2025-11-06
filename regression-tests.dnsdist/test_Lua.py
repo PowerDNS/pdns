@@ -3,7 +3,6 @@
 import base64
 import dns
 import time
-import unittest
 from dnsdisttests import DNSDistTest
 
 class TestLuaThread(DNSDistTest):

@@ -3,9 +3,7 @@ import base64
 import dns
 import socket
 import ssl
-import subprocess
 import time
-import unittest
 import random
 import string
 

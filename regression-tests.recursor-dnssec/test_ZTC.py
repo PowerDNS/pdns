@@ -1,6 +1,4 @@
-import dns
 import time
-import os
 import subprocess
 
 from recursortests import RecursorTest

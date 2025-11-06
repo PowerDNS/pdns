@@ -1,8 +1,6 @@
 import asyncio
-import pickle
-import ssl
 import struct
-from typing import Any, Optional, cast
+from typing import Any, cast
 import dns
 import dns.message
 import async_timeout
@@ -12,7 +10,6 @@ from aioquic.asyncio.client import connect
 from aioquic.asyncio.protocol import QuicConnectionProtocol
 from aioquic.quic.configuration import QuicConfiguration
 from aioquic.quic.events import QuicEvent, StreamDataReceived, StreamReset
-from aioquic.quic.logger import QuicFileLogger
 
 class DnsClientProtocol(QuicConnectionProtocol):
     def __init__(self, *args, **kwargs):
