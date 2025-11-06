@@ -958,7 +958,7 @@ def ci_dnsdist_run_unit_tests(c, builder):
     if builder == 'meson':
         suite_timeout_sec = 120
         logfile = 'meson-logs/testlog.txt'
-        res = c.run(f'. {repo_home}/.venv/bin/activate && ./testrunner -p --log_level=test_suite', warn=True)
+        res = c.run(f'. {repo_home}/.venv/bin/activate && gdb --batch --command=../../../.github/scripts/debug-testrunner.gdb ./testrunner -p --log_level=test_suite', warn=True)
     else:
         logfile = 'test-suite.log'
         res = c.run('make check', warn=True)
