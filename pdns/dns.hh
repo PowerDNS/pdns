@@ -136,39 +136,17 @@ struct EDNS0Record
 
 static_assert(sizeof(EDNS0Record) == 4, "EDNS0Record size must be 4");
 
-#if defined(__FreeBSD__) || defined(__APPLE__) || defined(__OpenBSD__) || defined(__DragonFly__) || defined(__FreeBSD_kernel__) || defined(__NetBSD__)
-#include <machine/endian.h>
-#elif __linux__ || __GNU__
-# include <endian.h>
-
-#else  // with thanks to <arpa/nameser.h>
-
-# define LITTLE_ENDIAN   1234    /* least-significant byte first (vax, pc) */
-# define BIG_ENDIAN      4321    /* most-significant byte first (IBM, net) */
-# define PDP_ENDIAN      3412    /* LSB first in word, MSW first in long (pdp) */
-
-#if defined(vax) || defined(ns32000) || defined(sun386) || defined(i386) || \
-        defined(__i386) || defined(__ia64) || defined(__amd64) || \
-        defined(MIPSEL) || defined(_MIPSEL) || defined(BIT_ZERO_ON_RIGHT) || \
-        defined(__alpha__) || defined(__alpha) || \
-        (defined(__Lynx__) && defined(__x86__))
-# define BYTE_ORDER      LITTLE_ENDIAN
+#if __has_include(<endian.h>)
+#include <endian.h> // Recent posix
+#elif __has_include(<machine/endian.h>)
+#include <machine/endian.h> // Common place on older BSD derived systems
+#else
+#error no endian.h found
 #endif
 
-#if defined(sel) || defined(pyr) || defined(mc68000) || defined(sparc) || \
-    defined(__sparc) || \
-    defined(is68k) || defined(tahoe) || defined(ibm032) || defined(ibm370) || \
-    defined(MIPSEB) || defined(_MIPSEB) || defined(_IBMR2) || defined(DGUX) ||\
-    defined(apollo) || defined(__convex__) || defined(_CRAY) || \
-    defined(__hppa) || defined(__hp9000) || \
-    defined(__hp9000s300) || defined(__hp9000s700) || \
-    defined(__hp3000s900) || defined(MPE) || \
-    defined(BIT_ZERO_ON_LEFT) || defined(m68k) || \
-        (defined(__Lynx__) && \
-        (defined(__68k__) || defined(__sparc__) || defined(__powerpc__)))
-# define BYTE_ORDER      BIG_ENDIAN
-#endif
-
+// Sanity check
+#if !defined(BYTE_ORDER)
+#error cannot determine byte order
 #endif
 
 struct dnsheader {
@@ -186,7 +164,7 @@ struct dnsheader {
         unsigned        ad: 1;          /* authentic data from named */
         unsigned        cd: 1;          /* checking disabled by resolver */
         unsigned        rcode :4;       /* response code */
-#elif BYTE_ORDER == LITTLE_ENDIAN || BYTE_ORDER == PDP_ENDIAN
+#elif BYTE_ORDER == LITTLE_ENDIAN
                         /* fields in third byte */
         unsigned        rd :1;          /* recursion desired */
         unsigned        tc :1;          /* truncated message */
@@ -272,7 +250,7 @@ inline const uint16_t * getFlagsFromDNSHeader(const dnsheader* dh)
 #if BYTE_ORDER == BIG_ENDIAN
 #define FLAGS_RD_OFFSET (8)
 #define FLAGS_CD_OFFSET (12)
-#elif BYTE_ORDER == LITTLE_ENDIAN || BYTE_ORDER == PDP_ENDIAN
+#elif BYTE_ORDER == LITTLE_ENDIAN
 #define FLAGS_RD_OFFSET (0)
 #define FLAGS_CD_OFFSET (12)
 #endif
