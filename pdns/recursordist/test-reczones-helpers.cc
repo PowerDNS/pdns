@@ -272,7 +272,7 @@ const std::string hints = ". 3600 IN NS ns.\n"
 
 BOOST_AUTO_TEST_CASE(test_UserHints)
 {
-
+  MemRecursorCache::resetStaticsForTests();
   g_recCache = make_unique<MemRecursorCache>();
 
   ::arg().set("max-generate-steps") = "0";
