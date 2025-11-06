@@ -29,7 +29,7 @@ if arguments.username:
 # A token with `repo` and `user` access will definitely work.
 access_token = arguments.access_token
 
-for pr in arguments.pullrequest:
+for pr in sorted(arguments.pullrequest):
     if pr[0] == '#':
         pr = pr[1:]
     try:
