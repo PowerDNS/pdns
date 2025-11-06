@@ -350,15 +350,6 @@ bool ArgvMap::parmIsset(const string& var)
 
 // ATM Shared between Recursor and Auth, is that a good idea?
 static const map<string, string> deprecateList = {
-  {"stats-api-blacklist", "stats-api-disabled-list"},
-  {"stats-carbon-blacklist", "stats-carbon-disabled-list"},
-  {"stats-rec-control-blacklist", "stats-rec-control-disabled-list"},
-  {"stats-snmp-blacklist", "stats-snmp-disabled-list"},
-  {"edns-subnet-whitelist", "edns-subnet-allow-list"},
-  {"new-domain-whitelist", "new-domain-ignore-list"},
-  {"snmp-master-socket", "snmp-daemon-socket"},
-  {"xpf-allow-from", "Proxy Protocol"},
-  {"xpf-rr-code", "Proxy Protocol"},
   {"domain-metadata-cache-ttl", "zone-metadata-cache-ttl"},
 };
 

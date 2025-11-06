@@ -923,16 +923,6 @@ effectively divides the packet cache in two when :ref:`setting-edns-padding-from
     'versionadded': '4.5.0'
     },
     {
-        'name' : 'edns_subnet_whitelist',
-        'section' : 'outgoing',
-        'type' : LType.String,
-        'default' : '',
-        'help' : 'List of netmasks and domains that we should enable EDNS subnet for (deprecated)',
-        'doc' : '',
-        'deprecated': ('4.5.0', 'Use :ref:`setting-edns-subnet-allow-list`.'),
-        'skip-yaml': True,
-    },
-    {
         'name' : 'edns_subnet_allow_list',
         'section' : 'outgoing',
         'type' : LType.ListStrings,
@@ -1887,18 +1877,6 @@ Set to zero to disable snapshot writing.',
     'versionadded': '5.1.0'
     },
     {
-        'name' : 'whitelist',
-        'section' : 'nod',
-        'oldname' : 'new-domain-whitelist',
-        'type' : LType.String,
-        'default' : '',
-        'help' : 'List of domains (and implicitly all subdomains) which will never be considered a new domain (deprecated)',
-        'doc' : '',
-        'versionadded': '4.2.0',
-        'deprecated': ('4.5.0', 'Use :ref:`setting-new-domain-ignore-list`.'),
-        'skip-yaml': True,
-    },
-    {
         'name' : 'ignore_list',
         'section' : 'nod',
         'oldname' : 'new-domain-ignore-list',
@@ -2597,19 +2575,6 @@ If set to true and PowerDNS has been compiled with SNMP support, it will registe
     'versionadded': '4.1.0'
     },
     {
-        'name' : 'master_socket',
-        'section' : 'snmp',
-        'oldname' : 'snmp-master-socket',
-        'type' : LType.String,
-        'default' : '',
-        'help' : 'If set and snmp-agent is set, the socket to use to register to the SNMP daemon (deprecated)',
-        'doc' : '''
- ''',
-        'versionadded': '4.1.0',
-        'deprecated': ('4.5.0', 'Use :ref:`setting-snmp-daemon-socket`.'),
-        'skip-yaml': True,
-    },
-    {
         'name' : 'daemon_socket',
         'section' : 'snmp',
         'oldname' : 'snmp-daemon-socket',
@@ -2723,18 +2688,6 @@ Use 0 to disable.
     'versionadded': '4.1.0'
     },
     {
-        'name' : 'stats_api_blacklist',
-        'section' : 'recursor',
-        'type' : LType.ListStrings,
-        'default' : 'cache-bytes, packetcache-bytes, special-memory-usage, ecs-v4-response-bits-1, ecs-v4-response-bits-2, ecs-v4-response-bits-3, ecs-v4-response-bits-4, ecs-v4-response-bits-5, ecs-v4-response-bits-6, ecs-v4-response-bits-7, ecs-v4-response-bits-8, ecs-v4-response-bits-9, ecs-v4-response-bits-10, ecs-v4-response-bits-11, ecs-v4-response-bits-12, ecs-v4-response-bits-13, ecs-v4-response-bits-14, ecs-v4-response-bits-15, ecs-v4-response-bits-16, ecs-v4-response-bits-17, ecs-v4-response-bits-18, ecs-v4-response-bits-19, ecs-v4-response-bits-20, ecs-v4-response-bits-21, ecs-v4-response-bits-22, ecs-v4-response-bits-23, ecs-v4-response-bits-24, ecs-v4-response-bits-25, ecs-v4-response-bits-26, ecs-v4-response-bits-27, ecs-v4-response-bits-28, ecs-v4-response-bits-29, ecs-v4-response-bits-30, ecs-v4-response-bits-31, ecs-v4-response-bits-32, ecs-v6-response-bits-1, ecs-v6-response-bits-2, ecs-v6-response-bits-3, ecs-v6-response-bits-4, ecs-v6-response-bits-5, ecs-v6-response-bits-6, ecs-v6-response-bits-7, ecs-v6-response-bits-8, ecs-v6-response-bits-9, ecs-v6-response-bits-10, ecs-v6-response-bits-11, ecs-v6-response-bits-12, ecs-v6-response-bits-13, ecs-v6-response-bits-14, ecs-v6-response-bits-15, ecs-v6-response-bits-16, ecs-v6-response-bits-17, ecs-v6-response-bits-18, ecs-v6-response-bits-19, ecs-v6-response-bits-20, ecs-v6-response-bits-21, ecs-v6-response-bits-22, ecs-v6-response-bits-23, ecs-v6-response-bits-24, ecs-v6-response-bits-25, ecs-v6-response-bits-26, ecs-v6-response-bits-27, ecs-v6-response-bits-28, ecs-v6-response-bits-29, ecs-v6-response-bits-30, ecs-v6-response-bits-31, ecs-v6-response-bits-32, ecs-v6-response-bits-33, ecs-v6-response-bits-34, ecs-v6-response-bits-35, ecs-v6-response-bits-36, ecs-v6-response-bits-37, ecs-v6-response-bits-38, ecs-v6-response-bits-39, ecs-v6-response-bits-40, ecs-v6-response-bits-41, ecs-v6-response-bits-42, ecs-v6-response-bits-43, ecs-v6-response-bits-44, ecs-v6-response-bits-45, ecs-v6-response-bits-46, ecs-v6-response-bits-47, ecs-v6-response-bits-48, ecs-v6-response-bits-49, ecs-v6-response-bits-50, ecs-v6-response-bits-51, ecs-v6-response-bits-52, ecs-v6-response-bits-53, ecs-v6-response-bits-54, ecs-v6-response-bits-55, ecs-v6-response-bits-56, ecs-v6-response-bits-57, ecs-v6-response-bits-58, ecs-v6-response-bits-59, ecs-v6-response-bits-60, ecs-v6-response-bits-61, ecs-v6-response-bits-62, ecs-v6-response-bits-63, ecs-v6-response-bits-64, ecs-v6-response-bits-65, ecs-v6-response-bits-66, ecs-v6-response-bits-67, ecs-v6-response-bits-68, ecs-v6-response-bits-69, ecs-v6-response-bits-70, ecs-v6-response-bits-71, ecs-v6-response-bits-72, ecs-v6-response-bits-73, ecs-v6-response-bits-74, ecs-v6-response-bits-75, ecs-v6-response-bits-76, ecs-v6-response-bits-77, ecs-v6-response-bits-78, ecs-v6-response-bits-79, ecs-v6-response-bits-80, ecs-v6-response-bits-81, ecs-v6-response-bits-82, ecs-v6-response-bits-83, ecs-v6-response-bits-84, ecs-v6-response-bits-85, ecs-v6-response-bits-86, ecs-v6-response-bits-87, ecs-v6-response-bits-88, ecs-v6-response-bits-89, ecs-v6-response-bits-90, ecs-v6-response-bits-91, ecs-v6-response-bits-92, ecs-v6-response-bits-93, ecs-v6-response-bits-94, ecs-v6-response-bits-95, ecs-v6-response-bits-96, ecs-v6-response-bits-97, ecs-v6-response-bits-98, ecs-v6-response-bits-99, ecs-v6-response-bits-100, ecs-v6-response-bits-101, ecs-v6-response-bits-102, ecs-v6-response-bits-103, ecs-v6-response-bits-104, ecs-v6-response-bits-105, ecs-v6-response-bits-106, ecs-v6-response-bits-107, ecs-v6-response-bits-108, ecs-v6-response-bits-109, ecs-v6-response-bits-110, ecs-v6-response-bits-111, ecs-v6-response-bits-112, ecs-v6-response-bits-113, ecs-v6-response-bits-114, ecs-v6-response-bits-115, ecs-v6-response-bits-116, ecs-v6-response-bits-117, ecs-v6-response-bits-118, ecs-v6-response-bits-119, ecs-v6-response-bits-120, ecs-v6-response-bits-121, ecs-v6-response-bits-122, ecs-v6-response-bits-123, ecs-v6-response-bits-124, ecs-v6-response-bits-125, ecs-v6-response-bits-126, ecs-v6-response-bits-127, ecs-v6-response-bits-128',
-        'help' : 'List of statistics that are disabled when retrieving the complete list of statistics via the API (deprecated)',
-        'docdefault': '',
-        'doc' : '',
-        'versionadded': '4.2.0',
-        'deprecated': ('4.5.0', 'Use :ref:`setting-stats-api-disabled-list`.'),
-        'skip-yaml': True,
-    },
-    {
         'name' : 'stats_api_disabled_list',
         'section' : 'recursor',
         'type' : LType.ListStrings,
@@ -2752,18 +2705,6 @@ These statistics can still be retrieved individually by specifically asking for 
     'versionadded': '4.5.0'
     },
     {
-        'name' : 'stats_carbon_blacklist',
-        'section' : 'recursor',
-        'type' : LType.ListStrings,
-        'default' : 'cache-bytes, packetcache-bytes, special-memory-usage, ecs-v4-response-bits-1, ecs-v4-response-bits-2, ecs-v4-response-bits-3, ecs-v4-response-bits-4, ecs-v4-response-bits-5, ecs-v4-response-bits-6, ecs-v4-response-bits-7, ecs-v4-response-bits-8, ecs-v4-response-bits-9, ecs-v4-response-bits-10, ecs-v4-response-bits-11, ecs-v4-response-bits-12, ecs-v4-response-bits-13, ecs-v4-response-bits-14, ecs-v4-response-bits-15, ecs-v4-response-bits-16, ecs-v4-response-bits-17, ecs-v4-response-bits-18, ecs-v4-response-bits-19, ecs-v4-response-bits-20, ecs-v4-response-bits-21, ecs-v4-response-bits-22, ecs-v4-response-bits-23, ecs-v4-response-bits-24, ecs-v4-response-bits-25, ecs-v4-response-bits-26, ecs-v4-response-bits-27, ecs-v4-response-bits-28, ecs-v4-response-bits-29, ecs-v4-response-bits-30, ecs-v4-response-bits-31, ecs-v4-response-bits-32, ecs-v6-response-bits-1, ecs-v6-response-bits-2, ecs-v6-response-bits-3, ecs-v6-response-bits-4, ecs-v6-response-bits-5, ecs-v6-response-bits-6, ecs-v6-response-bits-7, ecs-v6-response-bits-8, ecs-v6-response-bits-9, ecs-v6-response-bits-10, ecs-v6-response-bits-11, ecs-v6-response-bits-12, ecs-v6-response-bits-13, ecs-v6-response-bits-14, ecs-v6-response-bits-15, ecs-v6-response-bits-16, ecs-v6-response-bits-17, ecs-v6-response-bits-18, ecs-v6-response-bits-19, ecs-v6-response-bits-20, ecs-v6-response-bits-21, ecs-v6-response-bits-22, ecs-v6-response-bits-23, ecs-v6-response-bits-24, ecs-v6-response-bits-25, ecs-v6-response-bits-26, ecs-v6-response-bits-27, ecs-v6-response-bits-28, ecs-v6-response-bits-29, ecs-v6-response-bits-30, ecs-v6-response-bits-31, ecs-v6-response-bits-32, ecs-v6-response-bits-33, ecs-v6-response-bits-34, ecs-v6-response-bits-35, ecs-v6-response-bits-36, ecs-v6-response-bits-37, ecs-v6-response-bits-38, ecs-v6-response-bits-39, ecs-v6-response-bits-40, ecs-v6-response-bits-41, ecs-v6-response-bits-42, ecs-v6-response-bits-43, ecs-v6-response-bits-44, ecs-v6-response-bits-45, ecs-v6-response-bits-46, ecs-v6-response-bits-47, ecs-v6-response-bits-48, ecs-v6-response-bits-49, ecs-v6-response-bits-50, ecs-v6-response-bits-51, ecs-v6-response-bits-52, ecs-v6-response-bits-53, ecs-v6-response-bits-54, ecs-v6-response-bits-55, ecs-v6-response-bits-56, ecs-v6-response-bits-57, ecs-v6-response-bits-58, ecs-v6-response-bits-59, ecs-v6-response-bits-60, ecs-v6-response-bits-61, ecs-v6-response-bits-62, ecs-v6-response-bits-63, ecs-v6-response-bits-64, ecs-v6-response-bits-65, ecs-v6-response-bits-66, ecs-v6-response-bits-67, ecs-v6-response-bits-68, ecs-v6-response-bits-69, ecs-v6-response-bits-70, ecs-v6-response-bits-71, ecs-v6-response-bits-72, ecs-v6-response-bits-73, ecs-v6-response-bits-74, ecs-v6-response-bits-75, ecs-v6-response-bits-76, ecs-v6-response-bits-77, ecs-v6-response-bits-78, ecs-v6-response-bits-79, ecs-v6-response-bits-80, ecs-v6-response-bits-81, ecs-v6-response-bits-82, ecs-v6-response-bits-83, ecs-v6-response-bits-84, ecs-v6-response-bits-85, ecs-v6-response-bits-86, ecs-v6-response-bits-87, ecs-v6-response-bits-88, ecs-v6-response-bits-89, ecs-v6-response-bits-90, ecs-v6-response-bits-91, ecs-v6-response-bits-92, ecs-v6-response-bits-93, ecs-v6-response-bits-94, ecs-v6-response-bits-95, ecs-v6-response-bits-96, ecs-v6-response-bits-97, ecs-v6-response-bits-98, ecs-v6-response-bits-99, ecs-v6-response-bits-100, ecs-v6-response-bits-101, ecs-v6-response-bits-102, ecs-v6-response-bits-103, ecs-v6-response-bits-104, ecs-v6-response-bits-105, ecs-v6-response-bits-106, ecs-v6-response-bits-107, ecs-v6-response-bits-108, ecs-v6-response-bits-109, ecs-v6-response-bits-110, ecs-v6-response-bits-111, ecs-v6-response-bits-112, ecs-v6-response-bits-113, ecs-v6-response-bits-114, ecs-v6-response-bits-115, ecs-v6-response-bits-116, ecs-v6-response-bits-117, ecs-v6-response-bits-118, ecs-v6-response-bits-119, ecs-v6-response-bits-120, ecs-v6-response-bits-121, ecs-v6-response-bits-122, ecs-v6-response-bits-123, ecs-v6-response-bits-124, ecs-v6-response-bits-125, ecs-v6-response-bits-126, ecs-v6-response-bits-127, ecs-v6-response-bits-128, cumul-clientanswers, cumul-authanswers, policy-hits, proxy-mapping-total, remote-logger-count',
-        'docdefault': '',
-        'help' : 'List of statistics that are prevented from being exported via Carbon (deprecated)',
-        'doc' : '',
-        'versionadded': '4.2.0',
-        'deprecated': ('4.5.0', 'Use :ref:`setting-stats-carbon-disabled-list`.'),
-        'skip-yaml': True,
-    },
-    {
         'name' : 'stats_carbon_disabled_list',
         'section' : 'recursor',
         'type' : LType.ListStrings,
@@ -2777,18 +2718,6 @@ A list of comma-separated statistic names, that are prevented from being exporte
 A sequence of statistic names, that are prevented from being exported via carbon for performance reasons.
  ''',
     'versionadded': '4.5.0'
-    },
-    {
-        'name' : 'stats_rec_control_blacklist',
-        'section' : 'recursor',
-        'type' : LType.ListStrings,
-        'default' : 'cache-bytes, packetcache-bytes, special-memory-usage, ecs-v4-response-bits-1, ecs-v4-response-bits-2, ecs-v4-response-bits-3, ecs-v4-response-bits-4, ecs-v4-response-bits-5, ecs-v4-response-bits-6, ecs-v4-response-bits-7, ecs-v4-response-bits-8, ecs-v4-response-bits-9, ecs-v4-response-bits-10, ecs-v4-response-bits-11, ecs-v4-response-bits-12, ecs-v4-response-bits-13, ecs-v4-response-bits-14, ecs-v4-response-bits-15, ecs-v4-response-bits-16, ecs-v4-response-bits-17, ecs-v4-response-bits-18, ecs-v4-response-bits-19, ecs-v4-response-bits-20, ecs-v4-response-bits-21, ecs-v4-response-bits-22, ecs-v4-response-bits-23, ecs-v4-response-bits-24, ecs-v4-response-bits-25, ecs-v4-response-bits-26, ecs-v4-response-bits-27, ecs-v4-response-bits-28, ecs-v4-response-bits-29, ecs-v4-response-bits-30, ecs-v4-response-bits-31, ecs-v4-response-bits-32, ecs-v6-response-bits-1, ecs-v6-response-bits-2, ecs-v6-response-bits-3, ecs-v6-response-bits-4, ecs-v6-response-bits-5, ecs-v6-response-bits-6, ecs-v6-response-bits-7, ecs-v6-response-bits-8, ecs-v6-response-bits-9, ecs-v6-response-bits-10, ecs-v6-response-bits-11, ecs-v6-response-bits-12, ecs-v6-response-bits-13, ecs-v6-response-bits-14, ecs-v6-response-bits-15, ecs-v6-response-bits-16, ecs-v6-response-bits-17, ecs-v6-response-bits-18, ecs-v6-response-bits-19, ecs-v6-response-bits-20, ecs-v6-response-bits-21, ecs-v6-response-bits-22, ecs-v6-response-bits-23, ecs-v6-response-bits-24, ecs-v6-response-bits-25, ecs-v6-response-bits-26, ecs-v6-response-bits-27, ecs-v6-response-bits-28, ecs-v6-response-bits-29, ecs-v6-response-bits-30, ecs-v6-response-bits-31, ecs-v6-response-bits-32, ecs-v6-response-bits-33, ecs-v6-response-bits-34, ecs-v6-response-bits-35, ecs-v6-response-bits-36, ecs-v6-response-bits-37, ecs-v6-response-bits-38, ecs-v6-response-bits-39, ecs-v6-response-bits-40, ecs-v6-response-bits-41, ecs-v6-response-bits-42, ecs-v6-response-bits-43, ecs-v6-response-bits-44, ecs-v6-response-bits-45, ecs-v6-response-bits-46, ecs-v6-response-bits-47, ecs-v6-response-bits-48, ecs-v6-response-bits-49, ecs-v6-response-bits-50, ecs-v6-response-bits-51, ecs-v6-response-bits-52, ecs-v6-response-bits-53, ecs-v6-response-bits-54, ecs-v6-response-bits-55, ecs-v6-response-bits-56, ecs-v6-response-bits-57, ecs-v6-response-bits-58, ecs-v6-response-bits-59, ecs-v6-response-bits-60, ecs-v6-response-bits-61, ecs-v6-response-bits-62, ecs-v6-response-bits-63, ecs-v6-response-bits-64, ecs-v6-response-bits-65, ecs-v6-response-bits-66, ecs-v6-response-bits-67, ecs-v6-response-bits-68, ecs-v6-response-bits-69, ecs-v6-response-bits-70, ecs-v6-response-bits-71, ecs-v6-response-bits-72, ecs-v6-response-bits-73, ecs-v6-response-bits-74, ecs-v6-response-bits-75, ecs-v6-response-bits-76, ecs-v6-response-bits-77, ecs-v6-response-bits-78, ecs-v6-response-bits-79, ecs-v6-response-bits-80, ecs-v6-response-bits-81, ecs-v6-response-bits-82, ecs-v6-response-bits-83, ecs-v6-response-bits-84, ecs-v6-response-bits-85, ecs-v6-response-bits-86, ecs-v6-response-bits-87, ecs-v6-response-bits-88, ecs-v6-response-bits-89, ecs-v6-response-bits-90, ecs-v6-response-bits-91, ecs-v6-response-bits-92, ecs-v6-response-bits-93, ecs-v6-response-bits-94, ecs-v6-response-bits-95, ecs-v6-response-bits-96, ecs-v6-response-bits-97, ecs-v6-response-bits-98, ecs-v6-response-bits-99, ecs-v6-response-bits-100, ecs-v6-response-bits-101, ecs-v6-response-bits-102, ecs-v6-response-bits-103, ecs-v6-response-bits-104, ecs-v6-response-bits-105, ecs-v6-response-bits-106, ecs-v6-response-bits-107, ecs-v6-response-bits-108, ecs-v6-response-bits-109, ecs-v6-response-bits-110, ecs-v6-response-bits-111, ecs-v6-response-bits-112, ecs-v6-response-bits-113, ecs-v6-response-bits-114, ecs-v6-response-bits-115, ecs-v6-response-bits-116, ecs-v6-response-bits-117, ecs-v6-response-bits-118, ecs-v6-response-bits-119, ecs-v6-response-bits-120, ecs-v6-response-bits-121, ecs-v6-response-bits-122, ecs-v6-response-bits-123, ecs-v6-response-bits-124, ecs-v6-response-bits-125, ecs-v6-response-bits-126, ecs-v6-response-bits-127, ecs-v6-response-bits-128, cumul-clientanswers, cumul-authanswers, policy-hits, proxy-mapping-total, remote-logger-count',
-        'docdefault': '',
-        'help' : 'List of statistics that are prevented from being exported via rec_control get-all (deprecated)',
-        'doc' : '',
-        'versionadded': '4.2.0',
-        'deprecated': ('4.5.0', 'Use :ref:`setting-stats-rec-control-disabled-list`.'),
-        'skip-yaml': True,
     },
     {
         'name' : 'stats_rec_control_disabled_list',
@@ -2817,18 +2746,6 @@ These statistics can still be retrieved individually.
 Number of entries in the remotes ringbuffer, which keeps statistics on who is querying your server.
 Can be read out using ``rec_control top-remotes``.
  ''',
-    },
-    {
-        'name' : 'stats_snmp_blacklist',
-        'section' : 'recursor',
-        'type' : LType.ListStrings,
-        'default' : 'cache-bytes, packetcache-bytes, special-memory-usage, ecs-v4-response-bits-1, ecs-v4-response-bits-2, ecs-v4-response-bits-3, ecs-v4-response-bits-4, ecs-v4-response-bits-5, ecs-v4-response-bits-6, ecs-v4-response-bits-7, ecs-v4-response-bits-8, ecs-v4-response-bits-9, ecs-v4-response-bits-10, ecs-v4-response-bits-11, ecs-v4-response-bits-12, ecs-v4-response-bits-13, ecs-v4-response-bits-14, ecs-v4-response-bits-15, ecs-v4-response-bits-16, ecs-v4-response-bits-17, ecs-v4-response-bits-18, ecs-v4-response-bits-19, ecs-v4-response-bits-20, ecs-v4-response-bits-21, ecs-v4-response-bits-22, ecs-v4-response-bits-23, ecs-v4-response-bits-24, ecs-v4-response-bits-25, ecs-v4-response-bits-26, ecs-v4-response-bits-27, ecs-v4-response-bits-28, ecs-v4-response-bits-29, ecs-v4-response-bits-30, ecs-v4-response-bits-31, ecs-v4-response-bits-32, ecs-v6-response-bits-1, ecs-v6-response-bits-2, ecs-v6-response-bits-3, ecs-v6-response-bits-4, ecs-v6-response-bits-5, ecs-v6-response-bits-6, ecs-v6-response-bits-7, ecs-v6-response-bits-8, ecs-v6-response-bits-9, ecs-v6-response-bits-10, ecs-v6-response-bits-11, ecs-v6-response-bits-12, ecs-v6-response-bits-13, ecs-v6-response-bits-14, ecs-v6-response-bits-15, ecs-v6-response-bits-16, ecs-v6-response-bits-17, ecs-v6-response-bits-18, ecs-v6-response-bits-19, ecs-v6-response-bits-20, ecs-v6-response-bits-21, ecs-v6-response-bits-22, ecs-v6-response-bits-23, ecs-v6-response-bits-24, ecs-v6-response-bits-25, ecs-v6-response-bits-26, ecs-v6-response-bits-27, ecs-v6-response-bits-28, ecs-v6-response-bits-29, ecs-v6-response-bits-30, ecs-v6-response-bits-31, ecs-v6-response-bits-32, ecs-v6-response-bits-33, ecs-v6-response-bits-34, ecs-v6-response-bits-35, ecs-v6-response-bits-36, ecs-v6-response-bits-37, ecs-v6-response-bits-38, ecs-v6-response-bits-39, ecs-v6-response-bits-40, ecs-v6-response-bits-41, ecs-v6-response-bits-42, ecs-v6-response-bits-43, ecs-v6-response-bits-44, ecs-v6-response-bits-45, ecs-v6-response-bits-46, ecs-v6-response-bits-47, ecs-v6-response-bits-48, ecs-v6-response-bits-49, ecs-v6-response-bits-50, ecs-v6-response-bits-51, ecs-v6-response-bits-52, ecs-v6-response-bits-53, ecs-v6-response-bits-54, ecs-v6-response-bits-55, ecs-v6-response-bits-56, ecs-v6-response-bits-57, ecs-v6-response-bits-58, ecs-v6-response-bits-59, ecs-v6-response-bits-60, ecs-v6-response-bits-61, ecs-v6-response-bits-62, ecs-v6-response-bits-63, ecs-v6-response-bits-64, ecs-v6-response-bits-65, ecs-v6-response-bits-66, ecs-v6-response-bits-67, ecs-v6-response-bits-68, ecs-v6-response-bits-69, ecs-v6-response-bits-70, ecs-v6-response-bits-71, ecs-v6-response-bits-72, ecs-v6-response-bits-73, ecs-v6-response-bits-74, ecs-v6-response-bits-75, ecs-v6-response-bits-76, ecs-v6-response-bits-77, ecs-v6-response-bits-78, ecs-v6-response-bits-79, ecs-v6-response-bits-80, ecs-v6-response-bits-81, ecs-v6-response-bits-82, ecs-v6-response-bits-83, ecs-v6-response-bits-84, ecs-v6-response-bits-85, ecs-v6-response-bits-86, ecs-v6-response-bits-87, ecs-v6-response-bits-88, ecs-v6-response-bits-89, ecs-v6-response-bits-90, ecs-v6-response-bits-91, ecs-v6-response-bits-92, ecs-v6-response-bits-93, ecs-v6-response-bits-94, ecs-v6-response-bits-95, ecs-v6-response-bits-96, ecs-v6-response-bits-97, ecs-v6-response-bits-98, ecs-v6-response-bits-99, ecs-v6-response-bits-100, ecs-v6-response-bits-101, ecs-v6-response-bits-102, ecs-v6-response-bits-103, ecs-v6-response-bits-104, ecs-v6-response-bits-105, ecs-v6-response-bits-106, ecs-v6-response-bits-107, ecs-v6-response-bits-108, ecs-v6-response-bits-109, ecs-v6-response-bits-110, ecs-v6-response-bits-111, ecs-v6-response-bits-112, ecs-v6-response-bits-113, ecs-v6-response-bits-114, ecs-v6-response-bits-115, ecs-v6-response-bits-116, ecs-v6-response-bits-117, ecs-v6-response-bits-118, ecs-v6-response-bits-119, ecs-v6-response-bits-120, ecs-v6-response-bits-121, ecs-v6-response-bits-122, ecs-v6-response-bits-123, ecs-v6-response-bits-124, ecs-v6-response-bits-125, ecs-v6-response-bits-126, ecs-v6-response-bits-127, ecs-v6-response-bits-128, cumul-clientanswers, cumul-authanswers, policy-hits, proxy-mapping-total, remote-logger-count',
-        'docdefault': '',
-        'help' : 'List of statistics that are prevented from being exported via SNMP (deprecated)',
-        'doc' : '',
-        'versionadded': '4.2.0',
-        'deprecated': ('4.5.0', 'Use :ref:`setting-stats-snmp-disabled-list`.'),
-        'skip-yaml': True,
     },
     {
         'name' : 'stats_snmp_disabled_list',
