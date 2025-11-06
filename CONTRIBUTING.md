@@ -59,6 +59,7 @@ A pull request, at the least, should have:
 And must:
 * Be filed against the master branch before any release branch
 * Pass all tests in our CI (currently GitHub Actions and CircleCI)
+* Align with the [AI Policy](AI_POLICY.md)
 
 Information on the tests can be found in the repository at
 [/regression-tests/README.md](https://github.com/PowerDNS/pdns/blob/master/regression-tests/README.md)
