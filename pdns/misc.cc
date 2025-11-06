@@ -825,10 +825,27 @@ bool readFileIfThere(const char* fname, std::string* line)
   return stringfgets(filePtr.get(), *line);
 }
 
-Regex::Regex(const string &expr)
+Regex::Regex(const string& expr):
+  d_preg(new regex_t)
 {
-  if(regcomp(&d_preg, expr.c_str(), REG_ICASE|REG_NOSUB|REG_EXTENDED))
-    throw PDNSException("Regular expression did not compile");
+  if (auto ret = regcomp(d_preg.get(), expr.c_str(), REG_ICASE|REG_NOSUB|REG_EXTENDED); ret != 0) {
+    std::array<char, 1024> errorBuffer{};
+    if (regerror(ret, d_preg.get(), errorBuffer.data(), errorBuffer.size()) > 0) {
+      throw PDNSException("Regular expression " + expr + " did not compile: " + errorBuffer.data());
+    }
+    throw PDNSException("Regular expression " + expr + " did not compile");
+  }
+}
+
+/** call this to find out if 'line' matches your expression */
+bool Regex::match(const string &line) const
+{
+  return regexec(d_preg.get(), line.c_str(), 0, nullptr, 0) == 0;
+}
+
+bool Regex::match(const DNSName& name) const
+{
+  return match(name.toStringNoDot());
 }
 
 // if you end up here because valgrind told you were are doing something wrong
