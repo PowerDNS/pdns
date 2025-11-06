@@ -302,7 +302,7 @@ jobs:
       - run: ${{ env.INV_CMD }} ci-dnsdist-configure ${{ matrix.features }} ${{ matrix.builder }} dnsdist-${{ env.BUILDER_VERSION }}
         if: ${{ matrix.builder == 'autotools' }}
       - run: ${{ env.INV_CMD }} ci-dnsdist-make-bear ${{ matrix.builder }}
-      - run: apt-get -y --no-install-recommends install gdb
+      - run: sudo apt-get -y --no-install-recommends install gdb
       - run: ${{ env.INV_CMD }} ci-dnsdist-run-unit-tests ${{ matrix.builder }}
       - run: ${{ env.INV_CMD }} generate-coverage-info ./testrunner 'dnsdist' $GITHUB_WORKSPACE
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' && matrix.builder == 'meson'}}
