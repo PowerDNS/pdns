@@ -2370,7 +2370,6 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
     @unittest.skipIf(is_auth_lmdb(), "No get_db_records for LMDB")
     def test_override_api_rectify(self):
         name = unique_zone_name()
-        search = name.split('.')[0]
         rrsets = [
             {
                 "name": 'a.' + name,
