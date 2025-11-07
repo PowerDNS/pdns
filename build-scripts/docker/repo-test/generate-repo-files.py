@@ -34,7 +34,6 @@ g_env = Environment(
 )
 
 g_dockerfile = 'Dockerfile.'
-g_run_output = False
 
 
 # Init Functions
@@ -54,8 +53,6 @@ def init_argparser():
                                  'dnsdist-master'],
                         help='the release to generate Docker files for: ' +
                              '%(choices)s')
-    parser.add_argument('--run-output', action='store_true',
-                        help='always show output from running a container')
     parser.add_argument('--test', action='store_true',
                         help='test the release')
     parser.add_argument('--test-aarch64', action='store_true',
@@ -201,10 +198,6 @@ def build (dockerfile, arch='x86_64'):
 
 
 def run (tag, arch='x86_64'):
-    if g_run_output:
-        capture_run_output = False
-    else:
-        capture_run_output = not(g_verbose)
     print('Running Docker container tagged {}...'.format(tag))
     if arch == 'x86_64':
         cp = subprocess.run(['docker', 'run', tag],
@@ -304,9 +297,6 @@ if args.version:
 
 if args.verbose:
     g_verbose = True
-
-if args.run_output:
-    g_run_output = True
 
 write_release_files(args.release)
 
