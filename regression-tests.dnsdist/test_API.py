@@ -20,8 +20,8 @@ class APITestsBase(DNSDistTest):
     _config_params = ['_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
     _config_template = """
     setACL({"127.0.0.1/32", "::1/128"})
-    newServer{address="127.0.0.1:%s", pool={'', 'mypool'}}
-    webserver("127.0.0.1:%s")
+    newServer{address="127.0.0.1:%d", pool={'', 'mypool'}}
+    webserver("127.0.0.1:%d")
     setWebserverConfig({password="%s", apiKey="%s"})
     """
     _expectedMetrics = ['responses', 'servfail-responses', 'queries', 'acl-drops',
@@ -410,9 +410,9 @@ class TestAPIServerDown(APITestsBase):
     __test__ = True
     _config_template = """
     setACL({"127.0.0.1/32", "::1/128"})
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     getServer(0):setDown()
-    webserver("127.0.0.1:%s")
+    webserver("127.0.0.1:%d")
     setWebserverConfig({password="%s", apiKey="%s"})
     """
 
@@ -512,10 +512,10 @@ class TestAPICustomHeaders(APITestsBase):
     _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
     _config_template = """
     setKey("%s")
-    controlSocket("127.0.0.1:%s")
+    controlSocket("127.0.0.1:%d")
     setACL({"127.0.0.1/32", "::1/128"})
-    newServer({address="127.0.0.1:%s"})
-    webserver("127.0.0.1:%s")
+    newServer({address="127.0.0.1:%d"})
+    webserver("127.0.0.1:%d")
     setWebserverConfig({password="%s", apiKey="%s", customHeaders={["X-Frame-Options"]="", ["X-Custom"]="custom"} })
     """
 
@@ -557,10 +557,10 @@ class TestStatsWithoutAuthentication(APITestsBase):
     _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
     _config_template = """
     setKey("%s")
-    controlSocket("127.0.0.1:%s")
+    controlSocket("127.0.0.1:%d")
     setACL({"127.0.0.1/32", "::1/128"})
-    newServer({address="127.0.0.1:%s"})
-    webserver("127.0.0.1:%s")
+    newServer({address="127.0.0.1:%d"})
+    webserver("127.0.0.1:%d")
     setWebserverConfig({password="%s", apiKey="%s", statsRequireAuthentication=false })
     """
 
@@ -614,10 +614,10 @@ class TestAPIAuth(APITestsBase):
     _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
     _config_template = """
     setKey("%s")
-    controlSocket("127.0.0.1:%s")
+    controlSocket("127.0.0.1:%d")
     setACL({"127.0.0.1/32", "::1/128"})
-    newServer{address="127.0.0.1:%s"}
-    webserver("127.0.0.1:%s")
+    newServer{address="127.0.0.1:%d"}
+    webserver("127.0.0.1:%d")
     setWebserverConfig({password="%s", apiKey="%s"})
     """
 
@@ -681,10 +681,10 @@ class TestAPIACL(APITestsBase):
     _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
     _config_template = """
     setKey("%s")
-    controlSocket("127.0.0.1:%s")
+    controlSocket("127.0.0.1:%d")
     setACL({"127.0.0.1/32", "::1/128"})
-    newServer{address="127.0.0.1:%s"}
-    webserver("127.0.0.1:%s")
+    newServer{address="127.0.0.1:%d"}
+    webserver("127.0.0.1:%d")
     setWebserverConfig({password="%s", apiKey="%s", acl="192.0.2.1"})
     """
 
@@ -715,8 +715,8 @@ class TestAPIWithoutAuthentication(APITestsBase):
     _config_params = ['_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed']
     _config_template = """
     setACL({"127.0.0.1/32", "::1/128"})
-    newServer({address="127.0.0.1:%s"})
-    webserver("127.0.0.1:%s")
+    newServer({address="127.0.0.1:%d"})
+    webserver("127.0.0.1:%d")
     setWebserverConfig({password="%s", apiRequiresAuthentication=false })
     """
 
@@ -771,8 +771,8 @@ class TestCustomLuaEndpoint(APITestsBase):
     __test__ = True
     _config_template = """
     setACL({"127.0.0.1/32", "::1/128"})
-    newServer{address="127.0.0.1:%s"}
-    webserver("127.0.0.1:%s")
+    newServer{address="127.0.0.1:%d"}
+    webserver("127.0.0.1:%d")
     setWebserverConfig({password="%s"})
 
     function customHTTPHandler(req, resp)
@@ -829,8 +829,8 @@ class TestWebConcurrentConnections(APITestsBase):
 
     _config_params = ['_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed', '_maxConns']
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
-    webserver("127.0.0.1:%s")
+    newServer{address="127.0.0.1:%d"}
+    webserver("127.0.0.1:%d")
     setWebserverConfig({password="%s", apiKey="%s", maxConcurrentConnections=%d})
     """
 
@@ -874,8 +874,8 @@ class TestAPICustomStatistics(APITestsBase):
 
     _config_params = ['_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
-    webserver("127.0.0.1:%s")
+    newServer{address="127.0.0.1:%d"}
+    webserver("127.0.0.1:%d")
     declareMetric("my-custom-metric", "counter", "Number of statistics")
     declareMetric("my-other-metric", "counter", "Another number of statistics")
     declareMetric("my-gauge", "gauge", "Current memory usage")

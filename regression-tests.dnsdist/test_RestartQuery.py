@@ -183,16 +183,16 @@ class TestRestartCount(DNSDistTest):
     _config_params = ['_testServer1Port', '_testServer2Port', '_testServer3Port', '_testServer4Port']
     _config_template = """
     MaxRestart = 2
-    s0 = newServer{name="s0", address="127.0.0.1:%s"}
+    s0 = newServer{name="s0", address="127.0.0.1:%d"}
     s0:setUp()
     s0:addPool("pool0")
-    s1 = newServer{name="s1", address="127.0.0.1:%s"}
+    s1 = newServer{name="s1", address="127.0.0.1:%d"}
     s1:setUp()
     s1:addPool("pool1")
-    s2 = newServer{name="s2", address="127.0.0.1:%s"}
+    s2 = newServer{name="s2", address="127.0.0.1:%d"}
     s2:setUp()
     s2:addPool("pool2")
-    s3 = newServer{name="s3", address="127.0.0.1:%s"}
+    s3 = newServer{name="s3", address="127.0.0.1:%d"}
     s3:setUp()
     s3:addPool("pool3")
     function makeQueryRestartable(dq) dq:setRestartable() return DNSAction.None end

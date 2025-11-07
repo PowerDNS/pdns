@@ -24,8 +24,8 @@ class TestCarbon(DNSDistTest):
     s:setUp()
     s = newServer{address="127.0.0.1:5355"}
     s:setUp()
-    carbonServer("127.0.0.1:%s", "%s", %s)
-    carbonServer("127.0.0.1:%s", "%s", %s)
+    carbonServer("127.0.0.1:%d", "%s", %s)
+    carbonServer("127.0.0.1:%d", "%s", %s)
     """
 
     @classmethod

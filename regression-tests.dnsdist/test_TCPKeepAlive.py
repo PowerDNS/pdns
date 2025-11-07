@@ -21,11 +21,11 @@ class TestTCPKeepAlive(DNSDistTest):
     _maxTCPConnsPerClient = 100
     _maxTCPConnDuration = 99
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
-    setTCPRecvTimeout(%s)
-    setMaxTCPQueriesPerConnection(%s)
-    setMaxTCPConnectionsPerClient(%s)
-    setMaxTCPConnectionDuration(%s)
+    newServer{address="127.0.0.1:%d"}
+    setTCPRecvTimeout(%d)
+    setMaxTCPQueriesPerConnection(%d)
+    setMaxTCPConnectionsPerClient(%d)
+    setMaxTCPConnectionDuration(%d)
     pc = newPacketCache(100, {maxTTL=86400, minTTL=1})
     getPool(""):setCache(pc)
     addAction("largernumberofconnections.tcpka.tests.powerdns.com.", SetSkipCacheAction())
@@ -261,11 +261,11 @@ class TestTCPKeepAliveNoDownstreamDrop(DNSDistTest):
     _maxTCPConnsPerClient = 3
     _maxTCPConnDuration = 99
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
-    setTCPRecvTimeout(%s)
-    setMaxTCPQueriesPerConnection(%s)
-    setMaxTCPConnectionsPerClient(%s)
-    setMaxTCPConnectionDuration(%s)
+    newServer{address="127.0.0.1:%d"}
+    setTCPRecvTimeout(%d)
+    setMaxTCPQueriesPerConnection(%d)
+    setMaxTCPConnectionsPerClient(%d)
+    setMaxTCPConnectionDuration(%d)
     -- create the pool named "nosuchpool"
     getPool("nosuchpool")
     addAction("nodownstream-drop.tcpka.tests.powerdns.com.", PoolAction("nosuchpool"))

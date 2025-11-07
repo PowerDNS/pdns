@@ -275,8 +275,8 @@ class TestOutgoingDOHOpenSSL(DNSDistTest, OutgoingDOHTests):
     setKey("%s")
     controlSocket("127.0.0.1:%d")
     setMaxTCPClientThreads(1)
-    newServer{address="127.0.0.1:%s", tls='%s', validateCertificates=true, caStore='ca.pem', subjectName='powerdns.com', dohPath='/dns-query', pool={'', 'cache'}, keyLogFile="/tmp/dohkeys"}:setUp()
-    webserver("127.0.0.1:%s")
+    newServer{address="127.0.0.1:%d", tls='%s', validateCertificates=true, caStore='ca.pem', subjectName='powerdns.com', dohPath='/dns-query', pool={'', 'cache'}, keyLogFile="/tmp/dohkeys"}:setUp()
+    webserver("127.0.0.1:%d")
     setWebserverConfig({password="%s", apiKey="%s"})
 
     pc = newPacketCache(100)
@@ -319,8 +319,8 @@ class TestOutgoingDOHGnuTLS(DNSDistTest, OutgoingDOHTests):
     setKey("%s")
     controlSocket("127.0.0.1:%d")
     setMaxTCPClientThreads(1)
-    newServer{address="127.0.0.1:%s", tls='%s', validateCertificates=true, caStore='ca.pem', subjectName='powerdns.com', dohPath='/dns-query', pool={'', 'cache'}}:setUp()
-    webserver("127.0.0.1:%s")
+    newServer{address="127.0.0.1:%d", tls='%s', validateCertificates=true, caStore='ca.pem', subjectName='powerdns.com', dohPath='/dns-query', pool={'', 'cache'}}:setUp()
+    webserver("127.0.0.1:%d")
     setWebserverConfig({password="%s", apiKey="%s"})
 
     pc = newPacketCache(100)
@@ -421,8 +421,8 @@ class TestOutgoingDOHOpenSSLWrongCertName(DNSDistTest, BrokenOutgoingDOHTests):
     _config_params = ['_tlsBackendPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
     _config_template = """
     setMaxTCPClientThreads(1)
-    newServer{address="127.0.0.1:%s", tls='openssl', validateCertificates=true, caStore='ca.pem', subjectName='not-powerdns.com', dohPath='/dns-query'}:setUp()
-    webserver("127.0.0.1:%s")
+    newServer{address="127.0.0.1:%d", tls='openssl', validateCertificates=true, caStore='ca.pem', subjectName='not-powerdns.com', dohPath='/dns-query'}:setUp()
+    webserver("127.0.0.1:%d")
     setWebserverConfig({password="%s", apiKey="%s"})
     """
 
@@ -441,8 +441,8 @@ class TestOutgoingDOHGnuTLSWrongCertName(DNSDistTest, BrokenOutgoingDOHTests):
     _config_params = ['_tlsBackendPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
     _config_template = """
     setMaxTCPClientThreads(1)
-    newServer{address="127.0.0.1:%s", tls='gnutls', validateCertificates=true, caStore='ca.pem', subjectName='not-powerdns.com', dohPath='/dns-query'}:setUp()
-    webserver("127.0.0.1:%s")
+    newServer{address="127.0.0.1:%d", tls='gnutls', validateCertificates=true, caStore='ca.pem', subjectName='not-powerdns.com', dohPath='/dns-query'}:setUp()
+    webserver("127.0.0.1:%d")
     setWebserverConfig({password="%s", apiKey="%s"})
     """
 
@@ -466,8 +466,8 @@ class TestOutgoingDOHOpenSSLWrongCertNameButNoCheck(DNSDistTest, OutgoingDOHTest
     setKey("%s")
     controlSocket("127.0.0.1:%d")
     setMaxTCPClientThreads(1)
-    newServer{address="127.0.0.1:%s", tls='%s', validateCertificates=false, caStore='ca.pem', subjectName='not-powerdns.com', dohPath='/dns-query', pool={'', 'cache'}}:setUp()
-    webserver("127.0.0.1:%s")
+    newServer{address="127.0.0.1:%d", tls='%s', validateCertificates=false, caStore='ca.pem', subjectName='not-powerdns.com', dohPath='/dns-query', pool={'', 'cache'}}:setUp()
+    webserver("127.0.0.1:%d")
     setWebserverConfig({password="%s", apiKey="%s"})
 
     pc = newPacketCache(100)
@@ -497,8 +497,8 @@ class TestOutgoingDOHGnuTLSWrongCertNameButNoCheck(DNSDistTest, OutgoingDOHTests
     setKey("%s")
     controlSocket("127.0.0.1:%d")
     setMaxTCPClientThreads(1)
-    newServer{address="127.0.0.1:%s", tls='%s', validateCertificates=false, caStore='ca.pem', subjectName='not-powerdns.com', dohPath='/dns-query', pool={'', 'cache'}}:setUp()
-    webserver("127.0.0.1:%s")
+    newServer{address="127.0.0.1:%d", tls='%s', validateCertificates=false, caStore='ca.pem', subjectName='not-powerdns.com', dohPath='/dns-query', pool={'', 'cache'}}:setUp()
+    webserver("127.0.0.1:%d")
     setWebserverConfig({password="%s", apiKey="%s"})
 
     pc = newPacketCache(100)
@@ -523,8 +523,8 @@ class TestOutgoingDOHBrokenResponsesOpenSSL(DNSDistTest, OutgoingDOHBrokenRespon
     _config_params = ['_tlsBackendPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
     _config_template = """
     setMaxTCPClientThreads(1)
-    newServer{address="127.0.0.1:%s", tls='openssl', validateCertificates=true, caStore='ca.pem', subjectName='powerdns.com', dohPath='/dns-query', pool={'', 'cache'}}:setUp()
-    webserver("127.0.0.1:%s")
+    newServer{address="127.0.0.1:%d", tls='openssl', validateCertificates=true, caStore='ca.pem', subjectName='powerdns.com', dohPath='/dns-query', pool={'', 'cache'}}:setUp()
+    webserver("127.0.0.1:%d")
     setWebserverConfig({password="%s", apiKey="%s"})
 
     pc = newPacketCache(100)
@@ -565,8 +565,8 @@ class TestOutgoingDOHBrokenResponsesGnuTLS(DNSDistTest, OutgoingDOHBrokenRespons
     _config_params = ['_tlsBackendPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
     _config_template = """
     setMaxTCPClientThreads(1)
-    newServer{address="127.0.0.1:%s", tls='gnutls', validateCertificates=true, caStore='ca.pem', subjectName='powerdns.com', dohPath='/dns-query'}:setUp()
-    webserver("127.0.0.1:%s")
+    newServer{address="127.0.0.1:%d", tls='gnutls', validateCertificates=true, caStore='ca.pem', subjectName='powerdns.com', dohPath='/dns-query'}:setUp()
+    webserver("127.0.0.1:%d")
     setWebserverConfig({password="%s", apiKey="%s"})
     """
     _verboseMode = True
@@ -603,7 +603,7 @@ class TestOutgoingDOHProxyProtocol(DNSDistTest):
     _config_params = ['_tlsBackendPort']
     _config_template = """
     setMaxTCPClientThreads(1)
-    newServer{address="127.0.0.1:%s", tls='gnutls', validateCertificates=true, caStore='ca.pem', subjectName='powerdns.com', dohPath='/dns-query', useProxyProtocol=true}:setUp()
+    newServer{address="127.0.0.1:%d", tls='gnutls', validateCertificates=true, caStore='ca.pem', subjectName='powerdns.com', dohPath='/dns-query', useProxyProtocol=true}:setUp()
     """
     _verboseMode = True
 
@@ -649,7 +649,7 @@ class TestOutgoingDOHXForwarded(DNSDistTest):
     _config_params = ['_tlsBackendPort']
     _config_template = """
     setMaxTCPClientThreads(1)
-    newServer{address="127.0.0.1:%s", tls='gnutls', validateCertificates=true, caStore='ca.pem', subjectName='powerdns.com', dohPath='/dns-query', addXForwardedHeaders=true}
+    newServer{address="127.0.0.1:%d", tls='gnutls', validateCertificates=true, caStore='ca.pem', subjectName='powerdns.com', dohPath='/dns-query', addXForwardedHeaders=true}
     """
     _verboseMode = True
 

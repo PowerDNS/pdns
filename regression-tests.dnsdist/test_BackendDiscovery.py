@@ -39,58 +39,58 @@ class TestBackendDiscovery(DNSDistTest):
     setMaxTCPClientThreads(1)
 
     -- no SVCB
-    newServer{address="127.0.0.1:%s", caStore='ca.pem', autoUpgrade=true, autoUpgradeKeep=false}:setUp()
+    newServer{address="127.0.0.1:%d", caStore='ca.pem', autoUpgrade=true, autoUpgradeKeep=false}:setUp()
 
     -- SVCB record but no upgrade path available
-    newServer{address="127.0.0.1:%s", caStore='ca.pem', autoUpgrade=true, autoUpgradeKeep=false}:setUp()
+    newServer{address="127.0.0.1:%d", caStore='ca.pem', autoUpgrade=true, autoUpgradeKeep=false}:setUp()
 
     -- SVCB upgrade to DoT, same address, keep the backend, different pool
-    newServer{address="127.0.0.1:%s", caStore='ca.pem', pool={'', 'another-pool'}, autoUpgrade=true, autoUpgradePool='%s', autoUpgradeKeep=true, source='127.0.0.1@lo'}:setUp()
+    newServer{address="127.0.0.1:%d", caStore='ca.pem', pool={'', 'another-pool'}, autoUpgrade=true, autoUpgradePool='%s', autoUpgradeKeep=true, source='127.0.0.1@lo'}:setUp()
 
     -- SVCB upgrade to DoH, same address, do not keep the backend, same pool
-    newServer{address="127.0.0.1:%s", caStore='ca.pem', pool={'another-pool'}, autoUpgrade=true, autoUpgradeKeep=false}:setUp()
+    newServer{address="127.0.0.1:%d", caStore='ca.pem', pool={'another-pool'}, autoUpgrade=true, autoUpgradeKeep=false}:setUp()
 
     -- SVCB upgrade to DoT, different address, certificate is valid for the initial address
-    newServer{address="127.0.0.1:%s", caStore='ca.pem', autoUpgrade=true, autoUpgradeKeep=false}:setUp()
+    newServer{address="127.0.0.1:%d", caStore='ca.pem', autoUpgrade=true, autoUpgradeKeep=false}:setUp()
 
     -- SVCB upgrade to DoT, different address, certificate is NOT valid for the initial address
-    newServer{address="127.0.0.2:%s", caStore='ca.pem', autoUpgrade=true, autoUpgradeKeep=false}:setUp()
+    newServer{address="127.0.0.2:%d", caStore='ca.pem', autoUpgrade=true, autoUpgradeKeep=false}:setUp()
 
     -- SVCB upgrade to DoT but upgraded port is not reachable
-    newServer{address="127.0.0.1:%s", caStore='ca.pem', autoUpgrade=true, autoUpgradeKeep=false}:setUp()
+    newServer{address="127.0.0.1:%d", caStore='ca.pem', autoUpgrade=true, autoUpgradeKeep=false}:setUp()
 
     -- The SVCB response is not valid
-    newServer{address="127.0.0.1:%s", caStore='ca.pem', autoUpgrade=true, autoUpgradeKeep=false}:setUp()
+    newServer{address="127.0.0.1:%d", caStore='ca.pem', autoUpgrade=true, autoUpgradeKeep=false}:setUp()
 
     -- SVCB upgrade to DoH except the path is not specified
-    newServer{address="127.0.0.1:%s", caStore='ca.pem', autoUpgrade=true, autoUpgradeKeep=false}:setUp()
+    newServer{address="127.0.0.1:%d", caStore='ca.pem', autoUpgrade=true, autoUpgradeKeep=false}:setUp()
 
     -- Connection refused
-    newServer({address="127.0.0.1:%s", caStore='ca.pem', pool={"", "other-pool"}, autoUpgrade=true, source='127.0.0.1@lo'}):setUp()
+    newServer({address="127.0.0.1:%d", caStore='ca.pem', pool={"", "other-pool"}, autoUpgrade=true, source='127.0.0.1@lo'}):setUp()
 
     -- EOF
-    newServer({address="127.0.0.1:%s", caStore='ca.pem', autoUpgrade=true}):setUp()
+    newServer({address="127.0.0.1:%d", caStore='ca.pem', autoUpgrade=true}):setUp()
 
     -- ServFail
-    newServer({address="127.0.0.1:%s", autoUpgrade=true}):setUp()
+    newServer({address="127.0.0.1:%d", autoUpgrade=true}):setUp()
 
     -- Wrong name
-    newServer({address="127.0.0.1:%s", autoUpgrade=true}):setUp()
+    newServer({address="127.0.0.1:%d", autoUpgrade=true}):setUp()
 
     -- Wrong ID
-    newServer({address="127.0.0.1:%s", autoUpgrade=true}):setUp()
+    newServer({address="127.0.0.1:%d", autoUpgrade=true}):setUp()
 
     -- Too many questions
-    newServer({address="127.0.0.1:%s", autoUpgrade=true}):setUp()
+    newServer({address="127.0.0.1:%d", autoUpgrade=true}):setUp()
 
     -- Bad QName
-    newServer({address="127.0.0.1:%s", autoUpgrade=true}):setUp()
+    newServer({address="127.0.0.1:%d", autoUpgrade=true}):setUp()
 
     -- SVCB upgrade to DoT, same address, no port specified via SVCB
-    newServer{address="127.0.0.1:%s", caStore='ca.pem', autoUpgrade=true, autoUpgradeKeep=false}:setUp()
+    newServer{address="127.0.0.1:%d", caStore='ca.pem', autoUpgrade=true, autoUpgradeKeep=false}:setUp()
 
     -- SVCB upgrade to DoH, same address, no port specified via SVCB
-    newServer{address="127.0.0.1:%s", caStore='ca.pem', autoUpgrade=true, autoUpgradeKeep=false}:setUp()
+    newServer{address="127.0.0.1:%d", caStore='ca.pem', autoUpgrade=true, autoUpgradeKeep=false}:setUp()
     """
     _verboseMode = True
 

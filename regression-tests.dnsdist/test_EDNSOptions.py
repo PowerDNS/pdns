@@ -105,7 +105,7 @@ class TestEDNSOptions(EDNSOptionsBase):
 
     addAction(AllRule(), LuaAction(testEDNSOptions))
 
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
     _config_params = ['_ednsTestFunction', '_testServerPort']
 
@@ -263,7 +263,7 @@ class TestEDNSOptionsAddingECS(EDNSOptionsBase):
     addAction(AllRule(), LuaAction(testEDNSOptions))
     addResponseAction("ednsoptions-ecs.tests.powerdns.com.", LuaResponseAction(testEDNSOptionsInResponses))
 
-    newServer{address="127.0.0.1:%s", useClientSubnet=true}
+    newServer{address="127.0.0.1:%d", useClientSubnet=true}
     """
     _config_params = ['_ednsTestFunction', '_testServerPort']
 
@@ -559,7 +559,7 @@ class TestEDNSOptionsLuaFFI(DNSDistTest):
 
     addAction(AllRule(), LuaFFIAction(testEDNSOptions))
 
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testWithoutEDNSFFI(self):

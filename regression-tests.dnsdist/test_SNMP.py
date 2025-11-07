@@ -18,7 +18,7 @@ class TestSNMP(DNSDistTest):
     _snmpOID = '1.3.6.1.4.1.43315.3'
     _queriesSent = 0
     _config_template = """
-    newServer{address="127.0.0.1:%s", name="servername"}
+    newServer{address="127.0.0.1:%d", name="servername"}
     snmpAgent(true)
     setVerboseHealthChecks(true)
     """
@@ -73,7 +73,7 @@ class TestSNMP(DNSDistTest):
         ## state
         self.assertEqual(str(results['1.3.6.1.4.1.43315.3.2.1.8.0']), "up")
         ## address
-        self.assertEqual(str(results['1.3.6.1.4.1.43315.3.2.1.9.0']), ("127.0.0.1:%s" % (self._testServerPort)))
+        self.assertEqual(str(results['1.3.6.1.4.1.43315.3.2.1.9.0']), ("127.0.0.1:%d" % (self._testServerPort)))
         ## pools
         self.assertEqual(str(results['1.3.6.1.4.1.43315.3.2.1.10.0']), "")
         ## queries

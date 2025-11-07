@@ -24,7 +24,7 @@ class TestEDNSSelfGenerated(DNSDistTest):
 
     setPayloadSizeOnSelfGeneratedAnswers(1042)
 
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testNoEDNS(self):
@@ -287,7 +287,7 @@ class TestEDNSSelfGeneratedDisabled(DNSDistTest):
 
     setPayloadSizeOnSelfGeneratedAnswers(1042)
 
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testWithEDNSNoDO(self):

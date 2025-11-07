@@ -16,7 +16,7 @@ class TestAdvancedAllow(DNSDistTest):
     addAction(AllRule(), NoneAction())
     addAction(QNameSuffixRule("allowed.advanced.tests.powerdns.com."), AllowAction())
     addAction(AllRule(), DropAction())
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testAdvancedAllow(self):
@@ -63,7 +63,7 @@ class TestAdvancedRemoveRD(DNSDistTest):
 
     _config_template = """
     addAction("norecurse.advanced.tests.powerdns.com.", SetNoRecurseAction())
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testAdvancedNoRD(self):
@@ -126,7 +126,7 @@ class TestAdvancedAddCD(DNSDistTest):
 
     _config_template = """
     addAction("setcd.advanced.tests.powerdns.com.", SetDisableValidationAction())
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testAdvancedSetCD(self):
@@ -189,7 +189,7 @@ class TestAdvancedClearRD(DNSDistTest):
 
     _config_template = """
     addAction("clearrd.advanced.tests.powerdns.com.", SetNoRecurseAction())
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testAdvancedClearRD(self):
@@ -253,7 +253,7 @@ class TestAdvancedDelay(DNSDistTest):
 
     _config_template = """
     addAction(AllRule(), DelayAction(1000))
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testDelayed(self):
@@ -294,7 +294,7 @@ class TestAdvancedAndNot(DNSDistTest):
 
     _config_template = """
     addAction(AndRule({NotRule(QTypeRule("A")), TCPRule(false)}), RCodeAction(DNSRCode.NOTIMP))
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
     def testAOverUDPReturnsNotImplementedCanary(self):
         """
@@ -363,7 +363,7 @@ class TestAdvancedOr(DNSDistTest):
 
     _config_template = """
     addAction(OrRule({QTypeRule("A"), TCPRule(false)}), RCodeAction(DNSRCode.NOTIMP))
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
     def testAAAAOverUDPReturnsNotImplemented(self):
         """
@@ -423,7 +423,7 @@ class TestAdvancedOr(DNSDistTest):
 class TestAdvancedLogAction(DNSDistTest):
 
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     addAction(AllRule(), LogAction("dnsdist.log", false))
     """
     def testAdvancedLogAction(self):
@@ -456,7 +456,7 @@ class TestAdvancedLogAction(DNSDistTest):
 class TestAdvancedDNSSEC(DNSDistTest):
 
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     addAction(DNSSECRule(), DropAction())
     """
     def testAdvancedDNSSECDrop(self):
@@ -492,7 +492,7 @@ class TestAdvancedDNSSEC(DNSDistTest):
 class TestAdvancedQClass(DNSDistTest):
 
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     addAction(QClassRule(DNSClass.CHAOS), DropAction())
     """
     def testAdvancedQClassChaosDrop(self):
@@ -535,7 +535,7 @@ class TestAdvancedQClass(DNSDistTest):
 class TestAdvancedOpcode(DNSDistTest):
 
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     addAction(OpcodeRule(DNSOpcode.Notify), DropAction())
     """
     def testAdvancedOpcodeNotifyDrop(self):
@@ -580,7 +580,7 @@ class TestAdvancedOpcode(DNSDistTest):
 class TestAdvancedNonTerminalRule(DNSDistTest):
 
     _config_template = """
-    newServer{address="127.0.0.1:%s", pool="real"}
+    newServer{address="127.0.0.1:%d", pool="real"}
     addAction(AllRule(), SetDisableValidationAction())
     addAction(AllRule(), PoolAction("real"))
     addAction(AllRule(), DropAction())
@@ -619,7 +619,7 @@ class TestAdvancedRestoreFlagsOnSelfResponse(DNSDistTest):
     _config_template = """
     addAction(AllRule(), SetDisableValidationAction())
     addAction(AllRule(), SpoofAction("192.0.2.1"))
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testAdvancedRestoreFlagsOnSpoofResponse(self):
@@ -653,7 +653,7 @@ class TestAdvancedQPS(DNSDistTest):
 
     _config_template = """
     addAction("qps.advanced.tests.powerdns.com", QPSAction(10))
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testAdvancedQPSLimit(self):
@@ -702,7 +702,7 @@ class TestAdvancedQPSNone(DNSDistTest):
     _config_template = """
     addAction("qpsnone.advanced.tests.powerdns.com", QPSAction(100))
     addAction(AllRule(), RCodeAction(DNSRCode.REFUSED))
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testAdvancedQPSNone(self):
@@ -730,7 +730,7 @@ class TestAdvancedNMGRule(DNSDistTest):
     allowed = newNMG()
     allowed:addMask("192.0.2.1/32")
     addAction(NotRule(NetmaskGroupRule(allowed)), RCodeAction(DNSRCode.REFUSED))
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testAdvancedNMGRule(self):
@@ -759,7 +759,7 @@ class TestAdvancedNMGAddNMG(DNSDistTest):
     oneNMG:addNMG(anotherNMG)
     addAction(NotRule(NetmaskGroupRule(oneNMG)), DropAction())
     addAction(AllRule(), SpoofAction('192.0.2.1'))
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testAdvancedNMGRuleAddNMG(self):
@@ -786,7 +786,7 @@ class TestAdvancedNMGRuleFromString(DNSDistTest):
 
     _config_template = """
     addAction(NotRule(NetmaskGroupRule('192.0.2.1')), RCodeAction(DNSRCode.REFUSED))
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testAdvancedNMGRule(self):
@@ -808,7 +808,7 @@ class TestAdvancedNMGRuleFromMultipleStrings(DNSDistTest):
 
     _config_template = """
     addAction(NotRule(NetmaskGroupRule({'192.0.2.1', '192.0.2.128/25'})), RCodeAction(DNSRCode.REFUSED))
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testAdvancedNMGRule(self):
@@ -831,7 +831,7 @@ class TestDSTPortRule(DNSDistTest):
     _config_params = ['_dnsDistPort', '_testServerPort']
     _config_template = """
     addAction(DSTPortRule(%d), RCodeAction(DNSRCode.REFUSED))
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testDSTPortRule(self):
@@ -857,7 +857,7 @@ class TestAdvancedLabelsCountRule(DNSDistTest):
 
     _config_template = """
     addAction(QNameLabelsCountRule(5,6), RCodeAction(DNSRCode.REFUSED))
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testAdvancedLabelsCountRule(self):
@@ -912,7 +912,7 @@ class TestAdvancedWireLengthRule(DNSDistTest):
 
     _config_template = """
     addAction(QNameWireLengthRule(54,56), RCodeAction(DNSRCode.REFUSED))
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testAdvancedWireLengthRule(self):
@@ -972,7 +972,7 @@ class TestAdvancedLuaDO(DNSDistTest):
         return DNSAction.None, ""
     end
     addAction(AllRule(), LuaAction(nxDOLua))
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testNxDOViaLua(self):
@@ -1017,7 +1017,7 @@ class TestAdvancedLuaRefused(DNSDistTest):
         return DNSAction.Refused, ""
     end
     addAction(AllRule(), LuaAction(refuse))
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testRefusedViaLua(self):
@@ -1050,7 +1050,7 @@ class TestAdvancedLuaActionReturnSyntax(DNSDistTest):
         return DNSAction.Refused
     end
     addAction(AllRule(), LuaAction(refuse))
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testRefusedWithEmptyRule(self):
@@ -1086,7 +1086,7 @@ class TestAdvancedLuaTruncated(DNSDistTest):
         return DNSAction.None, ""
     end
     addAction(AllRule(), LuaAction(trunc))
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testTCViaLua(self):
@@ -1125,7 +1125,7 @@ class TestAdvancedRD(DNSDistTest):
 
     _config_template = """
     addAction(RDRule(), RCodeAction(DNSRCode.REFUSED))
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testAdvancedRDRefused(self):
@@ -1177,7 +1177,7 @@ class TestAdvancedLuaTempFailureTTL(DNSDistTest):
       return DNSAction.None, ""
     end
     addAction(AllRule(), LuaAction(testAction))
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testTempFailureTTLBinding(self):
@@ -1206,7 +1206,7 @@ class TestAdvancedLuaTempFailureTTL(DNSDistTest):
 class TestAdvancedEDNSOptionRule(DNSDistTest):
 
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     addAction(EDNSOptionRule(EDNSOptionCode.ECS), DropAction())
     """
 
@@ -1263,7 +1263,7 @@ class TestAdvancedEDNSOptionRule(DNSDistTest):
 class TestAdvancedEDNSVersionRule(DNSDistTest):
 
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     addAction(EDNSVersionRule(0), ERCodeAction(DNSRCode.BADVERS))
     """
 
@@ -1328,8 +1328,8 @@ class TestSetRules(DNSDistTest):
     _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort']
     _config_template = """
     setKey("%s")
-    controlSocket("127.0.0.1:%s")
-    newServer{address="127.0.0.1:%s"}
+    controlSocket("127.0.0.1:%d")
+    newServer{address="127.0.0.1:%d"}
     addAction(AllRule(), SpoofAction("192.0.2.1"))
     """
 
@@ -1394,8 +1394,8 @@ class TestRmRules(DNSDistTest):
     _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort']
     _config_template = """
     setKey("%s")
-    controlSocket("127.0.0.1:%s")
-    newServer{address="127.0.0.1:%s"}
+    controlSocket("127.0.0.1:%d")
+    newServer{address="127.0.0.1:%d"}
     addAction(AllRule(), SpoofAction("192.0.2.1"), {name='myFirstRule', uuid='090736ca-2fb6-41e7-a836-58efaca3d71e'})
     addAction(AllRule(), SpoofAction("192.0.2.1"), {name='mySecondRule'})
     addResponseAction(AllRule(), AllowResponseAction(), {name='myFirstResponseRule', uuid='745a03b5-89e0-4eee-a6bf-c9700b0d31f0'})
@@ -1431,7 +1431,7 @@ class TestRmRules(DNSDistTest):
 class TestAdvancedContinueAction(DNSDistTest):
 
     _config_template = """
-    newServer{address="127.0.0.1:%s", pool="mypool"}
+    newServer{address="127.0.0.1:%d", pool="mypool"}
     addAction("nocontinue.continue-action.advanced.tests.powerdns.com.", PoolAction("mypool"))
     addAction("continue.continue-action.advanced.tests.powerdns.com.", ContinueAction(PoolAction("mypool")))
     addAction(AllRule(), SetDisableValidationAction())
@@ -1485,7 +1485,7 @@ class TestAdvancedNegativeAndSOA(DNSDistTest):
     addAction("nxd.negativeandsoa.advanced.tests.powerdns.com.", NegativeAndSOAAction(true, "auth.", 42, "mname", "rname", 5, 4, 3, 2, 1))
     addAction("nodata.negativeandsoa.advanced.tests.powerdns.com.", NegativeAndSOAAction(false, "another-auth.", 42, "mname", "rname", 1, 2, 3, 4, 5))
     setPayloadSizeOnSelfGeneratedAnswers(%d)
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
     _config_params = ['_selfGeneratedPayloadSize', '_testServerPort']
 
@@ -1576,7 +1576,7 @@ class TestAdvancedNegativeAndSOAAuthSection(DNSDistTest):
     addAction("nxd.negativeandsoa.advanced.tests.powerdns.com.", NegativeAndSOAAction(true, "auth.", 42, "mname", "rname", 5, 4, 3, 2, 1, { soaInAuthoritySection=true }))
     addAction("nodata.negativeandsoa.advanced.tests.powerdns.com.", NegativeAndSOAAction(false, "another-auth.", 42, "mname", "rname", 1, 2, 3, 4, 5, { soaInAuthoritySection=true }))
     setPayloadSizeOnSelfGeneratedAnswers(%d)
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
     _config_params = ['_selfGeneratedPayloadSize', '_testServerPort']
 
@@ -1681,7 +1681,7 @@ class TestAdvancedLuaRule(DNSDistTest):
     addAction(AllRule(), SetTagAction('a-tag', 'a-value'))
     addAction(LuaRule(luarulefunction), RCodeAction(DNSRCode.NOTIMP))
     addAction(AllRule(), RCodeAction(DNSRCode.REFUSED))
-    -- newServer{address="127.0.0.1:%s"}
+    -- newServer{address="127.0.0.1:%d"}
     """
 
     def testAdvancedLuaRule(self):
@@ -1716,7 +1716,7 @@ class TestAdvancedSetEDNSOptionAction(DNSDistTest):
 
     _config_template = """
     addAction(AllRule(), SetEDNSOptionAction(10, "deadbeefdeadc0de"))
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testAdvancedSetEDNSOption(self):
@@ -1829,7 +1829,7 @@ class TestAdvancedLuaGetContent(DNSDistTest):
         return DNSAction.None, ""
     end
     addAction(AllRule(), LuaAction(accessContentLua))
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testGetContentViaLua(self):

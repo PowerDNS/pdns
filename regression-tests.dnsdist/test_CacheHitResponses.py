@@ -10,7 +10,7 @@ class TestCacheHitResponses(DNSDistTest):
     pc = newPacketCache(100, {maxTTL=86400, minTTL=1})
     getPool(""):setCache(pc)
     addCacheHitResponseAction(SuffixMatchNodeRule("dropwhencached.cachehitresponses.tests.powerdns.com."), DropResponseAction())
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testDroppedWhenCached(self):
@@ -99,7 +99,7 @@ class TestStaleCacheHitResponses(DNSDistTest):
     setStaleCacheEntriesTTL(600)
     setKey("%s")
     controlSocket("127.0.0.1:%d")
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     function hitCache(dr) if dr:getStaleCacheHit() then return DNSResponseAction.Drop end return DNSResponseAction.None end
     addCacheHitResponseAction(SuffixMatchNodeRule("dropstaleentry.cachehitresponses.tests.powerdns.com."), LuaResponseAction(hitCache))
     """

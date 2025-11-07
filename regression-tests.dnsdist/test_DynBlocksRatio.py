@@ -20,7 +20,7 @@ class TestDynBlockGroupServFailsRatio(DynBlocksTest):
 	    dbr:apply()
     end
 
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testDynBlocksServFailRatio(self):
@@ -44,7 +44,7 @@ class TestDynBlockGroupCacheMissRatio(DynBlocksTest):
 	    dbr:apply()
     end
 
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     local pc = newPacketCache(1000, {maxTTL=86400, minTTL=1})
     getPool(""):setCache(pc)
     """
@@ -76,7 +76,7 @@ class TestDynBlockGroupCacheMissRatioSetTag(DynBlocksTest):
 	    dbr:apply()
     end
 
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     local pc = newPacketCache(1000, {maxTTL=86400, minTTL=1})
     getPool(""):setCache(pc)
     """

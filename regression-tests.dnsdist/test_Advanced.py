@@ -12,7 +12,7 @@ class TestAdvancedFixupCase(DNSDistTest):
     _config_template = """
     truncateTC(true)
     fixupCase(true)
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testAdvancedFixupCase(self):
@@ -48,7 +48,7 @@ class TestAdvancedFixupCase(DNSDistTest):
 class TestAdvancedACL(DNSDistTest):
 
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
     _acl = ['192.0.2.1/32']
 
@@ -71,7 +71,7 @@ class TestAdvancedACL(DNSDistTest):
 class TestAdvancedStringOnlyServer(DNSDistTest):
 
     _config_template = """
-    newServer("127.0.0.1:%s")
+    newServer("127.0.0.1:%d")
     """
 
     def testAdvancedStringOnlyServer(self):
@@ -103,7 +103,7 @@ class TestAdvancedIncludeDir(DNSDistTest):
     _config_template = """
     -- this directory contains a file allowing includedir.advanced.tests.powerdns.com.
     includeDirectory('test-include-dir')
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testAdvancedIncludeDirAllowed(self):
@@ -148,8 +148,8 @@ class TestStatNodeRespRingSince(DNSDistTest):
     _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort']
     _config_template = """
     setKey("%s")
-    controlSocket("127.0.0.1:%s")
-    s1 = newServer{address="127.0.0.1:%s"}
+    controlSocket("127.0.0.1:%d")
+    s1 = newServer{address="127.0.0.1:%d"}
     s1:setUp()
     function visitor(node, self, childstat)
         table.insert(nodesSeen, node.fullname)
@@ -234,7 +234,7 @@ class TestAdvancedGetLocalPort(DNSDistTest):
       return DNSAction.Spoof, "port-was-"..port..".local-port.advanced.tests.powerdns.com."
     end
     addAction("local-port.advanced.tests.powerdns.com.", LuaAction(answerBasedOnLocalPort))
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testAdvancedGetLocalPort(self):
@@ -304,7 +304,7 @@ class TestAdvancedGetLocalAddressOnAnyBind(DNSDistTest):
       return DNSAction.Spoof, "address-was-"..dashAddr..".local-address-any.advanced.tests.powerdns.com."
     end
     addAction("local-address-any.advanced.tests.powerdns.com.", LuaAction(answerBasedOnLocalAddress))
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     addLocal('0.0.0.0:%d')
     addLocal('[::]:%d')
     """
@@ -423,7 +423,7 @@ class TestAdvancedGetLocalAddressOnNonDefaultLoopbackBind(DNSDistTest):
     # address, so we exercise a different code path when we bind on a different address
     # than the default 127.0.0.1 one
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     addLocal('127.0.1.19:%d')
     """
     _config_params = ['_testServerPort', '_dnsDistPort']
@@ -469,7 +469,7 @@ class TestAdvancedGetLocalAddressOnNonDefaultLoopbackBind(DNSDistTest):
 class TestAdvancedAllowHeaderOnly(DNSDistTest):
 
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     setAllowEmptyResponse(true)
     """
 
@@ -530,7 +530,7 @@ class TestAdvancedDropEmptyQueries(DNSDistTest):
 
     _config_template = """
     setDropEmptyQueries(true)
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testAdvancedDropEmptyQueries(self):
@@ -563,7 +563,7 @@ class TestProtocols(DNSDistTest):
 
     addAction("udp.protocols.advanced.tests.powerdns.com.", LuaAction(checkUDP))
     addAction("tcp.protocols.advanced.tests.powerdns.com.", LuaAction(checkTCP))
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testProtocolUDP(self):
@@ -617,7 +617,7 @@ class TestCustomMetrics(DNSDistTest):
     declareMetric("my-custom-gauge", "gauge", "Temperature of the tests")
     addAction("declare.metric.advanced.tests.powerdns.com.", LuaAction(declareNewMetric))
     addAction("operations.metric.advanced.tests.powerdns.com.", LuaAction(custommetrics))
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testDeclareAfterConfig(self):
@@ -704,7 +704,7 @@ class TestDNSQuestionTime(DNSDistTest):
 
     addAction(AllRule(), LuaAction(luaquery))
     addResponseAction(AllRule(), LuaResponseAction(luaresponse))
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testQueryTime(self):
@@ -751,7 +751,7 @@ class TestChangeName(DNSDistTest):
 
     addAction('changeName.advanced.tests.powerdns.com', LuaAction(luaChangeNamequery))
     addResponseAction('changeName.advanced.tests.dnsdist.org', LuaResponseAction(luaChangeNameresponse))
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testChangeName(self):
@@ -808,9 +808,9 @@ class TestFlagsOnTimeout(DNSDistTest):
     _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort']
     _config_template = """
     setKey("%s")
-    controlSocket("127.0.0.1:%s")
+    controlSocket("127.0.0.1:%d")
     -- this server is not going to answer, resulting in a timeout
-    newServer{address="192.0.2.1:%s"}:setUp()
+    newServer{address="192.0.2.1:%d"}:setUp()
     """
 
     def testFlags(self):

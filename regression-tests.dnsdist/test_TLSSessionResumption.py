@@ -71,7 +71,7 @@ class TestNoTLSSessionResumptionDOH(DNSDistTLSSessionResumptionTest):
     _dohWithH2OServerPort = pickAvailablePort()
     _numberOfKeys = 0
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
 
     addDOHLocal("127.0.0.1:%d", "%s", "%s", { "/" }, { numberOfTicketsKeys=%d, numberOfStoredSessions=0, sessionTickets=false, library='nghttp2' })
     addDOHLocal("127.0.0.1:%d", "%s", "%s", { "/" }, { numberOfTicketsKeys=%d, numberOfStoredSessions=0, sessionTickets=false, library='h2o' })
@@ -98,8 +98,8 @@ class TestTLSSessionResumptionDOH(DNSDistTLSSessionResumptionTest):
     _numberOfKeys = 5
     _config_template = """
     setKey("%s")
-    controlSocket("127.0.0.1:%s")
-    newServer{address="127.0.0.1:%s"}
+    controlSocket("127.0.0.1:%d")
+    newServer{address="127.0.0.1:%d"}
 
     addDOHLocal("127.0.0.1:%d", "%s", "%s", { "/" }, { numberOfTicketsKeys=%d, library='nghttp2' })
     addDOHLocal("127.0.0.1:%d", "%s", "%s", { "/" }, { numberOfTicketsKeys=%d, library='h2o' })
@@ -193,9 +193,9 @@ class TestNoTLSSessionResumptionDOT(DNSDistTLSSessionResumptionTest):
     _tlsServerPort = pickAvailablePort()
     _numberOfKeys = 0
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
 
-    addTLSLocal("127.0.0.1:%s", "%s", "%s", { numberOfTicketsKeys=%d, numberOfStoredSessions=0, sessionTickets=false })
+    addTLSLocal("127.0.0.1:%d", "%s", "%s", { numberOfTicketsKeys=%d, numberOfStoredSessions=0, sessionTickets=false })
     """
     _config_params = ['_testServerPort', '_tlsServerPort', '_serverCert', '_serverKey', '_numberOfKeys']
 
@@ -217,9 +217,9 @@ class TestTLSSessionResumptionDOT(DNSDistTLSSessionResumptionTest):
     _config_template = """
     setKey("%s")
     controlSocket("127.0.0.1:%s")
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
 
-    addTLSLocal("127.0.0.1:%s", "%s", "%s", { provider="openssl", numberOfTicketsKeys=%d })
+    addTLSLocal("127.0.0.1:%d", "%s", "%s", { provider="openssl", numberOfTicketsKeys=%d })
     """
     _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_tlsServerPort', '_serverCert', '_serverKey', '_numberOfKeys']
 

@@ -16,7 +16,7 @@ class TestConsoleAllowed(DNSDistTest):
     _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort']
     _config_template = """
     setKey("%s")
-    controlSocket("127.0.0.1:%s")
+    controlSocket("127.0.0.1:%d")
     newServer{address="127.0.0.1:%d"}
     """
 
@@ -35,7 +35,7 @@ class TestConsoleAllowedV6(DNSDistTest):
     _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort']
     _config_template = """
     setKey("%s")
-    controlSocket("[::1]:%s")
+    controlSocket("[::1]:%d")
     newServer{address="127.0.0.1:%d"}
     """
 
@@ -56,7 +56,7 @@ class TestConsoleNotAllowed(DNSDistTest):
     _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort']
     _config_template = """
     setKey("%s")
-    controlSocket("127.0.0.1:%s")
+    controlSocket("127.0.0.1:%d")
     setConsoleACL({'192.0.2.1'})
     newServer{address="127.0.0.1:%d"}
     """
@@ -74,7 +74,7 @@ class TestConsoleNoKey(DNSDistTest):
 
     _config_params = ['_consolePort', '_testServerPort']
     _config_template = """
-    controlSocket("127.0.0.1:%s")
+    controlSocket("127.0.0.1:%d")
     newServer{address="127.0.0.1:%d"}
     """
 
@@ -93,7 +93,7 @@ class TestConsoleConcurrentConnections(DNSDistTest):
     _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_maxConns']
     _config_template = """
     setKey("%s")
-    controlSocket("127.0.0.1:%s")
+    controlSocket("127.0.0.1:%d")
     newServer{address="127.0.0.1:%d"}
     setConsoleMaximumConcurrentConnections(%d)
     """
@@ -253,7 +253,7 @@ class TestConsoleViaBuiltInClient(DNSDistTest):
     _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort']
     _config_template = """
     setKey("%s")
-    controlSocket("127.0.0.1:%s")
+    controlSocket("127.0.0.1:%d")
     newServer{address="127.0.0.1:%d"}
     """
 

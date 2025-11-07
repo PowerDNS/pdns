@@ -8,7 +8,7 @@ class TestRecordsCountOnlyOneAR(DNSDistTest):
 
     _config_template = """
     addAction(NotRule(RecordsCountRule(DNSSection.Additional, 1, 1)), RCodeAction(DNSRCode.REFUSED))
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testRecordsCountRefuseEmptyAR(self):
@@ -82,7 +82,7 @@ class TestRecordsCountMoreThanOneLessThanFour(DNSDistTest):
     _config_template = """
     addAction(RecordsCountRule(DNSSection.Answer, 2, 3), AllowAction())
     addAction(AllRule(), RCodeAction(DNSRCode.REFUSED))
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testRecordsCountRefuseOneAN(self):
@@ -160,7 +160,7 @@ class TestRecordsCountNothingInNS(DNSDistTest):
     _config_template = """
     addAction(RecordsCountRule(DNSSection.Authority, 0, 0), AllowAction())
     addAction(AllRule(), RCodeAction(DNSRCode.REFUSED))
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testRecordsCountRefuseNS(self):
@@ -217,7 +217,7 @@ class TestRecordsCountNoOPTInAR(DNSDistTest):
 
     _config_template = """
     addAction(NotRule(RecordsTypeCountRule(DNSSection.Additional, DNSQType.OPT, 0, 0)), RCodeAction(DNSRCode.REFUSED))
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testRecordsCountRefuseOPTinAR(self):

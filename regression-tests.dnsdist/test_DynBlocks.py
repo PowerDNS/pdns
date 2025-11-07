@@ -12,8 +12,8 @@ class TestDynBlockQPS(DynBlocksTest):
     function maintenance()
 	    addDynBlocks(exceedQRate(%d, %d), "Exceeded query rate", %d)
     end
-    newServer{address="127.0.0.1:%s"}
-    webserver("127.0.0.1:%s")
+    newServer{address="127.0.0.1:%d"}
+    webserver("127.0.0.1:%d")
     setWebserverConfig({password="%s", apiKey="%s"})
     """
     _config_params = ['_dynBlockQPS', '_dynBlockPeriod', '_dynBlockDuration', '_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
@@ -32,7 +32,7 @@ class TestDynBlockQPSRefused(DynBlocksTest):
 	    addDynBlocks(exceedQRate(%d, %d), "Exceeded query rate", %d)
     end
     setDynBlocksAction(DNSAction.Refused)
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testDynBlocksQRate(self):
@@ -49,7 +49,7 @@ class TestDynBlockQPSActionRefused(DynBlocksTest):
 	    addDynBlocks(exceedQRate(%d, %d), "Exceeded query rate", %d, DNSAction.Refused)
     end
     setDynBlocksAction(DNSAction.Drop)
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testDynBlocksQRate(self):
@@ -66,7 +66,7 @@ class TestDynBlockQPSActionNXD(DynBlocksTest):
 	    addDynBlocks(exceedQRate(%d, %d), "Exceeded query rate", %d, DNSAction.Nxdomain)
     end
     setDynBlocksAction(DNSAction.Drop)
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testDynBlocksQRate(self):
@@ -88,7 +88,7 @@ class TestDynBlockQPSActionTruncated(DNSDistTest):
 	    addDynBlocks(exceedQRate(%d, %d), "Exceeded query rate", %d, DNSAction.Truncate)
     end
     setDynBlocksAction(DNSAction.Drop)
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testDynBlocksQRate(self):
@@ -191,7 +191,7 @@ class TestDynBlockAllowlist(DynBlocksTest):
     end
     addAction("allowlisted-test.dynblocks.tests.powerdns.com.", LuaAction(spoofrule))
 
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testAllowlisted(self):

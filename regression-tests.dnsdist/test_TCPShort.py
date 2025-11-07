@@ -24,8 +24,8 @@ class TestTCPShort(DNSDistTest):
     _tlsServerPort = pickAvailablePort()
     _tcpSendTimeout = 60
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
-    addTLSLocal("127.0.0.1:%s", "%s", "%s")
+    newServer{address="127.0.0.1:%d"}
+    addTLSLocal("127.0.0.1:%d", "%s", "%s")
     setTCPSendTimeout(%d)
     """
     _config_params = ['_testServerPort', '_tlsServerPort', '_serverCert', '_serverKey', '_tcpSendTimeout']

@@ -118,7 +118,7 @@ class TestDNSParser(DNSDistTest):
 
   addAction(AllRule(), LuaAction(checkQueryPacket))
   addResponseAction(AllRule(), LuaResponseAction(checkResponsePacket))
-  newServer{address="127.0.0.1:%s"}
+  newServer{address="127.0.0.1:%d"}
     """
 
     def testQuestionAndResponse(self):
@@ -212,7 +212,7 @@ class TestDNSRecordParser(DNSDistTest):
   end
 
   addResponseAction(AllRule(), LuaResponseAction(checkResponsePacket))
-  newServer{address="127.0.0.1:%s"}
+  newServer{address="127.0.0.1:%d"}
     """
 
     def testQuestionAndResponseWithParsers(self):

@@ -359,7 +359,7 @@ class TestDOH3GetLocalAddressOnAnyBind(QUICGetLocalAddressOnAnyBindTests, DNSDis
       return DNSAction.Spoof, "address-was-"..dashAddr..".local-address-any.advanced.tests.powerdns.com."
     end
     addAction("local-address-any.quic.tests.powerdns.com.", LuaAction(answerBasedOnLocalAddress))
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     addDOH3Local("0.0.0.0:%d", "%s", "%s")
     addDOH3Local("[::]:%d", "%s", "%s")
     """

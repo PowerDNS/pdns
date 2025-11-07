@@ -13,7 +13,7 @@ class TestLuaThread(DNSDistTest):
     _config_params = ['_consoleKeyB64', '_consolePort']
     _config_template = """
     setKey("%s")
-    controlSocket("127.0.0.1:%s")
+    controlSocket("127.0.0.1:%d")
 
     counter = 0
     function threadmessage(cmd, data)
@@ -44,7 +44,7 @@ class TestLuaThread(DNSDistTest):
 
 class TestLuaDNSHeaderBindings(DNSDistTest):
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
 
     function checkTCSet(dq)
       local tc = dq.dh:getTC()
@@ -193,7 +193,7 @@ class TestLuaError(DNSDistTest):
     _config_params = ['_consoleKeyB64', '_consolePort']
     _config_template = """
     setKey("%s")
-    controlSocket("127.0.0.1:%s")
+    controlSocket("127.0.0.1:%d")
 
     debug = nil
     """

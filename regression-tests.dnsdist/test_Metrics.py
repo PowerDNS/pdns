@@ -11,11 +11,11 @@ from dnsdisttests import DNSDistTest, pickAvailablePort
 class RuleMetricsTest(object):
 
     _config_template = """
-    addTLSLocal("127.0.0.1:%s", "%s", "%s", { provider="openssl" })
-    addDOHLocal("127.0.0.1:%s", "%s", "%s", { "/"})
+    addTLSLocal("127.0.0.1:%d", "%s", "%s", { provider="openssl" })
+    addDOHLocal("127.0.0.1:%d", "%s", "%s", { "/"})
 
-    newServer{address="127.0.0.1:%s", pool={'', 'cache'}}
-    webserver("127.0.0.1:%s")
+    newServer{address="127.0.0.1:%d", pool={'', 'cache'}}
+    webserver("127.0.0.1:%d")
     setWebserverConfig({apiKey="%s"})
 
     addAction('rcode-nxdomain.metrics.tests.powerdns.com', RCodeAction(DNSRCode.NXDOMAIN))

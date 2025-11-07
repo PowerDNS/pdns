@@ -14,7 +14,7 @@ class TestEdnsClientSubnetNoOverride(DNSDistTest):
 
     _config_template = """
     truncateTC(true)
-    newServer{address="127.0.0.1:%s", useClientSubnet=true}
+    newServer{address="127.0.0.1:%d", useClientSubnet=true}
     """
 
     def testWithoutEDNS(self):
@@ -311,7 +311,7 @@ class TestEdnsClientSubnetOverride(DNSDistTest):
     setECSOverride(true)
     setECSSourcePrefixV4(24)
     setECSSourcePrefixV6(56)
-    newServer{address="127.0.0.1:%s", useClientSubnet=true}
+    newServer{address="127.0.0.1:%d", useClientSubnet=true}
     """
 
     def testWithoutEDNS(self):
@@ -671,7 +671,7 @@ class TestECSDisabledByRuleOrLua(DNSDistTest):
     setECSOverride(false)
     setECSSourcePrefixV4(16)
     setECSSourcePrefixV6(16)
-    newServer{address="127.0.0.1:%s", useClientSubnet=true}
+    newServer{address="127.0.0.1:%d", useClientSubnet=true}
     addAction(SuffixMatchNodeRule("disabled.ecsrules.tests.powerdns.com."), SetDisableECSAction())
     function disableECSViaLua(dq)
         dq.useECS = false
@@ -764,7 +764,7 @@ class TestECSOverrideSetByRuleOrLua(DNSDistTest):
     setECSOverride(false)
     setECSSourcePrefixV4(24)
     setECSSourcePrefixV6(56)
-    newServer{address="127.0.0.1:%s", useClientSubnet=true}
+    newServer{address="127.0.0.1:%d", useClientSubnet=true}
     addAction(SuffixMatchNodeRule("overridden.ecsrules.tests.powerdns.com."), SetECSOverrideAction(true))
     function overrideECSViaLua(dq)
         dq.ecsOverride = true
@@ -863,7 +863,7 @@ class TestECSPrefixLengthSetByRuleOrLua(DNSDistTest):
     setECSOverride(false)
     setECSSourcePrefixV4(24)
     setECSSourcePrefixV6(56)
-    newServer{address="127.0.0.1:%s", useClientSubnet=true}
+    newServer{address="127.0.0.1:%d", useClientSubnet=true}
     addAction(SuffixMatchNodeRule("overriddenprefixlength.ecsrules.tests.powerdns.com."), SetECSPrefixLengthAction(32, 128))
     function overrideECSPrefixLengthViaLua(dq)
         dq.ecsPrefixLength = 32
@@ -965,7 +965,7 @@ class TestECSPrefixSetByRule(DNSDistTest):
     setECSOverride(false)
     setECSSourcePrefixV4(32)
     setECSSourcePrefixV6(128)
-    newServer{address="127.0.0.1:%s", useClientSubnet=true}
+    newServer{address="127.0.0.1:%d", useClientSubnet=true}
     addAction(SuffixMatchNodeRule("setecsaction.ecsrules.tests.powerdns.com."), SetECSAction("192.0.2.1/32"))
     """
 

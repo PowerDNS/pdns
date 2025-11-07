@@ -10,7 +10,7 @@ class TestSelfAnsweredResponses(DNSDistTest):
     addSelfAnsweredResponseAction(AndRule({SuffixMatchNodeRule("udp.selfanswered.tests.powerdns.com."), NotRule(MaxQPSRule(1))}), DropResponseAction())
     addAction(SuffixMatchNodeRule("tcp.selfanswered.tests.powerdns.com."), SpoofAction("192.0.2.1"))
     addSelfAnsweredResponseAction(AndRule({SuffixMatchNodeRule("tcp.selfanswered.tests.powerdns.com."), NotRule(MaxQPSRule(1))}), DropResponseAction())
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testSelfAnsweredUDP(self):
