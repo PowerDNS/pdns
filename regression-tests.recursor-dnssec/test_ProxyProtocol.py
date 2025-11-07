@@ -429,7 +429,6 @@ api-key=%s
         query = dns.message.make_query(qname, 'A', want_dnssec=True)
         queryPayload = query.to_wire()
         ppPayload = ProxyProtocol.getPayload(False, True, True, '::42', '2001:db8::ff', 0, 65535, [ [0, b'foo' ], [ 255, b'bar'] ])
-        payload = ppPayload + queryPayload
 
         # TCP
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
