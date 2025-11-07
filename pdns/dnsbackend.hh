@@ -46,6 +46,7 @@ class DNSPacket;
 #include "iputils.hh"
 #include "sha.hh"
 #include "auth-catalogzone.hh"
+#include "logr.hh"
 
 class DNSBackend;
 struct SOAData;
@@ -539,6 +540,8 @@ protected:
   bool mustDo(const string& key);
   const string& getArg(const string& key);
   int getArgAsNum(const string& key);
+
+  std::shared_ptr<Logr::Logger> d_slog;
 
 private:
   string d_prefix;
