@@ -211,7 +211,7 @@ class Handler(pdns.remotebackend.Handler):
     def do_supermasterbackend(self, domain='', nsset=[], **kwargs):
         d_id = len(DOMAINS) + 1
         dom = domain.lower()
-        domain = {
+        domainObject = {
             'id': d_id,
             'name': dom,
             'kind': 'slave',
@@ -230,8 +230,8 @@ class Handler(pdns.remotebackend.Handler):
         for rr in nsset:
             nsset.append(self.record(qname=rr['qname'], qtype=rr['qtype'], content=rr['content'], ttl=rr['ttl']))
 
-        domain['rr'][dom]['NS'] = nsset
-        DOMAINS[dom] = domain
+        domainObject['rr'][dom]['NS'] = nsset
+        DOMAINS[dom] = domainObject
 
         self.result = [{
             'nameserver': 'ns.%s' % dom,
@@ -242,7 +242,7 @@ class Handler(pdns.remotebackend.Handler):
     def do_createslavedomain(self, domain='', **kwargs):
         d_id = len(DOMAINS) + 1
         dom = domain.lower()
-        domain = {
+        domainObject = {
             'id': d_id,
             'name': dom,
             'kind': 'slave',
@@ -253,6 +253,8 @@ class Handler(pdns.remotebackend.Handler):
             'rr': {
             }
         }
+        DOMAINS[dom] = domainObject
+
         self.result = True
 
     def do_feedrecord(self, rr={}, **kwargs):
