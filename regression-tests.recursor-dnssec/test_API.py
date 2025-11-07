@@ -49,7 +49,7 @@ api-key=%s
         headers = {'x-api-key': self._apiKey}
         url = 'http://127.0.0.1:' + str(self._wsPort) + '/api/v1/servers/localhost/statistics'
         try:
-            r = requests.get(url, headers=headers, timeout=self._wsTimeout)
+            requests.get(url, headers=headers, timeout=self._wsTimeout)
             self.assertTrue(False)
         except requests.exceptions.ConnectionError as exp:
             pass
