@@ -450,11 +450,9 @@ api-key=%s
                     data = sock.recv(datalen)
             except socket.timeout as e:
                 print("Timeout: %s" % (str(e)))
-                data = None
                 break
             except socket.error as e:
                 print("Network error: %s" % (str(e)))
-                data = None
                 break
 
             res = None

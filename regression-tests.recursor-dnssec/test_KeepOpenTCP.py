@@ -62,7 +62,7 @@ auth-zones=authzone.example=configs/%s/authzone.zone""" % _confdir
             self.assertMatchingRRSIGInAnswer(res, expected)
             sock[i].settimeout(0.1)
             try:
-                data = sock[i].recv(1)
+                sock[i].recv(1)
                 self.assertTrue(False)
             except socket.timeout as e:
                 print("ok")
@@ -75,7 +75,7 @@ auth-zones=authzone.example=configs/%s/authzone.zone""" % _confdir
             self.assertMatchingRRSIGInAnswer(res, expected)
             sock[i].settimeout(0.1)
             try:
-                data = sock[i].recv(1)
+                sock[i].recv(1)
                 self.assertTrue(False)
             except socket.timeout as e:
                 print("ok")
