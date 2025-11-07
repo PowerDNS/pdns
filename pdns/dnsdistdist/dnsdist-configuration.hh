@@ -61,6 +61,7 @@ struct ImmutableConfiguration
   std::vector<uint32_t> d_tcpFastOpenKey;
   std::vector<std::shared_ptr<ClientState>> d_frontends;
   std::string d_snmpDaemonSocketPath;
+  std::string d_loggingBackend;
 #ifdef __linux__
   // On Linux this gives us 128k pending queries (default is 8192 queries),
   // which should be enough to deal with huge spikes

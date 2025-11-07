@@ -983,6 +983,11 @@ static void handleLoggingConfiguration(const dnsdist::rust::settings::LoggingCon
 
     dnsdist::logging::LoggingConfiguration::setStructuredLogging(true, std::move(levelPrefix));
   }
+
+  dnsdist::configuration::updateImmutableConfiguration([settings](dnsdist::configuration::ImmutableConfiguration& config) {
+    config.d_loggingBackend = std::string(settings.structured.backend);
+  });
+
 }
 
 static void handleConsoleConfiguration(const dnsdist::rust::settings::ConsoleConfiguration& consoleConf)

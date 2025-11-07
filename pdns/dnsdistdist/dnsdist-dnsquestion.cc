@@ -59,3 +59,27 @@ DNSQuestion::DNSQuestion(InternalQueryState& ids_, PacketBuffer& data_) :
   data(data_), ids(ids_), ecsPrefixLength(ids.origRemote.sin4.sin_family == AF_INET ? dnsdist::configuration::getCurrentRuntimeConfiguration().d_ECSSourcePrefixV4 : dnsdist::configuration::getCurrentRuntimeConfiguration().d_ECSSourcePrefixV6), ecsOverride(dnsdist::configuration::getCurrentRuntimeConfiguration().d_ecsOverride)
 {
 }
+
+std::shared_ptr<const Logr::Logger> DNSQuestion::getThisLogger() const
+{
+  if (d_logger) {
+    return d_logger;
+  }
+  auto logger = dnsdist::logging::getTopLogger();
+  logger = logger->withValues("qname", Logging::Loggable(ids.qname), "qtype", Logging::Loggable(QType(ids.qtype)), "qclass", Logging::Loggable(QClass(ids.qclass)), "source", Logging::Loggable(ids.origRemote), "destination", Logging::Loggable(ids.origDest), "proto", Logging::Loggable(ids.protocol));
+  return logger;
+}
+
+std::shared_ptr<const Logr::Logger> DNSQuestion::getLogger() const
+{
+  return getThisLogger();
+}
+
+std::shared_ptr<const Logr::Logger> DNSQuestion::getLogger()
+{
+  if (d_logger) {
+    return d_logger;
+  }
+  d_logger = getThisLogger();
+  return d_logger;
+}

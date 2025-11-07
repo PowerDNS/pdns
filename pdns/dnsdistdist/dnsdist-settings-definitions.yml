@@ -1773,7 +1773,7 @@ security_polling:
       runtime-configurable: true
 
 structured_logging:
-  description: "Structured-like logging settings"
+  description: "Structured logging settings"
   parameters:
     - name: "enabled"
       type: "bool"
@@ -1799,6 +1799,16 @@ structured_logging:
       supported-values:
         - "ISO8601"
         - "numeric"
+    - name: "backend"
+      type: "String"
+      default: ""
+      version_added: "2.1.0"
+      description: |
+                   The backend used for structured logging output. Available backends are:
+
+                   - default: use the traditional logging system to output structured logging information.
+                   - systemd-journal: use systemd-journal. When using this backend, provide -o verbose or simular output option to journalctl to view the full information.
+                   - json: JSON objects are written to the standard error stream.
 
 logging:
   description: "Logging settings"

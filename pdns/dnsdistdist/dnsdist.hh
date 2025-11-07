@@ -37,6 +37,7 @@
 #include "circular_buffer.hh"
 #include "dnsdist-idstate.hh"
 #include "dnsdist-lbpolicies.hh"
+#include "dnsdist-logging.hh"
 #include "dnsdist-protocols.hh"
 #include "dnsname.hh"
 #include "dnsdist-doh-common.hh"
@@ -168,8 +169,14 @@ struct DNSQuestion
     return ids.cs;
   }
 
+  std::shared_ptr<const Logr::Logger> getLogger() const;
+  std::shared_ptr<const Logr::Logger> getLogger();
+
 protected:
+  std::shared_ptr<const Logr::Logger> getThisLogger() const;
+
   PacketBuffer& data;
+  std::shared_ptr<const Logr::Logger> d_logger;
 
 public:
   InternalQueryState& ids;

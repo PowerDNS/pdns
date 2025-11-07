@@ -16,8 +16,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ * along with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 #include "dnsdist-logging.hh"
@@ -32,6 +31,8 @@
 #if defined(HAVE_SYSTEMD)
 #include <systemd/sd-journal.h>
 #endif /* HAVE_SYSTEMD */
+
+#include "dnsdist-configuration.hh"
 
 namespace dnsdist::logging
 {
@@ -160,36 +161,47 @@ static std::shared_ptr<Logging::Logger> s_topLogger{nullptr};
 
 void setup(const std::string& backend)
 {
+  std::shared_ptr<Logging::Logger> logger;
   if (backend == "systemd-journal") {
 #if defined(HAVE_SYSTEMD)
     if (int fileDesc = sd_journal_stream_fd("dnsdist", LOG_DEBUG, 0); fileDesc >= 0) {
-      s_topLogger = Logging::Logger::create(loggerSDBackend);
+      logger = Logging::Logger::create(loggerSDBackend);
       close(fileDesc);
     }
 #endif
-    if (s_topLogger == nullptr) {
+    if (logger == nullptr) {
       cerr << "Requested structured logging to systemd-journal, but it is not available" << endl;
     }
   }
   else if (backend == "json") {
-    s_topLogger = Logging::Logger::create(loggerJSONBackend);
-    if (s_topLogger == nullptr) {
+    logger = Logging::Logger::create(loggerJSONBackend);
+    if (logger == nullptr) {
       cerr << "JSON logging requested but it is not available" << endl;
     }
   }
 
-  if (s_topLogger == nullptr) {
-    s_topLogger = Logging::Logger::create(loggerBackend);
+  if (logger == nullptr) {
+    logger = Logging::Logger::create(loggerBackend);
+  }
+
+  if (logger) {
+    std::atomic_store_explicit(&s_topLogger, logger, std::memory_order_release);
   }
 }
 
-std::shared_ptr<const Logging::Logger> getTopLogger()
+std::shared_ptr<const Logr::Logger> getTopLogger()
 {
-  if (!s_topLogger) {
+  auto topLogger = std::atomic_load_explicit(&s_topLogger, std::memory_order_acquire);
+  if (!topLogger) {
     throw std::runtime_error("Trying to access the top-level logger before logging has been setup");
   }
 
-  return s_topLogger;
+  return topLogger;
+}
+
+bool doVerboseLogging()
+{
+  return dnsdist::configuration::getCurrentRuntimeConfiguration().d_verbose;
 }
 
 }

@@ -48,6 +48,7 @@
 #include "dnsdist-ecs.hh"
 #include "dnsdist-frontend.hh"
 #include "dnsdist-healthchecks.hh"
+#include "dnsdist-logging.hh"
 #include "dnsdist-lua.hh"
 #include "dnsdist-lua-hooks.hh"
 #include "xsk.hh"
@@ -3242,10 +3243,13 @@ void loadLuaConfigurationFile(LuaContext& luaCtx, const std::string& config, boo
     if (configCheck) {
       throw std::runtime_error("Unable to read configuration file from " + config);
     }
-    warnlog("Unable to read configuration from '%s'", config);
+    dnsdist::logging::getTopLogger()->withName("lua-configuration")->info(Logr::Error, "Unable to read configuration from file", "configuration-file", Logging::Loggable(config));
   }
   else {
     vinfolog("Read configuration from '%s'", config);
+    if (dnsdist::logging::doVerboseLogging()) {
+      dnsdist::logging::getTopLogger()->withName("lua-configuration")->info(Logr::Info, "Read configuration from file", "configuration-file", Logging::Loggable(config));
+    }
   }
 
   luaCtx.executeCode(ifs);

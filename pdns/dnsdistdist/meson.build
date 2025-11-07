@@ -490,7 +490,10 @@ if get_option('fuzz-targets')
     'fuzz-target-dnsdistcache' : {
       'main': src_dir / 'fuzz_dnsdistcache.cc',
       'link-args': fuzzer_ldflags,
-      'files-extra': fuzz_extra_sources
+      'files-extra': fuzz_extra_sources,
+      'deps-extra': [
+         dep_libsystemd,
+       ]
     },
   }
   if get_option('xsk').allowed() and dep_libbpf.found() and dep_libxdp.found()
@@ -504,7 +507,10 @@ if get_option('fuzz-targets')
            src_dir / 'iputils.cc',
            src_dir / 'misc.cc',
            src_dir / 'xsk.cc'
-           ]
+           ],
+        'deps-extra': [
+           dep_libsystemd,
+         ]
        },
     }
   endif
@@ -583,6 +589,7 @@ if get_option('unit-tests')
           dep_ffi_interface,
           dep_lua,
           dep_protozero,
+          dep_libsystemd, # because of the journal logging backend
         ],
     }
   }
