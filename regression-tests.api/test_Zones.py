@@ -430,7 +430,6 @@ class AuthZones(ZonesApiTestCase, AuthZonesHelperMixin):
         self.assert_in_json_error('Nameserver is not canonical', r.json())
 
     def test_create_auth_zone_no_name(self):
-        name = unique_zone_name()
         payload = {
             'name': '',
             'kind': 'Native',
