@@ -56,6 +56,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/type_traits.hpp>
 #include <lua.hpp>
 
+// Set the older gcc define for tsan if clang or modern gcc tell us we have tsan.
+#if defined(__has_feature)
+#if __has_feature(thread_sanitizer)
+#define __SANITIZE_THREAD__ 1
+#endif
+#endif
+
 #if defined(_MSC_VER) && _MSC_VER < 1900
 #   include "misc/exception.hpp"
 #endif
@@ -98,7 +105,17 @@ public:
     explicit LuaContext(bool openDefaultLibs = true)
     {
         // luaL_newstate can return null if allocation failed
-        mState = luaL_newstate();
+#if defined(__SANITIZE_THREAD__) && defined(LUAJIT_VERSION) && defined(__aarch64__)
+        // on arm64 with luajit and TSAN, allocation may fail spuriously, so keep retrying a bit
+        int tries = 100;
+#else
+        int tries = 1;
+#endif
+        for (; tries > 0; tries--) {
+          mState = luaL_newstate();
+          if (mState != nullptr) { break; }
+        }
+#undef RETRIES
         if (mState == nullptr)
             throw std::bad_alloc();
 
