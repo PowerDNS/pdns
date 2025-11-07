@@ -537,7 +537,6 @@ class TestAdvancedDropEmptyQueries(DNSDistTest):
         """
         Advanced: Drop empty queries
         """
-        name = 'drop-empty-queries.advanced.tests.powerdns.com.'
         query = dns.message.Message()
 
         for method in ("sendUDPQuery", "sendTCPQuery"):

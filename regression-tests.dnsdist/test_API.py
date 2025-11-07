@@ -485,7 +485,6 @@ class TestAPIWritable(APITestsBase):
 
         configFile = self._APIWriteDir + '/' + 'acl.conf'
         self.assertTrue(os.path.isfile(configFile))
-        fileContent = None
         with open(configFile, 'rt') as f:
             header = f.readline()
             body = f.readline()

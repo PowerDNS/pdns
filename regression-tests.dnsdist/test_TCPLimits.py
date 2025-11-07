@@ -109,7 +109,6 @@ class TestTCPLimits(DNSDistTest):
         """
         TCP Limits: Maximum duration
         """
-        name = 'duration.tcp.tests.powerdns.com.'
 
         start = time.time()
         conn = self.openTCPConnection()

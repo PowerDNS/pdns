@@ -313,7 +313,6 @@ class TestRoutingRoundRobinLBAllDown(DNSDistTest):
         """
         Routing: Round Robin with all servers down
         """
-        numberOfQueries = 10
         name = 'alldown.rr.routing.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
         response = dns.message.make_response(query)
@@ -486,7 +485,6 @@ class TestRoutingOrder(DNSDistTest):
                 self.assertEqual(query, receivedQuery)
                 self.assertEqual(response, receivedResponse)
 
-        total = 0
         if 'UDP Responder' in self._responsesCounter:
             self.assertEqual(self._responsesCounter['UDP Responder'], 0)
         self.assertEqual(self._responsesCounter['UDP Responder 2'], numberOfQueries)

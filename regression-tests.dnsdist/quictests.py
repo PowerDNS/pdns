@@ -65,7 +65,6 @@ class QUICTests(object):
         """
         name = 'drop.doq.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
-        dropped = False
         try:
             (_, receivedResponse) = self.sendQUICQuery(query, response=None, useQueue=False)
             self.assertTrue(False)
@@ -111,7 +110,6 @@ class QUICTests(object):
         """
         name = 'no-backend.doq.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
-        dropped = False
         try:
             (_, receivedResponse) = self.sendQUICQuery(query, response=None, useQueue=False)
             self.assertTrue(False)

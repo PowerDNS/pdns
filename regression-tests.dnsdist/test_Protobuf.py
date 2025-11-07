@@ -1215,7 +1215,6 @@ class TestProtobufAXFR(DNSDistProtobufTest):
         while not self._protobufQueue.empty():
             msg = self.getFirstProtobufMessage()
             count = count + 1
-            pbMessageType = dnsmessage_pb2.PBDNSMessage.TCP
             self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.TCP, responses[count-1])
 
             expected = responses[count-1].answer[0]

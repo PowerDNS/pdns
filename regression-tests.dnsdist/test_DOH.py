@@ -248,7 +248,6 @@ class DOHTests(object):
         """
         DOH: Empty GET query
         """
-        name = 'empty-get.doh.tests.powerdns.com.'
         url = self._dohBaseURL
         conn = self.openDOHConnection(self._dohServerPort, self._caCert, timeout=2.0)
         conn.setopt(pycurl.URL, url)
@@ -256,7 +255,7 @@ class DOHTests(object):
         conn.setopt(pycurl.SSL_VERIFYPEER, 1)
         conn.setopt(pycurl.SSL_VERIFYHOST, 2)
         conn.setopt(pycurl.CAINFO, self._caCert)
-        data = conn.perform_rb()
+        conn.perform_rb()
         rcode = conn.getinfo(pycurl.RESPONSE_CODE)
         self.assertEqual(rcode, 400)
 
@@ -266,7 +265,6 @@ class DOHTests(object):
         """
         if self._dohLibrary == 'h2o':
             raise unittest.SkipTest('h2o tries to parse the qname early, so this check will fail')
-        name = 'zero-qdcount.doh.tests.powerdns.com.'
         query = dns.message.Message()
         query.id = 0
         query.flags &= ~dns.flags.RD
@@ -280,7 +278,6 @@ class DOHTests(object):
         """
         DOH: Short path in GET query
         """
-        name = 'short-path-get.doh.tests.powerdns.com.'
         url = self._dohBaseURL + '/AA'
         conn = self.openDOHConnection(self._dohServerPort, self._caCert, timeout=2.0)
         conn.setopt(pycurl.URL, url)
@@ -288,7 +285,7 @@ class DOHTests(object):
         conn.setopt(pycurl.SSL_VERIFYPEER, 1)
         conn.setopt(pycurl.SSL_VERIFYHOST, 2)
         conn.setopt(pycurl.CAINFO, self._caCert)
-        data = conn.perform_rb()
+        conn.perform_rb()
         rcode = conn.getinfo(pycurl.RESPONSE_CODE)
         self.assertEqual(rcode, 404)
 
@@ -307,7 +304,7 @@ class DOHTests(object):
         conn.setopt(pycurl.SSL_VERIFYPEER, 1)
         conn.setopt(pycurl.SSL_VERIFYHOST, 2)
         conn.setopt(pycurl.CAINFO, self._caCert)
-        data = conn.perform_rb()
+        conn.perform_rb()
         rcode = conn.getinfo(pycurl.RESPONSE_CODE)
         self.assertEqual(rcode, 400)
 
@@ -317,7 +314,6 @@ class DOHTests(object):
         """
         name = 'invalid-b64-get.doh.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
-        wire = query.to_wire()
         url = self._dohBaseURL + '?dns=' + '_-~~~~-_'
         conn = self.openDOHConnection(self._dohServerPort, self._caCert, timeout=2.0)
         conn.setopt(pycurl.URL, url)
@@ -325,7 +321,7 @@ class DOHTests(object):
         conn.setopt(pycurl.SSL_VERIFYPEER, 1)
         conn.setopt(pycurl.SSL_VERIFYHOST, 2)
         conn.setopt(pycurl.CAINFO, self._caCert)
-        data = conn.perform_rb()
+        conn.perform_rb()
         rcode = conn.getinfo(pycurl.RESPONSE_CODE)
         self.assertEqual(rcode, 400)
 
@@ -345,7 +341,7 @@ class DOHTests(object):
         conn.setopt(pycurl.SSL_VERIFYPEER, 1)
         conn.setopt(pycurl.SSL_VERIFYHOST, 2)
         conn.setopt(pycurl.CAINFO, self._caCert)
-        data = conn.perform_rb()
+        conn.perform_rb()
         rcode = conn.getinfo(pycurl.RESPONSE_CODE)
         self.assertEqual(rcode, 400)
 
@@ -367,7 +363,7 @@ class DOHTests(object):
         conn.setopt(pycurl.SSL_VERIFYHOST, 2)
         conn.setopt(pycurl.CAINFO, self._caCert)
         conn.setopt(pycurl.CUSTOMREQUEST, 'PATCH')
-        data = conn.perform_rb()
+        conn.perform_rb()
         rcode = conn.getinfo(pycurl.RESPONSE_CODE)
         self.assertEqual(rcode, 400)
 
@@ -526,7 +522,7 @@ class DOHTests(object):
         conn.setopt(pycurl.SSL_VERIFYPEER, 1)
         conn.setopt(pycurl.SSL_VERIFYHOST, 2)
         conn.setopt(pycurl.CAINFO, self._caCert)
-        data = conn.perform_rb()
+        conn.perform_rb()
         rcode = conn.getinfo(pycurl.RESPONSE_CODE)
         self.assertEqual(rcode, 403)
 
@@ -1653,7 +1649,6 @@ class DOHFrontendLimits(object):
         """
         DoH Frontend Limits: Maximum number of conns per DoH frontend
         """
-        name = 'maxconnsperfrontend.doh.tests.powerdns.com.'
         query = b"GET / HTTP/1.0\r\n\r\n"
         conns = []
 
@@ -1869,8 +1864,8 @@ class DOHLimits(object):
         failed = 0
         for conn in conns:
             try:
-                data = conn.perform_rb()
-                rcode = conn.getinfo(pycurl.RESPONSE_CODE)
+                conn.perform_rb()
+                conn.getinfo(pycurl.RESPONSE_CODE)
                 count = count + 1
             except:
                 failed = failed + 1
@@ -1913,7 +1908,6 @@ class DOHXFR(object):
         name = 'xfr.doh.tests.powerdns.com.'
         for xfrType in [dns.rdatatype.AXFR, dns.rdatatype.IXFR]:
             query = dns.message.make_query(name, xfrType, 'IN')
-            url = self.getDOHGetURL(self._dohBaseURL, query)
 
             expectedResponse = dns.message.make_response(query)
             expectedResponse.set_rcode(dns.rcode.NOTIMP)
