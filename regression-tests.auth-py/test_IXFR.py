@@ -231,4 +231,4 @@ newrecord.example.        8484    A       192.0.2.42
                            'list-zone', 'example'], stderr=subprocess.STDOUT)
         rets = ret.split(b'\n')
 
-        self.assertEqual(1, sum(b'SOA' in l for l in ret.split(b'\n')))
+        self.assertEqual(1, sum(b'SOA' in l for l in rets))
