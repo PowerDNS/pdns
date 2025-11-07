@@ -34,10 +34,12 @@
 #endif
 #include <boost/test/unit_test.hpp>
 
+#include <mcheck.h>
+
 // entry point:
 int main(int argc, char* argv[])
 {
   setenv("BOOST_TEST_RANDOM", "1", 1); // NOLINT(concurrency-mt-unsafe)
+  mtrace();
   return boost::unit_test::unit_test_main(&init_unit_test, argc, argv);
 }
-
