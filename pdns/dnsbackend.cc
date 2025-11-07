@@ -374,7 +374,8 @@ bool DNSBackend::getBeforeAndAfterNames(domainid_t domainId, const ZoneName& zon
 void DNSBackend::getAllDomains(vector<DomainInfo>* /* domains */, bool /* getSerial */, bool /* include_disabled */)
 {
   if (g_zoneCache.isEnabled()) {
-    g_log << Logger::Error << "One of the backends does not support zone caching. Put zone-cache-refresh-interval=0 in the config file to disable this cache." << endl;
+    SLOG(g_log << Logger::Error << "One of the backends does not support zone caching. Put zone-cache-refresh-interval=0 in the config file to disable this cache." << endl,
+         d_slog->info(Logr::Error, "One of the backends does not support zone caching. Put zone-cache-refresh-interval=0 in the configuration file to disable this cache."));
     exit(1);
   }
 }
