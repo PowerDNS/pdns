@@ -301,7 +301,6 @@ api-key=%s
         # the total payload (proxy protocol + DNS) is larger than proxy-protocol-maximum-size
         # so it should be dropped
         qname = 'too-large.proxy-protocol.recursor-tests.powerdns.com.'
-        expected = dns.rrset.from_text(qname, 0, dns.rdataclass.IN, 'A', '192.0.2.1')
 
         query = dns.message.make_query(qname, 'A', want_dnssec=True)
         queryPayload = query.to_wire()
