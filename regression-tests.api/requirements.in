@@ -2,7 +2,7 @@
 #  pip-compile --generate-hashes -U requirements.in
 
 wheel==0.45.1
-requests==2.31.0
+requests==2.32.4
 pytest
 parameterized
 mysql-connector
