@@ -964,7 +964,7 @@ def ci_dnsdist_run_unit_tests(c, builder):
             sanitizers = sanitizers.split('+')
         if 'tsan' in sanitizers and os.getenv('ARCHITECTURE_SUFFIX', '') == '-arm':
             #res = c.run(f'. {repo_home}/.venv/bin/activate && gdb --batch --command=../../../.github/scripts/debug-testrunner.gdb ./testrunner -p --log_level=test_suite', warn=True)
-            res = c.run(f'. {repo_home}/.venv/bin/activate && MALLOC_TRACE=/tmp/malloc.trace LD_PRELOAD=/usr/lib/libc_malloc_debug.so.0 ./testrunner --run_test=dnsdistlbpolicies -p --log_level=test_suite', warn=True)
+            res = c.run(f'. {repo_home}/.venv/bin/activate && MALLOC_TRACE=/tmp/malloc.trace LD_PRELOAD=/lib/aarch64-linux-gnu/libc_malloc_debug.so.0 ./testrunner -p --log_level=test_suite', warn=True)
             if res.exited != 0:
                 c.run('cat /tmp/malloc.trace')
         else:
