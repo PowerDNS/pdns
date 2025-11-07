@@ -24,7 +24,7 @@
 
 #include "config.h"
 
-#ifdef RECURSOR
+#if defined(RECURSOR) || defined(DNSDIST)
 
 #include <map>
 #include <memory>
@@ -160,7 +160,7 @@ struct IterLoggable : public Logr::Loggable
   }
 };
 
-typedef void (*EntryLogger)(const Entry&);
+using EntryLogger = void (*)(const Entry&);
 
 class Logger : public Logr::Logger, public std::enable_shared_from_this<const Logger>
 {
@@ -205,6 +205,7 @@ private:
 };
 }
 
+#if !defined(DNSDIST)
 extern std::shared_ptr<Logging::Logger> g_slog;
 
 // Prefer structured logging? Since Recursor 5.1.0, we always do. We keep a const, to allow for
@@ -223,11 +224,12 @@ constexpr bool g_slogStructured = true;
   do {                           \
     slogCall;                    \
   } while (0)
-
 #else // No structured logging (e.g. auth)
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define SLOG(oldStyle, slogCall) \
   do {                           \
     oldStyle;                    \
   } while (0)
-#endif // RECURSOR
+#endif /* ! DNSDIST */
+
+#endif // RECURSOR || DNSDIST
