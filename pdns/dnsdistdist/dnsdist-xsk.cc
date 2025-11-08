@@ -27,6 +27,9 @@
 
 #include "dolog.hh"
 #include "dnsdist-metrics.hh"
+#include "dnsdist-udp.hh"
+#include "dnsdist-dnscrypt.hh"
+#include "dnsdist-dnsparser.hh"
 #include "dnsdist-proxy-protocol.hh"
 #include "threadname.hh"
 #include "xsk.hh"
@@ -238,6 +241,129 @@ void clearDestinationAddresses()
   XskSocket::clearDestinationMap(map, false);
   map = getDestinationMap(true);
   XskSocket::clearDestinationMap(map, true);
+}
+
+bool XskProcessQuery(ClientState& clientState, XskPacket& packet)
+{
+  uint16_t queryId = 0;
+  const auto& remote = packet.getFromAddr();
+  const auto& dest = packet.getToAddr();
+  InternalQueryState ids;
+  ids.cs = &clientState;
+  ids.origRemote = remote;
+  ids.hopRemote = remote;
+  ids.origDest = dest;
+  ids.hopLocal = dest;
+  ids.protocol = dnsdist::Protocol::DoUDP;
+  ids.xskPacketHeader = packet.cloneHeaderToPacketBuffer();
+
+  try {
+    bool expectProxyProtocol = false;
+    if (!XskIsQueryAcceptable(packet, clientState, expectProxyProtocol)) {
+      return false;
+    }
+
+    auto query = packet.clonePacketBuffer();
+    std::vector<ProxyProtocolValue> proxyProtocolValues;
+    if (expectProxyProtocol && !handleProxyProtocol(remote, false, dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL, query, ids.origRemote, ids.origDest, proxyProtocolValues)) {
+      return false;
+    }
+
+    ids.queryRealTime.start();
+
+    auto dnsCryptResponse = dnsdist::dnscrypt::checkDNSCryptQuery(clientState, query, ids.dnsCryptQuery, ids.queryRealTime.d_start.tv_sec, false);
+    if (dnsCryptResponse) {
+      packet.setPayload(query);
+      return true;
+    }
+
+    {
+      /* this pointer will be invalidated the second the buffer is resized, don't hold onto it! */
+      dnsheader_aligned dnsHeader(query.data());
+      queryId = ntohs(dnsHeader->id);
+
+      if (!checkQueryHeaders(*dnsHeader, clientState)) {
+        return false;
+      }
+
+      if (dnsHeader->qdcount == 0) {
+        dnsdist::PacketMangling::editDNSHeaderFromPacket(query, [](dnsheader& header) {
+          header.rcode = RCode::NotImp;
+          header.qr = true;
+          return true;
+        });
+        packet.setPayload(query);
+        return true;
+      }
+    }
+
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    ids.qname = DNSName(reinterpret_cast<const char*>(query.data()), query.size(), sizeof(dnsheader), false, &ids.qtype, &ids.qclass);
+    if (ids.origDest.sin4.sin_family == 0) {
+      ids.origDest = clientState.local;
+    }
+    if (ids.dnsCryptQuery) {
+      ids.protocol = dnsdist::Protocol::DNSCryptUDP;
+    }
+    DNSQuestion dnsQuestion(ids, query);
+    if (!proxyProtocolValues.empty()) {
+      dnsQuestion.proxyProtocolValues = make_unique<std::vector<ProxyProtocolValue>>(std::move(proxyProtocolValues));
+    }
+    std::shared_ptr<DownstreamState> backend{nullptr};
+    auto result = processQuery(dnsQuestion, backend);
+
+    if (result == ProcessQueryResult::Drop) {
+      return false;
+    }
+
+    if (result == ProcessQueryResult::SendAnswer) {
+      packet.setPayload(query);
+      if (dnsQuestion.ids.delayMsec > 0) {
+        packet.addDelay(dnsQuestion.ids.delayMsec);
+      }
+      const auto dnsHeader = dnsQuestion.getHeader();
+      handleResponseSent(ids.qname, ids.qtype, 0., remote, ComboAddress(), query.size(), *dnsHeader, dnsdist::Protocol::DoUDP, dnsdist::Protocol::DoUDP, false);
+      return true;
+    }
+
+    if (result != ProcessQueryResult::PassToBackend || backend == nullptr) {
+      return false;
+    }
+
+    // the buffer might have been invalidated by now (resized)
+    const auto dnsHeader = dnsQuestion.getHeader();
+    if (backend->isTCPOnly()) {
+      std::string proxyProtocolPayload;
+      /* we need to do this _before_ creating the cross protocol query because
+         after that the buffer will have been moved */
+      if (backend->d_config.useProxyProtocol) {
+        proxyProtocolPayload = getProxyProtocolPayload(dnsQuestion);
+      }
+
+      ids.origID = dnsHeader->id;
+      auto cpq = std::make_unique<dnsdist::udp::UDPCrossProtocolQuery>(std::move(query), std::move(ids), backend);
+      cpq->query.d_proxyProtocolPayload = std::move(proxyProtocolPayload);
+
+      backend->passCrossProtocolQuery(std::move(cpq));
+      return false;
+    }
+
+    if (backend->d_xskInfos.empty()) {
+      assignOutgoingUDPQueryToBackend(backend, dnsHeader->id, dnsQuestion, query, true);
+      return false;
+    }
+
+    assignOutgoingUDPQueryToBackend(backend, dnsHeader->id, dnsQuestion, query, false);
+    auto sourceAddr = backend->pickSourceAddressForSending();
+    packet.setAddr(sourceAddr, backend->d_config.sourceMACAddr, backend->d_config.remote, backend->d_config.destMACAddr);
+    packet.setPayload(query);
+    packet.rewrite();
+    return true;
+  }
+  catch (const std::exception& e) {
+    vinfolog("Got an error in UDP question thread while parsing a query from %s, id %d: %s", remote.toStringWithPort(), queryId, e.what());
+  }
+  return false;
 }
 
 }

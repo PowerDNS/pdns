@@ -19,14 +19,21 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include "dnsdist-dnscrypt.hh"
+
+#ifdef HAVE_DNSCRYPT
 #include "dolog.hh"
 #include "dnsdist.hh"
 #include "dnsdist-metrics.hh"
 #include "dnscrypt.hh"
+#endif
 
-#ifdef HAVE_DNSCRYPT
+namespace dnsdist::dnscrypt
+{
+
 bool handleDNSCryptQuery(PacketBuffer& packet, DNSCryptQuery& query, bool tcp, time_t now, PacketBuffer& response)
 {
+#ifdef HAVE_DNSCRYPT
   query.parsePacket(packet, tcp, now);
 
   if (!query.isValid()) {
@@ -46,5 +53,46 @@ bool handleDNSCryptQuery(PacketBuffer& packet, DNSCryptQuery& query, bool tcp, t
   }
 
   return true;
-}
+#else
+  return false;
 #endif
+}
+
+bool encryptResponse(PacketBuffer& response, size_t maximumSize, bool tcp, std::unique_ptr<DNSCryptQuery>& dnsCryptQuery)
+{
+#ifdef HAVE_DNSCRYPT
+  if (dnsCryptQuery) {
+    int res = dnsCryptQuery->encryptResponse(response, maximumSize, tcp);
+    if (res != 0) {
+      /* dropping response */
+      vinfolog("Error encrypting the response, dropping.");
+      return false;
+    }
+  }
+  return true;
+#else
+  return false;
+#endif
+}
+
+bool checkDNSCryptQuery([[maybe_unused]] const ClientState& clientState, [[maybe_unused]] PacketBuffer& query, [[maybe_unused]] std::unique_ptr<DNSCryptQuery>& dnsCryptQuery, [[maybe_unused]] time_t now, [[maybe_unused]] bool tcp)
+{
+#ifdef HAVE_DNSCRYPT
+  if (clientState.dnscryptCtx) {
+    PacketBuffer response;
+    dnsCryptQuery = std::make_unique<DNSCryptQuery>(clientState.dnscryptCtx);
+
+    bool decrypted = handleDNSCryptQuery(query, *dnsCryptQuery, tcp, now, response);
+
+    if (!decrypted) {
+      if (!response.empty()) {
+        query = std::move(response);
+        return true;
+      }
+      throw std::runtime_error("Unable to decrypt DNSCrypt query, dropping.");
+    }
+  }
+#endif /* HAVE_DNSCRYPT */
+  return false;
+}
+} // namespace dnsdist::dnscrypt

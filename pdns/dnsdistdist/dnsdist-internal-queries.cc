@@ -22,10 +22,9 @@
 #include "dnsdist-internal-queries.hh"
 #include "dnsdist-nghttp2-in.hh"
 #include "dnsdist-tcp.hh"
+#include "dnsdist-udp.hh"
 #include "doh.hh"
 #include "doq.hh"
-
-std::unique_ptr<CrossProtocolQuery> getUDPCrossProtocolQueryFromDQ(DNSQuestion& dq);
 
 namespace dnsdist
 {
@@ -33,7 +32,7 @@ std::unique_ptr<CrossProtocolQuery> getInternalQueryFromDQ(DNSQuestion& dnsQuest
 {
   auto protocol = dnsQuestion.getProtocol();
   if (protocol == dnsdist::Protocol::DoUDP || protocol == dnsdist::Protocol::DNSCryptUDP) {
-    return getUDPCrossProtocolQueryFromDQ(dnsQuestion);
+    return dnsdist::udp::getUDPCrossProtocolQueryFromDQ(dnsQuestion);
   }
 #ifdef HAVE_DNS_OVER_HTTPS
   else if (protocol == dnsdist::Protocol::DoH) {

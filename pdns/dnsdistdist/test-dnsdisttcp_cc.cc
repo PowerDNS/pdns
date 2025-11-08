@@ -36,16 +36,6 @@
 
 const bool TCPIOHandler::s_disableConnectForUnitTests = true;
 
-bool checkDNSCryptQuery(const ClientState& cs, PacketBuffer& query, std::unique_ptr<DNSCryptQuery>& dnsCryptQuery, time_t now, bool tcp)
-{
-  (void)cs;
-  (void)query;
-  (void)dnsCryptQuery;
-  (void)now;
-  (void)tcp;
-  return false;
-}
-
 bool checkQueryHeaders(const struct dnsheader& dnsHeader, ClientState& clientState)
 {
   (void)dnsHeader;

@@ -21,27 +21,11 @@
  */
 #pragma once
 
-#include "config.h"
-
-#ifdef HAVE_XSK
-class XskPacket;
-class XskSocket;
-class XskWorker;
-
-#include <memory>
 #include "dnsdist.hh"
 
-namespace dnsdist::xsk
+namespace dnsdist::dnscrypt
 {
-void XskResponderThread(std::shared_ptr<DownstreamState> dss, std::shared_ptr<XskWorker> xskInfo);
-bool XskIsQueryAcceptable(const XskPacket& packet, ClientState& clientState, bool& expectProxyProtocol);
-bool XskProcessQuery(ClientState& clientState, XskPacket& packet);
-void XskRouter(std::shared_ptr<XskSocket> xsk);
-void XskClientThread(ClientState* clientState);
-void addDestinationAddress(const ComboAddress& addr);
-void removeDestinationAddress(const ComboAddress& addr);
-void clearDestinationAddresses();
-
-extern std::vector<std::shared_ptr<XskSocket>> g_xsk;
-}
-#endif /* HAVE_XSK */
+bool handleDNSCryptQuery(PacketBuffer& packet, DNSCryptQuery& query, bool tcp, time_t now, PacketBuffer& response);
+bool encryptResponse(PacketBuffer& response, size_t maximumSize, bool tcp, std::unique_ptr<DNSCryptQuery>& dnsCryptQuery);
+bool checkDNSCryptQuery(const ClientState& clientState, PacketBuffer& query, std::unique_ptr<DNSCryptQuery>& dnsCryptQuery, time_t now, bool tcp);
+} // namespace dnsdist::dnscrypt

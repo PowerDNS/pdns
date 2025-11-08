@@ -36,6 +36,7 @@
 #include <unistd.h>
 
 #include "dns.hh"
+#include "dnsdist-dnscrypt.hh"
 #include "dnsdist-idstate.hh"
 #include "dnsdist-opentelemetry.hh"
 #include "dnsdist-systemd.hh"
@@ -75,6 +76,7 @@
 #include "dnsdist-tcp-upstream.hh"
 #include "dnsdist-web.hh"
 #include "dnsdist-xsk.hh"
+#include "dnsdist-udp.hh"
 
 #include "base64.hh"
 #include "capabilities.hh"
@@ -126,61 +128,6 @@ shared_ptr<BPFFilter> g_defaultBPFFilter{nullptr};
 
 Rings g_rings;
 
-// we are not willing to receive a bigger UDP response than that, no matter what
-static constexpr size_t s_maxUDPResponsePacketSize{4096U};
-static size_t const s_initialUDPPacketBufferSize = s_maxUDPResponsePacketSize + DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE;
-static_assert(s_initialUDPPacketBufferSize <= UINT16_MAX, "Packet size should fit in a uint16_t");
-
-static void sendfromto(int sock, const PacketBuffer& buffer, const ComboAddress& from, const ComboAddress& dest)
-{
-  const int flags = 0;
-  if (from.sin4.sin_family == 0) {
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    auto ret = sendto(sock, buffer.data(), buffer.size(), flags, reinterpret_cast<const struct sockaddr*>(&dest), dest.getSocklen());
-    if (ret == -1) {
-      int error = errno;
-      vinfolog("Error sending UDP response to %s: %s", dest.toStringWithPort(), stringerror(error));
-    }
-    return;
-  }
-
-  try {
-    sendMsgWithOptions(sock, buffer.data(), buffer.size(), &dest, &from, 0, 0);
-  }
-  catch (const std::exception& exp) {
-    vinfolog("Error sending UDP response from %s to %s: %s", from.toStringWithPort(), dest.toStringWithPort(), exp.what());
-  }
-}
-
-static void truncateTC(PacketBuffer& packet, size_t maximumSize, unsigned int qnameWireLength, bool addEDNSToSelfGeneratedResponses)
-{
-  try {
-    bool hadEDNS = false;
-    uint16_t payloadSize = 0;
-    uint16_t zValue = 0;
-
-    if (addEDNSToSelfGeneratedResponses) {
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-      hadEDNS = getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(packet.data()), packet.size(), &payloadSize, &zValue);
-    }
-
-    packet.resize(static_cast<uint16_t>(sizeof(dnsheader) + qnameWireLength + DNS_TYPE_SIZE + DNS_CLASS_SIZE));
-    dnsdist::PacketMangling::editDNSHeaderFromPacket(packet, [](dnsheader& header) {
-      header.ancount = 0;
-      header.arcount = 0;
-      header.nscount = 0;
-      return true;
-    });
-
-    if (hadEDNS) {
-      addEDNS(packet, maximumSize, (zValue & EDNS_HEADER_FLAG_DO) != 0, payloadSize, 0);
-    }
-  }
-  catch (...) {
-    ++dnsdist::metrics::g_stats.truncFail;
-  }
-}
-
 #ifndef DISABLE_DELAY_PIPE
 struct DelayedPacket
 {
@@ -190,78 +137,12 @@ struct DelayedPacket
   ComboAddress origDest;
   void operator()() const
   {
-    sendfromto(fd, packet, origDest, destination);
+    dnsdist::udp::sendfromto(fd, packet, origDest, destination);
   }
 };
 
 static std::unique_ptr<DelayPipe<DelayedPacket>> g_delay{nullptr};
 #endif /* DISABLE_DELAY_PIPE */
-
-static void doLatencyStats(dnsdist::Protocol protocol, double udiff)
-{
-  constexpr auto doAvg = [](pdns::stat_double_t& var, double n, double weight) {
-    var.store((weight - 1) * var.load() / weight + n / weight);
-  };
-
-  if (protocol == dnsdist::Protocol::DoUDP || protocol == dnsdist::Protocol::DNSCryptUDP) {
-    if (udiff < 1000) {
-      ++dnsdist::metrics::g_stats.latency0_1;
-    }
-    else if (udiff < 10000) {
-      ++dnsdist::metrics::g_stats.latency1_10;
-    }
-    else if (udiff < 50000) {
-      ++dnsdist::metrics::g_stats.latency10_50;
-    }
-    else if (udiff < 100000) {
-      ++dnsdist::metrics::g_stats.latency50_100;
-    }
-    else if (udiff < 1000000) {
-      ++dnsdist::metrics::g_stats.latency100_1000;
-    }
-    else {
-      ++dnsdist::metrics::g_stats.latencySlow;
-    }
-
-    dnsdist::metrics::g_stats.latencySum += static_cast<unsigned long>(udiff) / 1000;
-    ++dnsdist::metrics::g_stats.latencyCount;
-
-    doAvg(dnsdist::metrics::g_stats.latencyAvg100, udiff, 100);
-    doAvg(dnsdist::metrics::g_stats.latencyAvg1000, udiff, 1000);
-    doAvg(dnsdist::metrics::g_stats.latencyAvg10000, udiff, 10000);
-    doAvg(dnsdist::metrics::g_stats.latencyAvg1000000, udiff, 1000000);
-  }
-  else if (protocol == dnsdist::Protocol::DoTCP || protocol == dnsdist::Protocol::DNSCryptTCP) {
-    doAvg(dnsdist::metrics::g_stats.latencyTCPAvg100, udiff, 100);
-    doAvg(dnsdist::metrics::g_stats.latencyTCPAvg1000, udiff, 1000);
-    doAvg(dnsdist::metrics::g_stats.latencyTCPAvg10000, udiff, 10000);
-    doAvg(dnsdist::metrics::g_stats.latencyTCPAvg1000000, udiff, 1000000);
-  }
-  else if (protocol == dnsdist::Protocol::DoT) {
-    doAvg(dnsdist::metrics::g_stats.latencyDoTAvg100, udiff, 100);
-    doAvg(dnsdist::metrics::g_stats.latencyDoTAvg1000, udiff, 1000);
-    doAvg(dnsdist::metrics::g_stats.latencyDoTAvg10000, udiff, 10000);
-    doAvg(dnsdist::metrics::g_stats.latencyDoTAvg1000000, udiff, 1000000);
-  }
-  else if (protocol == dnsdist::Protocol::DoH) {
-    doAvg(dnsdist::metrics::g_stats.latencyDoHAvg100, udiff, 100);
-    doAvg(dnsdist::metrics::g_stats.latencyDoHAvg1000, udiff, 1000);
-    doAvg(dnsdist::metrics::g_stats.latencyDoHAvg10000, udiff, 10000);
-    doAvg(dnsdist::metrics::g_stats.latencyDoHAvg1000000, udiff, 1000000);
-  }
-  else if (protocol == dnsdist::Protocol::DoQ) {
-    doAvg(dnsdist::metrics::g_stats.latencyDoQAvg100, udiff, 100);
-    doAvg(dnsdist::metrics::g_stats.latencyDoQAvg1000, udiff, 1000);
-    doAvg(dnsdist::metrics::g_stats.latencyDoQAvg10000, udiff, 10000);
-    doAvg(dnsdist::metrics::g_stats.latencyDoQAvg1000000, udiff, 1000000);
-  }
-  else if (protocol == dnsdist::Protocol::DoH3) {
-    doAvg(dnsdist::metrics::g_stats.latencyDoH3Avg100, udiff, 100);
-    doAvg(dnsdist::metrics::g_stats.latencyDoH3Avg1000, udiff, 1000);
-    doAvg(dnsdist::metrics::g_stats.latencyDoH3Avg10000, udiff, 10000);
-    doAvg(dnsdist::metrics::g_stats.latencyDoH3Avg1000000, udiff, 1000000);
-  }
-}
 
 bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const std::shared_ptr<DownstreamState>& remote, bool allowEmptyResponse)
 {
@@ -319,24 +200,10 @@ bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, 
   }
 }
 
-static void restoreFlags(struct dnsheader* dnsHeader, uint16_t origFlags)
-{
-  static const uint16_t rdMask = 1 << FLAGS_RD_OFFSET;
-  static const uint16_t cdMask = 1 << FLAGS_CD_OFFSET;
-  static const uint16_t restoreFlagsMask = UINT16_MAX & ~(rdMask | cdMask);
-  uint16_t* flags = getFlagsFromDNSHeader(dnsHeader);
-  /* clear the flags we are about to restore */
-  *flags &= restoreFlagsMask;
-  /* only keep the flags we want to restore */
-  origFlags &= ~restoreFlagsMask;
-  /* set the saved flags as they were */
-  *flags |= origFlags;
-}
-
 static bool fixUpQueryTurnedResponse(DNSQuestion& dnsQuestion, const uint16_t origFlags)
 {
   dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [origFlags](dnsheader& header) {
-    restoreFlags(&header, origFlags);
+    dnsdist::PacketMangling::restoreFlags(&header, origFlags);
     return true;
   });
 
@@ -353,7 +220,7 @@ static bool fixUpResponse(PacketBuffer& response, const DNSName& qname, uint16_t
   }
 
   dnsdist::PacketMangling::editDNSHeaderFromPacket(response, [origFlags](dnsheader& header) {
-    restoreFlags(&header, origFlags);
+    dnsdist::PacketMangling::restoreFlags(&header, origFlags);
     return true;
   });
 
@@ -439,21 +306,6 @@ static bool fixUpResponse(PacketBuffer& response, const DNSName& qname, uint16_t
   return true;
 }
 
-#ifdef HAVE_DNSCRYPT
-static bool encryptResponse(PacketBuffer& response, size_t maximumSize, bool tcp, std::unique_ptr<DNSCryptQuery>& dnsCryptQuery)
-{
-  if (dnsCryptQuery) {
-    int res = dnsCryptQuery->encryptResponse(response, maximumSize, tcp);
-    if (res != 0) {
-      /* dropping response */
-      vinfolog("Error encrypting the response, dropping.");
-      return false;
-    }
-  }
-  return true;
-}
-#endif /* HAVE_DNSCRYPT */
-
 bool applyRulesToResponse(const std::vector<dnsdist::rules::ResponseRuleAction>& respRuleActions, DNSResponse& dnsResponse)
 {
   pdns::trace::dnsdist::Tracer::Closer closer;
@@ -509,7 +361,7 @@ bool applyRulesToResponse(const std::vector<dnsdist::rules::ResponseRuleAction>&
             header.qr = true;
             return true;
           });
-          truncateTC(dnsResponse.getMutableData(), dnsResponse.getMaximumSize(), dnsResponse.ids.qname.wirelength(), dnsdist::configuration::getCurrentRuntimeConfiguration().d_addEDNSToSelfGeneratedResponses);
+          dnsdist::udp::truncateTC(dnsResponse.getMutableData(), dnsResponse.getMaximumSize(), dnsResponse.ids.qname.wirelength(), dnsdist::configuration::getCurrentRuntimeConfiguration().d_addEDNSToSelfGeneratedResponses);
           ++dnsdist::metrics::g_stats.ruleTruncated;
           return true;
         }
@@ -541,7 +393,7 @@ bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse,
     return false;
   }
 
-  if (dnsResponse.ids.packetCache && !dnsResponse.ids.selfGenerated && !dnsResponse.ids.skipCache && (!dnsResponse.ids.forwardedOverUDP || response.size() <= s_maxUDPResponsePacketSize)) {
+  if (dnsResponse.ids.packetCache && !dnsResponse.ids.selfGenerated && !dnsResponse.ids.skipCache && (!dnsResponse.ids.forwardedOverUDP || response.size() <= dnsdist::udp::s_maxUDPResponsePacketSize)) {
     if (!dnsResponse.ids.useZeroScope) {
       /* if the query was not suitable for zero-scope, for
          example because it had an existing ECS entry so the hash is
@@ -585,13 +437,11 @@ bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse,
     dnsdist::edns::addExtendedDNSError(dnsResponse.getMutableData(), dnsResponse.getMaximumSize(), dnsResponse.ids.d_extendedError->infoCode, dnsResponse.ids.d_extendedError->extraText);
   }
 
-#ifdef HAVE_DNSCRYPT
   if (!muted) {
-    if (!encryptResponse(response, dnsResponse.getMaximumSize(), dnsResponse.overTCP(), dnsResponse.ids.dnsCryptQuery)) {
+    if (!dnsdist::dnscrypt::encryptResponse(response, dnsResponse.getMaximumSize(), dnsResponse.overTCP(), dnsResponse.ids.dnsCryptQuery)) {
       return false;
     }
   }
-#endif /* HAVE_DNSCRYPT */
 
   return true;
 }
@@ -617,32 +467,6 @@ bool processResponse(PacketBuffer& response, DNSResponse& dnsResponse, bool mute
   return processResponseAfterRules(response, dnsResponse, muted);
 }
 
-static size_t getInitialUDPPacketBufferSize(bool expectProxyProtocol)
-{
-  static_assert(dnsdist::configuration::s_udpIncomingBufferSize <= s_initialUDPPacketBufferSize, "The incoming buffer size should not be larger than s_initialUDPPacketBufferSize");
-
-  const auto& runtimeConfig = dnsdist::configuration::getCurrentRuntimeConfiguration();
-  if (!expectProxyProtocol || runtimeConfig.d_proxyProtocolACL.empty()) {
-    return s_initialUDPPacketBufferSize;
-  }
-
-  return s_initialUDPPacketBufferSize + runtimeConfig.d_proxyProtocolMaximumSize;
-}
-
-static size_t getMaximumIncomingPacketSize(const ClientState& clientState)
-{
-  if (clientState.dnscryptCtx) {
-    return getInitialUDPPacketBufferSize(clientState.d_enableProxyProtocol);
-  }
-
-  const auto& runtimeConfig = dnsdist::configuration::getCurrentRuntimeConfiguration();
-  if (!clientState.d_enableProxyProtocol || runtimeConfig.d_proxyProtocolACL.empty()) {
-    return dnsdist::configuration::s_udpIncomingBufferSize;
-  }
-
-  return dnsdist::configuration::s_udpIncomingBufferSize + runtimeConfig.d_proxyProtocolMaximumSize;
-}
-
 bool sendUDPResponse(int origFD, const PacketBuffer& response, [[maybe_unused]] const int delayMsec, const ComboAddress& origDest, const ComboAddress& origRemote)
 {
 #ifndef DISABLE_DELAY_PIPE
@@ -653,7 +477,7 @@ bool sendUDPResponse(int origFD, const PacketBuffer& response, [[maybe_unused]] 
   }
 #endif /* DISABLE_DELAY_PIPE */
   // NOLINTNEXTLINE(readability-suspicious-call-argument)
-  sendfromto(origFD, response, origDest, origRemote);
+  dnsdist::udp::sendfromto(origFD, response, origDest, origRemote);
   return true;
 }
 
@@ -686,75 +510,7 @@ void handleResponseSent(const DNSName& qname, const QType& qtype, double udiff, 
     break;
   }
 
-  doLatencyStats(incomingProtocol, udiff);
-}
-
-static void handleResponseTC4UDPClient(DNSQuestion& dnsQuestion, uint16_t udpPayloadSize, PacketBuffer& response)
-{
-  if (udpPayloadSize != 0 && response.size() > udpPayloadSize) {
-    vinfolog("Got a response of size %d while the initial UDP payload size was %d, truncating", response.size(), udpPayloadSize);
-    truncateTC(dnsQuestion.getMutableData(), dnsQuestion.getMaximumSize(), dnsQuestion.ids.qname.wirelength(), dnsdist::configuration::getCurrentRuntimeConfiguration().d_addEDNSToSelfGeneratedResponses);
-    dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [](dnsheader& header) {
-      header.tc = true;
-      return true;
-    });
-  }
-  else if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_truncateTC && dnsQuestion.getHeader()->tc) {
-    truncateTC(response, dnsQuestion.getMaximumSize(), dnsQuestion.ids.qname.wirelength(), dnsdist::configuration::getCurrentRuntimeConfiguration().d_addEDNSToSelfGeneratedResponses);
-  }
-}
-
-static void handleResponseForUDPClient(InternalQueryState& ids, PacketBuffer& response, const std::shared_ptr<DownstreamState>& backend, bool isAsync, bool selfGenerated)
-{
-  DNSResponse dnsResponse(ids, response, backend);
-
-  handleResponseTC4UDPClient(dnsResponse, ids.udpPayloadSize, response);
-
-  /* when the answer is encrypted in place, we need to get a copy
-     of the original header before encryption to fill the ring buffer */
-  dnsheader cleartextDH{};
-  memcpy(&cleartextDH, dnsResponse.getHeader().get(), sizeof(cleartextDH));
-
-  if (!isAsync) {
-    if (!processResponse(response, dnsResponse, ids.cs != nullptr && ids.cs->muted)) {
-      return;
-    }
-
-    if (dnsResponse.isAsynchronous()) {
-      return;
-    }
-  }
-
-  ++dnsdist::metrics::g_stats.responses;
-  if (ids.cs != nullptr) {
-    ++ids.cs->responses;
-  }
-
-  bool muted = true;
-  if (ids.cs != nullptr && !ids.cs->muted && !ids.isXSK()) {
-    sendUDPResponse(ids.cs->udpFD, response, dnsResponse.ids.delayMsec, ids.hopLocal, ids.hopRemote);
-    muted = false;
-  }
-
-  if (!selfGenerated) {
-    double udiff = ids.queryRealTime.udiff();
-    if (!muted) {
-      vinfolog("Got answer from %s, relayed to %s (UDP), took %f us", backend->d_config.remote.toStringWithPort(), ids.origRemote.toStringWithPort(), udiff);
-    }
-    else {
-      if (!ids.isXSK()) {
-        vinfolog("Got answer from %s, NOT relayed to %s (UDP) since that frontend is muted, took %f us", backend->d_config.remote.toStringWithPort(), ids.origRemote.toStringWithPort(), udiff);
-      }
-      else {
-        vinfolog("Got answer from %s, relayed to %s (UDP via XSK), took %f us", backend->d_config.remote.toStringWithPort(), ids.origRemote.toStringWithPort(), udiff);
-      }
-    }
-
-    handleResponseSent(ids, udiff, dnsResponse.ids.origRemote, backend->d_config.remote, response.size(), cleartextDH, backend->getProtocol(), true);
-  }
-  else {
-    handleResponseSent(ids, 0., dnsResponse.ids.origRemote, ComboAddress(), response.size(), cleartextDH, dnsdist::Protocol::DoUDP, false);
-  }
+  dnsdist::metrics::doLatencyStats(incomingProtocol, udiff);
 }
 
 bool processResponderPacket(std::shared_ptr<DownstreamState>& dss, PacketBuffer& response, InternalQueryState&& ids)
@@ -789,7 +545,7 @@ bool processResponderPacket(std::shared_ptr<DownstreamState>& dss, PacketBuffer&
     return false;
   }
 
-  handleResponseForUDPClient(ids, response, dss, false, false);
+  dnsdist::udp::handleResponseForUDPClient(ids, response, dss, false, false);
   return true;
 }
 
@@ -798,7 +554,7 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
 {
   try {
     setThreadName("dnsdist/respond");
-    const size_t initialBufferSize = getInitialUDPPacketBufferSize(false);
+    const size_t initialBufferSize = dnsdist::udp::getInitialUDPPacketBufferSize(false);
     /* allocate one more byte so we can detect truncation */
     PacketBuffer response(initialBufferSize + 1);
     uint16_t queryId = 0;
@@ -1299,72 +1055,6 @@ ssize_t udpClientSendRequestToBackend(const std::shared_ptr<DownstreamState>& ba
   return result;
 }
 
-static bool isUDPQueryAcceptable(ClientState& clientState, const struct msghdr* msgh, const ComboAddress& remote, ComboAddress& dest, bool& expectProxyProtocol)
-{
-  if ((msgh->msg_flags & MSG_TRUNC) != 0) {
-    /* message was too large for our buffer */
-    vinfolog("Dropping message too large for our buffer");
-    ++clientState.nonCompliantQueries;
-    ++dnsdist::metrics::g_stats.nonCompliantQueries;
-    return false;
-  }
-
-  expectProxyProtocol = clientState.d_enableProxyProtocol && expectProxyProtocolFrom(remote);
-  if (!dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL.match(remote) && !expectProxyProtocol) {
-    vinfolog("Query from %s dropped because of ACL", remote.toStringWithPort());
-    ++dnsdist::metrics::g_stats.aclDrops;
-    return false;
-  }
-
-  if (HarvestDestinationAddress(msgh, &dest)) {
-    /* so it turns out that sometimes the kernel lies to us:
-       the address is set to 0.0.0.0:0 which makes our sendfromto() use
-       the wrong address. In that case it's better to let the kernel
-       do the work by itself and use sendto() instead.
-       This is indicated by setting the family to 0 which is acted upon
-       in sendUDPResponse() and DelayedPacket::().
-    */
-    const ComboAddress bogusV4("0.0.0.0:0");
-    const ComboAddress bogusV6("[::]:0");
-    if ((dest.sin4.sin_family == AF_INET && dest == bogusV4) || (dest.sin4.sin_family == AF_INET6 && dest == bogusV6)) {
-      dest.sin4.sin_family = 0;
-    }
-    else {
-      /* we don't get the port, only the address */
-      dest.sin4.sin_port = clientState.local.sin4.sin_port;
-    }
-  }
-  else {
-    dest.sin4.sin_family = 0;
-  }
-
-  ++clientState.queries;
-  ++dnsdist::metrics::g_stats.queries;
-
-  return true;
-}
-
-bool checkDNSCryptQuery(const ClientState& clientState, [[maybe_unused]] PacketBuffer& query, [[maybe_unused]] std::unique_ptr<DNSCryptQuery>& dnsCryptQuery, [[maybe_unused]] time_t now, [[maybe_unused]] bool tcp)
-{
-  if (clientState.dnscryptCtx) {
-#ifdef HAVE_DNSCRYPT
-    PacketBuffer response;
-    dnsCryptQuery = std::make_unique<DNSCryptQuery>(clientState.dnscryptCtx);
-
-    bool decrypted = handleDNSCryptQuery(query, *dnsCryptQuery, tcp, now, response);
-
-    if (!decrypted) {
-      if (!response.empty()) {
-        query = std::move(response);
-        return true;
-      }
-      throw std::runtime_error("Unable to decrypt DNSCrypt query, dropping.");
-    }
-#endif /* HAVE_DNSCRYPT */
-  }
-  return false;
-}
-
 bool checkQueryHeaders(const struct dnsheader& dnsHeader, ClientState& clientState)
 {
   if (dnsHeader.qr) { // don't respond to responses
@@ -1386,28 +1076,6 @@ bool checkQueryHeaders(const struct dnsheader& dnsHeader, ClientState& clientSta
 
   return true;
 }
-
-#if !defined(DISABLE_RECVMMSG) && defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
-static void queueResponse(const PacketBuffer& response, const ComboAddress& dest, const ComboAddress& remote, struct mmsghdr& outMsg, struct iovec* iov, cmsgbuf_aligned* cbuf)
-{
-  outMsg.msg_len = 0;
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast,cppcoreguidelines-pro-type-reinterpret-cast): API
-  fillMSGHdr(&outMsg.msg_hdr, iov, nullptr, 0, const_cast<char*>(reinterpret_cast<const char*>(&response.at(0))), response.size(), const_cast<ComboAddress*>(&remote));
-
-  if (dest.sin4.sin_family == 0) {
-    outMsg.msg_hdr.msg_control = nullptr;
-  }
-  else {
-    addCMsgSrcAddr(&outMsg.msg_hdr, cbuf, &dest, 0);
-  }
-}
-#elif !defined(HAVE_RECVMMSG)
-struct mmsghdr
-{
-  msghdr msg_hdr;
-  unsigned int msg_len{0};
-};
-#endif
 
 /* self-generated responses or cache hits */
 static bool prepareOutgoingResponse([[maybe_unused]] const ClientState& clientState, DNSQuestion& dnsQuestion, bool cacheHit)
@@ -1441,13 +1109,11 @@ static bool prepareOutgoingResponse([[maybe_unused]] const ClientState& clientSt
     return false;
   }
 
-#ifdef HAVE_DNSCRYPT
   if (!clientState.muted) {
-    if (!encryptResponse(dnsQuestion.getMutableData(), dnsQuestion.getMaximumSize(), dnsQuestion.overTCP(), dnsQuestion.ids.dnsCryptQuery)) {
+    if (!dnsdist::dnscrypt::encryptResponse(dnsQuestion.getMutableData(), dnsQuestion.getMaximumSize(), dnsQuestion.overTCP(), dnsQuestion.ids.dnsCryptQuery)) {
       return false;
     }
   }
-#endif /* HAVE_DNSCRYPT */
 
   return true;
 }
@@ -1575,7 +1241,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
       if (serverPool.packetCache->get(dnsQuestion, dnsQuestion.getHeader()->id, dnsQuestion.ids.protocol == dnsdist::Protocol::DoH ? &dnsQuestion.ids.cacheKeyTCP : &dnsQuestion.ids.cacheKey, dnsQuestion.ids.subnet, *dnsQuestion.ids.dnssecOK, dnsQuestion.ids.protocol != dnsdist::Protocol::DoH && willBeForwardedOverUDP, allowExpired, false, true, dnsQuestion.ids.protocol != dnsdist::Protocol::DoH || !willBeForwardedOverUDP)) {
 
         dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [flags = dnsQuestion.ids.origFlags](dnsheader& header) {
-          restoreFlags(&header, flags);
+          dnsdist::PacketMangling::restoreFlags(&header, flags);
           return true;
         });
 
@@ -1677,7 +1343,7 @@ bool handleTimeoutResponseRules(const std::vector<dnsdist::rules::ResponseRuleAc
   dnsdist::PacketMangling::editDNSHeaderFromPacket(payload, [&ids](dnsheader& header) {
     memset(&header, 0, sizeof(header));
     header.id = ids.origID;
-    restoreFlags(&header, ids.origFlags);
+    dnsdist::PacketMangling::restoreFlags(&header, ids.origFlags);
     // do not set the qdcount, otherwise the protobuf code will choke on it
     // while trying to parse the response RRs
     return true;
@@ -1722,88 +1388,7 @@ void handleServerStateChange(const string& nameWithAddr, bool newResult)
   }
 }
 
-class UDPTCPCrossQuerySender : public TCPQuerySender
-{
-public:
-  UDPTCPCrossQuerySender() = default;
-  UDPTCPCrossQuerySender(const UDPTCPCrossQuerySender&) = delete;
-  UDPTCPCrossQuerySender& operator=(const UDPTCPCrossQuerySender&) = delete;
-  UDPTCPCrossQuerySender(UDPTCPCrossQuerySender&&) = default;
-  UDPTCPCrossQuerySender& operator=(UDPTCPCrossQuerySender&&) = default;
-  ~UDPTCPCrossQuerySender() override = default;
-
-  [[nodiscard]] bool active() const override
-  {
-    return true;
-  }
-
-  void handleResponse(const struct timeval& now, TCPResponse&& response) override
-  {
-    (void)now;
-    if (!response.d_ds && !response.d_idstate.selfGenerated) {
-      throw std::runtime_error("Passing a cross-protocol answer originated from UDP without a valid downstream");
-    }
-
-    auto& ids = response.d_idstate;
-
-    handleResponseForUDPClient(ids, response.d_buffer, response.d_ds, response.isAsync(), response.d_idstate.selfGenerated);
-  }
-
-  void handleXFRResponse(const struct timeval& now, TCPResponse&& response) override
-  {
-    return handleResponse(now, std::move(response));
-  }
-
-  void notifyIOError([[maybe_unused]] const struct timeval& now, [[maybe_unused]] TCPResponse&& response) override
-  {
-    // nothing to do
-  }
-};
-
-class UDPCrossProtocolQuery : public CrossProtocolQuery
-{
-public:
-  UDPCrossProtocolQuery(PacketBuffer&& buffer_, InternalQueryState&& ids_, std::shared_ptr<DownstreamState> backend) :
-    CrossProtocolQuery(InternalQuery(std::move(buffer_), std::move(ids_)), backend)
-  {
-    auto& ids = query.d_idstate;
-    const auto& buffer = query.d_buffer;
-
-    if (ids.udpPayloadSize == 0) {
-      uint16_t zValue = 0;
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-      getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(buffer.data()), buffer.size(), &ids.udpPayloadSize, &zValue);
-      if (!ids.dnssecOK) {
-        ids.dnssecOK = (zValue & EDNS_HEADER_FLAG_DO) != 0;
-      }
-      if (ids.udpPayloadSize < 512) {
-        ids.udpPayloadSize = 512;
-      }
-    }
-  }
-  UDPCrossProtocolQuery(const UDPCrossProtocolQuery&) = delete;
-  UDPCrossProtocolQuery& operator=(const UDPCrossProtocolQuery&) = delete;
-  UDPCrossProtocolQuery(UDPCrossProtocolQuery&&) = delete;
-  UDPCrossProtocolQuery& operator=(UDPCrossProtocolQuery&&) = delete;
-  ~UDPCrossProtocolQuery() override = default;
-
-  std::shared_ptr<TCPQuerySender> getTCPQuerySender() override
-  {
-    return s_sender;
-  }
-
-private:
-  static std::shared_ptr<UDPTCPCrossQuerySender> s_sender;
-};
-
-std::shared_ptr<UDPTCPCrossQuerySender> UDPCrossProtocolQuery::s_sender = std::make_shared<UDPTCPCrossQuerySender>();
-
-std::unique_ptr<CrossProtocolQuery> getUDPCrossProtocolQueryFromDQ(DNSQuestion& dnsQuestion);
-std::unique_ptr<CrossProtocolQuery> getUDPCrossProtocolQueryFromDQ(DNSQuestion& dnsQuestion)
-{
-  dnsQuestion.ids.origID = dnsQuestion.getHeader()->id;
-  return std::make_unique<UDPCrossProtocolQuery>(std::move(dnsQuestion.getMutableData()), std::move(dnsQuestion.ids), nullptr);
-}
+std::shared_ptr<dnsdist::udp::UDPTCPCrossQuerySender> dnsdist::udp::UDPCrossProtocolQuery::s_sender = std::make_shared<UDPTCPCrossQuerySender>();
 
 ProcessQueryResult processQuery(DNSQuestion& dnsQuestion, std::shared_ptr<DownstreamState>& selectedBackend)
 {
@@ -1914,499 +1499,6 @@ bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& downstrea
   }
 
   return true;
-}
-
-static void processUDPQuery(ClientState& clientState, const struct msghdr* msgh, const ComboAddress& remote, ComboAddress& dest, PacketBuffer& query, std::vector<mmsghdr>* responsesVect, unsigned int* queuedResponses, struct iovec* respIOV, cmsgbuf_aligned* respCBuf)
-{
-  assert(responsesVect == nullptr || (queuedResponses != nullptr && respIOV != nullptr && respCBuf != nullptr));
-  uint16_t queryId = 0;
-  InternalQueryState ids;
-
-  pdns::trace::dnsdist::Tracer::Closer closer;
-  if (auto tracer = ids.getTracer(); tracer != nullptr) {
-    closer = tracer->openSpan("processUDPQuery");
-  }
-
-  ids.cs = &clientState;
-  ids.origRemote = remote;
-  ids.hopRemote = remote;
-  ids.protocol = dnsdist::Protocol::DoUDP;
-
-  try {
-    bool expectProxyProtocol = false;
-    if (!isUDPQueryAcceptable(clientState, msgh, remote, dest, expectProxyProtocol)) {
-      return;
-    }
-    /* dest might have been updated, if we managed to harvest the destination address */
-    if (dest.sin4.sin_family != 0) {
-      ids.origDest = dest;
-      ids.hopLocal = dest;
-    }
-    else {
-      /* if we have not been able to harvest the destination address,
-         we do NOT want to update dest or hopLocal, to let the kernel
-         pick the less terrible option, but we want to update origDest
-         which is used by rules and actions to at least the correct
-         address family */
-      ids.origDest = clientState.local;
-      ids.hopLocal.sin4.sin_family = 0;
-    }
-
-    std::vector<ProxyProtocolValue> proxyProtocolValues;
-    if (expectProxyProtocol && !handleProxyProtocol(remote, false, dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL, query, ids.origRemote, ids.origDest, proxyProtocolValues)) {
-      return;
-    }
-
-    ids.queryRealTime.start();
-
-    auto dnsCryptResponse = checkDNSCryptQuery(clientState, query, ids.dnsCryptQuery, ids.queryRealTime.d_start.tv_sec, false);
-    if (dnsCryptResponse) {
-      sendUDPResponse(clientState.udpFD, query, 0, dest, remote);
-      return;
-    }
-
-    {
-      /* this pointer will be invalidated the second the buffer is resized, don't hold onto it! */
-      const dnsheader_aligned dnsHeader(query.data());
-      queryId = ntohs(dnsHeader->id);
-
-      if (!checkQueryHeaders(*dnsHeader, clientState)) {
-        return;
-      }
-
-      if (dnsHeader->qdcount == 0) {
-        dnsdist::PacketMangling::editDNSHeaderFromPacket(query, [](dnsheader& header) {
-          header.rcode = RCode::NotImp;
-          header.qr = true;
-          return true;
-        });
-
-        sendUDPResponse(clientState.udpFD, query, 0, dest, remote);
-        return;
-      }
-    }
-
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    ids.qname = DNSName(reinterpret_cast<const char*>(query.data()), query.size(), sizeof(dnsheader), false, &ids.qtype, &ids.qclass);
-    if (ids.dnsCryptQuery) {
-      ids.protocol = dnsdist::Protocol::DNSCryptUDP;
-    }
-    DNSQuestion dnsQuestion(ids, query);
-    const uint16_t* flags = getFlagsFromDNSHeader(dnsQuestion.getHeader().get());
-    ids.origFlags = *flags;
-
-    if (!proxyProtocolValues.empty()) {
-      dnsQuestion.proxyProtocolValues = make_unique<std::vector<ProxyProtocolValue>>(std::move(proxyProtocolValues));
-    }
-
-    // save UDP payload size from origin query
-    uint16_t udpPayloadSize = 0;
-    uint16_t zValue = 0;
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(query.data()), query.size(), &udpPayloadSize, &zValue);
-    if (!ids.dnssecOK) {
-      ids.dnssecOK = (zValue & EDNS_HEADER_FLAG_DO) != 0;
-    }
-    if (udpPayloadSize < 512) {
-      udpPayloadSize = 512;
-    }
-
-    std::shared_ptr<DownstreamState> backend{nullptr};
-    auto result = processQuery(dnsQuestion, backend);
-
-    if (result == ProcessQueryResult::Drop || result == ProcessQueryResult::Asynchronous) {
-      return;
-    }
-
-    // the buffer might have been invalidated by now (resized)
-    const auto dnsHeader = dnsQuestion.getHeader();
-    if (result == ProcessQueryResult::SendAnswer) {
-      /* ensure payload size is not exceeded */
-      handleResponseTC4UDPClient(dnsQuestion, udpPayloadSize, query);
-#ifndef DISABLE_RECVMMSG
-#if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
-      if (dnsQuestion.ids.delayMsec == 0 && responsesVect != nullptr) {
-        queueResponse(query, dest, remote, (*responsesVect)[*queuedResponses], respIOV, respCBuf);
-        (*queuedResponses)++;
-        handleResponseSent(dnsQuestion.ids.qname, dnsQuestion.ids.qtype, 0., remote, ComboAddress(), query.size(), *dnsHeader, dnsdist::Protocol::DoUDP, dnsdist::Protocol::DoUDP, false);
-        return;
-      }
-#endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
-#endif /* DISABLE_RECVMMSG */
-      /* we use dest, always, because we don't want to use the listening address to send a response since it could be 0.0.0.0 */
-      sendUDPResponse(clientState.udpFD, query, dnsQuestion.ids.delayMsec, dest, remote);
-
-      handleResponseSent(dnsQuestion.ids.qname, dnsQuestion.ids.qtype, 0., remote, ComboAddress(), query.size(), *dnsHeader, dnsdist::Protocol::DoUDP, dnsdist::Protocol::DoUDP, false);
-      return;
-    }
-
-    if (result != ProcessQueryResult::PassToBackend || backend == nullptr) {
-      return;
-    }
-
-    if (backend->isTCPOnly()) {
-      std::string proxyProtocolPayload;
-      /* we need to do this _before_ creating the cross protocol query because
-         after that the buffer will have been moved */
-      if (backend->d_config.useProxyProtocol) {
-        proxyProtocolPayload = getProxyProtocolPayload(dnsQuestion);
-      }
-
-      ids.origID = dnsHeader->id;
-      auto cpq = std::make_unique<UDPCrossProtocolQuery>(std::move(query), std::move(ids), backend);
-      cpq->query.d_proxyProtocolPayload = std::move(proxyProtocolPayload);
-
-      backend->passCrossProtocolQuery(std::move(cpq));
-      return;
-    }
-
-    assignOutgoingUDPQueryToBackend(backend, dnsHeader->id, dnsQuestion, query);
-  }
-  catch (const std::exception& e) {
-    vinfolog("Got an error in UDP question thread while parsing a query from %s, id %d: %s", ids.origRemote.toStringWithPort(), queryId, e.what());
-  }
-}
-
-#ifdef HAVE_XSK
-namespace dnsdist::xsk
-{
-bool XskProcessQuery(ClientState& clientState, XskPacket& packet)
-{
-  uint16_t queryId = 0;
-  const auto& remote = packet.getFromAddr();
-  const auto& dest = packet.getToAddr();
-  InternalQueryState ids;
-  ids.cs = &clientState;
-  ids.origRemote = remote;
-  ids.hopRemote = remote;
-  ids.origDest = dest;
-  ids.hopLocal = dest;
-  ids.protocol = dnsdist::Protocol::DoUDP;
-  ids.xskPacketHeader = packet.cloneHeaderToPacketBuffer();
-
-  try {
-    bool expectProxyProtocol = false;
-    if (!XskIsQueryAcceptable(packet, clientState, expectProxyProtocol)) {
-      return false;
-    }
-
-    auto query = packet.clonePacketBuffer();
-    std::vector<ProxyProtocolValue> proxyProtocolValues;
-    if (expectProxyProtocol && !handleProxyProtocol(remote, false, dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL, query, ids.origRemote, ids.origDest, proxyProtocolValues)) {
-      return false;
-    }
-
-    ids.queryRealTime.start();
-
-    auto dnsCryptResponse = checkDNSCryptQuery(clientState, query, ids.dnsCryptQuery, ids.queryRealTime.d_start.tv_sec, false);
-    if (dnsCryptResponse) {
-      packet.setPayload(query);
-      return true;
-    }
-
-    {
-      /* this pointer will be invalidated the second the buffer is resized, don't hold onto it! */
-      dnsheader_aligned dnsHeader(query.data());
-      queryId = ntohs(dnsHeader->id);
-
-      if (!checkQueryHeaders(*dnsHeader, clientState)) {
-        return false;
-      }
-
-      if (dnsHeader->qdcount == 0) {
-        dnsdist::PacketMangling::editDNSHeaderFromPacket(query, [](dnsheader& header) {
-          header.rcode = RCode::NotImp;
-          header.qr = true;
-          return true;
-        });
-        packet.setPayload(query);
-        return true;
-      }
-    }
-
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    ids.qname = DNSName(reinterpret_cast<const char*>(query.data()), query.size(), sizeof(dnsheader), false, &ids.qtype, &ids.qclass);
-    if (ids.origDest.sin4.sin_family == 0) {
-      ids.origDest = clientState.local;
-    }
-    if (ids.dnsCryptQuery) {
-      ids.protocol = dnsdist::Protocol::DNSCryptUDP;
-    }
-    DNSQuestion dnsQuestion(ids, query);
-    if (!proxyProtocolValues.empty()) {
-      dnsQuestion.proxyProtocolValues = make_unique<std::vector<ProxyProtocolValue>>(std::move(proxyProtocolValues));
-    }
-    std::shared_ptr<DownstreamState> backend{nullptr};
-    auto result = processQuery(dnsQuestion, backend);
-
-    if (result == ProcessQueryResult::Drop) {
-      return false;
-    }
-
-    if (result == ProcessQueryResult::SendAnswer) {
-      packet.setPayload(query);
-      if (dnsQuestion.ids.delayMsec > 0) {
-        packet.addDelay(dnsQuestion.ids.delayMsec);
-      }
-      const auto dnsHeader = dnsQuestion.getHeader();
-      handleResponseSent(ids.qname, ids.qtype, 0., remote, ComboAddress(), query.size(), *dnsHeader, dnsdist::Protocol::DoUDP, dnsdist::Protocol::DoUDP, false);
-      return true;
-    }
-
-    if (result != ProcessQueryResult::PassToBackend || backend == nullptr) {
-      return false;
-    }
-
-    // the buffer might have been invalidated by now (resized)
-    const auto dnsHeader = dnsQuestion.getHeader();
-    if (backend->isTCPOnly()) {
-      std::string proxyProtocolPayload;
-      /* we need to do this _before_ creating the cross protocol query because
-         after that the buffer will have been moved */
-      if (backend->d_config.useProxyProtocol) {
-        proxyProtocolPayload = getProxyProtocolPayload(dnsQuestion);
-      }
-
-      ids.origID = dnsHeader->id;
-      auto cpq = std::make_unique<UDPCrossProtocolQuery>(std::move(query), std::move(ids), backend);
-      cpq->query.d_proxyProtocolPayload = std::move(proxyProtocolPayload);
-
-      backend->passCrossProtocolQuery(std::move(cpq));
-      return false;
-    }
-
-    if (backend->d_xskInfos.empty()) {
-      assignOutgoingUDPQueryToBackend(backend, dnsHeader->id, dnsQuestion, query, true);
-      return false;
-    }
-
-    assignOutgoingUDPQueryToBackend(backend, dnsHeader->id, dnsQuestion, query, false);
-    auto sourceAddr = backend->pickSourceAddressForSending();
-    packet.setAddr(sourceAddr, backend->d_config.sourceMACAddr, backend->d_config.remote, backend->d_config.destMACAddr);
-    packet.setPayload(query);
-    packet.rewrite();
-    return true;
-  }
-  catch (const std::exception& e) {
-    vinfolog("Got an error in UDP question thread while parsing a query from %s, id %d: %s", remote.toStringWithPort(), queryId, e.what());
-  }
-  return false;
-}
-
-}
-#endif /* HAVE_XSK */
-
-#ifndef DISABLE_RECVMMSG
-#if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
-static void MultipleMessagesUDPClientThread(ClientState* clientState)
-{
-  struct MMReceiver
-  {
-    PacketBuffer packet;
-    ComboAddress remote;
-    ComboAddress dest;
-    iovec iov{};
-    /* used by HarvestDestinationAddress */
-    cmsgbuf_aligned cbuf{};
-  };
-  const size_t vectSize = dnsdist::configuration::getImmutableConfiguration().d_udpVectorSize;
-
-  if (vectSize > std::numeric_limits<uint16_t>::max()) {
-    throw std::runtime_error("The value of setUDPMultipleMessagesVectorSize is too high, the maximum value is " + std::to_string(std::numeric_limits<uint16_t>::max()));
-  }
-
-  auto recvData = std::vector<MMReceiver>(vectSize);
-  auto msgVec = std::vector<mmsghdr>(vectSize);
-  auto outMsgVec = std::vector<mmsghdr>(vectSize);
-
-  /* the actual buffer is larger because:
-     - we may have to add EDNS and/or ECS
-     - we use it for self-generated responses (from rule or cache)
-     but we only accept incoming payloads up to that size
-  */
-  const size_t initialBufferSize = getInitialUDPPacketBufferSize(clientState->d_enableProxyProtocol);
-  const size_t maxIncomingPacketSize = getMaximumIncomingPacketSize(*clientState);
-
-  /* initialize the structures needed to receive our messages */
-  for (size_t idx = 0; idx < vectSize; idx++) {
-    recvData[idx].remote.sin4.sin_family = clientState->local.sin4.sin_family;
-    recvData[idx].packet.resize(initialBufferSize);
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    fillMSGHdr(&msgVec[idx].msg_hdr, &recvData[idx].iov, &recvData[idx].cbuf, sizeof(recvData[idx].cbuf), reinterpret_cast<char*>(recvData[idx].packet.data()), maxIncomingPacketSize, &recvData[idx].remote);
-  }
-
-  /* go now */
-  for (;;) {
-
-    /* reset the IO vector, since it's also used to send the vector of responses
-       to avoid having to copy the data around */
-    for (size_t idx = 0; idx < vectSize; idx++) {
-      recvData[idx].packet.resize(initialBufferSize);
-      recvData[idx].iov.iov_base = &recvData[idx].packet.at(0);
-      recvData[idx].iov.iov_len = recvData[idx].packet.size();
-    }
-
-    /* block until we have at least one message ready, but return
-       as many as possible to save the syscall costs */
-    int msgsGot = recvmmsg(clientState->udpFD, msgVec.data(), vectSize, MSG_WAITFORONE | MSG_TRUNC, nullptr);
-
-    if (msgsGot <= 0) {
-      vinfolog("Getting UDP messages via recvmmsg() failed with: %s", stringerror());
-      continue;
-    }
-
-    unsigned int msgsToSend = 0;
-
-    /* process the received messages */
-    for (int msgIdx = 0; msgIdx < msgsGot; msgIdx++) {
-      const struct msghdr* msgh = &msgVec[msgIdx].msg_hdr;
-      unsigned int got = msgVec[msgIdx].msg_len;
-      const ComboAddress& remote = recvData[msgIdx].remote;
-
-      if (static_cast<size_t>(got) < sizeof(struct dnsheader)) {
-        ++dnsdist::metrics::g_stats.nonCompliantQueries;
-        ++clientState->nonCompliantQueries;
-        continue;
-      }
-
-      recvData[msgIdx].packet.resize(got);
-      dnsdist::configuration::refreshLocalRuntimeConfiguration();
-      processUDPQuery(*clientState, msgh, remote, recvData[msgIdx].dest, recvData[msgIdx].packet, &outMsgVec, &msgsToSend, &recvData[msgIdx].iov, &recvData[msgIdx].cbuf);
-    }
-
-    /* immediate (not delayed or sent to a backend) responses (mostly from a rule, dynamic block
-       or the cache) can be sent in batch too */
-
-    if (msgsToSend > 0 && msgsToSend <= static_cast<unsigned int>(msgsGot)) {
-      int sent = sendmmsg(clientState->udpFD, outMsgVec.data(), msgsToSend, 0);
-
-      if (sent < 0 || static_cast<unsigned int>(sent) != msgsToSend) {
-        vinfolog("Error sending responses with sendmmsg() (%d on %u): %s", sent, msgsToSend, stringerror());
-      }
-    }
-  }
-}
-#endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
-#endif /* DISABLE_RECVMMSG */
-
-// listens to incoming queries, sends out to downstream servers, noting the intended return path
-static void udpClientThread(std::vector<ClientState*> states)
-{
-  try {
-    setThreadName("dnsdist/udpClie");
-#ifndef DISABLE_RECVMMSG
-#if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
-    if (dnsdist::configuration::getImmutableConfiguration().d_udpVectorSize > 1) {
-      MultipleMessagesUDPClientThread(states.at(0));
-    }
-    else
-#endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
-#endif /* DISABLE_RECVMMSG */
-    {
-      /* the actual buffer is larger because:
-         - we may have to add EDNS and/or ECS
-         - we use it for self-generated responses (from rule or cache)
-         but we only accept incoming payloads up to that size
-      */
-      struct UDPStateParam
-      {
-        ClientState* cs{nullptr};
-        size_t maxIncomingPacketSize{0};
-        int socket{-1};
-      };
-      const size_t initialBufferSize = getInitialUDPPacketBufferSize(true);
-      PacketBuffer packet(initialBufferSize);
-
-      msghdr msgh{};
-      iovec iov{};
-      ComboAddress remote;
-      ComboAddress dest;
-
-      auto handleOnePacket = [&packet, &iov, &msgh, &remote, &dest, initialBufferSize](const UDPStateParam& param) {
-        packet.resize(initialBufferSize);
-        iov.iov_base = &packet.at(0);
-        iov.iov_len = packet.size();
-
-        ssize_t got = recvmsg(param.socket, &msgh, 0);
-
-        if (got < 0 || static_cast<size_t>(got) < sizeof(struct dnsheader)) {
-          ++dnsdist::metrics::g_stats.nonCompliantQueries;
-          ++param.cs->nonCompliantQueries;
-          return;
-        }
-
-        packet.resize(static_cast<size_t>(got));
-
-        dnsdist::configuration::refreshLocalRuntimeConfiguration();
-        processUDPQuery(*param.cs, &msgh, remote, dest, packet, nullptr, nullptr, nullptr, nullptr);
-      };
-
-      std::vector<UDPStateParam> params;
-      for (auto& state : states) {
-        const size_t maxIncomingPacketSize = getMaximumIncomingPacketSize(*state);
-        params.emplace_back(UDPStateParam{state, maxIncomingPacketSize, state->udpFD});
-      }
-
-      if (params.size() == 1) {
-        const auto& param = params.at(0);
-        remote.sin4.sin_family = param.cs->local.sin4.sin_family;
-        /* used by HarvestDestinationAddress */
-        cmsgbuf_aligned cbuf;
-        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-        fillMSGHdr(&msgh, &iov, &cbuf, sizeof(cbuf), reinterpret_cast<char*>(&packet.at(0)), param.maxIncomingPacketSize, &remote);
-        while (true) {
-          try {
-            handleOnePacket(param);
-          }
-          catch (const std::bad_alloc& e) {
-            /* most exceptions are handled by handleOnePacket(), but we might be out of memory (std::bad_alloc)
-               in which case we DO NOT want to log (as it would trigger another memory allocation attempt
-               that might throw as well) but wait a bit (one millisecond) and then try to recover */
-            usleep(1000);
-          }
-        }
-      }
-      else {
-        auto callback = [&remote, &msgh, &iov, &packet, &handleOnePacket, initialBufferSize](int socket, FDMultiplexer::funcparam_t& funcparam) {
-          (void)socket;
-          const auto* param = boost::any_cast<const UDPStateParam*>(funcparam);
-          try {
-            remote.sin4.sin_family = param->cs->local.sin4.sin_family;
-            packet.resize(initialBufferSize);
-            /* used by HarvestDestinationAddress */
-            cmsgbuf_aligned cbuf;
-            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-            fillMSGHdr(&msgh, &iov, &cbuf, sizeof(cbuf), reinterpret_cast<char*>(&packet.at(0)), param->maxIncomingPacketSize, &remote);
-            handleOnePacket(*param);
-          }
-          catch (const std::bad_alloc& e) {
-            /* most exceptions are handled by handleOnePacket(), but we might be out of memory (std::bad_alloc)
-               in which case we DO NOT want to log (as it would trigger another memory allocation attempt
-               that might throw as well) but wait a bit (one millisecond) and then try to recover */
-            usleep(1000);
-          }
-        };
-        auto mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent(params.size()));
-        for (const auto& param : params) {
-          mplexer->addReadFD(param.socket, callback, &param);
-        }
-
-        timeval now{};
-        while (true) {
-          mplexer->run(&now, -1);
-        }
-      }
-    }
-  }
-  catch (const std::exception& e) {
-    errlog("UDP client thread died because of exception: %s", e.what());
-  }
-  catch (const PDNSException& e) {
-    errlog("UDP client thread died because of PowerDNS exception: %s", e.reason);
-  }
-  catch (...) {
-    errlog("UDP client thread died because of an exception: %s", "unknown");
-  }
 }
 
 static void maintThread()
@@ -3436,7 +2528,7 @@ static void startFrontends()
 #ifdef USE_SINGLE_ACCEPTOR_THREAD
       udpStates.push_back(clientState.get());
 #else /* USE_SINGLE_ACCEPTOR_THREAD */
-      std::thread udpClientThreadHandle(udpClientThread, std::vector<ClientState*>{clientState.get()});
+      std::thread udpClientThreadHandle(dnsdist::udp::udpClientThread, std::vector<ClientState*>{clientState.get()});
       if (!clientState->cpus.empty()) {
         mapThreadToCPUList(udpClientThreadHandle.native_handle(), clientState->cpus);
       }
