@@ -33,7 +33,6 @@ def have_ipv6():
         return True
     except:
         return False
-    return False
 
 
 class RecursorTest(AssertEqualDNSMessageMixin, unittest.TestCase):

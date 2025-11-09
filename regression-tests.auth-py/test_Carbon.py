@@ -58,7 +58,6 @@ class TestCarbon(AuthTest):
                 cls._carbonCounters[threading.currentThread().name] = 1
 
             conn.close()
-        sock.close()
 
     @classmethod
     def startResponders(cls):
