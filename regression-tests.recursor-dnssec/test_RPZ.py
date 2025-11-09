@@ -434,7 +434,7 @@ e 3600 IN A 192.0.2.42
                 soa = zone.get_soa()
                 if soa.serial == serial and soa.mname == dns.name.from_text('ns.zone.rpz.'):
                     return # we found what we expected
-            except e as FileNotFoundError:
+            except FileNotFoundError as e:
                 pass
             attempts = attempts + incr
             time.sleep(incr)
