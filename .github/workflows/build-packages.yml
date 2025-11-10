@@ -344,6 +344,7 @@ jobs:
         uses: actions/download-artifact@v6
         with:
           pattern: "${{ inputs.product }}-${{ matrix.os }}-${{ needs.build.outputs.version }}-${{ matrix.architecture }}"
+          path: files/
       - name: Normalize package name
         id: normalize-name
         run: |
@@ -360,16 +361,12 @@ jobs:
           fi
       - name: Extract and prepare files and packages
         run: |
-          # Prepare files folder
-          mkdir -p files/${{ steps.normalize-name.outputs.normalized-package-name }}/${{ needs.build.outputs.version }}
-          # Copy compressed and provenance files
-          cp ${{ inputs.product }}-${{ matrix.os }}-*-${{ matrix.architecture }}/*/*/*-${{ matrix.architecture }}.tar.bz2 files/${{ steps.normalize-name.outputs.normalized-package-name }}/${{ needs.build.outputs.version }}/
           # Extract packages
-          for i in $(ls ./${{ inputs.product }}-${{ matrix.os }}-*-${{ matrix.architecture }}/*/*/*${{ matrix.architecture }}.tar.bz2); do mkdir -p ./packages/$(echo $i | cut -d '/' -f 2)/; tar -xvf $i -C ./packages/$(echo $i | cut -d '/' -f 2)/ --transform='s/.*\///'; done
+          for i in $(ls ./files/*/*/*${{ matrix.architecture }}.tar.bz2); do mkdir -p ./packages/$(echo $i | cut -d '/' -f 2)/; tar -xvf $i -C ./packages/$(echo $i | cut -d '/' -f 2)/ --transform='s/.*\///'; done
           # Move RPM files
-          for i in $(ls ./packages/*/*.rpm); do f=$(echo $i | awk -F/ '{print $3}' | awk -F'${{ inputs.product }}-' '{print $2}' | awk -F'-${{ needs.build.outputs.version }}-' '{print $1"."$2}'); mkdir -p rpm_packages/${f}; mv $i rpm_packages/${f}/; done
+          for i in $(ls ./packages/*/*.rpm); do mkdir -p rpm_packages/${{ matrix.os }}.${{ matrix.architecture }}; mv $i rpm_packages/${{ matrix.os }}.${{ matrix.architecture }}/; done
           # Move deb files
-          for i in $(ls ./packages/*/*.deb); do mkdir -p deb_packages/$(echo $i | awk -F/ '{print $3}' | awk -F- '{print $2"-"$3}'); mv $i deb_packages/$(echo $i | awk -F/ '{print $3}' | awk -F- '{print $2"-"$3}'); done
+          for i in $(ls ./packages/*/*.deb); do mkdir -p deb_packages/${{ matrix.os }}; mv $i deb_packages/${{ matrix.os }}/; done
       - name: Upload DEB Packages
         if: ${{ contains(matrix.os, 'ubuntu-') || ( contains(matrix.os, 'debian-')) }}
         run: ${{ env.INV_CMD }} pulp-upload-deb-packages-by-folder deb_packages ${{ steps.normalize-name.outputs.normalized-product-name }}
@@ -415,6 +412,7 @@ jobs:
         uses: actions/download-artifact@v6
         with:
           pattern: "${{ inputs.product }}-${{ matrix.os }}-${{ needs.build.outputs.version }}-${{ matrix.architecture }}"
+          path: files/
       - name: Normalize package name
         id: normalize-name
         run: |
@@ -427,12 +425,8 @@ jobs:
           fi
       - name: Extract and prepare files and packages
         run: |
-          # Prepare files folder
-          mkdir -p files/${{ steps.normalize-name.outputs.normalized-package-name }}/${{ needs.build.outputs.version }}
-          # Copy compressed files
-          cp ${{ inputs.product }}-${{ matrix.os }}-*-${{ matrix.architecture }}/*/*/*.tar.bz2 files/${{ steps.normalize-name.outputs.normalized-package-name }}/${{ needs.build.outputs.version }}/
           # Extract packages
-          for i in $(ls ./${{ inputs.product }}-${{ matrix.os }}-*-${{ matrix.architecture }}/*/*/*${{ matrix.architecture }}.tar.bz2); do mkdir -p ./packages/$(echo $i | cut -d '/' -f 2)/; tar -xvf $i -C ./packages/$(echo $i | cut -d '/' -f 2)/ --transform='s/.*\///'; done
+          for i in $(ls ./files/*/*/*${{ matrix.architecture }}.tar.bz2); do mkdir -p ./packages/$(echo $i | cut -d '/' -f 2)/; tar -xvf $i -C ./packages/$(echo $i | cut -d '/' -f 2)/ --transform='s/.*\///'; done
           # Add file with list of dependencies
           for i in $(ls ./packages/*/*.json); do mv $i files/${{ steps.normalize-name.outputs.normalized-package-name }}/${{ needs.build.outputs.version }}/; done
       - name: Upload build data

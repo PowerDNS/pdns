@@ -1366,7 +1366,7 @@ def pulp_create_deb_publication(c):
                 break
             except UnexpectedExit:
                 attempts += 1
-                time.sleep(5)
+                time.sleep(20)
                 print(f'Next attempt: {attempts}')
                 if attempts == max_push_attempts:
                     raise Failure(f'Error creating deb publication')
@@ -1396,7 +1396,7 @@ def get_pulp_repository_href(c, repo_name, repo_type):
 def is_pulp_task_completed(c, task_href):
     elapsed_time = 0
     check_interval = 5
-    max_wait_time = 60
+    max_wait_time = 300
 
     while elapsed_time < max_wait_time:
         cmd = f"task show --href {task_href} | jq -r .state | tr -d '\n'"
