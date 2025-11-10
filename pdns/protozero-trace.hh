@@ -229,11 +229,15 @@ struct InstrumentationScope
   static InstrumentationScope decode(protozero::pbf_reader& reader);
 };
 
-constexpr std::array<uint8_t, 16> s_emptyTraceID{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 struct TraceID : public std::array<uint8_t, 16>
 {
   TraceID() :
-    array{s_emptyTraceID} {};
+    array{} {};
+  TraceID(const std::initializer_list<uint8_t>& arg) :
+    array{}
+  {
+    std::copy(arg.begin(), arg.end(), begin());
+  }
 
   [[nodiscard]] std::string toLogString() const;
   friend std::ostream& operator<<(std::ostream& ostrm, const TraceID& val)
@@ -244,7 +248,7 @@ struct TraceID : public std::array<uint8_t, 16>
   static TraceID getRandomTraceID()
   {
     TraceID ret;
-    dns_random(ret.data(), ret.size());
+    ret.makeRandom();
     return ret;
   }
 
@@ -258,12 +262,17 @@ struct TraceID : public std::array<uint8_t, 16>
     this->fill(0);
   }
 };
+const TraceID s_emptyTraceID = {};
 
-constexpr std::array<uint8_t, 8> s_emptySpanID{0, 0, 0, 0, 0, 0, 0, 0};
 struct SpanID : public std::array<uint8_t, 8>
 {
   SpanID() :
-    array{s_emptySpanID} {};
+    array{} {};
+  SpanID(const std::initializer_list<uint8_t>& arg) :
+    array{}
+  {
+    std::copy(arg.begin(), arg.end(), begin());
+  }
 
   [[nodiscard]] std::string toLogString() const;
   friend std::ostream& operator<<(std::ostream& ostrm, const SpanID& val)
@@ -274,7 +283,7 @@ struct SpanID : public std::array<uint8_t, 8>
   static SpanID getRandomSpanID()
   {
     SpanID ret;
-    dns_random(ret.data(), ret.size());
+    ret.makeRandom();
     return ret;
   }
 
@@ -288,6 +297,7 @@ struct SpanID : public std::array<uint8_t, 8>
     this->fill(0);
   }
 };
+const SpanID s_emptySpanID = {};
 
 inline void fill(TraceID& trace, const std::string& data)
 {
