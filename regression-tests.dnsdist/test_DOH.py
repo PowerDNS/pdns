@@ -380,17 +380,18 @@ class DOHTests(object):
         except:
             pass
 
+    metricMap = {
+        'connects': 2,
+        'http/1.1': 3,
+        'http/2': 4,
+    }
+
     def getHTTPCounter(self, name):
         lines = self.sendConsoleCommand("showDOHFrontends()").splitlines()
         self.assertEqual(len(lines), 2)
         metrics = lines[1].split()
         self.assertEqual(len(metrics), 15)
-        if name == 'connects':
-            return int(metrics[2])
-        if name == 'http/1.1':
-            return int(metrics[3])
-        if name == 'http/2':
-            return int(metrics[4])
+        return int(metrics[self.metricMap[name]])
 
     def testDOHHTTP1(self):
         """
