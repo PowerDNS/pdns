@@ -445,6 +445,9 @@ void RecursorLua4::postPrepareContext() // NOLINT(readability-function-cognitive
       }
     }
 
+    if (prometheusDescr.empty()) {
+      prometheusDescr = "N/A";
+    }
     return DynMetric{getDynMetric(str, prometheusName, prometheusTypeName, prometheusDescr)};
     });
 

@@ -47,6 +47,12 @@ class BasicPrometheusTest(RecPrometheusTest):
     _wsPassword = 'secretpassword'
     _apiKey = 'secretapikey'
 
+    _lua_dns_script_file = """
+    getMetric('metric_just_a_name')
+    getMetric('metric_wpn', 'pdns_recursor_metric_with_name')
+    getMetric('metric_extra', {prometheusName = 'pdns_recursor_metric_with_name2', type = 'gauge', description = 'desc'})
+"""
+
     _config_template = """
 webserver=yes
 webserver-port=%d
@@ -71,6 +77,12 @@ class HttpsPrometheusTest(RecPrometheusTest):
     _wsTimeout = 2
     _wsPassword = 'secretpassword'
     _apiKey = 'secretapikey'
+
+    _lua_dns_script_file = """
+    getMetric('metric_just_a_name')
+    getMetric('metric_wpn', 'pdns_recursor_metric_with_name')
+    getMetric('metric_extra', {prometheusName = 'pdns_recursor_metric_with_name2', type = 'gauge', description = 'desc'})
+"""
 
     _config_template = """
 webservice:

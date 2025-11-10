@@ -25,7 +25,7 @@ Create a custom metric with:
 
   :param string prometheusName: The optional Prometheus specific name.
 
-  .. versionAdded:: 5.4.0
+  .. versionadded:: 5.4.0
 
   :param table prometheusTable: The optional table of Prometheus specific options
 
