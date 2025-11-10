@@ -9,7 +9,7 @@ import time
 import async_timeout
 
 from collections import deque
-from typing import BinaryIO, Callable, Deque, Dict, List, Optional, Union, cast
+from typing import BinaryIO, Callable, Deque, Dict, List, Optional, Tuple, Union, cast
 from urllib.parse import urlparse
 
 import aioquic
@@ -157,9 +157,8 @@ async def perform_http_request(
     include: bool,
     output_dir: Optional[str],
     additional_headers: Optional[Dict] = None,
-) -> None:
+) -> Tuple[str, Dict[str, str]]:
     # perform request
-    start = time.time()
     if data is not None:
         headers = copy.deepcopy(additional_headers) if additional_headers else {}
         headers["content-length"] = str(len(data))
@@ -169,11 +168,8 @@ async def perform_http_request(
             data=data,
             headers=headers,
         )
-        method = "POST"
     else:
         http_events = await client.get(url, headers=additional_headers)
-        method = "GET"
-    elapsed = time.time() - start
 
     result = bytes()
     headers = {}
@@ -197,7 +193,7 @@ async def async_h3_query(
     post: bool,
     create_protocol=HttpClient,
     additional_headers: Optional[Dict] = None,
-) -> None:
+) -> Union[Tuple[str, Dict[str, str]], Tuple[asyncio.TimeoutError, Dict[str, str]]]:
 
     url = baseurl
     if not post:

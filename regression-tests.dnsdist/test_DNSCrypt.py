@@ -427,7 +427,6 @@ class TestDNSCryptAutomaticRotation(DNSCryptTest):
             client.refreshResolverCertificates()
             cert = client.getResolverCertificate()
             self.assertTrue(cert)
-            secondSerial = cert.serial
             self.assertGreater(cert.serial, serials[client])
 
         name = 'automatic-rotation.dnscrypt.tests.powerdns.com.'

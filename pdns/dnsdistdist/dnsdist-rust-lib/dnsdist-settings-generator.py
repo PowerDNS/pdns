@@ -203,11 +203,10 @@ def get_converted_serde_type(rust_type):
 
     return f'dnsdistsettings::{rust_type}'
 
-def get_rust_struct_fields_from_definition(name, keys, default_functions, indent_spaces, special_serde_object=False):
+def get_rust_struct_fields_from_definition(name, keys, default_functions, indent, special_serde_object=False):
     if not 'parameters' in keys:
         return ''
     output = ''
-    indent = ' '*indent_spaces
     for parameter in keys['parameters']:
         parameter_name = get_rust_field_name(parameter['name']) if not 'rename' in parameter else parameter['rename']
         rust_type = parameter['type']
@@ -252,7 +251,7 @@ def get_rust_struct_from_definition(name, keys, default_functions, indent_spaces
 '''
     indent_spaces += 4
     indent = ' '*indent_spaces
-    output += get_rust_struct_fields_from_definition(name, keys, default_functions, indent_spaces, special_serde_object=special_serde_object)
+    output += get_rust_struct_fields_from_definition(name, keys, default_functions, indent, special_serde_object=special_serde_object)
     output += '    }\n'
     if special_serde_object or not 'skip-serde' in keys or not keys['skip-serde']:
         default_functions.append(write_rust_default_trait_impl(f'{obj_name}Configuration{name_suffix}', special_serde_object))
@@ -401,7 +400,7 @@ def generate_actions_config(output, def_dir, response, default_functions):
             action_buffer += f'{indent}#[serde(default, skip_serializing_if = "crate::is_default")]\n'
         action_buffer += f'{indent}name: String,\n'
 
-        action_buffer += get_rust_struct_fields_from_definition(struct_name, action, default_functions, 8)
+        action_buffer += get_rust_struct_fields_from_definition(struct_name, action, default_functions, indent)
 
         action_buffer += '    }\n\n'
 
@@ -428,7 +427,7 @@ def generate_selectors_config(output, def_dir, default_functions):
             selector_buffer += f'{indent}#[serde(default, skip_serializing_if = "crate::is_default")]\n'
         selector_buffer += f'{indent}name: String,\n'
 
-        selector_buffer += get_rust_struct_fields_from_definition(struct_name, selector, default_functions, 8)
+        selector_buffer += get_rust_struct_fields_from_definition(struct_name, selector, default_functions, indent)
 
         selector_buffer += '    }\n\n'
 

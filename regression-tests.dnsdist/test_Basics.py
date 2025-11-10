@@ -426,7 +426,6 @@ class TestBasics(DNSDistTest):
         """
         Basic: NotImp on empty queries
         """
-        name = 'notimp-empty-queries.basic.tests.powerdns.com.'
         query = dns.message.Message()
 
         response = dns.message.make_response(query)

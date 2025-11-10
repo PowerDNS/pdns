@@ -754,8 +754,6 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
 
         toProxyQueue.put(response, True, 2.0)
 
-        wire = query.to_wire()
-
         reverseProxyPort = pickAvailablePort()
         reverseProxy = threading.Thread(name='Mock Proxy Protocol Reverse Proxy', target=MockTCPReverseProxyAddingProxyProtocol, args=[reverseProxyPort, self._dohServerPPOutsidePort])
         reverseProxy.start()
@@ -803,8 +801,6 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
         response = dns.message.make_response(query)
 
         toProxyQueue.put(response, True, 2.0)
-
-        wire = query.to_wire()
 
         reverseProxyPort = pickAvailablePort()
         tlsContext = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
@@ -857,8 +853,6 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
 
         toProxyQueue.put(response, True, 2.0)
 
-        wire = query.to_wire()
-
         reverseProxyPort = pickAvailablePort()
         reverseProxy = threading.Thread(name='Mock Proxy Protocol Reverse Proxy', target=MockTCPReverseProxyAddingProxyProtocol, args=[reverseProxyPort, self._dotServerPPOutsidePort])
         reverseProxy.start()
@@ -906,8 +900,6 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
         response = dns.message.make_response(query)
 
         toProxyQueue.put(response, True, 2.0)
-
-        wire = query.to_wire()
 
         reverseProxyPort = pickAvailablePort()
         tlsContext = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
@@ -1066,7 +1058,6 @@ class TestProxyProtocolIncomingValuesViaLua(DNSDistTest):
             query = dns.message.make_query(name, 'A', 'IN')
             # dnsdist set RA = RD for spoofed responses
             query.flags &= ~dns.flags.RD
-            response = dns.message.make_response(query)
 
             expectedResponse = dns.message.make_response(query)
             rrset = dns.rrset.from_text(name,

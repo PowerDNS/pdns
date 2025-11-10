@@ -227,7 +227,6 @@ class TestTCPKeepAlive(DNSDistTest):
         numQueriesPerConn = 4
 
         conns = []
-        start = time.time()
         for idx in range(numConns):
             conns.append(self.openTCPConnection())
 
