@@ -138,8 +138,8 @@ class TestDnstapOverRemoteLogger(DNSDistTest):
       return DNSAction.None, ""
     end
 
-    newServer{address="127.0.0.1:%s", useClientSubnet=true}
-    rl = newRemoteLogger('127.0.0.1:%s')
+    newServer{address="127.0.0.1:%d", useClientSubnet=true}
+    rl = newRemoteLogger('127.0.0.1:%d')
 
     addAction(AllRule(), DnstapLogAction("a.server", rl, alterDnstapQuery))				-- Send dnstap message before lookup
 
@@ -610,7 +610,7 @@ class TestDnstapOverFrameStreamUnixLogger(DNSDistTest):
     _fstrmLoggerCounter = 0
     _config_params = ['_testServerPort', '_fstrmLoggerAddress', '_dohServerPort', '_serverCert', '_serverKey', '_doh3ServerPort', '_serverCert', '_serverKey']
     _config_template = """
-    newServer{address="127.0.0.1:%s", useClientSubnet=true}
+    newServer{address="127.0.0.1:%d", useClientSubnet=true}
     fslu = newFrameStreamUnixLogger('%s')
 
     addDOHLocal("127.0.0.1:%d", "%s", "%s", { "/" }, {})
@@ -821,8 +821,8 @@ class TestDnstapOverFrameStreamTcpLogger(DNSDistTest):
     _fstrmLoggerCounter = 0
     _config_params = ['_testServerPort', '_fstrmLoggerPort']
     _config_template = """
-    newServer{address="127.0.0.1:%s", useClientSubnet=true}
-    fslu = newFrameStreamTcpLogger('127.0.0.1:%s')
+    newServer{address="127.0.0.1:%d", useClientSubnet=true}
+    fslu = newFrameStreamTcpLogger('127.0.0.1:%d')
 
     addAction(AllRule(), DnstapLogAction("a.server", fslu))
     """

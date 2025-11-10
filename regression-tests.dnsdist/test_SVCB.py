@@ -23,7 +23,7 @@ class TestSVCB(DNSDistTest):
     local httpsSVC = { newSVCRecordParameters(1, ".", { mandatory={"port"}, alpn={ "h2" }, noDefaultAlpn=true, port=8002, ipv4hint={ "192.0.2.2" }, ipv6hint={ "2001:db8::2" }}) }
     addAction(AndRule{QTypeRule(65), SuffixMatchNodeRule("https.svcb.tests.powerdns.com.")}, SpoofSVCAction(httpsSVC))
 
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testBasic(self):
@@ -186,7 +186,7 @@ class TestSVCBViaFFI(DNSDistTest):
 
     addAction(AndRule{QTypeRule(65), SuffixMatchNodeRule("https.svcb.tests.powerdns.com.")}, LuaFFIAction(httpsSVC))
 
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testBasic(self):

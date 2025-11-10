@@ -8,7 +8,7 @@ from dnsdisttests import DNSDistTest
 class TestResponseRuleNXDelayed(DNSDistTest):
 
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     addResponseAction(RCodeRule(DNSRCode.NXDOMAIN), DelayResponseAction(1000))
     """
 
@@ -58,7 +58,7 @@ class TestResponseRuleERCode(DNSDistTest):
 
     _extraStartupSleep = 1
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     addResponseAction(ERCodeRule(DNSRCode.BADVERS), DelayResponseAction(1000))
     """
 
@@ -109,7 +109,7 @@ class TestResponseRuleERCode(DNSDistTest):
 class TestResponseRuleQNameDropped(DNSDistTest):
 
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     addResponseAction("drop.responses.tests.powerdns.com.", DropResponseAction())
     """
 
@@ -152,7 +152,7 @@ class TestResponseRuleQNameDropped(DNSDistTest):
 class TestResponseRuleQNameAllowed(DNSDistTest):
 
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     addResponseAction("allow.responses.tests.powerdns.com.", AllowResponseAction())
     addResponseAction(AllRule(), DropResponseAction())
     """
@@ -198,7 +198,7 @@ class TestResponseRuleEditTTL(DNSDistTest):
     _ttl = 5
     _config_params = ['_testServerPort', '_ttl']
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
 
     function editTTLCallback(section, class, type, ttl)
       return %d
@@ -255,7 +255,7 @@ class TestResponseRuleLimitTTL(DNSDistTest):
       return DNSResponseAction.None, ""
     end
 
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
 
     addResponseAction("min.responses.tests.powerdns.com.", SetMinTTLResponseAction(highttl))
     addResponseAction("max.responses.tests.powerdns.com.", SetMaxTTLResponseAction(lowttl))
@@ -354,7 +354,7 @@ class TestSetReducedTTL(DNSDistTest):
     _config_params = ['_percentage', '_testServerPort']
     _config_template = """
     addResponseAction(AllRule(), SetReducedTTLResponseAction(%d))
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testLimitTTL(self):
@@ -383,7 +383,7 @@ class TestSetReducedTTL(DNSDistTest):
 class TestResponseLuaActionReturnSyntax(DNSDistTest):
 
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     function customDelay(dr)
       return DNSResponseAction.Delay, "1000"
     end
@@ -445,7 +445,7 @@ class TestResponseClearRecordsType(DNSDistTest):
       return DNSResponseAction.HeaderModify, ""
     end
 
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
 
     addResponseAction("ffi.clear-records-type.responses.tests.powerdns.com.", LuaFFIResponseAction(luafct))
     addResponseAction("clear-records-type.responses.tests.powerdns.com.", ClearRecordTypesResponseAction(DNSQType.AAAA))
@@ -511,7 +511,7 @@ class TestResponseRewriteServFail(DNSDistTest):
 
     _config_params = ['_testServerPort']
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
 
     function rewriteServFail(dq)
       if dq.rcode == DNSRCode.SERVFAIL then
@@ -571,7 +571,7 @@ class TestResponseRewriteServFail(DNSDistTest):
 class TestAdvancedSetEDNSOptionResponseAction(DNSDistTest):
     _config_template = """
     addResponseAction(AllRule(), SetEDNSOptionResponseAction(10, "deadbeefdeadc0de"))
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testAdvancedSetEDNSOptionResponse(self):

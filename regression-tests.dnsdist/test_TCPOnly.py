@@ -6,7 +6,7 @@ from dnsdisttests import DNSDistTest
 class TestTCPOnly(DNSDistTest):
 
     _config_template = """
-    newServer{address="127.0.0.1:%s", tcpOnly=true}
+    newServer{address="127.0.0.1:%d", tcpOnly=true}
     """
 
     def testUDP(self):

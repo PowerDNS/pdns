@@ -12,7 +12,7 @@ class TestTrailingDataToBackend(DNSDistTest):
     _testServerPort = pickAvailablePort()
     _verboseMode = True
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
 
     function replaceTrailingData(dq)
         local success = dq:setTrailingData("ABC")
@@ -172,7 +172,7 @@ class TestTrailingDataToBackend(DNSDistTest):
 class TestTrailingDataToDnsdist(DNSDistTest):
     _verboseMode = True
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
 
     addAction(AndRule({QNameRule("dropped.trailing.tests.powerdns.com."), TrailingDataRule()}), DropAction())
 

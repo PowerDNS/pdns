@@ -193,7 +193,7 @@ class TestDOQCertificateReloading(DNSDistTest):
     _doqServerPort = pickAvailablePort()
     _config_template = """
     setKey("%s")
-    controlSocket("127.0.0.1:%s")
+    controlSocket("127.0.0.1:%d")
 
     newServer{address="127.0.0.1:%d"}
 
@@ -236,7 +236,7 @@ class TestDOQGetLocalAddressOnAnyBind(QUICGetLocalAddressOnAnyBindTests, DNSDist
       return DNSAction.Spoof, "address-was-"..dashAddr..".local-address-any.advanced.tests.powerdns.com."
     end
     addAction("local-address-any.quic.tests.powerdns.com.", LuaAction(answerBasedOnLocalAddress))
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     addDOQLocal("0.0.0.0:%d", "%s", "%s")
     addDOQLocal("[::]:%d", "%s", "%s")
     """

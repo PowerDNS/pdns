@@ -115,9 +115,9 @@ class TestBrokenOCSPStaplingDoH(DNSDistOCSPStaplingTest):
     _dohWithNGHTTP2ServerPort = pickAvailablePort()
     _dohWithH2OServerPort = pickAvailablePort()
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     setKey("%s")
-    controlSocket("127.0.0.1:%s")
+    controlSocket("127.0.0.1:%d")
 
     addDOHLocal("127.0.0.1:%d", "%s", "%s", { "/" }, { ocspResponses={"%s"}, library='nghttp2'})
     addDOHLocal("127.0.0.1:%d", "%s", "%s", { "/" }, { ocspResponses={"%s"}, library='h2o'})
@@ -145,13 +145,13 @@ class TestOCSPStaplingTLSGnuTLS(DNSDistOCSPStaplingTest):
     _caKey = 'ca.key'
     _tlsServerPort = pickAvailablePort()
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     setKey("%s")
-    controlSocket("127.0.0.1:%s")
+    controlSocket("127.0.0.1:%d")
 
     -- generate an OCSP response file for our certificate, valid one day
     generateOCSPResponse('%s', '%s', '%s', '%s', 1, 0)
-    addTLSLocal("127.0.0.1:%s", "%s", "%s", { provider="gnutls", ocspResponses={"%s"}})
+    addTLSLocal("127.0.0.1:%d", "%s", "%s", { provider="gnutls", ocspResponses={"%s"}})
     """
     _config_params = ['_testServerPort', '_consoleKeyB64', '_consolePort', '_serverCert', '_caCert', '_caKey', '_ocspFile', '_tlsServerPort', '_serverCert', '_serverKey', '_ocspFile']
 
@@ -188,11 +188,11 @@ class TestBrokenOCSPStaplingTLSGnuTLS(DNSDistOCSPStaplingTest):
     _ocspFile = '/dev/null'
     _tlsServerPort = pickAvailablePort()
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     setKey("%s")
-    controlSocket("127.0.0.1:%s")
+    controlSocket("127.0.0.1:%d")
 
-    addTLSLocal("127.0.0.1:%s", "%s", "%s", { provider="gnutls", ocspResponses={"%s"}})
+    addTLSLocal("127.0.0.1:%d", "%s", "%s", { provider="gnutls", ocspResponses={"%s"}})
     """
     _config_params = ['_testServerPort', '_consoleKeyB64', '_consolePort', '_tlsServerPort', '_serverCert', '_serverKey', '_ocspFile']
 
@@ -216,13 +216,13 @@ class TestOCSPStaplingTLSOpenSSL(DNSDistOCSPStaplingTest):
     _caKey = 'ca.key'
     _tlsServerPort = pickAvailablePort()
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     setKey("%s")
-    controlSocket("127.0.0.1:%s")
+    controlSocket("127.0.0.1:%d")
 
     -- generate an OCSP response file for our certificate, valid one day
     generateOCSPResponse('%s', '%s', '%s', '%s', 1, 0)
-    addTLSLocal("127.0.0.1:%s", "%s", "%s", { provider="openssl", ocspResponses={"%s"}})
+    addTLSLocal("127.0.0.1:%d", "%s", "%s", { provider="openssl", ocspResponses={"%s"}})
     """
     _config_params = ['_testServerPort', '_consoleKeyB64', '_consolePort', '_serverCert', '_caCert', '_caKey', '_ocspFile', '_tlsServerPort', '_serverCert', '_serverKey', '_ocspFile']
 
@@ -259,11 +259,11 @@ class TestBrokenOCSPStaplingTLSOpenSSL(DNSDistOCSPStaplingTest):
     _ocspFile = '/dev/null'
     _tlsServerPort = pickAvailablePort()
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     setKey("%s")
-    controlSocket("127.0.0.1:%s")
+    controlSocket("127.0.0.1:%d")
 
-    addTLSLocal("127.0.0.1:%s", "%s", "%s", { provider="openssl", ocspResponses={"%s"}})
+    addTLSLocal("127.0.0.1:%d", "%s", "%s", { provider="openssl", ocspResponses={"%s"}})
     """
     _config_params = ['_testServerPort', '_consoleKeyB64', '_consolePort', '_tlsServerPort', '_serverCert', '_serverKey', '_ocspFile']
 

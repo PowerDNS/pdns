@@ -6,7 +6,7 @@ from dnsdisttests import DNSDistTest, pickAvailablePort
 class TestBasics(DNSDistTest):
 
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     pc = newPacketCache(100, {maxTTL=86400, minTTL=1})
     getPool(""):setCache(pc)
 

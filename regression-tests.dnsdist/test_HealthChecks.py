@@ -19,7 +19,7 @@ class HealthCheckTest(DNSDistTest):
     _config_template = """
     setKey("%s")
     controlSocket("127.0.0.1:%d")
-    webserver("127.0.0.1:%s")
+    webserver("127.0.0.1:%d")
     setWebserverConfig({apiKey="%s"})
     newServer{address="127.0.0.1:%d"}
     """
@@ -108,7 +108,7 @@ class TestHealthCheckForcedUP(HealthCheckTest):
     _config_template = """
     setKey("%s")
     controlSocket("127.0.0.1:%d")
-    webserver("127.0.0.1:%s")
+    webserver("127.0.0.1:%d")
     setWebserverConfig({apiKey="%s"})
     srv = newServer{address="127.0.0.1:%d"}
     srv:setUp()
@@ -132,7 +132,7 @@ class TestHealthCheckForcedDown(HealthCheckTest):
     _config_template = """
     setKey("%s")
     controlSocket("127.0.0.1:%d")
-    webserver("127.0.0.1:%s")
+    webserver("127.0.0.1:%d")
     setWebserverConfig({apiKey="%s"})
     srv = newServer{address="127.0.0.1:%d"}
     srv:setDown()
@@ -157,7 +157,7 @@ class TestHealthCheckCustomName(HealthCheckTest):
     _config_template = """
     setKey("%s")
     controlSocket("127.0.0.1:%d")
-    webserver("127.0.0.1:%s")
+    webserver("127.0.0.1:%d")
     setWebserverConfig({apiKey="%s"})
     srv = newServer{address="127.0.0.1:%d", checkName='%s'}
     """
@@ -181,7 +181,7 @@ class TestHealthCheckCustomNameNoAnswer(HealthCheckTest):
     _config_template = """
     setKey("%s")
     controlSocket("127.0.0.1:%d")
-    webserver("127.0.0.1:%s")
+    webserver("127.0.0.1:%d")
     setWebserverConfig({apiKey="%s"})
     srv = newServer{address="127.0.0.1:%d", checkName='powerdns.com.'}
     """
@@ -207,7 +207,7 @@ class TestHealthCheckCustomFunction(HealthCheckTest):
     _config_template = """
     setKey("%s")
     controlSocket("127.0.0.1:%d")
-    webserver("127.0.0.1:%s")
+    webserver("127.0.0.1:%d")
     setWebserverConfig({apiKey="%s"})
 
     function myHealthCheckFunction(qname, qtype, qclass, dh)
@@ -245,12 +245,12 @@ class TestLazyHealthChecks(HealthCheckTest):
     setKey("%s")
     controlSocket("127.0.0.1:%d")
 
-    newServer{address="127.0.0.1:%s", healthCheckMode='lazy', checkInterval=1, lazyHealthCheckFailedInterval=1, lazyHealthCheckThreshold=10, lazyHealthCheckSampleSize=100,  lazyHealthCheckMinSampleCount=10, lazyHealthCheckMode='TimeoutOrServFail', pool=''}
+    newServer{address="127.0.0.1:%d", healthCheckMode='lazy', checkInterval=1, lazyHealthCheckFailedInterval=1, lazyHealthCheckThreshold=10, lazyHealthCheckSampleSize=100,  lazyHealthCheckMinSampleCount=10, lazyHealthCheckMode='TimeoutOrServFail', pool=''}
 
-    newServer{address="127.0.0.1:%s", tls='openssl', caStore='ca.pem', subjectAddr='127.0.0.1', healthCheckMode='lazy', checkInterval=1, lazyHealthCheckFailedInterval=1, lazyHealthCheckThreshold=10, lazyHealthCheckSampleSize=100,  lazyHealthCheckMinSampleCount=10, lazyHealthCheckMode='TimeoutOrServFail', pool='dot'}
+    newServer{address="127.0.0.1:%d", tls='openssl', caStore='ca.pem', subjectAddr='127.0.0.1', healthCheckMode='lazy', checkInterval=1, lazyHealthCheckFailedInterval=1, lazyHealthCheckThreshold=10, lazyHealthCheckSampleSize=100,  lazyHealthCheckMinSampleCount=10, lazyHealthCheckMode='TimeoutOrServFail', pool='dot'}
     addAction('dot.lazy.test.powerdns.com.', PoolAction('dot'))
 
-    newServer{address="127.0.0.1:%s", tls='openssl', dohPath='/dns-query', caStore='ca.pem', subjectAddr='127.0.0.1', healthCheckMode='lazy', checkInterval=1, lazyHealthCheckFailedInterval=1, lazyHealthCheckThreshold=10, lazyHealthCheckSampleSize=100,  lazyHealthCheckMinSampleCount=10, lazyHealthCheckMode='TimeoutOrServFail', pool='doh'}
+    newServer{address="127.0.0.1:%d", tls='openssl', dohPath='/dns-query', caStore='ca.pem', subjectAddr='127.0.0.1', healthCheckMode='lazy', checkInterval=1, lazyHealthCheckFailedInterval=1, lazyHealthCheckThreshold=10, lazyHealthCheckSampleSize=100,  lazyHealthCheckMinSampleCount=10, lazyHealthCheckMode='TimeoutOrServFail', pool='doh'}
     addAction('doh.lazy.test.powerdns.com.', PoolAction('doh'))
     """
     _verboseMode = True
@@ -598,7 +598,7 @@ class TestServerStateChange(HealthCheckTest):
     _config_template = """
     setKey("%s")
     controlSocket("127.0.0.1:%d")
-    webserver("127.0.0.1:%s")
+    webserver("127.0.0.1:%d")
     setWebserverConfig({apiKey="%s"})
     srv = newServer{address="127.0.0.1:%d",maxCheckFailures=1,checkTimeout=1000,checkInterval=1,rise=1}
     srv:setAuto(false)

@@ -15,7 +15,7 @@ class TestDynBlockGroupQPS(DynBlocksTest):
     function maintenance()
 	    dbr:apply()
     end
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     webserver("127.0.0.1:%s")
     setWebserverConfig({password="%s", apiKey="%s"})
     """
@@ -87,7 +87,7 @@ class TestDynBlockGroupQPSRefused(DynBlocksTest):
 	    dbr:apply()
     end
     setDynBlocksAction(DNSAction.Refused)
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testDynBlocksQRate(self):
@@ -107,7 +107,7 @@ class TestDynBlockGroupQPSActionRefused(DynBlocksTest):
 	    dbr:apply()
     end
     setDynBlocksAction(DNSAction.Drop)
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testDynBlocksQRate(self):
@@ -128,7 +128,7 @@ class TestDynBlockGroupExcluded(DynBlocksTest):
 	    dbr:apply()
     end
 
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testExcluded(self):
@@ -185,7 +185,7 @@ class TestDynBlockGroupExcludedViaNMG(DynBlocksTest):
 	    dbr:apply()
     end
 
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testExcluded(self):
@@ -238,8 +238,8 @@ class TestDynBlockGroupNoOp(DynBlocksTest):
 	    dbr:apply()
     end
 
-    newServer{address="127.0.0.1:%s"}
-    webserver("127.0.0.1:%s")
+    newServer{address="127.0.0.1:%d"}
+    webserver("127.0.0.1:%d")
     setWebserverConfig({password="%s", apiKey="%s"})
     """
     _config_params = ['_dynBlockQPS', '_dynBlockPeriod', '_dynBlockDuration', '_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
@@ -299,8 +299,8 @@ class TestDynBlockGroupWarning(DynBlocksTest):
 	    dbr:apply()
     end
 
-    newServer{address="127.0.0.1:%s"}
-    webserver("127.0.0.1:%s")
+    newServer{address="127.0.0.1:%d"}
+    webserver("127.0.0.1:%d")
     setWebserverConfig({password="%s", apiKey="%s"})
     """
     _config_params = ['_dynBlockQPS', '_dynBlockPeriod', '_dynBlockDuration', '_dynBlockWarningQPS', '_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']

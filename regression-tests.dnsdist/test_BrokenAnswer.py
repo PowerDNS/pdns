@@ -36,7 +36,7 @@ class TestBrokenAnswerECS(DNSDistTest):
     _testServerPort = pickAvailablePort()
     _config_template = """
     setECSSourcePrefixV4(32)
-    newServer{address="127.0.0.1:%s", useClientSubnet=true}
+    newServer{address="127.0.0.1:%d", useClientSubnet=true}
     """
     @classmethod
     def startResponders(cls):

@@ -21,7 +21,7 @@ class TestSpoofingSpoof(DNSDistTest):
     addAction(AndRule{SuffixMatchNodeRule("multiraw.spoofing.tests.powerdns.com"), QTypeRule(DNSQType.A)}, SpoofRawAction({"\\192\\000\\002\\001", "\\192\\000\\002\\002"}))
     -- rfc8482
     addAction(AndRule{SuffixMatchNodeRule("raw-any.spoofing.tests.powerdns.com"), QTypeRule(DNSQType.ANY)}, SpoofRawAction("\\007rfc\\056\\052\\056\\050\\000", { typeForAny=DNSQType.HINFO }))
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testSpoofActionA(self):
@@ -538,7 +538,7 @@ class TestSpoofingLuaSpoof(DNSDistTest):
     addAction("luaspoof1.spoofing.tests.powerdns.com.", LuaAction(spoof1rule))
     addAction("luaspoof2.spoofing.tests.powerdns.com.", LuaAction(spoof2rule))
     addAction("lua-raw.spoofing.tests.powerdns.com.", LuaAction(spoofrawrule))
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testLuaSpoofA(self):
@@ -740,7 +740,7 @@ class TestSpoofingLuaSpoofMulti(DNSDistTest):
 
     addAction("luaspoof1multi.spoofing.tests.powerdns.com.", LuaAction(spoof1multirule))
     addAction("lua-raw-multi.spoofing.tests.powerdns.com.", LuaAction(spoofrawmultirule))
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testLuaSpoofMultiA(self):
@@ -898,7 +898,7 @@ class TestSpoofingLuaFFISpoofMulti(DNSDistTest):
     end
 
     addAction("lua-raw-multi.ffi-spoofing.tests.powerdns.com.", LuaFFIAction(spoofrawmultirule))
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
     _verboseMode = True
 
@@ -960,7 +960,7 @@ class TestSpoofingLuaWithStatistics(DNSDistTest):
         end
     end
     addAction("luaspoofwithstats.spoofing.tests.powerdns.com.", LuaAction(spoof1rule))
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testLuaSpoofBasedOnStatistics(self):
@@ -1039,7 +1039,7 @@ class TestSpoofingLuaSpoofPacket(DNSDistTest):
     end
 
     addAction("lua-raw-packet.ffi-spoofing.tests.powerdns.com.", LuaFFIAction(spoofpacketffi))
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
     _verboseMode = True
 

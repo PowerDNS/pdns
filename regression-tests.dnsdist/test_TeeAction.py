@@ -18,7 +18,7 @@ class TestTeeAction(DNSDistTest):
     _fromTeeProxyQueue = Queue()
     _config_template = """
     setKey("%s")
-    controlSocket("127.0.0.1:%s")
+    controlSocket("127.0.0.1:%d")
     newServer{address="127.0.0.1:%d"}
     addAction(QTypeRule(DNSQType.A), TeeAction("127.0.0.1:%d", true))
     addAction(QTypeRule(DNSQType.AAAA), TeeAction("127.0.0.1:%d", false))

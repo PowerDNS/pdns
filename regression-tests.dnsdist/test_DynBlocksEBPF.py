@@ -27,8 +27,8 @@ class TestDynBlockEBPFQPS(DynBlocksTest):
     bpf:unblock(newCA("2001:DB8::42"))
     bpf:unblockQName(newDNSName("powerdns.com."), 255)
 
-    newServer{address="127.0.0.1:%s"}
-    webserver("127.0.0.1:%s")
+    newServer{address="127.0.0.1:%d"}
+    webserver("127.0.0.1:%d")
     setWebserverConfig({password="%s", apiKey="%s"})
     """
     _config_params = ['_dynBlockQPS', '_dynBlockPeriod', '_dynBlockDuration', '_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']

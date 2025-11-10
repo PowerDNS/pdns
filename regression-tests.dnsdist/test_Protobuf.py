@@ -254,8 +254,8 @@ class TestProtobuf(DNSDistProtobufTest):
       return DNSAction.None, ""				-- continue to the next rule
     end
 
-    newServer{address="127.0.0.1:%s", useClientSubnet=true}
-    rl = newRemoteLogger('127.0.0.1:%s')
+    newServer{address="127.0.0.1:%d", useClientSubnet=true}
+    rl = newRemoteLogger('127.0.0.1:%d')
 
     addAction(AllRule(), LuaAction(alterLuaFirst))							-- Add tags to DNSQuery first
 
@@ -418,7 +418,7 @@ class TestProtobuf(DNSDistProtobufTest):
 class TestProtobufMetaTags(DNSDistProtobufTest):
     _config_params = ['_testServerPort', '_protobufServerPort']
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     rl = newRemoteLogger('127.0.0.1:%d')
 
     local ffi = require("ffi")
@@ -565,7 +565,7 @@ class TestProtobufMetaTags(DNSDistProtobufTest):
 class TestProtobufExtendedDNSErrorTags(DNSDistProtobufTest):
     _config_params = ['_testServerPort', '_protobufServerPort']
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     rl = newRemoteLogger('127.0.0.1:%d')
 
     addAction(AllRule(), RemoteLogAction(rl, nil, {serverID='dnsdist-server-1'}))
@@ -623,7 +623,7 @@ class TestProtobufExtendedDNSErrorTags(DNSDistProtobufTest):
 class TestProtobufCacheHit(DNSDistProtobufTest):
     _config_params = ['_testServerPort', '_protobufServerPort']
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     rl = newRemoteLogger('127.0.0.1:%d')
     pc = newPacketCache(100, {maxTTL=86400, minTTL=1})
     getPool(""):setCache(pc)
@@ -698,7 +698,7 @@ class TestProtobufMetaDOH(DNSDistProtobufTest):
     newServer{address="127.0.0.1:%d"}
     rl = newRemoteLogger('127.0.0.1:%d')
 
-    addTLSLocal("127.0.0.1:%s", "%s", "%s", { provider="openssl" })
+    addTLSLocal("127.0.0.1:%d", "%s", "%s", { provider="openssl" })
     addDOHLocal("127.0.0.1:%d", "%s", "%s", { '/dns-query' }, { keepIncomingHeaders=true, library='nghttp2' })
     addDOHLocal("127.0.0.1:%d", "%s", "%s", { '/dns-query' }, { keepIncomingHeaders=true, library='h2o' })
 
@@ -860,9 +860,9 @@ class TestProtobufMetaProxy(DNSDistProtobufTest):
 class TestProtobufIPCipher(DNSDistProtobufTest):
     _config_params = ['_testServerPort', '_protobufServerPort', '_protobufServerID', '_protobufServerID']
     _config_template = """
-    newServer{address="127.0.0.1:%s", useClientSubnet=true}
+    newServer{address="127.0.0.1:%d", useClientSubnet=true}
     key = makeIPCipherKey("some 16-byte key")
-    rl = newRemoteLogger('127.0.0.1:%s')
+    rl = newRemoteLogger('127.0.0.1:%d')
     addAction(AllRule(), RemoteLogAction(rl, nil, {serverID='%s', ipEncryptKey=key})) -- Send protobuf message before lookup
     addResponseAction(AllRule(), RemoteLogResponseAction(rl, nil, true, {serverID='%s', ipEncryptKey=key})) -- Send protobuf message after lookup
 

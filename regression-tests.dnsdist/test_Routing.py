@@ -8,7 +8,7 @@ from dnsdisttests import DNSDistTest, pickAvailablePort
 class TestRoutingPoolRouting(DNSDistTest):
 
     _config_template = """
-    newServer{address="127.0.0.1:%s", pool="real"}
+    newServer{address="127.0.0.1:%d", pool="real"}
     addAction(SuffixMatchNodeRule("poolaction.routing.tests.powerdns.com"), PoolAction("real"))
     -- by default PoolAction stops the processing so the second rule should not be executed
     addAction(SuffixMatchNodeRule("poolaction.routing.tests.powerdns.com"), PoolAction("not-real"))
@@ -82,7 +82,7 @@ class TestRoutingPoolRouting(DNSDistTest):
 
 class TestRoutingQPSPoolRouting(DNSDistTest):
     _config_template = """
-    newServer{address="127.0.0.1:%s", pool="regular"}
+    newServer{address="127.0.0.1:%d", pool="regular"}
     addAction(SuffixMatchNodeRule("qpspoolaction.routing.tests.powerdns.com"), QPSPoolAction(10, "regular"))
     """
 
@@ -172,9 +172,9 @@ class TestRoutingRoundRobinLB(RoundRobinTest, DNSDistTest):
     _config_params = ['_testServerPort', '_testServer2Port']
     _config_template = """
     setServerPolicy(roundrobin)
-    s1 = newServer{address="127.0.0.1:%s"}
+    s1 = newServer{address="127.0.0.1:%d"}
     s1:setUp()
-    s2 = newServer{address="127.0.0.1:%s"}
+    s2 = newServer{address="127.0.0.1:%d"}
     s2:setUp()
     """
 
@@ -250,9 +250,9 @@ class TestRoutingRoundRobinLBOneDown(DNSDistTest):
     _config_params = ['_testServerPort', '_testServer2Port']
     _config_template = """
     setServerPolicy(roundrobin)
-    s1 = newServer{address="127.0.0.1:%s"}
+    s1 = newServer{address="127.0.0.1:%d"}
     s1:setUp()
-    s2 = newServer{address="127.0.0.1:%s"}
+    s2 = newServer{address="127.0.0.1:%d"}
     s2:setDown()
     """
 
@@ -303,9 +303,9 @@ class TestRoutingRoundRobinLBAllDown(DNSDistTest):
     _config_template = """
     setServerPolicy(roundrobin)
     setRoundRobinFailOnNoServer(true)
-    s1 = newServer{address="127.0.0.1:%s"}
+    s1 = newServer{address="127.0.0.1:%d"}
     s1:setDown()
-    s2 = newServer{address="127.0.0.1:%s"}
+    s2 = newServer{address="127.0.0.1:%d"}
     s2:setDown()
     """
 
@@ -348,9 +348,9 @@ class TestRoutingLuaFFIPerThreadRoundRobinLB(RoundRobinTest, DNSDistTest):
       end
     ]])
 
-    s1 = newServer{address="127.0.0.1:%s"}
+    s1 = newServer{address="127.0.0.1:%d"}
     s1:setUp()
-    s2 = newServer{address="127.0.0.1:%s"}
+    s2 = newServer{address="127.0.0.1:%d"}
     s2:setUp()
 
     function atExit()
@@ -399,9 +399,9 @@ class TestRoutingCustomLuaRoundRobinLB(RoundRobinTest, DNSDistTest):
     end
     setServerPolicy(newServerPolicy("custom lua round robin policy", luaroundrobin))
 
-    s1 = newServer{address="127.0.0.1:%s"}
+    s1 = newServer{address="127.0.0.1:%d"}
     s1:setUp()
-    s2 = newServer{address="127.0.0.1:%s"}
+    s2 = newServer{address="127.0.0.1:%d"}
     s2:setUp()
     """
 
@@ -435,9 +435,9 @@ class TestRoutingOrder(DNSDistTest):
     _config_params = ['_testServerPort', '_testServer2Port']
     _config_template = """
     setServerPolicy(firstAvailable)
-    s1 = newServer{address="127.0.0.1:%s", order=2}
+    s1 = newServer{address="127.0.0.1:%d", order=2}
     s1:setUp()
-    s2 = newServer{address="127.0.0.1:%s", order=1}
+    s2 = newServer{address="127.0.0.1:%d", order=1}
     s2:setUp()
     """
 
@@ -501,9 +501,9 @@ class TestFirstAvailableQPSPacketCacheHits(DNSDistTest):
     _config_params = ['_testServerPort', '_testServer2Port']
     _config_template = """
     setServerPolicy(firstAvailable)
-    s1 = newServer{address="127.0.0.1:%s", order=2}
+    s1 = newServer{address="127.0.0.1:%d", order=2}
     s1:setUp()
-    s2 = newServer{address="127.0.0.1:%s", order=1, qps=10}
+    s2 = newServer{address="127.0.0.1:%d", order=1, qps=10}
     s2:setUp()
     pc = newPacketCache(100, {maxTTL=86400, minTTL=1})
     getPool(""):setCache(pc)
@@ -613,7 +613,7 @@ class TestFirstAvailableQPSPacketCacheHits(DNSDistTest):
 class TestRoutingNoServer(DNSDistTest):
 
     _config_template = """
-    newServer{address="127.0.0.1:%s", pool="real"}
+    newServer{address="127.0.0.1:%d", pool="real"}
     setServFailWhenNoServer(true)
     """
 
@@ -653,9 +653,9 @@ class TestRoutingWRandom(DNSDistTest):
     setWeightedBalancingFactor(1.5)
     -- this is the default, but let's ensure we can reset it to the initial value
     setWeightedBalancingFactor(0)
-    s1 = newServer{address="127.0.0.1:%s", weight=1}
+    s1 = newServer{address="127.0.0.1:%d", weight=1}
     s1:setUp()
-    s2 = newServer{address="127.0.0.1:%s", weight=2}
+    s2 = newServer{address="127.0.0.1:%d", weight=2}
     s2:setUp()
     """
 
@@ -726,11 +726,11 @@ class TestRoutingHighValueWRandom(DNSDistTest):
     _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_testServer2Port']
     _config_template = """
     setKey("%s")
-    controlSocket("127.0.0.1:%s")
+    controlSocket("127.0.0.1:%d")
     setServerPolicy(wrandom)
-    s1 = newServer{address="127.0.0.1:%s", weight=2000000000}
+    s1 = newServer{address="127.0.0.1:%d", weight=2000000000}
     s1:setUp()
-    s2 = newServer{address="127.0.0.1:%s", weight=2000000000}
+    s2 = newServer{address="127.0.0.1:%d", weight=2000000000}
     s2:setUp()
     """
 
@@ -817,9 +817,9 @@ class TestRoutingWHashed(DNSDistTest):
     setWeightedBalancingFactor(1.5)
     -- this is the default, but let's ensure we can reset it to the initial value
     setWeightedBalancingFactor(0)
-    s1 = newServer{address="127.0.0.1:%s", weight=1}
+    s1 = newServer{address="127.0.0.1:%d", weight=1}
     s1:setUp()
-    s2 = newServer{address="127.0.0.1:%s", weight=1}
+    s2 = newServer{address="127.0.0.1:%d", weight=1}
     s2:setUp()
     """
 
@@ -898,9 +898,9 @@ class TestRoutingCHashed(DNSDistTest):
     setConsistentHashingBalancingFactor(1.5)
     -- this is the default, but let's ensure we can reset it to the initial value
     setConsistentHashingBalancingFactor(0)
-    s1 = newServer{address="127.0.0.1:%s", weight=1000}
+    s1 = newServer{address="127.0.0.1:%d", weight=1000}
     s1:setUp()
-    s2 = newServer{address="127.0.0.1:%s", weight=1000}
+    s2 = newServer{address="127.0.0.1:%d", weight=1000}
     s2:setUp()
     """
 
@@ -985,7 +985,7 @@ class TestRoutingLuaFFILBNoServer(DNSDistTest):
     end
     setServerPolicyLuaFFI("luaffipolicy", luaffipolicy)
 
-    s1 = newServer{address="127.0.0.1:%s"}
+    s1 = newServer{address="127.0.0.1:%d"}
     s1:setDown()
     """
     _verboseMode = True
@@ -1050,13 +1050,13 @@ class TestRoutingOrderedWRandUntag(DNSDistTest):
     setKey("%s")
     controlSocket("127.0.0.1:%d")
     setServerPolicy(orderedWrandUntag)
-    s11 = newServer{name="s11", address="127.0.0.1:%s", order=1, weight=1}
+    s11 = newServer{name="s11", address="127.0.0.1:%d", order=1, weight=1}
     s11:setUp()
-    s12 = newServer{name="s12", address="127.0.0.1:%s", order=1, weight=2}
+    s12 = newServer{name="s12", address="127.0.0.1:%d", order=1, weight=2}
     s12:setUp()
-    s21 = newServer{name="s21", address="127.0.0.1:%s", order=2, weight=1}
+    s21 = newServer{name="s21", address="127.0.0.1:%d", order=2, weight=1}
     s21:setUp()
-    s22 = newServer{name="s22", address="127.0.0.1:%s", order=2, weight=2}
+    s22 = newServer{name="s22", address="127.0.0.1:%d", order=2, weight=2}
     s22:setUp()
     function setServerState(name, flag)
         for _, s in ipairs(getServers()) do

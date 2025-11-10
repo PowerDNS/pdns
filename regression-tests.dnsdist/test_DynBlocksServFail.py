@@ -12,7 +12,7 @@ class TestDynBlockServFails(DynBlocksTest):
     function maintenance()
 	    addDynBlocks(exceedServFails(%d, %d), "Exceeded servfail rate", %d)
     end
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testDynBlocksServFailRate(self):
@@ -30,7 +30,7 @@ class TestDynBlockServFailsCached(DynBlocksTest):
     function maintenance()
 	    addDynBlocks(exceedServFails(%d, %d), "Exceeded servfail rate", %d)
     end
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testDynBlocksServFailRateCached(self):
@@ -103,7 +103,7 @@ class TestDynBlockGroupServFails(DynBlocksTest):
 	    dbr:apply()
     end
 
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testDynBlocksServFailRate(self):

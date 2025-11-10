@@ -26,7 +26,7 @@ class TestSimpleEBPF(DNSDistTest):
 
     _config_template = """
     setKey("%s")
-    controlSocket("127.0.0.1:%s")
+    controlSocket("127.0.0.1:%d")
     newServer{address="127.0.0.1:%d"}
 
     bpf = newBPFFilter({ipv4MaxItems=10, ipv6MaxItems=10, qnamesMaxItems=10})

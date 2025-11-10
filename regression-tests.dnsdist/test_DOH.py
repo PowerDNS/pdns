@@ -27,7 +27,7 @@ class DOHTests(object):
     _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
     _config_template = """
     setKey("%s")
-    controlSocket("127.0.0.1:%s")
+    controlSocket("127.0.0.1:%d")
 
     newServer{address="127.0.0.1:%d"}
 
@@ -946,11 +946,11 @@ class DOHSubPathsTests(object):
     _dohServerPort = pickAvailablePort()
     _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
 
     addAction(AllRule(), SpoofAction("3.4.5.6"))
 
-    addDOHLocal("127.0.0.1:%s", "%s", "%s", { "/PowerDNS" }, {exactPathMatching=false, library='%s'})
+    addDOHLocal("127.0.0.1:%d", "%s", "%s", { "/PowerDNS" }, {exactPathMatching=false, library='%s'})
     """
     _config_params = ['_testServerPort', '_dohServerPort', '_serverCert', '_serverKey', '_dohLibrary']
 
@@ -1010,8 +1010,8 @@ class DOHAddingECSTests(object):
     _dohServerPort = pickAvailablePort()
     _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
     _config_template = """
-    newServer{address="127.0.0.1:%s", useClientSubnet=true}
-    addDOHLocal("127.0.0.1:%s", "%s", "%s", { "/" }, {library='%s'})
+    newServer{address="127.0.0.1:%d", useClientSubnet=true}
+    addDOHLocal("127.0.0.1:%d", "%s", "%s", { "/" }, {library='%s'})
     setECSOverride(true)
     """
     _config_params = ['_testServerPort', '_dohServerPort', '_serverCert', '_serverKey', '_dohLibrary']
@@ -1108,8 +1108,8 @@ class DOHOverHTTP(object):
     _serverName = 'tls.tests.dnsdist.org'
     _dohBaseURL = ("http://%s:%d/dns-query" % (_serverName, _dohServerPort))
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
-    addDOHLocal("127.0.0.1:%s", nil, nil, '/dns-query', {library='%s'})
+    newServer{address="127.0.0.1:%d"}
+    addDOHLocal("127.0.0.1:%d", nil, nil, '/dns-query', {library='%s'})
     """
     _config_params = ['_testServerPort', '_dohServerPort', '_dohLibrary']
 
@@ -1185,9 +1185,9 @@ class DOHWithCache(object):
     _dohServerPort = pickAvailablePort()
     _dohBaseURL = ("https://%s:%d/dns-query" % (_serverName, _dohServerPort))
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
 
-    addDOHLocal("127.0.0.1:%s", "%s", "%s", '/dns-query', {library='%s'})
+    addDOHLocal("127.0.0.1:%d", "%s", "%s", '/dns-query', {library='%s'})
 
     pc = newPacketCache(100, {maxTTL=86400, minTTL=1})
     getPool(""):setCache(pc)
@@ -1401,9 +1401,9 @@ class DOHWithoutCacheControl(object):
     _dohServerPort = pickAvailablePort()
     _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
 
-    addDOHLocal("127.0.0.1:%s", "%s", "%s", { "/" }, {sendCacheControlHeaders=false, library='%s'})
+    addDOHLocal("127.0.0.1:%d", "%s", "%s", { "/" }, {sendCacheControlHeaders=false, library='%s'})
     """
     _config_params = ['_testServerPort', '_dohServerPort', '_serverCert', '_serverKey', '_dohLibrary']
 
@@ -1449,9 +1449,9 @@ class DOHFFI(object):
     _customResponseHeader2 = 'user-agent: derp'
     _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
 
-    addDOHLocal("127.0.0.1:%s", "%s", "%s", { "/" }, {customResponseHeaders={["access-control-allow-origin"]="*",["user-agent"]="derp",["UPPERCASE"]="VaLuE"}, keepIncomingHeaders=true, library='%s'})
+    addDOHLocal("127.0.0.1:%d", "%s", "%s", { "/" }, {customResponseHeaders={["access-control-allow-origin"]="*",["user-agent"]="derp",["UPPERCASE"]="VaLuE"}, keepIncomingHeaders=true, library='%s'})
 
     local ffi = require("ffi")
 
@@ -1514,10 +1514,10 @@ class DOHForwardedFor(object):
     _dohServerPort = pickAvailablePort()
     _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
 
     setACL('192.0.2.1/32')
-    addDOHLocal("127.0.0.1:%s", "%s", "%s", { "/" }, {trustForwardedForHeader=true, library='%s'})
+    addDOHLocal("127.0.0.1:%d", "%s", "%s", { "/" }, {trustForwardedForHeader=true, library='%s'})
     -- Set a maximum number of TCP connections per client, to exercise
     -- that code along with X-Forwarded-For support
     setMaxTCPConnectionsPerClient(2)
@@ -1586,10 +1586,10 @@ class DOHForwardedForNoTrusted(object):
     _dohServerPort = pickAvailablePort()
     _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
 
     setACL('192.0.2.1/32')
-    addDOHLocal("127.0.0.1:%s", "%s", "%s", { "/" }, {earlyACLDrop=true, library='%s'})
+    addDOHLocal("127.0.0.1:%d", "%s", "%s", { "/" }, {earlyACLDrop=true, library='%s'})
     """
     _config_params = ['_testServerPort', '_dohServerPort', '_serverCert', '_serverKey', '_dohLibrary']
 
@@ -1642,8 +1642,8 @@ class DOHFrontendLimits(object):
     _skipListeningOnCL = True
     _maxTCPConnsPerDOHFrontend = 5
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
-    addDOHLocal("127.0.0.1:%s", "%s", "%s", { "/" }, { maxConcurrentTCPConnections=%d, library='%s' })
+    newServer{address="127.0.0.1:%d"}
+    addDOHLocal("127.0.0.1:%d", "%s", "%s", { "/" }, { maxConcurrentTCPConnections=%d, library='%s' })
     """
     _config_params = ['_testServerPort', '_dohServerPort', '_serverCert', '_serverKey', '_maxTCPConnsPerDOHFrontend', '_dohLibrary']
     _alternateListeningAddr = '127.0.0.1'
@@ -1719,8 +1719,8 @@ class Protocols(object):
     end
 
     addAction("protocols.doh.tests.powerdns.com.", LuaAction(checkDOH))
-    newServer{address="127.0.0.1:%s"}
-    addDOHLocal("127.0.0.1:%s", "%s", "%s", { "/" }, {library='%s'})
+    newServer{address="127.0.0.1:%d"}
+    addDOHLocal("127.0.0.1:%d", "%s", "%s", { "/" }, {library='%s'})
     """
     _config_params = ['_testServerPort', '_dohServerPort', '_serverCert', '_serverKey', '_dohLibrary']
 
@@ -1756,9 +1756,9 @@ class DOHWithPKCS12Cert(object):
     _dohServerPort = pickAvailablePort()
     _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     cert=newTLSCertificate("%s", {password="%s"})
-    addDOHLocal("127.0.0.1:%s", cert, "", { "/" }, {library='%s'})
+    addDOHLocal("127.0.0.1:%d", cert, "", { "/" }, {library='%s'})
     """
     _config_params = ['_testServerPort', '_serverCert', '_pkcs12Password', '_dohServerPort', '_dohLibrary']
 
@@ -1799,8 +1799,8 @@ class DOHForwardedToTCPOnly(object):
     _dohServerPort = pickAvailablePort()
     _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
     _config_template = """
-    newServer{address="127.0.0.1:%s", tcpOnly=true}
-    addDOHLocal("127.0.0.1:%s", "%s", "%s", { "/" }, {library='%s'})
+    newServer{address="127.0.0.1:%d", tcpOnly=true}
+    addDOHLocal("127.0.0.1:%d", "%s", "%s", { "/" }, {library='%s'})
     """
     _config_params = ['_testServerPort', '_dohServerPort', '_serverCert', '_serverKey', '_dohLibrary']
 

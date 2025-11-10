@@ -6,7 +6,7 @@ from dnsdisttests import DNSDistTest
 class TestTags(DNSDistTest):
 
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
 
     function lol(dq)
       return DNSAction.None, ""
@@ -215,7 +215,7 @@ class TestTags(DNSDistTest):
 class TestSetTagAction(DNSDistTest):
 
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
 
     addAction(AllRule(), SetTagAction("dns", "value1"))
     addAction("tag-me-dns-2.tags.tests.powerdns.com.", SetTagAction("dns", "value2"))
@@ -274,7 +274,7 @@ class TestSetTagAction(DNSDistTest):
 class TestSetTag(DNSDistTest):
 
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
 
     function dqset(dq)
       dq:setTag("dns", "value1")

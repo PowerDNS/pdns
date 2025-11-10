@@ -14,11 +14,11 @@ class TestDynBlockResponseBytes(DynBlocksTest):
     _config_params = ['_consoleKeyB64', '_consolePort', '_dynBlockBytesPerSecond', '_dynBlockPeriod', '_dynBlockDuration', '_testServerPort']
     _config_template = """
     setKey("%s")
-    controlSocket("127.0.0.1:%s")
+    controlSocket("127.0.0.1:%d")
     function maintenance()
 	    addDynBlocks(exceedRespByterate(%d, %d), "Exceeded response byterate", %d)
     end
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testDynBlocksResponseByteRate(self):
@@ -36,7 +36,7 @@ class TestDynBlockGroupResponseBytes(DynBlocksTest):
     _config_params = ['_consoleKeyB64', '_consolePort', '_dynBlockBytesPerSecond', '_dynBlockPeriod', '_dynBlockDuration', '_testServerPort']
     _config_template = """
     setKey("%s")
-    controlSocket("127.0.0.1:%s")
+    controlSocket("127.0.0.1:%d")
     local dbr = dynBlockRulesGroup()
     dbr:setResponseByteRate(%d, %d, "Exceeded query rate", %d)
 
@@ -44,7 +44,7 @@ class TestDynBlockGroupResponseBytes(DynBlocksTest):
 	    dbr:apply()
     end
 
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testDynBlocksResponseByteRate(self):

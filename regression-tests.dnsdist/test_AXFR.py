@@ -12,7 +12,7 @@ class TestAXFR(DNSDistTest):
     # to mix things up.
     _testServerPort = pickAvailablePort()
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     @classmethod

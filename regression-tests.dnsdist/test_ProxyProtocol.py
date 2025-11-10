@@ -1236,7 +1236,7 @@ class TestDOHWithOutgoingProxyProtocol(DNSDistDOHTest):
     _dohWithH2OBaseURL = ("https://%s:%d/dns-query" % (_serverName, _dohWithH2OServerPort))
     _proxyResponderPort = proxyResponderPort
     _config_template = """
-    newServer{address="127.0.0.1:%s", useProxyProtocol=true}
+    newServer{address="127.0.0.1:%d", useProxyProtocol=true}
     addDOHLocal("127.0.0.1:%d", "%s", "%s", { '/dns-query' }, { trustForwardedForHeader=true, library='nghttp2' })
     addDOHLocal("127.0.0.1:%d", "%s", "%s", { '/dns-query' }, { trustForwardedForHeader=true, library='h2o' })
     setACL( { "::1/128", "127.0.0.0/8" } )

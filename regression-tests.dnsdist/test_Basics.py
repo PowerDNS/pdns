@@ -6,7 +6,7 @@ from dnsdisttests import DNSDistTest
 class TestBasics(DNSDistTest):
 
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     truncateTC(true)
     addAction(QTypeRule(DNSQType.ANY), TCAction())
     addAction(RegexRule("evil[0-9]{4,}\\\\.regex\\\\.tests\\\\.powerdns\\\\.com$"), RCodeAction(DNSRCode.REFUSED))

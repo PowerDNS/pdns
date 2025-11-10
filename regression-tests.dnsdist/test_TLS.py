@@ -278,10 +278,10 @@ class TestOpenSSL(DNSDistTest, TLSTests):
     _tlsServerPort = pickAvailablePort()
     _config_template = """
     setKey("%s")
-    controlSocket("127.0.0.1:%s")
+    controlSocket("127.0.0.1:%d")
 
-    newServer{address="127.0.0.1:%s"}
-    addTLSLocal("127.0.0.1:%s", "%s", "%s", { provider="openssl" })
+    newServer{address="127.0.0.1:%d"}
+    addTLSLocal("127.0.0.1:%d", "%s", "%s", { provider="openssl" })
     addAction(SNIRule("powerdns.com"), SpoofAction("1.2.3.4"))
     """
     _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_tlsServerPort', '_serverCert', '_serverKey']
@@ -307,10 +307,10 @@ class TestGnuTLS(DNSDistTest, TLSTests):
     _tlsServerPort = pickAvailablePort()
     _config_template = """
     setKey("%s")
-    controlSocket("127.0.0.1:%s")
+    controlSocket("127.0.0.1:%d")
 
-    newServer{address="127.0.0.1:%s"}
-    addTLSLocal("127.0.0.1:%s", "%s", "%s", { provider="gnutls" })
+    newServer{address="127.0.0.1:%d"}
+    addTLSLocal("127.0.0.1:%d", "%s", "%s", { provider="gnutls" })
     addAction(SNIRule("powerdns.com"), SpoofAction("1.2.3.4"))
     """
     _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_tlsServerPort', '_serverCert', '_serverKey']
@@ -384,9 +384,9 @@ class TestDOTWithCache(DNSDistTest):
     _caCert = 'ca.pem'
     _tlsServerPort = pickAvailablePort()
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
 
-    addTLSLocal("127.0.0.1:%s", "%s", "%s")
+    addTLSLocal("127.0.0.1:%d", "%s", "%s")
 
     pc = newPacketCache(100, {maxTTL=86400, minTTL=1})
     getPool(""):setCache(pc)
@@ -458,8 +458,8 @@ class TestTLSFrontendLimits(DNSDistTest):
     _tcpIdleTimeout = 2
     _maxTCPConnsPerTLSFrontend = 5
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
-    addTLSLocal("127.0.0.1:%s", "%s", "%s", { provider="openssl", maxConcurrentTCPConnections=%d })
+    newServer{address="127.0.0.1:%d"}
+    addTLSLocal("127.0.0.1:%d", "%s", "%s", { provider="openssl", maxConcurrentTCPConnections=%d })
     """
     _config_params = ['_testServerPort', '_tlsServerPort', '_serverCert', '_serverKey', '_maxTCPConnsPerTLSFrontend']
     _alternateListeningAddr = '127.0.0.1'
@@ -524,8 +524,8 @@ class TestProtocols(DNSDistTest):
     end
 
     addAction("protocols.tls.tests.powerdns.com.", LuaAction(checkDOT))
-    newServer{address="127.0.0.1:%s"}
-    addTLSLocal("127.0.0.1:%s", "%s", "%s", { provider="openssl" })
+    newServer{address="127.0.0.1:%d"}
+    addTLSLocal("127.0.0.1:%d", "%s", "%s", { provider="openssl" })
     """
     _config_params = ['_testServerPort', '_tlsServerPort', '_serverCert', '_serverKey']
 
@@ -557,10 +557,10 @@ class TestPKCSTLSCertificate(DNSDistTest, TLSTests):
     _tlsServerPort = pickAvailablePort()
     _config_template = """
     setKey("%s")
-    controlSocket("127.0.0.1:%s")
-    newServer{address="127.0.0.1:%s"}
+    controlSocket("127.0.0.1:%d")
+    newServer{address="127.0.0.1:%d"}
     cert=newTLSCertificate("%s", {password="%s"})
-    addTLSLocal("127.0.0.1:%s", cert, "", { provider="openssl" })
+    addTLSLocal("127.0.0.1:%d", cert, "", { provider="openssl" })
     addAction(SNIRule("powerdns.com"), SpoofAction("1.2.3.4"))
     """
     _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_serverCert', '_pkcsPassphrase', '_tlsServerPort']
@@ -586,10 +586,10 @@ class TestOpenSSLTLSTicketsKeyCallback(DNSDistTest):
     _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_tlsServerPort', '_serverCert', '_serverKey']
     _config_template = """
     setKey("%s")
-    controlSocket("127.0.0.1:%s")
+    controlSocket("127.0.0.1:%d")
 
-    newServer{address="127.0.0.1:%s"}
-    addTLSLocal("127.0.0.1:%s", "%s", "%s", { provider="openssl" })
+    newServer{address="127.0.0.1:%d"}
+    addTLSLocal("127.0.0.1:%d", "%s", "%s", { provider="openssl" })
 
     lastKey = ""
     lastKeyLen = 0
@@ -627,10 +627,10 @@ class TestGnuTLSTLSTicketsKeyCallback(DNSDistTest):
     _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_tlsServerPort', '_serverCert', '_serverKey']
     _config_template = """
     setKey("%s")
-    controlSocket("127.0.0.1:%s")
+    controlSocket("127.0.0.1:%d")
 
-    newServer{address="127.0.0.1:%s"}
-    addTLSLocal("127.0.0.1:%s", "%s", "%s", { provider="gnutls" })
+    newServer{address="127.0.0.1:%d"}
+    addTLSLocal("127.0.0.1:%d", "%s", "%s", { provider="gnutls" })
 
     lastKey = ""
     lastKeyLen = 0
