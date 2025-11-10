@@ -59,8 +59,9 @@ bool DNSPacket::s_doEDNSCookieProcessing;
 string DNSPacket::s_EDNSCookieKey;
 uint16_t DNSPacket::s_udpTruncationThreshold;
 
-DNSPacket::DNSPacket(bool isQuery): d_isQuery(isQuery)
+DNSPacket::DNSPacket(std::shared_ptr<Logr::Logger> slog, bool isQuery): d_isQuery(isQuery)
 {
+  d_slog = slog;
   memset(&d, 0, sizeof(d));
 }
 
@@ -394,7 +395,8 @@ void DNSPacket::wrapup(bool throwsOnTruncation)
       }
     }
     catch(std::exception& e) {
-      g_log<<Logger::Warning<<"Exception: "<<e.what()<<endl;
+      SLOG(g_log<<Logger::Warning<<"Exception: "<<e.what()<<endl,
+           d_slog->error(Logr::Warning, e.what()));
       throw;
     }
   }
@@ -428,7 +430,7 @@ void DNSPacket::setQuestion(int op, const DNSName &qd, int newqtype)
 /** convenience function for creating a reply packet from a question packet. */
 std::unique_ptr<DNSPacket> DNSPacket::replyPacket() const
 {
-  auto r=make_unique<DNSPacket>(false);
+  auto r=make_unique<DNSPacket>(d_slog, false);
   r->setSocket(d_socket);
   r->d_anyLocal=d_anyLocal;
   r->setRemote(&d_remote);
@@ -489,8 +491,9 @@ int DNSPacket::noparse(const char *mesg, size_t length)
 {
   d_rawpacket.assign(mesg,length);
   if(length < 12) {
-    g_log << Logger::Debug << "Ignoring packet: too short ("<<length<<" < 12) from "
-      << getRemoteStringWithPort();
+    SLOG(g_log << Logger::Debug << "Ignoring packet: too short ("<<length<<" < 12) from "
+           << getRemoteStringWithPort(),
+         d_slog->info(Logr::Debug, "Ignoring short packet (len < 12)", "length", Logging::Loggable(length), "from", Logging::Loggable(getRemoteStringWithPort())));
     return -1;
   }
   d_wantsnsid=false;
@@ -522,7 +525,8 @@ bool DNSPacket::getTSIGDetails(TSIGRecordContent* trc, DNSName* keyname, uint16_
       // cast can fail, f.e. if d_content is an UnknownRecordContent.
       auto content = getRR<TSIGRecordContent>(answer);
       if (!content) {
-        g_log<<Logger::Error<<"TSIG record has no or invalid content (invalid packet)"<<endl;
+        SLOG(g_log<<Logger::Error<<"TSIG record has no or invalid content (invalid packet)"<<endl,
+             d_slog->info(Logr::Error, "TSIG record has no or invalid content (invalid packet)"));
         return false;
       }
       *trc = *content;
@@ -558,7 +562,8 @@ bool DNSPacket::getTKEYRecord(TKEYRecordContent *tr, DNSName *keyname) const
 
   for(const auto & answer : mdp.d_answers) {
     if (gotit) {
-      g_log<<Logger::Error<<"More than one TKEY record found in query"<<endl;
+      SLOG(g_log<<Logger::Error<<"More than one TKEY record found in query"<<endl,
+           d_slog->info(Logr::Error, "More than one TKEY record found in query"));
       return false;
     }
 
@@ -566,7 +571,8 @@ bool DNSPacket::getTKEYRecord(TKEYRecordContent *tr, DNSName *keyname) const
       // cast can fail, f.e. if d_content is an UnknownRecordContent.
       auto content = getRR<TKEYRecordContent>(answer);
       if (!content) {
-        g_log<<Logger::Error<<"TKEY record has no or invalid content (invalid packet)"<<endl;
+        SLOG(g_log<<Logger::Error<<"TKEY record has no or invalid content (invalid packet)"<<endl,
+             d_slog->info(Logr::Error, "TKEY record has no or invalid content (invalid packet)"));
         return false;
       }
       *tr = *content;
@@ -588,8 +594,9 @@ try
   d_rawpacket.assign(mesg,length);
   d_wrapped=true;
   if(length < 12) {
-    g_log << Logger::Debug << "Ignoring packet: too short from "
-      << getRemoteString() << endl;
+    SLOG(g_log << Logger::Debug << "Ignoring packet: too short from "
+           << getRemoteString() << endl,
+         d_slog->info(Logr::Debug, "Ignoring short packet (len < 12)", /* "length", Logging::Loggable(length), */ "from", Logging::Loggable(getRemoteStringWithPort())));
     return -1;
   }
 
@@ -651,7 +658,8 @@ try
 
   if(!ntohs(d.qdcount)) {
     if(!d_tcp) {
-      g_log << Logger::Debug << "No question section in packet from " << getRemoteString() <<", RCode="<<RCode::to_s(d.rcode)<<endl;
+      SLOG(g_log << Logger::Debug << "No question section in packet from " << getRemoteString() <<", RCode="<<RCode::to_s(d.rcode)<<endl,
+           d_slog->info(Logr::Debug, "No question section in packet", "from", Logging::Loggable(getRemoteString()), "rcode", Logging::Loggable(RCode::to_s(d.rcode))));
       return -1;
     }
   }
@@ -664,7 +672,8 @@ try
   return 0;
 }
 catch(std::exception& e) {
-  g_log << Logger::Debug << "Parse error in packet from " << getRemoteString() << ": " << e.what() << endl;
+  SLOG(g_log << Logger::Debug << "Parse error in packet from " << getRemoteString() << ": " << e.what() << endl,
+       d_slog->error(Logr::Debug, e.what(), "Parse error in packet", "from", Logging::Loggable(getRemoteString())));
   return -1;
 }
 
