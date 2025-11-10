@@ -25,7 +25,7 @@ struct Question
   QType qtype;
   std::unique_ptr<DNSPacket> replyPacket()
   {
-    return make_unique<DNSPacket>(false);
+    return make_unique<DNSPacket>(nullptr, false);
   }
   void cleanupGSS(int){}
 };
@@ -35,7 +35,7 @@ struct Backend
   Backend(std::shared_ptr<Logr::Logger> /*slog*/) {}
   std::unique_ptr<DNSPacket> question(Question&)
   {
-    return make_unique<DNSPacket>(true);
+    return make_unique<DNSPacket>(nullptr, true);
   }
 };
 
@@ -76,7 +76,7 @@ struct BackendSlow
       std::this_thread::sleep_for(std::chrono::seconds(1));
       d_shouldSleep = false;
     }
-    return make_unique<DNSPacket>(true);
+    return make_unique<DNSPacket>(nullptr, true);
   }
 private:
   bool d_shouldSleep{true};
@@ -138,7 +138,7 @@ struct BackendDies
       // cerr<<"Going.. down!"<<endl;
       throw runtime_error("kill");
     }
-    return make_unique<DNSPacket>(true);
+    return make_unique<DNSPacket>(nullptr, true);
   }
   static std::atomic<int> s_count;
   int d_count{0};
