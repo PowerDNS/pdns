@@ -1198,13 +1198,16 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
       std::shared_ptr<ServerPool> poolObj = createPoolIfNotExists(std::string(pool.name));
       if (!pool.packet_cache.empty()) {
         poolObj->packetCache = getRegisteredTypeByName<DNSDistPacketCache>(pool.packet_cache);
+        if (!poolObj->packetCache) {
+          throw std::runtime_error("Unable to find a cache named " + std::string(pool.packet_cache));
+        }
       }
       if (!pool.policy.empty()) {
         auto policy = getRegisteredTypeByName<ServerPolicy>(pool.policy);
         if (!policy) {
           throw std::runtime_error("Unable to find a load-balancing policy named " + std::string(pool.policy));
         }
-        poolObj->policy = policy;
+        poolObj->policy = std::move(policy);
       }
     }
 
