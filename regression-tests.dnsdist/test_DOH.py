@@ -395,7 +395,7 @@ class DOHTests(object):
         self.assertEqual(len(lines), 2)
         metrics = lines[1].split()
         self.assertEqual(len(metrics), 15)
-        return int(metrics[metricMap[name]])
+        return int(metrics[self.metricMap[name]])
 
     def testDOHHTTP1(self):
         """
