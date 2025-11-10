@@ -116,7 +116,7 @@ static map<string, std::function<StatsMap()>> d_getmultimembers;
 
 struct dynmetrics
 {
-  std::atomic<unsigned long>* d_ptr;
+  std::unique_ptr<std::atomic<unsigned long>> d_ptr;
   std::string d_prometheusName;
   std::optional<PrometheusMetricType> d_prometheusType;
   std::optional<string> d_prometheusDescr;
@@ -183,7 +183,7 @@ std::atomic<unsigned long>* getDynMetric(const std::string& str, const std::stri
   auto locked = d_dynmetrics.lock();
   auto iter = locked->find(str);
   if (iter != locked->end()) {
-    return iter->second.d_ptr;
+    return iter->second.d_ptr.get();
   }
 
   std::string name = prometheusName.empty() ? getPrometheusName(str) : prometheusName;
@@ -201,9 +201,11 @@ std::atomic<unsigned long>* getDynMetric(const std::string& str, const std::stri
     descr = prometheusDescr;
   }
 
-  auto ret = dynmetrics{new std::atomic<unsigned long>(), std::move(name), metricType, std::move(descr)};
-  (*locked)[str] = ret;
-  return ret.d_ptr;
+  auto uptr = std::make_unique<std::atomic<unsigned long>>(0);
+  auto* ptr = uptr.get();
+  auto ret = dynmetrics{std::move(uptr), std::move(name), metricType, std::move(descr)};
+  (*locked)[str] = std::move(ret);
+  return ptr;
 }
 
 static std::optional<uint64_t> get(const string& name)
