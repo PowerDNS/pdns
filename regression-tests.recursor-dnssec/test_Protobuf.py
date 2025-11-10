@@ -46,19 +46,22 @@ def ProtobufListener(queue, port):
         sys.exit(1)
 
     sock.listen(100)
-    while True:
-        try:
-            (conn, _) = sock.accept()
-            thread = threading.Thread(name='Connection Handler',
-                                      target=ProtobufConnectionHandler,
-                                      args=[queue, conn])
-            thread.daemon = True
-            thread.start()
 
-        except socket.error as e:
-            print('Error in protobuf socket: %s' % str(e))
+    try:
+        while True:
+            try:
+                (conn, _) = sock.accept()
+                thread = threading.Thread(name='Connection Handler',
+                                        target=ProtobufConnectionHandler,
+                                        args=[queue, conn])
+                thread.daemon = True
+                thread.start()
 
-    sock.close()
+            except socket.error as e:
+                print('Error in protobuf socket: %s' % str(e))
+
+    finally:
+        sock.close()
 
 
 class ProtobufServerParams:

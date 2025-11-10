@@ -163,6 +163,6 @@ class DNSBackendHandler(http.server.BaseHTTPRequestHandler):
         except BrokenPipeError as e2:
             raise e2
         except Exception as e:
-            raise e
             self.log_error("Exception handling request: %r", e)
             self.send_error(400, message=str(e))
+            raise e

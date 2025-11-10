@@ -426,8 +426,6 @@ class PDNSPBListener(object):
             thread.daemon = True
             thread.start()
 
-        self._sock.close()
-
 
 if __name__ == "__main__":
     oturl = None

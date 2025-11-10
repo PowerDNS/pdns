@@ -58,7 +58,6 @@ class CarbonTest(RecursorTest):
                 cls._carbonCounters[threading.current_thread().name] = 1
 
             conn.close()
-        sock.close()
 
     @classmethod
     def startResponders(cls):
