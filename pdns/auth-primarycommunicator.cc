@@ -226,7 +226,7 @@ time_t CommunicatorClass::doNotifications(PacketHandler* P)
     if (size < 0) {
       break;
     }
-    DNSPacket p(true);
+    DNSPacket p(d_slog, true);
 
     p.setRemote(&from);
 

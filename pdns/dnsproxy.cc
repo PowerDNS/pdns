@@ -270,7 +270,7 @@ void DNSProxy::mainloop()
         dHead.id = iter->second.id;
         memcpy(&buffer[0], &dHead, sizeof(dHead)); // commit spoofed id
 
-        DNSPacket packet(false);
+        DNSPacket packet(d_slog, false);
         packet.parse(&buffer[0], (size_t)len);
 
         if (packet.qtype.getCode() != iter->second.qtype || packet.qdomain != iter->second.qname) {

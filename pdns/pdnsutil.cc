@@ -5603,7 +5603,7 @@ static int backendLookup(vector<string>& cmds, const std::string_view synopsis)
     }
   }
 
-  DNSPacket queryPacket(true);
+  DNSPacket queryPacket(nullptr, true); // no structured logging in pdnsutil yet
   Netmask clientNetmask;
   if (cmds.size() > 3) {
     clientNetmask = cmds.at(3);

@@ -30,7 +30,7 @@ BOOST_AUTO_TEST_CASE(test_prequery) {
 "  return false\n"
 "end";
   AuthLua4 lua;
-  DNSPacket p(true);
+  DNSPacket p(nullptr, true);
   p.qdomain = DNSName("mod.unit.test.");
   lua.loadString(script);
   std::unique_ptr<DNSPacket> r{nullptr};
@@ -58,7 +58,7 @@ BOOST_AUTO_TEST_CASE(test_updatePolicy) {
 "  return false\n"
 "end";
   AuthLua4 lua;
-  DNSPacket p(true);
+  DNSPacket p(nullptr, true);
   ComboAddress ca(std::string("192.168.1.1"));
   lua.loadString(script);
   p.setRemote(&ca);
