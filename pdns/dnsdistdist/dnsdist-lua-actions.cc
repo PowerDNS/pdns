@@ -71,6 +71,12 @@ static std::vector<T> convertLuaArrayToRegular(const LuaArray<T>& luaArray)
   return out;
 }
 
+template <class T>
+std::optional<T> boostToStandardOptional(const boost::optional<T>& boostOpt)
+{
+  return boostOpt ? *boostOpt : std::optional<T>();
+}
+
 // NOLINTNEXTLINE(readability-function-cognitive-complexity): this function declares Lua bindings, even with a good refactoring it will likely blow up the threshold
 void setupLuaActions(LuaContext& luaCtx)
 {

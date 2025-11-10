@@ -80,6 +80,20 @@ public:
   }
 
   /**
+   * @brief Set the TraceID
+   *
+   * @param traceID
+   */
+  void setTraceID(const TraceID& traceID);
+
+  /**
+   * @brief Set the SpanID for the root and re-parent
+   *
+   * @param spanID
+   */
+  void setRootSpanID(const SpanID& spanID);
+
+  /**
    * @brief Add an attribute to the Trace
    *
    * @param key

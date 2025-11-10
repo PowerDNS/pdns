@@ -780,7 +780,7 @@ The following actions exist.
 
   :param int ttl: Cache TTL for temporary failure replies
 
-.. function:: SetTraceAction(value)
+.. function:: SetTraceAction(value[, use_incoming_traceid[, trace_edns_option]])
 
   .. versionadded:: 2.1.0
 
@@ -790,6 +790,8 @@ The following actions exist.
   Tracing has to be turned on globally as well using :func:`setOpenTelemetryTracing`.
 
   :param bool value: Whether to enable or disable query tracing.
+  :param bool use_incoming_traceid: If the incoming query has a TraceID in its EDNS options, use that instead of generating one, default false.
+  :param bool trace_edns_option: The EDNS option number that contains the TraceID, default 65500.
 
 .. function:: SkipCacheAction()
 

@@ -1680,8 +1680,8 @@ private:
 class SetTraceAction : public DNSAction
 {
 public:
-  SetTraceAction(bool value) :
-    d_value{value} {};
+  SetTraceAction(bool value, std::optional<bool> useIncomingTraceID, std::optional<short unsigned int> incomingTraceIDOptionCode) :
+    d_value{value}, d_useIncomingTraceID(useIncomingTraceID), d_incomingTraceIDOptionCode(incomingTraceIDOptionCode) {};
 
   DNSAction::Action operator()([[maybe_unused]] DNSQuestion* dnsquestion, [[maybe_unused]] std::string* ruleresult) const override
   {
@@ -1691,13 +1691,32 @@ public:
       vinfolog("SetTraceAction called, but OpenTelemetry tracing is globally disabled. Did you forget to call setOpenTelemetryTracing?");
       return Action::None;
     }
+    dnsquestion->ids.tracingEnabled = d_value;
     if (d_value) {
       tracer->setRootSpanAttribute("query.qname", AnyValue{dnsquestion->ids.qname.toStringNoDot()});
       tracer->setRootSpanAttribute("query.qtype", AnyValue{QType(dnsquestion->ids.qtype).toString()});
       tracer->setRootSpanAttribute("query.remote.address", AnyValue{dnsquestion->ids.origRemote.toString()});
       tracer->setRootSpanAttribute("query.remote.port", AnyValue{dnsquestion->ids.origRemote.getPort()});
+      if (d_useIncomingTraceID.value_or(false)) {
+        if (dnsquestion->ednsOptions == nullptr && !parseEDNSOptions(*dnsquestion)) {
+          // Maybe parsed, but no EDNS found
+          return Action::None;
+        }
+        if (dnsquestion->ednsOptions == nullptr) {
+          // Parsing failed, log a warning and return
+          vinfolog("parsing EDNS options failed while looking for OpenTelemetry Trace ID");
+          return Action::None;
+        }
+        pdns::trace::TraceID traceID;
+        pdns::trace::SpanID spanID;
+        if (pdns::trace::extractOTraceIDs(*(dnsquestion->ednsOptions), EDNSOptionCode::EDNSOptionCodeEnum(d_incomingTraceIDOptionCode.value_or(EDNSOptionCode::OTTRACEIDS)), traceID, spanID)) {
+          tracer->setTraceID(traceID);
+          if (spanID != pdns::trace::s_emptySpanID) {
+            tracer->setRootSpanID(spanID);
+          }
+        }
+      }
     }
-    dnsquestion->ids.tracingEnabled = d_value;
 #endif
     return Action::None;
   }
@@ -1709,6 +1728,8 @@ public:
 
 private:
   bool d_value;
+  std::optional<bool> d_useIncomingTraceID;
+  std::optional<short unsigned int> d_incomingTraceIDOptionCode;
 };
 
 class SNMPTrapAction : public DNSAction

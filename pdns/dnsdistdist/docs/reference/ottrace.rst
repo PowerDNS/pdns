@@ -99,3 +99,23 @@ This value is retrieved with the :func:`getSpanID <DNSQuestion:getSpanID>` funct
            end
            return DNSAction.None
          end
+
+Accepting Trace ID and Span ID from upstream servers
+====================================================
+
+:program:`dnsdist` can also use a Trace ID and optional Span ID from an incoming query.
+It will not do this by default, but this can be configured with the ``use_incoming_traceid`` argument.
+When set to ``true`` incoming Trace and Span IDs will be used.
+Should there be no ID in the incoming query, a random ID will be generated.
+
+.. code-block:: yaml
+
+   query_rules:
+     - name: Enable tracing
+       selector:
+         # Just as an example, in production don't trace all the queries
+         type: All
+       action:
+         type: SetTrace
+         value: true
+         use_incoming_traceid: true
