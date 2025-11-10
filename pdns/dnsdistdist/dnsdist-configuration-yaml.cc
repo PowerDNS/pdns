@@ -1209,6 +1209,9 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
 
     if (!globalConfig.load_balancing_policies.default_policy.empty()) {
       auto policy = getRegisteredTypeByName<ServerPolicy>(globalConfig.load_balancing_policies.default_policy);
+      if (!policy) {
+        throw std::runtime_error("Unable to find a load-balancing policy named " + std::string(globalConfig.load_balancing_policies.default_policy));
+      }
       dnsdist::configuration::updateRuntimeConfiguration([&policy](dnsdist::configuration::RuntimeConfiguration& config) {
         config.d_lbPolicy = std::move(policy);
       });
@@ -1225,7 +1228,11 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
           poolIt->second.packetCache = getRegisteredTypeByName<DNSDistPacketCache>(pool.packet_cache);
         }
         if (!pool.policy.empty()) {
-          poolIt->second.policy = getRegisteredTypeByName<ServerPolicy>(pool.policy);
+          auto policy = getRegisteredTypeByName<ServerPolicy>(pool.policy);
+          if (!policy) {
+            throw std::runtime_error("Unable to find a load-balancing policy named " + std::string(pool.policy));
+          }
+          poolIt->second.policy = policy;
         }
         poolIt->second.setECS(pool.use_ecs);
         poolIt->second.setZeroScope(pool.use_zero_scope);
