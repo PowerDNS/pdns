@@ -24,5 +24,4 @@
 #include "namespaces.hh"
 #include "stubresolver.hh"
 
-void doSecPoll(bool first);
-extern std::string g_security_message;
+void doSecPoll(std::shared_ptr<Logr::Logger> slog, bool first);
