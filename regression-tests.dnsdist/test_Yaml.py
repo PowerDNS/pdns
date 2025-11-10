@@ -47,7 +47,7 @@ backends:
 
 pools:
   - name: "tcp-pool"
-    policy: "leastoutstanding"
+    policy: "leastOutstanding"
 
 selectors:
   - type: "TCP"
