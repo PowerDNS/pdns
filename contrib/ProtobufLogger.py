@@ -38,6 +38,15 @@ class PDNSPBConnHandler(object):
         self._oturl = oturl
         self._printjson = printjson
 
+    messageTypeToStringMap = {
+        dnsmessage_pb2.PBDNSMessage.UNKNOWN: 'Unknown',
+        dnsmessage_pb2.PBDNSMessage.QNAME: 'QName',
+        dnsmessage_pb2.PBDNSMessage.CLIENTIP: 'Client IP',
+        dnsmessage_pb2.PBDNSMessage.RESPONSEIP: 'Response IP',
+        dnsmessage_pb2.PBDNSMessage.NSDNAME: 'NS DName',
+        dnsmessage_pb2.PBDNSMessage.NSIP: 'NS IP',
+    }
+
     def run(self):
         while True:
             data = self._conn.recv(2)
@@ -150,18 +159,8 @@ class PDNSPBConnHandler(object):
 
     @staticmethod
     def getAppliedPolicyTypeAsString(polType):
-        if polType == dnsmessage_pb2.PBDNSMessage.UNKNOWN:
-            return 'Unknown'
-        elif polType == dnsmessage_pb2.PBDNSMessage.QNAME:
-            return 'QName'
-        elif polType == dnsmessage_pb2.PBDNSMessage.CLIENTIP:
-            return 'Client IP'
-        elif polType == dnsmessage_pb2.PBDNSMessage.RESPONSEIP:
-            return 'Response IP'
-        elif polType == dnsmessage_pb2.PBDNSMessage.NSDNAME:
-            return 'NS DName'
-        elif polType == dnsmessage_pb2.PBDNSMessage.NSIP:
-            return 'NS IP'
+        try:
+            return messageTypeToStringMap.get(polType, "Unrecognized")
 
     @staticmethod
     def getEventAsString(event):
