@@ -1226,13 +1226,16 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
 
         if (!pool.packet_cache.empty()) {
           poolIt->second.packetCache = getRegisteredTypeByName<DNSDistPacketCache>(pool.packet_cache);
+          if (!poolIt->second.packetCache) {
+            throw std::runtime_error("Unable to find a cache named " + std::string(pool.packet_cache));
+          }
         }
         if (!pool.policy.empty()) {
           auto policy = getRegisteredTypeByName<ServerPolicy>(pool.policy);
           if (!policy) {
             throw std::runtime_error("Unable to find a load-balancing policy named " + std::string(pool.policy));
           }
-          poolIt->second.policy = policy;
+          poolIt->second.policy = std::move(policy);
         }
         poolIt->second.setECS(pool.use_ecs);
         poolIt->second.setZeroScope(pool.use_zero_scope);
