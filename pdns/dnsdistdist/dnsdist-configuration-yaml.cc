@@ -1910,7 +1910,11 @@ std::shared_ptr<DNSSelector> getNotSelector(const NotSelectorConfiguration& conf
 
 std::shared_ptr<DNSSelector> getByNameSelector(const ByNameSelectorConfiguration& config)
 {
-  return dnsdist::configuration::yaml::getRegisteredTypeByName<DNSSelector>(config.selector_name);
+  auto ptr = dnsdist::configuration::yaml::getRegisteredTypeByName<DNSSelector>(config.selector_name);
+  if (!ptr) {
+    throw std::runtime_error("Unable find a selector named " + std::string(config.selector_name));
+  }
+  return ptr;
 }
 
 #include "dnsdist-rust-bridge-actions-generated-body.hh"
