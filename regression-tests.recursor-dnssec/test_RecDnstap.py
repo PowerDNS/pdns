@@ -90,6 +90,7 @@ def checkDnstapUDR(testinstance, dnstap, protocol, initiator, responder, respons
 
     testinstance.assertTrue(dnstap.message.HasField('response_message'))
     wire_message = dns.message.from_wire(dnstap.message.response_message)
+    testinstance.assertTrue(isinstance(wire_message, dns.message.Message))
 
 def checkDnstapExtra(testinstance, dnstap, expected):
     testinstance.assertTrue(dnstap.HasField('extra'))

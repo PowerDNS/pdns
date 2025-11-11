@@ -39,7 +39,6 @@ class OOOTCPTest(RecursorTest):
             i = i + 1
 
     def testOOOTimeout(self):
-        expected = {}
         queries = []
         for zone in ['25.delay1.example.', '1.delay2.example.']:
             query = dns.message.make_query(zone, 'TXT', want_dnssec=True)

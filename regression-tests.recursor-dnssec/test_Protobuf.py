@@ -660,7 +660,7 @@ class OutgoingProtobufDefaultTest(TestRecursorProtobuf):
 
         query = dns.message.make_query(name, 'A', want_dnssec=True)
         query.flags |= dns.flags.RD
-        res = self.sendUDPQuery(query)
+        self.sendUDPQuery(query)
 
         for qname, qtype, qry, ans, proto, responseSize in expected:
             if not qname:
@@ -766,7 +766,7 @@ class OutgoingProtobufWithECSMappingTest(TestRecursorProtobuf):
 
         query = dns.message.make_query(name, 'A', want_dnssec=True)
         query.flags |= dns.flags.RD
-        res = self.sendUDPQuery(query)
+        self.sendUDPQuery(query)
 
         for qname, qtype, qry, ans, proto, responseSize, ecs in expected:
             if not qname:
@@ -832,7 +832,7 @@ class OutgoingProtobufNoQueriesTest(TestRecursorProtobuf):
 
         query = dns.message.make_query(name, 'A', want_dnssec=True)
         query.flags |= dns.flags.RD
-        res = self.sendUDPQuery(query)
+        self.sendUDPQuery(query)
 
         for qname, qtype, qry, ans, proto, size in expected:
             if not qname:

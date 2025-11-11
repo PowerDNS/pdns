@@ -127,7 +127,6 @@ negquery-cache-ttl=60
     def checkIXFR(self, fromserial, toserial):
         global zones, xfrServer
 
-        ixfr = []
         soa1 = xfrServer._getSOAForSerial(fromserial)
         soa2 = xfrServer._getSOAForSerial(toserial)
         newrecord = [r for r in xfrServer._getRecordsForSerial(toserial) if r.name==dns.name.from_text('newrecord.example.')]
@@ -232,4 +231,4 @@ newrecord.example.        8484    A       192.0.2.42
                            'list-zone', 'example'], stderr=subprocess.STDOUT)
         rets = ret.split(b'\n')
 
-        self.assertEqual(1, sum(b'SOA' in l for l in ret.split(b'\n')))
+        self.assertEqual(1, sum(b'SOA' in l for l in rets))

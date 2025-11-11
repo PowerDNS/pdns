@@ -429,7 +429,7 @@ e 3600 IN A 192.0.2.42
             try:
                 zone = dns.zone.from_file(file, 'zone.rpz', relativize=False, check_origin=False, allow_include=False)
                 soa = zone['']
-                rdataset = soa.find_rdataset(dns.rdataclass.IN, dns.rdatatype.SOA)
+                soa.find_rdataset(dns.rdataclass.IN, dns.rdatatype.SOA)
                 # if the above call did not throw an exception the SOA has the right owner, continue
                 soa = zone.get_soa()
                 if soa.serial == serial and soa.mname == dns.name.from_text('ns.zone.rpz.'):

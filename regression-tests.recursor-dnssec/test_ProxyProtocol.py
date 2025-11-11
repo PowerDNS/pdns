@@ -301,7 +301,6 @@ api-key=%s
         # the total payload (proxy protocol + DNS) is larger than proxy-protocol-maximum-size
         # so it should be dropped
         qname = 'too-large.proxy-protocol.recursor-tests.powerdns.com.'
-        expected = dns.rrset.from_text(qname, 0, dns.rdataclass.IN, 'A', '192.0.2.1')
 
         query = dns.message.make_query(qname, 'A', want_dnssec=True)
         queryPayload = query.to_wire()
@@ -430,7 +429,6 @@ api-key=%s
         query = dns.message.make_query(qname, 'A', want_dnssec=True)
         queryPayload = query.to_wire()
         ppPayload = ProxyProtocol.getPayload(False, True, True, '::42', '2001:db8::ff', 0, 65535, [ [0, b'foo' ], [ 255, b'bar'] ])
-        payload = ppPayload + queryPayload
 
         # TCP
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -451,11 +449,9 @@ api-key=%s
                     data = sock.recv(datalen)
             except socket.timeout as e:
                 print("Timeout: %s" % (str(e)))
-                data = None
                 break
             except socket.error as e:
                 print("Network error: %s" % (str(e)))
-                data = None
                 break
 
             res = None

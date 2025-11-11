@@ -105,7 +105,6 @@ f 3600 IN CNAME f            ; CNAME loop: dirty trick to get a ServFail in an a
 
         notify = dns.message.make_query('example', 'SOA', want_dnssec=False)
         notify.set_opcode(4) # notify
-        notifyexpected = dns.rrset.from_text('example.', 0, dns.rdataclass.IN, 'SOA')
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
             res = sender(notify)

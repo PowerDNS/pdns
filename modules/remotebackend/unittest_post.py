@@ -13,7 +13,7 @@ class DNSBackendServer(http.server.HTTPServer):
 
     def finish_request(self, request, client_address):
         """Finish one request by instantiating RequestHandlerClass."""
-        h = self.RequestHandlerClass(request, client_address, self, handler=self.handler)
+        self.RequestHandlerClass(request, client_address, self, handler=self.handler)
 
 
 class DNSBackendHandler(http.server.BaseHTTPRequestHandler):

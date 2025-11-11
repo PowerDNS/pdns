@@ -470,7 +470,7 @@ class FlagsTest(RecursorTest):
 
     def testProcess_Bogus_DO(self):
         msg = self.getQueryForBogus('', 'DO')
-        expected = dns.rrset.from_text('ted.bogus.example.', 0, dns.rdataclass.IN, 'A', '192.0.2.1')
+        dns.rrset.from_text('ted.bogus.example.', 0, dns.rdataclass.IN, 'A', '192.0.2.1')
         res = self.sendUDPQuery(msg, 'process')
 
         self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'], ['DO'])
@@ -701,7 +701,7 @@ class FlagsTest(RecursorTest):
 
     def testValidate_Insecure_ADDOCD(self):
         msg = self.getQueryForInsecure('AD CD', 'DO')
-        expected = dns.rrset.from_text('ns1.example.', 0, dns.rdataclass.IN, 'A', '{prefix}.10'.format(prefix=self._PREFIX))
+        dns.rrset.from_text('ns1.example.', 0, dns.rdataclass.IN, 'A', '{prefix}.10'.format(prefix=self._PREFIX))
         res = self.sendUDPQuery(msg, 'validate')
 
         self.assertMessageHasFlags(res, ['QR', 'RA', 'RD', 'CD'], ['DO'])

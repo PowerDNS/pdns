@@ -95,7 +95,6 @@ packetcache:
         assert(ok)
 
     def testAuthDoesnotSendCookies(self):
-        confdir = os.path.join('configs', self._confdir)
         # Case: rec does not get a cookie back
         expected = dns.rrset.from_text('unsupported.cookies.example.', 15, dns.rdataclass.IN, 'A', '127.0.0.1')
         query = dns.message.make_query('unsupported.cookies.example.', 'A')

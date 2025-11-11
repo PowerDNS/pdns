@@ -594,7 +594,7 @@ forward-zones=ecs-echo.example=[::1]:53000
         expected = dns.rrset.from_text(nameECS, ttlECS, dns.rdataclass.IN, 'TXT', '127.0.0.0/24')
 
         query = dns.message.make_query(nameECS, 'TXT')
-        res = self.sendUDPQuery(query)
+        self.sendUDPQuery(query)
         self.sendECSQuery(query, expected, ttlECS)
 
     def testRequireNoECS(self):
@@ -749,7 +749,7 @@ forward-zones=ecs-echo.example=%s.21
     def testNoECS(self):
         expected = dns.rrset.from_text(nameECS, ttlECS, dns.rdataclass.IN, 'TXT', emptyECSText)
         query = dns.message.make_query(nameECS, 'TXT')
-        res = self.sendUDPQuery(query)
+        self.sendUDPQuery(query)
         self.sendECSQuery(query, expected)
 
     def testRequireNoECS(self):
