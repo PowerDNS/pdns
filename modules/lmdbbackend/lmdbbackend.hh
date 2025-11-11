@@ -300,6 +300,7 @@ private:
   {
     shared_ptr<MDBEnv> env;
     MDBDbi rdbi; // records
+    MDBDbi cdbi; // comments
   };
 
   struct RecordsROTransaction
