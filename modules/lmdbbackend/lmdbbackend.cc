@@ -1787,6 +1787,7 @@ std::shared_ptr<LMDBBackend::RecordsRWTransaction> LMDBBackend::getRecordsRWTran
     shard.env = getMDBEnv((getArg("filename") + "-" + std::to_string(id % s_shards)).c_str(),
                           MDB_NOSUBDIR | MDB_NORDAHEAD | d_asyncFlag, 0600, d_mapsize_shards);
     shard.rdbi = shard.env->openDB("records_v5", MDB_CREATE);
+    shard.cdbi = shard.env->openDB("comments_v7", MDB_CREATE);
   }
   auto ret = std::make_shared<RecordsRWTransaction>(shard.env->getRWTransaction());
   ret->db = std::make_shared<RecordsDB>(shard);
@@ -1805,6 +1806,7 @@ std::shared_ptr<LMDBBackend::RecordsROTransaction> LMDBBackend::getRecordsROTran
     shard.env = getMDBEnv((getArg("filename") + "-" + std::to_string(id % s_shards)).c_str(),
                           MDB_NOSUBDIR | MDB_NORDAHEAD | d_asyncFlag, 0600, d_mapsize_shards);
     shard.rdbi = shard.env->openDB("records_v5", MDB_CREATE);
+    shard.cdbi = shard.env->openDB("comments_v7", MDB_CREATE);
   }
 
   if (rwtxn) {
@@ -3426,6 +3428,8 @@ bool LMDBBackend::hasCreatedLocalFiles() const
   // not all of them did.
   // But since this information is for the sake of pdnsutil, this is not
   // really a problem.
+  // However, there is a false positive if we make new databases (dbis) inside
+  // existing LMDB files on disk. This is not easy to avoid.
   return MDBDbi::d_creationCount != 0;
 }
 
