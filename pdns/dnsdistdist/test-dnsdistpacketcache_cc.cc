@@ -20,12 +20,13 @@ BOOST_AUTO_TEST_SUITE(test_dnsdistpacketcache_cc)
 
 static bool receivedOverUDP = true;
 
-BOOST_AUTO_TEST_CASE(test_PacketCacheSimple)
+static void test_packetcache_simple(bool shuffle)
 {
   const DNSDistPacketCache::CacheSettings settings{
     .d_maxEntries = 150000,
     .d_maxTTL = 86400,
     .d_minTTL = 1,
+    .d_shuffle = shuffle,
   };
   DNSDistPacketCache localCache(settings);
   BOOST_CHECK_EQUAL(localCache.getSize(), 0U);
@@ -131,6 +132,13 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple)
     cerr << "Had error: " << e.reason << endl;
     throw;
   }
+}
+
+BOOST_AUTO_TEST_CASE(test_PacketCacheSimple)
+{
+  /* test both with and without shuffle; should be equivalent */
+  test_packetcache_simple(false);
+  test_packetcache_simple(true);
 }
 
 BOOST_AUTO_TEST_CASE(test_PacketCacheSharded)
