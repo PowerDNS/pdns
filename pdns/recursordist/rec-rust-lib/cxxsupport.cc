@@ -546,7 +546,7 @@ static void processLine(const std::string& arg, FieldMap& map, bool mainFile)
   ::rust::String section;
   ::rust::String fieldname;
   ::rust::String type_name;
-  pdns::rust::settings::rec::Value rustvalue = {false, 0, 0.0, "", {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+  pdns::rust::settings::rec::Value rustvalue = {false, 0, 0.0, "", {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
   if (pdns::settings::rec::oldKVToBridgeStruct(var, val, section, fieldname, type_name, rustvalue)) {
     auto overriding = !mainFile && !incremental && !simpleRustType(type_name);
     auto [existing, inserted] = map.emplace(std::pair{std::pair{section, fieldname}, pdns::rust::settings::rec::OldStyle{section, fieldname, var, std::move(type_name), rustvalue, overriding}});
@@ -631,7 +631,7 @@ std::string pdns::settings::rec::oldStyleSettingsFileToYaml(const string& fname,
   return std::string(pdns::rust::settings::rec::map_to_yaml_string(vec));
 }
 
-std::string pdns::settings::rec::defaultsToYaml()
+std::string pdns::settings::rec::defaultsToYaml(bool postProcess)
 {
   // In this function we make use of the fact that we know a little about the formatting of YAML by
   // serde_yaml.  ATM there's no way around that, as serde_yaml itself does not have any support for
@@ -677,6 +677,8 @@ std::string pdns::settings::rec::defaultsToYaml()
   def("recursor", "allowed_additional_qtypes", "Vec<AllowedAdditionalQType>");
   def("incoming", "proxymappings", "Vec<ProxyMapping>");
   def("recursor", "forwarding_catalog_zones", "Vec<ForwardingCatalogZone>");
+  def("webservice", "listen", "Vec<IncomingWSConfig>");
+  def("recursor", "tls_configurations", "Vec<OutgoingTLSConfiguration>");
   // End of should be generated XXX
 
   // Convert the map to a vector, as CXX does not have any dictionary like support.
@@ -685,8 +687,11 @@ std::string pdns::settings::rec::defaultsToYaml()
   for (const auto& entry : map) {
     vec.emplace_back(entry.second);
   }
-  const auto defs = std::string(pdns::rust::settings::rec::map_to_yaml_string(vec));
+  auto defs = std::string(pdns::rust::settings::rec::map_to_yaml_string(vec));
 
+  if (!postProcess) {
+    return defs;
+  }
   // We now have a YAML string, with all sections and all default values. Do a litle bit of parsing
   // to insert the help text lines.
   std::vector<std::string> lines;

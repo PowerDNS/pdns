@@ -39,7 +39,6 @@ use hyper::server::conn::http1;
 use hyper::service::service_fn;
 use hyper::{body::Incoming as IncomingBody, header, Method, Request, Response, StatusCode};
 use hyper_util::rt::TokioIo;
-use std::io::ErrorKind;
 use std::str::FromStr;
 use std::sync::Arc;
 use tokio::net::TcpListener;
@@ -719,7 +718,7 @@ async fn serveweb_async(
         let mut server_config = rustls::ServerConfig::builder()
             .with_no_client_auth()
             .with_single_cert(certs, key)
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+            .map_err(|e| std::io::Error::other(e.to_string()))?;
         server_config.alpn_protocols = vec![b"http/1.1".to_vec(), b"http/1.0".to_vec()]; // b"h2".to_vec()
         let tls_acceptor = tokio_rustls::TlsAcceptor::from(Arc::new(server_config));
         // We start a loop to continuously accept incoming connections
@@ -891,7 +890,7 @@ pub fn serveweb(
                 Ok(val) => val,
                 Err(err) => {
                     let msg = format!("`{}' is not a IP:port combination: {}", addr_str, err);
-                    return Err(std::io::Error::new(ErrorKind::Other, msg));
+                    return Err(std::io::Error::other(msg));
                 }
             };
 
@@ -937,7 +936,7 @@ pub fn serveweb(
                         }],
                     );
                     let msg = format!("Unable to bind web socket: {}", err);
-                    return Err(std::io::Error::new(ErrorKind::Other, msg));
+                    return Err(std::io::Error::other(msg));
                 }
             }
         }
@@ -968,8 +967,7 @@ pub fn serveweb(
 fn load_certs(filename: &str) -> std::io::Result<Vec<pki_types::CertificateDer<'static>>> {
     // Open certificate file.
     let certfile = std::fs::File::open(filename).map_err(|e| {
-        std::io::Error::new(
-            std::io::ErrorKind::Other,
+        std::io::Error::other(
             format!("Failed to open {}: {}", filename, e),
         )
     })?;
@@ -983,8 +981,7 @@ fn load_certs(filename: &str) -> std::io::Result<Vec<pki_types::CertificateDer<'
 fn load_private_key(filename: &str) -> std::io::Result<pki_types::PrivateKeyDer<'static>> {
     // Open keyfile.
     let keyfile = std::fs::File::open(filename).map_err(|e| {
-        std::io::Error::new(
-            std::io::ErrorKind::Other,
+        std::io::Error::other(
             format!("Failed to open {}: {}", filename, e),
         )
     })?;
@@ -994,8 +991,7 @@ fn load_private_key(filename: &str) -> std::io::Result<pki_types::PrivateKeyDer<
     match rustls_pemfile::private_key(&mut reader) {
         Ok(Some(pkey)) => Ok(pkey),
         Ok(None) => Err(
-            std::io::Error::new(
-                std::io::ErrorKind::Other,
+            std::io::Error::other(
                 format!("Failed to parse private key from {}", filename),
             )),
         Err(e) => Err(e)

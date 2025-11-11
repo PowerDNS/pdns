@@ -297,22 +297,87 @@ static Answer doGet(ArgIterator begin, ArgIterator end)
 
 static Answer doGetParameter(ArgIterator begin, ArgIterator end)
 {
-  string ret;
-  string parm;
-  using boost::replace_all;
-  for (auto i = begin; i != end; ++i) {
-    if (::arg().parmIsset(*i)) {
-      parm = ::arg()[*i];
-      replace_all(parm, "\\", "\\\\");
-      replace_all(parm, "\"", "\\\"");
-      replace_all(parm, "\n", "\\n");
-      ret += *i + "=\"" + parm + "\"\n";
+  std::stringstream ret;
+  int err = 0;
+
+  if (!g_yamlSettings) {
+    for (auto i = begin; i != end; ++i) {
+      if (::arg().parmIsset(*i)) {
+        const auto& parm = arg()[*i];
+        ret << *i << '=' << parm << endl;
+      }
+      else {
+        ret << *i << " not known" << endl;
+        err = 1;
+      }
     }
-    else {
-      ret += *i + " not known\n";
+    return {err, ret.str()};
+  }
+
+  auto settings = g_yamlStruct.lock();
+
+  if (begin == end) {
+    auto yaml = settings->get_value({}, pdns::settings::rec::defaultsToYaml(false), true);
+    ret << std::string(yaml);
+    return {err, ret.str()};
+  }
+
+  for (auto i = begin; i != end; ++i) {
+    rust::Vec<::rust::String> field;
+    stringtok(field, *i, ".");
+    rust::Slice<const ::rust::String> slice{field};
+    try {
+      auto yaml = settings->get_value(slice, pdns::settings::rec::defaultsToYaml(false), true);
+      ret << std::string(yaml);
+    }
+    catch (const std::exception& stdex) {
+      ret << std::string(stdex.what()) << endl;
+      err = 1;
     }
   }
-  return {0, std::move(ret)};
+  return {err, ret.str()};
+}
+
+static Answer doGetDefaultParameter(ArgIterator begin, ArgIterator end)
+{
+  std::stringstream ret;
+  int err = 0;
+
+  if (!g_yamlSettings) {
+    for (auto i = begin; i != end; ++i) {
+      if (::arg().parmIsset(*i)) {
+        ret << *i << '=' << ::arg().getDefault(*i) << endl;
+      }
+      else {
+        ret << *i << " not known" << endl;
+        err = 1;
+      }
+    }
+  }
+  else {
+    auto settings = g_yamlStruct.lock();
+    auto defaults = pdns::rust::settings::rec::parse_yaml_string("");
+    if (begin == end) {
+      auto yaml = pdns::settings::rec::defaultsToYaml(false);
+      ret << std::string(yaml);
+    }
+    else {
+      for (auto i = begin; i != end; ++i) {
+        rust::Vec<::rust::String> field;
+        stringtok(field, *i, ".");
+        rust::Slice<const ::rust::String> slice{field};
+        try {
+          auto yaml = defaults.get_value(slice, pdns::settings::rec::defaultsToYaml(false), false);
+          ret << std::string(yaml);
+        }
+        catch (const std::exception& stdex) {
+          ret << std::string(stdex.what()) << endl;
+          err = 1;
+        }
+      }
+    }
+  }
+  return {err, ret.str()};
 }
 
 /* Read an (open) fd from the control channel */
@@ -576,22 +641,40 @@ static Answer doWipeCache(ArgIterator begin, ArgIterator end, uint16_t qtype)
   return {0, "wiped " + std::to_string(count) + " records, " + std::to_string(countNeg) + " negative records, " + std::to_string(pcount) + " packets\n"};
 }
 
+template <typename T, typename U>
+static void setBothYamlAndOldStyleInt(T& yamlSetting, U& oldstyle, const string& value)
+{
+  pdns::checked_stoi_into(oldstyle, value);
+  if (g_yamlSettings) {
+    yamlSetting = oldstyle;
+  }
+}
+
 static Answer doSetCarbonServer(ArgIterator begin, ArgIterator end)
 {
   auto config = g_carbonConfig.getCopy();
   if (begin == end) {
     config.servers.clear();
+    if (g_yamlSettings) {
+      g_yamlStruct.lock()->carbon.server.clear();
+    }
     g_carbonConfig.setState(std::move(config));
     return {0, "cleared carbon-server setting\n"};
   }
 
   string ret;
   stringtok(config.servers, *begin, ", ");
+  if (g_yamlSettings) {
+    g_yamlStruct.lock()->carbon.server.emplace_back(*begin);
+  }
   ret = "set carbon-server to '" + *begin + "'\n";
 
   ++begin;
   if (begin != end) {
     config.hostname = *begin;
+    if (g_yamlSettings) {
+      g_yamlStruct.lock()->carbon.ourname = *begin;
+    }
     ret += "set carbon-ourname to '" + *begin + "'\n";
   }
   else {
@@ -602,6 +685,9 @@ static Answer doSetCarbonServer(ArgIterator begin, ArgIterator end)
   ++begin;
   if (begin != end) {
     config.namespace_name = *begin;
+    if (g_yamlSettings) {
+      g_yamlStruct.lock()->carbon.ns = *begin;
+    }
     ret += "set carbon-namespace to '" + *begin + "'\n";
   }
   else {
@@ -612,6 +698,9 @@ static Answer doSetCarbonServer(ArgIterator begin, ArgIterator end)
   ++begin;
   if (begin != end) {
     config.instance_name = *begin;
+    if (g_yamlSettings) {
+      g_yamlStruct.lock()->carbon.instance = *begin;
+    }
     ret += "set carbon-instance to '" + *begin + "'\n";
   }
 
@@ -630,7 +719,7 @@ static Answer doSetDnssecLogBogus(ArgIterator begin, ArgIterator end)
   if (pdns_iequals(*begin, "on") || pdns_iequals(*begin, "yes")) {
     if (!g_dnssecLogBogus) {
       g_log << Logger::Warning << "Enabling DNSSEC Bogus logging, requested via control channel" << endl;
-      g_dnssecLogBogus = true;
+      g_yamlStruct.lock()->dnssec.log_bogus = g_dnssecLogBogus = true;
       return {0, "DNSSEC Bogus logging enabled\n"};
     }
     return {0, "DNSSEC Bogus logging was already enabled\n"};
@@ -639,7 +728,7 @@ static Answer doSetDnssecLogBogus(ArgIterator begin, ArgIterator end)
   if (pdns_iequals(*begin, "off") || pdns_iequals(*begin, "no")) {
     if (g_dnssecLogBogus) {
       g_log << Logger::Warning << "Disabling DNSSEC Bogus logging, requested via control channel" << endl;
-      g_dnssecLogBogus = false;
+      g_yamlStruct.lock()->dnssec.log_bogus = g_dnssecLogBogus = false;
       return {0, "DNSSEC Bogus logging disabled\n"};
     }
     return {0, "DNSSEC Bogus logging was already disabled\n"};
@@ -878,7 +967,7 @@ static Answer setMinimumTTL(ArgIterator begin, ArgIterator end)
     return {1, "Need to supply new minimum TTL number\n"};
   }
   try {
-    pdns::checked_stoi_into(SyncRes::s_minimumTTL, *begin);
+    setBothYamlAndOldStyleInt(g_yamlStruct.lock()->recursor.minimum_ttl_override, SyncRes::s_minimumTTL, *begin);
     return {0, "New minimum TTL: " + std::to_string(SyncRes::s_minimumTTL) + "\n"};
   }
   catch (const std::exception& e) {
@@ -892,7 +981,7 @@ static Answer setMinimumECSTTL(ArgIterator begin, ArgIterator end)
     return {1, "Need to supply new ECS minimum TTL number\n"};
   }
   try {
-    pdns::checked_stoi_into(SyncRes::s_minimumECSTTL, *begin);
+    setBothYamlAndOldStyleInt(g_yamlStruct.lock()->ecs.minimum_ttl_override, SyncRes::s_minimumECSTTL, *begin);
     return {0, "New minimum ECS TTL: " + std::to_string(SyncRes::s_minimumECSTTL) + "\n"};
   }
   catch (const std::exception& e) {
@@ -906,7 +995,9 @@ static Answer setMaxCacheEntries(ArgIterator begin, ArgIterator end)
     return {1, "Need to supply new cache size\n"};
   }
   try {
-    g_maxCacheEntries = pdns::checked_stoi<uint32_t>(*begin);
+    uint32_t val{};
+    setBothYamlAndOldStyleInt(g_yamlStruct.lock()->recordcache.max_entries, val, *begin);
+    g_maxCacheEntries = val;
     return {0, "New max cache entries: " + std::to_string(g_maxCacheEntries) + "\n"};
   }
   catch (const std::exception& e) {
@@ -923,7 +1014,9 @@ static Answer setMaxPacketCacheEntries(ArgIterator begin, ArgIterator end)
     return {1, "Packet cache is disabled\n"};
   }
   try {
-    g_maxPacketCacheEntries = pdns::checked_stoi<uint32_t>(*begin);
+    uint32_t val{};
+    setBothYamlAndOldStyleInt(g_yamlStruct.lock()->packetcache.max_entries, val, *begin);
+    g_maxPacketCacheEntries = val;
     g_packetCache->setMaxSize(g_maxPacketCacheEntries);
     return {0, "New max packetcache entries: " + std::to_string(g_maxPacketCacheEntries) + "\n"};
   }
@@ -941,7 +1034,8 @@ static RecursorControlChannel::Answer setAggrNSECCacheSize(ArgIterator begin, Ar
     return {1, "Aggressive NSEC cache is disabled by startup config\n"};
   }
   try {
-    auto newmax = pdns::checked_stoi<uint64_t>(*begin);
+    uint64_t newmax{};
+    setBothYamlAndOldStyleInt(g_yamlStruct.lock()->dnssec.aggressive_nsec_cache_size, newmax, *begin);
     g_aggressiveNSECCache->setMaxEntries(newmax);
     return {0, "New aggressive NSEC cache size: " + std::to_string(newmax) + "\n"};
   }
@@ -1851,7 +1945,7 @@ static Answer setEventTracing(ArgIterator begin, ArgIterator end)
     return {1, "No event trace enabled value specified\n"};
   }
   try {
-    pdns::checked_stoi_into(SyncRes::s_event_trace_enabled, *begin);
+    setBothYamlAndOldStyleInt(g_yamlStruct.lock()->recursor.event_trace_enabled, SyncRes::s_event_trace_enabled, *begin);
     return {0, "New event trace enabled value: " + std::to_string(SyncRes::s_event_trace_enabled) + "\n"};
   }
   catch (const std::exception& e) {
@@ -1911,7 +2005,8 @@ static RecursorControlChannel::Answer help(ArgIterator /* begin */, ArgIterator 
     {"get-dont-throttle-netmasks", "Get the list of netmasks that are not allowed to be throttled"},
     {"get-ntas", "Get all configured Negative Trust Anchors"},
     {"get-tas", "Get all configured Trust Anchors"},
-    {"get-parameter [key1] [key2] ..", "Get configuration parameters"},
+    {"get-parameter [key1] ..", "Get configuration parameters"},
+    {"get-default-parameter [key1] ..", "Get default configuration parameters"},
     {"get-proxymapping-stats", "Get proxy mapping statistics"},
     {"get-qtypelist", "Get QType statistics. Note queries from cache aren't being counted yet"},
     {"get-remotelogger-stats", "Get remote logger statistics"},
@@ -2096,6 +2191,7 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int socket, cons
     {"get-all", getAllStats},
     {"get", doGet},
     {"get-parameter", doGetParameter},
+    {"get-default-parameter", doGetDefaultParameter},
     {"quit", [&](ArgIterator, ArgIterator) -> Answer { *command = doExit; return {0, "bye\n"}; }},
     {"version", [&](ArgIterator, ArgIterator) -> Answer { return {0, getPDNSVersion() + "\n"}; }},
     {"quit-nicely", [&](ArgIterator, ArgIterator) -> Answer { *command = doExitNicely; return {0, "bye nicely\n"}; }},

@@ -313,7 +313,7 @@ def gen_cxx_oldstylesettingstobridgestruct(file, entries):
         elif rust_type == 'Vec<AuthZone>':
             file.write(f'getAuthZones("{oldname}")')
         else:
-            file.write(f'Unknown type {rust_type}\n')
+            file.write(f'Unknown3 type {rust_type}\n')
         file.write(';\n')
     file.write('}\n\n')
 
@@ -367,7 +367,7 @@ def gen_cxx_oldkvtobridgestruct(file, entries):
             file.write(f'    to_yaml(rustvalue.vec_authzone_val, value{extra});\n')
             file.write('    return true;\n  }\n')
         else:
-            file.write(f'Unknown type {rust_type}\n')
+            file.write(f'Unknown4 type {rust_type}\n')
     file.write('  return false;\n')
     file.write('}\n\n')
 

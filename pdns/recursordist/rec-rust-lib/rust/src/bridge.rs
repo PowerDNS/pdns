@@ -216,7 +216,12 @@ fn validate_address_family(
     for addr_str in vec {
         let mut wrong = false;
         let sa = SocketAddr::from_str(addr_str);
-        if sa.is_err() {
+        if let Ok(address) = sa {
+            if local.is_ipv4() != address.is_ipv4() || local.is_ipv6() != address.is_ipv6() {
+                wrong = true;
+            }
+        }
+        else {
             let ip = IpAddr::from_str(addr_str);
             if ip.is_err() {
                 // It is likely a name
@@ -224,11 +229,6 @@ fn validate_address_family(
             }
             let ip = ip.unwrap();
             if local.is_ipv4() != ip.is_ipv4() || local.is_ipv6() != ip.is_ipv6() {
-                wrong = true;
-            }
-        } else {
-            let sa = sa.unwrap();
-            if local.is_ipv4() != sa.is_ipv4() || local.is_ipv6() != sa.is_ipv6() {
                 wrong = true;
             }
         }
@@ -767,13 +767,60 @@ impl ForwardingCatalogZone {
 }
 
 impl IncomingWSConfig {
-    pub fn validate(&self, _field: &str) -> Result<(), ValidationError> {
-        // XXX
+
+    fn to_yaml_map(&self) -> serde_yaml::Value {
+        let mut map = serde_yaml::Mapping::new();
+        let mut seq = serde_yaml::Sequence::new();
+        for entry in &self.addresses {
+            seq.push(serde_yaml::Value::String(entry.to_owned()));
+        }
+        insertseq(&mut map, "addresses", &seq);
+        let mut tls = serde_yaml::Mapping::new();
+        inserts(&mut tls, "certificate", &self.tls.certificate);
+        inserts(&mut tls, "key", &self.tls.key);
+        map.insert(
+            serde_yaml::Value::String("tls".to_owned()),
+            serde_yaml::Value::Mapping(tls),
+        );
+        serde_yaml::Value::Mapping(map)
+    }
+
+    pub fn validate(&self, field: &str) -> Result<(), ValidationError> {
+        validate_vec(
+            &(field.to_string() + ".addresses"),
+            &self.addresses,
+            validate_socket_address,
+        )?;
         Ok(())
     }
 }
 
 impl OutgoingTLSConfiguration {
+
+    fn to_yaml_map(&self) -> serde_yaml::Value {
+        let mut map = serde_yaml::Mapping::new();
+        inserts(&mut map, "name", &self.name);
+        inserts(&mut map, "provider", &self.provider);
+        let mut suffixes = serde_yaml::Sequence::new();
+        for entry in &self.suffixes {
+            suffixes.push(serde_yaml::Value::String(entry.to_owned()));
+        }
+        insertseq(&mut map, "suffixes", &suffixes);
+        let mut subnets = serde_yaml::Sequence::new();
+        for entry in &self.subnets {
+            subnets.push(serde_yaml::Value::String(entry.to_owned()));
+        }
+        insertseq(&mut map, "subnets", &subnets);
+        insertb(&mut map, "validate_certificate", self.validate_certificate);
+        inserts(&mut map, "ca_store", &self.ca_store);
+        insertb(&mut map, "verbose_logging", self.verbose_logging);
+        inserts(&mut map, "subject_name", &self.subject_name);
+        inserts(&mut map, "subject_address", &self.subject_address);
+        inserts(&mut map, "ciphers", &self.ciphers);
+        inserts(&mut map, "ciphers_tls", &self.ciphers_tls_13);
+        serde_yaml::Value::Mapping(map)
+    }
+
     pub fn validate(&self, field: &str) -> Result<(), ValidationError> {
         if self.name.is_empty() {
             let msg = format!("{}: value may not be empty", field);
@@ -889,6 +936,101 @@ pub fn validate_allow_notify_for(field: &str, vec: &Vec<String>) -> Result<(), V
 impl Recursorsettings {
     pub fn to_yaml_string(&self) -> Result<String, serde_yaml::Error> {
         serde_yaml::to_string(self)
+    }
+
+    fn get_value_from_map(map: &serde_yaml::Mapping, fields: &[String]) -> Result<serde_yaml::Value, std::io::Error>  {
+        match fields.len() {
+            0 => {
+                Ok(serde_yaml::Value::Mapping(map.clone()))
+            }
+            1 => {
+                if let Some(found) = map.get(&fields[0]) {
+                    Ok(found.clone())
+                }
+                else {
+                    Err(std::io::Error::other(fields[0].to_owned() + ": not found"))
+                }
+            }
+            _ => {
+                if let Some(found) = map.get(&fields[0]) {
+                    if let Some(map) = found.as_mapping() {
+                        Self::get_value_from_map(map, &fields[1..])
+                    }
+                    else {
+                        Err(std::io::Error::other(fields[0].to_owned() + ": not a mapping"))
+                    }
+                }
+                else {
+                    Err(std::io::Error::other(fields[0].to_owned() + ": not found"))
+                }
+            }
+        }
+    }
+
+    fn get_value1(value: &serde_yaml::Value, field: &[String]) -> Result<serde_yaml::Value, std::io::Error> {
+        if let Some(map) = value.as_mapping() {
+            match field.len() {
+                0 => {
+                    return Self::get_value_from_map(map, field);
+                }
+                _ => {
+                    if let Some(found) = map.get(&field[0]) {
+                        let submap = serde_yaml::from_value(found.clone());
+                        let submap = match submap {
+                            Ok(submap) => submap,
+                            Err(error) => return Err(std::io::Error::other(error.to_string()))
+                        };
+                        return Self::get_value_from_map(&submap, &field[1..]);
+                    }
+                    return Err(std::io::Error::other(field[0].to_owned() + ": not found"));
+                }
+            }
+        }
+        Err(std::io::Error::other(field[0].to_owned() + ": not a map"))
+    }
+
+    fn buildnestedmaps(field: &[String], leaf: &serde_yaml::Value) -> serde_yaml::Value {
+        if field.is_empty() {
+            return leaf.clone();
+        }
+        let submap = Self::buildnestedmaps(&field[1..], leaf);
+        let mut map = serde_yaml::Mapping::new();
+        map.insert(serde_yaml::Value::String(field[0].clone()),
+                   submap);
+        serde_yaml::Value::Mapping(map)
+    }
+
+    pub fn get_value(&self, field: &[String], defaults: &str, with_comment: bool) -> Result<String, std::io::Error> {
+        let value = serde_yaml::to_value(self);
+        let value = match value {
+            Ok(value) => value,
+            Err(error) => return Err(std::io::Error::other(error.to_string()))
+        };
+        match Self::get_value1(&value, field) {
+            Ok(yaml) => {
+                let map = Self::buildnestedmaps(field, &yaml);
+                Ok(serde_yaml::to_string(&map).unwrap())
+            }
+            Err(_) => {
+                let defaults_value: serde_yaml::Value = serde_yaml::from_str(defaults).unwrap();
+                let value = Self::get_value1(&defaults_value, field);
+                match value {
+                    Ok(value) => {
+                        let map = Self::buildnestedmaps(field, &value);
+                        let res = serde_yaml::to_string(&map).unwrap();
+                        if with_comment {
+                            let name = field.join(".");
+                            let msg = format!("# {}: not explicitly set, default value(s) listed below:\n{}", name, res);
+                            Ok(msg)
+                        }
+                        else {
+                            Ok(res)
+                        }
+                    },
+                    Err(x) => Err(x)
+                }
+            }
+        }
     }
 
     // validate() is implemented in the (generated) lib.rs
@@ -1021,6 +1163,20 @@ pub fn map_to_yaml_string(vec: &Vec<OldStyle>) -> Result<String, serde_yaml::Err
                         }
                         serde_yaml::Value::Sequence(seq)
                     }
+                    "Vec<OutgoingTLSConfiguration>" => {
+                        let mut seq = serde_yaml::Sequence::new();
+                        for element in &entry.value.vec_outgoingtlsconfiguration_val {
+                            seq.push(element.to_yaml_map());
+                        }
+                        serde_yaml::Value::Sequence(seq)
+                    }
+                    "Vec<IncomingWSConfig>" => {
+                        let mut seq = serde_yaml::Sequence::new();
+                        for element in &entry.value.vec_incomingwsconfig_val {
+                            seq.push(element.to_yaml_map());
+                        }
+                        serde_yaml::Value::Sequence(seq)
+                    }
                     other => serde_yaml::Value::String(
                         "map_to_yaml_string: Unknown type: ".to_owned() + other,
                     ),
@@ -1080,7 +1236,7 @@ fn api_read_zones_locked(
             let data: Result<ApiZones, serde_yaml::Error> =
                 serde_yaml::from_reader(BufReader::new(file));
             match data {
-                Err(error) => return Err(std::io::Error::new(ErrorKind::Other, error.to_string())),
+                Err(error) => return Err(std::io::Error::other(error.to_string())),
                 Ok(yaml) => yaml,
             }
         }
@@ -1114,7 +1270,7 @@ fn api_write_zones(path: &str, zones: &ApiZones) -> Result<(), std::io::Error> {
     let file = File::create(tmpfile.as_str())?;
     let mut buffered_writer = BufWriter::new(&file);
     if let Err(error) = serde_yaml::to_writer(&mut buffered_writer, &zones) {
-        return Err(std::io::Error::new(ErrorKind::Other, error.to_string()));
+        return Err(std::io::Error::other(error.to_string()));
     }
     buffered_writer.flush()?;
     file.sync_all()?;
