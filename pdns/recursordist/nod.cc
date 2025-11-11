@@ -42,7 +42,7 @@ void PersistentSBF::remove_tmp_files(const filesystem::path& path, std::scoped_l
 {
   Regex file_regex(d_prefix + ".*\\." + bf_suffix + "\\..{8}$");
   for (const auto& file : filesystem::directory_iterator(path)) {
-    if (filesystem::is_regular_file(file.path()) && file_regex.match(file.path().filename().c_str())) {
+    if (filesystem::is_regular_file(file.path()) && file_regex.match(file.path().filename())) {
       filesystem::remove(file);
     }
   }
@@ -67,11 +67,11 @@ bool PersistentSBF::init(bool ignore_pid)
         filesystem::file_time_type newest_time{filesystem::file_time_type::min()};
         Regex file_regex(d_prefix + ".*\\." + bf_suffix + "$");
         for (const auto& file : filesystem::directory_iterator(path)) {
-          if (filesystem::is_regular_file(file.path()) && file_regex.match(file.path().filename().c_str())) {
+          if (filesystem::is_regular_file(file.path()) && file_regex.match(file.path().filename())) {
             if (ignore_pid || (file.path().filename().string().find(std::to_string(getpid())) == std::string::npos)) {
               // look for the newest file matching the regex
-              if (last_write_time(file.path()) > newest_time) {
-                newest_time = last_write_time(file.path());
+              if (file.last_write_time() > newest_time) {
+                newest_time = file.last_write_time();
                 newest_file = file.path();
               }
             }
@@ -170,7 +170,7 @@ bool PersistentSBF::snapshotCurrent(std::thread::id tid)
       }
     }
     else {
-      log->info(Logr::Warning, "NODDB snapshot: Cannot write file", "file", Logging::Loggable(file.c_str()));
+      log->info(Logr::Warning, "NODDB snapshot: Cannot write file", "file", Logging::Loggable(file));
     }
   }
   return false;
