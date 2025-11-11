@@ -424,5 +424,6 @@ private:
   bool d_views;
   bool d_write_notification_update;
   DTime d_dtime; // used only for logging
-  uint64_t d_mapsize;
+  uint64_t d_mapsize_main;
+  uint64_t d_mapsize_shards;
 };

@@ -120,6 +120,23 @@ Size, in megabytes, of each LMDB database.
 This number can be increased later, but never decreased.
 Defaults to 100 on 32 bit systems, and 16000 on 64 bit systems.
 
+  .. versionchanged:: 5.1.0
+
+From version 5.1.0 onwards, this settings only applies to the main database
+file; shards use :ref:`settings-lmdb-shards-map-size` instead.
+
+.. _settings-lmdb-shards-map-size:
+
+``lmdb-shards-map-size``
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+  .. versionadded:: 5.1.0
+
+Size, in megabytes, of each LMDB shard database.
+This number can be increased later, but never decreased.
+If set to zero (which is its default value), the same value as
+:ref:`settings-lmdb-map-size` will be used.
+
 .. _settings-lmdb-flag-deleted:
 
 ``lmdb-flag-deleted``

@@ -731,12 +731,22 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
   else
     throw std::runtime_error("Unknown sync mode " + syncMode + " requested for LMDB backend");
 
-  d_mapsize = 0;
+  d_mapsize_main = d_mapsize_shards = 0;
   try {
-    d_mapsize = std::stoll(getArg("map-size"));
+    d_mapsize_main = std::stoll(getArg("map-size"));
   }
   catch (const std::exception& e) {
     throw std::runtime_error(std::string("Unable to parse the 'map-size' LMDB value: ") + e.what());
+  }
+  try {
+    d_mapsize_shards = std::stoll(getArg("shards-map-size"));
+  }
+  catch (const std::exception& e) {
+    throw std::runtime_error(std::string("Unable to parse the 'shards-map-size' LMDB value: ") + e.what());
+  }
+  if (d_mapsize_shards == 0) {
+    // Old configuration with only one settings for main and shards.
+    d_mapsize_shards = d_mapsize_main;
   }
 
   d_write_notification_update = mustDo("write-notification-update");
@@ -879,7 +889,7 @@ LMDBBackend::~LMDBBackend()
 
 void LMDBBackend::openAllTheDatabases()
 {
-  d_tdomains = std::make_shared<tdomains_t>(getMDBEnv(getArg("filename").c_str(), MDB_NOSUBDIR | MDB_NORDAHEAD | d_asyncFlag, 0600, d_mapsize), "domains_v5");
+  d_tdomains = std::make_shared<tdomains_t>(getMDBEnv(getArg("filename").c_str(), MDB_NOSUBDIR | MDB_NORDAHEAD | d_asyncFlag, 0600, d_mapsize_main), "domains_v5");
   d_tmeta = std::make_shared<tmeta_t>(d_tdomains->getEnv(), "metadata_v5");
   d_tkdb = std::make_shared<tkdb_t>(d_tdomains->getEnv(), "keydata_v5");
   d_ttsig = std::make_shared<ttsig_t>(d_tdomains->getEnv(), "tsig_v5");
@@ -1775,7 +1785,7 @@ std::shared_ptr<LMDBBackend::RecordsRWTransaction> LMDBBackend::getRecordsRWTran
   auto& shard = d_trecords[id % s_shards];
   if (!shard.env) {
     shard.env = getMDBEnv((getArg("filename") + "-" + std::to_string(id % s_shards)).c_str(),
-                          MDB_NOSUBDIR | MDB_NORDAHEAD | d_asyncFlag, 0600, d_mapsize);
+                          MDB_NOSUBDIR | MDB_NORDAHEAD | d_asyncFlag, 0600, d_mapsize_shards);
     shard.dbi = shard.env->openDB("records_v5", MDB_CREATE);
   }
   auto ret = std::make_shared<RecordsRWTransaction>(shard.env->getRWTransaction());
@@ -1793,7 +1803,7 @@ std::shared_ptr<LMDBBackend::RecordsROTransaction> LMDBBackend::getRecordsROTran
       throw DBException("attempting to start nested transaction without open parent env");
     }
     shard.env = getMDBEnv((getArg("filename") + "-" + std::to_string(id % s_shards)).c_str(),
-                          MDB_NOSUBDIR | MDB_NORDAHEAD | d_asyncFlag, 0600, d_mapsize);
+                          MDB_NOSUBDIR | MDB_NORDAHEAD | d_asyncFlag, 0600, d_mapsize_shards);
     shard.dbi = shard.env->openDB("records_v5", MDB_CREATE);
   }
 
@@ -3488,7 +3498,8 @@ public:
     declare(suffix, "shards", "Records database will be split into this number of shards", (sizeof(void*) == 4) ? "2" : "64");
     declare(suffix, "schema-version", "Maximum allowed schema version to run on this DB. If a lower version is found, auto update is performed", std::to_string(SCHEMAVERSION));
     declare(suffix, "random-ids", "Numeric IDs inside the database are generated randomly instead of sequentially", "no");
-    declare(suffix, "map-size", "LMDB map size in megabytes", (sizeof(void*) == 4) ? "100" : "16000");
+    declare(suffix, "map-size", "main LMDB map size in megabytes", (sizeof(void*) == 4) ? "100" : "16000");
+    declare(suffix, "shards-map-size", "shard LMDB map size in megabytes, zero to use the same size as main", "0");
     declare(suffix, "flag-deleted", "Flag entries on deletion instead of deleting them", "no");
     declare(suffix, "write-notification-update", "Do not update domain table upon notification", "yes");
     declare(suffix, "lightning-stream", "Run in Lightning Stream compatible mode", "no");
