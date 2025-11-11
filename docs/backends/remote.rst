@@ -216,7 +216,7 @@ Query:
 
 .. code-block:: json
 
-    {"method":"lookup", "parameters":{"qtype":"ANY", "qname":"www.example.com.", "remote":"192.0.2.24", "local":"192.0.2.1", "real-remote":"192.0.2.24", "zone-id":-1}}
+    {"method":"lookup", "parameters":{"qtype":"ANY", "qname":"www.example.com.", "remote":"192.0.2.24", "local":"192.0.2.1", "real-remote":"192.0.2.0/24", "zone-id":-1}}
 
 Response:
 
@@ -234,7 +234,7 @@ Query:
     GET /dnsapi/lookup/www.example.com./ANY HTTP/1.1
     X-RemoteBackend-remote: 192.0.2.24
     X-RemoteBackend-local: 192.0.2.1
-    X-RemoteBackend-real-remote: 192.0.2.24
+    X-RemoteBackend-real-remote: 192.0.2.0/24
     X-RemoteBackend-zone-id: -1
 
 Response:
