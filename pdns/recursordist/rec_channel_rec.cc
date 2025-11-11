@@ -311,27 +311,28 @@ static Answer doGetParameter(ArgIterator begin, ArgIterator end)
         err = 1;
       }
     }
+    return {err, ret.str()};
   }
-  else {
-    auto settings = g_yamlStruct.lock();
-    if (begin == end) {
-      auto yaml = settings->get_value({}, pdns::settings::rec::defaultsToYaml(false), true);
+
+  auto settings = g_yamlStruct.lock();
+
+  if (begin == end) {
+    auto yaml = settings->get_value({}, pdns::settings::rec::defaultsToYaml(false), true);
+    ret << std::string(yaml);
+    return {err, ret.str()};
+  }
+
+  for (auto i = begin; i != end; ++i) {
+    rust::Vec<::rust::String> field;
+    stringtok(field, *i, ".");
+    rust::Slice<const ::rust::String> slice{field};
+    try {
+      auto yaml = settings->get_value(slice, pdns::settings::rec::defaultsToYaml(false), true);
       ret << std::string(yaml);
     }
-    else {
-      for (auto i = begin; i != end; ++i) {
-        rust::Vec<::rust::String> field;
-        stringtok(field, *i, ".");
-        rust::Slice<const ::rust::String> slice{field};
-        try {
-          auto yaml = settings->get_value(slice, pdns::settings::rec::defaultsToYaml(false), true);
-          ret << std::string(yaml);
-        }
-        catch (const std::exception& stdex) {
-          ret << std::string(stdex.what()) << endl;
-          err = 1;
-        }
-      }
+    catch (const std::exception& stdex) {
+      ret << std::string(stdex.what()) << endl;
+      err = 1;
     }
   }
   return {err, ret.str()};
@@ -641,7 +642,7 @@ static Answer doWipeCache(ArgIterator begin, ArgIterator end, uint16_t qtype)
 }
 
 template <typename T, typename U>
-static void setBothYamlAndOldStyle(T& yamlSetting, U& oldstyle, const string& value)
+static void setBothYamlAndOldStyleInt(T& yamlSetting, U& oldstyle, const string& value)
 {
   pdns::checked_stoi_into(oldstyle, value);
   if (g_yamlSettings) {
@@ -966,7 +967,7 @@ static Answer setMinimumTTL(ArgIterator begin, ArgIterator end)
     return {1, "Need to supply new minimum TTL number\n"};
   }
   try {
-    setBothYamlAndOldStyle(g_yamlStruct.lock()->recursor.minimum_ttl_override, SyncRes::s_minimumTTL, *begin);
+    setBothYamlAndOldStyleInt(g_yamlStruct.lock()->recursor.minimum_ttl_override, SyncRes::s_minimumTTL, *begin);
     return {0, "New minimum TTL: " + std::to_string(SyncRes::s_minimumTTL) + "\n"};
   }
   catch (const std::exception& e) {
@@ -980,7 +981,7 @@ static Answer setMinimumECSTTL(ArgIterator begin, ArgIterator end)
     return {1, "Need to supply new ECS minimum TTL number\n"};
   }
   try {
-    setBothYamlAndOldStyle(g_yamlStruct.lock()->ecs.minimum_ttl_override, SyncRes::s_minimumECSTTL, *begin);
+    setBothYamlAndOldStyleInt(g_yamlStruct.lock()->ecs.minimum_ttl_override, SyncRes::s_minimumECSTTL, *begin);
     return {0, "New minimum ECS TTL: " + std::to_string(SyncRes::s_minimumECSTTL) + "\n"};
   }
   catch (const std::exception& e) {
@@ -995,7 +996,7 @@ static Answer setMaxCacheEntries(ArgIterator begin, ArgIterator end)
   }
   try {
     uint32_t val{};
-    setBothYamlAndOldStyle(g_yamlStruct.lock()->recordcache.max_entries, val, *begin);
+    setBothYamlAndOldStyleInt(g_yamlStruct.lock()->recordcache.max_entries, val, *begin);
     g_maxCacheEntries = val;
     return {0, "New max cache entries: " + std::to_string(g_maxCacheEntries) + "\n"};
   }
@@ -1014,7 +1015,7 @@ static Answer setMaxPacketCacheEntries(ArgIterator begin, ArgIterator end)
   }
   try {
     uint32_t val{};
-    setBothYamlAndOldStyle(g_yamlStruct.lock()->packetcache.max_entries, val, *begin);
+    setBothYamlAndOldStyleInt(g_yamlStruct.lock()->packetcache.max_entries, val, *begin);
     g_maxPacketCacheEntries = val;
     g_packetCache->setMaxSize(g_maxPacketCacheEntries);
     return {0, "New max packetcache entries: " + std::to_string(g_maxPacketCacheEntries) + "\n"};
@@ -1034,7 +1035,7 @@ static RecursorControlChannel::Answer setAggrNSECCacheSize(ArgIterator begin, Ar
   }
   try {
     uint64_t newmax{};
-    setBothYamlAndOldStyle(g_yamlStruct.lock()->dnssec.aggressive_nsec_cache_size, newmax, *begin);
+    setBothYamlAndOldStyleInt(g_yamlStruct.lock()->dnssec.aggressive_nsec_cache_size, newmax, *begin);
     g_aggressiveNSECCache->setMaxEntries(newmax);
     return {0, "New aggressive NSEC cache size: " + std::to_string(newmax) + "\n"};
   }
@@ -1944,7 +1945,7 @@ static Answer setEventTracing(ArgIterator begin, ArgIterator end)
     return {1, "No event trace enabled value specified\n"};
   }
   try {
-    setBothYamlAndOldStyle(g_yamlStruct.lock()->recursor.event_trace_enabled, SyncRes::s_event_trace_enabled, *begin);
+    setBothYamlAndOldStyleInt(g_yamlStruct.lock()->recursor.event_trace_enabled, SyncRes::s_event_trace_enabled, *begin);
     return {0, "New event trace enabled value: " + std::to_string(SyncRes::s_event_trace_enabled) + "\n"};
   }
   catch (const std::exception& e) {
