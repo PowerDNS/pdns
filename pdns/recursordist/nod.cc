@@ -63,7 +63,8 @@ bool PersistentSBF::init(bool ignore_pid)
       if (filesystem::exists(path) && filesystem::is_directory(path)) {
         remove_tmp_files(path, lock);
         filesystem::path newest_file;
-        filesystem::file_time_type newest_time{};
+        // Tricky business, some C++ libs do not use 0 as epoch!
+        filesystem::file_time_type newest_time{filesystem::file_time_type::min()};
         Regex file_regex(d_prefix + ".*\\." + bf_suffix + "$");
         for (const auto& file : filesystem::directory_iterator(path)) {
           if (filesystem::is_regular_file(file.path()) && file_regex.match(file.path().filename().c_str())) {
