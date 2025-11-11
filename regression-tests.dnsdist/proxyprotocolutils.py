@@ -50,8 +50,6 @@ def ProxyProtocolUDPResponder(port, fromQueue, toQueue):
         sock.sendto(response.to_wire(), addr)
         sock.settimeout(None)
 
-    sock.close()
-
 def ProxyProtocolTCPResponder(port, fromQueue, toQueue):
     # be aware that this responder will not accept a new connection
     # until the last one has been closed. This is done on purpose to
@@ -116,5 +114,3 @@ def ProxyProtocolTCPResponder(port, fromQueue, toQueue):
           conn.send(wire)
 
         conn.close()
-
-    sock.close()

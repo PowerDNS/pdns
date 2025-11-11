@@ -176,7 +176,6 @@ class TestDnstapOverRemoteLogger(DNSDistTest):
                 cls._remoteLoggerQueue.put(data, True, timeout=2.0)
 
             conn.close()
-        sock.close()
 
     @classmethod
     def startResponders(cls):
@@ -389,15 +388,17 @@ class TestDnstapOverRemoteLoggerPool(DNSDistTest):
             conn.close()
 
         threads = []
-        while True:
-            (conn, _) = sock.accept()
-            thread = threading.Thread(target=handle_connection, args=[conn])
-            threads.append(thread)
-            thread.start()
 
-        for thread in threads:
-            thread.join()
-        sock.close()
+        try:
+            while True:
+                (conn, _) = sock.accept()
+                thread = threading.Thread(target=handle_connection, args=[conn])
+                threads.append(thread)
+                thread.start()
+        finally:
+            for thread in threads:
+                thread.join()
+            sock.close()
 
     @classmethod
     def startResponders(cls):
@@ -632,12 +633,14 @@ class TestDnstapOverFrameStreamUnixLogger(DNSDistTest):
             sys.exit(1)
 
         sock.listen(100)
-        while True:
-            (conn, _) = sock.accept()
-            fstrm_handle_bidir_connection(conn, lambda data: \
-                cls._fstrmLoggerQueue.put(data, True, timeout=2.0))
-            conn.close()
-        sock.close()
+        try:
+            while True:
+                (conn, _) = sock.accept()
+                fstrm_handle_bidir_connection(conn, lambda data: \
+                    cls._fstrmLoggerQueue.put(data, True, timeout=2.0))
+                conn.close()
+        finally:
+            sock.close()
 
     @classmethod
     def startResponders(cls):
@@ -755,15 +758,18 @@ class TestDnstapOverRemotePoolUnixLogger(DNSDistTest):
             conn.close()
 
         threads = []
-        while True:
-            (conn, _) = sock.accept()
-            thread = threading.Thread(target=handle_connection, args=[conn])
-            threads.append(thread)
-            thread.start()
 
-        for thread in threads:
-            thread.join()
-        sock.close()
+        try:
+            while True:
+                (conn, _) = sock.accept()
+                thread = threading.Thread(target=handle_connection, args=[conn])
+                threads.append(thread)
+                thread.start()
+
+        finally:
+            for thread in threads:
+                thread.join()
+            sock.close()
 
     @classmethod
     def startResponders(cls):
@@ -837,12 +843,15 @@ class TestDnstapOverFrameStreamTcpLogger(DNSDistTest):
             sys.exit(1)
 
         sock.listen(100)
-        while True:
-            (conn, _) = sock.accept()
-            fstrm_handle_bidir_connection(conn, lambda data: \
-                cls._fstrmLoggerQueue.put(data, True, timeout=2.0))
-            conn.close()
-        sock.close()
+
+        try:
+            while True:
+                (conn, _) = sock.accept()
+                fstrm_handle_bidir_connection(conn, lambda data: \
+                    cls._fstrmLoggerQueue.put(data, True, timeout=2.0))
+                conn.close()
+        finally:
+            sock.close()
 
     @classmethod
     def startResponders(cls):
@@ -922,15 +931,18 @@ class TestDnstapOverRemotePoolTcpLogger(DNSDistTest):
             conn.close()
 
         threads = []
-        while True:
-            (conn, _) = sock.accept()
-            thread = threading.Thread(target=handle_connection, args=[conn])
-            threads.append(thread)
-            thread.start()
 
-        for thread in threads:
-            thread.join()
-        sock.close()
+        try:
+            while True:
+                (conn, _) = sock.accept()
+                thread = threading.Thread(target=handle_connection, args=[conn])
+                threads.append(thread)
+                thread.start()
+
+        finally:
+            for thread in threads:
+                thread.join()
+            sock.close()
 
     @classmethod
     def startResponders(cls):

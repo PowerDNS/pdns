@@ -54,18 +54,21 @@ class OOORTCPResponder(object):
             sys.exit(1)
 
         sock.listen(100)
-        while True:
-            (conn, _) = sock.accept()
-            conn.settimeout(5.0)
 
-            OOORTCPResponder.numberOfConnections = OOORTCPResponder.numberOfConnections + 1
-            thread = threading.Thread(name='Connection Handler',
-                                      target=self.handleConnection,
-                                      args=[conn])
-            thread.daemon = True
-            thread.start()
+        try:
+            while True:
+                (conn, _) = sock.accept()
+                conn.settimeout(5.0)
 
-        sock.close()
+                OOORTCPResponder.numberOfConnections = OOORTCPResponder.numberOfConnections + 1
+                thread = threading.Thread(name='Connection Handler',
+                                        target=self.handleConnection,
+                                        args=[conn])
+                thread.daemon = True
+                thread.start()
+
+        finally:
+            sock.close()
 
 class ReverseOOORTCPResponder(OOORTCPResponder):
 
@@ -125,17 +128,20 @@ class ReverseOOORTCPResponder(OOORTCPResponder):
             sys.exit(1)
 
         sock.listen(100)
-        while True:
-            (conn, _) = sock.accept()
 
-            ReverseOOORTCPResponder.numberOfConnections = ReverseOOORTCPResponder.numberOfConnections + 1
-            thread = threading.Thread(name='Connection Handler',
-                                      target=self.handleConnection,
-                                      args=[conn])
-            thread.daemon = True
-            thread.start()
+        try:
+            while True:
+                (conn, _) = sock.accept()
 
-        sock.close()
+                ReverseOOORTCPResponder.numberOfConnections = ReverseOOORTCPResponder.numberOfConnections + 1
+                thread = threading.Thread(name='Connection Handler',
+                                        target=self.handleConnection,
+                                        args=[conn])
+                thread.daemon = True
+                thread.start()
+
+        finally:
+            sock.close()
 
 
 OOORResponderPort = pickAvailablePort()
