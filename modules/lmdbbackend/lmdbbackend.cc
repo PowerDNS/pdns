@@ -1163,6 +1163,25 @@ static std::string serializeContent(uint16_t qtype, const DNSName& domain, const
   return drc->serialize(domain, false);
 }
 
+// comment serialization:
+// 8 bytes timestamp, network order
+// comment content, \0 terminated
+// account name, \0 terminated
+
+// perhaps this can also create the compound order name for us
+static std::string serializeComment(const Comment& c)
+{
+  string ret;
+
+  uint64_t ts = LMDBLS::pdns_bswap64(c.modified_at);
+  ret.reserve(sizeof(uint64_t) + c.content.size() + c.account.size() + 2); // one timestamp, two strings, 2 \0 delimiters
+
+  ret.assign((char *)(&ts), sizeof(ts)); // FIXME i bet there's a cleaner way
+  ret += c.content + string(1, (char)0) + c.account + string(1, (char)0);
+
+  return ret;
+}
+
 static std::shared_ptr<DNSRecordContent> deserializeContentZR(uint16_t qtype, const DNSName& qname, const std::string& content)
 {
   if (qtype == QType::A && content.size() == 4) {
@@ -1467,6 +1486,22 @@ bool LMDBBackend::feedRecord(const DNSResourceRecord& r, const DNSName& ordernam
   if (lrr.hasOrderName) {
     writeNSEC3RecordPair(d_rwtxn, lrr.domain_id, lrr.qname, ordername);
   }
+  return true;
+}
+
+// d_rwtxn must be set here
+bool LMDBBackend::feedComment(const Comment& comment)
+{
+  compoundOrdername co;
+  auto qname = comment.qname.makeRelative(d_transactiondomain);
+  string key = co(comment.domain_id, qname, comment.qtype); // FIXME: add hash to distinguish multiple comments
+
+  // we serialized domain_id, qname, qtype
+  // that leaves us with content, modified_at, account
+  string value = serializeComment(comment);
+
+  d_rwtxn->txn->put(d_rwtxn->db->cdbi, key, value);
+
   return true;
 }
 
