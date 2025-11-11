@@ -34,6 +34,7 @@
 #include "pdns/logger.hh"
 #include "pdns/misc.hh"
 #include "pdns/pdnsexception.hh"
+#include "pdns/sha.hh"
 #include "pdns/uuid-utils.hh"
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
@@ -42,6 +43,8 @@
 #include <boost/serialization/utility.hpp>
 #include <boost/serialization/vector.hpp>
 #include <boost/uuid/uuid_serialize.hpp>
+#include <protozero/pbf_reader.hpp>
+#include <protozero/pbf_writer.hpp>
 #include <cstdio>
 #include <cstring>
 #include <lmdb.h>
@@ -889,7 +892,7 @@ void LMDBBackend::openAllTheDatabases()
 
 unsigned int LMDBBackend::getCapabilities()
 {
-  unsigned int caps = CAP_DNSSEC | CAP_DIRECT | CAP_LIST | CAP_CREATE | CAP_SEARCH;
+  unsigned int caps = CAP_DNSSEC | CAP_DIRECT | CAP_LIST | CAP_CREATE | CAP_SEARCH | CAP_COMMENTS;
   if (d_views) {
     caps |= CAP_VIEWS;
   }
@@ -1159,6 +1162,36 @@ static std::string serializeContent(uint16_t qtype, const DNSName& domain, const
 {
   auto drc = DNSRecordContent::make(qtype, QClass::IN, content);
   return drc->serialize(domain, false);
+}
+
+// perhaps this can also create the compound order name for us
+std::pair<std::string, std::string> LMDBBackend::serializeComment(const Comment& comment)
+{
+  compoundOrdername co;
+  auto qname = comment.qname.makeRelative(d_transactiondomain);
+  string key = co(comment.domain_id, qname, comment.qtype);
+
+  // we serialized domain_id, qname, qtype
+  // that leaves us with content, modified_at, account
+
+  string val;
+
+  protozero::pbf_writer val_writer{val};
+  val_writer.add_sfixed64(1, comment.modified_at);
+  val_writer.add_string(2, comment.account);
+  val_writer.add_string(3, comment.content);
+
+  // because of Lightning Stream, we don't want to put all comments for an RRSET in a single LMDB value
+  // because if we did, then after adding one comment on node A and adding one comment on B, the set from one will overwrite
+  // the set from the other, deleting one of the comments.
+  // instead, we use one LMDB key/value per comment. This requires a unique key. Our unique key is the hash of our value.
+  // This makes sure that identical/duplicate comments do not actually duplicate, and that different comments do not
+  // overwrite each other, because their hashes are different.
+  auto hash = pdns::sha256sum(val);
+
+  key.append(hash);
+
+  return {key, val};
 }
 
 static std::shared_ptr<DNSRecordContent> deserializeContentZR(uint16_t qtype, const DNSName& qname, const std::string& content)
@@ -1491,6 +1524,16 @@ bool LMDBBackend::feedRecord(const DNSResourceRecord& r, const DNSName& ordernam
   return true;
 }
 
+// d_rwtxn must be set here
+bool LMDBBackend::feedComment(const Comment& comment)
+{
+  auto [key, val] = serializeComment(comment);
+
+  d_rwtxn->txn->put(d_rwtxn->db->cdbi, key, val);
+
+  return true;
+}
+
 bool LMDBBackend::feedEnts(domainid_t domain_id, map<DNSName, bool>& nonterm)
 {
   LMDBResourceRecord lrr;
@@ -1618,12 +1661,31 @@ bool LMDBBackend::replaceRRSet(domainid_t domain_id, const DNSName& qname, const
   return true;
 }
 
-// NOLINTNEXTLINE(readability-identifier-length)
-bool LMDBBackend::replaceComments([[maybe_unused]] domainid_t domain_id, [[maybe_unused]] const DNSName& qname, [[maybe_unused]] const QType& qt, const vector<Comment>& comments)
+bool LMDBBackend::replaceComments(const domainid_t domain_id, const DNSName& qname, const QType& qtype, const vector<Comment>& comments)
 {
-  // if the vector is empty, good, that's what we do here (LMDB does not store comments)
-  // if it's not, report failure
-  return comments.empty();
+  // delete all existing comments for the RRset
+  // this could be smarter and not del+replace unchanged comments
+  auto cursor = d_rwtxn->txn->getCursor(d_rwtxn->db->cdbi);
+  MDBOutVal key{};
+  MDBOutVal val{};
+
+  compoundOrdername co;
+
+  auto relqname = qname.makeRelative(d_transactiondomain);
+
+  string match = co(domain_id, relqname, qtype);
+
+  if (cursor.prefix(match, key, val) == 0) {
+    do {
+      cursor.del(key);
+    } while (cursor.next(key, val) == 0);
+  }
+
+  for (const auto& comment : comments) {
+    feedComment(comment);
+  }
+
+  return true;
 }
 
 // FIXME: this is not very efficient
@@ -1923,11 +1985,30 @@ bool LMDBBackend::deleteDomain(const ZoneName& domain)
   return true;
 }
 
+bool LMDBBackend::listComments(domainid_t domain_id)
+{
+  DomainInfo info;
+  if (!findDomain(domain_id, info)) {
+    throw DBException("Domain with id '" + std::to_string(domain_id) + "' not found");
+  }
+
+  d_lookupstate.domain = info.zone;
+  d_lookupstate.submatch.clear();
+  d_lookupstate.comments = true;
+
+  compoundOrdername order;
+  std::string match = order(domain_id);
+
+  lookupStart(domain_id, match, false);
+  return true;
+}
+
 bool LMDBBackend::list(const ZoneName& target, domainid_t domain_id, bool include_disabled)
 {
   d_lookupstate.domain = target;
   d_lookupstate.submatch.clear();
   d_lookupstate.includedisabled = include_disabled;
+  d_lookupstate.comments = false;
 
   compoundOrdername order;
   std::string match = order(domain_id);
@@ -1955,6 +2036,7 @@ bool LMDBBackend::listSubZone(const ZoneName& target, domainid_t domain_id)
   d_lookupstate.domain = std::move(info.zone);
   d_lookupstate.submatch = std::move(relqname);
   d_lookupstate.includedisabled = true;
+  d_lookupstate.comments = false;
 
   compoundOrdername order;
   std::string match = order(domain_id);
@@ -2002,6 +2084,7 @@ void LMDBBackend::lookupInternal(const QType& type, const DNSName& qdomain, doma
   d_lookupstate.domain = std::move(info.zone);
   d_lookupstate.submatch.clear();
   d_lookupstate.includedisabled = include_disabled;
+  d_lookupstate.comments = false;
 
   compoundOrdername order;
   std::string match;
@@ -2019,15 +2102,18 @@ void LMDBBackend::lookupStart(domainid_t domain_id, const std::string& match, bo
 {
   d_rotxn = getRecordsROTransaction(domain_id, d_rwtxn);
   d_txnorder = true;
-  d_lookupstate.cursor = std::make_shared<MDBROCursor>(d_rotxn->txn->getCursor(d_rotxn->db->rdbi));
+  if (d_lookupstate.comments) {
+    d_lookupstate.cursor = std::make_shared<MDBROCursor>(d_rotxn->txn->getCursor(d_rotxn->db->cdbi));
+  }
+  else {
+    d_lookupstate.cursor = std::make_shared<MDBROCursor>(d_rotxn->txn->getCursor(d_rotxn->db->rdbi));
+  }
 
   // Make sure we start with fresh data
   d_lookupstate.rrset.clear();
   d_lookupstate.rrsetpos = 0;
 
-  MDBOutVal key{};
-  MDBOutVal val{};
-  if (d_lookupstate.cursor->prefix(match, key, val) != 0) {
+  if (d_lookupstate.cursor->prefix(match, d_lookupstate.key, d_lookupstate.val) != 0) {
     d_lookupstate.reset(); // will cause get() to fail
     if (dolog) {
       SLOG(g_log << Logger::Warning << "Query " << ((long)(void*)this) << ": " << d_dtime.udiffNoReset() << " us to execute (found nothing)" << endl,
@@ -2044,6 +2130,48 @@ void LMDBBackend::lookupStart(domainid_t domain_id, const std::string& match, bo
 
 bool LMDBBackend::getInternal(DNSName& basename, std::string_view& key)
 {
+  // FIXME: bit of duplication from below here, but much simpler
+  if (d_lookupstate.comments) {
+    if (!d_lookupstate.cursor) {
+      d_rotxn.reset();
+      return false;
+    }
+
+    key = d_lookupstate.key.getNoStripHeader<string_view>();
+    // remove hash from the key so compoundOrdername::get* works
+    key = key.substr(0, key.size() - 256 / 8);
+    if (key.size() == 0) {
+      // removing the hash-sized suffix left us with nothing
+      throw DBException("got invalid serialized comment: key too short");
+    }
+
+    basename = compoundOrdername::getQName(key);
+
+    const auto& val = d_lookupstate.val.get<string>();
+
+    d_lookupstate.comment.domain_id = compoundOrdername::getDomainID(key);
+    d_lookupstate.comment.qname = basename + d_lookupstate.domain.operator const DNSName&();
+    d_lookupstate.comment.qtype = compoundOrdername::getQType(key);
+    try {
+      protozero::pbf_reader message{val};
+      message.next(1);
+      d_lookupstate.comment.modified_at = message.get_sfixed64();
+      message.next(2);
+      d_lookupstate.comment.account = message.get_string();
+      message.next(3);
+      d_lookupstate.comment.content = message.get_string();
+    }
+    catch (protozero::exception& e) {
+      throw DBException(std::string("got invalid serialized comment: ") + e.what());
+    }
+
+    if (d_lookupstate.cursor && d_lookupstate.cursor->next(d_lookupstate.key, d_lookupstate.val) != 0) {
+      d_lookupstate.reset(); // this invalidates cursor and makes us return false on the next round
+    }
+
+    return true;
+  }
+
   for (;;) {
     if (!d_lookupstate.rrset.empty()) {
       if (++d_lookupstate.rrsetpos >= d_lookupstate.rrset.size()) {
@@ -2106,6 +2234,19 @@ bool LMDBBackend::getInternal(DNSName& basename, std::string_view& key)
 
     break;
   }
+
+  return true;
+}
+
+bool LMDBBackend::getComment(Comment& comment) // NOLINT(readability-identifier-length)
+{
+  DNSName basename;
+  std::string_view key;
+
+  if (!getInternal(basename, key)) {
+    return false;
+  }
+  comment = d_lookupstate.comment;
 
   return true;
 }
