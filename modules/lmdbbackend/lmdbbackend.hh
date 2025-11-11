@@ -299,7 +299,7 @@ private:
   struct RecordsDB
   {
     shared_ptr<MDBEnv> env;
-    MDBDbi dbi;
+    MDBDbi rdbi; // records
   };
 
   struct RecordsROTransaction
