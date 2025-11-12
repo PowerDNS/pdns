@@ -529,7 +529,7 @@ class TestAPICustomHeaders(APITestsBase):
         self.assertTrue(r)
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.headers.get('x-custom'), "custom")
-        self.assertFalse("x-frame-options" in r.headers)
+        self.assertNotIn("x-frame-options", r.headers)
 
     def testBasicHeadersUpdate(self):
         """

@@ -28,7 +28,7 @@ class SNMPTest(RecursorTest):
             self.assertTrue(isinstance(results[oid], Counter64))
 
         oid = self._snmpOID + '.1.' + str(count + 1) + '.0'
-        self.assertFalse(oid in results)
+        self.assertNotIn(oid, results)
 
         # check uptime > 0
         self.assertGreater(results['1.3.6.1.4.1.43315.2.1.75.0'], 0)

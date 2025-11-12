@@ -91,7 +91,7 @@ class DOHTests(object):
         self.assertEqual(expectedQuery, receivedQuery)
         self.assertIn(self._customResponseHeader1, self._response_headers.decode())
         self.assertIn(self._customResponseHeader2, self._response_headers.decode())
-        self.assertFalse(('UPPERCASE: VaLuE' in self._response_headers.decode()))
+        self.assertNotIn('UPPERCASE: VaLuE', self._response_headers.decode())
         self.assertIn('uppercase: VaLuE', self._response_headers.decode())
         self.assertIn('cache-control: max-age=3600', self._response_headers.decode())
         self.checkQueryEDNSWithoutECS(expectedQuery, receivedQuery)
