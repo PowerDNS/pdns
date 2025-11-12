@@ -543,3 +543,67 @@ pools:
     def tearDownClass(cls):
         if cls._dnsdist:
             cls.killProcess(cls._dnsdist)
+
+class TestYamlLuaCodeUsingObjects(DNSDistTest):
+
+    _yaml_config_template = """---
+binds:
+  - listen_address: "127.0.0.1:%d"
+    protocol: Do53
+
+backends:
+  - address: "127.0.0.1:%d"
+    protocol: Do53
+
+query_rules:
+  - name: "check the qname and source IP using Lua objects"
+    selector:
+      type: "Not"
+      selector:
+        type: "Lua"
+        function_code: |
+          local myset = newDNSNameSet()
+          myset:add(newDNSName('lua-objects.yaml.tests.powerdns.com.'))
+          local mynmg = newNMG()
+          mynmg:addMask('127.0.0.1')
+          return function(dq)
+            if not myset:check(dq.qname) then
+              errlog("Wrong name "..dq.qname:toString())
+              return false
+            end
+            if not mynmg:match(dq.remoteaddr) then
+              errlog("Wrong source IP "..dq.remoteaddr:toStringWithPort())
+              return false
+            end
+            return true
+          end
+    action:
+      type: "RCode"
+      rcode: "Refused"
+"""
+    _yaml_config_params = ['_dnsDistPort', '_testServerPort']
+    _config_params = []
+
+    def testLuaObjects(self):
+        """
+        YAML: Test Lua objects
+        """
+        name = 'lua-objects.yaml.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'SOA', 'IN')
+        query.set_opcode(dns.opcode.UPDATE)
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = query.id
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
