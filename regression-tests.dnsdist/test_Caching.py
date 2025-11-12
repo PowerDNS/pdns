@@ -485,7 +485,7 @@ class TestCaching(DNSDistTest):
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         self.assertEqual(receivedResponse, response)
         for an in receivedResponse.answer:
-            self.assertTrue(an.ttl < ttl)
+            self.assertLess(an.ttl, ttl)
 
         total = 0
         for key in self._responsesCounter:

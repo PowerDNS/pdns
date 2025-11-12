@@ -288,7 +288,7 @@ class TestAdvancedDelay(DNSDistTest):
         receivedQuery.id = query.id
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
-        self.assertTrue((end - begin) < timedelta(0, 1))
+        self.assertLess(end - begin, timedelta(0, 1))
 
 class TestAdvancedAndNot(DNSDistTest):
 

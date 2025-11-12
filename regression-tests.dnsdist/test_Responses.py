@@ -42,7 +42,7 @@ class TestResponseRuleNXDelayed(DNSDistTest):
         receivedQuery.id = query.id
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
-        self.assertTrue((end - begin) < timedelta(0, 1))
+        self.assertLess(end - begin, timedelta(0, 1))
 
         # NX over TCP
         response.set_rcode(dns.rcode.NXDOMAIN)
@@ -52,7 +52,7 @@ class TestResponseRuleNXDelayed(DNSDistTest):
         receivedQuery.id = query.id
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
-        self.assertTrue((end - begin) < timedelta(0, 1))
+        self.assertLess(end - begin, timedelta(0, 1))
 
 class TestResponseRuleERCode(DNSDistTest):
 
@@ -94,7 +94,7 @@ class TestResponseRuleERCode(DNSDistTest):
         receivedQuery.id = query.id
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
-        self.assertTrue((end - begin) < timedelta(0, 1))
+        self.assertLess(end - begin, timedelta(0, 1))
 
         # NoError (non-ERcode, basic RCode bits match BADVERS) over UDP
         response.set_rcode(dns.rcode.NOERROR)
@@ -104,7 +104,7 @@ class TestResponseRuleERCode(DNSDistTest):
         receivedQuery.id = query.id
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
-        self.assertTrue((end - begin) < timedelta(0, 1))
+        self.assertLess(end - begin, timedelta(0, 1))
 
 class TestResponseRuleQNameDropped(DNSDistTest):
 
