@@ -576,3 +576,45 @@ query_rules:
     def tearDownClass(cls):
         if cls._dnsdist:
             cls.killProcess(cls._dnsdist)
+
+class TestYamlUnknownPolicyName(DNSDistTest):
+
+    _yaml_config_template = """---
+binds:
+  - listen_address: "127.0.0.1:%d"
+    protocol: Do53
+
+backends:
+  - address: "127.0.0.1:%d"
+    protocol: Do53
+
+pools:
+  - name: ""
+    policy: "this-policy-does-not-exist"
+"""
+    _yaml_config_params = ['_dnsDistPort', '_testServerPort']
+    _config_params = []
+
+    def testFailToStart(self):
+        """
+        YAML: Fails to start with unknown policy name
+        """
+        pass
+
+    @classmethod
+    def setUpClass(cls):
+        failed = False
+        try:
+            cls.startDNSDist()
+        except AssertionError as err:
+            failed = True
+            expected = "dnsdist --check-config failed (1): b'Error while processing YAML configuration from file configs/dnsdist_TestYamlUnknownPolicyName.yml: Unable to find a load-balancing policy named this-policy-does-not-exist\\n'"
+            if str(err) != expected:
+                raise AssertionError("DNSdist should not start with an unknown policy name: %s" % (err))
+        if not failed:
+            raise AssertionError("DNSdist should not start with an unknown policy name")
+
+    @classmethod
+    def tearDownClass(cls):
+        if cls._dnsdist:
+            cls.killProcess(cls._dnsdist)
