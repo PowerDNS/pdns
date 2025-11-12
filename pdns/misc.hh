@@ -858,7 +858,7 @@ struct FDWrapper
   int reset()
   {
     int ret = 0;
-    if (d_fd >= 0) {
+    if (d_fd >= 0) { // NOLINT(clang-analyzer-core.UndefinedBinaryOperatorResult): obvious false positive
       ret = close(d_fd);
     }
     d_fd = -1;

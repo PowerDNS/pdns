@@ -569,9 +569,10 @@ static void qthread(unsigned int num)
     AtomicCounter& numreceived6 = *S.getPointer("udp6-queries");
     AtomicCounter& overloadDrops = *S.getPointer("overload-drops");
 
-    int diff, start;
+    int diff{};
+    int start{};
     bool logDNSQueries = ::arg().mustDo("log-dns-queries");
-    shared_ptr<UDPNameserver> NS;
+    shared_ptr<UDPNameserver> NS; // NOLINT(readability-identifier-length)
     std::string buffer;
     ComboAddress accountremote;
 
@@ -633,8 +634,9 @@ static void qthread(unsigned int num)
         S.ringAccount("remotes", question.getInnerRemote());
         if (logDNSQueries) {
           g_log << Logger::Notice << "Remote " << question.getRemoteString() << " wants '" << question.qdomain << "|" << question.qtype << "', do = " << question.d_dnssecOk << ", bufsize = " << question.getMaxReplyLen();
-          if (question.d_ednsRawPacketSizeLimit > 0 && question.getMaxReplyLen() != (unsigned int)question.d_ednsRawPacketSizeLimit)
+          if (question.d_ednsRawPacketSizeLimit > 0 && question.getMaxReplyLen() != (unsigned int)question.d_ednsRawPacketSizeLimit) {
             g_log << " (" << question.d_ednsRawPacketSizeLimit << ")";
+          }
         }
 
         if (PC.enabled() && (question.d.opcode != Opcode::Notify && question.d.opcode != Opcode::Update) && question.couldBeCached()) {
@@ -653,7 +655,7 @@ static void qthread(unsigned int num)
             cached.d_inner_remote = question.d_inner_remote;
             cached.setSocket(question.getSocket()); // inlined
             cached.d_anyLocal = question.d_anyLocal;
-            cached.setMaxReplyLen(question.getMaxReplyLen());
+            cached.setMaxReplyLen(question.getMaxReplyLen()); // NOLINT(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions) get returns unsigned, set takes signed...
             cached.d.rd = question.d.rd; // copy in recursion desired bit
             cached.d.id = question.d.id;
             cached.commitD(); // commit d to the packet                        inlined
