@@ -289,3 +289,17 @@ jobs:
         fetch-depth: 2
         persist-credentials: false
     - run: if [[ "$(file -i --dereference $(git diff --name-only HEAD^..HEAD -- . :^fuzzing/corpus) | grep binary | grep -v 'image/' | grep -v 'inode/x-empty' | grep -v 'inode/directory' | grep -v '^modules/lmdbbackend/test-assets/' | grep -v '^website/docs.powerdns.com/website/fonts/' | grep -v '^website/docs.powerdns.com/website/img/' | grep -v '^modules/tinydnsbackend/data.cdb' | tee /dev/stderr)" != "" ]]; then exit 1; fi
+
+  check-python-formatting:
+    runs-on: ubuntu-22.04
+    name: Check formatting of Python scripts
+    if: ${{ github.event_name == 'pull_request' }}
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v5
+      with:
+        fetch-depth: 0
+        persist-credentials: false
+    - uses: astral-sh/ruff-action@v3
+      with:
+        args: 'format --check --diff'
