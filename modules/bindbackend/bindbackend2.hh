@@ -256,8 +256,7 @@ private:
     bool get(DNSResourceRecord&);
     void reset();
 
-    handle();
-
+    handle() = default;
     handle(const handle&) = delete;
     handle& operator=(const handle&) = delete; // don't go copying this
 
