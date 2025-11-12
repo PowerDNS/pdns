@@ -117,3 +117,20 @@ std::optional<pdns::trace::dnsdist::Tracer::Closer> InternalQueryState::getClose
 #endif
   return ret;
 }
+
+std::optional<pdns::trace::dnsdist::Tracer::Closer> InternalQueryState::getRulesCloser([[maybe_unused]] const std::string& ruleName, [[maybe_unused]] const std::string& parentSpanName)
+{
+  std::optional<pdns::trace::dnsdist::Tracer::Closer> ret(std::nullopt);
+#ifndef DISABLE_PROTOBUF
+  static const std::string prefix = "Rule: ";
+  // getTracer returns a Tracer when tracing is globally enabled
+  // tracingEnabled tells us whether or not tracing is enabled for this query
+  // Should tracing be disabled, *but* we have not processed query rules, we will still return a closer if tracing is globally enabled
+  if (auto tracer = getTracer(); tracer != nullptr && (tracingEnabled || !rulesAppliedToQuery)) {
+    auto parentSpanID = d_OTTracer->getLastSpanIDForName(parentSpanName);
+    auto name = prefix + ruleName;
+    ret = std::optional<pdns::trace::dnsdist::Tracer::Closer>(d_OTTracer->openSpan(name, parentSpanID));
+  }
+#endif
+  return ret;
+}

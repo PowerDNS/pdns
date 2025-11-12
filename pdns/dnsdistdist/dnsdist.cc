@@ -456,8 +456,7 @@ static bool encryptResponse(PacketBuffer& response, size_t maximumSize, bool tcp
 
 bool applyRulesToResponse(const std::vector<dnsdist::rules::ResponseRuleAction>& respRuleActions, DNSResponse& dnsResponse)
 {
-  static const std::string traceEventName{"applyRulesToResponse"};
-  auto closer = dnsResponse.ids.getCloser(traceEventName);
+  auto closer = dnsResponse.ids.getCloser(__func__);
   if (respRuleActions.empty()) {
     return true;
   }
@@ -466,7 +465,7 @@ bool applyRulesToResponse(const std::vector<dnsdist::rules::ResponseRuleAction>&
   std::string ruleresult;
 
   for (const auto& rrule : respRuleActions) {
-    auto ruleCloser = dnsResponse.ids.getCloser("Rule: " + rrule.d_name, traceEventName);
+    auto ruleCloser = dnsResponse.ids.getRulesCloser(rrule.d_name, __func__);
     if (rrule.d_rule->matches(&dnsResponse)) {
       ++rrule.d_rule->d_matches;
       action = (*rrule.d_action)(&dnsResponse, &ruleresult);
@@ -520,8 +519,7 @@ bool applyRulesToResponse(const std::vector<dnsdist::rules::ResponseRuleAction>&
 
 bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse, [[maybe_unused]] bool muted)
 {
-  static const std::string traceEventName{"processResponseAfterRules"};
-  auto closer = dnsResponse.ids.getCloser(traceEventName, "processResponse");
+  auto closer = dnsResponse.ids.getCloser(__func__, "processResponse");
   bool zeroScope = false;
   if (!fixUpResponse(response, dnsResponse.ids.qname, dnsResponse.ids.origFlags, dnsResponse.ids.ednsAdded, dnsResponse.ids.ecsAdded, dnsResponse.ids.useZeroScope ? &zeroScope : nullptr)) {
     if (closer) {
@@ -553,7 +551,7 @@ bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse,
       cacheKey = dnsResponse.ids.cacheKeyNoECS;
     }
     {
-      auto cacheInsertCloser = dnsResponse.ids.getCloser("packetCacheInsert", traceEventName);
+      auto cacheInsertCloser = dnsResponse.ids.getCloser("packetCacheInsert", __func__);
       dnsResponse.ids.packetCache->insert(cacheKey, zeroScope ? boost::none : dnsResponse.ids.subnet, dnsResponse.ids.cacheFlags, dnsResponse.ids.dnssecOK ? *dnsResponse.ids.dnssecOK : false, dnsResponse.ids.qname, dnsResponse.ids.qtype, dnsResponse.ids.qclass, response, dnsResponse.ids.forwardedOverUDP, dnsResponse.getHeader()->rcode, dnsResponse.ids.tempFailureTTL);
     }
     const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
@@ -585,7 +583,7 @@ bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse,
 bool processResponse(PacketBuffer& response, DNSResponse& dnsResponse, bool muted)
 {
   // This is a new root span
-  auto closer = dnsResponse.ids.getCloser("processResponse", SpanID{});
+  auto closer = dnsResponse.ids.getCloser(__func__, SpanID{});
 
   const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
   const auto& respRuleActions = dnsdist::rules::getResponseRuleChain(chains, dnsdist::rules::ResponseRuleChain::ResponseRules);
@@ -1024,11 +1022,10 @@ static bool applyRulesChainToQuery(const std::vector<dnsdist::rules::RuleAction>
   string ruleresult;
   bool drop = false;
 
-  static const std::string traceEventName{"applyRulesToChainQuery"};
-  auto closer = dnsQuestion.ids.getCloser(traceEventName);
+  auto closer = dnsQuestion.ids.getCloser(__func__);
 
   for (const auto& rule : rules) {
-    auto ruleCloser = dnsQuestion.ids.getCloser("Rule: " + rule.d_name, traceEventName);
+    auto ruleCloser = dnsQuestion.ids.getRulesCloser(rule.d_name, __func__);
 
     if (!rule.d_rule->matches(&dnsQuestion)) {
       continue;
@@ -1047,7 +1044,7 @@ static bool applyRulesChainToQuery(const std::vector<dnsdist::rules::RuleAction>
 static bool applyRulesToQuery(DNSQuestion& dnsQuestion, const timespec& now)
 {
   InternalQueryState::rulesAppliedToQuerySetter tpprs(dnsQuestion.ids.rulesAppliedToQuery); // Ensure IDS knows we are past the rules processing when we exit this function
-  auto closer = dnsQuestion.ids.getCloser("applyRulesToQuery");
+  auto closer = dnsQuestion.ids.getCloser(__func__);
   if (g_rings.shouldRecordQueries()) {
     g_rings.insertQuery(now, dnsQuestion.ids.origRemote, dnsQuestion.ids.qname, dnsQuestion.ids.qtype, dnsQuestion.getData().size(), *dnsQuestion.getHeader(), dnsQuestion.getProtocol());
   }
@@ -1456,7 +1453,7 @@ static ProcessQueryResult handleQueryTurnedIntoSelfAnsweredResponse(DNSQuestion&
 static ServerPolicy::SelectedBackend selectBackendForOutgoingQuery(DNSQuestion& dnsQuestion, const ServerPool& serverPool)
 {
   // Not exactly processQuery, but it works for now
-  auto closer = dnsQuestion.ids.getCloser("selectBackendForOutgoingQuery", "processQuery");
+  auto closer = dnsQuestion.ids.getCloser(__func__, "processQuery");
 
   const auto& policy = serverPool.policy != nullptr ? *serverPool.policy : *dnsdist::configuration::getCurrentRuntimeConfiguration().d_lbPolicy;
   const auto& servers = serverPool.getServers();
@@ -1782,7 +1779,7 @@ std::unique_ptr<CrossProtocolQuery> getUDPCrossProtocolQueryFromDQ(DNSQuestion& 
 ProcessQueryResult processQuery(DNSQuestion& dnsQuestion, std::shared_ptr<DownstreamState>& selectedBackend)
 {
 
-  auto closer = dnsQuestion.ids.getCloser("processQuery");
+  auto closer = dnsQuestion.ids.getCloser(__func__);
   const uint16_t queryId = ntohs(dnsQuestion.getHeader()->id);
   try {
     /* we need an accurate ("real") value for the response and
@@ -1814,7 +1811,7 @@ ProcessQueryResult processQuery(DNSQuestion& dnsQuestion, std::shared_ptr<Downst
 
 bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& downstream, uint16_t queryID, DNSQuestion& dnsQuestion, PacketBuffer& query, bool actuallySend)
 {
-  auto closer = dnsQuestion.ids.getCloser("assignOutgoingUDPQueryToBackend", "processUDPQuery");
+  auto closer = dnsQuestion.ids.getCloser(__func__, "processUDPQuery");
 
   bool doh = dnsQuestion.ids.du != nullptr;
 
@@ -1890,7 +1887,7 @@ static void processUDPQuery(ClientState& clientState, const struct msghdr* msgh,
   uint16_t queryId = 0;
   InternalQueryState ids;
 
-  auto closer = ids.getCloser("processUDPQuery", SpanID{});
+  auto closer = ids.getCloser(__func__, SpanID{});
 
   ids.cs = &clientState;
   ids.origRemote = remote;

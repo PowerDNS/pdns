@@ -138,7 +138,7 @@ class DNSDistOpenTelemetryProtobufBaseTest(DNSDistOpenTelemetryProtobufTest):
             "processQuery",
             "applyRulesToQuery",
             "Rule: Enable tracing",
-            "applyRulesToChainQuery",
+            "applyRulesChainToQuery",
             "selectBackendForOutgoingQuery",
             "processResponse",
             "applyRulesToResponse",

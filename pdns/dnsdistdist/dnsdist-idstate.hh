@@ -150,6 +150,7 @@ struct InternalQueryState
   std::optional<pdns::trace::dnsdist::Tracer::Closer> getCloser([[maybe_unused]] const std::string& name, [[maybe_unused]] const SpanID& parentSpanID);
   std::optional<pdns::trace::dnsdist::Tracer::Closer> getCloser([[maybe_unused]] const std::string& name, [[maybe_unused]] const string& parentSpanName);
   std::optional<pdns::trace::dnsdist::Tracer::Closer> getCloser([[maybe_unused]] const std::string& name);
+  std::optional<pdns::trace::dnsdist::Tracer::Closer> getRulesCloser([[maybe_unused]] const std::string& ruleName, [[maybe_unused]] const std::string& parentSpanName);
 
   InternalQueryState()
   {
