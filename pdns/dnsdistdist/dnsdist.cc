@@ -456,26 +456,17 @@ static bool encryptResponse(PacketBuffer& response, size_t maximumSize, bool tcp
 
 bool applyRulesToResponse(const std::vector<dnsdist::rules::ResponseRuleAction>& respRuleActions, DNSResponse& dnsResponse)
 {
-  pdns::trace::dnsdist::Tracer::Closer closer;
-  if (auto tracer = dnsResponse.ids.getTracer(); tracer != nullptr && dnsResponse.ids.tracingEnabled) {
-    closer = tracer->openSpan("applyRulesToResponse", tracer->getLastSpanID());
-  }
+  static const std::string traceEventName{"applyRulesToResponse"};
+  auto closer = dnsResponse.ids.getCloser(traceEventName);
   if (respRuleActions.empty()) {
     return true;
   }
 
   DNSResponseAction::Action action = DNSResponseAction::Action::None;
   std::string ruleresult;
-  SpanID parentSpanID;
-  if (auto tracer = dnsResponse.ids.getTracer(); tracer != nullptr && dnsResponse.ids.tracingEnabled) {
-    parentSpanID = tracer->getLastSpanID();
-  }
 
   for (const auto& rrule : respRuleActions) {
-    pdns::trace::dnsdist::Tracer::Closer ruleCloser;
-    if (auto tracer = dnsResponse.ids.getTracer(); tracer != nullptr && dnsResponse.ids.tracingEnabled) {
-      ruleCloser = tracer->openSpan("Rule: " + rrule.d_name, parentSpanID);
-    }
+    auto ruleCloser = dnsResponse.ids.getCloser("Rule: " + rrule.d_name, traceEventName);
     if (rrule.d_rule->matches(&dnsResponse)) {
       ++rrule.d_rule->d_matches;
       action = (*rrule.d_action)(&dnsResponse, &ruleresult);
@@ -529,14 +520,12 @@ bool applyRulesToResponse(const std::vector<dnsdist::rules::ResponseRuleAction>&
 
 bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse, [[maybe_unused]] bool muted)
 {
-  pdns::trace::dnsdist::Tracer::Closer closer;
-  if (auto tracer = dnsResponse.ids.getTracer(); tracer != nullptr && dnsResponse.ids.tracingEnabled) {
-    closer = tracer->openSpan("processResponseAfterRules", tracer->getLastSpanIDForName("processResponse"));
-  }
+  static const std::string traceEventName{"processResponseAfterRules"};
+  auto closer = dnsResponse.ids.getCloser(traceEventName, "processResponse");
   bool zeroScope = false;
   if (!fixUpResponse(response, dnsResponse.ids.qname, dnsResponse.ids.origFlags, dnsResponse.ids.ednsAdded, dnsResponse.ids.ecsAdded, dnsResponse.ids.useZeroScope ? &zeroScope : nullptr)) {
-    if (auto tracer = dnsResponse.ids.getTracer(); tracer != nullptr && dnsResponse.ids.tracingEnabled) {
-      tracer->setSpanAttribute(closer.getSpanID(), "result", AnyValue{"fixUpResponse->false"});
+    if (closer) {
+      closer->setAttribute("result", AnyValue{"fixUpResponse->false"});
     }
     return false;
   }
@@ -564,10 +553,7 @@ bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse,
       cacheKey = dnsResponse.ids.cacheKeyNoECS;
     }
     {
-      pdns::trace::dnsdist::Tracer::Closer cacheInsertCloser;
-      if (auto tracer = dnsResponse.ids.getTracer(); tracer != nullptr && dnsResponse.ids.tracingEnabled) {
-        cacheInsertCloser = tracer->openSpan("packetCacheInsert", closer.getSpanID());
-      }
+      auto cacheInsertCloser = dnsResponse.ids.getCloser("packetCacheInsert", traceEventName);
       dnsResponse.ids.packetCache->insert(cacheKey, zeroScope ? boost::none : dnsResponse.ids.subnet, dnsResponse.ids.cacheFlags, dnsResponse.ids.dnssecOK ? *dnsResponse.ids.dnssecOK : false, dnsResponse.ids.qname, dnsResponse.ids.qtype, dnsResponse.ids.qclass, response, dnsResponse.ids.forwardedOverUDP, dnsResponse.getHeader()->rcode, dnsResponse.ids.tempFailureTTL);
     }
     const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
@@ -598,10 +584,8 @@ bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse,
 
 bool processResponse(PacketBuffer& response, DNSResponse& dnsResponse, bool muted)
 {
-  pdns::trace::dnsdist::Tracer::Closer closer;
-  if (auto tracer = dnsResponse.ids.getTracer(); tracer != nullptr && dnsResponse.ids.tracingEnabled) {
-    closer = tracer->openSpan("processResponse");
-  }
+  // This is a new root span
+  auto closer = dnsResponse.ids.getCloser("processResponse", SpanID{});
 
   const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
   const auto& respRuleActions = dnsdist::rules::getResponseRuleChain(chains, dnsdist::rules::ResponseRuleChain::ResponseRules);
@@ -1040,19 +1024,14 @@ static bool applyRulesChainToQuery(const std::vector<dnsdist::rules::RuleAction>
   string ruleresult;
   bool drop = false;
 
-  SpanID parentSpanID;
-  if (auto tracer = dnsQuestion.ids.getTracer(); tracer != nullptr) {
-    parentSpanID = tracer->getLastSpanID();
-  }
+  static const std::string traceEventName{"applyRulesToChainQuery"};
+  auto closer = dnsQuestion.ids.getCloser(traceEventName);
 
   for (const auto& rule : rules) {
+    auto ruleCloser = dnsQuestion.ids.getCloser("Rule: " + rule.d_name, traceEventName);
+
     if (!rule.d_rule->matches(&dnsQuestion)) {
       continue;
-    }
-
-    pdns::trace::dnsdist::Tracer::Closer ruleCloser;
-    if (auto tracer = dnsQuestion.ids.getTracer(); tracer != nullptr) {
-      ruleCloser = tracer->openSpan("Rule: " + rule.d_name, parentSpanID);
     }
 
     rule.d_rule->d_matches++;
@@ -1067,10 +1046,7 @@ static bool applyRulesChainToQuery(const std::vector<dnsdist::rules::RuleAction>
 
 static bool applyRulesToQuery(DNSQuestion& dnsQuestion, const timespec& now)
 {
-  pdns::trace::dnsdist::Tracer::Closer closer;
-  if (auto tracer = dnsQuestion.ids.getTracer(); tracer != nullptr) {
-    closer = tracer->openSpan("applyRulesToQuery", tracer->getLastSpanID());
-  }
+  auto closer = dnsQuestion.ids.getCloser("applyRulesToQuery");
   if (g_rings.shouldRecordQueries()) {
     g_rings.insertQuery(now, dnsQuestion.ids.origRemote, dnsQuestion.ids.qname, dnsQuestion.ids.qtype, dnsQuestion.getData().size(), *dnsQuestion.getHeader(), dnsQuestion.getProtocol());
   }
@@ -1124,6 +1100,7 @@ static bool applyRulesToQuery(DNSQuestion& dnsQuestion, const timespec& now)
         updateBlockStats();
 
         setRCode(RCode::NXDomain);
+        dnsQuestion.ids.tracingPastProcessRules = true;
         return true;
 
       case DNSAction::Action::Refused:
@@ -1131,6 +1108,7 @@ static bool applyRulesToQuery(DNSQuestion& dnsQuestion, const timespec& now)
         updateBlockStats();
 
         setRCode(RCode::Refused);
+        dnsQuestion.ids.tracingPastProcessRules = true;
         return true;
 
       case DNSAction::Action::Truncate:
@@ -1145,6 +1123,7 @@ static bool applyRulesToQuery(DNSQuestion& dnsQuestion, const timespec& now)
             header.ad = false;
             return true;
           });
+          dnsQuestion.ids.tracingPastProcessRules = true;
           return true;
         }
         else {
@@ -1158,6 +1137,7 @@ static bool applyRulesToQuery(DNSQuestion& dnsQuestion, const timespec& now)
           header.rd = false;
           return true;
         });
+        dnsQuestion.ids.tracingPastProcessRules = true;
         return true;
       case DNSAction::Action::SetTag: {
         if (!got->second.tagSettings) {
@@ -1175,6 +1155,7 @@ static bool applyRulesToQuery(DNSQuestion& dnsQuestion, const timespec& now)
       default:
         updateBlockStats();
         vinfolog("Query from %s dropped because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort());
+        dnsQuestion.ids.tracingPastProcessRules = true;
         return false;
       }
     }
@@ -1200,12 +1181,14 @@ static bool applyRulesToQuery(DNSQuestion& dnsQuestion, const timespec& now)
         updateBlockStats();
 
         setRCode(RCode::NXDomain);
+        dnsQuestion.ids.tracingPastProcessRules = true;
         return true;
       case DNSAction::Action::Refused:
         vinfolog("Query from %s for %s refused because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort(), dnsQuestion.ids.qname.toLogString());
         updateBlockStats();
 
         setRCode(RCode::Refused);
+        dnsQuestion.ids.tracingPastProcessRules = true;
         return true;
       case DNSAction::Action::Truncate:
         if (!dnsQuestion.overTCP()) {
@@ -1220,6 +1203,7 @@ static bool applyRulesToQuery(DNSQuestion& dnsQuestion, const timespec& now)
             header.ad = false;
             return true;
           });
+          dnsQuestion.ids.tracingPastProcessRules = true;
           return true;
         }
         else {
@@ -1233,6 +1217,7 @@ static bool applyRulesToQuery(DNSQuestion& dnsQuestion, const timespec& now)
           header.rd = false;
           return true;
         });
+        dnsQuestion.ids.tracingPastProcessRules = true;
         return true;
       case DNSAction::Action::SetTag: {
         if (!got->tagSettings) {
@@ -1250,6 +1235,7 @@ static bool applyRulesToQuery(DNSQuestion& dnsQuestion, const timespec& now)
       default:
         updateBlockStats();
         vinfolog("Query from %s for %s dropped because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort(), dnsQuestion.ids.qname.toLogString());
+        dnsQuestion.ids.tracingPastProcessRules = true;
         return false;
       }
     }
@@ -1258,7 +1244,9 @@ static bool applyRulesToQuery(DNSQuestion& dnsQuestion, const timespec& now)
 
   const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
   const auto& queryRules = dnsdist::rules::getRuleChain(chains, dnsdist::rules::RuleChain::Rules);
-  return applyRulesChainToQuery(queryRules, dnsQuestion);
+  auto ret = applyRulesChainToQuery(queryRules, dnsQuestion);
+  dnsQuestion.ids.tracingPastProcessRules = true;
+  return ret;
 }
 
 ssize_t udpClientSendRequestToBackend(const std::shared_ptr<DownstreamState>& backend, const int socketDesc, const PacketBuffer& request, bool healthCheck)
@@ -1478,19 +1466,16 @@ static ProcessQueryResult handleQueryTurnedIntoSelfAnsweredResponse(DNSQuestion&
 
 static ServerPolicy::SelectedBackend selectBackendForOutgoingQuery(DNSQuestion& dnsQuestion, const ServerPool& serverPool)
 {
-  pdns::trace::dnsdist::Tracer::Closer closer;
-  if (auto tracer = dnsQuestion.ids.getTracer(); tracer != nullptr && dnsQuestion.ids.tracingEnabled) {
-    // Not exactly processQuery, but it works for now
-    closer = tracer->openSpan("selectBackendForOutgoingQuery", tracer->getLastSpanIDForName("processQuery"));
-  }
+  // Not exactly processQuery, but it works for now
+  auto closer = dnsQuestion.ids.getCloser("selectBackendForOutgoingQuery", "processQuery");
 
   const auto& policy = serverPool.policy != nullptr ? *serverPool.policy : *dnsdist::configuration::getCurrentRuntimeConfiguration().d_lbPolicy;
   const auto& servers = serverPool.getServers();
   auto selectedBackend = policy.getSelectedBackend(servers, dnsQuestion);
 
-  if (auto tracer = dnsQuestion.ids.getTracer(); tracer != nullptr && selectedBackend && dnsQuestion.ids.tracingEnabled) {
-    tracer->setSpanAttribute(closer.getSpanID(), "backend.name", AnyValue{selectedBackend->getNameWithAddr()});
-    tracer->setSpanAttribute(closer.getSpanID(), "backend.id", AnyValue{boost::uuids::to_string(selectedBackend->getID())});
+  if (closer) {
+    closer->setAttribute("backend.name", AnyValue{selectedBackend->getNameWithAddr()});
+    closer->setAttribute("backend.id", AnyValue{boost::uuids::to_string(selectedBackend->getID())});
   }
 
   return selectedBackend;
@@ -1808,10 +1793,7 @@ std::unique_ptr<CrossProtocolQuery> getUDPCrossProtocolQueryFromDQ(DNSQuestion& 
 ProcessQueryResult processQuery(DNSQuestion& dnsQuestion, std::shared_ptr<DownstreamState>& selectedBackend)
 {
 
-  pdns::trace::dnsdist::Tracer::Closer closer;
-  if (auto tracer = dnsQuestion.ids.getTracer(); tracer != nullptr) {
-    closer = tracer->openSpan("processQuery", tracer->getLastSpanID());
-  }
+  auto closer = dnsQuestion.ids.getCloser("processQuery");
   const uint16_t queryId = ntohs(dnsQuestion.getHeader()->id);
   try {
     /* we need an accurate ("real") value for the response and
@@ -1843,10 +1825,7 @@ ProcessQueryResult processQuery(DNSQuestion& dnsQuestion, std::shared_ptr<Downst
 
 bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& downstream, uint16_t queryID, DNSQuestion& dnsQuestion, PacketBuffer& query, bool actuallySend)
 {
-  pdns::trace::dnsdist::Tracer::Closer closer;
-  if (auto tracer = dnsQuestion.ids.getTracer(); tracer != nullptr && dnsQuestion.ids.tracingEnabled) {
-    closer = tracer->openSpan("assignOutgoingUDPQueryToBackend", tracer->getLastSpanIDForName("processUDPQuery"));
-  }
+  auto closer = dnsQuestion.ids.getCloser("assignOutgoingUDPQueryToBackend", "processUDPQuery");
 
   bool doh = dnsQuestion.ids.du != nullptr;
 
@@ -1922,10 +1901,7 @@ static void processUDPQuery(ClientState& clientState, const struct msghdr* msgh,
   uint16_t queryId = 0;
   InternalQueryState ids;
 
-  pdns::trace::dnsdist::Tracer::Closer closer;
-  if (auto tracer = ids.getTracer(); tracer != nullptr) {
-    closer = tracer->openSpan("processUDPQuery");
-  }
+  auto closer = ids.getCloser("processUDPQuery", SpanID{});
 
   ids.cs = &clientState;
   ids.origRemote = remote;

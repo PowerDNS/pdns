@@ -199,6 +199,7 @@ public:
      */
     Closer(std::shared_ptr<Tracer> tracer, const SpanID& spanid) :
       d_tracer(std::move(tracer)), d_spanID(spanid) {};
+
 #endif
 
     /**

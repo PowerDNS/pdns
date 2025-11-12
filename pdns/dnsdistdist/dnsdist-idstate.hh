@@ -142,6 +142,15 @@ struct InternalQueryState
 #endif
   }
 
+  /**
+   * @brief Returns a Tracer::Closer, but only if OpenTelemetry tracing is needed
+   *
+   * @return
+   */
+  std::optional<pdns::trace::dnsdist::Tracer::Closer> getCloser([[maybe_unused]] const std::string& name, [[maybe_unused]] const SpanID& parentSpanID);
+  std::optional<pdns::trace::dnsdist::Tracer::Closer> getCloser([[maybe_unused]] const std::string& name, [[maybe_unused]] const string& parentSpanName);
+  std::optional<pdns::trace::dnsdist::Tracer::Closer> getCloser([[maybe_unused]] const std::string& name);
+
   InternalQueryState()
   {
     origDest.sin4.sin_family = 0;
@@ -226,6 +235,7 @@ public:
   bool cacheHit{false};
   bool staleCacheHit{false};
   bool tracingEnabled{false}; // Whether or not Open Telemetry tracing is enabled for this query
+  bool tracingPastProcessRules{false}; // Whether processRules has been called for the query, used to determine if we can trace
 };
 
 struct IDState
