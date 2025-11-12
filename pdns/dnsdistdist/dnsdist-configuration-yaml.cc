@@ -1922,7 +1922,7 @@ std::shared_ptr<DNSSelector> getByNameSelector(const ByNameSelectorConfiguration
 {
   auto ptr = dnsdist::configuration::yaml::getRegisteredTypeByName<DNSSelector>(config.selector_name);
   if (!ptr) {
-    throw std::runtime_error("Unable find a selector named " + std::string(config.selector_name));
+    throw std::runtime_error("Unable to find a selector named " + std::string(config.selector_name));
   }
   return ptr;
 }

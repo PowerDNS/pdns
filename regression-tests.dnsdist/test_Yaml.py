@@ -566,7 +566,7 @@ query_rules:
             cls.startDNSDist()
         except AssertionError as err:
             failed = True
-            expected = "dnsdist --check-config failed (1): b'Error while parsing YAML file configs/dnsdist_TestYamlUnknownSelectorName.yml: Unable find a selector named is-tcp\\n'"
+            expected = "dnsdist --check-config failed (1): b'Error while parsing YAML file configs/dnsdist_TestYamlUnknownSelectorName.yml: Unable to find a selector named is-tcp\\n'"
             if str(err) != expected:
                 raise AssertionError("DNSdist should not start with an unknown selector name: %s" % (err))
         if not failed:
