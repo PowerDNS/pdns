@@ -553,18 +553,12 @@ KeyValue KeyValue::decode(protozero::pbf_reader& reader)
   return value;
 }
 
-void extractOTraceIDs(const EDNSOptionViewMap& map, pdns::trace::InitialSpanInfo& span)
+bool extractOTraceIDs(const EDNSOptionViewMap& map, EDNSOptionCode::EDNSOptionCodeEnum eoc, pdns::trace::InitialSpanInfo& span)
 {
-  // traceid gets set from edns options (if available and well-formed), otherwise random
-  // parent_span_id gets set from edns options (if available and well-formed, otherwise it remains cleared (no parent))
-  // span_id gets inited randomly
-  auto traceidset = extractOTraceIDs(map, EDNSOptionCode::OTTRACEIDS, span.trace_id, span.parent_span_id);
-
-  if (!traceidset) {
-    span.trace_id.makeRandom();
-  }
-  // Empty parent span id indicated the client did not set one, thats fine
-  span.span_id.makeRandom();
+  // traceid gets set from edns options (if available and well-formed)
+  // parent_span_id gets set from edns options (if available and well-formed)
+  auto traceidset = extractOTraceIDs(map, eoc, span.trace_id, span.parent_span_id);
+  return traceidset;
 }
 
 /**
@@ -576,7 +570,7 @@ void extractOTraceIDs(const EDNSOptionViewMap& map, pdns::trace::InitialSpanInfo
  * @param spanID will be set to the SpanID in the EDNS options, untouched otherwise
  * @return true if a traceid was found in the EDNS options
  */
-bool extractOTraceIDs(const EDNSOptionViewMap& map, const EDNSOptionCode::EDNSOptionCodeEnum& eoc, pdns::trace::TraceID& traceID, pdns::trace::SpanID& spanID)
+bool extractOTraceIDs(const EDNSOptionViewMap& map, EDNSOptionCode::EDNSOptionCodeEnum eoc, pdns::trace::TraceID& traceID, pdns::trace::SpanID& spanID)
 {
   EDNSOptionCode::EDNSOptionCodeEnum realEOC = eoc;
   if (realEOC == 0) {

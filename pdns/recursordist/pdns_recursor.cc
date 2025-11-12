@@ -1861,7 +1861,9 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
       if (resolver.d_eventTrace.enabled() && SyncRes::eventTraceEnabled(SyncRes::event_trace_to_pb)) {
         pbMessage.addEvents(resolver.d_eventTrace);
       }
-      if (resolver.d_eventTrace.enabled() && SyncRes::eventTraceEnabled(SyncRes::event_trace_to_ot)) {
+
+      if (resolver.d_eventTrace.enabled() && resolver.d_eventTrace.getThisOTTraceEnabled() && SyncRes::eventTraceEnabled(SyncRes::event_trace_to_ot)) {
+        resolver.d_otTrace.setIDsIfNotSet();
         auto otTrace = pdns::trace::TracesData::boilerPlate("rec", resolver.d_eventTrace.convertToOT(resolver.d_otTrace), {
                                                                                                                             {"query.qname", {comboWriter->d_mdp.d_qname.toLogString()}},
                                                                                                                             {"query.qtype", {QType(comboWriter->d_mdp.d_qtype).toString()}},
@@ -1870,7 +1872,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
         string otData = otTrace.encode();
         pbMessage.setOpenTelemetryData(otData);
       }
-      // Currently only set if an OT trace is generated
+      // It can be set even if no OT Trace data was generated
       if (resolver.d_otTrace.trace_id != pdns::trace::s_emptyTraceID) {
         pbMessage.setOpenTelemetryTraceID(resolver.d_otTrace.trace_id);
       }
@@ -2144,6 +2146,48 @@ bool expectProxyProtocol(const ComboAddress& from, const ComboAddress& listenAdd
   return false;
 }
 
+bool matchOTConditions(const std::unique_ptr<OpenTelemetryTraceConditions>& conditions, const ComboAddress& source)
+{
+  if (conditions == nullptr || conditions->empty()) {
+    return false;
+  }
+  if (auto const* match = conditions->lookup(source); match != nullptr) {
+    const auto& condition = match->second;
+    if (condition.d_traceid_only) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool matchOTConditions(RecEventTrace& eventTrace, const std::unique_ptr<OpenTelemetryTraceConditions>& conditions, const ComboAddress& source, const DNSName& qname, QType qtype, uint16_t qid, bool edns_option_present)
+{
+  if (conditions == nullptr || conditions->empty()) {
+    return false;
+  }
+  if (auto const* match = conditions->lookup(source); match != nullptr) {
+    const auto& condition = match->second;
+    if (condition.d_traceid_only) {
+      return false;
+    }
+    if (condition.d_edns_option_required && !edns_option_present) {
+      return false;
+    }
+    if (condition.d_qid && condition.d_qid != qid) {
+      return false;
+    }
+    if (condition.d_qtypes && condition.d_qtypes->count(qtype) == 0) {
+      return false;
+    }
+    if (condition.d_qnames && !condition.d_qnames->check(qname)) {
+      return false;
+    }
+  }
+
+  eventTrace.setThisOTTraceEnabled();
+  return true;
+}
+
 // fromaddr: the address the query is coming from
 // destaddr: the address the query was received on
 // source: the address we assume the query is coming from, might be set by proxy protocol
@@ -2249,7 +2293,10 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
         ecsParsed = true;
 
         if (SyncRes::eventTraceEnabled(SyncRes::event_trace_to_ot)) {
-          pdns::trace::extractOTraceIDs(ednsOptions, otTrace);
+          bool ednsFound = pdns::trace::extractOTraceIDs(ednsOptions, EDNSOptionCode::OTTRACEIDS, otTrace);
+          if (!matchOTConditions(eventTrace, t_OTConditions, mappedSource, qname, qtype, ntohs(headerdata->id), ednsFound) && SyncRes::eventTraceEnabledOnly(SyncRes::event_trace_to_ot)) {
+            eventTrace.setEnabled(false);
+          }
         }
 
         if (t_pdl) {
@@ -2611,6 +2658,9 @@ static void handleNewUDPQuestion(int fileDesc, FDMultiplexer::funcparam_t& /* va
             destination = destaddr;
           }
 
+          if (eventTrace.enabled() && !matchOTConditions(t_OTConditions, mappedSource) && SyncRes::eventTraceEnabledOnly(SyncRes::event_trace_to_ot)) {
+            eventTrace.setEnabled(false);
+          }
           eventTrace.add(RecEventTrace::ReqRecv, 0, false, match);
           if (RecThreadInfo::weDistributeQueries()) {
             std::string localdata = data;

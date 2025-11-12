@@ -1975,6 +1975,17 @@ static void* pleaseSupplantProxyMapping(const ProxyMapping& proxyMapping)
   return nullptr;
 }
 
+static void* pleaseSupplantOTConditions(const OpenTelemetryTraceConditions& conditions)
+{
+  if (conditions.empty()) {
+    t_OTConditions = nullptr;
+  }
+  else {
+    t_OTConditions = std::make_unique<OpenTelemetryTraceConditions>(conditions);
+  }
+  return nullptr;
+}
+
 static RecursorControlChannel::Answer help(ArgIterator /* begin */, ArgIterator /* end */)
 {
   static const std::map<std::string, std::string> commands = {
@@ -2104,16 +2115,20 @@ RecursorControlChannel::Answer luaconfig(bool broadcast)
     }
     auto generation = g_luaconfs.getLocal()->generation;
     lci.generation = generation + 1;
-    pdns::settings::rec::fromBridgeStructToLuaConfig(settings, lci, proxyMapping);
+    OpenTelemetryTraceConditions conditions;
+    pdns::settings::rec::fromBridgeStructToLuaConfig(settings, lci, proxyMapping, conditions);
     activateLuaConfig(lci);
     lci = g_luaconfs.getCopy();
     if (broadcast) {
       startLuaConfigDelayedThreads(lci, lci.generation);
       broadcastFunction([pmap = std::move(proxyMapping)] { return pleaseSupplantProxyMapping(pmap); });
+      broadcastFunction([conds = std::move(conditions)] { return pleaseSupplantOTConditions(conds); });
     }
     else {
+      extern std::unique_ptr<OpenTelemetryTraceConditions> g_OTConditions;
       // Initial proxy mapping
       g_proxyMapping = proxyMapping.empty() ? nullptr : std::make_unique<ProxyMapping>(proxyMapping);
+      g_OTConditions = conditions.empty() ? nullptr : std::make_unique<OpenTelemetryTraceConditions>(conditions);
     }
     TCPOutConnectionManager::setupOutgoingTLSConfigTables(settings);
 

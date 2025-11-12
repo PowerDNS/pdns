@@ -248,6 +248,7 @@ extern RecursorControlChannel g_rcc; // only active in the handler thread
 
 extern thread_local std::unique_ptr<ProxyMapping> t_proxyMapping;
 using ProxyMappingStats_t = std::unordered_map<Netmask, ProxyMappingCounts>;
+extern thread_local std::unique_ptr<OpenTelemetryTraceConditions> t_OTConditions;
 extern pdns::RateLimitedLog g_rateLimitedLogger;
 
 #ifdef NOD_ENABLED
@@ -645,6 +646,8 @@ void protobufLogResponse(const DNSName& qname, QType qtype, const struct dnshead
 void requestWipeCaches(const DNSName& canon);
 void startDoResolve(void*);
 bool expectProxyProtocol(const ComboAddress& from, const ComboAddress& listenAddress);
+bool matchOTConditions(const std::unique_ptr<OpenTelemetryTraceConditions>& conditions, const ComboAddress& source);
+bool matchOTConditions(RecEventTrace& eventTrace, const std::unique_ptr<OpenTelemetryTraceConditions>& conditions, const ComboAddress& source, const DNSName& qname, QType qtype, uint16_t qid, bool edns_option_present);
 void finishTCPReply(std::unique_ptr<DNSComboWriter>&, bool hadError, bool updateInFlight);
 void checkFastOpenSysctl(bool active, Logr::log_t);
 void checkTFOconnect(Logr::log_t);

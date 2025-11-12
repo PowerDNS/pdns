@@ -3573,4 +3573,17 @@ A DoT connection is matched against the subnets lists (using the remote IP) and 
         'versionadded': '5.4.0',
         'runtime': ['reload-lua-config', 'reload-yaml'],
     },
+    {
+        'name' : 'opentelemetry_trace_conditions',
+        'section' : 'logging',
+        'type' : LType.ListOpenTelemetryTraceConditions,
+        'default' : '',
+        'help' : 'Sequence of OpenTelemetryTraceCondition',
+        'doc' : '''
+        List of conditions specifying when to generate :ref:`opentelemetry_tracing`.
+        ''',
+        'skip-old' : 'No equivalent old style setting',
+        'versionadded': '5.4.0',
+        'runtime': ['reload-lua-config', 'reload-yaml'],
+    },
 ]

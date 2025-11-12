@@ -582,6 +582,10 @@ public:
   {
     return (s_event_trace_enabled & flag) != 0;
   }
+  static bool eventTraceEnabledOnly(int flag)
+  {
+    return s_event_trace_enabled == flag;
+  }
   std::unordered_map<std::string, bool> d_discardedPolicies;
   DNSFilterEngine::Policy d_appliedPolicy;
   std::unordered_set<std::string> d_policyTags;

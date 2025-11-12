@@ -840,6 +840,31 @@ impl OutgoingTLSConfiguration {
     }
 }
 
+impl OpenTelemetryTraceCondition {
+    pub fn validate(&self, field: &str) -> Result<(), ValidationError> {
+        validate_vec(
+            &(field.to_string() + ".acls"),
+            &self.acls,
+            validate_subnet,
+        )?;
+        validate_vec(
+            &(field.to_string() + ".qnames"),
+            &self.qnames,
+            validate_name,
+        )?;
+        validate_vec(
+            &(field.to_string() + ".qtypes"),
+            &self.qtypes,
+            validate_qtype,
+        )?;
+        if self.qid != u32::MAX && self.qid > u16::MAX.into() {
+            let msg = format!("{}.qid: must be between 0 and 2^16", field);
+            return Err(ValidationError { msg });
+        }
+        Ok(())
+    }
+}
+
 #[allow(clippy::ptr_arg)] //# Avoids creating a rust::Slice object on the C++ side.
 pub fn validate_auth_zones(field: &str, vec: &Vec<AuthZone>) -> Result<(), ValidationError> {
     validate_vec(field, vec, |field, element| element.validate(field))

@@ -1337,9 +1337,36 @@ void fromRustToLuaConfig(const rust::Vec<pdns::rust::settings::rec::ForwardingCa
     lua.emplace_back(std::move(fwcatz));
   }
 }
+
+void fromRustToOTTraceConditions(const rust::Vec<pdns::rust::settings::rec::OpenTelemetryTraceCondition>& settings, OpenTelemetryTraceConditions& conditions)
+{
+  for (const auto& setting : settings) {
+    OpenTelemetryTraceCondition condition;
+    if (!setting.qnames.empty()) {
+      condition.d_qnames = SuffixMatchNode();
+    }
+    for (const auto& qname : setting.qnames) {
+      condition.d_qnames->add(DNSName(std::string(qname)));
+    }
+    if (!setting.qtypes.empty()) {
+      condition.d_qtypes = std::unordered_set<QType>();
+    }
+    for (const auto& qtype : setting.qtypes) {
+      condition.d_qtypes->insert(QType::chartocode(std::string(qtype).data()));
+    }
+    if (setting.qid != std::numeric_limits<uint32_t>::max()) {
+      condition.d_qid = setting.qid;
+    }
+    condition.d_edns_option_required = setting.edns_option_required;
+    condition.d_traceid_only = setting.traceid_only;
+    for (const auto& acl : setting.acls) {
+      conditions.insert(std::string(acl)).second = condition;
+    }
+  }
+}
 }
 
-void pdns::settings::rec::fromBridgeStructToLuaConfig(const pdns::rust::settings::rec::Recursorsettings& settings, LuaConfigItems& luaConfig, ProxyMapping& proxyMapping)
+void pdns::settings::rec::fromBridgeStructToLuaConfig(const pdns::rust::settings::rec::Recursorsettings& settings, LuaConfigItems& luaConfig, ProxyMapping& proxyMapping, OpenTelemetryTraceConditions& conditions)
 {
   fromRustToLuaConfig(settings.dnssec, luaConfig);
   luaConfig.protobufMaskV4 = settings.logging.protobuf_mask_v4;
@@ -1362,6 +1389,7 @@ void pdns::settings::rec::fromBridgeStructToLuaConfig(const pdns::rust::settings
   fromRustToLuaConfig(settings.recursor.allowed_additional_qtypes, luaConfig.allowAdditionalQTypes);
   fromRustToLuaConfig(settings.recursor.forwarding_catalog_zones, luaConfig.catalogzones);
   fromRustToLuaConfig(settings.incoming.proxymappings, proxyMapping);
+  fromRustToOTTraceConditions(settings.logging.opentelemetry_trace_conditions, conditions);
 }
 
 // Return true if an item that's (also) a Lua config item is set
@@ -1402,6 +1430,7 @@ bool pdns::settings::rec::luaItemSet(const pdns::rust::settings::rec::Recursorse
   alldefault = alldefault && settings.recursor.allowed_additional_qtypes.empty();
   alldefault = alldefault && settings.incoming.proxymappings.empty();
   alldefault = alldefault && settings.outgoing.tls_configurations.empty(); // actually not a Lua item, but very much alike
+  alldefault = alldefault && settings.logging.opentelemetry_trace_conditions.empty(); // actually not a Lua item, but very much alike
   return !alldefault;
 }
 

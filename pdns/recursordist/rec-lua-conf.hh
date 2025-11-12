@@ -98,6 +98,17 @@ struct ProxyByTableValue
 
 using ProxyMapping = NetmaskTree<ProxyByTableValue, Netmask>;
 
+struct OpenTelemetryTraceCondition
+{
+  std::optional<SuffixMatchNode> d_qnames;
+  std::optional<std::unordered_set<QType>> d_qtypes;
+  std::optional<uint16_t> d_qid;
+  bool d_edns_option_required{false};
+  bool d_traceid_only{false};
+};
+
+using OpenTelemetryTraceConditions = NetmaskTree<OpenTelemetryTraceCondition>;
+
 using rpzOptions_t = std::unordered_map<std::string, boost::variant<bool, uint32_t, std::string, std::vector<std::pair<int, std::string>>>>;
 
 class LuaConfigItems

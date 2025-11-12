@@ -108,6 +108,7 @@ uint32_t g_disthashseed;
 bool g_useIncomingECS;
 static shared_ptr<NetmaskGroup> g_initialProxyProtocolACL;
 static shared_ptr<std::set<ComboAddress>> g_initialProxyProtocolExceptions;
+static shared_ptr<OpenTelemetryTraceConditions> g_initialOpenTelemetryConditions; // XXX shared ptr needed?
 boost::optional<ComboAddress> g_dns64Prefix{boost::none};
 DNSName g_dns64PrefixReverse;
 unsigned int g_maxChainLength;
@@ -138,6 +139,9 @@ std::vector<RecThreadInfo> RecThreadInfo::s_threadInfos;
 
 std::unique_ptr<ProxyMapping> g_proxyMapping; // new threads needs this to be setup
 thread_local std::unique_ptr<ProxyMapping> t_proxyMapping;
+
+std::unique_ptr<OpenTelemetryTraceConditions> g_OTConditions; // new threads needs this to be setup
+thread_local std::unique_ptr<OpenTelemetryTraceConditions> t_OTConditions;
 
 bool RecThreadInfo::s_weDistributeQueries; // if true, 1 or more threads listen on the incoming query sockets and distribute them to workers
 unsigned int RecThreadInfo::s_numDistributorThreads;
@@ -632,10 +636,12 @@ void protobufLogResponse(const DNSName& qname, QType qtype,
     pbMessage.setNewlyObservedDomain(false);
   }
 #endif
-  if (eventTrace.enabled() && (SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_pb) != 0) {
+  if (eventTrace.enabled() && SyncRes::eventTraceEnabled(SyncRes::event_trace_to_pb)) {
     pbMessage.addEvents(eventTrace);
   }
-  if (eventTrace.enabled() && (SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_ot) != 0) {
+
+  if (eventTrace.enabled() && eventTrace.getThisOTTraceEnabled() && SyncRes::eventTraceEnabled(SyncRes::event_trace_to_ot)) {
+    otTrace.setIDsIfNotSet();
     auto trace = pdns::trace::TracesData::boilerPlate("rec", eventTrace.convertToOT(otTrace),
                                                       {{"query.qname", {qname.toLogString()}},
                                                        {"query.qtype", {qtype.toString()}}},
@@ -2773,7 +2779,12 @@ static void recursorThread()
       else {
         t_proxyMapping = nullptr;
       }
-
+      if (g_OTConditions) {
+        t_OTConditions = make_unique<OpenTelemetryTraceConditions>(*g_OTConditions);
+      }
+      else {
+        t_OTConditions = nullptr;
+      }
       if (threadInfo.isHandler()) {
         if (!primeHints()) {
           threadInfo.setExitCode(EXIT_FAILURE);
@@ -2902,7 +2913,8 @@ static pair<int, bool> doYamlConfig(int argc, char* argv[], const pdns::rust::se
     ::arg().parse(argc, argv);
     ProxyMapping proxyMapping;
     LuaConfigItems lci;
-    pdns::settings::rec::fromBridgeStructToLuaConfig(settings, lci, proxyMapping);
+    OpenTelemetryTraceConditions conditions;
+    pdns::settings::rec::fromBridgeStructToLuaConfig(settings, lci, proxyMapping, conditions);
     auto yaml = settings.to_yaml_string();
     cout << yaml << endl;
   }

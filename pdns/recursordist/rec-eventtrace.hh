@@ -71,7 +71,8 @@ public:
   RecEventTrace(const RecEventTrace& old) :
     d_events(old.d_events),
     d_base(old.d_base),
-    d_status(old.d_status)
+    d_status(old.d_status),
+    d_OTTrace(old.d_OTTrace)
   {
     // An RecEventTrace object can be copied, but the original will be marked invalid.
     // This is do detect (very likely) unintended modifications to the original after
@@ -82,7 +83,8 @@ public:
   RecEventTrace(RecEventTrace&& old) noexcept :
     d_events(std::move(old.d_events)),
     d_base(old.d_base),
-    d_status(old.d_status)
+    d_status(old.d_status),
+    d_OTTrace(old.d_OTTrace)
   {
     // An RecEventTrace object can be moved, but the original will be marked invalid.
     // This is do detect (very likely) unintended modifications to the original after
@@ -96,6 +98,7 @@ public:
     d_events = std::move(old.d_events);
     d_base = old.d_base;
     d_status = old.d_status;
+    d_OTTrace = old.d_OTTrace;
     old.d_status = Invalid;
     return *this;
   }
@@ -260,6 +263,7 @@ public:
     struct timespec theTime{};
     clock_gettime(CLOCK_MONOTONIC, &theTime);
     d_base = theTime.tv_nsec + theTime.tv_sec * 1000000000;
+    d_OTTrace = false;
     d_status = Disabled;
   }
 
@@ -296,6 +300,16 @@ public:
     size_t old = d_parent;
     d_parent = parent;
     return old;
+  }
+
+  bool getThisOTTraceEnabled() const
+  {
+    return d_OTTrace;
+  }
+
+  void setThisOTTraceEnabled()
+  {
+    d_OTTrace = true;
   }
 
   // The EventScope class is used to close (add an end event) automatically upon the scope object
@@ -355,4 +369,5 @@ private:
     Enabled
   };
   mutable Status d_status{Disabled};
+  bool d_OTTrace{false};
 };

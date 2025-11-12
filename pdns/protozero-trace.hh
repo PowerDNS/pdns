@@ -408,6 +408,16 @@ struct InitialSpanInfo
     parent_span_id.clear();
     start_time_unix_nano = 0;
   }
+
+  void setIDsIfNotSet()
+  {
+    if (trace_id == s_emptyTraceID) {
+      trace_id.makeRandom();
+    }
+    if (span_id == s_emptySpanID) {
+      span_id.makeRandom();
+    }
+  }
 };
 
 struct Span
@@ -834,7 +844,7 @@ private:
   const size_t size;
 };
 
-void extractOTraceIDs(const EDNSOptionViewMap& map, pdns::trace::InitialSpanInfo& span);
-bool extractOTraceIDs(const EDNSOptionViewMap& map, const EDNSOptionCode::EDNSOptionCodeEnum& eoc, pdns::trace::TraceID& traceID, pdns::trace::SpanID& spanID);
+bool extractOTraceIDs(const EDNSOptionViewMap& map, EDNSOptionCode::EDNSOptionCodeEnum eoc, pdns::trace::InitialSpanInfo& span);
+bool extractOTraceIDs(const EDNSOptionViewMap& map, EDNSOptionCode::EDNSOptionCodeEnum eoc, pdns::trace::TraceID& traceID, pdns::trace::SpanID& spanID);
 
 } // namespace pdns::trace
