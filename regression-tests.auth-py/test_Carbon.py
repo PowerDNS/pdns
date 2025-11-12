@@ -110,5 +110,5 @@ class TestCarbon(AuthTest):
         # make sure every carbon server has received at least one connection
         for key in self._carbonCounters:
             value = self._carbonCounters[key]
-            self.assertTrue(value >= 1)
+            self.assertGreaterEqual(value, 1)
 
