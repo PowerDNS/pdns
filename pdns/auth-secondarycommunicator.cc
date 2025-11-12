@@ -272,7 +272,7 @@ static bool catalogDiff(const XFRContext& ctx, vector<CatalogInfo>& fromXFR, vec
             g_zoneCache.add(zone.first, d.id);
           }
           else {
-            g_log << Logger::Error << logPrefix << "new zone '" << zone.first << "' does not exists and was not inserted in the zone-cache" << endl;
+            g_log << Logger::Error << logPrefix << "new zone '" << zone.first << "' does not exist and was not inserted in the zone-cache" << endl;
           }
         }
         else {

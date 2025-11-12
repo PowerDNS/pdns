@@ -812,7 +812,7 @@ static void setupNODThread(Logr::log_t log)
       g_nodDBp->setCacheDir(::arg()["new-domain-history-dir"]);
     }
     catch (const PDNSException& e) {
-      log->error(Logr::Error, e.reason, "new-domain-history-dir is not readable or does not exists", "dir", Logging::Loggable(::arg()["new-domain-history-dir"]));
+      log->error(Logr::Error, e.reason, "new-domain-history-dir is not readable or does not exist", "dir", Logging::Loggable(::arg()["new-domain-history-dir"]));
       _exit(1);
     }
     if (!g_nodDBp->init()) {
