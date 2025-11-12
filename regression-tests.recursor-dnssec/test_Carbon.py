@@ -94,7 +94,7 @@ class CarbonTest(RecursorTest):
             self.assertEqual(len(parts), 3)
             self.assertTrue(parts[1].isdigit())
             self.assertTrue(parts[2].isdigit())
-            self.assertTrue(int(parts[2]) <= int(after))
+            self.assertLessEqual(int(parts[2]), int(after))
 
         self.assertTrue(data2)
         self.assertGreater(len(data2.splitlines()), 1)
@@ -105,7 +105,7 @@ class CarbonTest(RecursorTest):
             self.assertEqual(len(parts), 3)
             self.assertTrue(parts[1].isdigit())
             self.assertTrue(parts[2].isdigit())
-            self.assertTrue(int(parts[2]) <= int(after))
+            self.assertLessEqual(int(parts[2]), int(after))
 
         # make sure every carbon server has received at least one connection
         for key in self._carbonCounters:

@@ -476,7 +476,7 @@ class TestCaching(DNSDistTest):
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         self.assertEqual(receivedResponse, response)
         for an in receivedResponse.answer:
-            self.assertTrue(an.ttl <= ttl)
+            self.assertLessEqual(an.ttl, ttl)
 
         # now we wait a bit for the TTL to decrease
         time.sleep(1)
@@ -1942,7 +1942,7 @@ class TestCachingLongTTL(DNSDistTest):
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         self.assertEqual(receivedResponse, response)
         for an in receivedResponse.answer:
-            self.assertTrue(an.ttl <= ttl)
+            self.assertLessEqual(an.ttl, ttl)
 
         time.sleep(self._maxCacheTTL + 1)
 

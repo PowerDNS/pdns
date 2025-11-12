@@ -102,7 +102,7 @@ class TestCarbon(DNSDistTest):
             self.assertEqual(len(parts), 3)
             self.assertTrue(self.isfloat(parts[1]))
             self.assertTrue(parts[2].isdigit())
-            self.assertTrue(int(parts[2]) <= int(after))
+            self.assertLessEqual(int(parts[2]), int(after))
 
         self.assertTrue(data2)
         self.assertGreater(len(data2.splitlines()), 1)
@@ -113,7 +113,7 @@ class TestCarbon(DNSDistTest):
             self.assertEqual(len(parts), 3)
             self.assertTrue(self.isfloat(parts[1]))
             self.assertTrue(parts[2].isdigit())
-            self.assertTrue(int(parts[2]) <= int(after))
+            self.assertLessEqual(int(parts[2]), int(after))
 
         # make sure every carbon server has received at least one connection
         for key in self._carbonCounters:
@@ -150,13 +150,13 @@ class TestCarbon(DNSDistTest):
                     self.assertTrue(parts[1].isdigit())
                     self.assertEqual(int(parts[1]), 2)
                     self.assertTrue(parts[2].isdigit())
-                    self.assertTrue(int(parts[2]) <= int(after))
+                    self.assertLessEqual(int(parts[2]), int(after))
                 else:
                     self.assertEqual(len(parts), 3)
                     self.assertTrue(parts[1].isdigit())
                     self.assertEqual(int(parts[1]), 3)
                     self.assertTrue(parts[2].isdigit())
-                    self.assertTrue(int(parts[2]) <= int(after))
+                    self.assertLessEqual(int(parts[2]), int(after))
 
         # check the second carbon server got both servers and
         # servers-up metrics and that they are the same as
@@ -173,10 +173,10 @@ class TestCarbon(DNSDistTest):
                     self.assertTrue(parts[1].isdigit())
                     self.assertEqual(int(parts[1]), 2)
                     self.assertTrue(parts[2].isdigit())
-                    self.assertTrue(int(parts[2]) <= int(after))
+                    self.assertLessEqual(int(parts[2]), int(after))
                 else:
                     self.assertEqual(len(parts), 3)
                     self.assertTrue(parts[1].isdigit())
                     self.assertEqual(int(parts[1]), 3)
                     self.assertTrue(parts[2].isdigit())
-                    self.assertTrue(int(parts[2]) <= int(after))
+                    self.assertLessEqual(int(parts[2]), int(after))
