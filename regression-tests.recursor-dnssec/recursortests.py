@@ -969,7 +969,7 @@ distributor-threads={threads}
             raise TypeError("msg is not a dns.message.Message")
 
         msgFlags = dns.flags.to_text(msg.flags)
-        self.assertTrue('AD' in msgFlags, "No AD flag found in the message for %s" % msg.question[0].name)
+        self.assertIn('AD', msgFlags, "No AD flag found in the message for %s" % msg.question[0].name)
 
     def assertRRsetInAnswer(self, msg, rrset):
         """Asserts the rrset (without comparing TTL) exists in the

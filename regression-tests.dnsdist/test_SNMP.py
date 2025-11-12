@@ -27,7 +27,7 @@ class TestSNMP(DNSDistTest):
     def _checkStatsValues(self, results, queriesCountersValue):
         for i in list(range(1, 5)) + list(range(6, 20)) + list(range(24, 35)) + [ 35 ] :
             oid = self._snmpOID + '.1.' + str(i) + '.0'
-            self.assertTrue(oid in results)
+            self.assertIn(oid, results)
             self.assertTrue(isinstance(results[oid], Counter64))
 
         for i in range(20, 23):

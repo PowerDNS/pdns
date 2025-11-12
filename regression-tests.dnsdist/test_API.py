@@ -154,7 +154,7 @@ class TestAPIBasics(APITestsBase):
                         'qps', 'queries', 'order', 'tcpLatency', 'responses', 'nonCompliantResponses']:
                 self.assertGreaterEqual(server[key], 0)
 
-            self.assertTrue(server['state'] in ['up', 'down', 'UP', 'DOWN'])
+            self.assertIn(server['state'], ['up', 'down', 'UP', 'DOWN'])
 
         for frontend in content['frontends']:
             for key in ['id', 'address', 'udp', 'tcp', 'type', 'queries', 'nonCompliantQueries']:
@@ -211,7 +211,7 @@ class TestAPIBasics(APITestsBase):
                         'qps', 'queries', 'order', 'tcpLatency', 'responses', 'nonCompliantResponses']:
                 self.assertGreaterEqual(server[key], 0)
 
-            self.assertTrue(server['state'] in ['up', 'down', 'UP', 'DOWN'])
+            self.assertIn(server['state'], ['up', 'down', 'UP', 'DOWN'])
 
     def testServersIDontExist(self):
         """
@@ -542,7 +542,7 @@ class TestAPICustomHeaders(APITestsBase):
         self.assertTrue(r)
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.headers.get('x-powered-by'), "dnsdist")
-        self.assertTrue("x-frame-options" in r.headers)
+        self.assertIn("x-frame-options", r.headers)
 
 class TestStatsWithoutAuthentication(APITestsBase):
     __test__ = True

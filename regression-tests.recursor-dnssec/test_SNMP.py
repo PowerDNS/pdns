@@ -24,7 +24,7 @@ class SNMPTest(RecursorTest):
         count = 161
         for i in list(range(1, count)):
             oid = self._snmpOID + '.1.' + str(i) + '.0'
-            self.assertTrue(oid in results)
+            self.assertIn(oid, results)
             self.assertTrue(isinstance(results[oid], Counter64))
 
         oid = self._snmpOID + '.1.' + str(count + 1) + '.0'
