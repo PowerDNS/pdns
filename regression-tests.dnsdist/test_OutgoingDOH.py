@@ -288,7 +288,7 @@ class TestOutgoingDOHOpenSSL(DNSDistTest, OutgoingDOHTests):
 
     def testZNonEmptyKeyfile(self):
         self.assertTrue(os.path.exists("/tmp/dohkeys"))
-        self.assertTrue(os.path.getsize("/tmp/dohkeys") > 0)
+        self.assertGreater(os.path.getsize("/tmp/dohkeys"), 0)
 
     @staticmethod
     def sniCallback(sslSocket, sni, sslContext):

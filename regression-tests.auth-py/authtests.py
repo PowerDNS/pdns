@@ -654,7 +654,7 @@ options {
         self.assertEqual(len(msg.answer), 0, "Data found in the the answer section for %s:\n%s" % (msg.question[0].to_text(), '\n'.join([i.to_text() for i in msg.answer])))
 
     def assertAnswerNotEmpty(self, msg):
-        self.assertTrue(len(msg.answer) > 0, "Answer is empty")
+        self.assertGreater(len(msg.answer), 0, "Answer is empty")
 
     def assertRcodeEqual(self, msg, rcode):
         if not isinstance(msg, dns.message.Message):

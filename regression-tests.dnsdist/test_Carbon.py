@@ -94,7 +94,7 @@ class TestCarbon(DNSDistTest):
         after = time.time()
 
         self.assertTrue(data1)
-        self.assertTrue(len(data1.splitlines()) > 1)
+        self.assertGreater(len(data1.splitlines()), 1)
         expectedStart = b"dnsdist.%s.main." % self._carbonServer1Name.encode('UTF-8')
         for line in data1.splitlines():
             self.assertTrue(line.startswith(expectedStart))
@@ -105,7 +105,7 @@ class TestCarbon(DNSDistTest):
             self.assertTrue(int(parts[2]) <= int(after))
 
         self.assertTrue(data2)
-        self.assertTrue(len(data2.splitlines()) > 1)
+        self.assertGreater(len(data2.splitlines()), 1)
         expectedStart = b"dnsdist.%s.main." % self._carbonServer2Name.encode('UTF-8')
         for line in data2.splitlines():
             self.assertTrue(line.startswith(expectedStart))
@@ -140,7 +140,7 @@ class TestCarbon(DNSDistTest):
         # servers-up metrics and that they are the same as
         # configured in the class definition
         self.assertTrue(data1)
-        self.assertTrue(len(data1.splitlines()) > 1)
+        self.assertGreater(len(data1.splitlines()), 1)
         expectedStart = b"dnsdist.%s.main.pools._default_.servers" % self._carbonServer1Name.encode('UTF-8')
         for line in data1.splitlines():
             if expectedStart in line:
@@ -163,7 +163,7 @@ class TestCarbon(DNSDistTest):
         # configured in the class definition and the same as
         # the first carbon server
         self.assertTrue(data2)
-        self.assertTrue(len(data2.splitlines()) > 1)
+        self.assertGreater(len(data2.splitlines()), 1)
         expectedStart = b"dnsdist.%s.main.pools._default_.servers" % self._carbonServer2Name.encode('UTF-8')
         for line in data2.splitlines():
             if expectedStart in line:

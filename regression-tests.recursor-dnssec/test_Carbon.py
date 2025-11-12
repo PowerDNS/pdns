@@ -86,7 +86,7 @@ class CarbonTest(RecursorTest):
         after = time.time()
 
         self.assertTrue(data1)
-        self.assertTrue(len(data1.splitlines()) > 1)
+        self.assertGreater(len(data1.splitlines()), 1)
         expectedStart = b"%s.%s.%s." % (self._carbonNamespace.encode('UTF8'), self._carbonServerName.encode('UTF-8'), self._carbonInstance.encode('UTF8'))
         for line in data1.splitlines():
             self.assertTrue(line.startswith(expectedStart))
@@ -97,7 +97,7 @@ class CarbonTest(RecursorTest):
             self.assertTrue(int(parts[2]) <= int(after))
 
         self.assertTrue(data2)
-        self.assertTrue(len(data2.splitlines()) > 1)
+        self.assertGreater(len(data2.splitlines()), 1)
         expectedStart = b"%s.%s.%s." % (self._carbonNamespace.encode('UTF8'), self._carbonServerName.encode('UTF-8'), self._carbonInstance.encode('UTF8'))
         for line in data2.splitlines():
             self.assertTrue(line.startswith(expectedStart))

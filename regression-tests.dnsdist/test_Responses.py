@@ -32,7 +32,7 @@ class TestResponseRuleNXDelayed(DNSDistTest):
         receivedQuery.id = query.id
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
-        self.assertTrue((end - begin) > timedelta(0, 1))
+        self.assertGreater(end - begin, timedelta(0, 1))
 
         # NoError over UDP
         response.set_rcode(dns.rcode.NOERROR)
@@ -84,7 +84,7 @@ class TestResponseRuleERCode(DNSDistTest):
         receivedQuery.id = query.id
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
-        self.assertTrue((end - begin) > timedelta(0, 1))
+        self.assertGreater(end - begin, timedelta(0, 1))
 
         # BADKEY (17, an ERCode) over UDP
         response.set_rcode(17)
@@ -414,7 +414,7 @@ class TestResponseLuaActionReturnSyntax(DNSDistTest):
         receivedQuery.id = query.id
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
-        self.assertTrue((end - begin) > timedelta(0, 1))
+        self.assertGreater(end - begin, timedelta(0, 1))
 
     def testDropped(self):
         """
