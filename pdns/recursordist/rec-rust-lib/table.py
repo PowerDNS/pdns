@@ -443,7 +443,7 @@ Note that depending on the configuration the Recursor can start more threads.
 Typically these threads will sleep most of the time.
 These threads cannot be specified in this setting as their thread-ids are left unspecified.
  ''',
-        'doc' : '''
+        'doc-new' : '''
 Set CPU affinity for threads, asking the scheduler to run those threads on a single CPU, or a set of CPUs.
 This parameter accepts a space separated list of thread-id=cpu-id, or thread-id=cpu-id-1,cpu-id-2,...,cpu-id-N.
 For example, to make the worker thread 0 run on CPU id 0 and the worker thread 1 on CPUs 1 and 2:
@@ -2772,8 +2772,8 @@ A sequence of statistic names, that are prevented from being exported via SNMP, 
 Prefer structured logging when both an old style and a structured log messages is available.
  ''',
         'versionadded': '4.6.0',
-        'versionchanged': ('5.0.0', 'Disabling structured logging is deprecated'),
-        'versionchanged': ('5.1.0', 'Disabling structured logging is not supported'),
+        'versionchanged': [('5.0.0', 'Disabling structured logging is deprecated'),
+                           ('5.1.0', 'Disabling structured logging is not supported')]
     },
     {
         'name' : 'structured_logging_backend',
