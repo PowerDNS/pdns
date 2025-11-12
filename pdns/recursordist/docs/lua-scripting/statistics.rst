@@ -12,9 +12,10 @@ Create a custom metric with:
 
 .. code-block:: lua
 
-  myMetric=getMetric("myspecialmetric")
+  myMetric = getMetric("myspecialmetric")
 
 .. function:: getMetric(name [, prometheusName]) -> Metric
+              getMetric(name [, prometheusName | prometheusTable]) -> Metric
 
   Returns the :class:`Metric` object with the name ``name``, creating the metric if it does not exist.
 
@@ -23,6 +24,21 @@ Create a custom metric with:
   .. versionadded:: 4.5.0
 
   :param string prometheusName: The optional Prometheus specific name.
+
+  .. versionadded:: 5.4.0
+
+  :param table prometheusTable: The optional table of Prometheus specific options
+
+  The elements of ``prometheusTable`` can be:
+
+  .. csv-table::
+    :delim: space
+    :header: Keyword, Type, Description
+    :widths: auto
+
+    ``prometheusName`` ``string`` "The optional Prometheus specific name"
+    ``type``           ``string`` "The optional Prometheus metric type (``""counter""`` or ``""gauge""``)"
+    ``description``    ``string`` "The optional Prometheus metric description"
 
 .. class:: Metric
 
