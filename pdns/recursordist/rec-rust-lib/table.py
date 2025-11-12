@@ -443,7 +443,7 @@ Note that depending on the configuration the Recursor can start more threads.
 Typically these threads will sleep most of the time.
 These threads cannot be specified in this setting as their thread-ids are left unspecified.
  ''',
-        'doc' : '''
+        'doc-new' : '''
 Set CPU affinity for threads, asking the scheduler to run those threads on a single CPU, or a set of CPUs.
 This parameter accepts a space separated list of thread-id=cpu-id, or thread-id=cpu-id-1,cpu-id-2,...,cpu-id-N.
 For example, to make the worker thread 0 run on CPU id 0 and the worker thread 1 on CPUs 1 and 2:
