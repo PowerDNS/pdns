@@ -1553,7 +1553,9 @@ bool GSQLBackend::listSubZone(const ZoneName &zone, domainid_t domain_id) {
 
 bool GSQLBackend::get(DNSResourceRecord &r)
 {
-  // g_log << "GSQLBackend get() was called for "<<qtype.toString() << " record: ";
+#if 0 // could make sense, but we don't have a qtype to use here...
+  g_log << "GSQLBackend get() was called for "<<qtype.toString() << " record: ";
+#endif
   SSqlStatement::row_t row;
 
 skiprow:

@@ -517,7 +517,6 @@ bool TCPNameserver::canDoAXFR(std::unique_ptr<DNSPacket>& q, bool isAXFR, std::u
     }
   }
 
-  // cerr<<"checking allow-axfr-ips"<<endl;
   if(!(::arg()["allow-axfr-ips"].empty()) && d_ng.match( q->getInnerRemote() )) {
     g_log<<Logger::Notice<<logPrefix<<"allowed: client IP is in allow-axfr-ips"<<endl;
     return true;
@@ -525,16 +524,12 @@ bool TCPNameserver::canDoAXFR(std::unique_ptr<DNSPacket>& q, bool isAXFR, std::u
 
   FindNS fns;
 
-  // cerr<<"doing per-zone-axfr-acls"<<endl;
   SOAData sd;
   if(packetHandler->getBackend()->getSOAUncached(q->qdomainzone,sd)) {
-    // cerr<<"got backend and SOA"<<endl;
     vector<string> acl;
     packetHandler->getBackend()->getDomainMetadata(q->qdomainzone, "ALLOW-AXFR-FROM", acl);
     for (const auto & i : acl) {
-      // cerr<<"matching against "<<*i<<endl;
       if(pdns_iequals(i, "AUTO-NS")) {
-        // cerr<<"AUTO-NS magic please!"<<endl;
 
         DNSResourceRecord rr;
         set<DNSName> nsset;
@@ -546,10 +541,8 @@ bool TCPNameserver::canDoAXFR(std::unique_ptr<DNSPacket>& q, bool isAXFR, std::u
         for(const auto & j: nsset) {
           vector<string> nsips=fns.lookup(j, packetHandler->getBackend());
           for(const auto & nsip : nsips) {
-            // cerr<<"got "<<*k<<" from AUTO-NS"<<endl;
             if(nsip == q->getInnerRemote().toString())
             {
-              // cerr<<"got AUTO-NS hit"<<endl;
               g_log<<Logger::Notice<<logPrefix<<"allowed: client IP is in NSset"<<endl;
               return true;
             }
@@ -562,7 +555,6 @@ bool TCPNameserver::canDoAXFR(std::unique_ptr<DNSPacket>& q, bool isAXFR, std::u
         if(nm.match( q->getInnerRemote() ))
         {
           g_log<<Logger::Notice<<logPrefix<<"allowed: client IP is in per-zone ACL"<<endl;
-          // cerr<<"hit!"<<endl;
           return true;
         }
       }
@@ -1068,12 +1060,6 @@ send:
       }
     }
   }
-  /*
-  udiff=dt.udiffNoReset();
-  cerr<<"Starting NSEC: "<<csp.d_signed/(udiff/1000000.0)<<" sigs/s, "<<csp.d_signed<<" / "<<udiff/1000000.0<<endl;
-  cerr<<"Outstanding: "<<csp.d_outstanding<<", "<<csp.d_queued - csp.d_signed << endl;
-  cerr<<"Ready for consumption: "<<csp.getReady()<<endl;
-  */
   if(securedZone) {
     if(NSEC3Zone) {
       for(nsecxrepo_t::const_iterator iter = nsecxrepo.begin(); iter != nsecxrepo.end(); ++iter) {
@@ -1156,12 +1142,6 @@ send:
       }
     }
   }
-  /*
-  udiff=dt.udiffNoReset();
-  cerr<<"Flushing pipe: "<<csp.d_signed/(udiff/1000000.0)<<" sigs/s, "<<csp.d_signed<<" / "<<udiff/1000000.0<<endl;
-  cerr<<"Outstanding: "<<csp.d_outstanding<<", "<<csp.d_queued - csp.d_signed << endl;
-  cerr<<"Ready for consumption: "<<csp.getReady()<<endl;
-  * */
   for(;;) {
     outpacket->getRRS() = csp.getChunk(true); // flush the pipe
     if(!outpacket->getRRS().empty()) {

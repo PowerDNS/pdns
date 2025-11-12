@@ -32,8 +32,6 @@ void AuthLua4::postPrepareContext() {
   });
 
 /* DNSPacket */
-  d_lw->writeFunction("newDNSPacket", [](bool isQuery) { return std::make_shared<DNSPacket>(isQuery); });
-  d_lw->writeFunction("dupDNSPacket", [](const std::shared_ptr<DNSPacket> &orig) { return std::make_shared<DNSPacket>(*orig); });
   d_lw->registerFunction<DNSPacket, int(const char *, size_t)>("noparse", [](DNSPacket &p, const char *mesg, size_t len){ return p.noparse(mesg, len); });
   d_lw->registerFunction<DNSPacket, int(const char *, size_t)>("parse", [](DNSPacket &p, const char *mesg, size_t len){ return p.parse(mesg, len); });
   d_lw->registerFunction<DNSPacket, const std::string()>("getString", [](DNSPacket &p) { return p.getString(); });

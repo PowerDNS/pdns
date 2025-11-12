@@ -1300,11 +1300,6 @@ void Bind2Backend::lookup(const QType& qtype, const DNSName& qname, domainid_t z
   d_handle.d_end_iter = range.second;
 }
 
-Bind2Backend::handle::handle()
-{
-  mustlog = false;
-}
-
 bool Bind2Backend::get(DNSResourceRecord& r)
 {
   if (!d_handle.d_records) {
