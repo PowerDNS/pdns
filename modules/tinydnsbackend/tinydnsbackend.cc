@@ -299,8 +299,10 @@ bool TinyDNSBackend::get(DNSResourceRecord& rr)
     string val = record.second;
     string key = record.first;
 
-    //DLOG(g_log<<Logger::Debug<<"[GET] Key: "<<makeHexDump(key)<<endl);
-    //DLOG(g_log<<Logger::Debug<<"[GET] Val: "<<makeHexDump(val)<<endl);
+#if 0
+    DLOG(g_log<<Logger::Debug<<"[GET] Key: "<<makeHexDump(key)<<endl);
+    DLOG(g_log<<Logger::Debug<<"[GET] Val: "<<makeHexDump(val)<<endl);
+#endif
     if (key[0] == '\000' && key[1] == '\045') { // skip locations
       continue;
     }
@@ -404,7 +406,9 @@ bool TinyDNSBackend::get(DNSResourceRecord& rr)
           throw;
         }
       }
-      //      DLOG(g_log<<Logger::Debug<<backendname<<"Returning ["<<rr.content<<"] for ["<<rr.qname<<"] of RecordType ["<<rr.qtype.toString()<<"]"<<endl;);
+#if 0
+      DLOG(g_log<<Logger::Debug<<backendname<<"Returning ["<<rr.content<<"] for ["<<rr.qname<<"] of RecordType ["<<rr.qtype.toString()<<"]"<<endl;);
+#endif
       return true;
     }
   } // end of while

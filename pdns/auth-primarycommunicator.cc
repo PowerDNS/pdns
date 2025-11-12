@@ -244,7 +244,9 @@ time_t CommunicatorClass::doNotifications(PacketHandler* P)
     }
     else {
       g_log << Logger::Warning << "Received spurious notify answer for '" << p.qdomain << "' from " << from.toStringWithPort() << endl;
-      // d_nq.dump();
+#if 0
+      d_nq.dump();
+#endif
     }
   }
 

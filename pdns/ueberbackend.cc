@@ -727,7 +727,9 @@ enum UeberBackend::CacheResult UeberBackend::cacheHas(const Question& question, 
   }
 
   resourceRecords.clear();
-  //  g_log<<Logger::Warning<<"looking up: '"<<q.qname+"'|N|"+q.qtype.getName()+"|"+itoa(q.zoneId)<<endl;
+#if 0
+  g_log<<Logger::Warning<<"looking up: '"<<question.qname<<"'|N|"<<question.qtype<<"|"<<std::to_string(question.zoneId)<<endl;
+#endif
 
   bool ret = QC.getEntry(question.qname, question.qtype, resourceRecords, question.zoneId); // think about lowercasing here
   if (!ret) {

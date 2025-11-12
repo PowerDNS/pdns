@@ -1612,7 +1612,9 @@ bool PacketHandler::opcodeQueryInner(DNSPacket& pkt, queryState &state)
 {
   state.r=pkt.replyPacket();  // generate an empty reply packet, possibly with TSIG details inside
 
-  // g_log<<Logger::Warning<<"Query for '"<<pkt.qdomain<<"' "<<pkt.qtype.toString()<<" from "<<pkt.getRemoteString()<< " (tcp="<<pkt.d_tcp<<")"<<endl;
+#if 0
+  g_log<<Logger::Warning<<"Query for '"<<pkt.qdomain<<"' "<<pkt.qtype.toString()<<" from "<<pkt.getRemoteString()<< " (tcp="<<pkt.d_tcp<<")"<<endl;
+#endif
 
   if(pkt.qtype.getCode()==QType::IXFR) {
     state.r->setRcode(RCode::Refused);
@@ -1983,11 +1985,13 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state, bool re
       return true;
     }
     // check whether this could be fixed easily
-    // if (*(rrset.back().dr.d_name.rbegin()) == '.') {
-    //      g_log<<Logger::Error<<"Should not get here ("<<pkt.qdomain<<"|"<<pkt.qtype.toString()<<"): you have a trailing dot, this could be the problem (or run 'pdnsutil zone rectify " <<d_sd.qname()<<"')"<<endl;
-    // } else {
-         g_log<<Logger::Error<<"Should not get here ("<<pkt.qdomain<<"|"<<pkt.qtype.toString()<<"): please run 'pdnsutil zone rectify "<<d_sd.qname()<<"'"<<endl;
-    // }
+#if 0
+    if (*(rrset.back().dr.d_name.getStorage().rbegin()) == '.') {
+      g_log<<Logger::Error<<"Should not get here ("<<pkt.qdomain<<"|"<<pkt.qtype.toString()<<"): you have a trailing dot, this could be the problem (or run 'pdnsutil zone rectify " <<d_sd.qname()<<"')"<<endl;
+    } else {
+      g_log<<Logger::Error<<"Should not get here ("<<pkt.qdomain<<"|"<<pkt.qtype.toString()<<"): please run 'pdnsutil zone rectify "<<d_sd.qname()<<"'"<<endl;
+    }
+#endif
   }
   else {
     DLOG(g_log<<"Have some data, but not the right data"<<endl);
