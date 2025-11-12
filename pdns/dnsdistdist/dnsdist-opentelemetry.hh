@@ -212,10 +212,10 @@ public:
       }
 #endif
     };
-    Closer(const Closer&) = delete;
+    Closer(const Closer&) = default;
     Closer& operator=(const Closer&) = default;
     Closer& operator=(Closer&&) noexcept = default;
-    Closer(Closer&&) = delete;
+    Closer(Closer&&) = default;
 
     /**
      * @brief Get the SpanID
