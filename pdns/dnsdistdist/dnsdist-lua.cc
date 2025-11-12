@@ -3200,8 +3200,6 @@ void setupLuaBindingsOnly(LuaContext& luaCtx, bool client, bool configCheck)
   setupLuaInspection(luaCtx);
   setupLuaVars(luaCtx);
   setupLuaWeb(luaCtx);
-  setupLuaActions(luaCtx);
-  setupLuaSelectors(luaCtx);
   dnsdist::configuration::yaml::addLuaBindingsForYAMLObjects(luaCtx);
 
 #ifdef LUAJIT_VERSION
@@ -3217,6 +3215,8 @@ void setupLuaConfigurationOptions(LuaContext& luaCtx, bool client, bool configCh
   }
 
   setupLuaConfig(luaCtx, client, configCheck);
+  setupLuaActions(luaCtx);
+  setupLuaSelectors(luaCtx);
   setupLuaRuleChainsManagement(luaCtx);
   dnsdist::lua::hooks::setupLuaHooks(luaCtx);
 }
