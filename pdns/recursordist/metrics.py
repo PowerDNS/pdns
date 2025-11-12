@@ -1,6 +1,7 @@
 import os
 import sys
 import shutil
+import metrics_table
 
 # default: 'type': uint64
 # ptype: "'counter' (vs gauge')
@@ -31,9 +32,7 @@ def dedashForSNMP(name):
     ret = ret.replace('Nsec', 'NSEC')
     return ret
 
-# read table
-with open(srcdir + '/metrics_table.py', mode='r', encoding="utf-8") as file:
-    table = eval(file.read())
+table = metrics_table.table
 
 #
 # We create various files in the srcdir but copy them into the builddir if needed to satisfy meson
