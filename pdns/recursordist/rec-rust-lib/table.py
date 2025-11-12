@@ -2772,8 +2772,8 @@ A sequence of statistic names, that are prevented from being exported via SNMP, 
 Prefer structured logging when both an old style and a structured log messages is available.
  ''',
         'versionadded': '4.6.0',
-        'versionchanged': ('5.0.0', 'Disabling structured logging is deprecated'),
-        'versionchanged': ('5.1.0', 'Disabling structured logging is not supported'),
+        'versionchanged': [('5.0.0', 'Disabling structured logging is deprecated'),
+                           ('5.1.0', 'Disabling structured logging is not supported')]
     },
     {
         'name' : 'structured_logging_backend',
