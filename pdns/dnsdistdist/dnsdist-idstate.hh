@@ -25,6 +25,7 @@
 #include <ctime>
 #include <memory>
 #include <optional>
+#include <string_view>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -147,10 +148,10 @@ struct InternalQueryState
    *
    * @return
    */
-  std::optional<pdns::trace::dnsdist::Tracer::Closer> getCloser([[maybe_unused]] const std::string& name, [[maybe_unused]] const SpanID& parentSpanID);
-  std::optional<pdns::trace::dnsdist::Tracer::Closer> getCloser([[maybe_unused]] const std::string& name, [[maybe_unused]] const string& parentSpanName);
-  std::optional<pdns::trace::dnsdist::Tracer::Closer> getCloser([[maybe_unused]] const std::string& name);
-  std::optional<pdns::trace::dnsdist::Tracer::Closer> getRulesCloser([[maybe_unused]] const std::string& ruleName, [[maybe_unused]] const std::string& parentSpanName);
+  std::optional<pdns::trace::dnsdist::Tracer::Closer> getCloser([[maybe_unused]] const std::string_view& name, [[maybe_unused]] const SpanID& parentSpanID);
+  std::optional<pdns::trace::dnsdist::Tracer::Closer> getCloser([[maybe_unused]] const std::string_view& name, [[maybe_unused]] const std::string_view& parentSpanName);
+  std::optional<pdns::trace::dnsdist::Tracer::Closer> getCloser([[maybe_unused]] const std::string_view& name);
+  std::optional<pdns::trace::dnsdist::Tracer::Closer> getRulesCloser([[maybe_unused]] const std::string_view& ruleName, [[maybe_unused]] const std::string_view& parentSpanName);
 
   InternalQueryState()
   {
