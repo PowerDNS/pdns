@@ -231,6 +231,14 @@ struct InstrumentationScope
 
 struct TraceID : public std::array<uint8_t, 16>
 {
+  constexpr TraceID() :
+    array{} {};
+  TraceID(const std::initializer_list<uint8_t>& arg) :
+    array{}
+  {
+    std::copy(arg.begin(), arg.end(), begin());
+  }
+
   [[nodiscard]] std::string toLogString() const;
   friend std::ostream& operator<<(std::ostream& ostrm, const TraceID& val)
   {
@@ -240,7 +248,7 @@ struct TraceID : public std::array<uint8_t, 16>
   static TraceID getRandomTraceID()
   {
     TraceID ret;
-    dns_random(ret.data(), ret.size());
+    ret.makeRandom();
     return ret;
   }
 
@@ -258,6 +266,14 @@ constexpr TraceID s_emptyTraceID = {};
 
 struct SpanID : public std::array<uint8_t, 8>
 {
+  constexpr SpanID() :
+    array{} {};
+  SpanID(const std::initializer_list<uint8_t>& arg) :
+    array{}
+  {
+    std::copy(arg.begin(), arg.end(), begin());
+  }
+
   [[nodiscard]] std::string toLogString() const;
   friend std::ostream& operator<<(std::ostream& ostrm, const SpanID& val)
   {
@@ -267,7 +283,7 @@ struct SpanID : public std::array<uint8_t, 8>
   static SpanID getRandomSpanID()
   {
     SpanID ret;
-    dns_random(ret.data(), ret.size());
+    ret.makeRandom();
     return ret;
   }
 
