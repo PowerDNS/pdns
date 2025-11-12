@@ -235,7 +235,22 @@ public:
   bool cacheHit{false};
   bool staleCacheHit{false};
   bool tracingEnabled{false}; // Whether or not Open Telemetry tracing is enabled for this query
-  bool tracingPastProcessRules{false}; // Whether processRules has been called for the query, used to determine if we can trace
+  bool rulesAppliedToQuery{false}; // Whether applyRulesToQuery has been called for the query, used to determine if we need to trace
+  struct rulesAppliedToQuerySetter
+  {
+    rulesAppliedToQuerySetter(bool& pastProcessRules) :
+      d_rulesAppliedToQuery(pastProcessRules)
+    {
+      d_rulesAppliedToQuery = false;
+    }
+    ~rulesAppliedToQuerySetter()
+    {
+      d_rulesAppliedToQuery = true;
+    }
+
+  private:
+    bool& d_rulesAppliedToQuery;
+  };
 };
 
 struct IDState

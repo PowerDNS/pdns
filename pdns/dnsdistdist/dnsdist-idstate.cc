@@ -88,7 +88,7 @@ std::optional<pdns::trace::dnsdist::Tracer::Closer> InternalQueryState::getClose
   // getTracer returns a Tracer when tracing is globally enabled
   // tracingEnabled tells us whether or not tracing is enabled for this query
   // Should tracing be disabled, *but* we have not processed query rules, we will still return a closer if tracing is globally enabled
-  if (auto tracer = getTracer(); tracer != nullptr && (tracingEnabled || !tracingPastProcessRules)) {
+  if (auto tracer = getTracer(); tracer != nullptr && (tracingEnabled || !rulesAppliedToQuery)) {
     ret = std::optional<pdns::trace::dnsdist::Tracer::Closer>(d_OTTracer->openSpan(name, parentSpanID));
   }
 #endif

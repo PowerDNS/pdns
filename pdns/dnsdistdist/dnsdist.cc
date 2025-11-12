@@ -1046,6 +1046,7 @@ static bool applyRulesChainToQuery(const std::vector<dnsdist::rules::RuleAction>
 
 static bool applyRulesToQuery(DNSQuestion& dnsQuestion, const timespec& now)
 {
+  InternalQueryState::rulesAppliedToQuerySetter tpprs(dnsQuestion.ids.rulesAppliedToQuery); // Ensure IDS knows we are past the rules processing when we exit this function
   auto closer = dnsQuestion.ids.getCloser("applyRulesToQuery");
   if (g_rings.shouldRecordQueries()) {
     g_rings.insertQuery(now, dnsQuestion.ids.origRemote, dnsQuestion.ids.qname, dnsQuestion.ids.qtype, dnsQuestion.getData().size(), *dnsQuestion.getHeader(), dnsQuestion.getProtocol());
@@ -1100,7 +1101,6 @@ static bool applyRulesToQuery(DNSQuestion& dnsQuestion, const timespec& now)
         updateBlockStats();
 
         setRCode(RCode::NXDomain);
-        dnsQuestion.ids.tracingPastProcessRules = true;
         return true;
 
       case DNSAction::Action::Refused:
@@ -1108,7 +1108,6 @@ static bool applyRulesToQuery(DNSQuestion& dnsQuestion, const timespec& now)
         updateBlockStats();
 
         setRCode(RCode::Refused);
-        dnsQuestion.ids.tracingPastProcessRules = true;
         return true;
 
       case DNSAction::Action::Truncate:
@@ -1123,7 +1122,6 @@ static bool applyRulesToQuery(DNSQuestion& dnsQuestion, const timespec& now)
             header.ad = false;
             return true;
           });
-          dnsQuestion.ids.tracingPastProcessRules = true;
           return true;
         }
         else {
@@ -1137,7 +1135,6 @@ static bool applyRulesToQuery(DNSQuestion& dnsQuestion, const timespec& now)
           header.rd = false;
           return true;
         });
-        dnsQuestion.ids.tracingPastProcessRules = true;
         return true;
       case DNSAction::Action::SetTag: {
         if (!got->second.tagSettings) {
@@ -1155,7 +1152,6 @@ static bool applyRulesToQuery(DNSQuestion& dnsQuestion, const timespec& now)
       default:
         updateBlockStats();
         vinfolog("Query from %s dropped because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort());
-        dnsQuestion.ids.tracingPastProcessRules = true;
         return false;
       }
     }
@@ -1181,14 +1177,12 @@ static bool applyRulesToQuery(DNSQuestion& dnsQuestion, const timespec& now)
         updateBlockStats();
 
         setRCode(RCode::NXDomain);
-        dnsQuestion.ids.tracingPastProcessRules = true;
         return true;
       case DNSAction::Action::Refused:
         vinfolog("Query from %s for %s refused because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort(), dnsQuestion.ids.qname.toLogString());
         updateBlockStats();
 
         setRCode(RCode::Refused);
-        dnsQuestion.ids.tracingPastProcessRules = true;
         return true;
       case DNSAction::Action::Truncate:
         if (!dnsQuestion.overTCP()) {
@@ -1203,7 +1197,6 @@ static bool applyRulesToQuery(DNSQuestion& dnsQuestion, const timespec& now)
             header.ad = false;
             return true;
           });
-          dnsQuestion.ids.tracingPastProcessRules = true;
           return true;
         }
         else {
@@ -1217,7 +1210,6 @@ static bool applyRulesToQuery(DNSQuestion& dnsQuestion, const timespec& now)
           header.rd = false;
           return true;
         });
-        dnsQuestion.ids.tracingPastProcessRules = true;
         return true;
       case DNSAction::Action::SetTag: {
         if (!got->tagSettings) {
@@ -1235,7 +1227,6 @@ static bool applyRulesToQuery(DNSQuestion& dnsQuestion, const timespec& now)
       default:
         updateBlockStats();
         vinfolog("Query from %s for %s dropped because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort(), dnsQuestion.ids.qname.toLogString());
-        dnsQuestion.ids.tracingPastProcessRules = true;
         return false;
       }
     }
@@ -1244,9 +1235,7 @@ static bool applyRulesToQuery(DNSQuestion& dnsQuestion, const timespec& now)
 
   const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
   const auto& queryRules = dnsdist::rules::getRuleChain(chains, dnsdist::rules::RuleChain::Rules);
-  auto ret = applyRulesChainToQuery(queryRules, dnsQuestion);
-  dnsQuestion.ids.tracingPastProcessRules = true;
-  return ret;
+  return applyRulesChainToQuery(queryRules, dnsQuestion);
 }
 
 ssize_t udpClientSendRequestToBackend(const std::shared_ptr<DownstreamState>& backend, const int socketDesc, const PacketBuffer& request, bool healthCheck)
