@@ -17,10 +17,10 @@ BOOST_AUTO_TEST_CASE(test_equality) {
   ARecordContent a1(ip), a2(ip), a3(ip2);
   AAAARecordContent aaaa(ip6), aaaa1(ip6);
   
-  BOOST_CHECK(a1==a2);
-  BOOST_CHECK(!(a1==a3));
+  BOOST_CHECK(a1.operator==(a2));
+  BOOST_CHECK(!(a1.operator==(a3)));
 
-  BOOST_CHECK(aaaa == aaaa1);
+  BOOST_CHECK(aaaa.operator==(aaaa1));
 
   auto rec1 = DNSRecordContent::make(QType::A, 1, "192.168.0.1");
   auto rec2 = DNSRecordContent::make(QType::A, 1, "192.168.222.222");
@@ -40,8 +40,8 @@ BOOST_AUTO_TEST_CASE(test_equality) {
   BOOST_CHECK(!(*rec1==*rec3));
 
   NSRecordContent ns1(DNSName("ns1.powerdns.com")), ns2(DNSName("NS1.powerdns.COM")), ns3(DNSName("powerdns.net"));
-  BOOST_CHECK(ns1==ns2);
-  BOOST_CHECK(!(ns1==ns3));
+  BOOST_CHECK(ns1.operator==(ns2));
+  BOOST_CHECK(!(ns1.operator==(ns3)));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -1225,7 +1225,7 @@ vState validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsset_t& 
       try {
         dsrc2 = makeDSFromDNSKey(zone, *drc, dsrc.d_digesttype);
         dsCreated = true;
-        isValid = dsrc == dsrc2;
+        isValid = dsrc.operator==(dsrc2);
       }
       catch (const std::exception &e) {
         VLOG(log, zone << ": Unable to make DS from DNSKey: "<<e.what()<<endl);

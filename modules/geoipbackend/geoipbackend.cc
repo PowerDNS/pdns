@@ -34,6 +34,7 @@
 #include <fstream>
 #include <filesystem>
 #include <utility>
+#include <cmath>
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
 #include <yaml-cpp/yaml.h>
