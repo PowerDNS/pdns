@@ -121,9 +121,9 @@ class TestDNSCrypt(DNSCryptTest):
         self.assertEqual(query, receivedQuery)
         self.assertEqual(receivedResponse.question, response.question)
         self.assertTrue(receivedResponse.flags & ~dns.flags.TC)
-        self.assertTrue(len(receivedResponse.answer) == 0)
-        self.assertTrue(len(receivedResponse.authority) == 0)
-        self.assertTrue(len(receivedResponse.additional) == 0)
+        self.assertEqual(len(receivedResponse.answer), 0)
+        self.assertEqual(len(receivedResponse.authority), 0)
+        self.assertEqual(len(receivedResponse.additional), 0)
 
     def testCertRotation(self):
         """

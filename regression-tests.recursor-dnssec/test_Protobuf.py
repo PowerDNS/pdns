@@ -285,17 +285,17 @@ class TestRecursorProtobuf(RecursorTest):
 
     def checkProtobufIdentity(self, msg, requestorId, deviceId, deviceName):
         #print(msg)
-        self.assertTrue((requestorId == '') == (not msg.HasField('requestorId')))
-        self.assertTrue((deviceId == b'') == (not msg.HasField('deviceId')))
-        self.assertTrue((deviceName == '') == (not msg.HasField('deviceName')))
+        self.assertEqual(requestorId == '', not msg.HasField('requestorId'))
+        self.assertEqual(deviceId == b'', not msg.HasField('deviceId'))
+        self.assertEqual(deviceName == '', not msg.HasField('deviceName'))
         self.assertEqual(msg.requestorId, requestorId)
         self.assertEqual(msg.deviceId, deviceId)
         self.assertEqual(msg.deviceName, deviceName)
 
     def checkProtobufEDE(self, msg, ede, edeText):
         #print(msg)
-        self.assertTrue((ede == 0) == (not msg.HasField('ede')))
-        self.assertTrue((edeText == '') == (not msg.HasField('edeText')))
+        self.assertEqual(ede == 0, not msg.HasField('ede'))
+        self.assertEqual(edeText == '', not msg.HasField('edeText'))
         self.assertEqual(msg.ede, ede)
         self.assertEqual(msg.edeText, edeText)
 
@@ -305,8 +305,8 @@ class TestRecursorProtobuf(RecursorTest):
       return opt
 
     def checkProtobufOT(self, msg, openTelemetryData, openTelemetryTraceID):
-        self.assertTrue(openTelemetryData == msg.HasField('openTelemetryData'))
-        self.assertTrue(openTelemetryTraceID == msg.HasField('openTelemetryTraceID'))
+        self.assertEqual(openTelemetryData, msg.HasField('openTelemetryData'))
+        self.assertEqual(openTelemetryTraceID, msg.HasField('openTelemetryTraceID'))
 
     def setUp(self):
         super(TestRecursorProtobuf, self).setUp()

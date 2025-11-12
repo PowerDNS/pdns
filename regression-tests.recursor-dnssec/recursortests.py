@@ -1116,10 +1116,10 @@ distributor-threads={threads}
             raise AssertionError("RRSIG found in answers for:\n%s" % ret)
 
     def assertAnswerEmpty(self, msg):
-        self.assertTrue(len(msg.answer) == 0, "Data found in the the answer section for %s:\n%s" % (msg.question[0].to_text(), '\n'.join([i.to_text() for i in msg.answer])))
+        self.assertEqual(len(msg.answer), 0, "Data found in the the answer section for %s:\n%s" % (msg.question[0].to_text(), '\n'.join([i.to_text() for i in msg.answer])))
 
     def assertAdditionalEmpty(self, msg):
-        self.assertTrue(len(msg.additional) == 0, "Data found in the the additional section for %s:\n%s" % (msg.question[0].to_text(), '\n'.join([i.to_text() for i in msg.additional])))
+        self.assertEqual(len(msg.additional), 0, "Data found in the the additional section for %s:\n%s" % (msg.question[0].to_text(), '\n'.join([i.to_text() for i in msg.additional])))
 
     def assertRcodeEqual(self, msg, rcode):
         if not isinstance(msg, dns.message.Message):
