@@ -154,12 +154,17 @@ BOOST_AUTO_TEST_CASE(spanAttributes)
   auto closer = tracer->openSpan("myspan");
   auto spanid = closer.getSpanID();
   tracer->setSpanAttribute(spanid, "foo", AnyValue{42});
+  closer.setAttribute("bar", AnyValue{"hello"});
   auto trace = tracer->getTracesData();
 
   BOOST_CHECK_EQUAL(trace.resource_spans.at(0).scope_spans.at(0).spans.size(), 1U);
-  BOOST_CHECK_EQUAL(trace.resource_spans.at(0).scope_spans.at(0).spans.at(0).attributes.size(), 1U);
+
+  BOOST_CHECK_EQUAL(trace.resource_spans.at(0).scope_spans.at(0).spans.at(0).attributes.size(), 2U);
   BOOST_CHECK_EQUAL(trace.resource_spans.at(0).scope_spans.at(0).spans.at(0).attributes.at(0).key, "foo");
   BOOST_CHECK_EQUAL(trace.resource_spans.at(0).scope_spans.at(0).spans.at(0).attributes.at(0).value, AnyValue{42});
+
+  BOOST_CHECK_EQUAL(trace.resource_spans.at(0).scope_spans.at(0).spans.at(0).attributes.at(1).key, "bar");
+  BOOST_CHECK_EQUAL(trace.resource_spans.at(0).scope_spans.at(0).spans.at(0).attributes.at(1).value, AnyValue{"hello"});
 }
 
 BOOST_AUTO_TEST_CASE(rootSpanAttributes)

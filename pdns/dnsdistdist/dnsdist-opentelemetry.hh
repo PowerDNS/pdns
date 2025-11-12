@@ -224,6 +224,15 @@ public:
      */
     [[nodiscard]] SpanID getSpanID() const;
 
+    /**
+     * @brief Set an attribute on the Span
+     *
+     * @param key
+     * @param value
+     * @return
+     */
+    void setAttribute(const std::string& key, const AnyValue& value);
+
   private:
 #ifndef DISABLE_PROTOBUF
     std::shared_ptr<Tracer> d_tracer{nullptr};
