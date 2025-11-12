@@ -15,7 +15,7 @@ Create a custom metric with:
   myMetric = getMetric("myspecialmetric")
 
 .. function:: getMetric(name [, prometheusName]) -> Metric
-              getMetric(name [, prometheusTable]) -> Metric
+              getMetric(name [, prometheusName | prometheusTable]) -> Metric
 
   Returns the :class:`Metric` object with the name ``name``, creating the metric if it does not exist.
 
