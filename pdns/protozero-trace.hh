@@ -231,7 +231,7 @@ struct InstrumentationScope
 
 struct TraceID : public std::array<uint8_t, 16>
 {
-  TraceID() :
+  constexpr TraceID() :
     array{} {};
   TraceID(const std::initializer_list<uint8_t>& arg) :
     array{}
@@ -262,11 +262,11 @@ struct TraceID : public std::array<uint8_t, 16>
     this->fill(0);
   }
 };
-const TraceID s_emptyTraceID = {};
+constexpr TraceID s_emptyTraceID = {};
 
 struct SpanID : public std::array<uint8_t, 8>
 {
-  SpanID() :
+  constexpr SpanID() :
     array{} {};
   SpanID(const std::initializer_list<uint8_t>& arg) :
     array{}
@@ -297,7 +297,7 @@ struct SpanID : public std::array<uint8_t, 8>
     this->fill(0);
   }
 };
-const SpanID s_emptySpanID = {};
+constexpr SpanID s_emptySpanID = {};
 
 inline void fill(TraceID& trace, const std::string& data)
 {
