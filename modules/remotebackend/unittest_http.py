@@ -24,7 +24,7 @@ class DNSBackendHandler(http.server.BaseHTTPRequestHandler):
 
     def url_to_args(self):
         url = urlparse(self.path)
-        parts = list(map(lambda part: unquote(part), url.path.split("/")))
+        parts = list(map(unquote, url.path.split("/")))
         parts.pop(0)
         self.method = None
 
