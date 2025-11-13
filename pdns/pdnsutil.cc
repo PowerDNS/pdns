@@ -1,5 +1,6 @@
 #include <cerrno>
 #include <csignal>
+#include <cstdlib>
 #include <fcntl.h>
 #include <fstream>
 #include <string>
@@ -80,6 +81,7 @@ static int activateTSIGKey(vector<string>& cmds, std::string_view synopsis);
 static int activateZoneKey(vector<string>& cmds, std::string_view synopsis);
 static int addAutoprimary(vector<string>& cmds, std::string_view synopsis);
 static int addMeta(vector<string>& cmds, std::string_view synopsis);
+static int addComment(vector<string>& cmds, std::string_view synopsis);
 static int addRecord(vector<string>& cmds, std::string_view synopsis);
 static int addZoneKey(vector<string>& cmds, std::string_view synopsis);
 static int backendCmd(vector<string>& cmds, std::string_view synopsis);
@@ -505,6 +507,13 @@ static const groupCommandDispatcher zoneKeyCommands{
     "\tUnpublish the zone key with key id KEY_ID in ZONE"}}}
 };
 
+static const groupCommandDispatcher commentCommands{
+  "Comment",
+  {{"add", {true, addComment,
+    "ZONE NAME TYPE COMMENT [ACCOUNT]",
+    "\tAdd a comment"}}}
+};
+
 // OTHER (NO OBJECT NAME PREFIX)
 
 static const groupCommandDispatcher otherCommands{
@@ -574,6 +583,7 @@ using commandDispatcher = std::map<std::string_view, std::pair<bool, std::vector
 static const commandDispatcher topLevelDispatcher{
   {"autoprimary", {true, {autoprimaryCommands}}},
   {"catalog", {true, {catalogCommands}}},
+  {"comment", {true, {commentCommands}}},
 #ifdef HAVE_P11KIT1 // [
   {"hsm", {true, {HSMCommands}}},
 #endif // ]
@@ -4252,6 +4262,42 @@ static int changeSecondaryZonePrimary(vector<string>& cmds, const std::string_vi
     cerr << "Setting primary for zone '" << zone << "' failed: " << e.reason << endl;
     return EXIT_FAILURE;
   }
+}
+
+static int addComment(vector<string>& cmds, const std::string_view synopsis)
+{
+  if(cmds.size() < 4) {
+    return usage(synopsis);
+  }
+
+  UtilBackend B;
+  DomainInfo di;
+  ZoneName zone(cmds.at(0));
+  if (!B.getDomainInfo(zone, di)) {
+    cerr << "Zone '" << zone << "' doesn't exist" << endl;
+    return EXIT_FAILURE;
+  }
+
+  Comment comment;
+
+  comment.domain_id = di.id;
+  comment.qname = DNSName(cmds.at(1));
+  comment.qtype = cmds.at(2);
+  comment.content = cmds.at(3);
+  if(cmds.size() > 4) {
+    comment.account = cmds.at(4);
+  }
+  comment.modified_at = time(nullptr);
+
+  di.backend->startTransaction(zone, UnknownDomainID);
+  if (!di.backend->feedComment(comment)) {
+    cerr << "Backend does not support comments" << endl;
+    di.backend->abortTransaction();
+    return EXIT_FAILURE;
+  }
+
+  di.backend->commitTransaction();
+  return EXIT_SUCCESS;
 }
 
 static int addRecord(vector<string>& cmds, const std::string_view synopsis)
