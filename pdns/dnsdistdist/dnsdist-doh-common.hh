@@ -45,7 +45,7 @@ struct DOHServerConfig;
 class DOHResponseMapEntry
 {
 public:
-  DOHResponseMapEntry(const std::string& regex, uint16_t status, const PacketBuffer& content, const boost::optional<std::unordered_map<std::string, std::string>>& headers) :
+  DOHResponseMapEntry(const std::string& regex, uint16_t status, const PacketBuffer& content, const std::optional<std::unordered_map<std::string, std::string>>& headers) :
     d_regex(regex), d_customHeaders(headers), d_content(content), d_status(status)
   {
     if (status >= 400 && !d_content.empty() && d_content.at(d_content.size() - 1) != 0) {
@@ -69,14 +69,14 @@ public:
     return d_content;
   }
 
-  const boost::optional<std::unordered_map<std::string, std::string>>& getHeaders() const
+  const std::optional<std::unordered_map<std::string, std::string>>& getHeaders() const
   {
     return d_customHeaders;
   }
 
 private:
   Regex d_regex;
-  boost::optional<std::unordered_map<std::string, std::string>> d_customHeaders;
+  std::optional<std::unordered_map<std::string, std::string>> d_customHeaders;
   PacketBuffer d_content;
   uint16_t d_status;
 };

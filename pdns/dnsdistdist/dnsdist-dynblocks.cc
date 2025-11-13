@@ -28,7 +28,7 @@ void DynBlockRulesGroup::apply(const timespec& now)
     return;
   }
 
-  boost::optional<ClientAddressDynamicRules> blocks;
+  std::optional<ClientAddressDynamicRules> blocks;
   bool updated = false;
 
   for (const auto& entry : counts) {
@@ -140,10 +140,10 @@ void DynBlockRulesGroup::applySMT(const struct timespec& now, StatNode& statNode
       auto ret = d_smtVisitor(*node_, self, children);
       block = std::get<0>(ret);
       if (block) {
-        if (boost::optional<std::string> tmp = std::get<1>(ret)) {
+        if (std::optional<std::string> tmp = std::get<1>(ret)) {
           blockParameters.d_reason = std::move(*tmp);
         }
-        if (boost::optional<int> tmp = std::get<2>(ret)) {
+        if (std::optional<int> tmp = std::get<2>(ret)) {
           blockParameters.d_action = static_cast<DNSAction::Action>(*tmp);
         }
       }
@@ -316,7 +316,7 @@ bool addOrRefreshBlockSMT(SuffixDynamicRules& blocks, const timespec& now, DynBl
 }
 }
 
-void DynBlockRulesGroup::addOrRefreshBlock(boost::optional<ClientAddressDynamicRules>& blocks, const struct timespec& now, const AddressAndPortRange& requestor, const DynBlockRule& rule, bool& updated, bool warning)
+void DynBlockRulesGroup::addOrRefreshBlock(std::optional<ClientAddressDynamicRules>& blocks, const struct timespec& now, const AddressAndPortRange& requestor, const DynBlockRule& rule, bool& updated, bool warning)
 {
   /* network exclusions are address-based only (no port) */
   if (d_excludedSubnets.match(requestor.getNetwork())) {

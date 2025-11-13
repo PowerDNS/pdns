@@ -24,7 +24,6 @@
 #ifndef DISABLE_PROTOBUF
 #ifndef BOOST_TEST_DYN_LINK
 #define BOOST_TEST_DYN_LINK
-#include <boost/optional/optional.hpp>
 #endif
 
 #include <boost/test/unit_test.hpp>
