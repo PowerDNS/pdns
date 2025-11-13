@@ -5,10 +5,8 @@ import clientsubnetoption
 
 from dnsdisttests import DNSDistTest
 from dnsdisttests import pickAvailablePort
-from doqclient import quic_bogus_query
 from quictests import QUICTests, QUICWithCacheTests, QUICACLTests, QUICGetLocalAddressOnAnyBindTests, QUICXFRTests
 import doqclient
-from doqclient import quic_query
 
 class TestDOQBogus(DNSDistTest):
     _serverKey = 'server.key'
@@ -34,7 +32,7 @@ class TestDOQBogus(DNSDistTest):
         expectedQuery.id = 0
 
         try:
-            quic_bogus_query(query, '127.0.0.1', 2.0, self._doqServerPort, verify=self._caCert, server_hostname=self._serverName)
+            doqclient.quic_bogus_query(query, '127.0.0.1', 2.0, self._doqServerPort, verify=self._caCert, server_hostname=self._serverName)
             self.assertFalse(True)
         except doqclient.StreamResetError as e :
             self.assertEqual(e.error, 2);
@@ -212,12 +210,12 @@ class TestDOQCertificateReloading(DNSDistTest):
         name = 'certificate-reload.doq.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
         query.id = 0
-        (_, serial) = quic_query(query, '127.0.0.1', 0.5, self._doqServerPort, verify=self._caCert, server_hostname=self._serverName)
+        (_, serial) = doqclient.quic_query(query, '127.0.0.1', 0.5, self._doqServerPort, verify=self._caCert, server_hostname=self._serverName)
 
         self.generateNewCertificateAndKey('server-doq')
         self.sendConsoleCommand("reloadAllCertificates()")
 
-        (_, secondSerial) = quic_query(query, '127.0.0.1', 0.5, self._doqServerPort, verify=self._caCert, server_hostname=self._serverName)
+        (_, secondSerial) = doqclient.quic_query(query, '127.0.0.1', 0.5, self._doqServerPort, verify=self._caCert, server_hostname=self._serverName)
         # check that the serial is different
         self.assertNotEqual(serial, secondSerial)
 
