@@ -73,7 +73,7 @@ class DNSDistOpenTelemetryProtobufBaseTest(DNSDistOpenTelemetryProtobufTest):
         msg = self.sendQueryAndGetProtobuf(useTCP, traceID, spanID)
 
         self.assertTrue(msg.HasField("openTelemetryTraceID"))
-        self.assertTrue(msg.openTelemetryTraceID != "")
+        self.assertNotEqual(msg.openTelemetryTraceID, "")
 
         if traceID != "":
             self.assertEqual(msg.openTelemetryTraceID, binascii.a2b_hex(traceID))
