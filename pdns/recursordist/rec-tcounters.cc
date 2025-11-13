@@ -38,7 +38,7 @@ Counters& Counters::merge(const Counters& data)
     auto& lhs = doubleWAvg.at(i);
     const auto& rhs = data.doubleWAvg.at(i);
     auto weight = lhs.weight + rhs.weight;
-    auto avg = lhs.avg * static_cast<double>(lhs.weight) + rhs.avg * static_cast<double>(rhs.weight);
+    auto avg = (lhs.avg * static_cast<double>(lhs.weight)) + (rhs.avg * static_cast<double>(rhs.weight));
     avg = weight == 0 ? 0 : avg / static_cast<double>(weight);
     lhs.avg = avg;
     lhs.weight = weight;
