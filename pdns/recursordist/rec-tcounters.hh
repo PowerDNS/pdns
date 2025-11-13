@@ -274,13 +274,13 @@ struct Counters
 
   Counters() = default;
   // {
-  //   // uint64Count field has initalizer
+  //   // uint64Count field has initializer
   //   // doubleWAvg has a default constructor that initializes
-  //   // auth.RCodeCounters field is initalized
+  //   // auth.RCodeCounters field is initialized
   //   // Histogram has a constructor that initializes
   //   // RecResponseStats has a default constructor that initializes
   //   // dnssecCounters field is initialized
-  //   // PolicyNameCounters has a default constuctor that initializes
+  //   // PolicyNameCounters has a default constructor that initializes
   // }
 
   // Merge a set of counters into an existing set of counters. For simple counters, that will be additions
