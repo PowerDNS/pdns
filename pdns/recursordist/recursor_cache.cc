@@ -175,10 +175,10 @@ size_t MemRecursorCache::bytes()
   return ret;
 }
 
-static void updateDNSSECValidationStateFromCache(boost::optional<vState>& state, const vState stateUpdate)
+static void updateDNSSECValidationStateFromCache(std::optional<vState>& state, const vState stateUpdate)
 {
   // if there was no state it's easy */
-  if (state == boost::none) {
+  if (state == std::nullopt) {
     state = stateUpdate;
     return;
   }
@@ -207,7 +207,7 @@ static void ptrAssign(T* ptr, const T& value)
   }
 }
 
-time_t MemRecursorCache::handleHit(time_t now, MapCombo::LockedContent& content, OrderedTagIterator_t& entry, const DNSName& qname, uint32_t& origTTL, vector<DNSRecord>* res, SigRecs* signatures, AuthRecs* authorityRecs, bool* variable, boost::optional<vState>& state, bool* wasAuth, DNSName* fromAuthZone, Extra* extra)
+time_t MemRecursorCache::handleHit(time_t now, MapCombo::LockedContent& content, OrderedTagIterator_t& entry, const DNSName& qname, uint32_t& origTTL, vector<DNSRecord>* res, SigRecs* signatures, AuthRecs* authorityRecs, bool* variable, std::optional<vState>& state, bool* wasAuth, DNSName* fromAuthZone, Extra* extra)
 {
   // MUTEX SHOULD BE ACQUIRED (as indicated by the reference to the content which is protected by a lock)
   if (entry->d_tooBig) {
@@ -326,7 +326,7 @@ MemRecursorCache::cache_t::const_iterator MemRecursorCache::getEntryUsingECSInde
         /* we have nothing more specific for you */
         break;
       }
-      auto key = std::tuple(qname, qtype, boost::none, best);
+      auto key = std::tuple(qname, qtype, std::nullopt, best);
       auto entry = map.d_map.find(key);
       if (entry == map.d_map.end()) {
         /* ecsIndex is not up-to-date */
@@ -358,7 +358,7 @@ MemRecursorCache::cache_t::const_iterator MemRecursorCache::getEntryUsingECSInde
   }
 
   /* we have nothing specific, let's see if we have a generic one */
-  auto key = std::tuple(qname, qtype, boost::none, Netmask());
+  auto key = std::tuple(qname, qtype, std::nullopt, Netmask());
   auto entry = map.d_map.find(key);
   if (entry != map.d_map.end()) {
     handleServeStaleBookkeeping(now, serveStale, entry);
@@ -436,7 +436,7 @@ time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qtype
   bool refresh = (flags & Refresh) != 0;
   bool serveStale = (flags & ServeStale) != 0;
 
-  boost::optional<vState> cachedState{boost::none};
+  std::optional<vState> cachedState{std::nullopt};
   uint32_t origTTL = 0;
 
   if (res != nullptr) {
@@ -530,7 +530,7 @@ time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qtype
     }
   }
   // Try (again) without tag
-  auto entries = getEntries(*lockedShard, qname, qtype, boost::none);
+  auto entries = getEntries(*lockedShard, qname, qtype, std::nullopt);
 
   if (entries.first != entries.second) {
     OrderedTagIterator_t firstIndexIterator;
@@ -633,21 +633,21 @@ bool MemRecursorCache::replace(CacheEntry&& entry)
   return false;
 }
 
-void MemRecursorCache::replace(time_t now, const DNSName& qname, const QType qtype, const vector<DNSRecord>& content, const SigRecsVec& signatures, const AuthRecsVec& authorityRecs, bool auth, const DNSName& authZone, const boost::optional<Netmask>& ednsmaskArg, const OptTag& routingTag, vState state, const boost::optional<Extra>& extra, bool refresh, time_t ttl_time)
+void MemRecursorCache::replace(time_t now, const DNSName& qname, const QType qtype, const vector<DNSRecord>& content, const SigRecsVec& signatures, const AuthRecsVec& authorityRecs, bool auth, const DNSName& authZone, const std::optional<Netmask>& ednsmaskArg, const OptTag& routingTag, vState state, const std::optional<Extra>& extra, bool refresh, time_t ttl_time)
 {
   auto& shard = getMap(qname);
   auto lockedShard = shard.lock();
 
   lockedShard->d_cachecachevalid = false;
 
-  boost::optional<Netmask> ednsmask;
+  std::optional<Netmask> ednsmask;
   if (ednsmaskArg) {
     ednsmask = ednsmaskArg->getNormalized();
   }
 
   // We only store with a tag if we have an ednsmask and the tag is available
   // We only store an ednsmask if we do not have a tag and we do have a mask.
-  auto key = std::tuple(qname, qtype.getCode(), ednsmask ? routingTag : boost::none, (ednsmask && !routingTag) ? *ednsmask : Netmask());
+  auto key = std::tuple(qname, qtype.getCode(), ednsmask ? routingTag : std::nullopt, (ednsmask && !routingTag) ? *ednsmask : Netmask());
   bool isNew = false;
   cache_t::iterator stored = lockedShard->d_map.find(key);
   if (stored == lockedShard->d_map.end()) {
@@ -853,7 +853,7 @@ bool MemRecursorCache::doAgeCache(time_t now, const DNSName& name, const QType q
   return false;
 }
 
-bool MemRecursorCache::updateValidationStatus(time_t now, const DNSName& qname, const QType qtype, const ComboAddress& who, const OptTag& routingTag, bool requireAuth, vState newState, boost::optional<time_t> capTTD)
+bool MemRecursorCache::updateValidationStatus(time_t now, const DNSName& qname, const QType qtype, const ComboAddress& who, const OptTag& routingTag, bool requireAuth, vState newState, std::optional<time_t> capTTD)
 {
   if (qtype == QType::ANY) {
     throw std::runtime_error("Trying to update the DNSSEC validation status of all (via ANY) records for " + qname.toLogString());
@@ -934,7 +934,7 @@ uint64_t MemRecursorCache::doDump(int fileDesc, size_t maxCacheEntries)
       for (const auto& record : recordSet.d_records) {
         count++;
         try {
-          fprintf(filePtr.get(), "%s %" PRIu32 " %" PRId64 " IN %s %s ; (%s) auth=%i zone=%s from=%s nm=%s rtag=%s ss=%hd%s%s\n", recordSet.d_qname.toString().c_str(), recordSet.d_orig_ttl, static_cast<int64_t>(recordSet.d_ttd - now), recordSet.d_qtype.toString().c_str(), record->getZoneRepresentation().c_str(), vStateToString(recordSet.d_state).c_str(), static_cast<int>(recordSet.d_auth), recordSet.d_authZone.toLogString().c_str(), recordSet.d_from.toString().c_str(), recordSet.d_netmask.empty() ? "" : recordSet.d_netmask.toString().c_str(), !recordSet.d_rtag ? "" : recordSet.d_rtag.get().c_str(), recordSet.d_servedStale, recordSet.d_tooBig ? " (too big!)" : "", recordSet.d_tcp ? " tcp" : "");
+          fprintf(filePtr.get(), "%s %" PRIu32 " %" PRId64 " IN %s %s ; (%s) auth=%i zone=%s from=%s nm=%s rtag=%s ss=%hd%s%s\n", recordSet.d_qname.toString().c_str(), recordSet.d_orig_ttl, static_cast<int64_t>(recordSet.d_ttd - now), recordSet.d_qtype.toString().c_str(), record->getZoneRepresentation().c_str(), vStateToString(recordSet.d_state).c_str(), static_cast<int>(recordSet.d_auth), recordSet.d_authZone.toLogString().c_str(), recordSet.d_from.toString().c_str(), recordSet.d_netmask.empty() ? "" : recordSet.d_netmask.toString().c_str(), recordSet.d_rtag.value_or("").c_str(), recordSet.d_servedStale, recordSet.d_tooBig ? " (too big!)" : "", recordSet.d_tcp ? " tcp" : "");
         }
         catch (...) {
           fprintf(filePtr.get(), "; error printing '%s'\n", recordSet.d_qname.empty() ? "EMPTY" : recordSet.d_qname.toString().c_str());
@@ -1136,7 +1136,7 @@ bool MemRecursorCache::putRecordSet(T& message)
 {
   AuthRecsVec authRecs;
   SigRecsVec sigRecs;
-  CacheEntry cacheEntry{{g_rootdnsname, QType::A, boost::none, Netmask()}, false};
+  CacheEntry cacheEntry{{g_rootdnsname, QType::A, std::nullopt, Netmask()}, false};
   while (message.next()) {
     switch (message.tag()) {
     case PBCacheEntry::repeated_bytes_record: {
@@ -1285,6 +1285,6 @@ namespace boost
 {
 size_t hash_value(const MemRecursorCache::OptTag& rtag)
 {
-  return rtag ? hash_value(rtag.get()) : 0xcafebaaf;
+  return rtag ? hash_value(rtag.value()) : 0xcafebaaf;
 }
 }

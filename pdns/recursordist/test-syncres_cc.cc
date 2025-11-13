@@ -62,7 +62,7 @@ void RecursorLua4::getFeatures(Features& /* features */)
 {
 }
 
-LWResult::Result asyncresolve(const OptLog& /* log */, const ComboAddress& /* ip */, const DNSName& /* domain */, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, const std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>>& /* outgoingLoggers */, const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& /* fstrmLoggers */, const std::set<uint16_t>& /* exportTypes */, LWResult* /* res */, bool* /* chained */)
+LWResult::Result asyncresolve(const OptLog& /* log */, const ComboAddress& /* ip */, const DNSName& /* domain */, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, std::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, const std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>>& /* outgoingLoggers */, const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& /* fstrmLoggers */, const std::set<uint16_t>& /* exportTypes */, LWResult* /* res */, bool* /* chained */)
 {
   return LWResult::Result::Timeout;
 }
@@ -300,7 +300,7 @@ bool isRootServer(const ComboAddress& ip)
   return false;
 }
 
-void computeRRSIG(const DNSSECPrivateKey& dpk, const DNSName& signer, const DNSName& signQName, uint16_t signQType, uint32_t signTTL, uint32_t sigValidity, RRSIGRecordContent& rrc, const sortedRecords_t& toSign, boost::optional<uint8_t> algo, boost::optional<uint32_t> inception, boost::optional<time_t> now)
+void computeRRSIG(const DNSSECPrivateKey& dpk, const DNSName& signer, const DNSName& signQName, uint16_t signQType, uint32_t signTTL, uint32_t sigValidity, RRSIGRecordContent& rrc, const sortedRecords_t& toSign, std::optional<uint8_t> algo, std::optional<uint32_t> inception, std::optional<time_t> now)
 {
   if (!now) {
     now = time(nullptr);
@@ -324,7 +324,7 @@ void computeRRSIG(const DNSSECPrivateKey& dpk, const DNSName& signer, const DNSN
 
 typedef std::unordered_map<DNSName, std::pair<DNSSECPrivateKey, DSRecordContent>> testkeysset_t;
 
-bool addRRSIG(const testkeysset_t& keys, std::vector<DNSRecord>& records, const DNSName& signer, uint32_t sigValidity, std::variant<bool, int> broken, boost::optional<uint8_t> algo, boost::optional<DNSName> wildcard, boost::optional<time_t> now)
+bool addRRSIG(const testkeysset_t& keys, std::vector<DNSRecord>& records, const DNSName& signer, uint32_t sigValidity, std::variant<bool, int> broken, std::optional<uint8_t> algo, std::optional<DNSName> wildcard, std::optional<time_t> now)
 {
   if (records.empty()) {
     return false;
@@ -365,7 +365,7 @@ bool addRRSIG(const testkeysset_t& keys, std::vector<DNSRecord>& records, const 
   }
 
   RRSIGRecordContent rrc;
-  computeRRSIG(it->second.first, signer, wildcard ? *wildcard : name, type, ttl, sigValidity, rrc, recordcontents, algo, boost::none, now);
+  computeRRSIG(it->second.first, signer, wildcard ? *wildcard : name, type, ttl, sigValidity, rrc, recordcontents, algo, std::nullopt, now);
   if (auto* bval = std::get_if<bool>(&broken); bval != nullptr && *bval) {
     rrc.d_signature[0] ^= 42;
   }
@@ -506,7 +506,7 @@ void generateKeyMaterial(const DNSName& name, unsigned int algo, uint8_t digest,
   dsAnchors[name].insert(keys[name].second);
 }
 
-LWResult::Result genericDSAndDNSKEYHandler(LWResult* res, const DNSName& domain, DNSName auth, int type, const testkeysset_t& keys, bool proveCut, boost::optional<time_t> now, bool nsec3, bool optOut)
+LWResult::Result genericDSAndDNSKEYHandler(LWResult* res, const DNSName& domain, DNSName auth, int type, const testkeysset_t& keys, bool proveCut, std::optional<time_t> now, bool nsec3, bool optOut)
 {
   if (type == QType::DS) {
     auth.chopOff();
@@ -514,7 +514,7 @@ LWResult::Result genericDSAndDNSKEYHandler(LWResult* res, const DNSName& domain,
     setLWResult(res, 0, true, false, true);
 
     if (addDS(domain, 300, res->d_records, keys, DNSResourceRecord::ANSWER)) {
-      addRRSIG(keys, res->d_records, auth, 300, false, boost::none, boost::none, now);
+      addRRSIG(keys, res->d_records, auth, 300, false, std::nullopt, std::nullopt, now);
     }
     else {
       addRecordToLW(res, auth, QType::SOA, "foo. bar. 2017032800 1800 900 604800 86400", DNSResourceRecord::AUTHORITY, 86400);
@@ -523,7 +523,7 @@ LWResult::Result genericDSAndDNSKEYHandler(LWResult* res, const DNSName& domain,
       const auto it = keys.find(auth);
       if (it != keys.cend()) {
         /* sign the SOA */
-        addRRSIG(keys, res->d_records, auth, 300, false, boost::none, boost::none, now);
+        addRRSIG(keys, res->d_records, auth, 300, false, std::nullopt, std::nullopt, now);
         /* add a NSEC denying the DS */
         std::set<uint16_t> types = {QType::RRSIG};
         if (proveCut) {
@@ -539,7 +539,7 @@ LWResult::Result genericDSAndDNSKEYHandler(LWResult* res, const DNSName& domain,
           addNSEC3UnhashedRecordToLW(domain, auth, next.toString(), types, 600, res->d_records, 10, optOut);
         }
 
-        addRRSIG(keys, res->d_records, auth, 300, false, boost::none, boost::none, now);
+        addRRSIG(keys, res->d_records, auth, 300, false, std::nullopt, std::nullopt, now);
       }
     }
 
@@ -549,7 +549,7 @@ LWResult::Result genericDSAndDNSKEYHandler(LWResult* res, const DNSName& domain,
   if (type == QType::DNSKEY) {
     setLWResult(res, 0, true, false, true);
     addDNSKEY(keys, domain, 300, res->d_records);
-    addRRSIG(keys, res->d_records, domain, 300, false, boost::none, boost::none, now);
+    addRRSIG(keys, res->d_records, domain, 300, false, std::nullopt, std::nullopt, now);
     return LWResult::Result::Success;
   }
 

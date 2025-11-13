@@ -54,7 +54,7 @@ public:
     std::string d_response;
     bool d_tagged;
   };
-  using OptPBData = boost::optional<PBData>;
+  using OptPBData = std::optional<PBData>;
 
   RecursorPacketCache(size_t maxsize, size_t shards = 1024) :
     d_maps(shards)

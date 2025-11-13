@@ -157,7 +157,7 @@ bool RecursorPacketCache::checkResponseMatches(MapCombo::LockedContent& shard, s
           *pbdata = iter->d_pbdata;
         }
         else {
-          *pbdata = boost::none;
+          *pbdata = std::nullopt;
         }
       }
 
