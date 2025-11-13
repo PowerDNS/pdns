@@ -3,6 +3,9 @@
 import sys
 
 line = sys.stdin.readline()
+items = line.split('\t')
+if (items[0] != 'HELO'):
+    print('LOG\tGot unexpected greeting\t%s' % line)
 # TOLO
 print('OK\tTest backend firing up')
 
