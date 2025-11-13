@@ -130,7 +130,7 @@ secondary
     def generateAuthZone(cls, confdir, zonename, zonecontent):
         try:
             os.unlink(os.path.join(confdir, '%s.zone' % zonename))
-        except:
+        except Exception:
             pass
 
     @classmethod

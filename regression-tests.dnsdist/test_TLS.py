@@ -476,7 +476,7 @@ class TestTLSFrontendLimits(DNSDistTest):
         for idx in range(self._maxTCPConnsPerTLSFrontend + 1):
             try:
                 conns.append(self.openTLSConnection(self._tlsServerPort, self._serverName, self._caCert))
-            except:
+            except Exception:
                 conns.append(None)
 
         count = 0
@@ -493,7 +493,7 @@ class TestTLSFrontendLimits(DNSDistTest):
                     count = count + 1
                 else:
                     failed = failed + 1
-            except:
+            except Exception:
                 failed = failed + 1
 
         for conn in conns:

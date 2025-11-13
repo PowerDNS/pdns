@@ -60,7 +60,7 @@ class TestTCPKeepAlive(DNSDistTest):
                     break
                 self.assertEqual(expectedResponse, response)
                 count = count + 1
-            except:
+            except Exception:
                 pass
 
         conn.close()
@@ -99,7 +99,7 @@ class TestTCPKeepAlive(DNSDistTest):
                     break
                 self.assertEqual(expectedResponse, response)
                 count = count + 1
-            except:
+            except Exception:
                 pass
 
         conn.close()
@@ -129,7 +129,7 @@ class TestTCPKeepAlive(DNSDistTest):
                     break
                 self.assertEqual(expectedResponse, response)
                 count = count + 1
-            except:
+            except Exception:
                 pass
 
         conn.close()
@@ -153,7 +153,7 @@ class TestTCPKeepAlive(DNSDistTest):
                 if response is None:
                     break
                 count = count + 1
-            except:
+            except Exception:
                 pass
 
         conn.close()
@@ -177,7 +177,7 @@ class TestTCPKeepAlive(DNSDistTest):
                 if response is None:
                     break
                 count = count + 1
-            except:
+            except Exception:
                 pass
 
         conn.close()
@@ -200,7 +200,7 @@ class TestTCPKeepAlive(DNSDistTest):
                 if response is None:
                     break
                 count = count + 1
-            except:
+            except Exception:
                 pass
 
         conn.close()
@@ -240,7 +240,7 @@ class TestTCPKeepAlive(DNSDistTest):
                     break
                 self.assertEqual(expectedResponse, response)
                 count = count + 1
-            except:
+            except Exception:
                 pass
 
         for con in conns:
@@ -292,7 +292,7 @@ class TestTCPKeepAliveNoDownstreamDrop(DNSDistTest):
                 if response is None:
                     break
                 count = count + 1
-            except:
+            except Exception:
                 pass
 
         conn.close()

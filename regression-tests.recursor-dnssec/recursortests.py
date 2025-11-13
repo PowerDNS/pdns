@@ -31,7 +31,7 @@ def have_ipv6():
         sock.bind(('::1', 56581))
         sock.close()
         return True
-    except:
+    except Exception:
         return False
 
 

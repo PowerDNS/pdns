@@ -113,7 +113,7 @@ def MockTCPReverseProxyAddingProxyProtocol(listeningPort, forwardingPort, server
                 break
           except socket.timeout:
             break
-          except:
+          except Exception:
             break
 
         incoming.close()

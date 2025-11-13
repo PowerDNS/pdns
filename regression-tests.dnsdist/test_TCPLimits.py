@@ -50,7 +50,7 @@ class TestTCPLimits(DNSDistTest):
                 response = self.recvTCPResponseOverConnection(conn)
                 self.assertTrue(response)
                 count = count + 1
-            except:
+            except Exception:
                 pass
 
         # this one should fail
@@ -63,7 +63,7 @@ class TestTCPLimits(DNSDistTest):
                 failed = True
             else:
                 count = count + 1
-        except:
+        except Exception:
             failed = True
 
         conn.close()
@@ -91,7 +91,7 @@ class TestTCPLimits(DNSDistTest):
                     count = count + 1
                 else:
                     failed = failed + 1
-            except:
+            except Exception:
                 failed = failed + 1
 
         for conn in conns:
@@ -172,7 +172,7 @@ class TestTCPLimitsReadIO(DNSDistTest):
                 conn.send(payload[count].to_bytes())
                 count = count + 1
                 time.sleep(0.001)
-            except:
+            except Exception:
                 failed = True
                 break
 
@@ -181,7 +181,7 @@ class TestTCPLimitsReadIO(DNSDistTest):
                 response = self.recvTCPResponseOverConnection(conn)
                 if not response:
                   failed = True
-            except:
+            except Exception:
                 failed = True
 
         conn.close()
@@ -194,7 +194,7 @@ class TestTCPLimitsReadIO(DNSDistTest):
             response = self.recvTCPResponseOverConnection(conn)
             if response is None:
               failed = True
-        except:
+        except Exception:
             failed = True
         finally:
             conn.close()
@@ -391,7 +391,7 @@ class TestTCPFrontendLimits(DNSDistTest):
                     count = count + 1
                 else:
                     failed = failed + 1
-            except:
+            except Exception:
                 failed = failed + 1
 
         for conn in conns:

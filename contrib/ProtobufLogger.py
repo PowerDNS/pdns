@@ -27,7 +27,7 @@ try:
     import google.protobuf.json_format
     import opentelemetry.proto.trace.v1.trace_pb2
     opentelemetryAvailable = True
-except:
+except Exception:
     opentelemetryAvailable = False
 
 
