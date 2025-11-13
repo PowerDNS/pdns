@@ -41,9 +41,9 @@ namespace Logging
 
 struct Entry
 {
-  boost::optional<std::string> name; // name parts joined with '.'
+  std::optional<std::string> name; // name parts joined with '.'
   std::string message; // message as send to log call
-  boost::optional<std::string> error; // error if .Error() was called
+  std::optional<std::string> error; // error if .Error() was called
   struct timeval d_timestamp; // time of entry generation
   std::map<std::string, std::string> values; // key-value pairs
   size_t level; // level at which this was logged
@@ -183,21 +183,21 @@ public:
   static std::shared_ptr<Logger> create(EntryLogger callback, const std::string& name);
 
   Logger(EntryLogger callback);
-  Logger(EntryLogger callback, boost::optional<std::string> name);
-  Logger(std::shared_ptr<const Logger> parent, boost::optional<std::string> name, size_t verbosity, size_t lvl, EntryLogger callback);
+  Logger(EntryLogger callback, std::optional<std::string> name);
+  Logger(std::shared_ptr<const Logger> parent, std::optional<std::string> name, size_t verbosity, size_t lvl, EntryLogger callback);
   ~Logger() override;
 
   size_t getVerbosity() const;
   void setVerbosity(size_t verbosity);
 
 private:
-  void logMessage(const std::string& msg, boost::optional<const std::string> err) const;
-  void logMessage(const std::string& msg, Logr::Priority p, boost::optional<const std::string> err) const;
+  void logMessage(const std::string& msg, const std::optional<std::string>& err) const;
+  void logMessage(const std::string& msg, Logr::Priority prio, const std::optional<std::string>& err) const;
   std::shared_ptr<const Logger> getptr() const;
 
   std::shared_ptr<const Logger> _parent{nullptr};
   EntryLogger _callback;
-  boost::optional<std::string> _name;
+  std::optional<std::string> _name;
   std::map<std::string, std::string> _values;
   // current Logger's level. the higher the more verbose.
   size_t _level{0};

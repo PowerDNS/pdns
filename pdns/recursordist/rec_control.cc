@@ -299,11 +299,11 @@ static void recControlLoggerBackend(const Logging::Entry& entry)
   buf.str("");
   buf << "msg=" << std::quoted(entry.message);
   if (entry.error) {
-    buf << " error=" << std::quoted(entry.error.get());
+    buf << " error=" << std::quoted(entry.error.value());
   }
 
   if (entry.name) {
-    buf << " subsystem=" << std::quoted(entry.name.get());
+    buf << " subsystem=" << std::quoted(entry.name.value());
   }
   buf << " level=" << std::quoted(std::to_string(entry.level));
   if (entry.d_priority != 0) {
