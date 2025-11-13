@@ -107,7 +107,7 @@ class Zones(ZonesApiTestCase):
         if is_auth():
             required_fields = required_fields + ['masters', 'last_check', 'notified_serial', 'serial', 'account', 'catalog']
             if dnssec:
-                required_fields = required_fields = ['dnssec', 'edited_serial']
+                required_fields = required_fields + ['dnssec', 'edited_serial']
             self.assertNotEqual(example_com['serial'], 0)
             if not dnssec:
                 self.assertNotIn('dnssec', example_com)
