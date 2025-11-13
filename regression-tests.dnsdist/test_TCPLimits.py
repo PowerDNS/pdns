@@ -251,7 +251,6 @@ class TestTCPLimitsTLSNewSessionRate(DNSDistTest):
     _serverCert = 'server.chain'
     _serverName = 'tls.tests.dnsdist.org'
     _caCert = 'ca.pem'
-    _tlsServerPort = pickAvailablePort()
     _config_template = """
     newServer{address="127.0.0.1:%d"}
     setTCPRecvTimeout(%d)
@@ -301,7 +300,6 @@ class TestTCPLimitsTLSResumedSessionRate(DNSDistTest):
     _serverCert = 'server.chain'
     _serverName = 'tls.tests.dnsdist.org'
     _caCert = 'ca.pem'
-    _tlsServerPort = pickAvailablePort()
     _config_template = """
     newServer{address="127.0.0.1:%d"}
     setTCPRecvTimeout(%d)
