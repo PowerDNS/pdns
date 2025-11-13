@@ -916,7 +916,8 @@ def ci_dnsdist_run_ninja(c):
 @task
 def ci_dnsdist_make_bear(c, builder):
     if builder == 'meson':
-        return ci_dnsdist_run_ninja(c)
+        ci_dnsdist_run_ninja(c)
+        return
 
     # Assumed to be running under ./pdns/dnsdistdist/
     c.run(f'bear --append -- make -j{get_build_concurrency(4)} -k V=1')
