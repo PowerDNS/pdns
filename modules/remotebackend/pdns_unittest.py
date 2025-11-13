@@ -113,7 +113,9 @@ class Handler(pdns.remotebackend.Handler):
                 domain['meta'][kind] = value
             self.result = True
 
-    def do_adddomainkey(self, name='', key={}, **kwargs):
+    def do_adddomainkey(self, name='', key=None, **kwargs):
+        if key is None:
+            key = {}
         domain = self.get_domain(name)
         if domain:
             k_id = len(domain['keys']) + 1

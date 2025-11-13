@@ -993,7 +993,9 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         except subprocess.CalledProcessError as exc:
             raise AssertionError('openssl pkcs12 failed (%d): %s' % (exc.returncode, exc.output))
 
-    def checkMessageProxyProtocol(self, receivedProxyPayload, source, destination, isTCP, values=[], v6=False, sourcePort=None, destinationPort=None):
+    def checkMessageProxyProtocol(self, receivedProxyPayload, source, destination, isTCP, values=None, v6=False, sourcePort=None, destinationPort=None):
+        if values is None:
+            values = []
         proxy = ProxyProtocol()
         self.assertTrue(proxy.parseHeader(receivedProxyPayload))
         self.assertEqual(proxy.version, 0x02)
