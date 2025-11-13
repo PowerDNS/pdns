@@ -359,7 +359,7 @@ static Answer doGetDefaultParameter(ArgIterator begin, ArgIterator end)
     auto defaults = pdns::rust::settings::rec::parse_yaml_string("");
     if (begin == end) {
       auto yaml = pdns::settings::rec::defaultsToYaml(false);
-      ret << std::string(yaml);
+      ret << std::string(std::move(yaml));
     }
     else {
       for (auto i = begin; i != end; ++i) {
@@ -692,7 +692,7 @@ static Answer doSetCarbonServer(ArgIterator begin, ArgIterator end)
   }
   else {
     g_carbonConfig.setState(std::move(config));
-    return {0, ret};
+    return {0, std::move(ret)};
   }
 
   ++begin;
@@ -717,9 +717,10 @@ static Answer doSetDnssecLogBogus(ArgIterator begin, ArgIterator end)
     return {1, "No DNSSEC Bogus logging setting specified\n"};
   }
   if (pdns_iequals(*begin, "on") || pdns_iequals(*begin, "yes")) {
+    auto lock = g_yamlStruct.lock();
     if (!g_dnssecLogBogus) {
       g_log << Logger::Warning << "Enabling DNSSEC Bogus logging, requested via control channel" << endl;
-      g_yamlStruct.lock()->dnssec.log_bogus = g_dnssecLogBogus = true;
+      lock->dnssec.log_bogus = g_dnssecLogBogus = true;
       return {0, "DNSSEC Bogus logging enabled\n"};
     }
     return {0, "DNSSEC Bogus logging was already enabled\n"};
