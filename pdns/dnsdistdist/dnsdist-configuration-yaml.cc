@@ -1209,6 +1209,9 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
 
     if (!globalConfig.load_balancing_policies.default_policy.empty()) {
       auto policy = getRegisteredTypeByName<ServerPolicy>(globalConfig.load_balancing_policies.default_policy);
+      if (!policy) {
+        throw std::runtime_error("Unable to find a load-balancing policy named " + std::string(globalConfig.load_balancing_policies.default_policy));
+      }
       dnsdist::configuration::updateRuntimeConfiguration([&policy](dnsdist::configuration::RuntimeConfiguration& config) {
         config.d_lbPolicy = std::move(policy);
       });
@@ -1223,9 +1226,16 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
 
         if (!pool.packet_cache.empty()) {
           poolIt->second.packetCache = getRegisteredTypeByName<DNSDistPacketCache>(pool.packet_cache);
+          if (!poolIt->second.packetCache) {
+            throw std::runtime_error("Unable to find a cache named " + std::string(pool.packet_cache));
+          }
         }
         if (!pool.policy.empty()) {
-          poolIt->second.policy = getRegisteredTypeByName<ServerPolicy>(pool.policy);
+          auto policy = getRegisteredTypeByName<ServerPolicy>(pool.policy);
+          if (!policy) {
+            throw std::runtime_error("Unable to find a load-balancing policy named " + std::string(pool.policy));
+          }
+          poolIt->second.policy = std::move(policy);
         }
         poolIt->second.setECS(pool.use_ecs);
         poolIt->second.setZeroScope(pool.use_zero_scope);
@@ -1910,7 +1920,11 @@ std::shared_ptr<DNSSelector> getNotSelector(const NotSelectorConfiguration& conf
 
 std::shared_ptr<DNSSelector> getByNameSelector(const ByNameSelectorConfiguration& config)
 {
-  return dnsdist::configuration::yaml::getRegisteredTypeByName<DNSSelector>(config.selector_name);
+  auto ptr = dnsdist::configuration::yaml::getRegisteredTypeByName<DNSSelector>(config.selector_name);
+  if (!ptr) {
+    throw std::runtime_error("Unable to find a selector named " + std::string(config.selector_name));
+  }
+  return ptr;
 }
 
 #include "dnsdist-rust-bridge-actions-generated-body.hh"
