@@ -149,7 +149,7 @@ class GettagRecursorTest(RecursorTest):
         res = self.sendUDPQuery(query)
         self.assertResponseMatches(query, expected, res)
 
-    def testAAAA(self):
+    def testTcpAAAA(self):
         name = 'gettag-tcpaaaa.lua.'
         expected = [
             dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'AAAA', '2001:db8::1'),

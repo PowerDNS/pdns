@@ -694,7 +694,7 @@ class TestAPIACL(APITestsBase):
 
         url = 'http://127.0.0.1:' + str(self._webServerPort) + "/"
         try:
-            r = requests.get(url, auth=('whatever', self._webServerBasicAuthPassword), timeout=self._webTimeout)
+            requests.get(url, auth=('whatever', self._webServerBasicAuthPassword), timeout=self._webTimeout)
             self.assertTrue(False)
         except requests.exceptions.ConnectionError as exp:
             pass

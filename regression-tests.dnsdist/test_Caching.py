@@ -2834,6 +2834,8 @@ class TestCachingAlteredHeader(DNSDistTest):
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
             (receivedQuery, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.assertFalse(receivedQuery)
+            self.assertTrue(receivedResponse)
 
         # same query with RD=0, should hit the cache as well
         query.flags &= ~dns.flags.RD
