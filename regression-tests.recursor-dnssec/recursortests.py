@@ -783,7 +783,7 @@ distributor-threads={threads}
     def killProcess(cls, p):
         # Don't try to kill it if it's already dead
         if p.poll() is not None:
-            return p
+            return
         try:
             p.terminate()
             for count in range(100): # tsan can be slow
@@ -806,7 +806,7 @@ distributor-threads={threads}
     @classmethod
     def tearDownAuth(cls):
         for _, auth in cls._auths.items():
-            cls.killProcess(auth);
+            cls.killProcess(auth)
 
     @classmethod
     def tearDownRecursor(cls, subdir=None):
@@ -827,7 +827,7 @@ distributor-threads={threads}
         p = cls._recursor
         for count in range(100): # tsan can be slow
             if p.poll() is not None:
-                break;
+                break
             time.sleep(0.1)
         if p.poll() is None:
             raise AssertionError('Process did not exit on request within 10s')
