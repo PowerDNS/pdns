@@ -196,7 +196,7 @@ class TestOOORWithClientNotBackend(DNSDistTest):
 
         receivedResponses = {}
 
-        for name in names:
+        for _ in names:
             receivedResponse = self.recvTCPResponseOverConnection(conn)
             self.assertTrue(receivedResponse)
             receivedResponses[str(receivedResponse.question[0].name)] = (receivedResponse)
@@ -231,7 +231,7 @@ class TestOOORWithClientNotBackend(DNSDistTest):
 
         receivedResponses = {}
 
-        for name in names:
+        for _ in names:
             receivedResponse = self.recvTCPResponseOverConnection(conn)
             self.assertTrue(receivedResponse)
             receivedResponses[str(receivedResponse.question[0].name)] = (receivedResponse)
@@ -285,7 +285,7 @@ class TestOOORWithClientAndBackend(DNSDistTest):
 
         receivedResponses = {}
 
-        for name in names:
+        for _ in names:
             receivedResponse = self.recvTCPResponseOverConnection(conn)
             self.assertTrue(receivedResponse)
             receivedResponses[str(receivedResponse.question[0].name)] = (receivedResponse)
@@ -318,7 +318,7 @@ class TestOOORWithClientAndBackend(DNSDistTest):
 
         receivedResponses = {}
 
-        for name in names:
+        for _ in names:
             receivedResponse = self.recvTCPResponseOverConnection(conn)
             self.assertTrue(receivedResponse)
             receivedResponses[str(receivedResponse.question[0].name)] = (receivedResponse)
