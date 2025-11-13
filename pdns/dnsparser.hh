@@ -531,6 +531,7 @@ private:
 };
 
 string simpleCompress(const string& label, const string& root="");
+void shuffleDNSPacket(char* packet, size_t length, const dnsheader_aligned& aligned_dh);
 void ageDNSPacket(char* packet, size_t length, uint32_t seconds, const dnsheader_aligned&);
 void ageDNSPacket(std::string& packet, uint32_t seconds, const dnsheader_aligned&);
 void editDNSPacketTTL(char* packet, size_t length, const std::function<uint32_t(uint8_t, uint16_t, uint16_t, uint32_t)>& visitor);
@@ -617,6 +618,15 @@ public:
     moveOffset(toskip);
   }
 
+  std::pair<uint32_t, uint32_t> skipRDataAndReturnOffsets()
+  {
+    auto toskip = get16BitInt();
+    uint32_t start = d_offset;
+    moveOffset(toskip);
+    uint32_t end = d_offset;
+    return std::pair<uint32_t,uint32_t>(start, end);
+  }
+
   void decreaseAndSkip32BitInt(uint32_t decrease)
   {
     const char *p = d_packet + d_offset;
@@ -645,6 +655,30 @@ public:
   uint32_t getOffset() const
   {
     return d_offset;
+  }
+
+  void swapInPlace(std::pair<uint32_t, uint32_t> a, std::pair<uint32_t, uint32_t> b) {
+    // some basic range checks
+    if (b.first < a.first) {
+      std::swap(a, b);
+    }
+    if (a.second-a.first != b.second-b.first) {
+      throw std::out_of_range("swap: segments have different lengths");
+    }
+    if (a.second <= a.first) {
+      throw std::out_of_range("swap: ending of segment before start of segment");
+    }
+    if (a.second > b.first) {
+      throw std::out_of_range("swap: overlapping segments");
+    }
+    if (b.second > d_length) {
+      throw std::out_of_range("swap: ending of segment after end of array");
+    }
+    // don't allow to swap what we haven't read yet
+    if (b.second > d_offset) {
+      throw std::out_of_range("swap: ending of segment after current offset");
+    }
+    std::swap_ranges(d_packet+a.first, d_packet+a.second, d_packet+b.first);
   }
 
 private:

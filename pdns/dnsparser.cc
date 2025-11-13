@@ -24,6 +24,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
 
+#include "dns_random.hh"
 #include "namespaces.hh"
 #include "noinitvector.hh"
 
@@ -1001,6 +1002,87 @@ void ageDNSPacket(char* packet, size_t length, uint32_t seconds, const dnsheader
 void ageDNSPacket(std::string& packet, uint32_t seconds, const dnsheader_aligned& aligned_dh)
 {
   ageDNSPacket(packet.data(), packet.length(), seconds, aligned_dh);
+}
+
+void shuffleDNSPacket(char* packet, size_t length, const dnsheader_aligned& aligned_dh)
+{
+  if (length < sizeof(dnsheader)) {
+    return;
+  }
+  try {
+    const dnsheader* dhp = aligned_dh.get();
+    const uint16_t ancount = ntohs(dhp->ancount);
+    if (ancount == 1) {
+      // quick exit, nothing to shuffle
+      return;
+    }
+
+    DNSPacketMangler dpm(packet, length);
+
+    const uint16_t qdcount = ntohs(dhp->qdcount);
+
+    for(size_t iter = 0; iter < qdcount; ++iter) {
+      dpm.skipDomainName();
+      /* type and class */
+      dpm.skipBytes(4);
+    }
+
+    // for now shuffle only first rrset, only As and AAAAs
+    uint16_t rrset_type = 0;
+    DNSName rrset_dnsname{};
+    std::vector<std::pair<uint32_t, uint32_t>> rrdata_indexes;
+    rrdata_indexes.reserve(ancount);
+
+    for(size_t iter = 0; iter < ancount; ++iter) {
+      auto domain_start = dpm.getOffset();
+      dpm.skipDomainName();
+      const uint16_t dnstype = dpm.get16BitInt();
+      if (dnstype == QType::A || dnstype == QType::AAAA) {
+        if (rrdata_indexes.empty()) {
+          rrset_type = dnstype;
+          rrset_dnsname = DNSName(packet, length, domain_start, true);
+        } else {
+          if (dnstype != rrset_type) {
+            break;
+          }
+          if (DNSName(packet, length, domain_start, true) != rrset_dnsname) {
+            break;
+          }
+        }
+        /* class */
+        dpm.skipBytes(2);
+
+        /* ttl */
+        dpm.skipBytes(4);
+        rrdata_indexes.push_back(dpm.skipRDataAndReturnOffsets());
+      } else {
+        if (!rrdata_indexes.empty()) {
+          break;
+        }
+        /* class */
+        dpm.skipBytes(2);
+
+        /* ttl */
+        dpm.skipBytes(4);
+        dpm.skipRData();
+      }
+    }
+
+    if (rrdata_indexes.size() >= 2) {
+      using uid = std::uniform_int_distribution<std::vector<std::pair<uint32_t, uint32_t>>::size_type>;
+      uid dist;
+
+      pdns::dns_random_engine randomEngine;
+      for (auto swapped = rrdata_indexes.size() - 1; swapped > 0; --swapped) {
+        auto swapped_with = dist(randomEngine, uid::param_type(0, swapped));
+        if (swapped != swapped_with) {
+          dpm.swapInPlace(rrdata_indexes.at(swapped), rrdata_indexes.at(swapped_with));
+        }
+      }
+    }
+  }
+  catch(...) {
+  }
 }
 
 uint32_t getDNSPacketMinTTL(const char* packet, size_t length, bool* seenAuthSOA)

@@ -20,12 +20,13 @@ BOOST_AUTO_TEST_SUITE(test_dnsdistpacketcache_cc)
 
 static bool receivedOverUDP = true;
 
-BOOST_AUTO_TEST_CASE(test_PacketCacheSimple)
+static void test_packetcache_simple(bool shuffle)
 {
   const DNSDistPacketCache::CacheSettings settings{
     .d_maxEntries = 150000,
     .d_maxTTL = 86400,
     .d_minTTL = 1,
+    .d_shuffle = shuffle,
   };
   DNSDistPacketCache localCache(settings);
   BOOST_CHECK_EQUAL(localCache.getSize(), 0U);
@@ -131,6 +132,13 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple)
     cerr << "Had error: " << e.reason << endl;
     throw;
   }
+}
+
+BOOST_AUTO_TEST_CASE(test_PacketCacheSimple)
+{
+  /* test both with and without shuffle; should be equivalent */
+  test_packetcache_simple(false);
+  test_packetcache_simple(true);
 }
 
 BOOST_AUTO_TEST_CASE(test_PacketCacheSharded)
@@ -1355,6 +1363,237 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheXFR)
     found = localCache.get(dnsQuestion, pwR.getHeader()->id, &key, subnet, dnssecOK, receivedOverUDP, 0, true);
     BOOST_CHECK_EQUAL(found, false);
   }
+}
+
+enum PacketCacheShuffleTestType
+{
+  PACKET_CACHE_TEST_SIMPLE,
+  PACKET_CACHE_TEST_OTHER_QTYPE_FOLLOWS,
+  PACKET_CACHE_TEST_OTHER_QNAME_FOLLOWS,
+  PACKET_CACHE_TEST_CNAME,
+  PACKET_CACHE_TEST_EDNS
+};
+
+static void create_shuffle_response(
+  const std::array<ComboAddress, 4>& addresses,
+  const DNSName& qname,
+  PacketBuffer& response,
+  const QType qtype,
+  const PacketCacheShuffleTestType testtype)
+{
+  GenericDNSPacketWriter<PacketBuffer> pwR(response, qname, qtype, QClass::IN, 0);
+  pwR.getHeader()->rd = 1;
+  pwR.getHeader()->ra = 1;
+  pwR.getHeader()->qr = 1;
+
+  if (testtype == PACKET_CACHE_TEST_CNAME) {
+    DNSName cname("hi");
+
+    pwR.startRecord(qname, QType::CNAME, 7200, QClass::IN, DNSResourceRecord::ANSWER);
+    pwR.xfrName(cname);
+    pwR.commit();
+  }
+
+  for (const auto& address : addresses) {
+    if (qtype == QType::A) {
+      pwR.startRecord(qname, QType::A, 7200, QClass::IN, DNSResourceRecord::ANSWER);
+      pwR.xfrCAWithoutPort(4, address);
+      pwR.commit();
+    }
+    else if (qtype == QType::AAAA) {
+      pwR.startRecord(qname, QType::AAAA, 7200, QClass::IN, DNSResourceRecord::ANSWER);
+      pwR.xfrCAWithoutPort(6, address);
+      pwR.commit();
+    }
+  }
+  if (testtype == PACKET_CACHE_TEST_OTHER_QTYPE_FOLLOWS) {
+    if (qtype == QType::A) {
+      // AAAA following A should not be shuffled
+      pwR.startRecord(qname, QType::AAAA, 7200, QClass::IN, DNSResourceRecord::ANSWER);
+      pwR.xfrCAWithoutPort(6, ComboAddress("2001:db8::1"));
+      pwR.commit();
+    }
+    else if (qtype == QType::AAAA) {
+      // A following AAAAA should not be shuffled
+      pwR.startRecord(qname, QType::A, 7200, QClass::IN, DNSResourceRecord::ANSWER);
+      pwR.xfrCAWithoutPort(4, ComboAddress("192.0.0.1"));
+      pwR.commit();
+    }
+  }
+
+  if (testtype == PACKET_CACHE_TEST_OTHER_QNAME_FOLLOWS) {
+    DNSName qname2("hey");
+    if (qtype == QType::A) {
+      pwR.startRecord(qname2, QType::A, 7200, QClass::IN, DNSResourceRecord::ANSWER);
+      pwR.xfrCAWithoutPort(4, ComboAddress("192.0.0.1"));
+      pwR.commit();
+    }
+    else if (qtype == QType::AAAA) {
+      pwR.startRecord(qname2, QType::AAAA, 7200, QClass::IN, DNSResourceRecord::ANSWER);
+      pwR.xfrCAWithoutPort(6, ComboAddress("2001:db8::1"));
+      pwR.commit();
+    }
+  }
+
+  if (testtype == PACKET_CACHE_TEST_EDNS) {
+    GenericDNSPacketWriter<PacketBuffer>::optvect_t ednsOptions;
+    EDNSSubnetOpts opt;
+    opt.setSource(Netmask("10.0.59.220/32"));
+    ednsOptions.emplace_back(EDNSOptionCode::ECS, opt.makeOptString());
+    pwR.addOpt(512, 0, 0, ednsOptions);
+    pwR.commit();
+  }
+}
+
+static void test_packetcache_shuffle(
+  const QType testqtype,
+  const PacketCacheShuffleTestType testtype)
+{
+  const DNSDistPacketCache::CacheSettings settings{
+    .d_maxEntries = 150000,
+    .d_maxTTL = 86400,
+    .d_minTTL = 1,
+    .d_dontAge = true, // test can take over 1 second
+    .d_shuffle = true,
+  };
+  DNSDistPacketCache localCache(settings);
+  BOOST_CHECK_EQUAL(localCache.getSize(), 0U);
+
+  bool dnssecOK = false;
+
+  InternalQueryState ids;
+  ids.qtype = testqtype;
+  ids.qclass = QClass::IN;
+  ids.protocol = dnsdist::Protocol::DoUDP;
+  ids.qname = DNSName("hello");
+
+  std::array<ComboAddress, 4> addresses;
+  if (testqtype == QType::A) {
+    addresses = {
+      ComboAddress("192.0.0.1"),
+      ComboAddress("192.0.0.2"),
+      ComboAddress("192.0.0.3"),
+      ComboAddress("192.0.0.4"),
+    };
+  }
+  else {
+    addresses = {
+      ComboAddress("2001:db8::1"),
+      ComboAddress("2001:db8::2"),
+      ComboAddress("2001:db8::3"),
+      ComboAddress("2001:db8::4"),
+    };
+  }
+
+  {
+    // make the real query/response and put to the cache
+    PacketBuffer query;
+    GenericDNSPacketWriter<PacketBuffer> pwQ(query, ids.qname, testqtype, QClass::IN, 0);
+    pwQ.getHeader()->rd = 1;
+
+    PacketBuffer response;
+    create_shuffle_response(addresses, ids.qname, response, testqtype, testtype);
+
+    boost::optional<Netmask> subnet;
+    uint32_t key = 0;
+    DNSQuestion dnsQuestion(ids, query);
+    bool found = localCache.get(dnsQuestion, 0, &key, subnet, dnssecOK, receivedOverUDP);
+    BOOST_CHECK_EQUAL(found, false);
+
+    localCache.insert(key, boost::none, *getFlagsFromDNSHeader(pwQ.getHeader()), dnssecOK, ids.qname, testqtype, QClass::IN, response, receivedOverUDP, 0, boost::none);
+  }
+
+  // now prepare all the possible permutations and save them, to compare later
+  // TODO: when migrating to newer C++, use std::next_permutation
+  std::array<std::array<int, 4>, 24> permuts{{
+    {0, 1, 2, 3},
+    {0, 1, 3, 2},
+    {0, 2, 1, 3},
+    {0, 2, 3, 1},
+    {0, 3, 1, 2},
+    {0, 3, 2, 1},
+    {1, 0, 2, 3},
+    {1, 0, 3, 2},
+    {1, 2, 0, 3},
+    {1, 2, 3, 0},
+    {1, 3, 0, 2},
+    {1, 3, 2, 0},
+    {2, 0, 1, 3},
+    {2, 0, 3, 1},
+    {2, 1, 0, 3},
+    {2, 1, 3, 0},
+    {2, 3, 0, 1},
+    {2, 3, 1, 0},
+    {3, 0, 1, 2},
+    {3, 0, 2, 1},
+    {3, 1, 0, 2},
+    {3, 1, 2, 0},
+    {3, 2, 0, 1},
+    {3, 2, 1, 0},
+  }};
+
+  std::array<PacketBuffer, 24> possible{};
+  for (auto i = 0; i < 24; i++) {
+    std::array<ComboAddress, 4> addresspermut;
+    auto& permut = permuts.at(i);
+
+    for (auto j = 0; j < 4; j++) {
+      addresspermut.at(j) = addresses.at(permut.at(j));
+    }
+
+    create_shuffle_response(addresspermut, ids.qname, possible.at(i), testqtype, testtype);
+  }
+
+  std::array<int, 24> stats{};
+
+  const auto max = 10000;
+
+  // now try max-times and check, that every shuffle is in the list of allowed
+  // permutations, and that each of the permutations is there at least once.
+  // The probability that one will be zero if everything is correct
+  // is around 1e-185.
+  for (auto counter = 0; counter < max; ++counter) {
+    PacketBuffer query;
+    GenericDNSPacketWriter<PacketBuffer> pwQ(query, ids.qname, testqtype, QClass::IN, 0);
+    pwQ.getHeader()->rd = 1;
+
+    uint32_t key = 0;
+    boost::optional<Netmask> subnet;
+    DNSQuestion dnsQuestion(ids, query);
+    bool found = localCache.get(dnsQuestion, 0, &key, subnet, dnssecOK, receivedOverUDP);
+    BOOST_CHECK_EQUAL(found, true);
+
+    bool hit = false;
+    for (auto i = 0; i < 24; i++) {
+      auto& buf = possible.at(i);
+      if (dnsQuestion.getData().size() == buf.size()) {
+        int match = memcmp(dnsQuestion.getData().data(), buf.data(), dnsQuestion.getData().size());
+        if (match == 0) {
+          hit = true;
+          stats.at(i)++;
+        }
+      }
+    }
+    BOOST_CHECK_EQUAL(hit, true);
+  }
+  for (auto i = 0; i < 24; i++) {
+    BOOST_CHECK(stats.at(i) > 0);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_PacketCacheShuffle)
+{
+  test_packetcache_shuffle(QType::A, PACKET_CACHE_TEST_SIMPLE);
+  test_packetcache_shuffle(QType::A, PACKET_CACHE_TEST_OTHER_QTYPE_FOLLOWS);
+  test_packetcache_shuffle(QType::A, PACKET_CACHE_TEST_OTHER_QNAME_FOLLOWS);
+  test_packetcache_shuffle(QType::A, PACKET_CACHE_TEST_CNAME);
+  test_packetcache_shuffle(QType::A, PACKET_CACHE_TEST_EDNS);
+
+  test_packetcache_shuffle(QType::AAAA, PACKET_CACHE_TEST_SIMPLE);
+  test_packetcache_shuffle(QType::AAAA, PACKET_CACHE_TEST_OTHER_QTYPE_FOLLOWS);
+  test_packetcache_shuffle(QType::AAAA, PACKET_CACHE_TEST_OTHER_QNAME_FOLLOWS);
+  test_packetcache_shuffle(QType::AAAA, PACKET_CACHE_TEST_CNAME);
+  test_packetcache_shuffle(QType::AAAA, PACKET_CACHE_TEST_EDNS);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
