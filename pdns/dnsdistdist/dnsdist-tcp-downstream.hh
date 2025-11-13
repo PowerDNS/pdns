@@ -145,13 +145,13 @@ public:
 protected:
   bool reconnect();
 
-  boost::optional<struct timeval> getBackendHealthCheckTTD(const struct timeval& now) const
+  std::optional<struct timeval> getBackendHealthCheckTTD(const struct timeval& now) const
   {
     if (d_ds == nullptr) {
       throw std::runtime_error("getBackendReadTTD() without any backend selected");
     }
     if (d_ds->d_config.checkTimeout == 0) {
-      return boost::none;
+      return std::nullopt;
     }
 
     struct timeval res = now;
@@ -162,13 +162,13 @@ protected:
     return res;
   }
 
-  boost::optional<struct timeval> getBackendReadTTD(const struct timeval& now) const
+  std::optional<struct timeval> getBackendReadTTD(const struct timeval& now) const
   {
     if (d_ds == nullptr) {
       throw std::runtime_error("getBackendReadTTD() without any backend selected");
     }
     if (d_ds->d_config.tcpRecvTimeout == 0) {
-      return boost::none;
+      return std::nullopt;
     }
 
     struct timeval res = now;
@@ -177,13 +177,13 @@ protected:
     return res;
   }
 
-  boost::optional<struct timeval> getBackendWriteTTD(const struct timeval& now) const
+  std::optional<struct timeval> getBackendWriteTTD(const struct timeval& now) const
   {
     if (d_ds == nullptr) {
       throw std::runtime_error("getBackendWriteTTD() called without any backend selected");
     }
     if (d_ds->d_config.tcpSendTimeout == 0) {
-      return boost::none;
+      return std::nullopt;
     }
 
     struct timeval res = now;
@@ -192,13 +192,13 @@ protected:
     return res;
   }
 
-  boost::optional<struct timeval> getBackendConnectTTD(const struct timeval& now) const
+  std::optional<struct timeval> getBackendConnectTTD(const struct timeval& now) const
   {
     if (d_ds == nullptr) {
       throw std::runtime_error("getBackendConnectTTD() called without any backend selected");
     }
     if (d_ds->d_config.tcpConnectTimeout == 0) {
-      return boost::none;
+      return std::nullopt;
     }
 
     struct timeval res = now;

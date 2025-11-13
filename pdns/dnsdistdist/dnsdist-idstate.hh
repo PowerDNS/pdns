@@ -177,7 +177,7 @@ struct InternalQueryState
 
   InternalQueryState partialCloneForXFR() const;
 
-  boost::optional<Netmask> subnet{boost::none}; // 40
+  std::optional<Netmask> subnet{std::nullopt}; // 40
   std::string poolName; // 32
 #if !defined(DISABLE_PROTOBUF)
   std::string d_rawProtobufContent; // protobuf-encoded content to add to protobuf messages // 32
@@ -204,7 +204,7 @@ public:
   std::vector<std::pair<std::string, std::shared_ptr<RemoteLoggerInterface>>> delayedResponseMsgs;
 #endif
   std::unique_ptr<EDNSExtendedError> d_extendedError{nullptr};
-  boost::optional<uint32_t> tempFailureTTL{boost::none}; // 8
+  std::optional<uint32_t> tempFailureTTL{std::nullopt}; // 8
   ClientState* cs{nullptr}; // 8
   std::unique_ptr<DOHUnitInterface> du; // 8
   size_t d_proxyProtocolPayloadSize{0}; // 8

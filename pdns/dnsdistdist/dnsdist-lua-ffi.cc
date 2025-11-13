@@ -233,7 +233,7 @@ uint16_t dnsdist_ffi_dnsquestion_get_ecs_prefix_length(const dnsdist_ffi_dnsques
 
 bool dnsdist_ffi_dnsquestion_is_temp_failure_ttl_set(const dnsdist_ffi_dnsquestion_t* dq)
 {
-  return dq->dq->ids.tempFailureTTL != boost::none;
+  return dq->dq->ids.tempFailureTTL != std::nullopt;
 }
 
 uint32_t dnsdist_ffi_dnsquestion_get_temp_failure_ttl(const dnsdist_ffi_dnsquestion_t* dq)
@@ -583,7 +583,7 @@ void dnsdist_ffi_dnsquestion_set_temp_failure_ttl(dnsdist_ffi_dnsquestion_t* dq,
 
 void dnsdist_ffi_dnsquestion_unset_temp_failure_ttl(dnsdist_ffi_dnsquestion_t* dq)
 {
-  dq->dq->ids.tempFailureTTL = boost::none;
+  dq->dq->ids.tempFailureTTL = std::nullopt;
 }
 
 void dnsdist_ffi_dnsquestion_set_tag(dnsdist_ffi_dnsquestion_t* dq, const char* label, const char* value)
