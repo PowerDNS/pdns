@@ -362,6 +362,8 @@ private:
   static void deleteNSEC3RecordPair(const std::shared_ptr<RecordsRWTransaction>& txn, domainid_t domain_id, const DNSName& qname);
   void writeNSEC3RecordPair(const std::shared_ptr<RecordsRWTransaction>& txn, domainid_t domain_id, const DNSName& qname, const DNSName& ordername);
 
+  std::pair<std::string, std::string> serializeComment(const Comment& c);
+
   string directBackendCmd_list(std::vector<string>& argv);
 
   // Transient DomainInfo data, not necessarily synchronized with the
