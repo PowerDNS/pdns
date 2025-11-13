@@ -24,7 +24,7 @@
 #   }
 #
 
-[
+table = [
     {
         'name': 'questions',
         'lambda': '[] { return g_Counters.sum(rec::Counter::qcounter); }',
