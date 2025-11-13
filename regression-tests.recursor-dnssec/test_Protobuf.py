@@ -244,7 +244,7 @@ class TestRecursorProtobuf(RecursorTest):
         #print(msg.response.tags)
         self.assertEqual(len(msg.response.tags), len(tags))
         for tag in msg.response.tags:
-            self.assertTrue(tag in tags)
+            self.assertIn(tag, tags)
 
     def checkProtobufMetas(self, msg, metas):
         #print(metas)
@@ -254,11 +254,11 @@ class TestRecursorProtobuf(RecursorTest):
         for m in msg.meta:
             self.assertTrue(m.HasField('key'))
             self.assertTrue(m.HasField('value'))
-            self.assertTrue(m.key in metas)
+            self.assertIn(m.key, metas)
             for i in m.value.intVal :
-              self.assertTrue(i in metas[m.key]['intVal'])
+              self.assertIn(i, metas[m.key]['intVal'])
             for s in m.value.stringVal :
-              self.assertTrue(s in metas[m.key]['stringVal'])
+              self.assertIn(s, metas[m.key]['stringVal'])
 
     def checkProtobufOutgoingQuery(self, msg, protocol, query, qclass, qtype, qname, initiator='127.0.0.1', length=None, expectedECS=None):
         self.assertEqual(msg.type, dnsmessage_pb2.PBDNSMessage.DNSOutgoingQueryType)
@@ -285,17 +285,17 @@ class TestRecursorProtobuf(RecursorTest):
 
     def checkProtobufIdentity(self, msg, requestorId, deviceId, deviceName):
         #print(msg)
-        self.assertTrue((requestorId == '') == (not msg.HasField('requestorId')))
-        self.assertTrue((deviceId == b'') == (not msg.HasField('deviceId')))
-        self.assertTrue((deviceName == '') == (not msg.HasField('deviceName')))
+        self.assertEqual(requestorId == '', not msg.HasField('requestorId'))
+        self.assertEqual(deviceId == b'', not msg.HasField('deviceId'))
+        self.assertEqual(deviceName == '', not msg.HasField('deviceName'))
         self.assertEqual(msg.requestorId, requestorId)
         self.assertEqual(msg.deviceId, deviceId)
         self.assertEqual(msg.deviceName, deviceName)
 
     def checkProtobufEDE(self, msg, ede, edeText):
         #print(msg)
-        self.assertTrue((ede == 0) == (not msg.HasField('ede')))
-        self.assertTrue((edeText == '') == (not msg.HasField('edeText')))
+        self.assertEqual(ede == 0, not msg.HasField('ede'))
+        self.assertEqual(edeText == '', not msg.HasField('edeText'))
         self.assertEqual(msg.ede, ede)
         self.assertEqual(msg.edeText, edeText)
 
@@ -305,8 +305,8 @@ class TestRecursorProtobuf(RecursorTest):
       return opt
 
     def checkProtobufOT(self, msg, openTelemetryData, openTelemetryTraceID):
-        self.assertTrue(openTelemetryData == msg.HasField('openTelemetryData'))
-        self.assertTrue(openTelemetryTraceID == msg.HasField('openTelemetryTraceID'))
+        self.assertEqual(openTelemetryData, msg.HasField('openTelemetryData'))
+        self.assertEqual(openTelemetryTraceID, msg.HasField('openTelemetryTraceID'))
 
     def setUp(self):
         super(TestRecursorProtobuf, self).setUp()
@@ -1526,7 +1526,7 @@ auth-zones=example=configs/%s/example.zone""" % _confdir
         self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, res, '127.0.0.1', receivedSize=len(raw))
         self.assertEqual(len(msg.response.rrs), 5)
         for rr in msg.response.rrs:
-            self.assertTrue(rr.type in [dns.rdatatype.AAAA, dns.rdatatype.TXT, dns.rdatatype.MX, dns.rdatatype.SPF, dns.rdatatype.SRV])
+            self.assertIn(rr.type, [dns.rdatatype.AAAA, dns.rdatatype.TXT, dns.rdatatype.MX, dns.rdatatype.SPF, dns.rdatatype.SRV])
 
             if rr.type == dns.rdatatype.AAAA:
                 self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.AAAA, name, 15)

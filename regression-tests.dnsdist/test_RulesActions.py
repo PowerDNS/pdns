@@ -280,7 +280,7 @@ class TestAdvancedDelay(DNSDistTest):
         receivedQuery.id = query.id
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
-        self.assertTrue((end - begin) > timedelta(0, 1))
+        self.assertGreater(end - begin, timedelta(0, 1))
 
         begin = datetime.now()
         (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
@@ -288,7 +288,7 @@ class TestAdvancedDelay(DNSDistTest):
         receivedQuery.id = query.id
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
-        self.assertTrue((end - begin) < timedelta(0, 1))
+        self.assertLess(end - begin, timedelta(0, 1))
 
 class TestAdvancedAndNot(DNSDistTest):
 
@@ -451,7 +451,7 @@ class TestAdvancedLogAction(DNSDistTest):
             self.assertEqual(response, receivedResponse)
 
         self.assertTrue(os.path.isfile('dnsdist.log'))
-        self.assertTrue(os.stat('dnsdist.log').st_size > 0)
+        self.assertGreater(os.stat('dnsdist.log').st_size, 0)
 
 class TestAdvancedDNSSEC(DNSDistTest):
 

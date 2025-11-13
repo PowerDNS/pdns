@@ -150,7 +150,7 @@ class TestOutgoingTLSOpenSSL(DNSDistTest, OutgoingTLSTests):
 
     def testZNonEmptyKeyfile(self):
         self.assertTrue(os.path.exists("/tmp/dotkeys"))
-        self.assertTrue(os.path.getsize("/tmp/dotkeys") > 0)
+        self.assertGreater(os.path.getsize("/tmp/dotkeys"), 0)
 
     @staticmethod
     def sniCallback(sslSocket, sni, sslContext):

@@ -89,11 +89,11 @@ class DOHTests(object):
         self.assertTrue(receivedResponse)
         receivedQuery.id = expectedQuery.id
         self.assertEqual(expectedQuery, receivedQuery)
-        self.assertTrue((self._customResponseHeader1) in self._response_headers.decode())
-        self.assertTrue((self._customResponseHeader2) in self._response_headers.decode())
-        self.assertFalse(('UPPERCASE: VaLuE' in self._response_headers.decode()))
-        self.assertTrue(('uppercase: VaLuE' in self._response_headers.decode()))
-        self.assertTrue(('cache-control: max-age=3600' in self._response_headers.decode()))
+        self.assertIn(self._customResponseHeader1, self._response_headers.decode())
+        self.assertIn(self._customResponseHeader2, self._response_headers.decode())
+        self.assertNotIn('UPPERCASE: VaLuE', self._response_headers.decode())
+        self.assertIn('uppercase: VaLuE', self._response_headers.decode())
+        self.assertIn('cache-control: max-age=3600', self._response_headers.decode())
         self.checkQueryEDNSWithoutECS(expectedQuery, receivedQuery)
         self.assertEqual(response, receivedResponse)
         self.checkHasHeader('cache-control', 'max-age=3600')
@@ -694,7 +694,7 @@ class DOHTests(object):
         self.assertTrue(receivedResponse)
         self.assertEqual(receivedResponse, b'Plaintext answer')
         self.assertEqual(self._rcode, 200)
-        self.assertTrue('content-type: text/plain' in self._response_headers.decode())
+        self.assertIn('content-type: text/plain', self._response_headers.decode())
 
     def testHTTPStatusAction307(self):
         """
@@ -707,7 +707,7 @@ class DOHTests(object):
         (_, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, caFile=self._caCert, useQueue=False, rawResponse=True)
         self.assertTrue(receivedResponse)
         self.assertEqual(self._rcode, 307)
-        self.assertTrue('location: https://doh.powerdns.org' in self._response_headers.decode())
+        self.assertIn('location: https://doh.powerdns.org', self._response_headers.decode())
 
     def testHTTPLuaResponse(self):
         """
@@ -721,7 +721,7 @@ class DOHTests(object):
         self.assertTrue(receivedResponse)
         self.assertEqual(receivedResponse, b'It works!')
         self.assertEqual(self._rcode, 200)
-        self.assertTrue('content-type: text/plain' in self._response_headers.decode())
+        self.assertIn('content-type: text/plain', self._response_headers.decode())
 
     def testHTTPEarlyResponse(self):
         """
@@ -1495,7 +1495,7 @@ class DOHFFI(object):
         self.assertTrue(receivedResponse)
         self.assertEqual(receivedResponse, b'It works!')
         self.assertEqual(self._rcode, 200)
-        self.assertTrue('content-type: text/plain' in self._response_headers.decode())
+        self.assertIn('content-type: text/plain', self._response_headers.decode())
 
 class TestDOHFFINGHTTP2(DOHFFI, DNSDistDOHTest):
     _dohLibrary = 'nghttp2'

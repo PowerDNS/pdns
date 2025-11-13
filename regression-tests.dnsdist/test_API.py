@@ -139,7 +139,7 @@ class TestAPIBasics(APITestsBase):
                 for key in ['id', 'creationOrder', 'matches', 'rule', 'action', 'uuid']:
                     self.assertIn(key, rule)
                 for key in ['id', 'creationOrder', 'matches']:
-                    self.assertTrue(rule[key] >= 0)
+                    self.assertGreaterEqual(rule[key], 0)
 
         for server in content['servers']:
             for key in ['id', 'latency', 'name', 'weight', 'outstanding', 'qpsLimit',
@@ -152,28 +152,28 @@ class TestAPIBasics(APITestsBase):
 
             for key in ['id', 'latency', 'weight', 'outstanding', 'qpsLimit', 'reuseds',
                         'qps', 'queries', 'order', 'tcpLatency', 'responses', 'nonCompliantResponses']:
-                self.assertTrue(server[key] >= 0)
+                self.assertGreaterEqual(server[key], 0)
 
-            self.assertTrue(server['state'] in ['up', 'down', 'UP', 'DOWN'])
+            self.assertIn(server['state'], ['up', 'down', 'UP', 'DOWN'])
 
         for frontend in content['frontends']:
             for key in ['id', 'address', 'udp', 'tcp', 'type', 'queries', 'nonCompliantQueries']:
                 self.assertIn(key, frontend)
 
             for key in ['id', 'queries', 'nonCompliantQueries']:
-                self.assertTrue(frontend[key] >= 0)
+                self.assertGreaterEqual(frontend[key], 0)
 
         for pool in content['pools']:
             for key in ['id', 'name', 'cacheSize', 'cacheEntries', 'cacheHits', 'cacheMisses', 'cacheDeferredInserts', 'cacheDeferredLookups', 'cacheLookupCollisions', 'cacheInsertCollisions', 'cacheTTLTooShorts', 'cacheCleanupCount']:
                 self.assertIn(key, pool)
 
             for key in ['id', 'cacheSize', 'cacheEntries', 'cacheHits', 'cacheMisses', 'cacheDeferredInserts', 'cacheDeferredLookups', 'cacheLookupCollisions', 'cacheInsertCollisions', 'cacheTTLTooShorts', 'cacheCleanupCount']:
-                self.assertTrue(pool[key] >= 0)
+                self.assertGreaterEqual(pool[key], 0)
 
         stats = content['statistics']
         for key in self._expectedMetrics:
             self.assertIn(key, stats)
-            self.assertTrue(stats[key] >= 0)
+            self.assertGreaterEqual(stats[key], 0)
         for key in stats:
             self.assertIn(key, self._expectedMetrics)
 
@@ -196,7 +196,7 @@ class TestAPIBasics(APITestsBase):
             self.assertIn(key, content['stats'])
 
         for key in ['cacheSize', 'cacheEntries', 'cacheHits', 'cacheMisses', 'cacheDeferredInserts', 'cacheDeferredLookups', 'cacheLookupCollisions', 'cacheInsertCollisions', 'cacheTTLTooShorts']:
-            self.assertTrue(content['stats'][key] >= 0)
+            self.assertGreaterEqual(content['stats'][key], 0)
 
         for server in content['servers']:
             for key in ['id', 'latency', 'name', 'weight', 'outstanding', 'qpsLimit',
@@ -209,9 +209,9 @@ class TestAPIBasics(APITestsBase):
 
             for key in ['id', 'latency', 'weight', 'outstanding', 'qpsLimit', 'reuseds',
                         'qps', 'queries', 'order', 'tcpLatency', 'responses', 'nonCompliantResponses']:
-                self.assertTrue(server[key] >= 0)
+                self.assertGreaterEqual(server[key], 0)
 
-            self.assertTrue(server['state'] in ['up', 'down', 'UP', 'DOWN'])
+            self.assertIn(server['state'], ['up', 'down', 'UP', 'DOWN'])
 
     def testServersIDontExist(self):
         """
@@ -249,7 +249,7 @@ class TestAPIBasics(APITestsBase):
 
         for key in ['max-outstanding', 'stale-cache-entries-ttl', 'tcp-recv-timeout',
                     'tcp-send-timeout']:
-            self.assertTrue(values[key] >= 0)
+            self.assertGreaterEqual(values[key], 0)
 
         self.assertTrue(values['ecs-source-prefix-v4'] >= 0 and values['ecs-source-prefix-v4'] <= 32)
         self.assertTrue(values['ecs-source-prefix-v6'] >= 0 and values['ecs-source-prefix-v6'] <= 128)
@@ -313,7 +313,7 @@ class TestAPIBasics(APITestsBase):
 
         for key in self._expectedMetrics:
             self.assertIn(key, values)
-            self.assertTrue(values[key] >= 0)
+            self.assertGreaterEqual(values[key], 0)
 
         for key in values:
             self.assertIn(key, self._expectedMetrics)
@@ -332,7 +332,7 @@ class TestAPIBasics(APITestsBase):
 
         for key in self._expectedMetrics:
             self.assertIn(key, content)
-            self.assertTrue(content[key] >= 0)
+            self.assertGreaterEqual(content[key], 0)
 
     def testJsonstatDynblocklist(self):
         """
@@ -351,7 +351,7 @@ class TestAPIBasics(APITestsBase):
                 self.assertIn(key, content)
 
             for key in ['blocks']:
-                self.assertTrue(content[key] >= 0)
+                self.assertGreaterEqual(content[key], 0)
 
     def testServersLocalhostRings(self):
         """
@@ -529,7 +529,7 @@ class TestAPICustomHeaders(APITestsBase):
         self.assertTrue(r)
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.headers.get('x-custom'), "custom")
-        self.assertFalse("x-frame-options" in r.headers)
+        self.assertNotIn("x-frame-options", r.headers)
 
     def testBasicHeadersUpdate(self):
         """
@@ -542,7 +542,7 @@ class TestAPICustomHeaders(APITestsBase):
         self.assertTrue(r)
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.headers.get('x-powered-by'), "dnsdist")
-        self.assertTrue("x-frame-options" in r.headers)
+        self.assertIn("x-frame-options", r.headers)
 
 class TestStatsWithoutAuthentication(APITestsBase):
     __test__ = True
@@ -902,7 +902,7 @@ class TestAPICustomStatistics(APITestsBase):
 
         for key in expected:
             self.assertIn(key, content)
-            self.assertTrue(content[key] >= 0)
+            self.assertGreaterEqual(content[key], 0)
 
         unexpected = ['my-labeled-gauge', 'my-labeled-counter']
 

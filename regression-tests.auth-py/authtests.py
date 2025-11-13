@@ -492,7 +492,7 @@ options {
             raise TypeError("msg is not a dns.message.Message")
 
         msgFlags = dns.flags.to_text(msg.flags)
-        self.assertTrue('AD' in msgFlags, "No AD flag found in the message for %s" % msg.question[0].name)
+        self.assertIn('AD', msgFlags, "No AD flag found in the message for %s" % msg.question[0].name)
 
     def assertRRsetInAnswer(self, msg, rrset):
         """Asserts the rrset (without comparing TTL) exists in the
@@ -651,10 +651,10 @@ options {
             raise AssertionError("RRSIG found in answers for:\n%s" % ret)
 
     def assertAnswerEmpty(self, msg):
-        self.assertTrue(len(msg.answer) == 0, "Data found in the the answer section for %s:\n%s" % (msg.question[0].to_text(), '\n'.join([i.to_text() for i in msg.answer])))
+        self.assertEqual(len(msg.answer), 0, "Data found in the the answer section for %s:\n%s" % (msg.question[0].to_text(), '\n'.join([i.to_text() for i in msg.answer])))
 
     def assertAnswerNotEmpty(self, msg):
-        self.assertTrue(len(msg.answer) > 0, "Answer is empty")
+        self.assertGreater(len(msg.answer), 0, "Answer is empty")
 
     def assertRcodeEqual(self, msg, rcode):
         if not isinstance(msg, dns.message.Message):

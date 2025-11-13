@@ -90,7 +90,7 @@ class DNSDistOpenTelemetryProtobufBaseTest(DNSDistOpenTelemetryProtobufTest):
 
         # Ensure all attributes exist
         for field in ot_data["resource_spans"][0]["resource"]["attributes"]:
-            self.assertTrue(field["key"] in ["service.name"])
+            self.assertIn(field["key"], ["service.name"])
 
         # Ensure the values are correct
         # TODO: query.remote with port

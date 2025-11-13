@@ -94,7 +94,7 @@ class TestCarbon(DNSDistTest):
         after = time.time()
 
         self.assertTrue(data1)
-        self.assertTrue(len(data1.splitlines()) > 1)
+        self.assertGreater(len(data1.splitlines()), 1)
         expectedStart = b"dnsdist.%s.main." % self._carbonServer1Name.encode('UTF-8')
         for line in data1.splitlines():
             self.assertTrue(line.startswith(expectedStart))
@@ -102,10 +102,10 @@ class TestCarbon(DNSDistTest):
             self.assertEqual(len(parts), 3)
             self.assertTrue(self.isfloat(parts[1]))
             self.assertTrue(parts[2].isdigit())
-            self.assertTrue(int(parts[2]) <= int(after))
+            self.assertLessEqual(int(parts[2]), int(after))
 
         self.assertTrue(data2)
-        self.assertTrue(len(data2.splitlines()) > 1)
+        self.assertGreater(len(data2.splitlines()), 1)
         expectedStart = b"dnsdist.%s.main." % self._carbonServer2Name.encode('UTF-8')
         for line in data2.splitlines():
             self.assertTrue(line.startswith(expectedStart))
@@ -113,12 +113,12 @@ class TestCarbon(DNSDistTest):
             self.assertEqual(len(parts), 3)
             self.assertTrue(self.isfloat(parts[1]))
             self.assertTrue(parts[2].isdigit())
-            self.assertTrue(int(parts[2]) <= int(after))
+            self.assertLessEqual(int(parts[2]), int(after))
 
         # make sure every carbon server has received at least one connection
         for key in self._carbonCounters:
             value = self._carbonCounters[key]
-            self.assertTrue(value >= 1)
+            self.assertGreaterEqual(value, 1)
 
     def testCarbonServerUp(self):
         """
@@ -140,7 +140,7 @@ class TestCarbon(DNSDistTest):
         # servers-up metrics and that they are the same as
         # configured in the class definition
         self.assertTrue(data1)
-        self.assertTrue(len(data1.splitlines()) > 1)
+        self.assertGreater(len(data1.splitlines()), 1)
         expectedStart = b"dnsdist.%s.main.pools._default_.servers" % self._carbonServer1Name.encode('UTF-8')
         for line in data1.splitlines():
             if expectedStart in line:
@@ -150,20 +150,20 @@ class TestCarbon(DNSDistTest):
                     self.assertTrue(parts[1].isdigit())
                     self.assertEqual(int(parts[1]), 2)
                     self.assertTrue(parts[2].isdigit())
-                    self.assertTrue(int(parts[2]) <= int(after))
+                    self.assertLessEqual(int(parts[2]), int(after))
                 else:
                     self.assertEqual(len(parts), 3)
                     self.assertTrue(parts[1].isdigit())
                     self.assertEqual(int(parts[1]), 3)
                     self.assertTrue(parts[2].isdigit())
-                    self.assertTrue(int(parts[2]) <= int(after))
+                    self.assertLessEqual(int(parts[2]), int(after))
 
         # check the second carbon server got both servers and
         # servers-up metrics and that they are the same as
         # configured in the class definition and the same as
         # the first carbon server
         self.assertTrue(data2)
-        self.assertTrue(len(data2.splitlines()) > 1)
+        self.assertGreater(len(data2.splitlines()), 1)
         expectedStart = b"dnsdist.%s.main.pools._default_.servers" % self._carbonServer2Name.encode('UTF-8')
         for line in data2.splitlines():
             if expectedStart in line:
@@ -173,10 +173,10 @@ class TestCarbon(DNSDistTest):
                     self.assertTrue(parts[1].isdigit())
                     self.assertEqual(int(parts[1]), 2)
                     self.assertTrue(parts[2].isdigit())
-                    self.assertTrue(int(parts[2]) <= int(after))
+                    self.assertLessEqual(int(parts[2]), int(after))
                 else:
                     self.assertEqual(len(parts), 3)
                     self.assertTrue(parts[1].isdigit())
                     self.assertEqual(int(parts[1]), 3)
                     self.assertTrue(parts[2].isdigit())
-                    self.assertTrue(int(parts[2]) <= int(after))
+                    self.assertLessEqual(int(parts[2]), int(after))

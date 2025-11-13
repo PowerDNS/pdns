@@ -40,7 +40,7 @@ class TestLuaThread(DNSDistTest):
         count1 = self.sendConsoleCommand('counter')
         time.sleep(3)
         count2 = self.sendConsoleCommand('counter')
-        self.assertTrue(count2 > count1)
+        self.assertGreater(count2, count1)
 
 class TestLuaDNSHeaderBindings(DNSDistTest):
     _config_template = """
