@@ -178,7 +178,7 @@ class RuleMetricsTest(object):
             self.assertEqual(self.getMetric('rule-servfail'), ruleBefore)
 
 class TestRuleMetricsDefault(RuleMetricsTest, DNSDistTest):
-    None
+    pass
 
 class TestRuleMetricsRecvmmsg(RuleMetricsTest, DNSDistTest):
     # test the metrics with recvmmsg/sendmmsg support enabled as well
