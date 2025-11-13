@@ -418,7 +418,7 @@ c 3600 IN A 192.0.2.42
 d 3600 IN A 192.0.2.42
 e 3600 IN A 192.0.2.42
 """.format(soa=cls._SOA))
-        super(RPZRecursorTest, cls).generateRecursorConfig(confdir)
+        super(RPZXFRRecursorTest, cls).generateRecursorConfig(confdir)
 
     def checkDump(self, serial, timeout=2):
         file = 'configs/%s/rpz.zone.dump' % self._confdir
