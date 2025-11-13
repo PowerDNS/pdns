@@ -589,7 +589,6 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
         destPort = 9999
         srcAddr = "2001:db8::8"
         srcPort = 8888
-        response = dns.message.make_response(query)
 
         udpPayload = ProxyProtocol.getPayload(False, False, True, srcAddr, destAddr, srcPort, destPort, [ [ 2, b'foo'], [ 3, b'proxy'] ])
         toProxyQueue.put(response, True, 2.0)
@@ -619,7 +618,6 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
         destPort = 9999
         srcAddr = "2001:db8::8"
         srcPort = 8888
-        response = dns.message.make_response(query)
 
         tcpPayload = ProxyProtocol.getPayload(False, True, True, srcAddr, destAddr, srcPort, destPort, [ [ 2, b'foo'], [ 3, b'proxy'] ])
 
@@ -661,7 +659,6 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
         destPort = 9999
         srcAddr = "2001:db8::8"
         srcPort = 8888
-        response = dns.message.make_response(query)
 
         udpPayload = ProxyProtocol.getPayload(False, False, True, srcAddr, destAddr, srcPort, destPort, [ [2, b'foo'], [3, b'proxy'], [ 50, b'initial-value']])
         toProxyQueue.put(response, True, 2.0)
