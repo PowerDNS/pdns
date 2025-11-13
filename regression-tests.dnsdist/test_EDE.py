@@ -104,7 +104,7 @@ class TestBasics(DNSDistTest):
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.checkMessageEDNS(expectedResponse, receivedResponse)
 
-    def testExtendedErrorBackendResponse(self):
+    def testExtendedErrorBackendResponseDO(self):
         """
         EDE: Backend response (DO)
         """
