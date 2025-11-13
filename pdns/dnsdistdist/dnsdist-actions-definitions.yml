@@ -118,32 +118,32 @@ Subsequent rules are processed after this action"
     - name: "file_name"
       type: "String"
       default: ""
-      cpp-optional: false
+      optional: false
       description: "File to log to. Set to an empty string to log to the normal stdout log, this only works when ``-v`` is set on the command line"
     - name: "binary"
       type: "bool"
       default: "true"
-      cpp-optional: false
+      optional: false
       description: "Whether to do binary logging"
     - name: "append"
       type: "bool"
       default: "false"
-      cpp-optional: false
+      optional: false
       description: "Whether to append to an existing file"
     - name: "buffered"
       type: "bool"
       default: "false"
-      cpp-optional: false
+      optional: false
       description: "Whether to use buffered I/O"
     - name: "verbose_only"
       type: "bool"
       default: "true"
-      cpp-optional: false
+      optional: false
       description: "Whether to log only in verbose mode when logging to stdout"
     - name: "include_timestamp"
       type: "bool"
       default: "false"
-      cpp-optional: false
+      optional: false
       description: "Whether to include a timestamp for every entry"
 - name: "lua"
   description: "Invoke a Lua function that accepts a :class:`DNSQuestion`. The function should return a :ref:`DNSAction`. If the Lua code fails, ``ServFail`` is returned"
@@ -230,7 +230,7 @@ The function will be invoked in a per-thread Lua state, without access to the gl
     - name: "stop_processing"
       type: "bool"
       default: "true"
-      cpp-optional: false
+      optional: false
       description: "Whether subsequent rules should be executed after this one"
 - name: "QPS"
   description: "Drop a packet if it does exceed the ``limit`` queries per second limit. Letting the subsequent rules apply otherwise"
@@ -250,7 +250,7 @@ The function will be invoked in a per-thread Lua state, without access to the gl
     - name: "stop_processing"
       type: "bool"
       default: "true"
-      cpp-optional: false
+      optional: false
       description: "Whether subsequent rules should be executed after this one"
 - name: "RCode"
   description: "Reply immediately by turning the query into a response with the specified rcode"
@@ -332,7 +332,7 @@ are processed after this action"
       type: "String"
       default: ""
       description: "The IPv6 netmask, if any"
-      cpp-optional: false
+      optional: false
 - name: "SetECSOverride"
   description: "Whether an existing EDNS Client Subnet value should be overridden (true) or not (false). Subsequent rules are processed after this action"
   parameters:
@@ -357,7 +357,7 @@ are processed after this action"
     - name: "extra_text"
       type: "String"
       default: ""
-      cpp-optional: false
+      optional: false
       description: "The optional EDNS Extended DNS Error extra text"
 - name: "SetMacAddr"
   description: "Add the source MAC address to the query as an EDNS0 option. This action is currently only supported on Linux. Subsequent rules are processed after this action"
@@ -420,7 +420,7 @@ are processed after this action"
     - name: "reason"
       type: "String"
       default: ""
-      cpp-optional: false
+      optional: false
       description: "The SNMP trap reason"
 - name: "Spoof"
   description: "Forge a response with the specified IPv4 (for an A query) or IPv6 (for an AAAA) addresses. If you specify multiple addresses, all that match the query type (A, AAAA or ANY) will get spoofed in"
