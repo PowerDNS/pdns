@@ -360,12 +360,6 @@ std::shared_ptr<DNSRule> qnameSuffixRule(const boost::variant<const SuffixMatchN
   const auto& smn = *boost::get<const SuffixMatchNode&>(&names);
   return std::shared_ptr<DNSRule>(new SuffixMatchNodeRule(smn, quiet ? *quiet : false));
 }
-
-template <class T>
-std::optional<T> boostToStandardOptional(const std::optional<T>& boostOpt)
-{
-  return boostOpt ? *boostOpt : std::optional<T>();
-}
 }
 
 void setupLuaRuleChainsManagement(LuaContext& luaCtx)
