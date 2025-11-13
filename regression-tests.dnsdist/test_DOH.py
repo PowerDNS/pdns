@@ -377,7 +377,7 @@ class DOHTests(object):
             conn.send('AAAA')
             response = conn.recv(65535)
             self.assertFalse(response)
-        except:
+        except Exception:
             pass
 
     metricMap = {
@@ -1659,7 +1659,7 @@ class DOHFrontendLimits(object):
                 if self._dohLibrary != 'h2o':
                     alpn.append('h2')
                 conns.append(self.openTLSConnection(self._dohServerPort, self._serverName, self._caCert, alpn=alpn))
-            except:
+            except Exception:
                 conns.append(None)
 
         count = 0
@@ -1676,7 +1676,7 @@ class DOHFrontendLimits(object):
                     count = count + 1
                 else:
                     failed = failed + 1
-            except:
+            except Exception:
                 failed = failed + 1
 
         for conn in conns:
@@ -1868,7 +1868,7 @@ class DOHLimits(object):
                 conn.perform_rb()
                 conn.getinfo(pycurl.RESPONSE_CODE)
                 count = count + 1
-            except:
+            except Exception:
                 failed = failed + 1
 
         for conn in conns:

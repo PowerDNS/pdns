@@ -48,7 +48,7 @@ class ApiTestCase(unittest.TestCase):
     def assert_success_json(self, result):
         try:
             result.raise_for_status()
-        except:
+        except Exception:
             print(result.content)
             raise
         self.assertEqual(result.headers['Content-Type'], 'application/json')
@@ -60,7 +60,7 @@ class ApiTestCase(unittest.TestCase):
     def assert_success(self, result):
         try:
             result.raise_for_status()
-        except:
+        except Exception:
             print(result.content)
             raise
 

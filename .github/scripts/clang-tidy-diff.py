@@ -270,7 +270,7 @@ def main():
     print('Writing fixes to ' + args.export_fixes + ' ...')
     try:
       merge_replacement_files(tmpdir, args.export_fixes)
-    except:
+    except Exception:
       sys.stderr.write('Error exporting fixes.\n')
       traceback.print_exc()
 

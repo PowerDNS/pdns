@@ -203,7 +203,7 @@ class TestRecursorDNSTap(RecursorTest):
         try:
             try:
                 os.remove(param.path)
-            except:
+            except Exception:
                 pass
             sock.bind(param.path)
             sock.listen(100)
@@ -278,7 +278,7 @@ cname 3600 IN CNAME a.example.
     def getFirstDnstap(self):
         try:
             data = DNSTapServerParameters.queue.get(True, timeout=2.0)
-        except:
+        except Exception:
             data = False
         self.assertTrue(data)
         dnstap = dnstap_pb2.Dnstap()
