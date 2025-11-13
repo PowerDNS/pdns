@@ -46,7 +46,7 @@ system-resolver-ttl=1
     def generateRecursorConfig(cls, confdir):
         subprocess.run(['sudo', 'sed', '-i', '-e', '/namedforwardtest/d', '/etc/hosts'])
         subprocess.run(['sudo', 'sh', '-c', 'echo ' + cls._PREFIX + '.10 namedforwardtest >> /etc/hosts'])
-        super(testNamedForwardWithChange, cls).generateRecursorConfig(confdir)
+        super(NamedForwardWithChangeTest, cls).generateRecursorConfig(confdir)
 
     def testExampleNSQuery(self):
         query = dns.message.make_query('example', 'NS', want_dnssec=False)
