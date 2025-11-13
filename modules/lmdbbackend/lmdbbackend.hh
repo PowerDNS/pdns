@@ -85,6 +85,9 @@ public:
   bool abortTransaction() override;
   bool feedRecord(const DNSResourceRecord& r, const DNSName& ordername, bool ordernameIsNSEC3 = false) override;
   bool feedComment(const Comment& c) override;
+  bool listComments(domainid_t domain_id) override;
+  bool getComment(Comment& comment) override;
+
   bool feedEnts(domainid_t domain_id, map<DNSName, bool>& nonterm) override;
   bool feedEnts3(domainid_t domain_id, const DNSName& domain, map<DNSName, bool>& nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow) override;
   bool replaceRRSet(domainid_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset) override;
@@ -409,6 +412,10 @@ private:
     MDBOutVal val;
     // whether to include disabled records in the results
     bool includedisabled;
+    // whether we are doing comments (false=records, true=comments)
+    bool comments;
+    // comment found by last call to getInternal
+    Comment comment;
 
     void reset()
     {
@@ -417,6 +424,7 @@ private:
       rrset.clear();
       rrsetpos = 0;
       cursor.reset();
+      comments = false;
     }
   } d_lookupstate;
 
