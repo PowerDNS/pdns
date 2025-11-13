@@ -243,7 +243,7 @@ class TestTCPKeepAlive(DNSDistTest):
             except:
                 pass
 
-        for con in conns:
+        for conn in conns:
           conn.close()
 
         self.assertEqual(count, numConns * numQueriesPerConn)
