@@ -1938,6 +1938,24 @@ bool LMDBBackend::deleteDomain(const ZoneName& domain)
   return true;
 }
 
+bool LMDBBackend::listComments(domainid_t domain_id)
+{
+  DomainInfo info;
+  if (!findDomain(domain_id, info)) {
+    throw DBException("Domain with id '" + std::to_string(domain_id) + "not found");
+  }
+
+  d_lookupstate.domain = info.zone;
+  d_lookupstate.submatch.clear();
+  d_lookupstate.comments = true;
+
+  compoundOrdername order;
+  std::string match = order(domain_id);
+
+  lookupStart(domain_id, match, false);
+  return true;
+}
+
 bool LMDBBackend::list(const ZoneName& target, domainid_t domain_id, bool include_disabled)
 {
   d_lookupstate.domain = target;
@@ -2033,7 +2051,12 @@ void LMDBBackend::lookupStart(domainid_t domain_id, const std::string& match, bo
 {
   d_rotxn = getRecordsROTransaction(domain_id, d_rwtxn);
   d_txnorder = true;
-  d_lookupstate.cursor = std::make_shared<MDBROCursor>(d_rotxn->txn->getCursor(d_rotxn->db->rdbi));
+  if (d_lookupstate.comments) {
+    d_lookupstate.cursor = std::make_shared<MDBROCursor>(d_rotxn->txn->getCursor(d_rotxn->db->cdbi));
+  }
+  else {
+    d_lookupstate.cursor = std::make_shared<MDBROCursor>(d_rotxn->txn->getCursor(d_rotxn->db->rdbi));
+  }
 
   // Make sure we start with fresh data
   d_lookupstate.rrset.clear();
@@ -2056,6 +2079,46 @@ void LMDBBackend::lookupStart(domainid_t domain_id, const std::string& match, bo
 
 bool LMDBBackend::getInternal(DNSName& basename, std::string_view& key)
 {
+  // FIXME: bit of duplication from below here, but much simpler
+  if (d_lookupstate.comments) {
+    if (d_lookupstate.cursor && d_lookupstate.cursor->next(d_lookupstate.key, d_lookupstate.val) != 0) {
+      d_lookupstate.reset();
+    }
+
+    if (!d_lookupstate.cursor) {
+      d_rotxn.reset();
+      return false;
+    }
+
+    key = d_lookupstate.key.getNoStripHeader<string_view>();
+    // remove hash from the key so compoundOrdername::get* work
+    key = key.substr(0, key.size() - 256/8);
+
+    basename = compoundOrdername::getQName(key);
+
+    uint64_t ts;
+    auto val = d_lookupstate.val.get<string_view>();
+    if (val.size() < sizeof(uint64_t)) {
+      throw DBException("got invalid serialized comment");
+    }
+
+    memcpy(&ts, val.data(), sizeof(uint64_t)); // ts in network order
+
+    val = val.substr(8, std::string_view::npos);
+
+    d_lookupstate.comment.domain_id=compoundOrdername::getDomainID(key);
+    d_lookupstate.comment.qname=basename + d_lookupstate.domain.operator const DNSName&();
+    d_lookupstate.comment.qtype=compoundOrdername::getQType(key);
+    d_lookupstate.comment.modified_at=LMDBLS::pdns_bswap64(ts);
+    auto pos = val.find('\0', 1); // FIXME check
+    d_lookupstate.comment.content=val.substr(0, pos); // pos-1?
+    val = val.substr(pos, std::string_view::npos);
+    pos = val.find('\0', 1); // FIXME check
+    d_lookupstate.comment.account=val.substr(0, pos); // pos-1?
+
+    return true;
+  }
+
   for (;;) {
     if (!d_lookupstate.rrset.empty()) {
       if (++d_lookupstate.rrsetpos >= d_lookupstate.rrset.size()) {
@@ -2116,6 +2179,19 @@ bool LMDBBackend::getInternal(DNSName& basename, std::string_view& key)
 
     break;
   }
+
+  return true;
+}
+
+bool LMDBBackend::getComment(Comment& comment) // NOLINT(readability-identifier-length)
+{
+  DNSName basename;
+  std::string_view key;
+
+  if (!getInternal(basename, key)) {
+    return false;
+  }
+  comment = d_lookupstate.comment;
 
   return true;
 }
