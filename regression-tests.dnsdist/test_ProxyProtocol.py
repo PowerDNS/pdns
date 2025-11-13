@@ -556,7 +556,7 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
                                     60,
                                     dns.rdataclass.IN,
                                     dns.rdatatype.CNAME,
-                                    "address-was-{}-port-was-{}.proxy-protocol-incoming.tests.powerdns.com.".format(destAddr, destPort, self._dnsDistPort))
+                                    "address-was-{}-port-was-{}.proxy-protocol-incoming.tests.powerdns.com.".format(destAddr, destPort))
         response.answer.append(rrset)
 
         udpPayload = ProxyProtocol.getPayload(False, False, True, srcAddr, destAddr, srcPort, destPort, [ [ 2, b'foo'], [ 3, b'proxy'] ])
