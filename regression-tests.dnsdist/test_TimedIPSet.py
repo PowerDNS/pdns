@@ -63,15 +63,15 @@ query_rules:
             self.assertEqual(receivedQuery, query)
             self.assertEqual(receivedResponse, response)
 
-        # now we block it for one second
-        self.sendConsoleCommand('getObjectFromYAMLConfiguration(\'my-set\'):add(newCA(\'127.0.0.1\'), 1)')
+        # now we block it for two seconds
+        self.sendConsoleCommand('getObjectFromYAMLConfiguration(\'my-set\'):add(newCA(\'127.0.0.1\'), 2)')
 
         for method in ["sendUDPQuery", "sendTCPQuery"]:
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertEqual(receivedResponse, refusedResponse)
 
-        time.sleep(1)
+        time.sleep(2)
 
         # should be unblocked now
         for method in ["sendUDPQuery", "sendTCPQuery"]:
@@ -120,15 +120,15 @@ class TestTimeIPSetLua(DNSDistTest):
             self.assertEqual(receivedQuery, query)
             self.assertEqual(receivedResponse, response)
 
-        # now we block it for one second
-        self.sendConsoleCommand('mySet:add(newCA(\'127.0.0.1\'), 1)')
+        # now we block it for two seconds
+        self.sendConsoleCommand('mySet:add(newCA(\'127.0.0.1\'), 2)')
 
         for method in ["sendUDPQuery", "sendTCPQuery"]:
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertEqual(receivedResponse, refusedResponse)
 
-        time.sleep(1)
+        time.sleep(2)
 
         # should be unblocked now
         for method in ["sendUDPQuery", "sendTCPQuery"]:
