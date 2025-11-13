@@ -471,9 +471,11 @@ class TestUpdateHCParamsCombo1(HealthCheckUpdateParams):
         self.setDrop()
 
         # wait for 1st failure
-        for i in [1,2,3]:
+        i = 1
+        while i <= 3:
             rc = self.wait1()
             if rc is False: break
+            i += 1
         self.assertGreater(3, i)
         time.sleep(1.1)
         # should have failures but still up
@@ -490,9 +492,11 @@ class TestUpdateHCParamsCombo1(HealthCheckUpdateParams):
         self.setDrop(False)
 
         # wait for 1st success
-        for i in [1,2,3]:
+        i = 1
+        while i <= 3:
             rc = self.wait1()
             if rc is True: break
+            i += 1
         self.assertGreater(3, i)
         time.sleep(0.1)
         # still down
@@ -540,9 +544,11 @@ class TestUpdateHCParamsCombo2(HealthCheckUpdateParams):
         self.setDrop()
 
         # wait for 1st failure
-        for i in [1,2,3]:
+        i = 1
+        while i <= 3:
             rc = self.wait1()
             if rc is False: break
+            i += 1
         self.assertGreater(3, i)
 
         beforeFailure = self.getBackendMetric(0, 'healthCheckFailures')
