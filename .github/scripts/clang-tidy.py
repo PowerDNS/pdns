@@ -48,8 +48,8 @@ def main():
     gh_step_summary = os.getenv("GITHUB_STEP_SUMMARY")
     if gh_step_summary:
         # Print Markdown summary
-        summary_fp = open(gh_step_summary, "a", encoding="utf-8")
-        print("### clang-tidy summary", file=summary_fp)
+        with open(gh_step_summary, "a", encoding="utf-8") as summary_fp:
+            print("### clang-tidy summary", file=summary_fp)
 
     fixes = fixes["Diagnostics"]
     have_warnings = False

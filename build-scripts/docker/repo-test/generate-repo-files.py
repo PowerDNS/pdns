@@ -89,31 +89,28 @@ def write_dockerfile (os, os_version, release):
         pkg = 'dnsdist'
         cmd = 'dnsdist'
 
-    f = open('{}{}.{}-{}'.format(g_dockerfile, release, os, os_version), 'w')
-
-    # This comment was in the template for the `--nobest` part but that makes
-    # the template look even more different than the final output, so:
-    #
-    # > When should the logic be in the code and when in the template? :shrug:
-    # > I prefer it to be in the code but I also do not want to add extra vars
-    # > and logic to the code unless necessary.
-    f.write(tpl.render({ "os": os,
-                         "os_image": os_image,
-                         "os_version": os_version,
-                         "release": release,
-                         "cmd": cmd,
-                         "pkg": pkg }))
-    f.close()
+    with open('{}{}.{}-{}'.format(g_dockerfile, release, os, os_version), 'w') as f:
+        # This comment was in the template for the `--nobest` part but that makes
+        # the template look even more different than the final output, so:
+        #
+        # > When should the logic be in the code and when in the template? :shrug:
+        # > I prefer it to be in the code but I also do not want to add extra vars
+        # > and logic to the code unless necessary.
+        f.write(tpl.render({ "os": os,
+                            "os_image": os_image,
+                            "os_version": os_version,
+                            "release": release,
+                            "cmd": cmd,
+                            "pkg": pkg }))
 
 
 def write_list_file (os, os_version, release):
     tpl = g_env.get_template('pdns-list.jinja2')
 
-    f = open('pdns.list.{}.{}-{}'.format(release, os, os_version), 'w')
-    f.write(tpl.render({ "os": os,
-                         "os_version": os_version,
-                         "release": release }))
-    f.close()
+    with open('pdns.list.{}.{}-{}'.format(release, os, os_version), 'w') as f:
+        f.write(tpl.render({ "os": os,
+                            "os_version": os_version,
+                            "release": release }))
 
 
 def write_pkg_pin_file (release):
@@ -124,9 +121,8 @@ def write_pkg_pin_file (release):
     elif release.startswith('dnsdist-'):
         pkg = 'dnsdist'
 
-    f = open('pkg-pin', 'w')
-    f.write(tpl.render({ "pkg": pkg }))
-    f.close()
+    with open('pkg-pin', 'w') as f:
+       f.write(tpl.render({ "pkg": pkg }))
 
 
 def write_release_files (release):

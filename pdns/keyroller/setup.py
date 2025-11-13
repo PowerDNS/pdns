@@ -29,8 +29,9 @@ def exists(fname):
 # README file and 2) it's easier to type in the README file than to put a raw
 # string in below ...
 def read(fname):
-    return open(os.path.join(os.path.dirname(__file__), fname),
-                'r', encoding='utf-8').read()
+    with open(os.path.join(os.path.dirname(__file__), fname),
+              'r', encoding='utf-8') as f:
+        return f.read()
 
 
 version = os.environ.get('BUILDER_VERSION', '0.0.0')
