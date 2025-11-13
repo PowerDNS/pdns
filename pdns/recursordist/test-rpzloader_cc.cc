@@ -108,7 +108,7 @@ BOOST_AUTO_TEST_CASE(load_rpz_ok)
   ::arg().set("max-generate-steps") = "1";
   ::arg().set("max-include-depth") = "20";
   auto zone = std::make_shared<DNSFilterEngine::Zone>();
-  auto soa = loadRPZFromFile(rpz, zone, boost::none, false, 3600);
+  auto soa = loadRPZFromFile(rpz, zone, std::nullopt, false, 3600);
   unlink(rpz.c_str());
 
   BOOST_CHECK_EQUAL(soa->d_st.serial, 1U);
@@ -137,7 +137,7 @@ BOOST_AUTO_TEST_CASE(load_rpz_dups)
   ::arg().set("max-include-depth") = "20";
   auto zone = std::make_shared<DNSFilterEngine::Zone>();
 
-  BOOST_CHECK_THROW(loadRPZFromFile(rpz, zone, boost::none, false, 3600),
+  BOOST_CHECK_THROW(loadRPZFromFile(rpz, zone, std::nullopt, false, 3600),
                     std::runtime_error);
   unlink(rpz.c_str());
 }
@@ -163,7 +163,7 @@ BOOST_AUTO_TEST_CASE(load_rpz_dups_allow)
   ::arg().set("max-include-depth") = "20";
   auto zone = std::make_shared<DNSFilterEngine::Zone>();
   zone->setIgnoreDuplicates(true);
-  auto soa = loadRPZFromFile(rpz, zone, boost::none, false, 3600);
+  auto soa = loadRPZFromFile(rpz, zone, std::nullopt, false, 3600);
   unlink(rpz.c_str());
   BOOST_CHECK_EQUAL(soa->d_st.serial, 1000000000U);
   BOOST_CHECK_EQUAL(zone->getDomain(), DNSName("."));

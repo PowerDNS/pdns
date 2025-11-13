@@ -31,7 +31,7 @@ extern bool g_logRPZChanges;
 struct RPZTrackerParams
 {
   ZoneXFRParams zoneXFRParams;
-  boost::optional<DNSFilterEngine::Policy> defpol;
+  std::optional<DNSFilterEngine::Policy> defpol;
   std::string defcontent;
   bool defpolOverrideLocal{true};
   uint32_t maxTTL = std::numeric_limits<uint32_t>::max();
@@ -45,7 +45,7 @@ struct RPZTrackerParams
   bool ignoreDuplicates{false};
 };
 
-std::shared_ptr<const SOARecordContent> loadRPZFromFile(const std::string& fname, const std::shared_ptr<DNSFilterEngine::Zone>& zone, const boost::optional<DNSFilterEngine::Policy>& defpol, bool defpolOverrideLocal, uint32_t maxTTL);
+std::shared_ptr<const SOARecordContent> loadRPZFromFile(const std::string& fname, const std::shared_ptr<DNSFilterEngine::Zone>& zone, const std::optional<DNSFilterEngine::Policy>& defpol, bool defpolOverrideLocal, uint32_t maxTTL);
 void RPZIXFRTracker(RPZTrackerParams params, uint64_t configGeneration);
 
 struct rpzStats
