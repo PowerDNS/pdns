@@ -191,7 +191,7 @@ static bool isEnabledForQueries(const std::shared_ptr<std::vector<std::unique_pt
   return false;
 }
 
-static void logFstreamQuery(const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstreamLoggers, const struct timeval& queryTime, const ComboAddress& localip, const ComboAddress& address, DnstapMessage::ProtocolType protocol, const boost::optional<const DNSName&>& auth, const vector<uint8_t>& packet)
+static void logFstreamQuery(const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstreamLoggers, const struct timeval& queryTime, const ComboAddress& localip, const ComboAddress& address, DnstapMessage::ProtocolType protocol, const DNSName& auth, const vector<uint8_t>& packet)
 {
   if (fstreamLoggers == nullptr)
     return;
@@ -221,7 +221,7 @@ static bool isEnabledForResponses(const std::shared_ptr<std::vector<std::unique_
   return false;
 }
 
-static void logFstreamResponse(const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstreamLoggers, const ComboAddress& localip, const ComboAddress& address, DnstapMessage::ProtocolType protocol, const boost::optional<const DNSName&>& auth, const PacketBuffer& packet, const struct timeval& queryTime, const struct timeval& replyTime)
+static void logFstreamResponse(const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstreamLoggers, const ComboAddress& localip, const ComboAddress& address, DnstapMessage::ProtocolType protocol, const DNSName& auth, const PacketBuffer& packet, const struct timeval& queryTime, const struct timeval& replyTime)
 {
   if (fstreamLoggers == nullptr)
     return;
@@ -731,7 +731,7 @@ static LWResult::Result asyncresolve(const OptLog& log, const ComboAddress& addr
       }
 #ifdef HAVE_FSTRM
       if (fstrmQEnabled) {
-        logFstreamQuery(fstrmLoggers, queryTime, localip, address, DnstapMessage::ProtocolType::DoUDP, context.d_auth ? context.d_auth : boost::none, vpacket);
+        logFstreamQuery(fstrmLoggers, queryTime, localip, address, DnstapMessage::ProtocolType::DoUDP, context.d_auth, vpacket);
       }
 #endif
     }

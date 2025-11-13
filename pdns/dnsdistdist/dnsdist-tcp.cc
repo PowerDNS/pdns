@@ -326,11 +326,11 @@ void IncomingTCPConnectionState::resetForNewQuery()
   d_readIOsCurrentQuery = 0;
 }
 
-boost::optional<timeval> IncomingTCPConnectionState::getClientReadTTD(timeval now) const
+std::optional<timeval> IncomingTCPConnectionState::getClientReadTTD(timeval now) const
 {
   const auto& runtimeConfiguration = dnsdist::configuration::getCurrentRuntimeConfiguration();
   if (!isNearTCPLimits() && runtimeConfiguration.d_maxTCPConnectionDuration == 0 && runtimeConfiguration.d_tcpRecvTimeout == 0) {
-    return boost::none;
+    return std::nullopt;
   }
 
   size_t maxTCPConnectionDuration = runtimeConfiguration.d_maxTCPConnectionDuration;
@@ -362,11 +362,11 @@ boost::optional<timeval> IncomingTCPConnectionState::getClientReadTTD(timeval no
   return now;
 }
 
-boost::optional<timeval> IncomingTCPConnectionState::getClientWriteTTD(const timeval& now) const
+std::optional<timeval> IncomingTCPConnectionState::getClientWriteTTD(const timeval& now) const
 {
   const auto& runtimeConfiguration = dnsdist::configuration::getCurrentRuntimeConfiguration();
   if (runtimeConfiguration.d_maxTCPConnectionDuration == 0 && runtimeConfiguration.d_tcpSendTimeout == 0) {
-    return boost::none;
+    return std::nullopt;
   }
 
   timeval res(now);

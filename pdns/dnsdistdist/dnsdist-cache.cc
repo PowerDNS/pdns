@@ -50,7 +50,7 @@ DNSDistPacketCache::DNSDistPacketCache(CacheSettings settings) :
   }
 }
 
-bool DNSDistPacketCache::getClientSubnet(const PacketBuffer& packet, size_t qnameWireLength, boost::optional<Netmask>& subnet)
+bool DNSDistPacketCache::getClientSubnet(const PacketBuffer& packet, size_t qnameWireLength, std::optional<Netmask>& subnet)
 {
   uint16_t optRDPosition = 0;
   size_t remaining = 0;
@@ -78,7 +78,7 @@ bool DNSDistPacketCache::getClientSubnet(const PacketBuffer& packet, size_t qnam
   return false;
 }
 
-bool DNSDistPacketCache::cachedValueMatches(const CacheValue& cachedValue, uint16_t queryFlags, const DNSName& qname, uint16_t qtype, uint16_t qclass, bool receivedOverUDP, bool dnssecOK, const boost::optional<Netmask>& subnet) const
+bool DNSDistPacketCache::cachedValueMatches(const CacheValue& cachedValue, uint16_t queryFlags, const DNSName& qname, uint16_t qtype, uint16_t qclass, bool receivedOverUDP, bool dnssecOK, const std::optional<Netmask>& subnet) const
 {
   if (cachedValue.queryFlags != queryFlags || cachedValue.dnssecOK != dnssecOK || cachedValue.receivedOverUDP != receivedOverUDP || cachedValue.qtype != qtype || cachedValue.qclass != qclass || cachedValue.qname != qname) {
     return false;
@@ -125,7 +125,7 @@ bool DNSDistPacketCache::insertLocked(std::unordered_map<uint32_t, CacheValue>& 
   return false;
 }
 
-void DNSDistPacketCache::insert(uint32_t key, const boost::optional<Netmask>& subnet, uint16_t queryFlags, bool dnssecOK, const DNSName& qname, uint16_t qtype, uint16_t qclass, const PacketBuffer& response, bool receivedOverUDP, uint8_t rcode, boost::optional<uint32_t> tempFailureTTL)
+void DNSDistPacketCache::insert(uint32_t key, const std::optional<Netmask>& subnet, uint16_t queryFlags, bool dnssecOK, const DNSName& qname, uint16_t qtype, uint16_t qclass, const PacketBuffer& response, bool receivedOverUDP, uint8_t rcode, std::optional<uint32_t> tempFailureTTL)
 {
   if (response.size() < sizeof(dnsheader) || response.size() > getMaximumEntrySize()) {
     return;
@@ -138,7 +138,7 @@ void DNSDistPacketCache::insert(uint32_t key, const boost::optional<Netmask>& su
   uint32_t minTTL{0};
 
   if (rcode == RCode::ServFail || rcode == RCode::Refused) {
-    minTTL = tempFailureTTL == boost::none ? d_settings.d_tempFailureTTL : *tempFailureTTL;
+    minTTL = tempFailureTTL == std::nullopt ? d_settings.d_tempFailureTTL : *tempFailureTTL;
     if (minTTL == 0) {
       return;
     }
@@ -218,7 +218,7 @@ void DNSDistPacketCache::insert(uint32_t key, const boost::optional<Netmask>& su
   }
 }
 
-bool DNSDistPacketCache::get(DNSQuestion& dnsQuestion, uint16_t queryId, uint32_t* keyOut, boost::optional<Netmask>& subnet, bool dnssecOK, bool receivedOverUDP, uint32_t allowExpired, bool skipAging, bool truncatedOK, bool recordMiss)
+bool DNSDistPacketCache::get(DNSQuestion& dnsQuestion, uint16_t queryId, uint32_t* keyOut, std::optional<Netmask>& subnet, bool dnssecOK, bool receivedOverUDP, uint32_t allowExpired, bool skipAging, bool truncatedOK, bool recordMiss)
 {
   if (dnsQuestion.ids.qtype == QType::AXFR || dnsQuestion.ids.qtype == QType::IXFR) {
     ++d_misses;
@@ -534,7 +534,7 @@ uint64_t DNSDistPacketCache::dump(int fileDesc, bool rawResponse)
           rcode = dnsHeader.rcode;
         }
 
-        fprintf(filePtr.get(), "%s %" PRId64 " %s %s ; ecs %s, rcode %" PRIu8 ", key %" PRIu32 ", length %" PRIu16 ", received over UDP %d, added %" PRId64 ", dnssecOK %d, raw query flags %" PRIu16, value.qname.toString().c_str(), static_cast<int64_t>(value.validity - now), QClass(value.qclass).toString().c_str(), QType(value.qtype).toString().c_str(), value.subnet ? value.subnet.get().toString().c_str() : "empty", rcode, entry.first, value.len, value.receivedOverUDP ? 1 : 0, static_cast<int64_t>(value.added), value.dnssecOK ? 1 : 0, value.queryFlags);
+        fprintf(filePtr.get(), "%s %" PRId64 " %s %s ; ecs %s, rcode %" PRIu8 ", key %" PRIu32 ", length %" PRIu16 ", received over UDP %d, added %" PRId64 ", dnssecOK %d, raw query flags %" PRIu16, value.qname.toString().c_str(), static_cast<int64_t>(value.validity - now), QClass(value.qclass).toString().c_str(), QType(value.qtype).toString().c_str(), value.subnet ? value.subnet.value().toString().c_str() : "empty", rcode, entry.first, value.len, value.receivedOverUDP ? 1 : 0, static_cast<int64_t>(value.added), value.dnssecOK ? 1 : 0, value.queryFlags);
 
         if (rawResponse) {
           std::string rawDataResponse = Base64Encode(value.value);

@@ -57,8 +57,8 @@ public:
 
   DNSDistPacketCache(CacheSettings settings);
 
-  void insert(uint32_t key, const boost::optional<Netmask>& subnet, uint16_t queryFlags, bool dnssecOK, const DNSName& qname, uint16_t qtype, uint16_t qclass, const PacketBuffer& response, bool receivedOverUDP, uint8_t rcode, boost::optional<uint32_t> tempFailureTTL);
-  bool get(DNSQuestion& dnsQuestion, uint16_t queryId, uint32_t* keyOut, boost::optional<Netmask>& subnet, bool dnssecOK, bool receivedOverUDP, uint32_t allowExpired = 0, bool skipAging = false, bool truncatedOK = true, bool recordMiss = true);
+  void insert(uint32_t key, const std::optional<Netmask>& subnet, uint16_t queryFlags, bool dnssecOK, const DNSName& qname, uint16_t qtype, uint16_t qclass, const PacketBuffer& response, bool receivedOverUDP, uint8_t rcode, std::optional<uint32_t> tempFailureTTL);
+  bool get(DNSQuestion& dnsQuestion, uint16_t queryId, uint32_t* keyOut, std::optional<Netmask>& subnet, bool dnssecOK, bool receivedOverUDP, uint32_t allowExpired = 0, bool skipAging = false, bool truncatedOK = true, bool recordMiss = true);
   size_t purgeExpired(size_t upTo, time_t now);
   size_t expunge(size_t upTo = 0);
   size_t expungeByName(const DNSName& name, uint16_t qtype = QType::ANY, bool suffixMatch = false);
@@ -94,7 +94,7 @@ public:
   uint32_t getKey(const DNSName::string_t& qname, size_t qnameWireLength, const PacketBuffer& packet, bool receivedOverUDP) const;
 
   static uint32_t getMinTTL(const char* packet, uint16_t length, bool* seenNoDataSOA);
-  static bool getClientSubnet(const PacketBuffer& packet, size_t qnameWireLength, boost::optional<Netmask>& subnet);
+  static bool getClientSubnet(const PacketBuffer& packet, size_t qnameWireLength, std::optional<Netmask>& subnet);
 
 private:
   struct CacheValue
@@ -102,7 +102,7 @@ private:
     [[nodiscard]] time_t getTTD() const { return validity; }
     std::string value;
     DNSName qname;
-    boost::optional<Netmask> subnet;
+    std::optional<Netmask> subnet;
     uint16_t qtype{0};
     uint16_t qclass{0};
     uint16_t queryFlags{0};
@@ -142,7 +142,7 @@ private:
     std::atomic<uint64_t> d_entriesCount{0};
   };
 
-  [[nodiscard]] bool cachedValueMatches(const CacheValue& cachedValue, uint16_t queryFlags, const DNSName& qname, uint16_t qtype, uint16_t qclass, bool receivedOverUDP, bool dnssecOK, const boost::optional<Netmask>& subnet) const;
+  [[nodiscard]] bool cachedValueMatches(const CacheValue& cachedValue, uint16_t queryFlags, const DNSName& qname, uint16_t qtype, uint16_t qclass, bool receivedOverUDP, bool dnssecOK, const std::optional<Netmask>& subnet) const;
   [[nodiscard]] uint32_t getShardIndex(uint32_t key) const;
   bool insertLocked(std::unordered_map<uint32_t, CacheValue>& map, uint32_t key, CacheValue& newValue);
 

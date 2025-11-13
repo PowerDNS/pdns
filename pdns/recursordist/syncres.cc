@@ -1459,8 +1459,7 @@ LWResult::Result SyncRes::asyncresolveWrapper(const OptLog& log, const ComboAddr
 
   int EDNSLevel = 0;
   auto luaconfsLocal = g_luaconfs.getLocal();
-  ResolveContext ctx(d_initialRequestId, nsName);
-  ctx.d_auth = auth;
+  ResolveContext ctx(d_initialRequestId, nsName, auth);
 
   LWResult::Result ret{};
 

@@ -508,7 +508,7 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
         conn->d_ioState->update(iostate, handleIOCallback, conn);
       }
       else {
-        boost::optional<struct timeval> ttd{boost::none};
+        std::optional<struct timeval> ttd{std::nullopt};
         if (iostate == IOState::NeedRead) {
           ttd = conn->getBackendReadTTD(now);
         }
