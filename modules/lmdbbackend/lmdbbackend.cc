@@ -1169,17 +1169,23 @@ static std::string serializeContent(uint16_t qtype, const DNSName& domain, const
 // account name, \0 terminated
 
 // perhaps this can also create the compound order name for us
-static std::string serializeComment(const Comment& c)
+std::pair<std::string, std::string> LMDBBackend::serializeComment(const Comment& comment)
 {
-  string ret;
+  compoundOrdername co;
+  auto qname = comment.qname.makeRelative(d_transactiondomain);
+  string key = co(comment.domain_id, qname, comment.qtype); // FIXME: add hash to distinguish multiple comments
 
-  uint64_t ts = LMDBLS::pdns_bswap64(c.modified_at);
-  ret.reserve(sizeof(uint64_t) + c.content.size() + c.account.size() + 2); // one timestamp, two strings, 2 \0 delimiters
+  // we serialized domain_id, qname, qtype
+  // that leaves us with content, modified_at, account
 
-  ret.assign((char *)(&ts), sizeof(ts)); // FIXME i bet there's a cleaner way
-  ret += c.content + string(1, (char)0) + c.account + string(1, (char)0);
+  string val;
+  uint64_t ts = LMDBLS::pdns_bswap64(comment.modified_at);
+  val.reserve(sizeof(uint64_t) + comment.content.size() + comment.account.size() + 2); // one timestamp, two strings, 2 \0 delimiters
 
-  return ret;
+  val.assign((char *)(&ts), sizeof(ts)); // FIXME i bet there's a cleaner way
+  val += comment.content + string(1, (char)0) + comment.account + string(1, (char)0);
+
+  return {key, val};
 }
 
 static std::shared_ptr<DNSRecordContent> deserializeContentZR(uint16_t qtype, const DNSName& qname, const std::string& content)
@@ -1492,15 +1498,9 @@ bool LMDBBackend::feedRecord(const DNSResourceRecord& r, const DNSName& ordernam
 // d_rwtxn must be set here
 bool LMDBBackend::feedComment(const Comment& comment)
 {
-  compoundOrdername co;
-  auto qname = comment.qname.makeRelative(d_transactiondomain);
-  string key = co(comment.domain_id, qname, comment.qtype); // FIXME: add hash to distinguish multiple comments
+  auto [key,val] = serializeComment(comment);
 
-  // we serialized domain_id, qname, qtype
-  // that leaves us with content, modified_at, account
-  string value = serializeComment(comment);
-
-  d_rwtxn->txn->put(d_rwtxn->db->cdbi, key, value);
+  d_rwtxn->txn->put(d_rwtxn->db->cdbi, key, val);
 
   return true;
 }
