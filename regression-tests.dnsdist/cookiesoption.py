@@ -30,10 +30,10 @@ class CookiesOption(dns.edns.Option):
         else:
             data = self.client
 
-        if file:
-            file.write(data)
-        else:
+        if not file:
             return data
+        file.write(data)
+        return None
 
     def from_wire(cls, otype, wire, current, olen):
         """Read EDNS packet as defined in draft-ietf-dnsop-cookies-09.

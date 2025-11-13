@@ -22,10 +22,10 @@ class ExtendedErrorOption(dns.edns.Option):
 
         data = struct.pack('!H', self.code)
         data = data + self.extra
-        if file:
-            file.write(data)
-        else:
+        if not file:
             return data
+        file.write(data)
+        return None
 
     def from_wire(cls, otype, wire, current, olen):
         """Read EDNS packet.
