@@ -34,6 +34,7 @@
 #include "pdns/logger.hh"
 #include "pdns/misc.hh"
 #include "pdns/pdnsexception.hh"
+#include "pdns/sha.hh"
 #include "pdns/uuid-utils.hh"
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
@@ -1173,7 +1174,7 @@ std::pair<std::string, std::string> LMDBBackend::serializeComment(const Comment&
 {
   compoundOrdername co;
   auto qname = comment.qname.makeRelative(d_transactiondomain);
-  string key = co(comment.domain_id, qname, comment.qtype); // FIXME: add hash to distinguish multiple comments
+  string key = co(comment.domain_id, qname, comment.qtype);
 
   // we serialized domain_id, qname, qtype
   // that leaves us with content, modified_at, account
@@ -1184,6 +1185,10 @@ std::pair<std::string, std::string> LMDBBackend::serializeComment(const Comment&
 
   val.assign((char *)(&ts), sizeof(ts)); // FIXME i bet there's a cleaner way
   val += comment.content + string(1, (char)0) + comment.account + string(1, (char)0);
+
+  auto hash = pdns::sha256sum(val);
+
+  key.append(hash);
 
   return {key, val};
 }
