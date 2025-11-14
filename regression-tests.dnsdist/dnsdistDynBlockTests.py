@@ -6,27 +6,32 @@ from dnsdisttests import DNSDistTest, pickAvailablePort
 
 _maintenanceWaitTime = 2
 
+
 def waitForMaintenanceToRun():
     time.sleep(_maintenanceWaitTime)
 
-class DynBlocksTest(DNSDistTest):
 
+class DynBlocksTest(DNSDistTest):
     _webTimeout = 2.0
     _webServerPort = pickAvailablePort()
-    _webServerBasicAuthPassword = 'secret'
-    _webServerBasicAuthPasswordHashed = '$scrypt$ln=10,p=1,r=8$6DKLnvUYEeXWh3JNOd3iwg==$kSrhdHaRbZ7R74q3lGBqO1xetgxRxhmWzYJ2Qvfm7JM='
-    _webServerAPIKey = 'apisecret'
-    _webServerAPIKeyHashed = '$scrypt$ln=10,p=1,r=8$9v8JxDfzQVyTpBkTbkUqYg==$bDQzAOHeK1G9UvTPypNhrX48w974ZXbFPtRKS34+aso='
+    _webServerBasicAuthPassword = "secret"
+    _webServerBasicAuthPasswordHashed = (
+        "$scrypt$ln=10,p=1,r=8$6DKLnvUYEeXWh3JNOd3iwg==$kSrhdHaRbZ7R74q3lGBqO1xetgxRxhmWzYJ2Qvfm7JM="
+    )
+    _webServerAPIKey = "apisecret"
+    _webServerAPIKeyHashed = (
+        "$scrypt$ln=10,p=1,r=8$9v8JxDfzQVyTpBkTbkUqYg==$bDQzAOHeK1G9UvTPypNhrX48w974ZXbFPtRKS34+aso="
+    )
     _dynBlockQPS = 10
     _dynBlockANYQPS = 10
     _dynBlockPeriod = 2
     # this needs to be greater than maintenanceWaitTime
     _dynBlockDuration = _maintenanceWaitTime + 2
-    _config_params = ['_dynBlockQPS', '_dynBlockPeriod', '_dynBlockDuration', '_testServerPort']
+    _config_params = ["_dynBlockQPS", "_dynBlockPeriod", "_dynBlockDuration", "_testServerPort"]
 
     def doTestDynBlockViaAPI(self, ipRange, reason, minSeconds, maxSeconds, minBlocks, maxBlocks, ebpf=False):
-        headers = {'x-api-key': self._webServerAPIKey}
-        url = 'http://127.0.0.1:' + str(self._webServerPort) + '/jsonstat?command=dynblocklist'
+        headers = {"x-api-key": self._webServerAPIKey}
+        url = "http://127.0.0.1:" + str(self._webServerPort) + "/jsonstat?command=dynblocklist"
         r = requests.get(url, headers=headers, timeout=self._webTimeout)
         self.assertTrue(r)
         self.assertEqual(r.status_code, 200)
@@ -36,24 +41,20 @@ class DynBlocksTest(DNSDistTest):
         self.assertIn(ipRange, content)
 
         values = content[ipRange]
-        for key in ['reason', 'seconds', 'blocks', 'action', 'ebpf']:
+        for key in ["reason", "seconds", "blocks", "action", "ebpf"]:
             self.assertIn(key, values)
 
-        self.assertEqual(values['reason'], reason)
-        self.assertGreaterEqual(values['seconds'], minSeconds)
-        self.assertLessEqual(values['seconds'], maxSeconds)
-        self.assertGreaterEqual(values['blocks'], minBlocks)
-        self.assertLessEqual(values['blocks'], maxBlocks)
-        self.assertEqual(values['ebpf'], True if ebpf else False)
+        self.assertEqual(values["reason"], reason)
+        self.assertGreaterEqual(values["seconds"], minSeconds)
+        self.assertLessEqual(values["seconds"], maxSeconds)
+        self.assertGreaterEqual(values["blocks"], minBlocks)
+        self.assertLessEqual(values["blocks"], maxBlocks)
+        self.assertEqual(values["ebpf"], True if ebpf else False)
 
     def doTestQRate(self, name, testViaAPI=True, ebpf=False):
-        query = dns.message.make_query(name, 'A', 'IN')
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
         response.answer.append(rrset)
 
         allowed = 0
@@ -83,7 +84,15 @@ class DynBlocksTest(DNSDistTest):
         self.assertEqual(receivedResponse, None)
 
         if testViaAPI:
-            self.doTestDynBlockViaAPI('127.0.0.1/32', 'Exceeded query rate', 1, self._dynBlockDuration, (sent-allowed)+1, (sent-allowed)+1, ebpf)
+            self.doTestDynBlockViaAPI(
+                "127.0.0.1/32",
+                "Exceeded query rate",
+                1,
+                self._dynBlockDuration,
+                (sent - allowed) + 1,
+                (sent - allowed) + 1,
+                ebpf,
+            )
 
         # wait until we are not blocked anymore
         time.sleep(self._dynBlockDuration + self._dynBlockPeriod)
@@ -131,7 +140,7 @@ class DynBlocksTest(DNSDistTest):
         self.assertEqual(response, receivedResponse)
 
     def doTestQTypeRate(self, name):
-        query = dns.message.make_query(name, 'ANY', 'IN')
+        query = dns.message.make_query(name, "ANY", "IN")
         response = dns.message.make_response(query)
         blockedResponse = dns.message.make_response(query)
         blockedResponse.set_rcode(dns.rcode.REFUSED)
@@ -172,13 +181,9 @@ class DynBlocksTest(DNSDistTest):
         self.assertEqual(response, receivedResponse)
 
     def doTestQRateRCode(self, name, rcode):
-        query = dns.message.make_query(name, 'A', 'IN')
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
         response.answer.append(rrset)
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(rcode)
@@ -257,18 +262,14 @@ class DynBlocksTest(DNSDistTest):
         self.assertEqual(response, receivedResponse)
 
     def doTestResponseByteRate(self, name, dynBlockBytesPerSecond):
-        query = dns.message.make_query(name, 'A', 'IN')
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
-        response.answer.append(dns.rrset.from_text_list(name,
-                                                       60,
-                                                       dns.rdataclass.IN,
-                                                       dns.rdatatype.A,
-                                                       ['192.0.2.1', '192.0.2.2', '192.0.2.3', '192.0.2.4']))
-        response.answer.append(dns.rrset.from_text(name,
-                                                   60,
-                                                   dns.rdataclass.IN,
-                                                   dns.rdatatype.AAAA,
-                                                   '2001:DB8::1'))
+        response.answer.append(
+            dns.rrset.from_text_list(
+                name, 60, dns.rdataclass.IN, dns.rdatatype.A, ["192.0.2.1", "192.0.2.2", "192.0.2.3", "192.0.2.4"]
+            )
+        )
+        response.answer.append(dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.AAAA, "2001:DB8::1"))
 
         allowed = 0
         sent = 0
@@ -300,7 +301,7 @@ class DynBlocksTest(DNSDistTest):
         self.assertGreaterEqual(allowed, dynBlockBytesPerSecond)
 
         print(self.sendConsoleCommand("showDynBlocks()"))
-        print(self.sendConsoleCommand("grepq(\"\")"))
+        print(self.sendConsoleCommand('grepq("")'))
         print(time.time())
 
         if allowed == sent:
@@ -308,7 +309,7 @@ class DynBlocksTest(DNSDistTest):
             waitForMaintenanceToRun()
 
         print(self.sendConsoleCommand("showDynBlocks()"))
-        print(self.sendConsoleCommand("grepq(\"\")"))
+        print(self.sendConsoleCommand('grepq("")'))
         print(time.time())
 
         # we should now be dropped for up to self._dynBlockDuration + self._dynBlockPeriod
@@ -316,14 +317,14 @@ class DynBlocksTest(DNSDistTest):
         self.assertEqual(receivedResponse, None)
 
         print(self.sendConsoleCommand("showDynBlocks()"))
-        print(self.sendConsoleCommand("grepq(\"\")"))
+        print(self.sendConsoleCommand('grepq("")'))
         print(time.time())
 
         # wait until we are not blocked anymore
         time.sleep(self._dynBlockDuration + self._dynBlockPeriod)
 
         print(self.sendConsoleCommand("showDynBlocks()"))
-        print(self.sendConsoleCommand("grepq(\"\")"))
+        print(self.sendConsoleCommand('grepq("")'))
         print(time.time())
 
         # this one should succeed
@@ -373,13 +374,9 @@ class DynBlocksTest(DNSDistTest):
         self.assertEqual(response, receivedResponse)
 
     def doTestRCodeRate(self, name, rcode):
-        query = dns.message.make_query(name, 'A', 'IN')
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
         response.answer.append(rrset)
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(rcode)
@@ -484,19 +481,15 @@ class DynBlocksTest(DNSDistTest):
         self.assertEqual(response, receivedResponse)
 
     def doTestRCodeRatio(self, name, rcode, noerrorcount, rcodecount):
-        query = dns.message.make_query(name, 'A', 'IN')
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
         response.answer.append(rrset)
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(rcode)
 
         # start with normal responses
-        for _ in range(noerrorcount-1):
+        for _ in range(noerrorcount - 1):
             (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
             receivedQuery.id = query.id
             self.assertEqual(query, receivedQuery)
@@ -544,7 +537,7 @@ class DynBlocksTest(DNSDistTest):
 
         # again, over TCP this time
         # start with normal responses
-        for _ in range(noerrorcount-1):
+        for _ in range(noerrorcount - 1):
             (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
             receivedQuery.id = query.id
             self.assertEqual(query, receivedQuery)
@@ -591,14 +584,10 @@ class DynBlocksTest(DNSDistTest):
         self.assertEqual(response, receivedResponse)
 
     def doTestCacheMissRatio(self, name, cacheHits, cacheMisses):
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
 
         for idx in range(cacheMisses):
-            query = dns.message.make_query(str(idx) + '.' + name, 'A', 'IN')
+            query = dns.message.make_query(str(idx) + "." + name, "A", "IN")
             response = dns.message.make_response(query)
             response.answer.append(rrset)
             (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
@@ -611,7 +600,7 @@ class DynBlocksTest(DNSDistTest):
                 # let's clear the response queue
                 self.clearToResponderQueue()
 
-        query = dns.message.make_query('0.' + name, 'A', 'IN')
+        query = dns.message.make_query("0." + name, "A", "IN")
         response = dns.message.make_response(query)
         response.answer.append(rrset)
         for _ in range(cacheHits):
@@ -627,7 +616,7 @@ class DynBlocksTest(DNSDistTest):
         time.sleep(self._dynBlockDuration + self._dynBlockPeriod)
 
         # this one should succeed
-        query = dns.message.make_query(str(cacheMisses + 1) + name, 'A', 'IN')
+        query = dns.message.make_query(str(cacheMisses + 1) + name, "A", "IN")
         response = dns.message.make_response(query)
         response.answer.append(rrset)
         (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)

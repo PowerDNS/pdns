@@ -1,6 +1,6 @@
 class KeyRoll:
     def __init__(self, **kwargs):
-        self.rolltype = kwargs.get('rolltype')
+        self.rolltype = kwargs.get("rolltype")
         self.complete = False
 
     def initiate(self, zone, api, **kwargs):
@@ -13,7 +13,7 @@ class KeyRoll:
         raise NotImplementedError()
 
     def __str__(self):
-        return ''
+        return ""
 
     def __repr__(self):
         raise NotImplementedError()

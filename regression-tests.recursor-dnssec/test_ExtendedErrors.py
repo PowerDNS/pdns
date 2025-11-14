@@ -5,9 +5,9 @@ import pytest
 
 from recursortests import RecursorTest
 
-class ExtendedErrorsTest(RecursorTest):
 
-    _confdir = 'ExtendedErrors'
+class ExtendedErrorsTest(RecursorTest):
+    _confdir = "ExtendedErrors"
     _config_template = """
 dnssec=validate
 extended-resolution-errors=yes
@@ -51,25 +51,27 @@ extended-resolution-errors=yes
         ffi.C.pdns_ffi_param_set_extended_error_extra(obj, #extra, extra)
       end
     end
-    """ % ('A'*427)
+    """ % ("A" * 427)
 
     _roothints = None
 
     @classmethod
     def generateRecursorConfig(cls, confdir):
-        rpzFilePath = os.path.join(confdir, 'zone.rpz')
-        with open(rpzFilePath, 'w') as rpzZone:
-            rpzZone.write("""$ORIGIN zone.rpz.
+        rpzFilePath = os.path.join(confdir, "zone.rpz")
+        with open(rpzFilePath, "w") as rpzZone:
+            rpzZone.write(
+                """$ORIGIN zone.rpz.
 @ 3600 IN SOA {soa}
 *.rpz.extended.zone.rpz. 60 IN CNAME .
-""".format(soa=cls._SOA))
+""".format(soa=cls._SOA)
+            )
 
         super(ExtendedErrorsTest, cls).generateRecursorConfig(confdir)
 
     @pytest.mark.external
     def testNotIncepted(self):
-        qname = 'signotincepted.bad-dnssec.wb.sidnlabs.nl.'
-        query = dns.message.make_query(qname, 'A', want_dnssec=True)
+        qname = "signotincepted.bad-dnssec.wb.sidnlabs.nl."
+        query = dns.message.make_query(qname, "A", want_dnssec=True)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
@@ -78,12 +80,12 @@ extended-resolution-errors=yes
             self.assertEqual(res.edns, 0)
             self.assertEqual(len(res.options), 1)
             self.assertEqual(res.options[0].otype, 15)
-            self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(8, b''))
+            self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(8, b""))
 
     @pytest.mark.external
     def testExpired(self):
-        qname = 'sigexpired.bad-dnssec.wb.sidnlabs.nl.'
-        query = dns.message.make_query(qname, 'A', want_dnssec=True)
+        qname = "sigexpired.bad-dnssec.wb.sidnlabs.nl."
+        query = dns.message.make_query(qname, "A", want_dnssec=True)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
@@ -92,12 +94,12 @@ extended-resolution-errors=yes
             self.assertEqual(res.edns, 0)
             self.assertEqual(len(res.options), 1)
             self.assertEqual(res.options[0].otype, 15)
-            self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(7, b''))
+            self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(7, b""))
 
     @pytest.mark.external
     def testAllExpired(self):
-        qname = 'servfail.nl.'
-        query = dns.message.make_query(qname, 'AAAA', want_dnssec=True)
+        qname = "servfail.nl."
+        query = dns.message.make_query(qname, "AAAA", want_dnssec=True)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
@@ -106,12 +108,12 @@ extended-resolution-errors=yes
             self.assertEqual(res.edns, 0)
             self.assertEqual(len(res.options), 1)
             self.assertEqual(res.options[0].otype, 15)
-            self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(6, b''))
+            self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(6, b""))
 
     @pytest.mark.external
     def testBogus(self):
-        qname = 'bogussig.ok.bad-dnssec.wb.sidnlabs.nl.'
-        query = dns.message.make_query(qname, 'A', want_dnssec=True)
+        qname = "bogussig.ok.bad-dnssec.wb.sidnlabs.nl."
+        query = dns.message.make_query(qname, "A", want_dnssec=True)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
@@ -120,12 +122,12 @@ extended-resolution-errors=yes
             self.assertEqual(res.edns, 0)
             self.assertEqual(len(res.options), 1)
             self.assertEqual(res.options[0].otype, 15)
-            self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(6, b''))
+            self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(6, b""))
 
     @pytest.mark.external
     def testMissingRRSIG(self):
-        qname = 'brokendnssec.net.'
-        query = dns.message.make_query(qname, 'A', want_dnssec=True)
+        qname = "brokendnssec.net."
+        query = dns.message.make_query(qname, "A", want_dnssec=True)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
@@ -134,11 +136,11 @@ extended-resolution-errors=yes
             self.assertEqual(res.edns, 0)
             self.assertEqual(len(res.options), 1)
             self.assertEqual(res.options[0].otype, 15)
-            self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(10, b''))
+            self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(10, b""))
 
     def testFromLua(self):
-        qname = 'fromlua.extended.'
-        query = dns.message.make_query(qname, 'A', want_dnssec=True)
+        qname = "fromlua.extended."
+        query = dns.message.make_query(qname, "A", want_dnssec=True)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
@@ -147,11 +149,11 @@ extended-resolution-errors=yes
             self.assertEqual(res.edns, 0)
             self.assertEqual(len(res.options), 1)
             self.assertEqual(res.options[0].otype, 15)
-            self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(10, b'Extra text from Lua!'))
+            self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(10, b"Extra text from Lua!"))
 
     def testFromLuaFFI(self):
-        qname = 'fromluaffi.extended.'
-        query = dns.message.make_query(qname, 'A', want_dnssec=True)
+        qname = "fromluaffi.extended."
+        query = dns.message.make_query(qname, "A", want_dnssec=True)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
@@ -160,11 +162,11 @@ extended-resolution-errors=yes
             self.assertEqual(res.edns, 0)
             self.assertEqual(len(res.options), 1)
             self.assertEqual(res.options[0].otype, 15)
-            self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(10, b'Extra text from Lua FFI!'))
+            self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(10, b"Extra text from Lua FFI!"))
 
     def testRPZ(self):
-        qname = 'sub.rpz.extended.'
-        query = dns.message.make_query(qname, 'A', want_dnssec=True)
+        qname = "sub.rpz.extended."
+        query = dns.message.make_query(qname, "A", want_dnssec=True)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
@@ -173,11 +175,11 @@ extended-resolution-errors=yes
             self.assertEqual(res.edns, 0)
             self.assertEqual(len(res.options), 1)
             self.assertEqual(res.options[0].otype, 15)
-            self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(15, b'Blocked by RPZ!'))
+            self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(15, b"Blocked by RPZ!"))
 
     def testTooLarge(self):
-        qname = 'toolarge.extended.'
-        query = dns.message.make_query(qname, 'A', want_dnssec=True, payload=512)
+        qname = "toolarge.extended."
+        query = dns.message.make_query(qname, "A", want_dnssec=True, payload=512)
 
         # should not have the Extended Option since the packet is too large already
         res = self.sendUDPQuery(query, timeout=5.0)
@@ -192,11 +194,11 @@ extended-resolution-errors=yes
         self.assertEqual(res.edns, 0)
         self.assertEqual(len(res.options), 1)
         self.assertEqual(res.options[0].otype, 15)
-        self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(10, b'Extra text from Lua!'))
+        self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(10, b"Extra text from Lua!"))
+
 
 class NoExtendedErrorsTest(RecursorTest):
-
-    _confdir = 'NoExtendedErrors'
+    _confdir = "NoExtendedErrors"
     _config_template = """
 dnssec=validate
 extended-resolution-errors=no
@@ -205,8 +207,8 @@ extended-resolution-errors=no
 
     @pytest.mark.external
     def testNotIncepted(self):
-        qname = 'signotincepted.bad-dnssec.wb.sidnlabs.nl.'
-        query = dns.message.make_query(qname, 'A', want_dnssec=True)
+        qname = "signotincepted.bad-dnssec.wb.sidnlabs.nl."
+        query = dns.message.make_query(qname, "A", want_dnssec=True)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)

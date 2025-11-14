@@ -56,11 +56,12 @@ ns2.ixfr.case.    4242    A       192.0.2.2
 test.ixfr.case.   1234    TXT     "Hello World"
 case2.ixfr.case.  1234    TXT     "Mixed Case"
 case3.ixfr.case.  1234    TXT     "MIXED CASE"
-"""
+""",
 }
 
 xfrServerPort = 4246
 xfrServer = AXFRServer(xfrServerPort, zones)
+
 
 class IXFRDistCaseSensitiveTXTTest(IXFRDistTest):
     """
@@ -72,7 +73,7 @@ class IXFRDistCaseSensitiveTXTTest(IXFRDistTest):
     global xfrServerPort
     _xfrDone = 0
     _config_domains = [
-        {"domain" : "ixfr.case", "master" : "127.0.0.1:" + str(xfrServerPort)},
+        {"domain": "ixfr.case", "master": "127.0.0.1:" + str(xfrServerPort)},
     ]
     _loaded_serials = []
 
@@ -91,26 +92,28 @@ class IXFRDistCaseSensitiveTXTTest(IXFRDistTest):
         xfrServer.moveToSerial(serial)
 
         if notify:
-            notif = dns.message.make_query('ixfr.case.', 'SOA')
+            notif = dns.message.make_query("ixfr.case.", "SOA")
             notif.set_opcode(dns.opcode.NOTIFY)
             notify_response = self.sendUDPQuery(notif)
             assert notify_response.rcode() == dns.rcode.NOERROR
 
         def get_current_serial():
-            query = dns.message.make_query('ixfr.case.', 'SOA')
+            query = dns.message.make_query("ixfr.case.", "SOA")
             response_message = self.sendUDPQuery(query)
 
             if response_message.rcode() == dns.rcode.REFUSED:
                 return 0
 
-            soa_rrset = response_message.find_rrset(dns.message.ANSWER, dns.name.from_text("ixfr.case."), dns.rdataclass.IN, dns.rdatatype.SOA)
+            soa_rrset = response_message.find_rrset(
+                dns.message.ANSWER, dns.name.from_text("ixfr.case."), dns.rdataclass.IN, dns.rdatatype.SOA
+            )
             return soa_rrset[0].serial
 
         attempts = 0
         while attempts < timeout:
-            print('attempts=%s timeout=%s' % (attempts, timeout))
+            print("attempts=%s timeout=%s" % (attempts, timeout))
             servedSerial = get_current_serial()
-            print('servedSerial=%s' % servedSerial)
+            print("servedSerial=%s" % servedSerial)
             if servedSerial > serial:
                 raise AssertionError("Expected serial %d, got %d" % (serial, servedSerial))
             if servedSerial == serial:
@@ -121,13 +124,16 @@ class IXFRDistCaseSensitiveTXTTest(IXFRDistTest):
             attempts = attempts + 1
             time.sleep(1)
 
-        raise AssertionError("Waited %d seconds for the serial to be updated to %d but the last served serial is still %d" % (timeout, serial, servedSerial))
+        raise AssertionError(
+            "Waited %d seconds for the serial to be updated to %d but the last served serial is still %d"
+            % (timeout, serial, servedSerial)
+        )
 
     def checkTXTRecord(self, expected_txt_records):
         """
         Check for the presence of specific TXT records in the zone using AXFR
         """
-        query = dns.message.make_query('ixfr.case.', 'AXFR')
+        query = dns.message.make_query("ixfr.case.", "AXFR")
         responses = self.sendTCPQueryMultiResponse(query, count=10)
 
         found_txt_records = []
@@ -145,8 +151,10 @@ class IXFRDistCaseSensitiveTXTTest(IXFRDistTest):
                 if found_name == expected_name and found_txt == expected_txt:
                     found = True
                     break
-            self.assertTrue(found,
-                        f"TXT record '{expected_name}' with content '{expected_txt}' not found in AXFR. Found: {found_txt_records}")
+            self.assertTrue(
+                found,
+                f"TXT record '{expected_name}' with content '{expected_txt}' not found in AXFR. Found: {found_txt_records}",
+            )
 
     def checkIXFRContainsTXTChange(self, fromserial, toserial, expected_removed=None, expected_added=None):
         """
@@ -159,7 +167,7 @@ class IXFRDistCaseSensitiveTXTTest(IXFRDistTest):
 
         self.assertEqual(soa_latest[0].serial, toserial)
 
-        query = dns.message.make_query('ixfr.case.', 'IXFR')
+        query = dns.message.make_query("ixfr.case.", "IXFR")
         query.authority = [soa_requested]
 
         responses = self.sendTCPQueryMultiResponse(query, count=10)  # Allow for multiple responses
@@ -182,18 +190,16 @@ class IXFRDistCaseSensitiveTXTTest(IXFRDistTest):
 
         if expected_removed:
             for removed_txt in expected_removed:
-                self.assertIn(removed_txt, found_removed,
-                            f"Expected removed TXT '{removed_txt}' not found in IXFR")
-        
+                self.assertIn(removed_txt, found_removed, f"Expected removed TXT '{removed_txt}' not found in IXFR")
+
         if expected_added:
             for added_txt in expected_added:
-                self.assertIn(added_txt, found_added,
-                            f"Expected added TXT '{added_txt}' not found in IXFR")
+                self.assertIn(added_txt, found_added, f"Expected added TXT '{added_txt}' not found in IXFR")
 
     def test_a_first_version(self):
         """Test first version of zone and verify TXT record presence"""
         self.waitUntilCorrectSerialIsLoaded(1)
-        self.checkTXTRecord([('test.ixfr.case.', "Hello World")])
+        self.checkTXTRecord([("test.ixfr.case.", "Hello World")])
 
     def test_b_case_change_lowercase(self):
         """Test that changing TXT from 'Hello World' to 'hello world' is detected"""
@@ -208,7 +214,9 @@ class IXFRDistCaseSensitiveTXTTest(IXFRDistTest):
     def test_d_multiple_txt_records_mixed_case(self):
         """Test multiple TXT records with different case variations"""
         self.waitUntilCorrectSerialIsLoaded(4)
-        self.checkIXFRContainsTXTChange(3, 4, expected_removed=["HELLO WORLD"], expected_added=["Hello World", "Mixed Case", "mixed case"])
+        self.checkIXFRContainsTXTChange(
+            3, 4, expected_removed=["HELLO WORLD"], expected_added=["Hello World", "Mixed Case", "mixed case"]
+        )
 
     def test_e_case_sensitive_update(self):
         """Test that updating a TXT record's case is properly handled"""

@@ -2,6 +2,7 @@
 import dns
 from dnsdisttests import DNSDistTest
 
+
 class TestRE2(DNSDistTest):
     _config_template = """
     newServer{address="127.0.0.1:%d"}
@@ -15,8 +16,8 @@ class TestRE2(DNSDistTest):
         """
         RE2: Match
         """
-        name = 're2.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "re2.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.REFUSED)
@@ -30,15 +31,11 @@ class TestRE2(DNSDistTest):
         """
         RE2: No match
         """
-        name = 'sub.re2.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "sub.re2.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         query.flags &= ~dns.flags.RD
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
 
         response.answer.append(rrset)
 

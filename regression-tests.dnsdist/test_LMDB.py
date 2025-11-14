@@ -8,11 +8,11 @@ import struct
 
 from dnsdisttests import DNSDistTest
 
-@unittest.skipIf('SKIP_LMDB_TESTS' in os.environ, 'LMDB tests are disabled')
-class TestLMDB(DNSDistTest):
 
-    _lmdbFileName = '/tmp/test-lmdb-db'
-    _lmdbDBName = 'db-name'
+@unittest.skipIf("SKIP_LMDB_TESTS" in os.environ, "LMDB tests are disabled")
+class TestLMDB(DNSDistTest):
+    _lmdbFileName = "/tmp/test-lmdb-db"
+    _lmdbDBName = "db-name"
     _config_template = """
     newServer{address="127.0.0.1:%d"}
 
@@ -59,23 +59,22 @@ class TestLMDB(DNSDistTest):
     -- otherwise, spoof a different response
     addAction(AllRule(), SpoofAction('9.9.9.9'))
     """
-    _config_params = ['_testServerPort', '_lmdbFileName', '_lmdbDBName']
+    _config_params = ["_testServerPort", "_lmdbFileName", "_lmdbDBName"]
 
     @classmethod
     def setUpLMDB(cls):
-        env = lmdb.open(cls._lmdbFileName, map_size=1014*1024, max_dbs=1024, subdir=False)
+        env = lmdb.open(cls._lmdbFileName, map_size=1014 * 1024, max_dbs=1024, subdir=False)
         db = env.open_db(key=cls._lmdbDBName.encode())
         with env.begin(db=db, write=True) as txn:
-            txn.put(b'\x05qname\x04lmdb\x05tests\x08powerdns\x03com\x00', b'this is the value of the qname tag')
-            txn.put(socket.inet_aton('127.0.0.1'), b'this is the value of the source address tag')
-            txn.put(b'this is the value of the qname tag', b'this is the value of the second tag')
-            txn.put(b'\x06suffix\x04lmdb\x05tests\x08powerdns\x03com\x00', b'this is the value of the suffix tag')
-            txn.put(b'qname-plaintext.lmdb.tests.powerdns.com', b'this is the value of the plaintext tag')
-            txn.put(b'kvs-rule.lmdb.tests.powerdns.com', b'the value does not matter')
+            txn.put(b"\x05qname\x04lmdb\x05tests\x08powerdns\x03com\x00", b"this is the value of the qname tag")
+            txn.put(socket.inet_aton("127.0.0.1"), b"this is the value of the source address tag")
+            txn.put(b"this is the value of the qname tag", b"this is the value of the second tag")
+            txn.put(b"\x06suffix\x04lmdb\x05tests\x08powerdns\x03com\x00", b"this is the value of the suffix tag")
+            txn.put(b"qname-plaintext.lmdb.tests.powerdns.com", b"this is the value of the plaintext tag")
+            txn.put(b"kvs-rule.lmdb.tests.powerdns.com", b"the value does not matter")
 
     @classmethod
     def setUpClass(cls):
-
         cls.setUpLMDB()
         cls.startResponders()
         cls.startDNSDist()
@@ -87,16 +86,12 @@ class TestLMDB(DNSDistTest):
         """
         LMDB: Match on source address
         """
-        name = 'source-ip.lmdb.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "source-ip.lmdb.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         # dnsdist set RA = RD for spoofed responses
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '5.6.7.8')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "5.6.7.8")
         expectedResponse.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -110,16 +105,12 @@ class TestLMDB(DNSDistTest):
         """
         LMDB: Match on qname then does a second lookup using the value of the first lookup
         """
-        name = 'qname.lmdb.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "qname.lmdb.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         # dnsdist set RA = RD for spoofed responses
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '1.2.3.4')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "1.2.3.4")
         expectedResponse.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -133,16 +124,12 @@ class TestLMDB(DNSDistTest):
         """
         LMDB: Match on the qname via a suffix lookup
         """
-        name = 'sub.sub.suffix.lmdb.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "sub.sub.suffix.lmdb.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         # dnsdist set RA = RD for spoofed responses
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '42.42.42.42')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "42.42.42.42")
         expectedResponse.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -156,16 +143,12 @@ class TestLMDB(DNSDistTest):
         """
         LMDB: Match on qname in plain text format
         """
-        name = 'qname-plaintext.lmdb.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "qname-plaintext.lmdb.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         # dnsdist set RA = RD for spoofed responses
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '9.10.11.12')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "9.10.11.12")
         expectedResponse.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -179,16 +162,12 @@ class TestLMDB(DNSDistTest):
         """
         LMDB: KeyValueStoreLookupRule
         """
-        name = 'kvs-rule.lmdb.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "kvs-rule.lmdb.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         # dnsdist set RA = RD for spoofed responses
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '13.14.15.16')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "13.14.15.16")
         expectedResponse.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -198,10 +177,10 @@ class TestLMDB(DNSDistTest):
             self.assertTrue(receivedResponse)
             self.assertEqual(expectedResponse, receivedResponse)
 
-class TestLMDBYaml(TestLMDB):
 
-    _lmdbFileName = '/tmp/test-lmdb-db'
-    _lmdbDBName = 'db-name'
+class TestLMDBYaml(TestLMDB):
+    _lmdbFileName = "/tmp/test-lmdb-db"
+    _lmdbDBName = "db-name"
     _config_template = ""
     _config_params = []
     _yaml_config_template = """---
@@ -334,12 +313,12 @@ query_rules:
       ips:
         - "9.9.9.9"
     """
-    _yaml_config_params = ['_testServerPort', '_lmdbFileName', '_lmdbDBName']
+    _yaml_config_params = ["_testServerPort", "_lmdbFileName", "_lmdbDBName"]
+
 
 class TestLMDBIPInRange(DNSDistTest):
-
-    _lmdbFileName = '/tmp/test-lmdb-range-1-db'
-    _lmdbDBName = 'db-name'
+    _lmdbFileName = "/tmp/test-lmdb-range-1-db"
+    _lmdbDBName = "db-name"
     _config_template = """
     newServer{address="127.0.0.1:%d"}
 
@@ -352,18 +331,20 @@ class TestLMDBIPInRange(DNSDistTest):
     -- otherwise, spoof a different response
     addAction(AllRule(), SpoofAction('9.9.9.9'))
     """
-    _config_params = ['_testServerPort', '_lmdbFileName', '_lmdbDBName']
+    _config_params = ["_testServerPort", "_lmdbFileName", "_lmdbDBName"]
 
     @classmethod
     def setUpLMDB(cls):
-        env = lmdb.open(cls._lmdbFileName, map_size=1014*1024, max_dbs=1024, subdir=False)
+        env = lmdb.open(cls._lmdbFileName, map_size=1014 * 1024, max_dbs=1024, subdir=False)
         db = env.open_db(key=cls._lmdbDBName.encode())
         with env.begin(db=db, write=True) as txn:
-            txn.put(socket.inet_aton('127.255.255.255') + struct.pack("!H", 255), socket.inet_aton('127.0.0.0') + struct.pack("!H", 0) + b'this is the value of the source address tag')
+            txn.put(
+                socket.inet_aton("127.255.255.255") + struct.pack("!H", 255),
+                socket.inet_aton("127.0.0.0") + struct.pack("!H", 0) + b"this is the value of the source address tag",
+            )
 
     @classmethod
     def setUpClass(cls):
-
         cls.setUpLMDB()
         cls.startResponders()
         cls.startDNSDist()
@@ -375,16 +356,12 @@ class TestLMDBIPInRange(DNSDistTest):
         """
         LMDB range: Match on source address
         """
-        name = 'source-ip.lmdb-range.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "source-ip.lmdb-range.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         # dnsdist set RA = RD for spoofed responses
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '5.6.7.8')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "5.6.7.8")
         expectedResponse.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -394,10 +371,10 @@ class TestLMDBIPInRange(DNSDistTest):
             self.assertTrue(receivedResponse)
             self.assertEqual(expectedResponse, receivedResponse)
 
-class TestLMDBIPNotInRange(DNSDistTest):
 
-    _lmdbFileName = '/tmp/test-lmdb-range-2-db'
-    _lmdbDBName = 'db-name'
+class TestLMDBIPNotInRange(DNSDistTest):
+    _lmdbFileName = "/tmp/test-lmdb-range-2-db"
+    _lmdbDBName = "db-name"
     _config_template = """
     newServer{address="127.0.0.1:%d"}
 
@@ -410,18 +387,20 @@ class TestLMDBIPNotInRange(DNSDistTest):
     -- otherwise, spoof a different response
     addAction(AllRule(), SpoofAction('9.9.9.9'))
     """
-    _config_params = ['_testServerPort', '_lmdbFileName', '_lmdbDBName']
+    _config_params = ["_testServerPort", "_lmdbFileName", "_lmdbDBName"]
 
     @classmethod
     def setUpLMDB(cls):
-        env = lmdb.open(cls._lmdbFileName, map_size=1014*1024, max_dbs=1024, subdir=False)
+        env = lmdb.open(cls._lmdbFileName, map_size=1014 * 1024, max_dbs=1024, subdir=False)
         db = env.open_db(key=cls._lmdbDBName.encode())
         with env.begin(db=db, write=True) as txn:
-            txn.put(socket.inet_aton('127.0.0.0') + struct.pack("!H", 255), socket.inet_aton('127.0.0.0') + struct.pack("!H", 0) + b'this is the value of the source address tag')
+            txn.put(
+                socket.inet_aton("127.0.0.0") + struct.pack("!H", 255),
+                socket.inet_aton("127.0.0.0") + struct.pack("!H", 0) + b"this is the value of the source address tag",
+            )
 
     @classmethod
     def setUpClass(cls):
-
         cls.setUpLMDB()
         cls.startResponders()
         cls.startDNSDist()
@@ -433,16 +412,12 @@ class TestLMDBIPNotInRange(DNSDistTest):
         """
         LMDB not in range: Match on source address
         """
-        name = 'source-ip.lmdb-not-in-range.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "source-ip.lmdb-not-in-range.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         # dnsdist set RA = RD for spoofed responses
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '9.9.9.9')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "9.9.9.9")
         expectedResponse.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):

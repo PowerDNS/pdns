@@ -5,6 +5,7 @@ import time
 from dnsdisttests import DNSDistTest, pickAvailablePort
 import extendederrors
 
+
 class TestConfigurationUpdates(DNSDistTest):
     _yaml_config_template = """---
 console:
@@ -69,43 +70,59 @@ query_rules:
     _dohWithNGHTTP2ServerPort = pickAvailablePort()
     _doqServerPort = pickAvailablePort()
     _doh3ServerPort = pickAvailablePort()
-    _serverKey = 'server.key'
-    _serverCert = 'server.chain'
-    _serverName = 'tls.tests.dnsdist.org'
-    _dohWithNGHTTP2BaseURL = ("https://%s:%d/" % (_serverName, _dohWithNGHTTP2ServerPort))
-    _dohBaseURL = ("https://%s:%d/" % (_serverName, _doh3ServerPort))
-    _caCert = 'ca.pem'
+    _serverKey = "server.key"
+    _serverCert = "server.chain"
+    _serverName = "tls.tests.dnsdist.org"
+    _dohWithNGHTTP2BaseURL = "https://%s:%d/" % (_serverName, _dohWithNGHTTP2ServerPort)
+    _dohBaseURL = "https://%s:%d/" % (_serverName, _doh3ServerPort)
+    _caCert = "ca.pem"
     _consoleKey = DNSDistTest.generateConsoleKey()
-    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
     _consolePort = pickAvailablePort()
     _testServerPort = pickAvailablePort()
-    _yaml_config_params = ['_consolePort', '_consoleKeyB64', '_dnsDistPort', '_tlsServerPort', '_serverCert', '_serverKey', '_dohWithNGHTTP2ServerPort', '_serverCert', '_serverKey', '_doqServerPort','_serverCert', '_serverKey', '_doh3ServerPort', '_serverCert', '_serverKey', '_testServerPort', '_testServerPort']
+    _yaml_config_params = [
+        "_consolePort",
+        "_consoleKeyB64",
+        "_dnsDistPort",
+        "_tlsServerPort",
+        "_serverCert",
+        "_serverKey",
+        "_dohWithNGHTTP2ServerPort",
+        "_serverCert",
+        "_serverKey",
+        "_doqServerPort",
+        "_serverCert",
+        "_serverKey",
+        "_doh3ServerPort",
+        "_serverCert",
+        "_serverKey",
+        "_testServerPort",
+        "_testServerPort",
+    ]
     _config_params = []
-    _checkConfigExpectedOutput = b"DNS over HTTPS configured\nConfiguration 'configs/dnsdist_TestConfigurationUpdates.yml' OK!\n"
+    _checkConfigExpectedOutput = (
+        b"DNS over HTTPS configured\nConfiguration 'configs/dnsdist_TestConfigurationUpdates.yml' OK!\n"
+    )
 
     def testRegular(self):
         """
         Configuration updates: regular
         """
-        for protocol in ['UDP', 'TCP', 'DOT', 'DOH', 'DOQ', 'DOH3']:
-            name = f'regular-{protocol}.config-updates.test.powerdns.com.'
-            query = dns.message.make_query(name, 'A', 'IN')
+        for protocol in ["UDP", "TCP", "DOT", "DOH", "DOQ", "DOH3"]:
+            name = f"regular-{protocol}.config-updates.test.powerdns.com."
+            query = dns.message.make_query(name, "A", "IN")
             query.flags &= ~dns.flags.RD
             response = dns.message.make_response(query)
-            rrset = dns.rrset.from_text(name,
-                                        60,
-                                        dns.rdataclass.IN,
-                                        dns.rdatatype.A,
-                                       '127.0.0.1')
+            rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
 
             response.answer.append(rrset)
 
-            method = f'send{protocol}Query'
-            if not protocol in ['UDP', 'TCP']:
-                if protocol == 'DOH':
-                    method = 'sendDOHWithNGHTTP2QueryWrapper'
+            method = f"send{protocol}Query"
+            if not protocol in ["UDP", "TCP"]:
+                if protocol == "DOH":
+                    method = "sendDOHWithNGHTTP2QueryWrapper"
                 else:
-                    method += 'Wrapper'
+                    method += "Wrapper"
             sender = getattr(self, method)
 
             (receivedQuery, receivedResponse) = sender(query, response=response)
@@ -125,20 +142,16 @@ query_rules:
         """
         Configuration updates: response
         """
-        for protocol in ['UDP', 'TCP']:
-            name = f'{protocol}-response.config-updates.test.powerdns.com.'
-            query = dns.message.make_query(name, 'A', 'IN')
+        for protocol in ["UDP", "TCP"]:
+            name = f"{protocol}-response.config-updates.test.powerdns.com."
+            query = dns.message.make_query(name, "A", "IN")
             query.flags &= ~dns.flags.RD
             response = dns.message.make_response(query)
-            rrset = dns.rrset.from_text(name,
-                                        60,
-                                        dns.rdataclass.IN,
-                                        dns.rdatatype.A,
-                                       '127.0.0.1')
+            rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
 
             response.answer.append(rrset)
 
-            method = f'send{protocol}Query'
+            method = f"send{protocol}Query"
             sender = getattr(self, method)
 
             (receivedQuery, receivedResponse) = sender(query, response=response)
@@ -147,16 +160,17 @@ query_rules:
             self.assertEqual(receivedResponse, response)
 
             self.sendConsoleCommand(f'addResponseAction(QNameRule("{name}"), SetExtendedDNSErrorResponseAction(15))')
-            if protocol == 'TCP':
+            if protocol == "TCP":
                 time.sleep(1)
 
             # the configuration should have been updated
             expectedResponse = dns.message.make_response(query)
-            ede = extendederrors.ExtendedErrorOption(15, b'')
+            ede = extendederrors.ExtendedErrorOption(15, b"")
             expectedResponse.use_edns(edns=True, payload=4096, options=[ede])
             expectedResponse.answer.append(rrset)
             (_, receivedResponse) = sender(query, response=response)
             self.assertEqual(receivedResponse, expectedResponse)
+
 
 class TestConfigurationUpdatesRecvMMSG(DNSDistTest):
     _yaml_config_template = """---
@@ -180,25 +194,21 @@ tuning:
 """
     _dnsDistPort = pickAvailablePort()
     _consoleKey = DNSDistTest.generateConsoleKey()
-    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
     _consolePort = pickAvailablePort()
     _testServerPort = pickAvailablePort()
-    _yaml_config_params = ['_consolePort', '_consoleKeyB64', '_dnsDistPort', '_testServerPort']
+    _yaml_config_params = ["_consolePort", "_consoleKeyB64", "_dnsDistPort", "_testServerPort"]
     _config_params = []
 
     def testRecvMMSGUDP(self):
         """
         Configuration updates: recvmmsg UDP
         """
-        name = 'recvmmsg-udp.config-updates.test.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "recvmmsg-udp.config-updates.test.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         query.flags &= ~dns.flags.RD
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
 
         response.answer.append(rrset)
 
@@ -219,15 +229,11 @@ tuning:
         """
         Configuration updates: UDP response
         """
-        name = 'recvmmsg-udp-response.config-updates.test.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "recvmmsg-udp-response.config-updates.test.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         query.flags &= ~dns.flags.RD
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
 
         response.answer.append(rrset)
 
@@ -240,7 +246,7 @@ tuning:
 
         # the configuration should have been updated
         expectedResponse = dns.message.make_response(query)
-        ede = extendederrors.ExtendedErrorOption(15, b'')
+        ede = extendederrors.ExtendedErrorOption(15, b"")
         expectedResponse.use_edns(edns=True, payload=4096, options=[ede])
         expectedResponse.answer.append(rrset)
         (_, receivedResponse) = self.sendUDPQuery(query, response=response)
