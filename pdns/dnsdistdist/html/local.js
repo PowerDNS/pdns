@@ -158,16 +158,16 @@ $(document).ready(function() {
                 if(!gdata["cpu-sys-msec"]) 
                     gdata=data;
 
-                var cpu=((1.0*data["cpu-sys-msec"]+1.0*data["cpu-user-msec"] - 1.0*gdata["cpu-sys-msec"]-1.0*gdata["cpu-user-msec"])/10.0);
+                var cpu=((1*data["cpu-sys-msec"] + 1*data["cpu-user-msec"]) - (1*gdata["cpu-sys-msec"] + 1*gdata["cpu-user-msec"]))/10.0;
 
                 $("#cpu").text(cpu.toFixed(2));
                 var qps=1.0*data["queries"]-1.0*gdata["queries"];
                 $("#qps").text(qps.toFixed(2));
                 $("#server-policy").text(data["server-policy"]);
 
-                var servfailps=1.0*data["servfail-responses"]-1.0*gdata["servfail-responses"];
+                var servfailps=(1*data["servfail-responses"]) - (1*gdata["servfail-responses"]);
 
-                var totpcache=1.0*data["cache-hits"]-1.0*gdata["cache-hits"]+1.0*data["cache-misses"]-1.0*gdata["cache-misses"];
+                var totpcache=(1*data["cache-hits"] + 1*data["cache-misses"]) - (1*gdata["cache-hits"] + 1*gdata["cache-misses"]);
                 var hitrate=0;
                 if(totpcache > 0) {
                     hitrate=100.0*(data["cache-hits"]-1.0*gdata["cache-hits"])/totpcache;
