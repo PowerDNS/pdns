@@ -1961,6 +1961,7 @@ bool LMDBBackend::list(const ZoneName& target, domainid_t domain_id, bool includ
   d_lookupstate.domain = target;
   d_lookupstate.submatch.clear();
   d_lookupstate.includedisabled = include_disabled;
+  d_lookupstate.comments = false;
 
   compoundOrdername order;
   std::string match = order(domain_id);
@@ -1988,6 +1989,7 @@ bool LMDBBackend::listSubZone(const ZoneName& target, domainid_t domain_id)
   d_lookupstate.domain = std::move(info.zone);
   d_lookupstate.submatch = std::move(relqname);
   d_lookupstate.includedisabled = true;
+  d_lookupstate.comments = false;
 
   compoundOrdername order;
   std::string match = order(domain_id);
@@ -2034,6 +2036,7 @@ void LMDBBackend::lookupInternal(const QType& type, const DNSName& qdomain, doma
   d_lookupstate.domain = std::move(info.zone);
   d_lookupstate.submatch.clear();
   d_lookupstate.includedisabled = include_disabled;
+  d_lookupstate.comments = false;
 
   compoundOrdername order;
   std::string match;
