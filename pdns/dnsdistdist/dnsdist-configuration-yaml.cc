@@ -1186,6 +1186,9 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
 
     if (!globalConfig.load_balancing_policies.default_policy.empty()) {
       auto policy = getRegisteredTypeByName<ServerPolicy>(globalConfig.load_balancing_policies.default_policy);
+      if (!policy) {
+        throw std::runtime_error("Unable to find a load-balancing policy named " + std::string(globalConfig.load_balancing_policies.default_policy));
+      }
       dnsdist::configuration::updateRuntimeConfiguration([&policy](dnsdist::configuration::RuntimeConfiguration& config) {
         config.d_lbPolicy = std::move(policy);
       });
@@ -1195,9 +1198,16 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
       std::shared_ptr<ServerPool> poolObj = createPoolIfNotExists(std::string(pool.name));
       if (!pool.packet_cache.empty()) {
         poolObj->packetCache = getRegisteredTypeByName<DNSDistPacketCache>(pool.packet_cache);
+        if (!poolObj->packetCache) {
+          throw std::runtime_error("Unable to find a cache named " + std::string(pool.packet_cache));
+        }
       }
       if (!pool.policy.empty()) {
-        poolObj->policy = getRegisteredTypeByName<ServerPolicy>(pool.policy);
+        auto policy = getRegisteredTypeByName<ServerPolicy>(pool.policy);
+        if (!policy) {
+          throw std::runtime_error("Unable to find a load-balancing policy named " + std::string(pool.policy));
+        }
+        poolObj->policy = std::move(policy);
       }
     }
 
@@ -1876,7 +1886,11 @@ std::shared_ptr<DNSSelector> getNotSelector(const NotSelectorConfiguration& conf
 
 std::shared_ptr<DNSSelector> getByNameSelector(const ByNameSelectorConfiguration& config)
 {
-  return dnsdist::configuration::yaml::getRegisteredTypeByName<DNSSelector>(config.selector_name);
+  auto ptr = dnsdist::configuration::yaml::getRegisteredTypeByName<DNSSelector>(config.selector_name);
+  if (!ptr) {
+    throw std::runtime_error("Unable to find a selector named " + std::string(config.selector_name));
+  }
+  return ptr;
 }
 
 #include "dnsdist-rust-bridge-actions-generated-body.hh"
