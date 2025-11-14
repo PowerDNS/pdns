@@ -199,6 +199,7 @@ public:
      */
     Closer(std::shared_ptr<Tracer> tracer, const SpanID& spanid) :
       d_tracer(std::move(tracer)), d_spanID(spanid) {};
+
 #endif
 
     /**
@@ -212,10 +213,10 @@ public:
       }
 #endif
     };
-    Closer(const Closer&) = delete;
+    Closer(const Closer&) = default;
     Closer& operator=(const Closer&) = default;
     Closer& operator=(Closer&&) noexcept = default;
-    Closer(Closer&&) = delete;
+    Closer(Closer&&) = default;
 
     /**
      * @brief Get the SpanID
@@ -223,6 +224,15 @@ public:
      * @return
      */
     [[nodiscard]] SpanID getSpanID() const;
+
+    /**
+     * @brief Set an attribute on the Span
+     *
+     * @param key
+     * @param value
+     * @return
+     */
+    void setAttribute(const std::string& key, const AnyValue& value);
 
   private:
 #ifndef DISABLE_PROTOBUF

@@ -281,4 +281,13 @@ SpanID Tracer::Closer::getSpanID() const
 #endif
 }
 
+void Tracer::Closer::setAttribute([[maybe_unused]] const std::string& key, [[maybe_unused]] const AnyValue& value)
+{
+#ifdef DISABLE_PROTOBUF
+  return;
+#else
+  return d_tracer->setSpanAttribute(d_spanID, key, value);
+#endif
+}
+
 } // namespace pdns::trace::dnsdist

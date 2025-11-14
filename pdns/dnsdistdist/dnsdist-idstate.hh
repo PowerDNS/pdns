@@ -25,6 +25,7 @@
 #include <ctime>
 #include <memory>
 #include <optional>
+#include <string_view>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -142,6 +143,16 @@ struct InternalQueryState
 #endif
   }
 
+  /**
+   * @brief Returns a Tracer::Closer, but only if OpenTelemetry tracing is needed
+   *
+   * @return
+   */
+  std::optional<pdns::trace::dnsdist::Tracer::Closer> getCloser([[maybe_unused]] const std::string_view& name, [[maybe_unused]] const SpanID& parentSpanID);
+  std::optional<pdns::trace::dnsdist::Tracer::Closer> getCloser([[maybe_unused]] const std::string_view& name, [[maybe_unused]] const std::string_view& parentSpanName);
+  std::optional<pdns::trace::dnsdist::Tracer::Closer> getCloser([[maybe_unused]] const std::string_view& name);
+  std::optional<pdns::trace::dnsdist::Tracer::Closer> getRulesCloser([[maybe_unused]] const std::string_view& ruleName, [[maybe_unused]] const std::string_view& parentSpanName);
+
   InternalQueryState()
   {
     origDest.sin4.sin_family = 0;
@@ -226,6 +237,22 @@ public:
   bool cacheHit{false};
   bool staleCacheHit{false};
   bool tracingEnabled{false}; // Whether or not Open Telemetry tracing is enabled for this query
+  bool rulesAppliedToQuery{false}; // Whether applyRulesToQuery has been called for the query, used to determine if we need to trace
+  struct rulesAppliedToQuerySetter
+  {
+    rulesAppliedToQuerySetter(bool& pastProcessRules) :
+      d_rulesAppliedToQuery(pastProcessRules)
+    {
+      d_rulesAppliedToQuery = false;
+    }
+    ~rulesAppliedToQuerySetter()
+    {
+      d_rulesAppliedToQuery = true;
+    }
+
+  private:
+    bool& d_rulesAppliedToQuery;
+  };
 };
 
 struct IDState
