@@ -1633,12 +1633,14 @@ bool LMDBBackend::replaceRRSet(domainid_t domain_id, const DNSName& qname, const
   return true;
 }
 
-// NOLINTNEXTLINE(readability-identifier-length)
-bool LMDBBackend::replaceComments([[maybe_unused]] domainid_t domain_id, [[maybe_unused]] const DNSName& qname, [[maybe_unused]] const QType& qt, const vector<Comment>& comments)
+bool LMDBBackend::replaceComments(const domainid_t /* domain_id */, const DNSName& /* qname */, const QType& /* qt */, const vector<Comment>& comments)
 {
-  // if the vector is empty, good, that's what we do here (LMDB does not store comments)
-  // if it's not, report failure
-  return comments.empty();
+  // FIXME: remove old comments
+  for(const auto& comment: comments) {
+    feedComment(comment);
+  }
+
+  return true;
 }
 
 // FIXME: this is not very efficient
