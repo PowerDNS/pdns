@@ -30,7 +30,6 @@
 #include "packetcache.hh"
 #include "base64.hh"
 
-// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): too cumbersome to change at this point
 DNSDistPacketCache::DNSDistPacketCache(CacheSettings settings) :
   d_settings(std::move(settings))
 {
@@ -461,7 +460,7 @@ uint32_t DNSDistPacketCache::getMinTTL(const char* packet, uint16_t length, bool
   return getDNSPacketMinTTL(packet, length, seenNoDataSOA);
 }
 
-uint32_t DNSDistPacketCache::getKey(const DNSName::string_t& qname, size_t qnameWireLength, const PacketBuffer& packet, bool receivedOverUDP)
+uint32_t DNSDistPacketCache::getKey(const DNSName::string_t& qname, size_t qnameWireLength, const PacketBuffer& packet, bool receivedOverUDP) const
 {
   uint32_t result = 0;
   /* skip the query ID */
