@@ -1636,7 +1636,7 @@ bool LMDBBackend::replaceRRSet(domainid_t domain_id, const DNSName& qname, const
 bool LMDBBackend::replaceComments(const domainid_t /* domain_id */, const DNSName& /* qname */, const QType& /* qt */, const vector<Comment>& comments)
 {
   // FIXME: remove old comments
-  for(const auto& comment: comments) {
+  for (const auto& comment : comments) {
     feedComment(comment);
   }
 
