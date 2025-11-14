@@ -532,13 +532,6 @@ class AuthZones(ZonesApiTestCase, AuthZonesHelperMixin):
             },
         ]
 
-        if is_auth_lmdb():
-            # No comments in LMDB
-            self.create_zone(
-                name=name, rrsets=rrsets, expect_error="Hosting backend does not support editing comments."
-            )
-            return
-
         name, _, data = self.create_zone(name=name, rrsets=rrsets)
         # NS records have been created
         self.assertEqual(len(data["rrsets"]), len(rrsets) + 1)
@@ -2407,11 +2400,7 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
             data=json.dumps(payload),
             headers={"content-type": "application/json"},
         )
-        if is_auth_lmdb():
-            self.assert_error_json(r)  # No comments in LMDB
-            return
-        else:
-            self.assert_success(r)
+        self.assert_success(r)
         # make sure the comments have been set, and that the NS
         # records are still present
         data = self.get_zone(name, rrset_name=name, rrset_type="NS")
@@ -2429,7 +2418,12 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
     def test_zone_comment_delete(self):
         # Test: Delete ONLY comments.
         name, payload, zone = self.create_zone()
-        rrset = {"changetype": "replace", "name": name, "type": "NS", "comments": []}
+        rrset = {
+            "changetype": "replace",
+            "name": name,
+            "type": "NS",
+            "comments": [{"account": "test4", "content": "this should not show up after delete"}],
+        }
         payload = {"rrsets": [rrset]}
         r = self.session.patch(
             self.url("/api/v1/servers/localhost/zones/" + name),
@@ -2437,6 +2431,18 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
             headers={"content-type": "application/json"},
         )
         self.assert_success(r)
+        data = self.get_zone(name)
+        serverset = get_rrset(data, name, "NS")
+        print(serverset)
+        self.assertNotEqual(serverset["records"], [])
+        self.assertNotEqual(serverset["comments"], [])
+
+        payload["rrsets"][0]["comments"] = []
+        r = self.session.patch(
+            self.url("/api/v1/servers/localhost/zones/" + name),
+            data=json.dumps(payload),
+            headers={"content-type": "application/json"},
+        )
         # make sure the NS records are still present
         data = self.get_zone(name)
         serverset = get_rrset(data, name, "NS")
@@ -2444,7 +2450,6 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         self.assertNotEqual(serverset["records"], [])
         self.assertEqual(serverset["comments"], [])
 
-    @unittest.skipIf(is_auth_lmdb(), "No comments in LMDB")
     def test_zone_comment_out_of_range_modified_at(self):
         # Test if a modified_at outside of the 32 bit range throws an error
         name, payload, zone = self.create_zone()
@@ -2463,7 +2468,6 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         self.assertEqual(r.status_code, 422)
         self.assert_in_json_error("Key 'modified_at' is not a valid number", r.json())
 
-    @unittest.skipIf(is_auth_lmdb(), "No comments in LMDB")
     def test_zone_comment_stay_intact(self):
         # Test if comments on an rrset stay intact if the rrset is replaced
         name, payload, zone = self.create_zone()
