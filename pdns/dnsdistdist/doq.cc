@@ -291,7 +291,7 @@ static bool tryWriteResponse(Connection& conn, const uint64_t streamID, PacketBu
   return true;
 }
 
-static void handleResponse(DOQFrontend& frontend, Connection& conn, const uint64_t streamID, PacketBuffer& response)
+static void handleResponse(DOQFrontend& frontend, Connection& conn, const uint64_t streamID, PacketBuffer&& response)
 {
   if (response.empty()) {
     ++frontend.d_errorResponses;
@@ -403,7 +403,7 @@ static void processDOQQuery(DOQUnitUniquePtr&& doqUnit)
   const auto handleImmediateResponse = [](DOQUnitUniquePtr&& unit, [[maybe_unused]] const char* reason) {
     DEBUGLOG("handleImmediateResponse() reason=" << reason);
     auto conn = getConnection(unit->dsc->df->d_server_config->d_connections, unit->serverConnID);
-    handleResponse(*unit->dsc->df, *conn, unit->streamID, unit->response);
+    handleResponse(*unit->dsc->df, *conn, unit->streamID, std::move(unit->response));
     unit->ids.doqu.reset();
   };
 
@@ -584,7 +584,7 @@ static void flushResponses(pdns::channel::Receiver<DOQUnit>& receiver)
       auto unit = std::move(*tmp);
       auto conn = getConnection(unit->dsc->df->d_server_config->d_connections, unit->serverConnID);
       if (conn) {
-        handleResponse(*unit->dsc->df, *conn, unit->streamID, unit->response);
+        handleResponse(*unit->dsc->df, *conn, unit->streamID, std::move(unit->response));
       }
     }
     catch (const std::exception& e) {
