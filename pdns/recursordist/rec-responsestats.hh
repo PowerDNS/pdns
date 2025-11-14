@@ -22,9 +22,10 @@
 #pragma once
 
 #include <array>
+#include <map>
+#include <string>
 
 #include "histogram.hh"
-#include "dnspacket.hh"
 
 class RecResponseStats
 {
@@ -63,10 +64,10 @@ public:
     }
     d_sizecounters(respsize);
   }
-  map<uint16_t, uint64_t> getQTypeResponseCounts() const;
-  map<uint16_t, uint64_t> getSizeResponseCounts() const;
-  map<uint8_t, uint64_t> getRCodeResponseCounts() const;
-  string getQTypeReport() const;
+  std::map<uint16_t, uint64_t> getQTypeResponseCounts() const;
+  std::map<uint16_t, uint64_t> getSizeResponseCounts() const;
+  std::map<uint8_t, uint64_t> getRCodeResponseCounts() const;
+  std::string getQTypeReport() const;
 
 private:
   std::array<uint64_t, maxQType + 1> d_qtypecounters{};

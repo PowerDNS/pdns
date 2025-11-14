@@ -23,7 +23,6 @@
 #pragma once
 
 #include <sys/time.h>
-#include <array>
 #include <set>
 #include <unistd.h>
 
