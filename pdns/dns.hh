@@ -227,6 +227,11 @@ public:
       d_p = &d_h;
     }
   }
+  dnsheader_aligned(const dnsheader_aligned&) = delete;
+  dnsheader_aligned(dnsheader_aligned&&) = delete;
+  dnsheader_aligned& operator=(const dnsheader_aligned&) = delete;
+  dnsheader_aligned& operator=(dnsheader_aligned&&) = delete;
+  ~dnsheader_aligned() = default;
 
   [[nodiscard]] const dnsheader* get() const
   {

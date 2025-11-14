@@ -87,8 +87,7 @@ struct DNSQuestion
     if (data.size() < sizeof(dnsheader)) {
       throw std::runtime_error("Trying to access the dnsheader of a too small (" + std::to_string(data.size()) + ") DNSQuestion buffer");
     }
-    dnsheader_aligned dh(data.data());
-    return dh;
+    return dnsheader_aligned(data.data());
   }
 
   /* this function is not safe against unaligned access, you should
