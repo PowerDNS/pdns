@@ -1183,7 +1183,7 @@ std::pair<std::string, std::string> LMDBBackend::serializeComment(const Comment&
   uint64_t ts = LMDBLS::pdns_bswap64(comment.modified_at);
   val.reserve(sizeof(uint64_t) + comment.content.size() + comment.account.size() + 2); // one timestamp, two strings, 2 \0 delimiters
 
-  val.assign((char *)(&ts), sizeof(ts)); // FIXME i bet there's a cleaner way
+  val.assign((char*)(&ts), sizeof(ts)); // FIXME i bet there's a cleaner way
   val += comment.content + string(1, (char)0) + comment.account + string(1, (char)0);
 
   auto hash = pdns::sha256sum(val);
@@ -1503,7 +1503,7 @@ bool LMDBBackend::feedRecord(const DNSResourceRecord& r, const DNSName& ordernam
 // d_rwtxn must be set here
 bool LMDBBackend::feedComment(const Comment& comment)
 {
-  auto [key,val] = serializeComment(comment);
+  auto [key, val] = serializeComment(comment);
 
   d_rwtxn->txn->put(d_rwtxn->db->cdbi, key, val);
 
@@ -2089,7 +2089,7 @@ bool LMDBBackend::getInternal(DNSName& basename, std::string_view& key)
 
     key = d_lookupstate.key.getNoStripHeader<string_view>();
     // remove hash from the key so compoundOrdername::get* work
-    key = key.substr(0, key.size() - 256/8);
+    key = key.substr(0, key.size() - 256 / 8);
 
     basename = compoundOrdername::getQName(key);
 
@@ -2103,15 +2103,15 @@ bool LMDBBackend::getInternal(DNSName& basename, std::string_view& key)
 
     val = val.substr(8, std::string_view::npos);
 
-    d_lookupstate.comment.domain_id=compoundOrdername::getDomainID(key);
-    d_lookupstate.comment.qname=basename + d_lookupstate.domain.operator const DNSName&();
-    d_lookupstate.comment.qtype=compoundOrdername::getQType(key);
-    d_lookupstate.comment.modified_at=LMDBLS::pdns_bswap64(ts);
+    d_lookupstate.comment.domain_id = compoundOrdername::getDomainID(key);
+    d_lookupstate.comment.qname = basename + d_lookupstate.domain.operator const DNSName&();
+    d_lookupstate.comment.qtype = compoundOrdername::getQType(key);
+    d_lookupstate.comment.modified_at = LMDBLS::pdns_bswap64(ts);
     auto pos = val.find('\0', 1) + 1; // FIXME check
-    d_lookupstate.comment.content=val.substr(0, pos - 1); // pos-1?
+    d_lookupstate.comment.content = val.substr(0, pos - 1); // pos-1?
     val = val.substr(pos, std::string_view::npos);
     pos = val.find('\0', 1) + 1; // FIXME check
-    d_lookupstate.comment.account=val.substr(0, pos - 1); // pos-1?
+    d_lookupstate.comment.account = val.substr(0, pos - 1); // pos-1?
 
     if (d_lookupstate.cursor && d_lookupstate.cursor->next(d_lookupstate.key, d_lookupstate.val) != 0) {
       d_lookupstate.reset(); // this invalidates cursor and makes us return false on the next round
