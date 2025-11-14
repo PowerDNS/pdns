@@ -6,12 +6,19 @@ import dns
 from dnsdisttests import DNSDistTest
 from dnsdistDynBlockTests import DynBlocksTest, waitForMaintenanceToRun, _maintenanceWaitTime
 
-class TestDynBlockResponseBytes(DynBlocksTest):
 
+class TestDynBlockResponseBytes(DynBlocksTest):
     _dynBlockBytesPerSecond = 200
     _consoleKey = DNSDistTest.generateConsoleKey()
-    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
-    _config_params = ['_consoleKeyB64', '_consolePort', '_dynBlockBytesPerSecond', '_dynBlockPeriod', '_dynBlockDuration', '_testServerPort']
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _config_params = [
+        "_consoleKeyB64",
+        "_consolePort",
+        "_dynBlockBytesPerSecond",
+        "_dynBlockPeriod",
+        "_dynBlockDuration",
+        "_testServerPort",
+    ]
     _config_template = """
     setKey("%s")
     controlSocket("127.0.0.1:%d")
@@ -25,15 +32,22 @@ class TestDynBlockResponseBytes(DynBlocksTest):
         """
         Dyn Blocks: Response Byte Rate
         """
-        name = 'responsebyterate.dynblocks.tests.powerdns.com.'
+        name = "responsebyterate.dynblocks.tests.powerdns.com."
         self.doTestResponseByteRate(name, self._dynBlockBytesPerSecond)
 
-class TestDynBlockGroupResponseBytes(DynBlocksTest):
 
+class TestDynBlockGroupResponseBytes(DynBlocksTest):
     _dynBlockBytesPerSecond = 200
     _consoleKey = DNSDistTest.generateConsoleKey()
-    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
-    _config_params = ['_consoleKeyB64', '_consolePort', '_dynBlockBytesPerSecond', '_dynBlockPeriod', '_dynBlockDuration', '_testServerPort']
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _config_params = [
+        "_consoleKeyB64",
+        "_consolePort",
+        "_dynBlockBytesPerSecond",
+        "_dynBlockPeriod",
+        "_dynBlockDuration",
+        "_testServerPort",
+    ]
     _config_template = """
     setKey("%s")
     controlSocket("127.0.0.1:%d")
@@ -51,5 +65,5 @@ class TestDynBlockGroupResponseBytes(DynBlocksTest):
         """
         Dyn Blocks (group) : Response Byte Rate
         """
-        name = 'responsebyterate.group.dynblocks.tests.powerdns.com.'
+        name = "responsebyterate.group.dynblocks.tests.powerdns.com."
         self.doTestResponseByteRate(name, self._dynBlockBytesPerSecond)

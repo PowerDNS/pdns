@@ -4,6 +4,7 @@ import clientsubnetoption
 from dnsdisttests import DNSDistTest
 from datetime import datetime, timedelta
 
+
 class TestEDNSSelfGenerated(DNSDistTest):
     """
     Check that dnsdist sends correct EDNS data on
@@ -31,8 +32,8 @@ class TestEDNSSelfGenerated(DNSDistTest):
         """
         EDNS on Self-Generated: No existing EDNS
         """
-        name = 'no-edns.rcode.edns-self.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "no-edns.rcode.edns-self.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.REFUSED)
@@ -42,8 +43,8 @@ class TestEDNSSelfGenerated(DNSDistTest):
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.checkMessageNoEDNS(expectedResponse, receivedResponse)
 
-        name = 'no-edns.tc.edns-self.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "no-edns.tc.edns-self.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         # dnsdist sets RA = RD for TC responses
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
@@ -52,8 +53,8 @@ class TestEDNSSelfGenerated(DNSDistTest):
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         self.checkMessageNoEDNS(expectedResponse, receivedResponse)
 
-        name = 'no-edns.lua.edns-self.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "no-edns.lua.edns-self.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.NXDOMAIN)
 
@@ -62,16 +63,14 @@ class TestEDNSSelfGenerated(DNSDistTest):
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.checkMessageNoEDNS(expectedResponse, receivedResponse)
 
-        name = 'no-edns.spoof.edns-self.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "no-edns.spoof.edns-self.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         # dnsdist set RA = RD for spoofed responses
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query, our_payload=1042)
-        expectedResponse.answer.append(dns.rrset.from_text(name,
-                                                           60,
-                                                           dns.rdataclass.IN,
-                                                           dns.rdatatype.A,
-                                                           '192.0.2.1', '192.0.2.2'))
+        expectedResponse.answer.append(
+            dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1", "192.0.2.2")
+        )
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
@@ -82,8 +81,8 @@ class TestEDNSSelfGenerated(DNSDistTest):
         """
         EDNS on Self-Generated: EDNS with DO=0
         """
-        name = 'edns-no-do.rcode.edns-self.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, want_dnssec=False)
+        name = "edns-no-do.rcode.edns-self.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, want_dnssec=False)
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query, our_payload=1042)
         expectedResponse.set_rcode(dns.rcode.REFUSED)
@@ -95,8 +94,8 @@ class TestEDNSSelfGenerated(DNSDistTest):
             self.assertFalse(receivedResponse.ednsflags & dns.flags.DO)
             self.assertEqual(receivedResponse.payload, 1042)
 
-        name = 'edns-no-do.tc.edns-self.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, want_dnssec=False)
+        name = "edns-no-do.tc.edns-self.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, want_dnssec=False)
         # dnsdist sets RA = RD for TC responses
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query, our_payload=1042)
@@ -107,8 +106,8 @@ class TestEDNSSelfGenerated(DNSDistTest):
         self.assertFalse(receivedResponse.ednsflags & dns.flags.DO)
         self.assertEqual(receivedResponse.payload, 1042)
 
-        name = 'edns-no-do.lua.edns-self.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, want_dnssec=False)
+        name = "edns-no-do.lua.edns-self.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, want_dnssec=False)
         expectedResponse = dns.message.make_response(query, our_payload=1042)
         expectedResponse.set_rcode(dns.rcode.NXDOMAIN)
 
@@ -119,16 +118,14 @@ class TestEDNSSelfGenerated(DNSDistTest):
             self.assertFalse(receivedResponse.ednsflags & dns.flags.DO)
             self.assertEqual(receivedResponse.payload, 1042)
 
-        name = 'edns-no-do.spoof.edns-self.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, want_dnssec=False)
+        name = "edns-no-do.spoof.edns-self.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, want_dnssec=False)
         # dnsdist set RA = RD for spoofed responses
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query, our_payload=1042)
-        expectedResponse.answer.append(dns.rrset.from_text(name,
-                                                           60,
-                                                           dns.rdataclass.IN,
-                                                           dns.rdatatype.A,
-                                                           '192.0.2.1', '192.0.2.2'))
+        expectedResponse.answer.append(
+            dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1", "192.0.2.2")
+        )
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
@@ -141,8 +138,8 @@ class TestEDNSSelfGenerated(DNSDistTest):
         """
         EDNS on Self-Generated: EDNS with DO=1
         """
-        name = 'edns-do.rcode.edns-self.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, want_dnssec=True)
+        name = "edns-do.rcode.edns-self.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, want_dnssec=True)
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query, our_payload=1042)
         expectedResponse.want_dnssec(True)
@@ -155,8 +152,8 @@ class TestEDNSSelfGenerated(DNSDistTest):
             self.assertTrue(receivedResponse.ednsflags & dns.flags.DO)
             self.assertEqual(receivedResponse.payload, 1042)
 
-        name = 'edns-do.tc.edns-self.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, want_dnssec=True)
+        name = "edns-do.tc.edns-self.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, want_dnssec=True)
         # dnsdist sets RA = RD for TC responses
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query, our_payload=1042)
@@ -168,8 +165,8 @@ class TestEDNSSelfGenerated(DNSDistTest):
         self.assertTrue(receivedResponse.ednsflags & dns.flags.DO)
         self.assertEqual(receivedResponse.payload, 1042)
 
-        name = 'edns-do.lua.edns-self.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, want_dnssec=True)
+        name = "edns-do.lua.edns-self.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, want_dnssec=True)
         expectedResponse = dns.message.make_response(query, our_payload=1042)
         expectedResponse.want_dnssec(True)
         expectedResponse.set_rcode(dns.rcode.NXDOMAIN)
@@ -181,17 +178,15 @@ class TestEDNSSelfGenerated(DNSDistTest):
             self.assertTrue(receivedResponse.ednsflags & dns.flags.DO)
             self.assertEqual(receivedResponse.payload, 1042)
 
-        name = 'edns-do.spoof.edns-self.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, want_dnssec=True)
+        name = "edns-do.spoof.edns-self.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, want_dnssec=True)
         # dnsdist set RA = RD for spoofed responses
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query, our_payload=1042)
         expectedResponse.want_dnssec(True)
-        expectedResponse.answer.append(dns.rrset.from_text(name,
-                                                           60,
-                                                           dns.rdataclass.IN,
-                                                           dns.rdatatype.A,
-                                                           '192.0.2.1', '192.0.2.2'))
+        expectedResponse.answer.append(
+            dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1", "192.0.2.2")
+        )
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
@@ -204,9 +199,9 @@ class TestEDNSSelfGenerated(DNSDistTest):
         """
         EDNS on Self-Generated: EDNS with options in the query
         """
-        name = 'edns-options.rcode.edns-self.tests.powerdns.com.'
-        ecso = clientsubnetoption.ClientSubnetOption('127.0.0.1', 24)
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, options=[ecso], payload=512, want_dnssec=True)
+        name = "edns-options.rcode.edns-self.tests.powerdns.com."
+        ecso = clientsubnetoption.ClientSubnetOption("127.0.0.1", 24)
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, options=[ecso], payload=512, want_dnssec=True)
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query, our_payload=1042)
         expectedResponse.set_rcode(dns.rcode.REFUSED)
@@ -219,8 +214,8 @@ class TestEDNSSelfGenerated(DNSDistTest):
             self.assertTrue(receivedResponse.ednsflags & dns.flags.DO)
             self.assertEqual(receivedResponse.payload, 1042)
 
-        name = 'edns-options.tc.edns-self.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, options=[ecso], payload=512, want_dnssec=True)
+        name = "edns-options.tc.edns-self.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, options=[ecso], payload=512, want_dnssec=True)
         # dnsdist sets RA = RD for TC responses
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query, our_payload=1042)
@@ -232,8 +227,8 @@ class TestEDNSSelfGenerated(DNSDistTest):
         self.assertTrue(receivedResponse.ednsflags & dns.flags.DO)
         self.assertEqual(receivedResponse.payload, 1042)
 
-        name = 'edns-options.lua.edns-self.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, options=[ecso], payload=512, want_dnssec=True)
+        name = "edns-options.lua.edns-self.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, options=[ecso], payload=512, want_dnssec=True)
         expectedResponse = dns.message.make_response(query, our_payload=1042)
         expectedResponse.want_dnssec(True)
         expectedResponse.set_rcode(dns.rcode.NXDOMAIN)
@@ -245,17 +240,15 @@ class TestEDNSSelfGenerated(DNSDistTest):
             self.assertTrue(receivedResponse.ednsflags & dns.flags.DO)
             self.assertEqual(receivedResponse.payload, 1042)
 
-        name = 'edns-options.spoof.edns-self.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, options=[ecso], payload=512, want_dnssec=True)
+        name = "edns-options.spoof.edns-self.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, options=[ecso], payload=512, want_dnssec=True)
         # dnsdist set RA = RD for spoofed responses
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query, our_payload=1042)
         expectedResponse.want_dnssec(True)
-        expectedResponse.answer.append(dns.rrset.from_text(name,
-                                                           60,
-                                                           dns.rdataclass.IN,
-                                                           dns.rdatatype.A,
-                                                           '192.0.2.1', '192.0.2.2'))
+        expectedResponse.answer.append(
+            dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1", "192.0.2.2")
+        )
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
@@ -294,8 +287,8 @@ class TestEDNSSelfGeneratedDisabled(DNSDistTest):
         """
         EDNS on Self-Generated (disabled): EDNS with DO=0
         """
-        name = 'edns-no-do.rcode.edns-self-disabled.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, want_dnssec=False)
+        name = "edns-no-do.rcode.edns-self-disabled.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, want_dnssec=False)
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.REFUSED)
@@ -305,8 +298,8 @@ class TestEDNSSelfGeneratedDisabled(DNSDistTest):
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.checkMessageNoEDNS(expectedResponse, receivedResponse)
 
-        name = 'edns-no-do.tc.edns-self-disabled.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, want_dnssec=False)
+        name = "edns-no-do.tc.edns-self-disabled.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, want_dnssec=False)
         # dnsdist sets RA = RD for TC responses
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
@@ -315,8 +308,8 @@ class TestEDNSSelfGeneratedDisabled(DNSDistTest):
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         self.checkMessageNoEDNS(expectedResponse, receivedResponse)
 
-        name = 'edns-no-do.lua.edns-self-disabled.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, want_dnssec=False)
+        name = "edns-no-do.lua.edns-self-disabled.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, want_dnssec=False)
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.NXDOMAIN)
 
@@ -325,16 +318,14 @@ class TestEDNSSelfGeneratedDisabled(DNSDistTest):
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.checkMessageNoEDNS(expectedResponse, receivedResponse)
 
-        name = 'edns-no-do.spoof.edns-self-disabled.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, want_dnssec=False)
+        name = "edns-no-do.spoof.edns-self-disabled.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, want_dnssec=False)
         # dnsdist set RA = RD for spoofed responses
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
-        expectedResponse.answer.append(dns.rrset.from_text(name,
-                                                           60,
-                                                           dns.rdataclass.IN,
-                                                           dns.rdatatype.A,
-                                                           '192.0.2.1', '192.0.2.2'))
+        expectedResponse.answer.append(
+            dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1", "192.0.2.2")
+        )
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)

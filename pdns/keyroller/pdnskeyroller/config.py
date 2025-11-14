@@ -16,32 +16,32 @@ class KeyrollerConfig:
     def _load_config(self):
         # These are all the Defaults
         tmp_conf = {
-            'keyroller': {
-                'loglevel': 'info',
+            "keyroller": {
+                "loglevel": "info",
             },
-            'API': {
-                'version': 1,
-                'baseurl': 'http://localhost:8081',
-                'server': 'localhost',
-                'apikey': '',
-                'timeout': '2',
+            "API": {
+                "version": 1,
+                "baseurl": "http://localhost:8081",
+                "server": "localhost",
+                "apikey": "",
+                "timeout": "2",
             },
-            'domain_defaults': {
-                'ksk_frequency': 0,
-                'ksk_algo': 13,
-                'ksk_method': 'prepublish',
-                'zsk_frequency': '6w',
-                'zsk_algo': 13,
-                'zsk_method': 'prepublish',
-                'key_style': 'single',
-                'ksk_keysize': 3069,
-                'zsk_keysize': 3069,
+            "domain_defaults": {
+                "ksk_frequency": 0,
+                "ksk_algo": 13,
+                "ksk_method": "prepublish",
+                "zsk_frequency": "6w",
+                "zsk_algo": 13,
+                "zsk_method": "prepublish",
+                "key_style": "single",
+                "ksk_keysize": 3069,
+                "zsk_keysize": 3069,
             },
         }
 
         logger.debug("Loading configuration from {}".format(self._configfile))
         try:
-            with open(self._configfile, 'r') as f:
+            with open(self._configfile, "r") as f:
                 a = yaml.safe_load(f)
                 if a:
                     for k, v in tmp_conf.items():
@@ -50,19 +50,19 @@ class KeyrollerConfig:
                         if isinstance(v, list) and isinstance(a.get(k), list):
                             tmp_conf[k] = a.get(k)
 
-            loglevel = getattr(logging, tmp_conf['keyroller']['loglevel'].upper())
+            loglevel = getattr(logging, tmp_conf["keyroller"]["loglevel"].upper())
             if not isinstance(loglevel, int):
                 loglevel = logging.INFO
             logger.info("Setting loglevel to {}".format(loglevel))
             logging.basicConfig(level=loglevel)
 
         except FileNotFoundError as e:
-            logger.error('Unable to load configuration file: {}'.format(e))
+            logger.error("Unable to load configuration file: {}".format(e))
 
         return tmp_conf
 
     def api(self):
-        return self._config['API']
+        return self._config["API"]
 
     def defaults(self):
-        return self._config['domain_defaults']
+        return self._config["domain_defaults"]

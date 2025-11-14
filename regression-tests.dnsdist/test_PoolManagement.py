@@ -2,6 +2,7 @@
 import dns
 from dnsdisttests import DNSDistTest, pickAvailablePort
 
+
 class TestPoolManagement(DNSDistTest):
     _config_template = """
     local backendPort = %d
@@ -22,14 +23,10 @@ class TestPoolManagement(DNSDistTest):
         """
         Pool management: A query without EDNS
         """
-        name = 'pool-mngmt.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+        name = "pool-mngmt.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN", use_edns=False)
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):

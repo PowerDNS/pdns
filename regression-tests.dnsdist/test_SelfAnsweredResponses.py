@@ -2,8 +2,8 @@
 import dns
 from dnsdisttests import DNSDistTest
 
-class TestSelfAnsweredResponses(DNSDistTest):
 
+class TestSelfAnsweredResponses(DNSDistTest):
     _config_template = """
     -- this is a silly test config, please do not do this in production.
     addAction(SuffixMatchNodeRule("udp.selfanswered.tests.powerdns.com."), SpoofAction("192.0.2.1"))
@@ -18,14 +18,10 @@ class TestSelfAnsweredResponses(DNSDistTest):
         SelfAnsweredResponses: Drop when served from the cache
         """
         ttl = 60
-        name = 'udp.selfanswered.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "udp.selfanswered.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    ttl,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
+        rrset = dns.rrset.from_text(name, ttl, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
         response.answer.append(rrset)
         response.flags |= dns.flags.RA
 
@@ -43,14 +39,10 @@ class TestSelfAnsweredResponses(DNSDistTest):
         SelfAnsweredResponses: TCP: Drop after exceeding QPS
         """
         ttl = 60
-        name = 'tcp.selfanswered.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "tcp.selfanswered.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    ttl,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
+        rrset = dns.rrset.from_text(name, ttl, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
         response.answer.append(rrset)
         response.flags |= dns.flags.RA
 

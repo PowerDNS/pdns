@@ -6,8 +6,8 @@ import dns
 from dnsdisttests import DNSDistTest
 from dnsdistDynBlockTests import DynBlocksTest, waitForMaintenanceToRun, _maintenanceWaitTime
 
-class TestDynBlockQPS(DynBlocksTest):
 
+class TestDynBlockQPS(DynBlocksTest):
     _config_template = """
     function maintenance()
 	    addDynBlocks(exceedQRate(%d, %d), "Exceeded query rate", %d)
@@ -16,17 +16,25 @@ class TestDynBlockQPS(DynBlocksTest):
     webserver("127.0.0.1:%d")
     setWebserverConfig({password="%s", apiKey="%s"})
     """
-    _config_params = ['_dynBlockQPS', '_dynBlockPeriod', '_dynBlockDuration', '_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
+    _config_params = [
+        "_dynBlockQPS",
+        "_dynBlockPeriod",
+        "_dynBlockDuration",
+        "_testServerPort",
+        "_webServerPort",
+        "_webServerBasicAuthPasswordHashed",
+        "_webServerAPIKeyHashed",
+    ]
 
     def testDynBlocksQRate(self):
         """
         Dyn Blocks: QRate
         """
-        name = 'qrate.dynblocks.tests.powerdns.com.'
+        name = "qrate.dynblocks.tests.powerdns.com."
         self.doTestQRate(name)
 
-class TestDynBlockQPSRefused(DynBlocksTest):
 
+class TestDynBlockQPSRefused(DynBlocksTest):
     _config_template = """
     function maintenance()
 	    addDynBlocks(exceedQRate(%d, %d), "Exceeded query rate", %d)
@@ -39,11 +47,11 @@ class TestDynBlockQPSRefused(DynBlocksTest):
         """
         Dyn Blocks: QRate refused
         """
-        name = 'qraterefused.dynblocks.tests.powerdns.com.'
+        name = "qraterefused.dynblocks.tests.powerdns.com."
         self.doTestQRateRCode(name, dns.rcode.REFUSED)
 
-class TestDynBlockQPSActionRefused(DynBlocksTest):
 
+class TestDynBlockQPSActionRefused(DynBlocksTest):
     _config_template = """
     function maintenance()
 	    addDynBlocks(exceedQRate(%d, %d), "Exceeded query rate", %d, DNSAction.Refused)
@@ -56,11 +64,11 @@ class TestDynBlockQPSActionRefused(DynBlocksTest):
         """
         Dyn Blocks: QRate refused (action)
         """
-        name = 'qrateactionrefused.dynblocks.tests.powerdns.com.'
+        name = "qrateactionrefused.dynblocks.tests.powerdns.com."
         self.doTestQRateRCode(name, dns.rcode.REFUSED)
 
-class TestDynBlockQPSActionNXD(DynBlocksTest):
 
+class TestDynBlockQPSActionNXD(DynBlocksTest):
     _config_template = """
     function maintenance()
 	    addDynBlocks(exceedQRate(%d, %d), "Exceeded query rate", %d, DNSAction.Nxdomain)
@@ -73,16 +81,16 @@ class TestDynBlockQPSActionNXD(DynBlocksTest):
         """
         Dyn Blocks: QRate NXD (action)
         """
-        name = 'qrateactionnxd.dynblocks.tests.powerdns.com.'
+        name = "qrateactionnxd.dynblocks.tests.powerdns.com."
         self.doTestQRateRCode(name, dns.rcode.NXDOMAIN)
 
-class TestDynBlockQPSActionTruncated(DNSDistTest):
 
+class TestDynBlockQPSActionTruncated(DNSDistTest):
     _dynBlockQPS = 10
     _dynBlockPeriod = 2
     # this needs to be greater than maintenanceWaitTime
     _dynBlockDuration = _maintenanceWaitTime + 1
-    _config_params = ['_dynBlockQPS', '_dynBlockPeriod', '_dynBlockDuration', '_testServerPort']
+    _config_params = ["_dynBlockQPS", "_dynBlockPeriod", "_dynBlockDuration", "_testServerPort"]
     _config_template = """
     function maintenance()
 	    addDynBlocks(exceedQRate(%d, %d), "Exceeded query rate", %d, DNSAction.Truncate)
@@ -95,16 +103,12 @@ class TestDynBlockQPSActionTruncated(DNSDistTest):
         """
         Dyn Blocks: QRate truncated (action)
         """
-        name = 'qrateactiontruncated.dynblocks.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "qrateactiontruncated.dynblocks.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         # dnsdist sets RA = RD for TC responses
         query.flags &= ~dns.flags.RD
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
         response.answer.append(rrset)
         truncatedResponse = dns.message.make_response(query)
         truncatedResponse.flags |= dns.flags.TC
@@ -166,8 +170,8 @@ class TestDynBlockQPSActionTruncated(DNSDistTest):
 
         self.assertEqual(allowed, sent)
 
-class TestDynBlockAllowlist(DynBlocksTest):
 
+class TestDynBlockAllowlist(DynBlocksTest):
     _config_template = """
     allowlisted = false
     function maintenance()
@@ -198,14 +202,10 @@ class TestDynBlockAllowlist(DynBlocksTest):
         """
         Dyn Blocks: Allowlisted from the dynamic blocks
         """
-        name = 'allowlisted.dynblocks.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "allowlisted.dynblocks.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
         response.answer.append(rrset)
 
         allowed = 0
@@ -235,16 +235,12 @@ class TestDynBlockAllowlist(DynBlocksTest):
         self.assertEqual(receivedResponse, receivedResponse)
 
         # check that we would have been blocked without the allowlisting
-        name = 'allowlisted-test.dynblocks.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "allowlisted-test.dynblocks.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         # dnsdist set RA = RD for spoofed responses
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.42')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.42")
         expectedResponse.answer.append(rrset)
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         self.assertEqual(receivedResponse, expectedResponse)

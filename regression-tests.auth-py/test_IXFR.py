@@ -7,59 +7,88 @@ from authtests import AuthTest
 from xfrserver.xfrserver import AXFRServer
 
 zones = {
-    1: ["""
-$ORIGIN example.""","""
+    1: [
+        """
+$ORIGIN example.""",
+        """
 @        86400   SOA    foo bar 1 2 3 4 5
 @        4242    NS     ns1.example.
 @        4242    NS     ns2.example.
 ns1.example.    4242    A       192.0.2.1
 ns2.example.    4242    A       192.0.2.2
-"""],
-    2: ["""
-$ORIGIN example.""","""
+""",
+    ],
+    2: [
+        """
+$ORIGIN example.""",
+        """
 @        86400   SOA    foo bar 2 2 3 4 5
 @        4242    NS     ns1.example.
 @        4242    NS     ns2.example.
 ns1.example.    4242    A       192.0.2.1
 ns2.example.    4242    A       192.0.2.2
 newrecord.example.        8484    A       192.0.2.42
-"""],
-    3: ["""
-$ORIGIN example.""","""
-@        86400   SOA    foo bar 3 2 3 4 5""","""
-@        86400   SOA    foo bar 2 2 3 4 5""","""
-@        86400   SOA    foo bar 3 2 3 4 5""","""
+""",
+    ],
+    3: [
+        """
+$ORIGIN example.""",
+        """
+@        86400   SOA    foo bar 3 2 3 4 5""",
+        """
+@        86400   SOA    foo bar 2 2 3 4 5""",
+        """
+@        86400   SOA    foo bar 3 2 3 4 5""",
+        """
 @        4242    NS     ns3.example.
-"""],
-    5: ["""
-$ORIGIN example.""","""
-@        86400   SOA    foo bar 5 2 3 4 5""","""
-@        86400   SOA    foo bar 3 2 3 4 5""","""
-@        86400   SOA    foo bar 4 2 3 4 5""","""
-@        86400   SOA    foo bar 4 2 3 4 5""","""
-@        86400   SOA    foo bar 5 2 3 4 5""","""
+""",
+    ],
+    5: [
+        """
+$ORIGIN example.""",
+        """
+@        86400   SOA    foo bar 5 2 3 4 5""",
+        """
+@        86400   SOA    foo bar 3 2 3 4 5""",
+        """
+@        86400   SOA    foo bar 4 2 3 4 5""",
+        """
+@        86400   SOA    foo bar 4 2 3 4 5""",
+        """
+@        86400   SOA    foo bar 5 2 3 4 5""",
+        """
 @        4242    NS     ns5.example.
-"""],
-    8: ["""
-$ORIGIN example.""","""
-@        86400   SOA    foo bar 8 2 3 4 5""","""
-@        86400   SOA    foo bar 5 2 3 4 5""","""
-@        86400   SOA    foo bar 6 2 3 4 5""","""
-@        86400   SOA    foo bar 6 2 3 4 5""","""
-@        86400   SOA    foo bar 7 2 3 4 5""","""
-@        86400   SOA    foo bar 7 2 3 4 5""","""
-@        86400   SOA    foo bar 8 2 3 4 5""","""
-"""]
-
-
+""",
+    ],
+    8: [
+        """
+$ORIGIN example.""",
+        """
+@        86400   SOA    foo bar 8 2 3 4 5""",
+        """
+@        86400   SOA    foo bar 5 2 3 4 5""",
+        """
+@        86400   SOA    foo bar 6 2 3 4 5""",
+        """
+@        86400   SOA    foo bar 6 2 3 4 5""",
+        """
+@        86400   SOA    foo bar 7 2 3 4 5""",
+        """
+@        86400   SOA    foo bar 7 2 3 4 5""",
+        """
+@        86400   SOA    foo bar 8 2 3 4 5""",
+        """
+""",
+    ],
 }
 
 
 xfrServerPort = 4244
 xfrServer = AXFRServer(xfrServerPort, zones)
 
+
 class TestIXFR(AuthTest):
-    _backend = 'gsqlite3'
+    _backend = "gsqlite3"
 
     _config_template = """
 launch=gsqlite3
@@ -88,9 +117,9 @@ negquery-cache-ttl=60
 
         attempts = 0
         while attempts < timeout:
-            print('attempts=%s timeout=%s' % (attempts, timeout))
+            print("attempts=%s timeout=%s" % (attempts, timeout))
             servedSerial = xfrServer.getServedSerial()
-            print('servedSerial=%s' % servedSerial)
+            print("servedSerial=%s" % servedSerial)
             if servedSerial > serial:
                 raise AssertionError("Expected serial %d, got %d" % (serial, servedSerial))
             if servedSerial == serial:
@@ -101,7 +130,10 @@ negquery-cache-ttl=60
             attempts = attempts + 1
             time.sleep(1)
 
-        raise AssertionError("Waited %d seconds for the serial to be updated to %d but the last served serial is still %d" % (timeout, serial, servedSerial))
+        raise AssertionError(
+            "Waited %d seconds for the serial to be updated to %d but the last served serial is still %d"
+            % (timeout, serial, servedSerial)
+        )
 
     def checkFullZone(self, serial, data=None):
         global zones
@@ -110,15 +142,19 @@ negquery-cache-ttl=60
         zone = []
         if not data:
             data = zones[serial]
-        for i in dns.zone.from_text('\n'.join(data), relativize=False).iterate_rdatasets():
+        for i in dns.zone.from_text("\n".join(data), relativize=False).iterate_rdatasets():
             n, rds = i
-            rrs=dns.rrset.RRset(n, rds.rdclass, rds.rdtype)
+            rrs = dns.rrset.RRset(n, rds.rdclass, rds.rdtype)
             rrs.update(rds)
             zone.append(rrs)
 
-        expected =[[zone[0]], sorted(zone[1:], key=lambda rrset: (rrset.name, rrset.rdtype)), [zone[0]]] # AXFRs are SOA-wrapped
+        expected = [
+            [zone[0]],
+            sorted(zone[1:], key=lambda rrset: (rrset.name, rrset.rdtype)),
+            [zone[0]],
+        ]  # AXFRs are SOA-wrapped
 
-        query = dns.message.make_query('example.', 'AXFR')
+        query = dns.message.make_query("example.", "AXFR")
         res = self.sendTCPQueryMultiResponse(query, count=len(expected))
         answers = [r.answer for r in res]
         answers[1].sort(key=lambda rrset: (rrset.name, rrset.rdtype))
@@ -129,8 +165,10 @@ negquery-cache-ttl=60
 
         soa1 = xfrServer._getSOAForSerial(fromserial)
         soa2 = xfrServer._getSOAForSerial(toserial)
-        newrecord = [r for r in xfrServer._getRecordsForSerial(toserial) if r.name==dns.name.from_text('newrecord.example.')]
-        query = dns.message.make_query('example.', 'IXFR')
+        newrecord = [
+            r for r in xfrServer._getRecordsForSerial(toserial) if r.name == dns.name.from_text("newrecord.example.")
+        ]
+        query = dns.message.make_query("example.", "IXFR")
         query.authority = [soa1]
 
         expected = [[soa2], [soa1], [soa2], newrecord, [soa2]]
@@ -156,8 +194,12 @@ negquery-cache-ttl=60
         self.checkFullZone(2)
 
         self.waitUntilCorrectSerialIsLoaded(3)
-        self.checkFullZone(3, data=["""
-$ORIGIN example.""","""
+        self.checkFullZone(
+            3,
+            data=[
+                """
+$ORIGIN example.""",
+                """
 @        86400   SOA    foo bar 3 2 3 4 5
 @        4242    NS     ns1.example.
 @        4242    NS     ns2.example.
@@ -165,11 +207,17 @@ $ORIGIN example.""","""
 ns1.example.    4242    A       192.0.2.1
 ns2.example.    4242    A       192.0.2.2
 newrecord.example.        8484    A       192.0.2.42
-"""])
+""",
+            ],
+        )
 
         self.waitUntilCorrectSerialIsLoaded(5)
-        self.checkFullZone(5, data=["""
-$ORIGIN example.""","""
+        self.checkFullZone(
+            5,
+            data=[
+                """
+$ORIGIN example.""",
+                """
 @        86400   SOA    foo bar 5 2 3 4 5
 @        4242    NS     ns1.example.
 @        4242    NS     ns2.example.
@@ -178,12 +226,13 @@ $ORIGIN example.""","""
 ns1.example.    4242    A       192.0.2.1
 ns2.example.    4242    A       192.0.2.2
 newrecord.example.        8484    A       192.0.2.42
-"""])
-
+""",
+            ],
+        )
 
     # _b_ because we expect post-XFR testing state
     def test_b_UDP_SOA_existing(self):
-        query = dns.message.make_query('example.', 'SOA')
+        query = dns.message.make_query("example.", "SOA")
         expected = dns.message.make_response(query)
         expected.answer.append(xfrServer._getSOAForSerial(5))
         expected.flags |= dns.flags.AA
@@ -198,7 +247,7 @@ newrecord.example.        8484    A       192.0.2.42
             pos = pos + 1
 
     def test_b_UDP_SOA_not_loaded(self):
-        query = dns.message.make_query('example2.', 'SOA')
+        query = dns.message.make_query("example2.", "SOA")
         expected = dns.message.make_response(query)
         expected.set_rcode(dns.rcode.REFUSED)
 
@@ -206,7 +255,7 @@ newrecord.example.        8484    A       192.0.2.42
         self.assertEqual(expected, response)
 
     def test_b_UDP_SOA_not_configured(self):
-        query = dns.message.make_query('example3.', 'SOA')
+        query = dns.message.make_query("example3.", "SOA")
         expected = dns.message.make_response(query)
         expected.set_rcode(dns.rcode.REFUSED)
 
@@ -215,8 +264,12 @@ newrecord.example.        8484    A       192.0.2.42
 
     def test_d_XFR(self):
         self.waitUntilCorrectSerialIsLoaded(8)
-        self.checkFullZone(7, data=["""
-$ORIGIN example.""","""
+        self.checkFullZone(
+            7,
+            data=[
+                """
+$ORIGIN example.""",
+                """
 @        86400   SOA    foo bar 8 2 3 4 5
 @        4242    NS     ns1.example.
 @        4242    NS     ns2.example.
@@ -225,10 +278,12 @@ $ORIGIN example.""","""
 ns1.example.    4242    A       192.0.2.1
 ns2.example.    4242    A       192.0.2.2
 newrecord.example.        8484    A       192.0.2.42
-"""])
-        ret = subprocess.check_output([os.environ['PDNSUTIL'],
-                           '--config-dir=configs/auth',
-                           'list-zone', 'example'], stderr=subprocess.STDOUT)
-        rets = ret.split(b'\n')
+""",
+            ],
+        )
+        ret = subprocess.check_output(
+            [os.environ["PDNSUTIL"], "--config-dir=configs/auth", "list-zone", "example"], stderr=subprocess.STDOUT
+        )
+        rets = ret.split(b"\n")
 
-        self.assertEqual(1, sum(b'SOA' in l for l in rets))
+        self.assertEqual(1, sum(b"SOA" in l for l in rets))
