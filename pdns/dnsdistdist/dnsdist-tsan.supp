@@ -23,3 +23,6 @@ race:carbonDumpThread
 # Actually writing to these is protected by a mutex, though.
 race:DownstreamState::reconnect
 signal:sigTermHandler
+# There is no race here, the state is only owned by one
+# thread at a time
+race:InternalQueryState::operator=(InternalQueryState&&)
