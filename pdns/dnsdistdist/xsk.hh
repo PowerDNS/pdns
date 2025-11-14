@@ -137,7 +137,7 @@ public:
   // add as many packets as possible to the rx queue for sending */
   void send(std::vector<XskPacket>& packets);
   // look at incoming packets in rx, return them if parsing succeeeded
-  [[nodiscard]] std::vector<XskPacket> recv(uint32_t recvSizeMax, uint32_t* failedCount);
+  void recv(std::vector<XskPacket>& packets, uint32_t recvSizeMax, uint32_t* failedCount);
   void addWorker(std::shared_ptr<XskWorker> worker);
   void addWorkerRoute(const std::shared_ptr<XskWorker>& worker, const ComboAddress& dest);
   void removeWorkerRoute(const ComboAddress& dest);
