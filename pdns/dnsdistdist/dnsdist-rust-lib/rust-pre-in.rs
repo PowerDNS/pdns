@@ -3,10 +3,6 @@ use serde::{Deserialize, Serialize};
 mod helpers;
 use helpers::*;
 
-// Suppresses "Deserialize unused" warning
-#[derive(Deserialize, Serialize)]
-struct UnusedStruct {}
-
 #[derive(Debug)]
 pub struct ValidationError {
     msg: String,
