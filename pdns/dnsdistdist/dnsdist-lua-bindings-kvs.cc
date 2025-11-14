@@ -90,14 +90,14 @@ void setupLuaBindingsKVS([[maybe_unused]] LuaContext& luaCtx, [[maybe_unused]] b
     return result;
   });
 
-  luaCtx.registerFunction<std::string(std::shared_ptr<KeyValueStore>::*)(const DNSName&, std::optional<size_t> minLabels, std::optional<bool> wireFormat)>("lookupSuffix", [](std::shared_ptr<KeyValueStore>& kvs, const DNSName& dn, std::optional<size_t> minLabels, std::optional<bool> wireFormat) {
+  luaCtx.registerFunction<std::string(std::shared_ptr<KeyValueStore>::*)(const DNSName&, std::optional<size_t> minLabels, std::optional<bool> wireFormat)>("lookupSuffix", [](std::shared_ptr<KeyValueStore>& kvs, const DNSName& lookupKey, std::optional<size_t> minLabels, std::optional<bool> wireFormat) {
     std::string result;
     if (!kvs) {
       return result;
     }
 
     KeyValueLookupKeySuffix lookup(minLabels ? *minLabels : 0, wireFormat ? *wireFormat : true);
-    for (const auto& key : lookup.getKeys(dn)) {
+    for (const auto& key : lookup.getKeys(lookupKey)) {
       if (kvs->getValue(key, result)) {
         return result;
       }
