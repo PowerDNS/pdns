@@ -2136,7 +2136,7 @@ static void MultipleMessagesUDPClientThread(ClientState* clientState)
     /* reset the IO vector, since it's also used to send the vector of responses
        to avoid having to copy the data around
        No need to reset the parts that have not been used, though. */
-    for (size_t idx = 0; idx < static_cast<size_t>(msgsGot); idx++) {
+    for (int idx = 0; idx < msgsGot; idx++) {
       auto& slot = recvData[idx];
       /* only resize if the buffer is actually smaller than expected */
       if (slot.packet.size() < initialBufferSize) {
