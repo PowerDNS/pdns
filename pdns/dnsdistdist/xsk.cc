@@ -573,36 +573,48 @@ void XskPacket::setEthernetHeader(const ethhdr& ethHeader) noexcept
 
 [[nodiscard]] iphdr XskPacket::getIPv4Header() const noexcept
 {
-  iphdr ipv4Header{};
-  assert(frameLength >= (sizeof(ethhdr) + sizeof(ipv4Header)));
   assert(!v6);
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-  memcpy(&ipv4Header, frame + sizeof(ethhdr), sizeof(ipv4Header));
+  iphdr ipv4Header{};
+  constexpr size_t needed = sizeof(ethhdr) + sizeof(ipv4Header);
+  if (frameLength >= needed) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    memcpy(&ipv4Header, frame + sizeof(ethhdr), sizeof(ipv4Header));
+  }
   return ipv4Header;
 }
 
 void XskPacket::setIPv4Header(const iphdr& ipv4Header) noexcept
 {
-  assert(frameLength >= (sizeof(ethhdr) + sizeof(iphdr)));
   assert(!v6);
+  constexpr size_t neededRoom = sizeof(ethhdr) + sizeof(iphdr);
+  assert(frameSize >= neededRoom);
+  if (frameLength < neededRoom) {
+    frameLength = neededRoom;
+  }
   // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
   memcpy(frame + sizeof(ethhdr), &ipv4Header, sizeof(ipv4Header));
 }
 
 [[nodiscard]] ipv6hdr XskPacket::getIPv6Header() const noexcept
 {
-  ipv6hdr ipv6Header{};
-  assert(frameLength >= (sizeof(ethhdr) + sizeof(ipv6Header)));
   assert(v6);
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-  memcpy(&ipv6Header, frame + sizeof(ethhdr), sizeof(ipv6Header));
+  ipv6hdr ipv6Header{};
+  constexpr size_t needed = sizeof(ethhdr) + sizeof(ipv6Header);
+  if (frameLength >= needed) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    memcpy(&ipv6Header, frame + sizeof(ethhdr), sizeof(ipv6Header));
+  }
   return ipv6Header;
 }
 
 void XskPacket::setIPv6Header(const ipv6hdr& ipv6Header) noexcept
 {
-  assert(frameLength >= (sizeof(ethhdr) + sizeof(ipv6Header)));
   assert(v6);
+  constexpr size_t neededRoom = sizeof(ethhdr) + sizeof(ipv6Header);
+  assert(frameSize >= neededRoom);
+  if (frameLength < neededRoom) {
+    frameLength = neededRoom;
+  }
   // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
   memcpy(frame + sizeof(ethhdr), &ipv6Header, sizeof(ipv6Header));
 }
@@ -610,15 +622,22 @@ void XskPacket::setIPv6Header(const ipv6hdr& ipv6Header) noexcept
 [[nodiscard]] udphdr XskPacket::getUDPHeader() const noexcept
 {
   udphdr udpHeader{};
-  assert(frameLength >= (sizeof(ethhdr) + (v6 ? sizeof(ipv6hdr) : sizeof(iphdr)) + sizeof(udpHeader)));
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-  memcpy(&udpHeader, frame + getL4HeaderOffset(), sizeof(udpHeader));
+  const size_t neededRoom = sizeof(ethhdr) + (v6 ? sizeof(ipv6hdr) : sizeof(iphdr)) + sizeof(udpHeader);
+  assert(frameSize >= neededRoom);
+  if (frameLength >= neededRoom) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    memcpy(&udpHeader, frame + getL4HeaderOffset(), sizeof(udpHeader));
+  }
   return udpHeader;
 }
 
 void XskPacket::setUDPHeader(const udphdr& udpHeader) noexcept
 {
-  assert(frameLength >= (sizeof(ethhdr) + (v6 ? sizeof(ipv6hdr) : sizeof(iphdr)) + sizeof(udpHeader)));
+  const size_t neededRoom = sizeof(ethhdr) + (v6 ? sizeof(ipv6hdr) : sizeof(iphdr)) + sizeof(udpHeader);
+  assert(frameSize >= neededRoom);
+  if (frameLength < neededRoom) {
+    frameLength = sizeof(ethhdr) + (v6 ? sizeof(ipv6hdr) : sizeof(iphdr)) + sizeof(udpHeader);
+  }
   // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
   memcpy(frame + getL4HeaderOffset(), &udpHeader, sizeof(udpHeader));
 }
@@ -766,6 +785,7 @@ void XskPacket::changeDirectAndUpdateChecksum() noexcept
     setIPv4Header(ipv4);
     setUDPHeader(udp);
   }
+
   setEthernetHeader(ethHeader);
 }
 
