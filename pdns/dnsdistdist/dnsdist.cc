@@ -2129,23 +2129,32 @@ static void MultipleMessagesUDPClientThread(ClientState* clientState)
     fillMSGHdr(&msgVec[idx].msg_hdr, &recvData[idx].iov, &recvData[idx].cbuf, sizeof(recvData[idx].cbuf), reinterpret_cast<char*>(recvData[idx].packet.data()), maxIncomingPacketSize, &recvData[idx].remote);
   }
 
+  int msgsGot = vectSize;
   /* go now */
   for (;;) {
 
     /* reset the IO vector, since it's also used to send the vector of responses
-       to avoid having to copy the data around */
-    for (size_t idx = 0; idx < vectSize; idx++) {
-      recvData[idx].packet.resize(initialBufferSize);
-      recvData[idx].iov.iov_base = &recvData[idx].packet.at(0);
-      recvData[idx].iov.iov_len = recvData[idx].packet.size();
+       to avoid having to copy the data around
+       No need to reset the parts that have not been used, though. */
+    for (size_t idx = 0; idx < static_cast<size_t>(msgsGot); idx++) {
+      auto& slot = recvData[idx];
+      /* only resize if the buffer is actually smaller than expected */
+      if (slot.packet.size() < initialBufferSize) {
+        slot.packet.resize(initialBufferSize);
+      }
+      /* but we need to set the IOv pointer and size
+         anyway, because if we resized it the pointer might
+         now be invalid */
+      slot.iov.iov_base = &slot.packet.at(0);
+      slot.iov.iov_len = slot.packet.size();
     }
 
     /* block until we have at least one message ready, but return
        as many as possible to save the syscall costs */
-    int msgsGot = recvmmsg(clientState->udpFD, msgVec.data(), vectSize, MSG_WAITFORONE | MSG_TRUNC, nullptr);
-
+    msgsGot = recvmmsg(clientState->udpFD, msgVec.data(), vectSize, MSG_WAITFORONE | MSG_TRUNC, nullptr);
     if (msgsGot <= 0) {
       vinfolog("Getting UDP messages via recvmmsg() failed with: %s", stringerror());
+      msgsGot = 0;
       continue;
     }
 
@@ -2153,8 +2162,9 @@ static void MultipleMessagesUDPClientThread(ClientState* clientState)
 
     /* process the received messages */
     for (int msgIdx = 0; msgIdx < msgsGot; msgIdx++) {
-      const struct msghdr* msgh = &msgVec[msgIdx].msg_hdr;
-      unsigned int got = msgVec[msgIdx].msg_len;
+      auto& msg = msgVec[msgIdx];
+      const struct msghdr* msgh = &msg.msg_hdr;
+      unsigned int got = msg.msg_len;
       const ComboAddress& remote = recvData[msgIdx].remote;
 
       if (static_cast<size_t>(got) < sizeof(struct dnsheader)) {
@@ -2163,9 +2173,10 @@ static void MultipleMessagesUDPClientThread(ClientState* clientState)
         continue;
       }
 
-      recvData[msgIdx].packet.resize(got);
+      auto& data = recvData[msgIdx];
+      data.packet.resize(got);
       dnsdist::configuration::refreshLocalRuntimeConfiguration();
-      processUDPQuery(*clientState, msgh, remote, recvData[msgIdx].dest, recvData[msgIdx].packet, &outMsgVec, &msgsToSend, &recvData[msgIdx].iov, &recvData[msgIdx].cbuf);
+      processUDPQuery(*clientState, msgh, remote, data.dest, data.packet, &outMsgVec, &msgsToSend, &data.iov, &data.cbuf);
     }
 
     /* immediate (not delayed or sent to a backend) responses (mostly from a rule, dynamic block
