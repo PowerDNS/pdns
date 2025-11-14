@@ -143,10 +143,10 @@ class ClientSubnetOption(dns.edns.Option):
 
         format = "!HBB%ds" % (mask_bits // 8)
         data = struct.pack(format, self.family, self.mask, self.scope, test)
-        if file:
-            file.write(data)
-        else:
+        if not file:
             return data
+        file.write(data)
+        return None
 
     def from_wire(cls, otype, wire, current, olen):
         """Read EDNS packet as defined in draft-vandergaast-edns-client-subnet-01.

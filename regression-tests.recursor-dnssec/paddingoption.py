@@ -17,10 +17,10 @@ class PaddingOption(dns.edns.Option):
     def to_wire(self, file=None):
         """Create EDNS packet as defined in rfc7830."""
 
-        if file:
-            file.write(bytes(self.numberOfBytes))
-        else:
+        if not file:
             return bytes(self.numberOfBytes)
+        file.write(bytes(self.numberOfBytes))
+        return None
 
     def from_wire(cls, otype, wire, current, olen):
         """Read EDNS packet as defined in rfc7830.

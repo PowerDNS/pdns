@@ -14,7 +14,7 @@ class RandomPaddingOption(paddingoption.PaddingOption):
         """Create EDNS packet as defined in rfc7830 using random bytes in the payload."""
 
         payload = os.urandom(self.numberOfBytes)
-        if file:
-            file.write(payload)
-        else:
+        if not file:
             return payload
+        file.write(payload)
+        return None
