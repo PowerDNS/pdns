@@ -130,7 +130,7 @@ jobs:
           echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
           mkdir -p /opt/pdns-auth/bin
           for i in $(find . -maxdepth 1 -type f -executable); do cp ${i} /opt/pdns-auth/bin/; done
-          mkdir -p /opt/pdns-auth/sbin; mv /opt/pdns-auth/bin/pdns-auth /opt/pdns-auth/sbin/
+          mkdir -p /opt/pdns-auth/sbin; mv /opt/pdns-auth/bin/pdns_server /opt/pdns-auth/sbin/
       - if: ${{ matrix.builder == 'meson' }}
         name: Store the binaries
         uses: actions/upload-artifact@v4 # this takes 30 seconds, maybe we want to tar
@@ -383,7 +383,7 @@ jobs:
       - run: ${{ env.INV_CMD }} install-clang-runtime
       - run: ${{ env.INV_CMD }} install-auth-test-deps -b ${{ matrix.backend }}
       - run: ${{ env.INV_CMD }} test-api auth -b ${{ matrix.backend }}
-      - run: ${{ env.INV_CMD }} generate-coverage-info /opt/pdns-auth/sbin/pdns-auth $GITHUB_WORKSPACE
+      - run: ${{ env.INV_CMD }} generate-coverage-info /opt/pdns-auth/sbin/pdns_server $GITHUB_WORKSPACE
         if: ${{ env.COVERAGE == 'yes' }}
       - name: Coveralls Parallel auth API ${{ matrix.backend }}
         if: ${{ env.COVERAGE == 'yes' }}
@@ -515,7 +515,7 @@ jobs:
       - run: ${{ env.INV_CMD }} install-clang-runtime
       - run: ${{ env.INV_CMD }} install-auth-test-deps -b ${{ matrix.backend }}
       - run: ${{ env.INV_CMD }} test-auth-backend -b ${{ matrix.backend }}
-      - run: ${{ env.INV_CMD }} generate-coverage-info /opt/pdns-auth/sbin/pdns-auth $GITHUB_WORKSPACE
+      - run: ${{ env.INV_CMD }} generate-coverage-info /opt/pdns-auth/sbin/pdns_server $GITHUB_WORKSPACE
         if: ${{ env.COVERAGE == 'yes' }}
       - name: Coveralls Parallel auth backend ${{ matrix.backend }}
         if: ${{ env.COVERAGE == 'yes' }}
