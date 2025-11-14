@@ -13,7 +13,7 @@ for fname in glob.glob('testresults-*.xml'):
 	vars['tag'] = tag
 	varnames.update(vars.keys())
 	stats=dict()
-	with open(fname) as f
+	with open(fname) as f:
 		for line in f:
 			if line.startswith('&lt;'):
 				sname = line.split(';')[4][:-3]
