@@ -372,21 +372,21 @@ void XskSocket::send(std::vector<XskPacket>& packets)
   }
 }
 
-std::vector<XskPacket> XskSocket::recv(uint32_t recvSizeMax, uint32_t* failedCount)
+void XskSocket::recv(std::vector<XskPacket>& packets, uint32_t recvSizeMax, uint32_t* failedCount)
 {
+  packets.clear();
   uint32_t idx{0};
-  std::vector<XskPacket> res;
   // how many descriptors to packets have been filled
   const auto recvSize = xsk_ring_cons__peek(&rx, recvSizeMax, &idx);
   if (recvSize == 0) {
-    return res;
+    return;
   }
 
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
   const auto baseAddr = reinterpret_cast<uint64_t>(umem.bufBase);
   uint32_t failed = 0;
   uint32_t processed = 0;
-  res.reserve(recvSize);
+  packets.reserve(recvSize);
   for (; processed < recvSize; processed++) {
     try {
       const auto* desc = xsk_ring_cons__rx_desc(&rx, idx++);
@@ -401,7 +401,7 @@ std::vector<XskPacket> XskSocket::recv(uint32_t recvSizeMax, uint32_t* failedCou
         markAsFree(packet);
       }
       else {
-        res.push_back(packet);
+        packets.push_back(packet);
       }
     }
     catch (const std::exception& exp) {
@@ -423,8 +423,6 @@ std::vector<XskPacket> XskSocket::recv(uint32_t recvSizeMax, uint32_t* failedCou
   if (failedCount != nullptr) {
     *failedCount = failed;
   }
-
-  return res;
 }
 
 void XskSocket::pickUpReadyPacket(std::vector<XskPacket>& packets)

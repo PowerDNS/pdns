@@ -133,13 +133,14 @@ void XskRouter(std::shared_ptr<XskSocket> xsk)
   const auto& fds = xsk->getDescriptors();
   // list of workers that need to be notified
   std::set<int> needNotify;
+  std::vector<XskPacket> packets;
   while (true) {
     try {
       auto ready = xsk->wait(-1);
       dnsdist::configuration::refreshLocalRuntimeConfiguration();
       // descriptor 0 gets incoming AF_XDP packets
       if ((fds.at(0).revents & POLLIN) != 0) {
-        auto packets = xsk->recv(64, &failed);
+        xsk->recv(packets, 64, &failed);
         dnsdist::metrics::g_stats.nonCompliantQueries += failed;
         for (auto& packet : packets) {
           const auto dest = packet.getToAddr();
