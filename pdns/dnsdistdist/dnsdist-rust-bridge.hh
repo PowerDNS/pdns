@@ -34,11 +34,13 @@ struct ProtobufLoggerConfiguration;
 struct DnstapLoggerConfiguration;
 struct KeyValueStoresConfiguration;
 struct NetmaskGroupConfiguration;
+struct TimedIpSetConfiguration;
 
 void registerProtobufLogger(const ProtobufLoggerConfiguration& config);
 void registerDnstapLogger(const DnstapLoggerConfiguration& config);
 void registerKVSObjects(const KeyValueStoresConfiguration& config);
 void registerNMGObjects(const ::rust::Vec<NetmaskGroupConfiguration>& nmgs);
+void registerTimedIPSetObjects(const ::rust::Vec<TimedIpSetConfiguration>& sets);
 
 #include "dnsdist-rust-bridge-actions-generated.hh"
 #include "dnsdist-rust-bridge-selectors-generated.hh"

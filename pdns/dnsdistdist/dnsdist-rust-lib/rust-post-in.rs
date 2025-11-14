@@ -83,6 +83,7 @@ fn get_global_configuration_from_serde(
     config.ring_buffers = serde.ring_buffers;
     config.security_polling = serde.security_polling;
     config.snmp = serde.snmp;
+    config.timed_ip_sets = serde.timed_ip_sets;
     config.tuning = serde.tuning;
     config.webserver = serde.webserver;
     config.xsk = serde.xsk;
@@ -92,6 +93,8 @@ fn get_global_configuration_from_serde(
     dnsdistsettings::registerKVSObjects(&config.key_value_stores);
     // this needs to be done before the rules so that they can refer to the NMG objects
     dnsdistsettings::registerNMGObjects(&config.netmask_groups);
+    // this needs to be done before the rules so that they can refer to the TimeIPSet objects
+    dnsdistsettings::registerTimedIPSetObjects(&config.timed_ip_sets);
     // this needs to be done BEFORE the rules so that they can refer to the selectors
     // by name
     config.selectors = get_selectors_from_serde(&serde.selectors)?;

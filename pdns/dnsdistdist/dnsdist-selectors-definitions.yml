@@ -420,5 +420,13 @@ Set the ``source`` parameter to ``false`` to match against destination address i
     - name: "tcp"
       type: "bool"
       description: "Match TCP traffic if true, UDP traffic if false"
+- name: "TimedIPSet"
+  skip-cpp: true
+  skip-rust: true
+  description: "Can be used to handle IP addresses differently for a certain time"
+  parameters:
+    - name: "set_name"
+      type: "String"
+      description: "The Timed IP set to use"
 - name: "TrailingData"
   description: "Matches if the query has trailing data"
