@@ -2065,9 +2065,7 @@ void LMDBBackend::lookupStart(domainid_t domain_id, const std::string& match, bo
   d_lookupstate.rrset.clear();
   d_lookupstate.rrsetpos = 0;
 
-  MDBOutVal key{};
-  MDBOutVal val{};
-  if (d_lookupstate.cursor->prefix(match, key, val) != 0) {
+  if (d_lookupstate.cursor->prefix(match, d_lookupstate.key, d_lookupstate.val) != 0) {
     d_lookupstate.reset(); // will cause get() to fail
     if (dolog) {
       g_log << Logger::Warning << "Query " << ((long)(void*)this) << ": " << d_dtime.udiffNoReset() << " us to execute (found nothing)" << endl;
@@ -2084,10 +2082,6 @@ bool LMDBBackend::getInternal(DNSName& basename, std::string_view& key)
 {
   // FIXME: bit of duplication from below here, but much simpler
   if (d_lookupstate.comments) {
-    if (d_lookupstate.cursor && d_lookupstate.cursor->next(d_lookupstate.key, d_lookupstate.val) != 0) {
-      d_lookupstate.reset();
-    }
-
     if (!d_lookupstate.cursor) {
       d_rotxn.reset();
       return false;
@@ -2113,11 +2107,15 @@ bool LMDBBackend::getInternal(DNSName& basename, std::string_view& key)
     d_lookupstate.comment.qname=basename + d_lookupstate.domain.operator const DNSName&();
     d_lookupstate.comment.qtype=compoundOrdername::getQType(key);
     d_lookupstate.comment.modified_at=LMDBLS::pdns_bswap64(ts);
-    auto pos = val.find('\0', 1); // FIXME check
-    d_lookupstate.comment.content=val.substr(0, pos); // pos-1?
+    auto pos = val.find('\0', 1) + 1; // FIXME check
+    d_lookupstate.comment.content=val.substr(0, pos - 1); // pos-1?
     val = val.substr(pos, std::string_view::npos);
-    pos = val.find('\0', 1); // FIXME check
-    d_lookupstate.comment.account=val.substr(0, pos); // pos-1?
+    pos = val.find('\0', 1) + 1; // FIXME check
+    d_lookupstate.comment.account=val.substr(0, pos - 1); // pos-1?
+
+    if (d_lookupstate.cursor && d_lookupstate.cursor->next(d_lookupstate.key, d_lookupstate.val) != 0) {
+      d_lookupstate.reset(); // this invalidates cursor and makes us return false on the next round
+    }
 
     return true;
   }
