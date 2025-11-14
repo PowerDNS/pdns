@@ -57,6 +57,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_nxdomain)
 
   size_t queriesCount = 0;
 
+  // NOLINTNEXTLINE(bugprone-exception-escape) When this test throws an exception, that's ok
   sr->setAsyncCallback([target1, &queriesCount, keys](const ComboAddress& ip, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, std::optional<Netmask>& /* srcmask */, boost::optional<const ResolveContext&> /* context */, LWResult* res, bool* /* chained */) {
     queriesCount++;
 
