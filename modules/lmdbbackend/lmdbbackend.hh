@@ -424,7 +424,7 @@ private:
       rrset.clear();
       rrsetpos = 0;
       cursor.reset();
-      comments = false;
+      // comments bool explicitly not reset here, so getInternal can note absence the right way
     }
   } d_lookupstate;
 
