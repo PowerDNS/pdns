@@ -400,11 +400,6 @@ class AuthZones(ZonesApiTestCase, AuthZonesHelperMixin):
               },
           ]
 
-        if is_auth_lmdb():
-            # No comments in LMDB
-            self.create_zone(name=name, rrsets=rrsets, expect_error="Hosting backend does not support editing comments.")
-            return
-
         name, _, data = self.create_zone(name=name, rrsets=rrsets)
         # NS records have been created
         self.assertEqual(len(data['rrsets']), len(rrsets) + 1)
