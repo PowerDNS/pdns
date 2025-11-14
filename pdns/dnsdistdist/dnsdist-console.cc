@@ -399,7 +399,7 @@ void doConsole()
         g_outputBuffer.clear();
         resetLuaSideEffect();
         auto ret = lua->executeCode<
-          boost::optional<
+          std::optional<
             boost::variant<
               string,
               shared_ptr<DownstreamState>,
@@ -540,7 +540,7 @@ static void controlClientThread(ConsoleConnection&& conn)
           g_outputBuffer.clear();
           resetLuaSideEffect();
           auto ret = lua->executeCode<
-            boost::optional<
+            std::optional<
               boost::variant<
                 string,
                 shared_ptr<DownstreamState>,

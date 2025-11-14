@@ -2955,7 +2955,7 @@ struct LuaContext::Reader<std::optional<TType>>
         if (auto&& other = Reader<TType>::read(state, index)) {
             return std::move(std::optional<TType>(*other));
         }
-        return boost::none;
+        return std::nullopt;
     }
 };
 

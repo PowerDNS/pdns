@@ -73,9 +73,9 @@ namespace RecordParsers
 
 struct ResponseConfig
 {
-  boost::optional<bool> setAA{boost::none};
-  boost::optional<bool> setAD{boost::none};
-  boost::optional<bool> setRA{boost::none};
+  std::optional<bool> setAA{std::nullopt};
+  std::optional<bool> setAD{std::nullopt};
+  std::optional<bool> setRA{std::nullopt};
   uint32_t ttl{60};
 };
 void setResponseHeadersFromConfig(dnsheader& dnsheader, const ResponseConfig& config);

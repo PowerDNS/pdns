@@ -156,7 +156,7 @@ void NegCache::add(const NegCacheEntry& negEntry)
  * \param qtype The type of the entry to replace
  * \param newState The new validation state
  */
-void NegCache::updateValidationStatus(const DNSName& qname, const QType qtype, const vState newState, boost::optional<time_t> capTTD)
+void NegCache::updateValidationStatus(const DNSName& qname, const QType qtype, const vState newState, std::optional<time_t> capTTD)
 {
   auto map = getMap(qname).lock();
   auto range = map->d_map.equal_range(std::tie(qname, qtype));

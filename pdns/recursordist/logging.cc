@@ -40,20 +40,20 @@ bool Logger::enabled(Logr::Priority prio) const
 
 void Logger::info(const std::string& msg) const
 {
-  logMessage(msg, Logr::Absent, boost::none);
+  logMessage(msg, Logr::Absent, std::nullopt);
 }
 
 void Logger::info(Logr::Priority prio, const std::string& msg) const
 {
-  logMessage(msg, prio, boost::none);
+  logMessage(msg, prio, std::nullopt);
 }
 
-void Logger::logMessage(const std::string& msg, boost::optional<const std::string> err) const
+void Logger::logMessage(const std::string& msg, const std::optional<std::string>& err) const
 {
   logMessage(msg, Logr::Absent, std::move(err));
 }
 
-void Logger::logMessage(const std::string& msg, Logr::Priority prio, boost::optional<const std::string> err) const
+void Logger::logMessage(const std::string& msg, Logr::Priority prio, const std::optional<std::string>& err) const
 {
   if (!enabled(prio)) {
     return;
@@ -111,7 +111,7 @@ std::shared_ptr<Logr::Logger> Logger::withName(const std::string& name) const
 {
   std::shared_ptr<Logger> res;
   if (_name) {
-    res = std::make_shared<Logger>(getptr(), _name.get() + "." + name, getVerbosity(), _level, _callback);
+    res = std::make_shared<Logger>(getptr(), _name.value() + "." + name, getVerbosity(), _level, _callback);
   }
   else {
     res = std::make_shared<Logger>(getptr(), name, getVerbosity(), _level, _callback);
@@ -142,11 +142,11 @@ Logger::Logger(EntryLogger callback) :
   _callback(callback)
 {
 }
-Logger::Logger(EntryLogger callback, boost::optional<std::string> name) :
+Logger::Logger(EntryLogger callback, std::optional<std::string> name) :
   _callback(callback), _name(std::move(name))
 {
 }
-Logger::Logger(std::shared_ptr<const Logger> parent, boost::optional<std::string> name, size_t verbosity, size_t lvl, EntryLogger callback) :
+Logger::Logger(std::shared_ptr<const Logger> parent, std::optional<std::string> name, size_t verbosity, size_t lvl, EntryLogger callback) :
   _parent(std::move(parent)), _callback(callback), _name(std::move(name)), _level(lvl), _verbosity(verbosity)
 {
 }

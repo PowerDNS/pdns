@@ -45,8 +45,8 @@ class KeyValueLookupKey;
 
 namespace dnsdist::actions
 {
-using LuaActionFunction = std::function<std::tuple<int, boost::optional<string>>(DNSQuestion* dnsquestion)>;
-using LuaResponseActionFunction = std::function<std::tuple<int, boost::optional<string>>(DNSResponse* response)>;
+using LuaActionFunction = std::function<std::tuple<int, std::optional<string>>(DNSQuestion* dnsquestion)>;
+using LuaResponseActionFunction = std::function<std::tuple<int, std::optional<string>>(DNSResponse* response)>;
 using LuaActionFFIFunction = std::function<int(dnsdist_ffi_dnsquestion_t* dnsquestion)>;
 using LuaResponseActionFFIFunction = std::function<int(dnsdist_ffi_dnsresponse_t* dnsquestion)>;
 

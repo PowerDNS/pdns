@@ -67,7 +67,7 @@ public:
     HTTP3 = 3,
   };
 
-  DnstapMessage(std::string&& buffer, MessageType type, const std::string& identity, const ComboAddress* requestor, const ComboAddress* responder, ProtocolType protocol, const char* packet, size_t len, const struct timespec* queryTime, const struct timespec* responseTime, const boost::optional<const DNSName&>& auth = boost::none, const boost::optional<HttpProtocolType> httpProtocol = boost::none);
+  DnstapMessage(std::string&& buffer, MessageType type, const std::string& identity, const ComboAddress* requestor, const ComboAddress* responder, ProtocolType protocol, const char* packet, size_t len, const struct timespec* queryTime, const struct timespec* responseTime, const DNSName& auth, const std::optional<HttpProtocolType> httpProtocol = std::nullopt);
 
   void setExtra(const std::string& extra);
   std::string&& getBuffer();
