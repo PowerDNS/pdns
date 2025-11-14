@@ -2072,11 +2072,7 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
             self.url("/api/v1/servers/localhost/zones/" + name),
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
-        if is_auth_lmdb():
-            self.assert_error_json(r)  # No comments in LMDB
-            return
-        else:
-            self.assert_success(r)
+        self.assert_success(r)
         # make sure the comments have been set, and that the NS
         # records are still present
         data = self.get_zone(name, rrset_name=name, rrset_type="NS")
@@ -2129,7 +2125,6 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         self.assertNotEqual(serverset['records'], [])
         self.assertEqual(serverset['comments'], [])
 
-    @unittest.skipIf(is_auth_lmdb(), "No comments in LMDB")
     def test_zone_comment_out_of_range_modified_at(self):
         # Test if a modified_at outside of the 32 bit range throws an error
         name, payload, zone = self.create_zone()
@@ -2153,7 +2148,6 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         self.assertEqual(r.status_code, 422)
         self.assert_in_json_error("Key 'modified_at' is out of range", r.json())
 
-    @unittest.skipIf(is_auth_lmdb(), "No comments in LMDB")
     def test_zone_comment_stay_intact(self):
         # Test if comments on an rrset stay intact if the rrset is replaced
         name, payload, zone = self.create_zone()
