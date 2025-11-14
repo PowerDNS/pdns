@@ -2235,7 +2235,7 @@ static void MultipleMessagesUDPClientThread(ClientState* clientState)
     fillMSGHdr(&msgVec[idx].msg_hdr, &recvData[idx].iov, &recvData[idx].cbuf, sizeof(recvData[idx].cbuf), reinterpret_cast<char*>(recvData[idx].packet.data()), maxIncomingPacketSize, &recvData[idx].remote);
   }
 
-  int msgsGot = vectSize;
+  int msgsGot = static_cast<int>(vectSize);
   /* go now */
   for (;;) {
 
