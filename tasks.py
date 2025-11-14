@@ -77,9 +77,9 @@ rec_bulk_deps = [
 rec_bulk_ubicloud_deps = [
     'curl',
     'bind9-dnsutils',
-    'libboost-context1.74.0',
-    'libboost-system1.74.0',
-    'libboost-filesystem1.74.0',
+    'libboost-context1.83.0',
+    'libboost-system1.83.0',
+    'libboost-filesystem1.83.0',
     'libcap2',
     'libfstrm0',
     'libluajit-5.1-2',
