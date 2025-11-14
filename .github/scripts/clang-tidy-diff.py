@@ -99,7 +99,8 @@ def merge_replacement_files(tmpdir, mergefile):
   mergekey = "Diagnostics"
   merged = []
   for replacefile in glob.iglob(os.path.join(tmpdir, '*.yaml')):
-    content = yaml.safe_load(open(replacefile, 'r'))
+    with open(replacefile, 'r') as f:
+      content = yaml.safe_load(f)
     if not content:
       continue # Skip empty files.
     merged.extend(content.get(mergekey, []))

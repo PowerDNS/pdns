@@ -64,10 +64,9 @@ ecs-add-for=0.0.0.0/0
 
     def setRoutingTag(self, tag):
         # This value is picked up by the gettag()
-        file = open('tagfile', 'w')
-        if tag:
-            file.write(tag)
-        file.close();
+        with open('tagfile', 'w') as file:
+            if tag:
+                file.write(tag)
 
     @classmethod
     def startResponders(cls):
