@@ -3,7 +3,6 @@
 import zmq
 import json
 import os
-from urllib.parse import parse_qs, urlparse
 from pdns_unittest import Handler
 
 def run(socket, handler):

@@ -4,7 +4,7 @@ import threading
 import clientsubnetoption
 import dns
 from dnsdisttests import DNSDistTest, Queue, pickAvailablePort
-from proxyprotocolutils import ProxyProtocolUDPResponder, ProxyProtocolTCPResponder
+from proxyprotocolutils import ProxyProtocolUDPResponder
 
 class TestTeeAction(DNSDistTest):
 

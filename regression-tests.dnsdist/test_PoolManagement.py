@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import dns
-from dnsdisttests import DNSDistTest, pickAvailablePort
+from dnsdisttests import DNSDistTest
 
 class TestPoolManagement(DNSDistTest):
     _config_template = """

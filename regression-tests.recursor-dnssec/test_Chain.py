@@ -1,7 +1,4 @@
-import pytest
 import dns
-import os
-import time
 import clientsubnetoption
 from recursortests import RecursorTest
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import extendederrors
 import dns
-from dnsdisttests import DNSDistTest, pickAvailablePort
+from dnsdisttests import DNSDistTest
 
 class TestBasics(DNSDistTest):
 

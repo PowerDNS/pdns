@@ -1,11 +1,9 @@
 #!/usr/bin/env python
 import dns
-import clientsubnetoption
 
 from dnsdisttests import DNSDistTest
 from dnsdisttests import pickAvailablePort
-from quictests import QUICTests, QUICWithCacheTests, QUICACLTests, QUICGetLocalAddressOnAnyBindTests, QUICXFRTests
-import doh3client
+from quictests import QUICTests, QUICACLTests, QUICGetLocalAddressOnAnyBindTests, QUICXFRTests
 
 class TestDOH3(QUICTests, DNSDistTest):
     _serverKey = 'server.key'

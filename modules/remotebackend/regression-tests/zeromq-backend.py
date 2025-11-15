@@ -3,7 +3,6 @@
 import zmq
 import json
 import os
-from urllib.parse import parse_qs, urlparse
 from backend import BackendHandler
 
 def run(socket, handler):

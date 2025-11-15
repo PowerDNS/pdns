@@ -2,7 +2,6 @@ import dns
 import os
 import socket
 import struct
-import threading
 import time
 import clientsubnetoption
 import subprocess

@@ -1,15 +1,8 @@
 import dns
-import os
-import socket
-import struct
-import threading
-import time
 import sys
 from unittest import SkipTest
 
 from recursortests import RecursorTest
-from twisted.internet.protocol import DatagramProtocol
-from twisted.internet import reactor
 
 ednsBufferReactorRunning = False
 

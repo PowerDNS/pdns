@@ -1,8 +1,6 @@
 #!/usr/bin/env python
-import dns
 import os
 import unittest
-from dnsdisttests import DNSDistTest
 from dnsdistDynBlockTests import DynBlocksTest
 
 @unittest.skipUnless('ENABLE_SUDO_TESTS' in os.environ, "sudo is not available")

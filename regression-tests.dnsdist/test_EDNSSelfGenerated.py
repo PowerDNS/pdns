@@ -2,7 +2,6 @@
 import dns
 import clientsubnetoption
 from dnsdisttests import DNSDistTest
-from datetime import datetime, timedelta
 
 class TestEDNSSelfGenerated(DNSDistTest):
     """

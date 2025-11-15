@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import unittest
-import requests
 import threading
 import dns
 import time

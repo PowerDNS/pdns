@@ -2,7 +2,6 @@ import dns
 import os
 import socket
 import struct
-import sys
 import time
 import requests
 import subprocess

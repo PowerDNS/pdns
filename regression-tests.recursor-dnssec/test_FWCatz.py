@@ -1,7 +1,4 @@
 import dns
-import json
-import os
-import requests
 import socket
 import struct
 import sys

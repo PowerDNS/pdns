@@ -1,7 +1,6 @@
 #!/usr/bin/env python2
 
 import errno
-import shutil
 import os
 import socket
 import struct

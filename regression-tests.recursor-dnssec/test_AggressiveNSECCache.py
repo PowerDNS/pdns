@@ -3,7 +3,6 @@ from recursortests import RecursorTest
 import os
 import requests
 import subprocess
-import time
 import extendederrors
 
 class AggressiveNSECCacheBase(RecursorTest):

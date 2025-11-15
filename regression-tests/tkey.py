@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import socket
-import select
 import sys
 
 def ensure(data, offset, value):

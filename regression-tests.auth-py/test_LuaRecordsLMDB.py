@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 import unittest
 import dns
-import os
-import subprocess
 
 from authtests import AuthTest
 

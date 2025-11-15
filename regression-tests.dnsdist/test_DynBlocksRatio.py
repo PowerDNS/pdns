@@ -1,10 +1,7 @@
 #!/usr/bin/env python
-import base64
-import socket
 import time
 import dns
-from dnsdisttests import DNSDistTest
-from dnsdistDynBlockTests import DynBlocksTest, waitForMaintenanceToRun, _maintenanceWaitTime
+from dnsdistDynBlockTests import DynBlocksTest, waitForMaintenanceToRun
 
 class TestDynBlockGroupServFailsRatio(DynBlocksTest):
 

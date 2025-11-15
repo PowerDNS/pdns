@@ -3,7 +3,6 @@
 from __future__ import print_function
 
 import threading
-import unittest
 import clientsubnetoption
 
 import dns
