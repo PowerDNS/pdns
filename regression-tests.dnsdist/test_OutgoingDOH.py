@@ -672,6 +672,7 @@ class TestOutgoingDOHBrokenResponsesGnuTLS(DNSDistTest, OutgoingDOHBrokenRespons
     """
     _verboseMode = True
 
+    @staticmethod
     def callback(request, headers, fromQueue, toQueue, conn):
 
         if str(request.question[0].name) == "500-status.broken-responses.outgoing-doh.test.powerdns.com.":
