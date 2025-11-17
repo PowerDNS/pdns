@@ -1241,8 +1241,7 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         name, payload, zone = self.create_zone(nameservers=['ns1.foo.com.', 'ns2.foo.com.'], soa_edit_api='')
         # export it
         r = self.session.get(
-            self.url("/api/v1/servers/localhost/zones/" + name + "/export"),
-            headers={'accept': '*/*'}
+            self.url("/api/v1/servers/localhost/zones/" + name + "/export")
         )
         data = r.text.strip().split("\n")
         expected_data = [name + '\t3600\tIN\tNS\tns1.foo.com.',
