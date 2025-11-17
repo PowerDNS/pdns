@@ -1,6 +1,6 @@
 swagger: '2.0'
 info:
-  version: "0.0.17"
+  version: "0.0.18"
   title: PowerDNS Authoritative HTTP API
   license:
     name: MIT
@@ -77,6 +77,30 @@ paths:
           description: An server
           schema:
             $ref: '#/definitions/Server'
+        <<: *commonErrors
+
+  '/servers/{server_id}/backends/{backend_id}/storageversion':
+    get:
+      summary: 'Return the backend storage version used to store zone data.'
+      description: 'This returns a backend-dependent version information. Currently only supported by the LMDB backend.'
+      tags:
+        - zones
+      parameters:
+        - name: server_id
+          in: path
+          required: true
+          description: The id of the server to retrieve
+          type: string
+        - name: backend_id
+          type: string
+          in: path
+          required: true
+          description: The name of the backend to query
+      responses:
+        '200':
+          description: Storage version number
+          schema:
+              $ref: '#/definitions/StorageVersion'
         <<: *commonErrors
 
   '/servers/{server_id}/cache/flush':
@@ -1611,3 +1635,10 @@ definitions:
         items:
           $ref: '#/definitions/Network'
           
+  StorageVersion:
+    title: StorageVersion
+    description: 'The version number of the backend storage for a zone'
+    properties:
+      storageversion:
+        type: number
+
