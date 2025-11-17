@@ -464,6 +464,10 @@ time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qtype
       }
       auto entryAAAA = getEntryUsingECSIndex(*lockedShard, now, qname, QType::AAAA, requireAuth, who, serveStale);
       if (entryAAAA != lockedShard->d_map.end()) {
+        if (authorityRecs != nullptr) {
+          // For the case the loop iterates multiple times
+          *authorityRecs = s_emptyAuthRecs;
+        }
         time_t ttdAAAA = handleHit(now, *lockedShard, entryAAAA, qname, origTTL, res, signatures, authorityRecs, variable, cachedState, wasAuth, fromAuthZone, extra);
         if (ret > 0) {
           ret = std::min(ret, ttdAAAA);
@@ -512,6 +516,11 @@ time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qtype
         ++found;
 
         handleServeStaleBookkeeping(now, serveStale, firstIndexIterator);
+
+        if (authorityRecs != nullptr) {
+          // For the case the loop iterates multiple times
+          *authorityRecs = s_emptyAuthRecs;
+        }
 
         ttd = handleHit(now, *lockedShard, firstIndexIterator, qname, origTTL, res, signatures, authorityRecs, variable, cachedState, wasAuth, fromAuthZone, extra);
 
