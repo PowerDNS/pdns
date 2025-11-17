@@ -535,6 +535,10 @@ public:
   {
   }
 
+  // Return the level/version of the storage layout used by this backend
+  // (values being obviously backend-specific).
+  virtual int getStorageLayoutVersion() { return -1; };
+
 protected:
   bool mustDo(const string& key);
   const string& getArg(const string& key);
