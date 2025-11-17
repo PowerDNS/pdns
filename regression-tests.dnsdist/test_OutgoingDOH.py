@@ -571,20 +571,20 @@ class TestOutgoingDOHBrokenResponsesGnuTLS(DNSDistTest, OutgoingDOHBrokenRespons
     """
     _verboseMode = True
 
-    def callback(request, headers, fromQueue, toQueue):
+    def callback(self, headers, fromQueue, toQueue):
 
-        if str(request.question[0].name) == '500-status.broken-responses.outgoing-doh.test.powerdns.com.':
+        if str(self.question[0].name) == '500-status.broken-responses.outgoing-doh.test.powerdns.com.':
             print("returning 500")
             return 500, b'Server error'
 
-        if str(request.question[0].name) == 'invalid-dns-payload.broken-responses.outgoing-doh.test.powerdns.com.':
+        if str(self.question[0].name) == 'invalid-dns-payload.broken-responses.outgoing-doh.test.powerdns.com.':
             return 200, b'not DNS'
 
-        if str(request.question[0].name) == 'closing-connection-id.broken-responses.outgoing-doh.test.powerdns.com.':
+        if str(self.question[0].name) == 'closing-connection-id.broken-responses.outgoing-doh.test.powerdns.com.':
             return 200, None
 
-        print("Returning default for %s" % (request.question[0].name))
-        return 200, dns.message.make_response(request).to_wire()
+        print("Returning default for %s" % (self.question[0].name))
+        return 200, dns.message.make_response(self).to_wire()
 
     @classmethod
     def startResponders(cls):
