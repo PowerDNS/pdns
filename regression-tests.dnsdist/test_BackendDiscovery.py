@@ -120,6 +120,7 @@ class TestBackendDiscovery(DNSDistTest):
     def NoSVCCallback(request):
         return dns.message.make_response(request).to_wire()
 
+    @staticmethod
     def NoUpgradePathCallback(request):
         response = dns.message.make_response(request)
         rrset = dns.rrset.from_text(
