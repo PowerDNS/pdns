@@ -117,6 +117,7 @@ class TestBackendDiscovery(DNSDistTest):
     """
     _verboseMode = True
 
+    @staticmethod
     def NoSVCCallback(request):
         return dns.message.make_response(request).to_wire()
 
