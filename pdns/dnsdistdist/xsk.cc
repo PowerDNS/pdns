@@ -973,6 +973,7 @@ void XskPacket::rewrite() noexcept
     // do not bother setting the UDP checksum: 0 is a valid value and most AF_XDP
     // implementations do the same
     // udpHeader.check = tcp_udp_v6_checksum(&ipHeader);
+    rewriteIpv6Header(&ipHeader, getFrameLen());
     setIPv6Header(ipHeader);
     setUDPHeader(udpHeader);
   }
