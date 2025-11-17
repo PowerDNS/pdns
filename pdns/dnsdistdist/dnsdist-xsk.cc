@@ -168,7 +168,7 @@ void XskRouter(std::shared_ptr<XskSocket> xsk)
           ready--;
           const auto& info = xsk->getWorkerByDescriptor(fds.at(fdIndex).fd);
           info->processOutgoingFrames([&](XskPacket packet) {
-            if ((packet.getFlags() & XskPacket::UPDATE) == 0) {
+            if ((packet.getFlags() & XskPacket::UPDATED) == 0) {
               xsk->markAsFree(packet);
               return;
             }

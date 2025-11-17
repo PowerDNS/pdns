@@ -94,7 +94,7 @@ class XskSocket
   vector<pollfd> fds;
   // list of frames, aka (indexes of) umem entries that can be reused to fill fq,
   // collected from packets that we could not route (unknown destination),
-  // could not parse, were dropped during processing (!UPDATE), or
+  // could not parse, were dropped during processing (!UPDATED), or
   // simply recycled from cq after being processed by the kernel
   vector<uint64_t> uniqueEmptyFrameOffset;
   // completion ring: queue where sent packets are stored by the kernel
@@ -192,11 +192,15 @@ class XskPacket
 public:
   enum Flags : uint32_t
   {
-    /* whether the payload has been modified */
-    UPDATE = 1 << 0,
+    /* Whether the payload or the headers have
+       been updated (a packet that has not been
+       updated after processing will be discarded) */
+    UPDATED = 1 << 0,
     DELAY = 1 << 1,
-    /* whether the headers have already been updated */
-    REWRITE = 1 << 2
+    /* Whether the packet has been rewritten after
+       the headers and/or payload have been updated.
+    */
+    REWRITTEN = 1 << 2,
   };
 
 private:
@@ -236,7 +240,7 @@ private:
   void setIPv6Header(const ipv6hdr& ipv6Header) noexcept;
   [[nodiscard]] udphdr getUDPHeader() const noexcept;
   void setUDPHeader(const udphdr& udpHeader) noexcept;
-  /* exchange the source and destination addresses (ethernet and IP) */
+  /* Exchange the source and destination addresses (ethernet and IP) */
   void changeDirectAndUpdateChecksum() noexcept;
 
   constexpr static uint8_t DefaultTTL = 64;
@@ -253,13 +257,15 @@ public:
   [[nodiscard]] PacketBuffer cloneHeaderToPacketBuffer() const;
   void setAddr(const ComboAddress& from_, MACAddr fromMAC, const ComboAddress& to_, MACAddr toMAC) noexcept;
   bool setPayload(const PacketBuffer& buf);
-  /* rewrite the headers, usually after setAddr() and setPayload() have been called */
+  /* Rewrite the headers, usually called after setAddr() then setPayload() */
   void rewrite() noexcept;
   void setHeader(PacketBuffer& buf);
   XskPacket(uint8_t* frame, size_t dataSize, size_t frameSize);
   void addDelay(int relativeMilliseconds) noexcept;
-  /* if the payload have been updated, and the headers have not been rewritten, exchange the source
-     and destination addresses (ethernet and IP) and rewrite the headers */
+  /* If the payload has been updated, and the headers have not been rewritten via rewrite() yet,
+     exchange the source and destination addresses (ethernet and IP) and rewrite the headers.
+     This is what you want except if the headers (including source or destination addresses)
+     have been manually updated. */
   void updatePacket() noexcept;
   // parse IP and UDP payloads
   bool parse(bool fromSetHeader);

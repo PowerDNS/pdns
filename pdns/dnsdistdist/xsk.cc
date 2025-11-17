@@ -791,6 +791,7 @@ void XskPacket::changeDirectAndUpdateChecksum() noexcept
   }
 
   setEthernetHeader(ethHeader);
+  flags |= REWRITTEN;
 }
 
 void XskPacket::rewriteIpv4Header(struct iphdr* ipv4header, size_t frameLen) noexcept
@@ -843,7 +844,7 @@ bool XskPacket::setPayload(const PacketBuffer& buf)
   if (bufSize == 0 || bufSize > currentCapacity) {
     return false;
   }
-  flags |= UPDATE;
+  flags |= UPDATED;
   // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
   memcpy(frame + getDataOffset(), buf.data(), bufSize);
   // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
@@ -857,6 +858,7 @@ void XskPacket::addDelay(const int relativeMilliseconds) noexcept
   sendTime.tv_nsec += static_cast<int64_t>(relativeMilliseconds) * 1000000L;
   sendTime.tv_sec += sendTime.tv_nsec / 1000000000L;
   sendTime.tv_nsec %= 1000000000L;
+  flags |= DELAY;
 }
 
 bool operator<(const XskPacket& lhs, const XskPacket& rhs) noexcept
@@ -924,12 +926,11 @@ void XskPacket::setAddr(const ComboAddress& from_, MACAddr fromMAC, const ComboA
   to = to_;
   from = from_;
   v6 = !to.isIPv4();
-  flags = 0;
+  flags |= UPDATED;
 }
 
 void XskPacket::rewrite() noexcept
 {
-  flags |= REWRITE;
   auto ethHeader = getEthernetHeader();
   if (!v6) {
     ethHeader.h_proto = htons(ETH_P_IP);
@@ -979,6 +980,7 @@ void XskPacket::rewrite() noexcept
   }
 
   setEthernetHeader(ethHeader);
+  flags |= REWRITTEN;
 }
 
 [[nodiscard]] __be16 XskPacket::ipv4Checksum(const struct iphdr* ipHeader) noexcept
@@ -1124,10 +1126,13 @@ void XskPacket::rewrite() noexcept
 
 void XskPacket::setHeader(PacketBuffer& buf)
 {
+  if (buf.size() > frameSize) {
+    throw std::runtime_error("Trying to set an XSK header larger than the frame");
+  }
   memcpy(frame, buf.data(), buf.size());
   frameLength = buf.size();
   buf.clear();
-  flags = 0;
+  flags |= UPDATED;
   if (!parse(true)) {
     throw std::runtime_error("Error setting the XSK frame header");
   }
@@ -1313,10 +1318,10 @@ uint32_t XskPacket::getFlags() const noexcept
 
 void XskPacket::updatePacket() noexcept
 {
-  if ((flags & UPDATE) == 0U) {
+  if ((flags & UPDATED) == 0U) {
     return;
   }
-  if ((flags & REWRITE) == 0U) {
+  if ((flags & REWRITTEN) == 0U) {
     changeDirectAndUpdateChecksum();
   }
 }
