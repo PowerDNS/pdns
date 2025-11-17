@@ -225,6 +225,7 @@ class TestBackendDiscovery(DNSDistTest):
         response.set_rcode(dns.rcode.SERVFAIL)
         return response.to_wire()
 
+    @staticmethod
     def WrongNameCallback(request):
         query = dns.message.make_query("not-the-right-one.", dns.rdatatype.SVCB)
         response = dns.message.make_response(query)
