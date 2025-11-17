@@ -3863,14 +3863,17 @@ static std::unique_ptr<DNSBackend> getBackendByName(const std::string& name)
 
 static int lmdbGetBackendVersion([[maybe_unused]] vector<string>& cmds, [[maybe_unused]] const std::string_view synopsis)
 {
+  if (auto lmdbBackend = getBackendByName("lmdb"); lmdbBackend) {
+    cout << std::to_string(lmdbBackend->getStorageLayoutVersion()) << endl;
 #ifdef HAVE_LMDB
-  cout << "6" << endl; // FIXME this should reuse the constant from lmdbbackend but that is currently a #define in a .cc
-  if (g_verbose) {
-    cout << "Built against LMDB library version " << MDB_VERSION_MAJOR << "." << MDB_VERSION_MINOR << "." << MDB_VERSION_PATCH << endl;
-  }
-#else
-  cerr<<"LMDB support not enabled"<<endl;
+    if (g_verbose) {
+      cout << "Built against LMDB library version " << MDB_VERSION_MAJOR << "." << MDB_VERSION_MINOR << "." << MDB_VERSION_PATCH << endl;
+    }
 #endif
+  }
+  else {
+    cout << "LMDB backend not configured." << endl;
+  }
   return 0;
 }
 
