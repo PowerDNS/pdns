@@ -219,8 +219,8 @@ class TestBackendDiscovery(DNSDistTest):
         response.id = request.id ^ 42
         return response.to_wire()
 
-    def TooManyQuestionsCallback(request):
-        response = dns.message.make_response(request)
+    def TooManyQuestionsCallback(self):
+        response = dns.message.make_response(self)
         response.question.append(response.question[0])
         return response.to_wire()
 
