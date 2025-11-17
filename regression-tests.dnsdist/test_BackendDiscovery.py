@@ -97,9 +97,9 @@ class TestBackendDiscovery(DNSDistTest):
     def NoSVCCallback(request):
         return dns.message.make_response(request).to_wire()
 
-    def NoUpgradePathCallback(request):
-        response = dns.message.make_response(request)
-        rrset = dns.rrset.from_text(request.question[0].name,
+    def NoUpgradePathCallback(self):
+        response = dns.message.make_response(self)
+        rrset = dns.rrset.from_text(self.question[0].name,
                                     60,
                                     dns.rdataclass.IN,
                                     dns.rdatatype.SVCB,
