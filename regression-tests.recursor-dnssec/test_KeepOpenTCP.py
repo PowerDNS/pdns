@@ -30,7 +30,8 @@ auth-zones=authzone.example=configs/%s/authzone.zone"""
             )
         super(KeepOpenTCPTest, cls).generateRecursorConfig(confdir)
 
-    def sendTCPQueryKeepOpen(cls, sock, query, timeout=2.0):
+    @staticmethod
+    def sendTCPQueryKeepOpen(sock, query, timeout=2.0):
         try:
             wire = query.to_wire()
             sock.send(struct.pack("!H", len(wire)))
