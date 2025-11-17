@@ -248,6 +248,7 @@ class TestBackendDiscovery(DNSDistTest):
         wire[12] = 0xFF
         return wire
 
+    @staticmethod
     def UpgradeDoTNoPortCallback(request):
         response = dns.message.make_response(request)
         rrset = dns.rrset.from_text(
