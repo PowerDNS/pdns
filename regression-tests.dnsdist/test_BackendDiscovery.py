@@ -231,9 +231,9 @@ class TestBackendDiscovery(DNSDistTest):
         wire[12] = 0xFF
         return wire
 
-    def UpgradeDoTNoPortCallback(request):
-        response = dns.message.make_response(request)
-        rrset = dns.rrset.from_text(request.question[0].name,
+    def UpgradeDoTNoPortCallback(self):
+        response = dns.message.make_response(self)
+        rrset = dns.rrset.from_text(self.question[0].name,
                                     60,
                                     dns.rdataclass.IN,
                                     dns.rdatatype.SVCB,
