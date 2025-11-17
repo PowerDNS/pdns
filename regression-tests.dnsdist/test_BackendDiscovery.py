@@ -199,6 +199,7 @@ class TestBackendDiscovery(DNSDistTest):
         response.answer.append(rrset)
         return response.to_wire()
 
+    @staticmethod
     def BrokenResponseCallback(request):
         response = dns.message.make_response(request)
         response.use_edns(edns=False)
