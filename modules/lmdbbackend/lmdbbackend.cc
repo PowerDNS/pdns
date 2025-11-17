@@ -356,12 +356,8 @@ void copyIndexDBI(MDB_txn* txn, MDB_dbi sdbi, MDB_dbi tdbi)
 
 }
 
-bool LMDBBackend::upgradeToSchemav5(std::string& filename)
+bool LMDBBackend::upgradeToSchemav5(std::string& filename, uint32_t currentSchemaVersion, uint32_t shardCount)
 {
-  auto currentSchemaVersionAndShards = getSchemaVersionAndShards(filename);
-  uint32_t currentSchemaVersion = currentSchemaVersionAndShards.first;
-  uint32_t shards = currentSchemaVersionAndShards.second;
-
   if (currentSchemaVersion != 3 && currentSchemaVersion != 4) {
     throw std::runtime_error("upgrade to v5 requested but current schema is not v3 or v4, stopping");
   }
@@ -397,7 +393,7 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
 #endif
 
   std::cerr << "migrating shards" << std::endl;
-  for (uint32_t i = 0; i < shards; i++) {
+  for (uint32_t i = 0; i < shardCount; i++) {
     string shardfile = filename + "-" + std::to_string(i);
     if (access(shardfile.c_str(), F_OK) < 0) {
       if (errno == ENOENT) {
@@ -659,7 +655,7 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
   return true;
 }
 
-bool LMDBBackend::upgradeToSchemav6(std::string& /* filename */)
+bool LMDBBackend::upgradeToSchemav6(std::string& /* filename */, uint32_t /* currentSchemaVersion */, uint32_t /* shardCount */)
 {
   // a v6 reader can read v5 databases just fine
   // so this function currently does nothing
@@ -773,9 +769,8 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
     if (s_first) {
       auto filename = getArg("filename");
 
-      auto currentSchemaVersionAndShards = getSchemaVersionAndShards(filename);
-      uint32_t currentSchemaVersion = currentSchemaVersionAndShards.first;
-      // std::cerr<<"current schema version: "<<currentSchemaVersion<<", shards="<<currentSchemaVersionAndShards.second<<std::endl;
+      auto [currentSchemaVersion, shardCount] = getSchemaVersionAndShards(filename);
+      // std::cerr<<"current schema version: "<<currentSchemaVersion<<", shards="<<shardCount<<std::endl;
 
       if (getArgAsNum("schema-version") != SCHEMAVERSION) {
         throw std::runtime_error("This version of the lmdbbackend only supports schema version 6. Configuration demands a lower version. Not starting up.");
@@ -791,14 +786,14 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
       }
 
       if (currentSchemaVersion == 3 || currentSchemaVersion == 4) {
-        if (!upgradeToSchemav5(filename)) {
+        if (!upgradeToSchemav5(filename, currentSchemaVersion, shardCount)) {
           throw std::runtime_error("Failed to perform LMDB schema version upgrade from v4 to v5");
         }
         currentSchemaVersion = 5;
       }
 
       if (currentSchemaVersion == 5) {
-        if (!upgradeToSchemav6(filename)) {
+        if (!upgradeToSchemav6(filename, currentSchemaVersion, shardCount)) {
           throw std::runtime_error("Failed to perform LMDB schema version upgrade from v5 to v6");
         }
         currentSchemaVersion = 6;
