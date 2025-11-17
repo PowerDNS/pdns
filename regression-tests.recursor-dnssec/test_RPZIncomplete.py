@@ -205,7 +205,7 @@ c 3600 IN A 192.0.2.42
 d 3600 IN A 192.0.2.42
 e 3600 IN A 192.0.2.42
 """.format(soa=cls._SOA))
-        super(RPZIncompleteRecursorTest, cls).generateRecursorConfig(confdir)
+        super(RPZXFRIncompleteRecursorTest, cls).generateRecursorConfig(confdir)
 
     def waitUntilCorrectSerialIsLoaded(self, serial, timeout=5):
         global badrpzServer
