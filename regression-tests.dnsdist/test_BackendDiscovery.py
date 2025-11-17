@@ -220,6 +220,7 @@ class TestBackendDiscovery(DNSDistTest):
     def EOFCallback(request):
         return None
 
+    @staticmethod
     def ServFailCallback(request):
         response = dns.message.make_response(request)
         response.set_rcode(dns.rcode.SERVFAIL)
