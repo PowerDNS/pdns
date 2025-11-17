@@ -150,10 +150,14 @@ number of links to tools/cgi-scripts that allow you to create records.
 useful record building scripts on his
 `djbdnsRecordBuilder <https://andersbrownworth.com/projects/sysadmin/djbdnsRecordBuilder/>`__.
 
-PowerDNS and TinyDNS handle wildcards differently. Looking up
-foo.www.example.com with the below records on TinyDNS will return
-198.51.100.1, PowerDNS will return NXDOMAIN. According to :rfc:`4592` \*.example.com should only
-match subdomains in under example.com, not \*.\*.example.com. This
+PowerDNS and TinyDNS handle wildcards differently.
+PowerDNS treats defined domains as masking sibling wildcards.
+Whereas TinyDNS does *not* treat defined domains as masking sibling wildcards.
+For the below records, both will return ``198.51.100.1``
+for ``alpha.beta.example.com`` as there's no defined ``beta.example.com``.
+But looking up ``foo.www.example.com`` on TinyDNS will return
+``198.51.100.1``, PowerDNS will return NXDOMAIN. According to :rfc:`4592` \*.example.com should only
+match subdomains under example.com, not \*.\*.example.com. This
 compatibility issue is `noted on the axfr-get page for the djbdns
 suite <https://cr.yp.to/djbdns/axfr-get.html>`__.
 
