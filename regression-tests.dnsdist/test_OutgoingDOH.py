@@ -653,11 +653,11 @@ class TestOutgoingDOHXForwarded(DNSDistTest):
     """
     _verboseMode = True
 
-    def callback(request, headersList, fromQueue, toQueue):
+    def callback(self, headersList, fromQueue, toQueue):
 
-        if str(request.question[0].name) == 'a.root-servers.net.':
+        if str(self.question[0].name) == 'a.root-servers.net.':
             # do not check headers on health-check queries
-            return 200, dns.message.make_response(request).to_wire()
+            return 200, dns.message.make_response(self).to_wire()
 
         headers = {}
         if headersList:
@@ -674,11 +674,11 @@ class TestOutgoingDOHXForwarded(DNSDistTest):
             print("missing X-Forwarded-Proto")
             return 406, b'Missing X-Forwarded-Proto header'
 
-        toQueue.put(request, True, 1.0)
+        toQueue.put(self, True, 1.0)
         response = fromQueue.get(True, 1.0)
         if response:
             response = copy.copy(response)
-            response.id = request.id
+            response.id = self.id
 
         return 200, response.to_wire()
 
