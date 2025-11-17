@@ -205,6 +205,7 @@ class TestBackendDiscovery(DNSDistTest):
         response.question = []
         return response.to_wire()
 
+    @staticmethod
     def UpgradeDoHMissingPathCallback(request):
         response = dns.message.make_response(request)
         rrset = dns.rrset.from_text(
