@@ -94,8 +94,8 @@ class TestBackendDiscovery(DNSDistTest):
     """
     _verboseMode = True
 
-    def NoSVCCallback(request):
-        return dns.message.make_response(request).to_wire()
+    def NoSVCCallback(self):
+        return dns.message.make_response(self).to_wire()
 
     def NoUpgradePathCallback(self):
         response = dns.message.make_response(self)
