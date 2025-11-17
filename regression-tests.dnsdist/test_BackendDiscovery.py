@@ -224,8 +224,8 @@ class TestBackendDiscovery(DNSDistTest):
         response.question.append(response.question[0])
         return response.to_wire()
 
-    def BadQNameCallback(request):
-        response = dns.message.make_response(request)
+    def BadQNameCallback(self):
+        response = dns.message.make_response(self)
         wire = bytearray(response.to_wire())
         # mess up the first label length
         wire[12] = 0xFF
