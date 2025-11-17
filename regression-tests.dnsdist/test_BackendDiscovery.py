@@ -200,7 +200,7 @@ class TestBackendDiscovery(DNSDistTest):
         response.answer.append(rrset)
         return response.to_wire()
 
-    def EOFCallback(request):
+    def EOFCallback(self):
         return None
 
     def ServFailCallback(self):
