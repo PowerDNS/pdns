@@ -207,6 +207,8 @@ static void ptrAssign(T* ptr, const T& value)
   }
 }
 
+// If the authorityRecs is non-null, it should refer to a un-set shared_ptr, or a shared_ptr pointing to an empty vector
+// See the assert in the processing of authorityRecs.
 time_t MemRecursorCache::handleHit(time_t now, MapCombo::LockedContent& content, OrderedTagIterator_t& entry, const DNSName& qname, uint32_t& origTTL, vector<DNSRecord>* res, SigRecs* signatures, AuthRecs* authorityRecs, bool* variable, std::optional<vState>& state, bool* wasAuth, DNSName* fromAuthZone, Extra* extra)
 {
   // MUTEX SHOULD BE ACQUIRED (as indicated by the reference to the content which is protected by a lock)
@@ -553,6 +555,10 @@ time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qtype
 
       handleServeStaleBookkeeping(now, serveStale, firstIndexIterator);
 
+      if (authorityRecs != nullptr) {
+        // For the case the loop iterates multiple times
+        *authorityRecs = s_emptyAuthRecs;
+      }
       ttd = handleHit(now, *lockedShard, firstIndexIterator, qname, origTTL, res, signatures, authorityRecs, variable, cachedState, wasAuth, fromAuthZone, extra);
 
       if (qtype == QType::ADDR && found == 2) {
