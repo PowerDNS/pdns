@@ -765,6 +765,10 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
     LMDBLS::s_flag_deleted = mustDo("flag-deleted");
   }
 
+  // The current state of this code only supports one schema version and
+  // requires users to update their schema if outdated.
+  d_currentschema = SCHEMAVERSION;
+
   bool opened = false;
 
   if (s_first) {
@@ -3744,6 +3748,18 @@ void LMDBBackend::flush()
       break; // no more work to do!
     }
   }
+}
+
+std::string LMDBBackend::getStorageLayoutVersion(bool verbose)
+{
+  std::ostringstream ostr;
+
+  ostr << std::to_string(d_currentschema);
+  if (verbose) {
+    ostr << endl;
+    ostr << "Built against LMDB library version " << MDB_VERSION_MAJOR << "." << MDB_VERSION_MINOR << "." << MDB_VERSION_PATCH;
+  }
+  return ostr.str();
 }
 
 class LMDBFactory : public BackendFactory
