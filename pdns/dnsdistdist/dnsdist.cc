@@ -2134,7 +2134,7 @@ static void MultipleMessagesUDPClientThread(ClientState* clientState)
   for (;;) {
 
     /* reset the IO vector, since it's also used to send the vector of responses
-       to avoid having to copy the data around
+       to avoid having to copy the data around.
        No need to reset the parts that have not been used, though. */
     for (int idx = 0; idx < msgsGot; idx++) {
       auto& slot = recvData[idx];
