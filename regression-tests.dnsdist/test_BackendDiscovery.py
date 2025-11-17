@@ -217,6 +217,7 @@ class TestBackendDiscovery(DNSDistTest):
         response.answer.append(rrset)
         return response.to_wire()
 
+    @staticmethod
     def EOFCallback(request):
         return None
 
