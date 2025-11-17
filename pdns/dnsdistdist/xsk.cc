@@ -551,6 +551,10 @@ XskSocket::XskUmem::~XskUmem()
 
 [[nodiscard]] size_t XskPacket::getDataSize() const noexcept
 {
+  const auto dataOffset = getDataOffset();
+  if (frameLength < dataOffset) {
+    return 0U;
+  }
   return frameLength - getDataOffset();
 }
 
