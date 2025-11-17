@@ -184,8 +184,8 @@ class TestBackendDiscovery(DNSDistTest):
         response.answer.append(rrset)
         return response.to_wire()
 
-    def BrokenResponseCallback(request):
-        response = dns.message.make_response(request)
+    def BrokenResponseCallback(self):
+        response = dns.message.make_response(self)
         response.use_edns(edns=False)
         response.question = []
         return response.to_wire()
