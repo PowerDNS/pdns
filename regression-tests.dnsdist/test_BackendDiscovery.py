@@ -208,10 +208,10 @@ class TestBackendDiscovery(DNSDistTest):
         response.set_rcode(dns.rcode.SERVFAIL)
         return response.to_wire()
 
-    def WrongNameCallback(request):
+    def WrongNameCallback(self):
         query = dns.message.make_query('not-the-right-one.', dns.rdatatype.SVCB)
         response = dns.message.make_response(query)
-        response.id = request.id
+        response.id = self.id
         return response.to_wire()
 
     def WrongIDCallback(self):
