@@ -151,6 +151,7 @@ class TestBackendDiscovery(DNSDistTest):
         response.additional.append(rrset)
         return response.to_wire()
 
+    @staticmethod
     def UpgradeDoHCallback(request):
         response = dns.message.make_response(request)
         rrset = dns.rrset.from_text(
