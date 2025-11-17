@@ -1633,9 +1633,26 @@ bool LMDBBackend::replaceRRSet(domainid_t domain_id, const DNSName& qname, const
   return true;
 }
 
-bool LMDBBackend::replaceComments(const domainid_t /* domain_id */, const DNSName& /* qname */, const QType& /* qt */, const vector<Comment>& comments)
+bool LMDBBackend::replaceComments(const domainid_t domain_id, const DNSName& qname, const QType& qtype, const vector<Comment>& comments)
 {
-  // FIXME: remove old comments
+  // delete all existing comments
+  // this could be smarter and not del+replace unchanged comments
+  auto cursor = d_rwtxn->txn->getCursor(d_rwtxn->db->cdbi);
+  MDBOutVal key{};
+  MDBOutVal val{};
+
+  compoundOrdername co;
+
+  auto relqname = qname.makeRelative(d_transactiondomain);
+
+  string match = co(domain_id, relqname, qtype);
+
+  if (cursor.prefix(match, key, val) == 0) {
+    do {
+      cursor.del(key);
+    } while (cursor.next(key, val) == 0);
+  }
+
   for (const auto& comment : comments) {
     feedComment(comment);
   }
