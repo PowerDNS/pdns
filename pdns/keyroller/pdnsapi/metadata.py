@@ -1,5 +1,5 @@
 class ZoneMetadata:
-    def __init__(self, kind, metadata, type="Metadata"):
+    def __init__(self, kind, metadata):
         self.kind = kind
         if not isinstance(metadata, list):
             raise Exception('metadata must be a list, not a {}'.format(type(metadata)))
