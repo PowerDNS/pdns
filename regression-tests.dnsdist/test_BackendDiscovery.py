@@ -241,6 +241,7 @@ class TestBackendDiscovery(DNSDistTest):
         response.question.append(response.question[0])
         return response.to_wire()
 
+    @staticmethod
     def BadQNameCallback(request):
         response = dns.message.make_response(request)
         wire = bytearray(response.to_wire())
