@@ -550,6 +550,10 @@ time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qtype
 
       handleServeStaleBookkeeping(now, serveStale, firstIndexIterator);
 
+      if (authorityRecs != nullptr) {
+        // For the case the loop iterates multiple times
+        *authorityRecs = s_emptyAuthRecs;
+      }
       ttd = handleHit(now, *lockedShard, firstIndexIterator, qname, origTTL, res, signatures, authorityRecs, variable, cachedState, wasAuth, fromAuthZone, fromAuthIP);
 
       if (qtype == QType::ADDR && found == 2) {

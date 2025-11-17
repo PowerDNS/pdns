@@ -1384,6 +1384,60 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheDumpAndRestore)
   }
 }
 
+BOOST_AUTO_TEST_CASE(test_RecursorAuthRecords)
+{
+  MemRecursorCache::resetStaticsForTests();
+  MemRecursorCache MRC;
+
+  const DNSName authZone(".");
+  MemRecursorCache::AuthRecsVec authRecords;
+  DNSRecord dr;
+  dr.d_place = DNSResourceRecord::ANSWER;
+  dr.d_name = DNSName("hi");
+  dr.d_type = QType::AAAA;
+  dr.d_ttl = 3600;
+  dr.setContent(std::make_shared<ARecordContent>(ComboAddress("1::2:3:4")));
+  authRecords.emplace_back(dr);
+
+  std::vector<std::shared_ptr<const RRSIGRecordContent>> signatures;
+  signatures.emplace_back(std::dynamic_pointer_cast<RRSIGRecordContent>(RRSIGRecordContent::make("DNSKEY 8 0 172800 20241111000000 20241021000000 20326 . alCFgDZS+0l5zcpQ/7R+5OFeCrk9KGkNP2F9ynXIXG6QigPj/9qjm0xx ItRJUUim+SrJywAmLKe+48oTUeSRyDKVVg3LGDekLKcIVz0EBqTL2y44 usDlUlxqx5O0LQVHy4h/hm9+dCXFiSBWoV0LcAplV9OYWhxi+CxmxZU5 8vK6eVAde8E2JHdeDuy23WF5lxYEg1q7ehEt5EdRvZ7hZzfawEFR3Qv3 WMootO2eBAAneIe94daJP/i1iwQJ4p+bGVCZ4sJk+Pk9J7lwEQq6Ghkd SpLsRxArUhvoVgtnh0LkAV7TsajYk8K2JRt7wHNDbBV6+Vdq2bh7ZPGv LiGkIQ==")));
+
+  time_t now = time(nullptr);
+  time_t ttd = now + 30;
+
+  DNSName power("powerdns.com.");
+  DNSRecord dr0;
+  ComboAddress dr0Content("192.0.2.40");
+  dr0.d_name = power;
+  dr0.d_type = QType::A;
+  dr0.d_class = QClass::IN;
+  dr0.setContent(std::make_shared<ARecordContent>(dr0Content));
+  dr0.d_ttl = static_cast<uint32_t>(ttd);
+  dr0.d_place = DNSResourceRecord::ANSWER;
+  std::vector<DNSRecord> rset0;
+  rset0.push_back(dr0);
+
+  const ComboAddress nobody;
+  const ComboAddress somebody("::1");
+  const ComboAddress authAddress{"::2"};
+  const time_t ttl_time = 90;
+
+  DNSName aname = DNSName("hello ");
+  MRC.replace(now, aname, QType(QType::A), rset0, signatures, authRecords, true, authZone, boost::none, boost::none, vState::Insecure, authAddress, false, ttl_time);
+  MRC.replace(now, aname, QType(QType::AAAA), rset0, signatures, authRecords, true, authZone, boost::none, boost::none, vState::Insecure, authAddress, false, ttl_time);
+
+  std::vector<DNSRecord> retrieved;
+  MemRecursorCache::AuthRecs authRecs;
+  MemRecursorCache::SigRecs sigs;
+  bool variable = false;
+  vState state = vState::Indeterminate;
+  bool wasAuth = false;
+  DNSName fromZone;
+  ComboAddress fromAuth;
+  if (MRC.get(now, aname, QType(QType::ANY), MemRecursorCache::None, &retrieved, somebody, boost::none, &sigs, &authRecs, &variable, &state, &wasAuth, &fromZone, &fromAuth) > 0) {
+  }
+}
+
 #if 0
 volatile bool g_ret; // make sure the optimizer does not get too smart
 uint64_t g_totalRuns;
