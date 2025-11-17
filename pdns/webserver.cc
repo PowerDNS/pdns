@@ -285,6 +285,7 @@ void WebServer::handleRequest(HttpRequest& req, HttpResponse& resp) const
       }
       if (header != req.headers.end()) {
         // yaml wins over json, json wins over html
+        // NOLINTBEGIN(bugprone-branch-clone): enforcing this does not make sense for such simple statements
         if (header->second.find("application/x-yaml") != std::string::npos) {
           req.accept_yaml = true;
         } else if (header->second.find("text/x-yaml") != std::string::npos) {
@@ -294,6 +295,7 @@ void WebServer::handleRequest(HttpRequest& req, HttpResponse& resp) const
         } else if (header->second.find("text/html") != std::string::npos) {
           req.accept_html = true;
         }
+        // NOLINTEND(bugprone-branch-clone)
       }
     } while (false);
 
