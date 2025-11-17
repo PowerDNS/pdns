@@ -177,8 +177,8 @@ public:
 
   // functions to use without constructing a backend object
   static std::pair<uint32_t, uint32_t> getSchemaVersionAndShards(std::string& filename);
-  static bool upgradeToSchemav5(std::string& filename);
-  static bool upgradeToSchemav6(std::string& filename);
+  static bool upgradeToSchemav5(std::string& filename, uint32_t currentSchemaVersion, uint32_t shardCount);
+  static bool upgradeToSchemav6(std::string& filename, uint32_t currentSchemaVersion, uint32_t shardCount);
 
 private:
   struct compoundOrdername
