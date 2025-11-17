@@ -190,9 +190,9 @@ class TestBackendDiscovery(DNSDistTest):
         response.question = []
         return response.to_wire()
 
-    def UpgradeDoHMissingPathCallback(request):
-        response = dns.message.make_response(request)
-        rrset = dns.rrset.from_text(request.question[0].name,
+    def UpgradeDoHMissingPathCallback(self):
+        response = dns.message.make_response(self)
+        rrset = dns.rrset.from_text(self.question[0].name,
                                     60,
                                     dns.rdataclass.IN,
                                     dns.rdatatype.SVCB,
