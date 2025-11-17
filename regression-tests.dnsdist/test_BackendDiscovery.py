@@ -107,23 +107,23 @@ class TestBackendDiscovery(DNSDistTest):
         response.answer.append(rrset)
         return response.to_wire()
 
-    def UpgradeDoTCallback(request):
-        response = dns.message.make_response(request)
-        rrset = dns.rrset.from_text(request.question[0].name,
+    def UpgradeDoTCallback(self):
+        response = dns.message.make_response(self)
+        rrset = dns.rrset.from_text(self.question[0].name,
                                     60,
                                     dns.rdataclass.IN,
                                     dns.rdatatype.SVCB,
                                     '1 tls.tests.dnsdist.org. alpn="dot" port=10652 ipv4hint=127.0.0.1')
         response.answer.append(rrset)
         # add a useless A record for good measure
-        rrset = dns.rrset.from_text(request.question[0].name,
+        rrset = dns.rrset.from_text(self.question[0].name,
                                     60,
                                     dns.rdataclass.IN,
                                     dns.rdatatype.A,
                                     '192.0.2.1')
         response.answer.append(rrset)
         # plus more useless records in authority
-        rrset = dns.rrset.from_text(request.question[0].name,
+        rrset = dns.rrset.from_text(self.question[0].name,
                                     60,
                                     dns.rdataclass.IN,
                                     dns.rdatatype.A,
