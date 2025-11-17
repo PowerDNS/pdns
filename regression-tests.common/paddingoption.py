@@ -22,6 +22,7 @@ class PaddingOption(dns.edns.Option):
         file.write(bytes(self.numberOfBytes))
         return None
 
+    @classmethod
     def from_wire(cls, otype, wire, current, olen):
         """Read EDNS packet as defined in rfc7830.
 
@@ -32,8 +33,6 @@ class PaddingOption(dns.edns.Option):
         numberOfBytes = olen
 
         return cls(numberOfBytes)
-
-    from_wire = classmethod(from_wire)
 
     # needed in 2.0.0
     @classmethod
@@ -50,7 +49,7 @@ class PaddingOption(dns.edns.Option):
     def __eq__(self, other):
         if not isinstance(other, PaddingOption):
             return False
-        return self.numberOfBytes == numberOfBytes
+        return self.numberOfBytes == other.numberOfBytes
 
     def __ne__(self, other):
         return not self.__eq__(other)
