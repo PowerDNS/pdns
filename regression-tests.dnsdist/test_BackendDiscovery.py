@@ -203,8 +203,8 @@ class TestBackendDiscovery(DNSDistTest):
     def EOFCallback(request):
         return None
 
-    def ServFailCallback(request):
-        response = dns.message.make_response(request)
+    def ServFailCallback(self):
+        response = dns.message.make_response(self)
         response.set_rcode(dns.rcode.SERVFAIL)
         return response.to_wire()
 
