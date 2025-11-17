@@ -172,6 +172,8 @@ public:
 
   void flush() override;
 
+  int getStorageLayoutVersion() override;
+
   // other
   string directBackendCmd(const string& query) override;
 
@@ -443,6 +445,7 @@ private:
   bool d_views;
   bool d_write_notification_update;
   bool d_split_domains_table;
+  uint32_t d_currentschema;
   DTime d_dtime; // used only for logging
   uint64_t d_mapsize_main;
   uint64_t d_mapsize_shards;
