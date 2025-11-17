@@ -144,9 +144,9 @@ class TestBackendDiscovery(DNSDistTest):
         response.additional.append(rrset)
         return response.to_wire()
 
-    def UpgradeDoHCallback(request):
-        response = dns.message.make_response(request)
-        rrset = dns.rrset.from_text(request.question[0].name,
+    def UpgradeDoHCallback(self):
+        response = dns.message.make_response(self)
+        rrset = dns.rrset.from_text(self.question[0].name,
                                     60,
                                     dns.rdataclass.IN,
                                     dns.rdatatype.SVCB,
