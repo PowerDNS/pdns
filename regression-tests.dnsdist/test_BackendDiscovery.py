@@ -174,9 +174,9 @@ class TestBackendDiscovery(DNSDistTest):
         response.answer.append(rrset)
         return response.to_wire()
 
-    def UpgradeDoTUnreachableCallback(request):
-        response = dns.message.make_response(request)
-        rrset = dns.rrset.from_text(request.question[0].name,
+    def UpgradeDoTUnreachableCallback(self):
+        response = dns.message.make_response(self)
+        rrset = dns.rrset.from_text(self.question[0].name,
                                     60,
                                     dns.rdataclass.IN,
                                     dns.rdatatype.SVCB,
