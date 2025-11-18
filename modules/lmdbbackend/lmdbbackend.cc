@@ -43,6 +43,8 @@
 #include <boost/serialization/utility.hpp>
 #include <boost/serialization/vector.hpp>
 #include <boost/uuid/uuid_serialize.hpp>
+#include <protozero/pbf_reader.hpp>
+#include <protozero/pbf_writer.hpp>
 #include <cstdio>
 #include <cstring>
 #include <lmdb.h>
@@ -1180,11 +1182,11 @@ std::pair<std::string, std::string> LMDBBackend::serializeComment(const Comment&
   // that leaves us with content, modified_at, account
 
   string val;
-  uint64_t ts = LMDBLS::pdns_bswap64(comment.modified_at);
-  val.reserve(sizeof(uint64_t) + comment.content.size() + comment.account.size() + 2); // one timestamp, two strings, 2 \0 delimiters
 
-  val.assign((char*)(&ts), sizeof(ts)); // FIXME i bet there's a cleaner way
-  val += comment.content + string(1, (char)0) + comment.account + string(1, (char)0);
+  protozero::pbf_writer val_writer{val};
+  val_writer.add_sfixed64(1, comment.modified_at);
+  val_writer.add_string(2, comment.account);
+  val_writer.add_string(3, comment.content);
 
   auto hash = pdns::sha256sum(val);
 
@@ -2112,25 +2114,21 @@ bool LMDBBackend::getInternal(DNSName& basename, std::string_view& key)
 
     basename = compoundOrdername::getQName(key);
 
-    uint64_t ts;
-    auto val = d_lookupstate.val.get<string_view>();
+    auto val = d_lookupstate.val.get<string>(); // FIXME see if can be string_view again
     if (val.size() < sizeof(uint64_t)) {
       throw DBException("got invalid serialized comment");
     }
 
-    memcpy(&ts, val.data(), sizeof(uint64_t)); // ts in network order
-
-    val = val.substr(8, std::string_view::npos);
-
     d_lookupstate.comment.domain_id = compoundOrdername::getDomainID(key);
     d_lookupstate.comment.qname = basename + d_lookupstate.domain.operator const DNSName&();
     d_lookupstate.comment.qtype = compoundOrdername::getQType(key);
-    d_lookupstate.comment.modified_at = LMDBLS::pdns_bswap64(ts);
-    auto pos = val.find('\0', 1) + 1; // FIXME check
-    d_lookupstate.comment.content = val.substr(0, pos - 1); // pos-1?
-    val = val.substr(pos, std::string_view::npos);
-    pos = val.find('\0', 1) + 1; // FIXME check
-    d_lookupstate.comment.account = val.substr(0, pos - 1); // pos-1?
+    protozero::pbf_reader message{val};
+    message.next(); // FIXME error handling
+    d_lookupstate.comment.modified_at = message.get_sfixed64();
+    message.next();
+    d_lookupstate.comment.account = message.get_string();
+    message.next();
+    d_lookupstate.comment.content = message.get_string();
 
     if (d_lookupstate.cursor && d_lookupstate.cursor->next(d_lookupstate.key, d_lookupstate.val) != 0) {
       d_lookupstate.reset(); // this invalidates cursor and makes us return false on the next round
