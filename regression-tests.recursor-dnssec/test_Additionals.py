@@ -30,8 +30,8 @@ class AdditionalsDefaultTest(RecursorTest):
         self.assertMatchingRRSIGInAnswer(res, expected)
         self.assertAdditionalEmpty(res)
         # fill the cache
-        res = self.sendUDPQuery(query2)
-        res = self.sendUDPQuery(query3)
+        self.sendUDPQuery(query2)
+        self.sendUDPQuery(query3)
         # query 1 again
         res = self.sendUDPQuery(query1)
         self.assertMessageIsAuthenticated(res)

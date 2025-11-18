@@ -59,7 +59,7 @@ class TestBrokenTCPFastOpen(DNSDistTest):
                 continue
 
             (datalen,) = struct.unpack("!H", data)
-            data = conn.recv(datalen)
+            conn.recv(datalen)
             conn.close()
             continue
 

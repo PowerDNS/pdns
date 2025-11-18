@@ -943,7 +943,7 @@ class OutgoingProtobufWithECSMappingTest(TestRecursorProtobuf):
         # So make sure we have the . DNSKEY in cache
         query = dns.message.make_query('.', 'A', want_dnssec=True)
         query.flags |= dns.flags.RD
-        res = self.sendUDPQuery(query)
+        self.sendUDPQuery(query)
         time.sleep(1)
         self.emptyProtoBufQueue()
 
@@ -1226,7 +1226,7 @@ auth-zones=example=configs/%s/example.zone""" % _confdir
 
           self.checkNoRemainingMessage()
           # Again to check PC case
-          res = sender(query)
+          sender(query)
           #time.sleep(1)
           self.checkNoRemainingMessage()
 

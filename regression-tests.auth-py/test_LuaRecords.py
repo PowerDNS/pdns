@@ -292,7 +292,7 @@ class TestLuaRecords(BaseLuaTest):
                     dns.rrset.from_text('selfweighted.example.org.', 0, dns.rdataclass.IN, 'A',
                                         '{prefix}.102'.format(prefix=self._PREFIX))]
         query = dns.message.make_query('selfweighted.example.org', 'A')
-        res = self.sendUDPQuery(query)
+        self.sendUDPQuery(query)
 
         # wait for health checks to happen
         time.sleep(3)
@@ -532,7 +532,7 @@ class TestLuaRecords(BaseLuaTest):
         expected = [dns.rrset.from_text('ifurlextup.example.org.', 0, dns.rdataclass.IN, dns.rdatatype.A, '192.168.0.3')]
 
         query = dns.message.make_query('ifurlextup.example.org', 'A')
-        res = self.sendUDPQuery(query)
+        self.sendUDPQuery(query)
 
         # wait for health checks to happen
         time.sleep(5)
