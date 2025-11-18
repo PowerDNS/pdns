@@ -1298,8 +1298,8 @@ static bool isUDPQueryAcceptable(ClientState& clientState, const struct msghdr* 
        This is indicated by setting the family to 0 which is acted upon
        in sendUDPResponse() and DelayedPacket::().
     */
-    const ComboAddress bogusV4("0.0.0.0:0");
-    const ComboAddress bogusV6("[::]:0");
+    static const ComboAddress bogusV4("0.0.0.0:0");
+    static const ComboAddress bogusV6("[::]:0");
     if ((dest.sin4.sin_family == AF_INET && dest == bogusV4) || (dest.sin4.sin_family == AF_INET6 && dest == bogusV6)) {
       dest.sin4.sin_family = 0;
     }
