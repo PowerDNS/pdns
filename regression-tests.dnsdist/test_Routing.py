@@ -138,7 +138,6 @@ class RoundRobinTest(object):
         check that dnsdist routes half of it to each backend.
         """
         numberOfQueries = 10
-        name = name
         query = dns.message.make_query(name, 'A', 'IN')
         response = dns.message.make_response(query)
         rrset = dns.rrset.from_text(name,
