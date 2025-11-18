@@ -280,12 +280,12 @@ def finalize_server():
 print("Waiting for webserver port to become available...")
 available = False
 time.sleep(1)
-for try_number in range(0, 10):
+for _ in range(0, 10):
     try:
         if daemon == 'authoritative':
-            res = requests.get('http://127.0.0.1:%s/' % WEBPORT)
+            requests.get('http://127.0.0.1:%s/' % WEBPORT)
         else:
-            res = requests.get('https://127.0.0.1:%s/' % WEBPORT, verify='ca.pem')
+            requests.get('https://127.0.0.1:%s/' % WEBPORT, verify='ca.pem')
         available = True
         break
     except HTTPError as http_err:
