@@ -96,7 +96,7 @@ struct DNSComboWriter
     d_socket = sock;
   }
 
-  // get a string repesentation of the client address, including proxy info if applicable
+  // get a string representation of the client address, including proxy info if applicable
   string getRemote() const
   {
     if (d_source == d_remote) {
