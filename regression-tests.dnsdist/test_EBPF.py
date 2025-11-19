@@ -96,7 +96,7 @@ class TestSimpleEBPF(DNSDistTest):
                 receivedResponse.id = response.id
             self.assertEqual(response, receivedResponse)
 
-    def testQNameBlockedOnylForAny(self):
+    def testQNameBlockedOnlyForAny(self):
         # unblock 127.0.0.1, just in case
         self.sendConsoleCommand('bpf:unblock(newCA("127.0.0.1"))')
 
