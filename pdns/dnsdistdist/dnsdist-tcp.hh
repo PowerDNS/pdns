@@ -229,7 +229,7 @@ public:
 
     uint64_t pos = d_pos++;
     /* we need to increment this counter _before_ writing to the pipe,
-       otherwise there is a very real possiblity that the other end
+       otherwise there is a very real possibility that the other end
        decrement the counter before we can increment it, leading to an underflow */
     ++d_queued;
     if (!d_tcpclientthreads.at(pos % d_numthreads).d_querySender.send(std::move(conn))) {
