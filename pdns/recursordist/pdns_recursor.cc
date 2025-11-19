@@ -2316,7 +2316,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
           }
           catch (const MOADNSException& moadnsexception) {
             if (g_logCommonErrors) {
-              g_slogudpin->error(moadnsexception.what(), "Error parsing a query packet for tag determination", "qname", Logging::Loggable(qname), "excepion", Logging::Loggable("MOADNSException"));
+              g_slogudpin->error(moadnsexception.what(), "Error parsing a query packet for tag determination", "qname", Logging::Loggable(qname), "exception", Logging::Loggable("MOADNSException"));
             }
           }
           catch (const std::exception& stdException) {

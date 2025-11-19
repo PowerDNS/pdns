@@ -2362,7 +2362,7 @@ static void handlePipeRequest(int fileDesc, FDMultiplexer::funcparam_t& /* var *
   }
   catch (const MOADNSException& moadnsexception) {
     if (g_logCommonErrors) {
-      g_slog->withName("runtime")->error(moadnsexception.what(), "PIPE function created an exception", "excepion", Logging::Loggable("MOADNSException"));
+      g_slog->withName("runtime")->error(moadnsexception.what(), "PIPE function created an exception", "exception", Logging::Loggable("MOADNSException"));
     }
   }
   catch (const std::exception& stdException) {
