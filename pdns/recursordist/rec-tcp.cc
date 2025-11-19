@@ -1024,13 +1024,13 @@ LWResult::Result arecvtcp(PacketBuffer& data, const size_t len, shared_ptr<TCPIO
   try {
     TCPLOG(handler->getDescriptor(), "calling tryRead() " << len << endl);
     state = handler->tryRead(data, pos, len);
-    TCPLOG(handler->getDescriptor(), "arcvtcp tryRead() returned " << int(state) << ' ' << pos << '/' << len << endl);
+    TCPLOG(handler->getDescriptor(), "arecvtcp tryRead() returned " << int(state) << ' ' << pos << '/' << len << endl);
     switch (state) {
     case IOState::Done:
     case IOState::NeedRead:
       if (pos == len || (incompleteOkay && pos > 0)) {
         data.resize(pos);
-        TCPLOG(handler->getDescriptor(), "acecvtcp success A" << endl);
+        TCPLOG(handler->getDescriptor(), "arecvtcp success A" << endl);
         return LWResult::Result::Success;
       }
       break;
