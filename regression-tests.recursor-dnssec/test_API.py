@@ -50,6 +50,6 @@ api-key=%s
         url = 'http://127.0.0.1:' + str(self._wsPort) + '/api/v1/servers/localhost/statistics'
         try:
             requests.get(url, headers=headers, timeout=self._wsTimeout)
-            self.assertTrue(False)
+            self.fail()
         except requests.exceptions.ConnectionError as exp:
             pass

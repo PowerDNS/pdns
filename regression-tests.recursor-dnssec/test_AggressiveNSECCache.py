@@ -46,7 +46,7 @@ class AggressiveNSECCacheBase(RecursorTest):
             if entry['name'] == name:
                 return int(entry['value'])
 
-        self.assertTrue(False)
+        self.fail()
 
     def testNoEDE(self):
         # This isn't an aggresive cache check, but the strcuture is very similar to the others,
