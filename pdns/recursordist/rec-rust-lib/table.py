@@ -439,7 +439,7 @@ The number of distributor threads is determined by :ref:`setting-distributor-thr
 
 This parameter is only available if the OS provides the ``pthread_setaffinity_np()`` function.
 
-Note that depending on the configuration the Recursor can start more threads.
+Note that, depending on the configuration, the Recursor can start more threads.
 Typically these threads will sleep most of the time.
 These threads cannot be specified in this setting as their thread-ids are left unspecified.
  ''',
@@ -459,7 +459,7 @@ The number of distributor threads is determined by :ref:`setting-distributor-thr
 
 This parameter is only available if the OS provides the ``pthread_setaffinity_np()`` function.
 
-Note that depending on the configuration the Recursor can start more threads.
+Note that, depending on the configuration, the Recursor can start more threads.
 Typically these threads will sleep most of the time.
 These threads cannot be specified in this setting as their thread-ids are left unspecified.
  ''',
