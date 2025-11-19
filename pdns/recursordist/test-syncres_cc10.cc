@@ -2027,7 +2027,7 @@ BOOST_AUTO_TEST_CASE(test_glued_referral_additional_update)
   BOOST_CHECK_EQUAL(ret[0].d_name, target2);
 
   auto secondTTL = g_recCache->get(sr->getNow().tv_sec, DNSName("pdns-public-ns1.powerdns.com"), QType::A, MemRecursorCache::None, nullptr, ComboAddress());
-  // TTL shoud be back to original value
+  // TTL should be back to original value
   BOOST_CHECK_EQUAL(firstTTL, secondTTL);
 }
 
