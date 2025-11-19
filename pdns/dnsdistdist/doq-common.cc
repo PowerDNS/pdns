@@ -257,7 +257,7 @@ void configureQuiche(QuicheConfig& config, const QuicheParams& params, bool isHT
   // 0 means none will get accepted, that's why we have a default value of 65535
   quiche_config_set_initial_max_streams_bidi(config.get(), params.d_maxInFlight);
 
-  // The number of bytes of incoming stream data to be buffered for each localy or remotely-initiated bidirectional stream
+  // The number of bytes of incoming stream data to be buffered for each locally or remotely-initiated bidirectional stream
   quiche_config_set_initial_max_stream_data_bidi_local(config.get(), 8192);
   quiche_config_set_initial_max_stream_data_bidi_remote(config.get(), 8192);
 
