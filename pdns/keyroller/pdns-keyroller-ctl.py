@@ -201,7 +201,7 @@ if __name__ == '__main__':
                 if zoneconf.state and zoneconf.state.current_roll.is_waiting_ds():
                     zoneconf.step(force=True, customttl=int(arguments.ttl))
                     logger.info(
-                        'Successfuly steped {}, now waiting {} before deleting the keys'.format(
+                        'Successfuly stepped {}, now waiting {} before deleting the keys'.format(
                             arguments.domain,
                             arguments.ttl,
                         )
