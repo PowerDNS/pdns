@@ -3238,7 +3238,7 @@ class TestCachingPayloadRanks(DNSDistTest):
                                           dns.rdataclass.IN,
                                           dns.rdatatype.AAAA,
                                           v6addr_list)
-        response2.answer.append(rrset2) # reponse > 40x(16+10)=1040 bytes
+        response2.answer.append(rrset2) # response > 40x(16+10)=1040 bytes
 
         # first query to fill the cache
         (receivedQuery, receivedResponse) = self.sendUDPQuery(query2, response2)

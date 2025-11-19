@@ -167,7 +167,7 @@ public:
   {
     (void)now;
     (void)response;
-    throw std::runtime_error("Unexpected XFR reponse to a health check query");
+    throw std::runtime_error("Unexpected XFR response to a health check query");
   }
 
   void notifyIOError(const struct timeval& now, [[maybe_unused]] TCPResponse&& response) override
