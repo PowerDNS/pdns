@@ -556,7 +556,7 @@ async fn process_request(
         }
     }
 
-    // Fill request and response structs wih default values.
+    // Fill request and response structs with default values.
     let mut request = rustweb::Request {
         body: vec![],
         uri: rust_request.uri().to_string(),

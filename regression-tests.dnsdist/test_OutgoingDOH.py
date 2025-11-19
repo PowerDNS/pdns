@@ -613,7 +613,7 @@ class TestOutgoingDOHProxyProtocol(DNSDistTest):
         tlsContext.set_alpn_protocols(["h2"])
         tlsContext.load_cert_chain('server.chain', 'server.key')
 
-        print("Launching DOH woth Proxy Protocol responder..")
+        print("Launching DOH with Proxy Protocol responder..")
         cls._DOHResponder = threading.Thread(name='DOH with Proxy Protocol Responder', target=cls.DOHResponder, args=[cls._tlsBackendPort, cls._toResponderQueue, cls._fromResponderQueue, False, False, None, tlsContext, True])
         cls._DOHResponder.daemon = True
         cls._DOHResponder.start()
