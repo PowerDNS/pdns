@@ -19,7 +19,7 @@ BUILT_SOURCES=cxxsettings-generated.cc rust/src/lib.rs
 
 # We need to clean in the Rust dir, as in some cases the Serde/CXX derive/generate code does not get
 # re-run by cargo after rust/src/lib.rs changed because of a generate.py run. In that case we end up
-# with an rust/src/lib.rs.h that does not contain e.g. field name or field type changes. This
+# with a rust/src/lib.rs.h that does not contain e.g. field name or field type changes. This
 # cleanup is now done from generate.py itself.
 #
 # Use patterns to avoid having two instances of generate run simultaneously, a well-known hack for GNU make

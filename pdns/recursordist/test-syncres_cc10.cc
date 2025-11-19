@@ -2005,7 +2005,7 @@ BOOST_AUTO_TEST_CASE(test_glued_referral_additional_update)
     }
   });
 
-  // Lookup first name. We should see the address of an nameserver in the cache
+  // Lookup first name. We should see the address of a nameserver in the cache
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target1, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
@@ -2096,7 +2096,7 @@ BOOST_AUTO_TEST_CASE(test_glued_referral_additional_no_update_because_locked)
     }
   });
 
-  // Lookup first name. We should see the address of an nameserver in the cache
+  // Lookup first name. We should see the address of a nameserver in the cache
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target1, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
@@ -2109,7 +2109,7 @@ BOOST_AUTO_TEST_CASE(test_glued_referral_additional_no_update_because_locked)
   // Move the time
   sr->setNow({sr->getNow().tv_sec + 2, sr->getNow().tv_usec});
 
-  // Lookup second name. We should see the address of an nameserver in the cache *not* being updated
+  // Lookup second name. We should see the address of a nameserver in the cache *not* being updated
   ret.clear();
   res = sr->beginResolve(target2, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);

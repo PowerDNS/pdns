@@ -143,7 +143,7 @@ SvcParam::SvcParam(const SvcParamKey &key, std::vector<uint16_t> &&value) : d_ke
 SvcParam::SvcParam(const SvcParamKey &key, const uint16_t value) {
   d_key = key;
   if (d_key != SvcParamKey::port) {
-    throw std::invalid_argument("can not create SvcParam for " + keyToString(key) + " with an port value");
+    throw std::invalid_argument("can not create SvcParam for " + keyToString(key) + " with a port value");
   }
   d_port = value;
 }

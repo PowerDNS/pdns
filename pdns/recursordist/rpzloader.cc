@@ -145,7 +145,7 @@ static void RPZRecordToPolicy(const DNSRecord& dnsRecord, const std::shared_ptr<
        +  a child of a top level domain starting with "rpz-".
     */
     else if (!crcTarget.empty() && !crcTarget.isRoot() && crcTarget.getRawLabel(crcTarget.countLabels() - 1).compare(0, rpzPrefix.length(), rpzPrefix) == 0) {
-      /* this is very likely an higher format number or a configuration error,
+      /* this is very likely a higher format number or a configuration error,
          let's just ignore it. */
       log->info(Logr::Info, "Discarding unsupported RPZ entry", "target", Logging::Loggable(crcTarget), "name", Logging::Loggable(dnsRecord.d_name));
       return;

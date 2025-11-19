@@ -983,7 +983,7 @@ struct hash<Netmask>
 
 /** Binary tree map implementation with <Netmask,T> pair.
  *
- * This is an binary tree implementation for storing attributes for IPv4 and IPv6 prefixes.
+ * This is a binary tree implementation for storing attributes for IPv4 and IPv6 prefixes.
  * The most simple use case is simple NetmaskTree<bool> used by NetmaskGroup, which only
  * wants to know if given IP address is matched in the prefixes stored.
  *
