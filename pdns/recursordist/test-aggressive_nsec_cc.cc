@@ -1211,7 +1211,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_pruning)
 
   BOOST_CHECK_EQUAL(cache->getEntriesCount(), 3U);
 
-  /* we have set a upper bound to 2 entries, so we are above,
+  /* we have set an upper bound to 2 entries, so we are above,
      and one entry is actually expired, so we will prune one entry
      to get below the limit */
   cache->prune(now.tv_sec + 15);

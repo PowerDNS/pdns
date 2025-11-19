@@ -54,7 +54,7 @@ static std::unordered_map<oid, std::string> s_statsMap;
 
 /* We are never called for a GETNEXT if it's registered as a
    "instance", as it's "magically" handled for us.  */
-/* a instance handler also only hands us one request at a time, so
+/* an instance handler also only hands us one request at a time, so
    we don't need to loop over a list of requests; we'll only get one. */
 
 static int handleCounter64Stats(netsnmp_mib_handler* /* handler */,

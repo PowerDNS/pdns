@@ -54,7 +54,7 @@ INPUT:
  - table ctx - Query context table, contains ``source_address`` and ``real_source_address``.
 
 OUTPUT:
- Expects a array which has tables with following keys:
+ Expects an array which has tables with following keys:
 
  - DNSName name - resource record name (can also be string)
  - string type - type of resource record (can also be QType or valid integer)

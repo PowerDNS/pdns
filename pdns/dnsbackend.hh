@@ -441,7 +441,7 @@ public:
     return false;
   }
 
-  //! determine if ip is a autoprimary or a domain
+  //! determine if ip is an autoprimary or a domain
   virtual bool autoPrimaryBackend(const string& /* ip */, const ZoneName& /* domain */, const vector<DNSResourceRecord>& /* nsset */, string* /* nameserver */, string* /* account */, DNSBackend** /* db */)
   {
     return false;
@@ -453,7 +453,7 @@ public:
     return false;
   }
 
-  //! called by PowerDNS to create a secondary record for a autoPrimary
+  //! called by PowerDNS to create a secondary record for an autoPrimary
   virtual bool createSecondaryDomain(const string& /* ip */, const ZoneName& /* domain */, const string& /* nameserver */, const string& /* account */)
   {
     return false;

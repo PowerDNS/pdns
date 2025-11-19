@@ -14,7 +14,7 @@ Settings on the command line are processed after the file-based settings are pro
 
    Starting with version 5.1.0, in the absence of a ``recursor.yml`` file, an existing ``recursor.conf`` will be processed as YAML,
    if that fails, it will be processed as old-style configuration.
-   Packages will stop installing a old-style ``recursor.conf`` file and start installing a default ``recursor.conf`` file containing YAML syntax.
+   Packages will stop installing an old-style ``recursor.conf`` file and start installing a default ``recursor.conf`` file containing YAML syntax.
 
    With the release of 5.2.0, the default will be to expect a YAML configuration file and reading of old-style ``recursor.conf`` files will have to be enabled specifically by providing a command line option ``--enable-old-settings``.
 

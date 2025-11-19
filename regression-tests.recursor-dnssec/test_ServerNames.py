@@ -62,7 +62,7 @@ version-string=%s
 
     def testIdServerUDP(self):
         """
-        Send a id.server CH TXT query over UDP and look for the server id
+        Send an id.server CH TXT query over UDP and look for the server id
         """
         query = dns.message.make_query('id.server', 'TXT', 'CH', use_edns=False)
         response = self.sendUDPQuery(query)
@@ -72,7 +72,7 @@ version-string=%s
 
     def testIdServerTCP(self):
         """
-        Send a id.server CH TXT query over TCP and look for the server id
+        Send an id.server CH TXT query over TCP and look for the server id
         """
         query = dns.message.make_query('id.server', 'TXT', 'CH', use_edns=False)
         response = self.sendTCPQuery(query)
@@ -82,7 +82,7 @@ version-string=%s
 
     def testIdServerUDPEDNS(self):
         """
-        Send a id.server CH TXT query over UDP (with EDNS) and look for the server id
+        Send an id.server CH TXT query over UDP (with EDNS) and look for the server id
         """
         query = dns.message.make_query('id.server', 'TXT', 'CH', use_edns=True)
         response = self.sendUDPQuery(query)
@@ -92,7 +92,7 @@ version-string=%s
 
     def testIdServerTCPEDNS(self):
         """
-        Send a id.server CH TXT query over TCP (with EDNS) and look for the server id
+        Send an id.server CH TXT query over TCP (with EDNS) and look for the server id
         """
         query = dns.message.make_query('id.server', 'TXT', 'CH', use_edns=True)
         response = self.sendTCPQuery(query)

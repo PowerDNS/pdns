@@ -2201,7 +2201,7 @@ The dnsdist docs have `more information about the PROXY protocol <https://dnsdis
         'default' : '',
         'help' : 'A Proxy Protocol header should not be used for these listen addresses.',
         'doc' : '''
-If set, clients sending from an address in :ref:`setting-proxy-protocol-from` to a address:port listed here are excluded from using the Proxy Protocol.
+If set, clients sending from an address in :ref:`setting-proxy-protocol-from` to an address:port listed here are excluded from using the Proxy Protocol.
 If no port is specified, port 53 is assumed.
 This is typically used to provide an easy to use address and port to send debug queries to.
  ''',

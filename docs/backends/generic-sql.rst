@@ -351,8 +351,8 @@ On secondaries
 On autoprimary
 ~~~~~~~~~~~~~~
 
--  ``autoprimary-query``: Called to determine if a certain host is a autoprimary for a certain domain name.
--  ``autoprimary-name-to-ips``: Called to the IP and account for a autoprimary.
+-  ``autoprimary-query``: Called to determine if a certain host is an autoprimary for a certain domain name.
+-  ``autoprimary-name-to-ips``: Called to the IP and account for an autoprimary.
 
 TSIG
 ^^^^

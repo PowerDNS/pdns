@@ -342,7 +342,7 @@ public:
     ~EventScope()
     {
       // If the dt is called after an explicit close(), value does not matter.
-      // Otherwise, it signals a implicit close, e.g. an exception was thrown
+      // Otherwise, it signals an implicit close, e.g. an exception was thrown
       close(-1);
     }
     EventScope(const EventScope&) = delete;

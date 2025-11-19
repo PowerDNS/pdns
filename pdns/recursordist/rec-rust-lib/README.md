@@ -168,7 +168,7 @@ void pdns::settings::rec::bridgeStructToOldStyleSettings(const Recursorsettings&
   ...
 ```
 
-Lastly, there is code to support converting a old-style settings to a new-style struct found in `pdns::settings::rec::oldKVToBridgeStruct()`.
+Lastly, there is code to support converting an old-style settings to a new-style struct found in `pdns::settings::rec::oldKVToBridgeStruct()`.
 This code is used to convert old style settings files to YAML (used by `rec_control show-yaml`) and to generate a yaml file with all the defaults values (used by `pdns_recursor --config=default`).
 The functions implementing that are `pdns::settings::rec::oldStyleSettingsFileToYaml` and `std::string pdns::settings::rec::defaultsToYaml()`, found in `cxxsupport.cc`.
 

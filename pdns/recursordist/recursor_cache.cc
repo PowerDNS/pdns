@@ -292,7 +292,7 @@ static void pushRefreshTask(const DNSName& qname, QType qtype, time_t deadline, 
 
 void MemRecursorCache::updateStaleEntry(time_t now, MemRecursorCache::OrderedTagIterator_t& entry)
 {
-  // We need to take care a infrequently access stale item cannot be extended past
+  // We need to take care an infrequently access stale item cannot be extended past
   // s_maxServedStaleExtension * s_serveStaleExtensionPeriod
   // We look how old the entry is, and increase d_servedStale accordingly, taking care not to overflow
   const time_t howlong = std::max(static_cast<time_t>(1), now - entry->d_ttd);

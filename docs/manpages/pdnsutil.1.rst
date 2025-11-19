@@ -37,7 +37,7 @@ AUTOPRIMARY COMMANDS
 
 autoprimary add *IP* *NAMESERVER* [*ACCOUNT*]
 
-    Add a autoprimary entry into the backend. This enables receiving zone
+    Add an autoprimary entry into the backend. This enables receiving zone
     updates from other servers.
 
 autoprimary list

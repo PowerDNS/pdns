@@ -80,7 +80,7 @@ PacketBuffer resolve(const string& name, QClass cls, QType type)
   return answer;
 }
 
-// do a id.server/CH/TXT query
+// do an id.server/CH/TXT query
 std::string serverID()
 {
   auto buffer = resolve("id.server", QClass::CHAOS, QType::TXT);

@@ -72,7 +72,7 @@ bool NegCache::getRootNXTrust(const DNSName& qname, const struct timeval& now, N
 
 void NegCache::updateStaleEntry(time_t now, negcache_t::iterator& entry, QType qtype)
 {
-  // We need to take care a infrequently access stale item cannot be extended past
+  // We need to take care an infrequently access stale item cannot be extended past
   // s_maxServedStaleExtension * s_serveStaleExtensionPeriod
   // We we look how old the entry is, and increase d_servedStale accordingly, taking care not to overflow
   const time_t howlong = std::max(static_cast<time_t>(1), now - entry->d_ttd);

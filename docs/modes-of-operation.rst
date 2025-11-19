@@ -263,7 +263,7 @@ of NS records remotely, and the 'account' name of your autoprimary.
 There is no need to fill the account name out but it does help keep
 track of where a domain comes from.
 Additionally, if a secondary selects multiple autoprimaries for a zone based on the name of the primary, it also checks that the ``account`` field is the same for all.
-Adding a autoprimary can be done either directly in the database,
+Adding an autoprimary can be done either directly in the database,
 or by using the ``pdnsutil autoprimary add`` command (``pdnsutil
 add-autoprimary`` prior to version 5.0).
 

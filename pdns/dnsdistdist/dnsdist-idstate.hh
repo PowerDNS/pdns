@@ -302,7 +302,7 @@ struct IDState
        mostly to keep some counters like the 'outstanding' one sane.
 
      We have two flags:
-     - inUse tells us if there currently is a in-flight query whose state is stored
+     - inUse tells us if there currently is an in-flight query whose state is stored
        in this state
      - locked tells us whether someone currently owns the state, so no-one else can touch
        it

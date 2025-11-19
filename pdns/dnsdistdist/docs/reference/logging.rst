@@ -5,7 +5,7 @@ There are some functions to create log output.
 
 .. function:: errlog(line)
 
-  Writes a error line.
+  Writes an error line.
 
   :param str line: The line to write.
 

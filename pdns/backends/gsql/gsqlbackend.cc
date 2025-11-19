@@ -1697,7 +1697,7 @@ bool GSQLBackend::autoPrimaryBackend(const string& ipAddress, const ZoneName& do
       // clang-format on
     }
     catch (SSqlException &e) {
-      throw PDNSException("GSQLBackend unable to search for a autoprimary with IP " + ipAddress + " and nameserver name '" + i.content + "' for domain '" + domain.toLogString() + "': " + e.txtReason());
+      throw PDNSException("GSQLBackend unable to search for an autoprimary with IP " + ipAddress + " and nameserver name '" + i.content + "' for domain '" + domain.toLogString() + "': " + e.txtReason());
     }
     if(!d_result.empty()) {
       ASSERT_ROW_COLUMNS("autoprimary-query", d_result[0], 1);

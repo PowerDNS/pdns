@@ -75,7 +75,7 @@ struct RemotebackendSetup
       ::arg().set("module-dir") = "./.libs";
       auto loader = std::make_unique<RemoteLoader>();
       BackendMakers().launch("remote");
-      // then get us a instance of it
+      // then get us an instance of it
       ::arg().set("remote-connection-string") = "unix:path=/tmp/remotebackend.sock";
       ::arg().set("remote-dnssec") = "yes";
       backendUnderTest = std::move(BackendMakers().all()[0]);

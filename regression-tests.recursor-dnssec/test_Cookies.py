@@ -128,7 +128,7 @@ packetcache:
 
     def testAuthSendsIncorrectClientCookie(self):
         confdir = os.path.join('configs', self._confdir)
-        # Case: rec gets a an incorrect client cookie back, we ignore that and go to TCP
+        # Case: rec gets an incorrect client cookie back, we ignore that and go to TCP
         self.recControl(confdir, 'clear-cookies', '*')
         tcp1 = self.recControl(confdir, 'get tcp-outqueries')
         query = dns.message.make_query('wrongcc.cookies.example.', 'A')
