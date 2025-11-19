@@ -2576,7 +2576,7 @@ static void houseKeepingWork(Logr::log_t log)
         res = SyncRes::getRootNS(now, nullptr, 0, log);
       }
       if (res == 0) {
-        // Success, go back to the defaut period
+        // Success, go back to the default period
         rootUpdateTask.setPeriod(std::max(SyncRes::s_maxcachettl * 8 / 10, minRootRefreshInterval));
       }
       else {
