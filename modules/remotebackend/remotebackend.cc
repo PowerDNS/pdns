@@ -97,7 +97,7 @@ bool RemoteBackend::send(Json& value)
 {
   try {
     if (!connector->send(value)) {
-      // XXX does this work work even though we throw?
+      // XXX does this work even though we throw?
       this->connector.reset();
       build();
       throw DBException("Could not send a message to remote process");
