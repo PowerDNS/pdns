@@ -427,8 +427,6 @@ class PDNSPBListener(object):
 
 
 if __name__ == "__main__":
-    oturl = None
-    printjson = False
     parser = argparse.ArgumentParser(
                     prog='ProtobufLogger',
                     description='Listens for and prints dnsmessage.proto messages and optionally posts OT Trace data to a collector URL',

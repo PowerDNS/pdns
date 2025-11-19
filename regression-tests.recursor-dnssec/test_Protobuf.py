@@ -14,11 +14,6 @@ try:
 except ImportError:
     from Queue import Queue
 
-try:
-    range = xrange
-except NameError:
-    pass
-
 from recursortests import RecursorTest
 
 def ProtobufConnectionHandler(queue, conn):

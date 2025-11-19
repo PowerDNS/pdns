@@ -22,11 +22,6 @@ try:
 except ImportError:
     from Queue import Queue
 
-try:
-    range = xrange
-except NameError:
-    pass
-
 
 def checkDnstapBase(testinstance, dnstap, protocol, initiator, responder, response_port=53):
     testinstance.assertTrue(dnstap)
