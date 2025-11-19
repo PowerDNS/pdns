@@ -23,7 +23,7 @@
 // These validation/verification routines are used by both pdnsutil and
 // the pdns_server REST API.
 // They build error messages, if any, into an object provided by the caller
-// (preferrably a container if it makes sense to report multiple errors);
+// (preferably a container if it makes sense to report multiple errors);
 // it's up to each caller to decide how to report such errors.
 
 namespace Check
