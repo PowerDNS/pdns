@@ -2122,13 +2122,18 @@ bool LMDBBackend::getInternal(DNSName& basename, std::string_view& key)
     d_lookupstate.comment.domain_id = compoundOrdername::getDomainID(key);
     d_lookupstate.comment.qname = basename + d_lookupstate.domain.operator const DNSName&();
     d_lookupstate.comment.qtype = compoundOrdername::getQType(key);
-    protozero::pbf_reader message{val};
-    message.next(); // FIXME error handling
-    d_lookupstate.comment.modified_at = message.get_sfixed64();
-    message.next();
-    d_lookupstate.comment.account = message.get_string();
-    message.next();
-    d_lookupstate.comment.content = message.get_string();
+    try {
+      protozero::pbf_reader message{val};
+      message.next(); // FIXME error handling
+      d_lookupstate.comment.modified_at = message.get_sfixed64();
+      message.next();
+      d_lookupstate.comment.account = message.get_string();
+      message.next();
+      d_lookupstate.comment.content = message.get_string();
+    }
+    catch (protozero::exception &e) {
+      // very little we can do about this
+    }
 
     if (d_lookupstate.cursor && d_lookupstate.cursor->next(d_lookupstate.key, d_lookupstate.val) != 0) {
       d_lookupstate.reset(); // this invalidates cursor and makes us return false on the next round
