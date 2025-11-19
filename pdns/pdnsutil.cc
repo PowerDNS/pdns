@@ -489,7 +489,7 @@ static const groupCommandDispatcher zoneKeyCommands{
     "\tGenerate a ZSK or KSK to stdout with specified ALGORITHM and BITS"}},
    {"import-key", {true, importZoneKey,
     "ZONE FILE [active|inactive] [ksk|zsk] [published|unpublished]",
-    "\tImport from a file a private key, ZSK or KSK; defaults to KSK, active\n"
+    "\tImport from a private key file, ZSK or KSK; defaults to KSK, active\n"
     "\tand published"}},
    {"import-key-pem", {true, importZoneKeyPEM,
     "ZONE FILE ALGORITHM [ksk|zsk]}",
