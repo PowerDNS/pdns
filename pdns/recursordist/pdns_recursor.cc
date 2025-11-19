@@ -2189,7 +2189,7 @@ bool matchOTConditions(RecEventTrace& eventTrace, const std::unique_ptr<OpenTele
 }
 
 // fromaddr: the address from which the query is coming
-// destaddr: the address the query was received on
+// destaddr: the address on which the query was received
 // source: the address we assume the query is coming from, might be set by proxy protocol
 // destination: the address we assume the query was sent to, might be set by proxy protocol
 // mappedSource: the address we assume the query is coming from. Differs from source if table based mapping has been applied
@@ -2443,7 +2443,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   comboWriter->d_qhash = qhash;
   comboWriter->setRemote(fromaddr); // the address from which the query is coming
   comboWriter->setSource(source); // the address we assume the query is coming from, might be set by proxy protocol
-  comboWriter->setLocal(destaddr); // the address the query was received on
+  comboWriter->setLocal(destaddr); // the address on which the query was received
   comboWriter->setDestination(destination); // the address we assume the query is sent to, might be set by proxy protocol
   comboWriter->setMappedSource(mappedSource); // the address we assume the query is coming from. Differs from source if table-based mapping has been applied
   comboWriter->d_tcp = false;
