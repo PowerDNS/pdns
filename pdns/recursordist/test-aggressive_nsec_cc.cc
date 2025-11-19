@@ -9,7 +9,7 @@
 
 BOOST_AUTO_TEST_SUITE(aggressive_nsec_cc)
 
-BOOST_AUTO_TEST_CASE(test_small_coverering_nsec3)
+BOOST_AUTO_TEST_CASE(test_small_covering_nsec3)
 {
   AggressiveNSECCache::s_maxNSEC3CommonPrefix = 1;
 
