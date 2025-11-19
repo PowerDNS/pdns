@@ -2525,7 +2525,7 @@ static void handleNewUDPQuestion(int fileDesc, FDMultiplexer::funcparam_t& /* va
 
       data.resize(static_cast<size_t>(len));
 
-      ComboAddress destaddr; // the address the query was sent to to
+      ComboAddress destaddr; // the address where the query was sent
       destaddr.reset(); // this makes sure we ignore this address if not explictly set below
       const auto* loc = rplookup(g_listenSocketsAddresses, fileDesc);
       if (HarvestDestinationAddress(&msgh, &destaddr)) {
