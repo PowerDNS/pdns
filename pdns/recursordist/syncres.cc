@@ -1339,7 +1339,7 @@ uint64_t SyncRes::doDumpSavedParentNSSets(int fileDesc)
     close(newfd);
     return 0;
   }
-  fprintf(filePtr.get(), "; dump of saved parent nameserver sets succesfully used follows\n");
+  fprintf(filePtr.get(), "; dump of saved parent nameserver sets successfully used follows\n");
   fprintf(filePtr.get(), "; total entries: %zu\n", s_savedParentNSSet.lock()->size());
   fprintf(filePtr.get(), "; domain\tsuccess\tttd\n");
   uint64_t count = 0;
