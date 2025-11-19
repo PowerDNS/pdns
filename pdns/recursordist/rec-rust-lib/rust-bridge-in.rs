@@ -418,7 +418,7 @@ extern "Rust" {
     // REST API zones
     fn parse_yaml_string_to_api_zones(str: &str) -> Result<ApiZones>;
 
-    // Prdoduce a YAML formatted string given a data structure known to Serde
+    // Produce a YAML formatted string given a data structure known to Serde
     fn to_yaml_string(self: &Recursorsettings) -> Result<String>;
     fn get_value(self: &Recursorsettings, field: &[String], defaults: &str, with_comment: bool) -> Result<String>;
     // When doing a conversion of old-style to YAML style we use a vector of OldStyle structs
