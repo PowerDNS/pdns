@@ -28,7 +28,7 @@ send
 answer
 !
 
-# check if the records still exists, and query the record record to be deleted.
+# check if the records still exists, and query the record to be deleted.
 cleandig host-1.test.dyndns A
 cleandig host-2.test.dyndns A
 
