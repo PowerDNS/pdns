@@ -594,7 +594,7 @@ def gen_rust(srcdir, entries):
     sections = {}
     with open(srcdir + '/rust/src/lib.rs', mode='w', encoding='UTF-8') as file:
         file.write('// THIS IS A GENERATED FILE. DO NOT EDIT. SOURCE: see settings dir\n')
-        file.write('// START INCLUDE rust-preable-in.rs\n')
+        file.write('// START INCLUDE rust-preamble-in.rs\n')
         with open(srcdir + '/rust-preamble-in.rs', mode='r', encoding='UTF-8') as pre:
             file.write(pre.read())
             file.write('// END INCLUDE rust-preamble-in.rs\n\n')
