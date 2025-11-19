@@ -795,13 +795,14 @@ distributor-threads={threads}
                 print("kill...", p, file=sys.stderr)
                 p.kill()
                 p.wait()
-            return p
+            return
         except OSError as e:
             # There is a race-condition with the poll() and
             # kill() statements, when the process is dead on the
             # kill(), this is fine
             if e.errno != errno.ESRCH:
                 raise
+            return
 
     @classmethod
     def tearDownAuth(cls):
