@@ -504,7 +504,7 @@ webservice:
 
         self.assertRcodeEqual(receivedResponse, dns.rcode.SERVFAIL)
 
-        # there was no succesfull DoT query
+        # there was no successful DoT query
         self.checkOnlyTLSResponderHit(currentCount)
         self.checkMetrics({
             'dot-outqueries': 1
