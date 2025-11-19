@@ -38,6 +38,7 @@ www.example.org.             3600 IN A    192.0.2.5
             if opt.otype == dns.edns.COOKIE:
                 return opt
         self.fail()
+        return None
 
     def testNoCookie(self):
         query = dns.message.make_query('www.example.org', 'A', use_edns=0)
