@@ -233,7 +233,7 @@ static const groupCommandDispatcher HSMCommands{
 };
 #endif // ]
 
-// META/МETADATA
+// META/METADATA
 
 static const groupCommandDispatcher metadataCommands{
   "Zone Metadata",
