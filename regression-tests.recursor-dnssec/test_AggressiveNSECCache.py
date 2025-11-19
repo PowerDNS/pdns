@@ -47,6 +47,7 @@ class AggressiveNSECCacheBase(RecursorTest):
                 return int(entry['value'])
 
         self.fail()
+        return -1
 
     def testNoEDE(self):
         # This isn't an aggresive cache check, but the strcuture is very similar to the others,
