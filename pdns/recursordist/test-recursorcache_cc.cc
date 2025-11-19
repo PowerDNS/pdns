@@ -1435,6 +1435,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorAuthRecords)
   DNSName fromZone;
   ComboAddress fromAuth;
   if (MRC.get(now, aname, QType(QType::ANY), MemRecursorCache::None, &retrieved, somebody, boost::none, &sigs, &authRecs, &variable, &state, &wasAuth, &fromZone, &fromAuth) > 0) {
+    BOOST_CHECK_EQUAL(retrieved.size(), 2U);
   }
 }
 
