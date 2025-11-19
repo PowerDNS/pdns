@@ -217,7 +217,7 @@ static std::vector<dnsdist::console::completion::ConsoleKeyword> s_consoleKeywor
   {"RCodeRule", true, "rcode", "matches responses with the specified rcode"},
   {"RDRule", true, "", "Matches queries with the RD flag set"},
   {"RecordsCountRule", true, "section, minCount, maxCount", "Matches if there is at least minCount and at most maxCount records in the section section. section can be specified as an integer or as a DNS Packet Sections"},
-  {"RecordsTypeCountRule", true, "section, qtype, minCount, maxCount", "Matches if there is at least minCount and at most maxCount records of type type in the section section"},
+  {"RecordsTypeCountRule", true, "section, qtype, minCount, maxCount", "Matches if there is at least minCount and at most maxCount records of type qtype in the section section"},
   {"RegexRule", true, "regex", "matches the query name against the supplied regex"},
   {"registerDynBPFFilter", true, "DynBPFFilter", "register this dynamic BPF filter into the web interface so that its counters are displayed"},
   {"reloadAllCertificates", true, "", "reload all DNSCrypt and TLS certificates, along with their associated keys"},
