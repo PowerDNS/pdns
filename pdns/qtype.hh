@@ -60,7 +60,7 @@ public:
   /**
    * \brief Return whether we know the name of this type.
    *
-   * This does not presume that we have an implemented a content representation for this type,
+   * This does not presume that we have implemented a content representation for this type,
    * for that please see DNSRecordContent::isRegisteredType().
    */
   bool isSupportedType() const;
