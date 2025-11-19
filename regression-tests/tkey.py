@@ -31,7 +31,7 @@ def main(host, port):
   # answer is called tkey.unit.test ANY TKEY (compressed it seems)
   ensure(data, 32, b"\xc0\x0c\x00\xf9\x00\xff")
 
-  # and then ensure we get an BADALGO or error, at least.
+  # and then ensure we get an BADALG or error, at least.
   if (data[64:66] == "\x00\x00"):
     raise Exception("At packet offset {0!s}: expected {2!r}, got {1!r}".format(offset,data[offset:offset+len(value)], value))
 
