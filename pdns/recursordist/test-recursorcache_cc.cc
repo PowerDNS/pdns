@@ -1437,6 +1437,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorAuthRecords)
   DNSName fromZone;
   MemRecursorCache::Extra extra;
   if (MRC.get(now, aname, QType(QType::ANY), MemRecursorCache::None, &retrieved, somebody, std::nullopt, &sigs, &authRecs, &variable, &state, &wasAuth, &fromZone, &extra) > 0) {
+    BOOST_CHECK_EQUAL(retrieved.size(), 2U);
   }
 }
 
