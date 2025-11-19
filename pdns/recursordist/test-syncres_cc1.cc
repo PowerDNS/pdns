@@ -2002,13 +2002,13 @@ BOOST_AUTO_TEST_CASE(test_cname_long_step0_shortcut)
   // influences the number of failing Step0 lookups.
   auto counter = [](const string& str) {
     const std::string key = "Step0 Not cached";
-    size_t occurences = 0;
+    size_t occurrences = 0;
     auto pos = str.find(key);
     while (pos != std::string::npos) {
-      occurences++;
+      occurrences++;
       pos = str.find(key, pos + 1);
     }
-    return occurences;
+    return occurrences;
   };
   vector<DNSRecord> ret;
   int res = resolver->beginResolve(target1, QType(QType::AAAA), QClass::IN, ret);
