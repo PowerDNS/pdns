@@ -667,7 +667,7 @@ static void handleRunningTCPQuestion(int fileDesc, FDMultiplexer::funcparam_t& v
       comboWriter->d_tcpConnection = conn; // carry the torch
       comboWriter->setSocket(conn->getFD()); // this is the only time a copy is made of the actual fd
       comboWriter->d_tcp = true;
-      comboWriter->setRemote(conn->d_remote); // the address the query was received from
+      comboWriter->setRemote(conn->d_remote); // the address from which the query was received
       comboWriter->setSource(conn->d_source); // the address we assume the query is coming from, might be set by proxy protocol
       ComboAddress dest;
       dest.reset();
