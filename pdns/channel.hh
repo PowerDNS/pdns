@@ -243,7 +243,7 @@ namespace channel
        not even to release it, so let's transfer it to a local object */
     auto localObj = std::move(object);
     auto ptr = localObj.get();
-    static_assert(sizeof(ptr) <= PIPE_BUF, "Writes up to PIPE_BUF are guaranted not to interleaved and to either fully succeed or fail");
+    static_assert(sizeof(ptr) <= PIPE_BUF, "Writes up to PIPE_BUF are guaranteed not to interleaved and to either fully succeed or fail");
     while (true) {
 #if __SANITIZE_THREAD__
       __tsan_release(ptr);
