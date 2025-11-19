@@ -24,7 +24,7 @@
 #include "config.h"
 
 #ifdef RECURSOR
-// Network facing/routing part of webserver is implemented in rust. We stil use a few classes from
+// Network facing/routing part of webserver is implemented in rust. We still use a few classes from
 // yahttp, but do not link to it.
 #define RUST_WS
 #endif

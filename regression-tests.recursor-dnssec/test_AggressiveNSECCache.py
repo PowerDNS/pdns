@@ -227,7 +227,7 @@ class AggressiveNSECCacheNSECTest(AggressiveNSECCacheBase):
         self.assertAuthorityHasSOA(res)
         self.assertGreater(self.getMetric('all-outqueries'), nbQueries)
 
-        # Check that we stil have one aggressive cache entry
+        # Check that we still have one aggressive cache entry
         self.assertEqual(1, self.getMetric('aggressive-nsec-cache-entries'))
         print(res.options)
         self.assertEqual(res.edns, 0)
