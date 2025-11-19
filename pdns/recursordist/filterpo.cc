@@ -395,7 +395,7 @@ void DNSFilterEngine::Zone::addNameTrigger(std::unordered_map<DNSName, Policy>& 
       if (d_zoneData->d_ignoreDuplicates) {
         return;
       }
-      throw std::runtime_error("Adding a " + getTypeToString(ptype) + "-based filter policy of kind " + getKindToString(pol.d_kind) + " but a policy of kind " + getKindToString(existingPol.d_kind) + " already exists for for the following name: " + n.toLogString());
+      throw std::runtime_error("Adding a " + getTypeToString(ptype) + "-based filter policy of kind " + getKindToString(pol.d_kind) + " but a policy of kind " + getKindToString(existingPol.d_kind) + " already exists for the following name: " + n.toLogString());
     }
 
     addCustom(existingPol, pol);
