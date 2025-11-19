@@ -881,7 +881,7 @@ pub fn serveweb(
         .enable_io()
         .build()?;
 
-    // For each listening address we spawn a tokio handler an then a single Posix thread is created that
+    // For each listening address we spawn a tokio handler and then a single Posix thread is created that
     // waits (forever) for all of them to complete by joining them all.
     let mut set = JoinSet::new();
     for config in incoming {
