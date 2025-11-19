@@ -238,7 +238,7 @@ class TestResponseRuleEditTTL(DNSDistTest):
 class TestResponseRuleLimitTTL(DNSDistTest):
 
     _lowttl = 60
-    _defaulttl = 3600
+    _defaultttl = 3600
     _highttl = 18000
     _config_params = ['_lowttl', '_highttl', '_testServerPort']
     _config_template = """
