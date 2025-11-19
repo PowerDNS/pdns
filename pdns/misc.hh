@@ -340,7 +340,7 @@ inline double getTime()
 }
 
 string makeHexDump(const string& str, const string& sep = " ");
-//! Convert the hexstring in to a byte string
+//! Convert the hexstring to a byte string
 string makeBytesFromHex(const string &in);
 
 void normalizeTV(struct timeval& tv);
