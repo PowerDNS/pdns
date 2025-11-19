@@ -428,7 +428,7 @@ extern "Rust" {
     fn allow_from_to_yaml_string_incoming(key: &String, filekey: &String, vec: &Vec<String>) -> Result<String>;
     fn allow_for_to_yaml_string(vec: &Vec<String>) -> Result<String>;
 
-    // Merge a string representing YAML settings into an existing setttings struct
+    // Merge a string representing YAML settings into an existing settings struct
     fn merge(lhs: &mut Recursorsettings, rhs: &str) -> Result<()>;
 
     // Validate the sections inside the main settings struct, sections themselves will validate their fields
