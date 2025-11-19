@@ -140,7 +140,7 @@ api-key=%s
         # We allow all kind of entries, but 127.0.0.1 must have the given value, due to the
         # testLocalProxyProtocol test, which actually does not set a source address.  If we see a
         # higher value than expected, some ProxyProtocol clients were accounted as 127.0.0.1, which
-        # is not right as all other tests set a source addres other than 127.0.0.1
+        # is not right as all other tests set a source address other than 127.0.0.1
         for entry in content['entries']:
             if entry[1] == '127.0.0.1':
                 self.assertEqual(entry[0], expected127001)
