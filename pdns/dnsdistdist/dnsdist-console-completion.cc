@@ -198,7 +198,7 @@ static std::vector<dnsdist::console::completion::ConsoleKeyword> s_consoleKeywor
   {"NoneAction", true, "", "Does nothing. Subsequent rules are processed after this action"},
   {"NotRule", true, "selector", "Matches the traffic if the selector rule does not match"},
   {"OpcodeRule", true, "code", "Matches queries with opcode code. code can be directly specified as an integer, or one of the built-in DNSOpcodes"},
-  {"OrRule", true, "selectors", "Matches the traffic if one or more of the the selectors rules does match"},
+  {"OrRule", true, "selectors", "Matches the traffic if one or more of the selectors rules does match"},
   {"PoolAction", true, "poolname [, stop]", "set the packet into the specified pool"},
   {"PoolAvailableRule", true, "poolname", "Check whether a pool has any servers available to handle queries"},
   {"PoolOutstandingRule", true, "poolname, limit", "Check whether a pool has outstanding queries above limit"},

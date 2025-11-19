@@ -37,7 +37,7 @@ def checkDnstapBase(testinstance, dnstap, protocol, initiator, responder, respon
     testinstance.assertTrue(dnstap.message.HasField('socket_family'))
     testinstance.assertEqual(dnstap.message.socket_family, dnstap_pb2.INET)
     #
-    # The query address and port are from the the recursor, we don't know the port
+    # The query address and port are from the recursor, we don't know the port
     #
     testinstance.assertTrue(dnstap.message.HasField('query_address'))
     testinstance.assertEqual(socket.inet_ntop(socket.AF_INET, dnstap.message.query_address), initiator)
