@@ -3162,7 +3162,7 @@ static void harvestNXRecords(const vector<DNSRecord>& records, NegCache::NegCach
   for (const auto& rec : records) {
     if (rec.d_place != DNSResourceRecord::AUTHORITY) {
       // RFC 4035 section 3.1.3. indicates that NSEC records MUST be placed in
-      // the AUTHORITY section. Section 3.1.1 indicates that that RRSIGs for
+      // the AUTHORITY section. Section 3.1.1 indicates that RRSIGs for
       // records MUST be in the same section as the records they cover.
       // Hence, we ignore all records outside of the AUTHORITY section.
       continue;
