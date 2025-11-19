@@ -58,7 +58,7 @@ class AuthTSIG(ApiTestCase, AuthTSIGHelperMixin):
 
     def test_get_non_existing_key(self):
         """
-        Try to get get a key that does not exist
+        Try to get a key that does not exist
         """
         name = "idonotexist"
         r = self.session.get(self.url(

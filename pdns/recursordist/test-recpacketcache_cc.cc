@@ -253,7 +253,7 @@ BOOST_AUTO_TEST_CASE(test_recPacketCache_Tags)
   BOOST_CHECK_EQUAL(rpc.getResponsePacket(tag1, qpacket, qname, QType::A, QClass::IN, time(nullptr), &fpacket, &age, &temphash), false);
   BOOST_CHECK_EQUAL(qhash, temphash);
 
-  /* Different tag, should still get get the same hash, for both interfaces */
+  /* Different tag, should still get the same hash, for both interfaces */
   BOOST_CHECK_EQUAL(rpc.getResponsePacket(tag2, qpacket, time(nullptr), &fpacket, &age, &temphash), false);
   BOOST_CHECK_EQUAL(qhash, temphash);
   BOOST_CHECK_EQUAL(rpc.getResponsePacket(tag2, qpacket, qname, QType::A, QClass::IN, time(nullptr), &fpacket, &age, &temphash), false);
@@ -367,7 +367,7 @@ BOOST_AUTO_TEST_CASE(test_recPacketCache_TCP)
   BOOST_CHECK_EQUAL(rpc.getResponsePacket(0, qpacket, qname, QType::A, QClass::IN, time(nullptr), &fpacket, &age, nullptr, &temphash, nullptr, false), false);
   BOOST_CHECK_EQUAL(qhash, temphash);
 
-  /* Different tcp/udp, should still get get the same hash, for both interfaces */
+  /* Different tcp/udp, should still get the same hash, for both interfaces */
   BOOST_CHECK_EQUAL(rpc.getResponsePacket(0, qpacket, time(nullptr), &fpacket, &age, &qhash), false);
   BOOST_CHECK_EQUAL(rpc.getResponsePacket(0, qpacket, qname, QType::A, QClass::IN, time(nullptr), &fpacket, &age, nullptr, &temphash, nullptr, true), false);
   BOOST_CHECK_EQUAL(qhash, temphash);
