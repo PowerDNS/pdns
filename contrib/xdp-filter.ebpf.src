@@ -93,7 +93,7 @@ static inline void set_tc_bit(struct udphdr* udp, struct dnshdr* dns)
  * Check DNS QName
  * Returns PASS if message needs to go through (i.e. pass)
  *         TC if (modified) message needs to be replied
- *         DROP if message needs to be blocke
+ *         DROP if message needs to be blocked
  */
 static inline struct map_value* check_qname(struct cursor* c)
 {
