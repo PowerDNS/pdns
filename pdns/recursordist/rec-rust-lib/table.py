@@ -482,7 +482,7 @@ Operate in the background.
         'default' : '',
         'help' : 'Do not throttle nameservers with this name or suffix',
         'doc' : '''
-When an authoritative server does not answer a query or sends a reply the recursor does not like, it is throttled.
+When an authoritative server does not answer a query or sends a reply that the recursor does not like, it is throttled.
 Any servers' name suffix-matching the supplied names will never be throttled.
 
 .. warning::
@@ -498,7 +498,7 @@ Any servers' name suffix-matching the supplied names will never be throttled.
         'default' : '',
         'help' : 'Do not throttle nameservers with this IP netmask',
         'doc' : '''
-When an authoritative server does not answer a query or sends a reply the recursor does not like, it is throttled.
+When an authoritative server does not answer a query or sends a reply that the recursor does not like, it is throttled.
 Any servers matching the supplied netmasks will never be throttled.
 
 This can come in handy on lossy networks when forwarding, where the same server is configured multiple times (e.g. with ``forward-zones-recurse=example.com=192.0.2.1;192.0.2.1``).
@@ -509,7 +509,7 @@ In this case, ``dont-throttle-netmasks`` could be set to ``192.0.2.1``.
   Most servers on the internet do not respond for a good reason (overloaded or unreachable), ``dont-throttle-netmasks`` could make this load on the upstream server even higher, resulting in further service degradation.
  ''',
         'doc-new' : '''
-When an authoritative server does not answer a query or sends a reply the recursor does not like, it is throttled.
+When an authoritative server does not answer a query or sends a reply that the recursor does not like, it is throttled.
 Any servers matching the supplied netmasks will never be throttled.
 
 This can come in handy on lossy networks when forwarding, where the same server is configured multiple times (e.g. with ``forward_zones_recurse: [ {zone: example.com, forwarders: [ 192.0.2.1, 192.0.2.1 ] } ]``.
