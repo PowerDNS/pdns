@@ -736,7 +736,7 @@ void MemRecursorCache::replace(time_t now, const DNSName& qname, const QType qty
     cacheEntry.d_orig_ttl = cacheEntry.d_ttd - ttl_time;
     // Even though we record the time the ttd was computed, there still seems to be a case where the computed
     // d_orig_ttl can wrap.
-    // So santize the computed ce.d_orig_ttl to be on the safe side
+    // So sanitize the computed ce.d_orig_ttl to be on the safe side
     if (cacheEntry.d_orig_ttl < SyncRes::s_minimumTTL || cacheEntry.d_orig_ttl > SyncRes::s_maxcachettl) {
       cacheEntry.d_orig_ttl = SyncRes::s_minimumTTL;
     }
