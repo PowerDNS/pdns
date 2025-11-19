@@ -20,7 +20,7 @@ then
     local _PDNSUTIL_ALL_CMDS="activate-tsig-key activate-zone-key add-record add-autoprimary remove-autoprimary list-autoprimaries add-zone-key backend-cmd b2b-migrate bench-db
                               check-zone check-all-zones clear-zone create-bind-db create-secondary-zone change-secondary-zone-primary create-zone deactivate-tsig-key
                               deactivate-zone-key delete-rrset delete-tsig-key delete-zone disable-dnssec edit-zone export-zone-dnskey export-zone-ds export-zone-key
-                              export-zone-key-pem generate-tsig-key generate-zone-key get-meta hash-password hash-zone-record hsm hsm increase-serial import-tsig-key
+                              export-zone-key-pem generate-tsig-key generate-zone-key get-meta hash-password hash-zone-record hsm increase-serial import-tsig-key
                               import-zone-key import-zone-key-pem ipdecrypt ipencrypt load-zone list-algorithms list-keys list-zone list-all-zones list-member-zones
                               list-tsig-keys publish-zone-key rectify-zone rectify-all-zones remove-zone-key replace-rrset secure-all-zones secure-zone set-kind set-options-json
                               set-option set-catalog set-account set-nsec3 set-presigned set-publish-cdnskey set-publish-cds add-meta set-meta show-zone unpublish-zone-key
