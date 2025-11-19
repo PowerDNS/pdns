@@ -2376,7 +2376,7 @@ void LMDBBackend::getUpdatedPrimaries(vector<DomainInfo>& updatedDomains, std::u
     if (di.kind == DomainInfo::Producer) {
       catalogs.insert(di.zone.operator const DNSName&());
       catalogHashes[di.zone].process("\0");
-      return false; // Producer fresness check is performed elsewhere
+      return false; // Producer freshness check is performed elsewhere
     }
 
     if (!di.catalog.empty()) {
