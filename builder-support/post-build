@@ -17,7 +17,7 @@ if ! $tar --version | grep -q GNU; then
     exit 1
 fi
 
-# pdns (auth) is handled seperately, it needs a special find condition which is hard to do with
+# pdns (auth) is handled separately, it needs a special find condition which is hard to do with
 # vars, as we don't want the asterisks to expand prematurely. So repeat the body of the loop below
 # with a find condition for pdns to exclude accidentally matching pdns-recursor*.
 for prog in pdns-recursor dnsdist; do

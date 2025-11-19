@@ -25,7 +25,7 @@ TODO
 - Table based routing?
 - Ripping out yahttp stuff, providing some basic classes only. ATM we do use a few yahttp include files (but no .cc)
 - Some classes (NetmaskGroup, ComboAddress) need a UniquePtr Wrapper to keep them opaque (iputils
-  cannot be included without big headaches in bridge.hh at the moment). We could seperate
+  cannot be included without big headaches in bridge.hh at the moment). We could separate
   NetmaskGroup, but I expect ComboAddress to not work as it is union.
 - Avoid unsafe? Can it be done?
 */
