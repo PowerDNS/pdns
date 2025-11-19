@@ -1533,7 +1533,7 @@ BOOST_AUTO_TEST_CASE(test_servestale_neg_to_available)
   BOOST_CHECK(task.d_qname == target);
   BOOST_CHECK_EQUAL(task.d_qtype, QType::A);
 
-  // Now simulate a succeeding task execution an record has become available
+  // Now simulate a succeeding task execution and the record has become available
   negLookup = false;
   sr->setNow(timeval{now + 3 * (negTTL + 1), 0});
   downServers.clear();
