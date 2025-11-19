@@ -2004,7 +2004,7 @@ void getQNameAndSubnet(const std::string& question, DNSName* dnsname, uint16_t* 
     const auto* drh = reinterpret_cast<const dnsrecordheader*>(&question.at(pos)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
     if (ntohs(drh->d_type) == QType::OPT) {
       uint32_t edns{};
-      memcpy(&edns, &drh->d_ttl, sizeof(edns)); // drh is not neccesarily aligned, so no uint32 assignment can be done
+      memcpy(&edns, &drh->d_ttl, sizeof(edns)); // drh is not necessarily aligned, so no uint32 assignment can be done
       ednsVersion = edns;
     }
     pos += sizeof(dnsrecordheader);
