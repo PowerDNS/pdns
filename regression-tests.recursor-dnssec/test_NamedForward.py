@@ -61,7 +61,7 @@ system-resolver-ttl=1
         subprocess.run(['sudo', 'sed', '-i', '-e', '/namedforwardtest/d', '/etc/hosts'])
         subprocess.run(['sudo', 'sh', '-c', 'echo ' + self._PREFIX + '.12 namedforwardtest >> /etc/hosts'])
 
-        # the change should get picked up by the systemn resolver update thread and the reload flushes the caches
+        # the change should get picked up by the system resolver update thread and the reload flushes the caches
         time.sleep(2)
         res = self.sendUDPQuery(query)
         subprocess.run(['sudo', 'sed', '-i', '-e', '/namedforwardtest/d', '/etc/hosts'])
