@@ -1892,7 +1892,7 @@ faster than the existing rules.
 
     .. versionadded:: 1.9.0
 
-    Set a Lua function that will be called everytime a new dynamic block is inserted. The function receives:
+    Set a Lua function that will be called every time a new dynamic block is inserted. The function receives:
 
     * an integer whose value is 0 if the block is Netmask-based one (Client IP or range) and 1 instead (Domain name suffix)
     * the key (Client IP/range or domain suffix) as a string
@@ -2368,7 +2368,7 @@ Other functions
 
   .. versionadded:: 1.9.6
 
-  Set a Lua function that will be called everytime a new tickets key is added. The function receives:
+  Set a Lua function that will be called every time a new tickets key is added. The function receives:
 
   * the key content as a string
   * the keylen as an integer
