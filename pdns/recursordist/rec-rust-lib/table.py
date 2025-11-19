@@ -3201,7 +3201,7 @@ When set to ``normal``, the webserver will log a line per request::
 When set to ``detailed``, all available information about the request and response is logged.
 
 .. note::
-  The webserver logs these line on the NOTICE level. The :ref:`setting-loglevel` seting must be 5 or higher for these lines to end up in the log.
+  The webserver logs these line on the NOTICE level. The :ref:`setting-loglevel` setting must be 5 or higher for these lines to end up in the log.
  ''',
     'versionadded': '4.2.0'
     },
