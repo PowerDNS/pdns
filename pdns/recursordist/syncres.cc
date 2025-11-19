@@ -1620,7 +1620,7 @@ int SyncRes::doResolve(const DNSName& qname, const QType qtype, vector<DNSRecord
   try {
     // The cache lookup below can have three types of result:
     // Case 1: successful. In that case the records will be added to the end result below and we're done.
-    // Case 2: unsuccessful. In that case the records in retq wil be discarded. E.g. there
+    // Case 2: unsuccessful. In that case the records in retq will be discarded. E.g. there
     // might be records as the lookup found a CNAME chain, but the target is missing from the cache.
     // Case 3: an exception is thrown, in that case we're still interested in the (partial) results in retq.
     // This can e.g. happen on a too-long CNAME chain.

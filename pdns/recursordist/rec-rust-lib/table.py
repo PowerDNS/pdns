@@ -3555,7 +3555,7 @@ Enable DNS cookies (:rfc:`7873`, :rfc:`9018`) when contacting authoritative serv
         'default': '',
         'help': 'Addresses (with optional port) of authoritative servers that do not support cookies',
         'doc': '''
-Addresses of servers that do not properly support DNS cookies (:rfc:`7873`, :rfc:`9018`). Recursor wil not even try to probe these servers for cookie support. If no port is specified port 53 is used.
+Addresses of servers that do not properly support DNS cookies (:rfc:`7873`, :rfc:`9018`). Recursor will not even try to probe these servers for cookie support. If no port is specified port 53 is used.
 ''',
         'versionadded': '5.4.0',
     },

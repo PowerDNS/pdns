@@ -535,7 +535,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_extreme_timestamps)
 
   pdns::validation::ValidationContext validationContext;
   time_t now = time(nullptr);
-  // Case 1: interpretion depends on current time, test below will start to fail around 1970 + 68 = 2038 as it wil be interpeted as the 3rd case
+  // Case 1: interpretion depends on current time, test below will start to fail around 1970 + 68 = 2038 as it will be interpeted as the 3rd case
   BOOST_CHECK(validateWithKeySet(now, qname, recordcontents, sigs, keyset, std::nullopt, validationContext) == vState::BogusSignatureExpired);
   BOOST_CHECK_EQUAL(validationContext.d_validationsCounter, 0U);
 
@@ -545,7 +545,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_extreme_timestamps)
   BOOST_CHECK_EQUAL(validationContext.d_validationsCounter, 0U);
 
   // Case 3: we're in 2038
-  now = 0xffff0000; // inception (0) wil be interpreted as being in the future
+  now = 0xffff0000; // inception (0) will be interpreted as being in the future
   BOOST_CHECK(validateWithKeySet(now, qname, recordcontents, sigs, keyset, std::nullopt, validationContext) == vState::BogusSignatureNotYetValid);
   BOOST_CHECK_EQUAL(validationContext.d_validationsCounter, 0U);
 }
