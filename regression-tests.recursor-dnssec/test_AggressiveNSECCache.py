@@ -49,7 +49,7 @@ class AggressiveNSECCacheBase(RecursorTest):
         self.assertTrue(False)
 
     def testNoEDE(self):
-        # This isn't an aggressive cache check, but the strcuture is very similar to the others,
+        # This isn't an aggressive cache check, but the structure is very similar to the others,
         # so letys place it here.
         # It test the issue that an intermediate EDE does not get reported with the final answer
         # https://github.com/PowerDNS/pdns/pull/12694
