@@ -810,7 +810,7 @@ def generate():
     srcdir = '.'
     gendir = '.'
     if len(sys.argv) == 3:
-        print("Generate: using srcdir and gendir from argumens")
+        print("Generate: using srcdir and gendir from arguments")
         srcdir = sys.argv[1]
         gendir = sys.argv[2]
 
