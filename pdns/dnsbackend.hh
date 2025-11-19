@@ -453,7 +453,7 @@ public:
     return false;
   }
 
-  //! called by PowerDNS to create a secondary record for an autoPrimary
+  //! called by PowerDNS to create a secondary record for an autoprimary
   virtual bool createSecondaryDomain(const string& /* ip */, const ZoneName& /* domain */, const string& /* nameserver */, const string& /* account */)
   {
     return false;
