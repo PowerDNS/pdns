@@ -570,7 +570,7 @@ BOOST_AUTO_TEST_CASE(test_AuthPacketCacheNetmasks) {
 }
 
 #ifdef PDNS_AUTH // [
-// Combined packet cache and zone cache test to exercize views
+// Combined packet cache and zone cache test to exercise views
 
 static DNSPacket buildQuery(const DNSName& qname)
 {
