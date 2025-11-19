@@ -54,7 +54,7 @@ namespace pdns
 // time has passed since the last snap update.
 
 // To fetch aggregate values, call globals.sum(counter1) or
-// globals.avg(counter2), or any aggreggation function.  If multiple
+// globals.avg(counter2), or any aggregation function.  If multiple
 // counters need to be collected in a consistent way:
 // auto data = globals.aggregatedSnap();
 //
