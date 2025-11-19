@@ -772,7 +772,7 @@ static void TCPIOHandlerIO(int fileDesc, FDMultiplexer::funcparam_t& var);
 
 static void TCPIOHandlerStateChange(IOState oldstate, IOState newstate, std::shared_ptr<PacketID>& pid)
 {
-  TCPLOG(pid->tcpsock, "State transation " << int(oldstate) << "->" << int(newstate) << endl);
+  TCPLOG(pid->tcpsock, "State transition " << int(oldstate) << "->" << int(newstate) << endl);
 
   pid->lowState = newstate;
 
