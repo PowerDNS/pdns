@@ -260,7 +260,7 @@ static void fileCopy(const string& src, const string& dst, Logr::log_t log)
   }
 }
 
-static void possiblyConvertForwardsandAuths(const std::string& includeDir, const std::string& apiDir, Logr::log_t log)
+static void possiblyConvertForwardsAndAuths(const std::string& includeDir, const std::string& apiDir, Logr::log_t log)
 {
   std::vector<std::string> forwAndAuthFiles{};
   ::arg().gatherIncludes(includeDir, "..conf", forwAndAuthFiles);
@@ -312,7 +312,7 @@ void pdns::settings::rec::processAPIDir(const string& includeDirOnCommandLine, p
     path.append("/").append(file).append(".yml");
     mergeYamlSubFile(path, settings, true, log);
   }
-  possiblyConvertForwardsandAuths(includeDir, apiDir, log);
+  possiblyConvertForwardsAndAuths(includeDir, apiDir, log);
 }
 
 template <typename T>
