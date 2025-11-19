@@ -299,7 +299,7 @@ CheckOptions:
     value: ''
   - key: modernize-avoid-bind.PermissiveParameterList
     value: 'false'
-  - key: bugprone-easily-swappable-parameters.NamePrefixSuffixSilenceDissimilarityTreshold
+  - key: bugprone-easily-swappable-parameters.NamePrefixSuffixSilenceDissimilarityThreshold
     value: '1'
   - key: readability-suspicious-call-argument.Suffix
     value: 'true'
