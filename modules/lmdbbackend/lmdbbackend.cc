@@ -2131,7 +2131,7 @@ bool LMDBBackend::getInternal(DNSName& basename, std::string_view& key)
       message.next(3);
       d_lookupstate.comment.content = message.get_string();
     }
-    catch (protozero::exception &e) {
+    catch (protozero::exception& e) {
       // very little we can do about this
     }
 
