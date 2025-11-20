@@ -3,7 +3,6 @@ import dns
 import clientsubnetoption
 import cookiesoption
 from dnsdisttests import DNSDistTest
-from datetime import datetime, timedelta
 
 class TestEdnsClientSubnetNoOverride(DNSDistTest):
     """

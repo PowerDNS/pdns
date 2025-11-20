@@ -1,11 +1,8 @@
 import dns
-import socket
-import copy
 import os
 from recursortests import RecursorTest
 from twisted.internet.protocol import DatagramProtocol
 from twisted.internet import reactor
-import threading
 
 class InteropTest(RecursorTest):
     _confdir = 'Interop'

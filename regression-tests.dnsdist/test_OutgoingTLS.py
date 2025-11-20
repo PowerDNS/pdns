@@ -3,7 +3,6 @@ import dns
 import requests
 import ssl
 import threading
-import time
 import os
 
 from dnsdisttests import DNSDistTest, pickAvailablePort

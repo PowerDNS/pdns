@@ -13,7 +13,6 @@ import unittest
 import dns
 import dns.message
 
-from pprint import pprint
 from eqdnsmessage import AssertEqualDNSMessageMixin
 
 class AuthTest(AssertEqualDNSMessageMixin, unittest.TestCase):

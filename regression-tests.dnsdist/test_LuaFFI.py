@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import unittest
 import dns
 from dnsdisttests import DNSDistTest
 

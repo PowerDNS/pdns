@@ -1,9 +1,5 @@
 import dns
 import os
-import socket
-import struct
-import threading
-import time
 
 from recursortests import RecursorTest
 from twisted.internet.protocol import DatagramProtocol

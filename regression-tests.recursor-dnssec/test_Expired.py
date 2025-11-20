@@ -1,7 +1,4 @@
-import errno
 import os
-import subprocess
-import time
 
 import dns
 import extendederrors

@@ -1,4 +1,3 @@
-import os
 import requests
 
 from recursortests import RecursorTest

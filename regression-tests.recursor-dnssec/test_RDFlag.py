@@ -1,5 +1,4 @@
 import dns
-import os
 from recursortests import RecursorTest
 
 class RDNotAllowedTest(RecursorTest):
