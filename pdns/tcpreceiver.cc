@@ -681,10 +681,14 @@ int TCPNameserver::doAXFR(const ZoneName &targetZone, std::unique_ptr<DNSPacket>
     if (algorithm != g_gsstsigdnsname) {
       if(!db.getTSIGKey(tsigkeyname, algorithm, tsig64)) {
         g_log<<Logger::Warning<<logPrefix<<"TSIG key not found"<<endl;
+        outpacket->setRcode(RCode::NotAuth);
+        sendPacket(outpacket,outsock);
         return 0;
       }
       if (B64Decode(tsig64, tsigsecret) == -1) {
         g_log<<Logger::Error<<logPrefix<<"unable to Base-64 decode TSIG key '"<<tsigkeyname<<"'"<<endl;
+        outpacket->setRcode(RCode::ServFail);
+        sendPacket(outpacket,outsock);
         return 0;
       }
     }
@@ -1275,10 +1279,14 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock)
       }
       if (!db.getTSIGKey(tsigkeyname, algorithm, tsig64)) {
         g_log << Logger::Error << "TSIG key '" << tsigkeyname << "' for domain '" << target << "' not found" << endl;
+        outpacket->setRcode(RCode::NotAuth);
+        sendPacket(outpacket,outsock);
         return 0;
       }
       if (B64Decode(tsig64, tsigsecret) == -1) {
         g_log<<Logger::Error<<logPrefix<<"unable to Base-64 decode TSIG key '"<<tsigkeyname<<"'"<<endl;
+        outpacket->setRcode(RCode::ServFail);
+        sendPacket(outpacket,outsock);
         return 0;
       }
     }
