@@ -283,7 +283,7 @@ class TestTCPLimitsTLSNewSessionRate(DNSDistTest):
         try:
             # the next one should be past the max rate
             self.sendDOTQueryWrapper(query, response=None, useQueue=False)
-            self.assertTrue(False)
+            self.fail()
         except ConnectionResetError:
           pass
 
@@ -346,7 +346,7 @@ class TestTCPLimitsTLSResumedSessionRate(DNSDistTest):
             conn = self.openTLSConnection(self._tlsServerPort, self._serverName, self._caCert, timeout=1, sslctx=sslctx, session=session)
             self.sendTCPQueryOverConnection(conn, query, response=response, timeout=1)
             self.recvTCPResponseOverConnection(conn, useQueue=True, timeout=1)
-            self.assertTrue(False)
+            self.fail()
         except ConnectionResetError:
           pass
 

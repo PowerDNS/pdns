@@ -63,7 +63,7 @@ auth-zones=authzone.example=configs/%s/authzone.zone""" % _confdir
             sock[i].settimeout(0.1)
             try:
                 sock[i].recv(1)
-                self.assertTrue(False)
+                self.fail()
             except socket.timeout as e:
                 print("ok")
 
@@ -76,7 +76,7 @@ auth-zones=authzone.example=configs/%s/authzone.zone""" % _confdir
             sock[i].settimeout(0.1)
             try:
                 sock[i].recv(1)
-                self.assertTrue(False)
+                self.fail()
             except socket.timeout as e:
                 print("ok")
         for i in range(count):

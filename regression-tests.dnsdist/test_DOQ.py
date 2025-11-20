@@ -33,7 +33,7 @@ class TestDOQBogus(DNSDistTest):
 
         try:
             doqclient.quic_bogus_query(query, '127.0.0.1', 2.0, self._doqServerPort, verify=self._caCert, server_hostname=self._serverName)
-            self.assertFalse(True)
+            self.fail()
         except doqclient.StreamResetError as e :
             self.assertEqual(e.error, 2);
 
