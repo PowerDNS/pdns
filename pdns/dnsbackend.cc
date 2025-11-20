@@ -109,6 +109,42 @@ bool DNSBackend::searchRecords(const string& pattern, size_t maxResults, vector<
   return true;
 }
 
+// Default search logic, for backends which can enumerate their comments.
+bool DNSBackend::searchComments(const string& pattern, size_t maxResults, vector<Comment>& result)
+{
+  // We depend upon working list(), but also getAllDomains(), which is why we
+  // are checking explicitly for CAP_SEARCH in addition to CAP_LIST - the
+  // default getAllDomains() implementation below is not safe to use here.
+  if ((getCapabilities() & (CAP_LIST | CAP_SEARCH)) != (CAP_LIST | CAP_SEARCH)) {
+    return false;
+  }
+
+  SimpleMatch simpleMatch(pattern, true);
+  std::vector<DomainInfo> domains;
+  getAllDomains(&domains, false, true);
+  for (const auto& info : domains) {
+    if (!listComments(info.id)) {
+      return false;
+    }
+    Comment comment;
+    while (getComment(comment)) {
+      if (maxResults == 0) {
+        // No need to look any further
+        lookupEnd();
+        break;
+      }
+      if (simpleMatch.match(comment.qname) || simpleMatch.match(comment.content)) {
+        result.emplace_back(comment);
+        --maxResults;
+      }
+    }
+    if (maxResults == 0) {
+      break;
+    }
+  }
+  return true;
+}
+
 void BackendFactory::declare(const string& suffix, const string& param, const string& explanation, const string& value)
 {
   string fullname = d_name + suffix + "-" + param;

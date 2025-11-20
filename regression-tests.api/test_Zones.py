@@ -2268,7 +2268,6 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         # should return zone, SOA, ns1, ns2
         self.assertEqual(len(r.json()), 4)
 
-    @unittest.skipIf(is_auth_lmdb(), "No comments in LMDB")
     def test_search_rr_comment(self):
         name = unique_zone_name()
         rrsets = [{
