@@ -1815,7 +1815,7 @@ static int listZone(const ZoneName &zone) {
 
 static int listComments(const ZoneName &zone) {
   UtilBackend B; //NOLINT(readability-identifier-length)
-  DomainInfo di;
+  DomainInfo di; //NOLINT(readability-identifier-length)
 
   if (! B.getDomainInfo(zone, di)) {
     cerr << "Zone '" << zone << "' not found!" << endl;
