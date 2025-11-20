@@ -85,7 +85,7 @@ class TestSimpleEBPF(DNSDistTest):
             (_, receivedResponse) = sender(query, response=None, useQueue=False, timeout=0.5)
             self.assertEqual(receivedResponse, None)
 
-        # not over over protocols
+        # not over other protocols
         for method in ["sendTCPQuery", "sendDOTQueryWrapper", "sendDOHWithNGHTTP2QueryWrapper", "sendDOQQueryWrapper", "sendDOH3QueryWrapper"]:
             sender = getattr(self, method)
             (receivedQuery, receivedResponse) = sender(query, response, timeout=1)
@@ -96,7 +96,7 @@ class TestSimpleEBPF(DNSDistTest):
                 receivedResponse.id = response.id
             self.assertEqual(response, receivedResponse)
 
-    def testQNameBlockedOnylForAny(self):
+    def testQNameBlockedOnlyForAny(self):
         # unblock 127.0.0.1, just in case
         self.sendConsoleCommand('bpf:unblock(newCA("127.0.0.1"))')
 
@@ -149,7 +149,7 @@ class TestSimpleEBPF(DNSDistTest):
             except pycurl.error:
                 pass
 
-        # not over over QUIC-based protocols
+        # not over QUIC-based protocols
         for method in ["sendDOQQueryWrapper", "sendDOH3QueryWrapper"]:
             sender = getattr(self, method)
             (receivedQuery, receivedResponse) = sender(query, response, timeout=1)

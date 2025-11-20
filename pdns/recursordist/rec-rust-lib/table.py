@@ -439,7 +439,7 @@ The number of distributor threads is determined by :ref:`setting-distributor-thr
 
 This parameter is only available if the OS provides the ``pthread_setaffinity_np()`` function.
 
-Note that depending on the configuration the Recursor can start more threads.
+Note that, depending on the configuration, the Recursor can start more threads.
 Typically these threads will sleep most of the time.
 These threads cannot be specified in this setting as their thread-ids are left unspecified.
  ''',
@@ -459,7 +459,7 @@ The number of distributor threads is determined by :ref:`setting-distributor-thr
 
 This parameter is only available if the OS provides the ``pthread_setaffinity_np()`` function.
 
-Note that depending on the configuration the Recursor can start more threads.
+Note that, depending on the configuration, the Recursor can start more threads.
 Typically these threads will sleep most of the time.
 These threads cannot be specified in this setting as their thread-ids are left unspecified.
  ''',
@@ -482,7 +482,7 @@ Operate in the background.
         'default' : '',
         'help' : 'Do not throttle nameservers with this name or suffix',
         'doc' : '''
-When an authoritative server does not answer a query or sends a reply the recursor does not like, it is throttled.
+When an authoritative server does not answer a query or sends a reply that the recursor does not like, it is throttled.
 Any servers' name suffix-matching the supplied names will never be throttled.
 
 .. warning::
@@ -498,7 +498,7 @@ Any servers' name suffix-matching the supplied names will never be throttled.
         'default' : '',
         'help' : 'Do not throttle nameservers with this IP netmask',
         'doc' : '''
-When an authoritative server does not answer a query or sends a reply the recursor does not like, it is throttled.
+When an authoritative server does not answer a query or sends a reply that the recursor does not like, it is throttled.
 Any servers matching the supplied netmasks will never be throttled.
 
 This can come in handy on lossy networks when forwarding, where the same server is configured multiple times (e.g. with ``forward-zones-recurse=example.com=192.0.2.1;192.0.2.1``).
@@ -509,7 +509,7 @@ In this case, ``dont-throttle-netmasks`` could be set to ``192.0.2.1``.
   Most servers on the internet do not respond for a good reason (overloaded or unreachable), ``dont-throttle-netmasks`` could make this load on the upstream server even higher, resulting in further service degradation.
  ''',
         'doc-new' : '''
-When an authoritative server does not answer a query or sends a reply the recursor does not like, it is throttled.
+When an authoritative server does not answer a query or sends a reply that the recursor does not like, it is throttled.
 Any servers matching the supplied netmasks will never be throttled.
 
 This can come in handy on lossy networks when forwarding, where the same server is configured multiple times (e.g. with ``forward_zones_recurse: [ {zone: example.com, forwarders: [ 192.0.2.1, 192.0.2.1 ] } ]``.
@@ -2201,7 +2201,7 @@ The dnsdist docs have `more information about the PROXY protocol <https://dnsdis
         'default' : '',
         'help' : 'A Proxy Protocol header should not be used for these listen addresses.',
         'doc' : '''
-If set, clients sending from an address in :ref:`setting-proxy-protocol-from` to a address:port listed here are excluded from using the Proxy Protocol.
+If set, clients sending from an address in :ref:`setting-proxy-protocol-from` to an address:port listed here are excluded from using the Proxy Protocol.
 If no port is specified, port 53 is assumed.
 This is typically used to provide an easy to use address and port to send debug queries to.
  ''',
@@ -3201,7 +3201,7 @@ When set to ``normal``, the webserver will log a line per request::
 When set to ``detailed``, all available information about the request and response is logged.
 
 .. note::
-  The webserver logs these line on the NOTICE level. The :ref:`setting-loglevel` seting must be 5 or higher for these lines to end up in the log.
+  The webserver logs these line on the NOTICE level. The :ref:`setting-loglevel` setting must be 5 or higher for these lines to end up in the log.
  ''',
     'versionadded': '4.2.0'
     },
@@ -3555,7 +3555,7 @@ Enable DNS cookies (:rfc:`7873`, :rfc:`9018`) when contacting authoritative serv
         'default': '',
         'help': 'Addresses (with optional port) of authoritative servers that do not support cookies',
         'doc': '''
-Addresses of servers that do not properly support DNS cookies (:rfc:`7873`, :rfc:`9018`). Recursor wil not even try to probe these servers for cookie support. If no port is specified port 53 is used.
+Addresses of servers that do not properly support DNS cookies (:rfc:`7873`, :rfc:`9018`). Recursor will not even try to probe these servers for cookie support. If no port is specified port 53 is used.
 ''',
         'versionadded': '5.4.0',
     },
@@ -3567,7 +3567,7 @@ Addresses of servers that do not properly support DNS cookies (:rfc:`7873`, :rfc
         'help' : 'Sequence of OutgoingTLSConfiguration',
         'doc' : '''
 Configurations used for outgoing DoT connections.
-A DoT connection is matched against the subnets lists (using the remote IP) and if that does not provide a match the nameserver name is matched against the suffixes lists. When a match is found, the corresponding DoT configuration is used.
+A DoT connection is matched against the subnets lists (using the remote IP) and if that does not provide a match, the nameserver name is matched against the suffixes lists. When a match is found, the corresponding DoT configuration is used.
         ''',
         'skip-old' : 'No equivalent old style setting',
         'versionadded': '5.4.0',

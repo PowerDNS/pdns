@@ -666,7 +666,7 @@ class TestProtobufCacheHit(DNSDistProtobufTest):
         self.assertTrue(msg.HasField('outgoingQueries'))
         self.assertEqual(msg.outgoingQueries, 1)
 
-        # now shoud be a cache hit
+        # now should be a cache hit
         (_, receivedResponse) = self.sendUDPQuery(query, response)
         self.assertTrue(receivedResponse)
         self.assertEqual(response, receivedResponse)

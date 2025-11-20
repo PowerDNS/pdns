@@ -35,7 +35,7 @@ void pdns::shuffle(std::vector<DNSZoneRecord>& rrs)
   std::vector<DNSZoneRecord>::iterator first;
   std::vector<DNSZoneRecord>::iterator second;
 
-  // We assume the CNAMES are listed first in the ANSWER section and the the other records
+  // We assume the CNAMES are listed first in the ANSWER section and the other records
   // and we want to shuffle the other records only
 
   // First we scan for the first non-CNAME ANSWER record

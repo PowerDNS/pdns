@@ -209,8 +209,8 @@ static std::optional<uint64_t> get(const string& name)
   }
 
   {
-    auto lcoked = d_dynmetrics.lock();
-    const auto* ptr = rplookup(*lcoked, name);
+    auto locked = d_dynmetrics.lock();
+    const auto* ptr = rplookup(*locked, name);
     if (ptr != nullptr) {
       return ptr->d_ptr->load();
     }

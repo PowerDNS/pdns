@@ -143,7 +143,7 @@ end
         query = dns.message.make_query(nameECS, 'TXT', 'IN')
         self.sendECSQuery(query, expected2)
 
-        # And a unknown tag and no subnet query does hit the general case
+        # And an unknown tag and no subnet query does hit the general case
         self.setRoutingTag('bag')
         query = dns.message.make_query(nameECS, 'TXT', 'IN')
         self.sendECSQuery(query, expected2)
@@ -224,7 +224,7 @@ end
         query = dns.message.make_query(nameECS, 'TXT', 'IN')
         self.sendECSQuery(query, expected2)
 
-        # And a unknown tag and no subnet query does hit the general case
+        # And an unknown tag and no subnet query does hit the general case
         self.setRoutingTag('bag')
         query = dns.message.make_query(nameECS, 'TXT', 'IN')
         self.sendECSQuery(query, expected2)

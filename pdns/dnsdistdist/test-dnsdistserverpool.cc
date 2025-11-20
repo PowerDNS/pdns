@@ -149,7 +149,7 @@ BOOST_AUTO_TEST_CASE(test_ServerPoolECSConsistency)
   BOOST_CHECK(!pool.isTCPOnly());
   BOOST_CHECK(!pool.isConsistent());
   /* the pool was in a consistent state without ECS,
-     and now is in a inconsistent state so it not automatically
+     and now is in an inconsistent state so it not automatically
      updated */
   BOOST_CHECK(!pool.getECS());
 }

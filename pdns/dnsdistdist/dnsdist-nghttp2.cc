@@ -813,7 +813,7 @@ DoHConnectionToBackend::DoHConnectionToBackend(const std::shared_ptr<DownstreamS
   if (nghttp2_session_client_new(&sess, callbacks.get(), this) != 0) {
     d_connectionDied = true;
     ++d_ds->tcpDiedSendingQuery;
-    vinfolog("Coult not allocate a new HTTP/2 session");
+    vinfolog("Could not allocate a new HTTP/2 session");
     return;
   }
 

@@ -229,7 +229,7 @@ static uint performInsert(const DNSRecord* rr, updateContext& ctx, vector<DNSRes
       }
     } break;
     default: {
-      // In any other case, we must check if the TYPE and RDATA match to provide an update (which effectively means a update of TTL)
+      // In any other case, we must check if the TYPE and RDATA match to provide an update (which effectively means an update of TTL)
       int updateTTL = 0;
       foundRecord = false;
       bool lowerCase = false;

@@ -948,7 +948,7 @@ BOOST_AUTO_TEST_CASE(test_cname_plus_authority_ns_ttl)
 
   cached.clear();
 
-  /* Also check that the the part in additional is still not auth */
+  /* Also check that the part in additional is still not auth */
   BOOST_REQUIRE_GE(g_recCache->get(now, DNSName("a.gtld-servers.net."), QType(QType::A), MemRecursorCache::None, &cached, who, boost::none, nullptr, nullptr, nullptr, nullptr, &wasAuth), -1);
   BOOST_CHECK_EQUAL(cached.size(), 1U);
   BOOST_CHECK_EQUAL(wasAuth, false);

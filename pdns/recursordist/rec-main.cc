@@ -2362,7 +2362,7 @@ static void handlePipeRequest(int fileDesc, FDMultiplexer::funcparam_t& /* var *
   }
   catch (const MOADNSException& moadnsexception) {
     if (g_logCommonErrors) {
-      g_slog->withName("runtime")->error(moadnsexception.what(), "PIPE function created an exception", "excepion", Logging::Loggable("MOADNSException"));
+      g_slog->withName("runtime")->error(moadnsexception.what(), "PIPE function created an exception", "exception", Logging::Loggable("MOADNSException"));
     }
   }
   catch (const std::exception& stdException) {
@@ -2576,7 +2576,7 @@ static void houseKeepingWork(Logr::log_t log)
         res = SyncRes::getRootNS(now, nullptr, 0, log);
       }
       if (res == 0) {
-        // Success, go back to the defaut period
+        // Success, go back to the default period
         rootUpdateTask.setPeriod(std::max(SyncRes::s_maxcachettl * 8 / 10, minRootRefreshInterval));
       }
       else {

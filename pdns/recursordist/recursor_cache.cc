@@ -292,7 +292,7 @@ static void pushRefreshTask(const DNSName& qname, QType qtype, time_t deadline, 
 
 void MemRecursorCache::updateStaleEntry(time_t now, MemRecursorCache::OrderedTagIterator_t& entry)
 {
-  // We need to take care a infrequently access stale item cannot be extended past
+  // We need to take care an infrequently access stale item cannot be extended past
   // s_maxServedStaleExtension * s_serveStaleExtensionPeriod
   // We look how old the entry is, and increase d_servedStale accordingly, taking care not to overflow
   const time_t howlong = std::max(static_cast<time_t>(1), now - entry->d_ttd);
@@ -736,7 +736,7 @@ void MemRecursorCache::replace(time_t now, const DNSName& qname, const QType qty
     cacheEntry.d_orig_ttl = cacheEntry.d_ttd - ttl_time;
     // Even though we record the time the ttd was computed, there still seems to be a case where the computed
     // d_orig_ttl can wrap.
-    // So santize the computed ce.d_orig_ttl to be on the safe side
+    // So sanitize the computed ce.d_orig_ttl to be on the safe side
     if (cacheEntry.d_orig_ttl < SyncRes::s_minimumTTL || cacheEntry.d_orig_ttl > SyncRes::s_maxcachettl) {
       cacheEntry.d_orig_ttl = SyncRes::s_minimumTTL;
     }

@@ -241,7 +241,7 @@ jobs:
         run: |
           for tag in `echo "${INPUT_IMAGE_TAGS}" | tr '\n' ' '`; do
             echo 'Testing: '${IMAGE_NAME}':'${tag};
-            # recent pdns-auth images of tags older than 4.9.x image return a exit code 99
+            # recent pdns-auth images of tags older than 4.9.x image return an exit code 99
             docker run ${IMAGE_NAME}:${tag} --version || [ "$?" == "99" ]
           done
       - name: Check image digest matches

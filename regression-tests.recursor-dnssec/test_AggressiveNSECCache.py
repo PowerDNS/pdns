@@ -50,7 +50,7 @@ class AggressiveNSECCacheBase(RecursorTest):
         return -1
 
     def testNoEDE(self):
-        # This isn't an aggresive cache check, but the strcuture is very similar to the others,
+        # This isn't an aggressive cache check, but the structure is very similar to the others,
         # so letys place it here.
         # It test the issue that an intermediate EDE does not get reported with the final answer
         # https://github.com/PowerDNS/pdns/pull/12694
@@ -228,7 +228,7 @@ class AggressiveNSECCacheNSECTest(AggressiveNSECCacheBase):
         self.assertAuthorityHasSOA(res)
         self.assertGreater(self.getMetric('all-outqueries'), nbQueries)
 
-        # Check that we stil have one aggressive cache entry
+        # Check that we still have one aggressive cache entry
         self.assertEqual(1, self.getMetric('aggressive-nsec-cache-entries'))
         print(res.options)
         self.assertEqual(res.edns, 0)

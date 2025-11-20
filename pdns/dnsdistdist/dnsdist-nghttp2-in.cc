@@ -262,7 +262,7 @@ IncomingHTTP2Connection::IncomingHTTP2Connection(ConnectionInfo&& connectionInfo
 
   nghttp2_session* sess = nullptr;
   if (nghttp2_session_server_new(&sess, callbacks.get(), this) != 0) {
-    throw std::runtime_error("Coult not allocate a new incoming HTTP/2 session");
+    throw std::runtime_error("Could not allocate a new incoming HTTP/2 session");
   }
 
   d_session = std::unique_ptr<nghttp2_session, decltype(&nghttp2_session_del)>(sess, nghttp2_session_del);

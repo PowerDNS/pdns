@@ -142,7 +142,7 @@ void Tracer::setRootSpanID([[maybe_unused]] const SpanID& spanID)
 bool Tracer::setTraceAttribute([[maybe_unused]] const std::string& key, [[maybe_unused]] const AnyValue& value)
 {
 #ifdef DISABLE_PROTOBUF
-  // always succesfull
+  // always successful
   return true;
 #else
   d_attributes.push_back({key, value});

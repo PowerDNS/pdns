@@ -195,7 +195,7 @@ public:
     }
     if (stamp < d_base) {
       // If we get a ts before d_base, we adjust d_base and the existing events
-      // This is possble if we add a kernel provided packet timestamp in the future
+      // This is possible if we add a kernel provided packet timestamp in the future
       // (Though it seems those timestamps do not use CLOCK_MONOTONIC...)
       const int64_t adj = d_base - stamp;
       for (auto& iter : d_events) {
@@ -342,7 +342,7 @@ public:
     ~EventScope()
     {
       // If the dt is called after an explicit close(), value does not matter.
-      // Otherwise, it signals a implicit close, e.g. an exception was thrown
+      // Otherwise, it signals an implicit close, e.g. an exception was thrown
       close(-1);
     }
     EventScope(const EventScope&) = delete;

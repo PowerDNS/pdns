@@ -2004,7 +2004,7 @@ void getQNameAndSubnet(const std::string& question, DNSName* dnsname, uint16_t* 
     const auto* drh = reinterpret_cast<const dnsrecordheader*>(&question.at(pos)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
     if (ntohs(drh->d_type) == QType::OPT) {
       uint32_t edns{};
-      memcpy(&edns, &drh->d_ttl, sizeof(edns)); // drh is not neccesarily aligned, so no uint32 assignment can be done
+      memcpy(&edns, &drh->d_ttl, sizeof(edns)); // drh is not necessarily aligned, so no uint32 assignment can be done
       ednsVersion = edns;
     }
     pos += sizeof(dnsrecordheader);
@@ -2188,8 +2188,8 @@ bool matchOTConditions(RecEventTrace& eventTrace, const std::unique_ptr<OpenTele
   return true;
 }
 
-// fromaddr: the address the query is coming from
-// destaddr: the address the query was received on
+// fromaddr: the address from which the query is coming
+// destaddr: the address on which the query was received
 // source: the address we assume the query is coming from, might be set by proxy protocol
 // destination: the address we assume the query was sent to, might be set by proxy protocol
 // mappedSource: the address we assume the query is coming from. Differs from source if table based mapping has been applied
@@ -2316,7 +2316,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
           }
           catch (const MOADNSException& moadnsexception) {
             if (g_logCommonErrors) {
-              g_slogudpin->error(moadnsexception.what(), "Error parsing a query packet for tag determination", "qname", Logging::Loggable(qname), "excepion", Logging::Loggable("MOADNSException"));
+              g_slogudpin->error(moadnsexception.what(), "Error parsing a query packet for tag determination", "qname", Logging::Loggable(qname), "exception", Logging::Loggable("MOADNSException"));
             }
           }
           catch (const std::exception& stdException) {
@@ -2441,9 +2441,9 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   comboWriter->setSocket(fileDesc);
   comboWriter->d_tag = ctag;
   comboWriter->d_qhash = qhash;
-  comboWriter->setRemote(fromaddr); // the address the query is coming from
+  comboWriter->setRemote(fromaddr); // the address from which the query is coming
   comboWriter->setSource(source); // the address we assume the query is coming from, might be set by proxy protocol
-  comboWriter->setLocal(destaddr); // the address the query was received on
+  comboWriter->setLocal(destaddr); // the address on which the query was received
   comboWriter->setDestination(destination); // the address we assume the query is sent to, might be set by proxy protocol
   comboWriter->setMappedSource(mappedSource); // the address we assume the query is coming from. Differs from source if table-based mapping has been applied
   comboWriter->d_tcp = false;
@@ -2483,7 +2483,7 @@ static void handleNewUDPQuestion(int fileDesc, FDMultiplexer::funcparam_t& /* va
   const bool proxyActive = t_proxyProtocolACL && !t_proxyProtocolACL->empty();
   static const size_t maxIncomingQuerySize = !proxyActive ? 512 : (512 + g_proxyProtocolMaximumSize);
   static thread_local std::string data;
-  ComboAddress fromaddr; // the address the query is coming from
+  ComboAddress fromaddr; // the address from which the query is coming
   ComboAddress source; // the address we assume the query is coming from, might be set by proxy protocol
   ComboAddress destination; // the address we assume the query was sent to, might be set by proxy protocol
   struct msghdr msgh{};
@@ -2525,7 +2525,7 @@ static void handleNewUDPQuestion(int fileDesc, FDMultiplexer::funcparam_t& /* va
 
       data.resize(static_cast<size_t>(len));
 
-      ComboAddress destaddr; // the address the query was sent to to
+      ComboAddress destaddr; // the address where the query was sent
       destaddr.reset(); // this makes sure we ignore this address if not explictly set below
       const auto* loc = rplookup(g_listenSocketsAddresses, fileDesc);
       if (HarvestDestinationAddress(&msgh, &destaddr)) {

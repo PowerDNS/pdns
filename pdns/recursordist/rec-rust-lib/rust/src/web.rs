@@ -25,7 +25,7 @@ TODO
 - Table based routing?
 - Ripping out yahttp stuff, providing some basic classes only. ATM we do use a few yahttp include files (but no .cc)
 - Some classes (NetmaskGroup, ComboAddress) need a UniquePtr Wrapper to keep them opaque (iputils
-  cannot be included without big headaches in bridge.hh at the moment). We could seperate
+  cannot be included without big headaches in bridge.hh at the moment). We could separate
   NetmaskGroup, but I expect ComboAddress to not work as it is union.
 - Avoid unsafe? Can it be done?
 */
@@ -556,7 +556,7 @@ async fn process_request(
         }
     }
 
-    // Fill request and response structs wih default values.
+    // Fill request and response structs with default values.
     let mut request = rustweb::Request {
         body: vec![],
         uri: rust_request.uri().to_string(),
@@ -881,7 +881,7 @@ pub fn serveweb(
         .enable_io()
         .build()?;
 
-    // For each listening address we spawn a tokio handler an then a single Posix thread is created that
+    // For each listening address we spawn a tokio handler and then a single Posix thread is created that
     // waits (forever) for all of them to complete by joining them all.
     let mut set = JoinSet::new();
     for config in incoming {

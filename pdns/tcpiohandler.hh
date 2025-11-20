@@ -382,7 +382,7 @@ public:
   }
 
   /* Tries to read exactly toRead - pos bytes into the buffer, starting at position pos.
-     Updates pos everytime a successful read occurs,
+     Updates pos every time a successful read occurs,
      throws an std::runtime_error in case of IO error,
      return Done when toRead bytes have been read, needRead or needWrite if the IO operation
      would block.
@@ -422,7 +422,7 @@ public:
   }
 
   /* Tries to write exactly toWrite - pos bytes from the buffer, starting at position pos.
-     Updates pos everytime a successful write occurs,
+     Updates pos every time a successful write occurs,
      throws an std::runtime_error in case of IO error,
      return Done when toWrite bytes have been written, needRead or needWrite if the IO operation
      would block.

@@ -3213,7 +3213,7 @@ Changelog
     :pullreq: 11621
     :tickets: 11604
 
-    Fix a crash on a invalid protocol in DoH forwarded-for header
+    Fix a crash on an invalid protocol in DoH forwarded-for header
 
   .. change::
     :tags: Bug Fixes
@@ -3525,7 +3525,7 @@ Changelog
     :pullreq: 11667
     :tickets: 11621
 
-    Fix a crash on a invalid protocol in DoH forwarded-for header
+    Fix a crash on an invalid protocol in DoH forwarded-for header
 
 .. changelog::
   :version: 1.7.1

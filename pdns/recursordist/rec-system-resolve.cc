@@ -80,7 +80,7 @@ PacketBuffer resolve(const string& name, QClass cls, QType type)
   return answer;
 }
 
-// do a id.server/CH/TXT query
+// do an id.server/CH/TXT query
 std::string serverID()
 {
   auto buffer = resolve("id.server", QClass::CHAOS, QType::TXT);
@@ -253,7 +253,7 @@ void pdns::RecResolve::Refresher::refreshLoop()
   while (!stop) {
     const time_t startTime = time(nullptr);
     time_t wakeTime = startTime;
-    // The expresion wakeTime - startTime is equal to the total amount of time slept
+    // The expression wakeTime - startTime is equal to the total amount of time slept
     while (wakeTime - startTime < d_interval) {
       std::unique_lock lock(mutex);
       time_t remaining = d_interval - (wakeTime - startTime);

@@ -1533,7 +1533,7 @@ BOOST_AUTO_TEST_CASE(test_servestale_neg_to_available)
   BOOST_CHECK(task.d_qname == target);
   BOOST_CHECK_EQUAL(task.d_qtype, QType::A);
 
-  // Now simulate a succeeding task execution an record has become available
+  // Now simulate a succeeding task execution and the record has become available
   negLookup = false;
   sr->setNow(timeval{now + 3 * (negTTL + 1), 0});
   downServers.clear();
@@ -2005,7 +2005,7 @@ BOOST_AUTO_TEST_CASE(test_glued_referral_additional_update)
     }
   });
 
-  // Lookup first name. We should see the address of an nameserver in the cache
+  // Lookup first name. We should see the address of a nameserver in the cache
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target1, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
@@ -2027,7 +2027,7 @@ BOOST_AUTO_TEST_CASE(test_glued_referral_additional_update)
   BOOST_CHECK_EQUAL(ret[0].d_name, target2);
 
   auto secondTTL = g_recCache->get(sr->getNow().tv_sec, DNSName("pdns-public-ns1.powerdns.com"), QType::A, MemRecursorCache::None, nullptr, ComboAddress());
-  // TTL shoud be back to original value
+  // TTL should be back to original value
   BOOST_CHECK_EQUAL(firstTTL, secondTTL);
 }
 
@@ -2096,7 +2096,7 @@ BOOST_AUTO_TEST_CASE(test_glued_referral_additional_no_update_because_locked)
     }
   });
 
-  // Lookup first name. We should see the address of an nameserver in the cache
+  // Lookup first name. We should see the address of a nameserver in the cache
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target1, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
@@ -2109,7 +2109,7 @@ BOOST_AUTO_TEST_CASE(test_glued_referral_additional_no_update_because_locked)
   // Move the time
   sr->setNow({sr->getNow().tv_sec + 2, sr->getNow().tv_usec});
 
-  // Lookup second name. We should see the address of an nameserver in the cache *not* being updated
+  // Lookup second name. We should see the address of a nameserver in the cache *not* being updated
   ret.clear();
   res = sr->beginResolve(target2, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);

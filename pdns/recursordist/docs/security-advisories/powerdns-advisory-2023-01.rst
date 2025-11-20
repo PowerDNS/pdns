@@ -13,7 +13,7 @@ PowerDNS Security Advisory 2023-01: unbounded recursion results in program termi
 
 An issue in the processing of queries for misconfigured domains has been found in PowerDNS Recursor
 4.8.0, allowing a remote attacker to crash the recursor by sending a DNS query for one of these
-domains.  The issue happens because the recursor enters a unbounded loop, exceeding its stack
+domains.  The issue happens because the recursor enters an unbounded loop, exceeding its stack
 memory. Because of the specific way in which this issue happens, we do not believe this issue to be
 exploitable for code execution.
 

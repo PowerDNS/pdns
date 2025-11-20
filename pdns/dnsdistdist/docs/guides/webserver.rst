@@ -929,7 +929,7 @@ JSON Objects
   :property integer tlsHandshakeFailuresUnknownKeyExchangeType: Amount of TLS connections where the client has tried to negotiate an unknown TLS key-exchange mechanism
   :property integer tlsHandshakeFailuresUnknownProtocol: Amount of TLS connections where the client has tried to negotiate an unknown TLS version
   :property integer tlsHandshakeFailuresUnsupportedEC: Amount of TLS connections where the client has tried to negotiate an unsupported elliptic curve
-  :property integer tlsHandshakeFailuresUnsupportedProtocol: Amount of TLS connections where the client has tried to negotiate a unsupported TLS version
+  :property integer tlsHandshakeFailuresUnsupportedProtocol: Amount of TLS connections where the client has tried to negotiate an unsupported TLS version
   :property integer tlsInactiveTicketKey: Amount of TLS sessions resumed from an inactive key
   :property integer tlsNewSessions: Amount of new TLS sessions negotiated
   :property integer tlsResumptions: Amount of TLS sessions resumed

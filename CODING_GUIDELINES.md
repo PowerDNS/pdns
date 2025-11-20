@@ -68,7 +68,7 @@ It means that if an object is correctly designed, the resources associated with 
 Since stack-allocated objects, like local variables in a function, are automatically destroyed when a function exits, be it by reaching the last line, calling return or throwing an exception, it makes it possible to ensure that resources are always properly destroyed by wrapping them in an object.
 
 We describe the use of smart pointers, containers and other wrappers for that purpose below, but first a few words of caution.
-Resources stored in a object are only tied to this object if the constructor executes fully and completes properly.
+Resources stored in an object are only tied to this object if the constructor executes fully and completes properly.
 If an exception is raised in the constructor's body, the object is not created and therefore the destructor will not be called.
 This means that if the object has non-object members holding resources, like raw file descriptors or raw C-style pointers, they need to be explicitly released before raising the exception; otherwise, they are lost or leaked.
 

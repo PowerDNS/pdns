@@ -112,7 +112,7 @@ bool dedupEqual(const DNSZoneRecord& a, const DNSZoneRecord &b)
 
 void ChunkedSigningPipe::dedupRRSet()
 {
-  // our set contains contains records for one type and one name, but might not be sorted otherwise
+  // our set contains records for one type and one name, but might not be sorted otherwise
   sort(d_rrsetToSign->begin(), d_rrsetToSign->end(), dedupLessThan);
   d_rrsetToSign->erase(unique(d_rrsetToSign->begin(), d_rrsetToSign->end(), dedupEqual), d_rrsetToSign->end());
 }

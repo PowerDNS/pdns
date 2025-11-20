@@ -11,7 +11,7 @@ permissions: # least privileges, see https://docs.github.com/en/actions/using-wo
 jobs:
   build:
     name: check secpoll zone
-    # on a ubuntu-24.04 VM
+    # on an ubuntu-24.04 VM
     runs-on: ubuntu-24.04
     steps:
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta

@@ -197,7 +197,7 @@ uint64_t pruneMutexCollectionsVector(time_t now, std::vector<T>& maps, uint64_t 
   //
   // Suppose we have 10 perfectly balanced shards, each filled with
   // 100 entries. So cacheSize is 1000. When cleaning 10%, after shard
-  // 0 we still need to processs 900 entries, spread out of 9
+  // 0 we still need to process 900 entries, spread out of 9
   // shards. So cacheSize becomes 900, and toTrim 90, since we cleaned
   // 10 items from shard 0. Our fraction remains 10%. For the last
   // shard, we would end up with cacheSize 100, and to clean 10.

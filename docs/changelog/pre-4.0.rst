@@ -2233,7 +2233,7 @@ Improvements
    closing `ticket 423 <https://github.com/PowerDNS/pdns/issues/423>`__
    (which also contained the patch). Regression test updates that flow
    from this in `commit e80e21951a648acd549146a0b9a42cf169698deb <https://github.com/PowerDNS/pdns/commit/e80e21951a648acd549146a0b9a42cf169698deb>`__.
--  Fix compilation on OSX. `commit 2fcbee807ace6e0f90b88157ddc431deec520baf <https://github.com/PowerDNS/pdns/commit/2fcbee807ace6e0f90b88157ddc431deec520baf>`__.
+-  Fix compilation on macOS. `commit 2fcbee807ace6e0f90b88157ddc431deec520baf <https://github.com/PowerDNS/pdns/commit/2fcbee807ace6e0f90b88157ddc431deec520baf>`__.
 -  Fix pdnssec crash when asked to do DNSSEC without a DNSSEC capable
    backend. Code in `commit f0c4b9d5d777aca598fac5625ec07d815df57ea2 <https://github.com/PowerDNS/pdns/commit/f0c4b9d5d777aca598fac5625ec07d815df57ea2>`__.
 -  If PowerDNS was not configured to operate as a DNS master, it would

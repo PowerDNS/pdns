@@ -64,7 +64,7 @@ class RRSet:
 class Record:
     def __init__(self, content, disabled):
         """
-        Represents a Record from the API. Note that is does not contian the rrname nor ttl (these are held by the
+        Represents a Record from the API. Note that is does not contain the rrname nor ttl (these are held by the
         encompassing :class:`RRSet` object).
 
         :param str content: The content of the record in zonefile-format

@@ -2672,7 +2672,7 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
             WHERE name="""+placeholder+""" AND type='TXT'"""
             ,
             (badcontent, name.rstrip('.')))
-        cur.execute('COMMIT') # Figuring out how many hours I wasted on this test because of this missing line is left as an exercize to the reader
+        cur.execute('COMMIT') # Figuring out how many hours I wasted on this test because of this missing line is left as an exercise to the reader
         cur.close()
         db.close()
         # Try and get the zone data

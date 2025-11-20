@@ -46,7 +46,7 @@ struct EDNSCookiesOpt
   {
     // RFC7873 section 5.2.2
     //    In summary, valid cookie lengths are 8 and 16 to 40 inclusive.
-    // That's the total size. We account for client and server size seperately
+    // That's the total size. We account for client and server size separately
     return (
       client.size() == 8 && (server.empty() || (server.size() >= 8 && server.size() <= 32)));
   }

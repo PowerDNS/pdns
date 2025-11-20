@@ -123,7 +123,7 @@ BOOST_AUTO_TEST_CASE(test_Query)
     // too small
     BOOST_CHECK_EQUAL(dnsdist_ffi_dnsquestion_get_mac_addr(&lightDQ, buffer, 0), 0U);
 
-    // we will not find the correspondig MAC address in /proc/net/arp, unfortunately, especially not on !linux
+    // we will not find the corresponding MAC address in /proc/net/arp, unfortunately, especially not on !linux
     BOOST_CHECK_EQUAL(dnsdist_ffi_dnsquestion_get_mac_addr(&lightDQ, buffer, bufferSize), 0U);
   }
 

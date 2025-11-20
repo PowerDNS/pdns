@@ -93,7 +93,7 @@ static inline void set_tc_bit(struct udphdr* udp, struct dnshdr* dns)
  * Check DNS QName
  * Returns PASS if message needs to go through (i.e. pass)
  *         TC if (modified) message needs to be replied
- *         DROP if message needs to be blocke
+ *         DROP if message needs to be blocked
  */
 static inline struct map_value* check_qname(struct cursor* c)
 {
@@ -150,7 +150,7 @@ static inline struct map_value* check_qname(struct cursor* c)
 }
 
 /*
- * Parse IPv4 DNS mesage.
+ * Parse IPv4 DNS message.
  * Returns XDP_PASS if message needs to go through (i.e. pass)
  *         XDP_REDIRECT if message needs to be redirected (for AF_XDP, which needs to be translated to the caller into XDP_PASS outside of the AF_XDP)
  *         XDP_TX if (modified) message needs to be replied
@@ -254,7 +254,7 @@ static inline enum xdp_action parseIPV4(struct xdp_md* ctx, struct cursor* c)
 }
 
 /*
- * Parse IPv6 DNS mesage.
+ * Parse IPv6 DNS message.
  * Returns XDP_PASS if message needs to go through (i.e. pass)
  *         XDP_REDIRECT if message needs to be redirected (for AF_XDP, which needs to be translated to the caller into XDP_PASS outside of the AF_XDP)
  *         XDP_TX if (modified) message needs to be replied

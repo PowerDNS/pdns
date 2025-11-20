@@ -53,7 +53,7 @@ struct Entry
 // Warning: some meta-programming is going on.  We define helper
 // templates that can be used to see if specific string output
 // functions are available.  If so, we use those instead of << into an
-// ostringstream. Note that this decision happpens compile time.
+// ostringstream. Note that this decision happens compile time.
 // Some hints taken from https://www.cppstories.com/2019/07/detect-overload-from-chars/
 // (I could not get function templates with enabled_if<> to work in this case)
 //

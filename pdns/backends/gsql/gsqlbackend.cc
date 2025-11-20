@@ -591,7 +591,7 @@ void GSQLBackend::getUpdatedPrimaries(vector<DomainInfo>& updatedDomains, std::u
     if (pdns_iequals(row[2], "PRODUCER")) {
       catalogs.insert(di.zone.operator const DNSName&());
       catalogHashes[di.zone].process("\0");
-      continue; // Producer fresness check is performed elsewhere
+      continue; // Producer freshness check is performed elsewhere
     }
     else if (!pdns_iequals(row[2], "MASTER")) {
       g_log << Logger::Warning << __PRETTY_FUNCTION__ << " type '" << row[2] << "' for zone '" << di.zone << "' is no primary type" << endl;
@@ -1697,7 +1697,7 @@ bool GSQLBackend::autoPrimaryBackend(const string& ipAddress, const ZoneName& do
       // clang-format on
     }
     catch (SSqlException &e) {
-      throw PDNSException("GSQLBackend unable to search for a autoprimary with IP " + ipAddress + " and nameserver name '" + i.content + "' for domain '" + domain.toLogString() + "': " + e.txtReason());
+      throw PDNSException("GSQLBackend unable to search for an autoprimary with IP " + ipAddress + " and nameserver name '" + i.content + "' for domain '" + domain.toLogString() + "': " + e.txtReason());
     }
     if(!d_result.empty()) {
       ASSERT_ROW_COLUMNS("autoprimary-query", d_result[0], 1);

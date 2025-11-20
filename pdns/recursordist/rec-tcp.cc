@@ -368,7 +368,7 @@ static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, s
         }
         catch (const MOADNSException& moadnsexception) {
           if (g_logCommonErrors) {
-            g_slogtcpin->error(moadnsexception.what(), "Error parsing a query packet for tag determination", "qname", Logging::Loggable(qname), "excepion", Logging::Loggable("MOADNSException"));
+            g_slogtcpin->error(moadnsexception.what(), "Error parsing a query packet for tag determination", "qname", Logging::Loggable(qname), "exception", Logging::Loggable("MOADNSException"));
           }
         }
         catch (const std::exception& stdException) {
@@ -667,7 +667,7 @@ static void handleRunningTCPQuestion(int fileDesc, FDMultiplexer::funcparam_t& v
       comboWriter->d_tcpConnection = conn; // carry the torch
       comboWriter->setSocket(conn->getFD()); // this is the only time a copy is made of the actual fd
       comboWriter->d_tcp = true;
-      comboWriter->setRemote(conn->d_remote); // the address the query was received from
+      comboWriter->setRemote(conn->d_remote); // the address from which the query was received
       comboWriter->setSource(conn->d_source); // the address we assume the query is coming from, might be set by proxy protocol
       ComboAddress dest;
       dest.reset();
@@ -772,7 +772,7 @@ static void TCPIOHandlerIO(int fileDesc, FDMultiplexer::funcparam_t& var);
 
 static void TCPIOHandlerStateChange(IOState oldstate, IOState newstate, std::shared_ptr<PacketID>& pid)
 {
-  TCPLOG(pid->tcpsock, "State transation " << int(oldstate) << "->" << int(newstate) << endl);
+  TCPLOG(pid->tcpsock, "State transition " << int(oldstate) << "->" << int(newstate) << endl);
 
   pid->lowState = newstate;
 
@@ -1024,13 +1024,13 @@ LWResult::Result arecvtcp(PacketBuffer& data, const size_t len, shared_ptr<TCPIO
   try {
     TCPLOG(handler->getDescriptor(), "calling tryRead() " << len << endl);
     state = handler->tryRead(data, pos, len);
-    TCPLOG(handler->getDescriptor(), "arcvtcp tryRead() returned " << int(state) << ' ' << pos << '/' << len << endl);
+    TCPLOG(handler->getDescriptor(), "arecvtcp tryRead() returned " << int(state) << ' ' << pos << '/' << len << endl);
     switch (state) {
     case IOState::Done:
     case IOState::NeedRead:
       if (pos == len || (incompleteOkay && pos > 0)) {
         data.resize(pos);
-        TCPLOG(handler->getDescriptor(), "acecvtcp success A" << endl);
+        TCPLOG(handler->getDescriptor(), "arecvtcp success A" << endl);
         return LWResult::Result::Success;
       }
       break;

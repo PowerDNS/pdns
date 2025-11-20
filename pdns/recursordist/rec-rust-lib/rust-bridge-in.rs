@@ -418,7 +418,7 @@ extern "Rust" {
     // REST API zones
     fn parse_yaml_string_to_api_zones(str: &str) -> Result<ApiZones>;
 
-    // Prdoduce a YAML formatted string given a data structure known to Serde
+    // Produce a YAML formatted string given a data structure known to Serde
     fn to_yaml_string(self: &Recursorsettings) -> Result<String>;
     fn get_value(self: &Recursorsettings, field: &[String], defaults: &str, with_comment: bool) -> Result<String>;
     // When doing a conversion of old-style to YAML style we use a vector of OldStyle structs
@@ -428,7 +428,7 @@ extern "Rust" {
     fn allow_from_to_yaml_string_incoming(key: &String, filekey: &String, vec: &Vec<String>) -> Result<String>;
     fn allow_for_to_yaml_string(vec: &Vec<String>) -> Result<String>;
 
-    // Merge a string representing YAML settings into a existing setttings struct
+    // Merge a string representing YAML settings into an existing settings struct
     fn merge(lhs: &mut Recursorsettings, rhs: &str) -> Result<()>;
 
     // Validate the sections inside the main settings struct, sections themselves will validate their fields

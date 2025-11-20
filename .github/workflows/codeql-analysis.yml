@@ -10,7 +10,7 @@ permissions: # least privileges, see https://docs.github.com/en/actions/using-wo
   contents: read
 
 # clang-tidy fun:
-# We need to invoke clang-tidy from the correct directory, the one the product was compiled in, so that we get the correct include paths.
+# We need to invoke clang-tidy from the correct directory, the one in which the product was compiled, so that we get the correct include paths.
 # This means the root for the auth, pdns/recursordist for the rec and pdns/dnsdistdist for dnsdist
 # It is important that files that are used by more than one product are processed by all the products using them
 # because they might have difference compilation flags.

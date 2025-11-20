@@ -25,7 +25,7 @@ Replay all recursion-desired DNS questions to a specified IP address.
 Track all outgoing questions, remap id to one of ours.
 Also track all recorded answers, and map them to that same id, the 'expectation'.
 
-When we see a question, parse it, give it a QuestionIdentifier, and and an id from the free-id list.
+When we see a question, parse it, give it a QuestionIdentifier, and an id from the free-id list.
 
 When we see an answer in the tcpdump, parse it, make QI, and add it to the original QI
    and check

@@ -1454,7 +1454,7 @@ BOOST_AUTO_TEST_CASE(test_ns_speed)
   fd2.reset();
   BOOST_CHECK_EQUAL(records, count);
 
-  // NS speed table is a hashed unique table, which not neccesarily stable wrt recreation
+  // NS speed table is a hashed unique table, which not necessarily stable wrt recreation
   // So we read the lines, sort them and compare
   std::ifstream file1(temp1);
   std::ifstream file2(temp2);

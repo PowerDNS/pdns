@@ -64,7 +64,7 @@ CheckOptions:
   - key: bugprone-reserved-identifier.AllowedIdentifiers
     value: ''
   - key: bugprone-easily-swappable-parameters.IgnoredParameterTypeSuffixes
-    value: 'bool;Bool;_Bool;it;It;iterator;Iterator;inputit;InputIt;forwardit;FowardIt;bidirit;BidirIt;constiterator;const_iterator;Const_Iterator;Constiterator;ConstIterator;RandomIt;randomit;random_iterator;ReverseIt;reverse_iterator;reverse_const_iterator;ConstReverseIterator;Const_Reverse_Iterator;const_reverse_iterator;Constreverseiterator;constreverseiterator'
+    value: 'bool;Bool;_Bool;it;It;iterator;Iterator;inputit;InputIt;forwardit;ForwardIt;bidirit;BidirIt;constiterator;const_iterator;Const_Iterator;Constiterator;ConstIterator;RandomIt;randomit;random_iterator;ReverseIt;reverse_iterator;reverse_const_iterator;ConstReverseIterator;Const_Reverse_Iterator;const_reverse_iterator;Constreverseiterator;constreverseiterator'
   - key: bugprone-easily-swappable-parameters.QualifiersMix
     value: 'false'
   - key: bugprone-signal-handler.AsyncSafeFunctionSet

@@ -156,7 +156,7 @@ Changelogs for 4.6.X
     :pullreq: 11359
     :tickets: 11257
 
-    Initialize isNew before calling a exception throwing function.
+    Initialize isNew before calling an exception throwing function.
 
   .. change::
     :tags: Improvements

@@ -3,7 +3,7 @@ PowerDNS Security Advisory 2014-02: PowerDNS Recursor 3.6.1 and earlier can be m
 
 -  CVE: CVE-2014-8601
 -  Date: 8th of December 2014
--  Credit: Florian Maury (`ANSSI <https://www.ssi.gouv.fr/en/>`__)
+-  Credit: Florian Maury (`ANSSI <https://cyber.gouv.fr/en/>`__)
 -  Affects: PowerDNS Recursor versions 3.6.1 and earlier
 -  Not affected: PowerDNS Recursor 3.6.2; no versions of PowerDNS
    Authoritative Server

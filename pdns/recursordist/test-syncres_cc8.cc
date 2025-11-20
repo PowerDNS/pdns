@@ -362,7 +362,7 @@ BOOST_AUTO_TEST_CASE(test_nsec_insecure_delegation_denial_soa)
    * NSEC3 RR.
    */
   /*
-    The RRSIG from "." denies the existence of any type at a except NS and SOA.
+    The RRSIG from "." denies the existence of any type at "a" except NS and SOA.
     NS has to be set since it is proving an insecure delegation, but SOA should NOT!
   */
   addNSECRecordToLW(DNSName("a."), DNSName("b."), {QType::NS, QType::SOA}, 600, records);
@@ -1104,7 +1104,7 @@ BOOST_AUTO_TEST_CASE(test_nsec3_insecure_delegation_denial_soa)
    * NSEC3 RR.
    */
   /*
-    The RRSIG from "." denies the existence of any type at a except NS and SOA.
+    The RRSIG from "." denies the existence of any type at "a" except NS and SOA.
     NS has to be set since it is proving an insecure delegation, but SOA should NOT!
   */
   addNSEC3UnhashedRecordToLW(DNSName("a."), DNSName("."), "whatever", {QType::NS, QType::SOA}, 600, records);

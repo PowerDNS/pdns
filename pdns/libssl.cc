@@ -1124,7 +1124,7 @@ std::pair<std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>, std::vector<std::st
         if (failed) {
 #endif /* defined(OPENSSL_VERSION_MAJOR) && OPENSSL_VERSION_MAJOR >= 3 */
           ERR_print_errors_fp(stderr);
-          throw std::runtime_error("An error occured while parsing PKCS12 file " + pair.d_cert);
+          throw std::runtime_error("An error occurred while parsing PKCS12 file " + pair.d_cert);
 #if defined(OPENSSL_VERSION_MAJOR) && OPENSSL_VERSION_MAJOR >= 3
         }
 #endif /* defined(OPENSSL_VERSION_MAJOR) && OPENSSL_VERSION_MAJOR >= 3 */
@@ -1231,7 +1231,7 @@ std::pair<pdns::libssl::ServerContext, std::vector<std::string>> libssl_init_ser
         if (failed) {
 #endif /* defined(OPENSSL_VERSION_MAJOR) && OPENSSL_VERSION_MAJOR >= 3 */
           ERR_print_errors_fp(stderr);
-          throw std::runtime_error("An error occured while parsing PKCS12 file " + pair.d_cert);
+          throw std::runtime_error("An error occurred while parsing PKCS12 file " + pair.d_cert);
 #if defined(OPENSSL_VERSION_MAJOR) && OPENSSL_VERSION_MAJOR >= 3
         }
 #endif /* defined(OPENSSL_VERSION_MAJOR) && OPENSSL_VERSION_MAJOR >= 3 */

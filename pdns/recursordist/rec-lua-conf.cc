@@ -446,7 +446,7 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
       conf.d_zone = zoneName;
       const set<string> methods = {"axfr", "url", "file"};
       if (methods.count(method) == 0) {
-        throw std::runtime_error("unknwon method '" + method + "'");
+        throw std::runtime_error("unknown method '" + method + "'");
       }
       conf.d_method = method;
       if (srcs.type() == typeid(std::string)) {

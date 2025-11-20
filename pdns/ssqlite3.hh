@@ -54,6 +54,6 @@ public:
 
   [[nodiscard]] bool inTransaction() const { return m_in_transaction; };
 
-  //! Used to create an backend specific exception message.
+  //! Used to create a backend specific exception message.
   SSqlException sPerrorException(const std::string& reason) override;
 };

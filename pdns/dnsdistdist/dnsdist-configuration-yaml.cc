@@ -1784,7 +1784,7 @@ void registerDnstapLogger([[maybe_unused]] const DnstapLoggerConfiguration& conf
     family = AF_INET;
   }
   else {
-    throw std::runtime_error("Unsupport dnstap transport type '" + transport + "'");
+    throw std::runtime_error("Unsupported dnstap transport type '" + transport + "'");
   }
 
   if (dnsdist::configuration::yaml::s_inClientMode || dnsdist::configuration::yaml::s_inConfigCheckMode) {

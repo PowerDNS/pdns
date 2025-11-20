@@ -83,7 +83,7 @@ Since 1.8.0, dnsdist implements a ``lazy`` mode that can be set via the ``health
    :align: center
    :alt: DNSDist Lazy health checks
 
-The threshold of failed regular queries is configured via ``lazyHealthCheckThreshold``, indicating of percentage of regular queries that should have resulted in a failure over the last recent queries. Only the results of the last ``lazyHealthCheckSampleSize`` queries will be considered, as the results are kept in a in-memory circular buffer. The results of at least ``lazyHealthCheckMinSampleCount`` queries should be present for the threshold to be considered meaningful, to avoid an issue with a too small sample.
+The threshold of failed regular queries is configured via ``lazyHealthCheckThreshold``, indicating of percentage of regular queries that should have resulted in a failure over the last recent queries. Only the results of the last ``lazyHealthCheckSampleSize`` queries will be considered, as the results are kept in an in-memory circular buffer. The results of at least ``lazyHealthCheckMinSampleCount`` queries should be present for the threshold to be considered meaningful, to avoid an issue with a too small sample.
 
 By default both queries that resulted in a timeout and those that received a ``ServFail`` answer are considered failures, but it is possible to set ``lazyHealthCheckMode`` to ``TimeoutOnly`` so that only timeouts are considered failures.
 

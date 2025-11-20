@@ -17,7 +17,7 @@ class TestCacheMissSelfAnswered(DNSDistTest):
     pc = newPacketCache(100, {maxTTL=86400, minTTL=1})
     getPool(""):setCache(pc)
     -- this does not really make sense on its own, but we might want
-    -- to refuse queries for a domain under attack if the anwer is not cached
+    -- to refuse queries for a domain under attack if the answer is not cached
     addCacheMissAction(SuffixMatchNodeRule("refused.cache-miss.tests.powerdns.com."), RCodeAction(DNSRCode.REFUSED), {name="myFirstRule"})
     """
 
@@ -92,7 +92,7 @@ class TestCacheMissGoToADifferentPool(DNSDistTest):
     addAction(AllRule(), PoolAction("initial"))
     -- this does not really make sense on its own, but we might want
     -- to route queries for a domain under attack to a different pool
-    -- of 'best-effort' servers if the anwer is not cached
+    -- of 'best-effort' servers if the answer is not cached
     addCacheMissAction(SuffixMatchNodeRule("routed-to-slow.cache-miss.tests.powerdns.com."), PoolAction("slow"))
     """
 

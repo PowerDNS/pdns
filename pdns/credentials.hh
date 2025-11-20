@@ -63,7 +63,7 @@ public:
   /* if hashPlaintext is true, the password is in cleartext and hashing is available,
      the hashed form will be kept in memory.
      Note that accepting hashed password from an untrusted source might open
-     us to a denial of service, since we currently don't cap the the parameters,
+     us to a denial of service, since we currently don't cap the parameters,
      including the work factor */
   CredentialsHolder(std::string&& password, bool hashPlaintext);
   ~CredentialsHolder();

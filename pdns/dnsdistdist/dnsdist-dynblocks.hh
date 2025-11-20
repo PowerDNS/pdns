@@ -425,7 +425,7 @@ public:
   static std::map<std::string, std::list<std::pair<AddressAndPortRange, unsigned int>>> getHitsForTopNetmasks();
   static std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> getHitsForTopSuffixes();
 
-  /* get the the top offenders based on the current value of the counters */
+  /* get the top offenders based on the current value of the counters */
   static std::map<std::string, std::list<std::pair<AddressAndPortRange, unsigned int>>> getTopNetmasks(size_t topN);
   static std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> getTopSuffixes(size_t topN);
   static void purgeExpired(const struct timespec& now);

@@ -17,7 +17,7 @@
 #        'longdesc': Extra description added to docs entry. Optional. A dot is added at the end if absent.
 #        'snmp': 1 SNMP OID count, must be unique. If absent, no SNMP entry is generated
 #        'snmpname': Override of SNMP name (if legacy name did not follow convention)
-#        'ptype': The promethheus type, default counter. Can also be gauge, histogram, multicounter. Also determines SNMP type.
+#        'ptype': The prometheus type, default counter. Can also be gauge, histogram, multicounter. Also determines SNMP type.
 #        'pdesc': Override of Prometheus HELP text, if empty, no Prometheus entry is generated.
 #        'if': rec_control metrics conditionalized on expression
 #        'ifdef': rec_control and snmp metrics conditionalized #ifdef name

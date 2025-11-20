@@ -280,7 +280,7 @@ config_h = configure_file(configuration: conf, output: 'config.h')
 sh_program = find_program('sh')
 dep_no_config_in_source_check = custom_target(
     input: [],
-    output: ['check absense of config.h file in source directory'],
+    output: ['check absence of config.h file in source directory'],
     command: [sh_program, '-c', 'test ! -e @SOURCE_ROOT@/config.h'],
     build_always_stale: true,
 )

@@ -891,7 +891,7 @@ static int rewritePacketWithoutRecordTypes(const PacketBuffer& initialPacket, Pa
       if (qtypes.find(ah.d_type) == qtypes.end()) {
         // if this is not a safe type
         if (safeTypes.find(ah.d_type) == safeTypes.end()) {
-          // "unsafe" types might countain compressed data, so cancel rewrite
+          // "unsafe" types might contain compressed data, so cancel rewrite
           newContent.clear();
           return EIO;
         }
@@ -908,7 +908,7 @@ static int rewritePacketWithoutRecordTypes(const PacketBuffer& initialPacket, Pa
 
       if (qtypes.find(ah.d_type) == qtypes.end()) {
         if (safeTypes.find(ah.d_type) == safeTypes.end()) {
-          // "unsafe" types might countain compressed data, so cancel rewrite
+          // "unsafe" types might contain compressed data, so cancel rewrite
           newContent.clear();
           return EIO;
         }
@@ -924,7 +924,7 @@ static int rewritePacketWithoutRecordTypes(const PacketBuffer& initialPacket, Pa
 
       if (qtypes.find(ah.d_type) == qtypes.end()) {
         if (safeTypes.find(ah.d_type) == safeTypes.end()) {
-          // "unsafe" types might countain compressed data, so cancel rewrite
+          // "unsafe" types might contain compressed data, so cancel rewrite
           newContent.clear();
           return EIO;
         }

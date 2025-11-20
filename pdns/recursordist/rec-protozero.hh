@@ -70,7 +70,7 @@ namespace ProtoZero
 
     void reserve(std::string::size_type sz1, std::string::size_type sz2)
     {
-      // We expect to grow the buffers, in the end the d_message will contains the (grown) d_response
+      // We expect to grow the buffers, in the end the d_message will contain the (grown) d_response
       // This is extra space in addition to what's already there
       // Different from what string.reserve() does
       std::string::size_type extra = sz1 + d_rspbuf.length() + sz2;

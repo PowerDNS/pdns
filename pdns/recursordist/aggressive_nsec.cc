@@ -171,7 +171,7 @@ void AggressiveNSECCache::prune(time_t now)
       auto& sidx = boost::multi_index::get<ZoneEntry::SequencedTag>(zoneEntry->d_entries);
       const auto toTrimForThisZone = static_cast<uint64_t>(std::round(static_cast<double>(toErase) * static_cast<double>(zoneSize) / static_cast<double>(entriesCount)));
       if (entriesCount < zoneSize) {
-        throw std::runtime_error("Inconsistent agggressive cache " + std::to_string(entriesCount) + " " + std::to_string(zoneSize));
+        throw std::runtime_error("Inconsistent aggressive cache " + std::to_string(entriesCount) + " " + std::to_string(zoneSize));
       }
       // This is comparable to what cachecleaner.hh::pruneMutexCollectionsVector() is doing, look there for an explanation
       entriesCount -= zoneSize;

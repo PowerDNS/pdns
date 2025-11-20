@@ -96,7 +96,7 @@ struct DNSComboWriter
     d_socket = sock;
   }
 
-  // get a string repesentation of the client address, including proxy info if applicable
+  // get a string representation of the client address, including proxy info if applicable
   string getRemote() const
   {
     if (d_source == d_remote) {
@@ -109,7 +109,7 @@ struct DNSComboWriter
   MOADNSParser d_mdp;
   struct timeval d_now;
 
-  ComboAddress d_remote; // the address the query is coming from
+  ComboAddress d_remote; // the address from which the query is coming
   ComboAddress d_source; // the address we assume the query is coming from, might be set by proxy protocol
   ComboAddress d_local; // the address we received the query on
   ComboAddress d_destination; // the address we assume the query is sent to, might be set by proxy protocol
