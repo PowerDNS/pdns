@@ -2124,11 +2124,11 @@ bool LMDBBackend::getInternal(DNSName& basename, std::string_view& key)
     d_lookupstate.comment.qtype = compoundOrdername::getQType(key);
     try {
       protozero::pbf_reader message{val};
-      message.next(); // FIXME error handling
+      message.next(1); // FIXME error handling
       d_lookupstate.comment.modified_at = message.get_sfixed64();
-      message.next();
+      message.next(2);
       d_lookupstate.comment.account = message.get_string();
-      message.next();
+      message.next(3);
       d_lookupstate.comment.content = message.get_string();
     }
     catch (protozero::exception &e) {
