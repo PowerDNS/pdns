@@ -149,7 +149,7 @@ class TestSimpleEBPF(DNSDistTest):
             except pycurl.error:
                 pass
 
-        # not over over QUIC-based protocols
+        # not over QUIC-based protocols
         for method in ["sendDOQQueryWrapper", "sendDOH3QueryWrapper"]:
             sender = getattr(self, method)
             (receivedQuery, receivedResponse) = sender(query, response, timeout=1)
