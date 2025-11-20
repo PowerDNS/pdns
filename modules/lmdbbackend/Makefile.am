@@ -1,4 +1,5 @@
-AM_CPPFLAGS += $(LMDB_CFLAGS) $(LIBCRYPTO_INCLUDES)
+AM_CPPFLAGS += $(LMDB_CFLAGS) $(LIBCRYPTO_INCLUDES) -I$(top_srcdir)/ext/protozero/include
+
 
 pkglib_LTLIBRARIES = liblmdbbackend.la
 
