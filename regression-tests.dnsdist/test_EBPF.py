@@ -85,7 +85,7 @@ class TestSimpleEBPF(DNSDistTest):
             (_, receivedResponse) = sender(query, response=None, useQueue=False, timeout=0.5)
             self.assertEqual(receivedResponse, None)
 
-        # not over over protocols
+        # not over other protocols
         for method in ["sendTCPQuery", "sendDOTQueryWrapper", "sendDOHWithNGHTTP2QueryWrapper", "sendDOQQueryWrapper", "sendDOH3QueryWrapper"]:
             sender = getattr(self, method)
             (receivedQuery, receivedResponse) = sender(query, response, timeout=1)
