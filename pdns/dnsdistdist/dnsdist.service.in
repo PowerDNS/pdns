@@ -20,7 +20,7 @@ StartLimitInterval=0
 
 # Tuning
 TasksMax=8192
-LimitNOFILE=16384
+LimitNOFILE=1000000
 # Note: increasing the amount of lockable memory is required to use eBPF support
 # LimitMEMLOCK=infinity
 
