@@ -555,12 +555,15 @@ static void prometheusMetrics(HttpRequest* /* req */, HttpResponse* resp)
   for (const auto& tup : varmap) {
     std::string metricName = tup.first;
     std::string prometheusMetricName = tup.second.d_prometheusName;
+    std::string prometheusTypeName;
+    std::string prometheusDescr;
     std::string helpname = tup.second.d_prometheusName;
     MetricDefinition metricDetails;
 
     if (s_metricDefinitions.getMetricDetails(metricName, metricDetails)) {
-      std::string prometheusTypeName = MetricDefinitionStorage::getPrometheusStringMetricType(
+      prometheusTypeName = MetricDefinitionStorage::getPrometheusStringMetricType(
         metricDetails.d_prometheusType);
+      prometheusDescr = metricDetails.d_description;
 
       if (prometheusTypeName.empty()) {
         continue;
@@ -573,8 +576,22 @@ static void prometheusMetrics(HttpRequest* /* req */, HttpResponse* resp)
         // name is XXX_count, strip the _count part
         helpname = helpname.substr(0, helpname.length() - 6);
       }
+    }
+    else {
+      if (tup.second.d_prometheusType) {
+        prometheusTypeName = MetricDefinitionStorage::getPrometheusStringMetricType(
+          *tup.second.d_prometheusType);
+      }
+      if (tup.second.d_prometheusDescr) {
+        prometheusDescr = *tup.second.d_prometheusDescr;
+      }
+    }
+
+    if (!prometheusTypeName.empty()) {
       output << "# TYPE " << helpname << " " << prometheusTypeName << "\n";
-      output << "# HELP " << helpname << " " << metricDetails.d_description << "\n";
+    }
+    if (!prometheusDescr.empty()) {
+      output << "# HELP " << helpname << " " << prometheusDescr << "\n";
     }
     output << prometheusMetricName << " " << tup.second.d_value << "\n";
   }
