@@ -3,23 +3,19 @@
 import dns
 from doqclient import StreamResetError
 
-class QUICTests(object):
 
+class QUICTests(object):
     def testQUICSimple(self):
         """
         QUIC: Simple query
         """
-        name = 'simple.doq.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+        name = "simple.doq.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN", use_edns=False)
         query.id = 0
-        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096)
+        expectedQuery = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096)
         expectedQuery.id = 0
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
         (receivedQuery, receivedResponse) = self.sendQUICQuery(query, response=response)
         self.assertTrue(receivedQuery)
@@ -32,17 +28,13 @@ class QUICTests(object):
         """
         QUIC: Test multiple queries using the same connection
         """
-        name = 'simple.doq.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+        name = "simple.doq.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN", use_edns=False)
         query.id = 0
-        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096)
+        expectedQuery = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096)
         expectedQuery.id = 0
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
         connection = self.getQUICConnection()
@@ -63,20 +55,20 @@ class QUICTests(object):
         """
         QUIC: Dropped query
         """
-        name = 'drop.doq.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "drop.doq.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         try:
             (_, receivedResponse) = self.sendQUICQuery(query, response=None, useQueue=False)
             self.fail()
         except StreamResetError as e:
-            self.assertEqual(e.error, 5);
+            self.assertEqual(e.error, 5)
 
     def testRefused(self):
         """
         QUIC: Refused
         """
-        name = 'refused.doq.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "refused.doq.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         query.id = 0
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
@@ -89,16 +81,12 @@ class QUICTests(object):
         """
         QUIC: Spoofed
         """
-        name = 'spoof.doq.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "spoof.doq.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         query.id = 0
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '1.2.3.4')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "1.2.3.4")
         expectedResponse.answer.append(rrset)
 
         (_, receivedResponse) = self.sendQUICQuery(query, response=None, useQueue=False)
@@ -108,30 +96,31 @@ class QUICTests(object):
         """
         QUIC: No backend
         """
-        name = 'no-backend.doq.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+        name = "no-backend.doq.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN", use_edns=False)
         try:
             (_, receivedResponse) = self.sendQUICQuery(query, response=None, useQueue=False)
             self.fail()
-        except StreamResetError as e :
-            self.assertEqual(e.error, 5);
+        except StreamResetError as e:
+            self.assertEqual(e.error, 5)
+
 
 class QUICACLTests(object):
-
     def testDropped(self):
         """
         QUIC: Dropped query because of ACL
         """
-        name = 'acl.doq.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "acl.doq.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         dropped = False
         try:
             (_, receivedResponse) = self.sendQUICQuery(query, response=None, useQueue=False)
             self.fail()
         except StreamResetError as e:
-            self.assertEqual(e.error, 5);
+            self.assertEqual(e.error, 5)
             dropped = True
         self.assertTrue(dropped)
+
 
 class QUICWithCacheTests(object):
     def testCached(self):
@@ -139,15 +128,11 @@ class QUICWithCacheTests(object):
         QUIC Cache: Served from cache
         """
         numberOfQueries = 10
-        name = 'cached.quic.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'AAAA', 'IN')
+        name = "cached.quic.tests.powerdns.com."
+        query = dns.message.make_query(name, "AAAA", "IN")
         query.id = 0
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.AAAA,
-                                    '::1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.AAAA, "::1")
         response.answer.append(rrset)
 
         # first query to fill the cache
@@ -168,37 +153,39 @@ class QUICWithCacheTests(object):
 
         self.assertEqual(total, 1)
 
-class QUICGetLocalAddressOnAnyBindTests(object):
 
+class QUICGetLocalAddressOnAnyBindTests(object):
     def testGetLocalAddressOnAnyBind(self):
         """
         QUIC: Return CNAME containing the local address for an ANY bind
         """
-        name = 'local-address-any.quic.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "local-address-any.quic.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         # dnsdist set RA = RD for spoofed responses
         query.flags &= ~dns.flags.RD
 
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.CNAME,
-                                    'address-was-127-0-0-1.local-address-any.advanced.tests.powerdns.com.')
+        rrset = dns.rrset.from_text(
+            name,
+            60,
+            dns.rdataclass.IN,
+            dns.rdatatype.CNAME,
+            "address-was-127-0-0-1.local-address-any.advanced.tests.powerdns.com.",
+        )
         response.answer.append(rrset)
 
         (_, receivedResponse) = self.sendQUICQuery(query, response=None, useQueue=False)
         self.assertEqual(receivedResponse, response)
 
-class QUICXFRTests(object):
 
+class QUICXFRTests(object):
     def testXFR(self):
         """
         QUIC: XFR
         """
-        name = 'xfr.doq.tests.powerdns.com.'
+        name = "xfr.doq.tests.powerdns.com."
         for xfrType in [dns.rdatatype.AXFR, dns.rdatatype.IXFR]:
-            query = dns.message.make_query(name, xfrType, 'IN')
+            query = dns.message.make_query(name, xfrType, "IN")
             expectedResponse = dns.message.make_response(query)
             expectedResponse.set_rcode(dns.rcode.NOTIMP)
 

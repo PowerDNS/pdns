@@ -10,8 +10,9 @@ from twisted.internet import reactor
 
 from recursortests import RecursorTest
 
+
 class GettagRecursorTest(RecursorTest):
-    _confdir = 'GettagRecursor'
+    _confdir = "GettagRecursor"
     _config_template = """
     log-common-errors=yes
     gettag-needs-edns-options=yes
@@ -117,86 +118,109 @@ class GettagRecursorTest(RecursorTest):
     """
 
     def testA(self):
-        name = 'gettag.lua.'
+        name = "gettag.lua."
         expected = [
-            dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.1'),
-            dns.rrset.from_text_list(name, 0, dns.rdataclass.IN, 'TXT', [ name, 'gettag-qtype-1'])
-            ]
-        query = dns.message.make_query(name, 'A', want_dnssec=True)
+            dns.rrset.from_text(name, 0, dns.rdataclass.IN, "A", "192.0.2.1"),
+            dns.rrset.from_text_list(name, 0, dns.rdataclass.IN, "TXT", [name, "gettag-qtype-1"]),
+        ]
+        query = dns.message.make_query(name, "A", want_dnssec=True)
         query.flags |= dns.flags.CD
         res = self.sendUDPQuery(query)
         self.assertResponseMatches(query, expected, res)
 
     def testTCPA(self):
-        name = 'gettag-tcpa.lua.'
+        name = "gettag-tcpa.lua."
         expected = [
-            dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.1'),
-            dns.rrset.from_text_list(name, 0, dns.rdataclass.IN, 'TXT', [ name, 'gettag-qtype-1', 'gettag-tcp'])
-            ]
-        query = dns.message.make_query(name, 'A', want_dnssec=True)
+            dns.rrset.from_text(name, 0, dns.rdataclass.IN, "A", "192.0.2.1"),
+            dns.rrset.from_text_list(name, 0, dns.rdataclass.IN, "TXT", [name, "gettag-qtype-1", "gettag-tcp"]),
+        ]
+        query = dns.message.make_query(name, "A", want_dnssec=True)
         query.flags |= dns.flags.CD
         res = self.sendTCPQuery(query)
         self.assertResponseMatches(query, expected, res)
 
     def testAAAA(self):
-        name = 'gettag-aaaa.lua.'
+        name = "gettag-aaaa.lua."
         expected = [
-            dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'AAAA', '2001:db8::1'),
-            dns.rrset.from_text_list(name, 0, dns.rdataclass.IN, 'TXT', [ name, 'gettag-qtype-28'])
-            ]
-        query = dns.message.make_query(name, 'AAAA', want_dnssec=True)
+            dns.rrset.from_text(name, 0, dns.rdataclass.IN, "AAAA", "2001:db8::1"),
+            dns.rrset.from_text_list(name, 0, dns.rdataclass.IN, "TXT", [name, "gettag-qtype-28"]),
+        ]
+        query = dns.message.make_query(name, "AAAA", want_dnssec=True)
         query.flags |= dns.flags.CD
         res = self.sendUDPQuery(query)
         self.assertResponseMatches(query, expected, res)
 
     def testTcpAAAA(self):
-        name = 'gettag-tcpaaaa.lua.'
+        name = "gettag-tcpaaaa.lua."
         expected = [
-            dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'AAAA', '2001:db8::1'),
-            dns.rrset.from_text_list(name, 0, dns.rdataclass.IN, 'TXT', [ name, 'gettag-qtype-28', 'gettag-tcp'])
-            ]
-        query = dns.message.make_query(name, 'AAAA', want_dnssec=True)
+            dns.rrset.from_text(name, 0, dns.rdataclass.IN, "AAAA", "2001:db8::1"),
+            dns.rrset.from_text_list(name, 0, dns.rdataclass.IN, "TXT", [name, "gettag-qtype-28", "gettag-tcp"]),
+        ]
+        query = dns.message.make_query(name, "AAAA", want_dnssec=True)
         query.flags |= dns.flags.CD
         res = self.sendTCPQuery(query)
         self.assertResponseMatches(query, expected, res)
 
     def testSubnet(self):
-        name = 'gettag-subnet.lua.'
-        subnet = '192.0.2.255'
+        name = "gettag-subnet.lua."
+        subnet = "192.0.2.255"
         subnetMask = 32
         ecso = clientsubnetoption.ClientSubnetOption(subnet, subnetMask)
         expected = [
-            dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.1'),
-            dns.rrset.from_text_list(name, 0, dns.rdataclass.IN, 'TXT', [name, 'gettag-qtype-1', 'edns-subnet-' + subnet + '/' + str(subnetMask),
-                                                                         'ednsoption-8-count-1', 'ednsoption-8-total-len-8']),
-            ]
-        query = dns.message.make_query(name, 'A', want_dnssec=True, options=[ecso])
+            dns.rrset.from_text(name, 0, dns.rdataclass.IN, "A", "192.0.2.1"),
+            dns.rrset.from_text_list(
+                name,
+                0,
+                dns.rdataclass.IN,
+                "TXT",
+                [
+                    name,
+                    "gettag-qtype-1",
+                    "edns-subnet-" + subnet + "/" + str(subnetMask),
+                    "ednsoption-8-count-1",
+                    "ednsoption-8-total-len-8",
+                ],
+            ),
+        ]
+        query = dns.message.make_query(name, "A", want_dnssec=True, options=[ecso])
         query.flags |= dns.flags.CD
         res = self.sendUDPQuery(query)
         self.assertResponseMatches(query, expected, res)
 
     def testEDNSOptions(self):
-        name = 'gettag-ednsoptions.lua.'
-        subnet = '192.0.2.255'
+        name = "gettag-ednsoptions.lua."
+        subnet = "192.0.2.255"
         subnetMask = 32
         ecso = clientsubnetoption.ClientSubnetOption(subnet, subnetMask)
-        eco1 = cookiesoption.CookiesOption(b'deadbeef', b'deadbeef')
-        eco2 = cookiesoption.CookiesOption(b'deadc0de', b'deadc0de')
+        eco1 = cookiesoption.CookiesOption(b"deadbeef", b"deadbeef")
+        eco2 = cookiesoption.CookiesOption(b"deadc0de", b"deadc0de")
 
         expected = [
-            dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.1'),
-            dns.rrset.from_text_list(name, 0, dns.rdataclass.IN, 'TXT', [name, 'gettag-qtype-1', 'edns-subnet-' + subnet + '/' + str(subnetMask),
-                                                                         'ednsoption-10-count-2', 'ednsoption-10-total-len-32',
-                                                                         'ednsoption-8-count-1', 'ednsoption-8-total-len-8'
-                                                                        ]),
-            ]
-        query = dns.message.make_query(name, 'A', want_dnssec=True, options=[eco1,ecso,eco2])
+            dns.rrset.from_text(name, 0, dns.rdataclass.IN, "A", "192.0.2.1"),
+            dns.rrset.from_text_list(
+                name,
+                0,
+                dns.rdataclass.IN,
+                "TXT",
+                [
+                    name,
+                    "gettag-qtype-1",
+                    "edns-subnet-" + subnet + "/" + str(subnetMask),
+                    "ednsoption-10-count-2",
+                    "ednsoption-10-total-len-32",
+                    "ednsoption-8-count-1",
+                    "ednsoption-8-total-len-8",
+                ],
+            ),
+        ]
+        query = dns.message.make_query(name, "A", want_dnssec=True, options=[eco1, ecso, eco2])
         query.flags |= dns.flags.CD
         res = self.sendUDPQuery(query)
         self.assertResponseMatches(query, expected, res)
 
+
 class GettagRecursorDistributesQueriesTest(GettagRecursorTest):
-    _confdir = 'GettagRecursorDistributesQueries'
+    _confdir = "GettagRecursorDistributesQueries"
     _config_template = """
     log-common-errors=yes
     gettag-needs-edns-options=yes
@@ -204,42 +228,56 @@ class GettagRecursorDistributesQueriesTest(GettagRecursorTest):
     threads=2
     """
 
+
 hooksReactorRunning = False
 
-class UDPHooksResponder(DatagramProtocol):
 
+class UDPHooksResponder(DatagramProtocol):
     def datagramReceived(self, datagram, address):
         request = dns.message.from_wire(datagram)
 
         response = dns.message.make_response(request)
         response.flags |= dns.flags.AA
 
-        if request.question[0].name == dns.name.from_text('nxdomain.luahooks.example.'):
-            soa = dns.rrset.from_text('luahooks.example.', 86400, dns.rdataclass.IN, 'SOA', 'ns.luahooks.example. hostmaster.luahooks.example. 1 3600 3600 3600 1')
+        if request.question[0].name == dns.name.from_text("nxdomain.luahooks.example."):
+            soa = dns.rrset.from_text(
+                "luahooks.example.",
+                86400,
+                dns.rdataclass.IN,
+                "SOA",
+                "ns.luahooks.example. hostmaster.luahooks.example. 1 3600 3600 3600 1",
+            )
             response.authority.append(soa)
             response.set_rcode(dns.rcode.NXDOMAIN)
 
-        elif request.question[0].name == dns.name.from_text('nodata.luahooks.example.'):
-            soa = dns.rrset.from_text('luahooks.example.', 86400, dns.rdataclass.IN, 'SOA', 'ns.luahooks.example. hostmaster.luahooks.example. 1 3600 3600 3600 1')
+        elif request.question[0].name == dns.name.from_text("nodata.luahooks.example."):
+            soa = dns.rrset.from_text(
+                "luahooks.example.",
+                86400,
+                dns.rdataclass.IN,
+                "SOA",
+                "ns.luahooks.example. hostmaster.luahooks.example. 1 3600 3600 3600 1",
+            )
             response.authority.append(soa)
 
-        elif request.question[0].name == dns.name.from_text('postresolve.luahooks.example.'):
-            answer = dns.rrset.from_text('postresolve.luahooks.example.', 3600, dns.rdataclass.IN, 'A', '192.0.2.1')
+        elif request.question[0].name == dns.name.from_text("postresolve.luahooks.example."):
+            answer = dns.rrset.from_text("postresolve.luahooks.example.", 3600, dns.rdataclass.IN, "A", "192.0.2.1")
             response.answer.append(answer)
 
-        elif request.question[0].name == dns.name.from_text('preresolve.luahooks.example.'):
-            answer = dns.rrset.from_text('preresolve.luahooks.example.', 3600, dns.rdataclass.IN, 'A', '192.0.2.2')
+        elif request.question[0].name == dns.name.from_text("preresolve.luahooks.example."):
+            answer = dns.rrset.from_text("preresolve.luahooks.example.", 3600, dns.rdataclass.IN, "A", "192.0.2.2")
             response.answer.append(answer)
 
         self.transport.write(response.to_wire(), address)
 
+
 class LuaHooksRecursorTest(RecursorTest):
-    _confdir = 'LuaHooksRecursor'
+    _confdir = "LuaHooksRecursor"
     _config_template = """
 forward-zones=luahooks.example=%s.23
 log-common-errors=yes
 quiet=no
-    """ % (os.environ['PREFIX'])
+    """ % (os.environ["PREFIX"])
     _lua_dns_script_file = """
 
     allowedips = newNMG()
@@ -324,14 +362,14 @@ quiet=no
       return false
     end
 
-    """ % (os.environ['PREFIX'], os.environ['PREFIX'], os.environ['PREFIX'], os.environ['PREFIX'])
+    """ % (os.environ["PREFIX"], os.environ["PREFIX"], os.environ["PREFIX"], os.environ["PREFIX"])
 
     @classmethod
     def startResponders(cls):
         global hooksReactorRunning
         print("Launching responders..")
 
-        address = cls._PREFIX + '.23'
+        address = cls._PREFIX + ".23"
         port = 53
 
         if not hooksReactorRunning:
@@ -341,8 +379,8 @@ quiet=no
         cls.startReactor()
 
     def testNoData(self):
-        expected = dns.rrset.from_text('nodata.luahooks.example.', 3600, dns.rdataclass.IN, 'AAAA', '2001:DB8::1')
-        query = dns.message.make_query('nodata.luahooks.example.', 'AAAA', 'IN')
+        expected = dns.rrset.from_text("nodata.luahooks.example.", 3600, dns.rdataclass.IN, "AAAA", "2001:DB8::1")
+        query = dns.message.make_query("nodata.luahooks.example.", "AAAA", "IN")
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
@@ -351,8 +389,8 @@ quiet=no
             self.assertRRsetInAnswer(res, expected)
 
     def testVanillaNXD(self):
-        #expected = dns.rrset.from_text('nxdomain.luahooks.example.', 3600, dns.rdataclass.IN, 'A', '192.0.2.1')
-        query = dns.message.make_query('nxdomain.luahooks.example.', 'AAAA', 'IN')
+        # expected = dns.rrset.from_text('nxdomain.luahooks.example.', 3600, dns.rdataclass.IN, 'A', '192.0.2.1')
+        query = dns.message.make_query("nxdomain.luahooks.example.", "AAAA", "IN")
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
@@ -360,8 +398,8 @@ quiet=no
             self.assertRcodeEqual(res, dns.rcode.NXDOMAIN)
 
     def testHookedNXD(self):
-        expected = dns.rrset.from_text('nxdomain.luahooks.example.', 3600, dns.rdataclass.IN, 'A', '192.0.2.1')
-        query = dns.message.make_query('nxdomain.luahooks.example.', 'A', 'IN')
+        expected = dns.rrset.from_text("nxdomain.luahooks.example.", 3600, dns.rdataclass.IN, "A", "192.0.2.1")
+        query = dns.message.make_query("nxdomain.luahooks.example.", "A", "IN")
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
@@ -370,8 +408,8 @@ quiet=no
             self.assertRRsetInAnswer(res, expected)
 
     def testPostResolve(self):
-        expected = dns.rrset.from_text('postresolve.luahooks.example.', 1, dns.rdataclass.IN, 'A', '192.0.2.42')
-        query = dns.message.make_query('postresolve.luahooks.example.', 'A', 'IN')
+        expected = dns.rrset.from_text("postresolve.luahooks.example.", 1, dns.rdataclass.IN, "A", "192.0.2.42")
+        query = dns.message.make_query("postresolve.luahooks.example.", "A", "IN")
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
@@ -381,8 +419,8 @@ quiet=no
             self.assertEqual(res.answer[0].ttl, 1)
 
     def testPreResolve(self):
-        expected = dns.rrset.from_text('preresolve.luahooks.example.', 1, dns.rdataclass.IN, 'A', '192.0.2.2')
-        query = dns.message.make_query('preresolve.luahooks.example.', 'A', 'IN')
+        expected = dns.rrset.from_text("preresolve.luahooks.example.", 1, dns.rdataclass.IN, "A", "192.0.2.2")
+        query = dns.message.make_query("preresolve.luahooks.example.", "A", "IN")
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
             res = sender(query)
@@ -390,7 +428,7 @@ quiet=no
             self.assertRRsetInAnswer(res, expected)
 
     def testIPFilterHeader(self):
-        query = dns.message.make_query('ipfilter.luahooks.example.', 'A', 'IN')
+        query = dns.message.make_query("ipfilter.luahooks.example.", "A", "IN")
         query.flags |= dns.flags.AD
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -399,7 +437,7 @@ quiet=no
             self.assertEqual(res, None)
 
     def testPreOutInterceptedQuery(self):
-        query = dns.message.make_query('preout.luahooks.example.', 'A', 'IN')
+        query = dns.message.make_query("preout.luahooks.example.", "A", "IN")
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
@@ -407,7 +445,7 @@ quiet=no
             self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
 
     def testPreOutNotInterceptedQuery(self):
-        query = dns.message.make_query('preout.luahooks.example.', 'AAAA', 'IN')
+        query = dns.message.make_query("preout.luahooks.example.", "AAAA", "IN")
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
@@ -415,27 +453,29 @@ quiet=no
             self.assertRcodeEqual(res, dns.rcode.NOERROR)
 
     def testPreOutInterceptedToTCPQuery(self):
-        query = dns.message.make_query('preout.luahooks.example.', 'TXT', 'IN')
+        query = dns.message.make_query("preout.luahooks.example.", "TXT", "IN")
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
             res = sender(query)
-            self.assertRcodeEqual(res, dns.rcode.SERVFAIL) # crude, responder does not do TCP
+            self.assertRcodeEqual(res, dns.rcode.SERVFAIL)  # crude, responder does not do TCP
+
 
 class LuaHooksRecursorDistributesTest(LuaHooksRecursorTest):
-    _confdir = 'LuaHooksRecursorDistributes'
+    _confdir = "LuaHooksRecursorDistributes"
     _config_template = """
 forward-zones=luahooks.example=%s.23
 log-common-errors=yes
 pdns-distributes-queries=yes
 threads=2
 quiet=no
-    """ % (os.environ['PREFIX'])
+    """ % (os.environ["PREFIX"])
+
 
 class LuaDNS64Test(RecursorTest):
     """Tests the dq.followupAction("getFakeAAAARecords")"""
 
-    _confdir = 'LuaDNS64'
+    _confdir = "LuaDNS64"
     _auth_zones = RecursorTest._default_auth_zones
     _config_template = """
     """
@@ -460,10 +500,8 @@ class LuaDNS64Test(RecursorTest):
     """
 
     def testAtoAAAA(self):
-        expected = [
-            dns.rrset.from_text('ns.secure.example.', 15, dns.rdataclass.IN, 'AAAA', '2001:db8:64::7f00:9')
-        ]
-        query = dns.message.make_query('ns.secure.example', 'AAAA')
+        expected = [dns.rrset.from_text("ns.secure.example.", 15, dns.rdataclass.IN, "AAAA", "2001:db8:64::7f00:9")]
+        query = dns.message.make_query("ns.secure.example", "AAAA")
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
@@ -476,10 +514,12 @@ class LuaDNS64Test(RecursorTest):
 
     def testAtoCNAMEtoAAAA(self):
         expected = [
-            dns.rrset.from_text('cname-to-insecure.secure.example.', 3600, dns.rdataclass.IN, 'CNAME', 'node1.insecure.example.'),
-            dns.rrset.from_text('node1.insecure.example.', 3600, dns.rdataclass.IN, 'AAAA', '2001:db8:64::c000:206')
+            dns.rrset.from_text(
+                "cname-to-insecure.secure.example.", 3600, dns.rdataclass.IN, "CNAME", "node1.insecure.example."
+            ),
+            dns.rrset.from_text("node1.insecure.example.", 3600, dns.rdataclass.IN, "AAAA", "2001:db8:64::c000:206"),
         ]
-        query = dns.message.make_query('cname-to-insecure.secure.example.', 'AAAA')
+        query = dns.message.make_query("cname-to-insecure.secure.example.", "AAAA")
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
@@ -490,14 +530,15 @@ class LuaDNS64Test(RecursorTest):
             self.assertEqual(len(res.authority), 0)
             self.assertResponseMatches(query, expected, res)
 
+
 class GettagFFIDNS64Test(RecursorTest):
     """Tests the interaction between gettag_ffi, RPZ and DNS64:
-       - gettag_ffi will intercept the query and return a NODATA
-       - the RPZ zone will match the name, but the only type is A
-       - DNS64 should kick in, generating an AAAA
+    - gettag_ffi will intercept the query and return a NODATA
+    - the RPZ zone will match the name, but the only type is A
+    - DNS64 should kick in, generating an AAAA
     """
 
-    _confdir = 'GettagFFIDNS64'
+    _confdir = "GettagFFIDNS64"
     _config_template = """
     dns64-prefix=64:ff9b::/96
     """
@@ -524,19 +565,19 @@ class GettagFFIDNS64Test(RecursorTest):
 
     @classmethod
     def generateRecursorConfig(cls, confdir):
-        rpzFilePath = os.path.join(confdir, 'zone.rpz')
-        with open(rpzFilePath, 'w') as rpzZone:
-            rpzZone.write("""$ORIGIN zone.rpz.
+        rpzFilePath = os.path.join(confdir, "zone.rpz")
+        with open(rpzFilePath, "w") as rpzZone:
+            rpzZone.write(
+                """$ORIGIN zone.rpz.
 @ 3600 IN SOA {soa}
 dns64.test.powerdns.com.zone.rpz. 60 IN A 192.0.2.42
-""".format(soa=cls._SOA))
+""".format(soa=cls._SOA)
+            )
         super(GettagFFIDNS64Test, cls).generateRecursorConfig(confdir)
 
     def testAtoAAAA(self):
-        expected = [
-            dns.rrset.from_text('dns64.test.powerdns.com.', 15, dns.rdataclass.IN, 'AAAA', '64:ff9b::c000:22a')
-        ]
-        query = dns.message.make_query('dns64.test.powerdns.com.', 'AAAA')
+        expected = [dns.rrset.from_text("dns64.test.powerdns.com.", 15, dns.rdataclass.IN, "AAAA", "64:ff9b::c000:22a")]
+        query = dns.message.make_query("dns64.test.powerdns.com.", "AAAA")
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
@@ -547,10 +588,11 @@ dns64.test.powerdns.com.zone.rpz. 60 IN A 192.0.2.42
             self.assertEqual(len(res.authority), 0)
             self.assertResponseMatches(query, expected, res)
 
+
 class PDNSRandomTest(RecursorTest):
     """Tests if pdnsrandom works"""
 
-    _confdir = 'PDNSRandom'
+    _confdir = "PDNSRandom"
     _config_template = """
     """
     _lua_dns_script_file = """
@@ -563,7 +605,7 @@ class PDNSRandomTest(RecursorTest):
     """
 
     def testRandom(self):
-        query = dns.message.make_query('whatever.example.', 'TXT')
+        query = dns.message.make_query("whatever.example.", "TXT")
 
         ans = set()
 
@@ -578,7 +620,7 @@ class PDNSRandomTest(RecursorTest):
 class PDNSFeaturesTest(RecursorTest):
     """Tests if pdns_features works"""
 
-    _confdir = 'PDNSFeatures'
+    _confdir = "PDNSFeatures"
     _config_template = """
     """
     _lua_dns_script_file = """
@@ -598,15 +640,16 @@ class PDNSFeaturesTest(RecursorTest):
     """
 
     def testFeatures(self):
-        query = dns.message.make_query('whatever.example.', 'TXT')
+        query = dns.message.make_query("whatever.example.", "TXT")
         res = self.sendUDPQuery(query)
 
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
 
+
 class PDNSGeneratingAnswerFromGettagTest(RecursorTest):
     """Tests that we can generate answers from gettag"""
 
-    _confdir = 'PDNSGeneratingAnswerFromGettag'
+    _confdir = "PDNSGeneratingAnswerFromGettag"
     _config_template = """
     """
     _lua_dns_script_file = """
@@ -645,12 +688,12 @@ class PDNSGeneratingAnswerFromGettagTest(RecursorTest):
 
     def testGettag(self):
         expectedAnswerRecords = [
-            dns.rrset.from_text('gettag-answers.powerdns.com.', 60, dns.rdataclass.IN, 'A', '192.0.2.1'),
+            dns.rrset.from_text("gettag-answers.powerdns.com.", 60, dns.rdataclass.IN, "A", "192.0.2.1"),
         ]
         expectedAdditionalRecords = [
-            dns.rrset.from_text('not-powerdns.com.', 60, dns.rdataclass.IN, 'A', '192.0.2.2'),
+            dns.rrset.from_text("not-powerdns.com.", 60, dns.rdataclass.IN, "A", "192.0.2.2"),
         ]
-        query = dns.message.make_query('gettag-answers.powerdns.com.', 'A')
+        query = dns.message.make_query("gettag-answers.powerdns.com.", "A")
         res = self.sendUDPQuery(query)
 
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
@@ -660,10 +703,11 @@ class PDNSGeneratingAnswerFromGettagTest(RecursorTest):
         self.assertEqual(res.answer, expectedAnswerRecords)
         self.assertEqual(res.additional, expectedAdditionalRecords)
 
+
 class PDNSValidationStatesTest(RecursorTest):
     """Tests that we have access to the validation states from Lua"""
 
-    _confdir = 'PDNSValidationStates'
+    _confdir = "PDNSValidationStates"
     _config_template = """
 dnssec=validate
 """
@@ -719,17 +763,17 @@ dnssec=validate
     """
 
     def testValidationBogus(self):
-        query = dns.message.make_query('brokendnssec.net.', 'A')
+        query = dns.message.make_query("brokendnssec.net.", "A")
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
         self.assertEqual(len(res.answer), 0)
         self.assertEqual(len(res.authority), 0)
 
-class PolicyEventFilterOnFollowUpTest(RecursorTest):
-    """Tests the interaction between RPZ and followup queries (dns64, followCNAME)
-    """
 
-    _confdir = 'PolicyEventFilterOnFollowUp'
+class PolicyEventFilterOnFollowUpTest(RecursorTest):
+    """Tests the interaction between RPZ and followup queries (dns64, followCNAME)"""
+
+    _confdir = "PolicyEventFilterOnFollowUp"
     _auth_zones = RecursorTest._default_auth_zones
     _config_template = """
     """
@@ -753,20 +797,24 @@ class PolicyEventFilterOnFollowUpTest(RecursorTest):
 
     @classmethod
     def generateRecursorConfig(cls, confdir):
-        rpzFilePath = os.path.join(confdir, 'zone.rpz')
-        with open(rpzFilePath, 'w') as rpzZone:
-            rpzZone.write("""$ORIGIN zone.rpz.
+        rpzFilePath = os.path.join(confdir, "zone.rpz")
+        with open(rpzFilePath, "w") as rpzZone:
+            rpzZone.write(
+                """$ORIGIN zone.rpz.
 @ 3600 IN SOA {soa}
 secure.example.zone.rpz. 60 IN A 192.0.2.42
-""".format(soa=cls._SOA))
+""".format(soa=cls._SOA)
+            )
         super(PolicyEventFilterOnFollowUpTest, cls).generateRecursorConfig(confdir)
 
     def testA(self):
         expected = [
-            dns.rrset.from_text('policyeventfilter-followup.test.powerdns.com.', 15, dns.rdataclass.IN, 'CNAME', 'secure.example.'),
-            dns.rrset.from_text('secure.example.', 15, dns.rdataclass.IN, 'A', '192.0.2.17')
+            dns.rrset.from_text(
+                "policyeventfilter-followup.test.powerdns.com.", 15, dns.rdataclass.IN, "CNAME", "secure.example."
+            ),
+            dns.rrset.from_text("secure.example.", 15, dns.rdataclass.IN, "A", "192.0.2.17"),
         ]
-        query = dns.message.make_query('policyeventfilter-followup.test.powerdns.com.', 'A')
+        query = dns.message.make_query("policyeventfilter-followup.test.powerdns.com.", "A")
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
@@ -777,11 +825,11 @@ secure.example.zone.rpz. 60 IN A 192.0.2.42
             self.assertEqual(len(res.authority), 0)
             self.assertResponseMatches(query, expected, res)
 
-class PolicyEventFilterOnFollowUpWithNativeDNS64Test(RecursorTest):
-    """Tests the interaction between followup queries and native dns64
-    """
 
-    _confdir = 'PolicyEventFilterOnFollowUpWithNativeDNS64'
+class PolicyEventFilterOnFollowUpWithNativeDNS64Test(RecursorTest):
+    """Tests the interaction between followup queries and native dns64"""
+
+    _confdir = "PolicyEventFilterOnFollowUpWithNativeDNS64"
     _auth_zones = RecursorTest._default_auth_zones
     _config_template = """
     dns64-prefix=1234::/96
@@ -800,11 +848,11 @@ class PolicyEventFilterOnFollowUpWithNativeDNS64Test(RecursorTest):
 
     def testAAAA(self):
         expected = [
-            dns.rrset.from_text('mx1.secure.example.', 15, dns.rdataclass.IN, 'CNAME', 'cname.secure.example.'),
-            dns.rrset.from_text('cname.secure.example.', 15, dns.rdataclass.IN, 'CNAME', ' host1.secure.example.'),
-            dns.rrset.from_text('host1.secure.example.', 15, dns.rdataclass.IN, 'AAAA', '1234::c000:202')
+            dns.rrset.from_text("mx1.secure.example.", 15, dns.rdataclass.IN, "CNAME", "cname.secure.example."),
+            dns.rrset.from_text("cname.secure.example.", 15, dns.rdataclass.IN, "CNAME", " host1.secure.example."),
+            dns.rrset.from_text("host1.secure.example.", 15, dns.rdataclass.IN, "AAAA", "1234::c000:202"),
         ]
-        query = dns.message.make_query('mx1.secure.example', 'AAAA')
+        query = dns.message.make_query("mx1.secure.example", "AAAA")
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
@@ -815,10 +863,11 @@ class PolicyEventFilterOnFollowUpWithNativeDNS64Test(RecursorTest):
             self.assertEqual(len(res.authority), 0)
             self.assertResponseMatches(query, expected, res)
 
+
 class LuaPostResolveFFITest(RecursorTest):
     """Tests postresolve_ffi interface"""
 
-    _confdir = 'LuaPostResolveFFI'
+    _confdir = "LuaPostResolveFFI"
     _auth_zones = RecursorTest._default_auth_zones
     _config_template = """
     """
@@ -977,51 +1026,50 @@ end
     """
 
     def testNOACTION(self):
-        """ postresolve_ffi: test that we can do a NOACTION for a name and type combo"""
-        query = dns.message.make_query('example', 'SOA')
+        """postresolve_ffi: test that we can do a NOACTION for a name and type combo"""
+        query = dns.message.make_query("example", "SOA")
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertEqual(len(res.answer), 1)
 
     def testDROP(self):
-        """ postresolve_ffi: test that we can do a DROP for a name and type combo"""
-        query = dns.message.make_query('example', 'TXT')
+        """postresolve_ffi: test that we can do a DROP for a name and type combo"""
+        query = dns.message.make_query("example", "TXT")
         res = self.sendUDPQuery(query)
         self.assertEqual(res, None)
 
     def testNXDOMAIN(self):
-        """ postresolve_ffi: test that we can return a NXDOMAIN for a name and type combo"""
-        query = dns.message.make_query('ns1.example', 'A')
+        """postresolve_ffi: test that we can return a NXDOMAIN for a name and type combo"""
+        query = dns.message.make_query("ns1.example", "A")
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NXDOMAIN)
         self.assertEqual(len(res.answer), 0)
 
     def testNODATA(self):
-        """ postresolve_ffi: test that we can return a NODATA for a name and type combo"""
-        query = dns.message.make_query('ns1.example', 'AAAA')
+        """postresolve_ffi: test that we can return a NODATA for a name and type combo"""
+        query = dns.message.make_query("ns1.example", "AAAA")
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertEqual(len(res.answer), 0)
 
     def testTRUNCATE(self):
-        """ postresolve_ffi: test that we can return a truncated for a name and type combo"""
-        query = dns.message.make_query('ns2.example', 'A')
+        """postresolve_ffi: test that we can return a truncated for a name and type combo"""
+        query = dns.message.make_query("ns2.example", "A")
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertEqual(len(res.answer), 0)
-        self.assertMessageHasFlags(res, ['QR', 'TC', 'RD', 'RA'])
-
+        self.assertMessageHasFlags(res, ["QR", "TC", "RD", "RA"])
 
     def testModifyA(self):
         """postresolve_ffi: test that we can modify A answers"""
         expectedAnswerRecords = [
-            dns.rrset.from_text('postresolve_ffi.example.', 60, dns.rdataclass.IN, 'A', '0.1.2.3', '1.2.3.5'),
+            dns.rrset.from_text("postresolve_ffi.example.", 60, dns.rdataclass.IN, "A", "0.1.2.3", "1.2.3.5"),
         ]
         expectedAdditionalRecords = [
-            dns.rrset.from_text('add.postresolve_ffi.example.', 60, dns.rdataclass.IN, 'A', '4.5.6.7'),
+            dns.rrset.from_text("add.postresolve_ffi.example.", 60, dns.rdataclass.IN, "A", "4.5.6.7"),
         ]
 
-        query = dns.message.make_query('postresolve_ffi.example', 'A')
+        query = dns.message.make_query("postresolve_ffi.example", "A")
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertEqual(len(res.answer), 1)
@@ -1033,9 +1081,11 @@ end
     def testModifyAAAA(self):
         """postresolve_ffi: test that we can modify AAAA answers"""
         expectedAnswerRecords = [
-            dns.rrset.from_text('postresolve_ffi.example.', 60, dns.rdataclass.IN, 'AAAA', '1:203:405:607:809:a0b:c0d:e0f', '::2'),
+            dns.rrset.from_text(
+                "postresolve_ffi.example.", 60, dns.rdataclass.IN, "AAAA", "1:203:405:607:809:a0b:c0d:e0f", "::2"
+            ),
         ]
-        query = dns.message.make_query('postresolve_ffi.example', 'AAAA')
+        query = dns.message.make_query("postresolve_ffi.example", "AAAA")
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertEqual(len(res.answer), 1)

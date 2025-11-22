@@ -20,9 +20,7 @@ class DNSDistOpenTelemetryProtobufTest(test_Protobuf.DNSDistProtobufTest):
         self.assertTrue(msg)
         self.assertTrue(msg.HasField("openTelemetry"))
 
-    def sendQueryAndGetProtobuf(
-        self, useTCP=False, traceID="", spanID="", ednsTraceIDOpt=65500
-    ):
+    def sendQueryAndGetProtobuf(self, useTCP=False, traceID="", spanID="", ednsTraceIDOpt=65500):
         name = "query.ot.tests.powerdns.com."
 
         target = "target.ot.tests.powerdns.com."
@@ -33,20 +31,14 @@ class DNSDistOpenTelemetryProtobufTest(test_Protobuf.DNSDistProtobufTest):
             ottrace.data += binascii.a2b_hex(traceID)
             if spanID != "":
                 ottrace.data += binascii.a2b_hex(spanID)
-            query = dns.message.make_query(
-                name, "A", "IN", use_edns=True, options=[ottrace]
-            )
+            query = dns.message.make_query(name, "A", "IN", use_edns=True, options=[ottrace])
 
         response = dns.message.make_response(query)
 
-        rrset = dns.rrset.from_text(
-            name, 3600, dns.rdataclass.IN, dns.rdatatype.CNAME, target
-        )
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.CNAME, target)
         response.answer.append(rrset)
 
-        rrset = dns.rrset.from_text(
-            target, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1"
-        )
+        rrset = dns.rrset.from_text(target, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
         if useTCP:
@@ -81,9 +73,7 @@ class DNSDistOpenTelemetryProtobufBaseTest(DNSDistOpenTelemetryProtobufTest):
         self.assertTrue(msg.HasField("openTelemetryData"))
         traces_data = opentelemetry.proto.trace.v1.trace_pb2.TracesData()
         traces_data.ParseFromString(msg.openTelemetryData)
-        ot_data = google.protobuf.json_format.MessageToDict(
-            traces_data, preserving_proto_field_name=True
-        )
+        ot_data = google.protobuf.json_format.MessageToDict(traces_data, preserving_proto_field_name=True)
 
         self.assertEqual(len(ot_data["resource_spans"]), 1)
         self.assertEqual(len(ot_data["resource_spans"][0]["resource"]["attributes"]), 1)
@@ -94,19 +84,11 @@ class DNSDistOpenTelemetryProtobufBaseTest(DNSDistOpenTelemetryProtobufTest):
 
         # Ensure the values are correct
         # TODO: query.remote with port
-        msg_scope_attr_keys = [
-            v["key"]
-            for v in ot_data["resource_spans"][0]["scope_spans"][0]["scope"][
-                "attributes"
-            ]
-        ]
+        msg_scope_attr_keys = [v["key"] for v in ot_data["resource_spans"][0]["scope_spans"][0]["scope"]["attributes"]]
         self.assertListEqual(msg_scope_attr_keys, ["hostname"])
 
         root_span_attr_keys = [
-            v["key"]
-            for v in ot_data["resource_spans"][0]["scope_spans"][0]["spans"][0][
-                "attributes"
-            ]
+            v["key"] for v in ot_data["resource_spans"][0]["scope_spans"][0]["spans"][0]["attributes"]
         ]
         self.assertListEqual(
             root_span_attr_keys,
@@ -116,9 +98,7 @@ class DNSDistOpenTelemetryProtobufBaseTest(DNSDistOpenTelemetryProtobufTest):
         # No way to guess the test port, but check the rest of the values
         root_span_attrs = {
             v["key"]: v["value"]["string_value"]
-            for v in ot_data["resource_spans"][0]["scope_spans"][0]["spans"][0][
-                "attributes"
-            ]
+            for v in ot_data["resource_spans"][0]["scope_spans"][0]["spans"][0]["attributes"]
             if v["key"] not in ["query.remote.port"]
         }
         self.assertDictEqual(
@@ -130,9 +110,7 @@ class DNSDistOpenTelemetryProtobufBaseTest(DNSDistOpenTelemetryProtobufTest):
             root_span_attrs,
         )
 
-        msg_span_name = {
-            v["name"] for v in ot_data["resource_spans"][0]["scope_spans"][0]["spans"]
-        }
+        msg_span_name = {v["name"] for v in ot_data["resource_spans"][0]["scope_spans"][0]["spans"]}
 
         funcs = {
             "processQuery",
@@ -384,9 +362,7 @@ class DNSDistOpenTelemetryProtobufNoOTDataTest(DNSDistOpenTelemetryProtobufTest)
         self.assertFalse(msg.HasField("openTelemetryData"))
 
 
-class DNSDistOpenTelemetryProtobufEnabledButUnsetYAML(
-    DNSDistOpenTelemetryProtobufNoOTDataTest
-):
+class DNSDistOpenTelemetryProtobufEnabledButUnsetYAML(DNSDistOpenTelemetryProtobufNoOTDataTest):
     _yaml_config_params = ["_testServerPort", "_protobufServerPort"]
     _yaml_config_template = """---
 
@@ -415,9 +391,7 @@ response_rules:
         self.doTest()
 
 
-class DNSDistOpenTelemetryProtobufEnabledButUnsetLua(
-    DNSDistOpenTelemetryProtobufNoOTDataTest
-):
+class DNSDistOpenTelemetryProtobufEnabledButUnsetLua(DNSDistOpenTelemetryProtobufNoOTDataTest):
     _config_params = ["_testServerPort", "_protobufServerPort"]
     _config_template = """
 newServer{address="127.0.0.1:%d"}
@@ -431,9 +405,7 @@ addResponseAction(AllRule(), RemoteLogResponseAction(rl))
         self.doTest()
 
 
-class DNSDistOpenTelemetryProtobufEnabledSetButTurnedOffYAML(
-    DNSDistOpenTelemetryProtobufNoOTDataTest
-):
+class DNSDistOpenTelemetryProtobufEnabledSetButTurnedOffYAML(DNSDistOpenTelemetryProtobufNoOTDataTest):
     """Here we turn tracing on for the query, only to disable it after that"""
 
     _yaml_config_params = ["_testServerPort", "_protobufServerPort"]
@@ -478,9 +450,7 @@ response_rules:
         self.doTest()
 
 
-class DNSDistOpenTelemetryProtobufEnabledSetButTurnedOffLua(
-    DNSDistOpenTelemetryProtobufNoOTDataTest
-):
+class DNSDistOpenTelemetryProtobufEnabledSetButTurnedOffLua(DNSDistOpenTelemetryProtobufNoOTDataTest):
     _config_params = ["_testServerPort", "_protobufServerPort"]
     _config_template = """
 newServer{address="127.0.0.1:%d"}

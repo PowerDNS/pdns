@@ -41,13 +41,7 @@ def main():
     sphinx_build = venv_directory.joinpath("bin").joinpath("sphinx-build")
 
     if args.pdf_name:
-        build_args = [
-            sphinx_build,
-            "-M",
-            "latexpdf",
-            source_directory,
-            '.'
-        ]
+        build_args = [sphinx_build, "-M", "latexpdf", source_directory, "."]
     else:
         build_args = [
             sphinx_build,
@@ -57,17 +51,16 @@ def main():
             target_directory,
         ]
     subprocess.run(
-        build_args + files, # if files is empty, it means do all files
-        check=True
+        build_args + files,  # if files is empty, it means do all files
+        check=True,
     )
     if args.pdf_name:
-        os.rename(build_root.joinpath('latex').joinpath(args.pdf_name), args.pdf_name)
+        os.rename(build_root.joinpath("latex").joinpath(args.pdf_name), args.pdf_name)
+
 
 def create_argument_parser():
     """Create command-line argument parser."""
-    parser = argparse.ArgumentParser(
-        description="Build html and pdf docs for PowerDNS open source products"
-    )
+    parser = argparse.ArgumentParser(description="Build html and pdf docs for PowerDNS open source products")
     parser.add_argument(
         "--build-root",
         type=Path,

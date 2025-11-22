@@ -5,17 +5,19 @@ import time
 import clientsubnetoption
 from recursortests import RecursorTest
 
+
 class ChainTest(RecursorTest):
     """
     These regression tests test the chaining of outgoing requests.
     """
+
     _auth_zones = RecursorTest._default_auth_zones
     _chainSize = 200
-    _confdir = 'Chain'
+    _confdir = "Chain"
     _wsPort = 8042
     _wsTimeout = 2
-    _wsPassword = 'secretpassword'
-    _apiKey = 'secretapikey'
+    _wsPassword = "secretpassword"
+    _apiKey = "secretapikey"
 
     _config_template = """dnssec=validate
     trace=no
@@ -35,11 +37,11 @@ class ChainTest(RecursorTest):
         clashing waiter ids.
         """
         count = self._chainSize
-        name = '9.delay1.example.'
-        exp = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'TXT', 'a')
+        name = "9.delay1.example."
+        exp = dns.rrset.from_text(name, 0, dns.rdataclass.IN, "TXT", "a")
         queries = []
         for i in range(count):
-            query = dns.message.make_query(name, 'TXT', want_dnssec=True)
+            query = dns.message.make_query(name, "TXT", want_dnssec=True)
             query.flags |= dns.flags.AD
             queries.append(query)
 
@@ -53,23 +55,27 @@ class ChainTest(RecursorTest):
             self.assertRRsetInAnswer(res, exp)
             self.assertMatchingRRSIGInAnswer(res, exp)
 
-        self.checkMetrics({
-            'max-chain-length': count - 1, # first request has count - 1 requests chained to it
-            'servfail-answers': 0,
-            'noerror-answers': count,
-        })
+        self.checkMetrics(
+            {
+                "max-chain-length": count - 1,  # first request has count - 1 requests chained to it
+                "servfail-answers": 0,
+                "noerror-answers": count,
+            }
+        )
+
 
 class ChainECSTest(RecursorTest):
     """
     These regression tests test the chaining of outgoing requests with ECS
     """
+
     _auth_zones = RecursorTest._default_auth_zones
     _chainSize = 200
-    _confdir = 'ChainECS'
+    _confdir = "ChainECS"
     _wsPort = 8042
     _wsTimeout = 2
-    _wsPassword = 'secretpassword'
-    _apiKey = 'secretapikey'
+    _wsPassword = "secretpassword"
+    _apiKey = "secretapikey"
 
     _config_template = """dnssec=validate
     trace=no
@@ -91,21 +97,21 @@ class ChainECSTest(RecursorTest):
         clashing waiter ids.
         """
         count = self._chainSize
-        name1 = '1.delay1.example.'
-        name2 = '2.delay1.example.'
-        exp1 = dns.rrset.from_text(name1, 0, dns.rdataclass.IN, 'TXT', 'a')
-        exp2 = dns.rrset.from_text(name2, 0, dns.rdataclass.IN, 'TXT', 'a')
+        name1 = "1.delay1.example."
+        name2 = "2.delay1.example."
+        exp1 = dns.rrset.from_text(name1, 0, dns.rdataclass.IN, "TXT", "a")
+        exp2 = dns.rrset.from_text(name2, 0, dns.rdataclass.IN, "TXT", "a")
         queries = []
         for i in range(count):
             if i % 3 == 0:
                 name = name1
             else:
-               name = name2
+                name = name2
             if i % 2 == 0:
-                ecso = clientsubnetoption.ClientSubnetOption('192.0.2.0', 24)
+                ecso = clientsubnetoption.ClientSubnetOption("192.0.2.0", 24)
             else:
-                ecso = clientsubnetoption.ClientSubnetOption('192.0.3.0', 24)
-            query = dns.message.make_query(name, 'TXT', use_edns=True, options=[ecso], want_dnssec=True)
+                ecso = clientsubnetoption.ClientSubnetOption("192.0.3.0", 24)
+            query = dns.message.make_query(name, "TXT", use_edns=True, options=[ecso], want_dnssec=True)
             query.flags |= dns.flags.AD
             queries.append(query)
 
@@ -126,22 +132,26 @@ class ChainECSTest(RecursorTest):
                 print("?? " + res.question[0].name.to_text())
                 self.assertEqual(0, 1)
 
-        self.checkMetrics({
-            'servfail-answers': 0,
-            'noerror-answers': count,
-        })
+        self.checkMetrics(
+            {
+                "servfail-answers": 0,
+                "noerror-answers": count,
+            }
+        )
+
 
 class ChainECSHardenedTest(RecursorTest):
     """
     These regression tests test the chaining of outgoing requests with ECS
     """
+
     _auth_zones = RecursorTest._default_auth_zones
     _chainSize = 200
-    _confdir = 'ChainECSHardened'
+    _confdir = "ChainECSHardened"
     _wsPort = 8042
     _wsTimeout = 2
-    _wsPassword = 'secretpassword'
-    _apiKey = 'secretapikey'
+    _wsPassword = "secretpassword"
+    _apiKey = "secretapikey"
 
     _config_template = """dnssec=validate
     trace=no
@@ -164,21 +174,21 @@ class ChainECSHardenedTest(RecursorTest):
         clashing waiter ids.
         """
         count = self._chainSize
-        name1 = '1.delay1.example.'
-        name2 = '2.delay1.example.'
-        exp1 = dns.rrset.from_text(name1, 0, dns.rdataclass.IN, 'TXT', 'a')
-        exp2 = dns.rrset.from_text(name2, 0, dns.rdataclass.IN, 'TXT', 'a')
+        name1 = "1.delay1.example."
+        name2 = "2.delay1.example."
+        exp1 = dns.rrset.from_text(name1, 0, dns.rdataclass.IN, "TXT", "a")
+        exp2 = dns.rrset.from_text(name2, 0, dns.rdataclass.IN, "TXT", "a")
         queries = []
         for i in range(count):
             if i % 3 == 0:
                 name = name1
             else:
-               name = name2
+                name = name2
             if i % 2 == 0:
-                ecso = clientsubnetoption.ClientSubnetOption('192.0.2.0', 24)
+                ecso = clientsubnetoption.ClientSubnetOption("192.0.2.0", 24)
             else:
-                ecso = clientsubnetoption.ClientSubnetOption('192.0.3.0', 24)
-            query = dns.message.make_query(name, 'TXT', use_edns=True, options=[ecso], want_dnssec=True)
+                ecso = clientsubnetoption.ClientSubnetOption("192.0.3.0", 24)
+            query = dns.message.make_query(name, "TXT", use_edns=True, options=[ecso], want_dnssec=True)
             query.flags |= dns.flags.AD
             queries.append(query)
 
@@ -199,8 +209,9 @@ class ChainECSHardenedTest(RecursorTest):
                 print("?? " + res.question[0].name.to_text())
                 self.assertEqual(0, 1)
 
-        self.checkMetrics({
-            'servfail-answers': 0,
-            'noerror-answers': count,
-        })
-
+        self.checkMetrics(
+            {
+                "servfail-answers": 0,
+                "noerror-answers": count,
+            }
+        )

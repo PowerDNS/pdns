@@ -5,23 +5,29 @@ import struct
 
 from recursortests import RecursorTest
 
+
 class KeepOpenTCPTest(RecursorTest):
-    _confdir = 'KeepOpenTCP'
+    _confdir = "KeepOpenTCP"
     _auth_zones = RecursorTest._default_auth_zones
 
-    _config_template = """dnssec=validate
+    _config_template = (
+        """dnssec=validate
 packetcache-ttl=10
 packetcache-servfail-ttl=10
-auth-zones=authzone.example=configs/%s/authzone.zone""" % _confdir
+auth-zones=authzone.example=configs/%s/authzone.zone"""
+        % _confdir
+    )
 
     @classmethod
     def generateRecursorConfig(cls, confdir):
-        authzonepath = os.path.join(confdir, 'authzone.zone')
-        with open(authzonepath, 'w') as authzone:
-            authzone.write("""$ORIGIN authzone.example.
+        authzonepath = os.path.join(confdir, "authzone.zone")
+        with open(authzonepath, "w") as authzone:
+            authzone.write(
+                """$ORIGIN authzone.example.
 @ 3600 IN SOA {soa}
 @ 3600 IN A 192.0.2.88
-""".format(soa=cls._SOA))
+""".format(soa=cls._SOA)
+            )
         super(KeepOpenTCPTest, cls).generateRecursorConfig(confdir)
 
     def sendTCPQueryKeepOpen(cls, sock, query, timeout=2.0):
@@ -48,8 +54,10 @@ auth-zones=authzone.example=configs/%s/authzone.zone""" % _confdir
     def testNoTrailingData(self):
         count = 10
         sock = [None] * count
-        expected = dns.rrset.from_text('ns.secure.example.', 0, dns.rdataclass.IN, 'A', '{prefix}.9'.format(prefix=self._PREFIX))
-        query = dns.message.make_query('ns.secure.example', 'A', want_dnssec=True)
+        expected = dns.rrset.from_text(
+            "ns.secure.example.", 0, dns.rdataclass.IN, "A", "{prefix}.9".format(prefix=self._PREFIX)
+        )
+        query = dns.message.make_query("ns.secure.example", "A", want_dnssec=True)
         query.flags |= dns.flags.AD
         for i in range(count):
             sock[i] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -81,4 +89,3 @@ auth-zones=authzone.example=configs/%s/authzone.zone""" % _confdir
                 print("ok")
         for i in range(count):
             sock[i].close()
-

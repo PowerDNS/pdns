@@ -6,12 +6,12 @@ import dns
 from dnsdisttests import DNSDistTest, pickAvailablePort
 
 try:
-  range = xrange
+    range = xrange
 except NameError:
-  pass
+    pass
+
 
 class TestTCPLimits(DNSDistTest):
-
     # this test suite uses a different responder port
     # because it uses a different health check configuration
     _testServerPort = pickAvailablePort()
@@ -33,14 +33,20 @@ class TestTCPLimits(DNSDistTest):
     -- test gets us banned very quickly
     setMaxTCPReadIOsPerQuery(0)
     """
-    _config_params = ['_testServerPort', '_tcpIdleTimeout', '_maxTCPQueriesPerConn', '_maxTCPConnsPerClient', '_maxTCPConnDuration']
+    _config_params = [
+        "_testServerPort",
+        "_tcpIdleTimeout",
+        "_maxTCPQueriesPerConn",
+        "_maxTCPConnsPerClient",
+        "_maxTCPConnDuration",
+    ]
 
     def testTCPQueriesPerConn(self):
         """
         TCP Limits: Maximum number of queries
         """
-        name = 'maxqueriesperconn.tcp.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "maxqueriesperconn.tcp.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         conn = self.openTCPConnection()
 
         count = 0
@@ -74,8 +80,8 @@ class TestTCPLimits(DNSDistTest):
         """
         TCP Limits: Maximum number of conns per client
         """
-        name = 'maxconnsperclient.tcp.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "maxconnsperclient.tcp.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         conns = []
 
         for idx in range(self._maxTCPConnsPerClient + 1):
@@ -121,7 +127,7 @@ class TestTCPLimits(DNSDistTest):
                 # sleeping for only one second keeps us below the
                 # idle timeout (setTCPRecvTimeout())
                 time.sleep(0.1)
-                conn.send(b'A')
+                conn.send(b"A")
                 count = count + 1
             except Exception as e:
                 print("Exception: %s!" % (e))
@@ -134,8 +140,8 @@ class TestTCPLimits(DNSDistTest):
 
         conn.close()
 
-class TestTCPLimitsReadIO(DNSDistTest):
 
+class TestTCPLimitsReadIO(DNSDistTest):
     # separate test suite because we get banned for a few seconds
     _testServerPort = pickAvailablePort()
     _answerUnexpected = True
@@ -151,14 +157,14 @@ class TestTCPLimitsReadIO(DNSDistTest):
     -- disable "near limits" otherwise our tests are broken because connections are forcibly closed
     setTCPConnectionsOverloadThreshold(0)
     """
-    _config_params = ['_testServerPort', '_tcpIdleTimeout', '_maxTCPReadIOsPerQuery', '_banDuration']
+    _config_params = ["_testServerPort", "_tcpIdleTimeout", "_maxTCPReadIOsPerQuery", "_banDuration"]
 
     def testTCPMaxReadIOsPerQuery(self):
         """
         TCP Limits: Maximum number of IO read events per query
         """
-        name = 'maxreadios.tcp.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "maxreadios.tcp.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         payload = query.to_wire()
         self.assertGreater(len(payload), self._maxTCPReadIOsPerQuery)
 
@@ -180,7 +186,7 @@ class TestTCPLimitsReadIO(DNSDistTest):
             try:
                 response = self.recvTCPResponseOverConnection(conn)
                 if not response:
-                  failed = True
+                    failed = True
             except Exception:
                 failed = True
 
@@ -193,7 +199,7 @@ class TestTCPLimitsReadIO(DNSDistTest):
             conn = self.openTCPConnection()
             response = self.recvTCPResponseOverConnection(conn)
             if response is None:
-              failed = True
+                failed = True
         except Exception:
             failed = True
         finally:
@@ -201,8 +207,8 @@ class TestTCPLimitsReadIO(DNSDistTest):
 
         self.assertTrue(failed)
 
-class TestTCPLimitsConnectionRate(DNSDistTest):
 
+class TestTCPLimitsConnectionRate(DNSDistTest):
     # separate test suite because we get banned for a few seconds
     _testServerPort = pickAvailablePort()
     _answerUnexpected = True
@@ -217,15 +223,15 @@ class TestTCPLimitsConnectionRate(DNSDistTest):
     -- disable "near limits" otherwise our tests are broken because connections are forcibly closed
     setTCPConnectionsOverloadThreshold(0)
     """
-    _config_params = ['_testServerPort', '_tcpIdleTimeout', '_maxConnectionRate', '_banDuration']
+    _config_params = ["_testServerPort", "_tcpIdleTimeout", "_maxConnectionRate", "_banDuration"]
     _verboseMode = True
 
     def testTCPConnectionRate(self):
         """
         TCP Limits: Maximum connection rate
         """
-        name = 'maxconnectionrate.tcp.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "maxconnectionrate.tcp.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
 
         # _maxConnectionRate connections in a row
@@ -239,6 +245,7 @@ class TestTCPLimitsConnectionRate(DNSDistTest):
         self.assertEqual(receivedQuery, None)
         self.assertEqual(receivedResponse, None)
 
+
 class TestTCPLimitsTLSNewSessionRate(DNSDistTest):
     # separate test suite because we get banned for a few seconds
     _testServerPort = pickAvailablePort()
@@ -247,10 +254,10 @@ class TestTCPLimitsTLSNewSessionRate(DNSDistTest):
     _maxNewTLSSessionRate = 10
     _tcpIdleTimeout = 2
     _banDuration = 2
-    _serverKey = 'server.key'
-    _serverCert = 'server.chain'
-    _serverName = 'tls.tests.dnsdist.org'
-    _caCert = 'ca.pem'
+    _serverKey = "server.key"
+    _serverCert = "server.chain"
+    _serverName = "tls.tests.dnsdist.org"
+    _caCert = "ca.pem"
     _config_template = """
     newServer{address="127.0.0.1:%d"}
     setTCPRecvTimeout(%d)
@@ -261,15 +268,23 @@ class TestTCPLimitsTLSNewSessionRate(DNSDistTest):
     -- disable "near limits" otherwise our tests are broken because connections are forcibly closed
     setTCPConnectionsOverloadThreshold(0)
     """
-    _config_params = ['_testServerPort', '_tcpIdleTimeout', '_maxNewTLSSessionRate', '_banDuration', '_tlsServerPort', '_serverCert', '_serverKey']
+    _config_params = [
+        "_testServerPort",
+        "_tcpIdleTimeout",
+        "_maxNewTLSSessionRate",
+        "_banDuration",
+        "_tlsServerPort",
+        "_serverCert",
+        "_serverKey",
+    ]
     _verboseMode = True
 
     def testTLSNewSessionRate(self):
         """
         TCP Limits: Maximum TLS new session rate
         """
-        name = 'maxtlsnewsessionrate.tcp.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "maxtlsnewsessionrate.tcp.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
 
         # _maxNewTLSSessionRate connections in a row, plus one because
@@ -285,7 +300,8 @@ class TestTCPLimitsTLSNewSessionRate(DNSDistTest):
             self.sendDOTQueryWrapper(query, response=None, useQueue=False)
             self.fail()
         except ConnectionResetError:
-          pass
+            pass
+
 
 class TestTCPLimitsTLSResumedSessionRate(DNSDistTest):
     # separate test suite because we get banned for a few seconds
@@ -296,10 +312,10 @@ class TestTCPLimitsTLSResumedSessionRate(DNSDistTest):
     _maxResumedTLSSessionRate = 10
     _tcpIdleTimeout = 2
     _banDuration = 2
-    _serverKey = 'server.key'
-    _serverCert = 'server.chain'
-    _serverName = 'tls.tests.dnsdist.org'
-    _caCert = 'ca.pem'
+    _serverKey = "server.key"
+    _serverCert = "server.chain"
+    _serverName = "tls.tests.dnsdist.org"
+    _caCert = "ca.pem"
     _config_template = """
     newServer{address="127.0.0.1:%d"}
     setTCPRecvTimeout(%d)
@@ -311,15 +327,24 @@ class TestTCPLimitsTLSResumedSessionRate(DNSDistTest):
     -- disable "near limits" otherwise our tests are broken because connections are forcibly closed
     setTCPConnectionsOverloadThreshold(0)
     """
-    _config_params = ['_testServerPort', '_tcpIdleTimeout', '_maxNewTLSSessionRate', '_maxResumedTLSSessionRate', '_banDuration', '_tlsServerPort', '_serverCert', '_serverKey']
+    _config_params = [
+        "_testServerPort",
+        "_tcpIdleTimeout",
+        "_maxNewTLSSessionRate",
+        "_maxResumedTLSSessionRate",
+        "_banDuration",
+        "_tlsServerPort",
+        "_serverCert",
+        "_serverKey",
+    ]
     _verboseMode = True
 
     def testTLSResumedSessionRate(self):
         """
         TCP Limits: Maximum TLS resumed session rate
         """
-        name = 'maxtlsresumedsessionrate.tcp.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "maxtlsresumedsessionrate.tcp.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
 
         session = None
@@ -329,7 +354,9 @@ class TestTCPLimitsTLSResumedSessionRate(DNSDistTest):
         # - the first one is a new TLS session
         # - the session is only accounted for once the handshake has been completed
         for idx in range(self._maxResumedTLSSessionRate + 2):
-            conn = self.openTLSConnection(self._tlsServerPort, self._serverName, self._caCert, timeout=1, sslctx=sslctx, session=session)
+            conn = self.openTLSConnection(
+                self._tlsServerPort, self._serverName, self._caCert, timeout=1, sslctx=sslctx, session=session
+            )
             self.sendTCPQueryOverConnection(conn, query, response=response, timeout=1)
             (receivedQuery, receivedResponse) = self.recvTCPResponseOverConnection(conn, useQueue=True, timeout=1)
             receivedQuery.id = query.id
@@ -343,15 +370,17 @@ class TestTCPLimitsTLSResumedSessionRate(DNSDistTest):
 
         try:
             # the next one should be past the max rate
-            conn = self.openTLSConnection(self._tlsServerPort, self._serverName, self._caCert, timeout=1, sslctx=sslctx, session=session)
+            conn = self.openTLSConnection(
+                self._tlsServerPort, self._serverName, self._caCert, timeout=1, sslctx=sslctx, session=session
+            )
             self.sendTCPQueryOverConnection(conn, query, response=response, timeout=1)
             self.recvTCPResponseOverConnection(conn, useQueue=True, timeout=1)
             self.fail()
         except ConnectionResetError:
-          pass
+            pass
+
 
 class TestTCPFrontendLimits(DNSDistTest):
-
     # this test suite uses a different responder port
     # because it uses a different health check configuration
     _testServerPort = pickAvailablePort()
@@ -366,14 +395,14 @@ class TestTCPFrontendLimits(DNSDistTest):
     -- disable "near limits" otherwise our tests are broken because connections are forcibly closed
     setTCPConnectionsOverloadThreshold(0)
     """
-    _config_params = ['_testServerPort', '_dnsDistListeningAddr', '_dnsDistPort', '_maxTCPConnsPerFrontend']
+    _config_params = ["_testServerPort", "_dnsDistListeningAddr", "_dnsDistPort", "_maxTCPConnsPerFrontend"]
 
     def testTCPConnsPerFrontend(self):
         """
         TCP Frontend Limits: Maximum number of conns per frontend
         """
-        name = 'maxconnsperfrontend.tcp.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "maxconnsperfrontend.tcp.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         conns = []
 
         for idx in range(self._maxTCPConnsPerFrontend + 1):

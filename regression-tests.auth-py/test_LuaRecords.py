@@ -12,23 +12,24 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 
 webserver = None
 
+
 class FakeHTTPServer(BaseHTTPRequestHandler):
     def _set_headers(self, response_code=200):
         self.send_response(response_code)
-        self.send_header('Content-type', 'text/html')
+        self.send_header("Content-type", "text/html")
         self.end_headers()
 
     def do_GET(self):
-        if self.path == '/404':
+        if self.path == "/404":
             self._set_headers(404)
-            self.wfile.write(bytes('this page does not exist', 'utf-8'))
+            self.wfile.write(bytes("this page does not exist", "utf-8"))
             return
 
         self._set_headers()
-        if self.path == '/ping.json':
-            self.wfile.write(bytes('{"ping":"pong"}', 'utf-8'))
-        if self.path == '/weight.txt':
-            self.wfile.write(bytes('12', 'utf-8'))
+        if self.path == "/ping.json":
+            self.wfile.write(bytes('{"ping":"pong"}', "utf-8"))
+        if self.path == "/weight.txt":
+            self.wfile.write(bytes("12", "utf-8"))
         else:
             self.wfile.write(bytes("<html><body><h1>hi!</h1><h2>Programming in Lua !</h2></body></html>", "utf-8"))
 
@@ -37,6 +38,7 @@ class FakeHTTPServer(BaseHTTPRequestHandler):
 
     def do_HEAD(self):
         self._set_headers()
+
 
 class BaseLuaTest(AuthTest):
     _config_template = """
@@ -50,7 +52,7 @@ lua-health-checks-interval=1
 """
 
     _zones = {
-        'example.org': """
+        "example.org": """
 example.org.                 3600 IN SOA  {soa}
 example.org.                 3600 IN NS   ns1.example.org.
 example.org.                 3600 IN NS   ns2.example.org.
@@ -195,45 +197,50 @@ geoipqueryattribute IN LUA    TXT ("string.format('%d %d %d %d %d %d %d',"
     @classmethod
     def startResponders(cls):
         global webserver
-        if webserver: return  # it is already running
+        if webserver:
+            return  # it is already running
 
-        webserver = threading.Thread(name='HTTP Listener',
-                                     target=cls.HTTPResponder,
-                                     args=[8080]
-        )
+        webserver = threading.Thread(name="HTTP Listener", target=cls.HTTPResponder, args=[8080])
         webserver.setDaemon(True)
         webserver.start()
 
     @classmethod
     def HTTPResponder(cls, port):
-        server_address = ('', port)
+        server_address = ("", port)
         httpd = HTTPServer(server_address, FakeHTTPServer)
         httpd.serve_forever()
 
     @classmethod
     def setUpClass(cls):
-
         super(BaseLuaTest, cls).setUpClass()
 
-        cls._web_rrsets = [dns.rrset.from_text('web1.example.org.', 0, dns.rdataclass.IN, 'A',
-                                               '{prefix}.101'.format(prefix=cls._PREFIX)),
-                           dns.rrset.from_text('web2.example.org.', 0, dns.rdataclass.IN, 'A',
-                                               '{prefix}.102'.format(prefix=cls._PREFIX)),
-                           dns.rrset.from_text('web3.example.org.', 0, dns.rdataclass.IN, 'A',
-                                               '{prefix}.103'.format(prefix=cls._PREFIX))
+        cls._web_rrsets = [
+            dns.rrset.from_text(
+                "web1.example.org.", 0, dns.rdataclass.IN, "A", "{prefix}.101".format(prefix=cls._PREFIX)
+            ),
+            dns.rrset.from_text(
+                "web2.example.org.", 0, dns.rdataclass.IN, "A", "{prefix}.102".format(prefix=cls._PREFIX)
+            ),
+            dns.rrset.from_text(
+                "web3.example.org.", 0, dns.rdataclass.IN, "A", "{prefix}.103".format(prefix=cls._PREFIX)
+            ),
         ]
 
-class TestLuaRecords(BaseLuaTest):
 
+class TestLuaRecords(BaseLuaTest):
     def testPickRandom(self):
         """
         Basic pickrandom() test with a set of A records
         """
-        expected = [dns.rrset.from_text('rand.example.org.', 0, dns.rdataclass.IN, 'A',
-                                        '{prefix}.101'.format(prefix=self._PREFIX)),
-                    dns.rrset.from_text('rand.example.org.', 0, dns.rdataclass.IN, 'A',
-                                        '{prefix}.102'.format(prefix=self._PREFIX))]
-        query = dns.message.make_query('rand.example.org', 'A')
+        expected = [
+            dns.rrset.from_text(
+                "rand.example.org.", 0, dns.rdataclass.IN, "A", "{prefix}.101".format(prefix=self._PREFIX)
+            ),
+            dns.rrset.from_text(
+                "rand.example.org.", 0, dns.rdataclass.IN, "A", "{prefix}.102".format(prefix=self._PREFIX)
+            ),
+        ]
+        query = dns.message.make_query("rand.example.org", "A")
 
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
@@ -243,9 +250,11 @@ class TestLuaRecords(BaseLuaTest):
         """
         Basic pickrandom() test with a set of TXT records
         """
-        expected = [dns.rrset.from_text('rand-txt.example.org.', 0, dns.rdataclass.IN, 'TXT', 'bob'),
-                    dns.rrset.from_text('rand-txt.example.org.', 0, dns.rdataclass.IN, 'TXT', 'alice')]
-        query = dns.message.make_query('rand-txt.example.org', 'TXT')
+        expected = [
+            dns.rrset.from_text("rand-txt.example.org.", 0, dns.rdataclass.IN, "TXT", "bob"),
+            dns.rrset.from_text("rand-txt.example.org.", 0, dns.rdataclass.IN, "TXT", "alice"),
+        ]
+        query = dns.message.make_query("rand-txt.example.org", "TXT")
 
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
@@ -255,7 +264,7 @@ class TestLuaRecords(BaseLuaTest):
         """
         Test a bogus AAAA pickrandom() record  with a set of v4 addr
         """
-        query = dns.message.make_query('v6-bogus.rand.example.org', 'AAAA')
+        query = dns.message.make_query("v6-bogus.rand.example.org", "AAAA")
 
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
@@ -264,11 +273,11 @@ class TestLuaRecords(BaseLuaTest):
         """
         Test pickrandom() AAAA record
         """
-        expected = [dns.rrset.from_text('v6.rand.example.org.', 0, dns.rdataclass.IN, 'AAAA',
-                                        '2001:db8:a0b:12f0::1'),
-                    dns.rrset.from_text('v6.rand.example.org.', 0, dns.rdataclass.IN, 'AAAA',
-                                        'fe80::2a1:9bff:fe9b:f268')]
-        query = dns.message.make_query('v6.rand.example.org', 'AAAA')
+        expected = [
+            dns.rrset.from_text("v6.rand.example.org.", 0, dns.rdataclass.IN, "AAAA", "2001:db8:a0b:12f0::1"),
+            dns.rrset.from_text("v6.rand.example.org.", 0, dns.rdataclass.IN, "AAAA", "fe80::2a1:9bff:fe9b:f268"),
+        ]
+        query = dns.message.make_query("v6.rand.example.org", "AAAA")
 
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
@@ -278,7 +287,7 @@ class TestLuaRecords(BaseLuaTest):
         """
         Basic pickrandom() test with an empty set
         """
-        query = dns.message.make_query('empty.rand.example.org', 'A')
+        query = dns.message.make_query("empty.rand.example.org", "A")
 
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
@@ -287,11 +296,15 @@ class TestLuaRecords(BaseLuaTest):
         """
         Test the selfweighted() function with a set of A records
         """
-        expected = [dns.rrset.from_text('selfweighted.example.org.', 0, dns.rdataclass.IN, 'A',
-                                        '{prefix}.101'.format(prefix=self._PREFIX)),
-                    dns.rrset.from_text('selfweighted.example.org.', 0, dns.rdataclass.IN, 'A',
-                                        '{prefix}.102'.format(prefix=self._PREFIX))]
-        query = dns.message.make_query('selfweighted.example.org', 'A')
+        expected = [
+            dns.rrset.from_text(
+                "selfweighted.example.org.", 0, dns.rdataclass.IN, "A", "{prefix}.101".format(prefix=self._PREFIX)
+            ),
+            dns.rrset.from_text(
+                "selfweighted.example.org.", 0, dns.rdataclass.IN, "A", "{prefix}.102".format(prefix=self._PREFIX)
+            ),
+        ]
+        query = dns.message.make_query("selfweighted.example.org", "A")
         self.sendUDPQuery(query)
 
         # wait for health checks to happen
@@ -305,13 +318,15 @@ class TestLuaRecords(BaseLuaTest):
         """
         Basic pickrandomsample() test with a set of TXT records
         """
-        expected = [dns.rrset.from_text('randn-txt.example.org.', 0, dns.rdataclass.IN, 'TXT', 'bob', 'alice'),
-                    dns.rrset.from_text('randn-txt.example.org.', 0, dns.rdataclass.IN, 'TXT', 'bob', 'john'),
-                    dns.rrset.from_text('randn-txt.example.org.', 0, dns.rdataclass.IN, 'TXT', 'alice', 'bob'),
-                    dns.rrset.from_text('randn-txt.example.org.', 0, dns.rdataclass.IN, 'TXT', 'alice', 'john'),
-                    dns.rrset.from_text('randn-txt.example.org.', 0, dns.rdataclass.IN, 'TXT', 'john', 'bob'),
-                    dns.rrset.from_text('randn-txt.example.org.', 0, dns.rdataclass.IN, 'TXT', 'john', 'alice')]
-        query = dns.message.make_query('randn-txt.example.org', 'TXT')
+        expected = [
+            dns.rrset.from_text("randn-txt.example.org.", 0, dns.rdataclass.IN, "TXT", "bob", "alice"),
+            dns.rrset.from_text("randn-txt.example.org.", 0, dns.rdataclass.IN, "TXT", "bob", "john"),
+            dns.rrset.from_text("randn-txt.example.org.", 0, dns.rdataclass.IN, "TXT", "alice", "bob"),
+            dns.rrset.from_text("randn-txt.example.org.", 0, dns.rdataclass.IN, "TXT", "alice", "john"),
+            dns.rrset.from_text("randn-txt.example.org.", 0, dns.rdataclass.IN, "TXT", "john", "bob"),
+            dns.rrset.from_text("randn-txt.example.org.", 0, dns.rdataclass.IN, "TXT", "john", "alice"),
+        ]
+        query = dns.message.make_query("randn-txt.example.org", "TXT")
 
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
@@ -321,11 +336,15 @@ class TestLuaRecords(BaseLuaTest):
         """
         Basic pickwrandom() test with a set of A records
         """
-        expected = [dns.rrset.from_text('wrand.example.org.', 0, dns.rdataclass.IN, 'A',
-                                        '{prefix}.103'.format(prefix=self._PREFIX)),
-                    dns.rrset.from_text('wrand.example.org.', 0, dns.rdataclass.IN, 'A',
-                                        '{prefix}.102'.format(prefix=self._PREFIX))]
-        query = dns.message.make_query('wrand.example.org', 'A')
+        expected = [
+            dns.rrset.from_text(
+                "wrand.example.org.", 0, dns.rdataclass.IN, "A", "{prefix}.103".format(prefix=self._PREFIX)
+            ),
+            dns.rrset.from_text(
+                "wrand.example.org.", 0, dns.rdataclass.IN, "A", "{prefix}.102".format(prefix=self._PREFIX)
+            ),
+        ]
+        query = dns.message.make_query("wrand.example.org", "A")
 
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
@@ -335,9 +354,11 @@ class TestLuaRecords(BaseLuaTest):
         """
         Basic pickwrandom() test with a set of TXT records
         """
-        expected = [dns.rrset.from_text('wrand-txt.example.org.', 0, dns.rdataclass.IN, 'TXT', 'bob'),
-                    dns.rrset.from_text('wrand-txt.example.org.', 0, dns.rdataclass.IN, 'TXT', 'alice')]
-        query = dns.message.make_query('wrand-txt.example.org', 'TXT')
+        expected = [
+            dns.rrset.from_text("wrand-txt.example.org.", 0, dns.rdataclass.IN, "TXT", "bob"),
+            dns.rrset.from_text("wrand-txt.example.org.", 0, dns.rdataclass.IN, "TXT", "alice"),
+        ]
+        query = dns.message.make_query("wrand-txt.example.org", "TXT")
 
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
@@ -347,12 +368,15 @@ class TestLuaRecords(BaseLuaTest):
         """
         Basic ifportup() test
         """
-        query = dns.message.make_query('all.ifportup.example.org', 'A')
+        query = dns.message.make_query("all.ifportup.example.org", "A")
         expected = [
-            dns.rrset.from_text('all.ifportup.example.org.', 0, dns.rdataclass.IN, 'A',
-                                '{prefix}.101'.format(prefix=self._PREFIX)),
-            dns.rrset.from_text('all.ifportup.example.org.', 0, dns.rdataclass.IN, 'A',
-                                '{prefix}.102'.format(prefix=self._PREFIX))]
+            dns.rrset.from_text(
+                "all.ifportup.example.org.", 0, dns.rdataclass.IN, "A", "{prefix}.101".format(prefix=self._PREFIX)
+            ),
+            dns.rrset.from_text(
+                "all.ifportup.example.org.", 0, dns.rdataclass.IN, "A", "{prefix}.102".format(prefix=self._PREFIX)
+            ),
+        ]
 
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
@@ -362,12 +386,13 @@ class TestLuaRecords(BaseLuaTest):
         """
         Basic ifportup() test with some ports DOWN
         """
-        query = dns.message.make_query('some.ifportup.example.org', 'A')
+        query = dns.message.make_query("some.ifportup.example.org", "A")
         expected = [
-            dns.rrset.from_text('some.ifportup.example.org.', 0, dns.rdataclass.IN, 'A',
-                                '192.168.42.21'),
-            dns.rrset.from_text('some.ifportup.example.org.', 0, dns.rdataclass.IN, 'A',
-                                '{prefix}.102'.format(prefix=self._PREFIX))]
+            dns.rrset.from_text("some.ifportup.example.org.", 0, dns.rdataclass.IN, "A", "192.168.42.21"),
+            dns.rrset.from_text(
+                "some.ifportup.example.org.", 0, dns.rdataclass.IN, "A", "{prefix}.102".format(prefix=self._PREFIX)
+            ),
+        ]
 
         # we first expect any of the IPs as no check has been performed yet
         res = self.sendUDPQuery(query)
@@ -384,16 +409,16 @@ class TestLuaRecords(BaseLuaTest):
         """
         Basic ifportup() test with some ports DOWN from multiple sets
         """
-        query = dns.message.make_query('multi.ifportup.example.org', 'A')
+        query = dns.message.make_query("multi.ifportup.example.org", "A")
         expected = [
-            dns.rrset.from_text('multi.ifportup.example.org.', 0, dns.rdataclass.IN, 'A',
-                                '192.168.42.21'),
-            dns.rrset.from_text('multi.ifportup.example.org.', 0, dns.rdataclass.IN, 'A',
-                                '192.168.42.23'),
-            dns.rrset.from_text('multi.ifportup.example.org.', 0, dns.rdataclass.IN, 'A',
-                                '{prefix}.102'.format(prefix=self._PREFIX)),
-            dns.rrset.from_text('multi.ifportup.example.org.', 0, dns.rdataclass.IN, 'A',
-                                '{prefix}.101'.format(prefix=self._PREFIX))
+            dns.rrset.from_text("multi.ifportup.example.org.", 0, dns.rdataclass.IN, "A", "192.168.42.21"),
+            dns.rrset.from_text("multi.ifportup.example.org.", 0, dns.rdataclass.IN, "A", "192.168.42.23"),
+            dns.rrset.from_text(
+                "multi.ifportup.example.org.", 0, dns.rdataclass.IN, "A", "{prefix}.102".format(prefix=self._PREFIX)
+            ),
+            dns.rrset.from_text(
+                "multi.ifportup.example.org.", 0, dns.rdataclass.IN, "A", "{prefix}.101".format(prefix=self._PREFIX)
+            ),
         ]
 
         # we first expect any of the IPs as no check has been performed yet
@@ -411,12 +436,13 @@ class TestLuaRecords(BaseLuaTest):
         """
         Basic ifportup() test with all ports DOWN
         """
-        query = dns.message.make_query('none.ifportup.example.org', 'A')
+        query = dns.message.make_query("none.ifportup.example.org", "A")
         expected = [
-            dns.rrset.from_text('none.ifportup.example.org.', 0, dns.rdataclass.IN, 'A',
-                                '192.168.42.21'),
-            dns.rrset.from_text('none.ifportup.example.org.', 0, dns.rdataclass.IN, 'A',
-                                '192.168.21.42'.format(prefix=self._PREFIX))]
+            dns.rrset.from_text("none.ifportup.example.org.", 0, dns.rdataclass.IN, "A", "192.168.42.21"),
+            dns.rrset.from_text(
+                "none.ifportup.example.org.", 0, dns.rdataclass.IN, "A", "192.168.21.42".format(prefix=self._PREFIX)
+            ),
+        ]
 
         # we first expect any of the IPs as no check has been performed yet
         res = self.sendUDPQuery(query)
@@ -432,9 +458,9 @@ class TestLuaRecords(BaseLuaTest):
         """
         Basic ifportup() test with all ports DOWN, fallback to 'all' backup selector
         """
-        name = 'all.noneup.ifportup.example.org.'
+        name = "all.noneup.ifportup.example.org."
         query = dns.message.make_query(name, dns.rdatatype.A)
-        expected = [dns.rrset.from_text(name, 0, dns.rdataclass.IN, dns.rdatatype.A, '192.168.42.21', '192.168.21.42')]
+        expected = [dns.rrset.from_text(name, 0, dns.rdataclass.IN, dns.rdatatype.A, "192.168.42.21", "192.168.21.42")]
 
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
@@ -448,20 +474,18 @@ class TestLuaRecords(BaseLuaTest):
         """
         Basic ifurlup() test
         """
-        reachable = [
-            '{prefix}.103'.format(prefix=self._PREFIX)
-        ]
-        unreachable = ['192.168.42.105']
+        reachable = ["{prefix}.103".format(prefix=self._PREFIX)]
+        unreachable = ["192.168.42.105"]
         ips = reachable + unreachable
         all_rrs = []
         reachable_rrs = []
         for ip in ips:
-            rr = dns.rrset.from_text('usa.example.org.', 0, dns.rdataclass.IN, 'A', ip)
+            rr = dns.rrset.from_text("usa.example.org.", 0, dns.rdataclass.IN, "A", ip)
             all_rrs.append(rr)
             if ip in reachable:
                 reachable_rrs.append(rr)
 
-        query = dns.message.make_query('usa.example.org', 'A')
+        query = dns.message.make_query("usa.example.org", "A")
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertAnyRRsetInAnswer(res, all_rrs)
@@ -476,20 +500,18 @@ class TestLuaRecords(BaseLuaTest):
         """
         Basic ifurlup() test, with non-default HTTP code
         """
-        reachable = [
-            '{prefix}.103'.format(prefix=self._PREFIX)
-        ]
-        unreachable = ['192.168.42.105']
+        reachable = ["{prefix}.103".format(prefix=self._PREFIX)]
+        unreachable = ["192.168.42.105"]
         ips = reachable + unreachable
         all_rrs = []
         reachable_rrs = []
         for ip in ips:
-            rr = dns.rrset.from_text('usa-404.example.org.', 0, dns.rdataclass.IN, 'A', ip)
+            rr = dns.rrset.from_text("usa-404.example.org.", 0, dns.rdataclass.IN, "A", ip)
             all_rrs.append(rr)
             if ip in reachable:
                 reachable_rrs.append(rr)
 
-        query = dns.message.make_query('usa-404.example.org', 'A')
+        query = dns.message.make_query("usa-404.example.org", "A")
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertAnyRRsetInAnswer(res, all_rrs)
@@ -504,20 +526,18 @@ class TestLuaRecords(BaseLuaTest):
         """
         Basic ifurlup() test with mutiple sets
         """
-        reachable = [
-            '{prefix}.103'.format(prefix=self._PREFIX)
-        ]
-        unreachable = ['192.168.42.101', '192.168.42.102', '192.168.42.105']
+        reachable = ["{prefix}.103".format(prefix=self._PREFIX)]
+        unreachable = ["192.168.42.101", "192.168.42.102", "192.168.42.105"]
         ips = reachable + unreachable
         all_rrs = []
         reachable_rrs = []
         for ip in ips:
-            rr = dns.rrset.from_text('usa-ext.example.org.', 0, dns.rdataclass.IN, 'A', ip)
+            rr = dns.rrset.from_text("usa-ext.example.org.", 0, dns.rdataclass.IN, "A", ip)
             all_rrs.append(rr)
             if ip in reachable:
                 reachable_rrs.append(rr)
 
-        query = dns.message.make_query('usa-ext.example.org', 'A')
+        query = dns.message.make_query("usa-ext.example.org", "A")
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertAnyRRsetInAnswer(res, all_rrs)
@@ -529,9 +549,11 @@ class TestLuaRecords(BaseLuaTest):
         self.assertAnyRRsetInAnswer(res, reachable_rrs)
 
     def testIfurlextup(self):
-        expected = [dns.rrset.from_text('ifurlextup.example.org.', 0, dns.rdataclass.IN, dns.rdatatype.A, '192.168.0.3')]
+        expected = [
+            dns.rrset.from_text("ifurlextup.example.org.", 0, dns.rdataclass.IN, dns.rdatatype.A, "192.168.0.3")
+        ]
 
-        query = dns.message.make_query('ifurlextup.example.org', 'A')
+        query = dns.message.make_query("ifurlextup.example.org", "A")
         self.sendUDPQuery(query)
 
         # wait for health checks to happen
@@ -547,20 +569,18 @@ class TestLuaRecords(BaseLuaTest):
         Basic ifurlup() test with the simplified list of ips
         Also ensures the correct path is queried
         """
-        reachable = [
-            '{prefix}.101'.format(prefix=self._PREFIX)
-        ]
-        unreachable = ['192.168.42.101']
+        reachable = ["{prefix}.101".format(prefix=self._PREFIX)]
+        unreachable = ["192.168.42.101"]
         ips = reachable + unreachable
         all_rrs = []
         reachable_rrs = []
         for ip in ips:
-            rr = dns.rrset.from_text('mix.ifurlup.example.org.', 0, dns.rdataclass.IN, 'A', ip)
+            rr = dns.rrset.from_text("mix.ifurlup.example.org.", 0, dns.rdataclass.IN, "A", ip)
             all_rrs.append(rr)
             if ip in reachable:
                 reachable_rrs.append(rr)
 
-        query = dns.message.make_query('mix.ifurlup.example.org', 'A')
+        query = dns.message.make_query("mix.ifurlup.example.org", "A")
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertAnyRRsetInAnswer(res, all_rrs)
@@ -574,12 +594,10 @@ class TestLuaRecords(BaseLuaTest):
         """
         Basic latlon() test
         """
-        name = 'latlon.geo.example.org.'
-        ecso = clientsubnetoption.ClientSubnetOption('1.2.3.0', 24)
-        query = dns.message.make_query(name, 'TXT', 'IN', use_edns=True, payload=4096, options=[ecso])
-        expected = dns.rrset.from_text(name, 0,
-                                       dns.rdataclass.IN, 'TXT',
-                                       '"47.913000 -122.304200"')
+        name = "latlon.geo.example.org."
+        ecso = clientsubnetoption.ClientSubnetOption("1.2.3.0", 24)
+        query = dns.message.make_query(name, "TXT", "IN", use_edns=True, payload=4096, options=[ecso])
+        expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, "TXT", '"47.913000 -122.304200"')
 
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
@@ -589,11 +607,12 @@ class TestLuaRecords(BaseLuaTest):
         """
         Basic latlonloc() test
         """
-        name = 'latlonloc.geo.example.org.'
-        expected = dns.rrset.from_text(name, 0,dns.rdataclass.IN, 'TXT',
-                                       '"47 54 46.8 N 122 18 15.12 W 0.00m 1.00m 10000.00m 10.00m"')
-        ecso = clientsubnetoption.ClientSubnetOption('1.2.3.0', 24)
-        query = dns.message.make_query(name, 'TXT', 'IN', use_edns=True, payload=4096, options=[ecso])
+        name = "latlonloc.geo.example.org."
+        expected = dns.rrset.from_text(
+            name, 0, dns.rdataclass.IN, "TXT", '"47 54 46.8 N 122 18 15.12 W 0.00m 1.00m 10000.00m 10.00m"'
+        )
+        ecso = clientsubnetoption.ClientSubnetOption("1.2.3.0", 24)
+        query = dns.message.make_query(name, "TXT", "IN", use_edns=True, payload=4096, options=[ecso])
 
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
@@ -603,7 +622,7 @@ class TestLuaRecords(BaseLuaTest):
         """
         Ensure errors coming from LUA wildcards are reported
         """
-        query = dns.message.make_query('failure.magic.example.org', 'A')
+        query = dns.message.make_query("failure.magic.example.org", "A")
 
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
@@ -613,22 +632,18 @@ class TestLuaRecords(BaseLuaTest):
         """
         Basic closestMagic() test
         """
-        name = 'www-balanced.example.org.'
-        cname = '1-1-1-3.17-1-2-4.1-2-3-5.magic.example.org.'
-        queries = [
-            ('1.1.1.0', 24,  '1.1.1.3'),
-            ('1.2.3.0', 24,  '1.2.3.5'),
-            ('17.1.0.0', 16, '17.1.2.4')
-        ]
+        name = "www-balanced.example.org."
+        cname = "1-1-1-3.17-1-2-4.1-2-3-5.magic.example.org."
+        queries = [("1.1.1.0", 24, "1.1.1.3"), ("1.2.3.0", 24, "1.2.3.5"), ("17.1.0.0", 16, "17.1.2.4")]
 
-        for (subnet, mask, ip) in queries:
+        for subnet, mask, ip in queries:
             ecso = clientsubnetoption.ClientSubnetOption(subnet, mask)
-            query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[ecso])
+            query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, options=[ecso])
 
             response = dns.message.make_response(query)
 
             response.answer.append(dns.rrset.from_text(name, 0, dns.rdataclass.IN, dns.rdatatype.CNAME, cname))
-            response.answer.append(dns.rrset.from_text(cname, 0, dns.rdataclass.IN, 'A', ip))
+            response.answer.append(dns.rrset.from_text(cname, 0, dns.rdataclass.IN, "A", ip))
 
             res = self.sendUDPQuery(query)
             self.assertRcodeEqual(res, dns.rcode.NOERROR)
@@ -638,16 +653,12 @@ class TestLuaRecords(BaseLuaTest):
         """
         Basic asnum() test
         """
-        queries = [
-            ('1.1.1.0', 24,  '"true"'),
-            ('1.2.3.0', 24,  '"false"'),
-            ('17.1.0.0', 16, '"false"')
-        ]
-        name = 'asnum.geo.example.org.'
-        for (subnet, mask, txt) in queries:
+        queries = [("1.1.1.0", 24, '"true"'), ("1.2.3.0", 24, '"false"'), ("17.1.0.0", 16, '"false"')]
+        name = "asnum.geo.example.org."
+        for subnet, mask, txt in queries:
             ecso = clientsubnetoption.ClientSubnetOption(subnet, mask)
-            query = dns.message.make_query(name, 'TXT', 'IN', use_edns=True, payload=4096, options=[ecso])
-            expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'TXT', txt)
+            query = dns.message.make_query(name, "TXT", "IN", use_edns=True, payload=4096, options=[ecso])
+            expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, "TXT", txt)
 
             res = self.sendUDPQuery(query)
             self.assertRcodeEqual(res, dns.rcode.NOERROR)
@@ -657,16 +668,12 @@ class TestLuaRecords(BaseLuaTest):
         """
         Basic country() test
         """
-        queries = [
-            ('1.1.1.0', 24,  '"false"'),
-            ('1.2.3.0', 24,  '"true"'),
-            ('17.1.0.0', 16, '"false"')
-        ]
-        name = 'country.geo.example.org.'
-        for (subnet, mask, txt) in queries:
+        queries = [("1.1.1.0", 24, '"false"'), ("1.2.3.0", 24, '"true"'), ("17.1.0.0", 16, '"false"')]
+        name = "country.geo.example.org."
+        for subnet, mask, txt in queries:
             ecso = clientsubnetoption.ClientSubnetOption(subnet, mask)
-            query = dns.message.make_query(name, 'TXT', 'IN', use_edns=True, payload=4096, options=[ecso])
-            expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'TXT', txt)
+            query = dns.message.make_query(name, "TXT", "IN", use_edns=True, payload=4096, options=[ecso])
+            expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, "TXT", txt)
 
             res = self.sendUDPQuery(query)
             self.assertRcodeEqual(res, dns.rcode.NOERROR)
@@ -676,16 +683,12 @@ class TestLuaRecords(BaseLuaTest):
         """
         Basic countryCode() test
         """
-        queries = [
-            ('1.1.1.0', 24,  '"au"'),
-            ('1.2.3.0', 24,  '"us"'),
-            ('17.1.0.0', 16, '"--"')
-        ]
-        name = 'country-code.geo.example.org.'
-        for (subnet, mask, txt) in queries:
+        queries = [("1.1.1.0", 24, '"au"'), ("1.2.3.0", 24, '"us"'), ("17.1.0.0", 16, '"--"')]
+        name = "country-code.geo.example.org."
+        for subnet, mask, txt in queries:
             ecso = clientsubnetoption.ClientSubnetOption(subnet, mask)
-            query = dns.message.make_query(name, 'TXT', 'IN', use_edns=True, payload=4096, options=[ecso])
-            expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'TXT', txt)
+            query = dns.message.make_query(name, "TXT", "IN", use_edns=True, payload=4096, options=[ecso])
+            expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, "TXT", txt)
 
             res = self.sendUDPQuery(query)
             self.assertRcodeEqual(res, dns.rcode.NOERROR)
@@ -695,16 +698,12 @@ class TestLuaRecords(BaseLuaTest):
         """
         Basic region() test
         """
-        queries = [
-            ('1.1.1.0', 24,  '"false"'),
-            ('1.2.3.0', 24,  '"true"'),
-            ('17.1.0.0', 16, '"false"')
-        ]
-        name = 'region.geo.example.org.'
-        for (subnet, mask, txt) in queries:
+        queries = [("1.1.1.0", 24, '"false"'), ("1.2.3.0", 24, '"true"'), ("17.1.0.0", 16, '"false"')]
+        name = "region.geo.example.org."
+        for subnet, mask, txt in queries:
             ecso = clientsubnetoption.ClientSubnetOption(subnet, mask)
-            query = dns.message.make_query(name, 'TXT', 'IN', use_edns=True, payload=4096, options=[ecso])
-            expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'TXT', txt)
+            query = dns.message.make_query(name, "TXT", "IN", use_edns=True, payload=4096, options=[ecso])
+            expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, "TXT", txt)
 
             res = self.sendUDPQuery(query)
             self.assertRcodeEqual(res, dns.rcode.NOERROR)
@@ -714,16 +713,12 @@ class TestLuaRecords(BaseLuaTest):
         """
         Basic regionCode() test
         """
-        queries = [
-            ('1.1.1.0', 24,  '"--"'),
-            ('1.2.3.0', 24,  '"ca"'),
-            ('17.1.0.0', 16, '"--"')
-        ]
-        name = 'region-code.geo.example.org.'
-        for (subnet, mask, txt) in queries:
+        queries = [("1.1.1.0", 24, '"--"'), ("1.2.3.0", 24, '"ca"'), ("17.1.0.0", 16, '"--"')]
+        name = "region-code.geo.example.org."
+        for subnet, mask, txt in queries:
             ecso = clientsubnetoption.ClientSubnetOption(subnet, mask)
-            query = dns.message.make_query(name, 'TXT', 'IN', use_edns=True, payload=4096, options=[ecso])
-            expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'TXT', txt)
+            query = dns.message.make_query(name, "TXT", "IN", use_edns=True, payload=4096, options=[ecso])
+            expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, "TXT", txt)
 
             res = self.sendUDPQuery(query)
             self.assertRcodeEqual(res, dns.rcode.NOERROR)
@@ -733,16 +728,12 @@ class TestLuaRecords(BaseLuaTest):
         """
         Basic continent() test
         """
-        queries = [
-            ('1.1.1.0', 24,  '"false"'),
-            ('1.2.3.0', 24,  '"true"'),
-            ('17.1.0.0', 16, '"false"')
-        ]
-        name = 'continent.geo.example.org.'
-        for (subnet, mask, txt) in queries:
+        queries = [("1.1.1.0", 24, '"false"'), ("1.2.3.0", 24, '"true"'), ("17.1.0.0", 16, '"false"')]
+        name = "continent.geo.example.org."
+        for subnet, mask, txt in queries:
             ecso = clientsubnetoption.ClientSubnetOption(subnet, mask)
-            query = dns.message.make_query(name, 'TXT', 'IN', use_edns=True, payload=4096, options=[ecso])
-            expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'TXT', txt)
+            query = dns.message.make_query(name, "TXT", "IN", use_edns=True, payload=4096, options=[ecso])
+            expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, "TXT", txt)
 
             res = self.sendUDPQuery(query)
             self.assertRcodeEqual(res, dns.rcode.NOERROR)
@@ -752,16 +743,12 @@ class TestLuaRecords(BaseLuaTest):
         """
         Basic continentCode() test
         """
-        queries = [
-            ('1.1.1.0', 24,  '"oc"'),
-            ('1.2.3.0', 24,  '"na"'),
-            ('17.1.0.0', 16, '"--"')
-        ]
-        name = 'continent-code.geo.example.org.'
-        for (subnet, mask, txt) in queries:
+        queries = [("1.1.1.0", 24, '"oc"'), ("1.2.3.0", 24, '"na"'), ("17.1.0.0", 16, '"--"')]
+        name = "continent-code.geo.example.org."
+        for subnet, mask, txt in queries:
             ecso = clientsubnetoption.ClientSubnetOption(subnet, mask)
-            query = dns.message.make_query(name, 'TXT', 'IN', use_edns=True, payload=4096, options=[ecso])
-            expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'TXT', txt)
+            query = dns.message.make_query(name, "TXT", "IN", use_edns=True, payload=4096, options=[ecso])
+            expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, "TXT", txt)
 
             res = self.sendUDPQuery(query)
             self.assertRcodeEqual(res, dns.rcode.NOERROR)
@@ -771,16 +758,12 @@ class TestLuaRecords(BaseLuaTest):
         """
         Basic pickclosest() test
         """
-        queries = [
-            ('1.1.1.0', 24,  '1.1.1.2'),
-            ('1.2.3.0', 24,  '1.2.3.4'),
-            ('17.1.0.0', 16, '1.1.1.2')
-        ]
-        name = 'closest.geo.example.org.'
-        for (subnet, mask, ip) in queries:
+        queries = [("1.1.1.0", 24, "1.1.1.2"), ("1.2.3.0", 24, "1.2.3.4"), ("17.1.0.0", 16, "1.1.1.2")]
+        name = "closest.geo.example.org."
+        for subnet, mask, ip in queries:
             ecso = clientsubnetoption.ClientSubnetOption(subnet, mask)
-            query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[ecso])
-            expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', ip)
+            query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, options=[ecso])
+            expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, "A", ip)
 
             res = self.sendUDPQuery(query)
             self.assertRcodeEqual(res, dns.rcode.NOERROR)
@@ -790,8 +773,10 @@ class TestLuaRecords(BaseLuaTest):
         """
         Basic all() test
         """
-        expected = [dns.rrset.from_text('all.example.org.', 0, dns.rdataclass.IN, dns.rdatatype.A, '1.2.3.4', '4.3.2.1')]
-        query = dns.message.make_query('all.example.org.', 'A')
+        expected = [
+            dns.rrset.from_text("all.example.org.", 0, dns.rdataclass.IN, dns.rdatatype.A, "1.2.3.4", "4.3.2.1")
+        ]
+        query = dns.message.make_query("all.example.org.", "A")
 
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
@@ -803,22 +788,18 @@ class TestLuaRecords(BaseLuaTest):
         """
         queries = [
             {
-                'expected': dns.rrset.from_text('true.netmask.example.org.', 0,
-                                       dns.rdataclass.IN, 'TXT',
-                                       '"true"'),
-                'query': dns.message.make_query('true.netmask.example.org', 'TXT')
+                "expected": dns.rrset.from_text("true.netmask.example.org.", 0, dns.rdataclass.IN, "TXT", '"true"'),
+                "query": dns.message.make_query("true.netmask.example.org", "TXT"),
             },
             {
-                'expected': dns.rrset.from_text('false.netmask.example.org.', 0,
-                                       dns.rdataclass.IN, 'TXT',
-                                       '"false"'),
-                'query': dns.message.make_query('false.netmask.example.org', 'TXT')
-            }
+                "expected": dns.rrset.from_text("false.netmask.example.org.", 0, dns.rdataclass.IN, "TXT", '"false"'),
+                "query": dns.message.make_query("false.netmask.example.org", "TXT"),
+            },
         ]
-        for query in queries :
-            res = self.sendUDPQuery(query['query'])
+        for query in queries:
+            res = self.sendUDPQuery(query["query"])
             self.assertRcodeEqual(res, dns.rcode.NOERROR)
-            self.assertRRsetInAnswer(res, query['expected'])
+            self.assertRRsetInAnswer(res, query["expected"])
 
     def testView(self):
         """
@@ -826,28 +807,26 @@ class TestLuaRecords(BaseLuaTest):
         """
         queries = [
             {
-                'expected': dns.rrset.from_text('view.example.org.', 0,
-                                       dns.rdataclass.IN, 'A',
-                                       '{prefix}.54'.format(prefix=self._PREFIX)),
-                'query': dns.message.make_query('view.example.org', 'A')
+                "expected": dns.rrset.from_text(
+                    "view.example.org.", 0, dns.rdataclass.IN, "A", "{prefix}.54".format(prefix=self._PREFIX)
+                ),
+                "query": dns.message.make_query("view.example.org", "A"),
             },
             {
-                'expected': dns.rrset.from_text('txt.view.example.org.', 0,
-                                       dns.rdataclass.IN, 'TXT',
-                                       '"else"'),
-                'query': dns.message.make_query('txt.view.example.org', 'TXT')
-            }
+                "expected": dns.rrset.from_text("txt.view.example.org.", 0, dns.rdataclass.IN, "TXT", '"else"'),
+                "query": dns.message.make_query("txt.view.example.org", "TXT"),
+            },
         ]
-        for query in queries :
-            res = self.sendUDPQuery(query['query'])
+        for query in queries:
+            res = self.sendUDPQuery(query["query"])
             self.assertRcodeEqual(res, dns.rcode.NOERROR)
-            self.assertRRsetInAnswer(res, query['expected'])
+            self.assertRRsetInAnswer(res, query["expected"])
 
     def testViewNoMatch(self):
         """
         view() test where no netmask match
         """
-        query = dns.message.make_query('none.view.example.org', 'A')
+        query = dns.message.make_query("none.view.example.org", "A")
 
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
@@ -858,10 +837,12 @@ class TestLuaRecords(BaseLuaTest):
         Basic pickwhashed() and pickchashed() test with a set of A records
         As the `bestwho` is hashed, we should always get the same answer
         """
-        for qname in ['whashed.example.org.', 'chashed.example.org.']:
-            expected = [dns.rrset.from_text(qname, 0, dns.rdataclass.IN, 'A', '1.2.3.4'),
-                        dns.rrset.from_text(qname, 0, dns.rdataclass.IN, 'A', '4.3.2.1')]
-            query = dns.message.make_query(qname, 'A')
+        for qname in ["whashed.example.org.", "chashed.example.org."]:
+            expected = [
+                dns.rrset.from_text(qname, 0, dns.rdataclass.IN, "A", "1.2.3.4"),
+                dns.rrset.from_text(qname, 0, dns.rdataclass.IN, "A", "4.3.2.1"),
+            ]
+            query = dns.message.make_query(qname, "A")
 
             first = self.sendUDPQuery(query)
             self.assertRcodeEqual(first, dns.rcode.NOERROR)
@@ -879,32 +860,30 @@ class TestLuaRecords(BaseLuaTest):
 
         queries = [
             {
-                'query': dns.message.make_query('test.namehashed.example.org', 'A'),
-                'expected': dns.rrset.from_text('test.namehashed.example.org.', 0,
-                                       dns.rdataclass.IN, 'A',
-                                       '1.2.3.4'),
+                "query": dns.message.make_query("test.namehashed.example.org", "A"),
+                "expected": dns.rrset.from_text("test.namehashed.example.org.", 0, dns.rdataclass.IN, "A", "1.2.3.4"),
             },
             {
-                'query': dns.message.make_query('test2.namehashed.example.org', 'A'),
-                'expected': dns.rrset.from_text('test2.namehashed.example.org.', 0,
-                                       dns.rdataclass.IN, 'A',
-                                       '4.3.2.1'),
-            }
+                "query": dns.message.make_query("test2.namehashed.example.org", "A"),
+                "expected": dns.rrset.from_text("test2.namehashed.example.org.", 0, dns.rdataclass.IN, "A", "4.3.2.1"),
+            },
         ]
-        for query in queries :
-            res = self.sendUDPQuery(query['query'])
+        for query in queries:
+            res = self.sendUDPQuery(query["query"])
             self.assertRcodeEqual(res, dns.rcode.NOERROR)
-            self.assertRRsetInAnswer(res, query['expected'])
+            self.assertRRsetInAnswer(res, query["expected"])
 
     def testCWHashedTxt(self):
         """
         Basic pickwhashed() test with a set of TXT records
         As the `bestwho` is hashed, we should always get the same answer
         """
-        for qname in ['whashed-txt.example.org.', 'chashed-txt.example.org.']:
-            expected = [dns.rrset.from_text(qname, 0, dns.rdataclass.IN, 'TXT', 'bob'),
-                        dns.rrset.from_text(qname, 0, dns.rdataclass.IN, 'TXT', 'alice')]
-            query = dns.message.make_query(qname,'TXT')
+        for qname in ["whashed-txt.example.org.", "chashed-txt.example.org."]:
+            expected = [
+                dns.rrset.from_text(qname, 0, dns.rdataclass.IN, "TXT", "bob"),
+                dns.rrset.from_text(qname, 0, dns.rdataclass.IN, "TXT", "alice"),
+            ]
+            query = dns.message.make_query(qname, "TXT")
 
             first = self.sendUDPQuery(query)
             self.assertRcodeEqual(first, dns.rcode.NOERROR)
@@ -919,9 +898,11 @@ class TestLuaRecords(BaseLuaTest):
         Basic pickhashed() test with a set of A records
         As the `bestwho` is hashed, we should always get the same answer
         """
-        expected = [dns.rrset.from_text('hashed.example.org.', 0, dns.rdataclass.IN, 'A', '1.2.3.4'),
-                    dns.rrset.from_text('hashed.example.org.', 0, dns.rdataclass.IN, 'A', '4.3.2.1')]
-        query = dns.message.make_query('hashed.example.org', 'A')
+        expected = [
+            dns.rrset.from_text("hashed.example.org.", 0, dns.rdataclass.IN, "A", "1.2.3.4"),
+            dns.rrset.from_text("hashed.example.org.", 0, dns.rdataclass.IN, "A", "4.3.2.1"),
+        ]
+        query = dns.message.make_query("hashed.example.org", "A")
 
         first = self.sendUDPQuery(query)
         self.assertRcodeEqual(first, dns.rcode.NOERROR)
@@ -936,9 +917,11 @@ class TestLuaRecords(BaseLuaTest):
         Basic pickhashed() test with a set of AAAA records
         As the `bestwho` is hashed, we should always get the same answer
         """
-        expected = [dns.rrset.from_text('hashed-v6.example.org.', 0, dns.rdataclass.IN, 'AAAA', '2001:db8:a0b:12f0::1'),
-                    dns.rrset.from_text('hashed-v6.example.org.', 0, dns.rdataclass.IN, 'AAAA', 'fe80::2a1:9bff:fe9b:f268')]
-        query = dns.message.make_query('hashed-v6.example.org', 'AAAA')
+        expected = [
+            dns.rrset.from_text("hashed-v6.example.org.", 0, dns.rdataclass.IN, "AAAA", "2001:db8:a0b:12f0::1"),
+            dns.rrset.from_text("hashed-v6.example.org.", 0, dns.rdataclass.IN, "AAAA", "fe80::2a1:9bff:fe9b:f268"),
+        ]
+        query = dns.message.make_query("hashed-v6.example.org", "AAAA")
 
         first = self.sendUDPQuery(query)
         self.assertRcodeEqual(first, dns.rcode.NOERROR)
@@ -953,9 +936,11 @@ class TestLuaRecords(BaseLuaTest):
         Basic pickhashed() test with a set of TXT records
         As the `bestwho` is hashed, we should always get the same answer
         """
-        expected = [dns.rrset.from_text('hashed-txt.example.org.', 0, dns.rdataclass.IN, 'TXT', 'bob'),
-                    dns.rrset.from_text('hashed-txt.example.org.', 0, dns.rdataclass.IN, 'TXT', 'alice')]
-        query = dns.message.make_query('hashed-txt.example.org', 'TXT')
+        expected = [
+            dns.rrset.from_text("hashed-txt.example.org.", 0, dns.rdataclass.IN, "TXT", "bob"),
+            dns.rrset.from_text("hashed-txt.example.org.", 0, dns.rdataclass.IN, "TXT", "alice"),
+        ]
+        query = dns.message.make_query("hashed-txt.example.org", "TXT")
 
         first = self.sendUDPQuery(query)
         self.assertRcodeEqual(first, dns.rcode.NOERROR)
@@ -969,23 +954,22 @@ class TestLuaRecords(BaseLuaTest):
         """
         Test if LUA scripts are aborted if script execution takes too long
         """
-        query = dns.message.make_query('timeout.example.org', 'A')
+        query = dns.message.make_query("timeout.example.org", "A")
 
         first = self.sendUDPQuery(query)
         self.assertRcodeEqual(first, dns.rcode.SERVFAIL)
-
 
     def testA(self):
         """
         Test A query against `any`
         """
-        name = 'any.example.org.'
+        name = "any.example.org."
 
-        query = dns.message.make_query(name, 'A')
+        query = dns.message.make_query(name, "A")
 
         response = dns.message.make_response(query)
 
-        response.answer.append(dns.rrset.from_text(name, 0, dns.rdataclass.IN, dns.rdatatype.A, '192.0.2.1'))
+        response.answer.append(dns.rrset.from_text(name, 0, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1"))
 
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
@@ -996,14 +980,14 @@ class TestLuaRecords(BaseLuaTest):
         Test ANY query against `any`
         """
 
-        name = 'any.example.org.'
+        name = "any.example.org."
 
-        query = dns.message.make_query(name, 'ANY')
+        query = dns.message.make_query(name, "ANY")
 
         response = dns.message.make_response(query)
 
-        response.answer.append(dns.rrset.from_text(name, 0, dns.rdataclass.IN, dns.rdatatype.A, '192.0.2.1'))
-        response.answer.append(dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'TXT', '"hello there"'))
+        response.answer.append(dns.rrset.from_text(name, 0, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1"))
+        response.answer.append(dns.rrset.from_text(name, 0, dns.rdataclass.IN, "TXT", '"hello there"'))
 
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
@@ -1013,23 +997,27 @@ class TestLuaRecords(BaseLuaTest):
         """
         Test newCAFromRaw() function
         """
-        name = 'newcafromraw.example.org.'
+        name = "newcafromraw.example.org."
 
-        query = dns.message.make_query(name, 'A')
+        query = dns.message.make_query(name, "A")
 
         response = dns.message.make_response(query)
 
-        response.answer.append(dns.rrset.from_text(name, 0, dns.rdataclass.IN, dns.rdatatype.A, '65.66.67.68'))
+        response.answer.append(dns.rrset.from_text(name, 0, dns.rdataclass.IN, dns.rdatatype.A, "65.66.67.68"))
 
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertEqual(res.answer, response.answer)
 
-        query = dns.message.make_query(name, 'AAAA')
+        query = dns.message.make_query(name, "AAAA")
 
         response = dns.message.make_response(query)
 
-        response.answer.append(dns.rrset.from_text(name, 0, dns.rdataclass.IN, dns.rdatatype.AAAA, '4142:4344:3032:3033:3430:3530:3630:3730'))
+        response.answer.append(
+            dns.rrset.from_text(
+                name, 0, dns.rdataclass.IN, dns.rdatatype.AAAA, "4142:4344:3032:3033:3430:3530:3630:3730"
+            )
+        )
 
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
@@ -1039,13 +1027,13 @@ class TestLuaRecords(BaseLuaTest):
         """
         Test resolve() function
         """
-        name = 'resolve.example.org.'
+        name = "resolve.example.org."
 
-        query = dns.message.make_query(name, 'A')
+        query = dns.message.make_query(name, "A")
 
         response = dns.message.make_response(query)
 
-        response.answer.append(dns.rrset.from_text(name, 0, dns.rdataclass.IN, dns.rdatatype.A, '127.0.0.1'))
+        response.answer.append(dns.rrset.from_text(name, 0, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1"))
 
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
@@ -1055,9 +1043,9 @@ class TestLuaRecords(BaseLuaTest):
         """
         Test filterForward() function with empty fallback
         """
-        name = 'filterforwardempty.example.org.'
+        name = "filterforwardempty.example.org."
 
-        query = dns.message.make_query(name, 'A')
+        query = dns.message.make_query(name, "A")
 
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
@@ -1065,44 +1053,56 @@ class TestLuaRecords(BaseLuaTest):
 
     def testCreateForwardAndReverse(self):
         expected = {
-            ".createforward.example.org." : (dns.rdatatype.A, {
-                "1.2.3.4": "1.2.3.4",
-                "1.2.3.4.static": "1.2.3.4",
-                "1.2.3.4.5.6": "1.2.3.4",
-                "invalid.1.2.3.4": "0.0.0.0",
-                "invalid": "0.0.0.0",
-                "1-2-3-4": "1.2.3.4",
-                "1-2-3-4.foo": "1.2.3.4",
-                "1-2-3-4.foo.bar": "1.2.3.4",
-                "1-2-3-4.foo.bar.baz": "0.0.0.0",
-                "1-2-3-4.foo.bar.baz.quux": "0.0.0.0",
-                "ip-1-2-3-4": "1.2.3.4",
-                "ip-is-here-for-you-1-2-3-4": "1.2.3.4",
-                "40414243": "64.65.66.67",
-                "p40414243": "64.65.66.67",
-                "ip40414243": "64.65.66.67",
-                "ipp40414243": "64.65.66.67",
-                "ip4041424": "0.0.0.0",
-                "ip-441424": "0.0.0.0",
-                "ip-5abcdef": "0.0.0.0",
-                "host64-22-33-44": "64.22.33.44",
-                "2.2.2.2": "0.0.0.0"   # filtered
-            }),
-            ".createreverse.example.org." : (dns.rdatatype.PTR, {
-                "4.3.2.1": "1-2-3-4.example.com.",
-                "10.10.10.10": "quad10.example.com."   # exception
-            }),
-            ".createforward6.example.org." : (dns.rdatatype.AAAA, {
-                "2001--db8" : "2001::db8",
-                "20010002000300040005000600070db8" : "2001:2:3:4:5:6:7:db8",
-                "blabla20010002000300040005000600070db8" : "2001:2:3:4:5:6:7:db8",
-                "4000-db8--1" : "fe80::1",   # filtered, with fallback address override
-                "l1.l2.l3.l4.l5.l6.l7.l8" : "fe80::1"
-            }),
-            ".createreverse6.example.org." : (dns.rdatatype.PTR, {
-                "8.b.d.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.1.0.0.2" : "2001--db8.example.com.",
-                "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2" : "example.example.com."   # exception
-            })
+            ".createforward.example.org.": (
+                dns.rdatatype.A,
+                {
+                    "1.2.3.4": "1.2.3.4",
+                    "1.2.3.4.static": "1.2.3.4",
+                    "1.2.3.4.5.6": "1.2.3.4",
+                    "invalid.1.2.3.4": "0.0.0.0",
+                    "invalid": "0.0.0.0",
+                    "1-2-3-4": "1.2.3.4",
+                    "1-2-3-4.foo": "1.2.3.4",
+                    "1-2-3-4.foo.bar": "1.2.3.4",
+                    "1-2-3-4.foo.bar.baz": "0.0.0.0",
+                    "1-2-3-4.foo.bar.baz.quux": "0.0.0.0",
+                    "ip-1-2-3-4": "1.2.3.4",
+                    "ip-is-here-for-you-1-2-3-4": "1.2.3.4",
+                    "40414243": "64.65.66.67",
+                    "p40414243": "64.65.66.67",
+                    "ip40414243": "64.65.66.67",
+                    "ipp40414243": "64.65.66.67",
+                    "ip4041424": "0.0.0.0",
+                    "ip-441424": "0.0.0.0",
+                    "ip-5abcdef": "0.0.0.0",
+                    "host64-22-33-44": "64.22.33.44",
+                    "2.2.2.2": "0.0.0.0",  # filtered
+                },
+            ),
+            ".createreverse.example.org.": (
+                dns.rdatatype.PTR,
+                {
+                    "4.3.2.1": "1-2-3-4.example.com.",
+                    "10.10.10.10": "quad10.example.com.",  # exception
+                },
+            ),
+            ".createforward6.example.org.": (
+                dns.rdatatype.AAAA,
+                {
+                    "2001--db8": "2001::db8",
+                    "20010002000300040005000600070db8": "2001:2:3:4:5:6:7:db8",
+                    "blabla20010002000300040005000600070db8": "2001:2:3:4:5:6:7:db8",
+                    "4000-db8--1": "fe80::1",  # filtered, with fallback address override
+                    "l1.l2.l3.l4.l5.l6.l7.l8": "fe80::1",
+                },
+            ),
+            ".createreverse6.example.org.": (
+                dns.rdatatype.PTR,
+                {
+                    "8.b.d.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.1.0.0.2": "2001--db8.example.com.",
+                    "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2": "example.example.com.",  # exception
+                },
+            ),
         }
 
         for suffix, v in expected.items():
@@ -1112,8 +1112,7 @@ class TestLuaRecords(BaseLuaTest):
 
                 query = dns.message.make_query(name, qtype)
                 response = dns.message.make_response(query)
-                response.answer.append(dns.rrset.from_text(
-                    name, 0, dns.rdataclass.IN, qtype, target))
+                response.answer.append(dns.rrset.from_text(name, 0, dns.rdataclass.IN, qtype, target))
 
                 res = self.sendUDPQuery(query)
                 print(res)
@@ -1125,24 +1124,30 @@ class TestLuaRecords(BaseLuaTest):
         Fix #7524
         """
         expected = {
-            ".no-filter.createforward6.example.org." : (dns.rdatatype.AAAA, {
-                "0--0" : "::",
-                "0--1" : "::1",
-                "0aa--0" : "aa::",
-                "0aa--1" : "aa::1",
-                "2001--0" : "2001::",
-                "a-b--c" : "a:b::c",
-                "a--b-c" : "a::b:c"
-            }),
-            ".createreverse6.example.org." : (dns.rdatatype.PTR, {
-                "0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0" : "0--0.example.com.",
-                "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0" : "0--1.example.com.",
-                "0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.a.a.0.0" : "0aa--0.example.com.",
-                "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.a.a.0.0" : "0aa--1.example.com.",
-                "0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.1.0.0.2" : "2001--0.example.com.",
-                "c.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.b.0.0.0.a.0.0.0" : "a-b--c.example.com.",
-                "c.0.0.0.b.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.a.0.0.0" : "a--b-c.example.com."
-            })
+            ".no-filter.createforward6.example.org.": (
+                dns.rdatatype.AAAA,
+                {
+                    "0--0": "::",
+                    "0--1": "::1",
+                    "0aa--0": "aa::",
+                    "0aa--1": "aa::1",
+                    "2001--0": "2001::",
+                    "a-b--c": "a:b::c",
+                    "a--b-c": "a::b:c",
+                },
+            ),
+            ".createreverse6.example.org.": (
+                dns.rdatatype.PTR,
+                {
+                    "0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0": "0--0.example.com.",
+                    "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0": "0--1.example.com.",
+                    "0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.a.a.0.0": "0aa--0.example.com.",
+                    "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.a.a.0.0": "0aa--1.example.com.",
+                    "0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.1.0.0.2": "2001--0.example.com.",
+                    "c.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.b.0.0.0.a.0.0.0": "a-b--c.example.com.",
+                    "c.0.0.0.b.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.a.0.0.0": "a--b-c.example.com.",
+                },
+            ),
         }
 
         for suffix, v in expected.items():
@@ -1152,8 +1157,7 @@ class TestLuaRecords(BaseLuaTest):
 
                 query = dns.message.make_query(name, qtype)
                 response = dns.message.make_response(query)
-                response.answer.append(dns.rrset.from_text(
-                    name, 0, dns.rdataclass.IN, qtype, target))
+                response.answer.append(dns.rrset.from_text(name, 0, dns.rdataclass.IN, qtype, target))
 
                 res = self.sendUDPQuery(query)
                 print(res)
@@ -1164,9 +1168,9 @@ class TestLuaRecords(BaseLuaTest):
         """
         Helper function for shared/non-shared testing
         """
-        name = 'counter.example.org.'
+        name = "counter.example.org."
 
-        query = dns.message.make_query(name, 'TXT')
+        query = dns.message.make_query(name, "TXT")
         responses = []
 
         sender = self.sendTCPQuery if tcp else self.sendUDPQuery
@@ -1175,7 +1179,7 @@ class TestLuaRecords(BaseLuaTest):
             res = sender(query)
             responses.append(res.answer[0][0])
 
-        return(responses)
+        return responses
 
     def testCounter(self):
         """
@@ -1193,13 +1197,13 @@ class TestLuaRecords(BaseLuaTest):
         Test dblookup() function
         """
 
-        name = 'dblookup.example.org.'
+        name = "dblookup.example.org."
 
-        query = dns.message.make_query(name, 'A')
+        query = dns.message.make_query(name, "A")
 
         response = dns.message.make_response(query)
 
-        response.answer.append(dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.5'))
+        response.answer.append(dns.rrset.from_text(name, 0, dns.rdataclass.IN, "A", "192.0.2.5"))
 
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
@@ -1209,13 +1213,17 @@ class TestLuaRecords(BaseLuaTest):
         """
         Test TXT query for whitespace
         """
-        name = 'whitespace.example.org.'
+        name = "whitespace.example.org."
 
-        query = dns.message.make_query(name, 'TXT')
+        query = dns.message.make_query(name, "TXT")
 
         response = dns.message.make_response(query)
 
-        response.answer.append(dns.rrset.from_text(name, 0, dns.rdataclass.IN, dns.rdatatype.TXT, '"foo   bar"' if expectws else '"foobar"'))
+        response.answer.append(
+            dns.rrset.from_text(
+                name, 0, dns.rdataclass.IN, dns.rdatatype.TXT, '"foo   bar"' if expectws else '"foobar"'
+            )
+        )
 
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
@@ -1225,9 +1233,9 @@ class TestLuaRecords(BaseLuaTest):
         """
         Test GeoIPQueryAttribute enum
         """
-        name = 'geoipqueryattribute.example.org.'
+        name = "geoipqueryattribute.example.org."
 
-        query = dns.message.make_query(name, 'TXT')
+        query = dns.message.make_query(name, "TXT")
 
         response = dns.message.make_response(query)
 
@@ -1263,6 +1271,7 @@ lua-health-checks-interval=1
         self.assertEqual(len(resUDP), 50)
         self.assertEqual(len(resTCP), 50)
 
+
 class TestLuaRecordsNoWhiteSpace(TestLuaRecords):
     _config_template = """
 geoip-database-files=../modules/geoipbackend/regression-tests/GeoLiteCity.mmdb
@@ -1277,9 +1286,10 @@ lua-health-checks-interval=1
     def testWhitespace(self):
         return TestLuaRecords.testWhitespace(self, False)
 
+
 class TestLuaRecordsSlowTimeouts(BaseLuaTest):
-     # This configuration is similar to BaseLuaTest, but the health check
-     # interval is increased to 5 seconds.
+    # This configuration is similar to BaseLuaTest, but the health check
+    # interval is increased to 5 seconds.
     _config_template = """
 geoip-database-files=../modules/geoipbackend/regression-tests/GeoLiteCity.mmdb
 edns-subnet-processing=yes
@@ -1294,23 +1304,21 @@ lua-health-checks-interval=5
         """
         Simple ifurlup() test with minimumFailures option set.
         """
-        reachable = [
-            '{prefix}.103'.format(prefix=self._PREFIX)
-        ]
-        unreachable = ['192.168.42.105']
+        reachable = ["{prefix}.103".format(prefix=self._PREFIX)]
+        unreachable = ["192.168.42.105"]
         ips = reachable + unreachable
         all_rrs = []
         reachable_rrs = []
         unreachable_rrs = []
         for ip in ips:
-            rr = dns.rrset.from_text('usa-unreachable.example.org.', 0, dns.rdataclass.IN, 'A', ip)
+            rr = dns.rrset.from_text("usa-unreachable.example.org.", 0, dns.rdataclass.IN, "A", ip)
             all_rrs.append(rr)
             if ip in reachable:
                 reachable_rrs.append(rr)
             else:
                 unreachable_rrs.append(rr)
 
-        query = dns.message.make_query('usa-unreachable.example.org', 'A')
+        query = dns.message.make_query("usa-unreachable.example.org", "A")
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertAnyRRsetInAnswer(res, all_rrs)
@@ -1343,23 +1351,21 @@ lua-health-checks-interval=5
         """
         Simple ifurlup() test with interval option set.
         """
-        reachable = [
-            '{prefix}.103'.format(prefix=self._PREFIX)
-        ]
-        unreachable = ['192.168.42.105']
+        reachable = ["{prefix}.103".format(prefix=self._PREFIX)]
+        unreachable = ["192.168.42.105"]
         ips = reachable + unreachable
         all_rrs = []
         reachable_rrs = []
         unreachable_rrs = []
         for ip in ips:
-            rr = dns.rrset.from_text('usa-slowcheck.example.org.', 0, dns.rdataclass.IN, 'A', ip)
+            rr = dns.rrset.from_text("usa-slowcheck.example.org.", 0, dns.rdataclass.IN, "A", ip)
             all_rrs.append(rr)
             if ip in reachable:
                 reachable_rrs.append(rr)
             else:
                 unreachable_rrs.append(rr)
 
-        query = dns.message.make_query('usa-slowcheck.example.org', 'A')
+        query = dns.message.make_query("usa-slowcheck.example.org", "A")
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertAnyRRsetInAnswer(res, all_rrs)
@@ -1385,13 +1391,13 @@ lua-health-checks-interval=5
         """
         Simple ifurlup() test with failOnIncompleteCheck option set.
         """
-        ips = ['192.168.42.105']
+        ips = ["192.168.42.105"]
         all_rrs = []
         for ip in ips:
-            rr = dns.rrset.from_text('usa-failincomplete.example.org.', 0, dns.rdataclass.IN, 'A', ip)
+            rr = dns.rrset.from_text("usa-failincomplete.example.org.", 0, dns.rdataclass.IN, "A", ip)
             all_rrs.append(rr)
 
-        query = dns.message.make_query('usa-failincomplete.example.org', 'A')
+        query = dns.message.make_query("usa-failincomplete.example.org", "A")
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
 
@@ -1405,9 +1411,10 @@ lua-health-checks-interval=5
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertAnyRRsetInAnswer(res, all_rrs)
 
+
 class TestLuaRecordsExecLimit(BaseLuaTest):
-     # This configuration is similar to BaseLuaTest, but the exec limit is
-     # set to a very low value.
+    # This configuration is similar to BaseLuaTest, but the exec limit is
+    # set to a very low value.
     _config_template = """
 geoip-database-files=../modules/geoipbackend/regression-tests/GeoLiteCity.mmdb
 edns-subnet-processing=yes
@@ -1422,13 +1429,14 @@ lua-records-exec-limit=1
         """
         Test A query against `any`, failing due to exec-limit
         """
-        name = 'any.example.org.'
+        name = "any.example.org."
 
-        query = dns.message.make_query(name, 'A')
+        query = dns.message.make_query(name, "A")
 
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()
     exit(0)

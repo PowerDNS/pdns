@@ -3,12 +3,13 @@ import requests
 
 from recursortests import RecursorTest
 
+
 class APIAllowedRecursorTest(RecursorTest):
-    _confdir = 'APIAllowedRecursor'
+    _confdir = "APIAllowedRecursor"
     _wsPort = 8042
     _wsTimeout = 2
-    _wsPassword = 'secretpassword'
-    _apiKey = 'secretapikey'
+    _wsPassword = "secretpassword"
+    _apiKey = "secretapikey"
 
     _config_template = """
 webserver=yes
@@ -21,19 +22,20 @@ api-key=%s
 
     def testAPI(self):
         self.waitForTCPSocket("127.0.0.1", self._wsPort)
-        headers = {'x-api-key': self._apiKey}
-        url = 'http://127.0.0.1:' + str(self._wsPort) + '/api/v1/servers/localhost/statistics'
+        headers = {"x-api-key": self._apiKey}
+        url = "http://127.0.0.1:" + str(self._wsPort) + "/api/v1/servers/localhost/statistics"
         r = requests.get(url, headers=headers, timeout=self._wsTimeout)
         self.assertTrue(r)
         self.assertEqual(r.status_code, 200)
         self.assertTrue(r.json())
 
+
 class APIDeniedRecursorTest(RecursorTest):
-    _confdir = 'APIDeniedRecursor'
+    _confdir = "APIDeniedRecursor"
     _wsPort = 8042
     _wsTimeout = 2
-    _wsPassword = 'secretpassword'
-    _apiKey = 'secretapikey'
+    _wsPassword = "secretpassword"
+    _apiKey = "secretapikey"
 
     _config_template = """
 webserver=yes
@@ -46,8 +48,8 @@ api-key=%s
 
     def testAPI(self):
         self.waitForTCPSocket("127.0.0.1", self._wsPort)
-        headers = {'x-api-key': self._apiKey}
-        url = 'http://127.0.0.1:' + str(self._wsPort) + '/api/v1/servers/localhost/statistics'
+        headers = {"x-api-key": self._apiKey}
+        url = "http://127.0.0.1:" + str(self._wsPort) + "/api/v1/servers/localhost/statistics"
         try:
             requests.get(url, headers=headers, timeout=self._wsTimeout)
             self.fail()

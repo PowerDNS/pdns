@@ -7,16 +7,13 @@ import paddingoption
 
 from recursortests import RecursorTest
 
-class RecursorEDNSPaddingTest(RecursorTest):
 
-    _confdir = 'RecursorEDNSPadding'
+class RecursorEDNSPaddingTest(RecursorTest):
+    _confdir = "RecursorEDNSPadding"
     _auth_zones = {
-        '8': {'threads': 1,
-              'zones': ['ROOT']},
-        '9': {'threads': 1,
-              'zones': ['secure.example', 'islandofsecurity.example']},
-        '10': {'threads': 1,
-            'zones': ['example']},
+        "8": {"threads": 1, "zones": ["ROOT"]},
+        "9": {"threads": 1, "zones": ["secure.example", "islandofsecurity.example"]},
+        "10": {"threads": 1, "zones": ["example"]},
     }
 
     def checkPadding(self, message, numberOfBytes=None):
@@ -59,66 +56,66 @@ class RecursorEDNSPaddingTest(RecursorTest):
         return message
 
     def testQueryWithoutEDNS(self):
-        name = 'secure.example.'
-        expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.17')
-        query = dns.message.make_query(name, 'A', want_dnssec=False)
+        name = "secure.example."
+        expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, "A", "192.0.2.17")
+        query = dns.message.make_query(name, "A", want_dnssec=False)
         query.flags |= dns.flags.CD
         res = self.sendUDPQuery(query)
         self.checkNoEDNS(res)
         self.assertRRsetInAnswer(res, expected)
 
-class PaddingDefaultTest(RecursorEDNSPaddingTest):
 
-    _confdir = 'PaddingDefault'
+class PaddingDefaultTest(RecursorEDNSPaddingTest):
+    _confdir = "PaddingDefault"
 
     def testQueryWithPadding(self):
-        name = 'secure.example.'
-        expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.17')
+        name = "secure.example."
+        expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, "A", "192.0.2.17")
         po = paddingoption.PaddingOption(64)
-        query = dns.message.make_query(name, 'A', want_dnssec=True, options=[po])
+        query = dns.message.make_query(name, "A", want_dnssec=True, options=[po])
         query.flags |= dns.flags.CD
         res = self.sendUDPQuery(query)
         self.checkNoPadding(res)
         self.assertRRsetInAnswer(res, expected)
 
     def testQueryWithoutPadding(self):
-        name = 'secure.example.'
-        expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.17')
-        query = dns.message.make_query(name, 'A', want_dnssec=True)
+        name = "secure.example."
+        expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, "A", "192.0.2.17")
+        query = dns.message.make_query(name, "A", want_dnssec=True)
         query.flags |= dns.flags.CD
         res = self.sendUDPQuery(query)
         self.checkNoPadding(res)
         self.assertRRsetInAnswer(res, expected)
 
-class PaddingDefaultNotAllowedTest(RecursorEDNSPaddingTest):
 
-    _confdir = 'PaddingDefaultNotAllowed'
+class PaddingDefaultNotAllowedTest(RecursorEDNSPaddingTest):
+    _confdir = "PaddingDefaultNotAllowed"
     _config_template = """edns-padding-from=127.0.0.2
 packetcache-ttl=60
     """
 
     def testQueryWithPadding(self):
-        name = 'secure.example.'
-        expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.17')
+        name = "secure.example."
+        expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, "A", "192.0.2.17")
         po = paddingoption.PaddingOption(64)
-        query = dns.message.make_query(name, 'A', want_dnssec=True, options=[po])
+        query = dns.message.make_query(name, "A", want_dnssec=True, options=[po])
         query.flags |= dns.flags.CD
         res = self.sendUDPQuery(query)
         self.checkNoPadding(res)
         self.assertRRsetInAnswer(res, expected)
 
     def testQueryWithoutPadding(self):
-        name = 'secure.example.'
-        expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.17')
-        query = dns.message.make_query(name, 'A', want_dnssec=True)
+        name = "secure.example."
+        expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, "A", "192.0.2.17")
+        query = dns.message.make_query(name, "A", want_dnssec=True)
         query.flags |= dns.flags.CD
         res = self.sendUDPQuery(query)
         self.checkNoPadding(res)
         self.assertRRsetInAnswer(res, expected)
 
-class PaddingAlwaysTest(RecursorEDNSPaddingTest):
 
-    _confdir = 'PaddingAlways'
+class PaddingAlwaysTest(RecursorEDNSPaddingTest):
+    _confdir = "PaddingAlways"
     _config_template = """edns-padding-from=127.0.0.1
 edns-padding-mode=always
 edns-padding-tag=7830
@@ -156,30 +153,30 @@ packetcache-ttl=60
     """
 
     def testQueryWithPadding(self):
-        name = 'secure.example.'
-        expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.17')
+        name = "secure.example."
+        expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, "A", "192.0.2.17")
         po = paddingoption.PaddingOption(64)
-        query = dns.message.make_query(name, 'A', want_dnssec=True, options=[po])
+        query = dns.message.make_query(name, "A", want_dnssec=True, options=[po])
         query.flags |= dns.flags.CD
         res = self.sendUDPQuery(query)
         self.checkPadding(res)
         self.assertRRsetInAnswer(res, expected)
 
     def testQueryWithPaddingButDisabledViaLua(self):
-        name = 'host1.secure.example.'
-        expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.2')
+        name = "host1.secure.example."
+        expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, "A", "192.0.2.2")
         po = paddingoption.PaddingOption(64)
-        query = dns.message.make_query(name, 'A', want_dnssec=True, options=[po])
+        query = dns.message.make_query(name, "A", want_dnssec=True, options=[po])
         query.flags |= dns.flags.CD
         res = self.sendUDPQuery(query)
         self.checkNoPadding(res)
         self.assertRRsetInAnswer(res, expected)
 
     def testQueryWithPaddingButDisabledViaGettagFFI(self):
-        name = 'host1.sub.secure.example.'
-        expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.11')
+        name = "host1.sub.secure.example."
+        expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, "A", "192.0.2.11")
         po = paddingoption.PaddingOption(64)
-        query = dns.message.make_query(name, 'A', want_dnssec=True, options=[po])
+        query = dns.message.make_query(name, "A", want_dnssec=True, options=[po])
         query.flags |= dns.flags.CD
         query.flags |= dns.flags.RD
         res = self.sendUDPQuery(query)
@@ -187,17 +184,17 @@ packetcache-ttl=60
         self.assertRRsetInAnswer(res, expected)
 
     def testQueryWithoutPadding(self):
-        name = 'secure.example.'
-        expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.17')
-        query = dns.message.make_query(name, 'A', want_dnssec=True)
+        name = "secure.example."
+        expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, "A", "192.0.2.17")
+        query = dns.message.make_query(name, "A", want_dnssec=True)
         query.flags |= dns.flags.CD
         res = self.sendUDPQuery(query)
         self.checkPadding(res)
         self.assertRRsetInAnswer(res, expected)
 
-class PaddingNotAllowedAlwaysTest(RecursorEDNSPaddingTest):
 
-    _confdir = 'PaddingNotAllowedAlways'
+class PaddingNotAllowedAlwaysTest(RecursorEDNSPaddingTest):
+    _confdir = "PaddingNotAllowedAlways"
     _config_template = """edns-padding-from=127.0.0.2
 edns-padding-mode=always
 edns-padding-tag=7830
@@ -205,27 +202,27 @@ packetcache-ttl=60
     """
 
     def testQueryWithPadding(self):
-        name = 'secure.example.'
-        expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.17')
+        name = "secure.example."
+        expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, "A", "192.0.2.17")
         po = paddingoption.PaddingOption(64)
-        query = dns.message.make_query(name, 'A', want_dnssec=True, options=[po])
+        query = dns.message.make_query(name, "A", want_dnssec=True, options=[po])
         query.flags |= dns.flags.CD
         res = self.sendUDPQuery(query)
         self.checkNoPadding(res)
         self.assertRRsetInAnswer(res, expected)
 
     def testQueryWithoutPadding(self):
-        name = 'secure.example.'
-        expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.17')
-        query = dns.message.make_query(name, 'A', want_dnssec=True)
+        name = "secure.example."
+        expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, "A", "192.0.2.17")
+        query = dns.message.make_query(name, "A", want_dnssec=True)
         query.flags |= dns.flags.CD
         res = self.sendUDPQuery(query)
         self.checkNoPadding(res)
         self.assertRRsetInAnswer(res, expected)
 
-class PaddingWhenPaddedTest(RecursorEDNSPaddingTest):
 
-    _confdir = 'PaddingWhenPadded'
+class PaddingWhenPaddedTest(RecursorEDNSPaddingTest):
+    _confdir = "PaddingWhenPadded"
     _config_template = """edns-padding-from=127.0.0.1
 edns-padding-mode=padded-queries-only
 edns-padding-tag=7830
@@ -234,27 +231,27 @@ packetcache-ttl=60
     """
 
     def testQueryWithPadding(self):
-        name = 'secure.example.'
-        expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.17')
+        name = "secure.example."
+        expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, "A", "192.0.2.17")
         po = paddingoption.PaddingOption(64)
-        query = dns.message.make_query(name, 'A', want_dnssec=True, options=[po])
+        query = dns.message.make_query(name, "A", want_dnssec=True, options=[po])
         query.flags |= dns.flags.CD
         res = self.sendUDPQuery(query)
         self.checkPadding(res)
         self.assertRRsetInAnswer(res, expected)
 
     def testQueryWithoutPadding(self):
-        name = 'secure.example.'
-        expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.17')
-        query = dns.message.make_query(name, 'A', want_dnssec=True)
+        name = "secure.example."
+        expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, "A", "192.0.2.17")
+        query = dns.message.make_query(name, "A", want_dnssec=True)
         query.flags |= dns.flags.CD
         res = self.sendUDPQuery(query)
         self.checkNoPadding(res)
         self.assertRRsetInAnswer(res, expected)
 
-class PaddingWhenPaddedNotAllowedTest(RecursorEDNSPaddingTest):
 
-    _confdir = 'PaddingWhenPaddedNotAllowed'
+class PaddingWhenPaddedNotAllowedTest(RecursorEDNSPaddingTest):
+    _confdir = "PaddingWhenPaddedNotAllowed"
     _config_template = """edns-padding-from=127.0.0.2
 edns-padding-mode=padded-queries-only
 edns-padding-tag=7830
@@ -263,31 +260,31 @@ packetcache-ttl=60
     """
 
     def testQueryWithPadding(self):
-        name = 'secure.example.'
-        expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.17')
+        name = "secure.example."
+        expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, "A", "192.0.2.17")
         po = paddingoption.PaddingOption(64)
-        query = dns.message.make_query(name, 'A', want_dnssec=True, options=[po])
+        query = dns.message.make_query(name, "A", want_dnssec=True, options=[po])
         query.flags |= dns.flags.CD
         res = self.sendUDPQuery(query)
         self.checkNoPadding(res)
         self.assertRRsetInAnswer(res, expected)
 
     def testQueryWithoutPadding(self):
-        name = 'secure.example.'
-        expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.17')
-        query = dns.message.make_query(name, 'A', want_dnssec=True)
+        name = "secure.example."
+        expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, "A", "192.0.2.17")
+        query = dns.message.make_query(name, "A", want_dnssec=True)
         query.flags |= dns.flags.CD
         res = self.sendUDPQuery(query)
         self.checkNoPadding(res)
         self.assertRRsetInAnswer(res, expected)
 
-@unittest.skipIf('SKIP_IPV6_TESTS' in os.environ, 'IPv6 tests are disabled')
-class PaddingAllowedAlwaysSameTagTest(RecursorEDNSPaddingTest):
 
+@unittest.skipIf("SKIP_IPV6_TESTS" in os.environ, "IPv6 tests are disabled")
+class PaddingAllowedAlwaysSameTagTest(RecursorEDNSPaddingTest):
     # we use the default tag (0) for padded responses, which will cause
     # the same packet cache entry (with padding ) to be returned to a client
     # not allowed by the edns-padding-from list
-    _confdir = 'PaddingAllowedAlwaysSameTag'
+    _confdir = "PaddingAllowedAlwaysSameTag"
     _config_template = """edns-padding-from=127.0.0.1
 edns-padding-mode=always
 edns-padding-tag=0
@@ -297,34 +294,34 @@ packetcache-ttl=60
 
     @classmethod
     def setUpClass(cls):
-        if 'SKIP_IPV6_TESTS' in os.environ:
-            raise unittest.SkipTest('IPv6 tests are disabled')
+        if "SKIP_IPV6_TESTS" in os.environ:
+            raise unittest.SkipTest("IPv6 tests are disabled")
 
         super(PaddingAllowedAlwaysSameTagTest, cls).setUpClass()
 
     def testQueryWithPadding(self):
-        name = 'secure.example.'
-        expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.17')
+        name = "secure.example."
+        expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, "A", "192.0.2.17")
         po = paddingoption.PaddingOption(64)
-        query = dns.message.make_query(name, 'A', want_dnssec=True, options=[po])
+        query = dns.message.make_query(name, "A", want_dnssec=True, options=[po])
         query.flags |= dns.flags.CD
         res = self.sendUDPQuery(query)
         self.checkPadding(res)
         self.assertRRsetInAnswer(res, expected)
 
-        res = self.sendUDPQueryTo(query, '::1')
+        res = self.sendUDPQueryTo(query, "::1")
         self.checkPadding(res)
         self.assertRRsetInAnswer(res, expected)
 
     def testQueryWithoutPadding(self):
-        name = 'secure.example.'
-        expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.17')
-        query = dns.message.make_query(name, 'A', want_dnssec=True)
+        name = "secure.example."
+        expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, "A", "192.0.2.17")
+        query = dns.message.make_query(name, "A", want_dnssec=True)
         query.flags |= dns.flags.CD
         res = self.sendUDPQuery(query)
         self.checkPadding(res)
         self.assertRRsetInAnswer(res, expected)
 
-        res = self.sendUDPQueryTo(query, '::1')
+        res = self.sendUDPQueryTo(query, "::1")
         self.checkPadding(res)
         self.assertRRsetInAnswer(res, expected)

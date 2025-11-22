@@ -4,10 +4,11 @@ import time
 import dns
 from dnsdisttests import DNSDistTest, pickAvailablePort
 
+
 class TestCacheMissSelfAnswered(DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
-    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
-    _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort']
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _config_params = ["_consoleKeyB64", "_consolePort", "_testServerPort"]
 
     _config_template = """
     setKey("%s")
@@ -26,12 +27,12 @@ class TestCacheMissSelfAnswered(DNSDistTest):
         CacheMiss: Refused when not in cache
         """
         # check that the rule is in place
-        lines = self.sendConsoleCommand('showCacheMissRules()').splitlines()
+        lines = self.sendConsoleCommand("showCacheMissRules()").splitlines()
         self.assertEqual(len(lines), 2)
-        self.assertIn('myFirstRule', lines[1])
+        self.assertIn("myFirstRule", lines[1])
 
-        name = 'refused.cache-miss.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'AAAA', 'IN')
+        name = "refused.cache-miss.tests.powerdns.com."
+        query = dns.message.make_query(name, "AAAA", "IN")
         # dnsdist set RA = RD for spoofed responses
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
@@ -42,17 +43,13 @@ class TestCacheMissSelfAnswered(DNSDistTest):
         self.assertEqual(receivedResponse, expectedResponse)
 
         # now we remove the rule
-        self.sendConsoleCommand('clearCacheMissRules()')
-        lines = self.sendConsoleCommand('showCacheMissRules()').splitlines()
+        self.sendConsoleCommand("clearCacheMissRules()")
+        lines = self.sendConsoleCommand("showCacheMissRules()").splitlines()
         self.assertEqual(len(lines), 1)
 
         # get a response inserted into the cache
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.AAAA,
-                                    '2001:db8::1')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.AAAA, "2001:db8::1")
         response.answer.append(rrset)
         (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response=response)
         self.assertTrue(receivedQuery)
@@ -62,21 +59,24 @@ class TestCacheMissSelfAnswered(DNSDistTest):
         self.assertEqual(receivedResponse, response)
 
         # add the rule back
-        self.sendConsoleCommand('addCacheMissAction(SuffixMatchNodeRule("refused.cache-miss.tests.powerdns.com."), RCodeAction(DNSRCode.REFUSED), {name="myFirstRule"})')
-        lines = self.sendConsoleCommand('showCacheMissRules()').splitlines()
+        self.sendConsoleCommand(
+            'addCacheMissAction(SuffixMatchNodeRule("refused.cache-miss.tests.powerdns.com."), RCodeAction(DNSRCode.REFUSED), {name="myFirstRule"})'
+        )
+        lines = self.sendConsoleCommand("showCacheMissRules()").splitlines()
         self.assertEqual(len(lines), 2)
-        self.assertIn('myFirstRule', lines[1])
+        self.assertIn("myFirstRule", lines[1])
 
         # and check that we do get the cached response
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         self.assertTrue(receivedResponse)
         self.assertEqual(receivedResponse, response)
 
+
 class TestCacheMissGoToADifferentPool(DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
-    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
     _testServer2Port = pickAvailablePort()
-    _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_testServer2Port']
+    _config_params = ["_consoleKeyB64", "_consolePort", "_testServerPort", "_testServer2Port"]
 
     _config_template = """
     setKey("%s")
@@ -100,14 +100,10 @@ class TestCacheMissGoToADifferentPool(DNSDistTest):
         """
         CacheMiss: Routed to a different pool when not in cache
         """
-        name = 'routed-to-slow.cache-miss.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'AAAA', 'IN')
+        name = "routed-to-slow.cache-miss.tests.powerdns.com."
+        query = dns.message.make_query(name, "AAAA", "IN")
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.AAAA,
-                                    '2001:db8::1')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.AAAA, "2001:db8::1")
         response.answer.append(rrset)
 
         # first query goes to the 'slow' server
@@ -123,16 +119,16 @@ class TestCacheMissGoToADifferentPool(DNSDistTest):
         self.assertTrue(receivedResponse)
         self.assertEqual(receivedResponse, response)
 
-        backendLines = self.sendConsoleCommand('showServers()').splitlines(False)
+        backendLines = self.sendConsoleCommand("showServers()").splitlines(False)
         self.assertEqual(len(backendLines), 4)
         for line in backendLines:
-            if line.startswith('#') or line.startswith('All'):
+            if line.startswith("#") or line.startswith("All"):
                 continue
             tokens = line.split()
             self.assertEqual(len(tokens), 15)
             pool = tokens[13]
             queries = int(tokens[9])
-            if pool == 'slow':
+            if pool == "slow":
                 self.assertEqual(queries, 1)
             else:
                 self.assertEqual(queries, 0)

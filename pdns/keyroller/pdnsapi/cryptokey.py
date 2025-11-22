@@ -16,18 +16,14 @@ algo_to_shorthand = {
 
 shorthand_to_algo = {v: k for k, v in algo_to_shorthand.items()}
 
-algo_to_bits = {
-    13: 256,
-    14: 512,
-    15: 32,
-    16: 57.
-}
+algo_to_bits = {13: 256, 14: 512, 15: 32, 16: 57.0}
 
 
 class CryptoKey:
     """
     Represents a CryptoKey from the API
     """
+
     _algo = None
 
     def __init__(self, id, active, keytype, flags=None, algo=None, dnskey=None, ds=None, privatekey=None, **kwargs):
@@ -51,24 +47,33 @@ class CryptoKey:
         self.dnskey = dnskey
         self.ds = ds
         self.privatekey = privatekey
-        self.algo = algo or dnskey.split(' ')[2]
+        self.algo = algo or dnskey.split(" ")[2]
 
     def __repr__(self):
         return 'CryptoKey({id}, {active}, {keytype}, {flags}, {algo}, {dnskey}, {ds}, "{privatekey})'.format(
-            id=self.id, active=self.active, keytype=self.keytype, flags=self.flags, algo=self.algo, dnskey=self.dnskey,
-            ds=self.ds, privatekey=self.privatekey)
+            id=self.id,
+            active=self.active,
+            keytype=self.keytype,
+            flags=self.flags,
+            algo=self.algo,
+            dnskey=self.dnskey,
+            ds=self.ds,
+            privatekey=self.privatekey,
+        )
 
     def __str__(self):
-        return str({
-            'id': self.id,
-            'active': self.active,
-            'keytype': self.keytype,
-            'flags': self.flags,
-            'dnskey': self.dnskey,
-            'ds': self.ds,
-            'privatekey': self.privatekey,
-            'algo': self.algo,
-        })
+        return str(
+            {
+                "id": self.id,
+                "active": self.active,
+                "keytype": self.keytype,
+                "flags": self.flags,
+                "dnskey": self.dnskey,
+                "ds": self.ds,
+                "privatekey": self.privatekey,
+                "algo": self.algo,
+            }
+        )
 
     @property
     def algo(self):
@@ -91,4 +96,3 @@ class CryptoKey:
                 self.algo = shorthand_to_algo.get(val, val)
             return
         raise ValueError("Value is not a str or int, but a {}".format(type(val)))
-

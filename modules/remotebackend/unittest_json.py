@@ -17,11 +17,11 @@ class DNSBackendServer(http.server.HTTPServer):
 
 class DNSBackendHandler(http.server.BaseHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
-        self.handler = kwargs['handler']
+        self.handler = kwargs["handler"]
         super().__init__(*args)
 
     def do_GET(self):
-        if self.path == '/ping':
+        if self.path == "/ping":
             self.send_response(200)
             self.end_headers()
             self.wfile.write("pong".encode())
@@ -34,25 +34,25 @@ class DNSBackendHandler(http.server.BaseHTTPRequestHandler):
             return
 
         try:
-            length = int(self.headers.get('content-length'))
+            length = int(self.headers.get("content-length"))
             message = json.loads(self.rfile.read(length).decode())
 
-            method = "do_" + message['method'].lower()
-            args = message['parameters']
+            method = "do_" + message["method"].lower()
+            args = message["parameters"]
             self.handler.result = False
             self.handler.log = []
 
             if callable(getattr(self.handler, method, None)):
                 getattr(self.handler, method)(**args)
-                result = json.dumps({'result':self.handler.result,'log':self.handler.log}).encode()
+                result = json.dumps({"result": self.handler.result, "log": self.handler.log}).encode()
 
                 self.send_response(200)
-                self.send_header("content-type", "text/javascript");
+                self.send_header("content-type", "text/javascript")
                 self.send_header("content-length", len(result))
                 self.end_headers()
                 self.wfile.write(result)
             else:
-                self.send_error(404, message=json.dumps({'error': 'No such method'}))
+                self.send_error(404, message=json.dumps({"error": "No such method"}))
         except BrokenPipeError as e2:
             raise e2
         except Exception as e:
@@ -60,10 +60,11 @@ class DNSBackendHandler(http.server.BaseHTTPRequestHandler):
 
 
 def main():
-    server = DNSBackendServer(('', 62434), DNSBackendHandler)
+    server = DNSBackendServer(("", 62434), DNSBackendHandler)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
         pass
+
 
 main()

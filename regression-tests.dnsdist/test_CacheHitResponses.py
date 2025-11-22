@@ -4,8 +4,8 @@ import time
 import dns
 from dnsdisttests import DNSDistTest
 
-class TestCacheHitResponses(DNSDistTest):
 
+class TestCacheHitResponses(DNSDistTest):
     _config_template = """
     pc = newPacketCache(100, {maxTTL=86400, minTTL=1})
     getPool(""):setCache(pc)
@@ -18,14 +18,10 @@ class TestCacheHitResponses(DNSDistTest):
         CacheHitResponse: Drop when served from the cache
         """
         ttl = 5
-        name = 'dropwhencached.cachehitresponses.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'AAAA', 'IN')
+        name = "dropwhencached.cachehitresponses.tests.powerdns.com."
+        query = dns.message.make_query(name, "AAAA", "IN")
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    ttl,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.AAAA,
-                                    '::1')
+        rrset = dns.rrset.from_text(name, ttl, dns.rdataclass.IN, dns.rdatatype.AAAA, "::1")
         response.answer.append(rrset)
 
         # first query to fill the cache
@@ -88,11 +84,11 @@ class TestCacheHitResponses(DNSDistTest):
 
         self.assertEqual(total, 2)
 
-class TestStaleCacheHitResponses(DNSDistTest):
 
+class TestStaleCacheHitResponses(DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
-    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
-    _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort']
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _config_params = ["_consoleKeyB64", "_consolePort", "_testServerPort"]
     _config_template = """
     pc = newPacketCache(100, {maxTTL=86400, minTTL=1})
     getPool(""):setCache(pc)
@@ -109,14 +105,10 @@ class TestStaleCacheHitResponses(DNSDistTest):
         CacheHitResponse: Drop when served from the stale cache entry
         """
         ttl = 5
-        name = 'dropstaleentry.cachehitresponses.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'AAAA', 'IN')
+        name = "dropstaleentry.cachehitresponses.tests.powerdns.com."
+        query = dns.message.make_query(name, "AAAA", "IN")
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    ttl,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.AAAA,
-                                    '::1')
+        rrset = dns.rrset.from_text(name, ttl, dns.rdataclass.IN, dns.rdatatype.AAAA, "::1")
         response.answer.append(rrset)
 
         # first query to fill the cache

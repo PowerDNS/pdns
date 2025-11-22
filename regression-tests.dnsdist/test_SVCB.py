@@ -2,8 +2,8 @@
 import dns
 from dnsdisttests import DNSDistTest
 
-class TestSVCB(DNSDistTest):
 
+class TestSVCB(DNSDistTest):
     _config_template = """
     local basicSVC = { newSVCRecordParameters(1, "dot.powerdns.com.", { mandatory={"port"}, alpn={"dot"}, noDefaultAlpn=true, port=853, ipv4hint={ "192.0.2.1" }, ipv6hint={ "2001:db8::1" } }),
                        newSVCRecordParameters(2, "doh.powerdns.com.", { mandatory={"port"}, alpn={"h2"}, port=443, ipv4hint={ "192.0.2.2" }, ipv6hint={ "2001:db8::2" }, key7="/dns-query{?dns}" })
@@ -30,8 +30,8 @@ class TestSVCB(DNSDistTest):
         """
         SVCB: Basic service binding
         """
-        name = 'basic.svcb.tests.powerdns.com.'
-        query = dns.message.make_query(name, 64, 'IN')
+        name = "basic.svcb.tests.powerdns.com."
+        query = dns.message.make_query(name, 64, "IN")
         # dnsdist set RA = RD for spoofed responses
         query.flags &= ~dns.flags.RD
 
@@ -42,17 +42,29 @@ class TestSVCB(DNSDistTest):
             self.assertEqual(len(receivedResponse.answer), 1)
             self.assertEqual(receivedResponse.answer[0].rdtype, 64)
             self.assertEqual(len(receivedResponse.additional), 4)
-            self.assertEqual(receivedResponse.additional[0], dns.rrset.from_text("doh.powerdns.com.", 60, dns.rdataclass.IN, dns.rdatatype.A, '192.0.2.2'))
-            self.assertEqual(receivedResponse.additional[1], dns.rrset.from_text("dot.powerdns.com.", 60, dns.rdataclass.IN, dns.rdatatype.A, '192.0.2.1'))
-            self.assertEqual(receivedResponse.additional[2], dns.rrset.from_text("doh.powerdns.com.", 60, dns.rdataclass.IN, dns.rdatatype.AAAA, '2001:db8::2'))
-            self.assertEqual(receivedResponse.additional[3], dns.rrset.from_text("dot.powerdns.com.", 60, dns.rdataclass.IN, dns.rdatatype.AAAA, '2001:db8::1'))
+            self.assertEqual(
+                receivedResponse.additional[0],
+                dns.rrset.from_text("doh.powerdns.com.", 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.2"),
+            )
+            self.assertEqual(
+                receivedResponse.additional[1],
+                dns.rrset.from_text("dot.powerdns.com.", 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1"),
+            )
+            self.assertEqual(
+                receivedResponse.additional[2],
+                dns.rrset.from_text("doh.powerdns.com.", 60, dns.rdataclass.IN, dns.rdatatype.AAAA, "2001:db8::2"),
+            )
+            self.assertEqual(
+                receivedResponse.additional[3],
+                dns.rrset.from_text("dot.powerdns.com.", 60, dns.rdataclass.IN, dns.rdatatype.AAAA, "2001:db8::1"),
+            )
 
     def testNoHints(self):
         """
         SVCB: No hints
         """
-        name = 'no-hints.svcb.tests.powerdns.com.'
-        query = dns.message.make_query(name, 64, 'IN')
+        name = "no-hints.svcb.tests.powerdns.com."
+        query = dns.message.make_query(name, 64, "IN")
         # dnsdist set RA = RD for spoofed responses
         query.flags &= ~dns.flags.RD
 
@@ -68,8 +80,8 @@ class TestSVCB(DNSDistTest):
         """
         SVCB: Effective target
         """
-        name = 'effective-target.svcb.tests.powerdns.com.'
-        query = dns.message.make_query(name, 64, 'IN')
+        name = "effective-target.svcb.tests.powerdns.com."
+        query = dns.message.make_query(name, 64, "IN")
         # dnsdist set RA = RD for spoofed responses
         query.flags &= ~dns.flags.RD
 
@@ -80,15 +92,21 @@ class TestSVCB(DNSDistTest):
             self.assertEqual(len(receivedResponse.answer), 1)
             self.assertEqual(receivedResponse.answer[0].rdtype, 64)
             self.assertEqual(len(receivedResponse.additional), 2)
-            self.assertEqual(receivedResponse.additional[0], dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, '192.0.2.1'))
-            self.assertEqual(receivedResponse.additional[1], dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.AAAA, '2001:db8::1'))
+            self.assertEqual(
+                receivedResponse.additional[0],
+                dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1"),
+            )
+            self.assertEqual(
+                receivedResponse.additional[1],
+                dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.AAAA, "2001:db8::1"),
+            )
 
     def testHTTPS(self):
         """
         SVCB: HTTPS
         """
-        name = 'https.svcb.tests.powerdns.com.'
-        query = dns.message.make_query(name, 65, 'IN')
+        name = "https.svcb.tests.powerdns.com."
+        query = dns.message.make_query(name, 65, "IN")
         # dnsdist set RA = RD for spoofed responses
         query.flags &= ~dns.flags.RD
 
@@ -99,11 +117,17 @@ class TestSVCB(DNSDistTest):
             self.assertEqual(len(receivedResponse.answer), 1)
             self.assertEqual(receivedResponse.answer[0].rdtype, 65)
             self.assertEqual(len(receivedResponse.additional), 2)
-            self.assertEqual(receivedResponse.additional[0], dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, '192.0.2.2'))
-            self.assertEqual(receivedResponse.additional[1], dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.AAAA, '2001:db8::2'))
+            self.assertEqual(
+                receivedResponse.additional[0],
+                dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.2"),
+            )
+            self.assertEqual(
+                receivedResponse.additional[1],
+                dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.AAAA, "2001:db8::2"),
+            )
+
 
 class TestSVCBViaFFI(DNSDistTest):
-
     _config_template = """
     local ffi = require("ffi")
 
@@ -193,8 +217,8 @@ class TestSVCBViaFFI(DNSDistTest):
         """
         SVCB: Basic service binding
         """
-        name = 'basic.svcb.tests.powerdns.com.'
-        query = dns.message.make_query(name, 64, 'IN')
+        name = "basic.svcb.tests.powerdns.com."
+        query = dns.message.make_query(name, 64, "IN")
         # dnsdist set RA = RD for spoofed responses
         query.flags &= ~dns.flags.RD
 
@@ -205,17 +229,29 @@ class TestSVCBViaFFI(DNSDistTest):
             self.assertEqual(len(receivedResponse.answer), 1)
             self.assertEqual(receivedResponse.answer[0].rdtype, 64)
             self.assertEqual(len(receivedResponse.additional), 4)
-            self.assertEqual(receivedResponse.additional[0], dns.rrset.from_text("doh.powerdns.com.", 60, dns.rdataclass.IN, dns.rdatatype.A, '192.0.2.2'))
-            self.assertEqual(receivedResponse.additional[1], dns.rrset.from_text("dot.powerdns.com.", 60, dns.rdataclass.IN, dns.rdatatype.A, '192.0.2.1'))
-            self.assertEqual(receivedResponse.additional[2], dns.rrset.from_text("doh.powerdns.com.", 60, dns.rdataclass.IN, dns.rdatatype.AAAA, '2001:db8::2'))
-            self.assertEqual(receivedResponse.additional[3], dns.rrset.from_text("dot.powerdns.com.", 60, dns.rdataclass.IN, dns.rdatatype.AAAA, '2001:db8::1'))
+            self.assertEqual(
+                receivedResponse.additional[0],
+                dns.rrset.from_text("doh.powerdns.com.", 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.2"),
+            )
+            self.assertEqual(
+                receivedResponse.additional[1],
+                dns.rrset.from_text("dot.powerdns.com.", 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1"),
+            )
+            self.assertEqual(
+                receivedResponse.additional[2],
+                dns.rrset.from_text("doh.powerdns.com.", 60, dns.rdataclass.IN, dns.rdatatype.AAAA, "2001:db8::2"),
+            )
+            self.assertEqual(
+                receivedResponse.additional[3],
+                dns.rrset.from_text("dot.powerdns.com.", 60, dns.rdataclass.IN, dns.rdatatype.AAAA, "2001:db8::1"),
+            )
 
     def testNoHints(self):
         """
         SVCB: No hints
         """
-        name = 'no-hints.svcb.tests.powerdns.com.'
-        query = dns.message.make_query(name, 64, 'IN')
+        name = "no-hints.svcb.tests.powerdns.com."
+        query = dns.message.make_query(name, 64, "IN")
         # dnsdist set RA = RD for spoofed responses
         query.flags &= ~dns.flags.RD
 
@@ -231,8 +267,8 @@ class TestSVCBViaFFI(DNSDistTest):
         """
         SVCB: Effective target
         """
-        name = 'effective-target.svcb.tests.powerdns.com.'
-        query = dns.message.make_query(name, 64, 'IN')
+        name = "effective-target.svcb.tests.powerdns.com."
+        query = dns.message.make_query(name, 64, "IN")
         # dnsdist set RA = RD for spoofed responses
         query.flags &= ~dns.flags.RD
 
@@ -243,15 +279,21 @@ class TestSVCBViaFFI(DNSDistTest):
             self.assertEqual(len(receivedResponse.answer), 1)
             self.assertEqual(receivedResponse.answer[0].rdtype, 64)
             self.assertEqual(len(receivedResponse.additional), 2)
-            self.assertEqual(receivedResponse.additional[0], dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, '192.0.2.1'))
-            self.assertEqual(receivedResponse.additional[1], dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.AAAA, '2001:db8::1'))
+            self.assertEqual(
+                receivedResponse.additional[0],
+                dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1"),
+            )
+            self.assertEqual(
+                receivedResponse.additional[1],
+                dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.AAAA, "2001:db8::1"),
+            )
 
     def testHTTPS(self):
         """
         SVCB: HTTPS
         """
-        name = 'https.svcb.tests.powerdns.com.'
-        query = dns.message.make_query(name, 65, 'IN')
+        name = "https.svcb.tests.powerdns.com."
+        query = dns.message.make_query(name, 65, "IN")
         # dnsdist set RA = RD for spoofed responses
         query.flags &= ~dns.flags.RD
 
@@ -262,5 +304,11 @@ class TestSVCBViaFFI(DNSDistTest):
             self.assertEqual(len(receivedResponse.answer), 1)
             self.assertEqual(receivedResponse.answer[0].rdtype, 65)
             self.assertEqual(len(receivedResponse.additional), 2)
-            self.assertEqual(receivedResponse.additional[0], dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, '192.0.2.2'))
-            self.assertEqual(receivedResponse.additional[1], dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.AAAA, '2001:db8::2'))
+            self.assertEqual(
+                receivedResponse.additional[0],
+                dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.2"),
+            )
+            self.assertEqual(
+                receivedResponse.additional[1],
+                dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.AAAA, "2001:db8::2"),
+            )
