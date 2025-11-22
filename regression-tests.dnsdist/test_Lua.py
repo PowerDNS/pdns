@@ -6,11 +6,12 @@ import time
 import unittest
 from dnsdisttests import DNSDistTest
 
+
 class TestLuaThread(DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
-    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
 
-    _config_params = ['_consoleKeyB64', '_consolePort']
+    _config_params = ["_consoleKeyB64", "_consolePort"]
     _config_template = """
     setKey("%s")
     controlSocket("127.0.0.1:%d")
@@ -37,10 +38,11 @@ class TestLuaThread(DNSDistTest):
         """
         LuaThread: Test the lua newThread interface
         """
-        count1 = self.sendConsoleCommand('counter')
+        count1 = self.sendConsoleCommand("counter")
         time.sleep(3)
-        count2 = self.sendConsoleCommand('counter')
+        count2 = self.sendConsoleCommand("counter")
         self.assertGreater(count2, count1)
+
 
 class TestLuaDNSHeaderBindings(DNSDistTest):
     _config_template = """
@@ -61,30 +63,24 @@ class TestLuaDNSHeaderBindings(DNSDistTest):
         """
         LuaDNSHeaders: TC
         """
-        name = 'notset.check-tc.lua-dnsheaders.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "notset.check-tc.lua-dnsheaders.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         # dnsdist set RA = RD for spoofed responses
         query.flags &= ~dns.flags.RD
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.CNAME,
-                                    'tc-not-set.check-tc.lua-dnsheaders.tests.powerdns.com.')
+        rrset = dns.rrset.from_text(
+            name, 60, dns.rdataclass.IN, dns.rdatatype.CNAME, "tc-not-set.check-tc.lua-dnsheaders.tests.powerdns.com."
+        )
         response.answer.append(rrset)
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertEqual(response, receivedResponse)
 
-        name = 'set.check-tc.lua-dnsheaders.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "set.check-tc.lua-dnsheaders.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
         query.flags |= dns.flags.TC
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -93,6 +89,7 @@ class TestLuaDNSHeaderBindings(DNSDistTest):
             receivedQuery.id = query.id
             self.assertEqual(query, receivedQuery)
             self.assertEqual(response, receivedResponse)
+
 
 class TestLuaFrontendBindings(DNSDistTest):
     _config_template = """
@@ -120,8 +117,8 @@ class TestLuaFrontendBindings(DNSDistTest):
         """
         LuaFrontendBindings: Test Lua frontend bindings
         """
-        name = 'basic.lua-frontend-bindings.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "basic.lua-frontend-bindings.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         # dnsdist set RA = RD for spoofed responses
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
@@ -130,6 +127,7 @@ class TestLuaFrontendBindings(DNSDistTest):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertEqual(receivedResponse, expectedResponse)
+
 
 class TestLuaPoolBindings(DNSDistTest):
     _config_template = """
@@ -176,8 +174,8 @@ class TestLuaPoolBindings(DNSDistTest):
         """
         LuaPoolBindings: Test Lua pool bindings
         """
-        name = 'basic.lua-pool-bindings.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "basic.lua-pool-bindings.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         # dnsdist set RA = RD for spoofed responses
         query.flags &= ~dns.flags.RD
         response = dns.message.make_response(query)
@@ -186,11 +184,12 @@ class TestLuaPoolBindings(DNSDistTest):
             (_, receivedResponse) = sender(query, response=response)
             self.assertEqual(receivedResponse, response)
 
+
 class TestLuaError(DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
-    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
 
-    _config_params = ['_consoleKeyB64', '_consolePort']
+    _config_params = ["_consoleKeyB64", "_consolePort"]
     _config_template = """
     setKey("%s")
     controlSocket("127.0.0.1:%d")
@@ -203,4 +202,4 @@ class TestLuaError(DNSDistTest):
         LuaError: Test exception handling while debug module is obscured
         """
         res = self.sendConsoleCommand('error("expected" .. " " .. "error")')
-        self.assertIn('expected error', res)
+        self.assertIn("expected error", res)

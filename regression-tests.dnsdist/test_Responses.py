@@ -5,8 +5,8 @@ import dns
 import cookiesoption
 from dnsdisttests import DNSDistTest
 
-class TestResponseRuleNXDelayed(DNSDistTest):
 
+class TestResponseRuleNXDelayed(DNSDistTest):
     _config_template = """
     newServer{address="127.0.0.1:%d"}
     addResponseAction(RCodeRule(DNSRCode.NXDOMAIN), DelayResponseAction(1000))
@@ -20,8 +20,8 @@ class TestResponseRuleNXDelayed(DNSDistTest):
         check that the response delay is longer than 1000 ms
         for a NXDomain response over UDP, shorter for a NoError one.
         """
-        name = 'delayed.responses.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "delayed.responses.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
 
         # NX over UDP
@@ -54,8 +54,8 @@ class TestResponseRuleNXDelayed(DNSDistTest):
         self.assertEqual(response, receivedResponse)
         self.assertLess(end - begin, timedelta(0, 1))
 
-class TestResponseRuleERCode(DNSDistTest):
 
+class TestResponseRuleERCode(DNSDistTest):
     _extraStartupSleep = 1
     _config_template = """
     newServer{address="127.0.0.1:%d"}
@@ -70,8 +70,8 @@ class TestResponseRuleERCode(DNSDistTest):
         check that the response delay is longer than 1000 ms
         for a BADVERS response over UDP, shorter for BADKEY and NoError.
         """
-        name = 'delayed.responses.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "delayed.responses.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
         response.use_edns(edns=True)
 
@@ -106,8 +106,8 @@ class TestResponseRuleERCode(DNSDistTest):
         self.assertEqual(response, receivedResponse)
         self.assertLess(end - begin, timedelta(0, 1))
 
-class TestResponseRuleQNameDropped(DNSDistTest):
 
+class TestResponseRuleQNameDropped(DNSDistTest):
     _config_template = """
     newServer{address="127.0.0.1:%d"}
     addResponseAction("drop.responses.tests.powerdns.com.", DropResponseAction())
@@ -120,8 +120,8 @@ class TestResponseRuleQNameDropped(DNSDistTest):
         Send an A query to "drop.responses.tests.powerdns.com.",
         check that the response (not the query) is dropped.
         """
-        name = 'drop.responses.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "drop.responses.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -138,8 +138,8 @@ class TestResponseRuleQNameDropped(DNSDistTest):
         Send an A query to "dontdrop.responses.tests.powerdns.com.",
         check that the response is not dropped.
         """
-        name = 'dontdrop.responses.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "dontdrop.responses.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -149,8 +149,8 @@ class TestResponseRuleQNameDropped(DNSDistTest):
             self.assertEqual(query, receivedQuery)
             self.assertEqual(response, receivedResponse)
 
-class TestResponseRuleQNameAllowed(DNSDistTest):
 
+class TestResponseRuleQNameAllowed(DNSDistTest):
     _config_template = """
     newServer{address="127.0.0.1:%d"}
     addResponseAction("allow.responses.tests.powerdns.com.", AllowResponseAction())
@@ -164,8 +164,8 @@ class TestResponseRuleQNameAllowed(DNSDistTest):
         Send an A query to "allow.responses.tests.powerdns.com.",
         check that the response is allowed.
         """
-        name = 'allow.responses.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "allow.responses.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -182,8 +182,8 @@ class TestResponseRuleQNameAllowed(DNSDistTest):
         Send an A query to "dontallow.responses.tests.powerdns.com.",
         check that the response is dropped.
         """
-        name = 'dontallow.responses.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "dontallow.responses.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -193,10 +193,10 @@ class TestResponseRuleQNameAllowed(DNSDistTest):
             self.assertEqual(query, receivedQuery)
             self.assertEqual(receivedResponse, None)
 
-class TestResponseRuleEditTTL(DNSDistTest):
 
+class TestResponseRuleEditTTL(DNSDistTest):
     _ttl = 5
-    _config_params = ['_testServerPort', '_ttl']
+    _config_params = ["_testServerPort", "_ttl"]
     _config_template = """
     newServer{address="127.0.0.1:%d"}
 
@@ -216,14 +216,10 @@ class TestResponseRuleEditTTL(DNSDistTest):
         """
         Responses: Alter the TTLs
         """
-        name = 'editttl.responses.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "editttl.responses.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -235,12 +231,12 @@ class TestResponseRuleEditTTL(DNSDistTest):
             self.assertNotEqual(response.answer[0].ttl, receivedResponse.answer[0].ttl)
             self.assertEqual(receivedResponse.answer[0].ttl, self._ttl)
 
-class TestResponseRuleLimitTTL(DNSDistTest):
 
+class TestResponseRuleLimitTTL(DNSDistTest):
     _lowttl = 60
     _defaultttl = 3600
     _highttl = 18000
-    _config_params = ['_lowttl', '_highttl', '_testServerPort']
+    _config_params = ["_lowttl", "_highttl", "_testServerPort"]
     _config_template = """
     local ffi = require("ffi")
     local lowttl = %d
@@ -267,14 +263,10 @@ class TestResponseRuleLimitTTL(DNSDistTest):
         """
         Responses: Alter the TTLs via Limiter
         """
-        name = 'min.responses.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "min.responses.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -286,14 +278,10 @@ class TestResponseRuleLimitTTL(DNSDistTest):
             self.assertNotEqual(response.answer[0].ttl, receivedResponse.answer[0].ttl)
             self.assertEqual(receivedResponse.answer[0].ttl, self._highttl)
 
-        name = 'max.responses.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "max.responses.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -309,14 +297,10 @@ class TestResponseRuleLimitTTL(DNSDistTest):
         """
         Responses: Alter the TTLs via Limiter
         """
-        name = 'ffi.min.responses.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "ffi.min.responses.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -328,14 +312,10 @@ class TestResponseRuleLimitTTL(DNSDistTest):
             self.assertNotEqual(response.answer[0].ttl, receivedResponse.answer[0].ttl)
             self.assertEqual(receivedResponse.answer[0].ttl, self._highttl)
 
-        name = 'ffi.max.responses.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "ffi.max.responses.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -347,11 +327,11 @@ class TestResponseRuleLimitTTL(DNSDistTest):
             self.assertNotEqual(response.answer[0].ttl, receivedResponse.answer[0].ttl)
             self.assertEqual(receivedResponse.answer[0].ttl, self._lowttl)
 
-class TestSetReducedTTL(DNSDistTest):
 
+class TestSetReducedTTL(DNSDistTest):
     _percentage = 42
     _initialTTL = 100
-    _config_params = ['_percentage', '_testServerPort']
+    _config_params = ["_percentage", "_testServerPort"]
     _config_template = """
     addResponseAction(AllRule(), SetReducedTTLResponseAction(%d))
     newServer{address="127.0.0.1:%d"}
@@ -361,14 +341,10 @@ class TestSetReducedTTL(DNSDistTest):
         """
         Responses: Reduce TTL to 42%
         """
-        name = 'reduced-ttl.responses.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "reduced-ttl.responses.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    self._initialTTL,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
+        rrset = dns.rrset.from_text(name, self._initialTTL, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -380,8 +356,8 @@ class TestSetReducedTTL(DNSDistTest):
             self.assertNotEqual(response.answer[0].ttl, receivedResponse.answer[0].ttl)
             self.assertEqual(receivedResponse.answer[0].ttl, self._percentage)
 
-class TestResponseLuaActionReturnSyntax(DNSDistTest):
 
+class TestResponseLuaActionReturnSyntax(DNSDistTest):
     _config_template = """
     newServer{address="127.0.0.1:%d"}
     function customDelay(dr)
@@ -402,8 +378,8 @@ class TestResponseLuaActionReturnSyntax(DNSDistTest):
         check that the response delay is longer than 1000 ms
         for a NXDomain response over UDP, shorter for a NoError one.
         """
-        name = 'delayed.responses.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "delayed.responses.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
 
         # NX over UDP
@@ -423,8 +399,8 @@ class TestResponseLuaActionReturnSyntax(DNSDistTest):
         Send an A query to "drop.responses.tests.powerdns.com.",
         check that the response (not the query) is dropped.
         """
-        name = 'drop.responses.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "drop.responses.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -434,9 +410,9 @@ class TestResponseLuaActionReturnSyntax(DNSDistTest):
             self.assertEqual(query, receivedQuery)
             self.assertEqual(receivedResponse, None)
 
-class TestResponseClearRecordsType(DNSDistTest):
 
-    _config_params = ['_testServerPort']
+class TestResponseClearRecordsType(DNSDistTest):
+    _config_params = ["_testServerPort"]
     _config_template = """
     local ffi = require("ffi")
 
@@ -455,22 +431,14 @@ class TestResponseClearRecordsType(DNSDistTest):
         """
         Responses: Removes records of a given type (FFI API)
         """
-        name = 'ffi.clear-records-type.responses.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "ffi.clear-records-type.responses.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
         expectedResponse = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
         response.answer.append(rrset)
         expectedResponse.answer.append(rrset)
-        rrset = dns.rrset.from_text(name,
-                                    3660,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.AAAA,
-                                    '2001:DB8::1', '2001:DB8::2')
+        rrset = dns.rrset.from_text(name, 3660, dns.rdataclass.IN, dns.rdatatype.AAAA, "2001:DB8::1", "2001:DB8::2")
         response.answer.append(rrset)
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
@@ -483,22 +451,14 @@ class TestResponseClearRecordsType(DNSDistTest):
         """
         Responses: Removes records of a given type
         """
-        name = 'clear-records-type.responses.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "clear-records-type.responses.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
         expectedResponse = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
         response.answer.append(rrset)
         expectedResponse.answer.append(rrset)
-        rrset = dns.rrset.from_text(name,
-                                    3660,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.AAAA,
-                                    '2001:DB8::1', '2001:DB8::2')
+        rrset = dns.rrset.from_text(name, 3660, dns.rdataclass.IN, dns.rdatatype.AAAA, "2001:DB8::1", "2001:DB8::2")
         response.answer.append(rrset)
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
@@ -507,9 +467,9 @@ class TestResponseClearRecordsType(DNSDistTest):
             self.assertEqual(query, receivedQuery)
             self.assertEqual(expectedResponse, receivedResponse)
 
-class TestResponseRewriteServFail(DNSDistTest):
 
-    _config_params = ['_testServerPort']
+class TestResponseRewriteServFail(DNSDistTest):
+    _config_params = ["_testServerPort"]
     _config_template = """
     newServer{address="127.0.0.1:%d"}
 
@@ -527,20 +487,16 @@ class TestResponseRewriteServFail(DNSDistTest):
         """
         Responses: Rewrite AAAA ServFails as NoError (don't ask)
         """
-        name = 'rewrite-servfail.responses.tests.powerdns.com.'
+        name = "rewrite-servfail.responses.tests.powerdns.com."
 
-        query = dns.message.make_query(name, 'AAAA', 'IN')
+        query = dns.message.make_query(name, "AAAA", "IN")
         response = dns.message.make_response(query)
         expectedResponse = dns.message.make_response(query)
 
         response.set_rcode(dns.rcode.SERVFAIL)
         expectedResponse.set_rcode(dns.rcode.NOERROR)
 
-        rrset = dns.rrset.from_text(name,
-                                    3660,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.AAAA,
-                                    '2001:DB8::1', '2001:DB8::2')
+        rrset = dns.rrset.from_text(name, 3660, dns.rdataclass.IN, dns.rdatatype.AAAA, "2001:DB8::1", "2001:DB8::2")
         response.answer.append(rrset)
         expectedResponse.answer.append(rrset)
 
@@ -552,14 +508,10 @@ class TestResponseRewriteServFail(DNSDistTest):
             self.assertEqual(expectedResponse, receivedResponse)
 
         # but ServFail for a different type should stay the same
-        query = dns.message.make_query(name, 'A', 'IN')
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
         response.set_rcode(dns.rcode.SERVFAIL)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
         response.answer.append(rrset)
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
@@ -567,6 +519,7 @@ class TestResponseRewriteServFail(DNSDistTest):
             receivedQuery.id = query.id
             self.assertEqual(query, receivedQuery)
             self.assertEqual(response, receivedResponse)
+
 
 class TestAdvancedSetEDNSOptionResponseAction(DNSDistTest):
     _config_template = """
@@ -578,18 +531,14 @@ class TestAdvancedSetEDNSOptionResponseAction(DNSDistTest):
         """
         Responses: Set EDNS Option in response
         """
-        name = 'setednsoptionresponse.responses.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True)
+        name = "setednsoptionresponse.responses.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN", use_edns=True)
         response = dns.message.make_response(query)
         response.use_edns(edns=True, payload=512)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
-        eco = cookiesoption.CookiesOption(b'deadbeef', b'deadc0de')
+        eco = cookiesoption.CookiesOption(b"deadbeef", b"deadc0de")
         expectedResponse = dns.message.make_response(query)
         expectedResponse.use_edns(edns=True, payload=512, options=[eco])
         expectedResponse.answer.append(rrset)
@@ -607,19 +556,15 @@ class TestAdvancedSetEDNSOptionResponseAction(DNSDistTest):
         """
         Responses: Set EDNS Option in response replaces existing option
         """
-        name = 'setednsoptionresponse-overwrite.responses.tests.powerdns.com.'
-        initialECO = cookiesoption.CookiesOption(b'aaaaaaaa', b'bbbbbbbb')
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True)
+        name = "setednsoptionresponse-overwrite.responses.tests.powerdns.com."
+        initialECO = cookiesoption.CookiesOption(b"aaaaaaaa", b"bbbbbbbb")
+        query = dns.message.make_query(name, "A", "IN", use_edns=True)
         response = dns.message.make_response(query)
         response.use_edns(edns=True, payload=512, options=[initialECO])
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
-        replacementECO = cookiesoption.CookiesOption(b'deadbeef', b'deadc0de')
+        replacementECO = cookiesoption.CookiesOption(b"deadbeef", b"deadc0de")
         expectedResponse = dns.message.make_response(query)
         expectedResponse.use_edns(edns=True, payload=512, options=[replacementECO])
         expectedResponse.answer.append(rrset)
@@ -637,18 +582,14 @@ class TestAdvancedSetEDNSOptionResponseAction(DNSDistTest):
         """
         Responses: Set EDNS Option in response (DO bit set)
         """
-        name = 'setednsoptionresponse-do.responses.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, want_dnssec=True, payload=4096)
+        name = "setednsoptionresponse-do.responses.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, want_dnssec=True, payload=4096)
         response = dns.message.make_response(query)
         response.use_edns(edns=True, payload=1024)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
-        eco = cookiesoption.CookiesOption(b'deadbeef', b'deadc0de')
+        eco = cookiesoption.CookiesOption(b"deadbeef", b"deadc0de")
         expectedResponse = dns.message.make_response(query)
         expectedResponse.use_edns(edns=True, payload=1024, options=[eco])
         expectedResponse.answer.append(rrset)

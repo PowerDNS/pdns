@@ -3,8 +3,8 @@ import dns
 import clientsubnetoption
 from dnsdisttests import DNSDistTest
 
-class TestTags(DNSDistTest):
 
+class TestTags(DNSDistTest):
     _config_template = """
     newServer{address="127.0.0.1:%d"}
 
@@ -46,14 +46,10 @@ class TestTags(DNSDistTest):
         """
         Tag: No match
         """
-        name = 'no-match.tags.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "no-match.tags.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -69,16 +65,12 @@ class TestTags(DNSDistTest):
         """
         Tag: Name and value match
         """
-        name = 'tag-me-dns-1.tags.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "tag-me-dns-1.tags.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         # dnsdist set RA = RD for spoofed responses
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '1.2.3.50')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "1.2.3.50")
         expectedResponse.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -91,16 +83,12 @@ class TestTags(DNSDistTest):
         """
         Tag: Name matches
         """
-        name = 'tag-me-dns-2.tags.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "tag-me-dns-2.tags.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         # dnsdist set RA = RD for spoofed responses
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '1.2.3.100')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "1.2.3.100")
         expectedResponse.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -113,16 +101,12 @@ class TestTags(DNSDistTest):
         """
         Tag: Name matches, and value is exactly empty
         """
-        name = 'tag-me-dns-3.tags.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "tag-me-dns-3.tags.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         # dnsdist set RA = RD for spoofed responses
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '1.2.3.75')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "1.2.3.75")
         expectedResponse.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -135,14 +119,10 @@ class TestTags(DNSDistTest):
         """
         Tag: Tag set on query does not match anything
         """
-        name = 'tag-me-response-2.tags.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "tag-me-response-2.tags.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -158,16 +138,12 @@ class TestTags(DNSDistTest):
         """
         Tag: Tag and value set on query matches on response
         """
-        name = 'tag-me-response-1.tags.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "tag-me-response-1.tags.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         # dnsdist set RA = RD for spoofed responses
         query.flags &= ~dns.flags.RD
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '1.2.3.100')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "1.2.3.100")
         response.answer.append(rrset)
         expectedResponse = dns.message.make_response(query)
         expectedResponse.answer.append(rrset)
@@ -187,16 +163,12 @@ class TestTags(DNSDistTest):
         """
         Tag: Tag set on response matches
         """
-        name = 'tag-me-response-3.tags.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "tag-me-response-3.tags.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         # dnsdist set RA = RD for spoofed responses
         query.flags &= ~dns.flags.RD
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '1.2.3.100')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "1.2.3.100")
         response.answer.append(rrset)
         expectedResponse = dns.message.make_response(query)
         expectedResponse.answer.append(rrset)
@@ -212,8 +184,8 @@ class TestTags(DNSDistTest):
             self.assertEqual(query, receivedQuery)
             self.assertEqual(expectedResponse, receivedResponse)
 
-class TestSetTagAction(DNSDistTest):
 
+class TestSetTagAction(DNSDistTest):
     _config_template = """
     newServer{address="127.0.0.1:%d"}
 
@@ -226,20 +198,15 @@ class TestSetTagAction(DNSDistTest):
     """
 
     def testSetTagDefault(self):
-
         """
         Tag: Test setTag overwrites existing value
         """
-        name = 'tag-me-dns-1.tags.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "tag-me-dns-1.tags.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         # dnsdist set RA = RD for spoofed responses
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '1.2.3.50')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "1.2.3.50")
         expectedResponse.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -249,20 +216,15 @@ class TestSetTagAction(DNSDistTest):
             self.assertEqual(expectedResponse, receivedResponse)
 
     def testSetTagOverwritten(self):
-
         """
         Tag: Test setTag overwrites existing value
         """
-        name = 'tag-me-dns-2.tags.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "tag-me-dns-2.tags.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         # dnsdist set RA = RD for spoofed responses
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '1.2.3.4')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "1.2.3.4")
         expectedResponse.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -271,8 +233,8 @@ class TestSetTagAction(DNSDistTest):
             self.assertTrue(receivedResponse)
             self.assertEqual(expectedResponse, receivedResponse)
 
-class TestSetTag(DNSDistTest):
 
+class TestSetTag(DNSDistTest):
     _config_template = """
     newServer{address="127.0.0.1:%d"}
 
@@ -292,20 +254,15 @@ class TestSetTag(DNSDistTest):
     """
 
     def testSetTagDefault(self):
-
         """
         Tag: Test setTag overwrites existing value
         """
-        name = 'tag-me-dns-1.tags.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "tag-me-dns-1.tags.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         # dnsdist set RA = RD for spoofed responses
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '1.2.3.50')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "1.2.3.50")
         expectedResponse.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -315,20 +272,15 @@ class TestSetTag(DNSDistTest):
             self.assertEqual(expectedResponse, receivedResponse)
 
     def testSetTagOverwritten(self):
-
         """
         Tag: Test setTag overwrites existing value
         """
-        name = 'tag-me-dns-2.tags.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "tag-me-dns-2.tags.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         # dnsdist set RA = RD for spoofed responses
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '1.2.3.4')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "1.2.3.4")
         expectedResponse.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):

@@ -4,8 +4,8 @@ import unittest
 import dns
 from dnsdisttests import DNSDistTest
 
-class TestAdvancedLuaFFI(DNSDistTest):
 
+class TestAdvancedLuaFFI(DNSDistTest):
     _config_template = """
     local ffi = require("ffi")
 
@@ -143,17 +143,13 @@ class TestAdvancedLuaFFI(DNSDistTest):
         """
         Lua FFI: Test the Lua FFI interface
         """
-        name = 'luaffi.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "luaffi.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         # dnsdist set RA = RD for spoofed responses
         query.flags &= ~dns.flags.RD
 
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -165,8 +161,8 @@ class TestAdvancedLuaFFI(DNSDistTest):
         """
         Lua FFI: Test the Lua FFI interface via an update
         """
-        name = 'luaffi.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'SOA', 'IN')
+        name = "luaffi.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "SOA", "IN")
         query.set_opcode(dns.opcode.UPDATE)
         # dnsdist set RA = RD for spoofed responses
         query.flags &= ~dns.flags.RD
@@ -179,8 +175,8 @@ class TestAdvancedLuaFFI(DNSDistTest):
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertEqual(receivedResponse, response)
 
-class TestAdvancedLuaFFIPerThread(DNSDistTest):
 
+class TestAdvancedLuaFFIPerThread(DNSDistTest):
     _config_template = """
 
     local rulefunction = [[
@@ -304,17 +300,13 @@ class TestAdvancedLuaFFIPerThread(DNSDistTest):
         """
         Lua FFI: Test the Lua FFI per-thread interface
         """
-        name = 'luaffiperthread.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "luaffiperthread.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         # dnsdist set RA = RD for spoofed responses
         query.flags &= ~dns.flags.RD
 
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -326,8 +318,8 @@ class TestAdvancedLuaFFIPerThread(DNSDistTest):
         """
         Lua FFI: Test the Lua FFI per-thread interface via an update
         """
-        name = 'luaffiperthread.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'SOA', 'IN')
+        name = "luaffiperthread.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "SOA", "IN")
         query.set_opcode(dns.opcode.UPDATE)
         # dnsdist set RA = RD for spoofed responses
         query.flags &= ~dns.flags.RD
@@ -340,8 +332,8 @@ class TestAdvancedLuaFFIPerThread(DNSDistTest):
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertEqual(receivedResponse, response)
 
-class TestLuaFFIHeader(DNSDistTest):
 
+class TestLuaFFIHeader(DNSDistTest):
     _config_template = """
     local bit = require("bit")
     local ffi = require("ffi")
@@ -378,22 +370,14 @@ class TestLuaFFIHeader(DNSDistTest):
         """
         Lua FFI: Set AA=1
         """
-        name = 'dnsheader-set-aa.luaffi.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "dnsheader-set-aa.luaffi.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
 
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
         response.answer.append(rrset)
         expectedResponse = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
         expectedResponse.answer.append(rrset)
         expectedResponse.flags |= dns.flags.AA
 
@@ -408,15 +392,11 @@ class TestLuaFFIHeader(DNSDistTest):
         """
         Lua FFI: check AA=0, return REFUSED otherwise
         """
-        name = 'dnsheader-get-aa.luaffi.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "dnsheader-get-aa.luaffi.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
 
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
         response.answer.append(rrset)
         response.flags |= dns.flags.AA
         expectedResponse = dns.message.make_response(query)
@@ -431,8 +411,8 @@ class TestLuaFFIHeader(DNSDistTest):
             self.assertEqual(query, receivedQuery)
             self.assertEqual(expectedResponse, receivedResponse)
 
-class TestLuaFFISetAlternateName(DNSDistTest):
 
+class TestLuaFFISetAlternateName(DNSDistTest):
     _config_template = """
     local ffi = require("ffi")
 
@@ -467,25 +447,17 @@ class TestLuaFFISetAlternateName(DNSDistTest):
         """
         Lua FFI: Set alternate name
         """
-        name = 'alternate-name.luaffi.tests.powerdns.com.'
-        alternateName = 'dnsdist.org.'
-        query = dns.message.make_query(name, 'A', 'IN')
-        alternateQuery = dns.message.make_query(alternateName, 'A', 'IN')
+        name = "alternate-name.luaffi.tests.powerdns.com."
+        alternateName = "dnsdist.org."
+        query = dns.message.make_query(name, "A", "IN")
+        alternateQuery = dns.message.make_query(alternateName, "A", "IN")
 
         response = dns.message.make_response(alternateQuery)
-        rrset = dns.rrset.from_text(alternateName,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
+        rrset = dns.rrset.from_text(alternateName, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
         response.answer.append(rrset)
 
         expectedResponse = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
         expectedResponse.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):

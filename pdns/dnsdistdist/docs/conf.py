@@ -30,31 +30,37 @@ import datetime
 #
 # needs_sphinx = '1.0'
 
-sys.path.append(str(Path('.').resolve()))
+sys.path.append(str(Path(".").resolve()))
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ['redjack.sphinx.lua', 'sphinxcontrib.httpdomain', 'sphinxjsondomain',
-              'sphinxcontrib.fulltoc', 'changelog', 'depfile']
-primary_domain = 'lua'
+extensions = [
+    "redjack.sphinx.lua",
+    "sphinxcontrib.httpdomain",
+    "sphinxjsondomain",
+    "sphinxcontrib.fulltoc",
+    "changelog",
+    "depfile",
+]
+primary_domain = "lua"
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
+templates_path = ["_templates"]
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 #
 # source_suffix = ['.rst', '.md']
-source_suffix = '.rst'
+source_suffix = ".rst"
 
 # The master toctree document.
-master_doc = 'index_TOC'
+master_doc = "index_TOC"
 
 # General information about the project.
-project = 'dnsdist'
-copyright = 'PowerDNS.COM BV and its contributors'
-author = 'PowerDNS.COM BV and its contributors'
+project = "dnsdist"
+copyright = "PowerDNS.COM BV and its contributors"
+author = "PowerDNS.COM BV and its contributors"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -75,16 +81,21 @@ language = None
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This patterns also effect to html_static_path and html_extra_path
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', '.venv',
-                    'http-api/override.rst',
-                    'common/zonemetadata.rst',
-                    'common/endpoint-servers-config.rst',
-                    'common/secpoll.rst',
-                    'common/api/*.rst',
-                    'common/tarball-pgp-keys.rst']
+exclude_patterns = [
+    "_build",
+    "Thumbs.db",
+    ".DS_Store",
+    ".venv",
+    "http-api/override.rst",
+    "common/zonemetadata.rst",
+    "common/endpoint-servers-config.rst",
+    "common/secpoll.rst",
+    "common/api/*.rst",
+    "common/tarball-pgp-keys.rst",
+]
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
+pygments_style = "sphinx"
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = False
@@ -95,8 +106,22 @@ changelog_render_ticket = "https://github.com/PowerDNS/pdns/issues/%s"
 changelog_render_pullreq = "https://github.com/PowerDNS/pdns/pull/%s"
 changelog_render_changeset = "https://github.com/PowerDNS/pdns/commit/%s"
 
-changelog_sections = ['New Features', 'Improvements', 'Bug Fixes', 'Removals']
-changelog_inner_tag_sort = ['Security', 'DNS over QUIC', 'DNS over HTTP3', 'DNS over HTTPS', 'DNS over TLS', 'DNSCrypt', 'DNSTAP', 'Protobuf', 'Performance', 'Webserver', 'Metrics', 'Meson', 'YAML']
+changelog_sections = ["New Features", "Improvements", "Bug Fixes", "Removals"]
+changelog_inner_tag_sort = [
+    "Security",
+    "DNS over QUIC",
+    "DNS over HTTP3",
+    "DNS over HTTPS",
+    "DNS over TLS",
+    "DNSCrypt",
+    "DNSTAP",
+    "Protobuf",
+    "Performance",
+    "Webserver",
+    "Metrics",
+    "Meson",
+    "YAML",
+]
 
 changelog_hide_tags_in_entry = True
 
@@ -105,8 +130,8 @@ changelog_hide_tags_in_entry = True
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme_path = ['_templates']
-html_theme = 'pdns_html'
+html_theme_path = ["_templates"]
+html_theme = "pdns_html"
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -117,16 +142,16 @@ html_theme_options = {}
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+html_static_path = ["_static"]
 
-html_favicon = '_static/favicon.ico'
+html_favicon = "_static/favicon.ico"
 
-html_sidebars = { '**': ['searchbox.html', 'relations.html', 'localtoc.html', 'sourcelink.html'] }
+html_sidebars = {"**": ["searchbox.html", "relations.html", "localtoc.html", "sourcelink.html"]}
 
 # -- Options for HTMLHelp output ------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'dnsdistdoc'
+htmlhelp_basename = "dnsdistdoc"
 
 
 # -- Options for LaTeX output ---------------------------------------------
@@ -134,16 +159,13 @@ htmlhelp_basename = 'dnsdistdoc'
 latex_elements = {
     # The paper size ('letterpaper' or 'a4paper').
     #
-    'papersize': 'a4paper',
-
+    "papersize": "a4paper",
     # The font size ('10pt', '11pt' or '12pt').
     #
     # 'pointsize': '10pt',
-
     # Additional stuff for the LaTeX preamble.
     #
     # 'preamble': '',
-
     # Latex figure (float) alignment
     #
     # 'figure_align': 'htbp',
@@ -153,22 +175,17 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'dnsdist.tex', 'dnsdist',
-     'PowerDNS.COM BV', 'manual'),
+    (master_doc, "dnsdist.tex", "dnsdist", "PowerDNS.COM BV", "manual"),
 ]
 
-latex_logo = '_static/powerdns-logo-trans.png'
+latex_logo = "_static/powerdns-logo-trans.png"
 
 
 # -- Options for manual page output ---------------------------------------
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [
-    ('manpages/dnsdist.1', 'dnsdist',
-     'A DNS and DoS aware, scriptable loadbalancer',
-     [author], 1)
-]
+man_pages = [("manpages/dnsdist.1", "dnsdist", "A DNS and DoS aware, scriptable loadbalancer", [author], 1)]
 
 
 # -- Options for Texinfo output -------------------------------------------
@@ -177,11 +194,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'dnsdist', 'dnsdist',
-     author, 'dnsdist', 'One line description of project.',
-     'Miscellaneous'),
+    (master_doc, "dnsdist", "dnsdist", author, "dnsdist", "One line description of project.", "Miscellaneous"),
 ]
-
 
 
 # -- Options for Epub output ----------------------------------------------
@@ -202,7 +216,7 @@ epub_copyright = copyright
 # epub_uid = ''
 
 # A list of files that should not be packed into the epub file.
-epub_exclude_files = ['search.html']
+epub_exclude_files = ["search.html"]
 
-depfile = 'sphinx.d'
-depfile_stamp = 'sphinx.stamp'
+depfile = "sphinx.d"
+depfile_stamp = "sphinx.stamp"

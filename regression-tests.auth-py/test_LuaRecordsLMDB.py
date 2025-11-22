@@ -6,8 +6,9 @@ import subprocess
 
 from authtests import AuthTest
 
+
 class TestLuaRecordsLMDB(AuthTest):
-    _backend = 'lmdb'
+    _backend = "lmdb"
 
     _config_template = """
 launch=lmdb
@@ -15,7 +16,7 @@ enable-lua-records
 """
 
     _zones = {
-        'example.org': """
+        "example.org": """
 example.org.                 3600 IN SOA  {soa}
 example.org.                 3600 IN NS   ns1.example.org.
 example.org.                 3600 IN NS   ns2.example.org.
@@ -39,16 +40,21 @@ nested-lua.example.org.      3600 IN LUA  A   ( ";include('config') "
         Basic pickrandom() test with a set of A records, with a bit of lua inclusion
         """
 
-        expected = [dns.rrset.from_text('nested-lua.example.org.', 0, dns.rdataclass.IN, 'A',
-                                        '{prefix}.101'.format(prefix=self._PREFIX)),
-                    dns.rrset.from_text('nested-lua.example.org.', 0, dns.rdataclass.IN, 'A',
-                                        '{prefix}.102'.format(prefix=self._PREFIX))]
+        expected = [
+            dns.rrset.from_text(
+                "nested-lua.example.org.", 0, dns.rdataclass.IN, "A", "{prefix}.101".format(prefix=self._PREFIX)
+            ),
+            dns.rrset.from_text(
+                "nested-lua.example.org.", 0, dns.rdataclass.IN, "A", "{prefix}.102".format(prefix=self._PREFIX)
+            ),
+        ]
 
-        query = dns.message.make_query('nested-lua.example.org', 'A')
+        query = dns.message.make_query("nested-lua.example.org", "A")
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertAnyRRsetInAnswer(res, expected)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()
     exit(0)

@@ -6,18 +6,19 @@ import os
 from urllib.parse import parse_qs, urlparse
 from pdns_unittest import Handler
 
+
 def run(socket, handler):
     while True:
         message = socket.recv()
         try:
             message = json.loads(message.decode().strip())
-            method = "do_%s" % message['method'].lower()
-            args = message['parameters']
+            method = "do_%s" % message["method"].lower()
+            args = message["parameters"]
             handler.result = False
             handler.log = []
             if callable(getattr(handler, method, None)):
                 getattr(handler, method)(**args)
-                result = json.dumps({'result': handler.result,'log': handler.log})
+                result = json.dumps({"result": handler.result, "log": handler.log})
                 socket.send(result.encode())
         except KeyboardInterrupt as e3:
             return
@@ -25,7 +26,7 @@ def run(socket, handler):
             raise e2
         except Exception as e:
             print(e)
-            socket.send(json.dumps({'result':False}).encode())
+            socket.send(json.dumps({"result": False}).encode())
 
 
 def main():
@@ -41,5 +42,6 @@ def main():
         pass
 
     os.unlink("/tmp/remotebackend.0")
- 
+
+
 main()

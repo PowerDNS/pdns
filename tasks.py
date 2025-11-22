@@ -6,177 +6,171 @@ import requests
 from invoke import task
 from invoke.exceptions import Failure, UnexpectedExit
 
-auth_backend_ip_addr = os.getenv('AUTH_BACKEND_IP_ADDR', '127.0.0.1')
+auth_backend_ip_addr = os.getenv("AUTH_BACKEND_IP_ADDR", "127.0.0.1")
 
-clang_version = os.getenv('CLANG_VERSION', '13')
-repo_home = os.getenv('REPO_HOME', '.')
+clang_version = os.getenv("CLANG_VERSION", "13")
+repo_home = os.getenv("REPO_HOME", ".")
 
 all_build_deps = [
-    'ccache',
-    'libboost-all-dev',
-    'libluajit-5.1-dev',
-    'libsodium-dev',
-    'libssl-dev', # This will install libssl 1.1 on Debian 11 and libssl3 on Debian 12
-    'libsystemd-dev',
-    'libtool',
-    'make',
-    'pkg-config',
-    'python3-venv',
-    'systemd',
+    "ccache",
+    "libboost-all-dev",
+    "libluajit-5.1-dev",
+    "libsodium-dev",
+    "libssl-dev",  # This will install libssl 1.1 on Debian 11 and libssl3 on Debian 12
+    "libsystemd-dev",
+    "libtool",
+    "make",
+    "pkg-config",
+    "python3-venv",
+    "systemd",
 ]
-git_build_deps = [
-    'autoconf',
-    'automake',
-    'bison',
-    'bzip2',
-    'curl',
-    'flex',
-    'git',
-    'ragel'
-]
-auth_build_deps = [    # FIXME: perhaps we should be stealing these from the debian (Ubuntu) control file
-    'default-libmysqlclient-dev',
-    'libcdb-dev',
-    'libcurl4-openssl-dev',
-    'libgeoip-dev',
-    'libkrb5-dev',
-    'libldap2-dev',
-    'liblmdb-dev',
-    'libmaxminddb-dev',
-    'libp11-kit-dev',
-    'libpq-dev',
-    'libsqlite3-dev',
-    'libyaml-cpp-dev',
-    'libzmq3-dev',
-    'python3-venv',
-    'socat',
-    'sqlite3',
-    'unixodbc-dev',
-    'cmake',
+git_build_deps = ["autoconf", "automake", "bison", "bzip2", "curl", "flex", "git", "ragel"]
+auth_build_deps = [  # FIXME: perhaps we should be stealing these from the debian (Ubuntu) control file
+    "default-libmysqlclient-dev",
+    "libcdb-dev",
+    "libcurl4-openssl-dev",
+    "libgeoip-dev",
+    "libkrb5-dev",
+    "libldap2-dev",
+    "liblmdb-dev",
+    "libmaxminddb-dev",
+    "libp11-kit-dev",
+    "libpq-dev",
+    "libsqlite3-dev",
+    "libyaml-cpp-dev",
+    "libzmq3-dev",
+    "python3-venv",
+    "socat",
+    "sqlite3",
+    "unixodbc-dev",
+    "cmake",
 ]
 rec_build_deps = [
-    'libcap-dev',
-    'libfstrm-dev',
-    'libgnutls28-dev',
-    'libsnmp-dev',
+    "libcap-dev",
+    "libfstrm-dev",
+    "libgnutls28-dev",
+    "libsnmp-dev",
 ]
 rec_bulk_deps = [
-    'curl',
-    'bind9-dnsutils',
-    'libboost-all-dev',
-    'libcap2',
-    'libfstrm0',
-    'libluajit-5.1-2',
+    "curl",
+    "bind9-dnsutils",
+    "libboost-all-dev",
+    "libcap2",
+    "libfstrm0",
+    "libluajit-5.1-2",
     '"libsnmp[1-9]+"',
-    'libsodium23',
-    'libsystemd0',
-    'moreutils',
-    'pdns-tools',
-    'unzip',
+    "libsodium23",
+    "libsystemd0",
+    "moreutils",
+    "pdns-tools",
+    "unzip",
 ]
 rec_bulk_ubicloud_deps = [
-    'curl',
-    'bind9-dnsutils',
-    'libboost-context1.74.0',
-    'libboost-system1.74.0',
-    'libboost-filesystem1.74.0',
-    'libcap2',
-    'libfstrm0',
-    'libluajit-5.1-2',
+    "curl",
+    "bind9-dnsutils",
+    "libboost-context1.74.0",
+    "libboost-system1.74.0",
+    "libboost-filesystem1.74.0",
+    "libcap2",
+    "libfstrm0",
+    "libluajit-5.1-2",
     '"libsnmp[1-9]+"',
-    'libsodium23',
-    'libsystemd0',
-    'moreutils',
-    'pdns-tools',
-    'unzip',
+    "libsodium23",
+    "libsystemd0",
+    "moreutils",
+    "pdns-tools",
+    "unzip",
 ]
 dnsdist_build_deps = [
-    'libcap-dev',
-    'libcdb-dev',
-    'libedit-dev',
-    'libfstrm-dev',
-    'libgnutls28-dev',
-    'libh2o-evloop-dev',
-    'liblmdb-dev',
-    'libnghttp2-dev',
-    'libre2-dev',
-    'libsnmp-dev',
+    "libcap-dev",
+    "libcdb-dev",
+    "libedit-dev",
+    "libfstrm-dev",
+    "libgnutls28-dev",
+    "libh2o-evloop-dev",
+    "liblmdb-dev",
+    "libnghttp2-dev",
+    "libre2-dev",
+    "libsnmp-dev",
 ]
 dnsdist_xdp_build_deps = [
-    'libbpf-dev',
-    'libxdp-dev',
+    "libbpf-dev",
+    "libxdp-dev",
 ]
-auth_test_deps = [   # FIXME: we should be generating some of these from shlibdeps in build
-    'authbind',
-    'bc',
-    'bind9utils',
-    'curl',
-    'default-jre-headless',
-    'bind9-dnsutils',
-    'datefudge',
-    'gawk',
-    'krb5-user',
-    'ldnsutils',
+auth_test_deps = [  # FIXME: we should be generating some of these from shlibdeps in build
+    "authbind",
+    "bc",
+    "bind9utils",
+    "curl",
+    "default-jre-headless",
+    "bind9-dnsutils",
+    "datefudge",
+    "gawk",
+    "krb5-user",
+    "ldnsutils",
     '"libboost-serialization1.7[1-9]+"',
-    'libcdb1',
-    'libcurl4',
-    'libgeoip1',
-    'libkrb5-3',
+    "libcdb1",
+    "libcurl4",
+    "libgeoip1",
+    "libkrb5-3",
     '"libldap-2.[1-9]+"',
-    'liblmdb0',
-    'libluajit-5.1-2',
-    'libmaxminddb0',
-    'libnet-dns-perl',
-    'libp11-kit0',
-    'libpq5',
-    'libsodium23',
-    'libsqlite3-dev',
-    'libsystemd0',
+    "liblmdb0",
+    "libluajit-5.1-2",
+    "libmaxminddb0",
+    "libnet-dns-perl",
+    "libp11-kit0",
+    "libpq5",
+    "libsodium23",
+    "libsqlite3-dev",
+    "libsystemd0",
     '"libyaml-cpp0.[1-9]+"',
-    'libzmq3-dev',
-    'lmdb-utils',
-    'prometheus',
-    'python3-venv',
-    'socat',
-    'softhsm2',
-    'unbound-host',
-    'unixodbc',
-    'wget',
+    "libzmq3-dev",
+    "lmdb-utils",
+    "prometheus",
+    "python3-venv",
+    "socat",
+    "softhsm2",
+    "unbound-host",
+    "unixodbc",
+    "wget",
 ]
 doc_deps = [
-    'autoconf',
-    'automake',
-    'bison',
-    'curl',
-    'flex',
-    'g++',
-    'git',
-    'latexmk',
-    'libboost-all-dev',
-    'libedit-dev',
-    'libluajit-5.1-dev',
-    'libssl-dev',
-    'make',
-    'pkg-config',
-    'python3-venv',
-    'ragel',
-    'rsync',
+    "autoconf",
+    "automake",
+    "bison",
+    "curl",
+    "flex",
+    "g++",
+    "git",
+    "latexmk",
+    "libboost-all-dev",
+    "libedit-dev",
+    "libluajit-5.1-dev",
+    "libssl-dev",
+    "make",
+    "pkg-config",
+    "python3-venv",
+    "ragel",
+    "rsync",
 ]
 doc_deps_pdf = [
-    'texlive-binaries',
-    'texlive-formats-extra',
-    'texlive-latex-extra',
+    "texlive-binaries",
+    "texlive-formats-extra",
+    "texlive-latex-extra",
 ]
+
 
 @task
 def apt_fresh(c):
-    c.sudo('apt-get update')
-    c.sudo('apt-get -y --allow-downgrades dist-upgrade')
+    c.sudo("apt-get update")
+    c.sudo("apt-get -y --allow-downgrades dist-upgrade")
+
 
 @task
 def install_lld_linker_if_needed(c):
     if is_compiler_clang():
-        c.sudo(f'apt-get -y --no-install-recommends install lld-{clang_version}')
+        c.sudo(f"apt-get -y --no-install-recommends install lld-{clang_version}")
+
 
 @task
 def install_clang(c):
@@ -184,76 +178,98 @@ def install_clang(c):
     install clang and llvm
     """
     if int(clang_version) >= 14:
-        c.sudo(f'apt-get -y --no-install-recommends install clang-{clang_version} llvm-{clang_version} llvm-{clang_version}-dev libclang-rt-{clang_version}-dev')
+        c.sudo(
+            f"apt-get -y --no-install-recommends install clang-{clang_version} llvm-{clang_version} llvm-{clang_version}-dev libclang-rt-{clang_version}-dev"
+        )
     else:
-        c.sudo(f'apt-get -y --no-install-recommends install clang-{clang_version} llvm-{clang_version} llvm-{clang_version}-dev')
+        c.sudo(
+            f"apt-get -y --no-install-recommends install clang-{clang_version} llvm-{clang_version} llvm-{clang_version}-dev"
+        )
+
 
 @task
 def install_clang_tidy_tools(c):
-    c.sudo(f'apt-get -y --no-install-recommends install clang-tidy-{clang_version} clang-tools-{clang_version} bear python3-yaml')
+    c.sudo(
+        f"apt-get -y --no-install-recommends install clang-tidy-{clang_version} clang-tools-{clang_version} bear python3-yaml"
+    )
+
 
 @task
 def install_clang_runtime(c):
     # this gives us the symbolizer, for symbols in asan/ubsan traces
     # on Debian we need llvm-symbolizer-XX
-    #c.sudo(f'apt-get -y --no-install-recommends install llvm-symbolizer-{clang_version}')
+    # c.sudo(f'apt-get -y --no-install-recommends install llvm-symbolizer-{clang_version}')
     # on Ubuntu we need llvm-XX instead
-    c.sudo(f'apt-get -y --no-install-recommends install llvm-{clang_version}')
+    c.sudo(f"apt-get -y --no-install-recommends install llvm-{clang_version}")
+
 
 @task
 def ci_install_rust(c, repo):
-    with c.cd(f'{repo}/builder-support/helpers/'):
-        c.run('sudo sh install_rust.sh')
+    with c.cd(f"{repo}/builder-support/helpers/"):
+        c.run("sudo sh install_rust.sh")
+
 
 @task
 def install_doc_deps(c):
-    c.sudo('apt-get install -y ' + ' '.join(doc_deps))
+    c.sudo("apt-get install -y " + " ".join(doc_deps))
+
 
 @task
 def install_doc_deps_pdf(c):
-    c.sudo('apt-get install -y ' + ' '.join(doc_deps_pdf))
+    c.sudo("apt-get install -y " + " ".join(doc_deps_pdf))
+
 
 @task
 def install_auth_build_deps(c):
-    c.sudo('apt-get install -y --no-install-recommends ' + ' '.join(all_build_deps + git_build_deps + auth_build_deps))
+    c.sudo("apt-get install -y --no-install-recommends " + " ".join(all_build_deps + git_build_deps + auth_build_deps))
+
 
 def is_coverage_enabled():
-    sanitizers = os.getenv('SANITIZERS')
+    sanitizers = os.getenv("SANITIZERS")
     if sanitizers:
-        sanitizers = sanitizers.split('+')
-        if 'tsan' in sanitizers:
+        sanitizers = sanitizers.split("+")
+        if "tsan" in sanitizers:
             return False
-    return os.getenv('COVERAGE') == 'yes'
+    return os.getenv("COVERAGE") == "yes"
+
 
 def get_coverage(meson=False):
     if meson:
-        return '-Dclang-coverage-format=true' if is_coverage_enabled() else ''
-    return '--enable-coverage=clang' if is_coverage_enabled() else ''
+        return "-Dclang-coverage-format=true" if is_coverage_enabled() else ""
+    return "--enable-coverage=clang" if is_coverage_enabled() else ""
+
 
 @task
 def install_coverage_deps(c):
     if is_coverage_enabled():
-        c.sudo(f'apt-get install -y --no-install-recommends llvm-{clang_version}')
+        c.sudo(f"apt-get install -y --no-install-recommends llvm-{clang_version}")
+
 
 @task
 def generate_coverage_info(c, binary, product, outputDir):
     if is_coverage_enabled():
-        version = os.getenv('BUILDER_VERSION')
-        c.run(f'llvm-profdata-{clang_version} merge -sparse -o {outputDir}/temp.profdata /tmp/code-*.profraw')
-        c.run(f'llvm-cov-{clang_version} export --format=lcov --ignore-filename-regex=\'^/usr/\' --ignore-filename-regex=\'ext/\' -instr-profile={outputDir}/temp.profdata -object {binary} > {outputDir}/coverage.lcov')
-        c.run(f'{outputDir}/.github/scripts/normalize_paths_in_coverage.py {outputDir} {product} {version} {outputDir}/coverage.lcov {outputDir}/normalized_coverage.lcov 0')
-        c.run(f'mv {outputDir}/normalized_coverage.lcov {outputDir}/coverage.lcov')
+        version = os.getenv("BUILDER_VERSION")
+        c.run(f"llvm-profdata-{clang_version} merge -sparse -o {outputDir}/temp.profdata /tmp/code-*.profraw")
+        c.run(
+            f"llvm-cov-{clang_version} export --format=lcov --ignore-filename-regex='^/usr/' --ignore-filename-regex='ext/' -instr-profile={outputDir}/temp.profdata -object {binary} > {outputDir}/coverage.lcov"
+        )
+        c.run(
+            f"{outputDir}/.github/scripts/normalize_paths_in_coverage.py {outputDir} {product} {version} {outputDir}/coverage.lcov {outputDir}/normalized_coverage.lcov 0"
+        )
+        c.run(f"mv {outputDir}/normalized_coverage.lcov {outputDir}/coverage.lcov")
+
 
 def setup_authbind(c):
-    c.sudo('touch /etc/authbind/byport/53')
-    c.sudo('chmod 755 /etc/authbind/byport/53')
-    c.sudo('touch /etc/authbind/byport/!853')
-    c.sudo('chmod 755 /etc/authbind/byport/!853')
+    c.sudo("touch /etc/authbind/byport/53")
+    c.sudo("chmod 755 /etc/authbind/byport/53")
+    c.sudo("touch /etc/authbind/byport/!853")
+    c.sudo("chmod 755 /etc/authbind/byport/!853")
+
 
 auth_backend_test_deps = dict(
-    gsqlite3=['sqlite3'],
-    gmysql=['default-libmysqlclient-dev'],
-    gpgsql=['libpq-dev'],
+    gsqlite3=["sqlite3"],
+    gmysql=["default-libmysqlclient-dev"],
+    gpgsql=["libpq-dev"],
     lmdb=[],
     remote=[],
     bind=[],
@@ -261,63 +277,85 @@ auth_backend_test_deps = dict(
     lua2=[],
     tinydns=[],
     authpy=[],
-    godbc_sqlite3=['libsqliteodbc'],
-    godbc_mssql=['freetds-bin','tdsodbc'],
+    godbc_sqlite3=["libsqliteodbc"],
+    godbc_mssql=["freetds-bin", "tdsodbc"],
     ldap=[],
-    geoip_mmdb=[]
+    geoip_mmdb=[],
 )
 
-@task(help={'backend': 'Backend to install test deps for, e.g. gsqlite3; can be repeated'}, iterable=['backend'], optional=['backend'])
+
+@task(
+    help={"backend": "Backend to install test deps for, e.g. gsqlite3; can be repeated"},
+    iterable=["backend"],
+    optional=["backend"],
+)
 def install_auth_test_deps_only(c, backend):
-    extra=[]
+    extra = []
     for b in backend:
         extra.extend(auth_backend_test_deps[b])
-    c.sudo('apt-get update')
-    c.sudo('DEBIAN_FRONTEND=noninteractive apt-get -y install ' + ' '.join(extra+auth_test_deps))
+    c.sudo("apt-get update")
+    c.sudo("DEBIAN_FRONTEND=noninteractive apt-get -y install " + " ".join(extra + auth_test_deps))
 
-@task(help={'backend': 'Backend to install test deps for, e.g. gsqlite3; can be repeated'}, iterable=['backend'], optional=['backend'])
-def install_auth_test_deps(c, backend): # FIXME: rename this, we do way more than apt-get
+
+@task(
+    help={"backend": "Backend to install test deps for, e.g. gsqlite3; can be repeated"},
+    iterable=["backend"],
+    optional=["backend"],
+)
+def install_auth_test_deps(c, backend):  # FIXME: rename this, we do way more than apt-get
     install_auth_test_deps_only(c, backend)
 
-    c.run('chmod +x /opt/pdns-auth/bin/* /opt/pdns-auth/sbin/*')
+    c.run("chmod +x /opt/pdns-auth/bin/* /opt/pdns-auth/sbin/*")
     # c.run('''if [ ! -e $HOME/bin/jdnssec-verifyzone ]; then
     #               wget https://github.com/dblacka/jdnssec-tools/releases/download/0.14/jdnssec-tools-0.14.tar.gz
     #               tar xfz jdnssec-tools-0.14.tar.gz -C $HOME
     #               rm jdnssec-tools-0.14.tar.gz
     #          fi
     #          echo 'export PATH=$HOME/jdnssec-tools-0.14/bin:$PATH' >> $BASH_ENV''')  # FIXME: why did this fail with no error?
-    c.run('touch regression-tests/tests/verify-dnssec-zone/allow-missing regression-tests.nobackend/rectify-axfr/allow-missing') # FIXME: can this go?
+    c.run(
+        "touch regression-tests/tests/verify-dnssec-zone/allow-missing regression-tests.nobackend/rectify-axfr/allow-missing"
+    )  # FIXME: can this go?
     # FIXME we may want to start a background recursor here to make ALIAS tests more robust
     setup_authbind(c)
 
-@task
-def install_rec_bulk_deps(c): # FIXME: rename this, we do way more than apt-get
-    c.sudo('apt-get --no-install-recommends -y install ' + ' '.join(rec_bulk_deps))
-    c.run('chmod +x /opt/pdns-recursor/bin/* /opt/pdns-recursor/sbin/*')
 
 @task
-def install_rec_bulk_ubicloud_deps(c): # FIXME: rename this, we do way more than apt-get
-    c.sudo('apt-get --no-install-recommends -y install ' + ' '.join(rec_bulk_ubicloud_deps))
-    c.run('chmod +x /opt/pdns-recursor/bin/* /opt/pdns-recursor/sbin/*')
+def install_rec_bulk_deps(c):  # FIXME: rename this, we do way more than apt-get
+    c.sudo("apt-get --no-install-recommends -y install " + " ".join(rec_bulk_deps))
+    c.run("chmod +x /opt/pdns-recursor/bin/* /opt/pdns-recursor/sbin/*")
+
 
 @task
-def install_rec_test_deps(c): # FIXME: rename this, we do way more than apt-get
-    c.sudo('apt-get --no-install-recommends install -y ' + ' '.join(rec_bulk_deps) + ' \
+def install_rec_bulk_ubicloud_deps(c):  # FIXME: rename this, we do way more than apt-get
+    c.sudo("apt-get --no-install-recommends -y install " + " ".join(rec_bulk_ubicloud_deps))
+    c.run("chmod +x /opt/pdns-recursor/bin/* /opt/pdns-recursor/sbin/*")
+
+
+@task
+def install_rec_test_deps(c):  # FIXME: rename this, we do way more than apt-get
+    c.sudo(
+        "apt-get --no-install-recommends install -y "
+        + " ".join(rec_bulk_deps)
+        + " \
               pdns-server pdns-backend-bind daemontools \
               jq libfaketime lua-posix lua-socket bc authbind \
               python3-venv python3-dev default-libmysqlclient-dev libpq-dev \
-              protobuf-compiler snmpd prometheus')
-    c.run('chmod +x /opt/pdns-recursor/bin/* /opt/pdns-recursor/sbin/*')
+              protobuf-compiler snmpd prometheus"
+    )
+    c.run("chmod +x /opt/pdns-recursor/bin/* /opt/pdns-recursor/sbin/*")
 
     setup_authbind(c)
 
-    c.run('sed "s/agentxperms 0700 0755 recursor/agentxperms 0777 0755/g" regression-tests.recursor-dnssec/snmpd.conf | sudo tee /etc/snmp/snmpd.conf')
-    c.sudo('/etc/init.d/snmpd restart')
+    c.run(
+        'sed "s/agentxperms 0700 0755 recursor/agentxperms 0777 0755/g" regression-tests.recursor-dnssec/snmpd.conf | sudo tee /etc/snmp/snmpd.conf'
+    )
+    c.sudo("/etc/init.d/snmpd restart")
     time.sleep(5)
-    c.sudo('chmod 755 /var/agentx')
+    c.sudo("chmod 755 /var/agentx")
 
-@task(optional=['skipXDP'])
-def install_dnsdist_test_deps(c, skipXDP=False): # FIXME: rename this, we do way more than apt-get
+
+@task(optional=["skipXDP"])
+def install_dnsdist_test_deps(c, skipXDP=False):  # FIXME: rename this, we do way more than apt-get
     deps = 'libluajit-5.1-2 \
             libboost-all-dev \
             libcap2 \
@@ -337,259 +375,309 @@ def install_dnsdist_test_deps(c, skipXDP=False): # FIXME: rename this, we do way
             protobuf-compiler \
             python3-venv snmpd prometheus'
     if not skipXDP:
-        deps = deps + '\
+        deps = (
+            deps
+            + "\
                libbpf1 \
-               libxdp1'
+               libxdp1"
+        )
 
-    c.sudo(f'apt-get install -y {deps}')
-    c.run('sed "s/agentxperms 0700 0755 dnsdist/agentxperms 0777 0755/g" regression-tests.dnsdist/snmpd.conf | sudo tee /etc/snmp/snmpd.conf')
-    c.sudo('/etc/init.d/snmpd restart')
+    c.sudo(f"apt-get install -y {deps}")
+    c.run(
+        'sed "s/agentxperms 0700 0755 dnsdist/agentxperms 0777 0755/g" regression-tests.dnsdist/snmpd.conf | sudo tee /etc/snmp/snmpd.conf'
+    )
+    c.sudo("/etc/init.d/snmpd restart")
     time.sleep(5)
-    c.sudo('chmod 755 /var/agentx')
+    c.sudo("chmod 755 /var/agentx")
+
 
 @task
 def install_rec_build_deps(c):
-    c.sudo('apt-get install -y --no-install-recommends ' +  ' '.join(all_build_deps + git_build_deps + rec_build_deps))
+    c.sudo("apt-get install -y --no-install-recommends " + " ".join(all_build_deps + git_build_deps + rec_build_deps))
 
-@task(optional=['skipXDP'])
+
+@task(optional=["skipXDP"])
 def install_dnsdist_build_deps(c, skipXDP=False):
-    c.sudo('apt-get install -y --no-install-recommends ' +  ' '.join(all_build_deps + git_build_deps + dnsdist_build_deps + (dnsdist_xdp_build_deps if not skipXDP else [])))
+    c.sudo(
+        "apt-get install -y --no-install-recommends "
+        + " ".join(
+            all_build_deps + git_build_deps + dnsdist_build_deps + (dnsdist_xdp_build_deps if not skipXDP else [])
+        )
+    )
+
 
 @task
 def ci_autoconf(c, meson=False):
     if not meson:
-        c.run('autoreconf -vfi')
+        c.run("autoreconf -vfi")
+
 
 @task
 def ci_docs_rec_generate(c):
-    c.run('python3 generate.py')
+    c.run("python3 generate.py")
+
 
 @task
 def ci_metrics_rec_generate(c):
-    c.run('python3 metrics.py')
+    c.run("python3 metrics.py")
+
 
 @task
 def ci_docs_dnsdist_generate(c):
-    c.run('python3 dnsdist-settings-documentation-generator.py .')
+    c.run("python3 dnsdist-settings-documentation-generator.py .")
+
 
 @task
 def ci_docs_build(c):
-    c.run('make -f Makefile.sphinx -C docs html')
+    c.run("make -f Makefile.sphinx -C docs html")
+
 
 @task
 def ci_docs_build_pdf(c):
-    c.run('make -f Makefile.sphinx -C docs latexpdf')
+    c.run("make -f Makefile.sphinx -C docs latexpdf")
+
 
 @task
 def ci_docs_upload_master(c, docs_host, pdf, username, product, directory=""):
-    rsync_cmd = " ".join([
-        "rsync",
-        "--checksum",
-        "--recursive",
-        "--verbose",
-        "--no-p",
-        "--chmod=g=rwX",
-        "--exclude '*~'",
-    ])
+    rsync_cmd = " ".join(
+        [
+            "rsync",
+            "--checksum",
+            "--recursive",
+            "--verbose",
+            "--no-p",
+            "--chmod=g=rwX",
+            "--exclude '*~'",
+        ]
+    )
     c.run(f"{rsync_cmd} --delete ./docs/_build/{product}-html-docs/ {username}@{docs_host}:{directory}")
+
 
 @task
 def ci_docs_add_ssh(c, ssh_key, host_key):
-    c.run('mkdir -m 700 -p ~/.ssh')
+    c.run("mkdir -m 700 -p ~/.ssh")
     c.run(f'echo "{ssh_key}" > ~/.ssh/id_ed25519')
-    c.run('chmod 600 ~/.ssh/id_ed25519')
+    c.run("chmod 600 ~/.ssh/id_ed25519")
     c.run(f'echo "{host_key}" > ~/.ssh/known_hosts')
 
 
 def get_sanitizers(meson=False):
-    sanitizers = os.getenv('SANITIZERS', '')
+    sanitizers = os.getenv("SANITIZERS", "")
     if meson:
-        subst = {
-            'tsan': 'thread',
-            'asan': 'address',
-            'ubsan': 'undefined'
-        }
-        meson_sanitizers = ''
-        sanitizers = sanitizers.split('+')
+        subst = {"tsan": "thread", "asan": "address", "ubsan": "undefined"}
+        meson_sanitizers = ""
+        sanitizers = sanitizers.split("+")
         for sanitizer in sanitizers:
             if sanitizer in subst:
-                if meson_sanitizers != '':
-                    meson_sanitizers = meson_sanitizers + ','
+                if meson_sanitizers != "":
+                    meson_sanitizers = meson_sanitizers + ","
                 meson_sanitizers = meson_sanitizers + subst[sanitizer]
             else:
                 meson_sanitizers = meson_sanitizers + sanitizer
 
-        return f'-D b_sanitize={meson_sanitizers}' if meson_sanitizers != '' else ''
-    if sanitizers != '':
-        sanitizers = sanitizers.split('+')
-        sanitizers = ['--enable-' + sanitizer for sanitizer in sanitizers]
-        sanitizers = ' '.join(sanitizers)
+        return f"-D b_sanitize={meson_sanitizers}" if meson_sanitizers != "" else ""
+    if sanitizers != "":
+        sanitizers = sanitizers.split("+")
+        sanitizers = ["--enable-" + sanitizer for sanitizer in sanitizers]
+        sanitizers = " ".join(sanitizers)
     return sanitizers
 
+
 def get_unit_tests(meson=False, auth=False):
-    if os.getenv('UNIT_TESTS') != 'yes':
-        return ''
+    if os.getenv("UNIT_TESTS") != "yes":
+        return ""
     if meson:
-        return '-D unit-tests=true -D unit-tests-backends=true' if auth else '-D unit-tests=true'
-    return '--enable-unit-tests --enable-backend-unit-tests' if auth else '--enable-unit-tests'
+        return "-D unit-tests=true -D unit-tests-backends=true" if auth else "-D unit-tests=true"
+    return "--enable-unit-tests --enable-backend-unit-tests" if auth else "--enable-unit-tests"
+
 
 def get_build_concurrency(default=8):
-    return os.getenv('CONCURRENCY', default)
+    return os.getenv("CONCURRENCY", default)
+
 
 def get_fuzzing_targets(meson=False):
     if meson:
-        return '-D fuzz-targets=true' if os.getenv('FUZZING_TARGETS') == 'yes' else ''
-    return '--enable-fuzz-targets' if os.getenv('FUZZING_TARGETS') == 'yes' else ''
+        return "-D fuzz-targets=true" if os.getenv("FUZZING_TARGETS") == "yes" else ""
+    return "--enable-fuzz-targets" if os.getenv("FUZZING_TARGETS") == "yes" else ""
+
 
 def is_compiler_clang():
-    compiler = os.getenv('COMPILER', 'clang')
-    return compiler == 'clang'
+    compiler = os.getenv("COMPILER", "clang")
+    return compiler == "clang"
+
 
 def get_c_compiler():
-    return f'clang-{clang_version}' if is_compiler_clang() else 'gcc'
+    return f"clang-{clang_version}" if is_compiler_clang() else "gcc"
+
 
 def get_cxx_compiler():
-    return f'clang++-{clang_version}' if is_compiler_clang() else 'g++'
+    return f"clang++-{clang_version}" if is_compiler_clang() else "g++"
+
 
 def get_optimizations():
-    optimizations = os.getenv('OPTIMIZATIONS', 'yes')
-    return '-O1' if optimizations == 'yes' else '-O0'
+    optimizations = os.getenv("OPTIMIZATIONS", "yes")
+    return "-O1" if optimizations == "yes" else "-O0"
+
 
 def get_protections():
-    if platform.machine() in ['aarch64', 'arm64']:
-        return "-fcf-protection=check",
-    return "-fcf-protection=full",
+    if platform.machine() in ["aarch64", "arm64"]:
+        return ("-fcf-protection=check",)
+    return ("-fcf-protection=full",)
 
 
 def get_cflags():
-    return " ".join([
-        get_optimizations(),
-        "-Werror=vla",
-        "-Werror=shadow",
-        "-Wformat=2",
-        "-Werror=format-security",
-        "-fstack-clash-protection",
-        "-fstack-protector-strong",
-        "-Werror=string-plus-int" if is_compiler_clang() else '',
-    ])
+    return " ".join(
+        [
+            get_optimizations(),
+            "-Werror=vla",
+            "-Werror=shadow",
+            "-Wformat=2",
+            "-Werror=format-security",
+            "-fstack-clash-protection",
+            "-fstack-protector-strong",
+            "-Werror=string-plus-int" if is_compiler_clang() else "",
+        ]
+    )
 
 
 def get_cxxflags():
-    return " ".join([
-        get_cflags(),
-        "-Wp,-D_GLIBCXX_ASSERTIONS",
-    ])
+    return " ".join(
+        [
+            get_cflags(),
+            "-Wp,-D_GLIBCXX_ASSERTIONS",
+        ]
+    )
 
 
-def get_base_configure_cmd(additional_c_flags='', additional_cxx_flags='', additional_ld_flags='', enable_systemd=True, enable_sodium=True, out_of_tree_build=False):
+def get_base_configure_cmd(
+    additional_c_flags="",
+    additional_cxx_flags="",
+    additional_ld_flags="",
+    enable_systemd=True,
+    enable_sodium=True,
+    out_of_tree_build=False,
+):
     cflags = " ".join([get_cflags(), additional_c_flags])
     cxxflags = " ".join([get_cxxflags(), additional_cxx_flags])
     ldflags = additional_ld_flags
-    return " ".join([
-        f'CFLAGS="{cflags}"',
-        f'CXXFLAGS="{cxxflags}"',
-        f'LDFLAGS="{ldflags}"',
-        './configure' if not out_of_tree_build else '../configure',
-        f"CC='{get_c_compiler()}'",
-        f"CXX='{get_cxx_compiler()}'",
-        "--enable-option-checking=fatal",
-        "--enable-systemd" if enable_systemd else '',
-        "--with-libsodium" if enable_sodium else '',
-        "--enable-fortify-source=auto",
-        "--enable-auto-var-init=pattern",
-        get_coverage(),
-        get_sanitizers()
-    ])
+    return " ".join(
+        [
+            f'CFLAGS="{cflags}"',
+            f'CXXFLAGS="{cxxflags}"',
+            f'LDFLAGS="{ldflags}"',
+            "./configure" if not out_of_tree_build else "../configure",
+            f"CC='{get_c_compiler()}'",
+            f"CXX='{get_cxx_compiler()}'",
+            "--enable-option-checking=fatal",
+            "--enable-systemd" if enable_systemd else "",
+            "--with-libsodium" if enable_sodium else "",
+            "--enable-fortify-source=auto",
+            "--enable-auto-var-init=pattern",
+            get_coverage(),
+            get_sanitizers(),
+        ]
+    )
 
-def get_base_configure_cmd_meson(build_dir, additional_c_flags='', additional_cxx_flags='', enable_systemd=True, enable_sodium=True, src_dir=''):
+
+def get_base_configure_cmd_meson(
+    build_dir, additional_c_flags="", additional_cxx_flags="", enable_systemd=True, enable_sodium=True, src_dir=""
+):
     cflags = " ".join([get_cflags(), additional_c_flags])
     cxxflags = " ".join([get_cxxflags(), additional_cxx_flags])
-    env = " ".join([
-        f'CFLAGS="{cflags}"',
-        f'CXXFLAGS="{cxxflags}"',
-        f"CC='{get_c_compiler()}'",
-        f"CXX='{get_cxx_compiler()}'"
-    ])
-    return " ".join([
-        f'{env} meson setup {build_dir} {src_dir}',
-        "-D systemd-service={}".format("enabled" if enable_systemd else "disabled"),
-        "-D signers-libsodium={}".format("enabled" if enable_sodium else "disabled"),
-        "-D hardening-fortify-source=auto",
-        "-D auto-var-init=pattern",
-        get_coverage(meson=True),
-        get_sanitizers(meson=True)
-    ])
+    env = " ".join(
+        [f'CFLAGS="{cflags}"', f'CXXFLAGS="{cxxflags}"', f"CC='{get_c_compiler()}'", f"CXX='{get_cxx_compiler()}'"]
+    )
+    return " ".join(
+        [
+            f"{env} meson setup {build_dir} {src_dir}",
+            "-D systemd-service={}".format("enabled" if enable_systemd else "disabled"),
+            "-D signers-libsodium={}".format("enabled" if enable_sodium else "disabled"),
+            "-D hardening-fortify-source=auto",
+            "-D auto-var-init=pattern",
+            get_coverage(meson=True),
+            get_sanitizers(meson=True),
+        ]
+    )
+
 
 def ci_auth_configure_autotools(c):
     unittests = get_unit_tests(auth=True)
     fuzz_targets = get_fuzzing_targets()
-    modules = " ".join([
-        "bind",
-        "geoip",
-        "gmysql",
-        "godbc",
-        "gpgsql",
-        "gsqlite3",
-        "ldap",
-        "lmdb",
-        "lua2",
-        "pipe",
-        "remote",
-        "tinydns",
-    ])
-    configure_cmd = " ".join([
-        get_base_configure_cmd(),
-        "LDFLAGS='-L/usr/local/lib -Wl,-rpath,/usr/local/lib'",
-        f"--with-modules='{modules}'",
-        "--enable-tools",
-        "--enable-dns-over-tls",
-        "--enable-experimental-pkcs11",
-        "--enable-experimental-gss-tsig",
-        "--enable-remotebackend-zeromq",
-        "--enable-verbose-logging",
-        "--with-lmdb=/usr",
-        "--prefix=/opt/pdns-auth",
-        "--enable-ixfrdist",
-        unittests,
-        fuzz_targets
-    ])
+    modules = " ".join(
+        [
+            "bind",
+            "geoip",
+            "gmysql",
+            "godbc",
+            "gpgsql",
+            "gsqlite3",
+            "ldap",
+            "lmdb",
+            "lua2",
+            "pipe",
+            "remote",
+            "tinydns",
+        ]
+    )
+    configure_cmd = " ".join(
+        [
+            get_base_configure_cmd(),
+            "LDFLAGS='-L/usr/local/lib -Wl,-rpath,/usr/local/lib'",
+            f"--with-modules='{modules}'",
+            "--enable-tools",
+            "--enable-dns-over-tls",
+            "--enable-experimental-pkcs11",
+            "--enable-experimental-gss-tsig",
+            "--enable-remotebackend-zeromq",
+            "--enable-verbose-logging",
+            "--with-lmdb=/usr",
+            "--prefix=/opt/pdns-auth",
+            "--enable-ixfrdist",
+            unittests,
+            fuzz_targets,
+        ]
+    )
     res = c.run(configure_cmd, warn=True)
     if res.exited != 0:
-        c.run('cat config.log')
+        c.run("cat config.log")
         raise UnexpectedExit(res)
+
 
 def ci_auth_configure_meson(c, build_dir):
     unittests = get_unit_tests(meson=True, auth=True)
     fuzz_targets = get_fuzzing_targets(meson=True)
-    configure_cmd = " ".join([
-        "LDFLAGS='-L/usr/local/lib -Wl,-rpath,/usr/local/lib'",
-        get_base_configure_cmd_meson(build_dir),
-        "-D module-bind=static",
-        "-D module-geoip=static",
-        "-D module-gmysql=static",
-        "-D module-godbc=static",
-        "-D module-gpgsql=static",
-        "-D module-gsqlite3=static",
-        "-D module-ldap=static",
-        "-D module-lmdb=static",
-        "-D module-lua2=static",
-        "-D module-pipe=static",
-        "-D module-remote=static",
-        "-D module-remote-zeromq=true",
-        "-D module-tinydns=static",
-        "-D tools=true",
-        "-D dns-over-tls=enabled",
-        "-D experimental-pkcs11=enabled",
-        "-D experimental-gss-tsig=enabled",
-        "-D prefix=/opt/pdns-auth",
-        "-D tools-ixfrdist=true",
-        unittests,
-        fuzz_targets
-    ])
+    configure_cmd = " ".join(
+        [
+            "LDFLAGS='-L/usr/local/lib -Wl,-rpath,/usr/local/lib'",
+            get_base_configure_cmd_meson(build_dir),
+            "-D module-bind=static",
+            "-D module-geoip=static",
+            "-D module-gmysql=static",
+            "-D module-godbc=static",
+            "-D module-gpgsql=static",
+            "-D module-gsqlite3=static",
+            "-D module-ldap=static",
+            "-D module-lmdb=static",
+            "-D module-lua2=static",
+            "-D module-pipe=static",
+            "-D module-remote=static",
+            "-D module-remote-zeromq=true",
+            "-D module-tinydns=static",
+            "-D tools=true",
+            "-D dns-over-tls=enabled",
+            "-D experimental-pkcs11=enabled",
+            "-D experimental-gss-tsig=enabled",
+            "-D prefix=/opt/pdns-auth",
+            "-D tools-ixfrdist=true",
+            unittests,
+            fuzz_targets,
+        ]
+    )
     res = c.run(configure_cmd, warn=True)
     if res.exited != 0:
-        c.run(f'cat {build_dir}/meson-logs/meson-log.txt')
+        c.run(f"cat {build_dir}/meson-logs/meson-log.txt")
         raise UnexpectedExit(res)
+
 
 @task
 def ci_auth_configure(c, build_dir=None, meson=False):
@@ -599,92 +687,103 @@ def ci_auth_configure(c, build_dir=None, meson=False):
         ci_auth_configure_autotools(c)
         if build_dir:
             ci_make_distdir(c)
-            with c.cd(f'{build_dir}'):
+            with c.cd(f"{build_dir}"):
                 ci_auth_configure_autotools(c)
 
+
 def ci_rec_configure_meson(c, features, build_dir):
-    builder_version = os.getenv('BUILDER_VERSION')
-    dist_dir = '/tmp/rec-meson-dist-build'
-    c.run(f'meson setup {dist_dir} && meson dist -C {dist_dir} --no-tests')
-    with c.cd(f'{dist_dir}/meson-dist'):
-        c.run(f'tar xf pdns-recursor-{builder_version}.tar.xz')
-    src_dir = f'{dist_dir}/meson-dist/pdns-recursor-{builder_version}'
+    builder_version = os.getenv("BUILDER_VERSION")
+    dist_dir = "/tmp/rec-meson-dist-build"
+    c.run(f"meson setup {dist_dir} && meson dist -C {dist_dir} --no-tests")
+    with c.cd(f"{dist_dir}/meson-dist"):
+        c.run(f"tar xf pdns-recursor-{builder_version}.tar.xz")
+    src_dir = f"{dist_dir}/meson-dist/pdns-recursor-{builder_version}"
 
     unittests = get_unit_tests(meson=True, auth=False)
     if features == "full":
-        configure_cmd = " ".join([
-            "LDFLAGS='-L/usr/local/lib -Wl,-rpath,/usr/local/lib'",
-            get_base_configure_cmd_meson(build_dir, src_dir=src_dir),
-            "-D prefix=/opt/pdns-recursor",
-            "-D dns-over-tls=enabled",
-            "-D tls-libssl=enabled",
-            "-D tls-gnutls=enabled",
-            "-D nod=enabled",
-            "-D libcap=enabled",
-            "-D lua=luajit",
-            "-D snmp=enabled",
-            unittests,
-        ])
+        configure_cmd = " ".join(
+            [
+                "LDFLAGS='-L/usr/local/lib -Wl,-rpath,/usr/local/lib'",
+                get_base_configure_cmd_meson(build_dir, src_dir=src_dir),
+                "-D prefix=/opt/pdns-recursor",
+                "-D dns-over-tls=enabled",
+                "-D tls-libssl=enabled",
+                "-D tls-gnutls=enabled",
+                "-D nod=enabled",
+                "-D libcap=enabled",
+                "-D lua=luajit",
+                "-D snmp=enabled",
+                unittests,
+            ]
+        )
     else:
-        configure_cmd = " ".join([
-            "LDFLAGS='-L/usr/local/lib -Wl,-rpath,/usr/local/lib'",
-            get_base_configure_cmd_meson(build_dir, src_dir=src_dir),
-            "-D prefix=/opt/pdns-recursor",
-            "-D dnstap=disabled",
-            "-D dns-over-tls=disabled",
-            "-D tls-libssl=disabled",
-            "-D tls-gnutls=disabled",
-            "-D nod=disabled",
-            "-D systemd-service=disabled",
-            "-D lua=luajit",
-            "-D libcap=disabled",
-            "-D libcurl=disabled",
-            "-D signers-libsodium=disabled",
-            "-D snmp=disabled",
-            unittests,
-        ])
+        configure_cmd = " ".join(
+            [
+                "LDFLAGS='-L/usr/local/lib -Wl,-rpath,/usr/local/lib'",
+                get_base_configure_cmd_meson(build_dir, src_dir=src_dir),
+                "-D prefix=/opt/pdns-recursor",
+                "-D dnstap=disabled",
+                "-D dns-over-tls=disabled",
+                "-D tls-libssl=disabled",
+                "-D tls-gnutls=disabled",
+                "-D nod=disabled",
+                "-D systemd-service=disabled",
+                "-D lua=luajit",
+                "-D libcap=disabled",
+                "-D libcurl=disabled",
+                "-D signers-libsodium=disabled",
+                "-D snmp=disabled",
+                unittests,
+            ]
+        )
     res = c.run(configure_cmd, warn=True)
     if res.exited != 0:
-        c.run(f'cat {build_dir}/meson-logs/meson-log.txt')
+        c.run(f"cat {build_dir}/meson-logs/meson-log.txt")
         raise UnexpectedExit(res)
+
 
 def ci_rec_configure_autotools(c, features, build_dir=None):
     unittests = get_unit_tests()
     out_of_tree_build = build_dir is not None
-    if features == 'full':
-        configure_cmd = " ".join([
-            get_base_configure_cmd(out_of_tree_build=out_of_tree_build),
-            "--prefix=/opt/pdns-recursor",
-            "--enable-option-checking",
-            "--enable-verbose-logging",
-            "--enable-dns-over-tls",
-            "--enable-nod",
-            "--with-libcap",
-            "--with-lua=luajit",
-            "--with-net-snmp",
-            unittests,
-        ])
+    if features == "full":
+        configure_cmd = " ".join(
+            [
+                get_base_configure_cmd(out_of_tree_build=out_of_tree_build),
+                "--prefix=/opt/pdns-recursor",
+                "--enable-option-checking",
+                "--enable-verbose-logging",
+                "--enable-dns-over-tls",
+                "--enable-nod",
+                "--with-libcap",
+                "--with-lua=luajit",
+                "--with-net-snmp",
+                unittests,
+            ]
+        )
     else:
-        configure_cmd = " ".join([
-            get_base_configure_cmd(out_of_tree_build=out_of_tree_build),
-            "--prefix=/opt/pdns-recursor",
-            "--enable-option-checking",
-            "--enable-verbose-logging",
-            "--disable-dns-over-tls",
-            "--disable-dnstap",
-            "--disable-nod",
-            "--disable-systemd",
-            "--with-lua=luajit",
-            "--without-libcap",
-            "--without-libcurl",
-            "--without-libsodium",
-            "--without-net-snmp",
-            unittests,
-        ])
+        configure_cmd = " ".join(
+            [
+                get_base_configure_cmd(out_of_tree_build=out_of_tree_build),
+                "--prefix=/opt/pdns-recursor",
+                "--enable-option-checking",
+                "--enable-verbose-logging",
+                "--disable-dns-over-tls",
+                "--disable-dnstap",
+                "--disable-nod",
+                "--disable-systemd",
+                "--with-lua=luajit",
+                "--without-libcap",
+                "--without-libcurl",
+                "--without-libsodium",
+                "--without-net-snmp",
+                unittests,
+            ]
+        )
     res = c.run(configure_cmd, warn=True)
     if res.exited != 0:
-        c.run('cat config.log')
+        c.run("cat config.log")
         raise UnexpectedExit(res)
+
 
 @task
 def ci_rec_configure(c, features, build_dir=None, meson=False):
@@ -692,21 +791,22 @@ def ci_rec_configure(c, features, build_dir=None, meson=False):
         ci_rec_configure_meson(c, features, build_dir)
     else:
         if build_dir:
-            c.run(f'mkdir -p {build_dir}')
-            with c.cd(f'{build_dir}'):
+            c.run(f"mkdir -p {build_dir}")
+            with c.cd(f"{build_dir}"):
                 ci_rec_configure_autotools(c, features, build_dir)
         else:
             ci_rec_configure_autotools(c, features)
 
+
 @task
 def ci_dnsdist_configure(c, features, builder, build_dir):
-    additional_flags = ''
-    additional_ld_flags = ''
+    additional_flags = ""
+    additional_ld_flags = ""
     if is_compiler_clang():
-        additional_ld_flags += '-fuse-ld=lld '
+        additional_ld_flags += "-fuse-ld=lld "
 
-    if features == 'least':
-        additional_flags = '-DDISABLE_COMPLETION \
+    if features == "least":
+        additional_flags = "-DDISABLE_COMPLETION \
                             -DDISABLE_DELAY_PIPE \
                             -DDISABLE_DYNBLOCKS \
                             -DDISABLE_PROMETHEUS \
@@ -736,23 +836,24 @@ def ci_dnsdist_configure(c, features, builder, build_dir):
                             -DDISABLE_OCSP_STAPLING \
                             -DDISABLE_HASHED_CREDENTIALS \
                             -DDISABLE_FALSE_SHARING_PADDING \
-                            -DDISABLE_NPN'
+                            -DDISABLE_NPN"
 
-    if builder == 'meson':
+    if builder == "meson":
         cmd = ci_dnsdist_configure_meson(c, features, additional_flags, additional_ld_flags, build_dir)
-        logfile = 'meson-logs/meson-log.txt'
+        logfile = "meson-logs/meson-log.txt"
     else:
         cmd = ci_dnsdist_configure_autotools(features, additional_flags, additional_ld_flags, build_dir)
-        logfile = 'config.log'
+        logfile = "config.log"
 
     res = c.run(cmd, warn=True)
     if res.exited != 0:
-        c.run(f'cat {logfile}')
+        c.run(f"cat {logfile}")
         raise UnexpectedExit(res)
 
+
 def ci_dnsdist_configure_autotools(features, additional_flags, additional_ld_flags, build_dir):
-    if features == 'full':
-      features_set = '--enable-dnstap \
+    if features == "full":
+        features_set = "--enable-dnstap \
                       --enable-dnscrypt \
                       --enable-dns-over-tls \
                       --enable-dns-over-https \
@@ -768,9 +869,9 @@ def ci_dnsdist_configure_autotools(features, additional_flags, additional_ld_fla
                       --with-libcap \
                       --with-net-snmp \
                       --with-nghttp2 \
-                      --with-re2'
+                      --with-re2"
     else:
-      features_set = '--disable-dnstap \
+        features_set = "--disable-dnstap \
                       --disable-dnscrypt \
                       --disable-ipcipher \
                       --disable-systemd \
@@ -783,24 +884,34 @@ def ci_dnsdist_configure_autotools(features, additional_flags, additional_ld_fla
                       --without-lmdb \
                       --without-net-snmp \
                       --without-nghttp2 \
-                      --without-re2'
+                      --without-re2"
     unittests = get_unit_tests()
     fuzztargets = get_fuzzing_targets()
-    tools = f'''AR=llvm-ar-{clang_version} RANLIB=llvm-ranlib-{clang_version}''' if is_compiler_clang() else ''
-    out_of_tree_build = build_dir != ''
-    return " ".join([
-        tools,
-        get_base_configure_cmd(additional_c_flags='', additional_cxx_flags=additional_flags, additional_ld_flags=additional_ld_flags, enable_systemd=False, enable_sodium=False, out_of_tree_build=out_of_tree_build),
-        features_set,
-        unittests,
-        fuzztargets,
-        '--enable-lto=thin',
-        '--prefix=/opt/dnsdist'
-    ])
+    tools = f"""AR=llvm-ar-{clang_version} RANLIB=llvm-ranlib-{clang_version}""" if is_compiler_clang() else ""
+    out_of_tree_build = build_dir != ""
+    return " ".join(
+        [
+            tools,
+            get_base_configure_cmd(
+                additional_c_flags="",
+                additional_cxx_flags=additional_flags,
+                additional_ld_flags=additional_ld_flags,
+                enable_systemd=False,
+                enable_sodium=False,
+                out_of_tree_build=out_of_tree_build,
+            ),
+            features_set,
+            unittests,
+            fuzztargets,
+            "--enable-lto=thin",
+            "--prefix=/opt/dnsdist",
+        ]
+    )
+
 
 def ci_dnsdist_configure_meson(c, features, additional_flags, additional_ld_flags, build_dir):
-    if features == 'full':
-      features_set = '-D cdb=enabled \
+    if features == "full":
+        features_set = "-D cdb=enabled \
                       -D dnscrypt=enabled \
                       -D dnstap=enabled \
                       -D ebpf=enabled \
@@ -820,9 +931,9 @@ def ci_dnsdist_configure_meson(c, features, additional_flags, additional_ld_flag
                       -D dns-over-tls=enabled \
                       -D reproducible=true \
                       -D snmp=enabled \
-                      -D yaml=enabled'
+                      -D yaml=enabled"
     else:
-      features_set = '-D cdb=disabled \
+        features_set = "-D cdb=disabled \
                       -D dnscrypt=disabled \
                       -D dnstap=disabled \
                       -D ebpf=disabled \
@@ -842,50 +953,58 @@ def ci_dnsdist_configure_meson(c, features, additional_flags, additional_ld_flag
                       -D dns-over-tls=disabled \
                       -D reproducible=false \
                       -D snmp=disabled \
-                      -D yaml=disabled'
+                      -D yaml=disabled"
     unittests = get_unit_tests(meson=True)
     fuzztargets = get_fuzzing_targets(meson=True)
-    tools = f'''AR=llvm-ar-{clang_version} RANLIB=llvm-ranlib-{clang_version}''' if is_compiler_clang() else ''
+    tools = f"""AR=llvm-ar-{clang_version} RANLIB=llvm-ranlib-{clang_version}""" if is_compiler_clang() else ""
     cflags = " ".join([get_cflags()])
     cxxflags = " ".join([get_cxxflags(), additional_flags])
-    env = " ".join([
-        tools,
-        f'CFLAGS="{cflags}"',
-        f'LDFLAGS="{additional_ld_flags}"',
-        f'CXXFLAGS="{cxxflags}"',
-        f"CC='{get_c_compiler()}'",
-        f"CXX='{get_cxx_compiler()}'",
-    ])
+    env = " ".join(
+        [
+            tools,
+            f'CFLAGS="{cflags}"',
+            f'LDFLAGS="{additional_ld_flags}"',
+            f'CXXFLAGS="{cxxflags}"',
+            f"CC='{get_c_compiler()}'",
+            f"CXX='{get_cxx_compiler()}'",
+        ]
+    )
 
-    builder_version = os.getenv('BUILDER_VERSION')
-    dist_dir = '/tmp/dnsdist-meson-dist-build'
+    builder_version = os.getenv("BUILDER_VERSION")
+    dist_dir = "/tmp/dnsdist-meson-dist-build"
 
-    c.run(f'. {repo_home}/.venv/bin/activate && meson setup {dist_dir} && meson dist -C {dist_dir} --no-tests')
-    with c.cd(f'{dist_dir}/meson-dist/'):
-        c.run(f'tar xf dnsdist-{builder_version}.tar.xz')
+    c.run(f". {repo_home}/.venv/bin/activate && meson setup {dist_dir} && meson dist -C {dist_dir} --no-tests")
+    with c.cd(f"{dist_dir}/meson-dist/"):
+        c.run(f"tar xf dnsdist-{builder_version}.tar.xz")
 
-    src_dir = f'{dist_dir}/meson-dist/dnsdist-{builder_version}'
-    return " ".join([
-        f'. {repo_home}/.venv/bin/activate && {env} meson setup {build_dir} {src_dir}',
-        features_set,
-        unittests,
-        fuzztargets,
-        "-D hardening-fortify-source=auto",
-        "-D auto-var-init=pattern",
-        get_coverage(meson=True),
-        get_sanitizers(meson=True)
-    ])
+    src_dir = f"{dist_dir}/meson-dist/dnsdist-{builder_version}"
+    return " ".join(
+        [
+            f". {repo_home}/.venv/bin/activate && {env} meson setup {build_dir} {src_dir}",
+            features_set,
+            unittests,
+            fuzztargets,
+            "-D hardening-fortify-source=auto",
+            "-D auto-var-init=pattern",
+            get_coverage(meson=True),
+            get_sanitizers(meson=True),
+        ]
+    )
+
 
 @task
 def ci_auth_make(c):
-    c.run(f'make -j{get_build_concurrency()} -k V=1')
+    c.run(f"make -j{get_build_concurrency()} -k V=1")
+
 
 @task
 def ci_auth_make_bear(c):
-    c.run(f'bear --append -- make -j{get_build_concurrency()} -k V=1')
+    c.run(f"bear --append -- make -j{get_build_concurrency()} -k V=1")
+
 
 def run_ninja(c):
-    c.run(f'ninja -j{get_build_concurrency()} --verbose')
+    c.run(f"ninja -j{get_build_concurrency()} --verbose")
+
 
 @task
 def ci_auth_build(c, meson=False):
@@ -894,10 +1013,12 @@ def ci_auth_build(c, meson=False):
     else:
         ci_auth_make_bear(c)
 
+
 @task
 def ci_rec_make_bear(c):
     # Assumed to be running under ./pdns/recursordist/
-    c.run(f'bear --append -- make -j{get_build_concurrency()} -k V=1')
+    c.run(f"bear --append -- make -j{get_build_concurrency()} -k V=1")
+
 
 @task
 def ci_rec_build(c, meson=False):
@@ -906,210 +1027,223 @@ def ci_rec_build(c, meson=False):
     else:
         ci_rec_make_bear(c)
 
+
 @task
 def ci_dnsdist_make(c):
-    c.run(f'make -j{get_build_concurrency(4)} -k V=1')
+    c.run(f"make -j{get_build_concurrency(4)} -k V=1")
+
 
 def ci_dnsdist_run_ninja(c):
-    c.run(f'. {repo_home}/.venv/bin/activate && ninja -j{get_build_concurrency(4)} --verbose')
+    c.run(f". {repo_home}/.venv/bin/activate && ninja -j{get_build_concurrency(4)} --verbose")
+
 
 @task
 def ci_dnsdist_make_bear(c, builder):
-    if builder == 'meson':
+    if builder == "meson":
         ci_dnsdist_run_ninja(c)
         return
 
     # Assumed to be running under ./pdns/dnsdistdist/
-    c.run(f'bear --append -- make -j{get_build_concurrency(4)} -k V=1')
+    c.run(f"bear --append -- make -j{get_build_concurrency(4)} -k V=1")
+
 
 @task
 def ci_auth_install_remotebackend_test_deps(c):
-    c.sudo('apt-get install -y socat')
+    c.sudo("apt-get install -y socat")
+
 
 @task
 def ci_auth_run_unit_tests(c, meson=False):
     if meson:
         suite_timeout_sec = 120
-        logfile = 'meson-logs/testlog.txt'
-        c.run(f'touch {repo_home}/regression-tests/tests/verify-dnssec-zone/allow-missing {repo_home}/regression-tests.nobackend/rectify-axfr/allow-missing') # FIXME: can this go?
-        res = c.run(f'meson test --verbose -t {suite_timeout_sec}', warn=True)
+        logfile = "meson-logs/testlog.txt"
+        c.run(
+            f"touch {repo_home}/regression-tests/tests/verify-dnssec-zone/allow-missing {repo_home}/regression-tests.nobackend/rectify-axfr/allow-missing"
+        )  # FIXME: can this go?
+        res = c.run(f"meson test --verbose -t {suite_timeout_sec}", warn=True)
     else:
-        logfile = 'pdns/test-suite.log'
-        res = c.run('make check', warn=True)
+        logfile = "pdns/test-suite.log"
+        res = c.run("make check", warn=True)
     if res.exited != 0:
-        c.run(f'cat {logfile}', warn=True)
-        c.run('cat ../modules/remotebackend/*.log', warn=True)
+        c.run(f"cat {logfile}", warn=True)
+        c.run("cat ../modules/remotebackend/*.log", warn=True)
         raise UnexpectedExit(res)
+
 
 @task
 def ci_rec_run_unit_tests(c, meson=False):
     if meson:
         suite_timeout_sec = 120
-        logfile = 'meson-logs/testlog.txt'
-        res = c.run(f'meson test --verbose -t {suite_timeout_sec}', warn=True)
+        logfile = "meson-logs/testlog.txt"
+        res = c.run(f"meson test --verbose -t {suite_timeout_sec}", warn=True)
     else:
-        logfile = 'test-suite.log'
-        res = c.run('make check', warn=True)
+        logfile = "test-suite.log"
+        res = c.run("make check", warn=True)
     if res.exited != 0:
-        c.run(f'cat {logfile}', warn=True)
+        c.run(f"cat {logfile}", warn=True)
         raise UnexpectedExit(res)
+
 
 @task
 def ci_dnsdist_run_unit_tests(c, builder):
-    if builder == 'meson':
+    if builder == "meson":
         suite_timeout_sec = 120
-        logfile = 'meson-logs/testlog.txt'
-        res = c.run(f'. {repo_home}/.venv/bin/activate && meson test --verbose -t {suite_timeout_sec}', warn=True)
+        logfile = "meson-logs/testlog.txt"
+        res = c.run(f". {repo_home}/.venv/bin/activate && meson test --verbose -t {suite_timeout_sec}", warn=True)
     else:
-        logfile = 'test-suite.log'
-        res = c.run('make check', warn=True)
+        logfile = "test-suite.log"
+        res = c.run("make check", warn=True)
     if res.exited != 0:
-      c.run(f'cat {logfile}', warn=True)
-      raise UnexpectedExit(res)
+        c.run(f"cat {logfile}", warn=True)
+        raise UnexpectedExit(res)
+
 
 @task
 def ci_make_distdir(c, meson=False):
     if not meson:
-        c.run('make distdir')
+        c.run("make distdir")
+
 
 @task
 def ci_auth_install(c, meson=False):
     if not meson:
-        c.run('make install') # FIXME: this builds auth docs - again
+        c.run("make install")  # FIXME: this builds auth docs - again
+
 
 @task
 def ci_rec_install(c, meson=False):
     if meson:
         c.sudo(f"bash -c 'source {repo_home}/.venv/bin/activate && meson install'")
     else:
-        c.run('make install')
+        c.run("make install")
+
 
 @task
 def ci_dnsdist_install(c, meson=False):
     if meson:
         c.sudo(f"bash -c 'source {repo_home}/.venv/bin/activate && meson install'")
     else:
-        c.run('make install')
+        c.run("make install")
+
 
 @task
 def add_auth_repo(c, dist_name, dist_release_name, pdns_repo_version):
-    c.sudo('apt-get install -y curl gnupg2')
-    if pdns_repo_version == 'master':
-        c.sudo('curl -s -o /etc/apt/trusted.gpg.d/pdns-repo.asc https://repo.powerdns.com/CBC8B383-pub.asc')
+    c.sudo("apt-get install -y curl gnupg2")
+    if pdns_repo_version == "master":
+        c.sudo("curl -s -o /etc/apt/trusted.gpg.d/pdns-repo.asc https://repo.powerdns.com/CBC8B383-pub.asc")
     else:
-        c.sudo('curl -s -o /etc/apt/trusted.gpg.d/pdns-repo.asc https://repo.powerdns.com/FD380FBB-pub.asc')
-    c.run(f"echo 'deb [arch=amd64] http://repo.powerdns.com/{dist_name} {dist_release_name}-auth-{pdns_repo_version} main' | sudo tee /etc/apt/sources.list.d/pdns.list")
+        c.sudo("curl -s -o /etc/apt/trusted.gpg.d/pdns-repo.asc https://repo.powerdns.com/FD380FBB-pub.asc")
+    c.run(
+        f"echo 'deb [arch=amd64] http://repo.powerdns.com/{dist_name} {dist_release_name}-auth-{pdns_repo_version} main' | sudo tee /etc/apt/sources.list.d/pdns.list"
+    )
     c.run("echo 'Package: pdns-*' | sudo tee /etc/apt/preferences.d/pdns")
     c.run("echo 'Pin: origin repo.powerdns.com' | sudo tee -a /etc/apt/preferences.d/pdns")
     c.run("echo 'Pin-Priority: 600' | sudo tee -a /etc/apt/preferences.d/pdns")
-    c.sudo('apt-get update')
+    c.sudo("apt-get update")
+
 
 @task
-def test_api(c, product, backend=''):
-    if product == 'recursor':
-        with c.cd('regression-tests.api'):
-            c.run(f'PDNSRECURSOR=/opt/pdns-recursor/sbin/pdns_recursor ./runtests recursor {backend}')
-    elif product == 'auth':
-        with c.cd('regression-tests.api'):
-            c.run(f'PDNSSERVER=/opt/pdns-auth/sbin/pdns_server PDNSUTIL=/opt/pdns-auth/bin/pdnsutil SDIG=/opt/pdns-auth/bin/sdig MYSQL_HOST={auth_backend_ip_addr} PGHOST={auth_backend_ip_addr} PGPORT=5432 ./runtests authoritative {backend}')
+def test_api(c, product, backend=""):
+    if product == "recursor":
+        with c.cd("regression-tests.api"):
+            c.run(f"PDNSRECURSOR=/opt/pdns-recursor/sbin/pdns_recursor ./runtests recursor {backend}")
+    elif product == "auth":
+        with c.cd("regression-tests.api"):
+            c.run(
+                f"PDNSSERVER=/opt/pdns-auth/sbin/pdns_server PDNSUTIL=/opt/pdns-auth/bin/pdnsutil SDIG=/opt/pdns-auth/bin/sdig MYSQL_HOST={auth_backend_ip_addr} PGHOST={auth_backend_ip_addr} PGPORT=5432 ./runtests authoritative {backend}"
+            )
     else:
-        raise Failure('unknown product')
+        raise Failure("unknown product")
+
 
 backend_regress_tests = dict(
-    bind = [
-        'bind-both',
-        'bind-dnssec-both',
-        'bind-dnssec-nsec3-both',
-        'bind-dnssec-nsec3-optout-both',
-        'bind-dnssec-nsec3-narrow',
-        'bind-dnssec-pkcs11'
+    bind=[
+        "bind-both",
+        "bind-dnssec-both",
+        "bind-dnssec-nsec3-both",
+        "bind-dnssec-nsec3-optout-both",
+        "bind-dnssec-nsec3-narrow",
+        "bind-dnssec-pkcs11",
     ],
-    geoip = [
-        'geoip',
-        'geoip-nsec3-narrow'
+    geoip=["geoip", "geoip-nsec3-narrow"],
+    lua2=["lua2", "lua2-dnssec"],
+    tinydns=["tinydns"],
+    remote=[
+        "remotebackend-pipe",
+        "remotebackend-unix",
+        "remotebackend-http",
+        "remotebackend-zeromq",
+        "remotebackend-pipe-dnssec",
+        "remotebackend-unix-dnssec",
+        "remotebackend-http-dnssec",
+        "remotebackend-zeromq-dnssec",
     ],
-    lua2 = ['lua2', 'lua2-dnssec'],
-    tinydns = ['tinydns'],
-    remote = [
-        'remotebackend-pipe',
-        'remotebackend-unix',
-        'remotebackend-http',
-        'remotebackend-zeromq',
-        'remotebackend-pipe-dnssec',
-        'remotebackend-unix-dnssec',
-        'remotebackend-http-dnssec',
-        'remotebackend-zeromq-dnssec'
+    lmdb=[
+        "lmdb-nodnssec-both",
+        "lmdb-both",
+        "lmdb-nsec3-both",
+        "lmdb-nsec3-optout-both",
+        "lmdb-nsec3-narrow",
+        "lmdb-nodnssec-variant",
+        "lmdb-variant",
+        "lmdb-nsec3-variant",
+        "lmdb-nsec3-optout-variant",
+        "lmdb-nsec3-narrow-variant",
     ],
-    lmdb = [
-        'lmdb-nodnssec-both',
-        'lmdb-both',
-        'lmdb-nsec3-both',
-        'lmdb-nsec3-optout-both',
-        'lmdb-nsec3-narrow',
-        'lmdb-nodnssec-variant',
-        'lmdb-variant',
-        'lmdb-nsec3-variant',
-        'lmdb-nsec3-optout-variant',
-        'lmdb-nsec3-narrow-variant'
+    gmysql=[
+        "gmysql",
+        "gmysql-nodnssec-both",
+        "gmysql-nsec3-both",
+        "gmysql-nsec3-optout-both",
+        "gmysql-nsec3-narrow",
+        "gmysql_sp-both",
     ],
-    gmysql = [
-        'gmysql',
-        'gmysql-nodnssec-both',
-        'gmysql-nsec3-both',
-        'gmysql-nsec3-optout-both',
-        'gmysql-nsec3-narrow',
-        'gmysql_sp-both'
+    gpgsql=[
+        "gpgsql",
+        "gpgsql-nodnssec-both",
+        "gpgsql-nsec3-both",
+        "gpgsql-nsec3-optout-both",
+        "gpgsql-nsec3-narrow",
+        "gpgsql_sp-both",
     ],
-    gpgsql = [
-        'gpgsql',
-        'gpgsql-nodnssec-both',
-        'gpgsql-nsec3-both',
-        'gpgsql-nsec3-optout-both',
-        'gpgsql-nsec3-narrow',
-        'gpgsql_sp-both'
+    gsqlite3=[
+        "gsqlite3",
+        "gsqlite3-nodnssec-both",
+        "gsqlite3-nsec3-both",
+        "gsqlite3-nsec3-optout-both",
+        "gsqlite3-nsec3-narrow",
     ],
-    gsqlite3 = [
-        'gsqlite3',
-        'gsqlite3-nodnssec-both',
-        'gsqlite3-nsec3-both',
-        'gsqlite3-nsec3-optout-both',
-        'gsqlite3-nsec3-narrow'
+    godbc_sqlite3=["godbc_sqlite3-nodnssec"],
+    godbc_mssql=[
+        "godbc_mssql",
+        "godbc_mssql-nodnssec",
+        "godbc_mssql-nsec3",
+        "godbc_mssql-nsec3-optout",
+        "godbc_mssql-nsec3-narrow",
     ],
-    godbc_sqlite3 = ['godbc_sqlite3-nodnssec'],
-    godbc_mssql = [
-        'godbc_mssql',
-        'godbc_mssql-nodnssec',
-        'godbc_mssql-nsec3',
-        'godbc_mssql-nsec3-optout',
-        'godbc_mssql-nsec3-narrow'
-    ],
-    ldap = [
-        'ldap-tree',
-        'ldap-simple',
-        'ldap-strict'
-    ],
-    geoip_mmdb = ['geoip'],
+    ldap=["ldap-tree", "ldap-simple", "ldap-strict"],
+    geoip_mmdb=["geoip"],
 )
 
 backend_rootzone_tests = dict(
-    geoip = False,
-    geoip_mmdb = False,
-    lua2 = False,
-    ldap = False,
-    tinydns = False,
-    remote = False,
-    bind = True,
-    lmdb = True,
-    gmysql = True,
-    gpgsql = True,
-    gsqlite3 = True,
-    godbc_sqlite3 = True,
-    godbc_mssql = True,
+    geoip=False,
+    geoip_mmdb=False,
+    lua2=False,
+    ldap=False,
+    tinydns=False,
+    remote=False,
+    bind=True,
+    lmdb=True,
+    gmysql=True,
+    gpgsql=True,
+    gsqlite3=True,
+    godbc_sqlite3=True,
+    godbc_mssql=True,
 )
 
 godbc_mssql_credentials = {"username": "sa", "password": "SAsa12%%-not-a-secret-password"}
 
-godbc_config = f'''
+godbc_config = f"""
 [pdns-mssql-docker]
 Driver=FreeTDS
 Trace=No
@@ -1132,202 +1266,244 @@ Database = pdns.sqlite3
 [pdns-sqlite3-2]
 Driver = SQLite3
 Database = pdns.sqlite32
-'''
+"""
+
 
 def setup_godbc_mssql(c):
     with open(os.path.expanduser("~/.odbc.ini"), "a") as f:
         f.write(godbc_config)
-    c.sudo('sh -c \'echo "Threading=1" | cat /usr/share/tdsodbc/odbcinst.ini - | tee -a /etc/odbcinst.ini\'')
+    c.sudo("sh -c 'echo \"Threading=1\" | cat /usr/share/tdsodbc/odbcinst.ini - | tee -a /etc/odbcinst.ini'")
     c.sudo('sed -i "s/libtdsodbc.so/\/usr\/lib\/x86_64-linux-gnu\/odbc\/libtdsodbc.so/g" /etc/odbcinst.ini')
-    c.run(f'echo "create database pdns" | isql -v pdns-mssql-docker-nodb {godbc_mssql_credentials["username"]} {godbc_mssql_credentials["password"]}')
+    c.run(
+        f'echo "create database pdns" | isql -v pdns-mssql-docker-nodb {godbc_mssql_credentials["username"]} {godbc_mssql_credentials["password"]}'
+    )
     # FIXME: Skip 8bit-txt-unescaped test
-    c.run('touch ${PWD}/regression-tests/tests/8bit-txt-unescaped/skip')
+    c.run("touch ${PWD}/regression-tests/tests/8bit-txt-unescaped/skip")
+
 
 def setup_godbc_sqlite3(c):
     with open(os.path.expanduser("~/.odbc.ini"), "a") as f:
         f.write(godbc_config)
     c.sudo('sed -i "s/libsqlite3odbc.so/\/usr\/lib\/x86_64-linux-gnu\/odbc\/libsqlite3odbc.so/g" /etc/odbcinst.ini')
 
+
 def setup_ldap_client(c):
-    c.sudo('DEBIAN_FRONTEND=noninteractive apt-get install -y ldap-utils')
-    c.sudo(f'sh -c \'echo "{auth_backend_ip_addr} ldapserver" | tee -a /etc/hosts\'')
+    c.sudo("DEBIAN_FRONTEND=noninteractive apt-get install -y ldap-utils")
+    c.sudo(f"sh -c 'echo \"{auth_backend_ip_addr} ldapserver\" | tee -a /etc/hosts'")
+
 
 def setup_softhsm(c):
     # Modify the location of the softhsm tokens and configuration directory.
     # Enables token generation by non-root users (runner)
-    c.run('mkdir -p /opt/pdns-auth/softhsm/tokens')
+    c.run("mkdir -p /opt/pdns-auth/softhsm/tokens")
     c.run('echo "directories.tokendir = /opt/pdns-auth/softhsm/tokens" > /opt/pdns-auth/softhsm/softhsm2.conf')
+
 
 @task
 def test_auth_backend(c, backend):
-    pdns_auth_env_vars = f'PDNS=/opt/pdns-auth/sbin/pdns_server PDNS2=/opt/pdns-auth/sbin/pdns_server SDIG=/opt/pdns-auth/bin/sdig NOTIFY=/opt/pdns-auth/bin/pdns_notify NSEC3DIG=/opt/pdns-auth/bin/nsec3dig SAXFR=/opt/pdns-auth/bin/saxfr ZONE2SQL=/opt/pdns-auth/bin/zone2sql ZONE2LDAP=/opt/pdns-auth/bin/zone2ldap ZONE2JSON=/opt/pdns-auth/bin/zone2json PDNSUTIL=/opt/pdns-auth/bin/pdnsutil PDNSCONTROL=/opt/pdns-auth/bin/pdns_control PDNSSERVER=/opt/pdns-auth/sbin/pdns_server SDIG=/opt/pdns-auth/bin/sdig GMYSQLHOST={auth_backend_ip_addr} GMYSQL2HOST={auth_backend_ip_addr} MYSQL_HOST={auth_backend_ip_addr} PGHOST={auth_backend_ip_addr} PGPORT=5432'
-    backend_env_vars = ''
+    pdns_auth_env_vars = f"PDNS=/opt/pdns-auth/sbin/pdns_server PDNS2=/opt/pdns-auth/sbin/pdns_server SDIG=/opt/pdns-auth/bin/sdig NOTIFY=/opt/pdns-auth/bin/pdns_notify NSEC3DIG=/opt/pdns-auth/bin/nsec3dig SAXFR=/opt/pdns-auth/bin/saxfr ZONE2SQL=/opt/pdns-auth/bin/zone2sql ZONE2LDAP=/opt/pdns-auth/bin/zone2ldap ZONE2JSON=/opt/pdns-auth/bin/zone2json PDNSUTIL=/opt/pdns-auth/bin/pdnsutil PDNSCONTROL=/opt/pdns-auth/bin/pdns_control PDNSSERVER=/opt/pdns-auth/sbin/pdns_server SDIG=/opt/pdns-auth/bin/sdig GMYSQLHOST={auth_backend_ip_addr} GMYSQL2HOST={auth_backend_ip_addr} MYSQL_HOST={auth_backend_ip_addr} PGHOST={auth_backend_ip_addr} PGPORT=5432"
+    backend_env_vars = ""
 
-    if backend == 'remote':
+    if backend == "remote":
         ci_auth_install_remotebackend_test_deps(c)
 
-    if backend == 'authpy':
-        c.sudo(f'sh -c \'echo "{auth_backend_ip_addr} kerberos-server" | tee -a /etc/hosts\'')
-        for auth_backend in ('bind', 'lmdb'):
-            with c.cd('regression-tests.auth-py'):
-                c.run(f'{pdns_auth_env_vars} AUTH_BACKEND={auth_backend} WITHKERBEROS=YES ./runtests')
+    if backend == "authpy":
+        c.sudo(f"sh -c 'echo \"{auth_backend_ip_addr} kerberos-server\" | tee -a /etc/hosts'")
+        for auth_backend in ("bind", "lmdb"):
+            with c.cd("regression-tests.auth-py"):
+                c.run(f"{pdns_auth_env_vars} AUTH_BACKEND={auth_backend} WITHKERBEROS=YES ./runtests")
         return
 
-    if backend == 'bind':
+    if backend == "bind":
         setup_softhsm(c)
-        backend_env_vars = 'SOFTHSM2_CONF=/opt/pdns-auth/softhsm/softhsm2.conf'
+        backend_env_vars = "SOFTHSM2_CONF=/opt/pdns-auth/softhsm/softhsm2.conf"
 
-    if backend == 'godbc_sqlite3':
+    if backend == "godbc_sqlite3":
         setup_godbc_sqlite3(c)
-        backend_env_vars = 'GODBC_SQLITE3_DSN=pdns-sqlite3-1'
+        backend_env_vars = "GODBC_SQLITE3_DSN=pdns-sqlite3-1"
 
-    if backend == 'godbc_mssql':
+    if backend == "godbc_mssql":
         setup_godbc_mssql(c)
-        backend_env_vars = f'GODBC_MSSQL_PASSWORD={godbc_mssql_credentials["password"]} GODBC_MSSQL_USERNAME={godbc_mssql_credentials["username"]} GODBC_MSSQL_DSN=pdns-mssql-docker GODBC_MSSQL2_PASSWORD={godbc_mssql_credentials["password"]} GODBC_MSSQL2_USERNAME={godbc_mssql_credentials["username"]} GODBC_MSSQL2_DSN=pdns-mssql-docker'
+        backend_env_vars = f"GODBC_MSSQL_PASSWORD={godbc_mssql_credentials['password']} GODBC_MSSQL_USERNAME={godbc_mssql_credentials['username']} GODBC_MSSQL_DSN=pdns-mssql-docker GODBC_MSSQL2_PASSWORD={godbc_mssql_credentials['password']} GODBC_MSSQL2_USERNAME={godbc_mssql_credentials['username']} GODBC_MSSQL2_DSN=pdns-mssql-docker"
 
-    if backend == 'ldap':
+    if backend == "ldap":
         setup_ldap_client(c)
 
-    if backend == 'geoip_mmdb':
-        backend_env_vars = 'geoipdatabase=../modules/geoipbackend/regression-tests/GeoLiteCity.mmdb'
+    if backend == "geoip_mmdb":
+        backend_env_vars = "geoipdatabase=../modules/geoipbackend/regression-tests/GeoLiteCity.mmdb"
 
-    with c.cd('regression-tests'):
-        if backend == 'lua2':
-            c.run('touch trustedkeys')  # avoid silly error during cleanup
+    with c.cd("regression-tests"):
+        if backend == "lua2":
+            c.run("touch trustedkeys")  # avoid silly error during cleanup
         for variant in backend_regress_tests[backend]:
-            c.run(f'{pdns_auth_env_vars} {backend_env_vars} ./start-test-stop 5300 {variant}')
+            c.run(f"{pdns_auth_env_vars} {backend_env_vars} ./start-test-stop 5300 {variant}")
 
     if backend_rootzone_tests[backend]:
-        with c.cd('regression-tests.rootzone'):
+        with c.cd("regression-tests.rootzone"):
             for variant in backend_regress_tests[backend]:
-                c.run(f'{pdns_auth_env_vars} {backend_env_vars} ./start-test-stop 5300 {variant}')
+                c.run(f"{pdns_auth_env_vars} {backend_env_vars} ./start-test-stop 5300 {variant}")
 
-    if backend == 'gsqlite3':
-        if os.getenv('SKIP_IPV6_TESTS'):
-            pdns_auth_env_vars += ' context=noipv6'
-        with c.cd('regression-tests.nobackend'):
-            c.run(f'{pdns_auth_env_vars} ./runtests')
-        c.run('/opt/pdns-auth/bin/pdnsutil test-algorithms')
+    if backend == "gsqlite3":
+        if os.getenv("SKIP_IPV6_TESTS"):
+            pdns_auth_env_vars += " context=noipv6"
+        with c.cd("regression-tests.nobackend"):
+            c.run(f"{pdns_auth_env_vars} ./runtests")
+        c.run("/opt/pdns-auth/bin/pdnsutil test-algorithms")
         return
+
 
 @task
 def test_ixfrdist(c):
-    with c.cd('regression-tests.ixfrdist'):
-        c.run('IXFRDISTBIN=/opt/pdns-auth/bin/ixfrdist ./runtests')
+    with c.cd("regression-tests.ixfrdist"):
+        c.run("IXFRDISTBIN=/opt/pdns-auth/bin/ixfrdist ./runtests")
 
-@task(optional=['skipXDP'])
+
+@task(optional=["skipXDP"])
 def test_dnsdist(c, skipXDP=False):
-    test_env_vars = 'ENABLE_SUDO_TESTS=1' if not skipXDP else ''
-    c.run('chmod +x /opt/dnsdist/bin/*')
-    c.run('ls -ald /var /var/agentx /var/agentx/master')
-    c.run('ls -al /var/agentx/master')
-    with c.cd('regression-tests.dnsdist'):
-        c.run(f'DNSDISTBIN=/opt/dnsdist/bin/dnsdist LD_LIBRARY_PATH=/opt/dnsdist/lib/ {test_env_vars} ./runtests')
+    test_env_vars = "ENABLE_SUDO_TESTS=1" if not skipXDP else ""
+    c.run("chmod +x /opt/dnsdist/bin/*")
+    c.run("ls -ald /var /var/agentx /var/agentx/master")
+    c.run("ls -al /var/agentx/master")
+    with c.cd("regression-tests.dnsdist"):
+        c.run(f"DNSDISTBIN=/opt/dnsdist/bin/dnsdist LD_LIBRARY_PATH=/opt/dnsdist/lib/ {test_env_vars} ./runtests")
+
 
 @task
 def test_regression_recursor(c):
-    c.run('/opt/pdns-recursor/sbin/pdns_recursor --version')
-    c.run('PDNSRECURSOR=/opt/pdns-recursor/sbin/pdns_recursor RECCONTROL=/opt/pdns-recursor/bin/rec_control ./build-scripts/test-recursor')
+    c.run("/opt/pdns-recursor/sbin/pdns_recursor --version")
+    c.run(
+        "PDNSRECURSOR=/opt/pdns-recursor/sbin/pdns_recursor RECCONTROL=/opt/pdns-recursor/bin/rec_control ./build-scripts/test-recursor"
+    )
+
 
 @task
 def test_bulk_recursor(c, size, threads, mthreads, shards, ipv6):
-    with c.cd('regression-tests'):
-        c.run('curl --no-progress-meter -LO https://umbrella-static.s3.dualstack.us-west-1.amazonaws.com/top-1m.csv.zip')
-        c.run('unzip top-1m.csv.zip -d .')
-        c.run('chmod +x /opt/pdns-recursor/bin/* /opt/pdns-recursor/sbin/*')
-        c.run(f'DNSBULKTEST=/usr/bin/dnsbulktest RECURSOR=/opt/pdns-recursor/sbin/pdns_recursor RECCONTROL=/opt/pdns-recursor/bin/rec_control IPv6={ipv6} THRESHOLD=95 TRACE=no ./recursor-test 5300 {size} {threads} {mthreads} {shards}')
+    with c.cd("regression-tests"):
+        c.run(
+            "curl --no-progress-meter -LO https://umbrella-static.s3.dualstack.us-west-1.amazonaws.com/top-1m.csv.zip"
+        )
+        c.run("unzip top-1m.csv.zip -d .")
+        c.run("chmod +x /opt/pdns-recursor/bin/* /opt/pdns-recursor/sbin/*")
+        c.run(
+            f"DNSBULKTEST=/usr/bin/dnsbulktest RECURSOR=/opt/pdns-recursor/sbin/pdns_recursor RECCONTROL=/opt/pdns-recursor/bin/rec_control IPv6={ipv6} THRESHOLD=95 TRACE=no ./recursor-test 5300 {size} {threads} {mthreads} {shards}"
+        )
+
 
 @task
 def install_swagger_tools(c):
-    c.run('sudo apt-get update && sudo apt-get install -y npm')
-    c.run('sudo mkdir -p /usr/local/lib/node_modules && sudo chmod 777 /usr/local/lib/node_modules')
-    c.run('npm install -g @stoplight/spectral-cli')
-    c.run('npm install -g api-spec-converter')
+    c.run("sudo apt-get update && sudo apt-get install -y npm")
+    c.run("sudo mkdir -p /usr/local/lib/node_modules && sudo chmod 777 /usr/local/lib/node_modules")
+    c.run("npm install -g @stoplight/spectral-cli")
+    c.run("npm install -g api-spec-converter")
+
 
 @task
 def swagger_syntax_check(c):
-    c.run('spectral lint --ruleset docs/http-api/swagger/spectral-ruleset.yaml --fail-severity error --display-only-failures docs/http-api/swagger/authoritative-api-swagger.yaml')
-    c.run('api-spec-converter docs/http-api/swagger/authoritative-api-swagger.yaml -f swagger_2 -t openapi_3 -s json -c')
+    c.run(
+        "spectral lint --ruleset docs/http-api/swagger/spectral-ruleset.yaml --fail-severity error --display-only-failures docs/http-api/swagger/authoritative-api-swagger.yaml"
+    )
+    c.run(
+        "api-spec-converter docs/http-api/swagger/authoritative-api-swagger.yaml -f swagger_2 -t openapi_3 -s json -c"
+    )
+
 
 @task
 def install_coverity_tools(c, project):
-    token = os.getenv('COVERITY_TOKEN')
-    c.run(f'curl -s https://scan.coverity.com/download/linux64 --data "token={token}&project={project}" | gunzip | sudo tar xvf /dev/stdin --strip-components=1 --no-same-owner -C /usr/local', hide=True)
+    token = os.getenv("COVERITY_TOKEN")
+    c.run(
+        f'curl -s https://scan.coverity.com/download/linux64 --data "token={token}&project={project}" | gunzip | sudo tar xvf /dev/stdin --strip-components=1 --no-same-owner -C /usr/local',
+        hide=True,
+    )
+
 
 @task
 def coverity_clang_configure(c):
-    c.sudo(f'/usr/local/bin/cov-configure --template --comptype clangcc --compiler clang++-{clang_version}')
+    c.sudo(f"/usr/local/bin/cov-configure --template --comptype clangcc --compiler clang++-{clang_version}")
+
 
 @task
 def coverity_make(c):
-    c.run('/usr/local/bin/cov-build --dir cov-int make -j8 -k')
+    c.run("/usr/local/bin/cov-build --dir cov-int make -j8 -k")
+
 
 @task
 def coverity_tarball(c, tarball):
-    c.run(f'tar caf {tarball} cov-int')
+    c.run(f"tar caf {tarball} cov-int")
+
 
 @task
 def coverity_upload(c, email, project, tarball):
-    token = os.getenv('COVERITY_TOKEN')
-    c.run(f'curl --form token={token} \
+    token = os.getenv("COVERITY_TOKEN")
+    c.run(
+        f'curl --form token={token} \
             --form email="{email}" \
             --form file=@{tarball} \
             --form version="$(./builder-support/gen-version)" \
             --form description="master build" \
-            https://scan.coverity.com/builds?project={project}', hide=True)
+            https://scan.coverity.com/builds?project={project}',
+        hide=True,
+    )
+
 
 @task
 def ci_build_and_install_quiche(c, repo):
-    with c.cd(f'{repo}/builder-support/helpers/'):
+    with c.cd(f"{repo}/builder-support/helpers/"):
         # be careful that rust needs to have been installed system-wide,
         # as the one installed in GitHub actions' Ubuntu images in /home/runner/.cargo/bin/cargo
         # is not in the path for the root user (and shouldn't be)
-        c.run(f'sudo {repo}/builder-support/helpers/install_quiche.sh')
+        c.run(f"sudo {repo}/builder-support/helpers/install_quiche.sh")
 
     # cannot use c.sudo() inside a cd() context, see https://github.com/pyinvoke/invoke/issues/687
-    for tentative in ['lib/x86_64-linux-gnu', 'lib/aarch64-linux-gnu', 'lib64', 'lib']:
-        tentative_libdir = f'/usr/{tentative}'
-        quiche_lib = f'{tentative_libdir}/libdnsdist-quiche.so'
+    for tentative in ["lib/x86_64-linux-gnu", "lib/aarch64-linux-gnu", "lib64", "lib"]:
+        tentative_libdir = f"/usr/{tentative}"
+        quiche_lib = f"{tentative_libdir}/libdnsdist-quiche.so"
         if not os.path.isfile(quiche_lib):
             continue
-        c.run(f'sudo mv {quiche_lib} /usr/lib/libquiche.so')
+        c.run(f"sudo mv {quiche_lib} /usr/lib/libquiche.so")
         c.run(f"sudo sed -i 's,^Libs:.*,Libs: -lquiche,g' {tentative_libdir}/pkgconfig/quiche.pc")
-        c.run('mkdir -p /opt/dnsdist/lib')
-        c.run('cp /usr/lib/libquiche.so /opt/dnsdist/lib/libquiche.so')
+        c.run("mkdir -p /opt/dnsdist/lib")
+        c.run("cp /usr/lib/libquiche.so /opt/dnsdist/lib/libquiche.so")
         break
 
-pulp_cmd_prefix = " ".join([
-    "pulp",
-    f"--base-url {os.getenv('PULP_URL', '')}",
-    f"--username {os.getenv('PULP_CI_USERNAME', '')}",
-    f"--password {os.getenv('PULP_CI_PASSWORD', '')}"
-])
+
+pulp_cmd_prefix = " ".join(
+    [
+        "pulp",
+        f"--base-url {os.getenv('PULP_URL', '')}",
+        f"--username {os.getenv('PULP_CI_USERNAME', '')}",
+        f"--password {os.getenv('PULP_CI_PASSWORD', '')}",
+    ]
+)
+
 
 def run_pulp_cmd(c, cmd):
-    res = c.run(f'{pulp_cmd_prefix} {cmd}')
+    res = c.run(f"{pulp_cmd_prefix} {cmd}")
     if res.exited != 0:
         raise UnexpectedExit(res)
     return res.stdout
 
+
 @task
 def validate_pulp_credentials(c):
     # Basic pulp command that require credentials to succeed
-    repo_name = os.getenv("PULP_REPO_NAME", '')
-    cmd = f'file repository show --repository {repo_name}'
+    repo_name = os.getenv("PULP_REPO_NAME", "")
+    cmd = f"file repository show --repository {repo_name}"
     run_pulp_cmd(c, cmd)
+
 
 @task
 def pulp_upload_file_packages_by_folder(c, source):
-    repo_name = os.getenv("PULP_REPO_NAME", '')
+    repo_name = os.getenv("PULP_REPO_NAME", "")
     for root, dirs, files in os.walk(source):
         for path in files:
-            file = os.path.join(root, path).split('/',1)[1]
+            file = os.path.join(root, path).split("/", 1)[1]
             # First upload file as an artifact
             cmd = f"artifact upload --file {source}/{file} --chunk-size 500MB | jq -r '.sha256' | tr -d '\n'"
             artifact_sha256 = run_pulp_cmd(c, cmd)
             # Then create the content of type file
-            cmd = f'file content create --repository {repo_name} --relative-path {file} --sha256 {artifact_sha256}'
+            cmd = f"file content create --repository {repo_name} --relative-path {file} --sha256 {artifact_sha256}"
             run_pulp_cmd(c, cmd)
+
 
 @task
 def pulp_create_rpm_publication(c, product, list_os_rel, list_arch):
@@ -1336,22 +1512,23 @@ def pulp_create_rpm_publication(c, product, list_os_rel, list_arch):
     for os_rel in json.loads(list_os_rel):
         if not "el-" in os_rel:
             break
-        release = os_rel.split('-')[1]
+        release = os_rel.split("-")[1]
         for arch in json.loads(list_arch):
             for distro in rpm_distros:
                 repo_name = f"repo-{distro}-{release}-{arch}-{product}"
                 attempts = 0
                 while attempts < max_push_attempts:
                     try:
-                        cmd = f'rpm publication create --repository {repo_name} --checksum-type sha256'
+                        cmd = f"rpm publication create --repository {repo_name} --checksum-type sha256"
                         run_pulp_cmd(c, cmd)
                         break
                     except UnexpectedExit:
                         attempts += 1
                         time.sleep(5)
-                        print(f'Next attempt: {attempts}')
+                        print(f"Next attempt: {attempts}")
                         if attempts == max_push_attempts:
-                            raise Failure(f'Error creating rpm publication')
+                            raise Failure(f"Error creating rpm publication")
+
 
 @task
 def pulp_create_deb_publication(c):
@@ -1362,15 +1539,16 @@ def pulp_create_deb_publication(c):
         attempts = 0
         while attempts < max_push_attempts:
             try:
-                cmd = f'deb publication create --repository {repo_name}'
+                cmd = f"deb publication create --repository {repo_name}"
                 run_pulp_cmd(c, cmd)
                 break
             except UnexpectedExit:
                 attempts += 1
                 time.sleep(20)
-                print(f'Next attempt: {attempts}')
+                print(f"Next attempt: {attempts}")
                 if attempts == max_push_attempts:
-                    raise Failure(f'Error creating deb publication')
+                    raise Failure(f"Error creating deb publication")
+
 
 @task
 def pulp_upload_rpm_packages_by_folder(c, source, product):
@@ -1378,21 +1556,23 @@ def pulp_upload_rpm_packages_by_folder(c, source, product):
     builds = os.listdir(source)
 
     for build_folder in builds:
-        release = build_folder.split('.')[0].split('-')[1]
-        arch = build_folder.split('.')[1]
+        release = build_folder.split(".")[0].split("-")[1]
+        arch = build_folder.split(".")[1]
         for distro in rpm_distros:
             repo_name = f"repo-{distro}-{release}-{arch}-{product}"
             for root, dirs, files in os.walk(f"{source}/{build_folder}"):
                 for path in files:
-                    file = os.path.join(root, path).split('/',1)[1]
+                    file = os.path.join(root, path).split("/", 1)[1]
                     # Set chunk size to 500MB to avoid creating an "upload" instead of a file. Required for signing RPMs.
-                    cmd = f'rpm content -t package upload --file {source}/{file} --repository {repo_name} --no-publish --chunk-size 500MB'
+                    cmd = f"rpm content -t package upload --file {source}/{file} --repository {repo_name} --no-publish --chunk-size 500MB"
                     run_pulp_cmd(c, cmd)
+
 
 def get_pulp_repository_href(c, repo_name, repo_type):
     cmd = f"{repo_type} repository show --name {repo_name} | jq -r '.pulp_href' | tr -d '\n'"
     href = run_pulp_cmd(c, cmd)
     return href
+
 
 def is_pulp_task_completed(c, task_href):
     elapsed_time = 0
@@ -1409,22 +1589,23 @@ def is_pulp_task_completed(c, task_href):
 
     return False
 
+
 @task
 def pulp_upload_deb_packages_by_folder(c, source, product):
     builds = os.listdir(source)
-    upload_url = os.getenv('PULP_URL', '') + "/pulp/api/v3/content/deb/packages/"
+    upload_url = os.getenv("PULP_URL", "") + "/pulp/api/v3/content/deb/packages/"
     headers = {"Content-Type": "application/json"}
     auth = requests.auth.HTTPBasicAuth(os.getenv("PULP_CI_USERNAME", ""), os.getenv("PULP_CI_PASSWORD", ""))
 
     for build_folder in builds:
-        distro = build_folder.split('-')[0]
+        distro = build_folder.split("-")[0]
         distribution = f"{build_folder.split('-')[1]}-{product}"
         repo_name = f"repo-{distro}"
         repository_href = get_pulp_repository_href(c, repo_name, "deb")
 
         for root, dirs, files in os.walk(source):
             for path in files:
-                file = os.path.join(root, path).split('/',1)[1]
+                file = os.path.join(root, path).split("/", 1)[1]
                 cmd = f"artifact upload --file {source}/{file} --chunk-size 500MB | jq -r '.pulp_href' | tr -d '\n'"
                 artifact_href = run_pulp_cmd(c, cmd)
 
@@ -1432,37 +1613,38 @@ def pulp_upload_deb_packages_by_folder(c, source, product):
                     "repository": repository_href,
                     "distribution": distribution,
                     "component": "main",
-                    "artifact": artifact_href
+                    "artifact": artifact_href,
                 }
 
                 try:
                     res = requests.post(upload_url, auth=auth, headers=headers, json=package_data)
                     res.raise_for_status()
                 except requests.exceptions.HTTPError as e:
-                    raise Failure(f'Error creating DEB upload: {e}')
+                    raise Failure(f"Error creating DEB upload: {e}")
 
-                task_href = res.json().get('task')
+                task_href = res.json().get("task")
                 if not is_pulp_task_completed(c, task_href):
-                    raise Failure('Error uploading DEB packages into Pulp')
+                    raise Failure("Error uploading DEB packages into Pulp")
+
 
 @task
 def test_install_package(c, product_name, distro_release, content_url, gpgkey_url, package_name, package_version):
-    distro, release = distro_release.split('-')[:2]
-    repo_domain = content_url.split('/')[2]
-    is_rpm = True if distro == 'centos' or distro == 'el' else False
+    distro, release = distro_release.split("-")[:2]
+    repo_domain = content_url.split("/")[2]
+    is_rpm = True if distro == "centos" or distro == "el" else False
 
     if is_rpm:
-        image_name = 'oraclelinux'
+        image_name = "oraclelinux"
     else:
         image_name = distro
         # pdns package is called pdns-server for debian/ubuntu
-        package_name = 'pdns-server' if package_name == 'pdns' else package_name
+        package_name = "pdns-server" if package_name == "pdns" else package_name
 
     # version of packages from master or not releases have a different order than the package name
-    parts = package_version.split('.')
+    parts = package_version.split(".")
     if len(parts) > 4:
-        if distro == 'el':
-            if 'master' in package_version:
+        if distro == "el":
+            if "master" in package_version:
                 package_version = f"{'.'.join(parts[:3])}.{parts[4]}.{parts[3]}.{'.'.join(parts[5:])}"
             else:
                 package_version = f"{'.'.join(parts[:3])}-{parts[4]}.{parts[3]}.{'.'.join(parts[5:])}"
@@ -1470,43 +1652,43 @@ def test_install_package(c, product_name, distro_release, content_url, gpgkey_ur
             package_version = f"{'.'.join(parts[:3])}+{parts[4]}.{parts[3]}.{'.'.join(parts[5:])}"
 
     # Add wildcards to work with and without releases
-    parts = package_version.split('-')
+    parts = package_version.split("-")
     if len(parts) > 1:
         package_version = f"{parts[0]}*{parts[1]}" if is_rpm else f"{parts[0]}~{parts[1]}"
 
-    dockerfile_rpm = f'''
+    dockerfile_rpm = f"""
 FROM {image_name}:{release}
 RUN curl -L {content_url}/repo-files/{distro}-{product_name}.repo -o /etc/yum.repos.d/{distro}-{product_name}.repo
 RUN yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-{release}.noarch.rpm
 RUN yum install -y {package_name}-{package_version}*
-'''
-    dockerfile_deb = f'''
+"""
+    dockerfile_deb = f"""
 FROM {image_name}:{release}
 RUN apt update && apt install -y curl libluajit-5.1-dev adduser
 RUN install -d /etc/apt/keyrings && curl -L {gpgkey_url} -o /etc/apt/keyrings/{product_name}-pub.asc
 RUN echo "deb [signed-by=/etc/apt/keyrings/{product_name}-pub.asc] {content_url}/{distro} {release}-{product_name} main" | tee /etc/apt/sources.list.d/pdns.list
 RUN bash -c 'echo -e "Package: auth*\\nPin: origin {repo_domain}\\nPin-Priority: 600" | tee /etc/apt/preferences.d/{product_name}'
 RUN apt-get update && apt-get install -y {package_name}={package_version}*
-'''
+"""
     dockerfile = dockerfile_rpm if is_rpm else dockerfile_deb
-    with open('/tmp/Dockerfile', "w") as f:
+    with open("/tmp/Dockerfile", "w") as f:
         f.write(dockerfile)
 
-    c.run(f'docker build . -t test-build-{product_name}-{distro_release}:latest -f /tmp/Dockerfile')
+    c.run(f"docker build . -t test-build-{product_name}-{distro_release}:latest -f /tmp/Dockerfile")
+
 
 @task
 def github_more_diskspace(c):
-    c.run('df -h / /hostroot')
-    for path in ['/usr/local/lib/android',
-              '/usr/local/.ghcup',
-              '/usr/share/dotnet',
-              '/usr/share/swift']:
-              c.sudo(f'rm -rf {path} /hostroot{path}')
-    c.run('df -h / /hostroot')
+    c.run("df -h / /hostroot")
+    for path in ["/usr/local/lib/android", "/usr/local/.ghcup", "/usr/share/dotnet", "/usr/share/swift"]:
+        c.sudo(f"rm -rf {path} /hostroot{path}")
+    c.run("df -h / /hostroot")
+
 
 # this is run always
 def setup():
-    if '/usr/lib/ccache' not in os.environ['PATH']:
-        os.environ['PATH']='/usr/lib/ccache:'+os.environ['PATH']
+    if "/usr/lib/ccache" not in os.environ["PATH"]:
+        os.environ["PATH"] = "/usr/lib/ccache:" + os.environ["PATH"]
+
 
 setup()

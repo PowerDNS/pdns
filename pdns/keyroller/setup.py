@@ -8,16 +8,15 @@ install_reqs = list()
 try:
     from pipenv.project import Project
     from pipenv.utils import convert_deps_to_pip
+
     pfile = Project(chdir=False).parsed_pipfile
-    install_reqs = convert_deps_to_pip(pfile['packages'], r=False)
+    install_reqs = convert_deps_to_pip(pfile["packages"], r=False)
 except ImportError:
     from pkg_resources import parse_requirements
     import pathlib
-    with pathlib.Path('requirements.txt').open() as requirements_txt:
-        install_reqs = [
-            str(r)
-            for r
-            in parse_requirements(requirements_txt)]
+
+    with pathlib.Path("requirements.txt").open() as requirements_txt:
+        install_reqs = [str(r) for r in parse_requirements(requirements_txt)]
 
 
 def exists(fname):
@@ -29,29 +28,28 @@ def exists(fname):
 # README file and 2) it's easier to type in the README file than to put a raw
 # string in below ...
 def read(fname):
-    with open(os.path.join(os.path.dirname(__file__), fname),
-              'r', encoding='utf-8') as f:
+    with open(os.path.join(os.path.dirname(__file__), fname), "r", encoding="utf-8") as f:
         return f.read()
 
 
-version = os.environ.get('BUILDER_VERSION', '0.0.0')
+version = os.environ.get("BUILDER_VERSION", "0.0.0")
 
-if exists('version.txt'):
-    version = read('version.txt').strip()
+if exists("version.txt"):
+    version = read("version.txt").strip()
 
 setup(
-    name = "pdns-keyroller",
-    version = version,
-    author = "PowerDNS.COM BV",
-    author_email = "powerdns.support@powerdns.com",
-    description = ("PowerDNS keyroller"),
-    license = "GNU GPLv2",
-    keywords = "PowerDNS keyroller",
-    url = "https://www.powerdns.com/",
-    packages = find_packages(),
+    name="pdns-keyroller",
+    version=version,
+    author="PowerDNS.COM BV",
+    author_email="powerdns.support@powerdns.com",
+    description=("PowerDNS keyroller"),
+    license="GNU GPLv2",
+    keywords="PowerDNS keyroller",
+    url="https://www.powerdns.com/",
+    packages=find_packages(),
     install_requires=install_reqs,
-    include_package_data = True,
-    scripts=['pdns-keyroller.py', 'pdns-keyroller-ctl.py'],
-    long_description=read('README.md'),
+    include_package_data=True,
+    scripts=["pdns-keyroller.py", "pdns-keyroller-ctl.py"],
+    long_description=read("README.md"),
     classifiers=[],
 )

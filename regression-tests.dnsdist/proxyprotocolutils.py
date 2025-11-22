@@ -7,6 +7,7 @@ import sys
 
 from proxyprotocol import ProxyProtocol
 
+
 def ProxyProtocolUDPResponder(port, fromQueue, toQueue):
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
@@ -28,7 +29,7 @@ def ProxyProtocolUDPResponder(port, fromQueue, toQueue):
 
         if proxy.local:
             # likely a healthcheck
-            data = data[proxy.HEADER_SIZE:]
+            data = data[proxy.HEADER_SIZE :]
             request = dns.message.from_wire(data)
             response = dns.message.make_response(request)
             wire = response.to_wire()
@@ -38,8 +39,8 @@ def ProxyProtocolUDPResponder(port, fromQueue, toQueue):
 
             continue
 
-        payload = data[:(proxy.HEADER_SIZE + proxy.contentLen)]
-        dnsData = data[(proxy.HEADER_SIZE + proxy.contentLen):]
+        payload = data[: (proxy.HEADER_SIZE + proxy.contentLen)]
+        dnsData = data[(proxy.HEADER_SIZE + proxy.contentLen) :]
         toQueue.put([payload, dnsData], True, 2.0)
         # computing the correct ID for the response
         request = dns.message.from_wire(dnsData)
@@ -49,6 +50,7 @@ def ProxyProtocolUDPResponder(port, fromQueue, toQueue):
         sock.settimeout(2.0)
         sock.sendto(response.to_wire(), addr)
         sock.settimeout(None)
+
 
 def ProxyProtocolTCPResponder(port, fromQueue, toQueue):
     # be aware that this responder will not accept a new connection
@@ -86,31 +88,31 @@ def ProxyProtocolTCPResponder(port, fromQueue, toQueue):
 
         payload = header + proxyContent
         while True:
-          try:
-            data = conn.recv(2)
-          except socket.timeout:
-            data = None
+            try:
+                data = conn.recv(2)
+            except socket.timeout:
+                data = None
 
-          if not data:
-            conn.close()
-            break
+            if not data:
+                conn.close()
+                break
 
-          (datalen,) = struct.unpack("!H", data)
-          data = conn.recv(datalen)
+            (datalen,) = struct.unpack("!H", data)
+            data = conn.recv(datalen)
 
-          toQueue.put([payload, data], True, 2.0)
+            toQueue.put([payload, data], True, 2.0)
 
-          response = copy.deepcopy(fromQueue.get(True, 2.0))
-          if not response:
-            conn.close()
-            break
+            response = copy.deepcopy(fromQueue.get(True, 2.0))
+            if not response:
+                conn.close()
+                break
 
-          # computing the correct ID for the response
-          request = dns.message.from_wire(data)
-          response.id = request.id
+            # computing the correct ID for the response
+            request = dns.message.from_wire(data)
+            response.id = request.id
 
-          wire = response.to_wire()
-          conn.send(struct.pack("!H", len(wire)))
-          conn.send(wire)
+            wire = response.to_wire()
+            conn.send(struct.pack("!H", len(wire)))
+            conn.send(wire)
 
         conn.close()

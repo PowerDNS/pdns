@@ -21,9 +21,13 @@ class RRSet:
         return 'RRSet("{}", "{}", {}, {}, {})'.format(self.name, self.rtype, self.ttl, self.records, self.comments)
 
     def __str__(self):
-        ret = '\n'.join(['; {}'.format(c) for c in self.comments])
-        ret += '\n'.join(['{}{}\tIN\t{}\t{}'.format(';' if rec.disabled else '', self.name, self.rtype, rec.content)
-                         for rec in self.records])
+        ret = "\n".join(["; {}".format(c) for c in self.comments])
+        ret += "\n".join(
+            [
+                "{}{}\tIN\t{}\t{}".format(";" if rec.disabled else "", self.name, self.rtype, rec.content)
+                for rec in self.records
+            ]
+        )
         return ret
 
     @property
@@ -33,14 +37,14 @@ class RRSet:
     @records.setter
     def records(self, val):
         if not isinstance(val, list):
-            raise Exception('TODO')
+            raise Exception("TODO")
         if all(isinstance(v, dict) for v in val):
             self._records = []
             for v in val:
                 self._records.append(Record(**v))
             return
         if not all(isinstance(v, Record) for v in val):
-            raise Exception('Not all records are of type Record')
+            raise Exception("Not all records are of type Record")
         self._records = val
 
     @property
@@ -50,14 +54,14 @@ class RRSet:
     @comments.setter
     def comments(self, val):
         if not isinstance(val, list):
-            raise Exception('TODO')
+            raise Exception("TODO")
         if all(isinstance(v, dict) for v in val):
             self._comments = []
             for v in val:
                 self._comments.append(Comment(**v))
             return
         if not all(isinstance(v, Comment) for v in val):
-            raise Exception('Not all comments are of type Comment')
+            raise Exception("Not all comments are of type Comment")
         self._comments = val
 
 
@@ -95,18 +99,37 @@ class Comment:
         return 'Comment("{}", "{}", "{})'.format(self.content, self.modified_at, self.account)
 
     def __str__(self):
-        return '{} by {} on {}'.format(self.content, self.account, self.modified_at)
+        return "{} by {} on {}".format(self.content, self.account, self.modified_at)
 
 
 class Zone:
     """
     This represents a Zone-object
     """
-    _keys = ["id", "name", "url", "kind", "serial", "notified_serial", "masters", "dnssec", "nsec3param",
-             "nsec3narrow", "presigned", "soa_edit", "soa_edit_api", "account", "nameservers", "servers",
-             "recursion_desired", "rrsets", "last_check"]
+
+    _keys = [
+        "id",
+        "name",
+        "url",
+        "kind",
+        "serial",
+        "notified_serial",
+        "masters",
+        "dnssec",
+        "nsec3param",
+        "nsec3narrow",
+        "presigned",
+        "soa_edit",
+        "soa_edit_api",
+        "account",
+        "nameservers",
+        "servers",
+        "recursion_desired",
+        "rrsets",
+        "last_check",
+    ]
     _rrsets = []
-    _kind = ''
+    _kind = ""
 
     def __init__(self, **kwargs):
         """
@@ -118,14 +141,22 @@ class Zone:
                 setattr(self, k, v)
 
     def __str__(self):
-        ret = "{}".format('\n'.join(['; {} = {}'.format(
-            k, str(getattr(self, k))) for k in Zone._keys if getattr(self, k, None) and k != 'rrsets']))
-        ret += "\n{}".format('\n'.join([str(v) for v in self.rrsets]))
+        ret = "{}".format(
+            "\n".join(
+                [
+                    "; {} = {}".format(k, str(getattr(self, k)))
+                    for k in Zone._keys
+                    if getattr(self, k, None) and k != "rrsets"
+                ]
+            )
+        )
+        ret += "\n{}".format("\n".join([str(v) for v in self.rrsets]))
         return ret
 
     def __repr__(self):
-        return 'Zone({})'.format(
-            ', '.join(['{}="{}"'.format(k, getattr(self, k)) for k in Zone._keys if getattr(self, k, None)]))
+        return "Zone({})".format(
+            ", ".join(['{}="{}"'.format(k, getattr(self, k)) for k in Zone._keys if getattr(self, k, None)])
+        )
 
     @property
     def kind(self):
@@ -133,7 +164,7 @@ class Zone:
 
     @kind.setter
     def kind(self, val):
-        if val not in ['Native', 'Master', 'Slave']:
+        if val not in ["Native", "Master", "Slave"]:
             raise Exception("TODO")
         self._kind = val
 
@@ -149,12 +180,12 @@ class Zone:
         :return:
         """
         if not isinstance(val, list):
-            raise Exception('Please pass a list of RRSets')
+            raise Exception("Please pass a list of RRSets")
         if all(isinstance(v, dict) for v in val):
             self._rrsets = []
             for v in val:
                 self._rrsets.append(RRSet(**v))
             return
         if not all(isinstance(v, RRSet) for v in val):
-            raise Exception('Not all rrsets are actually RRSets')
+            raise Exception("Not all rrsets are actually RRSets")
         self._rrsets = val

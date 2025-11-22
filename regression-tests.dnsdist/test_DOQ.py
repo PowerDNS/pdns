@@ -8,40 +8,44 @@ from dnsdisttests import pickAvailablePort
 from quictests import QUICTests, QUICWithCacheTests, QUICACLTests, QUICGetLocalAddressOnAnyBindTests, QUICXFRTests
 import doqclient
 
+
 class TestDOQBogus(DNSDistTest):
-    _serverKey = 'server.key'
-    _serverCert = 'server.chain'
-    _serverName = 'tls.tests.dnsdist.org'
-    _caCert = 'ca.pem'
+    _serverKey = "server.key"
+    _serverCert = "server.chain"
+    _serverName = "tls.tests.dnsdist.org"
+    _caCert = "ca.pem"
     _doqServerPort = pickAvailablePort()
     _config_template = """
     newServer{address="127.0.0.1:%d"}
 
     addDOQLocal("127.0.0.1:%d", "%s", "%s")
     """
-    _config_params = ['_testServerPort', '_doqServerPort','_serverCert', '_serverKey']
+    _config_params = ["_testServerPort", "_doqServerPort", "_serverCert", "_serverKey"]
 
     def testDOQBogus(self):
         """
         DOQ: Test a bogus query (wrong packed length)
         """
-        name = 'bogus.doq.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+        name = "bogus.doq.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN", use_edns=False)
         query.id = 0
-        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096)
+        expectedQuery = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096)
         expectedQuery.id = 0
 
         try:
-            doqclient.quic_bogus_query(query, '127.0.0.1', 2.0, self._doqServerPort, verify=self._caCert, server_hostname=self._serverName)
+            doqclient.quic_bogus_query(
+                query, "127.0.0.1", 2.0, self._doqServerPort, verify=self._caCert, server_hostname=self._serverName
+            )
             self.fail()
-        except doqclient.StreamResetError as e :
-            self.assertEqual(e.error, 2);
+        except doqclient.StreamResetError as e:
+            self.assertEqual(e.error, 2)
+
 
 class TestDOQ(QUICTests, DNSDistTest):
-    _serverKey = 'server.key'
-    _serverCert = 'server.chain'
-    _serverName = 'tls.tests.dnsdist.org'
-    _caCert = 'ca.pem'
+    _serverKey = "server.key"
+    _serverCert = "server.chain"
+    _serverName = "tls.tests.dnsdist.org"
+    _caCert = "ca.pem"
     _doqServerPort = pickAvailablePort()
     _config_template = """
     newServer{address="127.0.0.1:%d"}
@@ -53,19 +57,28 @@ class TestDOQ(QUICTests, DNSDistTest):
 
     addDOQLocal("127.0.0.1:%d", "%s", "%s")
     """
-    _config_params = ['_testServerPort', '_doqServerPort','_serverCert', '_serverKey']
+    _config_params = ["_testServerPort", "_doqServerPort", "_serverCert", "_serverKey"]
 
     def getQUICConnection(self):
         return self.getDOQConnection(self._doqServerPort, self._caCert)
 
     def sendQUICQuery(self, query, response=None, useQueue=True, connection=None):
-        return self.sendDOQQuery(self._doqServerPort, query, response=response, caFile=self._caCert, useQueue=useQueue, serverName=self._serverName, connection=connection)
+        return self.sendDOQQuery(
+            self._doqServerPort,
+            query,
+            response=response,
+            caFile=self._caCert,
+            useQueue=useQueue,
+            serverName=self._serverName,
+            connection=connection,
+        )
+
 
 class TestDOQYaml(QUICTests, DNSDistTest):
-    _serverKey = 'server.key'
-    _serverCert = 'server.chain'
-    _serverName = 'tls.tests.dnsdist.org'
-    _caCert = 'ca.pem'
+    _serverKey = "server.key"
+    _serverCert = "server.chain"
+    _serverName = "tls.tests.dnsdist.org"
+    _caCert = "ca.pem"
     _doqServerPort = pickAvailablePort()
     _config_template = ""
     _config_params = []
@@ -111,19 +124,28 @@ query_rules:
       type: "Pool"
       pool_name: "this-pool-has-no-backend"
     """
-    _yaml_config_params = ['_testServerPort', '_doqServerPort','_serverCert', '_serverKey']
+    _yaml_config_params = ["_testServerPort", "_doqServerPort", "_serverCert", "_serverKey"]
 
     def getQUICConnection(self):
         return self.getDOQConnection(self._doqServerPort, self._caCert)
 
     def sendQUICQuery(self, query, response=None, useQueue=True, connection=None):
-        return self.sendDOQQuery(self._doqServerPort, query, response=response, caFile=self._caCert, useQueue=useQueue, serverName=self._serverName, connection=connection)
+        return self.sendDOQQuery(
+            self._doqServerPort,
+            query,
+            response=response,
+            caFile=self._caCert,
+            useQueue=useQueue,
+            serverName=self._serverName,
+            connection=connection,
+        )
+
 
 class TestDOQWithCache(QUICWithCacheTests, DNSDistTest):
-    _serverKey = 'server.key'
-    _serverCert = 'server.chain'
-    _serverName = 'tls.tests.dnsdist.org'
-    _caCert = 'ca.pem'
+    _serverKey = "server.key"
+    _serverCert = "server.chain"
+    _serverName = "tls.tests.dnsdist.org"
+    _caCert = "ca.pem"
     _doqServerPort = pickAvailablePort()
     _config_template = """
     newServer{address="127.0.0.1:%d"}
@@ -133,19 +155,28 @@ class TestDOQWithCache(QUICWithCacheTests, DNSDistTest):
     pc = newPacketCache(100, {maxTTL=86400, minTTL=1})
     getPool(""):setCache(pc)
     """
-    _config_params = ['_testServerPort', '_doqServerPort','_serverCert', '_serverKey']
+    _config_params = ["_testServerPort", "_doqServerPort", "_serverCert", "_serverKey"]
 
     def getQUICConnection(self):
         return self.getDOQConnection(self._doqServerPort, self._caCert)
 
     def sendQUICQuery(self, query, response=None, useQueue=True, connection=None):
-        return self.sendDOQQuery(self._doqServerPort, query, response=response, caFile=self._caCert, useQueue=useQueue, serverName=self._serverName, connection=connection)
+        return self.sendDOQQuery(
+            self._doqServerPort,
+            query,
+            response=response,
+            caFile=self._caCert,
+            useQueue=useQueue,
+            serverName=self._serverName,
+            connection=connection,
+        )
+
 
 class TestDOQWithACL(QUICACLTests, DNSDistTest):
-    _serverKey = 'server.key'
-    _serverCert = 'server.chain'
-    _serverName = 'tls.tests.dnsdist.org'
-    _caCert = 'ca.pem'
+    _serverKey = "server.key"
+    _serverCert = "server.chain"
+    _serverName = "tls.tests.dnsdist.org"
+    _caCert = "ca.pem"
     _doqServerPort = pickAvailablePort()
     _config_template = """
     newServer{address="127.0.0.1:%d"}
@@ -153,41 +184,59 @@ class TestDOQWithACL(QUICACLTests, DNSDistTest):
     setACL("192.0.2.1/32")
     addDOQLocal("127.0.0.1:%d", "%s", "%s")
     """
-    _config_params = ['_testServerPort', '_doqServerPort','_serverCert', '_serverKey']
+    _config_params = ["_testServerPort", "_doqServerPort", "_serverCert", "_serverKey"]
 
     def getQUICConnection(self):
         return self.getDOQConnection(self._doqServerPort, self._caCert)
 
     def sendQUICQuery(self, query, response=None, useQueue=True, connection=None):
-        return self.sendDOQQuery(self._doqServerPort, query, response=response, caFile=self._caCert, useQueue=useQueue, serverName=self._serverName, connection=connection)
+        return self.sendDOQQuery(
+            self._doqServerPort,
+            query,
+            response=response,
+            caFile=self._caCert,
+            useQueue=useQueue,
+            serverName=self._serverName,
+            connection=connection,
+        )
+
 
 class TestDOQXFR(QUICXFRTests, DNSDistTest):
-    _serverKey = 'server.key'
-    _serverCert = 'server.chain'
-    _serverName = 'tls.tests.dnsdist.org'
-    _caCert = 'ca.pem'
+    _serverKey = "server.key"
+    _serverCert = "server.chain"
+    _serverName = "tls.tests.dnsdist.org"
+    _caCert = "ca.pem"
     _doqServerPort = pickAvailablePort()
     _config_template = """
     newServer{address="127.0.0.1:%d", tcpOnly=True}
 
     addDOQLocal("127.0.0.1:%d", "%s", "%s")
     """
-    _config_params = ['_testServerPort', '_doqServerPort','_serverCert', '_serverKey']
+    _config_params = ["_testServerPort", "_doqServerPort", "_serverCert", "_serverKey"]
     _verboseMode = True
 
     def getQUICConnection(self):
         return self.getDOQConnection(self._doqServerPort, self._caCert)
 
     def sendQUICQuery(self, query, response=None, useQueue=True, connection=None):
-        return self.sendDOQQuery(self._doqServerPort, query, response=response, caFile=self._caCert, useQueue=useQueue, serverName=self._serverName, connection=connection)
+        return self.sendDOQQuery(
+            self._doqServerPort,
+            query,
+            response=response,
+            caFile=self._caCert,
+            useQueue=useQueue,
+            serverName=self._serverName,
+            connection=connection,
+        )
+
 
 class TestDOQCertificateReloading(DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
-    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
-    _serverKey = 'server-doq.key'
-    _serverCert = 'server-doq.chain'
-    _serverName = 'tls.tests.dnsdist.org'
-    _caCert = 'ca.pem'
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _serverKey = "server-doq.key"
+    _serverCert = "server-doq.chain"
+    _serverName = "tls.tests.dnsdist.org"
+    _caCert = "ca.pem"
     _doqServerPort = pickAvailablePort()
     _config_template = """
     setKey("%s")
@@ -197,33 +246,45 @@ class TestDOQCertificateReloading(DNSDistTest):
 
     addDOQLocal("127.0.0.1:%d", "%s", "%s")
     """
-    _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_doqServerPort','_serverCert', '_serverKey']
+    _config_params = [
+        "_consoleKeyB64",
+        "_consolePort",
+        "_testServerPort",
+        "_doqServerPort",
+        "_serverCert",
+        "_serverKey",
+    ]
 
     @classmethod
     def setUpClass(cls):
-        cls.generateNewCertificateAndKey('server-doq')
+        cls.generateNewCertificateAndKey("server-doq")
         cls.startResponders()
         cls.startDNSDist()
         cls.setUpSockets()
 
     def testCertificateReloaded(self):
-        name = 'certificate-reload.doq.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+        name = "certificate-reload.doq.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN", use_edns=False)
         query.id = 0
-        (_, serial) = doqclient.quic_query(query, '127.0.0.1', 0.5, self._doqServerPort, verify=self._caCert, server_hostname=self._serverName)
+        (_, serial) = doqclient.quic_query(
+            query, "127.0.0.1", 0.5, self._doqServerPort, verify=self._caCert, server_hostname=self._serverName
+        )
 
-        self.generateNewCertificateAndKey('server-doq')
+        self.generateNewCertificateAndKey("server-doq")
         self.sendConsoleCommand("reloadAllCertificates()")
 
-        (_, secondSerial) = doqclient.quic_query(query, '127.0.0.1', 0.5, self._doqServerPort, verify=self._caCert, server_hostname=self._serverName)
+        (_, secondSerial) = doqclient.quic_query(
+            query, "127.0.0.1", 0.5, self._doqServerPort, verify=self._caCert, server_hostname=self._serverName
+        )
         # check that the serial is different
         self.assertNotEqual(serial, secondSerial)
 
+
 class TestDOQGetLocalAddressOnAnyBind(QUICGetLocalAddressOnAnyBindTests, DNSDistTest):
-    _serverKey = 'server.key'
-    _serverCert = 'server.chain'
-    _serverName = 'tls.tests.dnsdist.org'
-    _caCert = 'ca.pem'
+    _serverKey = "server.key"
+    _serverCert = "server.chain"
+    _serverName = "tls.tests.dnsdist.org"
+    _caCert = "ca.pem"
     _doqServerPort = pickAvailablePort()
     _config_template = """
     function answerBasedOnLocalAddress(dq)
@@ -238,12 +299,28 @@ class TestDOQGetLocalAddressOnAnyBind(QUICGetLocalAddressOnAnyBindTests, DNSDist
     addDOQLocal("0.0.0.0:%d", "%s", "%s")
     addDOQLocal("[::]:%d", "%s", "%s")
     """
-    _config_params = ['_testServerPort', '_doqServerPort','_serverCert', '_serverKey', '_doqServerPort','_serverCert', '_serverKey']
-    _acl = ['127.0.0.1/32', '::1/128']
+    _config_params = [
+        "_testServerPort",
+        "_doqServerPort",
+        "_serverCert",
+        "_serverKey",
+        "_doqServerPort",
+        "_serverCert",
+        "_serverKey",
+    ]
+    _acl = ["127.0.0.1/32", "::1/128"]
     _skipListeningOnCL = True
 
     def getQUICConnection(self):
         return self.getDOQConnection(self._doqServerPort, self._caCert)
 
     def sendQUICQuery(self, query, response=None, useQueue=True, connection=None):
-        return self.sendDOQQuery(self._doqServerPort, query, response=response, caFile=self._caCert, useQueue=useQueue, serverName=self._serverName, connection=connection)
+        return self.sendDOQQuery(
+            self._doqServerPort,
+            query,
+            response=response,
+            caFile=self._caCert,
+            useQueue=useQueue,
+            serverName=self._serverName,
+            connection=connection,
+        )

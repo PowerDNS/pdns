@@ -5,6 +5,7 @@ import os
 import socket
 from authtests import AuthTest
 
+
 class TestDirectDNSKEYSignature(AuthTest):
     _config_template = """
     launch={backend}
@@ -13,7 +14,7 @@ class TestDirectDNSKEYSignature(AuthTest):
     """
 
     _zones = {
-        'example.org': """
+        "example.org": """
 example.org.                 3600 IN SOA     {soa}
 example.org.                 3600 IN NS      ns1.example.org.
 example.org.                 3600 IN NS      ns2.example.org.
@@ -29,7 +30,7 @@ example.org.                 3600 IN RRSIG   DNSKEY 13 2 3600 20250118211239 202
     def setUpClass(cls):
         cls.setUpSockets()
         cls.startResponders()
-        confdir = os.path.join('configs', cls._confdir)
+        confdir = os.path.join("configs", cls._confdir)
         cls.createConfigDir(confdir)
         cls.generateAllAuthConfig(confdir)
         cls.startAuth(confdir, "0.0.0.0")
@@ -44,7 +45,7 @@ example.org.                 3600 IN RRSIG   DNSKEY 13 2 3600 20250118211239 202
 
     def testDNSKEYQuery(self):
         """Test to verify DNSKEY and RRSIG records are served correctly"""
-        query = dns.message.make_query('example.org', 'DNSKEY', use_edns=True, want_dnssec=True)
+        query = dns.message.make_query("example.org", "DNSKEY", use_edns=True, want_dnssec=True)
         res = self.sendUDPQuery(query)
 
         # Ensure no error in response
@@ -55,12 +56,15 @@ example.org.                 3600 IN RRSIG   DNSKEY 13 2 3600 20250118211239 202
         self.assertTrue(dnskey_found, "DNSKEY record not found in the answer section")
 
         # Validate RRSIG record for DNSKEY
-        rrsig_found = any(rrset.rdtype == dns.rdatatype.RRSIG and rrset.covers == dns.rdatatype.DNSKEY and rrset[0].key_tag == 22273 for rrset in res.answer)
+        rrsig_found = any(
+            rrset.rdtype == dns.rdatatype.RRSIG and rrset.covers == dns.rdatatype.DNSKEY and rrset[0].key_tag == 22273
+            for rrset in res.answer
+        )
         self.assertTrue(rrsig_found, "RRSIG for DNSKEY not found in the answer section")
 
     def testDNSKEYQueryWithoutDNSSEC(self):
         """Test to ensure no RRSIG records are returned without the DNSSEC flag"""
-        query = dns.message.make_query('example.org', 'DNSKEY', use_edns=True, want_dnssec=False)
+        query = dns.message.make_query("example.org", "DNSKEY", use_edns=True, want_dnssec=False)
         res = self.sendUDPQuery(query)
 
         # Ensure no error in response

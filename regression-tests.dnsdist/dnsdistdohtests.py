@@ -9,12 +9,12 @@ from dnsdisttests import DNSDistTest
 import pycurl
 from io import BytesIO
 
-@unittest.skipIf('SKIP_DOH_TESTS' in os.environ, 'DNS over HTTPS tests are disabled')
-class DNSDistDOHTest(DNSDistTest):
 
+@unittest.skipIf("SKIP_DOH_TESTS" in os.environ, "DNS over HTTPS tests are disabled")
+class DNSDistDOHTest(DNSDistTest):
     def getHeaderValue(self, name):
         for header in self._response_headers.decode().splitlines(False):
-            values = header.split(':')
+            values = header.split(":")
             key = values[0]
             if key.lower() == name.lower():
                 return values[1].strip()
@@ -29,10 +29,9 @@ class DNSDistDOHTest(DNSDistTest):
 
     @classmethod
     def setUpClass(cls):
-
         # for some reason, @unittest.skipIf() is not applied to derived classes with some versions of Python
-        if 'SKIP_DOH_TESTS' in os.environ:
-            raise unittest.SkipTest('DNS over HTTPS tests are disabled')
+        if "SKIP_DOH_TESTS" in os.environ:
+            raise unittest.SkipTest("DNS over HTTPS tests are disabled")
 
         cls.startResponders()
         cls.startDNSDist()

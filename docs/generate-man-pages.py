@@ -47,15 +47,13 @@ def main():
             target_directory,
         ]
         + files,
-        check=True
+        check=True,
     )
 
 
 def create_argument_parser():
     """Create command-line argument parser."""
-    parser = argparse.ArgumentParser(
-        description="Build man pages for PowerDNS open source products"
-    )
+    parser = argparse.ArgumentParser(description="Build man pages for PowerDNS open source products")
     parser.add_argument(
         "--build-root",
         type=Path,

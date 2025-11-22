@@ -9,6 +9,7 @@ try:
 except NameError:
     pass
 
+
 class TestTCPKeepAlive(DNSDistTest):
     """
     These tests make sure that dnsdist keeps the TCP connection alive
@@ -37,14 +38,20 @@ class TestTCPKeepAlive(DNSDistTest):
     addAction("nodownstream-servfail.tcpka.tests.powerdns.com.", PoolAction("nosuchpool"))
     setServFailWhenNoServer(true)
     """
-    _config_params = ['_testServerPort', '_tcpIdleTimeout', '_maxTCPQueriesPerConn', '_maxTCPConnsPerClient', '_maxTCPConnDuration']
+    _config_params = [
+        "_testServerPort",
+        "_tcpIdleTimeout",
+        "_maxTCPQueriesPerConn",
+        "_maxTCPConnsPerClient",
+        "_maxTCPConnDuration",
+    ]
 
     def testTCPKaSelfGenerated(self):
         """
         TCP KeepAlive: Self-generated answer
         """
-        name = 'refused.tcpka.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "refused.tcpka.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.REFUSED)
@@ -70,14 +77,10 @@ class TestTCPKeepAlive(DNSDistTest):
         """
         TCP KeepAlive: Cache Hit
         """
-        name = 'cachehit.tcpka.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "cachehit.tcpka.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         expectedResponse = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
         expectedResponse.answer.append(rrset)
 
         # first query to fill the cache
@@ -113,8 +116,8 @@ class TestTCPKeepAlive(DNSDistTest):
         and dnsdist is configured to send a ServFail when
         that happens. We should keep the TCP connection open.
         """
-        name = 'nodownstream-servfail.tcpka.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "nodownstream-servfail.tcpka.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.SERVFAIL)
 
@@ -139,8 +142,8 @@ class TestTCPKeepAlive(DNSDistTest):
         """
         TCP KeepAlive: QR bit set in question
         """
-        name = 'qrset.tcpka.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "qrset.tcpka.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         query.flags |= dns.flags.QR
 
         conn = self.openTCPConnection()
@@ -163,8 +166,8 @@ class TestTCPKeepAlive(DNSDistTest):
         """
         TCP KeepAlive: Drop
         """
-        name = 'dropped.tcpka.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "dropped.tcpka.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         query.flags |= dns.flags.QR
 
         conn = self.openTCPConnection()
@@ -187,8 +190,8 @@ class TestTCPKeepAlive(DNSDistTest):
         """
         TCP KeepAlive: Drop Response
         """
-        name = 'dropped-response.tcpka.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "dropped-response.tcpka.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
 
         conn = self.openTCPConnection()
 
@@ -210,15 +213,11 @@ class TestTCPKeepAlive(DNSDistTest):
         """
         TCP KeepAlive: Large number of connections
         """
-        name = 'largernumberofconnections.tcpka.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "largernumberofconnections.tcpka.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         expectedResponse = dns.message.make_response(query)
-        #expectedResponse.set_rcode(dns.rcode.SERVFAIL)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
+        # expectedResponse.set_rcode(dns.rcode.SERVFAIL)
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
         expectedResponse.answer.append(rrset)
 
         # number of connections
@@ -244,9 +243,10 @@ class TestTCPKeepAlive(DNSDistTest):
                 pass
 
         for conn in conns:
-          conn.close()
+            conn.close()
 
         self.assertEqual(count, numConns * numQueriesPerConn)
+
 
 class TestTCPKeepAliveNoDownstreamDrop(DNSDistTest):
     """
@@ -269,7 +269,13 @@ class TestTCPKeepAliveNoDownstreamDrop(DNSDistTest):
     getPool("nosuchpool")
     addAction("nodownstream-drop.tcpka.tests.powerdns.com.", PoolAction("nosuchpool"))
     """
-    _config_params = ['_testServerPort', '_tcpIdleTimeout', '_maxTCPQueriesPerConn', '_maxTCPConnsPerClient', '_maxTCPConnDuration']
+    _config_params = [
+        "_testServerPort",
+        "_tcpIdleTimeout",
+        "_maxTCPQueriesPerConn",
+        "_maxTCPConnsPerClient",
+        "_maxTCPConnDuration",
+    ]
 
     def testTCPKaNoDownstreamDrop(self):
         """
@@ -279,8 +285,8 @@ class TestTCPKeepAliveNoDownstreamDrop(DNSDistTest):
         and dnsdist is configured to drop the query when
         that happens. We should close the TCP connection right away.
         """
-        name = 'nodownstream-drop.tcpka.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "nodownstream-drop.tcpka.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
 
         conn = self.openTCPConnection()
 

@@ -18,9 +18,7 @@ import unidiff
 
 def create_argument_parser():
     """Create command-line argument parser."""
-    parser = argparse.ArgumentParser(
-        description="Filter git diff files that are not in the product"
-    )
+    parser = argparse.ArgumentParser(description="Filter git diff files that are not in the product")
     parser.add_argument(
         "--product",
         type=str,

@@ -3,8 +3,8 @@ import extendederrors
 import dns
 from dnsdisttests import DNSDistTest, pickAvailablePort
 
-class TestBasics(DNSDistTest):
 
+class TestBasics(DNSDistTest):
     _config_template = """
     newServer{address="127.0.0.1:%d"}
     pc = newPacketCache(100, {maxTTL=86400, minTTL=1})
@@ -46,15 +46,11 @@ class TestBasics(DNSDistTest):
         """
         EDE: No EDNS
         """
-        name = 'no-edns.ede.tests.powerdns.com.'
+        name = "no-edns.ede.tests.powerdns.com."
         # no EDNS
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+        query = dns.message.make_query(name, "A", "IN", use_edns=False)
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
 
         response.answer.append(rrset)
 
@@ -69,26 +65,18 @@ class TestBasics(DNSDistTest):
         """
         EDE: Backend response
         """
-        name = 'backend-response.ede.tests.powerdns.com.'
-        ede = extendederrors.ExtendedErrorOption(16, b'my extended error status')
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True)
+        name = "backend-response.ede.tests.powerdns.com."
+        ede = extendederrors.ExtendedErrorOption(16, b"my extended error status")
+        query = dns.message.make_query(name, "A", "IN", use_edns=True)
 
         backendResponse = dns.message.make_response(query)
         backendResponse.use_edns(edns=True, payload=4096, options=[])
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
 
         backendResponse.answer.append(rrset)
         expectedResponse = dns.message.make_response(query)
         expectedResponse.use_edns(edns=True, payload=4096, options=[ede])
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         expectedResponse.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -108,28 +96,20 @@ class TestBasics(DNSDistTest):
         """
         EDE: Backend response (DO)
         """
-        name = 'backend-response-do.ede.tests.powerdns.com.'
-        ede = extendederrors.ExtendedErrorOption(16, b'my extended error status')
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, want_dnssec=True)
+        name = "backend-response-do.ede.tests.powerdns.com."
+        ede = extendederrors.ExtendedErrorOption(16, b"my extended error status")
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, want_dnssec=True)
 
         backendResponse = dns.message.make_response(query)
         backendResponse.use_edns(edns=True, payload=4096, options=[])
         backendResponse.want_dnssec(True)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
 
         backendResponse.answer.append(rrset)
         expectedResponse = dns.message.make_response(query)
         expectedResponse.use_edns(edns=True, payload=4096, options=[ede])
         expectedResponse.want_dnssec(True)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         expectedResponse.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -149,27 +129,19 @@ class TestBasics(DNSDistTest):
         """
         EDE: Backend response with existing EDE
         """
-        name = 'backend-response-existing-ede.ede.tests.powerdns.com.'
-        ede = extendederrors.ExtendedErrorOption(16, b'my extended error status')
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True)
+        name = "backend-response-existing-ede.ede.tests.powerdns.com."
+        ede = extendederrors.ExtendedErrorOption(16, b"my extended error status")
+        query = dns.message.make_query(name, "A", "IN", use_edns=True)
 
         backendResponse = dns.message.make_response(query)
-        backendEDE = extendederrors.ExtendedErrorOption(3, b'Stale answer')
+        backendEDE = extendederrors.ExtendedErrorOption(3, b"Stale answer")
         backendResponse.use_edns(edns=True, payload=4096, options=[backendEDE])
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
 
         backendResponse.answer.append(rrset)
         expectedResponse = dns.message.make_response(query)
         expectedResponse.use_edns(edns=True, payload=4096, options=[ede])
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         expectedResponse.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -189,19 +161,15 @@ class TestBasics(DNSDistTest):
         """
         EDE: Self-answered
         """
-        name = 'self-answered.ede.tests.powerdns.com.'
-        ede = extendederrors.ExtendedErrorOption(42, b'my self-answered extended error status')
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True)
+        name = "self-answered.ede.tests.powerdns.com."
+        ede = extendederrors.ExtendedErrorOption(42, b"my self-answered extended error status")
+        query = dns.message.make_query(name, "A", "IN", use_edns=True)
         # dnsdist sets RA = RD for self-generated responses
         query.flags &= ~dns.flags.RD
 
         expectedResponse = dns.message.make_response(query)
         expectedResponse.use_edns(edns=True, payload=1232, options=[ede])
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
         expectedResponse.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -213,19 +181,15 @@ class TestBasics(DNSDistTest):
         """
         EDE: Self-answered via Lua FFI
         """
-        name = 'self-answered-ffi.ede.tests.powerdns.com.'
-        ede = extendederrors.ExtendedErrorOption(29, b'Synthesized from Lua')
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True)
+        name = "self-answered-ffi.ede.tests.powerdns.com."
+        ede = extendederrors.ExtendedErrorOption(29, b"Synthesized from Lua")
+        query = dns.message.make_query(name, "A", "IN", use_edns=True)
         # dnsdist sets RA = RD for self-generated responses
         query.flags &= ~dns.flags.RD
 
         expectedResponse = dns.message.make_response(query)
         expectedResponse.use_edns(edns=True, payload=1232, options=[ede])
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.2')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.2")
         expectedResponse.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -237,19 +201,15 @@ class TestBasics(DNSDistTest):
         """
         EDE: Self-answered via Lua FFI without any extra text
         """
-        name = 'self-answered-ffi-no-extra.ede.tests.powerdns.com.'
-        ede = extendederrors.ExtendedErrorOption(29, b'')
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True)
+        name = "self-answered-ffi-no-extra.ede.tests.powerdns.com."
+        ede = extendederrors.ExtendedErrorOption(29, b"")
+        query = dns.message.make_query(name, "A", "IN", use_edns=True)
         # dnsdist sets RA = RD for self-generated responses
         query.flags &= ~dns.flags.RD
 
         expectedResponse = dns.message.make_response(query)
         expectedResponse.use_edns(edns=True, payload=1232, options=[ede])
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.2')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.2")
         expectedResponse.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
