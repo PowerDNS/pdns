@@ -35,7 +35,7 @@ class CookiesOption(dns.edns.Option):
         file.write(data)
         return None
 
-    def from_wire(cls, otype, wire, current, olen):
+    def from_wire(self, otype, wire, current, olen):
         """Read EDNS packet as defined in draft-ietf-dnsop-cookies-09.
 
         Returns:
@@ -52,7 +52,7 @@ class CookiesOption(dns.edns.Option):
         else:
             server = None
 
-        return cls(client, server)
+        return self(client, server)
 
     from_wire = classmethod(from_wire)
 
