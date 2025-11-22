@@ -1237,12 +1237,12 @@ uint32_t IncomingHTTP2Connection::getConcurrentStreamsCount() const
   return d_currentStreams.size() + d_killedStreams.size();
 }
 
-boost::optional<struct timeval> IncomingHTTP2Connection::getIdleClientReadTTD(struct timeval now) const
+std::optional<struct timeval> IncomingHTTP2Connection::getIdleClientReadTTD(struct timeval now) const
 {
   const auto& currentConfig = dnsdist::configuration::getCurrentRuntimeConfiguration();
   auto idleTimeout = d_ci.cs->dohFrontend->d_idleTimeout;
   if (currentConfig.d_maxTCPConnectionDuration == 0 && idleTimeout == 0) {
-    return boost::none;
+    return std::nullopt;
   }
 
   if (currentConfig.d_maxTCPConnectionDuration > 0) {
@@ -1269,7 +1269,7 @@ void IncomingHTTP2Connection::updateIO(IOState newState, const timeval& now)
 
 void IncomingHTTP2Connection::updateIO(IOState newState, const FDMultiplexer::callbackfunc_t& callback)
 {
-  boost::optional<struct timeval> ttd{boost::none};
+  std::optional<struct timeval> ttd{std::nullopt};
 
   if (newState == IOState::Async) {
     auto shared = shared_from_this();

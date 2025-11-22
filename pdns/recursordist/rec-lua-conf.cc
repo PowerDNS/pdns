@@ -175,7 +175,7 @@ static void parseRPZParameters(const rpzOptions_t& have, RPZTrackerParams& param
 
 using protobufOptions_t = std::unordered_map<std::string, boost::variant<bool, uint64_t, std::string, std::vector<std::pair<int, std::string>>>>;
 
-static void parseProtobufOptions(const boost::optional<protobufOptions_t>& vars, ProtobufExportConfig& config)
+static void parseProtobufOptions(const std::optional<protobufOptions_t>& vars, ProtobufExportConfig& config)
 {
   if (!vars) {
     return;
@@ -239,7 +239,7 @@ static void parseProtobufOptions(const boost::optional<protobufOptions_t>& vars,
 #ifdef HAVE_FSTRM
 using frameStreamOptions_t = std::unordered_map<std::string, boost::variant<bool, uint64_t, std::string, std::vector<std::pair<int, std::string>>>>;
 
-static void parseFrameStreamOptions(const boost::optional<frameStreamOptions_t>& vars, FrameStreamExportConfig& config)
+static void parseFrameStreamOptions(const std::optional<frameStreamOptions_t>& vars, FrameStreamExportConfig& config)
 {
   if (!vars) {
     return;
@@ -280,7 +280,7 @@ static void parseFrameStreamOptions(const boost::optional<frameStreamOptions_t>&
 }
 #endif /* HAVE_FSTRM */
 
-static void rpzPrimary(LuaConfigItems& lci, const boost::variant<string, std::vector<std::pair<int, string>>>& primaries_, const string& zoneName, const boost::optional<rpzOptions_t>& options)
+static void rpzPrimary(LuaConfigItems& lci, const boost::variant<string, std::vector<std::pair<int, string>>>& primaries_, const string& zoneName, const std::optional<rpzOptions_t>& options)
 {
   RPZTrackerParams params;
   params.zoneXFRParams.name = zoneName;
@@ -421,7 +421,7 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
   Lua->writeVariable("Policy", pmap);
 
   // NOLINTNEXTLINE(performance-unnecessary-value-param) Lua wrapper does not handle optional &
-  Lua->writeFunction("rpzFile", [&lci](const string& filename, boost::optional<rpzOptions_t> options) {
+  Lua->writeFunction("rpzFile", [&lci](const string& filename, std::optional<rpzOptions_t> options) {
     RPZTrackerParams params;
     params.zoneXFRParams.name = filename;
     params.polName = "rpzFile";
@@ -432,14 +432,14 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
   });
 
   // NOLINTNEXTLINE(performance-unnecessary-value-param) Lua wrapper does not handle optional &
-  Lua->writeFunction("rpzPrimary", [&lci](const boost::variant<string, std::vector<std::pair<int, string>>>& primaries_, const string& zoneName, boost::optional<rpzOptions_t> options) {
+  Lua->writeFunction("rpzPrimary", [&lci](const boost::variant<string, std::vector<std::pair<int, string>>>& primaries_, const string& zoneName, std::optional<rpzOptions_t> options) {
     rpzPrimary(lci, primaries_, zoneName, options);
   });
 
   using zoneToCacheOptions_t = std::unordered_map<std::string, boost::variant<uint32_t, std::string>>;
 
   // NOLINTNEXTLINE(performance-unnecessary-value-param) Lua wrapper does not handle optional &
-  Lua->writeFunction("zoneToCache", [&lci](const string& zoneName, const string& method, const boost::variant<string, std::vector<std::pair<int, string>>>& srcs, boost::optional<zoneToCacheOptions_t> options) {
+  Lua->writeFunction("zoneToCache", [&lci](const string& zoneName, const string& method, const boost::variant<string, std::vector<std::pair<int, string>>>& srcs, std::optional<zoneToCacheOptions_t> options) {
     try {
       RecZoneToCache::Config conf;
       DNSName validZoneName(zoneName);
@@ -520,7 +520,7 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
   Lua->writeFunction("addSortList",
                      [&lci](const std::string& formask_,
                             const boost::variant<string, argvec_t>& masks,
-                            boost::optional<int> order_) {
+                            std::optional<int> order_) {
                        try {
                          Netmask formask(formask_);
                          int order = order_ ? (*order_) : lci.sortlist.getMaxOrder(formask) + 1;
@@ -555,7 +555,7 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
     lci.dsAnchors[zone].insert(*dsRecordContent);
   });
 
-  Lua->writeFunction("clearTA", [&lci](boost::optional<string> who) {
+  Lua->writeFunction("clearTA", [&lci](std::optional<string> who) {
     if (who) {
       lci.dsAnchors.erase(DNSName(*who));
     }
@@ -564,7 +564,7 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
     }
   });
 
-  Lua->writeFunction("addNTA", [&lci](const std::string& who, boost::optional<std::string> why) {
+  Lua->writeFunction("addNTA", [&lci](const std::string& who, std::optional<std::string> why) {
     if (why) {
       lci.negAnchors[DNSName(who)] = static_cast<string>(*why);
     }
@@ -573,7 +573,7 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
     }
   });
 
-  Lua->writeFunction("clearNTA", [&lci](boost::optional<string> who) {
+  Lua->writeFunction("clearNTA", [&lci](std::optional<string> who) {
     if (who) {
       lci.negAnchors.erase(DNSName(*who));
     }
@@ -582,7 +582,7 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
     }
   });
 
-  Lua->writeFunction("readTrustAnchorsFromFile", [&lci](const std::string& fnamearg, boost::optional<uint32_t> interval) {
+  Lua->writeFunction("readTrustAnchorsFromFile", [&lci](const std::string& fnamearg, std::optional<uint32_t> interval) {
     uint32_t realInterval = 24;
     if (interval) {
       realInterval = static_cast<uint32_t>(*interval);
@@ -597,7 +597,7 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
   });
 
   // NOLINTNEXTLINE(performance-unnecessary-value-param) Lua wrapper does not handle optional &
-  Lua->writeFunction("protobufServer", [&lci](boost::variant<const std::string, const std::unordered_map<int, std::string>> servers, boost::optional<protobufOptions_t> vars) {
+  Lua->writeFunction("protobufServer", [&lci](boost::variant<const std::string, const std::unordered_map<int, std::string>> servers, std::optional<protobufOptions_t> vars) {
     if (!lci.protobufExportConfig.enabled) {
 
       lci.protobufExportConfig.enabled = true;
@@ -630,7 +630,7 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
   });
 
   // NOLINTNEXTLINE(performance-unnecessary-value-param) Lua wrapper does not handle optional &
-  Lua->writeFunction("outgoingProtobufServer", [&lci](boost::variant<const std::string, const std::unordered_map<int, std::string>> servers, boost::optional<protobufOptions_t> vars) {
+  Lua->writeFunction("outgoingProtobufServer", [&lci](boost::variant<const std::string, const std::unordered_map<int, std::string>> servers, std::optional<protobufOptions_t> vars) {
     if (!lci.outgoingProtobufExportConfig.enabled) {
 
       lci.outgoingProtobufExportConfig.enabled = true;
@@ -664,7 +664,7 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
 
 #ifdef HAVE_FSTRM
   // NOLINTNEXTLINE(performance-unnecessary-value-param) Lua wrapper does not handle optional &
-  Lua->writeFunction("dnstapFrameStreamServer", [&lci](boost::variant<const std::string, const std::unordered_map<int, std::string>> servers, boost::optional<frameStreamOptions_t> vars) {
+  Lua->writeFunction("dnstapFrameStreamServer", [&lci](boost::variant<const std::string, const std::unordered_map<int, std::string>> servers, std::optional<frameStreamOptions_t> vars) {
     if (!lci.frameStreamExportConfig.enabled) {
 
       lci.frameStreamExportConfig.enabled = true;
@@ -698,7 +698,7 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
     }
   });
   // NOLINTNEXTLINE(performance-unnecessary-value-param) Lua wrapper does not handle optional &
-  Lua->writeFunction("dnstapNODFrameStreamServer", [&lci](boost::variant<const std::string, const std::unordered_map<int, std::string>> servers, boost::optional<frameStreamOptions_t> vars) {
+  Lua->writeFunction("dnstapNODFrameStreamServer", [&lci](boost::variant<const std::string, const std::unordered_map<int, std::string>> servers, std::optional<frameStreamOptions_t> vars) {
     if (!lci.nodFrameStreamExportConfig.enabled) {
       lci.nodFrameStreamExportConfig.enabled = true;
 
@@ -733,7 +733,7 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
 #endif /* HAVE_FSTRM */
 
   // NOLINTNEXTLINE(performance-unnecessary-value-param) Lua wrapper does not handle optional &
-  Lua->writeFunction("addAllowedAdditionalQType", [&lci](int qtype, const std::unordered_map<int, int>& targetqtypes, boost::optional<std::map<std::string, int>> options) {
+  Lua->writeFunction("addAllowedAdditionalQType", [&lci](int qtype, const std::unordered_map<int, int>& targetqtypes, std::optional<std::map<std::string, int>> options) {
     switch (qtype) {
     case QType::MX:
     case QType::SRV:
@@ -765,13 +765,13 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
   });
 
    // NOLINTNEXTLINE(performance-unnecessary-value-param) Lua wrapper does not handle optional &
- Lua->writeFunction("addProxyMapping", [&proxyMapping,&lci](const string& netmaskArg, const string& addressArg, boost::optional<std::vector<pair<int,std::string>>> smnStrings) {
+ Lua->writeFunction("addProxyMapping", [&proxyMapping,&lci](const string& netmaskArg, const string& addressArg, std::optional<std::vector<pair<int,std::string>>> smnStrings) {
     try {
       Netmask netmask(netmaskArg);
       ComboAddress address(addressArg);
-      boost::optional<SuffixMatchNode> smn;
+      std::optional<SuffixMatchNode> smn;
       if (smnStrings) {
-        smn = boost::make_optional(SuffixMatchNode{});
+        smn = std::make_optional(SuffixMatchNode{});
         for (const auto& subnet : *smnStrings) {
           smn->add(subnet.second);
         }

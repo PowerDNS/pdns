@@ -65,27 +65,27 @@ Subsequent rules are processed after this action"
     - name: "file_name"
       type: "String"
       default: ""
-      cpp-optional: false
+      optional: false
       description: "File to log to. Set to an empty string to log to the normal stdout log, this only works when ``-v`` is set on the command line"
     - name: "append"
       type: "bool"
       default: "false"
-      cpp-optional: false
+      optional: false
       description: "Whether to append to an existing file"
     - name: "buffered"
       type: "bool"
       default: "false"
-      cpp-optional: false
+      optional: false
       description: "Whether to use buffered I/O"
     - name: "verbose_only"
       type: "bool"
       default: "true"
-      cpp-optional: false
+      optional: false
       description: "Whether to log only in verbose mode when logging to stdout"
     - name: "include_timestamp"
       type: "bool"
       default: "false"
-      cpp-optional: false
+      optional: false
       description: "Whether to include a timestamp for every entry"
 - name: "lua"
   description: "Invoke a Lua function that accepts a :class:`DNSResponse`. The function should return a :ref:`DNSResponseAction`. If the Lua code fails, ``ServFail`` is returned"
@@ -201,7 +201,7 @@ The function will be invoked in a per-thread Lua state, without access to the gl
     - name: "extra_text"
       type: "String"
       default: ""
-      cpp-optional: false
+      optional: false
       description: "The optional EDNS Extended DNS Error extra text"
 - name: "SetMaxReturnedTTL"
   description: "Cap the TTLs of the response to the given maximum, but only after inserting the response into the packet cache with the initial TTL values"
@@ -249,7 +249,7 @@ The function will be invoked in a per-thread Lua state, without access to the gl
     - name: "reason"
       type: "String"
       default: ""
-      cpp-optional: false
+      optional: false
       description: "The SNMP trap reason"
 - name: "TC"
   description: "Truncate an existing answer, to force the client to TCP. Only applied to answers that will be sent to the client over TCP. In addition to the TC bit being set, all records are removed from the answer, authority and additional sections"

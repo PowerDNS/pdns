@@ -92,7 +92,7 @@ struct ProxyMappingCounts
 struct ProxyByTableValue
 {
   ComboAddress address;
-  boost::optional<SuffixMatchNode> suffixMatchNode;
+  std::optional<SuffixMatchNode> suffixMatchNode;
   mutable ProxyMappingCounts stats{};
 };
 

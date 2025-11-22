@@ -270,7 +270,7 @@ static void handleNotify(std::unique_ptr<DNSComboWriter>& comboWriter, const DNS
   }
 }
 
-static void doProtobufLogQuery(bool logQuery, LocalStateHolder<LuaConfigItems>& luaconfsLocal, const std::unique_ptr<DNSComboWriter>& comboWriter, const DNSName& qname, QType qtype, QClass qclass, const dnsheader* dnsheader, const shared_ptr<TCPConnection>& conn, const boost::optional<uint32_t>& ednsVersion)
+static void doProtobufLogQuery(bool logQuery, LocalStateHolder<LuaConfigItems>& luaconfsLocal, const std::unique_ptr<DNSComboWriter>& comboWriter, const DNSName& qname, QType qtype, QClass qclass, const dnsheader* dnsheader, const shared_ptr<TCPConnection>& conn, const std::optional<uint32_t>& ednsVersion)
 {
   try {
     if (logQuery && !(luaconfsLocal->protobufExportConfig.taggedOnly && comboWriter->d_policyTags.empty())) {
@@ -299,7 +299,7 @@ static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, s
   string deviceName;
   bool logQuery = false;
   bool qnameParsed = false;
-  boost::optional<uint32_t> ednsVersion;
+  std::optional<uint32_t> ednsVersion;
 
   comboWriter->d_eventTrace.setEnabled(SyncRes::s_event_trace_enabled != 0);
   if (comboWriter->d_eventTrace.enabled() && !matchOTConditions(t_OTConditions, comboWriter->d_mappedSource) && SyncRes::eventTraceEnabledOnly(SyncRes::event_trace_to_ot)) {
@@ -448,7 +448,7 @@ static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, s
     }
 
     string response;
-    RecursorPacketCache::OptPBData pbData{boost::none};
+    RecursorPacketCache::OptPBData pbData{std::nullopt};
 
     if (comboWriter->d_mdp.d_header.opcode == static_cast<unsigned>(Opcode::Query)) {
       /* It might seem like a good idea to skip the packet cache lookup if we know that the answer is not cacheable,

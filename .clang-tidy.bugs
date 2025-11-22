@@ -11,6 +11,7 @@ FormatStyle: none
 #  - cpp
 WarningsAsErrors: ''
 HeaderFilterRegex: ''
+IgnoredVariableNames: 'ip'
 Checks: |
   clang-diagnostic-*,clang-analyzer-*,bugprone-*,concurrency-*,-modernize-use-trailing-return-type,-readability-magic-numbers,-cppcoreguidelines-avoid-magic-numbers,-performance-avoid-endl
 # yamllint disable rule:line-length

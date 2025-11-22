@@ -33,7 +33,7 @@
 #include "remote_logger_pool.hh"
 
 #ifdef HAVE_FSTRM
-static void parseFSTRMOptions(boost::optional<LuaAssociativeTable<unsigned int>>& params, LuaAssociativeTable<unsigned int>& options)
+static void parseFSTRMOptions(std::optional<LuaAssociativeTable<unsigned int>>& params, LuaAssociativeTable<unsigned int>& options)
 {
   if (!params) {
     return;
@@ -72,8 +72,8 @@ void setupLuaBindingsProtoBuf(LuaContext& luaCtx, bool client, bool configCheck)
     }
   });
 
-  luaCtx.registerFunction<void (DNSDistProtoBufMessage::*)(boost::optional<time_t> sec, boost::optional<uint32_t> uSec)>("setProtobufResponseType",
-                                                                                                                         [](DNSDistProtoBufMessage& message, boost::optional<time_t> sec, boost::optional<uint32_t> uSec) {
+  luaCtx.registerFunction<void (DNSDistProtoBufMessage::*)(std::optional<time_t> sec, std::optional<uint32_t> uSec)>("setProtobufResponseType",
+                                                                                                                         [](DNSDistProtoBufMessage& message, std::optional<time_t> sec, std::optional<uint32_t> uSec) {
                                                                                                                            message.setType(pdns::ProtoZero::Message::MessageType::DNSResponseType);
                                                                                                                            message.setQueryTime(sec ? *sec : 0, uSec ? *uSec : 0);
                                                                                                                          });
@@ -88,25 +88,25 @@ void setupLuaBindingsProtoBuf(LuaContext& luaCtx, bool client, bool configCheck)
   luaCtx.registerFunction<void (DNSDistProtoBufMessage::*)(time_t, uint32_t)>("setQueryTime", [](DNSDistProtoBufMessage& message, time_t sec, uint32_t usec) { message.setQueryTime(sec, usec); });
   luaCtx.registerFunction<void (DNSDistProtoBufMessage::*)(uint8_t)>("setResponseCode", [](DNSDistProtoBufMessage& message, uint8_t rcode) { message.setResponseCode(rcode); });
 
-  luaCtx.registerFunction<void (DNSDistProtoBufMessage::*)(const ComboAddress&, boost::optional<uint16_t>)>("setRequestor", [](DNSDistProtoBufMessage& message, const ComboAddress& addr, boost::optional<uint16_t> port) {
+  luaCtx.registerFunction<void (DNSDistProtoBufMessage::*)(const ComboAddress&, std::optional<uint16_t>)>("setRequestor", [](DNSDistProtoBufMessage& message, const ComboAddress& addr, std::optional<uint16_t> port) {
     message.setRequestor(addr);
     if (port) {
       message.setRequestorPort(*port);
     }
   });
-  luaCtx.registerFunction<void (DNSDistProtoBufMessage::*)(const std::string&, boost::optional<uint16_t>)>("setRequestorFromString", [](DNSDistProtoBufMessage& message, const std::string& str, boost::optional<uint16_t> port) {
+  luaCtx.registerFunction<void (DNSDistProtoBufMessage::*)(const std::string&, std::optional<uint16_t>)>("setRequestorFromString", [](DNSDistProtoBufMessage& message, const std::string& str, std::optional<uint16_t> port) {
     message.setRequestor(ComboAddress(str));
     if (port) {
       message.setRequestorPort(*port);
     }
   });
-  luaCtx.registerFunction<void (DNSDistProtoBufMessage::*)(const ComboAddress&, boost::optional<uint16_t>)>("setResponder", [](DNSDistProtoBufMessage& message, const ComboAddress& addr, boost::optional<uint16_t> port) {
+  luaCtx.registerFunction<void (DNSDistProtoBufMessage::*)(const ComboAddress&, std::optional<uint16_t>)>("setResponder", [](DNSDistProtoBufMessage& message, const ComboAddress& addr, std::optional<uint16_t> port) {
     message.setResponder(addr);
     if (port) {
       message.setResponderPort(*port);
     }
   });
-  luaCtx.registerFunction<void (DNSDistProtoBufMessage::*)(const std::string&, boost::optional<uint16_t>)>("setResponderFromString", [](DNSDistProtoBufMessage& message, const std::string& str, boost::optional<uint16_t> port) {
+  luaCtx.registerFunction<void (DNSDistProtoBufMessage::*)(const std::string&, std::optional<uint16_t>)>("setResponderFromString", [](DNSDistProtoBufMessage& message, const std::string& str, std::optional<uint16_t> port) {
     message.setResponder(ComboAddress(str));
     if (port) {
       message.setResponderPort(*port);
@@ -121,7 +121,7 @@ void setupLuaBindingsProtoBuf(LuaContext& luaCtx, bool client, bool configCheck)
   });
 
   /* RemoteLogger */
-  luaCtx.writeFunction("newRemoteLogger", [client, configCheck](const std::string& remote, boost::optional<uint16_t> timeout, boost::optional<uint64_t> maxQueuedEntries, boost::optional<uint8_t> reconnectWaitTime, boost::optional<uint64_t> connectionCount) {
+  luaCtx.writeFunction("newRemoteLogger", [client, configCheck](const std::string& remote, std::optional<uint16_t> timeout, std::optional<uint64_t> maxQueuedEntries, std::optional<uint8_t> reconnectWaitTime, std::optional<uint64_t> connectionCount) {
     if (client || configCheck) {
       return std::shared_ptr<RemoteLoggerInterface>(nullptr);
     }
@@ -138,7 +138,7 @@ void setupLuaBindingsProtoBuf(LuaContext& luaCtx, bool client, bool configCheck)
     return std::shared_ptr<RemoteLoggerInterface>(new RemoteLogger(ComboAddress(remote), timeout ? *timeout : 2, maxQueuedEntries ? (*maxQueuedEntries * 100) : 10000, reconnectWaitTime ? *reconnectWaitTime : 1, client));
   });
 
-  luaCtx.writeFunction("newFrameStreamUnixLogger", [client, configCheck]([[maybe_unused]] const std::string& address, [[maybe_unused]] boost::optional<LuaAssociativeTable<unsigned int>> params) {
+  luaCtx.writeFunction("newFrameStreamUnixLogger", [client, configCheck]([[maybe_unused]] const std::string& address, [[maybe_unused]] std::optional<LuaAssociativeTable<unsigned int>> params) {
 #ifdef HAVE_FSTRM
     if (client || configCheck) {
       return std::shared_ptr<RemoteLoggerInterface>(nullptr);
@@ -167,7 +167,7 @@ void setupLuaBindingsProtoBuf(LuaContext& luaCtx, bool client, bool configCheck)
 #endif /* HAVE_FSTRM */
   });
 
-  luaCtx.writeFunction("newFrameStreamTcpLogger", [client, configCheck]([[maybe_unused]] const std::string& address, [[maybe_unused]] boost::optional<LuaAssociativeTable<unsigned int>> params) {
+  luaCtx.writeFunction("newFrameStreamTcpLogger", [client, configCheck]([[maybe_unused]] const std::string& address, [[maybe_unused]] std::optional<LuaAssociativeTable<unsigned int>> params) {
 #if defined(HAVE_FSTRM) && defined(HAVE_FSTRM_TCP_WRITER_INIT)
     if (client || configCheck) {
       return std::shared_ptr<RemoteLoggerInterface>(nullptr);
