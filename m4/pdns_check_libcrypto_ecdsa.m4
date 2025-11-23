@@ -12,11 +12,11 @@ AC_DEFUN([PDNS_CHECK_LIBCRYPTO_ECDSA], [
 
   # Find the headers we need for ECDSA
   libcrypto_ecdsa=yes
-  AC_CHECK_HEADER([$ssldir/include/openssl/ecdsa.h], [
+  AC_CHECK_HEADER([$sslincdir/openssl/ecdsa.h], [
     AC_CHECK_DECLS([NID_X9_62_prime256v1, NID_secp384r1], [ : ], [
       libcrypto_ecdsa=no
     ], [AC_INCLUDES_DEFAULT
-#include <$ssldir/include/openssl/evp.h>
+#include <$sslincdir/openssl/evp.h>
     ])
   ], [
     libcrypto_ecdsa=no
