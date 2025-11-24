@@ -599,6 +599,7 @@ benchmark_sources = files(
   src_dir / 'bench-dnsdist-dnsparser_cc.cc',
   src_dir / 'bench-dnsdist-opentelemetry_cc.cc',
   src_dir / 'bench-dnsdist-rings_cc.cc',
+  src_dir / 'bench-misc_hh.cc',
 )
 
 if get_option('benchmark')
@@ -667,7 +668,7 @@ if get_option('unit-tests')
 endif
 
 if get_option('benchmark')
-  benchmark('benchmarkrunner', benchmarkrunner)
+  benchmark('benchmarkrunner', benchmarkrunner, timeout:240)
 endif
 
 # Man-pages.
