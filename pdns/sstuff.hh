@@ -121,7 +121,13 @@ public:
   {
     ComboAddress remote;
     if (getRemote(remote)) {
-      return netmaskGroup.match(remote);
+      if (netmaskGroup.match(remote)) {
+        return true;
+      }
+
+      if (remote.isMappedIPv4()) {
+        return netmaskGroup.match(remote.mapToIPv4());
+      }
     }
 
     return false;
