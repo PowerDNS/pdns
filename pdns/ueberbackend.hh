@@ -73,20 +73,23 @@ public:
 
     //! The UeberBackend class where this handle belongs to
     UeberBackend* parent{nullptr};
-    //! The current real backend, which is answering questions
-    DNSBackend* d_hinterBackend{nullptr};
 
     //! DNSPacket who asked this question
     DNSPacket* pkt_p{nullptr};
     DNSName qname;
 
     //! Index of the current backend within the backends vector
-    unsigned int i{0};
+    size_t backendIndex{0};
     QType qtype;
     domainid_t zoneId{UnknownDomainID};
 
+    void selectNextBackend();
+
   private:
     static AtomicCounter instances;
+
+    //! The currently selected real backend, which is answering questions
+    DNSBackend* d_hinterBackend{nullptr};
   };
 
   void lookup(const QType& qtype, const DNSName& qname, domainid_t zoneId, DNSPacket* pkt_p = nullptr);

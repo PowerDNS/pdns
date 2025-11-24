@@ -806,7 +806,8 @@ void UeberBackend::lookup(const QType& qtype, const DNSName& qname, domainid_t z
 
   d_qtype = qtype.getCode();
 
-  d_handle.i = 0;
+  d_handle.parent = this;
+  d_handle.backendIndex = 0;
   d_handle.qtype = s_doANYLookupsOnly ? QType::ANY : qtype;
   d_handle.qname = qname;
   d_handle.zoneId = zoneId;
@@ -827,8 +828,7 @@ void UeberBackend::lookup(const QType& qtype, const DNSName& qname, domainid_t z
     //      cout<<"UeberBackend::lookup("<<qname<<"|"<<DNSRecordContent::NumberToType(qtype.getCode())<<"): uncached"<<endl;
     d_negcached = d_cached = false;
     d_answers.clear();
-    (d_handle.d_hinterBackend = backends[d_handle.i++].get())->lookup(d_handle.qtype, d_handle.qname, d_handle.zoneId, d_handle.pkt_p);
-    ++(*s_backendQueries);
+    d_handle.selectNextBackend();
   }
   else if (cacheResult == CacheResult::NegativeMatch) {
     //      cout<<"UeberBackend::lookup("<<qname<<"|"<<DNSRecordContent::NumberToType(qtype.getCode())<<"): NEGcached"<<endl;
@@ -842,8 +842,6 @@ void UeberBackend::lookup(const QType& qtype, const DNSName& qname, domainid_t z
     d_cached = true;
     d_cachehandleiter = d_answers.begin();
   }
-
-  d_handle.parent = this;
 }
 
 void UeberBackend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled)
@@ -1078,33 +1076,41 @@ UeberBackend::handle::~handle()
   --instances;
 }
 
+// Set d_hinterBackend to the next available backend from the parents list,
+// reset it to nullptr if the whole list has been processed.
+// Invokes lookup on behalf of the newly picked backend if successful.
+void UeberBackend::handle::selectNextBackend()
+{
+  if (backendIndex < parent->backends.size()) {
+    d_hinterBackend = parent->backends[backendIndex++].get();
+    d_hinterBackend->lookup(qtype, qname, zoneId, pkt_p);
+    ++(*s_backendQueries);
+  }
+  else {
+    d_hinterBackend = nullptr;
+  }
+}
+
 bool UeberBackend::handle::get(DNSZoneRecord& record)
 {
   DLOG(g_log << "Ueber get() was called for a " << qtype << " record" << endl);
   bool isMore = false;
-  while (d_hinterBackend != nullptr && !(isMore = d_hinterBackend->get(record))) { // this backend out of answers
-    if (i < parent->backends.size()) {
-      DLOG(g_log << "Backend #" << i << " of " << parent->backends.size()
-                 << " out of answers, taking next" << endl);
-
-      d_hinterBackend = parent->backends[i++].get();
-      d_hinterBackend->lookup(qtype, qname, zoneId, pkt_p);
-      ++(*s_backendQueries);
+  while (d_hinterBackend != nullptr && !(isMore = d_hinterBackend->get(record))) { // this backend is out of answers
+    DLOG(g_log << "Backend #" << backendIndex << " of " << parent->backends.size()
+               << " out of answers, trying next" << endl);
+    selectNextBackend();
+    if (d_hinterBackend != nullptr) {
+      DLOG(g_log << "Now asking backend #" << backendIndex << endl);
     }
-    else {
-      break;
-    }
-
-    DLOG(g_log << "Now asking backend #" << i << endl);
   }
 
-  if (!isMore && i == parent->backends.size()) {
+  if (d_hinterBackend == nullptr) {
     DLOG(g_log << "UeberBackend reached end of backends" << endl);
     return false;
   }
 
   DLOG(g_log << "Found an answering backend - will not try another one" << endl);
-  i = parent->backends.size(); // don't go on to the next backend
+  backendIndex = parent->backends.size(); // don't go on to the next backend
   return true;
 }
 
