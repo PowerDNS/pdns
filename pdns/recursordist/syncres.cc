@@ -4199,6 +4199,25 @@ static bool isRedirection(QType qtype)
   return qtype == QType::CNAME || qtype == QType::DNAME;
 }
 
+// Walk the chain from qname, only adding names that can be reached
+static std::unordered_set<DNSName> sanitizeCNAMEChain(const DNSName& qname, std::unordered_map<DNSName, DNSName>& cnameChain)
+{
+  std::unordered_set<DNSName> allowed = {qname};
+  DNSName key{qname};
+  while (true) {
+    if (auto probe = cnameChain.find(key); probe != cnameChain.end()) {
+      allowed.emplace(probe->second);
+      key = probe->second;
+      // This will prevent looping in this function. CNAME loops themselves we handle higher up, see handleNewTarget()
+      cnameChain.erase(probe);
+    }
+    else {
+      break;
+    }
+  }
+  return allowed;
+}
+
 void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DNSName& qname, const QType qtype, const DNSName& auth, bool wasForwarded, bool rdQuery)
 {
   const bool wasForwardRecurse = wasForwarded && rdQuery;
@@ -4206,6 +4225,7 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
      to remain */
   std::unordered_set<DNSName> allowedAdditionals = {qname};
   std::unordered_set<DNSName> allowedAnswerNames = {qname};
+  std::unordered_map<DNSName, DNSName> cnameChain;
   bool cnameSeen = false;
   bool haveAnswers = false;
   bool acceptDelegation = false;
@@ -4280,7 +4300,7 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
       haveAnswers = true;
       if (rec->d_type == QType::CNAME) {
         if (auto cnametarget = getRR<CNAMERecordContent>(*rec); cnametarget != nullptr) {
-          allowedAnswerNames.insert(cnametarget->getTarget());
+          cnameChain.emplace(rec->d_name, cnametarget->getTarget());
         }
         cnameSeen = cnameSeen || qname == rec->d_name;
       }
@@ -4344,6 +4364,10 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
     acceptDelegation = true;
   }
 
+  if (cnameChain.size() > 0) {
+    auto allowed = sanitizeCNAMEChain(qname, cnameChain);
+    allowedAnswerNames.insert(allowed.begin(), allowed.end());
+  }
   sanitizeRecordsPass2(prefix, lwr, qname, qtype, auth, allowedAnswerNames, allowedAdditionals, cnameSeen, acceptDelegation && !soaInAuth, skipvec, skipCount);
 }
 
