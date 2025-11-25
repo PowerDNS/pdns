@@ -2115,16 +2115,13 @@ bool LMDBBackend::getInternal(DNSName& basename, std::string_view& key)
     basename = compoundOrdername::getQName(key);
 
     auto val = d_lookupstate.val.get<string>(); // FIXME see if can be string_view again
-    if (val.size() < sizeof(uint64_t)) {
-      throw DBException("got invalid serialized comment");
-    }
 
     d_lookupstate.comment.domain_id = compoundOrdername::getDomainID(key);
     d_lookupstate.comment.qname = basename + d_lookupstate.domain.operator const DNSName&();
     d_lookupstate.comment.qtype = compoundOrdername::getQType(key);
     try {
       protozero::pbf_reader message{val};
-      message.next(1); // FIXME error handling
+      message.next(1);
       d_lookupstate.comment.modified_at = message.get_sfixed64();
       message.next(2);
       d_lookupstate.comment.account = message.get_string();
