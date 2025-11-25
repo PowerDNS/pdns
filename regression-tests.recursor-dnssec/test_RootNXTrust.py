@@ -1,6 +1,5 @@
 import dns
 import requests
-import socket
 import time
 import extendederrors
 

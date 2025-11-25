@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import base64
-import dns
 import os
 import subprocess
 import unittest

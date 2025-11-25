@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-import copy
-import os
 import dns
 from dnsdisttests import DNSDistTest
 

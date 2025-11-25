@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import dns
-import clientsubnetoption
 from dnsdisttests import DNSDistTest
 
 class TestTags(DNSDistTest):

@@ -1,10 +1,6 @@
 #!/usr/bin/env python
 
-import os
 import requests
-import socket
-import threading
-import unittest
 import dns
 from dnsdisttests import DNSDistTest, pickAvailablePort
 

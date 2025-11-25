@@ -2,7 +2,6 @@
 import dns
 import os
 
-import pytest
 from authtests import AuthTest
 
 

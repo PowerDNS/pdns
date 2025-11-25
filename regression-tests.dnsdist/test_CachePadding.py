@@ -2,7 +2,7 @@
 import dns
 import paddingoption
 import randompaddingoption
-from dnsdisttests import DNSDistTest, pickAvailablePort
+from dnsdisttests import DNSDistTest
 
 class TestCachePadding(DNSDistTest):
 

@@ -1,7 +1,5 @@
-import os
 import requests
 import subprocess
-import unittest
 
 from recursortests import RecursorTest
 

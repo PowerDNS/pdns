@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 from queue import Queue
 import threading
-import clientsubnetoption
 import dns
 from dnsdisttests import DNSDistTest, pickAvailablePort
 from proxyprotocolutils import ProxyProtocolUDPResponder, ProxyProtocolTCPResponder

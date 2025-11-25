@@ -11,7 +11,6 @@
    an external build system"""
 
 import os
-import sphinx
 import sys
 from pathlib import Path
 

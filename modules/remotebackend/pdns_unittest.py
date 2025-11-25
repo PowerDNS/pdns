@@ -1,6 +1,4 @@
 import pdns.remotebackend
-import sys
-import io
 import time
 
 

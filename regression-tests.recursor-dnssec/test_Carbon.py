@@ -3,7 +3,6 @@ import threading
 import socket
 import sys
 import time
-import os
 from queue import Queue
 
 from recursortests import RecursorTest

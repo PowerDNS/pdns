@@ -4,9 +4,6 @@ import os
 import socket
 import struct
 import subprocess
-import threading
-import time
-import unittest
 
 from authtests import AuthTest
 from proxyprotocol import ProxyProtocol

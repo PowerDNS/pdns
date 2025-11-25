@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import socket
 import struct
 import threading
 import time

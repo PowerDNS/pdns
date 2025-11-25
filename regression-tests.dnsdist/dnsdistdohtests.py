@@ -1,13 +1,9 @@
 #!/usr/bin/env python
-import base64
-import dns
 import os
 import unittest
 
 from dnsdisttests import DNSDistTest
 
-import pycurl
-from io import BytesIO
 
 @unittest.skipIf('SKIP_DOH_TESTS' in os.environ, 'DNS over HTTPS tests are disabled')
 class DNSDistDOHTest(DNSDistTest):

@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import base64
 import dns
-import clientsubnetoption
 
 from dnsdisttests import DNSDistTest
 from dnsdisttests import pickAvailablePort

@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import threading
-import clientsubnetoption
 import dns
 import requests
 import socket

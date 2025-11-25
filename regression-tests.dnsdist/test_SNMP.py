@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import dns
-import time
 
 from pysnmp.hlapi import *
 from dnsdisttests import DNSDistTest

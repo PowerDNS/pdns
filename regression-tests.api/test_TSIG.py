@@ -1,10 +1,7 @@
 from __future__ import print_function
 import json
-import time
 import unittest
-from copy import deepcopy
-from pprint import pprint
-from test_helper import ApiTestCase, unique_tsigkey_name, is_auth, is_recursor
+from test_helper import ApiTestCase, unique_tsigkey_name, is_auth
 
 class AuthTSIGHelperMixin(object):
     def create_tsig_key(self, name=None, algorithm='hmac-md5', key=None):
