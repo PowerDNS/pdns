@@ -173,33 +173,25 @@ fn api_wrapper(
         header::ACCESS_CONTROL_ALLOW_ORIGIN,
         header::HeaderValue::from_static("*"),
     );
-    if ctx.api_ch.is_null() {
-        rustmisc::log(
-            logger,
-            rustweb::Priority::Error,
-            "Authentication failed, API Key missing in config",
-            &vec![rustmisc::KeyValue {
-                key: "urlpath".to_string(),
-                value: request.uri.to_owned(),
-            }],
-        );
-        unauthorized(response, headers, "X-API-Key");
-        return;
-    }
 
     // XXX AUDIT!
-    let mut auth_ok = false;
 
-    if let Some(api) = reqheaders.get("x-api-key") {
-        cxx::let_cxx_string!(s = &api.as_bytes());
-        auth_ok = ctx.api_ch.as_ref().unwrap().matches(&s);
+    let mut auth_ok = false;
+    if !ctx.api_ch.is_null() {
+        if let Some(api) = reqheaders.get("x-api-key") {
+            cxx::let_cxx_string!(s = &api.as_bytes());
+            auth_ok = ctx.api_ch.as_ref().unwrap().matches(&s);
+        }
     }
+
     if !auth_ok {
-        for kv in &request.vars {
-            cxx::let_cxx_string!(s = &kv.value);
-            if kv.key == "api-key" && ctx.api_ch.as_ref().unwrap().matches(&s) {
-                auth_ok = true;
-                break;
+        if !ctx.api_ch.is_null() {
+            for kv in &request.vars {
+                cxx::let_cxx_string!(s = &kv.value);
+                if kv.key == "api-key" && ctx.api_ch.as_ref().unwrap().matches(&s) {
+                    auth_ok = true;
+                    break;
+                }
             }
         }
     }
@@ -220,6 +212,20 @@ fn api_wrapper(
         }
     }
     if !auth_ok {
+        if ctx.api_ch.is_null() {
+            rustmisc::log(
+                logger,
+                rustweb::Priority::Error,
+                "Authentication failed, API Key missing in config",
+                &vec![rustmisc::KeyValue {
+                    key: "urlpath".to_string(),
+                    value: request.uri.to_owned(),
+                }],
+            );
+            unauthorized(response, headers, "X-API-Key");
+            return;
+        }
+
         rustmisc::log(
             logger,
             rustweb::Priority::Error,
