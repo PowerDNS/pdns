@@ -2109,7 +2109,7 @@ bool LMDBBackend::getInternal(DNSName& basename, std::string_view& key)
     }
 
     key = d_lookupstate.key.getNoStripHeader<string_view>();
-    // remove hash from the key so compoundOrdername::get* work
+    // remove hash from the key so compoundOrdername::get* works
     key = key.substr(0, key.size() - 256 / 8);
 
     basename = compoundOrdername::getQName(key);

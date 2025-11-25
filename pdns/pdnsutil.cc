@@ -1821,8 +1821,8 @@ static int listComments(const ZoneName &zone) {
     cerr << "Zone '" << zone << "' not found!" << endl;
     return EXIT_FAILURE;
   }
-  if ((di.backend->getCapabilities() & DNSBackend::CAP_LIST) == 0) {
-    cerr << "Backend for zone '" << zone << "' does not support listing its contents." << endl;
+  if ((di.backend->getCapabilities() & DNSBackend::CAP_COMMENTS) == 0) {
+    cerr << "Backend for zone '" << zone << "' does not support listing its comments." << endl;
     return EXIT_FAILURE;
   }
 
