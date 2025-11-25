@@ -123,23 +123,24 @@ std::shared_ptr<MDBEnv> getMDBEnv(const char* fname, int flags, int mode, uint64
 struct MDBOutVal; // forward declaration because of how the functions below tie in with MDBOutVal
 
 namespace LMDBLS {
-  // Some systems #define bswap64 to __builtin_bswap64, and the body below would cause infinite
-  // recursion if we would name the function bswap64
-  static auto pdns_bswap64(uint64_t value) -> uint64_t
-  {
+  class __attribute__((__packed__)) LSheader {
+  private:
+    // Some systems #define bswap64 to __builtin_bswap64, and the body below would cause infinite
+    // recursion if we would name the function bswap64
+    static auto pdns_bswap64(uint64_t value) -> uint64_t
+    {
 #if !defined(__BYTE_ORDER__) || !defined(__ORDER_LITTLE_ENDIAN__) || !defined(__ORDER_BIG_ENDIAN__)
 #error "your compiler does not define byte order macros"
 #endif
 
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-    // FIXME: Do something more portable than __builtin_bswap64.
-    return __builtin_bswap64(value);
+      // FIXME: Do something more portable than __builtin_bswap64.
+      return __builtin_bswap64(value);
 #else
-    return value;
+      return value;
 #endif
-  }
+    }
 
-  class __attribute__((__packed__)) LSheader {
   public:
     uint64_t d_timestamp;
     uint64_t d_txnid;
