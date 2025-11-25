@@ -2114,7 +2114,7 @@ bool LMDBBackend::getInternal(DNSName& basename, std::string_view& key)
 
     basename = compoundOrdername::getQName(key);
 
-    auto val = d_lookupstate.val.get<string>(); // FIXME see if can be string_view again
+    const auto& val = d_lookupstate.val.get<string>();
 
     d_lookupstate.comment.domain_id = compoundOrdername::getDomainID(key);
     d_lookupstate.comment.qname = basename + d_lookupstate.domain.operator const DNSName&();
