@@ -60,12 +60,12 @@ InternalQueryState InternalQueryState::partialCloneForXFR() const
   return ids;
 }
 
-void InternalQueryState::sendDelayedProtobufMessages() const
+InternalQueryState::~InternalQueryState()
 {
 #ifndef DISABLE_PROTOBUF
   static thread_local string otPBBuf;
   otPBBuf.clear();
-  if (tracingEnabled) {
+  if (tracingEnabled && d_OTTracer != nullptr) {
     pdns::ProtoZero::Message msg{otPBBuf};
     msg.setOpenTelemetryData(d_OTTracer->getOTProtobuf());
   }

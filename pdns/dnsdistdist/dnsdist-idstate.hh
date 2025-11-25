@@ -163,6 +163,7 @@ struct InternalQueryState
 
   InternalQueryState(const InternalQueryState& orig) = delete;
   InternalQueryState& operator=(const InternalQueryState& orig) = delete;
+  ~InternalQueryState();
 
   bool isXSK() const noexcept
   {
@@ -172,8 +173,6 @@ struct InternalQueryState
     return false;
 #endif /* HAVE_XSK */
   }
-
-  void sendDelayedProtobufMessages() const;
 
   InternalQueryState partialCloneForXFR() const;
 
