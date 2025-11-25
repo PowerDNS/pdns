@@ -1637,7 +1637,7 @@ bool LMDBBackend::replaceRRSet(domainid_t domain_id, const DNSName& qname, const
 
 bool LMDBBackend::replaceComments(const domainid_t domain_id, const DNSName& qname, const QType& qtype, const vector<Comment>& comments)
 {
-  // delete all existing comments
+  // delete all existing comments for the RRset
   // this could be smarter and not del+replace unchanged comments
   auto cursor = d_rwtxn->txn->getCursor(d_rwtxn->db->cdbi);
   MDBOutVal key{};
