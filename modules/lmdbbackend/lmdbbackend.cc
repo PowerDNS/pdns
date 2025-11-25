@@ -902,7 +902,7 @@ void LMDBBackend::openAllTheDatabases()
 
 unsigned int LMDBBackend::getCapabilities()
 {
-  unsigned int caps = CAP_DNSSEC | CAP_DIRECT | CAP_LIST | CAP_CREATE | CAP_SEARCH;
+  unsigned int caps = CAP_DNSSEC | CAP_DIRECT | CAP_LIST | CAP_CREATE | CAP_SEARCH | CAP_COMMENTS;
   if (d_views) {
     caps |= CAP_VIEWS;
   }
