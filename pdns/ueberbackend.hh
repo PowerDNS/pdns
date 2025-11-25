@@ -68,8 +68,6 @@ public:
   public:
     bool get(DNSZoneRecord& record);
     void lookupEnd() const;
-    handle();
-    ~handle();
 
     //! The UeberBackend class where this handle belongs to
     UeberBackend* parent{nullptr};
@@ -86,8 +84,6 @@ public:
     void selectNextBackend();
 
   private:
-    static AtomicCounter instances;
-
     //! The currently selected real backend, which is answering questions
     DNSBackend* d_hinterBackend{nullptr};
   };

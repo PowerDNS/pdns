@@ -1063,19 +1063,6 @@ void UeberBackend::flush()
   }
 }
 
-AtomicCounter UeberBackend::handle::instances(0);
-
-UeberBackend::handle::handle()
-{
-  //  g_log<<Logger::Warning<<"Handle instances: "<<instances<<endl;
-  ++instances;
-}
-
-UeberBackend::handle::~handle()
-{
-  --instances;
-}
-
 // Set d_hinterBackend to the next available backend from the parents list,
 // reset it to nullptr if the whole list has been processed.
 // Invokes lookup on behalf of the newly picked backend if successful.
