@@ -4298,8 +4298,8 @@ static int addComment(vector<string>& cmds, const std::string_view synopsis)
     return usage(synopsis);
   }
 
-  UtilBackend B;
-  DomainInfo di;
+  UtilBackend B; //NOLINT(readability-identifier-length)
+  DomainInfo di; //NOLINT(readability-identifier-length)
   ZoneName zone(cmds.at(0));
   if (!B.getDomainInfo(zone, di)) {
     cerr << "Zone '" << zone << "' doesn't exist" << endl;
