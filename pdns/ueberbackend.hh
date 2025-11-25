@@ -68,8 +68,6 @@ public:
   public:
     bool get(DNSZoneRecord& record);
     void lookupEnd() const;
-    handle();
-    ~handle();
 
     void setSLog(Logr::log_t slog) { d_slog = slog; }
 
@@ -88,7 +86,6 @@ public:
     void selectNextBackend();
 
   private:
-    static AtomicCounter instances;
     std::shared_ptr<Logr::Logger> d_slog;
 
     //! The currently selected real backend, which is answering questions
