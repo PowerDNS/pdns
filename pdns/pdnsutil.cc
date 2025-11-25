@@ -4317,6 +4317,10 @@ static int addComment(vector<string>& cmds, const std::string_view synopsis)
   }
   comment.modified_at = time(nullptr);
 
+  if (!comment.qname.isPartOf(zone)) {
+    throw PDNSException("Name \"" + comment.qname.toString() + "\" to add comment to is not part of zone \"" + zone.toString() + "\".");
+  }
+
   di.backend->startTransaction(zone, UnknownDomainID);
   if (!di.backend->feedComment(comment)) {
     cerr << "Backend does not support comments" << endl;
