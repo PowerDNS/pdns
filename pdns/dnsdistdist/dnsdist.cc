@@ -463,9 +463,10 @@ bool applyRulesToResponse(const std::vector<dnsdist::rules::ResponseRuleAction>&
 
   DNSResponseAction::Action action = DNSResponseAction::Action::None;
   std::string ruleresult;
+  static const std::string ruleType = "Response";
 
   for (const auto& rrule : respRuleActions) {
-    auto ruleCloser = dnsResponse.ids.getRulesCloser(rrule.d_name, __func__); // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+    auto ruleCloser = dnsResponse.ids.getRulesCloser(rrule.d_name, __func__, ruleType); // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     if (rrule.d_rule->matches(&dnsResponse)) {
       ++rrule.d_rule->d_matches;
       action = (*rrule.d_action)(&dnsResponse, &ruleresult);
@@ -1022,9 +1023,10 @@ static bool applyRulesChainToQuery(const std::vector<dnsdist::rules::RuleAction>
   bool drop = false;
 
   auto closer = dnsQuestion.ids.getCloser(__func__); // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+  static const std::string ruleType; // Empty string
 
   for (const auto& rule : rules) {
-    auto ruleCloser = dnsQuestion.ids.getRulesCloser(rule.d_name, __func__); // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+    auto ruleCloser = dnsQuestion.ids.getRulesCloser(rule.d_name, __func__, ruleType); // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
     if (!rule.d_rule->matches(&dnsQuestion)) {
       continue;
