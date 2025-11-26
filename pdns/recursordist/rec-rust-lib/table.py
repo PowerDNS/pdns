@@ -217,12 +217,13 @@ If not set (the default), these queries are answered with rcode ``Refused``.
         'name' : 'any_to_tcp',
         'section' : 'recursor',
         'type' : LType.Bool,
-        'default' : 'false',
+        'default' : 'true',
         'help' : 'Answer ANY queries with tc=1, shunting to TCP',
         'doc' : '''
-Answer questions for the ANY type on UDP with a truncated packet that refers the remote server to TCP.
+Answer questions for the ANY type on UDP with a truncated packet that refers the remote client to TCP.
 Useful for mitigating ANY reflection attacks.
  ''',
+    'versionchanged': ('5.4.0', 'Default is enabled now, was disabled before 5.4.0'),
     },
     {
         'name' : 'allow_trust_anchor_query',

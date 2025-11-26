@@ -14,6 +14,10 @@ New Settings
 - The :ref:`setting-yaml-outgoing.cookies_unsupported` setting has been introduced to permanently mark authoritative servers as not supporting cookies.
 - The :ref:`setting-yaml-outgoing.tls_configurations` setting has been introduced to be able to force certificate validation and other properties of outgoing DoT connections.
 
+Changed Settings
+^^^^^^^^^^^^^^^^
+- The default value of  :ref:`setting-yaml-recursor.any_to_tcp` has been changed to ``true``.
+
 :program:`rec_control`
 ^^^^^^^^^^^^^^^^^^^^^^
 
@@ -420,14 +424,14 @@ Offensive language
 Synonyms for various settings names containing ``master``, ``slave``,
 ``whitelist`` and ``blacklist`` have been introduced.
 
-- For :ref:`setting-stats-api-blacklist` use :ref:`setting-stats-api-disabled-list`.
-- For :ref:`setting-stats-carbon-blacklist` use :ref:`setting-stats-carbon-disabled-list`.
-- For :ref:`setting-stats-rec-control-blacklist` use :ref:`setting-stats-rec-control-disabled-list`.
-- For :ref:`setting-stats-snmp-blacklist` use :ref:`setting-stats-snmp-disabled-list`.
-- For :ref:`setting-edns-subnet-whitelist` use :ref:`setting-edns-subnet-allow-list`.
-- For :ref:`setting-new-domain-whitelist` use  :ref:`setting-new-domain-ignore-list`.
-- For :ref:`setting-snmp-master-socket` use :ref:`setting-snmp-daemon-socket`.
-- For the LUA config function :func:`rpzMaster` use :func:`rpzPrimary`.
+- For ``setting-stats-api-blacklist`` use :ref:`setting-stats-api-disabled-list`.
+- For ``setting-stats-carbon-blacklist`` use :ref:`setting-stats-carbon-disabled-list`.
+- For ``setting-stats-rec-control-blacklist`` use :ref:`setting-stats-rec-control-disabled-list`.
+- For ``setting-stats-snmp-blacklist`` use :ref:`setting-stats-snmp-disabled-list`.
+- For ``setting-edns-subnet-whitelist`` use :ref:`setting-edns-subnet-allow-list`.
+- For ``setting-new-domain-whitelist`` use  :ref:`setting-new-domain-ignore-list`.
+- For ``setting-snmp-master-socket`` use :ref:`setting-snmp-daemon-socket`.
+- For the LUA config function ``rpzMaster`` use :func:`rpzPrimary`.
 
 Currently, the older setting names are also accepted and used.
 The next release will start deprecating them.
