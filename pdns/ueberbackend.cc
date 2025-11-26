@@ -1081,8 +1081,7 @@ void UeberBackend::handle::selectNextBackend()
 bool UeberBackend::handle::get(DNSZoneRecord& record)
 {
   DLOG(g_log << "Ueber get() was called for a " << qtype << " record" << endl);
-  bool isMore = false;
-  while (d_hinterBackend != nullptr && !(isMore = d_hinterBackend->get(record))) { // this backend is out of answers
+  while (d_hinterBackend != nullptr && !(d_hinterBackend->get(record))) { // this backend is out of answers
     DLOG(g_log << "Backend #" << backendIndex << " of " << parent->backends.size()
                << " out of answers, trying next" << endl);
     selectNextBackend();
