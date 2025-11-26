@@ -5,23 +5,21 @@ import dns
 from dnsdisttests import DNSDistTest, pickAvailablePort
 from proxyprotocolutils import ProxyProtocolUDPResponder, ProxyProtocolTCPResponder
 
+
 def servFailResponseCallback(request):
     response = dns.message.make_response(request)
     response.set_rcode(dns.rcode.SERVFAIL)
     return response.to_wire()
 
+
 def normalResponseCallback(request):
     response = dns.message.make_response(request)
-    rrset = dns.rrset.from_text(request.question[0].name,
-                                3600,
-                                dns.rdataclass.IN,
-                                dns.rdatatype.A,
-                                '127.0.0.1')
+    rrset = dns.rrset.from_text(request.question[0].name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
     response.answer.append(rrset)
     return response.to_wire()
 
-class TestRestartQuery(DNSDistTest):
 
+class TestRestartQuery(DNSDistTest):
     # this test suite uses different responder ports
     _testNormalServerPort = pickAvailablePort()
     _testServfailServerPort = pickAvailablePort()
@@ -46,7 +44,7 @@ class TestRestartQuery(DNSDistTest):
     addAction(AllRule(), LuaAction(makeQueryRestartable))
     addResponseAction(AllRule(), LuaResponseAction(restartOnServFail))
     """
-    _config_params = ['_testNormalServerPort', '_testServfailServerPort']
+    _config_params = ["_testNormalServerPort", "_testServfailServerPort"]
     _verboseMode = True
 
     @classmethod
@@ -54,16 +52,58 @@ class TestRestartQuery(DNSDistTest):
         print("Launching responders..")
 
         # servfail
-        cls._UDPResponder = threading.Thread(name='UDP Responder', target=cls.UDPResponder, args=[cls._testServfailServerPort, cls._toResponderQueue, cls._fromResponderQueue, False, servFailResponseCallback])
+        cls._UDPResponder = threading.Thread(
+            name="UDP Responder",
+            target=cls.UDPResponder,
+            args=[
+                cls._testServfailServerPort,
+                cls._toResponderQueue,
+                cls._fromResponderQueue,
+                False,
+                servFailResponseCallback,
+            ],
+        )
         cls._UDPResponder.daemon = True
         cls._UDPResponder.start()
-        cls._TCPResponder = threading.Thread(name='TCP Responder', target=cls.TCPResponder, args=[cls._testServfailServerPort, cls._toResponderQueue, cls._fromResponderQueue, False, False, servFailResponseCallback])
+        cls._TCPResponder = threading.Thread(
+            name="TCP Responder",
+            target=cls.TCPResponder,
+            args=[
+                cls._testServfailServerPort,
+                cls._toResponderQueue,
+                cls._fromResponderQueue,
+                False,
+                False,
+                servFailResponseCallback,
+            ],
+        )
         cls._TCPResponder.daemon = True
         cls._TCPResponder.start()
-        cls._UDPResponderNormal = threading.Thread(name='UDP ResponderNormal', target=cls.UDPResponder, args=[cls._testNormalServerPort, cls._toResponderQueue, cls._fromResponderQueue, False, normalResponseCallback])
+        cls._UDPResponderNormal = threading.Thread(
+            name="UDP ResponderNormal",
+            target=cls.UDPResponder,
+            args=[
+                cls._testNormalServerPort,
+                cls._toResponderQueue,
+                cls._fromResponderQueue,
+                False,
+                normalResponseCallback,
+            ],
+        )
         cls._UDPResponderNormal.daemon = True
         cls._UDPResponderNormal.start()
-        cls._TCPResponderNormal = threading.Thread(name='TCP ResponderNormal', target=cls.TCPResponder, args=[cls._testNormalServerPort, cls._toResponderQueue, cls._fromResponderQueue, False, False, normalResponseCallback])
+        cls._TCPResponderNormal = threading.Thread(
+            name="TCP ResponderNormal",
+            target=cls.TCPResponder,
+            args=[
+                cls._testNormalServerPort,
+                cls._toResponderQueue,
+                cls._fromResponderQueue,
+                False,
+                False,
+                normalResponseCallback,
+            ],
+        )
         cls._TCPResponderNormal.daemon = True
         cls._TCPResponderNormal.start()
 
@@ -71,13 +111,9 @@ class TestRestartQuery(DNSDistTest):
         """
         Restart: ServFail then restarted to a second pool
         """
-        name = 'restart.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        name = "restart.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         expectedResponse = dns.message.make_response(query)
         expectedResponse.answer.append(rrset)
 
@@ -92,15 +128,24 @@ toProxyQueue = Queue()
 fromProxyQueue = Queue()
 proxyResponderPort = pickAvailablePort()
 
-udpResponder = threading.Thread(name='UDP Proxy Protocol Responder', target=ProxyProtocolUDPResponder, args=[proxyResponderPort, toProxyQueue, fromProxyQueue])
+udpResponder = threading.Thread(
+    name="UDP Proxy Protocol Responder",
+    target=ProxyProtocolUDPResponder,
+    args=[proxyResponderPort, toProxyQueue, fromProxyQueue],
+)
 udpResponder.daemon = True
 udpResponder.start()
-tcpResponder = threading.Thread(name='TCP Proxy Protocol Responder', target=ProxyProtocolTCPResponder, args=[proxyResponderPort, toProxyQueue, fromProxyQueue])
+tcpResponder = threading.Thread(
+    name="TCP Proxy Protocol Responder",
+    target=ProxyProtocolTCPResponder,
+    args=[proxyResponderPort, toProxyQueue, fromProxyQueue],
+)
 tcpResponder.daemon = True
 tcpResponder.start()
 
+
 class TestRestartProxyProtocolThenNot(DNSDistTest):
-    _restartPool = 'restart-pool'
+    _restartPool = "restart-pool"
     _config_template = """
     fallbackPool = '%s'
     newServer{address="127.0.0.1:%d", useProxyProtocol=true}
@@ -124,14 +169,14 @@ class TestRestartProxyProtocolThenNot(DNSDistTest):
     addResponseAction(AllRule(), LuaResponseAction(restart))
     """
     _proxyResponderPort = proxyResponderPort
-    _config_params = ['_restartPool', '_proxyResponderPort', '_testServerPort']
+    _config_params = ["_restartPool", "_proxyResponderPort", "_testServerPort"]
 
     def testRestart(self):
         """
         Restart: queries is first forwarded to proxy-protocol enabled backend, then restarted to a non-PP backend
         """
-        name = 'proxy.restart.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "proxy.restart.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -153,8 +198,8 @@ class TestRestartProxyProtocolThenNot(DNSDistTest):
             self.assertTrue(receivedProxyPayload)
             self.assertTrue(receivedDNSData)
 
-class QueryCounter:
 
+class QueryCounter:
     def __init__(self, name):
         self.name = name
         self.qcnt = 0
@@ -168,10 +213,11 @@ class QueryCounter:
             response = dns.message.make_response(request)
             response.set_rcode(dns.rcode.REFUSED)
             return response.to_wire()
+
         return callback
 
-class TestRestartCount(DNSDistTest):
 
+class TestRestartCount(DNSDistTest):
     _queryCounts = {}
 
     _testServer1Port = pickAvailablePort()
@@ -179,7 +225,7 @@ class TestRestartCount(DNSDistTest):
     _testServer3Port = pickAvailablePort()
     _testServer4Port = pickAvailablePort()
     _serverPorts = [_testServer1Port, _testServer2Port, _testServer3Port, _testServer4Port]
-    _config_params = ['_testServer1Port', '_testServer2Port', '_testServer3Port', '_testServer4Port']
+    _config_params = ["_testServer1Port", "_testServer2Port", "_testServer3Port", "_testServer4Port"]
     _config_template = """
     MaxRestart = 2
     s0 = newServer{name="s0", address="127.0.0.1:%d"}
@@ -208,22 +254,26 @@ class TestRestartCount(DNSDistTest):
     addResponseAction(RCodeRule(DNSRCode.REFUSED), LuaResponseAction(restartQuery))
     addAction(AllRule(), PoolAction("pool0"))
     """
+
     @classmethod
     def startResponders(cls):
         print("Launching responders..")
 
-        for i, name in enumerate(['s0', 's1', 's2', 's3']):
+        for i, name in enumerate(["s0", "s1", "s2", "s3"]):
             cls._queryCounts[name] = QueryCounter(name)
             cb = cls._queryCounts[name].create_cb()
-            responder = threading.Thread(name=name, target=cls.UDPResponder, args=[cls._serverPorts[i], cls._toResponderQueue, cls._fromResponderQueue, False, cb])
+            responder = threading.Thread(
+                name=name,
+                target=cls.UDPResponder,
+                args=[cls._serverPorts[i], cls._toResponderQueue, cls._fromResponderQueue, False, cb],
+            )
             responder.daemon = True
             responder.start()
 
     def testDefault(self):
-
         numberOfQueries = 100
-        name = 'restart.count.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "restart.count.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.SERVFAIL)
 
@@ -234,7 +284,7 @@ class TestRestartCount(DNSDistTest):
             self.assertEqual(expectedResponse, receivedResponse)
 
         # if restart count is correct, s0/s1/s2 would get all the queies while s3 would get none
-        self.assertEqual(self._queryCounts['s0'](), numberOfQueries)
-        self.assertEqual(self._queryCounts['s1'](), numberOfQueries)
-        self.assertEqual(self._queryCounts['s2'](), numberOfQueries)
-        self.assertEqual(self._queryCounts['s3'](), 0)
+        self.assertEqual(self._queryCounts["s0"](), numberOfQueries)
+        self.assertEqual(self._queryCounts["s1"](), numberOfQueries)
+        self.assertEqual(self._queryCounts["s2"](), numberOfQueries)
+        self.assertEqual(self._queryCounts["s3"](), 0)

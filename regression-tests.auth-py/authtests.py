@@ -15,12 +15,13 @@ import dns.message
 
 from eqdnsmessage import AssertEqualDNSMessageMixin
 
+
 class AuthTest(AssertEqualDNSMessageMixin, unittest.TestCase):
     """
     Setup auth required for the tests
     """
 
-    _confdir = 'auth'
+    _confdir = "auth"
     _authPort = 5300
 
     _backend = os.getenv("AUTH_BACKEND", "bind")
@@ -38,7 +39,8 @@ zone-cache-refresh-interval=1
 """,
         gsqlite3="""
 zone-cache-refresh-interval=0
-""")
+""",
+    )
 
     _config_params = []
 
@@ -66,7 +68,7 @@ distributor-threads=1"""
     #   - {soa} => value of _SOA
     #   - {prefix} value of _PREFIX
     _zones = {
-        'example.org': """
+        "example.org": """
 example.org.                 3600 IN SOA  {soa}
 example.org.                 3600 IN NS   ns1.example.org.
 example.org.                 3600 IN NS   ns2.example.org.
@@ -76,26 +78,26 @@ ns2.example.org.             3600 IN A    {prefix}.11
     }
 
     _zone_keys = {
-        'example.org': """
+        "example.org": """
 Private-key-format: v1.2
 Algorithm: 13 (ECDSAP256SHA256)
 PrivateKey: Lt0v0Gol3pRUFM7fDdcy0IWN0O/MnEmVPA+VylL8Y4U=
         """,
     }
 
-    _auth_cmd = [os.environ['PDNS']]
-    if sys.platform != 'darwin':
-        _auth_cmd = ['authbind'] + _auth_cmd
+    _auth_cmd = [os.environ["PDNS"]]
+    if sys.platform != "darwin":
+        _auth_cmd = ["authbind"] + _auth_cmd
 
     _auth_env = {}
     _auths = {}
 
-    _PREFIX = os.environ['PREFIX']
-    _PDNS_MODULE_DIR = os.environ['PDNS_MODULE_DIR']
+    _PREFIX = os.environ["PREFIX"]
+    _PDNS_MODULE_DIR = os.environ["PDNS_MODULE_DIR"]
 
     @classmethod
     def maybeAddVariant(cls, zone):
-        if cls._backend_variants and cls._backend == 'lmdb':
+        if cls._backend_variants and cls._backend == "lmdb":
             return zone + "..variant"
         else:
             return zone
@@ -111,149 +113,152 @@ PrivateKey: Lt0v0Gol3pRUFM7fDdcy0IWN0O/MnEmVPA+VylL8Y4U=
 
     @classmethod
     def generateAuthZone(cls, confdir, zonename, zonecontent):
-        with open(os.path.join(confdir, '%s.zone' % zonename), 'w') as zonefile:
+        with open(os.path.join(confdir, "%s.zone" % zonename), "w") as zonefile:
             zonefile.write(zonecontent.format(prefix=cls._PREFIX, soa=cls._SOA))
 
     @classmethod
     def generateAuthNamedConf(cls, confdir, zones):
-        with open(os.path.join(confdir, 'named.conf'), 'w') as namedconf:
-            namedconf.write("""
+        with open(os.path.join(confdir, "named.conf"), "w") as namedconf:
+            namedconf.write(
+                """
 options {
     directory "%s";
-};""" % confdir)
+};"""
+                % confdir
+            )
             for zonename in zones:
-                zone = '.' if zonename == 'ROOT' else zonename
+                zone = "." if zonename == "ROOT" else zonename
 
-                namedconf.write("""
+                namedconf.write(
+                    """
         zone "%s" {
             type primary;
             file "%s.zone";
-        };""" % (zone, zonename))
+        };"""
+                    % (zone, zonename)
+                )
 
     @classmethod
     def generateAuthConfig(cls, confdir):
-        bind_dnssec_db = os.path.join(confdir, 'bind-dnssec.sqlite3')
+        bind_dnssec_db = os.path.join(confdir, "bind-dnssec.sqlite3")
 
         params = tuple([getattr(cls, param) for param in cls._config_params])
 
-        with open(os.path.join(confdir, 'pdns.conf'), 'w') as pdnsconf:
-            args = dict(backend=cls._backend,
-                        confdir=confdir,
-                        prefix=cls._PREFIX,
-                        bind_dnssec_db=bind_dnssec_db,
-                        PDNS_MODULE_DIR=cls._PDNS_MODULE_DIR
-                        )
+        with open(os.path.join(confdir, "pdns.conf"), "w") as pdnsconf:
+            args = dict(
+                backend=cls._backend,
+                confdir=confdir,
+                prefix=cls._PREFIX,
+                bind_dnssec_db=bind_dnssec_db,
+                PDNS_MODULE_DIR=cls._PDNS_MODULE_DIR,
+            )
 
             pdnsconf.write((cls._config_template_default + cls._backend_configs[cls._backend]).format(**args))
             pdnsconf.write(cls._config_template.format(**args) % params)
 
-        if cls._backend == 'gsqlite3':
+        if cls._backend == "gsqlite3":
             os.system("sqlite3 ./configs/auth/powerdns.sqlite < ../modules/gsqlite3backend/schema.sqlite3.sql")
 
-        if cls._backend == 'lmdb':
+        if cls._backend == "lmdb":
             os.system("rm -f pdns.lmdb*")
 
-        if cls._backend == 'bind':
-            pdnsutilCmd = [os.environ['PDNSUTIL'],
-                           '--config-dir=%s' % confdir,
-                           'create-bind-db',
-                           bind_dnssec_db]
+        if cls._backend == "bind":
+            pdnsutilCmd = [os.environ["PDNSUTIL"], "--config-dir=%s" % confdir, "create-bind-db", bind_dnssec_db]
 
-            print(' '.join(pdnsutilCmd))
+            print(" ".join(pdnsutilCmd))
             try:
                 subprocess.check_output(pdnsutilCmd, stderr=subprocess.STDOUT)
             except subprocess.CalledProcessError as e:
-                raise AssertionError('%s failed (%d): %s' % (pdnsutilCmd, e.returncode, e.output))
+                raise AssertionError("%s failed (%d): %s" % (pdnsutilCmd, e.returncode, e.output))
 
     @classmethod
     def secureZone(cls, confdir, zonename, key=None):
-        zone = '.' if zonename == 'ROOT' else zonename
+        zone = "." if zonename == "ROOT" else zonename
         if not key:
-            pdnsutilCmd = [os.environ['PDNSUTIL'],
-                           '--config-dir=%s' % confdir,
-                           'secure-zone',
-                           cls.maybeAddVariant(zone)]
+            pdnsutilCmd = [
+                os.environ["PDNSUTIL"],
+                "--config-dir=%s" % confdir,
+                "secure-zone",
+                cls.maybeAddVariant(zone),
+            ]
         else:
-            keyfile = os.path.join(confdir, 'dnssec.key')
-            with open(keyfile, 'w') as fdKeyfile:
+            keyfile = os.path.join(confdir, "dnssec.key")
+            with open(keyfile, "w") as fdKeyfile:
                 fdKeyfile.write(key)
 
-            pdnsutilCmd = [os.environ['PDNSUTIL'],
-                           '--config-dir=%s' % confdir,
-                           'import-zone-key',
-                           cls.maybeAddVariant(zone),
-                           keyfile,
-                           'active',
-                           'ksk']
+            pdnsutilCmd = [
+                os.environ["PDNSUTIL"],
+                "--config-dir=%s" % confdir,
+                "import-zone-key",
+                cls.maybeAddVariant(zone),
+                keyfile,
+                "active",
+                "ksk",
+            ]
 
-        print(' '.join(pdnsutilCmd))
+        print(" ".join(pdnsutilCmd))
         try:
             subprocess.check_output(pdnsutilCmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
-            raise AssertionError('%s failed (%d): %s' % (pdnsutilCmd, e.returncode, e.output))
+            raise AssertionError("%s failed (%d): %s" % (pdnsutilCmd, e.returncode, e.output))
 
     @classmethod
     def generateAllAuthConfig(cls, confdir):
         cls.generateAuthConfig(confdir)
 
-        if cls._backend == 'bind':
+        if cls._backend == "bind":
             cls.generateAuthNamedConf(confdir, cls._zones.keys())
 
             for zonename, zonecontent in cls._zones.items():
-                cls.generateAuthZone(confdir,
-                                     zonename,
-                                     zonecontent)
+                cls.generateAuthZone(confdir, zonename, zonecontent)
                 if cls._zone_keys.get(zonename, None):
                     cls.secureZone(confdir, zonename, cls._zone_keys.get(zonename))
-        elif cls._backend == 'lmdb':
+        elif cls._backend == "lmdb":
             for zonename, zonecontent in cls._zones.items():
-                cls.generateAuthZone(confdir,
-                                     zonename,
-                                     zonecontent)
-                pdnsutilCmd = [os.environ['PDNSUTIL'],
-                               '--config-dir=%s' % confdir,
-                               'load-zone',
-                               cls.maybeAddVariant(zonename),
-                               os.path.join(confdir, '%s.zone' % zonename)]
+                cls.generateAuthZone(confdir, zonename, zonecontent)
+                pdnsutilCmd = [
+                    os.environ["PDNSUTIL"],
+                    "--config-dir=%s" % confdir,
+                    "load-zone",
+                    cls.maybeAddVariant(zonename),
+                    os.path.join(confdir, "%s.zone" % zonename),
+                ]
 
-                print(' '.join(pdnsutilCmd))
+                print(" ".join(pdnsutilCmd))
                 try:
                     subprocess.check_output(pdnsutilCmd, stderr=subprocess.STDOUT)
                 except subprocess.CalledProcessError as e:
-                    raise AssertionError('%s failed (%d): %s' % (pdnsutilCmd, e.returncode, e.output))
+                    raise AssertionError("%s failed (%d): %s" % (pdnsutilCmd, e.returncode, e.output))
 
                 if cls._zone_keys.get(zonename, None):
                     cls.secureZone(confdir, zonename, cls._zone_keys.get(zonename))
 
-                pdnsutilCmd = [os.environ['PDNSUTIL'],
-                               '--config-dir=%s' % confdir,
-                               'view-add-zone',
-                               'one-view',
-                               cls.maybeAddVariant(zonename)]
-                print(' '.join(pdnsutilCmd))
+                pdnsutilCmd = [
+                    os.environ["PDNSUTIL"],
+                    "--config-dir=%s" % confdir,
+                    "view-add-zone",
+                    "one-view",
+                    cls.maybeAddVariant(zonename),
+                ]
+                print(" ".join(pdnsutilCmd))
                 try:
                     subprocess.check_output(pdnsutilCmd, stderr=subprocess.STDOUT)
                 except subprocess.CalledProcessError as e:
-                    raise AssertionError('%s failed (%d): %s' % (pdnsutilCmd, e.returncode, e.output))
+                    raise AssertionError("%s failed (%d): %s" % (pdnsutilCmd, e.returncode, e.output))
 
-            for net in ['0.0.0.0/0', '::/0']:
-                pdnsutilCmd = [os.environ['PDNSUTIL'],
-                               '--config-dir=%s' % confdir,
-                               'set-network',
-                               net,
-                               'one-view']
-                print(' '.join(pdnsutilCmd))
+            for net in ["0.0.0.0/0", "::/0"]:
+                pdnsutilCmd = [os.environ["PDNSUTIL"], "--config-dir=%s" % confdir, "set-network", net, "one-view"]
+                print(" ".join(pdnsutilCmd))
                 try:
                     subprocess.check_output(pdnsutilCmd, stderr=subprocess.STDOUT)
                 except subprocess.CalledProcessError as e:
-                    raise AssertionError('%s failed (%d): %s' % (pdnsutilCmd, e.returncode, e.output))
+                    raise AssertionError("%s failed (%d): %s" % (pdnsutilCmd, e.returncode, e.output))
 
-        elif cls._backend == 'gsqlite3':
+        elif cls._backend == "gsqlite3":
             # this is not a supported config from the user, but some of the test_*.py files use gsqlite3
             return
         else:
             raise RuntimeError("unknown backend " + cls._backend + " specified")
-
 
     @classmethod
     def waitForTCPSocket(cls, ipaddress, port):
@@ -266,39 +271,38 @@ options {
                 return
             except Exception as err:
                 if err.errno != errno.ECONNREFUSED:
-                    print(f'Error occurred: {try_number} {err}', file=sys.stderr)
+                    print(f"Error occurred: {try_number} {err}", file=sys.stderr)
             time.sleep(0.1)
 
     @classmethod
     def startAuth(cls, confdir, ipaddress):
-
         print("Launching pdns_server..")
         authcmd = list(cls._auth_cmd)
-        authcmd.append('--config-dir=%s' % confdir)
-        authcmd.append('--local-address=%s' % ipaddress)
-        authcmd.append('--local-port=%s' % cls._authPort)
-        authcmd.append('--loglevel=9')
-        print(' '.join(authcmd))
-        logFile = os.path.join(confdir, 'pdns.log')
-        with open(logFile, 'w') as fdLog:
-            cls._auths[ipaddress] = subprocess.Popen(authcmd, close_fds=True,
-                                                     stdout=fdLog, stderr=fdLog,
-                                                     env=cls._auth_env)
+        authcmd.append("--config-dir=%s" % confdir)
+        authcmd.append("--local-address=%s" % ipaddress)
+        authcmd.append("--local-port=%s" % cls._authPort)
+        authcmd.append("--loglevel=9")
+        print(" ".join(authcmd))
+        logFile = os.path.join(confdir, "pdns.log")
+        with open(logFile, "w") as fdLog:
+            cls._auths[ipaddress] = subprocess.Popen(
+                authcmd, close_fds=True, stdout=fdLog, stderr=fdLog, env=cls._auth_env
+            )
         cls.waitForTCPSocket(ipaddress, cls._authPort)
 
         if cls._auths[ipaddress].poll() is not None:
             print(f"\n*** startAuth log for {logFile} ***")
-            with open(logFile, 'r') as fdLog:
+            with open(logFile, "r") as fdLog:
                 print(fdLog.read())
             print(f"*** End startAuth log for {logFile} ***")
-            raise AssertionError('%s failed (%d)' % (authcmd, cls._auths[ipaddress].returncode))
+            raise AssertionError("%s failed (%d)" % (authcmd, cls._auths[ipaddress].returncode))
 
     @classmethod
     def setUpSockets(cls):
-         print("Setting up UDP socket..")
-         cls._sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-         cls._sock.settimeout(2.0)
-         cls._sock.connect((cls._PREFIX + ".1", cls._authPort))
+        print("Setting up UDP socket..")
+        cls._sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        cls._sock.settimeout(2.0)
+        cls._sock.connect((cls._PREFIX + ".1", cls._authPort))
 
     @classmethod
     def startResponders(cls):
@@ -310,7 +314,7 @@ options {
 
         cls.startResponders()
 
-        confdir = os.path.join('configs', cls._confdir)
+        confdir = os.path.join("configs", cls._confdir)
         cls.createConfigDir(confdir)
 
         cls.generateAllAuthConfig(confdir)
@@ -477,10 +481,10 @@ options {
         missingEdnsFlags = [ednsflag for ednsflag in ednsflags if ednsflag not in msgEdnsFlags]
 
         if len(missingFlags) or len(missingEdnsFlags) or len(msgFlags) > len(flags):
-            raise AssertionError("Expected flags '%s' (EDNS: '%s'), found '%s' (EDNS: '%s') in query %s" %
-                                 (' '.join(flags), ' '.join(ednsflags),
-                                  ' '.join(msgFlags), ' '.join(msgEdnsFlags),
-                                  msg.question[0]))
+            raise AssertionError(
+                "Expected flags '%s' (EDNS: '%s'), found '%s' (EDNS: '%s') in query %s"
+                % (" ".join(flags), " ".join(ednsflags), " ".join(msgFlags), " ".join(msgEdnsFlags), msg.question[0])
+            )
 
     def assertMessageIsAuthenticated(self, msg):
         """Asserts that the message has the AD bit set
@@ -491,7 +495,7 @@ options {
             raise TypeError("msg is not a dns.message.Message")
 
         msgFlags = dns.flags.to_text(msg.flags)
-        self.assertIn('AD', msgFlags, "No AD flag found in the message for %s" % msg.question[0].name)
+        self.assertIn("AD", msgFlags, "No AD flag found in the message for %s" % msg.question[0].name)
 
     def assertRRsetInAnswer(self, msg, rrset):
         """Asserts the rrset (without comparing TTL) exists in the
@@ -500,7 +504,7 @@ options {
         @param msg: the dns.message.Message to check
         @param rrset: a dns.rrset.RRset object"""
 
-        ret = ''
+        ret = ""
         if not isinstance(msg, dns.message.Message):
             raise TypeError("msg is not a dns.message.Message")
 
@@ -524,7 +528,7 @@ options {
         @param msg: the dns.message.Message to check
         @param rrset: a dns.rrset.RRset object"""
 
-        ret = ''
+        ret = ""
         if not isinstance(msg, dns.message.Message):
             raise TypeError("msg is not a dns.message.Message")
 
@@ -568,8 +572,7 @@ options {
                         found = True
 
         if not found:
-            raise AssertionError("RRset not found in answer\n%s" %
-                                 "\n".join(([ans.to_text() for ans in msg.answer])))
+            raise AssertionError("RRset not found in answer\n%s" % "\n".join(([ans.to_text() for ans in msg.answer])))
 
     def assertNoneRRsetInAnswer(self, msg, rrsets):
         """Asserts that none of the supplied rrsets exist (without comparing TTL)
@@ -591,8 +594,9 @@ options {
                         found = True
 
         if found:
-            raise AssertionError("RRset incorrectly found in answer\n%s" %
-                                 "\n".join(([ans.to_text() for ans in msg.answer])))
+            raise AssertionError(
+                "RRset incorrectly found in answer\n%s" % "\n".join(([ans.to_text() for ans in msg.answer]))
+            )
 
     def assertMatchingRRSIGInAnswer(self, msg, coveredRRset, keys=None):
         """Looks for coveredRRset in the answer section and if there is an RRSIG RRset
@@ -612,7 +616,7 @@ options {
         msgRRsigRRSet = None
         msgRRSet = None
 
-        ret = ''
+        ret = ""
         for ans in msg.answer:
             ret += ans.to_text() + "\n"
 
@@ -627,7 +631,9 @@ options {
             raise AssertionError("RRset for '%s' not found in answer" % msg.question[0].to_text())
 
         if not msgRRsigRRSet:
-            raise AssertionError("No RRSIGs found in answer for %s:\nFull answer:\n%s" % (msg.question[0].to_text(), ret))
+            raise AssertionError(
+                "No RRSIGs found in answer for %s:\nFull answer:\n%s" % (msg.question[0].to_text(), ret)
+            )
 
         if keys:
             try:
@@ -650,7 +656,12 @@ options {
             raise AssertionError("RRSIG found in answers for:\n%s" % ret)
 
     def assertAnswerEmpty(self, msg):
-        self.assertEqual(len(msg.answer), 0, "Data found in the answer section for %s:\n%s" % (msg.question[0].to_text(), '\n'.join([i.to_text() for i in msg.answer])))
+        self.assertEqual(
+            len(msg.answer),
+            0,
+            "Data found in the answer section for %s:\n%s"
+            % (msg.question[0].to_text(), "\n".join([i.to_text() for i in msg.answer])),
+        )
 
     def assertAnswerNotEmpty(self, msg):
         self.assertGreater(len(msg.answer), 0, "Answer is empty")
@@ -673,7 +684,9 @@ options {
                 msgRcode = msg.rcode()
                 wantedRcode = rcode
 
-            raise AssertionError("Rcode for %s is %s, expected %s." % (msg.question[0].to_text(), msgRcode, wantedRcode))
+            raise AssertionError(
+                "Rcode for %s is %s, expected %s." % (msg.question[0].to_text(), msgRcode, wantedRcode)
+            )
 
     def assertAuthorityHasSOA(self, msg):
         if not isinstance(msg, dns.message.Message):

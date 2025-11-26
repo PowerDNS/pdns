@@ -10,8 +10,8 @@ import clientsubnetoption
 import cookiesoption
 from dnsdisttests import DNSDistTest
 
-class TestAdvancedAllow(DNSDistTest):
 
+class TestAdvancedAllow(DNSDistTest):
     _config_template = """
     addAction(AllRule(), NoneAction())
     addAction(QNameSuffixRule("allowed.advanced.tests.powerdns.com."), AllowAction())
@@ -26,14 +26,10 @@ class TestAdvancedAllow(DNSDistTest):
         A query for allowed.advanced.tests.powerdns.com. should be allowed
         while others should be dropped.
         """
-        name = 'allowed.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "allowed.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -51,16 +47,16 @@ class TestAdvancedAllow(DNSDistTest):
 
         A query for notallowed.advanced.tests.powerdns.com. should be dropped.
         """
-        name = 'notallowed.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "notallowed.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertEqual(receivedResponse, None)
 
-class TestAdvancedRemoveRD(DNSDistTest):
 
+class TestAdvancedRemoveRD(DNSDistTest):
     _config_template = """
     addAction("norecurse.advanced.tests.powerdns.com.", SetNoRecurseAction())
     newServer{address="127.0.0.1:%d"}
@@ -73,17 +69,13 @@ class TestAdvancedRemoveRD(DNSDistTest):
         Send a query with RD,
         check that dnsdist clears the RD flag.
         """
-        name = 'norecurse.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
-        expectedQuery = dns.message.make_query(name, 'A', 'IN')
+        name = "norecurse.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
+        expectedQuery = dns.message.make_query(name, "A", "IN")
         expectedQuery.flags &= ~dns.flags.RD
 
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -102,15 +94,11 @@ class TestAdvancedRemoveRD(DNSDistTest):
         Send a query with RD for a canary domain,
         check that dnsdist does not clear the RD flag.
         """
-        name = 'keeprecurse.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "keeprecurse.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
 
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -122,8 +110,8 @@ class TestAdvancedRemoveRD(DNSDistTest):
             self.assertEqual(query, receivedQuery)
             self.assertEqual(response, receivedResponse)
 
-class TestAdvancedAddCD(DNSDistTest):
 
+class TestAdvancedAddCD(DNSDistTest):
     _config_template = """
     addAction("setcd.advanced.tests.powerdns.com.", SetDisableValidationAction())
     newServer{address="127.0.0.1:%d"}
@@ -136,17 +124,13 @@ class TestAdvancedAddCD(DNSDistTest):
         Send a query with CD cleared,
         check that dnsdist set the CD flag.
         """
-        name = 'setcd.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
-        expectedQuery = dns.message.make_query(name, 'A', 'IN')
+        name = "setcd.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
+        expectedQuery = dns.message.make_query(name, "A", "IN")
         expectedQuery.flags |= dns.flags.CD
 
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -165,15 +149,11 @@ class TestAdvancedAddCD(DNSDistTest):
         Send a query without CD for a canary domain,
         check that dnsdist does not set the CD flag.
         """
-        name = 'keepnocd.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "keepnocd.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
 
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -185,8 +165,8 @@ class TestAdvancedAddCD(DNSDistTest):
             self.assertEqual(query, receivedQuery)
             self.assertEqual(response, receivedResponse)
 
-class TestAdvancedClearRD(DNSDistTest):
 
+class TestAdvancedClearRD(DNSDistTest):
     _config_template = """
     addAction("clearrd.advanced.tests.powerdns.com.", SetNoRecurseAction())
     newServer{address="127.0.0.1:%d"}
@@ -199,17 +179,13 @@ class TestAdvancedClearRD(DNSDistTest):
         Send a query with RD set,
         check that dnsdist clears the RD flag.
         """
-        name = 'clearrd.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
-        expectedQuery = dns.message.make_query(name, 'A', 'IN')
+        name = "clearrd.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
+        expectedQuery = dns.message.make_query(name, "A", "IN")
         expectedQuery.flags &= ~dns.flags.RD
 
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -228,15 +204,11 @@ class TestAdvancedClearRD(DNSDistTest):
         Send a query with RD for a canary domain,
         check that dnsdist does not clear the RD flag.
         """
-        name = 'keeprd.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "keeprd.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
 
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -250,7 +222,6 @@ class TestAdvancedClearRD(DNSDistTest):
 
 
 class TestAdvancedDelay(DNSDistTest):
-
     _config_template = """
     addAction(AllRule(), DelayAction(1000))
     newServer{address="127.0.0.1:%d"}
@@ -264,14 +235,10 @@ class TestAdvancedDelay(DNSDistTest):
         check that the response delay is longer than 1000 ms
         over UDP, less than that over TCP.
         """
-        name = 'tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
         response.answer.append(rrset)
 
         begin = datetime.now()
@@ -290,12 +257,13 @@ class TestAdvancedDelay(DNSDistTest):
         self.assertEqual(response, receivedResponse)
         self.assertLess(end - begin, timedelta(0, 1))
 
-class TestAdvancedAndNot(DNSDistTest):
 
+class TestAdvancedAndNot(DNSDistTest):
     _config_template = """
     addAction(AndRule({NotRule(QTypeRule("A")), TCPRule(false)}), RCodeAction(DNSRCode.NOTIMP))
     newServer{address="127.0.0.1:%d"}
     """
+
     def testAOverUDPReturnsNotImplementedCanary(self):
         """
         Advanced: !A && UDP canary
@@ -305,14 +273,10 @@ class TestAdvancedAndNot(DNSDistTest):
         We send an A query over UDP and TCP, and check that the
         response is OK.
         """
-        name = 'andnot.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "andnot.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -333,8 +297,8 @@ class TestAdvancedAndNot(DNSDistTest):
         We send a TXT query over UDP and TCP, and check that the
         response is OK for TCP and 'not implemented' for UDP.
         """
-        name = 'andnot.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'TXT', 'IN')
+        name = "andnot.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "TXT", "IN")
         # dnsdist sets RA = RD for TC responses
         query.flags &= ~dns.flags.RD
 
@@ -345,11 +309,7 @@ class TestAdvancedAndNot(DNSDistTest):
         self.assertEqual(receivedResponse, expectedResponse)
 
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.TXT,
-                                    'nothing to see here')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.TXT, "nothing to see here")
         response.answer.append(rrset)
 
         (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
@@ -359,12 +319,13 @@ class TestAdvancedAndNot(DNSDistTest):
         self.assertEqual(query, receivedQuery)
         self.assertEqual(receivedResponse, response)
 
-class TestAdvancedOr(DNSDistTest):
 
+class TestAdvancedOr(DNSDistTest):
     _config_template = """
     addAction(OrRule({QTypeRule("A"), TCPRule(false)}), RCodeAction(DNSRCode.NOTIMP))
     newServer{address="127.0.0.1:%d"}
     """
+
     def testAAAAOverUDPReturnsNotImplemented(self):
         """
         Advanced: A || UDP: AAAA
@@ -374,15 +335,11 @@ class TestAdvancedOr(DNSDistTest):
         We send an AAAA query over UDP and TCP, and check that the
         response is 'not implemented' for UDP and OK for TCP.
         """
-        name = 'aorudp.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'AAAA', 'IN')
+        name = "aorudp.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "AAAA", "IN")
         query.flags &= ~dns.flags.RD
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.AAAA,
-                                    '::1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.AAAA, "::1")
         response.answer.append(rrset)
 
         expectedResponse = dns.message.make_response(query)
@@ -407,8 +364,8 @@ class TestAdvancedOr(DNSDistTest):
         We send an A query over UDP and TCP, and check that the
         response is 'not implemented' for both.
         """
-        name = 'aorudp.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "aorudp.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         query.flags &= ~dns.flags.RD
 
         expectedResponse = dns.message.make_response(query)
@@ -421,25 +378,21 @@ class TestAdvancedOr(DNSDistTest):
 
 
 class TestAdvancedLogAction(DNSDistTest):
-
     _config_template = """
     newServer{address="127.0.0.1:%d"}
     addAction(AllRule(), LogAction("dnsdist.log", false))
     """
+
     def testAdvancedLogAction(self):
         """
         Advanced: Log all queries
 
         """
         count = 50
-        name = 'logaction.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "logaction.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
         for _ in range(count):
@@ -450,29 +403,26 @@ class TestAdvancedLogAction(DNSDistTest):
             self.assertEqual(query, receivedQuery)
             self.assertEqual(response, receivedResponse)
 
-        self.assertTrue(os.path.isfile('dnsdist.log'))
-        self.assertGreater(os.stat('dnsdist.log').st_size, 0)
+        self.assertTrue(os.path.isfile("dnsdist.log"))
+        self.assertGreater(os.stat("dnsdist.log").st_size, 0)
+
 
 class TestAdvancedDNSSEC(DNSDistTest):
-
     _config_template = """
     newServer{address="127.0.0.1:%d"}
     addAction(DNSSECRule(), DropAction())
     """
+
     def testAdvancedDNSSECDrop(self):
         """
         Advanced: DNSSEC Rule
 
         """
-        name = 'dnssec.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
-        doquery = dns.message.make_query(name, 'A', 'IN', want_dnssec=True)
+        name = "dnssec.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
+        doquery = dns.message.make_query(name, "A", "IN", want_dnssec=True)
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -489,19 +439,20 @@ class TestAdvancedDNSSEC(DNSDistTest):
             (_, receivedResponse) = sender(doquery, response=None, useQueue=False)
             self.assertEqual(receivedResponse, None)
 
-class TestAdvancedQClass(DNSDistTest):
 
+class TestAdvancedQClass(DNSDistTest):
     _config_template = """
     newServer{address="127.0.0.1:%d"}
     addAction(QClassRule(DNSClass.CHAOS), DropAction())
     """
+
     def testAdvancedQClassChaosDrop(self):
         """
         Advanced: Drop QClass CHAOS
 
         """
-        name = 'qclasschaos.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'TXT', 'CHAOS')
+        name = "qclasschaos.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "TXT", "CHAOS")
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
@@ -513,14 +464,10 @@ class TestAdvancedQClass(DNSDistTest):
         Advanced: Allow QClass IN
 
         """
-        name = 'qclassin.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "qclassin.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -532,19 +479,20 @@ class TestAdvancedQClass(DNSDistTest):
             self.assertEqual(query, receivedQuery)
             self.assertEqual(response, receivedResponse)
 
-class TestAdvancedOpcode(DNSDistTest):
 
+class TestAdvancedOpcode(DNSDistTest):
     _config_template = """
     newServer{address="127.0.0.1:%d"}
     addAction(OpcodeRule(DNSOpcode.Notify), DropAction())
     """
+
     def testAdvancedOpcodeNotifyDrop(self):
         """
         Advanced: Drop Opcode NOTIFY
 
         """
-        name = 'opcodenotify.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "opcodenotify.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         query.set_opcode(dns.opcode.NOTIFY)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -557,15 +505,11 @@ class TestAdvancedOpcode(DNSDistTest):
         Advanced: Allow Opcode UPDATE
 
         """
-        name = 'opcodeupdate.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'SOA', 'IN')
+        name = "opcodeupdate.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "SOA", "IN")
         query.set_opcode(dns.opcode.UPDATE)
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -577,14 +521,15 @@ class TestAdvancedOpcode(DNSDistTest):
             self.assertEqual(query, receivedQuery)
             self.assertEqual(response, receivedResponse)
 
-class TestAdvancedNonTerminalRule(DNSDistTest):
 
+class TestAdvancedNonTerminalRule(DNSDistTest):
     _config_template = """
     newServer{address="127.0.0.1:%d", pool="real"}
     addAction(AllRule(), SetDisableValidationAction())
     addAction(AllRule(), PoolAction("real"))
     addAction(AllRule(), DropAction())
     """
+
     def testAdvancedNonTerminalRules(self):
         """
         Advanced: Non terminal rules
@@ -593,16 +538,12 @@ class TestAdvancedNonTerminalRule(DNSDistTest):
         but does not stop the processing, then that
         PoolAction() is applied _and_ stop the processing.
         """
-        name = 'nonterminal.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
-        expectedQuery = dns.message.make_query(name, 'A', 'IN')
+        name = "nonterminal.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
+        expectedQuery = dns.message.make_query(name, "A", "IN")
         expectedQuery.flags |= dns.flags.CD
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -614,8 +555,8 @@ class TestAdvancedNonTerminalRule(DNSDistTest):
             self.assertEqual(expectedQuery, receivedQuery)
             self.assertEqual(response, receivedResponse)
 
-class TestAdvancedRestoreFlagsOnSelfResponse(DNSDistTest):
 
+class TestAdvancedRestoreFlagsOnSelfResponse(DNSDistTest):
     _config_template = """
     addAction(AllRule(), SetDisableValidationAction())
     addAction(AllRule(), SpoofAction("192.0.2.1"))
@@ -630,17 +571,13 @@ class TestAdvancedRestoreFlagsOnSelfResponse(DNSDistTest):
         instructed to set it, then to spoof the response,
         check that response has the flag cleared.
         """
-        name = 'spoofed.restoreflags.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "spoofed.restoreflags.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         # dnsdist set RA = RD for spoofed responses
         query.flags &= ~dns.flags.RD
 
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -649,8 +586,8 @@ class TestAdvancedRestoreFlagsOnSelfResponse(DNSDistTest):
             self.assertTrue(receivedResponse)
             self.assertEqual(response, receivedResponse)
 
-class TestAdvancedQPS(DNSDistTest):
 
+class TestAdvancedQPS(DNSDistTest):
     _config_template = """
     addAction("qps.advanced.tests.powerdns.com", QPSAction(10))
     newServer{address="127.0.0.1:%d"}
@@ -664,14 +601,10 @@ class TestAdvancedQPS(DNSDistTest):
         check that dnsdist drops queries when the max QPS has been reached.
         """
         maxQPS = 10
-        name = 'qps.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "qps.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
         response.answer.append(rrset)
 
         for _ in range(maxQPS):
@@ -693,12 +626,11 @@ class TestAdvancedQPS(DNSDistTest):
             self.assertEqual(query, receivedQuery)
             self.assertEqual(response, receivedResponse)
 
-
         (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
         self.assertEqual(receivedResponse, None)
 
-class TestAdvancedQPSNone(DNSDistTest):
 
+class TestAdvancedQPSNone(DNSDistTest):
     _config_template = """
     addAction("qpsnone.advanced.tests.powerdns.com", QPSAction(100))
     addAction(AllRule(), RCodeAction(DNSRCode.REFUSED))
@@ -713,8 +645,8 @@ class TestAdvancedQPSNone(DNSDistTest):
         check that the rule returns None when the QPS has not been
         reached, not Allow.
         """
-        name = 'qpsnone.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "qpsnone.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.REFUSED)
@@ -724,8 +656,8 @@ class TestAdvancedQPSNone(DNSDistTest):
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertEqual(receivedResponse, expectedResponse)
 
-class TestAdvancedNMGRule(DNSDistTest):
 
+class TestAdvancedNMGRule(DNSDistTest):
     _config_template = """
     allowed = newNMG()
     allowed:addMask("192.0.2.1/32")
@@ -740,8 +672,8 @@ class TestAdvancedNMGRule(DNSDistTest):
         Send queries to "nmgrule.advanced.tests.powerdns.com.",
         check that we are getting a REFUSED response.
         """
-        name = 'nmgrule.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "nmgrule.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.REFUSED)
@@ -750,6 +682,7 @@ class TestAdvancedNMGRule(DNSDistTest):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertEqual(receivedResponse, expectedResponse)
+
 
 class TestAdvancedNMGAddNMG(DNSDistTest):
     _config_template = """
@@ -766,24 +699,20 @@ class TestAdvancedNMGAddNMG(DNSDistTest):
         """
         Advanced: NMGRule:addNMG()
         """
-        name = 'nmgrule-addnmg.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "nmgrule-addnmg.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
         expectedResponse.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
-            (_,receivedResponse) = sender(query, response=expectedResponse, useQueue=False)
+            (_, receivedResponse) = sender(query, response=expectedResponse, useQueue=False)
             self.assertEqual(receivedResponse, expectedResponse)
 
-class TestAdvancedNMGRuleFromString(DNSDistTest):
 
+class TestAdvancedNMGRuleFromString(DNSDistTest):
     _config_template = """
     addAction(NotRule(NetmaskGroupRule('192.0.2.1')), RCodeAction(DNSRCode.REFUSED))
     newServer{address="127.0.0.1:%d"}
@@ -793,8 +722,8 @@ class TestAdvancedNMGRuleFromString(DNSDistTest):
         """
         Advanced: NMGRule (from string) should refuse our queries
         """
-        name = 'nmgrule-from-string.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "nmgrule-from-string.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.REFUSED)
@@ -804,8 +733,8 @@ class TestAdvancedNMGRuleFromString(DNSDistTest):
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertEqual(receivedResponse, expectedResponse)
 
-class TestAdvancedNMGRuleFromMultipleStrings(DNSDistTest):
 
+class TestAdvancedNMGRuleFromMultipleStrings(DNSDistTest):
     _config_template = """
     addAction(NotRule(NetmaskGroupRule({'192.0.2.1', '192.0.2.128/25'})), RCodeAction(DNSRCode.REFUSED))
     newServer{address="127.0.0.1:%d"}
@@ -815,8 +744,8 @@ class TestAdvancedNMGRuleFromMultipleStrings(DNSDistTest):
         """
         Advanced: NMGRule (from multiple strings) should refuse our queries
         """
-        name = 'nmgrule-from-multiple-strings.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "nmgrule-from-multiple-strings.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.REFUSED)
@@ -826,9 +755,9 @@ class TestAdvancedNMGRuleFromMultipleStrings(DNSDistTest):
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertEqual(receivedResponse, expectedResponse)
 
-class TestDSTPortRule(DNSDistTest):
 
-    _config_params = ['_dnsDistPort', '_testServerPort']
+class TestDSTPortRule(DNSDistTest):
+    _config_params = ["_dnsDistPort", "_testServerPort"]
     _config_template = """
     addAction(DSTPortRule(%d), RCodeAction(DNSRCode.REFUSED))
     newServer{address="127.0.0.1:%d"}
@@ -842,8 +771,8 @@ class TestDSTPortRule(DNSDistTest):
         check that we are getting a REFUSED response.
         """
 
-        name = 'dstportrule.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "dstportrule.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.REFUSED)
@@ -853,8 +782,8 @@ class TestDSTPortRule(DNSDistTest):
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertEqual(receivedResponse, expectedResponse)
 
-class TestAdvancedLabelsCountRule(DNSDistTest):
 
+class TestAdvancedLabelsCountRule(DNSDistTest):
     _config_template = """
     addAction(QNameLabelsCountRule(5,6), RCodeAction(DNSRCode.REFUSED))
     newServer{address="127.0.0.1:%d"}
@@ -865,14 +794,10 @@ class TestAdvancedLabelsCountRule(DNSDistTest):
         Advanced: QNameLabelsCountRule(5,6)
         """
         # 6 labels, we should be fine
-        name = 'ok.labelscount.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "ok.labelscount.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -885,8 +810,8 @@ class TestAdvancedLabelsCountRule(DNSDistTest):
             self.assertEqual(response, receivedResponse)
 
         # more than 6 labels, the query should be refused
-        name = 'not.ok.labelscount.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "not.ok.labelscount.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.REFUSED)
@@ -897,8 +822,8 @@ class TestAdvancedLabelsCountRule(DNSDistTest):
             self.assertEqual(receivedResponse, expectedResponse)
 
         # less than 5 labels, the query should be refused
-        name = 'labelscountadvanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "labelscountadvanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.REFUSED)
@@ -908,8 +833,8 @@ class TestAdvancedLabelsCountRule(DNSDistTest):
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertEqual(receivedResponse, expectedResponse)
 
-class TestAdvancedWireLengthRule(DNSDistTest):
 
+class TestAdvancedWireLengthRule(DNSDistTest):
     _config_template = """
     addAction(QNameWireLengthRule(54,56), RCodeAction(DNSRCode.REFUSED))
     newServer{address="127.0.0.1:%d"}
@@ -919,14 +844,10 @@ class TestAdvancedWireLengthRule(DNSDistTest):
         """
         Advanced: QNameWireLengthRule(54,56)
         """
-        name = 'longenough.qnamewirelength.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "longenough.qnamewirelength.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -939,8 +860,8 @@ class TestAdvancedWireLengthRule(DNSDistTest):
             self.assertEqual(response, receivedResponse)
 
         # too short, the query should be refused
-        name = 'short.qnamewirelength.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "short.qnamewirelength.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.REFUSED)
@@ -951,8 +872,8 @@ class TestAdvancedWireLengthRule(DNSDistTest):
             self.assertEqual(receivedResponse, expectedResponse)
 
         # too long, the query should be refused
-        name = 'toolongtobevalid.qnamewirelength.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "toolongtobevalid.qnamewirelength.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.REFUSED)
@@ -962,8 +883,8 @@ class TestAdvancedWireLengthRule(DNSDistTest):
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertEqual(receivedResponse, expectedResponse)
 
-class TestAdvancedLuaDO(DNSDistTest):
 
+class TestAdvancedLuaDO(DNSDistTest):
     _config_template = """
     function nxDOLua(dq)
         if dq:getDO() then
@@ -979,16 +900,12 @@ class TestAdvancedLuaDO(DNSDistTest):
         """
         Advanced: Nx DO queries via Lua
         """
-        name = 'nxdo.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "nxdo.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.AAAA,
-                                    '::1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.AAAA, "::1")
         response.answer.append(rrset)
-        queryWithDO = dns.message.make_query(name, 'A', 'IN', want_dnssec=True)
+        queryWithDO = dns.message.make_query(name, "A", "IN", want_dnssec=True)
         doResponse = dns.message.make_response(queryWithDO)
         doResponse.set_rcode(dns.rcode.NXDOMAIN)
 
@@ -1010,8 +927,8 @@ class TestAdvancedLuaDO(DNSDistTest):
             doResponse.id = receivedResponse.id
             self.assertEqual(receivedResponse, doResponse)
 
-class TestAdvancedLuaRefused(DNSDistTest):
 
+class TestAdvancedLuaRefused(DNSDistTest):
     _config_template = """
     function refuse(dq)
         return DNSAction.Refused, ""
@@ -1024,14 +941,10 @@ class TestAdvancedLuaRefused(DNSDistTest):
         """
         Advanced: Refused via Lua
         """
-        name = 'refused.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "refused.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.AAAA,
-                                    '::1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.AAAA, "::1")
         response.answer.append(rrset)
         refusedResponse = dns.message.make_response(query)
         refusedResponse.set_rcode(dns.rcode.REFUSED)
@@ -1043,8 +956,8 @@ class TestAdvancedLuaRefused(DNSDistTest):
             refusedResponse.id = receivedResponse.id
             self.assertEqual(receivedResponse, refusedResponse)
 
-class TestAdvancedLuaActionReturnSyntax(DNSDistTest):
 
+class TestAdvancedLuaActionReturnSyntax(DNSDistTest):
     _config_template = """
     function refuse(dq)
         return DNSAction.Refused
@@ -1057,14 +970,10 @@ class TestAdvancedLuaActionReturnSyntax(DNSDistTest):
         """
         Advanced: Short syntax for LuaAction return values
         """
-        name = 'short.refused.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "short.refused.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.AAAA,
-                                    '::1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.AAAA, "::1")
         response.answer.append(rrset)
         refusedResponse = dns.message.make_response(query)
         refusedResponse.set_rcode(dns.rcode.REFUSED)
@@ -1076,8 +985,8 @@ class TestAdvancedLuaActionReturnSyntax(DNSDistTest):
             refusedResponse.id = receivedResponse.id
             self.assertEqual(receivedResponse, refusedResponse)
 
-class TestAdvancedLuaTruncated(DNSDistTest):
 
+class TestAdvancedLuaTruncated(DNSDistTest):
     _config_template = """
     function trunc(dq)
         if not dq.tcp then
@@ -1093,16 +1002,12 @@ class TestAdvancedLuaTruncated(DNSDistTest):
         """
         Advanced: TC via Lua
         """
-        name = 'tc.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "tc.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         # dnsdist sets RA = RD for TC responses
         query.flags &= ~dns.flags.RD
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.AAAA,
-                                    '::1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.AAAA, "::1")
         response.answer.append(rrset)
 
         truncatedResponse = dns.message.make_response(query)
@@ -1121,8 +1026,8 @@ class TestAdvancedLuaTruncated(DNSDistTest):
         self.assertEqual(query, receivedQuery)
         self.assertEqual(receivedResponse, response)
 
-class TestAdvancedRD(DNSDistTest):
 
+class TestAdvancedRD(DNSDistTest):
     _config_template = """
     addAction(RDRule(), RCodeAction(DNSRCode.REFUSED))
     newServer{address="127.0.0.1:%d"}
@@ -1132,8 +1037,8 @@ class TestAdvancedRD(DNSDistTest):
         """
         Advanced: RD query is refused
         """
-        name = 'rd.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "rd.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.REFUSED)
         expectedResponse.flags |= dns.flags.RA
@@ -1147,8 +1052,8 @@ class TestAdvancedRD(DNSDistTest):
         """
         Advanced: No-RD query is allowed
         """
-        name = 'no-rd.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "no-rd.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         query.flags &= ~dns.flags.RD
         response = dns.message.make_response(query)
 
@@ -1159,8 +1064,8 @@ class TestAdvancedRD(DNSDistTest):
             self.assertEqual(receivedQuery, query)
             self.assertEqual(receivedResponse, response)
 
-class TestAdvancedLuaTempFailureTTL(DNSDistTest):
 
+class TestAdvancedLuaTempFailureTTL(DNSDistTest):
     _config_template = """
     function testAction(dq)
       if dq.tempFailureTTL ~= nil then
@@ -1184,14 +1089,10 @@ class TestAdvancedLuaTempFailureTTL(DNSDistTest):
         """
         Advanced: Exercise dq.tempFailureTTL Lua binding
         """
-        name = 'tempfailurettlbinding.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "tempfailurettlbinding.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.AAAA,
-                                    '::1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.AAAA, "::1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -1203,8 +1104,8 @@ class TestAdvancedLuaTempFailureTTL(DNSDistTest):
             self.assertEqual(query, receivedQuery)
             self.assertEqual(receivedResponse, response)
 
-class TestAdvancedEDNSOptionRule(DNSDistTest):
 
+class TestAdvancedEDNSOptionRule(DNSDistTest):
     _config_template = """
     newServer{address="127.0.0.1:%d"}
     addAction(EDNSOptionRule(EDNSOptionCode.ECS), DropAction())
@@ -1215,10 +1116,10 @@ class TestAdvancedEDNSOptionRule(DNSDistTest):
         Advanced: A question with ECS is dropped
         """
 
-        name = 'ednsoptionrule.advanced.tests.powerdns.com.'
+        name = "ednsoptionrule.advanced.tests.powerdns.com."
 
-        ecso = clientsubnetoption.ClientSubnetOption('127.0.0.1', 24)
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, options=[ecso], payload=512)
+        ecso = clientsubnetoption.ClientSubnetOption("127.0.0.1", 24)
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, options=[ecso], payload=512)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
@@ -1230,10 +1131,10 @@ class TestAdvancedEDNSOptionRule(DNSDistTest):
         Advanced: A question without ECS is answered
         """
 
-        name = 'ednsoptionrule.advanced.tests.powerdns.com.'
+        name = "ednsoptionrule.advanced.tests.powerdns.com."
 
         # both with EDNS
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, options=[], payload=512)
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, options=[], payload=512)
         response = dns.message.make_response(query)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -1247,7 +1148,7 @@ class TestAdvancedEDNSOptionRule(DNSDistTest):
             self.assertEqual(receivedResponse, response)
 
         # and with no EDNS at all
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+        query = dns.message.make_query(name, "A", "IN", use_edns=False)
         response = dns.message.make_response(query)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -1260,8 +1161,8 @@ class TestAdvancedEDNSOptionRule(DNSDistTest):
             self.assertEqual(query, receivedQuery)
             self.assertEqual(receivedResponse, response)
 
-class TestAdvancedEDNSVersionRule(DNSDistTest):
 
+class TestAdvancedEDNSVersionRule(DNSDistTest):
     _config_template = """
     newServer{address="127.0.0.1:%d"}
     addAction(EDNSVersionRule(0), ERCodeAction(DNSRCode.BADVERS))
@@ -1275,9 +1176,9 @@ class TestAdvancedEDNSVersionRule(DNSDistTest):
         if sys.version_info >= (3, 11) and sys.version_info < (3, 12):
             raise unittest.SkipTest("Test skipped, see https://github.com/PowerDNS/pdns/pull/12912")
 
-        name = 'ednsversionrule.advanced.tests.powerdns.com.'
+        name = "ednsversionrule.advanced.tests.powerdns.com."
 
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=1)
+        query = dns.message.make_query(name, "A", "IN", use_edns=1)
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.BADVERS)
@@ -1292,9 +1193,9 @@ class TestAdvancedEDNSVersionRule(DNSDistTest):
         Advanced: A question with ECS version 0 goes through
         """
 
-        name = 'ednsversionrule.advanced.tests.powerdns.com.'
+        name = "ednsversionrule.advanced.tests.powerdns.com."
 
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True)
+        query = dns.message.make_query(name, "A", "IN", use_edns=True)
         response = dns.message.make_response(query)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -1309,9 +1210,9 @@ class TestAdvancedEDNSVersionRule(DNSDistTest):
         Advanced: A question without ECS goes through
         """
 
-        name = 'ednsoptionrule.advanced.tests.powerdns.com.'
+        name = "ednsoptionrule.advanced.tests.powerdns.com."
 
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+        query = dns.message.make_query(name, "A", "IN", use_edns=False)
         response = dns.message.make_response(query)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -1321,11 +1222,11 @@ class TestAdvancedEDNSVersionRule(DNSDistTest):
             self.assertEqual(query, receivedQuery)
             self.assertEqual(receivedResponse, response)
 
-class TestSetRules(DNSDistTest):
 
+class TestSetRules(DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
-    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
-    _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort']
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _config_params = ["_consoleKeyB64", "_consolePort", "_testServerPort"]
     _config_template = """
     setKey("%s")
     controlSocket("127.0.0.1:%d")
@@ -1338,16 +1239,12 @@ class TestSetRules(DNSDistTest):
         Advanced: Clear rules, set rules
 
         """
-        name = 'clearthensetrules.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "clearthensetrules.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         # dnsdist set RA = RD for spoofed responses
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
         expectedResponse.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -1371,14 +1268,10 @@ class TestSetRules(DNSDistTest):
             self.assertEqual(expectedResponse, receivedResponse)
 
         # insert a new spoofing rule
-        self.sendConsoleCommand("setRules({ newRuleAction(AllRule(), SpoofAction(\"192.0.2.2\")) })")
+        self.sendConsoleCommand('setRules({ newRuleAction(AllRule(), SpoofAction("192.0.2.2")) })')
 
         expectedResponse = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.2')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.2")
         expectedResponse.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -1388,10 +1281,11 @@ class TestSetRules(DNSDistTest):
             self.assertTrue(receivedResponse)
             self.assertEqual(expectedResponse, receivedResponse)
 
+
 class TestRmRules(DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
-    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
-    _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort']
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _config_params = ["_consoleKeyB64", "_consolePort", "_testServerPort"]
     _config_template = """
     setKey("%s")
     controlSocket("127.0.0.1:%d")
@@ -1408,15 +1302,15 @@ class TestRmRules(DNSDistTest):
         """
         lines = self.sendConsoleCommand("showRules({showUUIDs=true})").splitlines()
         self.assertEqual(len(lines), 3)
-        self.assertIn('myFirstRule', lines[1])
-        self.assertIn('mySecondRule', lines[2])
-        self.assertIn('090736ca-2fb6-41e7-a836-58efaca3d71e', lines[1])
+        self.assertIn("myFirstRule", lines[1])
+        self.assertIn("mySecondRule", lines[2])
+        self.assertIn("090736ca-2fb6-41e7-a836-58efaca3d71e", lines[1])
 
         lines = self.sendConsoleCommand("showResponseRules({showUUIDs=true})").splitlines()
         self.assertEqual(len(lines), 3)
-        self.assertIn('myFirstResponseRule', lines[1])
-        self.assertIn('mySecondResponseRule', lines[2])
-        self.assertIn('745a03b5-89e0-4eee-a6bf-c9700b0d31f0', lines[1])
+        self.assertIn("myFirstResponseRule", lines[1])
+        self.assertIn("mySecondResponseRule", lines[2])
+        self.assertIn("745a03b5-89e0-4eee-a6bf-c9700b0d31f0", lines[1])
 
         self.sendConsoleCommand("rmRule('090736ca-2fb6-41e7-a836-58efaca3d71e')")
         self.sendConsoleCommand("rmRule('mySecondRule')")
@@ -1428,8 +1322,8 @@ class TestRmRules(DNSDistTest):
         lines = self.sendConsoleCommand("showResponseRules({showUUIDs=true})").splitlines()
         self.assertEqual(len(lines), 1)
 
-class TestAdvancedContinueAction(DNSDistTest):
 
+class TestAdvancedContinueAction(DNSDistTest):
     _config_template = """
     newServer{address="127.0.0.1:%d", pool="mypool"}
     addAction("nocontinue.continue-action.advanced.tests.powerdns.com.", PoolAction("mypool"))
@@ -1442,10 +1336,10 @@ class TestAdvancedContinueAction(DNSDistTest):
         Advanced: Query routed to pool, PoolAction should be terminal
         """
 
-        name = 'nocontinue.continue-action.advanced.tests.powerdns.com.'
+        name = "nocontinue.continue-action.advanced.tests.powerdns.com."
 
-        query = dns.message.make_query(name, 'A', 'IN')
-        expectedQuery = dns.message.make_query(name, 'A', 'IN')
+        query = dns.message.make_query(name, "A", "IN")
+        expectedQuery = dns.message.make_query(name, "A", "IN")
 
         response = dns.message.make_response(query)
         expectedResponse = dns.message.make_response(query)
@@ -1462,10 +1356,10 @@ class TestAdvancedContinueAction(DNSDistTest):
         Advanced: Query routed to pool, ContinueAction() should not stop the processing
         """
 
-        name = 'continue.continue-action.advanced.tests.powerdns.com.'
+        name = "continue.continue-action.advanced.tests.powerdns.com."
 
-        query = dns.message.make_query(name, 'A', 'IN')
-        expectedQuery = dns.message.make_query(name, 'A', 'IN')
+        query = dns.message.make_query(name, "A", "IN")
+        expectedQuery = dns.message.make_query(name, "A", "IN")
         expectedQuery.flags |= dns.flags.CD
 
         response = dns.message.make_response(query)
@@ -1478,8 +1372,8 @@ class TestAdvancedContinueAction(DNSDistTest):
             self.assertEqual(receivedQuery, expectedQuery)
             self.assertEqual(receivedResponse, expectedResponse)
 
-class TestAdvancedNegativeAndSOA(DNSDistTest):
 
+class TestAdvancedNegativeAndSOA(DNSDistTest):
     _selfGeneratedPayloadSize = 1232
     _config_template = """
     addAction("nxd.negativeandsoa.advanced.tests.powerdns.com.", NegativeAndSOAAction(true, "auth.", 42, "mname", "rname", 5, 4, 3, 2, 1))
@@ -1487,24 +1381,19 @@ class TestAdvancedNegativeAndSOA(DNSDistTest):
     setPayloadSizeOnSelfGeneratedAnswers(%d)
     newServer{address="127.0.0.1:%d"}
     """
-    _config_params = ['_selfGeneratedPayloadSize', '_testServerPort']
-
+    _config_params = ["_selfGeneratedPayloadSize", "_testServerPort"]
 
     def testAdvancedNegativeAndSOANXD(self):
         """
         Advanced: NegativeAndSOAAction NXD
         """
-        name = 'nxd.negativeandsoa.advanced.tests.powerdns.com.'
+        name = "nxd.negativeandsoa.advanced.tests.powerdns.com."
         # no EDNS
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+        query = dns.message.make_query(name, "A", "IN", use_edns=False)
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.NXDOMAIN)
-        soa = dns.rrset.from_text("auth.",
-                                  42,
-                                  dns.rdataclass.IN,
-                                  dns.rdatatype.SOA,
-                                  'mname. rname. 5 4 3 2 1')
+        soa = dns.rrset.from_text("auth.", 42, dns.rdataclass.IN, dns.rdatatype.SOA, "mname. rname. 5 4 3 2 1")
         expectedResponse.additional.append(soa)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -1513,15 +1402,11 @@ class TestAdvancedNegativeAndSOA(DNSDistTest):
             self.checkMessageNoEDNS(expectedResponse, receivedResponse)
 
         # withEDNS
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True)
+        query = dns.message.make_query(name, "A", "IN", use_edns=True)
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query, our_payload=self._selfGeneratedPayloadSize)
         expectedResponse.set_rcode(dns.rcode.NXDOMAIN)
-        soa = dns.rrset.from_text("auth.",
-                                  42,
-                                  dns.rdataclass.IN,
-                                  dns.rdatatype.SOA,
-                                  'mname. rname. 5 4 3 2 1')
+        soa = dns.rrset.from_text("auth.", 42, dns.rdataclass.IN, dns.rdatatype.SOA, "mname. rname. 5 4 3 2 1")
         expectedResponse.additional.append(soa)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -1533,17 +1418,13 @@ class TestAdvancedNegativeAndSOA(DNSDistTest):
         """
         Advanced: NegativeAndSOAAction NoData
         """
-        name = 'nodata.negativeandsoa.advanced.tests.powerdns.com.'
+        name = "nodata.negativeandsoa.advanced.tests.powerdns.com."
         # no EDNS
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+        query = dns.message.make_query(name, "A", "IN", use_edns=False)
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.NOERROR)
-        soa = dns.rrset.from_text("another-auth.",
-                                  42,
-                                  dns.rdataclass.IN,
-                                  dns.rdatatype.SOA,
-                                  'mname. rname. 1 2 3 4 5')
+        soa = dns.rrset.from_text("another-auth.", 42, dns.rdataclass.IN, dns.rdatatype.SOA, "mname. rname. 1 2 3 4 5")
         expectedResponse.additional.append(soa)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -1552,15 +1433,11 @@ class TestAdvancedNegativeAndSOA(DNSDistTest):
             self.checkMessageNoEDNS(expectedResponse, receivedResponse)
 
         # with EDNS
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True)
+        query = dns.message.make_query(name, "A", "IN", use_edns=True)
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query, our_payload=self._selfGeneratedPayloadSize)
         expectedResponse.set_rcode(dns.rcode.NOERROR)
-        soa = dns.rrset.from_text("another-auth.",
-                                  42,
-                                  dns.rdataclass.IN,
-                                  dns.rdatatype.SOA,
-                                  'mname. rname. 1 2 3 4 5')
+        soa = dns.rrset.from_text("another-auth.", 42, dns.rdataclass.IN, dns.rdatatype.SOA, "mname. rname. 1 2 3 4 5")
         expectedResponse.additional.append(soa)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -1570,7 +1447,6 @@ class TestAdvancedNegativeAndSOA(DNSDistTest):
 
 
 class TestAdvancedNegativeAndSOAAuthSection(DNSDistTest):
-
     _selfGeneratedPayloadSize = 1232
     _config_template = """
     addAction("nxd.negativeandsoa.advanced.tests.powerdns.com.", NegativeAndSOAAction(true, "auth.", 42, "mname", "rname", 5, 4, 3, 2, 1, { soaInAuthoritySection=true }))
@@ -1578,24 +1454,19 @@ class TestAdvancedNegativeAndSOAAuthSection(DNSDistTest):
     setPayloadSizeOnSelfGeneratedAnswers(%d)
     newServer{address="127.0.0.1:%d"}
     """
-    _config_params = ['_selfGeneratedPayloadSize', '_testServerPort']
-
+    _config_params = ["_selfGeneratedPayloadSize", "_testServerPort"]
 
     def testAdvancedNegativeAndSOANXD(self):
         """
         Advanced: NegativeAndSOAAction NXD
         """
-        name = 'nxd.negativeandsoa.advanced.tests.powerdns.com.'
+        name = "nxd.negativeandsoa.advanced.tests.powerdns.com."
         # no EDNS
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+        query = dns.message.make_query(name, "A", "IN", use_edns=False)
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.NXDOMAIN)
-        soa = dns.rrset.from_text("auth.",
-                                  42,
-                                  dns.rdataclass.IN,
-                                  dns.rdatatype.SOA,
-                                  'mname. rname. 5 4 3 2 1')
+        soa = dns.rrset.from_text("auth.", 42, dns.rdataclass.IN, dns.rdatatype.SOA, "mname. rname. 5 4 3 2 1")
         expectedResponse.authority.append(soa)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -1604,15 +1475,11 @@ class TestAdvancedNegativeAndSOAAuthSection(DNSDistTest):
             self.checkMessageNoEDNS(expectedResponse, receivedResponse)
 
         # withEDNS
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True)
+        query = dns.message.make_query(name, "A", "IN", use_edns=True)
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query, our_payload=self._selfGeneratedPayloadSize)
         expectedResponse.set_rcode(dns.rcode.NXDOMAIN)
-        soa = dns.rrset.from_text("auth.",
-                                  42,
-                                  dns.rdataclass.IN,
-                                  dns.rdatatype.SOA,
-                                  'mname. rname. 5 4 3 2 1')
+        soa = dns.rrset.from_text("auth.", 42, dns.rdataclass.IN, dns.rdatatype.SOA, "mname. rname. 5 4 3 2 1")
         expectedResponse.authority.append(soa)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -1624,17 +1491,13 @@ class TestAdvancedNegativeAndSOAAuthSection(DNSDistTest):
         """
         Advanced: NegativeAndSOAAction NoData
         """
-        name = 'nodata.negativeandsoa.advanced.tests.powerdns.com.'
+        name = "nodata.negativeandsoa.advanced.tests.powerdns.com."
         # no EDNS
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+        query = dns.message.make_query(name, "A", "IN", use_edns=False)
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.NOERROR)
-        soa = dns.rrset.from_text("another-auth.",
-                                  42,
-                                  dns.rdataclass.IN,
-                                  dns.rdatatype.SOA,
-                                  'mname. rname. 1 2 3 4 5')
+        soa = dns.rrset.from_text("another-auth.", 42, dns.rdataclass.IN, dns.rdatatype.SOA, "mname. rname. 1 2 3 4 5")
         expectedResponse.authority.append(soa)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -1643,15 +1506,11 @@ class TestAdvancedNegativeAndSOAAuthSection(DNSDistTest):
             self.checkMessageNoEDNS(expectedResponse, receivedResponse)
 
         # with EDNS
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True)
+        query = dns.message.make_query(name, "A", "IN", use_edns=True)
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query, our_payload=self._selfGeneratedPayloadSize)
         expectedResponse.set_rcode(dns.rcode.NOERROR)
-        soa = dns.rrset.from_text("another-auth.",
-                                  42,
-                                  dns.rdataclass.IN,
-                                  dns.rdatatype.SOA,
-                                  'mname. rname. 1 2 3 4 5')
+        soa = dns.rrset.from_text("another-auth.", 42, dns.rdataclass.IN, dns.rdatatype.SOA, "mname. rname. 1 2 3 4 5")
         expectedResponse.authority.append(soa)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -1661,7 +1520,6 @@ class TestAdvancedNegativeAndSOAAuthSection(DNSDistTest):
 
 
 class TestAdvancedLuaRule(DNSDistTest):
-
     _config_template = """
 
     function luarulefunction(dq)
@@ -1688,8 +1546,8 @@ class TestAdvancedLuaRule(DNSDistTest):
         """
         Advanced: Test the LuaRule rule
         """
-        name = 'lua-rule.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "lua-rule.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         # dnsdist set RA = RD for spoofed responses
         query.flags &= ~dns.flags.RD
         notimplResponse = dns.message.make_response(query)
@@ -1700,8 +1558,8 @@ class TestAdvancedLuaRule(DNSDistTest):
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertEqual(receivedResponse, notimplResponse)
 
-        name = 'not-lua-rule.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "not-lua-rule.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         # dnsdist set RA = RD for spoofed responses
         query.flags &= ~dns.flags.RD
         refusedResponse = dns.message.make_response(query)
@@ -1712,8 +1570,8 @@ class TestAdvancedLuaRule(DNSDistTest):
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertEqual(receivedResponse, refusedResponse)
 
-class TestAdvancedSetEDNSOptionAction(DNSDistTest):
 
+class TestAdvancedSetEDNSOptionAction(DNSDistTest):
     _config_template = """
     addAction(AllRule(), SetEDNSOptionAction(10, "deadbeefdeadc0de"))
     newServer{address="127.0.0.1:%d"}
@@ -1723,18 +1581,14 @@ class TestAdvancedSetEDNSOptionAction(DNSDistTest):
         """
         Advanced: Set EDNS Option
         """
-        name = 'setednsoption.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "setednsoption.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
 
-        eco = cookiesoption.CookiesOption(b'deadbeef', b'deadc0de')
-        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=512, options=[eco])
+        eco = cookiesoption.CookiesOption(b"deadbeef", b"deadc0de")
+        expectedQuery = dns.message.make_query(name, "A", "IN", use_edns=True, payload=512, options=[eco])
 
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -1751,19 +1605,15 @@ class TestAdvancedSetEDNSOptionAction(DNSDistTest):
         """
         Advanced: Set EDNS Option overwrites an existing option
         """
-        name = 'setednsoption-overwrite.advanced.tests.powerdns.com.'
-        initialECO = cookiesoption.CookiesOption(b'aaaaaaaa', b'bbbbbbbb')
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "setednsoption-overwrite.advanced.tests.powerdns.com."
+        initialECO = cookiesoption.CookiesOption(b"aaaaaaaa", b"bbbbbbbb")
+        query = dns.message.make_query(name, "A", "IN")
 
-        overWrittenECO = cookiesoption.CookiesOption(b'deadbeef', b'deadc0de')
-        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=512, options=[overWrittenECO])
+        overWrittenECO = cookiesoption.CookiesOption(b"deadbeef", b"deadc0de")
+        expectedQuery = dns.message.make_query(name, "A", "IN", use_edns=True, payload=512, options=[overWrittenECO])
 
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -1781,18 +1631,16 @@ class TestAdvancedSetEDNSOptionAction(DNSDistTest):
         Advanced: Set EDNS Option (DO bit set)
         """
         # check that the DO bit is correctly handled, as we messed that up once
-        name = 'setednsoption-do.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, want_dnssec=True, payload=4096)
+        name = "setednsoption-do.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, want_dnssec=True, payload=4096)
 
-        eco = cookiesoption.CookiesOption(b'deadbeef', b'deadc0de')
-        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[eco], want_dnssec=True)
+        eco = cookiesoption.CookiesOption(b"deadbeef", b"deadc0de")
+        expectedQuery = dns.message.make_query(
+            name, "A", "IN", use_edns=True, payload=4096, options=[eco], want_dnssec=True
+        )
 
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -1805,8 +1653,8 @@ class TestAdvancedSetEDNSOptionAction(DNSDistTest):
             self.checkResponseEDNSWithoutECS(response, receivedResponse)
             self.checkQueryEDNS(expectedQuery, receivedQuery)
 
-class TestAdvancedLuaGetContent(DNSDistTest):
 
+class TestAdvancedLuaGetContent(DNSDistTest):
     _config_template = """
     function accessContentLua(dq)
         local expectedSize = 57
@@ -1836,14 +1684,10 @@ class TestAdvancedLuaGetContent(DNSDistTest):
         """
         Advanced: Test getContent() via Lua
         """
-        name = 'get-content.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'AAAA', 'IN')
+        name = "get-content.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "AAAA", "IN")
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.AAAA,
-                                    '::1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.AAAA, "::1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):

@@ -3,8 +3,8 @@ import time
 import dns
 from dnsdistDynBlockTests import DynBlocksTest, waitForMaintenanceToRun
 
-class TestDynBlockServFails(DynBlocksTest):
 
+class TestDynBlockServFails(DynBlocksTest):
     _config_template = """
     function maintenance()
 	    addDynBlocks(exceedServFails(%d, %d), "Exceeded servfail rate", %d)
@@ -16,11 +16,11 @@ class TestDynBlockServFails(DynBlocksTest):
         """
         Dyn Blocks: Server Failure Rate
         """
-        name = 'servfailrate.dynblocks.tests.powerdns.com.'
+        name = "servfailrate.dynblocks.tests.powerdns.com."
         self.doTestRCodeRate(name, dns.rcode.SERVFAIL)
 
-class TestDynBlockServFailsCached(DynBlocksTest):
 
+class TestDynBlockServFailsCached(DynBlocksTest):
     _config_template = """
     pc = newPacketCache(10000, {maxTTL=86400, minTTL=0, temporaryFailureTTL=60, staleTTL=60, dontAge=false})
     getPool(""):setCache(pc)
@@ -34,19 +34,14 @@ class TestDynBlockServFailsCached(DynBlocksTest):
         """
         Dyn Blocks: Make sure cache hit responses also gets inserted into rings
         """
-        name = 'servfailrate.dynblocks.tests.powerdns.com.'
+        name = "servfailrate.dynblocks.tests.powerdns.com."
         rcode = dns.rcode.SERVFAIL
-        query = dns.message.make_query(name, 'A', 'IN')
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
         response.answer.append(rrset)
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(rcode)
-
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             print(method, "()")
@@ -90,8 +85,8 @@ class TestDynBlockServFailsCached(DynBlocksTest):
             (receivedQuery, receivedResponse) = sender(query, response=None)
             self.assertEqual(expectedResponse, receivedResponse)
 
-class TestDynBlockGroupServFails(DynBlocksTest):
 
+class TestDynBlockGroupServFails(DynBlocksTest):
     _config_template = """
     local dbr = dynBlockRulesGroup()
     dbr:setRCodeRate(DNSRCode.SERVFAIL, %d, %d, "Exceeded query rate", %d)
@@ -107,11 +102,11 @@ class TestDynBlockGroupServFails(DynBlocksTest):
         """
         Dyn Blocks (group): Server Failure Rate
         """
-        name = 'servfailrate.group.dynblocks.tests.powerdns.com.'
+        name = "servfailrate.group.dynblocks.tests.powerdns.com."
         self.doTestRCodeRate(name, dns.rcode.SERVFAIL)
 
-class TestDynBlockGroupServFailsYAML(DynBlocksTest):
 
+class TestDynBlockGroupServFailsYAML(DynBlocksTest):
     _yaml_config_template = """---
 dynamic_rules:
   - name: "Block client generating too many ServFails"
@@ -138,11 +133,11 @@ backends:
     protocol: Do53
 """
     _config_params = []
-    _yaml_config_params = ['_dynBlockQPS', '_dynBlockPeriod', '_dynBlockDuration', '_testServerPort']
+    _yaml_config_params = ["_dynBlockQPS", "_dynBlockPeriod", "_dynBlockDuration", "_testServerPort"]
 
     def testDynBlocksServFailRate(self):
         """
         Dyn Blocks (group / YAML): Server Failure Rate
         """
-        name = 'servfailrate.group.dynblocks.tests.powerdns.com.'
+        name = "servfailrate.group.dynblocks.tests.powerdns.com."
         self.doTestRCodeRate(name, dns.rcode.SERVFAIL)

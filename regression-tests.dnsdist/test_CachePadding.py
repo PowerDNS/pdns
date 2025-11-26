@@ -4,8 +4,8 @@ import paddingoption
 import randompaddingoption
 from dnsdisttests import DNSDistTest
 
-class TestCachePadding(DNSDistTest):
 
+class TestCachePadding(DNSDistTest):
     _config_template = """
     pc = newPacketCache(100, {maxTTL=86400, minTTL=1})
     getPool(""):setCache(pc)
@@ -16,15 +16,11 @@ class TestCachePadding(DNSDistTest):
         """
         Cache padding
         """
-        name = 'padding.cache-padding.tests.powerdns.com.'
+        name = "padding.cache-padding.tests.powerdns.com."
         po = paddingoption.PaddingOption(64)
-        query = dns.message.make_query(name, 'A', want_dnssec=True, options=[po])
+        query = dns.message.make_query(name, "A", want_dnssec=True, options=[po])
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.AAAA,
-                                    '::1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.AAAA, "::1")
         response.answer.append(rrset)
 
         (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
@@ -40,7 +36,7 @@ class TestCachePadding(DNSDistTest):
 
         # generate a new padding payload, with random bytes
         rpo = randompaddingoption.RandomPaddingOption(64)
-        query = dns.message.make_query(name, 'A', want_dnssec=True, options=[rpo])
+        query = dns.message.make_query(name, "A", want_dnssec=True, options=[rpo])
         response = dns.message.make_response(query)
         response.answer.append(rrset)
 
@@ -48,8 +44,8 @@ class TestCachePadding(DNSDistTest):
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         self.assertEqual(receivedResponse, response)
 
-class TestCacheNotSkippingPadding(DNSDistTest):
 
+class TestCacheNotSkippingPadding(DNSDistTest):
     _config_template = """
     -- only skip EDNS cookies, not padding
     pc = newPacketCache(100, {maxTTL=86400, minTTL=1, skipOptions={10}})
@@ -61,15 +57,11 @@ class TestCacheNotSkippingPadding(DNSDistTest):
         """
         Cache padding: not skipping the padding
         """
-        name = 'not-skipping-padding.cache-padding.tests.powerdns.com.'
+        name = "not-skipping-padding.cache-padding.tests.powerdns.com."
         po = paddingoption.PaddingOption(64)
-        query = dns.message.make_query(name, 'A', want_dnssec=True, options=[po])
+        query = dns.message.make_query(name, "A", want_dnssec=True, options=[po])
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.AAAA,
-                                    '::1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.AAAA, "::1")
         response.answer.append(rrset)
 
         (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
@@ -85,7 +77,7 @@ class TestCacheNotSkippingPadding(DNSDistTest):
 
         # generate a new padding payload, with random bytes
         rpo = randompaddingoption.RandomPaddingOption(64)
-        query = dns.message.make_query(name, 'A', want_dnssec=True, options=[rpo])
+        query = dns.message.make_query(name, "A", want_dnssec=True, options=[rpo])
         response = dns.message.make_response(query)
 
         # identical query except for the padding content which should NOT be skipped, should NOT be cached

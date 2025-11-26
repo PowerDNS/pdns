@@ -6,7 +6,7 @@ from authtests import AuthTest
 
 
 class TestAuthSignal(AuthTest):
-    _backend = 'gsqlite3'
+    _backend = "gsqlite3"
 
     _config_template_default = """
 module-dir={PDNS_MODULE_DIR}
@@ -26,16 +26,17 @@ gsqlite3-database=configs/auth/powerdns.sqlite
 gsqlite3-pragma-foreign-keys=yes
 gsqlite3-dnssec=yes
 """
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.signaling_domain = dns.name.from_text('_signal.ns1.example.net')
-        cls.signaling_prefix = dns.name.from_text('_dsboot.cds-cdnskey.test').relativize(dns.name.root)
+        cls.signaling_domain = dns.name.from_text("_signal.ns1.example.net")
+        cls.signaling_prefix = dns.name.from_text("_dsboot.cds-cdnskey.test").relativize(dns.name.root)
         cls.signaling_qname = cls.signaling_prefix.concatenate(cls.signaling_domain)
 
         os.system("$PDNSUTIL --config-dir=configs/auth zone create _signal.ns1.example.net")
         os.system("$PDNSUTIL --config-dir=configs/auth zone set-signaling _signal.ns1.example.net")
-        query = dns.message.make_query('_signal.ns1.example.net', 'DNSKEY')
+        query = dns.message.make_query("_signal.ns1.example.net", "DNSKEY")
         res = cls.sendUDPQuery(query)
         cls.signaling_keytag = dns.dnssec.key_id(res.answer[0][0])
 
@@ -45,7 +46,7 @@ gsqlite3-dnssec=yes
         os.system("$PDNSUTIL --config-dir=configs/auth zone set-publish-cdnskey cds-cdnskey.test")
 
     def _signalingQuery(self, rdtype):
-        query = dns.message.make_query('cds-cdnskey.test', rdtype)
+        query = dns.message.make_query("cds-cdnskey.test", rdtype)
         res1 = self.sendUDPQuery(query)
 
         query = dns.message.make_query(self.signaling_qname, rdtype, use_edns=True, want_dnssec=True)
@@ -66,7 +67,10 @@ gsqlite3-dnssec=yes
         self.assertEqual(rrset1.to_rdataset(), rrset2.to_rdataset())
 
         # ... and signed by the signaling zone
-        rrsig_correct = any(rrset.rdtype == dns.rdatatype.RRSIG and rrset.covers == rdtype and rrset[0].key_tag == self.signaling_keytag for rrset in res2.answer)
+        rrsig_correct = any(
+            rrset.rdtype == dns.rdatatype.RRSIG and rrset.covers == rdtype and rrset[0].key_tag == self.signaling_keytag
+            for rrset in res2.answer
+        )
         self.assertTrue(rrsig_correct, f"RRSIG({rdtype}) with proper keytag not found")
 
     def testSignalingCDSQuery(self):
@@ -79,11 +83,11 @@ gsqlite3-dnssec=yes
         os.system("$PDNSUTIL --config-dir=configs/auth zone create no-signaling.test")
         os.system("$PDNSUTIL --config-dir=configs/auth zone secure no-signaling.test")
 
-        signaling_prefix = dns.name.from_text('_dsboot.no-signaling.test').relativize(dns.name.root)
+        signaling_prefix = dns.name.from_text("_dsboot.no-signaling.test").relativize(dns.name.root)
         qname = signaling_prefix.concatenate(self.signaling_domain)
         for rdtype, nsec3windows in {
-            dns.rdatatype.CDS: ((0, b'\x00\x00\x00\x00\x00\x02\x00\x08'),),  # RRSIG CDNSKEY
-            dns.rdatatype.CDNSKEY: ((0, b'\x00\x00\x00\x00\x00\x02\x00\x10'),)  # RRSIG CDS
+            dns.rdatatype.CDS: ((0, b"\x00\x00\x00\x00\x00\x02\x00\x08"),),  # RRSIG CDNSKEY
+            dns.rdatatype.CDNSKEY: ((0, b"\x00\x00\x00\x00\x00\x02\x00\x10"),),  # RRSIG CDS
         }.items():
             query = dns.message.make_query(qname, rdtype, use_edns=True, want_dnssec=True)
             res = self.sendUDPQuery(query)
@@ -101,7 +105,7 @@ gsqlite3-dnssec=yes
                     self.assertEqual(rrset.to_rdataset()[0].windows, nsec3windows)
 
     def testSignalingQueryNXDOMAIN(self):
-        signaling_prefix = dns.name.from_text('_dsboot.othername.test').relativize(dns.name.root)
+        signaling_prefix = dns.name.from_text("_dsboot.othername.test").relativize(dns.name.root)
         qname = signaling_prefix.concatenate(self.signaling_domain)
         for rdtype in (dns.rdatatype.CDS, dns.rdatatype.CDNSKEY):
             query = dns.message.make_query(qname, rdtype, use_edns=True, want_dnssec=True)

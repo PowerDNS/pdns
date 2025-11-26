@@ -7,6 +7,7 @@ from twisted.internet import reactor
 
 ednsBufferReactorRunning = False
 
+
 class EDNSBufferTest(RecursorTest):
     """
     The tests derived from this one test several truncation related issues.
@@ -37,24 +38,25 @@ class EDNSBufferTest(RecursorTest):
 
     The qname is $testnum.edns-tests.example.
     """
-    _confdir = 'EDNSBuffer'
+
+    _confdir = "EDNSBuffer"
     _udpTruncationThreshold = 1680
     _ednsOutgoingBufsize = 1680
-    _qnameSuffix = '.edns-tests.example.'
+    _qnameSuffix = ".edns-tests.example."
 
     _config_template = """
 qname-minimization=no
 forward-zones=edns-tests.example=%s.22
 udp-truncation-threshold=%d
 edns-outgoing-bufsize=%d
-    """ % (os.environ['PREFIX'], _udpTruncationThreshold, _ednsOutgoingBufsize)
+    """ % (os.environ["PREFIX"], _udpTruncationThreshold, _ednsOutgoingBufsize)
 
     @classmethod
     def startResponders(cls):
         global ednsBufferReactorRunning
         print("Launching responders..")
 
-        address = cls._PREFIX + '.22'
+        address = cls._PREFIX + ".22"
         port = 53
 
         if not ednsBufferReactorRunning:
@@ -65,8 +67,7 @@ edns-outgoing-bufsize=%d
 
     def getMessage(self, testnum, payload=0):
         do_edns = payload > 0
-        return dns.message.make_query(testnum + self._qnameSuffix, 'TXT', 'IN',
-                                      use_edns=do_edns, payload=payload)
+        return dns.message.make_query(testnum + self._qnameSuffix, "TXT", "IN", use_edns=do_edns, payload=payload)
 
     def checkResponseContent(self, rawResponse, value, size, txt_final):
         """
@@ -79,17 +80,16 @@ edns-outgoing-bufsize=%d
         self.assertEqual(len(rawResponse), size)
         self.assertRcodeEqual(response, dns.rcode.NOERROR)
 
-        self.assertMessageHasFlags(response, ['QR', 'RD', 'RA'])
+        self.assertMessageHasFlags(response, ["QR", "RD", "RA"])
 
         for record in response.answer:
             self.assertEqual(record.rdtype, dns.rdatatype.TXT)
             for part in record:
                 for string in part.strings:
-                    self.assertTrue(len(string) == 255 or
-                                    len(string) == txt_final)
+                    self.assertTrue(len(string) == 255 or len(string) == txt_final)
 
     def checkTruncatedResponse(self, message):
-        self.assertMessageHasFlags(message, ['QR', 'RD', 'RA', 'TC'])
+        self.assertMessageHasFlags(message, ["QR", "RD", "RA", "TC"])
 
     def checkEDNS(self, message, bufsize=0):
         """
@@ -107,74 +107,75 @@ class EDNSBuffer16801680Test(EDNSBufferTest):
     """
     Runs test cases 1, 2, 5, 6, 7, 8
     """
-    _confdir = 'EDNSBuffer16801680'
+
+    _confdir = "EDNSBuffer16801680"
 
     def testEdnsBufferTestCase01(self):
-        query = self.getMessage('01', 4096)
+        query = self.getMessage("01", 4096)
         for _ in range(10):
             raw = self.sendUDPQuery(query, decode=False)
-            self.checkResponseContent(raw, 'A',
-                                      self._udpTruncationThreshold, 9)
+            self.checkResponseContent(raw, "A", self._udpTruncationThreshold, 9)
             message = dns.message.from_wire(raw)
             self.checkEDNS(message, 512)
 
     def testEdnsBufferTestCase02(self):
-        query = self.getMessage('02', 1679)
+        query = self.getMessage("02", 1679)
         for _ in range(10):
             message = self.sendUDPQuery(query)
             self.checkTruncatedResponse(message)
             self.checkEDNS(message, 512)
 
     def testEdnsBufferTestCase05(self):
-        query = self.getMessage('05', 1680)
+        query = self.getMessage("05", 1680)
         for _ in range(10):
             raw = self.sendUDPQuery(query, decode=False)
-            self.checkResponseContent(raw, 'E',
-                                      self._udpTruncationThreshold, 9)
+            self.checkResponseContent(raw, "E", self._udpTruncationThreshold, 9)
             message = dns.message.from_wire(raw)
             self.checkEDNS(message, 512)
 
     def testEdnsBufferTestCase06(self):
-        query = self.getMessage('06', 0)
+        query = self.getMessage("06", 0)
         for _ in range(10):
             raw = self.sendUDPQuery(query, decode=False)
-            self.checkResponseContent(raw, 'F', 512, 192)
+            self.checkResponseContent(raw, "F", 512, 192)
             message = dns.message.from_wire(raw)
             self.checkEDNS(message, 0)
 
     def testEdnsBufferTestCase07(self):
-        query = self.getMessage('07', 0)
+        query = self.getMessage("07", 0)
         for _ in range(10):
             message = self.sendUDPQuery(query)
             self.checkTruncatedResponse(message)
             self.checkEDNS(message, 0)
 
     def testEdnsBufferTestCase08(self):
-        query = self.getMessage('08', 511)
+        query = self.getMessage("08", 511)
         for _ in range(10):
             raw = self.sendUDPQuery(query, decode=False)
-            self.checkResponseContent(raw, 'H', 512, 181)
+            self.checkResponseContent(raw, "H", 512, 181)
             message = dns.message.from_wire(raw)
             self.checkEDNS(message, 512)
+
 
 class EDNSBuffer16801681Test(EDNSBufferTest):
     """
     Runs test case 3
     """
-    _confdir = 'EDNSBuffer16801681'
+
+    _confdir = "EDNSBuffer16801681"
     _udpTruncationThreshold = 1680
     _ednsOutgoingBufsize = 1681
-    _qnameSuffix = '.edns-tests.example.'
+    _qnameSuffix = ".edns-tests.example."
 
     _config_template = """
 qname-minimization=no
 forward-zones=edns-tests.example=%s.22
 udp-truncation-threshold=%d
 edns-outgoing-bufsize=%d
-    """ % (os.environ['PREFIX'], _udpTruncationThreshold, _ednsOutgoingBufsize)
+    """ % (os.environ["PREFIX"], _udpTruncationThreshold, _ednsOutgoingBufsize)
 
     def testEdnsBufferTestCase03(self):
-        query = self.getMessage('03', 4096)
+        query = self.getMessage("03", 4096)
         for _ in range(10):
             message = self.sendUDPQuery(query)
             self.checkTruncatedResponse(message)
@@ -185,24 +186,24 @@ class EDNSBuffer16801679Test(EDNSBufferTest):
     """
     Runs test case 4
     """
-    _confdir = 'EDNSBuffer16801679'
+
+    _confdir = "EDNSBuffer16801679"
     _udpTruncationThreshold = 1680
     _ednsOutgoingBufsize = 1679
-    _qnameSuffix = '.edns-tests.example.'
+    _qnameSuffix = ".edns-tests.example."
 
     _config_template = """
 qname-minimization=no
 forward-zones=edns-tests.example=%s.22
 udp-truncation-threshold=%d
 edns-outgoing-bufsize=%d
-    """ % (os.environ['PREFIX'], _udpTruncationThreshold, _ednsOutgoingBufsize)
+    """ % (os.environ["PREFIX"], _udpTruncationThreshold, _ednsOutgoingBufsize)
 
     def testEdnsBufferTestCase04(self):
-        query = self.getMessage('04', 4096)
+        query = self.getMessage("04", 4096)
         for _ in range(10):
             raw = self.sendUDPQuery(query, decode=False)
-            self.checkResponseContent(raw, 'D',
-                                      self._ednsOutgoingBufsize, 8)
+            self.checkResponseContent(raw, "D", self._ednsOutgoingBufsize, 8)
             message = dns.message.from_wire(raw)
             self.checkEDNS(message, 512)
 
@@ -213,7 +214,7 @@ class UDPLargeResponder(DatagramProtocol):
         # The outgoing packet should be EDNS buffersize bytes
         packet_size = request.payload
 
-        testnum = int(str(request.question[0].name).split('.')[0])
+        testnum = int(str(request.question[0].name).split(".")[0])
 
         # Unless we have special tests
         if testnum == 6:
@@ -263,13 +264,11 @@ class UDPLargeResponder(DatagramProtocol):
             # And the TXT size indicator (first byte in the TXT record)
             packet_size -= 1
             txt_size = min(packet_size, 255)
-            answer = dns.rrset.from_text(request.question[0].name,
-                                         0, dns.rdataclass.IN, 'TXT',
-                                         value*txt_size)
+            answer = dns.rrset.from_text(request.question[0].name, 0, dns.rdataclass.IN, "TXT", value * txt_size)
 
             response.answer.append(answer)
             packet_size -= txt_size
 
-        assert(packet_size == 0)
+        assert packet_size == 0
 
         self.transport.write(response.to_wire(max_size=65535), address)

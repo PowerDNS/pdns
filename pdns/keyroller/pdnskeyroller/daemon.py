@@ -17,7 +17,7 @@ class Daemon:
 
         # Initialize all domains
         self._domains = {}
-        api = PDNSApi(**self._config['API'])
+        api = PDNSApi(**self._config["API"])
         for zone in api.get_zones():
             try:
                 zoneconf = pdnskeyroller.keyrollerdomain.KeyrollerDomain(zone.id, api)
@@ -32,21 +32,21 @@ class Daemon:
     def _load_config(self):
         # These are all the Defaults
         tmp_conf = {
-            'keyroller': {
-                'loglevel': 'info',
+            "keyroller": {
+                "loglevel": "info",
             },
-            'API': {
-                'version': 1,
-                'baseurl': 'http://localhost:8081',
-                'server': 'localhost',
-                'apikey': '',
-                'timeout': '2',
+            "API": {
+                "version": 1,
+                "baseurl": "http://localhost:8081",
+                "server": "localhost",
+                "apikey": "",
+                "timeout": "2",
             },
         }
 
         logger.debug("Loading configuration from {}".format(self._configfile))
         try:
-            with open(self._configfile, 'r') as f:
+            with open(self._configfile, "r") as f:
                 a = yaml.safe_load(f)
                 if a:
                     for k, v in tmp_conf.items():
@@ -55,21 +55,24 @@ class Daemon:
                         if isinstance(v, list) and isinstance(a.get(k), list):
                             tmp_conf[k] = a.get(k)
 
-            loglevel = getattr(logging, tmp_conf['keyroller']['loglevel'].upper())
+            loglevel = getattr(logging, tmp_conf["keyroller"]["loglevel"].upper())
             if not isinstance(loglevel, int):
                 loglevel = logging.INFO
             logger.info("Setting loglevel to {}".format(loglevel))
             logging.basicConfig(level=loglevel)
 
         except FileNotFoundError as e:
-            logger.error('Unable to load configuration file: {}'.format(e))
+            logger.error("Unable to load configuration file: {}".format(e))
 
         return tmp_conf
 
     def _get_actionable_domains(self):
         now = datetime.datetime.now()
-        return [zone for zone, domainconf in self._domains.items() if
-                domainconf.next_action_datetime and domainconf.next_action_datetime <= now]
+        return [
+            zone
+            for zone, domainconf in self._domains.items()
+            if domainconf.next_action_datetime and domainconf.next_action_datetime <= now
+        ]
 
     def update_config(self):
         """
@@ -84,13 +87,16 @@ class Daemon:
         now = datetime.datetime.now()
         logger.debug("Found {} domain(s) ({} actionable)".format(len(self._domains), len(actionable_domains)))
 
-
         if len(actionable_domains) > 0:
             for domain in actionable_domains:
                 keyrollerdomain = self._domains[domain]
                 if keyrollerdomain.state.is_rolling:
                     try:
-                        logger.info("Moving to step {} for {} roll".format(keyrollerdomain.current_step_name, keyrollerdomain.zone))
+                        logger.info(
+                            "Moving to step {} for {} roll".format(
+                                keyrollerdomain.current_step_name, keyrollerdomain.zone
+                            )
+                        )
                         keyrollerdomain.step()
                     except Exception as e:
                         logger.error("Unable to advance keyroll: {}".format(e))
@@ -99,18 +105,30 @@ class Daemon:
                     next_zsk_roll = keyrollerdomain.next_zsk_roll()
                     if next_zsk_roll is not None and next_zsk_roll <= now:
                         try:
-                            logger.info("Starting {} {} keyroll for {} ({} algo)".format("pre-publish", "ZSK", keyrollerdomain.zone, keyrollerdomain.config.zsk_algo))
+                            logger.info(
+                                "Starting {} {} keyroll for {} ({} algo)".format(
+                                    "pre-publish", "ZSK", keyrollerdomain.zone, keyrollerdomain.config.zsk_algo
+                                )
+                            )
                             roll = PrePublishKeyRoll()
-                            roll.initiate(keyrollerdomain.zone, keyrollerdomain.api, 'zsk', keyrollerdomain.config.zsk_algo)
+                            roll.initiate(
+                                keyrollerdomain.zone, keyrollerdomain.api, "zsk", keyrollerdomain.config.zsk_algo
+                            )
                             keyrollerdomain.state.current_roll = roll
                             domainstate.to_api(keyrollerdomain.zone, keyrollerdomain.api, keyrollerdomain.state)
                         except Exception as e:
                             logger.error("Unable to start keyroll: {}".format(e))
                     elif next_ksk_roll is not None and next_ksk_roll <= now:
                         try:
-                            logger.info("Starting {} {} keyroll for {} ({} algo)".format("pre-publish", "KSK", keyrollerdomain.zone, keyrollerdomain.config.zsk_algo))
+                            logger.info(
+                                "Starting {} {} keyroll for {} ({} algo)".format(
+                                    "pre-publish", "KSK", keyrollerdomain.zone, keyrollerdomain.config.zsk_algo
+                                )
+                            )
                             roll = PrePublishKeyRoll()
-                            roll.initiate(keyrollerdomain.zone, keyrollerdomain.api, 'ksk', keyrollerdomain.config.ksk_algo)
+                            roll.initiate(
+                                keyrollerdomain.zone, keyrollerdomain.api, "ksk", keyrollerdomain.config.ksk_algo
+                            )
                             keyrollerdomain.state.current_roll = roll
                             domainstate.to_api(keyrollerdomain.zone, keyrollerdomain.api, keyrollerdomain.state)
                         except Exception as e:

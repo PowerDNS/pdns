@@ -3,8 +3,8 @@ import base64
 import dns
 from dnsdisttests import DNSDistTest, pickAvailablePort
 
-class TestYaml(DNSDistTest):
 
+class TestYaml(DNSDistTest):
     _yaml_config_template = """---
 webserver:
   listen_addresses:
@@ -118,29 +118,32 @@ response_rules:
     _webServerPort2 = pickAvailablePort()
     _dnsDistPort = pickAvailablePort()
     _consoleKey = DNSDistTest.generateConsoleKey()
-    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
     _consolePort = pickAvailablePort()
     _testServerPort = pickAvailablePort()
-    _yaml_config_params = ['_webServerPort', '_webServerPort2', '_consolePort', '_consoleKeyB64', '_dnsDistPort', '_testServerPort']
+    _yaml_config_params = [
+        "_webServerPort",
+        "_webServerPort2",
+        "_consolePort",
+        "_consoleKeyB64",
+        "_dnsDistPort",
+        "_testServerPort",
+    ]
     _config_params = []
 
     def testForwarded(self):
         """
         Yaml: Forwarded query
         """
-        name = 'forwarded.yaml.test.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "forwarded.yaml.test.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         query.flags &= ~dns.flags.RD
         # UDP query should be dropped
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         self.assertEqual(receivedResponse, None)
         # TCP query should be forwarded
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
 
         response.answer.append(rrset)
         (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response=response)
@@ -152,16 +155,12 @@ response_rules:
         """
         Yaml: Inline Lua
         """
-        name = 'inline-lua.yaml.test.powerdns.com.'
+        name = "inline-lua.yaml.test.powerdns.com."
 
-        query = dns.message.make_query(name, 'A', 'IN')
+        query = dns.message.make_query(name, "A", "IN")
         query.flags &= ~dns.flags.RD
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
 
         response.answer.append(rrset)
         truncatedResponse = dns.message.make_response(query)
@@ -181,14 +180,10 @@ response_rules:
         self.assertEqual(receivedResponse, clearedResponse)
 
         # response with RD should be forwarded
-        query = dns.message.make_query(name, 'A', 'IN')
+        query = dns.message.make_query(name, "A", "IN")
         query.flags |= dns.flags.RD
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
 
         response.answer.append(rrset)
         for method in ["sendUDPQuery", "sendTCPQuery"]:
@@ -198,8 +193,8 @@ response_rules:
             self.assertEqual(receivedQuery, query)
             self.assertEqual(receivedResponse, response)
 
-class TestMixingYamlWithLua(DNSDistTest):
 
+class TestMixingYamlWithLua(DNSDistTest):
     _yaml_config_template = """---
 binds:
   - listen_address: "127.0.0.1:%d"
@@ -226,7 +221,7 @@ query_rules:
 """
     _dnsDistPort = pickAvailablePort()
     _testServerPort = pickAvailablePort()
-    _yaml_config_params = ['_dnsDistPort', '_testServerPort']
+    _yaml_config_params = ["_dnsDistPort", "_testServerPort"]
     _config_params = []
     _config_template = """
 enableLuaConfiguration()
@@ -237,8 +232,8 @@ addAction(QNameRule("notimp-lua.yaml-lua-mix.test.powerdns.com."), RCodeAction(D
         """
         Yaml / Lua mix: Refused from YAML
         """
-        name = 'refused.yaml-lua-mix.test.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "refused.yaml-lua-mix.test.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.REFUSED)
@@ -251,8 +246,8 @@ addAction(QNameRule("notimp-lua.yaml-lua-mix.test.powerdns.com."), RCodeAction(D
         """
         Yaml / Lua mix: Not imp from Lua
         """
-        name = 'notimp-lua.yaml-lua-mix.test.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "notimp-lua.yaml-lua-mix.test.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.NOTIMP)
@@ -261,8 +256,8 @@ addAction(QNameRule("notimp-lua.yaml-lua-mix.test.powerdns.com."), RCodeAction(D
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertEqual(receivedResponse, expectedResponse)
 
-class TestYamlNMGRule(DNSDistTest):
 
+class TestYamlNMGRule(DNSDistTest):
     _yaml_config_template = """---
 binds:
   - listen_address: "127.0.0.1:%d"
@@ -284,15 +279,15 @@ query_rules:
       type: "RCode"
       rcode: "5"
 """
-    _yaml_config_params = ['_dnsDistPort', '_testServerPort']
+    _yaml_config_params = ["_dnsDistPort", "_testServerPort"]
     _config_params = []
 
     def testYamlNMGRule(self):
         """
         YAML: NMGRule should refuse our queries
         """
-        name = 'nmgrule.yaml.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "nmgrule.yaml.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.REFUSED)
@@ -302,8 +297,8 @@ query_rules:
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertEqual(receivedResponse, expectedResponse)
 
-class TestYamlNMGRuleObject(DNSDistTest):
 
+class TestYamlNMGRuleObject(DNSDistTest):
     _yaml_config_template = """---
 binds:
   - listen_address: "127.0.0.1:%d"
@@ -328,15 +323,15 @@ query_rules:
       type: "RCode"
       rcode: "5"
 """
-    _yaml_config_params = ['_dnsDistPort', '_testServerPort']
+    _yaml_config_params = ["_dnsDistPort", "_testServerPort"]
     _config_params = []
 
     def testYamlNMGRule(self):
         """
         YAML: NMGRule (via a NMG object) should refuse our queries
         """
-        name = 'nmgrule-object.yaml.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "nmgrule-object.yaml.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.REFUSED)
@@ -346,8 +341,8 @@ query_rules:
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertEqual(receivedResponse, expectedResponse)
 
-class TestYamlNMGRuleObjectExcludeMasks(DNSDistTest):
 
+class TestYamlNMGRuleObjectExcludeMasks(DNSDistTest):
     _yaml_config_template = """---
 binds:
   - listen_address: "127.0.0.1:%d"
@@ -374,15 +369,15 @@ query_rules:
       type: "RCode"
       rcode: "5"
 """
-    _yaml_config_params = ['_dnsDistPort', '_testServerPort']
+    _yaml_config_params = ["_dnsDistPort", "_testServerPort"]
     _config_params = []
 
     def testYamlNMGRule(self):
         """
         YAML: NMGRule (via a NMG object with exclusion) should refuse our queries
         """
-        name = 'nmgrule-object-exclusion.yaml.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "nmgrule-object-exclusion.yaml.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.REFUSED)
@@ -392,8 +387,8 @@ query_rules:
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertEqual(receivedResponse, expectedResponse)
 
-class TestYamlOpcode(DNSDistTest):
 
+class TestYamlOpcode(DNSDistTest):
     _yaml_config_template = """---
 binds:
   - listen_address: "127.0.0.1:%d"
@@ -412,15 +407,15 @@ query_rules:
       type: "RCode"
       rcode: "Refused"
 """
-    _yaml_config_params = ['_dnsDistPort', '_testServerPort']
+    _yaml_config_params = ["_dnsDistPort", "_testServerPort"]
     _config_params = []
 
     def testRefuseOpcodeNotify(self):
         """
         YAML: Refuse Opcode NOTIFY
         """
-        name = 'opcodenotify.yaml.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "opcodenotify.yaml.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         query.set_opcode(dns.opcode.NOTIFY)
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
@@ -435,15 +430,11 @@ query_rules:
         """
         YAML: Allow Opcode UPDATE
         """
-        name = 'opcodeupdate.yaml.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'SOA', 'IN')
+        name = "opcodeupdate.yaml.tests.powerdns.com."
+        query = dns.message.make_query(name, "SOA", "IN")
         query.set_opcode(dns.opcode.UPDATE)
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -455,8 +446,8 @@ query_rules:
             self.assertEqual(query, receivedQuery)
             self.assertEqual(response, receivedResponse)
 
-class TestYamlPoolECSZeroScope(DNSDistTest):
 
+class TestYamlPoolECSZeroScope(DNSDistTest):
     _yaml_config_template = """---
 binds:
   - listen_address: "127.0.0.1:%d"
@@ -498,22 +489,18 @@ query_rules:
       type: "RCode"
       rcode: "Refused"
 """
-    _yaml_config_params = ['_dnsDistPort', '_testServerPort', '_testServerPort']
+    _yaml_config_params = ["_dnsDistPort", "_testServerPort", "_testServerPort"]
     _config_params = []
 
     def testPoolECSZeroScopeConfig(self):
         """
         YAML: Test pool ECS and zero scope
         """
-        name = 'pool-ecs-zero-scope.yaml.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'SOA', 'IN')
+        name = "pool-ecs-zero-scope.yaml.tests.powerdns.com."
+        query = dns.message.make_query(name, "SOA", "IN")
         query.set_opcode(dns.opcode.UPDATE)
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -525,8 +512,8 @@ query_rules:
             self.assertEqual(query, receivedQuery)
             self.assertEqual(response, receivedResponse)
 
-class TestYamlUnknownSelectorName(DNSDistTest):
 
+class TestYamlUnknownSelectorName(DNSDistTest):
     _yaml_config_template = """---
 binds:
   - listen_address: "127.0.0.1:%d"
@@ -550,7 +537,7 @@ query_rules:
       type: "Pool"
       pool_name: "tcp-pool"
 """
-    _yaml_config_params = ['_dnsDistPort', '_testServerPort']
+    _yaml_config_params = ["_dnsDistPort", "_testServerPort"]
     _config_params = []
 
     def testFailToStart(self):
@@ -577,8 +564,8 @@ query_rules:
         if cls._dnsdist:
             cls.killProcess(cls._dnsdist)
 
-class TestYamlUnknownPolicyName(DNSDistTest):
 
+class TestYamlUnknownPolicyName(DNSDistTest):
     _yaml_config_template = """---
 binds:
   - listen_address: "127.0.0.1:%d"
@@ -592,7 +579,7 @@ pools:
   - name: ""
     policy: "this-policy-does-not-exist"
 """
-    _yaml_config_params = ['_dnsDistPort', '_testServerPort']
+    _yaml_config_params = ["_dnsDistPort", "_testServerPort"]
     _config_params = []
 
     def testFailToStart(self):

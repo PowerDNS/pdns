@@ -17,9 +17,7 @@ import helpers
 
 def create_argument_parser():
     """Create command-line argument parser."""
-    parser = argparse.ArgumentParser(
-        description="Convert clang-tidy output to Github Actions"
-    )
+    parser = argparse.ArgumentParser(description="Convert clang-tidy output to Github Actions")
     parser.add_argument(
         "--fixes-file",
         type=str,
@@ -68,11 +66,7 @@ def main():
 
         full_filename = filename
         full_filename = Path(full_filename)
-        full_filename = (
-            full_filename.as_posix()
-            if full_filename.is_absolute()
-            else os.path.join(directory, filename)
-        )
+        full_filename = full_filename.as_posix() if full_filename.is_absolute() else os.path.join(directory, filename)
 
         try:
             file_contents = helpers.load_file(full_filename)

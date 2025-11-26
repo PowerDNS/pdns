@@ -4,12 +4,14 @@ import unittest
 import dns
 from dnsdisttests import DNSDistTest
 
+
 def get_loopback_itf():
     interfaces = socket.if_nameindex()
     for itf in interfaces:
-        if itf[1] == 'lo':
-            return 'lo'
+        if itf[1] == "lo":
+            return "lo"
     return None
+
 
 class TestIncomingInterface(DNSDistTest):
     _lo_itf = get_loopback_itf()
@@ -35,7 +37,7 @@ class TestIncomingInterface(DNSDistTest):
     addResponseAction(AllRule(), LuaResponseAction(checkItfResponse))
     newServer{address="127.0.0.1:%d"}
     """
-    _config_params = ['_lo_itf', '_dnsDistPort', '_testServerPort']
+    _config_params = ["_lo_itf", "_dnsDistPort", "_testServerPort"]
     _skipListeningOnCL = True
 
     def testItfName(self):
@@ -43,17 +45,13 @@ class TestIncomingInterface(DNSDistTest):
         Advanced: Check incoming interface name
         """
         if get_loopback_itf() is None:
-            raise unittest.SkipTest('No lo interface')
+            raise unittest.SkipTest("No lo interface")
 
-        name = 'incoming-interface.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "incoming-interface.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
 
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '4.3.2.1')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "4.3.2.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -62,6 +60,7 @@ class TestIncomingInterface(DNSDistTest):
             receivedQuery.id = query.id
             self.assertEqual(receivedQuery, query)
             self.assertEqual(receivedResponse, response)
+
 
 class TestIncomingInterfaceNotSet(DNSDistTest):
     _lo_itf = get_loopback_itf()
@@ -87,7 +86,7 @@ class TestIncomingInterfaceNotSet(DNSDistTest):
     addResponseAction(AllRule(), LuaResponseAction(checkItfResponse))
     newServer{address="127.0.0.1:%d"}
     """
-    _config_params = ['_lo_itf', '_dnsDistPort', '_testServerPort']
+    _config_params = ["_lo_itf", "_dnsDistPort", "_testServerPort"]
     _skipListeningOnCL = True
 
     def testItfName(self):
@@ -95,19 +94,15 @@ class TestIncomingInterfaceNotSet(DNSDistTest):
         Advanced: Check incoming interface name (not set)
         """
         if get_loopback_itf() is None:
-            raise unittest.SkipTest('No lo interface')
+            raise unittest.SkipTest("No lo interface")
 
-        name = 'incoming-interface-not-set.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "incoming-interface-not-set.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         # dnsdist set RA = RD for spoofed responses
         query.flags &= ~dns.flags.RD
 
         expectedResponse = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '1.2.3.4')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "1.2.3.4")
         expectedResponse.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):

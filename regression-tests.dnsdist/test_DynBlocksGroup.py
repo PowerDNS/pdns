@@ -5,8 +5,8 @@ import dns
 from dnsdisttests import DNSDistTest
 from dnsdistDynBlockTests import DynBlocksTest, waitForMaintenanceToRun, _maintenanceWaitTime
 
-class TestDynBlockGroupQPS(DynBlocksTest):
 
+class TestDynBlockGroupQPS(DynBlocksTest):
     _config_template = """
     local dbr = dynBlockRulesGroup()
     dbr:setQueryRate(%d, %d, "Exceeded query rate", %d)
@@ -18,17 +18,25 @@ class TestDynBlockGroupQPS(DynBlocksTest):
     webserver("127.0.0.1:%s")
     setWebserverConfig({password="%s", apiKey="%s"})
     """
-    _config_params = ['_dynBlockQPS', '_dynBlockPeriod', '_dynBlockDuration', '_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
+    _config_params = [
+        "_dynBlockQPS",
+        "_dynBlockPeriod",
+        "_dynBlockDuration",
+        "_testServerPort",
+        "_webServerPort",
+        "_webServerBasicAuthPasswordHashed",
+        "_webServerAPIKeyHashed",
+    ]
 
     def testDynBlocksQRate(self):
         """
         Dyn Blocks (Group): QRate
         """
-        name = 'qrate.group.dynblocks.tests.powerdns.com.'
+        name = "qrate.group.dynblocks.tests.powerdns.com."
         self.doTestQRate(name)
 
-class TestDynBlockGroupQTypeRate(DynBlocksTest):
 
+class TestDynBlockGroupQTypeRate(DynBlocksTest):
     _config_template = """
     local dbr = dynBlockRulesGroup()
     dbr:setQTypeRate(DNSQType.ANY, %d, %d, "Exceeded qtype rate", %d)
@@ -39,17 +47,17 @@ class TestDynBlockGroupQTypeRate(DynBlocksTest):
     setDynBlocksAction(DNSAction.Refused)
     newServer{address="127.0.0.1:%d"}
     """
-    _config_params = ['_dynBlockANYQPS', '_dynBlockPeriod', '_dynBlockDuration', '_testServerPort']
+    _config_params = ["_dynBlockANYQPS", "_dynBlockPeriod", "_dynBlockDuration", "_testServerPort"]
 
     def testDynBlocksQTypeRate(self):
         """
         Dyn Blocks (Group): QType Rate
         """
-        name = 'qtype-rate.group.dynblocks.tests.powerdns.com.'
+        name = "qtype-rate.group.dynblocks.tests.powerdns.com."
         self.doTestQTypeRate(name)
 
-class TestDynBlockGroupQTypeRateYAML(DynBlocksTest):
 
+class TestDynBlockGroupQTypeRateYAML(DynBlocksTest):
     _yaml_config_template = """---
 dynamic_rules:
   - name: "Block client generating too many ANY queries"
@@ -67,17 +75,17 @@ backends:
     protocol: Do53
 """
     _config_params = []
-    _yaml_config_params = ['_dynBlockANYQPS', '_dynBlockPeriod', '_dynBlockDuration', '_testServerPort']
+    _yaml_config_params = ["_dynBlockANYQPS", "_dynBlockPeriod", "_dynBlockDuration", "_testServerPort"]
 
     def testDynBlocksQTypeRate(self):
         """
         Dyn Blocks (Group / YAML): QType Rate
         """
-        name = 'qtype-rate-yaml.group.dynblocks.tests.powerdns.com.'
+        name = "qtype-rate-yaml.group.dynblocks.tests.powerdns.com."
         self.doTestQTypeRate(name)
 
-class TestDynBlockGroupQPSRefused(DynBlocksTest):
 
+class TestDynBlockGroupQPSRefused(DynBlocksTest):
     _config_template = """
     local dbr = dynBlockRulesGroup()
     dbr:setQueryRate(%d, %d, "Exceeded query rate", %d)
@@ -93,11 +101,11 @@ class TestDynBlockGroupQPSRefused(DynBlocksTest):
         """
         Dyn Blocks (Group): QRate refused
         """
-        name = 'qraterefused.group.dynblocks.tests.powerdns.com.'
+        name = "qraterefused.group.dynblocks.tests.powerdns.com."
         self.doTestQRateRCode(name, dns.rcode.REFUSED)
 
-class TestDynBlockGroupQPSActionRefused(DynBlocksTest):
 
+class TestDynBlockGroupQPSActionRefused(DynBlocksTest):
     _config_template = """
     local dbr = dynBlockRulesGroup()
     dbr:setQueryRate(%d, %d, "Exceeded query rate", %d, DNSAction.Refused)
@@ -113,11 +121,11 @@ class TestDynBlockGroupQPSActionRefused(DynBlocksTest):
         """
         Dyn Blocks (group): QRate refused (action)
         """
-        name = 'qrateactionrefused.group.dynblocks.tests.powerdns.com.'
+        name = "qrateactionrefused.group.dynblocks.tests.powerdns.com."
         self.doTestQRateRCode(name, dns.rcode.REFUSED)
 
-class TestDynBlockGroupExcluded(DynBlocksTest):
 
+class TestDynBlockGroupExcluded(DynBlocksTest):
     _config_template = """
     local dbr = dynBlockRulesGroup()
     dbr:setQueryRate(%d, %d, "Exceeded query rate", %d)
@@ -134,14 +142,10 @@ class TestDynBlockGroupExcluded(DynBlocksTest):
         """
         Dyn Blocks (group) : Excluded from the dynamic block rules
         """
-        name = 'excluded.group.dynblocks.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "excluded.group.dynblocks.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
         response.answer.append(rrset)
 
         allowed = 0
@@ -170,8 +174,8 @@ class TestDynBlockGroupExcluded(DynBlocksTest):
         self.assertEqual(query, receivedQuery)
         self.assertEqual(receivedResponse, receivedResponse)
 
-class TestDynBlockGroupExcludedViaNMG(DynBlocksTest):
 
+class TestDynBlockGroupExcludedViaNMG(DynBlocksTest):
     _config_template = """
     local nmg = newNMG()
     nmg:addMask("127.0.0.1/32")
@@ -191,14 +195,10 @@ class TestDynBlockGroupExcludedViaNMG(DynBlocksTest):
         """
         Dyn Blocks (group) : Excluded (via NMG) from the dynamic block rules
         """
-        name = 'excluded-nmg.group.dynblocks.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "excluded-nmg.group.dynblocks.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
         response.answer.append(rrset)
 
         allowed = 0
@@ -227,8 +227,8 @@ class TestDynBlockGroupExcludedViaNMG(DynBlocksTest):
         self.assertEqual(query, receivedQuery)
         self.assertEqual(receivedResponse, receivedResponse)
 
-class TestDynBlockGroupNoOp(DynBlocksTest):
 
+class TestDynBlockGroupNoOp(DynBlocksTest):
     _config_template = """
     local dbr = dynBlockRulesGroup()
     dbr:setQueryRate(%d, %d, "Exceeded query rate", %d, DNSAction.NoOp)
@@ -241,20 +241,24 @@ class TestDynBlockGroupNoOp(DynBlocksTest):
     webserver("127.0.0.1:%d")
     setWebserverConfig({password="%s", apiKey="%s"})
     """
-    _config_params = ['_dynBlockQPS', '_dynBlockPeriod', '_dynBlockDuration', '_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
+    _config_params = [
+        "_dynBlockQPS",
+        "_dynBlockPeriod",
+        "_dynBlockDuration",
+        "_testServerPort",
+        "_webServerPort",
+        "_webServerBasicAuthPasswordHashed",
+        "_webServerAPIKeyHashed",
+    ]
 
     def testNoOp(self):
         """
         Dyn Blocks (group) : NoOp
         """
-        name = 'noop.group.dynblocks.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "noop.group.dynblocks.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
         response.answer.append(rrset)
 
         allowed = 0
@@ -284,10 +288,10 @@ class TestDynBlockGroupNoOp(DynBlocksTest):
         self.assertEqual(receivedResponse, receivedResponse)
 
         # check that the rule has been inserted
-        self.doTestDynBlockViaAPI('127.0.0.1/32', 'Exceeded query rate', 1, self._dynBlockDuration, 0, sent)
+        self.doTestDynBlockViaAPI("127.0.0.1/32", "Exceeded query rate", 1, self._dynBlockDuration, 0, sent)
+
 
 class TestDynBlockGroupWarning(DynBlocksTest):
-
     _dynBlockWarningQPS = 5
     _dynBlockQPS = 20
     _config_template = """
@@ -302,20 +306,25 @@ class TestDynBlockGroupWarning(DynBlocksTest):
     webserver("127.0.0.1:%d")
     setWebserverConfig({password="%s", apiKey="%s"})
     """
-    _config_params = ['_dynBlockQPS', '_dynBlockPeriod', '_dynBlockDuration', '_dynBlockWarningQPS', '_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
+    _config_params = [
+        "_dynBlockQPS",
+        "_dynBlockPeriod",
+        "_dynBlockDuration",
+        "_dynBlockWarningQPS",
+        "_testServerPort",
+        "_webServerPort",
+        "_webServerBasicAuthPasswordHashed",
+        "_webServerAPIKeyHashed",
+    ]
 
     def testWarning(self):
         """
         Dyn Blocks (group) : Warning
         """
-        name = 'warning.group.dynblocks.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "warning.group.dynblocks.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
         response.answer.append(rrset)
 
         allowed = 0
@@ -346,12 +355,12 @@ class TestDynBlockGroupWarning(DynBlocksTest):
         self.assertEqual(receivedResponse, receivedResponse)
 
         # check that the rule has been inserted
-        self.doTestDynBlockViaAPI('127.0.0.1/32', 'Exceeded query rate', 1, self._dynBlockDuration, 0, sent)
+        self.doTestDynBlockViaAPI("127.0.0.1/32", "Exceeded query rate", 1, self._dynBlockDuration, 0, sent)
 
         self.doTestQRate(name)
 
-class TestDynBlockGroupPort(DNSDistTest):
 
+class TestDynBlockGroupPort(DNSDistTest):
     _dynBlockQPS = 20
     _dynBlockPeriod = 2
     # this needs to be greater than maintenanceWaitTime
@@ -367,20 +376,16 @@ class TestDynBlockGroupPort(DNSDistTest):
     end
     newServer{address="127.0.0.1:%d"}
     """
-    _config_params = ['_dynBlockQPS', '_dynBlockPeriod', '_dynBlockDuration', '_testServerPort']
+    _config_params = ["_dynBlockQPS", "_dynBlockPeriod", "_dynBlockDuration", "_testServerPort"]
 
     def testPort(self):
         """
         Dyn Blocks (group): Exact port matching
         """
-        name = 'port.group.dynblocks.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "port.group.dynblocks.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
         response.answer.append(rrset)
 
         allowed = 0
@@ -423,8 +428,8 @@ class TestDynBlockGroupPort(DNSDistTest):
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
 
-class TestDynBlockGroupQSuffixMatchYAML(DynBlocksTest):
 
+class TestDynBlockGroupQSuffixMatchYAML(DynBlocksTest):
     _yaml_config_template = """---
 dynamic_rules:
   - name: "Check Suffix Match visitor from YAML"
@@ -462,22 +467,18 @@ backends:
     protocol: Do53
 """
     _config_params = []
-    _yaml_config_params = ['_dynBlockPeriod', '_dynBlockDuration', '_testServerPort']
+    _yaml_config_params = ["_dynBlockPeriod", "_dynBlockDuration", "_testServerPort"]
 
     def testSuffixMatchVisitorCalled(self):
         """
         Dyn Blocks (Group / YAML): Visitor called
         """
-        name = 'check-visitor.group.dynblocks.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "check-visitor.group.dynblocks.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.NOERROR)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
         expectedResponse.answer.append(rrset)
 
         method = "sendUDPQuery"

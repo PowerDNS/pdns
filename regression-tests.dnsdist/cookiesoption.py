@@ -6,18 +6,18 @@ import dns.flags
 import dns.message
 import dns.query
 
+
 class CookiesOption(dns.edns.Option):
-    """Implementation of draft-ietf-dnsop-cookies-09.
-    """
+    """Implementation of draft-ietf-dnsop-cookies-09."""
 
     def __init__(self, client, server):
         super(CookiesOption, self).__init__(10)
 
         if len(client) != 8:
-            raise Exception('invalid client cookie length')
+            raise Exception("invalid client cookie length")
 
         if server is not None and len(server) != 0 and (len(server) < 8 or len(server) > 32):
-            raise Exception('invalid server cookie length')
+            raise Exception("invalid server cookie length")
 
         self.client = client
         self.server = server
@@ -42,9 +42,9 @@ class CookiesOption(dns.edns.Option):
             An instance of CookiesOption based on the EDNS packet
         """
 
-        data = wire[current:current + olen]
+        data = wire[current : current + olen]
         if len(data) != 8 and (len(data) < 16 or len(data) > 40):
-            raise Exception('Invalid EDNS Cookies option')
+            raise Exception("Invalid EDNS Cookies option")
 
         client = data[:8]
         if len(data) > 8:
@@ -62,7 +62,7 @@ class CookiesOption(dns.edns.Option):
         data = parser.get_remaining()
 
         if len(data) != 8 and (len(data) < 16 or len(data) > 40):
-            raise Exception('Invalid EDNS Cookies option')
+            raise Exception("Invalid EDNS Cookies option")
 
         client = data[:8]
         if len(data) > 8:
@@ -73,11 +73,7 @@ class CookiesOption(dns.edns.Option):
         return cls(client, server)
 
     def __repr__(self):
-        return '%s(%s, %s)' % (
-            self.__class__.__name__,
-            self.client,
-            self.server
-        )
+        return "%s(%s, %s)" % (self.__class__.__name__, self.client, self.server)
 
     def to_text(self):
         return self.__repr__()

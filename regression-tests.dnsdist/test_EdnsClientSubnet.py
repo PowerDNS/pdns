@@ -4,6 +4,7 @@ import clientsubnetoption
 import cookiesoption
 from dnsdisttests import DNSDistTest
 
+
 class TestEdnsClientSubnetNoOverride(DNSDistTest):
     """
     dnsdist is configured to add the EDNS0 Client Subnet
@@ -25,17 +26,13 @@ class TestEdnsClientSubnetNoOverride(DNSDistTest):
         and that the response received from dnsdist does not
         have an EDNS pseudo-RR.
         """
-        name = 'withoutedns.ecs.tests.powerdns.com.'
-        ecso = clientsubnetoption.ClientSubnetOption('127.0.0.1', 24)
-        query = dns.message.make_query(name, 'A', 'IN')
-        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, options=[ecso], payload=512)
+        name = "withoutedns.ecs.tests.powerdns.com."
+        ecso = clientsubnetoption.ClientSubnetOption("127.0.0.1", 24)
+        query = dns.message.make_query(name, "A", "IN")
+        expectedQuery = dns.message.make_query(name, "A", "IN", use_edns=True, options=[ecso], payload=512)
         response = dns.message.make_response(expectedQuery)
         expectedResponse = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
         expectedResponse.answer.append(rrset)
 
@@ -57,17 +54,13 @@ class TestEdnsClientSubnetNoOverride(DNSDistTest):
         has a valid ECS value and that the response
         received from dnsdist contains an EDNS pseudo-RR.
         """
-        name = 'withednsnoecs.ecs.tests.powerdns.com.'
-        ecso = clientsubnetoption.ClientSubnetOption('127.0.0.1', 24)
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096)
-        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[ecso])
+        name = "withednsnoecs.ecs.tests.powerdns.com."
+        ecso = clientsubnetoption.ClientSubnetOption("127.0.0.1", 24)
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096)
+        expectedQuery = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, options=[ecso])
         response = dns.message.make_response(expectedQuery)
         expectedResponse = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
         expectedResponse.answer.append(rrset)
 
@@ -90,17 +83,12 @@ class TestEdnsClientSubnetNoOverride(DNSDistTest):
         and that the response received from dnsdist contains
         an EDNS pseudo-RR.
         """
-        name = 'withednsecs.ecs.tests.powerdns.com.'
-        ecso = clientsubnetoption.ClientSubnetOption('1.2.3.4', 24)
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[ecso])
+        name = "withednsecs.ecs.tests.powerdns.com."
+        ecso = clientsubnetoption.ClientSubnetOption("1.2.3.4", 24)
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, options=[ecso])
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
-
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
@@ -122,19 +110,15 @@ class TestEdnsClientSubnetNoOverride(DNSDistTest):
         This time the response returned by the backend contains
         an ECS option with scope set.
         """
-        name = 'withoutedns.bereturnsecs.ecs.tests.powerdns.com.'
-        ecso = clientsubnetoption.ClientSubnetOption('127.0.0.1', 24)
-        query = dns.message.make_query(name, 'A', 'IN')
-        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, options=[ecso], payload=512)
+        name = "withoutedns.bereturnsecs.ecs.tests.powerdns.com."
+        ecso = clientsubnetoption.ClientSubnetOption("127.0.0.1", 24)
+        query = dns.message.make_query(name, "A", "IN")
+        expectedQuery = dns.message.make_query(name, "A", "IN", use_edns=True, options=[ecso], payload=512)
         response = dns.message.make_response(expectedQuery)
-        ecsoResponse = clientsubnetoption.ClientSubnetOption('127.0.0.1', 24, scope=24)
+        ecsoResponse = clientsubnetoption.ClientSubnetOption("127.0.0.1", 24, scope=24)
         response.use_edns(edns=True, payload=4096, options=[ecsoResponse])
         expectedResponse = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
         expectedResponse.answer.append(rrset)
 
@@ -158,19 +142,15 @@ class TestEdnsClientSubnetNoOverride(DNSDistTest):
         This time the response returned by the backend contains
         an ECS option with scope set.
         """
-        name = 'withednsnoecs.bereturnsecs.ecs.tests.powerdns.com.'
-        ecso = clientsubnetoption.ClientSubnetOption('127.0.0.1', 24)
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096)
-        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[ecso])
+        name = "withednsnoecs.bereturnsecs.ecs.tests.powerdns.com."
+        ecso = clientsubnetoption.ClientSubnetOption("127.0.0.1", 24)
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096)
+        expectedQuery = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, options=[ecso])
         response = dns.message.make_response(expectedQuery)
-        ecsoResponse = clientsubnetoption.ClientSubnetOption('127.0.0.1', 24, scope=24)
+        ecsoResponse = clientsubnetoption.ClientSubnetOption("127.0.0.1", 24, scope=24)
         response.use_edns(edns=True, payload=4096, options=[ecsoResponse])
         expectedResponse = dns.message.make_response(query, our_payload=4096)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
         expectedResponse.answer.append(rrset)
 
@@ -194,21 +174,17 @@ class TestEdnsClientSubnetNoOverride(DNSDistTest):
         This time the response returned by the backend contains
         one cookies then one ECS option.
         """
-        name = 'withednsnoecs.bereturnscookiesthenecs.ecs.tests.powerdns.com.'
-        ecso = clientsubnetoption.ClientSubnetOption('127.0.0.1', 24)
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096)
-        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[ecso])
+        name = "withednsnoecs.bereturnscookiesthenecs.ecs.tests.powerdns.com."
+        ecso = clientsubnetoption.ClientSubnetOption("127.0.0.1", 24)
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096)
+        expectedQuery = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, options=[ecso])
         response = dns.message.make_response(expectedQuery)
-        ecoResponse = cookiesoption.CookiesOption(b'deadbeef', b'deadbeef')
-        ecsoResponse = clientsubnetoption.ClientSubnetOption('127.0.0.1', 24, scope=24)
+        ecoResponse = cookiesoption.CookiesOption(b"deadbeef", b"deadbeef")
+        ecsoResponse = clientsubnetoption.ClientSubnetOption("127.0.0.1", 24, scope=24)
         response.use_edns(edns=True, payload=4096, options=[ecoResponse, ecsoResponse])
         expectedResponse = dns.message.make_response(query)
         expectedResponse.use_edns(edns=True, payload=4096, options=[ecoResponse])
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
         expectedResponse.answer.append(rrset)
         expectedResponse.use_edns(edns=True, payload=4096, options=[ecoResponse])
@@ -233,21 +209,17 @@ class TestEdnsClientSubnetNoOverride(DNSDistTest):
         This time the response returned by the backend contains
         one ECS then one Cookies option.
         """
-        name = 'withednsnoecs.bereturnsecsthencookies.ecs.tests.powerdns.com.'
-        ecso = clientsubnetoption.ClientSubnetOption('127.0.0.1', 24)
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096)
-        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[ecso])
+        name = "withednsnoecs.bereturnsecsthencookies.ecs.tests.powerdns.com."
+        ecso = clientsubnetoption.ClientSubnetOption("127.0.0.1", 24)
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096)
+        expectedQuery = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, options=[ecso])
         response = dns.message.make_response(expectedQuery)
-        ecoResponse = cookiesoption.CookiesOption(b'deadbeef', b'deadbeef')
-        ecsoResponse = clientsubnetoption.ClientSubnetOption('127.0.0.1', 24, scope=24)
+        ecoResponse = cookiesoption.CookiesOption(b"deadbeef", b"deadbeef")
+        ecsoResponse = clientsubnetoption.ClientSubnetOption("127.0.0.1", 24, scope=24)
         response.use_edns(edns=True, payload=4096, options=[ecsoResponse, ecoResponse])
         expectedResponse = dns.message.make_response(query, our_payload=4096)
         expectedResponse.use_edns(edns=True, payload=4096, options=[ecoResponse])
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
         expectedResponse.answer.append(rrset)
         response.use_edns(edns=True, payload=4096, options=[ecoResponse])
@@ -272,21 +244,17 @@ class TestEdnsClientSubnetNoOverride(DNSDistTest):
         This time the response returned by the backend contains
         one Cookies, one ECS then one Cookies option.
         """
-        name = 'withednsnoecs.bereturnscookiesecscookies.ecs.tests.powerdns.com.'
-        ecso = clientsubnetoption.ClientSubnetOption('127.0.0.1', 24)
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096)
-        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[ecso])
+        name = "withednsnoecs.bereturnscookiesecscookies.ecs.tests.powerdns.com."
+        ecso = clientsubnetoption.ClientSubnetOption("127.0.0.1", 24)
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096)
+        expectedQuery = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, options=[ecso])
         response = dns.message.make_response(expectedQuery)
-        ecoResponse = cookiesoption.CookiesOption(b'deadbeef', b'deadbeef')
-        ecsoResponse = clientsubnetoption.ClientSubnetOption('127.0.0.1', 24, scope=24)
+        ecoResponse = cookiesoption.CookiesOption(b"deadbeef", b"deadbeef")
+        ecsoResponse = clientsubnetoption.ClientSubnetOption("127.0.0.1", 24, scope=24)
         response.use_edns(edns=True, payload=4096, options=[ecoResponse, ecsoResponse, ecoResponse])
         expectedResponse = dns.message.make_response(query, our_payload=4096)
         expectedResponse.use_edns(edns=True, payload=4096, options=[ecoResponse, ecoResponse])
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
         expectedResponse.answer.append(rrset)
 
@@ -298,6 +266,7 @@ class TestEdnsClientSubnetNoOverride(DNSDistTest):
             receivedQuery.id = expectedQuery.id
             self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
             self.checkResponseEDNSWithoutECS(expectedResponse, receivedResponse, withCookies=2)
+
 
 class TestEdnsClientSubnetOverride(DNSDistTest):
     """
@@ -322,17 +291,13 @@ class TestEdnsClientSubnetOverride(DNSDistTest):
         and that the response received from dnsdist does not
         have an EDNS pseudo-RR.
         """
-        name = 'withoutedns.overridden.ecs.tests.powerdns.com.'
-        ecso = clientsubnetoption.ClientSubnetOption('127.0.0.1', 24)
-        query = dns.message.make_query(name, 'A', 'IN')
-        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, options=[ecso], payload=512)
+        name = "withoutedns.overridden.ecs.tests.powerdns.com."
+        ecso = clientsubnetoption.ClientSubnetOption("127.0.0.1", 24)
+        query = dns.message.make_query(name, "A", "IN")
+        expectedQuery = dns.message.make_query(name, "A", "IN", use_edns=True, options=[ecso], payload=512)
         response = dns.message.make_response(expectedQuery)
         response.use_edns(edns=True, payload=4096, options=[ecso])
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
         expectedResponse = dns.message.make_response(query)
         expectedResponse.answer.append(rrset)
@@ -355,17 +320,13 @@ class TestEdnsClientSubnetOverride(DNSDistTest):
         has a valid ECS value and that the response
         received from dnsdist contains an EDNS pseudo-RR.
         """
-        name = 'withednsnoecs.overridden.ecs.tests.powerdns.com.'
-        ecso = clientsubnetoption.ClientSubnetOption('127.0.0.1', 24)
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096)
-        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[ecso])
+        name = "withednsnoecs.overridden.ecs.tests.powerdns.com."
+        ecso = clientsubnetoption.ClientSubnetOption("127.0.0.1", 24)
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096)
+        expectedQuery = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, options=[ecso])
         response = dns.message.make_response(expectedQuery)
         response.use_edns(edns=True, payload=4096, options=[ecso])
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
         expectedResponse = dns.message.make_response(query, our_payload=4096)
         expectedResponse.answer.append(rrset)
@@ -391,18 +352,14 @@ class TestEdnsClientSubnetOverride(DNSDistTest):
         The initial ECS value is shorter than the one it will be
         replaced with.
         """
-        name = 'withednsecs.overridden.ecs.tests.powerdns.com.'
-        ecso = clientsubnetoption.ClientSubnetOption('192.0.2.1', 8)
-        rewrittenEcso = clientsubnetoption.ClientSubnetOption('127.0.0.1', 24)
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[ecso])
-        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[rewrittenEcso])
+        name = "withednsecs.overridden.ecs.tests.powerdns.com."
+        ecso = clientsubnetoption.ClientSubnetOption("192.0.2.1", 8)
+        rewrittenEcso = clientsubnetoption.ClientSubnetOption("127.0.0.1", 24)
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, options=[ecso])
+        expectedQuery = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, options=[rewrittenEcso])
         response = dns.message.make_response(query)
         response.use_edns(edns=True, payload=4096, options=[rewrittenEcso])
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -426,18 +383,14 @@ class TestEdnsClientSubnetOverride(DNSDistTest):
         The initial ECS value is longer than the one it will
         replaced with.
         """
-        name = 'withednsecs.overridden.ecs.tests.powerdns.com.'
-        ecso = clientsubnetoption.ClientSubnetOption('192.0.2.1', 32)
-        rewrittenEcso = clientsubnetoption.ClientSubnetOption('127.0.0.1', 24)
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[ecso])
-        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[rewrittenEcso])
+        name = "withednsecs.overridden.ecs.tests.powerdns.com."
+        ecso = clientsubnetoption.ClientSubnetOption("192.0.2.1", 32)
+        rewrittenEcso = clientsubnetoption.ClientSubnetOption("127.0.0.1", 24)
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, options=[ecso])
+        expectedQuery = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, options=[rewrittenEcso])
         response = dns.message.make_response(query)
         response.use_edns(edns=True, payload=4096, options=[rewrittenEcso])
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -461,18 +414,14 @@ class TestEdnsClientSubnetOverride(DNSDistTest):
         The initial ECS value is exactly the same size as
         the one it will replaced with.
         """
-        name = 'withednsecs.overridden.ecs.tests.powerdns.com.'
-        ecso = clientsubnetoption.ClientSubnetOption('192.0.2.1', 24)
-        rewrittenEcso = clientsubnetoption.ClientSubnetOption('127.0.0.1', 24)
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[ecso])
-        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[rewrittenEcso])
+        name = "withednsecs.overridden.ecs.tests.powerdns.com."
+        ecso = clientsubnetoption.ClientSubnetOption("192.0.2.1", 24)
+        rewrittenEcso = clientsubnetoption.ClientSubnetOption("127.0.0.1", 24)
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, options=[ecso])
+        expectedQuery = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, options=[rewrittenEcso])
         response = dns.message.make_response(query)
         response.use_edns(edns=True, payload=4096, options=[rewrittenEcso])
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -495,21 +444,19 @@ class TestEdnsClientSubnetOverride(DNSDistTest):
         has a valid ECS value and that the response
         received from dnsdist contains an EDNS pseudo-RR.
         """
-        name = 'withecs-followedbyanother.ecs.tests.powerdns.com.'
-        ecso = clientsubnetoption.ClientSubnetOption('192.0.2.1', 24)
-        eco = cookiesoption.CookiesOption(b'deadbeef', b'deadbeef')
-        rewrittenEcso = clientsubnetoption.ClientSubnetOption('127.0.0.1', 24)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        name = "withecs-followedbyanother.ecs.tests.powerdns.com."
+        ecso = clientsubnetoption.ClientSubnetOption("192.0.2.1", 24)
+        eco = cookiesoption.CookiesOption(b"deadbeef", b"deadbeef")
+        rewrittenEcso = clientsubnetoption.ClientSubnetOption("127.0.0.1", 24)
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
 
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[eco,ecso,eco])
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, options=[eco, ecso, eco])
         # I would have loved to use a TSIG here but I can't find how to make dnspython ignore
         # it while parsing the message in the receiver :-/
         query.additional.append(rrset)
-        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[eco,eco,rewrittenEcso])
+        expectedQuery = dns.message.make_query(
+            name, "A", "IN", use_edns=True, payload=4096, options=[eco, eco, rewrittenEcso]
+        )
         expectedQuery.additional.append(rrset)
 
         response = dns.message.make_response(expectedQuery)
@@ -539,19 +486,17 @@ class TestEdnsClientSubnetOverride(DNSDistTest):
         has a valid ECS value and that the response
         received from dnsdist contains an EDNS pseudo-RR.
         """
-        name = 'record-in-an-withecs.ecs.tests.powerdns.com.'
-        ecso = clientsubnetoption.ClientSubnetOption('192.0.2.1', 24)
-        eco = cookiesoption.CookiesOption(b'deadbeef', b'deadbeef')
-        rewrittenEcso = clientsubnetoption.ClientSubnetOption('127.0.0.1', 24)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        name = "record-in-an-withecs.ecs.tests.powerdns.com."
+        ecso = clientsubnetoption.ClientSubnetOption("192.0.2.1", 24)
+        eco = cookiesoption.CookiesOption(b"deadbeef", b"deadbeef")
+        rewrittenEcso = clientsubnetoption.ClientSubnetOption("127.0.0.1", 24)
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
 
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[eco,ecso,eco])
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, options=[eco, ecso, eco])
         query.answer.append(rrset)
-        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[eco,eco,rewrittenEcso])
+        expectedQuery = dns.message.make_query(
+            name, "A", "IN", use_edns=True, payload=4096, options=[eco, eco, rewrittenEcso]
+        )
         expectedQuery.answer.append(rrset)
 
         response = dns.message.make_response(expectedQuery)
@@ -581,19 +526,17 @@ class TestEdnsClientSubnetOverride(DNSDistTest):
         has a valid ECS value and that the response
         received from dnsdist contains an EDNS pseudo-RR.
         """
-        name = 'record-in-an-withecs.ecs.tests.powerdns.com.'
-        ecso = clientsubnetoption.ClientSubnetOption('192.0.2.1', 24)
-        eco = cookiesoption.CookiesOption(b'deadbeef', b'deadbeef')
-        rewrittenEcso = clientsubnetoption.ClientSubnetOption('127.0.0.1', 24)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        name = "record-in-an-withecs.ecs.tests.powerdns.com."
+        ecso = clientsubnetoption.ClientSubnetOption("192.0.2.1", 24)
+        eco = cookiesoption.CookiesOption(b"deadbeef", b"deadbeef")
+        rewrittenEcso = clientsubnetoption.ClientSubnetOption("127.0.0.1", 24)
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
 
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[eco,ecso,eco])
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, options=[eco, ecso, eco])
         query.authority.append(rrset)
-        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[eco,eco,rewrittenEcso])
+        expectedQuery = dns.message.make_query(
+            name, "A", "IN", use_edns=True, payload=4096, options=[eco, eco, rewrittenEcso]
+        )
         expectedQuery.authority.append(rrset)
 
         response = dns.message.make_response(expectedQuery)
@@ -625,20 +568,18 @@ class TestEdnsClientSubnetOverride(DNSDistTest):
         has a valid ECS value and that the response
         received from dnsdist contains an EDNS pseudo-RR.
         """
-        name = 'withedns-no-ecs-followedbyanother.ecs.tests.powerdns.com.'
-        eco = cookiesoption.CookiesOption(b'deadbeef', b'deadbeef')
-        rewrittenEcso = clientsubnetoption.ClientSubnetOption('127.0.0.1', 24)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        name = "withedns-no-ecs-followedbyanother.ecs.tests.powerdns.com."
+        eco = cookiesoption.CookiesOption(b"deadbeef", b"deadbeef")
+        rewrittenEcso = clientsubnetoption.ClientSubnetOption("127.0.0.1", 24)
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
 
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[eco])
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, options=[eco])
         # I would have loved to use a TSIG here but I can't find how to make dnspython ignore
         # it while parsing the message in the receiver :-/
         query.additional.append(rrset)
-        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[eco,rewrittenEcso])
+        expectedQuery = dns.message.make_query(
+            name, "A", "IN", use_edns=True, payload=4096, options=[eco, rewrittenEcso]
+        )
         expectedQuery.additional.append(rrset)
 
         response = dns.message.make_response(expectedQuery)
@@ -658,6 +599,7 @@ class TestEdnsClientSubnetOverride(DNSDistTest):
             receivedQuery.id = expectedQuery.id
             self.checkQueryEDNSWithECS(expectedQuery, receivedQuery, 1)
             self.checkResponseEDNSWithoutECS(expectedResponse, receivedResponse, 2)
+
 
 class TestECSDisabledByRuleOrLua(DNSDistTest):
     """
@@ -683,17 +625,13 @@ class TestECSDisabledByRuleOrLua(DNSDistTest):
         """
         ECS Disable: ECS enabled in the backend
         """
-        name = 'notdisabled.ecsrules.tests.powerdns.com.'
-        ecso = clientsubnetoption.ClientSubnetOption('127.0.0.1', 16)
-        query = dns.message.make_query(name, 'A', 'IN')
-        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, options=[ecso], payload=512)
+        name = "notdisabled.ecsrules.tests.powerdns.com."
+        ecso = clientsubnetoption.ClientSubnetOption("127.0.0.1", 16)
+        query = dns.message.make_query(name, "A", "IN")
+        expectedQuery = dns.message.make_query(name, "A", "IN", use_edns=True, options=[ecso], payload=512)
         response = dns.message.make_response(expectedQuery)
         expectedResponse = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.AAAA,
-                                    '::1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.AAAA, "::1")
         response.answer.append(rrset)
         expectedResponse.answer.append(rrset)
 
@@ -710,14 +648,10 @@ class TestECSDisabledByRuleOrLua(DNSDistTest):
         """
         ECS Disable: ECS enabled in the backend, but disabled by a rule
         """
-        name = 'disabled.ecsrules.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "disabled.ecsrules.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -733,14 +667,10 @@ class TestECSDisabledByRuleOrLua(DNSDistTest):
         """
         ECS Disable: ECS enabled in the backend, but disabled via Lua
         """
-        name = 'disabledvialua.ecsrules.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "disabledvialua.ecsrules.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -751,6 +681,7 @@ class TestECSDisabledByRuleOrLua(DNSDistTest):
             receivedQuery.id = query.id
             self.checkQueryNoEDNS(query, receivedQuery)
             self.checkResponseNoEDNS(response, receivedResponse)
+
 
 class TestECSOverrideSetByRuleOrLua(DNSDistTest):
     """
@@ -776,16 +707,12 @@ class TestECSOverrideSetByRuleOrLua(DNSDistTest):
         """
         ECS Override: not set via Lua or a rule
         """
-        name = 'notoverridden.ecsrules.tests.powerdns.com.'
-        ecso = clientsubnetoption.ClientSubnetOption('192.0.2.1', 24)
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[ecso])
+        name = "notoverridden.ecsrules.tests.powerdns.com."
+        ecso = clientsubnetoption.ClientSubnetOption("192.0.2.1", 24)
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, options=[ecso])
         response = dns.message.make_response(query)
         response.use_edns(edns=True, payload=4096, options=[ecso])
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -801,18 +728,14 @@ class TestECSOverrideSetByRuleOrLua(DNSDistTest):
         """
         ECS Override: set with a rule
         """
-        name = 'overridden.ecsrules.tests.powerdns.com.'
-        ecso = clientsubnetoption.ClientSubnetOption('192.0.2.1', 24)
-        rewrittenEcso = clientsubnetoption.ClientSubnetOption('127.0.0.1', 24)
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[ecso])
-        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[rewrittenEcso])
+        name = "overridden.ecsrules.tests.powerdns.com."
+        ecso = clientsubnetoption.ClientSubnetOption("192.0.2.1", 24)
+        rewrittenEcso = clientsubnetoption.ClientSubnetOption("127.0.0.1", 24)
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, options=[ecso])
+        expectedQuery = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, options=[rewrittenEcso])
         response = dns.message.make_response(query)
         response.use_edns(edns=True, payload=4096, options=[rewrittenEcso])
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -828,18 +751,14 @@ class TestECSOverrideSetByRuleOrLua(DNSDistTest):
         """
         ECS Override: set via Lua
         """
-        name = 'overriddenvialua.ecsrules.tests.powerdns.com.'
-        ecso = clientsubnetoption.ClientSubnetOption('192.0.2.1', 24)
-        rewrittenEcso = clientsubnetoption.ClientSubnetOption('127.0.0.1', 24)
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[ecso])
-        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[rewrittenEcso])
+        name = "overriddenvialua.ecsrules.tests.powerdns.com."
+        ecso = clientsubnetoption.ClientSubnetOption("192.0.2.1", 24)
+        rewrittenEcso = clientsubnetoption.ClientSubnetOption("127.0.0.1", 24)
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, options=[ecso])
+        expectedQuery = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, options=[rewrittenEcso])
         response = dns.message.make_response(query)
         response.use_edns(edns=True, payload=4096, options=[rewrittenEcso])
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -850,6 +769,7 @@ class TestECSOverrideSetByRuleOrLua(DNSDistTest):
             receivedQuery.id = expectedQuery.id
             self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
             self.checkResponseEDNSWithECS(response, receivedResponse)
+
 
 class TestECSPrefixLengthSetByRuleOrLua(DNSDistTest):
     """
@@ -875,17 +795,13 @@ class TestECSPrefixLengthSetByRuleOrLua(DNSDistTest):
         """
         ECS Prefix Length: not overridden via Lua or a rule
         """
-        name = 'notoverriddenprefixlength.ecsrules.tests.powerdns.com.'
-        ecso = clientsubnetoption.ClientSubnetOption('127.0.0.1', 24)
-        query = dns.message.make_query(name, 'A', 'IN')
-        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, options=[ecso], payload=512)
+        name = "notoverriddenprefixlength.ecsrules.tests.powerdns.com."
+        ecso = clientsubnetoption.ClientSubnetOption("127.0.0.1", 24)
+        query = dns.message.make_query(name, "A", "IN")
+        expectedQuery = dns.message.make_query(name, "A", "IN", use_edns=True, options=[ecso], payload=512)
         response = dns.message.make_response(query)
         response.use_edns(edns=True, payload=4096, options=[ecso])
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
         expectedResponse = dns.message.make_response(query)
         expectedResponse.answer.append(rrset)
@@ -903,16 +819,12 @@ class TestECSPrefixLengthSetByRuleOrLua(DNSDistTest):
         """
         ECS Prefix Length: overridden with a rule
         """
-        name = 'overriddenprefixlength.ecsrules.tests.powerdns.com.'
-        ecso = clientsubnetoption.ClientSubnetOption('127.0.0.1', 32)
-        query = dns.message.make_query(name, 'A', 'IN')
-        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, options=[ecso], payload=512)
+        name = "overriddenprefixlength.ecsrules.tests.powerdns.com."
+        ecso = clientsubnetoption.ClientSubnetOption("127.0.0.1", 32)
+        query = dns.message.make_query(name, "A", "IN")
+        expectedQuery = dns.message.make_query(name, "A", "IN", use_edns=True, options=[ecso], payload=512)
         response = dns.message.make_response(expectedQuery)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
         expectedResponse = dns.message.make_response(query)
         expectedResponse.answer.append(rrset)
@@ -930,16 +842,12 @@ class TestECSPrefixLengthSetByRuleOrLua(DNSDistTest):
         """
         ECS Prefix Length: overridden via Lua
         """
-        name = 'overriddenprefixlengthvialua.ecsrules.tests.powerdns.com.'
-        ecso = clientsubnetoption.ClientSubnetOption('127.0.0.1', 32)
-        query = dns.message.make_query(name, 'A', 'IN')
-        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, options=[ecso], payload=512)
+        name = "overriddenprefixlengthvialua.ecsrules.tests.powerdns.com."
+        ecso = clientsubnetoption.ClientSubnetOption("127.0.0.1", 32)
+        query = dns.message.make_query(name, "A", "IN")
+        expectedQuery = dns.message.make_query(name, "A", "IN", use_edns=True, options=[ecso], payload=512)
         response = dns.message.make_response(expectedQuery)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
         expectedResponse = dns.message.make_response(query)
         expectedResponse.answer.append(rrset)
@@ -952,6 +860,7 @@ class TestECSPrefixLengthSetByRuleOrLua(DNSDistTest):
             receivedQuery.id = expectedQuery.id
             self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
             self.checkResponseNoEDNS(expectedResponse, receivedResponse)
+
 
 class TestECSPrefixSetByRule(DNSDistTest):
     """
@@ -972,17 +881,13 @@ class TestECSPrefixSetByRule(DNSDistTest):
         """
         ECS Prefix: not set
         """
-        name = 'notsetecsaction.ecsrules.tests.powerdns.com.'
-        ecso = clientsubnetoption.ClientSubnetOption('127.0.0.1', 32)
-        query = dns.message.make_query(name, 'A', 'IN')
-        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, options=[ecso], payload=512)
+        name = "notsetecsaction.ecsrules.tests.powerdns.com."
+        ecso = clientsubnetoption.ClientSubnetOption("127.0.0.1", 32)
+        query = dns.message.make_query(name, "A", "IN")
+        expectedQuery = dns.message.make_query(name, "A", "IN", use_edns=True, options=[ecso], payload=512)
         response = dns.message.make_response(query)
         response.use_edns(edns=True, payload=4096, options=[ecso])
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
         expectedResponse = dns.message.make_response(query)
         expectedResponse.answer.append(rrset)
@@ -1000,16 +905,12 @@ class TestECSPrefixSetByRule(DNSDistTest):
         """
         ECS Prefix: set with SetECSAction
         """
-        name = 'setecsaction.ecsrules.tests.powerdns.com.'
-        ecso = clientsubnetoption.ClientSubnetOption('192.0.2.1', 32)
-        query = dns.message.make_query(name, 'A', 'IN')
-        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, options=[ecso], payload=512)
+        name = "setecsaction.ecsrules.tests.powerdns.com."
+        ecso = clientsubnetoption.ClientSubnetOption("192.0.2.1", 32)
+        query = dns.message.make_query(name, "A", "IN")
+        expectedQuery = dns.message.make_query(name, "A", "IN", use_edns=True, options=[ecso], payload=512)
         response = dns.message.make_response(expectedQuery)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
         expectedResponse = dns.message.make_response(query)
         expectedResponse.answer.append(rrset)

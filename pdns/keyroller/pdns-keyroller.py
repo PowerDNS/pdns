@@ -5,15 +5,23 @@ import pdnskeyroller.daemon
 import sys
 import traceback
 
-logger = logging.getLogger('pdns-keyroller')
+logger = logging.getLogger("pdns-keyroller")
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     argp = argparse.ArgumentParser(
-        prog='pdns-keyroller', formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        description='PowerDNS DNSSEC key-roller daemon')
-    argp.add_argument('--verbose', '-v', action='count', help='Be more verbose')
-    argp.add_argument('--config', '-c', metavar='PATH', type=str, default='/etc/powerdns/pdns-keyroller.conf',
-                      help='Load this configuration file')
+        prog="pdns-keyroller",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        description="PowerDNS DNSSEC key-roller daemon",
+    )
+    argp.add_argument("--verbose", "-v", action="count", help="Be more verbose")
+    argp.add_argument(
+        "--config",
+        "-c",
+        metavar="PATH",
+        type=str,
+        default="/etc/powerdns/pdns-keyroller.conf",
+        help="Load this configuration file",
+    )
 
     arguments = argp.parse_args()
 
@@ -27,7 +35,7 @@ if __name__ == '__main__':
     try:
         d = pdnskeyroller.daemon.Daemon(arguments.config)
     except ConnectionError as e:
-        logger.fatal('Unable to start: {}'.format(e))
+        logger.fatal("Unable to start: {}".format(e))
         sys.exit(1)
 
     try:

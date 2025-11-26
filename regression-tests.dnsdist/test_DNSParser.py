@@ -2,8 +2,8 @@
 import dns
 from dnsdisttests import DNSDistTest
 
-class TestDNSParser(DNSDistTest):
 
+class TestDNSParser(DNSDistTest):
     _verboseMode = True
     _config_template = """
   function checkQueryPacket(dq)
@@ -124,14 +124,10 @@ class TestDNSParser(DNSDistTest):
         """
         DNS Parser: basic checks
         """
-        name = 'powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True)
+        name = "powerdns.com."
+        query = dns.message.make_query(name, "A", "IN", use_edns=True)
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -146,7 +142,6 @@ class TestDNSParser(DNSDistTest):
 
 
 class TestDNSRecordParser(DNSDistTest):
-
     _verboseMode = True
     _config_template = """
   function checkResponsePacket(dq)
@@ -218,26 +213,14 @@ class TestDNSRecordParser(DNSDistTest):
         """
         DNS Parser: parsers checks
         """
-        name = 'powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True)
+        name = "powerdns.com."
+        query = dns.message.make_query(name, "A", "IN", use_edns=True)
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
         response.answer.append(rrset)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.AAAA,
-                                    'ff:db8::ffff')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.AAAA, "ff:db8::ffff")
         response.answer.append(rrset)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.CNAME,
-                                    'not-powerdns.com.')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.CNAME, "not-powerdns.com.")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):

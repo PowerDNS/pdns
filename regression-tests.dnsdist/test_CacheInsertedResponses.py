@@ -2,8 +2,8 @@
 import dns
 from dnsdisttests import DNSDistTest
 
-class TestCacheInsertedResponses(DNSDistTest):
 
+class TestCacheInsertedResponses(DNSDistTest):
     capTTLMax = 3600
     capTTLMin = 60
     _config_template = """
@@ -12,30 +12,22 @@ class TestCacheInsertedResponses(DNSDistTest):
     addCacheInsertedResponseAction(SuffixMatchNodeRule("cacheinsertedresponses.tests.powerdns.com."), LimitTTLResponseAction(%d, %d))
     newServer{address="127.0.0.1:%d"}
     """
-    _config_params = ['capTTLMax', 'capTTLMin', '_testServerPort']
+    _config_params = ["capTTLMax", "capTTLMin", "_testServerPort"]
 
     def testTTLSetAfterInsertion(self):
         """
         CacheInsertedResponse: Check that the TTL is capped after inserting into the cache
         """
         initialTTL = 86400
-        name = 'reduce-ttl-after-insertion.cacheinsertedresponses.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'AAAA', 'IN')
+        name = "reduce-ttl-after-insertion.cacheinsertedresponses.tests.powerdns.com."
+        query = dns.message.make_query(name, "AAAA", "IN")
 
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    initialTTL,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.AAAA,
-                                    '::1')
+        rrset = dns.rrset.from_text(name, initialTTL, dns.rdataclass.IN, dns.rdatatype.AAAA, "::1")
         response.answer.append(rrset)
 
         responseOnMiss = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    self.capTTLMax,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.AAAA,
-                                    '::1')
+        rrset = dns.rrset.from_text(name, self.capTTLMax, dns.rdataclass.IN, dns.rdatatype.AAAA, "::1")
         responseOnMiss.answer.append(rrset)
 
         # first query to fill the cache
@@ -58,23 +50,15 @@ class TestCacheInsertedResponses(DNSDistTest):
         CacheInsertedResponse: Check that the TTL can be raised after inserting into the cache
         """
         initialTTL = 0
-        name = 'raise-ttl-after-insertion.cacheinsertedresponses.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'AAAA', 'IN')
+        name = "raise-ttl-after-insertion.cacheinsertedresponses.tests.powerdns.com."
+        query = dns.message.make_query(name, "AAAA", "IN")
 
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    initialTTL,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.AAAA,
-                                    '::1')
+        rrset = dns.rrset.from_text(name, initialTTL, dns.rdataclass.IN, dns.rdatatype.AAAA, "::1")
         response.answer.append(rrset)
 
         responseOnMiss = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    self.capTTLMax,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.AAAA,
-                                    '::1')
+        rrset = dns.rrset.from_text(name, self.capTTLMax, dns.rdataclass.IN, dns.rdatatype.AAAA, "::1")
         responseOnMiss.answer.append(rrset)
 
         # first query to fill the cache

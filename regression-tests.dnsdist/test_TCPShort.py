@@ -6,9 +6,10 @@ import dns
 from dnsdisttests import DNSDistTest, pickAvailablePort
 
 try:
-  range = xrange
+    range = xrange
 except NameError:
-  pass
+    pass
+
 
 class TestTCPShort(DNSDistTest):
     # this test suite uses a different responder port
@@ -16,10 +17,10 @@ class TestTCPShort(DNSDistTest):
     # responders allow trailing data and multiple responses,
     # and we don't want to mix things up.
     _testServerPort = pickAvailablePort()
-    _serverKey = 'server.key'
-    _serverCert = 'server.chain'
-    _serverName = 'tls.tests.dnsdist.org'
-    _caCert = 'ca.pem'
+    _serverKey = "server.key"
+    _serverCert = "server.chain"
+    _serverName = "tls.tests.dnsdist.org"
+    _caCert = "ca.pem"
     _tlsServerPort = pickAvailablePort()
     _tcpSendTimeout = 60
     _config_template = """
@@ -27,17 +28,25 @@ class TestTCPShort(DNSDistTest):
     addTLSLocal("127.0.0.1:%d", "%s", "%s")
     setTCPSendTimeout(%d)
     """
-    _config_params = ['_testServerPort', '_tlsServerPort', '_serverCert', '_serverKey', '_tcpSendTimeout']
+    _config_params = ["_testServerPort", "_tlsServerPort", "_serverCert", "_serverKey", "_tcpSendTimeout"]
 
     @classmethod
     def startResponders(cls):
         print("Launching responders..")
 
-        cls._UDPResponder = threading.Thread(name='UDP Responder', target=cls.UDPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue, True])
+        cls._UDPResponder = threading.Thread(
+            name="UDP Responder",
+            target=cls.UDPResponder,
+            args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue, True],
+        )
         cls._UDPResponder.daemon = True
         cls._UDPResponder.start()
 
-        cls._TCPResponder = threading.Thread(name='TCP Responder', target=cls.TCPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue, True, True])
+        cls._TCPResponder = threading.Thread(
+            name="TCP Responder",
+            target=cls.TCPResponder,
+            args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue, True, True],
+        )
         cls._TCPResponder.daemon = True
         cls._TCPResponder.start()
 
@@ -45,14 +54,10 @@ class TestTCPShort(DNSDistTest):
         """
         TCP: Short read from client
         """
-        name = 'short-read.tcp-short.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "short-read.tcp-short.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         expectedResponse = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
         expectedResponse.answer.append(rrset)
 
         conn = self.openTCPConnection()
@@ -60,7 +65,7 @@ class TestTCPShort(DNSDistTest):
         # announce 7680 bytes (more than 4096, less than 8192 - the 512 bytes dnsdist is going to add)
         announcedSize = 7680
         paddingSize = announcedSize - len(wire)
-        wire = wire + (b'A' * (paddingSize - 1))
+        wire = wire + (b"A" * (paddingSize - 1))
         self._toResponderQueue.put(expectedResponse, True, 2.0)
 
         sizeBytes = struct.pack("!H", announcedSize)
@@ -71,7 +76,7 @@ class TestTCPShort(DNSDistTest):
         conn.send(wire)
         time.sleep(1)
         # send the remaining byte
-        conn.send(b'A')
+        conn.send(b"A")
 
         (receivedQuery, receivedResponse) = self.recvTCPResponseOverConnection(conn, True)
         conn.close()
@@ -86,14 +91,10 @@ class TestTCPShort(DNSDistTest):
         """
         TCP/TLS: Short read from client
         """
-        name = 'short-read-tls.tcp-short.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "short-read-tls.tcp-short.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         expectedResponse = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
         expectedResponse.answer.append(rrset)
 
         conn = self.openTLSConnection(self._tlsServerPort, self._serverName, self._caCert)
@@ -101,7 +102,7 @@ class TestTCPShort(DNSDistTest):
         # announce 7680 bytes (more than 4096, less than 8192 - the 512 bytes dnsdist is going to add)
         announcedSize = 7680
         paddingSize = announcedSize - len(wire)
-        wire = wire + (b'A' * (paddingSize - 1))
+        wire = wire + (b"A" * (paddingSize - 1))
         self._toResponderQueue.put(expectedResponse, True, 2.0)
 
         sizeBytes = struct.pack("!H", announcedSize)
@@ -112,7 +113,7 @@ class TestTCPShort(DNSDistTest):
         conn.send(wire)
         time.sleep(1)
         # send the remaining byte
-        conn.send(b'A')
+        conn.send(b"A")
 
         (receivedQuery, receivedResponse) = self.recvTCPResponseOverConnection(conn, True)
         conn.close()
@@ -127,17 +128,19 @@ class TestTCPShort(DNSDistTest):
         """
         TCP: Short write to client
         """
-        name = 'short-write.tcp-short.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'AXFR', 'IN')
+        name = "short-write.tcp-short.tests.powerdns.com."
+        query = dns.message.make_query(name, "AXFR", "IN")
 
         # we prepare a large AXFR answer
         # SOA + 200 dns messages of one huge TXT RRset each + SOA
         responses = []
-        soa = dns.rrset.from_text(name,
-                                  60,
-                                  dns.rdataclass.IN,
-                                  dns.rdatatype.SOA,
-                                  'ns.' + name + ' hostmaster.' + name + ' 1 3600 3600 3600 60')
+        soa = dns.rrset.from_text(
+            name,
+            60,
+            dns.rdataclass.IN,
+            dns.rdatatype.SOA,
+            "ns." + name + " hostmaster." + name + " 1 3600 3600 3600 60",
+        )
 
         soaResponse = dns.message.make_response(query)
         soaResponse.use_edns(edns=False)
@@ -149,14 +152,10 @@ class TestTCPShort(DNSDistTest):
         content = ""
         for i in range(200):
             if len(content) > 0:
-                content = content + ', '
-            content = content + (str(i)*50)
+                content = content + ", "
+            content = content + (str(i) * 50)
 
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.TXT,
-                                    content)
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.TXT, content)
         response.answer.append(rrset)
 
         for _ in range(200):
@@ -184,7 +183,7 @@ class TestTCPShort(DNSDistTest):
                 break
 
             (datalen,) = struct.unpack("!H", datalen)
-            data = b''
+            data = b""
             remaining = datalen
             got = conn.recv(remaining)
             while got:
@@ -217,14 +216,16 @@ class TestTCPShort(DNSDistTest):
         TCP/TLS: Short write to client
         """
         # same as testTCPShortWrite but over TLS this time
-        name = 'short-write-tls.tcp-short.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'AXFR', 'IN')
+        name = "short-write-tls.tcp-short.tests.powerdns.com."
+        query = dns.message.make_query(name, "AXFR", "IN")
         responses = []
-        soa = dns.rrset.from_text(name,
-                                  60,
-                                  dns.rdataclass.IN,
-                                  dns.rdatatype.SOA,
-                                  'ns.' + name + ' hostmaster.' + name + ' 1 3600 3600 3600 60')
+        soa = dns.rrset.from_text(
+            name,
+            60,
+            dns.rdataclass.IN,
+            dns.rdatatype.SOA,
+            "ns." + name + " hostmaster." + name + " 1 3600 3600 3600 60",
+        )
 
         soaResponse = dns.message.make_response(query)
         soaResponse.use_edns(edns=False)
@@ -236,14 +237,10 @@ class TestTCPShort(DNSDistTest):
         content = ""
         for i in range(200):
             if len(content) > 0:
-                content = content + ', '
-            content = content + (str(i)*50)
+                content = content + ", "
+            content = content + (str(i) * 50)
 
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.TXT,
-                                    content)
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.TXT, content)
         response.answer.append(rrset)
 
         for _ in range(200):
@@ -267,7 +264,7 @@ class TestTCPShort(DNSDistTest):
                 break
 
             (datalen,) = struct.unpack("!H", datalen)
-            data = b''
+            data = b""
             remaining = datalen
             got = conn.recv(remaining)
             while got:

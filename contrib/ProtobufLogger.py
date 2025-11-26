@@ -26,25 +26,25 @@ import google.protobuf.message
 try:
     import google.protobuf.json_format
     import opentelemetry.proto.trace.v1.trace_pb2
+
     opentelemetryAvailable = True
 except Exception:
     opentelemetryAvailable = False
 
 
 class PDNSPBConnHandler(object):
-
     def __init__(self, conn, oturl, printjson):
         self._conn = conn
         self._oturl = oturl
         self._printjson = printjson
 
     messageTypeToStringMap = {
-        dnsmessage_pb2.PBDNSMessage.UNKNOWN: 'Unknown',
-        dnsmessage_pb2.PBDNSMessage.QNAME: 'QName',
-        dnsmessage_pb2.PBDNSMessage.CLIENTIP: 'Client IP',
-        dnsmessage_pb2.PBDNSMessage.RESPONSEIP: 'Response IP',
-        dnsmessage_pb2.PBDNSMessage.NSDNAME: 'NS DName',
-        dnsmessage_pb2.PBDNSMessage.NSIP: 'NS IP',
+        dnsmessage_pb2.PBDNSMessage.UNKNOWN: "Unknown",
+        dnsmessage_pb2.PBDNSMessage.QNAME: "QName",
+        dnsmessage_pb2.PBDNSMessage.CLIENTIP: "Client IP",
+        dnsmessage_pb2.PBDNSMessage.RESPONSEIP: "Response IP",
+        dnsmessage_pb2.PBDNSMessage.NSDNAME: "NS DName",
+        dnsmessage_pb2.PBDNSMessage.NSIP: "NS IP",
     }
 
     def run(self):
@@ -54,7 +54,7 @@ class PDNSPBConnHandler(object):
                 break
 
             (datalen,) = struct.unpack("!H", data)
-            data = b''
+            data = b""
             remaining = datalen
 
             while remaining > 0:
@@ -70,7 +70,7 @@ class PDNSPBConnHandler(object):
             msg = dnsmessage_pb2.PBDNSMessage()
             try:
                 msg.ParseFromString(data)
-                if opentelemetryAvailable and self._oturl is not None and msg.HasField('openTelemetryData'):
+                if opentelemetryAvailable and self._oturl is not None and msg.HasField("openTelemetryData"):
                     self.postOT(msg.openTelemetryData)
                 if msg.type == dnsmessage_pb2.PBDNSMessage.DNSQueryType:
                     self.printQueryMessage(msg)
@@ -81,49 +81,47 @@ class PDNSPBConnHandler(object):
                 elif msg.type == dnsmessage_pb2.PBDNSMessage.DNSIncomingResponseType:
                     self.printIncomingResponseMessage(msg)
                 else:
-                    print('Discarding unsupported message type %d' % (msg.type))
+                    print("Discarding unsupported message type %d" % (msg.type))
             except google.protobuf.message.DecodeError as exp:
-                print('Error parsing message of size %d: %s' % (datalen, str(exp)))
+                print("Error parsing message of size %d: %s" % (datalen, str(exp)))
                 break
 
         self._conn.close()
 
     def postOT(self, msg):
         print("- Posting OTData to " + self._oturl)
-        headers = {'Content-Type': 'application/x-protobuf'}
-        answer = requests.post(self._oturl, data = msg, headers = headers)
-        print('  - ' + str(answer))
+        headers = {"Content-Type": "application/x-protobuf"}
+        answer = requests.post(self._oturl, data=msg, headers=headers)
+        print("  - " + str(answer))
 
     def printQueryMessage(self, message):
-        self.printSummary(message, 'Query')
+        self.printSummary(message, "Query")
         self.printQuery(message)
         self.printOT(message)
 
     def printOutgoingQueryMessage(self, message):
-        self.printSummary(message, 'Query (O)')
+        self.printSummary(message, "Query (O)")
         self.printQuery(message)
         self.printOT(message)
 
     def printResponseMessage(self, message):
-        self.printSummary(message, 'Response')
+        self.printSummary(message, "Response")
         self.printQuery(message)
         self.printResponse(message)
         self.printOT(message)
 
     def printIncomingResponseMessage(self, message):
-        self.printSummary(message, 'Response (I)')
+        self.printSummary(message, "Response (I)")
         self.printQuery(message)
         self.printResponse(message)
         self.printOT(message)
 
     def printQuery(self, message):
-        if message.HasField('question'):
+        if message.HasField("question"):
             qclass = 1
-            if message.question.HasField('qClass'):
+            if message.question.HasField("qClass"):
                 qclass = message.question.qClass
-            print("- Question: %d, %d, %s" % (qclass,
-                                              message.question.qType,
-                                              message.question.qName))
+            print("- Question: %d, %d, %s" % (qclass, message.question.qType, message.question.qName))
 
     def convertKV(self, parent, key, value):
         if isinstance(value, dict):
@@ -133,7 +131,7 @@ class PDNSPBConnHandler(object):
             for key1, value1 in enumerate(value):
                 self.convertKV(value, key1, value1)
         else:
-            if key in ('trace_id', 'span_id', 'parent_span_id'):
+            if key in ("trace_id", "span_id", "parent_span_id"):
                 parent[key] = binascii.hexlify(base64.b64decode(value)).decode("utf-8")
 
     def convertIDs(self, values):
@@ -146,7 +144,7 @@ class PDNSPBConnHandler(object):
 
     def printOT(self, msg):
         if self._printjson and opentelemetryAvailable:
-            if msg.HasField('openTelemetryData'):
+            if msg.HasField("openTelemetryData"):
                 json_string = None
                 otmsg = opentelemetry.proto.trace.v1.trace_pb2.TracesData()
                 otmsg.ParseFromString(msg.openTelemetryData)
@@ -163,79 +161,76 @@ class PDNSPBConnHandler(object):
 
     @staticmethod
     def getEventAsString(event):
-        descr =  dnsmessage_pb2.PBDNSMessage.DESCRIPTOR
-        return descr.EnumValueName('EventType', event);
+        descr = dnsmessage_pb2.PBDNSMessage.DESCRIPTOR
+        return descr.EnumValueName("EventType", event)
 
     @staticmethod
     def getTransportAsString(transport):
-        descr =  dnsmessage_pb2.PBDNSMessage.DESCRIPTOR
-        return descr.EnumValueName('SocketProtocol', transport);
+        descr = dnsmessage_pb2.PBDNSMessage.DESCRIPTOR
+        return descr.EnumValueName("SocketProtocol", transport)
 
     def printResponse(self, message):
         if message.trace:
             print("- Event Trace:")
             for event in message.trace:
                 ev = self.getEventAsString(event.event)
-                if event.event == dnsmessage_pb2.PBDNSMessage.CustomEvent and event.HasField('custom'):
+                if event.event == dnsmessage_pb2.PBDNSMessage.CustomEvent and event.HasField("custom"):
                     ev += ":" + event.custom
-                ev += '(' + str(event.ts)
-                valstr = ''
-                if event.HasField('boolVal'):
-                      valstr = str(event.boolVal)
-                elif event.HasField('intVal'):
-                      valstr = str(event.intVal)
-                elif event.HasField('stringVal'):
-                      valstr = event.stringVal
-                elif event.HasField('bytesVal'):
-                      valstr = binascii.hexlify(event.bytesVal)
+                ev += "(" + str(event.ts)
+                valstr = ""
+                if event.HasField("boolVal"):
+                    valstr = str(event.boolVal)
+                elif event.HasField("intVal"):
+                    valstr = str(event.intVal)
+                elif event.HasField("stringVal"):
+                    valstr = event.stringVal
+                elif event.HasField("bytesVal"):
+                    valstr = binascii.hexlify(event.bytesVal)
                 if len(valstr) > 0:
-                    valstr = ',' + valstr
+                    valstr = "," + valstr
                 if not event.start:
-                    startstr = ',done'
+                    startstr = ",done"
                 else:
-                    startstr = ''
+                    startstr = ""
                 print("\t- %s%s%s)" % (ev, valstr, startstr))
 
-        if message.HasField('response'):
+        if message.HasField("response"):
             response = message.response
 
-            if response.HasField('queryTimeSec'):
-                datestr = datetime.datetime.fromtimestamp(response.queryTimeSec).strftime('%Y-%m-%d %H:%M:%S')
-                if response.HasField('queryTimeUsec'):
-                    datestr = datestr + '.' + ("%06d" % response.queryTimeUsec)
+            if response.HasField("queryTimeSec"):
+                datestr = datetime.datetime.fromtimestamp(response.queryTimeSec).strftime("%Y-%m-%d %H:%M:%S")
+                if response.HasField("queryTimeUsec"):
+                    datestr = datestr + "." + ("%06d" % response.queryTimeUsec)
                 print("- Query time: %s" % (datestr))
 
-            policystr = ''
-            if response.HasField('appliedPolicy') and response.appliedPolicy:
-                policystr = ', Applied policy: ' + response.appliedPolicy
-                if response.HasField('appliedPolicyType'):
-                    policystr = policystr + ' (' + self.getAppliedPolicyTypeAsString(response.appliedPolicyType) + ')'
-                if response.HasField('appliedPolicyTrigger'):
-                    policystr = policystr + ', Trigger = ' + response.appliedPolicyTrigger
-                if response.HasField('appliedPolicyHit'):
-                    policystr = policystr + ', Hit = ' + response.appliedPolicyHit
+            policystr = ""
+            if response.HasField("appliedPolicy") and response.appliedPolicy:
+                policystr = ", Applied policy: " + response.appliedPolicy
+                if response.HasField("appliedPolicyType"):
+                    policystr = policystr + " (" + self.getAppliedPolicyTypeAsString(response.appliedPolicyType) + ")"
+                if response.HasField("appliedPolicyTrigger"):
+                    policystr = policystr + ", Trigger = " + response.appliedPolicyTrigger
+                if response.HasField("appliedPolicyHit"):
+                    policystr = policystr + ", Hit = " + response.appliedPolicyHit
 
-            tagsstr = ''
+            tagsstr = ""
             if response.tags:
-                tagsstr = ', Tags: ' + ','.join(response.tags)
+                tagsstr = ", Tags: " + ",".join(response.tags)
 
             rrscount = len(response.rrs)
 
-            print("- Response Code: %d, RRs: %d%s%s" % (response.rcode,
-                                                      rrscount,
-                                                      policystr,
-                                                      tagsstr))
+            print("- Response Code: %d, RRs: %d%s%s" % (response.rcode, rrscount, policystr, tagsstr))
 
             for rr in response.rrs:
                 rrclass = 1
-                rdatastr = ''
-                rrudr = 'N/A'
-                if rr.HasField('class'):
-                    rrclass = getattr(rr, 'class')
+                rdatastr = ""
+                rrudr = "N/A"
+                if rr.HasField("class"):
+                    rrclass = getattr(rr, "class")
                 rrtype = rr.type
-                if rr.HasField('udr'):
+                if rr.HasField("udr"):
                     rrudr = str(rr.udr)
-                if (rrclass == 1 or rrclass == 255) and rr.HasField('rdata'):
+                if (rrclass == 1 or rrclass == 255) and rr.HasField("rdata"):
                     if rrtype == 1:
                         rdatastr = socket.inet_ntop(socket.AF_INET, rr.rdata)
                     elif rrtype in (5, 35, 64, 65):
@@ -243,163 +238,158 @@ class PDNSPBConnHandler(object):
                     elif rrtype == 28:
                         rdatastr = socket.inet_ntop(socket.AF_INET6, rr.rdata)
 
-                print("\t - %d, %d, %s, %d, %s, %s" % (rrclass,
-                                                   rrtype,
-                                                   rr.name,
-                                                   rr.ttl,
-                                                   rdatastr,
-                                                   rrudr))
+                print("\t - %d, %d, %s, %d, %s, %s" % (rrclass, rrtype, rr.name, rr.ttl, rdatastr, rrudr))
 
     def printSummary(self, msg, typestr):
-        datestr = datetime.datetime.fromtimestamp(msg.timeSec).strftime('%Y-%m-%d %H:%M:%S')
-        if msg.HasField('timeUsec'):
-            datestr = datestr + '.' + ("%06d" % msg.timeUsec)
-        ipfromstr = 'N/A'
-        iptostr = 'N/A'
-        toportstr = ''
-        fromportstr = ''
-        fromvalue = getattr(msg, 'from')
+        datestr = datetime.datetime.fromtimestamp(msg.timeSec).strftime("%Y-%m-%d %H:%M:%S")
+        if msg.HasField("timeUsec"):
+            datestr = datestr + "." + ("%06d" % msg.timeUsec)
+        ipfromstr = "N/A"
+        iptostr = "N/A"
+        toportstr = ""
+        fromportstr = ""
+        fromvalue = getattr(msg, "from")
         if msg.socketFamily == dnsmessage_pb2.PBDNSMessage.INET:
-            if msg.HasField('from'):
+            if msg.HasField("from"):
                 ipfromstr = socket.inet_ntop(socket.AF_INET, fromvalue)
-            if msg.HasField('to'):
+            if msg.HasField("to"):
                 iptostr = socket.inet_ntop(socket.AF_INET, msg.to)
         else:
-            if msg.HasField('from'):
-                ipfromstr = '[' + socket.inet_ntop(socket.AF_INET6, fromvalue) + ']'
-            if msg.HasField('to'):
-                iptostr = '[' + socket.inet_ntop(socket.AF_INET6, msg.to) + ']'
+            if msg.HasField("from"):
+                ipfromstr = "[" + socket.inet_ntop(socket.AF_INET6, fromvalue) + "]"
+            if msg.HasField("to"):
+                iptostr = "[" + socket.inet_ntop(socket.AF_INET6, msg.to) + "]"
 
         protostr = self.getTransportAsString(msg.socketProtocol)
 
-        if msg.HasField('fromPort'):
-            fromportstr = ':' + str(msg.fromPort) + ' '
+        if msg.HasField("fromPort"):
+            fromportstr = ":" + str(msg.fromPort) + " "
 
-        if msg.HasField('toPort'):
-            toportstr = ':' + str(msg.toPort) + ' '
+        if msg.HasField("toPort"):
+            toportstr = ":" + str(msg.toPort) + " "
 
         messageidstr = binascii.hexlify(bytearray(msg.messageId))
 
-        serveridstr = 'N/A'
-        if msg.HasField('serverIdentity'):
+        serveridstr = "N/A"
+        if msg.HasField("serverIdentity"):
             serveridstr = msg.serverIdentity
 
-        initialrequestidstr = ''
-        if msg.HasField('initialRequestId'):
-            initialrequestidstr = ', initial uuid: %s ' % (binascii.hexlify(bytearray(msg.initialRequestId)))
+        initialrequestidstr = ""
+        if msg.HasField("initialRequestId"):
+            initialrequestidstr = ", initial uuid: %s " % (binascii.hexlify(bytearray(msg.initialRequestId)))
 
-        requestorstr = '(N/A)'
+        requestorstr = "(N/A)"
         requestor = self.getRequestorSubnet(msg)
         if requestor:
-            requestorstr = ' (' + requestor + ')'
+            requestorstr = " (" + requestor + ")"
 
-        deviceId = 'N/A'
-        if msg.HasField('deviceId'):
+        deviceId = "N/A"
+        if msg.HasField("deviceId"):
             deviceId = binascii.hexlify(bytearray(msg.deviceId))
-        deviceName = 'N/A'
-        if msg.HasField('deviceName'):
+        deviceName = "N/A"
+        if msg.HasField("deviceName"):
             deviceName = msg.deviceName
 
-        requestorId = 'N/A'
-        if msg.HasField('requestorId'):
+        requestorId = "N/A"
+        if msg.HasField("requestorId"):
             requestorId = msg.requestorId
 
-        nod = 'N/A';
-        if msg.HasField('newlyObservedDomain'):
+        nod = "N/A"
+        if msg.HasField("newlyObservedDomain"):
             nod = str(msg.newlyObservedDomain)
 
-        workerId = 'N/A'
-        if msg.HasField('workerId'):
-           workerId = str(msg.workerId)
+        workerId = "N/A"
+        if msg.HasField("workerId"):
+            workerId = str(msg.workerId)
 
-        pcCacheHit = 'N/A'
-        if msg.HasField('packetCacheHit'):
-           pcCacheHit = str(msg.packetCacheHit)
+        pcCacheHit = "N/A"
+        if msg.HasField("packetCacheHit"):
+            pcCacheHit = str(msg.packetCacheHit)
 
-        outgoingQs = 'N/A'
-        if msg.HasField('outgoingQueries'):
-           outgoingQs = str(msg.outgoingQueries)
+        outgoingQs = "N/A"
+        if msg.HasField("outgoingQueries"):
+            outgoingQs = str(msg.outgoingQueries)
 
         headerFlags = "N/A"
-        if msg.HasField('headerFlags'):
+        if msg.HasField("headerFlags"):
             headerFlags = "0x%04X" % socket.ntohs(msg.headerFlags)
 
         ednsVersion = "N/A"
-        if msg.HasField('ednsVersion'):
+        if msg.HasField("ednsVersion"):
             ednsVersion = "0x%08X" % socket.ntohl(msg.ednsVersion)
 
         ede = "N/A"
-        if msg.HasField('ede'):
+        if msg.HasField("ede"):
             ede = str(msg.ede)
         edeText = "N/A"
-        if msg.HasField('edeText'):
+        if msg.HasField("edeText"):
             edeText = msg.edeText
 
         openTelemetryDataLen = "N/A"
-        if opentelemetryAvailable and msg.HasField('openTelemetryData'):
+        if opentelemetryAvailable and msg.HasField("openTelemetryData"):
             openTelemetryDataLen = str(len(msg.openTelemetryData))
 
         openTelemetryTraceID = "N/A"
-        if msg.HasField('openTelemetryTraceID'):
+        if msg.HasField("openTelemetryTraceID"):
             openTelemetryTraceID = binascii.hexlify(msg.openTelemetryTraceID)
 
-        print('[%s] %s of size %d: %s%s%s -> %s%s(%s) id: %d uuid: %s%s '
-                  'requestorid: %s deviceid: %s devicename: %s serverid: %s nod: %s workerId: %s pcCacheHit: %s outgoingQueries: %s headerFlags: %s ednsVersion: %s ede: %s edeText: %s otTraceID: %s openTelemetryData: len %s' %
-              (datestr,
-               typestr,
-               msg.inBytes,
-               ipfromstr,
-               fromportstr,
-               requestorstr,
-               iptostr,
-               toportstr,
-               protostr,
-               msg.id,
-               messageidstr,
-               initialrequestidstr,
-               requestorId,
-               deviceId,
-               deviceName,
-               serveridstr,
-               nod,
-               workerId,
-               pcCacheHit,
-               outgoingQs,
-               headerFlags,
-               ednsVersion,
-               ede,
-               edeText,
-               openTelemetryTraceID,
-               openTelemetryDataLen))
+        print(
+            "[%s] %s of size %d: %s%s%s -> %s%s(%s) id: %d uuid: %s%s "
+            "requestorid: %s deviceid: %s devicename: %s serverid: %s nod: %s workerId: %s pcCacheHit: %s outgoingQueries: %s headerFlags: %s ednsVersion: %s ede: %s edeText: %s otTraceID: %s openTelemetryData: len %s"
+            % (
+                datestr,
+                typestr,
+                msg.inBytes,
+                ipfromstr,
+                fromportstr,
+                requestorstr,
+                iptostr,
+                toportstr,
+                protostr,
+                msg.id,
+                messageidstr,
+                initialrequestidstr,
+                requestorId,
+                deviceId,
+                deviceName,
+                serveridstr,
+                nod,
+                workerId,
+                pcCacheHit,
+                outgoingQs,
+                headerFlags,
+                ednsVersion,
+                ede,
+                edeText,
+                openTelemetryTraceID,
+                openTelemetryDataLen,
+            )
+        )
 
         for mt in msg.meta:
-            values = ''
+            values = ""
             for entry in mt.value.stringVal:
-                values = ', '.join([values, entry]) if values != '' else entry
+                values = ", ".join([values, entry]) if values != "" else entry
             for entry in mt.value.intVal:
-                values = ', '.join([values, str(entry)]) if values != '' else str(entry)
+                values = ", ".join([values, str(entry)]) if values != "" else str(entry)
 
-            print('- (meta) %s -> %s' % (mt.key, values))
+            print("- (meta) %s -> %s" % (mt.key, values))
 
     def getRequestorSubnet(self, msg):
         requestorstr = None
-        if msg.HasField('originalRequestorSubnet'):
+        if msg.HasField("originalRequestorSubnet"):
             if len(msg.originalRequestorSubnet) == 4:
-                requestorstr = socket.inet_ntop(socket.AF_INET,
-                                                msg.originalRequestorSubnet)
+                requestorstr = socket.inet_ntop(socket.AF_INET, msg.originalRequestorSubnet)
             elif len(msg.originalRequestorSubnet) == 16:
-                requestorstr = socket.inet_ntop(socket.AF_INET6,
-                                                msg.originalRequestorSubnet)
+                requestorstr = socket.inet_ntop(socket.AF_INET6, msg.originalRequestorSubnet)
         return requestorstr
 
-class PDNSPBListener(object):
 
+class PDNSPBListener(object):
     def __init__(self, addr, port, oturl, printjson):
         self._oturl = oturl
         self._printjson = printjson
-        res = socket.getaddrinfo(addr, port, socket.AF_UNSPEC,
-                                 socket.SOCK_STREAM, 0,
-                                 socket.AI_PASSIVE)
+        res = socket.getaddrinfo(addr, port, socket.AF_UNSPEC, socket.SOCK_STREAM, 0, socket.AI_PASSIVE)
         if len(res) != 1:
             print("Error parsing the supplied address")
             sys.exit(1)
@@ -419,24 +409,22 @@ class PDNSPBListener(object):
             (conn, _) = self._sock.accept()
 
             handler = PDNSPBConnHandler(conn, self._oturl, self._printjson)
-            thread = threading.Thread(name='Connection Handler',
-                                      target=PDNSPBConnHandler.run,
-                                      args=[handler])
+            thread = threading.Thread(name="Connection Handler", target=PDNSPBConnHandler.run, args=[handler])
             thread.daemon = True
             thread.start()
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-                    prog='ProtobufLogger',
-                    description='Listens for and prints dnsmessage.proto messages and optionally posts OT Trace data to a collector URL',
-                    epilog='URL is an optional url of a OpenTelemetry Trace collector endpoint'
+        prog="ProtobufLogger",
+        description="Listens for and prints dnsmessage.proto messages and optionally posts OT Trace data to a collector URL",
+        epilog="URL is an optional url of a OpenTelemetry Trace collector endpoint",
     )
 
-    parser.add_argument('-json', action='store_true')
-    parser.add_argument('address')
-    parser.add_argument('port')
-    parser.add_argument('-url')
-    args = parser.parse_args();
+    parser.add_argument("-json", action="store_true")
+    parser.add_argument("address")
+    parser.add_argument("port")
+    parser.add_argument("-url")
+    args = parser.parse_args()
     PDNSPBListener(args.address, args.port, args.url, args.json).run()
     sys.exit(0)

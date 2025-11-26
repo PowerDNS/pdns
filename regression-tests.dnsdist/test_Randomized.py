@@ -3,13 +3,14 @@ import dns
 import socket
 from dnsdisttests import DNSDistTest
 
+
 class RandomizedIDs:
     def testRandomizedIDOverUDPFromLuaConfig(self):
         """
         Randomized IDs over UDP: Lua config
         """
-        name = 'lua-config.randomizedids.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "lua-config.randomizedids.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
 
         randomized = False
@@ -24,11 +25,13 @@ class RandomizedIDs:
 
         self.assertTrue(randomized)
 
+
 class RandomizedIDsLuaConfig(DNSDistTest, RandomizedIDs):
     _config_template = """
     setRandomizedIdsOverUDP(true)
     newServer{address="127.0.0.1:%d"}
     """
+
 
 class RandomizedIDsYAMLConfig(DNSDistTest, RandomizedIDs):
     _yaml_config_template = """
@@ -39,5 +42,5 @@ tuning:
   udp:
     randomize_ids_to_backend: true
     """
-    _yaml_config_params = ['_testServerPort']
+    _yaml_config_params = ["_testServerPort"]
     _config_params = []
