@@ -22,8 +22,10 @@
 
 #include "dnsdist-idstate.hh"
 #include "dnsdist-doh-common.hh"
+#include "dnsdist-protobuf.hh"
 #include "doh3.hh"
 #include "doq.hh"
+#include "protozero.hh"
 #include <string>
 #include <string_view>
 
@@ -63,11 +65,15 @@ InternalQueryState InternalQueryState::partialCloneForXFR() const
 InternalQueryState::~InternalQueryState()
 {
 #ifndef DISABLE_PROTOBUF
+
   static thread_local string otPBBuf;
   otPBBuf.clear();
+  std::string OTData;
   if (tracingEnabled && d_OTTracer != nullptr) {
+
     pdns::ProtoZero::Message msg{otPBBuf};
-    msg.setOpenTelemetryData(d_OTTracer->getOTProtobuf());
+    OTData = d_OTTracer->getOTProtobuf();
+    msg.setOpenTelemetryData(OTData);
   }
 
   for (auto const& msg_logger : delayedResponseMsgs) {
@@ -79,6 +85,15 @@ InternalQueryState::~InternalQueryState()
     // Protobuf wireformat allows us to simply append the second "message"
     // that only contains the OTTrace data as a single bytes field
     msg_logger.second->queueData(msg_logger.first + otPBBuf);
+  }
+
+  static thread_local string minimalPBBuf;
+  minimalPBBuf.clear();
+  pdns::ProtoZero::Message minimalMsg{minimalPBBuf};
+  minimalMsg.setType(pdns::ProtoZero::Message::MessageType::DNSQueryType);
+  minimalMsg.setOpenTelemetryData(OTData);
+  for (auto const& msg_logger : ottraceLoggers) {
+    msg_logger->queueData(minimalPBBuf);
   }
 #endif
 }
