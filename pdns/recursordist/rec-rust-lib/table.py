@@ -226,6 +226,18 @@ Useful for mitigating ANY reflection attacks.
     'versionchanged': ('5.4.0', 'Default is enabled now, was disabled before 5.4.0'),
     },
     {
+        'name' : 'any_to_tcp',
+        'oldname': 'out-any-to-tcp',
+        'section' : 'outgoing',
+        'type' : LType.Bool,
+        'default' : 'true',
+        'help' : 'Use TCP for ANY queries to authoritative servers',
+        'doc' : '''
+Send out requests with qtype `ANY` using TCP.
+ ''',
+    'versionadded': '5.4.0',
+    },
+    {
         'name' : 'allow_trust_anchor_query',
         'section' : 'recursor',
         'type' : LType.Bool,
