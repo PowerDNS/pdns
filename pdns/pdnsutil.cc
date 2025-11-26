@@ -1079,7 +1079,7 @@ static int listZone(const DNSName &zone) {
   std::vector<DNSResourceRecord> records;
   DNSResourceRecord rr;
 
-  di.backend->list(zone, di.id);
+  di.backend->list(zone, di.id); // NOLINT(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
   while(di.backend->get(rr)) {
     if(rr.qtype.getCode() != QType::ENT) {
       if ( (rr.qtype.getCode() == QType::NS || rr.qtype.getCode() == QType::SRV || rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::CNAME) && !rr.content.empty() && rr.content[rr.content.size()-1] != '.') {
