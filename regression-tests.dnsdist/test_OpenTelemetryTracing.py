@@ -150,7 +150,7 @@ class DNSDistOpenTelemetryProtobufTest(test_Protobuf.DNSDistProtobufTest):
             funcs.add("processResponse")
 
         if hasRemoteLogResponseAction:
-            funcs.add("Rule: Do PB logging")
+            funcs.add("ResponseRule: Do PB logging")
 
         if useTCP:
             funcs.add("IncomingTCPConnectionState::handleQuery")
@@ -580,7 +580,7 @@ response_rules:
             hasRemoteLogResponseAction=False,
             useTCP=useTCP,
             extraFunctions={
-                "Rule: Drop",
+                "ResponseRule: Drop",
             },
         )
 
