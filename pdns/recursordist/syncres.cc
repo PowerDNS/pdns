@@ -5850,6 +5850,13 @@ bool SyncRes::processAnswer(unsigned int depth, const string& prefix, LWResult& 
       nameservers.insert({nameserver, {{}, false}});
     }
     LOG("looping to them" << endl);
+    if (s_maxnsperresolve > 0 && nameservers.size() > s_maxnsperresolve) {
+      LOG(prefix << qname << "Reducing number of NS attempted to " << s_maxnsperresolve << endl);
+      NsSet selected;
+      std::sample(nameservers.cbegin(), nameservers.cend(), std::inserter(selected, selected.begin()), s_maxnsperresolve, pdns::dns_random_engine());
+      nameservers = std::move(selected);
+    }
+
     *gotNewServers = true;
     auth = std::move(newauth);
 
@@ -5903,6 +5910,7 @@ int SyncRes::doResolveAt(NsSet& nameservers, DNSName auth, bool flawedNSSet, con
     if (rnameservers.size() > nsLimit) {
       int newLimit = static_cast<int>(nsLimit - (rnameservers.size() - nsLimit));
       nsLimit = std::max(5, newLimit);
+      LOG("Applying nsLimit " << nsLimit << endl);
     }
 
     for (auto tns = rnameservers.cbegin();; ++tns) {
