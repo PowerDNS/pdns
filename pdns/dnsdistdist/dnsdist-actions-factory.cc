@@ -23,6 +23,7 @@
 #include <optional>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 #include "dnsdist-actions-factory.hh"
 
@@ -1680,8 +1681,8 @@ private:
 class SetTraceAction : public DNSAction
 {
 public:
-  SetTraceAction(bool value, std::optional<bool> useIncomingTraceID, std::optional<short unsigned int> incomingTraceIDOptionCode) :
-    d_value{value}, d_useIncomingTraceID(useIncomingTraceID), d_incomingTraceIDOptionCode(incomingTraceIDOptionCode) {};
+  SetTraceAction(SetTraceActionConfiguration& config) :
+    d_value{config.value}, d_loggers(config.remote_loggers), d_useIncomingTraceID(config.use_incoming_traceid), d_incomingTraceIDOptionCode(config.trace_edns_option) {};
 
   DNSAction::Action operator()([[maybe_unused]] DNSQuestion* dnsquestion, [[maybe_unused]] std::string* ruleresult) const override
   {
@@ -1716,6 +1717,7 @@ public:
           }
         }
       }
+      dnsquestion->ids.ottraceLoggers = d_loggers;
     }
 #endif
     return Action::None;
@@ -1728,6 +1730,9 @@ public:
 
 private:
   bool d_value;
+
+  std::vector<std::shared_ptr<RemoteLoggerInterface>> d_loggers;
+
   std::optional<bool> d_useIncomingTraceID;
   std::optional<short unsigned int> d_incomingTraceIDOptionCode;
 };
@@ -2506,6 +2511,11 @@ std::shared_ptr<DNSResponseAction> getLuaFFIResponseAction(dnsdist::actions::Lua
 }
 
 #ifndef DISABLE_PROTOBUF
+std::shared_ptr<DNSAction> getSetTraceAction(SetTraceActionConfiguration& config)
+{
+  return std::shared_ptr<DNSAction>(new SetTraceAction(config));
+}
+
 std::shared_ptr<DNSAction> getRemoteLogAction(RemoteLogActionConfiguration& config)
 {
   return std::shared_ptr<DNSAction>(new RemoteLogAction(config));

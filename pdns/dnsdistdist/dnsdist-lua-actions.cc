@@ -29,7 +29,10 @@
 #include "dnsdist-rule-chains.hh"
 #include "dnstap.hh"
 #include "remote_logger.hh"
+#include <memory>
+#include <optional>
 #include <stdexcept>
+#include <vector>
 
 using responseParams_t = std::unordered_map<std::string, boost::variant<bool, uint32_t>>;
 
@@ -235,6 +238,31 @@ void setupLuaActions(LuaContext& luaCtx)
   });
 
 #ifndef DISABLE_PROTOBUF
+  luaCtx.writeFunction("SetTraceAction", [](bool value, std::optional<LuaAssociativeTable<std::shared_ptr<RemoteLoggerInterface>>> remote_loggers, std::optional<bool> use_incoming_traceid, std::optional<uint16_t> trace_edns_option) {
+    dnsdist::actions::SetTraceActionConfiguration config;
+
+    if (remote_loggers) {
+      std::vector<std::shared_ptr<RemoteLoggerInterface>> loggers;
+      for (auto& remote_logger : remote_loggers.value()) {
+        if (remote_logger.second != nullptr) {
+          // avoids potentially-evaluated-expression warning with clang.
+          RemoteLoggerInterface& remoteLoggerRef = *remote_logger.second;
+          if (typeid(remoteLoggerRef) != typeid(RemoteLogger)) {
+            // We could let the user do what he wants, but wrapping PowerDNS Protobuf inside a FrameStream tagged as dnstap is logically wrong.
+            throw std::runtime_error(std::string("SetTraceAction only takes RemoteLogger."));
+          }
+          loggers.push_back(remote_logger.second);
+        }
+      }
+      config.remote_loggers = loggers;
+    }
+    config.value = value;
+    config.trace_edns_option = trace_edns_option.value_or(65500);
+    config.use_incoming_traceid = use_incoming_traceid.value_or(false);
+
+    return dnsdist::actions::getSetTraceAction(config);
+  });
+
   // Used for both RemoteLogAction and RemoteLogResponseAction
   static const std::array<std::string, 2> s_validIpEncryptMethods = {"legacy", "ipcrypt-pfx"};
 
