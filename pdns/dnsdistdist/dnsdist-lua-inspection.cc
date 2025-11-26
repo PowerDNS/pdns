@@ -1149,7 +1149,7 @@ void setupLuaInspection(LuaContext& luaCtx)
                          AddressAndPortRange target(clientIPCA, clientIPMask ? *clientIPMask : (clientIPCA.isIPv4() ? 32 : 128), clientIPPortMask ? *clientIPPortMask : 0);
                          unsigned int actualSeconds = seconds ? *seconds : 10;
                          DynBlockRulesGroup::DynBlockRule rule;
-                         parseDynamicActionOptionalParameters("addDynBlockSMT", rule, action, optionalParameters);
+                         parseDynamicActionOptionalParameters("addDynamicBlock", rule, action, optionalParameters);
 
                          timespec now{};
                          gettime(&now);
