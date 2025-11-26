@@ -661,6 +661,7 @@ int PacketHandler::forwardPacket(const string &msgPrefix, const DNSPacket& p, co
 
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 int PacketHandler::processUpdate(DNSPacket& p) {
   if (! ::arg().mustDo("dnsupdate"))
     return RCode::Refused;
