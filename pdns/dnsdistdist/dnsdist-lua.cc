@@ -3229,7 +3229,8 @@ void setupLuaConfigurationOptions(LuaContext& luaCtx, bool client, bool configCh
 
   setupLuaConfig(luaCtx, client, configCheck);
   setupLuaActions(luaCtx);
-  setupLuaRules(luaCtx);
+  setupLuaSelectors(luaCtx);
+  setupLuaRuleChainsManagement(luaCtx);
   dnsdist::lua::hooks::setupLuaHooks(luaCtx);
 }
 
