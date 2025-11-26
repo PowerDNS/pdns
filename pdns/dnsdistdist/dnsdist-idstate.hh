@@ -201,6 +201,7 @@ public:
   std::unique_ptr<ProtoBufData> d_protoBufData{nullptr};
 #ifndef DISABLE_PROTOBUF
   std::vector<std::pair<std::string, std::shared_ptr<RemoteLoggerInterface>>> delayedResponseMsgs;
+  std::vector<std::shared_ptr<RemoteLoggerInterface>> ottraceLoggers;
 #endif
   std::unique_ptr<EDNSExtendedError> d_extendedError{nullptr};
   std::optional<uint32_t> tempFailureTTL{std::nullopt}; // 8

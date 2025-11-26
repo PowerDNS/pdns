@@ -15,15 +15,14 @@ Per-query tracing can be enabled using the :func:`SetTraceAction`. However, :pro
 When tracing is enabled in the query, :program:`dnsdist` stores start and end times of certain (but not all) functions that are called during the lifetime of the query and the response.
 It is recommended to send the traces out through a RemoteLogger in ResponseRules, to capture as much information as possible.
 
-.. note::
-   At the moment, the ProtoBuf message is sent out **during** the processing of the response rules.
-   Hence, the traces are not complete.
-   There are plans to remedy this, but no timeline to do so.
-
 Tracing uses more memory and CPU than usual query processing and it is recommended to enable tracing only for certain queries using specific :doc:`selectors <selectors>`.
 
 Example configuration
 =====================
+
+In this configuration, the RemoteLogger is passed directly to the ``SetTrace`` action.
+Doing this ensures that no matter what happens with the query (timeout, self-answered, cache-hit, dropped, answered by the backend), the trace will be sent out.
+When sending the trace in this way, the Protobuf message is essentially empty apart from the OpenTelemetry Trace.
 
 .. code-block:: yaml
 
@@ -41,18 +40,39 @@ Example configuration
        action:
          type: SetTrace
          value: true
-   response_rules:
-     - name: Do PB logging
+         remote_loggers:
+           - pblog
+
+Should you only want to receive the trace, including a fully filled Protobuf message, a `RemoteLog` can be used:
+
+.. code-block:: yaml
+
+   logging:
+     open_telemetry_tracing: true
+   remote_logging:
+     protobuf_loggers:
+       - name: pblog
+         address: 127.0.0.1:5301
+   query_rules:
+     - name: Enable tracing
        selector:
+         # Just as an example, in production don't trace all the queries
          type: All
        action:
-         type: RemoteLog
-         logger_name: pblog
-         # Delay ensures that the PB message is sent
-         # after the response is sent to client, instead
-         # of immediately. This ensures all Trace Spans
-         # have proper end timestamps.
-         delay: true
+         type: SetTrace
+         value: true
+    response_rules:
+      - name: Send PB log
+        selector:
+          type: All
+        action:
+          type: RemoteLog
+          logger_name: pblog
+          # Delay ensures that the PB message is sent
+          # after the response is sent to client, instead
+          # of immediately. This ensures all Trace Spans
+          # have proper end timestamps.
+          delay: true
 
 Passing Trace ID and Span ID to downstream servers
 ==================================================

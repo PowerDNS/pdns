@@ -122,5 +122,14 @@ std::shared_ptr<DNSAction> getRemoteLogAction(RemoteLogActionConfiguration& conf
 std::shared_ptr<DNSResponseAction> getRemoteLogResponseAction(RemoteLogActionConfiguration& config);
 std::shared_ptr<DNSAction> getDnstapLogAction(const std::string& identity, std::shared_ptr<RemoteLoggerInterface> logger, std::optional<DnstapAlterFunction> alterFunc);
 std::shared_ptr<DNSResponseAction> getDnstapLogResponseAction(const std::string& identity, std::shared_ptr<RemoteLoggerInterface> logger, std::optional<DnstapAlterResponseFunction> alterFunc);
+
+struct SetTraceActionConfiguration
+{
+  bool value = false;
+  std::vector<std::shared_ptr<RemoteLoggerInterface>> remote_loggers;
+  bool use_incoming_traceid = false;
+  std::uint16_t trace_edns_option = 0;
+};
+std::shared_ptr<DNSAction> getSetTraceAction(SetTraceActionConfiguration& config);
 #endif /* DISABLE_PROTOBUF */
 }

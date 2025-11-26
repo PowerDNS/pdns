@@ -19,7 +19,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include <memory>
 #include <stdexcept>
+#include <vector>
 
 #include "dnsdist-configuration-yaml.hh"
 
@@ -1684,6 +1686,33 @@ std::shared_ptr<DNSResponseActionWrapper> getDnstapLogResponseAction([[maybe_unu
   }
   auto action = dnsdist::actions::getDnstapLogResponseAction(std::string(config.identity), std::move(logger), alterFuncHolder ? std::move(*alterFuncHolder) : std::optional<dnsdist::actions::DnstapAlterResponseFunction>());
   return newDNSResponseActionWrapper(std::move(action), config.name);
+#endif
+}
+
+std::shared_ptr<DNSActionWrapper> getSetTraceAction(const SetTraceActionConfiguration& config)
+{
+#if defined(DISABLE_PROTOBUF)
+  throw std::runtime_error("Unable to create set trace action: protobuf support is disabled");
+#else
+  std::vector<std::shared_ptr<RemoteLoggerInterface>> loggers;
+  for (auto const& logger_name : config.remote_loggers) {
+    auto logger = dnsdist::configuration::yaml::getRegisteredTypeByName<RemoteLoggerInterface>(std::string(logger_name));
+    if (!logger && !(dnsdist::configuration::yaml::s_inClientMode || dnsdist::configuration::yaml::s_inConfigCheckMode)) {
+      throw std::runtime_error("Unable to find the protobuf logger named '" + std::string(logger_name) + "'");
+    }
+    loggers.push_back(logger);
+  }
+
+  dnsdist::actions::SetTraceActionConfiguration actionConfig{
+    .value = config.value,
+    .remote_loggers = std::move(loggers),
+    .use_incoming_traceid = config.use_incoming_traceid,
+    .trace_edns_option = config.trace_edns_option,
+  };
+
+  auto action = dnsdist::actions::getSetTraceAction(actionConfig);
+
+  return newDNSActionWrapper(std::move(action), config.name);
 #endif
 }
 
