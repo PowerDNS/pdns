@@ -398,9 +398,46 @@ BPFFilter::BPFFilter(std::unordered_map<std::string, MapConfiguration>& configs,
 #include "bpf-filter.main.ebpf"
     };
 
-    const struct bpf_insn qname_filter[] = {
+    // ABANDON EVERY HOPE - SCARY CODE STARTS HERE
+
+    // This EBF program is huge, and unfortunately not constant; this causes
+    // the compiler to emit a lot of code (and eat a lot of memory to do so).
+    // Therefore we include an incomplete but constant version of the program
+    // and patch it locally, relying upon the fact that there is only one place
+    // to change.
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
+    struct bpf_insn qname_filter[] = {
 #include "bpf-filter.qname.ebpf"
     };
+
+    // The program above contains
+    //   BPF_LD_MAP_FD(BPF_REG_1,0)
+    // instead of
+    //   BPF_LD_MAP_FD(BPF_REG_1,maps->d_qnames.d_fd.getHandle())
+    // and this is the only use of BPF_LD_MAP_FD in the program.
+    // We will search for that instruction, relying upon the fact that,
+    // in that particular program, there is only one such instruction.
+    {
+      unsigned int pos{0};
+      unsigned int limit{sizeof(qname_filter) / sizeof(struct bpf_insn)};
+      for (; pos < limit; ++pos) {
+        if (qname_filter[pos].code == (BPF_LD | BPF_DW | BPF_IMM)) { // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
+          // We have found our instruction.
+          break;
+        }
+      }
+      // BPF_LD_MAP_FP actually is a sequence of two bpf instructions,
+      // because it loads a 64-bit value. So it can't be the last
+      // instruction either...
+      if (pos >= limit - 1) {
+        throw std::runtime_error("Assumption in the layout of the eBPF filter program no longer stands");
+      }
+      auto data = static_cast<__u64>(maps->d_qnames.d_fd.getHandle());
+      qname_filter[pos].imm = static_cast<__s32>(data); // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
+      qname_filter[pos + 1].imm = static_cast<__s32>(data >> 32); // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
+    }
+
+    // SCARY CODE ENDS HERE
 
     try {
       d_mainfilter = loadProgram(main_filter,
