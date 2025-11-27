@@ -372,20 +372,19 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
     throw std::runtime_error("mdb_env_create failed: " + MDBError(retCode));
   }
 
+  std::unique_ptr<MDB_env, decltype(&mdb_env_close)> envGuard{env, mdb_env_close};
+
   if (int retCode = mdb_env_set_maxdbs(env, 20); retCode != 0) {
-    mdb_env_close(env);
     throw std::runtime_error("mdb_env_set_maxdbs failed: " + MDBError(retCode));
   }
 
   if (int retCode = mdb_env_open(env, filename.c_str(), MDB_NOSUBDIR, 0600); retCode != 0) {
-    mdb_env_close(env);
     throw std::runtime_error("mdb_env_open failed: " + MDBError(retCode));
   }
 
   MDB_txn* txn = nullptr;
 
   if (int retCode = mdb_txn_begin(env, nullptr, 0, &txn); retCode != 0) {
-    mdb_env_close(env);
     throw std::runtime_error("mdb_txn_begin failed: " + MDBError(retCode));
   }
 
@@ -414,20 +413,19 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
       throw std::runtime_error("mdb_env_create failed: " + MDBError(retCode));
     }
 
+    std::unique_ptr<MDB_env, decltype(&mdb_env_close)> shenvGuard{shenv, mdb_env_close};
+
     if (int retCode = mdb_env_set_maxdbs(shenv, 8); retCode != 0) {
-      mdb_env_close(env);
       throw std::runtime_error("mdb_env_set_maxdbs failed: " + MDBError(retCode));
     }
 
     if (int retCode = mdb_env_open(shenv, shardfile.c_str(), MDB_NOSUBDIR, 0600); retCode != 0) {
-      mdb_env_close(env);
       throw std::runtime_error("mdb_env_open failed: " + MDBError(retCode));
     }
 
     MDB_txn* shtxn = nullptr;
 
     if (int retCode = mdb_txn_begin(shenv, nullptr, 0, &shtxn); retCode != 0) {
-      mdb_env_close(env);
       throw std::runtime_error("mdb_txn_begin failed: " + MDBError(retCode));
     }
 
@@ -437,11 +435,9 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
     if (dbiOpenRc != 0) {
       if (dbiOpenRc == MDB_NOTFOUND) {
         mdb_txn_abort(shtxn);
-        mdb_env_close(shenv);
         continue;
       }
       mdb_txn_abort(shtxn);
-      mdb_env_close(shenv);
       throw std::runtime_error("mdb_dbi_open shard records failed: " + MDBError(dbiOpenRc));
     }
 
@@ -450,7 +446,6 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
     if (int retCode = MDBDbi::mdb_dbi_open(shtxn, "records_v5", MDB_CREATE, &shdbi2); retCode != 0) {
       mdb_dbi_close(shenv, shdbi);
       mdb_txn_abort(shtxn);
-      mdb_env_close(shenv);
       throw std::runtime_error("mdb_dbi_open shard records_v5 failed: " + MDBError(retCode));
     }
 
@@ -461,14 +456,12 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
       mdb_dbi_close(shenv, shdbi2);
       mdb_dbi_close(shenv, shdbi);
       mdb_txn_abort(shtxn);
-      mdb_env_close(shenv);
       throw std::runtime_error("copyDBIAndAddLSHeader failed");
     }
 
     cerr << "shard mbd_drop=" << mdb_drop(shtxn, shdbi, 1) << endl;
     mdb_txn_commit(shtxn);
     mdb_dbi_close(shenv, shdbi2);
-    mdb_env_close(shenv);
   }
 
   std::array<MDB_dbi, 4> fromtypeddbi{};
@@ -483,7 +476,6 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
     if (int retCode = MDBDbi::mdb_dbi_open(txn, dbname.c_str(), 0, &fromtypeddbi[index]); retCode != 0) {
       mdb_txn_abort(txn);
-      mdb_env_close(env);
       throw std::runtime_error("MDBDbi::mdb_dbi_open typeddbi failed: " + MDBError(retCode));
     }
 
@@ -492,7 +484,6 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
       // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
       mdb_dbi_close(env, fromtypeddbi[index]);
       mdb_txn_abort(txn);
-      mdb_env_close(env);
       throw std::runtime_error("mdb_dbi_open typeddbi target failed: " + MDBError(retCode));
     }
 
@@ -506,7 +497,6 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
       // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
       mdb_dbi_close(env, fromtypeddbi[index]);
       mdb_txn_abort(txn);
-      mdb_env_close(env);
       throw std::runtime_error("copyTypedDBI failed");
     }
 
@@ -530,7 +520,6 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
     if (int retCode = MDBDbi::mdb_dbi_open(txn, fdbname.c_str(), 0, &fromindexdbi[index]); retCode != 0) {
       mdb_txn_abort(txn);
-      mdb_env_close(env);
       throw std::runtime_error("mdb_dbi_open indexdbi failed: " + MDBError(retCode));
     }
 
@@ -539,7 +528,6 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
       // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
       mdb_dbi_close(env, fromindexdbi[index]);
       mdb_txn_abort(txn);
-      mdb_env_close(env);
       throw std::runtime_error("mdb_dbi_open indexdbi target failed: " + MDBError(retCode));
     }
 
@@ -553,7 +541,6 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
       // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
       mdb_dbi_close(env, fromindexdbi[index]);
       mdb_txn_abort(txn);
-      mdb_env_close(env);
       throw std::runtime_error("copyIndexDBI failed");
     }
 
@@ -569,7 +556,6 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
   // finally, migrate the pdns db
   if (int retCode = MDBDbi::mdb_dbi_open(txn, "pdns", 0, &dbi); retCode != 0) {
     mdb_txn_abort(txn);
-    mdb_env_close(env);
     throw std::runtime_error("mdb_dbi_open pdns failed: " + MDBError(retCode));
   }
 
@@ -653,7 +639,6 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
     mdb_dbi_close(env, toindexdbi[i]);
   }
-  mdb_env_close(env);
 
   cerr << "migration done" << endl;
   return true;
