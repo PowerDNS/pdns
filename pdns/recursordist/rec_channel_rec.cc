@@ -116,8 +116,10 @@ static map<string, std::function<StatsMap()>> d_getmultimembers;
 
 struct dynmetrics
 {
-  std::atomic<unsigned long>* d_ptr;
+  std::unique_ptr<std::atomic<unsigned long>> d_ptr;
   std::string d_prometheusName;
+  std::optional<PrometheusMetricType> d_prometheusType;
+  std::optional<string> d_prometheusDescr;
 };
 
 static LockGuarded<map<string, dynmetrics>> d_dynmetrics;
@@ -176,25 +178,34 @@ static std::string getPrometheusName(const std::string& arg)
   return "pdns_recursor_" + name;
 }
 
-std::atomic<unsigned long>* getDynMetric(const std::string& str, const std::string& prometheusName)
+std::atomic<unsigned long>* getDynMetric(const std::string& str, const std::string& prometheusName, const std::string& prometheusTypeName, const std::string& prometheusDescr)
 {
   auto locked = d_dynmetrics.lock();
   auto iter = locked->find(str);
   if (iter != locked->end()) {
-    return iter->second.d_ptr;
+    return iter->second.d_ptr.get();
   }
 
-  std::string name(str);
-  if (!prometheusName.empty()) {
-    name = prometheusName;
+  std::string name = prometheusName.empty() ? getPrometheusName(str) : prometheusName;
+
+  std::optional<PrometheusMetricType> metricType;
+  if (prometheusTypeName == "counter") {
+    metricType = PrometheusMetricType::counter;
   }
-  else {
-    name = getPrometheusName(name);
+  else if (prometheusTypeName == "gauge") {
+    metricType = PrometheusMetricType::gauge;
   }
 
-  auto ret = dynmetrics{new std::atomic<unsigned long>(), std::move(name)};
-  (*locked)[str] = ret;
-  return ret.d_ptr;
+  std::optional<std::string> descr;
+  if (!prometheusDescr.empty()) {
+    descr = prometheusDescr;
+  }
+
+  auto uptr = std::make_unique<std::atomic<unsigned long>>(0);
+  auto* ptr = uptr.get();
+  auto ret = dynmetrics{std::move(uptr), std::move(name), metricType, std::move(descr)};
+  (*locked)[str] = std::move(ret);
+  return ptr;
 }
 
 static std::optional<uint64_t> get(const string& name)
@@ -258,7 +269,7 @@ StatsMap getAllStatsMap(StatComponent component)
   {
     for (const auto& value : *(d_dynmetrics.lock())) {
       if (disabledlistMap.count(value.first) == 0) {
-        ret.emplace(value.first, StatsMapEntry{value.second.d_prometheusName, std::to_string(*value.second.d_ptr)});
+        ret.emplace(value.first, StatsMapEntry{value.second.d_prometheusName, std::to_string(*value.second.d_ptr), value.second.d_prometheusType, value.second.d_prometheusDescr});
       }
     }
   }
