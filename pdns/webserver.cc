@@ -250,6 +250,34 @@ static void* WebServerConnectionThreadStart(const WebServer* webServer, const st
   return nullptr;
 }
 
+// Decide which content type to use for the answer, based on the
+// `accept' request header. If this header is missing, we try to
+// reply with the same content type as the request.
+static void setupAllowedContentType(HttpRequest& req)
+{
+  auto header = req.headers.find("accept");
+  if (header != req.headers.end()) {
+    // If Accept: */* then we'll happily serve anything!
+    if (header->second.find("*/*") != std::string::npos) {
+      req.accept_yaml = req.accept_json = req.accept_html = true;
+      return;
+    }
+  }
+  else {
+    header = req.headers.find("content-type");
+  }
+  if (header != req.headers.end()) {
+    // yaml wins over json, json wins over html
+    if (header->second.find("application/x-yaml") != std::string::npos || header->second.find("text/x-yaml") != std::string::npos) {
+      req.accept_yaml = true;
+    } else if (header->second.find("application/json") != std::string::npos) {
+      req.accept_json = true;
+    } else if (header->second.find("text/html") != std::string::npos) {
+      req.accept_html = true;
+    }
+  }
+}
+
 void WebServer::handleRequest(HttpRequest& req, HttpResponse& resp) const
 {
   // set default headers
@@ -268,25 +296,7 @@ void WebServer::handleRequest(HttpRequest& req, HttpResponse& resp) const
     SLOG(g_log<<Logger::Debug<<req.logprefix<<"Handling request \"" << req.url.path << "\"" << endl,
          log->info(Logr::Debug, "Handling request"));
 
-    // Decide which content type to use for the answer, based on the
-    // `accept' request header. If this header is missing, we try to
-    // reply with the same content type as the request.
-    auto header = req.headers.find("accept");
-    if (header == req.headers.end()) {
-      header = req.headers.find("content-type");
-    }
-    if (header != req.headers.end()) {
-      // yaml wins over json, json wins over html
-      if (header->second.find("application/x-yaml") != std::string::npos) {
-        req.accept_yaml = true;
-      } else if (header->second.find("text/x-yaml") != std::string::npos) {
-        req.accept_yaml = true;
-      } else if (header->second.find("application/json") != std::string::npos) {
-        req.accept_json = true;
-      } else if (header->second.find("text/html") != std::string::npos) {
-        req.accept_html = true;
-      }
-    }
+    setupAllowedContentType(req);
 
     YaHTTP::THandlerFunction handler;
     YaHTTP::RoutingResult res = YaHTTP::Router::Route(&req, handler);
