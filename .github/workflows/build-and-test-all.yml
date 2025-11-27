@@ -84,10 +84,10 @@ jobs:
         run: echo "SANITIZERS=${{ matrix.builder == 'meson' && 'address,undefined' || 'asan+ubsan' }}" >> "$GITHUB_ENV"
         working-directory: .
       - name: install pip build dependencies
-        run: |
-          python3 -m venv ${REPO_HOME}/.venv
-          . ${REPO_HOME}/.venv/bin/activate && pip install -r ${REPO_HOME}/meson/requirements.txt
-        working-directory: .
+        uses: ./.github/actions/pip-build-dependencies
+        with:
+          venv-parent: ${{ env.REPO_HOME }}
+          working-directory: .
       - run: ${{ env.INV_CMD }} install-auth-build-deps
         working-directory: .
       - run: ${{ env.INV_CMD }} ci-autoconf ${{ matrix.builder == 'meson' && '--meson' || '' }}
@@ -165,10 +165,10 @@ jobs:
         with:
           cache-key-base: recursor-ccache-${{ matrix.builder }}-${{ matrix.features }}-${{ matrix.sanitizers }}
       - name: install pip build dependencies
-        run: |
-          python3 -m venv ${REPO_HOME}/.venv
-          . ${REPO_HOME}/.venv/bin/activate && pip install -r ${REPO_HOME}/meson/requirements.txt
-        working-directory: .
+        uses: ./.github/actions/pip-build-dependencies
+        with:
+          venv-parent: ${{ env.REPO_HOME }}
+          working-directory: .
       - run: ${{ env.INV_CMD }} install-rec-build-deps
         working-directory: ./pdns/recursordist/
       - run: ${{ env.INV_CMD }} ci-install-rust ${REPO_HOME}
@@ -246,10 +246,10 @@ jobs:
         with:
           cache-key-base: dnsdist-${{ matrix.features }}-${{ matrix.sanitizers }}-${{ matrix.builder}}${{ matrix.architecture_suffix }}-ccache
       - name: install pip build dependencies
-        run: |
-          python3 -m venv ${REPO_HOME}/.venv
-          . ${REPO_HOME}/.venv/bin/activate && pip install -r ${REPO_HOME}/meson/requirements.txt
-        working-directory: .
+        uses: ./.github/actions/pip-build-dependencies
+        with:
+          venv-parent: ${{ env.REPO_HOME }}
+          working-directory: .
       - run: ${{ env.INV_CMD }} install-clang
         working-directory: .
       - run: ${{ env.INV_CMD }} install-lld-linker-if-needed
@@ -352,9 +352,10 @@ jobs:
           name: pdns-auth-meson-${{ env.normalized-branch-name }}
           path: /opt/pdns-auth
       - name: install pip build dependencies
-        run: |
-          python3 -m venv ${REPO_HOME}/.venv
-          . ${REPO_HOME}/.venv/bin/activate && pip install -r ${REPO_HOME}/meson/requirements.txt
+        uses: ./.github/actions/pip-build-dependencies
+        with:
+          venv-parent: ${{ env.REPO_HOME }}
+          working-directory: .
       - run: ${{ env.INV_CMD }} apt-fresh
       - run: ${{ env.INV_CMD }} install-clang-runtime
       - run: ${{ env.INV_CMD }} install-auth-test-deps -b ${{ matrix.backend }}
@@ -485,9 +486,10 @@ jobs:
           path: /opt/pdns-auth
       # FIXME: install recursor for backends that have ALIAS
       - name: install pip build dependencies
-        run: |
-          python3 -m venv ${REPO_HOME}/.venv
-          . ${REPO_HOME}/.venv/bin/activate && pip install -r ${REPO_HOME}/meson/requirements.txt
+        uses: ./.github/actions/pip-build-dependencies
+        with:
+          venv-parent: ${{ env.REPO_HOME }}
+          working-directory: .
       - run: ${{ env.INV_CMD }} github-more-diskspace
       - run: ${{ env.INV_CMD }} install-clang-runtime
       - run: ${{ env.INV_CMD }} install-auth-test-deps -b ${{ matrix.backend }}
@@ -529,9 +531,10 @@ jobs:
           name: pdns-auth-meson-${{ env.normalized-branch-name }}
           path: /opt/pdns-auth
       - name: install pip build dependencies
-        run: |
-          python3 -m venv ${REPO_HOME}/.venv
-          . ${REPO_HOME}/.venv/bin/activate && pip install -r ${REPO_HOME}/meson/requirements.txt
+        uses: ./.github/actions/pip-build-dependencies
+        with:
+          venv-parent: ${{ env.REPO_HOME }}
+          working-directory: .
       - run: ${{ env.INV_CMD }} install-clang-runtime
       - run: ${{ env.INV_CMD }} install-auth-test-deps
       - run: ${{ env.INV_CMD }} test-ixfrdist
@@ -579,9 +582,10 @@ jobs:
           name: pdns-recursor-full-${{ matrix.sanitizers }}-meson-${{ env.normalized-branch-name }}
           path: /opt/pdns-recursor
       - name: install pip build dependencies
-        run: |
-          python3 -m venv ${REPO_HOME}/.venv
-          . ${REPO_HOME}/.venv/bin/activate && pip install -r ${REPO_HOME}/meson/requirements.txt
+        uses: ./.github/actions/pip-build-dependencies
+        with:
+          venv-parent: ${{ env.REPO_HOME }}
+          working-directory: .
       - run: ${{ env.INV_CMD }} apt-fresh
       - run: ${{ env.INV_CMD }} add-auth-repo ${{ matrix.dist_name }} $(. /etc/os-release && echo $VERSION_CODENAME) ${{ matrix.pdns_repo_version }}
       - run: ${{ env.INV_CMD }} install-clang-runtime
@@ -633,9 +637,10 @@ jobs:
           name: pdns-recursor-full-${{ matrix.sanitizers }}-meson-${{ env.normalized-branch-name }}
           path: /opt/pdns-recursor
       - name: install pip build dependencies
-        run: |
-          python3 -m venv ${REPO_HOME}/.venv
-          . ${REPO_HOME}/.venv/bin/activate && pip install -r ${REPO_HOME}/meson/requirements.txt
+        uses: ./.github/actions/pip-build-dependencies
+        with:
+          venv-parent: ${{ env.REPO_HOME }}
+          working-directory: .
       - run: ${{ env.INV_CMD }} apt-fresh
       - run: ${{ env.INV_CMD }} add-auth-repo ${{ matrix.dist_name }} $(. /etc/os-release && echo $VERSION_CODENAME) ${{ matrix.pdns_repo_version }}
       - run: ${{ env.INV_CMD }} install-clang-runtime
@@ -688,9 +693,10 @@ jobs:
           name: pdns-recursor-full-${{ matrix.sanitizers }}-meson-${{ env.normalized-branch-name }}
           path: /opt/pdns-recursor
       - name: install pip build dependencies
-        run: |
-          python3 -m venv ${REPO_HOME}/.venv
-          . ${REPO_HOME}/.venv/bin/activate && pip install -r ${REPO_HOME}/meson/requirements.txt
+        uses: ./.github/actions/pip-build-dependencies
+        with:
+          venv-parent: ${{ env.REPO_HOME }}
+          working-directory: .
       - run: ${{ env.INV_CMD }} install-clang-runtime
       - run: ${{ env.INV_CMD }} install-rec-bulk-deps
       - run: ${{ env.INV_CMD }} test-bulk-recursor 100 ${{ matrix.threads }} ${{ matrix.mthreads }} ${{ matrix.shards }} ${{ matrix.IPv6 }}
@@ -735,9 +741,9 @@ jobs:
           path: /opt/pdns-recursor
       - run: build-scripts/gh-actions-setup-inv-no-dist-upgrade
       - name: install pip build dependencies
-        run: |
-          python3 -m venv ${{ github.workspace }}/.venv
-          . ${{ github.workspace }}/.venv/bin/activate && pip install -r ${{ github.workspace }}/meson/requirements.txt
+        uses: ./.github/actions/pip-build-dependencies
+        with:
+          venv-parent: ${{ github.workspace }}
       - run: . ${{ github.workspace }}/.venv/bin/activate && inv install-rec-bulk-ubicloud-deps
       - run: . ${{ github.workspace }}/.venv/bin/activate && inv test-bulk-recursor 50000 ${{ matrix.threads }} ${{ matrix.mthreads }} ${{ matrix.shards }} ${{ matrix.IPv6 }}
         env:
@@ -795,9 +801,9 @@ jobs:
           name: dnsdist-full-${{ matrix.sanitizers }}-meson-${{ env.normalized-branch-name }}
           path: /opt/dnsdist
       - name: install pip build dependencies
-        run: |
-          python3 -m venv ${REPO_HOME}/.venv
-          . ${REPO_HOME}/.venv/bin/activate && pip install -r ${REPO_HOME}/meson/requirements.txt
+        uses: ./.github/actions/pip-build-dependencies
+        with:
+          venv-parent: ${{ env.REPO_HOME }}
       - run: ${{ env.INV_CMD }} install-clang-runtime
       - run: ${{ env.INV_CMD }} install-dnsdist-test-deps $([ "$(. /etc/os-release && echo $VERSION_CODENAME)" = "bullseye" ] && echo "--skipXDP=True")
       - run: ${{ env.INV_CMD }} test-dnsdist $([ "$(. /etc/os-release && echo $VERSION_CODENAME)" = "bullseye" ] && echo "--skipXDP=True")
@@ -827,9 +833,10 @@ jobs:
           ref: ${{ inputs.branch-name }}
           persist-credentials: false
       - name: install pip build dependencies
-        run: |
-          python3 -m venv ${REPO_HOME}/.venv
-          . ${REPO_HOME}/.venv/bin/activate && pip install -r ${REPO_HOME}/meson/requirements.txt
+        uses: ./.github/actions/pip-build-dependencies
+        with:
+          venv-parent: ${{ env.REPO_HOME }}
+          working-directory: .
       - run: ${{ env.INV_CMD }} install-swagger-tools
       - run: ${{ env.INV_CMD }} swagger-syntax-check
 
