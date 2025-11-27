@@ -93,10 +93,7 @@ fn unauthorized(response: &mut rustweb::Response, headers: &mut header::HeaderMa
     response.status = status.as_u16();
     let val = format!("{} realm=\"PowerDNS\"", auth);
     if let Ok(data) = header::HeaderValue::from_str(&val) {
-        headers.insert(
-            header::WWW_AUTHENTICATE,
-            data,
-        );
+        headers.insert(header::WWW_AUTHENTICATE, data);
     }
     if let Some(body) = status.canonical_reason() {
         response.body = body.as_bytes().to_vec();
@@ -295,12 +292,7 @@ struct Context {
 }
 
 // Serve a file
-fn file(
-    method: &Method,
-    path: &str,
-    request: &rustweb::Request,
-    response: &mut rustweb::Response,
-) {
+fn file(method: &Method, path: &str, request: &rustweb::Request, response: &mut rustweb::Response) {
     // This calls into C++
     if rustweb::serveStuff(request, response).is_err() {
         // Return 404 not found response.
@@ -324,12 +316,8 @@ fn file(
     }
 }
 
-type FileFunc = fn(
-    method: &Method,
-    path: &str,
-    request: &rustweb::Request,
-    response: &mut rustweb::Response,
-);
+type FileFunc =
+    fn(method: &Method, path: &str, request: &rustweb::Request, response: &mut rustweb::Response);
 
 // Match a request and return the function that implements it, this should probably be table based.
 fn matcher(
@@ -680,18 +668,15 @@ async fn process_request(
     for kv in response.headers {
         if let Ok(key) = header::HeaderName::from_bytes(kv.key.as_bytes()) {
             if let Ok(value) = header::HeaderValue::from_str(kv.value.as_str()) {
-                rust_response.headers_mut().insert(
-                    key, value
-                );
+                rust_response.headers_mut().insert(key, value);
             }
         }
     }
 
     if let Ok(close) = header::HeaderValue::from_str("close") {
-        rust_response.headers_mut().insert(
-            header::CONNECTION,
-            close
-        );
+        rust_response
+            .headers_mut()
+            .insert(header::CONNECTION, close);
     }
     if ctx.loglevel != rustmisc::LogLevel::None {
         let version = format!("{:?}", version);
@@ -972,7 +957,7 @@ pub fn serveweb(
                 while let Some(res) = set.join_next().await {
                     let msg = match res {
                         Ok(Err(wrapped)) => format!("{:?}", wrapped),
-                        _ => format!("{:?}", res)
+                        _ => format!("{:?}", res),
                     };
                     rustmisc::error(
                         &ctx.logger,
@@ -990,11 +975,8 @@ pub fn serveweb(
 // Load public certificate from file.
 fn load_certs(filename: &str) -> std::io::Result<Vec<pki_types::CertificateDer<'static>>> {
     // Open certificate file.
-    let certfile = std::fs::File::open(filename).map_err(|e| {
-        std::io::Error::other(
-            format!("Failed to open {}: {}", filename, e),
-        )
-    })?;
+    let certfile = std::fs::File::open(filename)
+        .map_err(|e| std::io::Error::other(format!("Failed to open {}: {}", filename, e)))?;
     let mut reader = std::io::BufReader::new(certfile);
 
     // Load and return certificate.
@@ -1004,21 +986,18 @@ fn load_certs(filename: &str) -> std::io::Result<Vec<pki_types::CertificateDer<'
 // Load private key from file.
 fn load_private_key(filename: &str) -> std::io::Result<pki_types::PrivateKeyDer<'static>> {
     // Open keyfile.
-    let keyfile = std::fs::File::open(filename).map_err(|e| {
-        std::io::Error::other(
-            format!("Failed to open {}: {}", filename, e),
-        )
-    })?;
+    let keyfile = std::fs::File::open(filename)
+        .map_err(|e| std::io::Error::other(format!("Failed to open {}: {}", filename, e)))?;
     let mut reader = std::io::BufReader::new(keyfile);
 
     // Load and return a single private key.
     match rustls_pemfile::private_key(&mut reader) {
         Ok(Some(pkey)) => Ok(pkey),
-        Ok(None) => Err(
-            std::io::Error::other(
-                format!("Failed to parse private key from {}", filename),
-            )),
-        Err(e) => Err(e)
+        Ok(None) => Err(std::io::Error::other(format!(
+            "Failed to parse private key from {}",
+            filename
+        ))),
+        Err(e) => Err(e),
     }
 }
 
