@@ -17,9 +17,9 @@ New Settings
 Changed Settings
 ^^^^^^^^^^^^^^^^
 
-- It is no longer needed to set :ref:`setting-yaml-webservice.api_key` to enable the web service.
-  When no API key is set usage is limited to (potentially password based) access of the frontpage and related statistics calls.
-  If you have a configuration where the webservice is enabled but no api key is set, the webservice will now become available while it was not before.
+- It is no longer necessary to set :ref:`setting-yaml-webservice.api_key` to enable the web service.
+  When no API key is set, usage is limited to (potentially password based) access of the frontpage and related statistics calls.
+  If you have a configuration where the webservice is enabled but no api key is set, the webservice will now become available where it was not before.
 
 :program:`rec_control`
 ^^^^^^^^^^^^^^^^^^^^^^
