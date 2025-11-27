@@ -431,6 +431,7 @@ unsigned int SyncRes::s_maxnegttl;
 unsigned int SyncRes::s_maxbogusttl;
 unsigned int SyncRes::s_maxcachettl;
 unsigned int SyncRes::s_maxqperq;
+unsigned int SyncRes::s_maxbytesperq;
 unsigned int SyncRes::s_maxnsperresolve;
 unsigned int SyncRes::s_maxnsaddressqperq;
 unsigned int SyncRes::s_maxtotusec;
@@ -540,7 +541,7 @@ static inline void accountAuthLatency(uint64_t usec, int family)
 }
 
 SyncRes::SyncRes(const struct timeval& now) :
-  d_authzonequeries(0), d_outqueries(0), d_tcpoutqueries(0), d_dotoutqueries(0), d_throttledqueries(0), d_timeouts(0), d_unreachables(0), d_totUsec(0), d_fixednow(now), d_now(now), d_cacheonly(false), d_doDNSSEC(false), d_doEDNS0(false), d_qNameMinimization(s_qnameminimization), d_lm(s_lm)
+  d_authzonequeries(0), d_outqueries(0), d_tcpoutqueries(0), d_dotoutqueries(0), d_throttledqueries(0), d_timeouts(0), d_unreachables(0), d_bytesReceived(0), d_totUsec(0), d_fixednow(now), d_now(now), d_cacheonly(false), d_doDNSSEC(false), d_doEDNS0(false), d_qNameMinimization(s_qnameminimization), d_lm(s_lm)
 {
   d_validationContext.d_nsec3IterationsRemainingQuota = s_maxnsec3iterationsperq > 0 ? s_maxnsec3iterationsperq : std::numeric_limits<decltype(d_validationContext.d_nsec3IterationsRemainingQuota)>::max();
 }
@@ -3525,7 +3526,10 @@ vector<ComboAddress> SyncRes::retrieveAddressesForNS(const std::string& prefix, 
 void SyncRes::checkMaxQperQ(const DNSName& qname) const
 {
   if (d_outqueries + d_throttledqueries > s_maxqperq) {
-    throw ImmediateServFailException("more than " + std::to_string(s_maxqperq) + " (max-qperq) queries sent or throttled while resolving " + qname.toLogString());
+    throw ImmediateServFailException("More than " + std::to_string(s_maxqperq) + " (outgoing.max_qperq) queries sent or throttled while resolving " + qname.toLogString());
+  }
+  if (d_bytesReceived > s_maxbytesperq) {
+    throw ImmediateServFailException("More than " + std::to_string(s_maxbytesperq) + " (outgoing.max_bytesperq) bytes received while resolving " + qname.toLogString());
   }
 }
 
@@ -5538,6 +5542,7 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
     throw ImmediateServFailException("Query killed by policy");
   }
 
+  d_bytesReceived += lwr.d_bytesReceived;
   d_totUsec += lwr.d_usec;
 
   if (resolveret == LWResult::Result::Spoofed) {
