@@ -568,7 +568,8 @@ def generate_cpp_selector_wrappers(def_dir, cxx_dest_dir):
 def generate_rust_actions_enum(output, def_dir, response):
     suffix = 'ResponseAction' if response else 'Action'
     actions_definitions = get_actions_definitions(def_dir, response)
-    enum_buffer = f'''#[derive(Default, Serialize, Deserialize, Debug, PartialEq)]
+    enum_buffer = f'''#[allow(clippy::upper_case_acronyms)]
+#[derive(Default, Serialize, Deserialize, Debug, PartialEq)]
 #[serde(tag = "type")]
 enum {suffix} {{
     #[default]
@@ -591,7 +592,8 @@ enum {suffix} {{
 def generate_rust_selectors_enum(output, def_dir):
     suffix = 'Selector'
     selectors_definitions = get_selectors_definitions(def_dir)
-    enum_buffer = f'''#[derive(Default, Serialize, Deserialize, Debug, PartialEq)]
+    enum_buffer = f'''#[allow(clippy::upper_case_acronyms)]
+#[derive(Default, Serialize, Deserialize, Debug, PartialEq)]
 #[serde(tag = "type")]
 enum {suffix} {{
     #[default]
@@ -663,8 +665,10 @@ def generate_rust_action_to_config(output, def_dir, response):
         name = get_rust_object_name(action['name'])
         if name in ['Continue']:
             enum_buffer += f'''        {suffix}::{name}(cont) => {{
-             let mut config: dnsdistsettings::{name}{suffix}Configuration = Default::default();
-             config.action = get_one_action_from_serde(&*cont.action)?;
+             let config = dnsdistsettings::{name}{suffix}Configuration {{
+                 action: get_one_action_from_serde(&cont.action)?,
+                 ..Default::default()
+             }};
              return Ok(dnsdistsettings::SharedDNS{suffix} {{
                  action: dnsdistsettings::get{name}{suffix}(&config)?,
              }});
@@ -673,7 +677,7 @@ def generate_rust_action_to_config(output, def_dir, response):
         else:
             enum_buffer += f'''        {suffix}::{name}(config) => {{
                 return Ok(dnsdistsettings::SharedDNS{suffix} {{
-                    action: dnsdistsettings::get{name}{suffix}(&config)?,
+                    action: dnsdistsettings::get{name}{suffix}(config)?,
                 }});
             }}
 '''
@@ -701,7 +705,7 @@ def generate_rust_selector_to_config(output, def_dir):
             enum_buffer += f'''        {suffix}::{name}({var}) => {{
              let mut config: dnsdistsettings::{name}{suffix}Configuration = Default::default();
              for sub_selector in &{var}.selectors {{
-                 config.selectors.push(get_one_selector_from_serde(&sub_selector)?)
+                 config.selectors.push(get_one_selector_from_serde(sub_selector)?)
              }}
              return Ok(dnsdistsettings::SharedDNS{suffix} {{
                        selector: dnsdistsettings::get{name}{suffix}(&config)?
@@ -711,7 +715,7 @@ def generate_rust_selector_to_config(output, def_dir):
         elif name in ['Not']:
             enum_buffer += f'''        {suffix}::{name}({var}) => {{
              let mut config: dnsdistsettings::{name}{suffix}Configuration = Default::default();
-             match get_one_selector_from_serde(&*{var}.selector) {{
+             match get_one_selector_from_serde(&{var}.selector) {{
                  Ok(sel) => config.selector = sel,
                  Err(e) => return Err(e),
              }}
@@ -725,7 +729,7 @@ def generate_rust_selector_to_config(output, def_dir):
 '''
         else:
             enum_buffer += f'''        {suffix}::{name}({var}) => {{
-            match dnsdistsettings::get{name}{suffix}(&{var}) {{
+            match dnsdistsettings::get{name}{suffix}({var}) {{
                 Ok(sel) => return Ok(dnsdistsettings::SharedDNS{suffix} {{
                                   selector: sel,
                            }}),
