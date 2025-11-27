@@ -347,6 +347,8 @@ jobs:
           submodules: recursive
           ref: ${{ inputs.branch-name }}
           persist-credentials: false
+      - name: add problem matchers
+        uses: ./.github/actions/problem-matchers
       - uses: ./.github/actions/normalize-branch-name
       - name: Fetch the binaries
         uses: actions/download-artifact@v6
@@ -480,6 +482,8 @@ jobs:
           submodules: recursive
           ref: ${{ inputs.branch-name }}
           persist-credentials: false
+      - name: add problem matchers
+        uses: ./.github/actions/problem-matchers
       - uses: ./.github/actions/normalize-branch-name
       - name: Fetch the binaries
         uses: actions/download-artifact@v6
@@ -526,6 +530,8 @@ jobs:
           submodules: recursive
           ref: ${{ inputs.branch-name }}
           persist-credentials: false
+      - name: add problem matchers
+        uses: ./.github/actions/problem-matchers
       - uses: ./.github/actions/normalize-branch-name
       - name: Fetch the binaries
         uses: actions/download-artifact@v6
@@ -577,6 +583,8 @@ jobs:
           submodules: recursive
           ref: ${{ inputs.branch-name }}
           persist-credentials: false
+      - name: add problem matchers
+        uses: ./.github/actions/problem-matchers
       - uses: ./.github/actions/normalize-branch-name
       - name: Fetch the binaries
         uses: actions/download-artifact@v6
@@ -633,6 +641,8 @@ jobs:
           ref: ${{ inputs.branch-name }}
           persist-credentials: false
       - uses: ./.github/actions/normalize-branch-name
+      - name: add problem matchers
+        uses: ./.github/actions/problem-matchers
       - name: Fetch the binaries
         uses: actions/download-artifact@v6
         with:
@@ -688,6 +698,8 @@ jobs:
           submodules: recursive
           ref: ${{ inputs.branch-name }}
           persist-credentials: false
+      - name: add problem matchers
+        uses: ./.github/actions/problem-matchers
       - uses: ./.github/actions/normalize-branch-name
       - name: Fetch the binaries
         uses: actions/download-artifact@v6
@@ -735,6 +747,8 @@ jobs:
           submodules: recursive
           ref: ${{ inputs.branch-name }}
           persist-credentials: false
+      - name: add problem matchers
+        uses: ./.github/actions/problem-matchers
       - uses: ./.github/actions/normalize-branch-name
       - name: Fetch the binaries
         uses: actions/download-artifact@v6
@@ -796,6 +810,8 @@ jobs:
           submodules: recursive
           ref: ${{ inputs.branch-name }}
           persist-credentials: false
+      - name: add problem matchers
+        uses: ./.github/actions/problem-matchers
       - uses: ./.github/actions/normalize-branch-name
       - name: Fetch the binaries
         uses: actions/download-artifact@v6
@@ -834,6 +850,8 @@ jobs:
           submodules: recursive
           ref: ${{ inputs.branch-name }}
           persist-credentials: false
+      - name: add problem matchers
+        uses: ./.github/actions/problem-matchers
       - name: install pip build dependencies
         uses: ./.github/actions/pip-build-dependencies
         with:

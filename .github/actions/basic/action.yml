@@ -8,6 +8,8 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: add problem matchers
+      uses: ./.github/actions/problem-matchers
     - name: get timestamp for cache
       id: get-stamp
       run: |
