@@ -16,6 +16,7 @@
         fn registerDnstapLogger(config: &DnstapLoggerConfiguration);
         fn registerKVSObjects(config: &KeyValueStoresConfiguration);
         fn registerNMGObjects(nmgs: &Vec<NetmaskGroupConfiguration>);
+        fn registerTimedIPSetObjects(sets: &Vec<TimedIpSetConfiguration>);
     }
 }
 
