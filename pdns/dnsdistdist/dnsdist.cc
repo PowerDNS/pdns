@@ -466,7 +466,7 @@ bool applyRulesToResponse(const std::vector<dnsdist::rules::ResponseRuleAction>&
   static const std::string ruleType = "Response";
 
   for (const auto& rrule : respRuleActions) {
-    auto ruleCloser = dnsResponse.ids.getRulesCloser(rrule.d_name, __func__, ruleType); // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+    auto ruleCloser = dnsResponse.ids.getRulesCloser(rrule.d_name, ruleType);
     if (rrule.d_rule->matches(&dnsResponse)) {
       ++rrule.d_rule->d_matches;
       action = (*rrule.d_action)(&dnsResponse, &ruleresult);
@@ -520,7 +520,7 @@ bool applyRulesToResponse(const std::vector<dnsdist::rules::ResponseRuleAction>&
 
 bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse, [[maybe_unused]] bool muted)
 {
-  auto closer = dnsResponse.ids.getCloser(__func__, "processResponse"); // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+  auto closer = dnsResponse.ids.getCloser(__func__); // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
   bool zeroScope = false;
   if (!fixUpResponse(response, dnsResponse.ids.qname, dnsResponse.ids.origFlags, dnsResponse.ids.ednsAdded, dnsResponse.ids.ecsAdded, dnsResponse.ids.useZeroScope ? &zeroScope : nullptr)) {
     if (closer) {
@@ -552,7 +552,7 @@ bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse,
       cacheKey = dnsResponse.ids.cacheKeyNoECS;
     }
     {
-      auto cacheInsertCloser = dnsResponse.ids.getCloser("packetCacheInsert", __func__); // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+      auto cacheInsertCloser = dnsResponse.ids.getCloser("packetCacheInsert"); // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
       dnsResponse.ids.packetCache->insert(cacheKey, zeroScope ? std::nullopt : dnsResponse.ids.subnet, dnsResponse.ids.cacheFlags, dnsResponse.ids.dnssecOK ? *dnsResponse.ids.dnssecOK : false, dnsResponse.ids.qname, dnsResponse.ids.qtype, dnsResponse.ids.qclass, response, dnsResponse.ids.forwardedOverUDP, dnsResponse.getHeader()->rcode, dnsResponse.ids.tempFailureTTL);
     }
     const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
@@ -584,7 +584,7 @@ bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse,
 bool processResponse(PacketBuffer& response, DNSResponse& dnsResponse, bool muted)
 {
   // This is a new root span
-  auto closer = dnsResponse.ids.getCloser(__func__, SpanID{}); // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+  auto closer = dnsResponse.ids.getCloser(__func__); // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
   const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
   const auto& respRuleActions = dnsdist::rules::getResponseRuleChain(chains, dnsdist::rules::ResponseRuleChain::ResponseRules);
@@ -1026,7 +1026,7 @@ static bool applyRulesChainToQuery(const std::vector<dnsdist::rules::RuleAction>
   static const std::string ruleType; // Empty string
 
   for (const auto& rule : rules) {
-    auto ruleCloser = dnsQuestion.ids.getRulesCloser(rule.d_name, __func__, ruleType); // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+    auto ruleCloser = dnsQuestion.ids.getRulesCloser(rule.d_name, ruleType);
 
     if (!rule.d_rule->matches(&dnsQuestion)) {
       continue;
@@ -1454,7 +1454,7 @@ static ProcessQueryResult handleQueryTurnedIntoSelfAnsweredResponse(DNSQuestion&
 static ServerPolicy::SelectedBackend selectBackendForOutgoingQuery(DNSQuestion& dnsQuestion, const ServerPool& serverPool)
 {
   // Not exactly processQuery, but it works for now
-  auto closer = dnsQuestion.ids.getCloser(__func__, "processQuery"); // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+  auto closer = dnsQuestion.ids.getCloser(__func__); // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
   const auto& policy = serverPool.policy != nullptr ? *serverPool.policy : *dnsdist::configuration::getCurrentRuntimeConfiguration().d_lbPolicy;
   const auto& servers = serverPool.getServers();
@@ -1812,7 +1812,7 @@ ProcessQueryResult processQuery(DNSQuestion& dnsQuestion, std::shared_ptr<Downst
 
 bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& downstream, uint16_t queryID, DNSQuestion& dnsQuestion, PacketBuffer& query, bool actuallySend)
 {
-  auto closer = dnsQuestion.ids.getCloser(__func__, "processUDPQuery"); // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+  auto closer = dnsQuestion.ids.getCloser(__func__); // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
   bool doh = dnsQuestion.ids.du != nullptr;
 
