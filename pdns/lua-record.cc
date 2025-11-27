@@ -970,6 +970,8 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
         return allZerosIP;
       } catch (const PDNSException &e) {
         return allZerosIP;
+      } catch (const std::exception &) { // thrown by std::stol
+        return allZerosIP;
       }
     });
 
