@@ -1084,6 +1084,7 @@ class TestLuaRecords(BaseLuaTest):
                 "ip4041424": "0.0.0.0",
                 "ip-441424": "0.0.0.0",
                 "ip-5abcdef": "0.0.0.0",
+                "some-text-with-more-than-five-dashes": "0.0.0.0",
                 "host64-22-33-44": "64.22.33.44",
                 "2.2.2.2": "0.0.0.0"   # filtered
             }),
