@@ -114,10 +114,11 @@ jobs:
           fail-on-error: false
       - run: ${{ env.INV_CMD }} ci-auth-install ${{ matrix.builder == 'meson' && '--meson' || '' }}
       - run: ccache -s
+      - uses: ./.github/actions/normalize-branch-name
+        if: ${{ matrix.builder == 'meson' }}
       - name: Prepare binaries folder
         if: ${{ matrix.builder == 'meson' }}
         run: |
-          echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
           mkdir -p /opt/pdns-auth/bin
           for i in $(find . -maxdepth 1 -type f -executable); do cp ${i} /opt/pdns-auth/bin/; done
           mkdir -p /opt/pdns-auth/sbin; mv /opt/pdns-auth/bin/pdns_server /opt/pdns-auth/sbin/
@@ -192,8 +193,8 @@ jobs:
           fail-on-error: false
       - run: ${{ env.INV_CMD }} ci-rec-install ${{ matrix.builder == 'meson' && '--meson' || '' }}
       - run: ccache -s
-      - if: ${{ matrix.builder == 'meson' }}
-        run: echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
+      - uses: ./.github/actions/normalize-branch-name
+        if: ${{ matrix.builder == 'meson' }}
       - if: ${{ matrix.builder == 'meson' }}
         name: Store the binaries
         uses: actions/upload-artifact@v5 # this takes 30 seconds, maybe we want to tar
@@ -286,10 +287,11 @@ jobs:
           fail-on-error: false
       - run: ${{ env.INV_CMD }} ci-dnsdist-install ${{ matrix.builder == 'meson' && '--meson' || '' }}
       - run: ccache -s
+      - uses: ./.github/actions/normalize-branch-name
+        if: ${{ matrix.builder == 'meson' }}
       - name: Prepare binaries folder
         if: ${{ matrix.builder == 'meson' }}
         run: |
-          echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
           mkdir -p /opt/dnsdist/bin
           for i in $(find . -maxdepth 1 -type f -executable); do cp ${i} /opt/dnsdist/bin/; done
       - name: Store the binaries
@@ -345,7 +347,7 @@ jobs:
           submodules: recursive
           ref: ${{ inputs.branch-name }}
           persist-credentials: false
-      - run: echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
+      - uses: ./.github/actions/normalize-branch-name
       - name: Fetch the binaries
         uses: actions/download-artifact@v6
         with:
@@ -478,7 +480,7 @@ jobs:
           submodules: recursive
           ref: ${{ inputs.branch-name }}
           persist-credentials: false
-      - run: echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
+      - uses: ./.github/actions/normalize-branch-name
       - name: Fetch the binaries
         uses: actions/download-artifact@v6
         with:
@@ -524,7 +526,7 @@ jobs:
           submodules: recursive
           ref: ${{ inputs.branch-name }}
           persist-credentials: false
-      - run: echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
+      - uses: ./.github/actions/normalize-branch-name
       - name: Fetch the binaries
         uses: actions/download-artifact@v6
         with:
@@ -575,7 +577,7 @@ jobs:
           submodules: recursive
           ref: ${{ inputs.branch-name }}
           persist-credentials: false
-      - run: echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
+      - uses: ./.github/actions/normalize-branch-name
       - name: Fetch the binaries
         uses: actions/download-artifact@v6
         with:
@@ -630,7 +632,7 @@ jobs:
           submodules: recursive
           ref: ${{ inputs.branch-name }}
           persist-credentials: false
-      - run: echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
+      - uses: ./.github/actions/normalize-branch-name
       - name: Fetch the binaries
         uses: actions/download-artifact@v6
         with:
@@ -686,7 +688,7 @@ jobs:
           submodules: recursive
           ref: ${{ inputs.branch-name }}
           persist-credentials: false
-      - run: echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
+      - uses: ./.github/actions/normalize-branch-name
       - name: Fetch the binaries
         uses: actions/download-artifact@v6
         with:
@@ -733,7 +735,7 @@ jobs:
           submodules: recursive
           ref: ${{ inputs.branch-name }}
           persist-credentials: false
-      - run: echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
+      - uses: ./.github/actions/normalize-branch-name
       - name: Fetch the binaries
         uses: actions/download-artifact@v6
         with:
@@ -794,7 +796,7 @@ jobs:
           submodules: recursive
           ref: ${{ inputs.branch-name }}
           persist-credentials: false
-      - run: echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
+      - uses: ./.github/actions/normalize-branch-name
       - name: Fetch the binaries
         uses: actions/download-artifact@v6
         with:
