@@ -14,6 +14,9 @@ mytarget=${CARGO_TARGET_DIR-target}
 CARGO_PROFILE="--release"
 if [ -n "${CARGO_USE_DEV}" ]; then
     CARGO_PROFILE=""
+    if [ -n "${CARGO_USE_CLIPPY}" ]; then
+        $CARGO clippy --manifest-path $srcdir/Cargo.toml
+    fi
 fi
 
 $CARGO build ${CARGO_PROFILE} $RUST_TARGET --target-dir=$builddir/target --manifest-path $srcdir/Cargo.toml --locked
