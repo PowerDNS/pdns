@@ -6,7 +6,7 @@
 # --enable-verbose-logging removed.
 
 pdnsutil_wrapper() {
-$PDNSUTIL --config-dir=. --config-name=$backend "$@" 2>&1 | egrep -v 'destructor'
+$PDNSUTIL --config-dir=. --config-name=$backend --sort "$@" 2>&1 | egrep -v 'destructor'
 }
 
 ZONE=bug.less
