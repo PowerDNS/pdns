@@ -74,7 +74,9 @@ fn compare_authorization(ctx: &Context, reqheaders: &header::HeaderMap) -> bool 
                     if split.next().is_some() {
                         if let Some(split) = split.next() {
                             cxx::let_cxx_string!(s = &split);
-                            auth_ok = ctx.password_ch.as_ref().unwrap().matches(&s);
+                            if let Some(pw) = ctx.password_ch.as_ref() {
+                                auth_ok = pw.matches(&s);
+                            }
                         }
                     }
                 }
@@ -90,11 +92,15 @@ fn unauthorized(response: &mut rustweb::Response, headers: &mut header::HeaderMa
     let status = StatusCode::UNAUTHORIZED;
     response.status = status.as_u16();
     let val = format!("{} realm=\"PowerDNS\"", auth);
-    headers.insert(
-        header::WWW_AUTHENTICATE,
-        header::HeaderValue::from_str(&val).unwrap(),
-    );
-    response.body = status.canonical_reason().unwrap().as_bytes().to_vec();
+    if let Ok(data) = header::HeaderValue::from_str(&val) {
+        headers.insert(
+            header::WWW_AUTHENTICATE,
+            data,
+        );
+    }
+    if let Some(body) = status.canonical_reason() {
+        response.body = body.as_bytes().to_vec();
+    }
 }
 
 fn nonapi_wrapper(
@@ -124,7 +130,9 @@ fn nonapi_wrapper(
         Err(_) => {
             let status = StatusCode::UNPROCESSABLE_ENTITY; // 422
             response.status = status.as_u16();
-            response.body = status.canonical_reason().unwrap().as_bytes().to_vec();
+            if let Some(body) = status.canonical_reason() {
+                response.body = body.as_bytes().to_vec();
+            }
         }
     }
 }
@@ -180,21 +188,24 @@ fn api_wrapper(
     if !ctx.api_ch.is_null() {
         if let Some(api) = reqheaders.get("x-api-key") {
             cxx::let_cxx_string!(s = &api.as_bytes());
-            auth_ok = ctx.api_ch.as_ref().unwrap().matches(&s);
+            if let Some(pw) = ctx.api_ch.as_ref() {
+                auth_ok = pw.matches(&s);
+            }
         }
     }
 
-    if !auth_ok {
-        if !ctx.api_ch.is_null() {
+    if !auth_ok && !ctx.api_ch.is_null() {
+        if let Some(pw) = ctx.api_ch.as_ref() {
             for kv in &request.vars {
                 cxx::let_cxx_string!(s = &kv.value);
-                if kv.key == "api-key" && ctx.api_ch.as_ref().unwrap().matches(&s) {
+                if kv.key == "api-key" && pw.matches(&s) {
                     auth_ok = true;
                     break;
                 }
             }
         }
     }
+
     if !auth_ok && allow_password {
         auth_ok = compare_authorization(ctx, reqheaders);
         if !auth_ok {
@@ -267,7 +278,9 @@ fn api_wrapper(
         Err(_) => {
             let status = StatusCode::UNPROCESSABLE_ENTITY; // 422
             response.status = status.as_u16();
-            response.body = status.canonical_reason().unwrap().as_bytes().to_vec();
+            if let Some(body) = status.canonical_reason() {
+                response.body = body.as_bytes().to_vec();
+            }
         }
     }
 }
@@ -662,19 +675,24 @@ async fn process_request(
 
     // Construct response based on what C++ gave us
     let mut rust_response = rust_response
-        .status(StatusCode::from_u16(response.status).unwrap())
+        .status(StatusCode::from_u16(response.status).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR))
         .body(body)?;
     for kv in response.headers {
-        rust_response.headers_mut().insert(
-            header::HeaderName::from_bytes(kv.key.as_bytes()).unwrap(),
-            header::HeaderValue::from_str(kv.value.as_str()).unwrap(),
-        );
+        if let Ok(key) = header::HeaderName::from_bytes(kv.key.as_bytes()) {
+            if let Ok(value) = header::HeaderValue::from_str(kv.value.as_str()) {
+                rust_response.headers_mut().insert(
+                    key, value
+                );
+            }
+        }
     }
 
-    rust_response.headers_mut().insert(
-        header::CONNECTION,
-        header::HeaderValue::from_str("close").unwrap(),
-    );
+    if let Ok(close) = header::HeaderValue::from_str("close") {
+        rust_response.headers_mut().insert(
+            header::CONNECTION,
+            close
+        );
+    }
     if ctx.loglevel != rustmisc::LogLevel::None {
         let version = format!("{:?}", version);
         rustmisc::log(
