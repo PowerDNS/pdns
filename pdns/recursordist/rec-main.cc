@@ -1825,6 +1825,7 @@ static int initSyncRes(Logr::log_t log)
   SyncRes::s_serverID = ::arg()["server-id"];
   // This bound is dynamically adjusted in SyncRes, depending on qname minimization being active
   SyncRes::s_maxqperq = ::arg().asNum("max-qperq");
+  SyncRes::s_maxbytesperq = ::arg().asNum("max-bytesperq");
   SyncRes::s_maxnsperresolve = ::arg().asNum("max-ns-per-resolve");
   SyncRes::s_maxnsaddressqperq = ::arg().asNum("max-ns-address-qperq");
   SyncRes::s_maxtotusec = 1000 * ::arg().asNum("max-total-msec");

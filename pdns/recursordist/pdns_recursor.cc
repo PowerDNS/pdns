@@ -1920,6 +1920,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
                               "answers", Logging::Loggable(ntohs(packetWriter.getHeader()->ancount)),
                               "additional", Logging::Loggable(ntohs(packetWriter.getHeader()->arcount)),
                               "outqueries", Logging::Loggable(resolver.d_outqueries),
+                              "received", Logging::Loggable(resolver.d_bytesReceived),
                               "netms", Logging::Loggable(resolver.d_totUsec / 1000.0),
                               "totms", Logging::Loggable(static_cast<double>(spentUsec) / 1000.0),
                               "throttled", Logging::Loggable(resolver.d_throttledqueries),

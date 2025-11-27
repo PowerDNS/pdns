@@ -358,6 +358,50 @@ BOOST_AUTO_TEST_CASE(test_edns_formerr_but_edns_enabled)
   }
 }
 
+BOOST_AUTO_TEST_CASE(test_edns_formerr_but_edns_enabled_limit_bytes)
+{
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr);
+
+  /* in this test, the auth answers with FormErr to an EDNS-enabled
+     query, but the response does contain EDNS so we should not mark
+     it as EDNS ignorant or intolerant.
+
+     We are MISUING this test to test max_bytesperq limit
+  */
+  size_t queriesWithEDNS = 0;
+  size_t queriesWithoutEDNS = 0;
+  std::set<ComboAddress> usedServers;
+
+  sr->setAsyncCallback([&](const ComboAddress& address, const DNSName& /* domain */, int type, bool /* doTCP */, bool /* sendRDQuery */, int EDNS0Level, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
+    if (EDNS0Level > 0) {
+      queriesWithEDNS++;
+    }
+    else {
+      queriesWithoutEDNS++;
+    }
+    usedServers.insert(address);
+
+    if (type == QType::DNAME) {
+      setLWResult(res, RCode::FormErr);
+      if (EDNS0Level > 0) {
+        res->d_haveEDNS = true;
+      }
+      res->d_bytesReceived = 10000;
+      return LWResult::Result::Success;
+    }
+
+    return LWResult::Result::Timeout;
+  });
+
+  primeHints();
+
+  vector<DNSRecord> ret;
+  BOOST_CHECK_EXCEPTION(sr->beginResolve(DNSName("powerdns.com."), QType(QType::DNAME), QClass::IN, ret), ImmediateServFailException, [&](const ImmediateServFailException& isfe) {
+    return isfe.reason.substr(0, 9) == "More than";
+  });
+}
+
 BOOST_AUTO_TEST_CASE(test_meta_types)
 {
   std::unique_ptr<SyncRes> sr;

@@ -1627,12 +1627,24 @@ Zero means no limit.
         'section' : 'outgoing',
         'type' : LType.Uint64,
         'default' : '50',
-        'help' : 'Maximum outgoing queries per query',
+        'help' : 'Maximum outgoing queries per client query',
         'doc' : '''
 The maximum number of outgoing queries that will be sent out during the resolution of a single client query.
 This is used to avoid cycles resolving names.
  ''',
         'versionchanged': ('5.1.0', 'The default used to be 60, with an extra allowance if qname minimization was enabled. Having better algorithms allows for a lower default limit.'),
+    },
+    {
+        'name' : 'max_bytesperq',
+        'section' : 'outgoing',
+        'type' : LType.Uint64,
+        'default' : '100000',
+        'help' : 'Maximum number of received bytes per client query',
+        'doc' : '''
+The maximum number of cumulative bytes that will be accepted during the resolution of a single client query.
+This is useful to limit amplification attacks.
+ ''',
+        'versionadded': '5.4.0',
     },
     {
         'name' : 'max_cnames_followed',
