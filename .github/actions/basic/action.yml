@@ -1,0 +1,27 @@
+name: 'Basic setup'
+description: 'Set up pdns build'
+inputs:
+  cache-key-base:
+    description: cache key base
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: get timestamp for cache
+      id: get-stamp
+      run: |
+        : get timestamp for cache
+        echo "stamp=$(/bin/date +%s)" >> "$GITHUB_OUTPUT"
+      shell: bash
+      working-directory: .
+    - name: make ccache directory
+      shell: bash
+      run: mkdir -p ~/.ccache
+      working-directory: .
+    - name: let GitHub cache our ccache data
+      uses: actions/cache@v4
+      with:
+        path: ~/.ccache
+        key: ${{ inputs.cache-key-base }}-${{ steps.get-stamp.outputs.stamp }}
+        restore-keys: ${{ inputs.cache-key-base }}

@@ -76,20 +76,10 @@ jobs:
           submodules: recursive
           ref: ${{ inputs.branch-name }}
           persist-credentials: false
-      - name: get timestamp for cache
-        id: get-stamp
-        run: |
-          echo "stamp=$(/bin/date +%s)" >> "$GITHUB_OUTPUT"
-        shell: bash
-        working-directory: .
-      - run: mkdir -p ~/.ccache
-        working-directory: .
-      - name: let GitHub cache our ccache data
-        uses: actions/cache@v4
+      - name: set up build
+        uses: ./.github/actions/basic
         with:
-          path: ~/.ccache
-          key: auth-ccache-${{ matrix.builder }}-${{ steps.get-stamp.outputs.stamp }}
-          restore-keys: auth-ccache-${{ matrix.builder }}
+          cache-key-base: auth-ccache-${{ matrix.builder }}
       - name: set sanitizers
         run: echo "SANITIZERS=${{ matrix.builder == 'meson' && 'address,undefined' || 'asan+ubsan' }}" >> "$GITHUB_ENV"
         working-directory: .
@@ -170,20 +160,10 @@ jobs:
           submodules: recursive
           ref: ${{ inputs.branch-name }}
           persist-credentials: false
-      - name: get timestamp for cache
-        id: get-stamp
-        run: |
-          echo "stamp=$(/bin/date +%s)" >> "$GITHUB_OUTPUT"
-        shell: bash
-        working-directory: .
-      - run: mkdir -p ~/.ccache
-        working-directory: .
-      - name: let GitHub cache our ccache data
-        uses: actions/cache@v4
+      - name: set up build
+        uses: ./.github/actions/basic
         with:
-          path: ~/.ccache
-          key: recursor-ccache-${{ matrix.builder }}-${{ matrix.features }}-${{ matrix.sanitizers }}-${{ steps.get-stamp.outputs.stamp }}
-          restore-keys: recursor-ccache-${{ matrix.builder }}-${{ matrix.features }}-${{ matrix.sanitizers }}
+          cache-key-base: recursor-ccache-${{ matrix.builder }}-${{ matrix.features }}-${{ matrix.sanitizers }}
       - name: install pip build dependencies
         run: |
           python3 -m venv ${REPO_HOME}/.venv
@@ -261,20 +241,10 @@ jobs:
           submodules: recursive
           ref: ${{ inputs.branch-name }}
           persist-credentials: false
-      - name: get timestamp for cache
-        id: get-stamp
-        run: |
-          echo "stamp=$(/bin/date +%s)" >> "$GITHUB_OUTPUT"
-        shell: bash
-        working-directory: .
-      - run: mkdir -p ~/.ccache
-        working-directory: .
-      - name: let GitHub cache our ccache data
-        uses: actions/cache@v4
+      - name: set up build
+        uses: ./.github/actions/basic
         with:
-          path: ~/.ccache
-          key: dnsdist-${{ matrix.features }}-${{ matrix.sanitizers }}-${{ matrix.builder}}${{ matrix.architecture_suffix }}-ccache-${{ steps.get-stamp.outputs.stamp }}
-          restore-keys: dnsdist-${{ matrix.features }}-${{ matrix.sanitizers }}-${{ matrix.builder}}${{ matrix.architecture_suffix }}-ccache-
+          cache-key-base: dnsdist-${{ matrix.features }}-${{ matrix.sanitizers }}-${{ matrix.builder}}${{ matrix.architecture_suffix }}-ccache
       - name: install pip build dependencies
         run: |
           python3 -m venv ${REPO_HOME}/.venv
