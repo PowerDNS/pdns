@@ -57,12 +57,13 @@ TracesData Tracer::getTracesData()
   otTrace.resource_spans.at(0).scope_spans.at(0).scope.attributes.push_back(hostnameAttr);
 
   auto traceid = getTraceID();
+
   for (auto const& lockedSpan : *d_spans.read_only_lock()) {
     otTrace.resource_spans.at(0).scope_spans.at(0).spans.push_back(
       {
         .trace_id = traceid,
-        .span_id = lockedSpan.span_id,
-        .parent_span_id = lockedSpan.parent_span_id,
+        .span_id = lockedSpan.span_id == d_oldAndNewRootSpanID.oldID ? d_oldAndNewRootSpanID.newID : lockedSpan.span_id,
+        .parent_span_id = lockedSpan.parent_span_id == d_oldAndNewRootSpanID.oldID ? d_oldAndNewRootSpanID.newID : lockedSpan.parent_span_id,
         .name = lockedSpan.name,
         .kind = pdns::trace::Span::SpanKind::SPAN_KIND_SERVER,
         .start_time_unix_nano = lockedSpan.start_time_unix_nano,
@@ -90,7 +91,7 @@ SpanID Tracer::addSpan([[maybe_unused]] const std::string& name)
 #ifdef DISABLE_PROTOBUF
   return 0;
 #else
-  return addSpan(name, SpanID{});
+  return addSpan(name, getLastSpanID());
 #endif
 }
 
@@ -109,7 +110,7 @@ SpanID Tracer::addSpan([[maybe_unused]] const std::string& name, [[maybe_unused]
     .attributes = {},
   });
 
-  d_lastSpanID = spanID;
+  d_spanIDStack.push_back(spanID);
   return spanID;
 #endif
 }
@@ -124,17 +125,18 @@ void Tracer::setTraceID([[maybe_unused]] const TraceID& traceID)
 void Tracer::setRootSpanID([[maybe_unused]] const SpanID& spanID)
 {
 #ifndef DISABLE_PROTOBUF
-  // XXX: We just assume that the first Span is the RootSpan
   SpanID oldRootSpanID;
-  if (auto lockedSpans = d_spans.lock(); !lockedSpans->empty()) {
-    oldRootSpanID = lockedSpans->begin()->span_id;
-    lockedSpans->begin()->span_id = spanID;
-    for (auto& span : *lockedSpans) {
-      if (span.parent_span_id == oldRootSpanID) {
-        span.parent_span_id = spanID;
-      }
+  if (auto spans = d_spans.read_only_lock(); !spans->empty()) {
+    auto iter = std::find_if(spans->cbegin(), spans->cend(), [](const auto& span) { return span.parent_span_id == pdns::trace::s_emptySpanID; });
+    if (iter != spans->cend()) {
+      oldRootSpanID = iter->span_id;
     }
   }
+  if (oldRootSpanID == pdns::trace::s_emptySpanID) {
+    return;
+  }
+  d_oldAndNewRootSpanID.oldID = oldRootSpanID;
+  d_oldAndNewRootSpanID.newID = spanID;
 #endif
 }
 
@@ -160,7 +162,11 @@ void Tracer::closeSpan([[maybe_unused]] const SpanID& spanID)
     [spanID](const miniSpan& span) { return span.span_id == spanID; });
   if (spanIt != lockedSpans->rend() && spanIt->end_time_unix_nano == 0) {
     spanIt->end_time_unix_nano = pdns::trace::timestamp();
-    return;
+
+    // Only closers are allowed, so this can never happen
+    assert(!d_spanIDStack.empty());
+    assert(d_spanIDStack.back() == spanID);
+    d_spanIDStack.pop_back();
   }
 #endif
 }
@@ -191,13 +197,17 @@ SpanID Tracer::getRootSpanID()
 #ifdef DISABLE_PROTOBUF
   return 0;
 #else
+  if (d_oldAndNewRootSpanID.newID != pdns::trace::s_emptySpanID) {
+    return d_oldAndNewRootSpanID.newID;
+  }
+
   if (auto spans = d_spans.read_only_lock(); !spans->empty()) {
     auto iter = std::find_if(spans->cbegin(), spans->cend(), [](const auto& span) { return span.parent_span_id == pdns::trace::s_emptySpanID; });
     if (iter != spans->cend()) {
       return iter->span_id;
     }
   }
-  return SpanID{};
+  return pdns::trace::s_emptySpanID;
 #endif
 }
 
@@ -206,10 +216,13 @@ SpanID Tracer::getLastSpanID()
 #ifdef DISABLE_PROTOBUF
   return 0;
 #else
-  if (auto lockedSpans = d_spans.read_only_lock(); !lockedSpans->empty()) {
-    return lockedSpans->back().span_id;
+  if (d_spanIDStack.empty()) {
+    return pdns::trace::s_emptySpanID;
   }
-  return pdns::trace::s_emptySpanID;
+  if (d_spanIDStack.size() == 1 && d_spanIDStack.front() == d_oldAndNewRootSpanID.oldID) {
+    return d_oldAndNewRootSpanID.newID;
+  }
+  return d_spanIDStack.back();
 #endif
 }
 
