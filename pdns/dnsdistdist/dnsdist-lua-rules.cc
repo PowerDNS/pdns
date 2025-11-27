@@ -522,7 +522,7 @@ void setupLuaRuleChainsManagement(LuaContext& luaCtx)
       entry.ids.qclass = QClass::IN;
       entry.ids.protocol = dnsdist::Protocol::DoUDP;
       entry.ids.origRemote = ComboAddress("127.0.0.1");
-      entry.ids.origRemote.sin4.sin_addr.s_addr = random();
+      entry.ids.origRemote.sin4.sin_addr.s_addr = dns_random_uint32();
       entry.ids.queryRealTime.start();
       GenericDNSPacketWriter<PacketBuffer> writer(entry.packet, entry.ids.qname, entry.ids.qtype);
       items.push_back(std::move(entry));
