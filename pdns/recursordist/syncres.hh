@@ -525,6 +525,7 @@ public:
   static unsigned int s_minimumTTL;
   static unsigned int s_minimumECSTTL;
   static unsigned int s_maxqperq;
+  static unsigned int s_maxbytesperq;
   static unsigned int s_maxnsperresolve;
   static unsigned int s_maxnsaddressqperq;
   static unsigned int s_maxtotusec;
@@ -589,9 +590,10 @@ public:
   unsigned int d_throttledqueries;
   unsigned int d_timeouts;
   unsigned int d_unreachables;
+  unsigned int d_bytesReceived;
   unsigned int d_totUsec;
   unsigned int d_maxdepth{0};
-  // Initialized ony once, as opposed to d_now which gets updated after outgoing requests
+  // Initialized only once, as opposed to d_now which gets updated after outgoing requests
   struct timeval d_fixednow;
 
 private:
