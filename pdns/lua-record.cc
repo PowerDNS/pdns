@@ -1079,7 +1079,9 @@ static string lua_createForward()
       }
     }
     return allZerosIP;
-  } catch (const PDNSException &e) {
+  } catch (const PDNSException &) {
+    return allZerosIP;
+  } catch (const std::exception &) { // thrown by std::stol
     return allZerosIP;
   }
 }
