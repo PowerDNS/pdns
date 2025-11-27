@@ -58,8 +58,6 @@ at `<https://doc.powerdns.com/>`
     ``pdns_recursor --config | grep ' config-dir='``.
 --daemon
     Operate as a daemon.
---entropy-source=<file>
-    Read new entropy from *file*, defaults to /dev/urandom.
 --export-etc-hosts
     If set, this flag will export the hostnames and IP addresses
     mentioned in /etc/hosts.

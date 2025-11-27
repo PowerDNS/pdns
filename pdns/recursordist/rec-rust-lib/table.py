@@ -971,12 +971,8 @@ Only makes sense to set on the command line.
         'section' : 'recursor',
         'type' : LType.String,
         'default' : '/dev/urandom',
-        'help' : 'If set, read entropy from this file',
+        'help' : '',
         'doc' : '''
-PowerDNS can read entropy from a (hardware) source.
-This is used for generating random numbers which are very hard to predict.
-Generally on UNIX platforms, this source will be ``/dev/urandom``, which will always supply random numbers, even if entropy is lacking.
-Change to ``/dev/random`` if PowerDNS should block waiting for enough entropy to arrive.
  ''',
         'skip-yaml': True,
         'versionchanged': ('4.9.0', 'This setting is no longer used.'),
@@ -2369,19 +2365,8 @@ Since 4.1.0, when :ref:`setting-pdns-distributes-queries` is disabled and :ref:`
         'section' : 'recursor',
         'type' : LType.String,
         'default' : 'auto',
-        'help' : 'Specify random number generator to use. Valid values are auto,sodium,openssl,getrandom,arc4random,urandom.',
+        'help' : '',
         'doc' : '''
-- String
-- Default: auto
-
-Specify which random number generator to use. Permissible choices are
- - auto - choose automatically
- - sodium - Use libsodium ``randombytes_uniform``
- - openssl - Use libcrypto ``RAND_bytes``
- - getrandom - Use libc getrandom, falls back to urandom if it does not really work
- - arc4random - Use BSD ``arc4random_uniform``
- - urandom - Use ``/dev/urandom``
- - kiss - Use simple settable deterministic RNG. **FOR TESTING PURPOSES ONLY!**
  ''',
         'skip-yaml': True,
         'versionchanged': ('4.9.0', 'This setting is no longer used.')
