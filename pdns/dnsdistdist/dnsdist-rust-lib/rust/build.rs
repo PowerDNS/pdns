@@ -11,8 +11,8 @@ fn main() {
             .flag("-I..")
             .flag("-I../..");
     let generated_headers_dir_env = env::var("generatedheadersdir");
-    if generated_headers_dir_env.is_ok() {
-      let generated_headers_dir = PathBuf::from(generated_headers_dir_env.unwrap());
+    if let Ok(dir) = generated_headers_dir_env {
+      let generated_headers_dir = PathBuf::from(dir);
       let generated_headers_dir_canon = fs::canonicalize(&generated_headers_dir);
       if generated_headers_dir_canon.is_ok() {
         build = build.flag(format!("-I{}", generated_headers_dir_canon.unwrap().display()))
