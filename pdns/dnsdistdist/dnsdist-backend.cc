@@ -42,6 +42,7 @@
 
 bool DownstreamState::passCrossProtocolQuery(std::unique_ptr<CrossProtocolQuery>&& cpq)
 {
+  auto closer = cpq->query.d_idstate.getCloser(__func__); // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 #if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
   if (!d_config.d_dohPath.empty()) {
     return g_dohClientThreads && g_dohClientThreads->passCrossProtocolQueryToThread(std::move(cpq));
