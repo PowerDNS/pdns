@@ -1,0 +1,109 @@
+{
+    "problemMatcher": [
+        {
+            "owner": "pdns-compilation-fatal-error",
+            "severity": "error",
+            "pattern": [
+                {
+                    "regexp": "^\\s*(?:\\.\\./)*(\\S+):(\\d+):(\\d+): (?:fatal |)error: (.*)",
+                    "file": 1,
+                    "line": 2,
+                    "column": 3,
+                    "message": 4
+                }
+            ]
+        },
+        {
+            "owner": "pdns-compilation-error",
+            "severity": "error",
+            "pattern": [
+                {
+                    "regexp": "(?:(?:^| )\\.\\.|-git\\d+)/([^:]+):(\\d+):(\\d+): error: (.*)",
+                    "file": 1,
+                    "line": 2,
+                    "column": 3,
+                    "message": 4
+                }
+            ]
+        },
+        {
+            "owner": "pdns-error",
+            "severity": "error",
+            "pattern": [
+                {
+                    "regexp": "(?<![\":]|: |network )\\berror:([^'].*)",
+                    "message": 1
+                }
+            ]
+        },
+        {
+            "owner": "pdns-python-test",
+            "severity": "error",
+            "pattern": [
+                {
+                    "regexp": "\bFAILED (test_.*?\\.py)::.* - (\\w+Error: .*)",
+                    "file": 1,
+                    "message": 2
+                }
+            ]
+        },
+        {
+            "owner": "pdns-swagger",
+            "severity": "error",
+            "pattern": [
+                {
+                    "regexp": "(docs/http-api/swagger/.*\\.yaml)$",
+                    "file": 1
+                },
+                {
+                    "regexp": "(\\d+):(\\d+)  error  \\w+-\\w+  (.*)",
+                    "line": 1,
+                    "column": 2,
+                    "message": 3
+                }
+            ]
+        },
+        {
+            "owner": "pdns-sanitizers",
+            "severity": "error",
+            "pattern": [
+                {
+                    "regexp": "==ERROR: (\\w+Sanitizer:.*)",
+                    "message": 1
+                }
+            ]
+        },
+        {
+            "owner": "pdns-ld",
+            "severity": "error",
+            "pattern": [
+                {
+                    "regexp": "/usr/bin/ld:.*: (undefined reference.*)",
+                    "message": 1
+                }
+            ]
+        },
+        {
+            "owner": "pdns-test-error",
+            "severity": "error",
+            "pattern": [
+                {
+                    "regexp": "^(\\w+\\.py):(\\d+): (\\w+Error)",
+                    "file": 1,
+                    "line": 2,
+                    "message": 3
+                }
+            ]
+        },
+        {
+            "owner": "curl",
+            "severity": "error",
+            "pattern": [
+                {
+                    "regexp": "^\\s+(curl: \\(\\d+\\).*)",
+                    "message": 1
+                }
+            ]
+        }
+    ]
+}

@@ -1,0 +1,22 @@
+name: 'Install pip build dependencies'
+description: 'Install pip build dependencies'
+
+inputs:
+  venv-parent:
+    description: venv parent
+    required: true
+  working-directory:
+    description: working directory
+
+runs:
+  using: "composite"
+  steps:
+    - name: install pip build dependencies
+      shell: bash
+      run: |
+        : install pip build dependencies
+        python3 -m venv ${VENV_PARENT}/.venv
+        . ${VENV_PARENT}/.venv/bin/activate && pip install -r ${VENV_PARENT}/meson/requirements.txt
+      env:
+        VENV_PARENT: ${{ inputs.venv-parent }}
+      working-directory: ${{ inputs.working-directory }}
