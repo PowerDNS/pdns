@@ -169,7 +169,12 @@ class DNSDistOpenTelemetryProtobufTest(test_Protobuf.DNSDistProtobufTest):
 
 class DNSDistOpenTelemetryProtobufBaseTest(DNSDistOpenTelemetryProtobufTest):
     def doTest(
-        self, hasProcessResponseAfterRules=False, useTCP=False, traceID="", spanID=""
+        self,
+        hasProcessResponseAfterRules=False,
+        useTCP=False,
+        traceID="",
+        spanID="",
+        extraFunctions=set(),
     ):
         msg = self.sendQueryAndGetProtobuf(useTCP, traceID, spanID)
 
@@ -186,7 +191,9 @@ class DNSDistOpenTelemetryProtobufBaseTest(DNSDistOpenTelemetryProtobufTest):
             traces_data, preserving_proto_field_name=True
         )
 
-        self.checkOTData(ot_data, hasProcessResponseAfterRules, useTCP)
+        self.checkOTData(
+            ot_data, hasProcessResponseAfterRules, useTCP, extraFunctions=extraFunctions
+        )
 
         traceId = base64.b64encode(msg.openTelemetryTraceID).decode()
         for msg_span in ot_data["resource_spans"][0]["scope_spans"][0]["spans"]:
@@ -242,7 +249,18 @@ response_rules:
         self.doTest()
 
     def testTCP(self):
-        self.doTest(useTCP=True)
+        self.doTest(
+            useTCP=True,
+            extraFunctions={
+                "createTCPQuery",
+                "TCPConnectionToBackend::handleResponse",
+                "getDownstreamConnection",
+                "TCPConnectionToBackend::sendQuery",
+                "handleResponse",
+                "prepareQueryForSending",
+                "TCPConnectionToBackend::queueQuery",
+            },
+        )
 
 
 class TestOpenTelemetryTracingBaseLua(DNSDistOpenTelemetryProtobufBaseTest):
@@ -264,7 +282,18 @@ addResponseAction(AllRule(), RemoteLogResponseAction(rl), {name="Do PB logging"}
         self.doTest()
 
     def testTCP(self):
-        self.doTest(useTCP=True)
+        self.doTest(
+            useTCP=True,
+            extraFunctions={
+                "createTCPQuery",
+                "TCPConnectionToBackend::handleResponse",
+                "getDownstreamConnection",
+                "TCPConnectionToBackend::sendQuery",
+                "handleResponse",
+                "prepareQueryForSending",
+                "TCPConnectionToBackend::queueQuery",
+            },
+        )
 
 
 class TestOpenTelemetryTracingBaseDelayYAML(DNSDistOpenTelemetryProtobufBaseTest):
@@ -307,7 +336,20 @@ response_rules:
         self.doTest(True)
 
     def testTCP(self):
-        self.doTest(hasProcessResponseAfterRules=True, useTCP=True)
+        self.doTest(
+            hasProcessResponseAfterRules=True,
+            useTCP=True,
+            extraFunctions={
+                "queueResponse",
+                "handleResponse",
+                "TCPConnectionToBackend::queueQuery",
+                "createTCPQuery",
+                "prepareQueryForSending",
+                "getDownstreamConnection",
+                "TCPConnectionToBackend::handleResponse",
+                "TCPConnectionToBackend::sendQuery",
+            },
+        )
 
 
 class TestOpenTelemetryTracingBaseDelayLua(DNSDistOpenTelemetryProtobufBaseTest):
@@ -329,7 +371,20 @@ addResponseAction(AllRule(), RemoteLogResponseAction(rl, nil, false, {}, {}, tru
         self.doTest(True)
 
     def testTCP(self):
-        self.doTest(hasProcessResponseAfterRules=True, useTCP=True)
+        self.doTest(
+            hasProcessResponseAfterRules=True,
+            useTCP=True,
+            extraFunctions={
+                "queueResponse",
+                "handleResponse",
+                "TCPConnectionToBackend::queueQuery",
+                "createTCPQuery",
+                "prepareQueryForSending",
+                "getDownstreamConnection",
+                "TCPConnectionToBackend::handleResponse",
+                "TCPConnectionToBackend::sendQuery",
+            },
+        )
 
 
 class TestOpenTelemetryTracingUseIncomingYAML(DNSDistOpenTelemetryProtobufBaseTest):
@@ -566,7 +621,7 @@ response_rules:
      type: Drop
 """
 
-    def doTest(self, useTCP=False):
+    def doTest(self, useTCP=False, extraFunctions=set()):
         msg = self.sendQueryAndGetProtobuf(useTCP=useTCP, dropped=True)
         traces_data = opentelemetry.proto.trace.v1.trace_pb2.TracesData()
         traces_data.ParseFromString(msg.openTelemetryData)
@@ -574,21 +629,36 @@ response_rules:
             traces_data, preserving_proto_field_name=True
         )
 
+        funcs = extraFunctions.union(
+            {
+                "ResponseRule: Drop",
+            }
+        )
+
         self.checkOTData(
             ot_data,
             hasProcessResponseAfterRules=False,
             hasRemoteLogResponseAction=False,
             useTCP=useTCP,
-            extraFunctions={
-                "ResponseRule: Drop",
-            },
+            extraFunctions=funcs,
         )
 
     def testBasic(self):
         self.doTest(False)
 
     def testTCP(self):
-        self.doTest(True)
+        self.doTest(
+            True,
+            extraFunctions={
+                "handleResponse",
+                "TCPConnectionToBackend::queueQuery",
+                "getDownstreamConnection",
+                "createTCPQuery",
+                "TCPConnectionToBackend::handleResponse",
+                "TCPConnectionToBackend::sendQuery",
+                "prepareQueryForSending",
+            },
+        )
 
 
 class TestOpenTelemetryTracingBaseLuaIncludedRemoteLoggerDropped(
@@ -649,7 +719,7 @@ query_rules:
        - 192.0.2.1
 """
 
-    def doTest(self, useTCP=False):
+    def doTest(self, useTCP=False, extraFunctions=set()):
         msg = self.sendQueryAndGetProtobuf(
             useTCP=useTCP, querySentByDNSDist=False, dropped=True
         )
@@ -659,6 +729,7 @@ query_rules:
             traces_data, preserving_proto_field_name=True
         )
 
+        funcs = extraFunctions.union({"Rule: Spoof A record"})
         self.checkOTData(
             ot_data,
             hasProcessResponseAfterRules=False,
@@ -666,13 +737,11 @@ query_rules:
             useTCP=useTCP,
             hasSelectBackendForOutgoingQuery=False,
             hasResponse=False,
-            extraFunctions={
-                "Rule: Spoof A record",
-            },
+            extraFunctions=funcs,
         )
 
     def testBasic(self):
         self.doTest()
 
     def testTCP(self):
-        self.doTest(useTCP=True)
+        self.doTest(useTCP=True, extraFunctions={"queueResponse"})
