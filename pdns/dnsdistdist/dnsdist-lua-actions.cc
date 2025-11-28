@@ -33,7 +33,7 @@
 
 using responseParams_t = std::unordered_map<std::string, boost::variant<bool, uint32_t>>;
 
-static dnsdist::ResponseConfig parseResponseConfig(boost::optional<responseParams_t>& vars)
+static dnsdist::ResponseConfig parseResponseConfig(std::optional<responseParams_t>& vars)
 {
   dnsdist::ResponseConfig config;
   getOptionalValue<uint32_t>(vars, "ttl", config.ttl);
@@ -54,16 +54,10 @@ static std::vector<T> convertLuaArrayToRegular(const LuaArray<T>& luaArray)
   return out;
 }
 
-template <class T>
-std::optional<T> boostToStandardOptional(const boost::optional<T>& boostOpt)
-{
-  return boostOpt ? *boostOpt : std::optional<T>();
-}
-
 // NOLINTNEXTLINE(readability-function-cognitive-complexity): this function declares Lua bindings, even with a good refactoring it will likely blow up the threshold
 void setupLuaActions(LuaContext& luaCtx)
 {
-  luaCtx.writeFunction("newRuleAction", [](const luadnsrule_t& dnsrule, std::shared_ptr<DNSAction> action, boost::optional<luaruleparams_t> params) {
+  luaCtx.writeFunction("newRuleAction", [](const luadnsrule_t& dnsrule, std::shared_ptr<DNSAction> action, std::optional<luaruleparams_t> params) {
     boost::uuids::uuid uuid{};
     uint64_t creationOrder = 0;
     std::string name;
@@ -110,7 +104,7 @@ void setupLuaActions(LuaContext& luaCtx)
     return dnsdist::actions::getLuaFFIResponseAction(std::move(function));
   });
 
-  luaCtx.writeFunction("SpoofAction", [](LuaTypeOrArrayOf<std::string> inp, boost::optional<responseParams_t> vars) {
+  luaCtx.writeFunction("SpoofAction", [](LuaTypeOrArrayOf<std::string> inp, std::optional<responseParams_t> vars) {
     vector<ComboAddress> addrs;
     if (auto* ipaddr = boost::get<std::string>(&inp)) {
       addrs.emplace_back(*ipaddr);
@@ -128,7 +122,7 @@ void setupLuaActions(LuaContext& luaCtx)
     return ret;
   });
 
-  luaCtx.writeFunction("SpoofSVCAction", [](const LuaArray<SVCRecordParameters>& parameters, boost::optional<responseParams_t> vars) {
+  luaCtx.writeFunction("SpoofSVCAction", [](const LuaArray<SVCRecordParameters>& parameters, std::optional<responseParams_t> vars) {
     auto responseConfig = parseResponseConfig(vars);
     checkAllParametersConsumed("SpoofAction", vars);
     auto svcParams = convertLuaArrayToRegular(parameters);
@@ -136,14 +130,14 @@ void setupLuaActions(LuaContext& luaCtx)
     return ret;
   });
 
-  luaCtx.writeFunction("SpoofCNAMEAction", [](const std::string& cname, boost::optional<responseParams_t> vars) {
+  luaCtx.writeFunction("SpoofCNAMEAction", [](const std::string& cname, std::optional<responseParams_t> vars) {
     auto responseConfig = parseResponseConfig(vars);
     checkAllParametersConsumed("SpoofCNAMEAction", vars);
     auto ret = dnsdist::actions::getSpoofAction(DNSName(cname), responseConfig);
     return ret;
   });
 
-  luaCtx.writeFunction("SpoofRawAction", [](LuaTypeOrArrayOf<std::string> inp, boost::optional<responseParams_t> vars) {
+  luaCtx.writeFunction("SpoofRawAction", [](LuaTypeOrArrayOf<std::string> inp, std::optional<responseParams_t> vars) {
     vector<string> raws;
     if (const auto* str = boost::get<std::string>(&inp)) {
       raws.push_back(*str);
@@ -178,7 +172,7 @@ void setupLuaActions(LuaContext& luaCtx)
     return ret;
   });
 
-  luaCtx.writeFunction("LimitTTLResponseAction", [](uint32_t min, uint32_t max, boost::optional<LuaArray<uint16_t>> types) {
+  luaCtx.writeFunction("LimitTTLResponseAction", [](uint32_t min, uint32_t max, std::optional<LuaArray<uint16_t>> types) {
     std::unordered_set<QType> capTypes;
     if (types) {
       capTypes.reserve(types->size());
@@ -226,14 +220,14 @@ void setupLuaActions(LuaContext& luaCtx)
     return dnsdist::actions::getClearRecordTypesResponseAction(std::move(qtypes));
   });
 
-  luaCtx.writeFunction("RCodeAction", [](uint8_t rcode, boost::optional<responseParams_t> vars) {
+  luaCtx.writeFunction("RCodeAction", [](uint8_t rcode, std::optional<responseParams_t> vars) {
     auto responseConfig = parseResponseConfig(vars);
     checkAllParametersConsumed("RCodeAction", vars);
     auto ret = dnsdist::actions::getRCodeAction(rcode, responseConfig);
     return ret;
   });
 
-  luaCtx.writeFunction("ERCodeAction", [](uint8_t rcode, boost::optional<responseParams_t> vars) {
+  luaCtx.writeFunction("ERCodeAction", [](uint8_t rcode, std::optional<responseParams_t> vars) {
     auto responseConfig = parseResponseConfig(vars);
     checkAllParametersConsumed("ERCodeAction", vars);
     auto ret = dnsdist::actions::getERCodeAction(rcode, responseConfig);
@@ -244,7 +238,7 @@ void setupLuaActions(LuaContext& luaCtx)
   // Used for both RemoteLogAction and RemoteLogResponseAction
   static const std::array<std::string, 2> s_validIpEncryptMethods = {"legacy", "ipcrypt-pfx"};
 
-  luaCtx.writeFunction("RemoteLogAction", [](std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<dnsdist::actions::ProtobufAlterFunction> alterFunc, boost::optional<LuaAssociativeTable<std::string>> vars, boost::optional<LuaAssociativeTable<std::string>> metas) {
+  luaCtx.writeFunction("RemoteLogAction", [](std::shared_ptr<RemoteLoggerInterface> logger, std::optional<dnsdist::actions::ProtobufAlterFunction> alterFunc, std::optional<LuaAssociativeTable<std::string>> vars, std::optional<LuaAssociativeTable<std::string>> metas) {
     if (logger) {
       // avoids potentially-evaluated-expression warning with clang.
       RemoteLoggerInterface& remoteLoggerRef = *logger;
@@ -291,7 +285,7 @@ void setupLuaActions(LuaContext& luaCtx)
     return dnsdist::actions::getRemoteLogAction(config);
   });
 
-  luaCtx.writeFunction("RemoteLogResponseAction", [](std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<dnsdist::actions::ProtobufAlterResponseFunction> alterFunc, boost::optional<bool> includeCNAME, boost::optional<LuaAssociativeTable<std::string>> vars, boost::optional<LuaAssociativeTable<std::string>> metas, boost::optional<bool> delay) {
+  luaCtx.writeFunction("RemoteLogResponseAction", [](std::shared_ptr<RemoteLoggerInterface> logger, std::optional<dnsdist::actions::ProtobufAlterResponseFunction> alterFunc, std::optional<bool> includeCNAME, std::optional<LuaAssociativeTable<std::string>> vars, std::optional<LuaAssociativeTable<std::string>> metas, std::optional<bool> delay) {
     if (logger) {
       // avoids potentially-evaluated-expression warning with clang.
       RemoteLoggerInterface& remoteLoggerRef = *logger;
@@ -343,16 +337,16 @@ void setupLuaActions(LuaContext& luaCtx)
     return dnsdist::actions::getRemoteLogResponseAction(config);
   });
 
-  luaCtx.writeFunction("DnstapLogAction", [](const std::string& identity, std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<dnsdist::actions::DnstapAlterFunction> alterFunc) {
+  luaCtx.writeFunction("DnstapLogAction", [](const std::string& identity, std::shared_ptr<RemoteLoggerInterface> logger, std::optional<dnsdist::actions::DnstapAlterFunction> alterFunc) {
     return dnsdist::actions::getDnstapLogAction(identity, std::move(logger), alterFunc ? std::move(*alterFunc) : std::optional<dnsdist::actions::DnstapAlterFunction>());
   });
 
-  luaCtx.writeFunction("DnstapLogResponseAction", [](const std::string& identity, std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<dnsdist::actions::DnstapAlterResponseFunction> alterFunc) {
+  luaCtx.writeFunction("DnstapLogResponseAction", [](const std::string& identity, std::shared_ptr<RemoteLoggerInterface> logger, std::optional<dnsdist::actions::DnstapAlterResponseFunction> alterFunc) {
     return dnsdist::actions::getDnstapLogResponseAction(identity, std::move(logger), alterFunc ? std::move(*alterFunc) : std::optional<dnsdist::actions::DnstapAlterResponseFunction>());
   });
 #endif /* DISABLE_PROTOBUF */
 
-  luaCtx.writeFunction("TeeAction", [](const std::string& remote, boost::optional<bool> addECS, boost::optional<std::string> local, boost::optional<bool> addProxyProtocol) {
+  luaCtx.writeFunction("TeeAction", [](const std::string& remote, std::optional<bool> addECS, std::optional<std::string> local, std::optional<bool> addProxyProtocol) {
     std::optional<ComboAddress> localAddr;
     if (local) {
       localAddr = ComboAddress(*local, 0);
@@ -361,7 +355,7 @@ void setupLuaActions(LuaContext& luaCtx)
     return dnsdist::actions::getTeeAction(ComboAddress(remote, 53), localAddr, addECS ? *addECS : false, addProxyProtocol ? *addProxyProtocol : false);
   });
 
-  luaCtx.writeFunction("SetECSAction", [](const std::string& v4Netmask, boost::optional<std::string> v6Netmask) {
+  luaCtx.writeFunction("SetECSAction", [](const std::string& v4Netmask, std::optional<std::string> v6Netmask) {
     if (v6Netmask) {
       return dnsdist::actions::getSetECSAction(v4Netmask, *v6Netmask);
     }
@@ -373,7 +367,7 @@ void setupLuaActions(LuaContext& luaCtx)
   });
 
 #ifdef HAVE_DNS_OVER_HTTPS
-  luaCtx.writeFunction("HTTPStatusAction", [](uint16_t status, std::string body, boost::optional<std::string> contentType, boost::optional<responseParams_t> vars) {
+  luaCtx.writeFunction("HTTPStatusAction", [](uint16_t status, std::string body, std::optional<std::string> contentType, std::optional<responseParams_t> vars) {
     auto responseConfig = parseResponseConfig(vars);
     checkAllParametersConsumed("HTTPStatusAction", vars);
     auto ret = dnsdist::actions::getHTTPStatusAction(status, PacketBuffer(body.begin(), body.end()), contentType ? *contentType : "", responseConfig);
@@ -391,7 +385,7 @@ void setupLuaActions(LuaContext& luaCtx)
   });
 #endif /* defined(HAVE_LMDB) || defined(HAVE_CDB) */
 
-  luaCtx.writeFunction("NegativeAndSOAAction", [](bool nxd, const std::string& zone, uint32_t ttl, const std::string& mname, const std::string& rname, uint32_t serial, uint32_t refresh, uint32_t retry, uint32_t expire, uint32_t minimum, boost::optional<responseParams_t> vars) {
+  luaCtx.writeFunction("NegativeAndSOAAction", [](bool nxd, const std::string& zone, uint32_t ttl, const std::string& mname, const std::string& rname, uint32_t serial, uint32_t refresh, uint32_t retry, uint32_t expire, uint32_t minimum, std::optional<responseParams_t> vars) {
     bool soaInAuthoritySection = false;
     getOptionalValue<bool>(vars, "soaInAuthoritySection", soaInAuthoritySection);
     auto responseConfig = parseResponseConfig(vars);

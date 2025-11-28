@@ -35,7 +35,7 @@
 #include "rec-main.hh"
 #include "arguments.hh"
 
-boost::optional<dnsheader> RecursorLua4::DNSQuestion::getDH() const
+std::optional<dnsheader> RecursorLua4::DNSQuestion::getDH() const
 {
   if (dh != nullptr) {
     return *dh;
@@ -72,7 +72,7 @@ vector<pair<uint16_t, string>> RecursorLua4::DNSQuestion::getEDNSOptions() const
   return {};
 }
 
-boost::optional<string> RecursorLua4::DNSQuestion::getEDNSOption(uint16_t code) const
+std::optional<string> RecursorLua4::DNSQuestion::getEDNSOption(uint16_t code) const
 {
   if (ednsOptions != nullptr) {
     for (const auto& option : *ednsOptions) {
@@ -84,7 +84,7 @@ boost::optional<string> RecursorLua4::DNSQuestion::getEDNSOption(uint16_t code) 
   return {};
 }
 
-boost::optional<Netmask> RecursorLua4::DNSQuestion::getEDNSSubnet() const
+std::optional<Netmask> RecursorLua4::DNSQuestion::getEDNSSubnet() const
 {
   if (ednsOptions != nullptr) {
     for (const auto& option : *ednsOptions) {
@@ -132,18 +132,18 @@ void RecursorLua4::DNSQuestion::setRecords(const vector<pair<int, DNSRecord>>& a
   }
 }
 
-void RecursorLua4::DNSQuestion::addRecord(uint16_t type, const std::string& content, DNSResourceRecord::Place place, boost::optional<int> ttl, boost::optional<string> name)
+void RecursorLua4::DNSQuestion::addRecord(uint16_t type, const std::string& content, DNSResourceRecord::Place place, std::optional<int> ttl, std::optional<string> name)
 {
   DNSRecord dnsRecord;
   dnsRecord.d_name = name ? DNSName(*name) : qname;
-  dnsRecord.d_ttl = ttl.get_value_or(3600);
+  dnsRecord.d_ttl = ttl.value_or(3600);
   dnsRecord.d_type = type;
   dnsRecord.d_place = place;
   dnsRecord.setContent(DNSRecordContent::make(type, QClass::IN, content));
   records.push_back(std::move(dnsRecord));
 }
 
-void RecursorLua4::DNSQuestion::addAnswer(uint16_t type, const std::string& content, boost::optional<int> ttl, boost::optional<string> name)
+void RecursorLua4::DNSQuestion::addAnswer(uint16_t type, const std::string& content, std::optional<int> ttl, std::optional<string> name)
 {
   addRecord(type, content, DNSResourceRecord::ANSWER, ttl, std::move(name));
 }
@@ -304,8 +304,8 @@ void RecursorLua4::postPrepareContext() // NOLINT(readability-function-cognitive
       return std::string(option.values.at(0).content, option.values.at(0).size); });
 
   d_lw->registerFunction<string(DNSRecord::*)()>("getContent", [](const DNSRecord& dnsRecord) { return dnsRecord.getContent()->getZoneRepresentation(); });
-  d_lw->registerFunction<boost::optional<ComboAddress>(DNSRecord::*)()>("getCA", [](const DNSRecord& dnsRecord) { 
-      boost::optional<ComboAddress> ret;
+  d_lw->registerFunction<std::optional<ComboAddress>(DNSRecord::*)()>("getCA", [](const DNSRecord& dnsRecord) { 
+      std::optional<ComboAddress> ret;
 
       if (auto rec = getRR<ARecordContent>(dnsRecord)) {
         ret = rec->getCA(53);
@@ -430,7 +430,7 @@ void RecursorLua4::postPrepareContext() // NOLINT(readability-function-cognitive
 
   d_pd.emplace_back("now", &g_now);
 
-  d_lw->writeFunction("getMetric", [](const std::string& str, boost::optional<boost::variant<std::string, std::unordered_map<std::string, std::string>>> opts){
+  d_lw->writeFunction("getMetric", [](const std::string& str, std::optional<boost::variant<std::string, std::unordered_map<std::string, std::string>>> opts){
     std::string prometheusName;
     std::string prometheusTypeName;
     std::string prometheusDescr;
@@ -558,20 +558,20 @@ void RecursorLua4::postPrepareContext() // NOLINT(readability-function-cognitive
 
 void RecursorLua4::postLoad()
 {
-  d_prerpz = d_lw->readVariable<boost::optional<luacall_t>>("prerpz").get_value_or(nullptr);
-  d_preresolve = d_lw->readVariable<boost::optional<luacall_t>>("preresolve").get_value_or(nullptr);
-  d_nodata = d_lw->readVariable<boost::optional<luacall_t>>("nodata").get_value_or(nullptr);
-  d_nxdomain = d_lw->readVariable<boost::optional<luacall_t>>("nxdomain").get_value_or(nullptr);
-  d_postresolve = d_lw->readVariable<boost::optional<luacall_t>>("postresolve").get_value_or(nullptr);
-  d_preoutquery = d_lw->readVariable<boost::optional<luacall_t>>("preoutquery").get_value_or(nullptr);
-  d_maintenance = d_lw->readVariable<boost::optional<luamaintenance_t>>("maintenance").get_value_or(nullptr);
+  d_prerpz = d_lw->readVariable<std::optional<luacall_t>>("prerpz").value_or(nullptr);
+  d_preresolve = d_lw->readVariable<std::optional<luacall_t>>("preresolve").value_or(nullptr);
+  d_nodata = d_lw->readVariable<std::optional<luacall_t>>("nodata").value_or(nullptr);
+  d_nxdomain = d_lw->readVariable<std::optional<luacall_t>>("nxdomain").value_or(nullptr);
+  d_postresolve = d_lw->readVariable<std::optional<luacall_t>>("postresolve").value_or(nullptr);
+  d_preoutquery = d_lw->readVariable<std::optional<luacall_t>>("preoutquery").value_or(nullptr);
+  d_maintenance = d_lw->readVariable<std::optional<luamaintenance_t>>("maintenance").value_or(nullptr);
 
-  d_ipfilter = d_lw->readVariable<boost::optional<ipfilter_t>>("ipfilter").get_value_or(nullptr);
-  d_gettag = d_lw->readVariable<boost::optional<gettag_t>>("gettag").get_value_or(nullptr);
-  d_gettag_ffi = d_lw->readVariable<boost::optional<gettag_ffi_t>>("gettag_ffi").get_value_or(nullptr);
-  d_postresolve_ffi = d_lw->readVariable<boost::optional<postresolve_ffi_t>>("postresolve_ffi").get_value_or(nullptr);
+  d_ipfilter = d_lw->readVariable<std::optional<ipfilter_t>>("ipfilter").value_or(nullptr);
+  d_gettag = d_lw->readVariable<std::optional<gettag_t>>("gettag").value_or(nullptr);
+  d_gettag_ffi = d_lw->readVariable<std::optional<gettag_ffi_t>>("gettag_ffi").value_or(nullptr);
+  d_postresolve_ffi = d_lw->readVariable<std::optional<postresolve_ffi_t>>("postresolve_ffi").value_or(nullptr);
 
-  d_policyHitEventFilter = d_lw->readVariable<boost::optional<policyEventFilter_t>>("policyEventFilter").get_value_or(nullptr);
+  d_policyHitEventFilter = d_lw->readVariable<std::optional<policyEventFilter_t>>("policyEventFilter").value_or(nullptr);
 }
 
 void RecursorLua4::getFeatures(Features& features)
@@ -589,7 +589,7 @@ void RecursorLua4::runStartStopFunction(const string& script, bool start, Logr::
   auto mylog = log->withValues("script", Logging::Loggable(script), "function", Logging::Loggable(func));
   loadFile(script);
   // coverity[auto_causes_copy] does not work with &, despite what coverity thinks
-  const auto call = d_lw->readVariable<boost::optional<std::function<void()>>>(func).get_value_or(nullptr);
+  const auto call = d_lw->readVariable<std::optional<std::function<void()>>>(func).value_or(nullptr);
   if (call) {
     mylog->info(Logr::Info, "Starting Lua function");
     call();
@@ -850,7 +850,7 @@ bool RecursorLua4::genhook(const luacall_t& func, DNSQuestion& dnsQuestion, int&
         PacketBuffer packetBuffer = GenUDPQueryResponse(dnsQuestion.udpQueryDest, dnsQuestion.udpQuery);
         dnsQuestion.udpAnswer = std::string(reinterpret_cast<const char*>(packetBuffer.data()), packetBuffer.size()); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
         // coverity[auto_causes_copy] not copying produces a dangling ref
-        const auto cbFunc = d_lw->readVariable<boost::optional<luacall_t>>(dnsQuestion.udpCallback).get_value_or(nullptr);
+        const auto cbFunc = d_lw->readVariable<std::optional<luacall_t>>(dnsQuestion.udpCallback).value_or(nullptr);
         if (!cbFunc) {
           g_slog->withName("lua")->info(Logr::Error, "Attempted callback for Lua UDP Query/Response which could not be found");
           return false;

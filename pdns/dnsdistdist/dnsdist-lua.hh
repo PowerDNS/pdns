@@ -41,7 +41,7 @@ using luaruleparams_t = LuaAssociativeTable<std::string>;
 using luadnsrule_t = boost::variant<string, LuaArray<std::string>, std::shared_ptr<DNSRule>, DNSName, LuaArray<DNSName>>;
 std::shared_ptr<DNSRule> makeRule(const luadnsrule_t& var, const std::string& calledFrom);
 
-void parseRuleParams(boost::optional<luaruleparams_t>& params, boost::uuids::uuid& uuid, std::string& name, uint64_t& creationOrder);
+void parseRuleParams(std::optional<luaruleparams_t>& params, boost::uuids::uuid& uuid, std::string& name, uint64_t& creationOrder);
 void checkParameterBound(const std::string& parameter, uint64_t value, uint64_t max = std::numeric_limits<uint16_t>::max());
 
 void setupLua(LuaContext& luaCtx, bool client, bool configCheck, const std::string& config);
@@ -112,7 +112,7 @@ void loadLuaConfigurationFile(LuaContext& luaCtx, const std::string& config, boo
  * returns: -1 if type wasn't compatible, 0 if not found or number of element(s) found
  */
 template <class G, class T, class V>
-static inline int getOptionalValue(boost::optional<V>& vars, const std::string& key, T& value, bool warnOnWrongType = true)
+static inline int getOptionalValue(std::optional<V>& vars, const std::string& key, T& value, bool warnOnWrongType = true)
 {
   /* nothing found, nothing to return */
   if (!vars) {
@@ -136,7 +136,7 @@ static inline int getOptionalValue(boost::optional<V>& vars, const std::string& 
 }
 
 template <class T, class V>
-static inline int getOptionalIntegerValue(const std::string& func, boost::optional<V>& vars, const std::string& key, T& value)
+static inline int getOptionalIntegerValue(const std::string& func, std::optional<V>& vars, const std::string& key, T& value)
 {
   std::string valueStr;
   auto ret = getOptionalValue<std::string>(vars, key, valueStr, true);
@@ -153,7 +153,7 @@ static inline int getOptionalIntegerValue(const std::string& func, boost::option
 }
 
 template <class V>
-static inline void checkAllParametersConsumed(const std::string& func, const boost::optional<V>& vars)
+static inline void checkAllParametersConsumed(const std::string& func, const std::optional<V>& vars)
 {
   /* no vars */
   if (!vars) {

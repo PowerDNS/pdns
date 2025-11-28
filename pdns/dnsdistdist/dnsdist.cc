@@ -552,7 +552,7 @@ bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse,
     }
     {
       auto cacheInsertCloser = dnsResponse.ids.getCloser("packetCacheInsert", __func__); // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
-      dnsResponse.ids.packetCache->insert(cacheKey, zeroScope ? boost::none : dnsResponse.ids.subnet, dnsResponse.ids.cacheFlags, dnsResponse.ids.dnssecOK ? *dnsResponse.ids.dnssecOK : false, dnsResponse.ids.qname, dnsResponse.ids.qtype, dnsResponse.ids.qclass, response, dnsResponse.ids.forwardedOverUDP, dnsResponse.getHeader()->rcode, dnsResponse.ids.tempFailureTTL);
+      dnsResponse.ids.packetCache->insert(cacheKey, zeroScope ? std::nullopt : dnsResponse.ids.subnet, dnsResponse.ids.cacheFlags, dnsResponse.ids.dnssecOK ? *dnsResponse.ids.dnssecOK : false, dnsResponse.ids.qname, dnsResponse.ids.qtype, dnsResponse.ids.qclass, response, dnsResponse.ids.forwardedOverUDP, dnsResponse.getHeader()->rcode, dnsResponse.ids.tempFailureTTL);
     }
     const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
     const auto& cacheInsertedRespRuleActions = dnsdist::rules::getResponseRuleChain(chains, dnsdist::rules::ResponseRuleChain::CacheInsertedResponseRules);
@@ -2396,7 +2396,7 @@ static void maintThread()
     {
       auto lua = g_lua.lock();
       try {
-        auto maintenanceCallback = lua->readVariable<boost::optional<std::function<void()>>>("maintenance");
+        auto maintenanceCallback = lua->readVariable<std::optional<std::function<void()>>>("maintenance");
         if (maintenanceCallback) {
           (*maintenanceCallback)();
         }

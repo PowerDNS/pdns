@@ -107,12 +107,12 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
     "ecsOverride", [](const DNSQuestion& dnsQuestion) -> bool { return dnsQuestion.ecsOverride; }, [](DNSQuestion& dnsQuestion, bool ecsOverride) { dnsQuestion.ecsOverride = ecsOverride; });
   luaCtx.registerMember<uint16_t(DNSQuestion::*)>(
     "ecsPrefixLength", [](const DNSQuestion& dnsQuestion) -> uint16_t { return dnsQuestion.ecsPrefixLength; }, [](DNSQuestion& dnsQuestion, uint16_t newPrefixLength) { dnsQuestion.ecsPrefixLength = newPrefixLength; });
-  luaCtx.registerMember<boost::optional<uint32_t>(DNSQuestion::*)>(
+  luaCtx.registerMember<std::optional<uint32_t>(DNSQuestion::*)>(
     "tempFailureTTL",
-    [](const DNSQuestion& dnsQuestion) -> boost::optional<uint32_t> {
+    [](const DNSQuestion& dnsQuestion) -> std::optional<uint32_t> {
       return dnsQuestion.ids.tempFailureTTL;
     },
-    [](DNSQuestion& dnsQuestion, boost::optional<uint32_t> newValue) {
+    [](DNSQuestion& dnsQuestion, std::optional<uint32_t> newValue) {
       dnsQuestion.ids.tempFailureTTL = newValue;
     });
   luaCtx.registerMember<std::string(DNSQuestion::*)>(
@@ -204,7 +204,7 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
     return dnsQuestion.ids.queryRealTime.udiff();
   });
 
-  luaCtx.registerFunction<void (DNSQuestion::*)(std::string)>("sendTrap", []([[maybe_unused]] const DNSQuestion& dnsQuestion, [[maybe_unused]] boost::optional<std::string> reason) {
+  luaCtx.registerFunction<void (DNSQuestion::*)(std::string)>("sendTrap", []([[maybe_unused]] const DNSQuestion& dnsQuestion, [[maybe_unused]] std::optional<std::string> reason) {
 #ifdef HAVE_NET_SNMP
     if (g_snmpAgent != nullptr && dnsdist::configuration::getImmutableConfiguration().d_snmpTrapsEnabled) {
       g_snmpAgent->sendDNSTrap(dnsQuestion, reason ? *reason : "");
@@ -290,7 +290,7 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
     return true;
   });
 
-  luaCtx.registerFunction<void (DNSQuestion::*)(const boost::variant<LuaArray<ComboAddress>, LuaArray<std::string>>&, boost::optional<uint16_t>)>("spoof", [](DNSQuestion& dnsQuestion, const boost::variant<LuaArray<ComboAddress>, LuaArray<std::string>>& response, boost::optional<uint16_t> typeForAny) {
+  luaCtx.registerFunction<void (DNSQuestion::*)(const boost::variant<LuaArray<ComboAddress>, LuaArray<std::string>>&, std::optional<uint16_t>)>("spoof", [](DNSQuestion& dnsQuestion, const boost::variant<LuaArray<ComboAddress>, LuaArray<std::string>>& response, std::optional<uint16_t> typeForAny) {
     dnsdist::ResponseConfig responseConfig;
     if (response.type() == typeid(LuaArray<ComboAddress>)) {
       std::vector<ComboAddress> data;
@@ -318,7 +318,7 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
     setEDNSOption(dnsQuestion, code, data);
   });
 
-  luaCtx.registerFunction<void (DNSQuestion::*)(uint16_t infoCode, const boost::optional<std::string>& extraText)>("setExtendedDNSError", [](DNSQuestion& dnsQuestion, uint16_t infoCode, const boost::optional<std::string>& extraText) {
+  luaCtx.registerFunction<void (DNSQuestion::*)(uint16_t infoCode, const std::optional<std::string>& extraText)>("setExtendedDNSError", [](DNSQuestion& dnsQuestion, uint16_t infoCode, const std::optional<std::string>& extraText) {
     EDNSExtendedError ede;
     ede.infoCode = infoCode;
     if (extraText) {
@@ -572,7 +572,7 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
     return {};
   });
 
-  luaCtx.registerFunction<void (DNSResponse::*)(std::string)>("sendTrap", []([[maybe_unused]] const DNSResponse& dnsResponse, [[maybe_unused]] boost::optional<std::string> reason) {
+  luaCtx.registerFunction<void (DNSResponse::*)(std::string)>("sendTrap", []([[maybe_unused]] const DNSResponse& dnsResponse, [[maybe_unused]] std::optional<std::string> reason) {
 #ifdef HAVE_NET_SNMP
     if (g_snmpAgent != nullptr && dnsdist::configuration::getImmutableConfiguration().d_snmpTrapsEnabled) {
       g_snmpAgent->sendDNSTrap(dnsResponse, reason ? *reason : "");
@@ -653,7 +653,7 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
     return LuaAssociativeTable<std::string>();
   });
 
-  luaCtx.registerFunction<void (DNSQuestion::*)(uint64_t statusCode, const std::string& body, const boost::optional<std::string> contentType)>("setHTTPResponse", [](DNSQuestion& dnsQuestion, uint64_t statusCode, const std::string& body, [[maybe_unused]] const boost::optional<std::string>& contentType) {
+  luaCtx.registerFunction<void (DNSQuestion::*)(uint64_t statusCode, const std::string& body, const std::optional<std::string> contentType)>("setHTTPResponse", [](DNSQuestion& dnsQuestion, uint64_t statusCode, const std::string& body, [[maybe_unused]] const std::optional<std::string>& contentType) {
     if (dnsQuestion.ids.du == nullptr && dnsQuestion.ids.doh3u == nullptr) {
       return;
     }
@@ -682,7 +682,7 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
     return setNegativeAndAdditionalSOA(dnsQuestion, nxd, DNSName(zone), ttl, DNSName(mname), DNSName(rname), serial, refresh, retry, expire, minimum, false);
   });
 
-  luaCtx.registerFunction<void (DNSResponse::*)(uint16_t infoCode, const boost::optional<std::string>& extraText)>("setExtendedDNSError", [](DNSResponse& dnsResponse, uint16_t infoCode, const boost::optional<std::string>& extraText) {
+  luaCtx.registerFunction<void (DNSResponse::*)(uint16_t infoCode, const std::optional<std::string>& extraText)>("setExtendedDNSError", [](DNSResponse& dnsResponse, uint16_t infoCode, const std::optional<std::string>& extraText) {
     EDNSExtendedError ede;
     ede.infoCode = infoCode;
     if (extraText) {
@@ -716,8 +716,8 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
     return dnsdist::queueQueryResumptionEvent(std::move(query));
   });
 
-  luaCtx.registerFunction<boost::optional<std::shared_ptr<DownstreamState>> (DNSResponse::*)(void) const>("getSelectedBackend", [](const DNSResponse& dnsResponse) {
-    return dnsResponse.d_downstream ? dnsResponse.d_downstream : boost::optional<std::shared_ptr<DownstreamState>>();
+  luaCtx.registerFunction<std::optional<std::shared_ptr<DownstreamState>> (DNSResponse::*)(void) const>("getSelectedBackend", [](const DNSResponse& dnsResponse) {
+    return dnsResponse.d_downstream ? dnsResponse.d_downstream : std::optional<std::shared_ptr<DownstreamState>>();
   });
 
   luaCtx.registerFunction<bool (DNSResponse::*)()>("getStaleCacheHit", [](DNSResponse& dnsResponse) {

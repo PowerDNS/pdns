@@ -2943,6 +2943,7 @@ struct LuaContext::Reader<boost::optional<TType>>
     }
 };
 
+// NOLINTBEGIN(clang-analyzer-cplusplus.NewDeleteLeaks)
 template<typename TType>
 struct LuaContext::Reader<std::optional<TType>>
 {
@@ -2958,6 +2959,7 @@ struct LuaContext::Reader<std::optional<TType>>
         return boost::none;
     }
 };
+// NOLINTEND(clang-analyzer-cplusplus.NewDeleteLeaks)
 
 // variant
 template<typename... TTypes>
