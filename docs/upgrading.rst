@@ -28,6 +28,25 @@ representation than expected.
 4.9.0 to 5.0.0
 --------------
 
+Leftover backend module files
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Until version 5.0.0, built-in backend modules also had a matching dynamic
+module being built. From version 5.0.0 onwards, this is no longer the case,
+but if not upgrading with a package manager, unless files from previous versions
+are manually removed, the Authoritative server will try to load these old
+files anyway, and fail.
+
+In this case, it is recommended that you run::
+
+  rm /usr/local/lib/pdns/lib*.so
+
+(substituting the appropriate PowerDNS installation directory to ``/usr/local``)
+prior to the installation.
+Or you can inspect the contents of this directory after installation and
+remove the files which are not present in version 5.0.0, based on their
+timestamps.
+
 LMDB backend, views
 ^^^^^^^^^^^^^^^^^^^
 
