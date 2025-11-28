@@ -29,9 +29,9 @@ attrs==25.4.0 \
 cdbx==0.1.2 \
     --hash=sha256:38c6b303f6c66be58427d724204a5873881854ecab3653ce056e7b689fb57f8a
     # via -r requirements.in
-certifi==2025.10.5 \
-    --hash=sha256:0f212c2744a9bb6de0c56639a6f68afe01ecd92d91f14ae897c4fe7bbeeef0de \
-    --hash=sha256:47c09d31ccf2acf0be3f701ea53595ee7e0b8fa08801c6624be771df09ae7b43
+certifi==2025.11.12 \
+    --hash=sha256:97de8790030bbd5c2d96b7ec782fc2f7820ef8dba6db909ccf95449f2d062d4b \
+    --hash=sha256:d8ab5478f2ecd78af242878415affce761ca6bc54a22a27e026d7c25357c3316
     # via
     #   aioquic
     #   requests
@@ -300,9 +300,9 @@ dnspython==2.8.0 \
     --hash=sha256:01d9bbc4a2d76bf0db7c1f729812ded6d912bd318d3b1cf81d30c0f845dbf3af \
     --hash=sha256:181d3c6996452cb1189c4046c61599b84a5a86e099562ffde77d26984ff26d0f
     # via -r requirements.in
-execnet==2.1.1 \
-    --hash=sha256:26dee51f1b80cebd6d0ca8e74dd8745419761d3bef34163928cbebbdc4749fdc \
-    --hash=sha256:5189b52c6121c24feae288166ab41b32549c7e2348652736540b9e6e7d4e72e3
+execnet==2.1.2 \
+    --hash=sha256:63d83bfdd9a23e35b9c6a3261412324f964c2ec8dcd8d3c6916ee9373e0befcd \
+    --hash=sha256:67fba928dd5a544b783f6056f449e5e3931a5c378b128bc18501f7ea79e296ec
     # via pytest-xdist
 future==1.0.0 \
     --hash=sha256:929292d34f5872e70396626ef385ec22355a1fae8ad29e1a734c3e43f9fbc216 \
@@ -399,17 +399,17 @@ ply==3.11 \
     --hash=sha256:00c7c1aaa88358b9c765b6d3000c6eec0ba42abca5351b095321aef446081da3 \
     --hash=sha256:096f9b8350b65ebd2fd1346b12452efe5b9607f7482813ffca50c22722a807ce
     # via pysmi
-protobuf==6.33.0 \
-    --hash=sha256:140303d5c8d2037730c548f8c7b93b20bb1dc301be280c378b82b8894589c954 \
-    --hash=sha256:25c9e1963c6734448ea2d308cfa610e692b801304ba0908d7bfa564ac5132995 \
-    --hash=sha256:35be49fd3f4fefa4e6e2aacc35e8b837d6703c37a2168a55ac21e9b1bc7559ef \
-    --hash=sha256:905b07a65f1a4b72412314082c7dbfae91a9e8b68a0cc1577515f8df58ecf455 \
-    --hash=sha256:9a031d10f703f03768f2743a1c403af050b6ae1f3480e9c140f39c45f81b13ee \
-    --hash=sha256:c963e86c3655af3a917962c9619e1a6b9670540351d7af9439d06064e3317cc9 \
-    --hash=sha256:cd33a8e38ea3e39df66e1bbc462b076d6e5ba3a4ebbde58219d777223a7873d3 \
-    --hash=sha256:d6101ded078042a8f17959eccd9236fb7a9ca20d3b0098bbcb91533a5680d035 \
-    --hash=sha256:e0697ece353e6239b90ee43a9231318302ad8353c70e6e45499fa52396debf90 \
-    --hash=sha256:e0a1715e4f27355afd9570f3ea369735afc853a6c3951a6afe1f80d8569ad298
+protobuf==6.33.1 \
+    --hash=sha256:023af8449482fa884d88b4563d85e83accab54138ae098924a985bcbb734a213 \
+    --hash=sha256:0f4cf01222c0d959c2b399142deb526de420be8236f22c71356e2a544e153c53 \
+    --hash=sha256:8fd7d5e0eb08cd5b87fd3df49bc193f5cfd778701f47e11d127d0afc6c39f1d1 \
+    --hash=sha256:923aa6d27a92bf44394f6abf7ea0500f38769d4b07f4be41cb52bd8b1123b9ed \
+    --hash=sha256:97f65757e8d09870de6fd973aeddb92f85435607235d20b2dfed93405d00c85b \
+    --hash=sha256:d595a9fd694fdeb061a62fbe10eb039cc1e444df81ec9bb70c7fc59ebcb1eafa \
+    --hash=sha256:df051de4fd7e5e4371334e234c62ba43763f15ab605579e04c7008c05735cd82 \
+    --hash=sha256:f8adba2e44cde2d7618996b3fc02341f03f5bc3f2748be72dc7b063319276178 \
+    --hash=sha256:f8d3fdbc966aaab1d05046d0240dd94d40f2a8c62856d41eaa141ff64a79de6b \
+    --hash=sha256:fe34575f2bdde76ac429ec7b570235bf0c788883e70aee90068e9981806f2490
     # via
     #   -r requirements.in
     #   opentelemetry-proto
@@ -508,9 +508,9 @@ pysnmpcrypto==0.0.4 \
     --hash=sha256:5889733caa030f45d9e03ea9d6370fb06426a8cb7f839aabbcdde33c6f634679 \
     --hash=sha256:b635fb3b1ec6637b9a0033f50506214e16eb84574b1d25ab027bbde4caa55129
     # via pysnmp
-pytest==8.4.2 \
-    --hash=sha256:86c0d0b93306b961d58d62a4db4879f27fe25513d4b969df351abdddb3c30e01 \
-    --hash=sha256:872f880de3fc3a5bdc88a11b39c9710c3497a547cfa9320bc3c5e62fbf272e79
+pytest==9.0.1 \
+    --hash=sha256:3e9c069ea73583e255c3b21cf46b8d3c56f6e3a1a8f6da94ccb0fcf57b9d73c8 \
+    --hash=sha256:67be0030d194df2dfa7b556f2e56fb3c3315bd5c8822c6951162b92b32ce7dad
     # via
     #   -r requirements.in
     #   pytest-xdist
