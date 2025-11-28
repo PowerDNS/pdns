@@ -59,6 +59,7 @@ jobs:
       COVERITY_TOKEN: ${{ secrets.COVERITY_TOKEN }}
       SANITIZERS:
       UNIT_TESTS: no
+      CARGO_USE_DEV: 1
       REPO_HOME: ${{ github.workspace }}
     steps:
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
@@ -103,6 +104,7 @@ jobs:
       COVERITY_TOKEN: ${{ secrets.COVERITY_TOKEN }}
       SANITIZERS:
       UNIT_TESTS: no
+      CARGO_USE_DEV: 1
     steps:
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
       - uses: actions/checkout@v5
