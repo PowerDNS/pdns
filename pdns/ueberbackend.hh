@@ -62,32 +62,6 @@ public:
       new modules are loaded */
   vector<std::unique_ptr<DNSBackend>> backends;
 
-  //! the very magic handle for UeberBackend questions
-  class handle
-  {
-  public:
-    bool get(DNSZoneRecord& record);
-    void lookupEnd() const;
-
-    //! The UeberBackend class where this handle belongs to
-    UeberBackend* parent{nullptr};
-
-    //! DNSPacket who asked this question
-    DNSPacket* pkt_p{nullptr};
-    DNSName qname;
-
-    //! Index of the current backend within the backends vector
-    size_t backendIndex{0};
-    QType qtype;
-    domainid_t zoneId{UnknownDomainID};
-
-    void selectNextBackend();
-
-  private:
-    //! The currently selected real backend, which is answering questions
-    DNSBackend* d_hinterBackend{nullptr};
-  };
-
   void lookup(const QType& qtype, const DNSName& qname, domainid_t zoneId, DNSPacket* pkt_p = nullptr);
   /** Read a single record from a lookup(...) result. */
   bool get(DNSZoneRecord& resourceRecord);
@@ -151,19 +125,49 @@ public:
   void flush();
 
 private:
-  handle d_handle;
-  vector<DNSZoneRecord> d_answers;
-  vector<DNSZoneRecord>::const_iterator d_cachehandleiter;
-
-  static std::mutex d_mut;
-  static std::condition_variable d_cond;
-
   struct Question
   {
     DNSName qname;
     domainid_t zoneId;
     QType qtype;
   } d_question;
+
+  //! the very magic handle for UeberBackend questions
+  class handle
+  {
+  public:
+    void setParent(UeberBackend* parent) { d_parent = parent; }
+    void selectNextBackend();
+
+    void setupQuestion(Question& question) const;
+    void lookup(const QType& qtype, const DNSName& qname, domainid_t zoneId, DNSPacket* pkt_p);
+    bool get(DNSZoneRecord& record);
+    void lookupEnd() const;
+
+  private:
+    //! The UeberBackend class where this handle belongs to
+    UeberBackend* d_parent{nullptr};
+
+    //! The currently selected real backend, which is answering questions
+    DNSBackend* d_hinterBackend{nullptr};
+
+    //! Index of the current backend within the backends vector
+    size_t d_backendIndex{0};
+
+    //! DNSPacket who asked this question
+    DNSPacket* d_pkt_p{nullptr};
+    DNSName d_qname;
+
+    QType d_qtype;
+    domainid_t d_zoneId{UnknownDomainID};
+  };
+
+  handle d_handle;
+  vector<DNSZoneRecord> d_answers;
+  vector<DNSZoneRecord>::const_iterator d_cachehandleiter;
+
+  static std::mutex d_mut;
+  static std::condition_variable d_cond;
 
   unsigned int d_cache_ttl, d_negcache_ttl;
   uint16_t d_qtype{0};
