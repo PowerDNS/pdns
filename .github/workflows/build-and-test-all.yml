@@ -159,6 +159,7 @@ jobs:
         SANITIZERS: ${{ matrix.sanitizers }}
         UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp"
         UNIT_TESTS: yes
+        CARGO_USE_DEV: 1
       options: --sysctl net.ipv6.conf.all.disable_ipv6=0
     defaults:
       run:
@@ -248,6 +249,7 @@ jobs:
         UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp"
         UNIT_TESTS: yes
         FUZZING_TARGETS: yes
+        CARGO_USE_DEV: 1
       options: --sysctl net.ipv6.conf.all.disable_ipv6=0
     defaults:
       run:
