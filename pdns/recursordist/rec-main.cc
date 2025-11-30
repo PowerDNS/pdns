@@ -1838,6 +1838,7 @@ static int initSyncRes(Logr::log_t log)
   SyncRes::parseEDNSSubnetAllowlist(::arg()["edns-subnet-allow-list"]);
   SyncRes::parseEDNSSubnetAddFor(::arg()["ecs-add-for"]);
   g_useIncomingECS = ::arg().mustDo("use-incoming-edns-subnet");
+  SyncRes::s_outAnyToTcp = ::arg().mustDo("out-any-to-tcp");
   return 0;
 }
 

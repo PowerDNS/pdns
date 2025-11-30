@@ -1507,19 +1507,30 @@ auth-zones=example=configs/%s/example.zone""" % _confdir
                    ]
         query = dns.message.make_query(name, 'ANY', want_dnssec=True)
         query.flags |= dns.flags.CD
-        raw = self.sendUDPQuery(query, decode=False)
-        res = dns.message.from_wire(raw)
+        raw1 = self.sendUDPQuery(query, decode=False)
+        res = dns.message.from_wire(raw1)
+        self.assertMessageHasFlags(res, ['QR', 'TC', 'RD', 'RA', 'CD'], ['DO'])
+        raw2 = self.sendTCPQuery(query, decode=False)
+        res = dns.message.from_wire(raw2)
 
         for rrset in expected:
             self.assertRRsetInAnswer(res, rrset)
 
-        # check the protobuf messages corresponding to the UDP query and answer
+        # check the protobuf messages corresponding to the UDP query
         msg = self.getFirstProtobufMessage()
         self.checkProtobufQuery(msg, dnsmessage_pb2.PBDNSMessage.UDP, query, dns.rdataclass.IN, dns.rdatatype.ANY, name)
-        # then the response
+        # then TC response
         msg = self.getFirstProtobufMessage()
-        self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, res, '127.0.0.1', receivedSize=len(raw))
+        self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, res, '127.0.0.1', receivedSize=len(raw1))
+        self.assertEqual(len(msg.response.rrs), 0)
+
+        # check the protobuf messages corresponding to the TCP query and answer
+        msg = self.getFirstProtobufMessage()
+        self.checkProtobufQuery(msg, dnsmessage_pb2.PBDNSMessage.TCP, query, dns.rdataclass.IN, dns.rdatatype.ANY, name)
+        msg = self.getFirstProtobufMessage()
+        self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.TCP, res, '127.0.0.1', receivedSize=len(raw2))
         self.assertEqual(len(msg.response.rrs), 5)
+
         for rr in msg.response.rrs:
             self.assertIn(rr.type, [dns.rdatatype.AAAA, dns.rdatatype.TXT, dns.rdatatype.MX, dns.rdatatype.SPF, dns.rdatatype.SRV])
 

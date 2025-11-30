@@ -560,6 +560,7 @@ public:
   static bool s_noEDNS;
   static bool s_rootNXTrust;
   static bool s_qnameminimization;
+  static bool s_outAnyToTcp;
   static HardenNXD s_hardenNXD;
   static unsigned int s_refresh_ttlperc;
   static unsigned int s_locked_ttlperc;

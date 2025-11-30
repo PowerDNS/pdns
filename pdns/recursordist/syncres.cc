@@ -384,6 +384,7 @@ bool SyncRes::s_doIPv6;
 bool SyncRes::s_rootNXTrust;
 bool SyncRes::s_noEDNS;
 bool SyncRes::s_qnameminimization;
+bool SyncRes::s_outAnyToTcp;
 SyncRes::HardenNXD SyncRes::s_hardenNXD;
 unsigned int SyncRes::s_refresh_ttlperc;
 unsigned int SyncRes::s_locked_ttlperc;
@@ -5997,7 +5998,7 @@ int SyncRes::doResolveAt(NsSet& nameservers, DNSName auth, bool flawedNSSet, con
           if (SyncRes::s_dot_to_port_853 && remoteIP->getPort() == 853) {
             doDoT = true;
           }
-          bool forceTCP = doDoT;
+          bool forceTCP = doDoT || (qtype == QType::ANY && s_outAnyToTcp);
 
           if (!doDoT && s_max_busy_dot_probes > 0) {
             submitTryDotTask(*remoteIP, auth, tns->first, d_now.tv_sec);

@@ -18,7 +18,9 @@ class SortlistTest(RecursorTest):
         msg.flags = dns.flags.from_text('RD')
 
         res = self.sendUDPQuery(msg, fwparams=dict(one_rr_per_rrset=True))
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD', 'TC'], [])
 
+        res = self.sendTCPQuery(msg, fwparams=dict(one_rr_per_rrset=True))
         self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'], [])
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
 
