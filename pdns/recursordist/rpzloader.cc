@@ -34,6 +34,8 @@
 #include "query-local-address.hh"
 #include "rec-system-resolve.hh"
 
+bool g_logRPZChanges{false};
+
 Netmask makeNetmaskFromRPZ(const DNSName& name)
 {
   auto parts = name.getRawLabels();

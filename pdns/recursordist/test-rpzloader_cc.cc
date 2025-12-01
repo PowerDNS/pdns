@@ -12,9 +12,6 @@
 
 #include <boost/test/unit_test.hpp>
 
-// Provide stubs for some symbols
-bool g_logRPZChanges{false};
-
 BOOST_AUTO_TEST_SUITE(rpzloader_cc)
 
 BOOST_AUTO_TEST_CASE(test_rpz_loader)
