@@ -280,6 +280,7 @@ defmacro
 defpol
 defttl
 Dehaine
+delichik
 DENIC
 descclassname
 descname
@@ -385,6 +386,7 @@ ech
 econds
 ecswho
 editline
+ednaq
 edns
 ednsbufsiz
 ednsopt
@@ -1320,7 +1322,6 @@ SRecord
 Srule
 srv
 sshfp
-ssi
 SSQ
 stacksize
 starttransaction
