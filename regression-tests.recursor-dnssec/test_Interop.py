@@ -209,7 +209,7 @@ forward-zones+=undelegated.insecure.example=%s.12
         query = dns.message.make_query('non-apex-dnskey3.secure.example.', 'ANY')
         query.flags |= dns.flags.AD
 
-        res = self.sendUDPQuery(query)
+        res = self.sendTCPQuery(query)
         print(res)
         expectedDNSKEY = dns.rrset.from_text('non-apex-dnskey3.secure.example.', 0, dns.rdataclass.IN, 'DNSKEY', '256 3 13 DT6AJ4MEOtNDgj0+xLtTLGHf1WbLsKWZI8ONHOt/6q7hTjeWSnY/SGig1dIKZrHg+pJFUSPaxeShv48SYVRKEg==')
 
