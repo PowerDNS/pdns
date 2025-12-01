@@ -1,7 +1,7 @@
 PowerDNS AI Usage Policy
 ========================
 
-Last update: 15th September, 2025
+Last update: 1st December, 2025
 
 This document tries to summarize the AI Usage Policy within
 PowerDNS Authoritative Server, Recursor and dnsdist, and the rationale behind
@@ -15,8 +15,9 @@ The current policy is as follows:
 - The use of AI tools for code contributions is **not** allowed.
 
   The rationale behind this is that there is no way to know whether the AI has
-  been trained on code compatible with the GPL version 2 licence used by
-  PowerDNS, and which persons should deserve credit for the output of the AI.
+  been trained only on code compatible with licences used by the various
+  PowerDNS software projects, and which persons should deserve credit for the
+  output of the AI.
 
   We are also seriously worried about the ability for AI-generated code to
   introduce subtle bugs or security issues (``to err is human; to really
