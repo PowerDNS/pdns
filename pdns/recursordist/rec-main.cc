@@ -116,7 +116,6 @@ LockGuarded<std::shared_ptr<SyncRes::domainmap_t>> g_initialDomainMap; // new th
 LockGuarded<std::shared_ptr<NetmaskGroup>> g_initialAllowFrom; // new thread needs to be setup with this
 LockGuarded<std::shared_ptr<NetmaskGroup>> g_initialAllowNotifyFrom; // new threads need this to be setup
 LockGuarded<std::shared_ptr<notifyset_t>> g_initialAllowNotifyFor; // new threads need this to be setup
-bool g_logRPZChanges{false};
 static time_t s_statisticsInterval;
 static std::atomic<uint32_t> s_counter;
 int g_argc;
