@@ -110,6 +110,8 @@ Overrides the :ref:`setting-allow-from` setting. Example content of th specified
 Domain names specified in this list are used to permit incoming
 NOTIFY operations to wipe any cache entries that match the domain
 name. If this list is empty, all NOTIFY operations will be ignored.
+Adding a single ``.`` to the list allows every zone cache to be
+cleared by a NOTIFY.
  ''',
         'versionadded': '4.6.0',
         'runtime': ['reload-acls'],
