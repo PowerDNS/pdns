@@ -28,65 +28,29 @@
 namespace dnsdist::logging
 {
 std::optional<std::ofstream> LoggingConfiguration::s_verboseStream{std::nullopt};
-std::string LoggingConfiguration::s_structuredLevelPrefix{"prio"};
-LoggingConfiguration::TimeFormat LoggingConfiguration::s_structuredTimeFormat{LoggingConfiguration::TimeFormat::Numeric};
-bool LoggingConfiguration::s_structuredLogging{false};
 bool LoggingConfiguration::s_logTimestamps{false};
 bool LoggingConfiguration::s_syslog{true};
-
-namespace
-{
-  const char* getTimeFormat()
-  {
-    if (!dnsdist::logging::LoggingConfiguration::getStructuredLogging()) {
-      return "%b %d %H:%M:%S ";
-    }
-
-    auto format = dnsdist::logging::LoggingConfiguration::getStructuredLoggingTimeFormat();
-    if (format == dnsdist::logging::LoggingConfiguration::TimeFormat::ISO8601) {
-      return "%FT%H:%M:%S%z";
-    }
-    return nullptr;
-  }
-}
 
 void logTime(std::ostream& stream)
 {
   std::array<char, 50> buffer{""};
 
-  if (LoggingConfiguration::getStructuredLogging() && LoggingConfiguration::getStructuredLoggingTimeFormat() == LoggingConfiguration::TimeFormat::Numeric) {
-    struct timeval now{};
-    gettimeofday(&now, nullptr);
-    snprintf(buffer.data(), buffer.size(), "%lld.%03ld", static_cast<long long>(now.tv_sec), static_cast<long>(now.tv_usec / 1000));
-  }
-  else {
-    const auto* timeFormat = getTimeFormat();
-    if (timeFormat == nullptr) {
-      return;
-    }
+  time_t now{};
+  time(&now);
+  struct tm localNow{};
+  localtime_r(&now, &localNow);
 
-    time_t now{0};
-    time(&now);
-    struct tm localNow{};
-    localtime_r(&now, &localNow);
+  {
+    // strftime is not thread safe, it can access locale information
+    static std::mutex mutex;
+    auto lock = std::scoped_lock(mutex);
 
-    {
-      // strftime is not thread safe, it can access locale information
-      static std::mutex mutex;
-      auto lock = std::scoped_lock(mutex);
-
-      if (strftime(buffer.data(), buffer.size(), timeFormat, &localNow) == 0) {
-        buffer[0] = '\0';
-      }
+    if (strftime(buffer.data(), buffer.size(), "%b %d %H:%M:%S ", &localNow) == 0) {
+      buffer[0] = '\0';
     }
   }
 
-  if (dnsdist::logging::LoggingConfiguration::getStructuredLogging()) {
-    stream << "ts=" << std::quoted(buffer.data()) << " ";
-  }
-  else {
-    stream << buffer.data();
-  }
+  stream << buffer.data();
 }
 
 }

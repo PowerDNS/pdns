@@ -224,12 +224,20 @@ constexpr bool g_slogStructured = true;
   do {                           \
     slogCall;                    \
   } while (0)
-#else // No structured logging (e.g. auth)
+
+#else // DNSdist
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define SLOG(oldStyle, slogCall) \
-  do {                           \
-    oldStyle;                    \
-  } while (0)
+#define SLOG(nonStructured, structured)                     \
+  do {                                                      \
+    if (dnsdist::logging::doStructuredLogging()) {          \
+      structured;                                           \
+    }                                                       \
+    else {                                                  \
+      nonStructured;                                        \
+    }                                                       \
+  }                                                         \
+  while (0)
+
 #endif /* ! DNSDIST */
 
 #endif // RECURSOR || DNSDIST

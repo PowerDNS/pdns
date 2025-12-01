@@ -204,4 +204,9 @@ bool doVerboseLogging()
   return dnsdist::configuration::getCurrentRuntimeConfiguration().d_verbose;
 }
 
+bool doStructuredLogging()
+{
+  return dnsdist::configuration::getImmutableConfiguration().d_structuredLogging;
+}
+
 }

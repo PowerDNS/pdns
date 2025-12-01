@@ -30,4 +30,5 @@ namespace dnsdist::logging
 void setup(const std::string& backend);
 std::shared_ptr<const Logr::Logger> getTopLogger();
 bool doVerboseLogging();
+bool doStructuredLogging();
 }

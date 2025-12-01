@@ -7,9 +7,12 @@
 #endif
 #ifdef RECURSOR
 #include "logger.hh"
-#else
+#else /* !RECURSOR */
 #include "dolog.hh"
-#endif
+#if defined(DNSDIST)
+#include "dnsdist-logging.hh"
+#endif /* DNSDIST */
+#endif /* !RECURSOR */
 #include "logging.hh"
 
 bool CircularWriteBuffer::hasRoomFor(const std::string& str) const
@@ -135,7 +138,9 @@ bool RemoteLogger::reconnect()
     SLOG(g_log<<Logger::Warning<<"Error connecting to remote logger "<<d_remote.toStringWithPort()<<": "<<e.what()<<std::endl,
          g_slog->withName("protobuf")->error(Logr::Error, e.what(), "Exception while connecting to remote logger", "address", Logging::Loggable(d_remote)));
 #else
-    warnlog("Error connecting to remote logger %s: %s", d_remote.toStringWithPort(), e.what());
+    SLOG(warnlog("Error connecting to remote logger %s: %s", d_remote.toStringWithPort(), e.what()),
+         dnsdist::logging::getTopLogger()->withName("protobuf")->error(e.what(), "Exception while connecting to remote logger", "address", Logging::Loggable(d_remote))
+      );
 #endif
 
     return false;
@@ -244,12 +249,24 @@ void RemoteLogger::maintenanceThread()
   }
   catch (const std::exception& e)
   {
+#ifdef RECURSOR
     SLOG(cerr << "Remote Logger's maintenance thread died on: " << e.what() << endl,
          g_slog->withName("protobuf")->error(Logr::Error, e.what(), "Remote Logger's maintenance thread died"));
+#else
+    SLOG(errlog("Remote Logger's maintenance thread died on: %s", e.what()),
+         dnsdist::logging::getTopLogger()->withName("protobuf")->error(e.what(), "Remote Logger's maintenance thread died")
+      );
+#endif
   }
   catch (...) {
+#ifdef RECURSOR
     SLOG(cerr << "Remote Logger's maintenance thread died on unknown exception" << endl,
          g_slog->withName("protobuf")->info(Logr::Error, "Remote Logger's maintenance thread died"));
+#else
+    SLOG(errlog("Remote Logger's maintenance thread died on: %s"),
+         dnsdist::logging::getTopLogger()->withName("protobuf")->info(Logr::Error, "Remote Logger's maintenance thread died")
+      );
+#endif
   }
 }
 
@@ -259,4 +276,3 @@ RemoteLogger::~RemoteLogger()
 
   d_thread.join();
 }
-

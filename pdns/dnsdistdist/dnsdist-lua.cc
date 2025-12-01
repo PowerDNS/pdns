@@ -1711,25 +1711,18 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
   });
   luaCtx.writeFunction("setStructuredLogging", [](bool enable, std::optional<LuaAssociativeTable<std::string>> options) {
-    std::string levelPrefix;
-    std::string timeFormat;
+    std::string backend;
     if (options) {
-      getOptionalValue<std::string>(options, "levelPrefix", levelPrefix);
-      if (getOptionalValue<std::string>(options, "timeFormat", timeFormat) == 1) {
-        if (timeFormat == "numeric") {
-          dnsdist::logging::LoggingConfiguration::setStructuredTimeFormat(dnsdist::logging::LoggingConfiguration::TimeFormat::Numeric);
-        }
-        else if (timeFormat == "ISO8601") {
-          dnsdist::logging::LoggingConfiguration::setStructuredTimeFormat(dnsdist::logging::LoggingConfiguration::TimeFormat::ISO8601);
-        }
-        else {
-          warnlog("Unknown value '%s' to setStructuredLogging's 'timeFormat' parameter", timeFormat);
-        }
-      }
+      getOptionalValue<std::string>(options, "backend", backend);
       checkAllParametersConsumed("setStructuredLogging", options);
     }
 
-    dnsdist::logging::LoggingConfiguration::setStructuredLogging(enable, std::move(levelPrefix));
+    dnsdist::configuration::updateImmutableConfiguration([enable, &backend](dnsdist::configuration::ImmutableConfiguration& config) {
+      if (enable && !backend.empty()) {
+        config.d_loggingBackend = backend;
+      }
+      config.d_structuredLogging = enable;
+    });
   });
 
   luaCtx.writeFunction("showBinds", []() {
@@ -3243,12 +3236,17 @@ void loadLuaConfigurationFile(LuaContext& luaCtx, const std::string& config, boo
     if (configCheck) {
       throw std::runtime_error("Unable to read configuration file from " + config);
     }
-    dnsdist::logging::getTopLogger()->withName("lua-configuration")->info(Logr::Error, "Unable to read configuration from file", "configuration-file", Logging::Loggable(config));
+    SLOG(
+      warnlog("Unable to read configuration from '%s'", config),
+      dnsdist::logging::getTopLogger()->withName("lua-configuration")->info(Logr::Error, "Unable to read configuration from file", "configuration-file", Logging::Loggable(config))
+    );
   }
   else {
-    vinfolog("Read configuration from '%s'", config);
     if (dnsdist::logging::doVerboseLogging()) {
-      dnsdist::logging::getTopLogger()->withName("lua-configuration")->info(Logr::Info, "Read configuration from file", "configuration-file", Logging::Loggable(config));
+      SLOG(
+        infolog("Read configuration from '%s'", config),
+        dnsdist::logging::getTopLogger()->withName("lua-configuration")->info(Logr::Info, "Read configuration from file", "configuration-file", Logging::Loggable(config))
+      );
     }
   }
 

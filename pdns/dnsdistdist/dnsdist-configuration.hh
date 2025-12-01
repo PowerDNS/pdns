@@ -109,6 +109,7 @@ struct ImmutableConfiguration
   bool d_ringsRecordResponses{true};
   bool d_snmpEnabled{false};
   bool d_snmpTrapsEnabled{false};
+  bool d_structuredLogging{true};
 };
 
 /* this part of the configuration can be updated at runtime via

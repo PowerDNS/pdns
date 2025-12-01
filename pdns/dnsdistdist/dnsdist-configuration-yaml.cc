@@ -966,26 +966,9 @@ static void handleLoggingConfiguration(const dnsdist::rust::settings::LoggingCon
     }
   }
 
-  if (settings.structured.enabled) {
-    auto levelPrefix = std::string(settings.structured.level_prefix);
-    auto timeFormat = std::string(settings.structured.time_format);
-    if (!timeFormat.empty()) {
-      if (timeFormat == "numeric") {
-        dnsdist::logging::LoggingConfiguration::setStructuredTimeFormat(dnsdist::logging::LoggingConfiguration::TimeFormat::Numeric);
-      }
-      else if (timeFormat == "ISO8601") {
-        dnsdist::logging::LoggingConfiguration::setStructuredTimeFormat(dnsdist::logging::LoggingConfiguration::TimeFormat::ISO8601);
-      }
-      else {
-        warnlog("Unknown value '%s' to logging.structured.time_format parameter", timeFormat);
-      }
-    }
-
-    dnsdist::logging::LoggingConfiguration::setStructuredLogging(true, std::move(levelPrefix));
-  }
-
   dnsdist::configuration::updateImmutableConfiguration([settings](dnsdist::configuration::ImmutableConfiguration& config) {
     config.d_loggingBackend = std::string(settings.structured.backend);
+    config.d_structuredLogging = settings.structured.enabled;
   });
 
 }
