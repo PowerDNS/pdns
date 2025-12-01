@@ -52,6 +52,7 @@ jobs:
       # for clang-tidy only, not compilation
       CLANG_VERSION: '14'
       REPO_HOME: ${{ github.workspace }}
+      CARGO_USE_DEV: 1
 
     outputs:
       clang-tidy-annotations-auth: ${{ steps.clang-tidy-annotations-auth.outputs.failed }}
