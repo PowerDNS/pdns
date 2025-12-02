@@ -815,6 +815,58 @@ BOOST_AUTO_TEST_CASE(test_forward_ns_send_servfail)
   }
 }
 
+BOOST_AUTO_TEST_CASE(test_forward_ns_send_servfail_same)
+{
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr);
+
+  primeHints();
+
+  std::set<ComboAddress> downServers;
+  size_t queriesCount = 0;
+
+  const DNSName target("www.refused.");
+
+  SyncRes::AuthDomain ad;
+  // It is documented that having duplicate forwarders should result into a retry on servfail
+  const std::vector<ComboAddress> forwardedNSs{ComboAddress("192.0.2.42:53"), ComboAddress("192.0.2.42:53")};
+  ad.d_rdForward = false;
+  ad.d_servers = forwardedNSs;
+  (*SyncRes::t_sstorage.domainmap)[DNSName("refused.")] = ad;
+
+  sr->setAsyncCallback([&](const ComboAddress& address, const DNSName& /* domain */, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, std::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
+    if (isRootServer(address)) {
+      setLWResult(res, 0, false, false, true);
+      addRecordToLW(res, "refused.", QType::NS, "a.gtld-servers.net.", DNSResourceRecord::AUTHORITY, 172800);
+      addRecordToLW(res, "a.gtld-servers.net.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+      addRecordToLW(res, "a.gtld-servers.net.", QType::AAAA, "2001:DB8::1", DNSResourceRecord::ADDITIONAL, 3600);
+      return LWResult::Result::Success;
+    }
+
+    ++queriesCount;
+    downServers.insert(address);
+
+    setLWResult(res, RCode::ServFail, false, false, true);
+
+    return LWResult::Result::Success;
+  });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::ServFail);
+  BOOST_CHECK_EQUAL(ret.size(), 0U);
+  BOOST_CHECK_EQUAL(downServers.size(), 1U);
+  BOOST_CHECK_EQUAL(queriesCount, 2U);
+
+  const auto& server = forwardedNSs.at(0);
+  BOOST_CHECK_EQUAL(downServers.count(server), 1U);
+  /* on servfail from a server we forward to we only increase the NS speed so
+     that a different server might be tried instead, but we don't throttle */
+  BOOST_CHECK(!SyncRes::isThrottled(time(nullptr), server, target, QType::A));
+  BOOST_CHECK_EQUAL(SyncRes::getNSSpeed(DNSName(server.toStringWithPort()), server), 1000000U);
+  BOOST_CHECK_EQUAL(SyncRes::getEDNSStatus(server), SyncRes::EDNSStatus::EDNSOK);
+}
+
 BOOST_AUTO_TEST_CASE(test_only_one_ns_up_resolving_itself_with_glue)
 {
   std::unique_ptr<SyncRes> sr;
