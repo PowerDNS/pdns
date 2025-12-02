@@ -6,7 +6,7 @@ Changelog
   :released: 2nd of December 2025
 
   .. change::
-    :tags: Bugs Fixes
+    :tags: Bug Fixes
     :pullreq: 16309
 
     Fix query rules bypass after tagging from a dynblock
