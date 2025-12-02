@@ -1298,9 +1298,9 @@ BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesMetricsCache_GetTopN, TestFixture) {
         (void)node;
         (void)children;
         if (self.queries > 0) {
-          return std::tuple<bool, boost::optional<std::string>, boost::optional<int>>(true, boost::none, boost::none);
+          return std::tuple<bool, std::optional<std::string>, std::optional<int>>(true, std::nullopt, std::nullopt);
         }
-        return std::tuple<bool, boost::optional<std::string>, boost::optional<int>>(false, boost::none, boost::none);
+        return std::tuple<bool, std::optional<std::string>, std::optional<int>>(false, std::nullopt, std::nullopt);
       });
     }
 
@@ -1360,9 +1360,9 @@ BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesMetricsCache_GetTopN, TestFixture) {
         (void)node;
         (void)children;
         if (self.queries > 0) {
-          return std::tuple<bool, boost::optional<std::string>, boost::optional<int>>(true, "blocked for a different reason", static_cast<int>(DNSAction::Action::Truncate));
+          return std::tuple<bool, std::optional<std::string>, std::optional<int>>(true, "blocked for a different reason", static_cast<int>(DNSAction::Action::Truncate));
         }
-        return std::tuple<bool, boost::optional<std::string>, boost::optional<int>>(false, boost::none, boost::none);
+        return std::tuple<bool, std::optional<std::string>, std::optional<int>>(false, std::nullopt, std::nullopt);
       });
     }
 
@@ -1421,9 +1421,9 @@ BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesMetricsCache_GetTopN, TestFixture) {
       DynBlockRulesGroup::DynBlockRule rule(reason, blockDuration, 0, 0, numberOfSeconds, action);
       dbrg.setSuffixMatchRule(std::move(rule), [](const StatNode& node, const StatNode::Stat& self, const StatNode::Stat& children) {
         if (self.queries > 0) {
-          return std::tuple<bool, boost::optional<std::string>, boost::optional<int>>(true, boost::none, boost::none);
+          return std::tuple<bool, std::optional<std::string>, std::optional<int>>(true, std::nullopt, std::nullopt);
         }
-        return std::tuple<bool, boost::optional<std::string>, boost::optional<int>>(false, boost::none, boost::none);
+        return std::tuple<bool, std::optional<std::string>, std::optional<int>>(false, std::nullopt, std::nullopt);
       });
     }
 

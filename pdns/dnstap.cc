@@ -65,7 +65,7 @@ std::string&& DnstapMessage::getBuffer()
   return std::move(d_buffer);
 }
 
-DnstapMessage::DnstapMessage(std::string&& buffer, DnstapMessage::MessageType type, const std::string& identity, const ComboAddress* requestor, const ComboAddress* responder, DnstapMessage::ProtocolType protocol, const char* packet, const size_t len, const struct timespec* queryTime, const struct timespec* responseTime, const boost::optional<const DNSName&>& auth, const boost::optional<HttpProtocolType> httpProtocol) :
+DnstapMessage::DnstapMessage(std::string&& buffer, DnstapMessage::MessageType type, const std::string& identity, const ComboAddress* requestor, const ComboAddress* responder, DnstapMessage::ProtocolType protocol, const char* packet, const size_t len, const struct timespec* queryTime, const struct timespec* responseTime, const DNSName& auth, const std::optional<HttpProtocolType> httpProtocol) :
   d_buffer(std::move(buffer))
 {
   protozero::pbf_writer pbf{d_buffer};
@@ -136,8 +136,8 @@ DnstapMessage::DnstapMessage(std::string&& buffer, DnstapMessage::MessageType ty
     pbf_message.add_enum(DnstapMessageFields::http_protocol, static_cast<protozero::pbf_tag_type>(*httpProtocol));
   }
 
-  if (auth) {
-    pbf_message.add_bytes(DnstapMessageFields::query_zone, auth->toDNSString());
+  if (!auth.empty()) {
+    pbf_message.add_bytes(DnstapMessageFields::query_zone, auth.toDNSString());
   }
 
   pbf_message.commit();

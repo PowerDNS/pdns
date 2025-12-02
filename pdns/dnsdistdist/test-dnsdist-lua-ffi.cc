@@ -498,11 +498,11 @@ BOOST_AUTO_TEST_CASE(test_PacketCache)
   bool dnssecOK = true;
   bool receivedOverUDP = true;
   uint32_t key = 0;
-  boost::optional<Netmask> subnet;
+  std::optional<Netmask> subnet;
   ids.queryRealTime.start();
   DNSQuestion dq(ids, query);
   packetCache->get(dq, 0, &key, subnet, dnssecOK, receivedOverUDP);
-  packetCache->insert(key, subnet, *(getFlagsFromDNSHeader(dq.getHeader().get())), dnssecOK, ids.qname, QType::A, QClass::IN, response, receivedOverUDP, 0, boost::none);
+  packetCache->insert(key, subnet, *(getFlagsFromDNSHeader(dq.getHeader().get())), dnssecOK, ids.qname, QType::A, QClass::IN, response, receivedOverUDP, 0, std::nullopt);
 
   std::string poolName("test-pool");
   auto testPool = ServerPool();

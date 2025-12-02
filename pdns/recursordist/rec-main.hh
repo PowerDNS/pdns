@@ -134,9 +134,9 @@ struct DNSComboWriter
 
   EDNSSubnetOpts d_ednssubnet;
   shared_ptr<TCPConnection> d_tcpConnection;
-  boost::optional<uint16_t> d_extendedErrorCode{boost::none};
+  std::optional<uint16_t> d_extendedErrorCode{std::nullopt};
   string d_extendedErrorExtra;
-  boost::optional<int> d_rcode{boost::none};
+  std::optional<int> d_rcode{std::nullopt};
   int d_socket{-1};
   unsigned int d_tag{0};
   uint32_t d_qhash{0};
@@ -229,7 +229,7 @@ extern thread_local std::unique_ptr<UDPClientSocks> t_udpclientsocks;
 extern thread_local std::shared_ptr<NetmaskGroup> t_proxyProtocolACL;
 extern thread_local std::shared_ptr<std::set<ComboAddress>> t_proxyProtocolExceptions;
 extern bool g_useIncomingECS;
-extern boost::optional<ComboAddress> g_dns64Prefix;
+extern std::optional<ComboAddress> g_dns64Prefix;
 extern DNSName g_dns64PrefixReverse;
 extern uint64_t g_latencyStatSize;
 extern std::atomic<bool> g_statsWanted;
@@ -625,8 +625,8 @@ bool checkOutgoingProtobufExport(LocalStateHolder<LuaConfigItems>& luaconfsLocal
 bool checkFrameStreamExport(LocalStateHolder<LuaConfigItems>& luaconfsLocal, const FrameStreamExportConfig& config, FrameStreamServersInfo& serverInfos);
 #endif
 void getQNameAndSubnet(const std::string& question, DNSName* dnsname, uint16_t* qtype, uint16_t* qclass,
-                       bool& foundECS, EDNSSubnetOpts* ednssubnet, EDNSOptionViewMap* options, boost::optional<uint32_t>& ednsVersion);
-void protobufLogQuery(LocalStateHolder<LuaConfigItems>& luaconfsLocal, const boost::uuids::uuid& uniqueId, const ComboAddress& remote, const ComboAddress& local, const ComboAddress& mappedSource, const Netmask& ednssubnet, bool tcp, size_t len, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::unordered_set<std::string>& policyTags, const std::string& requestorId, const std::string& deviceId, const std::string& deviceName, const std::map<std::string, RecursorLua4::MetaValue>& meta, const boost::optional<uint32_t>& ednsVersion, const dnsheader& header, const pdns::trace::TraceID& traceID);
+                       bool& foundECS, EDNSSubnetOpts* ednssubnet, EDNSOptionViewMap* options, std::optional<uint32_t>& ednsVersion);
+void protobufLogQuery(LocalStateHolder<LuaConfigItems>& luaconfsLocal, const boost::uuids::uuid& uniqueId, const ComboAddress& remote, const ComboAddress& local, const ComboAddress& mappedSource, const Netmask& ednssubnet, bool tcp, size_t len, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::unordered_set<std::string>& policyTags, const std::string& requestorId, const std::string& deviceId, const std::string& deviceName, const std::map<std::string, RecursorLua4::MetaValue>& meta, const std::optional<uint32_t>& ednsVersion, const dnsheader& header, const pdns::trace::TraceID& traceID);
 bool isAllowNotifyForZone(DNSName qname);
 bool checkForCacheHit(bool qnameParsed, unsigned int tag, const string& data,
                       DNSName& qname, uint16_t& qtype, uint16_t& qclass,

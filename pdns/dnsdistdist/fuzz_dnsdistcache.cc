@@ -56,7 +56,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
     const DNSName qname(reinterpret_cast<const char*>(data), size, sizeof(dnsheader), false, &qtype, &qclass, &consumed);
     pcSkipCookies.getKey(qname.getStorage(), consumed, vect, false);
     pcHashCookies.getKey(qname.getStorage(), consumed, vect, false);
-    boost::optional<Netmask> subnet;
+    std::optional<Netmask> subnet;
     DNSDistPacketCache::getClientSubnet(vect, consumed, subnet);
   }
   catch (const std::exception& e) {

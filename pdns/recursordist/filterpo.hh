@@ -98,7 +98,7 @@ public:
     std::string d_name;
     std::string d_extendedErrorExtra;
     DNSRecord d_soa{};
-    boost::optional<uint16_t> d_extendedErrorCode{boost::none};
+    std::optional<uint16_t> d_extendedErrorCode{std::nullopt};
     Priority d_priority{maximumPriority};
     bool d_policyOverridesGettag{true};
     bool d_includeSOA{false};

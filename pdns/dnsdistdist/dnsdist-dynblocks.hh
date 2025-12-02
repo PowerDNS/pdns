@@ -257,7 +257,7 @@ public:
     d_respCacheMissRatioRule = std::move(rule);
   }
 
-  using smtVisitor_t = std::function<std::tuple<bool, boost::optional<std::string>, boost::optional<int>>(const StatNode&, const StatNode::Stat&, const StatNode::Stat&)>;
+  using smtVisitor_t = std::function<std::tuple<bool, std::optional<std::string>, std::optional<int>>(const StatNode&, const StatNode::Stat&, const StatNode::Stat&)>;
 
   void setSuffixMatchRule(DynBlockRule&& rule, smtVisitor_t visitor)
   {
@@ -362,15 +362,15 @@ private:
   void applySMT(const struct timespec& now, StatNode& statNodeRoot);
   bool checkIfQueryTypeMatches(const Rings::Query& query);
   bool checkIfResponseCodeMatches(const Rings::Response& response);
-  void addOrRefreshBlock(boost::optional<ClientAddressDynamicRules>& blocks, const struct timespec& now, const AddressAndPortRange& requestor, const DynBlockRule& rule, bool& updated, bool warning);
+  void addOrRefreshBlock(std::optional<ClientAddressDynamicRules>& blocks, const struct timespec& now, const AddressAndPortRange& requestor, const DynBlockRule& rule, bool& updated, bool warning);
   void addOrRefreshBlockSMT(SuffixDynamicRules& blocks, const struct timespec& now, const DNSName& name, const DynBlockRule& rule, bool& updated);
 
-  void addBlock(boost::optional<ClientAddressDynamicRules>& blocks, const struct timespec& now, const AddressAndPortRange& requestor, const DynBlockRule& rule, bool& updated)
+  void addBlock(std::optional<ClientAddressDynamicRules>& blocks, const struct timespec& now, const AddressAndPortRange& requestor, const DynBlockRule& rule, bool& updated)
   {
     addOrRefreshBlock(blocks, now, requestor, rule, updated, false);
   }
 
-  void handleWarning(boost::optional<ClientAddressDynamicRules>& blocks, const struct timespec& now, const AddressAndPortRange& requestor, const DynBlockRule& rule, bool& updated)
+  void handleWarning(std::optional<ClientAddressDynamicRules>& blocks, const struct timespec& now, const AddressAndPortRange& requestor, const DynBlockRule& rule, bool& updated)
   {
     addOrRefreshBlock(blocks, now, requestor, rule, updated, true);
   }

@@ -32,8 +32,8 @@
 
 struct ResolveContext
 {
-  ResolveContext(const boost::optional<const boost::uuids::uuid&>& uuid, DNSName name) :
-    d_initialRequestId(uuid), d_nsName(std::move(name))
+  ResolveContext(const boost::optional<const boost::uuids::uuid&>& uuid, DNSName name, const DNSName& auth) :
+    d_initialRequestId(uuid), d_nsName(std::move(name)), d_auth(auth)
   {}
   ~ResolveContext() = default;
 
@@ -44,5 +44,5 @@ struct ResolveContext
 
   boost::optional<const boost::uuids::uuid&> d_initialRequestId;
   DNSName d_nsName;
-  boost::optional<const DNSName&> d_auth;
+  DNSName d_auth;
 };

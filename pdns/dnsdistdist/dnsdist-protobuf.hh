@@ -100,15 +100,15 @@ private:
   const DNSResponse* d_dr{nullptr};
   const std::string* d_ServerIdentityRef{nullptr};
 
-  boost::optional<PBQuestion> d_question{boost::none};
-  boost::optional<std::string> d_serverIdentity{boost::none};
-  boost::optional<ComboAddress> d_requestor{boost::none};
-  boost::optional<ComboAddress> d_responder{boost::none};
-  boost::optional<Netmask> d_ednsSubnet{boost::none};
-  boost::optional<std::pair<time_t, uint32_t>> d_time{boost::none};
-  boost::optional<std::pair<time_t, uint32_t>> d_queryTime{boost::none};
-  boost::optional<size_t> d_bytes{boost::none};
-  boost::optional<uint8_t> d_rcode{boost::none};
+  std::optional<PBQuestion> d_question{std::nullopt};
+  std::optional<std::string> d_serverIdentity{std::nullopt};
+  std::optional<ComboAddress> d_requestor{std::nullopt};
+  std::optional<ComboAddress> d_responder{std::nullopt};
+  std::optional<Netmask> d_ednsSubnet{std::nullopt};
+  std::optional<std::pair<time_t, uint32_t>> d_time{std::nullopt};
+  std::optional<std::pair<time_t, uint32_t>> d_queryTime{std::nullopt};
+  std::optional<size_t> d_bytes{std::nullopt};
+  std::optional<uint8_t> d_rcode{std::nullopt};
 
   pdns::ProtoZero::Message::MessageType d_type{pdns::ProtoZero::Message::MessageType::DNSQueryType};
   bool d_includeCNAME{false};

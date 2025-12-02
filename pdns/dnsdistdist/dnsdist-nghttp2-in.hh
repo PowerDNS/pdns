@@ -100,7 +100,7 @@ private:
   IOState handleHandshake(const struct timeval& now) override;
   bool hasPendingWrite() const;
   void writeToSocket(bool socketReady);
-  boost::optional<struct timeval> getIdleClientReadTTD(struct timeval now) const;
+  std::optional<struct timeval> getIdleClientReadTTD(struct timeval now) const;
 
   std::unique_ptr<nghttp2_session, decltype(&nghttp2_session_del)> d_session{nullptr, nghttp2_session_del};
   std::unordered_map<StreamID, PendingQuery> d_currentStreams;

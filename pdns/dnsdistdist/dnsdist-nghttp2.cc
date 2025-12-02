@@ -496,7 +496,7 @@ void DoHConnectionToBackend::updateIO(IOState newState, const FDMultiplexer::cal
     .tv_sec = 0, .tv_usec = 0};
 
   gettimeofday(&now, nullptr);
-  boost::optional<struct timeval> ttd{boost::none};
+  std::optional<struct timeval> ttd{std::nullopt};
   if (!noTTD) {
     if (d_healthCheckQuery) {
       ttd = getBackendHealthCheckTTD(now);

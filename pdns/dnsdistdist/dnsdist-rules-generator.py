@@ -97,8 +97,8 @@ def get_cpp_parameters_definition(parameters, lua_interface):
         if 'default' in parameter:
             if lua_interface:
                 ptype = type_to_cpp(parameter['type'], lua_interface, True)
-                ptype = f'boost::optional<{ptype}>'
-            elif not 'cpp-optional' in parameter or parameter['cpp-optional']:
+                ptype = f'std::optional<{ptype}>'
+            elif not 'optional' in parameter or parameter['optional']:
                 ptype = type_to_cpp(parameter['type'], lua_interface, True)
                 ptype = f'std::optional<{ptype}>'
         if len(output) > 0:
@@ -117,17 +117,12 @@ def get_cpp_parameters(parameters, lua_interface):
             output += f'{pname}'
             continue
 
-        cpp_optional = not 'cpp-optional' in parameter or parameter['cpp-optional']
-        if lua_interface and not cpp_optional:
+        optional = not 'optional' in parameter or parameter['optional']
+        if lua_interface and not optional:
             # We are the Lua binding, and the factory does not handle optional values
             # -> pass the value if any, and the default otherwise
             default = parameter['default']
-        elif lua_interface and cpp_optional:
-            # we are the Lua binding, the factory does handle optional values,
-            # -> boost::optional to std::optional
-            output += f'boostToStandardOptional({pname})'
-            continue
-        elif not lua_interface and cpp_optional:
+        elif not lua_interface and optional:
             # We are the C++ factory and we do handle optional values
             # -> pass the value if any, and the default otherwise
             default = parameter['default']

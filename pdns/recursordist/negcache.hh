@@ -90,7 +90,7 @@ public:
   };
 
   void add(const NegCacheEntry& negEntry);
-  void updateValidationStatus(const DNSName& qname, QType qtype, vState newState, boost::optional<time_t> capTTD);
+  void updateValidationStatus(const DNSName& qname, QType qtype, vState newState, std::optional<time_t> capTTD);
   bool get(const DNSName& qname, QType qtype, const struct timeval& now, NegCacheEntry& negEntry, bool typeMustMatch = false, bool serveStale = false, bool refresh = false);
   bool getRootNXTrust(const DNSName& qname, const struct timeval& now, NegCacheEntry& negEntry, bool serveStale, bool refresh);
   size_t count(const DNSName& qname);

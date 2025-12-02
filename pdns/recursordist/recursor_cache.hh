@@ -65,7 +65,7 @@ public:
   size_t getRecordSets(size_t perShard, size_t maxSize, std::string& ret);
   size_t putRecordSets(const std::string& pbuf);
 
-  using OptTag = boost::optional<std::string>;
+  using OptTag = std::optional<std::string>;
 
   using Flags = uint8_t;
   static constexpr Flags None = 0;
@@ -102,16 +102,16 @@ public:
     bool d_tcp{false};
   };
 
-  [[nodiscard]] time_t get(time_t, const DNSName& qname, QType qtype, Flags flags, vector<DNSRecord>* res, const ComboAddress& who, const OptTag& routingTag = boost::none, SigRecs* signatures = nullptr, AuthRecs* authorityRecs = nullptr, bool* variable = nullptr, vState* state = nullptr, bool* wasAuth = nullptr, DNSName* fromAuthZone = nullptr, Extra* extra = nullptr);
+  [[nodiscard]] time_t get(time_t, const DNSName& qname, QType qtype, Flags flags, vector<DNSRecord>* res, const ComboAddress& who, const OptTag& routingTag = std::nullopt, SigRecs* signatures = nullptr, AuthRecs* authorityRecs = nullptr, bool* variable = nullptr, vState* state = nullptr, bool* wasAuth = nullptr, DNSName* fromAuthZone = nullptr, Extra* extra = nullptr);
 
-  void replace(time_t, const DNSName& qname, QType qtype, const vector<DNSRecord>& content, const SigRecsVec& signatures, const AuthRecsVec& authorityRecs, bool auth, const DNSName& authZone, const boost::optional<Netmask>& ednsmask = boost::none, const OptTag& routingTag = boost::none, vState state = vState::Indeterminate, const boost::optional<Extra>& extra = boost::none, bool refresh = false, time_t ttl_time = time(nullptr));
+  void replace(time_t, const DNSName& qname, QType qtype, const vector<DNSRecord>& content, const SigRecsVec& signatures, const AuthRecsVec& authorityRecs, bool auth, const DNSName& authZone, const std::optional<Netmask>& ednsmask = std::nullopt, const OptTag& routingTag = std::nullopt, vState state = vState::Indeterminate, const std::optional<Extra>& extra = std::nullopt, bool refresh = false, time_t ttl_time = time(nullptr));
 
   void doPrune(time_t now, size_t keep);
   uint64_t doDump(int fileDesc, size_t maxCacheEntries);
 
   size_t doWipeCache(const DNSName& name, bool sub, QType qtype = 0xffff);
   bool doAgeCache(time_t now, const DNSName& name, QType qtype, uint32_t newTTL);
-  bool updateValidationStatus(time_t now, const DNSName& qname, QType qtype, const ComboAddress& who, const OptTag& routingTag, bool requireAuth, vState newState, boost::optional<time_t> capTTD);
+  bool updateValidationStatus(time_t now, const DNSName& qname, QType qtype, const ComboAddress& who, const OptTag& routingTag, bool requireAuth, vState newState, std::optional<time_t> capTTD);
 
   static void resetStaticsForTests();
 
@@ -385,7 +385,7 @@ private:
   static Entries getEntries(MapCombo::LockedContent& map, const DNSName& qname, QType qtype, const OptTag& rtag);
   static cache_t::const_iterator getEntryUsingECSIndex(MapCombo::LockedContent& map, time_t now, const DNSName& qname, QType qtype, bool requireAuth, const ComboAddress& who, bool serveStale);
 
-  static time_t handleHit(time_t now, MapCombo::LockedContent& content, OrderedTagIterator_t& entry, const DNSName& qname, uint32_t& origTTL, vector<DNSRecord>* res, SigRecs* signatures, AuthRecs* authorityRecs, bool* variable, boost::optional<vState>& state, bool* wasAuth, DNSName* authZone, Extra* extra);
+  static time_t handleHit(time_t now, MapCombo::LockedContent& content, OrderedTagIterator_t& entry, const DNSName& qname, uint32_t& origTTL, vector<DNSRecord>* res, SigRecs* signatures, AuthRecs* authorityRecs, bool* variable, std::optional<vState>& state, bool* wasAuth, DNSName* authZone, Extra* extra);
   static void updateStaleEntry(time_t now, OrderedTagIterator_t& entry);
   static void handleServeStaleBookkeeping(time_t, bool, OrderedTagIterator_t&);
 };

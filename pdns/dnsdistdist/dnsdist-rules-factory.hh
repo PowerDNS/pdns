@@ -1140,7 +1140,7 @@ private:
 class TagRule : public DNSRule
 {
 public:
-  TagRule(const std::string& tag, boost::optional<std::string> value, bool emptyAsWildcard) :
+  TagRule(const std::string& tag, std::optional<std::string> value, bool emptyAsWildcard) :
     d_value(std::move(value)), d_tag(tag), d_emptyAsWildcard(emptyAsWildcard)
   {
   }
@@ -1168,7 +1168,7 @@ public:
   }
 
 private:
-  boost::optional<std::string> d_value;
+  std::optional<std::string> d_value;
   std::string d_tag;
   bool d_emptyAsWildcard;
 };
@@ -1403,7 +1403,7 @@ private:
 class ProxyProtocolValueRule : public DNSRule
 {
 public:
-  ProxyProtocolValueRule(uint8_t type, boost::optional<std::string> value) :
+  ProxyProtocolValueRule(uint8_t type, std::optional<std::string> value) :
     d_value(std::move(value)), d_type(type)
   {
   }
@@ -1432,7 +1432,7 @@ public:
   }
 
 private:
-  boost::optional<std::string> d_value;
+  std::optional<std::string> d_value;
   uint8_t d_type;
 };
 

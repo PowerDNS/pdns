@@ -1222,7 +1222,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
 
     /* If we already have an answer generated from gettag_ffi, let's see if the filtering policies
        should be applied to it */
-    if (comboWriter->d_rcode != boost::none) {
+    if (comboWriter->d_rcode != std::nullopt) {
 
       bool policyOverride = false;
       /* Unless we already matched on the client IP, time to check the qname.
@@ -1754,7 +1754,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
       }
 
       // Take s snap of the current protobuf buffer state to store in the PC
-      pbDataForCache = boost::make_optional(RecursorPacketCache::PBData{
+      pbDataForCache = std::make_optional(RecursorPacketCache::PBData{
         pbMessage.getMessageBuf(),
         pbMessage.getResponseBuf(),
         !appliedPolicy.getName().empty() || !comboWriter->d_policyTags.empty()});
@@ -1982,7 +1982,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
 }
 
 void getQNameAndSubnet(const std::string& question, DNSName* dnsname, uint16_t* qtype, uint16_t* qclass,
-                       bool& foundECS, EDNSSubnetOpts* ednssubnet, EDNSOptionViewMap* options, boost::optional<uint32_t>& ednsVersion)
+                       bool& foundECS, EDNSSubnetOpts* ednssubnet, EDNSOptionViewMap* options, std::optional<uint32_t>& ednsVersion)
 {
   const dnsheader_aligned dnshead(question.data());
   const dnsheader* dhPointer = dnshead.get();
@@ -2251,9 +2251,9 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   bool ecsParsed = false;
   std::vector<DNSRecord> records;
   std::string extendedErrorExtra;
-  boost::optional<int> rcode = boost::none;
-  boost::optional<uint16_t> extendedErrorCode{boost::none};
-  boost::optional<uint32_t> ednsVersion{boost::none};
+  std::optional<int> rcode = std::nullopt;
+  std::optional<uint16_t> extendedErrorCode{std::nullopt};
+  std::optional<uint32_t> ednsVersion{std::nullopt};
   uint32_t ttlCap = std::numeric_limits<uint32_t>::max();
   bool variable = false;
   bool followCNAMEs = false;
@@ -2329,7 +2329,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
       }
     }
 
-    RecursorPacketCache::OptPBData pbData{boost::none};
+    RecursorPacketCache::OptPBData pbData{std::nullopt};
     if (t_protobufServers.servers) {
       if (logQuery && !(luaconfsLocal->protobufExportConfig.taggedOnly && policyTags.empty())) {
         protobufLogQuery(luaconfsLocal, uniqueId, source, destination, mappedSource, ednssubnet.getSource(), false, question.size(), qname, qtype, qclass, policyTags, requestorId, deviceId, deviceName, meta, ednsVersion, *dnsheader, otTrace.trace_id);

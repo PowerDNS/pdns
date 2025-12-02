@@ -31,7 +31,7 @@
 void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
 {
   /* PacketCache */
-  luaCtx.writeFunction("newPacketCache", [client](size_t maxEntries, boost::optional<LuaAssociativeTable<boost::variant<bool, size_t, LuaArray<uint16_t>>>> vars) {
+  luaCtx.writeFunction("newPacketCache", [client](size_t maxEntries, std::optional<LuaAssociativeTable<boost::variant<bool, size_t, LuaArray<uint16_t>>>> vars) {
 
     DNSDistPacketCache::CacheSettings settings {
       .d_maxEntries = maxEntries,
@@ -130,11 +130,11 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
       }
       return static_cast<size_t>(0);
     });
-  luaCtx.registerFunction<void(std::shared_ptr<DNSDistPacketCache>::*)(const boost::variant<DNSName, string>& dname, boost::optional<uint16_t> qtype, boost::optional<bool> suffixMatch)>("expungeByName", [](
+  luaCtx.registerFunction<void(std::shared_ptr<DNSDistPacketCache>::*)(const boost::variant<DNSName, string>& dname, std::optional<uint16_t> qtype, std::optional<bool> suffixMatch)>("expungeByName", [](
               std::shared_ptr<DNSDistPacketCache>& cache,
               const boost::variant<DNSName, string>& dname,
-              boost::optional<uint16_t> qtype,
-              boost::optional<bool> suffixMatch) {
+              std::optional<uint16_t> qtype,
+              std::optional<bool> suffixMatch) {
                 DNSName qname;
                 if (dname.type() == typeid(DNSName)) {
                   qname = boost::get<DNSName>(dname);
@@ -208,7 +208,7 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
       return results;
     });
 
-  luaCtx.registerFunction<void(std::shared_ptr<DNSDistPacketCache>::*)(const std::string& fname, boost::optional<bool> rawResponse)const>("dump", [](const std::shared_ptr<DNSDistPacketCache>& cache, const std::string& fname, boost::optional<bool> rawResponse) {
+  luaCtx.registerFunction<void(std::shared_ptr<DNSDistPacketCache>::*)(const std::string& fname, std::optional<bool> rawResponse)const>("dump", [](const std::shared_ptr<DNSDistPacketCache>& cache, const std::string& fname, std::optional<bool> rawResponse) {
       if (cache) {
 
         int fd = open(fname.c_str(), O_CREAT | O_EXCL | O_WRONLY, 0660);

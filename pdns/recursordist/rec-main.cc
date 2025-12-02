@@ -109,7 +109,7 @@ bool g_useIncomingECS;
 static shared_ptr<NetmaskGroup> g_initialProxyProtocolACL;
 static shared_ptr<std::set<ComboAddress>> g_initialProxyProtocolExceptions;
 static shared_ptr<OpenTelemetryTraceConditions> g_initialOpenTelemetryConditions; // XXX shared ptr needed?
-boost::optional<ComboAddress> g_dns64Prefix{boost::none};
+std::optional<ComboAddress> g_dns64Prefix{std::nullopt};
 DNSName g_dns64PrefixReverse;
 unsigned int g_maxChainLength;
 LockGuarded<std::shared_ptr<SyncRes::domainmap_t>> g_initialDomainMap; // new threads needs this to be setup
@@ -505,7 +505,7 @@ bool checkOutgoingProtobufExport(LocalStateHolder<LuaConfigItems>& luaconfsLocal
   return true;
 }
 
-void protobufLogQuery(LocalStateHolder<LuaConfigItems>& luaconfsLocal, const boost::uuids::uuid& uniqueId, const ComboAddress& remote, const ComboAddress& local, const ComboAddress& mappedSource, const Netmask& ednssubnet, bool tcp, size_t len, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::unordered_set<std::string>& policyTags, const std::string& requestorId, const std::string& deviceId, const std::string& deviceName, const std::map<std::string, RecursorLua4::MetaValue>& meta, const boost::optional<uint32_t>& ednsVersion, const dnsheader& header, const pdns::trace::TraceID& traceID)
+void protobufLogQuery(LocalStateHolder<LuaConfigItems>& luaconfsLocal, const boost::uuids::uuid& uniqueId, const ComboAddress& remote, const ComboAddress& local, const ComboAddress& mappedSource, const Netmask& ednssubnet, bool tcp, size_t len, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::unordered_set<std::string>& policyTags, const std::string& requestorId, const std::string& deviceId, const std::string& deviceName, const std::map<std::string, RecursorLua4::MetaValue>& meta, const std::optional<uint32_t>& ednsVersion, const dnsheader& header, const pdns::trace::TraceID& traceID)
 {
   auto log = g_slog->withName("pblq");
 
@@ -1069,12 +1069,12 @@ static void loggerSDBackend(const Logging::Entry& entry)
   };
   appendKeyAndVal("MESSAGE", entry.message);
   if (entry.error) {
-    appendKeyAndVal("ERROR", entry.error.get());
+    appendKeyAndVal("ERROR", entry.error.value());
   }
   appendKeyAndVal("LEVEL", std::to_string(entry.level));
   appendKeyAndVal("PRIORITY", std::to_string(entry.d_priority));
   if (entry.name) {
-    appendKeyAndVal("SUBSYSTEM", entry.name.get());
+    appendKeyAndVal("SUBSYSTEM", entry.name.value());
   }
   std::array<char, 64> timebuf{};
   appendKeyAndVal("TIMESTAMP", Logging::toTimestampStringMilli(entry.d_timestamp, timebuf));
@@ -1123,11 +1123,11 @@ static void loggerJSONBackend(const Logging::Entry& entry)
   };
 
   if (entry.error) {
-    json.emplace("error", entry.error.get());
+    json.emplace("error", entry.error.value());
   }
 
   if (entry.name) {
-    json.emplace("subsystem", entry.name.get());
+    json.emplace("subsystem", entry.name.value());
   }
 
   if (entry.d_priority != 0) {
@@ -1159,11 +1159,11 @@ static void loggerBackend(const Logging::Entry& entry)
   buf.str("");
   buf << "msg=" << std::quoted(entry.message);
   if (entry.error) {
-    buf << " error=" << std::quoted(entry.error.get());
+    buf << " error=" << std::quoted(entry.error.value());
   }
 
   if (entry.name) {
-    buf << " subsystem=" << std::quoted(entry.name.get());
+    buf << " subsystem=" << std::quoted(entry.name.value());
   }
   buf << " level=" << std::quoted(std::to_string(entry.level));
   if (entry.d_priority != 0) {
