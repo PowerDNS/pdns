@@ -102,9 +102,9 @@ jobs:
           done
           echo "oslist=$(jo -a ${targets[*]})" >> "$GITHUB_OUTPUT"
       - id: get-runnerlist
-        run: echo "runnerlist=$(jo -a ubuntu-24.04 ${{ vars.ARM64_USE_UBICLOUD == '1' && 'ubicloud-standard-2-arm' || '' }})" >> "$GITHUB_OUTPUT"
+        run: echo "runnerlist=$(jo -a ubuntu-24.04 ${{ vars.ARM64_USE_UBICLOUD == '1' && 'ubicloud-standard-2-arm' || 'ubuntu-24.04-arm' }})" >> "$GITHUB_OUTPUT"
       - id: get-archlist
-        run: echo "archlist=$(jo -a  x86_64 ${{ vars.ARM64_USE_UBICLOUD == '1' && 'aarch64' || '' }})" >> "$GITHUB_OUTPUT"
+        run: echo "archlist=$(jo -a  x86_64 aarch64)" >> "$GITHUB_OUTPUT"
         # Only upload RPM and DEB packages for master and tags. Build outputs and provenance of all refs
       - id: set-publish-packages
         run: echo "publish-packages=$([[ "${REF}" == "master" || "${IS_RELEASE}" == "YES" ]] && echo 'yes' || echo 'no')" >> "$GITHUB_OUTPUT"
@@ -233,7 +233,7 @@ jobs:
       - name: Get list of OS inputs
         run: |
           for os in $(echo "${OSLIST}" | jq -r '.[]'); do
-            for architecture in x86_64 ${{ vars.ARM64_USE_UBICLOUD == '1' && 'aarch64' || '' }}; do
+            for architecture in x86_64 aarch64; do
               echo "\"pkghashes-$os-$architecture\"" | tee -a /tmp/os-inputs.txt
             done
           done
