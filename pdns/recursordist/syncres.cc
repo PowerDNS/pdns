@@ -5891,6 +5891,8 @@ int SyncRes::doResolveAt(NsSet& nameservers, DNSName auth, bool flawedNSSet, con
       LOG("Applying nsLimit " << nsLimit << endl);
     }
 
+    // If multiple NS records resolve to the same IP, we don't want to ask again, so keep track
+    std::set<ComboAddress> visitedAddresses;
     for (auto tns = rnameservers.cbegin();; ++tns) {
       if (addressQueriesForNS >= nsLimit) {
         throw ImmediateServFailException(std::to_string(nsLimit) + " (adjusted max-ns-address-qperq) or more queries with empty results for NS addresses sent resolving " + qname.toLogString());
@@ -5991,6 +5993,11 @@ int SyncRes::doResolveAt(NsSet& nameservers, DNSName auth, bool flawedNSSet, con
         }
 
         for (remoteIP = remoteIPs.begin(); remoteIP != remoteIPs.end(); ++remoteIP) {
+          auto inserted = visitedAddresses.insert(*remoteIP).second;
+          if (!wasForwarded && !inserted) {
+            LOG(prefix << qname << ": Already visited " << remoteIP->toStringWithPort() << ", asking '" << qname << "|" << qtype << "'; skipping" << endl);
+                continue;
+          }
           LOG(prefix << qname << ": Trying IP " << remoteIP->toStringWithPort() << ", asking '" << qname << "|" << qtype << "'" << endl);
 
           if (throttledOrBlocked(prefix, *remoteIP, qname, qtype, pierceDontQuery)) {
