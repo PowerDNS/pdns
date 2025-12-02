@@ -24,7 +24,7 @@ jobs:
     steps:
       - run: sudo apt-get update && sudo apt-get -y install jo
       - id: get-runnerlist
-        run: echo "runnerlist=$(jo -a ubuntu-24.04 ${{ vars.ARM64_USE_UBICLOUD == '1' && 'ubicloud-standard-2-arm' || '' }})" >> "$GITHUB_OUTPUT"
+        run: echo "runnerlist=$(jo -a ubuntu-24.04 ${{ vars.ARM64_USE_UBICLOUD == '1' && 'ubicloud-standard-2-arm' || 'ubuntu-24.04-arm' }})" >> "$GITHUB_OUTPUT"
 
   build:
     name: build.sh
