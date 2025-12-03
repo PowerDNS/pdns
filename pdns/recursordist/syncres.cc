@@ -5913,7 +5913,7 @@ bool SyncRes::processAnswer(unsigned int depth, const string& prefix, LWResult& 
     }
     LOG("looping to them" << endl);
     if (s_maxnsperresolve > 0 && nameservers.size() > s_maxnsperresolve) {
-      LOG(prefix << qname << "Reducing number of NS attempted to " << s_maxnsperresolve << endl);
+      LOG(prefix << qname << "Reducing number of NS we are willing to consider to " << s_maxnsperresolve << endl);
       NsSet selected;
       std::sample(nameservers.cbegin(), nameservers.cend(), std::inserter(selected, selected.begin()), s_maxnsperresolve, pdns::dns_random_engine());
       nameservers = std::move(selected);
@@ -5979,7 +5979,10 @@ int SyncRes::doResolveAt(NsSet& nameservers, DNSName auth, bool flawedNSSet, con
     std::set<ComboAddress> visitedAddresses;
     for (auto tns = rnameservers.cbegin();; ++tns) {
       if (addressQueriesForNS >= nsLimit) {
-        throw ImmediateServFailException(std::to_string(nsLimit) + " (adjusted max-ns-address-qperq) or more queries with empty results for NS addresses sent resolving " + qname.toLogString());
+        throw ImmediateServFailException(std::to_string(nsLimit) + " (outgoing.max_ns_address_qperq) or more queries with empty results for NS addresses sent resolving " + qname.toLogString());
+      }
+      if (s_maxnsperresolve > 0 && visitedAddresses.size() > 2 * s_maxnsperresolve) {
+        throw ImmediateServFailException("More than " + std::to_string(2 * s_maxnsperresolve) + " (2 * outgoing.max_ns_per_resolve) identical queries sent to auth IPs sent resolving " + qname.toLogString());
       }
       if (tns == rnameservers.cend()) {
         LOG(prefix << qname << ": Failed to resolve via any of the " << (unsigned int)rnameservers.size() << " offered NS at level '" << auth << "'" << endl);
@@ -6080,7 +6083,7 @@ int SyncRes::doResolveAt(NsSet& nameservers, DNSName auth, bool flawedNSSet, con
           auto inserted = visitedAddresses.insert(*remoteIP).second;
           if (!wasForwarded && !inserted) {
             LOG(prefix << qname << ": Already visited " << remoteIP->toStringWithPort() << ", asking '" << qname << "|" << qtype << "'; skipping" << endl);
-                continue;
+            continue;
           }
           LOG(prefix << qname << ": Trying IP " << remoteIP->toStringWithPort() << ", asking '" << qname << "|" << qtype << "'" << endl);
 
