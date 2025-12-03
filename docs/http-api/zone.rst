@@ -133,6 +133,25 @@ Will yield a response similar to this (several headers omitted):
   
   HTTP/1.1 204 No Content
 
+Adding a single record to a RRset
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: http
+
+  PATCH /api/v1/servers/localhost/zones/example.org. HTTP/1.1
+  X-API-Key: secret
+  Content-Type: application/json
+
+  {"rrsets": [{"name": "test.example.org.", "type": "TXT", "changetype": "EXTEND", "records": [{"content": "the contents of the records to add", "disabled": false}]}]}
+
+Will yield a response similar to this (several headers omitted):
+
+.. code-block:: http
+  
+  HTTP/1.1 204 No Content
+
+If a record with the same exact content already exists in the RRSet, no action is performed and no error is returned.
+
 Deleting a RRset
 ^^^^^^^^^^^^^^^^^^
 
@@ -143,6 +162,25 @@ Deleting a RRset
   Content-Type: application/json
 
   {"rrsets": [{"name": "test.example.org.", "type": "A", "changetype": "DELETE"}]}
+
+Will yield a response similar to this (several headers omitted):
+
+.. code-block:: http
+  
+  HTTP/1.1 204 No Content
+
+If no record with the same exact content exist in the RRSet, no action is performed and no error is returned.
+
+Deleting a single record from a RRset
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: http
+
+  PATCH /api/v1/servers/localhost/zones/example.org. HTTP/1.1
+  X-API-Key: secret
+  Content-Type: application/json
+
+  {"rrsets": [{"name": "test.example.org.", "type": "TXT", "changetype": "PRUNE", "records": [{"content": "the contents of the records to delete"}]}]}
 
 Will yield a response similar to this (several headers omitted):
 
