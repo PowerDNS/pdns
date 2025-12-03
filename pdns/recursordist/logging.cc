@@ -50,7 +50,7 @@ void Logger::info(Logr::Priority prio, const std::string& msg) const
 
 void Logger::logMessage(const std::string& msg, const std::optional<std::string>& err) const
 {
-  logMessage(msg, Logr::Absent, std::move(err));
+  logMessage(msg, Logr::Absent, err);
 }
 
 void Logger::logMessage(const std::string& msg, Logr::Priority prio, const std::optional<std::string>& err) const
@@ -64,7 +64,7 @@ void Logger::logMessage(const std::string& msg, Logr::Priority prio, const std::
   Utility::gettimeofday(&entry.d_timestamp);
   entry.name = _name;
   entry.message = msg;
-  entry.error = std::move(err);
+  entry.error = err;
   auto parent = _parent;
   entry.values.insert(_values.begin(), _values.end());
   while (parent) {
