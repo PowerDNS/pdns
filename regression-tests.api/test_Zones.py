@@ -15,13 +15,12 @@ def remove_timestamp(json):
         if 'modified_at' in item:
             del item['modified_at']
 
-def get_rrset(data, qname, qtype):
+def get_rrset(data, qname, qtype = None):
     for rrset in data['rrsets']:
-        if rrset['name'] == qname and rrset['type'] == qtype:
+        if rrset['name'] == qname and (qtype is None or rrset['type'] == qtype):
             remove_timestamp(rrset['records'])
             return rrset
     return None
-
 
 def get_first_rec(data, qname, qtype):
     rrset = get_rrset(data, qname, qtype)
@@ -1239,6 +1238,126 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
             self.assertIn(k, data)
             self.assertEqual(data[k], payload[k])
 
+    def test_zone_rr_bogus_update_1(self):
+        name, payload, zone = self.create_zone()
+        # rrset with incorrect changetype value
+        rrset = {
+            'changetype': 'ihavenoideawhatiamdoing',
+            'name': 'a.'+name,
+            'type': 'A',
+            'ttl': 3600,
+            'records': [
+                {
+                    "content": "127.0.0.1",
+                    "disabled": False
+                }
+            ]
+        }
+        payload = {'rrsets': [rrset]}
+        r = self.session.patch(
+            self.url("/api/v1/servers/localhost/zones/" + name),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertEqual(r.status_code, 422)
+        self.assert_in_json_error("Changetype 'IHAVENOIDEAWHATIAMDOING' is not a valid value", r.json())
+
+    def test_zone_rr_bogus_update_2(self):
+        name, payload, zone = self.create_zone()
+        # extend rrset with no records
+        rrset = {
+            'changetype': 'extend',
+            'name': 'a.'+name,
+            'type': 'A',
+            'ttl': 3600
+        }
+        payload = {'rrsets': [rrset]}
+        r = self.session.patch(
+            self.url("/api/v1/servers/localhost/zones/" + name),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertEqual(r.status_code, 422)
+        self.assert_in_json_error("No record provided", r.json())
+
+    def test_zone_rr_bogus_update_3(self):
+        name, payload, zone = self.create_zone()
+        # prune rrset with two records
+        rrset = {
+            'changetype': 'prune',
+            'name': 'a.'+name,
+            'type': 'A',
+            'ttl': 3600,
+            'records': [
+                {
+                    "content": "127.0.0.1",
+                    "disabled": False
+                },
+                {
+                    "content": "127.0.0.2",
+                    "disabled": False
+                }
+            ]
+        }
+        payload = {'rrsets': [rrset]}
+        r = self.session.patch(
+            self.url("/api/v1/servers/localhost/zones/" + name),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertEqual(r.status_code, 422)
+        self.assert_in_json_error("Exactly one record should be provided", r.json())
+
+    def test_zone_rr_bogus_update_4(self):
+        name, payload, zone = self.create_zone()
+        # incompatible delete and extend changeset
+        rrset1 = {
+            'changetype': 'delete',
+            'name': 'a.'+name,
+            'type': 'A',
+            'ttl': 3600,
+            'records': [ ]
+        }
+        rrset2 = {
+            'changetype': 'extend',
+            'name': 'a.'+name,
+            'type': 'A',
+            'ttl': 3600,
+            'records': [
+                {
+                    "content": "127.0.0.1",
+                    "disabled": False
+                }
+            ]
+        }
+        payload = {'rrsets': [rrset1, rrset2]}
+        r = self.session.patch(
+            self.url("/api/v1/servers/localhost/zones/" + name),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertEqual(r.status_code, 422)
+        self.assert_in_json_error("Mixing RRset operations with single-record operations", r.json())
+
+    def test_zone_rr_bogus_update_5(self):
+        name, payload, zone = self.create_zone()
+        # more than one extend changeset
+        rrset1 = {
+            'changetype': 'extend',
+            'name': 'a.'+name,
+            'type': 'A',
+            'ttl': 3600,
+            'records': [
+                {
+                    "content": "127.0.0.1",
+                    "disabled": False
+                }
+            ]
+        }
+        payload = {'rrsets': [rrset1, rrset1]}
+        r = self.session.patch(
+            self.url("/api/v1/servers/localhost/zones/" + name),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertEqual(r.status_code, 422)
+        self.assert_in_json_error("Only one rrset may be provided", r.json())
+
     def test_zone_rr_update(self):
         name, payload, zone = self.create_zone()
         # do a replace (= update)
@@ -1483,6 +1602,111 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         # verify that (only) the new record is there
         data = self.get_zone(name)
         self.assertEqual(get_rrset(data, 'sub.' + name, 'CNAME')['records'], rrset2['records'])
+
+    def test_zone_rr_update_with_extend(self):
+        name, payload, zone = self.create_zone()
+        # add a single record with extend
+        rrset = {
+            'changetype': 'extend',
+            'name': 'a.'+name,
+            'type': 'A',
+            'ttl': 3600,
+            'records': [
+                {
+                    "content": "1.2.3.4",
+                    "disabled": False
+                }
+            ]
+        }
+        payload = {'rrsets': [rrset]}
+        r = self.session.patch(
+            self.url("/api/v1/servers/localhost/zones/" + name),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assert_success(r)
+        # verify that (only) the new record is there
+        data = self.get_zone(name)
+        self.assertEqual(get_rrset(data, 'a.' + name, 'A')['records'], rrset['records'])
+        # add the same record again
+        r = self.session.patch(
+            self.url("/api/v1/servers/localhost/zones/" + name),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assert_success(r)
+        # verify that the zone contents did not change
+        data2 = self.get_zone(name)
+        self.assertEqual(get_rrset(data, 'a.'+name), get_rrset(data2, 'a.'+name))
+
+    def test_zone_rr_update_with_prune(self):
+        name, payload, zone = self.create_zone()
+        # fill a bunch of records
+        a1 = { "content": "1.2.3.4", "disabled": False }
+        a2 = { "content": "2.4.6.8", "disabled": False }
+        a3 = { "content": "3.6.9.12", "disabled": False }
+        a4 = { "content": "4.8.12.16", "disabled": False }
+        rrset = {
+            'changetype': 'replace',
+            'name': 'a.'+name,
+            'type': 'A',
+            'ttl': 3600,
+            'records': [ a1, a2, a3 ]
+        }
+        payload = {'rrsets': [rrset]}
+        r = self.session.patch(
+            self.url("/api/v1/servers/localhost/zones/" + name),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assert_success(r)
+        data = self.get_zone(name)
+        self.assertEqual(get_rrset(data, 'a.' + name, 'A')['records'], rrset['records'])
+        # remove middle record
+        rrset = {
+            'changetype': 'prune',
+            'name': 'a.'+name,
+            'type': 'A',
+            'ttl': 3600,
+            'records': [ a2 ]
+        }
+        payload = {'rrsets': [rrset]}
+        r = self.session.patch(
+            self.url("/api/v1/servers/localhost/zones/" + name),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assert_success(r)
+        # verify the zone contents
+        data1 = self.get_zone(name)
+        self.assertEqual(get_rrset(data1, 'a.'+name)['records'], [ a1, a3 ])
+        # get_rrset above has removed the timestamps from data1, fetch the
+        # zone again, since we want to ensure the following operations do
+        # not change anything.
+        if is_auth_lmdb(): # remove test when other backends support record imestamps
+            data1 = self.get_zone(name)
+        # remove middle record again
+        r = self.session.patch(
+            self.url("/api/v1/servers/localhost/zones/" + name),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assert_success(r)
+        # verify the zone contents are unchanged, with no serial increase
+        data2 = self.get_zone(name)
+        self.assertEqual(data1, data2)
+        # remove nonexisting record
+        rrset = {
+            'changetype': 'prune',
+            'name': 'a.'+name,
+            'type': 'A',
+            'ttl': 3600,
+            'records': [ a4 ]
+        }
+        payload = {'rrsets': [rrset]}
+        r = self.session.patch(
+            self.url("/api/v1/servers/localhost/zones/" + name),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assert_success(r)
+        # verify the zone contents are still unchanged
+        data3 = self.get_zone(name)
+        self.assertEqual(data2, data3)
 
     def test_zone_disable_reenable(self):
         # This also tests that SOA-EDIT-API works.
