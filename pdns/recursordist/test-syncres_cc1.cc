@@ -834,7 +834,7 @@ BOOST_AUTO_TEST_CASE(test_forward_ns_send_servfail_same)
   ad.d_servers = forwardedNSs;
   (*SyncRes::t_sstorage.domainmap)[DNSName("refused.")] = ad;
 
-  sr->setAsyncCallback([&](const ComboAddress& address, const DNSName& /* domain */, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, std::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
+  sr->setAsyncCallback([&](const ComboAddress& address, const DNSName& /* domain */, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
     if (isRootServer(address)) {
       setLWResult(res, 0, false, false, true);
       addRecordToLW(res, "refused.", QType::NS, "a.gtld-servers.net.", DNSResourceRecord::AUTHORITY, 172800);

@@ -5845,6 +5845,13 @@ bool SyncRes::processAnswer(unsigned int depth, const string& prefix, LWResult& 
       nameservers.insert({nameserver, {{}, false}});
     }
     LOG("looping to them" << endl);
+    if (s_maxnsperresolve > 0 && nameservers.size() > s_maxnsperresolve) {
+      LOG(prefix << qname << "Reducing number of NS we are willing to consider to " << s_maxnsperresolve << endl);
+      NsSet selected;
+      std::sample(nameservers.cbegin(), nameservers.cend(), std::inserter(selected, selected.begin()), s_maxnsperresolve, pdns::dns_random_engine());
+      nameservers = std::move(selected);
+    }
+
     *gotNewServers = true;
     auth = std::move(newauth);
 
@@ -5898,13 +5905,17 @@ int SyncRes::doResolveAt(NsSet& nameservers, DNSName auth, bool flawedNSSet, con
     if (rnameservers.size() > nsLimit) {
       int newLimit = static_cast<int>(nsLimit - (rnameservers.size() - nsLimit));
       nsLimit = std::max(5, newLimit);
+      LOG("Applying nsLimit " << nsLimit << endl);
     }
 
     // If multiple NS records resolve to the same IP, we don't want to ask again, so keep track
     std::set<ComboAddress> visitedAddresses;
     for (auto tns = rnameservers.cbegin();; ++tns) {
       if (addressQueriesForNS >= nsLimit) {
-        throw ImmediateServFailException(std::to_string(nsLimit) + " (adjusted max-ns-address-qperq) or more queries with empty results for NS addresses sent resolving " + qname.toLogString());
+        throw ImmediateServFailException(std::to_string(nsLimit) + " (outgoing.max_ns_address_qperq) or more queries with empty results for NS addresses sent resolving " + qname.toLogString());
+      }
+      if (s_maxnsperresolve > 0 && visitedAddresses.size() > 2 * s_maxnsperresolve) {
+        throw ImmediateServFailException("More than " + std::to_string(2 * s_maxnsperresolve) + " (2 * outgoing.max_ns_per_resolve) identical queries sent to auth IPs sent resolving " + qname.toLogString());
       }
       if (tns == rnameservers.cend()) {
         LOG(prefix << qname << ": Failed to resolve via any of the " << (unsigned int)rnameservers.size() << " offered NS at level '" << auth << "'" << endl);
@@ -6005,7 +6016,7 @@ int SyncRes::doResolveAt(NsSet& nameservers, DNSName auth, bool flawedNSSet, con
           auto inserted = visitedAddresses.insert(*remoteIP).second;
           if (!wasForwarded && !inserted) {
             LOG(prefix << qname << ": Already visited " << remoteIP->toStringWithPort() << ", asking '" << qname << "|" << qtype << "'; skipping" << endl);
-                continue;
+            continue;
           }
           LOG(prefix << qname << ": Trying IP " << remoteIP->toStringWithPort() << ", asking '" << qname << "|" << qtype << "'" << endl);
 
