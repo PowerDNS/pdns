@@ -547,15 +547,15 @@ BOOST_AUTO_TEST_CASE(test_AuthPacketCacheNetmasks) {
 
     // Set up a few packets with no view.
     feedPacketCache(PC, 0x00010203, "");
-    BOOST_REQUIRE_EQUAL(PC.size(), 128 * 1);
+    BOOST_REQUIRE_EQUAL(PC.size(), 128 * 1U);
 
     // Set up a few packets with a view and different A result.
     feedPacketCache(PC, 0x00020406, view1);
-    BOOST_REQUIRE_EQUAL(PC.size(), 128 * 2);
+    BOOST_REQUIRE_EQUAL(PC.size(), 128 * 2U);
 
     // Set up a few packets with yet another view and yet another different A result.
     feedPacketCache(PC, 0x00030609, view2);
-    BOOST_REQUIRE_EQUAL(PC.size(), 128 * 3);
+    BOOST_REQUIRE_EQUAL(PC.size(), 128 * 3U);
 
     // Now check that we are getting cache hits for all the packets we've added,
     // with the correct answers
@@ -659,7 +659,7 @@ BOOST_AUTO_TEST_CASE(test_AuthViews)
   // Cache answer for query in view2
   DNSName qname("example.com");
   feedPacketCache2(PC, view2, 0x02020202, qname);
-  BOOST_CHECK_EQUAL(PC.size(), 1);
+  BOOST_CHECK_EQUAL(PC.size(), 1U);
 
   // Check that requesting from view1 causes a cache miss
   BOOST_CHECK_EQUAL(queryPacketCache2(PC, ZC, ComboAddress("192.0.2.128"), qname, outerMask, view1, "1.1.1.1"), false);
@@ -669,7 +669,7 @@ BOOST_AUTO_TEST_CASE(test_AuthViews)
 
   // Cache answer for query in view1
   feedPacketCache2(PC, view1, 0x01010101, qname);
-  BOOST_CHECK_EQUAL(PC.size(), 2);
+  BOOST_CHECK_EQUAL(PC.size(), 2U);
 
   // Check that requesting from view1 causes a cache hit with the right data
   BOOST_CHECK_EQUAL(queryPacketCache2(PC, ZC, ComboAddress("192.0.2.128"), qname, outerMask, view1, "1.1.1.1"), true);
@@ -680,8 +680,8 @@ BOOST_AUTO_TEST_CASE(test_AuthViews)
   // Purge view2
   std::string purgeName = qname.toString();
   purgeName.append("$");
-  BOOST_CHECK_EQUAL(PC.purge(view2, purgeName), 1);
-  BOOST_CHECK_EQUAL(PC.size(), 1);
+  BOOST_CHECK_EQUAL(PC.purge(view2, purgeName), 1U);
+  BOOST_CHECK_EQUAL(PC.size(), 1U);
 
   // Check that requesting from view2 causes a cache miss
   BOOST_CHECK_EQUAL(queryPacketCache2(PC, ZC, ComboAddress("192.0.2.1"), qname, innerMask, view2, "2.2.2.2"), false);
@@ -692,8 +692,8 @@ BOOST_AUTO_TEST_CASE(test_AuthViews)
   // Purge view1
   purgeName = qname.toString();
   purgeName.append("$");
-  BOOST_CHECK_EQUAL(PC.purge(view1, purgeName), 1);
-  BOOST_CHECK_EQUAL(PC.size(), 0);
+  BOOST_CHECK_EQUAL(PC.purge(view1, purgeName), 1U);
+  BOOST_CHECK_EQUAL(PC.size(), 0U);
 
   // Check that requesting from view1 causes a cache miss
   BOOST_CHECK_EQUAL(queryPacketCache2(PC, ZC, ComboAddress("192.0.2.128"), qname, outerMask, view1, "1.1.1.1"), false);
@@ -701,11 +701,11 @@ BOOST_AUTO_TEST_CASE(test_AuthViews)
   // Cache answers for view1 and view2 again
   feedPacketCache2(PC, view1, 0x01010101, qname);
   feedPacketCache2(PC, view2, 0x02020202, qname);
-  BOOST_CHECK_EQUAL(PC.size(), 2);
+  BOOST_CHECK_EQUAL(PC.size(), 2U);
 
   // Purge all views
-  BOOST_CHECK_EQUAL(PC.purgeExact(qname), 2);
-  BOOST_CHECK_EQUAL(PC.size(), 0);
+  BOOST_CHECK_EQUAL(PC.purgeExact(qname), 2U);
+  BOOST_CHECK_EQUAL(PC.size(), 0U);
 
   // Check that requesting from view1 causes a cache miss
   BOOST_CHECK_EQUAL(queryPacketCache2(PC, ZC, ComboAddress("192.0.2.128"), qname, outerMask, view1, "1.1.1.1"), false);
@@ -716,15 +716,15 @@ BOOST_AUTO_TEST_CASE(test_AuthViews)
   // Cache answers for view1 and view2 again
   feedPacketCache2(PC, view1, 0x01010101, qname);
   feedPacketCache2(PC, view2, 0x02020202, qname);
-  BOOST_CHECK_EQUAL(PC.size(), 2);
+  BOOST_CHECK_EQUAL(PC.size(), 2U);
 
   // Purge view1
-  BOOST_CHECK_EQUAL(PC.purgeView(view1), 1);
-  BOOST_CHECK_EQUAL(PC.size(), 1);
+  BOOST_CHECK_EQUAL(PC.purgeView(view1), 1U);
+  BOOST_CHECK_EQUAL(PC.size(), 1U);
 
   // Purge view2
-  BOOST_CHECK_EQUAL(PC.purgeView(view2), 1);
-  BOOST_CHECK_EQUAL(PC.size(), 0);
+  BOOST_CHECK_EQUAL(PC.purgeView(view2), 1U);
+  BOOST_CHECK_EQUAL(PC.size(), 0U);
 }
 #endif // ] PDNS_AUTH
 

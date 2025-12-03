@@ -196,7 +196,7 @@ static std::vector<std::string> getLinesFromFile(const std::string& file)
   return lines;
 }
 
-static std::vector<std::string> getURL(const RecZoneToCache::Config& config)
+static std::vector<std::string> getURL([[maybe_unused]] const RecZoneToCache::Config& config)
 {
   std::vector<std::string> lines;
 #ifdef HAVE_LIBCURL
