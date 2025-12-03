@@ -2408,6 +2408,8 @@ enum changeType
 {
   DELETE, // delete complete RRset
   REPLACE, // replace complete RRset
+  PRUNE, // remove single record from RRset if found
+  EXTEND // add single record to RRset if not found
 };
 
 // Validate the "changetype" field of a Json patch record.
@@ -2420,6 +2422,12 @@ static changeType validateChangeType(const std::string& changetype)
   }
   if (changetype == "REPLACE") {
     return REPLACE;
+  }
+  if (changetype == "PRUNE") {
+    return PRUNE;
+  }
+  if (changetype == "EXTEND") {
+    return EXTEND;
   }
   throw ApiException("Changetype '" + changetype + "' is not a valid value");
 }
@@ -2463,6 +2471,24 @@ static void replaceZoneRecords(const DomainInfo& domainInfo, const ZoneName& zon
   }
   if (!domainInfo.backend->replaceRRSet(domainInfo.id, qname, qtype, new_records)) {
     throw ApiException("Hosting backend does not support editing records.");
+  }
+}
+
+// Check that two changetype values are compatible with each other.
+// Throws if they aren't.
+static void checkChangetypeCompatibility(changeType lastOperationType, changeType thisOperationType, const std::string thisChangetype)
+{
+  // DELETE and REPLACE operations are not compatible with PRUNE and
+  // EXTEND operations.
+  bool lastOperationOperatedOnRRsets = lastOperationType == DELETE || lastOperationType == REPLACE;
+  bool thisOperationOperatesOnRRsets = thisOperationType == DELETE || thisOperationType == REPLACE;
+  if (lastOperationOperatedOnRRsets ^ thisOperationOperatesOnRRsets) {
+    throw ApiException("Mixing RRset operations with single-record operations is not allowed");
+  }
+  // Moreover, we currently only allow a single rrset for PRUNE and
+  // EXTEND.
+  if (thisOperationType == PRUNE || thisOperationType == EXTEND) {
+    throw ApiException("Only one rrset may be provided for " + thisChangetype + " changetype");
   }
 }
 
@@ -2549,6 +2575,77 @@ static bool applyReplace(const DomainInfo& domainInfo, const ZoneName& zonename,
   return true;
 }
 
+static bool applyPruneOrExtend(const DomainInfo& domainInfo, const ZoneName& zonename, const Json& container, DNSName& qname, QType& qtype, bool allowUnderscores, soaEditSettings& soa, HttpResponse* resp, changeType operationType)
+{
+  if (!container["records"].is_array()) {
+    throw ApiException("No record provided for PRUNE or EXTEND operation");
+  }
+
+  try {
+    vector<DNSResourceRecord> new_records;
+    uint32_t ttl = uintFromJson(container, "ttl");
+    gatherRecords(container, qname, qtype, ttl, new_records);
+    if (new_records.size() != 1) {
+      throw ApiException("Exactly one record should be provided for PRUNE or EXTEND operation");
+    }
+
+    auto& new_record = new_records.front();
+    new_record.domain_id = static_cast<int>(domainInfo.id);
+    if (new_record.qtype.getCode() == QType::SOA && new_record.qname == zonename.operator const DNSName&()) {
+      soa.edit_done = increaseSOARecord(new_record, soa.edit_api_kind, soa.edit_kind, zonename);
+    }
+
+    if (!checkNewRecords(resp, new_records, zonename, allowUnderscores)) {
+      // Proper error response has been setup, no need to do anything further.
+      return false;
+    }
+
+    // Fetch the existing RRSet
+    bool seenRecord{false};
+    DNSResourceRecord record;
+    vector<DNSResourceRecord> rrset;
+    domainInfo.backend->lookup(qtype, qname, domainInfo.id);
+    while (domainInfo.backend->get(record)) {
+      if (record.content == new_record.content) {
+        // We found the record we've been instructed to add or delete.
+        seenRecord = true;
+        // If it is to be added, we don't have anything more to do.
+        // If it is to be deleted, just omit it from the RRset we're building.
+        if (operationType == EXTEND) {
+          domainInfo.backend->lookupEnd();
+          break;
+        }
+      }
+      else {
+        rrset.emplace_back(record);
+      }
+    }
+    // Add new record to RRset if not found.
+    if (operationType == EXTEND && !seenRecord) {
+      rrset.emplace_back(new_record);
+    }
+    bool submitChanges = (operationType == EXTEND && !seenRecord) || (operationType == PRUNE && seenRecord);
+    if (submitChanges) {
+      if (!domainInfo.backend->replaceRRSet(domainInfo.id, qname, qtype, rrset)) {
+        throw ApiException("Hosting backend does not support editing records.");
+      }
+    }
+    else {
+      resp->body = "";
+      resp->status = 204; // No Content, but indicate success
+      // This will force our caller to abort the transaction and return quickly,
+      // without increasing the zone serial number and flushing caches.
+      // This is safe to do as we do not allow more than one PRUNE or EXTEND
+      // operation, so there is no further zone changes to process.
+      return false;
+    }
+  }
+  catch (const JsonException& e) {
+    throw ApiException("Submitted record is invalid: " + string(e.what()));
+  }
+  return true;
+}
+
 static void patchZone(UeberBackend& backend, const ZoneName& zonename, DomainInfo& domainInfo, const vector<Json>& rrsets, HttpResponse* resp)
 {
   domainInfo.backend->startTransaction(zonename);
@@ -2559,9 +2656,18 @@ static void patchZone(UeberBackend& backend, const ZoneName& zonename, DomainInf
     bool allowUnderscores = areUnderscoresAllowed(zonename, *domainInfo.backend);
 
     set<std::tuple<DNSName, QType, changeType>> seen;
+    bool firstPass{true};
+    changeType lastOperationType{DELETE}; // have to initialize with something...
     for (const auto& rrset : rrsets) {
       string changetype = toUpper(stringFromJson(rrset, "changetype"));
       auto operationType = validateChangeType(changetype);
+      if (firstPass) {
+        firstPass = false;
+      }
+      else {
+        checkChangetypeCompatibility(lastOperationType, operationType, changetype);
+      }
+      lastOperationType = operationType; // for next pass
       DNSName qname;
       QType qtype;
       parseRecordNameAndType(rrset, qname, qtype);
@@ -2584,17 +2690,23 @@ static void patchZone(UeberBackend& backend, const ZoneName& zonename, DomainInf
         }
       }
 
+      bool abortPatch{false};
       switch (operationType) {
       case DELETE:
         applyDelete(domainInfo, qname, qtype);
         break;
       case REPLACE:
-        if (!applyReplace(domainInfo, zonename, rrset, qname, qtype, allowUnderscores, soa, resp)) {
-          // Proper error response has been setup, no need to do anything further.
-          domainInfo.backend->abortTransaction();
-          return;
-        }
+        abortPatch = !applyReplace(domainInfo, zonename, rrset, qname, qtype, allowUnderscores, soa, resp);
         break;
+      case PRUNE:
+      case EXTEND:
+        abortPatch = !applyPruneOrExtend(domainInfo, zonename, rrset, qname, qtype, allowUnderscores, soa, resp, operationType);
+        break;
+      }
+      if (abortPatch) {
+        // Proper error response has been setup, no need to do anything further.
+        domainInfo.backend->abortTransaction();
+        return;
       }
     }
 
