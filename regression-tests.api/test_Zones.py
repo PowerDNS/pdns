@@ -81,13 +81,16 @@ def templated_rrsets(rrsets: list, zonename: str):
 class ZonesApiTestCase(ApiTestCase):
 
     def assert_in_json_error(self, expected, json):
-        if expected not in json['error']:
+        error = json['error']
+        if expected not in error:
             found = False
-            for item in json['errors']:
-                if expected in item:
-                    found = True
-            assert found, "%r not found in %r" % (expected, errors)
-
+            if 'errors' in json:
+                errors = json['errors']
+                for item in errors:
+                    if expected in item:
+                        found = True
+                assert found, "%r not found in %r" % (expected, errors)
+            assert found, "%r not found in %r" % (expected, error)
 
 class Zones(ZonesApiTestCase):
 
