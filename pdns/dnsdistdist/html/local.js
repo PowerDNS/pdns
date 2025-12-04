@@ -16,7 +16,7 @@ $(document).ready(function() {
             timeBase: new Date().getTime() / 1000
         }) 
     } );
-    var y_ticks = new Rickshaw.Graph.Axis.Y( {
+    new Rickshaw.Graph.Axis.Y( {
         graph: qpsgraph,
         orientation: 'left',
         tickFormat: Rickshaw.Fixtures.Number.formatKMBT,
@@ -36,7 +36,7 @@ $(document).ready(function() {
             timeBase: new Date().getTime() / 1000
         }) 
     } );
-    var y_ticks = new Rickshaw.Graph.Axis.Y( {
+    new Rickshaw.Graph.Axis.Y( {
         graph: cpugraph,
         orientation: 'left',
         tickFormat: Rickshaw.Fixtures.Number.formatKMBT,
