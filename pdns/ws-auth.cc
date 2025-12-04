@@ -2551,7 +2551,7 @@ static applyResult applyReplace(const DomainInfo& domainInfo, const ZoneName& zo
         }
       }
       if (!checkNewRecords(resp, new_records, zonename, allowUnderscores)) {
-        // Proper error response has been setup, no need to do anything further.
+        // Proper error response has been set up, no need to do anything further.
         return ABORT;
       }
     }
@@ -2600,7 +2600,7 @@ static applyResult applyPruneOrExtend(const DomainInfo& domainInfo, const ZoneNa
     }
 
     if (!checkNewRecords(resp, new_records, zonename, allowUnderscores)) {
-      // Proper error response has been setup, no need to do anything further.
+      // Proper error response has been set up, no need to do anything further.
       return ABORT;
     }
 
@@ -2713,7 +2713,7 @@ static void patchZone(UeberBackend& backend, const ZoneName& zonename, DomainInf
         break;
       }
       if (result == ABORT) {
-        // Proper error response has been setup, no need to do anything further.
+        // Proper error response has been set up, no need to do anything further.
         domainInfo.backend->abortTransaction();
         return;
       }
