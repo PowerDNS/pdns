@@ -4,7 +4,6 @@ import argparse
 import glob
 import itertools
 import subprocess
-import sys
 import venv
 from pathlib import Path
 

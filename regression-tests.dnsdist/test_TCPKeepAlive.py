@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import time
 import dns
 from dnsdisttests import DNSDistTest
 
