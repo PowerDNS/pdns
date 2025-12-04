@@ -29,9 +29,9 @@ class RecPrometheusTest(RecursorTest):
         except subprocess.CalledProcessError as exc:
             raise AssertionError('%s failed (%d): %s' % (testcmd, process.returncode, process.output))
 
-        # commented out because promtool returns 3 because of the "_total" suffix warnings
-        #if process.returncode != 0:
-        #    raise AssertionError('%s failed (%d): %s' % (testcmd, process.returncode, output))
+        # promtool returns 3 because of the "_total" suffix warnings
+        if not process.returncode in [0, 3]:
+          raise AssertionError('%s failed (%d): %s' % (testcmd, process.returncode, output))
 
         for line in output[0].splitlines():
             if line.endswith(b"should have \"_total\" suffix"):
