@@ -2598,7 +2598,7 @@ static void patchZone(UeberBackend& backend, const DNSName& zonename, DomainInfo
       {
         auto operationType2 = operationType == EXTEND ? PRUNE : operationType;
         if (seen.count({qname, qtype, operationType2}) != 0) {
-          if (operationType == EXTEND) {
+          if (operationType2 == PRUNE) {
             changetype = "EXTEND/PRUNE"; // for the sake of the error message
           }
           throw ApiException("Duplicate RRset " + qname.toString() + " IN " + qtype.toString() + " with changetype: " + changetype);
