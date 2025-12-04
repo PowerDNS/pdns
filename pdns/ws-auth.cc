@@ -2651,7 +2651,7 @@ static void patchZone(UeberBackend& backend, const ZoneName& zonename, DomainInf
       }
 #if 0 // not possible in 5.0 branch
       if (result == ABORT) {
-        // Proper error response has been setup, no need to do anything further.
+        // Proper error response has been set up, no need to do anything further.
         domainInfo.backend->abortTransaction();
         return;
       }

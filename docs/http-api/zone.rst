@@ -170,7 +170,7 @@ Will yield a response similar to this (several headers omitted):
   
   HTTP/1.1 204 No Content
 
-If no record with the same exact content exist in the RRSet, no action is performed and no error is returned.
+If no record with the same exact content exists in the RRSet, no action is performed and no error is returned.
 
 Deleting a single record from a RRset
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
