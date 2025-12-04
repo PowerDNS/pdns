@@ -208,7 +208,6 @@ class DNSCryptClient(object):
             raise Exception("Invalid encrypted response: invalid padding")
 
         idx -= 1
-        paddingLen = len(cleartextBytes) - idx
 
         return cleartext[:idx+1]
 
