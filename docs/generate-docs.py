@@ -5,7 +5,6 @@ import glob
 import itertools
 import os
 import subprocess
-import sys
 import venv
 from pathlib import Path
 

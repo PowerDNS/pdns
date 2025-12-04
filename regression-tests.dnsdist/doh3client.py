@@ -2,7 +2,6 @@ import base64
 import copy
 import asyncio
 import dns
-import time
 import async_timeout
 
 from collections import deque
