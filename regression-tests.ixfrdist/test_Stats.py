@@ -60,7 +60,7 @@ webserver-address: %s
         except subprocess.CalledProcessError as exc:
             raise AssertionError('%s failed (%d): %s' % (testcmd, process.returncode, process.output))
 
-        # promtool returns 3 because of the "_total" suffix warnings
+        # promtool may return 3 because of the "_total" suffix warnings
         if not process.returncode in [0, 3]:
           raise AssertionError('%s failed (%d): %s' % (testcmd, process.returncode, output))
 
