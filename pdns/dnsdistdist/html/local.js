@@ -44,7 +44,6 @@ $(document).ready(function() {
     } );
 
     cpugraph.render();
-    var intervalcount=0;
 
     function updateRingBuffers()
     {
@@ -231,10 +230,6 @@ $(document).ready(function() {
                  }
                });
 
-
-//        if((intervalcount++)%5)
-  //          return;
-        //      updateRingBuffers();
 
         $.ajax({ url: 'jsonstat?command=dynblocklist', type: 'GET', dataType: 'json', jsonp: false,
                  success: function(data) {
