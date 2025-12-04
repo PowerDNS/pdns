@@ -1337,7 +1337,7 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
 
     def test_zone_rr_bogus_update_5(self):
         name, payload, zone = self.create_zone()
-        # more than one extend changeset
+        # duplicate rrset in extend
         rrset1 = {
             'changetype': 'extend',
             'name': 'a.'+name,
@@ -1356,7 +1356,17 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assertEqual(r.status_code, 422)
-        self.assert_in_json_error("Only one rrset may be provided", r.json())
+        self.assert_in_json_error("Duplicate RRset", r.json())
+        # duplicate rrset in extend/prune
+        rrset2 = rrset1
+        rrset2['changetype'] = 'prune'
+        payload = {'rrsets': [rrset1, rrset2]}
+        r = self.session.patch(
+            self.url("/api/v1/servers/localhost/zones/" + name),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertEqual(r.status_code, 422)
+        self.assert_in_json_error("Duplicate RRset", r.json())
 
     def test_zone_rr_update(self):
         name, payload, zone = self.create_zone()
