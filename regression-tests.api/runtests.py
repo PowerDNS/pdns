@@ -184,8 +184,6 @@ if not sdig or not os.path.exists(sdig):
 
 
 if daemon == 'authoritative':
-    zone2sql = os.environ.get("ZONE2SQL", "../pdns/zone2sql")
-
     # Prepare mysql DB with some zones.
     if backend == 'gmysql':
         subprocess.call(["mysqladmin", "--user=" + MYSQL_USER, "--password=" + MYSQL_PASSWD, "--host=" + MYSQL_HOST, "--force", "drop", MYSQL_DB])
