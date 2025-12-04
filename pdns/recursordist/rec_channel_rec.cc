@@ -738,9 +738,10 @@ static Answer doSetDnssecLogBogus(ArgIterator begin, ArgIterator end)
   }
 
   if (pdns_iequals(*begin, "off") || pdns_iequals(*begin, "no")) {
+    auto lock = g_yamlStruct.lock();
     if (g_dnssecLogBogus) {
       g_log << Logger::Warning << "Disabling DNSSEC Bogus logging, requested via control channel" << endl;
-      g_yamlStruct.lock()->dnssec.log_bogus = g_dnssecLogBogus = false;
+      lock->dnssec.log_bogus = g_dnssecLogBogus = false;
       return {0, "DNSSEC Bogus logging disabled\n"};
     }
     return {0, "DNSSEC Bogus logging was already disabled\n"};

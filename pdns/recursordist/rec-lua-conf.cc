@@ -776,7 +776,7 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
           smn->add(subnet.second);
         }
       }
-      proxyMapping.insert_or_assign(netmask, {address, smn});
+      proxyMapping.insert_or_assign(netmask, {std::move(address), std::move(smn)});
     }
     catch (std::exception& e) {
       lci.d_slog->error(Logr::Error, e.what(), "Exception processing addProxyMapping", "exception", Logging::Loggable("std::exception"));

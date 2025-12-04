@@ -1309,7 +1309,7 @@ void fromRustToLuaConfig(const rust::Vec<pdns::rust::settings::rec::ProxyMapping
         smn->add(DNSName(std::string(dom)));
       }
     }
-    proxyMapping.insert_or_assign(subnet, {address, smn});
+    proxyMapping.insert_or_assign(subnet, {std::move(address), std::move(smn)});
   }
 }
 
