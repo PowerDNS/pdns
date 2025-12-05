@@ -2648,7 +2648,7 @@ static void patchZone(UeberBackend& backend, const DNSName& zonename, DomainInfo
         }
         else {
           DNSResourceRecord record;
-          domainInfo.backend->lookup(qtype, qname, domainInfo.id);
+          domainInfo.backend->lookup(qtype, qname, static_cast<int>(domainInfo.id));
           while (domainInfo.backend->get(record)) {
             rrset.emplace_back(record);
           }
