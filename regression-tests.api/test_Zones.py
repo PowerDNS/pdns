@@ -1343,36 +1343,6 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
 
     def test_zone_rr_bogus_update_4(self):
         name, payload, zone = self.create_zone()
-        # incompatible delete and extend changeset
-        rrset1 = {
-            'changetype': 'delete',
-            'name': 'a.'+name,
-            'type': 'A',
-            'ttl': 3600,
-            'records': [ ]
-        }
-        rrset2 = {
-            'changetype': 'extend',
-            'name': 'a.'+name,
-            'type': 'A',
-            'ttl': 3600,
-            'records': [
-                {
-                    "content": "127.0.0.1",
-                    "disabled": False
-                }
-            ]
-        }
-        payload = {'rrsets': [rrset1, rrset2]}
-        r = self.session.patch(
-            self.url("/api/v1/servers/localhost/zones/" + name),
-            data=json.dumps(payload),
-            headers={'content-type': 'application/json'})
-        self.assertEqual(r.status_code, 422)
-        self.assert_in_json_error("Mixing RRset operations with single-record operations", r.json())
-
-    def test_zone_rr_bogus_update_5(self):
-        name, payload, zone = self.create_zone()
         # duplicate rrset in extend
         rrset1 = {
             'changetype': 'extend',
@@ -1753,6 +1723,55 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         # verify the zone contents are still unchanged
         data3 = self.get_zone(name)
         self.assertEqual(data2, data3)
+
+    def test_zone_rr_update_with_everything(self):
+        name, payload, zone = self.create_zone()
+        # our heroic records
+        a1 = { "content": "1.2.3.4", "disabled": False }
+        a2 = { "content": "2.4.6.8", "disabled": False }
+        a3 = { "content": "3.6.9.12", "disabled": False }
+        a4 = { "content": "4.8.12.16", "disabled": False }
+        # timid record addition
+        rrset1 = {
+            'changetype': 'extend',
+            'name': 'a.'+name,
+            'type': 'A',
+            'ttl': 3600,
+            'records': [ a1 ]
+        }
+        # delete all the things!
+        rrset2 = {
+            'changetype': 'delete',
+            'name': 'a.'+name,
+            'type': 'A',
+            'ttl': 3600,
+            'records': []
+        }
+        # complete rrset
+        rrset3 = {
+            'changetype': 'replace',
+            'name': 'a.'+name,
+            'type': 'A',
+            'ttl': 3600,
+            'records': [ a1, a2, a3, a4 ]
+        }
+        # timid record deletion
+        rrset4 = {
+            'changetype': 'prune',
+            'name': 'a.'+name,
+            'type': 'A',
+            'ttl': 3600,
+            'records': [ a3 ]
+        }
+        payload = {'rrsets': [rrset1, rrset2, rrset3, rrset4]}
+        r = self.session.patch(
+            self.url("/api/v1/servers/localhost/zones/" + name),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assert_success(r)
+        # verify zone contents
+        data = self.get_zone(name)
+        self.assertEqual(get_rrset(data, 'a.' + name, 'A')['records'], [ a1, a2, a4])
 
     def test_zone_disable_reenable(self):
         # This also tests that SOA-EDIT-API works.
