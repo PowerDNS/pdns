@@ -1636,7 +1636,11 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         self.assert_success(r)
         # verify the zone contents
         data1 = self.get_zone(name)
-        self.assertEqual(get_rrset(data1, 'a.'+name)['records'], [ a1, a3 ])
+        # note that we can't assume anything about the order of the records
+        records = get_rrset(data1, 'a.' + name, 'A')['records']
+        self.assertEqual(len(records), 2)
+        self.assertTrue(a1 in records)
+        self.assertTrue(a3 in records)
         # get_rrset above has removed the timestamps from data1, fetch the
         # zone again, since we want to ensure the following operations do
         # not change anything.
