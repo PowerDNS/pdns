@@ -656,7 +656,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       }
 #endif /* HAVE_XSK */
                          if (autoUpgrade && ret->getProtocol() != dnsdist::Protocol::DoT && ret->getProtocol() != dnsdist::Protocol::DoH) {
-                           dnsdist::ServiceDiscovery::addUpgradeableServer(ret, upgradeInterval, upgradePool, upgradeDoHKey, keepAfterUpgrade);
+                           dnsdist::ServiceDiscovery::addUpgradeableServer(ret, upgradeInterval, std::move(upgradePool), upgradeDoHKey, keepAfterUpgrade);
                          }
 
                          /* this needs to be done _AFTER_ the order has been set,
@@ -1724,7 +1724,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       checkAllParametersConsumed("setStructuredLogging", options);
     }
 
-    dnsdist::logging::LoggingConfiguration::setStructuredLogging(enable, levelPrefix);
+    dnsdist::logging::LoggingConfiguration::setStructuredLogging(enable, std::move(levelPrefix));
   });
 
   luaCtx.writeFunction("showBinds", []() {
@@ -2356,7 +2356,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         std::string valueStr;
         if (getOptionalValue<std::string>(vars, "congestionControlAlgo", valueStr) > 0) {
           if (dnsdist::doq::s_available_cc_algorithms.count(valueStr) > 0) {
-            frontend->d_quicheParams.d_ccAlgo = valueStr;
+            frontend->d_quicheParams.d_ccAlgo = std::move(valueStr);
           }
           else {
             warnlog("Ignoring unknown value '%s' for 'congestionControlAlgo' on 'addDOH3Local'", valueStr);
@@ -2384,7 +2384,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
 
     auto clientState = std::make_shared<ClientState>(frontend->d_local, false, reusePort, tcpFastOpenQueueSize, interface, cpus, enableProxyProtocol);
-    clientState->doh3Frontend = frontend;
+    clientState->doh3Frontend = std::move(frontend);
     clientState->d_additionalAddresses = std::move(additionalAddresses);
 
     dnsdist::configuration::updateImmutableConfiguration([&clientState](dnsdist::configuration::ImmutableConfiguration& config) {
@@ -2830,7 +2830,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       }
       // only works pre-startup, so no sync necessary
       auto clientState = std::make_shared<ClientState>(frontend->d_addr, true, reusePort, tcpFastOpenQueueSize, interface, cpus, enableProxyProtocol);
-      clientState->tlsFrontend = frontend;
+      clientState->tlsFrontend = std::move(frontend);
       clientState->d_additionalAddresses = std::move(additionalAddresses);
       if (tcpListenQueueSize > 0) {
         clientState->tcpListenQueueSize = tcpListenQueueSize;
