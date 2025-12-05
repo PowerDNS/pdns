@@ -2403,27 +2403,40 @@ static void apiServerZoneRectify(HttpRequest* req, HttpResponse* resp)
   resp->setSuccessResult("Rectified");
 }
 
-// Validate the "changetype" field of a Json patch record.
-// Returns true if this is a replace operation, false if this is a delete
-// operation.
-// Throws an exception if unrecognized.
-static bool validateChangeType(const Json& rrset)
+// The allowed values for the "changetype" field of a Json patch record.
+enum changeType
 {
-  string changetype = toUpper(stringFromJson(rrset, "changetype"));
+  DELETE, // delete complete RRset
+  REPLACE, // replace complete RRset
+  PRUNE, // remove single record from RRset if found
+  EXTEND // add single record to RRset if not found
+};
+
+// Validate the "changetype" field of a Json patch record.
+// Returns the recognized operation.
+// Throws an exception if unrecognized.
+static changeType validateChangeType(const std::string& changetype)
+{
   if (changetype == "DELETE") {
-    return false;
+    return DELETE;
   }
   if (changetype == "REPLACE") {
-    return true;
+    return REPLACE;
   }
-  throw ApiException("Changetype not understood");
+  if (changetype == "PRUNE") {
+    return PRUNE;
+  }
+  if (changetype == "EXTEND") {
+    return EXTEND;
+  }
+  throw ApiException("Changetype '" + changetype + "' is not a valid value");
 }
 
 // Replace the rrset for `qname' in zone `zonename' with the contents of
 // `new_records', making sure to remove no longer needed ENT entries, and
 // also enforcing the exclusivity rules (at most one CNAME, DNAME and SOA,
 // etc).
-static void replaceZoneRecords(DomainInfo& domainInfo, const ZoneName& zonename, vector<DNSResourceRecord>& new_records, const DNSName& qname, const QType qtype)
+static void replaceZoneRecords(const DomainInfo& domainInfo, const ZoneName& zonename, vector<DNSResourceRecord>& new_records, const DNSName& qname, const QType qtype)
 {
   bool ent_present = false;
   bool dname_seen = qtype == QType::DNAME;
@@ -2461,123 +2474,309 @@ static void replaceZoneRecords(DomainInfo& domainInfo, const ZoneName& zonename,
   }
 }
 
-static void patchZone(UeberBackend& backend, const ZoneName& zonename, DomainInfo& domainInfo, const vector<Json>& rrsets, HttpResponse* resp)
+// Parse the record name and type from a Json patch record.
+static void parseRecordNameAndType(const Json& rrset, DNSName& qname, QType& qtype)
 {
-  domainInfo.backend->startTransaction(zonename);
+  qname = apiNameToDNSName(stringFromJson(rrset, "name"));
+  apiCheckQNameAllowedCharacters(qname.toString());
+  qtype = stringFromJson(rrset, "type");
+  if (qtype.getCode() == QType::ENT) {
+    throw ApiException("RRset " + qname.toString() + " IN " + stringFromJson(rrset, "type") + ": unknown type given");
+  }
+}
+
+// The return value of the apply* functions below
+enum applyResult
+{
+  SUCCESS, // successful and changes performed
+  NOP, // successful but no changes needed
+  ABORT // failed horribly, don't process anything further
+};
+
+// Apply a DELETE changetype.
+static applyResult applyDelete(const DomainInfo& domainInfo, DNSName& qname, QType& qtype, bool returnRRset, std::vector<DNSResourceRecord>& rrset)
+{
+  // Delete all matching qname/qtype RRs (and implicitly, comments).
+  if (!domainInfo.backend->replaceRRSet(domainInfo.id, qname, qtype, {})) {
+    throw ApiException("Hosting backend does not support editing records.");
+  }
+  // Update RRset cache if needed
+  if (returnRRset) {
+    rrset.clear();
+  }
+  return SUCCESS;
+}
+
+// Struct gathering the SOA edition details, so as not to pass too many
+// billions of parameters to applyReplace() below.
+struct soaEditSettings
+{
+  bool edit_done{false};
+  string edit_api_kind;
+  string edit_kind;
+};
+
+// Apply a REPLACE changetype.
+static applyResult applyReplace(const DomainInfo& domainInfo, const ZoneName& zonename, const Json& container, DNSName& qname, QType& qtype, bool allowUnderscores, soaEditSettings& soa, HttpResponse* resp, bool returnRRset, std::vector<DNSResourceRecord>& rrset)
+{
+  bool replace_records = container["records"].is_array();
+  bool replace_comments = container["comments"].is_array();
+
+  if (!replace_records && !replace_comments) {
+    throw ApiException("No change for RRset " + qname.toString() + " IN " + qtype.toString());
+  }
+
+  vector<DNSResourceRecord> new_records;
+  vector<Comment> new_comments;
+
   try {
-    string soa_edit_api_kind;
-    string soa_edit_kind;
-    domainInfo.backend->getDomainMetadataOne(zonename, "SOA-EDIT-API", soa_edit_api_kind);
-    domainInfo.backend->getDomainMetadataOne(zonename, "SOA-EDIT", soa_edit_kind);
-    bool soa_edit_done = false;
-    bool allowUnderscores = areUnderscoresAllowed(zonename, *domainInfo.backend);
+    if (replace_records) {
+      // ttl shouldn't be required if we don't get new records.
+      uint32_t ttl = uintFromJson(container, "ttl");
+      gatherRecords(container, qname, qtype, ttl, new_records);
 
-    vector<DNSResourceRecord> new_records;
-    vector<Comment> new_comments;
-    set<std::tuple<DNSName, QType, bool>> seen;
-
-    for (const auto& rrset : rrsets) {
-      bool isReplaceOperation = validateChangeType(rrset);
-      DNSName qname = apiNameToDNSName(stringFromJson(rrset, "name"));
-      apiCheckQNameAllowedCharacters(qname.toString());
-      QType qtype;
-      qtype = stringFromJson(rrset, "type");
-      if (qtype.getCode() == 0) {
-        throw ApiException("RRset " + qname.toString() + " IN " + stringFromJson(rrset, "type") + ": unknown type given");
-      }
-
-      if (seen.count({qname, qtype, isReplaceOperation}) != 0) {
-        throw ApiException("Duplicate RRset " + qname.toString() + " IN " + qtype.toString() + " with changetype: " + (isReplaceOperation ? "replace" : "delete"));
-      }
-      seen.insert({qname, qtype, isReplaceOperation});
-
-      if (!isReplaceOperation) {
-        // delete all matching qname/qtype RRs (and, implicitly comments).
-        if (!domainInfo.backend->replaceRRSet(domainInfo.id, qname, qtype, vector<DNSResourceRecord>())) {
-          throw ApiException("Hosting backend does not support editing records.");
+      for (DNSResourceRecord& resourceRecord : new_records) {
+        resourceRecord.domain_id = static_cast<int>(domainInfo.id);
+        if (resourceRecord.qtype.getCode() == QType::SOA && resourceRecord.qname == zonename.operator const DNSName&()) {
+          soa.edit_done = increaseSOARecord(resourceRecord, soa.edit_api_kind, soa.edit_kind, zonename);
         }
       }
-      else {
+      if (!checkNewRecords(resp, new_records, zonename, allowUnderscores)) {
+        // Proper error response has been set up, no need to do anything further.
+        return ABORT;
+      }
+    }
+
+    if (replace_comments) {
+      gatherComments(container, qname, qtype, new_comments);
+
+      for (Comment& comment : new_comments) {
+        comment.domain_id = static_cast<int>(domainInfo.id);
+      }
+    }
+  }
+  catch (const JsonException& e) {
+    throw ApiException("New RRsets are invalid: " + string(e.what()));
+  }
+
+  if (replace_records) {
+    replaceZoneRecords(domainInfo, zonename, new_records, qname, qtype);
+  }
+  if (replace_comments) {
+    if (!domainInfo.backend->replaceComments(domainInfo.id, qname, qtype, new_comments)) {
+      throw ApiException("Hosting backend does not support editing comments.");
+    }
+  }
+  // Update RRset cache if needed
+  if (returnRRset) {
+    rrset = std::move(new_records);
+  }
+  return SUCCESS;
+}
+
+static applyResult applyPruneOrExtend(const DomainInfo& domainInfo, const ZoneName& zonename, const Json& container, DNSName& qname, QType& qtype, bool allowUnderscores, soaEditSettings& soa, HttpResponse* resp, changeType operationType, std::vector<DNSResourceRecord>& rrset)
+{
+  if (!container["records"].is_array()) {
+    throw ApiException("No record provided for PRUNE or EXTEND operation");
+  }
+
+  try {
+    vector<DNSResourceRecord> new_records;
+    uint32_t ttl = uintFromJson(container, "ttl");
+    gatherRecords(container, qname, qtype, ttl, new_records);
+    if (new_records.size() != 1) {
+      throw ApiException("Exactly one record should be provided for PRUNE or EXTEND operation");
+    }
+
+    auto& new_record = new_records.front();
+    new_record.domain_id = static_cast<int>(domainInfo.id);
+    if (new_record.qtype.getCode() == QType::SOA && new_record.qname == zonename.operator const DNSName&()) {
+      soa.edit_done = increaseSOARecord(new_record, soa.edit_api_kind, soa.edit_kind, zonename);
+    }
+
+    if (!checkNewRecords(resp, new_records, zonename, allowUnderscores)) {
+      // Proper error response has been set up, no need to do anything further.
+      return ABORT;
+    }
+
+    // Check if this record exists in the RRSet
+    bool seenRecord{false};
+    for (auto iter = rrset.begin(); iter != rrset.end(); ++iter) {
+      if (iter->content == new_record.content) {
+        // We found the record we've been instructed to add or delete.
+        seenRecord = true;
+        // If it is to be added, we don't have anything more to do.
+        // If it is to be deleted, just remove it from the RRset we're building.
+        if (operationType == PRUNE) {
+          rrset.erase(iter);
+        }
+        break;
+      }
+    }
+    // Add new record to RRset if not found.
+    if (operationType == EXTEND && !seenRecord) {
+      rrset.emplace_back(new_record);
+    }
+    bool submitChanges = (operationType == EXTEND && !seenRecord) || (operationType == PRUNE && seenRecord);
+    if (!submitChanges) {
+      return NOP;
+    }
+    if (!domainInfo.backend->replaceRRSet(domainInfo.id, qname, qtype, rrset)) {
+      throw ApiException("Hosting backend does not support editing records.");
+    }
+  }
+  catch (const JsonException& e) {
+    throw ApiException("Submitted record is invalid: " + string(e.what()));
+  }
+  return SUCCESS;
+}
+
+static void patchZone(UeberBackend& backend, const ZoneName& zonename, DomainInfo& domainInfo, const vector<Json>& rrsets, HttpResponse* resp)
+{
+  bool madeAnyChanges{false};
+  domainInfo.backend->startTransaction(zonename);
+  try {
+    soaEditSettings soa;
+    domainInfo.backend->getDomainMetadataOne(zonename, "SOA-EDIT-API", soa.edit_api_kind);
+    domainInfo.backend->getDomainMetadataOne(zonename, "SOA-EDIT", soa.edit_kind);
+    bool allowUnderscores = areUnderscoresAllowed(zonename, *domainInfo.backend);
+
+    // For PRUNE and EXTEND operations, we are not being passed the complete
+    // RRset, and will need to fetch it from the backend. But we may have
+    // processed a DELETE or REPLACE operation for the same RRset first, in
+    // which case we can't assume querying the backend will be consistent with
+    // the results of that last operation, since we are within a not commited
+    // yet transaction.
+    // To be sure to work on consistent contents, without having to rely upon
+    // specific backend behaviour, we will need to cache the RRset values
+    // in this routine, but we only need to do that for RRset which are
+    // subject to both PRUNE/EXTEND and DELETE/REPLACE operation.
+    // That first pass over the change requests computes this (and also
+    // performs basic validation).
+    using key = std::pair<DNSName, QType>;
+    std::map<key, unsigned int> changes;
+    for (const auto& rrset : rrsets) {
+      string changetype = toUpper(stringFromJson(rrset, "changetype"));
+      auto operationType = validateChangeType(changetype);
+      DNSName qname;
+      QType qtype;
+      parseRecordNameAndType(rrset, qname, qtype);
+
+      if (operationType != DELETE) {
         if (domainInfo.kind == DomainInfo::Consumer) {
           // Allow deleting all RRsets, just not modifying them.
           throw ApiException("Modifying RRsets in Consumer zones is unsupported");
         }
-        // we only validate for REPLACE, as DELETE can be used to "fix" out of zone records.
+
+        // We intentionally do not perform this check for DELETE, as it can be
+        // used as a poor man's way to "fix" out-of-zone records.
         if (!qname.isPartOf(zonename)) {
           throw ApiException("RRset " + qname.toString() + " IN " + qtype.toString() + ": Name is out of zone");
         }
+      }
 
-        bool replace_records = rrset["records"].is_array();
-        bool replace_comments = rrset["comments"].is_array();
-
-        if (!replace_records && !replace_comments) {
-          throw ApiException("No change for RRset " + qname.toString() + " IN " + qtype.toString());
-        }
-
-        new_records.clear();
-        new_comments.clear();
-
-        try {
-          if (replace_records) {
-            // ttl shouldn't be required if we don't get new records.
-            uint32_t ttl = uintFromJson(rrset, "ttl");
-            gatherRecords(rrset, qname, qtype, ttl, new_records);
-
-            for (DNSResourceRecord& resourceRecord : new_records) {
-              resourceRecord.domain_id = static_cast<int>(domainInfo.id);
-              if (resourceRecord.qtype.getCode() == QType::SOA && resourceRecord.qname == zonename.operator const DNSName&()) {
-                soa_edit_done = increaseSOARecord(resourceRecord, soa_edit_api_kind, soa_edit_kind, zonename);
-              }
-            }
-            if (!checkNewRecords(resp, new_records, zonename, allowUnderscores)) {
-              return;
-            }
-          }
-
-          if (replace_comments) {
-            gatherComments(rrset, qname, qtype, new_comments);
-
-            for (Comment& comment : new_comments) {
-              comment.domain_id = static_cast<int>(domainInfo.id);
-            }
+      // At this point, we store a bitmask of the operations which will need
+      // to be performed.
+      unsigned int newOperation = 1U << operationType;
+      key currentKey{qname, qtype};
+      if (auto iter = changes.find(currentKey); iter != changes.end()) {
+        auto operations = iter->second;
+        // Only allow one DELETE or REPLACE operation per RRset. On the other
+        // hand, it makes sense to allow multiple PRUNE or EXTEND, since the
+        // individual records they'll concern might differ.
+        if (operationType == DELETE || operationType == REPLACE) {
+          if ((operations & newOperation) != 0) {
+            throw ApiException("Duplicate RRset " + qname.toString() + " IN " + qtype.toString() + " with changetype: " + changetype);
           }
         }
-        catch (const JsonException& e) {
-          throw ApiException("New RRsets are invalid: " + string(e.what()));
-        }
-
-        if (replace_records) {
-          replaceZoneRecords(domainInfo, zonename, new_records, qname, qtype);
-        }
-        if (replace_comments) {
-          if (!domainInfo.backend->replaceComments(domainInfo.id, qname, qtype, new_comments)) {
-            throw ApiException("Hosting backend does not support editing comments.");
-          }
-        }
+        changes.insert_or_assign(currentKey, operations | newOperation);
+      }
+      else {
+        changes.insert({currentKey, newOperation});
       }
     }
 
-    SOAData soaData;
-    bool zone_disabled = (!backend.getSOAUncached(zonename, soaData));
+    // In this second pass, we will process the changes and maintain a cache
+    // of the RRset subject to PRUNE/EXTEND operations.
+    std::map<key, std::vector<DNSResourceRecord>> cache;
+    for (const auto& container : rrsets) {
+      string changetype = toUpper(stringFromJson(container, "changetype"));
+      auto operationType = validateChangeType(changetype);
+      DNSName qname;
+      QType qtype;
+      parseRecordNameAndType(container, qname, qtype);
 
-    // edit SOA (if needed)
-    if (!zone_disabled && !soa_edit_api_kind.empty() && !soa_edit_done) {
-      // return old serial in headers, before changing it
-      resp->headers["X-PDNS-Old-Serial"] = std::to_string(soaData.serial);
+      key currentKey{qname, qtype};
+      bool cacheNeeded{false};
+      if (auto iter = changes.find(currentKey); iter != changes.end()) {
+        auto operations = iter->second;
+        cacheNeeded = (operations & ((1U << PRUNE) | (1U << EXTEND))) != 0;
+      }
 
-      updateZoneSerial(domainInfo, soaData, soa_edit_api_kind, soa_edit_kind);
-
-      // return new serial in headers
-      resp->headers["X-PDNS-New-Serial"] = std::to_string(soaData.serial);
+      applyResult result;
+      std::vector<DNSResourceRecord> rrset;
+      switch (operationType) {
+      case DELETE:
+        result = applyDelete(domainInfo, qname, qtype, cacheNeeded, rrset);
+        break;
+      case REPLACE:
+        result = applyReplace(domainInfo, zonename, container, qname, qtype, allowUnderscores, soa, resp, cacheNeeded, rrset);
+        break;
+      case PRUNE:
+      case EXTEND:
+        // First, obtain the current RRset, either from the backend or from
+        // our local cache if we already did some operations.
+        if (const auto iter = cache.find(currentKey); iter != cache.end()) {
+          rrset = std::move(iter->second);
+        }
+        else {
+          DNSResourceRecord record;
+          domainInfo.backend->lookup(qtype, qname, domainInfo.id);
+          while (domainInfo.backend->get(record)) {
+            rrset.emplace_back(record);
+          }
+        }
+        result = applyPruneOrExtend(domainInfo, zonename, container, qname, qtype, allowUnderscores, soa, resp, operationType, rrset);
+        break;
+      }
+      if (result == ABORT) {
+        // Proper error response has been set up, no need to do anything further.
+        domainInfo.backend->abortTransaction();
+        return;
+      }
+      if (result == SUCCESS) {
+        madeAnyChanges = true;
+      }
+      // Update RRset cache if needed.
+      if (cacheNeeded) {
+        cache.insert_or_assign(currentKey, std::move(rrset));
+      }
     }
+    cache.clear();
 
-    // Rectify
-    DNSSECKeeper dnssecKeeper(&backend);
-    if (!zone_disabled && !dnssecKeeper.isPresigned(zonename) && isZoneApiRectifyEnabled(domainInfo)) {
-      string info;
-      string error_msg;
-      if (!dnssecKeeper.rectifyZone(zonename, error_msg, info, false)) {
-        throw ApiException("Failed to rectify '" + zonename.toString() + "' " + error_msg);
+    if (madeAnyChanges) {
+      SOAData soaData;
+      bool zone_disabled = (!backend.getSOAUncached(zonename, soaData));
+
+      // edit SOA (if needed)
+      if (!zone_disabled && !soa.edit_api_kind.empty() && !soa.edit_done) {
+        // return old serial in headers, before changing it
+        resp->headers["X-PDNS-Old-Serial"] = std::to_string(soaData.serial);
+
+        updateZoneSerial(domainInfo, soaData, soa.edit_api_kind, soa.edit_kind);
+
+        // return new serial in headers
+        resp->headers["X-PDNS-New-Serial"] = std::to_string(soaData.serial);
+      }
+
+      // Rectify
+      DNSSECKeeper dnssecKeeper(&backend);
+      if (!zone_disabled && !dnssecKeeper.isPresigned(zonename) && isZoneApiRectifyEnabled(domainInfo)) {
+        string info;
+        string error_msg;
+        if (!dnssecKeeper.rectifyZone(zonename, error_msg, info, false)) {
+          throw ApiException("Failed to rectify '" + zonename.toString() + "' " + error_msg);
+        }
       }
     }
   }
@@ -2586,10 +2785,15 @@ static void patchZone(UeberBackend& backend, const ZoneName& zonename, DomainInf
     throw;
   }
 
-  domainInfo.backend->commitTransaction();
+  if (madeAnyChanges) {
+    domainInfo.backend->commitTransaction();
 
-  DNSSECKeeper::clearCaches(zonename);
-  purgeAuthCaches(zonename.operator const DNSName&().toString() + "$");
+    DNSSECKeeper::clearCaches(zonename);
+    purgeAuthCaches(zonename.operator const DNSName&().toString() + "$");
+  }
+  else {
+    domainInfo.backend->abortTransaction();
+  }
 
   resp->body = "";
   resp->status = 204; // No Content, but indicate success
