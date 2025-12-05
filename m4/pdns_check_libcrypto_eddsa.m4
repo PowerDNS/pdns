@@ -17,13 +17,13 @@ AC_DEFUN([PDNS_CHECK_LIBCRYPTO_EDDSA], [
     AC_DEFINE([HAVE_LIBCRYPTO_ED25519], [1], [define to 1 if OpenSSL ed25519 support is available.])
   ], [ : ],
   [AC_INCLUDES_DEFAULT
-  #include <$ssldir/include/openssl/evp.h>])
+  #include <$sslincdir/openssl/evp.h>])
   AC_CHECK_DECLS([NID_ED448], [
     libcrypto_ed448=yes
     AC_DEFINE([HAVE_LIBCRYPTO_ED448], [1], [define to 1 if OpenSSL ed448 support is available.])
   ], [ : ],
   [AC_INCLUDES_DEFAULT
-  #include <$ssldir/include/openssl/evp.h>])
+  #include <$sslincdir/openssl/evp.h>])
 
   AS_IF([test "$libcrypto_ed25519" = "yes" -o "$libcrypto_ed448" = "yes"], [
     AC_DEFINE([HAVE_LIBCRYPTO_EDDSA], [1], [define to 1 if OpenSSL EDDSA support is available.])
