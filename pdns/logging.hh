@@ -30,7 +30,6 @@
 #include <memory>
 #include <string>
 #include <sstream>
-#include <boost/optional.hpp>
 
 #include "logr.hh"
 #include "dnsname.hh"

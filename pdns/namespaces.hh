@@ -21,7 +21,6 @@
  */
 #pragma once
 
-#include <boost/optional.hpp>
 #include <iostream>
 #include <map>
 #include <memory>
