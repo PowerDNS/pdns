@@ -33,9 +33,10 @@
 #include <arpa/inet.h>
 
 #include <iostream>
-#include <optional>
 #include <string>
 #include <vector>
+#include <boost/optional.hpp>
+
 #include "qtype.hh"
 #include "dns.hh"
 #include "misc.hh"
