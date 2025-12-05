@@ -225,19 +225,42 @@ constexpr bool g_slogStructured = true;
     slogCall;                    \
   } while (0)
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define VERBOSESLOG(nonStructured, structured)
+
 #else // DNSdist
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define SLOG(nonStructured, structured)                     \
-  do {                                                      \
-    if (dnsdist::logging::doStructuredLogging()) {          \
-      structured;                                           \
-    }                                                       \
-    else {                                                  \
-      nonStructured;                                        \
-    }                                                       \
-  }                                                         \
+#define SLOG(nonStructured, structured)             \
+  do {                                              \
+    if (dnsdist::logging::doStructuredLogging()) {  \
+      structured;                                   \
+    }                                               \
+    else {                                          \
+      nonStructured;                                \
+    }                                               \
+  }                                                 \
+  while (0)
+
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define VERBOSESLOG(nonStructured, structured)  \
+  do {                                          \
+    if (dnsdist::logging::doVerboseLogging()) { \
+      SLOG(nonStructured, structured);          \
+    }                                           \
+  }                                             \
   while (0)
 
 #endif /* ! DNSDIST */
 
-#endif // RECURSOR || DNSDIST
+#else // !RECURSOR && !DNSDIST
+
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define SLOG(oldStyle, slogCall) \
+  do {                           \
+    oldStyle;                    \
+  } while (0)
+
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define VERBOSESLOG(nonStructured, structured)
+
+#endif // !RECURSOR && !DNSDIST

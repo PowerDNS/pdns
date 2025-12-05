@@ -33,6 +33,10 @@
 #include "logger.hh"
 #endif // RECURSOR
 
+#if defined(DNSDIST)
+#include "dnsdist-logging.hh"
+#endif /* defined(DNSDIST) */
+
 /* This file is intended not to be metronome specific, and is simple example of C++2011
    variadic templates in action.
 
