@@ -1120,7 +1120,7 @@ static bool applyRulesToQuery(DNSQuestion& dnsQuestion, const timespec& now)
       case DNSAction::Action::Truncate:
         if (!dnsQuestion.overTCP()) {
           VERBOSESLOG(infolog("Query from %s truncated because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort()),
-                     dnsQuestion.getLogger()->info("Query truncated because of a dynamic rule"));
+                      dnsQuestion.getLogger()->info("Query truncated because of a dynamic rule"));
           updateBlockStats();
           dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [](dnsheader& header) {
             header.tc = true;
@@ -1201,7 +1201,7 @@ static bool applyRulesToQuery(DNSQuestion& dnsQuestion, const timespec& now)
       case DNSAction::Action::Truncate:
         if (!dnsQuestion.overTCP()) {
           VERBOSESLOG(infolog("Query from %s truncated because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort()),
-                     dnsQuestion.getLogger()->info("Query truncated because of a suffix-based dynamic rule"));
+                      dnsQuestion.getLogger()->info("Query truncated because of a suffix-based dynamic rule"));
           updateBlockStats();
           dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [](dnsheader& header) {
             header.tc = true;
@@ -1310,7 +1310,7 @@ static bool isUDPQueryAcceptable(ClientState& clientState, const struct msghdr* 
   expectProxyProtocol = clientState.d_enableProxyProtocol && expectProxyProtocolFrom(remote);
   if (!dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL.match(remote) && !expectProxyProtocol) {
     VERBOSESLOG(infolog("Query from %s dropped because of ACL", remote.toStringWithPort()),
-               dnsdist::logging::getTopLogger()->info("Query dropped because of ACL", "address", Logging::Loggable(dest)));
+                dnsdist::logging::getTopLogger()->info("Query dropped because of ACL", "address", Logging::Loggable(dest)));
     ++dnsdist::metrics::g_stats.aclDrops;
     return false;
   }

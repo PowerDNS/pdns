@@ -230,16 +230,15 @@ constexpr bool g_slogStructured = true;
 
 #else // DNSdist
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define SLOG(nonStructured, structured)             \
-  do {                                              \
-    if (dnsdist::logging::doStructuredLogging()) {  \
-      structured;                                   \
-    }                                               \
-    else {                                          \
-      nonStructured;                                \
-    }                                               \
-  }                                                 \
-  while (0)
+#define SLOG(nonStructured, structured)            \
+  do {                                             \
+    if (dnsdist::logging::doStructuredLogging()) { \
+      structured;                                  \
+    }                                              \
+    else {                                         \
+      nonStructured;                               \
+    }                                              \
+  } while (0)
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define VERBOSESLOG(nonStructured, structured)  \
@@ -247,8 +246,7 @@ constexpr bool g_slogStructured = true;
     if (dnsdist::logging::doVerboseLogging()) { \
       SLOG(nonStructured, structured);          \
     }                                           \
-  }                                             \
-  while (0)
+  } while (0)
 
 #endif /* ! DNSDIST */
 

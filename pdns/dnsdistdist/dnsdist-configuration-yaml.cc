@@ -970,7 +970,6 @@ static void handleLoggingConfiguration(const dnsdist::rust::settings::LoggingCon
     config.d_loggingBackend = std::string(settings.structured.backend);
     config.d_structuredLogging = settings.structured.enabled;
   });
-
 }
 
 static void handleConsoleConfiguration(const dnsdist::rust::settings::ConsoleConfiguration& consoleConf)
