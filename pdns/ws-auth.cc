@@ -2615,8 +2615,13 @@ static void patchZone(UeberBackend& backend, const ZoneName& zonename, DomainInf
       key currentKey{qname, qtype};
       if (auto iter = changes.find(currentKey); iter != changes.end()) {
         auto operations = iter->second;
-        if ((operations & newOperation) != 0) {
-          throw ApiException("Duplicate RRset " + qname.toString() + " IN " + qtype.toString() + " with changetype: " + changetype);
+        // Only allow one DELETE or REPLACE operation per RRset. On the other
+        // hand, it makes sense to allow multiple PRUNE or EXTEND, since the
+        // individual records they'll concern might differ.
+        if (operationType == DELETE || operationType == REPLACE) {
+          if ((operations & newOperation) != 0) {
+            throw ApiException("Duplicate RRset " + qname.toString() + " IN " + qtype.toString() + " with changetype: " + changetype);
+          }
         }
         changes.insert_or_assign(currentKey, operations | newOperation);
       }
