@@ -80,7 +80,21 @@ def templated_rrsets(rrsets: list, zonename: str):
     return new_rrsets
 
 
-class Zones(ApiTestCase):
+class ZonesApiTestCase(ApiTestCase):
+
+    def assert_in_json_error(self, expected, json):
+        error = json['error']
+        if expected not in error:
+            found = False
+            if 'errors' in json:
+                errors = json['errors']
+                for item in errors:
+                    if expected in item:
+                        found = True
+                assert found, "%r not found in %r" % (expected, errors)
+            assert found, "%r not found in %r" % (expected, error)
+
+class Zones(ZonesApiTestCase):
 
     def _test_list_zones(self, dnssec=True):
         path = "/api/v1/servers/localhost/zones"
@@ -196,7 +210,7 @@ class AuthZonesHelperMixin(object):
             self.assertEqual(r.status_code, 204, r.content)
 
 @unittest.skipIf(not is_auth(), "Not applicable")
-class AuthZones(ApiTestCase, AuthZonesHelperMixin):
+class AuthZones(ZonesApiTestCase, AuthZonesHelperMixin):
 
     def test_create_zone(self):
         # soa_edit_api has a default, override with empty for this test
