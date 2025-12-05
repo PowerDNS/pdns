@@ -16,7 +16,7 @@ $(document).ready(function() {
             timeBase: new Date().getTime() / 1000
         }) 
     } );
-    var y_ticks = new Rickshaw.Graph.Axis.Y( {
+    new Rickshaw.Graph.Axis.Y( {
         graph: qpsgraph,
         orientation: 'left',
         tickFormat: Rickshaw.Fixtures.Number.formatKMBT,
@@ -36,7 +36,7 @@ $(document).ready(function() {
             timeBase: new Date().getTime() / 1000
         }) 
     } );
-    var y_ticks = new Rickshaw.Graph.Axis.Y( {
+    new Rickshaw.Graph.Axis.Y( {
         graph: cpugraph,
         orientation: 'left',
         tickFormat: Rickshaw.Fixtures.Number.formatKMBT,
@@ -44,7 +44,6 @@ $(document).ready(function() {
     } );
 
     cpugraph.render();
-    var intervalcount=0;
 
     function updateRingBuffers()
     {
@@ -231,10 +230,6 @@ $(document).ready(function() {
                  }
                });
 
-
-//        if((intervalcount++)%5)
-  //          return;
-        //      updateRingBuffers();
 
         $.ajax({ url: 'jsonstat?command=dynblocklist', type: 'GET', dataType: 'json', jsonp: false,
                  success: function(data) {
