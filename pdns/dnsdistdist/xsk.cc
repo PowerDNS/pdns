@@ -549,6 +549,10 @@ XskSocket::XskUmem::~XskUmem()
 
 [[nodiscard]] size_t XskPacket::getDataSize() const noexcept
 {
+  const auto dataOffset = getDataOffset();
+  if (frameLength < dataOffset) {
+    return 0U;
+  }
   return frameLength - getDataOffset();
 }
 
@@ -571,36 +575,48 @@ void XskPacket::setEthernetHeader(const ethhdr& ethHeader) noexcept
 
 [[nodiscard]] iphdr XskPacket::getIPv4Header() const noexcept
 {
-  iphdr ipv4Header{};
-  assert(frameLength >= (sizeof(ethhdr) + sizeof(ipv4Header)));
   assert(!v6);
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-  memcpy(&ipv4Header, frame + sizeof(ethhdr), sizeof(ipv4Header));
+  iphdr ipv4Header{};
+  constexpr size_t needed = sizeof(ethhdr) + sizeof(ipv4Header);
+  if (frameLength >= needed) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    memcpy(&ipv4Header, frame + sizeof(ethhdr), sizeof(ipv4Header));
+  }
   return ipv4Header;
 }
 
 void XskPacket::setIPv4Header(const iphdr& ipv4Header) noexcept
 {
-  assert(frameLength >= (sizeof(ethhdr) + sizeof(iphdr)));
   assert(!v6);
+  constexpr size_t neededRoom = sizeof(ethhdr) + sizeof(iphdr);
+  assert(frameSize >= neededRoom);
+  if (frameLength < neededRoom) {
+    frameLength = neededRoom;
+  }
   // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
   memcpy(frame + sizeof(ethhdr), &ipv4Header, sizeof(ipv4Header));
 }
 
 [[nodiscard]] ipv6hdr XskPacket::getIPv6Header() const noexcept
 {
-  ipv6hdr ipv6Header{};
-  assert(frameLength >= (sizeof(ethhdr) + sizeof(ipv6Header)));
   assert(v6);
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-  memcpy(&ipv6Header, frame + sizeof(ethhdr), sizeof(ipv6Header));
+  ipv6hdr ipv6Header{};
+  constexpr size_t needed = sizeof(ethhdr) + sizeof(ipv6Header);
+  if (frameLength >= needed) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    memcpy(&ipv6Header, frame + sizeof(ethhdr), sizeof(ipv6Header));
+  }
   return ipv6Header;
 }
 
 void XskPacket::setIPv6Header(const ipv6hdr& ipv6Header) noexcept
 {
-  assert(frameLength >= (sizeof(ethhdr) + sizeof(ipv6Header)));
   assert(v6);
+  constexpr size_t neededRoom = sizeof(ethhdr) + sizeof(ipv6Header);
+  assert(frameSize >= neededRoom);
+  if (frameLength < neededRoom) {
+    frameLength = neededRoom;
+  }
   // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
   memcpy(frame + sizeof(ethhdr), &ipv6Header, sizeof(ipv6Header));
 }
@@ -608,15 +624,22 @@ void XskPacket::setIPv6Header(const ipv6hdr& ipv6Header) noexcept
 [[nodiscard]] udphdr XskPacket::getUDPHeader() const noexcept
 {
   udphdr udpHeader{};
-  assert(frameLength >= (sizeof(ethhdr) + (v6 ? sizeof(ipv6hdr) : sizeof(iphdr)) + sizeof(udpHeader)));
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-  memcpy(&udpHeader, frame + getL4HeaderOffset(), sizeof(udpHeader));
+  const size_t neededRoom = getL4HeaderOffset() + sizeof(udpHeader);
+  assert(frameSize >= neededRoom);
+  if (frameLength >= neededRoom) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    memcpy(&udpHeader, frame + getL4HeaderOffset(), sizeof(udpHeader));
+  }
   return udpHeader;
 }
 
 void XskPacket::setUDPHeader(const udphdr& udpHeader) noexcept
 {
-  assert(frameLength >= (sizeof(ethhdr) + (v6 ? sizeof(ipv6hdr) : sizeof(iphdr)) + sizeof(udpHeader)));
+  const size_t neededRoom = getL4HeaderOffset() + sizeof(udpHeader);
+  assert(frameSize >= neededRoom);
+  if (frameLength < neededRoom) {
+    frameLength = getL4HeaderOffset() + sizeof(udpHeader);
+  }
   // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
   memcpy(frame + getL4HeaderOffset(), &udpHeader, sizeof(udpHeader));
 }
@@ -764,7 +787,9 @@ void XskPacket::changeDirectAndUpdateChecksum() noexcept
     setIPv4Header(ipv4);
     setUDPHeader(udp);
   }
+
   setEthernetHeader(ethHeader);
+  flags |= REWRITTEN;
 }
 
 void XskPacket::rewriteIpv4Header(struct iphdr* ipv4header, size_t frameLen) noexcept
@@ -817,7 +842,7 @@ bool XskPacket::setPayload(const PacketBuffer& buf)
   if (bufSize == 0 || bufSize > currentCapacity) {
     return false;
   }
-  flags |= UPDATE;
+  flags |= UPDATED;
   // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
   memcpy(frame + getDataOffset(), buf.data(), bufSize);
   // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
@@ -831,6 +856,7 @@ void XskPacket::addDelay(const int relativeMilliseconds) noexcept
   sendTime.tv_nsec += static_cast<int64_t>(relativeMilliseconds) * 1000000L;
   sendTime.tv_sec += sendTime.tv_nsec / 1000000000L;
   sendTime.tv_nsec %= 1000000000L;
+  flags |= DELAY;
 }
 
 bool operator<(const XskPacket& lhs, const XskPacket& rhs) noexcept
@@ -898,12 +924,11 @@ void XskPacket::setAddr(const ComboAddress& from_, MACAddr fromMAC, const ComboA
   to = to_;
   from = from_;
   v6 = !to.isIPv4();
-  flags = 0;
+  flags |= UPDATED;
 }
 
 void XskPacket::rewrite() noexcept
 {
-  flags |= REWRITE;
   auto ethHeader = getEthernetHeader();
   if (!v6) {
     ethHeader.h_proto = htons(ETH_P_IP);
@@ -947,11 +972,13 @@ void XskPacket::rewrite() noexcept
     // do not bother setting the UDP checksum: 0 is a valid value and most AF_XDP
     // implementations do the same
     // udpHeader.check = tcp_udp_v6_checksum(&ipHeader);
+    rewriteIpv6Header(&ipHeader, getFrameLen());
     setIPv6Header(ipHeader);
     setUDPHeader(udpHeader);
   }
 
   setEthernetHeader(ethHeader);
+  flags |= REWRITTEN;
 }
 
 [[nodiscard]] __be16 XskPacket::ipv4Checksum(const struct iphdr* ipHeader) noexcept
@@ -1097,10 +1124,13 @@ void XskPacket::rewrite() noexcept
 
 void XskPacket::setHeader(PacketBuffer& buf)
 {
+  if (buf.size() > frameSize) {
+    throw std::runtime_error("Trying to set an XSK header larger than the frame");
+  }
   memcpy(frame, buf.data(), buf.size());
   frameLength = buf.size();
   buf.clear();
-  flags = 0;
+  flags |= UPDATED;
   if (!parse(true)) {
     throw std::runtime_error("Error setting the XSK frame header");
   }
@@ -1286,10 +1316,10 @@ uint32_t XskPacket::getFlags() const noexcept
 
 void XskPacket::updatePacket() noexcept
 {
-  if ((flags & UPDATE) == 0U) {
+  if ((flags & UPDATED) == 0U) {
     return;
   }
-  if ((flags & REWRITE) == 0U) {
+  if ((flags & REWRITTEN) == 0U) {
     changeDirectAndUpdateChecksum();
   }
 }
