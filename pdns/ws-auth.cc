@@ -1926,6 +1926,30 @@ static void apiServerAutoprimariesPOST(HttpRequest* req, HttpResponse* resp)
   resp->status = 201;
 }
 
+static void apiServerBackendStorageVersion(HttpRequest* req, HttpResponse* resp)
+{
+  const std::string backendName = req->parameters["id"];
+  UeberBackend backend;
+  for (auto& onebackend : backend.backends) {
+    if (onebackend->getPrefix() == backendName) {
+      auto version = onebackend->getStorageLayoutVersion();
+      if (version < 0) {
+        throw ApiException("Storage layout version not available");
+      }
+
+      if (req->accept_json) {
+        resp->setJsonBody(Json::object{{"storageversion", version}});
+      }
+      else {
+        resp->headers["Content-Type"] = "text/plain; charset=us-ascii";
+        resp->body = std::to_string(version);
+      }
+      return;
+    }
+  }
+  throw ApiException("Unknown backend");
+}
+
 // create new zone
 static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp)
 {
@@ -3020,6 +3044,7 @@ void AuthWebServer::webThread()
       d_ws->registerApiHandler("/api/v1/servers/localhost/autoprimaries/<ip>/<nameserver>", &apiServerAutoprimaryDetailDELETE, "DELETE");
       d_ws->registerApiHandler("/api/v1/servers/localhost/autoprimaries", &apiServerAutoprimariesGET, "GET");
       d_ws->registerApiHandler("/api/v1/servers/localhost/autoprimaries", &apiServerAutoprimariesPOST, "POST");
+      d_ws->registerApiHandler("/api/v1/servers/localhost/backends/<id>/storageversion", apiServerBackendStorageVersion, "GET");
       d_ws->registerApiHandler("/api/v1/servers/localhost/networks", apiServerNetworksGET, "GET");
       d_ws->registerApiHandler("/api/v1/servers/localhost/networks/<ip>/<prefixlen>", apiServerNetworksGET, "GET");
       d_ws->registerApiHandler("/api/v1/servers/localhost/networks/<ip>/<prefixlen>", apiServerNetworksPUT, "PUT");
