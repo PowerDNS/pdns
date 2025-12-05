@@ -1305,39 +1305,6 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         self.assertEqual(r.status_code, 422)
         self.assert_in_json_error("Exactly one record should be provided", r.json())
 
-    def test_zone_rr_bogus_update_4(self):
-        name, payload, zone = self.create_zone()
-        # duplicate rrset in extend
-        rrset1 = {
-            'changetype': 'extend',
-            'name': 'a.'+name,
-            'type': 'A',
-            'ttl': 3600,
-            'records': [
-                {
-                    "content": "127.0.0.1",
-                    "disabled": False
-                }
-            ]
-        }
-        payload = {'rrsets': [rrset1, rrset1]}
-        r = self.session.patch(
-            self.url("/api/v1/servers/localhost/zones/" + name),
-            data=json.dumps(payload),
-            headers={'content-type': 'application/json'})
-        self.assertEqual(r.status_code, 422)
-        self.assert_in_json_error("Duplicate RRset", r.json())
-        # duplicate rrset in extend/prune
-        rrset2 = rrset1
-        rrset2['changetype'] = 'prune'
-        payload = {'rrsets': [rrset1, rrset2]}
-        r = self.session.patch(
-            self.url("/api/v1/servers/localhost/zones/" + name),
-            data=json.dumps(payload),
-            headers={'content-type': 'application/json'})
-        self.assertEqual(r.status_code, 422)
-        self.assert_in_json_error("Duplicate RRset", r.json())
-
     def test_zone_rr_update(self):
         name, payload, zone = self.create_zone()
         # do a replace (= update)
@@ -1711,13 +1678,13 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
             'ttl': 3600,
             'records': []
         }
-        # complete rrset
+        # second half of the rrset
         rrset3 = {
             'changetype': 'replace',
             'name': 'a.'+name,
             'type': 'A',
             'ttl': 3600,
-            'records': [ a1, a2, a3, a4 ]
+            'records': [ a3, a4 ]
         }
         # timid record deletion
         rrset4 = {
@@ -1727,7 +1694,22 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
             'ttl': 3600,
             'records': [ a3 ]
         }
-        payload = {'rrsets': [rrset1, rrset2, rrset3, rrset4]}
+        # first half of the rrset
+        rrset5 = {
+            'changetype': 'extend',
+            'name': 'a.'+name,
+            'type': 'A',
+            'ttl': 3600,
+            'records': [ a1 ]
+        }
+        rrset6 = {
+            'changetype': 'extend',
+            'name': 'a.'+name,
+            'type': 'A',
+            'ttl': 3600,
+            'records': [ a2 ]
+        }
+        payload = {'rrsets': [rrset1, rrset2, rrset3, rrset4, rrset5, rrset6]}
         r = self.session.patch(
             self.url("/api/v1/servers/localhost/zones/" + name),
             data=json.dumps(payload),
@@ -1735,7 +1717,12 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         self.assert_success(r)
         # verify zone contents
         data = self.get_zone(name)
-        self.assertEqual(get_rrset(data, 'a.' + name, 'A')['records'], [ a1, a2, a4])
+        # note that we can't assume anything about the order of the records
+        records = get_rrset(data, 'a.' + name, 'A')['records']
+        self.assertEqual(len(records), 3)
+        self.assertTrue(a1 in records)
+        self.assertTrue(a2 in records)
+        self.assertTrue(a4 in records)
 
     def test_zone_disable_reenable(self):
         # This also tests that SOA-EDIT-API works.
