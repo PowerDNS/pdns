@@ -61,9 +61,11 @@ po::variables_map g_vm;
 
 string g_programname="pdns";
 
+// Global option flag values
 namespace {
   bool g_force;
   bool g_quiet;
+  bool g_sort;
   bool g_verbose;
 }
 
@@ -1780,21 +1782,39 @@ static int listZone(const ZoneName &zone) {
     return EXIT_FAILURE;
   }
 
-  std::vector<DNSRecord> records;
-  DNSResourceRecord rr;
+  std::ostream::sync_with_stdio(false);
+  cout<<"$ORIGIN ."<<endl;
 
-  di.backend->list(zone, di.id);
-  while(di.backend->get(rr)) {
-    if(rr.qtype.getCode() != QType::ENT) {
-      records.emplace_back(DNSRecord(rr));
+  // Sorting zone output has the advantage of getting the database records as
+  // fast as possible, which - on backends where fetching records involve a
+  // transaction, such as LMDB - reduces contention on the database. But on
+  // the other hands, for huge zones, this can make the memory usage of
+  // pdnsutil grow to insanely unreasonable levels... so you get to choose
+  // your poison.
+  DNSResourceRecord drr;
+  if (g_sort) {
+    std::vector<DNSRecord> records;
+
+    di.backend->list(zone, di.id);
+    while(di.backend->get(drr)) {
+      if(drr.qtype.getCode() != QType::ENT) {
+        records.emplace_back(DNSRecord(drr));
+      }
+    }
+    sort(records.begin(), records.end(), DNSRecord::prettyCompare);
+    for (const auto& rec : records) {
+      std::cout << formatRecord(rec) << std::endl;
     }
   }
-  sort(records.begin(), records.end(), DNSRecord::prettyCompare);
-  cout<<"$ORIGIN ."<<endl;
-  std::ostream::sync_with_stdio(false);
-  for (const auto& rec : records) {
-    std::cout << formatRecord(rec) << std::endl;
+  else {
+    di.backend->list(zone, di.id);
+    while(di.backend->get(drr)) {
+      if(drr.qtype.getCode() != QType::ENT) {
+        std::cout << formatRecord(DNSRecord(drr)) << std::endl;
+      }
+    }
   }
+
   cout.flush();
   return EXIT_SUCCESS;
 }
@@ -5994,6 +6014,7 @@ try
     ("verbose,v", "be verbose")
     ("force,f", "force an action")
     ("quiet,q", "be quiet")
+    ("sort,s", "sort output when applicable")
     ("config-name", po::value<string>()->default_value(""), "virtual configuration name")
     ("config-dir", po::value<string>()->default_value(SYSCONFDIR), "location of pdns.conf")
     ("no-colors", "do not use colors in output")
@@ -6016,6 +6037,7 @@ try
 
   g_force = g_vm.count("force") != 0;
   g_quiet = g_vm.count("quiet") != 0;
+  g_sort = g_vm.count("sort") != 0;
   g_verbose = g_vm.count("verbose") != 0;
 
   if (g_vm.count("version") != 0) {
