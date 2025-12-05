@@ -2261,6 +2261,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
       bool ignoreTLSConfigurationErrors = false;
       if (getOptionalValue<bool>(vars, "ignoreTLSConfigurationErrors", ignoreTLSConfigurationErrors) > 0 && ignoreTLSConfigurationErrors) {
+#if defined(HAVE_LIBSSL)
         // we are asked to try to load the certificates so we can return a potential error
         // and properly ignore the frontend before actually launching it
         try {
@@ -2270,6 +2271,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
           errlog("Ignoring DoH frontend: '%s'", e.what());
           return;
         }
+#endif /* HAVE_LIBSSL */
       }
 
       checkAllParametersConsumed("addDOHLocal", vars);
@@ -2358,6 +2360,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
       bool ignoreTLSConfigurationErrors = false;
       if (getOptionalValue<bool>(vars, "ignoreTLSConfigurationErrors", ignoreTLSConfigurationErrors) > 0 && ignoreTLSConfigurationErrors) {
+#if defined(HAVE_LIBSSL)
         // we are asked to try to load the certificates so we can return a potential error
         // and properly ignore the frontend before actually launching it
         try {
@@ -2367,6 +2370,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
           errlog("Ignoring DoH3 frontend: '%s'", e.what());
           return;
         }
+#endif /* HAVE_LIBSSL */
       }
 
       checkAllParametersConsumed("addDOH3Local", vars);
@@ -2434,6 +2438,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
       bool ignoreTLSConfigurationErrors = false;
       if (getOptionalValue<bool>(vars, "ignoreTLSConfigurationErrors", ignoreTLSConfigurationErrors) > 0 && ignoreTLSConfigurationErrors) {
+#if defined(HAVE_LIBSSL)
         // we are asked to try to load the certificates so we can return a potential error
         // and properly ignore the frontend before actually launching it
         try {
@@ -2443,6 +2448,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
           errlog("Ignoring DoQ frontend: '%s'", e.what());
           return;
         }
+#endif /* HAVE_LIBSSL */
       }
 
       checkAllParametersConsumed("addDOQLocal", vars);
