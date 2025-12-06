@@ -796,7 +796,8 @@ int makeUNsockaddr(const std::string& path, struct sockaddr_un* ret)
   if (path.length() >= sizeof(ret->sun_path))
     return -1;
 
-  path.copy(ret->sun_path, sizeof(ret->sun_path), 0);
+  path.copy(ret->sun_path, path.length(), 0);
+
   return 0;
 }
 
