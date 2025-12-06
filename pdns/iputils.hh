@@ -520,7 +520,11 @@ union SockaddrWrapper
       return sizeof(sin6);
     }
     if (sinun.sun_family == AF_UNIX) {
-      return sizeof(sinun);
+      socklen_t len = sizeof(struct sockaddr_un) - sizeof(sinun.sun_path);
+
+      len += strlen(sinun.sun_path);
+
+      return len;
     }
     return 0;
   }
