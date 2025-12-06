@@ -796,7 +796,12 @@ int makeUNsockaddr(const std::string& path, struct sockaddr_un* ret)
   if (path.length() >= sizeof(ret->sun_path))
     return -1;
 
-  path.copy(ret->sun_path, path.length(), 0);
+  // If a Linux abstract socket, put its name in sun_path after a leading NUL byte
+  if (path.find("abns@", 0, 5) == 0) {
+    path.copy(ret->sun_path + 1, path.length() -5, 5);
+  } else {
+    path.copy(ret->sun_path, path.length(), 0);
+  }
 
   return 0;
 }
