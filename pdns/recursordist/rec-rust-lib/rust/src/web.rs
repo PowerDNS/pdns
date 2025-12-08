@@ -39,6 +39,7 @@ use hyper::server::conn::http1;
 use hyper::service::service_fn;
 use hyper::{body::Incoming as IncomingBody, header, Method, Request, Response, StatusCode};
 use hyper_util::rt::TokioIo;
+use pki_types::{pem::PemObject, CertificateDer, PrivateKeyDer};
 use std::str::FromStr;
 use std::sync::Arc;
 use tokio::net::TcpListener;
@@ -972,32 +973,41 @@ pub fn serveweb(
     Ok(())
 }
 
-// Load public certificate from file.
+// Load public certificates from file.
 fn load_certs(filename: &str) -> std::io::Result<Vec<pki_types::CertificateDer<'static>>> {
-    // Open certificate file.
-    let certfile = std::fs::File::open(filename)
-        .map_err(|e| std::io::Error::other(format!("Failed to open {}: {}", filename, e)))?;
-    let mut reader = std::io::BufReader::new(certfile);
-
-    // Load and return certificate.
-    rustls_pemfile::certs(&mut reader).collect()
+    let certsfromfile = CertificateDer::pem_file_iter(filename);
+    match certsfromfile {
+        Ok(certs) => {
+            let mut ret = vec![];
+            for cert in certs {
+                match cert {
+                    Ok(cert) => ret.push(cert),
+                    Err(cert) => {
+                        return Err(std::io::Error::other(format!(
+                            "Failed to parse a certificate from `{}': {}",
+                            filename, cert
+                        )))
+                    }
+                }
+            }
+            Ok(ret)
+        }
+        Err(err) => Err(std::io::Error::other(format!(
+            "Failed to parse certificates from {}: {}",
+            filename, err
+        ))),
+    }
 }
 
 // Load private key from file.
 fn load_private_key(filename: &str) -> std::io::Result<pki_types::PrivateKeyDer<'static>> {
-    // Open keyfile.
-    let keyfile = std::fs::File::open(filename)
-        .map_err(|e| std::io::Error::other(format!("Failed to open {}: {}", filename, e)))?;
-    let mut reader = std::io::BufReader::new(keyfile);
-
-    // Load and return a single private key.
-    match rustls_pemfile::private_key(&mut reader) {
-        Ok(Some(pkey)) => Ok(pkey),
-        Ok(None) => Err(std::io::Error::other(format!(
-            "Failed to parse private key from {}",
-            filename
+    let key = PrivateKeyDer::from_pem_file(filename);
+    match key {
+        Ok(key) => Ok(key),
+        Err(key) => Err(std::io::Error::other(format!(
+            "Failed to parse private key from `{}': {}",
+            filename, key
         ))),
-        Err(e) => Err(e),
     }
 }
 
