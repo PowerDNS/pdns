@@ -250,7 +250,7 @@ private:
   int d_fd{-1};
 };
 
-static void handleNotify(std::unique_ptr<DNSComboWriter>& comboWriter, const DNSName& qname)
+[[nodiscard]] static bool handleNotify(std::unique_ptr<DNSComboWriter>& comboWriter, const DNSName& qname)
 {
   if (!t_allowNotifyFrom || !t_allowNotifyFrom->match(comboWriter->d_mappedSource)) {
     if (!g_quiet) {
@@ -259,18 +259,19 @@ static void handleNotify(std::unique_ptr<DNSComboWriter>& comboWriter, const DNS
     }
 
     t_Counters.at(rec::Counter::sourceDisallowedNotify)++;
-    return;
+    return false;
   }
 
   if (!isAllowNotifyForZone(qname)) {
     if (!g_quiet) {
       SLOG(g_log << Logger::Error << "[" << g_multiTasker->getTid() << "] dropping TCP NOTIFY from " << comboWriter->d_mappedSource.toString() << ", for " << qname.toLogString() << ", zone not matched by allow-notify-for" << endl,
-           g_slogtcpin->info(Logr::Error, "Dropping TCP NOTIFY,  zone not matched by allow-notify-for", "source", Logging::Loggable(comboWriter->d_mappedSource), "zone", Logging::Loggable(qname)));
+           g_slogtcpin->info(Logr::Error, "Dropping TCP NOTIFY, zone not matched by allow-notify-for", "source", Logging::Loggable(comboWriter->d_mappedSource), "zone", Logging::Loggable(qname)));
     }
 
     t_Counters.at(rec::Counter::zoneDisallowedNotify)++;
-    return;
+    return false;
   }
+  return true;
 }
 
 static void doProtobufLogQuery(bool logQuery, LocalStateHolder<LuaConfigItems>& luaconfsLocal, const std::unique_ptr<DNSComboWriter>& comboWriter, const DNSName& qname, QType qtype, QClass qclass, const dnsheader* dnsheader, const shared_ptr<TCPConnection>& conn, const boost::optional<uint32_t>& ednsVersion)
@@ -429,7 +430,9 @@ static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, s
     }
 
     if (comboWriter->d_mdp.d_header.opcode == static_cast<unsigned>(Opcode::Notify)) {
-      handleNotify(comboWriter, qname);
+      if (!handleNotify(comboWriter, qname)) {
+        return;
+      }
     }
 
     string response;
