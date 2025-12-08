@@ -4,6 +4,26 @@ Changelogs for 5.3.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
+  :version: 5.3.3
+  :released: 8th of December 2025
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16618
+
+    Fix PowerDNS Security Advisory 2025-08: Insufficient validation of incoming notifies over TCP can lead to a denial of service in Recursor.
+
+.. changelog::
+  :version: 5.3.2
+  :released: Never released publicly
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16618
+
+    Fix PowerDNS Security Advisory 2025-07: Internal logic flaw in cache management can lead to a denial of service in Recursor
+
+.. changelog::
   :version: 5.3.1
   :released: 22nd of October 2025
 
@@ -11,7 +31,7 @@ Before upgrading, it is advised to read the :doc:`../upgrade`.
     :tags: Bug Fixes
     :pullreq: 16339
 
-   Fix PowerDNS Security Advisory 2025-06: Crafted delegations or IP fragments can poison cached delegations in Recursor.
+    Fix PowerDNS Security Advisory 2025-06: Crafted delegations or IP fragments can poison cached delegations in Recursor.
 
 .. changelog::
   :version: 5.3.0
