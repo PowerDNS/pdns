@@ -137,6 +137,8 @@ Will yield a response similar to this (several headers omitted):
 Adding a single record to a RRset
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+.. note:: added in versions 4.9.12 and 5.0.2
+
 .. code-block:: http
 
   PATCH /api/v1/servers/localhost/zones/example.org. HTTP/1.1
@@ -174,6 +176,8 @@ If no record with the same exact content exists in the RRSet, no action is perfo
 
 Deleting a single record from a RRset
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. note:: added in versions 4.9.12 and 5.0.2
 
 .. code-block:: http
 
