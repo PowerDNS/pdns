@@ -70,4 +70,31 @@ BOOST_AUTO_TEST_CASE(test_std_optional)
   }
 }
 
+BOOST_AUTO_TEST_CASE(test_std_variant)
+{
+  LuaContext context;
+  context.writeFunction("testVariant", [](std::variant<int, std::string> incoming) -> std::variant<int, std::string> {
+    return incoming;
+  });
+
+  {
+    auto result = context.executeCode<std::variant<int, std::string>>("return testVariant(1)");
+    BOOST_REQUIRE(std::holds_alternative<int>(result));
+    BOOST_CHECK_EQUAL(std::get<int>(result), 1);
+  }
+
+  {
+    auto result = context.executeCode<std::variant<int, std::string>>("return testVariant('foo')");
+    BOOST_REQUIRE(std::holds_alternative<std::string>(result));
+    BOOST_CHECK_EQUAL(std::get<std::string>(result), "foo");
+  }
+
+  {
+    auto func = [&]() {
+      context.executeCode<std::variant<int, std::string>>("return testVariant(nil)");
+    };
+    BOOST_CHECK_THROW(func(), LuaContext::ExecutionErrorException);
+  }
+}
+
 BOOST_AUTO_TEST_SUITE_END()

@@ -47,6 +47,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <tuple>
 #include <type_traits>
 #include <unordered_map>
+#include <variant>
 #include <boost/any.hpp>
 #include <boost/format.hpp>
 #include <boost/mpl/distance.hpp>
@@ -2556,6 +2557,23 @@ private:
     };
 };
 
+// std::variant
+template<typename... TTypes>
+struct LuaContext::Pusher<std::variant<TTypes...>>
+{
+    static const int minSize = PusherMinSize<TTypes...>::size;
+    static const int maxSize = PusherMaxSize<TTypes...>::size;
+
+    static PushedObject push(lua_State* state, const std::variant<TTypes...>& value) noexcept {
+        PushedObject obj{state, 0};
+        std::visit([&](auto&& arg) {
+            using T = std::decay_t<decltype(arg)>;
+            obj = Pusher<T>::push(state, arg);
+        }, value);
+        return obj;
+    }
+};
+
 // boost::optional
 template<typename TType>
 struct LuaContext::Pusher<boost::optional<TType>> {
@@ -2961,7 +2979,7 @@ struct LuaContext::Reader<std::optional<TType>>
 };
 // NOLINTEND(clang-analyzer-cplusplus.NewDeleteLeaks)
 
-// variant
+// boost::variant
 template<typename... TTypes>
 struct LuaContext::Reader<boost::variant<TTypes...>>
 {
@@ -3005,6 +3023,36 @@ public:
         -> boost::optional<ReturnType>
     {
         return MainVariantReader::read(state, index);
+    }
+};
+
+// std::variant
+template<typename... TTypes>
+struct LuaContext::Reader<std::variant<TTypes...>>
+{
+    using ReturnType = std::variant<TTypes...>;
+
+private:
+    template<std::size_t I = 0> static boost::optional<ReturnType> variantRead(lua_State* state, int index)
+    {
+        constexpr auto nbTypes = std::variant_size_v<ReturnType>;
+        if constexpr (I >= nbTypes) {
+            return boost::none;
+        }
+        if (const auto val = Reader<std::variant_alternative_t<I, ReturnType>>::read(state, index)) {
+            return ReturnType{*val};
+        }
+        if constexpr (I < (nbTypes - 1)) {
+            return variantRead<I + 1>(state, index);
+        }
+        return boost::none;
+    }
+
+public:
+    static auto read(lua_State* state, int index)
+        -> boost::optional<ReturnType>
+    {
+        return variantRead(state, index);
     }
 };
 
