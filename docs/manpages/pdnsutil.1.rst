@@ -22,6 +22,7 @@ Options
 -v, --verbose           Be more verbose
 -f, --force             Force an action
 -q, --quiet             Be quiet
+-s, --sort              Sort output when applicable
 --config-name <NAME>    Virtual configuration name
 --config-dir <DIR>      Location of pdns.conf. Default is /etc/powerdns.
 
@@ -217,7 +218,9 @@ zone increase-serial *ZONE*
 
 zone list *ZONE*
 
-    Show all records for *ZONE*.
+    Show all records for *ZONE*. Passing --sort or -s will sort the records
+    according to their name, but may require a lot of memory and processor
+    time on huge zones.
 
 zone list-all *KIND*
 
