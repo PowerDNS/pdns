@@ -723,8 +723,8 @@ async fn serveweb_async(
     ctx: Arc<Context>,
 ) -> MyResult<()> {
     if !config.certificate.is_empty() {
-        let certs = load_certs(&config.certificate)?;
-        let key = load_private_key(&config.key)?;
+        let certs = load_certs(&config.certificate, &ctx)?;
+        let key = load_private_key(&config.key, &ctx)?;
         let mut server_config = rustls::ServerConfig::builder()
             .with_no_client_auth()
             .with_single_cert(certs, key)
@@ -957,7 +957,18 @@ pub fn serveweb(
             runtime.block_on(async {
                 while let Some(res) = set.join_next().await {
                     let msg = match res {
-                        Ok(Err(wrapped)) => format!("{:?}", wrapped),
+                        Ok(Err(wrapped)) => {
+                            // We (potentially) have a Boxed std::IO::Error
+                            // and we just want the error description, not a { kind = Other, error = "description" } string
+                            let err = wrapped.downcast::<std::io::Error>();
+                            if let Ok(ioerr) = err {
+                                // downcast worked, so ioerr is a std::io::Error
+                                ioerr.to_string()
+                            } else {
+                                // Otherwise just pass the default formatted error
+                                format!("{:?}", err)
+                            }
+                        }
                         _ => format!("{:?}", res),
                     };
                     rustmisc::error(
@@ -974,7 +985,10 @@ pub fn serveweb(
 }
 
 // Load public certificates from file.
-fn load_certs(filename: &str) -> std::io::Result<Vec<pki_types::CertificateDer<'static>>> {
+fn load_certs(
+    filename: &str,
+    ctx: &Arc<Context>,
+) -> std::io::Result<Vec<pki_types::CertificateDer<'static>>> {
     let certsfromfile = CertificateDer::pem_file_iter(filename);
     match certsfromfile {
         Ok(certs) => {
@@ -983,31 +997,64 @@ fn load_certs(filename: &str) -> std::io::Result<Vec<pki_types::CertificateDer<'
                 match cert {
                     Ok(cert) => ret.push(cert),
                     Err(cert) => {
+                        rustmisc::error(
+                            &ctx.logger,
+                            rustmisc::Priority::Error,
+                            &cert.to_string(),
+                            "Failed to parse certificate",
+                            &vec![rustmisc::KeyValue {
+                                key: "filename".to_string(),
+                                value: filename.to_string(),
+                            }],
+                        );
                         return Err(std::io::Error::other(format!(
-                            "Failed to parse a certificate from `{}': {}",
-                            filename, cert
-                        )))
+                            "Failed to parse a certificate from `{}'",
+                            filename
+                        )));
                     }
                 }
             }
             Ok(ret)
         }
-        Err(err) => Err(std::io::Error::other(format!(
-            "Failed to parse certificates from {}: {}",
-            filename, err
-        ))),
+        Err(err) => {
+            let msg = "Failed to parse certificate file";
+            rustmisc::error(
+                &ctx.logger,
+                rustmisc::Priority::Error,
+                &err.to_string(),
+                msg,
+                &vec![rustmisc::KeyValue {
+                    key: "filename".to_string(),
+                    value: filename.to_string(),
+                }],
+            );
+            Err(std::io::Error::other(msg))
+        }
     }
 }
 
 // Load private key from file.
-fn load_private_key(filename: &str) -> std::io::Result<pki_types::PrivateKeyDer<'static>> {
+fn load_private_key(
+    filename: &str,
+    ctx: &Arc<Context>,
+) -> std::io::Result<pki_types::PrivateKeyDer<'static>> {
     let key = PrivateKeyDer::from_pem_file(filename);
     match key {
         Ok(key) => Ok(key),
-        Err(key) => Err(std::io::Error::other(format!(
-            "Failed to parse private key from `{}': {}",
-            filename, key
-        ))),
+        Err(err) => {
+            let msg = "Failed to parse private key file";
+            rustmisc::error(
+                &ctx.logger,
+                rustmisc::Priority::Error,
+                &err.to_string(),
+                msg,
+                &vec![rustmisc::KeyValue {
+                    key: "filename".to_string(),
+                    value: filename.to_string(),
+                }],
+            );
+            Err(std::io::Error::other(msg))
+        }
     }
 }
 
