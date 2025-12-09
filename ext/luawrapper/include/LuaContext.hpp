@@ -3039,8 +3039,12 @@ private:
         if constexpr (I >= nbTypes) {
             return boost::none;
         }
-        if (const auto val = Reader<std::variant_alternative_t<I, ReturnType>>::read(state, index)) {
-            return ReturnType{*val};
+        using InitialType = std::variant_alternative_t<I, ReturnType>;
+        using DecayedType = std::decay_t<InitialType>;
+        if (const auto val = Reader<DecayedType>::read(state, index)) {
+            // we are using the initial, non-decayed type so that a
+            // cv-qualifiers are not ignored
+            return ReturnType{std::in_place_type<InitialType>, *val};
         }
         if constexpr (I < (nbTypes - 1)) {
             return variantRead<I + 1>(state, index);
