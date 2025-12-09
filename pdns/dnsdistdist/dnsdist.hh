@@ -173,7 +173,7 @@ struct DNSQuestion
   std::shared_ptr<const Logr::Logger> getLogger();
 
 protected:
-  std::shared_ptr<const Logr::Logger> getThisLogger() const;
+  virtual std::shared_ptr<const Logr::Logger> getThisLogger() const;
 
   PacketBuffer& data;
   std::shared_ptr<const Logr::Logger> d_logger;
@@ -204,6 +204,9 @@ struct DNSResponse : DNSQuestion
   DNSResponse(DNSResponse&&) = default;
 
   const std::shared_ptr<DownstreamState>& d_downstream;
+
+protected:
+  std::shared_ptr<const Logr::Logger> getThisLogger() const override;
 };
 
 using pdns::stat_t;
@@ -944,6 +947,8 @@ public:
   }
 
   unsigned int getQPSLimit() const;
+
+  [[nodiscard]] std::shared_ptr<const Logr::Logger> getLogger() const;
 };
 
 void responderThread(std::shared_ptr<DownstreamState> dss);

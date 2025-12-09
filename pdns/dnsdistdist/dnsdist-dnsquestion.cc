@@ -66,7 +66,25 @@ std::shared_ptr<const Logr::Logger> DNSQuestion::getThisLogger() const
     return d_logger;
   }
   auto logger = dnsdist::logging::getTopLogger();
-  logger = logger->withValues("qname", Logging::Loggable(ids.qname), "qtype", Logging::Loggable(QType(ids.qtype)), "qclass", Logging::Loggable(QClass(ids.qclass)), "source", Logging::Loggable(ids.origRemote), "destination", Logging::Loggable(ids.origDest), "proto", Logging::Loggable(ids.protocol));
+  logger = logger->withValues("qname", Logging::Loggable(ids.qname), "qtype", Logging::Loggable(QType(ids.qtype)), "qclass", Logging::Loggable(QClass(ids.qclass)), "source", Logging::Loggable(ids.origRemote), "destination", Logging::Loggable(ids.origDest), "proto", Logging::Loggable(ids.protocol), "id", Logging::Loggable(ids.origID), "flags", Logging::Loggable(ids.origFlags));
+  return logger;
+}
+
+std::shared_ptr<const Logr::Logger> DNSResponse::getThisLogger() const
+{
+  if (d_logger) {
+    return d_logger;
+  }
+  auto logger = DNSQuestion::getThisLogger();
+  if (data.size() >= sizeof(dnsheader)) {
+    const auto header = getHeader();
+    logger = logger->withValues("rcode", Logging::Loggable(RCode::to_s(header->rcode)));
+  }
+  if (d_downstream) {
+    logger = logger->withValues("backend-protocol", Logging::Loggable(d_downstream->getProtocol()), "backend-name", Logging::Loggable(d_downstream->getName()), "backend-address", Logging::Loggable(d_downstream->d_config.remote));
+  }
+  const double udiff = ids.queryRealTime.udiff();
+  logger = logger->withValues("latency-us", Logging::Loggable(udiff), "response-size", Logging::Loggable(data.size()));
   return logger;
 }
 

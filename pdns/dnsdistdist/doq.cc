@@ -162,7 +162,8 @@ public:
 
     if (!unit->ids.selfGenerated) {
       auto udiff = unit->ids.queryRealTime.udiff();
-      vinfolog("Got answer from %s, relayed to %s (quic, %d bytes), took %d us", unit->downstream->d_config.remote.toStringWithPort(), unit->ids.origRemote.toStringWithPort(), unit->response.size(), udiff);
+      VERBOSESLOG(infolog("Got answer from %s, relayed to %s (quic, %d bytes), took %d us", unit->downstream->d_config.remote.toStringWithPort(), unit->ids.origRemote.toStringWithPort(), unit->response.size(), udiff),
+                  dnsResponse.getLogger()->info("Got answer from backend, relayed to client"));
 
       auto backendProtocol = unit->downstream->getProtocol();
       if (backendProtocol == dnsdist::Protocol::DoUDP && unit->tcp) {
@@ -340,11 +341,13 @@ static void sendBackDOQUnit(DOQUnitUniquePtr&& unit, const char* description)
   try {
     if (!unit->dsc->d_responseSender.send(std::move(unit))) {
       ++dnsdist::metrics::g_stats.doqResponsePipeFull;
-      vinfolog("Unable to pass a %s to the DoQ worker thread because the pipe is full", description);
+      VERBOSESLOG(infolog("Unable to pass a %s to the DoQ worker thread because the pipe is full", description),
+                  dnsdist::logging::getTopLogger()->info(Logr::Info, std::string("Unable to pass a ") + std::string(description) + " to the DoQ worker thread because the pipe is full"));
     }
   }
   catch (const std::exception& e) {
-    vinfolog("Unable to pass a %s to the DoQ worker thread because we couldn't write to the pipe: %s", description, e.what());
+    VERBOSESLOG(infolog("Unable to pass a %s to the DoQ worker thread because we couldn't write to the pipe: %s", description, e.what()),
+                dnsdist::logging::getTopLogger()->error(Logr::Info, e.what(), std::string("Unable to pass a ") + std::string(description) + " to the DoQ worker thread because we couldn't write to the pipe"));
   }
 }
 
@@ -420,7 +423,8 @@ static void processDOQQuery(DOQUnitUniquePtr&& doqUnit)
     ClientState& clientState = *dsc->clientState;
 
     if (!dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL.match(remote)) {
-      vinfolog("Query from %s (DoQ) dropped because of ACL", remote.toStringWithPort());
+      VERBOSESLOG(infolog("Query from %s (DoQ) dropped because of ACL", remote.toStringWithPort()),
+                  dsc->df->getLogger().info("DoQ query dropped because of ACL", "address", Logging::Loggable(remote)));
       ++dnsdist::metrics::g_stats.aclDrops;
       unit->response.clear();
 
@@ -547,8 +551,11 @@ static void processDOQQuery(DOQUnitUniquePtr&& doqUnit)
     return;
   }
   catch (const std::exception& e) {
-    vinfolog("Got an error in DOQ question thread while parsing a query from %s, id %d: %s", remote.toStringWithPort(), queryId, e.what());
-    handleImmediateResponse(std::move(unit), "DoQ internal error");
+    if (unit) {
+      VERBOSESLOG(infolog("Got an error in DOQ question thread while parsing a query from %s, id %d: %s", remote.toStringWithPort(), queryId, e.what()),
+                  unit->dsc->df->getLogger().error(Logr::Info, e.what(), "Got an error in DOQ question thread while parsing a query", "address", Logging::Loggable(remote), "query-id", Logging::Loggable(queryId)));
+      handleImmediateResponse(std::move(unit), "DoQ internal error");
+    }
     return;
   }
 }
@@ -568,11 +575,12 @@ static void doq_dispatch_query(DOQServerConfig& dsc, PacketBuffer&& query, const
     processDOQQuery(std::move(unit));
   }
   catch (const std::exception& exp) {
-    vinfolog("Had error handling DoQ DNS packet from %s: %s", remote.toStringWithPort(), exp.what());
+    VERBOSESLOG(infolog("Had error handling DoQ DNS packet from %s: %s", remote.toStringWithPort(), exp.what()),
+                dsc.df->getLogger().error(Logr::Info, exp.what(), "Had error handling DoQ DNS packet", "address", Logging::Loggable(remote)));
   }
 }
 
-static void flushResponses(pdns::channel::Receiver<DOQUnit>& receiver)
+static void flushResponses(pdns::channel::Receiver<DOQUnit>& receiver, const Logr::Logger& frontendLogger)
 {
   for (;;) {
     try {
@@ -588,10 +596,12 @@ static void flushResponses(pdns::channel::Receiver<DOQUnit>& receiver)
       }
     }
     catch (const std::exception& e) {
-      errlog("Error while processing response received over DoQ: %s", e.what());
+      SLOG(errlog("Error while processing response received over DoQ: %s", e.what()),
+           frontendLogger.error(e.what(), "Error while processing response received over DoQ"));
     }
     catch (...) {
-      errlog("Unspecified error while processing response received over DoQ");
+      SLOG(errlog("Unspecified error while processing response received over DoQ"),
+           frontendLogger.info(Logr::Error, "Unspecified error while processing response received over DoQ"));
     }
   }
 }
@@ -786,9 +796,11 @@ void doqThread(ClientState* clientState)
 {
   try {
     std::shared_ptr<DOQFrontend>& frontend = clientState->doqFrontend;
+    auto frontendLogger = dnsdist::logging::getTopLogger()->withName("doq-frontend")->withValues("address", Logging::Loggable(clientState->local));
 
     frontend->d_server_config->clientState = clientState;
     frontend->d_server_config->df = clientState->doqFrontend;
+    frontend->d_logger = frontendLogger;
 
     setThreadName("dnsdist/doq");
 
@@ -814,7 +826,7 @@ void doqThread(ClientState* clientState)
         }
 
         if (std::find(readyFDs.begin(), readyFDs.end(), responseReceiverFD) != readyFDs.end()) {
-          flushResponses(frontend->d_server_config->d_responseReceiver);
+          flushResponses(frontend->d_server_config->d_responseReceiver, *frontendLogger);
         }
 
         for (auto conn = frontend->d_server_config->d_connections.begin(); conn != frontend->d_server_config->d_connections.end();) {
@@ -841,10 +853,12 @@ void doqThread(ClientState* clientState)
         }
       }
       catch (const std::exception& exp) {
-        vinfolog("Caught exception in the main DoQ thread: %s", exp.what());
+        VERBOSESLOG(infolog("Caught exception in the main DoQ thread: %s", exp.what()),
+                    frontendLogger->error(Logr::Info, exp.what(), "Caught exception in the main DoQ thread"));
       }
       catch (...) {
-        vinfolog("Unknown exception in the main DoQ thread");
+        VERBOSESLOG(infolog("Unknown exception in the main DoQ thread"),
+                    frontendLogger->info(Logr::Info, "Caught unknown exception in the main DoQ thread"));
       }
     }
   }

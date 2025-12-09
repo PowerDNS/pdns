@@ -549,10 +549,12 @@ public:
       return result;
     }
     catch (const std::exception& e) {
-      warnlog("LuaAction failed inside Lua, returning ServFail: %s", e.what());
+      SLOG(warnlog("LuaAction failed inside Lua, returning ServFail: %s", e.what()),
+           dnsquestion->getLogger()->error(Logr::Warning, e.what(), "LuaAction failed inside Lua, returning ServFail"));
     }
     catch (...) {
-      warnlog("LuaAction failed inside Lua, returning ServFail: [unknown exception]");
+      SLOG(warnlog("LuaAction failed inside Lua, returning ServFail: [unknown exception]"),
+           dnsquestion->getLogger()->error(Logr::Warning, "[unknown exception]", "LuaAction failed inside Lua, returning ServFail"));
     }
     return DNSAction::Action::ServFail;
   }
@@ -594,10 +596,12 @@ public:
       return result;
     }
     catch (const std::exception& e) {
-      warnlog("LuaResponseAction failed inside Lua, returning ServFail: %s", e.what());
+      SLOG(warnlog("LuaResponseAction failed inside Lua, returning ServFail: %s", e.what()),
+           response->getLogger()->error(Logr::Warning, e.what(), "LuaResponseAction failed inside Lua, returning ServFail"));
     }
     catch (...) {
-      warnlog("LuaResponseAction failed inside Lua, returning ServFail: [unknown exception]");
+      SLOG(warnlog("LuaResponseAction failed inside Lua, returning ServFail: [unknown exception]"),
+           response->getLogger()->error(Logr::Warning, "[unknown exception]", "LuaResponseAction failed inside Lua, returning ServFail"));
     }
     return DNSResponseAction::Action::ServFail;
   }
@@ -642,10 +646,12 @@ public:
       return result;
     }
     catch (const std::exception& e) {
-      warnlog("LuaFFIAction failed inside Lua, returning ServFail: %s", e.what());
+      SLOG(warnlog("LuaFFIAction failed inside Lua, returning ServFail: %s", e.what()),
+           dnsquestion->getLogger()->error(Logr::Warning, e.what(), "LuaFFIAction failed inside Lua, returning ServFail"));
     }
     catch (...) {
-      warnlog("LuaFFIAction failed inside Lua, returning ServFail: [unknown exception]");
+      SLOG(warnlog("LuaFFIAction failed inside Lua, returning ServFail: [unknown exception]"),
+           dnsquestion->getLogger()->error(Logr::Warning, "[unknown exception]", "LuaFFIAction failed inside Lua, returning ServFail"));
     }
     return DNSAction::Action::ServFail;
   }
@@ -699,10 +705,12 @@ public:
       return static_cast<DNSAction::Action>(ret);
     }
     catch (const std::exception& e) {
-      warnlog("LuaFFIPerThreadAction failed inside Lua, returning ServFail: %s", e.what());
+      SLOG(warnlog("LuaFFIPerthreadAction failed inside Lua, returning ServFail: %s", e.what()),
+           dnsquestion->getLogger()->error(Logr::Warning, e.what(), "LuaFFIPerthreadAction failed inside Lua, returning ServFail"));
     }
     catch (...) {
-      warnlog("LuaFFIPerthreadAction failed inside Lua, returning ServFail: [unknown exception]");
+      SLOG(warnlog("LuaFFIPerthreadAction failed inside Lua, returning ServFail: [unknown exception]"),
+           dnsquestion->getLogger()->error(Logr::Warning, "[unknown exception]", "LuaFFIPerthreadAction failed inside Lua, returning ServFail"));
     }
     return DNSAction::Action::ServFail;
   }
@@ -761,10 +769,12 @@ public:
       return result;
     }
     catch (const std::exception& e) {
-      warnlog("LuaFFIResponseAction failed inside Lua, returning ServFail: %s", e.what());
+      SLOG(warnlog("LuaFFIResponseAction failed inside Lua, returning ServFail: %s", e.what()),
+           response->getLogger()->error(Logr::Warning, e.what(), "LuaFFIResponseAction failed inside Lua, returning ServFail"));
     }
     catch (...) {
-      warnlog("LuaFFIResponseAction failed inside Lua, returning ServFail: [unknown exception]");
+      SLOG(warnlog("LuaFFIResponseAction failed inside Lua, returning ServFail: [unknown exception]"),
+           response->getLogger()->error(Logr::Warning, "[unknown exception]", "LuaFFIResponseAction failed inside Lua, returning ServFail"));
     }
     return DNSResponseAction::Action::ServFail;
   }
@@ -818,10 +828,12 @@ public:
       return static_cast<DNSResponseAction::Action>(ret);
     }
     catch (const std::exception& e) {
-      warnlog("LuaFFIPerThreadResponseAction failed inside Lua, returning ServFail: %s", e.what());
+      SLOG(warnlog("LuaFFIPerThreadResponseAction failed inside Lua, returning ServFail: %s", e.what()),
+           response->getLogger()->error(Logr::Warning, e.what(), "LuaFFIPerThreadResponseAction failed inside Lua, returning ServFail"));
     }
     catch (...) {
-      warnlog("LuaFFIPerthreadResponseAction failed inside Lua, returning ServFail: [unknown exception]");
+      SLOG(warnlog("LuaFFIPerThreadResponseAction failed inside Lua, returning ServFail: [unknown exception]"),
+           response->getLogger()->error(Logr::Warning, "[unknown exception]", "LuaFFIPerThreadResponseAction failed inside Lua, returning ServFail"));
     }
     return DNSResponseAction::Action::ServFail;
   }
@@ -1109,10 +1121,12 @@ public:
     if (!filepointer) {
       if (!d_verboseOnly || dnsdist::configuration::getCurrentRuntimeConfiguration().d_verbose) {
         if (d_includeTimestamp) {
-          infolog("[%u.%u] Packet from %s for %s %s with id %d", static_cast<unsigned long long>(dnsquestion->getQueryRealTime().tv_sec), static_cast<unsigned long>(dnsquestion->getQueryRealTime().tv_nsec), dnsquestion->ids.origRemote.toStringWithPort(), dnsquestion->ids.qname.toString(), QType(dnsquestion->ids.qtype).toString(), dnsquestion->getHeader()->id);
+          SLOG(infolog("[%u.%u] Packet from %s for %s %s with id %d", static_cast<unsigned long long>(dnsquestion->getQueryRealTime().tv_sec), static_cast<unsigned long>(dnsquestion->getQueryRealTime().tv_nsec), dnsquestion->ids.origRemote.toStringWithPort(), dnsquestion->ids.qname.toString(), QType(dnsquestion->ids.qtype).toString(), dnsquestion->getHeader()->id),
+               dnsquestion->getLogger()->info(Logr::Info, "Logging packet", "query-real-time-sec", Logging::Loggable(dnsquestion->getQueryRealTime().tv_sec), "query-real-time-nsec", Logging::Loggable(dnsquestion->getQueryRealTime().tv_nsec)));
         }
         else {
-          infolog("Packet from %s for %s %s with id %d", dnsquestion->ids.origRemote.toStringWithPort(), dnsquestion->ids.qname.toString(), QType(dnsquestion->ids.qtype).toString(), dnsquestion->getHeader()->id);
+          SLOG(infolog("Packet from %s for %s %s with id %d", dnsquestion->ids.origRemote.toStringWithPort(), dnsquestion->ids.qname.toString(), QType(dnsquestion->ids.qtype).toString(), dnsquestion->getHeader()->id),
+               dnsquestion->getLogger()->info(Logr::Info, "Logging packet"));
         }
       }
     }
@@ -1161,7 +1175,9 @@ public:
   void reload() override
   {
     if (!reopenLogFile()) {
-      warnlog("Unable to open file '%s' for logging: %s", d_fname, stringerror());
+      int savederrno = errno;
+      SLOG(warnlog("Unable to open file '%s' for logging: %s", d_fname, stringerror(savederrno)),
+           dnsdist::logging::getTopLogger()->error(Logr::Warning, savederrno, "Unable to open file for logging", "file-name", Logging::Loggable(d_fname)));
     }
   }
 
@@ -1222,10 +1238,12 @@ public:
     if (!filepointer) {
       if (!d_verboseOnly || dnsdist::configuration::getCurrentRuntimeConfiguration().d_verbose) {
         if (d_includeTimestamp) {
-          infolog("[%u.%u] Answer to %s for %s %s (%s) with id %u", static_cast<unsigned long long>(response->getQueryRealTime().tv_sec), static_cast<unsigned long>(response->getQueryRealTime().tv_nsec), response->ids.origRemote.toStringWithPort(), response->ids.qname.toString(), QType(response->ids.qtype).toString(), RCode::to_s(response->getHeader()->rcode), response->getHeader()->id);
+          SLOG(infolog("[%u.%u] Answer to %s for %s %s (%s) with id %u", static_cast<unsigned long long>(response->getQueryRealTime().tv_sec), static_cast<unsigned long>(response->getQueryRealTime().tv_nsec), response->ids.origRemote.toStringWithPort(), response->ids.qname.toString(), QType(response->ids.qtype).toString(), RCode::to_s(response->getHeader()->rcode), response->getHeader()->id),
+               response->getLogger()->info(Logr::Info, "Logging response packet", "query-real-time-sec", Logging::Loggable(response->getQueryRealTime().tv_sec), "query-real-time-nsec", Logging::Loggable(response->getQueryRealTime().tv_nsec)));
         }
         else {
-          infolog("Answer to %s for %s %s (%s) with id %u", response->ids.origRemote.toStringWithPort(), response->ids.qname.toString(), QType(response->ids.qtype).toString(), RCode::to_s(response->getHeader()->rcode), response->getHeader()->id);
+          SLOG(infolog("Answer to %s for %s %s (%s) with id %u", response->ids.origRemote.toStringWithPort(), response->ids.qname.toString(), QType(response->ids.qtype).toString(), RCode::to_s(response->getHeader()->rcode), response->getHeader()->id),
+               response->getLogger()->info("Logging response packet"));
         }
       }
     }
@@ -1251,7 +1269,9 @@ public:
   void reload() override
   {
     if (!reopenLogFile()) {
-      warnlog("Unable to open file '%s' for logging: %s", d_fname, stringerror());
+      int savederrno = errno;
+      SLOG(warnlog("Unable to open file '%s' for logging: %s", d_fname, stringerror(savederrno)),
+           dnsdist::logging::getTopLogger()->error(Logr::Warning, savederrno, "Unable to open file for logging", "file-name", Logging::Loggable(d_fname)));
     }
   }
 
@@ -1503,15 +1523,18 @@ static void remoteLoggerQueueData(RemoteLoggerInterface& remoteLogger, const std
   case RemoteLoggerInterface::Result::Queued:
     break;
   case RemoteLoggerInterface::Result::PipeFull: {
-    vinfolog("%s: %s", remoteLogger.name(), RemoteLoggerInterface::toErrorString(ret));
+    VERBOSESLOG(infolog("%s: %s", remoteLogger.name(), RemoteLoggerInterface::toErrorString(ret)),
+                dnsdist::logging::getTopLogger()->error(Logr::Info, RemoteLoggerInterface::toErrorString(ret), "Remote logger pipe full event", "remote-logger-name", Logging::Loggable(remoteLogger.name())));
     break;
   }
   case RemoteLoggerInterface::Result::TooLarge: {
-    warnlog("%s: %s", remoteLogger.name(), RemoteLoggerInterface::toErrorString(ret));
+    SLOG(warnlog("%s: %s", remoteLogger.name(), RemoteLoggerInterface::toErrorString(ret)),
+         dnsdist::logging::getTopLogger()->error(Logr::Warning, RemoteLoggerInterface::toErrorString(ret), "Remote logger too large event", "remote-logger-name", Logging::Loggable(remoteLogger.name())));
     break;
   }
   case RemoteLoggerInterface::Result::OtherError:
-    warnlog("%s: %s", remoteLogger.name(), RemoteLoggerInterface::toErrorString(ret));
+    SLOG(warnlog("%s: %s", remoteLogger.name(), RemoteLoggerInterface::toErrorString(ret)),
+         dnsdist::logging::getTopLogger()->error(Logr::Warning, RemoteLoggerInterface::toErrorString(ret), "Remote logger error event", "remote-logger-name", Logging::Loggable(remoteLogger.name())));
   }
 }
 
@@ -1694,7 +1717,8 @@ public:
   {
     auto tracer = dnsquestion->ids.getTracer();
     if (tracer == nullptr) {
-      vinfolog("SetTraceAction called, but OpenTelemetry tracing is globally disabled. Did you forget to call setOpenTelemetryTracing?");
+      VERBOSESLOG(infolog("SetTraceAction called, but OpenTelemetry tracing is globally disabled. Did you forget to call setOpenTelemetryTracing?"),
+                  dnsquestion->getLogger()->info(Logr::Info, "SetTraceAction called, but OpenTelemetry tracing is globally disabled. Did you forget to call setOpenTelemetryTracing?"));
       return Action::None;
     }
 
@@ -1724,7 +1748,8 @@ public:
     }
     if (dnsquestion->ednsOptions == nullptr) {
       // Parsing failed, log a warning and return
-      vinfolog("parsing EDNS options failed while looking for OpenTelemetry Trace ID");
+      VERBOSESLOG(infolog("parsing EDNS options failed while looking for OpenTelemetry Trace ID"),
+                  dnsquestion->getLogger()->info(Logr::Info, "Parsing EDNS options failed while looking for OpenTelemetry Trace ID"));
       return Action::None;
     }
 
@@ -1750,7 +1775,8 @@ public:
       }
 
       if (!last) {
-        vinfolog("SetTraceAction: EDNS options is not the last RR in the packet, not removing TRACEPARENT");
+        VERBOSESLOG(infolog("SetTraceAction: EDNS options is not the last RR in the packet, not removing TRACEPARENT"),
+                    dnsquestion->getLogger()->info(Logr::Info, "SetTraceAction: EDNS options is not the last RR in the packet, not removing TRACEPARENT"));
         return Action::None;
       }
 
