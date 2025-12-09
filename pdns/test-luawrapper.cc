@@ -101,7 +101,6 @@ BOOST_AUTO_TEST_CASE(test_boost_variant)
   }
 }
 
-
 BOOST_AUTO_TEST_CASE(test_std_variant)
 {
   using MyVariantType = std::variant<int, const std::string, std::string, std::string*>;
