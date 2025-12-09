@@ -15,7 +15,7 @@ mkdir -p configs
 
 if [ -z "$PDNS_BUILD_PATH" ]; then
   # PDNS_BUILD_PATH is unset or empty. Assume an autotools build.
-  PDNS_BUILD_PATH=${PWD}/..
+  PDNS_BUILD_PATH=${PWD}/../pdns
 fi
 export PDNS=${PDNS:-$PDNS_BUILD_PATH/pdns_server}
 export PDNSUTIL=${PDNSUTIL:-$PDNS_BUILD_PATH/pdnsutil}
