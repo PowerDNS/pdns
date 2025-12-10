@@ -1681,8 +1681,10 @@ private:
 class SetTraceAction : public DNSAction
 {
 public:
+#ifndef DISABLE_PROTOBUF
   SetTraceAction(SetTraceActionConfiguration& config) :
     d_value{config.value}, d_loggers(config.remote_loggers), d_useIncomingTraceID(config.use_incoming_traceid), d_incomingTraceIDOptionCode(config.trace_edns_option) {};
+#endif /* DISABLE_PROTOBUF */
 
   DNSAction::Action operator()([[maybe_unused]] DNSQuestion* dnsquestion, [[maybe_unused]] std::string* ruleresult) const override
   {
@@ -1725,9 +1727,14 @@ public:
 
   [[nodiscard]] std::string toString() const override
   {
+#ifndef DISABLE_PROTOBUF
     return string((d_value ? "en" : "dis")) + string("able OpenTelemetry Tracing");
+#else
+    return "";
+#endif
   }
 
+#ifndef DISABLE_PROTOBUF
 private:
   bool d_value;
 
@@ -1735,6 +1742,7 @@ private:
 
   std::optional<bool> d_useIncomingTraceID;
   std::optional<short unsigned int> d_incomingTraceIDOptionCode;
+#endif
 };
 
 class SNMPTrapAction : public DNSAction
