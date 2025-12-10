@@ -961,19 +961,21 @@ bool GeoIPBackend::getDomainInfo(const ZoneName& domain, DomainInfo& info, bool 
   return false;
 }
 
-void GeoIPBackend::getAllDomains(vector<DomainInfo>* domains, bool /* getSerial */, bool /* include_disabled */)
+void GeoIPBackend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool /* include_disabled */)
 {
   ReadLock rl(&s_state_lock);
 
   DomainInfo di;
   for (const auto& dom : s_domains) {
-    SOAData sd;
-    this->getSOA(dom.domain, dom.id, sd);
     di.id = dom.id;
     di.zone = dom.domain;
-    di.serial = sd.serial;
     di.kind = DomainInfo::Native;
     di.backend = this;
+    if (getSerial) {
+      SOAData soa;
+      this->getSOA(dom.domain, dom.id, soa);
+      di.serial = soa.serial;
+    }
     domains->emplace_back(di);
   }
 }
