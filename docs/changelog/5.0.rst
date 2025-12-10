@@ -2,12 +2,72 @@ Changelogs for 5.0.x
 ====================
 
 .. changelog::
+  :version: 5.0.2
+  :released: 11th of December 2025
+
+  This is release 5.0.2 of the Authoritative Server.
+  It contains bug fixes and a minor feature.
+
+  Please review the :doc:`Upgrade Notes <../upgrading>` before upgrading from versions < 5.0.x.
+
+  .. change::
+    :tags: New Features
+    :pullreq: 16599
+    :tickets: 16589
+
+    allow finer-grained rrset changes through the API
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16603
+    :tickets: 16538
+
+    m4/pdns_check_libcrypto: fix ecdsa/eddsa includedir (famfo)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16566
+    :tickets: 16564
+
+    add missing catch block for STL exceptions in createForward
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16532
+    :tickets: 16059
+
+    REST API: bring back 404 errors
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16512
+    :tickets: 15894, 16499
+
+    Give backends the ability to perform extra actions during zone rectify
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16486
+    :tickets: 16401
+
+    meson build: restore original binary names
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16466
+    :tickets: 16398
+
+    sdist: copy files as files, not as new dirs
+
+.. changelog::
   :version: 5.0.1
   :released: 30th of October 2025
 
   This is release 5.0.1 of the Authoritative Server.
   It contains minor bugfixes and improvements over the 5.0.0
   release, and one new feature for LMDB users.
+
+  Please review the :doc:`Upgrade Notes <../upgrading>` before upgrading from versions < 5.0.x.
 
   .. change::
     :tags: Bug Fixes
