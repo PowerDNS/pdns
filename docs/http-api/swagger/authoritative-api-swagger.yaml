@@ -352,7 +352,7 @@ paths:
   '/servers/{server_id}/zones/{zone_id}/rectify':
     put:
       summary: 'Rectify the zone data.'
-      description: 'This does not take into account the API-RECTIFY metadata. Fails on secondary zones and zones that do not have DNSSEC.'
+      description: 'This does not take into account the API-RECTIFY metadata. Fails on secondary zones.'
       operationId: rectifyZone
       tags:
         - zones
