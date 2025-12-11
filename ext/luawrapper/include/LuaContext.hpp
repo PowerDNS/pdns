@@ -38,7 +38,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <list>
 #include <map>
 #include <memory>
-#include <optional>
 #include <random>
 #include <set>
 #include <stdexcept>
@@ -47,7 +46,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <tuple>
 #include <type_traits>
 #include <unordered_map>
-#include <variant>
 #include <boost/any.hpp>
 #include <boost/format.hpp>
 #include <boost/mpl/distance.hpp>
@@ -56,6 +54,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/variant.hpp>
 #include <boost/type_traits.hpp>
 #include <lua.hpp>
+
+#if __cplusplus >= 201703L
+#include <variant>
+#include <optional>
+#endif /* C++17 */
 
 // Set the older gcc define for tsan if clang or modern gcc tell us we have tsan.
 #if defined(__has_feature)
@@ -2002,8 +2005,10 @@ struct LuaContext::FunctionArgumentsCounter<> {
 // implementation of IsOptional
 template<typename T>
 struct LuaContext::IsOptional<boost::optional<T>> : public std::true_type {};
+#if __cplusplus >= 201703L
 template<typename T>
 struct LuaContext::IsOptional<std::optional<T>> : public std::true_type {};
+#endif /* C++ 17 */
 
 // implementation of LuaFunctionCaller
 template<typename TFunctionType>
@@ -2557,6 +2562,7 @@ private:
     };
 };
 
+#if __cplusplus >= 201703L
 // std::variant
 template<typename... TTypes>
 struct LuaContext::Pusher<std::variant<TTypes...>>
@@ -2573,6 +2579,7 @@ struct LuaContext::Pusher<std::variant<TTypes...>>
         return obj;
     }
 };
+#endif /* C++17 */
 
 // boost::optional
 template<typename TType>
@@ -2593,6 +2600,7 @@ struct LuaContext::Pusher<boost::optional<TType>> {
     }
 };
 
+#if __cplusplus >= 201703L
 // std::optional
 template<typename TType>
 struct LuaContext::Pusher<std::optional<TType>> {
@@ -2611,6 +2619,7 @@ struct LuaContext::Pusher<std::optional<TType>> {
         }
     }
 };
+#endif /* C++17 */
 
 // tuple
 template<typename... TTypes>
@@ -2961,6 +2970,7 @@ struct LuaContext::Reader<boost::optional<TType>>
     }
 };
 
+#if __cplusplus >= 201703L
 // NOLINTBEGIN(clang-analyzer-cplusplus.NewDeleteLeaks)
 template<typename TType>
 struct LuaContext::Reader<std::optional<TType>>
@@ -2978,6 +2988,7 @@ struct LuaContext::Reader<std::optional<TType>>
     }
 };
 // NOLINTEND(clang-analyzer-cplusplus.NewDeleteLeaks)
+#endif /* C++ 17 */
 
 // boost::variant
 template<typename... TTypes>
@@ -3026,6 +3037,7 @@ public:
     }
 };
 
+#if __cplusplus >= 201703L
 // std::variant
 template<typename... TTypes>
 struct LuaContext::Reader<std::variant<TTypes...>>
@@ -3059,6 +3071,7 @@ public:
         return variantRead(state, index);
     }
 };
+#endif /* C++ 17 */
 
 // reading a tuple
 // tuple have an additional argument for their functions, that is the maximum size to read
