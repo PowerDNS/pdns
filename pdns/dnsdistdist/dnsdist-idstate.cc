@@ -70,10 +70,11 @@ InternalQueryState::~InternalQueryState()
   }
 
   std::string OTData;
-  static thread_local string otPBBuf;
-  otPBBuf.clear();
+  static thread_local string pbBuf;
+  pbBuf.clear();
+
   if (tracingEnabled && d_OTTracer != nullptr) {
-    pdns::ProtoZero::Message msg{otPBBuf};
+    pdns::ProtoZero::Message msg{pbBuf};
     OTData = d_OTTracer->getOTProtobuf();
     msg.setOpenTelemetryData(OTData);
   }
@@ -87,18 +88,17 @@ InternalQueryState::~InternalQueryState()
       }
       // Protobuf wireformat allows us to simply append the second "message"
       // that only contains the OTTrace data as a single bytes field
-      msg_logger.second->queueData(msg_logger.first + otPBBuf);
+      msg_logger.second->queueData(msg_logger.first + pbBuf);
     }
   }
 
   if (!ottraceLoggers.empty()) {
-    static thread_local string minimalPBBuf;
-    minimalPBBuf.clear();
-    pdns::ProtoZero::Message minimalMsg{minimalPBBuf};
+    pbBuf.clear();
+    pdns::ProtoZero::Message minimalMsg{pbBuf};
     minimalMsg.setType(pdns::ProtoZero::Message::MessageType::DNSQueryType);
     minimalMsg.setOpenTelemetryData(OTData);
     for (auto const& msg_logger : ottraceLoggers) {
-      msg_logger->queueData(minimalPBBuf);
+      msg_logger->queueData(pbBuf);
     }
   }
 #endif
