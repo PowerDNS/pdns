@@ -2,6 +2,57 @@ Changelogs for 4.9.x
 ====================
 
 .. changelog::
+  :version: 4.9.12
+  :released: 11th of December 2025
+
+  This is release 4.9.12 of the Authoritative Server.
+  It contains bug fixes and a minor feature.
+
+  Please review the :doc:`Upgrade Notes <../upgrading>` before upgrading from versions < 4.9.x.
+
+  .. change::
+    :tags: New Features
+    :pullreq: 16600
+    :tickets: 16589
+
+    allow finer-grained rrset changes through the API
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16604
+    :tickets: 16538
+
+    m4/pdns_check_libcrypto: fix ecdsa/eddsa includedir (famfo)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16567
+    :tickets: 16564
+
+    add missing catch block for STL exceptions in createForward
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16550
+    :tickets: 15716
+
+    auth backend transaction fixes in error cases
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16534
+    :tickets: 16059
+
+    REST API: bring back 404 errors
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16535
+    :tickets: 16287
+
+    Prevent a potential race condition in cache cleaning
+
+.. changelog::
   :version: 4.9.11
   :released: 15th of October 2025
 
