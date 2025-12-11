@@ -1678,17 +1678,15 @@ private:
 };
 #endif /* DISABLE_PROTOBUF */
 
+#ifndef DISABLE_PROTOBUF
 class SetTraceAction : public DNSAction
 {
 public:
-#ifndef DISABLE_PROTOBUF
   SetTraceAction(SetTraceActionConfiguration& config) :
     d_value{config.value}, d_loggers(config.remote_loggers), d_useIncomingTraceID(config.use_incoming_traceid), d_incomingTraceIDOptionCode(config.trace_edns_option) {};
-#endif /* DISABLE_PROTOBUF */
 
   DNSAction::Action operator()([[maybe_unused]] DNSQuestion* dnsquestion, [[maybe_unused]] std::string* ruleresult) const override
   {
-#ifndef DISABLE_PROTOBUF
     auto tracer = dnsquestion->ids.getTracer();
     if (tracer == nullptr) {
       vinfolog("SetTraceAction called, but OpenTelemetry tracing is globally disabled. Did you forget to call setOpenTelemetryTracing?");
@@ -1721,20 +1719,14 @@ public:
       }
       dnsquestion->ids.ottraceLoggers = d_loggers;
     }
-#endif
     return Action::None;
   }
 
   [[nodiscard]] std::string toString() const override
   {
-#ifndef DISABLE_PROTOBUF
     return string((d_value ? "en" : "dis")) + string("able OpenTelemetry Tracing");
-#else
-    return "";
-#endif
   }
 
-#ifndef DISABLE_PROTOBUF
 private:
   bool d_value;
 
@@ -1742,8 +1734,8 @@ private:
 
   std::optional<bool> d_useIncomingTraceID;
   std::optional<short unsigned int> d_incomingTraceIDOptionCode;
-#endif
 };
+#endif
 
 class SNMPTrapAction : public DNSAction
 {
