@@ -12,7 +12,13 @@ echo $0: Downloading $H2O_TARBALL
 curl -f -L -o "${H2O_TARBALL}" "${H2O_TARBALL_URL}"
 
 # Line below should echo two spaces between digest and name
-echo "${H2O_TARBALL_HASH}"  "${H2O_TARBALL}" | sha256sum -c -
+if echo "${H2O_TARBALL_HASH}  ${H2O_TARBALL}" | sha256sum -c -; then
+  true
+else
+  result=$?
+  echo "error: Downloaded ${H2O_TARBALL_URL} failed sha256sum validation"
+  exit $result
+fi
 tar xf "${H2O_TARBALL}"
 CFLAGS='-fPIC' cmake -DWITH_PICOTLS=off -DWITH_BUNDLED_SSL=off -DWITH_MRUBY=off -DCMAKE_INSTALL_PREFIX=/opt ./h2o-${H2O_VERSION}
 make -j $(nproc)
