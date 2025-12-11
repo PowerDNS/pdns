@@ -281,8 +281,8 @@ paths:
 
   '/servers/{server_id}/zones/{zone_id}/notify':
     put:
-      summary: Send a DNS NOTIFY to all slaves.
-      description: 'Fails when zone kind is not Master or Slave, or master and slave are disabled in the configuration. Only works for Slave if renotify is on. Clients MUST NOT send a body.'
+      summary: Send a DNS NOTIFY to all secondaries.
+      description: 'Fails when zone kind is not Master or Slave, or primary and secondary are disabled in the configuration. Only works for Slave if renotify is on. Clients MUST NOT send a body.'
       operationId: notifyZone
       tags:
         - zones
@@ -304,8 +304,8 @@ paths:
 
   '/servers/{server_id}/zones/{zone_id}/axfr-retrieve':
     put:
-      summary: Retrieve slave zone from its master.
-      description: 'Fails when zone kind is not Slave, or slave is disabled in the configuration. Clients MUST NOT send a body.'
+      summary: Retrieve secondary zone from its primary.
+      description: 'Fails when zone kind is not Slave, or secondary is disabled in the configuration. Clients MUST NOT send a body.'
       operationId: axfrRetrieveZone
       tags:
         - zones
@@ -352,7 +352,7 @@ paths:
   '/servers/{server_id}/zones/{zone_id}/rectify':
     put:
       summary: 'Rectify the zone data.'
-      description: 'This does not take into account the API-RECTIFY metadata. Fails on slave zones and zones that do not have DNSSEC.'
+      description: 'This does not take into account the API-RECTIFY metadata. Fails on secondary zones and zones that do not have DNSSEC.'
       operationId: rectifyZone
       tags:
         - zones
@@ -1188,7 +1188,7 @@ definitions:
         type: array
         items:
           type: string
-        description: ' List of IP addresses configured as a master for this zone (“Slave” type zones only)'
+        description: ' List of IP addresses configured as a primary for this zone (“Slave” type zones only)'
       dnssec:
         type: boolean
         description: 'Whether or not this zone is DNSSEC signed (inferred from presigned being true XOR presence of at least one cryptokey with active being true)'
@@ -1223,19 +1223,19 @@ definitions:
         type: array
         items:
           type: string
-        description: 'MAY be sent in client bodies during creation, and MUST NOT be sent by the server. Simple list of strings of nameserver names, including the trailing dot. Not required for slave zones.'
+        description: 'MAY be sent in client bodies during creation, and MUST NOT be sent by the server. Simple list of strings of nameserver names, including the trailing dot. Not required for secondary zones.'
       master_tsig_key_ids:
         type: array
         items:
           type: string
-        description: 'The id of the TSIG keys used for master operation in this zone'
+        description: 'The id of the TSIG keys used for primary operation in this zone'
         externalDocs:
           url: 'https://doc.powerdns.com/authoritative/tsig.html#provisioning-outbound-axfr-access'
       slave_tsig_key_ids:
         type: array
         items:
           type: string
-        description: 'The id of the TSIG keys used for slave operation in this zone'
+        description: 'The id of the TSIG keys used for secondary operation in this zone'
         externalDocs:
           url: 'https://doc.powerdns.com/authoritative/tsig.html#provisioning-signed-notification-and-axfr-requests'
 
