@@ -96,7 +96,6 @@ dnsdist_build_deps = [
     'libedit-dev',
     'libfstrm-dev',
     'libgnutls28-dev',
-    'libh2o-evloop-dev',
     'liblmdb-dev',
     'libnghttp2-dev',
     'libre2-dev',
@@ -325,7 +324,6 @@ def install_dnsdist_test_deps(c, skipXDP=False): # FIXME: rename this, we do way
             libcurl4-openssl-dev \
             libfstrm0 \
             libgnutls30 \
-            libh2o-evloop0.13 \
             liblmdb0 \
             libnghttp2-14 \
             "libre2-[1-9]+" \
@@ -342,6 +340,7 @@ def install_dnsdist_test_deps(c, skipXDP=False): # FIXME: rename this, we do way
                libxdp1'
 
     c.sudo(f'apt-get install -y {deps}')
+    ci_install_libh2o(c)
     c.run('sed "s/agentxperms 0700 0755 dnsdist/agentxperms 0777 0755/g" regression-tests.dnsdist/snmpd.conf | sudo tee /etc/snmp/snmpd.conf')
     c.sudo('/etc/init.d/snmpd restart')
     time.sleep(5)
@@ -354,6 +353,7 @@ def install_rec_build_deps(c):
 @task(optional=['skipXDP'])
 def install_dnsdist_build_deps(c, skipXDP=False):
     c.sudo('apt-get install -y --no-install-recommends ' +  ' '.join(all_build_deps + git_build_deps + dnsdist_build_deps + (dnsdist_xdp_build_deps if not skipXDP else [])))
+    ci_install_libh2o(c)
 
 @task
 def ci_autoconf(c, meson=False):
@@ -1275,6 +1275,23 @@ def coverity_upload(c, email, project, tarball):
             --form version="$(./builder-support/gen-version)" \
             --form description="master build" \
             https://scan.coverity.com/builds?project={project}', hide=True)
+
+def build_and_install_libh2o(c):
+    with c.cd(f'{repo_home}/builder-support/helpers/'):
+        c.run('sudo sh install_h2o.sh')
+
+    c.run("sudo mkdir -p /usr/lib/pkgconfig")
+    c.run("sudo cp /opt/lib/pkgconfig/libh2o-evloop.pc /usr/lib/pkgconfig/libh2o-evloop.pc")
+
+@task
+def ci_install_libh2o(c):
+    libh2o_package_name = "libh2o-evloop-dev" # also installs libh2o-evloop0.13 on Debian 11 & 12
+    res = c.run(f'apt-cache policy {libh2o_package_name} | grep -qq Candidate && echo "True" || echo ""')
+
+    if bool(res.stdout.strip()):
+        c.run(f'sudo apt-get install -y {libh2o_package_name}')
+    else:
+        build_and_install_libh2o(c)
 
 @task
 def ci_build_and_install_quiche(c, repo):
