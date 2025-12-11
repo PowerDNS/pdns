@@ -65,35 +65,41 @@ InternalQueryState InternalQueryState::partialCloneForXFR() const
 InternalQueryState::~InternalQueryState()
 {
 #ifndef DISABLE_PROTOBUF
+  if (delayedResponseMsgs.empty() && ottraceLoggers.empty()) {
+    return;
+  }
 
+  std::string OTData;
   static thread_local string otPBBuf;
   otPBBuf.clear();
-  std::string OTData;
   if (tracingEnabled && d_OTTracer != nullptr) {
-
     pdns::ProtoZero::Message msg{otPBBuf};
     OTData = d_OTTracer->getOTProtobuf();
     msg.setOpenTelemetryData(OTData);
   }
 
-  for (auto const& msg_logger : delayedResponseMsgs) {
-    // TODO: we should probably do something with the return value of queueData
-    if (!tracingEnabled) {
-      msg_logger.second->queueData(msg_logger.first);
-      continue;
+  if (!delayedResponseMsgs.empty()) {
+    for (auto const& msg_logger : delayedResponseMsgs) {
+      // TODO: we should probably do something with the return value of queueData
+      if (!tracingEnabled) {
+        msg_logger.second->queueData(msg_logger.first);
+        continue;
+      }
+      // Protobuf wireformat allows us to simply append the second "message"
+      // that only contains the OTTrace data as a single bytes field
+      msg_logger.second->queueData(msg_logger.first + otPBBuf);
     }
-    // Protobuf wireformat allows us to simply append the second "message"
-    // that only contains the OTTrace data as a single bytes field
-    msg_logger.second->queueData(msg_logger.first + otPBBuf);
   }
 
-  static thread_local string minimalPBBuf;
-  minimalPBBuf.clear();
-  pdns::ProtoZero::Message minimalMsg{minimalPBBuf};
-  minimalMsg.setType(pdns::ProtoZero::Message::MessageType::DNSQueryType);
-  minimalMsg.setOpenTelemetryData(OTData);
-  for (auto const& msg_logger : ottraceLoggers) {
-    msg_logger->queueData(minimalPBBuf);
+  if (!ottraceLoggers.empty()) {
+    static thread_local string minimalPBBuf;
+    minimalPBBuf.clear();
+    pdns::ProtoZero::Message minimalMsg{minimalPBBuf};
+    minimalMsg.setType(pdns::ProtoZero::Message::MessageType::DNSQueryType);
+    minimalMsg.setOpenTelemetryData(OTData);
+    for (auto const& msg_logger : ottraceLoggers) {
+      msg_logger->queueData(minimalPBBuf);
+    }
   }
 #endif
 }
