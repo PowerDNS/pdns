@@ -38,7 +38,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <list>
 #include <map>
 #include <memory>
-#include <optional>
 #include <random>
 #include <set>
 #include <stdexcept>
@@ -55,6 +54,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/variant.hpp>
 #include <boost/type_traits.hpp>
 #include <lua.hpp>
+
+#if __cplusplus >= 201703L
+#include <variant>
+#include <optional>
+#endif /* C++17 */
 
 // Set the older gcc define for tsan if clang or modern gcc tell us we have tsan.
 #if defined(__has_feature)
@@ -2001,8 +2005,10 @@ struct LuaContext::FunctionArgumentsCounter<> {
 // implementation of IsOptional
 template<typename T>
 struct LuaContext::IsOptional<boost::optional<T>> : public std::true_type {};
+#if __cplusplus >= 201703L
 template<typename T>
 struct LuaContext::IsOptional<std::optional<T>> : public std::true_type {};
+#endif /* C++ 17 */
 
 // implementation of LuaFunctionCaller
 template<typename TFunctionType>
@@ -2556,6 +2562,25 @@ private:
     };
 };
 
+#if __cplusplus >= 201703L
+// std::variant
+template<typename... TTypes>
+struct LuaContext::Pusher<std::variant<TTypes...>>
+{
+    static const int minSize = PusherMinSize<TTypes...>::size;
+    static const int maxSize = PusherMaxSize<TTypes...>::size;
+
+    static PushedObject push(lua_State* state, const std::variant<TTypes...>& value) noexcept {
+        PushedObject obj{state, 0};
+        std::visit([&](auto&& arg) {
+            using T = std::decay_t<decltype(arg)>;
+            obj = Pusher<T>::push(state, arg);
+        }, value);
+        return obj;
+    }
+};
+#endif /* C++17 */
+
 // boost::optional
 template<typename TType>
 struct LuaContext::Pusher<boost::optional<TType>> {
@@ -2575,6 +2600,7 @@ struct LuaContext::Pusher<boost::optional<TType>> {
     }
 };
 
+#if __cplusplus >= 201703L
 // std::optional
 template<typename TType>
 struct LuaContext::Pusher<std::optional<TType>> {
@@ -2593,6 +2619,7 @@ struct LuaContext::Pusher<std::optional<TType>> {
         }
     }
 };
+#endif /* C++17 */
 
 // tuple
 template<typename... TTypes>
@@ -2943,6 +2970,7 @@ struct LuaContext::Reader<boost::optional<TType>>
     }
 };
 
+#if __cplusplus >= 201703L
 // NOLINTBEGIN(clang-analyzer-cplusplus.NewDeleteLeaks)
 template<typename TType>
 struct LuaContext::Reader<std::optional<TType>>
@@ -2960,8 +2988,9 @@ struct LuaContext::Reader<std::optional<TType>>
     }
 };
 // NOLINTEND(clang-analyzer-cplusplus.NewDeleteLeaks)
+#endif /* C++ 17 */
 
-// variant
+// boost::variant
 template<typename... TTypes>
 struct LuaContext::Reader<boost::variant<TTypes...>>
 {
@@ -3007,6 +3036,42 @@ public:
         return MainVariantReader::read(state, index);
     }
 };
+
+#if __cplusplus >= 201703L
+// std::variant
+template<typename... TTypes>
+struct LuaContext::Reader<std::variant<TTypes...>>
+{
+    using ReturnType = std::variant<TTypes...>;
+
+private:
+    template<std::size_t I = 0> static boost::optional<ReturnType> variantRead(lua_State* state, int index)
+    {
+        constexpr auto nbTypes = std::variant_size_v<ReturnType>;
+        if constexpr (I >= nbTypes) {
+            return boost::none;
+        }
+        using InitialType = std::variant_alternative_t<I, ReturnType>;
+        using DecayedType = std::decay_t<InitialType>;
+        if (const auto val = Reader<DecayedType>::read(state, index)) {
+            // we are using the initial, non-decayed type so that a
+            // cv-qualifiers are not ignored
+            return ReturnType{std::in_place_type<InitialType>, *val};
+        }
+        if constexpr (I < (nbTypes - 1)) {
+            return variantRead<I + 1>(state, index);
+        }
+        return boost::none;
+    }
+
+public:
+    static auto read(lua_State* state, int index)
+        -> boost::optional<ReturnType>
+    {
+        return variantRead(state, index);
+    }
+};
+#endif /* C++ 17 */
 
 // reading a tuple
 // tuple have an additional argument for their functions, that is the maximum size to read

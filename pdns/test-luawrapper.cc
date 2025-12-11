@@ -70,4 +70,64 @@ BOOST_AUTO_TEST_CASE(test_std_optional)
   }
 }
 
+BOOST_AUTO_TEST_CASE(test_boost_variant)
+{
+  using MyVariantType = boost::variant<int, const std::string, std::string, std::string*>;
+
+  LuaContext context;
+  context.writeFunction("testVariant", [](MyVariantType incoming) -> MyVariantType {
+    return incoming;
+  });
+
+  {
+    auto result = context.executeCode<MyVariantType>("return testVariant(1)");
+    const auto* content = boost::get<int>(&result);
+    BOOST_REQUIRE(content);
+    BOOST_CHECK_EQUAL(*content, 1);
+  }
+
+  {
+    auto result = context.executeCode<MyVariantType>("return testVariant('foo')");
+    const auto* content = boost::get<const std::string>(&result);
+    BOOST_REQUIRE(content);
+    BOOST_CHECK_EQUAL(*content, "foo");
+  }
+
+  {
+    auto func = [&]() {
+      context.executeCode<MyVariantType>("return testVariant(nil)");
+    };
+    BOOST_CHECK_THROW(func(), LuaContext::ExecutionErrorException);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_std_variant)
+{
+  using MyVariantType = std::variant<int, const std::string, std::string, std::string*>;
+
+  LuaContext context;
+  context.writeFunction("testVariant", [](MyVariantType incoming) -> MyVariantType {
+    return incoming;
+  });
+
+  {
+    const auto result = context.executeCode<MyVariantType>("return testVariant(1)");
+    BOOST_REQUIRE(std::holds_alternative<int>(result));
+    BOOST_CHECK_EQUAL(std::get<int>(result), 1);
+  }
+
+  {
+    const auto result = context.executeCode<MyVariantType>("return testVariant('foo')");
+    BOOST_REQUIRE(std::holds_alternative<const std::string>(result));
+    BOOST_CHECK_EQUAL(std::get<const std::string>(result), "foo");
+  }
+
+  {
+    auto func = [&]() {
+      context.executeCode<MyVariantType>("return testVariant(nil)");
+    };
+    BOOST_CHECK_THROW(func(), LuaContext::ExecutionErrorException);
+  }
+}
+
 BOOST_AUTO_TEST_SUITE_END()
