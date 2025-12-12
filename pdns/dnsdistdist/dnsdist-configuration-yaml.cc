@@ -1708,6 +1708,7 @@ std::shared_ptr<DNSActionWrapper> getSetTraceAction(const SetTraceActionConfigur
     .remote_loggers = std::move(loggers),
     .use_incoming_traceid = config.use_incoming_traceid,
     .trace_edns_option = config.trace_edns_option,
+    .strip_incoming_traceid = config.strip_incoming_traceid,
   };
 
   auto action = dnsdist::actions::getSetTraceAction(actionConfig);

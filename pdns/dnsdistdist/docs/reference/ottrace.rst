@@ -139,3 +139,7 @@ Should there be no ID in the incoming query, a random ID will be generated.
          type: SetTrace
          value: true
          use_incoming_traceid: true
+
+As :program:`dnsdist` keeps EDNS existing options in the query, the Trace ID option is passed as-is to the backend, which might not be desirable.
+Using the ``strip_incoming_traceid`` boolean option, the EDNS option will be removed from the query.
+Note that this will only happen when ``value`` is set to ``true``.

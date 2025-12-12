@@ -4,10 +4,12 @@ import base64
 import binascii
 import dns.message
 import dns.rrset
+import dns.rcode
 import dns.rdataclass
 import dns.rdatatype
 import dns.edns
 import time
+import threading
 
 import opentelemetry.proto.trace.v1.trace_pb2
 import google.protobuf.json_format
@@ -745,3 +747,93 @@ query_rules:
 
     def testTCP(self):
         self.doTest(useTCP=True, extraFunctions={"queueResponse"})
+
+
+def servfailOnTraceParent(request: dns.message.Message):
+    response = dns.message.make_response(request)
+    if any(opt.otype == 65500 for opt in request.options):
+        response.set_rcode(dns.rcode.SERVFAIL)
+    return response.to_wire()
+
+
+class TestOpenTelemetryTracingStripIncomingTraceParent(
+    DNSDistOpenTelemetryProtobufTest
+):
+    _yaml_config_params = [
+        "_testServerPort",
+    ]
+    _yaml_config_template = """---
+logging:
+  open_telemetry_tracing: true
+
+backends:
+  - address: 127.0.0.1:%d
+    protocol: Do53
+
+query_rules:
+ - name: Enable tracing
+   selector:
+     type: All
+   action:
+     type: SetTrace
+     value: true
+     strip_incoming_traceid: true
+"""
+
+    @classmethod
+    def startResponders(cls):
+        print("Launching responders..")
+
+        cls._UDPResponder = threading.Thread(
+            name="UDP Responder",
+            target=cls.UDPResponder,
+            args=[
+                cls._testServerPort,
+                cls._toResponderQueue,
+                cls._fromResponderQueue,
+                False,
+                servfailOnTraceParent,
+            ],
+        )
+        cls._UDPResponder.daemon = True
+        cls._UDPResponder.start()
+
+        cls._TCPResponder = threading.Thread(
+            name="TCP Responder",
+            target=cls.TCPResponder,
+            args=[
+                cls._testServerPort,
+                cls._toResponderQueue,
+                cls._fromResponderQueue,
+                False,
+                False,
+                servfailOnTraceParent,
+            ],
+        )
+        cls._TCPResponder.daemon = True
+        cls._TCPResponder.start()
+
+    def doQuery(self, useTCP=False):
+        name = "query.ot.tests.powerdns.com."
+
+        ottrace = dns.edns.GenericOption(str(65500), "\x00\x00")
+        ottrace.data += binascii.a2b_hex("12345678901234567890123456789012")
+        ottrace.data += binascii.a2b_hex("1234567890123456")
+        query = dns.message.make_query(
+            name, "A", "IN", use_edns=True, options=[ottrace]
+        )
+
+        if useTCP:
+            (_, receivedResponse) = self.sendTCPQuery(query, response=None)
+        else:
+            (_, receivedResponse) = self.sendUDPQuery(query, response=None)
+
+        self.assertIsNotNone(receivedResponse)
+        # If we stripped the OpenTelemetry Trace ID from the query, we should not get a SERVFAIL
+        self.assertEqual(receivedResponse.rcode(), dns.rcode.NOERROR)
+
+    def testStripIncomingTraceIDUDP(self):
+        self.doQuery()
+
+    def testStripIncomingTraceIDTCP(self):
+        self.doQuery(True)

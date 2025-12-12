@@ -129,6 +129,7 @@ struct SetTraceActionConfiguration
   std::vector<std::shared_ptr<RemoteLoggerInterface>> remote_loggers;
   bool use_incoming_traceid = false;
   std::uint16_t trace_edns_option = 0;
+  bool strip_incoming_traceid = false;
 };
 std::shared_ptr<DNSAction> getSetTraceAction(SetTraceActionConfiguration& config);
 #endif /* DISABLE_PROTOBUF */

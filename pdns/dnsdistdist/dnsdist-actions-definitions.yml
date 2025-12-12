@@ -422,6 +422,10 @@ are processed after this action"
       type: "u16"
       default: 65500
       description: "The EDNS Option code to take the Trace ID from"
+    - name: "strip_incoming_traceid"
+      type: "bool"
+      default: "false"
+      description: "Remove any existing TRACEPARENT EDNS option from the query. When use_incoming_traceid is set to true, the ID will be picked set before removing the option"
 - name: "SNMPTrap"
   description: "Send an SNMP trap, adding the message string as the query description. Subsequent rules are processed after this action"
   parameters:
