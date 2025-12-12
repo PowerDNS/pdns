@@ -1056,19 +1056,17 @@ How SQL backends implement this:
 
 */
 
-int PacketHandler::tryAutoPrimary(const DNSPacket& p, const DNSName& tsigkeyname)
+int PacketHandler::tryAutoPrimary(const DNSPacket& p)
 {
-  if(p.d_tcp)
-  {
-    // do it right now if the client is TCP
-    // rarely happens
-    return tryAutoPrimarySynchronous(p, tsigkeyname);
+  if(p.d_tcp) {
+    // Do it right now if the client is TCP (rarely happens)
+    return tryAutoPrimarySynchronous(p, p.getTSIGKeyname());
   }
-  else
-  {
-    // queue it if the client is on UDP
+  else {
+    // Queue it if the client is on UDP; the communicator will invoke
+    // tryAutoPrimarySynchronous later.
     Communicator.addTryAutoPrimaryRequest(p);
-    return 0;
+    return RCode::NoError;
   }
 }
 
@@ -1137,6 +1135,9 @@ int PacketHandler::tryAutoPrimarySynchronous(const DNSPacket& p, const DNSName& 
       meta.push_back(tsigkeyname.toStringNoDot());
       db->setDomainMetadata(zonename, "AXFR-MASTER-TSIG", meta);
     }
+    // Now that we have created the secondary, fetch its contents.
+    di.receivedNotify = true;
+    Communicator.addSecondaryCheckRequest(di, p.getInnerRemote());
   }
   catch(PDNSException& ae) {
     g_log << Logger::Error << "Database error trying to create " << zonename << " for potential autoprimary " << remote << ": " << ae.reason << endl;
@@ -1196,7 +1197,7 @@ int PacketHandler::processNotify(const DNSPacket& p)
   if(!B.getDomainInfo(zonename, di, false) || di.backend == nullptr) {
     if(::arg().mustDo("autosecondary")) {
       g_log << Logger::Warning << "Received NOTIFY for " << zonename << " from " << p.getRemoteString() << " for which we are not authoritative, trying autoprimary" << endl;
-      return tryAutoPrimary(p, p.getTSIGKeyname());
+      return tryAutoPrimary(p);
     }
     g_log<<Logger::Notice<<"Received NOTIFY for "<<zonename<<" from "<<p.getRemoteString()<<" for which we are not authoritative (Refused)"<<endl;
     return RCode::Refused;
@@ -1231,7 +1232,7 @@ int PacketHandler::processNotify(const DNSPacket& p)
     di.receivedNotify = true;
     Communicator.addSecondaryCheckRequest(di, p.getInnerRemote());
   }
-  return 0;
+  return RCode::NoError;
 }
 
 static bool validDNSName(const DNSName& name)
