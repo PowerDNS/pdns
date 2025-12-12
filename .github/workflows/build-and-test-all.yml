@@ -846,10 +846,12 @@ jobs:
           fail-on-error: false
 
   swagger-syntax-check:
-    if: ${{ !github.event.schedule || vars.SCHEDULED_JOBS_BUILD_AND_TEST_ALL }}
+    if: ${{ (!github.event.schedule || vars.SCHEDULED_JOBS_BUILD_AND_TEST_ALL) && ! contains(needs.get-runner-container-image.outputs.id, 'debian-11') }}
     runs-on: ubuntu-24.04
+    needs:
+      - get-runner-container-image
     container:
-      image: ghcr.io/powerdns/base-pdns-ci-image/debian-12-pdns-base:master
+      image: "${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"
       options: --sysctl net.ipv6.conf.all.disable_ipv6=0
     steps:
       - uses: actions/checkout@v5
