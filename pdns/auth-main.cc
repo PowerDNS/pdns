@@ -289,7 +289,6 @@ static void declareArguments()
   ::arg().set("max-packet-cache-entries", "Maximum number of entries in the packet cache") = "1000000";
   ::arg().set("max-signature-cache-entries", "Maximum number of signatures cache entries") = "";
   ::arg().set("max-ent-entries", "Maximum number of empty non-terminals in a zone") = "100000";
-  ::arg().set("entropy-source", "If set, read entropy from this file") = "/dev/urandom";
 
   ::arg().set("lua-prequery-script", "Lua script with prequery handler (DO NOT USE)") = "";
   ::arg().set("lua-dnsupdate-policy-script", "Lua script with DNS update policy handler") = "";
@@ -336,8 +335,6 @@ static void declareArguments()
   ::arg().setSwitch("svc-autohints", "Transparently fill ipv6hint=auto ipv4hint=auto SVC params with AAAA/A records for the target name of the record (if within the same zone)") = "no";
 
   ::arg().setSwitch("consistent-backends", "Assume individual zones are not divided over backends. Send only ANY lookup operations to the backend to reduce the number of lookups") = "yes";
-
-  ::arg().set("rng", "Specify the random number generator to use. Valid values are auto,sodium,openssl,getrandom,arc4random,urandom.") = "auto";
 
   ::arg().set("default-catalog-zone", "Catalog zone to assign newly created primary zones (via the API) to") = "";
 

@@ -637,13 +637,11 @@ static void loadMainConfig(const std::string& configdir)
   ::arg().set("default-soa-edit-signed","Default SOA-EDIT value for signed zones")="";
   ::arg().set("max-ent-entries", "Maximum number of empty non-terminals in a zone")="100000";
   ::arg().set("module-dir","Default directory for modules")=PKGLIBDIR;
-  ::arg().set("entropy-source", "If set, read entropy from this file")="/dev/urandom";
   ::arg().setSwitch("query-logging","Hint backends that queries should be logged")="no";
   ::arg().set("loglevel","Amount of logging. Higher is more.")="3";
   ::arg().setSwitch("direct-dnskey","Fetch DNSKEY, CDS and CDNSKEY RRs from backend during DNSKEY or CDS/CDNSKEY synthesis")="no";
   ::arg().set("max-nsec3-iterations","Limit the number of NSEC3 hash iterations")="500"; // RFC5155 10.3
   ::arg().set("max-signature-cache-entries", "Maximum number of signatures cache entries")="";
-  ::arg().set("rng", "Specify random number generator to use. Valid values are auto,sodium,openssl,getrandom,arc4random,urandom.")="auto";
   ::arg().set("max-generate-steps", "Maximum number of $GENERATE steps when loading a zone from a file")="0";
   ::arg().set("max-include-depth", "Maximum nested $INCLUDE depth when loading a zone from a file")="20";
   ::arg().setSwitch("upgrade-unknown-types","Transparently upgrade known TYPExxx records. Recommended to keep off, except for PowerDNS upgrades until data sources are cleaned up")="no";
