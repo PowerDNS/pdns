@@ -39,7 +39,6 @@ subdir('meson' / 'strerror')                # Strerror_r
 subdir('meson' / 'lua')                     # Lua
 subdir('meson' / 'lua-records')             # Lua-based Records
 subdir('meson' / 'hardening')               # Hardening
-subdir('meson' / 'kiss-rng')                # Unsafe KISS RNG
 subdir('meson' / 'net-libs')                # Network Libraries
 subdir('meson' / 'tm-gmtoff')               # Check for tm_gmtoff field in struct tm
 subdir('meson' / 'mmap')                    # Check for mmap
