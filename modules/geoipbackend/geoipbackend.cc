@@ -302,7 +302,7 @@ bool GeoIPBackend::loadDomain(const std::string& origin, const YAML::Node& domai
           rr.weight = 100;
         }
         rr.auth = true;
-        rrs.push_back(rr);
+        rrs.push_back(std::move(rr));
       }
       std::swap(dom.records[qname.operator const DNSName&()], rrs);
     }
