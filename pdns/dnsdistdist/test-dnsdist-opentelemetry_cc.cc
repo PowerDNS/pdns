@@ -57,14 +57,16 @@ BOOST_AUTO_TEST_CASE(getLastSpanID)
   BOOST_CHECK_EQUAL(lastSpanID, SpanID{});
 
   // Add event before activation
-  auto spanid = tracer->openSpan("myevent").getSpanID();
+  auto closer = tracer->openSpan("myevent");
+  auto spanid = closer.getSpanID();
   lastSpanID = tracer->getLastSpanID();
   BOOST_CHECK_EQUAL(spanid, lastSpanID);
 
   for (auto i = 0; i < 4; i++) {
-    spanid = tracer->openSpan("myevent" + std::to_string(i)).getSpanID();
+    auto closer2 = tracer->openSpan("myevent" + std::to_string(i));
+    spanid = closer2.getSpanID();
+    lastSpanID = tracer->getLastSpanID();
   }
-  lastSpanID = tracer->getLastSpanID();
   BOOST_CHECK_EQUAL(spanid, lastSpanID);
 }
 
@@ -100,8 +102,6 @@ BOOST_AUTO_TEST_CASE(Closer)
   SpanID openevent2SpanID;
 
   {
-    auto closer = tracer->getCloser(spanid);
-
     auto openEventCloser = tracer->openSpan("openEvent");
     openeventSpanID = openEventCloser.getSpanID();
     auto openEventCloser2 = tracer->openSpan("openEvent2", openeventSpanID);

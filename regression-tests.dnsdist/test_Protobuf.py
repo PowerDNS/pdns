@@ -1302,6 +1302,83 @@ query_rules:
         msg = self.getFirstProtobufMessage()
         self.checkProtobufQuery(msg, dnsmessage_pb2.PBDNSMessage.TCP, query, dns.rdataclass.IN, dns.rdatatype.A, name)
 
+
+class TestYamlProtobufDelayed(DNSDistProtobufTest):
+    _yaml_config_template = """---
+binds:
+  - listen_address: "127.0.0.1:%d"
+    reuseport: true
+    protocol: Do53
+    threads: 2
+
+backends:
+  - address: "127.0.0.1:%d"
+    protocol: Do53
+
+remote_logging:
+  protobuf_loggers:
+    - name: "my-logger"
+      address: "127.0.0.1:%d"
+      timeout: 1
+
+response_rules:
+  - name: "my-rule"
+    selector:
+      type: "All"
+    action:
+      type: "RemoteLog"
+      logger_name: "my-logger"
+      server_id: "%s"
+      export_tags:
+        - "tag-1"
+        - "tag-2"
+      delay: true
+"""
+    _dnsDistPort = pickAvailablePort()
+    _testServerPort = pickAvailablePort()
+    _yaml_config_params = ['_dnsDistPort', '_testServerPort', '_protobufServerPort', '_protobufServerID']
+    _config_params = []
+
+    def testProtobuf(self):
+        """
+        Yaml: Remote logging via protobuf
+        """
+        name = 'remote-logging.protobuf.yaml.test.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        query.flags &= ~dns.flags.RD
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+
+        response.answer.append(rrset)
+
+        receivedResponses = list()
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response=response)
+            receivedQuery.id = query.id
+            self.assertEqual(receivedQuery, query)
+            self.assertEqual(receivedResponse, response)
+            receivedResponses.append(receivedResponse)
+
+        if self._protobufQueue.empty():
+            # let the protobuf messages the time to get there
+            time.sleep(1)
+        # check the protobuf message corresponding to the UDP query
+        msg = self.getFirstProtobufMessage()
+        self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, receivedResponses[0])
+
+        if self._protobufQueue.empty():
+            # let the protobuf messages the time to get there
+            time.sleep(1)
+        # TCP query
+        msg = self.getFirstProtobufMessage()
+        self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.TCP, receivedResponses[1])
+
+
 class TestTimeoutResponseRuleProtobuf(DNSDistProtobufTest):
 
     _yaml_config_template = """---
