@@ -1683,7 +1683,7 @@ class SetTraceAction : public DNSAction
 {
 public:
   SetTraceAction(SetTraceActionConfiguration& config) :
-    d_value{config.value}, d_loggers(config.remote_loggers), d_useIncomingTraceID(config.use_incoming_traceid), d_incomingTraceIDOptionCode(config.trace_edns_option), d_stripIncomingTraceID(config.strip_incoming_traceid) {};
+    d_loggers(config.remote_loggers), d_incomingTraceIDOptionCode(config.trace_edns_option), d_value{config.value}, d_useIncomingTraceID(config.use_incoming_traceid), d_stripIncomingTraceID(config.strip_incoming_traceid) {};
 
   DNSAction::Action operator()([[maybe_unused]] DNSQuestion* dnsquestion, [[maybe_unused]] std::string* ruleresult) const override
   {
@@ -1707,7 +1707,7 @@ public:
     tracer->setRootSpanAttribute("query.remote.address", AnyValue{dnsquestion->ids.origRemote.toString()});
     tracer->setRootSpanAttribute("query.remote.port", AnyValue{dnsquestion->ids.origRemote.getPort()});
 
-    if (!d_useIncomingTraceID.value_or(false) && !d_stripIncomingTraceID.value_or(false)) {
+    if (!d_useIncomingTraceID && !d_stripIncomingTraceID) {
       // No need to check EDNS
       return Action::None;
     }
@@ -1723,10 +1723,10 @@ public:
       return Action::None;
     }
 
-    if (d_useIncomingTraceID.value_or(false)) {
+    if (d_useIncomingTraceID) {
       pdns::trace::TraceID traceID;
       pdns::trace::SpanID spanID;
-      if (pdns::trace::extractOTraceIDs(*(dnsquestion->ednsOptions), EDNSOptionCode::EDNSOptionCodeEnum(d_incomingTraceIDOptionCode.value_or(EDNSOptionCode::OTTRACEIDS)), traceID, spanID)) {
+      if (pdns::trace::extractOTraceIDs(*(dnsquestion->ednsOptions), EDNSOptionCode::EDNSOptionCodeEnum(d_incomingTraceIDOptionCode), traceID, spanID)) {
         tracer->setTraceID(traceID);
         if (spanID != pdns::trace::s_emptySpanID) {
           tracer->setRootSpanID(spanID);
@@ -1734,7 +1734,7 @@ public:
       }
     }
 
-    if (d_stripIncomingTraceID.value_or(false)) {
+    if (d_stripIncomingTraceID) {
       uint16_t optStart;
       size_t optLen;
       bool last;
@@ -1750,7 +1750,7 @@ public:
       }
 
       size_t existingOptLen = optLen;
-      removeEDNSOptionFromOPT(reinterpret_cast<char*>(&dnsquestion->getMutableData().at(optStart)), &optLen, d_incomingTraceIDOptionCode.value_or(EDNSOptionCode::OTTRACEIDS));
+      removeEDNSOptionFromOPT(reinterpret_cast<char*>(&dnsquestion->getMutableData().at(optStart)), &optLen, d_incomingTraceIDOptionCode);
       dnsquestion->getMutableData().resize(dnsquestion->getData().size() - (existingOptLen - optLen));
       // Ensure the EDNS Option View is not out of date
       dnsquestion->ednsOptions.reset();
@@ -1765,13 +1765,12 @@ public:
   }
 
 private:
-  bool d_value;
-
   std::vector<std::shared_ptr<RemoteLoggerInterface>> d_loggers;
+  short unsigned int d_incomingTraceIDOptionCode;
 
-  std::optional<bool> d_useIncomingTraceID;
-  std::optional<short unsigned int> d_incomingTraceIDOptionCode;
-  std::optional<bool> d_stripIncomingTraceID;
+  bool d_value;
+  bool d_useIncomingTraceID;
+  bool d_stripIncomingTraceID;
 };
 #endif
 
