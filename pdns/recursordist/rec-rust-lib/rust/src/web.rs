@@ -957,18 +957,7 @@ pub fn serveweb(
             runtime.block_on(async {
                 while let Some(res) = set.join_next().await {
                     let msg = match res {
-                        Ok(Err(wrapped)) => {
-                            // We (potentially) have a Boxed std::IO::Error
-                            // and we just want the error description, not a { kind = Other, error = "description" } string
-                            let err = wrapped.downcast::<std::io::Error>();
-                            if let Ok(ioerr) = err {
-                                // downcast worked, so ioerr is a std::io::Error
-                                ioerr.to_string()
-                            } else {
-                                // Otherwise just pass the default formatted error
-                                format!("{:?}", err)
-                            }
-                        }
+                        Ok(Err(wrapped)) => wrapped.to_string(),
                         _ => format!("{:?}", res),
                     };
                     rustmisc::error(
