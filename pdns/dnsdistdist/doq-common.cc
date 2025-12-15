@@ -149,7 +149,7 @@ static void sendFromTo(Socket& sock, const ComboAddress& peer, const ComboAddres
     if (ret < 0) {
       auto error = errno;
       VERBOSESLOG(infolog("Error while sending QUIC datagram of size %d to %s: %s", buffer.size(), peer.toStringWithPort(), stringerror(error)),
-                  dnsdist::logging::getTopLogger()->error(Logr::Info, error, "Error while sending QUIC datagram", "size", Logging::Loggable(buffer.size()), "destination", Logging::Loggable(peer)));
+                  dnsdist::logging::getTopLogger()->error(Logr::Info, error, "Error while sending QUIC datagram", "datagram_size", Logging::Loggable(buffer.size()), "destination.address", Logging::Loggable(peer)));
     }
     return;
   }
@@ -159,7 +159,7 @@ static void sendFromTo(Socket& sock, const ComboAddress& peer, const ComboAddres
   }
   catch (const std::exception& exp) {
     VERBOSESLOG(infolog("Error while sending QUIC datagram of size %d from %s to %s: %s", buffer.size(), local.toStringWithPort(), peer.toStringWithPort(), exp.what()),
-                dnsdist::logging::getTopLogger()->error(Logr::Info, exp.what(), "Error while sending QUIC datagram", "size", Logging::Loggable(buffer.size()), "source", Logging::Loggable(local), "destination", Logging::Loggable(peer)));
+                dnsdist::logging::getTopLogger()->error(Logr::Info, exp.what(), "Error while sending QUIC datagram", "datagram_size", Logging::Loggable(buffer.size()), "source.address", Logging::Loggable(local), "destination.address", Logging::Loggable(peer)));
   }
 }
 

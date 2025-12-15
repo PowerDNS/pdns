@@ -3237,11 +3237,11 @@ void loadLuaConfigurationFile(LuaContext& luaCtx, const std::string& config, boo
       throw std::runtime_error("Unable to read configuration file from " + config);
     }
     SLOG(warnlog("Unable to read configuration from '%s'", config),
-         dnsdist::logging::getTopLogger()->withName("lua-configuration")->info(Logr::Error, "Unable to read configuration from file", "configuration-file", Logging::Loggable(config)));
+         dnsdist::logging::getTopLogger()->withName("lua-configuration")->info(Logr::Error, "Unable to read configuration from file", "dnsdist.configuration.file", Logging::Loggable(config)));
   }
   else {
     VERBOSESLOG(infolog("Read configuration from '%s'", config),
-                dnsdist::logging::getTopLogger()->withName("lua-configuration")->info(Logr::Info, "Read configuration from file", "configuration-file", Logging::Loggable(config)));
+                dnsdist::logging::getTopLogger()->withName("lua-configuration")->info(Logr::Info, "Read configuration from file", "dnsdist.configuration.file", Logging::Loggable(config)));
   }
 
   luaCtx.executeCode(ifs);

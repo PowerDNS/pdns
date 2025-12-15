@@ -180,7 +180,7 @@ public:
     if (!s_connManager.registerConnection()) {
       throw std::runtime_error("Too many concurrent web client connections");
     }
-    d_logger = logger.withValues("address", Logging::Loggable(client));
+    d_logger = logger.withValues("client.address", Logging::Loggable(client));
   }
   WebClientConnection(WebClientConnection&& rhs) noexcept :
     d_logger(std::move(rhs.d_logger)), d_client(rhs.d_client), d_socket(std::move(rhs.d_socket))
@@ -239,13 +239,13 @@ static bool apiWriteConfigFile(const string& filebasename, const string& content
   const auto& runtimeConfig = dnsdist::configuration::getCurrentRuntimeConfiguration();
   if (!runtimeConfig.d_apiReadWrite) {
     SLOG(warnlog("Not writing content to %s since the API is read-only", filebasename),
-         logger.info(Logr::Warning, "Not writing content to file since the API is read-only", "file", Logging::Loggable(filebasename)));
+         logger.info(Logr::Warning, "Not writing content to file since the API is read-only", "filename", Logging::Loggable(filebasename)));
     return false;
   }
 
   if (runtimeConfig.d_apiConfigDirectory.empty()) {
     VERBOSESLOG(infolog("Not writing content to %s since the API configuration directory is not set", filebasename),
-                logger.info(Logr::Info, "Not writing content to file since the API configuration directory is not set", "file", Logging::Loggable(filebasename)));
+                logger.info(Logr::Info, "Not writing content to file since the API configuration directory is not set", "filename", Logging::Loggable(filebasename)));
 
     return false;
   }
@@ -255,7 +255,7 @@ static bool apiWriteConfigFile(const string& filebasename, const string& content
   if (!ofconf) {
     int saved = errno;
     SLOG(errlog("Could not open configuration fragment file '%s' for writing: %s", filename, stringerror(saved)),
-         logger.error(Logr::Error, saved, "Could not open configuration fragment file for writing", "file", Logging::Loggable(filebasename)));
+         logger.error(Logr::Error, saved, "Could not open configuration fragment file for writing", "filename", Logging::Loggable(filebasename)));
 
     return false;
   }
@@ -526,14 +526,14 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp,
       MetricDefinition metricDetails;
       if (!s_metricDefinitions.getMetricDetails(metricName, metricDetails)) {
         VERBOSESLOG(infolog("Do not have metric details for %s", metricName),
-                    logger.info(Logr::Info, "Missing details for this metric", "metric-name", Logging::Loggable(metricName)));
+                    logger.info(Logr::Info, "Missing details for this metric", "dnsdist.metric.name", Logging::Loggable(metricName)));
         continue;
       }
 
       const std::string prometheusTypeName = s_metricDefinitions.getPrometheusStringMetricType(metricDetails.prometheusType);
       if (prometheusTypeName.empty()) {
         VERBOSESLOG(infolog("Unknown Prometheus type for %s", metricName),
-                    logger.info(Logr::Info, "Unknown Prometheus type", "metric-name", Logging::Loggable(metricName)));
+                    logger.info(Logr::Info, "Unknown Prometheus type", "dnsdist.metric.name", Logging::Loggable(metricName)));
         continue;
       }
 
@@ -1935,7 +1935,7 @@ static void connectionThread(WebClientConnection&& conn)
       auto header = req.headers.find("authorization");
       if (header != req.headers.end()) {
         VERBOSESLOG(infolog("HTTP Request \"%s\" from %s: Web Authentication failed", req.url.path, conn.getClient().toStringWithPort()),
-                    conn.getLogger().info(Logr::Info, "Web authentication failed for HTTP Request", "url", Logging::Loggable( req.url.path)));
+                    conn.getLogger().info(Logr::Info, "Web authentication failed for HTTP Request", "url", Logging::Loggable(req.url.path)));
       }
       resp.status = 401;
       resp.body = "<h1>Unauthorized</h1>";
@@ -1995,7 +1995,7 @@ void setMaxConcurrentConnections(size_t max)
 void WebserverThread(ComboAddress listeningAddress, Socket sock)
 {
   setThreadName("dnsdist/webserv");
-  auto serverLogger = dnsdist::logging::getTopLogger()->withName("webserver")->withValues("listening-address", Logging::Loggable(listeningAddress));
+  auto serverLogger = dnsdist::logging::getTopLogger()->withName("webserver")->withValues("network.local.address", Logging::Loggable(listeningAddress));
   SLOG(infolog("Webserver launched on %s", listeningAddress.toStringWithPort()),
        serverLogger->info(Logr::Info, "Webserver launched"));
 
@@ -2015,7 +2015,7 @@ void WebserverThread(ComboAddress listeningAddress, Socket sock)
 
       if (!isClientAllowedByACL(remote)) {
         VERBOSESLOG(infolog("Connection to webserver from client %s is not allowed, closing", remote.toStringWithPort()),
-                    serverLogger->info(Logr::Info, "Connection to webserver is not allowed by ACL, closing", "address", Logging::Loggable(remote)));
+                    serverLogger->info(Logr::Info, "Connection to webserver is not allowed by ACL, closing", "client.address", Logging::Loggable(remote)));
         close(fileDesc);
         continue;
       }

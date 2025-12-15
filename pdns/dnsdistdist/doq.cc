@@ -424,7 +424,7 @@ static void processDOQQuery(DOQUnitUniquePtr&& doqUnit)
 
     if (!dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL.match(remote)) {
       VERBOSESLOG(infolog("Query from %s (DoQ) dropped because of ACL", remote.toStringWithPort()),
-                  dsc->df->getLogger().info("DoQ query dropped because of ACL", "address", Logging::Loggable(remote)));
+                  dsc->df->getLogger().info("DoQ query dropped because of ACL", "client.address", Logging::Loggable(remote)));
       ++dnsdist::metrics::g_stats.aclDrops;
       unit->response.clear();
 
@@ -553,7 +553,7 @@ static void processDOQQuery(DOQUnitUniquePtr&& doqUnit)
   catch (const std::exception& e) {
     if (unit) {
       VERBOSESLOG(infolog("Got an error in DOQ question thread while parsing a query from %s, id %d: %s", remote.toStringWithPort(), queryId, e.what()),
-                  unit->dsc->df->getLogger().error(Logr::Info, e.what(), "Got an error in DOQ question thread while parsing a query", "address", Logging::Loggable(remote), "query-id", Logging::Loggable(queryId)));
+                  unit->dsc->df->getLogger().error(Logr::Info, e.what(), "Got an error in DOQ question thread while parsing a query", "client.address", Logging::Loggable(remote), "dns.question.id", Logging::Loggable(queryId)));
       handleImmediateResponse(std::move(unit), "DoQ internal error");
     }
     return;
@@ -576,7 +576,7 @@ static void doq_dispatch_query(DOQServerConfig& dsc, PacketBuffer&& query, const
   }
   catch (const std::exception& exp) {
     VERBOSESLOG(infolog("Had error handling DoQ DNS packet from %s: %s", remote.toStringWithPort(), exp.what()),
-                dsc.df->getLogger().error(Logr::Info, exp.what(), "Had error handling DoQ DNS packet", "address", Logging::Loggable(remote)));
+                dsc.df->getLogger().error(Logr::Info, exp.what(), "Had error handling DoQ DNS packet", "client.address", Logging::Loggable(remote)));
   }
 }
 
@@ -796,7 +796,7 @@ void doqThread(ClientState* clientState)
 {
   try {
     std::shared_ptr<DOQFrontend>& frontend = clientState->doqFrontend;
-    auto frontendLogger = dnsdist::logging::getTopLogger()->withName("doq-frontend")->withValues("address", Logging::Loggable(clientState->local));
+    auto frontendLogger = dnsdist::logging::getTopLogger()->withName("doq-frontend")->withValues("frontend.address", Logging::Loggable(clientState->local));
 
     frontend->d_server_config->clientState = clientState;
     frontend->d_server_config->df = clientState->doqFrontend;

@@ -307,7 +307,7 @@ static void carbonHandler(const Carbon::Endpoint& endpoint)
 {
   setThreadName("dnsdist/carbon");
   const auto ourName = endpoint.getOurName();
-  auto logger = dnsdist::logging::getTopLogger()->withName("carbon-exporter")->withValues("address", Logging::Loggable(endpoint.server), "our-name", Logging::Loggable(ourName));
+  auto logger = dnsdist::logging::getTopLogger()->withName("carbon-exporter")->withValues("server.address", Logging::Loggable(endpoint.server), "dnsdist.carbon.our_name", Logging::Loggable(ourName));
 
   const auto intervalUSec = endpoint.interval * 1000 * 1000;
   /* maximum interval between two attempts is 10 minutes */
@@ -328,7 +328,7 @@ static void carbonHandler(const Carbon::Endpoint& endpoint)
         }
         else {
           VERBOSESLOG(infolog("Carbon export for %s took longer (%s us) than the configured interval (%d us)", endpoint.server.toStringWithPort(), elapsedUSec, intervalUSec),
-                      logger->info("Carbon export took longer than the configured interval", "elapsed-usec", Logging::Loggable(elapsedUSec), "interval-usec", Logging::Loggable(intervalUSec)));
+                      logger->info("Carbon export took longer than the configured interval", "dnsdist.carbon.elapsed_usec", Logging::Loggable(elapsedUSec), "dnsdist.carbon.interval_usec", Logging::Loggable(intervalUSec)));
         }
         consecutiveFailures = 0;
       }
@@ -338,7 +338,7 @@ static void carbonHandler(const Carbon::Endpoint& endpoint)
           consecutiveFailures++;
         }
         VERBOSESLOG(infolog("Run for %s - %s failed, next attempt in %d", endpoint.server.toStringWithPort(), endpoint.getOurName(), backOff),
-                    logger->info("Carbon export failed", "next-attempt-seconds", Logging::Loggable(backOff)));
+                    logger->info("Carbon export failed", "dnsdist.carbon.next_attempt_seconds", Logging::Loggable(backOff)));
         std::this_thread::sleep_for(std::chrono::seconds(backOff));
       }
     } while (true);

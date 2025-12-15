@@ -267,7 +267,7 @@ private:
         }
         catch (const std::exception& e) {
           SLOG(infolog("Error parsing the status header for stream ID %d: %s", frame->hd.stream_id, e.what()),
-               dnsdist::logging::getTopLogger()->error(e.what(), "Error parsing the status header for stream", "stream-id", Logging::Loggable(frame->hd.stream_id)));
+               dnsdist::logging::getTopLogger()->error(e.what(), "Error parsing the status header for stream", "http.stream_id", Logging::Loggable(frame->hd.stream_id)));
           return NGHTTP2_ERR_CALLBACK_FAILURE;
         }
       }

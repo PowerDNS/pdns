@@ -140,7 +140,7 @@ static void sendfromto(int sock, const PacketBuffer& buffer, const ComboAddress&
     if (ret == -1) {
       int error = errno;
       VERBOSESLOG(infolog("Error sending UDP response to %s: %s", dest.toStringWithPort(), stringerror(error)),
-                  dnsdist::logging::getTopLogger()->withName("sendfromto")->error(error, "Error sending UDP response", "destination", Logging::Loggable(dest)));
+                  dnsdist::logging::getTopLogger()->withName("sendfromto")->error(error, "Error sending UDP response", "destination.address", Logging::Loggable(dest)));
     }
     return;
   }
@@ -150,7 +150,7 @@ static void sendfromto(int sock, const PacketBuffer& buffer, const ComboAddress&
   }
   catch (const std::exception& exp) {
     VERBOSESLOG(infolog("Error sending UDP response from %s to %s: %s", from.toStringWithPort(), dest.toStringWithPort(), exp.what()),
-                dnsdist::logging::getTopLogger()->withName("sendfromto")->error(exp.what(), "Error sending UDP response", "source", Logging::Loggable(from), "destination", Logging::Loggable(dest)));
+                dnsdist::logging::getTopLogger()->withName("sendfromto")->error(exp.what(), "Error sending UDP response", "source.address", Logging::Loggable(from), "destination.address", Logging::Loggable(dest)));
   }
 }
 
@@ -294,7 +294,7 @@ bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, 
   catch (const std::exception& e) {
     if (remote && !response.empty() && static_cast<size_t>(response.size()) > sizeof(dnsheader)) {
       VERBOSESLOG(infolog("Backend %s sent us a response with id %d that did not parse: %s", remote->d_config.remote.toStringWithPort(), ntohs(dnsHeader->id), e.what()),
-                  dnsdist::logging::getTopLogger()->withName("udp-response-worker")->error(e.what(), "Received a DNS response from a backend that we could not parse", "address", Logging::Loggable(remote->d_config.remote), "response-id", Logging::Loggable(ntohs(dnsHeader->id))));
+                  dnsdist::logging::getTopLogger()->withName("udp-response-worker")->error(e.what(), "Received a DNS response from a backend that we could not parse", "backend.address", Logging::Loggable(remote->d_config.remote), "dns.query.id", Logging::Loggable(ntohs(dnsHeader->id))));
     }
     ++dnsdist::metrics::g_stats.nonCompliantResponses;
     if (remote) {
@@ -393,7 +393,7 @@ static bool fixUpResponse(PacketBuffer& response, const DNSName& qname, uint16_t
           }
           else {
             SLOG(warnlog("Error rewriting content"),
-                 dnsdist::logging::getTopLogger()->withName("fixup-response")->info(Logr::Error, "Error rewriting response content", "qname", Logging::Loggable(qname)));
+                 dnsdist::logging::getTopLogger()->withName("fixup-response")->info(Logr::Error, "Error rewriting response content", "dns.question.name", Logging::Loggable(qname)));
           }
         }
       }
@@ -416,7 +416,7 @@ static bool fixUpResponse(PacketBuffer& response, const DNSName& qname, uint16_t
           }
           else {
             SLOG(warnlog("Error rewriting content"),
-                 dnsdist::logging::getTopLogger()->withName("fixup-response")->info(Logr::Error, "Error rewriting response content", "qname", Logging::Loggable(qname)));
+                 dnsdist::logging::getTopLogger()->withName("fixup-response")->info(Logr::Error, "Error rewriting response content", "dns.question.name", Logging::Loggable(qname)));
           }
         }
       }
@@ -665,7 +665,7 @@ static void handleResponseTC4UDPClient(DNSQuestion& dnsQuestion, uint16_t udpPay
 {
   if (udpPayloadSize != 0 && response.size() > udpPayloadSize) {
     VERBOSESLOG(infolog("Got a response of size %d while the initial UDP payload size was %d, truncating", response.size(), udpPayloadSize),
-                dnsQuestion.getLogger()->withName("udp-response")->info(Logr::Info, "Got a UDP response larger than the initial UDP payload size, truncating", "size", Logging::Loggable(response.size()), "udp-payload-size", Logging::Loggable(udpPayloadSize)));
+                dnsQuestion.getLogger()->withName("udp-response")->info(Logr::Info, "Got a UDP response larger than the initial UDP payload size, truncating", "dns.response.size", Logging::Loggable(response.size()), "dns.query.udp_payload_size", Logging::Loggable(udpPayloadSize)));
 
     truncateTC(dnsQuestion.getMutableData(), dnsQuestion.getMaximumSize(), dnsQuestion.ids.qname.wirelength(), dnsdist::configuration::getCurrentRuntimeConfiguration().d_addEDNSToSelfGeneratedResponses);
     dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [](dnsheader& header) {
@@ -779,7 +779,7 @@ bool processResponderPacket(std::shared_ptr<DownstreamState>& dss, PacketBuffer&
 // listens on a dedicated socket, lobs answers from downstream servers to original requestors
 void responderThread(std::shared_ptr<DownstreamState> dss)
 {
-  auto responderLogger = dnsdist::logging::getTopLogger()->withName("udp-response")->withValues("address", Logging::Loggable(dss->d_config.remote));
+  auto responderLogger = dnsdist::logging::getTopLogger()->withName("udp-response")->withValues("backend.address", Logging::Loggable(dss->d_config.remote));
 
   try {
     setThreadName("dnsdist/respond");
@@ -864,7 +864,7 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
       }
       catch (const std::exception& e) {
         VERBOSESLOG(infolog("Got an error in UDP responder thread while parsing a response from %s, id %d: %s", dss->d_config.remote.toStringWithPort(), queryId, e.what()),
-                    responderLogger->error(e.what(), "Got an error in UDP responder thread while parsing a response", "response-id", Logging::Loggable(queryId)));
+                    responderLogger->error(e.what(), "Got an error in UDP responder thread while parsing a response", "dns.response.id", Logging::Loggable(queryId)));
       }
     }
   }
@@ -1155,7 +1155,7 @@ static bool applyRulesToQuery(DNSQuestion& dnsQuestion, const timespec& now)
         const auto& tagName = got->second.tagSettings->d_name;
         const auto& tagValue = got->second.tagSettings->d_value;
         VERBOSESLOG(infolog("Query from %s setting tag %s to %s because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort(), tagName, tagValue),
-                    dnsQuestion.getLogger()->info("Setting tag on query because of a dynamic rule", "tag-name", Logging::Loggable(tagName), "tag-value", Logging::Loggable(tagValue)));
+                    dnsQuestion.getLogger()->info("Setting tag on query because of a dynamic rule", "dnsdist.tag.name", Logging::Loggable(tagName), "dnsdist.tag.value", Logging::Loggable(tagValue)));
         updateBlockStats();
         dnsQuestion.setTag(tagName, tagValue);
         // do not return, the whole point it to set a Tag to be able to do further processing in rules
@@ -1236,7 +1236,7 @@ static bool applyRulesToQuery(DNSQuestion& dnsQuestion, const timespec& now)
         const auto& tagName = got->tagSettings->d_name;
         const auto& tagValue = got->tagSettings->d_value;
         VERBOSESLOG(infolog("Query from %s setting tag %s to %s because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort(), tagName, tagValue),
-                    dnsQuestion.getLogger()->info("Setting tag on query because of a suffix-based dynamic rule", "tag-name", Logging::Loggable(tagName), "tag-value", Logging::Loggable(tagValue)));
+                    dnsQuestion.getLogger()->info("Setting tag on query because of a suffix-based dynamic rule", "dnsdist.tag.name", Logging::Loggable(tagName), "dnsdist.tag.value", Logging::Loggable(tagValue)));
         updateBlockStats();
         dnsQuestion.setTag(tagName, tagValue);
         // do not return, the whole point it to set a Tag to be able to do further processing in rules
@@ -1278,7 +1278,7 @@ ssize_t udpClientSendRequestToBackend(const std::shared_ptr<DownstreamState>& ba
   if (result == -1) {
     int savederrno = errno;
     VERBOSESLOG(infolog("Error sending request to backend %s: %s", backend->d_config.remote.toStringWithPort(), stringerror(savederrno)),
-                dnsdist::logging::getTopLogger()->error(savederrno, "Error sending request to the backend", "address", Logging::Loggable(backend->d_config.remote)));
+                dnsdist::logging::getTopLogger()->error(savederrno, "Error sending request to the backend", "backend.address", Logging::Loggable(backend->d_config.remote)));
 
     /* This might sound silly, but on Linux send() might fail with EINVAL
        if the interface the socket was bound to doesn't exist anymore.
@@ -1301,7 +1301,7 @@ static bool isUDPQueryAcceptable(ClientState& clientState, const struct msghdr* 
   if ((msgh->msg_flags & MSG_TRUNC) != 0) {
     /* message was too large for our buffer */
     VERBOSESLOG(infolog("Dropping message too large for our buffer"),
-                dnsdist::logging::getTopLogger()->info("Dropping query from client that is too large for our buffer", "address", Logging::Loggable(dest), "local-address", Logging::Loggable(clientState.local)));
+                dnsdist::logging::getTopLogger()->info("Dropping query from client that is too large for our buffer", "source.address", Logging::Loggable(dest), "destination.address", Logging::Loggable(clientState.local)));
     ++clientState.nonCompliantQueries;
     ++dnsdist::metrics::g_stats.nonCompliantQueries;
     return false;
@@ -1310,7 +1310,7 @@ static bool isUDPQueryAcceptable(ClientState& clientState, const struct msghdr* 
   expectProxyProtocol = clientState.d_enableProxyProtocol && expectProxyProtocolFrom(remote);
   if (!dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL.match(remote) && !expectProxyProtocol) {
     VERBOSESLOG(infolog("Query from %s dropped because of ACL", remote.toStringWithPort()),
-                dnsdist::logging::getTopLogger()->info("Query dropped because of ACL", "address", Logging::Loggable(dest)));
+                dnsdist::logging::getTopLogger()->info("Query dropped because of ACL", "source.address", Logging::Loggable(dest)));
     ++dnsdist::metrics::g_stats.aclDrops;
     return false;
   }
@@ -1638,7 +1638,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
       ++dnsdist::metrics::g_stats.noPolicy;
 
       VERBOSESLOG(infolog("%s query for %s|%s from %s, no downstream server available", servFailOnNoPolicy ? "ServFailed" : "Dropped", dnsQuestion.ids.qname.toLogString(), QType(dnsQuestion.ids.qtype).toString(), dnsQuestion.ids.origRemote.toStringWithPort()),
-                  dnsQuestion.getLogger()->info("No downstream server available", "action", Logging::Loggable(servFailOnNoPolicy ? "ServFailed" : "Dropped")));
+                  dnsQuestion.getLogger()->info("No downstream server available", "dnsdist.action", Logging::Loggable(servFailOnNoPolicy ? "ServFailed" : "Dropped")));
 
       if (servFailOnNoPolicy) {
         dnsdist::self_answers::removeRecordsAndSetRCode(dnsQuestion, RCode::ServFail);
@@ -1727,7 +1727,7 @@ void handleServerStateChange(const string& nameWithAddr, bool newResult)
   }
   catch (const std::exception& exp) {
     SLOG(warnlog("Error calling the Lua hook for Server State Change: %s", exp.what()),
-         dnsdist::logging::getTopLogger()->error(exp.what(), "Error calling the Lua hook for backend state change", "backend", Logging::Loggable(nameWithAddr)));
+         dnsdist::logging::getTopLogger()->error(exp.what(), "Error calling the Lua hook for backend state change", "backend.name", Logging::Loggable(nameWithAddr)));
   }
 }
 
@@ -1842,7 +1842,7 @@ ProcessQueryResult processQuery(DNSQuestion& dnsQuestion, std::shared_ptr<Downst
   }
   catch (const std::exception& e) {
     VERBOSESLOG(infolog("Got an error while parsing a %s query from %s, id %d: %s", (dnsQuestion.overTCP() ? "TCP" : "UDP"), dnsQuestion.ids.origRemote.toStringWithPort(), queryId, e.what()),
-                dnsQuestion.getLogger()->error(e.what(), "Got and error while parsing a query", "query-id", Logging::Loggable(queryId)));
+                dnsQuestion.getLogger()->error(e.what(), "Got and error while parsing a query", "dns.question.id", Logging::Loggable(queryId)));
   }
   return ProcessQueryResult::Drop;
 }
@@ -1882,7 +1882,7 @@ bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& downstrea
     dnsQuestion.ids.forwardedOverUDP = true;
 
     VERBOSESLOG(infolog("Got query for %s|%s from %s%s, relayed to %s%s", dnsQuestion.ids.qname.toLogString(), QType(dnsQuestion.ids.qtype).toString(), dnsQuestion.ids.origRemote.toStringWithPort(), (doh ? " (https)" : ""), downstream->getNameWithAddr(), actuallySend ? "" : " (xsk)"),
-                dnsQuestion.getLogger()->info("Relayed query to backend", "backend", Logging::Loggable(downstream->getNameWithAddr()), "xsk", Logging::Loggable(actuallySend)));
+                dnsQuestion.getLogger()->info("Relayed query to backend", "backend.name", Logging::Loggable(downstream->getName()), "backend.address", Logging::Loggable(downstream->d_config.remote), "dnsdist.xsk", Logging::Loggable(actuallySend)));
 
     /* make a copy since we cannot touch dnsQuestion.ids after the move */
     auto proxyProtocolPayloadSize = dnsQuestion.ids.d_proxyProtocolPayloadSize;
@@ -2066,7 +2066,7 @@ static void processUDPQuery(ClientState& clientState, const struct msghdr* msgh,
   }
   catch (const std::exception& e) {
     VERBOSESLOG(infolog("Got an error in UDP question thread while parsing a query from %s, id %d: %s", ids.origRemote.toStringWithPort(), queryId, e.what()),
-                dnsdist::logging::getTopLogger()->error(e.what(), "Got an error in UDP question thread while parsing a query", "address", Logging::Loggable(ids.origRemote), "query-id", Logging::Loggable(queryId)));
+                dnsdist::logging::getTopLogger()->error(e.what(), "Got an error in UDP question thread while parsing a query", "source.address", Logging::Loggable(ids.origRemote), "dns.question.id", Logging::Loggable(queryId)));
   }
 }
 
@@ -2192,7 +2192,7 @@ bool XskProcessQuery(ClientState& clientState, XskPacket& packet)
   }
   catch (const std::exception& e) {
     VERBOSESLOG(infolog("Got an error in UDP question thread while parsing a query from %s, id %d: %s", ids.origRemote.toStringWithPort(), queryId, e.what()),
-                dnsdist::logging::getTopLogger()->error(e.what(), "Got an error in XSK UDP question thread while parsing a query", "address", Logging::Loggable(ids.origRemote), "query-id", Logging::Loggable(queryId)));
+                dnsdist::logging::getTopLogger()->error(e.what(), "Got an error in XSK UDP question thread while parsing a query", "source.address", Logging::Loggable(ids.origRemote), "dns.question.id", Logging::Loggable(queryId)));
   }
   return false;
 }
@@ -2265,7 +2265,7 @@ static void MultipleMessagesUDPClientThread(ClientState* clientState)
     if (msgsGot <= 0) {
       int savederrno = errno;
       VERBOSESLOG(infolog("Getting UDP messages via recvmmsg() failed with: %s", stringerror(savederrno)),
-                  dnsdist::logging::getTopLogger()->error(savederrno, "Getting UDP messages via recvmmsg failed", "address", Logging::Loggable(clientState->local)));
+                  dnsdist::logging::getTopLogger()->error(savederrno, "Getting UDP messages via recvmmsg failed", "frontend.address", Logging::Loggable(clientState->local)));
       msgsGot = 0;
       continue;
     }
@@ -2300,7 +2300,7 @@ static void MultipleMessagesUDPClientThread(ClientState* clientState)
       if (sent < 0 || static_cast<unsigned int>(sent) != msgsToSend) {
         int savederrno = errno;
         VERBOSESLOG(infolog("Error sending responses with sendmmsg() (%d on %u): %s", sent, msgsToSend, stringerror(savederrno)),
-                    dnsdist::logging::getTopLogger()->error(savederrno, "Error sending responses with sendmmsg()", "address", Logging::Loggable(clientState->local), "sent", Logging::Loggable(sent), "messages-to-send", Logging::Loggable(msgsToSend)));
+                    dnsdist::logging::getTopLogger()->error(savederrno, "Error sending responses with sendmmsg()", "address", Logging::Loggable(clientState->local), "dnsdist.sendmmsg.messages_sent", Logging::Loggable(sent), "dnsdist.sendmmsg.messages_to_send", Logging::Loggable(msgsToSend)));
       }
     }
   }
@@ -2654,7 +2654,7 @@ static void dropGroupPrivs(gid_t gid)
     }
     else {
       SLOG(warnlog("Warning: Unable to set group ID to %d: %s", gid, stringerror()),
-           dnsdist::logging::getTopLogger()->error(Logr::Warning, stringerror(), "Warning: Unable to set group ID", "gid", Logging::Loggable(gid)));
+           dnsdist::logging::getTopLogger()->error(Logr::Warning, stringerror(), "Warning: Unable to set group ID", "systemd.gid", Logging::Loggable(gid)));
     }
   }
 }
@@ -2664,7 +2664,7 @@ static void dropUserPrivs(uid_t uid)
   if (uid != 0) {
     if (setuid(uid) < 0) {
       SLOG(warnlog("Warning: Unable to set user ID to %d: %s", uid, stringerror()),
-           dnsdist::logging::getTopLogger()->error(Logr::Warning, stringerror(), "Warning: Unable to set user ID", "uid", Logging::Loggable(uid)));
+           dnsdist::logging::getTopLogger()->error(Logr::Warning, stringerror(), "Warning: Unable to set user ID", "system.uid", Logging::Loggable(uid)));
     }
   }
 }
@@ -2712,7 +2712,7 @@ static void checkFileDescriptorsLimits(size_t udpBindsCount, size_t tcpBindsCoun
   getrlimit(RLIMIT_NOFILE, &resourceLimits);
   if (resourceLimits.rlim_cur <= requiredFDsCount) {
     SLOG(warnlog("Warning, this configuration can use more than %d file descriptors, web server and console connections not included, and the current limit is %d.", std::to_string(requiredFDsCount), std::to_string(resourceLimits.rlim_cur)),
-         dnsdist::logging::getTopLogger()->info(Logr::Warning, "Warning, this configuration can use more file descriptors, web server and console connections not included, than the currently configured limit", "required-file-descriptors", Logging::Loggable(requiredFDsCount), "file-descriptors-limit", Logging::Loggable(std::to_string(resourceLimits.rlim_cur))));
+         dnsdist::logging::getTopLogger()->info(Logr::Warning, "Warning, this configuration can use more file descriptors, web server and console connections not included, than the currently configured limit", "system.required_file_descriptors", Logging::Loggable(requiredFDsCount), "system.file_descriptors_limit", Logging::Loggable(std::to_string(resourceLimits.rlim_cur))));
 #ifdef HAVE_SYSTEMD
     SLOG(warnlog("You can increase this value by using LimitNOFILE= in the systemd unit file or ulimit."),
          dnsdist::logging::getTopLogger()->info(Logr::Warning, "You can increase this value by using LimitNOFILE= in the systemd unit file over ulimit"));
@@ -2749,7 +2749,7 @@ static void setupLocalSocket(ClientState& clientState, const ComboAddress& addr,
 #else /* TCP_FASTOPEN */
       if (warn) {
         SLOG(warnlog("TCP Fast Open has been configured on local address '%s' but is not supported", addr.toStringWithPort()),
-             logger->info(Logr::Warning, "TCP Fast Open has been configured but is not supported", "local-adddress", Logging::Loggable(addr)));
+             logger->info(Logr::Warning, "TCP Fast Open has been configured but is not supported", "frontend.adddress", Logging::Loggable(addr)));
       }
 #endif /* TCP_FASTOPEN */
     }
@@ -2767,7 +2767,7 @@ static void setupLocalSocket(ClientState& clientState, const ComboAddress& addr,
 #ifdef IPV6_RECVPKTINFO
     if (addr.isIPv6() && setsockopt(socket, IPPROTO_IPV6, IPV6_RECVPKTINFO, &one, sizeof(one)) < 0 && !s_warned_ipv6_recvpktinfo) {
       SLOG(warnlog("Warning: IPV6_RECVPKTINFO setsockopt failed: %s", stringerror()),
-           logger->error(stringerror(), "IPV6_RECVPKTINFO setsockopt failed", "local-address", Logging::Loggable(addr)));
+           logger->error(stringerror(), "IPV6_RECVPKTINFO setsockopt failed", "frontend.address", Logging::Loggable(addr)));
       s_warned_ipv6_recvpktinfo = true;
     }
 #endif
@@ -2778,7 +2778,7 @@ static void setupLocalSocket(ClientState& clientState, const ComboAddress& addr,
       if (warn) {
         /* no need to warn again if configured but support is not available, we already did for UDP */
         SLOG(warnlog("SO_REUSEPORT has been configured on local address '%s' but is not supported", addr.toStringWithPort()),
-             logger->info(Logr::Warning, "SO_REUSEPORT has been configured but is not supported", "local-adddress", Logging::Loggable(addr)));
+             logger->info(Logr::Warning, "SO_REUSEPORT has been configured but is not supported", "frontend.adddress", Logging::Loggable(addr)));
       }
     }
   }
@@ -2791,7 +2791,7 @@ static void setupLocalSocket(ClientState& clientState, const ComboAddress& addr,
     }
     catch (const std::exception& e) {
       SLOG(warnlog("Failed to set IP_MTU_DISCOVER on QUIC server socket for local address '%s': %s", addr.toStringWithPort(), e.what()),
-           logger->error(Logr::Warning, e.what(), "Failed to set IP_MTU_DISCOVER on QUIC server socket", "local-adddress", Logging::Loggable(addr)));
+           logger->error(Logr::Warning, e.what(), "Failed to set IP_MTU_DISCOVER on QUIC server socket", "frontend.adddress", Logging::Loggable(addr)));
     }
   }
   else if (!tcp && !clientState.dnscryptCtx) {
@@ -2803,7 +2803,7 @@ static void setupLocalSocket(ClientState& clientState, const ComboAddress& addr,
     }
     catch (const std::exception& e) {
       SLOG(warnlog("Failed to set IP_MTU_DISCOVER on UDP server socket for local address '%s': %s", addr.toStringWithPort(), e.what()),
-           logger->error(Logr::Warning, e.what(), "Failed to set IP_MTU_DISCOVER on UDP server socket", "local-adddress", Logging::Loggable(addr)));
+           logger->error(Logr::Warning, e.what(), "Failed to set IP_MTU_DISCOVER on UDP server socket", "frontend.address", Logging::Loggable(addr)));
     }
   }
 
@@ -2814,7 +2814,7 @@ static void setupLocalSocket(ClientState& clientState, const ComboAddress& addr,
       }
       catch (const std::exception& e) {
         SLOG(warnlog(e.what()),
-             logger->error(Logr::Warning, e.what(), "Failed to raise send buffer size on UDP server socket", "local-adddress", Logging::Loggable(addr)));
+             logger->error(Logr::Warning, e.what(), "Failed to raise send buffer size on UDP server socket", "frontend.address", Logging::Loggable(addr)));
       }
     }
     else {
@@ -2822,12 +2822,12 @@ static void setupLocalSocket(ClientState& clientState, const ComboAddress& addr,
         auto result = raiseSocketSendBufferToMax(socket);
         if (result > 0) {
           SLOG(infolog("Raised send buffer to %u for local address '%s'", result, addr.toStringWithPort()),
-               logger->info(Logr::Info, "Raised send buffer size", "local-adddress", Logging::Loggable(addr), "buffer-size", Logging::Loggable(result)));
+               logger->info(Logr::Info, "Raised send buffer size", "frontend.address", Logging::Loggable(addr), "network.send_buffer_size", Logging::Loggable(result)));
         }
       }
       catch (const std::exception& e) {
         SLOG(warnlog(e.what()),
-             logger->error(Logr::Warning, e.what(), "Failed to raise send buffer size on UDP server socket", "local-adddress", Logging::Loggable(addr)));
+             logger->error(Logr::Warning, e.what(), "Failed to raise send buffer size on UDP server socket", "frontend.address", Logging::Loggable(addr)));
       }
     }
 
@@ -2837,7 +2837,7 @@ static void setupLocalSocket(ClientState& clientState, const ComboAddress& addr,
       }
       catch (const std::exception& e) {
         SLOG(warnlog(e.what()),
-             logger->error(Logr::Warning, e.what(), "Failed to raise receive buffer size on UDP server socket", "local-adddress", Logging::Loggable(addr)));
+             logger->error(Logr::Warning, e.what(), "Failed to raise receive buffer size on UDP server socket", "frontend.address", Logging::Loggable(addr)));
       }
     }
     else {
@@ -2845,12 +2845,12 @@ static void setupLocalSocket(ClientState& clientState, const ComboAddress& addr,
         auto result = raiseSocketReceiveBufferToMax(socket);
         if (result > 0) {
           SLOG(infolog("Raised receive buffer to %u for local address '%s'", result, addr.toStringWithPort()),
-               logger->info(Logr::Info, "Raised receive buffer size", "local-adddress", Logging::Loggable(addr), "buffer-size", Logging::Loggable(result)));
+               logger->info(Logr::Info, "Raised receive buffer size", "frontend.address", Logging::Loggable(addr), "buffer-size", Logging::Loggable(result)));
         }
       }
       catch (const std::exception& e) {
         SLOG(warnlog(e.what()),
-             logger->error(Logr::Warning, e.what(), "Failed to raise receive buffer size on UDP server socket", "local-adddress", Logging::Loggable(addr)));
+             logger->error(Logr::Warning, e.what(), "Failed to raise receive buffer size on UDP server socket", "frontend.address", Logging::Loggable(addr)));
       }
     }
   }
@@ -2861,12 +2861,12 @@ static void setupLocalSocket(ClientState& clientState, const ComboAddress& addr,
     int res = setsockopt(socket, SOL_SOCKET, SO_BINDTODEVICE, itf.c_str(), itf.length());
     if (res != 0) {
       SLOG(warnlog("Error setting up the interface on local address '%s': %s", addr.toStringWithPort(), stringerror()),
-           logger->error(Logr::Warning, stringerror(), "Error setting up the interface", "local-adddress", Logging::Loggable(addr)));
+           logger->error(Logr::Warning, stringerror(), "Error setting up the interface", "frontend.address", Logging::Loggable(addr)));
     }
 #else
     if (warn) {
       SLOG(warnlog("An interface has been configured on local address '%s' but SO_BINDTODEVICE is not supported", addr.toStringWithPort()),
-           logger->error(Logr::Warning, stringerror(), "An interface has been configured but SO_BINDTODEVICE is not supported", "local-adddress", Logging::Loggable(addr)));
+           logger->error(Logr::Warning, stringerror(), "An interface has been configured but SO_BINDTODEVICE is not supported", "frontend.address", Logging::Loggable(addr)));
     }
 #endif
   }
@@ -2878,7 +2878,7 @@ static void setupLocalSocket(ClientState& clientState, const ComboAddress& addr,
   if (!isQUIC && g_defaultBPFFilter && !g_defaultBPFFilter->isExternal()) {
     clientState.attachFilter(g_defaultBPFFilter, socket);
     VERBOSESLOG(infolog("Attaching default BPF Filter to %s frontend %s", (!tcp ? std::string("UDP") : std::string("TCP")), addr.toStringWithPort()),
-                logger->info(Logr::Info, "Attaching default BPF Filter to frontend", "local-adddress", Logging::Loggable(addr), "protocol", Logging::Loggable((!tcp ? std::string("UDP") : std::string("TCP")))));
+                logger->info(Logr::Info, "Attaching default BPF Filter to frontend", "frontend.address", Logging::Loggable(addr), "network.transport", Logging::Loggable((!tcp ? std::string("udp") : std::string("tcp")))));
   }
 #endif /* HAVE_EBPF */
 
@@ -2889,34 +2889,34 @@ static void setupLocalSocket(ClientState& clientState, const ComboAddress& addr,
 
     if (clientState.tlsFrontend != nullptr) {
       SLOG(infolog("Listening on %s for TLS", addr.toStringWithPort()),
-           logger->info(Logr::Info, "Listening on DoT frontend", "local-adddress", Logging::Loggable(addr)));
+           logger->info(Logr::Info, "Listening on DoT frontend", "frontend.address", Logging::Loggable(addr)));
     }
     else if (clientState.dohFrontend != nullptr) {
       SLOG(infolog("Listening on %s for DoH", addr.toStringWithPort()),
-           logger->info(Logr::Info, "Listening on DoH frontend", "local-adddress", Logging::Loggable(addr)));
+           logger->info(Logr::Info, "Listening on DoH frontend", "frontend.address", Logging::Loggable(addr)));
     }
     else if (clientState.dnscryptCtx != nullptr) {
       SLOG(infolog("Listening on %s for DNSCrypt", addr.toStringWithPort()),
-           logger->info(Logr::Info, "Listening on DNSCrypt frontend", "local-adddress", Logging::Loggable(addr)));
+           logger->info(Logr::Info, "Listening on DNSCrypt frontend", "frontend.address", Logging::Loggable(addr)));
     }
     else {
       SLOG(infolog("Listening on %s", addr.toStringWithPort()),
-           logger->info(Logr::Info, "Listening on Do53 frontend", "local-adddress", Logging::Loggable(addr)));
+           logger->info(Logr::Info, "Listening on Do53 frontend", "frontend.address", Logging::Loggable(addr)));
     }
   }
   else {
     if (clientState.doqFrontend != nullptr) {
       SLOG(infolog("Listening on %s for DoQ", addr.toStringWithPort()),
-           logger->info(Logr::Info, "Listening on DoQ frontend", "local-adddress", Logging::Loggable(addr)));
+           logger->info(Logr::Info, "Listening on DoQ frontend", "frontend.address", Logging::Loggable(addr)));
     }
     else if (clientState.doh3Frontend != nullptr) {
       SLOG(infolog("Listening on %s for DoH3", addr.toStringWithPort()),
-           logger->info(Logr::Info, "Listening on DoH3 frontend", "local-adddress", Logging::Loggable(addr)));
+           logger->info(Logr::Info, "Listening on DoH3 frontend", "frontend.address", Logging::Loggable(addr)));
     }
 #ifdef HAVE_XSK
     else if (clientState.xskInfo != nullptr) {
       SLOG(infolog("Listening on %s (XSK-enabled)", addr.toStringWithPort()),
-           logger->info(Logr::Info, "Listening on XSK-enabled frontend", "local-adddress", Logging::Loggable(addr)));
+           logger->info(Logr::Info, "Listening on XSK-enabled frontend", "frontend.address", Logging::Loggable(addr)));
     }
 #endif
   }
@@ -2938,7 +2938,7 @@ static void setUpLocalBind(ClientState& cstate, const std::shared_ptr<Logr::Logg
   if (cstate.tlsFrontend != nullptr) {
     if (!cstate.tlsFrontend->setupTLS()) {
       SLOG(errlog("Error while setting up TLS on local address '%s', exiting", cstate.local.toStringWithPort()),
-           logger->info(Logr::Error, "Error while setting up TLS bind, exiting", "local-address", Logging::Loggable(cstate.local)));
+           logger->info(Logr::Error, "Error while setting up TLS bind, exiting", "frontend.address", Logging::Loggable(cstate.local)));
       _exit(EXIT_FAILURE);
     }
   }
@@ -3322,7 +3322,7 @@ static void setupPools(const std::shared_ptr<Logr::Logger>& logger)
     for (const auto& backend : currentConfig.d_backends) {
       if (backend->d_config.d_weight < 100) {
         VERBOSESLOG(infolog("Warning, the backend '%s' has a very low weight (%d), which will not yield a good distribution of queries with the 'chashed' policy. Please consider raising it to at least '100'.", backend->getName(), backend->d_config.d_weight),
-                    logger->info(Logr::Info, "Warning, this backend has a very low weight, which will not yield a good distribution of queries with the 'chashed' policy. Please consider raising it to at least '100'", "backend", Logging::Loggable(backend->getName()), "weight", Logging::Loggable(backend->d_config.d_weight)));
+                    logger->info(Logr::Info, "Warning, this backend has a very low weight, which will not yield a good distribution of queries with the 'chashed' policy. Please consider raising it to at least '100'", "backend.name", Logging::Loggable(backend->getName()), "backend.weight", Logging::Loggable(backend->d_config.d_weight)));
       }
 
       backend->hash();
@@ -3521,7 +3521,7 @@ static ListeningSockets initListeningSockets()
     }
     catch (const std::exception& exp) {
       SLOG(errlog("Unable to bind to control socket on %s: %s", local.toStringWithPort(), exp.what()),
-           dnsdist::logging::getTopLogger()->error(exp.what(), "Unable to bind to console control socket", "local-address", Logging::Loggable(local)));
+           dnsdist::logging::getTopLogger()->error(exp.what(), "Unable to bind to console control socket", "network.local.address", Logging::Loggable(local)));
     }
   }
 
@@ -3534,7 +3534,7 @@ static ListeningSockets initListeningSockets()
     }
     catch (const std::exception& exp) {
       SLOG(errlog("Unable to bind to web server socket on %s: %s", local.toStringWithPort(), exp.what()),
-           dnsdist::logging::getTopLogger()->error(exp.what(), "Unable to bind to web server socket", "local-address", Logging::Loggable(local)));
+           dnsdist::logging::getTopLogger()->error(exp.what(), "Unable to bind to web server socket", "network.local.address", Logging::Loggable(local)));
     }
   }
 
@@ -3562,13 +3562,13 @@ static bool loadConfigurationFromFile(const std::string& configurationFile, bool
 
     if (auto tentativeLuaConfFile = lookForTentativeConfigurationFileWithExtension(configurationFile, "lua")) {
       VERBOSESLOG(infolog("Loading configuration from auto-discovered Lua file %s", *tentativeLuaConfFile),
-                  logger->info(Logr::Info, "Loading configuration from auto-discovered Lua file", "configuration-file", Logging::Loggable(*tentativeLuaConfFile)));
+                  logger->info(Logr::Info, "Loading configuration from auto-discovered Lua file", "dnsdist.configuration.file", Logging::Loggable(*tentativeLuaConfFile)));
 
       dnsdist::configuration::lua::loadLuaConfigurationFile(*(g_lua.lock()), *tentativeLuaConfFile, configCheck);
     }
 
     VERBOSESLOG(infolog("Loading configuration from YAML file %s", configurationFile),
-                logger->info(Logr::Info, "Loading configuration from YAML file", "configuration-file", Logging::Loggable(configurationFile)));
+                logger->info(Logr::Info, "Loading configuration from YAML file", "dnsdist.configuration.file", Logging::Loggable(configurationFile)));
 
     if (!dnsdist::configuration::yaml::loadConfigurationFromFile(configurationFile, isClient, configCheck)) {
       return false;
@@ -3582,18 +3582,18 @@ static bool loadConfigurationFromFile(const std::string& configurationFile, bool
   dnsdist::lua::setupLua(*(g_lua.lock()), isClient, configCheck);
   if (boost::ends_with(configurationFile, ".lua")) {
     VERBOSESLOG(infolog("Loading configuration from Lua file %s", configurationFile),
-                logger->info(Logr::Info, "Loading configuration from Lua file", "configuration-file", Logging::Loggable(configurationFile)));
+                logger->info(Logr::Info, "Loading configuration from Lua file", "dnsdist.configuration.file", Logging::Loggable(configurationFile)));
 
     dnsdist::configuration::lua::loadLuaConfigurationFile(*(g_lua.lock()), configurationFile, configCheck);
     if (auto tentativeYamlConfFile = lookForTentativeConfigurationFileWithExtension(configurationFile, "yml")) {
       VERBOSESLOG(infolog("Loading configuration from auto-discovered YAML file %s", *tentativeYamlConfFile),
-                  logger->info(Logr::Info, "Loading configuration from auto-discovered YAML file", "configuration-file", Logging::Loggable(*tentativeYamlConfFile)));
+                  logger->info(Logr::Info, "Loading configuration from auto-discovered YAML file", "dnsdist.configuration.file", Logging::Loggable(*tentativeYamlConfFile)));
       return dnsdist::configuration::yaml::loadConfigurationFromFile(*tentativeYamlConfFile, isClient, configCheck);
     }
   }
   else {
     VERBOSESLOG(infolog("Loading configuration from Lua file %s", configurationFile),
-                logger->info(Logr::Info, "Loading configuration from Lua file", "configuration-file", Logging::Loggable(configurationFile)));
+                logger->info(Logr::Info, "Loading configuration from Lua file", "dnsdist.configuration.file", Logging::Loggable(configurationFile)));
 
     dnsdist::configuration::lua::loadLuaConfigurationFile(*(g_lua.lock()), configurationFile, configCheck);
   }
@@ -3695,7 +3695,7 @@ int main(int argc, char** argv)
       }
       // No exception was thrown
       SLOG(infolog("Configuration '%s' OK!", cmdLine.config),
-           setupLogger->info(Logr::Info, "Configuration OK", "configuration-file", Logging::Loggable(cmdLine.config)));
+           setupLogger->info(Logr::Info, "Configuration OK", "dnsdist.configuration.file", Logging::Loggable(cmdLine.config)));
       doExitNicely();
     }
 
@@ -3818,7 +3818,7 @@ int main(int argc, char** argv)
        but low enough to be useful */
     if (maxTCPClientThreads >= 50U) {
       SLOG(warnlog("setMaxTCPClientThreads(%d) might create a large number of TCP connections to backends, and is probably not needed, please consider lowering it", maxTCPClientThreads),
-           setupLogger->info(Logr::Warning, "The current setMaxTCPClientThreads() value might create a large number of TCP connections to backends, and is probably not needed, please consider lowering it", "value", Logging::Loggable(maxTCPClientThreads)));
+           setupLogger->info(Logr::Warning, "The current setMaxTCPClientThreads() value might create a large number of TCP connections to backends, and is probably not needed, please consider lowering it", "dnsdist.max_tcp_client_threads", Logging::Loggable(maxTCPClientThreads)));
     }
     g_tcpclientthreads = std::make_unique<TCPClientCollection>(maxTCPClientThreads, std::vector<ClientState*>());
 #endif
@@ -3878,7 +3878,7 @@ int main(int argc, char** argv)
             dss->submitHealthCheckResult(true, false);
             dss->setUpStatus(false);
             SLOG(warnlog("Marking downstream %s as 'down'", dss->getNameWithAddr()),
-                 setupLogger->info(Logr::Warning, "Marking downstream backend server as 'down'", "backend-name", Logging::Loggable(dss->getName()), "address", Logging::Loggable(dss->d_config.remote)));
+                 setupLogger->info(Logr::Warning, "Marking downstream backend server as 'down'", "backend.name", Logging::Loggable(dss->getName()), "backend.address", Logging::Loggable(dss->d_config.remote), "backend.health_check.status", Logging::Loggable("down")));
           }
         }
       }

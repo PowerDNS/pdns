@@ -136,7 +136,7 @@ void AsynchronousHolder::mainThread(std::shared_ptr<Data> data)
       expiredEvents.pop_front();
       if (!data->d_failOpen) {
         VERBOSESLOG(infolog("Asynchronous query %d has expired at %d.%d, notifying the sender", queryID, now.tv_sec, now.tv_usec),
-                    dnsdist::logging::getTopLogger()->info(Logr::Info, "Asynchronous query has expired, notifying the sender", "query-id", Logging::Loggable(queryID)));
+                    dnsdist::logging::getTopLogger()->info(Logr::Info, "Asynchronous query has expired, notifying the sender", "dns.question.id", Logging::Loggable(queryID)));
         auto sender = query->getTCPQuerySender();
         if (sender) {
           TCPResponse tresponse(std::move(query->query));
@@ -145,7 +145,7 @@ void AsynchronousHolder::mainThread(std::shared_ptr<Data> data)
       }
       else {
         VERBOSESLOG(infolog("Asynchronous query %d has expired at %d.%d, resuming", queryID, now.tv_sec, now.tv_usec),
-                    dnsdist::logging::getTopLogger()->info(Logr::Info, "Asynchronous query has expired, resuming", "query-id", Logging::Loggable(queryID)));
+                    dnsdist::logging::getTopLogger()->info(Logr::Info, "Asynchronous query has expired, resuming", "dns.question.id", Logging::Loggable(queryID)));
         resumeQuery(std::move(query));
       }
     }
@@ -186,7 +186,7 @@ std::unique_ptr<CrossProtocolQuery> AsynchronousHolder::get(uint16_t asyncID, ui
     timeval now{};
     gettimeofday(&now, nullptr);
     VERBOSESLOG(infolog("Asynchronous object %d not found at %d.%d", queryID, now.tv_sec, now.tv_usec),
-                dnsdist::logging::getTopLogger()->info(Logr::Info, "Asynchronous object not found", "async-id", Logging::Loggable(asyncID), "query-id", Logging::Loggable(queryID)));
+                dnsdist::logging::getTopLogger()->info(Logr::Info, "Asynchronous object not found", "dnsdist.async.id", Logging::Loggable(asyncID), "dns.question.id", Logging::Loggable(queryID)));
     return nullptr;
   }
 
@@ -360,7 +360,7 @@ bool suspendQuery(DNSQuestion& dnsQuestion, uint16_t asyncID, uint16_t queryID, 
   normalizeTV(ttd);
 
   VERBOSESLOG(infolog("Suspending asynchronous query %d at %d.%d until %d.%d", queryID, now.tv_sec, now.tv_usec, ttd.tv_sec, ttd.tv_usec),
-              dnsQuestion.getLogger()->info(Logr::Info, "Suspending asynchronous query", "until-sec", Logging::Loggable(ttd.tv_sec), "until-usec", Logging::Loggable(ttd.tv_usec)));
+              dnsQuestion.getLogger()->info(Logr::Info, "Suspending asynchronous query", "dnsdist.async.until_sec", Logging::Loggable(ttd.tv_sec), "dnsdist.async.until_usec", Logging::Loggable(ttd.tv_usec)));
   auto query = getInternalQueryFromDQ(dnsQuestion, false);
 
   g_asyncHolder->push(asyncID, queryID, ttd, std::move(query));
@@ -381,7 +381,7 @@ bool suspendResponse(DNSResponse& dnsResponse, uint16_t asyncID, uint16_t queryI
   normalizeTV(ttd);
 
   VERBOSESLOG(infolog("Suspending asynchronous response %d at %d.%d until %d.%d", queryID, now.tv_sec, now.tv_usec, ttd.tv_sec, ttd.tv_usec),
-              dnsResponse.getLogger()->info(Logr::Info, "Suspending asynchronous response", "until-sec", Logging::Loggable(ttd.tv_sec), "until-usec", Logging::Loggable(ttd.tv_usec)));
+              dnsResponse.getLogger()->info(Logr::Info, "Suspending asynchronous response", "dnsdist.async.until_sec", Logging::Loggable(ttd.tv_sec), "dnsdist.async.until_usec", Logging::Loggable(ttd.tv_usec)));
   auto query = getInternalQueryFromDQ(dnsResponse, true);
   query->d_isResponse = true;
   query->downstream = dnsResponse.d_downstream;

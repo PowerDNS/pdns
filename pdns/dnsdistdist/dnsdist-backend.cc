@@ -130,7 +130,7 @@ bool DownstreamState::reconnect(bool initialAttempt)
       if (res != 0) {
         int saved = errno;
         SLOG(infolog("Error setting up the interface on backend socket '%s': %s", d_config.remote.toStringWithPort(), stringerror(saved)),
-             getLogger()->error(Logr::Info, saved, "Error setting up the interface on backend socket", "source-interface", Logging::Loggable(d_config.sourceItfName)));
+             getLogger()->error(Logr::Info, saved, "Error setting up the interface on backend socket", "source.interface", Logging::Loggable(d_config.sourceItfName)));
       }
     }
 #endif
@@ -161,7 +161,7 @@ bool DownstreamState::reconnect(bool initialAttempt)
       if (initialAttempt || dnsdist::configuration::getCurrentRuntimeConfiguration().d_verbose) {
         if (!IsAnyAddress(d_config.sourceAddr) || !d_config.sourceItfName.empty()) {
           SLOG(infolog("Error connecting to new server with address %s (source address: %s, source interface: %s): %s", d_config.remote.toStringWithPort(), IsAnyAddress(d_config.sourceAddr) ? "not set" : d_config.sourceAddr.toString(), d_config.sourceItfName.empty() ? "not set" : d_config.sourceItfName, error.what()),
-               getLogger()->error(Logr::Info, error.what(), "Error connecting to server", "source-address", Logging::Loggable(d_config.sourceAddr), "source-interface", Logging::Loggable(d_config.sourceItfName)));
+               getLogger()->error(Logr::Info, error.what(), "Error connecting to server", "source.address", Logging::Loggable(d_config.sourceAddr), "source.interface", Logging::Loggable(d_config.sourceItfName)));
 
           }
         else {
@@ -260,7 +260,7 @@ void DownstreamState::hash()
 {
   const auto hashPerturbation = dnsdist::configuration::getImmutableConfiguration().d_hashPerturbation;
   VERBOSESLOG(infolog("Computing hashes for id=%s and weight=%d, hash_perturbation=%d", *d_config.id, d_config.d_weight, hashPerturbation),
-              dnsdist::logging::getTopLogger()->info(Logr::Info, "Computing hashes for backend", "id", Logging::Loggable(*d_config.id), "weight", Logging::Loggable(d_config.d_weight), "hash-perturbation", Logging::Loggable(hashPerturbation)));
+              dnsdist::logging::getTopLogger()->info(Logr::Info, "Computing hashes for backend", "backend.id", Logging::Loggable(*d_config.id), "backend.weight", Logging::Loggable(d_config.d_weight), "backend.hash_perturbation", Logging::Loggable(hashPerturbation)));
 
   auto weight = d_config.d_weight;
   auto idStr = boost::str(boost::format("%s") % *d_config.id);
@@ -291,7 +291,7 @@ void DownstreamState::setWeight(int newWeight)
 {
   if (newWeight < 1) {
     SLOG(errlog("Error setting server's weight: downstream weight value must be greater than 0."),
-         getLogger()->info(Logr::Error, "Error setting server's weight: downstream weight value must be greater than 0", "weight", Logging::Loggable(newWeight)));
+         getLogger()->info(Logr::Error, "Error setting server's weight: downstream weight value must be greater than 0", "backend.weight", Logging::Loggable(newWeight)));
     return ;
   }
 
@@ -460,7 +460,7 @@ void DownstreamState::handleUDPTimeout(IDState& ids)
   SLOG(infolog("Had a downstream timeout from %s (%s) for query for %s|%s from %s",
                d_config.remote.toStringWithPort(), getName(),
                ids.internal.qname.toLogString(), QType(ids.internal.qtype).toString(), ids.internal.origRemote.toStringWithPort()),
-       getLogger()->info(Logr::Info, "Had a downstream timeout", "qname", Logging::Loggable(ids.internal.qname), "qtype", Logging::Loggable(QType(ids.internal.qtype)), "query-id", Logging::Loggable(ids.internal.origID), "address", Logging::Loggable(ids.internal.origRemote)));
+       getLogger()->info(Logr::Info, "Had a downstream timeout", "dns.question.name", Logging::Loggable(ids.internal.qname), "dns.question.type", Logging::Loggable(QType(ids.internal.qtype)), "dns.question.id", Logging::Loggable(ids.internal.origID), "client.address", Logging::Loggable(ids.internal.origRemote)));
 
   const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
   const auto& timeoutRespRules = dnsdist::rules::getResponseRuleChain(chains, dnsdist::rules::ResponseRuleChain::TimeoutResponseRules);
@@ -729,7 +729,7 @@ bool DownstreamState::healthCheckRequired(std::optional<time_t> currentTime)
       if (current >= maxFailureRate) {
         lastResults.clear();
         VERBOSESLOG(infolog("Backend %s reached the lazy health-check threshold (%f%% out of %f%%, looking at sample of %d items with %d failures), moving to Potential Failure state", getNameWithAddr(), current, maxFailureRate, totalCount, failures),
-                    getLogger()->info(Logr::Info, "Backend reached the lazy health-check threshold, moving to Potential failure state", "current-failure-rate", Logging::Loggable(current), "max-failure-rate", Logging::Loggable(maxFailureRate), "samples", Logging::Loggable(totalCount), "failures-count", Logging::Loggable(failures)));
+                    getLogger()->info(Logr::Info, "Backend reached the lazy health-check threshold, moving to Potential failure state", "backend.health_check.current_failure_rate", Logging::Loggable(current), "backend.health_check.max_failure_rate", Logging::Loggable(maxFailureRate), "backend.health_check.samples", Logging::Loggable(totalCount), "backend.health_check.failures_count", Logging::Loggable(failures)));
         stats->d_status = LazyHealthCheckStats::LazyStatus::PotentialFailure;
         consecutiveSuccessfulChecks = 0;
         /* we update the next check time here because the check might time out,
@@ -771,7 +771,7 @@ void DownstreamState::updateNextLazyHealthCheck(LazyHealthCheckStats& stats, boo
          determine if the backend is really down */
       stats.d_nextCheck = now + d_config.checkInterval;
       VERBOSESLOG(infolog("Backend %s is in potential failure state, next check in %d seconds", getNameWithAddr(), d_config.checkInterval.load()),
-                  getLogger()->info(Logr::Info, "Backend is in potential failure state", "next-check", Logging::Loggable(d_config.checkInterval.load())));
+                  getLogger()->info(Logr::Info, "Backend is in potential failure state", "backend.health_check.next_check", Logging::Loggable(d_config.checkInterval.load())));
     }
     else if (consecutiveSuccessfulChecks > 0) {
       /* we are in 'Failed' state, but just had one (or more) successful check,
@@ -780,7 +780,7 @@ void DownstreamState::updateNextLazyHealthCheck(LazyHealthCheckStats& stats, boo
       stats.d_nextCheck = now + d_config.d_lazyHealthCheckFailedInterval;
       if (!checkScheduled) {
         VERBOSESLOG(infolog("Backend %s is in failed state but had %d consecutive successful checks, next check in %d seconds", getNameWithAddr(), std::to_string(consecutiveSuccessfulChecks), d_config.d_lazyHealthCheckFailedInterval),
-                    getLogger()->info(Logr::Info, "Backend is in failed state but had a successful check", "consecutive-successful-checks", Logging::Loggable(std::to_string(consecutiveSuccessfulChecks)), "next-check", Logging::Loggable(d_config.d_lazyHealthCheckFailedInterval)));
+                    getLogger()->info(Logr::Info, "Backend is in failed state but had a successful check", "backend.health_check.consecutive_successful_checks", Logging::Loggable(std::to_string(consecutiveSuccessfulChecks)), "backend.health_check.next_check", Logging::Loggable(d_config.d_lazyHealthCheckFailedInterval)));
       }
     }
     else {
@@ -805,13 +805,13 @@ void DownstreamState::updateNextLazyHealthCheck(LazyHealthCheckStats& stats, boo
 
       stats.d_nextCheck = now + backOff;
       VERBOSESLOG(infolog("Backend %s is in failed state and has failed %d consecutive checks, next check in %d seconds", getNameWithAddr(), failedTests, backOff),
-                  getLogger()->info(Logr::Info, "Backend is in failed state and has failed its last check", "consecutive-failed-checks", Logging::Loggable(failedTests), "next-check", Logging::Loggable(backOff)));
+                  getLogger()->info(Logr::Info, "Backend is in failed state and has failed its last check", "backend.health_check.consecutive_failed_checks", Logging::Loggable(failedTests), "backend.health_check.next_check", Logging::Loggable(backOff)));
     }
   }
   else {
     stats.d_nextCheck = now + d_config.d_lazyHealthCheckFailedInterval;
     VERBOSESLOG(infolog("Backend %s is in %s state, next check in %d seconds", getNameWithAddr(), (stats.d_status == DownstreamState::LazyHealthCheckStats::LazyStatus::PotentialFailure ? "potential failure" : "failed"), d_config.d_lazyHealthCheckFailedInterval),
-                getLogger()->info(Logr::Info, "Scheduling the next lazy check for this backend", "state", Logging::Loggable(stats.d_status == DownstreamState::LazyHealthCheckStats::LazyStatus::PotentialFailure ? "potential failure" : "failed"), "next-check", Logging::Loggable(d_config.d_lazyHealthCheckFailedInterval)));
+                getLogger()->info(Logr::Info, "Scheduling the next lazy check for this backend", "state", Logging::Loggable(stats.d_status == DownstreamState::LazyHealthCheckStats::LazyStatus::PotentialFailure ? "potential failure" : "failed"), "backend.health_check.next_check", Logging::Loggable(d_config.d_lazyHealthCheckFailedInterval)));
   }
 }
 
@@ -826,7 +826,7 @@ void DownstreamState::submitHealthCheckResult(bool initial, bool newResult)
        about the minimum number of failed/successful health-checks */
     if (!IsAnyAddress(d_config.remote)) {
       SLOG(infolog("Marking downstream %s as '%s'", getNameWithAddr(), newResult ? "up" : "down"),
-           getLogger()->info(Logr::Info, "Setting initial status for backend", "status", Logging::Loggable(newResult ? "up" : "down")));
+           getLogger()->info(Logr::Info, "Setting initial status for backend", "backend.health_check.status", Logging::Loggable(newResult ? "up" : "down")));
     }
     setUpStatus(newResult);
     if (newResult == false) {
@@ -868,7 +868,7 @@ void DownstreamState::submitHealthCheckResult(bool initial, bool newResult)
       if (d_config.d_healthCheckMode == DownstreamState::HealthCheckMode::Lazy) {
         auto stats = d_lazyHealthCheckStats.lock();
         VERBOSESLOG(infolog("Backend %s had %d successful checks, moving to Healthy", getNameWithAddr(), std::to_string(consecutiveSuccessfulChecks)),
-                    getLogger()->info(Logr::Info, "Backend had a successful check, moving to Healthy", "consecutive-successful-checks", Logging::Loggable(std::to_string(consecutiveSuccessfulChecks))));
+                    getLogger()->info(Logr::Info, "Backend had a successful check, moving to Healthy", "backend.health_check.consecutive_successful_checks", Logging::Loggable(std::to_string(consecutiveSuccessfulChecks))));
         stats->d_status = LazyHealthCheckStats::LazyStatus::Healthy;
         stats->d_lastResults.clear();
       }
@@ -904,7 +904,7 @@ void DownstreamState::submitHealthCheckResult(bool initial, bool newResult)
     /* we are actually moving to a new state */
     if (!IsAnyAddress(d_config.remote)) {
       SLOG(infolog("Marking downstream %s as '%s'", getNameWithAddr(), newState ? "up" : "down"),
-           getLogger()->info(Logr::Info, "Updating status for backend", "status", Logging::Loggable(newState ? "up" : "down")));
+           getLogger()->info(Logr::Info, "Updating status for backend", "backend.health_check.status", Logging::Loggable(newState ? "up" : "down")));
     }
 
     if (newState && !isTCPOnly() && (!connected || d_config.reconnectOnUp)) {
@@ -948,7 +948,7 @@ void DownstreamState::registerXsk(std::vector<std::shared_ptr<XskSocket>>& xsks)
 
     if (addresses.size() > 1) {
       SLOG(warnlog("More than one address configured on interface %s, picking the first one (%s) for XSK. Set the 'source' parameter on 'newServer' if you want to use a different address.", ifName, addresses.at(0).toString()),
-           getLogger()->info(Logr::Warning, "More than one address configured on this interface, picking the first one for XSK. Set the 'source' parameter on 'newServer' if you want to use a different address.", "interface", Logging::Loggable(ifName), "address", Logging::Loggable(addresses.at(0).toString())));
+           getLogger()->info(Logr::Warning, "More than one address configured on this interface, picking the first one for XSK. Set the 'source' parameter on 'newServer' if you want to use a different address.", "source.interface", Logging::Loggable(ifName), "backend.address", Logging::Loggable(addresses.at(0).toString())));
     }
     d_config.sourceAddr = addresses.at(0);
   }
@@ -1008,7 +1008,7 @@ bool DownstreamState::parseSourceParameter(const std::string& source, Downstream
   }
 
   SLOG(warnlog("Dismissing source %s because '%s' is not a valid interface name", source, config.sourceItfName),
-       dnsdist::logging::getTopLogger()->info(Logr::Warning, "Dismissing source because the interface name is not valid", "backend-name", Logging::Loggable(config.name), "backend-address", Logging::Loggable(config.remote), "source", Logging::Loggable(source), "source-interface", Logging::Loggable(config.sourceItfName)));
+       dnsdist::logging::getTopLogger()->info(Logr::Warning, "Dismissing source because the interface name is not valid", "backend.name", Logging::Loggable(config.name), "backend.address", Logging::Loggable(config.remote), "source.address", Logging::Loggable(source), "source.interface", Logging::Loggable(config.sourceItfName)));
 
   return false;
 }
@@ -1043,7 +1043,7 @@ unsigned int DownstreamState::getQPSLimit() const
 
 [[nodiscard]] std::shared_ptr<const Logr::Logger> DownstreamState::getLogger() const
 {
-  return dnsdist::logging::getTopLogger()->withName("backend")->withValues("backend-name", Logging::Loggable(getName()), "backend-address", Logging::Loggable(d_config.remote), "backend-proto", Logging::Loggable(getProtocol()));
+  return dnsdist::logging::getTopLogger()->withName("backend")->withValues("backend.name", Logging::Loggable(getName()), "backend.address", Logging::Loggable(d_config.remote), "backend.protocol", Logging::Loggable(getProtocol()));
 }
 
 size_t ServerPool::countServers(bool upOnly) const

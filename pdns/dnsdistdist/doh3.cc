@@ -514,7 +514,7 @@ static void processDOH3Query(DOH3UnitUniquePtr&& doh3Unit)
 
     if (!dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL.match(remote)) {
       VERBOSESLOG(infolog("Query from %s (DoH3) dropped because of ACL", remote.toStringWithPort()),
-                  dsc->df->getLogger().info("DoH3 query dropped because of ACL", "address", Logging::Loggable(remote)));
+                  dsc->df->getLogger().info("DoH3 query dropped because of ACL", "client.address", Logging::Loggable(remote)));
       ++dnsdist::metrics::g_stats.aclDrops;
       unit->response.clear();
 
@@ -651,7 +651,7 @@ static void processDOH3Query(DOH3UnitUniquePtr&& doh3Unit)
   catch (const std::exception& e) {
     if (unit) {
       VERBOSESLOG(infolog("Got an error in DOH3 question thread while parsing a query from %s, id %d: %s", remote.toStringWithPort(), queryId, e.what()),
-                  unit->dsc->df->getLogger().error(Logr::Info, e.what(), "Got an error in DoH3 question thread while parsing a query", "address", Logging::Loggable(remote), "query-id", Logging::Loggable(queryId)));
+                  unit->dsc->df->getLogger().error(Logr::Info, e.what(), "Got an error in DoH3 question thread while parsing a query", "client.address", Logging::Loggable(remote), "dns.question.id", Logging::Loggable(queryId)));
       unit->status_code = 500;
       handleImmediateResponse(std::move(unit), "DoH3 internal error");
     }
@@ -676,7 +676,7 @@ static void doh3_dispatch_query(DOH3ServerConfig& dsc, PacketBuffer&& query, con
   }
   catch (const std::exception& exp) {
     VERBOSESLOG(infolog("Had error handling DoH3 DNS packet from %s: %s", remote.toStringWithPort(), exp.what()),
-                dsc.df->getLogger().error(Logr::Info, exp.what(), "Had error handling DoH3 DNS packet", "address", Logging::Loggable(remote)));
+                dsc.df->getLogger().error(Logr::Info, exp.what(), "Had error handling DoH3 DNS packet", "client.address", Logging::Loggable(remote)));
   }
 }
 
@@ -1009,7 +1009,7 @@ void doh3Thread(ClientState* clientState)
 {
   try {
     std::shared_ptr<DOH3Frontend>& frontend = clientState->doh3Frontend;
-    auto frontendLogger = dnsdist::logging::getTopLogger()->withName("doh3-frontend")->withValues("address", Logging::Loggable(clientState->local));
+    auto frontendLogger = dnsdist::logging::getTopLogger()->withName("doh3-frontend")->withValues("frontend.address", Logging::Loggable(clientState->local));
 
     frontend->d_server_config->clientState = clientState;
     frontend->d_server_config->df = clientState->doh3Frontend;

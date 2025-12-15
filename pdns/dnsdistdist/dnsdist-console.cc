@@ -640,7 +640,7 @@ void controlThread(Socket&& acceptFD)
 {
   setThreadName("dnsdist/control");
   const ComboAddress local = dnsdist::configuration::getCurrentRuntimeConfiguration().d_consoleServerAddress;
-  auto logger = dnsdist::logging::getTopLogger()->withName("console-server")->withValues("listening-address", Logging::Loggable(local));
+  auto logger = dnsdist::logging::getTopLogger()->withName("console-server")->withValues("network.local.address", Logging::Loggable(local));
   try {
     s_connManager.setMaxConcurrentConnections(dnsdist::configuration::getImmutableConfiguration().d_consoleMaxConcurrentConnections);
 
@@ -660,20 +660,20 @@ void controlThread(Socket&& acceptFD)
       FDWrapper socket(sock);
       if (!dnsdist::crypto::authenticated::isValidKey(consoleKey)) {
         VERBOSESLOG(infolog("Control connection from %s dropped because we don't have a valid key configured, please configure one using setKey()", client.toStringWithPort()),
-                    logger->info(Logr::Info, "Control connection dropped because we don't have a valid key configured, please configure one using setKey()", "address", Logging::Loggable(client)));
+                    logger->info(Logr::Info, "Control connection dropped because we don't have a valid key configured, please configure one using setKey()", "client.address", Logging::Loggable(client)));
         continue;
       }
 
       const auto& runtimeConfig = dnsdist::configuration::getCurrentRuntimeConfiguration();
       if (!runtimeConfig.d_consoleACL.match(client)) {
         VERBOSESLOG(infolog("Control connection from %s dropped because of ACL", client.toStringWithPort()),
-                    logger->info(Logr::Info, "Control connection dropped because of ACL", "address", Logging::Loggable(client)));
+                    logger->info(Logr::Info, "Control connection dropped because of ACL", "client.address", Logging::Loggable(client)));
         continue;
       }
 
       try {
         ConsoleConnection conn(client, std::move(socket));
-        auto connLogger = dnsdist::logging::getTopLogger()->withName("console-connection")->withValues("address", Logging::Loggable(client));
+        auto connLogger = dnsdist::logging::getTopLogger()->withName("console-connection")->withValues("client.address", Logging::Loggable(client));
         if (runtimeConfig.d_logConsoleConnections) {
           SLOG(warnlog("Got control connection from %s", client.toStringWithPort()),
                connLogger->info(Logr::Info, "Control connection opened"));
@@ -684,7 +684,7 @@ void controlThread(Socket&& acceptFD)
       }
       catch (const std::exception& e) {
         SLOG(infolog("Control connection died: %s", e.what()),
-             logger->error(Logr::Info, e.what(), "Control connection died", "address", Logging::Loggable(client)));
+             logger->error(Logr::Info, e.what(), "Control connection died", "client.address", Logging::Loggable(client)));
       }
     }
   }

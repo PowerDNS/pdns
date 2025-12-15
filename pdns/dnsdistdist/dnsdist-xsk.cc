@@ -39,7 +39,7 @@ void XskResponderThread(std::shared_ptr<DownstreamState> dss, std::shared_ptr<Xs
 {
   try {
     setThreadName("dnsdist/XskResp");
-    auto logger = dnsdist::logging::getTopLogger()->withName("xsk-response-worker")->withValues("backend-name", Logging::Loggable(dss->getName()), "backend-address", Logging::Loggable(dss->d_config.remote));
+    auto logger = dnsdist::logging::getTopLogger()->withName("xsk-response-worker")->withValues("backend.name", Logging::Loggable(dss->getName()), "backend.address", Logging::Loggable(dss->d_config.remote));
 
     auto pollfds = getPollFdsForWorker(*xskInfo);
     while (!dss->isStopped()) {
@@ -123,7 +123,7 @@ bool XskIsQueryAcceptable(const XskPacket& packet, ClientState& clientState, boo
   expectProxyProtocol = expectProxyProtocolFrom(from);
   if (!dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL.match(from) && !expectProxyProtocol) {
     VERBOSESLOG(infolog("Query from %s dropped because of ACL", from.toStringWithPort()),
-                dnsdist::logging::getTopLogger()->info(Logr::Info, "Query dropped because of ACL", "address", Logging::Loggable(from)));
+                dnsdist::logging::getTopLogger()->info(Logr::Info, "Query dropped because of ACL", "client.address", Logging::Loggable(from)));
     ++dnsdist::metrics::g_stats.aclDrops;
     return false;
   }

@@ -496,7 +496,7 @@ void DNSCryptQuery::getDecrypted(bool tcp, PacketBuffer& packet)
 #ifdef DNSCRYPT_STRICT_PADDING_LENGTH
   if (tcp && ((packet.size() - sizeof(DNSCryptQueryHeader)) % DNSCRYPT_PADDED_BLOCK_SIZE) != 0) {
     VERBOSESLOG(infolog("Dropping encrypted query with invalid size of %d (should be a multiple of %d)", (packet.size() - sizeof(DNSCryptQueryHeader)), DNSCRYPT_PADDED_BLOCK_SIZE),
-                dnsdist::logging::getTopLogger()->info("Dropping DNSCrypt-encrypted query with invalid size (should be a multiple of " DNSCRYPT_PADDED_BLOCK_SIZE, "size", Logging::Loggable(packet.size() - sizeof(DNSCryptQueryHeader))));
+                dnsdist::logging::getTopLogger()->info("Dropping DNSCrypt-encrypted query with invalid size (should be a multiple of " DNSCRYPT_PADDED_BLOCK_SIZE, "dns.question.size", Logging::Loggable(packet.size() - sizeof(DNSCryptQueryHeader))));
     return;
   }
 #endif
@@ -562,7 +562,7 @@ void DNSCryptQuery::getDecrypted(bool tcp, PacketBuffer& packet)
   uint16_t pos = decryptedQueryLen;
   if (pos >= packet.size()) {
     VERBOSESLOG(infolog("Dropping encrypted query we can't decrypt (invalid position)"),
-                dnsdist::logging::getTopLogger()->info("Dropping DNSCrypt-encrypted we couldn't decrypt because of an invalid position", "position", Logging::Loggable(pos), "size", Logging::Loggable(packet.size())));
+                dnsdist::logging::getTopLogger()->info("Dropping DNSCrypt-encrypted we couldn't decrypt because of an invalid position", "position", Logging::Loggable(pos), "dns.question.size", Logging::Loggable(packet.size())));
     return;
   }
 
