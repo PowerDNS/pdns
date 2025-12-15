@@ -1378,9 +1378,3 @@ int main()
     cerr<<"Fatal: unexpected exception"<<endl;
   }
 }
-
-ArgvMap& arg()
-{	
-  static ArgvMap theArg;
-  return theArg;
-}

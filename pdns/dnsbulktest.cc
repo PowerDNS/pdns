@@ -50,12 +50,6 @@ po::variables_map g_vm;
 
 StatBag S;
 
-ArgvMap &arg()
-{
-  static ArgvMap theArg;
-  return theArg;
-}
-
 bool g_quiet=false;
 bool g_envoutput=false;
 

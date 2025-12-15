@@ -344,6 +344,10 @@ static void declareArguments()
 
   ::arg().setSwitch("views", "Enable views (variants) of zones, for backends which support them") = "no";
 
+  // FIXME520: remove when branching 5.2
+  ::arg().set("entropy-source", "") = "";
+  ::arg().set("rng", "") = "";
+
   ::arg().setDefaults();
 }
 
@@ -1296,6 +1300,17 @@ int main(int argc, char** argv)
       ::arg().laxFile(configname.c_str());
 
     ::arg().laxParse(argc, argv); // reparse so the commandline still wins
+
+    // FIXME520: remove when branching 5.2
+    if (!::arg()["entropy-source"].empty()) {
+      std::cerr << "WARNING: `entropy-source' setting is deprecated" << std::endl
+                << "and will be removed in a future version" << std::endl;
+    }
+    if (!::arg()["rng"].empty()) {
+      std::cerr << "WARNING: `rng' setting is deprecated" << std::endl
+                << "and will be removed in a future version" << std::endl;
+    }
+
     if (!::arg()["logging-facility"].empty()) {
       int val = logFacilityToLOG(::arg().asNum("logging-facility"));
       if (val >= 0)

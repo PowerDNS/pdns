@@ -607,6 +607,10 @@ static std::string comboAddressVecToString(const std::vector<ComboAddress>& vec)
 
 static void loadMainConfig(const std::string& configdir)
 {
+  // FIXME520: remove when branching 5.2
+  ::arg().set("entropy-source", "") = "";
+  ::arg().set("rng", "") = "";
+
   ::arg().set("config-dir","Location of configuration directory (pdns.conf)")=configdir;
   ::arg().set("default-ttl","Seconds a result is valid if not set otherwise")="3600";
   ::arg().set("launch","Which backends to launch");
@@ -648,6 +652,16 @@ static void loadMainConfig(const std::string& configdir)
   ::arg().setSwitch("views", "Enable views (variants) of zones, for backends which support them") = "no";
   ::arg().laxFile(configname);
 
+  // FIXME520: remove when branching 5.2
+  if (!::arg()["entropy-source"].empty()) {
+    std::cerr << "WARNING: `entropy-source' setting is deprecated" << std::endl
+              << "and will be removed in a future version" << std::endl;
+  }
+  if (!::arg()["rng"].empty()) {
+    std::cerr << "WARNING: `rng' setting is deprecated" << std::endl
+              << "and will be removed in a future version" << std::endl;
+  }
+
   if(!::arg()["load-modules"].empty()) {
     vector<string> modules;
 
@@ -676,7 +690,6 @@ static void loadMainConfig(const std::string& configdir)
   ::arg().set("domain-metadata-cache-ttl", "Seconds to cache zone metadata from the database") = "0";
   ::arg().set("zone-metadata-cache-ttl", "Seconds to cache zone metadata from the database") = "60";
   ::arg().set("consistent-backends", "Assume individual zones are not divided over backends. Send only ANY lookup operations to the backend to reduce the number of lookups") = "yes";
-
 
   // Keep this line below all ::arg().set() statements
   if (! ::arg().laxFile(configname)) {
