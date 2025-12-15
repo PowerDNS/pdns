@@ -1,0 +1,12 @@
+name: 'Define problem matchers'
+description: 'Set up problem matchers'
+
+runs:
+  using: "composite"
+  steps:
+    - name: add problem matchers
+      working-directory: .
+      shell: bash
+      run: |
+        : Add problem matchers
+        echo "::add-matcher::$GITHUB_WORKSPACE/.github/actions/problem-matchers/basic.json"

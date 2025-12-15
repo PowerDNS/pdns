@@ -46,7 +46,13 @@ else
 fi
 echo $0: Expecting hash $VALUE
 # Line below should echo two spaces between digest and name
-echo $VALUE"  "$RUST_TARBALL | sha256sum -c -
+if echo "${VALUE}  ${RUST_TARBALL}" | sha256sum -c -; then
+  true
+else
+  result=$?
+  echo "error: Downloaded ${SITE}/${RUST_TARBALL} failed sha256sum validation"
+  exit $result
+fi
 rm -rf $RUST_VERSION
 tar -Jxf $RUST_TARBALL
 cd $RUST_VERSION
