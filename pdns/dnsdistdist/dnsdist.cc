@@ -2845,7 +2845,7 @@ static void setupLocalSocket(ClientState& clientState, const ComboAddress& addr,
         auto result = raiseSocketReceiveBufferToMax(socket);
         if (result > 0) {
           SLOG(infolog("Raised receive buffer to %u for local address '%s'", result, addr.toStringWithPort()),
-               logger->info(Logr::Info, "Raised receive buffer size", "frontend.address", Logging::Loggable(addr), "buffer-size", Logging::Loggable(result)));
+               logger->info(Logr::Info, "Raised receive buffer size", "frontend.address", Logging::Loggable(addr), "buffer_size", Logging::Loggable(result)));
         }
       }
       catch (const std::exception& e) {

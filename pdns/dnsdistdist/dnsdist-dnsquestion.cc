@@ -66,7 +66,7 @@ std::shared_ptr<const Logr::Logger> DNSQuestion::getThisLogger() const
     return d_logger;
   }
   auto logger = dnsdist::logging::getTopLogger();
-  logger = logger->withValues("dns.question.name", Logging::Loggable(ids.qname), "dns.question.type", Logging::Loggable(QType(ids.qtype)), "dns.question.class", Logging::Loggable(QClass(ids.qclass)), "source.address", Logging::Loggable(ids.origRemote), "destination.address", Logging::Loggable(ids.origDest), "proto", Logging::Loggable(ids.protocol), "dns.question.id", Logging::Loggable(ids.origID), "dns.question.flags", Logging::Loggable(ids.origFlags));
+  logger = logger->withValues("dns.question.name", Logging::Loggable(ids.qname), "dns.question.type", Logging::Loggable(QType(ids.qtype)), "dns.question.class", Logging::Loggable(QClass(ids.qclass)), "source.address", Logging::Loggable(ids.origRemote), "destination.address", Logging::Loggable(ids.origDest), "proto", Logging::Loggable(ids.protocol), "dns.question.id", Logging::Loggable(ntohs(ids.origID)), "dns.question.flags", Logging::Loggable(ids.origFlags));
   return logger;
 }
 
