@@ -2121,12 +2121,12 @@ bool LMDBBackend::getSerial(DomainInfo& di)
   if (!txn->txn->get(txn->db->dbi, co(di.id, g_rootdnsname, QType::SOA), val)) {
     LMDBResourceRecord lrr;
     deserializeFromBuffer(val.get<string_view>(), lrr);
-    if (lrr.content.size() >= 5 * sizeof(uint32_t)) {
-      uint32_t serial;
-      // a SOA has five 32 bit fields, the first of which is the serial
-      // there are two variable length names before the serial, so we calculate from the back
-      memcpy(&serial, &lrr.content[lrr.content.size() - (5 * sizeof(uint32_t))], sizeof(serial));
-      di.serial = ntohl(serial);
+    if (lrr.content.size() >= sizeof(soatimes)) {
+      soatimes st;
+      // A SOA has five 32 bit fields, the first of which is the serial;
+      // there are two variable length names before the serial, so we calculate from the back.
+      memcpy(&st.serial, &lrr.content[lrr.content.size() - sizeof(soatimes)], sizeof(st.serial));
+      di.serial = ntohl(st.serial);
     }
     return !lrr.disabled;
   }
@@ -2288,12 +2288,9 @@ void LMDBBackend::getAllDomains(vector<DomainInfo>* domains, bool /* doSerial */
 
 void LMDBBackend::getUnfreshSecondaryInfos(vector<DomainInfo>* domains)
 {
-  uint32_t serial;
-  time_t now = time(0);
-  LMDBResourceRecord lrr;
-  soatimes st;
+  time_t now = time(nullptr);
 
-  getAllDomainsFiltered(domains, [this, &lrr, &st, &now, &serial](DomainInfo& di) {
+  getAllDomainsFiltered(domains, [this, now](DomainInfo& di) {
     if (!di.isSecondaryType()) {
       return false;
     }
@@ -2302,15 +2299,14 @@ void LMDBBackend::getUnfreshSecondaryInfos(vector<DomainInfo>* domains)
     compoundOrdername co;
     MDBOutVal val;
     if (!txn2->txn->get(txn2->db->dbi, co(di.id, g_rootdnsname, QType::SOA), val)) {
+      LMDBResourceRecord lrr;
       deserializeFromBuffer(val.get<string_view>(), lrr);
+      soatimes st;
+      // There are two variable length names before the SOA numbers, so we calculate from the back.
       memcpy(&st, &lrr.content[lrr.content.size() - sizeof(soatimes)], sizeof(soatimes));
       if ((time_t)(di.last_check + ntohl(st.refresh)) > now) { // still fresh
         return false;
       }
-      serial = ntohl(st.serial);
-    }
-    else {
-      serial = 0;
     }
 
     return true;
