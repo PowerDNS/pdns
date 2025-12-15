@@ -358,6 +358,7 @@ domainrelatedobject
 Donatas
 dontcare
 doq
+doqclient
 dotout
 downsides
 downstreams
@@ -385,6 +386,7 @@ ECCN
 ech
 econds
 ecswho
+ede
 editline
 ednaq
 edns
@@ -1013,6 +1015,7 @@ pdnssec
 pdnsutil
 Peeters
 Pels
+pemfile
 Penev
 Perroud
 Pfetzing
@@ -1202,6 +1205,7 @@ Rueckert
 rulesets
 runtimedir
 rustc
+rustls
 Ruthensteiner
 Rvd
 rwlock
@@ -1385,6 +1389,7 @@ Tarnell
 taskqueue
 tbhandler
 tcely
+tcounter
 tcounters
 tcpconnecttimeouts
 tcpdump
