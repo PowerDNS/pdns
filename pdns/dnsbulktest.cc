@@ -50,12 +50,6 @@ po::variables_map g_vm;
 
 StatBag S;
 
-ArgvMap &arg()
-{
-  static ArgvMap theArg;
-  return theArg;
-}
-
 bool g_quiet=false;
 bool g_envoutput=false;
 
@@ -231,9 +225,6 @@ static void usage(po::options_description &desc) {
 int main(int argc, char** argv)
 try
 {
-  ::arg().set("rng", "Specify random number generator to use. Valid values are auto,sodium,openssl,getrandom,arc4random,urandom.")="auto";
-  ::arg().set("entropy-source", "If set, read entropy from this file")="/dev/urandom";
-
   po::options_description desc("Allowed options");
   desc.add_options()
     ("help,h", "produce help message")

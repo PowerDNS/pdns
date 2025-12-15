@@ -609,6 +609,10 @@ static std::string comboAddressVecToString(const std::vector<ComboAddress>& vec)
 
 static void loadMainConfig(const std::string& configdir)
 {
+  // FIXME520: remove when branching 5.2
+  ::arg().set("entropy-source", "") = "";
+  ::arg().set("rng", "") = "";
+
   ::arg().set("config-dir","Location of configuration directory (pdns.conf)")=configdir;
   ::arg().set("default-ttl","Seconds a result is valid if not set otherwise")="3600";
   ::arg().set("launch","Which backends to launch");
@@ -639,18 +643,26 @@ static void loadMainConfig(const std::string& configdir)
   ::arg().set("default-soa-edit-signed","Default SOA-EDIT value for signed zones")="";
   ::arg().set("max-ent-entries", "Maximum number of empty non-terminals in a zone")="100000";
   ::arg().set("module-dir","Default directory for modules")=PKGLIBDIR;
-  ::arg().set("entropy-source", "If set, read entropy from this file")="/dev/urandom";
   ::arg().setSwitch("query-logging","Hint backends that queries should be logged")="no";
   ::arg().set("loglevel","Amount of logging. Higher is more.")="3";
   ::arg().setSwitch("direct-dnskey","Fetch DNSKEY, CDS and CDNSKEY RRs from backend during DNSKEY or CDS/CDNSKEY synthesis")="no";
   ::arg().set("max-nsec3-iterations","Limit the number of NSEC3 hash iterations")="500"; // RFC5155 10.3
   ::arg().set("max-signature-cache-entries", "Maximum number of signatures cache entries")="";
-  ::arg().set("rng", "Specify random number generator to use. Valid values are auto,sodium,openssl,getrandom,arc4random,urandom.")="auto";
   ::arg().set("max-generate-steps", "Maximum number of $GENERATE steps when loading a zone from a file")="0";
   ::arg().set("max-include-depth", "Maximum nested $INCLUDE depth when loading a zone from a file")="20";
   ::arg().setSwitch("upgrade-unknown-types","Transparently upgrade known TYPExxx records. Recommended to keep off, except for PowerDNS upgrades until data sources are cleaned up")="no";
   ::arg().setSwitch("views", "Enable views (variants) of zones, for backends which support them") = "no";
   ::arg().laxFile(configname);
+
+  // FIXME520: remove when branching 5.2
+  if (!::arg()["entropy-source"].empty()) {
+    std::cerr << "WARNING: `entropy-source' setting is deprecated" << std::endl
+              << "and will be removed in a future version" << std::endl;
+  }
+  if (!::arg()["rng"].empty()) {
+    std::cerr << "WARNING: `rng' setting is deprecated" << std::endl
+              << "and will be removed in a future version" << std::endl;
+  }
 
   if(!::arg()["load-modules"].empty()) {
     vector<string> modules;
@@ -680,7 +692,6 @@ static void loadMainConfig(const std::string& configdir)
   ::arg().set("domain-metadata-cache-ttl", "Seconds to cache zone metadata from the database") = "0";
   ::arg().set("zone-metadata-cache-ttl", "Seconds to cache zone metadata from the database") = "60";
   ::arg().set("consistent-backends", "Assume individual zones are not divided over backends. Send only ANY lookup operations to the backend to reduce the number of lookups") = "yes";
-
 
   // Keep this line below all ::arg().set() statements
   if (! ::arg().laxFile(configname)) {

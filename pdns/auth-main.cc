@@ -289,7 +289,6 @@ static void declareArguments()
   ::arg().set("max-packet-cache-entries", "Maximum number of entries in the packet cache") = "1000000";
   ::arg().set("max-signature-cache-entries", "Maximum number of signatures cache entries") = "";
   ::arg().set("max-ent-entries", "Maximum number of empty non-terminals in a zone") = "100000";
-  ::arg().set("entropy-source", "If set, read entropy from this file") = "/dev/urandom";
 
   ::arg().set("lua-prequery-script", "Lua script with prequery handler (DO NOT USE)") = "";
   ::arg().set("lua-dnsupdate-policy-script", "Lua script with DNS update policy handler") = "";
@@ -337,8 +336,6 @@ static void declareArguments()
 
   ::arg().setSwitch("consistent-backends", "Assume individual zones are not divided over backends. Send only ANY lookup operations to the backend to reduce the number of lookups") = "yes";
 
-  ::arg().set("rng", "Specify the random number generator to use. Valid values are auto,sodium,openssl,getrandom,arc4random,urandom.") = "auto";
-
   ::arg().set("default-catalog-zone", "Catalog zone to assign newly created primary zones (via the API) to") = "";
 
 #ifdef ENABLE_GSS_TSIG
@@ -346,6 +343,10 @@ static void declareArguments()
 #endif
 
   ::arg().setSwitch("views", "Enable views (variants) of zones, for backends which support them") = "no";
+
+  // FIXME520: remove when branching 5.2
+  ::arg().set("entropy-source", "") = "";
+  ::arg().set("rng", "") = "";
 
   ::arg().setDefaults();
 }
@@ -1299,6 +1300,17 @@ int main(int argc, char** argv)
       ::arg().laxFile(configname.c_str());
 
     ::arg().laxParse(argc, argv); // reparse so the commandline still wins
+
+    // FIXME520: remove when branching 5.2
+    if (!::arg()["entropy-source"].empty()) {
+      std::cerr << "WARNING: `entropy-source' setting is deprecated" << std::endl
+                << "and will be removed in a future version" << std::endl;
+    }
+    if (!::arg()["rng"].empty()) {
+      std::cerr << "WARNING: `rng' setting is deprecated" << std::endl
+                << "and will be removed in a future version" << std::endl;
+    }
+
     if (!::arg()["logging-facility"].empty()) {
       int val = logFacilityToLOG(::arg().asNum("logging-facility"));
       if (val >= 0)

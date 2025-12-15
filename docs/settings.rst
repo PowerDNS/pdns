@@ -785,6 +785,10 @@ To use shared LUA states, set this to ``shared``, see :ref:`lua-records-shared-s
 ``entropy-source``
 ------------------
 
+.. versionchanged:: 4.9.0
+
+This setting is no longer used from 4.9.0 onwards.
+
 -  Path
 -  Default: /dev/urandom
 
@@ -1647,6 +1651,10 @@ it is disabled by default.
 
 ``rng``
 -------
+
+.. versionchanged:: 4.9.0
+
+This setting is no longer used from 4.9.0 onwards.
 
 - String
 - Default: auto

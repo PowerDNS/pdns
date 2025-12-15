@@ -3,7 +3,6 @@ option('hardening', type: 'feature', value: 'auto', description: 'Compiler secur
 option('hardening-experimental-cf', type: 'combo', choices: ['disabled', 'full', 'branch', 'return', 'check'], value: 'disabled', description: 'Control Flow hardening')
 option('hardening-experimental-scp', type: 'feature', value: 'disabled', description: 'Stack Clash Protection')
 option('hardening-fortify-source', type: 'combo', choices: ['auto', 'disabled', '1', '2', '3'], value: '2', description: 'Source fortification level')
-option('rng-kiss', type: 'boolean', value: false, description: 'Use the unsafe KISS RNG')
 option('signers-libsodium', type: 'feature', value: 'auto', description: 'Enable libsodium-based signers')
 option('signers-libcrypto', type: 'feature', value: 'auto', description: 'Enable OpenSSL libcrypto-based signers)')
 option('signers-libcrypto-path', type: 'string', value: '', description: 'Custom path to find OpenSSL libcrypto')
