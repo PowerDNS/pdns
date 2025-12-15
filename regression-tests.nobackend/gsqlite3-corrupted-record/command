@@ -26,7 +26,7 @@ echo "UPDATE records SET name='this-name-turns-out-to-be-an-invalid-dns-name-bec
 echo "UPDATE records SET ordername='..' WHERE name='never.bug.less';" | sqlite3 pdns.sqlite3 2>&1
 
 # Check that pdnsutil zone list doesn't show the invalid records
-$PDNSUTIL $ARGS zone list bug.less
+$PDNSUTIL -s $ARGS zone list bug.less
 
 # Check that pdnsutil zone check reports the invalid records
 $PDNSUTIL $ARGS zone check bug.less
