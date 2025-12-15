@@ -768,7 +768,7 @@ static void handleAdditionalAddressesForFrontend(const Context& context, const s
 static void loadBinds(const Context& context, const ::rust::Vec<dnsdist::rust::settings::BindConfiguration>& binds)
 {
   for (const auto& bind : binds) {
-    updateImmutableConfiguration([&bind,&context](ImmutableConfiguration& config) {
+    updateImmutableConfiguration([&bind, &context](ImmutableConfiguration& config) {
       auto protocol = boost::to_lower_copy(std::string(bind.protocol));
       uint16_t defaultPort = 53;
       if (protocol == "dot" || protocol == "doq") {
@@ -857,7 +857,7 @@ static void loadBinds(const Context& context, const ::rust::Vec<dnsdist::rust::s
 
 static void loadWebServer(const Context& context, const dnsdist::rust::settings::WebserverConfiguration& webConfig)
 {
-  dnsdist::configuration::updateRuntimeConfiguration([&context,&webConfig](dnsdist::configuration::RuntimeConfiguration& config) {
+  dnsdist::configuration::updateRuntimeConfiguration([&context, &webConfig](dnsdist::configuration::RuntimeConfiguration& config) {
     for (const auto& address : webConfig.listen_addresses) {
       try {
         config.d_webServerAddresses.emplace(ComboAddress(std::string(address)));
