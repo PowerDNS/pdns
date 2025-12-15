@@ -1030,7 +1030,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& zone, co
       // The invalid part might be the record name itself, only output it if
       // non-empty.
       if (!drr.qname.empty()) {
-	cout << "'" << drr.qname << "' ";
+        cout << "'" << drr.qname << "' ";
       }
       cout << "record in backend storage: ";
       bool first = true;
@@ -1769,7 +1769,9 @@ static int listKeys(const string &zname, DNSSECKeeper& dk){
   return EXIT_SUCCESS;
 }
 
-static int listZone(const ZoneName &zone) {
+static int listZone(const ZoneName &zone)
+{
+  int exitCode{EXIT_SUCCESS};
   UtilBackend B; //NOLINT(readability-identifier-length)
   DomainInfo di;
 
@@ -1805,18 +1807,79 @@ static int listZone(const ZoneName &zone) {
     for (const auto& rec : records) {
       std::cout << formatRecord(rec) << std::endl;
     }
+    std::cout.flush();
   }
   else {
+    // In a perfect world, we would simply need to loop and print each record
+    // as we fetch it. Unfortunately, if pdnsutil is outputting to a pipe and
+    // the pipe reader is slow or simply stalls, we risk blocking, which can
+    // be pretty bad on LMDB.
+    // In order to prevent this, if stdout is not a tty, we will set its fd
+    // to non-blocking mode, and abort if the output stalls for more than half
+    // a minute.
     di.backend->list(zone, di.id);
-    while(di.backend->get(drr)) {
-      if(drr.qtype.getCode() != QType::ENT) {
-        std::cout << formatRecord(DNSRecord(drr)) << std::endl;
+    if (::isatty(STDOUT_FILENO)) {
+      while(di.backend->get(drr)) {
+        if(drr.qtype.getCode() != QType::ENT) {
+          std::cout << formatRecord(DNSRecord(drr)) << std::endl;
+        }
+      }
+      std::cout.flush();
+    }
+    else {
+      static constexpr time_t maximumStallDelay{30};
+      signal(SIGPIPE, SIG_IGN);
+      setNonBlocking(STDOUT_FILENO);
+      auto lastProgress = time(nullptr);
+      bool abortOperation{false};
+      while(!abortOperation && di.backend->get(drr)) {
+        if (drr.qtype.getCode() != QType::ENT) {
+          std::ostringstream ostr;
+          ostr << formatRecord(DNSRecord(drr)) << std::endl;
+          auto storage = ostr.str(); // can't use ostr.view() until C++20
+          auto buffer = storage.c_str();
+          auto remaining = storage.size();
+          while (remaining != 0) {
+            auto written = ::write(STDOUT_FILENO, buffer, remaining);
+            auto now = time(nullptr);
+            if (written > 0) {
+              remaining -= written;
+              buffer += written;
+              lastProgress = now;
+              continue;
+            }
+            if (errno == EAGAIN) {
+              // Output has stalled.
+              if (now - lastProgress > maximumStallDelay) {
+                di.backend->lookupEnd();
+                abortOperation = true;
+                exitCode = EXIT_FAILURE;
+                break;
+              }
+              ::sleep(1);
+              continue;
+            }
+            if (errno == EPIPE) {
+              // Pipe has been closed. Not an error from our point of view,
+              // but stop listing records.
+              di.backend->lookupEnd();
+              abortOperation = true;
+              break;
+            }
+            // Not sure the message will get a chance to be seen...
+            di.backend->lookupEnd();
+            unixDie("error listing zone");
+            break;
+          }
+        }
+      }
+      if (!abortOperation) {
+        std::cout.flush();
       }
     }
   }
 
-  cout.flush();
-  return EXIT_SUCCESS;
+  return exitCode;
 }
 
 // lovingly copied from http://stackoverflow.com/questions/1798511/how-to-avoid-press-enter-with-any-getchar
