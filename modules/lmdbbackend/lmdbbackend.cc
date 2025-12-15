@@ -1096,6 +1096,9 @@ void serializeToBuffer(std::string& buffer, const vector<LMDBBackend::LMDBResour
   }
 }
 
+// Deserialize a single resource record, and return its length.
+// Returns zero if the given string_view is not large enough to hold a valid
+// record.
 static inline size_t deserializeRRFromBuffer(const string_view& str, LMDBBackend::LMDBResourceRecord& lrr)
 {
   const auto* data = str.data();
@@ -1119,16 +1122,19 @@ static inline size_t deserializeRRFromBuffer(const string_view& str, LMDBBackend
   return data - str.data();
 }
 
-template <>
-void deserializeFromBuffer(const string_view& buffer, LMDBBackend::LMDBResourceRecord& value)
+// Deserialize a single resource record.
+static void deserializeFromBuffer(const string_view& buffer, LMDBBackend::LMDBResourceRecord& value)
 {
   if (buffer.size() >= serialize_minimum_size) {
     deserializeRRFromBuffer(buffer, value);
   }
 }
 
-template <>
-void deserializeFromBuffer(const string_view& buffer, vector<LMDBBackend::LMDBResourceRecord>& value)
+// Deserialize a list of resource records.
+// Stops as soon as all resource records in the buffer have been processed, or
+// a non-deserializable (truncated) record is found.
+// May return an empty vector.
+static void deserializeMultipleFromBuffer(const string_view& buffer, vector<LMDBBackend::LMDBResourceRecord>& value)
 {
   auto str_copy = buffer;
   while (str_copy.size() >= serialize_minimum_size) {
@@ -2031,7 +2037,7 @@ bool LMDBBackend::getInternal(DNSName& basename, std::string_view& key)
         continue;
       }
 
-      deserializeFromBuffer(d_lookupstate.val.get<string_view>(), d_lookupstate.rrset);
+      deserializeMultipleFromBuffer(d_lookupstate.val.get<string_view>(), d_lookupstate.rrset);
       d_lookupstate.rrsettime = static_cast<time_t>(LMDBLS::LSgetTimestamp(d_lookupstate.val.getNoStripHeader<string_view>()) / (1000UL * 1000UL * 1000UL));
       d_lookupstate.rrsetpos = 0;
     }
@@ -2968,7 +2974,7 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSNa
     }
 
     vector<LMDBResourceRecord> lrrs;
-    deserializeFromBuffer(val.get<StringView>(), lrrs);
+    deserializeMultipleFromBuffer(val.get<StringView>(), lrrs);
     bool changed = false;
     vector<LMDBResourceRecord> newRRs;
     newRRs.reserve(lrrs.size());
