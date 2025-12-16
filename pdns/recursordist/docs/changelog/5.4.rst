@@ -1,0 +1,558 @@
+Changelogs for 5.4.X
+====================
+
+Before upgrading, it is advised to read the :doc:`../upgrade`.
+
+.. changelog::
+  :version: 5.4.0-alpha1
+  :released: 16th of December 2025
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16627
+
+    Format rust IOErrors in a nicer way instead of using the default formatter.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16624
+    :tickets: 16606
+
+    Move away from rustls-pemfile including update of Rust dependencies.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16615
+
+    Do proper validation of TCP notifies.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16614
+
+    Ensure authRecords is empty, as handleHit checks that.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16587
+
+    Coverity 20251203.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16588
+
+    Kill a handful of clang++ warnings, mostly comparing unsigned to a signed constant.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16487
+
+    Switch trivial usage of boost::optional to std::optional.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16580
+    :tickets: 16572
+
+    Move g_logRPZChanges to proper spot.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16553
+
+    Always do ANY queries using TCP.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16570
+
+    Rewrite all unwrap calls in web.rs.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16565
+    :tickets: 16557
+
+    Run clippy when CARGO_USE_DEV and CARGO_USE_CLIPPY are set.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16546
+    :tickets: 16544
+
+    Build our Rust lib in dev profile when CARGO_USE_DEV is set.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16447
+
+    Remove first set of unused imports (Josh Soref).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16496
+
+    Tidy tcounter related code.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16531
+
+    Spelling (Josh Soref).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16530
+
+    Fix mixed implicit and explicit returns (Josh Soref).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16526
+
+    Remove unused assignment (Josh Soref).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16515
+
+    Remove redundant assignment (Josh Soref).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16516
+
+    Remove unused assignment (Josh Soref).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16523
+    :tickets: 16483
+
+    Update to coverallsapp github-action v2.3.7 (Josh Soref).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16495
+
+    Remove horrible unused argument with default value (Josh Soref).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16502
+
+    Use immediate class parent for super (Josh Soref).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16509
+    :tickets: 16500
+
+    Fix `with open(...) as f:` (Josh Soref).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16484
+
+    Improve reading of operator expression (Josh Soref).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16500
+
+    Use `with open(...) as f:` to ensure file is always closed (Josh Soref).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16501
+
+    Stop mixing implicit and explicit returns (Josh Soref).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16494
+
+    Codeql unused loop iterator name (Josh Soref).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16497
+
+    Fix coverity 1635199, 1643012, 1643013.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16498
+
+    Codeql use identifiers (Josh Soref).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16490
+
+    Do not mutate default values (Josh Soref).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16491
+
+    Only import doqclient once (Josh Soref).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16493
+
+    Drop unused format argument (Josh Soref).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16492
+
+    Use assertNotEqual (Josh Soref).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16489
+
+    Do not catch `KeyboardInterrupt` or `SystemExit` (Josh Soref).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16488
+
+    Do not call `sys.exit` with a void return (Josh Soref).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16479
+
+    Convert metrics_table.py to a module (Josh Soref).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16480
+
+    Switch TestRuleMetricsDefault to pass (Josh Soref).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16481
+
+    Codeql imprecise assert (Josh Soref).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16483
+
+    Drop useless lambda (Josh Soref).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16478
+
+    Fix duplicate key in dict literal (Josh Soref).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16476
+
+    Contrib/ProtobufLogger.py: Fix syntax error that crept in with 16458.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16077
+    :tickets: 14734
+
+    Prep, but do not actually move to C++20.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16362
+
+    Implement new feature to only generate OpenTelemetry Traces on certain conditions.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16427
+
+    rec_control get-parameter: print runtime settings in YAML format if YAML config is active.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16454
+
+    Chore: Clean up unused variables (Josh Soref).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16457
+
+    Clean up unreachable code (Josh Soref).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16459
+    :tickets: 15336
+
+    Fix try/except/as notation (Josh Soref).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16460
+    :tickets: 16458
+
+    Avoid warning about mixed explicit/implicit returns (Josh Soref).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16440
+    :tickets: 16091
+
+    Cleanup endianness determining code.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16458
+
+    Use map for getAppliedPolicyTypeAsString (Josh Soref).
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16461
+    :tickets: 16455
+
+    fix parsing of webserver loglevel "none".
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16438
+
+    Remove options that were deprecated a long time ago.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16384
+
+    Remember if an answer was received over TCP in record cache.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16426
+
+    rec-lua-conf.* tidy.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16394
+
+    Don't use a vector of string for internal public suffix list.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16392
+
+    Make version number in rust lib confirm to Rust specifics.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16338
+
+    Tighten delegation accept.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16307
+
+    Explicit disabling/enabling of tls-gnutls for full and least configs and packages.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16259
+
+    Allow selecting a specific version of Lua with meson.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16308
+
+    Fix a few Coverity found issues, all low severity move optimizations.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16288
+
+    Prevent a potential race condition in cache cleaning.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16190
+
+    OT tracing: define more Spans with actual duration and add more attributes.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16232
+
+    Allow ability to validate certificates (and more) for outgoing DoT connections.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16220
+
+    Move test-protozero-trace.cc to toplevel and add it in the autotools build where it was missing.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16219
+
+    ProtobufLogger: print OpenTelemetry IDs in hex, add proper command arg parser.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16251
+
+    Silence rust warning.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16236
+
+    Docs: Indent list (Josh Soref).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16237
+
+    Docs: Add trailing period (Josh Soref).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16227
+
+    Do not include dnsseckeeper.hh and ueberbackend.hh  in rec.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16204
+
+    We need a usable cargo for sdist so do not download (and install) rust but use package.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16200
+
+    Fix a few issues reported by coverity, all minor.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16194
+
+    Rework command dispatcher to be table based.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16188
+    :tickets: 16180
+
+    Fix release builds by updating the locked Rust lib version.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16175
+
+    Move help text to a table so it's easier to maintain.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16167
+
+    Update the Rust library version when generating a tarball.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16138
+
+    Add a few fields in protobuf logs: ede, edeText and OpenTelemetryTraceID.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16104
+
+    Better error message when reload-yaml fails.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15412,16131
+
+    Implement DNS cookie support for outgoing requests.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16106
+    :tickets: 16101
+
+    Update cargos for rec and dnsdist.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16103
+
+    Warn on passwordless webserver startup and extends docs.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16098
+
+    Do not hash (or compare) OpenTelemetry Trace EDNS value for packetcache.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16094
+
+    Some error paths do no create thread 0 so don't join it.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15945
+
+    pubsuffix: tidy and use C++ strings.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15943
+
+    Add tc flag in answer log (zhaojs).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15997
+
+    Remove SLOG macro usage in rec specific code.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15991
+    :tickets: 15972
+
+    Fix Boost system lib req: it is no longer a lib for boost >= 1.89.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15949
+
+    Assorted tidy.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15950
+
+    Reorder fields of record cache entry by size (saves 8 bytes per entry on 64-bit systems).
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15915
+    :tickets: 15896
+
+    Rec and dnsdist: properly set up env vars for rust build.
+

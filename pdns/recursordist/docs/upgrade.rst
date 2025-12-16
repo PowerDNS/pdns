@@ -14,11 +14,13 @@ New Settings
 - The :ref:`setting-yaml-outgoing.cookies_unsupported` setting has been introduced to permanently mark authoritative servers as not supporting cookies.
 - The :ref:`setting-yaml-outgoing.tls_configurations` setting has been introduced to be able to force certificate validation and other properties of outgoing DoT connections.
 - The :ref:`setting-yaml-outgoing.any_to_tcp` setting has been introduced to force outgoing ANY queries to TCP.
+- The :ref:`setting-yaml-logging.opentelemetry_trace_conditions` setting has been introduced to only generate OpenTelemetry Trace data for specific queries from specific clients.
+  See :ref:`opentelemetry-trace-conditions` for details.
 
 Changed Settings
 ^^^^^^^^^^^^^^^^
 
-- The default value of  :ref:`setting-yaml-recursor.any_to_tcp` has been changed to ``true``.
+- The default value of :ref:`setting-yaml-recursor.any_to_tcp` has been changed to ``true``.
 - It is no longer necessary to set :ref:`setting-yaml-webservice.api_key` to enable the web service.
   When no API key is set, usage is limited to (potentially password based) access of the frontpage and related statistics calls.
   If you have a configuration where the webservice is enabled but no api key is set, the webservice will now become available where it was not before.
