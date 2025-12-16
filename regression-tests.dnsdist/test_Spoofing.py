@@ -2,27 +2,7 @@
 import dns
 from dnsdisttests import DNSDistTest
 
-class TestSpoofingSpoof(DNSDistTest):
-
-    _config_template = """
-    addAction(SuffixMatchNodeRule("spoofaction.spoofing.tests.powerdns.com."), SpoofAction({"192.0.2.1", "2001:DB8::1"}))
-    addAction(SuffixMatchNodeRule("spoofaction-aa.spoofing.tests.powerdns.com."), SpoofAction({"192.0.2.1", "2001:DB8::1"}, {aa=true}))
-    addAction(SuffixMatchNodeRule("spoofaction-ad.spoofing.tests.powerdns.com."), SpoofAction({"192.0.2.1", "2001:DB8::1"}, {ad=true}))
-    addAction(SuffixMatchNodeRule("spoofaction-ra.spoofing.tests.powerdns.com."), SpoofAction({"192.0.2.1", "2001:DB8::1"}, {ra=true}))
-    addAction(SuffixMatchNodeRule("spoofaction-nora.spoofing.tests.powerdns.com."), SpoofAction({"192.0.2.1", "2001:DB8::1"}, {ra=false}))
-    addAction(SuffixMatchNodeRule("spoofaction-ttl.spoofing.tests.powerdns.com."), SpoofAction({"192.0.2.1", "2001:DB8::1"}, {ttl=1500}))
-    addAction(SuffixMatchNodeRule("cnamespoofaction.spoofing.tests.powerdns.com."), SpoofCNAMEAction("cnameaction.spoofing.tests.powerdns.com."))
-    addAction("multispoof.spoofing.tests.powerdns.com", SpoofAction({"192.0.2.1", "192.0.2.2", "2001:DB8::1", "2001:DB8::2"}))
-    addAction(AndRule{SuffixMatchNodeRule("raw.spoofing.tests.powerdns.com"), QTypeRule(DNSQType.A)}, SpoofRawAction("\\192\\000\\002\\001"))
-    addAction(AndRule{SuffixMatchNodeRule("raw.spoofing.tests.powerdns.com"), QTypeRule(DNSQType.TXT)}, SpoofRawAction("\\003aaa\\004bbbb\\011ccccccccccc"))
-    addAction(AndRule{SuffixMatchNodeRule("raw.spoofing.tests.powerdns.com"), QTypeRule(DNSQType.SRV)}, SpoofRawAction("\\000\\000\\000\\000\\255\\255\\003srv\\008powerdns\\003com\\000", { aa=true, ttl=3600 }))
-    addAction(AndRule{SuffixMatchNodeRule("rawchaos.spoofing.tests.powerdns.com"), QTypeRule(DNSQType.TXT), QClassRule(DNSClass.CHAOS)}, SpoofRawAction("\\005chaos"))
-    addAction(AndRule{SuffixMatchNodeRule("multiraw.spoofing.tests.powerdns.com"), QTypeRule(DNSQType.TXT)}, SpoofRawAction({"\\003aaa\\004bbbb", "\\011ccccccccccc"}))
-    addAction(AndRule{SuffixMatchNodeRule("multiraw.spoofing.tests.powerdns.com"), QTypeRule(DNSQType.A)}, SpoofRawAction({"\\192\\000\\002\\001", "\\192\\000\\002\\002"}))
-    -- rfc8482
-    addAction(AndRule{SuffixMatchNodeRule("raw-any.spoofing.tests.powerdns.com"), QTypeRule(DNSQType.ANY)}, SpoofRawAction("\\007rfc\\056\\052\\056\\050\\000", { typeForAny=DNSQType.HINFO }))
-    newServer{address="127.0.0.1:%d"}
-    """
+class SpoofingTests(object):
 
     def testSpoofActionA(self):
         """
@@ -311,7 +291,7 @@ class TestSpoofingSpoof(DNSDistTest):
         expectedResponse = dns.message.make_response(query)
         expectedResponse.flags |= dns.flags.RA
         rrset = dns.rrset.from_text(name,
-                                    60,
+                                    1500,
                                     dns.rdataclass.IN,
                                     dns.rdatatype.AAAA,
                                     '2001:DB8::1')
@@ -423,7 +403,7 @@ class TestSpoofingSpoof(DNSDistTest):
                                     60,
                                     dns.rdataclass.CH,
                                     dns.rdatatype.TXT,
-                                    '"chaos"')
+                                    '"chaos\\\\test"')
         expectedResponse.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -501,6 +481,237 @@ class TestSpoofingSpoof(DNSDistTest):
             self.checkMessageNoEDNS(expectedResponse, receivedResponse)
             self.assertEqual(receivedResponse.answer[0].ttl, 60)
 
+class TestSpoofingViaLuaConfig(DNSDistTest, SpoofingTests):
+
+    _config_template = """
+    addAction(SuffixMatchNodeRule("spoofaction.spoofing.tests.powerdns.com."), SpoofAction({"192.0.2.1", "2001:DB8::1"}))
+    addAction(SuffixMatchNodeRule("spoofaction-aa.spoofing.tests.powerdns.com."), SpoofAction({"192.0.2.1", "2001:DB8::1"}, {aa=true}))
+    addAction(SuffixMatchNodeRule("spoofaction-ad.spoofing.tests.powerdns.com."), SpoofAction({"192.0.2.1", "2001:DB8::1"}, {ad=true}))
+    addAction(SuffixMatchNodeRule("spoofaction-ra.spoofing.tests.powerdns.com."), SpoofAction({"192.0.2.1", "2001:DB8::1"}, {ra=true}))
+    addAction(SuffixMatchNodeRule("spoofaction-nora.spoofing.tests.powerdns.com."), SpoofAction({"192.0.2.1", "2001:DB8::1"}, {ra=false}))
+    addAction(SuffixMatchNodeRule("spoofaction-ttl.spoofing.tests.powerdns.com."), SpoofAction({"192.0.2.1", "2001:DB8::1"}, {ttl=1500}))
+    addAction(SuffixMatchNodeRule("cnamespoofaction.spoofing.tests.powerdns.com."), SpoofCNAMEAction("cnameaction.spoofing.tests.powerdns.com."))
+    addAction("multispoof.spoofing.tests.powerdns.com", SpoofAction({"192.0.2.1", "192.0.2.2", "2001:DB8::1", "2001:DB8::2"}))
+    addAction(AndRule{SuffixMatchNodeRule("raw.spoofing.tests.powerdns.com"), QTypeRule(DNSQType.A)}, SpoofRawAction("\\192\\000\\002\\001"))
+    addAction(AndRule{SuffixMatchNodeRule("raw.spoofing.tests.powerdns.com"), QTypeRule(DNSQType.TXT)}, SpoofRawAction("\\003aaa\\004bbbb\\011ccccccccccc"))
+    addAction(AndRule{SuffixMatchNodeRule("raw.spoofing.tests.powerdns.com"), QTypeRule(DNSQType.SRV)}, SpoofRawAction("\\000\\000\\000\\000\\255\\255\\003srv\\008powerdns\\003com\\000", { aa=true, ttl=3600 }))
+    addAction(AndRule{SuffixMatchNodeRule("rawchaos.spoofing.tests.powerdns.com"), QTypeRule(DNSQType.TXT), QClassRule(DNSClass.CHAOS)}, SpoofRawAction("\\010chaos\\\\test"))
+    addAction(AndRule{SuffixMatchNodeRule("multiraw.spoofing.tests.powerdns.com"), QTypeRule(DNSQType.TXT)}, SpoofRawAction({"\\003aaa\\004bbbb", "\\011ccccccccccc"}))
+    addAction(AndRule{SuffixMatchNodeRule("multiraw.spoofing.tests.powerdns.com"), QTypeRule(DNSQType.A)}, SpoofRawAction({"\\192\\000\\002\\001", "\\192\\000\\002\\002"}))
+    -- rfc8482
+    addAction(AndRule{SuffixMatchNodeRule("raw-any.spoofing.tests.powerdns.com"), QTypeRule(DNSQType.ANY)}, SpoofRawAction("\\007rfc\\056\\052\\056\\050\\000", { typeForAny=DNSQType.HINFO }))
+    newServer{address="127.0.0.1:%d"}
+    """
+
+class TestSpoofingViaYamlConfig(DNSDistTest, SpoofingTests):
+
+    _yaml_config_template = """
+backends:
+  - address: "127.0.0.1:%d"
+    protocol: Do53
+
+query_rules:
+  - selector:
+      type: "QNameSuffix"
+      suffixes:
+        - "spoofaction.spoofing.tests.powerdns.com."
+    action:
+      type: "Spoof"
+      ips:
+        - 192.0.2.1
+        - 2001:DB8::1
+      vars:
+        ttl: 60
+  - selector:
+      type: "QNameSuffix"
+      suffixes:
+        - "spoofaction-aa.spoofing.tests.powerdns.com."
+    action:
+      type: "Spoof"
+      ips:
+        - 192.0.2.1
+        - 2001:DB8::1
+      vars:
+        set_aa: true
+        ttl: 60
+  - selector:
+      type: "QNameSuffix"
+      suffixes:
+        - "spoofaction-ad.spoofing.tests.powerdns.com."
+    action:
+      type: "Spoof"
+      ips:
+        - 192.0.2.1
+        - 2001:DB8::1
+      vars:
+        set_ad: true
+        ttl: 60
+  - selector:
+      type: "QNameSuffix"
+      suffixes:
+        - "spoofaction-ra.spoofing.tests.powerdns.com."
+    action:
+      type: "Spoof"
+      ips:
+        - 192.0.2.1
+        - 2001:DB8::1
+      vars:
+        set_ra: true
+        ttl: 60
+  - selector:
+      type: "QNameSuffix"
+      suffixes:
+        - "spoofaction-nora.spoofing.tests.powerdns.com."
+    action:
+      type: "Spoof"
+      ips:
+        - 192.0.2.1
+        - 2001:DB8::1
+      vars:
+        set_ra: false
+        ttl: 60
+  - selector:
+      type: "QNameSuffix"
+      suffixes:
+        - "spoofaction-ttl.spoofing.tests.powerdns.com."
+    action:
+      type: "Spoof"
+      ips:
+        - 192.0.2.1
+        - 2001:DB8::1
+      vars:
+        set_ra: true
+        ttl: 1500
+  - selector:
+      type: "QNameSuffix"
+      suffixes:
+        - "cnamespoofaction.spoofing.tests.powerdns.com."
+    action:
+      type: "SpoofCNAME"
+      cname: cnameaction.spoofing.tests.powerdns.com.
+      vars:
+        ttl: 60
+  - selector:
+      type: "QNameSuffix"
+      suffixes:
+        - "multispoof.spoofing.tests.powerdns.com"
+    action:
+      type: "Spoof"
+      ips:
+        - 192.0.2.1
+        - 192.0.2.2
+        - 2001:DB8::1
+        - 2001:DB8::2
+      vars:
+        ttl: 60
+  - selector:
+      type: "And"
+      selectors:
+        - type: "QNameSuffix"
+          suffixes:
+            - "raw.spoofing.tests.powerdns.com"
+        - type: "QType"
+          qtype: "A"
+    action:
+      type: "SpoofRaw"
+      answers:
+        - '\\192\\000\\002\\001'
+      vars:
+        ttl: 60
+  - selector:
+      type: "And"
+      selectors:
+        - type: "QNameSuffix"
+          suffixes:
+            - "raw.spoofing.tests.powerdns.com"
+        - type: "QType"
+          qtype: "TXT"
+    action:
+      type: "SpoofRaw"
+      answers:
+        - '\\003aaa\\004bbbb\\011ccccccccccc'
+      vars:
+        ttl: 60
+  - selector:
+      type: "And"
+      selectors:
+        - type: "QNameSuffix"
+          suffixes:
+            - "raw.spoofing.tests.powerdns.com"
+        - type: "QType"
+          qtype: "SRV"
+    action:
+      type: "SpoofRaw"
+      answers:
+        - '\\000\\000\\000\\000\\255\\255\\003srv\\008powerdns\\003com\\000'
+      vars:
+        set_aa: true
+        ttl: 3600
+  - selector:
+      type: "And"
+      selectors:
+        - type: "QNameSuffix"
+          suffixes:
+            - "rawchaos.spoofing.tests.powerdns.com"
+        - type: "QType"
+          qtype: "TXT"
+        - type: "QClass"
+          qclass: "chaos"
+    action:
+      type: "SpoofRaw"
+      answers:
+        - '\\010chaos\\092test'
+      vars:
+        ttl: 60
+  - selector:
+      type: "And"
+      selectors:
+        - type: "QNameSuffix"
+          suffixes:
+            - "multiraw.spoofing.tests.powerdns.com"
+        - type: "QType"
+          qtype: "TXT"
+    action:
+      type: "SpoofRaw"
+      answers:
+        - '\\003aaa\\004bbbb'
+        - '\\011ccccccccccc'
+      vars:
+        ttl: 60
+  - selector:
+      type: "And"
+      selectors:
+        - type: "QNameSuffix"
+          suffixes:
+            - "multiraw.spoofing.tests.powerdns.com"
+        - type: "QType"
+          qtype: "A"
+    action:
+      type: "SpoofRaw"
+      answers:
+        - '\\192\\000\\002\\001'
+        - '\\192\\000\\002\\002'
+      vars:
+        ttl: 60
+  - selector:
+      type: "And"
+      selectors:
+        - type: "QNameSuffix"
+          suffixes:
+            - "raw-any.spoofing.tests.powerdns.com"
+        - type: "QType"
+          qtype: "ANY"
+    action:
+      type: "SpoofRaw"
+      qtype_for_any: 'HINFO'
+      answers:
+        - '\\007rfc\\056\\052\\056\\050\\000'
+      vars:
+        ttl: 60
+    """
+    _yaml_config_params = ['_testServerPort']
+    _config_params = []
+
 class TestSpoofingLuaSpoof(DNSDistTest):
 
     _config_template = """
@@ -519,9 +730,6 @@ class TestSpoofingLuaSpoof(DNSDistTest):
     function spoof2rule(dq)
         return DNSAction.Spoof, "spoofedcname.spoofing.tests.powerdns.com."
     end
-
-    addAction(AndRule{SuffixMatchNodeRule("raw.spoofing.tests.powerdns.com"), QTypeRule(DNSQType.TXT)}, SpoofRawAction("\\003aaa\\004bbbb\\011ccccccccccc"))
-    addAction(AndRule{SuffixMatchNodeRule("raw.spoofing.tests.powerdns.com"), QTypeRule(DNSQType.SRV)}, SpoofRawAction("\\000\\000\\000\\000\\255\\255\\003srv\\008powerdns\\003com\\000", { aa=true, ttl=3600 }))
 
     function spoofrawrule(dq)
         if dq.qtype == DNSQType.A then

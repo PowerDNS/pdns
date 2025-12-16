@@ -106,7 +106,7 @@ template <class T>
 static T checkedConversionFromStr(const std::string& context, const std::string& parameterName, const std::string& str)
 {
   try {
-    return pdns::checked_stoi<T>(std::string(str));
+    return pdns::checked_stoi<T>(str);
   }
   catch (const std::exception& exp) {
     throw std::runtime_error("Error converting value '" + str + "' for parameter '" + parameterName + "' in YAML directive '" + context + "': " + exp.what());
@@ -129,6 +129,30 @@ static bool getOptionalLuaFunction(T& destination, const ::rust::string& functio
   }
   destination = *function;
   return true;
+}
+
+static std::string rustStringWithEscapedRawContentToString(const ::rust::String& sourceRust)
+{
+  const std::string source(sourceRust);
+  std::string destination;
+  destination.reserve(source.size());
+
+  auto start = source.begin();
+  auto position = std::find(start, source.end(), '\\');
+  while (position < source.end() && std::distance(position, source.end()) >= 4) {
+    destination.insert(destination.end(), start, position);
+    start = position + 4;
+    auto escaped = std::string(position + 1, position + 4);
+    auto code = checkedConversionFromStr<uint8_t>("SpoofRaw", "answers", escaped);
+    destination.insert(destination.end(), static_cast<char>(code));
+    position = std::find(start, source.end(), '\\');
+  }
+
+  if (start < source.end()) {
+    destination.insert(destination.end(), start, source.end());
+  }
+
+  return destination;
 }
 
 static uint8_t strToRCode(const std::string& context, const std::string& parameterName, const ::rust::String& rcode_rust_string)
@@ -446,7 +470,7 @@ static std::shared_ptr<DownstreamState> createBackendFromConfiguration(const dns
   }
   backendConfig.checkType = std::string(hcConf.qtype);
   if (!hcConf.qclass.empty()) {
-    backendConfig.checkClass = QClass(std::string(hcConf.qclass));
+    backendConfig.checkClass = QClass(boost::to_upper_copy(std::string(hcConf.qclass)));
   }
   backendConfig.checkTimeout = hcConf.timeout;
   backendConfig.d_tcpCheck = hcConf.use_tcp;
@@ -1463,7 +1487,7 @@ std::shared_ptr<DNSActionWrapper> getSpoofRawAction(const SpoofRawActionConfigur
 {
   std::vector<std::string> raws;
   for (const auto& answer : config.answers) {
-    raws.emplace_back(answer);
+    raws.emplace_back(dnsdist::configuration::yaml::rustStringWithEscapedRawContentToString(answer));
   }
   std::optional<uint16_t> qtypeForAny;
   if (!config.qtype_for_any.empty()) {
