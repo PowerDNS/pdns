@@ -16,20 +16,40 @@ jobs:
   audit:
     if: ${{ vars.SCHEDULED_MISC_DAILIES }}
     runs-on: ubuntu-latest
+    name: Rust deps (${{ matrix.branch }})
+    strategy:
+      matrix:
+        branch:
+          - master
+          - rel/dnsdist-2.0.x
+          - rel/rec-5.3.x
+          - rel/rec-5.2.x
+          - rel/rec-5.1.x
+      fail-fast: false
     steps:
       - uses: actions/checkout@v5
         with:
-          fetch-depth: 5
+          fetch-depth: 1
           submodules: recursive
           persist-credentials: false
+          ref: ${{ matrix.branch }}
 
-      - name: Check recursor's Rust library dependencies
+      - name: Check recursor's Rust library dependencies (settings)
+        if: ${{ ! startsWith(matrix.branch, 'rel/dnsdist-') && (matrix.branch == 'rel/rec-5.1.x' || matrix.branch == 'rel/rec-5.2.x') }}
+        uses: rustsec/audit-check@69366f33c96575abad1ee0dba8212993eecbe998
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          working-directory: pdns/recursordist/settings/rust
+
+      - name: Check recursor's Rust library dependencies (rec-rust-lib)
+        if: ${{ ! startsWith(matrix.branch, 'rel/dnsdist-') && (matrix.branch != 'rel/rec-5.1.x' && matrix.branch != 'rel/rec-5.2.x') }}
         uses: rustsec/audit-check@69366f33c96575abad1ee0dba8212993eecbe998
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           working-directory: pdns/recursordist/rec-rust-lib/rust
 
       - name: Check DNSdist's Rust library dependencies
+        if: ${{ ! startsWith(matrix.branch, 'rel/rec-') }}
         uses: rustsec/audit-check@69366f33c96575abad1ee0dba8212993eecbe998
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
