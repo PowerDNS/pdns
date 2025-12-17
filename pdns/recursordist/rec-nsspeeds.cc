@@ -85,7 +85,7 @@ size_t nsspeeds_t::getPB(const string& serverID, size_t maxSize, std::string& re
   full.add_int64(PBNSSpeedDump::required_int64_time, time(nullptr));
   full.add_string(PBNSSpeedDump::required_string_type, "PBNSSpeedDump");
 
-  size_t count = 0;
+  size_t theCount = 0;
   ret.reserve(estimate);
 
   for (const auto& entry : *this) {
@@ -93,13 +93,13 @@ size_t nsspeeds_t::getPB(const string& serverID, size_t maxSize, std::string& re
     getPBEntry(message, entry);
     if (maxSize > 0 && ret.size() > maxSize) {
       message.rollback();
-      log->info(Logr::Info, "Produced nsspeed dump (max size reached)", "size", Logging::Loggable(ret.size()), "count", Logging::Loggable(count));
-      return count;
+      log->info(Logr::Info, "Produced nsspeed dump (max size reached)", "size", Logging::Loggable(ret.size()), "count", Logging::Loggable(theCount));
+      return theCount;
     }
-    ++count;
+    ++theCount;
   }
-  log->info(Logr::Info, "Produced nsspeed dump", "size", Logging::Loggable(ret.size()), "count", Logging::Loggable(count));
-  return count;
+  log->info(Logr::Info, "Produced nsspeed dump", "size", Logging::Loggable(ret.size()), "count", Logging::Loggable(theCount));
+  return theCount;
 }
 
 template <typename T>
