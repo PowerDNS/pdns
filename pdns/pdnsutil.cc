@@ -1,5 +1,6 @@
 #include <cerrno>
 #include <csignal>
+#include <cstdlib>
 #include <fcntl.h>
 #include <fstream>
 #include <string>
@@ -82,6 +83,8 @@ static int activateTSIGKey(vector<string>& cmds, std::string_view synopsis);
 static int activateZoneKey(vector<string>& cmds, std::string_view synopsis);
 static int addAutoprimary(vector<string>& cmds, std::string_view synopsis);
 static int addMeta(vector<string>& cmds, std::string_view synopsis);
+static int addComment(vector<string>& cmds, std::string_view synopsis);
+static int listComments(vector<string>& cmds, std::string_view synopsis);
 static int addRecord(vector<string>& cmds, std::string_view synopsis);
 static int addZoneKey(vector<string>& cmds, std::string_view synopsis);
 static int backendCmd(vector<string>& cmds, std::string_view synopsis);
@@ -507,6 +510,16 @@ static const groupCommandDispatcher zoneKeyCommands{
     "\tUnpublish the zone key with key id KEY_ID in ZONE"}}}
 };
 
+static const groupCommandDispatcher commentCommands{
+  "Comment",
+  {{"add", {true, addComment,
+    "ZONE NAME TYPE COMMENT [ACCOUNT]",
+    "\tAdd a comment"}},
+   {"list", {true, listComments,
+     "ZONE",
+     "\tList comments for a zone"}}}
+};
+
 // OTHER (NO OBJECT NAME PREFIX)
 
 static const groupCommandDispatcher otherCommands{
@@ -576,6 +589,7 @@ using commandDispatcher = std::map<std::string_view, std::pair<bool, std::vector
 static const commandDispatcher topLevelDispatcher{
   {"autoprimary", {true, {autoprimaryCommands}}},
   {"catalog", {true, {catalogCommands}}},
+  {"comment", {true, {commentCommands}}},
 #ifdef HAVE_P11KIT1 // [
   {"hsm", {true, {HSMCommands}}},
 #endif // ]
@@ -1829,6 +1843,30 @@ static int listZone(const ZoneName &zone) {
   cout.flush();
   return EXIT_SUCCESS;
 }
+
+static int listComments(const ZoneName &zone) {
+  UtilBackend B; //NOLINT(readability-identifier-length)
+  DomainInfo di; //NOLINT(readability-identifier-length)
+
+  if (! B.getDomainInfo(zone, di)) {
+    cerr << "Zone '" << zone << "' not found!" << endl;
+    return EXIT_FAILURE;
+  }
+  if ((di.backend->getCapabilities() & DNSBackend::CAP_COMMENTS) == 0) {
+    cerr << "Backend for zone '" << zone << "' does not support listing its comments." << endl;
+    return EXIT_FAILURE;
+  }
+
+  Comment comment;
+
+  di.backend->listComments(di.id);
+  while(di.backend->getComment(comment)) {
+    cout<<comment.qname<<"\t"<<comment.qtype<<"\t"<<comment.modified_at<<"\t"<<comment.account<<"\t"<<comment.content<<endl;
+  }
+  return EXIT_SUCCESS;
+}
+
+
 
 // lovingly copied from http://stackoverflow.com/questions/1798511/how-to-avoid-press-enter-with-any-getchar
 static int read1char(){
@@ -4284,6 +4322,59 @@ static int changeSecondaryZonePrimary(vector<string>& cmds, const std::string_vi
     return EXIT_FAILURE;
   }
 }
+
+static int addComment(vector<string>& cmds, const std::string_view synopsis)
+{
+  if(cmds.size() < 4) {
+    return usage(synopsis);
+  }
+
+  UtilBackend B; //NOLINT(readability-identifier-length)
+  DomainInfo di; //NOLINT(readability-identifier-length)
+  ZoneName zone(cmds.at(0));
+  if (!B.getDomainInfo(zone, di)) {
+    cerr << "Zone '" << zone << "' doesn't exist" << endl;
+    return EXIT_FAILURE;
+  }
+
+  Comment comment;
+
+  comment.domain_id = di.id;
+  comment.qname = DNSName(cmds.at(1));
+  comment.qtype = cmds.at(2);
+  comment.content = cmds.at(3);
+  if(cmds.size() > 4) {
+    comment.account = cmds.at(4);
+  }
+  comment.modified_at = time(nullptr);
+
+  if (!comment.qname.isPartOf(zone)) {
+    throw PDNSException("Name \"" + comment.qname.toString() + "\" to add comment to is not part of zone \"" + zone.toString() + "\".");
+  }
+
+  di.backend->startTransaction(zone, UnknownDomainID);
+  if (!di.backend->feedComment(comment)) {
+    cerr << "Backend does not support comments" << endl;
+    di.backend->abortTransaction();
+    return EXIT_FAILURE;
+  }
+
+  di.backend->commitTransaction();
+  return EXIT_SUCCESS;
+}
+
+static int listComments(vector<string>& cmds, const std::string_view synopsis)
+{
+  if(cmds.size() != 1) {
+    return usage(synopsis);
+  }
+  if (cmds.at(0) == ".") {
+    cmds.at(0).clear();
+  }
+
+  return listComments(ZoneName(cmds.at(0)));
+}
+
 
 static int addRecord(vector<string>& cmds, const std::string_view synopsis)
 {

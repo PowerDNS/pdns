@@ -474,10 +474,7 @@ public:
   virtual bool searchRecords(const string& pattern, size_t maxResults, vector<DNSResourceRecord>& result);
 
   //! Search for comments, returns true if search was done successfully.
-  virtual bool searchComments(const string& /* pattern */, size_t /* maxResults */, vector<Comment>& /* result */)
-  {
-    return false;
-  }
+  virtual bool searchComments(const string& /* pattern */, size_t /* maxResults */, vector<Comment>& /* result */);
 
   virtual void viewList(vector<string>& /* result */)
   {
