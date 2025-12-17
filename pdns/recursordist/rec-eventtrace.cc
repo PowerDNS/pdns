@@ -99,8 +99,10 @@ std::vector<pdns::trace::Span> RecEventTrace::convertToOT(const InitialSpanInfo&
   ret.emplace_back(Span{
     .trace_id = span.trace_id,
     .span_id = span.span_id,
+    .trace_state = "",
     .parent_span_id = span.parent_span_id,
     .name = "RecRequest",
+    .kind = pdns::trace::Span::SpanKind::SPAN_KIND_SERVER,
     .start_time_unix_nano = span.start_time_unix_nano,
     .end_time_unix_nano = timestamp(),
   });
@@ -112,12 +114,11 @@ std::vector<pdns::trace::Span> RecEventTrace::convertToOT(const InitialSpanInfo&
   for (const auto& event : d_events) {
     if (event.d_start) {
       // It's an open event
-      Span work{
-        .trace_id = span.trace_id,
-        .name = RecEventTrace::toString(event.d_event),
-        .start_time_unix_nano = static_cast<uint64_t>(event.d_ts + diff),
-        .end_time_unix_nano = static_cast<uint64_t>(event.d_ts + diff), // will be updated when we process the close event
-      };
+      Span work{};
+      work.trace_id = span.trace_id;
+      work.name = RecEventTrace::toString(event.d_event);
+      work.start_time_unix_nano = static_cast<uint64_t>(event.d_ts + diff);
+      work.end_time_unix_nano = static_cast<uint64_t>(event.d_ts + diff); // will be updated when we process the close event
       if (event.d_parent == 0 || event.d_parent >= spanIDs.size()) {
         // Use the given parent
         work.parent_span_id = span.span_id;
