@@ -203,11 +203,11 @@ template <typename Enum>
 auto GlobalCounters<Counters>::sum(Enum index)
 {
   auto lock = d_guarded.lock();
-  auto sum = lock->d_history.at(index);
+  auto theSum = lock->d_history.at(index);
   for (const auto& instance : lock->d_instances) {
-    sum += instance->snapAt(index);
+    theSum += instance->snapAt(index);
   }
-  return sum;
+  return theSum;
 }
 
 // Average for a specific index
@@ -219,14 +219,14 @@ auto GlobalCounters<Counters>::avg(Enum index)
 {
   auto lock = d_guarded.lock();
   auto wavg = lock->d_history.at(index);
-  auto sum = wavg.avg * wavg.weight;
+  auto theSum = wavg.avg * wavg.weight;
   auto count = wavg.weight;
   for (const auto& instance : lock->d_instances) {
     auto val = instance->snapAt(index);
     count += val.weight;
-    sum += val.avg * val.weight;
+    theSum += val.avg * val.weight;
   }
-  return count > 0 ? sum / count : 0;
+  return count > 0 ? theSum / count : 0;
 }
 
 // Max for a specific  index
@@ -237,11 +237,11 @@ template <typename Enum>
 auto GlobalCounters<Counters>::max(Enum index)
 {
   auto lock = d_guarded.lock();
-  uint64_t max = 0; // ignore history
+  uint64_t theMax = 0; // ignore history
   for (const auto& instance : lock->d_instances) {
-    max = std::max(instance->snapAt(index), max);
+    theMax = std::max(instance->snapAt(index), theMax);
   }
-  return max;
+  return theMax;
 }
 
 // Get a consistent snap of *all* aggregated values
