@@ -1952,6 +1952,7 @@ static int initPorts(Logr::log_t log)
     return 99; // this isn't going to fix itself either
   }
   g_maxUdpSourcePort = port;
+  g_avoidUdpSourcePorts.resize(std::numeric_limits<uint16_t>::max() + 1);
   std::vector<string> parts{};
   stringtok(parts, ::arg()["udp-source-port-avoid"], ", ");
   for (const auto& part : parts) {
@@ -1960,7 +1961,7 @@ static int initPorts(Logr::log_t log)
       log->info(Logr::Error, "Unable to launch, udp-source-port-avoid contains an invalid port number", "port", Logging::Loggable(part));
       return 99; // this isn't going to fix itself either
     }
-    g_avoidUdpSourcePorts.insert(port);
+    g_avoidUdpSourcePorts[port] = true;
   }
   return 0;
 }

@@ -4853,7 +4853,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
               content.push_back(std::move(nonExpandedRecord));
             }
 
-            g_recCache->replace(d_now.tv_sec, realOwner, QType(tCacheEntry->first.type), content, tCacheEntry->second.signatures, /* no additional records in that case */ {}, tCacheEntry->first.type == QType::DS ? true : isAA, auth, std::nullopt, std::nullopt, recordState, MemRecursorCache::Extra{remoteIP, overTCP}, d_refresh, tCacheEntry->second.d_ttl_time);
+            g_recCache->replace(d_now.tv_sec, realOwner, QType(tCacheEntry->first.type), content, tCacheEntry->second.signatures, /* no additional records in that case */ {}, tCacheEntry->first.type == QType::DS ? true : isAA, auth, std::nullopt, boost::none, recordState, MemRecursorCache::Extra{remoteIP, overTCP}, d_refresh, tCacheEntry->second.d_ttl_time);
           }
         }
       }

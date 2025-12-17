@@ -503,7 +503,7 @@ bool AggressiveNSECCache::synthesizeFromNSEC3Wildcard(time_t now, const DNSName&
   std::vector<DNSRecord> wcSet;
   MemRecursorCache::SigRecs wcSignatures = MemRecursorCache::s_emptySigRecs;
 
-  if (g_recCache->get(now, wildcardName, type, MemRecursorCache::RequireAuth, &wcSet, ComboAddress("127.0.0.1"), std::nullopt, doDNSSEC ? &wcSignatures : nullptr, nullptr, nullptr, &cachedState) <= 0 || cachedState != vState::Secure) {
+  if (g_recCache->get(now, wildcardName, type, MemRecursorCache::RequireAuth, &wcSet, ComboAddress("127.0.0.1"), boost::none, doDNSSEC ? &wcSignatures : nullptr, nullptr, nullptr, &cachedState) <= 0 || cachedState != vState::Secure) {
     VLOG(log, name << ": Unfortunately we don't have a valid entry for " << wildcardName << ", so we cannot synthesize from that wildcard" << endl);
     return false;
   }
@@ -527,7 +527,7 @@ bool AggressiveNSECCache::synthesizeFromNSECWildcard(time_t now, const DNSName& 
   std::vector<DNSRecord> wcSet;
   MemRecursorCache::SigRecs wcSignatures = MemRecursorCache::s_emptySigRecs;
 
-  if (g_recCache->get(now, wildcardName, type, MemRecursorCache::RequireAuth, &wcSet, ComboAddress("127.0.0.1"), std::nullopt, doDNSSEC ? &wcSignatures : nullptr, nullptr, nullptr, &cachedState) <= 0 || cachedState != vState::Secure) {
+  if (g_recCache->get(now, wildcardName, type, MemRecursorCache::RequireAuth, &wcSet, ComboAddress("127.0.0.1"), boost::none, doDNSSEC ? &wcSignatures : nullptr, nullptr, nullptr, &cachedState) <= 0 || cachedState != vState::Secure) {
     VLOG(log, name << ": Unfortunately we don't have a valid entry for " << wildcardName << ", so we cannot synthesize from that wildcard" << endl);
     return false;
   }
@@ -780,7 +780,7 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<LockGuarded
   return true;
 }
 
-bool AggressiveNSECCache::getDenial(time_t now, const DNSName& name, const QType& type, std::vector<DNSRecord>& ret, int& res, const ComboAddress& who, const std::optional<std::string>& routingTag, bool doDNSSEC, pdns::validation::ValidationContext& validationContext, const OptLog& log)
+bool AggressiveNSECCache::getDenial(time_t now, const DNSName& name, const QType& type, std::vector<DNSRecord>& ret, int& res, const ComboAddress& who, const boost::optional<std::string>& routingTag, bool doDNSSEC, pdns::validation::ValidationContext& validationContext, const OptLog& log)
 {
   std::shared_ptr<LockGuarded<ZoneEntry>> zoneEntry;
   if (type == QType::DS) {

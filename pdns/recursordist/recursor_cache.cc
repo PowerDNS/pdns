@@ -328,7 +328,7 @@ MemRecursorCache::cache_t::const_iterator MemRecursorCache::getEntryUsingECSInde
         /* we have nothing more specific for you */
         break;
       }
-      auto key = std::tuple(qname, qtype, std::nullopt, best);
+      auto key = std::tuple(qname, qtype, boost::none, best);
       auto entry = map.d_map.find(key);
       if (entry == map.d_map.end()) {
         /* ecsIndex is not up-to-date */
@@ -360,7 +360,7 @@ MemRecursorCache::cache_t::const_iterator MemRecursorCache::getEntryUsingECSInde
   }
 
   /* we have nothing specific, let's see if we have a generic one */
-  auto key = std::tuple(qname, qtype, std::nullopt, Netmask());
+  auto key = std::tuple(qname, qtype, boost::none, Netmask());
   auto entry = map.d_map.find(key);
   if (entry != map.d_map.end()) {
     handleServeStaleBookkeeping(now, serveStale, entry);
@@ -541,7 +541,7 @@ time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qtype
     }
   }
   // Try (again) without tag
-  auto entries = getEntries(*lockedShard, qname, qtype, std::nullopt);
+  auto entries = getEntries(*lockedShard, qname, qtype, boost::none);
 
   if (entries.first != entries.second) {
     OrderedTagIterator_t firstIndexIterator;
@@ -662,7 +662,7 @@ void MemRecursorCache::replace(time_t now, const DNSName& qname, const QType qty
 
   // We only store with a tag if we have an ednsmask and the tag is available
   // We only store an ednsmask if we do not have a tag and we do have a mask.
-  auto key = std::tuple(qname, qtype.getCode(), ednsmask ? routingTag : std::nullopt, (ednsmask && !routingTag) ? *ednsmask : Netmask());
+  auto key = std::tuple(qname, qtype.getCode(), ednsmask ? routingTag : boost::none, (ednsmask && !routingTag) ? *ednsmask : Netmask());
   bool isNew = false;
   cache_t::iterator stored = lockedShard->d_map.find(key);
   if (stored == lockedShard->d_map.end()) {
@@ -1151,7 +1151,7 @@ bool MemRecursorCache::putRecordSet(T& message)
 {
   AuthRecsVec authRecs;
   SigRecsVec sigRecs;
-  CacheEntry cacheEntry{{g_rootdnsname, QType::A, std::nullopt, Netmask()}, false};
+  CacheEntry cacheEntry{{g_rootdnsname, QType::A, boost::none, Netmask()}, false};
   while (message.next()) {
     switch (message.tag()) {
     case PBCacheEntry::repeated_bytes_record: {
