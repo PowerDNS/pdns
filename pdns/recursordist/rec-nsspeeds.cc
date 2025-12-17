@@ -152,7 +152,7 @@ size_t nsspeeds_t::putPB(time_t cutoff, const std::string& pbuf)
   log->info(Logr::Debug, "Processing nsspeed dump");
 
   protozero::pbf_message<PBNSSpeedDump> full(pbuf);
-  size_t count = 0;
+  size_t theCount = 0;
   size_t inserted = 0;
   try {
     bool protocolVersionSeen = false;
@@ -199,12 +199,12 @@ size_t nsspeeds_t::putPB(time_t cutoff, const std::string& pbuf)
         if (putPBEntry(cutoff, message)) {
           ++inserted;
         }
-        ++count;
+        ++theCount;
         break;
       }
       }
     }
-    log->info(Logr::Info, "Processed nsspeed dump", "processed", Logging::Loggable(count), "inserted", Logging::Loggable(inserted));
+    log->info(Logr::Info, "Processed nsspeed dump", "processed", Logging::Loggable(theCount), "inserted", Logging::Loggable(inserted));
     return inserted;
   }
   catch (const std::runtime_error& e) {
