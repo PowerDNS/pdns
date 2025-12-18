@@ -1096,10 +1096,16 @@ void serializeToBuffer(std::string& buffer, const vector<LMDBBackend::LMDBResour
   }
 }
 
+// Deserialize a single resource record, and return its length.
+// Returns zero if the given string_view is not large enough to hold a valid
+// record.
 static inline size_t deserializeRRFromBuffer(const string_view& str, LMDBBackend::LMDBResourceRecord& lrr)
 {
   const auto* data = str.data();
   uint16_t len;
+  if (str.size() < sizeof(len)) {
+    return 0;
+  }
   memcpy(&len, data, sizeof(len));
   if (str.size() < serialize_prefix_size + len + serialize_trailing_size) {
     return 0;
@@ -1119,16 +1125,18 @@ static inline size_t deserializeRRFromBuffer(const string_view& str, LMDBBackend
   return data - str.data();
 }
 
-template <>
-void deserializeFromBuffer(const string_view& buffer, LMDBBackend::LMDBResourceRecord& value)
+// Deserialize a single resource record.
+// Returns true if successful, false if truncated or invalid data found.
+static bool deserializeFromBuffer(const string_view& buffer, LMDBBackend::LMDBResourceRecord& value)
 {
-  if (buffer.size() >= serialize_minimum_size) {
-    deserializeRRFromBuffer(buffer, value);
-  }
+  return deserializeRRFromBuffer(buffer, value) != 0;
 }
 
-template <>
-void deserializeFromBuffer(const string_view& buffer, vector<LMDBBackend::LMDBResourceRecord>& value)
+// Deserialize a list of resource records.
+// Stops as soon as all resource records in the buffer have been processed, or
+// a non-deserializable (truncated) record is found.
+// May return an empty vector.
+static void deserializeMultipleFromBuffer(const string_view& buffer, vector<LMDBBackend::LMDBResourceRecord>& value)
 {
   auto str_copy = buffer;
   while (str_copy.size() >= serialize_minimum_size) {
@@ -1165,28 +1173,49 @@ static std::shared_ptr<DNSRecordContent> deserializeContentZR(uint16_t qtype, co
 // }
 static bool peekAtHasOrderName(const string_view& buffer)
 {
+  if (buffer.length() < sizeof(uint16_t)) {
+    return false;
+  }
   uint16_t len{0};
   memcpy(&len, buffer.data(), sizeof(uint16_t));
-  bool hasOrderName = buffer[serialize_prefix_size + len + serialize_offset_ordername] != 0;
+  auto offset = serialize_prefix_size + len + serialize_offset_ordername;
+  if (buffer.length() < offset + 1) {
+    return false;
+  }
+  bool hasOrderName = buffer[offset] != 0;
   return hasOrderName;
 }
 
 // Similar to the above, but for the auth field.
 static bool peekAtAuth(const string_view& buffer)
 {
+  if (buffer.length() < sizeof(uint16_t)) {
+    return false;
+  }
   uint16_t len{0};
   memcpy(&len, buffer.data(), sizeof(uint16_t));
-  bool auth = buffer[serialize_prefix_size + len + serialize_offset_auth] != 0;
+  auto offset = serialize_prefix_size + len + serialize_offset_auth;
+  if (buffer.length() < offset + 1) {
+    return false;
+  }
+  bool auth = buffer[offset] != 0;
   return auth;
 }
 
 // Similar to the above, but for the ttl.
 static uint32_t peekAtTtl(const string_view& buffer)
 {
+  if (buffer.length() < sizeof(uint16_t)) {
+    return 0;
+  }
   uint16_t len{0};
   memcpy(&len, buffer.data(), sizeof(uint16_t));
+  auto offset = serialize_prefix_size + len + serialize_offset_ttl;
+  if (buffer.length() < offset + sizeof(uint32_t)) {
+    return 0;
+  }
   uint32_t ttl{0};
-  memcpy(&ttl, buffer.data() + serialize_prefix_size + len + serialize_offset_ttl, sizeof(uint32_t));
+  memcpy(&ttl, buffer.data() + offset, sizeof(uint32_t));
   return ttl;
 }
 
@@ -1349,9 +1378,10 @@ void LMDBBackend::deleteNSEC3RecordPair(const std::shared_ptr<RecordsRWTransacti
   auto key = co(domain_id, qname, QType::NSEC3);
   if (txn->txn->get(txn->db->dbi, key, val) == 0) {
     LMDBResourceRecord lrr;
-    deserializeFromBuffer(val.get<string_view>(), lrr);
-    DNSName ordername(lrr.content.c_str(), lrr.content.size(), 0, false);
-    txn->txn->del(txn->db->dbi, co(domain_id, ordername, QType::NSEC3));
+    if (deserializeFromBuffer(val.get<string_view>(), lrr)) {
+      DNSName ordername(lrr.content.c_str(), lrr.content.size(), 0, false);
+      txn->txn->del(txn->db->dbi, co(domain_id, ordername, QType::NSEC3));
+    }
     txn->txn->del(txn->db->dbi, key);
   }
 }
@@ -1375,12 +1405,13 @@ void LMDBBackend::writeNSEC3RecordPair(const std::shared_ptr<RecordsRWTransactio
   MDBOutVal val{};
   if (txn->txn->get(txn->db->dbi, co(domain_id, qname, QType::NSEC3), val) == 0) {
     LMDBResourceRecord lrr;
-    deserializeFromBuffer(val.get<string_view>(), lrr);
-    DNSName prevordername(lrr.content.c_str(), lrr.content.size(), 0, false);
-    if (prevordername == ordername) {
-      return; // nothing to do! (assuming the other record also exists)
+    if (deserializeFromBuffer(val.get<string_view>(), lrr)) {
+      DNSName prevordername(lrr.content.c_str(), lrr.content.size(), 0, false);
+      if (prevordername == ordername) {
+        return; // nothing to do! (assuming the other record also exists)
+      }
+      txn->txn->del(txn->db->dbi, co(domain_id, prevordername, QType::NSEC3));
     }
-    txn->txn->del(txn->db->dbi, co(domain_id, prevordername, QType::NSEC3));
   }
 
   LMDBResourceRecord lrr;
@@ -2031,9 +2062,11 @@ bool LMDBBackend::getInternal(DNSName& basename, std::string_view& key)
         continue;
       }
 
-      deserializeFromBuffer(d_lookupstate.val.get<string_view>(), d_lookupstate.rrset);
-      d_lookupstate.rrsettime = static_cast<time_t>(LMDBLS::LSgetTimestamp(d_lookupstate.val.getNoStripHeader<string_view>()) / (1000UL * 1000UL * 1000UL));
-      d_lookupstate.rrsetpos = 0;
+      deserializeMultipleFromBuffer(d_lookupstate.val.get<string_view>(), d_lookupstate.rrset);
+      if (!d_lookupstate.rrset.empty()) {
+        d_lookupstate.rrsettime = static_cast<time_t>(LMDBLS::LSgetTimestamp(d_lookupstate.val.getNoStripHeader<string_view>()) / (1000UL * 1000UL * 1000UL));
+        d_lookupstate.rrsetpos = 0;
+      }
     }
     else {
       key = d_lookupstate.key.getNoStripHeader<string_view>();
@@ -2120,15 +2153,16 @@ bool LMDBBackend::getSerial(DomainInfo& di)
   MDBOutVal val;
   if (!txn->txn->get(txn->db->dbi, co(di.id, g_rootdnsname, QType::SOA), val)) {
     LMDBResourceRecord lrr;
-    deserializeFromBuffer(val.get<string_view>(), lrr);
-    if (lrr.content.size() >= 5 * sizeof(uint32_t)) {
-      uint32_t serial;
-      // a SOA has five 32 bit fields, the first of which is the serial
-      // there are two variable length names before the serial, so we calculate from the back
-      memcpy(&serial, &lrr.content[lrr.content.size() - (5 * sizeof(uint32_t))], sizeof(serial));
-      di.serial = ntohl(serial);
+    if (deserializeFromBuffer(val.get<string_view>(), lrr)) {
+      if (lrr.content.size() >= sizeof(soatimes)) {
+        soatimes st;
+        // A SOA has five 32 bit fields, the first of which is the serial;
+        // there are two variable length names before the serial, so we calculate from the back.
+        memcpy(&st.serial, &lrr.content[lrr.content.size() - sizeof(soatimes)], sizeof(st.serial));
+        di.serial = ntohl(st.serial);
+      }
+      return !lrr.disabled;
     }
-    return !lrr.disabled;
   }
   return false;
 }
@@ -2288,12 +2322,9 @@ void LMDBBackend::getAllDomains(vector<DomainInfo>* domains, bool /* doSerial */
 
 void LMDBBackend::getUnfreshSecondaryInfos(vector<DomainInfo>* domains)
 {
-  uint32_t serial;
-  time_t now = time(0);
-  LMDBResourceRecord lrr;
-  soatimes st;
+  time_t now = time(nullptr);
 
-  getAllDomainsFiltered(domains, [this, &lrr, &st, &now, &serial](DomainInfo& di) {
+  getAllDomainsFiltered(domains, [this, now](DomainInfo& di) {
     if (!di.isSecondaryType()) {
       return false;
     }
@@ -2302,17 +2333,18 @@ void LMDBBackend::getUnfreshSecondaryInfos(vector<DomainInfo>* domains)
     compoundOrdername co;
     MDBOutVal val;
     if (!txn2->txn->get(txn2->db->dbi, co(di.id, g_rootdnsname, QType::SOA), val)) {
-      deserializeFromBuffer(val.get<string_view>(), lrr);
-      memcpy(&st, &lrr.content[lrr.content.size() - sizeof(soatimes)], sizeof(soatimes));
-      if ((time_t)(di.last_check + ntohl(st.refresh)) > now) { // still fresh
-        return false;
+      LMDBResourceRecord lrr;
+      if (deserializeFromBuffer(val.get<string_view>(), lrr)) {
+        if (lrr.content.size() >= sizeof(soatimes)) {
+          soatimes st;
+          // There are two variable length names before the SOA numbers, so we calculate from the back.
+          memcpy(&st, &lrr.content[lrr.content.size() - sizeof(soatimes)], sizeof(soatimes));
+          if ((time_t)(di.last_check + ntohl(st.refresh)) > now) { // still fresh
+            return false;
+          }
+        }
       }
-      serial = ntohl(st.serial);
     }
-    else {
-      serial = 0;
-    }
-
     return true;
   });
 }
@@ -2700,8 +2732,9 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& q
     before = co.getQName(key.getNoStripHeader<StringView>());
     {
       LMDBResourceRecord lrr;
-      deserializeFromBuffer(val.get<StringView>(), lrr);
-      unhashed = DNSName(lrr.content.c_str(), lrr.content.size(), 0, false) + info.zone.operator const DNSName&();
+      if (deserializeFromBuffer(val.get<StringView>(), lrr)) {
+        unhashed = DNSName(lrr.content.c_str(), lrr.content.size(), 0, false) + info.zone.operator const DNSName&();
+      }
     }
     // now to find after .. at the beginning of the zone
     return getAfterForwardFromStart(cursor, key, val, id, after);
@@ -2759,8 +2792,9 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& q
         before = co.getQName(key.getNoStripHeader<StringView>());
         {
           LMDBResourceRecord lrr;
-          deserializeFromBuffer(val.get<StringView>(), lrr);
-          unhashed = DNSName(lrr.content.c_str(), lrr.content.size(), 0, false) + info.zone.operator const DNSName&();
+          if (deserializeFromBuffer(val.get<StringView>(), lrr)) {
+            unhashed = DNSName(lrr.content.c_str(), lrr.content.size(), 0, false) + info.zone.operator const DNSName&();
+          }
         }
         // cout <<"Should still find 'after'!"<<endl;
         // for 'after', we need to find the first hash of this zone
@@ -2772,8 +2806,9 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& q
     before = co.getQName(key.getNoStripHeader<StringView>());
     {
       LMDBResourceRecord lrr;
-      deserializeFromBuffer(val.get<StringView>(), lrr);
-      unhashed = DNSName(lrr.content.c_str(), lrr.content.size(), 0, false) + info.zone.operator const DNSName&();
+      if (deserializeFromBuffer(val.get<StringView>(), lrr)) {
+        unhashed = DNSName(lrr.content.c_str(), lrr.content.size(), 0, false) + info.zone.operator const DNSName&();
+      }
     }
     // cout<<"Went backwards, found "<<before<<endl;
     // return us to starting point
@@ -2972,7 +3007,7 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSNa
     }
 
     vector<LMDBResourceRecord> lrrs;
-    deserializeFromBuffer(val.get<StringView>(), lrrs);
+    deserializeMultipleFromBuffer(val.get<StringView>(), lrrs);
     bool changed = false;
     vector<LMDBResourceRecord> newRRs;
     newRRs.reserve(lrrs.size());
@@ -3391,9 +3426,13 @@ string LMDBBackend::directBackendCmd_list(std::vector<string>& argv)
         MDBOutVal val{};
         if (d_rotxn->txn->get(d_rotxn->db->dbi, order(info.id, basename, QType::NSEC3), val) == 0) {
           LMDBResourceRecord nsec3rr;
-          deserializeFromBuffer(val.get<string_view>(), nsec3rr);
-          DNSName ordername(nsec3rr.content.c_str(), nsec3rr.content.size(), 0, false);
-          ret << ordername;
+          if (deserializeFromBuffer(val.get<string_view>(), nsec3rr)) {
+            DNSName ordername(nsec3rr.content.c_str(), nsec3rr.content.size(), 0, false);
+            ret << ordername;
+          }
+          else {
+            ret << "TRUNCATED";
+          }
         }
         ret << "'\t";
         ret << static_cast<int>(lrr.auth);
