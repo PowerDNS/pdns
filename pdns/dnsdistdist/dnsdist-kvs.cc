@@ -81,6 +81,10 @@ std::vector<std::string> KeyValueLookupKeySuffix::getKeys(const DNSName& qname)
 }
 
 #ifdef HAVE_LMDB
+std::shared_ptr<const Logr::Logger> LMDBKVStore::getLogger() const
+{
+  return dnsdist::logging::getTopLogger()->withName("lmdb-key-value-store")->withValues("lmdb.filename", Logging::Loggable(d_fname), "lmdb.database", Logging::Loggable(d_dbName));
+}
 
 bool LMDBKVStore::getValue(const std::string& key, std::string& value)
 {
@@ -97,7 +101,8 @@ bool LMDBKVStore::getValue(const std::string& key, std::string& value)
     }
   }
   catch (const std::exception& e) {
-    vinfolog("Error while looking up key '%s' from LMDB file '%s', database '%s': %s", key, d_fname, d_dbName, e.what());
+    VERBOSESLOG(infolog("Error while looking up key '%s' from LMDB file '%s', database '%s': %s", key, d_fname, d_dbName, e.what()),
+                getLogger()->error(Logr::Info, e.what(), "Error while looking up key", "lmdb.key", Logging::Loggable(key)));
   }
   return false;
 }
@@ -116,7 +121,8 @@ bool LMDBKVStore::keyExists(const std::string& key)
     }
   }
   catch (const std::exception& e) {
-    vinfolog("Error while looking up key '%s' from LMDB file '%s', database '%s': %s", key, d_fname, d_dbName, e.what());
+    VERBOSESLOG(infolog("Error while looking up key '%s' from LMDB file '%s', database '%s': %s", key, d_fname, d_dbName, e.what()),
+                getLogger()->error(Logr::Info, e.what(), "Error while looking up key", "lmdb.key", Logging::Loggable(key)));
   }
   return false;
 }
@@ -164,7 +170,8 @@ bool LMDBKVStore::getRangeValue(const std::string& key, std::string& value)
     }
   }
   catch (const std::exception& e) {
-    vinfolog("Error while looking up a range from LMDB file '%s', database '%s': %s", d_fname, d_dbName, e.what());
+    VERBOSESLOG(infolog("Error while looking up a range from LMDB file '%s', database '%s': %s", d_fname, d_dbName, e.what()),
+                getLogger()->error(Logr::Info, e.what(), "Error while looking up a range", "lmdb.key", Logging::Loggable(key)));
   }
   return false;
 }
@@ -172,6 +179,10 @@ bool LMDBKVStore::getRangeValue(const std::string& key, std::string& value)
 #endif /* HAVE_LMDB */
 
 #ifdef HAVE_CDB
+std::shared_ptr<const Logr::Logger> CDBKVStore::getLogger() const
+{
+  return dnsdist::logging::getTopLogger()->withName("cdb-key-value-store")->withValues("cdb.filename", Logging::Loggable(d_fname));
+}
 
 CDBKVStore::CDBKVStore(const std::string& fname, time_t refreshDelay): d_fname(fname), d_refreshDelay(refreshDelay)
 {
@@ -200,12 +211,14 @@ bool CDBKVStore::reload(const struct stat& st)
 
 bool CDBKVStore::reload()
 {
-  struct stat st;
+  struct stat st{};
   if (stat(d_fname.c_str(), &st) == 0) {
     return reload(st);
   }
   else {
-    warnlog("Error while retrieving the last modification time of CDB database '%s': %s", d_fname, stringerror());
+    int savederrno = errno;
+    SLOG(warnlog("Error while retrieving the last modification time of CDB database '%s': %s", d_fname, stringerror(savederrno)),
+         getLogger()->error(Logr::Warning, savederrno, "Error while retrieving the last modification time of the database"));
     return false;
   }
 }
@@ -218,14 +231,16 @@ void CDBKVStore::refreshDBIfNeeded(time_t now)
   }
 
   try {
-    struct stat st;
+    struct stat st{};
     if (stat(d_fname.c_str(), &st) == 0) {
       if (st.st_mtime > d_mtime) {
         reload(st);
       }
     }
     else {
-      warnlog("Error while retrieving the last modification time of CDB database '%s': %s", d_fname, stringerror());
+      int savederrno = errno;
+      SLOG(warnlog("Error while retrieving the last modification time of CDB database '%s': %s", d_fname, stringerror(savederrno)),
+           getLogger()->error(Logr::Warning, savederrno, "Error while retrieving the last modification time of the database"));
     }
     d_nextCheck = now + d_refreshDelay;
     d_refreshing.clear();
@@ -253,7 +268,8 @@ bool CDBKVStore::getValue(const std::string& key, std::string& value)
     }
   }
   catch (const std::exception& e) {
-    vinfolog("Error while looking up key '%s' from CDB file '%s': %s", key, d_fname, e.what());
+    VERBOSESLOG(infolog("Error while looking up key '%s' from CDB file '%s': %s", key, d_fname, e.what()),
+                getLogger()->error(Logr::Info, e.what(), "Error while looking up a key", "cdb.key", Logging::Loggable(key)));
   }
   return false;
 }
@@ -277,7 +293,8 @@ bool CDBKVStore::keyExists(const std::string& key)
     }
   }
   catch (const std::exception& e) {
-    vinfolog("Error while looking up key '%s' from CDB file '%s': %s", key, d_fname, e.what());
+    VERBOSESLOG(infolog("Error while looking up key '%s' from CDB file '%s': %s", key, d_fname, e.what()),
+                getLogger()->error(Logr::Info, e.what(), "Error while looking up a key", "cdb.key", Logging::Loggable(key)));
   }
   return false;
 }

@@ -21,7 +21,9 @@
  */
 #pragma once
 
+#include <memory>
 #include "dnsdist.hh"
+#include "logr.hh"
 
 class KeyValueLookupKey
 {
@@ -186,6 +188,8 @@ public:
   bool getRangeValue(const std::string& key, std::string& value) override;
 
 private:
+  std::shared_ptr<const Logr::Logger> getLogger() const;
+
   std::shared_ptr<MDBEnv> d_env;
   MDBDbi d_dbi;
   std::string d_fname;
@@ -209,6 +213,7 @@ public:
   bool reload() override;
 
 private:
+  std::shared_ptr<const Logr::Logger> getLogger() const;
   void refreshDBIfNeeded(time_t now);
   bool reload(const struct stat& st);
 
