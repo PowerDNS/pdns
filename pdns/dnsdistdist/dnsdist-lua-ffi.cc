@@ -38,6 +38,11 @@
 #include "dnsdist-snmp.hh"
 #include "dolog.hh"
 
+static std::shared_ptr<const Logr::Logger> getLogger(const std::string_view fromFunction)
+{
+  return dnsdist::logging::getTopLogger()->withName("lua-ffi-script")->withValues("lua.ffi.function", Logging::Loggable(fromFunction));
+}
+
 uint16_t dnsdist_ffi_dnsquestion_get_qtype(const dnsdist_ffi_dnsquestion_t* dq)
 {
   return dq->dq->ids.qtype;
@@ -847,7 +852,8 @@ bool dnsdist_ffi_dnsresponse_rebase(dnsdist_ffi_dnsresponse_t* dr, const char* i
     dr->dr->ids.skipCache = true;
   }
   catch (const std::exception& e) {
-    vinfolog("Error rebasing packet on a new DNSName: %s", e.what());
+    VERBOSESLOG(infolog("Error rebasing packet on a new DNSName: %s", e.what()),
+                getLogger(__func__)->error(Logr::Info, e.what(), "Error rebasing packet on a new DNSName"));
     return false;
   }
 
@@ -871,10 +877,13 @@ bool dnsdist_ffi_dnsquestion_set_async(dnsdist_ffi_dnsquestion_t* dq, uint16_t a
     return dnsdist::suspendQuery(*dq->dq, asyncID, queryID, timeoutMs);
   }
   catch (const std::exception& e) {
-    vinfolog("Error in dnsdist_ffi_dnsquestion_set_async: %s", e.what());
+    VERBOSESLOG(infolog("Error in dnsdist_ffi_dnsquestion_set_async: %s", e.what()),
+                getLogger(__func__)->error(Logr::Info, e.what(), "Error turning query asynchronous"));
+
   }
   catch (...) {
-    vinfolog("Exception in dnsdist_ffi_dnsquestion_set_async");
+    VERBOSESLOG(infolog("Exception in dnsdist_ffi_dnsquestion_set_async"),
+                getLogger(__func__)->info(Logr::Info, "Unknown error turning query asynchronous"));
   }
 
   return false;
@@ -886,17 +895,20 @@ bool dnsdist_ffi_dnsresponse_set_async(dnsdist_ffi_dnsquestion_t* dq, uint16_t a
     dq->dq->asynchronous = true;
     auto dr = dynamic_cast<DNSResponse*>(dq->dq);
     if (!dr) {
-      vinfolog("Passed a DNSQuestion instead of a DNSResponse to dnsdist_ffi_dnsresponse_set_async");
+      VERBOSESLOG(infolog("Passed a DNSQuestion instead of a DNSResponse to dnsdist_ffi_dnsresponse_set_async"),
+                  getLogger(__func__)->info(Logr::Info, "Passed a DNSQuestion instead of a DNSResponse"));
       return false;
     }
 
     return dnsdist::suspendResponse(*dr, asyncID, queryID, timeoutMs);
   }
   catch (const std::exception& e) {
-    vinfolog("Error in dnsdist_ffi_dnsresponse_set_async: %s", e.what());
+    VERBOSESLOG(infolog("Error in dnsdist_ffi_dnsresponse_set_async: %s", e.what()),
+                getLogger(__func__)->error(Logr::Info, e.what(), "Error turning response asynchronous"));
   }
   catch (...) {
-    vinfolog("Exception in dnsdist_ffi_dnsresponse_set_async");
+    VERBOSESLOG(infolog("Exception in dnsdist_ffi_dnsresponse_set_async"),
+                getLogger(__func__)->info(Logr::Info, "Unknown error turning response asynchronous"));
   }
   return false;
 }
@@ -904,13 +916,15 @@ bool dnsdist_ffi_dnsresponse_set_async(dnsdist_ffi_dnsquestion_t* dq, uint16_t a
 bool dnsdist_ffi_resume_from_async(uint16_t asyncID, uint16_t queryID, const char* tag, size_t tagSize, const char* tagValue, size_t tagValueSize, bool useCache)
 {
   if (!dnsdist::g_asyncHolder) {
-    vinfolog("Unable to resume, no asynchronous holder");
+    VERBOSESLOG(infolog("Unable to resume, no asynchronous holder"),
+                getLogger(__func__)->info(Logr::Info, "Unable to resume, no asynchronous holder"));
     return false;
   }
 
   auto query = dnsdist::g_asyncHolder->get(asyncID, queryID);
   if (!query) {
-    vinfolog("Unable to resume, no object found for asynchronous ID %d and query ID %d", asyncID, queryID);
+    VERBOSESLOG(infolog("Unable to resume, no object found for asynchronous ID %d and query ID %d", asyncID, queryID),
+                getLogger(__func__)->info(Logr::Info, "Unable to resume, no object found for the supplied asynchronous and query IDs", "dnsdist.async.id", Logging::Loggable(asyncID), "dns.query.id", Logging::Loggable(queryID)));
     return false;
   }
 
@@ -930,12 +944,15 @@ bool dnsdist_ffi_resume_from_async(uint16_t asyncID, uint16_t queryID, const cha
 bool dnsdist_ffi_set_rcode_from_async(uint16_t asyncID, uint16_t queryID, uint8_t rcode, bool clearAnswers)
 {
   if (!dnsdist::g_asyncHolder) {
+    VERBOSESLOG(infolog("Unable to resume and set rcode async, no asynchronous holder"),
+                getLogger(__func__)->info(Logr::Info, "Unable to resume and set rcode, no asynchronous holder"));
     return false;
   }
 
   auto query = dnsdist::g_asyncHolder->get(asyncID, queryID);
   if (!query) {
-    vinfolog("Unable to resume with a custom response code, no object found for asynchronous ID %d and query ID %d", asyncID, queryID);
+    VERBOSESLOG(infolog("Unable to resume with a custom response code, no object found for asynchronous ID %d and query ID %d", asyncID, queryID),
+                getLogger(__func__)->info(Logr::Info, "Unable to resume, no object found for the supplied asynchronous and query IDs", "dnsdist.async.id", Logging::Loggable(asyncID), "dns.query.id", Logging::Loggable(queryID)));
     return false;
   }
 
@@ -965,7 +982,8 @@ static bool setAlternateName(PacketBuffer& packet, InternalQueryState& ids, std:
     ids.qname = std::move(parsed);
   }
   catch (const std::exception& e) {
-    vinfolog("Error rebasing packet on a new DNSName: %s", e.what());
+    VERBOSESLOG(infolog("Error rebasing packet on a new DNSName: %s", e.what()),
+                getLogger(__func__)->error(Logr::Info, e.what(), "Error rebasing packet on a new DNSName"));
     return false;
   }
 
@@ -996,7 +1014,8 @@ bool dnsdist_ffi_resume_from_async_with_alternate_name(uint16_t asyncID, uint16_
 
   auto query = dnsdist::g_asyncHolder->get(asyncID, queryID);
   if (!query) {
-    vinfolog("Unable to resume with an alternate name, no object found for asynchronous ID %d and query ID %d", asyncID, queryID);
+    VERBOSESLOG(infolog("Unable to resume with an alternate name, no object found for asynchronous ID %d and query ID %d", asyncID, queryID),
+                getLogger(__func__)->info(Logr::Info, "Unable to resume, no object found for the supplied asynchronous and query IDs", "dnsdist.async.id", Logging::Loggable(asyncID), "dns.query.id", Logging::Loggable(queryID)));
     return false;
   }
 
@@ -1045,7 +1064,8 @@ bool dnsdist_ffi_drop_from_async(uint16_t asyncID, uint16_t queryID)
 
   auto query = dnsdist::g_asyncHolder->get(asyncID, queryID);
   if (!query) {
-    vinfolog("Unable to drop, no object found for asynchronous ID %d and query ID %d", asyncID, queryID);
+    VERBOSESLOG(infolog("Unable to drop, no object found for asynchronous ID %d and query ID %d", asyncID, queryID),
+                getLogger(__func__)->info(Logr::Info, "Unable to drop, no object found for the supplied asynchronous and query IDs", "dnsdist.async.id", Logging::Loggable(asyncID), "dns.query.id", Logging::Loggable(queryID)));
     return false;
   }
 
@@ -1073,7 +1093,8 @@ bool dnsdist_ffi_set_answer_from_async(uint16_t asyncID, uint16_t queryID, const
 
   auto query = dnsdist::g_asyncHolder->get(asyncID, queryID);
   if (!query) {
-    vinfolog("Unable to resume with a custom answer, no object found for asynchronous ID %d and query ID %d", asyncID, queryID);
+    VERBOSESLOG(infolog("Unable to resume with a custom answer, no object found for asynchronous ID %d and query ID %d", asyncID, queryID),
+                getLogger(__func__)->info(Logr::Info, "Unable to resume with a custom answer, no object found for the supplied asynchronous and query IDs", "dnsdist.async.id", Logging::Loggable(asyncID), "dns.query.id", Logging::Loggable(queryID)));
     return false;
   }
 
@@ -1163,11 +1184,13 @@ size_t dnsdist_ffi_generate_proxy_protocol_payload(const size_t addrSize, const 
     return payload.size();
   }
   catch (const std::exception& e) {
-    vinfolog("Exception in dnsdist_ffi_generate_proxy_protocol_payload: %s", e.what());
+    VERBOSESLOG(infolog("Exception in dnsdist_ffi_generate_proxy_protocol_payload: %s", e.what()),
+                getLogger(__func__)->error(Logr::Info, e.what(), "Exception while generating proxy protocol payload"));
     return 0;
   }
   catch (...) {
-    vinfolog("Unhandled exception in dnsdist_ffi_generate_proxy_protocol_payload");
+    VERBOSESLOG(infolog("Unhandled exception in dnsdist_ffi_generate_proxy_protocol_payload"),
+                getLogger(__func__)->info(Logr::Info, "Unknown exception while generating proxy protocol payload"));
     return 0;
   }
 }
@@ -1283,11 +1306,13 @@ size_t dnsdist_ffi_packetcache_get_domain_list_by_addr(const char* poolName, con
     ca = ComboAddress(addr);
   }
   catch (const std::exception& e) {
-    vinfolog("Error parsing address passed to dnsdist_ffi_packetcache_get_domain_list_by_addr: %s", e.what());
+    VERBOSESLOG(infolog("Error parsing address passed to dnsdist_ffi_packetcache_get_domain_list_by_addr: %s", e.what()),
+                getLogger(__func__)->error(Logr::Info, e.what(), "Error parsing address"));
     return 0;
   }
   catch (const PDNSException& e) {
-    vinfolog("Error parsing address passed to dnsdist_ffi_packetcache_get_domain_list_by_addr: %s", e.reason);
+    VERBOSESLOG(infolog("Error parsing address passed to dnsdist_ffi_packetcache_get_domain_list_by_addr: %s", e.reason),
+                getLogger(__func__)->error(Logr::Info, e.reason, "Error parsing address"));
     return 0;
   }
 
@@ -1314,7 +1339,8 @@ size_t dnsdist_ffi_packetcache_get_domain_list_by_addr(const char* poolName, con
       list->d_domains.push_back(domain.toString());
     }
     catch (const std::exception& e) {
-      vinfolog("Error converting domain to string in dnsdist_ffi_packetcache_get_domain_list_by_addr: %s", e.what());
+      VERBOSESLOG(infolog("Error converting domain to string in dnsdist_ffi_packetcache_get_domain_list_by_addr: %s", e.what()),
+                  getLogger(__func__)->error(Logr::Info, e.what(), "Error converting domain to string", "domain", Logging::Loggable(domain)));
     }
   }
 
@@ -1336,7 +1362,8 @@ size_t dnsdist_ffi_packetcache_get_address_list_by_domain(const char* poolName, 
     name = DNSName(domain);
   }
   catch (const std::exception& e) {
-    vinfolog("Error parsing domain passed to dnsdist_ffi_packetcache_get_address_list_by_domain: %s", e.what());
+    VERBOSESLOG(infolog("Error parsing domain passed to dnsdist_ffi_packetcache_get_address_list_by_domain: %s", e.what()),
+                getLogger(__func__)->error(Logr::Info, e.what(), "Error parsing domain parameter", "domain", Logging::Loggable(domain)));
     return 0;
   }
 
@@ -1363,7 +1390,8 @@ size_t dnsdist_ffi_packetcache_get_address_list_by_domain(const char* poolName, 
       list->d_addresses.push_back(addr.toString());
     }
     catch (const std::exception& e) {
-      vinfolog("Error converting address to string in dnsdist_ffi_packetcache_get_address_list_by_domain: %s", e.what());
+      VERBOSESLOG(infolog("Error converting address to string in dnsdist_ffi_packetcache_get_address_list_by_domain: %s", e.what()),
+                  getLogger(__func__)->error(Logr::Info, e.what(), "Error parsing address to string", "address", Logging::Loggable(addr)));
     }
   }
 
@@ -1633,11 +1661,13 @@ size_t dnsdist_ffi_ring_get_entries_by_addr(const char* addr, dnsdist_ffi_ring_e
     ca = ComboAddress(addr);
   }
   catch (const std::exception& e) {
-    vinfolog("Unable to convert address in dnsdist_ffi_ring_get_entries_by_addr: %s", e.what());
+    VERBOSESLOG(infolog("Unable to convert address in dnsdist_ffi_ring_get_entries_by_addr: %s", e.what()),
+                getLogger(__func__)->error(Logr::Info, e.what(), "Unable to parse address", "address", Logging::Loggable(addr)));
     return 0;
   }
   catch (const PDNSException& e) {
-    vinfolog("Unable to convert address in dnsdist_ffi_ring_get_entries_by_addr: %s", e.reason);
+    VERBOSESLOG(vinfolog("Unable to convert address in dnsdist_ffi_ring_get_entries_by_addr: %s", e.reason),
+                getLogger(__func__)->error(Logr::Info, e.reason, "Unable to parse address", "address", Logging::Loggable(addr)));
     return 0;
   }
 
@@ -1728,7 +1758,8 @@ bool dnsdist_ffi_network_endpoint_new(const char* path, size_t pathSize, dnsdist
     return true;
   }
   catch (const std::exception& e) {
-    vinfolog("Error creating a new network endpoint: %s", e.what());
+    VERBOSESLOG(infolog("Error creating a new network endpoint: %s", e.what()),
+                getLogger(__func__)->error(Logr::Info, e.what(), "Error creating a new network endpoint", "path", Logging::Loggable(std::string_view(path, pathSize))));
     return false;
   }
 }
@@ -1768,10 +1799,12 @@ bool dnsdist_ffi_dnspacket_parse(const char* packet, size_t packetSize, dnsdist_
     return true;
   }
   catch (const std::exception& e) {
-    vinfolog("Error in dnsdist_ffi_dnspacket_parse: %s", e.what());
+    VERBOSESLOG(vinfolog("Error in dnsdist_ffi_dnspacket_parse: %s", e.what()),
+                getLogger(__func__)->error(Logr::Info, e.what(), "Error parsing DNS packet", "packet_size", Logging::Loggable(packetSize)));
   }
   catch (...) {
-    vinfolog("Error in dnsdist_ffi_dnspacket_parse");
+    VERBOSESLOG(infolog("Error in dnsdist_ffi_dnspacket_parse"),
+                getLogger(__func__)->info(Logr::Info, "Error parsing DNS packet", "packet_size", Logging::Loggable(packetSize)));
   }
   return false;
 }
@@ -1883,7 +1916,8 @@ size_t dnsdist_ffi_dnspacket_get_name_at_offset_raw(const char* packet, size_t p
     return storage.size();
   }
   catch (const std::exception& e) {
-    vinfolog("Error parsing DNSName via dnsdist_ffi_dnspacket_get_name_at_offset_raw: %s", e.what());
+    VERBOSESLOG(infolog("Error parsing DNSName via dnsdist_ffi_dnspacket_get_name_at_offset_raw: %s", e.what()),
+                getLogger(__func__)->error(Logr::Info, e.what(), "Error parsing DNS name", "packet_size", Logging::Loggable(packetSize), "offset", Logging::Loggable(offset)));
   }
   return 0;
 }
@@ -2060,11 +2094,13 @@ bool dnsdist_ffi_dynamic_blocks_add(const char* address, const char* message, ui
       clientIPCA = ComboAddress(address);
     }
     catch (const std::exception& exp) {
-      errlog("dnsdist_ffi_dynamic_blocks_add: Unable to parse '%s': %s", address, exp.what());
+      SLOG(errlog("dnsdist_ffi_dynamic_blocks_add: Unable to parse '%s': %s", address, exp.what()),
+           getLogger(__func__)->error(Logr::Error, exp.what(), "Error parsing IP address", "address", Logging::Loggable(address)));
       return false;
     }
     catch (const PDNSException& exp) {
-      errlog("dnsdist_ffi_dynamic_blocks_add: Unable to parse '%s': %s", address, exp.reason);
+      SLOG(errlog("dnsdist_ffi_dynamic_blocks_add: Unable to parse '%s': %s", address, exp.reason),
+           getLogger(__func__)->error(Logr::Error, exp.reason, "Error parsing IP address", "address", Logging::Loggable(address)));
       return false;
     }
 
@@ -2090,13 +2126,16 @@ bool dnsdist_ffi_dynamic_blocks_add(const char* address, const char* message, ui
     }
   }
   catch (const std::exception& exp) {
-    errlog("Exception in dnsdist_ffi_dynamic_blocks_add: %s", exp.what());
+    SLOG(errlog("Exception in dnsdist_ffi_dynamic_blocks_add: %s", exp.what()),
+         getLogger(__func__)->error(Logr::Error, exp.what(), "Exception adding a dynamic rule", "address", Logging::Loggable(address)));
   }
   catch (const PDNSException& exp) {
-    errlog("Exception in dnsdist_ffi_dynamic_blocks_add: %s", exp.reason);
+    SLOG(errlog("Exception in dnsdist_ffi_dynamic_blocks_add: %s", exp.reason),
+         getLogger(__func__)->error(Logr::Error, exp.reason, "Exception adding a dynamic rule", "address", Logging::Loggable(address)));
   }
   catch (...) {
-    errlog("Exception in dnsdist_ffi_dynamic_blocks_add");
+    SLOG(errlog("Exception in dnsdist_ffi_dynamic_blocks_add"),
+         getLogger(__func__)->info(Logr::Error, "Unknown exception adding a dynamic rule", "address", Logging::Loggable(address)));
   }
   return false;
 }
@@ -2110,11 +2149,13 @@ bool dnsdist_ffi_dynamic_blocks_smt_add(const char* suffix, const char* message,
       domain.makeUsLowerCase();
     }
     catch (const std::exception& exp) {
-      errlog("dnsdist_ffi_dynamic_blocks_smt_add: Unable to parse '%s': %s", suffix, exp.what());
+      SLOG(errlog("dnsdist_ffi_dynamic_blocks_smt_add: Unable to parse '%s': %s", suffix, exp.what()),
+           getLogger(__func__)->error(Logr::Error, exp.what(), "Error parsing suffix", "suffix", Logging::Loggable(suffix)));
       return false;
     }
     catch (const PDNSException& exp) {
-      errlog("dnsdist_ffi_dynamic_blocks_smt_add: Unable to parse '%s': %s", suffix, exp.reason);
+      SLOG(errlog("dnsdist_ffi_dynamic_blocks_smt_add: Unable to parse '%s': %s", suffix, exp.reason),
+                   getLogger(__func__)->error(Logr::Error, exp.reason, "Error parsing suffix", "suffix", Logging::Loggable(suffix)));
       return false;
     }
 
@@ -2137,13 +2178,17 @@ bool dnsdist_ffi_dynamic_blocks_smt_add(const char* suffix, const char* message,
     }
   }
   catch (const std::exception& exp) {
-    errlog("Exception in dnsdist_ffi_dynamic_blocks_smt_add: %s", exp.what());
+    SLOG(errlog("Exception in dnsdist_ffi_dynamic_blocks_smt_add: %s", exp.what()),
+         getLogger(__func__)->error(Logr::Error, exp.what(), "Exception adding a dynamic SMT rule", "suffix", Logging::Loggable(suffix)));
   }
   catch (const PDNSException& exp) {
-    errlog("Exception in dnsdist_ffi_dynamic_blocks_smt_add: %s", exp.reason);
+    SLOG(errlog("Exception in dnsdist_ffi_dynamic_blocks_smt_add: %s", exp.reason),
+         getLogger(__func__)->error(Logr::Error, exp.reason, "Exception adding a dynamic SMT rule", "suffix", Logging::Loggable(suffix)));
   }
   catch (...) {
-    errlog("Exception in dnsdist_ffi_dynamic_blocks_smt_add");
+    SLOG(errlog("Exception in dnsdist_ffi_dynamic_blocks_smt_add"),
+         getLogger(__func__)->info(Logr::Error, "Unknown exception adding a dynamic SMT rule", "suffix", Logging::Loggable(suffix)));
+
   }
   return false;
 }
@@ -2281,13 +2326,16 @@ bool dnsdist_ffi_svc_record_parameters_new(const char* targetName, uint16_t prio
     return true;
   }
   catch (const std::exception& exp) {
-    errlog("Exception in dnsdist_ffi_svc_record_parameters_new: %s", exp.what());
+    SLOG(errlog("Exception in dnsdist_ffi_svc_record_parameters_new: %s", exp.what()),
+         getLogger(__func__)->error(Logr::Error, exp.what(), "Exception creating SVC record parameter", "target_name", Logging::Loggable(targetName)));
   }
   catch (const PDNSException& exp) {
-    errlog("Exception in dnsdist_ffi_svc_record_parameters_new: %s", exp.reason);
+    SLOG(errlog("Exception in dnsdist_ffi_svc_record_parameters_new: %s", exp.reason),
+         getLogger(__func__)->error(Logr::Error, exp.reason, "Exception creating SVC record parameter", "target_name", Logging::Loggable(targetName)));
   }
   catch (...) {
-    errlog("Exception in dnsdist_ffi_svc_record_parameters_new");
+    SLOG(errlog("Exception in dnsdist_ffi_svc_record_parameters_new"),
+         getLogger(__func__)->info(Logr::Error, "Exception creating SVC record parameter", "target_name", Logging::Loggable(targetName)));
   }
 
   return false;
@@ -2342,13 +2390,17 @@ void dnsdist_ffi_svc_record_parameters_add_ipv4_hint(dnsdist_ffi_svc_record_para
     parameters->parameters.ipv4hints.emplace_back(ComboAddress(std::string(value, valueLen)));
   }
   catch (const std::exception& exp) {
-    errlog("Exception in dnsdist_ffi_svc_record_parameters_add_ipv4_hint: %s", exp.what());
+    SLOG(errlog("Exception in dnsdist_ffi_svc_record_parameters_add_ipv4_hint: %s", exp.what()),
+         getLogger(__func__)->error(Logr::Error, exp.what(), "Exception adding IPv4 hint to SVC record", "value", Logging::Loggable(std::string_view(value, valueLen))));
+
   }
   catch (const PDNSException& exp) {
-    errlog("Exception in dnsdist_ffi_svc_record_parameters_add_ipv4_hint: %s", exp.reason);
+    SLOG(errlog("Exception in dnsdist_ffi_svc_record_parameters_add_ipv4_hint: %s", exp.reason),
+         getLogger(__func__)->error(Logr::Error, exp.reason, "Exception adding IPv4 hint to SVC record", "value", Logging::Loggable(std::string_view(value, valueLen))));
   }
   catch (...) {
-    errlog("Exception in dnsdist_ffi_svc_record_parameters_add_ipv4_hint");
+    SLOG(errlog("Exception in dnsdist_ffi_svc_record_parameters_add_ipv4_hint"),
+         getLogger(__func__)->info(Logr::Error, "Exception adding IPv4 hint to SVC record", "value", Logging::Loggable(std::string_view(value, valueLen))));
   }
 }
 
@@ -2361,13 +2413,16 @@ void dnsdist_ffi_svc_record_parameters_add_ipv6_hint(dnsdist_ffi_svc_record_para
     parameters->parameters.ipv6hints.emplace_back(ComboAddress(std::string(value, valueLen)));
   }
   catch (const std::exception& exp) {
-    errlog("Exception in dnsdist_ffi_svc_record_parameters_add_ipv4_hint: %s", exp.what());
+    SLOG(errlog("Exception in dnsdist_ffi_svc_record_parameters_add_ipv6_hint: %s", exp.what()),
+         getLogger(__func__)->error(Logr::Error, exp.what(), "Exception adding IPv6 hint to SVC record", "value", Logging::Loggable(std::string_view(value, valueLen))));
   }
   catch (const PDNSException& exp) {
-    errlog("Exception in dnsdist_ffi_svc_record_parameters_add_ipv4_hint: %s", exp.reason);
+    SLOG(errlog("Exception in dnsdist_ffi_svc_record_parameters_add_ipv6_hint: %s", exp.reason),
+         getLogger(__func__)->error(Logr::Error, exp.reason, "Exception adding IPv6 hint to SVC record", "value", Logging::Loggable(std::string_view(value, valueLen))));
   }
   catch (...) {
-    errlog("Exception in dnsdist_ffi_svc_record_parameters_add_ipv4_hint");
+    SLOG(errlog("Exception in dnsdist_ffi_svc_record_parameters_add_ipv6_hint"),
+         getLogger(__func__)->info(Logr::Error, "Exception adding IPv6 hint to SVC record", "value", Logging::Loggable(std::string_view(value, valueLen))));
   }
 }
 
@@ -2403,7 +2458,8 @@ void dnsdist_ffi_dnsquestion_meta_begin_key([[maybe_unused]] dnsdist_ffi_dnsques
   }
 
   if (dnsQuestion->pbfWriter.valid()) {
-    vinfolog("Error in dnsdist_ffi_dnsquestion_meta_begin_key: the previous key has not been ended");
+    VERBOSESLOG(infolog("Error in dnsdist_ffi_dnsquestion_meta_begin_key: the previous key has not been ended"),
+                getLogger(__func__)->info(Logr::Info, "Error beginning a new meta key: the previous key has not been ended"));
     return;
   }
 
@@ -2422,7 +2478,8 @@ void dnsdist_ffi_dnsquestion_meta_add_str_value_to_key([[maybe_unused]] dnsdist_
   }
 
   if (!dnsQuestion->pbfMetaValueWriter.valid()) {
-    vinfolog("Error in dnsdist_ffi_dnsquestion_meta_add_str_value_to_key: trying to add a value without starting a key");
+    VERBOSESLOG(infolog("Error in dnsdist_ffi_dnsquestion_meta_add_str_value_to_key: trying to add a value without starting a key"),
+                getLogger(__func__)->info(Logr::Info, "Error adding a new meta value: the key has not been started"));
     return;
   }
 
@@ -2438,7 +2495,8 @@ void dnsdist_ffi_dnsquestion_meta_add_int64_value_to_key([[maybe_unused]] dnsdis
   }
 
   if (!dnsQuestion->pbfMetaValueWriter.valid()) {
-    vinfolog("Error in dnsdist_ffi_dnsquestion_meta_add_int64_value_to_key: trying to add a value without starting a key");
+    VERBOSESLOG(infolog("Error in dnsdist_ffi_dnsquestion_meta_add_int64_value_to_key: trying to add a value without starting a key"),
+                getLogger(__func__)->info(Logr::Info, "Error adding a new meta value: the key has not been started"));
     return;
   }
 
@@ -2454,7 +2512,8 @@ void dnsdist_ffi_dnsquestion_meta_end_key([[maybe_unused]] dnsdist_ffi_dnsquesti
   }
 
   if (!dnsQuestion->pbfWriter.valid()) {
-    vinfolog("Error in dnsdist_ffi_dnsquestion_meta_end_key: trying to end a key that has not been started");
+    VERBOSESLOG(infolog("Error in dnsdist_ffi_dnsquestion_meta_end_key: trying to end a key that has not been started"),
+                getLogger(__func__)->info(Logr::Info, "Error ending meta key: the key has not been started"));
     return;
   }
 
@@ -2465,7 +2524,8 @@ void dnsdist_ffi_dnsquestion_meta_end_key([[maybe_unused]] dnsdist_ffi_dnsquesti
     dnsQuestion->pbfWriter = protozero::pbf_writer();
   }
   catch (const std::exception& exp) {
-    vinfolog("Error in dnsdist_ffi_dnsquestion_meta_end_key: %s", exp.what());
+    VERBOSESLOG(infolog("Error in dnsdist_ffi_dnsquestion_meta_end_key: %s", exp.what()),
+                getLogger(__func__)->error(Logr::Error, exp.what(), "Exception while ending meta key"));
   }
 #endif /* DISABLE_PROTOBUF */
 }
@@ -2478,7 +2538,8 @@ void dnsdist_ffi_dnsresponse_meta_begin_key([[maybe_unused]] dnsdist_ffi_dnsresp
   }
 
   if (dnsResponse->pbfWriter.valid()) {
-    vinfolog("Error in dnsdist_ffi_dnsresponse_meta_begin_key: the previous key has not been ended");
+    VERBOSESLOG(infolog("Error in dnsdist_ffi_dnsresponse_meta_begin_key: the previous key has not been ended"),
+                getLogger(__func__)->info(Logr::Info, "Error ending meta key for response : the previous key has not been ended"));
     return;
   }
 
@@ -2497,7 +2558,8 @@ void dnsdist_ffi_dnsresponse_meta_add_str_value_to_key([[maybe_unused]] dnsdist_
   }
 
   if (!dnsResponse->pbfMetaValueWriter.valid()) {
-    vinfolog("Error in dnsdist_ffi_dnsresponse_meta_add_str_value_to_key: trying to add a value without starting a key");
+    VERBOSESLOG(infolog("Error in dnsdist_ffi_dnsresponse_meta_add_str_value_to_key: trying to add a value without starting a key"),
+                getLogger(__func__)->info(Logr::Info, "Error adding meta value: the key has not been started"));
     return;
   }
 
@@ -2513,7 +2575,8 @@ void dnsdist_ffi_dnsresponse_meta_add_int64_value_to_key([[maybe_unused]] dnsdis
   }
 
   if (!dnsResponse->pbfMetaValueWriter.valid()) {
-    vinfolog("Error in dnsdist_ffi_dnsresponse_meta_add_int64_value_to_key: trying to add a value without starting a key");
+    VERBOSESLOG(infolog("Error in dnsdist_ffi_dnsresponse_meta_add_int64_value_to_key: trying to add a value without starting a key"),
+                getLogger(__func__)->info(Logr::Info, "Error adding meta value: the key has not been started"));
     return;
   }
 
@@ -2529,7 +2592,8 @@ void dnsdist_ffi_dnsresponse_meta_end_key([[maybe_unused]] dnsdist_ffi_dnsrespon
   }
 
   if (!dnsResponse->pbfWriter.valid()) {
-    vinfolog("Error in dnsdist_ffi_dnsresponse_meta_end_key: trying to end a key that has not been started");
+    VERBOSESLOG(infolog("Error in dnsdist_ffi_dnsresponse_meta_end_key: trying to end a key that has not been started"),
+                getLogger(__func__)->info(Logr::Info, "Error ending meta key: the key has not been started"));
     return;
   }
 
@@ -2540,7 +2604,8 @@ void dnsdist_ffi_dnsresponse_meta_end_key([[maybe_unused]] dnsdist_ffi_dnsrespon
     dnsResponse->pbfWriter = protozero::pbf_writer();
   }
   catch (const std::exception& exp) {
-    vinfolog("Error in dnsdist_ffi_dnsresponse_meta_end_key: %s", exp.what());
+    VERBOSESLOG(infolog("Error in dnsdist_ffi_dnsresponse_meta_end_key: %s", exp.what()),
+                getLogger(__func__)->error(Logr::Error, exp.what(), "Exception while ending meta key"));
   }
 #endif /* DISABLE_PROTOBUF */
 }
