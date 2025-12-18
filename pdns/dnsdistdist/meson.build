@@ -85,6 +85,7 @@ subdir('meson' / 'doq')                     # DNS over QUIC
 subdir('meson' / 'doh3')                    # DNS over HTTP/3
 subdir('meson' / 'yaml-configuration')      # YAML configuration
 subdir('meson' / 'catch2')                  # Microbenchmark
+subdir('meson' / 'mmdb')                    # MMDB (MaxmindDB)
 
 common_sources = []
 
@@ -246,6 +247,12 @@ conditional_sources = {
       src_dir / 'doq-common.cc',
     ],
     'condition': dep_libquiche.found(),
+  },
+  'mmdb': {
+    'sources': [
+      src_dir / 'mmdb.cc',
+    ],
+    'condition': get_option('mmdb').allowed() and dep_mmdb.found(),
    },
 }
 
@@ -398,6 +405,7 @@ deps = [
   dep_lmdb,
   dep_lmdb_safe,
   dep_lua,
+  dep_mmdb,
   dep_protozero,
   dep_yahttp,
   dep_libre2,
