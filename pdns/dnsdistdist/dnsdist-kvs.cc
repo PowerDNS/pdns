@@ -302,3 +302,39 @@ bool CDBKVStore::keyExists(const std::string& key)
 }
 
 #endif /* HAVE_CDB */
+
+#ifdef HAVE_MMDB
+bool MMDBKVStore::keyExists(const std::string& key)
+{
+  auto addr = makeComboAddressFromRaw(key.size() == sizeof(in_addr) ? 4 : 6, key);
+  return d_mmdb->exists(addr);
+}
+
+bool MMDBKVStore::getValue(const std::string& key, std::string& value)
+{
+  auto address = makeComboAddressFromRaw(key.size() == sizeof(in_addr) ? 4 : 6, key);
+  if (d_field == "country") {
+    return d_mmdb->queryCountry(value, address);
+  }
+  else if (d_field == "continent") {
+    return d_mmdb->queryContinent(value, address);
+  }
+  else if (d_field == "asn") {
+    return d_mmdb->queryAS(value, address);
+  }
+  else if (d_field == "asnum") {
+    return d_mmdb->queryASN(value, address);
+  }
+  else if (d_field == "city") {
+    return d_mmdb->queryCity(value, address, "en");
+  }
+  else {
+    return false;
+  }
+}
+
+bool MMDBKVStore::reload()
+{
+  return true;
+}
+#endif // HAVE_MMDB

@@ -231,3 +231,25 @@ private:
 };
 
 #endif /* HAVE_LMDB */
+
+#ifdef HAVE_MMDB
+
+#include "mmdb.hh"
+
+class MMDBKVStore : public KeyValueStore
+{
+public:
+  MMDBKVStore(const std::string& fname, const std::string& modeStr, const std::string& field) :
+    d_mmdb(std::make_unique<MMDB>(fname, modeStr)), d_field(field) {}
+  ~MMDBKVStore();
+
+  bool keyExists(const std::string& key) override;
+  bool getValue(const std::string& key, std::string& value) override;
+  bool reload() override;
+
+private:
+  std::unique_ptr<MMDB> d_mmdb{nullptr};
+  std::string d_field;
+};
+
+#endif // HAVE_MMDB
