@@ -94,7 +94,6 @@ extern "C" void __tsan_acquire(void* addr);
 extern "C" void __tsan_release(void* addr);
 #endif /* defined __has_include */
 #else
-#error XXXX
 #define __tsan_acquire(x)
 #define __tsan_release(x)
 #endif /* __SANITIZE_THREAD__ */
