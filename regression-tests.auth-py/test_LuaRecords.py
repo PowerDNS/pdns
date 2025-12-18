@@ -65,7 +65,7 @@ some.ifportup                3600 IN LUA  A     "ifportup(8080, {{'192.168.42.21
 multi.ifportup               3600 IN LUA  A     "ifportup(8080, {{ {{'192.168.42.23'}}, {{'192.168.42.21', '{prefix}.102'}}, {{'{prefix}.101'}} }})"
 none.ifportup                3600 IN LUA  A     "ifportup(8080, {{'192.168.42.21', '192.168.21.42'}})"
 all.noneup.ifportup          3600 IN LUA  A     "ifportup(8080, {{'192.168.42.21', '192.168.21.42'}}, {{ backupSelector='all' }})"
-empty.ifportup               3600 IN LUA  A     "ifportup(8080, {{'192.168.42.21', '192.168.21.42'}}, {{ backupSelector='empty' }})"
+empty.noneup.ifportup        3600 IN LUA  A     "ifportup(8080, {{'192.168.42.21', '192.168.21.42'}}, {{ backupSelector='empty' }})"
 
 hashed.example.org.          3600 IN LUA  A     "pickhashed({{ '1.2.3.4', '4.3.2.1' }})"
 hashed-v6.example.org.       3600 IN LUA  AAAA  "pickhashed({{ '2001:db8:a0b:12f0::1', 'fe80::2a1:9bff:fe9b:f268' }})"
@@ -448,10 +448,10 @@ class TestLuaRecords(BaseLuaTest):
         """
         Basic ifportup() test with all ports DOWN, fallback to 'empty' backup selector
         """
-        name = 'empty.ifportup.example.org.'
+        name = 'empty.noneup.ifportup.example.org.'
         query = dns.message.make_query(name, dns.rdatatype.A)
 
-        # With backupSelector='empty', we always return NODATA when no healthy targets,
+        # With backupSelector='empty', we always return NODATA when there are no healthy targets,
         # even before health checks have run (fail-close behavior).
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
