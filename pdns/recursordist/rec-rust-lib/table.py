@@ -2286,7 +2286,7 @@ This value has precedence over :ref:`setting-qname-max-minimize-count`.
         'help' : 'Source IP address for sending queries',
         'doc' : '''
 .. note::
-    While subnets and their negations are syntactically accepted, the handling of subnets has not been implemented yet.
+    While subnets and their negations are mentioned as accepted, the handling of subnets has not been implemented yet.
     Only individual IP addresses can be listed.
 
 Send out local queries from this address, or addresses. By adding multiple
