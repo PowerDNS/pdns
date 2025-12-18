@@ -38,16 +38,20 @@
 void setupLuaBindingsLogging(LuaContext& luaCtx)
 {
   luaCtx.writeFunction("vinfolog", [](const string& arg) {
-    vinfolog("%s", arg);
+    VERBOSESLOG(infolog("%s", arg),
+                dnsdist::logging::getTopLogger()->withName("lua-message")->info(Logr::Info, arg));
   });
   luaCtx.writeFunction("infolog", [](const string& arg) {
-    infolog("%s", arg);
+    SLOG(infolog("%s", arg),
+         dnsdist::logging::getTopLogger()->withName("lua-message")->info(Logr::Info, arg));
   });
   luaCtx.writeFunction("errlog", [](const string& arg) {
-    errlog("%s", arg);
+    SLOG(errlog("%s", arg),
+         dnsdist::logging::getTopLogger()->withName("lua-message")->info(Logr::Error, arg));
   });
   luaCtx.writeFunction("warnlog", [](const string& arg) {
-    warnlog("%s", arg);
+    SLOG(warnlog("%s", arg),
+         dnsdist::logging::getTopLogger()->withName("lua-message")->info(Logr::Warning, arg));
   });
   luaCtx.writeFunction("show", [](const string& arg) {
     g_outputBuffer += arg;
@@ -1092,7 +1096,8 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
           callback(resolvedHostname, result);
         }
         catch (const std::exception& exp) {
-          vinfolog("Error during execution of getAddressInfo callback: %s", exp.what());
+          VERBOSESLOG(infolog("Error during execution of getAddressInfo callback: %s", exp.what()),
+                      dnsdist::logging::getTopLogger()->error(Logr::Error, exp.what(), "Error during execution of getAddressInfo callback"));
         }
         // this _needs_ to be done while we are holding the lock,
         // otherwise the destructor will corrupt the stack

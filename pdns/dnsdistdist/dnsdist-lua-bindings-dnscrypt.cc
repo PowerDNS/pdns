@@ -118,7 +118,8 @@ void setupLuaBindingsDNSCrypt([[maybe_unused]] LuaContext& luaCtx, [[maybe_unuse
       }
     }
     catch (const std::exception& e) {
-      errlog("Error generating a DNSCrypt certificate: %s", e.what());
+      SLOG(errlog("Error generating a DNSCrypt certificate: %s", e.what()),
+           dnsdist::logging::getTopLogger()->error(Logr::Error, e.what(), "Error generating a DNSCrypt certificate"));
       g_outputBuffer = "Error generating a DNSCrypt certificate: " + string(e.what()) + "\n";
       return false;
     }
@@ -183,7 +184,8 @@ void setupLuaBindingsDNSCrypt([[maybe_unused]] LuaContext& luaCtx, [[maybe_unuse
       }
     }
     catch (const std::exception& e) {
-      errlog("Error generating a DNSCrypt certificate: %s", e.what());
+      SLOG(errlog("Error generating a DNSCrypt certificate: %s", e.what()),
+           dnsdist::logging::getTopLogger()->error(Logr::Error, e.what(), "Error generating a DNSCrypt certificate"));
       g_outputBuffer = "Error generating a DNSCrypt certificate: " + string(e.what()) + "\n";
     }
   });
@@ -213,7 +215,8 @@ void setupLuaBindingsDNSCrypt([[maybe_unused]] LuaContext& luaCtx, [[maybe_unuse
       g_outputBuffer = "Provider fingerprint is: " + DNSCryptContext::getProviderFingerprint(publicKey) + "\n";
     }
     catch (const std::exception& e) {
-      errlog("Error generating a DNSCrypt provider key: %s", e.what());
+      SLOG(errlog("Error generating a DNSCrypt provider key: %s", e.what()),
+           dnsdist::logging::getTopLogger()->error(Logr::Error, e.what(), "Error generating a DNSCrypt provider key"));
       g_outputBuffer = "Error generating a DNSCrypt provider key: " + string(e.what()) + "\n";
     }
 
@@ -238,7 +241,8 @@ void setupLuaBindingsDNSCrypt([[maybe_unused]] LuaContext& luaCtx, [[maybe_unuse
       g_outputBuffer = "Provider fingerprint is: " + DNSCryptContext::getProviderFingerprint(publicKey) + "\n";
     }
     catch (const std::exception& e) {
-      errlog("Error getting a DNSCrypt provider fingerprint: %s", e.what());
+      SLOG(errlog("Error getting a DNSCrypt provider fingerprint: %s", e.what()),
+           dnsdist::logging::getTopLogger()->error(Logr::Error, e.what(), "Error getting a DNSCrypt provider fingerprint"));
       g_outputBuffer = "Error getting a DNSCrypt provider fingerprint: " + string(e.what()) + "\n";
     }
   });
