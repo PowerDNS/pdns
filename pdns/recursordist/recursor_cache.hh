@@ -65,7 +65,8 @@ public:
   size_t getRecordSets(size_t perShard, size_t maxSize, std::string& ret);
   size_t putRecordSets(const std::string& pbuf);
 
-  using OptTag = boost::optional<std::string>;
+  using OptTag = std::string;
+  const static OptTag NOTAG;
 
   using Flags = uint8_t;
   static constexpr Flags None = 0;
@@ -102,9 +103,9 @@ public:
     bool d_tcp{false};
   };
 
-  [[nodiscard]] time_t get(time_t, const DNSName& qname, QType qtype, Flags flags, vector<DNSRecord>* res, const ComboAddress& who, const OptTag& routingTag = boost::none, SigRecs* signatures = nullptr, AuthRecs* authorityRecs = nullptr, bool* variable = nullptr, vState* state = nullptr, bool* wasAuth = nullptr, DNSName* fromAuthZone = nullptr, Extra* extra = nullptr);
+  [[nodiscard]] time_t get(time_t, const DNSName& qname, QType qtype, Flags flags, vector<DNSRecord>* res, const ComboAddress& who, const OptTag& routingTag = NOTAG, SigRecs* signatures = nullptr, AuthRecs* authorityRecs = nullptr, bool* variable = nullptr, vState* state = nullptr, bool* wasAuth = nullptr, DNSName* fromAuthZone = nullptr, Extra* extra = nullptr);
 
-  void replace(time_t, const DNSName& qname, QType qtype, const vector<DNSRecord>& content, const SigRecsVec& signatures, const AuthRecsVec& authorityRecs, bool auth, const DNSName& authZone, const std::optional<Netmask>& ednsmask = std::nullopt, const OptTag& routingTag = boost::none, vState state = vState::Indeterminate, const std::optional<Extra>& extra = std::nullopt, bool refresh = false, time_t ttl_time = time(nullptr));
+  void replace(time_t, const DNSName& qname, QType qtype, const vector<DNSRecord>& content, const SigRecsVec& signatures, const AuthRecsVec& authorityRecs, bool auth, const DNSName& authZone, const std::optional<Netmask>& ednsmask = std::nullopt, const OptTag& routingTag = NOTAG, vState state = vState::Indeterminate, const std::optional<Extra>& extra = std::nullopt, bool refresh = false, time_t ttl_time = time(nullptr));
 
   void doPrune(time_t now, size_t keep);
   uint64_t doDump(int fileDesc, size_t maxCacheEntries);
@@ -389,8 +390,3 @@ private:
   static void updateStaleEntry(time_t now, OrderedTagIterator_t& entry);
   static void handleServeStaleBookkeeping(time_t, bool, OrderedTagIterator_t&);
 };
-
-namespace boost
-{
-size_t hash_value(const MemRecursorCache::OptTag& rtag);
-}

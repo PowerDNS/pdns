@@ -4836,7 +4836,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
           g_negCache->wipeTyped(tCacheEntry->first.name, tCacheEntry->first.type);
         }
 
-        if (g_aggressiveNSECCache && thisRRNeedsWildcardProof && recordState == vState::Secure && tCacheEntry->first.place == DNSResourceRecord::ANSWER && !tCacheEntry->second.signatures.empty() && !d_routingTag && !ednsmask) {
+        if (g_aggressiveNSECCache && thisRRNeedsWildcardProof && recordState == vState::Secure && tCacheEntry->first.place == DNSResourceRecord::ANSWER && !tCacheEntry->second.signatures.empty() && d_routingTag.empty() && !ednsmask) {
           /* we have an answer synthesized from a wildcard and aggressive NSEC is enabled, we need to store the
              wildcard in its non-expanded form in the cache to be able to synthesize wildcard answers later */
           const auto& rrsig = tCacheEntry->second.signatures.at(0);
@@ -4853,7 +4853,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
               content.push_back(std::move(nonExpandedRecord));
             }
 
-            g_recCache->replace(d_now.tv_sec, realOwner, QType(tCacheEntry->first.type), content, tCacheEntry->second.signatures, /* no additional records in that case */ {}, tCacheEntry->first.type == QType::DS ? true : isAA, auth, std::nullopt, boost::none, recordState, MemRecursorCache::Extra{remoteIP, overTCP}, d_refresh, tCacheEntry->second.d_ttl_time);
+            g_recCache->replace(d_now.tv_sec, realOwner, QType(tCacheEntry->first.type), content, tCacheEntry->second.signatures, /* no additional records in that case */ {}, tCacheEntry->first.type == QType::DS ? true : isAA, auth, std::nullopt, MemRecursorCache::NOTAG, recordState, MemRecursorCache::Extra{remoteIP, overTCP}, d_refresh, tCacheEntry->second.d_ttl_time);
           }
         }
       }

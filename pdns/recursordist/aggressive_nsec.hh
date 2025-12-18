@@ -63,7 +63,7 @@ public:
   }
 
   void insertNSEC(const DNSName& zone, const DNSName& owner, const DNSRecord& record, const std::vector<std::shared_ptr<const RRSIGRecordContent>>& signatures, bool nsec3, const DNSName& qname = g_rootdnsname, QType qtype = QType::ENT);
-  bool getDenial(time_t, const DNSName& name, const QType& type, std::vector<DNSRecord>& ret, int& res, const ComboAddress& who, const boost::optional<std::string>& routingTag, bool doDNSSEC, pdns::validation::ValidationContext& validationContext, const OptLog& log = std::nullopt);
+  bool getDenial(time_t, const DNSName& name, const QType& type, std::vector<DNSRecord>& ret, int& res, const ComboAddress& who, const MemRecursorCache::OptTag& routingTag, bool doDNSSEC, pdns::validation::ValidationContext& validationContext, const OptLog& log = std::nullopt);
 
   void removeZoneInfo(const DNSName& zone, bool subzones);
 

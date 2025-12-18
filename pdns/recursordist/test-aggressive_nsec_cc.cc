@@ -1323,7 +1323,7 @@ static bool getDenialWrapper(std::unique_ptr<AggressiveNSECCache>& cache, time_t
   std::vector<DNSRecord> results;
   pdns::validation::ValidationContext validationContext;
   validationContext.d_nsec3IterationsRemainingQuota = std::numeric_limits<decltype(validationContext.d_nsec3IterationsRemainingQuota)>::max();
-  bool found = cache->getDenial(now, name, qtype, results, res, ComboAddress("192.0.2.1"), boost::none, true, validationContext);
+  bool found = cache->getDenial(now, name, qtype, results, res, ComboAddress("192.0.2.1"), MemRecursorCache::NOTAG, true, validationContext);
   if (expectedResult) {
     BOOST_CHECK_EQUAL(res, *expectedResult);
   }
@@ -1356,7 +1356,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_rollover)
   drSOA.d_place = DNSResourceRecord::ANSWER;
   records.push_back(drSOA);
 
-  g_recCache->replace(now, zone, QType(QType::SOA), records, {}, {}, true, zone, std::nullopt, boost::none, vState::Secure);
+  g_recCache->replace(now, zone, QType(QType::SOA), records, {}, {}, true, zone, std::nullopt, MemRecursorCache::NOTAG, vState::Secure);
   BOOST_CHECK_EQUAL(g_recCache->size(), 1U);
 
   std::string oldSalt = "ab";
@@ -1473,7 +1473,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_ancestor_cases)
   drSOA.d_place = DNSResourceRecord::ANSWER;
   records.push_back(drSOA);
 
-  g_recCache->replace(now, zone, QType(QType::SOA), records, {}, {}, true, zone, std::nullopt, boost::none, vState::Secure);
+  g_recCache->replace(now, zone, QType(QType::SOA), records, {}, {}, true, zone, std::nullopt, MemRecursorCache::NOTAG, vState::Secure);
   BOOST_CHECK_EQUAL(g_recCache->size(), 1U);
 
   {
@@ -1631,7 +1631,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_ancestor_cases)
   drSOA.d_place = DNSResourceRecord::ANSWER;
   records.push_back(drSOA);
 
-  g_recCache->replace(now, zone, QType(QType::SOA), records, {}, {}, true, zone, std::nullopt, boost::none, vState::Secure);
+  g_recCache->replace(now, zone, QType(QType::SOA), records, {}, {}, true, zone, std::nullopt, MemRecursorCache::NOTAG, vState::Secure);
   BOOST_CHECK_EQUAL(g_recCache->size(), 1U);
 
   const std::string salt("ab");
@@ -1951,7 +1951,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_max_nsec3_hash_cost)
   drSOA.d_place = DNSResourceRecord::ANSWER;
   records.push_back(drSOA);
 
-  g_recCache->replace(now, zone, QType(QType::SOA), records, {}, {}, true, zone, std::nullopt, boost::none, vState::Secure);
+  g_recCache->replace(now, zone, QType(QType::SOA), records, {}, {}, true, zone, std::nullopt, MemRecursorCache::NOTAG, vState::Secure);
   BOOST_CHECK_EQUAL(g_recCache->size(), 1U);
 
   auto insertNSEC3s = [zone, now](std::unique_ptr<AggressiveNSECCache>& cache, const std::string& salt, unsigned int iterationsCount) -> void {

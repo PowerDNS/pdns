@@ -590,7 +590,7 @@ public:
   std::unordered_map<std::string, bool> d_discardedPolicies;
   DNSFilterEngine::Policy d_appliedPolicy;
   std::unordered_set<std::string> d_policyTags;
-  boost::optional<string> d_routingTag;
+  std::string d_routingTag;
   ComboAddress d_fromAuthIP;
   RecEventTrace d_eventTrace;
   pdns::trace::InitialSpanInfo d_otTrace;

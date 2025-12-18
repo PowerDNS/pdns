@@ -1851,12 +1851,12 @@ BOOST_AUTO_TEST_CASE(test_cache_almost_expired_ttl)
   std::vector<shared_ptr<const RRSIGRecordContent>> sigs;
   addRecordToList(records, target, QType::A, "192.0.2.2", DNSResourceRecord::ANSWER, now + 29);
 
-  g_recCache->replace(now - 30, target, QType(QType::A), records, sigs, {}, true, g_rootdnsname, std::optional<Netmask>(), boost::none, vState::Indeterminate, std::nullopt, false, now - 31);
+  g_recCache->replace(now - 30, target, QType(QType::A), records, sigs, {}, true, g_rootdnsname, std::optional<Netmask>(), MemRecursorCache::NOTAG, vState::Indeterminate, std::nullopt, false, now - 31);
 
   /* Same for the NS record */
   std::vector<DNSRecord> ns;
   addRecordToList(ns, target, QType::NS, "pdns-public-ns1.powerdns.com", DNSResourceRecord::ANSWER, now + 29);
-  g_recCache->replace(now - 30, target, QType::NS, ns, sigs, {}, false, target, std::optional<Netmask>(), boost::none, vState::Indeterminate, std::nullopt, false, now - 31);
+  g_recCache->replace(now - 30, target, QType::NS, ns, sigs, {}, false, target, std::optional<Netmask>(), MemRecursorCache::NOTAG, vState::Indeterminate, std::nullopt, false, now - 31);
 
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
