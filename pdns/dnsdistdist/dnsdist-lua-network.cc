@@ -81,10 +81,12 @@ void NetworkListener::readCB(int desc, FDMultiplexer::funcparam_t& param)
       cbData->d_cb(cbData->d_endpoint, std::move(packet), fromAddr);
     }
     catch (const std::exception& e) {
-      vinfolog("Exception in the read callback of a NetworkListener: %s", e.what());
+      VERBOSESLOG(infolog("Exception in the read callback of a NetworkListener: %s", e.what()),
+                  dnsdist::logging::getTopLogger()->error(Logr::Info, e.what(), "Exception in the read callback of a NetworkListener"));
     }
     catch (...) {
-      vinfolog("Exception in the read callback of a NetworkListener");
+      VERBOSESLOG(infolog("Exception in the read callback of a NetworkListener"),
+                  dnsdist::logging::getTopLogger()->info(Logr::Info, "Unknown exception in the read callback of a NetworkListener"));
     }
   }
 }
@@ -106,7 +108,8 @@ bool NetworkListener::addUnixListeningEndpoint(const std::string& path, NetworkL
     if (err != 0) {
       err = errno;
       if (err != ENOENT) {
-        vinfolog("Error removing Unix socket to path '%s': %s", path, stringerror(err));
+        VERBOSESLOG(infolog("Error removing Unix socket to path '%s': %s", path, stringerror(err)),
+                    dnsdist::logging::getTopLogger()->error(Logr::Info, err, "Error removing unix socket when adding a listening endpoint to a NetworkListener", "path", Logging::Loggable(path)));
       }
     }
   }
