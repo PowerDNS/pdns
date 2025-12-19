@@ -191,7 +191,7 @@ def process_selectors_or_actions(def_file, entry_type):
     entries = get_definitions_from_file(def_file)
 
     suffix = object_name
-    for entry in entries:
+    for entry in sorted(entries, key=lambda d: d['name']):
         object_name = get_rust_object_name(entry['name'])
         lua_equivalent = object_name + ('Rule' if entry_type == 'selector' else suffix)
         if 'no-lua-equivalent' in entry:
