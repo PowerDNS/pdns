@@ -911,7 +911,6 @@ if get_option('unit-tests')
   )
 
   tools += {
-    # TODO: NOINSTALL speedtest and pdns-auth-testrunner
     'pdns-auth-testrunner': {
       'main': src_dir / 'testrunner.cc',
       'deps-extra': [
@@ -919,12 +918,15 @@ if get_option('unit-tests')
         libpdns_signers_openssl,
         libpdns_signers_sodium,
       ],
+      'install': false,
     },
     'speedtest': {
       'main': src_dir / 'speedtest.cc',
+      'install': false,
     },
     'tsig-tests': {
       'main': src_dir / 'tsig-tests.cc',
+      'install': false,
     },
   }
 endif
@@ -953,7 +955,9 @@ if get_option('fuzz-targets')
     tools += {
       'fuzz-target-' + target: { 'main': source_file,
                                  'link-args': fuzzer_ldflags,
-                                 'files-extra': fuzz_extra_sources }
+                                 'files-extra': fuzz_extra_sources,
+                                 'install': false,
+       }
     }
   endforeach
 endif
@@ -982,6 +986,7 @@ foreach tool, info: tools
   files_extra = 'files-extra' in info ? info['files-extra'] : []
   deps_extra = 'deps-extra' in info ? info['deps-extra'] : []
   link_args = 'link-args' in info ? info['link-args'] : []
+  install = 'install' in info ? info['install'] : true
 
   set_variable(
     var_name,
@@ -998,6 +1003,7 @@ foreach tool, info: tools
         libpdns_uuidutils,
         deps_extra,
       ],
+      install: install,
     )
   )
 
