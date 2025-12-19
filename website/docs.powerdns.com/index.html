@@ -19,6 +19,7 @@
     <style>
         :root {
             --pdns-blue: #00A2DF;
+            --pdns-dark-blue: #5079ca;
             --pdns-dark: #1D1D1B;
         }
         body {
@@ -77,10 +78,17 @@
         .product-card h3 a:hover {
             text-decoration: underline;
         }
+        .product-card h4 {
+            color: var(--pdns-dark-blue);
+            font-size: 0.9rem;
+        }
         .product-card p {
             color: #666;
             margin-bottom: 0;
             font-size: 0.95rem;
+        }
+        .product-card div.product-variants {
+            margin-top: 1.5rem;
         }
         footer {
             background-color: #666666;
@@ -162,7 +170,12 @@
                         <div class="product-card">
                             <h3><a href="/lightningstream/">PowerDNS Lightning Stream</a></h3>
                             <p>Tool to sync LMDB databases through S3 buckets between multiple servers in near real-time.</p>
-                            <div id="lightningstream-versions"></div>
+                            <div class="product-variants">
+                                <h4>Open Source</h4>
+                                <div id="lightningstream-versions"></div>
+                                <h4>Enterprise</h4>
+                                <div id="lightningstream-enterprise-versions"></div>
+                            </div>
                         </div>
                     </div>
                     <div class="col-md-6">
@@ -235,6 +248,10 @@
                 '/lightningstream',
                 'lightningstream-versions'
             );
+            loadVersionSelector(
+                '/lightningstream-enterprise',
+                'lightningstream-enterprise-versions'
+            )
 
             // Zone Control
             loadVersionSelector(
