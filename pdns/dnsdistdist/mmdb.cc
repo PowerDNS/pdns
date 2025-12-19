@@ -122,9 +122,9 @@ bool MMDB::queryCity(string& ret, const ComboAddress& ip, const string& language
   return true;
 }
 
-bool MMDB::queryLocation(const ComboAddress& ip,
-                         double& latitude, double& longitude,
-                         int& prec)
+bool MMDB::queryLocation(double& latitude, double& longitude,
+                         int& prec,
+                         const ComboAddress& ip)
 {
   MMDB_entry_data_s data;
   MMDB_lookup_result_s res;

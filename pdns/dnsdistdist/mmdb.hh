@@ -36,7 +36,7 @@ public:
   bool queryASN(std::string& ret, const ComboAddress& ip);
   bool queryRegion(std::string& ret, const ComboAddress& ip);
   bool queryCity(std::string& ret, const ComboAddress& ip, const std::string& language);
-  bool queryLocation(const ComboAddress& ip, double& latitude, double& longitude, int& prec);
+  bool queryLocation(double& latitude, double& longitude, int& prec, const ComboAddress& ip);
   bool exists(const ComboAddress& ip)
   {
     MMDB_lookup_result_s res;

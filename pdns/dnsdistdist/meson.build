@@ -155,6 +155,7 @@ common_sources += files(
   src_dir / 'dnsdist-lua-bindings-dnsparser.cc',
   src_dir / 'dnsdist-lua-bindings-dnsquestion.cc',
   src_dir / 'dnsdist-lua-bindings-kvs.cc',
+  src_dir / 'dnsdist-lua-bindings-mmdb.cc',
   src_dir / 'dnsdist-lua-bindings-network.cc',
   src_dir / 'dnsdist-lua-bindings-opentelemetry.cc',
   src_dir / 'dnsdist-lua-bindings-packetcache.cc',
