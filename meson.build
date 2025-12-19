@@ -726,6 +726,7 @@ if get_option('tools')
     },
     'sdig': {
       'main': src_dir / 'sdig.cc',
+      'deps-extra': dep_libcurl,
       'manpages': ['sdig.1'],
     },
     'calidns': {
