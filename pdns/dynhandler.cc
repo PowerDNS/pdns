@@ -133,20 +133,29 @@ string DLPurgeHandler(const vector<string>& parts, Utility::pid_t /* ppid */)
 {
   ostringstream os;
   int ret=0;
+  bool clearAllDNSSECcaches{false};
 
   if(parts.size()>1) {
     for (vector<string>::const_iterator i=++parts.begin();i<parts.end();++i) {
       g_log<<Logger::Warning<<"Cache clear request for '"<<*i<<"' received from operator"<<endl;
       ret+=purgeAuthCaches(*i);
-      if(!boost::ends_with(*i, "$"))
-        DNSSECKeeper::clearCaches(ZoneName(*i));
-      else
-        DNSSECKeeper::clearAllCaches(); // at least we do what we promise.. and a bit more!
+      if (!boost::ends_with(*i, "$")) {
+        if (!clearAllDNSSECcaches) {
+          DNSSECKeeper::clearCaches(ZoneName(*i));
+        }
+      }
+      else {
+        clearAllDNSSECcaches = true; // at least we do what we promise.. and a bit more!
+      }
     }
   }
   else {
     g_log<<Logger::Warning<<"Cache clear request received from operator"<<endl;
     ret = purgeAuthCaches();
+    clearAllDNSSECcaches = true;
+  }
+
+  if (clearAllDNSSECcaches) {
     DNSSECKeeper::clearAllCaches();
   }
 
