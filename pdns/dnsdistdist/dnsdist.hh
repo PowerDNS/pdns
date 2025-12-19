@@ -650,6 +650,18 @@ struct DownstreamState : public std::enable_shared_from_this<DownstreamState>
     stat_t d_invalidResponseErrors{0};
   };
 
+  struct HealthCheckLatencyHisto
+  {
+    stat_t latency0_1{0};
+    stat_t latency1_10{0};
+    stat_t latency10_50{0};
+    stat_t latency50_100{0};
+    stat_t latency100_1000{0};
+    stat_t latencySlow{0};
+    stat_t latencySum{0};
+    stat_t latencyCount{0};
+  };
+
   DownstreamState(DownstreamState::Config&& config, std::shared_ptr<TLSCtx> tlsCtx, bool connect);
   DownstreamState(const ComboAddress& remote) :
     DownstreamState(DownstreamState::Config(remote), nullptr, false)
@@ -723,6 +735,7 @@ public:
   std::vector<std::shared_ptr<XskWorker>> d_xskInfos;
   std::vector<std::shared_ptr<XskSocket>> d_xskSockets;
 #endif
+  HealthCheckLatencyHisto d_healthCheckLatencyHisto{};
   std::atomic<uint64_t> idOffset{0};
   std::atomic<double> d_healthCheckLatency{0.0};
   size_t socketsOffset{0};
