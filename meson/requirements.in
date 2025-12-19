@@ -5,4 +5,4 @@ pyyaml==6.0.1
 meson
 ninja
 invoke
-requests==2.32.3
+requests==2.32.4
