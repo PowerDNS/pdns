@@ -197,7 +197,8 @@ void IncomingHTTP2Connection::handleResponse(const struct timeval& now, TCPRespo
     dnsheader_aligned responseDH(response.d_buffer.data());
 
     if (responseDH.get()->tc && state.d_packet && state.d_packet->size() > state.d_proxyProtocolPayloadSize && state.d_packet->size() - state.d_proxyProtocolPayloadSize > sizeof(dnsheader)) {
-      vinfolog("Response received from backend %s via UDP, for query %d received from %s via DoH, is truncated, retrying over TCP", response.d_ds->getNameWithAddr(), state.d_streamID, state.origRemote.toStringWithPort());
+      VERBOSESLOG(infolog("Response received from backend %s via UDP, for query %d received from %s via DoH, is truncated, retrying over TCP", response.d_ds->getNameWithAddr(), state.d_streamID, state.origRemote.toStringWithPort()),
+                  getLogger()->info(Logr::Info, "Truncated response received from backend via UDP, retrying over TCP", "backend.name", Logging::Loggable(response.d_ds->getName()), "backend.address", Logging::Loggable(response.d_ds->d_config.remote), "dns.query.id", Logging::Loggable(ntohs(state.origID))));
       auto& query = *state.d_packet;
       dnsdist::PacketMangling::editDNSHeaderFromRawPacket(&query.at(state.d_proxyProtocolPayloadSize), [origID = state.origID](dnsheader& header) {
         /* restoring the original ID */
@@ -214,7 +215,8 @@ void IncomingHTTP2Connection::handleResponse(const struct timeval& now, TCPRespo
       if (g_tcpclientthreads && g_tcpclientthreads->passCrossProtocolQueryToThread(std::move(cpq))) {
         return;
       }
-      vinfolog("Unable to pass DoH query to a TCP worker thread after getting a TC response over UDP");
+      VERBOSESLOG(infolog("Unable to pass DoH query to a TCP worker thread after getting a TC response over UDP"),
+                  getLogger()->info(Logr::Info, "Unable to pass DoH query to a TCP worker thread after getting a TC response over UDP", "backend.name", Logging::Loggable(response.d_ds->getName()), "backend.address", Logging::Loggable(response.d_ds->d_config.remote), "dns.query.id", Logging::Loggable(ntohs(state.origID))));
       notifyIOError(now, std::move(response));
       return;
     }
@@ -298,7 +300,9 @@ bool IncomingHTTP2Connection::checkALPN()
   d_out.insert(d_out.end(), data2.begin(), data2.end());
   writeToSocket(false);
 
-  vinfolog("DoH connection from %s expected ALPN value 'h2', got '%s'", d_ci.remote.toStringWithPort(), std::string(protocols.begin(), protocols.end()));
+  VERBOSESLOG(infolog("DoH connection from %s expected ALPN value 'h2', got '%s'", d_ci.remote.toStringWithPort(), std::string(protocols.begin(), protocols.end())),
+              getLogger()->info(Logr::Info, "DoH connection has an unexpected ALPN value", "expected_alpn", Logging::Loggable("h2"), "received_alpn", Logging::Loggable(std::string(protocols.begin(), protocols.end()))));
+
   return false;
 }
 
@@ -380,7 +384,8 @@ void IncomingHTTP2Connection::handleIO()
 
   try {
     if (maxConnectionDurationReached(dnsdist::configuration::getCurrentRuntimeConfiguration().d_maxTCPConnectionDuration, now)) {
-      vinfolog("Terminating DoH connection from %s because it reached the maximum TCP connection duration", d_ci.remote.toStringWithPort());
+      VERBOSESLOG(infolog("Terminating DoH connection from %s because it reached the maximum TCP connection duration", d_ci.remote.toStringWithPort()),
+                  getLogger()->info(Logr::Info, "Terminating DoH connection because it reached the maximum TCP connection duration", "max_tcp_connection_duration", Logging::Loggable(dnsdist::configuration::getCurrentRuntimeConfiguration().d_maxTCPConnectionDuration)));
       stopIO();
       d_connectionClosing = true;
       return;
@@ -479,7 +484,8 @@ void IncomingHTTP2Connection::handleIO()
     }
   }
   catch (const std::exception& e) {
-    vinfolog("Exception when processing IO for incoming DoH connection from %s: %s", d_ci.remote.toStringWithPort(), e.what());
+    VERBOSESLOG(infolog("Exception when processing IO for incoming DoH connection from %s: %s", d_ci.remote.toStringWithPort(), e.what()),
+                getLogger()->error(Logr::Info, e.what(), "Exception when processing IO for incoming DoH connection"));
     d_connectionDied = true;
     stopIO();
   }
@@ -508,7 +514,8 @@ void IncomingHTTP2Connection::writeToSocket(bool socketReady)
     }
   }
   catch (const std::exception& e) {
-    vinfolog("Exception while trying to write (%s) to HTTP client connection to %s: %s", (socketReady ? "ready" : "send"), d_ci.remote.toStringWithPort(), e.what());
+    VERBOSESLOG(infolog("Exception while trying to write (%s) to HTTP client connection to %s: %s", (socketReady ? "ready" : "send"), d_ci.remote.toStringWithPort(), e.what()),
+                getLogger()->error(Logr::Info, e.what(), "Exception while trying to write to DoH client connection", "socket_ready", Logging::Loggable(socketReady ? "ready" : "send")));
     handleIOError();
   }
 }
@@ -801,7 +808,8 @@ bool IncomingHTTP2Connection::sendResponse(IncomingHTTP2Connection::StreamID str
   context.d_sendingResponse = true;
   auto ret = nghttp2_submit_response(d_session.get(), streamID, headers.data(), headers.size(), &data_provider);
   if (ret != 0) {
-    vinfolog("Error submitting HTTP response for stream %d: %s", streamID, nghttp2_strerror(ret));
+    VERBOSESLOG(infolog("Error submitting HTTP response for stream %d: %s", streamID, nghttp2_strerror(ret)),
+                getLogger()->error(Logr::Info, nghttp2_strerror(ret), "Error submitting HTTP response", "http.stream_id", Logging::Loggable(streamID)));
     d_currentStreams.erase(streamID);
     return false;
   }
@@ -810,7 +818,8 @@ bool IncomingHTTP2Connection::sendResponse(IncomingHTTP2Connection::StreamID str
     ret = nghttp2_session_send(d_session.get());
     if (ret != 0) {
       d_currentStreams.erase(streamID);
-      vinfolog("Error flushing HTTP response for stream %d: %s", streamID, nghttp2_strerror(ret));
+      VERBOSESLOG(infolog("Error flushing HTTP response for stream %d: %s", streamID, nghttp2_strerror(ret)),
+                  getLogger()->error(Logr::Info, nghttp2_strerror(ret), "Error flushing HTTP response", "http.stream_id", Logging::Loggable(streamID)));
       return false;
     }
   }
@@ -818,7 +827,7 @@ bool IncomingHTTP2Connection::sendResponse(IncomingHTTP2Connection::StreamID str
   return true;
 }
 
-static void processForwardedForHeader(const std::unique_ptr<HeadersMap>& headers, ComboAddress& remote)
+static void processForwardedForHeader(std::shared_ptr<const Logr::Logger> logger, const std::unique_ptr<HeadersMap>& headers, ComboAddress& remote)
 {
   if (!headers) {
     return;
@@ -845,10 +854,12 @@ static void processForwardedForHeader(const std::unique_ptr<HeadersMap>& headers
     remote = newRemote;
   }
   catch (const std::exception& e) {
-    vinfolog("Invalid X-Forwarded-For header ('%s') received from %s : %s", std::string(value), remote.toStringWithPort(), e.what());
+    VERBOSESLOG(infolog("Invalid X-Forwarded-For header ('%s') received from %s : %s", std::string(value), remote.toStringWithPort(), e.what()),
+                logger->error(Logr::Info, e.what(), "Invalid X-Forwarded-For header received", "http.request.header.x-forwarded-for", Logging::Loggable(value)));
   }
   catch (const PDNSException& e) {
-    vinfolog("Invalid X-Forwarded-For header ('%s') received from %s : %s", std::string(value), remote.toStringWithPort(), e.reason);
+    VERBOSESLOG(infolog("Invalid X-Forwarded-For header ('%s') received from %s : %s", std::string(value), remote.toStringWithPort(), e.reason),
+                logger->error(Logr::Info, e.reason, "Invalid X-Forwarded-For header received", "http.request.header.x-forwarded-for", Logging::Loggable(value)));
   }
 }
 
@@ -862,7 +873,8 @@ void IncomingHTTP2Connection::handleIncomingQuery(IncomingHTTP2Connection::Pendi
     else {
       query.d_buffer = std::move(response);
     }
-    vinfolog("Sending an immediate %d response to incoming DoH query: %s", code, reason);
+    VERBOSESLOG(infolog("Sending an immediate %d response to incoming DoH query: %s", code, reason),
+                getLogger()->info(Logr::Info, "Sending an immediate HTTP response to incoming DoH query", "http.response.status_code", Logging::Loggable(code), "reason", Logging::Loggable(reason), "http.stream_id", Logging::Loggable(streamID)));
     sendResponse(streamID, query, code, d_ci.cs->dohFrontend->d_customResponseHeaders);
   };
 
@@ -874,12 +886,13 @@ void IncomingHTTP2Connection::handleIncomingQuery(IncomingHTTP2Connection::Pendi
   ++d_ci.cs->dohFrontend->d_http2Stats.d_nbQueries;
 
   if (d_ci.cs->dohFrontend->d_trustForwardedForHeader) {
-    processForwardedForHeader(query.d_headers, d_proxiedRemote);
+    processForwardedForHeader(dnsdist::logging::doVerboseLogging() ? getLogger() : std::shared_ptr<const Logr::Logger>(), query.d_headers, d_proxiedRemote);
 
     /* second ACL lookup based on the updated address */
     if (!dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL.match(d_proxiedRemote)) {
       ++dnsdist::metrics::g_stats.aclDrops;
-      vinfolog("Query from %s (%s) (DoH) dropped because of ACL", d_ci.remote.toStringWithPort(), d_proxiedRemote.toStringWithPort());
+      VERBOSESLOG(infolog("Query from %s (%s) (DoH) dropped because of ACL", d_ci.remote.toStringWithPort(), d_proxiedRemote.toStringWithPort()),
+                  getLogger()->info(Logr::Info, "Dropping DoH query because of ACL"));
       handleImmediateResponse(403, "DoH query not allowed because of ACL");
       return;
     }
@@ -972,7 +985,8 @@ void IncomingHTTP2Connection::handleIncomingQuery(IncomingHTTP2Connection::Pendi
     }
   }
   catch (const std::exception& e) {
-    vinfolog("Exception while processing DoH query: %s", e.what());
+    VERBOSESLOG(infolog("Exception while processing DoH query: %s", e.what()),
+                getLogger()->error(Logr::Info, e.what(), "Exception while processing DoH query"));
     handleImmediateResponse(400, "DoH non-compliant query");
     return;
   }
@@ -990,7 +1004,8 @@ int IncomingHTTP2Connection::on_frame_recv_callback(nghttp2_session* session, co
       conn->handleIncomingQuery(std::move(stream->second), streamID);
     }
     else {
-      vinfolog("Stream %d NOT FOUND", streamID);
+      VERBOSESLOG(infolog("Stream %d NOT FOUND", streamID),
+                  conn->getLogger()->info(Logr::Info, "DoH stream not found while processing HTTP/2 frame", "http.stream_id", Logging::Loggable(streamID)));
       return NGHTTP2_ERR_CALLBACK_FAILURE;
     }
   }
@@ -1036,14 +1051,16 @@ int IncomingHTTP2Connection::on_begin_headers_callback(nghttp2_session* session,
   };
 
   if (conn->getConcurrentStreamsCount() >= dnsdist::doh::MAX_INCOMING_CONCURRENT_STREAMS) {
-    vinfolog("Too many concurrent streams on connection from %s", conn->d_ci.remote.toStringWithPort());
+    VERBOSESLOG(infolog("Too many concurrent streams on connection from %s", conn->d_ci.remote.toStringWithPort()),
+                conn->getLogger()->info(Logr::Info, "Too many concurrent streams on DoH connection", "streams_count", Logging::Loggable(conn->getConcurrentStreamsCount())));
     return close_connection(conn);
   }
 
   auto insertPair = conn->d_currentStreams.emplace(frame->hd.stream_id, PendingQuery());
   if (!insertPair.second) {
     /* there is a stream ID collision, something is very wrong! */
-    vinfolog("Stream ID collision (%d) on connection from %s", frame->hd.stream_id, conn->d_ci.remote.toStringWithPort());
+    VERBOSESLOG(infolog("Stream ID collision (%d) on connection from %s", frame->hd.stream_id, conn->d_ci.remote.toStringWithPort()),
+                conn->getLogger()->info(Logr::Info, "Stream ID collision on DoH connection", "http.stream_id", Logging::Loggable(frame->hd.stream_id)));
     return close_connection(conn);
   }
 
@@ -1066,15 +1083,22 @@ int IncomingHTTP2Connection::on_header_callback(nghttp2_session* session, const 
   (void)flags;
   auto* conn = static_cast<IncomingHTTP2Connection*>(user_data);
 
+  auto toLoggable = [](const uint8_t* str, size_t strSize) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): nghttp2 API
+    return Logging::Loggable(std::string_view(reinterpret_cast<const char*>(str), strSize));
+  };
+
   if (frame->hd.type == NGHTTP2_HEADERS && frame->headers.cat == NGHTTP2_HCAT_REQUEST) {
     if (nghttp2_check_header_name(name, nameLen) == 0) {
-      vinfolog("Invalid header name");
+      VERBOSESLOG(infolog("Invalid header name"),
+                  conn->getLogger()->info(Logr::Info, "Invalid header name on DoH connection", "http.request.header", toLoggable(name, nameLen)));
       return NGHTTP2_ERR_CALLBACK_FAILURE;
     }
 
 #if defined(HAVE_NGHTTP2_CHECK_HEADER_VALUE_RFC9113)
     if (nghttp2_check_header_value_rfc9113(value, valuelen) == 0) {
-      vinfolog("Invalid header value");
+      VERBOSESLOG(infolog("Invalid header value"),
+                  conn->getLogger()->info(Logr::Info, "Invalid header value on DoH connection", "http.request.header", toLoggable(name, nameLen)));
       return NGHTTP2_ERR_CALLBACK_FAILURE;
     }
 #endif /* HAVE_NGHTTP2_CHECK_HEADER_VALUE_RFC9113 */
@@ -1085,7 +1109,8 @@ int IncomingHTTP2Connection::on_header_callback(nghttp2_session* session, const 
 
     auto stream = conn->getStreamContext(frame->hd.stream_id);
     if (stream == conn->d_currentStreams.end()) {
-      vinfolog("Unable to match the stream ID %d to a known one!", frame->hd.stream_id);
+      VERBOSESLOG(infolog("Unable to match the stream ID %d to a known one!", frame->hd.stream_id),
+                  conn->getLogger()->info(Logr::Info, "Unable to match the stream ID on DoH connection", "http.stream_id", Logging::Loggable(frame->hd.stream_id)));
       return NGHTTP2_ERR_CALLBACK_FAILURE;
     }
     auto& query = stream->second;
@@ -1094,7 +1119,8 @@ int IncomingHTTP2Connection::on_header_callback(nghttp2_session* session, const 
     if (headerMatches(s_pathHeaderName)) {
 #if defined(HAVE_NGHTTP2_CHECK_PATH)
       if (nghttp2_check_path(value, valuelen) == 0) {
-        vinfolog("Invalid path value");
+        VERBOSESLOG(infolog("Invalid path value"),
+                    conn->getLogger()->info(Logr::Info, "Invalid path value on DoH connection", "http.path", toLoggable(value, valuelen)));
         return NGHTTP2_ERR_CALLBACK_FAILURE;
       }
 #endif /* HAVE_NGHTTP2_CHECK_PATH */
@@ -1114,7 +1140,8 @@ int IncomingHTTP2Connection::on_header_callback(nghttp2_session* session, const 
     else if (headerMatches(s_methodHeaderName)) {
 #if defined(HAVE_NGHTTP2_CHECK_METHOD)
       if (nghttp2_check_method(value, valuelen) == 0) {
-        vinfolog("Invalid method value");
+        VERBOSESLOG(infolog("Invalid method value"),
+                    conn->getLogger()->info(Logr::Info, "Invalid method value on DoH connection", "http.method", toLoggable(value, valuelen)));
         return NGHTTP2_ERR_CALLBACK_FAILURE;
       }
 #endif /* HAVE_NGHTTP2_CHECK_METHOD */
@@ -1127,7 +1154,8 @@ int IncomingHTTP2Connection::on_header_callback(nghttp2_session* session, const 
       }
       else {
         query.d_method = PendingQuery::Method::Unsupported;
-        vinfolog("Unsupported method value");
+        VERBOSESLOG(infolog("Unsupported method value"),
+                    conn->getLogger()->info(Logr::Info, "Unsupported method on DoH connection", "http.method", toLoggable(value, valuelen)));
         return 0;
       }
     }
@@ -1150,11 +1178,13 @@ int IncomingHTTP2Connection::on_data_chunk_recv_callback(nghttp2_session* sessio
   auto* conn = static_cast<IncomingHTTP2Connection*>(user_data);
   auto stream = conn->getStreamContext(stream_id);
   if (stream == conn->d_currentStreams.end()) {
-    vinfolog("Unable to match the stream ID %d to a known one!", stream_id);
+    VERBOSESLOG(infolog("Unable to match the stream ID %d to a known one!", stream_id),
+                conn->getLogger()->info(Logr::Info, "Unable to match stream ID on DoH connection", "http.stream_id", Logging::Loggable(stream_id)));
     return NGHTTP2_ERR_CALLBACK_FAILURE;
   }
   if (len > std::numeric_limits<uint16_t>::max() || (std::numeric_limits<uint16_t>::max() - stream->second.d_buffer.size()) < len) {
-    vinfolog("Data frame of size %d is too large for a DNS query (we already have %d)", len, stream->second.d_buffer.size());
+    VERBOSESLOG(infolog("Data frame of size %d is too large for a DNS query (we already have %d)", len, stream->second.d_buffer.size()),
+                conn->getLogger()->info(Logr::Info, "Data frame is too large for a DNS query", "frame_size", Logging::Loggable(len), "existing_payload_size", Logging::Loggable(stream->second.d_buffer.size())));
     return NGHTTP2_ERR_CALLBACK_FAILURE;
   }
 
@@ -1169,7 +1199,8 @@ int IncomingHTTP2Connection::on_error_callback(nghttp2_session* session, int lib
   (void)session;
   auto* conn = static_cast<IncomingHTTP2Connection*>(user_data);
 
-  vinfolog("Error in HTTP/2 connection from %s: %s (%d)", conn->d_ci.remote.toStringWithPort(), std::string(msg, len), lib_error_code);
+  VERBOSESLOG(infolog("Error in HTTP/2 connection from %s: %s (%d)", conn->d_ci.remote.toStringWithPort(), std::string(msg, len), lib_error_code),
+              conn->getLogger()->error(Logr::Info, std::string(msg, len), "Error on DoH connection", "nghttp2.error_code", Logging::Loggable(lib_error_code)));
   conn->d_connectionClosing = true;
   conn->d_needFlush = true;
   nghttp2_session_terminate_session(conn->d_session.get(), NGHTTP2_NO_ERROR);
@@ -1206,7 +1237,8 @@ IOState IncomingHTTP2Connection::readHTTPData()
     }
   }
   catch (const std::exception& e) {
-    vinfolog("Exception while trying to read from HTTP client connection to %s: %s", d_ci.remote.toStringWithPort(), e.what());
+    VERBOSESLOG(infolog("Exception while trying to read from HTTP client connection to %s: %s", d_ci.remote.toStringWithPort(), e.what()),
+                getLogger()->error(Logr::Info, e.what(), "Exception while trying to read from DoH client connection"));
     handleIOError();
     return IOState::Done;
   }

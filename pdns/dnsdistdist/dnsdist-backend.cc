@@ -460,7 +460,7 @@ void DownstreamState::handleUDPTimeout(IDState& ids)
   SLOG(infolog("Had a downstream timeout from %s (%s) for query for %s|%s from %s",
                d_config.remote.toStringWithPort(), getName(),
                ids.internal.qname.toLogString(), QType(ids.internal.qtype).toString(), ids.internal.origRemote.toStringWithPort()),
-       getLogger()->info(Logr::Info, "Had a downstream timeout", "dns.question.name", Logging::Loggable(ids.internal.qname), "dns.question.type", Logging::Loggable(QType(ids.internal.qtype)), "dns.question.id", Logging::Loggable(ids.internal.origID), "client.address", Logging::Loggable(ids.internal.origRemote)));
+       getLogger()->info(Logr::Info, "Had a downstream timeout", "dns.question.name", Logging::Loggable(ids.internal.qname), "dns.question.type", Logging::Loggable(QType(ids.internal.qtype)), "dns.question.id", Logging::Loggable(ntohs(ids.internal.origID)), "client.address", Logging::Loggable(ids.internal.origRemote)));
 
   const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
   const auto& timeoutRespRules = dnsdist::rules::getResponseRuleChain(chains, dnsdist::rules::ResponseRuleChain::TimeoutResponseRules);

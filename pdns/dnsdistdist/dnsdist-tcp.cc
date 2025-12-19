@@ -1451,6 +1451,11 @@ void IncomingTCPConnectionState::handleTimeout(std::shared_ptr<IncomingTCPConnec
   }
 }
 
+std::shared_ptr<const Logr::Logger> IncomingTCPConnectionState::getLogger() const
+{
+  auto logger = dnsdist::logging::getTopLogger()->withName("incoming-tcp-connection")->withValues("client.address", Logging::Loggable(d_proxiedRemote), "frontend.address", Logging::Loggable(d_ci.cs->local), "protocol", Logging::Loggable(d_ci.cs->getProtocol()), "network.peer.address", Logging::Loggable(d_ci.remote), "destination.address", Logging::Loggable(d_proxiedDestination));
+}
+
 static void handleIncomingTCPQuery(int pipefd, FDMultiplexer::funcparam_t& param)
 {
   (void)pipefd;
