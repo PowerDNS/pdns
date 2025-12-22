@@ -46,7 +46,7 @@ public:
     else
       throw PDNSException(string("Unsupported mode ") + modeStr + ("for geoipbackend-mmdb"));
     memset(&d_s, 0, sizeof(d_s));
-    if ((ec = MMDB_open(fname.c_str(), flags, &d_s)) < 0)
+    if ((ec = MMDB_open(fname.c_str(), flags, &d_s)) != MMDB_SUCCESS)
       throw PDNSException(string("Cannot open ") + fname + string(": ") + string(MMDB_strerror(ec)));
     d_lang = language;
     g_log << Logger::Debug << "Opened MMDB database " << fname << "(type: " << d_s.metadata.database_type << " version: " << d_s.metadata.binary_format_major_version << "." << d_s.metadata.binary_format_minor_version << ")" << endl;
