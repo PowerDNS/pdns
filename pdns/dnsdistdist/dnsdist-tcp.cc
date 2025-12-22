@@ -251,8 +251,8 @@ void IncomingTCPConnectionState::handleResponseSent(TCPResponse& currentResponse
   const auto& backend = currentResponse.d_connection ? currentResponse.d_connection->getDS() : currentResponse.d_ds;
   if (!currentResponse.d_idstate.selfGenerated && backend) {
     const auto& ids = currentResponse.d_idstate;
-    double udiff = ids.queryRealTime.udiff();
-    vinfolog("Got answer from %s, relayed to %s (%s, %d bytes), took %f us", backend->d_config.remote.toStringWithPort(), ids.origRemote.toStringWithPort(), getProtocol().toString(), sentBytes, udiff);
+    auto udiff = ids.queryRealTime.udiff();
+    vinfolog("Got answer from %s, relayed to %s (%s, %d bytes), took %d us", backend->d_config.remote.toStringWithPort(), ids.origRemote.toStringWithPort(), getProtocol().toString(), sentBytes, udiff);
 
     auto backendProtocol = backend->getProtocol();
     if (backendProtocol == dnsdist::Protocol::DoUDP && !currentResponse.d_idstate.forwardedOverUDP) {
@@ -262,7 +262,7 @@ void IncomingTCPConnectionState::handleResponseSent(TCPResponse& currentResponse
   }
   else {
     const auto& ids = currentResponse.d_idstate;
-    ::handleResponseSent(ids, 0., ids.origRemote, ComboAddress(), static_cast<unsigned int>(currentResponse.d_buffer.size()), currentResponse.d_cleartextDH, ids.protocol, false);
+    ::handleResponseSent(ids, 0, ids.origRemote, ComboAddress(), static_cast<unsigned int>(currentResponse.d_buffer.size()), currentResponse.d_cleartextDH, ids.protocol, false);
   }
 
   currentResponse.d_buffer.clear();
