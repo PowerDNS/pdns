@@ -73,8 +73,10 @@ Cflags: -I${INSTALL_PREFIX}/include
 Libs: -L${LIBDIR} -ldnsdist-quiche
 PC
 
-/bin/cargo-cyclonedx cyclonedx -f json --spec-version 1.5
-mv quiche/quiche.cdx.json /dist/
+if [ -f /bin/cargo-cyclonedx ]; then
+    /bin/cargo-cyclonedx cyclonedx -f json --spec-version 1.5
+    mv quiche/quiche.cdx.json /dist/
+fi
 
 cd ..
 rm -rf "${QUICHE_TARBALL}" "quiche-${QUICHE_VERSION}"
