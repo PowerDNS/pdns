@@ -1,6 +1,8 @@
 [package]
 name = "recrust"
 edition = "2021"
+description = "Rust-based static library for PowerDNS recursor"
+license = "GPL-2.0-only"
 # Convention: major/minor is equal to rec's major/minor
 # Note that this line will be automatically updated to the value
 # BUILDER_VERSION when a release tarball is built
