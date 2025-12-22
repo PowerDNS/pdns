@@ -32,6 +32,145 @@
 
 struct DNSQuestion;
 
+// lru cache is NOT locked; we need to use shared lock
+template <typename K, typename V>
+class MaybeLruCache
+{
+public:
+  MaybeLruCache() {}
+
+  void init(size_t t, bool isLRU)
+  {
+    // we reserve maxEntries + 1 to avoid rehashing from occurring
+    // when we get to maxEntries, as it means a load factor of 1
+    d_maxSize = t;
+    d_baseMap.reserve(t + 1);
+    if (d_isLru) {
+      d_lruMap.reserve(t + 1);
+    }
+    d_isLru = isLRU;
+  }
+
+  const typename std::unordered_map<K, V>::const_iterator find(const K& key) const
+  {
+    // this is const; without putFront
+    return d_baseMap.find(key);
+  }
+
+  const typename std::unordered_map<K, V>::iterator findAndPutFront(const K& key)
+  {
+    if (!d_isLru) {
+      // should not happen? but return something anyway
+      return d_baseMap.find(key);
+    }
+
+    auto f = d_baseMap.find(key);
+    if (f == d_baseMap.end()) {
+      return f;
+    }
+    putFront(key);
+    return f;
+  }
+
+  size_t size() const
+  {
+    return d_baseMap.size();
+  }
+
+  const std::pair<typename std::unordered_map<K, V>::iterator, bool> insert(const K& key, const V& value, bool& lru_removed)
+  {
+    if (!d_isLru) {
+      lru_removed = false;
+      return d_baseMap.insert({key, value});
+    }
+
+    auto mapIt = d_baseMap.find(key);
+    if (mapIt != d_baseMap.end()) {
+      // it's there, we return iterator; but we will need to putFront it later
+      return std::pair<typename std::unordered_map<K, V>::iterator, bool>(mapIt, false);
+    }
+
+    // we would insert; but first we need to check the sizes
+    if (d_baseMap.size() == d_maxSize) {
+      lru_removed = true;
+      // we need to throw out last
+      auto& k = d_lruList.back();
+      d_baseMap.erase(k);
+      d_lruMap.erase(k);
+      d_lruList.pop_back();
+    }
+    else {
+      lru_removed = false;
+    }
+
+    // we can insert now
+    auto res = d_baseMap.insert({key, value});
+    d_lruList.push_front(key);
+    d_lruMap.insert({key, d_lruList.begin()});
+
+    return res;
+  }
+
+  const typename std::unordered_map<K, V>::const_iterator begin() const
+  {
+    return d_baseMap.begin();
+  }
+
+  const typename std::unordered_map<K, V>::const_iterator end() const
+  {
+    return d_baseMap.end();
+  }
+
+  typename std::unordered_map<K, V>::iterator erase(typename std::unordered_map<K, V>::const_iterator it)
+  {
+    if (d_isLru) {
+      auto lruIt = d_lruMap.find(it->first);
+      d_lruList.erase(lruIt->second);
+      d_lruMap.erase(lruIt);
+    }
+
+    return d_baseMap.erase(it);
+  }
+
+  void erase(typename std::unordered_map<K, V>::const_iterator start, typename std::unordered_map<K, V>::const_iterator end)
+  {
+    for (auto it = start; it != end;) {
+      it = erase(it);
+    }
+  }
+
+  void putFront(const K& key)
+  {
+    if (!d_isLru) {
+      return; // noop
+    }
+    auto lruIt = d_lruMap.find(key);
+    if (lruIt == d_lruMap.end()) {
+      // should not happen...?
+      return;
+    }
+
+    d_lruList.splice(d_lruList.begin(), d_lruList, lruIt->second);
+  }
+
+  void clear()
+  {
+    d_baseMap.clear();
+    if (d_isLru) {
+      d_lruList.clear();
+      d_lruMap.clear();
+    }
+  }
+
+private:
+  bool d_isLru;
+  size_t d_maxSize;
+
+  std::unordered_map<K, V> d_baseMap;
+  std::list<K> d_lruList;
+  std::unordered_map<K, typename std::list<K>::iterator> d_lruMap;
+};
+
 class DNSDistPacketCache : boost::noncopyable
 {
 public:
@@ -53,6 +192,7 @@ public:
     bool d_parseECS{false};
     bool d_keepStaleData{false};
     bool d_shuffle{false};
+    bool d_alwaysKeepStaleData{false};
   };
 
   DNSDistPacketCache(CacheSettings settings);
@@ -87,6 +227,11 @@ public:
   [[nodiscard]] bool keepStaleData() const
   {
     return d_settings.d_keepStaleData;
+  }
+
+  [[nodiscard]] bool alwaysKeepStaleData() const
+  {
+    return d_settings.d_alwaysKeepStaleData;
   }
 
   [[nodiscard]] size_t getMaximumEntrySize() const { return d_settings.d_maximumEntrySize; }
@@ -133,18 +278,22 @@ private:
     }
     ~CacheShard() = default;
 
-    void setSize(size_t maxSize)
+    void init(size_t maxSize, bool isLRU)
     {
-      d_map.write_lock()->reserve(maxSize);
+      d_map.write_lock()->init(maxSize, isLRU);
     }
 
-    SharedLockGuarded<std::unordered_map<uint32_t, CacheValue>> d_map{};
+    SharedLockGuarded<MaybeLruCache<uint32_t, CacheValue>> d_map{};
     std::atomic<uint64_t> d_entriesCount{0};
   };
 
   [[nodiscard]] bool cachedValueMatches(const CacheValue& cachedValue, uint16_t queryFlags, const DNSName& qname, uint16_t qtype, uint16_t qclass, bool receivedOverUDP, bool dnssecOK, const std::optional<Netmask>& subnet) const;
   [[nodiscard]] uint32_t getShardIndex(uint32_t key) const;
-  bool insertLocked(std::unordered_map<uint32_t, CacheValue>& map, uint32_t key, CacheValue& newValue);
+  bool insertLocked(MaybeLruCache<uint32_t, CacheValue>& map, uint32_t key, CacheValue& newValue, bool checkSize);
+
+  [[nodiscard]] std::pair<bool, bool> getWriteLocked(MaybeLruCache<uint32_t, CacheValue>& map, DNSQuestion& dnsQuestion, bool& stale, PacketBuffer& response, time_t& age, uint32_t key, bool recordMiss, time_t now, uint32_t allowExpired, bool receivedOverUDP, bool dnssecOK, const std::optional<Netmask>& subnet, bool truncatedOK, uint16_t queryId, const DNSName::string_t& dnsQName);
+  [[nodiscard]] std::pair<bool, bool> getReadLocked(const MaybeLruCache<uint32_t, CacheValue>& map, DNSQuestion& dnsQuestion, bool& stale, PacketBuffer& response, time_t& age, uint32_t key, bool recordMiss, time_t now, uint32_t allowExpired, bool receivedOverUDP, bool dnssecOK, const std::optional<Netmask>& subnet, bool truncatedOK, uint16_t queryId, const DNSName::string_t& dnsQName);
+  [[nodiscard]] std::pair<bool, bool> getLocked(const CacheValue& value, DNSQuestion& dnsQuestion, bool& stale, PacketBuffer& response, time_t& age, bool recordMiss, time_t now, uint32_t allowExpired, bool receivedOverUDP, bool dnssecOK, const std::optional<Netmask>& subnet, bool truncatedOK, uint16_t queryId, const DNSName::string_t& dnsQName);
 
   std::vector<CacheShard> d_shards{};
 

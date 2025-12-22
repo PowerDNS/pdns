@@ -2493,6 +2493,9 @@ static void maintThread()
             iter->second = true;
           }
         }
+        if (packetCache->alwaysKeepStaleData()) {
+          iter->second = true;
+        }
       }
 
       const time_t now = time(nullptr);
