@@ -154,6 +154,7 @@ class StaticLibDep:
         self.license = license
         if sha256:
             self.sha256 = sha256
+        self.cargo = True
 
 def mergeLibSBOM(sbom, appInfos, lib_sbom_path, depRelations):
     with open(lib_sbom_path, encoding="utf-8") as fd:
@@ -188,7 +189,8 @@ def addAdditionalLibraryToSBOM(depFile, sbom, appInfos, depRelations):
             pkg.sha256 = depData['SHA256SUM']
         elif 'SHA256SUM_x86_64' in depData:
             pkg.sha256 = depData['SHA256SUM_x86_64']
-        pkg.cargo = True
+        if 'cargo-based' in depData:
+            pkg.cargo = depData['cargo-based']
 
         depRef = 'lib:' + pkg.name
         addDependencyToSBOM(sbom, pkg)
