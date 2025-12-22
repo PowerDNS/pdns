@@ -161,6 +161,9 @@ deps = [
 ]
 
 if dep_systemd_prog.found()
+  systemd_system_unit_dir = dep_systemd_prog.get_variable(
+    'systemdsystemunitdir',
+  )
   systemd_service_conf = configuration_data()
   systemd_service_conf.set('BinDir', get_option('prefix') / get_option('bindir'))
   systemd_service_conf.set('StaticBinDir', get_option('prefix') / get_option('sbindir'))
@@ -232,13 +235,15 @@ if dep_systemd_prog.found()
   auth_service_conf_general.set('Description', 'PowerDNS Authoritative Server')
   auth_service_conf_general.set('ConfigName', '')
   auth_service_conf_general.set('SocketDir', enable_socket_dir ? '--socket-dir=%t/pdns' : '')
-  auth_service_conf_general.set('SyslogIdentifier', 'pdns')
+  auth_service_conf_general.set('SyslogIdentifier', 'pdns_server')
   auth_service_conf_general.set('RuntimeDirectory', 'pdns')
 
   configure_file(
-    input: 'auth' / 'systemd' / 'pdns.service.in',
+    input: 'pdns' / 'pdns.service.meson.in',
     output: 'pdns.service',
     configuration: auth_service_conf_general,
+    install: true,
+    install_dir: systemd_system_unit_dir,
   )
 
   auth_service_conf_instance = configuration_data()
@@ -250,9 +255,11 @@ if dep_systemd_prog.found()
   auth_service_conf_instance.set('RuntimeDirectory', have_systemd_percent_t ? 'pdns-%i' : 'pdns')
 
   configure_file(
-    input: 'auth' / 'systemd' / 'pdns.service.in',
+    input: 'pdns' / 'pdns.service.meson.in',
     output: 'pdns@.service',
     configuration: auth_service_conf_instance,
+    install: true,
+    install_dir: systemd_system_unit_dir,
   )
 
   if get_option('tools-ixfrdist')
@@ -273,9 +280,11 @@ if dep_systemd_prog.found()
     ixfrdist_service_conf_general.set('Config', '')
 
     configure_file(
-      input: 'auth' / 'systemd' / 'ixfrdist.service.in',
+      input: 'pdns' / 'ixfrdist.service.meson.in',
       output: 'ixfrdist.service',
       configuration: ixfrdist_service_conf_general,
+      install: true,
+      install_dir: systemd_system_unit_dir,
     )
 
     ixfrdist_service_conf_instance = configuration_data()
@@ -284,9 +293,11 @@ if dep_systemd_prog.found()
     ixfrdist_service_conf_instance.set('Config', '--config=' + get_option('sysconfdir') + '/ixfrdist-%i.yml')
 
     configure_file(
-      input: 'auth' / 'systemd' / 'ixfrdist.service.in',
+      input: 'pdns' / 'ixfrdist.service.meson.in',
       output: 'ixfrdist@.service',
       configuration: ixfrdist_service_conf_instance,
+      install: true,
+      install_dir: systemd_system_unit_dir,
     )
   endif
 endif
