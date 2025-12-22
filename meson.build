@@ -1024,6 +1024,22 @@ foreach tool, info: tools
   endif
 endforeach
 
+dep_conf_distfile = custom_target(
+  'gen-conf-distfile',
+  command: [pdns_server, '--config=default'],
+  output: 'pdns.conf-dist',
+  capture: true,
+  install: true,
+  install_dir:  get_option('sysconfdir'),
+)
+
+if get_option('tools-ixfrdist')
+  install_data(
+    'pdns' / 'ixfrdist.example.yml',
+    install_dir:  get_option('sysconfdir'),
+  )
+endif
+
 # Man-pages.
 py = import('python')
 python = py.find_installation('python3', modules: 'venv', required: false)
