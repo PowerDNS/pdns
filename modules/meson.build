@@ -43,7 +43,13 @@ foreach module_name: all_modules
     set_variable(module_dep_name, get_variable(module_lib_name))
     selected_modules += module_name
   else
-    shared_module(module_backend_name, link_whole: module_lib, name_suffix: 'so')
+    shared_module(
+      module_backend_name,
+      link_whole: module_lib,
+      name_suffix: 'so',
+      install: true,
+      install_dir: get_option('libdir') / 'powerdns'
+    )
     selected_dyn_modules += module_name
   endif
 
