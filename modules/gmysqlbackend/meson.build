@@ -6,7 +6,9 @@ module_sources = files(
 module_extras = files(
   'gmysqlbackend.hh',
   'smysql.hh',
+)
 
+module_resources = files(
   'dnssec-3.x_to_3.4.0_schema.mysql.sql',
   'enable-foreign-keys.mysql.sql',
   'nodnssec-3.x_to_3.4.0_schema.mysql.sql',

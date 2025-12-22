@@ -22,6 +22,7 @@ foreach module_name: all_modules
   module_dep_name = 'dep_' + module_backend_name
   module_lib_name = 'module_' + module_backend_name + '_lib'
   module_opt = get_option('module-' + module_name)
+  module_resources = []
 
   if module_opt == 'disabled'
     continue
@@ -52,6 +53,12 @@ foreach module_name: all_modules
     )
     selected_dyn_modules += module_name
   endif
+
+  foreach resource: module_resources
+    install_data(resource,
+      install_dir: get_option('datadir') / 'powerdns'
+    )
+  endforeach
 
   dep_modules += get_variable(module_dep_name)
 endforeach
