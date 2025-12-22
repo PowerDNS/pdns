@@ -21,9 +21,12 @@
  */
 
 #include "dnsdist-kvs.hh"
+#include "dnsdist-lua-types.hh"
 #include "dolog.hh"
 
+#include <limits.h>
 #include <sys/stat.h>
+#include <boost/variant.hpp>
 
 std::vector<std::string> KeyValueLookupKeySourceIP::getKeys(const ComboAddress& addr)
 {
@@ -304,37 +307,87 @@ bool CDBKVStore::keyExists(const std::string& key)
 #endif /* HAVE_CDB */
 
 #ifdef HAVE_MMDB
+
+#include "ext/json11/json11.hpp"
+
+std::shared_ptr<const Logr::Logger> MMDBKVStore::getLogger() const
+{
+  return dnsdist::logging::getTopLogger("mmdb-key-value-store")->withValues("path", Logging::Loggable(d_mmdb->file_name()));
+}
+
+json11::Json MMDBKVStore::parseAny(const LuaAny& any)
+{
+  if (any.type() == typeid(std::string)) {
+    return json11::Json(boost::get<std::string>(any));
+  }
+  else if (any.type() == typeid(int64_t)) {
+    auto val = boost::get<int64_t>(any);
+    if (val > static_cast<int64_t>(INT_MAX) || val < static_cast<int64_t>(INT_MIN)) {
+      SLOG(warnlog("Error while retrieving a value from MMDB database: integer overflow. Returning null."),
+           getLogger()->error(Logr::Warning, "", "Error while retrieving a value from MMDB database: integer overflow. Returning null."));
+      return json11::Json();
+    }
+    else {
+      return json11::Json(static_cast<int>(val));
+    }
+  }
+  else if (any.type() == typeid(uint64_t)) {
+    auto val = boost::get<uint64_t>(any);
+    if (val > static_cast<uint64_t>(INT_MAX)) {
+      SLOG(warnlog("Error while retrieving a value from MMDB database: integer overflow. Returning null."),
+           getLogger()->error(Logr::Warning, "", "Error while retrieving a value from MMDB database: integer overflow. Returning null."));
+      return json11::Json();
+    }
+    else {
+      return json11::Json(static_cast<int>(val));
+    }
+  }
+  else if (any.type() == typeid(double)) {
+    return json11::Json(boost::get<double>(any));
+  }
+  else if (any.type() == typeid(bool)) {
+    return json11::Json(boost::get<bool>(any));
+  }
+  else if (any.type() == typeid(LuaArray<LuaAny>)) {
+    auto luaArray = boost::get<LuaArray<LuaAny>>(any);
+    std::vector<json11::Json> array;
+    array.reserve(luaArray.size());
+    for (auto& kv : luaArray) {
+      array.emplace_back(parseAny(kv.second));
+    }
+    return json11::Json(array);
+  }
+  else if (any.type() == typeid(LuaAssociativeTable<LuaAny>)) {
+    auto luaTable = boost::get<LuaAssociativeTable<LuaAny>>(any);
+    std::unordered_map<std::string, json11::Json> map(luaTable.size());
+    for (auto& kv : luaTable) {
+      map.emplace(kv.first, parseAny(kv.second));
+    }
+    return json11::Json(map);
+  }
+  else {
+    return json11::Json();
+  }
+}
+
 bool MMDBKVStore::keyExists(const std::string& key)
 {
   auto addr = makeComboAddressFromRaw(key.size() == sizeof(in_addr) ? 4 : 6, key);
   return d_mmdb->exists(addr);
 }
-
 bool MMDBKVStore::getValue(const std::string& key, std::string& value)
 {
-  auto address = makeComboAddressFromRaw(key.size() == sizeof(in_addr) ? 4 : 6, key);
-  if (d_field == "country") {
-    return d_mmdb->queryCountry(value, address);
+  auto addr = makeComboAddressFromRaw(key.size() == sizeof(in_addr) ? 4 : 6, key);
+  LuaAny ret;
+  bool result = d_mmdb->query(ret, d_queryParams, addr);
+  if (ret.type() == typeid(std::string)) {
+    value = boost::get<std::string>(ret);
+    return result;
   }
-  else if (d_field == "continent") {
-    return d_mmdb->queryContinent(value, address);
-  }
-  else if (d_field == "asn") {
-    return d_mmdb->queryAS(value, address);
-  }
-  else if (d_field == "asnum") {
-    return d_mmdb->queryASN(value, address);
-  }
-  else if (d_field == "city") {
-    return d_mmdb->queryCity(value, address, "en");
-  }
-  else {
-    return false;
-  }
-}
 
-bool MMDBKVStore::reload()
-{
-  return true;
+  json11::Json json = parseAny(ret);
+  json.dump(value);
+
+  return result;
 }
 #endif // HAVE_MMDB

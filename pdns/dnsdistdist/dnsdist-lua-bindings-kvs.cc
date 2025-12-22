@@ -44,13 +44,13 @@ void setupLuaBindingsKVS([[maybe_unused]] LuaContext& luaCtx, [[maybe_unused]] b
 #endif /* HAVE_CDB */
 
 #ifdef HAVE_MMDB
-  luaCtx.writeFunction("newMMDBKVStore", [client](const std::string& fname, const std::string& field, std::optional<bool> mmap) {
+  luaCtx.writeFunction("newMMDBKVStore", [client](const std::shared_ptr<MMDB>& mmdb, const LuaTypeOrArrayOf<std::string>& queryParams) {
     if (client) {
       return std::shared_ptr<KeyValueStore>(nullptr);
     }
-    return std::shared_ptr<KeyValueStore>(new MMDBKVStore(fname, mmap ? "mmap" : "", field));
+    return std::shared_ptr<KeyValueStore>(new MMDBKVStore(mmdb, queryParams));
   });
-#endif /* HAVE_MMDB */
+#endif // HAVE_MMDB
 
 #if defined(HAVE_LMDB) || defined(HAVE_CDB) || defined(HAVE_MMDB)
   /* Key Value Store objects */

@@ -27,6 +27,7 @@
 #include <thread>
 #include <variant>
 
+#include "dnsdist-lua-types.hh"
 #include "ext/json11/json11.hpp"
 #include <yahttp/yahttp.hpp>
 

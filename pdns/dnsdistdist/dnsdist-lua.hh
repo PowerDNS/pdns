@@ -23,18 +23,12 @@
 
 #include "dolog.hh"
 #include "dnsdist.hh"
+#include "dnsdist-lua-types.hh"
 
 #include "ext/luawrapper/include/LuaContext.hpp"
 
 extern RecursiveLockGuarded<LuaContext> g_lua;
 extern std::string g_outputBuffer; // locking for this is ok, as locked by g_luamutex
-
-template <class T>
-using LuaArray = std::vector<std::pair<int, T>>;
-template <class T>
-using LuaAssociativeTable = std::unordered_map<std::string, T>;
-template <class T>
-using LuaTypeOrArrayOf = boost::variant<T, LuaArray<T>>;
 
 using luaruleparams_t = LuaAssociativeTable<std::string>;
 

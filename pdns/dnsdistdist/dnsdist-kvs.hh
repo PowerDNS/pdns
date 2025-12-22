@@ -24,6 +24,9 @@
 #include <memory>
 #include "dnsdist.hh"
 #include "logr.hh"
+#include "dnsdist-lua-types.hh"
+#include "ext/json11/json11.hpp"
+#include "iputils.hh"
 
 class KeyValueLookupKey
 {
@@ -239,16 +242,22 @@ private:
 class MMDBKVStore : public KeyValueStore
 {
 public:
-  MMDBKVStore(const std::string& fname, const std::string& modeStr, const std::string& field) :
-    d_mmdb(std::make_unique<MMDB>(fname, modeStr)), d_field(field) {}
+  MMDBKVStore(const std::shared_ptr<MMDB> mmdb, const LuaTypeOrArrayOf<std::string>& queryParams) :
+    d_mmdb(mmdb), d_originalParams(queryParams), d_queryParams(MMDB::convertParams(d_originalParams)) {};
 
   bool keyExists(const std::string& key) override;
   bool getValue(const std::string& key, std::string& value) override;
-  bool reload() override;
+  bool reload() override
+  {
+    return true;
+  }
 
 private:
-  std::unique_ptr<MMDB> d_mmdb{nullptr};
-  std::string d_field;
-};
+  std::shared_ptr<const Logr::Logger> getLogger() const;
+  std::shared_ptr<MMDB> d_mmdb;
+  const LuaTypeOrArrayOf<std::string> d_originalParams;
+  const boost::variant<const char*, std::vector<const char*>> d_queryParams;
 
+  json11::Json parseAny(const LuaAny& any);
+};
 #endif // HAVE_MMDB

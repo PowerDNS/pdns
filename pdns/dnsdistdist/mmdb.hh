@@ -21,32 +21,59 @@
  */
 #pragma once
 
+#include "dnsdist-lua-types.hh"
 #include "iputils.hh"
 #include <maxminddb.h>
+#include <memory>
 #include <string>
+
+class MMDBEntryList;
 
 class MMDB
 {
 public:
   MMDB(const std::string& fname, const std::string& modeStr);
 
-  bool queryCountry(std::string& ret, const ComboAddress& ip);
-  bool queryContinent(std::string& ret, const ComboAddress& ip);
-  bool queryAS(std::string& ret, const ComboAddress& ip);
-  bool queryASN(std::string& ret, const ComboAddress& ip);
-  bool queryRegion(std::string& ret, const ComboAddress& ip);
-  bool queryCity(std::string& ret, const ComboAddress& ip, const std::string& language);
-  bool queryLocation(double& latitude, double& longitude, int& prec, const ComboAddress& ip);
-  bool exists(const ComboAddress& ip)
+  static const boost::variant<const char*, std::vector<const char*>> convertParams(const LuaTypeOrArrayOf<std::string>& queryParams);
+  bool query(LuaAny& ret, const boost::variant<const char*, std::vector<const char*>>& queryParams, const ComboAddress& ip) const;
+  bool exists(const ComboAddress& ip) const
   {
     MMDB_lookup_result_s res;
     return mmdbLookup(ip, res);
+  }
+  const std::string& file_name() const
+  {
+    return d_fname;
   }
 
   ~MMDB() { MMDB_close(&d_db); };
 
 private:
+  std::string d_fname;
   MMDB_s d_db;
 
-  bool mmdbLookup(const ComboAddress& ip, MMDB_lookup_result_s& res);
+  std::shared_ptr<const Logr::Logger> getLogger() const;
+  // Decodes one of the basic types (no arrays and maps)
+  bool mmdbDecode(MMDB_entry_data_s* data, LuaAny& ret) const;
+  // Decodes whole entry data list (supports arrays and maps too)
+  bool mmdbDecodeEntryList(MMDB_entry_data_list_s** data, LuaAny& ret) const;
+  bool mmdbDecodeMap(MMDB_entry_data_list_s** data, LuaAny& ret) const;
+  bool mmdbDecodeArray(MMDB_entry_data_list_s** data, LuaAny& ret) const;
+  bool mmdbLookup(const ComboAddress& ip, MMDB_lookup_result_s& res) const;
+  std::optional<MMDBEntryList> getEntryList(MMDB_entry_s* entry) const;
+};
+
+class MMDBEntryList
+{
+public:
+  MMDBEntryList(MMDB_entry_data_list_s* first) :
+    d_entry_list_first(first, MMDB_free_entry_data_list) {}
+
+  MMDB_entry_data_list_s* getFirst() const
+  {
+    return d_entry_list_first.get();
+  }
+
+private:
+  std::unique_ptr<MMDB_entry_data_list_s, decltype(&MMDB_free_entry_data_list)> d_entry_list_first;
 };
