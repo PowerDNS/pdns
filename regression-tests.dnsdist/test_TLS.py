@@ -272,17 +272,21 @@ class TestOpenSSL(DNSDistTest, TLSTests):
     _serverKey = 'server-tls.key'
     _serverCert = 'server-tls.chain'
     _serverName = 'tls.tests.dnsdist.org'
+    _serverIPOnlyKey = 'server-ip-only.key'
+    _serverIPOnlyCert = 'server-ip-only.chain'
     _caCert = 'ca.pem'
     _tlsServerPort = pickAvailablePort()
+    _tlsServerPort2 = pickAvailablePort()
     _config_template = """
     setKey("%s")
     controlSocket("127.0.0.1:%d")
 
     newServer{address="127.0.0.1:%d"}
     addTLSLocal("127.0.0.1:%d", "%s", "%s", { provider="openssl" })
+    addTLSLocal("127.0.0.1:%d", "%s", "%s", { provider="openssl" })
     addAction(SNIRule("powerdns.com"), SpoofAction("1.2.3.4"))
     """
-    _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_tlsServerPort', '_serverCert', '_serverKey']
+    _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_tlsServerPort', '_serverCert', '_serverKey', '_tlsServerPort2', '_serverIPOnlyCert', '_serverIPOnlyKey']
 
     @classmethod
     def setUpClass(cls):
@@ -301,17 +305,21 @@ class TestGnuTLS(DNSDistTest, TLSTests):
     _serverKey = 'server-tls.key'
     _serverCert = 'server-tls.chain'
     _serverName = 'tls.tests.dnsdist.org'
+    _serverIPOnlyKey = 'server-ip-only.key'
+    _serverIPOnlyCert = 'server-ip-only.chain'
     _caCert = 'ca.pem'
     _tlsServerPort = pickAvailablePort()
+    _tlsServerPort2 = pickAvailablePort()
     _config_template = """
     setKey("%s")
     controlSocket("127.0.0.1:%d")
 
     newServer{address="127.0.0.1:%d"}
     addTLSLocal("127.0.0.1:%d", "%s", "%s", { provider="gnutls" })
+    addTLSLocal("127.0.0.1:%d", "%s", "%s", { provider="gnutls" })
     addAction(SNIRule("powerdns.com"), SpoofAction("1.2.3.4"))
     """
-    _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_tlsServerPort', '_serverCert', '_serverKey']
+    _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_tlsServerPort', '_serverCert', '_serverKey', '_tlsServerPort2', '_serverIPOnlyCert', '_serverIPOnlyKey']
 
     @classmethod
     def setUpClass(cls):
