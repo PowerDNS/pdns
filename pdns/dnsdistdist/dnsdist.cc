@@ -199,27 +199,7 @@ static void doLatencyStats(dnsdist::Protocol protocol, double udiff)
   };
 
   if (protocol == dnsdist::Protocol::DoUDP || protocol == dnsdist::Protocol::DNSCryptUDP) {
-    if (udiff < 1000) {
-      ++dnsdist::metrics::g_stats.latency0_1;
-    }
-    else if (udiff < 10000) {
-      ++dnsdist::metrics::g_stats.latency1_10;
-    }
-    else if (udiff < 50000) {
-      ++dnsdist::metrics::g_stats.latency10_50;
-    }
-    else if (udiff < 100000) {
-      ++dnsdist::metrics::g_stats.latency50_100;
-    }
-    else if (udiff < 1000000) {
-      ++dnsdist::metrics::g_stats.latency100_1000;
-    }
-    else {
-      ++dnsdist::metrics::g_stats.latencySlow;
-    }
-
-    dnsdist::metrics::g_stats.latencySum += static_cast<unsigned long>(udiff) / 1000;
-    ++dnsdist::metrics::g_stats.latencyCount;
+    dnsdist::metrics::updateLatencyHistogram(dnsdist::metrics::g_stats, static_cast<uint64_t>(udiff));
 
     doAvg(dnsdist::metrics::g_stats.latencyAvg100, udiff, 100);
     doAvg(dnsdist::metrics::g_stats.latencyAvg1000, udiff, 1000);

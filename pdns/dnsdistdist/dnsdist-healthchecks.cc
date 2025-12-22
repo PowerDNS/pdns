@@ -63,30 +63,12 @@ struct HealthCheckData
 
 static void updateLatencyMetrics(DownstreamState& downstream, int elapsed /* microseconds */)
 {
-  auto& histo = downstream.d_healthCheckLatencyHisto;
-  downstream.d_healthCheckLatency.store(elapsed);
+  if (elapsed >= 0) {
+    downstream.d_healthCheckLatency.store(elapsed);
 
-  if (elapsed < 1000) {
-    ++histo.latency0_1;
+    auto& histo = downstream.d_healthCheckLatencyHisto;
+    dnsdist::metrics::updateLatencyHistogram(histo, static_cast<uint64_t>(elapsed));
   }
-  else if (elapsed < 10000) {
-    ++histo.latency1_10;
-  }
-  else if (elapsed < 50000) {
-    ++histo.latency10_50;
-  }
-  else if (elapsed < 100000) {
-    ++histo.latency50_100;
-  }
-  else if (elapsed < 1000000) {
-    ++histo.latency100_1000;
-  }
-  else {
-    ++histo.latencySlow;
-  }
-
-  histo.latencySum += static_cast<unsigned long>(elapsed) / 1000;
-  ++histo.latencyCount;
 }
 
 static bool handleResponse(std::shared_ptr<HealthCheckData>& data)
