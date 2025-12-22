@@ -71,15 +71,28 @@ def getPackageInformations(pkgDB, packageName):
         return None
     return matches[0]
 
-def addDependencyToSBOM(sbom, pkg):
-    bom_ref = 'lib:' + pkg.name
-    component = { 'name': pkg.name, 'bom-ref': bom_ref, 'type': 'library'}
+def getPackageVersion(pkg):
     if pkg.release:
-        component['version'] = (pkg.version if pkg.epoch == 0 else str(pkg.epoch) + ':' + pkg.version) + '-' + pkg.release
+        version = (pkg.version if pkg.epoch == 0 else str(pkg.epoch) + ':' + pkg.version) + '-' + pkg.release
     else:
-        component['version'] = (pkg.version if pkg.epoch == 0 else str(pkg.epoch) + ':' + pkg.version)
+        version = (pkg.version if pkg.epoch == 0 else str(pkg.epoch) + ':' + pkg.version)
     if hasattr(pkg, 'arch'):
-        component['version'] += '.' + pkg.arch
+        version += '.' + pkg.arch
+    return version
+
+def getLibraryBOMReference(pkg):
+    return 'lib:' + pkg.name + '_' + getPackageVersion(pkg)
+
+def addDependencyToSBOM(sbom, pkg, seen_deps):
+    version = getPackageVersion(pkg)
+    bom_ref = getLibraryBOMReference(pkg)
+    if bom_ref in seen_deps:
+        return False
+
+    seen_deps[bom_ref] = True
+
+    component = { 'name': pkg.name, 'bom-ref': bom_ref, 'type': 'library', 'version': version}
+
     if hasattr(pkg, 'vendor') and pkg.vendor is not None:
         component['supplier'] = {'name': pkg.vendor}
     if hasattr(pkg, 'publisher') and pkg.publisher is not None:
@@ -100,9 +113,9 @@ def addDependencyToSBOM(sbom, pkg):
     component['purl'] = getPURL(pkg)
 
     sbom['components'].append(component)
+    return True
 
-def processDependencies(pkg_db, sbom, appInfos, depRelations):
-    seenDeps = {}
+def processDependencies(pkg_db, sbom, appInfos, depRelations, seen_deps):
     for require in appInfos.requires:
         if hasattr(require, 'name'):
             depName = require.name.split('(')[0]
@@ -113,9 +126,9 @@ def processDependencies(pkg_db, sbom, appInfos, depRelations):
             depSpec = require
         if depName in ['/bin/sh', 'config', 'ld-linux-x86-64.so.2', 'rpmlib', 'rtld']:
             continue
-        if depName in seenDeps:
+        if depName in seen_deps:
             continue
-        seenDeps[depName] = True
+        seen_deps[depName] = True
 
         matches = pkg_db.filter(name=depName).run()
         if len(matches) == 0:
@@ -128,16 +141,13 @@ def processDependencies(pkg_db, sbom, appInfos, depRelations):
             print(f'Got {len(matches)} matches for {depName}')
 
         dep = matches[0]
-        depRef = 'lib:' + dep.name
-        if depRef in seenDeps:
-            continue
-        seenDeps[depRef] = True
+        depRef = getLibraryBOMReference(dep)
 
-        addDependencyToSBOM(sbom, dep)
-        depRelations['pkg:' + appInfos.name].append(depRef)
+        if addDependencyToSBOM(sbom, dep, seen_deps):
+            depRelations['pkg:' + appInfos.name].append(depRef)
 
 class StaticLibDep:
-    def __init__(self, name, version, description, purl, external_refs, author, license, sha256):
+    def __init__(self, name, version, description, purl, external_refs, author, license_, sha256):
         self.epoch = 0
         self.release = None
         self.name = name
@@ -151,20 +161,19 @@ class StaticLibDep:
             self.author = author
         self.supplier = None
         self.publisher = None
-        self.license = license
+        self.license = license_
         if sha256:
             self.sha256 = sha256
         self.cargo = True
 
-def mergeLibSBOM(sbom, appInfos, lib_sbom_path, depRelations):
+def mergeLibSBOM(sbom, appInfos, lib_sbom_path, depRelations, seen_deps):
     with open(lib_sbom_path, encoding="utf-8") as fd:
         lib_sbom_data = json.load(fd)
         component = lib_sbom_data['metadata']['component']
         main_component_name = component['name']
-        print(component)
         pkg = StaticLibDep(main_component_name, component['version'], component['description'], component.get('purl'), component.get('externalReferences') or [], component.get('author') or None, component['licenses'][0]['expression'], component['hashes'][0]['content'] if 'hashes' in component else None)
 
-        addDependencyToSBOM(sbom, pkg)
+        addDependencyToSBOM(sbom, pkg, seen_deps)
         depRef = 'lib:' + pkg.name
         depRelations['pkg:' + appInfos.name].append(depRef)
 
@@ -172,13 +181,13 @@ def mergeLibSBOM(sbom, appInfos, lib_sbom_path, depRelations):
         for component in sub_components:
             pkg = StaticLibDep(component['name'], component['version'], None, component.get('purl'), component.get('externalReferences') or [], component.get('author') or None, component['licenses'][0]['expression'], component['hashes'][0]['content'] if 'hashes' in component else None)
 
-            addDependencyToSBOM(sbom, pkg)
-            depRef = 'lib:' + pkg.name
+            addDependencyToSBOM(sbom, pkg, seen_deps)
+            depRef = getLibraryBOMReference(pkg)
             if not 'lib:' + main_component_name in depRelations:
                 depRelations['lib:' + main_component_name] = []
             depRelations['lib:' + main_component_name].append(depRef)
 
-def addAdditionalLibraryToSBOM(depFile, sbom, appInfos, depRelations):
+def addAdditionalLibraryToSBOM(depFile, sbom, appInfos, depRelations, seen_deps):
     with open(depFile, encoding="utf-8") as depDataFile:
         depData = json.load(depDataFile)
         pkg = StaticLibDep(os.path.splitext(os.path.basename(depFile))[0], depData['version'], None, None, [], None, depData.get('license') or None, None)
@@ -193,15 +202,15 @@ def addAdditionalLibraryToSBOM(depFile, sbom, appInfos, depRelations):
             pkg.cargo = depData['cargo-based']
 
         depRef = 'lib:' + pkg.name
-        addDependencyToSBOM(sbom, pkg)
+        addDependencyToSBOM(sbom, pkg, seen_deps)
         depRelations['pkg:' + appInfos.name].append(depRef)
 
-def processAdditionalDependencies(sbom, appInfos, additionalDeps, depRelations):
+def processAdditionalDependencies(sbom, appInfos, additionalDeps, depRelations, seen_deps):
     for additionalDepFile in additionalDeps:
         if additionalDepFile.endswith('cdx.json'):
-            mergeLibSBOM(sbom, appInfos, additionalDepFile, depRelations)
+            mergeLibSBOM(sbom, appInfos, additionalDepFile, depRelations, seen_deps)
         else:
-            addAdditionalLibraryToSBOM(additionalDepFile, sbom, appInfos, depRelations)
+            addAdditionalLibraryToSBOM(additionalDepFile, sbom, appInfos, depRelations, seen_deps)
 
 def generateSBOM(packageName, additionalDeps):
     sbom = { 'bomFormat': 'CycloneDX', 'specVersion': '1.5', 'version': 1 }
@@ -245,8 +254,9 @@ def generateSBOM(packageName, additionalDeps):
     sbom['components'] = []
     sbom['dependencies'] = []
 
-    processDependencies(pkg_db, sbom, appInfos, depRelations)
-    processAdditionalDependencies(sbom, appInfos, additionalDeps, depRelations)
+    seen_deps = {}
+    processDependencies(pkg_db, sbom, appInfos, depRelations, seen_deps)
+    processAdditionalDependencies(sbom, appInfos, additionalDeps, depRelations, seen_deps)
 
     for pkg, deps in depRelations.items():
         sbom['dependencies'].append({'ref': pkg, 'dependsOn': deps})
