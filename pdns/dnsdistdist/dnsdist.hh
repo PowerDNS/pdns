@@ -169,11 +169,11 @@ struct DNSQuestion
     return ids.cs;
   }
 
-  std::shared_ptr<const Logr::Logger> getLogger() const;
-  std::shared_ptr<const Logr::Logger> getLogger();
+  std::shared_ptr<const Logr::Logger> getLogger(std::shared_ptr<const Logr::Logger> parent = nullptr) const;
+  std::shared_ptr<const Logr::Logger> getLogger(std::shared_ptr<const Logr::Logger> parent = nullptr);
 
 protected:
-  virtual std::shared_ptr<const Logr::Logger> getThisLogger() const;
+  virtual std::shared_ptr<const Logr::Logger> getThisLogger(std::shared_ptr<const Logr::Logger> parent) const;
 
   PacketBuffer& data;
   std::shared_ptr<const Logr::Logger> d_logger;
@@ -206,7 +206,7 @@ struct DNSResponse : DNSQuestion
   const std::shared_ptr<DownstreamState>& d_downstream;
 
 protected:
-  std::shared_ptr<const Logr::Logger> getThisLogger() const override;
+  std::shared_ptr<const Logr::Logger> getThisLogger(std::shared_ptr<const Logr::Logger> parent) const override;
 };
 
 using pdns::stat_t;

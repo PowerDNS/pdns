@@ -193,10 +193,12 @@ void TCPClientCollection::addTCPClientThread(std::vector<ClientState*>& tcpAccep
 
     auto [crossProtocolResponseChannelSender, crossProtocolResponseChannelReceiver] = pdns::channel::createObjectQueue<TCPCrossProtocolResponse>(pdns::channel::SenderBlockingMode::SenderNonBlocking, pdns::channel::ReceiverBlockingMode::ReceiverNonBlocking, internalPipeBufferSize);
 
-    vinfolog("Adding TCP Client thread");
+    VERBOSESLOG(infolog("Adding TCP Client thread"),
+                dnsdist::logging::getTopLogger()->info(Logr::Info, "Adding TCP worker thread to handle TCP connections from clients"));
 
     if (d_numthreads >= d_tcpclientthreads.size()) {
-      vinfolog("Adding a new TCP client thread would exceed the vector size (%d/%d), skipping. Consider increasing the maximum amount of TCP client threads with setMaxTCPClientThreads() in the configuration.", d_numthreads.load(), d_tcpclientthreads.size());
+      VERBOSESLOG(infolog("Adding a new TCP client thread would exceed the vector size (%d/%d), skipping. Consider increasing the maximum amount of TCP client threads with setMaxTCPClientThreads() in the configuration.", d_numthreads.load(), d_tcpclientthreads.size()),
+                  dnsdist::logging::getTopLogger()->info(Logr::Info, "Adding a new TCP client thread would exceed the vector size, skipping. Consider increasing the maximum amount of TCP client threads with setMaxTCPClientThreads() in the configuration.", "workers_count", Logging::Loggable(d_numthreads.load()), "workers_limit", Logging::Loggable(d_tcpclientthreads.size())));
       return;
     }
 
@@ -207,7 +209,8 @@ void TCPClientCollection::addTCPClientThread(std::vector<ClientState*>& tcpAccep
       clientThread.detach();
     }
     catch (const std::runtime_error& e) {
-      errlog("Error creating a TCP thread: %s", e.what());
+      SLOG(errlog("Error creating a TCP thread: %s", e.what()),
+           dnsdist::logging::getTopLogger()->error(Logr::Error, e.what(), "Error creating a TCP worker thread"));
       return;
     }
 
@@ -215,7 +218,8 @@ void TCPClientCollection::addTCPClientThread(std::vector<ClientState*>& tcpAccep
     ++d_numthreads;
   }
   catch (const std::exception& e) {
-    errlog("Error creating TCP worker: %s", e.what());
+    SLOG(errlog("Error creating TCP worker: %s", e.what()),
+         dnsdist::logging::getTopLogger()->error(Logr::Error, e.what(), "Error creating a TCP worker"));
   }
 }
 
@@ -252,7 +256,8 @@ void IncomingTCPConnectionState::handleResponseSent(TCPResponse& currentResponse
   if (!currentResponse.d_idstate.selfGenerated && backend) {
     const auto& ids = currentResponse.d_idstate;
     auto udiff = ids.queryRealTime.udiff();
-    vinfolog("Got answer from %s, relayed to %s (%s, %d bytes), took %d us", backend->d_config.remote.toStringWithPort(), ids.origRemote.toStringWithPort(), getProtocol().toString(), sentBytes, udiff);
+    VERBOSESLOG(infolog("Got answer from %s, relayed to %s (%s, %d bytes), took %d us", backend->d_config.remote.toStringWithPort(), ids.origRemote.toStringWithPort(), getProtocol().toString(), sentBytes, udiff),
+                ids.getLogger(getLogger())->info(Logr::Info, "Relayed response to client", "backend.name", Logging::Loggable(backend->getName()), "backend.address", Logging::Loggable(backend->d_config.remote), "dns.response.size", Logging::Loggable(sentBytes), "dns.response.latency-us", Logging::Loggable(udiff)));
 
     auto backendProtocol = backend->getProtocol();
     if (backendProtocol == dnsdist::Protocol::DoUDP && !currentResponse.d_idstate.forwardedOverUDP) {
@@ -304,12 +309,14 @@ bool IncomingTCPConnectionState::canAcceptNewQueries(const struct timeval& now)
 
   const auto& currentConfig = dnsdist::configuration::getCurrentRuntimeConfiguration();
   if (currentConfig.d_maxTCPQueriesPerConn != 0 && d_queriesCount > currentConfig.d_maxTCPQueriesPerConn) {
-    vinfolog("not accepting new queries from %s because it reached the maximum number of queries per conn (%d / %d)", d_ci.remote.toStringWithPort(), d_queriesCount, currentConfig.d_maxTCPQueriesPerConn);
+    VERBOSESLOG(infolog("not accepting new queries from %s because it reached the maximum number of queries per conn (%d / %d)", d_ci.remote.toStringWithPort(), d_queriesCount, currentConfig.d_maxTCPQueriesPerConn),
+                getLogger()->info(Logr::Info, "Not accepting new queries: reached the maximum number of queries per connection", "queries_count", Logging::Loggable(d_queriesCount), "queries_count_limit", Logging::Loggable(currentConfig.d_maxTCPQueriesPerConn)));
     return false;
   }
 
   if (maxConnectionDurationReached(currentConfig.d_maxTCPConnectionDuration, now)) {
-    vinfolog("not accepting new queries from %s because it reached the maximum TCP connection duration", d_ci.remote.toStringWithPort());
+    VERBOSESLOG(infolog("not accepting new queries from %s because it reached the maximum TCP connection duration", d_ci.remote.toStringWithPort()),
+                getLogger()->info(Logr::Info, "Not accepting new queries: reached the maximum TCP connection duration"));
     return false;
   }
 
@@ -457,8 +464,8 @@ IOState IncomingTCPConnectionState::sendResponse(const struct timeval& now, TCPR
     return iostate;
   }
   catch (const std::exception& e) {
-    vinfolog("Closing TCP client connection with %s: %s", d_ci.remote.toStringWithPort(), e.what());
-    DEBUGLOG("Closing TCP client connection: " << e.what());
+    VERBOSESLOG(infolog("Closing TCP client connection with %s: %s", d_ci.remote.toStringWithPort(), e.what()),
+                getLogger()->error(Logr::Info, e.what(), "Closing TCP client connection"));
     ++d_ci.cs->tcpDiedSendingResponse;
 
     terminateClientConnection();
@@ -619,7 +626,8 @@ void IncomingTCPConnectionState::handleResponse(const struct timeval& now, TCPRe
               response.d_connection->release(true);
             }
             catch (const std::exception& e) {
-              vinfolog("Error releasing connection: %s", e.what());
+              VERBOSESLOG(infolog("Error releasing connection: %s", e.what()),
+                          getLogger()->error(Logr::Info, e.what(), "Error releasing connection to backend"));
             }
             list.erase(it);
             break;
@@ -663,7 +671,8 @@ void IncomingTCPConnectionState::handleResponse(const struct timeval& now, TCPRe
       }
     }
     catch (const std::exception& e) {
-      vinfolog("Unexpected exception while handling response from backend: %s", e.what());
+      VERBOSESLOG(infolog("Unexpected exception while handling response from backend: %s", e.what()),
+                  getLogger()->error(Logr::Info, e.what(), "Unexpected exception while handling response from backend"));
       state->terminateClientConnection();
       return;
     }
@@ -754,11 +763,13 @@ void IncomingTCPConnectionState::handleCrossProtocolResponse(const struct timeva
     auto ptr = std::make_unique<TCPCrossProtocolResponse>(std::move(response), state, now);
     if (!state->d_threadData.crossProtocolResponseSender.send(std::move(ptr))) {
       ++dnsdist::metrics::g_stats.tcpCrossProtocolResponsePipeFull;
-      vinfolog("Unable to pass a cross-protocol response to the TCP worker thread because the pipe is full");
+      VERBOSESLOG(infolog("Unable to pass a cross-protocol response to the TCP worker thread because the pipe is full"),
+                  getLogger()->info(Logr::Info, "Unable to pass a cross-protocol response to the TCP worker thread because the pipe is full"));
     }
   }
   catch (const std::exception& e) {
-    vinfolog("Unable to pass a cross-protocol response to the TCP worker thread because we couldn't write to the pipe: %s", stringerror());
+    VERBOSESLOG(infolog("Unable to pass a cross-protocol response to the TCP worker thread because we couldn't write to the pipe: %s", e.what()),
+                getLogger()->error(Logr::Info, e.what(), "Unable to pass a cross-protocol response to the TCP worker thread because we couldn't write to the pipe"));
   }
 }
 
@@ -939,7 +950,8 @@ IncomingTCPConnectionState::QueryProcessingResult IncomingTCPConnectionState::ha
 
   std::string proxyProtocolPayload;
   if (backend->isDoH()) {
-    vinfolog("Got query for %s|%s from %s (%s, %d bytes), relayed to %s", ids.qname.toLogString(), QType(ids.qtype).toString(), d_proxiedRemote.toStringWithPort(), getProtocol().toString(), query.size(), backend->getNameWithAddr());
+    VERBOSESLOG(infolog("Got query for %s|%s from %s (%s, %d bytes), relayed to %s", ids.qname.toLogString(), QType(ids.qtype).toString(), d_proxiedRemote.toStringWithPort(), getProtocol().toString(), query.size(), backend->getNameWithAddr()),
+                ids.getLogger(getLogger())->info(Logr::Info, "Relayed query to backend", "backend.name", Logging::Loggable(backend->getName()), "backend.address", Logging::Loggable(backend->d_config.remote)));
 
     /* we need to do this _before_ creating the cross protocol query because
        after that the buffer will have been moved */
@@ -995,7 +1007,9 @@ IncomingTCPConnectionState::QueryProcessingResult IncomingTCPConnectionState::ha
     tcpquery.d_proxyProtocolPayload = std::move(proxyProtocolPayload);
   }
 
-  vinfolog("Got query for %s|%s from %s (%s, %d bytes), relayed to %s", tcpquery.d_idstate.qname.toLogString(), QType(tcpquery.d_idstate.qtype).toString(), d_proxiedRemote.toStringWithPort(), getProtocol().toString(), tcpquery.d_buffer.size(), backend->getNameWithAddr());
+  VERBOSESLOG(infolog("Got query for %s|%s from %s (%s, %d bytes), relayed to %s", tcpquery.d_idstate.qname.toLogString(), QType(tcpquery.d_idstate.qtype).toString(), d_proxiedRemote.toStringWithPort(), getProtocol().toString(), tcpquery.d_buffer.size(), backend->getNameWithAddr()),
+              tcpquery.d_idstate.getLogger(getLogger())->info(Logr::Info, "Relayed query to backend", "backend.name", Logging::Loggable(backend->getName()), "backend.address", Logging::Loggable(backend->d_config.remote)));
+
   std::shared_ptr<TCPQuerySender> incoming = state;
   downstreamConnection->queueQuery(incoming, std::move(tcpquery));
   return QueryProcessingResult::Forwarded;
@@ -1043,7 +1057,8 @@ IncomingTCPConnectionState::ProxyProtocolResult IncomingTCPConnectionState::hand
       d_buffer.resize(d_currentPos);
       ssize_t remaining = isProxyHeaderComplete(d_buffer);
       if (remaining == 0) {
-        vinfolog("Unable to consume proxy protocol header in packet from TCP client %s", d_ci.remote.toStringWithPort());
+        VERBOSESLOG(infolog("Unable to consume proxy protocol header in packet from TCP client %s", d_ci.remote.toStringWithPort()),
+                    getLogger()->info(Logr::Info, "Unable to consume proxy protocol header in packet from TCP client"));
         ++dnsdist::metrics::g_stats.proxyProtocolInvalid;
         return ProxyProtocolResult::Error;
       }
@@ -1056,7 +1071,8 @@ IncomingTCPConnectionState::ProxyProtocolResult IncomingTCPConnectionState::hand
         /* proxy header received */
         std::vector<ProxyProtocolValue> proxyProtocolValues;
         if (!handleProxyProtocol(d_ci.remote, true, dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL, d_buffer, d_proxiedRemote, d_proxiedDestination, proxyProtocolValues)) {
-          vinfolog("Error handling the Proxy Protocol received from TCP client %s", d_ci.remote.toStringWithPort());
+          VERBOSESLOG(infolog("Error handling the Proxy Protocol received from TCP client %s", d_ci.remote.toStringWithPort()),
+                      getLogger()->info(Logr::Info, "Error handling the Proxy Protocol received from TCP client"));
           return ProxyProtocolResult::Error;
         }
 
@@ -1151,12 +1167,12 @@ void IncomingTCPConnectionState::handleExceptionDuringIO(const std::exception& e
   }
 
   if (d_ioState->isWaitingForWrite() || d_queriesCount == 0) {
-    DEBUGLOG("Got an exception while handling TCP query: " << exp.what());
-    vinfolog("Got an exception while handling (%s) TCP query from %s: %s", (d_ioState->isWaitingForRead() ? "reading" : "writing"), d_ci.remote.toStringWithPort(), exp.what());
+    VERBOSESLOG(infolog("Got an exception while handling (%s) TCP query from %s: %s", (d_ioState->isWaitingForRead() ? "reading" : "writing"), d_ci.remote.toStringWithPort(), exp.what()),
+                getLogger()->error(Logr::Info, exp.what(), "Got an exception while handling TCP query", "io", Logging::Loggable(d_ioState->isWaitingForRead() ? "reading" : "writing")));
   }
   else {
-    vinfolog("Closing TCP client connection with %s: %s", d_ci.remote.toStringWithPort(), exp.what());
-    DEBUGLOG("Closing TCP client connection: " << exp.what());
+    VERBOSESLOG(infolog("Closing TCP client connection with %s: %s", d_ci.remote.toStringWithPort(), exp.what()),
+                getLogger()->error(Logr::Info, exp.what(), "Closing TCP client connection"));
   }
   /* remove this FD from the IO multiplexer */
   terminateClientConnection();
@@ -1234,7 +1250,8 @@ void IncomingTCPConnectionState::handleIO()
     IOStateGuard ioGuard(d_ioState);
 
     if (maxConnectionDurationReached(dnsdist::configuration::getCurrentRuntimeConfiguration().d_maxTCPConnectionDuration, now)) {
-      vinfolog("Terminating TCP connection from %s because it reached the maximum TCP connection duration", d_ci.remote.toStringWithPort());
+      VERBOSESLOG(infolog("Terminating TCP connection from %s because it reached the maximum TCP connection duration", d_ci.remote.toStringWithPort()),
+                  getLogger()->info(Logr::Info, "Terminating TCP connection because it reached the maximum TCP connection duration"));
       // will be handled by the ioGuard
       // handleNewIOState(state, IOState::Done, fd, handleIOCallback);
       return;
@@ -1242,7 +1259,8 @@ void IncomingTCPConnectionState::handleIO()
 
     const auto& immutable = dnsdist::configuration::getImmutableConfiguration();
     if (immutable.d_maxTCPReadIOsPerQuery > 0 && d_readIOsCurrentQuery >= immutable.d_maxTCPReadIOsPerQuery) {
-      vinfolog("Terminating TCP connection from %s for reaching the maximum number of read IO events per query (%d)", d_ci.remote.toStringWithPort(), immutable.d_maxTCPReadIOsPerQuery);
+      VERBOSESLOG(infolog("Terminating TCP connection from %s for reaching the maximum number of read IO events per query (%d)", d_ci.remote.toStringWithPort(), immutable.d_maxTCPReadIOsPerQuery),
+                  getLogger()->info(Logr::Info, "Terminating TCP connection for reaching the maximum number of read IO events per query", "maximum_tcp_read_ios_per_query", Logging::Loggable(immutable.d_maxTCPReadIOsPerQuery)));
       dnsdist::IncomingConcurrentTCPConnectionsManager::banClientFor(d_ci.remote, time(nullptr), immutable.d_tcpBanDurationForExceedingMaxReadIOsPerQuery);
       return;
     }
@@ -1326,7 +1344,8 @@ void IncomingTCPConnectionState::handleIO()
       }
 
       if (d_state != State::idle && d_state != State::doingHandshake && d_state != State::readingProxyProtocolHeader && d_state != State::waitingForQuery && d_state != State::readingQuerySize && d_state != State::readingQuery && d_state != State::sendingResponse) {
-        vinfolog("Unexpected state %d in handleIOCallback", static_cast<int>(d_state));
+        VERBOSESLOG(infolog("Unexpected state %d in handleIOCallback", static_cast<int>(d_state)),
+                    getLogger()->info(Logr::Info, "Unexpected state in handleIOCallback", "state", Logging::Loggable(static_cast<int>(d_state))));
       }
     }
     catch (const std::exception& exp) {
@@ -1380,7 +1399,8 @@ void IncomingTCPConnectionState::notifyIOError(const struct timeval& now, TCPRes
       }
     }
     catch (const std::exception& e) {
-      vinfolog("Exception in notifyIOError: %s", e.what());
+      VERBOSESLOG(infolog("Exception in notifyIOError: %s", e.what()),
+                  getLogger()->error(Logr::Info, e.what(), "Exception in notifyIOError"));
     }
   }
   else {
@@ -1435,7 +1455,8 @@ void IncomingTCPConnectionState::handleXFRResponse(const struct timeval& now, TC
 
 void IncomingTCPConnectionState::handleTimeout(std::shared_ptr<IncomingTCPConnectionState>& state, bool write)
 {
-  vinfolog("Timeout while %s TCP client %s", (write ? "writing to" : "reading from"), state->d_ci.remote.toStringWithPort());
+  VERBOSESLOG(infolog("Timeout while %s TCP client %s", (write ? "writing to" : "reading from"), state->d_ci.remote.toStringWithPort()),
+              state->getLogger()->info(Logr::Info, "Timeout on network operation", "io", Logging::Loggable(write ? "writing to" : "reading from")));
   DEBUGLOG("client timeout");
   DEBUGLOG("Processed " << state->d_queriesCount << " queries, current count is " << state->d_currentQueriesCount << ", " << state->d_ownedConnectionsToBackend.size() << " owned connections, " << state->d_queuedResponses.size() << " response queued");
 
@@ -1453,7 +1474,7 @@ void IncomingTCPConnectionState::handleTimeout(std::shared_ptr<IncomingTCPConnec
 
 std::shared_ptr<const Logr::Logger> IncomingTCPConnectionState::getLogger() const
 {
-  auto logger = dnsdist::logging::getTopLogger()->withName("incoming-tcp-connection")->withValues("client.address", Logging::Loggable(d_proxiedRemote), "frontend.address", Logging::Loggable(d_ci.cs->local), "protocol", Logging::Loggable(d_ci.cs->getProtocol()), "network.peer.address", Logging::Loggable(d_ci.remote), "destination.address", Logging::Loggable(d_proxiedDestination));
+  return dnsdist::logging::getTopLogger()->withName("incoming-tcp-connection")->withValues("client.address", Logging::Loggable(d_proxiedRemote), "frontend.address", Logging::Loggable(d_ci.cs->local), "protocol", Logging::Loggable(d_ci.cs->getProtocol()), "network.peer.address", Logging::Loggable(d_ci.remote), "destination.address", Logging::Loggable(d_proxiedDestination));
 }
 
 static void handleIncomingTCPQuery(int pipefd, FDMultiplexer::funcparam_t& param)
@@ -1519,7 +1540,8 @@ static void handleCrossProtocolQuery(int pipefd, FDMultiplexer::funcparam_t& par
 
     prependSizeToTCPQuery(query.d_buffer, query.d_idstate.d_proxyProtocolPayloadSize);
 
-    vinfolog("Got query for %s|%s from %s (%s, %d bytes), relayed to %s", query.d_idstate.qname.toLogString(), QType(query.d_idstate.qtype).toString(), query.d_idstate.origRemote.toStringWithPort(), query.d_idstate.protocol.toString(), query.d_buffer.size(), downstreamServer->getNameWithAddr());
+    VERBOSESLOG(infolog("Got query for %s|%s from %s (%s, %d bytes), relayed to %s", query.d_idstate.qname.toLogString(), QType(query.d_idstate.qtype).toString(), query.d_idstate.origRemote.toStringWithPort(), query.d_idstate.protocol.toString(), query.d_buffer.size(), downstreamServer->getNameWithAddr()),
+                query.d_idstate.getLogger()->info(Logr::Info, "Relayed query to backend", "dns.query.size", Logging::Loggable(query.d_buffer.size())));
 
     downstream->queueQuery(tqs, std::move(query));
   }
@@ -1580,7 +1602,8 @@ static void scanForTimeouts(const TCPClientThreadData& data, const timeval& now)
     if (cbData.second.type() == typeid(std::shared_ptr<IncomingTCPConnectionState>)) {
       auto state = boost::any_cast<std::shared_ptr<IncomingTCPConnectionState>>(cbData.second);
       if (cbData.first == state->d_handler.getDescriptor()) {
-        vinfolog("Timeout (read) from remote TCP client %s", state->d_ci.remote.toStringWithPort());
+        VERBOSESLOG(infolog("Timeout (read) from remote TCP client %s", state->d_ci.remote.toStringWithPort()),
+                    state->getLogger()->info(Logr::Info, "Timeout (read) from remote TCP client"));
         state->handleTimeout(state, false);
       }
     }
@@ -1588,7 +1611,8 @@ static void scanForTimeouts(const TCPClientThreadData& data, const timeval& now)
     else if (cbData.second.type() == typeid(std::shared_ptr<IncomingHTTP2Connection>)) {
       auto state = boost::any_cast<std::shared_ptr<IncomingHTTP2Connection>>(cbData.second);
       if (cbData.first == state->d_handler.getDescriptor()) {
-        vinfolog("Timeout (read) from remote H2 client %s", state->d_ci.remote.toStringWithPort());
+        VERBOSESLOG(infolog("Timeout (read) from remote H2 client %s", state->d_ci.remote.toStringWithPort()),
+                    state->getLogger()->info(Logr::Info, "Timeout (read) from remote H2 client"));
         std::shared_ptr<IncomingTCPConnectionState> parentState = state;
         state->handleTimeout(parentState, false);
       }
@@ -1596,7 +1620,8 @@ static void scanForTimeouts(const TCPClientThreadData& data, const timeval& now)
 #endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
     else if (cbData.second.type() == typeid(std::shared_ptr<TCPConnectionToBackend>)) {
       auto conn = boost::any_cast<std::shared_ptr<TCPConnectionToBackend>>(cbData.second);
-      vinfolog("Timeout (read) from remote backend %s", conn->getBackendName());
+      VERBOSESLOG(infolog("Timeout (read) from remote backend %s", conn->getBackendName()),
+                  conn->getLogger()->info(Logr::Info, "Timeout (read) from remote backend"));
       conn->handleTimeout(now, false);
     }
   }
@@ -1606,7 +1631,8 @@ static void scanForTimeouts(const TCPClientThreadData& data, const timeval& now)
     if (cbData.second.type() == typeid(std::shared_ptr<IncomingTCPConnectionState>)) {
       auto state = boost::any_cast<std::shared_ptr<IncomingTCPConnectionState>>(cbData.second);
       if (cbData.first == state->d_handler.getDescriptor()) {
-        vinfolog("Timeout (write) from remote TCP client %s", state->d_ci.remote.toStringWithPort());
+        VERBOSESLOG(infolog("Timeout (write) from remote TCP client %s", state->d_ci.remote.toStringWithPort()),
+                    state->getLogger()->info(Logr::Info, "Timeout (write) from remote TCP client"));
         state->handleTimeout(state, true);
       }
     }
@@ -1614,7 +1640,8 @@ static void scanForTimeouts(const TCPClientThreadData& data, const timeval& now)
     else if (cbData.second.type() == typeid(std::shared_ptr<IncomingHTTP2Connection>)) {
       auto state = boost::any_cast<std::shared_ptr<IncomingHTTP2Connection>>(cbData.second);
       if (cbData.first == state->d_handler.getDescriptor()) {
-        vinfolog("Timeout (write) from remote H2 client %s", state->d_ci.remote.toStringWithPort());
+        VERBOSESLOG(infolog("Timeout (write) from remote H2 client %s", state->d_ci.remote.toStringWithPort()),
+                    state->getLogger()->info(Logr::Info, "Timeout (write) from remote H2 client"));
         std::shared_ptr<IncomingTCPConnectionState> parentState = state;
         state->handleTimeout(parentState, true);
       }
@@ -1622,7 +1649,8 @@ static void scanForTimeouts(const TCPClientThreadData& data, const timeval& now)
 #endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
     else if (cbData.second.type() == typeid(std::shared_ptr<TCPConnectionToBackend>)) {
       auto conn = boost::any_cast<std::shared_ptr<TCPConnectionToBackend>>(cbData.second);
-      vinfolog("Timeout (write) from remote backend %s", conn->getBackendName());
+      VERBOSESLOG(infolog("Timeout (write) from remote backend %s", conn->getBackendName()),
+                  conn->getLogger()->info(Logr::Info, "Timeout (write) from remote backend"));
       conn->handleTimeout(now, true);
     }
   }
@@ -1636,6 +1664,7 @@ static void dumpTCPStates(const TCPClientThreadData& data)
   if (g_tcpStatesDumpRequested > 0) {
     /* no race here, we took the lock so it can only be increased in the meantime */
     --g_tcpStatesDumpRequested;
+    /* no point dumping these in structured format */
     infolog("Dumping the TCP states, as requested:");
     data.mplexer->runForAllWatchedFDs([](bool isRead, int desc, const FDMultiplexer::funcparam_t& param, struct timeval ttd) {
       timeval lnow{};
@@ -1676,6 +1705,7 @@ static void tcpClientThread(pdns::channel::Receiver<ConnectionInfo>&& queryRecei
      from that point on */
 
   setThreadName("dnsdist/tcpClie");
+  auto logger = dnsdist::logging::getTopLogger()->withName("incoming-tcp-worker");
 
   try {
     TCPClientThreadData data;
@@ -1737,12 +1767,14 @@ static void tcpClientThread(pdns::channel::Receiver<ConnectionInfo>&& queryRecei
         }
       }
       catch (const std::exception& e) {
-        warnlog("Error in TCP worker thread: %s", e.what());
+        SLOG(warnlog("Error in TCP worker thread: %s", e.what()),
+             logger->error(Logr::Warning, e.what(), "Error in incoming TCP worker thread"));
       }
     }
   }
   catch (const std::exception& e) {
-    errlog("Fatal error in TCP worker thread: %s", e.what());
+    SLOG(errlog("Fatal error in TCP worker thread: %s", e.what()),
+         logger->error(Logr::Error, e.what(), "Fatal error in incoming TCP worker thread"));
   }
 }
 
@@ -1775,12 +1807,14 @@ static void acceptNewConnection(const TCPAcceptorParam& param, TCPClientThreadDa
 
     if (checkACL && !dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL.match(remote)) {
       ++dnsdist::metrics::g_stats.aclDrops;
-      vinfolog("Dropped TCP connection from %s because of ACL", remote.toStringWithPort());
+      VERBOSESLOG(infolog("Dropped TCP connection from %s because of ACL", remote.toStringWithPort()),
+                  dnsdist::logging::getTopLogger()->withName("incoming-tcp-worker")->info(Logr::Info, "Dropped TCP connection because of ACL", "frontend.address", Logging::Loggable(param.local), "client.address", Logging::Loggable(remote)));
       return;
     }
 
     if (clientState.d_tcpConcurrentConnectionsLimit > 0 && concurrentConnections > clientState.d_tcpConcurrentConnectionsLimit) {
-      vinfolog("Dropped TCP connection from %s because of concurrent connections limit", remote.toStringWithPort());
+      VERBOSESLOG(infolog("Dropped TCP connection from %s because of concurrent connections limit", remote.toStringWithPort()),
+                  dnsdist::logging::getTopLogger()->withName("incoming-tcp-worker")->info(Logr::Info, "Dropped TCP connection because of concurrent connections limit", "frontend.address", Logging::Loggable(param.local), "client.address", Logging::Loggable(remote)));
       return;
     }
 
@@ -1798,7 +1832,8 @@ static void acceptNewConnection(const TCPAcceptorParam& param, TCPClientThreadDa
 
     const auto maxTCPQueuedConnections = dnsdist::configuration::getImmutableConfiguration().d_maxTCPQueuedConnections;
     if (maxTCPQueuedConnections > 0 && g_tcpclientthreads->getQueuedCount() >= maxTCPQueuedConnections) {
-      vinfolog("Dropping TCP connection from %s because we have too many queued already", remote.toStringWithPort());
+      VERBOSESLOG(infolog("Dropping TCP connection from %s because we have too many queued already", remote.toStringWithPort()),
+                  dnsdist::logging::getTopLogger()->withName("incoming-tcp-worker")->info(Logr::Info, "Dropped TCP connection because we have too many queued already", "frontend.address", Logging::Loggable(param.local), "client.address", Logging::Loggable(remote)));
       return;
     }
 
@@ -1811,7 +1846,8 @@ static void acceptNewConnection(const TCPAcceptorParam& param, TCPClientThreadDa
       connInfo.d_restricted = true;
     }
 
-    vinfolog("Got TCP connection from %s", remote.toStringWithPort());
+    VERBOSESLOG(infolog("Got TCP connection from %s", remote.toStringWithPort()),
+                dnsdist::logging::getTopLogger()->withName("incoming-tcp-worker")->info(Logr::Info, "Accepted new TCP connection", "frontend.address", Logging::Loggable(param.local), "client.address", Logging::Loggable(remote)));
 
     connInfo.remote = remote;
 
@@ -1839,7 +1875,8 @@ static void acceptNewConnection(const TCPAcceptorParam& param, TCPClientThreadDa
     }
   }
   catch (const std::exception& e) {
-    errlog("While reading a TCP question: %s", e.what());
+    SLOG(errlog("While reading a TCP question: %s", e.what()),
+         dnsdist::logging::getTopLogger()->withName("incoming-tcp-worker")->error(Logr::Error, e.what(), "Error while accepting a TCP connection", "frontend.address", Logging::Loggable(param.local)));
     if (tcpClientCountIncremented) {
       dnsdist::IncomingConcurrentTCPConnectionsManager::accountClosedTCPConnection(remote);
     }

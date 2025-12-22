@@ -898,6 +898,21 @@ bool TCPConnectionToBackend::isXFRFinished(const TCPResponse& response, TCPQuery
   return done;
 }
 
+std::shared_ptr<const Logr::Logger> ConnectionToBackend::getLogger() const
+{
+  auto logger = dnsdist::logging::getTopLogger()->withName("outgoing-tcp-connection")->withValues("fresh_connection", Logging::Loggable(d_fresh), "tcp_fast_open", Logging::Loggable(d_enableFastOpen), "proxy_protocol_payload_sent", Logging::Loggable(d_proxyProtocolPayloadSent), "downstream_failures", Logging::Loggable(d_downstreamFailures), "highest_stream_id", Logging::Loggable(d_highestStreamID), "queries_count", Logging::Loggable(d_queries), "io_state", Logging::Loggable(d_ioState ? d_ioState->getState() : "empty"));
+  if (d_ds) {
+    logger = logger->withValues("backend.address", Logging::Loggable(d_ds->d_config.remote), "backend.name", Logging::Loggable(d_ds->getName()));
+  }
+
+  return logger;
+}
+
+std::shared_ptr<const Logr::Logger> TCPConnectionToBackend::getLogger() const
+{
+  return ConnectionToBackend::getLogger()->withValues("state", Logging::Loggable(static_cast<int>(d_state)), "pending_queries", Logging::Loggable(d_pendingQueries.size()), "pending_responses", Logging::Loggable(d_pendingResponses.size()));
+}
+
 void setTCPDownstreamMaxIdleConnectionsPerBackend(uint64_t max)
 {
   DownstreamTCPConnectionsManager::setMaxIdleConnectionsPerDownstream(max);

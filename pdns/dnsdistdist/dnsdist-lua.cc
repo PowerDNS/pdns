@@ -2340,7 +2340,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       if (!frontend->d_tlsContext->d_provider.empty()) {
         VERBOSESLOG(infolog("Loading TLS provider '%s'", frontend->d_tlsContext->d_provider),
                     getLogger("addDOHLocal")->info(Logr::Info, "Loading TLS provider for DoH frontend", "frontend.address", Logging::Loggable(addr), "tls.provider", Logging::Loggable(frontend->d_tlsContext->d_provider)));
-
       }
       else {
 #ifdef HAVE_LIBSSL
@@ -2660,7 +2659,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     catch (const std::exception& e) {
       g_outputBuffer = "Error while trying to get DOH3 frontend with index " + std::to_string(index) + ": " + string(e.what()) + "\n";
       SLOG(errlog("Error while trying to get DOH3 frontend with index %d: %s\n", index, e.what()),
-                  getLogger("getDOH3Frontend")->error(Logr::Error, e.what(), "Error while trying to get DOH3 frontend", "index", Logging::Loggable(index)));
+           getLogger("getDOH3Frontend")->error(Logr::Error, e.what(), "Error while trying to get DOH3 frontend", "index", Logging::Loggable(index)));
     }
     return result;
   });
@@ -2888,7 +2887,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       if (!frontend->d_provider.empty()) {
         VERBOSESLOG(infolog("Loading TLS provider '%s'", frontend->d_provider),
                     getLogger("addTLSLocal")->info(Logr::Info, "Loading TLS provider for DoT frontend", "frontend.address", Logging::Loggable(addr), "tls.provider", Logging::Loggable(frontend->d_provider)));
-
       }
       else {
 #ifdef HAVE_LIBSSL
@@ -2898,7 +2896,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 #endif
         VERBOSESLOG(infolog("Loading default TLS provider '%s'", provider),
                     getLogger("addTLSLocal")->info(Logr::Info, "Loading default TLS provider for DoT frontend", "frontend.address", Logging::Loggable(addr), "tls.provider", Logging::Loggable(provider)));
-
       }
       // only works pre-startup, so no sync necessary
       auto clientState = std::make_shared<ClientState>(frontend->d_addr, true, reusePort, tcpFastOpenQueueSize, interface, cpus, enableProxyProtocol);
@@ -2972,7 +2969,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       g_outputBuffer = "Error while trying to get TLS frontend with index " + std::to_string(index) + ": " + string(e.what()) + "\n";
       SLOG(errlog("Error while trying to get TLS frontend with index %d: %s\n", index, e.what()),
            getLogger("getTLSFrontend")->error(Logr::Error, e.what(), "Error while trying to get DOT frontend", "index", Logging::Loggable(index)));
-
     }
 #else
         g_outputBuffer="DNS over TLS support is not present!\n";

@@ -60,22 +60,20 @@ DNSQuestion::DNSQuestion(InternalQueryState& ids_, PacketBuffer& data_) :
 {
 }
 
-std::shared_ptr<const Logr::Logger> DNSQuestion::getThisLogger() const
+std::shared_ptr<const Logr::Logger> DNSQuestion::getThisLogger(std::shared_ptr<const Logr::Logger> parent) const
 {
   if (d_logger) {
     return d_logger;
   }
-  auto logger = dnsdist::logging::getTopLogger();
-  logger = logger->withValues("dns.question.name", Logging::Loggable(ids.qname), "dns.question.type", Logging::Loggable(QType(ids.qtype)), "dns.question.class", Logging::Loggable(QClass(ids.qclass)), "source.address", Logging::Loggable(ids.origRemote), "destination.address", Logging::Loggable(ids.origDest), "proto", Logging::Loggable(ids.protocol), "dns.question.id", Logging::Loggable(ntohs(ids.origID)), "dns.question.flags", Logging::Loggable(ids.origFlags));
-  return logger;
+  return ids.getLogger(parent);
 }
 
-std::shared_ptr<const Logr::Logger> DNSResponse::getThisLogger() const
+std::shared_ptr<const Logr::Logger> DNSResponse::getThisLogger(std::shared_ptr<const Logr::Logger> parent) const
 {
   if (d_logger) {
     return d_logger;
   }
-  auto logger = DNSQuestion::getThisLogger();
+  auto logger = DNSQuestion::getThisLogger(parent);
   if (data.size() >= sizeof(dnsheader)) {
     const auto header = getHeader();
     logger = logger->withValues("dns.response.rcode", Logging::Loggable(RCode::to_s(header->rcode)));
@@ -88,16 +86,16 @@ std::shared_ptr<const Logr::Logger> DNSResponse::getThisLogger() const
   return logger;
 }
 
-std::shared_ptr<const Logr::Logger> DNSQuestion::getLogger() const
+std::shared_ptr<const Logr::Logger> DNSQuestion::getLogger(std::shared_ptr<const Logr::Logger> parent) const
 {
-  return getThisLogger();
+  return getThisLogger(parent);
 }
 
-std::shared_ptr<const Logr::Logger> DNSQuestion::getLogger()
+std::shared_ptr<const Logr::Logger> DNSQuestion::getLogger(std::shared_ptr<const Logr::Logger> parent)
 {
   if (d_logger) {
     return d_logger;
   }
-  d_logger = getThisLogger();
+  d_logger = getThisLogger(parent);
   return d_logger;
 }

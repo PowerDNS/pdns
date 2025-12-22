@@ -62,6 +62,11 @@ public:
     return o.str();
   }
 
+  std::shared_ptr<const Logr::Logger> getLogger() const override
+  {
+    return ConnectionToBackend::getLogger()->withName("outgoing-doh-connection")->withValues("concurrent_streams", Logging::Loggable(getConcurrentStreamsCount()), "health_check_query", Logging::Loggable(d_healthCheckQuery));
+  }
+
   void setHealthCheck(bool h)
   {
     d_healthCheckQuery = h;

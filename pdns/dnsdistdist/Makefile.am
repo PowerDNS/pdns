@@ -629,7 +629,7 @@ fuzz_target_dnsdistcache_SOURCES = \
 	dnsdist-dnsparser.cc dnsdist-dnsparser.hh \
 	dnsdist-dnsquestion.cc \
 	dnsdist-ecs.cc dnsdist-ecs.hh \
-	dnsdist-idstate.hh \
+	dnsdist-idstate.cc dnsdist-idstate.hh \
 	dnsdist-logging.cc dnsdist-logging.hh \
 	dnsdist-protocols.cc dnsdist-protocols.hh \
 	dnslabeltext.cc \
