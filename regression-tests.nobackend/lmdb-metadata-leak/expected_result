@@ -1,5 +1,7 @@
 === random=no
 == creating zone
+If the authoritative server is running, be sure to refresh its zone cache
+with 'pdns_control rediscover'
 WARNING: local files have been created as a result of this operation.
 Be sure to check the files owner, group and permission to make sure that
 the authoritative server can correctly use them.
@@ -19,6 +21,8 @@ FOO2
 == deleting zone
 === random=yes
 == creating zone
+If the authoritative server is running, be sure to refresh its zone cache
+with 'pdns_control rediscover'
 WARNING: local files have been created as a result of this operation.
 Be sure to check the files owner, group and permission to make sure that
 the authoritative server can correctly use them.
