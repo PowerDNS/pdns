@@ -203,7 +203,8 @@ void DNSDistProtoBufMessage::serialize(std::string& data, bool withOpenTelemetry
       msg.addRRsFromPacket(reinterpret_cast<const char*>(d_dr->getData().data()), d_dr->getData().size(), d_includeCNAME);
     }
     catch (const std::exception& exp) {
-      vinfolog("Error while parsing the RRs from a response packet to add them to the protobuf message: %s", exp.what());
+      VERBOSESLOG(infolog("Error while parsing the RRs from a response packet to add them to the protobuf message: %s", exp.what()),
+                  dnsdist::logging::getTopLogger()->error(Logr::Info, exp.what(), "Error while parsing the RRs from a response packet to add them to the protobuf message"));
     }
   }
   else {
