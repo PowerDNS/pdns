@@ -309,6 +309,7 @@ private:
    * @brief Stores all miniSpans.
    */
   LockGuarded<std::vector<miniSpan>> d_spans;
+
   /**
    * @brief All attributes related to this Trace (added to the ScopeSpan)
    */
@@ -320,10 +321,21 @@ private:
    * it is mutable because it is set the first time it is accessed
    */
   mutable LockGuarded<TraceID> d_traceid{};
+
   /**
-   * @brief The last SpanID that was added to this Tracer
+   * @brief A stack of SpanID's that tracks the "stack" of SpanIDs
    */
-  SpanID d_lastSpanID{};
+  std::vector<SpanID> d_spanIDStack;
+
+  /**
+   * Set when setRootSpanID is called, used to replace the
+   * root span id (and the parent span ids) when the PB is generated
+   */
+  struct
+  {
+    SpanID oldID;
+    SpanID newID;
+  } d_oldAndNewRootSpanID;
 #endif
 };
 } // namespace pdns::trace::dnsdist
