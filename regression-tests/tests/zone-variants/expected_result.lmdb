@@ -1,4 +1,6 @@
 Creating empty zone 'example.com..variant1'
+If the authoritative server is running, be sure to refresh its zone cache
+with 'pdns_control rediscover'
 This is a Native zone
 Variant: variant1
 Zone is not actively secured
@@ -6,6 +8,8 @@ Metadata items:
 	SOA-EDIT-API	DEFAULT
 No keys for zone 'example.com..variant1'.
 Creating empty zone '..myroot'
+If the authoritative server is running, be sure to refresh its zone cache
+with 'pdns_control rediscover'
 This is a Native zone
 Variant: myroot
 Zone is not actively secured
@@ -13,6 +17,8 @@ Metadata items:
 	SOA-EDIT-API	DEFAULT
 No keys for zone '..myroot'.
 Creating empty zone '.'
+If the authoritative server is running, be sure to refresh its zone cache
+with 'pdns_control rediscover'
 This is a Native zone
 Zone is not actively secured
 Metadata items: 
