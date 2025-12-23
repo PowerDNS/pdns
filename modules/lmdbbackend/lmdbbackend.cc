@@ -2304,15 +2304,20 @@ void LMDBBackend::getAllDomainsFiltered(vector<DomainInfo>* domains, const std::
   }
 }
 
-void LMDBBackend::getAllDomains(vector<DomainInfo>* domains, bool /* doSerial */, bool include_disabled)
+void LMDBBackend::getAllDomains(vector<DomainInfo>* domains, bool doSerial, bool include_disabled)
 {
-  getAllDomainsFiltered(domains, [this, include_disabled](DomainInfo& di) {
-    if (!getSerial(di) && !include_disabled) {
-      return false;
+  getAllDomainsFiltered(domains, [this, doSerial, include_disabled](DomainInfo& info) {
+    // We need to read the SOA record in order to know if the domain is
+    // disabled. If we don't care about serials and want all domains to be
+    // returned, skip the SOA record retrieval.
+    if (doSerial || !include_disabled) {
+      if (!getSerial(info) && !include_disabled) {
+        return false;
+      }
     }
 
     // Skip domains with variants if views are disabled.
-    if (di.zone.hasVariant() && !d_views) {
+    if (info.zone.hasVariant() && !d_views) {
       return false;
     }
 
