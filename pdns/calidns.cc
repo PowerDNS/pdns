@@ -311,8 +311,7 @@ namespace {
 
 */
 
-int main(int argc, char** argv)
-try
+static std::optional<int> parse_options(int argc, char** argv)
 {
   po::options_description desc("Options");
   desc.add_options()
@@ -359,6 +358,17 @@ try
   if (!(g_vm.count("query-file") && g_vm.count("destination") && g_vm.count("initial-qps") && g_vm.count("hitrate"))) {
     usage(desc);
     return EXIT_FAILURE;
+  }
+
+  return std::nullopt;
+}
+
+int main(int argc, char** argv)
+try
+{
+  auto result = parse_options(argc, argv);
+  if (result) {
+    return *result;
   }
 
   float increment = 1.1;
