@@ -623,6 +623,7 @@ fuzz_targets_deps = standalone_fuzz_target_runner.o
 fuzz_target_dnsdistcache_SOURCES = \
 	channel.hh channel.cc \
 	dns.cc dns.hh \
+	dnscrypt.cc dnscrypt.hh \
 	dnsdist-cache.cc dnsdist-cache.hh \
 	dnsdist-configuration.cc dnsdist-configuration.hh \
 	dnsdist-crypto.cc dnsdist-crypto.hh \
@@ -631,11 +632,13 @@ fuzz_target_dnsdistcache_SOURCES = \
 	dnsdist-ecs.cc dnsdist-ecs.hh \
 	dnsdist-idstate.cc dnsdist-idstate.hh \
 	dnsdist-logging.cc dnsdist-logging.hh \
+	dnsdist-opentelemetry.cc dnsdist-opentelemetry.hh \
 	dnsdist-protocols.cc dnsdist-protocols.hh \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
 	dnswriter.cc dnswriter.hh \
+	dolog.cc dolog.hh \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc ednssubnet.hh \
 	ext/json11/json11.cpp \
@@ -646,6 +649,7 @@ fuzz_target_dnsdistcache_SOURCES = \
 	logging.cc logging.hh \
 	misc.cc misc.hh \
 	packetcache.hh \
+	protozero-trace.cc protozero-trace.hh \
 	qtype.cc qtype.hh \
 	svc-records.cc svc-records.hh
 
