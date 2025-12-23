@@ -612,8 +612,11 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   output << "# TYPE " << statesbase << "healthcheckfailuresmismatch "     << "counter"                                                                              << "\n";
   output << "# HELP " << statesbase << "healthcheckfailuresinvalid "      << "Number of health check attempts where the DNS response was invalid"                   << "\n";
   output << "# TYPE " << statesbase << "healthcheckfailuresinvalid "      << "counter"                                                                              << "\n";
-  output << "# HELP " << statesbase << "healthchecklatency "              << "Latency of the last successful health check attempt, in milliseconds"                << "\n";
+  output << "# HELP " << statesbase << "healthchecklatency "              << "Latency of the last successful health check attempt, in milliseconds"                 << "\n";
   output << "# TYPE " << statesbase << "healthchecklatency "              << "gauge"                                                                                << "\n";
+  // Backend latency histogram buckets
+  output << "# HELP " << statesbase << "healthchecklatency_histo "        << "Histogram of the latency of the successful health check attempts, in milliseconds"    << "\n";
+  output << "# TYPE " << statesbase << "healthchecklatency_histo "        << "histogram"                                                                            << "\n";
 
   for (const auto& state : dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends) {
     string serverName;
@@ -664,6 +667,28 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
     output << statesbase << "healthcheckfailuresmismatch"      << label << " " << state->d_healthCheckMetrics.d_mismatchErrors << "\n";
     output << statesbase << "healthcheckfailuresinvalid"       << label << " " << state->d_healthCheckMetrics.d_invalidResponseErrors << "\n";
     output << statesbase << "healthchecklatency"               << label << " " << state->d_healthCheckLatency / 1000.0   << "\n";
+
+    // Health-check latency histogram
+    const std::string latency_label_prefix = boost::str(boost::format(R"({server="%1%",address="%2%")")
+                                                        % serverName % state->d_config.remote.toStringWithPort());
+    uint64_t backend_latency_amount = 0;
+    backend_latency_amount += state->d_healthCheckLatencyHisto.latency0_1;
+    output << statesbase << "healthchecklatency_histo_bucket" << latency_label_prefix << ",le=\"1\"} " << backend_latency_amount << "\n";
+    backend_latency_amount += state->d_healthCheckLatencyHisto.latency1_10;
+    output << statesbase << "healthchecklatency_histo_bucket" << latency_label_prefix << ",le=\"10\"} " << backend_latency_amount << "\n";
+    backend_latency_amount += state->d_healthCheckLatencyHisto.latency10_50;
+    output << statesbase << "healthchecklatency_histo_bucket" << latency_label_prefix << ",le=\"50\"} " << backend_latency_amount << "\n";
+    backend_latency_amount += state->d_healthCheckLatencyHisto.latency10_50;
+    output << statesbase << "healthchecklatency_histo_bucket" << latency_label_prefix << ",le=\"50\"} " << backend_latency_amount << "\n";
+    backend_latency_amount += state->d_healthCheckLatencyHisto.latency50_100;
+    output << statesbase << "healthchecklatency_histo_bucket" << latency_label_prefix << ",le=\"100\"} " << backend_latency_amount << "\n";
+    backend_latency_amount += state->d_healthCheckLatencyHisto.latency100_1000;
+    output << statesbase << "healthchecklatency_histo_bucket" << latency_label_prefix << ",le=\"1000\"} " << backend_latency_amount << "\n";
+    backend_latency_amount += state->d_healthCheckLatencyHisto.latencySlow;
+    output << statesbase << "healthchecklatency_histo_bucket" << latency_label_prefix << ",le=\"+Inf\"} " << backend_latency_amount << "\n";
+
+    output << statesbase << "healthchecklatency_histo_sum" << label << " " << state->d_healthCheckLatencyHisto.latencySum << "\n";
+    output << statesbase << "healthchecklatency_histo_count" << label << " " << state->d_healthCheckLatencyHisto.latencyCount << "\n";
   }
 
   const string frontsbase = "dnsdist_frontend_";

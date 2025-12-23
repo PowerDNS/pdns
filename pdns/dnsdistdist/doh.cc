@@ -542,8 +542,8 @@ public:
     }
 
     if (!dohUnit->ids.selfGenerated) {
-      double udiff = dohUnit->ids.queryRealTime.udiff();
-      vinfolog("Got answer from %s, relayed to %s (https), took %f us", dohUnit->downstream->d_config.remote.toStringWithPort(), dohUnit->ids.origRemote.toStringWithPort(), udiff);
+      auto udiff = dohUnit->ids.queryRealTime.udiff();
+      vinfolog("Got answer from %s, relayed to %s (https), took %d us", dohUnit->downstream->d_config.remote.toStringWithPort(), dohUnit->ids.origRemote.toStringWithPort(), udiff);
 
       auto backendProtocol = dohUnit->downstream->getProtocol();
       if (backendProtocol == dnsdist::Protocol::DoUDP && dohUnit->tcp) {
@@ -797,7 +797,7 @@ static void processDOHQuery(DOHUnitUniquePtr&& unit, bool inMainThread = false)
       }
       if (unit->response.size() >= sizeof(dnsheader) && unit->contentType.empty()) {
         dnsheader_aligned dnsHeader(unit->response.data());
-        handleResponseSent(unit->ids.qname, QType(unit->ids.qtype), 0., unit->ids.origDest, ComboAddress(), unit->response.size(), *(dnsHeader.get()), dnsdist::Protocol::DoH, dnsdist::Protocol::DoH, false);
+        handleResponseSent(unit->ids.qname, QType(unit->ids.qtype), 0, unit->ids.origDest, ComboAddress(), unit->response.size(), *(dnsHeader.get()), dnsdist::Protocol::DoH, dnsdist::Protocol::DoH, false);
       }
       handleImmediateResponse(std::move(unit), "DoH self-answered response");
       return;
@@ -1711,8 +1711,8 @@ void DOHUnit::handleUDPResponse(PacketBuffer&& udpResponse, InternalQueryState&&
 
     dohUnit = getDUFromIDS(dnsResponse.ids);
     dohUnit->response = std::move(udpResponse);
-    double udiff = dohUnit->ids.queryRealTime.udiff();
-    vinfolog("Got answer from %s, relayed to %s (https), took %f us", dohUnit->downstream->d_config.remote.toStringWithPort(), dohUnit->ids.origRemote.toStringWithPort(), udiff);
+    auto udiff = dohUnit->ids.queryRealTime.udiff();
+    vinfolog("Got answer from %s, relayed to %s (https), took %d us", dohUnit->downstream->d_config.remote.toStringWithPort(), dohUnit->ids.origRemote.toStringWithPort(), udiff);
 
     handleResponseSent(dohUnit->ids, udiff, dnsResponse.ids.origRemote, dohUnit->downstream->d_config.remote, dohUnit->response.size(), cleartextDH, dohUnit->downstream->getProtocol(), true);
 
