@@ -4,7 +4,9 @@ module_sources = files(
 
 module_extras = files(
   'gsqlite3backend.hh',
+)
 
+module_resources = files(
   'dnssec-3.x_to_3.4.0_schema.sqlite3.sql',
   'nodnssec-3.x_to_3.4.0_schema.sqlite3.sql',
   '3.4.0_to_4.0.0_schema.sqlite3.sql',

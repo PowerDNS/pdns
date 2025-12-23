@@ -160,6 +160,9 @@ deps = [
 ]
 
 if dep_systemd_prog.found()
+  systemd_system_unit_dir = dep_systemd_prog.get_variable(
+    'systemdsystemunitdir',
+  )
   systemd_service_conf = configuration_data()
   systemd_service_conf.set('BinDir', get_option('prefix') / get_option('bindir'))
   systemd_service_conf.set('StaticBinDir', get_option('prefix') / get_option('sbindir'))
@@ -231,13 +234,15 @@ if dep_systemd_prog.found()
   auth_service_conf_general.set('Description', 'PowerDNS Authoritative Server')
   auth_service_conf_general.set('ConfigName', '')
   auth_service_conf_general.set('SocketDir', enable_socket_dir ? '--socket-dir=%t/pdns' : '')
-  auth_service_conf_general.set('SyslogIdentifier', 'pdns')
+  auth_service_conf_general.set('SyslogIdentifier', 'pdns_server')
   auth_service_conf_general.set('RuntimeDirectory', 'pdns')
 
   configure_file(
-    input: 'auth' / 'systemd' / 'pdns.service.in',
+    input: 'pdns' / 'pdns.service.meson.in',
     output: 'pdns.service',
     configuration: auth_service_conf_general,
+    install: true,
+    install_dir: systemd_system_unit_dir,
   )
 
   auth_service_conf_instance = configuration_data()
@@ -249,9 +254,11 @@ if dep_systemd_prog.found()
   auth_service_conf_instance.set('RuntimeDirectory', have_systemd_percent_t ? 'pdns-%i' : 'pdns')
 
   configure_file(
-    input: 'auth' / 'systemd' / 'pdns.service.in',
+    input: 'pdns' / 'pdns.service.meson.in',
     output: 'pdns@.service',
     configuration: auth_service_conf_instance,
+    install: true,
+    install_dir: systemd_system_unit_dir,
   )
 
   if get_option('tools-ixfrdist')
@@ -272,9 +279,11 @@ if dep_systemd_prog.found()
     ixfrdist_service_conf_general.set('Config', '')
 
     configure_file(
-      input: 'auth' / 'systemd' / 'ixfrdist.service.in',
+      input: 'pdns' / 'ixfrdist.service.meson.in',
       output: 'ixfrdist.service',
       configuration: ixfrdist_service_conf_general,
+      install: true,
+      install_dir: systemd_system_unit_dir,
     )
 
     ixfrdist_service_conf_instance = configuration_data()
@@ -283,9 +292,11 @@ if dep_systemd_prog.found()
     ixfrdist_service_conf_instance.set('Config', '--config=' + get_option('sysconfdir') + '/ixfrdist-%i.yml')
 
     configure_file(
-      input: 'auth' / 'systemd' / 'ixfrdist.service.in',
+      input: 'pdns' / 'ixfrdist.service.meson.in',
       output: 'ixfrdist@.service',
       configuration: ixfrdist_service_conf_instance,
+      install: true,
+      install_dir: systemd_system_unit_dir,
     )
   endif
 endif
@@ -911,7 +922,6 @@ if get_option('unit-tests')
   )
 
   tools += {
-    # TODO: NOINSTALL speedtest and pdns-auth-testrunner
     'pdns-auth-testrunner': {
       'main': src_dir / 'testrunner.cc',
       'deps-extra': [
@@ -919,12 +929,15 @@ if get_option('unit-tests')
         libpdns_signers_openssl,
         libpdns_signers_sodium,
       ],
+      'install': false,
     },
     'speedtest': {
       'main': src_dir / 'speedtest.cc',
+      'install': false,
     },
     'tsig-tests': {
       'main': src_dir / 'tsig-tests.cc',
+      'install': false,
     },
   }
 endif
@@ -953,7 +966,9 @@ if get_option('fuzz-targets')
     tools += {
       'fuzz-target-' + target: { 'main': source_file,
                                  'link-args': fuzzer_ldflags,
-                                 'files-extra': fuzz_extra_sources }
+                                 'files-extra': fuzz_extra_sources,
+                                 'install': false,
+       }
     }
   endforeach
 endif
@@ -982,6 +997,7 @@ foreach tool, info: tools
   files_extra = 'files-extra' in info ? info['files-extra'] : []
   deps_extra = 'deps-extra' in info ? info['deps-extra'] : []
   link_args = 'link-args' in info ? info['link-args'] : []
+  install = 'install' in info ? info['install'] : true
 
   set_variable(
     var_name,
@@ -998,6 +1014,7 @@ foreach tool, info: tools
         libpdns_uuidutils,
         deps_extra,
       ],
+      install: install,
     )
   )
 
@@ -1007,6 +1024,22 @@ foreach tool, info: tools
     endforeach
   endif
 endforeach
+
+dep_conf_distfile = custom_target(
+  'gen-conf-distfile',
+  command: [pdns_server, '--config=default'],
+  output: 'pdns.conf-dist',
+  capture: true,
+  install: true,
+  install_dir:  get_option('sysconfdir'),
+)
+
+if get_option('tools-ixfrdist')
+  install_data(
+    'pdns' / 'ixfrdist.example.yml',
+    install_dir:  get_option('sysconfdir'),
+  )
+endif
 
 # Man-pages.
 py = import('python')
