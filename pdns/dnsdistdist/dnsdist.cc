@@ -3924,23 +3924,28 @@ int main(int argc, char** argv)
   }
   catch (const LuaContext::ExecutionErrorException& e) {
     try {
-      errlog("Fatal Lua error: %s", e.what());
+      SLOG(errlog("Fatal Lua error: %s", e.what()),
+           dnsdist::logging::getTopLogger()->error(Logr::Error, e.what(), "Fatal Lua error"));
       std::rethrow_if_nested(e);
     }
     catch (const std::exception& ne) {
-      errlog("Details: %s", ne.what());
+      SLOG(errlog("Details: %s", ne.what()),
+           dnsdist::logging::getTopLogger()->error(Logr::Error, ne.what(), "Additional details for fatal Lua error"));
     }
     catch (const PDNSException& ae) {
-      errlog("Fatal pdns error: %s", ae.reason);
+      SLOG(errlog("Fatal pdns error: %s", ae.reason),
+           dnsdist::logging::getTopLogger()->error(Logr::Error, ae.reason, "Additional PowerDNS details for fatal Lua error"));
     }
     doExitNicely(EXIT_FAILURE);
   }
   catch (const std::exception& e) {
-    errlog("Fatal error: %s", e.what());
+    SLOG(errlog("Fatal error: %s", e.what()),
+         dnsdist::logging::getTopLogger()->error(Logr::Error, e.what(), "Fatal error"));
     doExitNicely(EXIT_FAILURE);
   }
   catch (const PDNSException& ae) {
-    errlog("Fatal pdns error: %s", ae.reason);
+    SLOG(errlog("Fatal pdns error: %s", ae.reason),
+         dnsdist::logging::getTopLogger()->error(Logr::Error, ae.reason, "Fatal PowerDNS error"));
     doExitNicely(EXIT_FAILURE);
   }
 }
