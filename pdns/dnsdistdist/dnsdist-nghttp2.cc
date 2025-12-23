@@ -163,7 +163,8 @@ void DoHConnectionToBackend::handleResponse(PendingRequest&& request)
     request.d_sender->handleResponse(now, std::move(response));
   }
   catch (const std::exception& e) {
-    vinfolog("Got exception while handling response for cross-protocol DoH: %s", e.what());
+    VERBOSESLOG(infolog("Got exception while handling response for cross-protocol DoH: %s", e.what()),
+                getLogger()->error(Logr::Info, e.what(), "Got exception while handling response for cross-protocol DoH"));
   }
 }
 
@@ -178,7 +179,8 @@ void DoHConnectionToBackend::handleResponseError(PendingRequest&& request, const
     request.d_sender->notifyIOError(now, std::move(response));
   }
   catch (const std::exception& e) {
-    vinfolog("Got exception while handling response for cross-protocol DoH: %s", e.what());
+    VERBOSESLOG(infolog("Got exception while handling response for cross-protocol DoH: %s", e.what()),
+                getLogger()->error(Logr::Info, e.what(), "Got exception while handling error for cross-protocol DoH"));
   }
 }
 
@@ -433,7 +435,8 @@ void DoHConnectionToBackend::handleReadableIOCallback(int fd, FDMultiplexer::fun
       }
     }
     catch (const std::exception& e) {
-      vinfolog("Exception while trying to read from HTTP backend connection: %s", e.what());
+      VERBOSESLOG(infolog("Exception while trying to read from HTTP backend connection: %s", e.what()),
+                  conn->getLogger()->error(Logr::Info, e.what(), "Exception while trying to read from HTTP backend connection"));
       ++conn->d_ds->tcpDiedReadingResponse;
       conn->handleIOError();
       break;
@@ -472,7 +475,8 @@ void DoHConnectionToBackend::handleWritableIOCallback(int fd, FDMultiplexer::fun
     ioGuard.release();
   }
   catch (const std::exception& e) {
-    vinfolog("Exception while trying to write (ready) to HTTP backend connection: %s", e.what());
+    VERBOSESLOG(infolog("Exception while trying to write (ready) to HTTP backend connection: %s", e.what()),
+                conn->getLogger()->error(Logr::Info, e.what(), "Exception while trying to write (ready) to HTTP backend connection"));
     ++conn->d_ds->tcpDiedSendingQuery;
     conn->handleIOError();
   }
@@ -571,7 +575,8 @@ ssize_t DoHConnectionToBackend::send_callback(nghttp2_session* session, const ui
       }
     }
     catch (const std::exception& e) {
-      vinfolog("Exception while trying to write (send) to HTTP backend connection: %s", e.what());
+      VERBOSESLOG(infolog("Exception while trying to write (send) to HTTP backend connection: %s", e.what()),
+                  conn->getLogger()->error(Logr::Info, e.what(), "Exception while trying to write (send) to HTTP backend connection"));
       conn->handleIOError();
       ++conn->d_ds->tcpDiedSendingQuery;
     }
@@ -627,7 +632,8 @@ int DoHConnectionToBackend::on_frame_recv_callback(nghttp2_session* session, con
         conn->handleResponse(std::move(request));
       }
       else {
-        vinfolog("HTTP response has a non-200 status code: %d", request.d_responseCode);
+        VERBOSESLOG(infolog("HTTP response has a non-200 status code: %d", request.d_responseCode),
+                    conn->getLogger()->info(Logr::Info, "HTTP response has a non-200 status code", "http.stream_id", Logging::Loggable(frame->hd.stream_id), "http.response.status_code", Logging::Loggable(request.d_responseCode)));
         struct timeval now{
           .tv_sec = 0, .tv_usec = 0};
 
@@ -642,7 +648,8 @@ int DoHConnectionToBackend::on_frame_recv_callback(nghttp2_session* session, con
       }
     }
     else {
-      vinfolog("Stream %d NOT FOUND", frame->hd.stream_id);
+      VERBOSESLOG(infolog("Stream %d NOT FOUND", frame->hd.stream_id),
+                  conn->getLogger()->info(Logr::Info, "HTTP stream not found", "http.stream_id", Logging::Loggable(frame->hd.stream_id)));
       conn->d_connectionDied = true;
       ++conn->d_ds->tcpDiedReadingResponse;
       return NGHTTP2_ERR_CALLBACK_FAILURE;
@@ -660,13 +667,15 @@ int DoHConnectionToBackend::on_data_chunk_recv_callback(nghttp2_session* session
   // cerr<<"Got data of size "<<len<<" for stream "<<stream_id<<endl;
   auto stream = conn->d_currentStreams.find(stream_id);
   if (stream == conn->d_currentStreams.end()) {
-    vinfolog("Unable to match the stream ID %d to a known one!", stream_id);
+    VERBOSESLOG(infolog("Unable to match the stream ID %d to a known one!", stream_id),
+                conn->getLogger()->info(Logr::Info, "Unable to match the stream ID to a known one", "http.stream_id", Logging::Loggable(stream_id)));
     conn->d_connectionDied = true;
     ++conn->d_ds->tcpDiedReadingResponse;
     return NGHTTP2_ERR_CALLBACK_FAILURE;
   }
   if (len > std::numeric_limits<uint16_t>::max() || (std::numeric_limits<uint16_t>::max() - stream->second.d_buffer.size()) < len) {
-    vinfolog("Data frame of size %d is too large for a DNS response (we already have %d)", len, stream->second.d_buffer.size());
+    VERBOSESLOG(infolog("Data frame of size %d is too large for a DNS response (we already have %d)", len, stream->second.d_buffer.size()),
+                conn->getLogger()->info(Logr::Info, "Data frame is too large for a DNS response", "http.stream_id", Logging::Loggable(stream_id), "frame_size", Logging::Loggable(len), "existing_payload_size", Logging::Loggable(stream->second.d_buffer.size())));
     conn->d_connectionDied = true;
     ++conn->d_ds->tcpDiedReadingResponse;
     return NGHTTP2_ERR_CALLBACK_FAILURE;
@@ -674,16 +683,14 @@ int DoHConnectionToBackend::on_data_chunk_recv_callback(nghttp2_session* session
 
   stream->second.d_buffer.insert(stream->second.d_buffer.end(), data, data + len);
   if (stream->second.d_finished) {
-    // cerr<<"we now have the full response!"<<endl;
-    // cerr<<std::string(reinterpret_cast<const char*>(data), len)<<endl;
-
     auto request = std::move(stream->second);
     conn->d_currentStreams.erase(stream->first);
     if (request.d_responseCode == 200U) {
       conn->handleResponse(std::move(request));
     }
     else {
-      vinfolog("HTTP response has a non-200 status code: %d", request.d_responseCode);
+      VERBOSESLOG(infolog("HTTP response has a non-200 status code: %d", request.d_responseCode),
+                  conn->getLogger()->info(Logr::Info, "HTTP response has a non-200 status code", "http.response.status_code", Logging::Loggable(request.d_responseCode), "http.stream_id", Logging::Loggable(stream_id)));
       struct timeval now{
         .tv_sec = 0, .tv_usec = 0};
 
@@ -761,7 +768,8 @@ int DoHConnectionToBackend::on_header_callback(nghttp2_session* session, const n
     if (namelen == status.size() && memcmp(status.data(), name, status.size()) == 0) {
       auto stream = conn->d_currentStreams.find(frame->hd.stream_id);
       if (stream == conn->d_currentStreams.end()) {
-        vinfolog("Unable to match the stream ID %d to a known one!", frame->hd.stream_id);
+        VERBOSESLOG(infolog("Unable to match the stream ID %d to a known one!", frame->hd.stream_id),
+                    conn->getLogger()->info(Logr::Info, "Unable to match the stream ID %d to a known one", "http.stream_id", Logging::Loggable(frame->hd.stream_id)));
         conn->d_connectionDied = true;
         return NGHTTP2_ERR_CALLBACK_FAILURE;
       }
@@ -769,7 +777,8 @@ int DoHConnectionToBackend::on_header_callback(nghttp2_session* session, const n
         pdns::checked_stoi_into(stream->second.d_responseCode, std::string(reinterpret_cast<const char*>(value), valuelen));
       }
       catch (...) {
-        vinfolog("Error parsing the status header for stream ID %d", frame->hd.stream_id);
+        VERBOSESLOG(infolog("Error parsing the status header for stream ID %d", frame->hd.stream_id),
+                    conn->getLogger()->info(Logr::Info, "Error parsing the status header", "http.stream_id", Logging::Loggable(frame->hd.stream_id)));
         conn->d_connectionDied = true;
         ++conn->d_ds->tcpDiedReadingResponse;
         return NGHTTP2_ERR_CALLBACK_FAILURE;
@@ -782,9 +791,10 @@ int DoHConnectionToBackend::on_header_callback(nghttp2_session* session, const n
 int DoHConnectionToBackend::on_error_callback(nghttp2_session* session, int lib_error_code, const char* msg, size_t len, void* user_data)
 {
   (void)session;
-  vinfolog("Error in HTTP/2 connection: %s (%d)", std::string(msg, len), lib_error_code);
-
   DoHConnectionToBackend* conn = reinterpret_cast<DoHConnectionToBackend*>(user_data);
+  VERBOSESLOG(infolog("Error in HTTP/2 connection: %s (%d)", std::string(msg, len), lib_error_code),
+              conn->getLogger()->error(Logr::Info, std::string(msg, len), "Error in HTTP/2 connection", "nghttp2.error_code", Logging::Loggable(lib_error_code)));
+
   conn->d_connectionDied = true;
   ++conn->d_ds->tcpDiedReadingResponse;
 
@@ -801,7 +811,8 @@ DoHConnectionToBackend::DoHConnectionToBackend(const std::shared_ptr<DownstreamS
   if (nghttp2_session_callbacks_new(&cbs) != 0) {
     d_connectionDied = true;
     ++d_ds->tcpDiedSendingQuery;
-    vinfolog("Unable to create a callback object for a new HTTP/2 session");
+    VERBOSESLOG(infolog("Unable to create a callback object for a new HTTP/2 session"),
+                getLogger()->info(Logr::Info, "Unable to create a callback object for a new HTTP/2 session"));
     return;
   }
   std::unique_ptr<nghttp2_session_callbacks, void (*)(nghttp2_session_callbacks*)> callbacks(cbs, nghttp2_session_callbacks_del);
@@ -818,7 +829,8 @@ DoHConnectionToBackend::DoHConnectionToBackend(const std::shared_ptr<DownstreamS
   if (nghttp2_session_client_new(&sess, callbacks.get(), this) != 0) {
     d_connectionDied = true;
     ++d_ds->tcpDiedSendingQuery;
-    vinfolog("Could not allocate a new HTTP/2 session");
+    VERBOSESLOG(infolog("Could not allocate a new HTTP/2 session"),
+                getLogger()->info(Logr::Info, "Could not allocate a new HTTP/2 session"));
     return;
   }
 
@@ -842,7 +854,8 @@ DoHConnectionToBackend::DoHConnectionToBackend(const std::shared_ptr<DownstreamS
   if (rv != 0) {
     d_connectionDied = true;
     ++d_ds->tcpDiedSendingQuery;
-    vinfolog("Could not submit SETTINGS: %s", nghttp2_strerror(rv));
+    VERBOSESLOG(infolog("Could not submit SETTINGS: %s", nghttp2_strerror(rv)),
+                getLogger()->error(Logr::Info, nghttp2_strerror(rv), "Could not submit SETTINGS"));
     return;
   }
 }
@@ -886,6 +899,7 @@ static void handleCrossProtocolQuery(int pipefd, FDMultiplexer::funcparam_t& par
 static void dohClientThread(pdns::channel::Receiver<CrossProtocolQuery>&& receiver)
 {
   setThreadName("dnsdist/dohClie");
+  auto logger = dnsdist::logging::getTopLogger()->withName("outgoing-doh-worker");
 
   try {
     DoHClientThreadData data(std::move(receiver));
@@ -920,6 +934,7 @@ static void dohClientThread(pdns::channel::Receiver<CrossProtocolQuery>&& receiv
             if (g_dohStatesDumpRequested > 0) {
               /* no race here, we took the lock so it can only be increased in the meantime */
               --g_dohStatesDumpRequested;
+              /* no point dumping these in structured format */
               infolog("Dumping the DoH client states, as requested:");
               data.mplexer->runForAllWatchedFDs([](bool isRead, int fd, const FDMultiplexer::funcparam_t& param, struct timeval ttd) {
                 struct timeval lnow;
@@ -944,13 +959,15 @@ static void dohClientThread(pdns::channel::Receiver<CrossProtocolQuery>&& receiv
           }
         }
         catch (const std::exception& e) {
-          warnlog("Error in outgoing DoH thread: %s", e.what());
+          SLOG(warnlog("Error in outgoing DoH thread: %s", e.what()),
+               logger->error(Logr::Warning, e.what(), "Error in outgoing DoH thread"));
         }
       }
     }
   }
   catch (const std::exception& e) {
-    errlog("Fatal error in outgoing DoH thread: %s", e.what());
+    SLOG(errlog("Fatal error in outgoing DoH thread: %s", e.what()),
+         logger->error(Logr::Error, e.what(), "Fatal error in outgoing DoH thread"));
   }
 }
 #endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
@@ -1010,11 +1027,13 @@ void DoHClientCollection::addThread()
     const auto internalPipeBufferSize = dnsdist::configuration::getImmutableConfiguration().d_tcpInternalPipeBufferSize;
     auto [sender, receiver] = pdns::channel::createObjectQueue<CrossProtocolQuery>(pdns::channel::SenderBlockingMode::SenderNonBlocking, pdns::channel::ReceiverBlockingMode::ReceiverNonBlocking, internalPipeBufferSize);
 
-    vinfolog("Adding DoH Client thread");
-    auto lock = std::scoped_lock(d_mutex);
+    VERBOSESLOG(infolog("Adding DoH Client thread"),
+                dnsdist::logging::getTopLogger()->info(Logr::Info, "Adding outgoing DoH worker thread"));
 
+    auto lock = std::scoped_lock(d_mutex);
     if (d_numberOfThreads >= d_clientThreads.size()) {
-      vinfolog("Adding a new DoH client thread would exceed the vector size (%d/%d), skipping. Consider increasing the maximum amount of DoH client threads with setMaxDoHClientThreads() in the configuration.", d_numberOfThreads, d_clientThreads.size());
+      VERBOSESLOG(infolog("Adding a new DoH client thread would exceed the vector size (%d/%d), skipping. Consider increasing the maximum amount of DoH client threads with setMaxDoHClientThreads() in the configuration.", d_numberOfThreads, d_clientThreads.size()),
+                  dnsdist::logging::getTopLogger()->info(Logr::Info, "Adding a new outgoing DoH worker thread would exceed the vector size, skipping. Consider increasing the maximum amount of DoH worker threads with setMaxDoHClientThreads() in the configuration.", "workers_count", Logging::Loggable(d_numberOfThreads), "workers_limit", Logging::Loggable(d_clientThreads.size())));
       return;
     }
 
@@ -1025,7 +1044,8 @@ void DoHClientCollection::addThread()
     }
     catch (const std::runtime_error& e) {
       /* the thread creation failed */
-      errlog("Error creating a DoH thread: %s", e.what());
+      SLOG(errlog("Error creating a DoH thread: %s", e.what()),
+           dnsdist::logging::getTopLogger()->error(Logr::Error, e.what(), "Error creating an outgoing DoH worker thread"));
       return;
     }
 
@@ -1033,7 +1053,8 @@ void DoHClientCollection::addThread()
     ++d_numberOfThreads;
   }
   catch (const std::exception& e) {
-    errlog("Error creating the DoH channel: %s", e.what());
+    SLOG(errlog("Error creating the DoH channel: %s", e.what()),
+         dnsdist::logging::getTopLogger()->error(Logr::Error, e.what(), "Error creating a channel for a new outgoing DoH worker"));
     return;
   }
 #else /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
@@ -1104,7 +1125,8 @@ size_t handleH2Timeouts([[maybe_unused]] FDMultiplexer& mplexer, [[maybe_unused]
   for (const auto& cbData : expiredReadConns) {
     if (cbData.second.type() == typeid(std::shared_ptr<DoHConnectionToBackend>)) {
       auto conn = boost::any_cast<std::shared_ptr<DoHConnectionToBackend>>(cbData.second);
-      vinfolog("Timeout (read) from remote DoH backend %s", conn->getBackendName());
+      VERBOSESLOG(infolog("Timeout (read) from remote DoH backend %s", conn->getBackendName()),
+                  conn->getLogger()->info(Logr::Info, "Timeout (read) from remote DoH backend"));
       conn->handleTimeout(now, false);
       ++got;
     }
@@ -1114,7 +1136,8 @@ size_t handleH2Timeouts([[maybe_unused]] FDMultiplexer& mplexer, [[maybe_unused]
   for (const auto& cbData : expiredWriteConns) {
     if (cbData.second.type() == typeid(std::shared_ptr<DoHConnectionToBackend>)) {
       auto conn = boost::any_cast<std::shared_ptr<DoHConnectionToBackend>>(cbData.second);
-      vinfolog("Timeout (write) from remote DoH backend %s", conn->getBackendName());
+      VERBOSESLOG(infolog("Timeout (write) from remote DoH backend %s", conn->getBackendName()),
+                  conn->getLogger()->info(Logr::Info, "Timeout (write) from remote DoH backend"));
       conn->handleTimeout(now, true);
       ++got;
     }

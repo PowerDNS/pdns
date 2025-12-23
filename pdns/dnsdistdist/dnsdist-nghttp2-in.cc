@@ -1184,7 +1184,7 @@ int IncomingHTTP2Connection::on_data_chunk_recv_callback(nghttp2_session* sessio
   }
   if (len > std::numeric_limits<uint16_t>::max() || (std::numeric_limits<uint16_t>::max() - stream->second.d_buffer.size()) < len) {
     VERBOSESLOG(infolog("Data frame of size %d is too large for a DNS query (we already have %d)", len, stream->second.d_buffer.size()),
-                conn->getLogger()->info(Logr::Info, "Data frame is too large for a DNS query", "frame_size", Logging::Loggable(len), "existing_payload_size", Logging::Loggable(stream->second.d_buffer.size())));
+                conn->getLogger()->info(Logr::Info, "Data frame is too large for a DNS query", "http.stream_id", Logging::Loggable(stream_id), "frame_size", Logging::Loggable(len), "existing_payload_size", Logging::Loggable(stream->second.d_buffer.size())));
     return NGHTTP2_ERR_CALLBACK_FAILURE;
   }
 
