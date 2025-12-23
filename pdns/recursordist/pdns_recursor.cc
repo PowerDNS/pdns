@@ -82,7 +82,7 @@ bool g_reusePort{false};
 bool g_gettagNeedsEDNSOptions{false};
 bool g_useKernelTimestamp;
 std::atomic<uint32_t> g_maxCacheEntries, g_maxPacketCacheEntries;
-boost::container::flat_set<uint16_t> g_avoidUdpSourcePorts;
+std::vector<bool> g_avoidUdpSourcePorts;
 uint16_t g_minUdpSourcePort;
 uint16_t g_maxUdpSourcePort;
 double g_balancingFactor;
@@ -176,7 +176,7 @@ int UDPClientSocks::makeClientSocket(int family, const std::optional<ComboAddres
     else {
       do {
         port = g_minUdpSourcePort + dns_random(g_maxUdpSourcePort - g_minUdpSourcePort + 1);
-      } while (g_avoidUdpSourcePorts.count(port) != 0);
+      } while (g_avoidUdpSourcePorts[port]);
     }
 
     // localAddress is set if a cookie was involved, bind to the same address the cookie is

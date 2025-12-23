@@ -85,7 +85,7 @@ size_t nsspeeds_t::getPB(const string& serverID, size_t maxSize, std::string& re
   full.add_int64(PBNSSpeedDump::required_int64_time, time(nullptr));
   full.add_string(PBNSSpeedDump::required_string_type, "PBNSSpeedDump");
 
-  size_t count = 0;
+  size_t theCount = 0;
   ret.reserve(estimate);
 
   for (const auto& entry : *this) {
@@ -93,13 +93,13 @@ size_t nsspeeds_t::getPB(const string& serverID, size_t maxSize, std::string& re
     getPBEntry(message, entry);
     if (maxSize > 0 && ret.size() > maxSize) {
       message.rollback();
-      log->info(Logr::Info, "Produced nsspeed dump (max size reached)", "size", Logging::Loggable(ret.size()), "count", Logging::Loggable(count));
-      return count;
+      log->info(Logr::Info, "Produced nsspeed dump (max size reached)", "size", Logging::Loggable(ret.size()), "count", Logging::Loggable(theCount));
+      return theCount;
     }
-    ++count;
+    ++theCount;
   }
-  log->info(Logr::Info, "Produced nsspeed dump", "size", Logging::Loggable(ret.size()), "count", Logging::Loggable(count));
-  return count;
+  log->info(Logr::Info, "Produced nsspeed dump", "size", Logging::Loggable(ret.size()), "count", Logging::Loggable(theCount));
+  return theCount;
 }
 
 template <typename T>
@@ -152,7 +152,7 @@ size_t nsspeeds_t::putPB(time_t cutoff, const std::string& pbuf)
   log->info(Logr::Debug, "Processing nsspeed dump");
 
   protozero::pbf_message<PBNSSpeedDump> full(pbuf);
-  size_t count = 0;
+  size_t theCount = 0;
   size_t inserted = 0;
   try {
     bool protocolVersionSeen = false;
@@ -199,12 +199,12 @@ size_t nsspeeds_t::putPB(time_t cutoff, const std::string& pbuf)
         if (putPBEntry(cutoff, message)) {
           ++inserted;
         }
-        ++count;
+        ++theCount;
         break;
       }
       }
     }
-    log->info(Logr::Info, "Processed nsspeed dump", "processed", Logging::Loggable(count), "inserted", Logging::Loggable(inserted));
+    log->info(Logr::Info, "Processed nsspeed dump", "processed", Logging::Loggable(theCount), "inserted", Logging::Loggable(inserted));
     return inserted;
   }
   catch (const std::runtime_error& e) {

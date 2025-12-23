@@ -259,8 +259,8 @@ void pdns::ZoneMD::verify(bool& validationDone, bool& validationOK)
   }
 
   // Final verify
-  for (const auto& [k, v] : d_zonemdRecords) {
-    auto [zonemd, duplicate] = v;
+  for (const auto& record : d_zonemdRecords) {
+    auto zonemd = record.second.record;
     if (zonemd->d_hashalgo == 1) {
       validationDone = true;
       auto computed = sha384digest->digest();

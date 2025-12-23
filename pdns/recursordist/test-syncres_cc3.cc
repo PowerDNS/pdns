@@ -427,7 +427,7 @@ BOOST_AUTO_TEST_CASE(test_answer_no_aa)
   const ComboAddress who;
   vector<DNSRecord> cached;
   MemRecursorCache::SigRecs signatures;
-  BOOST_REQUIRE_GT(g_recCache->get(now, target, QType(QType::A), MemRecursorCache::None, &cached, who, std::nullopt, &signatures), 0);
+  BOOST_REQUIRE_GT(g_recCache->get(now, target, QType(QType::A), MemRecursorCache::None, &cached, who, MemRecursorCache::NOTAG, &signatures), 0);
 }
 
 BOOST_AUTO_TEST_CASE(test_special_types)

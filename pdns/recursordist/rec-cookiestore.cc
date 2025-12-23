@@ -40,11 +40,11 @@ uint64_t CookieStore::dump(int fileDesc) const
     close(newfd);
     return 0;
   }
-  uint64_t count = 0;
+  uint64_t theCount = 0;
 
   fprintf(filePtr.get(), "; cookie dump follows\n; server\tlocal\tcookie\tsupport\tts\n");
   for (const auto& entry : *this) {
-    count++;
+    theCount++;
     timebuf_t tmp;
     fprintf(filePtr.get(), "%s\t%s\t%s\t%s\t%s\n",
             entry.d_address.toStringWithPortExcept(53).c_str(),
@@ -53,5 +53,5 @@ uint64_t CookieStore::dump(int fileDesc) const
             CookieEntry::toString(entry.d_support).c_str(),
             entry.d_lastused == std::numeric_limits<time_t>::max() ? "Forever" : timestamp(entry.d_lastused, tmp));
   }
-  return count;
+  return theCount;
 }
