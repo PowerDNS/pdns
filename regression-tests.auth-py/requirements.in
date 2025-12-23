@@ -2,7 +2,7 @@
 #  pip-compile --generate-hashes -U requirements.in
 
 wheel==0.45.1
-dnspython==2.1.0
+dnspython
 pytest
 Twisted>0.15.0
 requests>=2.18.4

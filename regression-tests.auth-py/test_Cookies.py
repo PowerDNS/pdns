@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 import dns
+import dns.edns
+import dns.message
 
 from authtests import AuthTest
 
@@ -96,7 +98,7 @@ www.example.org.             3600 IN A    192.0.2.5
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
 
     def testBrokenCookie(self):
-        data = self.getCookieFromServer().data
+        data = self.getCookieFromServer().to_wire()
         # replace a byte in the client cookie
         data = data.replace(b'\x11', b'\x12')
         opts = [dns.edns.GenericOption(dns.edns.COOKIE, data)]
@@ -105,7 +107,7 @@ www.example.org.             3600 IN A    192.0.2.5
         self.assertRcodeEqual(res, 23)
         for opt in res.options:
             if opt.otype == dns.edns.COOKIE:
-                self.assertNotEqual(opt.data, opts[0].data)
+                self.assertNotEqual(opt.to_wire(), opts[0].data)
                 return
         self.fail()
 

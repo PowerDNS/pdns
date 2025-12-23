@@ -62,7 +62,7 @@ auto-aaaa.example.org.       3600 IN AAAA 2001:db8::80
         )
         expected_ans = dns.rrset.from_text(
             'example.org.', 3600, dns.rdataclass.IN, 'HTTPS',
-            '0 www.example.org'
+            '0 www.example.org.'
         )
         print(res.answer)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
