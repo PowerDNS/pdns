@@ -2960,13 +2960,15 @@ struct CommandLineParameters
 {
   vector<string> locals;
   vector<string> remotes;
-  bool checkConfig{false};
-  bool beClient{false};
-  bool beSupervised{false};
   string command;
   string config;
   string uid;
   string gid;
+  string structuredLoggingBackend;
+  bool checkConfig{false};
+  bool beClient{false};
+  bool beSupervised{false};
+  bool useStructuredLogging{false};
 };
 
 static void usage()
@@ -2976,32 +2978,35 @@ static void usage()
   cout << "[-e,--execute cmd] [-h,--help] [-l,--local addr]\n";
   cout << "[-v,--verbose] [--check-config] [--version]\n";
   cout << "\n";
-  cout << "-a,--acl netmask      Add this netmask to the ACL\n";
-  cout << "-C,--config file      Load configuration from 'file'\n";
-  cout << "-c,--client           Operate as a client, connect to dnsdist. This reads\n";
-  cout << "                      controlSocket from your configuration file, but also\n";
-  cout << "                      accepts an IP:PORT argument\n";
+  cout << "-a,--acl netmask                      Add this netmask to the ACL\n";
+  cout << "-C,--config file                      Load configuration from 'file'\n";
+  cout << "-c,--client                           Operate as a client, connect to dnsdist. This reads\n";
+  cout << "                                      controlSocket from your configuration file, but also\n";
+  cout << "                                      accepts an IP:PORT argument\n";
 #if defined(HAVE_LIBSODIUM) || defined(HAVE_LIBCRYPTO)
-  cout << "-k,--setkey KEY       Use KEY for encrypted communication to dnsdist. This\n";
-  cout << "                      is similar to setting setKey in the configuration file.\n";
-  cout << "                      NOTE: this will leak this key in your shell's history\n";
-  cout << "                      and in the systems running process list.\n";
+  cout << "-k,--setkey KEY                       Use KEY for encrypted communication to dnsdist. This\n";
+  cout << "                                      is similar to setting setKey in the configuration file.\n";
+  cout << "                                      NOTE: this will leak this key in your shell's history\n";
+  cout << "                                      and in the systems running process list.\n";
 #endif
-  cout << "--check-config        Validate the configuration file and exit. The exit-code\n";
-  cout << "                      reflects the validation, 0 is OK, 1 means an error.\n";
-  cout << "                      Any errors are printed as well.\n";
-  cout << "-e,--execute cmd      Connect to dnsdist and execute 'cmd'\n";
-  cout << "-g,--gid gid          Change the process group ID after binding sockets\n";
-  cout << "-h,--help             Display this helpful message\n";
-  cout << "-l,--local address    Listen on this local address\n";
-  cout << "--supervised          Don't open a console, I'm supervised\n";
-  cout << "                        (use with e.g. systemd and daemontools)\n";
-  cout << "--disable-syslog      Don't log to syslog, only to stdout\n";
-  cout << "                        (use with e.g. systemd)\n";
-  cout << "--log-timestamps      Prepend timestamps to messages logged to stdout.\n";
-  cout << "-u,--uid uid          Change the process user ID after binding sockets\n";
-  cout << "-v,--verbose          Enable verbose mode\n";
-  cout << "-V,--version          Show dnsdist version information and exit\n";
+  cout << "--check-config                        Validate the configuration file and exit. The exit-code\n";
+  cout << "                                      reflects the validation, 0 is OK, 1 means an error.\n";
+  cout << "                                      Any errors are printed as well.\n";
+  cout << "-e,--execute cmd                      Connect to dnsdist and execute 'cmd'\n";
+  cout << "-g,--gid gid                          Change the process group ID after binding sockets\n";
+  cout << "-h,--help                             Display this helpful message\n";
+  cout << "-l,--local address                    Listen on this local address\n";
+  cout << "--supervised                          Don't open a console, I'm supervised\n";
+  cout << "                                      (use with e.g. systemd and daemontools)\n";
+  cout << "--disable-syslog                      Don't log to syslog, only to stdout\n";
+  cout << "                                      (use with e.g. systemd)\n";
+  cout << "--log-timestamps                      Prepend timestamps to messages logged to stdout\n";
+  cout << "--structured-logging                  Enable structured logging\n";
+  cout << "--structured-logging-backend BACKEND  The backend to use when structured logging is enabled\n";
+  cout << "                                      Supported values are 'default', 'json' and 'systemd-journal'\n";
+  cout << "-u,--uid uid                          Change the process user ID after binding sockets\n";
+  cout << "-v,--verbose                          Enable verbose mode\n";
+  cout << "-V,--version                          Show dnsdist version information and exit\n";
 }
 
 #include "sanitizer.hh"
@@ -3178,7 +3183,7 @@ static void reportFeatures()
 
 static void parseParameters(int argc, char** argv, CommandLineParameters& cmdLine, ComboAddress& clientAddress)
 {
-  const std::array<struct option, 16> longopts{{{"acl", required_argument, nullptr, 'a'},
+  const std::array<struct option, 18> longopts{{{"acl", required_argument, nullptr, 'a'},
                                                 {"check-config", no_argument, nullptr, 1},
                                                 {"client", no_argument, nullptr, 'c'},
                                                 {"config", required_argument, nullptr, 'C'},
@@ -3189,6 +3194,8 @@ static void parseParameters(int argc, char** argv, CommandLineParameters& cmdLin
                                                 {"local", required_argument, nullptr, 'l'},
                                                 {"log-timestamps", no_argument, nullptr, 4},
                                                 {"setkey", required_argument, nullptr, 'k'},
+                                                {"structured-logging", no_argument, nullptr, 's'},
+                                                {"structured-logging-backend", required_argument, nullptr, 5},
                                                 {"supervised", no_argument, nullptr, 3},
                                                 {"uid", required_argument, nullptr, 'u'},
                                                 {"verbose", no_argument, nullptr, 'v'},
@@ -3200,7 +3207,7 @@ static void parseParameters(int argc, char** argv, CommandLineParameters& cmdLin
 
   while (true) {
     // NOLINTNEXTLINE(concurrency-mt-unsafe): only one thread at this point
-    int gotChar = getopt_long(argc, argv, "a:cC:e:g:hk:l:u:vV", longopts.data(), &longindex);
+    int gotChar = getopt_long(argc, argv, "a:cC:e:g:hk:l:u:svV", longopts.data(), &longindex);
     if (gotChar == -1) {
       break;
     }
@@ -3216,6 +3223,9 @@ static void parseParameters(int argc, char** argv, CommandLineParameters& cmdLin
       break;
     case 4:
       dnsdist::logging::LoggingConfiguration::setLogTimestamps(true);
+      break;
+    case 5:
+      cmdLine.structuredLoggingBackend = optarg;
       break;
     case 'C':
       cmdLine.config = optarg;
@@ -3261,6 +3271,9 @@ static void parseParameters(int argc, char** argv, CommandLineParameters& cmdLin
     break;
     case 'l':
       cmdLine.locals.push_back(boost::trim_copy(string(optarg)));
+      break;
+    case 's':
+      cmdLine.useStructuredLogging = true;
       break;
     case 'u':
       cmdLine.uid = optarg;
@@ -3644,6 +3657,14 @@ int main(int argc, char** argv)
     cmdLine.config = SYSCONFDIR "/dnsdist.conf";
 
     parseParameters(argc, argv, cmdLine, clientAddress);
+    dnsdist::configuration::updateImmutableConfiguration([&cmdLine](dnsdist::configuration::ImmutableConfiguration& config) {
+      config.d_loggingBackend = cmdLine.structuredLoggingBackend;
+      config.d_structuredLogging = cmdLine.useStructuredLogging;
+    });
+
+    if (cmdLine.useStructuredLogging) {
+      dnsdist::logging::setup(cmdLine.structuredLoggingBackend);
+    }
 
     dnsdist::configuration::updateRuntimeConfiguration([](dnsdist::configuration::RuntimeConfiguration& config) {
       config.d_lbPolicy = std::make_shared<ServerPolicy>("leastOutstanding", leastOutstanding, false);
