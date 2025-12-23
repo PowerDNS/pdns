@@ -1171,7 +1171,7 @@ void CommunicatorClass::secondaryRefresh(PacketHandler* P) // NOLINT(readability
     TSIGRecordContent trc;
     DNSName tsigkeyname;
     dp.getTSIGDetails(&trc, &tsigkeyname);
-    P->tryAutoPrimarySynchronous(dp, tsigkeyname); // FIXME could use some error logging
+    P->tryAutoPrimarySynchronous(dp, tsigkeyname);
   }
   if (rdomains.empty()) { // if we have priority domains, check them first
     B->getUnfreshSecondaryInfos(&rdomains);
