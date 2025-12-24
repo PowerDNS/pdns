@@ -208,6 +208,24 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_SearchCommentsQuery_stmt = nullptr;
 }
 
+void GSQLBackend::reconnectIfNeeded(bool force)
+{
+  if (force) {
+    // If we are asked to force reconnection, we can only do this outside of
+    // a transaction or before its first statement completes.
+    if (inTransaction() && d_transactionStatementCount != 0) {
+      return;
+    }
+  }
+  else {
+    if (inTransaction() || isConnectionUsable()) {
+      return;
+    }
+  }
+
+  reconnect();
+}
+
 void GSQLBackend::executeStatement(unique_ptr<SSqlStatement>* stmt)
 {
   reconnectIfNeeded();

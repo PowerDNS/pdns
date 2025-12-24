@@ -275,14 +275,7 @@ protected:
     }
     return false;
   }
-  void reconnectIfNeeded()
-  {
-    if (inTransaction() || isConnectionUsable()) {
-      return;
-    }
-
-    reconnect();
-  }
+  void reconnectIfNeeded(bool force = false);
   virtual void reconnect() { }
   bool inTransaction() override
   {
