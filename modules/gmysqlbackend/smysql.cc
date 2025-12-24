@@ -32,6 +32,8 @@
 #include "pdns/namespaces.hh"
 #include "pdns/lock.hh"
 
+#include <errmsg.h>
+
 #if MYSQL_VERSION_ID >= 80000 && !defined(MARIADB_BASE_VERSION)
 // Need to keep this for compatibility with MySQL < 8.0.0, which used typedef char my_bool;
 // MariaDB up to 10.4 also always define it.
@@ -221,9 +223,11 @@ public:
     }
 
     if (mysql_stmt_execute(d_stmt) != 0) {
+      auto errorcode = mysql_errno(d_db);
+      bool shouldReconnect = errorcode == CR_SERVER_GONE_ERROR || errorcode == CR_SERVER_LOST;
       string error(mysql_stmt_error(d_stmt));
       releaseStatement();
-      throw SSqlException("Could not execute mysql statement: " + d_query + string(": ") + error);
+      throw SSqlException("Could not execute mysql statement: " + d_query + string(": ") + error, shouldReconnect);
     }
 
     // MySQL documentation says you can call this safely for all queries
