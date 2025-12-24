@@ -69,15 +69,6 @@ bool Connector::recv(Json& value)
   throw PDNSException("Unknown error while receiving data");
 }
 
-void RemoteBackend::makeErrorAndThrow(Json& value)
-{
-  std::string msg = "Remote process indicated a failure";
-  for (const auto& message : value["log"].array_items()) {
-    msg += " '" + message.string_value() + "'";
-  }
-  throw PDNSException(msg);
-}
-
 /**
  * Standard ctor and dtor
  */
