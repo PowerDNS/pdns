@@ -1033,6 +1033,7 @@ bool GSQLBackend::addDomainKey(const ZoneName& name, const KeyData& key, int64_t
 
     d_GetLastInsertedKeyIdQuery_stmt->execute();
     if (!d_GetLastInsertedKeyIdQuery_stmt->hasNextRow()) {
+      d_GetLastInsertedKeyIdQuery_stmt->reset();
       keyId = -2;
       return true;
     }
@@ -2261,6 +2262,8 @@ string GSQLBackend::directBackendCmd(const string &query)
        out<<"\'"<<col<<"\'\t";
      out<<endl;
    }
+
+   stmt->reset();
 
    return out.str();
  }
