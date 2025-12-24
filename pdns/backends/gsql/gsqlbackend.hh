@@ -288,6 +288,7 @@ protected:
   {
     return d_inTransaction;
   }
+  void executeStatement(unique_ptr<SSqlStatement>* stmt);
 
   bool d_list{false};
   string d_query_name;
