@@ -212,6 +212,7 @@ void GSQLBackend::executeStatement(unique_ptr<SSqlStatement>* stmt)
 {
   reconnectIfNeeded();
   (*stmt)->execute();
+  ++d_transactionStatementCount;
 }
 
 void GSQLBackend::setNotified(domainid_t domain_id, uint32_t serial)
@@ -1963,6 +1964,7 @@ bool GSQLBackend::startTransaction(const ZoneName &domain, domainid_t domain_id)
 
     d_db->startTransaction();
     d_inTransaction = true;
+    d_transactionStatementCount = 0;
     if(domain_id != UnknownDomainID) {
       // clang-format off
       d_DeleteZoneQuery_stmt->
@@ -1974,6 +1976,7 @@ bool GSQLBackend::startTransaction(const ZoneName &domain, domainid_t domain_id)
   }
   catch (SSqlException &e) {
     d_inTransaction = false;
+    d_transactionStatementCount = 0;
     throw PDNSException("Database failed to start transaction for domain '" + domain.toLogString() + "': "+e.txtReason());
   }
 
@@ -1985,9 +1988,11 @@ bool GSQLBackend::commitTransaction()
   try {
     d_db->commit();
     d_inTransaction = false;
+    d_transactionStatementCount = 0;
   }
   catch (SSqlException &e) {
     d_inTransaction = false;
+    d_transactionStatementCount = 0;
     throw PDNSException("Database failed to commit transaction: "+e.txtReason());
   }
   return true;
@@ -1998,9 +2003,11 @@ bool GSQLBackend::abortTransaction()
   try {
     d_db->rollback();
     d_inTransaction = false;
+    d_transactionStatementCount = 0;
   }
   catch(SSqlException &e) {
     d_inTransaction = false;
+    d_transactionStatementCount = 0;
     throw PDNSException("Database failed to abort transaction: "+string(e.txtReason()));
   }
   return true;

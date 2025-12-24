@@ -453,6 +453,7 @@ private:
 
 protected:
   std::unique_ptr<SSql> d_db{nullptr};
+  unsigned int d_transactionStatementCount{0};
   bool d_dnssecQueries;
   bool d_inTransaction{false};
   bool d_upgradeContent{false};
