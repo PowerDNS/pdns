@@ -228,9 +228,25 @@ void GSQLBackend::reconnectIfNeeded(bool force)
 
 void GSQLBackend::executeStatement(unique_ptr<SSqlStatement>* stmt)
 {
-  reconnectIfNeeded();
-  (*stmt)->execute();
-  ++d_transactionStatementCount;
+  bool firstTry{true};
+
+  while (true) {
+    try {
+      reconnectIfNeeded(!firstTry);
+      (*stmt)->execute();
+      ++d_transactionStatementCount;
+      return;
+    }
+    catch (SSqlException& e) {
+      if (e.shouldReconnectAndRetry() && firstTry) {
+        firstTry = false;
+        // will retry, forcing reconnection
+      }
+      else {
+        throw;
+      }
+    }
+  }
 }
 
 void GSQLBackend::setNotified(domainid_t domain_id, uint32_t serial)
