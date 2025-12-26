@@ -349,6 +349,17 @@ are processed after this action"
       type: "String"
       description: "The EDNS0 option raw content"
 - name: "SetExtendedDNSError"
+  description: "Set an Extended DNS Error status that will be set to the response corresponding to the current query. This will clear any previously set Extended DNS Errors. Subsequent rules are processed after this action"
+  parameters:
+    - name: "info_code"
+      type: "u16"
+      description: "The EDNS Extended DNS Error code"
+    - name: "extra_text"
+      type: "String"
+      default: ""
+      optional: false
+      description: "The optional EDNS Extended DNS Error extra text"
+- name: "AddExtendedDNSError"
   description: "Set an Extended DNS Error status that will be added to the response corresponding to the current query. Subsequent rules are processed after this action"
   parameters:
     - name: "info_code"

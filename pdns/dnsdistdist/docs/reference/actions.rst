@@ -22,6 +22,26 @@ Some actions allow further processing of rules, this is noted in their descripti
 
 The following actions exist.
 
+.. function:: AddExtendedDNSErrorAction(infoCode [, extraText])
+
+  .. versionadded:: 2.1.0
+
+  Set an Extended DNS Error status that will be added to the response corresponding to the current query.
+  Subsequent rules are processed after this action.
+
+  :param int infoCode: The EDNS Extended DNS Error code
+  :param string extraText: The optional EDNS Extended DNS Error extra text
+
+.. function:: AddExtendedDNSErrorResponseAction(infoCode [, extraText])
+
+  .. versionadded:: 2.1.0
+
+  Set an Extended DNS Error status that will be added to this response.
+  Subsequent rules are processed after this action.
+
+  :param int infoCode: The EDNS Extended DNS Error code
+  :param string extraText: The optional EDNS Extended DNS Error extra text
+
 .. function:: AllowAction()
 
   Let these packets go through.
@@ -611,8 +631,8 @@ The following actions exist.
 
   .. versionadded:: 1.9.0
 
-  Set an Extended DNS Error status that will be added to the response corresponding to the current query.
-  Subsequent rules are processed after this action.
+  Set an Extended DNS Error status that will be set to the response corresponding to the current query.
+  This will clear any previously set Extended DNS Errors. Subsequent rules are processed after this action.
 
   :param int infoCode: The EDNS Extended DNS Error code
   :param string extraText: The optional EDNS Extended DNS Error extra text
@@ -621,8 +641,8 @@ The following actions exist.
 
   .. versionadded:: 1.9.0
 
-  Set an Extended DNS Error status that will be added to this response.
-  Subsequent rules are processed after this action.
+  Set an Extended DNS Error status that will be set to this response.
+  This will clear any previously set Extended DNS Errors. Subsequent rules are processed after this action.
 
   :param int infoCode: The EDNS Extended DNS Error code
   :param string extraText: The optional EDNS Extended DNS Error extra text

@@ -975,7 +975,7 @@ public:
       PacketBuffer newContent;
       newContent.reserve(dnsquestion->getData().size());
 
-      if (!slowRewriteEDNSOptionInQueryWithRecords(dnsquestion->getData(), newContent, ednsAdded, d_code, optionAdded, true, optRData)) {
+      if (!slowRewriteEDNSOptionInQueryWithRecords(dnsquestion->getData(), newContent, ednsAdded, d_code, optionAdded, true, false, optRData)) {
         return Action::None;
       }
 
@@ -2402,7 +2402,7 @@ public:
   DNSAction::Action operator()(DNSQuestion* dnsQuestion, std::string* ruleresult) const override
   {
     (void)ruleresult;
-    dnsQuestion->ids.d_extendedError = std::make_unique<EDNSExtendedError>(d_ede);
+    dnsQuestion->ids.d_extendedErrors = std::make_unique<std::vector<EDNSExtendedError>>(std::initializer_list<EDNSExtendedError>({d_ede}));
 
     return DNSAction::Action::None;
   }
@@ -2429,7 +2429,7 @@ public:
   DNSResponseAction::Action operator()(DNSResponse* dnsResponse, std::string* ruleresult) const override
   {
     (void)ruleresult;
-    dnsResponse->ids.d_extendedError = std::make_unique<EDNSExtendedError>(d_ede);
+    dnsResponse->ids.d_extendedErrors = std::make_unique<std::vector<EDNSExtendedError>>(std::initializer_list<EDNSExtendedError>({d_ede}));
 
     return DNSResponseAction::Action::None;
   }
@@ -2437,6 +2437,70 @@ public:
   [[nodiscard]] std::string toString() const override
   {
     return "set EDNS Extended DNS Error to " + std::to_string(d_ede.infoCode) + (d_ede.extraText.empty() ? std::string() : std::string(": \"") + d_ede.extraText + std::string("\""));
+  }
+
+private:
+  EDNSExtendedError d_ede;
+};
+
+class AddExtendedDNSErrorAction : public DNSAction
+{
+public:
+  // this action does not stop the processing
+  AddExtendedDNSErrorAction(uint16_t infoCode, const std::string& extraText)
+  {
+    d_ede.infoCode = infoCode;
+    d_ede.extraText = extraText;
+  }
+
+  DNSAction::Action operator()(DNSQuestion* dnsQuestion, std::string* ruleresult) const override
+  {
+    (void)ruleresult;
+    if (!dnsQuestion->ids.d_extendedErrors) {
+      dnsQuestion->ids.d_extendedErrors = std::make_unique<std::vector<EDNSExtendedError>>(std::initializer_list<EDNSExtendedError>({d_ede}));
+    }
+    else {
+      dnsQuestion->ids.d_extendedErrors->emplace_back(d_ede);
+    }
+
+    return DNSAction::Action::None;
+  }
+
+  [[nodiscard]] std::string toString() const override
+  {
+    return "add EDNS Extended DNS Error to " + std::to_string(d_ede.infoCode) + (d_ede.extraText.empty() ? std::string() : std::string(": \"") + d_ede.extraText + std::string("\""));
+  }
+
+private:
+  EDNSExtendedError d_ede;
+};
+
+class AddExtendedDNSErrorResponseAction : public DNSResponseAction
+{
+public:
+  // this action does not stop the processing
+  AddExtendedDNSErrorResponseAction(uint16_t infoCode, const std::string& extraText)
+  {
+    d_ede.infoCode = infoCode;
+    d_ede.extraText = extraText;
+  }
+
+  DNSResponseAction::Action operator()(DNSResponse* dnsResponse, std::string* ruleresult) const override
+  {
+    (void)ruleresult;
+    if (!dnsResponse->ids.d_extendedErrors) {
+      dnsResponse->ids.d_extendedErrors = std::make_unique<std::vector<EDNSExtendedError>>(std::initializer_list<EDNSExtendedError>({d_ede}));
+    }
+    else {
+      dnsResponse->ids.d_extendedErrors->emplace_back(d_ede);
+    }
+
+    return DNSResponseAction::Action::None;
+  }
+
+  [[nodiscard]] std::string toString() const override
+  {
+    return "add EDNS Extended DNS Error to " + std::to_string(d_ede.infoCode) + (d_ede.extraText.empty() ? std::string() : std::string(": \"") + d_ede.extraText + std::string("\""));
   }
 
 private:

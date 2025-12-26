@@ -119,20 +119,22 @@ int rewriteResponseWithoutEDNS(const PacketBuffer& initialPacket, PacketBuffer& 
   return 0;
 }
 
-static bool addOrReplaceEDNSOption(std::vector<std::pair<uint16_t, std::string>>& options, uint16_t optionCode, bool& optionAdded, bool overrideExisting, const string& newOptionContent)
+static bool addOrReplaceEDNSOption(std::vector<std::pair<uint16_t, std::string>>& options, uint16_t optionCode, bool& optionAdded, bool overrideExisting, bool allowMultiple, const string& newOptionContent)
 {
-  for (auto it = options.begin(); it != options.end();) {
-    if (it->first == optionCode) {
-      optionAdded = false;
+  if (!allowMultiple) {
+    for (auto it = options.begin(); it != options.end();) {
+      if (it->first == optionCode) {
+        optionAdded = false;
 
-      if (!overrideExisting) {
-        return false;
+        if (!overrideExisting) {
+          return false;
+        }
+
+        it = options.erase(it);
       }
-
-      it = options.erase(it);
-    }
-    else {
-      ++it;
+      else {
+        ++it;
+      }
     }
   }
 
@@ -140,7 +142,7 @@ static bool addOrReplaceEDNSOption(std::vector<std::pair<uint16_t, std::string>>
   return true;
 }
 
-bool slowRewriteEDNSOptionInQueryWithRecords(const PacketBuffer& initialPacket, PacketBuffer& newContent, bool& ednsAdded, uint16_t optionToReplace, bool& optionAdded, bool overrideExisting, const string& newOptionContent)
+bool slowRewriteEDNSOptionInQueryWithRecords(const PacketBuffer& initialPacket, PacketBuffer& newContent, bool& ednsAdded, uint16_t optionToReplace, bool& optionAdded, bool overrideExisting, bool allowMultiple, const string& newOptionContent)
 {
   if (initialPacket.size() < sizeof(dnsheader)) {
     return false;
@@ -241,7 +243,7 @@ bool slowRewriteEDNSOptionInQueryWithRecords(const PacketBuffer& initialPacket, 
 
       /* addOrReplaceEDNSOption will set it to false if there is already an existing option */
       optionAdded = true;
-      addOrReplaceEDNSOption(options, optionToReplace, optionAdded, overrideExisting, newOptionContent);
+      addOrReplaceEDNSOption(options, optionToReplace, optionAdded, overrideExisting, allowMultiple, newOptionContent);
       packetWriter.addOpt(recordHeader.d_class, edns0.extRCode, ntohs(edns0.extFlags), options, edns0.version);
     }
   }
@@ -547,7 +549,7 @@ bool handleEDNSClientSubnet(PacketBuffer& packet, const size_t maximumSize, cons
     PacketBuffer newContent;
     newContent.reserve(packet.size());
 
-    if (!slowRewriteEDNSOptionInQueryWithRecords(packet, newContent, ednsAdded, EDNSOptionCode::ECS, ecsAdded, overrideExisting, newECSOption)) {
+    if (!slowRewriteEDNSOptionInQueryWithRecords(packet, newContent, ednsAdded, EDNSOptionCode::ECS, ecsAdded, overrideExisting, false, newECSOption)) {
       return false;
     }
 
@@ -1119,7 +1121,7 @@ bool setEDNSOption(DNSQuestion& dnsQuestion, uint16_t ednsCode, const std::strin
     PacketBuffer newContent;
     newContent.reserve(dnsQuestion.getData().size());
 
-    if (!slowRewriteEDNSOptionInQueryWithRecords(dnsQuestion.getData(), newContent, ednsAdded, ednsCode, optionAdded, true, optRData)) {
+    if (!slowRewriteEDNSOptionInQueryWithRecords(dnsQuestion.getData(), newContent, ednsAdded, ednsCode, optionAdded, true, false, optRData)) {
       return false;
     }
 
