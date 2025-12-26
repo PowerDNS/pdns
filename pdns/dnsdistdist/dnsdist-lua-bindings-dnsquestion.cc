@@ -324,7 +324,21 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
     if (extraText) {
       ede.extraText = *extraText;
     }
-    dnsQuestion.ids.d_extendedError = std::make_unique<EDNSExtendedError>(ede);
+    dnsQuestion.ids.d_extendedErrors = std::make_unique<std::vector<EDNSExtendedError>>(std::initializer_list<EDNSExtendedError>({ede}));
+  });
+
+  luaCtx.registerFunction<void (DNSQuestion::*)(uint16_t infoCode, const std::optional<std::string>& extraText)>("addExtendedDNSError", [](DNSQuestion& dnsQuestion, uint16_t infoCode, const std::optional<std::string>& extraText) {
+    EDNSExtendedError ede;
+    ede.infoCode = infoCode;
+    if (extraText) {
+      ede.extraText = *extraText;
+    }
+    if (!dnsQuestion.ids.d_extendedErrors) {
+      dnsQuestion.ids.d_extendedErrors = std::make_unique<std::vector<EDNSExtendedError>>(std::initializer_list<EDNSExtendedError>({ede}));
+    }
+    else {
+      dnsQuestion.ids.d_extendedErrors->emplace_back(ede);
+    }
   });
 
   luaCtx.registerFunction<bool (DNSQuestion::*)(uint16_t asyncID, uint16_t queryID, uint32_t timeoutMs)>("suspend", [](DNSQuestion& dnsQuestion, uint16_t asyncID, uint16_t queryID, uint32_t timeoutMs) {
@@ -688,7 +702,7 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
     if (extraText) {
       ede.extraText = *extraText;
     }
-    dnsResponse.ids.d_extendedError = std::make_unique<EDNSExtendedError>(ede);
+    dnsResponse.ids.d_extendedErrors = std::make_unique<std::vector<EDNSExtendedError>>(std::initializer_list<EDNSExtendedError>({ede}));
   });
 
   luaCtx.registerFunction<bool (DNSResponse::*)(uint16_t asyncID, uint16_t queryID, uint32_t timeoutMs)>("suspend", [](DNSResponse& dnsResponse, uint16_t asyncID, uint16_t queryID, uint32_t timeoutMs) {

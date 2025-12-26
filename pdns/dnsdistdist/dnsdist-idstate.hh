@@ -203,7 +203,7 @@ public:
 #ifndef DISABLE_PROTOBUF
   std::vector<std::pair<std::string, std::shared_ptr<RemoteLoggerInterface>>> delayedResponseMsgs;
 #endif
-  std::unique_ptr<EDNSExtendedError> d_extendedError{nullptr};
+  std::unique_ptr<std::vector<EDNSExtendedError>> d_extendedErrors{nullptr};
   std::optional<uint32_t> tempFailureTTL{std::nullopt}; // 8
   ClientState* cs{nullptr}; // 8
   std::unique_ptr<DOHUnitInterface> du; // 8

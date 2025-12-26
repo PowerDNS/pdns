@@ -80,7 +80,7 @@ bool addExtendedDNSError(PacketBuffer& packet, size_t maximumPacketSize, uint16_
   PacketBuffer newContent;
   bool ednsAdded = false;
   bool edeAdded = false;
-  if (!slowRewriteEDNSOptionInQueryWithRecords(packet, newContent, ednsAdded, EDNSOptionCode::EXTENDEDERROR, edeAdded, true, edeOption)) {
+  if (!slowRewriteEDNSOptionInQueryWithRecords(packet, newContent, ednsAdded, EDNSOptionCode::EXTENDEDERROR, edeAdded, false, true, edeOption)) {
     return false;
   }
 

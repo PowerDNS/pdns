@@ -539,7 +539,7 @@ void dnsdist_ffi_dnsquestion_set_extended_dns_error(dnsdist_ffi_dnsquestion_t* d
   if (extraText != nullptr && extraTextSize > 0) {
     ede.extraText = std::string(extraText, extraTextSize);
   }
-  dnsQuestion->dq->ids.d_extendedError = std::make_unique<EDNSExtendedError>(ede);
+  dnsQuestion->dq->ids.d_extendedErrors = std::make_unique<std::vector<EDNSExtendedError>>(std::initializer_list<EDNSExtendedError>({ede}));
 }
 
 void dnsdist_ffi_dnsquestion_set_rcode(dnsdist_ffi_dnsquestion_t* dq, int rcode)

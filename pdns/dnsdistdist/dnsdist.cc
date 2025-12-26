@@ -565,8 +565,10 @@ bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse,
     dnsdist::PacketMangling::restrictDNSPacketTTLs(dnsResponse.getMutableData(), 0, dnsResponse.ids.ttlCap);
   }
 
-  if (dnsResponse.ids.d_extendedError) {
-    dnsdist::edns::addExtendedDNSError(dnsResponse.getMutableData(), dnsResponse.getMaximumSize(), dnsResponse.ids.d_extendedError->infoCode, dnsResponse.ids.d_extendedError->extraText);
+  if (dnsResponse.ids.d_extendedErrors) {
+    for (auto ede : *dnsResponse.ids.d_extendedErrors) {
+      dnsdist::edns::addExtendedDNSError(dnsResponse.getMutableData(), dnsResponse.getMaximumSize(), ede.infoCode, ede.extraText);
+    }
   }
 
 #ifdef HAVE_DNSCRYPT
@@ -1403,8 +1405,10 @@ static bool prepareOutgoingResponse([[maybe_unused]] const ClientState& clientSt
     dnsdist::PacketMangling::restrictDNSPacketTTLs(dnsResponse.getMutableData(), 0, dnsResponse.ids.ttlCap);
   }
 
-  if (dnsResponse.ids.d_extendedError) {
-    dnsdist::edns::addExtendedDNSError(dnsResponse.getMutableData(), dnsResponse.getMaximumSize(), dnsResponse.ids.d_extendedError->infoCode, dnsResponse.ids.d_extendedError->extraText);
+  if (dnsResponse.ids.d_extendedErrors) {
+    for (auto ede : *dnsResponse.ids.d_extendedErrors) {
+      dnsdist::edns::addExtendedDNSError(dnsResponse.getMutableData(), dnsResponse.getMaximumSize(), ede.infoCode, ede.extraText);
+    }
   }
 
   if (cacheHit) {
