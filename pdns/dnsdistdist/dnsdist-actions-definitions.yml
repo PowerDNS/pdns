@@ -1,15 +1,4 @@
 ---
-- name: "AddExtendedDNSError"
-  description: "Set an Extended DNS Error status that will be added to the response corresponding to the current query. Subsequent rules are processed after this action"
-  parameters:
-    - name: "info_code"
-      type: "u16"
-      description: "The EDNS Extended DNS Error code"
-    - name: "extra_text"
-      type: "String"
-      default: ""
-      optional: false
-      description: "The optional EDNS Extended DNS Error extra text"
 - name: "allow"
   description: "Let these packets go through"
 - name: "continue"
@@ -360,7 +349,7 @@ are processed after this action"
       type: "String"
       description: "The EDNS0 option raw content"
 - name: "SetExtendedDNSError"
-  description: "Set an Extended DNS Error status that will be set to the response corresponding to the current query. This will clear any previously set Extended DNS Errors. Subsequent rules are processed after this action"
+  description: "Set an Extended DNS Error status that will be added to the response corresponding to the current query. Subsequent rules are processed after this action"
   parameters:
     - name: "info_code"
       type: "u16"
@@ -370,6 +359,11 @@ are processed after this action"
       default: ""
       optional: false
       description: "The optional EDNS Extended DNS Error extra text"
+    - name: "clear_existing_entries"
+      type: "bool"
+      default: "true"
+      optional: false
+      description: "Whether to clear existing EDNS Extended DNS Error codes"
 - name: "SetMacAddr"
   description: "Add the source MAC address to the query as an EDNS0 option. This action is currently only supported on Linux. Subsequent rules are processed after this action"
   parameters:
