@@ -256,3 +256,199 @@ class TestBasics(DNSDistTest):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.checkMessageEDNS(expectedResponse, receivedResponse)
+
+class TestMultipleEDE(DNSDistTest):
+
+    _config_template = """
+    newServer{address="127.0.0.1:%d"}
+    pc = newPacketCache(100, {maxTTL=86400, minTTL=1})
+    getPool(""):setCache(pc)
+
+    local ffi = require("ffi")
+    local function addEDEPlusRecord(dq, code, extraText)
+      local extraTextLen = 0
+      if extraText ~= nil then
+        extraTextLen = #extraText
+      end
+      ffi.C.dnsdist_ffi_dnsquestion_add_extended_dns_error(dq, 29, extraText, extraTextLen)
+      local str = "192.0.2.2"
+      local buf = ffi.new("char[?]", #str + 1)
+      ffi.copy(buf, str)
+      ffi.C.dnsdist_ffi_dnsquestion_set_result(dq, buf, #str)
+      return DNSAction.Spoof
+    end
+
+    function ffiAction(dq)
+      local extraText = 'Synthesized from Lua'
+      return addEDEPlusRecord(dq, 29, extraText)
+    end
+
+    function ffiActionNoExtra(dq)
+      local extraText = nil
+      return addEDEPlusRecord(dq, 29, extraText)
+    end
+
+    addAction("backend-response-existing-ede-replace.ede.tests.powerdns.com.", SetExtendedDNSErrorAction(15, "my replaced error status", true))
+    addAction(AllRule(), SetExtendedDNSErrorAction(16, "my extended error status", false))
+    addAction("self-answered.ede.tests.powerdns.com.", SpoofAction("192.0.2.1"))
+    addAction("self-answered-ffi.ede.tests.powerdns.com.", LuaFFIAction(ffiAction))
+    addAction("self-answered-ffi-no-extra.ede.tests.powerdns.com.", LuaFFIAction(ffiActionNoExtra))
+    addSelfAnsweredResponseAction("self-answered.ede.tests.powerdns.com.", SetExtendedDNSErrorResponseAction(42, "my self-answered extended error status", false))
+
+    """
+
+    def testExtendedErrorBackendResponseWithExistingEDE(self):
+        """
+        EDE: Backend response with existing EDE
+        """
+        name = 'backend-response-existing-ede.ede.tests.powerdns.com.'
+        ede = extendederrors.ExtendedErrorOption(16, b'my extended error status')
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=True)
+
+        backendResponse = dns.message.make_response(query)
+        backendEDE = extendederrors.ExtendedErrorOption(3, b'Stale answer')
+        backendResponse.use_edns(edns=True, payload=4096, options=[backendEDE])
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+
+        backendResponse.answer.append(rrset)
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.use_edns(edns=True, payload=4096, options=[backendEDE, ede])
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        expectedResponse.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, backendResponse)
+            receivedQuery.id = query.id
+            self.assertEqual(query, receivedQuery)
+            self.checkMessageEDNS(expectedResponse, receivedResponse)
+
+        # testing the cache
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.checkMessageEDNS(expectedResponse, receivedResponse)
+
+    def testExtendedErrorBackendResponseWithExistingEDEReplaceFirst(self):
+        """
+        EDE: Backend response with existing EDE that is replaced
+        """
+        name = 'backend-response-existing-ede-replace.ede.tests.powerdns.com.'
+        replacingEde = extendederrors.ExtendedErrorOption(15, b'my replaced error status')
+        ede = extendederrors.ExtendedErrorOption(16, b'my extended error status')
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=True)
+
+        backendResponse = dns.message.make_response(query)
+        backendEDE = extendederrors.ExtendedErrorOption(3, b'Stale answer')
+        backendResponse.use_edns(edns=True, payload=4096, options=[backendEDE])
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+
+        backendResponse.answer.append(rrset)
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.use_edns(edns=True, payload=4096, options=[replacingEde, ede])
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        expectedResponse.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, backendResponse)
+            receivedQuery.id = query.id
+            self.assertEqual(query, receivedQuery)
+            self.checkMessageEDNS(expectedResponse, receivedResponse)
+
+        # testing the cache
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.checkMessageEDNS(expectedResponse, receivedResponse)
+
+    def testExtendedErrorSelfAnswered(self):
+        """
+        EDE: Self-answered
+        """
+        name = 'self-answered.ede.tests.powerdns.com.'
+        allEDE = extendederrors.ExtendedErrorOption(16, b'my extended error status')
+        ede = extendederrors.ExtendedErrorOption(42, b'my self-answered extended error status')
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=True)
+        # dnsdist sets RA = RD for self-generated responses
+        query.flags &= ~dns.flags.RD
+
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.use_edns(edns=True, payload=1232, options=[allEDE, ede])
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.0.2.1')
+        expectedResponse.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.checkMessageEDNS(expectedResponse, receivedResponse)
+
+    def testExtendedErrorLuaFFI(self):
+        """
+        EDE: Self-answered via Lua FFI
+        """
+        name = 'self-answered-ffi.ede.tests.powerdns.com.'
+        allEDE = extendederrors.ExtendedErrorOption(16, b'my extended error status')
+        ede = extendederrors.ExtendedErrorOption(29, b'Synthesized from Lua')
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=True)
+        # dnsdist sets RA = RD for self-generated responses
+        query.flags &= ~dns.flags.RD
+
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.use_edns(edns=True, payload=1232, options=[allEDE, ede])
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.0.2.2')
+        expectedResponse.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.checkMessageEDNS(expectedResponse, receivedResponse)
+
+    def testExtendedErrorNoExtraTextLuaFFI(self):
+        """
+        EDE: Self-answered via Lua FFI without any extra text
+        """
+        name = 'self-answered-ffi-no-extra.ede.tests.powerdns.com.'
+        allEDE = extendederrors.ExtendedErrorOption(16, b'my extended error status')
+        ede = extendederrors.ExtendedErrorOption(29, b'')
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=True)
+        # dnsdist sets RA = RD for self-generated responses
+        query.flags &= ~dns.flags.RD
+
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.use_edns(edns=True, payload=1232, options=[allEDE, ede])
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.0.2.2')
+        expectedResponse.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.checkMessageEDNS(expectedResponse, receivedResponse)
