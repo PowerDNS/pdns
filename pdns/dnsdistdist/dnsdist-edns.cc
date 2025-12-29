@@ -57,7 +57,7 @@ std::pair<std::optional<uint16_t>, std::optional<std::string>> getExtendedDNSErr
   return {infoCode, std::move(extraText)};
 }
 
-bool addExtendedDNSError(PacketBuffer& packet, size_t maximumPacketSize, uint16_t code, const std::string& extraStatus, bool clearExisting)
+bool addExtendedDNSError(PacketBuffer& packet, size_t maximumPacketSize, const SetExtendedDNSErrorOperation& setErrorOp)
 {
   uint16_t optStart = 0;
   size_t optLen = 0;
@@ -70,7 +70,7 @@ bool addExtendedDNSError(PacketBuffer& packet, size_t maximumPacketSize, uint16_
     return false;
   }
 
-  EDNSExtendedError ede{.infoCode = code, .extraText = extraStatus};
+  EDNSExtendedError ede{.infoCode = setErrorOp.error.infoCode, .extraText = setErrorOp.error.extraText};
   auto edeOptionPayload = makeEDNSExtendedErrorOptString(ede);
   std::string edeOption;
   generateEDNSOption(EDNSOptionCode::EXTENDEDERROR, edeOptionPayload, edeOption);
@@ -80,7 +80,7 @@ bool addExtendedDNSError(PacketBuffer& packet, size_t maximumPacketSize, uint16_
   PacketBuffer newContent;
   bool ednsAdded = false;
   bool edeAdded = false;
-  if (!slowRewriteEDNSOptionInQueryWithRecords(packet, newContent, ednsAdded, EDNSOptionCode::EXTENDEDERROR, edeAdded, clearExisting, !clearExisting, edeOption)) {
+  if (!slowRewriteEDNSOptionInQueryWithRecords(packet, newContent, ednsAdded, EDNSOptionCode::EXTENDEDERROR, edeAdded, setErrorOp.clearExisting, !setErrorOp.clearExisting, edeOption)) {
     return false;
   }
 
