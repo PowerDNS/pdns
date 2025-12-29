@@ -362,7 +362,7 @@ are processed after this action"
     - name: "clear_existing_entries"
       type: "bool"
       default: "true"
-      optional: false
+      optional: true
       description: "Whether to clear existing EDNS Extended DNS Error codes"
 - name: "SetMacAddr"
   description: "Add the source MAC address to the query as an EDNS0 option. This action is currently only supported on Linux. Subsequent rules are processed after this action"
