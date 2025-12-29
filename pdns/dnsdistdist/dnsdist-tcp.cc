@@ -1396,7 +1396,7 @@ static bool processXFRResponse(DNSResponse& dnsResponse)
 
   if (dnsResponse.ids.d_extendedErrors) {
     for (auto ede : *dnsResponse.ids.d_extendedErrors) {
-      dnsdist::edns::addExtendedDNSError(dnsResponse.getMutableData(), dnsResponse.getMaximumSize(), ede.infoCode, ede.extraText, ede.clearExisting);
+      dnsdist::edns::addExtendedDNSError(dnsResponse.getMutableData(), dnsResponse.getMaximumSize(), ede.error.infoCode, ede.error.extraText, ede.clearExisting);
     }
   }
 

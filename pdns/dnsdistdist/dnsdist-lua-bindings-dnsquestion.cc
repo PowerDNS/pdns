@@ -19,6 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include "dnsdist-edns.hh"
 #include "dnsdist.hh"
 #include "dnsdist-async.hh"
 #include "dnsdist-dnsparser.hh"
@@ -319,23 +320,23 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
   });
 
   luaCtx.registerFunction<void (DNSQuestion::*)(uint16_t infoCode, const std::optional<std::string>& extraText, const std::optional<bool> clearExistingEntries)>("setExtendedDNSError", [](DNSQuestion& dnsQuestion, uint16_t infoCode, const std::optional<std::string>& extraText, const std::optional<bool> clearExistingEntries) {
-    EDNSExtendedError ede;
-    ede.infoCode = infoCode;
+    dnsdist::edns::SetExtendedDNSErrorOperation ede;
+    ede.error.infoCode = infoCode;
     if (extraText) {
-      ede.extraText = *extraText;
+      ede.error.extraText = *extraText;
     }
-    if (clearExistingEntries.value_or(true)) {
-      dnsQuestion.ids.d_extendedErrors = std::make_unique<std::vector<EDNSExtendedError>>(std::initializer_list<EDNSExtendedError>({ede}));
+    ede.clearExisting = clearExistingEntries.value_or(true);
+    if (ede.clearExisting) {
+      dnsQuestion.ids.d_extendedErrors = std::make_unique<std::vector<dnsdist::edns::SetExtendedDNSErrorOperation>>(std::initializer_list<dnsdist::edns::SetExtendedDNSErrorOperation>({ede}));
     }
     else {
       if (!dnsQuestion.ids.d_extendedErrors) {
-        dnsQuestion.ids.d_extendedErrors = std::make_unique<std::vector<EDNSExtendedError>>(std::initializer_list<EDNSExtendedError>({ede}));
+        dnsQuestion.ids.d_extendedErrors = std::make_unique<std::vector<dnsdist::edns::SetExtendedDNSErrorOperation>>(std::initializer_list<dnsdist::edns::SetExtendedDNSErrorOperation>({ede}));
       }
       else {
         dnsQuestion.ids.d_extendedErrors->emplace_back(ede);
       }
     }
-    dnsQuestion.ids.d_extendedErrors = std::make_unique<std::vector<EDNSExtendedError>>(std::initializer_list<EDNSExtendedError>({ede}));
   });
 
   luaCtx.registerFunction<bool (DNSQuestion::*)(uint16_t asyncID, uint16_t queryID, uint32_t timeoutMs)>("suspend", [](DNSQuestion& dnsQuestion, uint16_t asyncID, uint16_t queryID, uint32_t timeoutMs) {
@@ -694,17 +695,18 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
   });
 
   luaCtx.registerFunction<void (DNSResponse::*)(uint16_t infoCode, const std::optional<std::string>& extraText, const std::optional<bool> clearExistingEntries)>("setExtendedDNSError", [](DNSResponse& dnsResponse, uint16_t infoCode, const std::optional<std::string>& extraText, const std::optional<bool> clearExistingEntries) {
-    EDNSExtendedError ede;
-    ede.infoCode = infoCode;
+    dnsdist::edns::SetExtendedDNSErrorOperation ede;
+    ede.error.infoCode = infoCode;
     if (extraText) {
-      ede.extraText = *extraText;
+      ede.error.extraText = *extraText;
     }
-    if (clearExistingEntries.value_or(true)) {
-      dnsResponse.ids.d_extendedErrors = std::make_unique<std::vector<EDNSExtendedError>>(std::initializer_list<EDNSExtendedError>({ede}));
+    ede.clearExisting = clearExistingEntries.value_or(true);
+    if (ede.clearExisting) {
+      dnsResponse.ids.d_extendedErrors = std::make_unique<std::vector<dnsdist::edns::SetExtendedDNSErrorOperation>>(std::initializer_list<dnsdist::edns::SetExtendedDNSErrorOperation>({ede}));
     }
     else {
       if (!dnsResponse.ids.d_extendedErrors) {
-        dnsResponse.ids.d_extendedErrors = std::make_unique<std::vector<EDNSExtendedError>>(std::initializer_list<EDNSExtendedError>({ede}));
+        dnsResponse.ids.d_extendedErrors = std::make_unique<std::vector<dnsdist::edns::SetExtendedDNSErrorOperation>>(std::initializer_list<dnsdist::edns::SetExtendedDNSErrorOperation>({ede}));
       }
       else {
         dnsResponse.ids.d_extendedErrors->emplace_back(ede);

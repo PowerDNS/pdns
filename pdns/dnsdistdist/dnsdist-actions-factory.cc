@@ -2395,8 +2395,8 @@ public:
   // this action does not stop the processing
   SetExtendedDNSErrorAction(uint16_t infoCode, const std::string& extraText, bool clearExistingEntries)
   {
-    d_ede.infoCode = infoCode;
-    d_ede.extraText = extraText;
+    d_ede.error.infoCode = infoCode;
+    d_ede.error.extraText = extraText;
     d_ede.clearExisting = clearExistingEntries;
   }
 
@@ -2404,11 +2404,11 @@ public:
   {
     (void)ruleresult;
     if (d_ede.clearExisting) {
-      dnsQuestion->ids.d_extendedErrors = std::make_unique<std::vector<EDNSExtendedError>>(std::initializer_list<EDNSExtendedError>({d_ede}));
+      dnsQuestion->ids.d_extendedErrors = std::make_unique<std::vector<edns::SetExtendedDNSErrorOperation>>(std::initializer_list<edns::SetExtendedDNSErrorOperation>({d_ede}));
     }
     else {
       if (!dnsQuestion->ids.d_extendedErrors) {
-        dnsQuestion->ids.d_extendedErrors = std::make_unique<std::vector<EDNSExtendedError>>(std::initializer_list<EDNSExtendedError>({d_ede}));
+        dnsQuestion->ids.d_extendedErrors = std::make_unique<std::vector<edns::SetExtendedDNSErrorOperation>>(std::initializer_list<edns::SetExtendedDNSErrorOperation>({d_ede}));
       }
       else {
         dnsQuestion->ids.d_extendedErrors->emplace_back(d_ede);
@@ -2420,11 +2420,11 @@ public:
 
   [[nodiscard]] std::string toString() const override
   {
-    return "set EDNS Extended DNS Error to " + std::to_string(d_ede.infoCode) + (d_ede.extraText.empty() ? std::string() : std::string(": \"") + d_ede.extraText + std::string("\""));
+    return "set EDNS Extended DNS Error to " + std::to_string(d_ede.error.infoCode) + (d_ede.error.extraText.empty() ? std::string() : std::string(": \"") + d_ede.error.extraText + std::string("\""));
   }
 
 private:
-  EDNSExtendedError d_ede;
+  edns::SetExtendedDNSErrorOperation d_ede;
 };
 
 class SetExtendedDNSErrorResponseAction : public DNSResponseAction
@@ -2433,8 +2433,8 @@ public:
   // this action does not stop the processing
   SetExtendedDNSErrorResponseAction(uint16_t infoCode, const std::string& extraText, bool clearExistingEntries)
   {
-    d_ede.infoCode = infoCode;
-    d_ede.extraText = extraText;
+    d_ede.error.infoCode = infoCode;
+    d_ede.error.extraText = extraText;
     d_ede.clearExisting = clearExistingEntries;
   }
 
@@ -2442,11 +2442,11 @@ public:
   {
     (void)ruleresult;
     if (d_ede.clearExisting) {
-      dnsResponse->ids.d_extendedErrors = std::make_unique<std::vector<EDNSExtendedError>>(std::initializer_list<EDNSExtendedError>({d_ede}));
+      dnsResponse->ids.d_extendedErrors = std::make_unique<std::vector<edns::SetExtendedDNSErrorOperation>>(std::initializer_list<edns::SetExtendedDNSErrorOperation>({d_ede}));
     }
     else {
       if (!dnsResponse->ids.d_extendedErrors) {
-        dnsResponse->ids.d_extendedErrors = std::make_unique<std::vector<EDNSExtendedError>>(std::initializer_list<EDNSExtendedError>({d_ede}));
+        dnsResponse->ids.d_extendedErrors = std::make_unique<std::vector<edns::SetExtendedDNSErrorOperation>>(std::initializer_list<edns::SetExtendedDNSErrorOperation>({d_ede}));
       }
       else {
         dnsResponse->ids.d_extendedErrors->emplace_back(d_ede);
@@ -2458,11 +2458,11 @@ public:
 
   [[nodiscard]] std::string toString() const override
   {
-    return "set EDNS Extended DNS Error to " + std::to_string(d_ede.infoCode) + (d_ede.extraText.empty() ? std::string() : std::string(": \"") + d_ede.extraText + std::string("\""));
+    return "set EDNS Extended DNS Error to " + std::to_string(d_ede.error.infoCode) + (d_ede.error.extraText.empty() ? std::string() : std::string(": \"") + d_ede.error.extraText + std::string("\""));
   }
 
 private:
-  EDNSExtendedError d_ede;
+  edns::SetExtendedDNSErrorOperation d_ede;
 };
 
 class LimitTTLResponseAction : public DNSResponseAction, public boost::noncopyable

@@ -26,6 +26,7 @@
 #include "dnsdist-dynblocks.hh"
 #include "dnsdist-ecs.hh"
 #include "dnsdist-lua-ffi.hh"
+#include "dnsdist-edns.hh"
 #include "dnsdist-mac-address.hh"
 #include "dnsdist-metrics.hh"
 #include "dnsdist-lua-network.hh"
@@ -534,24 +535,25 @@ void dnsdist_ffi_dnsquestion_set_http_response([[maybe_unused]] dnsdist_ffi_dnsq
 
 void dnsdist_ffi_dnsquestion_set_extended_dns_error(dnsdist_ffi_dnsquestion_t* dnsQuestion, uint16_t infoCode, const char* extraText, size_t extraTextSize)
 {
-  EDNSExtendedError ede;
-  ede.infoCode = infoCode;
+  dnsdist::edns::SetExtendedDNSErrorOperation ede;
+  ede.error.infoCode = infoCode;
   if (extraText != nullptr && extraTextSize > 0) {
-    ede.extraText = std::string(extraText, extraTextSize);
+    ede.error.extraText = std::string(extraText, extraTextSize);
   }
-  dnsQuestion->dq->ids.d_extendedErrors = std::make_unique<std::vector<EDNSExtendedError>>(std::initializer_list<EDNSExtendedError>({ede}));
+  ede.clearExisting = true;
+  dnsQuestion->dq->ids.d_extendedErrors = std::make_unique<std::vector<dnsdist::edns::SetExtendedDNSErrorOperation>>(std::initializer_list<dnsdist::edns::SetExtendedDNSErrorOperation>({ede}));
 }
 
 void dnsdist_ffi_dnsquestion_add_extended_dns_error(dnsdist_ffi_dnsquestion_t* dnsQuestion, uint16_t infoCode, const char* extraText, size_t extraTextSize)
 {
-  EDNSExtendedError ede;
-  ede.infoCode = infoCode;
+  dnsdist::edns::SetExtendedDNSErrorOperation ede;
+  ede.error.infoCode = infoCode;
   if (extraText != nullptr && extraTextSize > 0) {
-    ede.extraText = std::string(extraText, extraTextSize);
+    ede.error.extraText = std::string(extraText, extraTextSize);
   }
   ede.clearExisting = false;
   if (!dnsQuestion->dq->ids.d_extendedErrors) {
-    dnsQuestion->dq->ids.d_extendedErrors = std::make_unique<std::vector<EDNSExtendedError>>(std::initializer_list<EDNSExtendedError>({ede}));
+    dnsQuestion->dq->ids.d_extendedErrors = std::make_unique<std::vector<dnsdist::edns::SetExtendedDNSErrorOperation>>(std::initializer_list<dnsdist::edns::SetExtendedDNSErrorOperation>({ede}));
   }
   else {
     dnsQuestion->dq->ids.d_extendedErrors->emplace_back(ede);
