@@ -16,7 +16,9 @@ ADD builder/helpers/ /pdns/builder/helpers/
 ADD builder-support/helpers/ /pdns/builder-support/helpers/
 
 @IF [ -n "$M_recursor$M_all" ]
-RUN cd /pdns/builder-support/helpers/ && ./install_rust.sh && \
+RUN cd /pdns/builder-support/helpers/ && ./install_rust.sh
+RUN cd /pdns/builder-support/helpers/ && ./install_cargo_cyclonedx.sh
+RUN cd /pdns/builder-support/helpers/ && \
     yum install -y git cmake clang
 RUN cd /pdns/builder-support/helpers/ && ./install_meson.sh
 @ENDIF
@@ -56,6 +58,13 @@ RUN touch /var/lib/rpm/* && if grep -q 'release 8' /etc/redhat-release; then \
     else \
       builder/helpers/build-specs.sh builder-support/specs/pdns-recursor.spec; \
     fi
+RUN cd /tmp && \
+  tar xf /sdist/pdns-recursor-${BUILDER_VERSION}.tar.xz && \
+  cd pdns-recursor-${BUILDER_VERSION}/rec-rust-lib/ && \
+  python3 generate.py ./ ./ && \
+  cd rust && \
+  /bin/cargo-cyclonedx cyclonedx -f json --spec-version 1.5 && \
+  cp recrust.cdx.json /dist/
 @ENDIF
 
 @IF [ -n "$M_dnsdist$M_all" ]
@@ -66,7 +75,6 @@ RUN touch /var/lib/rpm/* && if grep -q 'release 8' /etc/redhat-release; then \
     fi
 RUN cd /tmp && \
   tar xf /sdist/dnsdist-${BUILDER_VERSION}.tar.xz && \
-  ls -l && \
   cd dnsdist-${BUILDER_VERSION}/dnsdist-rust-lib/ && \
   python3 dnsdist-settings-generator.py ../ ./ ../ && \
   cd rust && \
