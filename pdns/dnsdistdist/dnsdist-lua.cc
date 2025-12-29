@@ -3085,7 +3085,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       catch (const std::exception& e) {
         SLOG(errlog("Error reloading certificates for frontend %s: %s", frontend->local.toStringWithPort(), e.what()),
              getLogger("reloadAllCertificates")->error(Logr::Error, e.what(), "Error reloading TLS certificates for frontend", "frontend.address", Logging::Loggable(frontend->local)));
-
       }
     }
   });

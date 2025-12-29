@@ -53,7 +53,7 @@ static constexpr uint16_t s_defaultPayloadSizeSelfGenAnswers = 1232;
 static constexpr uint16_t s_udpIncomingBufferSize{1500}; // don't accept UDP queries larger than this value
 static_assert(s_defaultPayloadSizeSelfGenAnswers < s_udpIncomingBufferSize, "The UDP responder's payload size should be smaller or equal to our incoming buffer size");
 
-enum class TimeFormat: uint8_t
+enum class TimeFormat : uint8_t
 {
   Numeric,
   ISO8601
