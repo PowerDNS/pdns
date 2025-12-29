@@ -1403,9 +1403,11 @@ Status, Statistics and More
   .. versionadded:: 1.9.0
 
   .. versionchanged:: 2.1.0
-    The ``level_prefix`` option has no longer any effect because it was confusing. The log level is now always logged as ``level`` and the syslog priority, if any, as ``priority`` in all backends except the default one where it is named ``prio``
+    The ``backend`` option has been added.
+    The ``levelPrefix`` option has no longer any effect because it was confusing. The log level is now always logged as ``level`` and the syslog priority, if any, as ``priority`` in all backends except the default one where it is named ``prio``
 
-  Set whether log messages should be in a structured-logging-like format. This is turned off by default.
+  Set whether log messages should be in structured-logging format. This is turned off by default. See :doc:`../advanced/structured-logging-dictionary` for more details.
+
   The resulting format looks like this (when timestamps are enabled via ``--log-timestamps`` and ``timeFormat="ISO8601"``)::
 
     ts="2023-11-06T12:04:58+0100" level="Info" msg="Added downstream server 127.0.0.1:53"
@@ -1419,8 +1421,15 @@ Status, Statistics and More
 
   Options:
 
-  * ``levelPrefix=prefix``: string - Set the prefix for the log level. Default is ``prio``. Not supported since 2.1.0.
+  * ``backend``: string - The backend used for structured logging output, see below. Added in 2.1.0.
   * ``timeFormat=format``: string - Set the time format. Supported values are ``ISO8601`` and ``numeric``. Default is ``numeric``.
+  * ``levelPrefix=prefix``: string - Set the prefix for the log level. Default is ``prio``. No longer supported as of 2.1.0.
+
+ Available backends:
+
+ * ``default``: use the traditional logging system to output structured logging information.
+ * ``systemd-journal``: use ``systemd-journal``. When using this backend, provide ``-o verbose`` or simular output option to ``journalctl`` to view the full information.
+ * ``json``: JSON objects are written to the standard error stream.
 
 .. function:: setOpenTelemetryTracing(value)
 
