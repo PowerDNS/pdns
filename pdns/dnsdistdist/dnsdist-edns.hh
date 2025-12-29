@@ -30,5 +30,5 @@
 namespace dnsdist::edns
 {
 std::pair<std::optional<uint16_t>, std::optional<std::string>> getExtendedDNSError(const PacketBuffer& packet);
-bool addExtendedDNSError(PacketBuffer& packet, size_t maximumPacketSize, uint16_t code, const std::string& extraStatus);
+bool addExtendedDNSError(PacketBuffer& packet, size_t maximumPacketSize, uint16_t code, const std::string& extraStatus, bool clearExisting);
 }

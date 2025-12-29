@@ -57,7 +57,7 @@ std::pair<std::optional<uint16_t>, std::optional<std::string>> getExtendedDNSErr
   return {infoCode, std::move(extraText)};
 }
 
-bool addExtendedDNSError(PacketBuffer& packet, size_t maximumPacketSize, uint16_t code, const std::string& extraStatus)
+bool addExtendedDNSError(PacketBuffer& packet, size_t maximumPacketSize, uint16_t code, const std::string& extraStatus, bool clearExisting)
 {
   uint16_t optStart = 0;
   size_t optLen = 0;
@@ -80,7 +80,7 @@ bool addExtendedDNSError(PacketBuffer& packet, size_t maximumPacketSize, uint16_
   PacketBuffer newContent;
   bool ednsAdded = false;
   bool edeAdded = false;
-  if (!slowRewriteEDNSOptionInQueryWithRecords(packet, newContent, ednsAdded, EDNSOptionCode::EXTENDEDERROR, edeAdded, false, true, edeOption)) {
+  if (!slowRewriteEDNSOptionInQueryWithRecords(packet, newContent, ednsAdded, EDNSOptionCode::EXTENDEDERROR, edeAdded, clearExisting, !clearExisting, edeOption)) {
     return false;
   }
 

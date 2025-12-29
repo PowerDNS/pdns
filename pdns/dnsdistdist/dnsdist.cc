@@ -567,7 +567,7 @@ bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse,
 
   if (dnsResponse.ids.d_extendedErrors) {
     for (auto ede : *dnsResponse.ids.d_extendedErrors) {
-      dnsdist::edns::addExtendedDNSError(dnsResponse.getMutableData(), dnsResponse.getMaximumSize(), ede.infoCode, ede.extraText);
+      dnsdist::edns::addExtendedDNSError(dnsResponse.getMutableData(), dnsResponse.getMaximumSize(), ede.infoCode, ede.extraText, ede.clearExisting);
     }
   }
 
@@ -1407,7 +1407,7 @@ static bool prepareOutgoingResponse([[maybe_unused]] const ClientState& clientSt
 
   if (dnsResponse.ids.d_extendedErrors) {
     for (auto ede : *dnsResponse.ids.d_extendedErrors) {
-      dnsdist::edns::addExtendedDNSError(dnsResponse.getMutableData(), dnsResponse.getMaximumSize(), ede.infoCode, ede.extraText);
+      dnsdist::edns::addExtendedDNSError(dnsResponse.getMutableData(), dnsResponse.getMaximumSize(), ede.infoCode, ede.extraText, ede.clearExisting);
     }
   }
 

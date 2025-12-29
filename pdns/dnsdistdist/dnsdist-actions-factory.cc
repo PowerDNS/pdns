@@ -2393,17 +2393,17 @@ class SetExtendedDNSErrorAction : public DNSAction
 {
 public:
   // this action does not stop the processing
-  SetExtendedDNSErrorAction(uint16_t infoCode, const std::string& extraText, bool clearExistingEntries) :
-    d_clearExistingEntries(clearExistingEntries)
+  SetExtendedDNSErrorAction(uint16_t infoCode, const std::string& extraText, bool clearExistingEntries)
   {
     d_ede.infoCode = infoCode;
     d_ede.extraText = extraText;
+    d_ede.clearExisting = clearExistingEntries;
   }
 
   DNSAction::Action operator()(DNSQuestion* dnsQuestion, std::string* ruleresult) const override
   {
     (void)ruleresult;
-    if (d_clearExistingEntries) {
+    if (d_ede.clearExisting) {
       dnsQuestion->ids.d_extendedErrors = std::make_unique<std::vector<EDNSExtendedError>>(std::initializer_list<EDNSExtendedError>({d_ede}));
     }
     else {
@@ -2425,24 +2425,23 @@ public:
 
 private:
   EDNSExtendedError d_ede;
-  bool d_clearExistingEntries;
 };
 
 class SetExtendedDNSErrorResponseAction : public DNSResponseAction
 {
 public:
   // this action does not stop the processing
-  SetExtendedDNSErrorResponseAction(uint16_t infoCode, const std::string& extraText, bool clearExistingEntries) :
-    d_clearExistingEntries(clearExistingEntries)
+  SetExtendedDNSErrorResponseAction(uint16_t infoCode, const std::string& extraText, bool clearExistingEntries)
   {
     d_ede.infoCode = infoCode;
     d_ede.extraText = extraText;
+    d_ede.clearExisting = clearExistingEntries;
   }
 
   DNSResponseAction::Action operator()(DNSResponse* dnsResponse, std::string* ruleresult) const override
   {
     (void)ruleresult;
-    if (d_clearExistingEntries) {
+    if (d_ede.clearExisting) {
       dnsResponse->ids.d_extendedErrors = std::make_unique<std::vector<EDNSExtendedError>>(std::initializer_list<EDNSExtendedError>({d_ede}));
     }
     else {
@@ -2464,7 +2463,6 @@ public:
 
 private:
   EDNSExtendedError d_ede;
-  bool d_clearExistingEntries;
 };
 
 class LimitTTLResponseAction : public DNSResponseAction, public boost::noncopyable
