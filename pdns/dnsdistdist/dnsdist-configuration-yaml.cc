@@ -991,9 +991,27 @@ static void handleLoggingConfiguration(const Context& context, const dnsdist::ru
     }
   }
 
-  dnsdist::configuration::updateImmutableConfiguration([settings](dnsdist::configuration::ImmutableConfiguration& config) {
+  std::optional<dnsdist::configuration::TimeFormat> timeFormat{};
+  const auto timeFormatStr = std::string(settings.structured.time_format);
+  if (!timeFormatStr.empty()) {
+    if (timeFormatStr == "numeric") {
+      timeFormat = dnsdist::configuration::TimeFormat::Numeric;
+    }
+    else if (timeFormatStr == "ISO8601") {
+      timeFormat = dnsdist::configuration::TimeFormat::ISO8601;
+    }
+    else {
+      SLOG(warnlog("Unknown value '%s' passed to logging.structured.time_format parameter", timeFormatStr),
+             context.logger->info(Logr::Warning, "Unknown value passed to logging.structured.time_format parameter", "value", Logging::Loggable(timeFormatStr)));
+      }
+  }
+
+  dnsdist::configuration::updateImmutableConfiguration([settings, timeFormat](dnsdist::configuration::ImmutableConfiguration& config) {
     config.d_loggingBackend = std::string(settings.structured.backend);
     config.d_structuredLogging = settings.structured.enabled;
+    if (timeFormat) {
+      config.d_structuredLoggingTimeFormat = *timeFormat;
+    }
   });
 }
 

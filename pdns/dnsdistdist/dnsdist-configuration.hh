@@ -53,6 +53,12 @@ static constexpr uint16_t s_defaultPayloadSizeSelfGenAnswers = 1232;
 static constexpr uint16_t s_udpIncomingBufferSize{1500}; // don't accept UDP queries larger than this value
 static_assert(s_defaultPayloadSizeSelfGenAnswers < s_udpIncomingBufferSize, "The UDP responder's payload size should be smaller or equal to our incoming buffer size");
 
+enum class TimeFormat: uint8_t
+{
+  Numeric,
+  ISO8601
+};
+
 /* this part of the configuration can only be updated at configuration
    time, and is immutable once the configuration phase is over */
 struct ImmutableConfiguration
@@ -98,6 +104,7 @@ struct ImmutableConfiguration
   uint32_t d_tcpBanDurationForExceedingMaxReadIOsPerQuery{60};
   uint32_t d_tcpBanDurationForExceedingTCPTLSRate{10};
   uint16_t d_maxUDPOutstanding{std::numeric_limits<uint16_t>::max()};
+  TimeFormat d_structuredLoggingTimeFormat{TimeFormat::Numeric};
   uint8_t d_udpTimeout{2};
   uint8_t d_tcpConnectionsOverloadThreshold{90};
   uint8_t d_tcpConnectionsMaskV4{32};

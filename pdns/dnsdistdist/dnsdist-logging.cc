@@ -36,6 +36,30 @@
 
 namespace dnsdist::logging
 {
+static const char* convertTime(const timeval& tval, std::array<char, 64>& buffer)
+{
+  auto format = dnsdist::configuration::getImmutableConfiguration().d_structuredLoggingTimeFormat;
+  if (format == dnsdist::configuration::TimeFormat::ISO8601) {
+    time_t now{};
+    time(&now);
+    struct tm localNow{};
+    localtime_r(&now, &localNow);
+
+    {
+      // strftime is not thread safe, it can access locale information
+      static std::mutex mutex;
+      auto lock = std::scoped_lock(mutex);
+
+      if (strftime(buffer.data(), buffer.size(), "%FT%H:%M:%S%z", &localNow) == 0) {
+        buffer[0] = '\0';
+      }
+    }
+
+    return buffer.data();
+  }
+  return Logging::toTimestampStringMilli(tval, buffer);
+}
+
 #if defined(HAVE_SYSTEMD)
 static void loggerSDBackend(const Logging::Entry& entry)
 {
@@ -75,7 +99,7 @@ static void loggerSDBackend(const Logging::Entry& entry)
     appendKeyAndVal("SUBSYSTEM", entry.name.value());
   }
   std::array<char, 64> timebuf{};
-  appendKeyAndVal("TIMESTAMP", Logging::toTimestampStringMilli(entry.d_timestamp, timebuf));
+  appendKeyAndVal("TIMESTAMP", convertTime(entry.d_timestamp, timebuf));
   for (const auto& value : entry.values) {
     if (value.first.at(0) == '_' || special.count(value.first) != 0) {
       string key{"PDNS"};
@@ -103,7 +127,7 @@ static void loggerJSONBackend(const Logging::Entry& entry)
   json11::Json::object json = {
     {"msg", entry.message},
     {"level", std::to_string(entry.level)},
-    {"ts", Logging::toTimestampStringMilli(entry.d_timestamp, timebuf)},
+    {"ts", convertTime(entry.d_timestamp, timebuf)},
   };
 
   if (entry.error) {
@@ -148,7 +172,7 @@ static void loggerBackend(const Logging::Entry& entry)
   }
 
   std::array<char, 64> timebuf{};
-  buf << " ts=" << std::quoted(Logging::toTimestampStringMilli(entry.d_timestamp, timebuf));
+  buf << " ts=" << std::quoted(convertTime(entry.d_timestamp, timebuf));
   for (auto const& value : entry.values) {
     buf << " ";
     buf << value.first << "=" << std::quoted(value.second);

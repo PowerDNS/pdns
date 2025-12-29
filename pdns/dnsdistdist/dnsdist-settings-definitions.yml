@@ -1777,7 +1777,7 @@ structured_logging:
   parameters:
     - name: "enabled"
       type: "bool"
-      default: "true"
+      default: "false"
       description: |
         Set whether log messages should be in structured-logging format."
       changes:
@@ -1789,7 +1789,7 @@ structured_logging:
       description: "Set the key name for the log level. There is unfortunately no standard name for this key, so in some setups it might be useful to set this value to a different name to have consistency across products"
       changes:
         - version: "2.1.0"
-          content: "This setting has been removed"
+          content: "This setting has no longer any effect because it was confusing. The log level is now always logged as ``level`` and the syslog priority, if any, as ``priority`` in all backends except the default one where it is named ``prio``"
     - name: "time_format"
       type: "String"
       default: "numeric"
@@ -1797,9 +1797,6 @@ structured_logging:
       supported-values:
         - "ISO8601"
         - "numeric"
-      changes:
-        - version: "2.1.0"
-          content: "This setting has been removed"
     - name: "backend"
       type: "String"
       default: ""

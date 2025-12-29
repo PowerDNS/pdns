@@ -1762,15 +1762,32 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
   });
   luaCtx.writeFunction("setStructuredLogging", [](bool enable, std::optional<LuaAssociativeTable<std::string>> options) {
+    std::optional<dnsdist::configuration::TimeFormat> format{};
+    std::string timeFormat;
     std::string backend;
     if (options) {
+      if (getOptionalValue<std::string>(options, "timeFormat", timeFormat) == 1) {
+        if (timeFormat == "numeric") {
+          format = dnsdist::configuration::TimeFormat::Numeric;
+        }
+        else if (timeFormat == "ISO8601") {
+          format = dnsdist::configuration::TimeFormat::ISO8601;
+        }
+        else {
+          SLOG(warnlog("Unknown value '%s' to setStructuredLogging's 'timeFormat' parameter", timeFormat),
+               getLogger("setStructuredLogging")->info(Logr::Warning, "Unknown value passed to setStructuredLogging's 'timeFormat' parameter", "value", Logging::Loggable(timeFormat)));
+        }
+      }
       getOptionalValue<std::string>(options, "backend", backend);
       checkAllParametersConsumed("setStructuredLogging", options);
     }
 
-    dnsdist::configuration::updateImmutableConfiguration([enable, &backend](dnsdist::configuration::ImmutableConfiguration& config) {
+    dnsdist::configuration::updateImmutableConfiguration([enable, &backend, format](dnsdist::configuration::ImmutableConfiguration& config) {
       if (enable && !backend.empty()) {
         config.d_loggingBackend = backend;
+      }
+      if (format) {
+        config.d_structuredLoggingTimeFormat = *format;
       }
       config.d_structuredLogging = enable;
     });
