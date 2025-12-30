@@ -25,10 +25,17 @@
 #include <string>
 #include <utility>
 
+#include "ednsextendederror.hh"
 #include "noinitvector.hh"
 
 namespace dnsdist::edns
 {
+struct SetExtendedDNSErrorOperation
+{
+  EDNSExtendedError error;
+  bool clearExisting = true;
+};
+
 std::pair<std::optional<uint16_t>, std::optional<std::string>> getExtendedDNSError(const PacketBuffer& packet);
-bool addExtendedDNSError(PacketBuffer& packet, size_t maximumPacketSize, uint16_t code, const std::string& extraStatus);
+bool addExtendedDNSError(PacketBuffer& packet, size_t maximumPacketSize, const SetExtendedDNSErrorOperation& setErrorOp);
 }

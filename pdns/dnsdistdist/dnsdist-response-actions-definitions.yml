@@ -203,6 +203,11 @@ The function will be invoked in a per-thread Lua state, without access to the gl
       default: ""
       optional: false
       description: "The optional EDNS Extended DNS Error extra text"
+    - name: "clear_existing_entries"
+      type: "bool"
+      default: "true"
+      optional: true
+      description: "Whether to clear existing EDNS Extended DNS Error codes"
 - name: "SetMaxReturnedTTL"
   description: "Cap the TTLs of the response to the given maximum, but only after inserting the response into the packet cache with the initial TTL values"
   skip-cpp: true

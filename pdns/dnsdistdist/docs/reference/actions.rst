@@ -607,25 +607,33 @@ The following actions exist.
   :param int option: The EDNS option number
   :param string data: The EDNS0 option raw content
 
-.. function:: SetExtendedDNSErrorAction(infoCode [, extraText])
+.. function:: SetExtendedDNSErrorAction(infoCode [, extraText [, clearExistingEntries]])
 
   .. versionadded:: 1.9.0
+
+  .. versionchanged:: 2.1.0
+    ``clearExistingEntries`` optional parameter added.
 
   Set an Extended DNS Error status that will be added to the response corresponding to the current query.
   Subsequent rules are processed after this action.
 
   :param int infoCode: The EDNS Extended DNS Error code
   :param string extraText: The optional EDNS Extended DNS Error extra text
+  :param bool clearExistingEntries: Whether to clear existing EDNS Extended DNS Error codes, default true
 
-.. function:: SetExtendedDNSErrorResponseAction(infoCode [, extraText])
+.. function:: SetExtendedDNSErrorResponseAction(infoCode [, extraText [, clearExistingEntries]])
 
   .. versionadded:: 1.9.0
+
+  .. versionchanged:: 2.1.0
+    ``clearExistingEntries`` optional parameter added.
 
   Set an Extended DNS Error status that will be added to this response.
   Subsequent rules are processed after this action.
 
   :param int infoCode: The EDNS Extended DNS Error code
   :param string extraText: The optional EDNS Extended DNS Error extra text
+  :param bool clearExistingEntries: Whether to clear existing EDNS Extended DNS Error codes, default true
 
 .. function:: SetMacAddrAction(option)
 

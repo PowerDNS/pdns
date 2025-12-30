@@ -1394,8 +1394,10 @@ static bool processXFRResponse(DNSResponse& dnsResponse)
     return true;
   }
 
-  if (dnsResponse.ids.d_extendedError) {
-    dnsdist::edns::addExtendedDNSError(dnsResponse.getMutableData(), dnsResponse.getMaximumSize(), dnsResponse.ids.d_extendedError->infoCode, dnsResponse.ids.d_extendedError->extraText);
+  if (dnsResponse.ids.d_extendedErrors) {
+    for (auto ede : *dnsResponse.ids.d_extendedErrors) {
+      dnsdist::edns::addExtendedDNSError(dnsResponse.getMutableData(), dnsResponse.getMaximumSize(), ede);
+    }
   }
 
   return true;

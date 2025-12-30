@@ -33,6 +33,7 @@
 #include "config.h"
 #include "dnscrypt.hh"
 #include "dnsdist-configuration.hh"
+#include "dnsdist-edns.hh"
 #include "dnsname.hh"
 #include "dnsdist-protocols.hh"
 #include "ednsextendederror.hh"
@@ -203,7 +204,7 @@ public:
 #ifndef DISABLE_PROTOBUF
   std::vector<std::pair<std::string, std::shared_ptr<RemoteLoggerInterface>>> delayedResponseMsgs;
 #endif
-  std::unique_ptr<EDNSExtendedError> d_extendedError{nullptr};
+  std::unique_ptr<std::vector<dnsdist::edns::SetExtendedDNSErrorOperation>> d_extendedErrors{nullptr};
   std::optional<uint32_t> tempFailureTTL{std::nullopt}; // 8
   ClientState* cs{nullptr}; // 8
   std::unique_ptr<DOHUnitInterface> du; // 8
