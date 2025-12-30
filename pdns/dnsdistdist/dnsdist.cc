@@ -3716,6 +3716,9 @@ int main(int argc, char** argv)
 #endif
       }
       // No exception was thrown
+      dnsdist::logging::setup(dnsdist::configuration::getImmutableConfiguration().d_loggingBackend);
+      setupLogger = dnsdist::logging::getTopLogger()->withName("setup");
+
       SLOG(infolog("Configuration '%s' OK!", cmdLine.config),
            setupLogger->info(Logr::Info, "Configuration OK", "path", Logging::Loggable(cmdLine.config)));
       doExitNicely();
@@ -3738,6 +3741,7 @@ int main(int argc, char** argv)
     }
 
     dnsdist::logging::setup(dnsdist::configuration::getImmutableConfiguration().d_loggingBackend);
+    setupLogger = dnsdist::logging::getTopLogger()->withName("setup");
 
     // we only want to update this value if it has not been set by either the Lua or YAML configuration,
     // and we need to stop touching this value once the backends' hashes have been computed, in setupPools()
