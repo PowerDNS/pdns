@@ -315,14 +315,18 @@ This state can be modified from the various hooks.
     :param int code: The EDNS option code
     :param string data: The EDNS option raw data
 
-  .. method:: DNSQuestion:setExtendedDNSError(infoCode [, extraText])
+  .. method:: DNSQuestion:setExtendedDNSError(infoCode [, extraText [, clearExistingEntries]])
 
     .. versionadded:: 1.9.0
+
+    .. versionchanged:: 2.1.0
+      ``clearExistingEntries`` optional parameter added.
 
       Set an Extended DNS Error status that will be added to the response corresponding to the current query.
 
     :param int infoCode: The EDNS Extended DNS Error code
     :param string extraText: The optional EDNS Extended DNS Error extra text
+    :param bool clearExistingEntries: Whether to clear existing EDNS Extended DNS Error codes, default true
 
   .. method:: DNSQuestion:setHTTPResponse(status, body, contentType="")
 
