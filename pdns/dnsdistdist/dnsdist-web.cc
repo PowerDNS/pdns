@@ -239,13 +239,13 @@ static bool apiWriteConfigFile(const string& filebasename, const string& content
   const auto& runtimeConfig = dnsdist::configuration::getCurrentRuntimeConfiguration();
   if (!runtimeConfig.d_apiReadWrite) {
     SLOG(warnlog("Not writing content to %s since the API is read-only", filebasename),
-         logger.info(Logr::Warning, "Not writing content to file since the API is read-only", "filename", Logging::Loggable(filebasename)));
+         logger.info(Logr::Warning, "Not writing content to file since the API is read-only", "path", Logging::Loggable(filebasename)));
     return false;
   }
 
   if (runtimeConfig.d_apiConfigDirectory.empty()) {
     VERBOSESLOG(infolog("Not writing content to %s since the API configuration directory is not set", filebasename),
-                logger.info(Logr::Info, "Not writing content to file since the API configuration directory is not set", "filename", Logging::Loggable(filebasename)));
+                logger.info(Logr::Info, "Not writing content to file since the API configuration directory is not set", "path", Logging::Loggable(filebasename)));
 
     return false;
   }
@@ -255,7 +255,7 @@ static bool apiWriteConfigFile(const string& filebasename, const string& content
   if (!ofconf) {
     int saved = errno;
     SLOG(errlog("Could not open configuration fragment file '%s' for writing: %s", filename, stringerror(saved)),
-         logger.error(Logr::Error, saved, "Could not open configuration fragment file for writing", "filename", Logging::Loggable(filebasename)));
+         logger.error(Logr::Error, saved, "Could not open configuration fragment file for writing", "path", Logging::Loggable(filebasename)));
 
     return false;
   }

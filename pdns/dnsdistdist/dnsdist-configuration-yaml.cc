@@ -976,7 +976,7 @@ static void handleLoggingConfiguration(const Context& context, const dnsdist::ru
     }
     catch (const std::exception& e) {
       SLOG(errlog("Error while opening the verbose logging destination file %s: %s", dest, e.what()),
-           context.logger->error(Logr::Error, e.what(), "Error while opening the verbose logging destination file", "filename", Logging::Loggable(dest)));
+           context.logger->error(Logr::Error, e.what(), "Error while opening the verbose logging destination file", "path", Logging::Loggable(dest)));
     }
   }
 
@@ -1133,7 +1133,7 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
   // Rust code would be quite cumbersome so for now let's settle for this
   s_inConfigCheckMode.store(configCheck);
   s_inClientMode.store(isClient);
-  auto logger = dnsdist::logging::getTopLogger()->withName("yaml-configuration")->withValues("dnsdist.configuration.file", Logging::Loggable(fileName), "dnsdist.configuration.client_mode", Logging::Loggable(isClient), "dnsdist.configuration.check", Logging::Loggable(configCheck));
+  auto logger = dnsdist::logging::getTopLogger()->withName("yaml-configuration")->withValues("path", Logging::Loggable(fileName), "client_mode", Logging::Loggable(isClient), "configuration_check", Logging::Loggable(configCheck));
   Context context{
     .logger = logger,
   };
@@ -1281,7 +1281,7 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
         auto [poolIt, inserted] = config.d_pools.emplace(std::string(pool.name), ServerPool());
         if (inserted) {
           VERBOSESLOG(infolog("Creating pool %s", pool.name),
-                      context.logger->info(Logr::Info, "Creating pool", "pool.name", Logging::Loggable(pool.name)));
+                      context.logger->info(Logr::Info, "Creating pool", "pool", Logging::Loggable(pool.name)));
         }
 
         if (!pool.packet_cache.empty()) {
@@ -1308,15 +1308,15 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
   }
   catch (const ::rust::Error& exp) {
     SLOG(errlog("Error while parsing YAML file %s: %s", fileName, exp.what()),
-         logger->error(Logr::Error, exp.what(), "Error while parsing YAML file", "dnsdist.configuration.file", Logging::Loggable(fileName)));
+         logger->error(Logr::Error, exp.what(), "Error while parsing YAML file", "path", Logging::Loggable(fileName)));
   }
   catch (const PDNSException& exp) {
     SLOG(errlog("Error while processing YAML configuration from file %s: %s", fileName, exp.reason),
-         logger->error(Logr::Error, exp.reason, "Error while processing YAML file", "dnsdist.configuration.file", Logging::Loggable(fileName)));
+         logger->error(Logr::Error, exp.reason, "Error while processing YAML file", "path", Logging::Loggable(fileName)));
   }
   catch (const std::exception& exp) {
     SLOG(errlog("Error while processing YAML configuration from file %s: %s", fileName, exp.what()),
-         logger->error(Logr::Error, exp.what(), "Error while processing YAML file", "dnsdist.configuration.file", Logging::Loggable(fileName)));
+         logger->error(Logr::Error, exp.what(), "Error while processing YAML file", "path", Logging::Loggable(fileName)));
   }
   return false;
 #else

@@ -140,7 +140,7 @@ static void sendfromto(int sock, const PacketBuffer& buffer, const ComboAddress&
     if (ret == -1) {
       int error = errno;
       VERBOSESLOG(infolog("Error sending UDP response to %s: %s", dest.toStringWithPort(), stringerror(error)),
-                  dnsdist::logging::getTopLogger()->withName("sendfromto")->error(error, "Error sending UDP response", "destination.address", Logging::Loggable(dest)));
+                  dnsdist::logging::getTopLogger()->withName("sendfromto")->error(error, "Error sending UDP response", "client.address", Logging::Loggable(dest)));
     }
     return;
   }
@@ -150,7 +150,7 @@ static void sendfromto(int sock, const PacketBuffer& buffer, const ComboAddress&
   }
   catch (const std::exception& exp) {
     VERBOSESLOG(infolog("Error sending UDP response from %s to %s: %s", from.toStringWithPort(), dest.toStringWithPort(), exp.what()),
-                dnsdist::logging::getTopLogger()->withName("sendfromto")->error(exp.what(), "Error sending UDP response", "source.address", Logging::Loggable(from), "destination.address", Logging::Loggable(dest)));
+                dnsdist::logging::getTopLogger()->withName("sendfromto")->error(exp.what(), "Error sending UDP response", "source.address", Logging::Loggable(from), "client.address", Logging::Loggable(dest)));
   }
 }
 
@@ -1301,7 +1301,7 @@ static bool isUDPQueryAcceptable(ClientState& clientState, const struct msghdr* 
   if ((msgh->msg_flags & MSG_TRUNC) != 0) {
     /* message was too large for our buffer */
     VERBOSESLOG(infolog("Dropping message too large for our buffer"),
-                dnsdist::logging::getTopLogger()->info("Dropping query from client that is too large for our buffer", "source.address", Logging::Loggable(dest), "destination.address", Logging::Loggable(clientState.local)));
+                dnsdist::logging::getTopLogger()->info("Dropping query from client that is too large for our buffer", "client.address", Logging::Loggable(remote), "destination.address", Logging::Loggable(dest), "frontend.address", Logging::Loggable(clientState.local)));
     ++clientState.nonCompliantQueries;
     ++dnsdist::metrics::g_stats.nonCompliantQueries;
     return false;
@@ -3575,13 +3575,13 @@ static bool loadConfigurationFromFile(const std::string& configurationFile, bool
 
     if (auto tentativeLuaConfFile = lookForTentativeConfigurationFileWithExtension(configurationFile, "lua")) {
       VERBOSESLOG(infolog("Loading configuration from auto-discovered Lua file %s", *tentativeLuaConfFile),
-                  logger->info(Logr::Info, "Loading configuration from auto-discovered Lua file", "dnsdist.configuration.file", Logging::Loggable(*tentativeLuaConfFile)));
+                  logger->info(Logr::Info, "Loading configuration from auto-discovered Lua file", "path", Logging::Loggable(*tentativeLuaConfFile)));
 
       dnsdist::configuration::lua::loadLuaConfigurationFile(*(g_lua.lock()), *tentativeLuaConfFile, configCheck);
     }
 
     VERBOSESLOG(infolog("Loading configuration from YAML file %s", configurationFile),
-                logger->info(Logr::Info, "Loading configuration from YAML file", "dnsdist.configuration.file", Logging::Loggable(configurationFile)));
+                logger->info(Logr::Info, "Loading configuration from YAML file", "path", Logging::Loggable(configurationFile)));
 
     if (!dnsdist::configuration::yaml::loadConfigurationFromFile(configurationFile, isClient, configCheck)) {
       return false;
@@ -3595,18 +3595,18 @@ static bool loadConfigurationFromFile(const std::string& configurationFile, bool
   dnsdist::lua::setupLua(*(g_lua.lock()), isClient, configCheck);
   if (boost::ends_with(configurationFile, ".lua")) {
     VERBOSESLOG(infolog("Loading configuration from Lua file %s", configurationFile),
-                logger->info(Logr::Info, "Loading configuration from Lua file", "dnsdist.configuration.file", Logging::Loggable(configurationFile)));
+                logger->info(Logr::Info, "Loading configuration from Lua file", "path", Logging::Loggable(configurationFile)));
 
     dnsdist::configuration::lua::loadLuaConfigurationFile(*(g_lua.lock()), configurationFile, configCheck);
     if (auto tentativeYamlConfFile = lookForTentativeConfigurationFileWithExtension(configurationFile, "yml")) {
       VERBOSESLOG(infolog("Loading configuration from auto-discovered YAML file %s", *tentativeYamlConfFile),
-                  logger->info(Logr::Info, "Loading configuration from auto-discovered YAML file", "dnsdist.configuration.file", Logging::Loggable(*tentativeYamlConfFile)));
+                  logger->info(Logr::Info, "Loading configuration from auto-discovered YAML file", "path", Logging::Loggable(*tentativeYamlConfFile)));
       return dnsdist::configuration::yaml::loadConfigurationFromFile(*tentativeYamlConfFile, isClient, configCheck);
     }
   }
   else {
     VERBOSESLOG(infolog("Loading configuration from Lua file %s", configurationFile),
-                logger->info(Logr::Info, "Loading configuration from Lua file", "dnsdist.configuration.file", Logging::Loggable(configurationFile)));
+                logger->info(Logr::Info, "Loading configuration from Lua file", "path", Logging::Loggable(configurationFile)));
 
     dnsdist::configuration::lua::loadLuaConfigurationFile(*(g_lua.lock()), configurationFile, configCheck);
   }
@@ -3662,8 +3662,9 @@ int main(int argc, char** argv)
       config.d_structuredLogging = cmdLine.useStructuredLogging;
     });
 
-    if (cmdLine.useStructuredLogging) {
+    if (cmdLine.useStructuredLogging && !cmdLine.structuredLoggingBackend.empty()) {
       dnsdist::logging::setup(cmdLine.structuredLoggingBackend);
+      setupLogger = dnsdist::logging::getTopLogger()->withName("setup");
     }
 
     dnsdist::configuration::updateRuntimeConfiguration([](dnsdist::configuration::RuntimeConfiguration& config) {
@@ -3716,7 +3717,7 @@ int main(int argc, char** argv)
       }
       // No exception was thrown
       SLOG(infolog("Configuration '%s' OK!", cmdLine.config),
-           setupLogger->info(Logr::Info, "Configuration OK", "dnsdist.configuration.file", Logging::Loggable(cmdLine.config)));
+           setupLogger->info(Logr::Info, "Configuration OK", "path", Logging::Loggable(cmdLine.config)));
       doExitNicely();
     }
 

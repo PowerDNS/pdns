@@ -327,7 +327,7 @@ const ServerPool& createPoolIfNotExists(const string& poolName)
 
   if (!poolName.empty()) {
     VERBOSESLOG(infolog("Creating pool %s", poolName),
-               dnsdist::logging::getTopLogger()->info(Logr::Info, "Creating a new pool of backends", "name", Logging::Loggable(poolName)));
+               dnsdist::logging::getTopLogger()->info(Logr::Info, "Creating a new pool of backends", "pool", Logging::Loggable(poolName)));
   }
 
   dnsdist::configuration::updateRuntimeConfiguration([&poolName](dnsdist::configuration::RuntimeConfiguration& config) {

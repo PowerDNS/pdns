@@ -1742,7 +1742,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
     if (created) {
       VERBOSESLOG(infolog("Creating pool %s", poolName),
-                  getLogger("getPool")->info(Logr::Info, "Creating a new pool", "pool.name", Logging::Loggable(poolName)));
+                  getLogger("getPool")->info(Logr::Info, "Creating a new pool", "pool", Logging::Loggable(poolName)));
     }
 
     return std::make_shared<dnsdist::lua::LuaServerPoolObject>(poolName);
@@ -1758,7 +1758,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
     catch (const std::exception& e) {
       SLOG(errlog("Error while opening the verbose logging destination file %s: %s", dest, e.what()),
-           getLogger("setVerboseLogDestination")->error(Logr::Error, e.what(), "Error while opening the verbose logging destination file", "filename", Logging::Loggable(dest)));
+           getLogger("setVerboseLogDestination")->error(Logr::Error, e.what(), "Error while opening the verbose logging destination file", "path", Logging::Loggable(dest)));
     }
   });
   luaCtx.writeFunction("setStructuredLogging", [](bool enable, std::optional<LuaAssociativeTable<std::string>> options) {
@@ -1925,7 +1925,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
     if (s_included) {
       SLOG(errlog("includeDirectory() cannot be used recursively!"),
-           getLogger("includeDirectory")->info(Logr::Error, "includeDirectory cannot be used recursively", "directory", Logging::Loggable(dirname)));
+           getLogger("includeDirectory")->info(Logr::Error, "includeDirectory cannot be used recursively", "path", Logging::Loggable(dirname)));
       g_outputBuffer = "includeDirectory() cannot be used recursively!\n";
       return;
     }
@@ -1933,14 +1933,14 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     struct stat dirStat{};
     if (stat(dirname.c_str(), &dirStat) != 0) {
       SLOG(errlog("The included directory %s does not exist!", dirname),
-           getLogger("includeDirectory")->info(Logr::Error, "The included directory does not exist", "directory", Logging::Loggable(dirname)));
+           getLogger("includeDirectory")->info(Logr::Error, "The included directory does not exist", "path", Logging::Loggable(dirname)));
       g_outputBuffer = "The included directory " + dirname + " does not exist!";
       return;
     }
 
     if (!S_ISDIR(dirStat.st_mode)) {
       SLOG(errlog("The included directory %s is not a directory!", dirname),
-           getLogger("includeDirectory")->info(Logr::Error, "The included directory is not a directory", "directory", Logging::Loggable(dirname)));
+           getLogger("includeDirectory")->info(Logr::Error, "The included directory is not a directory", "path", Logging::Loggable(dirname)));
       g_outputBuffer = "The included directory " + dirname + " is not a directory!";
       return;
     }
@@ -1963,7 +1963,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
     if (directoryError) {
       SLOG(errlog("Error opening included directory: %s!", *directoryError),
-           getLogger("includeDirectory")->error(Logr::Error, *directoryError, "Error opening included directory", "directory", Logging::Loggable(dirname)));
+           getLogger("includeDirectory")->error(Logr::Error, *directoryError, "Error opening included directory", "path", Logging::Loggable(dirname)));
       g_outputBuffer = "Error opening included directory: " + *directoryError + "!";
       return;
     }
@@ -1976,11 +1976,11 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       std::ifstream ifs(file);
       if (!ifs) {
         SLOG(warnlog("Unable to read configuration from '%s'", file),
-             getLogger("includeDirectory")->info(Logr::Warning, "Unable to read configuration from included directory file", "directory", Logging::Loggable(dirname), "filename", Logging::Loggable(file)));
+             getLogger("includeDirectory")->info(Logr::Warning, "Unable to read configuration from included directory file", "path", Logging::Loggable(dirname), "filename", Logging::Loggable(file)));
       }
       else {
         VERBOSESLOG(infolog("Read configuration from '%s'", file),
-                    getLogger("includeDirectory")->info(Logr::Info, "Read configuration from file", "directory", Logging::Loggable(dirname), "filename", Logging::Loggable(file)));
+                    getLogger("includeDirectory")->info(Logr::Info, "Read configuration from file", "path", Logging::Loggable(dirname), "filename", Logging::Loggable(file)));
       }
 
       try {
@@ -3349,11 +3349,11 @@ void loadLuaConfigurationFile(LuaContext& luaCtx, const std::string& config, boo
       throw std::runtime_error("Unable to read configuration file from " + config);
     }
     SLOG(warnlog("Unable to read configuration from '%s'", config),
-         dnsdist::logging::getTopLogger()->withName("lua-configuration")->info(Logr::Error, "Unable to read configuration from file", "dnsdist.configuration.file", Logging::Loggable(config)));
+         dnsdist::logging::getTopLogger()->withName("lua-configuration")->info(Logr::Error, "Unable to read configuration from file", "path", Logging::Loggable(config)));
   }
   else {
     VERBOSESLOG(infolog("Read configuration from '%s'", config),
-                dnsdist::logging::getTopLogger()->withName("lua-configuration")->info(Logr::Info, "Read configuration from file", "dnsdist.configuration.file", Logging::Loggable(config)));
+                dnsdist::logging::getTopLogger()->withName("lua-configuration")->info(Logr::Info, "Read configuration from file", "path", Logging::Loggable(config)));
   }
 
   luaCtx.executeCode(ifs);

@@ -269,7 +269,7 @@ bool addOrRefreshBlock(ClientAddressDynamicRules& blocks, const timespec& now, c
 
     if (!beQuiet) {
       SLOG(warnlog("Inserting %s%sdynamic block for %s for %d seconds: %s", dblock.warning ? "(warning) " : "", bpf ? "eBPF " : "", requestor.toString(), dblock.until.tv_sec - now.tv_sec, dblock.reason),
-           dnsdist::logging::getTopLogger()->withName("dynamic-rules")->info(Logr::Warning, "Inserting dynamic rule", "dynamic_rule.warning_rule", Logging::Loggable(dblock.warning), "client.address", Logging::Loggable(requestor), "dynamic_rule.use_bpf", Logging::Loggable(bpf), "dyanmic_rule.reason", Logging::Loggable(dblock.reason), "dynamic_rule.duration", Logging::Loggable(dblock.until.tv_sec - now.tv_sec)));
+           dnsdist::logging::getTopLogger()->withName("dynamic-rules")->info(Logr::Warning, "Inserting dynamic rule", "dynamic_rule.warning_rule", Logging::Loggable(dblock.warning), "client.address", Logging::Loggable(requestor), "dynamic_rule.use_bpf", Logging::Loggable(bpf), "dynamic_rule.reason", Logging::Loggable(dblock.reason), "dynamic_rule.duration", Logging::Loggable(dblock.until.tv_sec - now.tv_sec)));
     }
   }
 
@@ -311,7 +311,7 @@ bool addOrRefreshBlockSMT(SuffixDynamicRules& blocks, const timespec& now, DynBl
 
   if (!beQuiet && (got == nullptr || expired)) {
     SLOG(warnlog("Inserting dynamic block for %s for %d seconds: %s", dblock.domain, dblock.until.tv_sec - now.tv_sec, dblock.reason),
-         dnsdist::logging::getTopLogger()->withName("dynamic-rules")->info(Logr::Warning, "Inserting dynamic rule", "dynamic_rule.warning_rule", Logging::Loggable(false), "dns.query.name", Logging::Loggable(dblock.domain), "dynamic_rule.use_bpf", Logging::Loggable(false), "dyanmic_rule.reason", Logging::Loggable(dblock.reason), "dynamic_rule.duration", Logging::Loggable(dblock.until.tv_sec - now.tv_sec)));
+         dnsdist::logging::getTopLogger()->withName("dynamic-rules")->info(Logr::Warning, "Inserting dynamic rule", "dynamic_rule.warning_rule", Logging::Loggable(false), "dns.query.name", Logging::Loggable(dblock.domain), "dynamic_rule.use_bpf", Logging::Loggable(false), "dynamic_rule.reason", Logging::Loggable(dblock.reason), "dynamic_rule.duration", Logging::Loggable(dblock.until.tv_sec - now.tv_sec)));
   }
 
   auto domain = dblock.domain;
