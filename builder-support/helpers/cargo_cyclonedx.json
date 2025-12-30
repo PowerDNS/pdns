@@ -1,0 +1,7 @@
+{
+  "version": "0.5.7",
+  "license": "Apache-2.0",
+  "publisher": "https://github.com/CycloneDX/cyclonedx-rust-cargo",
+  "SHA256SUM": "3ac7058fba657f8cfd56c6e1cfb47ad024fa76070a6286ecf26a16f0d88e3ce2",
+  "cargo-based": true
+}
