@@ -1683,25 +1683,32 @@ public:
   Bind2Loader()
   {
     BackendMakers().report(std::make_unique<Bind2Factory>());
-    SLOG(g_log << Logger::Info << "[bind2backend] This is the bind backend version " << VERSION
+    // If this module is not loaded dynamically at runtime, this code runs
+    // as part of a global constructor, before the structured logger has a
+    // chance to be set up, so fallback to simple logging in this case.
+    if (!g_slogStructured || !g_slog) {
+      g_log << Logger::Info << "[bind2backend] This is the bind backend version " << VERSION
 #ifndef REPRODUCIBLE
-               << " (" __DATE__ " " __TIME__ ")"
+            << " (" __DATE__ " " __TIME__ ")"
 #endif
 #ifdef HAVE_SQLITE3
-               << " (with bind-dnssec-db support)"
+            << " (with bind-dnssec-db support)"
 #endif
-               << " reporting" << endl,
-         g_slog->withName("bind2backend")->info(Logr::Info, "Bind backend starting", "version", Logging::Loggable(VERSION),
+            << " reporting" << endl;
+    }
+    else {
+      g_slog->withName("bind2backend")->info(Logr::Info, "Bind backend starting", "version", Logging::Loggable(VERSION),
 #ifndef REPRODUCIBLE
-                                                "build date", Logging::Loggable(__DATE__ " " __TIME__),
+                                             "build date", Logging::Loggable(__DATE__ " " __TIME__),
 #endif
-                                                "options",
+                                             "options",
 #ifdef HAVE_SQLITE3
-                                                Logging::Loggable("bind-dnssec-db")
+                                             Logging::Loggable("bind-dnssec-db")
 #else
-                                                Logging::Loggable("")
+                                             Logging::Loggable("")
 #endif
-                                                  ));
+      );
+    }
   }
 };
 static Bind2Loader bind2loader;
