@@ -117,7 +117,7 @@ bool LdapGssapiAuthenticator::authenticate(std::shared_ptr<Logr::Logger> log, LD
     // Here it may be possible to retry after obtaining a fresh ticket
     SLOG(g_log << Logger::Debug << d_logPrefix << "No TGT found, trying to acquire a new one" << std::endl,
          log->info(Logr::Debug, "No TGT found, trying to acquire a new one"));
-    code = updateTgt(log);
+    updateTgt(log);
 
     if (attemptAuth(log, conn) != 0) {
       SLOG(g_log << Logger::Error << d_logPrefix << "Failed to acquire a TGT" << std::endl,
