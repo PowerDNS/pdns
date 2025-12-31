@@ -1022,7 +1022,9 @@ createforward6.example.org.                 3600 IN NS   ns2.example.org.
             }),
             ".createreverse.example.org." : (dns.rdatatype.PTR, {
                 "4.3.2.1": "1-2-3-4.example.com.",
-                "10.10.10.10": "quad10.example.com."   # exception
+                "10.10.10.10": "quad10.example.com.",  # exception
+                # error: values not in the 0..255 range
+                "256.384.512.640": "error."
             }),
             ".createforward6.example.org." : (dns.rdatatype.AAAA, {
                 "2001--db8" : "2001::db8",
@@ -1033,7 +1035,11 @@ createforward6.example.org.                 3600 IN NS   ns2.example.org.
             }),
             ".createreverse6.example.org." : (dns.rdatatype.PTR, {
                 "8.b.d.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.1.0.0.2" : "2001--db8.example.com.",
-                "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2" : "example.example.com."   # exception
+                "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2" : "example.example.com.",   # exception
+                # error: fewer than 32 labels (including ".createreverse6.example.org.")
+                "8.b.d.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.1.0.0.2" : "unknown.",
+                # error: I and O instead of 1 and 0 in the would-be address
+                "O.0.0.0.0.0.0.0.0.0.0.0.0.0.0.1.0.b.c.A.2.F.E.9.C.0.0.3.0.0.2.I" : "error."
             })
         }
 

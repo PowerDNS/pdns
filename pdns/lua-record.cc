@@ -884,8 +884,6 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
         if(labels.size()<4)
           return std::string("unknown");
 
-        vector<ComboAddress> candidates;
-
         // so, query comes in for 4.3.2.1.in-addr.arpa, zone is called 2.1.in-addr.arpa
         // e["1.2.3.4"]="bert.powerdns.com" then provides an exception
         if(e) {
@@ -910,7 +908,10 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
         return fmt.str();
       }
       catch(std::exception& ex) {
-        g_log<<Logger::Error<<"error: "<<ex.what()<<endl;
+        g_log<<Logger::Error<<"createReverse error: "<<ex.what()<<endl;
+      }
+      catch(const PDNSException& pe) {
+        g_log<<Logger::Error<<"createReverse error: "<<pe.reason<<endl;
       }
       return std::string("error");
     });
@@ -1020,8 +1021,6 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
       }
     });
   lua.writeFunction("createReverse6", [](const string &format, boost::optional<std::unordered_map<string,string>> excp){
-      vector<ComboAddress> candidates;
-
       try {
         auto labels= s_lua_record_ctx->qname.getRawLabels();
         if (labels.size()<32) {
@@ -1071,12 +1070,12 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
         return fmt.str();
       }
       catch(std::exception& ex) {
-        g_log<<Logger::Error<<"LUA Record exception: "<<ex.what()<<endl;
+        g_log<<Logger::Error<<"createReverse6 exception: "<<ex.what()<<endl;
       }
       catch(PDNSException& ex) {
-        g_log<<Logger::Error<<"LUA Record exception: "<<ex.reason<<endl;
+        g_log<<Logger::Error<<"createReverse6 exception: "<<ex.reason<<endl;
       }
-      return std::string("unknown");
+      return std::string("error");
     });
 
   lua.writeFunction("filterForward", [](const string& address, NetmaskGroup& nmg, boost::optional<string> fallback) -> vector<string> {
