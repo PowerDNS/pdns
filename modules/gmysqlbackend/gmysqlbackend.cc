@@ -44,7 +44,8 @@ gMySQLBackend::gMySQLBackend(const string& mode, const string& suffix) :
   }
 
   try {
-    reconnect();
+    // Explicit call rather than virtual method call, to silence clang-tidy
+    gMySQLBackend::reconnect();
   }
 
   catch (SSqlException& e) {
