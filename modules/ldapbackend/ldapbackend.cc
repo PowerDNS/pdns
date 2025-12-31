@@ -310,17 +310,24 @@ public:
   LdapLoader()
   {
     BackendMakers().report(std::make_unique<LdapFactory>());
-    SLOG(g_log << Logger::Info << "[ldapbackend] This is the ldap backend version " VERSION
+    // If this module is not loaded dynamically at runtime, this code runs
+    // as part of a global constructor, before the structured logger has a
+    // chance to be set up, so fallback to simple logging in this case.
+    if (!g_slogStructured || !g_slog) {
+      g_log << Logger::Info << "[ldapbackend] This is the ldap backend version " VERSION
 #ifndef REPRODUCIBLE
-               << " (" __DATE__ " " __TIME__ ")"
+            << " (" __DATE__ " " __TIME__ ")"
 #endif
-               << " reporting" << endl,
-         g_slog->withName("ldapbackend")->info(Logr::Info, "LDAP bagkend starting", "version", Logging::Loggable(VERSION)
+            << " reporting" << endl;
+    }
+    else {
+      g_slog->withName("ldapbackend")->info(Logr::Info, "LDAP bagkend starting", "version", Logging::Loggable(VERSION)
 #ifndef REPRODUCIBLE
-                                                                                                 ,
-                                               "build date", Logging::Loggable(__DATE__ " " __TIME__)
+                                                                                              ,
+                                            "build date", Logging::Loggable(__DATE__ " " __TIME__)
 #endif
-                                                 ));
+      );
+    }
   }
 };
 
