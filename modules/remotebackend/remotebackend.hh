@@ -219,7 +219,6 @@ private:
 
   bool send(Json& value);
   bool recv(Json& value);
-  static void makeErrorAndThrow(Json& value);
 
   static string asString(const Json& value)
   {
