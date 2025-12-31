@@ -68,17 +68,24 @@ public:
   {
     BackendMakers().report(std::make_unique<Lua2Factory>());
 
-    SLOG(g_log << Logger::Info << "[lua2backend] This is the lua2 backend version " VERSION
+    // If this module is not loaded dynamically at runtime, this code runs
+    // as part of a global constructor, before the structured logger has a
+    // chance to be set up, so fallback to simple logging in this case.
+    if (!g_slogStructured || !g_slog) {
+      g_log << Logger::Info << "[lua2backend] This is the lua2 backend version " VERSION
 #ifndef REPRODUCIBLE
-               << " (" __DATE__ " " __TIME__ ")"
+            << " (" __DATE__ " " __TIME__ ")"
 #endif
-               << " reporting" << endl,
-         g_slog->withName("lua2backend")->info(Logr::Info, "lua2backend starting", "version", Logging::Loggable(VERSION)
+            << " reporting" << endl;
+    }
+    else {
+      g_slog->withName("lua2backend")->info(Logr::Info, "lua2backend starting", "version", Logging::Loggable(VERSION)
 #ifndef REPRODUCIBLE
-                                                                                                ,
-                                               "build date", Logging::Loggable(__DATE__ " " __TIME__)
+                                                                                             ,
+                                            "build date", Logging::Loggable(__DATE__ " " __TIME__)
 #endif
-                                                 ));
+      );
+    }
   }
 };
 
