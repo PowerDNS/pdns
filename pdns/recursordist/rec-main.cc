@@ -69,34 +69,7 @@ thread_local FrameStreamServersInfo t_frameStreamServersInfo;
 thread_local FrameStreamServersInfo t_nodFrameStreamServersInfo;
 #endif /* HAVE_FSTRM */
 
-/* g++ defines __SANITIZE_THREAD__
-   clang++ supports the nice __has_feature(thread_sanitizer),
-   let's merge them */
-#if defined(__has_feature)
-#if __has_feature(thread_sanitizer)
-#define __SANITIZE_THREAD__ 1
-#endif
-#if __has_feature(address_sanitizer)
-#define __SANITIZE_ADDRESS__ 1
-#endif
-#endif
-
-#if __SANITIZE_THREAD__
-#if defined __has_include
-#if __has_include(<sanitizer/tsan_interface.h>)
-#include <sanitizer/tsan_interface.h>
-#else /* __has_include(<sanitizer/tsan_interface.h>) */
-extern "C" void __tsan_acquire(void* addr);
-extern "C" void __tsan_release(void* addr);
-#endif /* __has_include(<sanitizer/tsan_interface.h>) */
-#else /* defined __has_include */
-extern "C" void __tsan_acquire(void* addr);
-extern "C" void __tsan_release(void* addr);
-#endif /* defined __has_include */
-#else
-#define __tsan_acquire(x)
-#define __tsan_release(x)
-#endif /* __SANITIZE_THREAD__ */
+#include "sanitizer.hh"
 
 string g_programname = "pdns_recursor";
 string g_pidfname;
@@ -1525,7 +1498,7 @@ void broadcastFunction(const pipefunc_t& func)
     tmsg->func = func;
     tmsg->wantAnswer = true;
 
-      __tsan_release(tmsg);
+    __tsan_release(tmsg);
 
     if (write(threadInfo.getPipes().writeToThread, &tmsg, sizeof(tmsg)) != sizeof(tmsg)) { // NOLINT: sizeof correct
 
@@ -2385,7 +2358,7 @@ static void handlePipeRequest(int fileDesc, FDMultiplexer::funcparam_t& /* var *
     unixDie("read from thread pipe returned wrong size or error");
   }
 
-   __tsan_acquire(tmsg);
+  __tsan_acquire(tmsg);
 
   void* resp = nullptr;
   try {
@@ -2407,7 +2380,7 @@ static void handlePipeRequest(int fileDesc, FDMultiplexer::funcparam_t& /* var *
   }
   if (tmsg->wantAnswer) {
 
-   __tsan_release(resp);
+    __tsan_release(resp);
 
     if (write(RecThreadInfo::self().getPipes().writeFromThread, &resp, sizeof(resp)) != sizeof(resp)) {
       delete tmsg; // NOLINT: manual ownership handling

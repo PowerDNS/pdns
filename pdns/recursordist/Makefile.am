@@ -214,6 +214,7 @@ pdns_recursor_SOURCES = \
 	root-addresses.hh \
 	root-dnssec.hh \
 	rpzloader.cc rpzloader.hh \
+	sanitizer.hh \
 	secpoll-recursor.cc secpoll-recursor.hh \
 	secpoll.cc secpoll.hh \
 	sha.hh \

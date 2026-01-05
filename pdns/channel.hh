@@ -24,29 +24,7 @@
 #include <optional>
 
 #include "misc.hh"
-
-/* g++ defines __SANITIZE_THREAD__
-   clang++ supports the nice __has_feature(thread_sanitizer),
-   let's merge them */
-#if defined(__has_feature)
-#if __has_feature(thread_sanitizer)
-#define __SANITIZE_THREAD__ 1
-#endif
-#endif
-
-#if __SANITIZE_THREAD__
-#if defined __has_include
-#if __has_include(<sanitizer/tsan_interface.h>)
-#include <sanitizer/tsan_interface.h>
-#else /* __has_include(<sanitizer/tsan_interface.h>) */
-extern "C" void __tsan_acquire(void* addr);
-extern "C" void __tsan_release(void* addr);
-#endif /* __has_include(<sanitizer/tsan_interface.h>) */
-#else /* defined __has_include */
-extern "C" void __tsan_acquire(void* addr);
-extern "C" void __tsan_release(void* addr);
-#endif /* defined __has_include */
-#endif /* __SANITIZE_THREAD__ */
+#include "sanitizer.hh"
 
 namespace pdns
 {

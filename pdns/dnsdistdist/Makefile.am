@@ -297,6 +297,7 @@ dnsdist_SOURCES = \
 	qtype.cc qtype.hh \
 	remote_logger.cc remote_logger.hh \
 	remote_logger_pool.cc remote_logger_pool.hh \
+	sanitizer.hh \
 	sholder.hh \
 	snmp-agent.cc snmp-agent.hh \
 	sstuff.hh \
