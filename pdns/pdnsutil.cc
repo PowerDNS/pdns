@@ -719,7 +719,7 @@ static void loadMainConfig(const std::string& configdir)
   auto log = g_slog->withName("config");
   ::arg().setSLog(log);
 
-  BackendMakers().launch(::arg()["launch"]); // vrooooom!
+  BackendMakers(g_slog).launch(::arg()["launch"]); // vrooooom!
   if(::arg().asNum("loglevel") >= 3) // so you can't kill our errors
     g_log.toConsole((Logger::Urgency)::arg().asNum("loglevel"));
 

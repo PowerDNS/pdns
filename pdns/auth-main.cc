@@ -1551,7 +1551,7 @@ int main(int argc, char** argv)
       }
     }
 
-    BackendMakers().launch(::arg()["launch"]); // vrooooom!
+    BackendMakers(g_slog).launch(::arg()["launch"]); // vrooooom!
 
     if (!::arg().getCommands().empty()) {
       cerr << "Fatal: non-option";
