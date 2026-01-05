@@ -460,7 +460,7 @@ void DownstreamState::handleUDPTimeout(IDState& ids)
   SLOG(infolog("Had a downstream timeout from %s (%s) for query for %s|%s from %s",
                d_config.remote.toStringWithPort(), getName(),
                ids.internal.qname.toLogString(), QType(ids.internal.qtype).toString(), ids.internal.origRemote.toStringWithPort()),
-       getLogger()->info(Logr::Info, "Had a downstream timeout", "dns.question.name", Logging::Loggable(ids.internal.qname), "dns.question.type", Logging::Loggable(QType(ids.internal.qtype)), "dns.question.id", Logging::Loggable(ntohs(ids.internal.origID)), "client.address", Logging::Loggable(ids.internal.origRemote)));
+       getLogger()->info(Logr::Info, "Had a downstream timeout", "dns.question.name", Logging::Loggable(ids.internal.qname), "dns.question.type", Logging::Loggable(ids.internal.qtype), "dns.question.class", Logging::Loggable(ids.internal.qclass), "dns.question.id", Logging::Loggable(ntohs(ids.internal.origID)), "client.address", Logging::Loggable(ids.internal.origRemote)));
 
   const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
   const auto& timeoutRespRules = dnsdist::rules::getResponseRuleChain(chains, dnsdist::rules::ResponseRuleChain::TimeoutResponseRules);
@@ -780,7 +780,7 @@ void DownstreamState::updateNextLazyHealthCheck(LazyHealthCheckStats& stats, boo
       stats.d_nextCheck = now + d_config.d_lazyHealthCheckFailedInterval;
       if (!checkScheduled) {
         VERBOSESLOG(infolog("Backend %s is in failed state but had %d consecutive successful checks, next check in %d seconds", getNameWithAddr(), std::to_string(consecutiveSuccessfulChecks), d_config.d_lazyHealthCheckFailedInterval),
-                    getLogger()->info(Logr::Info, "Backend is in failed state but had a successful check", "backend.health_check.consecutive_successful_checks", Logging::Loggable(std::to_string(consecutiveSuccessfulChecks)), "backend.health_check.next_check", Logging::Loggable(d_config.d_lazyHealthCheckFailedInterval)));
+                    getLogger()->info(Logr::Info, "Backend is in failed state but had a successful check", "backend.health_check.consecutive_successful_checks", Logging::Loggable(consecutiveSuccessfulChecks), "backend.health_check.next_check", Logging::Loggable(d_config.d_lazyHealthCheckFailedInterval)));
       }
     }
     else {
@@ -868,7 +868,7 @@ void DownstreamState::submitHealthCheckResult(bool initial, bool newResult)
       if (d_config.d_healthCheckMode == DownstreamState::HealthCheckMode::Lazy) {
         auto stats = d_lazyHealthCheckStats.lock();
         VERBOSESLOG(infolog("Backend %s had %d successful checks, moving to Healthy", getNameWithAddr(), std::to_string(consecutiveSuccessfulChecks)),
-                    getLogger()->info(Logr::Info, "Backend had a successful check, moving to Healthy", "backend.health_check.consecutive_successful_checks", Logging::Loggable(std::to_string(consecutiveSuccessfulChecks))));
+                    getLogger()->info(Logr::Info, "Backend had a successful check, moving to Healthy", "backend.health_check.consecutive_successful_checks", Logging::Loggable(consecutiveSuccessfulChecks)));
         stats->d_status = LazyHealthCheckStats::LazyStatus::Healthy;
         stats->d_lastResults.clear();
       }
@@ -948,7 +948,7 @@ void DownstreamState::registerXsk(std::vector<std::shared_ptr<XskSocket>>& xsks)
 
     if (addresses.size() > 1) {
       SLOG(warnlog("More than one address configured on interface %s, picking the first one (%s) for XSK. Set the 'source' parameter on 'newServer' if you want to use a different address.", ifName, addresses.at(0).toString()),
-           getLogger()->info(Logr::Warning, "More than one address configured on this interface, picking the first one for XSK. Set the 'source' parameter on 'newServer' if you want to use a different address.", "source.interface", Logging::Loggable(ifName), "backend.address", Logging::Loggable(addresses.at(0).toString())));
+           getLogger()->info(Logr::Warning, "More than one address configured on this interface, picking the first one for XSK. Set the 'source' parameter on 'newServer' if you want to use a different address.", "source.interface", Logging::Loggable(ifName), "backend.address", Logging::Loggable(addresses.at(0))));
     }
     d_config.sourceAddr = addresses.at(0);
   }

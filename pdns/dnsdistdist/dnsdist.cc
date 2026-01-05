@@ -2712,7 +2712,7 @@ static void checkFileDescriptorsLimits(size_t udpBindsCount, size_t tcpBindsCoun
   getrlimit(RLIMIT_NOFILE, &resourceLimits);
   if (resourceLimits.rlim_cur <= requiredFDsCount) {
     SLOG(warnlog("Warning, this configuration can use more than %d file descriptors, web server and console connections not included, and the current limit is %d.", std::to_string(requiredFDsCount), std::to_string(resourceLimits.rlim_cur)),
-         dnsdist::logging::getTopLogger()->info(Logr::Warning, "Warning, this configuration can use more file descriptors, web server and console connections not included, than the currently configured limit", "system.required_file_descriptors", Logging::Loggable(requiredFDsCount), "system.file_descriptors_limit", Logging::Loggable(std::to_string(resourceLimits.rlim_cur))));
+         dnsdist::logging::getTopLogger()->info(Logr::Warning, "Warning, this configuration can use more file descriptors, web server and console connections not included, than the currently configured limit", "system.required_file_descriptors", Logging::Loggable(requiredFDsCount), "system.file_descriptors_limit", Logging::Loggable(resourceLimits.rlim_cur)));
 #ifdef HAVE_SYSTEMD
     SLOG(warnlog("You can increase this value by using LimitNOFILE= in the systemd unit file or ulimit."),
          dnsdist::logging::getTopLogger()->info(Logr::Warning, "You can increase this value by using LimitNOFILE= in the systemd unit file over ulimit"));

@@ -1083,22 +1083,17 @@ int IncomingHTTP2Connection::on_header_callback(nghttp2_session* session, const 
   (void)flags;
   auto* conn = static_cast<IncomingHTTP2Connection*>(user_data);
 
-  auto toLoggable = [](const uint8_t* str, size_t strSize) {
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): nghttp2 API
-    return Logging::Loggable(std::string_view(reinterpret_cast<const char*>(str), strSize));
-  };
-
   if (frame->hd.type == NGHTTP2_HEADERS && frame->headers.cat == NGHTTP2_HCAT_REQUEST) {
     if (nghttp2_check_header_name(name, nameLen) == 0) {
       VERBOSESLOG(infolog("Invalid header name"),
-                  conn->getLogger()->info(Logr::Info, "Invalid header name on DoH connection", "http.request.header", toLoggable(name, nameLen)));
+                  conn->getLogger()->info(Logr::Info, "Invalid header name on DoH connection"));
       return NGHTTP2_ERR_CALLBACK_FAILURE;
     }
 
 #if defined(HAVE_NGHTTP2_CHECK_HEADER_VALUE_RFC9113)
     if (nghttp2_check_header_value_rfc9113(value, valuelen) == 0) {
       VERBOSESLOG(infolog("Invalid header value"),
-                  conn->getLogger()->info(Logr::Info, "Invalid header value on DoH connection", "http.request.header", toLoggable(name, nameLen)));
+                  conn->getLogger()->info(Logr::Info, "Invalid header value on DoH connection"));
       return NGHTTP2_ERR_CALLBACK_FAILURE;
     }
 #endif /* HAVE_NGHTTP2_CHECK_HEADER_VALUE_RFC9113 */
@@ -1120,7 +1115,7 @@ int IncomingHTTP2Connection::on_header_callback(nghttp2_session* session, const 
 #if defined(HAVE_NGHTTP2_CHECK_PATH)
       if (nghttp2_check_path(value, valuelen) == 0) {
         VERBOSESLOG(infolog("Invalid path value"),
-                    conn->getLogger()->info(Logr::Info, "Invalid path value on DoH connection", "http.path", toLoggable(value, valuelen)));
+                    conn->getLogger()->info(Logr::Info, "Invalid path value on DoH connection", "http.path", Logging::Loggable(valueView)));
         return NGHTTP2_ERR_CALLBACK_FAILURE;
       }
 #endif /* HAVE_NGHTTP2_CHECK_PATH */
@@ -1141,7 +1136,7 @@ int IncomingHTTP2Connection::on_header_callback(nghttp2_session* session, const 
 #if defined(HAVE_NGHTTP2_CHECK_METHOD)
       if (nghttp2_check_method(value, valuelen) == 0) {
         VERBOSESLOG(infolog("Invalid method value"),
-                    conn->getLogger()->info(Logr::Info, "Invalid method value on DoH connection", "http.method", toLoggable(value, valuelen)));
+                    conn->getLogger()->info(Logr::Info, "Invalid method value on DoH connection"));
         return NGHTTP2_ERR_CALLBACK_FAILURE;
       }
 #endif /* HAVE_NGHTTP2_CHECK_METHOD */
@@ -1155,7 +1150,7 @@ int IncomingHTTP2Connection::on_header_callback(nghttp2_session* session, const 
       else {
         query.d_method = PendingQuery::Method::Unsupported;
         VERBOSESLOG(infolog("Unsupported method value"),
-                    conn->getLogger()->info(Logr::Info, "Unsupported method on DoH connection", "http.method", toLoggable(value, valuelen)));
+                    conn->getLogger()->info(Logr::Info, "Unsupported method on DoH connection"));
         return 0;
       }
     }

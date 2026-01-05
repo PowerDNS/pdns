@@ -250,7 +250,7 @@ bool ServiceDiscovery::getDiscoveredConfig(const Logr::Logger& topLogger, const 
     pw.addOpt(4096, 0, 0);
     pw.commit();
 
-    auto logger = topLogger.withValues("dns.query.id", Logging::Loggable(id), "dns.query.name", Logging::Loggable(s_discoveryDomain), "dns.query.type", Logging::Loggable(QType(s_discoveryType)));
+    auto logger = topLogger.withValues("dns.query.id", Logging::Loggable(id), "dns.query.name", Logging::Loggable(s_discoveryDomain), "dns.query.type", Logging::Loggable(s_discoveryType));
 
     uint16_t querySize = static_cast<uint16_t>(packet.size());
     const uint8_t sizeBytes[] = {static_cast<uint8_t>(querySize / 256), static_cast<uint8_t>(querySize % 256)};
@@ -342,7 +342,7 @@ bool ServiceDiscovery::getDiscoveredConfig(const Logr::Logger& topLogger, const 
     if (receivedName != s_discoveryDomain || receivedType != s_discoveryType || receivedClass != QClass::IN) {
       if (verbose) {
         SLOG(warnlog("Invalid answer, either the qname (%s / %s), qtype (%s / %s) or qclass (%s / %s) does not match, received from the backend %s", receivedName, s_discoveryDomain, QType(receivedType).toString(), s_discoveryType.toString(), QClass(receivedClass).toString(), QClass::IN.toString(), addr.toStringWithPort()),
-             logger->info(Logr::Warning, "Response received from the backend doesn't match query", "dns.response.name", Logging::Loggable(receivedName), "dns.response.type", Logging::Loggable(QType(receivedType)), "dns.response.class", Logging::Loggable(receivedClass)));
+             logger->info(Logr::Warning, "Response received from the backend doesn't match query", "dns.response.name", Logging::Loggable(receivedName), "dns.response.type", Logging::Loggable(receivedType), "dns.response.class", Logging::Loggable(receivedClass)));
       }
       return false;
     }

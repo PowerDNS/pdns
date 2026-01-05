@@ -1759,7 +1759,7 @@ bool dnsdist_ffi_network_endpoint_new(const char* path, size_t pathSize, dnsdist
   }
   catch (const std::exception& e) {
     VERBOSESLOG(infolog("Error creating a new network endpoint: %s", e.what()),
-                getLogger(__func__)->error(Logr::Info, e.what(), "Error creating a new network endpoint", "path", Logging::Loggable(std::string_view(path, pathSize))));
+                getLogger(__func__)->error(Logr::Info, e.what(), "Error creating a new network endpoint", "path", Logging::Loggable(path)));
     return false;
   }
 }
@@ -2391,16 +2391,16 @@ void dnsdist_ffi_svc_record_parameters_add_ipv4_hint(dnsdist_ffi_svc_record_para
   }
   catch (const std::exception& exp) {
     SLOG(errlog("Exception in dnsdist_ffi_svc_record_parameters_add_ipv4_hint: %s", exp.what()),
-         getLogger(__func__)->error(Logr::Error, exp.what(), "Exception adding IPv4 hint to SVC record", "value", Logging::Loggable(std::string_view(value, valueLen))));
+         getLogger(__func__)->error(Logr::Error, exp.what(), "Exception adding IPv4 hint to SVC record"));
 
   }
   catch (const PDNSException& exp) {
     SLOG(errlog("Exception in dnsdist_ffi_svc_record_parameters_add_ipv4_hint: %s", exp.reason),
-         getLogger(__func__)->error(Logr::Error, exp.reason, "Exception adding IPv4 hint to SVC record", "value", Logging::Loggable(std::string_view(value, valueLen))));
+         getLogger(__func__)->error(Logr::Error, exp.reason, "Exception adding IPv4 hint to SVC record"));
   }
   catch (...) {
     SLOG(errlog("Exception in dnsdist_ffi_svc_record_parameters_add_ipv4_hint"),
-         getLogger(__func__)->info(Logr::Error, "Exception adding IPv4 hint to SVC record", "value", Logging::Loggable(std::string_view(value, valueLen))));
+         getLogger(__func__)->info(Logr::Error, "Exception adding IPv4 hint to SVC record"));
   }
 }
 
@@ -2414,15 +2414,15 @@ void dnsdist_ffi_svc_record_parameters_add_ipv6_hint(dnsdist_ffi_svc_record_para
   }
   catch (const std::exception& exp) {
     SLOG(errlog("Exception in dnsdist_ffi_svc_record_parameters_add_ipv6_hint: %s", exp.what()),
-         getLogger(__func__)->error(Logr::Error, exp.what(), "Exception adding IPv6 hint to SVC record", "value", Logging::Loggable(std::string_view(value, valueLen))));
+         getLogger(__func__)->error(Logr::Error, exp.what(), "Exception adding IPv6 hint to SVC record"));
   }
   catch (const PDNSException& exp) {
     SLOG(errlog("Exception in dnsdist_ffi_svc_record_parameters_add_ipv6_hint: %s", exp.reason),
-         getLogger(__func__)->error(Logr::Error, exp.reason, "Exception adding IPv6 hint to SVC record", "value", Logging::Loggable(std::string_view(value, valueLen))));
+         getLogger(__func__)->error(Logr::Error, exp.reason, "Exception adding IPv6 hint to SVC record"));
   }
   catch (...) {
     SLOG(errlog("Exception in dnsdist_ffi_svc_record_parameters_add_ipv6_hint"),
-         getLogger(__func__)->info(Logr::Error, "Exception adding IPv6 hint to SVC record", "value", Logging::Loggable(std::string_view(value, valueLen))));
+         getLogger(__func__)->info(Logr::Error, "Exception adding IPv6 hint to SVC record"));
   }
 }
 

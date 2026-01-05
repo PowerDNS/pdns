@@ -75,7 +75,7 @@ static void updateLatencyMetrics(DownstreamState& downstream, int elapsed /* mic
 static std::shared_ptr<Logr::Logger> getLoggerFromData(const std::shared_ptr<const HealthCheckData>& data)
 {
   const auto& downstream = data->d_ds;
-  return dnsdist::logging::getTopLogger()->withName("backend-health-check")->withValues("health_check.proto", Logging::Loggable(downstream->doHealthcheckOverTCP() ? (data->d_tcpHandler->isTLS() ? "DoT" : "tcp") : "udp"), "backend.name", Logging::Loggable(downstream->getName()), "backend.address", Logging::Loggable(downstream->d_config.remote), "dns.query.id", Logging::Loggable(data->d_queryID), "dns.query.name", Logging::Loggable(data->d_checkName), "dns.query.type", Logging::Loggable(QType(data->d_checkType)), "dns.query.class", Logging::Loggable(data->d_checkClass));
+  return dnsdist::logging::getTopLogger()->withName("backend-health-check")->withValues("health_check.proto", Logging::Loggable(downstream->doHealthcheckOverTCP() ? (data->d_tcpHandler->isTLS() ? "DoT" : "tcp") : "udp"), "backend.name", Logging::Loggable(downstream->getName()), "backend.address", Logging::Loggable(downstream->d_config.remote), "dns.query.id", Logging::Loggable(data->d_queryID), "dns.query.name", Logging::Loggable(data->d_checkName), "dns.query.type", Logging::Loggable(data->d_checkType), "dns.query.class", Logging::Loggable(data->d_checkClass));
 }
 
 static bool handleResponse(std::shared_ptr<HealthCheckData>& data)
@@ -143,7 +143,7 @@ static bool handleResponse(std::shared_ptr<HealthCheckData>& data)
       ++data->d_ds->d_healthCheckMetrics.d_mismatchErrors;
       if (verboseHealthChecks) {
         SLOG(infolog("Backend %s responded to health check with an invalid qname (%s vs %s), qtype (%s vs %s) or qclass (%d vs %d)", downstream->getNameWithAddr(), receivedName.toLogString(), data->d_checkName.toLogString(), QType(receivedType).toString(), QType(data->d_checkType).toString(), receivedClass, data->d_checkClass),
-             logger->info(Logr::Info, "Backend responded to health check with an invalid qname, qtype or qclass", "dns.response.name", Logging::Loggable(receivedName), "dns.response.qtype", Logging::Loggable(QType(receivedType)), "dns.response.class", Logging::Loggable(QClass(receivedClass))));
+             logger->info(Logr::Info, "Backend responded to health check with an invalid qname, qtype or qclass", "dns.response.name", Logging::Loggable(receivedName), "dns.response.qtype", Logging::Loggable(receivedType), "dns.response.class", Logging::Loggable(receivedClass)));
       }
       return false;
     }

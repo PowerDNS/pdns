@@ -169,6 +169,6 @@ std::shared_ptr<const Logr::Logger> InternalQueryState::getLogger(std::shared_pt
   if (!parent) {
     parent = dnsdist::logging::getTopLogger();
   }
-  auto logger = parent->withValues("dns.question.name", Logging::Loggable(this->qname), "dns.question.type", Logging::Loggable(QType(this->qtype)), "dns.question.class", Logging::Loggable(QClass(this->qclass)), "source.address", Logging::Loggable(this->origRemote), "destination.address", Logging::Loggable(this->origDest), "proto", Logging::Loggable(this->protocol), "dns.question.id", Logging::Loggable(ntohs(this->origID)), "dns.question.flags", Logging::Loggable(this->origFlags));
+  auto logger = parent->withValues("dns.question.name", Logging::Loggable(this->qname), "dns.question.type", Logging::Loggable(this->qtype), "dns.question.class", Logging::Loggable(this->qclass), "source.address", Logging::Loggable(this->origRemote), "destination.address", Logging::Loggable(this->origDest), "proto", Logging::Loggable(this->protocol), "dns.question.id", Logging::Loggable(ntohs(this->origID)), "dns.question.flags", Logging::Loggable(this->origFlags));
   return logger;
 }

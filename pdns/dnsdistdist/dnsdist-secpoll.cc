@@ -167,7 +167,7 @@ static std::string getSecPollStatus(const Logr::Logger& logger, const std::strin
 
     if (receivedName != sentName || receivedType != QType::TXT || receivedClass != QClass::IN) {
       VERBOSESLOG(warnlog("Invalid answer, either the qname (%s / %s), qtype (%s / %s) or qclass (%s / %s) does not match, received from the secpoll stub resolver %s", receivedName, sentName, QType(receivedType).toString(), QType(QType::TXT).toString(), QClass(receivedClass).toString(), QClass::IN.toString(), dest.toString()),
-                  resolverLogger->info(Logr::Warning, "Invalid status polling response received from the stub resolver, either the name, type or qclass does not match", "dns.response.size", Logging::Loggable(reply.size()), "dns.response.id", Logging::Loggable(dnsHeader.id), "dns.response.name", Logging::Loggable(receivedName), "dns.response.type", Logging::Loggable(QType(receivedType)), "dns.response.class", Logging::Loggable(QClass(receivedClass))));
+                  resolverLogger->info(Logr::Warning, "Invalid status polling response received from the stub resolver, either the name, type or qclass does not match", "dns.response.size", Logging::Loggable(reply.size()), "dns.response.id", Logging::Loggable(dnsHeader.id), "dns.response.name", Logging::Loggable(receivedName), "dns.response.type", Logging::Loggable(receivedType), "dns.response.class", Logging::Loggable(receivedClass)));
       continue;
     }
 
