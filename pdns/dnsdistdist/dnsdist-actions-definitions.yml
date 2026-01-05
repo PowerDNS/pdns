@@ -407,10 +407,18 @@ are processed after this action"
       description: "The TTL to use"
 - name: "SetTrace"
   description: "Enable or disable OpenTelemetry tracing for this query. Don't forget to also use a RemoteLog action to actually send the trace. Subsequent rules are processed after this action"
+  skip-cpp: true
+  skip-rust: true
   parameters:
     - name: "value"
       type: "bool"
       description: "Whether or not to enable tracing"
+    - name: remote_loggers
+      type: "Vec<String>"
+      default: ""
+      description: |
+        The names of all the loggers that should be sent the protobuf messages that includes the tracing information.
+        This message will be sent once dnsdist is finished with the DNS transaction (i.e. the response has been sent, the query was dropped, or when a timeout occured).
     - name: "use_incoming_traceid"
       type: "bool"
       default: "false"
@@ -419,6 +427,10 @@ are processed after this action"
       type: "u16"
       default: 65500
       description: "The EDNS Option code to take the Trace ID from"
+    - name: "strip_incoming_traceid"
+      type: "bool"
+      default: "false"
+      description: "Remove any existing TRACEPARENT EDNS option from the query. When use_incoming_traceid is set to true, the ID will be picked set before removing the option"
 - name: "SNMPTrap"
   description: "Send an SNMP trap, adding the message string as the query description. Subsequent rules are processed after this action"
   parameters:

@@ -232,6 +232,7 @@ enum class ConnectionState : uint8_t {
 
 static void prepareQueryForSending(TCPQuery& query, uint16_t queryID, ConnectionState connectionState)
 {
+  auto closer = query.d_idstate.getCloser(__func__); // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
   if (connectionState == ConnectionState::needProxy) {
     if (query.d_proxyProtocolPayload.size() > 0 && !query.d_proxyProtocolPayloadAdded) {
       query.d_buffer.insert(query.d_buffer.begin(), query.d_proxyProtocolPayload.begin(), query.d_proxyProtocolPayload.end());
@@ -257,9 +258,11 @@ static void prepareQueryForSending(TCPQuery& query, uint16_t queryID, Connection
   editPayloadID(query.d_buffer, queryID, query.d_proxyProtocolPayloadAdded ? query.d_idstate.d_proxyProtocolPayloadSize : 0, true);
 }
 
+static const string classnamePrefix = "TCPConnectionToBackend::";
 IOState TCPConnectionToBackend::queueNextQuery(std::shared_ptr<TCPConnectionToBackend>& conn)
 {
   conn->d_currentQuery = std::move(conn->d_pendingQueries.front());
+  auto closer = conn->d_currentQuery.d_query.d_idstate.getCloser(classnamePrefix + __func__);
 
   uint16_t id = conn->d_highestStreamID;
   prepareQueryForSending(conn->d_currentQuery.d_query, id, conn->needProxyProtocolPayload() ? ConnectionState::needProxy : ConnectionState::proxySent);
@@ -273,6 +276,7 @@ IOState TCPConnectionToBackend::queueNextQuery(std::shared_ptr<TCPConnectionToBa
 
 IOState TCPConnectionToBackend::sendQuery(std::shared_ptr<TCPConnectionToBackend>& conn, const struct timeval& now)
 {
+  auto closer = conn->d_currentQuery.d_query.d_idstate.getCloser(classnamePrefix + __func__);
   (void)now;
   DEBUGLOG("sending query to backend "<<conn->getDS()->getNameWithAddr()<<" over FD "<<conn->d_handler->getDescriptor());
 
@@ -543,6 +547,7 @@ void TCPConnectionToBackend::handleIOCallback(int fd, FDMultiplexer::funcparam_t
 
 void TCPConnectionToBackend::queueQuery(std::shared_ptr<TCPQuerySender>& sender, TCPQuery&& query)
 {
+  auto closer = query.d_idstate.getCloser(classnamePrefix + __func__);
   if (!d_ioState) {
     d_ioState = make_unique<IOStateHandler>(*d_mplexer, d_handler->getDescriptor());
   }
@@ -695,6 +700,7 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
     notifyAllQueriesFailed(now, FailureReason::unexpectedQueryID);
     return IOState::Done;
   }
+  auto closer = it->second.d_query.d_idstate.getCloser(classnamePrefix + __func__);
 
   editPayloadID(d_responseBuffer, ntohs(it->second.d_query.d_idstate.origID), 0, false);
 

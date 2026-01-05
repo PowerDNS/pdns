@@ -152,7 +152,7 @@ struct InternalQueryState
   std::optional<pdns::trace::dnsdist::Tracer::Closer> getCloser([[maybe_unused]] const std::string_view& name, [[maybe_unused]] const SpanID& parentSpanID);
   std::optional<pdns::trace::dnsdist::Tracer::Closer> getCloser([[maybe_unused]] const std::string_view& name, [[maybe_unused]] const std::string_view& parentSpanName);
   std::optional<pdns::trace::dnsdist::Tracer::Closer> getCloser([[maybe_unused]] const std::string_view& name);
-  std::optional<pdns::trace::dnsdist::Tracer::Closer> getRulesCloser([[maybe_unused]] const std::string_view& ruleName, [[maybe_unused]] const std::string_view& parentSpanName);
+  std::optional<pdns::trace::dnsdist::Tracer::Closer> getRulesCloser([[maybe_unused]] const std::string_view& ruleName, [[maybe_unused]] const std::string& ruleType);
 
   InternalQueryState()
   {
@@ -164,6 +164,7 @@ struct InternalQueryState
 
   InternalQueryState(const InternalQueryState& orig) = delete;
   InternalQueryState& operator=(const InternalQueryState& orig) = delete;
+  ~InternalQueryState();
 
   bool isXSK() const noexcept
   {
@@ -173,8 +174,6 @@ struct InternalQueryState
     return false;
 #endif /* HAVE_XSK */
   }
-
-  void sendDelayedProtobufMessages() const;
 
   InternalQueryState partialCloneForXFR() const;
 
@@ -203,6 +202,7 @@ public:
   std::unique_ptr<ProtoBufData> d_protoBufData{nullptr};
 #ifndef DISABLE_PROTOBUF
   std::vector<std::pair<std::string, std::shared_ptr<RemoteLoggerInterface>>> delayedResponseMsgs;
+  std::vector<std::shared_ptr<RemoteLoggerInterface>> ottraceLoggers;
 #endif
   std::unique_ptr<std::vector<dnsdist::edns::SetExtendedDNSErrorOperation>> d_extendedErrors{nullptr};
   std::optional<uint32_t> tempFailureTTL{std::nullopt}; // 8

@@ -23,6 +23,7 @@
 #include <optional>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 #include "dnsdist-actions-factory.hh"
 
@@ -1677,47 +1678,84 @@ private:
 };
 #endif /* DISABLE_PROTOBUF */
 
+#ifndef DISABLE_PROTOBUF
 class SetTraceAction : public DNSAction
 {
 public:
-  SetTraceAction(bool value, std::optional<bool> useIncomingTraceID, std::optional<short unsigned int> incomingTraceIDOptionCode) :
-    d_value{value}, d_useIncomingTraceID(useIncomingTraceID), d_incomingTraceIDOptionCode(incomingTraceIDOptionCode) {};
+  SetTraceAction(SetTraceActionConfiguration& config) :
+    d_loggers(config.remote_loggers), d_incomingTraceIDOptionCode(config.trace_edns_option), d_value{config.value}, d_useIncomingTraceID(config.use_incoming_traceid), d_stripIncomingTraceID(config.strip_incoming_traceid) {};
 
   DNSAction::Action operator()([[maybe_unused]] DNSQuestion* dnsquestion, [[maybe_unused]] std::string* ruleresult) const override
   {
-#ifndef DISABLE_PROTOBUF
     auto tracer = dnsquestion->ids.getTracer();
     if (tracer == nullptr) {
       vinfolog("SetTraceAction called, but OpenTelemetry tracing is globally disabled. Did you forget to call setOpenTelemetryTracing?");
       return Action::None;
     }
+
     dnsquestion->ids.tracingEnabled = d_value;
-    if (d_value) {
-      tracer->setRootSpanAttribute("query.qname", AnyValue{dnsquestion->ids.qname.toStringNoDot()});
-      tracer->setRootSpanAttribute("query.qtype", AnyValue{QType(dnsquestion->ids.qtype).toString()});
-      tracer->setRootSpanAttribute("query.remote.address", AnyValue{dnsquestion->ids.origRemote.toString()});
-      tracer->setRootSpanAttribute("query.remote.port", AnyValue{dnsquestion->ids.origRemote.getPort()});
-      if (d_useIncomingTraceID.value_or(false)) {
-        if (dnsquestion->ednsOptions == nullptr && !parseEDNSOptions(*dnsquestion)) {
-          // Maybe parsed, but no EDNS found
-          return Action::None;
-        }
-        if (dnsquestion->ednsOptions == nullptr) {
-          // Parsing failed, log a warning and return
-          vinfolog("parsing EDNS options failed while looking for OpenTelemetry Trace ID");
-          return Action::None;
-        }
-        pdns::trace::TraceID traceID;
-        pdns::trace::SpanID spanID;
-        if (pdns::trace::extractOTraceIDs(*(dnsquestion->ednsOptions), EDNSOptionCode::EDNSOptionCodeEnum(d_incomingTraceIDOptionCode.value_or(EDNSOptionCode::OTTRACEIDS)), traceID, spanID)) {
-          tracer->setTraceID(traceID);
-          if (spanID != pdns::trace::s_emptySpanID) {
-            tracer->setRootSpanID(spanID);
-          }
+
+    if (!d_value) {
+      // Tracing has been turned off or should not be enabled, clean up
+      dnsquestion->ids.ottraceLoggers.clear();
+      return Action::None;
+    }
+
+    dnsquestion->ids.ottraceLoggers = d_loggers;
+    tracer->setRootSpanAttribute("query.qname", AnyValue{dnsquestion->ids.qname.toStringNoDot()});
+    tracer->setRootSpanAttribute("query.qtype", AnyValue{QType(dnsquestion->ids.qtype).toString()});
+    tracer->setRootSpanAttribute("query.remote.address", AnyValue{dnsquestion->ids.origRemote.toString()});
+    tracer->setRootSpanAttribute("query.remote.port", AnyValue{dnsquestion->ids.origRemote.getPort()});
+
+    if (!d_useIncomingTraceID && !d_stripIncomingTraceID) {
+      // No need to check EDNS
+      return Action::None;
+    }
+
+    // We need to check if EDNS Options exist
+    if (dnsquestion->ednsOptions == nullptr && !parseEDNSOptions(*dnsquestion)) {
+      // Maybe parsed, but no EDNS found
+      return Action::None;
+    }
+    if (dnsquestion->ednsOptions == nullptr) {
+      // Parsing failed, log a warning and return
+      vinfolog("parsing EDNS options failed while looking for OpenTelemetry Trace ID");
+      return Action::None;
+    }
+
+    if (d_useIncomingTraceID) {
+      pdns::trace::TraceID traceID;
+      pdns::trace::SpanID spanID;
+      if (pdns::trace::extractOTraceIDs(*(dnsquestion->ednsOptions), EDNSOptionCode::EDNSOptionCodeEnum(d_incomingTraceIDOptionCode), traceID, spanID)) {
+        tracer->setTraceID(traceID);
+        if (spanID != pdns::trace::s_emptySpanID) {
+          tracer->setRootSpanID(spanID);
         }
       }
     }
-#endif
+
+    if (d_stripIncomingTraceID) {
+      uint16_t optStart;
+      size_t optLen;
+      bool last;
+
+      if (locateEDNSOptRR(dnsquestion->getData(), &optStart, &optLen, &last) != 0) {
+        // Can't find the EDNS OPT RR, can't happen
+        return Action::None;
+      }
+
+      if (!last) {
+        vinfolog("SetTraceAction: EDNS options is not the last RR in the packet, not removing TRACEPARENT");
+        return Action::None;
+      }
+
+      size_t existingOptLen = optLen;
+      removeEDNSOptionFromOPT(reinterpret_cast<char*>(&dnsquestion->getMutableData().at(optStart)), &optLen, d_incomingTraceIDOptionCode);
+      dnsquestion->getMutableData().resize(dnsquestion->getData().size() - (existingOptLen - optLen));
+      // Ensure the EDNS Option View is not out of date
+      dnsquestion->ednsOptions.reset();
+    }
+
     return Action::None;
   }
 
@@ -1727,10 +1765,14 @@ public:
   }
 
 private:
+  std::vector<std::shared_ptr<RemoteLoggerInterface>> d_loggers;
+  short unsigned int d_incomingTraceIDOptionCode;
+
   bool d_value;
-  std::optional<bool> d_useIncomingTraceID;
-  std::optional<short unsigned int> d_incomingTraceIDOptionCode;
+  bool d_useIncomingTraceID;
+  bool d_stripIncomingTraceID;
 };
+#endif
 
 class SNMPTrapAction : public DNSAction
 {
@@ -2528,6 +2570,11 @@ std::shared_ptr<DNSResponseAction> getLuaFFIResponseAction(dnsdist::actions::Lua
 }
 
 #ifndef DISABLE_PROTOBUF
+std::shared_ptr<DNSAction> getSetTraceAction(SetTraceActionConfiguration& config)
+{
+  return std::shared_ptr<DNSAction>(new SetTraceAction(config));
+}
+
 std::shared_ptr<DNSAction> getRemoteLogAction(RemoteLogActionConfiguration& config)
 {
   return std::shared_ptr<DNSAction>(new RemoteLogAction(config));

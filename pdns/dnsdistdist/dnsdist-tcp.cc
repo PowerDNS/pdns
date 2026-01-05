@@ -507,6 +507,7 @@ void IncomingTCPConnectionState::terminateClientConnection()
 
 void IncomingTCPConnectionState::queueResponse(std::shared_ptr<IncomingTCPConnectionState>& state, const struct timeval& now, TCPResponse&& response, bool fromBackend)
 {
+  auto closer = response.d_idstate.getCloser(__func__); // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
   // queue response
   state->d_queuedResponses.emplace_back(std::move(response));
   DEBUGLOG("queueing response, state is " << (int)state->d_state << ", queue size is now " << state->d_queuedResponses.size());
@@ -596,6 +597,7 @@ void IncomingTCPConnectionState::updateIO(IOState newState, const struct timeval
 /* called from the backend code when a new response has been received */
 void IncomingTCPConnectionState::handleResponse(const struct timeval& now, TCPResponse&& response)
 {
+  auto closer = response.d_idstate.getCloser(__func__); // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
   if (std::this_thread::get_id() != d_creatorThreadID) {
     handleCrossProtocolResponse(now, std::move(response));
     return;
@@ -746,6 +748,7 @@ std::unique_ptr<CrossProtocolQuery> getTCPCrossProtocolQueryFromDQ(DNSQuestion& 
 
 void IncomingTCPConnectionState::handleCrossProtocolResponse(const struct timeval& now, TCPResponse&& response)
 {
+  auto closer = response.d_idstate.getCloser(__func__); // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
   std::shared_ptr<IncomingTCPConnectionState> state = shared_from_this();
   try {
     auto ptr = std::make_unique<TCPCrossProtocolResponse>(std::move(response), state, now);
@@ -837,11 +840,8 @@ IncomingTCPConnectionState::QueryProcessingResult IncomingTCPConnectionState::ha
     }
   }
 
-  pdns::trace::dnsdist::Tracer::Closer closer;
-  if (auto tracer = ids.getTracer(); tracer != nullptr) {
-    // TODO: figure out if this is a root span
-    closer = tracer->openSpan("IncomingTCPConnectionState::handleQuery", tracer->getLastSpanID());
-  }
+  static const std::string classnamePrefix = "IncomingTCPConnectionState::";
+  auto closer = ids.getCloser(classnamePrefix + __func__); // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast
   ids.qname = DNSName(reinterpret_cast<const char*>(query.data()), static_cast<int>(query.size()), sizeof(dnsheader), false, &ids.qtype, &ids.qclass);
@@ -969,7 +969,11 @@ IncomingTCPConnectionState::QueryProcessingResult IncomingTCPConnectionState::ha
 
   prependSizeToTCPQuery(query, 0);
 
-  auto downstreamConnection = getDownstreamConnection(backend, dnsQuestion.proxyProtocolValues, now);
+  std::shared_ptr<TCPConnectionToBackend> downstreamConnection;
+  {
+    auto dscCloser = dnsQuestion.ids.getCloser("getDownstreamConnection");
+    downstreamConnection = getDownstreamConnection(backend, dnsQuestion.proxyProtocolValues, now);
+  }
 
   if (backend->d_config.useProxyProtocol) {
     /* if we ever sent a TLV over a connection, we can never go back */
@@ -984,8 +988,12 @@ IncomingTCPConnectionState::QueryProcessingResult IncomingTCPConnectionState::ha
     downstreamConnection->setProxyProtocolValuesSent(std::move(dnsQuestion.proxyProtocolValues));
   }
 
-  TCPQuery tcpquery(std::move(query), std::move(ids));
-  tcpquery.d_proxyProtocolPayload = std::move(proxyProtocolPayload);
+  TCPQuery tcpquery;
+  {
+    auto tcpqueryCloser = dnsQuestion.ids.getCloser("createTCPQuery");
+    tcpquery = {std::move(query), std::move(ids)};
+    tcpquery.d_proxyProtocolPayload = std::move(proxyProtocolPayload);
+  }
 
   vinfolog("Got query for %s|%s from %s (%s, %d bytes), relayed to %s", tcpquery.d_idstate.qname.toLogString(), QType(tcpquery.d_idstate.qtype).toString(), d_proxiedRemote.toStringWithPort(), getProtocol().toString(), tcpquery.d_buffer.size(), backend->getNameWithAddr());
   std::shared_ptr<TCPQuerySender> incoming = state;
