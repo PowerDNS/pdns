@@ -17,7 +17,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ * Foundation, Inc.
  */
 #pragma once
 
@@ -34,17 +34,17 @@
 #endif
 
 #if __SANITIZE_THREAD__
-#if defined __has_include
+#if defined(__has_include)
 #if __has_include(<sanitizer/tsan_interface.h>)
 #include <sanitizer/tsan_interface.h>
 #else /* __has_include(<sanitizer/tsan_interface.h>) */
 extern "C" void __tsan_acquire(void* addr);
 extern "C" void __tsan_release(void* addr);
 #endif /* __has_include(<sanitizer/tsan_interface.h>) */
-#else /* defined __has_include */
+#else /* defined(__has_include) */
 extern "C" void __tsan_acquire(void* addr);
 extern "C" void __tsan_release(void* addr);
-#endif /* defined __has_include */
+#endif /* defined(__has_include) */
 #else
 #define __tsan_acquire(x)
 #define __tsan_release(x)
