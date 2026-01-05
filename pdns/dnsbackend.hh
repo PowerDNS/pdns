@@ -571,6 +571,7 @@ private:
 class BackendMakerClass
 {
 public:
+  BackendMakerClass(std::shared_ptr<Logr::Logger> slog);
   void report(std::unique_ptr<BackendFactory>&& backendFactory);
   void launch(const string& instr);
   vector<std::unique_ptr<DNSBackend>> all(bool metadataOnly = false);
@@ -584,9 +585,10 @@ private:
   using d_repository_t = map<string, std::unique_ptr<BackendFactory>>;
   d_repository_t d_repository;
   vector<pair<string, string>> d_instances;
+  static std::shared_ptr<Logr::Logger> s_slog;
 };
 
-extern BackendMakerClass& BackendMakers();
+extern BackendMakerClass& BackendMakers(std::shared_ptr<Logr::Logger> slog = nullptr);
 
 //! Exception that can be thrown by a DNSBackend to indicate a failure
 class DBException : public PDNSException
