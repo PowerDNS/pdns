@@ -24,17 +24,18 @@
 
 #include "dnsdist-rings.hh"
 
-void Rings::init(size_t capacity, size_t numberOfShards, size_t nbLockRetries, bool recordQueries, bool recordResponses)
+void Rings::init(const RingsConfiguration& config)
 {
   if (d_initialized.exchange(true)) {
     throw std::runtime_error("Rings::init() should only be called once");
   }
 
-  d_capacity = capacity;
-  d_numberOfShards = numberOfShards;
-  d_nbLockTries = nbLockRetries;
-  d_recordQueries = recordQueries;
-  d_recordResponses = recordResponses;
+  d_capacity = config.capacity;
+  d_numberOfShards = config.numberOfShards;
+  d_nbLockTries = config.nbLockTries;
+  d_samplingRate = config.samplingRate;
+  d_recordQueries = config.recordQueries;
+  d_recordResponses = config.recordResponses;
   if (d_numberOfShards <= 1) {
     d_nbLockTries = 0;
   }
@@ -199,4 +200,13 @@ bool Rings::Response::isACacheHit() const
     hit = true;
   }
   return hit;
+}
+
+bool Rings::shouldSkipDueToSampling()
+{
+  if (d_samplingRate == 0) {
+    return false;
+  }
+  auto counter = d_samplingCounter++;
+  return (counter % d_samplingRate) == 0;
 }

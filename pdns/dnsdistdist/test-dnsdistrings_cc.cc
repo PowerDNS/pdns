@@ -50,7 +50,12 @@ static bool checkResponse(const Rings::Response& entry, const DNSName& qname, ui
 static void test_ring(size_t maxEntries, size_t numberOfShards, size_t nbLockTries)
 {
   Rings rings;
-  rings.init(maxEntries, numberOfShards, nbLockTries);
+  Rings::RingsConfiguration config {
+    .capacity = maxEntries,
+    .numberOfShards = numberOfShards,
+    .nbLockTries = nbLockTries,
+  };
+  rings.init(config);
   size_t entriesPerShard = maxEntries / numberOfShards;
 
   BOOST_CHECK_EQUAL(rings.getNumberOfShards(), numberOfShards);
@@ -223,7 +228,12 @@ BOOST_AUTO_TEST_CASE(test_Rings_Threaded) {
   dnsdist::Protocol outgoingProtocol = dnsdist::Protocol::DoUDP;
 
   Rings rings;
-  rings.init(numberOfEntries, numberOfShards, lockAttempts, true);
+  Rings::RingsConfiguration config {
+    .capacity = numberOfEntries,
+    .numberOfShards = numberOfShards,
+    .nbLockTries = lockAttempts,
+  };
+  rings.init(config);
 #if defined(DNSDIST_RINGS_WITH_MACADDRESS)
   Rings::Query query({requestor, qname, now, dh, size, qtype, protocol, dnsdist::MacAddress(), false});
 #else

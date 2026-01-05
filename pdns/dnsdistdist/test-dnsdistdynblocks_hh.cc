@@ -24,7 +24,11 @@ struct TestFixture
   TestFixture()
   {
     g_rings.reset();
-    g_rings.init(10000, 10);
+    Rings::RingsConfiguration config {
+      .capacity = 10000U,
+      .numberOfShards = 10U,
+    };
+    g_rings.init(config);
   }
   ~TestFixture()
   {
@@ -428,7 +432,10 @@ BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesGroup_QueryRate_responses, TestFixture
 
   /* 100k entries, one shard */
   g_rings.reset();
-  g_rings.init(1000000, 1);
+  Rings::RingsConfiguration config {
+    .capacity = 1000000U,
+  };
+  g_rings.init(config);
 
   size_t numberOfSeconds = 10;
   size_t blockDuration = 60;
@@ -1228,7 +1235,10 @@ BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesMetricsCache_GetTopN, TestFixture) {
 
   g_rings.reset();
   /* 10M entries, only one shard */
-  g_rings.init(10000000, 1);
+  Rings::RingsConfiguration config {
+    .capacity = 10000000U,
+  };
+  g_rings.init(config);
 
   {
     DynBlockRulesGroup dbrg;

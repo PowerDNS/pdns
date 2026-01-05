@@ -76,8 +76,18 @@ struct Rings
   std::unordered_map<int, vector<boost::variant<string, double>>> getTopBandwidth(unsigned int numentries);
   size_t numDistinctRequestors();
 
+  struct RingsConfiguration
+  {
+    size_t capacity{0};
+    size_t numberOfShards{1};
+    size_t nbLockTries{5};
+    size_t samplingRate{0};
+    bool recordQueries{true};
+    bool recordResponses{true};
+  };
+
   /* This function should only be called at configuration time before any query or response has been inserted */
-  void init(size_t capacity, size_t numberOfShards, size_t nbLockRetries = 5, bool recordQueries = true, bool recordResponses = true);
+  void init(const RingsConfiguration& config);
 
   size_t getNumberOfShards() const
   {
@@ -96,6 +106,9 @@ struct Rings
 
   void insertQuery(const struct timespec& when, const ComboAddress& requestor, const DNSName& name, uint16_t qtype, uint16_t size, const struct dnsheader& dh, dnsdist::Protocol protocol)
   {
+    if (shouldSkipDueToSampling()) {
+      return;
+    }
     auto ourName = DNSName(name);
 #if defined(DNSDIST_RINGS_WITH_MACADDRESS)
     dnsdist::MacAddress macaddress;
@@ -149,6 +162,9 @@ struct Rings
 
   void insertResponse(const struct timespec& when, const ComboAddress& requestor, const DNSName& name, uint16_t qtype, unsigned int usec, unsigned int size, const struct dnsheader& dh, const ComboAddress& backend, dnsdist::Protocol protocol)
   {
+    if (shouldSkipDueToSampling()) {
+      return;
+    }
     auto ourName = DNSName(name);
     for (size_t idx = 0; idx < d_nbLockTries; idx++) {
       auto& shard = getOneShard();
@@ -221,6 +237,11 @@ struct Rings
     return d_recordResponses;
   }
 
+  size_t getSamplingRate() const
+  {
+    return d_samplingRate;
+  }
+
   std::vector<std::unique_ptr<Shard>> d_shards;
   pdns::stat_t d_blockingQueryInserts{0};
   pdns::stat_t d_blockingResponseInserts{0};
@@ -264,6 +285,8 @@ private:
     return wasFull;
   }
 
+  bool shouldSkipDueToSampling();
+
   static constexpr bool s_keepLockingStats{false};
 
   std::atomic<size_t> d_nbQueryEntries{0};
@@ -274,6 +297,8 @@ private:
   size_t d_capacity{10000};
   size_t d_numberOfShards{10};
   size_t d_nbLockTries{5};
+  size_t d_samplingRate{0};
+  std::atomic<size_t> d_samplingCounter{0};
   bool d_recordQueries{true};
   bool d_recordResponses{true};
 };
