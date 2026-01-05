@@ -51,7 +51,8 @@ The following keys are always present:
 
 A log entry can also have zero or more additional key-value pairs. We tried to adhere to OpenTelemetry's
 `general attributes <https://opentelemetry.io/docs/specs/semconv/general/attributes/>`_ when possible, or more specific
-ones like for example `http attributes <https://opentelemetry.io/docs/specs/semconv/registry/attributes/http/>`_ for DNS over HTTPS.
+ones like for example `dns attributes <https://opentelemetry.io/docs/specs/semconv/dns/dns-metrics/>`_  or
+`http attributes <https://opentelemetry.io/docs/specs/semconv/registry/attributes/http/>`_ for DNS over HTTPS.
 
 Common keys are:
 
