@@ -27,7 +27,7 @@ ConnectionToBackend::~ConnectionToBackend()
       }
       catch (const std::exception& e) {
         VERBOSESLOG(infolog("Unable to get a TLS session: %s", e.what()),
-                    getLogger()->error(Logr::Info, e.what(), "Unable to get a TLS session"));
+                    ConnectionToBackend::getLogger()->error(Logr::Info, e.what(), "Unable to get a TLS session"));
       }
     }
     auto diff = now - d_connectionStartTime;
