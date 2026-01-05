@@ -114,8 +114,8 @@ Memory usage
 ------------
 
 :program:`Recursor` keeps all the data it needs in memory.
-The default configuration uses a little more than 1GB when the caches are full.
-Depending on configuration, memory usage can amount to many gigabytes for a large installation.
+Typically, the default configuration uses a little more than 1GB when the caches are full.
+Depending on configuration and usage patterns, memory usage can amount to many gigabytes for a large installation.
 
 .. warning::
    Avoid swapping. The memory access patterns of :program:`Recursor` are random. This means
@@ -123,7 +123,7 @@ Depending on configuration, memory usage can amount to many gigabytes for a larg
    pages) if :program:`Recursor` uses more physical memory than available and performance will be severely impacted.
 
 Below the memory usage observed for a specific test case are described.
-Please note that depending on OS, version of system libraries, version of the :program:`Recursor`, features used and usage patterns these numbers may vary.
+Please note that depending on OS, version of system libraries, version of the :program:`Recursor`, features used and usage patterns these numbers will vary.
 Test and observe your system to learn more about the memory requirements specific to your case.
 
 The most important subsystems that use memory are:
