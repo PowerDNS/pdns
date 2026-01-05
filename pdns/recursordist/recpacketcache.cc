@@ -11,6 +11,7 @@
 #include "rec-taskqueue.hh"
 
 unsigned int RecursorPacketCache::s_refresh_ttlperc{0};
+uint32_t RecursorPacketCache::s_maxEntrySize{8192};
 
 void RecursorPacketCache::setShardSizes(size_t shardSize)
 {
