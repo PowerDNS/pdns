@@ -1390,7 +1390,6 @@ taskqueue
 tbhandler
 tcely
 tcounter
-tcounters
 tcpconnecttimeouts
 tcpdump
 TCPKEEPALIVE
