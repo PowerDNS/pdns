@@ -1022,7 +1022,7 @@ void serveRustWeb()
   pdns::rust::misc::LogLevel loglevel = pdns::rust::misc::LogLevel::Normal;
   const auto& configLevel = ::arg()["webserver-loglevel"];
   if (configLevel == "none") {
-    loglevel = pdns::rust::misc::LogLevel::Normal;
+    loglevel = pdns::rust::misc::LogLevel::None;
   }
   else if (configLevel == "detailed") {
     loglevel = pdns::rust::misc::LogLevel::Detailed;
