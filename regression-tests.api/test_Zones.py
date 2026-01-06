@@ -1718,8 +1718,8 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         # note that we can't assume anything about the order of the records
         records = get_rrset(data1, 'a.' + name, 'A')['records']
         self.assertEqual(len(records), 2)
-        self.assertTrue(a1 in records)
-        self.assertTrue(a3 in records)
+        self.assertIn(a1, records)
+        self.assertIn(a3, records)
         # get_rrset above has removed the timestamps from data1, fetch the
         # zone again, since we want to ensure the following operations do
         # not change anything.
@@ -1817,9 +1817,9 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         # note that we can't assume anything about the order of the records
         records = get_rrset(data, 'a.' + name, 'A')['records']
         self.assertEqual(len(records), 3)
-        self.assertTrue(a1 in records)
-        self.assertTrue(a2 in records)
-        self.assertTrue(a4 in records)
+        self.assertIn(a1, records)
+        self.assertIn(a2, records)
+        self.assertIn(a4, records)
 
     def test_zone_disable_reenable(self):
         # This also tests that SOA-EDIT-API works.
