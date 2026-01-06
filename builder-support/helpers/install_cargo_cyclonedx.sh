@@ -14,7 +14,7 @@ echo $0: Downloading ${CARGO_CYCLONEDX_TARBALL}
 curl -L -o "${CARGO_CYCLONEDX_TARBALL}" "${CARGO_CYCLONEDX_TARBALL_URL}"
 echo $0: Checking that the hash of ${CARGO_CYCLONEDX_TARBALL} is ${CARGO_CYCLONEDX_TARBALL_HASH}
 # Line below should echo two spaces between digest and name
-echo "${CARGO_CYCLONEDX_TARBALL_HASH}"  "${CARGO_CYCLONEDX_TARBALL}" | sha256sum -c -
+echo "${CARGO_CYCLONEDX_TARBALL_HASH}""  ""${CARGO_CYCLONEDX_TARBALL}" | sha256sum -c -
 tar xf "${CARGO_CYCLONEDX_TARBALL}"
 cd "cyclonedx-rust-cargo-cargo-cyclonedx-${CARGO_CYCLONEDX_VERSION}"
 
