@@ -1724,7 +1724,7 @@ std::shared_ptr<DNSActionWrapper> getSetTraceAction(const SetTraceActionConfigur
     if (!logger && !(dnsdist::configuration::yaml::s_inClientMode || dnsdist::configuration::yaml::s_inConfigCheckMode)) {
       throw std::runtime_error("Unable to find the protobuf logger named '" + std::string(logger_name) + "'");
     }
-    loggers.push_back(logger);
+    loggers.push_back(std::move(logger));
   }
 
   dnsdist::actions::SetTraceActionConfiguration actionConfig{

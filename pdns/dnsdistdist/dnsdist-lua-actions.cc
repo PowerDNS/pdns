@@ -254,7 +254,7 @@ void setupLuaActions(LuaContext& luaCtx)
           loggers.push_back(remote_logger.second);
         }
       }
-      config.remote_loggers = loggers;
+      config.remote_loggers = std::move(loggers);
     }
     config.value = value;
     config.trace_edns_option = trace_edns_option.value_or(65500);
