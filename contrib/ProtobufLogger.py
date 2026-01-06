@@ -145,17 +145,18 @@ class PDNSPBConnHandler(object):
                 self.convertKV(values, key, value)
 
     def printOT(self, msg):
-        if self._printjson and opentelemetryAvailable:
-            if msg.HasField('openTelemetryData'):
-                json_string = None
-                otmsg = opentelemetry.proto.trace.v1.trace_pb2.TracesData()
-                otmsg.ParseFromString(msg.openTelemetryData)
-                values = google.protobuf.json_format.MessageToDict(otmsg, preserving_proto_field_name=True)
-                self.convertIDs(values)
-                json_string = json.dumps(values, indent=True)
-                print("- openTelemetry: " + json_string)
-        else:
-            print("- openTelemetry decoding not available, see the comments in ProtoBuffer.py to make it available.")
+        if self._printjson:
+            if opentelemetryAvailable:
+                if msg.HasField('openTelemetryData'):
+                    json_string = None
+                    otmsg = opentelemetry.proto.trace.v1.trace_pb2.TracesData()
+                    otmsg.ParseFromString(msg.openTelemetryData)
+                    values = google.protobuf.json_format.MessageToDict(otmsg, preserving_proto_field_name=True)
+                    self.convertIDs(values)
+                    json_string = json.dumps(values, indent=True)
+                    print("- openTelemetry: " + json_string)
+                else:
+                    print("- openTelemetry decoding not available, see the comments in ProtoBuffer.py to make it available.")
 
     @staticmethod
     def getAppliedPolicyTypeAsString(polType):
