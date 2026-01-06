@@ -39,9 +39,12 @@
 #include <algorithm>
 #include <bitset>
 #include <unistd.h>
+
+#if !defined(RUST_WS)
 #include <filesystem>
 
 namespace filesystem = std::filesystem;
+#endif
 
 json11::Json HttpRequest::json()
 {

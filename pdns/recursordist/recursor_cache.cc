@@ -79,6 +79,7 @@ bool MemRecursorCache::s_limitQTypeAny = true;
 
 const MemRecursorCache::AuthRecs MemRecursorCache::s_emptyAuthRecs = std::make_shared<MemRecursorCache::AuthRecsVec>();
 const MemRecursorCache::SigRecs MemRecursorCache::s_emptySigRecs = std::make_shared<MemRecursorCache::SigRecsVec>();
+const MemRecursorCache::OptTag MemRecursorCache::NOTAG{""};
 
 void MemRecursorCache::resetStaticsForTests()
 {
@@ -223,7 +224,7 @@ time_t MemRecursorCache::handleHit(time_t now, MapCombo::LockedContent& content,
   }
   origTTL = entry->d_orig_ttl;
 
-  if (!entry->d_netmask.empty() || entry->d_rtag) {
+  if (!entry->d_netmask.empty() || !entry->d_rtag.empty()) {
     ptrAssign(variable, true);
   }
 
@@ -328,7 +329,7 @@ MemRecursorCache::cache_t::const_iterator MemRecursorCache::getEntryUsingECSInde
         /* we have nothing more specific for you */
         break;
       }
-      auto key = std::tuple(qname, qtype, std::nullopt, best);
+      auto key = std::tuple(qname, qtype, NOTAG, best);
       auto entry = map.d_map.find(key);
       if (entry == map.d_map.end()) {
         /* ecsIndex is not up-to-date */
@@ -360,7 +361,7 @@ MemRecursorCache::cache_t::const_iterator MemRecursorCache::getEntryUsingECSInde
   }
 
   /* we have nothing specific, let's see if we have a generic one */
-  auto key = std::tuple(qname, qtype, std::nullopt, Netmask());
+  auto key = std::tuple(qname, qtype, MemRecursorCache::NOTAG, Netmask());
   auto entry = map.d_map.find(key);
   if (entry != map.d_map.end()) {
     handleServeStaleBookkeeping(now, serveStale, entry);
@@ -454,7 +455,7 @@ time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qtype
 
   /* If we don't have any netmask-specific entries at all, let's just skip this
      to be able to use the nice d_cachecache hack. */
-  if (qtype != QType::ANY && !lockedShard->d_ecsIndex.empty() && !routingTag) {
+  if (qtype != QType::ANY && !lockedShard->d_ecsIndex.empty() && routingTag.empty()) {
     if (qtype == QType::ADDR) {
       time_t ret = -1;
 
@@ -494,7 +495,7 @@ time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qtype
     return -1;
   }
 
-  if (routingTag) {
+  if (!routingTag.empty()) {
     auto entries = getEntries(*lockedShard, qname, qtype, routingTag);
     unsigned int found = 0;
     time_t ttd{};
@@ -541,7 +542,7 @@ time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qtype
     }
   }
   // Try (again) without tag
-  auto entries = getEntries(*lockedShard, qname, qtype, std::nullopt);
+  auto entries = getEntries(*lockedShard, qname, qtype, NOTAG);
 
   if (entries.first != entries.second) {
     OrderedTagIterator_t firstIndexIterator;
@@ -632,7 +633,7 @@ bool MemRecursorCache::CacheEntry::shouldReplace(time_t now, bool auth, vState s
 
 bool MemRecursorCache::replace(CacheEntry&& entry)
 {
-  if (!entry.d_netmask.empty() || entry.d_rtag) {
+  if (!entry.d_netmask.empty() || !entry.d_rtag.empty()) {
     // We don't handle that yet
     return false;
   }
@@ -662,7 +663,7 @@ void MemRecursorCache::replace(time_t now, const DNSName& qname, const QType qty
 
   // We only store with a tag if we have an ednsmask and the tag is available
   // We only store an ednsmask if we do not have a tag and we do have a mask.
-  auto key = std::tuple(qname, qtype.getCode(), ednsmask ? routingTag : std::nullopt, (ednsmask && !routingTag) ? *ednsmask : Netmask());
+  auto key = std::tuple(qname, qtype.getCode(), ednsmask ? routingTag : NOTAG, (ednsmask && routingTag.empty()) ? *ednsmask : Netmask());
   bool isNew = false;
   cache_t::iterator stored = lockedShard->d_map.find(key);
   if (stored == lockedShard->d_map.end()) {
@@ -678,7 +679,7 @@ void MemRecursorCache::replace(time_t now, const DNSName& qname, const QType qty
   */
   if (isNew || stored->d_ttd <= now) {
     /* don't bother building an ecsIndex if we don't have any netmask-specific entries */
-    if (!routingTag && ednsmask && !ednsmask->empty()) {
+    if (routingTag.empty() && ednsmask && !ednsmask->empty()) {
       auto ecsIndexKey = std::tuple(qname, qtype.getCode());
       auto ecsIndex = lockedShard->d_ecsIndex.find(ecsIndexKey);
       if (ecsIndex == lockedShard->d_ecsIndex.end()) {
@@ -881,7 +882,7 @@ bool MemRecursorCache::updateValidationStatus(time_t now, const DNSName& qname, 
   auto map = content.lock();
 
   bool updated = false;
-  if (!map->d_ecsIndex.empty() && !routingTag) {
+  if (!map->d_ecsIndex.empty() && routingTag.empty()) {
     auto entry = getEntryUsingECSIndex(*map, now, qname, qtype, requireAuth, who, false); // XXX serveStale?
     if (entry == map->d_map.end()) {
       return false;
@@ -949,7 +950,7 @@ uint64_t MemRecursorCache::doDump(int fileDesc, size_t maxCacheEntries)
       for (const auto& record : recordSet.d_records) {
         count++;
         try {
-          fprintf(filePtr.get(), "%s %" PRIu32 " %" PRId64 " IN %s %s ; (%s) auth=%i zone=%s from=%s nm=%s rtag=%s ss=%hd%s%s\n", recordSet.d_qname.toString().c_str(), recordSet.d_orig_ttl, static_cast<int64_t>(recordSet.d_ttd - now), recordSet.d_qtype.toString().c_str(), record->getZoneRepresentation().c_str(), vStateToString(recordSet.d_state).c_str(), static_cast<int>(recordSet.d_auth), recordSet.d_authZone.toLogString().c_str(), recordSet.d_from.toString().c_str(), recordSet.d_netmask.empty() ? "" : recordSet.d_netmask.toString().c_str(), recordSet.d_rtag.value_or("").c_str(), recordSet.d_servedStale, recordSet.d_tooBig ? " (too big!)" : "", recordSet.d_tcp ? " tcp" : "");
+          fprintf(filePtr.get(), "%s %" PRIu32 " %" PRId64 " IN %s %s ; (%s) auth=%i zone=%s from=%s nm=%s rtag=%s ss=%hd%s%s\n", recordSet.d_qname.toString().c_str(), recordSet.d_orig_ttl, static_cast<int64_t>(recordSet.d_ttd - now), recordSet.d_qtype.toString().c_str(), record->getZoneRepresentation().c_str(), vStateToString(recordSet.d_state).c_str(), static_cast<int>(recordSet.d_auth), recordSet.d_authZone.toLogString().c_str(), recordSet.d_from.toString().c_str(), recordSet.d_netmask.empty() ? "" : recordSet.d_netmask.toString().c_str(), recordSet.d_rtag.c_str(), recordSet.d_servedStale, recordSet.d_tooBig ? " (too big!)" : "", recordSet.d_tcp ? " tcp" : "");
         }
         catch (...) {
           fprintf(filePtr.get(), "; error printing '%s'\n", recordSet.d_qname.empty() ? "EMPTY" : recordSet.d_qname.toString().c_str());
@@ -1049,8 +1050,8 @@ void MemRecursorCache::getRecordSet(T& message, U recordSet)
   message.add_bytes(PBCacheEntry::required_bytes_authZone, recordSet->d_authZone.toString());
   encodeComboAddress(message, PBCacheEntry::required_message_from, recordSet->d_from);
   encodeNetmask(message, PBCacheEntry::optional_bytes_netmask, recordSet->d_netmask);
-  if (recordSet->d_rtag) {
-    message.add_bytes(PBCacheEntry::optional_bytes_rtag, *recordSet->d_rtag);
+  if (!recordSet->d_rtag.empty()) {
+    message.add_bytes(PBCacheEntry::optional_bytes_rtag, recordSet->d_rtag);
   }
   message.add_uint32(PBCacheEntry::required_uint32_state, static_cast<uint32_t>(recordSet->d_state));
   message.add_int64(PBCacheEntry::required_int64_ttd, recordSet->d_ttd);
@@ -1151,7 +1152,7 @@ bool MemRecursorCache::putRecordSet(T& message)
 {
   AuthRecsVec authRecs;
   SigRecsVec sigRecs;
-  CacheEntry cacheEntry{{g_rootdnsname, QType::A, std::nullopt, Netmask()}, false};
+  CacheEntry cacheEntry{{g_rootdnsname, QType::A, NOTAG, Netmask()}, false};
   while (message.next()) {
     switch (message.tag()) {
     case PBCacheEntry::repeated_bytes_record: {
@@ -1294,12 +1295,4 @@ size_t MemRecursorCache::putRecordSets(const std::string& pbuf)
     log->error(Logr::Error, "Other exception processing cache dump");
   }
   return 0;
-}
-
-namespace boost
-{
-size_t hash_value(const MemRecursorCache::OptTag& rtag)
-{
-  return rtag ? hash_value(rtag.value()) : 0xcafebaaf;
-}
 }

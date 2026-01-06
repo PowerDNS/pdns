@@ -56,7 +56,7 @@ bool primeHints(time_t now)
   }
 
   g_recCache->doWipeCache(g_rootdnsname, false, QType::NS);
-  g_recCache->replace(now, g_rootdnsname, QType::NS, nsvec, {}, {}, false, g_rootdnsname, std::nullopt, std::nullopt, vState::Insecure, MemRecursorCache::Extra{ComboAddress("255.255.255.255"), false}); // and stuff in the cache
+  g_recCache->replace(now, g_rootdnsname, QType::NS, nsvec, {}, {}, false, g_rootdnsname, std::nullopt, MemRecursorCache::NOTAG, vState::Insecure, MemRecursorCache::Extra{ComboAddress("255.255.255.255"), false}); // and stuff in the cache
   return ret;
 }
 

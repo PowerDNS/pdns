@@ -940,7 +940,7 @@ BOOST_AUTO_TEST_CASE(test_cname_plus_authority_ns_ttl)
   vector<DNSRecord> cached;
   bool wasAuth = false;
 
-  auto ttl = g_recCache->get(now, DNSName("powerdns.com."), QType(QType::NS), MemRecursorCache::None, &cached, who, std::nullopt, nullptr, nullptr, nullptr, nullptr, &wasAuth);
+  auto ttl = g_recCache->get(now, DNSName("powerdns.com."), QType(QType::NS), MemRecursorCache::None, &cached, who, MemRecursorCache::NOTAG, nullptr, nullptr, nullptr, nullptr, &wasAuth);
   BOOST_REQUIRE_GE(ttl, 1);
   BOOST_REQUIRE_LE(ttl, 42);
   BOOST_CHECK_EQUAL(cached.size(), 1U);
@@ -949,7 +949,7 @@ BOOST_AUTO_TEST_CASE(test_cname_plus_authority_ns_ttl)
   cached.clear();
 
   /* Also check that the part in additional is still not auth */
-  BOOST_REQUIRE_GE(g_recCache->get(now, DNSName("a.gtld-servers.net."), QType(QType::A), MemRecursorCache::None, &cached, who, std::nullopt, nullptr, nullptr, nullptr, nullptr, &wasAuth), -1);
+  BOOST_REQUIRE_GE(g_recCache->get(now, DNSName("a.gtld-servers.net."), QType(QType::A), MemRecursorCache::None, &cached, who, MemRecursorCache::NOTAG, nullptr, nullptr, nullptr, nullptr, &wasAuth), -1);
   BOOST_CHECK_EQUAL(cached.size(), 1U);
   BOOST_CHECK_EQUAL(wasAuth, false);
 }
@@ -1017,7 +1017,7 @@ BOOST_AUTO_TEST_CASE(test_bogus_does_not_replace_secure_in_the_cache)
   vector<DNSRecord> cached;
   bool wasAuth = false;
   vState retrievedState = vState::Insecure;
-  BOOST_CHECK_GT(g_recCache->get(now, DNSName("powerdns.com."), QType(QType::SOA), MemRecursorCache::RequireAuth, &cached, who, std::nullopt, nullptr, nullptr, nullptr, &retrievedState, &wasAuth), 0);
+  BOOST_CHECK_GT(g_recCache->get(now, DNSName("powerdns.com."), QType(QType::SOA), MemRecursorCache::RequireAuth, &cached, who, MemRecursorCache::NOTAG, nullptr, nullptr, nullptr, &retrievedState, &wasAuth), 0);
   BOOST_CHECK_EQUAL(vStateToString(retrievedState), vStateToString(vState::Secure));
   BOOST_CHECK_EQUAL(wasAuth, true);
 
@@ -1027,7 +1027,7 @@ BOOST_AUTO_TEST_CASE(test_bogus_does_not_replace_secure_in_the_cache)
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
 
   cached.clear();
-  BOOST_CHECK_GT(g_recCache->get(now, DNSName("powerdns.com."), QType(QType::SOA), MemRecursorCache::RequireAuth, &cached, who, std::nullopt, nullptr, nullptr, nullptr, &retrievedState, &wasAuth), 0);
+  BOOST_CHECK_GT(g_recCache->get(now, DNSName("powerdns.com."), QType(QType::SOA), MemRecursorCache::RequireAuth, &cached, who, MemRecursorCache::NOTAG, nullptr, nullptr, nullptr, &retrievedState, &wasAuth), 0);
   BOOST_CHECK_EQUAL(vStateToString(retrievedState), vStateToString(vState::Secure));
   BOOST_CHECK_EQUAL(wasAuth, true);
 }
