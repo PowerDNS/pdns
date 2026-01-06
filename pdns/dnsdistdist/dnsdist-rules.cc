@@ -143,7 +143,7 @@ std::shared_ptr<QClassRule> getQClassSelector(const std::string& qclassStr, uint
 {
   QClass qclass(qclassCode);
   if (!qclassStr.empty()) {
-    qclass = QClass(std::string(qclassStr));
+    qclass = QClass(boost::to_upper_copy(std::string(qclassStr)));
   }
 
   return std::make_shared<QClassRule>(qclass);
