@@ -21,6 +21,8 @@ lib_recrust = custom_target('librecrust.a',
   command: [build,
   ],
   depend_files: [
+    'Cargo.toml',
+    'Cargo.lock',
     'src/bridge.hh',
     'src/bridge.rs',
     'src/helpers.rs',
