@@ -812,7 +812,7 @@ DoHConnectionToBackend::DoHConnectionToBackend(const std::shared_ptr<DownstreamS
     d_connectionDied = true;
     ++d_ds->tcpDiedSendingQuery;
     VERBOSESLOG(infolog("Unable to create a callback object for a new HTTP/2 session"),
-                getLogger()->info(Logr::Info, "Unable to create a callback object for a new HTTP/2 session"));
+                ConnectionToBackend::getLogger()->info(Logr::Info, "Unable to create a callback object for a new HTTP/2 session"));
     return;
   }
   std::unique_ptr<nghttp2_session_callbacks, void (*)(nghttp2_session_callbacks*)> callbacks(cbs, nghttp2_session_callbacks_del);
@@ -830,7 +830,7 @@ DoHConnectionToBackend::DoHConnectionToBackend(const std::shared_ptr<DownstreamS
     d_connectionDied = true;
     ++d_ds->tcpDiedSendingQuery;
     VERBOSESLOG(infolog("Could not allocate a new HTTP/2 session"),
-                getLogger()->info(Logr::Info, "Could not allocate a new HTTP/2 session"));
+                ConnectionToBackend::getLogger()->info(Logr::Info, "Could not allocate a new HTTP/2 session"));
     return;
   }
 
@@ -855,7 +855,7 @@ DoHConnectionToBackend::DoHConnectionToBackend(const std::shared_ptr<DownstreamS
     d_connectionDied = true;
     ++d_ds->tcpDiedSendingQuery;
     VERBOSESLOG(infolog("Could not submit SETTINGS: %s", nghttp2_strerror(rv)),
-                getLogger()->error(Logr::Info, nghttp2_strerror(rv), "Could not submit SETTINGS"));
+                ConnectionToBackend::getLogger()->error(Logr::Info, nghttp2_strerror(rv), "Could not submit SETTINGS"));
     return;
   }
 }
