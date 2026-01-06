@@ -18,4 +18,4 @@ module_resources = files(
   '4.3.0_to_4.7.0_schema.pgsql.sql',
 )
 
-module_deps = [deps, dep_pgsql]
+module_deps = [deps, dep_pgsql, libpdns_sqlbackend]
