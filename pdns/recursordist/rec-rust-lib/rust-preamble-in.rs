@@ -22,6 +22,9 @@
 
 // This file (rust-preamble-in.rs) is included at the start of lib.rs
 
+// rustc complains serde Serialize/Deserialize are not used on toplevel, while they *are* used plenty
+// in mod recsettings. Disable the warning for the line below only.
+#[allow(unused_imports)]
 use serde::{Deserialize, Serialize};
 
 mod helpers;
@@ -33,10 +36,6 @@ use bridge::*;
 mod misc;
 
 mod web; // leaving this out causes link issues
-
-// Suppresses "Deserialize unused" warning
-#[derive(Deserialize, Serialize)]
-struct UnusedStruct {}
 
 trait Validate {
     fn validate(&self) -> Result<(), ValidationError>;
