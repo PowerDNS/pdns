@@ -458,6 +458,21 @@ if dep_pkcs11.found()
   )
 endif
 
+# Needs link_whole, so the symbols are put into pdns_server and pdnsutil, and
+# dynamically loaded backends can use the symbols from their host program (uses
+# export_dynamic).
+libpdns_sqlbackend = declare_dependency(
+  link_whole: static_library(
+    'pdns-sqlbackend',
+    sources: files(
+      src_dir / 'backends' / 'gsql' / 'gsqlbackend.cc',
+      src_dir / 'backends' / 'gsql' / 'gsqlbackend.hh',
+      src_dir / 'backends' / 'gsql' / 'ssql.hh',
+    ),
+    dependencies: deps,
+  )
+)
+
 # This needs to be link_whole'd because it's needed by auth backends.
 libpdns_ssqlite3 = dependency('', required: false)
 if dep_sqlite3.found()
@@ -497,9 +512,6 @@ common_sources += files(
   src_dir / 'auth-zonecache.hh',
   src_dir / 'axfr-retriever.cc',
   src_dir / 'axfr-retriever.hh',
-  src_dir / 'backends' / 'gsql' / 'gsqlbackend.cc', # TODO Move to a separate module.
-  src_dir / 'backends' / 'gsql' / 'gsqlbackend.hh', # TODO Move to a separate module.
-  src_dir / 'backends' / 'gsql' / 'ssql.hh',        # TODO Move to a separate module.
   src_dir / 'base32.cc',
   src_dir / 'base32.hh',
   src_dir / 'base64.cc',
@@ -697,6 +709,7 @@ tools = {
       libpdns_gettime,
       libpdns_signers_openssl,
       libpdns_signers_sodium,
+      libpdns_sqlbackend,
     ],
     'manpages': ['pdns_server.1'],
     'install_dir': get_option('sbindir'),
@@ -710,6 +723,7 @@ tools = {
       libpdns_ssqlite3,
       libpdns_signers_openssl,
       libpdns_signers_sodium,
+      libpdns_sqlbackend,
     ],
     'manpages': ['pdnsutil.1'],
   },
