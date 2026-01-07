@@ -11,6 +11,8 @@
 #include <boost/test/unit_test.hpp>
 
 #include "dnsparser.hh"
+#include "dnswriter.hh"
+#include "svc-records.hh"
 
 BOOST_AUTO_TEST_SUITE(test_dnsparser_cc)
 
@@ -614,6 +616,47 @@ BOOST_AUTO_TEST_CASE(test_clearDNSPacketUnsafeRecordTypes) {
     BOOST_CHECK_EQUAL(getRecordsOfTypeCount(reinterpret_cast<char*>(packet.data()), packet.size(), 3, QType::MX), 0);
   }
 
+}
+
+BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_multiple) {
+  vector<uint8_t> fakePacket {
+    0x00, 0x01, // Key 1 (ALPN)
+    0x00, 0x03, // length 3
+    0x02,           // ALPN length 2
+    'h', '2',
+
+    // A (forbidden) second ALPN
+    0x00, 0x01, // Key 1 (ALPN)
+    0x00, 0x03, // length 3
+    0x02,           // ALPN length 2
+    'h', '3'
+  };
+
+  PacketReader pr(std::string_view(reinterpret_cast<const char*>(fakePacket.data()), fakePacket.size()), 0);
+
+  std::set<SvcParam> svcParams;
+
+  BOOST_CHECK_THROW(pr.xfrSvcParamKeyVals(svcParams), std::out_of_range);
+}
+
+BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_bad_ordering) {
+  vector<uint8_t> fakePacket {
+    0x00, 0x04, // Key 4 (IPv4 Hint)
+    0x04,           // length 4 (1 address)
+    192, 168,
+    0, 1,
+
+    0x00, 0x01,  // Key 1 (ALPN)
+    0x00, 0x03, // length 3
+    0x02,           // ALPN length 2
+    'h', '2',
+  };
+
+  PacketReader pr(std::string_view(reinterpret_cast<const char*>(fakePacket.data()), fakePacket.size()), 0);
+
+  std::set<SvcParam> svcParams;
+
+  BOOST_CHECK_THROW(pr.xfrSvcParamKeyVals(svcParams), std::out_of_range);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
