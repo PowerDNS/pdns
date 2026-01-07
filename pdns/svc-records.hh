@@ -82,6 +82,10 @@ class SvcParam {
 
   bool operator< (const SvcParam &other) const;
 
+  bool operator==(const SvcParam &other) const;
+
+  bool operator!=(const SvcParam &other) const;
+
   bool operator==(const SvcParamKey& key) const
   {
     return key == d_key;

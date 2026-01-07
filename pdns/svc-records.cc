@@ -153,6 +153,38 @@ bool SvcParam::operator<(const SvcParam& other) const {
   return this->d_key < other.getKey();
 }
 
+bool SvcParam::operator==(const SvcParam& other) const {
+  if (this->getKey() != other.getKey()) {
+    return false;
+  }
+  switch (this->d_key) {
+    case SvcParamKey::mandatory:
+      return this->getMandatory() == other.getMandatory();
+    case SvcParamKey::alpn:
+      return this->getALPN() == other.getALPN();
+    case SvcParamKey::no_default_alpn: /* fallthrough */
+    case SvcParamKey::ohttp:
+      return true;
+    case SvcParamKey::port:
+      return this->getPort() == other.getPort();
+    case SvcParamKey::ipv4hint: /* fallthrough */
+    case SvcParamKey::ipv6hint:
+      return (this->getIPHints() == other.getIPHints() && this->getAutoHint() == other.getAutoHint());
+    case SvcParamKey::ech:
+      return this->getECH() == other.getECH();
+    case SvcParamKey::dohpath:
+      return this->getValue() == other.getValue();
+    case SvcParamKey::tls_supported_groups:
+      return this->getTLSSupportedGroups() == other.getTLSSupportedGroups();
+    default:
+      return this->getValue() == other.getValue();
+  }
+}
+
+bool SvcParam::operator!=(const SvcParam& other) const {
+  return !(*this == other);
+}
+
 const std::vector<ComboAddress>& SvcParam::getIPHints() const {
   if (d_key != SvcParamKey::ipv6hint && d_key != SvcParamKey::ipv4hint) {
     throw std::invalid_argument("getIPHints called for non-IP address key '" + keyToString(d_key) + "'");
