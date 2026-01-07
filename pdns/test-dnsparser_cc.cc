@@ -618,6 +618,31 @@ BOOST_AUTO_TEST_CASE(test_clearDNSPacketUnsafeRecordTypes) {
 
 }
 
+BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_alpn_length_wrong) {
+  vector<uint8_t> fakePacket {
+    0x00, 0x01, // Key 1 (ALPN)
+    0x00, 0x04, // length 3
+    0x01,           // ALPN length, too short
+                        // This means '2' is the length for the next ALPN
+    'h', '2'
+  };
+
+  PacketReader pr(std::string_view(reinterpret_cast<const char*>(fakePacket.data()), fakePacket.size()), 0);
+
+  std::set<SvcParam> svcParams;
+
+  BOOST_CHECK_THROW(pr.xfrSvcParamKeyVals(svcParams), std::out_of_range);
+
+  fakePacket = {
+    0x00, 0x01, // Key 1 (ALPN)
+    0x00, 0x03, // length 3
+    0x03,           // ALPN length 3 (too long, i.e. after end of SVC Params)
+    'h', '2'
+  };
+
+  BOOST_CHECK_THROW(pr.xfrSvcParamKeyVals(svcParams), std::out_of_range);
+}
+
 BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_multiple) {
   vector<uint8_t> fakePacket {
     0x00, 0x01, // Key 1 (ALPN)

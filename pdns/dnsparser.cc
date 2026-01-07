@@ -646,6 +646,9 @@ void PacketReader::xfrSvcParamKeyVals(set<SvcParam> &kvs) {
         if (alpnLen == 0) {
           throw std::out_of_range("alpn length of 0");
         }
+        if (d_pos + alpnLen > stop) {
+          throw std::out_of_range("alpn length is larger than rest of alpn SVC Param");
+        }
         xfrBlob(alpn, alpnLen);
         alpns.push_back(std::move(alpn));
       }
