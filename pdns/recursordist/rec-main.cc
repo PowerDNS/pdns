@@ -69,17 +69,7 @@ thread_local FrameStreamServersInfo t_frameStreamServersInfo;
 thread_local FrameStreamServersInfo t_nodFrameStreamServersInfo;
 #endif /* HAVE_FSTRM */
 
-/* g++ defines __SANITIZE_THREAD__
-   clang++ supports the nice __has_feature(thread_sanitizer),
-   let's merge them */
-#if defined(__has_feature)
-#if __has_feature(thread_sanitizer)
-#define __SANITIZE_THREAD__ 1
-#endif
-#if __has_feature(address_sanitizer)
-#define __SANITIZE_ADDRESS__ 1
-#endif
-#endif
+#include "sanitizer.hh"
 
 string g_programname = "pdns_recursor";
 string g_pidfname;
@@ -1507,7 +1497,13 @@ void broadcastFunction(const pipefunc_t& func)
     ThreadMSG* tmsg = new ThreadMSG(); // NOLINT: manual ownership handling
     tmsg->func = func;
     tmsg->wantAnswer = true;
+
+    __tsan_release(tmsg);
+
     if (write(threadInfo.getPipes().writeToThread, &tmsg, sizeof(tmsg)) != sizeof(tmsg)) { // NOLINT: sizeof correct
+
+      __tsan_acquire(tmsg);
+
       delete tmsg; // NOLINT: manual ownership handling
 
       unixDie("write to thread pipe returned wrong size or error");
@@ -1517,6 +1513,8 @@ void broadcastFunction(const pipefunc_t& func)
     if (read(threadInfo.getPipes().readFromThread, &resp, sizeof(resp)) != sizeof(resp)) { // NOLINT: sizeof correct
       unixDie("read from thread pipe returned wrong size or error");
     }
+
+    __tsan_acquire(resp);
 
     if (resp != nullptr) {
       delete resp; // NOLINT: manual ownership handling
@@ -1588,7 +1586,12 @@ T broadcastAccFunction(const std::function<T*()>& func)
     tmsg->func = [func] { return voider<T>(func); };
     tmsg->wantAnswer = true;
 
+    __tsan_release(tmsg);
+
     if (write(tps.writeToThread, &tmsg, sizeof(tmsg)) != sizeof(tmsg)) { // NOLINT:: sizeof correct
+
+      __tsan_acquire(tmsg);
+
       delete tmsg; // NOLINT: manual ownership handling
       unixDie("write to thread pipe returned wrong size or error");
     }
@@ -1596,6 +1599,8 @@ T broadcastAccFunction(const std::function<T*()>& func)
     T* resp = nullptr;
     if (read(tps.readFromThread, &resp, sizeof(resp)) != sizeof(resp)) // NOLINT: sizeof correct
       unixDie("read from thread pipe returned wrong size or error");
+
+    __tsan_acquire(resp);
 
     if (resp) {
       ret += *resp;
@@ -2354,6 +2359,8 @@ static void handlePipeRequest(int fileDesc, FDMultiplexer::funcparam_t& /* var *
     unixDie("read from thread pipe returned wrong size or error");
   }
 
+  __tsan_acquire(tmsg);
+
   void* resp = nullptr;
   try {
     resp = tmsg->func();
@@ -2373,6 +2380,9 @@ static void handlePipeRequest(int fileDesc, FDMultiplexer::funcparam_t& /* var *
     g_rateLimitedLogger.log(g_slog->withName("runtime"), "PIPE function");
   }
   if (tmsg->wantAnswer) {
+
+    __tsan_release(resp);
+
     if (write(RecThreadInfo::self().getPipes().writeFromThread, &resp, sizeof(resp)) != sizeof(resp)) {
       delete tmsg; // NOLINT: manual ownership handling
       unixDie("write to thread pipe returned wrong size or error");

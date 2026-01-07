@@ -263,6 +263,7 @@ pdns_server_SOURCES = \
 	resolver.cc resolver.hh \
 	responsestats.cc responsestats.hh responsestats-auth.cc \
 	rfc2136handler.cc \
+	sanitizer.hh \
 	secpoll-auth.cc secpoll-auth.hh \
 	secpoll.cc secpoll.hh \
 	serialtweaker.cc \

@@ -2926,17 +2926,7 @@ static void usage()
   cout << "-V,--version          Show dnsdist version information and exit\n";
 }
 
-/* g++ defines __SANITIZE_THREAD__
-   clang++ supports the nice __has_feature(thread_sanitizer),
-   let's merge them */
-#if defined(__has_feature)
-#if __has_feature(thread_sanitizer)
-#define __SANITIZE_THREAD__ 1
-#endif
-#if __has_feature(address_sanitizer)
-#define __SANITIZE_ADDRESS__ 1
-#endif
-#endif
+#include "sanitizer.hh"
 
 #if defined(__SANITIZE_ADDRESS__) && defined(HAVE_LEAK_SANITIZER_INTERFACE)
 #include <sanitizer/lsan_interface.h>

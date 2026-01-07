@@ -34,18 +34,7 @@
 #include "misc.hh"
 #include "namespaces.hh"
 #include "pdnsexception.hh"
-
-/* g++ defines __SANITIZE_THREAD__
-   clang++ supports the nice __has_feature(thread_sanitizer),
-   let's merge them */
-#if defined(__has_feature)
-#if __has_feature(thread_sanitizer)
-#define __SANITIZE_THREAD__ 1
-#endif
-#if __has_feature(address_sanitizer)
-#define __SANITIZE_ADDRESS__ 1
-#endif
-#endif
+#include "sanitizer.hh"
 
 std::atomic<bool> RecursorControlChannel::stop = false;
 
