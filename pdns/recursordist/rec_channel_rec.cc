@@ -2075,18 +2075,39 @@ static RecursorControlChannel::Answer help(ArgIterator /* begin */, ArgIterator 
   return {0, str.str()};
 }
 
+// The common part of activating the newly read config
+static void activateLua(LuaConfigItems& lci, bool broadcast, ProxyMapping&& proxyMapping, OpenTelemetryTraceConditions&& conditions)
+{
+  extern std::unique_ptr<ProxyMapping> g_proxyMapping;
+  extern std::unique_ptr<OpenTelemetryTraceConditions> g_OTConditions;
+
+  activateLuaConfig(lci);
+  lci = g_luaconfs.getCopy();
+  if (broadcast) {
+    startLuaConfigDelayedThreads(lci, lci.generation);
+    broadcastFunction([pmap = std::move(proxyMapping)] { return pleaseSupplantProxyMapping(pmap); });
+    broadcastFunction([conds = std::move(conditions)] { return pleaseSupplantOTConditions(conds); });
+  }
+  else {
+    // Initial proxy mapping and OT conditions
+    g_proxyMapping = proxyMapping.empty() ? nullptr : std::make_unique<ProxyMapping>(proxyMapping);
+    g_OTConditions = conditions.empty() ? nullptr : std::make_unique<OpenTelemetryTraceConditions>(conditions);
+  }
+  if (broadcast) {
+    g_slog->withName("config")->info(Logr::Info, "Reloaded");
+  }
+}
+
 RecursorControlChannel::Answer luaconfig(bool broadcast)
 {
   ProxyMapping proxyMapping;
   LuaConfigItems lci;
   lci.d_slog = g_slog;
-  extern std::unique_ptr<ProxyMapping> g_proxyMapping;
   pdns::rust::settings::rec::Recursorsettings settings;
-  extern std::unique_ptr<OpenTelemetryTraceConditions> g_OTConditions;
   OpenTelemetryTraceConditions conditions;
   pdns::settings::rec::YamlSettingsStatus yamlstat = pdns::settings::rec::YamlSettingsStatus::CannotOpen;
 
-  // IF we have a yaml file read it to be ab le to use parts of it later
+  // If we have a YAML file read it to be able to use (parts of it) later
   if (g_yamlSettings) {
     string configname = ::arg()["config-dir"] + "/recursor";
     if (!::arg()["config-name"].empty()) {
@@ -2098,40 +2119,22 @@ RecursorControlChannel::Answer luaconfig(bool broadcast)
   }
 
   if (!g_luaSettingsInYAML) {
-    // We have a lua config file, but also process dynamic YAML parts if applicable, currenlty those are:
+    // We might have a lua config file, but also process dynamic YAML parts if applicable, currently those are:
     // - the OT trace conditions
     // - the outgoing TLS config
     try {
       if (yamlstat == pdns::settings::rec::YamlSettingsStatus::OK) {
         // YAML read above succeeded
-        ProxyMapping dummyProxyMapping;
-        LuaConfigItems dummpyLuaConfig;
+        ProxyMapping dummyProxyMapping; // taken from lua, so ignire YAML
+        LuaConfigItems dummpyLuaConfig; // we do not use the converted orm YAML LuaConfigItems, but the "real thing"
         pdns::settings::rec::fromBridgeStructToLuaConfig(settings, dummpyLuaConfig, dummyProxyMapping, conditions);
         TCPOutConnectionManager::setupOutgoingTLSConfigTables(settings);
-        if (broadcast) {
-          broadcastFunction([conds = std::move(conditions)] { return pleaseSupplantOTConditions(conds); });
-        }
       }
       if (::arg()["lua-config-file"].empty()) {
         return {0, "No Lua or corresponding YAML configuration active\n"};
       }
-      loadRecursorLuaConfig(::arg()["lua-config-file"], proxyMapping, lci);
-
-      activateLuaConfig(lci);
-      lci = g_luaconfs.getCopy();
-      if (broadcast) {
-        startLuaConfigDelayedThreads(lci, lci.generation);
-        broadcastFunction([pmap = std::move(proxyMapping)] { return pleaseSupplantProxyMapping(pmap); });
-
-      }
-      else {
-        // Initial proxy mapping and OT conditions
-        g_proxyMapping = proxyMapping.empty() ? nullptr : std::make_unique<ProxyMapping>(proxyMapping);
-        g_OTConditions = conditions.empty() ? nullptr : std::make_unique<OpenTelemetryTraceConditions>(conditions);
-      }
-      if (broadcast) {
-        g_slog->withName("config")->info(Logr::Info, "Reloaded");
-      }
+      loadRecursorLuaConfig(::arg()["lua-config-file"], proxyMapping, lci); // will bump generation
+      activateLua(lci, broadcast, std::move(proxyMapping), std::move(conditions));
       return {0, "Reloaded Lua configuration file '" + ::arg()["lua-config-file"] + "'\n"};
     }
     catch (std::exception& e) {
@@ -2141,6 +2144,7 @@ RecursorControlChannel::Answer luaconfig(bool broadcast)
       return {1, "Unable to load Lua script from '" + ::arg()["lua-config-file"] + "': " + e.reason + "\n"};
     }
   }
+  // More simple case: we don't have any Lua config
   try {
     if (yamlstat != pdns::settings::rec::YamlSettingsStatus::OK) {
       return {1, "Reloading dynamic part of YAML configuration failed\n"};
@@ -2148,20 +2152,7 @@ RecursorControlChannel::Answer luaconfig(bool broadcast)
     auto generation = g_luaconfs.getLocal()->generation;
     lci.generation = generation + 1;
     pdns::settings::rec::fromBridgeStructToLuaConfig(settings, lci, proxyMapping, conditions);
-    activateLuaConfig(lci);
-    lci = g_luaconfs.getCopy();
-    if (broadcast) {
-      startLuaConfigDelayedThreads(lci, lci.generation);
-
-      *g_initialOpenTelemetryConditions.lock() = conditions.empty() ? nullptr : std::make_unique<OpenTelemetryTraceConditions>(conditions);
-      broadcastFunction([pmap = std::move(proxyMapping)] { return pleaseSupplantProxyMapping(pmap); });
-      broadcastFunction([conds = std::move(conditions)] { return pleaseSupplantOTConditions(conds); });
-    }
-    else {
-      // Initial proxy mapping and OT conditions
-      g_proxyMapping = proxyMapping.empty() ? nullptr : std::make_unique<ProxyMapping>(proxyMapping);
-      *g_initialOpenTelemetryConditions.lock() = conditions.empty() ? nullptr : std::make_unique<OpenTelemetryTraceConditions>(conditions);
-    }
+    activateLua(lci, broadcast, std::move(proxyMapping), std::move(conditions));
     TCPOutConnectionManager::setupOutgoingTLSConfigTables(settings);
 
     return {0, "Reloaded dynamic part of YAML configuration\n"};
