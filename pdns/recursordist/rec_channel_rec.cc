@@ -2081,21 +2081,53 @@ RecursorControlChannel::Answer luaconfig(bool broadcast)
   LuaConfigItems lci;
   lci.d_slog = g_slog;
   extern std::unique_ptr<ProxyMapping> g_proxyMapping;
+  pdns::rust::settings::rec::Recursorsettings settings;
+  extern std::unique_ptr<OpenTelemetryTraceConditions> g_OTConditions;
+  OpenTelemetryTraceConditions conditions;
+  pdns::settings::rec::YamlSettingsStatus yamlstat = pdns::settings::rec::YamlSettingsStatus::CannotOpen;
+
+  // IF we have a yaml file read it to be ab le to use parts of it later
+  if (g_yamlSettings) {
+    string configname = ::arg()["config-dir"] + "/recursor";
+    if (!::arg()["config-name"].empty()) {
+      configname = ::arg()["config-dir"] + "/recursor-" + ::arg()["config-name"];
+    }
+    bool dummy1{};
+    bool dummy2{};
+    yamlstat = pdns::settings::rec::tryReadYAML(configname + g_yamlSettingsSuffix, false, dummy1, dummy2, settings, g_slog, Logr::Error);
+  }
+
   if (!g_luaSettingsInYAML) {
+    // We have a lua config file, but also process dynamic YAML parts if applicable, currenlty those are:
+    // - the OT trace conditions
+    // - the outgoing TLS config
     try {
+      if (yamlstat == pdns::settings::rec::YamlSettingsStatus::OK) {
+        // YAML read above succeeded
+        ProxyMapping dummyProxyMapping;
+        LuaConfigItems dummpyLuaConfig;
+        pdns::settings::rec::fromBridgeStructToLuaConfig(settings, dummpyLuaConfig, dummyProxyMapping, conditions);
+        TCPOutConnectionManager::setupOutgoingTLSConfigTables(settings);
+        if (broadcast) {
+          broadcastFunction([conds = std::move(conditions)] { return pleaseSupplantOTConditions(conds); });
+        }
+      }
       if (::arg()["lua-config-file"].empty()) {
         return {0, "No Lua or corresponding YAML configuration active\n"};
       }
       loadRecursorLuaConfig(::arg()["lua-config-file"], proxyMapping, lci);
+
       activateLuaConfig(lci);
       lci = g_luaconfs.getCopy();
       if (broadcast) {
         startLuaConfigDelayedThreads(lci, lci.generation);
         broadcastFunction([pmap = std::move(proxyMapping)] { return pleaseSupplantProxyMapping(pmap); });
+
       }
       else {
-        // Initial proxy mapping
+        // Initial proxy mapping and OT conditions
         g_proxyMapping = proxyMapping.empty() ? nullptr : std::make_unique<ProxyMapping>(proxyMapping);
+        g_OTConditions = conditions.empty() ? nullptr : std::make_unique<OpenTelemetryTraceConditions>(conditions);
       }
       if (broadcast) {
         g_slog->withName("config")->info(Logr::Info, "Reloaded");
@@ -2110,20 +2142,11 @@ RecursorControlChannel::Answer luaconfig(bool broadcast)
     }
   }
   try {
-    string configname = ::arg()["config-dir"] + "/recursor";
-    if (!::arg()["config-name"].empty()) {
-      configname = ::arg()["config-dir"] + "/recursor-" + ::arg()["config-name"];
-    }
-    bool dummy1{};
-    bool dummy2{};
-    pdns::rust::settings::rec::Recursorsettings settings;
-    auto yamlstat = pdns::settings::rec::tryReadYAML(configname + g_yamlSettingsSuffix, false, dummy1, dummy2, settings, g_slog, Logr::Error);
     if (yamlstat != pdns::settings::rec::YamlSettingsStatus::OK) {
       return {1, "Reloading dynamic part of YAML configuration failed\n"};
     }
     auto generation = g_luaconfs.getLocal()->generation;
     lci.generation = generation + 1;
-    OpenTelemetryTraceConditions conditions;
     pdns::settings::rec::fromBridgeStructToLuaConfig(settings, lci, proxyMapping, conditions);
     activateLuaConfig(lci);
     lci = g_luaconfs.getCopy();
@@ -2135,7 +2158,7 @@ RecursorControlChannel::Answer luaconfig(bool broadcast)
       broadcastFunction([conds = std::move(conditions)] { return pleaseSupplantOTConditions(conds); });
     }
     else {
-      // Initial proxy mapping
+      // Initial proxy mapping and OT conditions
       g_proxyMapping = proxyMapping.empty() ? nullptr : std::make_unique<ProxyMapping>(proxyMapping);
       *g_initialOpenTelemetryConditions.lock() = conditions.empty() ? nullptr : std::make_unique<OpenTelemetryTraceConditions>(conditions);
     }
