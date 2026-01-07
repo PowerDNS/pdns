@@ -36,7 +36,7 @@ echo $0: Downloading ${QUICHE_TARBALL}
 curl -L -o "${QUICHE_TARBALL}" "${QUICHE_TARBALL_URL}"
 echo $0: Checking that the hash of ${QUICHE_TARBALL} is ${QUICHE_TARBALL_HASH}
 # Line below should echo two spaces between digest and name
-echo "${QUICHE_TARBALL_HASH}"  "${QUICHE_TARBALL}" | sha256sum -c -
+echo "${QUICHE_TARBALL_HASH}""  ""${QUICHE_TARBALL}" | sha256sum -c -
 tar xf "${QUICHE_TARBALL}"
 cd "quiche-${QUICHE_VERSION}"
 # Disable SONAME in the quiche shared library, we do not intend this library to be used by anyone else and it makes things more complicated since we rename it to libdnsdist-quiche
@@ -72,6 +72,11 @@ Version: ${QUICHE_VERSION}
 Cflags: -I${INSTALL_PREFIX}/include
 Libs: -L${LIBDIR} -ldnsdist-quiche
 PC
+
+if [ -f /bin/cargo-cyclonedx ]; then
+    /bin/cargo-cyclonedx cyclonedx -f json --spec-version 1.5
+    mv quiche/quiche.cdx.json /dist/
+fi
 
 cd ..
 rm -rf "${QUICHE_TARBALL}" "quiche-${QUICHE_VERSION}"
