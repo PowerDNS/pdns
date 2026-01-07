@@ -618,6 +618,52 @@ BOOST_AUTO_TEST_CASE(test_clearDNSPacketUnsafeRecordTypes) {
 
 }
 
+BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals) {
+  // Note, "happy path" parsing is mostly done in test-rcpgenerator_cc.cc
+
+  vector<uint8_t> fakePacket {
+    0x00, 0x01, // Key 1 (ALPN)
+    0x00, 0x03, // length 3
+    0x02,           // ALPN length 2
+    'h', '2'
+  };
+
+  PacketReader pr(std::string_view(reinterpret_cast<const char*>(fakePacket.data()), fakePacket.size()), 0);
+
+  std::set<SvcParam> svcParams;
+
+  std::set<SvcParam> expected;
+  std::vector<std::string> alpns{"h2"};
+  expected.insert(SvcParam(SvcParam::SvcParamKey::alpn, std::move(alpns)));
+
+  BOOST_CHECK_NO_THROW(pr.xfrSvcParamKeyVals(svcParams));
+  BOOST_CHECK(svcParams == expected);
+}
+
+BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_length_wrong) {
+  vector<uint8_t> fakePacket {
+    0x00, 0x01, // Key 1 (ALPN)
+    0x00, 0x04, // length 4 (real length is 3)
+    0x02,           // ALPN length 2
+    'h', '2'
+  };
+
+  PacketReader pr(std::string_view(reinterpret_cast<const char*>(fakePacket.data()), fakePacket.size()), 0);
+
+  std::set<SvcParam> svcParams;
+
+  BOOST_CHECK_THROW(pr.xfrSvcParamKeyVals(svcParams), std::out_of_range);
+
+  fakePacket = {
+    0x00, 0x01, // Key 1 (ALPN)
+    0x00, 0x02, // length 2 (real length is 3)
+    0x02,           // ALPN length 2
+    'h', '2'
+  };
+
+  BOOST_CHECK_THROW(pr.xfrSvcParamKeyVals(svcParams), std::out_of_range);
+}
+
 BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_alpn_length_wrong) {
   vector<uint8_t> fakePacket {
     0x00, 0x01, // Key 1 (ALPN)
