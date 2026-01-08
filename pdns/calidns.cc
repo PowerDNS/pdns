@@ -615,3 +615,8 @@ catch (const NetmaskException& exp)
   cerr<<"Fatal error: "<<exp.reason<<endl;
   return EXIT_FAILURE;
 }
+catch (const PDNSException& exp)
+{
+  cerr<<"Fatal error: "<<exp.reason<<endl;
+  return EXIT_FAILURE;
+}
