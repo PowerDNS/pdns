@@ -94,6 +94,7 @@ const map<const string, uint16_t> QType::names = {
   {"ANY", 255},
   {"URI", 256},
   {"CAA", 257},
+  {"RESINFO", 261},
   {"DLV", 32769},
   {"ADDR", 65400},
 #if !defined(RECURSOR)

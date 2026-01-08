@@ -888,6 +888,8 @@ boilerplate_conv(CAA,
                  conv.xfrUnquotedText(d_tag, true);
                  conv.xfrText(d_value, true, false); /* no lenField */
                 )
+
+boilerplate_conv(RESINFO, conv.xfrText(d_text, true));
 //NOLINTEND
 
 static uint16_t makeTag(const std::string& data)
@@ -1007,6 +1009,7 @@ static void reportOtherTypes(const ReportIsOnlyCallableByReportAllTypes& guard)
    MINFORecordContent::report(guard);
    URIRecordContent::report(guard);
    CAARecordContent::report(guard);
+   RESINFORecordContent::report(guard);
    APLRecordContent::report(guard);
    IPSECKEYRecordContent::report(guard);
    CSYNCRecordContent::report(guard);
