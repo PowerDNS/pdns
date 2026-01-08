@@ -175,8 +175,6 @@
 ./pdns/statnode.cc
 ./pdns/statnode.hh
 ./pdns/stubquery.cc
-./pdns/svc-records.cc
-./pdns/svc-records.hh
 ./pdns/tcpiohandler.cc
 ./pdns/tcpiohandler.hh
 ./pdns/tcpreceiver.cc

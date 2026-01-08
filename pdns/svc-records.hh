@@ -25,73 +25,76 @@
 #include <set>
 #include "iputils.hh"
 
-class SvcParam {
-  public:
-    enum SvcParamKey: uint16_t {
-      // https://www.iana.org/assignments/dns-svcb/dns-svcb.xhtml#dns-svcparamkeys
-      /* When adding new values, you *must* update SvcParam::SvcParam(const std::string &key, const std::string &value)
-       * in svc-record.cc with the new numbers
-       */
-      mandatory = 0,
-      alpn = 1,
-      no_default_alpn = 2,
-      port = 3,
-      ipv4hint = 4,
-      ech = 5,
-      ipv6hint = 6,
-      dohpath = 7,
-      ohttp = 8,
-      tls_supported_groups = 9,  /* https://datatracker.ietf.org/doc/draft-ietf-tls-key-share-prediction/ */
-    };
+class SvcParam
+{
+public:
+  enum SvcParamKey : uint16_t
+  {
+    // https://www.iana.org/assignments/dns-svcb/dns-svcb.xhtml#dns-svcparamkeys
+    /* When adding new values, you *must* update SvcParam::SvcParam(const std::string &key, const std::string &value)
+     * in svc-record.cc with the new numbers
+     */
+    mandatory = 0,
+    alpn = 1,
+    no_default_alpn = 2,
+    port = 3,
+    ipv4hint = 4,
+    ech = 5,
+    ipv6hint = 6,
+    dohpath = 7,
+    ohttp = 8,
+    tls_supported_groups = 9, /* https://datatracker.ietf.org/doc/draft-ietf-tls-key-share-prediction/ */
+  };
 
   //! empty Param, unusable
   SvcParam() = delete;
 
   //! To create a value-less SvcParam (like no-default-alpn)
-  SvcParam(const SvcParamKey &key);
+  SvcParam(const SvcParamKey& key);
 
   //! To create a "generic" SvcParam (for keyNNNNN and ech)
-  SvcParam(const SvcParamKey &key, const std::string &value);
+  SvcParam(const SvcParamKey& key, const std::string& value);
 
   //! To create a multi-value SvcParam (like mandatory)
-  SvcParam(const SvcParamKey &key, std::set<std::string> &&value);
+  SvcParam(const SvcParamKey& key, std::set<std::string>&& value);
 
   //! To create a multi-value SvcParam (like alpn)
-  SvcParam(const SvcParamKey &key, std::vector<std::string> &&value);
+  SvcParam(const SvcParamKey& key, std::vector<std::string>&& value);
 
   //! To create a multi-value SvcParam with key values (like mandatory)
-  SvcParam(const SvcParamKey &key, std::set<SvcParamKey> &&value);
+  SvcParam(const SvcParamKey& key, std::set<SvcParamKey>&& value);
 
   //! To create an ipv{4,6}hints SvcParam
-  SvcParam(const SvcParamKey &key, std::vector<ComboAddress> &&value);
+  SvcParam(const SvcParamKey& key, std::vector<ComboAddress>&& value);
 
   //! To create a tls-supported-groups SvcParam
-  SvcParam(const SvcParamKey &key, std::vector<uint16_t> &&value);
+  SvcParam(const SvcParamKey& key, std::vector<uint16_t>&& value);
 
   //! To create a port SvcParam
-  SvcParam(const SvcParamKey &key, const uint16_t value);
+  SvcParam(const SvcParamKey& key, const uint16_t value);
 
   //! Returns the SvcParamKey based on the input
-  static SvcParamKey keyFromString(const std::string &k);
+  static SvcParamKey keyFromString(const std::string& k);
 
   //! Returns the SvcParamKey based on the input, generic is true when the format was 'keyNNNN'
-  static SvcParamKey keyFromString(const std::string &k, bool &generic);
+  static SvcParamKey keyFromString(const std::string& k, bool& generic);
 
   //! Returns the string value of the SvcParamKey
-  static std::string keyToString(const SvcParamKey &k);
+  static std::string keyToString(const SvcParamKey& k);
 
-  bool operator< (const SvcParam &other) const;
+  bool operator<(const SvcParam& other) const;
 
-  bool operator==(const SvcParam &other) const;
+  bool operator==(const SvcParam& other) const;
 
-  bool operator!=(const SvcParam &other) const;
+  bool operator!=(const SvcParam& other) const;
 
   bool operator==(const SvcParamKey& key) const
   {
     return key == d_key;
   }
 
-  SvcParamKey getKey() const {
+  SvcParamKey getKey() const
+  {
     return d_key;
   }
 
@@ -106,20 +109,20 @@ class SvcParam {
   bool getAutoHint() const { return d_autohint; };
   void setAutoHint(const bool value) { d_autohint = value; };
 
-  private:
-    SvcParamKey d_key;
-    std::string d_value; // For keyNNNNN vals
+private:
+  SvcParamKey d_key;
+  std::string d_value; // For keyNNNNN vals
 
-    std::vector<std::string> d_alpn; // For ALPN
-    std::set<SvcParamKey> d_mandatory; // For mandatory
-    std::vector<ComboAddress> d_ipHints; // For ipv{6,4}hints
-    std::string d_ech; // For Encrypted Client Hello
-    std::vector<uint16_t> d_tls_supported_groups; // For tls-supported-groups
-    uint16_t d_port{0}; // For port
+  std::vector<std::string> d_alpn; // For ALPN
+  std::set<SvcParamKey> d_mandatory; // For mandatory
+  std::vector<ComboAddress> d_ipHints; // For ipv{6,4}hints
+  std::string d_ech; // For Encrypted Client Hello
+  std::vector<uint16_t> d_tls_supported_groups; // For tls-supported-groups
+  uint16_t d_port{0}; // For port
 
-    // Set to true if we encountered an "auto" field in hints
-    // Can only be true when we read SVCParams from text
-    bool d_autohint{false};
+  // Set to true if we encountered an "auto" field in hints
+  // Can only be true when we read SVCParams from text
+  bool d_autohint{false};
 
-    static const std::map<std::string, SvcParamKey> SvcParams;
+  static const std::map<std::string, SvcParamKey> SvcParams;
 };
