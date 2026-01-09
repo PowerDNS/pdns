@@ -757,7 +757,7 @@ int TCPNameserver::doAXFR(const ZoneName &targetZone, std::unique_ptr<DNSPacket>
   // SOA *must* go out first, our signing pipe might reorder
   DLOG(SLOG(g_log<<logPrefix<<"sending out SOA"<<endl,
             slog->info(Logr::Debug, /*"I send an SOA to the world"*/"AXFR: sending out SOA", "zone", Logging::Loggable(targetZone), "client", Logging::Loggable(q->getRemoteStringWithPort()))));
-  DNSZoneRecord soa = makeEditedDNSZRFromSOAData(dk, sd);
+  DNSZoneRecord soa = makeEditedDNSZRFromSOAData(dk, sd, DNSResourceRecord::ANSWER, slog);
   outpacket->addRecord(DNSZoneRecord(soa));
   if(securedZone && !presignedZone) {
     set<ZoneName> authSet;
@@ -1343,7 +1343,7 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock, std::share
       }
     }
 
-    serialPermitsIXFR = !rfc1982LessThan(serial, calculateEditSOA(sd.serial, dk, sd.zonename));
+    serialPermitsIXFR = !rfc1982LessThan(serial, calculateEditSOA(sd.serial, dk, sd.zonename, slog));
   }
 
   if (serialPermitsIXFR) {
@@ -1382,7 +1382,7 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock, std::share
     // SOA *must* go out first, our signing pipe might reorder
     DLOG(SLOG(g_log<<logPrefix<<"sending out SOA"<<endl,
               slog->info(Logr::Debug, /*"I send an SOA to the world"*/"IXFR: sending out SOA", "zone", Logging::Loggable(target), "client", Logging::Loggable(q->getRemoteStringWithPort()))));
-    DNSZoneRecord soa = makeEditedDNSZRFromSOAData(dk, sd);
+    DNSZoneRecord soa = makeEditedDNSZRFromSOAData(dk, sd, DNSResourceRecord::ANSWER, slog);
     outpacket->addRecord(std::move(soa));
     if(securedZone && outpacket->d_dnssecOk) {
       set<ZoneName> authSet;

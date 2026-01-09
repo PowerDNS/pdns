@@ -29,6 +29,7 @@
 #include <stdlib.h> 
 #include "pdnsexception.hh"
 #include "logger.hh"
+#include "logging.hh"
 #include "misc.hh"
 #include <pwd.h>
 #include <grp.h>
@@ -150,7 +151,8 @@ Semaphore::Semaphore(unsigned int value)
 {
   m_pSemaphore=make_unique<sem_t>();
   if (sem_init(m_pSemaphore.get(), 0, value) == -1) {
-    g_log << Logger::Error << "Cannot create semaphore: " << stringerror() << endl;
+    SLOG(g_log << Logger::Error << "Cannot create semaphore: " << stringerror() << endl,
+         g_slog->error(Logr::Error, errno, "Cannot create semaphore"));
     exit(1);
   }
 }

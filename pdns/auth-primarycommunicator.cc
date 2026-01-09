@@ -186,7 +186,7 @@ void CommunicatorClass::getUpdatedProducers(UeberBackend* B, vector<DomainInfo>&
         }
 
         DNSResourceRecord rr;
-        makeIncreasedSOARecord(sd, "EPOCH", "", rr);
+        makeIncreasedSOARecord(sd, "EPOCH", "", rr, d_slog);
         di.backend->startTransaction(sd.zonename, UnknownDomainID);
         if (!di.backend->replaceRRSet(di.id, rr.qname, rr.qtype, vector<DNSResourceRecord>(1, rr))) {
           di.backend->abortTransaction();
