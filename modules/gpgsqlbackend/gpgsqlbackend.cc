@@ -39,8 +39,13 @@
 gPgSQLBackend::gPgSQLBackend(const string& mode, const string& suffix) :
   GSQLBackend(mode, suffix)
 {
+  if (g_slogStructured) {
+    d_slog = g_slog->withName("gpgsql" + suffix);
+  }
+
   try {
-    setDB(std::unique_ptr<SSql>(new SPgSQL(getArg("dbname"),
+    setDB(std::unique_ptr<SSql>(new SPgSQL(d_slog,
+                                           getArg("dbname"),
                                            getArg("host"),
                                            getArg("port"),
                                            getArg("user"),
@@ -50,11 +55,13 @@ gPgSQLBackend::gPgSQLBackend(const string& mode, const string& suffix) :
   }
 
   catch (SSqlException& e) {
-    g_log << Logger::Error << mode << " Connection failed: " << e.txtReason() << endl;
+    SLOG(g_log << Logger::Error << mode << " Connection failed: " << e.txtReason() << endl,
+         d_slog->error(Logr::Error, e.txtReason(), "Database connection failed", "mode", Logging::Loggable(mode)));
     throw PDNSException("Unable to launch " + mode + " connection: " + e.txtReason());
   }
   allocateStatements();
-  g_log << Logger::Info << mode << " Connection successful. Connected to database '" << getArg("dbname") << "' on '" << getArg("host") << "'." << endl;
+  SLOG(g_log << Logger::Info << mode << " Connection successful. Connected to database '" << getArg("dbname") << "' on '" << getArg("host") << "'." << endl,
+       d_slog->info(Logr::Info, "Database connection successful", "database", Logging::Loggable(getArg("dbname")), "host", Logging::Loggable(getArg("host"))));
 }
 
 void gPgSQLBackend::reconnect()
@@ -196,11 +203,24 @@ public:
   gPgSQLLoader()
   {
     BackendMakers().report(std::make_unique<gPgSQLFactory>("gpgsql"));
-    g_log << Logger::Info << "[gpgsqlbackend] This is the gpgsql backend version " VERSION
+    // If this module is not loaded dynamically at runtime, this code runs
+    // as part of a global constructor, before the structured logger has a
+    // chance to be set up, so fallback to simple logging in this case.
+    if (!g_slogStructured || !g_slog) {
+      g_log << Logger::Info << "[gpgsqlbackend] This is the gpgsql backend version " VERSION
 #ifndef REPRODUCIBLE
-          << " (" __DATE__ " " __TIME__ ")"
+            << " (" __DATE__ " " __TIME__ ")"
 #endif
-          << " reporting" << endl;
+            << " reporting" << endl;
+    }
+    else {
+      g_slog->withName("gpgsqlbackend")->info(Logr::Info, "gpgsqlbackend starting", "version", Logging::Loggable(VERSION)
+#ifndef REPRODUCIBLE
+                                                                                                 ,
+                                              "build date", Logging::Loggable(__DATE__ " " __TIME__)
+#endif
+      );
+    }
   }
 };
 static gPgSQLLoader gpgsqlloader;

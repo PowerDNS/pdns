@@ -49,6 +49,8 @@
 #define IP_OFFMASK 0x1fff /* mask for fragmenting bits */
 #endif
 
+bool g_slogStructured{false};
+
 namespace po = boost::program_options;
 po::variables_map g_vm;
 

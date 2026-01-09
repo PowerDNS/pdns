@@ -36,7 +36,7 @@ class LdapSimpleAuthenticator : public LdapAuthenticator
 
 public:
   LdapSimpleAuthenticator(const std::string& dn, const std::string& pw, int timeout);
-  bool authenticate(LDAP* conn) override;
+  bool authenticate(std::shared_ptr<Logr::Logger> log, LDAP* conn) override;
   std::string getError() const override;
 };
 
@@ -58,12 +58,12 @@ class LdapGssapiAuthenticator : public LdapAuthenticator
     std::string authzid;
   };
 
-  int attemptAuth(LDAP* conn);
-  int updateTgt();
+  int attemptAuth(std::shared_ptr<Logr::Logger> log, LDAP* conn);
+  int updateTgt(std::shared_ptr<Logr::Logger> log);
 
 public:
   LdapGssapiAuthenticator(const std::string& keytab, const std::string& credsCache, int timeout);
   ~LdapGssapiAuthenticator() override;
-  bool authenticate(LDAP* conn) override;
+  bool authenticate(std::shared_ptr<Logr::Logger> log, LDAP* conn) override;
   std::string getError() const override;
 };

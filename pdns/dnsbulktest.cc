@@ -43,6 +43,8 @@
 #include "dns_random.hh"
 #include "arguments.hh"
 
+bool g_slogStructured{false};
+
 using namespace boost::accumulators;
 namespace po = boost::program_options;
 

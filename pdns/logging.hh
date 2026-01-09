@@ -24,7 +24,7 @@
 
 #include "config.h"
 
-#ifdef RECURSOR
+#if defined(PDNS_AUTH) || defined(RECURSOR) // [
 
 #include <map>
 #include <memory>
@@ -207,6 +207,8 @@ private:
 
 extern std::shared_ptr<Logging::Logger> g_slog;
 
+#ifdef RECURSOR // [
+
 // Prefer structured logging? Since Recursor 5.1.0, we always do. We keep a const, to allow for
 // step-by-step removal of old style logging code (for recursor-only code). Note that code shared
 // with auth still uses old-style, so the SLOG calls should remain for shared code.
@@ -224,10 +226,30 @@ constexpr bool g_slogStructured = true;
     slogCall;                    \
   } while (0)
 
-#else // No structured logging (e.g. auth)
+#else
+
+// Still able to choose between old-style and structured logging (e.g. auth)
+extern bool g_slogStructured;
+
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define SLOG(oldStyle, slogCall) \
+  do {                           \
+    if (g_slogStructured) {      \
+      slogCall;                  \
+    }                            \
+    else {                       \
+      oldStyle;                  \
+    }                            \
+  } while (0)
+
+#endif // ] RECURSOR
+
+#else // No structured logging (e.g. dnsdist)
+
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define SLOG(oldStyle, slogCall) \
   do {                           \
     oldStyle;                    \
   } while (0)
-#endif // RECURSOR
+
+#endif // ] PDNS_AUTH || RECURSOR

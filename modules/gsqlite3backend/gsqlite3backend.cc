@@ -42,8 +42,12 @@
 gSQLite3Backend::gSQLite3Backend(const std::string& mode, const std::string& suffix) :
   GSQLBackend(mode, suffix)
 {
+  if (g_slogStructured) {
+    d_slog = g_slog->withName("gsqlite3" + suffix);
+  }
+
   try {
-    auto ptr = std::unique_ptr<SSql>(new SSQLite3(getArg("database"), getArg("pragma-journal-mode")));
+    auto ptr = std::unique_ptr<SSql>(new SSQLite3(d_slog, getArg("database"), getArg("pragma-journal-mode")));
     if (!getArg("pragma-synchronous").empty()) {
       ptr->execute("PRAGMA synchronous=" + getArg("pragma-synchronous"));
     }
@@ -54,11 +58,13 @@ gSQLite3Backend::gSQLite3Backend(const std::string& mode, const std::string& suf
     allocateStatements();
   }
   catch (SSqlException& e) {
-    g_log << Logger::Error << mode << ": connection failed: " << e.txtReason() << std::endl;
+    SLOG(g_log << Logger::Error << mode << ": connection failed: " << e.txtReason() << std::endl,
+         d_slog->error(Logr::Error, e.txtReason(), "Database connection failed", "mode", Logging::Loggable(mode)));
     throw PDNSException("Unable to launch " + mode + " connection: " + e.txtReason());
   }
 
-  g_log << Logger::Info << mode << ": connection to '" << getArg("database") << "' successful" << std::endl;
+  SLOG(g_log << Logger::Info << mode << ": connection to '" << getArg("database") << "' successful" << std::endl,
+       d_slog->info(Logr::Info, "Database connection successful", "database", Logging::Loggable(getArg("database"))));
 }
 
 //! Constructs a gSQLite3Backend
@@ -183,11 +189,24 @@ public:
   gSQLite3Loader()
   {
     BackendMakers().report(std::make_unique<gSQLite3Factory>("gsqlite3"));
-    g_log << Logger::Info << "[gsqlite3] This is the gsqlite3 backend version " VERSION
+    // If this module is not loaded dynamically at runtime, this code runs
+    // as part of a global constructor, before the structured logger has a
+    // chance to be set up, so fallback to simple logging in this case.
+    if (!g_slogStructured || !g_slog) {
+      g_log << Logger::Info << "[gsqlite3] This is the gsqlite3 backend version " VERSION
 #ifndef REPRODUCIBLE
-          << " (" __DATE__ " " __TIME__ ")"
+            << " (" __DATE__ " " __TIME__ ")"
 #endif
-          << " reporting" << endl;
+            << " reporting" << endl;
+    }
+    else {
+      g_slog->withName("gsqlite3backend")->info(Logr::Info, "gsqlite3 backend starting", "version", Logging::Loggable(VERSION)
+#ifndef REPRODUCIBLE
+                                                                                                      ,
+                                                "build date", Logging::Loggable(__DATE__ " " __TIME__)
+#endif
+      );
+    }
   }
 };
 

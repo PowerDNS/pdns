@@ -50,6 +50,8 @@
 
 using namespace json11;
 
+bool g_slogStructured{false};
+
 StatBag S;
 static int g_numRecords;
 

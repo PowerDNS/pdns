@@ -32,7 +32,7 @@
 class CoWrapper
 {
 public:
-  CoWrapper(const string& command, int timeout, int abiVersion);
+  CoWrapper(std::shared_ptr<Logr::Logger> log, const string& command, int timeout, int abiVersion);
   ~CoWrapper();
   void send(const string& line);
   void receive(string& line);
@@ -43,6 +43,7 @@ private:
   void launch();
   int d_timeout;
   int d_abiVersion;
+  std::shared_ptr<Logr::Logger> d_slog;
 };
 
 class PipeBackend : public DNSBackend

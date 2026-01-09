@@ -31,6 +31,7 @@
 #include "base32.hh"
 #include "dnssecinfra.hh"
 
+bool g_slogStructured{false};
 
 StatBag S;
 
