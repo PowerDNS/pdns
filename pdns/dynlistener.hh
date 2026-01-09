@@ -45,7 +45,7 @@ public:
   void go();
   void theListener();
 
-  typedef string g_funk_t(const vector<string> &parts, Utility::pid_t ppid); // guido!
+  typedef string g_funk_t(const vector<string> &parts, Utility::pid_t ppid, std::shared_ptr<Logr::Logger> slog); // guido!
   typedef struct { g_funk_t *func; string args; string usage; } g_funkwithusage_t;
   typedef map<string,g_funkwithusage_t> g_funkdb_t;
   

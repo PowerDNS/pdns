@@ -1284,7 +1284,7 @@ static void increaseSerial(const string& soaEditSetting, const updateContext& ct
   }
 
   DNSResourceRecord rr; // NOLINT(readability-identifier-length)
-  if (makeIncreasedSOARecord(sd, soaEdit2136, soaEdit, rr)) {
+  if (makeIncreasedSOARecord(sd, soaEdit2136, soaEdit, rr, ctx.slog)) {
     ctx.di.backend->replaceRRSet(ctx.di.id, rr.qname, rr.qtype, vector<DNSResourceRecord>(1, rr));
     SLOG(g_log << Logger::Notice << ctx.msgPrefix << "Increasing SOA serial (" << oldSerial << " -> " << sd.serial << ")" << endl,
          ctx.slog->info(Logr::Notice, "Update: increasing SOA serial", "old serial", Logging::Loggable(oldSerial), "new serial", Logging::Loggable(sd.serial)));

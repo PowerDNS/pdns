@@ -1320,7 +1320,7 @@ std::unique_ptr<DNSPacket> PacketHandler::question(DNSPacket& p)
 void PacketHandler::makeNXDomain(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const DNSName& target, const DNSName& wildcard)
 {
   DNSZoneRecord rr;
-  rr=makeEditedDNSZRFromSOAData(d_dk, d_sd, DNSResourceRecord::AUTHORITY);
+  rr=makeEditedDNSZRFromSOAData(d_dk, d_sd, DNSResourceRecord::AUTHORITY, d_slog);
   rr.dr.d_ttl=d_sd.getNegativeTTL();
   r->addRecord(std::move(rr));
 
@@ -1334,7 +1334,7 @@ void PacketHandler::makeNXDomain(DNSPacket& p, std::unique_ptr<DNSPacket>& r, co
 void PacketHandler::makeNOError(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const DNSName& target, const DNSName& wildcard, int mode)
 {
   DNSZoneRecord rr;
-  rr=makeEditedDNSZRFromSOAData(d_dk, d_sd, DNSResourceRecord::AUTHORITY);
+  rr=makeEditedDNSZRFromSOAData(d_dk, d_sd, DNSResourceRecord::AUTHORITY, d_slog);
   rr.dr.d_ttl=d_sd.getNegativeTTL();
   r->addRecord(std::move(rr));
 
@@ -1808,7 +1808,7 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state, bool re
   }
 
   if(pkt.qtype.getCode() == QType::SOA && d_sd.qname()==pkt.qdomain) {
-    zrr=makeEditedDNSZRFromSOAData(d_dk, d_sd);
+    zrr=makeEditedDNSZRFromSOAData(d_dk, d_sd, DNSResourceRecord::ANSWER, d_slog);
     state.r->addRecord(std::move(zrr));
     return true;
   }
@@ -1939,7 +1939,7 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state, bool re
 
   /* Add in SOA if required */
   if(state.target==d_sd.qname()) {
-      zrr=makeEditedDNSZRFromSOAData(d_dk, d_sd);
+      zrr=makeEditedDNSZRFromSOAData(d_dk, d_sd, DNSResourceRecord::ANSWER, d_slog);
       rrset.push_back(std::move(zrr));
   }
 

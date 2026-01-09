@@ -1092,7 +1092,7 @@ static FILE* g_fp;
 static std::mutex g_guardian_lock;
 
 // The next two methods are not in dynhandler.cc because they use a few items declared in this file.
-static string DLCycleHandler(const vector<string>& /* parts */, pid_t /* ppid */)
+static string DLCycleHandler(const vector<string>& /* parts */, pid_t /* ppid */, std::shared_ptr<Logr::Logger> /* slog */)
 {
   kill(cpid, SIGKILL); // why?
   kill(cpid, SIGKILL); // why?
@@ -1100,7 +1100,7 @@ static string DLCycleHandler(const vector<string>& /* parts */, pid_t /* ppid */
   return "ok";
 }
 
-static string DLRestHandler(const vector<string>& parts, pid_t /* ppid */)
+static string DLRestHandler(const vector<string>& parts, pid_t /* ppid */, std::shared_ptr<Logr::Logger> /* slog */)
 {
   string line;
 
