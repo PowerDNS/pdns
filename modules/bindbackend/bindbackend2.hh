@@ -319,11 +319,11 @@ private:
   static bool findBeforeAndAfterUnhashed(std::shared_ptr<const recordstorage_t>& records, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after);
   void insertRecord(std::shared_ptr<recordstorage_t>& records, const ZoneName& zoneName, const DNSName& qname, const QType& qtype, const string& content, int ttl, const std::string& hashed = string(), const bool* auth = nullptr);
   void reload() override;
-  static string DLDomStatusHandler(const vector<string>& parts, Utility::pid_t ppid);
-  static string DLDomExtendedStatusHandler(const vector<string>& parts, Utility::pid_t ppid);
-  static string DLListRejectsHandler(const vector<string>& parts, Utility::pid_t ppid);
-  static string DLReloadNowHandler(const vector<string>& parts, Utility::pid_t ppid);
-  static string DLAddDomainHandler(const vector<string>& parts, Utility::pid_t ppid);
+  static string DLDomStatusHandler(const vector<string>& parts, Utility::pid_t ppid, std::shared_ptr<Logr::Logger> slog);
+  static string DLDomExtendedStatusHandler(const vector<string>& parts, Utility::pid_t ppid, std::shared_ptr<Logr::Logger> slog);
+  static string DLListRejectsHandler(const vector<string>& parts, Utility::pid_t ppid, std::shared_ptr<Logr::Logger> slog);
+  static string DLReloadNowHandler(const vector<string>& parts, Utility::pid_t ppid, std::shared_ptr<Logr::Logger> slog);
+  static string DLAddDomainHandler(const vector<string>& parts, Utility::pid_t ppid, std::shared_ptr<Logr::Logger> slog);
   static void fixupOrderAndAuth(std::shared_ptr<recordstorage_t>& records, const ZoneName& zoneName, bool nsec3zone, const NSEC3PARAMRecordContent& ns3pr);
   void doEmptyNonTerminals(std::shared_ptr<recordstorage_t>& records, const ZoneName& zoneName, bool nsec3zone, const NSEC3PARAMRecordContent& ns3pr);
   void loadConfig(string* status = nullptr);

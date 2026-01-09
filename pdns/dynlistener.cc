@@ -401,11 +401,11 @@ void DynListener::theListener()
       try {
         parts[0] = toUpper( parts[0] );
         if(s_funcdb.count(parts[0]))
-          sendlines((*(s_funcdb[parts[0]].func))(parts,d_ppid));
+          sendlines((*(s_funcdb[parts[0]].func))(parts,d_ppid,d_slog));
         else if (parts[0] == "HELP")
           sendlines(getHelp());
         else if(s_restfunc)
-          sendlines((*s_restfunc)(parts,d_ppid));
+          sendlines((*s_restfunc)(parts,d_ppid,d_slog));
         else
           sendlines("Unknown command: '"+parts[0]+"'");
       }
@@ -458,7 +458,7 @@ string DynListener::getHelp()
   {
     vector<string> parts;
     parts.push_back("HELP");
-    rest=((*s_restfunc)(parts,d_ppid));
+    rest=((*s_restfunc)(parts,d_ppid,d_slog));
     boost::split(funcs, rest, boost::is_any_of("\n"));
   }
 

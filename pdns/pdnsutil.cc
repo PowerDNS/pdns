@@ -1670,7 +1670,7 @@ static int increaseSerial(const ZoneName& zone, DNSSECKeeper &dsk)
   dsk.getSoaEdit(zone, soaEditKind);
 
   DNSResourceRecord rr;
-  makeIncreasedSOARecord(sd, "SOA-EDIT-INCREASE", soaEditKind, rr);
+  makeIncreasedSOARecord(sd, "SOA-EDIT-INCREASE", soaEditKind, rr, nullptr); // no structured logger in pdnsutil yet
 
   sd.db->startTransaction(zone, UnknownDomainID);
 
@@ -2235,7 +2235,7 @@ static bool increaseZoneSerial(DNSSECKeeper& dsk, DomainInfo& info, std::vector<
   dsk.getSoaEdit(info.zone, soaEditKind);
 
   DNSResourceRecord resrec;
-  makeIncreasedSOARecord(soa, "SOA-EDIT-INCREASE", soaEditKind, resrec);
+  makeIncreasedSOARecord(soa, "SOA-EDIT-INCREASE", soaEditKind, resrec, nullptr); // no structured logger in pdnsutil yet
   DNSRecord rec(resrec);
 
   ostringstream str;
