@@ -1,4 +1,4 @@
-@       86400   IN  SOA pdns-public-ns1.powerdns.com. peter\.van\.dijk.powerdns.com. 2025121601 10800 3600 604800 10800
+@       86400   IN  SOA pdns-public-ns1.powerdns.com. peter\.van\.dijk.powerdns.com. 2026011401 10800 3600 604800 10800
 @       3600    IN  NS  pdns-public-ns1.powerdns.com.
 @       3600    IN  NS  pdns-public-ns2.powerdns.com.
 
@@ -445,6 +445,7 @@ recursor-5.3.0.security-status                          60 IN TXT "3 Upgrade now
 recursor-5.3.1.security-status                          60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2025-07.html"
 recursor-5.3.2.security-status                          60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2025-08.html"
 recursor-5.3.3.security-status                          60 IN TXT "1 OK"
+recursor-5.3.4.security-status                          60 IN TXT "1 OK"
 recursor-5.4.0-alpha1.security-status                   60 IN TXT "1 Unsupported pre-release"
 
 ; Recursor Debian

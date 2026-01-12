@@ -4,6 +4,64 @@ Changelogs for 5.3.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
+  :version: 5.3.4
+  :released: 14th of January 2026
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16699
+    :tickets: 16106
+
+    Update cxx and related cargos and avoid uuid crate.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16698
+    :tickets: 16461
+
+    Fix parsing of webserver loglevel "none".
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16697
+    :tickets: 16251
+
+    Silence rust warning.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16414
+    :tickets: 16217
+
+    Add package urls to our SBOMs.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16387
+
+    We need a usable cargo for sdist so download (and install) rust later.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16380, 16381, 16382, 16397
+    :tickets: 16167, 16180, 16188, 16155, 16380, 16392
+
+    Update the Rust library version when generating a tarball and fix release builds by updating the locked Rust lib version.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16378
+    :tickets: 16098
+
+    Do not hash (or compare) OpenTelemetry Trace EDNS value for packetcache.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16377
+
+    Some error paths do no create thread 0 so don't join it.
+
+.. changelog::
   :version: 5.3.3
   :released: 8th of December 2025
 
