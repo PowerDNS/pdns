@@ -2070,8 +2070,9 @@ Start a webserver for monitoring. See :doc:`performance`".
 
 IP Address for webserver/API to listen on.
 
-.. versionchanged:: 5.0.0
+-.. versionchanged:: 5.0.0
   A path to a UNIX domain socket may be used instead of an IP address.
+  Abstract namespace (Linux only) can also be defined by prefixing value with `abns@`.
 
 .. _setting-webserver-allow-from:
 
@@ -2082,7 +2083,7 @@ IP Address for webserver/API to listen on.
 -  Default: 127.0.0.1,::1
 
 Webserver/API access is only allowed from these subnets.
-Ignored if ``webserver-address`` is set to a UNIX domain socket.
+Ignored unless ``webserver-address`` is set to an IP address.
 
 .. _setting-webserver-hash-plaintext-credentials:
 
@@ -2178,7 +2179,7 @@ Password required to access the webserver. Since 4.6.0 the password can be hashe
 -  Default: 8081
 
 The port where webserver/API will listen on.
-Ignored if ``webserver-address`` is set to a UNIX domain socket.
+Ignored unless ``webserver-address`` is set to an IP address.
 
 .. _setting-webserver-print-arguments:
 
