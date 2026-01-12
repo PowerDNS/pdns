@@ -1,8 +1,9 @@
 [package]
 name = "recrust"
+edition = "2021"
+description = "Rust-based static library for PowerDNS recursor"
 # Convention: major/minor is equal to rec's major/minor
 version = "5.3.0"
-edition = "2021"
 
 [lib]
 name = "recrust"
@@ -31,4 +32,3 @@ uuid = { version = "1.12.1", features = ["v4"] }
 
 [build-dependencies]
 cxx-build = "1.0"
-
