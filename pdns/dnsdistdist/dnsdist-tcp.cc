@@ -258,11 +258,11 @@ void IncomingTCPConnectionState::handleResponseSent(TCPResponse& currentResponse
     if (backendProtocol == dnsdist::Protocol::DoUDP && !currentResponse.d_idstate.forwardedOverUDP) {
       backendProtocol = dnsdist::Protocol::DoTCP;
     }
-    ::handleResponseSent(ids, udiff, d_ci.remote, backend->d_config.remote, static_cast<unsigned int>(sentBytes), currentResponse.d_cleartextDH, backendProtocol, true);
+    ::handleResponseSent(ids, udiff, ids.origRemote, backend->d_config.remote, static_cast<unsigned int>(sentBytes), currentResponse.d_cleartextDH, backendProtocol, true);
   }
   else {
     const auto& ids = currentResponse.d_idstate;
-    ::handleResponseSent(ids, 0, d_ci.remote, ComboAddress(), static_cast<unsigned int>(currentResponse.d_buffer.size()), currentResponse.d_cleartextDH, ids.protocol, false);
+    ::handleResponseSent(ids, 0, ids.origRemote, ComboAddress(), static_cast<unsigned int>(currentResponse.d_buffer.size()), currentResponse.d_cleartextDH, ids.protocol, false);
   }
 
   currentResponse.d_buffer.clear();
