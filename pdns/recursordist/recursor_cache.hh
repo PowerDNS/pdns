@@ -58,6 +58,7 @@ public:
   // but mark it as too big. Subsequent gets will cause an ImmediateServFailException to be thrown.
   static uint16_t s_maxRRSetSize;
   static bool s_limitQTypeAny;
+  static uint32_t s_maxEntrySize;
 
   [[nodiscard]] size_t size() const;
   [[nodiscard]] size_t bytes();
