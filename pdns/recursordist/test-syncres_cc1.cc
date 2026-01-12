@@ -2201,7 +2201,7 @@ BOOST_AUTO_TEST_CASE(test_broken_cname_chain)
   timeval now{};
   Utility::gettimeofday(&now, nullptr);
 
-  sr->setAsyncCallback([&](const ComboAddress& address, const DNSName& domain, int qtype, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
+  sr->setAsyncCallback([&](const ComboAddress& address, const DNSName& domain, int qtype, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, std::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
     if (isRootServer(address)) {
 
       setLWResult(res, 0, false, false, true);
