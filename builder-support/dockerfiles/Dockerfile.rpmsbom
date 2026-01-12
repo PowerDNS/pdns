@@ -7,12 +7,12 @@ ADD builder-support/helpers/ /pdns/builder-support/helpers/
 
 @IF [ -n "$M_recursor$M_all" ]
 RUN cd /pdns/builder-support/helpers/ && \
-    python3 generate-sbom-dnf.py /dist/pdns-recursor-${BUILDER_VERSION}-${BUILDER_TARGET}.cyclonedx.json pdns-recursor rust.json
+    python3 generate-sbom-dnf.py /dist/pdns-recursor-${BUILDER_VERSION}-${BUILDER_TARGET}.cyclonedx.json pdns-recursor rust.json /dist/recrust.cdx.json
 @ENDIF
 
 @IF [ -n "$M_dnsdist$M_all" ]
 RUN cd /pdns/builder-support/helpers/; \
-    python3 generate-sbom-dnf.py /dist/dnsdist-${BUILDER_VERSION}-${BUILDER_TARGET}.cyclonedx.json dnsdist rust.json quiche.json
+    python3 generate-sbom-dnf.py /dist/dnsdist-${BUILDER_VERSION}-${BUILDER_TARGET}.cyclonedx.json dnsdist rust.json /dist/quiche.cdx.json /dist/dnsdist-rust.cdx.json
 @ENDIF
 
 @IF [ -n "$M_authoritative$M_all" ]

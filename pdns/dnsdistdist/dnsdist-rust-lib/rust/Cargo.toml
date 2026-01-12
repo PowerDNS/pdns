@@ -1,8 +1,10 @@
 [package]
 name = "dnsdist-rust"
+edition = "2021"
+description = "Rust-based static library for DNSdist"
+license = "GPL-2.0-only"
 # Convention: major/minor is equal to DNSdist's major/minor
 version = "2.0.0"
-edition = "2021"
 
 [lib]
 name = "dnsdist_rust"
