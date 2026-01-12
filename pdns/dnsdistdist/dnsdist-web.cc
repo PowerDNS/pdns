@@ -463,6 +463,28 @@ static void addRulesToPrometheusOutput(std::ostringstream& output, const std::ve
   }
 }
 
+template <class T>
+static void addHistogramToPrometheusOutput(std::ostringstream& output, const T& container, const std::string& metricName, const std::string& label)
+{
+  const std::string latency_label_prefix{label.empty() ? "{" : (label.substr(0, label.size() - 1) + ",")};
+  uint64_t amount = 0;
+  amount += container.latency0_1;
+  output << metricName << "_bucket" << latency_label_prefix << "le=\"1\"} " << amount << "\n";
+  amount += container.latency1_10;
+  output << metricName << "_bucket" << latency_label_prefix << "le=\"10\"} " << amount << "\n";
+  amount += container.latency10_50;
+  output << metricName << "_bucket" << latency_label_prefix << "le=\"50\"} " << amount << "\n";
+  amount += container.latency50_100;
+  output << metricName << "_bucket" << latency_label_prefix << "le=\"100\"} " << amount << "\n";
+  amount += container.latency100_1000;
+  output << metricName << "_bucket" << latency_label_prefix << "le=\"1000\"} " << amount << "\n";
+  amount += container.latencySlow;
+  output << metricName << "_bucket" << latency_label_prefix << "le=\"+Inf\"} " << amount << "\n";
+
+  output << metricName << "_sum" << label << " " << container.latencySum << "\n";
+  output << metricName << "_count" << label << " " << container.latencyCount << "\n";
+}
+
 static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
 {
   handleCORS(req, resp);
@@ -532,20 +554,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   // Latency histogram buckets
   output << "# HELP dnsdist_latency Histogram of responses by latency (in milliseconds)\n";
   output << "# TYPE dnsdist_latency histogram\n";
-  uint64_t latency_amounts = dnsdist::metrics::g_stats.latency0_1;
-  output << "dnsdist_latency_bucket{le=\"1\"} " << latency_amounts << "\n";
-  latency_amounts += dnsdist::metrics::g_stats.latency1_10;
-  output << "dnsdist_latency_bucket{le=\"10\"} " << latency_amounts << "\n";
-  latency_amounts += dnsdist::metrics::g_stats.latency10_50;
-  output << "dnsdist_latency_bucket{le=\"50\"} " << latency_amounts << "\n";
-  latency_amounts += dnsdist::metrics::g_stats.latency50_100;
-  output << "dnsdist_latency_bucket{le=\"100\"} " << latency_amounts << "\n";
-  latency_amounts += dnsdist::metrics::g_stats.latency100_1000;
-  output << "dnsdist_latency_bucket{le=\"1000\"} " << latency_amounts << "\n";
-  latency_amounts += dnsdist::metrics::g_stats.latencySlow; // Should be the same as latency_count
-  output << "dnsdist_latency_bucket{le=\"+Inf\"} " << latency_amounts << "\n";
-  output << "dnsdist_latency_sum " << dnsdist::metrics::g_stats.latencySum << "\n";
-  output << "dnsdist_latency_count " << dnsdist::metrics::g_stats.latencyCount << "\n";
+  addHistogramToPrometheusOutput(output, dnsdist::metrics::g_stats, "dnsdist_latency", "");
 
   const string statesbase = "dnsdist_server_";
 
@@ -612,8 +621,11 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   output << "# TYPE " << statesbase << "healthcheckfailuresmismatch "     << "counter"                                                                              << "\n";
   output << "# HELP " << statesbase << "healthcheckfailuresinvalid "      << "Number of health check attempts where the DNS response was invalid"                   << "\n";
   output << "# TYPE " << statesbase << "healthcheckfailuresinvalid "      << "counter"                                                                              << "\n";
-  output << "# HELP " << statesbase << "healthchecklatency "              << "Latency of the last successful health check attempt, in milliseconds"                << "\n";
+  output << "# HELP " << statesbase << "healthchecklatency "              << "Latency of the last successful health check attempt, in milliseconds"                 << "\n";
   output << "# TYPE " << statesbase << "healthchecklatency "              << "gauge"                                                                                << "\n";
+  // Backend latency histogram buckets
+  output << "# HELP " << statesbase << "healthchecklatency_histo "        << "Histogram of the latency of the successful health check attempts, in milliseconds"    << "\n";
+  output << "# TYPE " << statesbase << "healthchecklatency_histo "        << "histogram"                                                                            << "\n";
 
   for (const auto& state : dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends) {
     string serverName;
@@ -664,6 +676,9 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
     output << statesbase << "healthcheckfailuresmismatch"      << label << " " << state->d_healthCheckMetrics.d_mismatchErrors << "\n";
     output << statesbase << "healthcheckfailuresinvalid"       << label << " " << state->d_healthCheckMetrics.d_invalidResponseErrors << "\n";
     output << statesbase << "healthchecklatency"               << label << " " << state->d_healthCheckLatency / 1000.0   << "\n";
+
+    // Health-check latency histogram
+    addHistogramToPrometheusOutput(output, state->d_healthCheckLatencyHisto, statesbase + "healthchecklatency_histo", label);
   }
 
   const string frontsbase = "dnsdist_frontend_";

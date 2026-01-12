@@ -61,6 +61,16 @@ struct HealthCheckData
   bool d_initial{false};
 };
 
+static void updateLatencyMetrics(DownstreamState& downstream, int elapsed /* microseconds */)
+{
+  if (elapsed >= 0) {
+    downstream.d_healthCheckLatency.store(elapsed);
+
+    auto& histo = downstream.d_healthCheckLatencyHisto;
+    dnsdist::metrics::updateLatencyHistogram(histo, static_cast<uint64_t>(elapsed));
+  }
+}
+
 static bool handleResponse(std::shared_ptr<HealthCheckData>& data)
 {
   const auto verboseHealthChecks = dnsdist::configuration::getCurrentRuntimeConfiguration().d_verboseHealthChecks;
@@ -134,7 +144,9 @@ static bool handleResponse(std::shared_ptr<HealthCheckData>& data)
     return false;
   }
 
-  data->d_ds->d_healthCheckLatency.store(data->d_elapsed.udiff());
+  const auto elapsed = data->d_elapsed.udiff();
+  updateLatencyMetrics(*data->d_ds, elapsed);
+
   return true;
 }
 
