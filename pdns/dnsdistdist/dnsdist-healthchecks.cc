@@ -71,7 +71,6 @@ static void updateLatencyMetrics(DownstreamState& downstream, int elapsed /* mic
   }
 }
 
-
 static std::shared_ptr<Logr::Logger> getLoggerFromData(const std::shared_ptr<const HealthCheckData>& data)
 {
   const auto& downstream = data->d_ds;
