@@ -617,9 +617,7 @@ static void fillOTCondition(const Netmask& netmask, HttpResponse* resp)
 static void apiServerOTConditionDetailGET(HttpRequest* req, HttpResponse* resp)
 {
   try {
-    cerr << req->parameters["id"] << endl;
     Netmask netmask{req->parameters["id"]};
-    cerr << netmask.toString() << endl;
     fillOTCondition(netmask, resp);
   }
   catch (NetmaskException& ex) {
