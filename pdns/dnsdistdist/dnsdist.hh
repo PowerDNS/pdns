@@ -970,6 +970,7 @@ struct ServerPool
     // coverity[missing_lock]
     return d_tcpOnly;
   }
+  bool shouldKeepStaleData();
 
 private:
   SharedLockGuarded<std::shared_ptr<const ServerPolicy::NumberedServerVector>> d_servers;
