@@ -25,6 +25,7 @@
 
 #ifndef DISABLE_CARBON
 #include <string>
+#include <optional>
 #include "iputils.hh"
 
 namespace dnsdist
@@ -36,12 +37,14 @@ public:
   {
     ComboAddress server;
     std::string namespace_name;
-    std::string ourname;
+    std::optional<std::string> ourname; // When unset, we use the Runtime Config server_id
     std::string instance_name;
     unsigned int interval;
+
+    const std::string getOurName() const;
   };
 
-  static Endpoint newEndpoint(const std::string& address, std::string ourName, uint64_t interval, const std::string& namespace_name, const std::string& instance_name);
+  static Endpoint newEndpoint(const std::string& address, const std::optional<std::string>& ourName, uint64_t interval, const std::string& namespace_name, const std::string& instance_name);
   static void run(const std::vector<Endpoint>& endpoints);
 };
 

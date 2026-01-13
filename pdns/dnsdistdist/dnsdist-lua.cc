@@ -1041,7 +1041,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   luaCtx.writeFunction("carbonServer", [](const std::string& address, std::optional<string> ourName, std::optional<uint64_t> interval, std::optional<string> namespace_name, std::optional<string> instance_name) {
     setLuaSideEffect();
     auto newEndpoint = dnsdist::Carbon::newEndpoint(address,
-                                                    (ourName ? *ourName : ""),
+                                                    ourName,
                                                     (interval ? *interval : 30),
                                                     (namespace_name ? *namespace_name : "dnsdist"),
                                                     (instance_name ? *instance_name : "main"));

@@ -43,7 +43,7 @@ static bool doOneCarbonExport(const Carbon::Endpoint& endpoint)
 {
   const auto& server = endpoint.server;
   const std::string& namespace_name = endpoint.namespace_name;
-  const std::string& hostname = endpoint.ourname;
+  const std::string hostname = endpoint.getOurName();
   const std::string& instance_name = endpoint.instance_name;
 
   try {
@@ -330,7 +330,7 @@ static void carbonHandler(const Carbon::Endpoint& endpoint)
         if (consecutiveFailures < std::numeric_limits<decltype(consecutiveFailures)>::max()) {
           consecutiveFailures++;
         }
-        vinfolog("Run for %s - %s failed, next attempt in %d", endpoint.server.toStringWithPort(), endpoint.ourname, backOff);
+        vinfolog("Run for %s - %s failed, next attempt in %d", endpoint.server.toStringWithPort(), endpoint.getOurName(), backOff);
         std::this_thread::sleep_for(std::chrono::seconds(backOff));
       }
     } while (true);
@@ -343,19 +343,11 @@ static void carbonHandler(const Carbon::Endpoint& endpoint)
   }
 }
 
-Carbon::Endpoint Carbon::newEndpoint(const std::string& address, std::string ourName, uint64_t interval, const std::string& namespace_name, const std::string& instance_name)
+Carbon::Endpoint Carbon::newEndpoint(const std::string& address, const std::optional<std::string>& ourName, uint64_t interval, const std::string& namespace_name, const std::string& instance_name)
 {
-  if (ourName.empty()) {
-    try {
-      ourName = getCarbonHostName();
-    }
-    catch (const std::exception& exp) {
-      throw std::runtime_error(std::string("The 'ourname' setting in 'carbonServer()' has not been set and we are unable to determine the system's hostname: ") + exp.what());
-    }
-  }
   return Carbon::Endpoint{ComboAddress(address, 2003),
                           !namespace_name.empty() ? namespace_name : "dnsdist",
-                          std::move(ourName),
+                          ourName,
                           !instance_name.empty() ? instance_name : "main",
                           interval < std::numeric_limits<unsigned int>::max() ? static_cast<unsigned int>(interval) : 30};
 }
@@ -366,6 +358,16 @@ void Carbon::run(const std::vector<Carbon::Endpoint>& endpoints)
     std::thread newHandler(carbonHandler, endpoint);
     newHandler.detach();
   }
+}
+
+const std::string Carbon::Endpoint::getOurName() const
+{
+  std::string ret = ourname.value_or("");
+  if (!ourname) {
+    ret = dnsdist::configuration::getCurrentRuntimeConfiguration().d_server_id;
+  }
+  std::replace(ret.begin(), ret.end(), '.', '_');
+  return ret;
 }
 
 }

@@ -20,6 +20,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <vector>
 
@@ -1092,7 +1093,7 @@ static void handleCarbonConfiguration([[maybe_unused]] const ::rust::Vec<dnsdist
     dnsdist::configuration::updateRuntimeConfiguration([&carbonConfigs](dnsdist::configuration::RuntimeConfiguration& config) {
       for (const auto& carbonConfig : carbonConfigs) {
         auto newEndpoint = dnsdist::Carbon::newEndpoint(std::string(carbonConfig.address),
-                                                        std::string(carbonConfig.name),
+                                                        carbonConfig.name.empty() ? std::nullopt : std::optional<std::string>(carbonConfig.name),
                                                         carbonConfig.interval,
                                                         carbonConfig.name_space.empty() ? "dnsdist" : std::string(carbonConfig.name_space),
                                                         carbonConfig.instance.empty() ? "main" : std::string(carbonConfig.instance));

@@ -173,7 +173,7 @@ carbon:
     - name: "name"
       type: "String"
       default: ""
-      description: "An optional string specifying the hostname that should be used. If left empty, the system hostname is used"
+      description: "An optional string specifying the hostname that should be used. If left empty, the general.server_id is used"
     - name: "interval"
       type: u32
       default: 30
