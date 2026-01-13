@@ -922,8 +922,8 @@ http_custom_response_header:
 
 http_responses_map:
   description: |
-               An entry of an HTTP response map. Every query that matches the regular expression supplied in ``expression`` will be immediately answered with a HTTP response.
-               The status of the HTTP response will be the one supplied by ``status``, and the content set to the one supplied by ``content``, except if the status is a redirection (3xx) in which case the content is expected to be the URL to redirect to.
+    An entry of an HTTP response map. Every query that matches the regular expression supplied in ``expression`` will be immediately answered with a HTTP response.
+    The status of the HTTP response will be the one supplied by ``status``, and the content set to the one supplied by ``content``, except if the status is a redirection (3xx) in which case the content is expected to be the URL to redirect to.
   parameters:
     - name: "expression"
       type: "String"
@@ -1368,7 +1368,7 @@ backend:
     - name: "pools"
       type: "Vec<String>"
       default: ""
-      description: "List of pools to place this backend into. By default a server is placed in the default (\"\") pool"
+      description: 'List of pools to place this backend into. By default a server is placed in the default ("") pool'
     - name: "tcp"
       type: "OutgoingTcpConfiguration"
       default: true
@@ -1385,12 +1385,12 @@ backend:
       type: "String"
       default: ""
       description: |
-                   The source address or interface to use for queries to this backend, by default this is left to the kernel's address selection.
-                     The following formats are supported:
+        The source address or interface to use for queries to this backend, by default this is left to the kernel's address selection.
+          The following formats are supported:
 
-                     - address, e.g. ``""192.0.2.2""``
-                     - interface name, e.g. ``""eth0""``
-                     - address@interface, e.g. ``""192.0.2.2@eth0""``
+          - address, e.g. ``""192.0.2.2""``
+          - interface name, e.g. ``""eth0""``
+          - address@interface, e.g. ``""192.0.2.2@eth0""``
 
     - name: "sockets"
       type: "u32"
@@ -1773,14 +1773,14 @@ structured_logging:
       type: "bool"
       default: "false"
       description: |
-                   Set whether log messages should be in a structured-logging-like format. This is turned off by default.
-                     The resulting format looks like this (when timestamps are enabled via ``--log-timestamps`` and with ``level_prefix: prio`` and ``time_format: ISO8601``)::
+        Set whether log messages should be in a structured-logging-like format. This is turned off by default.
+          The resulting format looks like this (when timestamps are enabled via ``--log-timestamps`` and with ``level_prefix: prio`` and ``time_format: ISO8601``)::
 
-                         ts=\"2023-11-06T12:04:58+0100\" prio=\"Info\" msg=\"Added downstream server 127.0.0.1:53\"
+              ts=\"2023-11-06T12:04:58+0100\" prio=\"Info\" msg=\"Added downstream server 127.0.0.1:53\"
 
-                     And with ``level_prefix: level`` and ``time_format: numeric``)::
+          And with ``level_prefix: level`` and ``time_format: numeric``)::
 
-                         ts=\"1699268815.133\" level=\"Info\" msg=\"Added downstream server 127.0.0.1:53\"
+              ts=\"1699268815.133\" level=\"Info\" msg=\"Added downstream server 127.0.0.1:53\"
 
     - name: "level_prefix"
       type: "String"
@@ -1821,7 +1821,49 @@ logging:
       default: ""
       lua-name: "setSyslogFacility"
       description: "Set the syslog logging facility to the supplied value (values with or without the ``log_`` prefix are supported)"
-      supported-values: [local0, log_local0, local1, log_local1, local2, log_local2, local3, log_local3, local4, log_local4, local5, log_local5, local6, log_local6, local7, log_local7, kern, log_kern, user, log_user, mail, log_mail, daemon, log_daemon, auth, log_auth, syslog, log_syslog, lpr, log_lpr, news, log_news, uucp, log_uucp, cron, log_cron, authpriv, log_authpriv, ftp, log_ftp]
+      supported-values:
+        [
+          local0,
+          log_local0,
+          local1,
+          log_local1,
+          local2,
+          log_local2,
+          local3,
+          log_local3,
+          local4,
+          log_local4,
+          local5,
+          log_local5,
+          local6,
+          log_local6,
+          local7,
+          log_local7,
+          kern,
+          log_kern,
+          user,
+          log_user,
+          mail,
+          log_mail,
+          daemon,
+          log_daemon,
+          auth,
+          log_auth,
+          syslog,
+          log_syslog,
+          lpr,
+          log_lpr,
+          news,
+          log_news,
+          uucp,
+          log_uucp,
+          cron,
+          log_cron,
+          authpriv,
+          log_authpriv,
+          ftp,
+          log_ftp,
+        ]
     - name: "structured"
       type: "StructuredLoggingConfiguration"
       default: true
@@ -1889,10 +1931,10 @@ general:
       lua-name: "addCapabilitiesToRetain"
       runtime-configurable: false
       description: |
-                   Accept a Linux capability as a string, or a list of these, to retain after startup so that privileged operations can still be performed at runtime.
-                     Keeping ``CAP_SYS_ADMIN`` on kernel 5.8+ for example allows loading eBPF programs and altering eBPF maps at runtime even if the ``kernel.unprivileged_bpf_disabled`` sysctl is set.
-                     Note that this does not grant the capabilities to the process, doing so might be done by running it as root which we don't advise, or by adding capabilities via the systemd unit file, for example.
-                     Please also be aware that switching to a different user via ``--uid`` will still drop all capabilities."
+        Accept a Linux capability as a string, or a list of these, to retain after startup so that privileged operations can still be performed at runtime.
+          Keeping ``CAP_SYS_ADMIN`` on kernel 5.8+ for example allows loading eBPF programs and altering eBPF maps at runtime even if the ``kernel.unprivileged_bpf_disabled`` sysctl is set.
+          Note that this does not grant the capabilities to the process, doing so might be done by running it as root which we don't advise, or by adding capabilities via the systemd unit file, for example.
+          Please also be aware that switching to a different user via ``--uid`` will still drop all capabilities."
 
 netmask_group:
   description: "Group of netmasks"
