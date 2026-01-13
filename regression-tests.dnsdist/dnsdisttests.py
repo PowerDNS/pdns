@@ -695,7 +695,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         return sslsock
 
     @classmethod
-    def sendTCPQueryOverConnection(cls, sock, query, rawQuery=False, response=None, timeout=2.0):
+    def sendTCPQueryOverConnection(cls, sock, query, rawQuery=False, response=None, timeout=2.0, prependPayload=None):
         if not rawQuery:
             wire = query.to_wire()
         else:
@@ -704,6 +704,8 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         if response:
             cls._toResponderQueue.put(response, True, timeout)
 
+        if prependPayload:
+            sock.send(prependPayload)
         sock.send(struct.pack("!H", len(wire)))
         sock.send(wire)
 
@@ -737,7 +739,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         return None, cls.recvTCPResponseOverConnection(conn, useQueue=useQueue, timeout=timeout)
 
     @classmethod
-    def sendTCPQuery(cls, query, response, useQueue=True, timeout=2.0, rawQuery=False):
+    def sendTCPQuery(cls, query, response, useQueue=True, timeout=2.0, rawQuery=False, prependPayload=None):
         message = None
         if useQueue:
             cls._toResponderQueue.put(response, True, timeout)
@@ -749,7 +751,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
             return (None, None)
 
         try:
-            cls.sendTCPQueryOverConnection(sock, query, rawQuery, timeout=timeout)
+            cls.sendTCPQueryOverConnection(sock, query, rawQuery, timeout=timeout, prependPayload=prependPayload)
             message = cls.recvTCPResponseOverConnection(sock, timeout=timeout)
         except socket.timeout as e:
             print("Timeout while sending or receiving TCP data: %s" % (str(e)))

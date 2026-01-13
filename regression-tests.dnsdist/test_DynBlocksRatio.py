@@ -3,6 +3,7 @@ import time
 import dns
 from dnsdistDynBlockTests import DynBlocksTest, waitForMaintenanceToRun
 from dnsdisttests import pickAvailablePort
+from proxyprotocol import ProxyProtocol
 
 class TestDynBlockGroupServFailsRatio(DynBlocksTest):
 
@@ -39,7 +40,7 @@ class TestDynBlockGroupServFailsRatioDoH(DynBlocksTest):
     _caCert = 'ca.pem'
     _dohServerPort = pickAvailablePort()
     _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
-    _webSevrerPort = pickAvailablePort()
+    _webServerPort = pickAvailablePort()
     _webServerBasicAuthPassword = 'secret'
     _webServerBasicAuthPasswordHashed = '$scrypt$ln=10,p=1,r=8$6DKLnvUYEeXWh3JNOd3iwg==$kSrhdHaRbZ7R74q3lGBqO1xetgxRxhmWzYJ2Qvfm7JM='
     _webServerAPIKey = 'apisecret'
@@ -110,7 +111,7 @@ class TestDynBlockGroupServFailsRatioDoHCacheHit(DynBlocksTest):
     _caCert = 'ca.pem'
     _dohServerPort = pickAvailablePort()
     _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
-    _webSevrerPort = pickAvailablePort()
+    _webServerPort = pickAvailablePort()
     _webServerBasicAuthPassword = 'secret'
     _webServerBasicAuthPasswordHashed = '$scrypt$ln=10,p=1,r=8$6DKLnvUYEeXWh3JNOd3iwg==$kSrhdHaRbZ7R74q3lGBqO1xetgxRxhmWzYJ2Qvfm7JM='
     _webServerAPIKey = 'apisecret'
@@ -440,3 +441,110 @@ class TestDynBlockGroupCacheMissRatioSetTag(DynBlocksTest):
         receivedQuery.id = query.id
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
+
+class TestDynBlockGroupServFailsRatioProxyProtocol(DynBlocksTest):
+    # we need this period to be quite long because we request the valid
+    # queries to be still looked at to reach the 20 queries count!
+    _dynBlockPeriod = 6
+    _dnsDistListeningAddr = "127.0.0.2"
+    _webServerPort = pickAvailablePort()
+    _webServerBasicAuthPassword = 'secret'
+    _webServerBasicAuthPasswordHashed = '$scrypt$ln=10,p=1,r=8$6DKLnvUYEeXWh3JNOd3iwg==$kSrhdHaRbZ7R74q3lGBqO1xetgxRxhmWzYJ2Qvfm7JM='
+    _webServerAPIKey = 'apisecret'
+    _webServerAPIKeyHashed = '$scrypt$ln=10,p=1,r=8$9v8JxDfzQVyTpBkTbkUqYg==$bDQzAOHeK1G9UvTPypNhrX48w974ZXbFPtRKS34+aso='
+    _config_template = """
+    local dbr = dynBlockRulesGroup()
+    dbr:setRCodeRatio(DNSRCode.SERVFAIL, 0.2, %d, "Exceeded query rate", %d, 20)
+
+    function maintenance()
+	    dbr:apply()
+    end
+
+    setProxyProtocolACL( { "127.0.0.1/24" } )
+    setACL({'127.0.0.1', '192.0.2.1/32'})
+
+    newServer{address="127.0.0.1:%d"}
+
+    webserver("127.0.0.1:%d")
+    setWebserverConfig({password="%s", apiKey="%s"})
+    """
+    _config_params = ['_dynBlockPeriod', '_dynBlockDuration', '_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
+
+    def testDynBlocksServFailRatio(self):
+        """
+        Dyn Blocks (group): Server Failure Ratio with incoming proxy protocol
+        """
+        name = 'rcode-servfailratio-incoming-proxyprotocol.group.dynblocks.tests.powerdns.com.'
+        rcodeQuery = dns.message.make_query(name, 'A', 'IN')
+        expectedResponse = dns.message.make_response(rcodeQuery)
+        expectedResponse.set_rcode(dns.rcode.SERVFAIL)
+
+        rcodecount = 20
+        sent = 0
+        allowed = 0
+
+        destAddr = "2001:db8::9"
+        destPort = 9999
+        srcAddr = "2001:db8::8"
+        srcPort = 8888
+        udpPayload = ProxyProtocol.getPayload(False, False, True, srcAddr, destAddr, srcPort, destPort, [])
+
+        for _ in range(rcodecount):
+            (receivedQuery, receivedResponse) = self.sendUDPQuery(udpPayload + rcodeQuery.to_wire(), response=expectedResponse, rawQuery=True)
+
+            sent = sent + 1
+            if receivedQuery:
+                receivedQuery.id = rcodeQuery.id
+                self.assertEqual(rcodeQuery, receivedQuery)
+                self.assertEqual(expectedResponse, receivedResponse)
+                allowed = allowed + 1
+            else:
+                # the query has not reached the responder,
+                # let's clear the response queue
+                self.clearToResponderQueue()
+
+        # we should have been able to send all our queries since the minimum number of queries is set to noerrorcount + rcodecount
+        self.assertGreaterEqual(allowed, rcodecount)
+
+        waitForMaintenanceToRun()
+
+        # we should now be dropped for up to self._dynBlockDuration + self._dynBlockPeriod
+        (_, receivedResponse) = self.sendUDPQuery(udpPayload + rcodeQuery.to_wire(), response=None, useQueue=False, rawQuery=True)
+        self.assertEqual(receivedResponse, None)
+
+        self.doTestDynBlockViaAPI(f'{srcAddr}/128', 'Exceeded query rate', 1, self._dynBlockDuration, (sent-allowed)+1, (sent-allowed)+1, False)
+
+        # TCP now (with different addresses!)
+        sent = 0
+        allowed = 0
+
+        destAddr = "192.0.2.1"
+        destPort = 9999
+        srcAddr = "192.0.2.2"
+        srcPort = 8888
+        tcpPayload = ProxyProtocol.getPayload(False, True, False, srcAddr, destAddr, srcPort, destPort, [])
+
+        for _ in range(rcodecount):
+            (receivedQuery, receivedResponse) = self.sendTCPQuery(rcodeQuery, response=expectedResponse, prependPayload=tcpPayload)
+
+            sent = sent + 1
+            if receivedQuery:
+                receivedQuery.id = rcodeQuery.id
+                self.assertEqual(rcodeQuery, receivedQuery)
+                self.assertEqual(expectedResponse, receivedResponse)
+                allowed = allowed + 1
+            else:
+                # the query has not reached the responder,
+                # let's clear the response queue
+                self.clearToResponderQueue()
+
+        # we should have been able to send all our queries since the minimum number of queries is set to noerrorcount + rcodecount
+        self.assertGreaterEqual(allowed, rcodecount)
+
+        waitForMaintenanceToRun()
+
+        # we should now be dropped for up to self._dynBlockDuration + self._dynBlockPeriod
+        (_, receivedResponse) = self.sendTCPQuery(rcodeQuery, response=None, useQueue=False, prependPayload=tcpPayload)
+        self.assertEqual(receivedResponse, None)
+
+        self.doTestDynBlockViaAPI(f'{srcAddr}/32', 'Exceeded query rate', 1, self._dynBlockDuration, (sent-allowed)+1, (sent-allowed)+1, False)
