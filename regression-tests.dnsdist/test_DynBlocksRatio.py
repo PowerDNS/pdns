@@ -2,6 +2,7 @@
 import time
 import dns
 from dnsdistDynBlockTests import DynBlocksTest, waitForMaintenanceToRun
+from dnsdisttests import pickAvailablePort
 
 class TestDynBlockGroupServFailsRatio(DynBlocksTest):
 
@@ -26,6 +27,138 @@ class TestDynBlockGroupServFailsRatio(DynBlocksTest):
         """
         name = 'servfailratio.group.dynblocks.tests.powerdns.com.'
         self.doTestRCodeRatio(name, dns.rcode.SERVFAIL, 10, 10)
+
+class TestDynBlockGroupServFailsRatioDoQ(DynBlocksTest):
+
+    # we need this period to be quite long because we request the valid
+    # queries to be still looked at to reach the 20 queries count!
+    _dynBlockPeriod = 6
+    _dnsDistListeningAddr = "127.0.0.2"
+    _serverKey = 'server.key'
+    _serverCert = 'server.chain'
+    _serverName = 'tls.tests.dnsdist.org'
+    _caCert = 'ca.pem'
+    _doqServerPort = pickAvailablePort()
+    _config_template = """
+    local dbr = dynBlockRulesGroup()
+    dbr:setRCodeRatio(DNSRCode.SERVFAIL, 0.2, %d, "Exceeded query rate", %d, 20)
+
+    function maintenance()
+	    dbr:apply()
+    end
+
+    addDOQLocal("%s:%d", "%s", "%s")
+    newServer{address="127.0.0.1:%d"}
+    """
+    _config_params = ['_dynBlockPeriod', '_dynBlockDuration', '_dnsDistListeningAddr', '_doqServerPort', '_serverCert', '_serverKey', '_testServerPort']
+
+    def testDynBlocksServFailRatio(self):
+        """
+        Dyn Blocks (group): Server Failure Ratio via DoQ
+        """
+        name = 'servfailratio-doq.group.dynblocks.tests.powerdns.com.'
+        self.doTestRCodeRatioViaProtocol(name, dns.rcode.SERVFAIL, 10, 10, "sendDOQQueryWrapper")
+
+class TestDynBlockGroupServFailsRatioDoQCacheHit(DynBlocksTest):
+
+    # we need this period to be quite long because we request the valid
+    # queries to be still looked at to reach the 20 queries count!
+    _dynBlockPeriod = 6
+    _dnsDistListeningAddr = "127.0.0.2"
+    _serverKey = 'server.key'
+    _serverCert = 'server.chain'
+    _serverName = 'tls.tests.dnsdist.org'
+    _caCert = 'ca.pem'
+    _doqServerPort = pickAvailablePort()
+    _config_template = """
+    local dbr = dynBlockRulesGroup()
+    dbr:setRCodeRatio(DNSRCode.SERVFAIL, 0.2, %d, "Exceeded query rate", %d, 20)
+
+    function maintenance()
+	    dbr:apply()
+    end
+
+    local pc = newPacketCache(1000, {maxTTL=86400, minTTL=1})
+    getPool(""):setCache(pc)
+
+    addDOQLocal("%s:%d", "%s", "%s")
+    newServer{address="127.0.0.1:%d"}
+    """
+    _config_params = ['_dynBlockPeriod', '_dynBlockDuration', '_dnsDistListeningAddr', '_doqServerPort', '_serverCert', '_serverKey', '_testServerPort']
+
+    def testDynBlocksServFailRatio(self):
+        """
+        Dyn Blocks (group): Server Failure Ratio via DoQ (cache hits)
+        """
+        name = 'servfailratio-doq-hits.group.dynblocks.tests.powerdns.com.'
+        self.doTestRCodeRatioViaProtocol(name, dns.rcode.SERVFAIL, 10, 10, "sendDOQQueryWrapper", cached=True)
+
+class TestDynBlockGroupServFailsRatioDoH3(DynBlocksTest):
+
+    # we need this period to be quite long because we request the valid
+    # queries to be still looked at to reach the 20 queries count!
+    _dynBlockPeriod = 6
+    _dnsDistListeningAddr = "127.0.0.2"
+    _serverKey = 'server.key'
+    _serverCert = 'server.chain'
+    _serverName = 'tls.tests.dnsdist.org'
+    _caCert = 'ca.pem'
+    _doh3ServerPort = pickAvailablePort()
+    _dohBaseURL = ("https://%s:%d/" % (_serverName, _doh3ServerPort))
+    _config_template = """
+    local dbr = dynBlockRulesGroup()
+    dbr:setRCodeRatio(DNSRCode.SERVFAIL, 0.2, %d, "Exceeded query rate", %d, 20)
+
+    function maintenance()
+	    dbr:apply()
+    end
+
+    addDOH3Local("%s:%d", "%s", "%s")
+    newServer{address="127.0.0.1:%d"}
+    """
+    _config_params = ['_dynBlockPeriod', '_dynBlockDuration', '_dnsDistListeningAddr', '_doh3ServerPort', '_serverCert', '_serverKey', '_testServerPort']
+
+    def testDynBlocksServFailRatio(self):
+        """
+        Dyn Blocks (group): Server Failure Ratio via DoH3
+        """
+        name = 'servfailratio-doh3.group.dynblocks.tests.powerdns.com.'
+        self.doTestRCodeRatioViaProtocol(name, dns.rcode.SERVFAIL, 10, 10, "sendDOH3QueryWrapper")
+
+class TestDynBlockGroupServFailsRatioDoH3CacheHit(DynBlocksTest):
+
+    # we need this period to be quite long because we request the valid
+    # queries to be still looked at to reach the 20 queries count!
+    _dynBlockPeriod = 6
+    _dnsDistListeningAddr = "127.0.0.2"
+    _serverKey = 'server.key'
+    _serverCert = 'server.chain'
+    _serverName = 'tls.tests.dnsdist.org'
+    _caCert = 'ca.pem'
+    _doh3ServerPort = pickAvailablePort()
+    _dohBaseURL = ("https://%s:%d/" % (_serverName, _doh3ServerPort))
+    _config_template = """
+    local dbr = dynBlockRulesGroup()
+    dbr:setRCodeRatio(DNSRCode.SERVFAIL, 0.2, %d, "Exceeded query rate", %d, 20)
+
+    function maintenance()
+	    dbr:apply()
+    end
+
+    local pc = newPacketCache(1000, {maxTTL=86400, minTTL=1})
+    getPool(""):setCache(pc)
+
+    addDOH3Local("%s:%d", "%s", "%s")
+    newServer{address="127.0.0.1:%d"}
+    """
+    _config_params = ['_dynBlockPeriod', '_dynBlockDuration', '_dnsDistListeningAddr', '_doh3ServerPort', '_serverCert', '_serverKey', '_testServerPort']
+
+    def testDynBlocksServFailRatio(self):
+        """
+        Dyn Blocks (group): Server Failure Ratio via DoH3 (cache hits)
+        """
+        name = 'servfailratio-doh3-hits.group.dynblocks.tests.powerdns.com.'
+        self.doTestRCodeRatioViaProtocol(name, dns.rcode.SERVFAIL, 10, 10, "sendDOH3QueryWrapper", cached=True)
 
 class TestDynBlockGroupCacheMissRatio(DynBlocksTest):
 

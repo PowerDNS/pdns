@@ -483,7 +483,8 @@ class DynBlocksTest(DNSDistTest):
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
 
-    def doTestRCodeRatio(self, name, rcode, noerrorcount, rcodecount):
+    def doTestRCodeRatioViaProtocol(self, name, rcode, noerrorcount, rcodecount, method, cached=False):
+        sender = sender = getattr(self, method)
         query = dns.message.make_query(name, 'A', 'IN')
         response = dns.message.make_response(query)
         rrset = dns.rrset.from_text(name,
@@ -492,37 +493,50 @@ class DynBlocksTest(DNSDistTest):
                                     dns.rdatatype.A,
                                     '192.0.2.1')
         response.answer.append(rrset)
-        expectedResponse = dns.message.make_response(query)
+        rcodeQuery = dns.message.make_query('rcode-' + name, 'A', 'IN')
+        expectedResponse = dns.message.make_response(rcodeQuery)
         expectedResponse.set_rcode(rcode)
 
+        firstQuery = True
         # start with normal responses
         for _ in range(noerrorcount-1):
-            (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
-            receivedQuery.id = query.id
-            self.assertEqual(query, receivedQuery)
+            if cached and not firstQuery:
+                # should be a cache hit
+                (receivedQuery, receivedResponse) = sender(query, response=None, useQueue=False)
+                self.assertEqual(receivedQuery, None)
+            else:
+                (receivedQuery, receivedResponse) = sender(query, response)
+                receivedQuery.id = query.id
+                self.assertEqual(query, receivedQuery)
             self.assertEqual(response, receivedResponse)
+            firstQuery = False
 
         waitForMaintenanceToRun()
 
         # we should NOT be dropped!
-        (_, receivedResponse) = self.sendUDPQuery(query, response)
+        if cached:
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+        else:
+            (_, receivedResponse) = sender(query, response)
         self.assertEqual(receivedResponse, response)
 
         # now with rcode!
         sent = 0
         allowed = 0
         for _ in range(rcodecount):
-            (receivedQuery, receivedResponse) = self.sendUDPQuery(query, expectedResponse)
+            (receivedQuery, receivedResponse) = sender(rcodeQuery, expectedResponse)
             sent = sent + 1
             if receivedQuery:
-                receivedQuery.id = query.id
-                self.assertEqual(query, receivedQuery)
+                receivedQuery.id = rcodeQuery.id
+                self.assertEqual(rcodeQuery, receivedQuery)
                 self.assertEqual(expectedResponse, receivedResponse)
                 allowed = allowed + 1
             else:
                 # the query has not reached the responder,
                 # let's clear the response queue
                 self.clearToResponderQueue()
+                if cached and receivedResponse:
+                    allowed = allowed + 1
 
         # we should have been able to send all our queries since the minimum number of queries is set to noerrorcount + rcodecount
         self.assertGreaterEqual(allowed, rcodecount)
@@ -530,65 +544,24 @@ class DynBlocksTest(DNSDistTest):
         waitForMaintenanceToRun()
 
         # we should now be dropped for up to self._dynBlockDuration + self._dynBlockPeriod
-        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False, timeout=1)
+        (_, receivedResponse) = sender(query, response=None, useQueue=False, timeout=1)
         self.assertEqual(receivedResponse, None)
 
         # wait until we are not blocked anymore
         time.sleep(self._dynBlockDuration + self._dynBlockPeriod)
 
         # this one should succeed
-        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
-        receivedQuery.id = query.id
-        self.assertEqual(query, receivedQuery)
-        self.assertEqual(response, receivedResponse)
-
-        # again, over TCP this time
-        # start with normal responses
-        for _ in range(noerrorcount-1):
-            (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        if cached:
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+        else:
+            (receivedQuery, receivedResponse) = sender(query, response)
             receivedQuery.id = query.id
             self.assertEqual(query, receivedQuery)
-            self.assertEqual(response, receivedResponse)
-
-        waitForMaintenanceToRun()
-
-        # we should NOT be dropped!
-        (_, receivedResponse) = self.sendUDPQuery(query, response)
-        self.assertEqual(receivedResponse, response)
-
-        # now with rcode!
-        sent = 0
-        allowed = 0
-        for _ in range(rcodecount):
-            (receivedQuery, receivedResponse) = self.sendTCPQuery(query, expectedResponse)
-            sent = sent + 1
-            if receivedQuery:
-                receivedQuery.id = query.id
-                self.assertEqual(query, receivedQuery)
-                self.assertEqual(expectedResponse, receivedResponse)
-                allowed = allowed + 1
-            else:
-                # the query has not reached the responder,
-                # let's clear the response queue
-                self.clearToResponderQueue()
-
-        # we should have been able to send all our queries since the minimum number of queries is set to noerrorcount + rcodecount
-        self.assertGreaterEqual(allowed, rcodecount)
-
-        waitForMaintenanceToRun()
-
-        # we should now be dropped for up to self._dynBlockDuration + self._dynBlockPeriod
-        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False, timeout=0.5)
-        self.assertEqual(receivedResponse, None)
-
-        # wait until we are not blocked anymore
-        time.sleep(self._dynBlockDuration + self._dynBlockPeriod)
-
-        # this one should succeed
-        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
-        receivedQuery.id = query.id
-        self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
+
+    def doTestRCodeRatio(self, name, rcode, noerrorcount, rcodecount):
+        self.doTestRCodeRatioViaProtocol(name, rcode, noerrorcount, rcodecount, "sendUDPQuery")
+        self.doTestRCodeRatioViaProtocol(name, rcode, noerrorcount, rcodecount, "sendTCPQuery")
 
     def doTestCacheMissRatio(self, name, cacheHits, cacheMisses):
         rrset = dns.rrset.from_text(name,
