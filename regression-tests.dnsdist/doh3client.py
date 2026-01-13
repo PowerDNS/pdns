@@ -180,6 +180,7 @@ async def perform_http_request(
 
 async def async_h3_query(
     configuration: QuicConfiguration,
+    host: str,
     baseurl: str,
     port: int,
     query: dns.message,
@@ -193,7 +194,7 @@ async def async_h3_query(
     if not post:
         url = "{}?dns={}".format(baseurl, base64.urlsafe_b64encode(query.to_wire()).decode('UTF8').rstrip('='))
     async with connect(
-        "127.0.0.1",
+        host,
         port,
         configuration=configuration,
         create_protocol=create_protocol,
@@ -217,7 +218,7 @@ async def async_h3_query(
             return (e,{})
 
 
-def doh3_query(query, baseurl, timeout=2, port=853, verify=None, server_hostname=None, post=False, additional_headers=None, raw_response=False):
+def doh3_query(query, host, baseurl, timeout=2, port=853, verify=None, server_hostname=None, post=False, additional_headers=None, raw_response=False):
     configuration = QuicConfiguration(alpn_protocols=H3_ALPN, is_client=True, server_name=server_hostname)
     if verify:
         configuration.load_verify_locations(verify)
@@ -225,6 +226,7 @@ def doh3_query(query, baseurl, timeout=2, port=853, verify=None, server_hostname
     (result, headers) = asyncio.run(
         async_h3_query(
             configuration=configuration,
+            host=host,
             baseurl=baseurl,
             port=port,
             query=query,
