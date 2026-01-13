@@ -381,6 +381,7 @@ static std::vector<dnsdist::console::completion::ConsoleKeyword> s_consoleKeywor
   {"whashed", false, "", "Weighted hashed ('sticky') distribution over available servers, based on the server 'weight' parameter"},
   {"chashed", false, "", "Consistent hashed ('sticky') distribution over available servers, also based on the server 'weight' parameter"},
   {"wrandom", false, "", "Weighted random over available servers, based on the server 'weight' parameter"},
+  {"setServerID", true, "name", "Set the internal Server ID to this value"},
 };
 
 #if defined(HAVE_LIBEDIT)
