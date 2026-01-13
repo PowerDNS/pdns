@@ -59,6 +59,7 @@ BOOST_AUTO_TEST_CASE(test_ServerPoolBasics)
   BOOST_CHECK_EQUAL(pool.countServers(true), 0U);
   BOOST_CHECK_EQUAL(pool.countServers(false), 0U);
   BOOST_CHECK_EQUAL(pool.poolLoad(), 0U);
+  BOOST_CHECK(!pool.shouldKeepStaleData());
 
   {
     const auto& servers = pool.getServers();
@@ -76,6 +77,7 @@ BOOST_AUTO_TEST_CASE(test_ServerPoolBasics)
     BOOST_CHECK(!pool.hasAtLeastOneServerAvailable());
     BOOST_CHECK_EQUAL(pool.countServers(true), 0U);
     BOOST_CHECK_EQUAL(pool.countServers(false), 1U);
+    BOOST_CHECK(pool.shouldKeepStaleData());
 
     BOOST_CHECK_EQUAL(pool.poolLoad(), 0U);
     {
@@ -88,11 +90,13 @@ BOOST_AUTO_TEST_CASE(test_ServerPoolBasics)
     BOOST_CHECK(pool.hasAtLeastOneServerAvailable());
     BOOST_CHECK_EQUAL(pool.countServers(true), 1U);
     BOOST_CHECK_EQUAL(pool.countServers(false), 1U);
+    BOOST_CHECK(!pool.shouldKeepStaleData());
 
     /* now remove it */
     pool.removeServer(ds);
     BOOST_CHECK_EQUAL(pool.countServers(true), 0U);
     BOOST_CHECK_EQUAL(pool.countServers(false), 0U);
+    BOOST_CHECK(!pool.shouldKeepStaleData());
     {
       const auto& servers = pool.getServers();
       BOOST_CHECK(servers.empty());
