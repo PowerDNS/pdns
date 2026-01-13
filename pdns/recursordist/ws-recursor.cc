@@ -543,6 +543,90 @@ static void apiServerRPZStats(HttpRequest* /* req */, HttpResponse* resp)
   resp->setJsonBody(ret);
 }
 
+static void apiServerOTConditionsGET(HttpRequest* /* req */, HttpResponse* resp)
+{
+  Json::array doc;
+  auto lock = g_initialOpenTelemetryConditions.lock();
+  if (*lock) {
+    for (const auto& condition : **lock) {
+      Json::object object{
+        {"acl", condition.first.toString()},
+        {"edns_option_required", condition.second.d_edns_option_required},
+        {"traceid_only", condition.second.d_traceid_only},
+      };
+      if (condition.second.d_qid) {
+        object.emplace("qid", *condition.second.d_qid);
+      }
+      if (condition.second.d_qnames) {
+        Json::array array;
+        for (const auto& name : condition.second.d_qnames->toVector()) {
+          array.emplace_back(name.toString());
+        }
+        object.emplace("qnames", array);
+      }
+      if (condition.second.d_qtypes) {
+        Json::array array;
+        for (const auto& name : *condition.second.d_qtypes) {
+          array.emplace_back(name.toString());
+        }
+        object.emplace("qtypes", array);
+      }
+
+      doc.emplace_back(std::move(object));
+    }
+  }
+  resp->setJsonBody(doc);
+}
+
+static void fillOTCondition(const Netmask& netmask, HttpResponse* resp)
+{
+  Json::array doc;
+  auto lock = g_initialOpenTelemetryConditions.lock();
+  if (*lock) {
+    auto condition = (*lock)->lookup(netmask);
+    if (condition != nullptr) {
+      Json::object object{
+        {"acl", condition->first.toString()},
+        {"edns_option_required", condition->second.d_edns_option_required},
+        {"traceid_only", condition->second.d_traceid_only},
+      };
+      if (condition->second.d_qid) {
+        object.emplace("qid", *condition->second.d_qid);
+      }
+      if (condition->second.d_qnames) {
+        Json::array array;
+        for (const auto& name : condition->second.d_qnames->toVector()) {
+          array.emplace_back(name.toString());
+        }
+        object.emplace("qnames", array);
+      }
+      if (condition->second.d_qtypes) {
+        Json::array array;
+        for (const auto& name : *condition->second.d_qtypes) {
+          array.emplace_back(name.toString());
+        }
+        object.emplace("qtypes", array);
+      }
+      resp->setJsonBody(object);
+      return;
+    }
+  }
+  throw ApiException("Could not find otcondition '" + netmask.toString() + "'");
+}
+
+static void apiServerOTConditionDetailGET(HttpRequest* req, HttpResponse* resp)
+{
+  try {
+    cerr << req->parameters["id"] << endl;
+    Netmask netmask{req->parameters["id"]};
+    cerr << netmask.toString() << endl;
+    fillOTCondition(netmask, resp);
+  }
+  catch (NetmaskException& ex) {
+    throw ApiException("Could not parse netmask");
+  }
+}
+
 static void prometheusMetrics(HttpRequest* /* req */, HttpResponse* resp)
 {
   static MetricDefinitionStorage s_metricDefinitions;
@@ -1115,6 +1199,8 @@ WRAPPER(apiServerZoneDetailGET)
 WRAPPER(apiServerZoneDetailPUT)
 WRAPPER(apiServerZonesGET)
 WRAPPER(apiServerZonesPOST)
+WRAPPER(apiServerOTConditionsGET)
+WRAPPER(apiServerOTConditionDetailGET)
 WRAPPER(prometheusMetrics)
 WRAPPER(serveStuff)
 

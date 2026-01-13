@@ -725,6 +725,15 @@ struct SuffixMatchNode
       return ret;
     }
 
+  std::vector<DNSName> toVector() const
+    {
+      std::vector<DNSName> ret;
+      for (const auto& n : d_nodes) {
+        ret.emplace_back(n);
+      }
+      return ret;
+    }
+
   private:
     mutable std::set<DNSName> d_nodes; // Only used for string generation
 };

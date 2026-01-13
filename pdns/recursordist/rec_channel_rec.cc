@@ -2123,14 +2123,15 @@ RecursorControlChannel::Answer luaconfig(bool broadcast)
     lci = g_luaconfs.getCopy();
     if (broadcast) {
       startLuaConfigDelayedThreads(lci, lci.generation);
+
+      *g_initialOpenTelemetryConditions.lock() = conditions.empty() ? nullptr : std::make_unique<OpenTelemetryTraceConditions>(conditions);
       broadcastFunction([pmap = std::move(proxyMapping)] { return pleaseSupplantProxyMapping(pmap); });
       broadcastFunction([conds = std::move(conditions)] { return pleaseSupplantOTConditions(conds); });
     }
     else {
-      extern std::unique_ptr<OpenTelemetryTraceConditions> g_OTConditions;
       // Initial proxy mapping
       g_proxyMapping = proxyMapping.empty() ? nullptr : std::make_unique<ProxyMapping>(proxyMapping);
-      g_OTConditions = conditions.empty() ? nullptr : std::make_unique<OpenTelemetryTraceConditions>(conditions);
+      *g_initialOpenTelemetryConditions.lock() = conditions.empty() ? nullptr : std::make_unique<OpenTelemetryTraceConditions>(conditions);
     }
     TCPOutConnectionManager::setupOutgoingTLSConfigTables(settings);
 
