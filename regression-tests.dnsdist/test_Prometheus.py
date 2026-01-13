@@ -158,3 +158,73 @@ class TestPrometheus(DNSDistTest):
         self.checkMetric(
             r.text, "dnsdist_custom_metric_foo", "counter", 1, '{x="baz",y="abc"}'
         )
+
+
+class TestPrometheusWithInstance(TestPrometheus):
+    instance_name = "my-id"
+    _config_template = """
+    newServer{address="127.0.0.1:%d"}
+    webserver("127.0.0.1:%d")
+    setServerID("my-id")
+    setWebserverConfig({password="%s", apiKey="%s", prometheusAddInstanceLabel=true})
+    pc = newPacketCache(100, {maxTTL=86400, minTTL=1})
+    getPool(""):setCache(pc)
+
+    -- test custom metrics as well
+    declareMetric('custom-metric1', 'counter', 'Custom counter')
+    incMetric('custom-metric1')
+    declareMetric('custom-metric2', 'gauge', 'Custom gauge')
+    -- and custom names
+    declareMetric('custom-metric3', 'counter', 'Custom counter', 'custom_prometheus_name')
+
+    -- test prometheus labels in custom metrics
+    declareMetric('custom-metric-foo', 'counter', 'Custom counter with labels', { withLabels = true })
+    incMetric('custom-metric-foo', { labels = { x = 'bar', y = 'xyz' } })
+    incMetric('custom-metric-foo', { labels = { x = 'baz', y = 'abc' } })
+    """
+
+    def checkPrometheusContentWithInstance(self, content):
+        for line in content.splitlines():
+            if not line.startswith("#"):
+                tokens = line.split(" ")
+                self.assertIn(f'instance="{self.instance_name}"', tokens[0])
+
+    def testMetrics(self):
+        """
+        Prometheus: Retrieve metrics
+        """
+        url = "http://127.0.0.1:" + str(self._webServerPort) + "/metrics"
+        r = requests.get(
+            url,
+            auth=("whatever", self._webServerBasicAuthPassword),
+            timeout=self._webTimeout,
+        )
+        self.assertTrue(r)
+        self.assertEqual(r.status_code, 200)
+        self.checkPrometheusContentBasic(r.text)
+        self.checkPrometheusContentWithInstance(r.text)
+
+        self.checkPrometheusContentPromtool(r.content)
+        self.checkMetric(
+            r.text, "dnsdist_custom_metric1", "counter", 1, '{instance="my-id"}'
+        )
+        self.checkMetric(
+            r.text, "dnsdist_custom_metric2", "gauge", 0, '{instance="my-id"}'
+        )
+        self.checkMetric(
+            r.text, "custom_prometheus_name", "counter", 0, '{instance="my-id"}'
+        )
+        self.checkMetric(
+            r.text,
+            "dnsdist_custom_metric_foo",
+            "counter",
+            1,
+            '{x="bar",y="xyz",instance="my-id"}',
+        )
+        self.checkMetric(
+            r.text,
+            "dnsdist_custom_metric_foo",
+            "counter",
+            1,
+            '{x="baz",y="abc",instance="my-id"}',
+        )

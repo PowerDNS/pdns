@@ -159,6 +159,7 @@ std::string getConfig()
     out << "API requires authentication: " << (config.d_apiRequiresAuthentication ? "yes" : "no") << endl;
     out << "Dashboard requires authentication: " << (config.d_dashboardRequiresAuthentication ? "yes" : "no") << endl;
     out << "Statistics require authentication: " << (config.d_statsRequireAuthentication ? "yes" : "no") << endl;
+    out << "Add instance to Prometheus labels: " << (config.d_prometheusAddInstanceLabel ? "yes" : "no") << endl;
     out << "Password: " << (config.d_webPassword ? "set" : "unset") << endl;
     out << "API key: " << (config.d_webAPIKey ? "set" : "unset") << endl;
     out << "API writable: " << (config.d_apiReadWrite ? "yes" : "no") << endl;
@@ -455,11 +456,11 @@ static json11::Json::array someResponseRulesToJson(const std::vector<T>& someRes
 
 #ifndef DISABLE_PROMETHEUS
 template <typename T>
-static void addRulesToPrometheusOutput(std::ostringstream& output, const std::vector<T>& rules)
+static void addRulesToPrometheusOutput(std::ostringstream& output, const std::vector<T>& rules, const std::string instanceLabelWithComma)
 {
   for (const auto& entry : rules) {
     std::string identifier = !entry.d_name.empty() ? entry.d_name : boost::uuids::to_string(entry.d_id);
-    output << "dnsdist_rule_hits{id=\"" << identifier << "\"} " << entry.d_rule->d_matches << "\n";
+    output << "dnsdist_rule_hits{id=\"" << identifier << "\"" << instanceLabelWithComma << "} " << entry.d_rule->d_matches << "\n";
   }
 }
 
@@ -491,6 +492,11 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   resp.status = 200;
 
   std::ostringstream output;
+  std::string instanceLabel; // MUST be empty when instance label is not requested
+  {
+    auto rtc = dnsdist::configuration::getCurrentRuntimeConfiguration();
+    instanceLabel = rtc.d_prometheusAddInstanceLabel ? "instance=\"" + rtc.d_server_id + "\"" : "";
+  }
   static const std::set<std::string> metricBlacklist = {"special-memory-usage", "latency-count", "latency-sum"};
   {
     auto entries = dnsdist::metrics::g_stats.entries.read_lock();
@@ -523,8 +529,18 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
         prometheusMetricName = metricDetails.customName;
       }
 
-      if (!entry.d_labels.empty()) {
-        prometheusMetricName += "{" + entry.d_labels + "}";
+      if (!entry.d_labels.empty() || !instanceLabel.empty()) {
+        prometheusMetricName += "{";
+        if (!entry.d_labels.empty()) {
+          prometheusMetricName += entry.d_labels;
+          if (!instanceLabel.empty()) {
+            prometheusMetricName += ",";
+          }
+        }
+        if (!instanceLabel.empty()) {
+          prometheusMetricName += instanceLabel;
+        }
+        prometheusMetricName += "}";
       }
 
       // for these we have the help and types encoded in the sources
@@ -551,10 +567,16 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
     }
   }
 
+  std::string instanceLabelPlusComma;
+  std::string instanceLabelPlusBrackets;
+  if (!instanceLabel.empty()) {
+    instanceLabelPlusComma = "," + instanceLabel;
+    instanceLabelPlusBrackets = "{" + instanceLabel + "}";
+  }
   // Latency histogram buckets
   output << "# HELP dnsdist_latency Histogram of responses by latency (in milliseconds)\n";
   output << "# TYPE dnsdist_latency histogram\n";
-  addHistogramToPrometheusOutput(output, dnsdist::metrics::g_stats, "dnsdist_latency", "");
+  addHistogramToPrometheusOutput(output, dnsdist::metrics::g_stats, "dnsdist_latency", instanceLabelPlusBrackets);
 
   const string statesbase = "dnsdist_server_";
 
@@ -639,8 +661,8 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
 
     std::replace(serverName.begin(), serverName.end(), '.', '_');
 
-    const std::string label = boost::str(boost::format(R"({server="%1%",address="%2%"})")
-                                         % serverName % state->d_config.remote.toStringWithPort());
+    const std::string label = boost::str(boost::format(R"({server="%1%",address="%2%"%3%})")
+                                         % serverName % state->d_config.remote.toStringWithPort() % (instanceLabel.empty() ? "" : instanceLabelPlusComma));
 
     output << statesbase << "status"                           << label << " " << (state->isUp() ? "1" : "0")            << "\n";
     output << statesbase << "queries"                          << label << " " << state->queries.load()                  << "\n";
@@ -738,8 +760,8 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
       threadNumber = dupPair.first->second;
       ++(dupPair.first->second);
     }
-    const std::string label = boost::str(boost::format(R"({frontend="%1%",proto="%2%",thread="%3%"} )")
-                                         % frontName % proto % threadNumber);
+    const std::string label = boost::str(boost::format(R"({frontend="%1%",proto="%2%",thread="%3%"%4%} )")
+                                         % frontName % proto % threadNumber % (instanceLabel.empty() ? "" : instanceLabelPlusComma));
 
     output << frontsbase << "queries" << label << front->queries.load() << "\n";
     output << frontsbase << "noncompliantqueries" << label << front->nonCompliantQueries.load() << "\n";
@@ -761,11 +783,11 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
         output << frontsbase << "tlsunknownticketkeys" << label << front->tlsUnknownTicketKey.load() << "\n";
         output << frontsbase << "tlsinactiveticketkeys" << label << front->tlsInactiveTicketKey.load() << "\n";
 
-        output << frontsbase << "tlsqueries{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << R"(",tls="tls10"} )" << front->tls10queries.load() << "\n";
-        output << frontsbase << "tlsqueries{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << R"(",tls="tls11"} )" << front->tls11queries.load() << "\n";
-        output << frontsbase << "tlsqueries{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << R"(",tls="tls12"} )" << front->tls12queries.load() << "\n";
-        output << frontsbase << "tlsqueries{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << R"(",tls="tls13"} )" << front->tls13queries.load() << "\n";
-        output << frontsbase << "tlsqueries{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << R"(",tls="unknown"} )" << front->tlsUnknownqueries.load() << "\n";
+        output << frontsbase << "tlsqueries{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << R"(",tls="tls10"} )" << (instanceLabel.empty() ? "" : instanceLabelPlusComma) << front->tls10queries.load() << "\n";
+        output << frontsbase << "tlsqueries{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << R"(",tls="tls11"} )" << (instanceLabel.empty() ? "" : instanceLabelPlusComma) << front->tls11queries.load() << "\n";
+        output << frontsbase << "tlsqueries{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << R"(",tls="tls12"} )" << (instanceLabel.empty() ? "" : instanceLabelPlusComma) << front->tls12queries.load() << "\n";
+        output << frontsbase << "tlsqueries{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << R"(",tls="tls13"} )" << (instanceLabel.empty() ? "" : instanceLabelPlusComma) << front->tls13queries.load() << "\n";
+        output << frontsbase << "tlsqueries{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << R"(",tls="unknown"} )" << (instanceLabel.empty() ? "" : instanceLabelPlusComma) << front->tlsUnknownqueries.load() << "\n";
 
         const TLSErrorCounters* errorCounters = nullptr;
         if (front->tlsFrontend != nullptr) {
@@ -776,14 +798,14 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
         }
 
         if (errorCounters != nullptr) {
-          output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << R"(",error="dhKeyTooSmall"} )" << errorCounters->d_dhKeyTooSmall << "\n";
-          output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << R"(",error="inappropriateFallBack"} )" << errorCounters->d_inappropriateFallBack << "\n";
-          output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << R"(",error="noSharedCipher"} )" << errorCounters->d_noSharedCipher << "\n";
-          output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << R"(",error="unknownCipherType"} )" << errorCounters->d_unknownCipherType << "\n";
-          output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << R"(",error="unknownKeyExchangeType"} )" << errorCounters->d_unknownKeyExchangeType << "\n";
-          output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << R"(",error="unknownProtocol"} )" << errorCounters->d_unknownProtocol << "\n";
-          output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << R"(",error="unsupportedEC"} )" << errorCounters->d_unsupportedEC << "\n";
-          output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << R"(",error="unsupportedProtocol"} )" << errorCounters->d_unsupportedProtocol << "\n";
+          output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << (instanceLabel.empty() ? "" : instanceLabelPlusComma) << R"(",error="dhKeyTooSmall"} )" << errorCounters->d_dhKeyTooSmall << "\n";
+          output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << (instanceLabel.empty() ? "" : instanceLabelPlusComma) << R"(",error="inappropriateFallBack"} )" << errorCounters->d_inappropriateFallBack << "\n";
+          output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << (instanceLabel.empty() ? "" : instanceLabelPlusComma) << R"(",error="noSharedCipher"} )" << errorCounters->d_noSharedCipher << "\n";
+          output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << (instanceLabel.empty() ? "" : instanceLabelPlusComma) << R"(",error="unknownCipherType"} )" << errorCounters->d_unknownCipherType << "\n";
+          output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << (instanceLabel.empty() ? "" : instanceLabelPlusComma) << R"(",error="unknownKeyExchangeType"} )" << errorCounters->d_unknownKeyExchangeType << "\n";
+          output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << (instanceLabel.empty() ? "" : instanceLabelPlusComma) << R"(",error="unknownProtocol"} )" << errorCounters->d_unknownProtocol << "\n";
+          output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << (instanceLabel.empty() ? "" : instanceLabelPlusComma) << R"(",error="unsupportedEC"} )" << errorCounters->d_unsupportedEC << "\n";
+          output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << (instanceLabel.empty() ? "" : instanceLabelPlusComma) << R"(",error="unsupportedProtocol"} )" << errorCounters->d_unsupportedProtocol << "\n";
         }
       }
     }
@@ -817,7 +839,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
       threadNumber = dupPair.first->second;
       ++(dupPair.first->second);
     }
-    const std::string addrlabel = boost::str(boost::format(R"(frontend="%1%",thread="%2%")") % frontName % threadNumber);
+    const std::string addrlabel = boost::str(boost::format(R"(frontend="%1%",thread="%2%"%3%)") % frontName % threadNumber % (instanceLabel.empty() ? "" : instanceLabelPlusComma));
     const std::string label = "{" + addrlabel + "} ";
 
     output << frontsbase << "http_connects" << label << doh->d_httpconnects << "\n";
@@ -881,7 +903,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
     if (poolName.empty()) {
       poolName = "_default_";
     }
-    const string label = "{pool=\"" + poolName + "\"}";
+    const string label = "{pool=\"" + poolName + "\"" + (instanceLabel.empty() ? "" : instanceLabelPlusComma) + "}";
     const auto& pool = entry.second;
     output << "dnsdist_pool_servers" << label << " " << pool.countServers(false) << "\n";
     output << "dnsdist_pool_active_servers" << label << " " << pool.countServers(true) << "\n";
@@ -907,11 +929,11 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
   for (const auto& chainDescription : dnsdist::rules::getRuleChainDescriptions()) {
     const auto& chain = dnsdist::rules::getRuleChain(chains, chainDescription.identifier);
-    addRulesToPrometheusOutput(output, chain);
+    addRulesToPrometheusOutput(output, chain, instanceLabelPlusComma);
   }
   for (const auto& chainDescription : dnsdist::rules::getResponseRuleChainDescriptions()) {
     const auto& chain = dnsdist::rules::getResponseRuleChain(chains, chainDescription.identifier);
-    addRulesToPrometheusOutput(output, chain);
+    addRulesToPrometheusOutput(output, chain, instanceLabelPlusComma);
   }
 
 #ifndef DISABLE_DYNBLOCKS
@@ -920,7 +942,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   auto topNetmasksByReason = DynBlockMaintenance::getHitsForTopNetmasks();
   for (const auto& entry : topNetmasksByReason) {
     for (const auto& netmask : entry.second) {
-      output << "dnsdist_dynblocks_nmg_top_offenders_hits_per_second{reason=\"" << entry.first << "\",netmask=\"" << netmask.first.toString() << "\"} " << netmask.second << "\n";
+      output << "dnsdist_dynblocks_nmg_top_offenders_hits_per_second{reason=\"" << entry.first << "\",netmask=\"" << netmask.first.toString() << "\"" << (instanceLabel.empty() ? "" : instanceLabelPlusComma) <<"} " << netmask.second << "\n";
     }
   }
 
@@ -929,14 +951,14 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   auto topSuffixesByReason = DynBlockMaintenance::getHitsForTopSuffixes();
   for (const auto& entry : topSuffixesByReason) {
     for (const auto& suffix : entry.second) {
-      output << "dnsdist_dynblocks_smt_top_offenders_hits_per_second{reason=\"" << entry.first << "\",suffix=\"" << suffix.first.toString() << "\"} " << suffix.second << "\n";
+      output << "dnsdist_dynblocks_smt_top_offenders_hits_per_second{reason=\"" << entry.first << "\",suffix=\"" << suffix.first.toString() << "\"" << (instanceLabel.empty() ? "" : instanceLabelPlusComma) << "} " << suffix.second << "\n";
     }
   }
 #endif /* DISABLE_DYNBLOCKS */
 
   output << "# HELP dnsdist_info " << "Info from dnsdist, value is always 1" << "\n";
   output << "# TYPE dnsdist_info " << "gauge" << "\n";
-  output << "dnsdist_info{version=\"" << VERSION << "\"} " << "1" << "\n";
+  output << "dnsdist_info{version=\"" << VERSION << "\"" << (instanceLabel.empty() ? "" : instanceLabelPlusComma) << "} " << "1" << "\n";
 
   resp.body = output.str();
   resp.headers["Content-Type"] = "text/plain; version=0.0.4";

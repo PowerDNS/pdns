@@ -891,6 +891,7 @@ static void loadWebServer(const dnsdist::rust::settings::WebserverConfiguration&
     }
 
     config.d_apiRequiresAuthentication = webConfig.api_requires_authentication;
+    config.d_prometheusAddInstanceLabel = webConfig.prometheus_add_instance;
     config.d_dashboardRequiresAuthentication = webConfig.dashboard_requires_authentication;
     config.d_statsRequireAuthentication = webConfig.stats_require_authentication;
     dnsdist::webserver::setMaxConcurrentConnections(webConfig.max_concurrent_connections);

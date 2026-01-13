@@ -157,6 +157,7 @@ struct RuntimeConfiguration
   bool d_apiRequiresAuthentication{true};
   bool d_dashboardRequiresAuthentication{true};
   bool d_statsRequireAuthentication{true};
+  bool d_prometheusAddInstanceLabel{false};
   bool d_truncateTC{false};
   bool d_fixupCase{false};
   bool d_queryCountEnabled{false};

@@ -410,6 +410,9 @@ key_value_stores:
       description: "List of lookup keys"
 
 webserver:
+  changes:
+    - version: 2.1.0
+      content: "Added the ``prometheus_add_instance`` option"
   parameters:
     - name: "listen_addresses"
       type: "Vec<String>"
@@ -435,6 +438,10 @@ webserver:
       type: "bool"
       default: "true"
       description: "Whether access to the statistics (/metrics and /jsonstat endpoints) requires a valid password or API key"
+    - name: "prometheus_add_instance"
+      type: "bool"
+      default: "false"
+      description: "Add the 'instance' label with the value of general.server_id to all prometheus metrics"
     - name: "dashboard_requires_authentication"
       type: "bool"
       default: "true"

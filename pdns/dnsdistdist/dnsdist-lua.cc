@@ -1103,6 +1103,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       LuaAssociativeTable<std::string> headers;
       bool statsRequireAuthentication{true};
       bool apiRequiresAuthentication{true};
+      bool prometheusAddInstance{false};
       bool dashboardRequiresAuthentication{true};
       bool hashPlaintextCredentials = false;
       getOptionalValue<bool>(vars, "hashPlaintextCredentials", hashPlaintextCredentials);
@@ -1135,6 +1136,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
       if (getOptionalValue<bool>(vars, "statsRequireAuthentication", statsRequireAuthentication) > 0) {
         config.d_statsRequireAuthentication = statsRequireAuthentication;
+      }
+
+      if (getOptionalValue<bool>(vars, "prometheusAddInstanceLabel", prometheusAddInstance) > 0) {
+        config.d_prometheusAddInstanceLabel = prometheusAddInstance;
       }
 
       if (getOptionalValue<bool>(vars, "apiRequiresAuthentication", apiRequiresAuthentication) > 0) {

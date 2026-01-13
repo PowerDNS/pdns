@@ -309,7 +309,7 @@ static std::vector<dnsdist::console::completion::ConsoleKeyword> s_consoleKeywor
   {"setVerbose", true, "bool", "set whether log messages at the verbose level will be logged"},
   {"setVerboseHealthChecks", true, "bool", "set whether health check errors will be logged"},
   {"setVerboseLogDestination", true, "destination file", "Set a destination file to write the 'verbose' log messages to, instead of sending them to syslog and/or the standard output"},
-  {"setWebserverConfig", true, "[{password=string, apiKey=string, customHeaders, statsRequireAuthentication}]", "Updates webserver configuration"},
+  {"setWebserverConfig", true, "[{password=string, apiKey=string, customHeaders, statsRequireAuthentication, prometheusAddInstanceLabel=bool}]", "Updates webserver configuration"},
   {"setWeightedBalancingFactor", true, "factor", "Set the balancing factor for bounded-load weighted policies (whashed, wrandom)"},
   {"setWHashedPerturbation", true, "value", "Set the hash perturbation value to be used in the whashed policy instead of a random one, allowing to have consistent whashed results on different instance"},
   {"show", true, "string", "outputs `string`"},
