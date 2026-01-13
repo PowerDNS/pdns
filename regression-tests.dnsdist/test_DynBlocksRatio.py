@@ -30,6 +30,156 @@ class TestDynBlockGroupServFailsRatio(DynBlocksTest):
         name = 'servfailratio.group.dynblocks.tests.powerdns.com.'
         self.doTestRCodeRatio(name, dns.rcode.SERVFAIL, 10, 10)
 
+class TestDynBlockGroupServFailsRatioDoH(DynBlocksTest):
+    # we need this period to be quite long because we request the valid
+    # queries to be still looked at to reach the 20 queries count!
+    _dynBlockPeriod = 6
+    _dnsDistListeningAddr = "127.0.0.2"
+    _serverKey = 'server.key'
+    _serverCert = 'server.chain'
+    _serverName = 'tls.tests.dnsdist.org'
+    _caCert = 'ca.pem'
+    _dohServerPort = pickAvailablePort()
+    _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
+    _webSevrerPort = pickAvailablePort()
+    _webServerBasicAuthPassword = 'secret'
+    _webServerBasicAuthPasswordHashed = '$scrypt$ln=10,p=1,r=8$6DKLnvUYEeXWh3JNOd3iwg==$kSrhdHaRbZ7R74q3lGBqO1xetgxRxhmWzYJ2Qvfm7JM='
+    _webServerAPIKey = 'apisecret'
+    _webServerAPIKeyHashed = '$scrypt$ln=10,p=1,r=8$9v8JxDfzQVyTpBkTbkUqYg==$bDQzAOHeK1G9UvTPypNhrX48w974ZXbFPtRKS34+aso='
+    _config_template = """
+    local dbr = dynBlockRulesGroup()
+    dbr:setRCodeRatio(DNSRCode.SERVFAIL, 0.2, %d, "Exceeded query rate", %d, 20)
+
+    function maintenance()
+	    dbr:apply()
+    end
+
+    addDOHLocal("%s:%d", "%s", "%s", { "/" }, {trustForwardedForHeader=true})
+    setACL({'127.0.0.1', '192.0.2.1/32'})
+
+    newServer{address="127.0.0.1:%d"}
+
+    webserver("127.0.0.1:%d")
+    setWebserverConfig({password="%s", apiKey="%s"})
+    """
+    _config_params = ['_dynBlockPeriod', '_dynBlockDuration', '_dnsDistListeningAddr', '_dohServerPort', '_serverCert', '_serverKey', '_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
+
+    def testDynBlocksServFailRatio(self):
+        """
+        Dyn Blocks (group): Server Failure Ratio via DoH
+        """
+        name = 'rcode-servfailratio-doh.group.dynblocks.tests.powerdns.com.'
+        rcodeQuery = dns.message.make_query(name, 'A', 'IN')
+        expectedResponse = dns.message.make_response(rcodeQuery)
+        expectedResponse.set_rcode(dns.rcode.SERVFAIL)
+
+        rcodecount = 20
+        sent = 0
+        allowed = 0
+        for _ in range(rcodecount):
+            (receivedQuery, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, rcodeQuery, response=expectedResponse, caFile=self._caCert, customHeaders=['x-forwarded-for: 192.0.2.1'])
+
+            sent = sent + 1
+            if receivedQuery:
+                receivedQuery.id = rcodeQuery.id
+                self.assertEqual(rcodeQuery, receivedQuery)
+                self.assertEqual(expectedResponse, receivedResponse)
+                allowed = allowed + 1
+            else:
+                # the query has not reached the responder,
+                # let's clear the response queue
+                self.clearToResponderQueue()
+
+        # we should have been able to send all our queries since the minimum number of queries is set to noerrorcount + rcodecount
+        self.assertGreaterEqual(allowed, rcodecount)
+
+        waitForMaintenanceToRun()
+
+        # we should now be dropped for up to self._dynBlockDuration + self._dynBlockPeriod
+        (_, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, rcodeQuery, response=None, caFile=self._caCert, customHeaders=['x-forwarded-for: 192.0.2.1'], useQueue=False, timeout=1)
+        self.assertEqual(receivedResponse, None)
+
+        self.doTestDynBlockViaAPI('192.0.2.1/32', 'Exceeded query rate', 1, self._dynBlockDuration, (sent-allowed)+1, (sent-allowed)+1, False)
+
+class TestDynBlockGroupServFailsRatioDoHCacheHit(DynBlocksTest):
+    # we need this period to be quite long because we request the valid
+    # queries to be still looked at to reach the 20 queries count!
+    _dynBlockPeriod = 6
+    _dnsDistListeningAddr = "127.0.0.2"
+    _serverKey = 'server.key'
+    _serverCert = 'server.chain'
+    _serverName = 'tls.tests.dnsdist.org'
+    _caCert = 'ca.pem'
+    _dohServerPort = pickAvailablePort()
+    _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
+    _webSevrerPort = pickAvailablePort()
+    _webServerBasicAuthPassword = 'secret'
+    _webServerBasicAuthPasswordHashed = '$scrypt$ln=10,p=1,r=8$6DKLnvUYEeXWh3JNOd3iwg==$kSrhdHaRbZ7R74q3lGBqO1xetgxRxhmWzYJ2Qvfm7JM='
+    _webServerAPIKey = 'apisecret'
+    _webServerAPIKeyHashed = '$scrypt$ln=10,p=1,r=8$9v8JxDfzQVyTpBkTbkUqYg==$bDQzAOHeK1G9UvTPypNhrX48w974ZXbFPtRKS34+aso='
+    _config_template = """
+    local dbr = dynBlockRulesGroup()
+    dbr:setRCodeRatio(DNSRCode.SERVFAIL, 0.2, %d, "Exceeded query rate", %d, 20)
+
+    function maintenance()
+	    dbr:apply()
+    end
+
+    addDOHLocal("%s:%d", "%s", "%s", { "/" }, {trustForwardedForHeader=true})
+    setACL({'127.0.0.1', '192.0.2.1/32'})
+
+    pc = newPacketCache(1000, {maxTTL=86400, minTTL=1})
+    getPool(""):setCache(pc)
+
+    newServer{address="127.0.0.1:%d"}
+
+    webserver("127.0.0.1:%d")
+    setWebserverConfig({password="%s", apiKey="%s"})
+    """
+    _config_params = ['_dynBlockPeriod', '_dynBlockDuration', '_dnsDistListeningAddr', '_dohServerPort', '_serverCert', '_serverKey', '_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
+
+    def testDynBlocksServFailRatio(self):
+        """
+        Dyn Blocks (group): Server Failure Ratio via DoH (cache hits)
+        """
+        name = 'rcode-servfailratio-doh-cache-hits.group.dynblocks.tests.powerdns.com.'
+        rcodeQuery = dns.message.make_query(name, 'A', 'IN')
+        expectedResponse = dns.message.make_response(rcodeQuery)
+        expectedResponse.set_rcode(dns.rcode.SERVFAIL)
+
+        rcodecount = 20
+        sent = 0
+        allowed = 0
+        firstQuery = True
+        for _ in range(rcodecount):
+            if firstQuery:
+                (receivedQuery, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, rcodeQuery, response=expectedResponse, caFile=self._caCert, customHeaders=['x-forwarded-for: 192.0.2.1'])
+            else:
+                (_, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, rcodeQuery, response=None, caFile=self._caCert, customHeaders=['x-forwarded-for: 192.0.2.1'], useQueue=False)
+
+            sent = sent + 1
+            if receivedQuery:
+                receivedQuery.id = rcodeQuery.id
+                self.assertEqual(rcodeQuery, receivedQuery)
+                self.assertEqual(expectedResponse, receivedResponse)
+            else:
+                # the query has not reached the responder,
+                # let's clear the response queue
+                self.clearToResponderQueue()
+            if receivedResponse:
+                allowed = allowed + 1
+
+        # we should have been able to send all our queries since the minimum number of queries is set to noerrorcount + rcodecount
+        self.assertGreaterEqual(allowed, rcodecount)
+
+        waitForMaintenanceToRun()
+
+        # we should now be dropped for up to self._dynBlockDuration + self._dynBlockPeriod
+        (_, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, rcodeQuery, response=None, caFile=self._caCert, customHeaders=['x-forwarded-for: 192.0.2.1'], useQueue=False, timeout=1)
+        self.assertEqual(receivedResponse, None)
+
+        self.doTestDynBlockViaAPI('192.0.2.1/32', 'Exceeded query rate', 1, self._dynBlockDuration, (sent-allowed)+1, (sent-allowed)+1, False)
+
 class TestDynBlockGroupServFailsRatioDoQ(DynBlocksTest):
 
     # we need this period to be quite long because we request the valid
