@@ -1229,6 +1229,12 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
       });
     }
 
+    if (!globalConfig.general.server_id.empty()) {
+      dnsdist::configuration::updateRuntimeConfiguration([&server_id = globalConfig.general.server_id](dnsdist::configuration::RuntimeConfiguration& config) {
+        config.d_server_id = std::string(server_id);
+      });
+    }
+
     handlePacketCacheConfiguration(globalConfig.packet_caches);
 
     loadCustomPolicies(globalConfig.load_balancing_policies.custom_policies);

@@ -121,6 +121,7 @@ static const std::map<std::string, StringConfigurationItems> s_stringConfigItems
 #ifndef DISABLE_SECPOLL
   {"setSecurityPollSuffix", {[](dnsdist::configuration::RuntimeConfiguration& config, const std::string& newValue) { config.d_secPollSuffix = newValue; }}},
 #endif /* DISABLE_SECPOLL */
+  {"setServerID", {[](dnsdist::configuration::RuntimeConfiguration& config, const std::string& newValue) { config.d_server_id = newValue; }}},
 };
 
 static const std::map<std::string, BooleanImmutableConfigurationItems> s_booleanImmutableConfigItems{

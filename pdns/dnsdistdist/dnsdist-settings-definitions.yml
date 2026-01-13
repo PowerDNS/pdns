@@ -1836,6 +1836,11 @@ logging:
 general:
   description: "General settings"
   parameters:
+    - name: "server_id"
+      type: String
+      default: ""
+      description: An identifier for this dnsdist instance, used in various places. Will be the server's hostname by default.
+      lua-name: "setServerID"
     - name: "edns_udp_payload_size_self_generated_answers"
       type: "u16"
       default: "1232"
