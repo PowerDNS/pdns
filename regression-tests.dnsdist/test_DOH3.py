@@ -7,7 +7,14 @@ from dnsdisttests import pickAvailablePort
 from quictests import QUICTests, QUICWithCacheTests, QUICACLTests, QUICGetLocalAddressOnAnyBindTests, QUICXFRTests
 import doh3client
 
-class TestDOH3(QUICTests, DNSDistTest):
+class DOH3Common(object):
+    def getQUICConnection(self):
+        return self.getDOQConnection(self._doqServerPort, self._caCert)
+
+    def sendQUICQuery(self, query, response=None, useQueue=True, connection=None, passExceptions=False):
+        return self.sendDOH3Query(self._doqServerPort, self._dohBaseURL, query, response=response, caFile=self._caCert, useQueue=useQueue, serverName=self._serverName, connection=connection, passExceptions=passExceptions)
+
+class TestDOH3(DOH3Common, QUICTests, DNSDistTest):
     _serverKey = 'server.key'
     _serverCert = 'server.chain'
     _serverName = 'tls.tests.dnsdist.org'
@@ -50,12 +57,6 @@ class TestDOH3(QUICTests, DNSDistTest):
     """
     _config_params = ['_testServerPort',  '_serverName', '_doqServerPort', '_doqServerPort','_serverCert', '_serverKey']
     _verboseMode = True
-
-    def getQUICConnection(self):
-        return self.getDOQConnection(self._doqServerPort, self._caCert)
-
-    def sendQUICQuery(self, query, response=None, useQueue=True, connection=None):
-        return self.sendDOH3Query(self._doqServerPort, self._dohBaseURL, query, response=response, caFile=self._caCert, useQueue=useQueue, serverName=self._serverName, connection=connection)
 
     def testHeaderRule(self):
         """
@@ -224,7 +225,7 @@ class TestDOH3(QUICTests, DNSDistTest):
         self.assertIn(b'content-type', receivedHeaders)
         self.assertEqual(receivedHeaders[b'content-type'], b'text/plain')
 
-class TestDOH3Yaml(QUICTests, DNSDistTest):
+class TestDOH3Yaml(DOH3Common, QUICTests, DNSDistTest):
     _serverKey = 'server.key'
     _serverCert = 'server.chain'
     _serverName = 'tls.tests.dnsdist.org'
@@ -277,13 +278,7 @@ query_rules:
     """
     _yaml_config_params = ['_testServerPort', '_doqServerPort','_serverCert', '_serverKey']
 
-    def getQUICConnection(self):
-        return self.getDOQConnection(self._doqServerPort, self._caCert)
-
-    def sendQUICQuery(self, query, response=None, useQueue=True, connection=None):
-        return self.sendDOH3Query(self._doqServerPort, self._dohBaseURL, query, response=response, caFile=self._caCert, useQueue=useQueue, serverName=self._serverName, connection=connection)
-
-class TestDOH3ACL(QUICACLTests, DNSDistTest):
+class TestDOH3ACL(DOH3Common, QUICACLTests, DNSDistTest):
     _serverKey = 'server.key'
     _serverCert = 'server.chain'
     _serverName = 'tls.tests.dnsdist.org'
@@ -299,13 +294,7 @@ class TestDOH3ACL(QUICACLTests, DNSDistTest):
     _config_params = ['_testServerPort', '_doqServerPort','_serverCert', '_serverKey']
     _verboseMode = True
 
-    def getQUICConnection(self):
-        return self.getDOQConnection(self._doqServerPort, self._caCert)
-
-    def sendQUICQuery(self, query, response=None, useQueue=True, connection=None):
-        return self.sendDOH3Query(self._doqServerPort, self._dohBaseURL, query, response=response, caFile=self._caCert, useQueue=useQueue, serverName=self._serverName, connection=connection)
-
-class TestDOH3Specifics(DNSDistTest):
+class TestDOH3Specifics(DOH3Common, DNSDistTest):
     _serverKey = 'server.key'
     _serverCert = 'server.chain'
     _serverName = 'tls.tests.dnsdist.org'
@@ -343,7 +332,7 @@ class TestDOH3Specifics(DNSDistTest):
         self.assertEqual(expectedQuery, receivedQuery)
         self.assertEqual(receivedResponse, response)
 
-class TestDOH3GetLocalAddressOnAnyBind(QUICGetLocalAddressOnAnyBindTests, DNSDistTest):
+class TestDOH3GetLocalAddressOnAnyBind(DOH3Common, QUICGetLocalAddressOnAnyBindTests, DNSDistTest):
     _serverKey = 'server.key'
     _serverCert = 'server.chain'
     _serverName = 'tls.tests.dnsdist.org'
@@ -367,13 +356,7 @@ class TestDOH3GetLocalAddressOnAnyBind(QUICGetLocalAddressOnAnyBindTests, DNSDis
     _acl = ['127.0.0.1/32', '::1/128']
     _skipListeningOnCL = True
 
-    def getQUICConnection(self):
-        return self.getDOQConnection(self._doqServerPort, self._caCert)
-
-    def sendQUICQuery(self, query, response=None, useQueue=True, connection=None):
-        return self.sendDOH3Query(self._doqServerPort, self._dohBaseURL, query, response=response, caFile=self._caCert, useQueue=useQueue, serverName=self._serverName, connection=connection)
-
-class TestDOH3XFR(QUICXFRTests, DNSDistTest):
+class TestDOH3XFR(DOH3Common, QUICXFRTests, DNSDistTest):
     _serverKey = 'server.key'
     _serverCert = 'server.chain'
     _serverName = 'tls.tests.dnsdist.org'
@@ -387,9 +370,3 @@ class TestDOH3XFR(QUICXFRTests, DNSDistTest):
     """
     _config_params = ['_testServerPort', '_doqServerPort','_serverCert', '_serverKey']
     _verboseMode = True
-
-    def getQUICConnection(self):
-        return self.getDOQConnection(self._doqServerPort, self._caCert)
-
-    def sendQUICQuery(self, query, response=None, useQueue=True, connection=None):
-        return self.sendDOH3Query(self._doqServerPort, self._dohBaseURL, query, response=response, caFile=self._caCert, useQueue=useQueue, serverName=self._serverName, connection=connection)
