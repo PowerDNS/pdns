@@ -101,5 +101,5 @@ void apiServerZoneDetailDELETE(const Request& rustRequest, Response& rustRespons
 void apiServerOTConditionsGET(const Request& rustRequest, Response& rustResponse);
 void apiServerOTConditionDetailGET(const Request& rustRequest, Response& rustResponse);
 void apiServerOTConditionDetailDELETE(const Request& rustRequest, Response& rustResponse);
-void apiServerOTConditionDetailPUT(const Request& rustRequest, Response& rustResponse);
+void apiServerOTConditionDetailPOST(const Request& rustRequest, Response& rustResponse);
 }
