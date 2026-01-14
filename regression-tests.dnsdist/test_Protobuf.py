@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+import unittest
+import os
 import base64
 import threading
 import socket
@@ -683,6 +685,7 @@ class TestProtobufCacheHit(DNSDistProtobufTest):
         self.assertTrue(msg.HasField('outgoingQueries'))
         self.assertEqual(msg.outgoingQueries, 0)
 
+@unittest.skipIf('SKIP_DOH_TESTS' in os.environ, 'DNS over HTTPS tests are disabled')
 class TestProtobufMetaDOH(DNSDistProtobufTest):
 
     _serverKey = 'server.key'
