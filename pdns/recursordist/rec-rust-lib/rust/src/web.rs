@@ -424,6 +424,17 @@ fn matcher(
             }
             *apifunc = Some(rustweb::apiServerOTConditionDetailDELETE)
         }
+        (&Method::PUT, ["api", "v1", "servers", "localhost", "otconditions", id]) => {
+            let decoded = form_urlencoded::parse(id.as_bytes());
+            // decoded should contain a single key without value
+            if let Some(kv) = decoded.last() {
+                request.parameters.push(rustweb::KeyValue {
+                    key: String::from("id"),
+                    value: kv.0.to_string(),
+                });
+            }
+            *apifunc = Some(rustweb::apiServerOTConditionDetailPUT)
+        }
         _ => *filefunc = Some(file),
     }
 }
@@ -1174,6 +1185,7 @@ mod rustweb {
         fn apiServerOTConditionsGET(request: &Request, response: &mut Response) -> Result<()>;
         fn apiServerOTConditionDetailGET(request: &Request, response: &mut Response) -> Result<()>;
         fn apiServerOTConditionDetailDELETE(request: &Request, response: &mut Response) -> Result<()>;
+        fn apiServerOTConditionDetailPUT(request: &Request, response: &mut Response) -> Result<()>;
         fn jsonstat(request: &Request, response: &mut Response) -> Result<()>;
         fn prometheusMetrics(request: &Request, response: &mut Response) -> Result<()>;
         fn serveStuff(request: &Request, response: &mut Response) -> Result<()>;

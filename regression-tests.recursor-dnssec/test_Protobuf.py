@@ -648,7 +648,7 @@ logging:
         self.reloadConfig(self.config_nameandedns)
         self.runtest('aaaa.example.', dns.rdatatype.A, None, False, False, None, None)
 
-config_nonetmatch = """
+    config_nonetmatch = """
 recursor:
     auth_zones:
     - zone: example

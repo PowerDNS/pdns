@@ -648,6 +648,58 @@ static void apiServerOTConditionDetailDELETE(HttpRequest* req, HttpResponse* res
   }
 }
 
+static void apiServerOTConditionDetailPUT(HttpRequest* req, HttpResponse* resp)
+{
+  Netmask netmask;
+  try {
+    Json document = req->json();
+    netmask = Netmask{req->parameters["id"]};
+
+    auto lock = g_initialOpenTelemetryConditions.lock();
+    if (*lock) {
+      auto conditionPtr = (*lock)->lookup(netmask);
+      if (conditionPtr != nullptr && conditionPtr->first == netmask) { // exact match
+        throw ApiException("OTCondition already exists");
+      }
+
+      OpenTelemetryTraceCondition condition;
+      if (auto traceid_only = document["traceid_only"]; traceid_only != Json()) {
+        condition.d_traceid_only = traceid_only.bool_value();
+      }
+      if (auto edns = document["edns_option_required"]; edns != Json()) {
+        condition.d_edns_option_required = edns.bool_value();
+      }
+      auto qnames = document["qnames"].array_items();
+      if (!qnames.empty()) {
+        condition.d_qnames = SuffixMatchNode();
+        for (const auto& qname : qnames) {
+          condition.d_qnames->add(DNSName(qname.string_value()));
+        }
+      }
+      auto qtypes = document["qtypes"].array_items();
+      if (!qtypes.empty()) {
+        condition.d_qtypes = std::unordered_set<QType>();
+        for (const auto& qtype : qtypes) {
+          if (auto qcode = QType::chartocode(qtype.string_value().c_str()); qcode > 0) {
+            condition.d_qtypes->insert(qcode);
+          }
+        }
+      }
+      if (auto qid = document["qid"]; qid != Json()) {
+        condition.d_qid = qid.int_value();
+      }
+      (*lock)->insert(netmask).second = condition;
+      updateOTConditions(**lock);
+    }
+  }
+  catch (NetmaskException&) {
+    throw ApiException("Could not parse netmask");
+  }
+  fillOTCondition(netmask, resp);
+  resp->status = 201;
+  return;
+}
+
 static void prometheusMetrics(HttpRequest* /* req */, HttpResponse* resp)
 {
   static MetricDefinitionStorage s_metricDefinitions;
@@ -1223,6 +1275,7 @@ WRAPPER(apiServerZonesPOST)
 WRAPPER(apiServerOTConditionsGET)
 WRAPPER(apiServerOTConditionDetailGET)
 WRAPPER(apiServerOTConditionDetailDELETE)
+WRAPPER(apiServerOTConditionDetailPUT)
 WRAPPER(prometheusMetrics)
 WRAPPER(serveStuff)
 
