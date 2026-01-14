@@ -28,6 +28,7 @@
 #include "dnsdist-actions-factory.hh"
 
 #include "config.h"
+#include "dnsdist-configuration.hh"
 #include "dnsdist.hh"
 #include "dnsdist-async.hh"
 #include "dnsdist-dnsparser.hh"
@@ -1607,7 +1608,7 @@ class RemoteLogAction : public DNSAction, public boost::noncopyable
 public:
   // this action does not stop the processing
   RemoteLogAction(RemoteLogActionConfiguration& config) :
-    d_tagsToExport(std::move(config.tagsToExport)), d_metas(std::move(config.metas)), d_logger(config.logger), d_alterFunc(std::move(config.alterQueryFunc)), d_serverID(config.serverID), d_ipEncryptKey(config.ipEncryptKey), d_ipEncryptMethod(config.ipEncryptMethod)
+    d_tagsToExport(std::move(config.tagsToExport)), d_metas(std::move(config.metas)), d_logger(config.logger), d_alterFunc(std::move(config.alterQueryFunc)), d_serverID(config.serverID), d_ipEncryptKey(config.ipEncryptKey), d_ipEncryptMethod(config.ipEncryptMethod), d_useServerID(config.useServerID)
   {
     if (!d_ipEncryptKey.empty() && d_ipEncryptMethod == "ipcrypt-pfx") {
       d_ipcrypt2 = pdns::ipcrypt2::IPCrypt2(pdns::ipcrypt2::IPCryptMethod::pfx, d_ipEncryptKey);
@@ -1625,7 +1626,10 @@ public:
     }
 
     DNSDistProtoBufMessage message(*dnsquestion);
-    if (!d_serverID.empty()) {
+    if (d_useServerID) {
+      message.setServerIdentity(dnsdist::configuration::getCurrentRuntimeConfiguration().d_server_id);
+    }
+    else if (!d_serverID.empty()) {
       message.setServerIdentity(d_serverID);
     }
 
@@ -1675,6 +1679,7 @@ private:
   std::string d_ipEncryptKey;
   std::string d_ipEncryptMethod;
   std::optional<pdns::ipcrypt2::IPCrypt2> d_ipcrypt2{std::nullopt};
+  bool d_useServerID;
 };
 #endif /* DISABLE_PROTOBUF */
 
@@ -1873,7 +1878,7 @@ class RemoteLogResponseAction : public DNSResponseAction, public boost::noncopya
 public:
   // this action does not stop the processing
   RemoteLogResponseAction(RemoteLogActionConfiguration& config) :
-    d_tagsToExport(std::move(config.tagsToExport)), d_metas(std::move(config.metas)), d_logger(config.logger), d_alterFunc(std::move(config.alterResponseFunc)), d_serverID(config.serverID), d_ipEncryptKey(config.ipEncryptKey), d_ipEncryptMethod(config.ipEncryptMethod), d_exportExtendedErrorsToMeta(std::move(config.exportExtendedErrorsToMeta)), d_includeCNAME(config.includeCNAME), d_delay(config.delay)
+    d_tagsToExport(std::move(config.tagsToExport)), d_metas(std::move(config.metas)), d_logger(config.logger), d_alterFunc(std::move(config.alterResponseFunc)), d_serverID(config.serverID), d_ipEncryptKey(config.ipEncryptKey), d_ipEncryptMethod(config.ipEncryptMethod), d_exportExtendedErrorsToMeta(std::move(config.exportExtendedErrorsToMeta)), d_includeCNAME(config.includeCNAME), d_useServerID(config.useServerID), d_delay(config.delay)
   {
     if (!d_ipEncryptKey.empty() && d_ipEncryptMethod == "ipcrypt-pfx") {
       d_ipcrypt2 = pdns::ipcrypt2::IPCrypt2(pdns::ipcrypt2::IPCryptMethod::pfx, d_ipEncryptKey);
@@ -1890,7 +1895,10 @@ public:
     }
 
     DNSDistProtoBufMessage message(*response, d_includeCNAME);
-    if (!d_serverID.empty()) {
+    if (d_useServerID) {
+      message.setServerIdentity(dnsdist::configuration::getCurrentRuntimeConfiguration().d_server_id);
+    }
+    else if (!d_serverID.empty()) {
       message.setServerIdentity(d_serverID);
     }
 
@@ -1953,6 +1961,7 @@ private:
   std::optional<pdns::ipcrypt2::IPCrypt2> d_ipcrypt2{std::nullopt};
   std::optional<std::string> d_exportExtendedErrorsToMeta{std::nullopt};
   bool d_includeCNAME;
+  bool d_useServerID{false};
   bool d_delay{false};
 };
 
