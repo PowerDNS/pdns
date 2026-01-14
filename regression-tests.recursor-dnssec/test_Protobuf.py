@@ -648,6 +648,23 @@ logging:
         self.reloadConfig(self.config_nameandedns)
         self.runtest('aaaa.example.', dns.rdatatype.A, None, False, False, None, None)
 
+config_nonetmatch = """
+recursor:
+    auth_zones:
+    - zone: example
+      file: configs/%s/example.zone
+    event_trace_enabled: 4
+logging:
+  protobuf_servers:
+    - servers: [127.0.0.1:%s, 127.0.0.1:%s]
+  opentelemetry_trace_conditions:
+    - acls: ['::/0']
+""" % (_confdir, protobufServersParameters[0].port, protobufServersParameters[1].port)
+
+    def testNoNetMatch(self):
+        self.reloadConfig(self.config_nonetmatch)
+        self.runtest('aaaa.example.', dns.rdatatype.A, None, False, False, None, None)
+
 class ProtobufProxyMappingTest(TestRecursorProtobuf):
     """
     This test makes sure that we correctly export queries and response over protobuf with a proxyMapping

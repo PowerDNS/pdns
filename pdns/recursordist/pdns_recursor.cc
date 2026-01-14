@@ -2156,8 +2156,9 @@ bool matchOTConditions(const std::unique_ptr<OpenTelemetryTraceConditions>& cond
     if (condition.d_traceid_only) {
       return false;
     }
+    return true;
   }
-  return true;
+  return false;
 }
 
 bool matchOTConditions(RecEventTrace& eventTrace, const std::unique_ptr<OpenTelemetryTraceConditions>& conditions, const ComboAddress& source, const DNSName& qname, QType qtype, uint16_t qid, bool edns_option_present)
@@ -2182,10 +2183,11 @@ bool matchOTConditions(RecEventTrace& eventTrace, const std::unique_ptr<OpenTele
     if (condition.d_qnames && !condition.d_qnames->check(qname)) {
       return false;
     }
+    eventTrace.setThisOTTraceEnabled();
+    return true;
   }
 
-  eventTrace.setThisOTTraceEnabled();
-  return true;
+  return false;
 }
 
 // fromaddr: the address from which the query is coming
