@@ -296,7 +296,7 @@ struct IDState
        the 'outstanding' counters, which should only be increased when we are picking
        an empty state, and not when reusing ;
        For DoH, though, we have dynamically allocated a DOHUnit object that needs to
-       be freed, as well as internal objects internals to libh2o.
+       be freed, as well as internal objects.
      - one of the UDP receiver threads receiving a response from a backend, picking
        the corresponding state and sending the response to the client ;
      - the 'healthcheck' thread scanning the states to actively discover timeouts,

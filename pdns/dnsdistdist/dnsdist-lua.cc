@@ -65,7 +65,6 @@
 
 #include "base64.hh"
 #include "coverage.hh"
-#include "doh.hh"
 #include "doq-common.hh"
 #include "dolog.hh"
 #include "threadname.hh"
@@ -2163,21 +2162,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     if (getOptionalValue<std::string>(vars, "library", frontend->d_library) == 0) {
 #ifdef HAVE_NGHTTP2
       frontend->d_library = "nghttp2";
-#else /* HAVE_NGHTTP2 */
-      frontend->d_library = "h2o";
 #endif /* HAVE_NGHTTP2 */
     }
-    if (frontend->d_library == "h2o") {
-#ifdef HAVE_LIBH2OEVLOOP
-      frontend = std::make_shared<H2ODOHFrontend>();
-      // we _really_ need to set it again, as we just replaced the generic frontend by a new one
-      frontend->d_library = "h2o";
-#else /* HAVE_LIBH2OEVLOOP */
-      errlog("DOH bind %s is configured to use libh2o but the library is not available", addr);
-      return;
-#endif /* HAVE_LIBH2OEVLOOP */
-    }
-    else if (frontend->d_library == "nghttp2") {
+    if (frontend->d_library == "nghttp2") {
 #ifndef HAVE_NGHTTP2
       errlog("DOH bind %s is configured to use nghttp2 but the library is not available", addr);
       return;

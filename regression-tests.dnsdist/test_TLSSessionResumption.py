@@ -105,21 +105,15 @@ class TestNoTLSSessionResumptionDOH(DNSDistTLSSessionResumptionTest):
     _serverName = "tls.tests.dnsdist.org"
     _caCert = "ca.pem"
     _dohWithNGHTTP2ServerPort = pickAvailablePort()
-    _dohWithH2OServerPort = pickAvailablePort()
     _numberOfKeys = 0
     _config_template = """
     newServer{address="127.0.0.1:%d"}
 
     addDOHLocal("127.0.0.1:%d", "%s", "%s", { "/" }, { numberOfTicketsKeys=%d, numberOfStoredSessions=0, sessionTickets=false, library='nghttp2' })
-    addDOHLocal("127.0.0.1:%d", "%s", "%s", { "/" }, { numberOfTicketsKeys=%d, numberOfStoredSessions=0, sessionTickets=false, library='h2o' })
     """
     _config_params = [
         "_testServerPort",
         "_dohWithNGHTTP2ServerPort",
-        "_serverCert",
-        "_serverKey",
-        "_numberOfKeys",
-        "_dohWithH2OServerPort",
         "_serverCert",
         "_serverKey",
         "_numberOfKeys",
@@ -129,7 +123,7 @@ class TestNoTLSSessionResumptionDOH(DNSDistTLSSessionResumptionTest):
         """
         Session Resumption: DoH (disabled)
         """
-        for port in [self._dohWithNGHTTP2ServerPort, self._dohWithH2OServerPort]:
+        for port in [self._dohWithNGHTTP2ServerPort]:
             self.assertFalse(
                 self.checkSessionResumed(
                     "127.0.0.1",
@@ -162,7 +156,6 @@ class TestTLSSessionResumptionDOH(DNSDistTLSSessionResumptionTest):
     _serverName = "tls.tests.dnsdist.org"
     _caCert = "ca.pem"
     _dohWithNGHTTP2ServerPort = pickAvailablePort()
-    _dohWithH2OServerPort = pickAvailablePort()
     _numberOfKeys = 5
     _config_template = """
     setKey("%s")
@@ -170,17 +163,12 @@ class TestTLSSessionResumptionDOH(DNSDistTLSSessionResumptionTest):
     newServer{address="127.0.0.1:%d"}
 
     addDOHLocal("127.0.0.1:%d", "%s", "%s", { "/" }, { numberOfTicketsKeys=%d, library='nghttp2' })
-    addDOHLocal("127.0.0.1:%d", "%s", "%s", { "/" }, { numberOfTicketsKeys=%d, library='h2o' })
     """
     _config_params = [
         "_consoleKeyB64",
         "_consolePort",
         "_testServerPort",
         "_dohWithNGHTTP2ServerPort",
-        "_serverCert",
-        "_serverKey",
-        "_numberOfKeys",
-        "_dohWithH2OServerPort",
         "_serverCert",
         "_serverKey",
         "_numberOfKeys",
@@ -192,7 +180,6 @@ class TestTLSSessionResumptionDOH(DNSDistTLSSessionResumptionTest):
         """
         for port, bindIdx in [
             (self._dohWithNGHTTP2ServerPort, 0),
-            (self._dohWithH2OServerPort, 1),
         ]:
             self.assertFalse(
                 self.checkSessionResumed(

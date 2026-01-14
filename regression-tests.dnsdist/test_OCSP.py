@@ -73,7 +73,6 @@ class TestOCSPStaplingDOH(DNSDistOCSPStaplingTest):
     _caCert = "ca.pem"
     _caKey = "ca.key"
     _dohWithNGHTTP2ServerPort = pickAvailablePort()
-    _dohWithH2OServerPort = pickAvailablePort()
     _config_template = """
     newServer{address="127.0.0.1:%d"}
     setKey("%s")
@@ -82,7 +81,6 @@ class TestOCSPStaplingDOH(DNSDistOCSPStaplingTest):
     -- generate an OCSP response file for our certificate, valid one day
     generateOCSPResponse('%s', '%s', '%s', '%s', 1, 0)
     addDOHLocal("127.0.0.1:%d", "%s", "%s", { "/" }, { ocspResponses={"%s"}, library='nghttp2'})
-    addDOHLocal("127.0.0.1:%d", "%s", "%s", { "/" }, { ocspResponses={"%s"}, library='h2o'})
     """
     _config_params = [
         "_testServerPort",
@@ -93,10 +91,6 @@ class TestOCSPStaplingDOH(DNSDistOCSPStaplingTest):
         "_caKey",
         "_ocspFile",
         "_dohWithNGHTTP2ServerPort",
-        "_serverCert",
-        "_serverKey",
-        "_ocspFile",
-        "_dohWithH2OServerPort",
         "_serverCert",
         "_serverKey",
         "_ocspFile",
@@ -120,7 +114,7 @@ class TestOCSPStaplingDOH(DNSDistOCSPStaplingTest):
         """
         OCSP Stapling: DOH
         """
-        for port in [self._dohWithNGHTTP2ServerPort, self._dohWithH2OServerPort]:
+        for port in [self._dohWithNGHTTP2ServerPort]:
             output = self.checkOCSPStaplingStatus(
                 "127.0.0.1", port, self._serverName, self._caCert
             )
@@ -156,14 +150,12 @@ class TestBrokenOCSPStaplingDoH(DNSDistOCSPStaplingTest):
     # invalid OCSP file!
     _ocspFile = "/dev/null"
     _dohWithNGHTTP2ServerPort = pickAvailablePort()
-    _dohWithH2OServerPort = pickAvailablePort()
     _config_template = """
     newServer{address="127.0.0.1:%d"}
     setKey("%s")
     controlSocket("127.0.0.1:%d")
 
     addDOHLocal("127.0.0.1:%d", "%s", "%s", { "/" }, { ocspResponses={"%s"}, library='nghttp2'})
-    addDOHLocal("127.0.0.1:%d", "%s", "%s", { "/" }, { ocspResponses={"%s"}, library='h2o'})
 
     """
     _config_params = [
@@ -174,17 +166,13 @@ class TestBrokenOCSPStaplingDoH(DNSDistOCSPStaplingTest):
         "_serverCert",
         "_serverKey",
         "_ocspFile",
-        "_dohWithH2OServerPort",
-        "_serverCert",
-        "_serverKey",
-        "_ocspFile",
     ]
 
     def testBrokenOCSPStapling(self):
         """
         OCSP Stapling: Broken (DoH)
         """
-        for port in [self._dohWithNGHTTP2ServerPort, self._dohWithH2OServerPort]:
+        for port in [self._dohWithNGHTTP2ServerPort]:
             output = self.checkOCSPStaplingStatus(
                 "127.0.0.1", port, self._serverName, self._caCert
             )

@@ -101,9 +101,7 @@ class AsyncTests(object):
     _caCert = "ca.pem"
     _tlsServerPort = pickAvailablePort()
     _dohWithNGHTTP2ServerPort = pickAvailablePort()
-    _dohWithH2OServerPort = pickAvailablePort()
     _dohWithNGHTTP2BaseURL = "https://%s:%d/" % (_serverName, _dohWithNGHTTP2ServerPort)
-    _dohWithH2OBaseURL = "https://%s:%d/" % (_serverName, _dohWithH2OServerPort)
     _doqServerPort = pickAvailablePort()
 
     def testPass(self):
@@ -127,7 +125,6 @@ class AsyncTests(object):
                 "sendTCPQuery",
                 "sendDOTQueryWrapper",
                 "sendDOHWithNGHTTP2QueryWrapper",
-                "sendDOHWithH2OQueryWrapper",
                 "sendDOQQueryWrapper",
             ):
                 sender = getattr(self, method)
@@ -157,15 +154,10 @@ class AsyncTests(object):
             "sendTCPQuery",
             "sendDOTQueryWrapper",
             "sendDOHWithNGHTTP2QueryWrapper",
-            "sendDOHWithH2OQueryWrapper",
             "sendDOQQueryWrapper",
         ):
             sender = getattr(self, method)
-            if (
-                method != "sendDOTQueryWrapper"
-                and method != "sendDOHWithH2OQueryWrapper"
-                and method != "sendDOQQueryWrapper"
-            ):
+            if method != "sendDOTQueryWrapper" and method != "sendDOQQueryWrapper":
                 # first time to fill the cache
                 # disabled for DoT since it was already filled via TCP
                 (receivedQuery, receivedResponse) = sender(query, response)
@@ -202,7 +194,6 @@ class AsyncTests(object):
                 "sendTCPQuery",
                 "sendDOTQueryWrapper",
                 "sendDOHWithNGHTTP2QueryWrapper",
-                "sendDOHWithH2OQueryWrapper",
                 "sendDOQQueryWrapper",
             ):
                 sender = getattr(self, method)
@@ -235,7 +226,6 @@ class AsyncTests(object):
                 "sendTCPQuery",
                 "sendDOTQueryWrapper",
                 "sendDOHWithNGHTTP2QueryWrapper",
-                "sendDOHWithH2OQueryWrapper",
                 "sendDOQQueryWrapper",
             ):
                 sender = getattr(self, method)
@@ -272,7 +262,6 @@ class AsyncTests(object):
                 "sendTCPQuery",
                 "sendDOTQueryWrapper",
                 "sendDOHWithNGHTTP2QueryWrapper",
-                "sendDOHWithH2OQueryWrapper",
                 "sendDOQQueryWrapper",
             ):
                 sender = getattr(self, method)
@@ -311,7 +300,6 @@ class AsyncTests(object):
                 "sendTCPQuery",
                 "sendDOTQueryWrapper",
                 "sendDOHWithNGHTTP2QueryWrapper",
-                "sendDOHWithH2OQueryWrapper",
                 "sendDOQQueryWrapper",
             ):
                 sender = getattr(self, method)
@@ -344,7 +332,6 @@ class AsyncTests(object):
                 "sendTCPQuery",
                 "sendDOTQueryWrapper",
                 "sendDOHWithNGHTTP2QueryWrapper",
-                "sendDOHWithH2OQueryWrapper",
                 "sendDOQQueryWrapper",
             ):
                 sender = getattr(self, method)
@@ -377,7 +364,6 @@ class AsyncTests(object):
             "sendTCPQuery",
             "sendDOTQueryWrapper",
             "sendDOHWithNGHTTP2QueryWrapper",
-            "sendDOHWithH2OQueryWrapper",
             "sendDOQQueryWrapper",
         ):
             sender = getattr(self, method)
@@ -400,7 +386,6 @@ class AsyncTests(object):
             "sendTCPQuery",
             "sendDOTQueryWrapper",
             "sendDOHWithNGHTTP2QueryWrapper",
-            "sendDOHWithH2OQueryWrapper",
             "sendDOQQueryWrapper",
         ):
             sender = getattr(self, method)
@@ -426,7 +411,6 @@ class AsyncTests(object):
             "sendTCPQuery",
             "sendDOTQueryWrapper",
             "sendDOHWithNGHTTP2QueryWrapper",
-            "sendDOHWithH2OQueryWrapper",
             "sendDOQQueryWrapper",
         ):
             sender = getattr(self, method)
@@ -444,7 +428,7 @@ class AsyncTests(object):
         # the query is first forwarded over UDP, leading to a TC=1 answer from the
         # backend, then over TCP
 
-        for method in ("sendDOHWithNGHTTP2QueryWrapper", "sendDOHWithH2OQueryWrapper"):
+        for method in ["sendDOHWithNGHTTP2QueryWrapper"]:
             sender = getattr(self, method)
             name = "timeout-then-accept." + method + ".tc.async.tests.powerdns.com."
             query = dns.message.make_query(name, "A", "IN")
@@ -490,7 +474,6 @@ class TestAsyncFFI(DNSDistTest, AsyncTests):
     newServer{address="127.0.0.1:%d", pool="tcp-only", tcpOnly=true }
 
     addTLSLocal("127.0.0.1:%d", "%s", "%s", { provider="openssl" })
-    addDOHLocal("127.0.0.1:%d", "%s", "%s", {"/"}, {library="h2o"})
     addDOHLocal("127.0.0.1:%d", "%s", "%s", {"/"}, {library="nghttp2"})
     addDOQLocal("127.0.0.1:%d", "%s", "%s")
 
@@ -620,9 +603,6 @@ class TestAsyncFFI(DNSDistTest, AsyncTests):
         "_tlsServerPort",
         "_serverCert",
         "_serverKey",
-        "_dohWithH2OServerPort",
-        "_serverCert",
-        "_serverKey",
         "_dohWithNGHTTP2ServerPort",
         "_serverCert",
         "_serverKey",
@@ -642,7 +622,6 @@ class TestAsyncLua(DNSDistTest, AsyncTests):
     newServer{address="127.0.0.1:%d", pool="tcp-only", tcpOnly=true }
 
     addTLSLocal("127.0.0.1:%d", "%s", "%s", { provider="openssl" })
-    addDOHLocal("127.0.0.1:%d", "%s", "%s", {"/"}, {library="h2o"})
     addDOHLocal("127.0.0.1:%d", "%s", "%s", {"/"}, {library="nghttp2"})
     addDOQLocal("127.0.0.1:%d", "%s", "%s")
 
@@ -751,9 +730,6 @@ class TestAsyncLua(DNSDistTest, AsyncTests):
         "_testServerPort",
         "_testServerPort",
         "_tlsServerPort",
-        "_serverCert",
-        "_serverKey",
-        "_dohWithH2OServerPort",
         "_serverCert",
         "_serverKey",
         "_dohWithNGHTTP2ServerPort",
