@@ -21,6 +21,7 @@
  */
 #include "bpf-filter.hh"
 #include "config.h"
+#include "dnsdist-configuration.hh"
 #include "dnsdist.hh"
 #include "dnsdist-async.hh"
 #include "dnsdist-dynblocks.hh"
@@ -1100,6 +1101,10 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
       }
     });
     newThread.detach();
+  });
+
+  luaCtx.writeFunction("getServerID", []() -> std::string {
+    return dnsdist::configuration::getCurrentRuntimeConfiguration().d_server_id;
   });
 
   luaCtx.writeFunction("refreshRuntimeConfiguration", []() {
