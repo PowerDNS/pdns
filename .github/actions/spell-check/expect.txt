@@ -1218,7 +1218,7 @@ Sangwhan
 Sanjaya
 Saunalahti
 saxfr
-SBOM
+SBOMs
 Scheffler
 Schlich
 Scholten
