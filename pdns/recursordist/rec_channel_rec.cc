@@ -1988,6 +1988,11 @@ static void* pleaseSupplantOTConditions(const OpenTelemetryTraceConditions& cond
   return nullptr;
 }
 
+void updateOTConditions(const OpenTelemetryTraceConditions& conditions)
+{
+  broadcastFunction([conditions] { return pleaseSupplantOTConditions(conditions); });
+}
+
 static RecursorControlChannel::Answer help(ArgIterator /* begin */, ArgIterator /* end */)
 {
   static const std::map<std::string, std::string> commands = {

@@ -584,7 +584,7 @@ static void fillOTCondition(const Netmask& netmask, HttpResponse* resp)
   auto lock = g_initialOpenTelemetryConditions.lock();
   if (*lock) {
     auto condition = (*lock)->lookup(netmask);
-    if (condition != nullptr) {
+    if (condition != nullptr && condition->first == netmask) { // exact match
       Json::object object{
         {"acl", condition->first.toString()},
         {"edns_option_required", condition->second.d_edns_option_required},
@@ -619,6 +619,29 @@ static void apiServerOTConditionDetailGET(HttpRequest* req, HttpResponse* resp)
   try {
     Netmask netmask{req->parameters["id"]};
     fillOTCondition(netmask, resp);
+  }
+  catch (NetmaskException& ex) {
+    throw ApiException("Could not parse netmask");
+  }
+}
+
+static void apiServerOTConditionDetailDELETE(HttpRequest* req, HttpResponse* resp)
+{
+  try {
+    Netmask netmask{req->parameters["id"]};
+    auto lock = g_initialOpenTelemetryConditions.lock();
+    if (*lock) {
+      auto condition = (*lock)->lookup(netmask);
+      if (condition != nullptr && condition->first == netmask) { // exact match
+        (*lock)->erase(condition->first);
+        updateOTConditions(**lock);
+        // empty body on success
+        resp->body = "";
+        resp->status = 204; // No Content: declare that the condition is gone now
+        return;
+      }
+    }
+    throw ApiException("Could not find otcondition '" + netmask.toString() + "'");
   }
   catch (NetmaskException& ex) {
     throw ApiException("Could not parse netmask");
@@ -1199,6 +1222,7 @@ WRAPPER(apiServerZonesGET)
 WRAPPER(apiServerZonesPOST)
 WRAPPER(apiServerOTConditionsGET)
 WRAPPER(apiServerOTConditionDetailGET)
+WRAPPER(apiServerOTConditionDetailDELETE)
 WRAPPER(prometheusMetrics)
 WRAPPER(serveStuff)
 

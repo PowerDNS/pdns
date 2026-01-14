@@ -1485,7 +1485,6 @@ void broadcastFunction(const pipefunc_t& func)
     */
     func();
   }
-
   unsigned int thread = 0;
   for (const auto& threadInfo : RecThreadInfo::infos()) {
     if (thread++ == RecThreadInfo::thread_local_id()) {
