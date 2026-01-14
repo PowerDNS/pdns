@@ -580,7 +580,6 @@ static void apiServerOTConditionsGET(HttpRequest* /* req */, HttpResponse* resp)
 
 static void fillOTCondition(const Netmask& netmask, HttpResponse* resp)
 {
-  Json::array doc;
   auto lock = g_initialOpenTelemetryConditions.lock();
   if (*lock) {
     auto condition = (*lock)->lookup(netmask);
@@ -660,39 +659,40 @@ static void apiServerOTConditionDetailPOST(HttpRequest* req, HttpResponse* resp)
       throw ApiException("Required parameter acl missing");
     }
     auto lock = g_initialOpenTelemetryConditions.lock();
-    if (*lock) {
-      auto conditionPtr = (*lock)->lookup(netmask);
-      if (conditionPtr != nullptr && conditionPtr->first == netmask) { // exact match
-        throw ApiException("OTCondition already exists");
-      }
-
-      OpenTelemetryTraceCondition condition;
-      if (auto traceid_only = document["traceid_only"]; traceid_only.is_bool()) {
-        condition.d_traceid_only = traceid_only.bool_value();
-      }
-      if (auto edns = document["edns_option_required"]; edns.is_bool()) {
-        condition.d_edns_option_required = edns.bool_value();
-      }
-      if (auto qnames = document["qnames"]; qnames.is_array() && !qnames.array_items().empty()) {
-        condition.d_qnames = SuffixMatchNode();
-        for (const auto& qname : qnames.array_items()) {
-          condition.d_qnames->add(DNSName(qname.string_value()));
-        }
-      }
-      if (auto qtypes = document["qtypes"]; qtypes.is_array() && !qtypes.array_items().empty()) {
-        condition.d_qtypes = std::unordered_set<QType>();
-        for (const auto& qtype : qtypes.array_items()) {
-          if (auto qcode = QType::chartocode(qtype.string_value().c_str()); qcode > 0) {
-            condition.d_qtypes->insert(qcode);
-          }
-        }
-      }
-      if (auto qid = document["qid"]; qid.is_number()) {
-        condition.d_qid = qid.int_value();
-      }
-      (*lock)->insert(netmask).second = condition;
-      updateOTConditions(**lock);
+    if (!*lock) {
+      *lock = std::make_unique<OpenTelemetryTraceConditions>();
     }
+    auto conditionPtr = (*lock)->lookup(netmask);
+    if (conditionPtr != nullptr && conditionPtr->first == netmask) { // exact match
+      throw ApiException("OTCondition already exists");
+    }
+
+    OpenTelemetryTraceCondition condition;
+    if (auto traceid_only = document["traceid_only"]; traceid_only.is_bool()) {
+      condition.d_traceid_only = traceid_only.bool_value();
+    }
+    if (auto edns = document["edns_option_required"]; edns.is_bool()) {
+      condition.d_edns_option_required = edns.bool_value();
+    }
+    if (auto qnames = document["qnames"]; qnames.is_array() && !qnames.array_items().empty()) {
+      condition.d_qnames = SuffixMatchNode();
+      for (const auto& qname : qnames.array_items()) {
+        condition.d_qnames->add(DNSName(qname.string_value()));
+      }
+    }
+    if (auto qtypes = document["qtypes"]; qtypes.is_array() && !qtypes.array_items().empty()) {
+      condition.d_qtypes = std::unordered_set<QType>();
+      for (const auto& qtype : qtypes.array_items()) {
+        if (auto qcode = QType::chartocode(qtype.string_value().c_str()); qcode > 0) {
+          condition.d_qtypes->insert(qcode);
+        }
+      }
+    }
+    if (auto qid = document["qid"]; qid.is_number()) {
+      condition.d_qid = qid.int_value();
+    }
+    (*lock)->insert(netmask).second = condition;
+    updateOTConditions(**lock);
   }
   catch (NetmaskException&) {
     throw ApiException("Could not parse netmask");
