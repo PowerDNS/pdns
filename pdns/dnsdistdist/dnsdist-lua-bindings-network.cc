@@ -38,7 +38,7 @@ void setupLuaBindingsNetwork(LuaContext& luaCtx, bool client)
     }
     catch (const std::exception& e) {
       SLOG(warnlog("Error connecting to network endpoint: %s", e.what()),
-           dnsdist::logging::getTopLogger()->error(Logr::Error, e.what(), "Error connecting to network endpoint"));
+           dnsdist::logging::getTopLogger("newNetworkEndpoint")->error(Logr::Error, e.what(), "Error connecting to network endpoint"));
     }
     return std::shared_ptr<dnsdist::NetworkEndpoint>(nullptr);
   });

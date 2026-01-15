@@ -917,7 +917,7 @@ bool TCPConnectionToBackend::isXFRFinished(const TCPResponse& response, TCPQuery
 
 std::shared_ptr<const Logr::Logger> ConnectionToBackend::getLogger() const
 {
-  auto logger = dnsdist::logging::getTopLogger()->withName("outgoing-tcp-connection")->withValues("fresh_connection", Logging::Loggable(d_fresh), "tcp_fast_open", Logging::Loggable(d_enableFastOpen), "proxy_protocol_payload_sent", Logging::Loggable(d_proxyProtocolPayloadSent), "downstream_failures", Logging::Loggable(d_downstreamFailures), "highest_stream_id", Logging::Loggable(d_highestStreamID), "queries_count", Logging::Loggable(d_queries), "io_state", Logging::Loggable(d_ioState ? d_ioState->getState() : "empty"));
+  auto logger = dnsdist::logging::getTopLogger("outgoing-tcp-connection")->withValues("fresh_connection", Logging::Loggable(d_fresh), "tcp_fast_open", Logging::Loggable(d_enableFastOpen), "proxy_protocol_payload_sent", Logging::Loggable(d_proxyProtocolPayloadSent), "downstream_failures", Logging::Loggable(d_downstreamFailures), "highest_stream_id", Logging::Loggable(d_highestStreamID), "queries_count", Logging::Loggable(d_queries), "io_state", Logging::Loggable(d_ioState ? d_ioState->getState() : "empty"));
   if (d_ds) {
     logger = logger->withValues("backend.address", Logging::Loggable(d_ds->d_config.remote), "backend.name", Logging::Loggable(d_ds->getName()));
   }

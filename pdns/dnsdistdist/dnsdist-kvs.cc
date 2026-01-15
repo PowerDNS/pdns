@@ -83,7 +83,7 @@ std::vector<std::string> KeyValueLookupKeySuffix::getKeys(const DNSName& qname)
 #ifdef HAVE_LMDB
 std::shared_ptr<const Logr::Logger> LMDBKVStore::getLogger() const
 {
-  return dnsdist::logging::getTopLogger()->withName("lmdb-key-value-store")->withValues("path", Logging::Loggable(d_fname), "database", Logging::Loggable(d_dbName));
+  return dnsdist::logging::getTopLogger("lmdb-key-value-store")->withValues("path", Logging::Loggable(d_fname), "database", Logging::Loggable(d_dbName));
 }
 
 bool LMDBKVStore::getValue(const std::string& key, std::string& value)
@@ -181,7 +181,7 @@ bool LMDBKVStore::getRangeValue(const std::string& key, std::string& value)
 #ifdef HAVE_CDB
 std::shared_ptr<const Logr::Logger> CDBKVStore::getLogger() const
 {
-  return dnsdist::logging::getTopLogger()->withName("cdb-key-value-store")->withValues("path", Logging::Loggable(d_fname));
+  return dnsdist::logging::getTopLogger("cdb-key-value-store")->withValues("path", Logging::Loggable(d_fname));
 }
 
 CDBKVStore::CDBKVStore(const std::string& fname, time_t refreshDelay): d_fname(fname), d_refreshDelay(refreshDelay)

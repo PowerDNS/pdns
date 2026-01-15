@@ -39,7 +39,7 @@ void XskResponderThread(std::shared_ptr<DownstreamState> dss, std::shared_ptr<Xs
 {
   try {
     setThreadName("dnsdist/XskResp");
-    auto logger = dnsdist::logging::getTopLogger()->withName("xsk-response-worker")->withValues("backend.name", Logging::Loggable(dss->getName()), "backend.address", Logging::Loggable(dss->d_config.remote));
+    auto logger = dnsdist::logging::getTopLogger("xsk-response-worker")->withValues("backend.name", Logging::Loggable(dss->getName()), "backend.address", Logging::Loggable(dss->d_config.remote));
 
     auto pollfds = getPollFdsForWorker(*xskInfo);
     while (!dss->isStopped()) {
@@ -105,15 +105,15 @@ void XskResponderThread(std::shared_ptr<DownstreamState> dss, std::shared_ptr<Xs
   }
   catch (const std::exception& e) {
     SLOG(errlog("XSK responder thread died because of exception: %s", e.what()),
-         dnsdist::logging::getTopLogger()->error(Logr::Error, e.what(), "XSK responder thread died because of exception"));
+         dnsdist::logging::getTopLogger("xsk-response-worker")->error(Logr::Error, e.what(), "XSK responder thread died because of exception"));
   }
   catch (const PDNSException& e) {
     SLOG(errlog("XSK responder thread died because of PowerDNS exception: %s", e.reason),
-         dnsdist::logging::getTopLogger()->error(Logr::Error, e.reason, "XSK responder thread died because of exception"));
+         dnsdist::logging::getTopLogger("xsk-response-worker")->error(Logr::Error, e.reason, "XSK responder thread died because of exception"));
   }
   catch (...) {
     SLOG(errlog("XSK responder thread died because of an unknown exception"),
-         dnsdist::logging::getTopLogger()->info(Logr::Error, "XSK responder thread died because of an unknown exception"));
+         dnsdist::logging::getTopLogger("xsk-response-worker")->info(Logr::Error, "XSK responder thread died because of an unknown exception"));
   }
 }
 
@@ -123,7 +123,7 @@ bool XskIsQueryAcceptable(const XskPacket& packet, ClientState& clientState, boo
   expectProxyProtocol = expectProxyProtocolFrom(from);
   if (!dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL.match(from) && !expectProxyProtocol) {
     VERBOSESLOG(infolog("Query from %s dropped because of ACL", from.toStringWithPort()),
-                dnsdist::logging::getTopLogger()->info(Logr::Info, "Query dropped because of ACL", "client.address", Logging::Loggable(from)));
+                dnsdist::logging::getTopLogger("xsk-frontend-worker")->info(Logr::Info, "Query dropped because of ACL", "client.address", Logging::Loggable(from)));
     ++dnsdist::metrics::g_stats.aclDrops;
     return false;
   }
@@ -136,7 +136,7 @@ bool XskIsQueryAcceptable(const XskPacket& packet, ClientState& clientState, boo
 void XskRouter(std::shared_ptr<XskSocket> xsk)
 {
   setThreadName("dnsdist/XskRouter");
-  auto logger = dnsdist::logging::getTopLogger()->withName("xsk-router");
+  auto logger = dnsdist::logging::getTopLogger("xsk-router");
 
   uint32_t failed = 0;
   // packets to be submitted for sending

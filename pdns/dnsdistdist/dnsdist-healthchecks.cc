@@ -74,7 +74,7 @@ static void updateLatencyMetrics(DownstreamState& downstream, int elapsed /* mic
 static std::shared_ptr<Logr::Logger> getLoggerFromData(const std::shared_ptr<const HealthCheckData>& data)
 {
   const auto& downstream = data->d_ds;
-  return dnsdist::logging::getTopLogger()->withName("backend-health-check")->withValues("health_check.proto", Logging::Loggable(downstream->doHealthcheckOverTCP() ? (data->d_tcpHandler->isTLS() ? "DoT" : "tcp") : "udp"), "backend.name", Logging::Loggable(downstream->getName()), "backend.address", Logging::Loggable(downstream->d_config.remote), "dns.query.id", Logging::Loggable(data->d_queryID), "dns.query.name", Logging::Loggable(data->d_checkName), "dns.query.type", Logging::Loggable(data->d_checkType), "dns.query.class", Logging::Loggable(data->d_checkClass));
+  return dnsdist::logging::getTopLogger("backend-health-check")->withValues("health_check.proto", Logging::Loggable(downstream->doHealthcheckOverTCP() ? (data->d_tcpHandler->isTLS() ? "DoT" : "tcp") : "udp"), "backend.name", Logging::Loggable(downstream->getName()), "backend.address", Logging::Loggable(downstream->d_config.remote), "dns.query.id", Logging::Loggable(data->d_queryID), "dns.query.name", Logging::Loggable(data->d_checkName), "dns.query.type", Logging::Loggable(data->d_checkType), "dns.query.class", Logging::Loggable(data->d_checkClass));
 }
 
 static bool handleResponse(std::shared_ptr<HealthCheckData>& data)
@@ -356,7 +356,7 @@ bool queueHealthCheck(std::unique_ptr<FDMultiplexer>& mplexer, const std::shared
   const auto verboseHealthChecks = dnsdist::configuration::getCurrentRuntimeConfiguration().d_verboseHealthChecks;
   std::shared_ptr<Logr::Logger> logger;
   if (verboseHealthChecks) {
-    logger = dnsdist::logging::getTopLogger()->withName("backend-health-check")->withValues("backend.name", Logging::Loggable(downstream->getName()), "backend.address", Logging::Loggable(downstream->d_config.remote));
+    logger = dnsdist::logging::getTopLogger("backend-health-check")->withValues("backend.name", Logging::Loggable(downstream->getName()), "backend.address", Logging::Loggable(downstream->d_config.remote));
   }
 
   try {
@@ -515,9 +515,9 @@ bool queueHealthCheck(std::unique_ptr<FDMultiplexer>& mplexer, const std::shared
 void handleQueuedHealthChecks(FDMultiplexer& mplexer, bool initial)
 {
   const auto verboseHealthChecks = dnsdist::configuration::getCurrentRuntimeConfiguration().d_verboseHealthChecks;
-  std::shared_ptr<Logr::Logger> logger;
+  std::shared_ptr<const Logr::Logger> logger;
   if (verboseHealthChecks) {
-    logger = dnsdist::logging::getTopLogger()->withName("backend-health-check");
+    logger = dnsdist::logging::getTopLogger("backend-health-check");
   }
 
   while (mplexer.getWatchedFDCount(false) > 0 || mplexer.getWatchedFDCount(true) > 0) {

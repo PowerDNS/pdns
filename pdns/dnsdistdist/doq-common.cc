@@ -64,7 +64,7 @@ PacketBuffer mintToken(const PacketBuffer& dcid, const ComboAddress& peer)
   }
   catch (const std::exception& exp) {
     VERBOSESLOG(infolog("Error while minting DoH3 token: %s", exp.what()),
-                dnsdist::logging::getTopLogger()->error(Logr::Info, exp.what(), "Error while minting DoH3 token"));
+                dnsdist::logging::getTopLogger("doh3")->error(Logr::Info, exp.what(), "Error while minting DoH3 token"));
     throw;
   }
 }
@@ -123,7 +123,7 @@ std::optional<PacketBuffer> validateToken(const PacketBuffer& token, const Combo
   }
   catch (const std::exception& exp) {
     VERBOSESLOG(infolog("Error while validating DoH3 token: %s", exp.what()),
-                dnsdist::logging::getTopLogger()->error(Logr::Info, exp.what(), "Error while validating DoH3 token"));
+                dnsdist::logging::getTopLogger("doh3")->error(Logr::Info, exp.what(), "Error while validating DoH3 token"));
     return std::nullopt;
   }
 }
@@ -149,7 +149,7 @@ static void sendFromTo(Socket& sock, const ComboAddress& peer, const ComboAddres
     if (ret < 0) {
       auto error = errno;
       VERBOSESLOG(infolog("Error while sending QUIC datagram of size %d to %s: %s", buffer.size(), peer.toStringWithPort(), stringerror(error)),
-                  dnsdist::logging::getTopLogger()->error(Logr::Info, error, "Error while sending QUIC datagram", "datagram_size", Logging::Loggable(buffer.size()), "client.address", Logging::Loggable(peer)));
+                  dnsdist::logging::getTopLogger("quic-send-from-to")->error(Logr::Info, error, "Error while sending QUIC datagram", "datagram_size", Logging::Loggable(buffer.size()), "client.address", Logging::Loggable(peer)));
     }
     return;
   }
@@ -159,7 +159,7 @@ static void sendFromTo(Socket& sock, const ComboAddress& peer, const ComboAddres
   }
   catch (const std::exception& exp) {
     VERBOSESLOG(infolog("Error while sending QUIC datagram of size %d from %s to %s: %s", buffer.size(), local.toStringWithPort(), peer.toStringWithPort(), exp.what()),
-                dnsdist::logging::getTopLogger()->error(Logr::Info, exp.what(), "Error while sending QUIC datagram", "datagram_size", Logging::Loggable(buffer.size()), "source.address", Logging::Loggable(local), "client.address", Logging::Loggable(peer)));
+                dnsdist::logging::getTopLogger("quic-send-from-to")->error(Logr::Info, exp.what(), "Error while sending QUIC datagram", "datagram_size", Logging::Loggable(buffer.size()), "source.address", Logging::Loggable(local), "client.address", Logging::Loggable(peer)));
   }
 }
 

@@ -71,7 +71,7 @@ public:
     for (const auto& warning : warnings) {
 #if defined(DNSDIST)
       SLOG(warnlog("%s", warning),
-           dnsdist::logging::getTopLogger()->info(Logr::Warning, warning));
+           dnsdist::logging::getTopLogger("openssl-frontend")->info(Logr::Warning, warning));
 #else /* DNSDIST */
       warnlog("%s", warning);
 #endif /* DNSDIST */
@@ -162,7 +162,7 @@ public:
 
     if (!d_conn) {
       VERBOSESLOG(infolog("Error creating TLS object"),
-                  dnsdist::logging::getTopLogger()->info(Logr::Info, "Error creating server-side TLS object"));
+                  dnsdist::logging::getTopLogger("openssl-server-side")->info(Logr::Info, "Error creating server-side TLS object"));
       if (shouldDoVerboseLogging()) {
         ERR_print_errors_fp(stderr);
       }
@@ -183,7 +183,7 @@ public:
 
     if (!d_conn) {
       VERBOSESLOG(infolog("Error creating TLS object"),
-                  dnsdist::logging::getTopLogger()->info(Logr::Info, "Error creating client-side TLS object"));
+                  dnsdist::logging::getTopLogger("openssl-client-side")->info(Logr::Info, "Error creating client-side TLS object"));
       if (shouldDoVerboseLogging()) {
         ERR_print_errors_fp(stderr);
       }
@@ -839,7 +839,7 @@ public:
 #if (OPENSSL_VERSION_NUMBER < 0x10002000L)
 #if defined(DNSDIST)
       SLOG(warnlog("TLS hostname validation requested but not supported for OpenSSL < 1.0.2"),
-           dnsdist::logging::getTopLogger()->info(Logr::Warning, "TLS hostname validation requested but not supported for OpenSSL < 1.0.2"));
+           dnsdist::logging::getTopLogger("openssl-client-side")->info(Logr::Warning, "TLS hostname validation requested but not supported for OpenSSL < 1.0.2"));
 #else /* DNSDIST */
       warnlog("TLS hostname validation requested but not supported for OpenSSL < 1.0.2");
 #endif /* DNSDIST */
@@ -1456,7 +1456,7 @@ public:
           return IOState::NeedWrite;
         }
         VERBOSESLOG(infolog("Warning, non-fatal error while writing to TLS connection: %s", gnutls_strerror(res)),
-                    dnsdist::logging::getTopLogger()->error(Logr::Info, gnutls_strerror(res), "Non-fatal error while writing to TLS connection", "tls.provider", Logging::Loggable("GnuTLS")));
+                    dnsdist::logging::getTopLogger("gnutls")->error(Logr::Info, gnutls_strerror(res), "Non-fatal error while writing to TLS connection", "tls.provider", Logging::Loggable("GnuTLS")));
       }
     }
     while (pos < toWrite);
@@ -1493,7 +1493,7 @@ public:
           return IOState::NeedRead;
         }
         VERBOSESLOG(infolog("Warning, non-fatal error while writing to TLS connection: %s", gnutls_strerror(res)),
-                    dnsdist::logging::getTopLogger()->error(Logr::Info, gnutls_strerror(res), "Non-fatal error while writing to TLS connection", "tls.provider", Logging::Loggable("GnuTLS")));
+                    dnsdist::logging::getTopLogger("gnutls")->error(Logr::Info, gnutls_strerror(res), "Non-fatal error while writing to TLS connection", "tls.provider", Logging::Loggable("GnuTLS")));
       }
     }
     while (pos < toRead);
@@ -1532,7 +1532,7 @@ public:
         }
         else {
           VERBOSESLOG(infolog("Non-fatal error while reading from TLS connection: %s", gnutls_strerror(res)),
-                      dnsdist::logging::getTopLogger()->error(Logr::Info, gnutls_strerror(res), "Non-fatal error while reading from TLS connection", "tls.provider", Logging::Loggable("GnuTLS")));
+                      dnsdist::logging::getTopLogger("gnutls")->error(Logr::Info, gnutls_strerror(res), "Non-fatal error while reading from TLS connection", "tls.provider", Logging::Loggable("GnuTLS")));
         }
       }
 
@@ -1576,7 +1576,7 @@ public:
         }
         else {
           VERBOSESLOG(infolog("Non-fatal error while writing to TLS connection: %s", gnutls_strerror(res)),
-                      dnsdist::logging::getTopLogger()->error(Logr::Info, gnutls_strerror(res), "Non-fatal error while writing to TLS connection", "tls.provider", Logging::Loggable("GnuTLS")));
+                      dnsdist::logging::getTopLogger("gnutls")->error(Logr::Info, gnutls_strerror(res), "Non-fatal error while writing to TLS connection", "tls.provider", Logging::Loggable("GnuTLS")));
         }
       }
     }
@@ -1761,7 +1761,7 @@ public:
       if (rc != GNUTLS_E_SUCCESS) {
 #if defined(DNSDIST)
         SLOG(warnlog("Error loading OCSP response from file '%s' for certificate ('%s') and key ('%s') for TLS context on %s: %s", file, frontend.d_tlsConfig.d_certKeyPairs.at(count).d_cert, frontend.d_tlsConfig.d_certKeyPairs.at(count).d_key.value(), frontend.d_addr.toStringWithPort(), gnutls_strerror(rc)),
-             dnsdist::logging::getTopLogger()->error(Logr::Warning, gnutls_strerror(rc), "Error loading OCSP response for TLS context", "tls.provider", Logging::Loggable("GnuTLS"), "frontend.address", Logging::Loggable(frontend.d_addr), "tls.ocsp_file", Logging::Loggable(file), "tls.certificate_file", Logging::Loggable(frontend.d_tlsConfig.d_certKeyPairs.at(count).d_cert), "tls.key_file", Logging::Loggable(frontend.d_tlsConfig.d_certKeyPairs.at(count).d_key.value())));
+             dnsdist::logging::getTopLogger("gnutls")->error(Logr::Warning, gnutls_strerror(rc), "Error loading OCSP response for TLS context", "tls.provider", Logging::Loggable("GnuTLS"), "frontend.address", Logging::Loggable(frontend.d_addr), "tls.ocsp_file", Logging::Loggable(file), "tls.certificate_file", Logging::Loggable(frontend.d_tlsConfig.d_certKeyPairs.at(count).d_cert), "tls.key_file", Logging::Loggable(frontend.d_tlsConfig.d_certKeyPairs.at(count).d_key.value())));
 #else /* DNSDIST */
         warnlog("Error loading OCSP response from file '%s' for certificate ('%s') and key ('%s') for TLS context on %s: %s", file, frontend.d_tlsConfig.d_certKeyPairs.at(count).d_cert, frontend.d_tlsConfig.d_certKeyPairs.at(count).d_key.value(), frontend.d_addr.toStringWithPort(), gnutls_strerror(rc));
 #endif /* DNSDIST */

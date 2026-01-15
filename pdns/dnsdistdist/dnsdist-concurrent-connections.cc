@@ -188,18 +188,18 @@ IncomingConcurrentTCPConnectionsManager::NewConnectionResult IncomingConcurrentT
   auto checkConnectionAllowed = [now, from, maxConnsPerClient, threshold, tcpRate, tlsNewRate, tlsResumedRate, interval, isTLS, &immutable](const ClientEntry& entry) {
     if (entry.d_bannedUntil != 0 && entry.d_bannedUntil >= now) {
       VERBOSESLOG(infolog("Refusing TCP connection from %s: banned", from.toStringWithPort()),
-                  dnsdist::logging::getTopLogger()->info(Logr::Info, "Refusing TCP connection", "reason", Logging::Loggable("banned"), "client.address", Logging::Loggable(from)));
+                  dnsdist::logging::getTopLogger("concurrent-tcp-connections-manager")->info(Logr::Info, "Refusing TCP connection", "reason", Logging::Loggable("banned"), "client.address", Logging::Loggable(from)));
       return NewConnectionResult::Denied;
     }
     if (maxConnsPerClient > 0 && entry.d_concurrentConnections >= maxConnsPerClient) {
       VERBOSESLOG(infolog("Refusing TCP connection from %s: too many connections", from.toStringWithPort()),
-                  dnsdist::logging::getTopLogger()->info(Logr::Info, "Refusing TCP connection", "reason", Logging::Loggable("too many connections"), "client.address", Logging::Loggable(from)));
+                  dnsdist::logging::getTopLogger("concurrent-tcp-connections-manager")->info(Logr::Info, "Refusing TCP connection", "reason", Logging::Loggable("too many connections"), "client.address", Logging::Loggable(from)));
       return NewConnectionResult::Denied;
     }
     if (!checkTCPConnectionsRate(entry.d_activity, now, tcpRate, tlsNewRate, tlsResumedRate, interval, isTLS)) {
       entry.d_bannedUntil = now + immutable.d_tcpBanDurationForExceedingTCPTLSRate;
       VERBOSESLOG(infolog("Banning TCP connections from %s for %d seconds: too many new TCP/TLS connections per second", from.toStringWithPort(), immutable.d_tcpBanDurationForExceedingTCPTLSRate),
-                  dnsdist::logging::getTopLogger()->info(Logr::Info, "Banning TCP connections from this client", "reason", Logging::Loggable("too many new TCP/TLS connections per second"), "client.address", Logging::Loggable(from), "duration-seconds", Logging::Loggable(immutable.d_tcpBanDurationForExceedingTCPTLSRate)));
+                  dnsdist::logging::getTopLogger("concurrent-tcp-connections-manager")->info(Logr::Info, "Banning TCP connections from this client", "reason", Logging::Loggable("too many new TCP/TLS connections per second"), "client.address", Logging::Loggable(from), "duration-seconds", Logging::Loggable(immutable.d_tcpBanDurationForExceedingTCPTLSRate)));
       return NewConnectionResult::Denied;
     }
 
@@ -212,7 +212,7 @@ IncomingConcurrentTCPConnectionsManager::NewConnectionResult IncomingConcurrentT
       return NewConnectionResult::Allowed;
     }
     VERBOSESLOG(infolog("Restricting TCP connection from %s: nearly reaching the maximum number of concurrent TCP connections", from.toStringWithPort()),
-                dnsdist::logging::getTopLogger()->info(Logr::Info, "Restricting TCP connections from this client", "reason", Logging::Loggable("nearly reaching the maximum number of concurrent TCP connections"), "client.address", Logging::Loggable(from)));
+                dnsdist::logging::getTopLogger("concurrent-tcp-connections-manager")->info(Logr::Info, "Restricting TCP connections from this client", "reason", Logging::Loggable("nearly reaching the maximum number of concurrent TCP connections"), "client.address", Logging::Loggable(from)));
     return NewConnectionResult::Restricted;
   };
 
@@ -278,7 +278,7 @@ void IncomingConcurrentTCPConnectionsManager::banClientFor(const ComboAddress& f
     });
   }
   VERBOSESLOG(infolog("Banned TCP client %s for %d seconds", from.toStringWithPort(), seconds),
-              dnsdist::logging::getTopLogger()->info(Logr::Info, "Banned TCP connections from this client", "client.address", Logging::Loggable(from), "duration-seconds", Logging::Loggable(seconds)));
+              dnsdist::logging::getTopLogger("concurrent-tcp-connections-manager")->info(Logr::Info, "Banned TCP connections from this client", "client.address", Logging::Loggable(from), "duration-seconds", Logging::Loggable(seconds)));
 }
 
 static void editEntryIfPresent(const ComboAddress& from, const std::function<void(const ClientEntry& entry)>& callback)

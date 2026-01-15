@@ -367,7 +367,7 @@ BPFFilter::BPFFilter(std::unordered_map<std::string, MapConfiguration>& configs,
   /* Check if the current soft memlock limit is at least the limit */
   if (old_limit.rlim_cur < new_limit_size) {
     SLOG(infolog("The current limit of locked memory (soft: %d, hard: %d) is too low for eBPF, trying to raise it to %d", old_limit.rlim_cur, old_limit.rlim_max, new_limit_size),
-         dnsdist::logging::getTopLogger()->info("The current limit of locked memory is too low for eBPF, trying to raise it", "soft", Logging::Loggable(old_limit.rlim_cur), "hard", Logging::Loggable(old_limit.rlim_max), "target", Logging::Loggable(new_limit_size)));
+         dnsdist::logging::getTopLogger("bpf")->info("The current limit of locked memory is too low for eBPF, trying to raise it", "soft", Logging::Loggable(old_limit.rlim_cur), "hard", Logging::Loggable(old_limit.rlim_max), "target", Logging::Loggable(new_limit_size)));
 
     struct rlimit new_limit{};
     new_limit.rlim_cur = new_limit_size;
@@ -375,7 +375,7 @@ BPFFilter::BPFFilter(std::unordered_map<std::string, MapConfiguration>& configs,
 
     if (setrlimit(RLIMIT_MEMLOCK, &new_limit) != 0) {
       SLOG(warnlog("Unable to raise the maximum amount of locked memory for eBPF from %d to %d, consider raising RLIMIT_MEMLOCK or setting LimitMEMLOCK in the systemd unit: %d", old_limit.rlim_cur, new_limit.rlim_cur, stringerror()),
-           dnsdist::logging::getTopLogger()->info(Logr::Warning, "Unable to raise the maximum amount of locked memory for eBPF, consider raising RLIMIT_MEMLOCK or setting LimitMEMLOCK in the systemd unit", "current", Logging::Loggable(old_limit.rlim_cur), "target", Logging::Loggable(new_limit_size)));
+           dnsdist::logging::getTopLogger("bpf")->info(Logr::Warning, "Unable to raise the maximum amount of locked memory for eBPF, consider raising RLIMIT_MEMLOCK or setting LimitMEMLOCK in the systemd unit", "current", Logging::Loggable(old_limit.rlim_cur), "target", Logging::Loggable(new_limit_size)));
     }
   }
 

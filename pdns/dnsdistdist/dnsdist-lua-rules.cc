@@ -69,7 +69,7 @@ std::shared_ptr<DNSRule> makeRule(const luadnsrule_t& var, const std::string& ca
   }
   if (suffixSeen) {
     SLOG(warnlog("At least one parameter to %s has been parsed as a domain name amongst network masks, and will be ignored!", calledFrom),
-         dnsdist::logging::getTopLogger()->info(Logr::Warning, "At least one parameter has been parsed as a domain name amongst network masks, and will be ignored!", "dnsdist.lua.function", Logging::Loggable(calledFrom)));
+         dnsdist::logging::getTopLogger("make-rule")->info(Logr::Warning, "At least one parameter has been parsed as a domain name amongst network masks, and will be ignored!", "dnsdist.lua.function", Logging::Loggable(calledFrom)));
   }
   return std::make_shared<NetmaskGroupRule>(nmg, true);
 }

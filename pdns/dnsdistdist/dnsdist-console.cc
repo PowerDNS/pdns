@@ -322,7 +322,7 @@ void doClient(const std::string& command)
   }
 #else
   SLOG(errlog("Client mode requested but libedit support is not available"),
-       dnsdist::logging::getTopLogger()->info(Logr::Error, "Client mode requested but libedit support is not available"));
+       dnsdist::logging::getTopLogger("console-client")->info(Logr::Error, "Client mode requested but libedit support is not available"));
 #endif /* HAVE_LIBEDIT */
 }
 
@@ -640,7 +640,7 @@ void controlThread(Socket&& acceptFD)
 {
   setThreadName("dnsdist/control");
   const ComboAddress local = dnsdist::configuration::getCurrentRuntimeConfiguration().d_consoleServerAddress;
-  auto logger = dnsdist::logging::getTopLogger()->withName("console-server")->withValues("network.local.address", Logging::Loggable(local));
+  auto logger = dnsdist::logging::getTopLogger("console-server")->withValues("network.local.address", Logging::Loggable(local));
   try {
     s_connManager.setMaxConcurrentConnections(dnsdist::configuration::getImmutableConfiguration().d_consoleMaxConcurrentConnections);
 
@@ -673,7 +673,7 @@ void controlThread(Socket&& acceptFD)
 
       try {
         ConsoleConnection conn(client, std::move(socket));
-        auto connLogger = dnsdist::logging::getTopLogger()->withName("console-connection")->withValues("client.address", Logging::Loggable(client));
+        auto connLogger = dnsdist::logging::getTopLogger("console-connection")->withValues("client.address", Logging::Loggable(client));
         if (runtimeConfig.d_logConsoleConnections) {
           SLOG(warnlog("Got control connection from %s", client.toStringWithPort()),
                connLogger->info(Logr::Info, "Control connection opened"));

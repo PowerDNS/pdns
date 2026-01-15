@@ -87,12 +87,12 @@ bool handleProxyProtocol(const ComboAddress& remote, bool isTCP, const NetmaskGr
   if (used <= 0) {
     ++dnsdist::metrics::g_stats.proxyProtocolInvalid;
     VERBOSESLOG(infolog("Ignoring invalid proxy protocol (%d, %d) query over %s from %s", query.size(), used, (isTCP ? "TCP" : "UDP"), remote.toStringWithPort()),
-                dnsdist::logging::getTopLogger()->info(Logr::Info, "Ignoring invalid proxy protocol header", "dns.query.size", Logging::Loggable(query.size()), "proxy_protocol_parsed", Logging::Loggable(used), "protocol", Logging::Loggable(isTCP ? "TCP" : "UDP"), "network.peer.address", Logging::Loggable(remote)));
+                dnsdist::logging::getTopLogger("proxy-protocol")->info(Logr::Info, "Ignoring invalid proxy protocol header", "dns.query.size", Logging::Loggable(query.size()), "proxy_protocol_parsed", Logging::Loggable(used), "protocol", Logging::Loggable(isTCP ? "TCP" : "UDP"), "network.peer.address", Logging::Loggable(remote)));
     return false;
   }
   if (static_cast<size_t>(used) > dnsdist::configuration::getCurrentRuntimeConfiguration().d_proxyProtocolMaximumSize) {
     VERBOSESLOG(infolog("Proxy protocol header in %s packet from %s is larger than proxy-protocol-maximum-size (%d), dropping", (isTCP ? "TCP" : "UDP"), remote.toStringWithPort(), used),
-                dnsdist::logging::getTopLogger()->info(Logr::Info, "Proxy protocol header is larger than proxy-protocol-maximum-size, dropping", "proxy_protocol_parsed", Logging::Loggable(used), "protocol", Logging::Loggable(isTCP ? "TCP" : "UDP"), "network.peer.address", Logging::Loggable(remote)));
+                dnsdist::logging::getTopLogger("proxy-protocol")->info(Logr::Info, "Proxy protocol header is larger than proxy-protocol-maximum-size, dropping", "proxy_protocol_parsed", Logging::Loggable(used), "protocol", Logging::Loggable(isTCP ? "TCP" : "UDP"), "network.peer.address", Logging::Loggable(remote)));
     ++dnsdist::metrics::g_stats.proxyProtocolInvalid;
     return false;
   }
@@ -108,7 +108,7 @@ bool handleProxyProtocol(const ComboAddress& remote, bool isTCP, const NetmaskGr
   if (proxyProto && dnsdist::configuration::getCurrentRuntimeConfiguration().d_applyACLToProxiedClients) {
     if (!acl.match(realRemote)) {
       VERBOSESLOG(infolog("Query from %s dropped because of ACL", realRemote.toStringWithPort()),
-                  dnsdist::logging::getTopLogger()->info(Logr::Info, "Query with proxy protocol header dropped because of ACL", "protocol", Logging::Loggable(isTCP ? "TCP" : "UDP"), "network.peer.address", Logging::Loggable(remote), "client.address", Logging::Loggable(realRemote)));
+                  dnsdist::logging::getTopLogger("proxy-protocol")->info(Logr::Info, "Query with proxy protocol header dropped because of ACL", "protocol", Logging::Loggable(isTCP ? "TCP" : "UDP"), "network.peer.address", Logging::Loggable(remote), "client.address", Logging::Loggable(realRemote)));
       ++dnsdist::metrics::g_stats.aclDrops;
       return false;
     }

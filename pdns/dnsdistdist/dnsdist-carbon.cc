@@ -307,7 +307,7 @@ static void carbonHandler(const Carbon::Endpoint& endpoint)
 {
   setThreadName("dnsdist/carbon");
   const auto ourName = endpoint.getOurName();
-  auto logger = dnsdist::logging::getTopLogger()->withName("carbon-exporter")->withValues("server.address", Logging::Loggable(endpoint.server), "dnsdist.carbon.our_name", Logging::Loggable(ourName));
+  auto logger = dnsdist::logging::getTopLogger("carbon-exporter")->withValues("server.address", Logging::Loggable(endpoint.server), "dnsdist.carbon.our_name", Logging::Loggable(ourName));
 
   const auto intervalUSec = endpoint.interval * 1000 * 1000;
   /* maximum interval between two attempts is 10 minutes */

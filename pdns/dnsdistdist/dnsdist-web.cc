@@ -1995,7 +1995,7 @@ void setMaxConcurrentConnections(size_t max)
 void WebserverThread(ComboAddress listeningAddress, Socket sock)
 {
   setThreadName("dnsdist/webserv");
-  auto serverLogger = dnsdist::logging::getTopLogger()->withName("webserver")->withValues("network.local.address", Logging::Loggable(listeningAddress));
+  auto serverLogger = dnsdist::logging::getTopLogger("webserver")->withValues("network.local.address", Logging::Loggable(listeningAddress));
   SLOG(infolog("Webserver launched on %s", listeningAddress.toStringWithPort()),
        serverLogger->info(Logr::Info, "Webserver launched"));
 

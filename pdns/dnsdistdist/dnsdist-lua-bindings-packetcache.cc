@@ -91,7 +91,7 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
 
     if (maxEntries < settings.d_shardCount) {
       SLOG(warnlog("The number of entries (%d) in the packet cache is smaller than the number of shards (%d), decreasing the number of shards to %d", maxEntries, settings.d_shardCount, maxEntries),
-           dnsdist::logging::getTopLogger()->withName("configuration")->info(Logr::Warning, "The number of entries in the packet cache is smaller than the number of shards, decreasing the number of shards to the number of entries", "number_of_entries", Logging::Loggable(maxEntries), "number_of_shards", Logging::Loggable(settings.d_shardCount)));
+           dnsdist::logging::getTopLogger("configuration")->info(Logr::Warning, "The number of entries in the packet cache is smaller than the number of shards, decreasing the number of shards to the number of entries", "number_of_entries", Logging::Loggable(maxEntries), "number_of_shards", Logging::Loggable(settings.d_shardCount)));
       g_outputBuffer += "The number of entries (" + std::to_string(maxEntries) + " in the packet cache is smaller than the number of shards (" + std::to_string(settings.d_shardCount) + "), decreasing the number of shards to " + std::to_string(maxEntries);
       settings.d_shardCount = maxEntries;
     }

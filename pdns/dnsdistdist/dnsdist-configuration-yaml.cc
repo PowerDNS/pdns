@@ -1133,7 +1133,7 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
   // Rust code would be quite cumbersome so for now let's settle for this
   s_inConfigCheckMode.store(configCheck);
   s_inClientMode.store(isClient);
-  auto logger = dnsdist::logging::getTopLogger()->withName("yaml-configuration")->withValues("path", Logging::Loggable(fileName), "client_mode", Logging::Loggable(isClient), "configuration_check", Logging::Loggable(configCheck));
+  auto logger = dnsdist::logging::getTopLogger("yaml-configuration")->withValues("path", Logging::Loggable(fileName), "client_mode", Logging::Loggable(isClient), "configuration_check", Logging::Loggable(configCheck));
   Context context{
     .logger = logger,
   };

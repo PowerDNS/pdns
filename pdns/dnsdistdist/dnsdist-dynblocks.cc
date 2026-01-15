@@ -263,13 +263,13 @@ bool addOrRefreshBlock(ClientAddressDynamicRules& blocks, const timespec& now, c
       }
       catch (const std::exception& e) {
         VERBOSESLOG(infolog("Unable to insert eBPF dynamic block for %s, falling back to regular dynamic block: %s", requestor.toString(), e.what()),
-                    dnsdist::logging::getTopLogger()->withName("dynamic-rules")->error(Logr::Info, e.what(), "Unable to insert eBPF dynamic block, falling back to regular dynamic block", "client.address", Logging::Loggable(requestor)));
+                    dnsdist::logging::getTopLogger("dynamic-rules")->error(Logr::Info, e.what(), "Unable to insert eBPF dynamic block, falling back to regular dynamic block", "client.address", Logging::Loggable(requestor)));
       }
     }
 
     if (!beQuiet) {
       SLOG(warnlog("Inserting %s%sdynamic block for %s for %d seconds: %s", dblock.warning ? "(warning) " : "", bpf ? "eBPF " : "", requestor.toString(), dblock.until.tv_sec - now.tv_sec, dblock.reason),
-           dnsdist::logging::getTopLogger()->withName("dynamic-rules")->info(Logr::Warning, "Inserting dynamic rule", "dynamic_rule.warning_rule", Logging::Loggable(dblock.warning), "client.address", Logging::Loggable(requestor), "dynamic_rule.use_bpf", Logging::Loggable(bpf), "dynamic_rule.reason", Logging::Loggable(dblock.reason), "dynamic_rule.duration", Logging::Loggable(dblock.until.tv_sec - now.tv_sec)));
+           dnsdist::logging::getTopLogger("dynamic-rules")->info(Logr::Warning, "Inserting dynamic rule", "dynamic_rule.warning_rule", Logging::Loggable(dblock.warning), "client.address", Logging::Loggable(requestor), "dynamic_rule.use_bpf", Logging::Loggable(bpf), "dynamic_rule.reason", Logging::Loggable(dblock.reason), "dynamic_rule.duration", Logging::Loggable(dblock.until.tv_sec - now.tv_sec)));
     }
   }
 
@@ -311,7 +311,7 @@ bool addOrRefreshBlockSMT(SuffixDynamicRules& blocks, const timespec& now, DynBl
 
   if (!beQuiet && (got == nullptr || expired)) {
     SLOG(warnlog("Inserting dynamic block for %s for %d seconds: %s", dblock.domain, dblock.until.tv_sec - now.tv_sec, dblock.reason),
-         dnsdist::logging::getTopLogger()->withName("dynamic-rules")->info(Logr::Warning, "Inserting dynamic rule", "dynamic_rule.warning_rule", Logging::Loggable(false), "dns.query.name", Logging::Loggable(dblock.domain), "dynamic_rule.use_bpf", Logging::Loggable(false), "dynamic_rule.reason", Logging::Loggable(dblock.reason), "dynamic_rule.duration", Logging::Loggable(dblock.until.tv_sec - now.tv_sec)));
+         dnsdist::logging::getTopLogger("dynamic-rules")->info(Logr::Warning, "Inserting dynamic rule", "dynamic_rule.warning_rule", Logging::Loggable(false), "dns.query.name", Logging::Loggable(dblock.domain), "dynamic_rule.use_bpf", Logging::Loggable(false), "dynamic_rule.reason", Logging::Loggable(dblock.reason), "dynamic_rule.duration", Logging::Loggable(dblock.until.tv_sec - now.tv_sec)));
   }
 
   auto domain = dblock.domain;
@@ -346,7 +346,7 @@ void DynBlockRulesGroup::addOrRefreshBlock(std::optional<ClientAddressDynamicRul
     }
     catch (const std::exception& exp) {
       SLOG(warnlog("Error calling the Lua hook after a dynamic block insertion: %s", exp.what()),
-           dnsdist::logging::getTopLogger()->withName("dynamic-rules")->error(Logr::Warning, exp.what(), "Error calling the Lua hook after a dynamic rule insertion"));
+           dnsdist::logging::getTopLogger("dynamic-rules")->error(Logr::Warning, exp.what(), "Error calling the Lua hook after a dynamic rule insertion"));
     }
   }
 }
@@ -371,7 +371,7 @@ void DynBlockRulesGroup::addOrRefreshBlockSMT(SuffixDynamicRules& blocks, const 
     }
     catch (const std::exception& exp) {
       SLOG(warnlog("Error calling the Lua hook after a dynamic block insertion: %s", exp.what()),
-           dnsdist::logging::getTopLogger()->withName("dynamic-rules")->error(Logr::Warning, exp.what(), "Error calling the Lua hook after a suffix-based dynamic rule insertion"));
+           dnsdist::logging::getTopLogger("dynamic-rules")->error(Logr::Warning, exp.what(), "Error calling the Lua hook after a suffix-based dynamic rule insertion"));
     }
   }
 }
@@ -511,7 +511,7 @@ void DynBlockMaintenance::purgeExpired(const struct timespec& now)
           }
           catch (const std::exception& e) {
             VERBOSESLOG(infolog("Error while getting block count before removing eBPF dynamic block for %s: %s", entry.first.toString(), e.what()),
-                        dnsdist::logging::getTopLogger()->withName("dynamic-rules")->error(Logr::Info, e.what(), "Error while getting block count before removing eBPF dynamic block", "dynamic_rule.key", Logging::Loggable(entry.first)));
+                        dnsdist::logging::getTopLogger("dynamic-rules")->error(Logr::Info, e.what(), "Error while getting block count before removing eBPF dynamic block", "dynamic_rule.key", Logging::Loggable(entry.first)));
           }
 
           try {
@@ -519,7 +519,7 @@ void DynBlockMaintenance::purgeExpired(const struct timespec& now)
           }
           catch (const std::exception& e) {
             VERBOSESLOG(infolog("Error while removing eBPF dynamic block for %s: %s", entry.first.toString(), e.what()),
-                        dnsdist::logging::getTopLogger()->withName("dynamic-rules")->error(Logr::Info, e.what(), "Error while removing eBPF dynamic block", "dynamic_rule.key", Logging::Loggable(entry.first)));
+                        dnsdist::logging::getTopLogger("dynamic-rules")->error(Logr::Info, e.what(), "Error while removing eBPF dynamic block", "dynamic_rule.key", Logging::Loggable(entry.first)));
           }
         }
       }
@@ -827,11 +827,11 @@ void DynBlockMaintenance::run()
     }
     catch (const std::exception& e) {
       SLOG(warnlog("Error in the dynamic block maintenance thread: %s", e.what()),
-           dnsdist::logging::getTopLogger()->withName("dynamic-rules")->error(Logr::Warning, e.what(), "Error in the dynamic block maintenance thread"));
+           dnsdist::logging::getTopLogger("dynamic-rules")->error(Logr::Warning, e.what(), "Error in the dynamic block maintenance thread"));
     }
     catch (...) {
       VERBOSESLOG(infolog("Unhandled error in the dynamic block maintenance thread"),
-                  dnsdist::logging::getTopLogger()->withName("dynamic-rules")->info(Logr::Info, "Unhandled error in the dynamic block maintenance thread"));
+                  dnsdist::logging::getTopLogger("dynamic-rules")->info(Logr::Info, "Unhandled error in the dynamic block maintenance thread"));
     }
   }
 }

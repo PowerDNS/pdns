@@ -122,7 +122,7 @@ void resetLuaSideEffect()
 
 static std::shared_ptr<const Logr::Logger> getLogger(const std::string_view context)
 {
-  static auto logger = dnsdist::logging::getTopLogger()->withName("configuration");
+  static auto logger = dnsdist::logging::getTopLogger("configuration");
   return logger->withValues("lua.function", Logging::Loggable(context));
 }
 
@@ -3349,11 +3349,11 @@ void loadLuaConfigurationFile(LuaContext& luaCtx, const std::string& config, boo
       throw std::runtime_error("Unable to read configuration file from " + config);
     }
     SLOG(warnlog("Unable to read configuration from '%s'", config),
-         dnsdist::logging::getTopLogger()->withName("lua-configuration")->info(Logr::Error, "Unable to read configuration from file", "path", Logging::Loggable(config)));
+         dnsdist::logging::getTopLogger("lua-configuration")->info(Logr::Error, "Unable to read configuration from file", "path", Logging::Loggable(config)));
   }
   else {
     VERBOSESLOG(infolog("Read configuration from '%s'", config),
-                dnsdist::logging::getTopLogger()->withName("lua-configuration")->info(Logr::Info, "Read configuration from file", "path", Logging::Loggable(config)));
+                dnsdist::logging::getTopLogger("lua-configuration")->info(Logr::Info, "Read configuration from file", "path", Logging::Loggable(config)));
   }
 
   luaCtx.executeCode(ifs);

@@ -106,13 +106,13 @@ static void registerCounter64Stat(const char* name, const OIDStat& statOID, pdns
 {
   if (statOID.size() != OID_LENGTH(queriesOID)) {
     SLOG(errlog("Invalid OID for SNMP Counter64 statistic %s", name),
-         dnsdist::logging::getTopLogger()->withName("snmp-agent")->info(Logr::Error, "Invalid OID for SNMP Counter64 metric", "metric_name", Logging::Loggable(name)));
+         dnsdist::logging::getTopLogger("snmp-agent")->info(Logr::Error, "Invalid OID for SNMP Counter64 metric", "metric_name", Logging::Loggable(name)));
     return;
   }
 
   if (s_statsMap.find(statOID.at(statOID.size() - 1)) != s_statsMap.end()) {
     SLOG(errlog("OID for SNMP Counter64 statistic %s has already been registered", name),
-         dnsdist::logging::getTopLogger()->withName("snmp-agent")->info(Logr::Error, "OID for SNMP Counter64 metric has already been registered", "metric_name", Logging::Loggable(name)));
+         dnsdist::logging::getTopLogger("snmp-agent")->info(Logr::Error, "OID for SNMP Counter64 metric has already been registered", "metric_name", Logging::Loggable(name)));
     return;
   }
 
@@ -160,13 +160,13 @@ static void registerFloatStat(const char* name, const OIDStat& statOID, pdns::st
 {
   if (statOID.size() != OID_LENGTH(queriesOID)) {
     SLOG(errlog("Invalid OID for SNMP Float statistic %s", name),
-         dnsdist::logging::getTopLogger()->withName("snmp-agent")->info(Logr::Error, "Invalid OID for SNMP Float metric", "metric_name", Logging::Loggable(name)));
+         dnsdist::logging::getTopLogger("snmp-agent")->info(Logr::Error, "Invalid OID for SNMP Float metric", "metric_name", Logging::Loggable(name)));
     return;
   }
 
   if (s_statsMap.find(statOID.at(statOID.size() - 1)) != s_statsMap.end()) {
     SLOG(errlog("OID for SNMP Float statistic %s has already been registered", name),
-         dnsdist::logging::getTopLogger()->withName("snmp-agent")->info(Logr::Error, "OID for SNMP Float metric has already been registered", "metric_name", Logging::Loggable(name)));
+         dnsdist::logging::getTopLogger("snmp-agent")->info(Logr::Error, "OID for SNMP Float metric has already been registered", "metric_name", Logging::Loggable(name)));
     return;
   }
 
@@ -207,13 +207,13 @@ static void registerGauge64Stat(const char* name, const OIDStat& statOID, const 
 {
   if (statOID.size() != OID_LENGTH(queriesOID)) {
     SLOG(errlog("Invalid OID for SNMP Gauge64 statistic %s", name),
-         dnsdist::logging::getTopLogger()->withName("snmp-agent")->info(Logr::Error, "Invalid OID for SNMP Gauge64 metric", "metric_name", Logging::Loggable(name)));
+         dnsdist::logging::getTopLogger("snmp-agent")->info(Logr::Error, "Invalid OID for SNMP Gauge64 metric", "metric_name", Logging::Loggable(name)));
     return;
   }
 
   if (s_statsMap.find(statOID.at(statOID.size() - 1)) != s_statsMap.end()) {
     SLOG(errlog("OID for SNMP Gauge64 statistic %s has already been registered", name),
-         dnsdist::logging::getTopLogger()->withName("snmp-agent")->info(Logr::Error, "OID for SNMP Gauge64 metric has already been registered", "metric_name", Logging::Loggable(name)));
+         dnsdist::logging::getTopLogger("snmp-agent")->info(Logr::Error, "OID for SNMP Gauge64 metric has already been registered", "metric_name", Logging::Loggable(name)));
     return;
   }
 

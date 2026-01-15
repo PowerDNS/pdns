@@ -63,7 +63,7 @@ static void setTicketsKeyAddedHook(const LuaContext& context, const TicketsKeyAd
     }
     catch (const std::exception& exp) {
       SLOG(warnlog("Error calling the Lua hook after new tickets key has been added: %s", exp.what()),
-           dnsdist::logging::getTopLogger()->error(Logr::Warning, exp.what(), "Error calling the Lua hook after a new ticket key has been added"));
+           dnsdist::logging::getTopLogger("ticket-keys-hook")->error(Logr::Warning, exp.what(), "Error calling the Lua hook after a new ticket key has been added"));
     }
   });
 }

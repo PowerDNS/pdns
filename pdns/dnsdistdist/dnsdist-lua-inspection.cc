@@ -1139,12 +1139,12 @@ void setupLuaInspection(LuaContext& luaCtx)
                            }
                            catch (const std::exception& exp) {
                              SLOG(errlog("addDynamicBlock: Unable to parse '%s': %s", clientIPStr, exp.what()),
-                                  dnsdist::logging::getTopLogger()->error(Logr::Error, exp.what(), "Unable to parse IP address when trying to add a dynamic rule", "address", Logging::Loggable(clientIPStr), "dnsdist.lua.function", Logging::Loggable("addDynamicBlock")));
+                                  dnsdist::logging::getTopLogger("addDynamicBlock")->error(Logr::Error, exp.what(), "Unable to parse IP address when trying to add a dynamic rule", "address", Logging::Loggable(clientIPStr), "dnsdist.lua.function", Logging::Loggable("addDynamicBlock")));
                              return;
                            }
                            catch (const PDNSException& exp) {
                              SLOG(errlog("addDynamicBlock: Unable to parse '%s': %s", clientIPStr, exp.reason),
-                                  dnsdist::logging::getTopLogger()->error(Logr::Error, exp.reason, "Unable to parse IP address when trying to add a dynamic rule", "address", Logging::Loggable(clientIPStr), "dnsdist.lua.function", Logging::Loggable("addDynamicBlock")));
+                                  dnsdist::logging::getTopLogger("addDynamicBlock")->error(Logr::Error, exp.reason, "Unable to parse IP address when trying to add a dynamic rule", "address", Logging::Loggable(clientIPStr), "dnsdist.lua.function", Logging::Loggable("addDynamicBlock")));
                              return;
                            }
                          }

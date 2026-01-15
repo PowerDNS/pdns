@@ -519,7 +519,7 @@ bool ServiceDiscovery::tryToUpgradeBackend(const Logr::Logger& logger, const Upg
 void ServiceDiscovery::worker()
 {
   setThreadName("dnsdist/discove");
-  auto logger = dnsdist::logging::getTopLogger()->withName("service-discovery");
+  auto logger = dnsdist::logging::getTopLogger("service-discovery");
 
   while (true) {
     dnsdist::configuration::refreshLocalRuntimeConfiguration();

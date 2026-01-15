@@ -213,14 +213,14 @@ void setup(const std::string& backend)
   }
 }
 
-std::shared_ptr<const Logr::Logger> getTopLogger()
+std::shared_ptr<const Logr::Logger> getTopLogger(const std::string_view& subsystem)
 {
   auto topLogger = std::atomic_load_explicit(&s_topLogger, std::memory_order_acquire);
   if (!topLogger) {
     throw std::runtime_error("Trying to access the top-level logger before logging has been setup");
   }
 
-  return topLogger;
+  return topLogger->withName(std::string(subsystem));
 }
 
 bool doVerboseLogging()

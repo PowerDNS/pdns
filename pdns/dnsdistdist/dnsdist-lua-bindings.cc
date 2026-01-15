@@ -39,19 +39,19 @@ void setupLuaBindingsLogging(LuaContext& luaCtx)
 {
   luaCtx.writeFunction("vinfolog", [](const string& arg) {
     VERBOSESLOG(infolog("%s", arg),
-                dnsdist::logging::getTopLogger()->withName("lua-message")->info(Logr::Info, arg));
+                dnsdist::logging::getTopLogger("lua-message")->info(Logr::Info, arg));
   });
   luaCtx.writeFunction("infolog", [](const string& arg) {
     SLOG(infolog("%s", arg),
-         dnsdist::logging::getTopLogger()->withName("lua-message")->info(Logr::Info, arg));
+         dnsdist::logging::getTopLogger("lua-message")->info(Logr::Info, arg));
   });
   luaCtx.writeFunction("errlog", [](const string& arg) {
     SLOG(errlog("%s", arg),
-         dnsdist::logging::getTopLogger()->withName("lua-message")->info(Logr::Error, arg));
+         dnsdist::logging::getTopLogger("lua-message")->info(Logr::Error, arg));
   });
   luaCtx.writeFunction("warnlog", [](const string& arg) {
     SLOG(warnlog("%s", arg),
-         dnsdist::logging::getTopLogger()->withName("lua-message")->info(Logr::Warning, arg));
+         dnsdist::logging::getTopLogger("lua-message")->info(Logr::Warning, arg));
   });
   luaCtx.writeFunction("show", [](const string& arg) {
     g_outputBuffer += arg;
@@ -1097,7 +1097,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
         }
         catch (const std::exception& exp) {
           VERBOSESLOG(infolog("Error during execution of getAddressInfo callback: %s", exp.what()),
-                      dnsdist::logging::getTopLogger()->error(Logr::Error, exp.what(), "Error during execution of getAddressInfo callback"));
+                      dnsdist::logging::getTopLogger("getAddressInfo")->error(Logr::Error, exp.what(), "Error during execution of getAddressInfo callback"));
         }
         // this _needs_ to be done while we are holding the lock,
         // otherwise the destructor will corrupt the stack

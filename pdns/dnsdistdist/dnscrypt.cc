@@ -496,7 +496,7 @@ void DNSCryptQuery::getDecrypted(bool tcp, PacketBuffer& packet)
 #ifdef DNSCRYPT_STRICT_PADDING_LENGTH
   if (tcp && ((packet.size() - sizeof(DNSCryptQueryHeader)) % DNSCRYPT_PADDED_BLOCK_SIZE) != 0) {
     VERBOSESLOG(infolog("Dropping encrypted query with invalid size of %d (should be a multiple of %d)", (packet.size() - sizeof(DNSCryptQueryHeader)), DNSCRYPT_PADDED_BLOCK_SIZE),
-                dnsdist::logging::getTopLogger()->info("Dropping DNSCrypt-encrypted query with invalid size (should be a multiple of " DNSCRYPT_PADDED_BLOCK_SIZE, "dns.question.size", Logging::Loggable(packet.size() - sizeof(DNSCryptQueryHeader))));
+                dnsdist::logging::getTopLogger("dnscrypt")->info("Dropping DNSCrypt-encrypted query with invalid size (should be a multiple of " DNSCRYPT_PADDED_BLOCK_SIZE, "dns.question.size", Logging::Loggable(packet.size() - sizeof(DNSCryptQueryHeader))));
     return;
   }
 #endif
@@ -509,7 +509,7 @@ void DNSCryptQuery::getDecrypted(bool tcp, PacketBuffer& packet)
   int res = computeSharedKey();
   if (res != 0) {
     VERBOSESLOG(infolog("Dropping encrypted query we can't compute the shared key for"),
-                dnsdist::logging::getTopLogger()->info("Dropping DNSCrypt-encrypted query we can't compute the shared key for"));
+                dnsdist::logging::getTopLogger("dnscrypt")->info("Dropping DNSCrypt-encrypted query we can't compute the shared key for"));
     return;
   }
 
@@ -554,7 +554,7 @@ void DNSCryptQuery::getDecrypted(bool tcp, PacketBuffer& packet)
 
   if (res != 0) {
     VERBOSESLOG(infolog("Dropping encrypted query we can't decrypt"),
-                dnsdist::logging::getTopLogger()->error(Logr::Info, res, "Dropping DNSCrypt-encrypted query we couldn't decrypt"));
+                dnsdist::logging::getTopLogger("dnscrypt")->error(Logr::Info, res, "Dropping DNSCrypt-encrypted query we couldn't decrypt"));
     return;
   }
 
@@ -562,7 +562,7 @@ void DNSCryptQuery::getDecrypted(bool tcp, PacketBuffer& packet)
   uint16_t pos = decryptedQueryLen;
   if (pos >= packet.size()) {
     VERBOSESLOG(infolog("Dropping encrypted query we can't decrypt (invalid position)"),
-                dnsdist::logging::getTopLogger()->info("Dropping DNSCrypt-encrypted we couldn't decrypt because of an invalid position", "position", Logging::Loggable(pos), "dns.question.size", Logging::Loggable(packet.size())));
+                dnsdist::logging::getTopLogger("dnscrypt")->info("Dropping DNSCrypt-encrypted we couldn't decrypt because of an invalid position", "position", Logging::Loggable(pos), "dns.question.size", Logging::Loggable(packet.size())));
     return;
   }
 
@@ -574,7 +574,7 @@ void DNSCryptQuery::getDecrypted(bool tcp, PacketBuffer& packet)
 
   if (pos == 0 || packet.at(pos - 1) != 0x80) {
     VERBOSESLOG(infolog("Dropping encrypted query with invalid padding value"),
-                dnsdist::logging::getTopLogger()->info("Dropping DNSCrypt-encrypted query with invalid padding value"));
+                dnsdist::logging::getTopLogger("dnscrypt")->info("Dropping DNSCrypt-encrypted query with invalid padding value"));
     return;
   }
 
@@ -585,7 +585,7 @@ void DNSCryptQuery::getDecrypted(bool tcp, PacketBuffer& packet)
 
   if (tcp && paddingLen > DNSCRYPT_MAX_TCP_PADDING_SIZE) {
     VERBOSESLOG(infolog("Dropping encrypted query with too long padding size"),
-                dnsdist::logging::getTopLogger()->info("Dropping DNSCrypt-encrypted query withtoo long padding size"));
+                dnsdist::logging::getTopLogger("dnscrypt")->info("Dropping DNSCrypt-encrypted query withtoo long padding size"));
     return;
   }
 
@@ -897,7 +897,7 @@ bool generateDNSCryptCertificate(const std::string& providerPrivateKeyFile, uint
   }
   catch (const std::exception& e) {
     SLOG(errlog(e.what()),
-         dnsdist::logging::getTopLogger()->error(e.what(), "Error while generating DNSCrypt certificate"));
+         dnsdist::logging::getTopLogger("dnscrypt")->error(e.what(), "Error while generating DNSCrypt certificate"));
   }
 
   sodium_memzero(providerPrivateKey.data(), providerPrivateKey.size());

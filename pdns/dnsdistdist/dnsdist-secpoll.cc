@@ -199,7 +199,7 @@ void doSecPoll(const std::string& suffix)
   std::replace(queriedName.begin(), queriedName.end(), '+', '_');
   std::replace(queriedName.begin(), queriedName.end(), '~', '_');
 
-  auto logger = dnsdist::logging::getTopLogger()->withName("security-status-polling")->withValues("version", Logging::Loggable(pkgv), "dns.query.name", Logging::Loggable(queriedName));
+  auto logger = dnsdist::logging::getTopLogger("security-status-polling")->withValues("version", Logging::Loggable(pkgv), "dns.query.name", Logging::Loggable(queriedName));
 
   try {
     const std::string status = getSecPollStatus(*logger, queriedName);

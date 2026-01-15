@@ -260,7 +260,7 @@ void DownstreamState::hash()
 {
   const auto hashPerturbation = dnsdist::configuration::getImmutableConfiguration().d_hashPerturbation;
   VERBOSESLOG(infolog("Computing hashes for id=%s and weight=%d, hash_perturbation=%d", *d_config.id, d_config.d_weight, hashPerturbation),
-              dnsdist::logging::getTopLogger()->info(Logr::Info, "Computing hashes for backend", "backend.id", Logging::Loggable(*d_config.id), "backend.weight", Logging::Loggable(d_config.d_weight), "backend.hash_perturbation", Logging::Loggable(hashPerturbation)));
+              dnsdist::logging::getTopLogger("backend")->info(Logr::Info, "Computing hashes for backend", "backend.id", Logging::Loggable(*d_config.id), "backend.weight", Logging::Loggable(d_config.d_weight), "backend.hash_perturbation", Logging::Loggable(hashPerturbation)));
 
   auto weight = d_config.d_weight;
   auto idStr = boost::str(boost::format("%s") % *d_config.id);
@@ -1008,7 +1008,7 @@ bool DownstreamState::parseSourceParameter(const std::string& source, Downstream
   }
 
   SLOG(warnlog("Dismissing source %s because '%s' is not a valid interface name", source, config.sourceItfName),
-       dnsdist::logging::getTopLogger()->info(Logr::Warning, "Dismissing source because the interface name is not valid", "backend.name", Logging::Loggable(config.name), "backend.address", Logging::Loggable(config.remote), "source.address", Logging::Loggable(source), "source.interface", Logging::Loggable(config.sourceItfName)));
+       dnsdist::logging::getTopLogger("backend")->info(Logr::Warning, "Dismissing source because the interface name is not valid", "backend.name", Logging::Loggable(config.name), "backend.address", Logging::Loggable(config.remote), "source.address", Logging::Loggable(source), "source.interface", Logging::Loggable(config.sourceItfName)));
 
   return false;
 }
@@ -1043,7 +1043,7 @@ unsigned int DownstreamState::getQPSLimit() const
 
 [[nodiscard]] std::shared_ptr<const Logr::Logger> DownstreamState::getLogger() const
 {
-  return dnsdist::logging::getTopLogger()->withName("backend")->withValues("backend.name", Logging::Loggable(getName()), "backend.address", Logging::Loggable(d_config.remote), "backend.protocol", Logging::Loggable(getProtocol()));
+  return dnsdist::logging::getTopLogger("backend")->withValues("backend.name", Logging::Loggable(getName()), "backend.address", Logging::Loggable(d_config.remote), "backend.protocol", Logging::Loggable(getProtocol()));
 }
 
 size_t ServerPool::countServers(bool upOnly) const

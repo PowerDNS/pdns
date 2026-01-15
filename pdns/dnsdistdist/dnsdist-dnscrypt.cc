@@ -31,7 +31,7 @@ bool handleDNSCryptQuery(PacketBuffer& packet, DNSCryptQuery& query, bool tcp, t
 
   if (!query.isValid()) {
     VERBOSESLOG(infolog("Dropping DNSCrypt invalid query"),
-                dnsdist::logging::getTopLogger()->info(Logr::Info, "Dropping DNSCrypt invalid query"));
+                dnsdist::logging::getTopLogger("dnscrypt")->info(Logr::Info, "Dropping DNSCrypt invalid query"));
     return false;
   }
 

@@ -1177,7 +1177,7 @@ public:
     if (!reopenLogFile()) {
       int savederrno = errno;
       SLOG(warnlog("Unable to open file '%s' for logging: %s", d_fname, stringerror(savederrno)),
-           dnsdist::logging::getTopLogger()->error(Logr::Warning, savederrno, "Unable to open file for logging", "path", Logging::Loggable(d_fname)));
+           dnsdist::logging::getTopLogger("LogAction::reload")->error(Logr::Warning, savederrno, "Unable to open file for logging", "path", Logging::Loggable(d_fname)));
     }
   }
 
@@ -1271,7 +1271,7 @@ public:
     if (!reopenLogFile()) {
       int savederrno = errno;
       SLOG(warnlog("Unable to open file '%s' for logging: %s", d_fname, stringerror(savederrno)),
-           dnsdist::logging::getTopLogger()->error(Logr::Warning, savederrno, "Unable to open file for logging", "path", Logging::Loggable(d_fname)));
+           dnsdist::logging::getTopLogger("LogResponseAction::reload")->error(Logr::Warning, savederrno, "Unable to open file for logging", "path", Logging::Loggable(d_fname)));
     }
   }
 
@@ -1524,17 +1524,17 @@ static void remoteLoggerQueueData(RemoteLoggerInterface& remoteLogger, const std
     break;
   case RemoteLoggerInterface::Result::PipeFull: {
     VERBOSESLOG(infolog("%s: %s", remoteLogger.name(), RemoteLoggerInterface::toErrorString(ret)),
-                dnsdist::logging::getTopLogger()->error(Logr::Info, RemoteLoggerInterface::toErrorString(ret), "Remote logger pipe full event", "remote_logger_name", Logging::Loggable(remoteLogger.name())));
+                dnsdist::logging::getTopLogger("remote-logger")->error(Logr::Info, RemoteLoggerInterface::toErrorString(ret), "Remote logger pipe full event", "remote_logger_name", Logging::Loggable(remoteLogger.name())));
     break;
   }
   case RemoteLoggerInterface::Result::TooLarge: {
     SLOG(warnlog("%s: %s", remoteLogger.name(), RemoteLoggerInterface::toErrorString(ret)),
-         dnsdist::logging::getTopLogger()->error(Logr::Warning, RemoteLoggerInterface::toErrorString(ret), "Remote logger too large event", "remote_logger_name", Logging::Loggable(remoteLogger.name())));
+         dnsdist::logging::getTopLogger("remote-logger")->error(Logr::Warning, RemoteLoggerInterface::toErrorString(ret), "Remote logger too large event", "remote_logger_name", Logging::Loggable(remoteLogger.name())));
     break;
   }
   case RemoteLoggerInterface::Result::OtherError:
     SLOG(warnlog("%s: %s", remoteLogger.name(), RemoteLoggerInterface::toErrorString(ret)),
-         dnsdist::logging::getTopLogger()->error(Logr::Warning, RemoteLoggerInterface::toErrorString(ret), "Remote logger error event", "remote_logger_name", Logging::Loggable(remoteLogger.name())));
+         dnsdist::logging::getTopLogger("remote-logger")->error(Logr::Warning, RemoteLoggerInterface::toErrorString(ret), "Remote logger error event", "remote_logger_name", Logging::Loggable(remoteLogger.name())));
   }
 }
 

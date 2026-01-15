@@ -194,11 +194,11 @@ void TCPClientCollection::addTCPClientThread(std::vector<ClientState*>& tcpAccep
     auto [crossProtocolResponseChannelSender, crossProtocolResponseChannelReceiver] = pdns::channel::createObjectQueue<TCPCrossProtocolResponse>(pdns::channel::SenderBlockingMode::SenderNonBlocking, pdns::channel::ReceiverBlockingMode::ReceiverNonBlocking, internalPipeBufferSize);
 
     VERBOSESLOG(infolog("Adding TCP Client thread"),
-                dnsdist::logging::getTopLogger()->info(Logr::Info, "Adding TCP worker thread to handle TCP connections from clients"));
+                dnsdist::logging::getTopLogger("incoming-tcp-worker")->info(Logr::Info, "Adding TCP worker thread to handle TCP connections from clients"));
 
     if (d_numthreads >= d_tcpclientthreads.size()) {
       VERBOSESLOG(infolog("Adding a new TCP client thread would exceed the vector size (%d/%d), skipping. Consider increasing the maximum amount of TCP client threads with setMaxTCPClientThreads() in the configuration.", d_numthreads.load(), d_tcpclientthreads.size()),
-                  dnsdist::logging::getTopLogger()->info(Logr::Info, "Adding a new TCP client thread would exceed the vector size, skipping. Consider increasing the maximum amount of TCP client threads with setMaxTCPClientThreads() in the configuration.", "workers_count", Logging::Loggable(d_numthreads.load()), "workers_limit", Logging::Loggable(d_tcpclientthreads.size())));
+                  dnsdist::logging::getTopLogger("incoming-tcp-worker")->info(Logr::Info, "Adding a new TCP client thread would exceed the vector size, skipping. Consider increasing the maximum amount of TCP client threads with setMaxTCPClientThreads() in the configuration.", "workers_count", Logging::Loggable(d_numthreads.load()), "workers_limit", Logging::Loggable(d_tcpclientthreads.size())));
       return;
     }
 
@@ -210,7 +210,7 @@ void TCPClientCollection::addTCPClientThread(std::vector<ClientState*>& tcpAccep
     }
     catch (const std::runtime_error& e) {
       SLOG(errlog("Error creating a TCP thread: %s", e.what()),
-           dnsdist::logging::getTopLogger()->error(Logr::Error, e.what(), "Error creating a TCP worker thread"));
+           dnsdist::logging::getTopLogger("incoming-tcp-worker")->error(Logr::Error, e.what(), "Error creating a TCP worker thread"));
       return;
     }
 
@@ -219,7 +219,7 @@ void TCPClientCollection::addTCPClientThread(std::vector<ClientState*>& tcpAccep
   }
   catch (const std::exception& e) {
     SLOG(errlog("Error creating TCP worker: %s", e.what()),
-         dnsdist::logging::getTopLogger()->error(Logr::Error, e.what(), "Error creating a TCP worker"));
+         dnsdist::logging::getTopLogger("incoming-tcp-worker")->error(Logr::Error, e.what(), "Error creating a TCP worker"));
   }
 }
 
@@ -1474,7 +1474,7 @@ void IncomingTCPConnectionState::handleTimeout(std::shared_ptr<IncomingTCPConnec
 
 std::shared_ptr<const Logr::Logger> IncomingTCPConnectionState::getLogger() const
 {
-  return dnsdist::logging::getTopLogger()->withName("incoming-tcp-connection")->withValues("client.address", Logging::Loggable(d_proxiedRemote), "frontend.address", Logging::Loggable(d_ci.cs->local), "protocol", Logging::Loggable(d_ci.cs->getProtocol()), "network.peer.address", Logging::Loggable(d_ci.remote), "destination.address", Logging::Loggable(d_proxiedDestination));
+  return dnsdist::logging::getTopLogger("incoming-tcp-connection")->withValues("client.address", Logging::Loggable(d_proxiedRemote), "frontend.address", Logging::Loggable(d_ci.cs->local), "protocol", Logging::Loggable(d_ci.cs->getProtocol()), "network.peer.address", Logging::Loggable(d_ci.remote), "destination.address", Logging::Loggable(d_proxiedDestination));
 }
 
 static void handleIncomingTCPQuery(int pipefd, FDMultiplexer::funcparam_t& param)
@@ -1705,7 +1705,7 @@ static void tcpClientThread(pdns::channel::Receiver<ConnectionInfo>&& queryRecei
      from that point on */
 
   setThreadName("dnsdist/tcpClie");
-  auto logger = dnsdist::logging::getTopLogger()->withName("incoming-tcp-worker");
+  auto logger = dnsdist::logging::getTopLogger("incoming-tcp-worker");
 
   try {
     TCPClientThreadData data;
@@ -1808,13 +1808,13 @@ static void acceptNewConnection(const TCPAcceptorParam& param, TCPClientThreadDa
     if (checkACL && !dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL.match(remote)) {
       ++dnsdist::metrics::g_stats.aclDrops;
       VERBOSESLOG(infolog("Dropped TCP connection from %s because of ACL", remote.toStringWithPort()),
-                  dnsdist::logging::getTopLogger()->withName("incoming-tcp-worker")->info(Logr::Info, "Dropped TCP connection because of ACL", "frontend.address", Logging::Loggable(param.local), "client.address", Logging::Loggable(remote)));
+                  dnsdist::logging::getTopLogger("incoming-tcp-worker")->info(Logr::Info, "Dropped TCP connection because of ACL", "frontend.address", Logging::Loggable(param.local), "client.address", Logging::Loggable(remote)));
       return;
     }
 
     if (clientState.d_tcpConcurrentConnectionsLimit > 0 && concurrentConnections > clientState.d_tcpConcurrentConnectionsLimit) {
       VERBOSESLOG(infolog("Dropped TCP connection from %s because of concurrent connections limit", remote.toStringWithPort()),
-                  dnsdist::logging::getTopLogger()->withName("incoming-tcp-worker")->info(Logr::Info, "Dropped TCP connection because of concurrent connections limit", "frontend.address", Logging::Loggable(param.local), "client.address", Logging::Loggable(remote)));
+                  dnsdist::logging::getTopLogger("incoming-tcp-worker")->info(Logr::Info, "Dropped TCP connection because of concurrent connections limit", "frontend.address", Logging::Loggable(param.local), "client.address", Logging::Loggable(remote)));
       return;
     }
 
@@ -1833,7 +1833,7 @@ static void acceptNewConnection(const TCPAcceptorParam& param, TCPClientThreadDa
     const auto maxTCPQueuedConnections = dnsdist::configuration::getImmutableConfiguration().d_maxTCPQueuedConnections;
     if (maxTCPQueuedConnections > 0 && g_tcpclientthreads->getQueuedCount() >= maxTCPQueuedConnections) {
       VERBOSESLOG(infolog("Dropping TCP connection from %s because we have too many queued already", remote.toStringWithPort()),
-                  dnsdist::logging::getTopLogger()->withName("incoming-tcp-worker")->info(Logr::Info, "Dropped TCP connection because we have too many queued already", "frontend.address", Logging::Loggable(param.local), "client.address", Logging::Loggable(remote)));
+                  dnsdist::logging::getTopLogger("incoming-tcp-worker")->info(Logr::Info, "Dropped TCP connection because we have too many queued already", "frontend.address", Logging::Loggable(param.local), "client.address", Logging::Loggable(remote)));
       return;
     }
 
@@ -1847,7 +1847,7 @@ static void acceptNewConnection(const TCPAcceptorParam& param, TCPClientThreadDa
     }
 
     VERBOSESLOG(infolog("Got TCP connection from %s", remote.toStringWithPort()),
-                dnsdist::logging::getTopLogger()->withName("incoming-tcp-worker")->info(Logr::Info, "Accepted new TCP connection", "frontend.address", Logging::Loggable(param.local), "client.address", Logging::Loggable(remote)));
+                dnsdist::logging::getTopLogger("incoming-tcp-worker")->info(Logr::Info, "Accepted new TCP connection", "frontend.address", Logging::Loggable(param.local), "client.address", Logging::Loggable(remote)));
 
     connInfo.remote = remote;
 
@@ -1876,7 +1876,7 @@ static void acceptNewConnection(const TCPAcceptorParam& param, TCPClientThreadDa
   }
   catch (const std::exception& e) {
     SLOG(errlog("While reading a TCP question: %s", e.what()),
-         dnsdist::logging::getTopLogger()->withName("incoming-tcp-worker")->error(Logr::Error, e.what(), "Error while accepting a TCP connection", "frontend.address", Logging::Loggable(param.local)));
+         dnsdist::logging::getTopLogger("incoming-tcp-worker")->error(Logr::Error, e.what(), "Error while accepting a TCP connection", "frontend.address", Logging::Loggable(param.local)));
     if (tcpClientCountIncremented) {
       dnsdist::IncomingConcurrentTCPConnectionsManager::accountClosedTCPConnection(remote);
     }

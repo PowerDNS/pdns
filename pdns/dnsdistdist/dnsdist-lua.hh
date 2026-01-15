@@ -82,7 +82,7 @@ std::optional<FunctionType> getFunctionFromLuaCode(const std::string& code, cons
   }
   catch (const std::exception& exp) {
     SLOG(warnlog("Parsing Lua code '%s' in context '%s' failed: %s", code, context, exp.what()),
-         dnsdist::logging::getTopLogger()->withName(context)->error(Logr::Warning, exp.what(), "Parsing Lua code failed", "lua_code", Logging::Loggable(code)));
+         dnsdist::logging::getTopLogger(context)->error(Logr::Warning, exp.what(), "Parsing Lua code failed", "lua_code", Logging::Loggable(code)));
   }
 
   return std::nullopt;
@@ -128,7 +128,7 @@ static inline int getOptionalValue(std::optional<V>& vars, const std::string& ke
       /* key is there but isn't compatible */
       if (warnOnWrongType) {
         SLOG(warnlog("Invalid type for key '%s' - ignored", key),
-             dnsdist::logging::getTopLogger()->withName("configuration")->info(Logr::Warning, "Invalid type for key passed to Lua directive, ignored", "key", Logging::Loggable(key), "value", Logging::Loggable("value")));
+             dnsdist::logging::getTopLogger("configuration")->info(Logr::Warning, "Invalid type for key passed to Lua directive, ignored", "key", Logging::Loggable(key), "value", Logging::Loggable("value")));
         vars->erase(key);
       }
       return -1;
@@ -148,7 +148,7 @@ static inline int getOptionalIntegerValue(const std::string& func, std::optional
     }
     catch (const std::exception& e) {
       SLOG(warnlog("Parameter '%s' of '%s' must be integer, not '%s' - ignoring", func, key, valueStr),
-           dnsdist::logging::getTopLogger()->withName(func)->info(Logr::Warning, "Invalid type for integer parameter, ignored", "key", Logging::Loggable(key), "value", Logging::Loggable("value")));
+           dnsdist::logging::getTopLogger(func)->info(Logr::Warning, "Invalid type for integer parameter, ignored", "key", Logging::Loggable(key), "value", Logging::Loggable("value")));
       return -1;
     }
   }
@@ -164,6 +164,6 @@ static inline void checkAllParametersConsumed(const std::string& func, const std
   }
   for (const auto& [key, value] : *vars) {
     SLOG(warnlog("%s: Unknown key '%s' given - ignored", func, key),
-         dnsdist::logging::getTopLogger()->withName(func)->info(Logr::Warning, "Unknown key, ignored", "key", Logging::Loggable(key), "value", Logging::Loggable("value")));
+         dnsdist::logging::getTopLogger(func)->info(Logr::Warning, "Unknown key, ignored", "key", Logging::Loggable(key), "value", Logging::Loggable("value")));
   }
 }

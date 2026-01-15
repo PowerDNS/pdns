@@ -136,7 +136,7 @@ void AsynchronousHolder::mainThread(std::shared_ptr<Data> data)
       expiredEvents.pop_front();
       if (!data->d_failOpen) {
         VERBOSESLOG(infolog("Asynchronous query %d has expired at %d.%d, notifying the sender", queryID, now.tv_sec, now.tv_usec),
-                    dnsdist::logging::getTopLogger()->info(Logr::Info, "Asynchronous query has expired, notifying the sender", "dns.question.id", Logging::Loggable(queryID)));
+                    dnsdist::logging::getTopLogger("async-thread")->info(Logr::Info, "Asynchronous query has expired, notifying the sender", "dns.question.id", Logging::Loggable(queryID)));
         auto sender = query->getTCPQuerySender();
         if (sender) {
           TCPResponse tresponse(std::move(query->query));
@@ -145,7 +145,7 @@ void AsynchronousHolder::mainThread(std::shared_ptr<Data> data)
       }
       else {
         VERBOSESLOG(infolog("Asynchronous query %d has expired at %d.%d, resuming", queryID, now.tv_sec, now.tv_usec),
-                    dnsdist::logging::getTopLogger()->info(Logr::Info, "Asynchronous query has expired, resuming", "dns.question.id", Logging::Loggable(queryID)));
+                    dnsdist::logging::getTopLogger("async-thread")->info(Logr::Info, "Asynchronous query has expired, resuming", "dns.question.id", Logging::Loggable(queryID)));
         resumeQuery(std::move(query));
       }
     }
@@ -186,7 +186,7 @@ std::unique_ptr<CrossProtocolQuery> AsynchronousHolder::get(uint16_t asyncID, ui
     timeval now{};
     gettimeofday(&now, nullptr);
     VERBOSESLOG(infolog("Asynchronous object %d not found at %d.%d", queryID, now.tv_sec, now.tv_usec),
-                dnsdist::logging::getTopLogger()->info(Logr::Info, "Asynchronous object not found", "dnsdist.async.id", Logging::Loggable(asyncID), "dns.question.id", Logging::Loggable(queryID)));
+                dnsdist::logging::getTopLogger("async-holder")->info(Logr::Info, "Asynchronous object not found", "dnsdist.async.id", Logging::Loggable(asyncID), "dns.question.id", Logging::Loggable(queryID)));
     return nullptr;
   }
 
@@ -242,7 +242,7 @@ static bool resumeResponse(std::unique_ptr<CrossProtocolQuery>&& response)
   }
   catch (const std::exception& e) {
     VERBOSESLOG(infolog("Got exception while resuming cross-protocol response: %s", e.what()),
-                dnsdist::logging::getTopLogger()->error(Logr::Info, e.what(), "Got exception while resuming cross-protocol response"));
+                dnsdist::logging::getTopLogger("async-holder")->error(Logr::Info, e.what(), "Got exception while resuming cross-protocol response"));
     return false;
   }
 
@@ -273,7 +273,7 @@ void handleQueuedAsynchronousEvents()
     }
     if (query && !resumeQuery(std::move(query))) {
       VERBOSESLOG(infolog("Unable to resume asynchronous query event"),
-                  dnsdist::logging::getTopLogger()->info(Logr::Info, "Unable to resume asynchronous query event"));
+                  dnsdist::logging::getTopLogger("async-holder")->info(Logr::Info, "Unable to resume asynchronous query event"));
     }
   }
 }
@@ -332,14 +332,14 @@ bool resumeQuery(std::unique_ptr<CrossProtocolQuery>&& query)
     }
     catch (const std::exception& e) {
       VERBOSESLOG(infolog("Got exception while resuming cross-protocol self-answered query: %s", e.what()),
-                  dnsdist::logging::getTopLogger()->error(Logr::Info, e.what(), "Got exception while resuming cross-protocol self-answered query"));
+                  dnsdist::logging::getTopLogger("async-holder")->error(Logr::Info, e.what(), "Got exception while resuming cross-protocol self-answered query"));
       return false;
     }
   }
   if (result == ProcessQueryResult::Asynchronous) {
     /* nope */
     SLOG(errlog("processQueryAfterRules returned 'asynchronous' while trying to resume an already asynchronous query"),
-         dnsdist::logging::getTopLogger()->info(Logr::Info, "processQueryAfterRules returned 'asynchronous' while trying to resume an already asynchronous query"));
+         dnsdist::logging::getTopLogger("async-holder")->info(Logr::Info, "processQueryAfterRules returned 'asynchronous' while trying to resume an already asynchronous query"));
     return false;
   }
 

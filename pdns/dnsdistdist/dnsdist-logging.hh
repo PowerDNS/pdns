@@ -22,13 +22,14 @@
 
 #include <memory>
 #include <string>
+#include <string_view>
 
 #include "logging.hh"
 
 namespace dnsdist::logging
 {
 void setup(const std::string& backend);
-std::shared_ptr<const Logr::Logger> getTopLogger();
+std::shared_ptr<const Logr::Logger> getTopLogger(const std::string_view& subsystem);
 bool doVerboseLogging();
 bool doStructuredLogging();
 }

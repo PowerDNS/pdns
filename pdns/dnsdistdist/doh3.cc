@@ -432,12 +432,12 @@ static void sendBackDOH3Unit(DOH3UnitUniquePtr&& unit, const char* description)
     if (!unit->dsc->d_responseSender.send(std::move(unit))) {
       ++dnsdist::metrics::g_stats.doh3ResponsePipeFull;
       VERBOSESLOG(infolog("Unable to pass a %s to the DoH3 worker thread because the pipe is full", description),
-                  dnsdist::logging::getTopLogger()->info(Logr::Info, std::string("Unable to pass a ") + std::string(description) + " to the DoH3 worker thread because the pipe is full"));
+                  dnsdist::logging::getTopLogger("doh3")->info(Logr::Info, std::string("Unable to pass a ") + std::string(description) + " to the DoH3 worker thread because the pipe is full"));
     }
   }
   catch (const std::exception& e) {
     VERBOSESLOG(infolog("Unable to pass a %s to the DoH3 worker thread because we couldn't write to the pipe: %s", description, e.what()),
-                dnsdist::logging::getTopLogger()->error(Logr::Info, e.what(), std::string("Unable to pass a ") + std::string(description) + " to the DoH3 worker thread because we couldn't write to the pipe"));
+                dnsdist::logging::getTopLogger("doh3")->error(Logr::Info, e.what(), std::string("Unable to pass a ") + std::string(description) + " to the DoH3 worker thread because we couldn't write to the pipe"));
   }
 }
 
@@ -1009,7 +1009,7 @@ void doh3Thread(ClientState* clientState)
 {
   try {
     std::shared_ptr<DOH3Frontend>& frontend = clientState->doh3Frontend;
-    auto frontendLogger = dnsdist::logging::getTopLogger()->withName("doh3-frontend")->withValues("frontend.address", Logging::Loggable(clientState->local));
+    auto frontendLogger = dnsdist::logging::getTopLogger("doh3-frontend")->withValues("frontend.address", Logging::Loggable(clientState->local));
 
     frontend->d_server_config->clientState = clientState;
     frontend->d_server_config->df = clientState->doh3Frontend;

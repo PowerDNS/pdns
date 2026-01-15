@@ -899,7 +899,7 @@ static void handleCrossProtocolQuery(int pipefd, FDMultiplexer::funcparam_t& par
 static void dohClientThread(pdns::channel::Receiver<CrossProtocolQuery>&& receiver)
 {
   setThreadName("dnsdist/dohClie");
-  auto logger = dnsdist::logging::getTopLogger()->withName("outgoing-doh-worker");
+  auto logger = dnsdist::logging::getTopLogger("outgoing-doh-worker");
 
   try {
     DoHClientThreadData data(std::move(receiver));
@@ -1028,12 +1028,12 @@ void DoHClientCollection::addThread()
     auto [sender, receiver] = pdns::channel::createObjectQueue<CrossProtocolQuery>(pdns::channel::SenderBlockingMode::SenderNonBlocking, pdns::channel::ReceiverBlockingMode::ReceiverNonBlocking, internalPipeBufferSize);
 
     VERBOSESLOG(infolog("Adding DoH Client thread"),
-                dnsdist::logging::getTopLogger()->info(Logr::Info, "Adding outgoing DoH worker thread"));
+                dnsdist::logging::getTopLogger("outgoing-doh")->info(Logr::Info, "Adding outgoing DoH worker thread"));
 
     auto lock = std::scoped_lock(d_mutex);
     if (d_numberOfThreads >= d_clientThreads.size()) {
       VERBOSESLOG(infolog("Adding a new DoH client thread would exceed the vector size (%d/%d), skipping. Consider increasing the maximum amount of DoH client threads with setMaxDoHClientThreads() in the configuration.", d_numberOfThreads, d_clientThreads.size()),
-                  dnsdist::logging::getTopLogger()->info(Logr::Info, "Adding a new outgoing DoH worker thread would exceed the vector size, skipping. Consider increasing the maximum amount of DoH worker threads with setMaxDoHClientThreads() in the configuration.", "workers_count", Logging::Loggable(d_numberOfThreads), "workers_limit", Logging::Loggable(d_clientThreads.size())));
+                  dnsdist::logging::getTopLogger("outgoing-doh")->info(Logr::Info, "Adding a new outgoing DoH worker thread would exceed the vector size, skipping. Consider increasing the maximum amount of DoH worker threads with setMaxDoHClientThreads() in the configuration.", "workers_count", Logging::Loggable(d_numberOfThreads), "workers_limit", Logging::Loggable(d_clientThreads.size())));
       return;
     }
 
@@ -1045,7 +1045,7 @@ void DoHClientCollection::addThread()
     catch (const std::runtime_error& e) {
       /* the thread creation failed */
       SLOG(errlog("Error creating a DoH thread: %s", e.what()),
-           dnsdist::logging::getTopLogger()->error(Logr::Error, e.what(), "Error creating an outgoing DoH worker thread"));
+           dnsdist::logging::getTopLogger("outgoing-doh")->error(Logr::Error, e.what(), "Error creating an outgoing DoH worker thread"));
       return;
     }
 
@@ -1054,7 +1054,7 @@ void DoHClientCollection::addThread()
   }
   catch (const std::exception& e) {
     SLOG(errlog("Error creating the DoH channel: %s", e.what()),
-         dnsdist::logging::getTopLogger()->error(Logr::Error, e.what(), "Error creating a channel for a new outgoing DoH worker"));
+         dnsdist::logging::getTopLogger("outgoing-doh")->error(Logr::Error, e.what(), "Error creating a channel for a new outgoing DoH worker"));
     return;
   }
 #else /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */

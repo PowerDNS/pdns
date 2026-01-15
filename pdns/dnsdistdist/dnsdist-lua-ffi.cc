@@ -40,7 +40,7 @@
 
 static std::shared_ptr<const Logr::Logger> getLogger(const std::string_view fromFunction)
 {
-  return dnsdist::logging::getTopLogger()->withName("lua-ffi-script")->withValues("lua.ffi.function", Logging::Loggable(fromFunction));
+  return dnsdist::logging::getTopLogger("lua-ffi-script")->withValues("lua.ffi.function", Logging::Loggable(fromFunction));
 }
 
 uint16_t dnsdist_ffi_dnsquestion_get_qtype(const dnsdist_ffi_dnsquestion_t* dq)
