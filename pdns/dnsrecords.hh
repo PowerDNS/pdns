@@ -1253,6 +1253,19 @@ private:
     string d_tag, d_value;
 };
 
+class RESINFORecordContent : public DNSRecordContent
+{
+public:
+  includeboilerplate(RESINFO)
+
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_text.size();
+  }
+
+  string d_text;
+};
+
 #define boilerplate(RNAME)                                                                         \
 std::shared_ptr<RNAME##RecordContent::DNSRecordContent> RNAME##RecordContent::make(const DNSRecord& dr, PacketReader& pr) \
 {                                                                                                  \
