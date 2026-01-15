@@ -98,7 +98,6 @@ uint32_t g_disthashseed;
 bool g_useIncomingECS;
 static shared_ptr<NetmaskGroup> g_initialProxyProtocolACL;
 static shared_ptr<std::set<ComboAddress>> g_initialProxyProtocolExceptions;
-static shared_ptr<OpenTelemetryTraceConditions> g_initialOpenTelemetryConditions; // XXX shared ptr needed?
 std::optional<ComboAddress> g_dns64Prefix{std::nullopt};
 DNSName g_dns64PrefixReverse;
 unsigned int g_maxChainLength;
@@ -106,6 +105,7 @@ LockGuarded<std::shared_ptr<SyncRes::domainmap_t>> g_initialDomainMap; // new th
 LockGuarded<std::shared_ptr<NetmaskGroup>> g_initialAllowFrom; // new thread needs to be setup with this
 LockGuarded<std::shared_ptr<NetmaskGroup>> g_initialAllowNotifyFrom; // new threads need this to be setup
 LockGuarded<std::shared_ptr<notifyset_t>> g_initialAllowNotifyFor; // new threads need this to be setup
+LockGuarded<std::shared_ptr<OpenTelemetryTraceConditions>> g_initialOpenTelemetryConditions; // new threads need this to be setup
 static time_t s_statisticsInterval;
 static std::atomic<uint32_t> s_counter;
 int g_argc;
@@ -129,7 +129,6 @@ std::vector<RecThreadInfo> RecThreadInfo::s_threadInfos;
 std::unique_ptr<ProxyMapping> g_proxyMapping; // new threads needs this to be setup
 thread_local std::unique_ptr<ProxyMapping> t_proxyMapping;
 
-std::unique_ptr<OpenTelemetryTraceConditions> g_OTConditions; // new threads needs this to be setup
 thread_local std::unique_ptr<OpenTelemetryTraceConditions> t_OTConditions;
 
 bool RecThreadInfo::s_weDistributeQueries; // if true, 1 or more threads listen on the incoming query sockets and distribute them to workers
@@ -2790,8 +2789,9 @@ static void recursorThread()
       else {
         t_proxyMapping = nullptr;
       }
-      if (g_OTConditions) {
-        t_OTConditions = make_unique<OpenTelemetryTraceConditions>(*g_OTConditions);
+      auto lock = g_initialOpenTelemetryConditions.lock();
+      if (*lock) {
+        t_OTConditions = make_unique<OpenTelemetryTraceConditions>(**lock);
       }
       else {
         t_OTConditions = nullptr;

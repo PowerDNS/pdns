@@ -152,3 +152,5 @@ void registerAllStats();
 void doExitNicely();
 RecursorControlChannel::Answer doQueueReloadLuaScript(vector<string>::const_iterator begin, vector<string>::const_iterator end);
 RecursorControlChannel::Answer luaconfig(bool broadcast);
+struct OpenTelemetryTraceCondition;
+void updateOTConditions(const NetmaskTree<OpenTelemetryTraceCondition>& conditions);
