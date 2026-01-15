@@ -1501,6 +1501,19 @@ prevent-self-notification to "no".
 
 Turn on operating as a primary. See :ref:`primary-operation`.
 
+.. _setting-protobuf-servers:
+
+``protobuf-servers``
+-----------
+
+.. versionadded:: 5.1.0
+
+-  IP addresses with ports, separated by commas
+-  Default: empty
+
+Servers to send Protobuf logging to.
+This currently sends both questions and responses, but without answer data.
+
 .. _setting-proxy-protocol-from:
 
 ``proxy-protocol-from``

@@ -19,6 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include "protozero.hh"
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -48,6 +49,7 @@
 #include "auth-main.hh"
 #include "trusted-notification-proxy.hh"
 #include "gss_context.hh"
+#include "gettime.hh"
 
 #if 0
 #undef DLOG
@@ -2001,10 +2003,52 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state, bool re
   return true;
 }
 
+static void fillProtoZeroMessageFromDNSPacket(pdns::ProtoZero::Message& msg, DNSPacket& pkt)
+{
+  struct timeval now;
+  gettimeofday(&now,0);
+  msg.setRequest(getUniqueID(), pkt.getRemote(), pkt.getLocal(), pkt.qdomain, pkt.qtype, pkt.qclass, pkt.d.id, pkt.d_tcp ? pdns::ProtoZero::Message::TransportProtocol::TCP : pdns::ProtoZero::Message::TransportProtocol::UDP, pkt.getString().length());
+
+  if (pkt.hasEDNS()) {
+    msg.setEDNSVersion(pkt.getEDNSVersion());
+  }
+
+  msg.setTime(now.tv_sec, now.tv_usec);
+  msg.setHeaderFlags(*getFlagsFromDNSHeader(&pkt.d));
+
+  if (pkt.d.qr == 0) {
+    msg.setType(pdns::ProtoZero::Message::MessageType::DNSQueryType);
+  }
+  else {
+    msg.setType(pdns::ProtoZero::Message::MessageType::DNSResponseType);
+  }
+}
+
+static bool mustSendProtoBuf(void)
+{
+  return !g_remote_loggers.empty();
+}
+
+static void sendProtobuf(const std::string& data)
+{
+  for (const auto& logger : g_remote_loggers) {
+    std::ignore = logger->queueData(data);
+  }
+}
+
 std::unique_ptr<DNSPacket> PacketHandler::opcodeQuery(DNSPacket& pkt, bool noCache)
 {
   queryState state;
   state.noCache = noCache;
+
+  if (mustSendProtoBuf()) {
+    std::string data;
+    // data.reserve()
+    pdns::ProtoZero::Message msg{data};
+
+    fillProtoZeroMessageFromDNSPacket(msg, pkt);
+    sendProtobuf(data);
+  }
 
   if (opcodeQueryInner(pkt, state)) {
     doAdditionalProcessing(pkt, state.r);
@@ -2026,7 +2070,15 @@ std::unique_ptr<DNSPacket> PacketHandler::opcodeQuery(DNSPacket& pkt, bool noCac
     if (PC.enabled() && !state.noCache && pkt.couldBeCached()) {
       PC.insert(pkt, *state.r, state.r->getMinTTL(), pkt.d_view); // in the packet cache
     }
-  }
+
+    if (mustSendProtoBuf()) {
+      std::string data;
+      pdns::ProtoZero::Message msg{data};
+
+      fillProtoZeroMessageFromDNSPacket(msg, *state.r);
+      sendProtobuf(data);
+    }
+}
 
   return std::move(state.r);
 }
