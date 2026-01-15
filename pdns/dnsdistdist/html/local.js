@@ -46,6 +46,16 @@ $(document).ready(function() {
     cpugraph.render();
     var intervalcount=0;
 
+    function appendCellToRow(row, untrusted, align)
+    {
+        var cell = $('<td/>');
+        if (align) {
+            cell =  $('<td align=' + align + '/>');
+        }
+        cell.text(untrusted);
+        row.append(cell);
+    }
+
     function update()
     {
         $.ajax({
@@ -105,73 +115,103 @@ $(document).ready(function() {
                      $("#version").text(data["daemon_type"]+" "+data["version"]);
                      $("#acl").text(data["acl"]);
                      $("#local").text(data["local"]);
-                     var bouw='<table width="100%"><tr align=right><th>#</th><th align=left>Name</th><th align=left>Address</th><th>Status</th><th>UDP Latency</th><th>TCP Latency</th><th>Queries</th><th>Drops</th><th>QPS</th><th>Out</th><th>Weight</th><th>Order</th><th align=left>Pools</th></tr>';
+                     var bouw = $('<table width="100%"><tr align=right><th>#</th><th align=left>Name</th><th align=left>Address</th><th>Status</th><th>UDP Latency</th><th>TCP Latency</th><th>Queries</th><th>Drops</th><th>QPS</th><th>Out</th><th>Weight</th><th>Order</th><th align=left>Pools</th></tr></table>');
                      $.each(data["servers"], function(a,b) {
-                         bouw = bouw + ("<tr align=right><td>"+b["id"]+"</td><td align=left>"+b["name"]+"</td><td align=left>"+b["address"]+"</td><td>"+b["state"]+"</td>");
+                         var row = $('<tr align=right/>');
                          var latency = (b["latency"] === null || b["latency"] === 0.0) ? "-" : b["latency"].toFixed(2);
                          var tcpLatency = (b["tcpLatency"] === null || b["tcpLatency"] === 0.0) ? "-" : b["tcpLatency"].toFixed(2);
-                         bouw = bouw + ("<td>"+latency+"</td><td>"+tcpLatency+"</td><td>"+b["queries"]+"</td><td>"+b["reuseds"]+"</td><td>"+(b["qps"]).toFixed(2)+"</td><td>"+b["outstanding"]+"</td>");
-                         bouw = bouw + ("<td>"+b["weight"]+"</td><td>"+b["order"]+"</td><td align=left>"+b["pools"]+"</td></tr>");
+                         appendCellToRow(row, b["id"]);
+                         appendCellToRow(row, b["name"], 'left');
+                         appendCellToRow(row, b["address"], 'left');
+                         appendCellToRow(row, b["state"]);
+                         appendCellToRow(row, latency);
+                         appendCellToRow(row, tcpLatency);
+                         appendCellToRow(row, b["queries"]);
+                         appendCellToRow(row, b["reused"]);
+                         appendCellToRow(row, b["qps"].toFixed(2));
+                         appendCellToRow(row, b["outstanding"]);
+                         appendCellToRow(row, b["weight"]);
+                         appendCellToRow(row, b["order"]);
+                         appendCellToRow(row, b["pools"], 'left');
+                         bouw.append(row);
                      });
-                     bouw = bouw + "</table>";
                      $("#downstreams").html(bouw);
 
-                     bouw='<table width="100%"><tr align=left><th>#</th><th align=left>Name</th><th align=left>Rule</th><th>Action</th><th>Matches</th></tr>';
-                     if(data["rules"].length) {
+                     bouw = $('<table width="100%"><tr align=left><th>#</th><th align=left>Name</th><th align=left>Rule</th><th>Action</th><th>Matches</th></tr></table>');
+                     if (data["rules"].length) {
                          $.each(data["rules"], function(a,b) {
-                             bouw = bouw + ("<tr align=left><td>"+b["id"]+"</td><td align=left>"+b["name"]+"</td><td align=left>"+b["rule"]+"</td><td>"+b["action"]+"</td>");
-                             bouw = bouw + ("<td>"+b["matches"]+"</td></tr>");
+                             var row = $('<tr align=left />');
+                             appendCellToRow(row, b["id"]);
+                             appendCellToRow(row, b["name"], 'left');
+                             appendCellToRow(row, b["rule"], 'left');
+                             appendCellToRow(row, b["action"]);
+                             appendCellToRow(row, b["matches"]);
+                             bouw.append(row);
                          });
                      }
-                     else
-                         bouw = bouw + '<tr><td align="center" colspan="4"><font color="#aaaaaa">No rules defined</font></td></tr>';
-                     bouw = bouw + "</table>";
+                     else {
+                         bouw.append($('<tr><td align="center" colspan="4"><font color="#aaaaaa">No rules defined</font></td></tr>'));
+                     }
                      $("#rules").html(bouw);
 
-                     bouw='<table width="100%"><tr align=left><th>#</th><th align=left>Name</th><th align=left>Response Rule</th><th>Action</th><th>Matches</th></tr>';
-                     if(data["response-rules"].length) {
+                     bouw = $('<table width="100%"><tr align=left><th>#</th><th align=left>Name</th><th align=left>Response Rule</th><th>Action</th><th>Matches</th></tr></table>');
+                     if (data["response-rules"].length) {
                          $.each(data["response-rules"], function(a,b) {
-                             bouw = bouw + ("<tr align=left><td>"+b["id"]+"</td><td align=left>"+b["name"]+"</td><td align=left>"+b["rule"]+"</td><td>"+b["action"]+"</td>");
-                             bouw = bouw + ("<td>"+b["matches"]+"</td></tr>");
+                             var row = $('<tr align=left />');
+                             appendCellToRow(row, b["id"]);
+                             appendCellToRow(row, b["name"], 'left');
+                             appendCellToRow(row, b["rule"], 'left');
+                             appendCellToRow(row, b["action"]);
+                             appendCellToRow(row, b["matches"]);
+                             bouw.append(row);
                          });
                      }
-                     else
-                         bouw = bouw + '<tr><td align="center" colspan="4"><font color="#aaaaaa">No response rules defined</font></td></tr>';
-                     bouw = bouw + "</table>";
+                     else {
+                         bouw.append($('<tr><td align="center" colspan="4"><font color="#aaaaaa">No response rules defined</font></td></tr>'));
+                     }
                      $("#response-rules").html(bouw);
                  }
                });
 
         $.ajax({ url: 'jsonstat?command=dynblocklist', type: 'GET', dataType: 'json', jsonp: false,
                  success: function(data) {
-                     var bouw='<table width="100%"><tr align=left><th>Dyn blocked netmask</th><th>Seconds</th><th>Blocks</th><th>eBPF</th><th align=left>Reason</th></tr>';
-		     var gotsome=false;
+                     var bouw = $('<table width="100%"><tr align=left><th>Dyn blocked netmask</th><th>Seconds</th><th>Blocks</th><th>eBPF</th><th align=left>Reason</th></tr></table>');
+                     var gotsome = false;
                      $.each(data, function(a,b) {
-                         bouw=bouw+("<tr><td>"+a+"</td><td>"+b.seconds+"</td><td>"+b.blocks+"</td><td>"+b.ebpf+"</td><td>"+b.reason+"</td></tr>");
-			 gotsome=true;
+                         var row = $('<tr/>');
+                         appendCellToRow(row, a);
+                         appendCellToRow(row, b.seconds);
+                         appendCellToRow(row, b.blocks);
+                         appendCellToRow(row, b.ebpf);
+                         appendCellToRow(row, b.reason);
+                         bouw.append(row);
+                         gotsome = true;
                      });
 
-		     if(!gotsome)
-                         bouw = bouw + '<tr><td align="center" colspan="4"><font color="#aaaaaa">No dynamic blocks active</font></td></tr>';
+                     if (!gotsome) {
+                         bouw.append($('<tr><td align="center" colspan="4"><font color="#aaaaaa">No dynamic blocks active</font></td></tr>'));
+                     }
 
-                     bouw=bouw+"</table>";
                      $("#dynblock").html(bouw);
-
                  }});
 
         $.ajax({ url: 'jsonstat?command=ebpfblocklist', type: 'GET', dataType: 'json', jsonp: false,
                  success: function(data) {
-                     var bouw='<table width="100%"><tr align=left><th>Kernel-based dyn blocked netmask</th><th>Seconds</th></th><th>Blocks</th></tr>';
-		     var gotsome=false;
+                     var bouw = $('<table width="100%"><tr align=left><th>Kernel-based dyn blocked netmask</th><th>Seconds</th></th><th>Blocks</th></tr>');
+                     var gotsome = false;
                      $.each(data, function(a,b) {
-                         bouw=bouw+("<tr><td>"+a+"</td><td>"+b.seconds+"</td><td>"+b.blocks+"</td></tr>");
-			 gotsome=true;
+                         var row = $('<tr/>');
+                         appendCellToRow(row, a);
+                         appendCellToRow(row, b.seconds);
+                         appendCellToRow(row, b.blocks);
+                         bouw.append(row);
+                         gotsome = true;
                      });
 
-		     if(!gotsome)
-                         bouw = bouw + '<tr><td align="center" colspan="4"><font color="#aaaaaa">No eBPF blocks active</font></td></tr>';
+                     if (!gotsome) {
+                         bouw.append($('<tr><td align="center" colspan="4"><font color="#aaaaaa">No eBPF blocks active</font></td></tr>'));
+                     }
 
-                     bouw=bouw+"</table>";
                      $("#ebpfblock").html(bouw);
                  }});
     };
