@@ -1,0 +1,11 @@
+name: 'Normalize branch name'
+description: 'Normalize branch name'
+
+runs:
+  using: "composite"
+  steps:
+    - name: normalize branch name
+      shell: bash
+      run: |
+        : Normalize branch name
+        echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"

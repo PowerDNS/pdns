@@ -76,28 +76,20 @@ jobs:
           submodules: recursive
           ref: ${{ inputs.branch-name }}
           persist-credentials: false
-      - name: get timestamp for cache
-        id: get-stamp
-        run: |
-          echo "stamp=$(/bin/date +%s)" >> "$GITHUB_OUTPUT"
-        shell: bash
-        working-directory: .
-      - run: mkdir -p ~/.ccache
-        working-directory: .
-      - name: let GitHub cache our ccache data
-        uses: actions/cache@v4
+      - name: add problem matchers
+        uses: ./.github/actions/problem-matchers
+      - name: set up build
+        uses: ./.github/actions/cache
         with:
-          path: ~/.ccache
-          key: auth-ccache-${{ matrix.builder }}-${{ steps.get-stamp.outputs.stamp }}
-          restore-keys: auth-ccache-${{ matrix.builder }}
+          cache-key-base: auth-ccache-${{ matrix.builder }}
       - name: set sanitizers
         run: echo "SANITIZERS=${{ matrix.builder == 'meson' && 'address,undefined' || 'asan+ubsan' }}" >> "$GITHUB_ENV"
         working-directory: .
       - name: install pip build dependencies
-        run: |
-          python3 -m venv ${REPO_HOME}/.venv
-          . ${REPO_HOME}/.venv/bin/activate && pip install -r ${REPO_HOME}/meson/requirements.txt
-        working-directory: .
+        uses: ./.github/actions/pip-build-dependencies
+        with:
+          venv-parent: ${{ env.REPO_HOME }}
+          working-directory: .
       - run: ${{ env.INV_CMD }} install-auth-build-deps
         working-directory: .
       - run: ${{ env.INV_CMD }} ci-autoconf ${{ matrix.builder == 'meson' && '--meson' || '' }}
@@ -124,10 +116,11 @@ jobs:
           fail-on-error: false
       - run: ${{ env.INV_CMD }} ci-auth-install ${{ matrix.builder == 'meson' && '--meson' || '' }}
       - run: ccache -s
+      - uses: ./.github/actions/normalize-branch-name
+        if: ${{ matrix.builder == 'meson' }}
       - name: Prepare binaries folder
         if: ${{ matrix.builder == 'meson' }}
         run: |
-          echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
           mkdir -p /opt/pdns-auth/bin
           for i in $(find . -maxdepth 1 -type f -executable); do cp ${i} /opt/pdns-auth/bin/; done
           mkdir -p /opt/pdns-auth/sbin; mv /opt/pdns-auth/bin/pdns_server /opt/pdns-auth/sbin/
@@ -171,25 +164,17 @@ jobs:
           submodules: recursive
           ref: ${{ inputs.branch-name }}
           persist-credentials: false
-      - name: get timestamp for cache
-        id: get-stamp
-        run: |
-          echo "stamp=$(/bin/date +%s)" >> "$GITHUB_OUTPUT"
-        shell: bash
-        working-directory: .
-      - run: mkdir -p ~/.ccache
-        working-directory: .
-      - name: let GitHub cache our ccache data
-        uses: actions/cache@v4
+      - name: add problem matchers
+        uses: ./.github/actions/problem-matchers
+      - name: set up build
+        uses: ./.github/actions/cache
         with:
-          path: ~/.ccache
-          key: recursor-ccache-${{ matrix.builder }}-${{ matrix.features }}-${{ matrix.sanitizers }}-${{ steps.get-stamp.outputs.stamp }}
-          restore-keys: recursor-ccache-${{ matrix.builder }}-${{ matrix.features }}-${{ matrix.sanitizers }}
+          cache-key-base: recursor-ccache-${{ matrix.builder }}-${{ matrix.features }}-${{ matrix.sanitizers }}
       - name: install pip build dependencies
-        run: |
-          python3 -m venv ${REPO_HOME}/.venv
-          . ${REPO_HOME}/.venv/bin/activate && pip install -r ${REPO_HOME}/meson/requirements.txt
-        working-directory: .
+        uses: ./.github/actions/pip-build-dependencies
+        with:
+          venv-parent: ${{ env.REPO_HOME }}
+          working-directory: .
       - run: ${{ env.INV_CMD }} install-rec-build-deps
         working-directory: ./pdns/recursordist/
       - run: ${{ env.INV_CMD }} ci-install-rust ${REPO_HOME}
@@ -213,8 +198,8 @@ jobs:
           fail-on-error: false
       - run: ${{ env.INV_CMD }} ci-rec-install ${{ matrix.builder == 'meson' && '--meson' || '' }}
       - run: ccache -s
-      - if: ${{ matrix.builder == 'meson' }}
-        run: echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
+      - uses: ./.github/actions/normalize-branch-name
+        if: ${{ matrix.builder == 'meson' }}
       - if: ${{ matrix.builder == 'meson' }}
         name: Store the binaries
         uses: actions/upload-artifact@v5 # this takes 30 seconds, maybe we want to tar
@@ -263,25 +248,17 @@ jobs:
           submodules: recursive
           ref: ${{ inputs.branch-name }}
           persist-credentials: false
-      - name: get timestamp for cache
-        id: get-stamp
-        run: |
-          echo "stamp=$(/bin/date +%s)" >> "$GITHUB_OUTPUT"
-        shell: bash
-        working-directory: .
-      - run: mkdir -p ~/.ccache
-        working-directory: .
-      - name: let GitHub cache our ccache data
-        uses: actions/cache@v4
+      - name: add problem matchers
+        uses: ./.github/actions/problem-matchers
+      - name: set up build
+        uses: ./.github/actions/cache
         with:
-          path: ~/.ccache
-          key: dnsdist-${{ matrix.features }}-${{ matrix.sanitizers }}-${{ matrix.builder}}${{ matrix.architecture_suffix }}-ccache-${{ steps.get-stamp.outputs.stamp }}
-          restore-keys: dnsdist-${{ matrix.features }}-${{ matrix.sanitizers }}-${{ matrix.builder}}${{ matrix.architecture_suffix }}-ccache-
+          cache-key-base: dnsdist-${{ matrix.features }}-${{ matrix.sanitizers }}-${{ matrix.builder}}${{ matrix.architecture_suffix }}-ccache
       - name: install pip build dependencies
-        run: |
-          python3 -m venv ${REPO_HOME}/.venv
-          . ${REPO_HOME}/.venv/bin/activate && pip install -r ${REPO_HOME}/meson/requirements.txt
-        working-directory: .
+        uses: ./.github/actions/pip-build-dependencies
+        with:
+          venv-parent: ${{ env.REPO_HOME }}
+          working-directory: .
       - run: ${{ env.INV_CMD }} install-clang
         working-directory: .
       - run: ${{ env.INV_CMD }} install-lld-linker-if-needed
@@ -318,10 +295,11 @@ jobs:
           fail-on-error: false
       - run: ${{ env.INV_CMD }} ci-dnsdist-install ${{ matrix.builder == 'meson' && '--meson' || '' }}
       - run: ccache -s
+      - uses: ./.github/actions/normalize-branch-name
+        if: ${{ matrix.builder == 'meson' }}
       - name: Prepare binaries folder
         if: ${{ matrix.builder == 'meson' }}
         run: |
-          echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
           mkdir -p /opt/dnsdist/bin
           for i in $(find . -maxdepth 1 -type f -executable); do cp ${i} /opt/dnsdist/bin/; done
       - name: Store the binaries
@@ -377,16 +355,19 @@ jobs:
           submodules: recursive
           ref: ${{ inputs.branch-name }}
           persist-credentials: false
-      - run: echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
+      - name: add problem matchers
+        uses: ./.github/actions/problem-matchers
+      - uses: ./.github/actions/normalize-branch-name
       - name: Fetch the binaries
         uses: actions/download-artifact@v6
         with:
           name: pdns-auth-meson-${{ env.normalized-branch-name }}
           path: /opt/pdns-auth
       - name: install pip build dependencies
-        run: |
-          python3 -m venv ${REPO_HOME}/.venv
-          . ${REPO_HOME}/.venv/bin/activate && pip install -r ${REPO_HOME}/meson/requirements.txt
+        uses: ./.github/actions/pip-build-dependencies
+        with:
+          venv-parent: ${{ env.REPO_HOME }}
+          working-directory: .
       - run: ${{ env.INV_CMD }} apt-fresh
       - run: ${{ env.INV_CMD }} install-clang-runtime
       - run: ${{ env.INV_CMD }} install-auth-test-deps -b ${{ matrix.backend }}
@@ -509,7 +490,9 @@ jobs:
           submodules: recursive
           ref: ${{ inputs.branch-name }}
           persist-credentials: false
-      - run: echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
+      - name: add problem matchers
+        uses: ./.github/actions/problem-matchers
+      - uses: ./.github/actions/normalize-branch-name
       - name: Fetch the binaries
         uses: actions/download-artifact@v6
         with:
@@ -517,9 +500,10 @@ jobs:
           path: /opt/pdns-auth
       # FIXME: install recursor for backends that have ALIAS
       - name: install pip build dependencies
-        run: |
-          python3 -m venv ${REPO_HOME}/.venv
-          . ${REPO_HOME}/.venv/bin/activate && pip install -r ${REPO_HOME}/meson/requirements.txt
+        uses: ./.github/actions/pip-build-dependencies
+        with:
+          venv-parent: ${{ env.REPO_HOME }}
+          working-directory: .
       - run: ${{ env.INV_CMD }} github-more-diskspace
       - run: ${{ env.INV_CMD }} install-clang-runtime
       - run: ${{ env.INV_CMD }} install-auth-test-deps -b ${{ matrix.backend }}
@@ -554,16 +538,19 @@ jobs:
           submodules: recursive
           ref: ${{ inputs.branch-name }}
           persist-credentials: false
-      - run: echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
+      - name: add problem matchers
+        uses: ./.github/actions/problem-matchers
+      - uses: ./.github/actions/normalize-branch-name
       - name: Fetch the binaries
         uses: actions/download-artifact@v6
         with:
           name: pdns-auth-meson-${{ env.normalized-branch-name }}
           path: /opt/pdns-auth
       - name: install pip build dependencies
-        run: |
-          python3 -m venv ${REPO_HOME}/.venv
-          . ${REPO_HOME}/.venv/bin/activate && pip install -r ${REPO_HOME}/meson/requirements.txt
+        uses: ./.github/actions/pip-build-dependencies
+        with:
+          venv-parent: ${{ env.REPO_HOME }}
+          working-directory: .
       - run: ${{ env.INV_CMD }} install-clang-runtime
       - run: ${{ env.INV_CMD }} install-auth-test-deps
       - run: ${{ env.INV_CMD }} test-ixfrdist
@@ -604,16 +591,19 @@ jobs:
           submodules: recursive
           ref: ${{ inputs.branch-name }}
           persist-credentials: false
-      - run: echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
+      - name: add problem matchers
+        uses: ./.github/actions/problem-matchers
+      - uses: ./.github/actions/normalize-branch-name
       - name: Fetch the binaries
         uses: actions/download-artifact@v6
         with:
           name: pdns-recursor-full-${{ matrix.sanitizers }}-meson-${{ env.normalized-branch-name }}
           path: /opt/pdns-recursor
       - name: install pip build dependencies
-        run: |
-          python3 -m venv ${REPO_HOME}/.venv
-          . ${REPO_HOME}/.venv/bin/activate && pip install -r ${REPO_HOME}/meson/requirements.txt
+        uses: ./.github/actions/pip-build-dependencies
+        with:
+          venv-parent: ${{ env.REPO_HOME }}
+          working-directory: .
       - run: ${{ env.INV_CMD }} apt-fresh
       - run: ${{ env.INV_CMD }} add-auth-repo ${{ matrix.dist_name }} $(. /etc/os-release && echo $VERSION_CODENAME) ${{ matrix.pdns_repo_version }}
       - run: ${{ env.INV_CMD }} install-clang-runtime
@@ -658,16 +648,19 @@ jobs:
           submodules: recursive
           ref: ${{ inputs.branch-name }}
           persist-credentials: false
-      - run: echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
+      - uses: ./.github/actions/normalize-branch-name
+      - name: add problem matchers
+        uses: ./.github/actions/problem-matchers
       - name: Fetch the binaries
         uses: actions/download-artifact@v6
         with:
           name: pdns-recursor-full-${{ matrix.sanitizers }}-meson-${{ env.normalized-branch-name }}
           path: /opt/pdns-recursor
       - name: install pip build dependencies
-        run: |
-          python3 -m venv ${REPO_HOME}/.venv
-          . ${REPO_HOME}/.venv/bin/activate && pip install -r ${REPO_HOME}/meson/requirements.txt
+        uses: ./.github/actions/pip-build-dependencies
+        with:
+          venv-parent: ${{ env.REPO_HOME }}
+          working-directory: .
       - run: ${{ env.INV_CMD }} apt-fresh
       - run: ${{ env.INV_CMD }} add-auth-repo ${{ matrix.dist_name }} $(. /etc/os-release && echo $VERSION_CODENAME) ${{ matrix.pdns_repo_version }}
       - run: ${{ env.INV_CMD }} install-clang-runtime
@@ -713,16 +706,19 @@ jobs:
           submodules: recursive
           ref: ${{ inputs.branch-name }}
           persist-credentials: false
-      - run: echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
+      - name: add problem matchers
+        uses: ./.github/actions/problem-matchers
+      - uses: ./.github/actions/normalize-branch-name
       - name: Fetch the binaries
         uses: actions/download-artifact@v6
         with:
           name: pdns-recursor-full-${{ matrix.sanitizers }}-meson-${{ env.normalized-branch-name }}
           path: /opt/pdns-recursor
       - name: install pip build dependencies
-        run: |
-          python3 -m venv ${REPO_HOME}/.venv
-          . ${REPO_HOME}/.venv/bin/activate && pip install -r ${REPO_HOME}/meson/requirements.txt
+        uses: ./.github/actions/pip-build-dependencies
+        with:
+          venv-parent: ${{ env.REPO_HOME }}
+          working-directory: .
       - run: ${{ env.INV_CMD }} install-clang-runtime
       - run: ${{ env.INV_CMD }} install-rec-bulk-deps
       - run: ${{ env.INV_CMD }} test-bulk-recursor 100 ${{ matrix.threads }} ${{ matrix.mthreads }} ${{ matrix.shards }} ${{ matrix.IPv6 }}
@@ -759,7 +755,9 @@ jobs:
           submodules: recursive
           ref: ${{ inputs.branch-name }}
           persist-credentials: false
-      - run: echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
+      - name: add problem matchers
+        uses: ./.github/actions/problem-matchers
+      - uses: ./.github/actions/normalize-branch-name
       - name: Fetch the binaries
         uses: actions/download-artifact@v6
         with:
@@ -767,9 +765,9 @@ jobs:
           path: /opt/pdns-recursor
       - run: build-scripts/gh-actions-setup-inv-no-dist-upgrade
       - name: install pip build dependencies
-        run: |
-          python3 -m venv ${{ github.workspace }}/.venv
-          . ${{ github.workspace }}/.venv/bin/activate && pip install -r ${{ github.workspace }}/meson/requirements.txt
+        uses: ./.github/actions/pip-build-dependencies
+        with:
+          venv-parent: ${{ github.workspace }}
       - run: . ${{ github.workspace }}/.venv/bin/activate && inv install-rec-bulk-ubicloud-deps
       - run: . ${{ github.workspace }}/.venv/bin/activate && inv test-bulk-recursor 50000 ${{ matrix.threads }} ${{ matrix.mthreads }} ${{ matrix.shards }} ${{ matrix.IPv6 }}
         env:
@@ -820,16 +818,18 @@ jobs:
           submodules: recursive
           ref: ${{ inputs.branch-name }}
           persist-credentials: false
-      - run: echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
+      - name: add problem matchers
+        uses: ./.github/actions/problem-matchers
+      - uses: ./.github/actions/normalize-branch-name
       - name: Fetch the binaries
         uses: actions/download-artifact@v6
         with:
           name: dnsdist-full-${{ matrix.sanitizers }}-meson-${{ env.normalized-branch-name }}
           path: /opt/dnsdist
       - name: install pip build dependencies
-        run: |
-          python3 -m venv ${REPO_HOME}/.venv
-          . ${REPO_HOME}/.venv/bin/activate && pip install -r ${REPO_HOME}/meson/requirements.txt
+        uses: ./.github/actions/pip-build-dependencies
+        with:
+          venv-parent: ${{ env.REPO_HOME }}
       - run: ${{ env.INV_CMD }} install-clang-runtime
       - run: ${{ env.INV_CMD }} install-dnsdist-test-deps $([ "$(. /etc/os-release && echo $VERSION_CODENAME)" = "bullseye" ] && echo "--skipXDP=True")
       - run: ${{ env.INV_CMD }} test-dnsdist $([ "$(. /etc/os-release && echo $VERSION_CODENAME)" = "bullseye" ] && echo "--skipXDP=True")
@@ -860,10 +860,13 @@ jobs:
           submodules: recursive
           ref: ${{ inputs.branch-name }}
           persist-credentials: false
+      - name: add problem matchers
+        uses: ./.github/actions/problem-matchers
       - name: install pip build dependencies
-        run: |
-          python3 -m venv ${REPO_HOME}/.venv
-          . ${REPO_HOME}/.venv/bin/activate && pip install -r ${REPO_HOME}/meson/requirements.txt
+        uses: ./.github/actions/pip-build-dependencies
+        with:
+          venv-parent: ${{ env.REPO_HOME }}
+          working-directory: .
       - run: ${{ env.INV_CMD }} install-swagger-tools
       - run: ${{ env.INV_CMD }} swagger-syntax-check
 
