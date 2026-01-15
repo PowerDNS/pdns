@@ -28,21 +28,21 @@ class RecursorOT(ApiTestCase):
 
         # nonexistent condition
         r = self.session.get(
-            self.url("/api/v1/servers/localhost/ottraceconditions/1.2.3.4%2F32"),
+            self.url("/api/v1/servers/localhost/ottraceconditions/1.2.3.4/32"),
             headers={'content-type': 'application/json'})
         self.assertEqual(r.status_code, 422)
         self.assert_in_json_error('Could not find otcondition', r.json())
 
         # malformed netmask
         r = self.session.get(
-            self.url("/api/v1/servers/localhost/ottraceconditions/1.2.3%2F32"),
+            self.url("/api/v1/servers/localhost/ottraceconditions/1.2.3/32"),
             headers={'content-type': 'application/json'})
         self.assertEqual(r.status_code, 422)
         self.assert_in_json_error('Could not parse netmask', r.json())
 
         # deleting non-existent netmask
         r = self.session.delete(
-            self.url("/api/v1/servers/localhost/ottraceconditions/1.2.3.4%2F32"),
+            self.url("/api/v1/servers/localhost/ottraceconditions/1.2.3.4/32"),
             headers={'content-type': 'application/json'})
         self.assertEqual(r.status_code, 422)
         self.assert_in_json_error('Could not find otcondition', r.json())
@@ -108,16 +108,16 @@ class RecursorOT(ApiTestCase):
         self.assertEqual(r.status_code, 200)
         self.assertEqual(len(r.json()), 2)
 
-        # querying by more specific key
+        # querying by more specific key than /24
         r = self.session.get(
-            self.url("/api/v1/servers/localhost/ottraceconditions/1.2.3.4%2F31"),
+            self.url("/api/v1/servers/localhost/ottraceconditions/1.2.3.4/31"),
             headers={'content-type': 'application/json'})
         self.assertEqual(r.status_code, 422)
         self.assert_in_json_error('Could not find otcondition', r.json())
 
         # deleting specific netmask
         r = self.session.delete(
-            self.url("/api/v1/servers/localhost/ottraceconditions/1.2.3.4%2F32"),
+            self.url("/api/v1/servers/localhost/ottraceconditions/1.2.3.4/32"),
             headers={'content-type': 'application/json'})
         self.assertEqual(r.status_code, 204)
 
@@ -160,7 +160,7 @@ class RecursorOT(ApiTestCase):
 
         # and GET the newly created one in a separate call
         r = self.session.get(
-            self.url("/api/v1/servers/localhost/ottraceconditions/::1%2F0"),
+            self.url("/api/v1/servers/localhost/ottraceconditions/::/0"),
             headers={'content-type': 'application/json'})
         self.assertEqual(r.status_code, 200)
         data = r.json()

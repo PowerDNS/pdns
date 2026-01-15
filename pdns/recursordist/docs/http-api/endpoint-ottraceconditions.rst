@@ -17,16 +17,16 @@ OpenTelemetryTraceConditions endpoint
 
   :query server_id: The name of the server
 
-.. http:get:: /api/v1/servers/:server_id/ottraceconditions/:subnet
+.. http:get:: /api/v1/servers/:server_id/ottraceconditions/:ip/:prefixlen
 
   Returns trace condition information.
 
   :query server_id: The name of the server
-  :query subnet: The subnet of the :json:object:`OpenTelemetryTraceCondition`. URL encode subnet, for example ``192.0.2.1/32`` becomes ``192.0.2.1%2F32``.
+  :query ip/prefixlen: The subnet of the :json:object:`OpenTelemetryTraceCondition`.
 
-.. http:delete:: /api/v1/servers/:server_id/ottraceconditions/:subnet
+.. http:delete:: /api/v1/servers/:server_id/ottraceconditions/:ip/:prefixlen
 
   Deletes this zone, all attached metadata and rrsets.
 
   :query server_id: The name of the server
-  :query subnet: The subnet of the :json:object:`OpenTelemetryTraceCondition`. URL encode subnet, for example ``192.0.2.1/32`` becomes ``192.0.2.1%2F32``.
+  :query ip/prefixlen: The subnet of the :json:object:`OpenTelemetryTraceCondition`.

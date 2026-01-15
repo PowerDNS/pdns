@@ -402,26 +402,18 @@ fn matcher(
         (&Method::GET, ["api", "v1", "servers", "localhost", "ottraceconditions"]) => {
             *apifunc = Some(rustweb::apiServerOTConditionsGET);
         }
-        (&Method::GET, ["api", "v1", "servers", "localhost", "ottraceconditions", acl]) => {
-            let decoded = form_urlencoded::parse(acl.as_bytes());
-            // decoded should contain a single key without value
-            if let Some(kv) = decoded.last() {
-                request.parameters.push(rustweb::KeyValue {
-                    key: String::from("acl"),
-                    value: kv.0.to_string(),
-                });
-            }
+        (&Method::GET, ["api", "v1", "servers", "localhost", "ottraceconditions", ip, pflen]) => {
+            request.parameters.push(rustweb::KeyValue {
+                key: String::from("acl"),
+                value: String::from(*ip) + "/" + *pflen,
+            });
             *apifunc = Some(rustweb::apiServerOTConditionDetailGET)
         }
-        (&Method::DELETE, ["api", "v1", "servers", "localhost", "ottraceconditions", acl]) => {
-            let decoded = form_urlencoded::parse(acl.as_bytes());
-            // decoded should contain a single key without value
-            if let Some(kv) = decoded.last() {
-                request.parameters.push(rustweb::KeyValue {
-                    key: String::from("acl"),
-                    value: kv.0.to_string(),
-                });
-            }
+        (&Method::DELETE, ["api", "v1", "servers", "localhost", "ottraceconditions", ip, pflen]) => {
+            request.parameters.push(rustweb::KeyValue {
+                key: String::from("acl"),
+                value: String::from(*ip) + "/" + *pflen,
+            });
             *apifunc = Some(rustweb::apiServerOTConditionDetailDELETE)
         }
         (&Method::POST, ["api", "v1", "servers", "localhost", "ottraceconditions"]) => {
