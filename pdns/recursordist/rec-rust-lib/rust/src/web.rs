@@ -399,10 +399,10 @@ fn matcher(
         (&Method::GET, ["api", "v1"]) => *apifunc = Some(rustweb::apiDiscoveryV1),
         (&Method::GET, ["api"]) => *apifunc = Some(rustweb::apiDiscovery),
         (&Method::GET, ["metrics"]) => *rawfunc = Some(rustweb::prometheusMetrics),
-        (&Method::GET, ["api", "v1", "servers", "localhost", "otconditions"]) => {
+        (&Method::GET, ["api", "v1", "servers", "localhost", "ottraceconditions"]) => {
             *apifunc = Some(rustweb::apiServerOTConditionsGET);
         }
-        (&Method::GET, ["api", "v1", "servers", "localhost", "otconditions", acl]) => {
+        (&Method::GET, ["api", "v1", "servers", "localhost", "ottraceconditions", acl]) => {
             let decoded = form_urlencoded::parse(acl.as_bytes());
             // decoded should contain a single key without value
             if let Some(kv) = decoded.last() {
@@ -413,7 +413,7 @@ fn matcher(
             }
             *apifunc = Some(rustweb::apiServerOTConditionDetailGET)
         }
-        (&Method::DELETE, ["api", "v1", "servers", "localhost", "otconditions", acl]) => {
+        (&Method::DELETE, ["api", "v1", "servers", "localhost", "ottraceconditions", acl]) => {
             let decoded = form_urlencoded::parse(acl.as_bytes());
             // decoded should contain a single key without value
             if let Some(kv) = decoded.last() {
@@ -424,7 +424,7 @@ fn matcher(
             }
             *apifunc = Some(rustweb::apiServerOTConditionDetailDELETE)
         }
-        (&Method::POST, ["api", "v1", "servers", "localhost", "otconditions"]) => {
+        (&Method::POST, ["api", "v1", "servers", "localhost", "ottraceconditions"]) => {
             *apifunc = Some(rustweb::apiServerOTConditionDetailPOST)
         }
         _ => *filefunc = Some(file),

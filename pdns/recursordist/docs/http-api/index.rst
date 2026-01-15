@@ -14,7 +14,7 @@ The following documents contain the information for the PowerDNS API:
     zone
     ../common/api/configsetting
     ../common/api/statisticitem
-
+    ottracecondition
 
 Webserver
 ---------
@@ -104,3 +104,4 @@ All API endpoints for the PowerDNS Recursor are documented here:
   endpoint-failure
   endpoint-rpz-stats
   endpoint-jsonstat
+  endpoint-ottraceconditions

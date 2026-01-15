@@ -551,6 +551,7 @@ static void apiServerOTConditionsGET(HttpRequest* /* req */, HttpResponse* resp)
     for (const auto& condition : **lock) {
       Json::object object{
         {"acl", condition.first.toString()},
+        {"type", "OpenTelemetryTraceCondition"},
         {"edns_option_required", condition.second.d_edns_option_required},
         {"traceid_only", condition.second.d_traceid_only},
       };
@@ -586,6 +587,7 @@ static void fillOTCondition(const Netmask& netmask, HttpResponse* resp)
     if (condition != nullptr && condition->first == netmask) { // exact match
       Json::object object{
         {"acl", condition->first.toString()},
+        {"type", "OpenTelemetryTraceCondition"},
         {"edns_option_required", condition->second.d_edns_option_required},
         {"traceid_only", condition->second.d_traceid_only},
       };
