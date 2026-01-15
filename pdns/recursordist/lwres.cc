@@ -704,7 +704,7 @@ static LWResult::Result asyncresolve(const OptLog& log, const ComboAddress& addr
   if (!doTCP) {
     int queryfd;
     try {
-      ret = asendto(vpacket.data(), vpacket.size(), 0, address, addressToBindTo, qid, domain, type, subnetOpts, &queryfd, *now);
+      ret = asendto(vpacket.data(), vpacket.size(), address, addressToBindTo, qid, domain, type, subnetOpts, &queryfd, *now);
     }
     catch (const PDNSException& e) {
       if (addressToBindTo) {
@@ -737,7 +737,7 @@ static LWResult::Result asyncresolve(const OptLog& log, const ComboAddress& addr
     }
 
     // sleep until we see an answer to this, interface to mtasker
-    ret = arecvfrom(buf, 0, address, len, qid, domain, type, queryfd, subnetOpts, *now);
+    ret = arecvfrom(buf, address, len, qid, domain, type, queryfd, subnetOpts, *now);
   }
   else {
     bool isNew{};
@@ -837,7 +837,10 @@ static LWResult::Result asyncresolve(const OptLog& log, const ComboAddress& addr
                         "onwire", Logging::Loggable(mdp.d_qname));
       }
       // unexpected count has already been done @ pdns_recursor.cc
-      goto out;
+      if (!lwr->d_rcode) {
+        lwr->d_rcode = RCode::ServFail;
+      }
+      return LWResult::Result::PermanentError;
     }
 
     lwr->d_records.reserve(mdp.d_answers.size());
@@ -947,7 +950,6 @@ static LWResult::Result asyncresolve(const OptLog& log, const ComboAddress& addr
 
   t_Counters.at(rec::Counter::serverParseError)++;
 
-out:
   if (!lwr->d_rcode) {
     lwr->d_rcode = RCode::ServFail;
   }
