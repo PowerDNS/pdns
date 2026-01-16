@@ -74,7 +74,6 @@ subdir('meson' / 'ipcipher')                # IPCipher (requires libcrypto)
 subdir('meson' / 'cdb')                     # CDB
 subdir('meson' / 'ebpf')                    # eBPF
 subdir('meson' / 'gnutls')                  # GNUTLS
-subdir('meson' / 'h2o')                     # H2O
 subdir('meson' / 'lmdb')                    # LMDB
 subdir('meson' / 'nghttp2')                 # NGHTTP2
 subdir('meson' / 'quiche')                  # Quiche
@@ -225,12 +224,6 @@ conditional_sources = {
     ],
     'condition': dep_cdb.found(),
   },
-  'doh': {
-    'sources': [
-      src_dir / 'doh.cc',
-    ],
-    'condition': dep_libh2o_evloop.found(),
-   },
   'doq': {
     'sources': [
       src_dir / 'doq.cc',
@@ -391,7 +384,6 @@ deps = [
   dep_libcrypto,
   dep_gnutls,
   dep_libedit,
-  dep_libh2o_evloop,
   dep_json11,
   dep_libnghttp2,
   dep_libquiche,

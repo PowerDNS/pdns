@@ -263,8 +263,6 @@ class DOHTests(object):
         """
         DOH: qdcount == 0
         """
-        if self._dohLibrary == 'h2o':
-            raise unittest.SkipTest('h2o tries to parse the qname early, so this check will fail')
         query = dns.message.Message()
         query.id = 0
         query.flags &= ~dns.flags.RD
@@ -349,8 +347,6 @@ class DOHTests(object):
         """
         DOH: Invalid method
         """
-        if self._dohLibrary == 'h2o':
-            raise unittest.SkipTest('h2o does not check the HTTP method')
         name = 'invalid-method.doh.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
         wire = query.to_wire()
@@ -397,8 +393,6 @@ class DOHTests(object):
         """
         DOH: HTTP/1.1
         """
-        if self._dohLibrary == 'h2o':
-            raise unittest.SkipTest('h2o supports HTTP/1.1, this test is only relevant for nghttp2')
         httpConnections = self.getHTTPCounter('connects')
         http1 = self.getHTTPCounter('http/1.1')
         http2 = self.getHTTPCounter('http/2')
@@ -440,8 +434,6 @@ class DOHTests(object):
         """
         DOH: Check that HTTP/1.1 is not selected over H2 when offered in the wrong order by the client
         """
-        if self._dohLibrary == 'h2o':
-            raise unittest.SkipTest('h2o supports HTTP/1.1, this test is only relevant for nghttp2')
         alpn = ['http/1.1', 'h2']
         conn = self.openTLSConnection(self._dohServerPort, self._serverName, self._caCert, alpn=alpn)
         if not hasattr(conn, 'selected_alpn_protocol'):
@@ -510,8 +502,6 @@ class DOHTests(object):
         """
         DOH: No backend
         """
-        if self._dohLibrary == 'h2o':
-            raise unittest.SkipTest('h2o does not check the HTTP method')
         name = 'no-backend.doh.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
         wire = query.to_wire()
@@ -789,9 +779,6 @@ class DOHTests(object):
 class TestDoHNGHTTP2(DOHTests, DNSDistDOHTest):
     _dohLibrary = 'nghttp2'
 
-class TestDoHH2O(DOHTests, DNSDistDOHTest):
-    _dohLibrary = 'h2o'
-
 class TestDoHNGHTTP2Yaml(DOHTests, DNSDistDOHTest):
     _dohLibrary = 'nghttp2'
     _yaml_config_template = """---
@@ -995,9 +982,6 @@ class DOHSubPathsTests(object):
 class TestDoHSubPathsNGHTTP2(DOHSubPathsTests, DNSDistDOHTest):
     _dohLibrary = 'nghttp2'
 
-class TestDoHSubPathsH2O(DOHSubPathsTests, DNSDistDOHTest):
-    _dohLibrary = 'h2o'
-
 class DOHAddingECSTests(object):
 
     _serverKey = 'server.key'
@@ -1097,9 +1081,6 @@ class DOHAddingECSTests(object):
 class TestDoHAddingECSNGHTTP2(DOHAddingECSTests, DNSDistDOHTest):
     _dohLibrary = 'nghttp2'
 
-class TestDoHAddingECSH2O(DOHAddingECSTests, DNSDistDOHTest):
-    _dohLibrary = 'h2o'
-
 class DOHOverHTTP(object):
     _dohServerPort = pickAvailablePort()
     _serverName = 'tls.tests.dnsdist.org'
@@ -1165,12 +1146,6 @@ class TestDOHOverHTTPNGHTTP2(DOHOverHTTP, DNSDistDOHTest):
     _dohLibrary = 'nghttp2'
     _checkConfigExpectedOutput = b"""No certificate provided for DoH endpoint 127.0.0.1:%d, running in DNS over HTTP mode instead of DNS over HTTPS
 Configuration 'configs/dnsdist_TestDOHOverHTTPNGHTTP2.conf' OK!
-""" % (DOHOverHTTP._dohServerPort)
-
-class TestDOHOverHTTPH2O(DOHOverHTTP, DNSDistDOHTest):
-    _dohLibrary = 'h2o'
-    _checkConfigExpectedOutput = b"""No certificate provided for DoH endpoint 127.0.0.1:%d, running in DNS over HTTP mode instead of DNS over HTTPS
-Configuration 'configs/dnsdist_TestDOHOverHTTPH2O.conf' OK!
 """ % (DOHOverHTTP._dohServerPort)
 
 class DOHWithCache(object):
@@ -1386,9 +1361,6 @@ class TestDOHWithCacheNGHTTP2(DOHWithCache, DNSDistDOHTest):
     _dohLibrary = 'nghttp2'
     _verboseMode = True
 
-class TestDOHWithCacheH2O(DOHWithCache, DNSDistDOHTest):
-    _dohLibrary = 'h2o'
-
 class DOHWithoutCacheControl(object):
 
     _serverKey = 'server.key'
@@ -1432,9 +1404,6 @@ class DOHWithoutCacheControl(object):
 
 class TestDOHWithoutCacheControlNGHTTP2(DOHWithoutCacheControl, DNSDistDOHTest):
     _dohLibrary = 'nghttp2'
-
-class TestDOHWithoutCacheControlH2O(DOHWithoutCacheControl, DNSDistDOHTest):
-    _dohLibrary = 'h2o'
 
 class DOHFFI(object):
     _serverKey = 'server.key'
@@ -1499,9 +1468,6 @@ class DOHFFI(object):
 
 class TestDOHFFINGHTTP2(DOHFFI, DNSDistDOHTest):
     _dohLibrary = 'nghttp2'
-
-class TestDOHFFIH2O(DOHFFI, DNSDistDOHTest):
-    _dohLibrary = 'h2o'
 
 class DOHForwardedFor(object):
     _serverKey = 'server.key'
@@ -1571,9 +1537,6 @@ class DOHForwardedFor(object):
 class TestDOHForwardedForNGHTTP2(DOHForwardedFor, DNSDistDOHTest):
     _dohLibrary = 'nghttp2'
 
-class TestDOHForwardedForH2O(DOHForwardedFor, DNSDistDOHTest):
-    _dohLibrary = 'h2o'
-
 class DOHForwardedForNoTrusted(object):
 
     _serverKey = 'server.key'
@@ -1620,9 +1583,6 @@ class DOHForwardedForNoTrusted(object):
 class TestDOHForwardedForNoTrustedNGHTTP2(DOHForwardedForNoTrusted, DNSDistDOHTest):
     _dohLibrary = 'nghttp2'
 
-class TestDOHForwardedForNoTrustedH2O(DOHForwardedForNoTrusted, DNSDistDOHTest):
-    _dohLibrary = 'h2o'
-
 class DOHFrontendLimits(object):
 
     # this test suite uses a different responder port
@@ -1655,9 +1615,7 @@ class DOHFrontendLimits(object):
 
         for idx in range(self._maxTCPConnsPerDOHFrontend + 1):
             try:
-                alpn = []
-                if self._dohLibrary != 'h2o':
-                    alpn.append('h2')
+                alpn = ['h2']
                 conns.append(self.openTLSConnection(self._dohServerPort, self._serverName, self._caCert, alpn=alpn))
             except Exception:
                 conns.append(None)
@@ -1693,9 +1651,6 @@ class DOHFrontendLimits(object):
 
 class TestDOHFrontendLimitsNGHTTP2(DOHFrontendLimits, DNSDistDOHTest):
     _dohLibrary = 'nghttp2'
-
-class TestDOHFrontendLimitsH2O(DOHFrontendLimits, DNSDistDOHTest):
-    _dohLibrary = 'h2o'
 
 class Protocols(object):
     _serverKey = 'server.key'
@@ -1741,9 +1696,6 @@ class Protocols(object):
 class TestProtocolsNGHTTP2(Protocols, DNSDistDOHTest):
     _dohLibrary = 'nghttp2'
 
-class TestProtocolsH2O(Protocols, DNSDistDOHTest):
-    _dohLibrary = 'h2o'
-
 class DOHWithPKCS12Cert(object):
     _serverCert = 'server.p12'
     _pkcs12Password = 'passw0rd'
@@ -1784,9 +1736,6 @@ class DOHWithPKCS12Cert(object):
 class TestDOHWithPKCS12CertNGHTTP2(DOHWithPKCS12Cert, DNSDistDOHTest):
     _dohLibrary = 'nghttp2'
 
-class TestDOHWithPKCS12CertH2O(DOHWithPKCS12Cert, DNSDistDOHTest):
-    _dohLibrary = 'h2o'
-
 class DOHForwardedToTCPOnly(object):
     _serverKey = 'server.key'
     _serverCert = 'server.chain'
@@ -1824,9 +1773,6 @@ class DOHForwardedToTCPOnly(object):
 
 class TestDOHForwardedToTCPOnlyNGHTTP2(DOHForwardedToTCPOnly, DNSDistDOHTest):
     _dohLibrary = 'nghttp2'
-
-class TestDOHForwardedToTCPOnlyH2O(DOHForwardedToTCPOnly, DNSDistDOHTest):
-    _dohLibrary = 'h2o'
 
 class DOHLimits(object):
     _serverName = 'tls.tests.dnsdist.org'
@@ -1885,9 +1831,6 @@ class DOHLimits(object):
 class TestDOHLimitsNGHTTP2(DOHLimits, DNSDistDOHTest):
     _dohLibrary = 'nghttp2'
 
-class TestDOHLimitsH2O(DOHLimits, DNSDistDOHTest):
-    _dohLibrary = 'h2o'
-
 class DOHXFR(object):
     _serverName = 'tls.tests.dnsdist.org'
     _caCert = 'ca.pem'
@@ -1920,5 +1863,3 @@ class DOHXFR(object):
 class TestDOHXFRNGHTTP2(DOHXFR, DNSDistDOHTest):
     _dohLibrary = 'nghttp2'
 
-class TestDOHXFRH2O(DOHXFR, DNSDistDOHTest):
-    _dohLibrary = 'h2o'

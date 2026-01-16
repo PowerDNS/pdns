@@ -6,6 +6,11 @@ Upgrade Guide
 
 Custom load-balancing policies written in Lua now need to return the index in the servers array of the backend they intend to select, instead of returning a reference to the backend itself.
 
+dnsdist no longer supports ``h2o`` for incoming DNS over HTTPS, as it is unfortunately no longer maintained in a way that is suitable for use as a library
+(see https://github.com/h2o/h2o/issues/3230). This means that only ``nghttp2`` is supported from now on.
+Note that ``nghttp2`` only supports HTTP/2, and not HTTP/1, while ``h2o`` supported both. This is not an issue for actual DNS over HTTPS clients that
+support HTTP/2, but might be one in setups running dnsdist behind a reverse-proxy that does not support HTTP/2. See :doc:`guides/dns-over-https` for some work-around.
+
 1.9.x to 2.0.0
 --------------
 

@@ -1220,16 +1220,13 @@ class TestDOHWithOutgoingProxyProtocol(DNSDistDOHTest):
     _caCert = 'ca.pem'
     _dohWithNGHTTP2ServerPort = pickAvailablePort()
     _dohWithNGHTTP2BaseURL = ("https://%s:%d/dns-query" % (_serverName, _dohWithNGHTTP2ServerPort))
-    _dohWithH2OServerPort = pickAvailablePort()
-    _dohWithH2OBaseURL = ("https://%s:%d/dns-query" % (_serverName, _dohWithH2OServerPort))
     _proxyResponderPort = proxyResponderPort
     _config_template = """
     newServer{address="127.0.0.1:%d", useProxyProtocol=true}
     addDOHLocal("127.0.0.1:%d", "%s", "%s", { '/dns-query' }, { trustForwardedForHeader=true, library='nghttp2' })
-    addDOHLocal("127.0.0.1:%d", "%s", "%s", { '/dns-query' }, { trustForwardedForHeader=true, library='h2o' })
     setACL( { "::1/128", "127.0.0.0/8" } )
     """
-    _config_params = ['_proxyResponderPort', '_dohWithNGHTTP2ServerPort', '_serverCert', '_serverKey', '_dohWithH2OServerPort', '_serverCert', '_serverKey']
+    _config_params = ['_proxyResponderPort', '_dohWithNGHTTP2ServerPort', '_serverCert', '_serverKey']
 
     def testTruncation(self):
         """
@@ -1250,7 +1247,7 @@ class TestDOHWithOutgoingProxyProtocol(DNSDistDOHTest):
                                     '127.0.0.1')
         response.answer.append(rrset)
 
-        for (port,url) in [(self._dohWithNGHTTP2ServerPort, self._dohWithNGHTTP2BaseURL), (self._dohWithH2OServerPort, self._dohWithH2OBaseURL)]:
+        for (port,url) in [(self._dohWithNGHTTP2ServerPort, self._dohWithNGHTTP2BaseURL)]:
           # first response is a TC=1
           tcResponse = dns.message.make_response(query)
           tcResponse.flags |= dns.flags.TC
@@ -1302,7 +1299,7 @@ class TestDOHWithOutgoingProxyProtocol(DNSDistDOHTest):
                                     '127.0.0.1')
         response.answer.append(rrset)
 
-        for (port,url) in [(self._dohWithNGHTTP2ServerPort, self._dohWithNGHTTP2BaseURL), (self._dohWithH2OServerPort, self._dohWithH2OBaseURL)]:
+        for (port,url) in [(self._dohWithNGHTTP2ServerPort, self._dohWithNGHTTP2BaseURL)]:
           # the query should be dropped
           (receivedQuery, receivedResponse) = self.sendDOHQuery(port, self._serverName, url, query, caFile=self._caCert, customHeaders=['x-forwarded-for: [::1]:8080'], useQueue=False)
           self.assertFalse(receivedQuery)

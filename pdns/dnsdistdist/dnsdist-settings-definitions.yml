@@ -955,7 +955,6 @@ incoming_doh:
       descripton: "Which underlying HTTP2 library should be used"
       supported-values:
         - "nghttp2"
-        - "h2o"
     - name: "paths"
       type: "Vec<String>"
       default: "/dns-query"
@@ -967,7 +966,7 @@ incoming_doh:
     - name: "server_tokens"
       type: "String"
       default: ""
-      description: "The content of the Server: HTTP header returned by dnsdist. The default is ``h2o/dnsdist`` when ``h2o`` is used, ``nghttp2-<version>/dnsdist`` when ``nghttp2`` is"
+      description: "The content of the Server: HTTP header returned by dnsdist. The default is ``nghttp2-<version>/dnsdist`` when ``nghttp2`` is used"
     - name: "send_cache_control_headers"
       type: "bool"
       default: "true"

@@ -22,7 +22,6 @@
 #include "dnsdist-internal-queries.hh"
 #include "dnsdist-nghttp2-in.hh"
 #include "dnsdist-tcp.hh"
-#include "doh.hh"
 #include "doq.hh"
 
 std::unique_ptr<CrossProtocolQuery> getUDPCrossProtocolQueryFromDQ(DNSQuestion& dq);
@@ -37,11 +36,6 @@ std::unique_ptr<CrossProtocolQuery> getInternalQueryFromDQ(DNSQuestion& dnsQuest
   }
 #ifdef HAVE_DNS_OVER_HTTPS
   else if (protocol == dnsdist::Protocol::DoH) {
-#ifdef HAVE_LIBH2OEVLOOP
-    if (dnsQuestion.ids.cs->dohFrontend->d_library == "h2o") {
-      return getDoHCrossProtocolQueryFromDQ(dnsQuestion, isResponse);
-    }
-#endif /* HAVE_LIBH2OEVLOOP */
     return getTCPCrossProtocolQueryFromDQ(dnsQuestion);
   }
 #endif
