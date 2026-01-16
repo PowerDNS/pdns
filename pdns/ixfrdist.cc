@@ -212,11 +212,6 @@ static void usage(po::options_description &desc) {
   cerr << desc << "\n";
 }
 
-// The compiler does not like using rfc1982LessThan in std::sort directly
-static bool sortSOA(uint32_t i, uint32_t j) {
-  return rfc1982LessThan(i, j);
-}
-
 static void cleanUpDomain(const ZoneName& domain, const uint16_t& keep, const string& workdir) {
   string dir = workdir + "/" + domain.toString();
   vector<uint32_t> zoneVersions;
@@ -244,7 +239,7 @@ static void cleanUpDomain(const ZoneName& domain, const uint16_t& keep, const st
   g_log<<Logger::Info<<"cleaning up the oldest "<<zoneVersions.size() - keep<<endl;
 
   // Sort the versions
-  std::sort(zoneVersions.begin(), zoneVersions.end(), sortSOA);
+  std::sort(zoneVersions.begin(), zoneVersions.end(), rfc1982LessThan<uint32_t>);
 
   // And delete all the old ones
   {
