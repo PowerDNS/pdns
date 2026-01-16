@@ -54,7 +54,8 @@ public:
   static string makePercentage(const double& val);
 
 private:
-  void indexfunction(HttpRequest* req, HttpResponse* resp);
+  void indexGET(HttpRequest* req, HttpResponse* resp);
+  void indexPOST(HttpRequest* req, HttpResponse* resp);
   void jsonstat(HttpRequest* req, HttpResponse* resp);
   void registerApiHandler(const string& url, std::function<void(HttpRequest*, HttpResponse*)> handler);
   void webThread();
