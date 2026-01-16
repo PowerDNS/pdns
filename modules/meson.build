@@ -49,14 +49,14 @@ foreach module_name: all_modules
       link_whole: module_lib,
       name_suffix: 'so',
       install: true,
-      install_dir: get_option('libdir') / 'powerdns'
+      install_dir: get_option('libdir') / 'pdns'
     )
     selected_dyn_modules += module_name
   endif
 
   foreach resource: module_resources
     install_data(resource,
-      install_dir: get_option('datadir') / 'powerdns'
+      install_dir: get_option('datadir') / 'pdns'
     )
   endforeach
 
