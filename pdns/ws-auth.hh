@@ -66,6 +66,7 @@ private:
   Ewma d_queries, d_cachehits, d_cachemisses;
   Ewma d_qcachehits, d_qcachemisses;
   unique_ptr<WebServer> d_ws{nullptr};
+  std::string d_unique;
 };
 
 void apiDocs(HttpRequest* req, HttpResponse* resp);

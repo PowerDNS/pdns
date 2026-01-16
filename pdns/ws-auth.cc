@@ -118,6 +118,10 @@ AuthWebServer::AuthWebServer() :
 
 void AuthWebServer::go(StatBag& stats)
 {
+  // Compute a unique random value used for indexPOST validation
+  std::array<char, 32> buf{};
+  dns_random(buf.data(), buf.size());
+  d_unique = Base64Encode(std::string(buf.data(), buf.size()));
   S.doRings();
   std::thread webT([this]() { webThread(); });
   webT.detach();
@@ -168,7 +172,7 @@ static string htmlescape(const string& inputString)
   return result;
 }
 
-static void printtable(ostringstream& ret, const string& ringname, const string& title, int limit = 10)
+static void printtable(ostringstream& ret, const string& ringname, const std::string& unique, const string& title, int limit = 10)
 {
   unsigned int tot = 0;
   int entries = 0;
@@ -184,6 +188,7 @@ static void printtable(ostringstream& ret, const string& ringname, const string&
   ret << "<span class=resetring><i></i>";
   ret << "<form method=\"post\">";
   ret << "<input type=\"hidden\" name=\"resetring\" value=\"" << htmlescape(ringname) << "\" />";
+  ret << "<input type=\"hidden\" name=\"unique\" value=\"" << htmlescape(unique) << "\" />";
   ret << "<input type=\"submit\" value=\"reset\" />";
   ret << "</form>";
   ret << "</span>" << endl;
@@ -195,6 +200,7 @@ static void printtable(ostringstream& ret, const string& ringname, const string&
   ret << "<span class=resizering>";
   ret << "<form method=\"post\">";
   ret << "<input type=\"hidden\" name=\"resizering\" value=\"" << htmlescape(ringname) << "\" />";
+  ret << "<input type=\"hidden\" name=\"unique\" value=\"" << htmlescape(unique) << "\" />";
   ret << "<select name=\"size\">";
   static const std::vector<uint64_t> sizes{10, 100, 500, 1000, 10000, 500000, 0};
   for (const auto size : sizes) {
@@ -289,10 +295,11 @@ void AuthWebServer::indexGET(HttpRequest* req, HttpResponse* resp)
   ret << "Backend query load, 1, 5, 10 minute averages: " << std::setprecision(3) << (int)d_qcachemisses.get1() << ", " << (int)d_qcachemisses.get5() << ", " << (int)d_qcachemisses.get10() << ". Max queries/second: " << (int)d_qcachemisses.getMax() << "<br>" << endl;
 
   ret << "Total queries: " << S.read("udp-queries") << ". Question/answer latency: " << static_cast<double>(S.read("latency")) / 1000.0 << "ms</p><br>" << endl;
-  if (req->getvars["ring"].empty()) {
+  auto ringname = req->getvars["ring"];
+  if (ringname.empty()) {
     auto entries = S.listRings();
     for (const auto& entry : entries) {
-      printtable(ret, entry, S.getRingTitle(entry));
+      printtable(ret, entry, d_unique, S.getRingTitle(entry));
     }
 
     printvars(ret);
@@ -300,8 +307,8 @@ void AuthWebServer::indexGET(HttpRequest* req, HttpResponse* resp)
       printargs(ret);
     }
   }
-  else if (S.ringExists(req->getvars["ring"])) {
-    printtable(ret, req->getvars["ring"], S.getRingTitle(req->getvars["ring"]), 100);
+  else if (S.ringExists(ringname)) {
+    printtable(ret, ringname, d_unique, S.getRingTitle(ringname), 100);
   }
 
   ret << "</div></div>" << endl;
@@ -314,6 +321,11 @@ void AuthWebServer::indexGET(HttpRequest* req, HttpResponse* resp)
 
 void AuthWebServer::indexPOST(HttpRequest* req, HttpResponse* resp)
 {
+  string unique = req->postvars["unique"];
+  if (unique != d_unique) {
+    throw HttpForbiddenException();
+  }
+
   string ring = req->postvars["resetring"];
   if (!ring.empty()) {
     if (S.ringExists(ring)) {
