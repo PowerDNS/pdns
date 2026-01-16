@@ -180,20 +180,33 @@ static void printtable(ostringstream& ret, const string& ringname, const string&
   }
 
   ret << "<div class=\"panel\">";
-  ret << "<span class=resetring><i></i><a href=\"?resetring=" << htmlescape(ringname) << "\">Reset</a></span>" << endl;
+
+  ret << "<span class=resetring><i></i>";
+  ret << "<form method=\"post\">";
+  ret << "<input type=\"hidden\" name=\"resetring\" value=\"" << htmlescape(ringname) << "\" />";
+  ret << "<input type=\"submit\" value=\"reset\" />";
+  ret << "</form>";
+  ret << "</span>" << endl;
+
   ret << "<h2>" << title << "</h2>" << endl;
   ret << "<div class=ringmeta>";
   ret << "<a class=topXofY href=\"?ring=" << htmlescape(ringname) << "\">Showing: Top " << limit << " of " << entries << "</a>" << endl;
-  ret << "<span class=resizering>Resize: ";
-  std::vector<uint64_t> sizes{10, 100, 500, 1000, 10000, 500000, 0};
-  for (int i = 0; sizes[i] != 0; ++i) {
-    if (S.getRingSize(ringname) != sizes[i]) {
-      ret << "<a href=\"?resizering=" << htmlescape(ringname) << "&amp;size=" << sizes[i] << "\">" << sizes[i] << "</a> ";
+
+  ret << "<span class=resizering>";
+  ret << "<form method=\"post\">";
+  ret << "<input type=\"hidden\" name=\"resizering\" value=\"" << htmlescape(ringname) << "\" />";
+  ret << "<select name=\"size\">";
+  static const std::vector<uint64_t> sizes{10, 100, 500, 1000, 10000, 500000, 0};
+  for (const auto size : sizes) {
+    ret << "<option value=\"" << size << "\"";
+    if (S.getRingSize(ringname) == size) {
+      ret << " selected";
     }
-    else {
-      ret << "(" << sizes[i] << ") ";
-    }
+    ret << ">" << size << "</option>";
   }
+  ret << "</select>";
+  ret << "<input type=\"submit\" value=\"resize\" />";
+  ret << "</form>";
   ret << "</span></div>";
 
   ret << "<table class=\"data\">";
@@ -239,26 +252,8 @@ string AuthWebServer::makePercentage(const double& val)
   return (boost::format("%.01f%%") % val).str();
 }
 
-void AuthWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
+void AuthWebServer::indexGET(HttpRequest* req, HttpResponse* resp)
 {
-  if (!req->getvars["resetring"].empty()) {
-    if (S.ringExists(req->getvars["resetring"])) {
-      S.resetRing(req->getvars["resetring"]);
-    }
-    resp->status = 302;
-    resp->headers["Location"] = req->url.path;
-    return;
-  }
-  if (!req->getvars["resizering"].empty()) {
-    int size = std::stoi(req->getvars["size"]);
-    if (S.ringExists(req->getvars["resizering"]) && size > 0 && size <= 500000) {
-      S.resizeRing(req->getvars["resizering"], std::stoi(req->getvars["size"]));
-    }
-    resp->status = 302;
-    resp->headers["Location"] = req->url.path;
-    return;
-  }
-
   ostringstream ret;
 
   ret << "<!DOCTYPE html>" << endl;
@@ -315,6 +310,32 @@ void AuthWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
 
   resp->body = ret.str();
   resp->status = 200;
+}
+
+void AuthWebServer::indexPOST(HttpRequest* req, HttpResponse* resp)
+{
+  string ring = req->postvars["resetring"];
+  if (!ring.empty()) {
+    if (S.ringExists(ring)) {
+      S.resetRing(ring);
+    }
+    resp->status = 302;
+    resp->headers["Location"] = req->url.path;
+    return;
+  }
+
+  ring = req->postvars["resizering"];
+  if (!ring.empty()) {
+    int size = std::stoi(req->postvars["size"]);
+    if (S.ringExists(ring) && size > 0 && size <= 500000 && S.getRingSize(ring) != static_cast<unsigned int>(size)) {
+      S.resizeRing(ring, size);
+    }
+    resp->status = 302;
+    resp->headers["Location"] = req->url.path;
+    return;
+  }
+
+  throw HttpForbiddenException();
 }
 
 /** Helper to build a record content as needed. */
@@ -3264,10 +3285,13 @@ void AuthWebServer::webThread()
       d_ws->registerApiHandler("/api", apiDiscovery, "GET");
     }
     if (::arg().mustDo("webserver")) {
+      d_ws->registerWebHandler("/style.css", cssfunction, "GET");
+      // These two handlers need to be able to access our classes' fields,
+      // hence the use of lambdas to capture this and invoke a class method.
       d_ws->registerWebHandler(
-        "/style.css", [](HttpRequest* req, HttpResponse* resp) { cssfunction(req, resp); }, "GET");
+        "/", [this](HttpRequest* req, HttpResponse* resp) { indexGET(req, resp); }, "GET");
       d_ws->registerWebHandler(
-        "/", [this](HttpRequest* req, HttpResponse* resp) { indexfunction(req, resp); }, "GET");
+        "/", [this](HttpRequest* req, HttpResponse* resp) { indexPOST(req, resp); }, "POST");
       d_ws->registerWebHandler("/metrics", prometheusMetrics, "GET");
     }
     d_ws->go();
