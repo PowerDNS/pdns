@@ -1404,6 +1404,7 @@ Status, Statistics and More
 
   .. versionchanged:: 2.1.0
     The ``backend`` option has been added.
+    The ``setInstanceFromServerID`` option has been added
     The ``levelPrefix`` option has no longer any effect because it was confusing. The log level is now always logged as ``level`` and the syslog priority, if any, as ``priority`` in all backends except the default one where it is named ``prio``
 
   Set whether log messages should be in structured-logging format. This is turned off by default. See :doc:`../advanced/structured-logging-dictionary` for more details.
@@ -1424,6 +1425,7 @@ Status, Statistics and More
   * ``backend``: string - The backend used for structured logging output, see below. Added in 2.1.0.
   * ``timeFormat=format``: string - Set the time format. Supported values are ``ISO8601`` and ``numeric``. Default is ``numeric``.
   * ``levelPrefix=prefix``: string - Set the prefix for the log level. Default is ``prio``. No longer supported as of 2.1.0.
+  * ``setInstanceFromServerID=false``: bool - Add the "instance" field with the value of the server ID (set with :func:`setServerID`) to each log line. Added in 2.1.0.
 
  Available backends:
 

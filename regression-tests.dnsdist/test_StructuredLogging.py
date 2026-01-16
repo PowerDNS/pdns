@@ -79,3 +79,79 @@ newServer{address="127.0.0.1:%d"}
 
     def testOK(self):
         pass
+
+
+class TestStructuredLoggingDefaultBackendWithInstanceFromYaml(
+    TestStructuredLoggingDefaultBackendFromYaml
+):
+    _yaml_config_template = """---
+general:
+  server_id: "foobar"
+
+binds:
+  - listen_address: "127.0.0.1:%d"
+    protocol: Do53
+
+backends:
+  - address: "127.0.0.1:%d"
+    protocol: Do53
+
+logging:
+  structured:
+    enabled: true
+    set_instance_from_server_id: true
+"""
+    _checkConfigExpectedOutputPrefix = b'msg="Configuration OK" subsystem="setup"'
+
+
+class TestStructuredLoggingJSONBackendWithInstanceFromYaml(
+    TestStructuredLoggingJSONBackendFromYaml
+):
+    _yaml_config_template = """---
+general:
+  server_id: "foobar"
+
+binds:
+  - listen_address: "127.0.0.1:%d"
+    protocol: Do53
+
+backends:
+  - address: "127.0.0.1:%d"
+    protocol: Do53
+
+logging:
+  structured:
+    enabled: true
+    backend: "json"
+    set_instance_from_server_id: true
+"""
+    _checkConfigExpectedOutputPrefix = (
+        b'{"instance": "foobar", "level": "0", "msg": "Configuration OK", "path":'
+    )
+
+
+class TestStructuredLoggingDefaultBackendWithInstanceFromLua(
+    TestStructuredLoggingDefaultBackendFromLua
+):
+    _config_template = """
+setServerID("foobar")
+setStructuredLogging(true, {setInstanceFromServerID=true})
+
+newServer{address="127.0.0.1:%d"}
+"""
+    _checkConfigExpectedOutputPrefix = b'msg="Configuration OK" subsystem="setup" level="0" prio="Info" instance="foobar" ts='
+
+
+class TestStructuredLoggingJSONBackendWithInstanceFromLua(
+    TestStructuredLoggingJSONBackendFromLua
+):
+
+    _config_template = """
+setServerID("foobar")
+setStructuredLogging(true, {backend="json", setInstanceFromServerID=true})
+
+newServer{address="127.0.0.1:%d"}
+"""
+    _checkConfigExpectedOutputPrefix = (
+        b'{"instance": "foobar", "level": "0", "msg": "Configuration OK", "path":'
+    )

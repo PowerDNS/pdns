@@ -1761,10 +1761,11 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
            getLogger("setVerboseLogDestination")->error(Logr::Error, e.what(), "Error while opening the verbose logging destination file", "path", Logging::Loggable(dest)));
     }
   });
-  luaCtx.writeFunction("setStructuredLogging", [](bool enable, std::optional<LuaAssociativeTable<std::string>> options) {
+  luaCtx.writeFunction("setStructuredLogging", [](bool enable, std::optional<LuaAssociativeTable<boost::variant<std::string, bool>>> options) {
     std::optional<dnsdist::configuration::TimeFormat> format{};
     std::string timeFormat;
     std::string backend;
+    bool useServerID{false};
     if (options) {
       if (getOptionalValue<std::string>(options, "timeFormat", timeFormat) == 1) {
         if (timeFormat == "numeric") {
@@ -1779,10 +1780,11 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         }
       }
       getOptionalValue<std::string>(options, "backend", backend);
+      getOptionalValue<bool>(options, "setInstanceFromServerID", useServerID);
       checkAllParametersConsumed("setStructuredLogging", options);
     }
 
-    dnsdist::configuration::updateImmutableConfiguration([enable, &backend, format](dnsdist::configuration::ImmutableConfiguration& config) {
+    dnsdist::configuration::updateImmutableConfiguration([enable, &backend, format, useServerID](dnsdist::configuration::ImmutableConfiguration& config) {
       if (enable && !backend.empty()) {
         config.d_loggingBackend = backend;
       }
@@ -1790,6 +1792,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         config.d_structuredLoggingTimeFormat = *format;
       }
       config.d_structuredLogging = enable;
+      config.d_structuredLoggingUseServerID = useServerID;
     });
   });
 

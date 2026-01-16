@@ -95,6 +95,9 @@ static void loggerSDBackend(const Logging::Entry& entry)
   }
   appendKeyAndVal("LEVEL", std::to_string(entry.level));
   appendKeyAndVal("PRIORITY", std::to_string(entry.d_priority));
+  if (dnsdist::configuration::getImmutableConfiguration().d_structuredLoggingUseServerID) {
+    appendKeyAndVal("INSTANCE", dnsdist::configuration::getCurrentRuntimeConfiguration().d_server_id);
+  }
   if (entry.name) {
     appendKeyAndVal("SUBSYSTEM", entry.name.value());
   }
@@ -142,6 +145,10 @@ static void loggerJSONBackend(const Logging::Entry& entry)
     json.emplace("priority", std::to_string(entry.d_priority));
   }
 
+  if (dnsdist::configuration::getImmutableConfiguration().d_structuredLoggingUseServerID) {
+    json.emplace("instance", dnsdist::configuration::getCurrentRuntimeConfiguration().d_server_id);
+  }
+
   for (auto const& value : entry.values) {
     json.emplace(value.first, value.second);
   }
@@ -169,6 +176,9 @@ static void loggerBackend(const Logging::Entry& entry)
   buf << " level=" << std::quoted(std::to_string(entry.level));
   if (entry.d_priority != 0) {
     buf << " prio=" << std::quoted(Logr::Logger::toString(entry.d_priority));
+  }
+  if (dnsdist::configuration::getImmutableConfiguration().d_structuredLoggingUseServerID) {
+    buf << " instance=" << std::quoted(dnsdist::configuration::getCurrentRuntimeConfiguration().d_server_id);
   }
 
   std::array<char, 64> timebuf{};

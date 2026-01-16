@@ -1012,6 +1012,7 @@ static void handleLoggingConfiguration(const Context& context, const dnsdist::ru
     if (timeFormat) {
       config.d_structuredLoggingTimeFormat = *timeFormat;
     }
+    config.d_structuredLoggingUseServerID = settings.structured.set_instance_from_server_id;
   });
 }
 
