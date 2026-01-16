@@ -693,6 +693,7 @@ tools = {
       libpdns_signers_sodium,
     ],
     'manpages': ['pdns_server.1'],
+    'install_dir': get_option('sbindir'),
   },
   'pdnsutil': {
     'main': src_dir / 'pdnsutil.cc',
@@ -998,6 +999,7 @@ foreach tool, info: tools
   deps_extra = 'deps-extra' in info ? info['deps-extra'] : []
   link_args = 'link-args' in info ? info['link-args'] : []
   install = 'install' in info ? info['install'] : true
+  install_dir = 'install_dir' in info ? info['install_dir'] : get_option('bindir')
 
   set_variable(
     var_name,
@@ -1015,6 +1017,7 @@ foreach tool, info: tools
         deps_extra,
       ],
       install: install,
+      install_dir: install_dir,
     )
   )
 
