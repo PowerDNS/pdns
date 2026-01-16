@@ -925,7 +925,7 @@ static bool handleIXFR(int fd, const MOADNSParser& mdp, const shared_ptr<const S
 
   uint32_t ourLatestSerial = zoneInfo->soa->d_st.serial;
 
-  if (rfc1982LessThan(ourLatestSerial, clientSOA->d_st.serial) || ourLatestSerial == clientSOA->d_st.serial) {
+  if (rfc1982LessThanOrEqual(ourLatestSerial, clientSOA->d_st.serial)) {
     /* RFC 1995 Section 2
      *    If an IXFR query with the same or newer version number than that of
      *    the server is received, it is replied to with a single SOA record of
