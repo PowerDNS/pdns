@@ -106,6 +106,10 @@ BOOST_AUTO_TEST_CASE(test_createEDNSServerCookie)
   BOOST_CHECK(!eco2.isValid(secret, ComboAddress("192.0.2.1")));
   BOOST_CHECK(!eco2.isValid("blablablablabla1", remote));
   BOOST_CHECK(eco2.isValid(secret, remote));
+
+  /* very old cookie (epoch) */
+  const auto veryOldCookie = EDNSCookiesOpt(std::string("\x12\x34\x56\x78\x90\xab\xcd\xef\x01\x00\x00\x00\x00\x00\x00\x00\xcb\xc9\x38\x5f\xb5\x75\x75\x2a", (8U + 16U)));
+  BOOST_CHECK(!veryOldCookie.isValid(secret, remote));
 }
 #endif
 
