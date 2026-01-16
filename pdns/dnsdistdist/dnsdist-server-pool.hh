@@ -64,6 +64,7 @@ struct ServerPool
   size_t poolLoad() const;
   size_t countServers(bool upOnly) const;
   bool hasAtLeastOneServerAvailable() const;
+  bool shouldKeepStaleData() const;
   const ServerPolicy::NumberedServerVector& getServers() const;
   void addServer(std::shared_ptr<DownstreamState>& server);
   void removeServer(std::shared_ptr<DownstreamState>& server);

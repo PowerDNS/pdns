@@ -1152,6 +1152,11 @@ void ServerPool::setECS(bool useECS)
   updateConsistency();
 }
 
+bool ServerPool::shouldKeepStaleData() const
+{
+  return !getServers().empty() && countServers(true) == 0;
+}
+
 namespace dnsdist::backend
 {
 void registerNewBackend(std::shared_ptr<DownstreamState>& backend)
