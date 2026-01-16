@@ -1062,7 +1062,7 @@ if python.found()
         else
           install_man(
             'docs' / man_page,
-            install_dir: join_paths(get_option('mandir'), 'man1'),
+            install_dir: man_page.endswith('.5') ? join_paths(get_option('mandir'), 'man5') : join_paths(get_option('mandir'), 'man1'),
           )
         endif
       endforeach
@@ -1075,6 +1075,7 @@ if python.found()
      input: man_pages,
      output: generated_man_pages,
      install: true,
+     # wrong for ixfrdist.yml.5 but I don't know how to handle that
      install_dir: join_paths(get_option('mandir'), 'man1'),
      command: [
        python,
