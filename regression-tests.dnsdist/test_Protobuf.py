@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+import unittest
+import os
 import base64
 import threading
 import socket
@@ -683,6 +685,7 @@ class TestProtobufCacheHit(DNSDistProtobufTest):
         self.assertTrue(msg.HasField('outgoingQueries'))
         self.assertEqual(msg.outgoingQueries, 0)
 
+@unittest.skipIf('SKIP_DOH_TESTS' in os.environ, 'DNS over HTTPS tests are disabled')
 class TestProtobufMetaDOH(DNSDistProtobufTest):
 
     _serverKey = 'server.key'
@@ -1470,3 +1473,147 @@ timeout_response_rules:
 
         self.assertTrue(gotUDP)
         self.assertTrue(gotTCP)
+
+class TestProtobufGlobalServerIDYaml(TestYamlProtobuf):
+    _yaml_config_template = """---
+binds:
+  - listen_address: "127.0.0.1:%d"
+    reuseport: true
+    protocol: Do53
+    threads: 2
+
+backends:
+  - address: "127.0.0.1:%d"
+    protocol: Do53
+
+remote_logging:
+  protobuf_loggers:
+    - name: "my-logger"
+      address: "127.0.0.1:%d"
+      timeout: 1
+
+general:
+  server_id: "%s"
+
+query_rules:
+  - name: "my-rule"
+    selector:
+      type: "All"
+    action:
+      type: "RemoteLog"
+      logger_name: "my-logger"
+      use_server_id: true
+      export_tags:
+        - "tag-1"
+        - "tag-2"
+"""
+
+class TestProtobufGlobalServerIDLua(DNSDistProtobufTest):
+    _config_params = ['_protobufServerID', '_testServerPort', '_protobufServerPort']
+    _config_template = """
+    setServerID("%s")
+    luasmn = newSuffixMatchNode()
+    luasmn:add(newDNSName('lua.protobuf.tests.powerdns.com.'))
+
+    function alterProtobufResponse(dq, protobuf)
+      if luasmn:check(dq.qname) then
+        requestor = newCA(tostring(dq.remoteaddr))		-- called by testLuaProtobuf()
+        if requestor:isIPv4() then
+          requestor:truncate(24)
+        else
+          requestor:truncate(56)
+        end
+        protobuf:setRequestor(requestor)
+
+        local tableTags = {}
+        table.insert(tableTags, "TestLabel1,TestData1")
+        table.insert(tableTags, "TestLabel2,TestData2")
+
+        protobuf:setTagArray(tableTags)
+
+        protobuf:setTag('TestLabel3,TestData3')
+
+        protobuf:setTag("Response,456")
+
+      else
+
+        local tableTags = {} 					-- called by testProtobuf()
+        table.insert(tableTags, "TestLabel1,TestData1")
+        table.insert(tableTags, "TestLabel2,TestData2")
+        protobuf:setTagArray(tableTags)
+
+        protobuf:setTag('TestLabel3,TestData3')
+
+        protobuf:setTag("Response,456")
+
+      end
+    end
+
+    function alterProtobufQuery(dq, protobuf)
+
+      if luasmn:check(dq.qname) then
+        requestor = newCA(tostring(dq.remoteaddr))		-- called by testLuaProtobuf()
+        if requestor:isIPv4() then
+          requestor:truncate(24)
+        else
+          requestor:truncate(56)
+        end
+        protobuf:setRequestor(requestor)
+
+        local tableTags = {}
+        tableTags = dq:getTagArray()				-- get table from DNSQuery
+
+        local tablePB = {}
+          for k, v in pairs( tableTags) do
+          table.insert(tablePB, k .. "," .. v)
+        end
+
+        protobuf:setTagArray(tablePB)				-- store table in protobuf
+        protobuf:setTag("Query,123")				-- add another tag entry in protobuf
+
+        protobuf:setResponseCode(DNSRCode.NXDOMAIN)        	-- set protobuf response code to be NXDOMAIN
+
+        local strReqName = tostring(dq.qname)		  	-- get request dns name
+
+        protobuf:setProtobufResponseType()			-- set protobuf to look like a response and not a query, with 0 default time
+
+        blobData = '\127' .. '\000' .. '\000' .. '\002'		-- 127.0.0.2, note: lua 5.1 can only embed decimal not hex
+
+        protobuf:addResponseRR(strReqName, 1, 1, 123, blobData) -- add a RR to the protobuf
+
+        protobuf:setBytes(65)					-- set the size of the query to confirm in checkProtobufBase
+
+      else
+
+        local tableTags = {}                                    -- called by testProtobuf()
+        table.insert(tableTags, "TestLabel1,TestData1")
+        table.insert(tableTags, "TestLabel2,TestData2")
+
+        protobuf:setTagArray(tableTags)
+        protobuf:setTag('TestLabel3,TestData3')
+        protobuf:setTag("Query,123")
+
+      end
+    end
+
+    function alterLuaFirst(dq)					-- called when dnsdist receives new request
+      local tt = {}
+      tt["TestLabel1"] = "TestData1"
+      tt["TestLabel2"] = "TestData2"
+
+      dq:setTagArray(tt)
+
+      dq:setTag("TestLabel3","TestData3")
+      return DNSAction.None, ""				-- continue to the next rule
+    end
+
+    newServer{address="127.0.0.1:%d", useClientSubnet=true}
+    rl = newRemoteLogger('127.0.0.1:%d')
+
+    addAction(AllRule(), LuaAction(alterLuaFirst))							-- Add tags to DNSQuery first
+
+    addAction(AllRule(), RemoteLogAction(rl, alterProtobufQuery, {useServerID=true}))				-- Send protobuf message before lookup
+
+    addResponseAction(AllRule(), RemoteLogResponseAction(rl, alterProtobufResponse, true, {useServerID=true}))	-- Send protobuf message after lookup
+
+    """

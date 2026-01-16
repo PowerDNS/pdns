@@ -21,6 +21,10 @@
  */
 #pragma once
 
+#include <string>
+#include <map>
+#include <stdint.h>
+
 namespace dnsdist::prometheus
 {
 struct PrometheusMetricDefinition

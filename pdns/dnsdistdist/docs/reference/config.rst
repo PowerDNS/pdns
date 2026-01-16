@@ -467,6 +467,9 @@ Webserver configuration
   .. versionchanged:: 1.8.0
     ``apiRequiresAuthentication``, ``dashboardRequiresAuthentication`` optional parameters added.
 
+  .. versionchanged:: 2.1.0
+    ``prometheusAddInstanceLabel`` optional parameter added.
+
   Setup webserver configuration. See :func:`webserver` and :doc:`../guides/webserver`.
 
   :param table options: A table with key: value pairs with webserver options.
@@ -480,6 +483,7 @@ Webserver configuration
   * ``apiRequiresAuthentication``: bool - Whether access to the API (/api endpoints) require a valid API key. Defaults to true.
   * ``dashboardRequiresAuthentication``: bool - Whether access to the internal dashboard requires a valid password. Defaults to true.
   * ``statsRequireAuthentication``: bool - Whether access to the statistics (/metrics and /jsonstat endpoints) require a valid password or API key. Defaults to true.
+  * ``prometheusAddInstanceLabel``: bool - Whether to add an instance label to every metric. The value of this label is set by :func:`setServerID`. Defaults to false.
   * ``maxConcurrentConnections``: int - The maximum number of concurrent web connections, or 0 which means an unlimited number. Defaults to 100.
   * ``hashPlaintextCredentials``: bool - Whether passwords and API keys provided in plaintext should be hashed during startup, to prevent the plaintext versions from staying in memory. Doing so increases significantly the cost of verifying credentials. Defaults to false.
 

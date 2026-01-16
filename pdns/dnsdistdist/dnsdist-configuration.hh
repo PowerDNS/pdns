@@ -134,6 +134,7 @@ struct RuntimeConfiguration
   std::string d_consoleKey;
   std::string d_secPollSuffix{"secpoll.powerdns.com."};
   std::string d_apiConfigDirectory;
+  std::string d_server_id{getHostname().value_or("localhost")};
   uint64_t d_dynBlocksPurgeInterval{60};
   size_t d_maxTCPQueriesPerConn{0};
   size_t d_maxTCPConnectionDuration{0};
@@ -156,6 +157,7 @@ struct RuntimeConfiguration
   bool d_apiRequiresAuthentication{true};
   bool d_dashboardRequiresAuthentication{true};
   bool d_statsRequireAuthentication{true};
+  bool d_prometheusAddInstanceLabel{false};
   bool d_truncateTC{false};
   bool d_fixupCase{false};
   bool d_queryCountEnabled{false};

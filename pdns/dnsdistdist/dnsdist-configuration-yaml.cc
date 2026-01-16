@@ -20,6 +20,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <vector>
 
@@ -890,6 +891,7 @@ static void loadWebServer(const dnsdist::rust::settings::WebserverConfiguration&
     }
 
     config.d_apiRequiresAuthentication = webConfig.api_requires_authentication;
+    config.d_prometheusAddInstanceLabel = webConfig.prometheus_add_instance;
     config.d_dashboardRequiresAuthentication = webConfig.dashboard_requires_authentication;
     config.d_statsRequireAuthentication = webConfig.stats_require_authentication;
     dnsdist::webserver::setMaxConcurrentConnections(webConfig.max_concurrent_connections);
@@ -1092,7 +1094,7 @@ static void handleCarbonConfiguration([[maybe_unused]] const ::rust::Vec<dnsdist
     dnsdist::configuration::updateRuntimeConfiguration([&carbonConfigs](dnsdist::configuration::RuntimeConfiguration& config) {
       for (const auto& carbonConfig : carbonConfigs) {
         auto newEndpoint = dnsdist::Carbon::newEndpoint(std::string(carbonConfig.address),
-                                                        std::string(carbonConfig.name),
+                                                        carbonConfig.name.empty() ? std::nullopt : std::optional<std::string>(carbonConfig.name),
                                                         carbonConfig.interval,
                                                         carbonConfig.name_space.empty() ? "dnsdist" : std::string(carbonConfig.name_space),
                                                         carbonConfig.instance.empty() ? "main" : std::string(carbonConfig.instance));
@@ -1226,6 +1228,12 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
         for (const auto& capability : capabilities) {
           config.d_capabilitiesToRetain.emplace(std::string(capability));
         }
+      });
+    }
+
+    if (!globalConfig.general.server_id.empty()) {
+      dnsdist::configuration::updateRuntimeConfiguration([&server_id = globalConfig.general.server_id](dnsdist::configuration::RuntimeConfiguration& config) {
+        config.d_server_id = std::string(server_id);
       });
     }
 
@@ -1768,6 +1776,7 @@ std::shared_ptr<DNSActionWrapper> getRemoteLogAction(const RemoteLogActionConfig
   if (dnsdist::configuration::yaml::getLuaFunctionFromConfiguration(alterFunc, config.alter_function_name, config.alter_function_code, config.alter_function_file, "remote log action")) {
     actionConfig.alterQueryFunc = std::move(alterFunc);
   }
+  actionConfig.useServerID = config.use_server_id;
   auto action = dnsdist::actions::getRemoteLogAction(actionConfig);
   return newDNSActionWrapper(std::move(action), config.name);
 #endif
@@ -1805,6 +1814,7 @@ std::shared_ptr<DNSResponseActionWrapper> getRemoteLogResponseAction(const Remot
     actionConfig.alterResponseFunc = std::move(alterFunc);
   }
   actionConfig.delay = config.delay;
+  actionConfig.useServerID = config.use_server_id;
   auto action = dnsdist::actions::getRemoteLogResponseAction(actionConfig);
   return newDNSResponseActionWrapper(std::move(action), config.name);
 #endif
