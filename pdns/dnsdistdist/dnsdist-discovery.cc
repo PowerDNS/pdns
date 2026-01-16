@@ -139,11 +139,12 @@ static bool parseSVCParams(const PacketBuffer& answer, std::map<uint16_t, Design
   return !resolvers.empty();
 }
 
-static bool handleSVCResult(const PacketBuffer& answer, const ComboAddress& existingAddr, uint16_t dohSVCKey, ServiceDiscovery::DiscoveredResolverConfig& config)
+static bool handleSVCResult(const Logr::Logger& logger, const PacketBuffer& answer, const ComboAddress& existingAddr, uint16_t dohSVCKey, ServiceDiscovery::DiscoveredResolverConfig& config)
 {
   std::map<uint16_t, DesignatedResolvers> resolvers;
   if (!parseSVCParams(answer, resolvers)) {
-    vinfolog("No configuration found in response for backend %s", existingAddr.toStringWithPort());
+    VERBOSESLOG(infolog("No configuration found in response for backend %s", existingAddr.toStringWithPort()),
+                logger.info(Logr::Info, "No configuration found in response"));
     return false;
   }
 
@@ -198,7 +199,8 @@ static bool handleSVCResult(const PacketBuffer& answer, const ComboAddress& exis
       continue;
 #endif
       if (tempConfig.d_dohPath.empty()) {
-        vinfolog("Got a DoH upgrade offered for %s but no path, skipping", existingAddr.toStringWithPort());
+        VERBOSESLOG(infolog("Got a DoH upgrade offered for %s but no path, skipping", existingAddr.toStringWithPort()),
+                    logger.info(Logr::Info, "Got a DoH upgrade offer but no path, skipping"));
         continue;
       }
     }
@@ -234,7 +236,7 @@ static bool handleSVCResult(const PacketBuffer& answer, const ComboAddress& exis
   return false;
 }
 
-bool ServiceDiscovery::getDiscoveredConfig(const UpgradeableBackend& upgradeableBackend, ServiceDiscovery::DiscoveredResolverConfig& config)
+bool ServiceDiscovery::getDiscoveredConfig(const Logr::Logger& topLogger, const UpgradeableBackend& upgradeableBackend, ServiceDiscovery::DiscoveredResolverConfig& config)
 {
   const auto verbose = dnsdist::configuration::getCurrentRuntimeConfiguration().d_verbose;
   const auto& backend = upgradeableBackend.d_ds;
@@ -247,6 +249,8 @@ bool ServiceDiscovery::getDiscoveredConfig(const UpgradeableBackend& upgradeable
     pw.getHeader()->rd = 1;
     pw.addOpt(4096, 0, 0);
     pw.commit();
+
+    auto logger = topLogger.withValues("dns.query.id", Logging::Loggable(id), "dns.query.name", Logging::Loggable(s_discoveryDomain), "dns.query.type", Logging::Loggable(s_discoveryType));
 
     uint16_t querySize = static_cast<uint16_t>(packet.size());
     const uint8_t sizeBytes[] = {static_cast<uint8_t>(querySize / 256), static_cast<uint8_t>(querySize % 256)};
@@ -279,7 +283,8 @@ bool ServiceDiscovery::getDiscoveredConfig(const UpgradeableBackend& upgradeable
     auto got = readn2WithTimeout(sock.getHandle(), &responseSize, sizeof(responseSize), remainingTime);
     if (got != sizeof(responseSize)) {
       if (verbose) {
-        warnlog("Error while waiting for the ADD upgrade response size from backend %s: %d", addr.toStringWithPort(), got);
+        SLOG(warnlog("Error while waiting for the ADD upgrade response size from backend %s: %d", addr.toStringWithPort(), got),
+             logger->info(Logr::Warning, "Error while waiting for the ADD upgrade response size from backend", "value", Logging::Loggable(got), "expected", Logging::Loggable(sizeof(responseSize))));
       }
       return false;
     }
@@ -289,14 +294,16 @@ bool ServiceDiscovery::getDiscoveredConfig(const UpgradeableBackend& upgradeable
     got = readn2WithTimeout(sock.getHandle(), packet.data(), packet.size(), remainingTime);
     if (got != packet.size()) {
       if (verbose) {
-        warnlog("Error while waiting for the ADD upgrade response from backend %s: %d", addr.toStringWithPort(), got);
+        SLOG(warnlog("Error while waiting for the ADD upgrade response from backend %s: %d", addr.toStringWithPort(), got),
+             logger->info(Logr::Warning, "Error while waiting for the ADD upgrade response from backend", "value", Logging::Loggable(got), "expected", Logging::Loggable(packet.size())));
       }
       return false;
     }
 
     if (packet.size() <= sizeof(struct dnsheader)) {
       if (verbose) {
-        warnlog("Too short answer of size %d received from the backend %s", packet.size(), addr.toStringWithPort());
+        SLOG(warnlog("Too short answer of size %d received from the backend %s", packet.size(), addr.toStringWithPort()),
+             logger->info(Logr::Warning, "Too short answer received from the backend", "dns.response.size", Logging::Loggable(packet.size())));
       }
       return false;
     }
@@ -305,14 +312,16 @@ bool ServiceDiscovery::getDiscoveredConfig(const UpgradeableBackend& upgradeable
     memcpy(&d, packet.data(), sizeof(d));
     if (d.id != id) {
       if (verbose) {
-        warnlog("Invalid ID (%d / %d) received from the backend %s", d.id, id, addr.toStringWithPort());
+        SLOG(warnlog("Invalid ID (%d / %d) received from the backend %s", d.id, id, addr.toStringWithPort()),
+             logger->info(Logr::Warning, "Invalid ID received from the backend", "dns.response.id", Logging::Loggable(d.id)));
       }
       return false;
     }
 
     if (d.rcode != RCode::NoError) {
       if (verbose) {
-        warnlog("Response code '%s' received from the backend %s for '%s'", RCode::to_s(d.rcode), addr.toStringWithPort(), s_discoveryDomain);
+        SLOG(warnlog("Response code '%s' received from the backend %s for '%s'", RCode::to_s(d.rcode), addr.toStringWithPort(), s_discoveryDomain),
+             logger->info(Logr::Warning, "Unexpected response code received from backend", "dns.response.code", Logging::Loggable(RCode::to_s(d.rcode))));
       }
 
       return false;
@@ -320,7 +329,8 @@ bool ServiceDiscovery::getDiscoveredConfig(const UpgradeableBackend& upgradeable
 
     if (ntohs(d.qdcount) != 1) {
       if (verbose) {
-        warnlog("Invalid answer (qdcount %d) received from the backend %s", ntohs(d.qdcount), addr.toStringWithPort());
+        SLOG(warnlog("Invalid answer (qdcount %d) received from the backend %s", ntohs(d.qdcount), addr.toStringWithPort()),
+             logger->info(Logr::Warning, "Invalid qdcount in answer received from the backend", "dns.response.qdcount", Logging::Loggable(ntohs(d.qdcount))));
       }
       return false;
     }
@@ -331,24 +341,27 @@ bool ServiceDiscovery::getDiscoveredConfig(const UpgradeableBackend& upgradeable
 
     if (receivedName != s_discoveryDomain || receivedType != s_discoveryType || receivedClass != QClass::IN) {
       if (verbose) {
-        warnlog("Invalid answer, either the qname (%s / %s), qtype (%s / %s) or qclass (%s / %s) does not match, received from the backend %s", receivedName, s_discoveryDomain, QType(receivedType).toString(), s_discoveryType.toString(), QClass(receivedClass).toString(), QClass::IN.toString(), addr.toStringWithPort());
+        SLOG(warnlog("Invalid answer, either the qname (%s / %s), qtype (%s / %s) or qclass (%s / %s) does not match, received from the backend %s", receivedName, s_discoveryDomain, QType(receivedType).toString(), s_discoveryType.toString(), QClass(receivedClass).toString(), QClass::IN.toString(), addr.toStringWithPort()),
+             logger->info(Logr::Warning, "Response received from the backend doesn't match query", "dns.response.name", Logging::Loggable(receivedName), "dns.response.type", Logging::Loggable(receivedType), "dns.response.class", Logging::Loggable(receivedClass)));
       }
       return false;
     }
 
-    return handleSVCResult(packet, addr, upgradeableBackend.d_dohKey, config);
+    return handleSVCResult(*logger, packet, addr, upgradeableBackend.d_dohKey, config);
   }
   catch (const std::exception& e) {
-    warnlog("Error while trying to discover backend upgrade for %s: %s", addr.toStringWithPort(), e.what());
+    SLOG(warnlog("Error while trying to discover backend upgrade for %s: %s", addr.toStringWithPort(), e.what()),
+         topLogger.error(Logr::Warning, e.what(), "Error while trying to discover backend upgrade"));
   }
   catch (...) {
-    warnlog("Error while trying to discover backend upgrade for %s", addr.toStringWithPort());
+    SLOG(warnlog("Error while trying to discover backend upgrade for %s", addr.toStringWithPort()),
+         topLogger.info(Logr::Error, "Error while trying to discover backend upgrade"));
   }
 
   return false;
 }
 
-static bool checkBackendUsability(std::shared_ptr<DownstreamState>& ds)
+static bool checkBackendUsability(const Logr::Logger& logger, std::shared_ptr<DownstreamState>& ds)
 {
   try {
     Socket sock(ds->d_config.remote.sin4.sin_family, SOCK_STREAM);
@@ -375,21 +388,25 @@ static bool checkBackendUsability(std::shared_ptr<DownstreamState>& ds)
     return true;
   }
   catch (const std::exception& e) {
-    vinfolog("Exception when trying to use a newly upgraded backend %s (subject %s): %s", ds->getNameWithAddr(), ds->d_config.d_tlsSubjectName, e.what());
+    VERBOSESLOG(infolog("Exception when trying to use a newly upgraded backend %s (subject %s): %s", ds->getNameWithAddr(), ds->d_config.d_tlsSubjectName, e.what()),
+                logger.error(Logr::Info, e.what(), "Exception when trying to use a newly upgraded backend", "tls-subject-name", Logging::Loggable(ds->d_config.d_tlsSubjectName)));
   }
   catch (...) {
-    vinfolog("Exception when trying to use a newly upgraded backend %s (subject %s)", ds->getNameWithAddr(), ds->d_config.d_tlsSubjectName);
+    VERBOSESLOG(infolog("Exception when trying to use a newly upgraded backend %s (subject %s)", ds->getNameWithAddr(), ds->d_config.d_tlsSubjectName),
+                logger.info(Logr::Info, "Exception when trying to use a newly upgraded backend", "tls-subject-name", Logging::Loggable(ds->d_config.d_tlsSubjectName)));
   }
 
   return false;
 }
 
-bool ServiceDiscovery::tryToUpgradeBackend(const UpgradeableBackend& backend)
+bool ServiceDiscovery::tryToUpgradeBackend(const Logr::Logger& logger, const UpgradeableBackend& backend)
 {
   ServiceDiscovery::DiscoveredResolverConfig discoveredConfig;
 
-  vinfolog("Trying to discover configuration for backend %s", backend.d_ds->getNameWithAddr());
-  if (!ServiceDiscovery::getDiscoveredConfig(backend, discoveredConfig)) {
+  VERBOSESLOG(infolog("Trying to discover configuration for backend %s", backend.d_ds->getNameWithAddr()),
+              logger.info(Logr::Info, "Trying to discover upgrade configuration for backend"));
+
+  if (!ServiceDiscovery::getDiscoveredConfig(logger, backend, discoveredConfig)) {
     return false;
   }
 
@@ -444,12 +461,14 @@ bool ServiceDiscovery::tryToUpgradeBackend(const UpgradeableBackend& backend)
     auto newServer = std::make_shared<DownstreamState>(std::move(config), std::move(tlsCtx), true);
 
     /* check that we can connect to the backend (including certificate validation */
-    if (!checkBackendUsability(newServer)) {
-      vinfolog("Failed to use the automatically upgraded server %s, skipping for now", newServer->getNameWithAddr());
+    if (!checkBackendUsability(logger, newServer)) {
+      VERBOSESLOG(infolog("Failed to use the automatically upgraded server %s, skipping for now", newServer->getNameWithAddr()),
+                  logger.info(Logr::Info, "Failed to use the automatically upgraded server, skipping for now"));
       return false;
     }
 
-    infolog("Added automatically upgraded server %s", newServer->getNameWithAddr());
+    SLOG(infolog("Added automatically upgraded server %s", newServer->getNameWithAddr()),
+         logger.info(Logr::Info, "Added automatically upgraded server"));
 
     if (!newServer->d_config.pools.empty()) {
       for (const auto& poolName : newServer->d_config.pools) {
@@ -490,7 +509,8 @@ bool ServiceDiscovery::tryToUpgradeBackend(const UpgradeableBackend& backend)
     return true;
   }
   catch (const std::exception& e) {
-    warnlog("Error when trying to upgrade a discovered backend: %s", e.what());
+    SLOG(warnlog("Error when trying to upgrade a discovered backend: %s", e.what()),
+         logger.error(Logr::Warning, e.what(), "Error when trying to upgrade a discovered backend"));
   }
 
   return false;
@@ -499,6 +519,8 @@ bool ServiceDiscovery::tryToUpgradeBackend(const UpgradeableBackend& backend)
 void ServiceDiscovery::worker()
 {
   setThreadName("dnsdist/discove");
+  auto logger = dnsdist::logging::getTopLogger("service-discovery");
+
   while (true) {
     dnsdist::configuration::refreshLocalRuntimeConfiguration();
     time_t now = time(nullptr);
@@ -508,13 +530,15 @@ void ServiceDiscovery::worker()
 
     for (auto backendIt = upgradeables.begin(); backendIt != upgradeables.end();) {
       auto& backend = *backendIt;
+      auto backendLogger = logger->withValues("backend.name", Logging::Loggable(backend->d_ds->getName()), "backend.address", Logging::Loggable(backend->d_ds->d_config.remote));
+
       try {
         if (backend->d_nextCheck > now) {
           ++backendIt;
           continue;
         }
 
-        auto upgraded = tryToUpgradeBackend(*backend);
+        auto upgraded = tryToUpgradeBackend(*backendLogger, *backend);
         if (upgraded) {
           upgradedBackends.insert(backend->d_ds);
           backendIt = upgradeables.erase(backendIt);
@@ -522,10 +546,12 @@ void ServiceDiscovery::worker()
         }
       }
       catch (const std::exception& e) {
-        vinfolog("Exception in the Service Discovery thread: %s", e.what());
+        VERBOSESLOG(infolog("Exception in the Service Discovery thread: %s", e.what()),
+                    backendLogger->error(Logr::Info, e.what(), "Exception in the Service Discovery thread"));
       }
       catch (...) {
-        vinfolog("Exception in the Service Discovery thread");
+        VERBOSESLOG(infolog("Exception in the Service Discovery thread"),
+                    backendLogger->info(Logr::Info, "Exception in the Service Discovery thread"));
       }
 
       backend->d_nextCheck = now + backend->d_interval;

@@ -27,7 +27,7 @@
 
 namespace dnsdist::webserver
 {
-void registerWebHandler(const std::string& endpoint, std::function<void(const YaHTTP::Request&, YaHTTP::Response&)> handler, bool isLua);
+void registerWebHandler(const std::string& endpoint, std::function<void(const YaHTTP::Request&, YaHTTP::Response&)> handler);
 }
 
 void setupLuaWeb([[maybe_unused]] LuaContext& luaCtx)
@@ -35,7 +35,7 @@ void setupLuaWeb([[maybe_unused]] LuaContext& luaCtx)
 #ifndef DISABLE_LUA_WEB_HANDLERS
   luaCtx.writeFunction("registerWebHandler", [](const std::string& path, std::function<void(const YaHTTP::Request*, YaHTTP::Response*)> handler) {
     /* LuaWrapper does a copy for objects passed by reference, so we pass a pointer */
-    dnsdist::webserver::registerWebHandler(path, [handler](const YaHTTP::Request& req, YaHTTP::Response& resp) { handler(&req, &resp); }, true);
+    dnsdist::webserver::registerWebHandler(path, [handler](const YaHTTP::Request& req, YaHTTP::Response& resp) { handler(&req, &resp); });
   });
 
   luaCtx.registerMember<std::string(YaHTTP::Request::*)>("path", [](const YaHTTP::Request& req) -> std::string { return req.url.path; }, [](YaHTTP::Request& req, const std::string& path) { (void)req; (void) path; });

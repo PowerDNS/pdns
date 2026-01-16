@@ -95,6 +95,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
     _healthCheckCounter = 0
     _answerUnexpected = True
     _checkConfigExpectedOutput = None
+    _checkConfigExpectedOutputPrefix = None
     _verboseMode = False
     _sudoMode = False
     _skipListeningOnCL = False
@@ -198,12 +199,18 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
             output = subprocess.check_output(testcmd, stderr=subprocess.STDOUT, close_fds=True)
         except subprocess.CalledProcessError as exc:
             raise AssertionError('dnsdist --check-config failed (%d): %s' % (exc.returncode, exc.output))
-        if cls._checkConfigExpectedOutput is not None:
-          expectedOutput = cls._checkConfigExpectedOutput
+
+        if cls._checkConfigExpectedOutputPrefix is not None:
+            if not output.startswith(cls._checkConfigExpectedOutputPrefix):
+                raise AssertionError('dnsdist --check-config failed: %s (expected prefix %s)' % (output, cls._checkConfigExpectedOutputPrefix))
         else:
-          expectedOutput = ('Configuration \'%s\' OK!\n' % (confFile)).encode()
-        if not cls._verboseMode and output != expectedOutput:
-            raise AssertionError('dnsdist --check-config failed: %s (expected %s)' % (output, expectedOutput))
+            if cls._checkConfigExpectedOutput is not None:
+                expectedOutput = cls._checkConfigExpectedOutput
+            else:
+                expectedOutput = ('Configuration \'%s\' OK!\n' % (confFile)).encode()
+
+            if not cls._verboseMode and output != expectedOutput:
+                raise AssertionError('dnsdist --check-config failed: %s (expected %s)' % (output, expectedOutput))
 
         logFile = os.path.join('configs', 'dnsdist_%s.log' % (cls.__name__))
         with open(logFile, 'w') as fdLog:

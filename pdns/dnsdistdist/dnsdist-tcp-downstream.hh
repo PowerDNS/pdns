@@ -142,6 +142,8 @@ public:
 
   virtual std::string toString() const = 0;
 
+  virtual std::shared_ptr<const Logr::Logger> getLogger() const;
+
 protected:
   bool reconnect();
 
@@ -266,6 +268,8 @@ public:
   }
 
   void setProxyProtocolValuesSent(std::unique_ptr<std::vector<ProxyProtocolValue>>&& proxyProtocolValuesSent);
+
+  std::shared_ptr<const Logr::Logger> getLogger() const override;
 
 private:
   /* waitingForResponseFromBackend is a state where we have not yet started reading the size,

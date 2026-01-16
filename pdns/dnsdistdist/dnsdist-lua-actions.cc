@@ -301,7 +301,8 @@ void setupLuaActions(LuaContext& luaCtx)
     }
 
     if (config.useServerID && !config.serverID.empty()) {
-      warnlog("useServerID and serverID set in RemoteLogAction configuration. value for serverID will not be used");
+      SLOG(warnlog("useServerID and serverID set in RemoteLogAction configuration. value for serverID will not be used"),
+           dnsdist::logging::getTopLogger("RemoteLogAction")->info(Logr::Warning, "useServerID and serverID set in RemoteLogAction configuration. value for serverID will not be used"));
     }
 
     if (metas) {
@@ -367,7 +368,8 @@ void setupLuaActions(LuaContext& luaCtx)
     }
 
     if (config.useServerID && !config.serverID.empty()) {
-      warnlog("useServerID and serverID set in RemoteLogResponseAction configuration. value for serverID will not be used");
+      SLOG(warnlog("useServerID and serverID set in RemoteLogResponseAction configuration. value for serverID will not be used"),
+           dnsdist::logging::getTopLogger("RemoteLogResponseAction")->info(Logr::Warning, "useServerID and serverID set in RemoteLogResponseAction configuration. value for serverID will not be used"));
     }
 
     if (metas) {

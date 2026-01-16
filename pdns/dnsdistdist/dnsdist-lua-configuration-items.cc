@@ -100,12 +100,15 @@ static const std::map<std::string, UnsignedIntegerConfigurationItems> s_unsigned
   {"setProxyProtocolMaximumPayloadSize", {[](dnsdist::configuration::RuntimeConfiguration& config, uint64_t newValue) { config.d_proxyProtocolMaximumSize = std::max(static_cast<uint64_t>(16), newValue); }, std::numeric_limits<uint32_t>::max()}},
   {"setPayloadSizeOnSelfGeneratedAnswers", {[](dnsdist::configuration::RuntimeConfiguration& config, uint64_t newValue) {
     if (newValue < 512) {
-      warnlog("setPayloadSizeOnSelfGeneratedAnswers() is set too low, using 512 instead!");
+      SLOG(warnlog("setPayloadSizeOnSelfGeneratedAnswers() is set too low, using 512 instead!"),
+           dnsdist::logging::getTopLogger("configuration")->info(Logr::Warning, "Value passed to setPayloadSizeOnSelfGeneratedAnswers() is set too low, using 512 instead", "value", Logging::Loggable(newValue)));
+
       g_outputBuffer = "setPayloadSizeOnSelfGeneratedAnswers() is set too low, using 512 instead!";
       newValue = 512;
     }
     if (newValue > dnsdist::configuration::s_udpIncomingBufferSize) {
-      warnlog("setPayloadSizeOnSelfGeneratedAnswers() is set too high, capping to %d instead!", dnsdist::configuration::s_udpIncomingBufferSize);
+      SLOG(warnlog("setPayloadSizeOnSelfGeneratedAnswers() is set too high, capping to %d instead!", dnsdist::configuration::s_udpIncomingBufferSize),
+           dnsdist::logging::getTopLogger("configuration")->info(Logr::Warning, "Value passed to setPayloadSizeOnSelfGeneratedAnswers() is set too high, capping", "value", Logging::Loggable(newValue), "cap", Logging::Loggable(dnsdist::configuration::s_udpIncomingBufferSize)));
       g_outputBuffer = "setPayloadSizeOnSelfGeneratedAnswers() is set too high, capping to " + std::to_string(dnsdist::configuration::s_udpIncomingBufferSize) + " instead";
       newValue = dnsdist::configuration::s_udpIncomingBufferSize;
     }
@@ -211,7 +214,8 @@ void setupConfigurationItems(LuaContext& luaCtx)
       }
       catch (const std::exception& exp) {
         g_outputBuffer = name + " cannot be used at runtime!\n";
-        errlog("%s cannot be used at runtime!", name);
+        SLOG(errlog("%s cannot be used at runtime!", name),
+             dnsdist::logging::getTopLogger("configuration")->info(Logr::Error, "The " + name + " directive cannot be used at runtime"));
       }
     });
   }
@@ -226,7 +230,8 @@ void setupConfigurationItems(LuaContext& luaCtx)
       }
       catch (const std::exception& exp) {
         g_outputBuffer = name + " cannot be used at runtime!\n";
-        errlog("%s cannot be used at runtime!", name);
+        SLOG(errlog("%s cannot be used at runtime!", name),
+             dnsdist::logging::getTopLogger("configuration")->info(Logr::Error, "The " + name + " directive cannot be used at runtime"));
       }
     });
   }
@@ -234,7 +239,8 @@ void setupConfigurationItems(LuaContext& luaCtx)
     luaCtx.writeFunction(item.first, [&name = item.first, &item = item.second](double value) {
       if (value != 0 && value < item.minimumValue) {
         g_outputBuffer = "Invalid value passed to " + name + "()!\n";
-        errlog("Invalid value passed to %s()!", name);
+        SLOG(errlog("Invalid value passed to %s()!", name),
+             dnsdist::logging::getTopLogger("configuration")->info(Logr::Error, "Invalid value passed to " + name, "value", Logging::Loggable(value)));
         return;
       }
 
@@ -245,7 +251,8 @@ void setupConfigurationItems(LuaContext& luaCtx)
       }
       catch (const std::exception& exp) {
         g_outputBuffer = name + " cannot be used at runtime!\n";
-        errlog("%s cannot be used at runtime!", name);
+        SLOG(errlog("%s cannot be used at runtime!", name),
+             dnsdist::logging::getTopLogger("configuration")->info(Logr::Error, "The " + name + " directive cannot be used at runtime"));
       }
       setLuaSideEffect();
     });

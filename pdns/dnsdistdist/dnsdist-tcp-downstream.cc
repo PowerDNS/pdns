@@ -26,7 +26,8 @@ ConnectionToBackend::~ConnectionToBackend()
         }
       }
       catch (const std::exception& e) {
-        vinfolog("Unable to get a TLS session: %s", e.what());
+        VERBOSESLOG(infolog("Unable to get a TLS session: %s", e.what()),
+                    ConnectionToBackend::getLogger()->error(Logr::Info, e.what(), "Unable to get a TLS session"));
       }
     }
     auto diff = now - d_connectionStartTime;
@@ -55,7 +56,8 @@ bool ConnectionToBackend::reconnect()
         }
       }
       catch (const std::exception& e) {
-        vinfolog("Unable to get a TLS session to resume: %s", e.what());
+        VERBOSESLOG(infolog("Unable to get a TLS session to resume: %s", e.what()),
+                    getLogger()->error(Logr::Info, e.what(), "Unable to get a TLS session to resume"));
       }
     }
     d_handler->close();
@@ -87,7 +89,9 @@ bool ConnectionToBackend::reconnect()
       if (!d_ds->d_config.sourceItfName.empty()) {
         int res = setsockopt(socket.getHandle(), SOL_SOCKET, SO_BINDTODEVICE, d_ds->d_config.sourceItfName.c_str(), d_ds->d_config.sourceItfName.length());
         if (res != 0) {
-          vinfolog("Error setting up the interface on backend TCP socket '%s': %s", d_ds->getNameWithAddr(), stringerror());
+          int savederrno = errno;
+          VERBOSESLOG(infolog("Error setting up the interface on backend TCP socket '%s': %s", d_ds->getNameWithAddr(), stringerror(savederrno)),
+                      getLogger()->error(Logr::Info, savederrno, "Error setting up the interface on backend TCP socket"));
         }
       }
 #endif
@@ -119,7 +123,8 @@ bool ConnectionToBackend::reconnect()
       return true;
     }
     catch (const std::runtime_error& e) {
-      vinfolog("Connection to downstream server %s failed: %s", d_ds->getNameWithAddr(), e.what());
+      VERBOSESLOG(infolog("Connection to downstream server %s failed: %s", d_ds->getNameWithAddr(), e.what()),
+                  getLogger()->error(Logr::Info, e.what(), "Connection to downstream backend server failed"));
       d_downstreamFailures++;
       if (d_downstreamFailures >= d_ds->d_config.d_retries) {
         throw;
@@ -345,10 +350,12 @@ void TCPConnectionToBackend::handleReconnectionAttempt(std::shared_ptr<TCPConnec
               pending.second.d_sender->notifyIOError(now, std::move(response));
             }
             catch (const std::exception& exp) {
-              vinfolog("Got an exception while notifying: %s", exp.what());
+              VERBOSESLOG(infolog("Got an exception while notifying: %s", exp.what()),
+                          conn->getLogger()->error(Logr::Info, exp.what(), "Got an exception while notifying"));
             }
             catch (...) {
-              vinfolog("Got exception while notifying");
+              VERBOSESLOG(infolog("Got exception while notifying"),
+                          conn->getLogger()->info(Logr::Info, "Got an unknown exception while notifying"));
             }
           }
           else {
@@ -460,7 +467,8 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
             iostate = conn->handleResponse(conn, now);
           }
           catch (const std::exception& e) {
-            vinfolog("Got an exception while handling TCP response from %s (client is %s): %s", conn->d_ds ? conn->d_ds->getNameWithAddr() : "unknown", conn->d_currentQuery.d_query.d_idstate.origRemote.toStringWithPort(), e.what());
+            VERBOSESLOG(infolog("Got an exception while handling TCP response from %s (client is %s): %s", conn->d_ds ? conn->d_ds->getNameWithAddr() : "unknown", conn->d_currentQuery.d_query.d_idstate.origRemote.toStringWithPort(), e.what()),
+                        conn->getLogger()->error(Logr::Info, e.what(), "Got an exception while handling TCP response from backend", "client.address", Logging::Loggable(conn->d_currentQuery.d_query.d_idstate.origRemote)));
             ioGuard.release();
             conn->release(true);
             return;
@@ -476,7 +484,8 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
           conn->d_state != State::waitingForResponseFromBackend &&
           conn->d_state != State::readingResponseSizeFromBackend &&
           conn->d_state != State::readingResponseFromBackend) {
-        vinfolog("Unexpected state %d in TCPConnectionToBackend::handleIO", static_cast<int>(conn->d_state));
+        VERBOSESLOG(infolog("Unexpected state %d in TCPConnectionToBackend::handleIO", static_cast<int>(conn->d_state)),
+                    conn->getLogger()->info(Logr::Info, "Unexpected state in TCPConnectionToBackend::handleIO", "state", Logging::Loggable(static_cast<int>(conn->d_state))));
       }
     }
     catch (const std::exception& e) {
@@ -484,7 +493,8 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
          but it might also be a real IO error or something else.
          Let's just drop the connection
       */
-      vinfolog("Got an exception while handling (%s backend) TCP query from %s: %s", (conn->d_state == State::sendingQueryToBackend ? "writing to" : "reading from"), conn->d_currentQuery.d_query.d_idstate.origRemote.toStringWithPort(), e.what());
+      VERBOSESLOG(infolog("Got an exception while handling (%s backend) TCP query from %s: %s", (conn->d_state == State::sendingQueryToBackend ? "writing to" : "reading from"), conn->d_currentQuery.d_query.d_idstate.origRemote.toStringWithPort(), e.what()),
+                  conn->getLogger()->error(Logr::Info, e.what(), "Got an exception while handling TCP communication with backend", "client.address", Logging::Loggable(conn->d_currentQuery.d_query.d_idstate.origRemote), "io_operation", Logging::Loggable(conn->d_state == State::sendingQueryToBackend ? "writing to" : "reading from")));
 
       if (conn->d_state == State::sendingQueryToBackend) {
         ++conn->d_ds->tcpDiedSendingQuery;
@@ -583,26 +593,31 @@ void TCPConnectionToBackend::handleTimeout(const struct timeval& now, bool write
   if (write) {
     if (isFresh() && d_queries == 0) {
       ++d_ds->tcpConnectTimeouts;
-      vinfolog("Timeout while connecting to TCP backend %s", d_ds->getNameWithAddr());
+      VERBOSESLOG(infolog("Timeout while connecting to TCP backend %s", d_ds->getNameWithAddr()),
+                  getLogger()->info(Logr::Info, "Timeout while connecting to TCP backend"));
     }
     else {
       ++d_ds->tcpWriteTimeouts;
-      vinfolog("Timeout while writing to TCP backend %s", d_ds->getNameWithAddr());
+      VERBOSESLOG(infolog("Timeout while writing to TCP backend %s", d_ds->getNameWithAddr()),
+                  getLogger()->info(Logr::Info, "Timeout while writing to TCP backend"));
     }
   }
   else {
     ++d_ds->tcpReadTimeouts;
-    vinfolog("Timeout while reading from TCP backend %s", d_ds->getNameWithAddr());
+    VERBOSESLOG(infolog("Timeout while reading from TCP backend %s", d_ds->getNameWithAddr()),
+                getLogger()->info(Logr::Info, "Timeout while reading from TCP backend"));
   }
 
   try {
     notifyAllQueriesFailed(now, FailureReason::timeout);
   }
   catch (const std::exception& e) {
-    vinfolog("Got an exception while notifying a timeout: %s", e.what());
+    VERBOSESLOG(infolog("Got an exception while notifying a timeout: %s", e.what()),
+                getLogger()->error(Logr::Info, e.what(), "Got an exception while notifying a timeout from a backend"));
   }
   catch (...) {
-    vinfolog("Got exception while notifying a timeout");
+    VERBOSESLOG(infolog("Got exception while notifying a timeout"),
+                getLogger()->info(Logr::Info, "Got an unknown exception while notifying a timeout from a backend"));
   }
 
   release(true);
@@ -671,10 +686,12 @@ void TCPConnectionToBackend::notifyAllQueriesFailed(const struct timeval& now, F
     }
   }
   catch (const std::exception& e) {
-    vinfolog("Got an exception while notifying: %s", e.what());
+    VERBOSESLOG(infolog("Got an exception while notifying: %s", e.what()),
+                getLogger()->error(Logr::Info, e.what(), "Got an exception while notifying a timeout from a backend"));
   }
   catch (...) {
-    vinfolog("Got exception while notifying");
+    VERBOSESLOG(infolog("Got exception while notifying"),
+                getLogger()->info(Logr::Info, "Got an unknown exception while notifying a timeout from a backend"));
   }
 
   release(true);
@@ -896,6 +913,21 @@ bool TCPConnectionToBackend::isXFRFinished(const TCPResponse& response, TCPQuery
     /* ponder what to do here, shall we close the connection? */
   }
   return done;
+}
+
+std::shared_ptr<const Logr::Logger> ConnectionToBackend::getLogger() const
+{
+  auto logger = dnsdist::logging::getTopLogger("outgoing-tcp-connection")->withValues("fresh_connection", Logging::Loggable(d_fresh), "tcp_fast_open", Logging::Loggable(d_enableFastOpen), "proxy_protocol_payload_sent", Logging::Loggable(d_proxyProtocolPayloadSent), "downstream_failures", Logging::Loggable(d_downstreamFailures), "highest_stream_id", Logging::Loggable(d_highestStreamID), "queries_count", Logging::Loggable(d_queries), "io_state", Logging::Loggable(d_ioState ? d_ioState->getState() : "empty"));
+  if (d_ds) {
+    logger = logger->withValues("backend.address", Logging::Loggable(d_ds->d_config.remote), "backend.name", Logging::Loggable(d_ds->getName()));
+  }
+
+  return logger;
+}
+
+std::shared_ptr<const Logr::Logger> TCPConnectionToBackend::getLogger() const
+{
+  return ConnectionToBackend::getLogger()->withValues("state", Logging::Loggable(static_cast<int>(d_state)), "pending_queries", Logging::Loggable(d_pendingQueries.size()), "pending_responses", Logging::Loggable(d_pendingResponses.size()));
 }
 
 void setTCPDownstreamMaxIdleConnectionsPerBackend(uint64_t max)

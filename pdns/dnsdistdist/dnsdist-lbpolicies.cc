@@ -326,7 +326,8 @@ const ServerPool& createPoolIfNotExists(const string& poolName)
   }
 
   if (!poolName.empty()) {
-    vinfolog("Creating pool %s", poolName);
+    VERBOSESLOG(infolog("Creating pool %s", poolName),
+               dnsdist::logging::getTopLogger("pool")->info(Logr::Info, "Creating a new pool of backends", "pool", Logging::Loggable(poolName)));
   }
 
   dnsdist::configuration::updateRuntimeConfiguration([&poolName](dnsdist::configuration::RuntimeConfiguration& config) {
@@ -343,9 +344,12 @@ const ServerPool& createPoolIfNotExists(const string& poolName)
 void setPoolPolicy(const string& poolName, std::shared_ptr<ServerPolicy> policy)
 {
   if (!poolName.empty()) {
-    vinfolog("Setting pool %s server selection policy to %s", poolName, policy->getName());
+    VERBOSESLOG(infolog("Setting pool %s server selection policy to %s", poolName, policy->getName()),
+                dnsdist::logging::getTopLogger("pool")->info(Logr::Info, "Setting pool server selection policy", "pool", Logging::Loggable(poolName), "policy", Logging::Loggable(policy->getName())));
   } else {
-    vinfolog("Setting default pool server selection policy to %s", policy->getName());
+    VERBOSESLOG(infolog("Setting default pool server selection policy to %s", policy->getName()),
+                dnsdist::logging::getTopLogger("pool")->info(Logr::Info, "Setting pool server selection policy", "pool", Logging::Loggable(poolName), "policy", Logging::Loggable(policy->getName())));
+
   }
 
   dnsdist::configuration::updateRuntimeConfiguration([&poolName, &policy](dnsdist::configuration::RuntimeConfiguration& config) {
@@ -357,9 +361,11 @@ void setPoolPolicy(const string& poolName, std::shared_ptr<ServerPolicy> policy)
 void addServerToPool(const string& poolName, std::shared_ptr<DownstreamState> server)
 {
   if (!poolName.empty()) {
-    vinfolog("Adding server to pool %s", poolName);
+    VERBOSESLOG(infolog("Adding server to pool %s", poolName),
+                dnsdist::logging::getTopLogger("pool")->info(Logr::Info, "Adding server to pool", "pool", Logging::Loggable(poolName)));
   } else {
-    vinfolog("Adding server to default pool");
+    VERBOSESLOG(infolog("Adding server to default pool"),
+                dnsdist::logging::getTopLogger("pool")->info(Logr::Info, "Adding server to pool", "pool", Logging::Loggable(poolName)));
   }
 
   dnsdist::configuration::updateRuntimeConfiguration([&poolName, &server](dnsdist::configuration::RuntimeConfiguration& config) {
@@ -371,10 +377,12 @@ void addServerToPool(const string& poolName, std::shared_ptr<DownstreamState> se
 void removeServerFromPool(const string& poolName, std::shared_ptr<DownstreamState> server)
 {
   if (!poolName.empty()) {
-    vinfolog("Removing server from pool %s", poolName);
+    VERBOSESLOG(infolog("Removing server from pool %s", poolName),
+                dnsdist::logging::getTopLogger("pool")->info(Logr::Info, "Removing server from pool", "pool", Logging::Loggable(poolName)));
   }
   else {
-    vinfolog("Removing server from default pool");
+    VERBOSESLOG(infolog("Removing server from default pool"),
+                dnsdist::logging::getTopLogger("pool")->info(Logr::Info, "Removing server from pool", "pool", Logging::Loggable(poolName)));
   }
 
   dnsdist::configuration::updateRuntimeConfiguration([&poolName, &server](dnsdist::configuration::RuntimeConfiguration& config) {

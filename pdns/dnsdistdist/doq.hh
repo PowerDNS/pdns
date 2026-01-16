@@ -24,20 +24,20 @@
 #include <memory>
 
 #include "config.h"
-#include "channel.hh"
-#include "iputils.hh"
-#include "libssl.hh"
-#include "noinitvector.hh"
-#include "doq.hh"
-#include "stat_t.hh"
 
 struct DOQServerConfig;
 struct DownstreamState;
 
 #ifdef HAVE_DNS_OVER_QUIC
 
+#include "channel.hh"
 #include "dnsdist-idstate.hh"
 #include "doq-common.hh"
+#include "dolog.hh"
+#include "iputils.hh"
+#include "libssl.hh"
+#include "noinitvector.hh"
+#include "stat_t.hh"
 
 struct DOQFrontend
 {
@@ -50,7 +50,12 @@ struct DOQFrontend
 
   void setup();
   void reloadCertificates();
+  const Logr::Logger& getLogger()
+  {
+    return *d_logger;
+  }
 
+  std::shared_ptr<const Logr::Logger> d_logger{nullptr};
   std::unique_ptr<DOQServerConfig> d_server_config;
   dnsdist::doq::QuicheParams d_quicheParams;
   ComboAddress d_local;

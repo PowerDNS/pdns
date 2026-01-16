@@ -293,10 +293,13 @@ static void sendDoHUnitToTheMainThread(DOHUnitUniquePtr&& dohUnit, const char* d
   try {
     if (!dohUnit->responseSender->send(std::move(dohUnit))) {
       ++dnsdist::metrics::g_stats.dohResponsePipeFull;
-      vinfolog("Unable to pass a %s to the DoH worker thread because the pipe is full", description);
+      VERBOSESLOG(infolog("Unable to pass a %s to the DoH worker thread because the pipe is full", description),
+                  dnsdist::logging::getTopLogger("doh")->info(Logr::Info, std::string("Unable to pass a ") + std::string(description) + " to the DoH worker thread because the pipe is full"));
     }
   } catch (const std::exception& e) {
-    vinfolog("Unable to pass a %s to the DoH worker thread because we couldn't write to the pipe: %s", description, e.what());
+    VERBOSESLOG(infolog("Unable to pass a %s to the DoH worker thread because we couldn't write to the pipe: %s", description, e.what()),
+                dnsdist::logging::getTopLogger("doh")->error(Logr::Info, e.what(), std::string("Unable to pass a ") + std::string(description) + " to the DoH worker thread because we couldn't write to the pipe"));
+
   }
 }
 
@@ -543,7 +546,8 @@ public:
 
     if (!dohUnit->ids.selfGenerated) {
       auto udiff = dohUnit->ids.queryRealTime.udiff();
-      vinfolog("Got answer from %s, relayed to %s (https), took %d us", dohUnit->downstream->d_config.remote.toStringWithPort(), dohUnit->ids.origRemote.toStringWithPort(), udiff);
+      VERBOSESLOG(infolog("Got answer from %s, relayed to %s (https), took %d us", dohUnit->downstream->d_config.remote.toStringWithPort(), dohUnit->ids.origRemote.toStringWithPort(), udiff),
+                  dr.getLogger()->info(Logr::Info, "Got answer, relayed to client"));
 
       auto backendProtocol = dohUnit->downstream->getProtocol();
       if (backendProtocol == dnsdist::Protocol::DoUDP && dohUnit->tcp) {
@@ -870,9 +874,12 @@ static void processDOHQuery(DOHUnitUniquePtr&& unit, bool inMainThread = false)
     }
   }
   catch (const std::exception& e) {
-    vinfolog("Got an error in DOH question thread while parsing a query from %s, id %d: %s", remote.toStringWithPort(), queryId, e.what());
-    unit->status_code = 500;
-    handleImmediateResponse(std::move(unit), "DoH internal error");
+    if (unit) {
+      VERBOSESLOG(infolog("Got an error in DOH question thread while parsing a query from %s, id %d: %s", remote.toStringWithPort(), queryId, e.what()),
+                  unit->dsc->dohFrontend->getLogger().error(Logr::Info, e.what(), "Got an error in DoH question thread while parsing a query", "client.address", Logging::Loggable(remote), "dns.question.id", Logging::Loggable(queryId)));
+      unit->status_code = 500;
+      handleImmediateResponse(std::move(unit), "DoH internal error");
+    }
     return;
   }
 }
@@ -990,7 +997,8 @@ static void doh_dispatch_query(DOHServerConfig* dsc, h2o_handler_t* self, h2o_re
     try {
       if (!dsc->d_querySender.send(std::move(dohUnit))) {
         ++dnsdist::metrics::g_stats.dohQueryPipeFull;
-        vinfolog("Unable to pass a DoH query to the DoH worker thread because the pipe is full");
+        VERBOSESLOG(infolog("Unable to pass a DoH query to the DoH worker thread because the pipe is full"),
+                    dsc->dohFrontend->getLogger().info(Logr::Info, "Unable to pass a DoH query to the DoH worker thread because the pipe is full"));
         if (conn != nullptr) {
           --conn->d_concurrentStreams;
         }
@@ -998,7 +1006,9 @@ static void doh_dispatch_query(DOHServerConfig* dsc, h2o_handler_t* self, h2o_re
       }
     }
     catch (...) {
-      vinfolog("Unable to pass a DoH query to the DoH worker thread because we couldn't write to the pipe: %s", stringerror());
+      auto savederror = errno;
+      VERBOSESLOG(infolog("Unable to pass a DoH query to the DoH worker thread because we couldn't write to the pipe: %s", stringerror(savederror)),
+                  dsc->dohFrontend->getLogger().error(Logr::Info, savederror, "Unable to pass a DoH query to the DoH worker thread because we couldn't write to the pipe"));
       if (conn != nullptr) {
         --conn->d_concurrentStreams;
       }
@@ -1007,7 +1017,9 @@ static void doh_dispatch_query(DOHServerConfig* dsc, h2o_handler_t* self, h2o_re
 #endif /* USE_SINGLE_ACCEPTOR_THREAD */
   }
   catch (const std::exception& e) {
-    vinfolog("Had error parsing DoH DNS packet from %s: %s", remote.toStringWithPort(), e.what());
+    VERBOSESLOG(infolog("Had error parsing DoH DNS packet from %s: %s", remote.toStringWithPort(), e.what()),
+                dsc->dohFrontend->getLogger().error(Logr::Info, e.what(), "Had error parsing DoH DNS packet", "client.address", Logging::Loggable(remote)));
+
     if (conn != nullptr) {
       --conn->d_concurrentStreams;
     }
@@ -1036,7 +1048,7 @@ static bool getHTTPHeaderValue(const h2o_req_t* req, const std::string& headerNa
 }
 
 /* can only be called from the main DoH thread */
-static std::optional<ComboAddress> processForwardedForHeader(const h2o_req_t* req, const ComboAddress& remote)
+static std::optional<ComboAddress> processForwardedForHeader(const DOHFrontend& frontend, const h2o_req_t* req, const ComboAddress& remote)
 {
   static const std::string headerName = "x-forwarded-for";
   std::string_view value;
@@ -1057,10 +1069,12 @@ static std::optional<ComboAddress> processForwardedForHeader(const h2o_req_t* re
       return ComboAddress(std::string(value));
     }
     catch (const std::exception& e) {
-      vinfolog("Invalid X-Forwarded-For header ('%s') received from %s : %s", std::string(value), remote.toStringWithPort(), e.what());
+      VERBOSESLOG(infolog("Invalid X-Forwarded-For header ('%s') received from %s : %s", std::string(value), remote.toStringWithPort(), e.what()),
+                  frontend.getLogger().error(Logr::Info, e.what(), "Invalid X-Forwarded-For header received from client", "client.address", Logging::Loggable(remote), "http.request.header.x-forwarded-for", Logging::Loggable(value)));
     }
     catch (const PDNSException& e) {
-      vinfolog("Invalid X-Forwarded-For header ('%s') received from %s : %s", std::string(value), remote.toStringWithPort(), e.reason);
+      VERBOSESLOG(infolog("Invalid X-Forwarded-For header ('%s') received from %s : %s", std::string(value), remote.toStringWithPort(), e.reason),
+                  frontend.getLogger().error(Logr::Info, e.reason, "Invalid X-Forwarded-For header received from client", "client.address", Logging::Loggable(remote), "http.request.header.x-forwarded-for", Logging::Loggable(value)));
     }
   }
 
@@ -1088,7 +1102,8 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
     }
     auto& conn = *connPtr;
     if (conn.d_concurrentStreams >= dnsdist::doh::MAX_INCOMING_CONCURRENT_STREAMS) {
-      vinfolog("Too many concurrent streams on connection from %d", conn.d_remote.toStringWithPort());
+      VERBOSESLOG(infolog("Too many concurrent streams on connection from %d", conn.d_remote.toStringWithPort()),
+                  dsc->dohFrontend->getLogger().info(Logr::Info, "Too many concurrent streams on connection", "client.address", Logging::Loggable(conn.d_remote)));
       return 0;
     }
 
@@ -1109,7 +1124,7 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
 
     auto remote = conn.d_remote;
     if (dsc->dohFrontend->d_trustForwardedForHeader) {
-      auto newRemote = processForwardedForHeader(req, remote);
+      auto newRemote = processForwardedForHeader(*dsc->dohFrontend, req, remote);
       if (newRemote) {
         remote = *newRemote;
       }
@@ -1117,7 +1132,8 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
 
     if (!dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL.match(remote)) {
       ++dnsdist::metrics::g_stats.aclDrops;
-      vinfolog("Query from %s (DoH) dropped because of ACL", remote.toStringWithPort());
+      VERBOSESLOG(infolog("Query from %s (DoH) dropped because of ACL", remote.toStringWithPort()),
+                  dsc->dohFrontend->getLogger().info(Logr::Info, "DoH query dropped because of ACL", "client.address", Logging::Loggable(remote)));
       h2o_send_error_403(req, "Forbidden", "DoH query not allowed because of ACL", 0);
       return 0;
     }
@@ -1225,9 +1241,9 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
 
         doh_dispatch_query(dsc, self, req, std::move(decoded), conn.d_local, remote, std::move(path));
       }
-      else
-      {
-        vinfolog("HTTP request without DNS parameter: %s", req->path.base);
+      else {
+        VERBOSESLOG(infolog("HTTP request without DNS parameter: %s", req->path.base),
+                    dsc->dohFrontend->getLogger().info(Logr::Info, "DoH query withouth DNS parameter", "client.address", Logging::Loggable(remote), "url", Logging::Loggable(req->path.base)));
         h2o_send_error_400(req, "Bad Request", "Unable to find the DNS parameter", 0);
         ++dsc->dohFrontend->d_badrequests;
         return 0;
@@ -1240,7 +1256,8 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
     return 0;
   }
   catch (const std::exception& e) {
-    vinfolog("DOH Handler function failed with error: '%s'", e.what());
+    VERBOSESLOG(infolog("DOH Handler function failed with error: '%s'", e.what()),
+                dnsdist::logging::getTopLogger("doh")->error(Logr::Info, e.what(), "DoH Handler function failed with error"));
     return 0;
   }
 }
@@ -1298,7 +1315,7 @@ void DOHUnit::setHTTPResponse(uint16_t statusCode, PacketBuffer&& body_, const s
 /* query has been parsed by h2o, which called doh_handler() in the main DoH thread.
    In order not to block for long, doh_handler() called doh_dispatch_query() which allocated
    a DOHUnit object and passed it to us */
-static void dnsdistclient(pdns::channel::Receiver<DOHUnit>&& receiver)
+static void dnsdistclient(pdns::channel::Receiver<DOHUnit>&& receiver, std::shared_ptr<const Logr::Logger> frontendLogger)
 {
   setThreadName("dnsdist/doh-cli");
 
@@ -1322,10 +1339,12 @@ static void dnsdistclient(pdns::channel::Receiver<DOHUnit>&& receiver)
       processDOHQuery(std::move(dohUnit), false);
     }
     catch (const std::exception& e) {
-      vinfolog("Error while processing query received over DoH: %s", e.what());
+      VERBOSESLOG(infolog("Error while processing query received over DoH: %s", e.what()),
+                  frontendLogger->error(Logr::Info, e.what(), "Error while processing query received over DoH"));
     }
     catch (...) {
-      vinfolog("Unspecified error while processing query received over DoH");
+      VERBOSESLOG(infolog("Unspecified error while processing query received over DoH"),
+                  frontendLogger->info(Logr::Info, "Unspecified error while processing query received over DoH"));
     }
   }
 }
@@ -1357,7 +1376,8 @@ static void on_dnsdist(h2o_socket_t *listener, const char *err)
       dohUnit = std::move(*tmp);
     }
     catch (const std::exception& e) {
-      warnlog("Error reading a DOH internal response: %s", e.what());
+      SLOG(warnlog("Error reading a DOH internal response: %s", e.what()),
+           dsc->dohFrontend->getLogger().error(Logr::Warning, e.what(), "Error reading a DOH internal response"));
       return;
     }
 
@@ -1385,7 +1405,8 @@ static void on_dnsdist(h2o_socket_t *listener, const char *err)
       if (g_tcpclientthreads && g_tcpclientthreads->passCrossProtocolQueryToThread(std::move(cpq))) {
         continue;
       }
-      vinfolog("Unable to pass DoH query to a TCP worker thread after getting a TC response over UDP");
+      VERBOSESLOG(infolog("Unable to pass DoH query to a TCP worker thread after getting a TC response over UDP"),
+                  dsc->dohFrontend->getLogger().info(Logr::Info, "Unable to pass DoH query to a TCP worker thread after getting a TC response over UDP"));
       continue;
     }
 
@@ -1423,14 +1444,16 @@ static void on_accept(h2o_socket_t *listener, const char *err)
   ComboAddress remote;
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): h2o API
   if (h2o_socket_getpeername(sock, reinterpret_cast<struct sockaddr*>(&remote)) == 0) {
-    vinfolog("Dropping DoH connection because we could not retrieve the remote host");
+    VERBOSESLOG(infolog("Dropping DoH connection because we could not retrieve the remote host"),
+                dsc->dohFrontend->getLogger().info(Logr::Info, "Dropping DoH connection because we could not retrieve the remote host"));
     h2o_socket_close(sock);
     return;
   }
 
   if (dsc->dohFrontend->d_earlyACLDrop && !dsc->dohFrontend->d_trustForwardedForHeader && !dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL.match(remote)) {
     ++dnsdist::metrics::g_stats.aclDrops;
-    vinfolog("Dropping DoH connection from %s because of ACL", remote.toStringWithPort());
+    VERBOSESLOG(infolog("Dropping DoH connection from %s because of ACL", remote.toStringWithPort()),
+                dsc->dohFrontend->getLogger().info(Logr::Info, "Dropping DoH connection because of ACL", "client.address", Logging::Loggable(remote)));
     h2o_socket_close(sock);
     return;
   }
@@ -1527,7 +1550,8 @@ static void setupTLSContext(DOHAcceptContext& acceptCtx,
 
   auto [ctx, warnings] = libssl_init_server_context_no_sni(tlsConfig, acceptCtx.d_ocspResponses);
   for (const auto& warning : warnings) {
-    warnlog("%s", warning);
+    SLOG(warnlog("%s", warning),
+                 dnsdist::logging::getTopLogger("doh")->info(Logr::Warning, warning));
   }
 
   if (tlsConfig.d_enableTickets && tlsConfig.d_numberOfTicketsKeys > 0) {
@@ -1612,13 +1636,15 @@ void dohThread(ClientState* clientState)
 {
   try {
     std::shared_ptr<DOHFrontend>& dohFrontend = clientState->dohFrontend;
+    auto frontendLogger = dnsdist::logging::getTopLogger("doh-frontend")->withValues("frontend.address", Logging::Loggable(clientState->local), "provider", Logging::Loggable("h2o"));
+    dohFrontend->d_logger = frontendLogger;
     auto& dsc = dohFrontend->d_dsc;
     dsc->clientState = clientState;
     std::atomic_store_explicit(&dsc->dohFrontend, clientState->dohFrontend, std::memory_order_release);
     dsc->h2o_config.server_name = h2o_iovec_init(dohFrontend->d_serverTokens.c_str(), dohFrontend->d_serverTokens.size());
 
 #ifndef USE_SINGLE_ACCEPTOR_THREAD
-    std::thread dnsdistThread(dnsdistclient, std::move(dsc->d_queryReceiver));
+    std::thread dnsdistThread(dnsdistclient, std::move(dsc->d_queryReceiver), frontendLogger);
     dnsdistThread.detach(); // gets us better error reporting
 #endif
 
@@ -1661,8 +1687,10 @@ void dohThread(ClientState* clientState)
     do {
       int result = h2o_evloop_run(dsc->h2o_ctx.loop, INT32_MAX);
       if (result == -1) {
-        if (errno != EINTR) {
-          errlog("Error in the DoH event loop: %s", stringerror(errno));
+        auto savederror = errno;
+        if (savederror != EINTR) {
+          SLOG(errlog("Error in the DoH event loop: %s", stringerror(savederror)),
+               dsc->dohFrontend->getLogger().error(Logr::Error, savederror, "Error in the DoH event loop"));
           stop = true;
         }
       }
@@ -1712,7 +1740,8 @@ void DOHUnit::handleUDPResponse(PacketBuffer&& udpResponse, InternalQueryState&&
     dohUnit = getDUFromIDS(dnsResponse.ids);
     dohUnit->response = std::move(udpResponse);
     auto udiff = dohUnit->ids.queryRealTime.udiff();
-    vinfolog("Got answer from %s, relayed to %s (https), took %d us", dohUnit->downstream->d_config.remote.toStringWithPort(), dohUnit->ids.origRemote.toStringWithPort(), udiff);
+    VERBOSESLOG(infolog("Got answer from %s, relayed to %s (https), took %d us", dohUnit->downstream->d_config.remote.toStringWithPort(), dohUnit->ids.origRemote.toStringWithPort(), udiff),
+                dnsResponse.getLogger()->info(Logr::Info, "Got answer from backend, relayed to client"));
 
     handleResponseSent(dohUnit->ids, udiff, dnsResponse.ids.origRemote, dohUnit->downstream->d_config.remote, dohUnit->response.size(), cleartextDH, dohUnit->downstream->getProtocol(), true);
 

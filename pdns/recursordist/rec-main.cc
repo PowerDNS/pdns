@@ -1049,10 +1049,10 @@ static void loggerSDBackend(const Logging::Entry& entry)
   Logger::Urgency urgency = entry.d_priority != 0 ? Logger::Urgency(entry.d_priority) : Logger::Info;
   if (urgency > s_logUrgency) {
     // We do not log anything if the Urgency of the message is lower than the requested loglevel.
-    // Not that lower Urgency means higher number.
+    // Note that lower Urgency means higher number.
     return;
   }
-  // We need to keep the string in mem until sd_journal_sendv has ben called
+  // We need to keep the string in mem until sd_journal_sendv has been called
   vector<string> strings;
   auto appendKeyAndVal = [&strings](const string& key, const string& value) {
     strings.emplace_back(key + "=" + value);
@@ -1098,7 +1098,7 @@ static void loggerJSONBackend(const Logging::Entry& entry)
   Logger::Urgency urg = entry.d_priority != 0 ? Logger::Urgency(entry.d_priority) : Logger::Info;
   if (urg > s_logUrgency) {
     // We do not log anything if the Urgency of the message is lower than the requested loglevel.
-    // Not that lower Urgency means higher number.
+    // Note that lower Urgency means higher number.
     return;
   }
 

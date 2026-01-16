@@ -128,6 +128,8 @@ public:
   bool readIncomingQuery(const timeval& now, IOState& iostate);
   bool isNearTCPLimits() const;
 
+  std::shared_ptr<const Logr::Logger> getLogger() const;
+
   enum class State : uint8_t { starting, doingHandshake, readingProxyProtocolHeader, waitingForQuery, readingQuerySize, readingQuery, sendingResponse, idle /* in case of XFR, we stop processing queries */ };
 
   TCPResponse d_currentResponse;

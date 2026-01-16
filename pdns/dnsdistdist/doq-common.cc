@@ -63,7 +63,8 @@ PacketBuffer mintToken(const PacketBuffer& dcid, const ComboAddress& peer)
     return encryptedTokenPacket;
   }
   catch (const std::exception& exp) {
-    vinfolog("Error while minting DoH3 token: %s", exp.what());
+    VERBOSESLOG(infolog("Error while minting DoH3 token: %s", exp.what()),
+                dnsdist::logging::getTopLogger("doh3")->error(Logr::Info, exp.what(), "Error while minting DoH3 token"));
     throw;
   }
 }
@@ -121,7 +122,8 @@ std::optional<PacketBuffer> validateToken(const PacketBuffer& token, const Combo
     return PacketBuffer(plainText.begin() + (sizeof(ttd) + addrBytes.size()), plainText.end());
   }
   catch (const std::exception& exp) {
-    vinfolog("Error while validating DoH3 token: %s", exp.what());
+    VERBOSESLOG(infolog("Error while validating DoH3 token: %s", exp.what()),
+                dnsdist::logging::getTopLogger("doh3")->error(Logr::Info, exp.what(), "Error while validating DoH3 token"));
     return std::nullopt;
   }
 }
@@ -146,7 +148,8 @@ static void sendFromTo(Socket& sock, const ComboAddress& peer, const ComboAddres
     auto ret = sendto(sock.getHandle(), buffer.data(), buffer.size(), flags, reinterpret_cast<const struct sockaddr*>(&peer), peer.getSocklen());
     if (ret < 0) {
       auto error = errno;
-      vinfolog("Error while sending QUIC datagram of size %d to %s: %s", buffer.size(), peer.toStringWithPort(), stringerror(error));
+      VERBOSESLOG(infolog("Error while sending QUIC datagram of size %d to %s: %s", buffer.size(), peer.toStringWithPort(), stringerror(error)),
+                  dnsdist::logging::getTopLogger("quic-send-from-to")->error(Logr::Info, error, "Error while sending QUIC datagram", "datagram_size", Logging::Loggable(buffer.size()), "client.address", Logging::Loggable(peer)));
     }
     return;
   }
@@ -155,7 +158,8 @@ static void sendFromTo(Socket& sock, const ComboAddress& peer, const ComboAddres
     sendMsgWithOptions(sock.getHandle(), buffer.data(), buffer.size(), &peer, &local, 0, 0);
   }
   catch (const std::exception& exp) {
-    vinfolog("Error while sending QUIC datagram of size %d from %s to %s: %s", buffer.size(), local.toStringWithPort(), peer.toStringWithPort(), exp.what());
+    VERBOSESLOG(infolog("Error while sending QUIC datagram of size %d from %s to %s: %s", buffer.size(), local.toStringWithPort(), peer.toStringWithPort(), exp.what()),
+                dnsdist::logging::getTopLogger("quic-send-from-to")->error(Logr::Info, exp.what(), "Error while sending QUIC datagram", "datagram_size", Logging::Loggable(buffer.size()), "source.address", Logging::Loggable(local), "client.address", Logging::Loggable(peer)));
   }
 }
 

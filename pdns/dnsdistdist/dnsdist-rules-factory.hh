@@ -1295,10 +1295,12 @@ public:
       return d_func(dq);
     }
     catch (const std::exception& e) {
-      warnlog("LuaRule failed inside Lua: %s", e.what());
+      SLOG(warnlog("LuaRule failed inside Lua: %s", e.what()),
+           dq->getLogger()->error(Logr::Warning, e.what(), "LuaRule failed inside Lua"));
     }
     catch (...) {
-      warnlog("LuaRule failed inside Lua: [unknown exception]");
+      SLOG(warnlog("LuaRule failed inside Lua: [unknown exception]"),
+           dq->getLogger()->info(Logr::Warning, "LuaRule failed inside Lua with an unknown exception"));
     }
     return false;
   }
@@ -1327,10 +1329,12 @@ public:
       return d_func(&dqffi);
     }
     catch (const std::exception& e) {
-      warnlog("LuaFFIRule failed inside Lua: %s", e.what());
+      SLOG(warnlog("LuaFFIRule failed inside Lua: %s", e.what()),
+           dq->getLogger()->error(Logr::Warning, e.what(), "LuaFFIRule failed inside Lua"));
     }
     catch (...) {
-      warnlog("LuaFFIRule failed inside Lua: [unknown exception]");
+      SLOG(warnlog("LuaFFIRule failed inside Lua: [unknown exception]"),
+           dq->getLogger()->info(Logr::Warning, "LuaFFIRule failed inside Lua with an unknown exception"));
     }
     return false;
   }
@@ -1373,10 +1377,12 @@ public:
       return state.d_func(&dqffi);
     }
     catch (const std::exception& e) {
-      warnlog("LuaFFIPerthreadRule failed inside Lua: %s", e.what());
+      SLOG(warnlog("LuaFFIPerthreadRule failed inside Lua: %s", e.what()),
+           dq->getLogger()->error(Logr::Warning, e.what(), "LuaFFIPerThreadRule failed inside Lua"));
     }
     catch (...) {
-      warnlog("LuaFFIPerThreadRule failed inside Lua: [unknown exception]");
+      SLOG(warnlog("LuaFFIPerThreadRule failed inside Lua: [unknown exception]"),
+           dq->getLogger()->info(Logr::Warning, "LuaFFIPerThreadRule failed inside Lua with an unknown exception"));
     }
     return false;
   }

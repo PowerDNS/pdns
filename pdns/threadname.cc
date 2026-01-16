@@ -71,11 +71,11 @@ void setThreadName(const std::string& threadName) {
 
   if (retval != 0) {
 #ifdef DNSDIST
-    warnlog("Could not set thread name %s for thread: %s", threadName, strerror(retval));
+    SLOG(warnlog("Could not set thread name %s for thread: %s", threadName, strerror(retval)),
+         dnsdist::logging::getTopLogger("runtime")->error(Logr::Warning, retval, "Could not set thread name", "name", Logging::Loggable(threadName)));
 #else
     SLOG(g_log<<Logger::Warning<<"Could not set thread name "<<threadName<<" for thread: "<<strerror(retval)<<endl,
          g_slog->withName("runtime")->error(Logr::Warning, retval, "Could not set thread name", "name", Logging::Loggable(threadName)));
 #endif
   }
 }
-

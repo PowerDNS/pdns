@@ -30,6 +30,7 @@
 
 #ifdef HAVE_DNS_OVER_HTTP3
 #include "channel.hh"
+#include "dolog.hh"
 #include "iputils.hh"
 #include "libssl.hh"
 #include "stat_t.hh"
@@ -59,7 +60,12 @@ struct DOH3Frontend
 
   void setup();
   void reloadCertificates();
+  const Logr::Logger& getLogger()
+  {
+    return *d_logger;
+  }
 
+  std::shared_ptr<const Logr::Logger> d_logger{nullptr};
   std::unique_ptr<DOH3ServerConfig> d_server_config;
   ComboAddress d_local;
 
