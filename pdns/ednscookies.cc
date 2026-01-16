@@ -103,6 +103,16 @@ void EDNSCookiesOpt::getEDNSCookiesOptFromString(const char* option, unsigned in
   }
 }
 
+static bool cookieTSIsValid(uint32_t timestamp, uint32_t now)
+{
+  // RFC 9018 section 4.3:
+  //    The DNS server
+  //    SHOULD allow cookies within a 1-hour period in the past and a
+  //    5-minute period into the future
+  // valid: now - 300 < timestamp < now + 3600
+  return rfc1982LessThan(now - 300, timestamp) && rfc1982LessThan(timestamp, now + 3600);
+}
+
 bool EDNSCookiesOpt::isValid([[maybe_unused]] const string& secret, [[maybe_unused]] const ComboAddress& source) const
 {
 #ifdef HAVE_CRYPTO_SHORTHASH
@@ -118,11 +128,7 @@ bool EDNSCookiesOpt::isValid([[maybe_unused]] const string& secret, [[maybe_unus
   timestamp = ntohl(timestamp);
   // coverity[store_truncates_time_t]
   auto now = static_cast<uint32_t>(time(nullptr));
-  // RFC 9018 section 4.3:
-  //    The DNS server
-  //    SHOULD allow cookies within a 1-hour period in the past and a
-  //    5-minute period into the future
-  if (rfc1982LessThan(now + 300, timestamp) && rfc1982LessThan(timestamp + 3600, now)) {
+  if (!cookieTSIsValid(timestamp, now)) {
     return false;
   }
   if (secret.length() != crypto_shorthash_KEYBYTES) {
@@ -155,12 +161,8 @@ bool EDNSCookiesOpt::shouldRefresh() const
   timestamp = ntohl(timestamp);
   // coverity[store_truncates_time_t]
   auto now = static_cast<uint32_t>(time(nullptr));
-  // RFC 9018 section 4.3:
-  //    The DNS server
-  //    SHOULD allow cookies within a 1-hour period in the past and a
-  //    5-minute period into the future
-  // If this is not the case, we need to refresh
-  if (rfc1982LessThan(now + 300, timestamp) && rfc1982LessThan(timestamp + 3600, now)) {
+  // If the cookie is not within acceptable time bounds, we need to refresh
+  if (!cookieTSIsValid(timestamp, now)) {
     return true;
   }
 
