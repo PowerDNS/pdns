@@ -1144,9 +1144,7 @@ class DOHOverHTTP(object):
 
 class TestDOHOverHTTPNGHTTP2(DOHOverHTTP, DNSDistDOHTest):
     _dohLibrary = 'nghttp2'
-    _checkConfigExpectedOutput = b"""No certificate provided for DoH endpoint 127.0.0.1:%d, running in DNS over HTTP mode instead of DNS over HTTPS
-Configuration 'configs/dnsdist_TestDOHOverHTTPNGHTTP2.conf' OK!
-""" % (DOHOverHTTP._dohServerPort)
+    _checkConfigExpectedOutputPrefix = b'msg="No certificate provided for DoH frontend, running in DNS over HTTP mode instead of DNS over HTTPS"'
 
 class DOHWithCache(object):
 

@@ -116,7 +116,7 @@ struct ImmutableConfiguration
   bool d_ringsRecordResponses{true};
   bool d_snmpEnabled{false};
   bool d_snmpTrapsEnabled{false};
-  bool d_structuredLogging{false};
+  bool d_structuredLogging{true};
   bool d_structuredLoggingUseServerID{false};
 };
 

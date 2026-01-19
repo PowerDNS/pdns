@@ -59,6 +59,9 @@ class IncomingProtocolLuaConfig(DNSDistTest, IncomingProtocol):
 
 class IncomingProtocolYAMLConfig(DNSDistTest, IncomingProtocol):
     _yaml_config_template = """
+logging:
+  structured:
+    enabled: false
 backends:
   - address: "127.0.0.1:%d"
     protocol: Do53

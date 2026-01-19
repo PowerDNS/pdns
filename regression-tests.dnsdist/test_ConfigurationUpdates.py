@@ -7,6 +7,10 @@ import extendederrors
 
 class TestConfigurationUpdates(DNSDistTest):
     _yaml_config_template = """---
+logging:
+  structured:
+    enabled: false
+
 console:
   listen_address: "127.0.0.1:%d"
   key: "%s"

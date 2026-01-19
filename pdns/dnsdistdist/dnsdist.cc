@@ -2968,7 +2968,7 @@ struct CommandLineParameters
   bool checkConfig{false};
   bool beClient{false};
   bool beSupervised{false};
-  bool useStructuredLogging{false};
+  bool useStructuredLogging{true};
 };
 
 static void usage()
@@ -3001,7 +3001,7 @@ static void usage()
   cout << "--disable-syslog                      Don't log to syslog, only to stdout\n";
   cout << "                                      (use with e.g. systemd)\n";
   cout << "--log-timestamps                      Prepend timestamps to messages logged to stdout\n";
-  cout << "--structured-logging                  Enable structured logging\n";
+  cout << "--structured-logging true|false       Whether to enable structured logging\n";
   cout << "--structured-logging-backend BACKEND  The backend to use when structured logging is enabled\n";
   cout << "                                      Supported values are 'default', 'json' and 'systemd-journal'\n";
   cout << "-u,--uid uid                          Change the process user ID after binding sockets\n";
@@ -3194,7 +3194,7 @@ static void parseParameters(int argc, char** argv, CommandLineParameters& cmdLin
                                                 {"local", required_argument, nullptr, 'l'},
                                                 {"log-timestamps", no_argument, nullptr, 4},
                                                 {"setkey", required_argument, nullptr, 'k'},
-                                                {"structured-logging", no_argument, nullptr, 's'},
+                                                {"structured-logging", required_argument, nullptr, 's'},
                                                 {"structured-logging-backend", required_argument, nullptr, 5},
                                                 {"supervised", no_argument, nullptr, 3},
                                                 {"uid", required_argument, nullptr, 'u'},
@@ -3273,7 +3273,7 @@ static void parseParameters(int argc, char** argv, CommandLineParameters& cmdLin
       cmdLine.locals.push_back(boost::trim_copy(string(optarg)));
       break;
     case 's':
-      cmdLine.useStructuredLogging = true;
+      cmdLine.useStructuredLogging = (boost::to_lower_copy(std::string(optarg)) == "true");
       break;
     case 'u':
       cmdLine.uid = optarg;

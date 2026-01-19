@@ -70,7 +70,7 @@ Options
 --disable-syslog                        Disable logging to syslog. Use this when running inside a supervisor
                                         that handles logging (like systemd).
 --log-timestamps                        Prepend timestamps to messages logged to standard out.
---structured-logging                    Enable structured logging.
+--structured-logging <true|false>       Whether to enable structured logging.
 --structured-logging-backend <backend>  The backend to use when structured logging is enabled.
                                         Supported values are 'default', 'json' and 'systemd-journal'.
 -u, --uid <uid>                         Change the process user to *uid* after binding sockets. *uid* can be

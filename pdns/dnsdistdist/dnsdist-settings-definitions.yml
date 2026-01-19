@@ -1777,7 +1777,7 @@ structured_logging:
   parameters:
     - name: "enabled"
       type: "bool"
-      default: "false"
+      default: "true"
       description: |
         Set whether log messages should be in structured-logging format."
       changes:

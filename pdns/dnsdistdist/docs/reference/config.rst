@@ -1406,8 +1406,9 @@ Status, Statistics and More
     The ``backend`` option has been added.
     The ``setInstanceFromServerID`` option has been added
     The ``levelPrefix`` option has no longer any effect because it was confusing. The log level is now always logged as ``level`` and the syslog priority, if any, as ``priority`` in all backends except the default one where it is named ``prio``
+    Structured logging is now enabled by default.
 
-  Set whether log messages should be in structured-logging format. This is turned off by default. See :doc:`../advanced/structured-logging-dictionary` for more details.
+  Set whether log messages should be in structured-logging format. This is enabled by default since 2.1.0. See :doc:`../advanced/structured-logging-dictionary` for more details.
 
   The resulting format looks like this (when timestamps are enabled via ``--log-timestamps`` and ``timeFormat="ISO8601"``)::
 

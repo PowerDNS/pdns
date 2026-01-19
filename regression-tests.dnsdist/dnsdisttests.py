@@ -105,6 +105,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
     _UDPResponder = None
     _TCPResponder = None
     _extraStartupSleep = 0
+    _disableStructuredLoggingOnCL = False
     _dnsDistPort = pickAvailablePort()
     _consolePort = pickAvailablePort()
     _testServerPort = pickAvailablePort()
@@ -182,6 +183,11 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
 
         if cls._verboseMode:
             dnsdistcmd.append('-v')
+
+        if cls._disableStructuredLoggingOnCL:
+            dnsdistcmd.append('--structured-logging')
+            dnsdistcmd.append('false')
+
         if cls._sudoMode:
             preserve_env_values = ['LD_LIBRARY_PATH', 'LLVM_PROFILE_FILE']
             for value in preserve_env_values:
@@ -206,11 +212,17 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         else:
             if cls._checkConfigExpectedOutput is not None:
                 expectedOutput = cls._checkConfigExpectedOutput
-            else:
-                expectedOutput = ('Configuration \'%s\' OK!\n' % (confFile)).encode()
-
-            if not cls._verboseMode and output != expectedOutput:
-                raise AssertionError('dnsdist --check-config failed: %s (expected %s)' % (output, expectedOutput))
+                if not cls._verboseMode and output != expectedOutput:
+                  raise AssertionError('dnsdist --check-config failed: %s (expected %s)' % (output, expectedOutput))
+            elif not cls._verboseMode:
+                if not cls._disableStructuredLoggingOnCL:
+                    expectedPrefix = b'msg="Configuration OK" subsystem="setup" level="0" prio="Info" ts="'
+                    if not output.startswith(expectedPrefix):
+                        raise AssertionError('dnsdist --check-config failed: %s (expected prefix %s)' % (output, expectedPrefix))
+                else:
+                    expectedOutput = ('Configuration \'%s\' OK!\n' % (confFile)).encode()
+                    if output != expectedOutput:
+                        raise AssertionError('dnsdist --check-config failed: %s (expected %s)' % (output, expectedOutput))
 
         logFile = os.path.join('configs', 'dnsdist_%s.log' % (cls.__name__))
         with open(logFile, 'w') as fdLog:
