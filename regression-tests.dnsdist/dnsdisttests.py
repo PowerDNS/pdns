@@ -105,7 +105,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
     _UDPResponder = None
     _TCPResponder = None
     _extraStartupSleep = 0
-    _disableStructuredLoggingOnCL = False
+    _enableStructuredLoggingOnCL = True
     _dnsDistPort = pickAvailablePort()
     _consolePort = pickAvailablePort()
     _testServerPort = pickAvailablePort()
@@ -184,9 +184,8 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         if cls._verboseMode:
             dnsdistcmd.append('-v')
 
-        if cls._disableStructuredLoggingOnCL:
-            dnsdistcmd.append('--structured-logging')
-            dnsdistcmd.append('false')
+        dnsdistcmd.append('--structured-logging')
+        dnsdistcmd.append('true' if cls._enableStructuredLoggingOnCL else 'false')
 
         if cls._sudoMode:
             preserve_env_values = ['LD_LIBRARY_PATH', 'LLVM_PROFILE_FILE']
@@ -215,7 +214,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
                 if not cls._verboseMode and output != expectedOutput:
                   raise AssertionError('dnsdist --check-config failed: %s (expected %s)' % (output, expectedOutput))
             elif not cls._verboseMode:
-                if not cls._disableStructuredLoggingOnCL:
+                if cls._enableStructuredLoggingOnCL:
                     expectedPrefix = b'msg="Configuration OK" subsystem="setup" level="0" prio="Info" ts="'
                     if not output.startswith(expectedPrefix):
                         raise AssertionError('dnsdist --check-config failed: %s (expected prefix %s)' % (output, expectedPrefix))

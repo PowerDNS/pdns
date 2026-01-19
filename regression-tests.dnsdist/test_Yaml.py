@@ -558,7 +558,7 @@ query_rules:
     _config_params = []
     # we need this because the error is triggered during the parsing of the YAML configuration,
     # too early for the logging for the logging configuration to have been applied
-    _disableStructuredLoggingOnCL = True
+    _enableStructuredLoggingOnCL = False
 
     def testFailToStart(self):
         """
