@@ -819,6 +819,11 @@ install_data(
   install_dir : get_option('sysconfdir'),
   follow_symlinks: true
 )
+install_data(
+  'dnsdist.yml-dist',
+  install_dir : get_option('sysconfdir'),
+  follow_symlinks: true
+)
 
 if python_venv.found()
   html_docs = custom_target(

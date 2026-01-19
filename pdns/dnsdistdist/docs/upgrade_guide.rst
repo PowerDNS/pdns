@@ -11,6 +11,10 @@ dnsdist no longer supports ``h2o`` for incoming DNS over HTTPS, as it is unfortu
 Note that ``nghttp2`` only supports HTTP/2, and not HTTP/1, while ``h2o`` supported both. This is not an issue for actual DNS over HTTPS clients that
 support HTTP/2, but might be one in setups running dnsdist behind a reverse-proxy that does not support HTTP/2. See :doc:`guides/dns-over-https` for some work-around.
 
+Structured logging is now enabled by default, and can be disabled via :func:`setStructuredLogging` or the ``--structured-logging`` command-line switch.
+
+:program:`dnsdist` now looks by default for a configuration file named ``dnsdist.yml`` in the system configuration directory (determined by the ``SYSCONFDIR`` variable during compilation), instead of ``dnsdist.conf``.
+
 1.9.x to 2.0.0
 --------------
 

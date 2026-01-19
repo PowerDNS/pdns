@@ -15,20 +15,7 @@ This will make dnsdist listen on IP address 127.0.0.1, port 5300 and forward all
 ``dnsdist`` Console and Configuration
 -------------------------------------
 
-Here is more complete configuration, save it to ``dnsdist.conf``:
-
-.. code-block:: lua
-
-  newServer({address="2001:db8::1", qps=1})
-  newServer({address="2001:db8::2", qps=1})
-  newServer({address="[2001:db8::3]:5300", qps=10})
-  newServer({address="2001:db8::4", name="dns1", qps=10})
-  newServer("192.0.2.1")
-  setServerPolicy(firstAvailable) -- first server within its QPS limit
-
-The :func:`newServer` function is used to add a backend server to the configuration.
-
-The ``yaml`` equivalent, from 2.0+ onwards, would be:
+Here is more complete configuration, save it to ``dnsdist.yml``:
 
 .. code-block:: yaml
 
@@ -51,9 +38,22 @@ The ``yaml`` equivalent, from 2.0+ onwards, would be:
   load_balancing_policies:
     default_policy: "firstAvailable"
 
+The ``lua`` equivalent, which was the default before 2.1, would be:
+
+.. code-block:: lua
+
+  newServer({address="2001:db8::1", qps=1})
+  newServer({address="2001:db8::2", qps=1})
+  newServer({address="[2001:db8::3]:5300", qps=10})
+  newServer({address="2001:db8::4", name="dns1", qps=10})
+  newServer("192.0.2.1")
+  setServerPolicy(firstAvailable) -- first server within its QPS limit
+
+The :func:`newServer` function is used to add a backend server to the configuration.
+
 Now run dnsdist again, reading this configuration::
 
-  $ dnsdist -C dnsdist.conf --local=0.0.0.0:5300
+  $ dnsdist -C dnsdist.yml --local=0.0.0.0:5300
   Marking downstream [2001:db8::1]:53 as 'up'
   Marking downstream [2001:db8::2]:53 as 'up'
   Marking downstream [2001:db8::3]:5300 as 'up'

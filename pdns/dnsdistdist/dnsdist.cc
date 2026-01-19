@@ -3654,9 +3654,14 @@ int main(int argc, char** argv)
 #endif /* HAVE_XSK */
 
     ComboAddress clientAddress = ComboAddress();
-    cmdLine.config = SYSCONFDIR "/dnsdist.conf";
 
     parseParameters(argc, argv, cmdLine, clientAddress);
+    if (cmdLine.config.empty()) {
+      cmdLine.config = SYSCONFDIR "/dnsdist.yml";
+      if (!std::filesystem::exists(cmdLine.config) && std::filesystem::exists(SYSCONFDIR "/dnsdist.conf")) {
+        cmdLine.config = SYSCONFDIR "/dnsdist.conf";
+      }
+    }
     dnsdist::configuration::updateImmutableConfiguration([&cmdLine](dnsdist::configuration::ImmutableConfiguration& config) {
       config.d_loggingBackend = cmdLine.structuredLoggingBackend;
       config.d_structuredLogging = cmdLine.useStructuredLogging;
