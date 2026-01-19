@@ -2124,7 +2124,10 @@ void requestWipeCaches(const DNSName& canon)
   ThreadMSG* tmsg = new ThreadMSG(); // NOLINT: pointer owner
   tmsg->func = [=] { return pleaseWipeCaches(canon, true, 0xffff); };
   tmsg->wantAnswer = false;
+  __tsan_release(tmsg);
+
   if (write(RecThreadInfo::info(0).getPipes().writeToThread, &tmsg, sizeof(tmsg)) != sizeof(tmsg)) { // NOLINT: correct sizeof
+    __tsan_acquire(tmsg);
     delete tmsg; // NOLINT: pointer owner
 
     unixDie("write to thread pipe returned wrong size or error");
@@ -2889,6 +2892,7 @@ void distributeAsyncFunction(const string& packet, const pipefunc_t& func)
   ThreadMSG* tmsg = new ThreadMSG(); // NOLINT: pointer ownership
   tmsg->func = func;
   tmsg->wantAnswer = false;
+  __tsan_release(tmsg);
 
   if (!trySendingQueryToWorker(target, tmsg)) {
     /* if this function failed but did not raise an exception, it means that the pipe
@@ -2900,6 +2904,7 @@ void distributeAsyncFunction(const string& packet, const pipefunc_t& func)
 
     if (!trySendingQueryToWorker(newTarget, tmsg)) {
       t_Counters.at(rec::Counter::queryPipeFullDrops)++;
+      __tsan_acquire(tmsg);
       delete tmsg; // NOLINT: pointer ownership
     }
   }
