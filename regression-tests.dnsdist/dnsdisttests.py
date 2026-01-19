@@ -1148,9 +1148,6 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
     def sendDOHWithNGHTTP2QueryWrapper(self, query, response, useQueue=True, timeout=2, serverName=None):
         return self.sendDOHQuery(self._dohWithNGHTTP2ServerPort, self._serverName if not serverName else serverName, self._dohWithNGHTTP2BaseURL, query, response=response, caFile=self._caCert, useQueue=useQueue, timeout=timeout)
 
-    def sendDOHWithH2OQueryWrapper(self, query, response, useQueue=True, timeout=2, serverName=None):
-        return self.sendDOHQuery(self._dohWithH2OServerPort, self._serverName if not serverName else serverName, self._dohWithH2OBaseURL, query, response=response, caFile=self._caCert, useQueue=useQueue, timeout=timeout)
-
     def sendDOTQueryWrapper(self, query, response, useQueue=True, timeout=2, serverName=None):
         return self.sendDOTQuery(self._tlsServerPort, self._serverName if not serverName else serverName, query, response, self._caCert, useQueue=useQueue, timeout=timeout)
 

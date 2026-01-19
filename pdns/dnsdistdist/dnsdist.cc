@@ -80,7 +80,6 @@
 #include "capabilities.hh"
 #include "coverage.hh"
 #include "delaypipe.hh"
-#include "doh.hh"
 #include "dolog.hh"
 #include "dnsname.hh"
 #include "ednsoptions.hh"
@@ -3019,12 +3018,6 @@ static void reportFeatures()
 #endif /* HAVE_DNS_OVER_TLS */
 #ifdef HAVE_DNS_OVER_HTTPS
   cout << "dns-over-https(";
-#ifdef HAVE_LIBH2OEVLOOP
-  cout << "h2o";
-#endif /* HAVE_LIBH2OEVLOOP */
-#if defined(HAVE_LIBH2OEVLOOP) && defined(HAVE_NGHTTP2)
-  cout << " ";
-#endif /* defined(HAVE_LIBH2OEVLOOP) && defined(HAVE_NGHTTP2) */
 #ifdef HAVE_NGHTTP2
   cout << "nghttp2";
 #endif /* HAVE_NGHTTP2 */
@@ -3350,18 +3343,6 @@ static void startFrontends()
     }
 #endif /* HAVE_XSK */
 
-    if (clientState->dohFrontend != nullptr && clientState->dohFrontend->d_library == "h2o") {
-#ifdef HAVE_DNS_OVER_HTTPS
-#ifdef HAVE_LIBH2OEVLOOP
-      std::thread dohThreadHandle(dohThread, clientState.get());
-      if (!clientState->cpus.empty()) {
-        mapThreadToCPUList(dohThreadHandle.native_handle(), clientState->cpus);
-      }
-      dohThreadHandle.detach();
-#endif /* HAVE_LIBH2OEVLOOP */
-#endif /* HAVE_DNS_OVER_HTTPS */
-      continue;
-    }
     if (clientState->doqFrontend != nullptr) {
 #ifdef HAVE_DNS_OVER_QUIC
       std::thread doqThreadHandle(doqThread, clientState.get());

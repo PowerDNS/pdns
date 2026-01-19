@@ -111,9 +111,6 @@ if HAVE_GNUTLS
 AM_CPPFLAGS += $(GNUTLS_CFLAGS)
 endif
 
-if HAVE_LIBH2OEVLOOP
-AM_CPPFLAGS += $(LIBH2OEVLOOP_CFLAGS)
-endif
 endif
 
 EXTRA_DIST=COPYING \
@@ -264,7 +261,6 @@ dnsdist_SOURCES = \
 	dnsparser.hh dnsparser.cc \
 	dnstap.cc dnstap.hh \
 	dnswriter.cc dnswriter.hh \
-	doh.hh \
 	doh3.cc doh3.hh \
 	dolog.cc dolog.hh \
 	doq-common.hh \
@@ -522,11 +518,6 @@ if HAVE_GNUTLS
 dnsdist_LDADD += $(GNUTLS_LIBS)
 endif
 
-if HAVE_LIBH2OEVLOOP
-dnsdist_SOURCES += doh.cc
-dnsdist_LDADD += $(LIBH2OEVLOOP_LIBS)
-endif
-
 if HAVE_NGHTTP2
 dnsdist_SOURCES += dnsdist-nghttp2-in.cc
 dnsdist_SOURCES += dnsdist-nghttp2.cc
@@ -637,7 +628,6 @@ fuzz_target_dnsdistcache_SOURCES = \
 	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
 	dnswriter.cc dnswriter.hh \
-	doh.hh \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc ednssubnet.hh \
 	fuzz_dnsdistcache.cc \

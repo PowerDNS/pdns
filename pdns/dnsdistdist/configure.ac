@@ -82,7 +82,6 @@ PDNS_CHECK_LUA_HPP
 
 AM_CONDITIONAL([HAVE_CDB], [false])
 AM_CONDITIONAL([HAVE_GNUTLS], [false])
-AM_CONDITIONAL([HAVE_LIBH2OEVLOOP], [false])
 AM_CONDITIONAL([HAVE_LIBSSL], [false])
 AM_CONDITIONAL([HAVE_LMDB], [false])
 AM_CONDITIONAL([HAVE_NGHTTP2], [false])
@@ -111,10 +110,8 @@ AS_IF([test "x$enable_dns_over_tls" != "xno"], [
 
 AS_IF([test "x$enable_dns_over_https" != "xno"], [
   PDNS_WITH_NGHTTP2
-  PDNS_WITH_LIBH2OEVLOOP
-
-  AS_IF([test "x$HAVE_LIBH2OEVLOOP" != "x1" -a "x$HAVE_NGHTTP2" != "x1" ], [
-    AC_MSG_ERROR([DNS over HTTPS support requested but neither libh2o-evloop nor nghttp2 was not found])
+  AS_IF([test "x$HAVE_NGHTTP2" != "x1" ], [
+    AC_MSG_ERROR([DNS over HTTPS support requested but nghttp2 was not found])
   ])
 
   AS_IF([test "x$HAVE_GNUTLS" != "x1" -a "x$HAVE_LIBSSL" != "x1"], [
@@ -303,10 +300,6 @@ AS_IF([test "x$enable_dns_over_tls" != "xno" -o "x$enable_dns_over_https" != "xn
     [AC_MSG_NOTICE([OpenSSL: yes])],
     [AC_MSG_NOTICE([OpenSSL: no])]
   )]
-)
-AS_IF([test "x$LIBH2OEVLOOP_LIBS" != "x"],
-  [AC_MSG_NOTICE([h2o-evloop: yes])],
-  [AC_MSG_NOTICE([h2o-evloop: no])]
 )
 AS_IF([test "x$NGHTTP2_LIBS" != "x"],
   [AC_MSG_NOTICE([nghttp2: yes])],

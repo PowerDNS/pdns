@@ -41,7 +41,6 @@
 #include "dnsdist-kvs.hh"
 #include "dnsdist-web.hh"
 #include "dnsdist-xsk.hh"
-#include "doh.hh"
 #include "fstrm_logger.hh"
 #include "iputils.hh"
 #include "remote_logger.hh"
@@ -360,17 +359,7 @@ static bool handleTLSConfiguration(const dnsdist::rust::settings::BindConfigurat
     tlsContext->d_provider = std::string(bind.tls.provider);
     boost::algorithm::to_lower(tlsContext->d_provider);
     frontend->d_library = std::string(bind.doh.provider);
-    if (frontend->d_library == "h2o") {
-#ifdef HAVE_LIBH2OEVLOOP
-      frontend = std::make_shared<H2ODOHFrontend>();
-      // we _really_ need to set it again, as we just replaced the generic frontend by a new one
-      frontend->d_library = "h2o";
-#else /* HAVE_LIBH2OEVLOOP */
-      errlog("DOH bind %s is configured to use libh2o but the library is not available", bind.listen_address);
-      return false;
-#endif /* HAVE_LIBH2OEVLOOP */
-    }
-    else if (frontend->d_library == "nghttp2") {
+    if (frontend->d_library == "nghttp2") {
 #ifndef HAVE_NGHTTP2
       errlog("DOH bind %s is configured to use nghttp2 but the library is not available", bind.listen_address);
       return false;
