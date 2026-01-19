@@ -327,14 +327,14 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
     }
     ede.clearExisting = clearExistingEntries.value_or(true);
     if (ede.clearExisting) {
-      dnsQuestion.ids.d_extendedErrors = std::make_unique<std::vector<dnsdist::edns::SetExtendedDNSErrorOperation>>(std::initializer_list<dnsdist::edns::SetExtendedDNSErrorOperation>({ede}));
+      dnsQuestion.ids.d_extendedErrors = std::make_unique<std::vector<dnsdist::edns::SetExtendedDNSErrorOperation>>(std::initializer_list<dnsdist::edns::SetExtendedDNSErrorOperation>({std::move(ede)}));
     }
     else {
       if (!dnsQuestion.ids.d_extendedErrors) {
-        dnsQuestion.ids.d_extendedErrors = std::make_unique<std::vector<dnsdist::edns::SetExtendedDNSErrorOperation>>(std::initializer_list<dnsdist::edns::SetExtendedDNSErrorOperation>({ede}));
+        dnsQuestion.ids.d_extendedErrors = std::make_unique<std::vector<dnsdist::edns::SetExtendedDNSErrorOperation>>(std::initializer_list<dnsdist::edns::SetExtendedDNSErrorOperation>({std::move(ede)}));
       }
       else {
-        dnsQuestion.ids.d_extendedErrors->emplace_back(ede);
+        dnsQuestion.ids.d_extendedErrors->emplace_back(std::move(ede));
       }
     }
   });

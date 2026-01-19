@@ -494,7 +494,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   std::ostringstream output;
   std::string instanceLabel; // MUST be empty when instance label is not requested
   {
-    auto rtc = dnsdist::configuration::getCurrentRuntimeConfiguration();
+    const auto& rtc = dnsdist::configuration::getCurrentRuntimeConfiguration();
     instanceLabel = rtc.d_prometheusAddInstanceLabel ? "instance=\"" + rtc.d_server_id + "\"" : "";
   }
   static const std::set<std::string> metricBlacklist = {"special-memory-usage", "latency-count", "latency-sum"};
