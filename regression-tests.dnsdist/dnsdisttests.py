@@ -95,6 +95,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
     _healthCheckCounter = 0
     _answerUnexpected = True
     _checkConfigExpectedOutput = None
+    _checkConfigExpectedOutputPrefix = None
     _verboseMode = False
     _sudoMode = False
     _skipListeningOnCL = False
@@ -104,6 +105,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
     _UDPResponder = None
     _TCPResponder = None
     _extraStartupSleep = 0
+    _enableStructuredLoggingOnCL = True
     _dnsDistPort = pickAvailablePort()
     _consolePort = pickAvailablePort()
     _testServerPort = pickAvailablePort()
@@ -181,6 +183,10 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
 
         if cls._verboseMode:
             dnsdistcmd.append('-v')
+
+        dnsdistcmd.append('--structured-logging')
+        dnsdistcmd.append('true' if cls._enableStructuredLoggingOnCL else 'false')
+
         if cls._sudoMode:
             preserve_env_values = ['LD_LIBRARY_PATH', 'LLVM_PROFILE_FILE']
             for value in preserve_env_values:
@@ -198,12 +204,24 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
             output = subprocess.check_output(testcmd, stderr=subprocess.STDOUT, close_fds=True)
         except subprocess.CalledProcessError as exc:
             raise AssertionError('dnsdist --check-config failed (%d): %s' % (exc.returncode, exc.output))
-        if cls._checkConfigExpectedOutput is not None:
-          expectedOutput = cls._checkConfigExpectedOutput
+
+        if cls._checkConfigExpectedOutputPrefix is not None:
+            if not output.startswith(cls._checkConfigExpectedOutputPrefix):
+                raise AssertionError('dnsdist --check-config failed: %s (expected prefix %s)' % (output, cls._checkConfigExpectedOutputPrefix))
         else:
-          expectedOutput = ('Configuration \'%s\' OK!\n' % (confFile)).encode()
-        if not cls._verboseMode and output != expectedOutput:
-            raise AssertionError('dnsdist --check-config failed: %s (expected %s)' % (output, expectedOutput))
+            if cls._checkConfigExpectedOutput is not None:
+                expectedOutput = cls._checkConfigExpectedOutput
+                if not cls._verboseMode and output != expectedOutput:
+                  raise AssertionError('dnsdist --check-config failed: %s (expected %s)' % (output, expectedOutput))
+            elif not cls._verboseMode:
+                if cls._enableStructuredLoggingOnCL:
+                    expectedPrefix = b'msg="Configuration OK" subsystem="setup" level="0" prio="Info" ts="'
+                    if not output.startswith(expectedPrefix):
+                        raise AssertionError('dnsdist --check-config failed: %s (expected prefix %s)' % (output, expectedPrefix))
+                else:
+                    expectedOutput = ('Configuration \'%s\' OK!\n' % (confFile)).encode()
+                    if output != expectedOutput:
+                        raise AssertionError('dnsdist --check-config failed: %s (expected %s)' % (output, expectedOutput))
 
         logFile = os.path.join('configs', 'dnsdist_%s.log' % (cls.__name__))
         with open(logFile, 'w') as fdLog:

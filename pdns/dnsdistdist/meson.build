@@ -147,6 +147,7 @@ common_sources += files(
   src_dir / 'dnsdist-ipcrypt2.cc',
   src_dir / 'dnsdist-kvs.cc',
   src_dir / 'dnsdist-lbpolicies.cc',
+  src_dir / 'dnsdist-logging.cc',
   src_dir / 'dnsdist-lua-actions.cc',
   src_dir / 'dnsdist-lua-bindings.cc',
   src_dir / 'dnsdist-lua-bindings-dnscrypt.cc',
@@ -201,6 +202,7 @@ common_sources += files(
   src_dir / 'gettime.cc',
   src_dir / 'iputils.cc',
   src_dir / 'libssl.cc',
+  src_dir / 'logging.cc',
   src_dir / 'misc.cc',
   src_dir / 'protozero.cc',
   src_dir / 'protozero-trace.cc',
@@ -488,7 +490,10 @@ if get_option('fuzz-targets')
     'fuzz-target-dnsdistcache' : {
       'main': src_dir / 'fuzz_dnsdistcache.cc',
       'link-args': fuzzer_ldflags,
-      'files-extra': fuzz_extra_sources
+      'files-extra': fuzz_extra_sources,
+      'deps-extra': [
+         dep_libsystemd,
+       ]
     },
   }
   if get_option('xsk').allowed() and dep_libbpf.found() and dep_libxdp.found()
@@ -502,7 +507,10 @@ if get_option('fuzz-targets')
            src_dir / 'iputils.cc',
            src_dir / 'misc.cc',
            src_dir / 'xsk.cc'
-           ]
+           ],
+        'deps-extra': [
+           dep_libsystemd,
+         ]
        },
     }
   endif
@@ -581,6 +589,7 @@ if get_option('unit-tests')
           dep_ffi_interface,
           dep_lua,
           dep_protozero,
+          dep_libsystemd, # because of the journal logging backend
         ],
     }
   }

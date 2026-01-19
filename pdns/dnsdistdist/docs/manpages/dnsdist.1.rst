@@ -44,38 +44,41 @@ Virtual Server for example is often mentioned.
 Options
 -------
 
--a <netmask>, --acl <netmask>          Add *netmask* to the ACL.
--C <file>, --config <file>             Load configuration from *file*.
---check-config                         Test the configuration file (which may be set with **--config** or **-C**)
-                                       for errors. dnsdist will show the errors and exit with a non-zero
-                                       exit-code when errors are found.
--c <address>, --client <address>       Operate as a client, connect to dnsdist. This will read the dnsdist
-                                       configuration for the **controlSocket** statement and connect to it.
-                                       When *address* (with an optional port number) is set, dnsdist will connect
-                                       to that instead.
--k <key>, --setkey <key>               When operating as a client(**-c**, **--client**), use *key* as
-                                       shared secret to connect to dnsdist. This should be the same key
-                                       that is used on the server (set with **setKey()**). Note that this
-                                       will leak the key into your shell's history and into the systems
-                                       running process list. Only available when dnsdist is compiled with
-                                       libsodium or libcrypto support.
--e, --execute <command>                Connect to dnsdist and execute *command*.
--h, --help                             Display a helpful message and exit.
--l, --local <address>                  Bind to *address*, Supply as many addresses (using multiple
-                                       **--local** statements) to listen on as required. Specify IPv4 as
-                                       0.0.0.0:53 and IPv6 as [::]:53.
---supervised                           Run in foreground, but do not spawn a console. Use this switch to
-                                       run dnsdist inside a supervisor (use with e.g. systemd and
-                                       daemontools).
---disable-syslog                       Disable logging to syslog. Use this when running inside a supervisor
-                                       that handles logging (like systemd).
---log-timestamps                       Prepend timestamps to messages logged to standard out.
--u, --uid <uid>                        Change the process user to *uid* after binding sockets. *uid* can be
-                                       a name or number.
--g, --gid <gid>                        Change the process group to *gid* after binding sockets. *gid* Can
-                                       be a name or number.
--V, --version                          Show the dnsdist version and exit.
--v, --verbose                          Be verbose.
+-a <netmask>, --acl <netmask>           Add *netmask* to the ACL.
+-C <file>, --config <file>              Load configuration from *file*.
+--check-config                          Test the configuration file (which may be set with **--config** or **-C**)
+                                        for errors. dnsdist will show the errors and exit with a non-zero
+                                        exit-code when errors are found.
+-c <address>, --client <address>        Operate as a client, connect to dnsdist. This will read the dnsdist
+                                        configuration for the **controlSocket** statement and connect to it.
+                                        When *address* (with an optional port number) is set, dnsdist will connect
+                                        to that instead.
+-k <key>, --setkey <key>                When operating as a client(**-c**, **--client**), use *key* as
+                                        shared secret to connect to dnsdist. This should be the same key
+                                        that is used on the server (set with **setKey()**). Note that this
+                                        will leak the key into your shell's history and into the systems
+                                        running process list. Only available when dnsdist is compiled with
+                                        libsodium or libcrypto support.
+-e, --execute <command>                 Connect to dnsdist and execute *command*.
+-h, --help                              Display a helpful message and exit.
+-l, --local <address>                   Bind to *address*, Supply as many addresses (using multiple
+                                        **--local** statements) to listen on as required. Specify IPv4 as
+                                        0.0.0.0:53 and IPv6 as [::]:53.
+--supervised                            Run in foreground, but do not spawn a console. Use this switch to
+                                        run dnsdist inside a supervisor (use with e.g. systemd and
+                                        daemontools).
+--disable-syslog                        Disable logging to syslog. Use this when running inside a supervisor
+                                        that handles logging (like systemd).
+--log-timestamps                        Prepend timestamps to messages logged to standard out.
+--structured-logging <true|false>       Whether to enable structured logging.
+--structured-logging-backend <backend>  The backend to use when structured logging is enabled.
+                                        Supported values are 'default', 'json' and 'systemd-journal'.
+-u, --uid <uid>                         Change the process user to *uid* after binding sockets. *uid* can be
+                                        a name or number.
+-g, --gid <gid>                         Change the process group to *gid* after binding sockets. *gid* Can
+                                        be a name or number.
+-V, --version                           Show the dnsdist version and exit.
+-v, --verbose                           Be verbose.
 
 **address** are any number of downstream DNS servers, in the same syntax as used
 with **--local**. If the port is not specified, 53 is used.

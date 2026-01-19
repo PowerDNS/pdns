@@ -37,6 +37,7 @@
 #include "circular_buffer.hh"
 #include "dnsdist-idstate.hh"
 #include "dnsdist-lbpolicies.hh"
+#include "dnsdist-logging.hh"
 #include "dnsdist-protocols.hh"
 #include "dnsname.hh"
 #include "dnsdist-doh-common.hh"
@@ -168,8 +169,14 @@ struct DNSQuestion
     return ids.cs;
   }
 
+  std::shared_ptr<const Logr::Logger> getLogger(std::shared_ptr<const Logr::Logger> parent = nullptr) const;
+  std::shared_ptr<const Logr::Logger> getLogger(std::shared_ptr<const Logr::Logger> parent = nullptr);
+
 protected:
+  virtual std::shared_ptr<const Logr::Logger> getThisLogger(std::shared_ptr<const Logr::Logger> parent) const;
+
   PacketBuffer& data;
+  std::shared_ptr<const Logr::Logger> d_logger;
 
 public:
   InternalQueryState& ids;
@@ -197,6 +204,9 @@ struct DNSResponse : DNSQuestion
   DNSResponse(DNSResponse&&) = default;
 
   const std::shared_ptr<DownstreamState>& d_downstream;
+
+protected:
+  std::shared_ptr<const Logr::Logger> getThisLogger(std::shared_ptr<const Logr::Logger> parent) const override;
 };
 
 using pdns::stat_t;
@@ -937,6 +947,8 @@ public:
   }
 
   unsigned int getQPSLimit() const;
+
+  [[nodiscard]] std::shared_ptr<const Logr::Logger> getLogger() const;
 };
 
 void responderThread(std::shared_ptr<DownstreamState> dss);

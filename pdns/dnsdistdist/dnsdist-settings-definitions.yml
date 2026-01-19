@@ -1773,25 +1773,23 @@ security_polling:
       runtime-configurable: true
 
 structured_logging:
-  description: "Structured-like logging settings"
+  description: "Structured logging settings"
   parameters:
     - name: "enabled"
       type: "bool"
-      default: "false"
+      default: "true"
       description: |
-        Set whether log messages should be in a structured-logging-like format. This is turned off by default.
-          The resulting format looks like this (when timestamps are enabled via ``--log-timestamps`` and with ``level_prefix: prio`` and ``time_format: ISO8601``)::
-
-              ts=\"2023-11-06T12:04:58+0100\" prio=\"Info\" msg=\"Added downstream server 127.0.0.1:53\"
-
-          And with ``level_prefix: level`` and ``time_format: numeric``)::
-
-              ts=\"1699268815.133\" level=\"Info\" msg=\"Added downstream server 127.0.0.1:53\"
-
+        Set whether log messages should be in structured-logging format."
+      changes:
+        - version: "2.1.0"
+          content: "This setting is now enabled by default"
     - name: "level_prefix"
       type: "String"
       default: "prio"
       description: "Set the key name for the log level. There is unfortunately no standard name for this key, so in some setups it might be useful to set this value to a different name to have consistency across products"
+      changes:
+        - version: "2.1.0"
+          content: "This setting has no longer any effect because it was confusing. The log level is now always logged as ``level`` and the syslog priority, if any, as ``priority`` in all backends except the default one where it is named ``prio``"
     - name: "time_format"
       type: "String"
       default: "numeric"
@@ -1799,6 +1797,22 @@ structured_logging:
       supported-values:
         - "ISO8601"
         - "numeric"
+    - name: "backend"
+      type: "String"
+      default: ""
+      version_added: "2.1.0"
+      description: |
+        The backend used for structured logging output. See :doc:`../advanced/structured-logging-dictionary` for more details. Available backends are:
+
+        * ``default``: use the traditional logging system to output structured logging information.
+        * ``systemd-journal``: use ``systemd-journal``. When using this backend, provide ``-o verbose`` or simular output option to ``journalctl`` to view the full information.
+        * ``json``: JSON objects are written to the standard error stream.
+    - name: "set_instance_from_server_id"
+      type: "bool"
+      default: "false"
+      description: |
+        Add a field "instance" to each log line with the value of ``general.server_id``.
+      version_added: 2.1.0
 
 logging:
   description: "Logging settings"

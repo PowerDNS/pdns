@@ -61,6 +61,11 @@ namespace dnsdist::configuration::yaml
 {
 #if defined(HAVE_YAML_CONFIGURATION)
 
+struct Context
+{
+  std::shared_ptr<const Logr::Logger> logger;
+};
+
 using XSKMap = std::vector<std::shared_ptr<XskSocket>>;
 
 using RegisteredTypes = std::variant<std::shared_ptr<DNSDistPacketCache>, std::shared_ptr<dnsdist::rust::settings::DNSSelector>, std::shared_ptr<dnsdist::rust::settings::DNSActionWrapper>, std::shared_ptr<dnsdist::rust::settings::DNSResponseActionWrapper>, std::shared_ptr<NetmaskGroup>, std::shared_ptr<KeyValueStore>, std::shared_ptr<KeyValueLookupKey>, std::shared_ptr<RemoteLoggerInterface>, std::shared_ptr<ServerPolicy>, std::shared_ptr<TimedIPSetRule>, std::shared_ptr<XSKMap>>;
@@ -244,7 +249,7 @@ static std::set<int> getCPUPiningFromStr(const std::string& context, const std::
   return cpus;
 }
 
-static TLSConfig getTLSConfigFromRustIncomingTLS(const dnsdist::rust::settings::IncomingTlsConfiguration& incomingTLSConfig)
+static TLSConfig getTLSConfigFromRustIncomingTLS([[maybe_unused]] const Context& context, const dnsdist::rust::settings::IncomingTlsConfiguration& incomingTLSConfig)
 {
   TLSConfig out;
   for (const auto& certConfig : incomingTLSConfig.certificates) {
@@ -266,7 +271,8 @@ static TLSConfig getTLSConfigFromRustIncomingTLS(const dnsdist::rust::settings::
   out.d_minTLSVersion = libssl_tls_version_from_string(std::string(incomingTLSConfig.minimum_version));
 #else /* HAVE_LIBSSL */
   if (!incomingTLSConfig.minimum_version.empty()) {
-    warnlog("bind.tls.minimum_version has no effect with the chosen TLS library");
+    SLOG(warnlog("bind.tls.minimum_version has no effect with the chosen TLS library"),
+         context.logger->info(Logr::Warning, "bind.tls.minimum_version has no effect with the chosen TLS library"));
   }
 #endif /* HAVE_LIBSSL */
   out.d_ticketKeyFile = std::string(incomingTLSConfig.ticket_key_file);
@@ -285,7 +291,7 @@ static TLSConfig getTLSConfigFromRustIncomingTLS(const dnsdist::rust::settings::
   return out;
 }
 
-static bool validateTLSConfiguration(const dnsdist::rust::settings::BindConfiguration& bind, [[maybe_unused]] const TLSConfig& tlsConfig)
+static bool validateTLSConfiguration(const Context& context, const dnsdist::rust::settings::BindConfiguration& bind, [[maybe_unused]] const TLSConfig& tlsConfig)
 {
   if (!bind.tls.ignore_configuration_errors) {
     return true;
@@ -298,7 +304,8 @@ static bool validateTLSConfiguration(const dnsdist::rust::settings::BindConfigur
     auto ctx = libssl_init_server_context(tlsConfig);
   }
   catch (const std::runtime_error& e) {
-    errlog("Ignoring %s frontend: '%s'", bind.protocol, e.what());
+    SLOG(errlog("Ignoring %s frontend: '%s'", bind.protocol, e.what()),
+         context.logger->error(Logr::Error, e.what(), "Ignoring frontend because of an invalid TLS configuration", "frontend.protocol", Logging::Loggable(std::string(bind.protocol))));
     return false;
   }
 #endif /* HAVE_LIBSSL */
@@ -306,10 +313,10 @@ static bool validateTLSConfiguration(const dnsdist::rust::settings::BindConfigur
   return true;
 }
 
-static bool handleTLSConfiguration(const dnsdist::rust::settings::BindConfiguration& bind, ClientState& state, const std::shared_ptr<const TLSFrontend>& parent)
+static bool handleTLSConfiguration(const Context& context, const dnsdist::rust::settings::BindConfiguration& bind, ClientState& state, const std::shared_ptr<const TLSFrontend>& parent)
 {
-  auto tlsConfig = getTLSConfigFromRustIncomingTLS(bind.tls);
-  if (!validateTLSConfiguration(bind, tlsConfig)) {
+  auto tlsConfig = getTLSConfigFromRustIncomingTLS(context, bind.tls);
+  if (!validateTLSConfiguration(context, bind, tlsConfig)) {
     return false;
   }
 
@@ -361,12 +368,14 @@ static bool handleTLSConfiguration(const dnsdist::rust::settings::BindConfigurat
     frontend->d_library = std::string(bind.doh.provider);
     if (frontend->d_library == "nghttp2") {
 #ifndef HAVE_NGHTTP2
-      errlog("DOH bind %s is configured to use nghttp2 but the library is not available", bind.listen_address);
+      SLOG(errlog("DOH bind %s is configured to use nghttp2 but the library is not available", bind.listen_address),
+           context.logger->error(Logr::Error, "DoH frontend is configured to use nhgttp2 but the library is not available", "frontend.address", Logging::Loggable(bind.listen_address)));
       return false;
 #endif /* HAVE_NGHTTP2 */
     }
     else {
-      errlog("DOH bind %s is configured to use an unknown library ('%s')", bind.listen_address, frontend->d_library);
+      SLOG(errlog("DOH bind %s is configured to use an unknown library ('%s')", bind.listen_address, frontend->d_library),
+           context.logger->error(Logr::Error, "DoH frontend is configured to use an unknown library", "frontend.address", Logging::Loggable(bind.listen_address), "library", Logging::Loggable(frontend->d_library)));
       return false;
     }
 
@@ -404,11 +413,13 @@ static bool handleTLSConfiguration(const dnsdist::rust::settings::BindConfigurat
 
     if (!tlsConfig.d_certKeyPairs.empty()) {
       tlsContext->d_addr = ComboAddress(std::string(bind.listen_address), 443);
-      infolog("DNS over HTTPS configured");
+      SLOG(infolog("DNS over HTTPS configured"),
+           context.logger->info(Logr::Info, "DNS over HTTPS frontend configured", "frontend.address", Logging::Loggable(tlsContext->d_addr)));
     }
     else {
       tlsContext->d_addr = ComboAddress(std::string(bind.listen_address), 80);
-      infolog("No certificate provided for DoH endpoint %s, running in DNS over HTTP mode instead of DNS over HTTPS", tlsContext->d_addr.toStringWithPort());
+      SLOG(infolog("No certificate provided for DoH endpoint %s, running in DNS over HTTP mode instead of DNS over HTTPS", tlsContext->d_addr.toStringWithPort()),
+           context.logger->info(Logr::Info, "No certificate provided for DoH frontend, running in DNS over HTTP mode instead of DNS over HTTPS", "frontend.address", Logging::Loggable(tlsContext->d_addr)));
     }
 
     tlsContext->d_proxyProtocolOutsideTLS = bind.tls.proxy_protocol_outside_tls;
@@ -418,14 +429,15 @@ static bool handleTLSConfiguration(const dnsdist::rust::settings::BindConfigurat
   }
 #endif /* defined(HAVE_DNS_OVER_HTTPS) */
   else if (protocol != "do53") {
-    errlog("Bind %s is configured to use an unknown protocol ('%s')", bind.listen_address, protocol);
+    SLOG(errlog("Bind %s is configured to use an unknown protocol ('%s')", bind.listen_address, protocol),
+         context.logger->info(Logr::Error, "Frontend is configured to use an unknown protocol", "frontend.address", Logging::Loggable(bind.listen_address), "frontend.protocol", Logging::Loggable(protocol)));
     return false;
   }
 
   return true;
 }
 
-static std::shared_ptr<DownstreamState> createBackendFromConfiguration(const dnsdist::rust::settings::BackendConfiguration& config, bool configCheck)
+static std::shared_ptr<DownstreamState> createBackendFromConfiguration(const Context& context, const dnsdist::rust::settings::BackendConfiguration& config, bool configCheck)
 {
   DownstreamState::Config backendConfig;
   std::shared_ptr<TLSCtx> tlsCtx;
@@ -489,7 +501,8 @@ static std::shared_ptr<DownstreamState> createBackendFromConfiguration(const dns
     backendConfig.d_lazyHealthCheckMode = DownstreamState::LazyHealthCheckMode::TimeoutOrServFail;
   }
   else if (!hcConf.lazy.mode.empty()) {
-    warnlog("Ignoring unknown value '%s' for 'lazy.mode' on backend %s", hcConf.lazy.mode, std::string(config.address));
+    SLOG(warnlog("Ignoring unknown value '%s' for 'lazy.mode' on backend %s", hcConf.lazy.mode, std::string(config.address)),
+         context.logger->info(Logr::Warning, "Ignoring unknown value for 'lazy.mode' on backend", "backend.address", Logging::Loggable(config.address), "backend.health_check.mode", Logging::Loggable(hcConf.lazy.mode)));
   }
 
   backendConfig.d_upgradeToLazyHealthChecks = config.auto_upgrade.use_lazy_health_check;
@@ -527,7 +540,8 @@ static std::shared_ptr<DownstreamState> createBackendFromConfiguration(const dns
         backendConfig.d_tlsSubjectIsAddr = true;
       }
       catch (const std::exception&) {
-        errlog("Error creating new server: downstream subject_address value must be a valid IP address");
+        SLOG(errlog("Error creating new server: downstream subject_address value must be a valid IP address"),
+             context.logger->info(Logr::Error, "Error creating new backend server: downstream subject_address value must be a valid IP address", "backend.address", Logging::Loggable(config.address), "tls.subject_address", Logging::Loggable(tlsConf.subject_address)));
       }
     }
     if (backendConfig.d_tlsParams.d_validateCertificates && backendConfig.d_tlsSubjectName.empty()) {
@@ -571,7 +585,8 @@ static std::shared_ptr<DownstreamState> createBackendFromConfiguration(const dns
     }
     if (!configCheck) {
       downstream->registerXsk(*xskMap);
-      infolog("Added downstream server %s via XSK in %s mode", std::string(config.address), xskMap->at(0)->getXDPMode());
+      SLOG(infolog("Added downstream server %s via XSK in %s mode", std::string(config.address), xskMap->at(0)->getXDPMode()),
+           context.logger->info(Logr::Info, "Added backend server using XSK", "backend.address", Logging::Loggable(config.address), "xsk_mode", Logging::Loggable(xskMap->at(0)->getXDPMode())));
     }
   }
 #endif /* defined(HAVE_XSK) */
@@ -731,7 +746,7 @@ static void loadDynamicBlockConfiguration(const dnsdist::rust::settings::Dynamic
   }
 }
 
-static void handleAdditionalAddressesForFrontend(const std::shared_ptr<ClientState>& state, const std::string& protocol, const ::rust::Vec<::rust::String>& additionalAddresses)
+static void handleAdditionalAddressesForFrontend(const Context& context, const std::shared_ptr<ClientState>& state, const std::string& protocol, const ::rust::Vec<::rust::String>& additionalAddresses)
 {
   if (protocol == "dot" || protocol == "doh") {
     for (const auto& addr : additionalAddresses) {
@@ -740,7 +755,8 @@ static void handleAdditionalAddressesForFrontend(const std::shared_ptr<ClientSta
         state->d_additionalAddresses.emplace_back(address, -1);
       }
       catch (const PDNSException& e) {
-        errlog("Unable to parse additional address %s for %s bind: %s", std::string(addr), protocol, e.reason);
+        SLOG(errlog("Unable to parse additional address %s for %s bind: %s", std::string(addr), protocol, e.reason),
+             context.logger->error(Logr::Error, e.reason, "Unable to parse additional address for frontend", "frontend.address", Logging::Loggable(addr), "frontend.protocol", Logging::Loggable(protocol)));
       }
     }
   }
@@ -749,10 +765,10 @@ static void handleAdditionalAddressesForFrontend(const std::shared_ptr<ClientSta
   }
 }
 
-static void loadBinds(const ::rust::Vec<dnsdist::rust::settings::BindConfiguration>& binds)
+static void loadBinds(const Context& context, const ::rust::Vec<dnsdist::rust::settings::BindConfiguration>& binds)
 {
   for (const auto& bind : binds) {
-    updateImmutableConfiguration([&bind](ImmutableConfiguration& config) {
+    updateImmutableConfiguration([&bind, &context](ImmutableConfiguration& config) {
       auto protocol = boost::to_lower_copy(std::string(bind.protocol));
       uint16_t defaultPort = 53;
       if (protocol == "dot" || protocol == "doq") {
@@ -792,7 +808,7 @@ static void loadBinds(const ::rust::Vec<dnsdist::rust::settings::BindConfigurati
           state->d_tcpConcurrentConnectionsLimit = bind.tcp.max_concurrent_connections;
         }
 
-        handleAdditionalAddressesForFrontend(state, protocol, bind.additional_addresses);
+        handleAdditionalAddressesForFrontend(context, state, protocol, bind.additional_addresses);
 
         if (protocol == "dnscrypt") {
 #if defined(HAVE_DNSCRYPT)
@@ -805,7 +821,7 @@ static void loadBinds(const ::rust::Vec<dnsdist::rust::settings::BindConfigurati
 #endif /* defined(HAVE_DNSCRYPT) */
         }
         else if (protocol != "do53") {
-          if (!handleTLSConfiguration(bind, *state, tlsFrontendParent)) {
+          if (!handleTLSConfiguration(context, bind, *state, tlsFrontendParent)) {
             continue;
           }
           if (tlsFrontendParent == nullptr && (protocol == "dot" || protocol == "doh")) {
@@ -828,7 +844,8 @@ static void loadBinds(const ::rust::Vec<dnsdist::rust::settings::BindConfigurati
             xsk->addWorkerRoute(state->xskInfo, listeningAddress);
             state->xskInfoResponder = XskWorker::create(XskWorker::Type::OutgoingOnly, xsk->sharedEmptyFrameOffset);
             xsk->addWorker(state->xskInfoResponder);
-            vinfolog("Enabling XSK in %s mode for incoming UDP packets to %s", xsk->getXDPMode(), listeningAddress.toStringWithPort());
+            VERBOSESLOG(infolog("Enabling XSK in %s mode for incoming UDP packets to %s", xsk->getXDPMode(), listeningAddress.toStringWithPort()),
+                        context.logger->info(Logr::Info, "Enabling XSK for incoming UDP packet", "frontend.address", Logging::Loggable(listeningAddress), "xsk_mode", Logging::Loggable(xsk->getXDPMode())));
           }
 #endif /* defined(HAVE_XSK) */
           config.d_frontends.emplace_back(std::move(state));
@@ -838,9 +855,9 @@ static void loadBinds(const ::rust::Vec<dnsdist::rust::settings::BindConfigurati
   }
 }
 
-static void loadWebServer(const dnsdist::rust::settings::WebserverConfiguration& webConfig)
+static void loadWebServer(const Context& context, const dnsdist::rust::settings::WebserverConfiguration& webConfig)
 {
-  dnsdist::configuration::updateRuntimeConfiguration([&webConfig](dnsdist::configuration::RuntimeConfiguration& config) {
+  dnsdist::configuration::updateRuntimeConfiguration([&context, &webConfig](dnsdist::configuration::RuntimeConfiguration& config) {
     for (const auto& address : webConfig.listen_addresses) {
       try {
         config.d_webServerAddresses.emplace(ComboAddress(std::string(address)));
@@ -852,14 +869,16 @@ static void loadWebServer(const dnsdist::rust::settings::WebserverConfiguration&
     if (!webConfig.password.empty()) {
       auto holder = std::make_shared<CredentialsHolder>(std::string(webConfig.password), webConfig.hash_plaintext_credentials);
       if (!holder->wasHashed() && holder->isHashingAvailable()) {
-        infolog("Passing a plain-text password via the 'webserver.password' parameter to is not advised, please consider generating a hashed one using 'hashPassword()' instead.");
+        SLOG(infolog("Passing a plain-text password via the 'webserver.password' parameter is not advised, please consider generating a hashed one using 'hashPassword()' instead."),
+             context.logger->info(Logr::Info, "Passing a plain-text password via the 'webserver.password' parameter is not advised, please generating a hashed one using 'hashPassword()' instead"));
       }
       config.d_webPassword = std::move(holder);
     }
     if (!webConfig.api_key.empty()) {
       auto holder = std::make_shared<CredentialsHolder>(std::string(webConfig.api_key), webConfig.hash_plaintext_credentials);
       if (!holder->wasHashed() && holder->isHashingAvailable()) {
-        infolog("Passing a plain-text API key via the 'webserver.api_key' parameter to is not advised, please consider generating a hashed one using 'hashPassword()' instead.");
+        SLOG(infolog("Passing a plain-text API key via the 'webserver.api_key' parameter is not advised, please consider generating a hashed one using 'hashPassword()' instead."),
+             context.logger->info(Logr::Info, "Passing a plain-text API key via the 'webserver.api_key' parameter is not advised, please generating a hashed one using 'hashPassword()' instead"));
       }
       config.d_webAPIKey = std::move(holder);
     }
@@ -918,16 +937,18 @@ static void loadCustomPolicies(const ::rust::Vec<dnsdist::rust::settings::Custom
   }
 }
 
-static void handleOpenSSLSettings(const dnsdist::rust::settings::TlsTuningConfiguration& tlsSettings)
+static void handleOpenSSLSettings(const Context& context, const dnsdist::rust::settings::TlsTuningConfiguration& tlsSettings)
 {
   for (const auto& engine : tlsSettings.engines) {
 #if defined(HAVE_LIBSSL) && !defined(HAVE_TLS_PROVIDERS)
     auto [success, error] = libssl_load_engine(std::string(engine.name), !engine.default_string.empty() ? std::optional<std::string>(engine.default_string) : std::nullopt);
     if (!success) {
-      warnlog("Error while trying to load TLS engine '%s': %s", std::string(engine.name), error);
+      SLOG(warnlog("Error while trying to load TLS engine '%s': %s", std::string(engine.name), error),
+           context.logger->error(Logr::Warning, error, "Error while trying to load TLS engine", "tls.engine", Logging::Loggable(engine.name)));
     }
 #else
-    warnlog("Ignoring TLS engine '%s' because OpenSSL engine support is not compiled in", std::string(engine.name));
+    SLOG(warnlog("Ignoring TLS engine '%s' because OpenSSL engine support is not compiled in", std::string(engine.name)),
+         context.logger->info(Logr::Warning, "Ignoring TLS engine because OpenSSL engine support is not compiled in", "tls.engine", Logging::Loggable(engine.name)));
 #endif /* HAVE_LIBSSL && !HAVE_TLS_PROVIDERS */
   }
 
@@ -935,15 +956,17 @@ static void handleOpenSSLSettings(const dnsdist::rust::settings::TlsTuningConfig
 #if defined(HAVE_LIBSSL) && OPENSSL_VERSION_MAJOR >= 3 && defined(HAVE_TLS_PROVIDERS)
     auto [success, error] = libssl_load_provider(std::string(provider));
     if (!success) {
-      warnlog("Error while trying to load TLS provider '%s': %s", std::string(provider), error);
+      SLOG(warnlog("Error while trying to load TLS provider '%s': %s", std::string(provider), error),
+           context.logger->error(Logr::Warning, error, "Error while trying to load TLS provider", "tls.provider", Logging::Loggable(provider)));
     }
 #else
-    warnlog("Ignoring TLS provider '%s' because OpenSSL provider support is not compiled in", std::string(provider));
+    SLOG(warnlog("Ignoring TLS provider '%s' because OpenSSL provider support is not compiled in", std::string(provider)),
+         context.logger->info(Logr::Warning, "Ignoring TLS provider because OpenSSL provider support is not compiled in", "tls.provider", Logging::Loggable(provider)));
 #endif /* HAVE_LIBSSL && OPENSSL_VERSION_MAJOR >= 3 && HAVE_TLS_PROVIDERS */
   }
 }
 
-static void handleLoggingConfiguration(const dnsdist::rust::settings::LoggingConfiguration& settings)
+static void handleLoggingConfiguration(const Context& context, const dnsdist::rust::settings::LoggingConfiguration& settings)
 {
   if (!settings.verbose_log_destination.empty()) {
     auto dest = std::string(settings.verbose_log_destination);
@@ -952,37 +975,45 @@ static void handleLoggingConfiguration(const dnsdist::rust::settings::LoggingCon
       dnsdist::logging::LoggingConfiguration::setVerboseStream(std::move(stream));
     }
     catch (const std::exception& e) {
-      errlog("Error while opening the verbose logging destination file %s: %s", dest, e.what());
+      SLOG(errlog("Error while opening the verbose logging destination file %s: %s", dest, e.what()),
+           context.logger->error(Logr::Error, e.what(), "Error while opening the verbose logging destination file", "path", Logging::Loggable(dest)));
     }
   }
 
   if (!settings.syslog_facility.empty()) {
     auto facilityLevel = logFacilityFromString(std::string(settings.syslog_facility));
     if (!facilityLevel) {
-      warnlog("Unknown facility '%s' passed to logging.syslog_facility", std::string(settings.syslog_facility));
+      SLOG(warnlog("Unknown facility '%s' passed to logging.syslog_facility", std::string(settings.syslog_facility)),
+           context.logger->info(Logr::Warning, "Unknown facility passed to logging.syslog_facility", "facility", Logging::Loggable(settings.syslog_facility)));
     }
     else {
       setSyslogFacility(*facilityLevel);
     }
   }
 
-  if (settings.structured.enabled) {
-    auto levelPrefix = std::string(settings.structured.level_prefix);
-    auto timeFormat = std::string(settings.structured.time_format);
-    if (!timeFormat.empty()) {
-      if (timeFormat == "numeric") {
-        dnsdist::logging::LoggingConfiguration::setStructuredTimeFormat(dnsdist::logging::LoggingConfiguration::TimeFormat::Numeric);
-      }
-      else if (timeFormat == "ISO8601") {
-        dnsdist::logging::LoggingConfiguration::setStructuredTimeFormat(dnsdist::logging::LoggingConfiguration::TimeFormat::ISO8601);
-      }
-      else {
-        warnlog("Unknown value '%s' to logging.structured.time_format parameter", timeFormat);
-      }
+  std::optional<dnsdist::configuration::TimeFormat> timeFormat{};
+  const auto timeFormatStr = std::string(settings.structured.time_format);
+  if (!timeFormatStr.empty()) {
+    if (timeFormatStr == "numeric") {
+      timeFormat = dnsdist::configuration::TimeFormat::Numeric;
     }
-
-    dnsdist::logging::LoggingConfiguration::setStructuredLogging(true, std::move(levelPrefix));
+    else if (timeFormatStr == "ISO8601") {
+      timeFormat = dnsdist::configuration::TimeFormat::ISO8601;
+    }
+    else {
+      SLOG(warnlog("Unknown value '%s' passed to logging.structured.time_format parameter", timeFormatStr),
+           context.logger->info(Logr::Warning, "Unknown value passed to logging.structured.time_format parameter", "value", Logging::Loggable(timeFormatStr)));
+    }
   }
+
+  dnsdist::configuration::updateImmutableConfiguration([settings, timeFormat](dnsdist::configuration::ImmutableConfiguration& config) {
+    config.d_loggingBackend = std::string(settings.structured.backend);
+    config.d_structuredLogging = settings.structured.enabled;
+    if (timeFormat) {
+      config.d_structuredLoggingTimeFormat = *timeFormat;
+    }
+    config.d_structuredLoggingUseServerID = settings.structured.set_instance_from_server_id;
+  });
 }
 
 static void handleConsoleConfiguration(const dnsdist::rust::settings::ConsoleConfiguration& consoleConf)
@@ -1103,10 +1134,16 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
   // Rust code would be quite cumbersome so for now let's settle for this
   s_inConfigCheckMode.store(configCheck);
   s_inClientMode.store(isClient);
+  auto logger = dnsdist::logging::getTopLogger("yaml-configuration")->withValues("path", Logging::Loggable(fileName), "client_mode", Logging::Loggable(isClient), "configuration_check", Logging::Loggable(configCheck));
+  Context context{
+    .logger = logger,
+  };
 
   auto data = loadContentFromConfigurationFile(fileName);
   if (!data) {
-    errlog("Unable to open YAML file %s: %s", fileName, stringerror(errno));
+    int savederror = errno;
+    SLOG(errlog("Unable to open YAML file %s: %s", fileName, stringerror(savederror)),
+         logger->error(Logr::Error, savederror, "Unable to open YAML file"));
     return false;
   }
 
@@ -1126,7 +1163,7 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
       convertRuntimeFlatSettingsFromRust(globalConfig, config);
     });
 
-    handleLoggingConfiguration(globalConfig.logging);
+    handleLoggingConfiguration(context, globalConfig.logging);
 
     handleConsoleConfiguration(globalConfig.console);
 
@@ -1143,7 +1180,7 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
       });
     }
 
-    handleOpenSSLSettings(globalConfig.tuning.tls);
+    handleOpenSSLSettings(context, globalConfig.tuning.tls);
 
     handleEBPFConfiguration(globalConfig.ebpf, configCheck);
 
@@ -1159,10 +1196,10 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
     }
 #endif /* defined(HAVE_XSK) */
 
-    loadBinds(globalConfig.binds);
+    loadBinds(context, globalConfig.binds);
 
     for (const auto& backend : globalConfig.backends) {
-      auto downstream = createBackendFromConfiguration(backend, configCheck);
+      auto downstream = createBackendFromConfiguration(context, backend, configCheck);
 
       if (!downstream->d_config.pools.empty()) {
         for (const auto& poolName : downstream->d_config.pools) {
@@ -1189,7 +1226,7 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
 
     if (!globalConfig.webserver.listen_addresses.empty()) {
       const auto& webConfig = globalConfig.webserver;
-      loadWebServer(webConfig);
+      loadWebServer(context, webConfig);
     }
 
     if (globalConfig.query_count.enabled) {
@@ -1241,10 +1278,11 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
     }
 
     for (const auto& pool : globalConfig.pools) {
-      dnsdist::configuration::updateRuntimeConfiguration([&pool](dnsdist::configuration::RuntimeConfiguration& config) {
+      dnsdist::configuration::updateRuntimeConfiguration([&context, &pool](dnsdist::configuration::RuntimeConfiguration& config) {
         auto [poolIt, inserted] = config.d_pools.emplace(std::string(pool.name), ServerPool());
         if (inserted) {
-          vinfolog("Creating pool %s", pool.name);
+          VERBOSESLOG(infolog("Creating pool %s", pool.name),
+                      context.logger->info(Logr::Info, "Creating pool", "pool", Logging::Loggable(pool.name)));
         }
 
         if (!pool.packet_cache.empty()) {
@@ -1270,13 +1308,16 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
     return true;
   }
   catch (const ::rust::Error& exp) {
-    errlog("Error while parsing YAML file %s: %s", fileName, exp.what());
+    SLOG(errlog("Error while parsing YAML file %s: %s", fileName, exp.what()),
+         logger->error(Logr::Error, exp.what(), "Error while parsing YAML file", "path", Logging::Loggable(fileName)));
   }
   catch (const PDNSException& exp) {
-    errlog("Error while processing YAML configuration from file %s: %s", fileName, exp.reason);
+    SLOG(errlog("Error while processing YAML configuration from file %s: %s", fileName, exp.reason),
+         logger->error(Logr::Error, exp.reason, "Error while processing YAML file", "path", Logging::Loggable(fileName)));
   }
   catch (const std::exception& exp) {
-    errlog("Error while processing YAML configuration from file %s: %s", fileName, exp.what());
+    SLOG(errlog("Error while processing YAML configuration from file %s: %s", fileName, exp.what()),
+         logger->error(Logr::Error, exp.what(), "Error while processing YAML file", "path", Logging::Loggable(fileName)));
   }
   return false;
 #else

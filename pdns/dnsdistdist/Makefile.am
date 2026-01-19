@@ -206,6 +206,7 @@ dnsdist_SOURCES = \
 	dnsdist-ipcrypt2.cc dnsdist-ipcrypt2.hh \
 	dnsdist-kvs.hh dnsdist-kvs.cc \
 	dnsdist-lbpolicies.cc dnsdist-lbpolicies.hh \
+	dnsdist-logging.cc dnsdist-logging.hh \
 	dnsdist-lua-actions.cc \
 	dnsdist-lua-bindings-dnscrypt.cc \
 	dnsdist-lua-bindings-dnsparser.cc \
@@ -279,7 +280,7 @@ dnsdist_SOURCES = \
 	iputils.cc iputils.hh \
 	libssl.cc libssl.hh \
 	lock.hh \
-	logging.hh \
+	logging.cc logging.hh \
 	misc.cc misc.hh \
 	mplexer.hh \
 	namespaces.hh \
@@ -340,6 +341,7 @@ testrunner_SOURCES = \
 	dnsdist-ipcrypt2.cc dnsdist-ipcrypt2.hh \
 	dnsdist-kvs.cc dnsdist-kvs.hh \
 	dnsdist-lbpolicies.cc dnsdist-lbpolicies.hh \
+	dnsdist-logging.cc dnsdist-logging.hh \
 	dnsdist-lua-bindings-dnsquestion.cc \
 	dnsdist-lua-bindings-kvs.cc \
 	dnsdist-lua-bindings.cc \
@@ -377,9 +379,12 @@ testrunner_SOURCES = \
 	ednsextendederror.cc ednsextendederror.hh \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc ednssubnet.hh \
+	ext/json11/json11.cpp \
+	ext/json11/json11.hpp \
 	ext/luawrapper/include/LuaContext.hpp \
 	gettime.cc gettime.hh \
 	iputils.cc iputils.hh \
+	logging.cc logging.hh \
 	misc.cc misc.hh \
 	namespaces.hh \
 	noinitvector.hh \
@@ -465,6 +470,7 @@ testrunner_LDADD = \
 	$(LIBSODIUM_LIBS) \
 	$(LUA_LIBS) \
 	$(RT_LIBS) \
+	$(SYSTEMD_LIBS) \
 	$(LIBCAP_LIBS) \
 	$(IPCRYPT2_LIBS) \
 	$(ARC4RANDOM_LIBS)
@@ -602,6 +608,7 @@ fuzz_targets_libs = \
 	$(ARC4RANDOM_LIBS) \
 	$(LIBCRYPTO_LIBS) \
 	$(LIBSODIUM_LIBS) \
+	$(SYSTEMD_LIBS) \
 	$(LIB_FUZZING_ENGINE)
 
 fuzz_targets_ldflags = \
@@ -616,24 +623,33 @@ fuzz_targets_deps = standalone_fuzz_target_runner.o
 fuzz_target_dnsdistcache_SOURCES = \
 	channel.hh channel.cc \
 	dns.cc dns.hh \
+	dnscrypt.cc dnscrypt.hh \
 	dnsdist-cache.cc dnsdist-cache.hh \
 	dnsdist-configuration.cc dnsdist-configuration.hh \
 	dnsdist-crypto.cc dnsdist-crypto.hh \
 	dnsdist-dnsparser.cc dnsdist-dnsparser.hh \
 	dnsdist-dnsquestion.cc \
 	dnsdist-ecs.cc dnsdist-ecs.hh \
-	dnsdist-idstate.hh \
+	dnsdist-idstate.cc dnsdist-idstate.hh \
+	dnsdist-logging.cc dnsdist-logging.hh \
+	dnsdist-opentelemetry.cc dnsdist-opentelemetry.hh \
 	dnsdist-protocols.cc dnsdist-protocols.hh \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
 	dnswriter.cc dnswriter.hh \
+	dolog.cc dolog.hh \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc ednssubnet.hh \
+	ext/json11/json11.cpp \
+	ext/json11/json11.hpp \
 	fuzz_dnsdistcache.cc \
+	gettime.cc gettime.hh \
 	iputils.cc iputils.hh \
+	logging.cc logging.hh \
 	misc.cc misc.hh \
 	packetcache.hh \
+	protozero-trace.cc protozero-trace.hh \
 	qtype.cc qtype.hh \
 	svc-records.cc svc-records.hh
 

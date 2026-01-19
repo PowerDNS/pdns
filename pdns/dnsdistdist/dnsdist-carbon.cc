@@ -39,7 +39,7 @@
 namespace dnsdist
 {
 
-static bool doOneCarbonExport(const Carbon::Endpoint& endpoint)
+static bool doOneCarbonExport(const Carbon::Endpoint& endpoint, const Logr::Logger& logger)
 {
   const auto& server = endpoint.server;
   const std::string& namespace_name = endpoint.namespace_name;
@@ -286,14 +286,17 @@ static bool doOneCarbonExport(const Carbon::Endpoint& endpoint)
 
     int ret = waitForRWData(carbonSock.getHandle(), false, 1, 0);
     if (ret <= 0) {
-      vinfolog("Unable to write data to carbon server on %s: %s", server.toStringWithPort(), (ret < 0 ? stringerror() : "Timeout"));
+      int savederror = errno;
+      VERBOSESLOG(infolog("Unable to write data to carbon server on %s: %s", server.toStringWithPort(), (ret < 0 ? stringerror(savederror) : "Timeout")),
+                  logger.info(Logr::Info, "Unable to write data to carbon server", "error", Logging::Loggable(ret < 0 ? stringerror(savederror) : "Timeout")));
       return false;
     }
     carbonSock.setBlocking();
     writen2(carbonSock.getHandle(), msg.c_str(), msg.size());
   }
   catch (const std::exception& e) {
-    warnlog("Problem sending carbon data to %s: %s", server.toStringWithPort(), e.what());
+    SLOG(warnlog("Problem sending carbon data to %s: %s", server.toStringWithPort(), e.what()),
+         logger.error(Logr::Warning, e.what(), "Problem sending carbon data"));
     return false;
   }
 
@@ -303,6 +306,9 @@ static bool doOneCarbonExport(const Carbon::Endpoint& endpoint)
 static void carbonHandler(const Carbon::Endpoint& endpoint)
 {
   setThreadName("dnsdist/carbon");
+  const auto ourName = endpoint.getOurName();
+  auto logger = dnsdist::logging::getTopLogger("carbon-exporter")->withValues("server.address", Logging::Loggable(endpoint.server), "dnsdist.carbon.our_name", Logging::Loggable(ourName));
+
   const auto intervalUSec = endpoint.interval * 1000 * 1000;
   /* maximum interval between two attempts is 10 minutes */
   const ExponentialBackOffTimer backOffTimer(10 * 60);
@@ -314,14 +320,15 @@ static void carbonHandler(const Carbon::Endpoint& endpoint)
 
       DTime dtimer;
       dtimer.set();
-      if (doOneCarbonExport(endpoint)) {
+      if (doOneCarbonExport(endpoint, *logger)) {
         const auto elapsedUSec = dtimer.udiff();
         if (elapsedUSec < 0 || static_cast<unsigned int>(elapsedUSec) <= intervalUSec) {
           useconds_t toSleepUSec = intervalUSec - elapsedUSec;
           usleep(toSleepUSec);
         }
         else {
-          vinfolog("Carbon export for %s took longer (%s us) than the configured interval (%d us)", endpoint.server.toStringWithPort(), elapsedUSec, intervalUSec);
+          VERBOSESLOG(infolog("Carbon export for %s took longer (%s us) than the configured interval (%d us)", endpoint.server.toStringWithPort(), elapsedUSec, intervalUSec),
+                      logger->info("Carbon export took longer than the configured interval", "dnsdist.carbon.elapsed_usec", Logging::Loggable(elapsedUSec), "dnsdist.carbon.interval_usec", Logging::Loggable(intervalUSec)));
         }
         consecutiveFailures = 0;
       }
@@ -330,16 +337,23 @@ static void carbonHandler(const Carbon::Endpoint& endpoint)
         if (consecutiveFailures < std::numeric_limits<decltype(consecutiveFailures)>::max()) {
           consecutiveFailures++;
         }
-        vinfolog("Run for %s - %s failed, next attempt in %d", endpoint.server.toStringWithPort(), endpoint.getOurName(), backOff);
+        VERBOSESLOG(infolog("Run for %s - %s failed, next attempt in %d", endpoint.server.toStringWithPort(), endpoint.getOurName(), backOff),
+                    logger->info("Carbon export failed", "dnsdist.carbon.next_attempt_seconds", Logging::Loggable(backOff)));
         std::this_thread::sleep_for(std::chrono::seconds(backOff));
       }
     } while (true);
   }
+  catch (const std::exception& exp) {
+    SLOG(errlog("Carbon thread for %s died, exception: %s", endpoint.server.toStringWithPort(), exp.what()),
+         logger->error(Logr::Error, exp.what(), "Carbon thread died"));
+  }
   catch (const PDNSException& e) {
-    errlog("Carbon thread for %s died, PDNSException: %s", endpoint.server.toStringWithPort(), e.reason);
+    SLOG(errlog("Carbon thread for %s died, PDNSException: %s", endpoint.server.toStringWithPort(), e.reason),
+         logger->error(Logr::Error, e.reason, "Carbon thread died"));
   }
   catch (...) {
-    errlog("Carbon thread for %s died", endpoint.server.toStringWithPort());
+    SLOG(errlog("Carbon thread for %s died", endpoint.server.toStringWithPort()),
+         logger->info(Logr::Error, "Carbon thread died"));
   }
 }
 

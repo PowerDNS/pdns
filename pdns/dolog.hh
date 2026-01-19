@@ -33,6 +33,10 @@
 #include "logger.hh"
 #endif // RECURSOR
 
+#if defined(DNSDIST)
+#include "dnsdist-logging.hh"
+#endif /* defined(DNSDIST) */
+
 /* This file is intended not to be metronome specific, and is simple example of C++2011
    variadic templates in action.
 
@@ -87,30 +91,13 @@ namespace dnsdist::logging
 class LoggingConfiguration
 {
 public:
-  enum class TimeFormat
-  {
-    Numeric,
-    ISO8601
-  };
-
   static void setSyslog(bool value = true)
   {
     s_syslog = value;
   }
-  static void setStructuredLogging(bool value = true, std::string levelPrefix = "")
-  {
-    s_structuredLogging = value;
-    if (value) {
-      s_structuredLevelPrefix = levelPrefix.empty() ? "prio" : std::move(levelPrefix);
-    }
-  }
   static void setLogTimestamps(bool value = true)
   {
     s_logTimestamps = value;
-  }
-  static void setStructuredTimeFormat(TimeFormat format)
-  {
-    s_structuredTimeFormat = format;
   }
   static void setVerboseStream(std::ofstream&& stream)
   {
@@ -128,25 +115,9 @@ public:
   {
     return s_verboseStream;
   }
-  static bool getStructuredLogging()
-  {
-    return s_structuredLogging;
-  }
-  static const std::string& getStructuredLoggingLevelPrefix()
-  {
-    return s_structuredLevelPrefix;
-  }
-
-  static TimeFormat getStructuredLoggingTimeFormat()
-  {
-    return s_structuredTimeFormat;
-  }
 
 private:
   static std::optional<std::ofstream> s_verboseStream;
-  static std::string s_structuredLevelPrefix;
-  static TimeFormat s_structuredTimeFormat;
-  static bool s_structuredLogging;
   static bool s_logTimestamps;
   static bool s_syslog;
 };
@@ -197,16 +168,8 @@ void genlog(std::ostream& stream, [[maybe_unused]] int level, [[maybe_unused]] b
     dnsdist::logging::logTime(stream);
   }
 
-  if (dnsdist::logging::LoggingConfiguration::getStructuredLogging()) {
-    stream << dnsdist::logging::LoggingConfiguration::getStructuredLoggingLevelPrefix() << "=\"" << syslogLevelToStr(level) << "\" ";
-    stream << "msg=" << std::quoted(output) << std::endl;
-  }
-  else {
-    stream << output << std::endl;
-  }
-#else
-  stream << output << std::endl;
 #endif
+  stream << output << std::endl;
 }
 
 template <typename... Args>

@@ -321,7 +321,8 @@ void doClient(const std::string& command)
     }
   }
 #else
-  errlog("Client mode requested but libedit support is not available");
+  SLOG(errlog("Client mode requested but libedit support is not available"),
+       dnsdist::logging::getTopLogger("console-client")->info(Logr::Error, "Client mode requested but libedit support is not available"));
 #endif /* HAVE_LIBEDIT */
 }
 
@@ -489,7 +490,7 @@ void clearHistory()
   s_confDelta.lock()->clear();
 }
 
-static void controlClientThread(ConsoleConnection&& conn)
+static void controlClientThread(ConsoleConnection&& conn, std::shared_ptr<Logr::Logger> logger)
 {
   try {
     setThreadName("dnsdist/conscli");
@@ -625,19 +626,22 @@ static void controlClientThread(ConsoleConnection&& conn)
       writen2(conn.getFD(), response.c_str(), response.length());
     }
     if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_logConsoleConnections) {
-      infolog("Closed control connection from %s", conn.getClient().toStringWithPort());
+      SLOG(infolog("Closed control connection from %s", conn.getClient().toStringWithPort()),
+           logger->info(Logr::Info, "Closed control connection"));
     }
   }
   catch (const std::exception& e) {
-    infolog("Got an exception in client connection from %s: %s", conn.getClient().toStringWithPort(), e.what());
+    SLOG(infolog("Got an exception in client connection from %s: %s", conn.getClient().toStringWithPort(), e.what()),
+         logger->error(Logr::Info, e.what(), "Got an exception in control connection"));
   }
 }
 
 void controlThread(Socket&& acceptFD)
 {
+  setThreadName("dnsdist/control");
+  const ComboAddress local = dnsdist::configuration::getCurrentRuntimeConfiguration().d_consoleServerAddress;
+  auto logger = dnsdist::logging::getTopLogger("console-server")->withValues("network.local.address", Logging::Loggable(local));
   try {
-    setThreadName("dnsdist/control");
-    const ComboAddress local = dnsdist::configuration::getCurrentRuntimeConfiguration().d_consoleServerAddress;
     s_connManager.setMaxConcurrentConnections(dnsdist::configuration::getImmutableConfiguration().d_consoleMaxConcurrentConnections);
 
     ComboAddress client;
@@ -647,39 +651,46 @@ void controlThread(Socket&& acceptFD)
     client.sin4.sin_family = local.sin4.sin_family;
 
     int sock{-1};
-    infolog("Accepting control connections on %s", local.toStringWithPort());
+    SLOG(infolog("Accepting control connections on %s", local.toStringWithPort()),
+         logger->info(Logr::Info, "Accepting control connections"));
 
     while ((sock = SAccept(acceptFD.getHandle(), client)) >= 0) {
       dnsdist::configuration::refreshLocalRuntimeConfiguration();
       const auto& consoleKey = dnsdist::configuration::getCurrentRuntimeConfiguration().d_consoleKey;
       FDWrapper socket(sock);
       if (!dnsdist::crypto::authenticated::isValidKey(consoleKey)) {
-        vinfolog("Control connection from %s dropped because we don't have a valid key configured, please configure one using setKey()", client.toStringWithPort());
+        VERBOSESLOG(infolog("Control connection from %s dropped because we don't have a valid key configured, please configure one using setKey()", client.toStringWithPort()),
+                    logger->info(Logr::Info, "Control connection dropped because we don't have a valid key configured, please configure one using setKey()", "client.address", Logging::Loggable(client)));
         continue;
       }
 
       const auto& runtimeConfig = dnsdist::configuration::getCurrentRuntimeConfiguration();
       if (!runtimeConfig.d_consoleACL.match(client)) {
-        vinfolog("Control connection from %s dropped because of ACL", client.toStringWithPort());
+        VERBOSESLOG(infolog("Control connection from %s dropped because of ACL", client.toStringWithPort()),
+                    logger->info(Logr::Info, "Control connection dropped because of ACL", "client.address", Logging::Loggable(client)));
         continue;
       }
 
       try {
         ConsoleConnection conn(client, std::move(socket));
+        auto connLogger = dnsdist::logging::getTopLogger("console-connection")->withValues("client.address", Logging::Loggable(client));
         if (runtimeConfig.d_logConsoleConnections) {
-          warnlog("Got control connection from %s", client.toStringWithPort());
+          SLOG(warnlog("Got control connection from %s", client.toStringWithPort()),
+               connLogger->info(Logr::Info, "Control connection opened"));
         }
 
-        std::thread clientThread(controlClientThread, std::move(conn));
+        std::thread clientThread(controlClientThread, std::move(conn), std::move(connLogger));
         clientThread.detach();
       }
       catch (const std::exception& e) {
-        infolog("Control connection died: %s", e.what());
+        SLOG(infolog("Control connection died: %s", e.what()),
+             logger->error(Logr::Info, e.what(), "Control connection died", "client.address", Logging::Loggable(client)));
       }
     }
   }
   catch (const std::exception& e) {
-    errlog("Control thread died: %s", e.what());
+    SLOG(errlog("Control thread died: %s", e.what()),
+         logger->error(Logr::Error, e.what(), "Control thread died"));
   }
 }
 }

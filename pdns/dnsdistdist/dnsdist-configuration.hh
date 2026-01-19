@@ -53,6 +53,12 @@ static constexpr uint16_t s_defaultPayloadSizeSelfGenAnswers = 1232;
 static constexpr uint16_t s_udpIncomingBufferSize{1500}; // don't accept UDP queries larger than this value
 static_assert(s_defaultPayloadSizeSelfGenAnswers < s_udpIncomingBufferSize, "The UDP responder's payload size should be smaller or equal to our incoming buffer size");
 
+enum class TimeFormat : uint8_t
+{
+  Numeric,
+  ISO8601
+};
+
 /* this part of the configuration can only be updated at configuration
    time, and is immutable once the configuration phase is over */
 struct ImmutableConfiguration
@@ -61,6 +67,7 @@ struct ImmutableConfiguration
   std::vector<uint32_t> d_tcpFastOpenKey;
   std::vector<std::shared_ptr<ClientState>> d_frontends;
   std::string d_snmpDaemonSocketPath;
+  std::string d_loggingBackend;
 #ifdef __linux__
   // On Linux this gives us 128k pending queries (default is 8192 queries),
   // which should be enough to deal with huge spikes
@@ -97,6 +104,7 @@ struct ImmutableConfiguration
   uint32_t d_tcpBanDurationForExceedingMaxReadIOsPerQuery{60};
   uint32_t d_tcpBanDurationForExceedingTCPTLSRate{10};
   uint16_t d_maxUDPOutstanding{std::numeric_limits<uint16_t>::max()};
+  TimeFormat d_structuredLoggingTimeFormat{TimeFormat::Numeric};
   uint8_t d_udpTimeout{2};
   uint8_t d_tcpConnectionsOverloadThreshold{90};
   uint8_t d_tcpConnectionsMaskV4{32};
@@ -108,6 +116,8 @@ struct ImmutableConfiguration
   bool d_ringsRecordResponses{true};
   bool d_snmpEnabled{false};
   bool d_snmpTrapsEnabled{false};
+  bool d_structuredLogging{true};
+  bool d_structuredLoggingUseServerID{false};
 };
 
 /* this part of the configuration can be updated at runtime via

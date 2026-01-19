@@ -48,6 +48,7 @@
 #include "dnsdist-ecs.hh"
 #include "dnsdist-frontend.hh"
 #include "dnsdist-healthchecks.hh"
+#include "dnsdist-logging.hh"
 #include "dnsdist-lua.hh"
 #include "dnsdist-lua-hooks.hh"
 #include "xsk.hh"
@@ -119,6 +120,12 @@ void resetLuaSideEffect()
   s_noLuaSideEffect = boost::logic::indeterminate;
 }
 
+static std::shared_ptr<const Logr::Logger> getLogger(const std::string_view context)
+{
+  static auto logger = dnsdist::logging::getTopLogger("configuration");
+  return logger->withValues("lua.function", Logging::Loggable(context));
+}
+
 using localbind_t = LuaAssociativeTable<boost::variant<bool, int, std::string, LuaArray<int>, LuaArray<std::string>, LuaAssociativeTable<std::string>, std::shared_ptr<XskSocket>>>;
 
 static void parseLocalBindVars(std::optional<localbind_t>& vars, bool& reusePort, int& tcpFastOpenQueueSize, std::string& interface, std::set<int>& cpus, int& tcpListenQueueSize, uint64_t& maxInFlightQueriesPerConnection, uint64_t& tcpMaxConcurrentConnections, bool& enableProxyProtocol)
@@ -182,13 +189,15 @@ static bool loadTLSCertificateAndKeys(const std::string& context, std::vector<TL
       }
     }
     else {
-      errlog("Error, mismatching number of certificates and keys in call to %s()!", context);
+      SLOG(errlog("Error, mismatching number of certificates and keys in call to %s()!", context),
+           getLogger(context)->info(Logr::Error, "Error, mismatching number of certificates and keys"));
       g_outputBuffer = "Error, mismatching number of certificates and keys in call to " + context + "()!";
       return false;
     }
   }
   else {
-    errlog("Error, mismatching number of certificates and keys in call to %s()!", context);
+    SLOG(errlog("Error, mismatching number of certificates and keys in call to %s()!", context),
+         getLogger(context)->info(Logr::Error, "Error, mismatching number of certificates and keys"));
     g_outputBuffer = "Error, mismatching number of certificates and keys in call to " + context + "()!";
     return false;
   }
@@ -208,7 +217,8 @@ static void parseTLSConfig(TLSConfig& config, const std::string& context, std::o
   }
 #else /* HAVE_LIBSSL */
   if (vars->erase("minTLSVersion") > 0)
-    warnlog("minTLSVersion has no effect with chosen TLS library");
+    SLOG(warnlog("minTLSVersion has no effect with chosen TLS library"),
+         getLogger(context)->info(Logr::Warning, "minTLSVersion has no effect with chosen TLS library"));
 #endif /* HAVE_LIBSSL */
 
   getOptionalValue<std::string>(vars, "ticketKeyFile", config.d_ticketKeyFile);
@@ -220,7 +230,8 @@ static void parseTLSConfig(TLSConfig& config, const std::string& context, std::o
   int numberOfStoredSessions{0};
   if (getOptionalValue<int>(vars, "numberOfStoredSessions", numberOfStoredSessions) > 0) {
     if (numberOfStoredSessions < 0) {
-      errlog("Invalid value '%d' for %s() parameter 'numberOfStoredSessions', should be >= 0, dismissing", numberOfStoredSessions, context);
+      SLOG(errlog("Invalid value '%d' for %s() parameter 'numberOfStoredSessions', should be >= 0, dismissing", numberOfStoredSessions, context),
+           getLogger(context)->info(Logr::Error, "Invalid value for parameter 'numberOfStoredSessions', should be >= 0, discmissing", "value", Logging::Loggable(numberOfStoredSessions)));
       g_outputBuffer = "Invalid value '" + std::to_string(numberOfStoredSessions) + "' for " + context + "() parameter 'numberOfStoredSessions', should be >= 0, dimissing";
     }
     else {
@@ -239,7 +250,8 @@ static void parseTLSConfig(TLSConfig& config, const std::string& context, std::o
 #ifdef HAVE_SSL_CTX_SET_KEYLOG_CALLBACK
     getOptionalValue<std::string>(vars, "keyLogFile", config.d_keyLogFile);
 #else
-    errlog("TLS Key logging has been enabled using the 'keyLogFile' parameter to %s(), but this version of OpenSSL does not support it", context);
+    SLOG(errlog("TLS Key logging has been enabled using the 'keyLogFile' parameter to %s(), but this version of OpenSSL does not support it", context),
+         getLogger(context)->info(Logr::Error, "TLS Key logging has been enabled using the 'keyLogFile' parameter, but this version of OpenSSL does not support it"));
     g_outputBuffer = "TLS Key logging has been enabled using the 'keyLogFile' parameter to " + context + "(), but this version of OpenSSL does not support it";
 #endif
   }
@@ -283,7 +295,8 @@ static void LuaThread(const std::string& code)
       (*func)(std::move(cmd), std::move(data));
     }
     else {
-      errlog("Lua thread called submitToMainThread but no threadmessage receiver is defined");
+      SLOG(errlog("Lua thread called submitToMainThread but no threadmessage receiver is defined"),
+           getLogger("submitToMainThread")->info(Logr::Error, "Lua thread called submitToMainThread but no threadmessage receiver is defined"));
     }
   });
 
@@ -293,13 +306,16 @@ static void LuaThread(const std::string& code)
     try {
       dnsdist::configuration::refreshLocalRuntimeConfiguration();
       context.executeCode(code);
-      errlog("Lua thread exited, restarting in 5 seconds");
+      SLOG(errlog("Lua thread exited, restarting in 5 seconds"),
+           getLogger("LuaThread")->info(Logr::Error, "Lua thread exited, restarting in 5 seconds"));
     }
     catch (const std::exception& e) {
-      errlog("Lua thread crashed, restarting in 5 seconds: %s", e.what());
+      SLOG(errlog("Lua thread crashed, restarting in 5 seconds: %s", e.what()),
+           getLogger("LuaThread")->error(Logr::Error, e.what(), "Lua thread exited, restarting in 5 seconds"));
     }
     catch (...) {
-      errlog("Lua thread crashed, restarting in 5 seconds");
+      SLOG(errlog("Lua thread crashed, restarting in 5 seconds"),
+           getLogger("LuaThread")->info(Logr::Error, "Lua thread exited, restarting in 5 seconds"));
     }
     std::this_thread::sleep_for(std::chrono::seconds(5));
   }
@@ -311,7 +327,8 @@ static bool checkConfigurationTime(const std::string& name)
     return true;
   }
   g_outputBuffer = name + " cannot be used at runtime!\n";
-  errlog("%s cannot be used at runtime!", name);
+  SLOG(errlog("%s cannot be used at runtime!", name),
+       getLogger(name)->info(Logr::Error, "The " + name + " directive cannot be used at runtime"));
   return false;
 }
 
@@ -328,7 +345,8 @@ static void handleNewServerHealthCheckParameters(std::optional<newserver_t>& var
   if (getOptionalValue<std::string>(vars, "healthCheckMode", valueStr) > 0) {
     const auto& mode = valueStr;
     if (!DownstreamState::parseAvailabilityConfigFromStr(config, valueStr)) {
-      warnlog("Ignoring unknown value '%s' for 'healthCheckMode' on 'newServer'", mode);
+      SLOG(warnlog("Ignoring unknown value '%s' for 'healthCheckMode' on 'newServer'", mode),
+           getLogger("newServer")->info(Logr::Warning, "Ignoring unknown value for 'healthCheckMode' on 'newServer'", "value", Logging::Loggable(valueStr)));
     }
   }
 
@@ -385,7 +403,8 @@ static void handleNewServerHealthCheckParameters(std::optional<newserver_t>& var
       config.d_lazyHealthCheckMode = DownstreamState::LazyHealthCheckMode::TimeoutOrServFail;
     }
     else {
-      warnlog("Ignoring unknown value '%s' for 'lazyHealthCheckMode' on 'newServer'", mode);
+      SLOG(warnlog("Ignoring unknown value '%s' for 'lazyHealthCheckMode' on 'newServer'", mode),
+           getLogger("newServer")->info(Logr::Warning, "Ignoring unknown value for 'lazyHealthCheckMode' on 'newServer'", "value", Logging::Loggable(mode)));
     }
   }
 
@@ -435,7 +454,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          if (getOptionalValue<std::string>(vars, "sockets", valueStr) > 0) {
                            config.d_numberOfSockets = std::stoul(valueStr);
                            if (config.d_numberOfSockets == 0) {
-                             warnlog("Dismissing invalid number of sockets '%s', using 1 instead", valueStr);
+                             SLOG(warnlog("Dismissing invalid number of sockets '%s', using 1 instead", valueStr),
+                                  getLogger("newServer")->info(Logr::Warning, "Dismissing invalid number of sockets, using 1 instead", "value", Logging::Loggable(valueStr)));
                              config.d_numberOfSockets = 1;
                            }
                          }
@@ -444,7 +464,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          getOptionalIntegerValue("newServer", vars, "order", config.order);
                          getOptionalIntegerValue("newServer", vars, "weight", config.d_weight);
                          if (config.d_weight < 1) {
-                           errlog("Error creating new server: downstream weight value must be greater than 0.");
+                           SLOG(errlog("Error creating new server: downstream weight value must be greater than 0."),
+                                getLogger("newServer")->info(Logr::Error, "Error creating new server: downstream weight value must be greater than 0", "value", Logging::Loggable(config.d_weight)));
                            return std::shared_ptr<DownstreamState>();
                          }
 
@@ -462,7 +483,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 #if defined(MSG_FASTOPEN) || defined(CONNECTX_FASTOPEN)
                              config.tcpFastOpen = true;
 #else
-          warnlog("TCP Fast Open has been configured on downstream server %s but is not supported", serverAddressStr);
+                             SLOG(warnlog("TCP Fast Open has been configured on downstream server %s but is not supported", serverAddressStr),
+                                  getLogger("newServer")->info(Logr::Warning, "TCP Fast Open has been configured on downstream backend but is not supported", "backend.address", Logging::Loggable(serverAddressStr)));
 #endif
                            }
                          }
@@ -508,8 +530,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 #ifdef HAVE_SSL_CTX_SET_KEYLOG_CALLBACK
                            getOptionalValue<std::string>(vars, "keyLogFile", config.d_tlsParams.d_keyLogFile);
 #else
-        errlog("TLS Key logging has been enabled using the 'keyLogFile' parameter to newServer(), but this version of OpenSSL does not support it");
-        g_outputBuffer = "TLS Key logging has been enabled using the 'keyLogFile' parameter to newServer(), but this version of OpenSSL does not support it";
+                           SLOG(errlog("TLS Key logging has been enabled using the 'keyLogFile' parameter to newServer(), but this version of OpenSSL does not support it"),
+                                getLogger("newServer")->info(Logr::Error, "TLS Key logging has been enabled using the 'keyLogFile' parameter to newServer(), but this version of OpenSSL does not support it", "backend.address", Logging::Loggable(serverAddressStr)));
+                           g_outputBuffer = "TLS Key logging has been enabled using the 'keyLogFile' parameter to newServer(), but this version of OpenSSL does not support it";
 #endif
                          }
 
@@ -519,8 +542,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                              config.d_tlsSubjectName = addr.toString();
                              config.d_tlsSubjectIsAddr = true;
                            }
-                           catch (const std::exception&) {
-                             errlog("Error creating new server: downstream subjectAddr value must be a valid IP address");
+                           catch (const std::exception& exp) {
+                             SLOG(errlog("Error creating new server: downstream subjectAddr value must be a valid IP address: %s", exp.what()),
+                                  getLogger("newServer")->error(Logr::Error, exp.what(), "Error creating new server: downstream subjectAddr value must be a valid IP address", "backend.address", Logging::Loggable(serverAddressStr), "subjectAddr", Logging::Loggable(valueStr)));
                              return std::shared_ptr<DownstreamState>();
                            }
                          }
@@ -558,18 +582,21 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          }
                          catch (const PDNSException& e) {
                            g_outputBuffer = "Error creating new server: " + string(e.reason);
-                           errlog("Error creating new server with address %s: %s", serverAddressStr, e.reason);
+                           SLOG(errlog("Error creating new server with address %s: %s", serverAddressStr, e.reason),
+                                getLogger("newServer")->error(Logr::Error, e.reason, "Error creating new backend server", "backend.address", Logging::Loggable(serverAddressStr)));
                            return std::shared_ptr<DownstreamState>();
                          }
                          catch (const std::exception& e) {
                            g_outputBuffer = "Error creating new server: " + string(e.what());
-                           errlog("Error creating new server with address %s: %s", serverAddressStr, e.what());
+                           SLOG(errlog("Error creating new server with address %s: %s", serverAddressStr, e.what()),
+                                getLogger("newServer")->error(Logr::Error, e.what(), "Error creating new backend server", "backend.address", Logging::Loggable(serverAddressStr)));
                            return std::shared_ptr<DownstreamState>();
                          }
 
                          if (IsAnyAddress(config.remote)) {
                            g_outputBuffer = "Error creating new server: invalid address for a downstream server.";
-                           errlog("Error creating new server: %s is not a valid address for a downstream server", serverAddressStr);
+                           SLOG(errlog("Error creating new server: %s is not a valid address for a downstream server", serverAddressStr),
+                                getLogger("newServer")->info(Logr::Error, "Error creating new backend server: not a valid address for a downstream server", "backend.address", Logging::Loggable(serverAddressStr)));
                            return std::shared_ptr<DownstreamState>();
                          }
 
@@ -596,7 +623,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                                upgradeInterval = static_cast<uint32_t>(std::stoul(valueStr));
                              }
                              catch (const std::exception& e) {
-                               warnlog("Error parsing 'autoUpgradeInterval' value: %s", e.what());
+                               SLOG(warnlog("Error parsing 'autoUpgradeInterval' value: %s", e.what()),
+                                    getLogger("newServer")->error(Logr::Warning, e.what(), "Error parsing 'autoUpgradeInterval' value", "backend.address", Logging::Loggable(serverAddressStr), "value", Logging::Loggable(valueStr)));
                              }
                            }
                            getOptionalValue<bool>(vars, "autoUpgradeKeep", keepAfterUpgrade);
@@ -606,7 +634,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                                upgradeDoHKey = static_cast<uint16_t>(std::stoul(valueStr));
                              }
                              catch (const std::exception& e) {
-                               warnlog("Error parsing 'autoUpgradeDoHKey' value: %s", e.what());
+                               SLOG(warnlog("Error parsing 'autoUpgradeDoHKey' value: %s", e.what()),
+                                    getLogger("newServer")->error(Logr::Warning, e.what(), "Error parsing 'autoUpgradeDoHKey' value", "backend.address", Logging::Loggable(serverAddressStr), "value", Logging::Loggable(valueStr)));
                              }
                            }
                          }
@@ -637,10 +666,12 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                              }
                              memcpy(ret->d_config.destMACAddr.data(), mac.data(), ret->d_config.destMACAddr.size());
                            }
-                           infolog("Added downstream server %s via XSK in %s mode", ret->d_config.remote.toStringWithPort(), xskSockets.at(0)->getXDPMode());
+                           SLOG(infolog("Added downstream server %s via XSK in %s mode", ret->d_config.remote.toStringWithPort(), xskSockets.at(0)->getXDPMode()),
+                                getLogger("newServer")->info(Logr::Info, "Added downstream server via XSK", "backend.address", Logging::Loggable(ret->d_config.remote), "xsk_mode", Logging::Loggable(xskSockets.at(0)->getXDPMode())));
                          }
                          else if (!(client || configCheck)) {
-                           infolog("Added downstream server %s", ret->d_config.remote.toStringWithPort());
+                           SLOG(infolog("Added downstream server %s", ret->d_config.remote.toStringWithPort()),
+                                getLogger("newServer")->info(Logr::Info, "Added downstream server", "backend.address", Logging::Loggable(ret->d_config.remote)));
                          }
 
                          if (client || configCheck) {
@@ -650,9 +681,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                            getOptionalValue<LuaArray<std::shared_ptr<XskSocket>>>(vars, "xskSockets", luaXskSockets);
                          }
 #else /* HAVE_XSK */
-      if (!(client || configCheck)) {
-        infolog("Added downstream server %s", ret->d_config.remote.toStringWithPort());
-      }
+                         if (!(client || configCheck)) {
+                           SLOG(infolog("Added downstream server %s", ret->d_config.remote.toStringWithPort()),
+                                getLogger("newServer")->info(Logr::Info, "Added downstream server", "backend.address", Logging::Loggable(ret->d_config.remote)));
+                         }
 #endif /* HAVE_XSK */
                          if (autoUpgrade && ret->getProtocol() != dnsdist::Protocol::DoT && ret->getProtocol() != dnsdist::Protocol::DoH) {
                            dnsdist::ServiceDiscovery::addUpgradeableServer(ret, upgradeInterval, std::move(upgradePool), upgradeDoHKey, keepAfterUpgrade);
@@ -794,7 +826,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         socket->addWorkerRoute(udpCS->xskInfo, loc);
         udpCS->xskInfoResponder = XskWorker::create(XskWorker::Type::OutgoingOnly, socket->sharedEmptyFrameOffset);
         socket->addWorker(udpCS->xskInfoResponder);
-        vinfolog("Enabling XSK in %s mode for incoming UDP packets to %s", socket->getXDPMode(), loc.toStringWithPort());
+        VERBOSESLOG(infolog("Enabling XSK in %s mode for incoming UDP packets to %s", socket->getXDPMode(), loc.toStringWithPort()),
+                    getLogger("setLocal")->info(Logr::Info, "Enabling XSK for incoming UDP packets", "frontend.address", Logging::Loggable(loc), "xsk_mode", Logging::Loggable(socket->getXDPMode())));
       }
 #endif /* HAVE_XSK */
       frontends.push_back(std::move(udpCS));
@@ -853,7 +886,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         socket->addWorkerRoute(udpCS->xskInfo, loc);
         udpCS->xskInfoResponder = XskWorker::create(XskWorker::Type::OutgoingOnly, socket->sharedEmptyFrameOffset);
         socket->addWorker(udpCS->xskInfoResponder);
-        vinfolog("Enabling XSK in %s mode for incoming UDP packets to %s", socket->getXDPMode(), loc.toStringWithPort());
+        VERBOSESLOG(infolog("Enabling XSK in %s mode for incoming UDP packets to %s", socket->getXDPMode(), loc.toStringWithPort()),
+                    getLogger("addLocal")->info(Logr::Info, "Enabling XSK for incoming UDP packets", "frontend.address", Logging::Loggable(loc), "xsk_mode", Logging::Loggable(socket->getXDPMode())));
       }
 #endif /* HAVE_XSK */
       dnsdist::configuration::updateImmutableConfiguration([&udpCS, &tcpCS](dnsdist::configuration::ImmutableConfiguration& config) {
@@ -865,7 +899,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
     catch (std::exception& e) {
       g_outputBuffer = "Error: " + string(e.what()) + "\n";
-      errlog("Error while trying to listen on %s: %s\n", addr, string(e.what()));
+      SLOG(errlog("Error while trying to listen on %s: %s\n", addr, string(e.what())),
+           getLogger("addLocal")->error(Logr::Error, e.what(), "Error while trying to listen for incoming UDP packets", "frontend.address", Logging::Loggable(addr)));
     }
   });
 
@@ -1081,7 +1116,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       }
       catch (const std::exception& e) {
         g_outputBuffer = "Unable to bind to webserver socket on " + local.toStringWithPort() + ": " + e.what();
-        errlog("Unable to bind to webserver socket on %s: %s", local.toStringWithPort(), e.what());
+        SLOG(errlog("Unable to bind to webserver socket on %s: %s", local.toStringWithPort(), e.what()),
+             getLogger("webserver")->error(Logr::Error, e.what(), "Error while trying to bind the web server socket", "network.local.address", Logging::Loggable(local)));
       }
     }
   });
@@ -1110,7 +1146,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       if (getOptionalValue<std::string>(vars, "password", password) > 0) {
         auto holder = std::make_shared<CredentialsHolder>(std::move(password), hashPlaintextCredentials);
         if (!holder->wasHashed() && holder->isHashingAvailable()) {
-          infolog("Passing a plain-text password via the 'password' parameter to 'setWebserverConfig()' is not advised, please consider generating a hashed one using 'hashPassword()' instead.");
+          SLOG(infolog("Passing a plain-text password via the 'password' parameter to 'setWebserverConfig()' is not advised, please consider generating a hashed one using 'hashPassword()' instead."),
+               getLogger("setWebserverConfig")->info(Logr::Info, "Passing a plain-text password via the 'password' parameter is not advised, please consider generating a hashed one using 'hashPassword()' instead."));
         }
         config.d_webPassword = std::move(holder);
       }
@@ -1118,7 +1155,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       if (getOptionalValue<std::string>(vars, "apiKey", apiKey) > 0) {
         auto holder = std::make_shared<CredentialsHolder>(std::move(apiKey), hashPlaintextCredentials);
         if (!holder->wasHashed() && holder->isHashingAvailable()) {
-          infolog("Passing a plain-text API key via the 'apiKey' parameter to 'setWebserverConfig()' is not advised, please consider generating a hashed one using 'hashPassword()' instead.");
+          SLOG(infolog("Passing a plain-text API key via the 'apiKey' parameter to 'setWebserverConfig()' is not advised, please consider generating a hashed one using 'hashPassword()' instead."),
+               getLogger("setWebserverConfig")->info(Logr::Info, "Passing a plain-text API key via the 'apiKey' parameter is not advised, please consider generating a hashed one using 'hashPassword()' instead."));
         }
         config.d_webAPIKey = std::move(holder);
       }
@@ -1183,7 +1221,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
 #if defined(HAVE_LIBSODIUM) || defined(HAVE_LIBCRYPTO)
     if (dnsdist::configuration::isImmutableConfigurationDone() && dnsdist::configuration::getCurrentRuntimeConfiguration().d_consoleKey.empty()) {
-      warnlog("Warning, the console has been enabled via 'controlSocket()' but no key has been set with 'setKey()' so all connections will fail until a key has been set");
+      SLOG(warnlog("Warning, the console has been enabled via 'controlSocket()' but no key has been set with 'setKey()' so all connections will fail until a key has been set"),
+           getLogger("controlSocket")->info(Logr::Warning, "Warning, the console has been enabled but no key has been set with 'setKey()' so all connections will fail until a key has been set"));
     }
 #endif
 
@@ -1197,7 +1236,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       }
       catch (const std::exception& exp) {
         g_outputBuffer = "Unable to bind to control socket on " + local.toStringWithPort() + ": " + exp.what();
-        errlog("Unable to bind to control socket on %s: %s", local.toStringWithPort(), exp.what());
+        SLOG(errlog("Unable to bind to control socket on %s: %s", local.toStringWithPort(), exp.what()),
+             getLogger("controlSocket")->error(Logr::Error, exp.what(), "Unable to bind to console's control socket", "network.local.address", Logging::Loggable(local)));
       }
     }
   });
@@ -1205,7 +1245,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   luaCtx.writeFunction("addConsoleACL", [](const std::string& netmask) {
     setLuaSideEffect();
 #if !defined(HAVE_LIBSODIUM) && !defined(HAVE_LIBCRYPTO)
-    warnlog("Allowing remote access to the console while neither libsodium not libcrypto support has been enabled is not secure, and will result in cleartext communications");
+    SLOG(warnlog("Allowing remote access to the console while neither libsodium not libcrypto support has been enabled is not secure, and will result in cleartext communications"),
+         getLogger("addConsoleACL")->info(Logr::Warning, "Allowing remote access to the console while neither libsodium not libcrypto support has been enabled is not secure, and will result in cleartext communications"));
 #endif
 
     dnsdist::configuration::updateRuntimeConfiguration([&netmask](dnsdist::configuration::RuntimeConfiguration& config) {
@@ -1217,7 +1258,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     setLuaSideEffect();
 
 #if !defined(HAVE_LIBSODIUM) && !defined(HAVE_LIBCRYPTO)
-    warnlog("Allowing remote access to the console while neither libsodium nor libcrypto support has not been enabled is not secure, and will result in cleartext communications");
+    SLOG(warnlog("Allowing remote access to the console while neither libsodium nor libcrypto support has not been enabled is not secure, and will result in cleartext communications"),
+         getLogger("setConsoleACL")->info(Logr::Warning, "Allowing remote access to the console while neither libsodium not libcrypto support has been enabled is not secure, and will result in cleartext communications"));
 #endif
 
     NetmaskGroup nmg;
@@ -1238,7 +1280,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     setLuaNoSideEffect();
 
 #if !defined(HAVE_LIBSODIUM) && !defined(HAVE_LIBCRYPTO)
-    warnlog("Allowing remote access to the console while neither libsodium nor libcrypto support has not been enabled is not secure, and will result in cleartext communications");
+    SLOG(warnlog("Allowing remote access to the console while neither libsodium nor libcrypto support has not been enabled is not secure, and will result in cleartext communications"),
+         getLogger("showConsoleACL")->info(Logr::Warning, "Allowing remote access to the console while neither libsodium not libcrypto support has been enabled is not secure, and will result in cleartext communications"));
 #endif
 
     auto aclEntries = dnsdist::configuration::getCurrentRuntimeConfiguration().d_consoleACL.toStringVector();
@@ -1291,14 +1334,16 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       return; // but later setKeys() trump the -k value again
     }
 #if !defined(HAVE_LIBSODIUM) && !defined(HAVE_LIBCRYPTO)
-    warnlog("Calling setKey() while neither libsodium nor libcrypto support has been enabled is not secure, and will result in cleartext communications");
+    SLOG(warnlog("Calling setKey() while neither libsodium nor libcrypto support has been enabled is not secure, and will result in cleartext communications"),
+         getLogger("setKey")->info(Logr::Warning, "Allowing remote access to the console while neither libsodium not libcrypto support has been enabled is not secure, and will result in cleartext communications"));
 #endif
 
     setLuaSideEffect();
     string newKey;
     if (B64Decode(key, newKey) < 0) {
       g_outputBuffer = string("Unable to decode ") + key + " as Base64";
-      errlog("%s", g_outputBuffer);
+      SLOG(errlog("%s", g_outputBuffer),
+           getLogger("setKey")->info(Logr::Error, "Unable to decode key as base64", "key", Logging::Loggable(key)));
       return;
     }
 
@@ -1482,7 +1527,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                            DynBlock dblock{msg, until, DNSName(), (action ? *action : DNSAction::Action::None)};
                            dblock.blocks = count;
                            if (got == nullptr || expired) {
-                             warnlog("Inserting dynamic block for %s for %d seconds: %s", capair.first.toString(), actualSeconds, msg);
+                             SLOG(warnlog("Inserting dynamic block for %s for %d seconds: %s", capair.first.toString(), actualSeconds, msg),
+                                  getLogger("addDynBlock")->info(Logr::Warning, "Inserting dynamic block", "client.address", Logging::Loggable(capair.first), "duration", Logging::Loggable(actualSeconds), "reason", Logging::Loggable(msg)));
                            }
                            dynamicRules.insert(requestor).second = std::move(dblock);
                          }
@@ -1496,7 +1542,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       });
     }
     else {
-      errlog("Dynamic blocks action can only be Drop, NoOp, NXDomain, Refused, Truncate or NoRecurse!");
+      SLOG(errlog("Dynamic blocks action can only be Drop, NoOp, NXDomain, Refused, Truncate or NoRecurse!"),
+           getLogger("setDynBlocksAction")->info(Logr::Error, "Dynamic blocks action can only be Drop, NoOp, NXDomain, Refused, Truncate or NoRecurse!", "action", Logging::Loggable(static_cast<int>(action))));
       g_outputBuffer = "Dynamic blocks action can only be Drop, NoOp, NXDomain, Refused, Truncate or NoRecurse!\n";
     }
   });
@@ -1535,13 +1582,15 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         }
       }
       else {
-        errlog("Error, mismatching number of certificates and keys in call to addDNSCryptBind!");
+        SLOG(errlog("Error, mismatching number of certificates and keys in call to addDNSCryptBind!"),
+             getLogger("addDNSCryptBind")->info(Logr::Error, "Error, mismatching number of certificates and keys"));
         g_outputBuffer = "Error, mismatching number of certificates and keys in call to addDNSCryptBind()!";
         return;
       }
     }
     else {
-      errlog("Error, mismatching number of certificates and keys in call to addDNSCryptBind()!");
+      SLOG(errlog("Error, mismatching number of certificates and keys in call to addDNSCryptBind()!"),
+           getLogger("addDNSCryptBind")->info(Logr::Error, "Error, mismatching number of certificates and keys"));
       g_outputBuffer = "Error, mismatching number of certificates and keys in call to addDNSCryptBind()!";
       return;
     }
@@ -1575,7 +1624,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       });
     }
     catch (const std::exception& e) {
-      errlog("Error during addDNSCryptBind() processing: %s", e.what());
+      SLOG(errlog("Error during addDNSCryptBind() processing: %s", e.what()),
+           getLogger("addDNSCryptBind")->error(Logr::Error, e.what(), "Error adding DNSCrypt frontend"));
       g_outputBuffer = "Error during addDNSCryptBind() processing: " + string(e.what()) + "\n";
     }
   });
@@ -1691,7 +1741,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     });
 
     if (created) {
-      vinfolog("Creating pool %s", poolName);
+      VERBOSESLOG(infolog("Creating pool %s", poolName),
+                  getLogger("getPool")->info(Logr::Info, "Creating a new pool", "pool", Logging::Loggable(poolName)));
     }
 
     return std::make_shared<dnsdist::lua::LuaServerPoolObject>(poolName);
@@ -1706,29 +1757,43 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       dnsdist::logging::LoggingConfiguration::setVerboseStream(std::move(stream));
     }
     catch (const std::exception& e) {
-      errlog("Error while opening the verbose logging destination file %s: %s", dest, e.what());
+      SLOG(errlog("Error while opening the verbose logging destination file %s: %s", dest, e.what()),
+           getLogger("setVerboseLogDestination")->error(Logr::Error, e.what(), "Error while opening the verbose logging destination file", "path", Logging::Loggable(dest)));
     }
   });
-  luaCtx.writeFunction("setStructuredLogging", [](bool enable, std::optional<LuaAssociativeTable<std::string>> options) {
-    std::string levelPrefix;
+  luaCtx.writeFunction("setStructuredLogging", [](bool enable, std::optional<LuaAssociativeTable<boost::variant<std::string, bool>>> options) {
+    std::optional<dnsdist::configuration::TimeFormat> format{};
     std::string timeFormat;
+    std::string backend;
+    bool useServerID{false};
     if (options) {
-      getOptionalValue<std::string>(options, "levelPrefix", levelPrefix);
       if (getOptionalValue<std::string>(options, "timeFormat", timeFormat) == 1) {
         if (timeFormat == "numeric") {
-          dnsdist::logging::LoggingConfiguration::setStructuredTimeFormat(dnsdist::logging::LoggingConfiguration::TimeFormat::Numeric);
+          format = dnsdist::configuration::TimeFormat::Numeric;
         }
         else if (timeFormat == "ISO8601") {
-          dnsdist::logging::LoggingConfiguration::setStructuredTimeFormat(dnsdist::logging::LoggingConfiguration::TimeFormat::ISO8601);
+          format = dnsdist::configuration::TimeFormat::ISO8601;
         }
         else {
-          warnlog("Unknown value '%s' to setStructuredLogging's 'timeFormat' parameter", timeFormat);
+          SLOG(warnlog("Unknown value '%s' to setStructuredLogging's 'timeFormat' parameter", timeFormat),
+               getLogger("setStructuredLogging")->info(Logr::Warning, "Unknown value passed to setStructuredLogging's 'timeFormat' parameter", "value", Logging::Loggable(timeFormat)));
         }
       }
+      getOptionalValue<std::string>(options, "backend", backend);
+      getOptionalValue<bool>(options, "setInstanceFromServerID", useServerID);
       checkAllParametersConsumed("setStructuredLogging", options);
     }
 
-    dnsdist::logging::LoggingConfiguration::setStructuredLogging(enable, std::move(levelPrefix));
+    dnsdist::configuration::updateImmutableConfiguration([enable, &backend, format, useServerID](dnsdist::configuration::ImmutableConfiguration& config) {
+      if (enable && !backend.empty()) {
+        config.d_loggingBackend = backend;
+      }
+      if (format) {
+        config.d_structuredLoggingTimeFormat = *format;
+      }
+      config.d_structuredLogging = enable;
+      config.d_structuredLoggingUseServerID = useServerID;
+    });
   });
 
   luaCtx.writeFunction("showBinds", []() {
@@ -1830,7 +1895,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     until.tv_sec += actualSeconds;
     for (const auto& capair : addrs) {
       if (dynbpf->block(capair.first, until)) {
-        warnlog("Inserting eBPF dynamic block for %s for %d seconds: %s", capair.first.toString(), actualSeconds, msg ? *msg : "");
+        SLOG(warnlog("Inserting eBPF dynamic block for %s for %d seconds: %s", capair.first.toString(), actualSeconds, msg ? *msg : ""),
+             getLogger("addBPFFilterDynBlocks")->info(Logr::Warning, "Inserting eBPF dynamic block", "client.address", Logging::Loggable(capair.first), "duration", Logging::Loggable(actualSeconds), "reason", Logging::Loggable(msg ? *msg : "")));
       }
     }
   });
@@ -1861,20 +1927,23 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     static bool s_included{false};
 
     if (s_included) {
-      errlog("includeDirectory() cannot be used recursively!");
+      SLOG(errlog("includeDirectory() cannot be used recursively!"),
+           getLogger("includeDirectory")->info(Logr::Error, "includeDirectory cannot be used recursively", "path", Logging::Loggable(dirname)));
       g_outputBuffer = "includeDirectory() cannot be used recursively!\n";
       return;
     }
 
     struct stat dirStat{};
     if (stat(dirname.c_str(), &dirStat) != 0) {
-      errlog("The included directory %s does not exist!", dirname.c_str());
+      SLOG(errlog("The included directory %s does not exist!", dirname),
+           getLogger("includeDirectory")->info(Logr::Error, "The included directory does not exist", "path", Logging::Loggable(dirname)));
       g_outputBuffer = "The included directory " + dirname + " does not exist!";
       return;
     }
 
     if (!S_ISDIR(dirStat.st_mode)) {
-      errlog("The included directory %s is not a directory!", dirname.c_str());
+      SLOG(errlog("The included directory %s is not a directory!", dirname),
+           getLogger("includeDirectory")->info(Logr::Error, "The included directory is not a directory", "path", Logging::Loggable(dirname)));
       g_outputBuffer = "The included directory " + dirname + " is not a directory!";
       return;
     }
@@ -1896,7 +1965,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     });
 
     if (directoryError) {
-      errlog("Error opening included directory: %s!", *directoryError);
+      SLOG(errlog("Error opening included directory: %s!", *directoryError),
+           getLogger("includeDirectory")->error(Logr::Error, *directoryError, "Error opening included directory", "path", Logging::Loggable(dirname)));
       g_outputBuffer = "Error opening included directory: " + *directoryError + "!";
       return;
     }
@@ -1908,10 +1978,12 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     for (const auto& file : files) {
       std::ifstream ifs(file);
       if (!ifs) {
-        warnlog("Unable to read configuration from '%s'", file);
+        SLOG(warnlog("Unable to read configuration from '%s'", file),
+             getLogger("includeDirectory")->info(Logr::Warning, "Unable to read configuration from included directory file", "path", Logging::Loggable(dirname), "filename", Logging::Loggable(file)));
       }
       else {
-        vinfolog("Read configuration from '%s'", file);
+        VERBOSESLOG(infolog("Read configuration from '%s'", file),
+                    getLogger("includeDirectory")->info(Logr::Info, "Read configuration from file", "path", Logging::Loggable(dirname), "filename", Logging::Loggable(file)));
       }
 
       try {
@@ -1930,7 +2002,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
   luaCtx.writeFunction("setAPIWritable", [](bool writable, std::optional<std::string> apiConfigDir) {
     if (apiConfigDir && apiConfigDir->empty()) {
-      errlog("The API configuration directory value cannot be empty!");
+      SLOG(errlog("The API configuration directory value cannot be empty!"),
+           getLogger("setAPIWritable")->info(Logr::Error, "The API configuration directory value cannot be empty"));
       g_outputBuffer = "The API configuration directory value cannot be empty!";
       return;
     }
@@ -1958,7 +2031,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
     catch (const std::exception& exp) {
       g_outputBuffer = "setRingBuffersSize cannot be used at runtime!\n";
-      errlog("setRingBuffersSize cannot be used at runtime!");
+      SLOG(errlog("setRingBuffersSize cannot be used at runtime!"),
+           getLogger("setRingBuffersSize")->info(Logr::Error, "setRingBuffersSize cannot be used at runtime"));
     }
   });
 
@@ -1982,7 +2056,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
     catch (const std::exception& exp) {
       g_outputBuffer = "setRingBuffersOption cannot be used at runtime!\n";
-      errlog("setRingBuffersOption cannot be used at runtime!");
+      SLOG(errlog("setRingBuffersOption cannot be used at runtime!"),
+           getLogger("setRingBuffersOption")->info(Logr::Error, "setRingBuffersOption cannot be used at runtime"));
     }
   });
 
@@ -2171,12 +2246,14 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
     if (frontend->d_library == "nghttp2") {
 #ifndef HAVE_NGHTTP2
-      errlog("DOH bind %s is configured to use nghttp2 but the library is not available", addr);
+      SLOG(errlog("DOH bind %s is configured to use nghttp2 but the library is not available", addr),
+           getLogger("addDOHLocal")->info(Logr::Error, "DoH frontend is configured to use nghttp2 but the library is not available", "frontend.address", Logging::Loggable(addr)));
       return;
 #endif /* HAVE_NGHTTP2 */
     }
     else {
-      errlog("DOH bind %s is configured to use an unknown library ('%s')", addr, frontend->d_library);
+      SLOG(errlog("DOH bind %s is configured to use an unknown library ('%s')", addr, frontend->d_library),
+           getLogger("addDOHLocal")->info(Logr::Error, "DoH frontend is configured to use an unknown library", "frontend.address", Logging::Loggable(addr), "library", Logging::Loggable(frontend->d_library)));
       return;
     }
 
@@ -2190,7 +2267,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
     else {
       frontend->d_tlsContext->d_addr = ComboAddress(addr, 80);
-      infolog("No certificate provided for DoH endpoint %s, running in DNS over HTTP mode instead of DNS over HTTPS", frontend->d_tlsContext->d_addr.toStringWithPort());
+      SLOG(infolog("No certificate provided for DoH endpoint %s, running in DNS over HTTP mode instead of DNS over HTTPS", frontend->d_tlsContext->d_addr.toStringWithPort()),
+           getLogger("addDOHLocal")->info(Logr::Info, "No certificate provided for DoH frontend, running in DNS over HTTP mode instead of DNS over HTTPS", "frontend.address", Logging::Loggable(addr)));
       useTLS = false;
     }
 
@@ -2250,7 +2328,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
             additionalAddresses.emplace_back(address, -1);
           }
           catch (const PDNSException& e) {
-            errlog("Unable to parse additional address %s for DOH bind: %s", add, e.reason);
+            SLOG(errlog("Unable to parse additional address %s for DOH bind: %s", add, e.reason),
+                 getLogger("addDOHLocal")->error(Logr::Error, e.reason, "Unable to parse additional address for DOH bind", "frontend.address", Logging::Loggable(addr), "address", Logging::Loggable(add)));
             return;
           }
         }
@@ -2267,7 +2346,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
           auto ctx = libssl_init_server_context(frontend->d_tlsContext->d_tlsConfig);
         }
         catch (const std::runtime_error& e) {
-          errlog("Ignoring DoH frontend: '%s'", e.what());
+          SLOG(errlog("Ignoring DoH frontend: '%s'", e.what()),
+               getLogger("addDOHLocal")->error(Logr::Error, e.what(), "Ignoring DoH frontend", "frontend.address", Logging::Loggable(addr)));
           return;
         }
 #endif /* HAVE_LIBSSL */
@@ -2278,7 +2358,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
     if (useTLS && frontend->d_library == "nghttp2") {
       if (!frontend->d_tlsContext->d_provider.empty()) {
-        vinfolog("Loading TLS provider '%s'", frontend->d_tlsContext->d_provider);
+        VERBOSESLOG(infolog("Loading TLS provider '%s'", frontend->d_tlsContext->d_provider),
+                    getLogger("addDOHLocal")->info(Logr::Info, "Loading TLS provider for DoH frontend", "frontend.address", Logging::Loggable(addr), "tls.provider", Logging::Loggable(frontend->d_tlsContext->d_provider)));
       }
       else {
 #ifdef HAVE_LIBSSL
@@ -2286,7 +2367,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 #else
         const std::string provider("gnutls");
 #endif
-        vinfolog("Loading default TLS provider '%s'", provider);
+        VERBOSESLOG(infolog("Loading default TLS provider '%s'", provider),
+                    getLogger("addDOHLocal")->info(Logr::Info, "Loading default TLS provider for DoH frontend", "frontend.address", Logging::Loggable(addr), "tls.provider", Logging::Loggable(provider)));
       }
     }
 
@@ -2351,7 +2433,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
             frontend->d_quicheParams.d_ccAlgo = std::move(valueStr);
           }
           else {
-            warnlog("Ignoring unknown value '%s' for 'congestionControlAlgo' on 'addDOH3Local'", valueStr);
+            SLOG(warnlog("Ignoring unknown value '%s' for 'congestionControlAlgo' on 'addDOH3Local'", valueStr),
+                 getLogger("addDOH3Local")->info(Logr::Warning, "Ignoring unknown value for 'congestionControlAlgo'", "frontend.address", Logging::Loggable(addr), "value", Logging::Loggable(valueStr)));
           }
         }
       }
@@ -2366,7 +2449,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
           auto ctx = libssl_init_server_context(frontend->d_quicheParams.d_tlsConfig);
         }
         catch (const std::runtime_error& e) {
-          errlog("Ignoring DoH3 frontend: '%s'", e.what());
+          SLOG(errlog("Ignoring DoH3 frontend: '%s'", e.what()),
+               getLogger("addDOH3Local")->error(Logr::Error, e.what(), "Ignoring DoH3 frontend", "frontend.address", Logging::Loggable(addr)));
           return;
         }
 #endif /* HAVE_LIBSSL */
@@ -2429,7 +2513,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
             frontend->d_quicheParams.d_ccAlgo = std::move(valueStr);
           }
           else {
-            warnlog("Ignoring unknown value '%s' for 'congestionControlAlgo' on 'addDOQLocal'", valueStr);
+            SLOG(warnlog("Ignoring unknown value '%s' for 'congestionControlAlgo' on 'addDOQLocal'", valueStr),
+                 getLogger("addDOQLocal")->info(Logr::Warning, "Ignoring unknown value for 'congestionControlAlgo'", "frontend.address", Logging::Loggable(addr), "value", Logging::Loggable(valueStr)));
           }
         }
       }
@@ -2444,7 +2529,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
           auto ctx = libssl_init_server_context(frontend->d_quicheParams.d_tlsConfig);
         }
         catch (const std::runtime_error& e) {
-          errlog("Ignoring DoQ frontend: '%s'", e.what());
+          SLOG(errlog("Ignoring DoQ frontend: '%s'", e.what()),
+               getLogger("addDOQLocal")->error(Logr::Error, e.what(), "Ignoring DoQ frontend", "frontend.address", Logging::Loggable(addr)));
           return;
         }
 #endif /* HAVE_LIBSSL */
@@ -2501,13 +2587,15 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         result = doqFrontends.at(index);
       }
       else {
-        errlog("Error: trying to get DOQ frontend with index %d but we only have %d frontend(s)\n", index, doqFrontends.size());
+        SLOG(errlog("Error: trying to get DOQ frontend with index %d but we only have %d frontend(s)\n", index, doqFrontends.size()),
+             getLogger("getDOQFrontend")->info(Logr::Error, "Error: trying to get DOQ frontend with an invalid index", "index", Logging::Loggable(index), "frontends_count", Logging::Loggable(doqFrontends.size())));
         g_outputBuffer = "Error: trying to get DOQ frontend with index " + std::to_string(index) + " but we only have " + std::to_string(doqFrontends.size()) + " frontend(s)\n";
       }
     }
     catch (const std::exception& e) {
       g_outputBuffer = "Error while trying to get DOQ frontend with index " + std::to_string(index) + ": " + string(e.what()) + "\n";
-      errlog("Error while trying to get DOQ frontend with index %d: %s\n", index, string(e.what()));
+      SLOG(errlog("Error while trying to get DOQ frontend with index %d: %s\n", index, e.what()),
+           getLogger("getDOQFrontend")->error(Logr::Error, e.what(), "Error while trying to get DOQ frontend", "index", Logging::Loggable(index)));
     }
     return result;
   });
@@ -2583,13 +2671,15 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         result = doh3Frontends.at(index);
       }
       else {
-        errlog("Error: trying to get DOH3 frontend with index %d but we only have %d frontend(s)\n", index, doh3Frontends.size());
+        SLOG(errlog("Error: trying to get DOH3 frontend with index %d but we only have %d frontend(s)\n", index, doh3Frontends.size()),
+             getLogger("getDOH3Frontend")->info(Logr::Error, "Error: trying to get DOH3 frontend with an invalid index", "index", Logging::Loggable(index), "frontends_count", Logging::Loggable(doh3Frontends.size())));
         g_outputBuffer = "Error: trying to get DOH3 frontend with index " + std::to_string(index) + " but we only have " + std::to_string(doh3Frontends.size()) + " frontend(s)\n";
       }
     }
     catch (const std::exception& e) {
       g_outputBuffer = "Error while trying to get DOH3 frontend with index " + std::to_string(index) + ": " + string(e.what()) + "\n";
-      errlog("Error while trying to get DOH3 frontend with index %d: %s\n", index, string(e.what()));
+      SLOG(errlog("Error while trying to get DOH3 frontend with index %d: %s\n", index, e.what()),
+           getLogger("getDOH3Frontend")->error(Logr::Error, e.what(), "Error while trying to get DOH3 frontend", "index", Logging::Loggable(index)));
     }
     return result;
   });
@@ -2653,13 +2743,15 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         result = dohFrontends.at(index);
       }
       else {
-        errlog("Error: trying to get DOH frontend with index %d but we only have %d frontend(s)\n", index, dohFrontends.size());
+        SLOG(errlog("Error: trying to get DOH frontend with index %d but we only have %d frontend(s)\n", index, dohFrontends.size()),
+             getLogger("getDOHFrontend")->info(Logr::Error, "Error: trying to get DOH frontend with an invalid index", "index", Logging::Loggable(index), "frontends_count", Logging::Loggable(dohFrontends.size())));
         g_outputBuffer = "Error: trying to get DOH frontend with index " + std::to_string(index) + " but we only have " + std::to_string(dohFrontends.size()) + " frontend(s)\n";
       }
     }
     catch (const std::exception& e) {
       g_outputBuffer = "Error while trying to get DOH frontend with index " + std::to_string(index) + ": " + string(e.what()) + "\n";
-      errlog("Error while trying to get DOH frontend with index %d: %s\n", index, string(e.what()));
+      SLOG(errlog("Error while trying to get DOH frontend with index %d: %s\n", index, e.what()),
+           getLogger("getDOHFrontend")->error(Logr::Error, e.what(), "Error while trying to get DOH frontend", "index", Logging::Loggable(index)));
     }
 #else
         g_outputBuffer="DNS over HTTPS support is not present!\n";
@@ -2723,7 +2815,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 #endif /* HAVE_DNS_OVER_HTTPS */
       }
       catch (const std::exception& e) {
-        errlog("Error loading given tickets key for local %s", frontend->local.toStringWithPort());
+        SLOG(errlog("Error loading given tickets key for local %s: %s", frontend->local.toStringWithPort(), e.what()),
+             getLogger("loadTicketsKey")->error(Logr::Error, e.what(), "Error loading given tickets key for DoH frontend", "frontend.address", Logging::Loggable(frontend->local)));
       }
     }
   });
@@ -2781,7 +2874,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
             additionalAddresses.emplace_back(address, -1);
           }
           catch (const PDNSException& e) {
-            errlog("Unable to parse additional address %s for DoT bind: %s", add, e.reason);
+            SLOG(errlog("Unable to parse additional address %s for DoT bind: %s", add, e.reason),
+                 getLogger("addTLSLocal")->error(Logr::Error, e.reason, "Unable to parse additional address for DoT bind", "frontend.address", Logging::Loggable(addr), "address", Logging::Loggable(add)));
             return;
           }
         }
@@ -2798,7 +2892,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
           auto ctx = libssl_init_server_context(frontend->d_tlsConfig);
         }
         catch (const std::runtime_error& e) {
-          errlog("Ignoring TLS frontend: '%s'", e.what());
+          SLOG(errlog("Ignoring TLS frontend: '%s'", e.what()),
+               getLogger("addTLSLocal")->error(Logr::Error, e.what(), "Ignoring DoT frontend", "frontend.address", Logging::Loggable(addr)));
           return;
         }
 #endif /* HAVE_LIBSSL */
@@ -2810,7 +2905,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     try {
       frontend->d_addr = ComboAddress(addr, 853);
       if (!frontend->d_provider.empty()) {
-        vinfolog("Loading TLS provider '%s'", frontend->d_provider);
+        VERBOSESLOG(infolog("Loading TLS provider '%s'", frontend->d_provider),
+                    getLogger("addTLSLocal")->info(Logr::Info, "Loading TLS provider for DoT frontend", "frontend.address", Logging::Loggable(addr), "tls.provider", Logging::Loggable(frontend->d_provider)));
       }
       else {
 #ifdef HAVE_LIBSSL
@@ -2818,7 +2914,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 #else
         const std::string provider("gnutls");
 #endif
-        vinfolog("Loading default TLS provider '%s'", provider);
+        VERBOSESLOG(infolog("Loading default TLS provider '%s'", provider),
+                    getLogger("addTLSLocal")->info(Logr::Info, "Loading default TLS provider for DoT frontend", "frontend.address", Logging::Loggable(addr), "tls.provider", Logging::Loggable(provider)));
       }
       // only works pre-startup, so no sync necessary
       auto clientState = std::make_shared<ClientState>(frontend->d_addr, true, reusePort, tcpFastOpenQueueSize, interface, cpus, enableProxyProtocol);
@@ -2883,13 +2980,15 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         result = tlsFrontends.at(index);
       }
       else {
-        errlog("Error: trying to get TLS frontend with index %d but we only have %d frontends\n", index, tlsFrontends.size());
+        SLOG(errlog("Error: trying to get TLS frontend with index %d but we only have %d frontends\n", index, tlsFrontends.size()),
+             getLogger("getTLSFrontend")->info(Logr::Error, "Error: trying to get DOT frontend with an invalid index", "index", Logging::Loggable(index), "frontends_count", Logging::Loggable(tlsFrontends.size())));
         g_outputBuffer = "Error: trying to get TLS frontend with index " + std::to_string(index) + " but we only have " + std::to_string(tlsFrontends.size()) + " frontend(s)\n";
       }
     }
     catch (const std::exception& e) {
       g_outputBuffer = "Error while trying to get TLS frontend with index " + std::to_string(index) + ": " + string(e.what()) + "\n";
-      errlog("Error while trying to get TLS frontend with index %d: %s\n", index, string(e.what()));
+      SLOG(errlog("Error while trying to get TLS frontend with index %d: %s\n", index, e.what()),
+           getLogger("getTLSFrontend")->error(Logr::Error, e.what(), "Error while trying to get DOT frontend", "index", Logging::Loggable(index)));
     }
 #else
         g_outputBuffer="DNS over TLS support is not present!\n";
@@ -2987,7 +3086,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 #endif /* HAVE_DNS_OVER_HTTP3 */
       }
       catch (const std::exception& e) {
-        errlog("Error reloading certificates for frontend %s: %s", frontend->local.toStringWithPort(), e.what());
+        SLOG(errlog("Error reloading certificates for frontend %s: %s", frontend->local.toStringWithPort(), e.what()),
+             getLogger("reloadAllCertificates")->error(Logr::Error, e.what(), "Error reloading TLS certificates for frontend", "frontend.address", Logging::Loggable(frontend->local)));
       }
     }
   });
@@ -3018,7 +3118,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
     catch (const std::exception& exp) {
       g_outputBuffer = "addCapabilitiesToRetain cannot be used at runtime!\n";
-      errlog("addCapabilitiesToRetain cannot be used at runtime!");
+      SLOG(errlog("addCapabilitiesToRetain cannot be used at runtime!"),
+           getLogger("addCapabilitiesToRetain")->info(Logr::Error, "addCapabilitiesToRetain cannot be used at runtime"));
     }
   });
 
@@ -3038,7 +3139,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
     catch (const std::exception& exp) {
       g_outputBuffer = "setUDPSocketBufferSizes cannot be used at runtime!\n";
-      errlog("setUDPSocketBufferSizes cannot be used at runtime!");
+      SLOG(errlog("setUDPSocketBufferSizes cannot be used at runtime!"),
+           getLogger("setUDPSocketBufferSizes")->info(Logr::Error, "setUDPSocketBufferSizes cannot be used at runtime"));
     }
   });
 
@@ -3051,7 +3153,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     auto [success, error] = libssl_load_engine(engineName, defaultString ? std::optional<std::string>(*defaultString) : std::nullopt);
     if (!success) {
       g_outputBuffer = "Error while trying to load TLS engine '" + engineName + "': " + error + "\n";
-      errlog("Error while trying to load TLS engine '%s': %s", engineName, error);
+      SLOG(errlog("Error while trying to load TLS engine '%s': %s", engineName, error),
+           getLogger("loadTLSEngine")->error(Logr::Error, error, "Error while trying to load TLS engine", "tls.engine", Logging::Loggable(engineName), "default_string", Logging::Loggable(defaultString ? *defaultString : "")));
     }
   });
 #endif /* HAVE_LIBSSL && !HAVE_TLS_PROVIDERS */
@@ -3065,7 +3168,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     auto [success, error] = libssl_load_provider(providerName);
     if (!success) {
       g_outputBuffer = "Error while trying to load TLS provider '" + providerName + "': " + error + "\n";
-      errlog("Error while trying to load TLS provider '%s': %s", providerName, error);
+      SLOG(errlog("Error while trying to load TLS provider '%s': %s", providerName, error),
+           getLogger("loadTLSProvider")->error(Logr::Error, error, "Error while trying to load TLS provider", "tls.provider", Logging::Loggable(providerName)));
     }
   });
 #endif /* HAVE_LIBSSL && OPENSSL_VERSION_MAJOR >= 3 && HAVE_TLS_PROVIDERS */
@@ -3097,7 +3201,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     auto result = dnsdist::metrics::declareCustomMetric(name, type, description, std::move(customName), withLabels);
     if (result) {
       g_outputBuffer += *result + "\n";
-      errlog("Error in declareMetric: %s", *result);
+      SLOG(errlog("Error in declareMetric: %s", *result),
+           getLogger("declareMetric")->error(Logr::Error, *result, "Error while declaring a custom metric", "dnsdist.metric.name", Logging::Loggable(name)));
       return false;
     }
     return true;
@@ -3119,7 +3224,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     auto result = dnsdist::metrics::incrementCustomCounter(name, step, labels);
     if (const auto* errorStr = std::get_if<dnsdist::metrics::Error>(&result)) {
       g_outputBuffer = *errorStr + "'\n";
-      errlog("Error in incMetric: %s", *errorStr);
+      SLOG(errlog("Error in incMetric: %s", *errorStr),
+           getLogger("incMetric")->error(Logr::Error, *errorStr, "Error while incrementing a custom metric", "dnsdist.metric.name", Logging::Loggable(name)));
       return static_cast<uint64_t>(0);
     }
     return std::get<uint64_t>(result);
@@ -3141,7 +3247,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     auto result = dnsdist::metrics::decrementCustomCounter(name, step, labels);
     if (const auto* errorStr = std::get_if<dnsdist::metrics::Error>(&result)) {
       g_outputBuffer = *errorStr + "'\n";
-      errlog("Error in decMetric: %s", *errorStr);
+      SLOG(errlog("Error in decMetric: %s", *errorStr),
+           getLogger("decMetric")->error(Logr::Error, *errorStr, "Error while decrementing a custom metric", "dnsdist.metric.name", Logging::Loggable(name)));
       return static_cast<uint64_t>(0);
     }
     return std::get<uint64_t>(result);
@@ -3155,7 +3262,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     auto result = dnsdist::metrics::setCustomGauge(name, value, labels);
     if (const auto* errorStr = std::get_if<dnsdist::metrics::Error>(&result)) {
       g_outputBuffer = *errorStr + "'\n";
-      errlog("Error in setMetric: %s", *errorStr);
+      SLOG(errlog("Error in setMetric: %s", *errorStr),
+           getLogger("setMetric")->error(Logr::Error, *errorStr, "Error while setting a custom metric", "dnsdist.metric.name", Logging::Loggable(name)));
       return 0.;
     }
     return std::get<double>(result);
@@ -3169,7 +3277,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     auto result = dnsdist::metrics::getCustomMetric(name, labels);
     if (const auto* errorStr = std::get_if<dnsdist::metrics::Error>(&result)) {
       g_outputBuffer = *errorStr + "'\n";
-      errlog("Error in getMetric: %s", *errorStr);
+      SLOG(errlog("Error in getMetric: %s", *errorStr),
+           getLogger("getMetric")->error(Logr::Error, *errorStr, "Error while getting a custom metric", "dnsdist.metric.name", Logging::Loggable(name)));
       return 0.;
     }
     return std::get<double>(result);
@@ -3242,10 +3351,12 @@ void loadLuaConfigurationFile(LuaContext& luaCtx, const std::string& config, boo
     if (configCheck) {
       throw std::runtime_error("Unable to read configuration file from " + config);
     }
-    warnlog("Unable to read configuration from '%s'", config);
+    SLOG(warnlog("Unable to read configuration from '%s'", config),
+         dnsdist::logging::getTopLogger("lua-configuration")->info(Logr::Error, "Unable to read configuration from file", "path", Logging::Loggable(config)));
   }
   else {
-    vinfolog("Read configuration from '%s'", config);
+    VERBOSESLOG(infolog("Read configuration from '%s'", config),
+                dnsdist::logging::getTopLogger("lua-configuration")->info(Logr::Info, "Read configuration from file", "path", Logging::Loggable(config)));
   }
 
   luaCtx.executeCode(ifs);

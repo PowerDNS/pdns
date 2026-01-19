@@ -95,6 +95,7 @@ class TestLuaDNSHeaderBindings(DNSDistTest):
 
 class TestLuaFrontendBindings(DNSDistTest):
     _config_template = """
+    setStructuredLogging(false)
     newServer{address="127.0.0.1:%d"}
 
     -- check that all these methods return nil on a non-existing entry

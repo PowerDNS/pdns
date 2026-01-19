@@ -167,7 +167,8 @@ public:
 
     if (!unit->ids.selfGenerated) {
       auto udiff = unit->ids.queryRealTime.udiff();
-      vinfolog("Got answer from %s, relayed to %s (DoH3, %d bytes), took %d us", unit->downstream->d_config.remote.toStringWithPort(), unit->ids.origRemote.toStringWithPort(), unit->response.size(), udiff);
+      VERBOSESLOG(infolog("Got answer from %s, relayed to %s (DoH3, %d bytes), took %d us", unit->downstream->d_config.remote.toStringWithPort(), unit->ids.origRemote.toStringWithPort(), unit->response.size(), udiff),
+                  dnsResponse.getLogger()->info("Got answer from backend, relayed to client"));
 
       auto backendProtocol = unit->downstream->getProtocol();
       if (backendProtocol == dnsdist::Protocol::DoUDP && unit->tcp) {
@@ -430,11 +431,13 @@ static void sendBackDOH3Unit(DOH3UnitUniquePtr&& unit, const char* description)
   try {
     if (!unit->dsc->d_responseSender.send(std::move(unit))) {
       ++dnsdist::metrics::g_stats.doh3ResponsePipeFull;
-      vinfolog("Unable to pass a %s to the DoH3 worker thread because the pipe is full", description);
+      VERBOSESLOG(infolog("Unable to pass a %s to the DoH3 worker thread because the pipe is full", description),
+                  dnsdist::logging::getTopLogger("doh3")->info(Logr::Info, std::string("Unable to pass a ") + std::string(description) + " to the DoH3 worker thread because the pipe is full"));
     }
   }
   catch (const std::exception& e) {
-    vinfolog("Unable to pass a %s to the DoH3 worker thread because we couldn't write to the pipe: %s", description, e.what());
+    VERBOSESLOG(infolog("Unable to pass a %s to the DoH3 worker thread because we couldn't write to the pipe: %s", description, e.what()),
+                dnsdist::logging::getTopLogger("doh3")->error(Logr::Info, e.what(), std::string("Unable to pass a ") + std::string(description) + " to the DoH3 worker thread because we couldn't write to the pipe"));
   }
 }
 
@@ -510,7 +513,8 @@ static void processDOH3Query(DOH3UnitUniquePtr&& doh3Unit)
     ClientState& clientState = *dsc->clientState;
 
     if (!dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL.match(remote)) {
-      vinfolog("Query from %s (DoH3) dropped because of ACL", remote.toStringWithPort());
+      VERBOSESLOG(infolog("Query from %s (DoH3) dropped because of ACL", remote.toStringWithPort()),
+                  dsc->df->getLogger().info("DoH3 query dropped because of ACL", "client.address", Logging::Loggable(remote)));
       ++dnsdist::metrics::g_stats.aclDrops;
       unit->response.clear();
 
@@ -645,9 +649,12 @@ static void processDOH3Query(DOH3UnitUniquePtr&& doh3Unit)
     return;
   }
   catch (const std::exception& e) {
-    vinfolog("Got an error in DOH3 question thread while parsing a query from %s, id %d: %s", remote.toStringWithPort(), queryId, e.what());
-    unit->status_code = 500;
-    handleImmediateResponse(std::move(unit), "DoH3 internal error");
+    if (unit) {
+      VERBOSESLOG(infolog("Got an error in DOH3 question thread while parsing a query from %s, id %d: %s", remote.toStringWithPort(), queryId, e.what()),
+                  unit->dsc->df->getLogger().error(Logr::Info, e.what(), "Got an error in DoH3 question thread while parsing a query", "client.address", Logging::Loggable(remote), "dns.question.id", Logging::Loggable(queryId)));
+      unit->status_code = 500;
+      handleImmediateResponse(std::move(unit), "DoH3 internal error");
+    }
     return;
   }
 }
@@ -668,11 +675,12 @@ static void doh3_dispatch_query(DOH3ServerConfig& dsc, PacketBuffer&& query, con
     processDOH3Query(std::move(unit));
   }
   catch (const std::exception& exp) {
-    vinfolog("Had error handling DoH3 DNS packet from %s: %s", remote.toStringWithPort(), exp.what());
+    VERBOSESLOG(infolog("Had error handling DoH3 DNS packet from %s: %s", remote.toStringWithPort(), exp.what()),
+                dsc.df->getLogger().error(Logr::Info, exp.what(), "Had error handling DoH3 DNS packet", "client.address", Logging::Loggable(remote)));
   }
 }
 
-static void flushResponses(pdns::channel::Receiver<DOH3Unit>& receiver)
+static void flushResponses(pdns::channel::Receiver<DOH3Unit>& receiver, const Logr::Logger& frontendLogger)
 {
   for (;;) {
     try {
@@ -688,10 +696,12 @@ static void flushResponses(pdns::channel::Receiver<DOH3Unit>& receiver)
       }
     }
     catch (const std::exception& e) {
-      errlog("Error while processing response received over DoH3: %s", e.what());
+      SLOG(errlog("Error while processing response received over DoH3: %s", e.what()),
+           frontendLogger.error(e.what(), "Error while processing response received over DoH3"));
     }
     catch (...) {
-      errlog("Unspecified error while processing response received over DoH3");
+      SLOG(errlog("Unspecified error while processing response received over DoH3"),
+           frontendLogger.info(Logr::Error, "Unspecified error while processing response received over DoH3"));
     }
   }
 }
@@ -999,9 +1009,11 @@ void doh3Thread(ClientState* clientState)
 {
   try {
     std::shared_ptr<DOH3Frontend>& frontend = clientState->doh3Frontend;
+    auto frontendLogger = dnsdist::logging::getTopLogger("doh3-frontend")->withValues("frontend.address", Logging::Loggable(clientState->local));
 
     frontend->d_server_config->clientState = clientState;
     frontend->d_server_config->df = clientState->doh3Frontend;
+    frontend->d_logger = frontendLogger;
 
     setThreadName("dnsdist/doh3");
 
@@ -1027,7 +1039,7 @@ void doh3Thread(ClientState* clientState)
         }
 
         if (std::find(readyFDs.begin(), readyFDs.end(), responseReceiverFD) != readyFDs.end()) {
-          flushResponses(frontend->d_server_config->d_responseReceiver);
+          flushResponses(frontend->d_server_config->d_responseReceiver, *frontendLogger);
         }
 
         for (auto conn = frontend->d_server_config->d_connections.begin(); conn != frontend->d_server_config->d_connections.end();) {
@@ -1054,10 +1066,12 @@ void doh3Thread(ClientState* clientState)
         }
       }
       catch (const std::exception& exp) {
-        vinfolog("Caught exception in the main DoH3 thread: %s", exp.what());
+        VERBOSESLOG(infolog("Caught exception in the main DoH3 thread: %s", exp.what()),
+                    frontendLogger->error(Logr::Info, exp.what(), "Caught exception in the main DoH3 thread"));
       }
       catch (...) {
-        vinfolog("Unknown exception in the main DoH3 thread");
+        VERBOSESLOG(infolog("Unknown exception in the main DoH3 thread"),
+                    frontendLogger->info(Logr::Info, "Caught unknown exception in the main DoH3 thread"));
       }
     }
   }

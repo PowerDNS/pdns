@@ -528,6 +528,10 @@ query_rules:
 class TestYamlUnknownSelectorName(DNSDistTest):
 
     _yaml_config_template = """---
+logging:
+  structured:
+    enabled: false
+
 binds:
   - listen_address: "127.0.0.1:%d"
     protocol: Do53
@@ -552,6 +556,9 @@ query_rules:
 """
     _yaml_config_params = ['_dnsDistPort', '_testServerPort']
     _config_params = []
+    # we need this because the error is triggered during the parsing of the YAML configuration,
+    # too early for the logging for the logging configuration to have been applied
+    _enableStructuredLoggingOnCL = False
 
     def testFailToStart(self):
         """
@@ -580,6 +587,10 @@ query_rules:
 class TestYamlUnknownPolicyName(DNSDistTest):
 
     _yaml_config_template = """---
+logging:
+  structured:
+    enabled: false
+
 binds:
   - listen_address: "127.0.0.1:%d"
     protocol: Do53

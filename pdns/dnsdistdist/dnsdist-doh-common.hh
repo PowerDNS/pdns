@@ -27,6 +27,7 @@
 #include <string_view>
 
 #include "config.h"
+#include "dolog.hh"
 #include "iputils.hh"
 #include "libssl.hh"
 #include "noinitvector.hh"
@@ -99,6 +100,7 @@ struct DOHFrontend
   std::shared_ptr<DOHServerConfig> d_dsc{nullptr};
   std::shared_ptr<std::vector<std::shared_ptr<DOHResponseMapEntry>>> d_responsesMap;
   std::shared_ptr<TLSFrontend> d_tlsContext;
+  std::shared_ptr<const Logr::Logger> d_logger;
   std::string d_serverTokens{"dnsdist"};
   std::unordered_map<std::string, std::string> d_customResponseHeaders;
   std::string d_library;
@@ -150,6 +152,11 @@ struct DOHFrontend
   bool isHTTPS() const
   {
     return !d_tlsContext->d_tlsConfig.d_certKeyPairs.empty();
+  }
+
+  const Logr::Logger& getLogger() const
+  {
+    return *d_logger;
   }
 
 #ifndef HAVE_DNS_OVER_HTTPS

@@ -39,7 +39,7 @@ struct ConnectionInfo
   {
   }
   ConnectionInfo(ConnectionInfo&& rhs) :
-    remote(rhs.remote), cs(rhs.cs), fd(rhs.fd)
+    remote(rhs.remote), cs(rhs.cs), fd(rhs.fd), d_restricted(rhs.d_restricted)
   {
     rhs.cs = nullptr;
     rhs.fd = -1;
@@ -55,6 +55,7 @@ struct ConnectionInfo
     rhs.cs = nullptr;
     fd = rhs.fd;
     rhs.fd = -1;
+    d_restricted = rhs.d_restricted;
     return *this;
   }
 

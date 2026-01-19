@@ -29,6 +29,10 @@
 #include "lock.hh"
 
 struct DownstreamState;
+namespace Logr
+{
+class Logger;
+}
 
 namespace dnsdist
 {
@@ -66,8 +70,8 @@ private:
     bool keepAfterUpgrade;
   };
 
-  static bool getDiscoveredConfig(const UpgradeableBackend& backend, DiscoveredResolverConfig& config);
-  static bool tryToUpgradeBackend(const UpgradeableBackend& backend);
+  static bool getDiscoveredConfig(const Logr::Logger& logger, const UpgradeableBackend& backend, DiscoveredResolverConfig& config);
+  static bool tryToUpgradeBackend(const Logr::Logger& logger, const UpgradeableBackend& backend);
 
   static void worker();
 
