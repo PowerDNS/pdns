@@ -21,7 +21,6 @@
  */
 
 #include "dnsdist-opentelemetry.hh"
-#include "misc.hh"
 
 #include <vector>
 
@@ -31,10 +30,6 @@
 
 namespace pdns::trace::dnsdist
 {
-
-#ifndef DISABLE_PROTOBUF
-static const KeyValue hostnameAttr{.key = "hostname", .value = {getHostname().value_or("")}};
-#endif
 
 TracesData Tracer::getTracesData()
 {
@@ -53,8 +48,6 @@ TracesData Tracer::getTracesData()
                           .attributes = {d_attributes.begin(), d_attributes.end()},
                         },
                         .spans = {}}}}}};
-
-  otTrace.resource_spans.at(0).scope_spans.at(0).scope.attributes.push_back(hostnameAttr);
 
   auto traceid = getTraceID();
 
