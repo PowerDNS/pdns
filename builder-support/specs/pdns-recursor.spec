@@ -48,7 +48,7 @@ BuildRequires: libatomic
 %endif
 
 Requires(pre): shadow-utils
-%systemd_requires
+%{?systemd_requires}
 
 %description
 PowerDNS Recursor is a non authoritative/recursing DNS server. Use this

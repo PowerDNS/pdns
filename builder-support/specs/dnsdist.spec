@@ -50,11 +50,11 @@ BuildRequires: net-snmp-devel
 
 %if 0%{?suse_version}
 Requires(pre): shadow
-%systemd_requires
+%{?systemd_requires}
 %endif
 Requires(pre): shadow-utils
 BuildRequires: fstrm-devel
-%systemd_requires
+%{?systemd_requires}
 %if ( "%{_arch}" != "aarch64" && 0%{?rhel} >= 8 ) || ( "%{_arch}" == "aarch64" && 0%{?rhel} >= 9 )
 BuildRequires: libbpf-devel
 BuildRequires: libxdp-devel
