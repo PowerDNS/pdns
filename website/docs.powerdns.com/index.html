@@ -152,21 +152,21 @@
             <div class="container">
                 <h2 class="text-center">Additional Products</h2>
                 <div class="row g-4">
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <div class="product-card">
                             <h3><a href="/cloudcontrol/latest/">PowerDNS Cloud Control</a></h3>
                             <p>Cloud-based DNS management solution.</p>
                             <div id="cc-versions"></div>
                         </div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <div class="product-card">
                             <h3><a href="/dstore/latest/">PowerDNS dstore</a></h3>
                             <p>Distributed storage solution for DNS data.</p>
                             <div id="dstore-versions"></div>
                         </div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <div class="product-card">
                             <h3><a href="/lightningstream/">PowerDNS Lightning Stream</a></h3>
                             <p>Tool to sync LMDB databases through S3 buckets between multiple servers in near real-time.</p>
@@ -178,11 +178,18 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <div class="product-card">
                             <h3><a href="/zonecontrol/latest">PowerDNS ZoneControl</a></h3>
                             <p>DNS zone management and control system.</p>
                             <div id="zonecontrol-versions"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="product-card">
+                            <h3><a href="/defender">dnsdist Defender</a></h3>
+                            <p>DNS security add-on for dnsdist providing protection against tunneling, data exfiltration, DDoS attacks, and command-and-control threats.</p>
+                            <div id="defender-versions"></div>
                         </div>
                     </div>
                 </div>
@@ -268,6 +275,12 @@
                     { version: '1.5.0', aliases: [] },
                     { version: '1.4.2', aliases: [] }
                 ]
+            );
+
+            // dnsdist Defender
+            loadVersionSelector(
+                '/defender',
+                'defender-versions'
             );
         });
     </script>
