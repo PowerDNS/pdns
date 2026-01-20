@@ -194,13 +194,14 @@ void IncomingHTTP2Connection::handleResponse(const struct timeval& now, TCPRespo
 
   auto& state = response.d_idstate;
   if (state.forwardedOverUDP) {
+    const auto origID = state.origID;
     dnsheader_aligned responseDH(response.d_buffer.data());
 
-    if (responseDH.get()->tc && state.d_packet && state.d_packet->size() > state.d_proxyProtocolPayloadSize && state.d_packet->size() - state.d_proxyProtocolPayloadSize > sizeof(dnsheader)) {
+    if (responseDH->tc && state.d_packet && state.d_packet->size() > state.d_proxyProtocolPayloadSize && state.d_packet->size() - state.d_proxyProtocolPayloadSize > sizeof(dnsheader)) {
       VERBOSESLOG(infolog("Response received from backend %s via UDP, for query %d received from %s via DoH, is truncated, retrying over TCP", response.d_ds->getNameWithAddr(), state.d_streamID, state.origRemote.toStringWithPort()),
-                  getLogger()->info(Logr::Info, "Truncated response received from backend via UDP, retrying over TCP", "backend.name", Logging::Loggable(response.d_ds->getName()), "backend.address", Logging::Loggable(response.d_ds->d_config.remote), "dns.query.id", Logging::Loggable(ntohs(state.origID))));
+                  getLogger()->info(Logr::Info, "Truncated response received from backend via UDP, retrying over TCP", "backend.name", Logging::Loggable(response.d_ds->getName()), "backend.address", Logging::Loggable(response.d_ds->d_config.remote), "dns.query.id", Logging::Loggable(ntohs(origID))));
       auto& query = *state.d_packet;
-      dnsdist::PacketMangling::editDNSHeaderFromRawPacket(&query.at(state.d_proxyProtocolPayloadSize), [origID = state.origID](dnsheader& header) {
+      dnsdist::PacketMangling::editDNSHeaderFromRawPacket(&query.at(state.d_proxyProtocolPayloadSize), [origID](dnsheader& header) {
         /* restoring the original ID */
         header.id = origID;
         return true;
@@ -216,7 +217,7 @@ void IncomingHTTP2Connection::handleResponse(const struct timeval& now, TCPRespo
         return;
       }
       VERBOSESLOG(infolog("Unable to pass DoH query to a TCP worker thread after getting a TC response over UDP"),
-                  getLogger()->info(Logr::Info, "Unable to pass DoH query to a TCP worker thread after getting a TC response over UDP", "backend.name", Logging::Loggable(response.d_ds->getName()), "backend.address", Logging::Loggable(response.d_ds->d_config.remote), "dns.query.id", Logging::Loggable(ntohs(state.origID))));
+                  getLogger()->info(Logr::Info, "Unable to pass DoH query to a TCP worker thread after getting a TC response over UDP", "backend.name", Logging::Loggable(response.d_ds->getName()), "backend.address", Logging::Loggable(response.d_ds->d_config.remote), "dns.query.id", Logging::Loggable(ntohs(origID))));
       notifyIOError(now, std::move(response));
       return;
     }

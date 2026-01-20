@@ -65,7 +65,7 @@ std::shared_ptr<const Logr::Logger> DNSQuestion::getThisLogger(std::shared_ptr<c
   if (d_logger) {
     return d_logger;
   }
-  return ids.getLogger(parent);
+  return ids.getLogger(std::move(parent));
 }
 
 std::shared_ptr<const Logr::Logger> DNSResponse::getThisLogger(std::shared_ptr<const Logr::Logger> parent) const
@@ -73,7 +73,7 @@ std::shared_ptr<const Logr::Logger> DNSResponse::getThisLogger(std::shared_ptr<c
   if (d_logger) {
     return d_logger;
   }
-  auto logger = DNSQuestion::getThisLogger(parent);
+  auto logger = DNSQuestion::getThisLogger(std::move(parent));
   if (data.size() >= sizeof(dnsheader)) {
     const auto header = getHeader();
     logger = logger->withValues("dns.response.rcode", Logging::Loggable(RCode::to_s(header->rcode)));
@@ -88,7 +88,7 @@ std::shared_ptr<const Logr::Logger> DNSResponse::getThisLogger(std::shared_ptr<c
 
 std::shared_ptr<const Logr::Logger> DNSQuestion::getLogger(std::shared_ptr<const Logr::Logger> parent) const
 {
-  return getThisLogger(parent);
+  return getThisLogger(std::move(parent));
 }
 
 std::shared_ptr<const Logr::Logger> DNSQuestion::getLogger(std::shared_ptr<const Logr::Logger> parent)
@@ -96,6 +96,6 @@ std::shared_ptr<const Logr::Logger> DNSQuestion::getLogger(std::shared_ptr<const
   if (d_logger) {
     return d_logger;
   }
-  d_logger = getThisLogger(parent);
+  d_logger = getThisLogger(std::move(parent));
   return d_logger;
 }
