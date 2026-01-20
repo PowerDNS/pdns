@@ -24,7 +24,7 @@ permissions: # least privileges, see https://docs.github.com/en/actions/using-wo
 
 env:
   COMPILER: clang
-  CLANG_VERSION: '13'
+  CLANG_VERSION: ${{ contains(inputs.runner-docker-image-name, 'debian-11') && '13' || '19' }}
   # github.workspace variable points to the Runner home folder. Container home folder defined below.
   REPO_HOME: '/__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}'
   BUILDER_VERSION: '0.0.0-git1'
@@ -43,7 +43,7 @@ jobs:
       tag: ${{ steps.get-runner-image.outputs.tag }}
     env:
       DEFAULT_IMAGE_TAG: master # update when backporting, e.g. auth-4.9.x
-      DOCKER_IMAGE: ${{ inputs.runner-docker-image-name || 'base-pdns-ci-image/debian-12-pdns-base' }}
+      DOCKER_IMAGE: ${{ inputs.runner-docker-image-name || 'base-pdns-ci-image/debian-13-pdns-base' }}
     steps:
       - id: get-runner-image
         run: |
@@ -151,6 +151,7 @@ jobs:
       env:
         SANITIZERS: ${{ matrix.sanitizers }}
         UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp"
+        ASAN_OPTIONS: "detect_stack_use_after_return=0"
         UNIT_TESTS: yes
         CARGO_USE_DEV: 1
       options: --sysctl net.ipv6.conf.all.disable_ipv6=0
@@ -239,8 +240,6 @@ jobs:
     defaults:
       run:
         working-directory: ./pdns/dnsdistdist/dnsdist-${{ env.BUILDER_VERSION }}
-    env:
-      CLANG_VERSION: ${{ contains(needs.get-runner-container-image.outputs.id, 'debian-11') && '13' || '19' }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -575,13 +574,13 @@ jobs:
       matrix:
         sanitizers: [asan+ubsan, tsan]
         dist_name: [debian]
-        pdns_repo_version: ['48']
+        pdns_repo_version: ['50']
       fail-fast: false
     container:
       image: "${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"
       env:
         UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp"
-        ASAN_OPTIONS: detect_leaks=0
+        ASAN_OPTIONS: "detect_leaks=0:detect_stack_use_after_return=0"
         TSAN_OPTIONS: "halt_on_error=1:suppressions=${{ env.REPO_HOME }}/pdns/recursordist/recursor-tsan.supp"
       options: --sysctl net.ipv6.conf.all.disable_ipv6=0
     steps:
@@ -630,13 +629,13 @@ jobs:
       matrix:
         sanitizers: [asan+ubsan, tsan]
         dist_name: [debian]
-        pdns_repo_version: ['48']
+        pdns_repo_version: ['50']
       fail-fast: false
     container:
       image: "${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"
       env:
         UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp'
-        ASAN_OPTIONS: ""
+        ASAN_OPTIONS: "detect_stack_use_after_return=0"
         LSAN_OPTIONS: "suppressions=${{ env.REPO_HOME }}/pdns/recursordist/recursor-lsan.supp"
         TSAN_OPTIONS: "halt_on_error=1:suppressions=${{ env.REPO_HOME }}/pdns/recursordist/recursor-tsan.supp"
       options: --sysctl net.ipv6.conf.all.disable_ipv6=0
@@ -696,7 +695,7 @@ jobs:
       image: "${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"
       env:
         UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp'
-        ASAN_OPTIONS: detect_leaks=0
+        ASAN_OPTIONS: "detect_leaks=0:detect_stack_use_after_return=0"
         TSAN_OPTIONS: "halt_on_error=1:suppressions=${{ env.REPO_HOME }}/pdns/recursordist/recursor-tsan.supp"
       options: --sysctl net.ipv6.conf.all.disable_ipv6=0
     steps:
@@ -772,7 +771,7 @@ jobs:
       - run: . ${{ github.workspace }}/.venv/bin/activate && inv test-bulk-recursor 50000 ${{ matrix.threads }} ${{ matrix.mthreads }} ${{ matrix.shards }} ${{ matrix.IPv6 }}
         env:
           UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp'
-          ASAN_OPTIONS: detect_leaks=0
+          ASAN_OPTIONS: "detect_leaks=0:detect_stack_use_after_return=0"
           TSAN_OPTIONS: "halt_on_error=1:suppressions=${{ github.workspace }}/pdns/recursordist/recursor-tsan.supp"
       #  Disabled, it gives us: "/bin/bash: line 1: llvm-profdata-13: command not found" due to mismatch between deb and ubuntu versions
       #- run: . ${{ github.workspace }}/.venv/bin/activate && inv generate-coverage-info 'recursor' /opt/pdns-recursor/sbin/pdns_recursor $GITHUB_WORKSPACE
@@ -809,8 +808,6 @@ jobs:
         SANITIZERS: ${{ matrix.sanitizers }}
         COVERAGE: no
       options: --sysctl net.ipv6.conf.all.disable_ipv6=0 --privileged
-    env:
-      CLANG_VERSION: ${{ contains(needs.get-runner-container-image.outputs.id, 'debian-11') && '13' || '19' }}
     steps:
       - uses: actions/checkout@v5
         with:

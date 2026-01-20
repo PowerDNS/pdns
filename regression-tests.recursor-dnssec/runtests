@@ -35,7 +35,7 @@ export PDNSMODULEDIR=${PDNSMODULEDIR:-${PWD}/../regression-tests/modules}
 export PDNSRECURSOR=${PDNSRECURSOR:-${PWD}/../pdns/recursordist/build/pdns_recursor}
 export RECCONTROL=${RECCONTROL:-${PWD}/../pdns/recursordist/build/rec_control}
 
-LIBFAKETIME_DEFAULT=/usr/lib/$(arch)-linux-gnu/faketime/libfaketimeMT.so.1 # ubuntu default
+LIBFAKETIME_DEFAULT=/usr/local/lib/faketime/libfaketimeMT.so.1 # location after building and installing from https://github.com/wolfcw/libfaketime
 LIBAUTHBIND_DEFAULT=/usr/lib/authbind/libauthbind.so.1
 if [ $(uname -s) = "Darwin" ]; then
   # macOS is not /really/ supported here; it works for some tests, and then you might need sudo.
@@ -73,7 +73,7 @@ fi
 # Run with -m 'not unreliable_on_gh' to skip tests that are unreliable on GitHUb
 # Run with -m 'not (external or unreliable_on_gh)' to skip both categories
 
-# LIBFAKETIME is only added to LD_PRELOAD by the pyton code when needed
+# LIBFAKETIME is only added to LD_PRELOAD by the python code when needed
 if [ "${LIBASAN}" != "" -o "${LIBAUTHBIND}" != "" ]; then
 LD_PRELOAD="${LIBASAN} ${LIBAUTHBIND}" authbind pytest --junitxml=pytest.xml "$@"
 else
