@@ -219,7 +219,7 @@ void setup(const std::string& backend)
   }
 
   if (logger) {
-    std::atomic_store_explicit(&s_topLogger, logger, std::memory_order_release);
+    std::atomic_store_explicit(&s_topLogger, std::move(logger), std::memory_order_release);
   }
 }
 
