@@ -901,6 +901,106 @@ class TestDnstapOverFrameStreamTcpLogger(DNSDistTest):
         checkDnstapQuery(self, dnstap, dnstap_pb2.UDP, query)
         checkDnstapNoExtra(self, dnstap)
 
+class TestDnstapOverFrameStreamTcpLoggerYAML(DNSDistTest):
+    _fstrmLoggerPort = pickAvailablePort()
+    _fstrmLoggerQueue = Queue()
+    _fstrmLoggerCounter = 0
+    _config_params = []
+    _yaml_config_params = ['_dnsDistPort', '_testServerPort', '_fstrmLoggerPort']
+    _yaml_config_template = """
+binds:
+  - listen_address: "127.0.0.1:%d"
+    protocol: Do53
+
+backends:
+  - address: "127.0.0.1:%d"
+    protocol: Do53
+    use_client_subnet: true
+
+remote_logging:
+  dnstap_loggers:
+    - name: "my-fstrm-tcp-logger"
+      transport: "tcp"
+      address: "127.0.0.1:%d"
+
+query_rules:
+  - name: "my-rule"
+    selector:
+      type: "All"
+    action:
+      type: "DnstapLog"
+      identity: "a.server"
+      logger_name: "my-fstrm-tcp-logger"
+"""
+
+    @classmethod
+    def FrameStreamTcpListener(cls, port):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            sock.bind(("127.0.0.1", port))
+        except socket.error as e:
+            print("Error binding in the framestream listener: %s" % str(e))
+            sys.exit(1)
+
+        sock.listen(100)
+
+        try:
+            while True:
+                (conn, _) = sock.accept()
+                fstrm_handle_bidir_connection(conn, lambda data: \
+                    cls._fstrmLoggerQueue.put(data, True, timeout=2.0))
+                conn.close()
+        finally:
+            sock.close()
+
+    @classmethod
+    def startResponders(cls):
+        DNSDistTest.startResponders()
+
+        cls._fstrmLoggerListener = threading.Thread(name='FrameStreamTcpListener', target=cls.FrameStreamTcpListener, args=[cls._fstrmLoggerPort])
+        cls._fstrmLoggerListener.daemon = True
+        cls._fstrmLoggerListener.start()
+
+    def getFirstDnstap(self):
+        return getFirstMatchingMessageFromQueue(self._fstrmLoggerQueue)
+
+    def testDnstapOverFrameStreamTcp(self):
+        """
+        Dnstap: Send query packed in dnstap to a tcp socket fstrmlogger server
+        """
+        name = 'query.dnstap-yaml.tests.powerdns.com.'
+
+        target = 'target.dnstap-yaml.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.CNAME,
+                                    target)
+        response.answer.append(rrset)
+
+        rrset = dns.rrset.from_text(target,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
+
+        # check the dnstap message corresponding to the UDP query
+        dnstap = self.getFirstDnstap()
+
+        checkDnstapQuery(self, dnstap, dnstap_pb2.UDP, query)
+        checkDnstapNoExtra(self, dnstap)
+
 class TestDnstapOverRemotePoolTcpLogger(DNSDistTest):
     _fstrmLoggerPort = pickAvailablePort()
     _fstrmLoggerQueue = Queue()
