@@ -1006,7 +1006,7 @@ static void handleLoggingConfiguration(const Context& context, const dnsdist::ru
     }
   }
 
-  dnsdist::configuration::updateImmutableConfiguration([settings, timeFormat](dnsdist::configuration::ImmutableConfiguration& config) {
+  dnsdist::configuration::updateImmutableConfiguration([&settings, timeFormat](dnsdist::configuration::ImmutableConfiguration& config) {
     config.d_loggingBackend = std::string(settings.structured.backend);
     config.d_structuredLogging = settings.structured.enabled;
     if (timeFormat) {
