@@ -1,4 +1,4 @@
-http://code.jquery.com/jquery-1.12.0.js
+https://code.jquery.com/jquery-3.7.1.js
 https://github.com/mbostock/d3/releases/download/v3.5.13/d3.zip
-https://github.com/shutterstock/rickshaw/archive/v1.5.1.tar.gz
-https://github.com/moment/moment/archive/2.11.1.tar.gz
+https://github.com/shutterstock/rickshaw/archive/refs/tags/v1.7.0.tar.gz
+https://github.com/moment/moment/archive/refs/tags/2.30.1.tar.gz
