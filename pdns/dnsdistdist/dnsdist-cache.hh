@@ -192,7 +192,7 @@ public:
     bool d_parseECS{false};
     bool d_keepStaleData{false};
     bool d_shuffle{false};
-    bool d_alwaysKeepStaleData{false};
+    bool d_lru{false};
   };
 
   DNSDistPacketCache(CacheSettings settings);
@@ -229,9 +229,9 @@ public:
     return d_settings.d_keepStaleData;
   }
 
-  [[nodiscard]] bool alwaysKeepStaleData() const
+  [[nodiscard]] bool isLru() const
   {
-    return d_settings.d_alwaysKeepStaleData;
+    return d_settings.d_lru;
   }
 
   [[nodiscard]] size_t getMaximumEntrySize() const { return d_settings.d_maximumEntrySize; }

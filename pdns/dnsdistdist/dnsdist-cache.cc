@@ -44,7 +44,7 @@ DNSDistPacketCache::DNSDistPacketCache(CacheSettings settings) :
   d_shards.resize(d_settings.d_shardCount);
 
   for (auto& shard : d_shards) {
-    shard.init((d_settings.d_maxEntries / d_settings.d_shardCount), d_settings.d_alwaysKeepStaleData);
+    shard.init((d_settings.d_maxEntries / d_settings.d_shardCount), d_settings.d_lru);
   }
 }
 
@@ -183,7 +183,8 @@ void DNSDistPacketCache::insert(uint32_t key, const std::optional<Netmask>& subn
 
   uint32_t shardIndex = getShardIndex(key);
 
-  bool checkSize = !alwaysKeepStaleData();
+  // with LRU cache, we don't check size; we always insert
+  bool checkSize = !isLru();
   if (checkSize) {
     if (d_shards.at(shardIndex).d_entriesCount >= (d_settings.d_maxEntries / d_settings.d_shardCount)) {
       return;
@@ -340,7 +341,8 @@ bool DNSDistPacketCache::get(DNSQuestion& dnsQuestion, uint16_t queryId, uint32_
     bool resValue{false};
     bool doReturn{false};
 
-    if (alwaysKeepStaleData()) {
+    // LRU cache needs a write lock
+    if (isLru()) {
       auto wmap = shard.d_map.try_write_lock();
       if (wmap.owns_lock()) {
         std::tie(resValue, doReturn) = getWriteLocked(*wmap, dnsQuestion, stale, response, age, key, recordMiss, now, allowExpired, receivedOverUDP, dnssecOK, subnet, truncatedOK, queryId, dnsQName);
