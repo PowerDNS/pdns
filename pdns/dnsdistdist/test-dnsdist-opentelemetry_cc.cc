@@ -152,12 +152,10 @@ BOOST_AUTO_TEST_CASE(traceAttributes)
   BOOST_CHECK_EQUAL(trace.resource_spans.at(0).resource.attributes.at(0).key, "service.name");
 
   // Check if we have a hostname
-  BOOST_CHECK_EQUAL(trace.resource_spans.at(0).scope_spans.at(0).scope.attributes.size(), 2U);
+  BOOST_CHECK_EQUAL(trace.resource_spans.at(0).scope_spans.at(0).scope.attributes.size(), 1U);
 
   BOOST_CHECK_EQUAL(trace.resource_spans.at(0).scope_spans.at(0).scope.attributes.at(0).key, "foo");
   BOOST_CHECK_EQUAL(trace.resource_spans.at(0).scope_spans.at(0).scope.attributes.at(0).value, AnyValue{"bar"});
-
-  BOOST_CHECK_EQUAL(trace.resource_spans.at(0).scope_spans.at(0).scope.attributes.at(1).key, "hostname");
 }
 
 BOOST_AUTO_TEST_CASE(spanAttributes)
@@ -200,11 +198,11 @@ BOOST_AUTO_TEST_CASE(getOTProtobuf)
 {
   auto tracer = pdns::trace::dnsdist::Tracer::getTracer();
   auto data = tracer->getOTProtobuf();
-  BOOST_TEST(data.size() >= 100U);
+  BOOST_TEST(data.size() >= 50U);
 
   tracer->setTraceAttribute("foo", AnyValue{"bar"});
   data = tracer->getOTProtobuf();
-  BOOST_TEST(data.size() >= 110U);
+  BOOST_TEST(data.size() >= 60U);
 }
 
 BOOST_AUTO_TEST_CASE(setTraceID)
