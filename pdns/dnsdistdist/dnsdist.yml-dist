@@ -83,7 +83,7 @@
 #    protocol: "DoH3"
 #    tls:
 #      certificates:
-#        - certificate: ""server.crt""
+#        - certificate: "server.crt"
 #          key: "server.key"
 
 # define downstream servers, aka backends
