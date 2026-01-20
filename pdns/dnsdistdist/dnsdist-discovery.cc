@@ -261,7 +261,7 @@ bool ServiceDiscovery::getDiscoveredConfig(const Logr::Logger& topLogger, const 
 
 #ifdef SO_BINDTODEVICE
     if (!backend->d_config.sourceItfName.empty()) {
-      setsockopt(sock.getHandle(), SOL_SOCKET, SO_BINDTODEVICE, backend->d_config.sourceItfName.c_str(), backend->d_config.sourceItfName.length());
+      (void)setsockopt(sock.getHandle(), SOL_SOCKET, SO_BINDTODEVICE, backend->d_config.sourceItfName.c_str(), backend->d_config.sourceItfName.length());
     }
 #endif
 
@@ -377,7 +377,7 @@ static bool checkBackendUsability(const Logr::Logger& logger, std::shared_ptr<Do
 
       if (!ds->d_config.sourceItfName.empty()) {
 #ifdef SO_BINDTODEVICE
-        setsockopt(sock.getHandle(), SOL_SOCKET, SO_BINDTODEVICE, ds->d_config.sourceItfName.c_str(), ds->d_config.sourceItfName.length());
+        (void)setsockopt(sock.getHandle(), SOL_SOCKET, SO_BINDTODEVICE, ds->d_config.sourceItfName.c_str(), ds->d_config.sourceItfName.length());
 #endif
       }
       sock.bind(ds->d_config.sourceAddr);
