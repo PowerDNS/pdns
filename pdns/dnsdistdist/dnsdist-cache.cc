@@ -235,7 +235,7 @@ std::pair<bool, bool> DNSDistPacketCache::getWriteLocked(MaybeLruCache<uint32_t,
     if (recordMiss) {
       ++d_misses;
     }
-    return {false, true};
+    return {false, false};
   }
 
   return getLocked(mapIt->second, dnsQuestion, stale, response, age, recordMiss, now, allowExpired, receivedOverUDP, dnssecOK, subnet, truncatedOK, queryId, dnsQName);
@@ -248,25 +248,25 @@ std::pair<bool, bool> DNSDistPacketCache::getLocked(const CacheValue& value, DNS
       if (recordMiss) {
         ++d_misses;
       }
-      return {false, true};
+      return {false, false};
     }
     stale = true;
   }
 
   if (value.len < sizeof(dnsheader)) {
-    return {false, true};
+    return {false, false};
   }
 
   /* check for collision */
   if (!cachedValueMatches(value, *(getFlagsFromDNSHeader(dnsQuestion.getHeader().get())), dnsQuestion.ids.qname, dnsQuestion.ids.qtype, dnsQuestion.ids.qclass, receivedOverUDP, dnssecOK, subnet)) {
     ++d_lookupCollisions;
-    return {false, true};
+    return {false, false};
   }
 
   if (!truncatedOK) {
     dnsheader_aligned dh_aligned(value.value.data());
     if (dh_aligned->tc != 0) {
-      return {false, true};
+      return {false, false};
     }
   }
 
@@ -276,13 +276,12 @@ std::pair<bool, bool> DNSDistPacketCache::getLocked(const CacheValue& value, DNS
 
   if (value.len == sizeof(dnsheader)) {
     /* DNS header only, our work here is done */
-    ++d_hits;
     return {true, true};
   }
 
   const size_t dnsQNameLen = dnsQName.length();
   if (value.len < (sizeof(dnsheader) + dnsQNameLen)) {
-    return {false, true};
+    return {false, false};
   }
 
   memcpy(&response.at(sizeof(dnsheader)), dnsQName.c_str(), dnsQNameLen);
@@ -297,7 +296,7 @@ std::pair<bool, bool> DNSDistPacketCache::getLocked(const CacheValue& value, DNS
     age = (value.validity - value.added) - d_settings.d_staleTTL;
     dnsQuestion.ids.staleCacheHit = true;
   }
-  return {false, false};
+  return {true, false};
 }
 
 std::pair<bool, bool> DNSDistPacketCache::getReadLocked(const MaybeLruCache<uint32_t, CacheValue>& map, DNSQuestion& dnsQuestion, bool& stale, PacketBuffer& response, time_t& age, uint32_t key, bool recordMiss, time_t now, uint32_t allowExpired, bool receivedOverUDP, bool dnssecOK, const std::optional<Netmask>& subnet, bool truncatedOK, uint16_t queryId, const DNSName::string_t& dnsQName)
@@ -307,7 +306,7 @@ std::pair<bool, bool> DNSDistPacketCache::getReadLocked(const MaybeLruCache<uint
     if (recordMiss) {
       ++d_misses;
     }
-    return {false, true};
+    return {false, false};
   }
 
   return getLocked(mapIt->second, dnsQuestion, stale, response, age, recordMiss, now, allowExpired, receivedOverUDP, dnssecOK, subnet, truncatedOK, queryId, dnsQName);
@@ -338,14 +337,14 @@ bool DNSDistPacketCache::get(DNSQuestion& dnsQuestion, uint16_t queryId, uint32_
   auto& response = dnsQuestion.getMutableData();
   auto& shard = d_shards.at(shardIndex);
   {
-    bool resValue{false};
-    bool doReturn{false};
+    bool hit{false};
+    bool hitHeader{false};
 
     // LRU cache needs a write lock
     if (isLru()) {
       auto wmap = shard.d_map.try_write_lock();
       if (wmap.owns_lock()) {
-        std::tie(resValue, doReturn) = getWriteLocked(*wmap, dnsQuestion, stale, response, age, key, recordMiss, now, allowExpired, receivedOverUDP, dnssecOK, subnet, truncatedOK, queryId, dnsQName);
+        std::tie(hit, hitHeader) = getWriteLocked(*wmap, dnsQuestion, stale, response, age, key, recordMiss, now, allowExpired, receivedOverUDP, dnssecOK, subnet, truncatedOK, queryId, dnsQName);
       }
       else {
         ++d_deferredLookups;
@@ -358,11 +357,15 @@ bool DNSDistPacketCache::get(DNSQuestion& dnsQuestion, uint16_t queryId, uint32_
         ++d_deferredLookups;
         return false;
       }
-      std::tie(resValue, doReturn) = getReadLocked(*map, dnsQuestion, stale, response, age, key, recordMiss, now, allowExpired, receivedOverUDP, dnssecOK, subnet, truncatedOK, queryId, dnsQName);
+      std::tie(hit, hitHeader) = getReadLocked(*map, dnsQuestion, stale, response, age, key, recordMiss, now, allowExpired, receivedOverUDP, dnssecOK, subnet, truncatedOK, queryId, dnsQName);
     }
 
-    if (doReturn) {
-      return resValue;
+    if (!hit) {
+      return false;
+    }
+    if (hitHeader) {
+      ++d_hits;
+      return true;
     }
   }
 
