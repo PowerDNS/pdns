@@ -138,30 +138,39 @@ html_theme = "sphinx_immaterial"
 # documentation.
 #
 html_theme_options = {
-    "font": {
-        "text": "Roboto",  # used for all the pages' text
-        "code": "Roboto Mono",  # used for literal code blocks
-    },
+    "site_url": "https://dnsdist.org",
+    # "palette": {
+    #     "primary": "custom",
+    # },
+    "features": [
+        "navigation.tabs",
+        "navigation.tabs.sticky",
+        "navigation.top",
+        "navigation.tracking",
+        "navigation.sections",
+        "navigation.footer",
+        "toc.integrate",
+        "toc.follow",
+        "search.highlight",
+        "search.share",
+        "search.suggest",
+    ],
 }
+
+html_css_files = ["extra.css"]
+
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
 
 html_favicon = "_static/favicon.ico"
-
-# html_sidebars = {
-#     "**": ["searchbox.html", "relations.html", "localtoc.html", "sourcelink.html"]
-# }
+html_logo = "_static/powerdns_logo_white_orange_rgb.png"
 
 # -- Options for HTMLHelp output ------------------------------------------
 
 # Output file base name for HTML help builder.
-# htmlhelp_basename = "dnsdistdoc"
-
-# object_description_options = [
-#     (".*", dict(generate_synopses=None, include_in_toc=False)),
-# ]
+htmlhelp_basename = "dnsdistdoc"
 
 # -- Options for LaTeX output ---------------------------------------------
 
