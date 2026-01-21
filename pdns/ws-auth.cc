@@ -2606,15 +2606,6 @@ static applyResult applyPruneOrExtend(const DomainInfo& domainInfo, const ZoneNa
       soa.edit_done = increaseSOARecord(new_record, soa.edit_api_kind, soa.edit_kind, zonename);
     }
 
-    Check::RRSetFlags flags{Check::RRSET_CHECK_TTL};
-    if (allowUnderscores) {
-      flags = static_cast<Check::RRSetFlags>(flags | Check::RRSET_ALLOW_UNDERSCORES);
-    }
-    if (!checkNewRecords(resp, new_records, zonename, flags)) {
-      // Proper error response has been set up, no need to do anything further.
-      return ABORT;
-    }
-
     // Check if this record exists in the RRSet
     bool seenRecord{false};
     for (auto iter = rrset.begin(); iter != rrset.end(); ++iter) {
@@ -2637,6 +2628,17 @@ static applyResult applyPruneOrExtend(const DomainInfo& domainInfo, const ZoneNa
     if (!submitChanges) {
       return NOP;
     }
+
+    // Check the updated RRSet for correctness
+    Check::RRSetFlags flags{Check::RRSET_CHECK_TTL};
+    if (allowUnderscores) {
+      flags = static_cast<Check::RRSetFlags>(flags | Check::RRSET_ALLOW_UNDERSCORES);
+    }
+    if (!checkNewRecords(resp, rrset, zonename, flags)) {
+      // Proper error response has been set up, no need to do anything further.
+      return ABORT;
+    }
+
     if (!domainInfo.backend->replaceRRSet(domainInfo.id, qname, qtype, rrset)) {
       throw ApiException("Hosting backend does not support editing records.");
     }
