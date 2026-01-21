@@ -3,7 +3,9 @@ Caching Responses
 
 :program:`dnsdist` implements a simple but effective packet cache, not enabled by default.
 It is enabled per-pool, but the same cache can be shared between several pools.
-The first step is to define a cache with :func:`newPacketCache`, then to assign that cache to the chosen pool, the default one being represented by the empty string::
+The first step is to define a cache with :func:`newPacketCache`, then to assign that cache to the chosen pool, the default one being represented by the empty string:
+
+.. code-block:: lua
 
   pc = newPacketCache(10000, {maxTTL=86400, minTTL=0, temporaryFailureTTL=60, staleTTL=60, dontAge=false, shuffle=false})
   getPool(""):setCache(pc)

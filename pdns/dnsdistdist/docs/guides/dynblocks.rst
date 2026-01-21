@@ -24,7 +24,7 @@ As an example:
 
 This will dynamically block all hosts that exceeded 20 queries/s as measured over the past 10 seconds, and the dynamic block will last for 60 seconds.
 
-:ref:`DynBlockRulesGroup` is a very efficient way of processing dynamic blocks that was introduced in 1.3.0. Before that, it was possible to use :meth:`addDynBlocks` instead:
+:ref:`DynBlockRulesGroup` is a very efficient way of processing dynamic blocks that was introduced in 1.3.0. Before that, it was possible to use :func:`addDynBlocks` instead:
 
 .. code-block:: lua
 

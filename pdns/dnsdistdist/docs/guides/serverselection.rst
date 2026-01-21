@@ -91,7 +91,7 @@ If all servers are down, the policy will still select one server by default. Set
 ``orderedWrandUntag`` is another weighted policy with additional server filtering:
 
 - select the group of server(s) with the lowest ``order`` passed to :func:`newServer`.
-- filter out server(s) that were tagged with key string of :func:`Server:getNameWithAddr` in the query that was set by :func:`DNSQuestion:setTag`. This can be useful to restart a query with a different server, the user is responsible to set the required tag in lua action before calling :func:`DNSResponse:restart`. Initial queries are not impacted by this filtering if there is no other intentional lua action to set the tag.
+- filter out server(s) that were tagged with key string of :meth:`Server:getNameWithAddr` in the query that was set by :meth:`DNSQuestion:setTag`. This can be useful to restart a query with a different server, the user is responsible to set the required tag in lua action before calling :func:`DNSResponse:restart`. Initial queries are not impacted by this filtering if there is no other intentional lua action to set the tag.
 - policy ``wrandom`` is then applied to the selected server(s) above.
 
 Lua server policies
@@ -172,44 +172,44 @@ ServerPolicy Objects
   This represents a server policy.
   The built-in policies are of this type
 
-.. function:: ServerPolicy.policy(servers, dq) -> Server
+  .. method:: policy(servers, dq) -> Server
 
-  Run the policy to receive the server it has selected.
+    Run the policy to receive the server it has selected.
 
-  :param servers: A list of :class:`Server` objects
-  :param DNSQuestion dq: The incoming query
+    :param servers: A list of :class:`Server` objects
+    :param DNSQuestion dq: The incoming query
 
-  .. attribute:: ServerPolicy.ffipolicy
+  .. attribute:: ffipolicy
 
     .. versionadded: 1.5.0
 
     For policies implemented using the Lua FFI interface, the policy function itself.
 
-  .. attribute:: ServerPolicy.isFFI
+  .. attribute:: isFFI
 
     .. versionadded: 1.5.0
 
     Whether a Lua-based policy is implemented using the FFI interface.
 
-  .. attribute:: ServerPolicy.isLua
+  .. attribute:: isLua
 
     Whether this policy is a native (C++) policy or a Lua-based one.
 
-  .. attribute:: ServerPolicy.isPerThread
+  .. attribute:: isPerThread
 
     .. versionadded: 1.6.0
 
     Whether a FFI Lua-based policy is executed in a lock-free per-thread context instead of running in the global Lua context.
 
-  .. attribute:: ServerPolicy.name
+  .. attribute:: name
 
     The name of the policy.
 
-  .. attribute:: ServerPolicy.policy
+  .. attribute:: policy
 
     The policy function itself, except for FFI policies.
 
-  .. method:: Server:toString()
+  .. method:: toString()
 
     Return a textual representation of the policy.
 
@@ -220,7 +220,7 @@ Functions
 .. function:: newServerPolicy(name, function) -> ServerPolicy
 
   Create a policy object from a Lua function.
-  ``function`` must match the prototype for :func:`ServerPolicy.policy`.
+  ``function`` must match the prototype for :attr:`ServerPolicy.policy`.
 
   :param string name: Name of the policy
   :param string function: The function to call for this policy

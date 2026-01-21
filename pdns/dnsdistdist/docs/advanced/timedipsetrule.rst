@@ -6,7 +6,7 @@ addresses must be treated differently for a certain time.
 
 This may be used to temporarily shunt traffic to another pool for example.
 
-:func:`TimedIPSetRule` creates an object to which native IP addresses can be
+:class:`TimedIPSetRule` creates an object to which native IP addresses can be
 added in :class:`ComboAddress` form.
 
 .. function:: TimedIPSetRule() -> TimedIPSetRule
