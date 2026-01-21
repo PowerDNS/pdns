@@ -35,17 +35,18 @@ sys.path.append(str(Path(".").resolve()))
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    "redjack.sphinx.lua",
-    "sphinxcontrib.httpdomain",
-    "sphinxjsondomain",
-    "sphinxcontrib.fulltoc",
     "changelog",
     "depfile",
+    "sphinx_immaterial",
+    "sphinx_immaterial.apidoc.json.domain",
+    "sphinx_lua_ls",
+    "sphinxcontrib.fulltoc",
+    "sphinxcontrib.httpdomain",
 ]
 primary_domain = "lua"
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ["_templates"]
+# templates_path = ["_templates"]
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
@@ -75,7 +76,7 @@ author = "PowerDNS.COM BV and its contributors"
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = "en"
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -129,15 +130,19 @@ changelog_hide_tags_in_entry = True
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme_path = ["_templates"]
-html_theme = "pdns_html"
+# html_theme_path = ["_templates"]
+html_theme = "sphinx_immaterial"
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
 #
-html_theme_options = {}
-
+html_theme_options = {
+    "font": {
+        "text": "Roboto",  # used for all the pages' text
+        "code": "Roboto Mono",  # used for literal code blocks
+    },
+}
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
@@ -145,15 +150,18 @@ html_static_path = ["_static"]
 
 html_favicon = "_static/favicon.ico"
 
-html_sidebars = {
-    "**": ["searchbox.html", "relations.html", "localtoc.html", "sourcelink.html"]
-}
+# html_sidebars = {
+#     "**": ["searchbox.html", "relations.html", "localtoc.html", "sourcelink.html"]
+# }
 
 # -- Options for HTMLHelp output ------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = "dnsdistdoc"
+# htmlhelp_basename = "dnsdistdoc"
 
+# object_description_options = [
+#     (".*", dict(generate_synopses=None, include_in_toc=False)),
+# ]
 
 # -- Options for LaTeX output ---------------------------------------------
 
