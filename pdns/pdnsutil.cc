@@ -2770,9 +2770,9 @@ static int addOrReplaceRecord(bool isAdd, const vector<string>& cmds)
   }
 
   std::vector<std::pair<DNSResourceRecord, string>> errors;
-  Check::RRSetFlags flags{0};
+  Check::RRSetFlags flags{Check::RRSET_CHECK_TTL};
   if (allowUnderscores) {
-    flags = Check::RRSET_ALLOW_UNDERSCORES;
+    flags = static_cast<Check::RRSetFlags>(flags | Check::RRSET_ALLOW_UNDERSCORES);
   }
   Check::checkRRSet(oldrrs, newrrs, zone, flags, errors);
   oldrrs.clear(); // no longer needed

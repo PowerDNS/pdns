@@ -78,6 +78,18 @@ void checkRRSet(const vector<DNSResourceRecord>& oldrrs, vector<DNSResourceRecor
         if (previous.content == rec.content) {
           errors.emplace_back(std::make_pair(rec, std::string{"duplicate record with content \""} + rec.content + "\""));
         }
+        // Enforce identical TTLs for all records with the same name and type,
+        // if required. This is optional because some callers are able to
+        // compute allrrs in a way which already enforces this, and therefore
+        // it is useless to check a second time.
+        if ((flags & RRSET_CHECK_TTL) != 0) {
+          if (rec.ttl != previous.ttl) {
+            // This error message may be misleading if a TTL discrepancy already
+            // exists in the RRset, as it might blame an existing record rather
+            // than those being added. ¯\_(ツ)_/¯
+            errors.emplace_back(std::make_pair(rec, std::string{"uses a different TTL value than the remainder of the RRset"}));
+          }
+        }
       }
       else {
         if (QType::exclusiveEntryTypes.count(rec.qtype.getCode()) != 0

@@ -37,6 +37,7 @@ bool validateViewName(std::string_view name, std::string& error);
 enum RRSetFlags : unsigned int
 {
   RRSET_ALLOW_UNDERSCORES = 1 << 0, // Allow underscore in names
+  RRSET_CHECK_TTL = 1 << 1, // Check the TTL of the RRset
 };
 
 // Returns the list of errors found for new records which violate RRset
