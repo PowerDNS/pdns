@@ -311,7 +311,7 @@ static const groupCommandDispatcher TSIGKEYCommands{
 static const groupCommandDispatcher viewsCommands{
   "Views",
   {{"list", {true, listView,
-    "",
+    "VIEW",
     "\tList all zones within VIEW"}},
    {"list-all", {true, listViews,
     "",
