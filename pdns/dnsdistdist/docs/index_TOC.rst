@@ -2,7 +2,7 @@ Table of Contents
 =================
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 1
    :glob:
 
    index
@@ -11,7 +11,7 @@ Table of Contents
    running
    rules-actions
    statistics
-   guides/*
+   guides/index
    advanced/index
    reference/index
    manpages/index
