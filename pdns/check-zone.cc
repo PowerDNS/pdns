@@ -53,7 +53,7 @@ bool validateViewName(std::string_view name, std::string& error)
   return true;
 }
 
-void checkRRSet(const vector<DNSResourceRecord>& oldrrs, vector<DNSResourceRecord>& allrrs, const ZoneName& zone, bool allowUnderscores, vector<pair<DNSResourceRecord, string>>& errors)
+void checkRRSet(const vector<DNSResourceRecord>& oldrrs, vector<DNSResourceRecord>& allrrs, const ZoneName& zone, RRSetFlags flags, vector<pair<DNSResourceRecord, string>>& errors)
 {
   // QTypes that MUST NOT have multiple records of the same type in a given RRset.
   static const std::set<uint16_t> onlyOneEntryTypes = {QType::CNAME, QType::DNAME, QType::SOA};
@@ -108,6 +108,7 @@ void checkRRSet(const vector<DNSResourceRecord>& oldrrs, vector<DNSResourceRecor
     }
 
     // Check if the DNSNames that should be hostnames, are hostnames
+    bool allowUnderscores = (flags & RRSET_ALLOW_UNDERSCORES) != 0;
     try {
       checkHostnameCorrectness(rec, allowUnderscores);
     }

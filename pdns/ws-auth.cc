@@ -1689,7 +1689,11 @@ static bool checkNewRecords(HttpResponse* resp, vector<DNSResourceRecord>& recor
 {
   std::vector<std::pair<DNSResourceRecord, string>> errors;
 
-  Check::checkRRSet({}, records, zone, allowUnderscores, errors);
+  Check::RRSetFlags flags{0};
+  if (allowUnderscores) {
+    flags = Check::RRSET_ALLOW_UNDERSCORES;
+  }
+  Check::checkRRSet({}, records, zone, flags, errors);
   if (errors.empty()) {
     return true;
   }

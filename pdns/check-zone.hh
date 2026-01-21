@@ -34,6 +34,11 @@ namespace Check
 // whitespace or a leading dot forbidden.
 bool validateViewName(std::string_view name, std::string& error);
 
+enum RRSetFlags : unsigned int
+{
+  RRSET_ALLOW_UNDERSCORES = 1 << 0, // Allow underscore in names
+};
+
 // Returns the list of errors found for new records which violate RRset
 // constraints.
 // NOTE: sorts records in-place.
@@ -42,6 +47,6 @@ bool validateViewName(std::string_view name, std::string& error);
 //   *) no exact duplicates
 //   *) no duplicates for QTypes that can only be present once per RRset
 //   *) hostnames are hostnames
-void checkRRSet(const vector<DNSResourceRecord>& oldrrs, vector<DNSResourceRecord>& allrrs, const ZoneName& zone, bool allowUnderscores, vector<pair<DNSResourceRecord, string>>& errors);
+void checkRRSet(const vector<DNSResourceRecord>& oldrrs, vector<DNSResourceRecord>& allrrs, const ZoneName& zone, RRSetFlags flags, vector<pair<DNSResourceRecord, string>>& errors);
 
 } // namespace Check
