@@ -124,6 +124,8 @@ StatBag S; //!< Statistics are gathered across PDNS via the StatBag class S
 AuthPacketCache PC; //!< This is the main PacketCache, shared across all threads
 AuthQueryCache QC;
 AuthZoneCache g_zoneCache;
+std::vector<std::unique_ptr<RemoteLogger>> g_remote_loggers;
+
 std::unique_ptr<DNSProxy> DP{nullptr};
 static std::unique_ptr<DynListener> s_dynListener{nullptr};
 CommunicatorClass Communicator;
@@ -337,6 +339,8 @@ static void declareArguments()
   ::arg().setSwitch("consistent-backends", "Assume individual zones are not divided over backends. Send only ANY lookup operations to the backend to reduce the number of lookups") = "yes";
 
   ::arg().set("default-catalog-zone", "Catalog zone to assign newly created primary zones (via the API) to") = "";
+
+  ::arg().set("protobuf-servers", "Servers to send protobuf logging to");
 
 #ifdef ENABLE_GSS_TSIG
   ::arg().setSwitch("enable-gss-tsig", "Enable GSS TSIG processing") = "no";
@@ -892,6 +896,15 @@ static void mainthread()
   pdns::parseQueryLocalAddress(::arg()["query-local-address"]);
 
   pdns::parseTrustedNotificationProxy(::arg()["trusted-notification-proxy"]);
+
+  {
+    vector<string> addrs;
+    stringtok(addrs, ::arg()["protobuf-servers"], ", ;");
+
+    for (const string& addr : addrs) {
+      g_remote_loggers.emplace_back(make_unique<RemoteLogger>(ComboAddress(addr)));
+    }
+  }
 
   UeberBackend::go();
 
