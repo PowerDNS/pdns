@@ -125,6 +125,9 @@ changelog_inner_tag_sort = [
 
 changelog_hide_tags_in_entry = True
 
+# -- Options for the Sphinx-Immaterial JSON Domain ------------------------
+json_schemas = ["guides/webserver-json.yml"]
+
 # -- Options for HTML output ----------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
