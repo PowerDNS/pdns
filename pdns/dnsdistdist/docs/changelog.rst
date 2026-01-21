@@ -8189,7 +8189,7 @@ Changelog
     :tags: New Features
     :pullreq: 5336
 
-    Implement a runtime changeable rule that matches IP address for a certain time called :func:`TimedIPSetRule`.
+    Implement a runtime changeable rule that matches IP address for a certain time called :class:`TimedIPSetRule`.
 
   .. change::
     :tags: Bug Fixes
