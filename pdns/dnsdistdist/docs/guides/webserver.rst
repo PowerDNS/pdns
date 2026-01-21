@@ -104,8 +104,11 @@ URL Endpoints
 
 .. http:get:: /jsonstat
 
+  :query string command: one of ``stats``, ``dynblocklist`` or ``ebpfblocklist``
+
   Get statistics from dnsdist in JSON format.
   The ``Accept`` request header is ignored.
+
   This endpoint accepts a ``command`` query for different statistics:
 
   * ``stats``: Get all :doc:`../statistics` as a JSON dict
@@ -157,8 +160,6 @@ URL Endpoints
       X-Xss-Protection: 1; mode=block
 
       {"127.0.0.1/32": {"blocks": 3, "reason": "Exceeded query rate", "seconds": 10}}
-
-  :query command: one of ``stats``, ``dynblocklist`` or ``ebpfblocklist``
 
 .. http:get:: /metrics
 
@@ -688,7 +689,12 @@ URL Endpoints
         username: dontcare
         password: yoursecret
 
-.. http:delete:: /api/v1/cache?pool=<pool-name>&name=<dns-name>[&type=<dns-type>][&suffix=]
+.. http:delete:: /api/v1/cache
+
+  :query string pool: Name of the pool
+  :query string name: DNS name to wipe
+  :query string type: DNS type, optional. Defaults to all types when unset
+  :query string suffix: Set to any value to wipe treat ``name`` as a suffix
 
   .. versionadded:: 1.8.0
 
@@ -732,27 +738,27 @@ URL Endpoints
   Get a quick overview of several parameters.
 
   :>json string acl: A string of comma-separated netmasks currently allowed by the :ref:`ACL <ACL>`.
-  :>json list cache-hit-response-rules: A list of :json:object:`ResponseRule` objects applied on cache hits
-  :>json list self-answered-response-rules: A list of :json:object:`ResponseRule` objects applied on self-answered queries
+  :>json list cache-hit-response-rules: A list of :json:schema:`ResponseRule` objects applied on cache hits
+  :>json list self-answered-response-rules: A list of :json:schema:`ResponseRule` objects applied on self-answered queries
   :>json string daemon_type: The type of daemon, always "dnsdist"
-  :>json list frontends: A list of :json:object:`Frontend` objects
-  :>json list pools: A list of :json:object:`Pool` objects
-  :>json list response-rules: A list of :json:object:`ResponseRule` objects
-  :>json list rules: A list of :json:object:`Rule` objects
-  :>json list servers: A list of :json:object:`Server` objects
+  :>json list frontends: A list of :json:schema:`Frontend` objects
+  :>json list pools: A list of :json:schema:`Pool` objects
+  :>json list response-rules: A list of :json:schema:`ResponseRule` objects
+  :>json list rules: A list of :json:schema:`Rule` objects
+  :>json list servers: A list of :json:schema:`Server` objects
   :>json string version: The running version of dnsdist
 
 .. http:get:: /api/v1/servers/localhost/statistics
 
-  Returns a list of all statistics as :json:object:`StatisticItem`.
+  Returns a list of all statistics as :json:schema:`StatisticsItem`.
 
 .. http:get:: /api/v1/servers/localhost/config
 
-  Returns a list of :json:object:`ConfigSetting` objects.
+  Returns a list of :json:schema:`ConfigSetting` objects.
 
 .. http:get:: /api/v1/servers/localhost/config/allow-from
 
-  Gets you the ``allow-from`` :json:object:`ConfigSetting`, who's value is a list of strings of all the netmasks in the :ref:`ACL <ACL>`.
+  Gets you the ``allow-from`` :json:schema:`ConfigSetting`, who's value is a list of strings of all the netmasks in the :ref:`ACL <ACL>`.
 
   **Example request**:
 
@@ -842,7 +848,7 @@ URL Endpoints
   Get a quick overview of the pool named "pool-name".
 
   :>json list: A list of metrics related to that pool
-  :>json list servers: A list of :json:object:`Server` objects present in that pool
+  :>json list servers: A list of :json:schema:`Server` objects present in that pool
 
 .. http:get:: /api/v1/servers/localhost/rings?maxQueries=NUM&maxResponses=NUM
 
@@ -851,202 +857,18 @@ URL Endpoints
   Get the most recent queries and responses from the in-memory ring buffers. Returns up to ``maxQueries``
   query entries if set, up to ``maxResponses`` responses if set, and the whole content of the ring buffers otherwise.
 
-  :>json list queries: The list of the most recent queries, as :json:object:`RingEntry` objects
-  :>json list responses: The list of the most recent responses, as :json:object:`RingEntry` objects
+  :>json list queries: The list of the most recent queries, as :json:schema:`RingEntry` objects
+  :>json list responses: The list of the most recent responses, as :json:schema:`RingEntry` objects
 
 JSON Objects
 ~~~~~~~~~~~~
 
-.. json:object:: ConfigSetting
-
-  An object representing a global configuration element.
-  The following configuration are returned:
-
-  - ``acl`` The currently configured :ref:`ACLs <ACL>`
-  - ``control-socket`` The currently configured :ref:`console address <Console>`
-  - ``ecs-override``
-  - ``ecs-source-prefix-v4`` The currently configured :func:`setECSSourcePrefixV4`
-  - ``ecs-source-prefix-v6`` The currently configured :func:`setECSSourcePrefixV6`
-  - ``fixup-case``
-  - ``max-outstanding``
-  - ``server-policy`` The currently set :doc:`serverselection`
-  - ``stale-cache-entries-ttl``
-  - ``tcp-recv-timeout``
-  - ``tcp-send-timeout``
-  - ``truncate-tc``
-  - ``verbose``
-  - ``verbose-health-checks`` The currently configured :func:`setVerboseHealthChecks`
-
-  :property string name: The name of the setting
-  :property string type: "ConfigSetting"
-  :property string value: The value for this setting
-
-.. json:object:: DoHFrontend
-
-  A description of a DoH bind dnsdist is listening on.
-
-  :property integer bad-requests: Number of requests that could not be converted to a DNS query
-  :property integer error-responses: Number of HTTP responses sent with a non-200 code
-  :property integer get-queries: Number of DoH queries received via the GET HTTP method
-  :property integer http-connects: Number of DoH TCP connections established to this frontend
-  :property integer http1-queries: Number of DoH queries received over HTTP/1 (or connection attempts with a HTTP/1.1 ALPN when the nghttp2 provider is used)
-  :property integer http1-x00-responses: Number of DoH responses sent, over HTTP/1, per response code (200, 400, 403, 500, 502)
-  :property integer http1-other-responses: Number of DoH responses sent, over HTTP/1, with another response code
-  :property integer http2-queries: Number of DoH queries received over HTTP/2
-  :property integer http2-x00-responses: Number of DoH responses sent, over HTTP/2, per response code (200, 400, 403, 500, 502)
-  :property integer http1-other-responses: Number of DoH responses sent, over HTTP/2, with another response code
-  :property integer post-queries: Number of DoH queries received via the POST HTTP method
-  :property integer redirect-responses: Number of HTTP redirect responses sent
-  :property integer valid-responses: Number of valid DoH (2xx) responses sent
-
-.. json:object:: Frontend
-
-  A description of a bind dnsdist is listening on.
-
-  :property string address: IP and port that is listened on
-  :property integer id: Internal identifier
-  :property integer nonCompliantQueries: Amount of non-compliant queries received by this frontend
-  :property integer queries: The number of received queries on this bind
-  :property integer responses: Amount of responses sent by this frontend
-  :property boolean tcp: true if this is a TCP bind
-  :property integer tcpAvgConnectionDuration: The average duration of a TCP connection (ms)
-  :property integer tcpAvgQueriesPerConnection: The average number of queries per TCP connection
-  :property integer tcpClientTimeouts: Amount of TCP connections terminated by a timeout while reading from the client
-  :property integer tcpCurrentConnections: Amount of current incoming TCP connections from clients
-  :property integer tcpDiedReadingQuery: Amount of TCP connections terminated while reading the query from the client
-  :property integer tcpDiedSendingResponse: Amount of TCP connections terminated while sending a response to the client
-  :property integer tcpDownstreamTimeouts: Amount of TCP connections terminated by a timeout while reading from the backend
-  :property integer tcpGaveUp: Amount of TCP connections terminated after too many attempts to get a connection to the backend
-  :property integer tcpMaxConcurrentConnections: Maximum number of concurrent incoming TCP connections from clients
-  :property integer tls10Queries: Number of queries received by dnsdist over TLS 1.0
-  :property integer tls11Queries: Number of queries received by dnsdist over TLS 1.1
-  :property integer tls12Queries: Number of queries received by dnsdist over TLS 1.2
-  :property integer tls13Queries: Number of queries received by dnsdist over TLS 1.3
-  :property integer tlsHandshakeFailuresDHKeyTooSmall: Amount of TLS connections where the client has negotiated a not strong enough diffie-hellman key during the TLS handshake
-  :property integer tlsHandshakeFailuresInappropriateFallBack: Amount of TLS connections where the client tried to negotiate an invalid, too old, TLS version
-  :property integer tlsHandshakeFailuresNoSharedCipher: Amount of TLS connections were no cipher shared by both the client and the server could been found during the TLS handshake
-  :property integer tlsHandshakeFailuresUnknownCipher: Amount of TLS connections where the client has tried to negotiate an unknown TLS cipher
-  :property integer tlsHandshakeFailuresUnknownKeyExchangeType: Amount of TLS connections where the client has tried to negotiate an unknown TLS key-exchange mechanism
-  :property integer tlsHandshakeFailuresUnknownProtocol: Amount of TLS connections where the client has tried to negotiate an unknown TLS version
-  :property integer tlsHandshakeFailuresUnsupportedEC: Amount of TLS connections where the client has tried to negotiate an unsupported elliptic curve
-  :property integer tlsHandshakeFailuresUnsupportedProtocol: Amount of TLS connections where the client has tried to negotiate an unsupported TLS version
-  :property integer tlsInactiveTicketKey: Amount of TLS sessions resumed from an inactive key
-  :property integer tlsNewSessions: Amount of new TLS sessions negotiated
-  :property integer tlsResumptions: Amount of TLS sessions resumed
-  :property integer tlsUnknownQueries: Number of queries received by dnsdist over an unknown TLS version
-  :property integer tlsUnknownTicketKey: Amount of attempts to resume TLS session from an unknown key (possibly expired)
-
-  :property string type: UDP, TCP, DoT or DoH
-  :property boolean udp: true if this is a UDP bind
-
-.. json:object:: Pool
-
-  A description of a pool of backend servers.
-
-  :property integer id: Internal identifier
-  :property integer cacheCleanupCount: Number of times that cache was scanned for expired entries, or just to remove entries because it is full
-  :property integer cacheDeferredInserts: The number of times an entry could not be inserted in the associated cache, if any, because of a lock
-  :property integer cacheDeferredLookups: The number of times an entry could not be looked up from the associated cache, if any, because of a lock
-  :property integer cacheEntries: The current number of entries in the associated cache, if any
-  :property integer cacheHits: The number of cache hits for the associated cache, if any
-  :property integer cacheInsertCollisions: The number of times an entry could not be inserted into the cache because a different entry with the same hash already existed
-  :property integer cacheLookupCollisions: The number of times an entry retrieved from the cache based on the query hash did not match the actual query
-  :property integer cacheMisses: The number of cache misses for the associated cache, if any
-  :property integer cacheSize: The maximum number of entries in the associated cache, if any
-  :property integer cacheTTLTooShorts: The number of times an entry could not be inserted into the cache because its TTL was set below the minimum threshold
-  :property string name: Name of the pool
-  :property integer serversCount: Number of backends in this pool
-
-.. json:object:: Rule
-
-  This represents a policy that is applied to queries
-
-  :property string action: The action taken when the rule matches (e.g. "to pool abuse")
-  :property dict action-stats: A list of statistics whose content varies depending on the kind of rule
-  :property integer creationOrder: The order in which a rule has been created, mostly used for automated tools
-  :property integer id: The position of this rule
-  :property integer matches: How many times this rule was hit
-  :property string name: The name assigned to this rule by the administrator, if any
-  :property string rule: The matchers for the packet (e.g. "qname==bad-domain1.example., bad-domain2.example.")
-  :property string uuid: The UUID of this rule
-
-.. json:object:: ResponseRule
-
-  This represents a policy that is applied to responses
-
-  :property string action: The action taken when the rule matches (e.g. "drop")
-  :property integer id: The identifier (or order) of this rule
-  :property integer matches: How many times this rule was hit
-  :property string rule: The matchers for the packet (e.g. "qname==bad-domain1.example., bad-domain2.example.")
-
-.. json:object:: Server
-
-  This object represents a backend server.
-
-  :property string address: The remote IP and port
-  :property integer id: Internal identifier
-  :property integer latency: The current latency of this backend server for UDP queries, in milliseconds
-  :property string name: The name of this server
-  :property integer: nonCompliantResponses: Amount of non-compliant responses
-  :property integer order: Order number
-  :property integer outstanding: Number of currently outstanding queries
-  :property [string] pools: The pools this server belongs to
-  :property string protocol: The protocol used by this server (Do53, DoT, DoH)
-  :property integer qps: The current number of queries per second to this server
-  :property integer qpsLimit: The configured maximum number of queries per second
-  :property integer queries: Total number of queries sent to this backend
-  :property integer responses: Amount of responses received from this server
-  :property integer reuseds: Number of queries for which a response was not received in time
-  :property integer sendErrors: Number of network errors while sending a query to this server
-  :property string state: The state of the server (e.g. "DOWN" or "up")
-  :property integer tcpAvgConnectionDuration: The average duration of a TCP connection (ms)
-  :property integer tcpAvgQueriesPerConnection: The average number of queries per TCP connection
-  :property integer tcpConnectTimeouts: The number of TCP connect timeouts
-  :property integer tcpCurrentConnections: The number of current TCP connections
-  :property integer tcpDiedReadingResponse: The number of TCP I/O errors while reading the response
-  :property integer tcpDiedSendingQuery: The number of TCP I/O errors while sending the query
-  :property integer tcpGaveUp: The number of TCP connections failing after too many attempts
-  :property integer tcpLatency: Server's latency when answering TCP questions in milliseconds
-  :property integer tcpMaxConcurrentConnections: The maximum number of concurrent TCP connections
-  :property integer tcpNewConnections: The number of established TCP connections in total
-  :property integer tcpReadTimeouts: The number of TCP read timeouts
-  :property integer tcpReusedConnections: The number of times a TCP connection has been reused
-  :property integer tcpTooManyConcurrentConnections: Number of times we had to enforce the maximum number of concurrent TCP connections
-  :property integer tcpWriteTimeouts: The number of TCP write timeouts
-  :property integer tlsResumptions: The number of times a TLS session has been resumed
-  :property integer weight: The weight assigned to this server
-  :property float dropRate: The amount of packets dropped (timing out) per second by this server
-  :property integer healthCheckFailures: Number of health check attempts that failed (total)
-  :property integer healthCheckFailureParsing: Number of health check attempts that failed because the payload could not be parsed
-  :property integer healthCheckFailureTimeout: Number of health check attempts that failed because the response was not received in time
-  :property integer healthCheckFailureNetwork: Number of health check attempts that failed because of a network error
-  :property integer healthCheckFailureMismatch: Number of health check attempts that failed because the ID, qname, qtype or qclass did not match
-  :property integer healthCheckFailureInvalid: Number of health check attempts that failed because the DNS response was not valid
-
-.. json:object:: StatisticItem
-
-  This represents a statistics element.
-
-  :property string name: The name of this statistic. See :doc:`../statistics`
-  :property string type: "StatisticItem"
-  :property integer value: The value for this item
-
-.. json:object:: RingEntry
-
-  This represents an entry in the in-memory ring buffers.
-
-  :property float age: How long ago was the query or response received, in seconds
-  :property integer id: The DNS ID
-  :property string name: The requested domain name
-  :property string requestor: The client IP and port
-  :property integer size: The size of the query or response
-  :property integer qtype: The requested DNS type
-  :property string protocol: The DNS protocol the query or response was received over
-  :property boolean rd: The RD flag
-  :property string mac: The MAC address of the device sending the query
-  :property float latency: The time it took for the response to be sent back to the client, in microseconds
-  :property int rcode: The response code
-  :property boolean tc: The TC flag
-  :property boolean aa: The AA flag
-  :property integer answers: The number of records in the answer section of the response
-  :property string backend: The IP and port of the backend that returned the response, or "Cache" if it was a cache-hit
+.. json:schema:: ConfigSetting
+.. json:schema:: Frontend
+.. json:schema:: DohFrontend
+.. json:schema:: StatisticsItem
+.. json:schema:: RingEntry
+.. json:schema:: Pool
+.. json:schema:: Server
+.. json:schema:: Rule
+.. json:schema:: ResponseRule

@@ -1,0 +1,469 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "dnsdist"
+title: "DNSDist webserver related JSON items"
+
+definitions:
+  statistic-item:
+    $id: StatisticsItem
+    title: This represents a statistics element.
+    type: object
+    properties:
+      name:
+        type: string
+        title: The name of this statistic. See :doc:`../statistics`
+      type:
+        const: "StatisticItem"
+      value:
+        type: integer
+        title: The value for this item
+
+  server:
+    $id: Server
+    title: This object represents a backend server.
+    type: object
+    properties:
+      address:
+        type: string
+        title: The remote IP and port
+      id:
+        type: integer
+        title: Internal identifier
+      latency:
+        type: integer
+        title: The current latency of this backend server for UDP queries, in milliseconds
+      name:
+        type: string
+        title: The name of this server
+      nonCompliantResponses:
+        type: integer
+        title: Amount of non-compliant responses
+      order:
+        type: integer
+        title: Order number
+      outstanding:
+        type: integer
+        title: Number of currently outstanding queries
+      pools:
+        type: array
+        items:
+          type: string
+        title: The pools this server belongs to
+      protocol:
+        type: string
+        title: The protocol used by this server (Do53, DoT, DoH)
+      qps:
+        type: integer
+        title: The current number of queries per second to this server
+      qpsLimit:
+        type: integer
+        title: The configured maximum number of queries per second
+      queries:
+        type: integer
+        title: Total number of queries sent to this backend
+      responses:
+        type: integer
+        title: Amount of responses received from this server
+      reuseds:
+        type: integer
+        title: Number of queries for which a response was not received in time
+      sendErrors:
+        type: integer
+        title: Number of network errors while sending a query to this server
+      state:
+        type: string
+        title: The state of the server (e.g. "DOWN" or "up")
+      tcpAvgConnectionDuration:
+        type: integer
+        title: The average duration of a TCP connection (ms)
+      tcpAvgQueriesPerConnection:
+        type: integer
+        title: The average number of queries per TCP connection
+      tcpConnectTimeouts:
+        type: integer
+        title: The number of TCP connect timeouts
+      tcpCurrentConnections:
+        type: integer
+        title: The number of current TCP connections
+      tcpDiedReadingResponse:
+        type: integer
+        title: The number of TCP I/O errors while reading the response
+      tcpDiedSendingQuery:
+        type: integer
+        title: The number of TCP I/O errors while sending the query
+      tcpGaveUp:
+        type: integer
+        title: The number of TCP connections failing after too many attempts
+      tcpLatency:
+        type: integer
+        title: Server's latency when answering TCP questions in milliseconds
+      tcpMaxConcurrentConnections:
+        type: integer
+        title: The maximum number of concurrent TCP connections
+      tcpNewConnections:
+        type: integer
+        title: The number of established TCP connections in total
+      tcpReadTimeouts:
+        type: integer
+        title: The number of TCP read timeouts
+      tcpReusedConnections:
+        type: integer
+        title: The number of times a TCP connection has been reused
+      tcpTooManyConcurrentConnections:
+        type: integer
+        title: Number of times we had to enforce the maximum number of concurrent TCP connections
+      tcpWriteTimeouts:
+        type: integer
+        title: The number of TCP write timeouts
+      tlsResumptions:
+        type: integer
+        title: The number of times a TLS session has been resumed
+      weight:
+        type: integer
+        title: The weight assigned to this server
+      dropRate:
+        type: float
+        title: The amount of packets dropped (timing out) per second by this server
+      healthCheckFailures:
+        type: integer
+        title: Number of health check attempts that failed (total)
+      healthCheckFailureParsing:
+        type: integer
+        title: Number of health check attempts that failed because the payload could not be parsed
+      healthCheckFailureTimeout:
+        type: integer
+        title: Number of health check attempts that failed because the response was not received in time
+      healthCheckFailureNetwork:
+        type: integer
+        title: Number of health check attempts that failed because of a network error
+      healthCheckFailureMismatch:
+        type: integer
+        title: Number of health check attempts that failed because the ID, qname, qtype or qclass did not match
+      healthCheckFailureInvalid:
+        type: integer
+        title: Number of health check attempts that failed because the DNS response was not valid
+
+  ringentry:
+    $id: RingEntry
+    title: This represents an entry in the in-memory ring buffers.
+    type: object
+    properties:
+      age:
+        type: float
+        title: How long ago was the query or response received, in seconds
+      id:
+        type: integer
+        title: The DNS ID
+      name:
+        type: string
+        title: The requested domain name
+      requestor:
+        type: string
+        title: The client IP and port
+      size:
+        type: integer
+        title: The size of the query or response
+      qtype:
+        type: integer
+        title: The requested DNS type
+      protocol:
+        type: string
+        title: The DNS protocol the query or response was received over
+      rd:
+        type: boolean
+        title: The RD flag
+      mac:
+        type: string
+        title: The MAC address of the device sending the query
+      latency:
+        type: float
+        title: The time it took for the response to be sent back to the client, in microseconds
+      rcode:
+        type: int
+        title: The response code
+      tc:
+        type: boolean
+        title: The TC flag
+      aa:
+        type: boolean
+        title: The AA flag
+      answers:
+        type: integer
+        title: The number of records in the answer section of the response
+      backend:
+        type: string
+        title: The IP and port of the backend that returned the response, or "Cache" if it was a cache-hit
+
+  responserule:
+    $id: ResponseRule
+    title: This represents a policy that is applied to responses
+    type: object
+    properties:
+      action:
+        type: string
+        title: The action taken when the rule matches (e.g. "drop")
+      id:
+        type: integer
+        title: The identifier (or order) of this rule
+      matches:
+        type: integer
+        title: How many times this rule was hit
+      rule:
+        type: string
+        title: The matchers for the packet (e.g. "qname==bad-domain1.example., bad-domain2.example.")
+
+  rule:
+    $id: Rule
+    title: This represents a policy that is applied to queries
+    type: object
+    properties:
+      action:
+        type: string
+        title: The action taken when the rule matches (e.g. "to pool abuse")
+      action-stats:
+        type: dict
+        title: A list of statistics whose content varies depending on the kind of rule
+      creationOrder:
+        type: integer
+        title: The order in which a rule has been created, mostly used for automated tools
+      id:
+        type: integer
+        title: The position of this rule
+      matches:
+        type: integer
+        title: How many times this rule was hit
+      name:
+        type: string
+        title: The name assigned to this rule by the administrator, if any
+      rule:
+        type: string
+        title: The matchers for the packet (e.g. "qname==bad-domain1.example., bad-domain2.example.")
+      uuid:
+        type: string
+        title: The UUID of this rule
+
+  pool:
+    $id: Pool
+    title: A description of a pool of backend servers.
+    type: object
+    properties:
+      id:
+        type: integer
+        title: Internal identifier
+      cacheCleanupCount:
+        type: integer
+        title: Number of times that cache was scanned for expired entries, or just to remove entries because it is full
+      cacheDeferredInserts:
+        type: integer
+        title: The number of times an entry could not be inserted in the associated cache, if any, because of a lock
+      cacheDeferredLookups:
+        type: integer
+        title: The number of times an entry could not be looked up from the associated cache, if any, because of a lock
+      cacheEntries:
+        type: integer
+        title: The current number of entries in the associated cache, if any
+      cacheHits:
+        type: integer
+        title: The number of cache hits for the associated cache, if any
+      cacheInsertCollisions:
+        type: integer
+        title: The number of times an entry could not be inserted into the cache because a different entry with the same hash already existed
+      cacheLookupCollisions:
+        type: integer
+        title: The number of times an entry retrieved from the cache based on the query hash did not match the actual query
+      cacheMisses:
+        type: integer
+        title: The number of cache misses for the associated cache, if any
+      cacheSize:
+        type: integer
+        title: The maximum number of entries in the associated cache, if any
+      cacheTTLTooShorts:
+        type: integer
+        title: The number of times an entry could not be inserted into the cache because its TTL was set below the minimum threshold
+      name:
+        type: string
+        title: Name of the pool
+      serversCount:
+        type: integer
+        title: Number of backends in this pool
+
+  frontend:
+    $id: Frontend
+    title: A description of a bind dnsdist is listening on.
+    type: object
+    properties:
+      address:
+        type: string
+        title: IP and port that is listened on
+      id:
+        type: integer
+        title: Internal identifier
+      nonCompliantQueries:
+        type: integer
+        title: Amount of non-compliant queries received by this frontend
+      queries:
+        type: integer
+        title: The number of received queries on this bind
+      responses:
+        type: integer
+        title: Amount of responses sent by this frontend
+      tcp:
+        type: boolean
+        title: true if this is a TCP bind
+      tcpAvgConnectionDuration:
+        type: integer
+        title: The average duration of a TCP connection (ms)
+      tcpAvgQueriesPerConnection:
+        type: integer
+        title: The average number of queries per TCP connection
+      tcpClientTimeouts:
+        type: integer
+        title: Amount of TCP connections terminated by a timeout while reading from the client
+      tcpCurrentConnections:
+        type: integer
+        title: Amount of current incoming TCP connections from clients
+      tcpDiedReadingQuery:
+        type: integer
+        title: Amount of TCP connections terminated while reading the query from the client
+      tcpDiedSendingResponse:
+        type: integer
+        title: Amount of TCP connections terminated while sending a response to the client
+      tcpDownstreamTimeouts:
+        type: integer
+        title: Amount of TCP connections terminated by a timeout while reading from the backend
+      tcpGaveUp:
+        type: integer
+        title: Amount of TCP connections terminated after too many attempts to get a connection to the backend
+      tcpMaxConcurrentConnections:
+        type: integer
+        title: Maximum number of concurrent incoming TCP connections from clients
+      tls10Queries:
+        type: integer
+        title: Number of queries received by dnsdist over TLS 1.0
+      tls11Queries:
+        type: integer
+        title: Number of queries received by dnsdist over TLS 1.1
+      tls12Queries:
+        type: integer
+        title: Number of queries received by dnsdist over TLS 1.2
+      tls13Queries:
+        type: integer
+        title: Number of queries received by dnsdist over TLS 1.3
+      tlsHandshakeFailuresDHKeyTooSmall:
+        type: integer
+        title: Amount of TLS connections where the client has negotiated a not strong enough diffie-hellman key during the TLS handshake
+      tlsHandshakeFailuresInappropriateFallBack:
+        type: integer
+        title: Amount of TLS connections where the client tried to negotiate an invalid, too old, TLS version
+      tlsHandshakeFailuresNoSharedCipher:
+        type: integer
+        title: Amount of TLS connections were no cipher shared by both the client and the server could been found during the TLS handshake
+      tlsHandshakeFailuresUnknownCipher:
+        type: integer
+        title: Amount of TLS connections where the client has tried to negotiate an unknown TLS cipher
+      tlsHandshakeFailuresUnknownKeyExchangeType:
+        type: integer
+        title: Amount of TLS connections where the client has tried to negotiate an unknown TLS key-exchange mechanism
+      tlsHandshakeFailuresUnknownProtocol:
+        type: integer
+        title: Amount of TLS connections where the client has tried to negotiate an unknown TLS version
+      tlsHandshakeFailuresUnsupportedEC:
+        type: integer
+        title: Amount of TLS connections where the client has tried to negotiate an unsupported elliptic curve
+      tlsHandshakeFailuresUnsupportedProtocol:
+        type: integer
+        title: Amount of TLS connections where the client has tried to negotiate an unsupported TLS version
+      tlsInactiveTicketKey:
+        type: integer
+        title: Amount of TLS sessions resumed from an inactive key
+      tlsNewSessions:
+        type: integer
+        title: Amount of new TLS sessions negotiated
+      tlsResumptions:
+        type: integer
+        title: Amount of TLS sessions resumed
+      tlsUnknownQueries:
+        type: integer
+        title: Number of queries received by dnsdist over an unknown TLS version
+      tlsUnknownTicketKey:
+        type: integer
+        title: Amount of attempts to resume TLS session from an unknown key (possibly expired)
+      type:
+        type: string
+        title: UDP, TCP, DoT or DoH
+      udp:
+        type: boolean
+        title: true if this is a UDP bind
+
+  dohfrontend:
+    $id: DohFrontend
+    title: A description of a DoH bind dnsdist is listening on.
+    type: object
+    properties:
+      bad-requests:
+        type: integer
+        title: Number of requests that could not be converted to a DNS query
+      error-responses:
+        type: integer
+        title: Number of HTTP responses sent with a non-200 code
+      get-queries:
+        type: integer
+        title: Number of DoH queries received via the GET HTTP method
+      http-connects:
+        type: integer
+        title: Number of DoH TCP connections established to this frontend
+      http1-queries:
+        type: integer
+        title: Number of DoH queries received over HTTP/1 (or connection attempts with a HTTP/1.1 ALPN when the nghttp2 provider is used)
+      http1-x00-responses:
+        type: integer
+        title: Number of DoH responses sent, over HTTP/1, per response code (200, 400, 403, 500, 502)
+      http1-other-responses:
+        type: integer
+        title: Number of DoH responses sent, over HTTP/1, with another response code
+      http2-queries:
+        type: integer
+        title: Number of DoH queries received over HTTP/2
+      http2-x00-responses:
+        type: integer
+        title: Number of DoH responses sent, over HTTP/2, per response code (200, 400, 403, 500, 502)
+      post-queries:
+        type: integer
+        title: Number of DoH queries received via the POST HTTP method
+      redirect-responses:
+        type: integer
+        title: Number of HTTP redirect responses sent
+      valid-responses:
+        type: integer
+        title: Number of valid DoH (2xx) responses sent
+
+  configsetting:
+    $id: ConfigSetting
+    title: An object representing a global configuration element.
+    description: |
+      The following configuration are returned:
+
+      - ``acl`` The currently configured :ref:`ACLs <ACL>`
+      - ``control-socket`` The currently configured :ref:`console address <Console>`
+      - ``ecs-override``
+      - ``ecs-source-prefix-v4`` The currently configured :func:`setECSSourcePrefixV4`
+      - ``ecs-source-prefix-v6`` The currently configured :func:`setECSSourcePrefixV6`
+      - ``fixup-case``
+      - ``max-outstanding``
+      - ``server-policy`` The currently set :doc:`serverselection`
+      - ``stale-cache-entries-ttl``
+      - ``tcp-recv-timeout``
+      - ``tcp-send-timeout``
+      - ``truncate-tc``
+      - ``verbose``
+      - ``verbose-health-checks`` The currently configured :func:`setVerboseHealthChecks`
+    type: object
+    properties:
+      name:
+        type: string
+        title: The name of the setting
+      type:
+        type: string
+        title: "ConfigSetting"
+      value:
+        type: string
+        title: The value for this setting
