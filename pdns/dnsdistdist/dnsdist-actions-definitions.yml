@@ -101,10 +101,10 @@
       type: "String"
       description: "The name of the tag to store the result into"
 - name: "log"
-  description: "Log a line for each query, to the specified file if any, to the console (require verbose) if the empty string is given as filename.
-If an empty string is supplied in the file name, the logging is done to stdout, and only in verbose mode by default. This can be changed by setting ``verbose_only`` to ``false``.
-When logging to a file, the ``binary`` parameter specifies whether we log in binary form (default) or in textual form. The ``append`` parameter specifies whether we open the file for appending or truncate each time (default). The ``buffered`` parameter specifies whether writes to the file are buffered (default) or not.
-Subsequent rules are processed after this action"
+  description: |
+    Log a line for each query, to the specified file if any, to the console (require verbose) if the empty string is given as filename.
+    If an empty string is supplied in the file name, the logging is done to stdout, and only in verbose mode by default. This can be changed by setting ``verbose_only`` to ``false``.
+    When logging to a file, the ``binary`` parameter specifies whether we log in binary form (default) or in textual form. The ``append`` parameter specifies whether we open the file for appending or truncate each time (default). The ``buffered`` parameter specifies whether writes to the file are buffered (default) or not. Subsequent rules are processed after this action
   parameters:
     - name: "file_name"
       type: "String"
@@ -171,8 +171,9 @@ Subsequent rules are processed after this action"
       default: ""
       description: "The path to a file containing the code of the Lua function"
 - name: "LuaFFIPerThread"
-  description: "Invoke a Lua function that accepts a pointer to a ``dnsdist_ffi_dnsquestion_t`` object, whose bindings are defined in ``dnsdist-lua-ffi-interface.h``. The function should return a :ref:`DNSAction`. If the Lua code fails, ``ServFail`` is returned.
-The function will be invoked in a per-thread Lua state, without access to the global Lua state. All constants (:ref:`DNSQType`, :ref:`DNSRCode`, ...) are available in that per-thread context, as well as all FFI functions. Objects and their bindings that are not usable in a FFI context (:class:`DNSQuestion`, :class:`DNSDistProtoBufMessage`, :class:`PacketCache`, ...) are not available."
+  description: |
+    Invoke a Lua function that accepts a pointer to a ``dnsdist_ffi_dnsquestion_t`` object, whose bindings are defined in ``dnsdist-lua-ffi-interface.h``. The function should return a :ref:`DNSAction`. If the Lua code fails, ``ServFail`` is returned.
+    The function will be invoked in a per-thread Lua state, without access to the global Lua state. All constants (:ref:`DNSQType`, :ref:`DNSRCode`, ...) are available in that per-thread context, as well as all FFI functions. Objects and their bindings that are not usable in a FFI context (:class:`DNSQuestion`, :class:`DNSDistProtoBufMessage`, :class:`PacketCache`, ...) are not available.
   parameters:
     - name: "code"
       type: "String"
@@ -286,14 +287,14 @@ The function will be invoked in a per-thread Lua state, without access to the gl
     - name: "ip_encrypt_key"
       type: "String"
       default: ""
-      description: "A key to encrypt the IP address of the requestor for anonymization purposes. For the \"legacy\" method, it can be generated via the :func:`makeIPCipherKey` function. The encryption method can be set using ``ip_encrypt_method``"
+      description: 'A key to encrypt the IP address of the requestor for anonymization purposes. For the "legacy" method, it can be generated via the :func:`makeIPCipherKey` function. The encryption method can be set using ``ip_encrypt_method``'
     - name: "ip_encrypt_method"
       type: "String"
       default: "legacy"
       description: "
         The method to encrypt the IP addresses with.
-          * legacy: The encryption is done using ipcrypt for IPv4 and a 128-bit AES ECB operation for IPv6. This is the default.
-          * ipcrypt-pfx: IPCrypt2, using prefix-preserving encryption. See `the ipcrypt website <https://ipcrypt-std.github.io/>__`. ``ip_encrypt_key`` must be 32 bytes."
+        * legacy: The encryption is done using ipcrypt for IPv4 and a 128-bit AES ECB operation for IPv6. This is the default.
+        * ipcrypt-pfx: IPCrypt2, using prefix-preserving encryption. See `the ipcrypt website <https://ipcrypt-std.github.io/>__`. ``ip_encrypt_key`` must be 32 bytes."
     - name: "export_tags"
       type: "Vec<String>"
       default: ""
@@ -303,8 +304,8 @@ The function will be invoked in a per-thread Lua state, without access to the gl
       default: true
       description: "A list of ``name``=``key`` pairs, for meta-data to be added to Protocol Buffer message"
 - name: "SetAdditionalProxyProtocolValue"
-  description: "Add a Proxy-Protocol Type-Length value to be sent to the server along with this query. It does not replace any existing value with the same type but adds a new value. Be careful that Proxy Protocol values are sent once at the beginning of the TCP connection for TCP and DoT queries. That means that values received on an incoming TCP connection will be inherited by subsequent queries received over the same incoming TCP connection, if any, but values set to a query will not be inherited by subsequent queries. Subsequent rules
-are processed after this action"
+  description: |
+    Add a Proxy-Protocol Type-Length value to be sent to the server along with this query. It does not replace any existing value with the same type but adds a new value. Be careful that Proxy Protocol values are sent once at the beginning of the TCP connection for TCP and DoT queries. That means that values received on an incoming TCP connection will be inherited by subsequent queries received over the same incoming TCP connection, if any, but values set to a query will not be inherited by subsequent queries. Subsequent rules are processed after this action
   parameters:
     - name: "proxy_type"
       type: "u8"
@@ -480,20 +481,20 @@ are processed after this action"
       description: "The length of the DNS packet"
 - name: "SpoofRaw"
   description: |
-               Forge a response with the specified raw bytes as record data. Non-character values should be encoded in the ``\DDD`` format where ``DDD`` is the decimal value. For example to wire content of an A record containing ``1.2.3.4`` should be encoded as ``\001\002\003\004``.
+    Forge a response with the specified raw bytes as record data. Non-character values should be encoded in the ``\DDD`` format where ``DDD`` is the decimal value. For example to wire content of an A record containing ``1.2.3.4`` should be encoded as ``\001\002\003\004``.
 
-               ``sdig dumpluaraw`` and ``pdnsutil raw-lua-from-content`` from PowerDNS can generate raw answers for you:
+    ``sdig dumpluaraw`` and ``pdnsutil raw-lua-from-content`` from PowerDNS can generate raw answers for you:
 
-               .. code-block:: Shell
+    .. code-block:: Shell
 
-                 $ pdnsutil raw-lua-from-content SRV '0 0 65535 srv.powerdns.com.'
-                 "\000\000\000\000\255\255\003srv\008powerdns\003com\000"
-                 $ sdig 127.0.0.1 53 open-xchange.com MX recurse dumpluaraw
-                 Reply to question for qname='open-xchange.com.', qtype=MX
-                 Rcode: 0 (No Error), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
-                 0 open-xchange.com. IN  MX  "\000c\004mx\049\049\012open\045xchange\003com\000"
-                 0 open-xchange.com. IN  MX  "\000\010\003mx\049\012open\045xchange\003com\000"
-                 0 open-xchange.com. IN  MX  "\000\020\003mx\050\012open\045xchange\003com\000"
+      $ pdnsutil raw-lua-from-content SRV '0 0 65535 srv.powerdns.com.'
+      "\000\000\000\000\255\255\003srv\008powerdns\003com\000"
+      $ sdig 127.0.0.1 53 open-xchange.com MX recurse dumpluaraw
+      Reply to question for qname='open-xchange.com.', qtype=MX
+      Rcode: 0 (No Error), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
+      0 open-xchange.com. IN  MX  "\000c\004mx\049\049\012open\045xchange\003com\000"
+      0 open-xchange.com. IN  MX  "\000\010\003mx\049\012open\045xchange\003com\000"
+      0 open-xchange.com. IN  MX  "\000\020\003mx\050\012open\045xchange\003com\000"
   skip-cpp: true
   skip-rust: true
   parameters:
