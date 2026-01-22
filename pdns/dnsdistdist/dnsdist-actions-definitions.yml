@@ -421,9 +421,7 @@
     - name: remote_loggers
       type: "Vec<String>"
       default: ""
-      description: |
-        The names of all the loggers that should be sent the protobuf messages that includes the tracing information.
-        This message will be sent once dnsdist is finished with the DNS transaction (i.e. the response has been sent, the query was dropped, or when a timeout occured).
+      description: "The names of all the loggers that should be sent the protobuf messages that includes the tracing information. This message will be sent once dnsdist is finished with the DNS transaction (i.e. the response has been sent, the query was dropped, or when a timeout occured)."
     - name: "use_incoming_traceid"
       type: "bool"
       default: "false"
