@@ -2,7 +2,7 @@ OpenTelemetryTraceCondition
 ---------------------------
 
 An ``OpenTelemetryTraceCondition`` object represents a condition to trigger generating :ref:`opentelemetry_tracing`.
-These conditions con be configured in a settings file (see :ref:`setting-yaml-logging.opentelemetry_trace_conditions`) or manipulated runtime using the REST API calls listed in :doc:`endpoint-ottraceconditions`.
+These conditions con be configured in a settings file (see :ref:`setting-yaml-logging.opentelemetry_trace_conditions`) or manipulated at runtime using the REST API calls listed in :doc:`endpoint-ottraceconditions`.
 
 .. json:object:: OpenTelemetryTraceCondition
 
