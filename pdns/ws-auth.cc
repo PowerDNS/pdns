@@ -1685,11 +1685,11 @@ static bool areUnderscoresAllowed(const ZoneName& zonename, DNSBackend& backend)
 
 // Wrapper around checkRRSet; returns true if all checks successful, false if
 // not, in which case the response body and status have been filled up.
-static bool checkNewRecords(HttpResponse* resp, vector<DNSResourceRecord>& records, const ZoneName& zone, bool allowUnderscores)
+static bool checkNewRecords(HttpResponse* resp, vector<DNSResourceRecord>& records, const ZoneName& zone, Check::RRSetFlags flags)
 {
   std::vector<std::pair<DNSResourceRecord, string>> errors;
 
-  Check::checkRRSet({}, records, zone, allowUnderscores, errors);
+  Check::checkRRSet({}, records, zone, flags, errors);
   if (errors.empty()) {
     return true;
   }
@@ -2063,7 +2063,9 @@ static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp)
     }
   }
 
-  if (!checkNewRecords(resp, new_records, zonename, false)) { // no RFC1123-CONFORMANCE metadata on new zones
+  // Flags = 0, as new zones do not have RFC1123-CONFORMANCE metadata yet, and
+  // all records use the same default ttl value.
+  if (!checkNewRecords(resp, new_records, zonename, static_cast<Check::RRSetFlags>(0))) {
     return;
   }
 
@@ -2240,7 +2242,11 @@ static void apiServerZoneDetailPUT(HttpRequest* req, HttpResponse* resp)
     }
 
     bool allowUnderscores = areUnderscoresAllowed(zoneData.zoneName, *zoneData.domainInfo.backend);
-    if (!checkNewRecords(resp, new_records, zoneData.zoneName, allowUnderscores)) {
+    Check::RRSetFlags flags{Check::RRSET_CHECK_TTL};
+    if (allowUnderscores) {
+      flags = static_cast<Check::RRSetFlags>(flags | Check::RRSET_ALLOW_UNDERSCORES);
+    }
+    if (!checkNewRecords(resp, new_records, zoneData.zoneName, flags)) {
       return;
     }
 
@@ -2541,7 +2547,12 @@ static applyResult applyReplace(const DomainInfo& domainInfo, const ZoneName& zo
           soa.edit_done = increaseSOARecord(resourceRecord, soa.edit_api_kind, soa.edit_kind, zonename);
         }
       }
-      if (!checkNewRecords(resp, new_records, zonename, allowUnderscores)) {
+      // All records use the same TTL, no need to check for discrepancy.
+      Check::RRSetFlags flags{0};
+      if (allowUnderscores) {
+        flags = Check::RRSET_ALLOW_UNDERSCORES;
+      }
+      if (!checkNewRecords(resp, new_records, zonename, flags)) {
         // Proper error response has been set up, no need to do anything further.
         return ABORT;
       }
@@ -2574,6 +2585,7 @@ static applyResult applyReplace(const DomainInfo& domainInfo, const ZoneName& zo
   return SUCCESS;
 }
 
+// Apply a PRUNE or EXTEND changetype.
 static applyResult applyPruneOrExtend(const DomainInfo& domainInfo, const ZoneName& zonename, const Json& container, DNSName& qname, QType& qtype, bool allowUnderscores, soaEditSettings& soa, HttpResponse* resp, changeType operationType, std::vector<DNSResourceRecord>& rrset)
 {
   if (!container["records"].is_array()) {
@@ -2592,11 +2604,6 @@ static applyResult applyPruneOrExtend(const DomainInfo& domainInfo, const ZoneNa
     new_record.domain_id = static_cast<int>(domainInfo.id);
     if (new_record.qtype.getCode() == QType::SOA && new_record.qname == zonename.operator const DNSName&()) {
       soa.edit_done = increaseSOARecord(new_record, soa.edit_api_kind, soa.edit_kind, zonename);
-    }
-
-    if (!checkNewRecords(resp, new_records, zonename, allowUnderscores)) {
-      // Proper error response has been set up, no need to do anything further.
-      return ABORT;
     }
 
     // Check if this record exists in the RRSet
@@ -2621,6 +2628,17 @@ static applyResult applyPruneOrExtend(const DomainInfo& domainInfo, const ZoneNa
     if (!submitChanges) {
       return NOP;
     }
+
+    // Check the updated RRSet for correctness
+    Check::RRSetFlags flags{Check::RRSET_CHECK_TTL};
+    if (allowUnderscores) {
+      flags = static_cast<Check::RRSetFlags>(flags | Check::RRSET_ALLOW_UNDERSCORES);
+    }
+    if (!checkNewRecords(resp, rrset, zonename, flags)) {
+      // Proper error response has been set up, no need to do anything further.
+      return ABORT;
+    }
+
     if (!domainInfo.backend->replaceRRSet(domainInfo.id, qname, qtype, rrset)) {
       throw ApiException("Hosting backend does not support editing records.");
     }

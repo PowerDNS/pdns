@@ -53,7 +53,7 @@ bool validateViewName(std::string_view name, std::string& error)
   return true;
 }
 
-void checkRRSet(const vector<DNSResourceRecord>& oldrrs, vector<DNSResourceRecord>& allrrs, const ZoneName& zone, bool allowUnderscores, vector<pair<DNSResourceRecord, string>>& errors)
+void checkRRSet(const vector<DNSResourceRecord>& oldrrs, vector<DNSResourceRecord>& allrrs, const ZoneName& zone, RRSetFlags flags, vector<pair<DNSResourceRecord, string>>& errors)
 {
   // QTypes that MUST NOT have multiple records of the same type in a given RRset.
   static const std::set<uint16_t> onlyOneEntryTypes = {QType::CNAME, QType::DNAME, QType::SOA};
@@ -77,6 +77,18 @@ void checkRRSet(const vector<DNSResourceRecord>& oldrrs, vector<DNSResourceRecor
         }
         if (previous.content == rec.content) {
           errors.emplace_back(std::make_pair(rec, std::string{"duplicate record with content \""} + rec.content + "\""));
+        }
+        // Enforce identical TTLs for all records with the same name and type,
+        // if required. This is optional because some callers are able to
+        // compute allrrs in a way which already enforces this, and therefore
+        // it is useless to check a second time.
+        if ((flags & RRSET_CHECK_TTL) != 0) {
+          if (rec.ttl != previous.ttl) {
+            // This error message may be misleading if a TTL discrepancy already
+            // exists in the RRset, as it might blame an existing record rather
+            // than those being added. ¯\_(ツ)_/¯
+            errors.emplace_back(std::make_pair(rec, std::string{"uses a different TTL value than the remainder of the RRset"}));
+          }
         }
       }
       else {
@@ -108,6 +120,7 @@ void checkRRSet(const vector<DNSResourceRecord>& oldrrs, vector<DNSResourceRecor
     }
 
     // Check if the DNSNames that should be hostnames, are hostnames
+    bool allowUnderscores = (flags & RRSET_ALLOW_UNDERSCORES) != 0;
     try {
       checkHostnameCorrectness(rec, allowUnderscores);
     }

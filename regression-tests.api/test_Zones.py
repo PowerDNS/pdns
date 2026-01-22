@@ -1677,6 +1677,48 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         data2 = self.get_zone(name)
         self.assertEqual(get_rrset(data, 'a.'+name), get_rrset(data2, 'a.'+name))
 
+    def test_zone_rr_bogus_extend(self):
+        name, payload, zone = self.create_zone()
+        # add a single record with extend
+        rrset = {
+            'changetype': 'extend',
+            'name': 'txt.'+name,
+            'type': 'TXT',
+            'ttl': 3600,
+            'records': [
+                {
+                    "content": "\"hello\"",
+                    "disabled": False
+                }
+            ]
+        }
+        payload = {'rrsets': [rrset]}
+        r = self.session.patch(
+            self.url("/api/v1/servers/localhost/zones/" + name),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assert_success(r)
+        # try and add another record with a mismatching ttl
+        rrset2 = {
+            'changetype': 'extend',
+            'name': 'txt.'+name,
+            'type': 'TXT',
+            'ttl': 1234,
+            'records': [
+                {
+                    "content": "\"hello again\"",
+                    "disabled": False
+                }
+            ]
+        }
+        payload2 = {'rrsets': [rrset2]}
+        r = self.session.patch(
+            self.url("/api/v1/servers/localhost/zones/" + name),
+            data=json.dumps(payload2),
+            headers={'content-type': 'application/json'})
+        self.assertEqual(r.status_code, 422)
+        self.assert_in_json_error('uses a different TTL value than the remainder of the RRset', r.json())
+
     def test_zone_rr_update_with_prune(self):
         name, payload, zone = self.create_zone()
         # fill a bunch of records
