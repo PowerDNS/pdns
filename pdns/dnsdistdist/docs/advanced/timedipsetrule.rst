@@ -9,11 +9,8 @@ This may be used to temporarily shunt traffic to another pool for example.
 :class:`TimedIPSetRule` creates an object to which native IP addresses can be
 added in :class:`ComboAddress` form.
 
-.. function:: TimedIPSetRule() -> TimedIPSetRule
-
-  Returns a :class:`TimedIPSetRule`.
-
 .. class:: TimedIPSetRule
+           TimedIPSetRule()
 
   Can be used to handle IP addresses differently for a certain time.
 
