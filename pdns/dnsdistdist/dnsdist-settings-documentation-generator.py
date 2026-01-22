@@ -136,7 +136,10 @@ def process_object(object_name, entries, entry_type, is_setting_struct=False, lu
         output += "\n"
 
     if lua_equivalent is not None:
-        output += f"Lua equivalent: :func:`{lua_equivalent}`\n\n"
+        if "docs-is-class" in entries and bool(entries["docs-is-class"]):
+            output += f"Lua equivalent: :class:`{lua_equivalent}`\n\n"
+        else:
+            output += f"Lua equivalent: :func:`{lua_equivalent}`\n\n"
 
     if "parameters" in entries:
         if not is_setting_struct:
