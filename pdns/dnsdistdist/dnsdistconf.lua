@@ -70,7 +70,7 @@
 -- addAction(NetmaskGroupRule("192.0.2.0/24"), PoolAction("abuse"))
 
 -- Refuse incoming AXFR, IXFR, NOTIFY and UPDATE
--- Add trusted sources (slaves, masters) explicitely in front of this rule
+-- Add trusted sources (secondaries, primaries) explicitely in front of this rule
 -- addAction(OrRule({OpcodeRule(DNSOpcode.Notify), OpcodeRule(DNSOpcode.Update), QTypeRule(DNSQType.AXFR), QTypeRule(DNSQType.IXFR)}), RCodeAction(DNSRCode.REFUSED))
 
 -- == Dynamic Blocks ==

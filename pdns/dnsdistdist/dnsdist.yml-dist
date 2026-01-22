@@ -1,0 +1,263 @@
+---
+
+# Only accept queries (Do53, DNSCrypt,  DoT or DoH) from a few subnets
+# see https://dnsdist.org/advanced/acl.html for more details
+# please be careful when dnsdist is deployed in front of a server
+# server granting access based on the source IP, as all queries will
+# seem to originate from dnsdist, which might be especially relevant for
+# AXFR, IXFR, NOTIFY and UPDATE
+# https://dnsdist.org/advanced/axfr.html
+#acl:
+#  - '192.0.2.0/28'
+#  - '2001:DB8:1::/56'
+
+# Listen for console connection with the given secret key
+# https://dnsdist.org/guides/console.html
+#console:
+#  listen_address: "127.0.0.1:5900"
+#  key: "please generate a fresh private key with makeKey()"
+#  acl:
+#    - "127.0.0.0/8"
+
+# Start the web server on port 8083, using password 'set a random password here'
+# https://dnsdist.org/guides/webserver.html
+#webserver:
+#  listen_addresses:
+#    - "127.0.0.1:8083"
+#  acl:
+#    - 127.0.0.0/8
+#  password: "set a random password here"
+
+# Send statistics to PowerDNS metronome server https://metronome1.powerdns.com/
+# https://dnsdist.org/guides/carbon.html
+#carbon:
+#  address: "37.252.122.50"
+#  name: "unique-name"
+
+# Listen for incoming DNS queries
+#binds:
+# accept plain DNS (Do53) queries on UDP/53 and TCP/53
+#  - listen_address: "127.0.0.1:53"
+#    protocol: "Do53"
+# accept DNSCrypt queries on UDP/8443 and TCP/8443
+# https://dnsdist.org/guides/dnscrypt.html
+#  - listen_address: "127.0.0.1:8443"
+#    protocol: "DNSCrypt"
+#    dnscrypt:
+#      provider_name: "2.provider.name"
+#      certificates:
+#        - certificate: "DNSCryptResolver.cert"
+#          key: "DNSCryptResolver.key"
+# accept DNS over TLS (DoT) queries on TCP/853
+# https://dnsdist.org/guides/dns-over-tls.html
+#  - listen_address: "127.0.0.1:853"
+#    protocol: "DoT"
+#    tls:
+#      certificates:
+#        - certificate: "server.crt"
+#          key: "server.key"
+#      provider: "openssl"
+# accept DNS over HTTPS (DoH) queries on TCP/443
+# https://dnsdist.org/guides/dns-over-https.html
+#  - listen_address: "127.0.0.1:443"
+#    protocol: "DoH"
+#    tls:
+#      certificates:
+#        - certificate: "server.crt"
+#          key: "server.key"
+#    doh:
+#      provider: "nghttp2"
+#      paths:
+#        - "/"
+# accept DNS over QUIC (DoQ) queries on UDP/853
+# https://www.dnsdist.org/guides/dns-over-quic.html
+#  - listen_address: "127.0.0.1:853"
+#    protocol: "DoQ"
+#    tls:
+#      certificates:
+#        - certificate: "server.crt"
+#          key: "server.key"
+# accept DNS over HTTP/3 (DoH3) queries on UDP/443
+# https://www.dnsdist.org/guides/dns-over-http3.html
+#  - listen_address: "127.0.0.1:443"
+#    protocol: "DoH3"
+#    tls:
+#      certificates:
+#        - certificate: "server.crt"
+#          key: "server.key"
+
+# define downstream servers, aka backends
+# https://dnsdist.org/guides/downstreams.html
+# https://dnsdist.org/guides/serverpools.html
+# https://dnsdist.org/guides/serverselection.html
+#backends:
+#  - address: "192.0.2.1:53"
+#    protocol: "Do53"
+#  - address: "192.0.2.1:5300"
+#    protocol: "Do53"
+#    pools:
+#      - "abuse"
+
+# == Tuning ==
+
+# Increase the in-memory rings size (the default, 10000, is only one second at 10k qps) used by
+# live-traffic inspection features like grepq, and use 100 shards to improve performance
+#ring_buffers:
+#  size: 1000000
+#  shards: 100
+
+# increase the number of TCP workers, each one being capable of handling a large number
+# of TCP connections
+#tunning:
+#  tcp:
+#    worker_threads: 20
+
+# == Sample Actions ==
+
+# https://dnsdist.org/rules-actions.html
+#query_rules:
+# send the queries for selected domain suffixes to the servers
+# in the 'abuse' pool
+#  - name: "route queries for selected suffixes to abuse pool"
+#    selector:
+#      type: "QNameSuffix"
+#      suffixes:
+#        - "abuse.example.org."
+#        - "xxx."
+#    action:
+#      type: "Pool"
+#      pool_name: "abuse"
+# drop queries for this exact qname
+#  - name: "drop queries for drop-me.example.org."
+#    selector:
+#      type: "QName"
+#      qname: "drop-me.example.org."
+#    action:
+#      type: "Drop"
+# send the queries from a selected subnet to the
+# abuse pool
+#  - name: "send queries from 192.0.2.0/24 to abuse"
+#    selector:
+#      type: "NetmaskGroup"
+#      netmasks:
+#        - "192.0.2.0/24"
+#    action:
+#      type: "Pool"
+#      pool_name: "abuse"
+# Refuse incoming AXFR, IXFR, NOTIFY and UPDATE
+# Add trusted sources (secondaries, primaries) explicitely in front of this rule
+#  - name: "Refuse AXFR, IXFR, NOTIFY and UPDATE queries"
+#    selector:
+#      type: "Or"
+#      selectors:
+#        - type: "Opcode"
+#          code: "NOTIFY"
+#        - type: "Opcode"
+#          code: "UPDATE"
+#        - type: "QType"
+#          qtype: "AXFR"
+#        - type: "QType"
+#          qtype: "IXFR"
+#    action:
+#      type: "RCode"
+#      rcode: "Refused"
+
+# == Dynamic Blocks ==
+
+# define a dynamic block rules group object, set a few limits and apply it
+# see https://dnsdist.org/guides/dynblocks.html for more details
+#dynamic_rules:
+#  - name: "Block client generating too many ANY queries"
+#    rules:
+#      - type: "query-rate"
+#        rate: 30
+#        seconds: 10
+#        action_duration: 60
+#        comment: "Exceeded query rate"
+#        action: "Drop"
+#  - name: "Block client generating too many ANY queries"
+#    rules:
+#      - type: "qtype-rate"
+#        rate: 5
+#        seconds: 10
+#        action_duration: 60
+#        comment: "Exceeded ANY rate"
+#        action: "Refused"
+#        qtype: "ANY"
+#  - name: "Block client generating too many SERVFAIL responses"
+#    rules:
+#      - type: "rcode-rate"
+#        rate: 20
+#        seconds: 10
+#        action_duration: 60
+#        comment: "Exceeded ServFail rate"
+#        action: "Refused"
+#        rcode: "SERVFAIL"
+#  - name: "Block client exceeding the configured bandwidth with their responses"
+#    rules:
+#      - type: "response-byte-rate"
+#        rate: 10000
+#        seconds: 10
+#        action_duration: 60
+#        comment: "Exceeded response BW rate"
+#        action: "Refused"
+
+# == Logging ==
+
+# connect to a remote protobuf logger and export queries and responses
+# https://dnsdist.org/reference/protobuf.html
+#remote_logging:
+#  protobuf_loggers:
+#    - name: "my-logger"
+#      address: "192.0.2.1:4242"
+#      timeout: 1
+#query_rules:
+#  - name: "log queries via PB"
+#    selector:
+#      type: "All"
+#    action:
+#      type: "RemoteLog"
+#      logger_name: "my-logger"
+#response_rules:
+#  - name: "log responses via PB"
+#    selector:
+#      type: "All"
+#    action:
+#      type: "RemoteLog"
+#      logger_name: "my-logger"
+#
+# DNSTAP is also supported
+# https://dnsdist.org/reference/dnstap.html
+#remote_logging:
+#  dnstap_loggers:
+#    - name: "my-fstrm-tcp-logger"
+#      transport: "tcp"
+#      address: "192.0.2.1:4242"
+#query_rules:
+#  - name: "log queries via dnstap"
+#    selector:
+#      type: "All"
+#    action:
+#      type: "DnstapLog"
+#      identity: "a.server"
+#      logger_name: "my-fstrm-tcp-logger"
+#response_rules:
+#  - name: "log responses via dnstap"
+#    selector:
+#      type: "All"
+#    action:
+#      type: "DnstapLog"
+#      identity: "a.server"
+#      logger_name: "my-logger"
+
+# == Caching ==
+
+# https://dnsdist.org/guides/cache.html
+# create a packet cache of at most 100k entries,
+# and apply it to the default pool
+#packet_caches:
+#  - name: "pc"
+#    size: 100000
+#pools:
+#  - name: ""
+#    packet_cache: "pc"
