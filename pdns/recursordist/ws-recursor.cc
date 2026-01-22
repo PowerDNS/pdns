@@ -644,7 +644,7 @@ static void apiServerOTConditionDetailDELETE(HttpRequest* req, HttpResponse* res
     }
     throw ApiException("Could not find otcondition '" + netmask.toString() + "'");
   }
-  catch (NetmaskException& ex) {
+  catch (NetmaskException&) {
     throw ApiException("Could not parse netmask");
   }
 }

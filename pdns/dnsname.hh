@@ -728,6 +728,7 @@ struct SuffixMatchNode
   std::vector<DNSName> toVector() const
     {
       std::vector<DNSName> ret;
+      ret.reserve(d_nodes.size());
       for (const auto& n : d_nodes) {
         ret.emplace_back(n);
       }

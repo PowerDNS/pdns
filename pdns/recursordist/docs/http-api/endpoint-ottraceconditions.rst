@@ -7,7 +7,7 @@ OpenTelemetryTraceConditions endpoint
 
 .. http:get:: /api/v1/servers/:server_id/ottraceconditions
 
-  Get all :json:object:`OpenTelemetryTraceCondition` from the server. Note that while the settings file allows a list of subnets to be associated with a condition, this list is flattened: one subnet per condition.
+  Get all :json:object:`OpenTelemetryTraceCondition` from the server. Note that while the settings file allows a list of subnets to be associated with a condition, this list will be flattened, with only one subnet per condition.
 
   :query server_id: The name of the server
 

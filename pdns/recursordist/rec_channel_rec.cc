@@ -1990,7 +1990,7 @@ static void* pleaseSupplantOTConditions(const OpenTelemetryTraceConditions& cond
 
 void updateOTConditions(const OpenTelemetryTraceConditions& conditions)
 {
-  // XXX YAML settiongs are not updated, so rec_control get-parameter won't show runtime updated conditions
+  // XXX YAML settings are not updated, so rec_control get-parameter won't show runtime updated conditions
   broadcastFunction([conditions] { return pleaseSupplantOTConditions(conditions); });
 }
 
