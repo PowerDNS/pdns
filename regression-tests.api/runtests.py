@@ -161,7 +161,7 @@ if daemon not in ('authoritative', 'recursor') or backend not in ('gmysql', 'gpg
 daemon = sys.argv[1]
 
 pdns_server = os.environ.get("PDNSSERVER", "../pdns/pdns_server")
-pdns_recursor = os.environ.get("PDNSRECURSOR", "../pdns/recursordist/build/pdns_recursor")
+pdns_recursor = os.environ.get("PDNSRECURSOR", "../pdns/recursordist/pdns_recursor")
 common_args = [
     "--daemon=no", "--socket-dir=.", "--config-dir=.",
     "--local-address=127.0.0.1", "--local-port="+str(DNSPORT),
