@@ -543,6 +543,167 @@ static void apiServerRPZStats(HttpRequest* /* req */, HttpResponse* resp)
   resp->setJsonBody(ret);
 }
 
+static void apiServerOTConditionsGET(HttpRequest* /* req */, HttpResponse* resp)
+{
+  Json::array doc;
+  auto lock = g_initialOpenTelemetryConditions.lock();
+  if (*lock) {
+    for (const auto& condition : **lock) {
+      Json::object object{
+        {"acl", condition.first.toString()},
+        {"type", "OpenTelemetryTraceCondition"},
+        {"edns_option_required", condition.second.d_edns_option_required},
+        {"traceid_only", condition.second.d_traceid_only},
+      };
+      if (condition.second.d_qid) {
+        object.emplace("qid", *condition.second.d_qid);
+      }
+      if (condition.second.d_qnames) {
+        Json::array array;
+        for (const auto& name : condition.second.d_qnames->toVector()) {
+          array.emplace_back(name.toString());
+        }
+        object.emplace("qnames", array);
+      }
+      if (condition.second.d_qtypes) {
+        Json::array array;
+        for (const auto& name : *condition.second.d_qtypes) {
+          array.emplace_back(name.toString());
+        }
+        object.emplace("qtypes", array);
+      }
+
+      doc.emplace_back(std::move(object));
+    }
+  }
+  resp->setJsonBody(doc);
+}
+
+static void fillOTCondition(const Netmask& netmask, HttpResponse* resp)
+{
+  auto lock = g_initialOpenTelemetryConditions.lock();
+  if (*lock) {
+    auto condition = (*lock)->lookup(netmask);
+    if (condition != nullptr && condition->first == netmask) { // exact match
+      Json::object object{
+        {"acl", condition->first.toString()},
+        {"type", "OpenTelemetryTraceCondition"},
+        {"edns_option_required", condition->second.d_edns_option_required},
+        {"traceid_only", condition->second.d_traceid_only},
+      };
+      if (condition->second.d_qid) {
+        object.emplace("qid", *condition->second.d_qid);
+      }
+      if (condition->second.d_qnames) {
+        Json::array array;
+        for (const auto& name : condition->second.d_qnames->toVector()) {
+          array.emplace_back(name.toString());
+        }
+        object.emplace("qnames", array);
+      }
+      if (condition->second.d_qtypes) {
+        Json::array array;
+        for (const auto& name : *condition->second.d_qtypes) {
+          array.emplace_back(name.toString());
+        }
+        object.emplace("qtypes", array);
+      }
+      resp->setJsonBody(object);
+      return;
+    }
+  }
+  throw ApiException("Could not find otcondition '" + netmask.toString() + "'");
+}
+
+static void apiServerOTConditionDetailGET(HttpRequest* req, HttpResponse* resp)
+{
+  try {
+    Netmask netmask{req->parameters["acl"]};
+    fillOTCondition(netmask, resp);
+  }
+  catch (NetmaskException& ex) {
+    throw ApiException("Could not parse netmask");
+  }
+}
+
+static void apiServerOTConditionDetailDELETE(HttpRequest* req, HttpResponse* resp)
+{
+  try {
+    Netmask netmask{req->parameters["acl"]};
+    auto lock = g_initialOpenTelemetryConditions.lock();
+    if (*lock) {
+      auto condition = (*lock)->lookup(netmask);
+      if (condition != nullptr && condition->first == netmask) { // exact match
+        (*lock)->erase(condition->first);
+        updateOTConditions(**lock);
+        // empty body on success
+        resp->body = "";
+        resp->status = 204; // No Content: declare that the condition is gone now
+        return;
+      }
+    }
+    throw ApiException("Could not find otcondition '" + netmask.toString() + "'");
+  }
+  catch (NetmaskException&) {
+    throw ApiException("Could not parse netmask");
+  }
+}
+
+static void apiServerOTConditionDetailPOST(HttpRequest* req, HttpResponse* resp)
+{
+  Netmask netmask;
+  try {
+    Json document = req->json();
+    if (auto acl = document["acl"]; acl != Json()) {
+      netmask = Netmask{acl.string_value()};
+    }
+    else {
+      throw ApiException("Required parameter acl missing");
+    }
+    auto lock = g_initialOpenTelemetryConditions.lock();
+    if (!*lock) {
+      *lock = std::make_unique<OpenTelemetryTraceConditions>();
+    }
+    auto conditionPtr = (*lock)->lookup(netmask);
+    if (conditionPtr != nullptr && conditionPtr->first == netmask) { // exact match
+      throw ApiException("OTCondition already exists");
+    }
+
+    OpenTelemetryTraceCondition condition;
+    if (auto traceid_only = document["traceid_only"]; traceid_only.is_bool()) {
+      condition.d_traceid_only = traceid_only.bool_value();
+    }
+    if (auto edns = document["edns_option_required"]; edns.is_bool()) {
+      condition.d_edns_option_required = edns.bool_value();
+    }
+    if (auto qnames = document["qnames"]; qnames.is_array() && !qnames.array_items().empty()) {
+      condition.d_qnames = SuffixMatchNode();
+      for (const auto& qname : qnames.array_items()) {
+        condition.d_qnames->add(DNSName(qname.string_value()));
+      }
+    }
+    if (auto qtypes = document["qtypes"]; qtypes.is_array() && !qtypes.array_items().empty()) {
+      condition.d_qtypes = std::unordered_set<QType>();
+      for (const auto& qtype : qtypes.array_items()) {
+        if (auto qcode = QType::chartocode(qtype.string_value().c_str()); qcode > 0) {
+          condition.d_qtypes->insert(qcode);
+        }
+      }
+    }
+    if (auto qid = document["qid"]; qid.is_number()) {
+      condition.d_qid = qid.int_value();
+    }
+    (*lock)->insert(netmask).second = condition;
+    updateOTConditions(**lock);
+  }
+  catch (NetmaskException&) {
+    throw ApiException("Could not parse netmask");
+  }
+  fillOTCondition(netmask, resp);
+  resp->status = 201;
+  return;
+}
+
 static void prometheusMetrics(HttpRequest* /* req */, HttpResponse* resp)
 {
   static MetricDefinitionStorage s_metricDefinitions;
@@ -1115,6 +1276,10 @@ WRAPPER(apiServerZoneDetailGET)
 WRAPPER(apiServerZoneDetailPUT)
 WRAPPER(apiServerZonesGET)
 WRAPPER(apiServerZonesPOST)
+WRAPPER(apiServerOTConditionsGET)
+WRAPPER(apiServerOTConditionDetailGET)
+WRAPPER(apiServerOTConditionDetailDELETE)
+WRAPPER(apiServerOTConditionDetailPOST)
 WRAPPER(prometheusMetrics)
 WRAPPER(serveStuff)
 

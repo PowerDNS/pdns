@@ -399,6 +399,26 @@ fn matcher(
         (&Method::GET, ["api", "v1"]) => *apifunc = Some(rustweb::apiDiscoveryV1),
         (&Method::GET, ["api"]) => *apifunc = Some(rustweb::apiDiscovery),
         (&Method::GET, ["metrics"]) => *rawfunc = Some(rustweb::prometheusMetrics),
+        (&Method::GET, ["api", "v1", "servers", "localhost", "ottraceconditions"]) => {
+            *apifunc = Some(rustweb::apiServerOTConditionsGET);
+        }
+        (&Method::GET, ["api", "v1", "servers", "localhost", "ottraceconditions", ip, pflen]) => {
+            request.parameters.push(rustweb::KeyValue {
+                key: String::from("acl"),
+                value: String::from(*ip) + "/" + *pflen,
+            });
+            *apifunc = Some(rustweb::apiServerOTConditionDetailGET)
+        }
+        (&Method::DELETE, ["api", "v1", "servers", "localhost", "ottraceconditions", ip, pflen]) => {
+            request.parameters.push(rustweb::KeyValue {
+                key: String::from("acl"),
+                value: String::from(*ip) + "/" + *pflen,
+            });
+            *apifunc = Some(rustweb::apiServerOTConditionDetailDELETE)
+        }
+        (&Method::POST, ["api", "v1", "servers", "localhost", "ottraceconditions"]) => {
+            *apifunc = Some(rustweb::apiServerOTConditionDetailPOST)
+        }
         _ => *filefunc = Some(file),
     }
 }
@@ -1146,6 +1166,10 @@ mod rustweb {
         fn apiServerZoneDetailPUT(request: &Request, response: &mut Response) -> Result<()>;
         fn apiServerZonesGET(request: &Request, response: &mut Response) -> Result<()>;
         fn apiServerZonesPOST(requst: &Request, response: &mut Response) -> Result<()>;
+        fn apiServerOTConditionsGET(request: &Request, response: &mut Response) -> Result<()>;
+        fn apiServerOTConditionDetailGET(request: &Request, response: &mut Response) -> Result<()>;
+        fn apiServerOTConditionDetailDELETE(request: &Request, response: &mut Response) -> Result<()>;
+        fn apiServerOTConditionDetailPOST(request: &Request, response: &mut Response) -> Result<()>;
         fn jsonstat(request: &Request, response: &mut Response) -> Result<()>;
         fn prometheusMetrics(request: &Request, response: &mut Response) -> Result<()>;
         fn serveStuff(request: &Request, response: &mut Response) -> Result<()>;
