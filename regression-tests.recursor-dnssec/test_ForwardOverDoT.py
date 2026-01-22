@@ -28,28 +28,13 @@ devonly-regression-test-mode
         self.assertRRsetInAnswer(res, expected)
         self.assertMatchingRRSIGInAnswer(res, expected)
 
-        rec_controlCmd = [os.environ['RECCONTROL'],
-                          '--config-dir=%s' % 'configs/' + self._confdir,
-                          'get dot-outqueries']
-        try:
-            ret = subprocess.check_output(rec_controlCmd, stderr=subprocess.STDOUT)
-            self.assertNotEqual(ret, b'UNKNOWN\n')
-            self.assertNotEqual(ret, b'0\n')
+        confdir = 'configs/' + self._confdir
+        ret = self.recControl(confdir, 'get', 'dot-outqueries')
+        self.assertNotEqual(ret, 'UNKNOWN\n')
+        self.assertNotEqual(ret, '0\n')
 
-        except subprocess.CalledProcessError as e:
-            print(e.output)
-            raise
-
-        rec_controlCmd = [os.environ['RECCONTROL'],
-                          '--config-dir=%s' % 'configs/' + self._confdir,
-                          'get tcp-outqueries']
-        try:
-            ret = subprocess.check_output(rec_controlCmd, stderr=subprocess.STDOUT)
-            self.assertEqual(ret, b'0\n')
-
-        except subprocess.CalledProcessError as e:
-            print(e.output)
-            raise
+        ret = self.recControl(confdir, 'get', 'tcp-outqueries')
+        self.assertEqual(ret, '0\n')
 
 class ForwardOverDoTTest(RecursorTest):
     """
@@ -94,26 +79,11 @@ recursor:
         self.assertRRsetInAnswer(res, expected)
         self.assertMatchingRRSIGInAnswer(res, expected)
 
-        rec_controlCmd = [os.environ['RECCONTROL'],
-                          '--config-dir=%s' % 'configs/' + self._confdir,
-                          'get dot-outqueries']
-        try:
-            ret = subprocess.check_output(rec_controlCmd, stderr=subprocess.STDOUT)
-            self.assertNotEqual(ret, b'UNKNOWN\n')
-            self.assertNotEqual(ret, b'0\n')
+        confdir = 'configs/' + self._confdir
+        ret = self.recControl(confdir, 'get', 'dot-outqueries')
+        self.assertNotEqual(ret, 'UNKNOWN\n')
+        self.assertNotEqual(ret, '0\n')
 
-        except subprocess.CalledProcessError as e:
-            print(e.output)
-            raise
-
-        rec_controlCmd = [os.environ['RECCONTROL'],
-                          '--config-dir=%s' % 'configs/' + self._confdir,
-                          'get tcp-outqueries']
-        try:
-            ret = subprocess.check_output(rec_controlCmd, stderr=subprocess.STDOUT)
-            self.assertEqual(ret, b'0\n')
-
-        except subprocess.CalledProcessError as e:
-            print(e.output)
-            raise
+        ret = self.recControl(confdir, 'get', 'tcp-outqueries')
+        self.assertEqual(ret, '0\n')
 
