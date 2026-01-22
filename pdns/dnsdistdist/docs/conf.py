@@ -100,6 +100,11 @@ pygments_style = "sphinx"
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = False
 
+# -- Lua LS Options -------------------------------------------------------
+
+# it doesn't really matter which LS we use as we don't document code in Lua files
+lua_ls_backend = "luals"
+
 # -- Changelog Options ----------------------------------------------------
 
 changelog_render_ticket = "https://github.com/PowerDNS/pdns/issues/%s"
