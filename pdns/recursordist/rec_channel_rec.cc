@@ -2079,7 +2079,6 @@ static RecursorControlChannel::Answer help(ArgIterator /* begin */, ArgIterator 
 static void activateLua(LuaConfigItems& lci, bool broadcast, ProxyMapping&& proxyMapping, OpenTelemetryTraceConditions&& conditions)
 {
   extern std::unique_ptr<ProxyMapping> g_proxyMapping;
-  extern std::unique_ptr<OpenTelemetryTraceConditions> g_OTConditions;
 
   activateLuaConfig(lci);
   lci = g_luaconfs.getCopy();
@@ -2091,7 +2090,7 @@ static void activateLua(LuaConfigItems& lci, bool broadcast, ProxyMapping&& prox
   else {
     // Initial proxy mapping and OT conditions
     g_proxyMapping = proxyMapping.empty() ? nullptr : std::make_unique<ProxyMapping>(proxyMapping);
-    g_OTConditions = conditions.empty() ? nullptr : std::make_unique<OpenTelemetryTraceConditions>(conditions);
+    *g_initialOpenTelemetryConditions.lock() = conditions.empty() ? nullptr : std::make_unique<OpenTelemetryTraceConditions>(conditions);
   }
   if (broadcast) {
     g_slog->withName("config")->info(Logr::Info, "Reloaded");
@@ -2125,17 +2124,20 @@ RecursorControlChannel::Answer luaconfig(bool broadcast)
     try {
       if (yamlstat == pdns::settings::rec::YamlSettingsStatus::OK) {
         // YAML read above succeeded
-        ProxyMapping dummyProxyMapping; // taken from lua, so ignire YAML
-        LuaConfigItems dummpyLuaConfig; // we do not use the converted orm YAML LuaConfigItems, but the "real thing"
-        pdns::settings::rec::fromBridgeStructToLuaConfig(settings, dummpyLuaConfig, dummyProxyMapping, conditions);
+        ProxyMapping dummyProxyMapping; // taken from lua, so ignore YAML
+        LuaConfigItems dummyLuaConfig; // we do not use the converted orm YAML LuaConfigItems, but the "real thing"
+        pdns::settings::rec::fromBridgeStructToLuaConfig(settings, dummyLuaConfig, dummyProxyMapping, conditions);
         TCPOutConnectionManager::setupOutgoingTLSConfigTables(settings);
       }
-      if (::arg()["lua-config-file"].empty()) {
-        return {0, "No Lua or corresponding YAML configuration active\n"};
+      if (!::arg()["lua-config-file"].empty()) {
+        loadRecursorLuaConfig(::arg()["lua-config-file"], proxyMapping, lci); // will bump generation
       }
-      loadRecursorLuaConfig(::arg()["lua-config-file"], proxyMapping, lci); // will bump generation
       activateLua(lci, broadcast, std::move(proxyMapping), std::move(conditions));
-      return {0, "Reloaded Lua configuration file '" + ::arg()["lua-config-file"] + "'\n"};
+      string msg = "Reloaded dynamic parts of YAML config";
+      if (!::arg()["lua-config-file"].empty()) {
+        msg += " and Lua configuration file '" + ::arg()["lua-config-file"] + "'";
+      }
+      return {0, msg + "\n"};
     }
     catch (std::exception& e) {
       return {1, "Unable to load Lua script from '" + ::arg()["lua-config-file"] + "': " + e.what() + "\n"};
