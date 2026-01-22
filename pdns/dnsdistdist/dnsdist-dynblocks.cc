@@ -35,20 +35,20 @@ void DynBlockRulesGroup::apply(const timespec& now)
     const auto& requestor = entry.first;
     const auto& counters = entry.second;
 
-    if (d_queryRateRule.warningRateExceeded(counters.queries, now)) {
+    if (d_queryRateRule.warningRateExceeded(g_rings.adjustForSamplingRate(counters.queries), now)) {
       handleWarning(blocks, now, requestor, d_queryRateRule, updated);
     }
 
-    if (d_queryRateRule.rateExceeded(counters.queries, now)) {
+    if (d_queryRateRule.rateExceeded(g_rings.adjustForSamplingRate(counters.queries), now)) {
       addBlock(blocks, now, requestor, d_queryRateRule, updated);
       continue;
     }
 
-    if (d_respRateRule.warningRateExceeded(counters.respBytes, now)) {
+    if (d_respRateRule.warningRateExceeded(g_rings.adjustForSamplingRate(counters.respBytes), now)) {
       handleWarning(blocks, now, requestor, d_respRateRule, updated);
     }
 
-    if (d_respRateRule.rateExceeded(counters.respBytes, now)) {
+    if (d_respRateRule.rateExceeded(g_rings.adjustForSamplingRate(counters.respBytes), now)) {
       addBlock(blocks, now, requestor, d_respRateRule, updated);
       continue;
     }
@@ -69,11 +69,11 @@ void DynBlockRulesGroup::apply(const timespec& now)
       const auto& typeIt = counters.d_qtypeCounts.find(qtype);
       if (typeIt != counters.d_qtypeCounts.cend()) {
 
-        if (pair.second.warningRateExceeded(typeIt->second, now)) {
+        if (pair.second.warningRateExceeded(g_rings.adjustForSamplingRate(typeIt->second), now)) {
           handleWarning(blocks, now, requestor, pair.second, updated);
         }
 
-        if (pair.second.rateExceeded(typeIt->second, now)) {
+        if (pair.second.rateExceeded(g_rings.adjustForSamplingRate(typeIt->second), now)) {
           addBlock(blocks, now, requestor, pair.second, updated);
           break;
         }
@@ -85,11 +85,11 @@ void DynBlockRulesGroup::apply(const timespec& now)
 
       const auto& rcodeIt = counters.d_rcodeCounts.find(rcode);
       if (rcodeIt != counters.d_rcodeCounts.cend()) {
-        if (pair.second.warningRateExceeded(rcodeIt->second, now)) {
+        if (pair.second.warningRateExceeded(g_rings.adjustForSamplingRate(rcodeIt->second), now)) {
           handleWarning(blocks, now, requestor, pair.second, updated);
         }
 
-        if (pair.second.rateExceeded(rcodeIt->second, now)) {
+        if (pair.second.rateExceeded(g_rings.adjustForSamplingRate(rcodeIt->second), now)) {
           addBlock(blocks, now, requestor, pair.second, updated);
           break;
         }
@@ -486,7 +486,7 @@ void DynBlockRulesGroup::processResponseRules(counts_t& counts, StatNode& root, 
 
       if (suffixMatchRuleMatches) {
         const bool hit = ringEntry.isACacheHit();
-        root.submit(ringEntry.name, ((ringEntry.dh.rcode == 0 && ringEntry.usec == std::numeric_limits<unsigned int>::max()) ? -1 : ringEntry.dh.rcode), ringEntry.size, hit, std::nullopt);
+        root.submit(ringEntry.name, ((ringEntry.dh.rcode == 0 && ringEntry.usec == std::numeric_limits<uint32_t>::max()) ? -1 : ringEntry.dh.rcode), ringEntry.size, hit, std::nullopt, g_rings.getSamplingRate());
       }
     }
   }

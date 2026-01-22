@@ -242,6 +242,8 @@ struct Rings
     return d_samplingRate;
   }
 
+  uint32_t adjustForSamplingRate(uint32_t count) const;
+
   std::vector<std::unique_ptr<Shard>> d_shards;
   pdns::stat_t d_blockingQueryInserts{0};
   pdns::stat_t d_blockingResponseInserts{0};

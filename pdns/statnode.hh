@@ -58,22 +58,27 @@ public:
   };
 
   using visitor_t = std::function<void(const StatNode*, const Stat& selfstat, const Stat& childstat)>;
-  using children_t = std::map<std::string, StatNode, CIStringCompare>;
 
   Stat s;
   std::string name;
   std::string fullname;
   uint8_t labelsCount{0};
 
-  void submit(const DNSName& domain, int rcode, unsigned int bytes, bool hit, const std::optional<ComboAddress>& remote);
+  void submit(const DNSName& domain, int rcode, uint32_t bytes, bool hit, const std::optional<ComboAddress>& remote, size_t samplingRate);
   Stat print(unsigned int depth=0, Stat newstat=Stat(), bool silent=false) const;
   void visit(const visitor_t& visitor, Stat& newstat, unsigned int depth = 0) const;
   bool empty() const
   {
     return children.empty() && s.remotes.empty();
   }
-  children_t children;
+  size_t size() const
+  {
+    return children.size();
+  }
 
 private:
-  void submit(std::vector<string>::const_iterator end, std::vector<string>::const_iterator begin, const std::string& domain, int rcode, unsigned int bytes, const std::optional<ComboAddress>& remote, unsigned int count, bool hit);
+  void submit(std::vector<string>::const_iterator end, std::vector<string>::const_iterator begin, const std::string& domain, int rcode, uint32_t bytes, const std::optional<ComboAddress>& remote, unsigned int count, bool hit, size_t samplingRate);
+
+  using children_t = std::map<std::string, StatNode, CIStringCompare>;
+  children_t children;
 };

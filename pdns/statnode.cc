@@ -48,7 +48,7 @@ void StatNode::visit(const visitor_t& visitor, Stat& newstat, unsigned int depth
   newstat += childstat;
 }
 
-void StatNode::submit(const DNSName& domain, int rcode, unsigned int bytes, bool hit, const std::optional<ComboAddress>& remote)
+void StatNode::submit(const DNSName& domain, int rcode, unsigned int bytes, bool hit, const std::optional<ComboAddress>& remote, size_t samplingRate)
 {
   //  cerr<<"FIRST submit called on '"<<domain<<"'"<<endl;
   std::vector<string> tmp = domain.getRawLabels();
@@ -57,17 +57,26 @@ void StatNode::submit(const DNSName& domain, int rcode, unsigned int bytes, bool
   }
 
   auto last = tmp.end() - 1;
-  children[*last].submit(last, tmp.begin(), "", rcode, bytes, remote, 1, hit);
+  children[*last].submit(last, tmp.begin(), "", rcode, bytes, remote, 1, hit, samplingRate);
 }
 
-/* www.powerdns.com. -> 
+static uint64_t adjustForSampling(uint32_t count, size_t samplingRate)
+{
+  if (samplingRate > 0) {
+    return count * samplingRate;
+  }
+  return count;
+}
+
+
+/* www.powerdns.com. ->
    .                 <- fullnames
    com.
    powerdns.com
    www.powerdns.com. 
 */
 
-void StatNode::submit(std::vector<string>::const_iterator end, std::vector<string>::const_iterator begin, const std::string& domain, int rcode, unsigned int bytes, const std::optional<ComboAddress>& remote, unsigned int count, bool hit)
+void StatNode::submit(std::vector<string>::const_iterator end, std::vector<string>::const_iterator begin, const std::string& domain, int rcode, unsigned int bytes, const std::optional<ComboAddress>& remote, unsigned int count, bool hit, size_t samplingRate)
 {
   //  cerr<<"Submit called for domain='"<<domain<<"': ";
   //  for(const std::string& n :  labels) 
@@ -94,19 +103,19 @@ void StatNode::submit(std::vector<string>::const_iterator end, std::vector<strin
       labelsCount = count;
     }
     //    cerr<<"Hit the end, set our fullname to '"<<fullname<<"'"<<endl<<endl;
-    s.queries++;
-    s.bytes += bytes;
+    s.queries += adjustForSampling(1U, samplingRate);
+    s.bytes += adjustForSampling(bytes, samplingRate);
     if (rcode < 0) {
-      s.drops++;
+      s.drops += adjustForSampling(1U, samplingRate);
     }
     else if (rcode == RCode::NoError) {
-      s.noerrors++;
+      s.noerrors += adjustForSampling(1U, samplingRate);
     }
     else if (rcode == RCode::ServFail) {
-      s.servfails++;
+      s.servfails += adjustForSampling(1U, samplingRate);
     }
     else if (rcode == RCode::NXDomain) {
-      s.nxdomains++;
+      s.nxdomains += adjustForSampling(1U, samplingRate);
     }
 
     if (remote) {
@@ -114,7 +123,7 @@ void StatNode::submit(std::vector<string>::const_iterator end, std::vector<strin
     }
 
     if (hit) {
-      ++s.hits;
+      s.hits += adjustForSampling(1U, samplingRate);
     }
   }
   else {
@@ -130,6 +139,6 @@ void StatNode::submit(std::vector<string>::const_iterator end, std::vector<strin
     }
     //    cerr<<"Not yet end, set our fullname to '"<<fullname<<"', recursing"<<endl;
     --end;
-    children[*end].submit(end, begin, fullname, rcode, bytes, remote, count+1, hit);
+    children[*end].submit(end, begin, fullname, rcode, bytes, remote, count+1, hit, samplingRate);
   }
 }

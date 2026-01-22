@@ -145,7 +145,7 @@ static void statNodeRespRing(statvisitor_t visitor, uint64_t seconds)
       }
 
       const bool hit = entry.isACacheHit();
-      root.submit(entry.name, ((entry.dh.rcode == 0 && entry.usec == std::numeric_limits<unsigned int>::max()) ? -1 : entry.dh.rcode), entry.size, hit, std::nullopt);
+      root.submit(entry.name, ((entry.dh.rcode == 0 && entry.usec == std::numeric_limits<uint32_t>::max()) ? -1 : entry.dh.rcode), entry.size, hit, std::nullopt, g_rings.getSamplingRate());
     }
   }
 
@@ -245,7 +245,7 @@ static counts_t exceedRCode(unsigned int rate, int seconds, int rcode)
 {
   return exceedRespGen(rate, seconds, [rcode](counts_t& counts, const Rings::Response& resp) {
     if (resp.dh.rcode == rcode) {
-      counts[resp.requestor]++;
+      counts[resp.requestor] += g_rings.adjustForSamplingRate(1U);
     }
   });
 }
@@ -253,7 +253,7 @@ static counts_t exceedRCode(unsigned int rate, int seconds, int rcode)
 static counts_t exceedRespByterate(unsigned int rate, int seconds)
 {
   return exceedRespGen(rate, seconds, [](counts_t& counts, const Rings::Response& resp) {
-    counts[resp.requestor] += resp.size;
+    counts[resp.requestor] += g_rings.adjustForSamplingRate(resp.size);
   });
 }
 
@@ -883,7 +883,7 @@ void setupLuaInspection(LuaContext& luaCtx)
     setLuaNoSideEffect();
     return exceedQueryGen(rate, seconds, [type](counts_t& counts, const Rings::Query& query) {
       if (query.qtype == type) {
-        counts[query.requestor]++;
+        counts[query.requestor] += g_rings.adjustForSamplingRate(1U);
       }
     });
   });
@@ -891,7 +891,7 @@ void setupLuaInspection(LuaContext& luaCtx)
   luaCtx.writeFunction("exceedQRate", [](unsigned int rate, int seconds) {
     setLuaNoSideEffect();
     return exceedQueryGen(rate, seconds, [](counts_t& counts, const Rings::Query& query) {
-      counts[query.requestor]++;
+      counts[query.requestor] += g_rings.adjustForSamplingRate(1U);
     });
   });
 
@@ -900,7 +900,7 @@ void setupLuaInspection(LuaContext& luaCtx)
   /* StatNode */
   luaCtx.registerFunction<unsigned int (StatNode::*)() const>("numChildren",
                                                               [](const StatNode& node) -> unsigned int {
-                                                                return node.children.size();
+                                                                return node.size();
                                                               });
   luaCtx.registerMember("fullname", &StatNode::fullname);
   luaCtx.registerMember("labelsCount", &StatNode::labelsCount);
