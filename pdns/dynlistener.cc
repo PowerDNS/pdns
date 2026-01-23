@@ -129,7 +129,7 @@ void DynListener::listenOnUnixDomain(const string& fname)
     exit(1);
   }
   
-  createSocketAndBind(AF_UNIX, (struct sockaddr*)& local, sizeof(local));
+  createSocketAndBind(AF_UNIX, (struct sockaddr*)& local, sizeof(local) - sizeof(local.sun_path) + fname.length());
   d_socketname=fname;
   if(!arg()["setgid"].empty()) {
     if(chmod(fname.c_str(),0660)<0)
