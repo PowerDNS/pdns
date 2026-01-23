@@ -1,7 +1,7 @@
 # To generate requirements.txt, install pip-tools and run:
 #  pip-compile --generate-hashes -U requirements.in
 
-wheel==0.45.1
+wheel==0.46.2
 dnspython
 pytest
 Twisted>0.15.0
