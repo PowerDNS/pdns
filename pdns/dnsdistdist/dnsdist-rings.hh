@@ -290,6 +290,9 @@ private:
   bool shouldSkipDueToSampling();
 
   static constexpr bool s_keepLockingStats{false};
+  // small hack to reduce contention: this only works because we have a single Rings object in DNSdist
+  static thread_local size_t t_samplingCounter;
+
 
   std::atomic<size_t> d_nbQueryEntries{0};
   std::atomic<size_t> d_nbResponseEntries{0};
@@ -300,7 +303,6 @@ private:
   size_t d_numberOfShards{10};
   size_t d_nbLockTries{5};
   size_t d_samplingRate{0};
-  std::atomic<size_t> d_samplingCounter{0};
   bool d_recordQueries{true};
   bool d_recordResponses{true};
 };

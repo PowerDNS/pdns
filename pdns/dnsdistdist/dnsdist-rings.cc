@@ -24,6 +24,8 @@
 
 #include "dnsdist-rings.hh"
 
+thread_local size_t Rings::t_samplingCounter{0};
+
 void Rings::init(const RingsConfiguration& config)
 {
   if (d_initialized.exchange(true)) {
@@ -207,8 +209,8 @@ bool Rings::shouldSkipDueToSampling()
   if (d_samplingRate == 0) {
     return false;
   }
-  auto counter = d_samplingCounter++;
-  return (counter % d_samplingRate) == 0;
+  auto counter = t_samplingCounter++;
+  return (counter % d_samplingRate) != 0;
 }
 
 uint32_t Rings::adjustForSamplingRate(uint32_t count) const
