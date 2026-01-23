@@ -13,7 +13,7 @@ class TestDynBlockGroupServFailsRatio(DynBlocksTest):
     _config_params = ['_dynBlockPeriod', '_dynBlockDuration', '_testServerPort']
     _config_template = """
     local dbr = dynBlockRulesGroup()
-    dbr:setRCodeRatio(DNSRCode.SERVFAIL, 0.2, %d, "Exceeded query rate", %d, 20)
+    dbr:setRCodeRatio(DNSRCode.SERVFAIL, 0.2, %d, "Exceeded rcode ratio", %d, 20)
 
     function maintenance()
 	    dbr:apply()
@@ -28,6 +28,42 @@ class TestDynBlockGroupServFailsRatio(DynBlocksTest):
         """
         name = 'servfailratio.group.dynblocks.tests.powerdns.com.'
         self.doTestRCodeRatio(name, dns.rcode.SERVFAIL, 10, 10)
+
+class TestDynBlockGroupServFailsRatioYaml(DynBlocksTest):
+
+    # we need this period to be quite long because we request the valid
+    # queries to be still looked at to reach the 40 queries count!
+    _dynBlockPeriod = 6
+    _yaml_config_template = """---
+dynamic_rules:
+  - name: "Block client generating too many SERVFAILs compared to the rest of their responses"
+    rules:
+      - type: "rcode-ratio"
+        ratio: 0.2
+        rcode: "SERVFAIL"
+        seconds: %d
+        action_duration: %d
+        minimum_number_of_responses: 20
+        comment: "Exceeded SERVFAIL ratio"
+
+ring_buffers:
+    # this should not have any impact on the tests, and if it does it's likely a bug!
+    sampling_rate: 2
+
+backends:
+  - address: "127.0.0.1:%d"
+    protocol: Do53
+"""
+    _config_params = []
+    _yaml_config_params = ['_dynBlockPeriod', '_dynBlockDuration', '_testServerPort']
+
+    def testDynBlocksServFailRatio(self):
+        """
+        Dyn Blocks (group / YAML): Server Failure Ratio
+        """
+        name = 'servfailratio-yaml.group.dynblocks.tests.powerdns.com.'
+        # we need more queries because of the sampling rate!
+        self.doTestRCodeRatio(name, dns.rcode.SERVFAIL, 20, 20)
 
 class TestDynBlockGroupServFailsRatioDoH(DynBlocksTest):
     # we need this period to be quite long because we request the valid
