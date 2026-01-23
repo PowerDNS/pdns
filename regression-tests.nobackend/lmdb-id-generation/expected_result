@@ -1,2 +1,6 @@
+If the authoritative server is running, be sure to refresh its zone cache
+with 'pdns_control rediscover'
 sequential generator generated 1 2 3 correctly
+If the authoritative server is running, be sure to refresh its zone cache
+with 'pdns_control rediscover'
 random generator generated something other than 1 2 3, good
