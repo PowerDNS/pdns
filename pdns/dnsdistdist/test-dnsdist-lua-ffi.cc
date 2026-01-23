@@ -838,7 +838,7 @@ BOOST_AUTO_TEST_CASE(test_RingBuffers)
   gettime(&now);
 
   g_rings.reset();
-  Rings::RingsConfiguration config {
+  Rings::RingsConfiguration config{
     .capacity = 10000U,
     .numberOfShards = 10U,
   };

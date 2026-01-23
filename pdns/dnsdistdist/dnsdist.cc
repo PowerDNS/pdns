@@ -3785,7 +3785,7 @@ int main(int argc, char** argv)
 
     {
       const auto& config = dnsdist::configuration::getImmutableConfiguration();
-      Rings::RingsConfiguration ringsConfig {
+      Rings::RingsConfiguration ringsConfig{
         .capacity = config.d_ringsCapacity,
         .numberOfShards = config.d_ringsNumberOfShards,
         .nbLockTries = config.d_ringsNbLockTries,
@@ -3794,7 +3794,7 @@ int main(int argc, char** argv)
         .recordResponses = config.d_ringsRecordResponses,
       };
       g_rings.init(ringsConfig);
-     }
+    }
 
     for (const auto& frontend : dnsdist::getFrontends()) {
       setUpLocalBind(*frontend, setupLogger);
