@@ -87,8 +87,10 @@ endif
 
 override_dh_installexamples:
 	cp dnsdist.conf-dist dnsdist.conf
+	cp dnsdist.yml-dist dnsdist.yml
 	dh_installexamples
 	rm -f dnsdist.conf
+	rm -f dnsdist.yml
 
 override_dh_installinit:
 	# do nothing here. avoids referencing a non-existant init script.
@@ -98,6 +100,8 @@ override_dh_fixperms:
         # these files often contain passwords. 640 as it is chowned to root:_dnsdist
 	touch debian/dnsdist/etc/dnsdist/dnsdist.conf
 	chmod 0640 debian/dnsdist/etc/dnsdist/dnsdist.conf
+	touch debian/dnsdist/etc/dnsdist/dnsdist.yml
+	chmod 0640 debian/dnsdist/etc/dnsdist/dnsdist.yml
 
 override_dh_builddeb:
 	dh_builddeb -- -Zgzip
