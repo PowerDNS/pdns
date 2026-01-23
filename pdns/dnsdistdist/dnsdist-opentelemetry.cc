@@ -47,17 +47,17 @@ TracesData Tracer::getTracesData()
     auto otTrace = pdns::trace::TracesData{
       .resource_spans = {
         {.resource = {
-            .attributes = {
-              {"service.name", {"dnsdist"}},
-            }},
+           .attributes = {
+             {"service.name", {"dnsdist"}},
+           }},
          .scope_spans = {{.scope = {
-                .name = "dnsdist/queryFromFrontend",
-                .version = PACKAGE_VERSION,
-                .attributes = {data->d_attributes.cbegin(), data->d_attributes.cend()},
-              },
-             .spans = {}}}}}};
+                            .name = "dnsdist/queryFromFrontend",
+                            .version = PACKAGE_VERSION,
+                            .attributes = {data->d_attributes.cbegin(), data->d_attributes.cend()},
+                          },
+                          .spans = {}}}}}};
 
-  otTrace.resource_spans.at(0).scope_spans.at(0).scope.attributes.push_back(hostnameAttr);
+    otTrace.resource_spans.at(0).scope_spans.at(0).scope.attributes.push_back(hostnameAttr);
 
     for (auto const& span : data->d_spans) {
       otTrace.resource_spans.at(0).scope_spans.at(0).spans.push_back(
@@ -105,13 +105,13 @@ SpanID Tracer::addSpan([[maybe_unused]] const std::string& name, [[maybe_unused]
   {
     auto data = d_data.lock();
     data->d_spans.push_back({
-        .name = name,
-        .span_id = spanID,
-        .parent_span_id = parentSpanID,
-        .start_time_unix_nano = pdns::trace::timestamp(),
-        .end_time_unix_nano = 0,
-        .attributes = {},
-        });
+      .name = name,
+      .span_id = spanID,
+      .parent_span_id = parentSpanID,
+      .start_time_unix_nano = pdns::trace::timestamp(),
+      .end_time_unix_nano = 0,
+      .attributes = {},
+    });
 
     data->d_spanIDStack.emplace_back(spanID);
   }
