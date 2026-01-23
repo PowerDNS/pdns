@@ -106,7 +106,7 @@ struct Rings
 
   void insertQuery(const struct timespec& when, const ComboAddress& requestor, const DNSName& name, uint16_t qtype, uint16_t size, const struct dnsheader& dh, dnsdist::Protocol protocol)
   {
-    if (shouldSkipDueToSampling()) {
+    if (shouldSkipQueryDueToSampling()) {
       return;
     }
     auto ourName = DNSName(name);
@@ -162,7 +162,7 @@ struct Rings
 
   void insertResponse(const struct timespec& when, const ComboAddress& requestor, const DNSName& name, uint16_t qtype, unsigned int usec, unsigned int size, const struct dnsheader& dh, const ComboAddress& backend, dnsdist::Protocol protocol)
   {
-    if (shouldSkipDueToSampling()) {
+    if (shouldSkipResponseDueToSampling()) {
       return;
     }
     auto ourName = DNSName(name);
@@ -221,6 +221,9 @@ struct Rings
   {
     clear();
     d_initialized = false;
+    /* this will only clear the counter for the current thread! */
+    t_samplingQueryCounter = 0;
+    t_samplingResponseCounter = 0;
   }
 
   /* load the content of the ring buffer from a file in the format emitted by grepq(),
@@ -287,12 +290,15 @@ private:
     return wasFull;
   }
 
-  bool shouldSkipDueToSampling();
+  bool shouldSkipQueryDueToSampling();
+  bool shouldSkipResponseDueToSampling();
 
   static constexpr bool s_keepLockingStats{false};
   // small hack to reduce contention: this only works because we have a single Rings object in DNSdist
-  static thread_local size_t t_samplingCounter;
-
+  // we keep separate counters for queries or responses, otherwise there is an actual
+  // risk of skipping only one of these
+  static thread_local size_t t_samplingQueryCounter;
+  static thread_local size_t t_samplingResponseCounter;
 
   std::atomic<size_t> d_nbQueryEntries{0};
   std::atomic<size_t> d_nbResponseEntries{0};

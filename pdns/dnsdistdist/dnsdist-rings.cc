@@ -24,7 +24,8 @@
 
 #include "dnsdist-rings.hh"
 
-thread_local size_t Rings::t_samplingCounter{0};
+thread_local size_t Rings::t_samplingQueryCounter{0};
+thread_local size_t Rings::t_samplingResponseCounter{0};
 
 void Rings::init(const RingsConfiguration& config)
 {
@@ -204,12 +205,21 @@ bool Rings::Response::isACacheHit() const
   return hit;
 }
 
-bool Rings::shouldSkipDueToSampling()
+bool Rings::shouldSkipQueryDueToSampling()
 {
   if (d_samplingRate == 0) {
     return false;
   }
-  auto counter = t_samplingCounter++;
+  auto counter = t_samplingQueryCounter++;
+  return (counter % d_samplingRate) != 0;
+}
+
+bool Rings::shouldSkipResponseDueToSampling()
+{
+  if (d_samplingRate == 0) {
+    return false;
+  }
+  auto counter = t_samplingResponseCounter++;
   return (counter % d_samplingRate) != 0;
 }
 
