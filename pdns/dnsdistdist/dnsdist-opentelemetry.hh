@@ -155,7 +155,7 @@ public:
   /**
    * @brief Retrieve the TraceID for this Tracer
    */
-  [[nodiscard]] TraceID getTraceID() const;
+  [[nodiscard]] TraceID getTraceID();
 
   /**
    * @brief Generate the TracesData from all data in this Tracer
@@ -305,37 +305,39 @@ private:
     std::vector<pdns::trace::KeyValue> attributes;
   };
 
-  /**
-   * @brief Stores all miniSpans.
-   */
-  LockGuarded<std::vector<miniSpan>> d_spans;
-
-  /**
-   * @brief All attributes related to this Trace (added to the ScopeSpan)
-   */
-  std::vector<pdns::trace::KeyValue> d_attributes;
-
-  /**
-   * @brief The TraceID for this Tracer. It is stable for the lifetime of the Tracer
-   *
-   * it is mutable because it is set the first time it is accessed
-   */
-  mutable LockGuarded<TraceID> d_traceid{};
-
-  /**
-   * @brief A stack of SpanID's that tracks the "stack" of SpanIDs
-   */
-  std::vector<SpanID> d_spanIDStack;
-
-  /**
-   * Set when setRootSpanID is called, used to replace the
-   * root span id (and the parent span ids) when the PB is generated
-   */
-  struct
+  struct Data
   {
-    SpanID oldID;
-    SpanID newID;
-  } d_oldAndNewRootSpanID;
+    /**
+     * @brief Stores all miniSpans.
+     */
+    std::vector<miniSpan> d_spans;
+
+    /**
+     * @brief All attributes related to this Trace (added to the ScopeSpan)
+     */
+    std::vector<pdns::trace::KeyValue> d_attributes;
+
+    /**
+     * @brief The TraceID for this Tracer. It is stable for the lifetime of the Tracer
+     */
+    TraceID d_traceid{};
+
+    /**
+     * @brief A stack of SpanID's that tracks the "stack" of SpanIDs
+     */
+    std::vector<SpanID> d_spanIDStack;
+
+    /**
+     * Set when setRootSpanID is called, used to replace the
+     * root span id (and the parent span ids) when the PB is generated
+     */
+    struct
+    {
+      SpanID oldID;
+      SpanID newID;
+    } d_oldAndNewRootSpanID;
+  };
+  LockGuarded<Data> d_data;
 #endif
 };
 } // namespace pdns::trace::dnsdist
