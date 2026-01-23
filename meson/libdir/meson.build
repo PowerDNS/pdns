@@ -1,1 +1,1 @@
-conf.set_quoted('PKGLIBDIR', get_option('libdir'), description: 'Modules directory')
+conf.set_quoted('PKGLIBDIR', join_paths(get_option('prefix'), get_option('libdir'), 'pdns'), description: 'Modules directory')
