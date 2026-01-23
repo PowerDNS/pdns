@@ -310,4 +310,66 @@ BOOST_AUTO_TEST_CASE(test_Rings_Threaded) {
 #endif
 }
 
+BOOST_AUTO_TEST_CASE(test_Rings_Sampling) {
+  const size_t numberOfEntries = 10000;
+  const size_t numberOfShards = 50;
+  const size_t samplingRate = 10;
+
+  Rings rings;
+  const Rings::RingsConfiguration config {
+    .capacity = numberOfEntries,
+    .numberOfShards = numberOfShards,
+    .samplingRate = samplingRate,
+  };
+  rings.init(config);
+
+  BOOST_CHECK_EQUAL(rings.adjustForSamplingRate(0U), 0U);
+  BOOST_CHECK_EQUAL(rings.adjustForSamplingRate(1U), 1U * samplingRate);
+
+  timespec now{};
+  gettime(&now);
+  dnsheader dh{};
+  dh.id = htons(4242);
+  dh.qr = 0;
+  dh.tc = 0;
+  dh.rd = 0;
+  dh.rcode = 0;
+  dh.qdcount = htons(1);
+  const DNSName qname("rings.powerdns.com.");
+  const ComboAddress requestor("192.0.2.1");
+  const ComboAddress server("192.0.2.42");
+  const unsigned int latency = 100;
+  const uint16_t qtype = QType::AAAA;
+  const uint16_t size = 42;
+  const dnsdist::Protocol protocol = dnsdist::Protocol::DoUDP;
+  const dnsdist::Protocol outgoingProtocol = dnsdist::Protocol::DoUDP;
+
+  size_t numberOfQueries = 1000U;
+  for (size_t idx = 0; idx < numberOfQueries; idx++) {
+    rings.insertQuery(now, requestor, qname, qtype, size, dh, protocol);
+  }
+  BOOST_CHECK_EQUAL(rings.getNumberOfQueryEntries(), numberOfQueries / samplingRate);
+
+  size_t numberOfResponses = 5000U;
+  for (size_t idx = 0; idx < numberOfResponses; idx++) {
+    rings.insertResponse(now, requestor, qname, qtype, latency, size, dh, server, outgoingProtocol);
+  }
+  BOOST_CHECK_EQUAL(rings.getNumberOfResponseEntries(), numberOfResponses / samplingRate);
+
+  rings.clear();
+  /* now we insert more queries and responses than the rings can hold, even taking the sampling rate into account,
+     it should just discard the oldest ones */
+  numberOfQueries = 2U * samplingRate * numberOfEntries;
+  for (size_t idx = 0; idx < numberOfQueries; idx++) {
+    rings.insertQuery(now, requestor, qname, qtype, size, dh, protocol);
+  }
+  BOOST_CHECK_EQUAL(rings.getNumberOfQueryEntries(), numberOfEntries);
+
+  numberOfResponses = 2U * samplingRate * numberOfEntries;
+  for (size_t idx = 0; idx < numberOfResponses; idx++) {
+    rings.insertResponse(now, requestor, qname, qtype, latency, size, dh, server, outgoingProtocol);
+  }
+  BOOST_CHECK_EQUAL(rings.getNumberOfResponseEntries(), numberOfEntries);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
