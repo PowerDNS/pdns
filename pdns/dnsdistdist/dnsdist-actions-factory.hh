@@ -128,6 +128,7 @@ struct SetTraceActionConfiguration
 {
   std::vector<std::shared_ptr<RemoteLoggerInterface>> remote_loggers;
   std::uint16_t trace_edns_option = 0;
+  std::uint16_t downstream_trace_edns_option = 0;
   bool value = false;
   bool use_incoming_traceid = false;
   bool strip_incoming_traceid = false;

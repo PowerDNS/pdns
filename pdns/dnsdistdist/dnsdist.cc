@@ -23,6 +23,7 @@
 #include "config.h"
 
 #include <cstdint>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <getopt.h>
@@ -34,11 +35,13 @@
 #include <set>
 #include <sys/resource.h>
 #include <unistd.h>
+#include <vector>
 
 #include "dns.hh"
 #include "dnsdist-idstate.hh"
 #include "dnsdist-opentelemetry.hh"
 #include "dnsdist-systemd.hh"
+#include "logging.hh"
 #include "protozero-trace.hh"
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-daemon.h>
@@ -1885,6 +1888,28 @@ bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& downstrea
 
     VERBOSESLOG(infolog("Got query for %s|%s from %s%s, relayed to %s%s", dnsQuestion.ids.qname.toLogString(), QType(dnsQuestion.ids.qtype).toString(), dnsQuestion.ids.origRemote.toStringWithPort(), (doh ? " (https)" : ""), downstream->getNameWithAddr(), actuallySend ? "" : " (xsk)"),
                 dnsQuestion.getLogger()->info("Relayed query to backend", "backend.name", Logging::Loggable(downstream->getName()), "backend.address", Logging::Loggable(downstream->d_config.remote), "dnsdist.xsk", Logging::Loggable(!actuallySend)));
+
+#ifndef DISABLE_PROTOBUF
+    if (auto tracer = dnsQuestion.ids.getTracer(); dnsQuestion.ids.sendTraceParentToDownstreamID != 0 && tracer != nullptr) {
+      // TODO: set a flag in ID State whether or not we should update the SpanID
+      uint16_t optRDPosition;
+      size_t remaining;
+      auto data = dnsQuestion.getData();
+      // clear any existing option
+      if (dnsdist::getEDNSOptionsStart(data, dnsQuestion.ids.qname.wirelength(), &optRDPosition, &remaining) == 0) {
+        size_t optLen = data.size() - optRDPosition - remaining;
+        removeEDNSOptionFromOPT(reinterpret_cast<char*>(data.data() + optRDPosition), &optLen, dnsQuestion.ids.sendTraceParentToDownstreamID);
+      }
+
+      std::vector<uint8_t> opt{0, 0};
+      auto traceId = tracer->getTraceID();
+      opt.insert(opt.end(), traceId.begin(), traceId.end());
+      auto spanId = tracer->getLastSpanID();
+      opt.insert(opt.end(), spanId.begin(), spanId.end());
+      opt.push_back(0); // Flags
+      setEDNSOption(dnsQuestion, dnsQuestion.ids.sendTraceParentToDownstreamID, std::string(opt.begin(), opt.end()));
+    }
+#endif
 
     /* make a copy since we cannot touch dnsQuestion.ids after the move */
     auto proxyProtocolPayloadSize = dnsQuestion.ids.d_proxyProtocolPayloadSize;
