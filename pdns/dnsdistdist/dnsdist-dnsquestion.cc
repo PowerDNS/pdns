@@ -76,7 +76,7 @@ std::shared_ptr<const Logr::Logger> DNSResponse::getThisLogger(std::shared_ptr<c
   auto logger = DNSQuestion::getThisLogger(std::move(parent));
   if (data.size() >= sizeof(dnsheader)) {
     const auto header = getHeader();
-    logger = logger->withValues("dns.response.rcode", Logging::Loggable(RCode::to_s(header->rcode)));
+    logger = logger->withValues("dns.response.rcode", Logging::Loggable(header->rcode));
   }
   if (d_downstream) {
     logger = logger->withValues("backend.protocol", Logging::Loggable(d_downstream->getProtocol()), "backend.name", Logging::Loggable(d_downstream->getName()), "backend.address", Logging::Loggable(d_downstream->d_config.remote));

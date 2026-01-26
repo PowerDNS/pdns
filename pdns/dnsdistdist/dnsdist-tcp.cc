@@ -257,7 +257,7 @@ void IncomingTCPConnectionState::handleResponseSent(TCPResponse& currentResponse
     const auto& ids = currentResponse.d_idstate;
     auto udiff = ids.queryRealTime.udiff();
     VERBOSESLOG(infolog("Got answer from %s, relayed to %s (%s, %d bytes), took %d us", backend->d_config.remote.toStringWithPort(), ids.origRemote.toStringWithPort(), getProtocol().toString(), sentBytes, udiff),
-                ids.getLogger(getLogger())->info(Logr::Info, "Relayed response to client", "backend.name", Logging::Loggable(backend->getName()), "backend.address", Logging::Loggable(backend->d_config.remote), "dns.response.size", Logging::Loggable(sentBytes), "dns.response.latency_us", Logging::Loggable(udiff)));
+                ids.getLogger(getLogger())->info(Logr::Info, "Relayed response to client", "backend.name", Logging::Loggable(backend->getName()), "backend.address", Logging::Loggable(backend->d_config.remote), "dns.response.size", Logging::Loggable(sentBytes), "dns.response.latency_us", Logging::Loggable(udiff), "dns.response.rcode", Logging::Loggable(currentResponse.d_cleartextDH.rcode)));
 
     auto backendProtocol = backend->getProtocol();
     if (backendProtocol == dnsdist::Protocol::DoUDP && !currentResponse.d_idstate.forwardedOverUDP) {
