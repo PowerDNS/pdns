@@ -104,6 +104,28 @@
                     "message": 1
                 }
             ]
+        },
+        {
+            "owner": "pip-requirements-cannot-install",
+            "severity": "error",
+            "pattern": [
+                {
+                    "regexp": "^ERROR: (Cannot install -r \\./(.*?/requirements.*?\\.txt) \\(line (\\d+)\\).*)",
+                    "message": 1,
+                    "file": 2,
+                    "line": 3
+                }
+            ]
+        },
+        {
+            "owner": "pip-requirements-conflict",
+            "severity": "notice",
+            "pattern": [
+                {
+                    "regexp": "^    (\\S+ [\\d.]+ depends on \\w+[<=>]+[\\d.]+ and [<=>]+[\\d.]+)$",
+                    "message": 1
+                }
+            ]
         }
     ]
 }
