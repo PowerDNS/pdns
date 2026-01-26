@@ -1169,6 +1169,7 @@ remoteip
 removedomainkey
 replacerrset
 requery
+RESINFO
 resolv
 respawned
 respawning
