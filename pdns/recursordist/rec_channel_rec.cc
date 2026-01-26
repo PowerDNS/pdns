@@ -2125,7 +2125,7 @@ RecursorControlChannel::Answer luaconfig(bool broadcast)
       if (yamlstat == pdns::settings::rec::YamlSettingsStatus::OK) {
         // YAML read above succeeded
         ProxyMapping dummyProxyMapping; // taken from lua, so ignore YAML
-        LuaConfigItems dummyLuaConfig; // we do not use the converted orm YAML LuaConfigItems, but the "real thing"
+        LuaConfigItems dummyLuaConfig; // we do not use the converted from YAML LuaConfigItems, but the "real thing"
         pdns::settings::rec::fromBridgeStructToLuaConfig(settings, dummyLuaConfig, dummyProxyMapping, conditions);
         TCPOutConnectionManager::setupOutgoingTLSConfigTables(settings);
       }
@@ -2133,7 +2133,7 @@ RecursorControlChannel::Answer luaconfig(bool broadcast)
         loadRecursorLuaConfig(::arg()["lua-config-file"], proxyMapping, lci); // will bump generation
       }
       activateLua(lci, broadcast, std::move(proxyMapping), std::move(conditions));
-      string msg = "Reloaded dynamic parts of YAML config";
+      string msg = "Reloaded dynamic parts of YAML configuration";
       if (!::arg()["lua-config-file"].empty()) {
         msg += " and Lua configuration file '" + ::arg()["lua-config-file"] + "'";
       }
