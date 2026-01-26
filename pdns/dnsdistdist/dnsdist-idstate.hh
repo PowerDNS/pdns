@@ -229,6 +229,7 @@ public:
   uint16_t origFlags{0}; // 2
   uint16_t cacheFlags{0}; // DNS flags as sent to the backend // 2
   uint16_t udpPayloadSize{0}; // Max UDP payload size from the query // 2
+  uint16_t sendTraceParentToDownstreamID{0}; // Whether or not to add a TRACEPARENT EDNS option to downstreams, set to non-0 for the EDNS Option ID
   std::optional<bool> dnssecOK;
   dnsdist::Protocol protocol; // 1
   uint8_t restartCount{0}; // 1

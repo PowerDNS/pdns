@@ -1717,7 +1717,7 @@ class SetTraceAction : public DNSAction
 {
 public:
   SetTraceAction(SetTraceActionConfiguration& config) :
-    d_loggers(config.remote_loggers), d_incomingTraceIDOptionCode(config.trace_edns_option), d_value{config.value}, d_useIncomingTraceID(config.use_incoming_traceid), d_stripIncomingTraceID(config.strip_incoming_traceid) {};
+    d_loggers(config.remote_loggers), d_incomingTraceIDOptionCode(config.trace_edns_option), d_downstreamTraceIDOptionCode(config.downstream_trace_edns_option), d_value{config.value}, d_useIncomingTraceID(config.use_incoming_traceid), d_stripIncomingTraceID(config.strip_incoming_traceid) {};
 
   DNSAction::Action operator()([[maybe_unused]] DNSQuestion* dnsquestion, [[maybe_unused]] std::string* ruleresult) const override
   {
@@ -1741,6 +1741,10 @@ public:
     tracer->setRootSpanAttribute("query.qtype", AnyValue{QType(dnsquestion->ids.qtype).toString()});
     tracer->setRootSpanAttribute("query.remote.address", AnyValue{dnsquestion->ids.origRemote.toString()});
     tracer->setRootSpanAttribute("query.remote.port", AnyValue{dnsquestion->ids.origRemote.getPort()});
+
+    if (d_downstreamTraceIDOptionCode != 0) {
+      dnsquestion->ids.sendTraceParentToDownstreamID = d_downstreamTraceIDOptionCode;
+    }
 
     if (!d_useIncomingTraceID && !d_stripIncomingTraceID) {
       // No need to check EDNS
@@ -1804,6 +1808,7 @@ public:
 private:
   std::vector<std::shared_ptr<RemoteLoggerInterface>> d_loggers;
   short unsigned int d_incomingTraceIDOptionCode;
+  short unsigned int d_downstreamTraceIDOptionCode;
 
   bool d_value;
   bool d_useIncomingTraceID;
