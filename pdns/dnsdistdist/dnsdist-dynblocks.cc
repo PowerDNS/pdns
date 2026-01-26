@@ -35,20 +35,20 @@ void DynBlockRulesGroup::apply(const timespec& now)
     const auto& requestor = entry.first;
     const auto& counters = entry.second;
 
-    if (d_queryRateRule.warningRateExceeded(counters.queries, now)) {
+    if (d_queryRateRule.warningRateExceeded(g_rings.adjustForSamplingRate(counters.queries), now)) {
       handleWarning(blocks, now, requestor, d_queryRateRule, updated);
     }
 
-    if (d_queryRateRule.rateExceeded(counters.queries, now)) {
+    if (d_queryRateRule.rateExceeded(g_rings.adjustForSamplingRate(counters.queries), now)) {
       addBlock(blocks, now, requestor, d_queryRateRule, updated);
       continue;
     }
 
-    if (d_respRateRule.warningRateExceeded(counters.respBytes, now)) {
+    if (d_respRateRule.warningRateExceeded(g_rings.adjustForSamplingRate(counters.respBytes), now)) {
       handleWarning(blocks, now, requestor, d_respRateRule, updated);
     }
 
-    if (d_respRateRule.rateExceeded(counters.respBytes, now)) {
+    if (d_respRateRule.rateExceeded(g_rings.adjustForSamplingRate(counters.respBytes), now)) {
       addBlock(blocks, now, requestor, d_respRateRule, updated);
       continue;
     }
@@ -69,11 +69,11 @@ void DynBlockRulesGroup::apply(const timespec& now)
       const auto& typeIt = counters.d_qtypeCounts.find(qtype);
       if (typeIt != counters.d_qtypeCounts.cend()) {
 
-        if (pair.second.warningRateExceeded(typeIt->second, now)) {
+        if (pair.second.warningRateExceeded(g_rings.adjustForSamplingRate(typeIt->second), now)) {
           handleWarning(blocks, now, requestor, pair.second, updated);
         }
 
-        if (pair.second.rateExceeded(typeIt->second, now)) {
+        if (pair.second.rateExceeded(g_rings.adjustForSamplingRate(typeIt->second), now)) {
           addBlock(blocks, now, requestor, pair.second, updated);
           break;
         }
@@ -85,11 +85,11 @@ void DynBlockRulesGroup::apply(const timespec& now)
 
       const auto& rcodeIt = counters.d_rcodeCounts.find(rcode);
       if (rcodeIt != counters.d_rcodeCounts.cend()) {
-        if (pair.second.warningRateExceeded(rcodeIt->second, now)) {
+        if (pair.second.warningRateExceeded(g_rings.adjustForSamplingRate(rcodeIt->second), now)) {
           handleWarning(blocks, now, requestor, pair.second, updated);
         }
 
-        if (pair.second.rateExceeded(rcodeIt->second, now)) {
+        if (pair.second.rateExceeded(g_rings.adjustForSamplingRate(rcodeIt->second), now)) {
           addBlock(blocks, now, requestor, pair.second, updated);
           break;
         }
@@ -215,7 +215,7 @@ namespace dnsdist::DynamicBlocks
 {
 bool addOrRefreshBlock(ClientAddressDynamicRules& blocks, const timespec& now, const AddressAndPortRange& requestor, DynBlock&& dblock, bool beQuiet)
 {
-  unsigned int count = 0;
+  uint32_t count = 0;
   bool expired = false;
   bool wasWarning = false;
   bool bpf = false;
@@ -282,7 +282,7 @@ bool addOrRefreshBlock(ClientAddressDynamicRules& blocks, const timespec& now, c
 
 bool addOrRefreshBlockSMT(SuffixDynamicRules& blocks, const timespec& now, DynBlock&& dblock, bool beQuiet)
 {
-  unsigned int count = 0;
+  uint32_t count = 0;
   /* be careful, if you try to insert a longer suffix
      lookup() might return a shorter one if it is
      already in the tree as a final node */
@@ -486,7 +486,7 @@ void DynBlockRulesGroup::processResponseRules(counts_t& counts, StatNode& root, 
 
       if (suffixMatchRuleMatches) {
         const bool hit = ringEntry.isACacheHit();
-        root.submit(ringEntry.name, ((ringEntry.dh.rcode == 0 && ringEntry.usec == std::numeric_limits<unsigned int>::max()) ? -1 : ringEntry.dh.rcode), ringEntry.size, hit, std::nullopt);
+        root.submit(ringEntry.name, ((ringEntry.dh.rcode == 0 && ringEntry.usec == std::numeric_limits<uint32_t>::max()) ? -1 : ringEntry.dh.rcode), ringEntry.size, hit, std::nullopt, g_rings.getSamplingRate());
       }
     }
   }
@@ -552,9 +552,9 @@ void DynBlockMaintenance::purgeExpired(const struct timespec& now)
   }
 }
 
-std::map<std::string, std::list<std::pair<AddressAndPortRange, unsigned int>>> DynBlockMaintenance::getTopNetmasks(size_t topN)
+std::map<std::string, std::list<std::pair<AddressAndPortRange, uint32_t>>> DynBlockMaintenance::getTopNetmasks(size_t topN)
 {
-  std::map<std::string, std::list<std::pair<AddressAndPortRange, unsigned int>>> results;
+  std::map<std::string, std::list<std::pair<AddressAndPortRange, uint32_t>>> results;
   if (topN == 0) {
     return results;
   }
@@ -575,7 +575,7 @@ std::map<std::string, std::list<std::pair<AddressAndPortRange, unsigned int>>> D
         topsForReason.pop_front();
       }
 
-      topsForReason.insert(std::lower_bound(topsForReason.begin(), topsForReason.end(), newEntry, [](const std::pair<AddressAndPortRange, unsigned int>& rhs, const std::pair<AddressAndPortRange, unsigned int>& lhs) {
+      topsForReason.insert(std::lower_bound(topsForReason.begin(), topsForReason.end(), newEntry, [](const std::pair<AddressAndPortRange, uint32_t>& rhs, const std::pair<AddressAndPortRange, uint32_t>& lhs) {
                              return rhs.second < lhs.second;
                            }),
                            newEntry);
@@ -585,9 +585,9 @@ std::map<std::string, std::list<std::pair<AddressAndPortRange, unsigned int>>> D
   return results;
 }
 
-std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> DynBlockMaintenance::getTopSuffixes(size_t topN)
+std::map<std::string, std::list<std::pair<DNSName, uint32_t>>> DynBlockMaintenance::getTopSuffixes(size_t topN)
 {
-  std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> results;
+  std::map<std::string, std::list<std::pair<DNSName, uint32_t>>> results;
   if (topN == 0) {
     return results;
   }
@@ -602,7 +602,7 @@ std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> DynBlockMaint
         topsForReason.pop_front();
       }
 
-      topsForReason.insert(std::lower_bound(topsForReason.begin(), topsForReason.end(), newEntry, [](const std::pair<DNSName, unsigned int>& rhs, const std::pair<DNSName, unsigned int>& lhs) {
+      topsForReason.insert(std::lower_bound(topsForReason.begin(), topsForReason.end(), newEntry, [](const std::pair<DNSName, uint32_t>& rhs, const std::pair<DNSName, uint32_t>& lhs) {
                              return rhs.second < lhs.second;
                            }),
                            newEntry);
@@ -615,7 +615,7 @@ std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> DynBlockMaint
 struct DynBlockEntryStat
 {
   size_t sum{0};
-  unsigned int lastSeenValue{0};
+  uint32_t lastSeenValue{0};
 };
 
 std::list<DynBlockMaintenance::MetricsSnapshot> DynBlockMaintenance::s_metricsData;
@@ -681,19 +681,19 @@ void DynBlockMaintenance::generateMetrics()
   }
 
   /* now we need to get the top N entries (for each "reason") based on our counters (sum of the last N entries) */
-  std::map<std::string, std::list<std::pair<AddressAndPortRange, unsigned int>>> topNMGs;
+  std::map<std::string, std::list<std::pair<AddressAndPortRange, uint32_t>>> topNMGs;
   {
     for (const auto& reason : netmasks) {
       auto& topsForReason = topNMGs[reason.first];
       for (const auto& entry : reason.second) {
         if (topsForReason.size() < s_topN || topsForReason.front().second < entry.second.sum) {
           /* Note that this is a gauge, so we need to divide by the number of elapsed seconds */
-          auto newEntry = std::pair<AddressAndPortRange, unsigned int>(entry.first, std::round(static_cast<double>(entry.second.sum) / 60.0));
+          auto newEntry = std::pair<AddressAndPortRange, uint32_t>(entry.first, std::round(static_cast<double>(entry.second.sum) / 60.0));
           if (topsForReason.size() >= s_topN) {
             topsForReason.pop_front();
           }
 
-          topsForReason.insert(std::lower_bound(topsForReason.begin(), topsForReason.end(), newEntry, [](const std::pair<AddressAndPortRange, unsigned int>& rhs, const std::pair<AddressAndPortRange, unsigned int>& lhs) {
+          topsForReason.insert(std::lower_bound(topsForReason.begin(), topsForReason.end(), newEntry, [](const std::pair<AddressAndPortRange, uint32_t>& rhs, const std::pair<AddressAndPortRange, uint32_t>& lhs) {
                                  return rhs.second < lhs.second;
                                }),
                                newEntry);
@@ -741,19 +741,19 @@ void DynBlockMaintenance::generateMetrics()
   }
 
   /* now we need to get the top N entries (for each "reason") based on our counters (sum of the last N entries) */
-  std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> topSMTs;
+  std::map<std::string, std::list<std::pair<DNSName, uint32_t>>> topSMTs;
   {
     for (const auto& reason : smt) {
       auto& topsForReason = topSMTs[reason.first];
       for (const auto& entry : reason.second) {
         if (topsForReason.size() < s_topN || topsForReason.front().second < entry.second.sum) {
           /* Note that this is a gauge, so we need to divide by the number of elapsed seconds */
-          auto newEntry = std::pair<DNSName, unsigned int>(entry.first, std::round(static_cast<double>(entry.second.sum) / 60.0));
+          auto newEntry = std::pair<DNSName, uint32_t>(entry.first, std::round(static_cast<double>(entry.second.sum) / 60.0));
           if (topsForReason.size() >= s_topN) {
             topsForReason.pop_front();
           }
 
-          topsForReason.insert(std::lower_bound(topsForReason.begin(), topsForReason.end(), newEntry, [](const std::pair<DNSName, unsigned int>& lhs, const std::pair<DNSName, unsigned int>& rhs) {
+          topsForReason.insert(std::lower_bound(topsForReason.begin(), topsForReason.end(), newEntry, [](const std::pair<DNSName, uint32_t>& lhs, const std::pair<DNSName, uint32_t>& rhs) {
                                  return lhs.second < rhs.second;
                                }),
                                newEntry);
@@ -836,12 +836,12 @@ void DynBlockMaintenance::run()
   }
 }
 
-std::map<std::string, std::list<std::pair<AddressAndPortRange, unsigned int>>> DynBlockMaintenance::getHitsForTopNetmasks()
+std::map<std::string, std::list<std::pair<AddressAndPortRange, uint32_t>>> DynBlockMaintenance::getHitsForTopNetmasks()
 {
   return s_tops.lock()->topNMGsByReason;
 }
 
-std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> DynBlockMaintenance::getHitsForTopSuffixes()
+std::map<std::string, std::list<std::pair<DNSName, uint32_t>>> DynBlockMaintenance::getHitsForTopSuffixes()
 {
   return s_tops.lock()->topSMTsByReason;
 }
@@ -881,7 +881,7 @@ bool DynBlockRulesGroup::DynBlockRule::matches(const struct timespec& when)
   return true;
 }
 
-bool DynBlockRulesGroup::DynBlockRule::rateExceeded(unsigned int count, const struct timespec& now) const
+bool DynBlockRulesGroup::DynBlockRule::rateExceeded(uint32_t count, const struct timespec& now) const
 {
   if (!d_enabled) {
     return false;
@@ -892,7 +892,7 @@ bool DynBlockRulesGroup::DynBlockRule::rateExceeded(unsigned int count, const st
   return (count > limit);
 }
 
-bool DynBlockRulesGroup::DynBlockRule::warningRateExceeded(unsigned int count, const struct timespec& now) const
+bool DynBlockRulesGroup::DynBlockRule::warningRateExceeded(uint32_t count, const struct timespec& now) const
 {
   if (!d_enabled) {
     return false;
@@ -907,7 +907,7 @@ bool DynBlockRulesGroup::DynBlockRule::warningRateExceeded(unsigned int count, c
   return (count > limit);
 }
 
-bool DynBlockRulesGroup::DynBlockRatioRule::ratioExceeded(unsigned int total, unsigned int count) const
+bool DynBlockRulesGroup::DynBlockRatioRule::ratioExceeded(uint32_t total, uint32_t count) const
 {
   if (!d_enabled) {
     return false;
@@ -921,7 +921,7 @@ bool DynBlockRulesGroup::DynBlockRatioRule::ratioExceeded(unsigned int total, un
   return (count > allowed);
 }
 
-bool DynBlockRulesGroup::DynBlockRatioRule::warningRatioExceeded(unsigned int total, unsigned int count) const
+bool DynBlockRulesGroup::DynBlockRatioRule::warningRatioExceeded(uint32_t total, uint32_t count) const
 {
   if (!d_enabled) {
     return false;
@@ -968,7 +968,7 @@ bool DynBlockRulesGroup::DynBlockCacheMissRatioRule::checkGlobalCacheHitRatio() 
   return globalCacheHitRatio >= d_minimumGlobalCacheHitRatio;
 }
 
-bool DynBlockRulesGroup::DynBlockCacheMissRatioRule::ratioExceeded(unsigned int total, unsigned int count) const
+bool DynBlockRulesGroup::DynBlockCacheMissRatioRule::ratioExceeded(uint32_t total, uint32_t count) const
 {
   if (!DynBlockRulesGroup::DynBlockRatioRule::ratioExceeded(total, count)) {
     return false;
@@ -977,7 +977,7 @@ bool DynBlockRulesGroup::DynBlockCacheMissRatioRule::ratioExceeded(unsigned int 
   return checkGlobalCacheHitRatio();
 }
 
-bool DynBlockRulesGroup::DynBlockCacheMissRatioRule::warningRatioExceeded(unsigned int total, unsigned int count) const
+bool DynBlockRulesGroup::DynBlockCacheMissRatioRule::warningRatioExceeded(uint32_t total, uint32_t count) const
 {
   if (!DynBlockRulesGroup::DynBlockRatioRule::warningRatioExceeded(total, count)) {
     return false;

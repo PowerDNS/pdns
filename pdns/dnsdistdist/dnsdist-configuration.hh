@@ -97,6 +97,7 @@ struct ImmutableConfiguration
   size_t d_ringsCapacity{10000};
   size_t d_ringsNumberOfShards{10};
   size_t d_ringsNbLockTries{5};
+  size_t d_ringsSamplingRate{0};
   uint32_t d_socketUDPSendBuffer{0};
   uint32_t d_socketUDPRecvBuffer{0};
   uint32_t d_hashPerturbation{0};

@@ -76,8 +76,18 @@ struct Rings
   std::unordered_map<int, vector<boost::variant<string, double>>> getTopBandwidth(unsigned int numentries);
   size_t numDistinctRequestors();
 
+  struct RingsConfiguration
+  {
+    size_t capacity{0};
+    size_t numberOfShards{1};
+    size_t nbLockTries{5};
+    size_t samplingRate{0};
+    bool recordQueries{true};
+    bool recordResponses{true};
+  };
+
   /* This function should only be called at configuration time before any query or response has been inserted */
-  void init(size_t capacity, size_t numberOfShards, size_t nbLockRetries = 5, bool recordQueries = true, bool recordResponses = true);
+  void init(const RingsConfiguration& config);
 
   size_t getNumberOfShards() const
   {
@@ -96,6 +106,9 @@ struct Rings
 
   void insertQuery(const struct timespec& when, const ComboAddress& requestor, const DNSName& name, uint16_t qtype, uint16_t size, const struct dnsheader& dh, dnsdist::Protocol protocol)
   {
+    if (shouldSkipQueryDueToSampling()) {
+      return;
+    }
     auto ourName = DNSName(name);
 #if defined(DNSDIST_RINGS_WITH_MACADDRESS)
     dnsdist::MacAddress macaddress;
@@ -149,6 +162,9 @@ struct Rings
 
   void insertResponse(const struct timespec& when, const ComboAddress& requestor, const DNSName& name, uint16_t qtype, unsigned int usec, unsigned int size, const struct dnsheader& dh, const ComboAddress& backend, dnsdist::Protocol protocol)
   {
+    if (shouldSkipResponseDueToSampling()) {
+      return;
+    }
     auto ourName = DNSName(name);
     for (size_t idx = 0; idx < d_nbLockTries; idx++) {
       auto& shard = getOneShard();
@@ -205,6 +221,9 @@ struct Rings
   {
     clear();
     d_initialized = false;
+    /* this will only clear the counter for the current thread! */
+    t_samplingQueryCounter = 0;
+    t_samplingResponseCounter = 0;
   }
 
   /* load the content of the ring buffer from a file in the format emitted by grepq(),
@@ -219,6 +238,20 @@ struct Rings
   bool shouldRecordResponses() const
   {
     return d_recordResponses;
+  }
+
+  size_t getSamplingRate() const
+  {
+    return d_samplingRate;
+  }
+
+  uint32_t adjustForSamplingRate(uint32_t count) const
+  {
+    const auto samplingRate = getSamplingRate();
+    if (samplingRate > 0) {
+      return count * samplingRate;
+    }
+    return count;
   }
 
   std::vector<std::unique_ptr<Shard>> d_shards;
@@ -264,7 +297,30 @@ private:
     return wasFull;
   }
 
+  bool shouldSkipQueryDueToSampling()
+  {
+    if (d_samplingRate == 0) {
+      return false;
+    }
+    auto counter = t_samplingQueryCounter++;
+    return (counter % d_samplingRate) != 0;
+  }
+
+  bool shouldSkipResponseDueToSampling()
+  {
+    if (d_samplingRate == 0) {
+      return false;
+    }
+    auto counter = t_samplingResponseCounter++;
+    return (counter % d_samplingRate) != 0;
+  }
+
   static constexpr bool s_keepLockingStats{false};
+  // small hack to reduce contention: this only works because we have a single Rings object in DNSdist
+  // we keep separate counters for queries or responses, otherwise there is an actual
+  // risk of skipping only one of these
+  static thread_local size_t t_samplingQueryCounter;
+  static thread_local size_t t_samplingResponseCounter;
 
   std::atomic<size_t> d_nbQueryEntries{0};
   std::atomic<size_t> d_nbResponseEntries{0};
@@ -274,6 +330,7 @@ private:
   size_t d_capacity{10000};
   size_t d_numberOfShards{10};
   size_t d_nbLockTries{5};
+  size_t d_samplingRate{0};
   bool d_recordQueries{true};
   bool d_recordResponses{true};
 };

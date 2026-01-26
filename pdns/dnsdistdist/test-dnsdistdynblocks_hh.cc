@@ -24,9 +24,33 @@ struct TestFixture
   TestFixture()
   {
     g_rings.reset();
-    g_rings.init(10000, 10);
+    Rings::RingsConfiguration config {
+      .capacity = 10000U,
+      .numberOfShards = 10U,
+    };
+    g_rings.init(config);
   }
   ~TestFixture()
+  {
+    g_rings.reset();
+  }
+};
+
+static size_t s_samplingRate{10};
+
+struct TestFixtureWithSampling
+{
+  TestFixtureWithSampling()
+  {
+    g_rings.reset();
+    Rings::RingsConfiguration config {
+      .capacity = 10000U,
+      .numberOfShards = 10U,
+      .samplingRate = s_samplingRate,
+    };
+    g_rings.init(config);
+  }
+  ~TestFixtureWithSampling()
   {
     g_rings.reset();
   }
@@ -428,7 +452,10 @@ BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesGroup_QueryRate_responses, TestFixture
 
   /* 100k entries, one shard */
   g_rings.reset();
-  g_rings.init(1000000, 1);
+  Rings::RingsConfiguration config {
+    .capacity = 1000000U,
+  };
+  g_rings.init(config);
 
   size_t numberOfSeconds = 10;
   size_t blockDuration = 60;
@@ -650,6 +677,102 @@ BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesGroup_RCodeRate, TestFixture) {
     dbrg.apply(now);
     BOOST_CHECK_EQUAL(dnsdist::DynamicBlocks::getClientAddressDynamicRules().size(), 1U);
     BOOST_CHECK(dnsdist::DynamicBlocks::getClientAddressDynamicRules().lookup(requestor1) != nullptr);
+    BOOST_CHECK(dnsdist::DynamicBlocks::getClientAddressDynamicRules().lookup(requestor2) == nullptr);
+    const auto& block = dnsdist::DynamicBlocks::getClientAddressDynamicRules().lookup(requestor1)->second;
+    BOOST_CHECK_EQUAL(block.reason, reason);
+    BOOST_CHECK_EQUAL(static_cast<size_t>(block.until.tv_sec), now.tv_sec + blockDuration);
+    BOOST_CHECK(block.domain.empty());
+    BOOST_CHECK(block.action == action);
+    BOOST_CHECK_EQUAL(block.blocks, 0U);
+    BOOST_CHECK_EQUAL(block.warning, false);
+  }
+
+}
+
+BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesGroup_RCodeRate_With_Sampling, TestFixtureWithSampling) {
+  dnsheader dnsHeader{};
+  memset(&dnsHeader, 0, sizeof(dnsHeader));
+  DNSName qname("rings.powerdns.com.");
+  ComboAddress requestor1("192.0.2.1");
+  ComboAddress requestor2("192.0.2.2");
+  ComboAddress backend("192.0.2.42");
+  uint16_t qtype = QType::AAAA;
+  uint16_t size = 42;
+  dnsdist::Protocol outgoingProtocol = dnsdist::Protocol::DoUDP;
+  unsigned int responseTime = 100 * 1000; /* 100ms */
+  struct timespec now;
+  gettime(&now);
+  NetmaskTree<DynBlock, AddressAndPortRange> emptyNMG;
+
+  size_t numberOfSeconds = 10;
+  size_t blockDuration = 60;
+  const auto action = DNSAction::Action::Drop;
+  const std::string reason = "Exceeded query rate";
+  const uint16_t rcode = RCode::ServFail;
+
+  DynBlockRulesGroup dbrg;
+  dbrg.setQuiet(true);
+
+  {
+    /* block above 50 ServFail/s for numberOfSeconds seconds, no warning */
+    DynBlockRulesGroup::DynBlockRule rule(reason, blockDuration, 50, 0, numberOfSeconds, action);
+    dbrg.setRCodeRate(rcode, std::move(rule));
+  }
+
+  {
+    /* insert 45 ServFail/s from a given client in the last 10s
+       this should not trigger the rule */
+    size_t numberOfResponses = 45 * numberOfSeconds;
+    g_rings.clear();
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), 0U);
+    dnsdist::DynamicBlocks::clearClientAddressDynamicRules();
+
+    dnsHeader.rcode = rcode;
+    for (size_t idx = 0; idx < numberOfResponses; idx++) {
+      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dnsHeader, backend, outgoingProtocol);
+    }
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), numberOfResponses / s_samplingRate);
+
+    dbrg.apply(now);
+    BOOST_CHECK_EQUAL(dnsdist::DynamicBlocks::getClientAddressDynamicRules().size(), 0U);
+    BOOST_CHECK(dnsdist::DynamicBlocks::getClientAddressDynamicRules().lookup(requestor1) == nullptr);
+  }
+
+  {
+    /* insert just above 50 FormErr/s from a given client in the last 10s */
+    size_t numberOfResponses = 50 * numberOfSeconds + s_samplingRate;
+    g_rings.clear();
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), 0U);
+    dnsdist::DynamicBlocks::clearClientAddressDynamicRules();
+
+    dnsHeader.rcode = RCode::FormErr;
+    for (size_t idx = 0; idx < numberOfResponses; idx++) {
+      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dnsHeader, backend, outgoingProtocol);
+    }
+    BOOST_CHECK_GE(g_rings.getNumberOfResponseEntries(), (numberOfResponses / s_samplingRate));
+
+    dbrg.apply(now);
+    BOOST_CHECK_EQUAL(dnsdist::DynamicBlocks::getClientAddressDynamicRules().size(), 0U);
+    BOOST_CHECK(dnsdist::DynamicBlocks::getClientAddressDynamicRules().lookup(requestor1) == nullptr);
+  }
+
+  {
+    /* insert just above 50 ServFail/s from a given client in the last 10s
+       this should trigger the rule this time */
+    size_t numberOfResponses = 50 * numberOfSeconds + s_samplingRate;
+    g_rings.clear();
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), 0U);
+    dnsdist::DynamicBlocks::clearClientAddressDynamicRules();
+
+    dnsHeader.rcode = rcode;
+    for (size_t idx = 0; idx < numberOfResponses; idx++) {
+      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dnsHeader, backend, outgoingProtocol);
+    }
+    BOOST_CHECK_GE(g_rings.getNumberOfResponseEntries(), (numberOfResponses / s_samplingRate));
+
+    dbrg.apply(now);
+    BOOST_CHECK_EQUAL(dnsdist::DynamicBlocks::getClientAddressDynamicRules().size(), 1U);
+    BOOST_REQUIRE(dnsdist::DynamicBlocks::getClientAddressDynamicRules().lookup(requestor1) != nullptr);
     BOOST_CHECK(dnsdist::DynamicBlocks::getClientAddressDynamicRules().lookup(requestor2) == nullptr);
     const auto& block = dnsdist::DynamicBlocks::getClientAddressDynamicRules().lookup(requestor1)->second;
     BOOST_CHECK_EQUAL(block.reason, reason);
@@ -1228,7 +1351,10 @@ BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesMetricsCache_GetTopN, TestFixture) {
 
   g_rings.reset();
   /* 10M entries, only one shard */
-  g_rings.init(10000000, 1);
+  Rings::RingsConfiguration config {
+    .capacity = 10000000U,
+  };
+  g_rings.init(config);
 
   {
     DynBlockRulesGroup dbrg;

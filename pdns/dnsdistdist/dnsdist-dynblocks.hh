@@ -148,14 +148,14 @@ public:
   struct DynBlockRule
   {
     DynBlockRule() = default;
-    DynBlockRule(const std::string& blockReason, unsigned int blockDuration, unsigned int rate, unsigned int warningRate, unsigned int seconds, DNSAction::Action action) :
+    DynBlockRule(const std::string& blockReason, uint32_t blockDuration, uint32_t rate, uint32_t warningRate, uint32_t seconds, DNSAction::Action action) :
       d_blockReason(blockReason), d_blockDuration(blockDuration), d_rate(rate), d_warningRate(warningRate), d_seconds(seconds), d_action(action), d_enabled(true)
     {
     }
 
     bool matches(const struct timespec& when);
-    bool rateExceeded(unsigned int count, const struct timespec& now) const;
-    bool warningRateExceeded(unsigned int count, const struct timespec& now) const;
+    bool rateExceeded(uint32_t count, const struct timespec& now) const;
+    bool warningRateExceeded(uint32_t count, const struct timespec& now) const;
 
     bool isEnabled() const
     {
@@ -168,10 +168,10 @@ public:
     std::shared_ptr<DynBlock::TagSettings> d_tagSettings;
     struct timespec d_cutOff;
     struct timespec d_minTime;
-    unsigned int d_blockDuration{0};
-    unsigned int d_rate{0};
-    unsigned int d_warningRate{0};
-    unsigned int d_seconds{0};
+    uint32_t d_blockDuration{0};
+    uint32_t d_rate{0};
+    uint32_t d_warningRate{0};
+    uint32_t d_seconds{0};
     DNSAction::Action d_action{DNSAction::Action::None};
     bool d_enabled{false};
   };
@@ -179,13 +179,13 @@ public:
   struct DynBlockRatioRule : DynBlockRule
   {
     DynBlockRatioRule() = default;
-    DynBlockRatioRule(const std::string& blockReason, unsigned int blockDuration, double ratio, double warningRatio, unsigned int seconds, DNSAction::Action action, size_t minimumNumberOfResponses) :
+    DynBlockRatioRule(const std::string& blockReason, uint32_t blockDuration, double ratio, double warningRatio, uint32_t seconds, DNSAction::Action action, size_t minimumNumberOfResponses) :
       DynBlockRule(blockReason, blockDuration, 0, 0, seconds, action), d_minimumNumberOfResponses(minimumNumberOfResponses), d_ratio(ratio), d_warningRatio(warningRatio)
     {
     }
 
-    bool ratioExceeded(unsigned int total, unsigned int count) const;
-    bool warningRatioExceeded(unsigned int total, unsigned int count) const;
+    bool ratioExceeded(uint32_t total, uint32_t count) const;
+    bool warningRatioExceeded(uint32_t total, uint32_t count) const;
     std::string toString() const;
 
     size_t d_minimumNumberOfResponses{0};
@@ -196,14 +196,14 @@ public:
   struct DynBlockCacheMissRatioRule : public DynBlockRatioRule
   {
     DynBlockCacheMissRatioRule() = default;
-    DynBlockCacheMissRatioRule(const std::string& blockReason, unsigned int blockDuration, double ratio, double warningRatio, unsigned int seconds, DNSAction::Action action, size_t minimumNumberOfResponses, double minimumGlobalCacheHitRatio) :
+    DynBlockCacheMissRatioRule(const std::string& blockReason, uint32_t blockDuration, double ratio, double warningRatio, uint32_t seconds, DNSAction::Action action, size_t minimumNumberOfResponses, double minimumGlobalCacheHitRatio) :
       DynBlockRatioRule(blockReason, blockDuration, ratio, warningRatio, seconds, action, minimumNumberOfResponses), d_minimumGlobalCacheHitRatio(minimumGlobalCacheHitRatio)
     {
     }
 
     bool checkGlobalCacheHitRatio() const;
-    bool ratioExceeded(unsigned int total, unsigned int count) const;
-    bool warningRatioExceeded(unsigned int total, unsigned int count) const;
+    bool ratioExceeded(uint32_t total, uint32_t count) const;
+    bool warningRatioExceeded(uint32_t total, uint32_t count) const;
     std::string toString() const;
 
     double d_minimumGlobalCacheHitRatio{0.0};
@@ -422,12 +422,12 @@ public:
   static void run();
 
   /* return the (cached) number of hits per second for the top offenders, averaged over 60s */
-  static std::map<std::string, std::list<std::pair<AddressAndPortRange, unsigned int>>> getHitsForTopNetmasks();
-  static std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> getHitsForTopSuffixes();
+  static std::map<std::string, std::list<std::pair<AddressAndPortRange, uint32_t>>> getHitsForTopNetmasks();
+  static std::map<std::string, std::list<std::pair<DNSName, uint32_t>>> getHitsForTopSuffixes();
 
   /* get the top offenders based on the current value of the counters */
-  static std::map<std::string, std::list<std::pair<AddressAndPortRange, unsigned int>>> getTopNetmasks(size_t topN);
-  static std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> getTopSuffixes(size_t topN);
+  static std::map<std::string, std::list<std::pair<AddressAndPortRange, uint32_t>>> getTopNetmasks(size_t topN);
+  static std::map<std::string, std::list<std::pair<DNSName, uint32_t>>> getTopSuffixes(size_t topN);
   static void purgeExpired(const struct timespec& now);
 
 private:
@@ -436,14 +436,14 @@ private:
 
   struct MetricsSnapshot
   {
-    std::map<std::string, std::list<std::pair<AddressAndPortRange, unsigned int>>> nmgData;
-    std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> smtData;
+    std::map<std::string, std::list<std::pair<AddressAndPortRange, uint32_t>>> nmgData;
+    std::map<std::string, std::list<std::pair<DNSName, uint32_t>>> smtData;
   };
 
   struct Tops
   {
-    std::map<std::string, std::list<std::pair<AddressAndPortRange, unsigned int>>> topNMGsByReason;
-    std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> topSMTsByReason;
+    std::map<std::string, std::list<std::pair<AddressAndPortRange, uint32_t>>> topNMGsByReason;
+    std::map<std::string, std::list<std::pair<DNSName, uint32_t>>> topSMTsByReason;
   };
 
   static LockGuarded<Tops> s_tops;

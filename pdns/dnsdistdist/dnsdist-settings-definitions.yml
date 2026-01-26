@@ -754,6 +754,13 @@ ring_buffers:
       lua-name: "setRingBuffersOptions"
       internal-field-name: "d_ringsRecordResponses"
       runtime-configurable: false
+    - name: "sampling_rate"
+      type: "u64"
+      default: 0
+      description: "Set a sampling rate ``S`` so that only 1 out of ``S`` queries and responses are inserted into the rings, to keep a longer history without consuming too much memory while also being able to process it quickly. Default is 0 which means there is no sampling and all entries are inserted."
+      lua-name: "setRingBuffersOptions"
+      internal-field-name: "d_ringsSamplingRate"
+      runtime-configurable: false
 
 incoming_tls_certificate_key_pair:
   description: "A pair of TLS certificate and key, with an optional associated password"

@@ -2052,6 +2052,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         if (options.count("recordResponses") > 0) {
           config.d_ringsRecordResponses = boost::get<bool>(options.at("recordResponses"));
         }
+        if (options.count("samplingRate") > 0) {
+          config.d_ringsSamplingRate = boost::get<uint64_t>(options.at("samplingRate"));
+        }
       });
     }
     catch (const std::exception& exp) {

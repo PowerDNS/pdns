@@ -3785,7 +3785,15 @@ int main(int argc, char** argv)
 
     {
       const auto& config = dnsdist::configuration::getImmutableConfiguration();
-      g_rings.init(config.d_ringsCapacity, config.d_ringsNumberOfShards, config.d_ringsNbLockTries, config.d_ringsRecordQueries, config.d_ringsRecordResponses);
+      Rings::RingsConfiguration ringsConfig{
+        .capacity = config.d_ringsCapacity,
+        .numberOfShards = config.d_ringsNumberOfShards,
+        .nbLockTries = config.d_ringsNbLockTries,
+        .samplingRate = config.d_ringsSamplingRate,
+        .recordQueries = config.d_ringsRecordQueries,
+        .recordResponses = config.d_ringsRecordResponses,
+      };
+      g_rings.init(ringsConfig);
     }
 
     for (const auto& frontend : dnsdist::getFrontends()) {
