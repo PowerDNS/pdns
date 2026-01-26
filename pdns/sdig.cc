@@ -57,7 +57,7 @@ static const string nameForClass(QClass qclass, uint16_t qtype)
   return qclass.toString();
 }
 
-using OpenTelemetryData = std::optional<std::pair<pdns::trace::TraceID, pdns::trace::SpanID>>;
+using OpenTelemetryData = std::optional<std::tuple<pdns::trace::TraceID, pdns::trace::SpanID, uint8_t>>;
 
 static std::unordered_set<uint16_t> s_expectedIDs;
 
@@ -95,13 +95,15 @@ static void fillPacket(vector<uint8_t>& packet, const string& q, const string& t
       opts.emplace_back(EDNSOptionCode::COOKIE, cookieOpt.makeOptString());
     }
     if (otids) {
-      const auto traceid = otids->first;
-      const auto spanid = otids->second;
+      const auto traceid = std::get<0>(*otids);
+      const auto spanid = std::get<1>(*otids);
+      const auto flags = std::get<2>(*otids);
       std::array<uint8_t, pdns::trace::EDNSOTTraceRecord::fullSize> data{};
       pdns::trace::EDNSOTTraceRecord record{data.data()};
       record.setVersion(0);
       record.setTraceID(traceid);
       record.setSpanID(spanid);
+      record.setFlags(flags);
       opts.emplace_back(EDNSOptionCode::OTTRACEIDS, std::string_view(reinterpret_cast<const char*>(data.data()), data.size())); // NOLINT
     }
     pw.addOpt(bufsize, 0, dnssec ? EDNSOpts::DNSSECOK : 0, opts);
@@ -372,6 +374,8 @@ try {
         auto traceIDArg = std::string(argv[++i]);
         pdns::trace::TraceID traceid;
         pdns::trace::SpanID spanid;
+        uint8_t traceflags = 0;
+        // Cannot set flags yet.
         if (traceIDArg == "-") {
           traceid.makeRandom();
           spanid.makeRandom();
@@ -379,10 +383,14 @@ try {
         else {
           auto traceIDStr = makeBytesFromHex(traceIDArg);
           if (traceIDStr.size() > traceid.size() + spanid.size()) {
-            cerr << "Maximum length of traceid plus spanid is " << traceid.size() + spanid.size()<< " bytes" << endl;
+            cerr << "Maximum length of traceid plus spanid is " << traceid.size() + spanid.size() << " bytes" << endl;
             exit(EXIT_FAILURE);
           }
-          std::string spanidStr(traceIDStr.begin() + traceid.size(), traceIDStr.end());
+
+          std::string spanidStr;
+          if (traceIDStr.size() > traceid.size()) {
+            spanidStr = std::string(traceIDStr.begin() + traceid.size(), traceIDStr.end());
+          }
           traceIDStr.resize(traceid.size());
           pdns::trace::fill(traceid, traceIDStr);
           if (spanidStr.empty()) {
@@ -394,7 +402,7 @@ try {
             pdns::trace::fill(spanid, spanidStr);
           }
         }
-        otdata = std::make_pair(traceid, spanid);
+        otdata = std::make_tuple(traceid, spanid, traceflags);
       }
       else {
         cerr << argv[i] << ": unknown argument" << endl;
