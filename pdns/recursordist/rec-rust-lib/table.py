@@ -110,6 +110,7 @@ Overrides the :ref:`setting-allow-from` setting. Example content of th specified
 Domain names specified in this list are used to permit incoming
 NOTIFY operations to wipe any cache entries that match the domain
 name. If this list is empty, all NOTIFY operations will be ignored.
+Matching is done using suffix matching, it is allowed to NOTIFY a subdomain of a listed domain.
  ''',
         'versionadded': '4.6.0',
         'runtime': ['reload-acls'],
