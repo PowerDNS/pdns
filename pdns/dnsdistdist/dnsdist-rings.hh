@@ -245,7 +245,14 @@ struct Rings
     return d_samplingRate;
   }
 
-  uint32_t adjustForSamplingRate(uint32_t count) const;
+  uint32_t adjustForSamplingRate(uint32_t count) const
+  {
+    const auto samplingRate = getSamplingRate();
+    if (samplingRate > 0) {
+      return count * samplingRate;
+    }
+    return count;
+  }
 
   std::vector<std::unique_ptr<Shard>> d_shards;
   pdns::stat_t d_blockingQueryInserts{0};
@@ -290,8 +297,23 @@ private:
     return wasFull;
   }
 
-  bool shouldSkipQueryDueToSampling();
-  bool shouldSkipResponseDueToSampling();
+  bool shouldSkipQueryDueToSampling()
+  {
+    if (d_samplingRate == 0) {
+      return false;
+    }
+    auto counter = t_samplingQueryCounter++;
+    return (counter % d_samplingRate) != 0;
+  }
+
+  bool shouldSkipResponseDueToSampling()
+  {
+    if (d_samplingRate == 0) {
+      return false;
+    }
+    auto counter = t_samplingResponseCounter++;
+    return (counter % d_samplingRate) != 0;
+  }
 
   static constexpr bool s_keepLockingStats{false};
   // small hack to reduce contention: this only works because we have a single Rings object in DNSdist

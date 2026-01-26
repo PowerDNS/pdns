@@ -204,30 +204,3 @@ bool Rings::Response::isACacheHit() const
   }
   return hit;
 }
-
-bool Rings::shouldSkipQueryDueToSampling()
-{
-  if (d_samplingRate == 0) {
-    return false;
-  }
-  auto counter = t_samplingQueryCounter++;
-  return (counter % d_samplingRate) != 0;
-}
-
-bool Rings::shouldSkipResponseDueToSampling()
-{
-  if (d_samplingRate == 0) {
-    return false;
-  }
-  auto counter = t_samplingResponseCounter++;
-  return (counter % d_samplingRate) != 0;
-}
-
-uint32_t Rings::adjustForSamplingRate(uint32_t count) const
-{
-  const auto samplingRate = getSamplingRate();
-  if (samplingRate > 0) {
-    return count * samplingRate;
-  }
-  return count;
-}
