@@ -1129,6 +1129,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     bool statsRequireAuthentication{true};
     bool apiRequiresAuthentication{true};
     bool dashboardRequiresAuthentication{true};
+    bool allowCrossOriginRequests{false};
     int maxConcurrentConnections = 0;
 
     if (getOptionalValue<std::string>(vars, "password", password) > 0) {
@@ -1167,6 +1168,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
     if (getOptionalValue<bool>(vars, "dashboardRequiresAuthentication", dashboardRequiresAuthentication) > 0) {
       setWebserverDashboardRequiresAuthentication(dashboardRequiresAuthentication);
+    }
+
+    if (getOptionalValue<bool>(vars, "allowCrossOriginRequests", allowCrossOriginRequests) > 0) {
+      setWebserverAllowCrossOriginRequests(allowCrossOriginRequests);
     }
 
     if (getOptionalIntegerValue("setWebserverConfig", vars, "maxConcurrentConnections", maxConcurrentConnections) > 0) {

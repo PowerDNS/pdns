@@ -57,6 +57,7 @@ struct WebserverConfig
   bool apiRequiresAuthentication{true};
   bool dashboardRequiresAuthentication{true};
   bool statsRequireAuthentication{true};
+  bool allowCrossOriginRequests{false}; // Whether the webserver / API allows cross-origin requests
 };
 
 bool g_apiReadWrite{false};
@@ -391,10 +392,13 @@ static void handleCORS(const YaHTTP::Request& req, YaHTTP::Response& resp)
       resp.headers["Access-Control-Allow-Headers"] = "Authorization, X-API-Key";
     }
 
-    resp.headers["Access-Control-Allow-Origin"] = origin->second;
+    const auto allowCrossOrigin = g_webserverConfig.lock()->allowCrossOriginRequests;
+    if (allowCrossOrigin) {
+      resp.headers["Access-Control-Allow-Origin"] = origin->second;
 
-    if (isAStatsRequest(req) || isAnAPIRequestAllowedWithWebAuth(req)) {
-      resp.headers["Access-Control-Allow-Credentials"] = "true";
+      if (isAStatsRequest(req) || isAnAPIRequestAllowedWithWebAuth(req)) {
+        resp.headers["Access-Control-Allow-Credentials"] = "true";
+      }
     }
   }
 }
@@ -1955,6 +1959,11 @@ void setWebserverAPIRequiresAuthentication(bool require)
 void setWebserverDashboardRequiresAuthentication(bool require)
 {
   g_webserverConfig.lock()->dashboardRequiresAuthentication = require;
+}
+
+void setWebserverAllowCrossOriginRequests(bool allow)
+{
+  g_webserverConfig.lock()->allowCrossOriginRequests = allow;
 }
 
 void setWebserverMaxConcurrentConnections(size_t max)

@@ -11,6 +11,7 @@ void setWebserverAPIRequiresAuthentication(bool);
 void setWebserverDashboardRequiresAuthentication(bool);
 void setWebserverStatsRequireAuthentication(bool);
 void setWebserverMaxConcurrentConnections(size_t);
+void setWebserverAllowCrossOriginRequests(bool);
 
 void dnsdistWebserverThread(int sock, const ComboAddress& local);
 
