@@ -38,14 +38,18 @@ struct PrometheusMetricDefinition
 
 #ifndef DISABLE_PROMETHEUS
 // Metric types for Prometheus
-enum class PrometheusMetricType: uint8_t {
-    counter = 1,
-    gauge = 2
+enum class PrometheusMetricType : uint8_t
+{
+  counter = 1,
+  gauge = 2
 };
 
 // Keeps additional information about metrics
-struct MetricDefinition {
-  MetricDefinition(PrometheusMetricType _prometheusType, const std::string& _description, const std::string& customName_ = ""): description(_description), customName(customName_), prometheusType(_prometheusType) {
+struct MetricDefinition
+{
+  MetricDefinition(PrometheusMetricType _prometheusType, const std::string& _description, const std::string& customName_ = "") :
+    description(_description), customName(customName_), prometheusType(_prometheusType)
+  {
   }
 
   MetricDefinition() = default;
@@ -58,9 +62,11 @@ struct MetricDefinition {
   PrometheusMetricType prometheusType{PrometheusMetricType::counter};
 };
 
-struct MetricDefinitionStorage {
+struct MetricDefinitionStorage
+{
   // Return metric definition by name
-  bool getMetricDetails(const std::string& metricName, MetricDefinition& metric) const {
+  bool getMetricDetails(const std::string& metricName, MetricDefinition& metric) const
+  {
     const auto& metricDetailsIter = metrics.find(metricName);
 
     if (metricDetailsIter == metrics.end()) {
@@ -71,10 +77,11 @@ struct MetricDefinitionStorage {
     return true;
   };
 
-  static bool addMetricDefinition(const dnsdist::prometheus::PrometheusMetricDefinition& def) {
+  static bool addMetricDefinition(const dnsdist::prometheus::PrometheusMetricDefinition& def)
+  {
     static const std::map<std::string, PrometheusMetricType> namesToTypes = {
       {"counter", PrometheusMetricType::counter},
-      {"gauge",   PrometheusMetricType::gauge},
+      {"gauge", PrometheusMetricType::gauge},
     };
     auto realtype = namesToTypes.find(def.type);
     if (realtype == namesToTypes.end()) {
@@ -85,17 +92,18 @@ struct MetricDefinitionStorage {
   }
 
   // Return string representation of Prometheus metric type
-  std::string getPrometheusStringMetricType(PrometheusMetricType metricType) const {
+  std::string getPrometheusStringMetricType(PrometheusMetricType metricType) const
+  {
     switch (metricType) {
-      case PrometheusMetricType::counter:
-        return "counter";
-        break;
-      case PrometheusMetricType::gauge:
-        return "gauge";
-        break;
-      default:
-        return "";
-        break;
+    case PrometheusMetricType::counter:
+      return "counter";
+      break;
+    case PrometheusMetricType::gauge:
+      return "gauge";
+      break;
+    default:
+      return "";
+      break;
     }
   };
 

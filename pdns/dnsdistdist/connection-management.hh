@@ -57,7 +57,8 @@ public:
   }
 
 private:
-  struct Data {
+  struct Data
+  {
     size_t d_maxConcurrentConnections{0};
     size_t d_currentConnectionsCount{0};
   };

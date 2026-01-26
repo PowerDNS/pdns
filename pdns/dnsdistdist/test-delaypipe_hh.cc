@@ -11,14 +11,15 @@
 
 BOOST_AUTO_TEST_SUITE(test_delaypipe_hh);
 
-BOOST_AUTO_TEST_CASE(test_object_pipe) {
+BOOST_AUTO_TEST_CASE(test_object_pipe)
+{
   ObjectPipe<int> op;
-  for(int n=0; n < 100; ++n)
+  for (int n = 0; n < 100; ++n)
     op.write(n);
 
   int i;
-  for(int n=0; n < 100; ++n) {
-    int res=op.readTimeout(&i, -1);
+  for (int n = 0; n < 100; ++n) {
+    int res = op.readTimeout(&i, -1);
     BOOST_CHECK_EQUAL(res, 1);
     BOOST_CHECK_EQUAL(n, i);
   }
@@ -28,7 +29,8 @@ BOOST_AUTO_TEST_CASE(test_object_pipe) {
 }
 
 std::atomic<int> done = 0;
-BOOST_AUTO_TEST_CASE(test_delay_pipe_small) {
+BOOST_AUTO_TEST_CASE(test_delay_pipe_small)
+{
   done = 0;
   struct Work
   {
@@ -40,13 +42,13 @@ BOOST_AUTO_TEST_CASE(test_delay_pipe_small) {
   };
   DelayPipe<Work> dp;
   int n;
-  for(n=0; n < 5; ++n) {
+  for (n = 0; n < 5; ++n) {
     Work w{n};
     dp.submit(w, 500);
   }
   BOOST_CHECK_EQUAL(done, 0);
 
-  for(; n < 10; ++n) {
+  for (; n < 10; ++n) {
     Work w{n};
     dp.submit(w, 1200);
   }
@@ -54,11 +56,11 @@ BOOST_AUTO_TEST_CASE(test_delay_pipe_small) {
   BOOST_CHECK_EQUAL(done, 5);
   sleep(1);
   BOOST_CHECK_EQUAL(done, n);
-
 }
 
-BOOST_AUTO_TEST_CASE(test_delay_pipe_big) {
-  done=0;
+BOOST_AUTO_TEST_CASE(test_delay_pipe_big)
+{
+  done = 0;
   struct Work
   {
     int i;
@@ -69,7 +71,7 @@ BOOST_AUTO_TEST_CASE(test_delay_pipe_big) {
   };
   DelayPipe<Work> dp;
   int n;
-  for(n=0; n < 1000000; ++n) {
+  for (n = 0; n < 1000000; ++n) {
     Work w{n};
     dp.submit(w, 100);
   }

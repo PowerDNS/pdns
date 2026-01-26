@@ -23,9 +23,10 @@
 #include "dnsdist-systemd.hh"
 #include <cstdlib>
 
-bool running_in_service_mgr() {
+bool running_in_service_mgr()
+{
 #ifdef HAVE_SYSTEMD
-  char *c;
+  char* c;
   c = getenv("NOTIFY_SOCKET"); // XXX Ideally we'd check for INVOCATION_ID (systemd.exec(5)), but that was introduced in systemd 232, and Debian Jessie has 215
   if (c != nullptr) {
     return true;

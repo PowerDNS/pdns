@@ -56,7 +56,7 @@ void DownstreamState::addXSKDestination(int fd)
 {
   auto socklen = d_config.remote.getSocklen();
   ComboAddress local;
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): sorry, it's the API
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): sorry, it's the API
   if (getsockname(fd, reinterpret_cast<sockaddr*>(&local), &socklen) != 0) {
     return;
   }
@@ -162,8 +162,7 @@ bool DownstreamState::reconnect(bool initialAttempt)
         if (!IsAnyAddress(d_config.sourceAddr) || !d_config.sourceItfName.empty()) {
           SLOG(infolog("Error connecting to new server with address %s (source address: %s, source interface: %s): %s", d_config.remote.toStringWithPort(), IsAnyAddress(d_config.sourceAddr) ? "not set" : d_config.sourceAddr.toString(), d_config.sourceItfName.empty() ? "not set" : d_config.sourceItfName, error.what()),
                getLogger()->error(Logr::Info, error.what(), "Error connecting to server", "source.address", Logging::Loggable(d_config.sourceAddr), "source.interface", Logging::Loggable(d_config.sourceItfName)));
-
-          }
+        }
         else {
           SLOG(infolog("Error connecting to new server with address %s: %s", d_config.remote.toStringWithPort(), error.what()),
                getLogger()->error(Logr::Info, error.what(), "Error connecting to server"));
@@ -230,7 +229,7 @@ void DownstreamState::waitUntilConnected()
   }
   {
     std::unique_lock<std::mutex> lock(connectLock);
-    d_connectedWait.wait(lock, [this]{
+    d_connectedWait.wait(lock, [this] {
       return connected.load();
     });
   }
@@ -292,7 +291,7 @@ void DownstreamState::setWeight(int newWeight)
   if (newWeight < 1) {
     SLOG(errlog("Error setting server's weight: downstream weight value must be greater than 0."),
          getLogger()->info(Logr::Error, "Error setting server's weight: downstream weight value must be greater than 0", "backend.weight", Logging::Loggable(newWeight)));
-    return ;
+    return;
   }
 
   d_config.d_weight = newWeight;
@@ -302,7 +301,8 @@ void DownstreamState::setWeight(int newWeight)
   }
 }
 
-DownstreamState::DownstreamState(DownstreamState::Config&& config, std::shared_ptr<TLSCtx> tlsCtx, bool connect): d_config(std::move(config)), d_tlsCtx(std::move(tlsCtx))
+DownstreamState::DownstreamState(DownstreamState::Config&& config, std::shared_ptr<TLSCtx> tlsCtx, bool connect) :
+  d_config(std::move(config)), d_tlsCtx(std::move(tlsCtx))
 {
   threadStarted.clear();
 
@@ -351,7 +351,6 @@ DownstreamState::DownstreamState(DownstreamState::Config&& config, std::shared_p
 
   sw.start();
 }
-
 
 void DownstreamState::start()
 {
@@ -438,7 +437,7 @@ void DownstreamState::pickSocketsReadyForReceiving(std::vector<int>& ready)
 
   if (sockets.size() == 1) {
     ready.push_back(sockets[0]);
-    return ;
+    return;
   }
 
   (*mplexer.lock())->getAvailableFDs(ready, 1000);
@@ -510,7 +509,7 @@ void DownstreamState::handleUDPTimeouts()
   const auto udpTimeout = d_config.udpTimeout > 0 ? d_config.udpTimeout : config.d_udpTimeout;
   if (config.d_randomizeIDsToBackend) {
     auto map = d_idStatesMap.lock();
-    for (auto it = map->begin(); it != map->end(); ) {
+    for (auto it = map->begin(); it != map->end();) {
       auto& ids = it->second;
       if (isIDSExpired(ids, udpTimeout)) {
         handleUDPTimeout(ids);
@@ -577,8 +576,7 @@ uint16_t DownstreamState::saveState(InternalQueryState&& state)
       it->second.age.store(0);
 
       return it->first;
-    }
-    while (true);
+    } while (true);
   }
 
   do {
@@ -603,8 +601,7 @@ uint16_t DownstreamState::saveState(InternalQueryState&& state)
     ids.age.store(0);
     ids.inUse = true;
     return selectedID;
-  }
-  while (true);
+  } while (true);
 }
 
 void DownstreamState::restoreState(uint16_t id, InternalQueryState&& state)
@@ -764,7 +761,7 @@ time_t DownstreamState::getNextLazyHealthCheck()
 
 void DownstreamState::updateNextLazyHealthCheck(LazyHealthCheckStats& stats, bool checkScheduled, std::optional<time_t> currentTime)
 {
-  auto now = currentTime ? * currentTime : time(nullptr);
+  auto now = currentTime ? *currentTime : time(nullptr);
   if (d_config.d_lazyHealthCheckUseExponentialBackOff) {
     if (stats.d_status == DownstreamState::LazyHealthCheckStats::LazyStatus::PotentialFailure) {
       /* we are still in the "up" state, we need to send the next query quickly to
@@ -1050,7 +1047,7 @@ size_t ServerPool::countServers(bool upOnly) const
 {
   size_t count = 0;
   for (const auto& server : d_servers) {
-    if (!upOnly || std::get<1>(server)->isUp() ) {
+    if (!upOnly || std::get<1>(server)->isUp()) {
       count++;
     }
   }
@@ -1089,9 +1086,9 @@ void ServerPool::addServer(std::shared_ptr<DownstreamState>& server)
   auto count = static_cast<unsigned int>(d_servers.size());
   d_servers.emplace_back(++count, server);
   /* we need to reorder based on the server 'order' */
-  std::stable_sort(d_servers.begin(), d_servers.end(), [](const std::pair<unsigned int,std::shared_ptr<DownstreamState> >& lhs, const std::pair<unsigned int,std::shared_ptr<DownstreamState> >& rhs) {
-      return lhs.second->d_config.order < rhs.second->d_config.order;
-    });
+  std::stable_sort(d_servers.begin(), d_servers.end(), [](const std::pair<unsigned int, std::shared_ptr<DownstreamState>>& lhs, const std::pair<unsigned int, std::shared_ptr<DownstreamState>>& rhs) {
+    return lhs.second->d_config.order < rhs.second->d_config.order;
+  });
   /* and now we need to renumber for Lua (custom policies) */
   size_t idx = 1;
   for (auto& serv : d_servers) {
@@ -1115,7 +1112,8 @@ void ServerPool::removeServer(shared_ptr<DownstreamState>& server)
     else if (it->second == server) {
       it = d_servers.erase(it);
       found = true;
-    } else {
+    }
+    else {
       idx++;
       it++;
     }

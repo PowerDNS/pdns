@@ -123,9 +123,20 @@ BOOST_AUTO_TEST_SUITE(test_dnsdisttcp_cc)
 struct ExpectedStep
 {
 public:
-  enum class ExpectedRequest { handshakeClient, readFromClient, writeToClient, closeClient, connectToBackend, readFromBackend, writeToBackend, closeBackend };
+  enum class ExpectedRequest
+  {
+    handshakeClient,
+    readFromClient,
+    writeToClient,
+    closeClient,
+    connectToBackend,
+    readFromBackend,
+    writeToBackend,
+    closeBackend
+  };
 
-  ExpectedStep(ExpectedRequest r, IOState n, size_t b = 0, std::function<void(int descriptor)> fn = nullptr): cb(fn), request(r), nextState(n), bytes(b)
+  ExpectedStep(ExpectedRequest r, IOState n, size_t b = 0, std::function<void(int descriptor)> fn = nullptr) :
+    cb(fn), request(r), nextState(n), bytes(b)
   {
   }
 
@@ -142,23 +153,24 @@ static PacketBuffer s_writeBuffer;
 static PacketBuffer s_backendReadBuffer;
 static PacketBuffer s_backendWriteBuffer;
 
-std::ostream& operator<<(std::ostream &os, const ExpectedStep::ExpectedRequest d);
+std::ostream& operator<<(std::ostream& os, const ExpectedStep::ExpectedRequest d);
 
-std::ostream& operator<<(std::ostream &os, const ExpectedStep::ExpectedRequest d)
+std::ostream& operator<<(std::ostream& os, const ExpectedStep::ExpectedRequest d)
 {
-  static const std::vector<std::string> requests = { "handshake with client", "read from client", "write to client", "close connection to client", "connect to the backend", "read from the backend", "write to the backend", "close connection to backend" };
-  os<<requests.at(static_cast<size_t>(d));
+  static const std::vector<std::string> requests = {"handshake with client", "read from client", "write to client", "close connection to client", "connect to the backend", "read from the backend", "write to the backend", "close connection to backend"};
+  os << requests.at(static_cast<size_t>(d));
   return os;
 }
 
 class MockupTLSConnection : public TLSConnection
 {
 public:
-  MockupTLSConnection(int descriptor, bool client = false): d_descriptor(descriptor), d_client(client)
+  MockupTLSConnection(int descriptor, bool client = false) :
+    d_descriptor(descriptor), d_client(client)
   {
   }
 
-  ~MockupTLSConnection() { }
+  ~MockupTLSConnection() {}
 
   IOState tryHandshake() override
   {
@@ -194,7 +206,7 @@ public:
     return step.nextState;
   }
 
-  IOState tryRead(PacketBuffer& buffer, size_t& pos, size_t toRead, bool allowIncomplete=false) override
+  IOState tryRead(PacketBuffer& buffer, size_t& pos, size_t toRead, bool allowIncomplete = false) override
   {
     (void)allowIncomplete;
     auto step = getStep();
@@ -297,7 +309,7 @@ public:
     (void)timeout;
   }
 
-  size_t read(void* buffer, size_t bufferSize, const struct timeval&readTimeout, const struct timeval& totalTimeout={0,0}, bool allowIncomplete=false) override
+  size_t read(void* buffer, size_t bufferSize, const struct timeval& readTimeout, const struct timeval& totalTimeout = {0, 0}, bool allowIncomplete = false) override
   {
     (void)buffer;
     (void)bufferSize;
@@ -314,6 +326,7 @@ public:
     (void)writeTimeout;
     return 0;
   }
+
 private:
   ExpectedStep getStep() const
   {
@@ -381,7 +394,7 @@ public:
   {
   }
 
-  int run(struct timeval* tv, int timeout=500) override
+  int run(struct timeval* tv, int timeout = 500) override
   {
     (void)timeout;
     int ret = 0;
@@ -533,9 +546,9 @@ struct TestFixture
 static void testInit(const std::string& name, TCPClientThreadData& threadData)
 {
 #ifdef DEBUGLOG_ENABLED
-  cerr<<name<<endl;
+  cerr << name << endl;
 #else
-  (void) name;
+  (void)name;
 #endif
 
   TestFixture::reset();
@@ -563,7 +576,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
   pwQ.getHeader()->rd = 1;
 
   uint16_t querySize = static_cast<uint16_t>(query.size());
-  const uint8_t sizeBytes[] = { static_cast<uint8_t>(querySize / 256), static_cast<uint8_t>(querySize % 256) };
+  const uint8_t sizeBytes[] = {static_cast<uint8_t>(querySize / 256), static_cast<uint8_t>(querySize % 256)};
   query.insert(query.begin(), sizeBytes, sizeBytes + 2);
 
   {
@@ -572,10 +585,10 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
     s_readBuffer = query;
 
     s_steps = {
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2 },
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2},
+      {ExpectedStep::ExpectedRequest::closeClient, IOState::Done},
     };
     s_processQuery = [](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
       (void)dq;
@@ -594,12 +607,12 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
     s_readBuffer = query;
 
     s_steps = {
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2 },
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, 65537 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 0 },
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2},
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, 65537},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 0},
+      {ExpectedStep::ExpectedRequest::closeClient, IOState::Done},
     };
     s_processQuery = [](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
       (void)dq;
@@ -623,17 +636,17 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
     s_readBuffer = query;
 
     s_steps = {
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::NeedWrite },
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::NeedRead },
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 1 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 1 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, query.size() - 3 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 1 },
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::NeedWrite, query.size() - 1},
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, 1 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 0 },
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::NeedWrite},
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::NeedRead},
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 1},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 1},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, query.size() - 3},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 1},
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::NeedWrite, query.size() - 1},
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, 1},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 0},
+      {ExpectedStep::ExpectedRequest::closeClient, IOState::Done},
     };
     s_processQuery = [](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
       (void)dq;
@@ -660,10 +673,10 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
     s_readBuffer = query;
 
     s_steps = {
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2 },
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2},
+      {ExpectedStep::ExpectedRequest::closeClient, IOState::Done},
     };
     s_processQuery = [](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
       (void)dq;
@@ -682,16 +695,16 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
     /* 10k self-generated REFUSED pipelined on the same connection */
     size_t count = 10000;
 
-    s_steps = { { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done } };
+    s_steps = {{ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done}};
 
     for (size_t idx = 0; idx < count; idx++) {
       s_readBuffer.insert(s_readBuffer.end(), query.begin(), query.end());
-      s_steps.push_back({ ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 });
-      s_steps.push_back({ ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2 });
-      s_steps.push_back({ ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, query.size() + 2 });
+      s_steps.push_back({ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2});
+      s_steps.push_back({ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2});
+      s_steps.push_back({ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, query.size() + 2});
     };
-    s_steps.push_back({ ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 0 });
-    s_steps.push_back({ ExpectedStep::ExpectedRequest::closeClient, IOState::Done });
+    s_steps.push_back({ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 0});
+    s_steps.push_back({ExpectedStep::ExpectedRequest::closeClient, IOState::Done});
 
     s_processQuery = [](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
       (void)dq;
@@ -711,10 +724,10 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
     s_readBuffer = query;
 
     s_steps = {
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, query.size() - 2 - 2 },
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, query.size() - 2 - 2},
+      {ExpectedStep::ExpectedRequest::closeClient, IOState::Done},
     };
     s_processQuery = [](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
       (void)dq;
@@ -750,11 +763,11 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
     s_readBuffer = query;
 
     s_steps = {
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2 },
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::NeedWrite, 1 },
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2},
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::NeedWrite, 1},
+      {ExpectedStep::ExpectedRequest::closeClient, IOState::Done},
     };
     s_processQuery = [](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
       (void)dq;
@@ -788,11 +801,11 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
     s_readBuffer = query;
 
     s_steps = {
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2 },
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, 0 },
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2},
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, 0},
+      {ExpectedStep::ExpectedRequest::closeClient, IOState::Done},
     };
     s_processQuery = [](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
       (void)dq;
@@ -825,7 +838,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionWithProxyProtocol_SelfAnswered, T
   pwQ.getHeader()->rd = 1;
 
   uint16_t querySize = static_cast<uint16_t>(query.size());
-  const uint8_t sizeBytes[] = { static_cast<uint8_t>(querySize / 256), static_cast<uint8_t>(querySize % 256) };
+  const uint8_t sizeBytes[] = {static_cast<uint8_t>(querySize / 256), static_cast<uint8_t>(querySize % 256)};
   query.insert(query.begin(), sizeBytes, sizeBytes + 2);
 
   {
@@ -845,17 +858,17 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionWithProxyProtocol_SelfAnswered, T
     s_readBuffer.insert(s_readBuffer.end(), query.begin(), query.end());
 
     s_steps = {
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, s_proxyProtocolMinimumHeaderSize },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, proxyPayload.size() - s_proxyProtocolMinimumHeaderSize },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2 },
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, 65537 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2 },
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, 65537 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 0 },
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, s_proxyProtocolMinimumHeaderSize},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, proxyPayload.size() - s_proxyProtocolMinimumHeaderSize},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2},
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, 65537},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2},
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, 65537},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 0},
+      {ExpectedStep::ExpectedRequest::closeClient, IOState::Done},
     };
     s_processQuery = [](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
       (void)dq;
@@ -888,9 +901,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionWithProxyProtocol_SelfAnswered, T
     s_readBuffer.insert(s_readBuffer.begin(), proxyPayload.begin(), proxyPayload.end());
 
     s_steps = {
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, s_proxyProtocolMinimumHeaderSize },
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, s_proxyProtocolMinimumHeaderSize},
+      {ExpectedStep::ExpectedRequest::closeClient, IOState::Done},
     };
     s_processQuery = [](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
       (void)dq;
@@ -919,10 +932,10 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionWithProxyProtocol_SelfAnswered, T
     s_readBuffer.insert(s_readBuffer.begin(), proxyPayload.begin(), proxyPayload.end());
 
     s_steps = {
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, s_proxyProtocolMinimumHeaderSize },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, proxyPayload.size() - s_proxyProtocolMinimumHeaderSize - 1},
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, s_proxyProtocolMinimumHeaderSize},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, proxyPayload.size() - s_proxyProtocolMinimumHeaderSize - 1},
+      {ExpectedStep::ExpectedRequest::closeClient, IOState::Done},
     };
     s_processQuery = [](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
       (void)dq;
@@ -972,11 +985,11 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
   auto shortQuery = query;
   shortQuery.resize(sizeof(dnsheader) - 1);
   uint16_t shortQuerySize = static_cast<uint16_t>(shortQuery.size());
-  const uint8_t shortSizeBytes[] = { static_cast<uint8_t>(shortQuerySize / 256), static_cast<uint8_t>(shortQuerySize % 256) };
+  const uint8_t shortSizeBytes[] = {static_cast<uint8_t>(shortQuerySize / 256), static_cast<uint8_t>(shortQuerySize % 256)};
   shortQuery.insert(shortQuery.begin(), shortSizeBytes, shortSizeBytes + 2);
 
   uint16_t querySize = static_cast<uint16_t>(query.size());
-  const uint8_t sizeBytes[] = { static_cast<uint8_t>(querySize / 256), static_cast<uint8_t>(querySize % 256) };
+  const uint8_t sizeBytes[] = {static_cast<uint8_t>(querySize / 256), static_cast<uint8_t>(querySize % 256)};
   query.insert(query.begin(), sizeBytes, sizeBytes + 2);
 
   auto backend = std::make_shared<DownstreamState>(getBackendAddress("42", 53));
@@ -990,20 +1003,20 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
     s_backendReadBuffer = query;
 
     s_steps = {
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2 },
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2},
       /* opening a connection to the backend */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, query.size() },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, query.size() - 2 },
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, query.size() },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 0 },
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, query.size()},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, query.size() - 2},
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, query.size()},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 0},
       /* closing client connection */
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeClient, IOState::Done},
       /* closing a connection to the backend */
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
     };
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
       (void)dq;
@@ -1036,18 +1049,18 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
     s_backendReadBuffer = query;
 
     s_steps = {
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2 },
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2},
       /* opening a connection to the backend */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, query.size() },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, query.size() - 2 },
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, query.size()},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, query.size() - 2},
       /* closing client connection */
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeClient, IOState::Done},
       /* closing a connection to the backend */
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
     };
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
       (void)dq;
@@ -1079,18 +1092,18 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
     s_backendReadBuffer = query;
 
     s_steps = {
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2 },
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2},
       /* opening a connection to the backend */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, query.size() },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, query.size() - 2 },
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, query.size()},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, query.size() - 2},
       /* closing client connection */
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeClient, IOState::Done},
       /* closing a connection to the backend */
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
     };
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
       (void)dq;
@@ -1126,18 +1139,18 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
     s_backendReadBuffer = responsePacket;
 
     s_steps = {
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2 },
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2},
       /* opening a connection to the backend */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, query.size() },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, query.size() - 2 },
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, query.size()},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, query.size() - 2},
       /* closing client connection */
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeClient, IOState::Done},
       /* closing a connection to the backend */
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
     };
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
       (void)dq;
@@ -1166,10 +1179,10 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
     s_readBuffer = shortQuery;
 
     s_steps = {
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
       /* closing client connection */
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeClient, IOState::Done},
     };
     s_processQuery = [](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
       (void)dq;
@@ -1200,18 +1213,18 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
     s_backendReadBuffer = shortQuery;
 
     s_steps = {
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() },
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size()},
       /* opening a connection to the backend */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, query.size() },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, query.size() - 2 },
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, query.size()},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, query.size() - 2},
       /* closing client connection */
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeClient, IOState::Done},
       /* closing backend connection */
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
     };
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
       (void)dq;
@@ -1247,42 +1260,41 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
     appendPayloadEditingID(s_backendReadBuffer, query, 1);
 
     s_steps = {
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2 },
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2},
       /* connect to backend */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::NeedWrite, 0, [&threadData](int desc) {
-          /* set the outgoing descriptor (backend connection) as ready */
-          dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
-        }
-      },
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::NeedWrite, 0, [&threadData](int desc) {
+         /* set the outgoing descriptor (backend connection) as ready */
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
+       }},
       /* send query */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::NeedWrite, 1 },
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, query.size() - 1 },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::NeedWrite, 1},
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, query.size() - 1},
       /* read response */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 1 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 1 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, query.size() - 3 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 1 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 1},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 1},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, query.size() - 3},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 1},
       /* write response to client */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::NeedWrite, query.size() - 1 },
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, 1 },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::NeedWrite, query.size() - 1},
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, 1},
       /* read second query */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2},
       /* write second query to backend */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, query.size() },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, query.size()},
       /* read second response */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, query.size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, query.size() - 2},
       /* write second response */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, query.size() },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, query.size()},
       /* read from client */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 0 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 0},
       /* close connection to client */
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeClient, IOState::Done},
       /* close connection to the backend, eventually */
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
     };
 
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
@@ -1318,42 +1330,37 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
     s_readBuffer = query;
 
     s_steps = {
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2 },
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2},
       /* opening a connection to the backend (5 tries by default) */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [](int descriptor) {
-          (void)descriptor;
-          throw NetworkError("Connection refused by the backend");
-        }
-      },
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [](int descriptor) {
-          (void)descriptor;
-          throw NetworkError("Connection refused by the backend");
-        }
-      },
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [](int descriptor) {
-          (void)descriptor;
-          throw NetworkError("Connection refused by the backend");
-        }
-      },
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [](int descriptor) {
-          (void)descriptor;
-          throw NetworkError("Connection refused by the backend");
-        }
-      },
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [](int descriptor) {
-          (void)descriptor;
-          throw NetworkError("Connection refused by the backend");
-        }
-      },
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [](int descriptor) {
+         (void)descriptor;
+         throw NetworkError("Connection refused by the backend");
+       }},
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [](int descriptor) {
+         (void)descriptor;
+         throw NetworkError("Connection refused by the backend");
+       }},
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [](int descriptor) {
+         (void)descriptor;
+         throw NetworkError("Connection refused by the backend");
+       }},
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [](int descriptor) {
+         (void)descriptor;
+         throw NetworkError("Connection refused by the backend");
+       }},
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [](int descriptor) {
+         (void)descriptor;
+         throw NetworkError("Connection refused by the backend");
+       }},
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
       /* closing client connection */
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeClient, IOState::Done},
     };
 
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
@@ -1384,15 +1391,15 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
     s_readBuffer = query;
 
     s_steps = {
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2 },
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2},
       /* opening a connection to the backend (retrying 5 times) */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::NeedWrite },
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::NeedWrite},
       /* closing client connection */
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeClient, IOState::Done},
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
     };
 
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
@@ -1433,16 +1440,16 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
     s_readBuffer = query;
 
     s_steps = {
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2 },
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2},
       /* opening a connection to the backend */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, query.size() },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0 },
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, query.size()},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0},
       /* closing client connection */
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeClient, IOState::Done},
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
     };
 
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
@@ -1483,27 +1490,27 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
     s_readBuffer = query;
 
     s_steps = {
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2 },
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2},
       /* opening a connection to the backend, connection closed on first write (5 attempts) */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, 0 },
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, 0 },
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, 0 },
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, 0 },
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, 0 },
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, 0},
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, 0},
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, 0},
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, 0},
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, 0},
       /* closing client connection */
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeClient, IOState::Done},
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
     };
 
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
@@ -1535,35 +1542,35 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
     s_backendReadBuffer = query;
 
     s_steps = {
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2 },
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2},
       /* opening a connection to the backend, connection closed on first write (5 attempts) */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, 0 },
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, 0 },
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, 0 },
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, 0 },
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, query.size() },
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, 0},
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, 0},
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, 0},
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, 0},
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, query.size()},
       /* reading the response */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, query.size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, query.size() - 2},
       /* send the response to the client */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, query.size() },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, query.size()},
       /* client closes the connection */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 0 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 0},
       /* closing client connection */
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeClient, IOState::Done},
       /* then eventually the backend one */
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
     };
 
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
@@ -1594,43 +1601,39 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
     s_readBuffer = query;
 
     s_steps = {
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2 },
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2},
       /* opening a connection to the backend, connection closed on first write */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, 0 },
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, 0},
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
       /* and now reconnection fails (1) */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [](int descriptor) {
-          (void)descriptor;
-          throw NetworkError("Connection refused by the backend");
-        }
-      },
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [](int descriptor) {
+         (void)descriptor;
+         throw NetworkError("Connection refused by the backend");
+       }},
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
       /* 2 */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [](int descriptor) {
-          (void)descriptor;
-          throw NetworkError("Connection refused by the backend");
-        }
-      },
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [](int descriptor) {
+         (void)descriptor;
+         throw NetworkError("Connection refused by the backend");
+       }},
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
       /* 3 */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [](int descriptor) {
-          (void)descriptor;
-          throw NetworkError("Connection refused by the backend");
-        }
-      },
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [](int descriptor) {
+         (void)descriptor;
+         throw NetworkError("Connection refused by the backend");
+       }},
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
       /* 4 */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [](int descriptor) {
-          (void)descriptor;
-          throw NetworkError("Connection refused by the backend");
-        }
-      },
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [](int descriptor) {
+         (void)descriptor;
+         throw NetworkError("Connection refused by the backend");
+       }},
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
       /* closing client connection */
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeClient, IOState::Done},
     };
 
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
@@ -1661,32 +1664,32 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
     s_readBuffer = query;
 
     s_steps = {
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2 },
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2},
       /* opening a connection to the backend, connection closed on read, 5 attempts, last one succeeds */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, query.size() },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 0 },
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, query.size() },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 0 },
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, query.size() },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 0 },
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, query.size() },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 0 },
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, query.size() },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 0 },
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, query.size()},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 0},
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, query.size()},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 0},
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, query.size()},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 0},
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, query.size()},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 0},
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, query.size()},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 0},
       /* closing client connection */
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeClient, IOState::Done},
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
     };
 
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
@@ -1718,39 +1721,39 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
     s_backendReadBuffer = query;
 
     s_steps = {
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2 },
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2},
       /* opening a connection to the backend, connection closed on read, 5 attempts, last one succeeds */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, query.size() },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 0 },
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, query.size() },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 0 },
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, query.size() },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 0 },
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, query.size() },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 0 },
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, query.size()},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 0},
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, query.size()},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 0},
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, query.size()},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 0},
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, query.size()},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 0},
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
       /* this time it works */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, query.size() },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, query.size() - 2 },
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, query.size()},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, query.size() - 2},
       /* sending the response to the client */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, query.size() },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, query.size()},
       /* client closes the connection */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 0 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 0},
       /* closing client connection */
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeClient, IOState::Done},
       /* the eventually the backend one */
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
     };
 
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
@@ -1782,20 +1785,20 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
     s_backendReadBuffer = query;
 
     s_steps = {
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2 },
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2},
       /* opening a connection to the backend */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, query.size() },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, query.size() - 2 },
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, query.size()},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, query.size() - 2},
       /* sending the response to the client, the connection has been closed */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, 0 },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, 0},
       /* closing client connection */
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeClient, IOState::Done},
       /* and eventually the backend one */
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
     };
 
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
@@ -1838,32 +1841,31 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
       appendPayloadEditingID(s_backendReadBuffer, query, idx);
     }
 
-    s_steps = { { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
-                { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-                { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2 },
-                /* opening a connection to the backend */
-                { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
-                { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, query.size() + 2 },
-                { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
-                { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, query.size() - 2 },
-                { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, query.size() + 2 }
-    };
+    s_steps = {{ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
+               {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+               {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2},
+               /* opening a connection to the backend */
+               {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
+               {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, query.size() + 2},
+               {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2},
+               {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, query.size() - 2},
+               {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, query.size() + 2}};
 
     for (size_t idx = 0; idx < count - 1; idx++) {
       /* read a new query */
-      s_steps.push_back({ ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 });
-      s_steps.push_back({ ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2 });
+      s_steps.push_back({ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2});
+      s_steps.push_back({ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2});
       /* pass it to the backend */
-      s_steps.push_back({ ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, query.size() + 2 });
-      s_steps.push_back({ ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 });
-      s_steps.push_back({ ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, query.size() - 2 });
+      s_steps.push_back({ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, query.size() + 2});
+      s_steps.push_back({ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2});
+      s_steps.push_back({ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, query.size() - 2});
       /* send the response */
-      s_steps.push_back({ ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, query.size() + 2 });
+      s_steps.push_back({ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, query.size() + 2});
     };
     /* close the connection with the backend */
-    s_steps.push_back({ ExpectedStep::ExpectedRequest::closeBackend, IOState::Done });
+    s_steps.push_back({ExpectedStep::ExpectedRequest::closeBackend, IOState::Done});
     /* close the connection with the client */
-    s_steps.push_back({ ExpectedStep::ExpectedRequest::closeClient, IOState::Done });
+    s_steps.push_back({ExpectedStep::ExpectedRequest::closeClient, IOState::Done});
 
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
       (void)dq;
@@ -1903,12 +1905,11 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
       appendPayloadEditingID(s_backendReadBuffer, query, idx);
     }
 
-    s_steps = { { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
-                { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-                { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2 },
-                /* close the connection with the client */
-                { ExpectedStep::ExpectedRequest::closeClient, IOState::Done }
-    };
+    s_steps = {{ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
+               {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+               {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2},
+               /* close the connection with the client */
+               {ExpectedStep::ExpectedRequest::closeClient, IOState::Done}};
 
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
       (void)dq;
@@ -1971,7 +1972,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
     pwQ.getHeader()->rd = 1;
     pwQ.getHeader()->id = htons(counter);
     uint16_t querySize = static_cast<uint16_t>(query.size());
-    const uint8_t sizeBytes[] = { static_cast<uint8_t>(querySize / 256), static_cast<uint8_t>(querySize % 256) };
+    const uint8_t sizeBytes[] = {static_cast<uint8_t>(querySize / 256), static_cast<uint8_t>(querySize % 256)};
     query.insert(query.begin(), sizeBytes, sizeBytes + 2);
     totalQueriesSize += query.size();
     ++counter;
@@ -1991,7 +1992,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
     pwR.commit();
 
     uint16_t responseSize = static_cast<uint16_t>(response.size());
-    const uint8_t sizeBytes[] = { static_cast<uint8_t>(responseSize / 256), static_cast<uint8_t>(responseSize % 256) };
+    const uint8_t sizeBytes[] = {static_cast<uint8_t>(responseSize / 256), static_cast<uint8_t>(responseSize % 256)};
     response.insert(response.begin(), sizeBytes, sizeBytes + 2);
     totalResponsesSize += response.size();
     ++counter;
@@ -2016,90 +2017,90 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
     }
 
     s_steps = {
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
       /* reading a query from the client (1) */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(0).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(0).size() - 2},
       /* opening a connection to the backend */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
       /* sending query to the backend */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(0).size() },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(0).size()},
       /* no response ready yet */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0},
       /* reading a query from the client (2) */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(1).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(1).size() - 2},
       /* sending query to the backend */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(1).size() },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(1).size()},
       /* no response ready yet */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0},
       /* reading a query from the client (3) */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(2).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(2).size() - 2},
       /* sending query to the backend */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(2).size() },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(2).size()},
       /* no response ready yet */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0},
       /* reading a query from the client (4) */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(3).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(3).size() - 2},
       /* sending query to the backend */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(3).size() },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(3).size()},
       /* no response ready yet */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0},
       /* reading a query from the client (5) */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(4).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(4).size() - 2},
       /* sending query to the backend */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(4).size() },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(4).size()},
       /* no response ready yet, but the backend becomes ready */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0, [&threadData](int desc) {
-        /* set the outgoing descriptor (backend connection) as ready */
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
-      } },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0, [&threadData](int desc) {
+         /* set the outgoing descriptor (backend connection) as ready */
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
+       }},
 
       /* no more queries from the client */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0},
 
       /* reading a response from the backend */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(4).size() - 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(4).size() },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(4).size() - 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(4).size()},
       /* sending it to the client */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(4).size() },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(4).size()},
 
       /* reading a response from the backend */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(3).size() - 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(3).size() },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(3).size() - 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(3).size()},
       /* sending it to the client */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(3).size() },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(3).size()},
 
       /* reading a response from the backend */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(2).size() - 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(2).size() },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(2).size() - 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(2).size()},
       /* sending it to the client */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(2).size() },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(2).size()},
 
       /* reading a response from the backend */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(1).size() - 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(1).size() },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(1).size() - 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(1).size()},
       /* sending it to the client */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(1).size() },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(1).size()},
 
       /* reading a response from the backend */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(0).size() - 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(0).size() },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(0).size() - 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(0).size()},
       /* sending it to the client, the client descriptor becomes ready */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(0).size(), [&threadData](int desc) {
-        /* set the incoming descriptor (client connection) as ready */
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
-      } },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(0).size(), [&threadData](int desc) {
+         /* set the incoming descriptor (client connection) as ready */
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
+       }},
 
       /* client is closing the connection */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 0 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 0},
       /* closing client connection */
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeClient, IOState::Done},
       /* closing a connection to the backend */
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
     };
 
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
@@ -2162,76 +2163,76 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
 
     bool timeout = false;
     s_steps = {
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
       /* reading a query from the client (1) */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(0).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(0).size() - 2},
       /* opening a connection to the backend */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
       /* sending query to the backend */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(0).size() },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(0).size()},
       /* no response ready yet */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0},
       /* reading a query from the client (2) */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(1).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(1).size() - 2},
       /* sending query to the backend */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(1).size() },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(1).size()},
       /* no response ready yet */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0},
       /* reading a query from the client (3) */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(2).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(2).size() - 2},
       /* sending query to the backend */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(2).size() },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(2).size()},
       /* no response ready yet */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0},
       /* reading a query from the client (4) */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(3).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(3).size() - 2},
       /* sending the response right away (self-answered)  */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(3).size() },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(3).size()},
       /* reading a query from the client (5) */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(4).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(4).size() - 2},
       /* sending query to the backend (5) */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(4).size() },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(4).size()},
       /* reading a response from the backend (1) */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(0).size() - 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(0).size(), [&threadData](int desc) {
-        /* set the backend descriptor as ready */
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
-      } },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(0).size() - 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(0).size(), [&threadData](int desc) {
+         /* set the backend descriptor as ready */
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
+       }},
       /* sending it to the client (1) */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(0).size(), [&threadData](int desc) {
-        /* set the client descriptor as NOT ready */
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(desc);
-      } },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(0).size(), [&threadData](int desc) {
+         /* set the client descriptor as NOT ready */
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(desc);
+       }},
       /* reading a response from the backend (5) */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(4).size() - 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(4).size() },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(4).size() - 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(4).size()},
       /* sending it to the client (5) */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(4).size() },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(4).size()},
 
       /* try to read from the backend but there is no answer ready yet */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0, [&threadData, &timeout](int desc) {
-        /* set the backend descriptor as NOT ready */
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(desc);
-        timeout = true;
-      } },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0, [&threadData, &timeout](int desc) {
+         /* set the backend descriptor as NOT ready */
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(desc);
+         timeout = true;
+       }},
       /* reading from the client (not ready) */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0},
 
       /* A timeout occurs */
 
       /* closing client connection */
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeClient, IOState::Done},
 
       /* closing a connection to the backend */
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
     };
 
-    s_processQuery = [backend,&responses](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+    s_processQuery = [backend, &responses](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
       static size_t count = 0;
       if (count++ == 3) {
         /* self answered */
@@ -2315,116 +2316,116 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
     bool timeout = false;
     int backendDesc;
     s_steps = {
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
       /* reading a query from the client (1) */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(0).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(0).size() - 2},
       /* opening a connection to the backend */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
       /* sending query to the backend */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(0).size() },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(0).size()},
       /* read response size and the beginning of the response (1) from the backend */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 1, [&threadData](int desc) {
-        /* set the backend descriptor as ready */
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
-      } },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 1, [&threadData](int desc) {
+         /* set the backend descriptor as ready */
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
+       }},
       /* reading a query from the client (2) */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(1).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(1).size() - 2},
       /* trying to read an additional query, if any */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0, [&threadData](int desc) {
-        /* set the client descriptor as NOT ready */
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(desc);
-      } },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0, [&threadData](int desc) {
+         /* set the client descriptor as NOT ready */
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(desc);
+       }},
       /* reading the remaining bytes of response (1) from the backend */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(0).size() - 3 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(0).size() - 3},
       /* sending response (1) to the client */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(0).size() },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(0).size()},
       /* sending query (2) to the backend */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(1).size() },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(1).size()},
       /* the response (2) is already there */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(1).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(1).size() - 2},
       /* sending response (2) to the client */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(1).size(), [&threadData](int desc) {
-        /* set the client descriptor as ready */
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
-      } },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(1).size(), [&threadData](int desc) {
+         /* set the client descriptor as ready */
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
+       }},
       /* reading a query from the client (3) */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(2).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(2).size() - 2},
       /* sending query to the backend */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, 0 },
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, 0},
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
       /* opening a connection to the backend */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
       /* sending query (3) to the backend, short write */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::NeedWrite, 1, [&threadData,&backendDesc](int desc) {
-        /* set the backend descriptor as NOT ready */
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(desc);
-        backendDesc = desc;
-        /* but client is ready */
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(-1);
-      } },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::NeedWrite, 1, [&threadData, &backendDesc](int desc) {
+         /* set the backend descriptor as NOT ready */
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(desc);
+         backendDesc = desc;
+         /* but client is ready */
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(-1);
+       }},
       /* reading a query from the client (4) */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(3).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(3).size() - 2},
       /* reading a query from the client (5) */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(4).size() - 2, [&threadData,&backendDesc](int desc) {
-        (void)desc;
-        /* set the backend descriptor as ready now */
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(backendDesc);
-      } },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(4).size() - 2, [&threadData, &backendDesc](int desc) {
+         (void)desc;
+         /* set the backend descriptor as ready now */
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(backendDesc);
+       }},
       /* nothing else to read from the client for now */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0, [&threadData](int desc) {
-        /* set the client descriptor as NOT ready */
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(desc);
-      } },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0, [&threadData](int desc) {
+         /* set the client descriptor as NOT ready */
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(desc);
+       }},
       /* finishing sending the query (3) to the backend */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(2).size() - 1 },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(2).size() - 1},
       /* sending the query (4) to the backend */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(3).size() },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(3).size()},
       /* sending the query (5) to the backend */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(4).size() },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(4).size()},
       /* reading a response from the backend (3) */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(2).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(2).size() - 2},
       /* sending it to the client (3) */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(2).size() },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(2).size()},
       /* reading a response from the backend (4) */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(3).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(3).size() - 2},
       /* sending it to the client (4) but short write */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::NeedWrite, responses.at(3).size() - 1, [&threadData](int desc) {
-        /* set the client descriptor as NOT ready */
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(desc);
-      } },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::NeedWrite, responses.at(3).size() - 1, [&threadData](int desc) {
+         /* set the client descriptor as NOT ready */
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(desc);
+       }},
       /* reading a response from the backend (5) */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(4).size() - 2, [&threadData](int desc) {
-        (void)desc;
-        /* set the client descriptor as ready to resume sending */
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(-1);
-      } },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(4).size() - 2, [&threadData](int desc) {
+         (void)desc;
+         /* set the client descriptor as ready to resume sending */
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(-1);
+       }},
       /* resume sending it to the client (4) */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, 1 },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, 1},
       /* sending it to the client (5) */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(4).size() },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(4).size()},
 
       /* nothing to read from the client, then timeout later */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0, [&threadData,&timeout](int desc) {
-        /* set the client descriptor as NOT ready */
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(desc);
-        timeout = true;
-      } },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0, [&threadData, &timeout](int desc) {
+         /* set the client descriptor as NOT ready */
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(desc);
+         timeout = true;
+       }},
 
       /* closing a connection to the backend */
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
 
       /* closing client connection */
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeClient, IOState::Done},
     };
 
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
@@ -2481,30 +2482,30 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
 
     bool timeout = false;
     s_steps = {
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
       /* reading a query from the client (1) */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(0).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(0).size() - 2},
       /* opening a connection to the backend */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
       /* sending query to the backend */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(0).size() },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(0).size()},
       /* no response ready yet */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0},
       /* reading a second query from the client */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(1).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(1).size() - 2},
       /* query is dropped, closing the connection to the client */
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done, 0, [&timeout](int desc) {
-        (void)desc;
-        timeout = true;
-      } },
+      {ExpectedStep::ExpectedRequest::closeClient, IOState::Done, 0, [&timeout](int desc) {
+         (void)desc;
+         timeout = true;
+       }},
       /* closing a connection to the backend after a timeout */
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
     };
 
     counter = 0;
-    s_processQuery = [backend,&counter](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+    s_processQuery = [backend, &counter](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
       (void)dq;
       if (counter == 0) {
         ++counter;
@@ -2563,36 +2564,36 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
 
     int backendDescriptor = -1;
     s_steps = {
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
       /* reading a query from the client (1) */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(0).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(0).size() - 2},
       /* opening a connection to the backend */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [&backendDescriptor](int desc) {
-        backendDescriptor = desc;
-      } },
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [&backendDescriptor](int desc) {
+         backendDescriptor = desc;
+       }},
       /* sending query to the backend */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(0).size() },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(0).size()},
       /* no response ready yet */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0},
       /* reading a second query from the client */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(1).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(1).size() - 2},
       /* query is dropped, closing the connection to the client */
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done, 0, [&threadData,&backendDescriptor](int desc) {
-        (void)desc;
-        /* the backend descriptor becomes ready */
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(backendDescriptor);
-      } },
+      {ExpectedStep::ExpectedRequest::closeClient, IOState::Done, 0, [&threadData, &backendDescriptor](int desc) {
+         (void)desc;
+         /* the backend descriptor becomes ready */
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(backendDescriptor);
+       }},
       /* reading the response to the first query from the backend */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(0).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(0).size() - 2},
       /* closing a connection to the backend */
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
     };
 
     counter = 0;
-    s_processQuery = [backend,&counter](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+    s_processQuery = [backend, &counter](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
       (void)dq;
       if (counter == 0) {
         ++counter;
@@ -2653,69 +2654,69 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
     bool timeout = false;
     int backendDescriptor = -1;
     s_steps = {
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
       /* reading a query from the client (1) */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(0).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(0).size() - 2},
       /* opening a connection to the backend */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
       /* sending query (1) to the backend */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(0).size() },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(0).size()},
       /* no response ready yet */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0},
       /* reading a second query from the client */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(1).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(1).size() - 2},
       /* sending query (2) to the backend */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(1).size() },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(1).size()},
       /* no response ready yet */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0, [&timeout,&backendDescriptor](int desc) {
-        backendDescriptor = desc;
-        timeout = true;
-      } },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0, [&timeout, &backendDescriptor](int desc) {
+         backendDescriptor = desc;
+         timeout = true;
+       }},
       /* nothing from the client either */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0},
       /* the client times out, and we will set the backend descriptor to ready at that point */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(1).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(1).size() - 2},
       /* sending response (2) to the client */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(1).size() },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(1).size()},
       /* reading the response (1) from the backend */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(0).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(0).size() - 2},
       /* sending response (1) to the client */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(0).size(), [&threadData](int desc) {
-        /* setting the client descriptor ready */
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
-      } },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(0).size(), [&threadData](int desc) {
+         /* setting the client descriptor ready */
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
+       }},
       /* try to read from the client again, get query (3) */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(4).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(4).size() - 2},
       /* sending query (3) to the backend */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(4).size() },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0, [&threadData](int desc) {
-        /* setting the backend descriptor NOT ready */
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(desc);
-      } },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(4).size()},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0, [&threadData](int desc) {
+         /* setting the backend descriptor NOT ready */
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(desc);
+       }},
       /* try to read from the client again, nothing yet */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0, [&threadData,&backendDescriptor](int desc) {
-        /* the client descriptor becomes NOT ready */
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(desc);
-        /* the backend one is ready, though */
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(backendDescriptor);
-      } },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0, [&threadData, &backendDescriptor](int desc) {
+         /* the client descriptor becomes NOT ready */
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(desc);
+         /* the backend one is ready, though */
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(backendDescriptor);
+       }},
       /* reading the response (3) from the backend */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(4).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(4).size() - 2},
       /* sending response (3) to the client */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(4).size(), [&timeout](int desc) {
-        (void)desc;
-        timeout = true;
-      } },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(4).size(), [&timeout](int desc) {
+         (void)desc;
+         timeout = true;
+       }},
       /* closing a connection to the backend */
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
       /* client times out again, this time we close the connection */
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done, 0 },
+      {ExpectedStep::ExpectedRequest::closeClient, IOState::Done, 0},
     };
 
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
@@ -2793,91 +2794,91 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
     expectedWriteBuffer = s_backendReadBuffer;
 
     s_steps = {
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
       /* reading a query from the client (1) */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(0).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(0).size() - 2},
       /* opening a connection to the backend */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
       /* sending query (1) to the backend */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(0).size() },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(0).size()},
       /* no response ready yet */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0},
       /* reading a second query from the client */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(1).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(1).size() - 2},
       /* sending query (2) to the backend */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(1).size() },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(1).size()},
       /* no response ready yet */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0},
       /* reading a third query from the client */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(2).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(2).size() - 2},
       /* sending query (3) to the backend */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(2).size() },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(2).size()},
       /* no response ready yet but the backend descriptor becomes ready */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0, [&threadData](int desc) {
-        /* the backend descriptor becomes ready */
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
-      } },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0, [&threadData](int desc) {
+         /* the backend descriptor becomes ready */
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
+       }},
       /* nothing from the client either */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0, [&threadData](int desc) {
-        /* the client descriptor is NOT ready */
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(desc);
-      } },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0, [&threadData](int desc) {
+         /* the client descriptor is NOT ready */
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(desc);
+       }},
       /* read the response (2) from the backend  */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(1).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(1).size() - 2},
       /* trying to send response (2) to the client but blocking */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::NeedWrite, 0 },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::NeedWrite, 0},
       /* reading the response (1) from the backend */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(0).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(0).size() - 2},
       /* trying to read from the backend again, connection closes on us */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 0 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 0},
       /* so we close the connection */
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
       /* try opening a new connection to the backend, it fails (5) times */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [](int desc) {
-        (void)desc;
-        throw NetworkError("Connection refused by the backend");
-      } },
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [](int desc) {
+         (void)desc;
+         throw NetworkError("Connection refused by the backend");
+       }},
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
       /* try opening a new connection to the backend, it fails (5) times */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done,0, [](int desc) {
-        (void)desc;
-        throw NetworkError("Connection refused by the backend");
-      } },
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [](int desc) {
+         (void)desc;
+         throw NetworkError("Connection refused by the backend");
+       }},
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
       /* try opening a new connection to the backend, it fails (5) times */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done,0, [](int desc) {
-        (void)desc;
-        throw NetworkError("Connection refused by the backend");
-      } },
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [](int desc) {
+         (void)desc;
+         throw NetworkError("Connection refused by the backend");
+       }},
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
       /* try opening a new connection to the backend, it fails (5) times */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done,0, [](int desc) {
-        (void)desc;
-        throw NetworkError("Connection refused by the backend");
-      } },
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [](int desc) {
+         (void)desc;
+         throw NetworkError("Connection refused by the backend");
+       }},
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
       /* try opening a new connection to the backend, it fails (5) times */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done,0, [](int desc) {
-        (void)desc;
-        throw NetworkError("Connection refused by the backend");
-      } },
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [](int desc) {
+         (void)desc;
+         throw NetworkError("Connection refused by the backend");
+       }},
       /* closing a connection to the backend, client becomes ready */
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done, 0, [&threadData](int desc) {
-        (void)desc;
-        /* the client descriptor is ready */
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(-1);
-      } },
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done, 0, [&threadData](int desc) {
+         (void)desc;
+         /* the client descriptor is ready */
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(-1);
+       }},
       /* sending response (2) to the client */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(1).size() },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(1).size()},
       /* sending response (1) to the client */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(0).size() },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(0).size()},
       /* closing the client connection */
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done, 0 },
+      {ExpectedStep::ExpectedRequest::closeClient, IOState::Done, 0},
     };
 
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
@@ -2920,7 +2921,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
     pwAXFRQuery.getHeader()->rd = 0;
     pwAXFRQuery.getHeader()->id = 42;
     uint16_t axfrQuerySize = static_cast<uint16_t>(axfrQuery.size());
-    const uint8_t axfrQuerySizeBytes[] = { static_cast<uint8_t>(axfrQuerySize / 256), static_cast<uint8_t>(axfrQuerySize % 256) };
+    const uint8_t axfrQuerySizeBytes[] = {static_cast<uint8_t>(axfrQuerySize / 256), static_cast<uint8_t>(axfrQuerySize % 256)};
     axfrQuery.insert(axfrQuery.begin(), axfrQuerySizeBytes, axfrQuerySizeBytes + 2);
 
     const DNSName name("powerdns.com.");
@@ -2948,7 +2949,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
       pwR.commit();
 
       uint16_t responseSize = static_cast<uint16_t>(response.size());
-      const uint8_t sizeBytes[] = { static_cast<uint8_t>(responseSize / 256), static_cast<uint8_t>(responseSize % 256) };
+      const uint8_t sizeBytes[] = {static_cast<uint8_t>(responseSize / 256), static_cast<uint8_t>(responseSize % 256)};
       response.insert(response.begin(), sizeBytes, sizeBytes + 2);
     }
     {
@@ -2964,7 +2965,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
       pwR.commit();
 
       uint16_t responseSize = static_cast<uint16_t>(response.size());
-      const uint8_t sizeBytes[] = { static_cast<uint8_t>(responseSize / 256), static_cast<uint8_t>(responseSize % 256) };
+      const uint8_t sizeBytes[] = {static_cast<uint8_t>(responseSize / 256), static_cast<uint8_t>(responseSize % 256)};
       response.insert(response.begin(), sizeBytes, sizeBytes + 2);
     }
     {
@@ -2991,7 +2992,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
       pwR.commit();
 
       uint16_t responseSize = static_cast<uint16_t>(response.size());
-      const uint8_t sizeBytes[] = { static_cast<uint8_t>(responseSize / 256), static_cast<uint8_t>(responseSize % 256) };
+      const uint8_t sizeBytes[] = {static_cast<uint8_t>(responseSize / 256), static_cast<uint8_t>(responseSize % 256)};
       response.insert(response.begin(), sizeBytes, sizeBytes + 2);
     }
 
@@ -3000,7 +3001,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
       pwSecondQuery.getHeader()->rd = 1;
       pwSecondQuery.getHeader()->id = 84;
       uint16_t secondQuerySize = static_cast<uint16_t>(secondQuery.size());
-      const uint8_t secondQuerySizeBytes[] = { static_cast<uint8_t>(secondQuerySize / 256), static_cast<uint8_t>(secondQuerySize % 256) };
+      const uint8_t secondQuerySizeBytes[] = {static_cast<uint8_t>(secondQuerySize / 256), static_cast<uint8_t>(secondQuerySize % 256)};
       secondQuery.insert(secondQuery.begin(), secondQuerySizeBytes, secondQuerySizeBytes + 2);
     }
 
@@ -3014,7 +3015,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
       pwSecondResponse.xfr32BitInt(0x01020304);
       pwSecondResponse.commit();
       uint16_t responseSize = static_cast<uint16_t>(secondResponse.size());
-      const uint8_t sizeBytes[] = { static_cast<uint8_t>(responseSize / 256), static_cast<uint8_t>(responseSize % 256) };
+      const uint8_t sizeBytes[] = {static_cast<uint8_t>(responseSize / 256), static_cast<uint8_t>(responseSize % 256)};
       secondResponse.insert(secondResponse.begin(), sizeBytes, sizeBytes + 2);
     }
 
@@ -3037,60 +3038,60 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
 
     bool timeout = false;
     s_steps = {
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
       /* reading a query from the client (1) */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, axfrQuery.size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, axfrQuery.size() - 2},
       /* opening a connection to the backend */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
       /* sending query (1) to the backend */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, axfrQuery.size() },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, axfrQuery.size()},
       /* no response ready yet, but setting the backend descriptor readable */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0, [&threadData](int desc) {
-        /* the backend descriptor becomes ready */
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
-      } },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0, [&threadData](int desc) {
+         /* the backend descriptor becomes ready */
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
+       }},
       /* no more query from the client for now */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0 , [&threadData](int desc) {
-        (void)desc;
-        /* the client descriptor becomes NOT ready */
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(-1);
-      } },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0, [&threadData](int desc) {
+         (void)desc;
+         /* the client descriptor becomes NOT ready */
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(-1);
+       }},
       /* read the response (1) from the backend  */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, axfrResponses.at(0).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, axfrResponses.at(0).size() - 2},
       /* sending response (1) to the client */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, axfrResponses.at(0).size() },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, axfrResponses.at(0).size()},
       /* reading the response (2) from the backend */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, axfrResponses.at(1).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, axfrResponses.at(1).size() - 2},
       /* sending response (2) to the client */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, axfrResponses.at(1).size() },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, axfrResponses.at(1).size()},
       /* reading the response (3) from the backend */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, axfrResponses.at(2).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, axfrResponses.at(2).size() - 2},
       /* sending response (3) to the client */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, axfrResponses.at(2).size(), [&threadData](int desc) {
-        (void)desc;
-        /* the client descriptor becomes ready */
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(-1);
-      } },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, axfrResponses.at(2).size(), [&threadData](int desc) {
+         (void)desc;
+         /* the client descriptor becomes ready */
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(-1);
+       }},
       /* trying to read from the client, getting a second query */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, secondQuery.size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, secondQuery.size() - 2},
       /* sending query (2) to the backend */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, secondQuery.size() },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, secondQuery.size()},
       /* reading the response (4) from the backend */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, secondResponse.size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, secondResponse.size() - 2},
       /* sending response (4) to the client */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, secondResponse.size() },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, secondResponse.size()},
       /* trying to read from the client, getting EOF */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 0 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 0},
       /* closing the client connection */
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeClient, IOState::Done},
       /* closing the backend connection */
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
     };
 
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
@@ -3139,7 +3140,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
     pwAXFRQuery.getHeader()->rd = 0;
     pwAXFRQuery.getHeader()->id = 42;
     uint16_t axfrQuerySize = static_cast<uint16_t>(axfrQuery.size());
-    const uint8_t axfrQuerySizeBytes[] = { static_cast<uint8_t>(axfrQuerySize / 256), static_cast<uint8_t>(axfrQuerySize % 256) };
+    const uint8_t axfrQuerySizeBytes[] = {static_cast<uint8_t>(axfrQuerySize / 256), static_cast<uint8_t>(axfrQuerySize % 256)};
     axfrQuery.insert(axfrQuery.begin(), axfrQuerySizeBytes, axfrQuerySizeBytes + 2);
 
     const DNSName name("powerdns.com.");
@@ -3167,7 +3168,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
       pwR.commit();
 
       uint16_t responseSize = static_cast<uint16_t>(response.size());
-      const uint8_t sizeBytes[] = { static_cast<uint8_t>(responseSize / 256), static_cast<uint8_t>(responseSize % 256) };
+      const uint8_t sizeBytes[] = {static_cast<uint8_t>(responseSize / 256), static_cast<uint8_t>(responseSize % 256)};
       response.insert(response.begin(), sizeBytes, sizeBytes + 2);
     }
     {
@@ -3183,7 +3184,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
       pwR.commit();
 
       uint16_t responseSize = static_cast<uint16_t>(response.size());
-      const uint8_t sizeBytes[] = { static_cast<uint8_t>(responseSize / 256), static_cast<uint8_t>(responseSize % 256) };
+      const uint8_t sizeBytes[] = {static_cast<uint8_t>(responseSize / 256), static_cast<uint8_t>(responseSize % 256)};
       response.insert(response.begin(), sizeBytes, sizeBytes + 2);
     }
     {
@@ -3210,7 +3211,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
       pwR.commit();
 
       uint16_t responseSize = static_cast<uint16_t>(response.size());
-      const uint8_t sizeBytes[] = { static_cast<uint8_t>(responseSize / 256), static_cast<uint8_t>(responseSize % 256) };
+      const uint8_t sizeBytes[] = {static_cast<uint8_t>(responseSize / 256), static_cast<uint8_t>(responseSize % 256)};
       response.insert(response.begin(), sizeBytes, sizeBytes + 2);
     }
 
@@ -3231,45 +3232,45 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
 
     bool timeout = false;
     s_steps = {
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
       /* reading a query from the client (1) */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, axfrQuery.size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, axfrQuery.size() - 2},
       /* opening a connection to the backend */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
       /* sending query (1) to the backend */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, proxyPayload.size() + axfrQuery.size() },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, proxyPayload.size() + axfrQuery.size()},
       /* no response ready yet, but setting the backend descriptor readable */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0, [&threadData](int desc) {
-        /* the backend descriptor becomes ready */
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
-      } },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0, [&threadData](int desc) {
+         /* the backend descriptor becomes ready */
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
+       }},
       /* no more query from the client for now */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0 , [&threadData](int desc) {
-        (void)desc;
-        /* the client descriptor becomes NOT ready */
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(-1);
-      } },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0, [&threadData](int desc) {
+         (void)desc;
+         /* the client descriptor becomes NOT ready */
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(-1);
+       }},
       /* read the response (1) from the backend  */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, axfrResponses.at(0).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, axfrResponses.at(0).size() - 2},
       /* sending response (1) to the client */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, axfrResponses.at(0).size() },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, axfrResponses.at(0).size()},
       /* reading the response (2) from the backend */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, axfrResponses.at(1).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, axfrResponses.at(1).size() - 2},
       /* sending response (2) to the client */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, axfrResponses.at(1).size() },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, axfrResponses.at(1).size()},
       /* reading the response (3) from the backend, get EOF!! */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 0 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 0},
       /* closing the backend connection */
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
       /* opening a connection to the backend */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
       /* closing the client connection */
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeClient, IOState::Done},
       /* closing the backend connection */
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
     };
 
     s_processQuery = [proxyEnabledBackend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
@@ -3314,7 +3315,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
       pwFirstQuery.getHeader()->rd = 1;
       pwFirstQuery.getHeader()->id = 84;
       uint16_t firstQuerySize = static_cast<uint16_t>(firstQuery.size());
-      const uint8_t firstQuerySizeBytes[] = { static_cast<uint8_t>(firstQuerySize / 256), static_cast<uint8_t>(firstQuerySize % 256) };
+      const uint8_t firstQuerySizeBytes[] = {static_cast<uint8_t>(firstQuerySize / 256), static_cast<uint8_t>(firstQuerySize % 256)};
       firstQuery.insert(firstQuery.begin(), firstQuerySizeBytes, firstQuerySizeBytes + 2);
     }
 
@@ -3335,7 +3336,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
       pwFirstResponse.commit();
 
       uint16_t responseSize = static_cast<uint16_t>(firstResponse.size());
-      const uint8_t sizeBytes[] = { static_cast<uint8_t>(responseSize / 256), static_cast<uint8_t>(responseSize % 256) };
+      const uint8_t sizeBytes[] = {static_cast<uint8_t>(responseSize / 256), static_cast<uint8_t>(responseSize % 256)};
       firstResponse.insert(firstResponse.begin(), sizeBytes, sizeBytes + 2);
     }
 
@@ -3344,7 +3345,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
       pwIXFRQuery.getHeader()->rd = 0;
       pwIXFRQuery.getHeader()->id = 42;
       uint16_t ixfrQuerySize = static_cast<uint16_t>(ixfrQuery.size());
-      const uint8_t ixfrQuerySizeBytes[] = { static_cast<uint8_t>(ixfrQuerySize / 256), static_cast<uint8_t>(ixfrQuerySize % 256) };
+      const uint8_t ixfrQuerySizeBytes[] = {static_cast<uint8_t>(ixfrQuerySize / 256), static_cast<uint8_t>(ixfrQuerySize % 256)};
       ixfrQuery.insert(ixfrQuery.begin(), ixfrQuerySizeBytes, ixfrQuerySizeBytes + 2);
     }
 
@@ -3437,7 +3438,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
       pwR.commit();
 
       uint16_t responseSize = static_cast<uint16_t>(response.size());
-      const uint8_t sizeBytes[] = { static_cast<uint8_t>(responseSize / 256), static_cast<uint8_t>(responseSize % 256) };
+      const uint8_t sizeBytes[] = {static_cast<uint8_t>(responseSize / 256), static_cast<uint8_t>(responseSize % 256)};
       response.insert(response.begin(), sizeBytes, sizeBytes + 2);
     }
 
@@ -3446,7 +3447,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
       pwSecondQuery.getHeader()->rd = 1;
       pwSecondQuery.getHeader()->id = 84;
       uint16_t secondQuerySize = static_cast<uint16_t>(secondQuery.size());
-      const uint8_t secondQuerySizeBytes[] = { static_cast<uint8_t>(secondQuerySize / 256), static_cast<uint8_t>(secondQuerySize % 256) };
+      const uint8_t secondQuerySizeBytes[] = {static_cast<uint8_t>(secondQuerySize / 256), static_cast<uint8_t>(secondQuerySize % 256)};
       secondQuery.insert(secondQuery.begin(), secondQuerySizeBytes, secondQuerySizeBytes + 2);
     }
 
@@ -3460,7 +3461,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
       pwSecondResponse.xfr32BitInt(0x01020304);
       pwSecondResponse.commit();
       uint16_t responseSize = static_cast<uint16_t>(secondResponse.size());
-      const uint8_t sizeBytes[] = { static_cast<uint8_t>(responseSize / 256), static_cast<uint8_t>(responseSize % 256) };
+      const uint8_t sizeBytes[] = {static_cast<uint8_t>(responseSize / 256), static_cast<uint8_t>(responseSize % 256)};
       secondResponse.insert(secondResponse.begin(), sizeBytes, sizeBytes + 2);
     }
 
@@ -3486,60 +3487,60 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
 
     bool timeout = false;
     s_steps = {
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
       /* reading a query from the client (1) */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, firstQuery.size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, firstQuery.size() - 2},
       /* opening a connection to the backend */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
       /* sending query (1) to the backend */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, firstQuery.size() },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, firstQuery.size()},
       /* no response ready yet, but setting the backend descriptor readable */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0, [&threadData](int desc) {
-        /* the backend descriptor becomes ready */
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
-      } },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0, [&threadData](int desc) {
+         /* the backend descriptor becomes ready */
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
+       }},
       /* try to read a second query from the client, none yet */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0},
       /* read the response (1) from the backend  */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, firstResponse.size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, firstResponse.size() - 2},
       /* sending response (1) to the client */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, firstResponse.size(), [&threadData](int desc) {
-        (void)desc;
-        /* client descriptor becomes ready */
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(-1);
-      } },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, firstResponse.size(), [&threadData](int desc) {
+         (void)desc;
+         /* client descriptor becomes ready */
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(-1);
+       }},
       /* reading a query from the client (2) */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, ixfrQuery.size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, ixfrQuery.size() - 2},
       /* sending query (2) to the backend */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, ixfrQuery.size() },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, ixfrQuery.size()},
       /* read the response (ixfr 1) from the backend  */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, ixfrResponses.at(0).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, ixfrResponses.at(0).size() - 2},
       /* sending response (ixfr 1) to the client */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, ixfrResponses.at(0).size(), [&threadData](int desc) {
-        (void)desc;
-        /* the client descriptor becomes ready */
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(-1);
-      } },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, ixfrResponses.at(0).size(), [&threadData](int desc) {
+         (void)desc;
+         /* the client descriptor becomes ready */
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(-1);
+       }},
       /* trying to read from the client, getting a second query */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, secondQuery.size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, secondQuery.size() - 2},
       /* sending query (2) to the backend */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, secondQuery.size() },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, secondQuery.size()},
       /* reading the response (4) from the backend */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, secondResponse.size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, secondResponse.size() - 2},
       /* sending response (4) to the client */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, secondResponse.size() },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, secondResponse.size()},
       /* trying to read from the client, getting EOF */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 0 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 0},
       /* closing the client connection */
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeClient, IOState::Done},
       /* closing the backend connection */
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
     };
 
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
@@ -3608,68 +3609,68 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
     expectedWriteBuffer.insert(expectedWriteBuffer.end(), responses.at(2).begin(), responses.at(2).end());
 
     s_steps = {
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
       /* reading a query from the client (1) */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(0).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(0).size() - 2},
       /* opening a connection to the backend */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
       /* sending query (1) to the backend */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, proxyPayload.size() + queries.at(0).size() },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, proxyPayload.size() + queries.at(0).size()},
       /* got the response */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(0).size() },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(0).size()},
       /* sending the response (1) to the client */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(0).size() },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(0).size()},
       /* reading a second query from the client */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(1).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(1).size() - 2},
       /* sending query (2) to the backend */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(1).size() },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(1).size()},
       /* backend is not ready yet */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0},
       /* reading a third query from the client */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(2).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(2).size() - 2},
       /* sending query (3) to the backend */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(2).size() },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(2).size()},
       /* backend is not ready yet, but the descriptor becomes ready */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0, [&threadData](int desc) {
-        /* the backend descriptor becomes ready */
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
-      }},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0, [&threadData](int desc) {
+         /* the backend descriptor becomes ready */
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
+       }},
       /* nothing from the client */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0, [&threadData](int desc) {
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(desc);
-      } },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0, [&threadData](int desc) {
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(desc);
+       }},
       /* backend closes the connection on us */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 0 },
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 0},
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
       /* opening a new connection to the backend */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
       /* sending query (2) to the backend */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, proxyPayload.size() + queries.at(1).size() },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, proxyPayload.size() + queries.at(1).size()},
       /* sending query (3) to the backend */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(2).size() },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(2).size()},
       /* got the response for 2 */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(1).size() },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(1).size()},
       /* sending the response (2) to the client */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(1).size() },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(1).size()},
       /* got the response for 3 */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(2).size() },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(2).size()},
       /* sending the response (3) to the client */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(2).size(), [&threadData](int desc) {
-        /* the client descriptor becomes ready */
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
-      } },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(2).size(), [&threadData](int desc) {
+         /* the client descriptor becomes ready */
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
+       }},
       /* client closes the connection */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 0 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 0},
       /* closing the backend connection */
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done, 0 },
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done, 0},
       /* closing the client connection */
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done, 0 },
+      {ExpectedStep::ExpectedRequest::closeClient, IOState::Done, 0},
     };
 
     s_processQuery = [proxyEnabledBackend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
@@ -3726,39 +3727,39 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
     appendPayloadEditingID(expectedBackendWriteBuffer, queries.at(2), 2);
 
     s_steps = {
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
       /* reading a query from the client (1) */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(0).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(0).size() - 2},
       /* opening a connection to the backend */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
       /* sending query (1) to the backend */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, proxyPayload.size() + queries.at(0).size() },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, proxyPayload.size() + queries.at(0).size()},
       /* we try to read the response, not ready yet */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0},
       /* reading a second query from the client */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(1).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(1).size() - 2},
       /* sending query (2) to the backend */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(1).size() },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(1).size()},
       /* backend is not ready yet */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0},
       /* reading a third query from the client */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(2).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(2).size() - 2},
       /* sending query (3) to the backend */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(2).size() },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(2).size()},
       /* backend is not ready yet, but the descriptor becomes ready */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0, [&threadData](int desc) {
-        /* the backend descriptor becomes ready */
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
-      }},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0, [&threadData](int desc) {
+         /* the backend descriptor becomes ready */
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
+       }},
       /* client closes the connection */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 0 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 0},
       /* closing the backend connection */
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done, 0 },
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done, 0},
       /* closing the client connection */
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done, 0 },
+      {ExpectedStep::ExpectedRequest::closeClient, IOState::Done, 0},
     };
 
     s_processQuery = [proxyEnabledBackend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
@@ -3808,29 +3809,29 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
 
     bool timeout = false;
     s_steps = {
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
       /* reading a query from the client (1) */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(0).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(0).size() - 2},
       /* opening a connection to the backend */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
       /* backend is not ready yet */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::NeedWrite, 0 },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::NeedWrite, 0},
       /* reading a second query from the client */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(1).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(1).size() - 2},
       /* reading a third query from the client */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(2).size() - 2, [&timeout](int desc) {
-        (void)desc;
-        timeout = true;
-      } },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(2).size() - 2, [&timeout](int desc) {
+         (void)desc;
+         timeout = true;
+       }},
       /* trying to read more from the client but nothing to read */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0},
       /* closing the client connection */
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done, 0 },
+      {ExpectedStep::ExpectedRequest::closeClient, IOState::Done, 0},
       /* closing the backend connection */
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done, 0 },
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done, 0},
     };
 
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
@@ -3918,130 +3919,130 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
     int backend2Desc = -1;
 
     s_steps = {
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
       /* reading a query from the client (1) */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(0).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(0).size() - 2},
       /* opening a connection to the backend (1) */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [&backend1Desc](int desc) {
-        backend1Desc = desc;
-      } },
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [&backend1Desc](int desc) {
+         backend1Desc = desc;
+       }},
       /* sending query (1) to the backend */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(0).size() },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(0).size()},
       /* no response ready yet */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0},
       /* reading a query from the client (2) */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(1).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(1).size() - 2},
       /* sending query (2) to the backend */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(1).size() },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(1).size()},
       /* no response ready yet */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0},
       /* reading a query from the client (3) */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(2).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(2).size() - 2},
       /* opening a connection to the SECOND backend (2) */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [&backend2Desc](int desc) {
-        backend2Desc = desc;
-      } },
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [&backend2Desc](int desc) {
+         backend2Desc = desc;
+       }},
       /* sending query (3) to backend 2 */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(2).size() },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(2).size()},
       /* no response ready yet */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0},
       /* reading a query from the client (4) */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(3).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(3).size() - 2},
       /* sending query to the second backend */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(3).size() },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(3).size()},
       /* no response ready yet */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0},
       /* nothing more to read from the client at that moment */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0, [&threadData, &backend1Desc](int desc) {
-        (void)desc;
-        /* but the first backend becomes readable */
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(backend1Desc);
-      } },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0, [&threadData, &backend1Desc](int desc) {
+         (void)desc;
+         /* but the first backend becomes readable */
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(backend1Desc);
+       }},
       /* reading response (1) from the first backend (1) */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(0).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(0).size() - 2},
       /* sending it to the client */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(0).size(), [&threadData,&backend1Desc](int desc) {
-        /* client becomes readable */
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
-        /* first backend is no longer readable */
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(backend1Desc);
-      } },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(0).size(), [&threadData, &backend1Desc](int desc) {
+         /* client becomes readable */
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
+         /* first backend is no longer readable */
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(backend1Desc);
+       }},
       /* no response ready from the backend yet */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0},
       /* reading a query from the client (5) */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(4).size() - 2, [&threadData](int desc) {
-        /* client is not ready anymore */
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(desc);
-      }  },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(4).size() - 2, [&threadData](int desc) {
+         /* client is not ready anymore */
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(desc);
+       }},
       /* sending query (5) to the first backend (1) */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(4).size() },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(4).size()},
       /* no response ready yet, but the first backend becomes ready */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0, [&threadData](int desc) {
-        /* set the outgoing descriptor (backend connection) as ready */
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
-      } },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0, [&threadData](int desc) {
+         /* set the outgoing descriptor (backend connection) as ready */
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
+       }},
       /* trying to read from client, nothing yet */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0},
       /* reading response (2) from the first backend (1) */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(1).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(1).size() - 2},
       /* sending it to the client */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(1).size(), [&threadData,&backend1Desc,&backend2Desc](int desc) {
-        /* client is NOT readable, backend1 is not readable, backend 2 becomes readable */
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(desc);
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(backend1Desc);
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(backend2Desc);
-      } },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(1).size(), [&threadData, &backend1Desc, &backend2Desc](int desc) {
+         /* client is NOT readable, backend1 is not readable, backend 2 becomes readable */
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(desc);
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(backend1Desc);
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(backend2Desc);
+       }},
       /* no more response ready yet from backend 1 */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0},
       /* reading response (3) from the second backend (2) */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(2).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(2).size() - 2},
       /* sending it to the client */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(2).size(), [&threadData,&backend1Desc,&backend2Desc](int desc) {
-        (void)desc;
-        /* backend 2 is no longer readable, backend 1 becomes readable */
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(backend2Desc);
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(backend1Desc);
-      } },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(2).size(), [&threadData, &backend1Desc, &backend2Desc](int desc) {
+         (void)desc;
+         /* backend 2 is no longer readable, backend 1 becomes readable */
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(backend2Desc);
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(backend1Desc);
+       }},
       /* no more response ready yet from backend 2 */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0},
       /* reading response (5) from the first backend (1) */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(4).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(4).size() - 2},
       /* sending it to the client */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(4).size(), [&threadData,&backend1Desc,&backend2Desc](int desc) {
-        (void)desc;
-        /* backend 1 is no longer readable, backend 2 becomes readable */
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(backend1Desc);
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(backend2Desc);
-      } },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(4).size(), [&threadData, &backend1Desc, &backend2Desc](int desc) {
+         (void)desc;
+         /* backend 1 is no longer readable, backend 2 becomes readable */
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(backend1Desc);
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(backend2Desc);
+       }},
       /* no more response ready yet from backend 1 */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0},
       /* reading response (4) from the second backend (2) */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(3).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(3).size() - 2},
       /* sending it to the client */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(3).size(), [&threadData,&backend2Desc](int desc) {
-        (void)desc;
-        /* backend 2 is no longer readable */
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(backend2Desc);
-        /* client becomes readable */
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(-1);
-      } },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(3).size(), [&threadData, &backend2Desc](int desc) {
+         (void)desc;
+         /* backend 2 is no longer readable */
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(backend2Desc);
+         /* client becomes readable */
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(-1);
+       }},
       /* client closes the connection */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 0 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 0},
       /* closing client connection */
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeClient, IOState::Done},
       /* closing a connection to the backends */
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
     };
 
     s_processQuery = [backend1](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
@@ -4091,47 +4092,47 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
 
     bool timeout = false;
     s_steps = {
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
       /* reading a query from the client (1) */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(0).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(0).size() - 2},
       /* opening a connection to the backend */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
       /* sending query to the backend */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(0).size() },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(0).size()},
       /* no response ready yet */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0},
       /* reading a query from the client (2) */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(1).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(1).size() - 2},
       /* sending query to the backend */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(1).size() },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(1).size()},
       /* no response ready yet, but mark the descriptor as ready */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0, [&threadData](int desc) {
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
-      } },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0, [&threadData](int desc) {
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
+       }},
       /* nothing more from the client either */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0},
 
       /* reading response (1) from the backend */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(0).size() - 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(0).size()},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(0).size() - 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(0).size()},
       /* sending it to the client */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(0).size()},
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(0).size()},
       /* reading response (2) from the backend */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(0).size() - 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(0).size(), [&threadData](int desc) {
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(desc);
-      } },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(0).size() - 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(0).size(), [&threadData](int desc) {
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(desc);
+       }},
       /* sending it to the client. we don't have anything else to send to the client, no new query from it either, until we time out */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(0).size(), [&timeout](int desc) {
-        (void)desc;
-        timeout = true;
-      } },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(0).size(), [&timeout](int desc) {
+         (void)desc;
+         timeout = true;
+       }},
       /* closing a connection to the backend */
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
       /* closing client connection */
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeClient, IOState::Done},
     };
 
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
@@ -4206,7 +4207,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendNotOOOR, TestFixture)
     pwQ.getHeader()->rd = 1;
     pwQ.getHeader()->id = counter;
     uint16_t querySize = static_cast<uint16_t>(query.size());
-    const uint8_t sizeBytes[] = { static_cast<uint8_t>(querySize / 256), static_cast<uint8_t>(querySize % 256) };
+    const uint8_t sizeBytes[] = {static_cast<uint8_t>(querySize / 256), static_cast<uint8_t>(querySize % 256)};
     query.insert(query.begin(), sizeBytes, sizeBytes + 2);
     totalQueriesSize += query.size();
     ++counter;
@@ -4226,7 +4227,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendNotOOOR, TestFixture)
     pwR.commit();
 
     uint16_t responseSize = static_cast<uint16_t>(response.size());
-    const uint8_t sizeBytes[] = { static_cast<uint8_t>(responseSize / 256), static_cast<uint8_t>(responseSize % 256) };
+    const uint8_t sizeBytes[] = {static_cast<uint8_t>(responseSize / 256), static_cast<uint8_t>(responseSize % 256)};
     response.insert(response.begin(), sizeBytes, sizeBytes + 2);
     totalResponsesSize += response.size();
     ++counter;
@@ -4259,122 +4260,122 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendNotOOOR, TestFixture)
     expectedWriteBuffer.insert(expectedWriteBuffer.end(), responses.at(4).begin(), responses.at(4).end());
     expectedWriteBuffer.insert(expectedWriteBuffer.end(), responses.at(3).begin(), responses.at(3).end());
 
-    std::vector<int> backendDescriptors = { -1, -1, -1, -1, -1 };
+    std::vector<int> backendDescriptors = {-1, -1, -1, -1, -1};
 
     s_steps = {
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
       /* reading a query from the client (1) */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(0).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(0).size() - 2},
       /* opening a connection to the backend (1) */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [&backendDescriptors](int desc) {
-        backendDescriptors.at(0) = desc;
-      } },
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [&backendDescriptors](int desc) {
+         backendDescriptors.at(0) = desc;
+       }},
       /* sending query (1) to the backend */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(0).size() },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(0).size()},
       /* no response ready yet */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0},
       /* reading a query from the client (2) */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(1).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(1).size() - 2},
       /* opening a connection to the backend (2) */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [&backendDescriptors](int desc) {
-        backendDescriptors.at(1) = desc;
-      } },
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [&backendDescriptors](int desc) {
+         backendDescriptors.at(1) = desc;
+       }},
       /* sending query (2) to the backend */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(1).size() },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(1).size()},
       /* no response ready yet */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0},
       /* reading a query from the client (3) */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(2).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(2).size() - 2},
       /* opening a connection to the backend (3) */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [&backendDescriptors](int desc) {
-        backendDescriptors.at(2) = desc;
-      } },
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [&backendDescriptors](int desc) {
+         backendDescriptors.at(2) = desc;
+       }},
       /* sending query (3) to the backend */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(2).size() },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(2).size()},
       /* no response ready yet */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0},
       /* reading a query from the client (4) */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(3).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(3).size() - 2},
       /* opening a connection to the backend (4) */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [&backendDescriptors](int desc) {
-        backendDescriptors.at(3) = desc;
-      } },
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [&backendDescriptors](int desc) {
+         backendDescriptors.at(3) = desc;
+       }},
       /* sending query (3) to the backend */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(3).size() },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(3).size()},
       /* no response ready yet */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0},
       /* reading a query from the client (5) */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(4).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(4).size() - 2},
       /* opening a connection to the backend (5) */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [&backendDescriptors](int desc) {
-        backendDescriptors.at(4) = desc;
-      } },
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [&backendDescriptors](int desc) {
+         backendDescriptors.at(4) = desc;
+       }},
       /* sending query (5) to the backend */
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(4).size() },
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(4).size()},
       /* no response ready yet, client stops being readable, first backend has a response */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0, [&threadData,&backendDescriptors](int desc) {
-        (void)desc;
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(backendDescriptors.at(0));
-      } },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0, [&threadData, &backendDescriptors](int desc) {
+         (void)desc;
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(backendDescriptors.at(0));
+       }},
       /* trying to read from the client but nothing yet */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0 , [&threadData](int desc) {
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(desc);
-      } },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0, [&threadData](int desc) {
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(desc);
+       }},
       /* reading response (1) from the first backend (1) */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(0).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(0).size() - 2},
       /* sending it to the client */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(0).size(), [&threadData,&backendDescriptors](int desc) {
-        (void)desc;
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(backendDescriptors.at(2));
-      } },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(0).size(), [&threadData, &backendDescriptors](int desc) {
+         (void)desc;
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(backendDescriptors.at(2));
+       }},
       /* reading response (3) from the third backend (3) */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(2).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(2).size() - 2},
       /* sending it to the client */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(2).size(), [&threadData,&backendDescriptors](int desc) {
-        (void)desc;
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(backendDescriptors.at(1));
-      } },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(2).size(), [&threadData, &backendDescriptors](int desc) {
+         (void)desc;
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(backendDescriptors.at(1));
+       }},
       /* reading response (2) from the second backend (2) */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(1).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(1).size() - 2},
       /* sending it to the client */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(1).size(), [&threadData,&backendDescriptors](int desc) {
-        (void)desc;
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(backendDescriptors.at(4));
-      } },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(1).size(), [&threadData, &backendDescriptors](int desc) {
+         (void)desc;
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(backendDescriptors.at(4));
+       }},
       /* reading response (5) from the fifth backend (5) */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(4).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(4).size() - 2},
       /* sending it to the client */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(4).size(), [&threadData,&backendDescriptors](int desc) {
-        (void)desc;
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(backendDescriptors.at(3));
-      } },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(4).size(), [&threadData, &backendDescriptors](int desc) {
+         (void)desc;
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(backendDescriptors.at(3));
+       }},
       /* reading response (4) from the fourth backend (4) */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(3).size() - 2 },
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(3).size() - 2},
       /* sending it to the client */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(3).size(), [&threadData](int desc) {
-        (void)desc;
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(-1);
-      } },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(3).size(), [&threadData](int desc) {
+         (void)desc;
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(-1);
+       }},
       /* client closes the connection */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 0 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 0},
       /* closing client connection */
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeClient, IOState::Done},
       /* closing a connection to the backends */
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
     };
 
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
@@ -4419,18 +4420,17 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendNotOOOR, TestFixture)
     }
 
     bool timeout = false;
-    s_steps = { { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
-                { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-                { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(0).size() - 2 },
-                { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-                { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(1).size() - 2 },
-                { ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0, [&timeout](int desc) {
+    s_steps = {{ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
+               {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+               {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(0).size() - 2},
+               {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+               {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(1).size() - 2},
+               {ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0, [&timeout](int desc) {
                   (void)desc;
                   timeout = true;
                 }},
-                /* close the connection with the client */
-                { ExpectedStep::ExpectedRequest::closeClient, IOState::Done }
-    };
+               /* close the connection with the client */
+               {ExpectedStep::ExpectedRequest::closeClient, IOState::Done}};
 
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
       selectedBackend = backend;
@@ -4488,7 +4488,7 @@ BOOST_FIXTURE_TEST_CASE(test_Pipelined_Queries_Immediate_Responses, TestFixture)
   pwQ.getHeader()->id = 0;
 
   auto querySize = static_cast<uint16_t>(query.size());
-  const std::array<uint8_t, 2> sizeBytes{ static_cast<uint8_t>(querySize / 256), static_cast<uint8_t>(querySize % 256) };
+  const std::array<uint8_t, 2> sizeBytes{static_cast<uint8_t>(querySize / 256), static_cast<uint8_t>(querySize % 256)};
   query.insert(query.begin(), sizeBytes.begin(), sizeBytes.end());
 
   auto backend = std::make_shared<DownstreamState>(getBackendAddress("42", 53));
@@ -4502,15 +4502,15 @@ BOOST_FIXTURE_TEST_CASE(test_Pipelined_Queries_Immediate_Responses, TestFixture)
     s_backendReadBuffer = query;
 
     s_steps = {
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2 },
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2},
       /* opening a connection to the backend */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
-      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, query.size() },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, query.size() - 2 },
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, query.size() },
+      {ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done},
+      {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, query.size()},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2},
+      {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, query.size() - 2},
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, query.size()},
     };
     for (size_t idx = 1; idx < nbQueries; idx++) {
       appendPayloadEditingID(s_readBuffer, query, idx);
