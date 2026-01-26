@@ -379,9 +379,10 @@ static void handleCORS(const YaHTTP::Request& req, YaHTTP::Response& resp)
 {
   const auto origin = req.headers.find("Origin");
   if (origin != req.headers.end()) {
+    const auto& config = dnsdist::configuration::getCurrentRuntimeConfiguration();
     if (req.method == "OPTIONS") {
       /* Pre-flight request */
-      if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_apiReadWrite) {
+      if (config.d_apiReadWrite) {
         resp.headers["Access-Control-Allow-Methods"] = "GET, PUT";
       }
       else {
@@ -390,10 +391,13 @@ static void handleCORS(const YaHTTP::Request& req, YaHTTP::Response& resp)
       resp.headers["Access-Control-Allow-Headers"] = "Authorization, X-API-Key";
     }
 
-    resp.headers["Access-Control-Allow-Origin"] = origin->second;
+    if (config.d_webServerAllowCrossOriginRequests) {
+      resp.headers["Access-Control-Allow-Origin"] = origin->second;
+      resp.headers["Vary"] = "Origin"; // prevents cached data to be used for a different Origin
 
-    if (isAStatsRequest(req) || isAnAPIRequestAllowedWithWebAuth(req)) {
-      resp.headers["Access-Control-Allow-Credentials"] = "true";
+      if (isAStatsRequest(req) || isAnAPIRequestAllowedWithWebAuth(req)) {
+        resp.headers["Access-Control-Allow-Credentials"] = "true";
+      }
     }
   }
 }
