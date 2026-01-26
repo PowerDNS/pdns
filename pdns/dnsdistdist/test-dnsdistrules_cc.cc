@@ -28,7 +28,7 @@ struct RuleParameter
 template <typename ParameterType>
 ParameterType getRequiredRuleParameter(const std::string& ruleName, std::vector<RuleParameter>& parameters, const std::string& parameterName)
 {
-  for (auto paramIt = parameters.begin(); paramIt != parameters.end(); ) {
+  for (auto paramIt = parameters.begin(); paramIt != parameters.end();) {
     if (paramIt->name != parameterName) {
       ++paramIt;
       continue;
@@ -46,7 +46,7 @@ ParameterType getOptionalRuleParameter(const std::string& ruleName, std::vector<
 {
   (void)ruleName;
 
-  for (auto paramIt = parameters.begin(); paramIt != parameters.end(); ) {
+  for (auto paramIt = parameters.begin(); paramIt != parameters.end();) {
     if (paramIt->name != parameterName) {
       ++paramIt;
       continue;
@@ -62,7 +62,7 @@ ParameterType getOptionalRuleParameter(const std::string& ruleName, std::vector<
 class TestMaxQPSIPRule : public DNSRule
 {
 public:
-  TestMaxQPSIPRule(const std::string& ruleName, std::vector<RuleParameter>& parameters):
+  TestMaxQPSIPRule(const std::string& ruleName, std::vector<RuleParameter>& parameters) :
     d_qps(getRequiredRuleParameter<unsigned int>(ruleName, parameters, "qps")),
     d_burst(getOptionalRuleParameter<unsigned int>(ruleName, parameters, "burst", d_qps)),
     d_ipv4trunc(getOptionalRuleParameter<unsigned int>(ruleName, parameters, "ipv4-truncation", 32))
@@ -79,6 +79,7 @@ public:
   {
     return "";
   }
+
 private:
   unsigned int d_qps;
   unsigned int d_burst;
@@ -109,7 +110,8 @@ static DNSQuestion getDQ(const DNSName* providedName = nullptr)
 
 BOOST_AUTO_TEST_SUITE(dnsdistluarules_cc)
 
-BOOST_AUTO_TEST_CASE(test_MaxQPSIPRule) {
+BOOST_AUTO_TEST_CASE(test_MaxQPSIPRule)
+{
   size_t maxQPS = 10;
   size_t maxBurst = maxQPS;
   unsigned int expiration = 300;
@@ -158,7 +160,6 @@ BOOST_AUTO_TEST_CASE(test_MaxQPSIPRule) {
   /* and we be back */
   BOOST_CHECK_EQUAL(rule->getEntriesCount(), 1U);
 
-
   /* Let's insert a lot of different sources now */
   for (size_t idxByte3 = 0; idxByte3 < 256; idxByte3++) {
     for (size_t idxByte4 = 0; idxByte4 < 256; idxByte4++) {
@@ -201,7 +202,8 @@ BOOST_AUTO_TEST_CASE(test_MaxQPSIPRule) {
   BOOST_CHECK_EQUAL(scanned, 0U);
 }
 
-BOOST_AUTO_TEST_CASE(test_poolOutstandingRule) {
+BOOST_AUTO_TEST_CASE(test_poolOutstandingRule)
+{
   auto dq = getDQ();
 
   ServerPool sp{};
@@ -227,7 +229,8 @@ BOOST_AUTO_TEST_CASE(test_poolOutstandingRule) {
   BOOST_CHECK_EQUAL(pOR2.matches(&dq), false);
 }
 
-BOOST_AUTO_TEST_CASE(test_payloadSizeRule) {
+BOOST_AUTO_TEST_CASE(test_payloadSizeRule)
+{
   auto dnsQuestion = getDQ();
 
   {
@@ -298,8 +301,8 @@ BOOST_AUTO_TEST_CASE(test_payloadSizeRule) {
   BOOST_CHECK_THROW(PayloadSizeRule("invalid", 42U), std::runtime_error);
 
   std::vector<RuleParameter> parameters{
-    RuleParameter{ "qps", 5U },
-    RuleParameter{ "ipv4-truncation", 24U },
+    RuleParameter{"qps", 5U},
+    RuleParameter{"ipv4-truncation", 24U},
   };
   auto got = buildSelector("TestMaxQPSIPRule", parameters);
 }

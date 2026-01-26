@@ -69,7 +69,7 @@ std::vector<std::string> KeyValueLookupKeySuffix::getKeys(const DNSName& qname)
   std::vector<std::string> result;
   result.reserve(labelsCount);
 
-  while(!lowerQName.isRoot()) {
+  while (!lowerQName.isRoot()) {
     result.emplace_back(d_wireFormat ? lowerQName.toDNSString() : lowerQName.toStringRootDot());
     labelsCount--;
     if (!lowerQName.chopOff() || labelsCount == 0) {
@@ -184,7 +184,8 @@ std::shared_ptr<const Logr::Logger> CDBKVStore::getLogger() const
   return dnsdist::logging::getTopLogger("cdb-key-value-store")->withValues("path", Logging::Loggable(d_fname));
 }
 
-CDBKVStore::CDBKVStore(const std::string& fname, time_t refreshDelay): d_fname(fname), d_refreshDelay(refreshDelay)
+CDBKVStore::CDBKVStore(const std::string& fname, time_t refreshDelay) :
+  d_fname(fname), d_refreshDelay(refreshDelay)
 {
   d_refreshing.clear();
 
@@ -196,7 +197,8 @@ CDBKVStore::CDBKVStore(const std::string& fname, time_t refreshDelay): d_fname(f
   refreshDBIfNeeded(now);
 }
 
-CDBKVStore::~CDBKVStore() {
+CDBKVStore::~CDBKVStore()
+{
 }
 
 bool CDBKVStore::reload(const struct stat& st)

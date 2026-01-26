@@ -879,7 +879,6 @@ bool dnsdist_ffi_dnsquestion_set_async(dnsdist_ffi_dnsquestion_t* dq, uint16_t a
   catch (const std::exception& e) {
     VERBOSESLOG(infolog("Error in dnsdist_ffi_dnsquestion_set_async: %s", e.what()),
                 getLogger(__func__)->error(Logr::Info, e.what(), "Error turning query asynchronous"));
-
   }
   catch (...) {
     VERBOSESLOG(infolog("Exception in dnsdist_ffi_dnsquestion_set_async"),
@@ -1624,9 +1623,7 @@ size_t dnsdist_ffi_ring_get_entries(dnsdist_ffi_ring_entry_list_t** out)
     return 0;
   }
   auto list = std::make_unique<dnsdist_ffi_ring_entry_list_t>();
-  struct timespec now
-  {
-  };
+  struct timespec now{};
   gettime(&now);
 
   for (const auto& shard : g_rings.d_shards) {
@@ -1672,9 +1669,7 @@ size_t dnsdist_ffi_ring_get_entries_by_addr(const char* addr, dnsdist_ffi_ring_e
   }
 
   auto list = std::make_unique<dnsdist_ffi_ring_entry_list_t>();
-  struct timespec now
-  {
-  };
+  struct timespec now{};
   gettime(&now);
 
   auto compare = ComboAddress::addressOnlyEqual();
@@ -1718,9 +1713,7 @@ size_t dnsdist_ffi_ring_get_entries_by_mac(const char* addr, dnsdist_ffi_ring_en
   return 0;
 #else
   auto list = std::make_unique<dnsdist_ffi_ring_entry_list_t>();
-  struct timespec now
-  {
-  };
+  struct timespec now{};
   gettime(&now);
 
   for (const auto& shard : g_rings.d_shards) {
@@ -2155,7 +2148,7 @@ bool dnsdist_ffi_dynamic_blocks_smt_add(const char* suffix, const char* message,
     }
     catch (const PDNSException& exp) {
       SLOG(errlog("dnsdist_ffi_dynamic_blocks_smt_add: Unable to parse '%s': %s", suffix, exp.reason),
-                   getLogger(__func__)->error(Logr::Error, exp.reason, "Error parsing suffix", "suffix", Logging::Loggable(suffix)));
+           getLogger(__func__)->error(Logr::Error, exp.reason, "Error parsing suffix", "suffix", Logging::Loggable(suffix)));
       return false;
     }
 
@@ -2188,7 +2181,6 @@ bool dnsdist_ffi_dynamic_blocks_smt_add(const char* suffix, const char* message,
   catch (...) {
     SLOG(errlog("Exception in dnsdist_ffi_dynamic_blocks_smt_add"),
          getLogger(__func__)->info(Logr::Error, "Unknown exception adding a dynamic SMT rule", "suffix", Logging::Loggable(suffix)));
-
   }
   return false;
 }
@@ -2392,7 +2384,6 @@ void dnsdist_ffi_svc_record_parameters_add_ipv4_hint(dnsdist_ffi_svc_record_para
   catch (const std::exception& exp) {
     SLOG(errlog("Exception in dnsdist_ffi_svc_record_parameters_add_ipv4_hint: %s", exp.what()),
          getLogger(__func__)->error(Logr::Error, exp.what(), "Exception adding IPv4 hint to SVC record"));
-
   }
   catch (const PDNSException& exp) {
     SLOG(errlog("Exception in dnsdist_ffi_svc_record_parameters_add_ipv4_hint: %s", exp.reason),
@@ -2466,7 +2457,7 @@ void dnsdist_ffi_dnsquestion_meta_begin_key([[maybe_unused]] dnsdist_ffi_dnsques
   dnsQuestion->pbfWriter = protozero::pbf_writer{dnsQuestion->dq->ids.d_rawProtobufContent};
   dnsQuestion->pbfMetaWriter = protozero::pbf_writer{dnsQuestion->pbfWriter, static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::Field::meta)};
   dnsQuestion->pbfMetaWriter.add_string(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::MetaField::key), protozero::data_view(key, keyLen));
-  dnsQuestion->pbfMetaValueWriter = protozero::pbf_writer {dnsQuestion->pbfMetaWriter, static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::MetaField::value)};
+  dnsQuestion->pbfMetaValueWriter = protozero::pbf_writer{dnsQuestion->pbfMetaWriter, static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::MetaField::value)};
 #endif /* DISABLE_PROTOBUF */
 }
 
@@ -2546,7 +2537,7 @@ void dnsdist_ffi_dnsresponse_meta_begin_key([[maybe_unused]] dnsdist_ffi_dnsresp
   dnsResponse->pbfWriter = protozero::pbf_writer{dnsResponse->dr->ids.d_rawProtobufContent};
   dnsResponse->pbfMetaWriter = protozero::pbf_writer{dnsResponse->pbfWriter, static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::Field::meta)};
   dnsResponse->pbfMetaWriter.add_string(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::MetaField::key), protozero::data_view(key, keyLen));
-  dnsResponse->pbfMetaValueWriter = protozero::pbf_writer {dnsResponse->pbfMetaWriter, static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::MetaField::value)};
+  dnsResponse->pbfMetaValueWriter = protozero::pbf_writer{dnsResponse->pbfMetaWriter, static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::MetaField::value)};
 #endif /* DISABLE_PROTOBUF */
 }
 

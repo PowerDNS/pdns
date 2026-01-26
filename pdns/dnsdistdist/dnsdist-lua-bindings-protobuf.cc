@@ -73,10 +73,10 @@ void setupLuaBindingsProtoBuf(LuaContext& luaCtx, bool client, bool configCheck)
   });
 
   luaCtx.registerFunction<void (DNSDistProtoBufMessage::*)(std::optional<time_t> sec, std::optional<uint32_t> uSec)>("setProtobufResponseType",
-                                                                                                                         [](DNSDistProtoBufMessage& message, std::optional<time_t> sec, std::optional<uint32_t> uSec) {
-                                                                                                                           message.setType(pdns::ProtoZero::Message::MessageType::DNSResponseType);
-                                                                                                                           message.setQueryTime(sec ? *sec : 0, uSec ? *uSec : 0);
-                                                                                                                         });
+                                                                                                                     [](DNSDistProtoBufMessage& message, std::optional<time_t> sec, std::optional<uint32_t> uSec) {
+                                                                                                                       message.setType(pdns::ProtoZero::Message::MessageType::DNSResponseType);
+                                                                                                                       message.setQueryTime(sec ? *sec : 0, uSec ? *uSec : 0);
+                                                                                                                     });
 
   luaCtx.registerFunction<void (DNSDistProtoBufMessage::*)(const std::string& strQueryName, uint16_t uType, uint16_t uClass, uint32_t uTTL, const std::string& strBlob)>("addResponseRR", [](DNSDistProtoBufMessage& message, const std::string& strQueryName, uint16_t uType, uint16_t uClass, uint32_t uTTL, const std::string& strBlob) {
     message.addRR(DNSName(strQueryName), uType, uClass, uTTL, strBlob);

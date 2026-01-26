@@ -13,7 +13,8 @@
 
 BOOST_AUTO_TEST_SUITE(dnsdistrings_cc)
 
-template <class T> static bool checkQuery(const T& entry, const DNSName& qname, uint16_t qtype, uint16_t size, const timespec& now, const ComboAddress& requestor)
+template <class T>
+static bool checkQuery(const T& entry, const DNSName& qname, uint16_t qtype, uint16_t size, const timespec& now, const ComboAddress& requestor)
 {
   if (entry.name != qname) {
     return false;
@@ -50,7 +51,7 @@ static bool checkResponse(const Rings::Response& entry, const DNSName& qname, ui
 static void test_ring(size_t maxEntries, size_t numberOfShards, size_t nbLockTries)
 {
   Rings rings;
-  Rings::RingsConfiguration config {
+  Rings::RingsConfiguration config{
     .capacity = maxEntries,
     .numberOfShards = numberOfShards,
     .nbLockTries = nbLockTries,
@@ -138,8 +139,8 @@ static void test_ring(size_t maxEntries, size_t numberOfShards, size_t nbLockTri
   }
 }
 
-
-BOOST_AUTO_TEST_CASE(test_Rings_Simple) {
+BOOST_AUTO_TEST_CASE(test_Rings_Simple)
+{
 
   /* 5 entries over 1 shard */
   test_ring(5, 1, 0);
@@ -160,20 +161,20 @@ static void ringReaderThread(Rings& rings, std::atomic<bool>& done, size_t numbe
     for (const auto& shard : rings.d_shards) {
       {
         auto rl = shard->queryRing.lock();
-        for(const auto& c : *rl) {
+        for (const auto& c : *rl) {
           numberOfQueries++;
           // BOOST_CHECK* is slow as hell..
-          if(c.qtype != qtype) {
-            cerr<<"Invalid query QType!"<<endl;
+          if (c.qtype != qtype) {
+            cerr << "Invalid query QType!" << endl;
             return;
           }
         }
       }
       {
         auto rl = shard->respRing.lock();
-        for(const auto& c : *rl) {
-          if(c.qtype != qtype) {
-            cerr<<"Invalid response QType!"<<endl;
+        for (const auto& c : *rl) {
+          if (c.qtype != qtype) {
+            cerr << "Invalid response QType!" << endl;
             return;
           }
           numberOfResponses++;
@@ -201,7 +202,8 @@ static void ringWriterThread(Rings& rings, size_t numberOfEntries, const Rings::
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_Rings_Threaded) {
+BOOST_AUTO_TEST_CASE(test_Rings_Threaded)
+{
   size_t numberOfEntries = 1000000;
   size_t numberOfShards = 50;
   size_t lockAttempts = 5;
@@ -228,7 +230,7 @@ BOOST_AUTO_TEST_CASE(test_Rings_Threaded) {
   dnsdist::Protocol outgoingProtocol = dnsdist::Protocol::DoUDP;
 
   Rings rings;
-  Rings::RingsConfiguration config {
+  Rings::RingsConfiguration config{
     .capacity = numberOfEntries,
     .numberOfShards = numberOfShards,
     .nbLockTries = lockAttempts,
@@ -310,13 +312,14 @@ BOOST_AUTO_TEST_CASE(test_Rings_Threaded) {
 #endif
 }
 
-BOOST_AUTO_TEST_CASE(test_Rings_Sampling) {
+BOOST_AUTO_TEST_CASE(test_Rings_Sampling)
+{
   const size_t numberOfEntries = 10000;
   const size_t numberOfShards = 50;
   const size_t samplingRate = 10;
 
   Rings rings;
-  const Rings::RingsConfiguration config {
+  const Rings::RingsConfiguration config{
     .capacity = numberOfEntries,
     .numberOfShards = numberOfShards,
     .samplingRate = samplingRate,

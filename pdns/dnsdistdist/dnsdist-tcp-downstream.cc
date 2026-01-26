@@ -39,7 +39,7 @@ bool ConnectionToBackend::reconnect()
 {
   std::unique_ptr<TLSSession> tlsSession{nullptr};
   if (d_handler) {
-    DEBUGLOG("closing socket "<<d_handler->getDescriptor());
+    DEBUGLOG("closing socket " << d_handler->getDescriptor());
     if (d_handler->isTLS()) {
       if (d_handler->hasTLSSessionBeenResumed()) {
         ++d_ds->tlsResumptions;
@@ -70,12 +70,12 @@ bool ConnectionToBackend::reconnect()
   d_proxyProtocolPayloadSent = false;
 
   do {
-    DEBUGLOG("TCP connecting to downstream "<<d_ds->getNameWithAddr()<<" ("<<d_downstreamFailures<<")");
-    DEBUGLOG("Opening TCP connection to backend "<<d_ds->getNameWithAddr());
+    DEBUGLOG("TCP connecting to downstream " << d_ds->getNameWithAddr() << " (" << d_downstreamFailures << ")");
+    DEBUGLOG("Opening TCP connection to backend " << d_ds->getNameWithAddr());
     ++d_ds->tcpNewConnections;
     try {
       auto socket = Socket(d_ds->d_config.remote.sin4.sin_family, SOCK_STREAM, 0);
-      DEBUGLOG("result of socket() is "<<socket.getHandle());
+      DEBUGLOG("result of socket() is " << socket.getHandle());
 
       /* disable NAGLE, which does not play nicely with delayed ACKs.
          In theory we could be wasting up to 500 milliseconds waiting for
@@ -107,7 +107,7 @@ bool ConnectionToBackend::reconnect()
       socket.setNonBlocking();
 
       gettimeofday(&d_connectionStartTime, nullptr);
-      auto handler = std::make_unique<TCPIOHandler>(d_ds->d_config.d_tlsSubjectName, d_ds->d_config.d_tlsSubjectIsAddr, socket.releaseHandle(), timeval{0,0}, d_ds->d_tlsCtx);
+      auto handler = std::make_unique<TCPIOHandler>(d_ds->d_config.d_tlsSubjectName, d_ds->d_config.d_tlsSubjectIsAddr, socket.releaseHandle(), timeval{0, 0}, d_ds->d_tlsCtx);
       if (!tlsSession && d_ds->d_tlsCtx) {
         tlsSession = g_sessionCache.getSession(d_ds->getID(), d_connectionStartTime.tv_sec);
       }
@@ -129,8 +129,7 @@ bool ConnectionToBackend::reconnect()
         throw;
       }
     }
-  }
-  while (d_downstreamFailures < d_ds->d_config.d_retries);
+  } while (d_downstreamFailures < d_ds->d_config.d_retries);
 
   return false;
 }
@@ -229,7 +228,8 @@ static void editPayloadID(PacketBuffer& payload, uint16_t newId, size_t proxyPro
   memcpy(&payload.at(startOfHeaderOffset), &id, sizeof(id));
 }
 
-enum class ConnectionState : uint8_t {
+enum class ConnectionState : uint8_t
+{
   needProxy,
   proxySent
 };
@@ -282,7 +282,7 @@ IOState TCPConnectionToBackend::sendQuery(std::shared_ptr<TCPConnectionToBackend
 {
   auto closer = conn->d_currentQuery.d_query.d_idstate.getCloser(classnamePrefix + __func__);
   (void)now;
-  DEBUGLOG("sending query to backend "<<conn->getDS()->getNameWithAddr()<<" over FD "<<conn->d_handler->getDescriptor());
+  DEBUGLOG("sending query to backend " << conn->getDS()->getNameWithAddr() << " over FD " << conn->d_handler->getDescriptor());
 
   IOState state = conn->d_handler->tryWrite(conn->d_currentQuery.d_query.d_buffer, conn->d_currentPos, conn->d_currentQuery.d_query.d_buffer.size());
 
@@ -299,7 +299,7 @@ IOState TCPConnectionToBackend::sendQuery(std::shared_ptr<TCPConnectionToBackend
   ++conn->d_queries;
   conn->d_currentPos = 0;
 
-  DEBUGLOG("adding a pending response for ID "<<conn->d_highestStreamID<<" and QNAME "<<conn->d_currentQuery.d_query.d_idstate.qname);
+  DEBUGLOG("adding a pending response for ID " << conn->d_highestStreamID << " and QNAME " << conn->d_currentQuery.d_query.d_idstate.qname);
   auto res = conn->d_pendingResponses.insert({conn->d_highestStreamID, std::move(conn->d_currentQuery)});
   /* if there was already a pending response with that ID, we messed up and we don't expect more
      than one response */
@@ -315,7 +315,7 @@ IOState TCPConnectionToBackend::sendQuery(std::shared_ptr<TCPConnectionToBackend
 
 void TCPConnectionToBackend::handleReconnectionAttempt(std::shared_ptr<TCPConnectionToBackend>& conn, const struct timeval& now, IOStateGuard& ioGuard, IOState& iostate, bool& reconnected, bool& connectionDied)
 {
-  DEBUGLOG("connection died, number of failures is "<<conn->d_downstreamFailures<<", retries is "<<conn->d_ds->d_config.d_retries);
+  DEBUGLOG("connection died, number of failures is " << conn->d_downstreamFailures << ", retries is " << conn->d_ds->d_config.d_retries);
 
   if (conn->d_downstreamFailures < conn->d_ds->d_config.d_retries) {
 
@@ -393,7 +393,6 @@ void TCPConnectionToBackend::handleReconnectionAttempt(std::shared_ptr<TCPConnec
   }
 }
 
-
 void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& conn, const struct timeval& now)
 {
   if (conn->d_handler == nullptr) {
@@ -431,8 +430,7 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
         }
       }
 
-      if (conn->d_state == State::waitingForResponseFromBackend ||
-          conn->d_state == State::readingResponseSizeFromBackend) {
+      if (conn->d_state == State::waitingForResponseFromBackend || conn->d_state == State::readingResponseSizeFromBackend) {
         DEBUGLOG("reading response size from backend");
         // then we need to allocate a new buffer (new because we might need to re-send the query if the
         // backend dies on us)
@@ -478,11 +476,7 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
         }
       }
 
-      if (conn->d_state != State::idle &&
-          conn->d_state != State::sendingQueryToBackend &&
-          conn->d_state != State::waitingForResponseFromBackend &&
-          conn->d_state != State::readingResponseSizeFromBackend &&
-          conn->d_state != State::readingResponseFromBackend) {
+      if (conn->d_state != State::idle && conn->d_state != State::sendingQueryToBackend && conn->d_state != State::waitingForResponseFromBackend && conn->d_state != State::readingResponseSizeFromBackend && conn->d_state != State::readingResponseFromBackend) {
         VERBOSESLOG(infolog("Unexpected state %d in TCPConnectionToBackend::handleIO", static_cast<int>(conn->d_state)),
                     conn->getLogger()->info(Logr::Info, "Unexpected state in TCPConnectionToBackend::handleIO", "state", Logging::Loggable(static_cast<int>(conn->d_state))));
       }
@@ -536,8 +530,7 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
         conn->d_ioState->update(iostate, handleIOCallback, conn, ttd);
       }
     }
-  }
-  while (reconnected || (iostate != IOState::Done && !conn->d_connectionDied && !conn->d_lastIOBlocked));
+  } while (reconnected || (iostate != IOState::Done && !conn->d_connectionDied && !conn->d_lastIOBlocked));
 
   ioGuard.release();
 }
@@ -564,7 +557,7 @@ void TCPConnectionToBackend::queueQuery(std::shared_ptr<TCPQuerySender>& sender,
   // if we are not already sending a query or in the middle of reading a response (so idle),
   // start sending the query
   if (d_state == State::idle || d_state == State::waitingForResponseFromBackend) {
-    DEBUGLOG("Sending new query to backend right away, with ID "<<d_highestStreamID);
+    DEBUGLOG("Sending new query to backend right away, with ID " << d_highestStreamID);
     d_state = State::sendingQueryToBackend;
     d_currentPos = 0;
 
@@ -580,7 +573,7 @@ void TCPConnectionToBackend::queueQuery(std::shared_ptr<TCPQuerySender>& sender,
     handleIO(shared, now);
   }
   else {
-    DEBUGLOG("Adding new query to the queue because we are in state "<<(int)d_state);
+    DEBUGLOG("Adding new query to the queue because we are in state " << (int)d_state);
     // store query in the list of queries to send
     d_pendingQueries.push_back(PendingRequest({sender, std::move(query)}));
   }
@@ -712,7 +705,7 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
 
   auto it = d_pendingResponses.find(queryId);
   if (it == d_pendingResponses.end()) {
-    DEBUGLOG("could not find any corresponding query for ID "<<queryId<<". This is likely a duplicated ID over the same TCP connection, giving up!");
+    DEBUGLOG("could not find any corresponding query for ID " << queryId << ". This is likely a duplicated ID over the same TCP connection, giving up!");
     notifyAllQueriesFailed(now, FailureReason::unexpectedQueryID);
     return IOState::Done;
   }
@@ -732,7 +725,7 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
     const auto& queryIDS = it->second.d_query.d_idstate;
     /* we don't move the whole IDS because we will need it for the responses to come */
     response.d_idstate = queryIDS.partialCloneForXFR();
-    DEBUGLOG("passing XFRresponse to client connection for "<<response.d_idstate.qname);
+    DEBUGLOG("passing XFRresponse to client connection for " << response.d_idstate.qname);
 
     it->second.d_query.d_xfrStarted = true;
     done = isXFRFinished(response, it->second.d_query);
@@ -790,7 +783,7 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
   // anything without checking first
   auto shared = conn;
   if (sender->active()) {
-    DEBUGLOG("passing response to client connection for "<<ids.qname);
+    DEBUGLOG("passing response to client connection for " << ids.qname);
     // make sure that we still exist after calling handleResponse()
     TCPResponse response(std::move(d_responseBuffer), std::move(ids), conn, conn->d_ds);
     sender->handleResponse(now, std::move(response));

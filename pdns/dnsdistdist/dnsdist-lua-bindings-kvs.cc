@@ -58,7 +58,7 @@ void setupLuaBindingsKVS([[maybe_unused]] LuaContext& luaCtx, [[maybe_unused]] b
     return std::shared_ptr<KeyValueLookupKey>(new KeyValueLookupKeyTag(tag));
   });
 
-  luaCtx.registerFunction<std::string(std::shared_ptr<KeyValueStore>::*)(const boost::variant<ComboAddress, DNSName, std::string>, std::optional<bool> wireFormat)>("lookup", [](std::shared_ptr<KeyValueStore>& kvs, const boost::variant<ComboAddress, DNSName, std::string> keyVar, std::optional<bool> wireFormat) {
+  luaCtx.registerFunction<std::string (std::shared_ptr<KeyValueStore>::*)(const boost::variant<ComboAddress, DNSName, std::string>, std::optional<bool> wireFormat)>("lookup", [](std::shared_ptr<KeyValueStore>& kvs, const boost::variant<ComboAddress, DNSName, std::string> keyVar, std::optional<bool> wireFormat) {
     std::string result;
     if (!kvs) {
       return result;
@@ -90,7 +90,7 @@ void setupLuaBindingsKVS([[maybe_unused]] LuaContext& luaCtx, [[maybe_unused]] b
     return result;
   });
 
-  luaCtx.registerFunction<std::string(std::shared_ptr<KeyValueStore>::*)(const DNSName&, std::optional<size_t> minLabels, std::optional<bool> wireFormat)>("lookupSuffix", [](std::shared_ptr<KeyValueStore>& kvs, const DNSName& lookupKey, std::optional<size_t> minLabels, std::optional<bool> wireFormat) {
+  luaCtx.registerFunction<std::string (std::shared_ptr<KeyValueStore>::*)(const DNSName&, std::optional<size_t> minLabels, std::optional<bool> wireFormat)>("lookupSuffix", [](std::shared_ptr<KeyValueStore>& kvs, const DNSName& lookupKey, std::optional<size_t> minLabels, std::optional<bool> wireFormat) {
     std::string result;
     if (!kvs) {
       return result;
@@ -106,7 +106,7 @@ void setupLuaBindingsKVS([[maybe_unused]] LuaContext& luaCtx, [[maybe_unused]] b
     return result;
   });
 
-  luaCtx.registerFunction<bool(std::shared_ptr<KeyValueStore>::*)()>("reload", [](std::shared_ptr<KeyValueStore>& kvs) {
+  luaCtx.registerFunction<bool (std::shared_ptr<KeyValueStore>::*)()>("reload", [](std::shared_ptr<KeyValueStore>& kvs) {
     if (!kvs) {
       return false;
     }

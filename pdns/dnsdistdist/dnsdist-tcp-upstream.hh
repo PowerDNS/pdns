@@ -9,7 +9,7 @@ struct TCPCrossProtocolResponse;
 class TCPClientThreadData
 {
 public:
-  TCPClientThreadData():
+  TCPClientThreadData() :
     mplexer(std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent()))
   {
   }
@@ -24,10 +24,25 @@ public:
 class IncomingTCPConnectionState : public TCPQuerySender, public std::enable_shared_from_this<IncomingTCPConnectionState>
 {
 public:
-  enum class QueryProcessingResult : uint8_t { Forwarded, TooSmall, InvalidHeaders, Dropped, SelfAnswered, NoBackend, Asynchronous };
-  enum class ProxyProtocolResult : uint8_t { Reading, Done, Error };
+  enum class QueryProcessingResult : uint8_t
+  {
+    Forwarded,
+    TooSmall,
+    InvalidHeaders,
+    Dropped,
+    SelfAnswered,
+    NoBackend,
+    Asynchronous
+  };
+  enum class ProxyProtocolResult : uint8_t
+  {
+    Reading,
+    Done,
+    Error
+  };
 
-  IncomingTCPConnectionState(ConnectionInfo&& ci, TCPClientThreadData& threadData, const struct timeval& now): d_buffer(sizeof(uint16_t)), d_ci(std::move(ci)), d_handler(d_ci.fd, timeval{dnsdist::configuration::getCurrentRuntimeConfiguration().d_tcpRecvTimeout,0}, d_ci.cs->tlsFrontend ? d_ci.cs->tlsFrontend->getContext() : (d_ci.cs->dohFrontend ? d_ci.cs->dohFrontend->d_tlsContext->getContext() : nullptr), now.tv_sec), d_connectionStartTime(now), d_ioState(make_unique<IOStateHandler>(*threadData.mplexer, d_ci.fd)), d_threadData(threadData), d_creatorThreadID(std::this_thread::get_id())
+  IncomingTCPConnectionState(ConnectionInfo&& ci, TCPClientThreadData& threadData, const struct timeval& now) :
+    d_buffer(sizeof(uint16_t)), d_ci(std::move(ci)), d_handler(d_ci.fd, timeval{dnsdist::configuration::getCurrentRuntimeConfiguration().d_tcpRecvTimeout, 0}, d_ci.cs->tlsFrontend ? d_ci.cs->tlsFrontend->getContext() : (d_ci.cs->dohFrontend ? d_ci.cs->dohFrontend->d_tlsContext->getContext() : nullptr), now.tv_sec), d_connectionStartTime(now), d_ioState(make_unique<IOStateHandler>(*threadData.mplexer, d_ci.fd)), d_threadData(threadData), d_creatorThreadID(std::this_thread::get_id())
   {
     d_origDest.reset();
     d_origDest.sin4.sin_family = d_ci.remote.sin4.sin_family;
@@ -118,7 +133,7 @@ public:
   std::string toString() const
   {
     ostringstream o;
-    o << "Incoming TCP connection from "<<d_ci.remote.toStringWithPort()<<" over FD "<<d_handler.getDescriptor()<<", state is "<<(int)d_state<<", io state is "<<(d_ioState ? d_ioState->getState() : "empty")<<", queries count is "<<d_queriesCount<<", current queries count is "<<d_currentQueriesCount<<", "<<d_queuedResponses.size()<<" queued responses, "<<d_ownedConnectionsToBackend.size()<<" owned connections to a backend";
+    o << "Incoming TCP connection from " << d_ci.remote.toStringWithPort() << " over FD " << d_handler.getDescriptor() << ", state is " << (int)d_state << ", io state is " << (d_ioState ? d_ioState->getState() : "empty") << ", queries count is " << d_queriesCount << ", current queries count is " << d_currentQueriesCount << ", " << d_queuedResponses.size() << " queued responses, " << d_ownedConnectionsToBackend.size() << " owned connections to a backend";
     return o.str();
   }
 
@@ -130,7 +145,17 @@ public:
 
   std::shared_ptr<const Logr::Logger> getLogger() const;
 
-  enum class State : uint8_t { starting, doingHandshake, readingProxyProtocolHeader, waitingForQuery, readingQuerySize, readingQuery, sendingResponse, idle /* in case of XFR, we stop processing queries */ };
+  enum class State : uint8_t
+  {
+    starting,
+    doingHandshake,
+    readingProxyProtocolHeader,
+    waitingForQuery,
+    readingQuerySize,
+    readingQuery,
+    sendingResponse,
+    idle /* in case of XFR, we stop processing queries */
+  };
 
   TCPResponse d_currentResponse;
   std::map<std::shared_ptr<DownstreamState>, std::deque<std::shared_ptr<TCPConnectionToBackend>>> d_ownedConnectionsToBackend;

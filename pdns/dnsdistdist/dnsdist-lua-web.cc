@@ -47,22 +47,19 @@ void setupLuaWeb([[maybe_unused]] LuaContext& luaCtx)
     for (const auto& entry : req.getvars) {
       values.insert({entry.first, entry.second});
     }
-    return values;
-  }, [](YaHTTP::Request& req, const LuaAssociativeTable<std::string>& values) { (void)req; (void)values; });
+    return values; }, [](YaHTTP::Request& req, const LuaAssociativeTable<std::string>& values) { (void)req; (void)values; });
   luaCtx.registerMember<LuaAssociativeTable<std::string>(YaHTTP::Request::*)>("postvars", [](const YaHTTP::Request& req) {
     LuaAssociativeTable<std::string> values;
     for (const auto& entry : req.postvars) {
       values.insert({entry.first, entry.second});
     }
-    return values;
-  }, [](YaHTTP::Request& req, const LuaAssociativeTable<std::string>& values) { (void)req; (void)values; });
+    return values; }, [](YaHTTP::Request& req, const LuaAssociativeTable<std::string>& values) { (void)req; (void)values; });
   luaCtx.registerMember<LuaAssociativeTable<std::string>(YaHTTP::Request::*)>("headers", [](const YaHTTP::Request& req) {
     LuaAssociativeTable<std::string> values;
     for (const auto& entry : req.headers) {
       values.insert({entry.first, entry.second});
     }
-    return values;
-  }, [](YaHTTP::Request& req, const LuaAssociativeTable<std::string>& values) { (void)req; (void)values; });
+    return values; }, [](YaHTTP::Request& req, const LuaAssociativeTable<std::string>& values) { (void)req; (void)values; });
 
   /* Response */
   luaCtx.registerMember<std::string(YaHTTP::Response::*)>("body", [](const YaHTTP::Response& resp) -> const std::string { return resp.body; }, [](YaHTTP::Response& resp, const std::string& body) { resp.body = body; });
@@ -72,12 +69,10 @@ void setupLuaWeb([[maybe_unused]] LuaContext& luaCtx)
     for (const auto& entry : resp.headers) {
       values.insert({entry.first, entry.second});
     }
-    return values;
-  }, [](YaHTTP::Response& resp, const LuaAssociativeTable<std::string>& values) {
+    return values; }, [](YaHTTP::Response& resp, const LuaAssociativeTable<std::string>& values) {
     resp.headers.clear();
     for (const auto& entry : values) {
       resp.headers.insert({entry.first, entry.second});
-    }
-  });
+    } });
 #endif /* DISABLE_LUA_WEB_HANDLERS */
 }
