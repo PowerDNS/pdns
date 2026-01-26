@@ -23,6 +23,9 @@
 #include "dnswriter.hh"
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
+#include <cstdint>
+#include <stdexcept>
+#include <string>
 
 #include "dns_random.hh"
 #include "namespaces.hh"
@@ -591,13 +594,22 @@ void PacketReader::xfrBlob(string& blob, int length)
 }
 
 void PacketReader::xfrSvcParamKeyVals(set<SvcParam> &kvs) {
+  int32_t lastKey{-1}; // Keep track of the last key, as ordering should be strict
+
   while (d_pos < (d_startrecordpos + d_recordlen)) {
     if (d_pos + 2 > (d_startrecordpos + d_recordlen)) {
       throw std::out_of_range("incomplete key");
     }
     uint16_t keyInt;
     xfr16BitInt(keyInt);
+
+    if (keyInt <= lastKey) {
+      throw std::out_of_range("Found SVCParamKey " + std::to_string(keyInt) + " after SVCParamKey " + std::to_string(lastKey));
+    }
+    lastKey = keyInt;
+
     auto key = static_cast<SvcParam::SvcParamKey>(keyInt);
+
     uint16_t len;
     xfr16BitInt(len);
 
@@ -633,6 +645,9 @@ void PacketReader::xfrSvcParamKeyVals(set<SvcParam> &kvs) {
         xfr8BitInt(alpnLen);
         if (alpnLen == 0) {
           throw std::out_of_range("alpn length of 0");
+        }
+        if (d_pos + alpnLen > stop) {
+          throw std::out_of_range("alpn length is larger than rest of alpn SVC Param");
         }
         xfrBlob(alpn, alpnLen);
         alpns.push_back(std::move(alpn));
