@@ -174,7 +174,7 @@ get-tas
 
 get-parameter [*KEY*]...
     Retrieves the configuration parameter(s).
-    If YAML configuration is active, *KEY* is of the form ``section[.name]``
+    From version 5.4.0 and if YAML configuration is active, *KEY* is of the form ``section[.name]``
     and no keys produces a full dump.
 
 get-default-parameter [*KEY*]...
