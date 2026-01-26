@@ -103,7 +103,7 @@ class DNSDistOpenTelemetryProtobufTest(test_Protobuf.DNSDistProtobufTest):
                 "attributes"
             ]
         ]
-        self.assertListEqual(msg_scope_attr_keys, ["hostname"])
+        self.assertListEqual(msg_scope_attr_keys, ["instance", "hostname"])
 
         root_span_attr_keys = [
             v["key"]
