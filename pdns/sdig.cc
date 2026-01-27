@@ -105,7 +105,7 @@ static void fillPacket(vector<uint8_t>& packet, const string& q, const string& t
       record.setTraceID(traceid);
       record.setSpanID(spanid);
       record.setFlags(flags);
-      opts.emplace_back(EDNSOptionCode::OTTRACEIDS, std::string_view(reinterpret_cast<const char*>(data.data()), data.size())); // NOLINT
+      opts.emplace_back(EDNSOptionCode::TRACEPARENT, std::string_view(reinterpret_cast<const char*>(data.data()), data.size())); // NOLINT
     }
     pw.addOpt(bufsize, 0, dnssec ? EDNSOpts::DNSSECOK : 0, opts);
     pw.commit();

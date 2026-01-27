@@ -2298,7 +2298,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
         ecsParsed = true;
 
         if (SyncRes::eventTraceEnabled(SyncRes::event_trace_to_ot)) {
-          bool ednsFound = pdns::trace::extractOTraceIDs(ednsOptions, EDNSOptionCode::OTTRACEIDS, otTrace);
+          bool ednsFound = pdns::trace::extractOTraceIDs(ednsOptions, EDNSOptionCode::TRACEPARENT, otTrace);
           if (!matchOTConditions(eventTrace, t_OTConditions, mappedSource, qname, qtype, ntohs(headerdata->id), ednsFound) && SyncRes::eventTraceEnabledOnly(SyncRes::event_trace_to_ot)) {
             eventTrace.setEnabled(false);
           }
