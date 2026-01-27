@@ -111,7 +111,7 @@ Changelog
     :tags: Improvements
     :pullreq: 16349
 
-    Add code for microbenchmarks
+    Add code for micro-benchmarks
 
   .. change::
     :tags: Improvements
