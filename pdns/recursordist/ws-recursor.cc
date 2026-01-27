@@ -693,7 +693,7 @@ static void apiServerOTConditionDetailPOST(HttpRequest* req, HttpResponse* resp)
     if (auto qid = document["qid"]; qid.is_number()) {
       condition.d_qid = qid.int_value();
     }
-    (*lock)->insert(netmask).second = condition;
+    (*lock)->insert(netmask).second = std::move(condition);
     updateOTConditions(**lock);
   }
   catch (NetmaskException&) {
