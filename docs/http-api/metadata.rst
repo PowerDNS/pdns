@@ -8,5 +8,4 @@ Endpoints
 
 Objects
 -------
-.. openapi:: swagger/authoritative-api-swagger.yaml
-  :definitions: Metadata
+.. json:schema:: Metadata

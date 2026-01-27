@@ -14,8 +14,7 @@ Objects
 
 An autoprimary object represents a single autoprimary server.
 
-.. openapi:: swagger/authoritative-api-swagger.yaml
-  :definitions: Autoprimary
+.. json:schema:: Autoprimary
 
 Examples
 --------
