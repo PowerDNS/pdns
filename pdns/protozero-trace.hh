@@ -786,6 +786,10 @@ struct EDNSOTTraceRecord
   {
     data[0] = version;
   }
+  void setReserved(uint8_t reserved)
+  {
+    data[1] = reserved;
+  }
   void setTraceID(const TraceID& traceid)
   {
     std::copy(traceid.begin(), traceid.end(), &data[traceIDOffset]);
@@ -813,6 +817,14 @@ struct EDNSOTTraceRecordView
   {
     if (size > 0) {
       version = data[0];
+      return true;
+    }
+    return false;
+  }
+  [[nodiscard]] bool getReserved(uint8_t& reserved) const
+  {
+    if (size > 1) {
+      reserved = data[1];
       return true;
     }
     return false;

@@ -101,6 +101,7 @@ static void fillPacket(vector<uint8_t>& packet, const string& q, const string& t
       std::array<uint8_t, pdns::trace::EDNSOTTraceRecord::fullSize> data{};
       pdns::trace::EDNSOTTraceRecord record{data.data()};
       record.setVersion(0);
+      record.setReserved(0);
       record.setTraceID(traceid);
       record.setSpanID(spanid);
       record.setFlags(flags);
