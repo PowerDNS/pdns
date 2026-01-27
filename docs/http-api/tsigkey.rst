@@ -13,8 +13,7 @@ TSIGKey Endpoints
 Objects
 -------
 
-.. openapi:: swagger/authoritative-api-swagger.yaml
-  :definitions: TSIGKey
+.. json:schema:: TSIGKey
 
 Examples
 --------

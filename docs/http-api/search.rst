@@ -1,7 +1,7 @@
 Searching
 =========
 
-The API allows searching for data in :json:object:`Zone`\ s, :json:object:`Comment`\ s and :json:object:`RRSet`\ s.
+The API allows searching for data in :json:schema:`Zones <Zone>`, :json:schema:`Comments <Comment>` and :json:schema:`RRSets <RRSet>`.
 
 .. note::
 
@@ -16,5 +16,4 @@ Endpoints
 
 Objects
 -------
-.. openapi:: swagger/authoritative-api-swagger.yaml
-  :definitions: SearchResult
+.. json:schema:: SearchResult
