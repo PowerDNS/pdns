@@ -4,6 +4,60 @@ Changelogs for 5.4.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
+  :version: 5.4.0-beta1
+  :released: 27th of January 2026
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16651
+
+    Print irrelevant entries in cookie dump more nicely.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16655
+
+    Make code boost 1.66 compatible again.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16662,16736
+
+    Add acquire/release in broadcast pipes to fix TSAN issues seen on trixie.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16709
+    :tickets: 16673
+
+    Handle applicable dynamic parts of YAML-only config when reloading Lua config.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16710
+
+    Harden SVCB record parsing.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16711
+    :tickets: 14983
+
+    dnsrecords: Add RESINFO DNS Record (RFC 9606).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16727
+
+    Add REST interface for manipulating Open Telemetry Trace Conditions.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16730
+
+    EDNS cookies: fix timestamp handling.
+
+.. changelog::
   :version: 5.4.0-alpha1
   :released: 16th of December 2025
 
