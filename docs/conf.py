@@ -21,7 +21,6 @@
 import glob
 import sys
 from pathlib import Path
-import guzzle_sphinx_theme
 
 # -- General configuration ------------------------------------------------
 
@@ -35,8 +34,15 @@ sys.path.append(str(Path(".").resolve()))
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 # extensions = []
-# extensions = ['redjack.sphinx.lua', 'sphinxcontrib.httpdomain', 'sphinxjsondomain']
-extensions = ["sphinxcontrib.openapi", "sphinxcontrib.fulltoc", "changelog", "depfile"]
+extensions = [
+    "changelog",
+    "depfile",
+    "sphinx_immaterial",
+    "sphinx_immaterial.apidoc.json.domain",
+    "sphinxcontrib.fulltoc",
+    "sphinxcontrib.httpdomain",
+    "sphinxcontrib.openapi",
+]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -69,7 +75,7 @@ author = "PowerDNS.COM BV"
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = "en"
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -91,6 +97,9 @@ pygments_style = "sphinx"
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = False
 
+object_description_options = [
+    ("cpp:class", dict(generate_synopses="first_sentence")),
+]
 
 # -- Changelog Options ----------------------------------------------------
 
@@ -115,36 +124,42 @@ changelog_inner_tag_sort = [
 
 changelog_hide_tags_in_entry = True
 
+# -- Options for the Sphinx-Immaterial JSON Domain ------------------------
+json_schemas = ["http-api/swagger/authoritative-api-swagger.yaml"]
+
 # -- Options for HTML output ----------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme_path = guzzle_sphinx_theme.html_theme_path()
-html_theme = "guzzle_sphinx_theme"
-
-extensions.append("guzzle_sphinx_theme")
+html_theme = "sphinx_immaterial"
 
 html_theme_options = {
-    # Set the name of the project to appear in the sidebar
-    "project_nav_name": "PowerDNS Authoritative Server",
+    "site_url": "https://doc.powerdns.com/authoritative",
+    "features": [
+        "navigation.tabs",
+        "navigation.tabs.sticky",
+        "navigation.top",
+        "navigation.tracking",
+        "navigation.sections",
+        "navigation.footer",
+        "toc.integrate",
+        "toc.follow",
+        "search.highlight",
+        "search.share",
+        "search.suggest",
+    ],
 }
-html_favicon = "common/favicon.ico"
 
-html_sidebars = {"**": ["logo-text.html", "searchbox.html", "relations.html", "localtoc.html", "sourcelink.html"]}
-
-# Theme options are theme-specific and customize the look and feel of a theme
-# further.  For a list of options available for each theme, see the
-# documentation.
-#
-# html_theme_options = {}
+html_css_files = ["extra.css"]
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
-html_style = "pdns.css"
 
+html_favicon = "_static/favicon.ico"
+html_logo = "_static/powerdns_logo_white_orange_rgb.png"
 
 # -- Options for HTMLHelp output ------------------------------------------
 
@@ -220,7 +235,16 @@ for f in glob.glob("manpages/*.1.rst"):
     srcname = ".".join(f.split(".")[:-1])
     destname = srcname.split("/")[-1][:-2]
     man_pages.append((srcname, destname, descriptions.get(destname, ""), [author], 1))
-man_pages.append(("manpages/ixfrdist.yml.5", "ixfrdist.yml", "The ixfrdist configuration file", [author], 5))
+
+man_pages.append(
+    (
+        "manpages/ixfrdist.yml.5",
+        "ixfrdist.yml",
+        "The ixfrdist configuration file",
+        [author],
+        5,
+    )
+)
 # -- Options for Texinfo output -------------------------------------------
 
 # Grouping the document tree into Texinfo files. List of tuples
