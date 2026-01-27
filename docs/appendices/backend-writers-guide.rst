@@ -623,7 +623,7 @@ this zone.
   otherwise. This is a first line of checks to guard against reloading a
   domain unnecessarily.
 
-.. cpp:function:: void DomainInfo::getUnfreshSecondaryInfos(vector\<DomainInfo\>* domains)
+.. cpp:function:: void DomainInfo::getUnfreshSecondaryInfos(vector<DomainInfo>* domains)
 
   When called, the backend should examine its list of secondary domains and
   add any unfresh ones to the domains vector.
