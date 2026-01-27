@@ -9,5 +9,4 @@ Endpoints
 
 Objects
 -------
-.. openapi:: swagger/authoritative-api-swagger.yaml
-  :definitions: Cryptokey
+.. json:schema:: Cryptokey

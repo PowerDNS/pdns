@@ -935,7 +935,7 @@ Changelogs for 4.1.x
     :pullreq: 4106
     :tickets: 706
 
-    Implement :json:object:`CryptoKey` in the API (Wolfgang Studier, @MrM0nkey, Tudor Soroceanu, Benjamin Zengin).
+    Implement :json:schema:`Cryptokey` in the API (Wolfgang Studier, @MrM0nkey, Tudor Soroceanu, Benjamin Zengin).
 
   .. change::
     :tags: Internals, Bug Fixes

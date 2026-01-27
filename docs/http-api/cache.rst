@@ -8,5 +8,4 @@ Endpoints
 
 Objects
 -------
-.. openapi:: swagger/authoritative-api-swagger.yaml
-  :definitions: CacheFlushResult
+.. json:schema:: CacheFlushResult

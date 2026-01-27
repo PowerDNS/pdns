@@ -13,8 +13,7 @@ Endpoints
 
 Objects
 -------
-.. openapi:: swagger/authoritative-api-swagger.yaml
-  :definitions: Server
+.. json:schema:: Server
 
 Examples
 --------
