@@ -387,19 +387,19 @@ try {
             exit(EXIT_FAILURE);
           }
 
-          std::string spanidStr;
+          std::string spanIDStr;
           if (traceIDStr.size() > traceid.size()) {
-            spanidStr = std::string(traceIDStr.begin() + traceid.size(), traceIDStr.end());
+            spanIDStr = std::string(traceIDStr.begin() + traceid.size(), traceIDStr.end());
           }
           traceIDStr.resize(traceid.size());
           pdns::trace::fill(traceid, traceIDStr);
-          if (spanidStr.empty()) {
+          if (spanIDStr.empty()) {
             spanid.makeRandom();
-          } else if (spanidStr.size() != spanid.size()) {
-            cerr << "spanid size must be " << spanid.size()<< " bytes, but is " << spanidStr.size() << endl;
+          } else if (spanIDStr.size() != spanid.size()) {
+            cerr << "spanid size must be " << spanid.size()<< " bytes, but is " << spanIDStr.size() << endl;
             exit(EXIT_FAILURE);
           } else {
-            pdns::trace::fill(spanid, spanidStr);
+            pdns::trace::fill(spanid, spanIDStr);
           }
         }
         otdata = std::make_tuple(traceid, spanid, traceflags);
