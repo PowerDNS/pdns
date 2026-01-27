@@ -190,7 +190,7 @@ Changelog
     :tags: Improvements
     :pullreq: 16668
 
-    Add an histogram of health-check latencies for backends
+    Add a histogram of health-check latencies for backends
 
   .. change::
     :tags: Bug Fixes, DNS over TLS, DNS over HTTPS, DNS over QUIC, DNS over HTTP3
