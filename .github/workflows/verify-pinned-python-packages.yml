@@ -71,7 +71,7 @@ jobs:
         uses: ./.github/actions/problem-matchers
       - uses: actions/setup-python@v6
         with:
-          python-version: '3.11'
+          python-version: '3.12'
       # Configure pip index-url set to proxpi
       - run: pip config set global.index-url http://${{ env.SERVICE_IP_ADDR }}:5000/index/
       - run: pip config set global.trusted-host ${{ env.SERVICE_IP_ADDR }}
