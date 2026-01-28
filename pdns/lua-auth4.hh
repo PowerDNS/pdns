@@ -46,5 +46,5 @@ private:
   luacall_axfr_filter_t d_axfr_filter;
   luacall_prequery_t d_prequery;
 };
-std::vector<shared_ptr<DNSRecordContent>> luaSynth(std::shared_ptr<Logr::Logger> slog, const std::string& code, const DNSName& query, const DNSZoneRecord& zone_record,
+std::vector<shared_ptr<DNSRecordContent>> luaSynth(Logr::log_t slog, const std::string& code, const DNSName& query, const DNSZoneRecord& zone_record,
                                                    const DNSName& zone, const DNSPacket& dnsp, uint16_t qtype, unique_ptr<AuthLua4>& LUA);

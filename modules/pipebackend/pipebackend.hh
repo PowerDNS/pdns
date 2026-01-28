@@ -32,7 +32,7 @@
 class CoWrapper
 {
 public:
-  CoWrapper(std::shared_ptr<Logr::Logger> log, const string& command, int timeout, int abiVersion);
+  CoWrapper(Logr::log_t log, const string& command, int timeout, int abiVersion);
   ~CoWrapper();
   void send(const string& line);
   void receive(string& line);

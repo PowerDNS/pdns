@@ -48,7 +48,7 @@ static_assert(std::is_signed<domainid_t>::value);
 
 static const char* kBackendId = "[PIPEBackend]";
 
-CoWrapper::CoWrapper(std::shared_ptr<Logr::Logger> log, const string& command, int timeout, int abiVersion)
+CoWrapper::CoWrapper(Logr::log_t log, const string& command, int timeout, int abiVersion)
 {
   d_command = command;
   d_timeout = timeout;

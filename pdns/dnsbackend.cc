@@ -123,14 +123,14 @@ const string& BackendFactory::getName() const
 
 std::shared_ptr<Logr::Logger> BackendMakerClass::s_slog;
 
-BackendMakerClass::BackendMakerClass(std::shared_ptr<Logr::Logger> slog)
+BackendMakerClass::BackendMakerClass(Logr::log_t slog)
 {
   if (s_slog == nullptr && slog != nullptr) {
     s_slog = slog;
   }
 }
 
-BackendMakerClass& BackendMakers(std::shared_ptr<Logr::Logger> slog)
+BackendMakerClass& BackendMakers(Logr::log_t slog)
 {
   static BackendMakerClass bmc(slog);
   return bmc;

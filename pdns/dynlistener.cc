@@ -184,14 +184,14 @@ void DynListener::listenOnTCP(const ComboAddress& local)
 }
 
 
-DynListener::DynListener(std::shared_ptr<Logr::Logger> slog, const ComboAddress& local) :
+DynListener::DynListener(Logr::log_t slog, const ComboAddress& local) :
   d_tcp(true)
 {
   d_slog = slog;
   listenOnTCP(local);
 }
 
-DynListener::DynListener(std::shared_ptr<Logr::Logger> slog, const string &progname)
+DynListener::DynListener(Logr::log_t slog, const string &progname)
 {
   d_slog = slog;
 

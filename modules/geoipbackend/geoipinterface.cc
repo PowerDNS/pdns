@@ -25,7 +25,7 @@
 #include "geoipbackend.hh"
 #include "geoipinterface.hh"
 
-unique_ptr<GeoIPInterface> GeoIPInterface::makeInterface(std::shared_ptr<Logr::Logger> slog, const string& dbStr)
+unique_ptr<GeoIPInterface> GeoIPInterface::makeInterface(Logr::log_t slog, const string& dbStr)
 {
   /* parse dbStr */
   map<string, string> opts;

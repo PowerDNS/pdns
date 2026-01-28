@@ -208,7 +208,7 @@ bool AddressIsUs(const ComboAddress& remote)
   return false;
 }
 
-UDPNameserver::UDPNameserver(std::shared_ptr<Logr::Logger> slog, bool additional_socket)
+UDPNameserver::UDPNameserver(Logr::log_t slog, bool additional_socket)
 {
   d_slog = slog;
   d_can_reuseport = ::arg().mustDo("reuseport");

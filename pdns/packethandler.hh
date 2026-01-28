@@ -55,7 +55,7 @@ class PacketHandler
 public:
   std::unique_ptr<DNSPacket> doQuestion(DNSPacket&); //!< hand us a DNS packet with a question, we give you an answer
   std::unique_ptr<DNSPacket> question(DNSPacket&); //!< hand us a DNS packet with a question, we give you an answer
-  PacketHandler(std::shared_ptr<Logr::Logger> slog); 
+  PacketHandler(Logr::log_t slog); 
   ~PacketHandler(); // defined in packethandler.cc, and does --count
   static int numRunning(){return s_count;}; //!< Returns the number of running PacketHandlers. Called by Distributor
  

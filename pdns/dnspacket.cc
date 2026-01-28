@@ -59,7 +59,7 @@ bool DNSPacket::s_doEDNSCookieProcessing;
 string DNSPacket::s_EDNSCookieKey;
 uint16_t DNSPacket::s_udpTruncationThreshold;
 
-DNSPacket::DNSPacket(std::shared_ptr<Logr::Logger> slog, bool isQuery): d_isQuery(isQuery)
+DNSPacket::DNSPacket(Logr::log_t slog, bool isQuery): d_isQuery(isQuery)
 {
   d_slog = slog;
   memset(&d, 0, sizeof(d));

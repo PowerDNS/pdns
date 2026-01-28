@@ -65,7 +65,7 @@ extern string g_programname;
 const std::shared_ptr<CDNSKEYRecordContent> PacketHandler::s_deleteCDNSKEYContent = std::make_shared<CDNSKEYRecordContent>("0 3 0 AA==");
 const std::shared_ptr<CDSRecordContent> PacketHandler::s_deleteCDSContent = std::make_shared<CDSRecordContent>("0 0 0 00");
 
-PacketHandler::PacketHandler(std::shared_ptr<Logr::Logger> slog) :
+PacketHandler::PacketHandler(Logr::log_t slog) :
   B(g_programname), d_dk(&B)
 {
   ++s_count;

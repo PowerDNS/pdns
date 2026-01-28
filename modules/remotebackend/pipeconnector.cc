@@ -24,7 +24,7 @@
 #endif
 #include "remotebackend.hh"
 
-PipeConnector::PipeConnector(std::shared_ptr<Logr::Logger> log, std::map<std::string, std::string> optionsMap) :
+PipeConnector::PipeConnector(Logr::log_t log, std::map<std::string, std::string> optionsMap) :
   d_pid(-1)
 {
   d_slog = log;

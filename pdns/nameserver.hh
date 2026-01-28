@@ -79,7 +79,7 @@
 class UDPNameserver
 {
 public:
-  UDPNameserver(std::shared_ptr<Logr::Logger> slog, bool additional_socket = false );  //!< Opens the socket
+  UDPNameserver(Logr::log_t slog, bool additional_socket = false );  //!< Opens the socket
   bool receive(DNSPacket& packet, std::string& buffer); //!< call this in a while or for(;;) loop to get packets
   void send(DNSPacket&); //!< send a DNSPacket. Will call DNSPacket::truncate() if over 512 bytes
   inline bool canReusePort() {

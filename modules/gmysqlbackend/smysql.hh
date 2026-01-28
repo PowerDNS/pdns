@@ -29,7 +29,7 @@
 class SMySQL : public SSql
 {
 public:
-  SMySQL(std::shared_ptr<Logr::Logger> log,
+  SMySQL(Logr::log_t log,
          string database, string host = "", uint16_t port = 0,
          string msocket = "", string user = "",
          string password = "", string group = "",

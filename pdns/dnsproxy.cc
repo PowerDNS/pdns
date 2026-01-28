@@ -44,7 +44,7 @@
 
 extern StatBag S;
 
-DNSProxy::DNSProxy(std::shared_ptr<Logr::Logger> slog, const string& remote, const string& udpPortRange) :
+DNSProxy::DNSProxy(Logr::log_t slog, const string& remote, const string& udpPortRange) :
   d_xor(dns_random_uint16())
 {
   d_slog = slog;

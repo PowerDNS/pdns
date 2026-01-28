@@ -31,6 +31,6 @@ class LdapAuthenticator
 {
 public:
   virtual ~LdapAuthenticator() = default;
-  virtual bool authenticate(std::shared_ptr<Logr::Logger> log, LDAP* connection) = 0;
+  virtual bool authenticate(Logr::log_t log, LDAP* connection) = 0;
   virtual std::string getError() const = 0;
 };

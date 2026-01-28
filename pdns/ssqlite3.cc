@@ -58,7 +58,7 @@ static string SSQLite3ErrorString(sqlite3* database)
 class SSQLite3Statement : public SSqlStatement
 {
 public:
-  SSQLite3Statement(std::shared_ptr<Logr::Logger> log, SSQLite3* database, bool dolog, string query) :
+  SSQLite3Statement(Logr::log_t log, SSQLite3* database, bool dolog, string query) :
     d_slog(log),
     d_query(std::move(query)),
     d_db(database),
@@ -292,7 +292,7 @@ private:
 };
 
 // Constructor.
-SSQLite3::SSQLite3(std::shared_ptr<Logr::Logger> log, const std::string& database, const std::string& journalmode, bool creat)
+SSQLite3::SSQLite3(Logr::log_t log, const std::string& database, const std::string& journalmode, bool creat)
 {
   d_slog = log;
   m_dolog = false;

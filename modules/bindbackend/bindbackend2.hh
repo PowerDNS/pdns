@@ -261,7 +261,7 @@ private:
     handle(const handle&) = delete;
     handle& operator=(const handle&) = delete; // don't go copying this
 
-    void setSLog(std::shared_ptr<Logr::Logger> log) { d_slog = log; }
+    void setSLog(Logr::log_t log) { d_slog = log; }
 
     shared_ptr<const recordstorage_t> d_records;
     recordstorage_t::index<UnorderedNameTag>::type::const_iterator d_iter, d_end_iter;
@@ -319,11 +319,11 @@ private:
   static bool findBeforeAndAfterUnhashed(std::shared_ptr<const recordstorage_t>& records, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after);
   void insertRecord(std::shared_ptr<recordstorage_t>& records, const ZoneName& zoneName, const DNSName& qname, const QType& qtype, const string& content, int ttl, const std::string& hashed = string(), const bool* auth = nullptr);
   void reload() override;
-  static string DLDomStatusHandler(const vector<string>& parts, Utility::pid_t ppid, std::shared_ptr<Logr::Logger> slog);
-  static string DLDomExtendedStatusHandler(const vector<string>& parts, Utility::pid_t ppid, std::shared_ptr<Logr::Logger> slog);
-  static string DLListRejectsHandler(const vector<string>& parts, Utility::pid_t ppid, std::shared_ptr<Logr::Logger> slog);
-  static string DLReloadNowHandler(const vector<string>& parts, Utility::pid_t ppid, std::shared_ptr<Logr::Logger> slog);
-  static string DLAddDomainHandler(const vector<string>& parts, Utility::pid_t ppid, std::shared_ptr<Logr::Logger> slog);
+  static string DLDomStatusHandler(const vector<string>& parts, Utility::pid_t ppid, Logr::log_t slog);
+  static string DLDomExtendedStatusHandler(const vector<string>& parts, Utility::pid_t ppid, Logr::log_t slog);
+  static string DLListRejectsHandler(const vector<string>& parts, Utility::pid_t ppid, Logr::log_t slog);
+  static string DLReloadNowHandler(const vector<string>& parts, Utility::pid_t ppid, Logr::log_t slog);
+  static string DLAddDomainHandler(const vector<string>& parts, Utility::pid_t ppid, Logr::log_t slog);
   static void fixupOrderAndAuth(std::shared_ptr<recordstorage_t>& records, const ZoneName& zoneName, bool nsec3zone, const NSEC3PARAMRecordContent& ns3pr);
   void doEmptyNonTerminals(std::shared_ptr<recordstorage_t>& records, const ZoneName& zoneName, bool nsec3zone, const NSEC3PARAMRecordContent& ns3pr);
   void loadConfig(string* status = nullptr);

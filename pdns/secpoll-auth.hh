@@ -24,4 +24,4 @@
 #include "namespaces.hh"
 #include "stubresolver.hh"
 
-void doSecPoll(std::shared_ptr<Logr::Logger> slog, bool first);
+void doSecPoll(Logr::log_t slog, bool first);
