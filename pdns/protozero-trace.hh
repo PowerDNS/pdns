@@ -773,11 +773,11 @@ inline KeyValueList KeyValueList::decode(protozero::pbf_reader& reader)
 
 struct EDNSOTTraceRecord
 {
-  // 1 byte version, 1 byte reserved/alignment, 16 bytes traceid, optional 8 bytes spanid
-  static constexpr size_t fullSize = 1 + 1 + 16 + 8;
-  static constexpr size_t sizeNoSpanID = 1 + 1 + 16;
+  // 1 byte version, 1 byte reserved, 16 bytes traceid, 8 bytes spanid, 1 byte flags
+  static constexpr size_t fullSize = 1 + 1 + 16 + 8 + 1;
   static constexpr size_t traceIDOffset = 1 + 1;
-  static constexpr size_t spanIDOffset = 1 + 1 + 16;
+  static constexpr size_t spanIDOffset = traceIDOffset + 16;
+  static constexpr size_t flagsOffset = spanIDOffset + 8;
 
   EDNSOTTraceRecord(uint8_t* arg) :
     data(arg) {}
@@ -786,6 +786,10 @@ struct EDNSOTTraceRecord
   {
     data[0] = version;
   }
+  void setReserved(uint8_t reserved)
+  {
+    data[1] = reserved;
+  }
   void setTraceID(const TraceID& traceid)
   {
     std::copy(traceid.begin(), traceid.end(), &data[traceIDOffset]);
@@ -793,6 +797,10 @@ struct EDNSOTTraceRecord
   void setSpanID(const SpanID& spanid)
   {
     std::copy(spanid.begin(), spanid.end(), &data[spanIDOffset]);
+  }
+  void setFlags(const uint8_t flags)
+  {
+    data[flagsOffset] = flags;
   }
   // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 private:
@@ -813,9 +821,17 @@ struct EDNSOTTraceRecordView
     }
     return false;
   }
+  [[nodiscard]] bool getReserved(uint8_t& reserved) const
+  {
+    if (size > 1) {
+      reserved = data[1];
+      return true;
+    }
+    return false;
+  }
   [[nodiscard]] bool getTraceID(TraceID& traceid) const
   {
-    if (size >= pdns::trace::EDNSOTTraceRecord::sizeNoSpanID) {
+    if (size == pdns::trace::EDNSOTTraceRecord::fullSize) {
       std::copy(&data[EDNSOTTraceRecord::traceIDOffset], &data[EDNSOTTraceRecord::traceIDOffset + traceid.size()], traceid.begin());
       return true;
     }
@@ -824,7 +840,16 @@ struct EDNSOTTraceRecordView
   [[nodiscard]] bool getSpanID(SpanID& spanid) const
   {
     if (size == pdns::trace::EDNSOTTraceRecord::fullSize) {
+      std::string x((char*)&data[EDNSOTTraceRecord::spanIDOffset], spanid.size());
       std::copy(&data[EDNSOTTraceRecord::spanIDOffset], &data[EDNSOTTraceRecord::spanIDOffset + spanid.size()], spanid.begin());
+      return true;
+    }
+    return false;
+  }
+  [[nodiscard]] bool getFlags(uint8_t& flags) const
+  {
+    if (size == pdns::trace::EDNSOTTraceRecord::fullSize) {
+      flags = data[EDNSOTTraceRecord::flagsOffset];
       return true;
     }
     return false;

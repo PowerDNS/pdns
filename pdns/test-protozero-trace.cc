@@ -220,4 +220,69 @@ BOOST_AUTO_TEST_CASE(traces2)
   BOOST_CHECK_EQUAL(data, copyData);
 }
 
+BOOST_AUTO_TEST_CASE(EDNSOTTraceRecordView)
+{
+  std::array<uint8_t, pdns::trace::EDNSOTTraceRecord::fullSize> data;
+  data[0] = 0;
+  data[1] = 1;
+  size_t i;
+  for (i = 2; i < data.size(); i++) {
+    data[i] = i;
+  }
+
+  pdns::trace::EDNSOTTraceRecordView record(data.data(), data.size());
+
+  uint8_t version;
+  BOOST_CHECK(record.getVersion(version));
+  BOOST_CHECK_EQUAL(version, 0);
+
+  uint8_t reserved;
+  BOOST_CHECK(record.getReserved(reserved));
+  BOOST_CHECK_EQUAL(reserved, 1);
+
+  pdns::trace::TraceID traceid;
+  BOOST_CHECK(record.getTraceID(traceid));
+
+  const std::array<uint8_t, 16> expectedTID = {2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17};
+  BOOST_CHECK_EQUAL_COLLECTIONS(traceid.begin(), traceid.end(), expectedTID.begin(), expectedTID.end());
+
+  pdns::trace::SpanID spanid;
+  BOOST_CHECK(record.getSpanID(spanid));
+
+  const std::array<uint8_t, 8> expectedSID = {18, 19, 20, 21, 22, 23, 24, 25};
+  BOOST_CHECK_EQUAL_COLLECTIONS(spanid.begin(), spanid.end(), expectedSID.begin(), expectedSID.end());
+
+  uint8_t flags;
+  BOOST_CHECK(record.getFlags(flags));
+  BOOST_CHECK_EQUAL(flags, 26);
+}
+
+BOOST_AUTO_TEST_CASE(EDNSOTTraceRecord)
+{
+  std::array<uint8_t, pdns::trace::EDNSOTTraceRecord::fullSize> data;
+  pdns::trace::EDNSOTTraceRecord record(data.data());
+
+  pdns::trace::TraceID traceid;
+  pdns::trace::SpanID spanid;
+  traceid.makeRandom();
+  spanid.makeRandom();
+  record.setVersion(1);
+  record.setReserved(0);
+  record.setTraceID(traceid);
+  record.setSpanID(spanid);
+  record.setFlags(99);
+
+  std::array<uint8_t, pdns::trace::EDNSOTTraceRecord::fullSize> expected;
+  expected[0] = 1;
+  expected[1] = 0;
+
+  for (size_t i = 0; i < traceid.size(); i++) {
+    expected[i + 2] = traceid.data()[i];
+  }
+  for (size_t i = 0; i < spanid.size(); i++) {
+    expected[i + 18] = spanid.data()[i];
+  }
+  expected[pdns::trace::EDNSOTTraceRecord::flagsOffset] = 99;
+  BOOST_CHECK_EQUAL_COLLECTIONS(data.begin(), data.end(), expected.begin(), expected.end());
+}
 BOOST_AUTO_TEST_SUITE_END()
