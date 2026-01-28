@@ -72,7 +72,7 @@ std::mutex SMySQL::s_myinitlock;
 class SMySQLStatement : public SSqlStatement
 {
 public:
-  SMySQLStatement(std::shared_ptr<Logr::Logger> log, const string& query, bool dolog, int nparams, MYSQL* db) :
+  SMySQLStatement(Logr::log_t log, const string& query, bool dolog, int nparams, MYSQL* db) :
     d_prepared(false)
   {
     d_slog = log;
@@ -541,7 +541,7 @@ void SMySQL::connect()
   } while (retry >= 0);
 }
 
-SMySQL::SMySQL(std::shared_ptr<Logr::Logger> log, string database, string host, uint16_t port, string msocket, string user,
+SMySQL::SMySQL(Logr::log_t log, string database, string host, uint16_t port, string msocket, string user,
                string password, string group, bool setIsolation, unsigned int timeout, bool threadCleanup) :
   d_database(std::move(database)), d_host(std::move(host)), d_msocket(std::move(msocket)), d_user(std::move(user)), d_password(std::move(password)), d_group(std::move(group)), d_timeout(timeout), d_port(port), d_setIsolation(setIsolation), d_threadCleanup(threadCleanup)
 {

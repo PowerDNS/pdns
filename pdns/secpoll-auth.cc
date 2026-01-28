@@ -30,7 +30,7 @@ extern StatBag S;
 /** Do an actual secpoll for the current version
  * @param first bool that tells if this is the first secpoll run since startup
  */
-void doSecPoll(std::shared_ptr<Logr::Logger> slog, bool first)
+void doSecPoll(Logr::log_t slog, bool first)
 {
   if(::arg()["security-poll-suffix"].empty())
     return;

@@ -229,7 +229,7 @@ void TCPNameserver::decrementClientCount(const ComboAddress& remote)
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-void TCPNameserver::doConnection(int fd, std::shared_ptr<Logr::Logger> slog)
+void TCPNameserver::doConnection(int fd, Logr::log_t slog)
 {
   setThreadName("pdns/tcpConnect");
   std::unique_ptr<DNSPacket> packet;
@@ -500,7 +500,7 @@ void TCPNameserver::doConnection(int fd, std::shared_ptr<Logr::Logger> slog)
 }
 
 
-bool TCPNameserver::canDoAXFR(std::unique_ptr<DNSPacket>& q, bool isAXFR, std::unique_ptr<PacketHandler>& packetHandler, std::shared_ptr<Logr::Logger> slog)
+bool TCPNameserver::canDoAXFR(std::unique_ptr<DNSPacket>& q, bool isAXFR, std::unique_ptr<PacketHandler>& packetHandler, Logr::log_t slog)
 {
   if(::arg().mustDo("disable-axfr"))
     return false;
@@ -639,7 +639,7 @@ namespace {
 
 /** do the actual zone transfer. Return 0 in case of error, 1 in case of success */
 // NOLINTNEXTLINE(readability-identifier-length)
-int TCPNameserver::doAXFR(const ZoneName &targetZone, std::unique_ptr<DNSPacket>& q, int outsock, std::shared_ptr<Logr::Logger> slog)  // NOLINT(readability-function-cognitive-complexity)
+int TCPNameserver::doAXFR(const ZoneName &targetZone, std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_t slog)  // NOLINT(readability-function-cognitive-complexity)
 {
   const DNSName& target = targetZone.operator const DNSName&();
   string logPrefix;
@@ -1256,7 +1256,7 @@ send:
   return 1;
 }
 
-int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock, std::shared_ptr<Logr::Logger> slog)
+int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_t slog)
 {
   string logPrefix;
 
@@ -1407,7 +1407,7 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock, std::share
 }
 
 TCPNameserver::~TCPNameserver() = default;
-TCPNameserver::TCPNameserver(std::shared_ptr<Logr::Logger> slog)
+TCPNameserver::TCPNameserver(Logr::log_t slog)
 {
   d_slog = slog;
   d_maxTransactionsPerConn = ::arg().asNum("max-tcp-transactions-per-conn");

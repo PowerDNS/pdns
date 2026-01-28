@@ -39,13 +39,13 @@
 class DynListener : public boost::noncopyable
 {
 public:
-  explicit DynListener(std::shared_ptr<Logr::Logger> slog, const string &pname="");
-  explicit DynListener(std::shared_ptr<Logr::Logger> slog, const ComboAddress& addr);
+  explicit DynListener(Logr::log_t slog, const string &pname="");
+  explicit DynListener(Logr::log_t slog, const ComboAddress& addr);
   ~DynListener();
   void go();
   void theListener();
 
-  typedef string g_funk_t(const vector<string> &parts, Utility::pid_t ppid, std::shared_ptr<Logr::Logger> slog); // guido!
+  typedef string g_funk_t(const vector<string> &parts, Utility::pid_t ppid, Logr::log_t slog); // guido!
   typedef struct { g_funk_t *func; string args; string usage; } g_funkwithusage_t;
   typedef map<string,g_funkwithusage_t> g_funkdb_t;
   

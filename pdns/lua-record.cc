@@ -90,8 +90,8 @@ public:
     d_checkerThreadStarted.clear();
   }
   ~IsUpOracle() = default;
-  int isUp(std::shared_ptr<Logr::Logger> slog, const ComboAddress& remote, const opts_t& opts);
-  int isUp(std::shared_ptr<Logr::Logger> slog, const ComboAddress& remote, const std::string& url, const opts_t& opts);
+  int isUp(Logr::log_t slog, const ComboAddress& remote, const opts_t& opts);
+  int isUp(Logr::log_t slog, const ComboAddress& remote, const std::string& url, const opts_t& opts);
   //NOLINTNEXTLINE(readability-identifier-length)
   int isUp(const CheckDesc& cd);
 
@@ -375,13 +375,13 @@ int IsUpOracle::isUp(const CheckDesc& cd)
   return 0;
 }
 
-int IsUpOracle::isUp(std::shared_ptr<Logr::Logger> slog, const ComboAddress& remote, const opts_t& opts)
+int IsUpOracle::isUp(Logr::log_t slog, const ComboAddress& remote, const opts_t& opts)
 {
   CheckDesc cd{remote, "", opts, slog};
   return isUp(cd);
 }
 
-int IsUpOracle::isUp(std::shared_ptr<Logr::Logger> slog, const ComboAddress& remote, const std::string& url, const opts_t& opts)
+int IsUpOracle::isUp(Logr::log_t slog, const ComboAddress& remote, const std::string& url, const opts_t& opts)
 {
   CheckDesc cd{remote, url, opts, slog};
   return isUp(cd);
@@ -404,7 +404,7 @@ bool doCompare(const T& var, const std::string& res, const C& cmp)
 }
 }
 
-static std::string getGeo(std::shared_ptr<Logr::Logger> slog, const std::string& ip, GeoIPInterface::GeoIPQueryAttribute qa)
+static std::string getGeo(Logr::log_t slog, const std::string& ip, GeoIPInterface::GeoIPQueryAttribute qa)
 {
   static bool initialized;
   extern std::function<std::string(const std::string& ip, int)> g_getGeo;
@@ -538,7 +538,7 @@ static vector<T> pickRandomSample(int n, const vector<T>& items)
   return result;
 }
 
-static bool getLatLon(std::shared_ptr<Logr::Logger> slog, const std::string& ip, double& lat, double& lon)
+static bool getLatLon(Logr::log_t slog, const std::string& ip, double& lat, double& lon)
 {
   string inp = getGeo(slog, ip, GeoIPInterface::Location);
   if(inp.empty())
@@ -550,7 +550,7 @@ static bool getLatLon(std::shared_ptr<Logr::Logger> slog, const std::string& ip,
   return true;
 }
 
-static bool getLatLon(std::shared_ptr<Logr::Logger> slog, const std::string& ip, string& loc)
+static bool getLatLon(Logr::log_t slog, const std::string& ip, string& loc)
 {
   int latdeg, latmin, londeg, lonmin;
   double latsec, lonsec;
@@ -592,7 +592,7 @@ static bool getLatLon(std::shared_ptr<Logr::Logger> slog, const std::string& ip,
   return true;
 }
 
-static ComboAddress pickclosest(std::shared_ptr<Logr::Logger> slog, const ComboAddress& bestwho, const vector<ComboAddress>& wips)
+static ComboAddress pickclosest(Logr::log_t slog, const ComboAddress& bestwho, const vector<ComboAddress>& wips)
 {
   if (wips.empty()) {
     throw std::invalid_argument("The IP list cannot be empty");
@@ -653,7 +653,7 @@ static std::string getOptionValue(const boost::optional<opts_t>& options, const 
   return selector;
 }
 
-static vector<ComboAddress> useSelector(std::shared_ptr<Logr::Logger> slog, const std::string &selector, const ComboAddress& bestwho, const vector<ComboAddress>& candidates)
+static vector<ComboAddress> useSelector(Logr::log_t slog, const std::string &selector, const ComboAddress& bestwho, const vector<ComboAddress>& candidates)
 {
   vector<ComboAddress> ret;
 
@@ -910,7 +910,7 @@ static std::string pickConsistentWeightedHashed(const ComboAddress& bestwho, con
   return {};
 }
 
-static vector<string> genericIfUp(std::shared_ptr<Logr::Logger> slog, const boost::variant<iplist_t, ipunitlist_t>& ips, boost::optional<opts_t> options, const std::function<int(std::shared_ptr<Logr::Logger>, const ComboAddress&, const opts_t&)>& upcheckf, uint16_t port = 0)
+static vector<string> genericIfUp(Logr::log_t slog, const boost::variant<iplist_t, ipunitlist_t>& ips, boost::optional<opts_t> options, const std::function<int(Logr::log_t, const ComboAddress&, const opts_t&)>& upcheckf, uint16_t port = 0)
 {
   vector<vector<ComboAddress> > candidates;
   opts_t opts;
@@ -955,7 +955,7 @@ static vector<string> genericIfUp(std::shared_ptr<Logr::Logger> slog, const boos
 
 // Lua functions available to the user
 
-static string lua_latlon(std::shared_ptr<Logr::Logger> slog)
+static string lua_latlon(Logr::log_t slog)
 {
   double lat{0};
   double lon{0};
@@ -963,14 +963,14 @@ static string lua_latlon(std::shared_ptr<Logr::Logger> slog)
   return std::to_string(lat)+" "+std::to_string(lon);
 }
 
-static string lua_latlonloc(std::shared_ptr<Logr::Logger> slog)
+static string lua_latlonloc(Logr::log_t slog)
 {
   string loc;
   getLatLon(slog, s_lua_record_ctx->bestwho.toString(), loc);
   return loc;
 }
 
-static string lua_closestMagic(std::shared_ptr<Logr::Logger> slog)
+static string lua_closestMagic(Logr::log_t slog)
 {
   vector<ComboAddress> candidates;
   // Getting something like 192-0-2-1.192-0-2-2.198-51-100-1.example.org
@@ -986,7 +986,7 @@ static string lua_closestMagic(std::shared_ptr<Logr::Logger> slog)
   return pickclosest(slog, s_lua_record_ctx->bestwho, candidates).toString();
 }
 
-static string lua_latlonMagic(std::shared_ptr<Logr::Logger> slog)
+static string lua_latlonMagic(Logr::log_t slog)
 {
   auto labels = s_lua_record_ctx->qname.getRawLabels();
   if (labels.size() < 4) {
@@ -998,7 +998,7 @@ static string lua_latlonMagic(std::shared_ptr<Logr::Logger> slog)
   return std::to_string(lat)+" "+std::to_string(lon);
 }
 
-static string lua_createReverse(std::shared_ptr<Logr::Logger> slog, const string &format, boost::optional<opts_t> exceptions)
+static string lua_createReverse(Logr::log_t slog, const string &format, boost::optional<opts_t> exceptions)
 {
   try {
     auto labels = s_lua_record_ctx->qname.getRawLabels();
@@ -1161,7 +1161,7 @@ static string lua_createForward6()
   }
 }
 
-static string lua_createReverse6(std::shared_ptr<Logr::Logger> slog, const string &format, boost::optional<opts_t> exceptions)
+static string lua_createReverse6(Logr::log_t slog, const string &format, boost::optional<opts_t> exceptions)
 {
   try {
     auto labels= s_lua_record_ctx->qname.getRawLabels();
@@ -1261,18 +1261,18 @@ static vector<string> lua_filterForward(const string& address, NetmaskGroup& nmg
  *
  * @example ifportup(443, { '1.2.3.4', '5.4.3.2' })"
  */
-static vector<string> lua_ifportup(std::shared_ptr<Logr::Logger> slog, int port, const boost::variant<iplist_t, ipunitlist_t>& ips, boost::optional<opts_t> options)
+static vector<string> lua_ifportup(Logr::log_t slog, int port, const boost::variant<iplist_t, ipunitlist_t>& ips, boost::optional<opts_t> options)
 {
   port = std::max(port, 0);
   port = std::min(port, static_cast<int>(std::numeric_limits<uint16_t>::max()));
 
-  auto checker = [](std::shared_ptr<Logr::Logger> log, const ComboAddress& addr, const opts_t& opts) -> int {
+  auto checker = [](Logr::log_t log, const ComboAddress& addr, const opts_t& opts) -> int {
     return g_up.isUp(log, addr, opts);
   };
   return genericIfUp(slog, ips, std::move(options), checker, port);
 }
 
-static vector<string> lua_ifurlextup(std::shared_ptr<Logr::Logger> slog, const vector<pair<int, opts_t> >& ipurls, boost::optional<opts_t> options)
+static vector<string> lua_ifurlextup(Logr::log_t slog, const vector<pair<int, opts_t> >& ipurls, boost::optional<opts_t> options)
 {
   vector<ComboAddress> candidates;
   opts_t opts;
@@ -1317,9 +1317,9 @@ static vector<string> lua_ifurlextup(std::shared_ptr<Logr::Logger> slog, const v
   return convComboAddressListToString(res);
 }
 
-static vector<string> lua_ifurlup(std::shared_ptr<Logr::Logger> slog, const std::string& url, const boost::variant<iplist_t, ipunitlist_t>& ips, boost::optional<opts_t> options)
+static vector<string> lua_ifurlup(Logr::log_t slog, const std::string& url, const boost::variant<iplist_t, ipunitlist_t>& ips, boost::optional<opts_t> options)
 {
-  auto checker = [&url](std::shared_ptr<Logr::Logger> log, const ComboAddress& addr, const opts_t& opts) -> int {
+  auto checker = [&url](Logr::log_t log, const ComboAddress& addr, const opts_t& opts) -> int {
     return g_up.isUp(log, addr, url, opts);
   };
   return genericIfUp(slog, ips, std::move(options), checker);
@@ -1340,7 +1340,7 @@ static string lua_pickrandom(const iplist_t& ips)
  * supplied, weighted according to the results of isUp calls.
  * @example pickselfweighted('http://example.com/weight', { "192.0.2.20", "203.0.113.4", "203.0.113.2" })
  */
-static string lua_pickselfweighted(std::shared_ptr<Logr::Logger> slog, const std::string& url, const iplist_t& ips, boost::optional<opts_t> options)
+static string lua_pickselfweighted(Logr::log_t slog, const std::string& url, const iplist_t& ips, boost::optional<opts_t> options)
 {
   vector< pair<int, ComboAddress> > items;
   opts_t opts;
@@ -1442,7 +1442,7 @@ static string lua_pickchashed(const std::unordered_map<int, wiplist_t>& ips)
   return pickConsistentWeightedHashed(s_lua_record_ctx->bestwho, items);
 }
 
-static string lua_pickclosest(std::shared_ptr<Logr::Logger> slog, const iplist_t& ips)
+static string lua_pickclosest(Logr::log_t slog, const iplist_t& ips)
 {
   vector<ComboAddress> conv = convComboAddressList(ips);
 
@@ -1454,14 +1454,14 @@ static void lua_report(const string& /* event */, const boost::optional<string>&
   throw std::runtime_error("Script took too long");
 }
 
-static string lua_geoiplookup(std::shared_ptr<Logr::Logger> slog, const string &address, const GeoIPInterface::GeoIPQueryAttribute attr)
+static string lua_geoiplookup(Logr::log_t slog, const string &address, const GeoIPInterface::GeoIPQueryAttribute attr)
 {
   return getGeo(slog, address, attr);
 }
 
 using combovar_t = const boost::variant<string,vector<pair<int,string> > >;
 
-static bool lua_asnum(std::shared_ptr<Logr::Logger> slog, const combovar_t& asns)
+static bool lua_asnum(Logr::log_t slog, const combovar_t& asns)
 {
   string res=getGeo(slog, s_lua_record_ctx->bestwho.toString(), GeoIPInterface::ASn);
   return doCompare(asns, res, [](const std::string& arg1, const std::string& arg2) -> bool {
@@ -1469,7 +1469,7 @@ static bool lua_asnum(std::shared_ptr<Logr::Logger> slog, const combovar_t& asns
     });
 }
 
-static bool lua_continent(std::shared_ptr<Logr::Logger> slog, const combovar_t& continent)
+static bool lua_continent(Logr::log_t slog, const combovar_t& continent)
 {
   string res=getGeo(slog, s_lua_record_ctx->bestwho.toString(), GeoIPInterface::Continent);
   return doCompare(continent, res, [](const std::string& arg1, const std::string& arg2) -> bool {
@@ -1477,7 +1477,7 @@ static bool lua_continent(std::shared_ptr<Logr::Logger> slog, const combovar_t& 
     });
 }
 
-static string lua_continentCode(std::shared_ptr<Logr::Logger> slog)
+static string lua_continentCode(Logr::log_t slog)
 {
   string unknown("unknown");
   string res = getGeo(slog, s_lua_record_ctx->bestwho.toString(), GeoIPInterface::Continent);
@@ -1487,7 +1487,7 @@ static string lua_continentCode(std::shared_ptr<Logr::Logger> slog)
   return res;
 }
 
-static bool lua_country(std::shared_ptr<Logr::Logger> slog, const combovar_t& var)
+static bool lua_country(Logr::log_t slog, const combovar_t& var)
 {
   string res = getGeo(slog, s_lua_record_ctx->bestwho.toString(), GeoIPInterface::Country2);
   return doCompare(var, res, [](const std::string& arg1, const std::string& arg2) -> bool {
@@ -1496,7 +1496,7 @@ static bool lua_country(std::shared_ptr<Logr::Logger> slog, const combovar_t& va
 
 }
 
-static string lua_countryCode(std::shared_ptr<Logr::Logger> slog)
+static string lua_countryCode(Logr::log_t slog)
 {
   string unknown("unknown");
   string res = getGeo(slog, s_lua_record_ctx->bestwho.toString(), GeoIPInterface::Country2);
@@ -1506,7 +1506,7 @@ static string lua_countryCode(std::shared_ptr<Logr::Logger> slog)
   return res;
 }
 
-static bool lua_region(std::shared_ptr<Logr::Logger> slog, const combovar_t& var)
+static bool lua_region(Logr::log_t slog, const combovar_t& var)
 {
   string res = getGeo(slog, s_lua_record_ctx->bestwho.toString(), GeoIPInterface::Region);
   return doCompare(var, res, [](const std::string& arg1, const std::string& arg2) -> bool {
@@ -1515,7 +1515,7 @@ static bool lua_region(std::shared_ptr<Logr::Logger> slog, const combovar_t& var
 
 }
 
-static string lua_regionCode(std::shared_ptr<Logr::Logger> slog)
+static string lua_regionCode(Logr::log_t slog)
 {
   string unknown("unknown");
   string res = getGeo(slog, s_lua_record_ctx->bestwho.toString(), GeoIPInterface::Region);
@@ -1578,7 +1578,7 @@ static vector<string> lua_all(const vector< pair<int,string> >& ips)
   return result;
 }
 
-static vector<string> lua_dblookup(std::shared_ptr<Logr::Logger> slog, const string& record, uint16_t qtype)
+static vector<string> lua_dblookup(Logr::log_t slog, const string& record, uint16_t qtype)
 {
   ZoneName rec;
   vector<string> ret;
@@ -1609,7 +1609,7 @@ static vector<string> lua_dblookup(std::shared_ptr<Logr::Logger> slog, const str
   return ret;
 }
 
-static void lua_include(std::shared_ptr<Logr::Logger> slog, LuaContext& lua, const string& record)
+static void lua_include(Logr::log_t slog, LuaContext& lua, const string& record)
 {
   DNSName rec;
   try {
@@ -1645,7 +1645,7 @@ static std::unordered_map<std::string, int> lua_variables{
   {"Location", GeoIPInterface::GeoIPQueryAttribute::Location}
 };
 
-static void setupLuaRecords(std::shared_ptr<Logr::Logger> slog, LuaContext& lua)
+static void setupLuaRecords(Logr::log_t slog, LuaContext& lua)
 {
   lua.writeFunction("report", [](const string& event, const boost::optional<string>& line) -> void {
       lua_report(event, line);
@@ -1775,7 +1775,7 @@ static void setupLuaRecords(std::shared_ptr<Logr::Logger> slog, LuaContext& lua)
   lua.writeVariable("GeoIPQueryAttribute", lua_variables);
 }
 
-std::vector<shared_ptr<DNSRecordContent>> luaSynth(std::shared_ptr<Logr::Logger> slog, const std::string& code, const DNSName& query, const DNSZoneRecord& zone_record, const DNSName& zone, const DNSPacket& dnsp, uint16_t qtype, unique_ptr<AuthLua4>& LUA)
+std::vector<shared_ptr<DNSRecordContent>> luaSynth(Logr::log_t slog, const std::string& code, const DNSName& query, const DNSZoneRecord& zone_record, const DNSName& zone, const DNSPacket& dnsp, uint16_t qtype, unique_ptr<AuthLua4>& LUA)
 {
   std::vector<shared_ptr<DNSRecordContent>> ret;
 

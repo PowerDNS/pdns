@@ -32,7 +32,7 @@ LdapSimpleAuthenticator::LdapSimpleAuthenticator(const std::string& dn, const st
 {
 }
 
-bool LdapSimpleAuthenticator::authenticate([[maybe_unused]] std::shared_ptr<Logr::Logger> log, LDAP* conn)
+bool LdapSimpleAuthenticator::authenticate([[maybe_unused]] Logr::log_t log, LDAP* conn)
 {
   int msgid;
 
@@ -106,7 +106,7 @@ LdapGssapiAuthenticator::~LdapGssapiAuthenticator()
   krb5_free_context(d_context);
 }
 
-bool LdapGssapiAuthenticator::authenticate(std::shared_ptr<Logr::Logger> log, LDAP* conn)
+bool LdapGssapiAuthenticator::authenticate(Logr::log_t log, LDAP* conn)
 {
   int code = attemptAuth(log, conn);
 
@@ -134,7 +134,7 @@ std::string LdapGssapiAuthenticator::getError() const
   return d_lastError;
 }
 
-int LdapGssapiAuthenticator::attemptAuth(std::shared_ptr<Logr::Logger> log, LDAP* conn)
+int LdapGssapiAuthenticator::attemptAuth(Logr::log_t log, LDAP* conn)
 {
   // Create SASL defaults
   SaslDefaults defaults;
@@ -186,7 +186,7 @@ int LdapGssapiAuthenticator::attemptAuth(std::shared_ptr<Logr::Logger> log, LDAP
   return rc;
 }
 
-int LdapGssapiAuthenticator::updateTgt(std::shared_ptr<Logr::Logger> log)
+int LdapGssapiAuthenticator::updateTgt(Logr::log_t log)
 {
   krb5_error_code code;
   krb5_creds credentials;

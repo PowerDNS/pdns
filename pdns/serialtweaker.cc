@@ -38,7 +38,7 @@ uint32_t localtime_format_YYYYMMDDSS(time_t t, uint32_t seq)
     + seq;
 }
 
-uint32_t calculateEditSOA(uint32_t old_serial, const string& kind, const ZoneName& zonename, std::shared_ptr<Logr::Logger> slog)
+uint32_t calculateEditSOA(uint32_t old_serial, const string& kind, const ZoneName& zonename, Logr::log_t slog)
 {
   if(pdns_iequals(kind,"INCEPTION-INCREMENT")) {
     time_t inception = getStartOfWeek();
@@ -80,7 +80,7 @@ uint32_t calculateEditSOA(uint32_t old_serial, const string& kind, const ZoneNam
   return old_serial;
 }
 
-uint32_t calculateEditSOA(uint32_t old_serial, DNSSECKeeper& dsk, const ZoneName& zonename, std::shared_ptr<Logr::Logger> slog)
+uint32_t calculateEditSOA(uint32_t old_serial, DNSSECKeeper& dsk, const ZoneName& zonename, Logr::log_t slog)
 {
   string kind;
   dsk.getSoaEdit(zonename, kind);
@@ -88,7 +88,7 @@ uint32_t calculateEditSOA(uint32_t old_serial, DNSSECKeeper& dsk, const ZoneName
 }
 
 /** Used for SOA-EDIT-DNSUPDATE and SOA-EDIT-API. */
-static uint32_t calculateIncreaseSOA(uint32_t old_serial, const string& increaseKind, const string& editKind, const ZoneName& zonename, std::shared_ptr<Logr::Logger> slog)
+static uint32_t calculateIncreaseSOA(uint32_t old_serial, const string& increaseKind, const string& editKind, const ZoneName& zonename, Logr::log_t slog)
 {
   if (pdns_iequals(increaseKind, "SOA-EDIT-INCREASE")) {
     uint32_t new_serial = old_serial;
@@ -134,7 +134,7 @@ static uint32_t calculateIncreaseSOA(uint32_t old_serial, const string& increase
  *
  * @return true if changes may have been made
  */
-bool increaseSOARecord(DNSResourceRecord& rr, const string& increaseKind, const string& editKind, const ZoneName& zonename, std::shared_ptr<Logr::Logger> slog) // NOLINT(readability-identifier-length)
+bool increaseSOARecord(DNSResourceRecord& rr, const string& increaseKind, const string& editKind, const ZoneName& zonename, Logr::log_t slog) // NOLINT(readability-identifier-length)
 {
   if (increaseKind.empty())
     return false;
@@ -154,7 +154,7 @@ bool increaseSOARecord(DNSResourceRecord& rr, const string& increaseKind, const 
  *
  * @return true if rrout is now valid
  */
-bool makeIncreasedSOARecord(SOAData& sd, const string& increaseKind, const string& editKind, DNSResourceRecord& rrout, std::shared_ptr<Logr::Logger> slog) {
+bool makeIncreasedSOARecord(SOAData& sd, const string& increaseKind, const string& editKind, DNSResourceRecord& rrout, Logr::log_t slog) {
   if (increaseKind.empty())
     return false;
 
@@ -169,7 +169,7 @@ bool makeIncreasedSOARecord(SOAData& sd, const string& increaseKind, const strin
   return true;
 }
 
-DNSZoneRecord makeEditedDNSZRFromSOAData(DNSSECKeeper& dk, const SOAData& sd, DNSResourceRecord::Place place, std::shared_ptr<Logr::Logger> slog) {
+DNSZoneRecord makeEditedDNSZRFromSOAData(DNSSECKeeper& dk, const SOAData& sd, DNSResourceRecord::Place place, Logr::log_t slog) {
   SOAData edited = sd;
   edited.serial = calculateEditSOA(sd.serial, dk, sd.zonename, slog);
 

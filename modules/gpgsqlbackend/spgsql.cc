@@ -35,7 +35,7 @@
 class SPgSQLStatement : public SSqlStatement
 {
 public:
-  SPgSQLStatement(std::shared_ptr<Logr::Logger> log, const string& query, bool dolog, int nparams, SPgSQL* db, unsigned int nstatement)
+  SPgSQLStatement(Logr::log_t log, const string& query, bool dolog, int nparams, SPgSQL* db, unsigned int nstatement)
   {
     d_slog = log;
     d_query = query;
@@ -321,7 +321,7 @@ static string escapeForPQparam(const string& v)
   return string("'") + ret + string("'");
 }
 
-SPgSQL::SPgSQL(std::shared_ptr<Logr::Logger> log, const string& database, const string& host, const string& port, const string& user,
+SPgSQL::SPgSQL(Logr::log_t log, const string& database, const string& host, const string& port, const string& user,
                const string& password, const string& extra_connection_parameters, const bool use_prepared)
 {
   d_slog = log;

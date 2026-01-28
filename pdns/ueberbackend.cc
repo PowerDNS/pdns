@@ -476,7 +476,7 @@ UeberBackend::CacheResult UeberBackend::fillSOAFromCache(SOAData* soaData, ZoneN
   return cacheResult;
 }
 
-static std::vector<std::unique_ptr<DNSBackend>>::iterator findBestMatchingBackend([[maybe_unused]] std::shared_ptr<Logr::Logger> slog, std::vector<std::unique_ptr<DNSBackend>>& backends, std::vector<std::pair<std::size_t, SOAData>>& bestMatches, const ZoneName& shorter, SOAData* soaData)
+static std::vector<std::unique_ptr<DNSBackend>>::iterator findBestMatchingBackend([[maybe_unused]] Logr::log_t slog, std::vector<std::unique_ptr<DNSBackend>>& backends, std::vector<std::pair<std::size_t, SOAData>>& bestMatches, const ZoneName& shorter, SOAData* soaData)
 {
   auto backend = backends.begin();
   for (auto bestMatch = bestMatches.begin(); backend != backends.end() && bestMatch != bestMatches.end(); ++backend, ++bestMatch) {
@@ -525,7 +525,7 @@ static std::vector<std::unique_ptr<DNSBackend>>::iterator findBestMatchingBacken
   return backend;
 }
 
-static bool foundTarget([[maybe_unused]] std::shared_ptr<Logr::Logger> slog, const ZoneName& target, const ZoneName& shorter, const QType& qtype, [[maybe_unused]] SOAData* soaData, const bool found)
+static bool foundTarget([[maybe_unused]] Logr::log_t slog, const ZoneName& target, const ZoneName& shorter, const QType& qtype, [[maybe_unused]] SOAData* soaData, const bool found)
 {
   if (found == (qtype == QType::DS) || target != shorter) {
     DLOG(SLOG(g_log << Logger::Error << "found: " << soaData->qname() << endl,

@@ -30,7 +30,7 @@
 #define UNIX_PATH_MAX 108
 #endif
 
-UnixsocketConnector::UnixsocketConnector(std::shared_ptr<Logr::Logger> log, std::map<std::string, std::string> optionsMap)
+UnixsocketConnector::UnixsocketConnector(Logr::log_t log, std::map<std::string, std::string> optionsMap)
 {
   d_slog = log;
 

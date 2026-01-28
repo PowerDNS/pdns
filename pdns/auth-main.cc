@@ -535,7 +535,7 @@ static void update_latencies(int start, int diff)
   avg_latency = 0.999 * avg_latency + 0.001 * std::max(diff, 0); // 'EWMA'
 }
 
-static void sendout(std::unique_ptr<DNSPacket>& a, std::shared_ptr<Logr::Logger> slog, int start)
+static void sendout(std::unique_ptr<DNSPacket>& a, Logr::log_t slog, int start)
 {
   if (!a)
     return;
@@ -1060,7 +1060,7 @@ static void takedown(int /* i */)
   }
 }
 
-static void writePid(std::shared_ptr<Logr::Logger> slog)
+static void writePid(Logr::log_t slog)
 {
   if (!::arg().mustDo("write-pid"))
     return;
@@ -1092,7 +1092,7 @@ static FILE* g_fp;
 static std::mutex g_guardian_lock;
 
 // The next two methods are not in dynhandler.cc because they use a few items declared in this file.
-static string DLCycleHandler(const vector<string>& /* parts */, pid_t /* ppid */, std::shared_ptr<Logr::Logger> /* slog */)
+static string DLCycleHandler(const vector<string>& /* parts */, pid_t /* ppid */, Logr::log_t /* slog */)
 {
   kill(cpid, SIGKILL); // why?
   kill(cpid, SIGKILL); // why?
@@ -1100,7 +1100,7 @@ static string DLCycleHandler(const vector<string>& /* parts */, pid_t /* ppid */
   return "ok";
 }
 
-static string DLRestHandler(const vector<string>& parts, pid_t /* ppid */, std::shared_ptr<Logr::Logger> /* slog */)
+static string DLRestHandler(const vector<string>& parts, pid_t /* ppid */, Logr::log_t /* slog */)
 {
   string line;
 

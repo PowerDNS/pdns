@@ -640,7 +640,7 @@ void Bind2Backend::insertRecord(std::shared_ptr<recordstorage_t>& records, const
   records->insert(std::move(bdr));
 }
 
-string Bind2Backend::DLReloadNowHandler(const vector<string>& parts, Utility::pid_t /* ppid */, std::shared_ptr<Logr::Logger> /* slog */)
+string Bind2Backend::DLReloadNowHandler(const vector<string>& parts, Utility::pid_t /* ppid */, Logr::log_t /* slog */)
 {
   ostringstream ret;
 
@@ -665,7 +665,7 @@ string Bind2Backend::DLReloadNowHandler(const vector<string>& parts, Utility::pi
   return ret.str();
 }
 
-string Bind2Backend::DLDomStatusHandler(const vector<string>& parts, Utility::pid_t /* ppid */, std::shared_ptr<Logr::Logger> /* slog */)
+string Bind2Backend::DLDomStatusHandler(const vector<string>& parts, Utility::pid_t /* ppid */, Logr::log_t /* slog */)
 {
   ostringstream ret;
 
@@ -727,7 +727,7 @@ static void printDomainExtendedStatus(ostringstream& ret, const BB2DomainInfo& i
   ret << "\t Last notified: " << info.d_lastnotified << std::endl;
 }
 
-string Bind2Backend::DLDomExtendedStatusHandler(const vector<string>& parts, Utility::pid_t /* ppid */, std::shared_ptr<Logr::Logger> /* slog */)
+string Bind2Backend::DLDomExtendedStatusHandler(const vector<string>& parts, Utility::pid_t /* ppid */, Logr::log_t /* slog */)
 {
   ostringstream ret;
 
@@ -756,7 +756,7 @@ string Bind2Backend::DLDomExtendedStatusHandler(const vector<string>& parts, Uti
   return ret.str();
 }
 
-string Bind2Backend::DLListRejectsHandler(const vector<string>& /* parts */, Utility::pid_t /* ppid */, std::shared_ptr<Logr::Logger> /* slog */)
+string Bind2Backend::DLListRejectsHandler(const vector<string>& /* parts */, Utility::pid_t /* ppid */, Logr::log_t /* slog */)
 {
   ostringstream ret;
   auto rstate = s_state.read_lock();
@@ -767,7 +767,7 @@ string Bind2Backend::DLListRejectsHandler(const vector<string>& /* parts */, Uti
   return ret.str();
 }
 
-string Bind2Backend::DLAddDomainHandler(const vector<string>& parts, Utility::pid_t /* ppid */, std::shared_ptr<Logr::Logger> /* slog */)
+string Bind2Backend::DLAddDomainHandler(const vector<string>& parts, Utility::pid_t /* ppid */, Logr::log_t /* slog */)
 {
   if (parts.size() < 3)
     return "ERROR: Domain name and zone filename are required";

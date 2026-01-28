@@ -25,7 +25,7 @@
 #include "remotebackend.hh"
 #ifdef REMOTEBACKEND_ZEROMQ
 
-ZeroMQConnector::ZeroMQConnector(std::shared_ptr<Logr::Logger> log, std::map<std::string, std::string> options) :
+ZeroMQConnector::ZeroMQConnector(Logr::log_t log, std::map<std::string, std::string> options) :
   d_ctx(std::unique_ptr<void, int (*)(void*)>(zmq_init(2), zmq_close)), d_sock(std::unique_ptr<void, int (*)(void*)>(zmq_socket(d_ctx.get(), ZMQ_REQ), zmq_close))
 {
   int opt = 0;

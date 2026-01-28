@@ -33,7 +33,7 @@
 class GeoIPInterfaceMMDB : public GeoIPInterface
 {
 public:
-  GeoIPInterfaceMMDB(std::shared_ptr<Logr::Logger> slog, const string& fname, const string& modeStr, const string& language) :
+  GeoIPInterfaceMMDB(Logr::log_t slog, const string& fname, const string& modeStr, const string& language) :
     d_slog(slog)
   {
     int ec;
@@ -254,7 +254,7 @@ public:
 private:
   MMDB_s d_s;
   string d_lang;
-  std::shared_ptr<Logr::Logger> d_slog;
+  Logr::log_t d_slog;
 
   bool mmdbLookup(const string& ip, bool v6, GeoIPNetmask& gl, MMDB_lookup_result_s& res)
   {
@@ -281,7 +281,7 @@ private:
   }
 };
 
-unique_ptr<GeoIPInterface> GeoIPInterface::makeMMDBInterface(std::shared_ptr<Logr::Logger> slog, const string& fname, const map<string, string>& opts)
+unique_ptr<GeoIPInterface> GeoIPInterface::makeMMDBInterface(Logr::log_t slog, const string& fname, const map<string, string>& opts)
 {
   string mode = "";
   string language = "en";
@@ -296,7 +296,7 @@ unique_ptr<GeoIPInterface> GeoIPInterface::makeMMDBInterface(std::shared_ptr<Log
 
 #else
 
-unique_ptr<GeoIPInterface> GeoIPInterface::makeMMDBInterface([[maybe_unused]] std::shared_ptr<Logr::Logger> slog, [[maybe_unused]] const string& fname, [[maybe_unused]] const map<string, string>& opts)
+unique_ptr<GeoIPInterface> GeoIPInterface::makeMMDBInterface([[maybe_unused]] Logr::log_t slog, [[maybe_unused]] const string& fname, [[maybe_unused]] const map<string, string>& opts)
 {
   throw PDNSException("libmaxminddb support not compiled in");
 }

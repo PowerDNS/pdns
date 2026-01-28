@@ -34,7 +34,7 @@
 #define UNIX_PATH_MAX 108
 #endif
 
-HTTPConnector::HTTPConnector(std::shared_ptr<Logr::Logger> log, std::map<std::string, std::string> options) :
+HTTPConnector::HTTPConnector(Logr::log_t log, std::map<std::string, std::string> options) :
   d_socket(nullptr)
 {
   d_slog = log;

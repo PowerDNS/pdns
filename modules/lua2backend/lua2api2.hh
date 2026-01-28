@@ -65,7 +65,7 @@ private:
   typedef std::function<string(const string& cmd)> direct_backend_cmd_call_t;
 
 public:
-  Lua2BackendAPIv2(std::shared_ptr<Logr::Logger> slog, const string& suffix)
+  Lua2BackendAPIv2(Logr::log_t slog, const string& suffix)
   {
     d_slog = slog;
     d_include_path = ::arg()["lua-global-include-dir"];

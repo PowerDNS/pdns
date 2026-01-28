@@ -65,7 +65,7 @@ static bool realTestResult(SQLRETURN result, SQLSMALLINT type, SQLHANDLE handle,
 class SODBCStatement : public SSqlStatement
 {
 public:
-  SODBCStatement(std::shared_ptr<Logr::Logger> log, const string& query, bool dolog, int nparams, SQLHDBC connection)
+  SODBCStatement(Logr::log_t log, const string& query, bool dolog, int nparams, SQLHDBC connection)
   {
     d_slog = log;
     d_query = query;
@@ -422,7 +422,7 @@ SSqlStatement* SODBCStatement::nextRow(row_t& row)
 
 // Constructor.
 SODBC::SODBC(
-  std::shared_ptr<Logr::Logger> log,
+  Logr::log_t log,
   const std::string& dsn,
   const std::string& username,
   const std::string& password)

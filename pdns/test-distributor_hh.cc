@@ -32,7 +32,7 @@ struct Question
 
 struct Backend
 {
-  Backend(std::shared_ptr<Logr::Logger> /*slog*/) {}
+  Backend(Logr::log_t /*slog*/) {}
   std::unique_ptr<DNSPacket> question(Question&)
   {
     return make_unique<DNSPacket>(nullptr, true);
@@ -40,7 +40,7 @@ struct Backend
 };
 
 static std::atomic<int> g_receivedAnswers;
-static void report(std::unique_ptr<DNSPacket>& /* A */, std::shared_ptr<Logr::Logger> /* B */, int /* C */)
+static void report(std::unique_ptr<DNSPacket>& /* A */, Logr::log_t /* B */, int /* C */)
 {
   g_receivedAnswers++;
 }
@@ -66,7 +66,7 @@ BOOST_AUTO_TEST_CASE(test_distributor_basic) {
 
 struct BackendSlow
 {
-  BackendSlow(std::shared_ptr<Logr::Logger> /*slog*/) {}
+  BackendSlow(Logr::log_t /*slog*/) {}
   std::unique_ptr<DNSPacket> question([[maybe_unused]] Question& query)
   {
     if (d_shouldSleep) {
@@ -83,7 +83,7 @@ private:
 };
 
 static std::atomic<size_t> s_receivedAnswers;
-static void report1(std::unique_ptr<DNSPacket>& /* A */, std::shared_ptr<Logr::Logger> /* B */, int /* C */)
+static void report1(std::unique_ptr<DNSPacket>& /* A */, Logr::log_t /* B */, int /* C */)
 {
   s_receivedAnswers++;
 }
@@ -124,7 +124,7 @@ BOOST_AUTO_TEST_CASE(test_distributor_queue) {
 
 struct BackendDies
 {
-  BackendDies(std::shared_ptr<Logr::Logger> /*slog*/)
+  BackendDies(Logr::log_t /*slog*/)
   {
     d_ourcount=s_count++;
   }
@@ -149,7 +149,7 @@ std::atomic<int> BackendDies::s_count;
 
 std::atomic<int> g_receivedAnswers2;
 
-static void report2(std::unique_ptr<DNSPacket>& /* A */, std::shared_ptr<Logr::Logger> /* B */, int /* C */)
+static void report2(std::unique_ptr<DNSPacket>& /* A */, Logr::log_t /* B */, int /* C */)
 {
   g_receivedAnswers2++;
 }

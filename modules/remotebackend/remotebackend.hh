@@ -79,7 +79,7 @@ protected:
 class UnixsocketConnector : public Connector
 {
 public:
-  UnixsocketConnector(std::shared_ptr<Logr::Logger> log, std::map<std::string, std::string> options);
+  UnixsocketConnector(Logr::log_t log, std::map<std::string, std::string> options);
   ~UnixsocketConnector() override;
   int send_message(const Json& input) override;
   int recv_message(Json& output) override;
@@ -98,7 +98,7 @@ private:
 class HTTPConnector : public Connector
 {
 public:
-  HTTPConnector(std::shared_ptr<Logr::Logger> log, std::map<std::string, std::string> options);
+  HTTPConnector(Logr::log_t log, std::map<std::string, std::string> options);
   ~HTTPConnector() override;
 
   int send_message(const Json& input) override;
@@ -125,7 +125,7 @@ private:
 class ZeroMQConnector : public Connector
 {
 public:
-  ZeroMQConnector(std::shared_ptr<Logr::Logger> log, std::map<std::string, std::string> options);
+  ZeroMQConnector(Logr::log_t log, std::map<std::string, std::string> options);
   ~ZeroMQConnector() override;
   int send_message(const Json& input) override;
   int recv_message(Json& output) override;
@@ -144,7 +144,7 @@ private:
 class PipeConnector : public Connector
 {
 public:
-  PipeConnector(std::shared_ptr<Logr::Logger> log, std::map<std::string, std::string> options);
+  PipeConnector(Logr::log_t log, std::map<std::string, std::string> options);
   ~PipeConnector() override;
 
   int send_message(const Json& input) override;

@@ -71,7 +71,7 @@ public:
     handle();
     ~handle();
 
-    void setSLog(std::shared_ptr<Logr::Logger> slog) { d_slog = slog; }
+    void setSLog(Logr::log_t slog) { d_slog = slog; }
 
     //! The UeberBackend class where this handle belongs to
     UeberBackend* parent{nullptr};

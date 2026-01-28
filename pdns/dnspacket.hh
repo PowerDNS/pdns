@@ -51,7 +51,7 @@
 class DNSPacket
 {
 public:
-  DNSPacket(std::shared_ptr<Logr::Logger> slog, bool isQuery);
+  DNSPacket(Logr::log_t slog, bool isQuery);
   DNSPacket(const DNSPacket &orig) = default;
   DNSPacket & operator=(const DNSPacket &) = default;
 

@@ -50,7 +50,7 @@ bool DLQuitPlease()
   return s_pleasequit;
 }
 
-string DLQuitHandler(const vector<string>& parts, Utility::pid_t /* ppid */, std::shared_ptr<Logr::Logger> slog)
+string DLQuitHandler(const vector<string>& parts, Utility::pid_t /* ppid */, Logr::log_t slog)
 {
   string ret="No return value";
   if(parts[0]=="QUIT") {
@@ -67,7 +67,7 @@ static void dokill(int)
   exit(0);
 }
 
-string DLCurrentConfigHandler(const vector<string>& parts, Utility::pid_t /* ppid */, std::shared_ptr<Logr::Logger> /* slog */)
+string DLCurrentConfigHandler(const vector<string>& parts, Utility::pid_t /* ppid */, Logr::log_t /* slog */)
 {
   if(parts.size() > 1) {
     if(parts.size() == 2 && parts[1] == "diff") {
@@ -78,19 +78,19 @@ string DLCurrentConfigHandler(const vector<string>& parts, Utility::pid_t /* ppi
   return ::arg().configstring(true, true);
 }
 
-string DLRQuitHandler(const vector<string>& /* parts */, Utility::pid_t /* ppid */, std::shared_ptr<Logr::Logger> /* slog */)
+string DLRQuitHandler(const vector<string>& /* parts */, Utility::pid_t /* ppid */, Logr::log_t /* slog */)
 {
   signal(SIGALRM, dokill);
   alarm(1);
   return "Exiting";
 }
 
-string DLPingHandler(const vector<string>& /* parts */, Utility::pid_t /* ppid */, std::shared_ptr<Logr::Logger> /* slog */)
+string DLPingHandler(const vector<string>& /* parts */, Utility::pid_t /* ppid */, Logr::log_t /* slog */)
 {
   return "PONG";
 }
 
-string DLShowHandler(const vector<string>& parts, Utility::pid_t /* ppid */, std::shared_ptr<Logr::Logger> /* slog */)
+string DLShowHandler(const vector<string>& parts, Utility::pid_t /* ppid */, Logr::log_t /* slog */)
 {
   try {
     extern StatBag S;
@@ -116,21 +116,21 @@ void setStatus(const string &str)
   d_status=str;
 }
 
-string DLStatusHandler(const vector<string>& /* parts */, Utility::pid_t ppid, std::shared_ptr<Logr::Logger> /* slog */)
+string DLStatusHandler(const vector<string>& /* parts */, Utility::pid_t ppid, Logr::log_t /* slog */)
 {
   ostringstream os;
   os<<ppid<<": "<<d_status;
   return os.str();
 }
 
-string DLUptimeHandler(const vector<string>& /* parts */, Utility::pid_t /* ppid */, std::shared_ptr<Logr::Logger> /* slog */)
+string DLUptimeHandler(const vector<string>& /* parts */, Utility::pid_t /* ppid */, Logr::log_t /* slog */)
 {
   ostringstream os;
   os<<humanDuration(time(nullptr)-g_starttime);
   return os.str();
 }
 
-string DLPurgeHandler(const vector<string>& parts, Utility::pid_t /* ppid */, std::shared_ptr<Logr::Logger> slog)
+string DLPurgeHandler(const vector<string>& parts, Utility::pid_t /* ppid */, Logr::log_t slog)
 {
   ostringstream os;
   int ret=0;
@@ -166,7 +166,7 @@ string DLPurgeHandler(const vector<string>& parts, Utility::pid_t /* ppid */, st
   return os.str();
 }
 
-string DLCCHandler(const vector<string>& /* parts */, Utility::pid_t /* ppid */, std::shared_ptr<Logr::Logger> /* slog */)
+string DLCCHandler(const vector<string>& /* parts */, Utility::pid_t /* ppid */, Logr::log_t /* slog */)
 {
   extern AuthPacketCache PC;
   extern AuthQueryCache QC;
@@ -195,12 +195,12 @@ string DLCCHandler(const vector<string>& /* parts */, Utility::pid_t /* ppid */,
   return os.str();
 }
 
-string DLQTypesHandler(const vector<string>& /* parts */, Utility::pid_t /* ppid */, std::shared_ptr<Logr::Logger> /* slog */)
+string DLQTypesHandler(const vector<string>& /* parts */, Utility::pid_t /* ppid */, Logr::log_t /* slog */)
 {
   return g_rs.getQTypeReport();
 }
 
-string DLRSizesHandler(const vector<string>& /* parts */, Utility::pid_t /* ppid */, std::shared_ptr<Logr::Logger> /* slog */)
+string DLRSizesHandler(const vector<string>& /* parts */, Utility::pid_t /* ppid */, Logr::log_t /* slog */)
 {
   typedef map<uint16_t, uint64_t> respsizes_t;
   respsizes_t respsizes = g_rs.getSizeResponseCounts();
@@ -212,7 +212,7 @@ string DLRSizesHandler(const vector<string>& /* parts */, Utility::pid_t /* ppid
   return os.str();
 }
 
-string DLRemotesHandler(const vector<string>& /* parts */, Utility::pid_t /* ppid */, std::shared_ptr<Logr::Logger> /* slog */)
+string DLRemotesHandler(const vector<string>& /* parts */, Utility::pid_t /* ppid */, Logr::log_t /* slog */)
 {
   extern StatBag S;
   typedef vector<pair<string, unsigned int> > totals_t;
@@ -225,7 +225,7 @@ string DLRemotesHandler(const vector<string>& /* parts */, Utility::pid_t /* ppi
   return ret;
 }
 
-string DLSettingsHandler(const vector<string>& parts, Utility::pid_t /* ppid */, std::shared_ptr<Logr::Logger> slog)
+string DLSettingsHandler(const vector<string>& parts, Utility::pid_t /* ppid */, Logr::log_t slog)
 {
   static const char *whitelist[]={"query-logging",nullptr};
   const char **p;
@@ -248,12 +248,12 @@ string DLSettingsHandler(const vector<string>& parts, Utility::pid_t /* ppid */,
 
 }
 
-string DLVersionHandler(const vector<string>& /* parts */, Utility::pid_t /* ppid */, std::shared_ptr<Logr::Logger> /* slog */)
+string DLVersionHandler(const vector<string>& /* parts */, Utility::pid_t /* ppid */, Logr::log_t /* slog */)
 {
   return VERSION;
 }
 
-string DLNotifyRetrieveHandler(const vector<string>& parts, Utility::pid_t /* ppid */, std::shared_ptr<Logr::Logger> slog)
+string DLNotifyRetrieveHandler(const vector<string>& parts, Utility::pid_t /* ppid */, Logr::log_t slog)
 {
   extern CommunicatorClass Communicator;
   ostringstream os;
@@ -300,7 +300,7 @@ string DLNotifyRetrieveHandler(const vector<string>& parts, Utility::pid_t /* pp
   return "Added retrieval request for '" + domain.toLogString() + "' from primary " + primary.toLogString();
 }
 
-string DLNotifyHostHandler(const vector<string>& parts, Utility::pid_t /* ppid */, std::shared_ptr<Logr::Logger> slog)
+string DLNotifyHostHandler(const vector<string>& parts, Utility::pid_t /* ppid */, Logr::log_t slog)
 {
   extern CommunicatorClass Communicator;
   ostringstream os;
@@ -329,7 +329,7 @@ string DLNotifyHostHandler(const vector<string>& parts, Utility::pid_t /* ppid *
   return "Added to queue";
 }
 
-string DLNotifyHandler(const vector<string>& parts, Utility::pid_t /* ppid */, std::shared_ptr<Logr::Logger> slog)
+string DLNotifyHandler(const vector<string>& parts, Utility::pid_t /* ppid */, Logr::log_t slog)
 {
   extern CommunicatorClass Communicator;
   UeberBackend B;
@@ -371,7 +371,7 @@ string DLNotifyHandler(const vector<string>& parts, Utility::pid_t /* ppid */, s
   }
 }
 
-string DLRediscoverHandler(const vector<string>& /* parts */, Utility::pid_t /* ppid */, std::shared_ptr<Logr::Logger> slog)
+string DLRediscoverHandler(const vector<string>& /* parts */, Utility::pid_t /* ppid */, Logr::log_t slog)
 {
   UeberBackend B;
   try {
@@ -387,7 +387,7 @@ string DLRediscoverHandler(const vector<string>& /* parts */, Utility::pid_t /* 
 
 }
 
-string DLReloadHandler(const vector<string>& /* parts */, Utility::pid_t /* ppid */, std::shared_ptr<Logr::Logger> slog)
+string DLReloadHandler(const vector<string>& /* parts */, Utility::pid_t /* ppid */, Logr::log_t slog)
 {
   UeberBackend B;
   B.reload();
@@ -396,7 +396,7 @@ string DLReloadHandler(const vector<string>& /* parts */, Utility::pid_t /* ppid
   return "Ok";
 }
 
-string DLListZones(const vector<string>& parts, Utility::pid_t /* ppid */, std::shared_ptr<Logr::Logger> slog)
+string DLListZones(const vector<string>& parts, Utility::pid_t /* ppid */, Logr::log_t slog)
 {
   UeberBackend B;
   SLOG(g_log<<Logger::Notice<<"Received request to list zones."<<endl,
@@ -426,7 +426,7 @@ string DLListZones(const vector<string>& parts, Utility::pid_t /* ppid */, std::
   return ret.str();
 }
 
-string DLFlushHandler(const vector<string>& /*parts*/, Utility::pid_t /*ppid*/, std::shared_ptr<Logr::Logger> slog)
+string DLFlushHandler(const vector<string>& /*parts*/, Utility::pid_t /*ppid*/, Logr::log_t slog)
 {
   UeberBackend B; // NOLINT(readability-identifier-length)
   B.flush();
@@ -439,7 +439,7 @@ string DLFlushHandler(const vector<string>& /*parts*/, Utility::pid_t /*ppid*/, 
 extern bool PKCS11ModuleSlotLogin(const std::string& module, const string& tokenId, const std::string& pin);
 #endif
 
-string DLTokenLogin([[maybe_unused]] const vector<string>& parts, [[maybe_unused]] Utility::pid_t /* ppid */, std::shared_ptr<Logr::Logger> /* slog */)
+string DLTokenLogin([[maybe_unused]] const vector<string>& parts, [[maybe_unused]] Utility::pid_t /* ppid */, Logr::log_t /* slog */)
 {
 #ifndef HAVE_P11KIT1
   return "PKCS#11 support not compiled in";
@@ -456,7 +456,7 @@ string DLTokenLogin([[maybe_unused]] const vector<string>& parts, [[maybe_unused
 #endif
 }
 
-string DLSuckRequests(const vector<string>& /* parts */, Utility::pid_t /* ppid */, std::shared_ptr<Logr::Logger> /* slog */)
+string DLSuckRequests(const vector<string>& /* parts */, Utility::pid_t /* ppid */, Logr::log_t /* slog */)
 {
   string ret;
   for (auto const &d: Communicator.getSuckRequests()) {

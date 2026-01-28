@@ -38,7 +38,7 @@ private:
 
 public:
   //! Constructor.
-  SSQLite3(std::shared_ptr<Logr::Logger> log, const std::string& database, const std::string& journalmode, bool creat = false);
+  SSQLite3(Logr::log_t log, const std::string& database, const std::string& journalmode, bool creat = false);
 
   //! Destructor.
   ~SSQLite3() override;

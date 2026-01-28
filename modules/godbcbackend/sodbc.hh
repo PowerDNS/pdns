@@ -51,7 +51,7 @@ public:
   \param password Password to use.
   */
   SODBC(
-    std::shared_ptr<Logr::Logger> log,
+    Logr::log_t log,
     const std::string& dsn,
     const std::string& username,
     const std::string& password);

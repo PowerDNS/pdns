@@ -372,7 +372,7 @@ static inline string makeBackendRecordContent(const QType& qtype, const string& 
   return makeRecordContent(qtype, content, true);
 }
 
-static Json::object getZoneInfo(const DomainInfo& domainInfo, DNSSECKeeper* dnssecKeeper, std::shared_ptr<Logr::Logger> slog)
+static Json::object getZoneInfo(const DomainInfo& domainInfo, DNSSECKeeper* dnssecKeeper, Logr::log_t slog)
 {
   string zoneId = apiZoneNameToId(domainInfo.zone);
   vector<string> primaries;
@@ -892,7 +892,7 @@ static void extractJsonTSIGKeyIds(UeberBackend& backend, const Json& jsonArray, 
 }
 
 // Wrapper around makeIncreasedSOARecord()
-static void updateZoneSerial(DomainInfo& domainInfo, SOAData& soaData, const std::string& increaseKind, const std::string& editKind, std::shared_ptr<Logr::Logger> slog)
+static void updateZoneSerial(DomainInfo& domainInfo, SOAData& soaData, const std::string& increaseKind, const std::string& editKind, Logr::log_t slog)
 {
   DNSResourceRecord resourceRecord;
 
@@ -904,7 +904,7 @@ static void updateZoneSerial(DomainInfo& domainInfo, SOAData& soaData, const std
 }
 
 // Must be called within backend transaction.
-static void updateDomainSettingsFromDocument(UeberBackend& backend, DomainInfo& domainInfo, const ZoneName& zonename, const Json& document, bool zoneWasModified, std::shared_ptr<Logr::Logger> slog)
+static void updateDomainSettingsFromDocument(UeberBackend& backend, DomainInfo& domainInfo, const ZoneName& zonename, const Json& document, bool zoneWasModified, Logr::log_t slog)
 {
   std::optional<DomainInfo::DomainKind> kind;
   std::optional<vector<ComboAddress>> primaries;
@@ -1445,7 +1445,7 @@ static void apiZoneCryptokeysGET(HttpRequest* req, HttpResponse* resp)
 // Common processing following a crypto keys operation which caused keys to be
 // added or removed. If this is a primary zone, we need to increase its
 // serial if configured to do so.
-static void apiZoneCryptokeysPostProcessing(ZoneData& zoneData, std::shared_ptr<Logr::Logger> slog)
+static void apiZoneCryptokeysPostProcessing(ZoneData& zoneData, Logr::log_t slog)
 {
   // We do not check using isPrimaryType() because we also want to include
   // DomainInfo::Native here.

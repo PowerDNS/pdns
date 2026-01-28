@@ -166,7 +166,7 @@ public:
     d_nsock6 = -1;
     d_preventSelfNotification = false;
   }
-  void setSLog(std::shared_ptr<Logr::Logger> slog)
+  void setSLog(Logr::log_t slog)
   {
     d_slog = slog;
   }
