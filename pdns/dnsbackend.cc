@@ -121,9 +121,18 @@ const string& BackendFactory::getName() const
   return d_name;
 }
 
-BackendMakerClass& BackendMakers()
+std::shared_ptr<Logr::Logger> BackendMakerClass::s_slog;
+
+BackendMakerClass::BackendMakerClass(Logr::log_t slog)
 {
-  static BackendMakerClass bmc;
+  if (s_slog == nullptr && slog != nullptr) {
+    s_slog = slog;
+  }
+}
+
+BackendMakerClass& BackendMakers(Logr::log_t slog)
+{
+  static BackendMakerClass bmc(slog);
   return bmc;
 }
 
@@ -151,14 +160,16 @@ vector<string> BackendMakerClass::getModules()
 
 void BackendMakerClass::load_all()
 {
-  auto directoryError = pdns::visit_directory(arg()["module-dir"], []([[maybe_unused]] ino_t inodeNumber, const std::string_view& name) {
+  auto directory = arg()["module-dir"];
+  auto directoryError = pdns::visit_directory(directory, []([[maybe_unused]] ino_t inodeNumber, const std::string_view& name) {
     if (boost::starts_with(name, "lib") && name.size() > 13 && boost::ends_with(name, "backend.so")) {
       load(std::string(name));
     }
     return true;
   });
   if (directoryError) {
-    g_log << Logger::Error << "Unable to open module directory '" << arg()["module-dir"] << "': " << *directoryError << endl;
+    SLOG(g_log << Logger::Error << "Unable to open module directory '" << directory << "': " << *directoryError << endl,
+         s_slog->error(Logr::Error, *directoryError, "Unable to open module directory", "directory", Logging::Loggable(directory)));
   }
 }
 
@@ -166,26 +177,32 @@ void BackendMakerClass::load(const string& module)
 {
   bool res = false;
 
-  g_log << Logger::Debug << "BackendMakerClass: module = " << module << endl;
-  g_log << Logger::Debug << "BackendMakerClass: module-dir = " << arg()["module-dir"] << endl;
+  auto moduleDir = arg()["module-dir"];
+  SLOG(g_log << Logger::Debug << "BackendMakerClass: module = " << module << endl
+             << Logger::Debug << "BackendMakerClass: module-dir = " << moduleDir << endl,
+       s_slog->info(Logr::Debug, "BackendMakerClass", "module-dir", Logging::Loggable(moduleDir), "module", Logging::Loggable(module)));
   if (module.find('.') == string::npos) {
-    auto modulePath = arg()["module-dir"] + "/lib" + module + "backend.so";
-    g_log << Logger::Debug << "BackendMakerClass: Loading '" << modulePath << "'" << endl;
+    auto modulePath = moduleDir + "/lib" + module + "backend.so";
+    SLOG(g_log << Logger::Debug << "BackendMakerClass: Loading '" << modulePath << "'" << endl,
+         s_slog->info(Logr::Debug, "BackendMakerClass: loading", "file", Logging::Loggable(modulePath)));
     res = UeberBackend::loadmodule(modulePath);
   }
   else if (module[0] == '/' || (module[0] == '.' && module[1] == '/') || (module[0] == '.' && module[1] == '.')) {
     // Absolute path, Current path or Parent path
-    g_log << Logger::Debug << "BackendMakerClass: Loading '" << module << "'" << endl;
+    SLOG(g_log << Logger::Debug << "BackendMakerClass: Loading '" << module << "'" << endl,
+         s_slog->info(Logr::Debug, "BackendMakerClass: loading", "file", Logging::Loggable(module)));
     res = UeberBackend::loadmodule(module);
   }
   else {
-    auto modulePath = arg()["module-dir"] + "/" + module;
-    g_log << Logger::Debug << "BackendMakerClass: Loading '" << modulePath << "'" << endl;
+    auto modulePath = moduleDir + "/" + module;
+    SLOG(g_log << Logger::Debug << "BackendMakerClass: Loading '" << modulePath << "'" << endl,
+         s_slog->info(Logr::Debug, "BackendMakerClass: loading", "file", Logging::Loggable(module)));
     res = UeberBackend::loadmodule(modulePath);
   }
 
   if (!res) {
-    g_log << Logger::Error << "DNSBackend unable to load module in " << module << endl;
+    SLOG(g_log << Logger::Error << "DNSBackend unable to load module in " << module << endl,
+         s_slog->info(Logr::Error, "DNSBackend unable to load module", "module", Logging::Loggable(module)));
     exit(1);
   }
 }
@@ -254,14 +271,16 @@ vector<std::unique_ptr<DNSBackend>> BackendMakerClass::all(bool metadataOnly)
     }
   }
   catch (const PDNSException& ae) {
-    g_log << Logger::Error << "Caught an exception instantiating a backend (" << current << "): " << ae.reason << endl;
-    g_log << Logger::Error << "Cleaning up" << endl;
+    SLOG(g_log << Logger::Error << "Caught an exception instantiating a backend (" << current << "): " << ae.reason << endl
+               << Logger::Error << "Cleaning up" << endl,
+         s_slog->error(Logr::Error, ae.reason, "Caught an exception instantiating a backend, cleaning up", "backend", Logging::Loggable(current)));
     ret.clear();
     throw;
   }
   catch (...) {
     // and cleanup
-    g_log << Logger::Error << "Caught an exception instantiating a backend (" << current << "), cleaning up" << endl;
+    SLOG(g_log << Logger::Error << "Caught an exception instantiating a backend (" << current << "), cleaning up" << endl,
+         s_slog->error(Logr::Error, "Caught an exception instantiating a backend, cleaning up", "backend", Logging::Loggable(current)));
     ret.clear();
     throw;
   }
@@ -374,7 +393,8 @@ bool DNSBackend::getBeforeAndAfterNames(domainid_t domainId, const ZoneName& zon
 void DNSBackend::getAllDomains(vector<DomainInfo>* /* domains */, bool /* getSerial */, bool /* include_disabled */)
 {
   if (g_zoneCache.isEnabled()) {
-    g_log << Logger::Error << "One of the backends does not support zone caching. Put zone-cache-refresh-interval=0 in the config file to disable this cache." << endl;
+    SLOG(g_log << Logger::Error << "One of the backends does not support zone caching. Put zone-cache-refresh-interval=0 in the config file to disable this cache." << endl,
+         d_slog->info(Logr::Error, "One of the backends does not support zone caching. Put zone-cache-refresh-interval=0 in the configuration file to disable this cache."));
     exit(1);
   }
 }

@@ -201,9 +201,9 @@ private:
 
 uint32_t localtime_format_YYYYMMDDSS(time_t t, uint32_t seq);
 // for SOA-EDIT
-uint32_t calculateEditSOA(uint32_t old_serial, DNSSECKeeper& dsk, const ZoneName& zonename);
-uint32_t calculateEditSOA(uint32_t old_serial, const string& kind, const ZoneName& zonename);
+uint32_t calculateEditSOA(uint32_t old_serial, DNSSECKeeper& dsk, const ZoneName& zonename, Logr::log_t slog);
+uint32_t calculateEditSOA(uint32_t old_serial, const string& kind, const ZoneName& zonename, Logr::log_t slog);
 // for SOA-EDIT-DNSUPDATE/API
-bool increaseSOARecord(DNSResourceRecord& rr, const string& increaseKind, const string& editKind, const ZoneName& zonename);
-bool makeIncreasedSOARecord(SOAData& sd, const string& increaseKind, const string& editKind, DNSResourceRecord& rrout);
-DNSZoneRecord makeEditedDNSZRFromSOAData(DNSSECKeeper& dk, const SOAData& sd, DNSResourceRecord::Place place=DNSResourceRecord::ANSWER);
+bool increaseSOARecord(DNSResourceRecord& rr, const string& increaseKind, const string& editKind, const ZoneName& zonename, Logr::log_t slog);
+bool makeIncreasedSOARecord(SOAData& sd, const string& increaseKind, const string& editKind, DNSResourceRecord& rrout, Logr::log_t slog);
+DNSZoneRecord makeEditedDNSZRFromSOAData(DNSSECKeeper& dk, const SOAData& sd, DNSResourceRecord::Place place, Logr::log_t slog);

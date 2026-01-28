@@ -532,7 +532,7 @@ BOOST_AUTO_TEST_CASE(test_simple) {
 
     {
       // test a DNS packet is correctly passed and that the corresponding scope is passed back
-      DNSPacket pkt(true);
+      DNSPacket pkt(nullptr, true);
       ComboAddress remote("192.0.2.1");
       pkt.setRemote(&remote);
       auto records = getRecords(ub, DNSName("geo.powerdns.com."), QType::ANY, 1, &pkt);
@@ -679,7 +679,7 @@ BOOST_AUTO_TEST_CASE(test_multi_backends_separate_zones) {
 
     {
       // test a DNS packet is correctly passed and that the corresponding scope is passed back
-      DNSPacket pkt(true);
+      DNSPacket pkt(nullptr, true);
       ComboAddress remote("192.0.2.1");
       pkt.setRemote(&remote);
       auto records = getRecords(ub, DNSName("geo.powerdns.com."), QType::ANY, 1, &pkt);
@@ -805,7 +805,7 @@ BOOST_AUTO_TEST_CASE(test_multi_backends_overlay) {
 
     {
       // test a DNS packet is correctly passed and that the corresponding scope is passed back
-      DNSPacket pkt(true);
+      DNSPacket pkt(nullptr, true);
       ComboAddress remote("192.0.2.1");
       pkt.setRemote(&remote);
       auto records = getRecords(ub, DNSName("geo.powerdns.com."), QType::ANY, 1, &pkt);
@@ -928,7 +928,7 @@ BOOST_AUTO_TEST_CASE(test_multi_backends_overlay_name) {
 
     {
       // test a DNS packet is correctly passed and that the corresponding scope is passed back
-      DNSPacket pkt(true);
+      DNSPacket pkt(nullptr, true);
       ComboAddress remote("192.0.2.1");
       pkt.setRemote(&remote);
       auto records = getRecords(ub, DNSName("geo.powerdns.com."), QType::ANY, 1, &pkt);
