@@ -8,6 +8,7 @@ Views Endpoints
 
 .. openapi:: swagger/authoritative-api-swagger.yaml
   :paths: /servers/{server_id}/views /servers/{server_id}/views/{view} /servers/{server_id}/views/{view}/{id}
+  :examples:
 
 Examples
 --------
