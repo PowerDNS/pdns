@@ -41,6 +41,7 @@ class DNSDistOpenTelemetryProtobufTest(test_Protobuf.DNSDistProtobufTest):
             ottrace.data += binascii.a2b_hex(traceID)
             if spanID != "":
                 ottrace.data += binascii.a2b_hex(spanID)
+            ottrace.data += b"\x00" # flags
             query = dns.message.make_query(
                 name, "A", "IN", use_edns=True, options=[ottrace]
             )
@@ -428,9 +429,6 @@ response_rules:
     def testNoTraceID(self):
         self.doTest()
 
-    def testOnlyTraceID(self):
-        self.doTest(traceID="0123456789ABCDEF0123456789ABCDEF")
-
     def testTraceIDAndSpanID(self):
         self.doTest(
             traceID="0123456789ABCDEF0123456789ABCDEF",
@@ -454,9 +452,6 @@ addResponseAction(AllRule(), RemoteLogResponseAction(rl, nil, false, {}, {}, fal
 
     def testNoTraceID(self):
         self.doTest()
-
-    def testOnlyTraceID(self):
-        self.doTest(traceID="0123456789ABCDEF0123456789ABCDEF")
 
     def testTraceIDAndSpanID(self):
         self.doTest(

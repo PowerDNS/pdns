@@ -294,9 +294,9 @@ class TestRecursorProtobuf(RecursorTest):
         self.assertEqual(msg.ede, ede)
         self.assertEqual(msg.edeText, edeText)
 
-    def getOpenTelemetryEDNS(self, traceid):
-      prefix = b'\0x00\0x00'
-      opt = dns.edns.GenericOption(65500, prefix + traceid)
+    def getOpenTelemetryEDNS(self, traceid=b'0123456701234567', spanid=b'01234567', flags=b'\x00'):
+      prefix = b'\x00\x00'
+      opt = dns.edns.GenericOption(65500, prefix + traceid + spanid + flags)
       return opt
 
     def checkProtobufOT(self, msg, openTelemetryData, openTelemetryTraceID):
@@ -515,7 +515,7 @@ logging:
 
     def testATraceIDOnly(self):
         self.reloadConfig(self.config_traceid_only)
-        edns = self.getOpenTelemetryEDNS(b'012345678012345678')
+        edns = self.getOpenTelemetryEDNS()
         self.runtest('a.example.', dns.rdatatype.A, '192.0.2.42', False, True, edns)
 
     def testCNAMETraceIDOnly(self):
@@ -523,7 +523,7 @@ logging:
         name = 'cname.example.'
         expectedCNAME = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'CNAME', 'a.example.')
         expectedA = dns.rrset.from_text('a.example.', 0, dns.rdataclass.IN, 'A', '192.0.2.42')
-        edns = self.getOpenTelemetryEDNS(b'012345678012345678')
+        edns = self.getOpenTelemetryEDNS()
         query = dns.message.make_query(name, 'A', want_dnssec=True, options=[edns])
         query.flags |= dns.flags.CD
         raw = self.sendUDPQuery(query, decode=False)
@@ -570,7 +570,7 @@ logging:
 
     def testAAAAOTAOnly(self):
         self.reloadConfig(self.config_otaonly)
-        edns = self.getOpenTelemetryEDNS(b'012345678012345678')
+        edns = self.getOpenTelemetryEDNS()
         self.runtest('aaaa.example.', dns.rdatatype.AAAA, '2001:db8::2', False, True, edns, socket.AF_INET6)
 
     config_nameonly = """
@@ -590,12 +590,12 @@ logging:
 
     def testCorrectNameOnly(self):
         self.reloadConfig(self.config_nameonly)
-        edns = self.getOpenTelemetryEDNS(b'012345678012345678')
+        edns = self.getOpenTelemetryEDNS()
         self.runtest('a.example.', dns.rdatatype.A, '192.0.2.42', True, True, edns)
 
     def testOtherNameOnly(self):
         self.reloadConfig(self.config_nameonly)
-        edns = self.getOpenTelemetryEDNS(b'012345678012345678')
+        edns = self.getOpenTelemetryEDNS()
         self.runtest('aaaa.example.', dns.rdatatype.AAAA, '2001:db8::2', False, True, edns, socket.AF_INET6)
 
     config_nameandtypeonly = """
@@ -616,12 +616,12 @@ logging:
 
     def testCorrectNameAndTypeOnly(self):
         self.reloadConfig(self.config_nameandtypeonly)
-        edns = self.getOpenTelemetryEDNS(b'012345678012345678')
+        edns = self.getOpenTelemetryEDNS()
         self.runtest('aaaa.example.', dns.rdatatype.AAAA, '2001:db8::2', True, True, edns, socket.AF_INET6)
 
     def testCorrectNameWrongType(self):
         self.reloadConfig(self.config_nameandtypeonly)
-        edns = self.getOpenTelemetryEDNS(b'012345678012345678')
+        edns = self.getOpenTelemetryEDNS()
         self.runtest('aaaa.example.', dns.rdatatype.A, None, False, True, edns, None)
 
     config_nameandedns = """
@@ -641,7 +641,7 @@ logging:
 
     def testCorrectNameAndEDNSOnly(self):
         self.reloadConfig(self.config_nameandedns)
-        edns = self.getOpenTelemetryEDNS(b'012345678012345678')
+        edns = self.getOpenTelemetryEDNS()
         self.runtest('aaaa.example.', dns.rdatatype.AAAA, '2001:db8::2', True, True, edns, socket.AF_INET6)
 
     def testCorrectNameNoEDNS(self):
