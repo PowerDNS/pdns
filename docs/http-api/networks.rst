@@ -8,6 +8,7 @@ Networks Endpoints
 
 .. openapi:: swagger/authoritative-api-swagger.yaml
   :paths: /servers/{server_id}/networks /servers/{server_id}/networks/{ip}/{prefixlen}
+  :examples:
 
 Examples
 --------
