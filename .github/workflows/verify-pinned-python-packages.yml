@@ -20,7 +20,7 @@ jobs:
   # is missing or a version does not match the one expected, this job fails, which makes the workflow fail.
   #
   # The pinned version plus hashes are generated using pip-compile using an input file that includes the original list of packages
-  # (pip-compile --generate-hashes -U requirements.in). "pip-compile" can be installed via pip-tools with Python 3.11, which is the version
+  # (pip-compile --generate-hashes -U requirements.in). "pip-compile" can be installed via pip-tools with Python 3.13, which is the version
   # used in the CI. Any other Python version would end up with different versions for packages and could result in workflow failures.
   #
   # One recurring error thrown by this validation is when a new version of a pinned package is released for a "setup-requires" dependency
@@ -71,7 +71,7 @@ jobs:
         uses: ./.github/actions/problem-matchers
       - uses: actions/setup-python@v6
         with:
-          python-version: '3.12'
+          python-version: '3.13'
       # Configure pip index-url set to proxpi
       - run: pip config set global.index-url http://${{ env.SERVICE_IP_ADDR }}:5000/index/
       - run: pip config set global.trusted-host ${{ env.SERVICE_IP_ADDR }}
