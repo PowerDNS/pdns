@@ -9,7 +9,7 @@ Zones endpoint
 
 .. http:post:: /api/v1/servers/:server_id/zones
 
-  Creates a new domain. The client body must contain a :json:object:`Zone`.
+  Creates a new domain. The client body must contain a :json:schema:`Zone`.
 
   :query server_id: The name of the server
 
@@ -18,11 +18,11 @@ Zones endpoint
   Returns zone information.
 
   :query server_id: The name of the server
-  :query zone_id: The id number of the :json:object:`Zone`
+  :query zone_id: The id number of the :json:schema:`Zone`
 
 .. http:delete:: /api/v1/servers/:server_id/zones/:zone_id
 
   Deletes this zone, all attached metadata and rrsets.
 
   :query server_id: The name of the server
-  :query zone_id: The id number of the :json:object:`Zone`
+  :query zone_id: The id number of the :json:schema:`Zone`
