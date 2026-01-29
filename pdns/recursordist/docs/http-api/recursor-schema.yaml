@@ -1,0 +1,35 @@
+$id: "PDNS Recursor webserver"
+
+definitions:
+  OpenTelemetryTraceCondition:
+    $id: OpenTelemetryTraceCondition
+    title: OpenTelemetryTraceCondition
+    type: object
+    properties:
+      acl:
+        type: string
+        description: The subnet of the entry. Note that the YAML settings file allows multiple subnets for convenience. This object does not allow multiple subnets to be specified.
+      type:
+        type: string
+        description: set to "OpenTelemetryTraceCondition"
+      edns_option_required:
+        type: boolean
+        default: false
+        description: Whether or not the incoming query has an EDNS TRACEPARENT option specifying the TraceID.
+      qid:
+        type: integer
+        description: A specific query id required to start tracing
+      qnames:
+        type: array
+        items:
+          type: string
+        description: suffixmatch with the incoming qname is done against this list
+      qtypes:
+        type: array
+        items:
+          type: string
+        description: List of qtypes to trigger tracing on
+      traceid_only:
+        type: boolean
+        default: false
+        description: Whether or not to pick up the TraceID from EDNS data (if present) and placed into the protobuf `openTelemetryTraceID` field; no detailed `openTelemetryData` is produced

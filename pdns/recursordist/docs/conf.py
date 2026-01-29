@@ -113,6 +113,12 @@ changelog_inner_tag_sort = ["General", "DNSSEC", "Protobuf", "RPZ"]
 
 changelog_hide_tags_in_entry = True
 
+# -- Options for the Sphinx-Immaterial JSON Domain ------------------------
+json_schemas = [
+    "http-api/authoritative-api-swagger.yaml",
+    "http-api/recursor-schema.yaml",
+]
+
 # -- Options for HTML output ----------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
