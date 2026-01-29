@@ -300,7 +300,7 @@ The DNSQuestion object contains at least the following fields:
 
     .. versionadded:: 4.4.0
 
-      Get the Proxy Protocol Type-Length Values if any, as a table of  :class:`ProxyProtocolValue` objects.
+    Get the Proxy Protocol Type-Length Values if any, as a table of :class:`ProxyProtocolValue` objects.
 
   .. method:: getRecords() -> {DNSRecord}
 
@@ -388,12 +388,14 @@ The EDNSOptionView Class
   An object that represents the values of a single EDNS option
 
   .. method:: count()
-     .. versionadded:: 4.2.0
+
+    .. versionadded:: 4.2.0
 
     The number of values for this EDNS option.
 
   .. method:: getValues()
-     .. versionadded:: 4.2.0
+
+    .. versionadded:: 4.2.0
 
     Return a table of NULL-safe strings values for this EDNS option.
 

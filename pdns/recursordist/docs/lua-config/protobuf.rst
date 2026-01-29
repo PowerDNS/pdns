@@ -15,7 +15,7 @@ Configuring Protocol Buffer logs
 --------------------------------
 Protobuf export to a server is enabled using the ``protobufServer()`` directive:
 
-.. function:: protobufServer(servers [, options]))
+.. function:: protobufServer(servers [, options])
 
   .. versionadded:: 4.2.0
   .. versionadded:: 5.1.0 Alternative equivalent YAML setting: :ref:`setting-yaml-logging.protobuf_servers`.
