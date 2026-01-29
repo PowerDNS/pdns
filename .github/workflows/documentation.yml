@@ -52,7 +52,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v6
         with:
-          python-version: '3.12'
+          python-version: '3.13'
       - run: pip install pyyaml
       - run: build-scripts/gh-actions-setup-inv-no-dist-upgrade
       - run: inv install-doc-deps
