@@ -24,7 +24,7 @@ Changelog
     Clang-tidy: replace ``lock_guard`` with ``scoped_lock`` (Rosen Penev)
 
   .. change::
-    :tags: XXXXXX
+    :tags: Improvements
     :pullreq: 15890
 
     LuaWrapper: Add support for ``std::optional``
