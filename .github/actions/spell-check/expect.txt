@@ -1190,6 +1190,7 @@ rname
 rockylinux
 rocommunity
 Roel
+Rolff
 rolltype
 Rosmalen
 roundrobin
