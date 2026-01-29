@@ -192,18 +192,6 @@ fn api_wrapper(
         }
     }
 
-    if !auth_ok && !ctx.api_ch.is_null() {
-        if let Some(pw) = ctx.api_ch.as_ref() {
-            for kv in &request.vars {
-                cxx::let_cxx_string!(s = &kv.value);
-                if kv.key == "api-key" && pw.matches(&s) {
-                    auth_ok = true;
-                    break;
-                }
-            }
-        }
-    }
-
     if !auth_ok && allow_password {
         auth_ok = compare_authorization(ctx, reqheaders);
         if !auth_ok {
