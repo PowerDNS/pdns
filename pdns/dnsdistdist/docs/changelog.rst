@@ -3,7 +3,7 @@ Changelog
 
 .. changelog::
   :version: 2.1.0-alpha1
-  :released: 29th of February 2026
+  :released: 29th of January 2026
 
   .. change::
     :tags: New Features
