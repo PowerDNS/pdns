@@ -126,7 +126,7 @@ changelog_inner_tag_sort = [
 changelog_hide_tags_in_entry = True
 
 # -- Options for the Sphinx-Immaterial JSON Domain ------------------------
-json_schemas = ["http-api/swagger/authoritative-api-swagger.yaml"]
+json_schemas = ["http-api/swagger/authoritative-api-schema.yaml"]
 
 # -- Options for HTML output ----------------------------------------------
 
