@@ -748,16 +748,19 @@ struct TracesData
     return data;
   }
 
-  static TracesData boilerPlate(std::string&& service, std::vector<Span>&& spans, const std::vector<KeyValue>& attributes, std::string& serverID)
+  static TracesData boilerPlate(std::string&& service, std::vector<Span>&& spans, const std::vector<KeyValue>& attributes, const std::string& serverID)
   {
     auto& spanAttrs = spans.at(0).attributes;
     spanAttrs.insert(spanAttrs.end(), attributes.begin(), attributes.end());
-    auto host = getHostname();
-    std::string hostname = host.value_or("unset");
     InstrumentationScope scope{
-      .name = "rec", .version = VERSION, .attributes = {{"hostname", {hostname}}, {"server.id", {serverID}}}};
+      .name = "rec", .version = VERSION};
     return TracesData{
-      .resource_spans = {pdns::trace::ResourceSpans{.resource = {.attributes = {{"service.name", {{std::move(service)}}}}}, .scope_spans = {{.scope = std::move(scope), .spans = std::move(spans)}}}}};
+      .resource_spans = {pdns::trace::ResourceSpans{
+        .resource = {
+          .attributes = {
+            {"service.name", {{std::move(service)}}},
+            {"instance", {serverID}}}},
+        .scope_spans = {{.scope = std::move(scope), .spans = std::move(spans)}}}}};
   }
 };
 
