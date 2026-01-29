@@ -52,17 +52,17 @@ gMySQLBackend::gMySQLBackend(const string& mode, const string& suffix) :
 
 void gMySQLBackend::reconnect()
 {
-  setDB(new SMySQL(getArg("dbname"),
-                   getArg("host"),
-                   getArgAsNum("port"),
-                   getArg("socket"),
-                   getArg("user"),
-                   getArg("password"),
-                   getArg("group"),
-                   mustDo("innodb-read-committed"),
-                   getArgAsNum("timeout"),
-                   mustDo("thread-cleanup"),
-                   mustDo("ssl")));
+  setDB(std::unique_ptr<SSql>(new SMySQL(getArg("dbname"),
+                                         getArg("host"),
+                                         getArgAsNum("port"),
+                                         getArg("socket"),
+                                         getArg("user"),
+                                         getArg("password"),
+                                         getArg("group"),
+                                         mustDo("innodb-read-committed"),
+                                         getArgAsNum("timeout"),
+                                         mustDo("thread-cleanup"),
+                                         mustDo("ssl"))));
   allocateStatements();
 }
 
