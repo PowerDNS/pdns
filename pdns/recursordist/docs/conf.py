@@ -83,15 +83,19 @@ language = "en"
 # directories to ignore when looking for source files.
 # This patterns also effect to html_static_path and html_extra_path
 exclude_patterns = [
-    "_build",
-    "Thumbs.db",
     ".DS_Store",
     ".venv",
-    "http-api/override.rst",
-    "common/zonemetadata.rst",
+    "Thumbs.db",
+    "_build",
+    "common/api/endpoint-servers-config.rst",
+    "common/api/zone.rst",
     "common/endpoint-servers-config.rst",
     "common/secpoll.rst",
-    "common/api/zone.rst",
+    "common/security-policy.rst",
+    "common/tarball-pgp-keys.rst",
+    "common/zonemetadata.rst",
+    "http-api/override.rst",
+    "security-advisories/older-than-3.0.rst",
 ]
 
 # The name of the Pygments (syntax highlighting) style to use.
