@@ -23,9 +23,9 @@ Further more, dnsdist only listens for queries on the local-loopback interface b
 Listening on different addresses
 --------------------------------
 
-To listen on other addresses than just the local addresses, use :func:`setLocal` and :func:`addLocal`.
+To listen on other addresses than just the local addresses, use :lua:func:`setLocal` and :lua:func:`addLocal`.
 
-:func:`setLocal` **resets** the list of current listen addresses to the specified address and :func:`addLocal` adds an additional listen address.
+:lua:func:`setLocal` **resets** the list of current listen addresses to the specified address and :lua:func:`addLocal` adds an additional listen address.
 To listen on ``127.0.0.1:5300``, ``192.0.2.1:53`` and UDP-only on ``[2001:db8::15::47]:53``, configure the following:
 
 .. code-block:: lua
@@ -43,30 +43,30 @@ Modifying the ACL
 -----------------
 
 ACLs can be modified at runtime from the :ref:`Console`.
-To inspect the currently active :term:`ACL`, run :func:`showACL`.
+To inspect the currently active :term:`ACL`, run :lua:func:`showACL`.
 
-To add a new network range to the existing ACL, use :func:`addACL`:
+To add a new network range to the existing ACL, use :lua:func:`addACL`:
 
 .. code-block:: lua
 
   addACL('192.0.2.0/25')
   addACL('2001:db8::1') -- No netmask specified, only allow this address
 
-To remove a previously added network range from the existing ACL, use :func:`rmACL`:
+To remove a previously added network range from the existing ACL, use :lua:func:`rmACL`:
 
 .. code-block:: lua
 
   rmACL('192.0.2.0/25')
   rmACL('2001:db8::1') -- No netmask specified, only remove this address
 
-dnsdist also has the :func:`setACL` function that accepts a list of netmasks and resets the ACL to that list:
+dnsdist also has the :lua:func:`setACL` function that accepts a list of netmasks and resets the ACL to that list:
 
 .. code-block:: lua
 
   setACL({'192.0.2.0/25', '2001:db8:15::bea/64'})
 
 
-To set the ACL from a file containing a list of netmasks, use :func:`setACLFromFile`:
+To set the ACL from a file containing a list of netmasks, use :lua:func:`setACLFromFile`:
 
 .. code-block:: lua
 

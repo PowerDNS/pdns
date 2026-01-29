@@ -1142,7 +1142,7 @@ def setup_godbc_mssql(c):
     with open(os.path.expanduser("~/.odbc.ini"), "a") as f:
         f.write(godbc_config)
     c.sudo('sh -c \'echo "Threading=1" | cat /usr/share/tdsodbc/odbcinst.ini - | tee -a /etc/odbcinst.ini\'')
-    c.sudo('sed -i "s/libtdsodbc.so/\/usr\/lib\/x86_64-linux-gnu\/odbc\/libtdsodbc.so/g" /etc/odbcinst.ini')
+    c.sudo('sed -i "s,libtdsodbc.so,/usr/lib/x86_64-linux-gnu/odbc/libtdsodbc.so,g" /etc/odbcinst.ini')
     c.run(f'echo "create database pdns" | isql -v pdns-mssql-docker-nodb {godbc_mssql_credentials["username"]} {godbc_mssql_credentials["password"]}')
     # FIXME: Skip 8bit-txt-unescaped test
     c.run('touch ${PWD}/regression-tests/tests/8bit-txt-unescaped/skip')
@@ -1150,7 +1150,7 @@ def setup_godbc_mssql(c):
 def setup_godbc_sqlite3(c):
     with open(os.path.expanduser("~/.odbc.ini"), "a") as f:
         f.write(godbc_config)
-    c.sudo('sed -i "s/libsqlite3odbc.so/\/usr\/lib\/x86_64-linux-gnu\/odbc\/libsqlite3odbc.so/g" /etc/odbcinst.ini')
+    c.sudo('sed -i "s,libsqlite3odbc.so,/usr/lib/x86_64-linux-gnu/odbc/libsqlite3odbc.so,g" /etc/odbcinst.ini')
 
 def setup_ldap_client(c):
     c.sudo('DEBIAN_FRONTEND=noninteractive apt-get install -y ldap-utils')

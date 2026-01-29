@@ -1,18 +1,16 @@
 # To generate requirements.txt, install pip-tools and run:
 #  pip-compile --generate-hashes -U requirements.in
 
-wheel==0.46.2
-setuptools-git==1.2
-Sphinx>=1.5.0,!=1.8.0,<2.0
-alabaster==0.7.13 # higher versions require Sphinx>3.4
-https://github.com/PowerDNS/sphinx-lua/archive/refs/heads/pdns.zip
-https://github.com/PowerDNS/sphinx-jsondomain/archive/refs/heads/no-type-links.zip
-changelog>=0.5.6,<0.6
+# Sphinx >9 breaks the immaterial theme
+# See https://github.com/jbms/sphinx-immaterial/pull/477
+Sphinx>=8.2,<9
+
+sphinx-lua-ls>=3.9,<3.10
+changelog>=0.6,<0.7
 sphinxcontrib-httpdomain
 sphinxcontrib-fulltoc
-docutils!=0.15,<0.18
-jinja2<3.1.0
-alabaster==0.7.13
+sphinx-immaterial [json]>=0.13,<0.14
+jinja2>=3.1.0,<3.2
 pbr # setup-requires for sphinxcontrib-fulltoc
 standard.pipes
 standard.imghdr
