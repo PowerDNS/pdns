@@ -20,7 +20,6 @@
 # import os
 import sys
 from pathlib import Path
-import guzzle_sphinx_theme
 
 # -- General configuration ------------------------------------------------
 
@@ -36,13 +35,15 @@ sys.path.append(str(Path(".").resolve()))
 # extensions = []
 # extensions = ['redjack.sphinx.lua', 'sphinxcontrib.httpdomain', 'sphinxjsondomain']
 extensions = [
-    "redjack.sphinx.lua",
-    "sphinxcontrib.httpdomain",
-    "sphinxjsondomain",
-    "sphinxcontrib.fulltoc",
     "changelog",
     "depfile",
+    "sphinx_immaterial",
+    "sphinx_immaterial.apidoc.json.domain",
+    "sphinx_lua_ls",
+    "sphinxcontrib.fulltoc",
+    "sphinxcontrib.httpdomain",
 ]
+
 primary_domain = "lua"
 
 # Add any paths that contain templates here, relative to this directory.
@@ -76,7 +77,7 @@ author = "PowerDNS.COM BV"
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = "en"
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -99,6 +100,7 @@ pygments_style = "sphinx"
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = False
 
+lua_ls_backend = "luals"
 
 # -- Changelog Options ----------------------------------------------------
 
@@ -116,16 +118,26 @@ changelog_hide_tags_in_entry = True
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme_path = guzzle_sphinx_theme.html_theme_path()
-html_theme = "guzzle_sphinx_theme"
-
-extensions.append("guzzle_sphinx_theme")
+html_theme = "sphinx_immaterial"
 
 html_theme_options = {
-    # Set the name of the project to appear in the sidebar
-    "project_nav_name": "PowerDNS Recursor",
+    "site_url": "https://doc.powerdns.com/recursor",
+    "features": [
+        "navigation.tabs",
+        "navigation.tabs.sticky",
+        "navigation.top",
+        "navigation.tracking",
+        "navigation.sections",
+        "navigation.footer",
+        "toc.integrate",
+        "toc.follow",
+        "search.highlight",
+        "search.share",
+        "search.suggest",
+    ],
 }
-html_favicon = "common/favicon.ico"
+
+html_css_files = ["extra.css"]
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -137,9 +149,9 @@ html_favicon = "common/favicon.ico"
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
-html_style = "pdns.css"
 
-html_sidebars = {"**": ["logo-text.html", "searchbox.html", "relations.html", "localtoc.html", "sourcelink.html"]}
+html_favicon = "_static/favicon.ico"
+html_logo = "_static/powerdns_logo_white_orange_rgb.png"
 
 # -- Options for HTMLHelp output ------------------------------------------
 
@@ -168,7 +180,13 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, "PowerDNS-Recursor.tex", "PowerDNS Recursor Documentation", "PowerDNS.COM BV", "manual"),
+    (
+        master_doc,
+        "PowerDNS-Recursor.tex",
+        "PowerDNS Recursor Documentation",
+        "PowerDNS.COM BV",
+        "manual",
+    ),
 ]
 
 latex_logo = "common/powerdns-logo-500px.png"
@@ -179,8 +197,20 @@ latex_logo = "common/powerdns-logo-500px.png"
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ("manpages/rec_control.1", "rec_control", "Command line tool to control a running Recursor", [author], 1),
-    ("manpages/pdns_recursor.1", "pdns_recursor", "The PowerDNS Recursor binary", [author], 1),
+    (
+        "manpages/rec_control.1",
+        "rec_control",
+        "Command line tool to control a running Recursor",
+        [author],
+        1,
+    ),
+    (
+        "manpages/pdns_recursor.1",
+        "pdns_recursor",
+        "The PowerDNS Recursor binary",
+        [author],
+        1,
+    ),
 ]
 
 
