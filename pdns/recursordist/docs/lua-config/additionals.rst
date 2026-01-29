@@ -85,7 +85,7 @@ The following function is available to configure additional record processing.
 Reloading the Lua configuration will replace the current configuration with the new one.
 Calling  :func:`addAllowedAdditionalQType` multiple times with a specific qtype will replace previous calls with the same qtype.
 
-.. function:: addAllowedAdditionalQType(qtype, targets [, options ]))
+.. function:: addAllowedAdditionalQType(qtype, targets [, options ])
 
   .. versionadded:: 4.7.0
   .. versionadded:: 5.1.0 Alternative equivalent YAML setting: :ref:`setting-yaml-recursor.allowed_additional_qtypes`.

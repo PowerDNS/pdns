@@ -208,7 +208,7 @@ Interception Functions
 
   Do not rely on other attributes having a value and do not call any method of the :class:`dq <DNSQuestion>` object apart from the record set manipulation methods.
 
-.. func:: policyEventFilter(event) -> bool
+.. function:: policyEventFilter(event) -> bool
 
   .. versionadded:: 4.4.0
 
