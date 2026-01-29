@@ -9,6 +9,7 @@ TSIGKey Endpoints
 
 .. openapi:: swagger/authoritative-api-swagger.yaml
   :paths: /servers/{server_id}/tsigkeys /servers/{server_id}/tsigkeys/{tsigkey_id}
+  :examples:
 
 Objects
 -------

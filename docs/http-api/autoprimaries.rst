@@ -8,6 +8,7 @@ Autoprimary endpoints
 
 .. openapi:: swagger/authoritative-api-swagger.yaml
   :paths: /servers/{server_id}/autoprimaries /servers/{server_id}/autoprimaries/{ip}/{nameserver}
+  :examples:
 
 Objects
 -------
