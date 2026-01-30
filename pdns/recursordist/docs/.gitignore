@@ -2,3 +2,4 @@ _build
 /settings.rst
 /yamlsettings.rst
 /rec-metrics-gen.rst
+http-api/recursor-generated-schema.yaml

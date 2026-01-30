@@ -119,8 +119,8 @@ changelog_hide_tags_in_entry = True
 
 # -- Options for the Sphinx-Immaterial JSON Domain ------------------------
 json_schemas = [
-    "http-api/authoritative-api-swagger.yaml",
     "http-api/recursor-schema.yaml",
+    "http-api/recursor-generated-schema.yaml",
 ]
 
 # -- Options for HTML output ----------------------------------------------

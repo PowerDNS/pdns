@@ -12,11 +12,14 @@ BUILDDIR      = _build
 help: .venv
 	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
-.PHONY: help Makefile.sphinx
+.PHONY: help Makefile.sphinx generate-jsonschema.py http-api/authoritative-api-swagger.yaml
+
+http-api/recursor-generated-schema.yaml: .venv generate-jsonschema.py http-api/authoritative-api-swagger.yaml
+	.venv/bin/python ./generate-jsonschema.py http-api/authoritative-api-swagger.yaml $@ 
 
 # Catch-all target: route all unknown targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
-%: Makefile.sphinx .venv
+%: Makefile.sphinx .venv http-api/recursor-generated-schema.yaml
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
 .venv:
