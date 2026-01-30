@@ -1,7 +1,8 @@
-import os
-import time
 import json
+import os
 import platform
+import time
+
 import requests
 from invoke import task
 from invoke.exceptions import Failure, UnexpectedExit
@@ -1246,12 +1247,10 @@ def install_swagger_tools(c):
     c.run('sudo apt-get update && sudo apt-get install -y npm')
     c.run('sudo mkdir -p /usr/local/lib/node_modules && sudo chmod 777 /usr/local/lib/node_modules')
     c.run('npm install -g @stoplight/spectral-cli')
-    c.run('npm install -g api-spec-converter')
 
 @task
 def swagger_syntax_check(c):
     c.run('spectral lint --ruleset docs/http-api/swagger/spectral-ruleset.yaml --fail-severity error --display-only-failures docs/http-api/swagger/authoritative-api-swagger.yaml')
-    c.run('api-spec-converter docs/http-api/swagger/authoritative-api-swagger.yaml -f swagger_2 -t openapi_3 -s json -c')
 
 @task
 def install_coverity_tools(c, project):
