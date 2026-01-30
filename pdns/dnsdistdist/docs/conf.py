@@ -102,8 +102,7 @@ todo_include_todos = False
 
 # -- Lua LS Options -------------------------------------------------------
 
-# it doesn't really matter which LS we use as we don't document code in Lua files
-lua_ls_backend = "luals"
+lua_ls_backend = "disable"
 
 # -- Changelog Options ----------------------------------------------------
 
