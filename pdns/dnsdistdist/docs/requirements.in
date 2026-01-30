@@ -5,7 +5,7 @@
 # See https://github.com/jbms/sphinx-immaterial/pull/477
 Sphinx>=8.2,<9
 
-sphinx-lua-ls>=3.9,<3.10
+sphinx-lua-ls>=3.10
 changelog>=0.6,<0.7
 sphinxcontrib-httpdomain
 sphinxcontrib-fulltoc
