@@ -61,3 +61,5 @@ compile_commands.*
 .ccls-cache
 .gdb_history
 .venv
+sphinx.stamp
+sphinx.d
