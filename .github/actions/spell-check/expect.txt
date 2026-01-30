@@ -601,6 +601,7 @@ initscript
 Inno
 innodb
 installable
+instrumenta
 internic
 interoperation
 ipcipher
@@ -1444,6 +1445,7 @@ Toosarani
 Toshifumi
 totms
 traceid
+TRACEPARENT
 Travaille
 treemacs
 tribool
