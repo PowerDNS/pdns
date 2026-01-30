@@ -78,3 +78,32 @@ class TestCheckConfig(unittest.TestCase):
         """
         configTemplate = "blablabla"
         self.tryDNSDist(configTemplate, False)
+
+    def testDNSNameLuaFuncs(self):
+        """
+        CheckConfig: DNSName related functions
+        """
+        configTemplate = """
+        local myName = newDNSName("foo")
+        myName:prepend("bar")
+        if myName:toString() ~= "bar.foo." then
+          print("DNSName:prepend(string) failed")
+          os.exit(1)
+        end
+        myName:prepend(newDNSName("baz"))
+        if myName:toString() ~= "baz.bar.foo." then
+          print("DNSName:prepend(DNSName) failed")
+          os.exit(1)
+        end
+        myName:append("bar")
+        if myName:toString() ~= "baz.bar.foo.bar." then
+          print("DNSName:append(string) failed")
+          os.exit(1)
+        end
+        myName:append(newDNSName("baz"))
+        if myName:toString() ~= "baz.bar.foo.bar.baz." then
+          print("DNSName:append(DNSName) failed")
+          os.exit(1)
+        end
+        """
+        self.tryDNSDist(configTemplate)
