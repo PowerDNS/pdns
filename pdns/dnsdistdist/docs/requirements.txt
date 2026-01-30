@@ -694,9 +694,9 @@ sphinx==8.2.3 \
 sphinx-immaterial[json]==0.13.8 \
     --hash=sha256:fd92cc9e9f65e1f3a28a9f4f6886250a97dc65da41ece67f562bc1c00e89be6f
     # via -r requirements.in
-sphinx-lua-ls==3.9.0 \
-    --hash=sha256:3ec2f35a1d97ba4cd938d49310a6af7988d59c1b9de1bff860bb564925a3fd82 \
-    --hash=sha256:adae8c0be96d6f137398b4963d2ce6ad22639be754e4ef1bd99d34abe37c363c
+sphinx-lua-ls==3.10.0 \
+    --hash=sha256:5ca27e5b41e3626a0c2a0efc79b99b54c44dd59b183afc098b8b6ebd7478860f \
+    --hash=sha256:783d4654bdf487ee5919a41e42422091ee0b9a291c759fcd042239a8ae9a0b53
     # via -r requirements.in
 sphinxcontrib-applehelp==2.0.0 \
     --hash=sha256:2f29ef331735ce958efa4734873f084941970894c6090408b079c61b2e1c06d1 \

@@ -5,7 +5,7 @@
 # See https://github.com/jbms/sphinx-immaterial/pull/477
 Sphinx>=8.2,<9
 
-sphinx-lua-ls>=3.9,<3.10
+sphinx-lua-ls>=3.10
 sphinx-immaterial [json]>=0.13,<0.14
 setuptools-git==1.2
 sphinxcontrib-openapi==0.8.4
