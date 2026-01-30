@@ -145,8 +145,7 @@ install -d %{buildroot}/%{_sysconfdir}/dnsdist
 install -Dm644 %{_libdir}/libdnsdist-quiche.so %{buildroot}/%{_libdir}/libdnsdist-quiche.so
 %{__mv} %{buildroot}%{_sysconfdir}/dnsdist/dnsdist.conf-dist %{buildroot}%{_sysconfdir}/dnsdist/dnsdist.conf
 chmod 0640 %{buildroot}/%{_sysconfdir}/dnsdist/dnsdist.conf
-%{__mv} %{buildroot}%{_sysconfdir}/dnsdist/dnsdist.yml-dist %{buildroot}%{_sysconfdir}/dnsdist/dnsdist.yml
-chmod 0640 %{buildroot}/%{_sysconfdir}/dnsdist/dnsdist.yml
+chmod 0640 %{buildroot}/%{_sysconfdir}/dnsdist/dnsdist.yml-dist
 
 %{__install } -d %{buildroot}/%{_sharedstatedir}/%{name}
 
@@ -189,6 +188,6 @@ systemctl daemon-reload ||:
 %{_mandir}/man1/*
 %dir %{_sysconfdir}/dnsdist
 %attr(-, root, dnsdist) %config(noreplace) %{_sysconfdir}/%{name}/dnsdist.conf
-%attr(-, root, dnsdist) %config(noreplace) %{_sysconfdir}/%{name}/dnsdist.yml
+%attr(-, root, dnsdist) %config(noreplace) %{_sysconfdir}/%{name}/dnsdist.yml-dist
 %dir %attr(-,dnsdist,dnsdist) %{_sharedstatedir}/%{name}
 %{_unitdir}/dnsdist*
