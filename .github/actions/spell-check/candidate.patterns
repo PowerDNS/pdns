@@ -779,3 +779,5 @@ W/"[^"]+"
 /var/folders/\w\w/[+\w]+/(?:T|-Caches-)/
 # github runner temp folders
 /home/runner/work/_temp/[-_/a-z0-9]+
+# Fancy Unicode things in JSON and YAML
+\\u[0-9A-Fa-f]{4}
