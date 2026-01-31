@@ -803,13 +803,13 @@ A server object returned by :func:`getServer` can be manipulated with these func
 
   This object represents a backend server. It has several methods.
 
-  .. method:: Server:addPool(pool)
+  .. method:: addPool(pool)
 
     Add this server to a pool.
 
     :param str pool: The pool to add the server to
 
-  .. method:: Server:getLatency() -> double
+  .. method:: getLatency() -> double
 
     .. versionadded:: 1.6.0
 
@@ -817,19 +817,19 @@ A server object returned by :func:`getServer` can be manipulated with these func
 
     :returns: The number of outstanding queries
 
-  .. method:: Server:getName() -> string
+  .. method:: getName() -> string
 
     Get the name of this server.
 
     :returns: The name of the server, or an empty string if it does not have one
 
-  .. method:: Server:getNameWithAddr() -> string
+  .. method:: getNameWithAddr() -> string
 
     Get the name plus IP address and port of the server
 
     :returns: A string containing the server name if any plus the server address and port
 
-  .. method:: Server:getDrops() -> int
+  .. method:: getDrops() -> int
 
     .. versionadded:: 1.6.0
 
@@ -837,7 +837,7 @@ A server object returned by :func:`getServer` can be manipulated with these func
 
     :returns: The number of dropped queries
 
-  .. method:: Server:getQueries() -> int
+  .. method:: getQueries() -> int
 
     .. versionadded:: 2.0.0
 
@@ -845,61 +845,61 @@ A server object returned by :func:`getServer` can be manipulated with these func
 
     :returns: The number of total queries
 
-  .. method:: Server:getHealthCheckMode() -> str
+  .. method:: getHealthCheckMode() -> str
 
     .. versionadded:: 2.0.0
 
-    Get the current health-check mode, ``active`` or ``lazy``. Note that health-checks might be disabled because :meth:`Server:setUp` or :meth:`Server:setDown`
-    were called, in which case this method will return the health-check mode that will be restored if :meth:`Server:setAuto` is called.
+    Get the current health-check mode, ``active`` or ``lazy``. Note that health-checks might be disabled because :meth:`setUp` or :meth:`Server:setDown`
+    were called, in which case this method will return the health-check mode that will be restored if :meth:`setAuto` is called.
 
     :returns: The current health-check mode
 
-  .. method:: Server:getOutstanding() -> int
+  .. method:: getOutstanding() -> int
 
     Get the number of outstanding queries for this server.
 
     :returns: The number of outstanding queries
 
-  .. method:: Server:isUp() -> bool
+  .. classmethod:: isUp() -> bool
 
     Returns the up status of the server.
-    Result is based on the administrative status of the server (as set by either :meth:`Server:setDown` or :meth:`Server:setUp`).
-    If no administrative status is set (see :meth:`Server:setAuto`, :meth:`Server:setActiveAuto` and :meth:`Server:setLazyAuto`), result is based on :attr:`Server.upStatus`
+    Result is based on the administrative status of the server (as set by either :meth:`setDown` or :meth:`setUp`).
+    If no administrative status is set (see :meth:`setAuto`, :meth:`setActiveAuto` and :meth:`setLazyAuto`), result is based on :attr:`Server.upStatus`
 
     :returns: true when the server is up, false otherwise
 
-  .. method:: Server:rmPool(pool)
+  .. method:: rmPool(pool)
 
     Removes the server from the named pool
 
     :param str pool: The pool to remove the server from
 
-  .. method:: Server:setActiveAuto([status])
+  .. method:: setActiveAuto(status?: bool)
 
     .. versionadded:: 2.0.0
 
     Set the server in the 'active' health-check mode, which will send health-check queries to the backend every ``checkInterval`` seconds.
-    See also :meth:`Server:setLazyAuto` for a passive mode where health-check queries are only sent after a configurable threshold of regular queries failing,
+    See also :meth:`setLazyAuto` for a passive mode where health-check queries are only sent after a configurable threshold of regular queries failing,
     and :ref:`Healthcheck` for a more detailed explanation.
 
     :param bool status: Set the initial status of the server to ``up`` (true) or ``down`` (false) instead of using the last known status
 
-  .. method:: Server:setAuto([status])
+  .. method:: setAuto([status])
 
     .. versionchanged:: 2.0.0
-      Before 2.0.0 this option forced the health-check mode to ``active`` (see :meth:`Server:setActiveAuto`). After 2.0.0 it restores the previous health-check mode instead.
+      Before 2.0.0 this option forced the health-check mode to ``active`` (see :meth:`setActiveAuto`). After 2.0.0 it restores the previous health-check mode instead.
 
     Set the server in the default ``auto`` state, enabling health check queries that will set the server ``up`` and ``down`` appropriately.
-    See :meth:`Server:setActiveAuto`, :meth:`Server:setLazyAuto` and :ref:`Healthcheck` to understand the different health-check modes.
+    See :meth:`setActiveAuto`, :meth:`Server:setLazyAuto` and :ref:`Healthcheck` to understand the different health-check modes.
 
     :param bool status: Set the initial status of the server to ``up`` (true) or ``down`` (false) instead of using the last known status
 
-  .. method:: Server:setDown()
+  .. method:: setDown()
 
     Administratively set the server in a ``DOWN`` state.
     The server will not receive queries and the health checks are disabled.
 
-  .. method:: Server:setLazyAuto([status])
+  .. method:: setLazyAuto([status])
 
     .. versionadded:: 1.8.0
 
@@ -909,18 +909,18 @@ A server object returned by :func:`getServer` can be manipulated with these func
 
     :param bool status: Set the initial status of the server to ``up`` (true) or ``down`` (false) instead of using the last known status
 
-  .. method:: Server:setQPS(limit)
+  .. method:: setQPS(limit)
 
     Limit the queries per second for this server.
 
     :param int limit: The maximum number of queries per second
 
-  .. method:: Server:setUp()
+  .. method:: setUp()
 
     Administratively set the server in an ``UP`` state.
     This server will still receive queries and health checks are disabled
 
-  .. method:: Server:setHealthCheckParams([parameter_table])
+  .. method:: setHealthCheckParams([parameter_table])
 
     .. versionadded:: 2.0.0
 
@@ -942,19 +942,19 @@ A server object returned by :func:`getServer` can be manipulated with these func
 
   Apart from the functions, a :class:`Server` object has these attributes:
 
-  .. attribute:: Server.name
+  .. attribute:: name
 
     The name of the server
 
-  .. attribute:: Server.upStatus
+  .. attribute:: upStatus
 
     Whether or not this server is ``up`` (true) or ``down`` (false) based on the last known state of health-checks.
 
-  .. attribute:: Server.order
+  .. attribute:: order
 
     The order of the server
 
-  .. attribute:: Server.weight
+  .. attribute:: weight
 
     The weight of the server
 
@@ -2332,7 +2332,7 @@ Other functions
   :param str hostname: The hostname to resolve.
   :param function callback: The function to invoke when the name has been resolved.
 
-.. function:: getCurrentTime -> timespec
+.. function:: getCurrentTime() -> timespec
 
   .. versionadded:: 1.8.0
 
@@ -2340,7 +2340,7 @@ Other functions
 
   :returns: A timespec object, see :ref:`timespec`
 
-.. function:: getObjectFromYAMLConfiguration
+.. function:: getObjectFromYAMLConfiguration()
 
   .. versionadded:: 2.0.0
 
@@ -2662,11 +2662,11 @@ timespec
 
   This object represents a timestamp in the timespec format.
 
-  .. attribute:: timespec.tv_sec
+  .. attribute:: tv_sec
 
     Number of seconds elapsed since Unix epoch.
 
-  .. attribute:: timespec.tv_nsec
+  .. attribute:: tv_nsec
 
     Number of remaining nanoseconds elapsed since Unix epoch after subtracting the seconds from the `tv_sec` field.
 
