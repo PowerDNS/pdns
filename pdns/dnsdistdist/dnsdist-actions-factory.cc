@@ -901,15 +901,21 @@ public:
 
   string toString() const override
   {
-    string ret = "spoof in ";
+    string ret = "spoof ";
     if (!d_cname.empty()) {
-      ret += d_cname.toString() + " ";
+      ret += "CNAME " + d_cname.toString() + " ";
     }
     if (!d_rawResponses.empty()) {
       ret += "raw bytes ";
     }
     else {
       for (const auto& addr : d_addrs) {
+        if (addr.isIPv4()) {
+          ret += "A ";
+        }
+        else if (addr.isIPv6()) {
+          ret += "AAAA ";
+        }
         ret += addr.toString() + " ";
       }
     }
