@@ -23,8 +23,11 @@ SUBDIRS=dnsdist-rust-lib \
 	dnsdist-rust-lib/rust \
 	ext/arc4random \
 	ext/ipcrypt \
-	ext/ipcrypt2 \
 	ext/yahttp
+
+if HAVE_IPCRYPT2
+SUBDIRS += ext/ipcrypt2
+endif
 
 CLEANFILES = \
 	htmlfiles.h.tmp \
@@ -455,7 +458,6 @@ dnsdist_LDADD = \
 	$(NET_SNMP_LIBS) \
 	$(LIBCAP_LIBS) \
 	$(IPCRYPT_LIBS) \
-	$(IPCRYPT2_LIBS) \
 	$(ARC4RANDOM_LIBS)
 
 testrunner_LDFLAGS = \
@@ -472,7 +474,6 @@ testrunner_LDADD = \
 	$(RT_LIBS) \
 	$(SYSTEMD_LIBS) \
 	$(LIBCAP_LIBS) \
-	$(IPCRYPT2_LIBS) \
 	$(ARC4RANDOM_LIBS)
 
 if HAVE_CDB
@@ -503,6 +504,11 @@ if HAVE_LIBCRYPTO
 dnsdist_LDADD += $(LIBCRYPTO_LDFLAGS) $(LIBCRYPTO_LIBS)
 testrunner_LDADD += $(LIBCRYPTO_LDFLAGS) $(LIBCRYPTO_LIBS)
 dnsdist_SOURCES += ipcipher.cc ipcipher.hh
+endif
+
+if HAVE_IPCRYPT2
+dnsdist_SOURCES += ext/ipcrypt2/ipcrypt2.c ext/ipcrypt2/include/ipcrypt2.h ext/ipcrypt2/softaes/untrinsics.h
+testrunner_SOURCES += ext/ipcrypt2/ipcrypt2.c ext/ipcrypt2/include/ipcrypt2.h ext/ipcrypt2/softaes/untrinsics.h
 endif
 
 if HAVE_LMDB
