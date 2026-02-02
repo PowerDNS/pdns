@@ -18,24 +18,33 @@ int main() {
   can_build = compiler.compiles(code, name: 'uint64x2_t tests')
 endif
 
+if target_machine.cpu_family() in ['x86', 'x86_64']
+  funcs = ['_mm_loadu_si64']
+  foreach func: funcs
+    has = cxx.has_header_symbol('emmintrin.h', func)
+    if not has
+      can_build = false
+    endif
+  endforeach
+endif
 
 dep_ipcrypt2 = declare_dependency()
 
 if can_build
-lib_ipcrypt2 = static_library(
-  'ipcrypt2',
-  'ipcrypt2.c',
-  extra_files: [
-    'include/ipcrypt2.h',
-    'LICENSE',
-    'README.md',
-  ],
-)
+  lib_ipcrypt2 = static_library(
+    'ipcrypt2',
+    'ipcrypt2.c',
+    extra_files: [
+      'include/ipcrypt2.h',
+      'LICENSE',
+      'README.md',
+    ],
+  )
 
-dep_ipcrypt2 = declare_dependency(
-  link_with: lib_ipcrypt2,
-  include_directories: include_directories('./include'),
-)
+  dep_ipcrypt2 = declare_dependency(
+    link_with: lib_ipcrypt2,
+    include_directories: include_directories('./include'),
+  )
 endif
 
 if not can_build and opt_ipcrypt2.enabled()
