@@ -280,10 +280,7 @@ void configureQuiche(QuicheConfig& config, const QuicheParams& params, bool isHT
     quiche_config_log_keys(config.get());
   }
 
-  auto algo = dnsdist::doq::s_available_cc_algorithms.find(params.d_ccAlgo);
-  if (algo != dnsdist::doq::s_available_cc_algorithms.end()) {
-    quiche_config_set_cc_algorithm(config.get(), static_cast<enum quiche_cc_algorithm>(algo->second));
-  }
+  quiche_config_set_cc_algorithm_name(config.get(), params.d_ccAlgo.c_str());
 
   {
     PacketBuffer resetToken;
