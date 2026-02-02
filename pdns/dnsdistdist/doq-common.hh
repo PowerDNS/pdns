@@ -50,7 +50,7 @@ struct QuicheParams
   std::string d_keyLogFile;
   uint64_t d_idleTimeout{5};
   uint64_t d_maxInFlight{65535};
-  std::string d_ccAlgo{"reno"};
+  std::string d_ccAlgo{"cubic"};
   std::string d_alpn;
 };
 

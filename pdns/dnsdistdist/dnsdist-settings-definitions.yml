@@ -1024,12 +1024,15 @@ incoming_quic:
       description: "Set the idle timeout, in seconds"
     - name: "congestion_control_algorithm"
       type: "String"
-      default: "reno"
+      default: "cubic"
       description: "The congestion control algorithm to be used"
       supported-values:
         - "reno"
         - "cubic"
         - "bbr"
+      changes:
+        - version: "2.1.0"
+          content: "This default used to ``reno`` and is now ``cubic``"
     - name: "internal_pipe_buffer_size"
       type: "u32"
       default: 1048576

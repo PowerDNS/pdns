@@ -19,7 +19,7 @@ This will make :program:`dnsdist` listen on [2001:db8:1:f00::1]:443 on UDP, and 
 
 The fourth parameter, if present, indicates various options. For instance, you can change the congestion control algorithm used. An example is::
 
-  addDOH3Local('2001:db8:1:f00::1', '/etc/ssl/certs/example.com.pem', '/etc/ssl/private/example.com.key', {congestionControlAlgo="bbr"})
+  addDOH3Local('2001:db8:1:f00::1', '/etc/ssl/certs/example.com.pem', '/etc/ssl/private/example.com.key', {congestionControlAlgo="cubic"})
 
 .. code-block:: yaml
 
@@ -31,7 +31,7 @@ The fourth parameter, if present, indicates various options. For instance, you c
           - certificate: "/etc/ssl/certs/example.com.pem"
             key: "/etc/ssl/private/example.com.key"
       quic:
-        congestion_control_algorithm: "bbr"
+        congestion_control_algorithm: "cubic"
 
 
 A particular attention should be taken to the permissions of the certificate and key files. Many ACME clients used to get and renew certificates, like CertBot, set permissions assuming that services are started as root, which is no longer true for dnsdist as of 1.5.0. For that particular case, making a copy of the necessary files in the /etc/dnsdist directory is advised, using for example CertBot's ``--deploy-hook`` feature to copy the files with the right permissions after a renewal.

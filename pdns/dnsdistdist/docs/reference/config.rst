@@ -198,6 +198,9 @@ Listen Sockets
 
   .. versionadded:: 1.9.0
 
+  .. versionchanged:: 2.1.0
+    The default congestion algorithm used to be ``reno`` and is now ``cubic``.
+
   Listen on the specified address and UDP port for incoming DNS over HTTP3 connections, presenting the specified X.509 certificate. See :doc:`../advanced/tls-certificates-management` for details about the handling of TLS certificates and keys.
   More information is available in :doc:`../guides/dns-over-http3`.
 
@@ -215,12 +218,15 @@ Listen Sockets
   * ``idleTimeout=5``: int - Set the idle timeout, in seconds.
   * ``internalPipeBufferSize=0``: int - Set the size in bytes of the internal buffer of the pipes used internally to pass queries and responses between threads. Requires support for ``F_SETPIPE_SZ`` which is present in Linux since 2.6.35. The actual size might be rounded up to a multiple of a page size. 0 means that the OS default size is used. The default value is 0, except on Linux where it is 1048576 since 1.6.0.
   * ``maxInFlight=65535``: int - Maximum number of in-flight queries. The default is 0, which disables out-of-order processing.
-  * ``congestionControlAlgo="reno"``: str - The congestion control algorithm to be chosen between ``reno``, ``cubic`` and ``bbr``.
+  * ``congestionControlAlgo="cubic"``: str - The congestion control algorithm to be chosen between ``reno``, ``cubic`` and ``bbr``.
   * ``keyLogFile``: str - Write the TLS keys in the specified file so that an external program can decrypt TLS exchanges, in the format described in https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Key_Log_Format.
 
 .. function:: addDOQLocal(address, certFile(s), keyFile(s) [, options])
 
   .. versionadded:: 1.9.0
+
+  .. versionchanged:: 2.1.0
+    The default congestion algorithm used to be ``reno`` and is now ``cubic``.
 
   Listen on the specified address and UDP port for incoming DNS over QUIC connections, presenting the specified X.509 certificate.
   See :doc:`../advanced/tls-certificates-management` for details about the handling of TLS certificates and keys.
@@ -240,7 +246,7 @@ Listen Sockets
   * ``idleTimeout=5``: int - Set the idle timeout, in seconds.
   * ``internalPipeBufferSize=0``: int - Set the size in bytes of the internal buffer of the pipes used internally to pass queries and responses between threads. Requires support for ``F_SETPIPE_SZ`` which is present in Linux since 2.6.35. The actual size might be rounded up to a multiple of a page size. 0 means that the OS default size is used. The default value is 0, except on Linux where it is 1048576 since 1.6.0.
   * ``maxInFlight=65535``: int - Maximum number of in-flight queries. The default is 0, which disables out-of-order processing.
-  * ``congestionControlAlgo="reno"``: str - The congestion control algorithm to be chosen between ``reno``, ``cubic`` and ``bbr``.
+  * ``congestionControlAlgo="cubic"``: str - The congestion control algorithm to be chosen between ``reno``, ``cubic`` and ``bbr``.
   * ``keyLogFile``: str - Write the TLS keys in the specified file so that an external program can decrypt TLS exchanges, in the format described in https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Key_Log_Format.
 
 .. function:: addTLSLocal(address, certFile(s), keyFile(s) [, options])
