@@ -250,6 +250,7 @@ CXXFLAGS
 cxxsettings
 cxxsupport
 Cybertinus
+cython
 daemonized
 daemonizing
 daemontools
@@ -1179,7 +1180,6 @@ respawned
 respawning
 respout
 respsizes
-reuseds
 reuseport
 RFCs
 rhel
@@ -1316,7 +1316,6 @@ sortlist
 sourcecode
 SOURCEDIR
 sourceforge
-sourcelink
 sourceware
 Spaans
 Spackages
