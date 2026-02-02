@@ -1,5 +1,5 @@
 # To generate requirements.txt, install pip-tools and run:
-#  pip-compile --generate-hashes -U requirements.in
+#  pip-compile --allow-unsafe --generate-hashes -U requirements.in
 
 # Sphinx >9 breaks the immaterial theme
 # See https://github.com/jbms/sphinx-immaterial/pull/477
@@ -11,5 +11,6 @@ setuptools-git==1.2
 sphinxcontrib-openapi==0.8.4
 changelog>=0.6,<0.7
 sphinxcontrib-fulltoc
-pyyaml==6.0.1
+pyyaml==6.0.3
+cython>=3.0.0
 pbr # setup-requires for sphinxcontrib-fulltoc

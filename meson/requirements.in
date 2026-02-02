@@ -1,8 +1,9 @@
 # To generate requirements.txt, install pip-tools and run:
-#  pip-compile --generate-hashes -U requirements.in
+#  pip-compile --allow-unsafe --generate-hashes-U requirements.in
 
-pyyaml==6.0.1
+pyyaml==6.0.3
 meson
 ninja
 invoke
 requests==2.32.4
+cython>=3.0.0

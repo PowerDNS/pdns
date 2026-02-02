@@ -1,5 +1,5 @@
 # To generate requirements.txt, install pip-tools and run:
-#  pip-compile --generate-hashes -U requirements.in
+#  pip-compile --allow-unsafe --generate-hashes-U requirements.in
 
 dnspython>=1.11
 pytest
@@ -8,5 +8,6 @@ pyasn1==0.4.8
 pysnmp>=5,<6
 requests>=2.1.0
 Twisted>0.15.0
-pyyaml==6.0.1
+pyyaml==6.0.3
+cython>=3.0.0
 siphash
