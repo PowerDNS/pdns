@@ -780,6 +780,7 @@ def ci_dnsdist_configure_autotools(features, additional_flags, additional_ld_fla
       features_set = '--disable-dnstap \
                       --disable-dnscrypt \
                       --disable-ipcipher \
+                      --disable-ipcrypt2 \
                       --disable-systemd \
                       --without-cdb \
                       --without-ebpf \
