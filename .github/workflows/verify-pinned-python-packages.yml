@@ -64,7 +64,6 @@ jobs:
       SERVICE_IP_ADDR: 127.0.0.1
       REQUIREMENTS_FILE: ${{ matrix.requirements-file }}
     steps:
-      - run: echo "${REQUIREMENTS_FILE}"
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
       - uses: actions/checkout@v5
         with:
