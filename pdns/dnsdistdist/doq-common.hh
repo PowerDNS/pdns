@@ -39,13 +39,6 @@
 
 namespace dnsdist::doq
 {
-
-static const std::map<const std::string, int> s_available_cc_algorithms = {
-  {"reno", QUICHE_CC_RENO},
-  {"cubic", QUICHE_CC_CUBIC},
-  {"bbr", QUICHE_CC_BBR},
-};
-
 using QuicheConnection = std::unique_ptr<quiche_conn, decltype(&quiche_conn_free)>;
 using QuicheHTTP3Connection = std::unique_ptr<quiche_h3_conn, decltype(&quiche_h3_conn_free)>;
 using QuicheConfig = std::shared_ptr<quiche_config>;

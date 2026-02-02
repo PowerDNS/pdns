@@ -338,9 +338,7 @@ static bool handleTLSConfiguration(const Context& context, const dnsdist::rust::
     frontend->d_quicheParams.d_maxInFlight = bind.doq.max_concurrent_queries_per_connection;
     frontend->d_quicheParams.d_idleTimeout = bind.quic.idle_timeout;
     frontend->d_quicheParams.d_keyLogFile = std::string(bind.tls.key_log_file);
-    if (dnsdist::doq::s_available_cc_algorithms.count(std::string(bind.quic.congestion_control_algorithm)) > 0) {
-      frontend->d_quicheParams.d_ccAlgo = std::string(bind.quic.congestion_control_algorithm);
-    }
+    frontend->d_quicheParams.d_ccAlgo = std::string(bind.quic.congestion_control_algorithm);
     frontend->d_internalPipeBufferSize = bind.quic.internal_pipe_buffer_size;
     state.doqFrontend = std::move(frontend);
   }
@@ -352,9 +350,7 @@ static bool handleTLSConfiguration(const Context& context, const dnsdist::rust::
     frontend->d_quicheParams.d_tlsConfig = std::move(tlsConfig);
     frontend->d_quicheParams.d_idleTimeout = bind.quic.idle_timeout;
     frontend->d_quicheParams.d_keyLogFile = std::string(bind.tls.key_log_file);
-    if (dnsdist::doq::s_available_cc_algorithms.count(std::string(bind.quic.congestion_control_algorithm)) > 0) {
-      frontend->d_quicheParams.d_ccAlgo = std::string(bind.quic.congestion_control_algorithm);
-    }
+    frontend->d_quicheParams.d_ccAlgo = std::string(bind.quic.congestion_control_algorithm);
     frontend->d_internalPipeBufferSize = bind.quic.internal_pipe_buffer_size;
     state.doh3Frontend = std::move(frontend);
   }
