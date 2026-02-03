@@ -504,6 +504,9 @@ An example of an ``proxymappings`` entry, which is a sequence of `ProxyMapping`_
            - example.com
            - example.net
 
+Description of YAML syntax for additional structured types
+----------------------------------------------------------
+             
 ForwardingCatalogZone
 ^^^^^^^^^^^^^^^^^^^^^
 As of version 5.2.0, a forwarding catalog zone entry is defined as:
@@ -572,9 +575,9 @@ As of version 5.3.0, an incoming web server configuration is defined as
 
    addresses: [] Sequence of SocketAddress
    tls:
-     certificates: file containing full certificate chain in PEM format
+     certificates: file containing full certificate chain in PEM format or (since version 5.5.0) a PKCS12 file
      key: file containing private key in PEM format
-
+     password: the password used to decrypt a PKCS12 file (since version 5.5.0)
 
 A :ref:`setting-yaml-webservice.listen` section contains a sequence of `IncomingWSConfig`_, for example:
 
@@ -590,7 +593,14 @@ A :ref:`setting-yaml-webservice.listen` section contains a sequence of `Incoming
 
 If no ``tls`` section is present, plaintext ``http`` connections are accepted on the listed addresses.
 
-If a ``tls`` section is present, clients are required to use ``https`` to contact any of the address-port combinations listen in addresses. At the moment it is not possible to list additional properties of the TLS listener and encrypted key files cannot be used.
+If a ``tls`` section is present, clients are required to use ``https`` to contact any of the address-port combinations listen in addresses.
+
+If both the ``certificate`` and the ``key`` fields are set, the values specify unencrypted PEM files.
+The ``password`` field is ignored in that case.
+
+Starting with version 5.5.0, if the ``key`` field is not set but the ``certificate`` and ``password`` fields are set, the listed file is assumed to be an encrypted PKCS12 (also known as pfx) file containing both a key and the certificate chain.
+
+At the moment it is not possible to list additional properties of the TLS listener.
 
 OutgoingTLSConfiguration
 ^^^^^^^^^^^^^^^^^^^^^^^^
