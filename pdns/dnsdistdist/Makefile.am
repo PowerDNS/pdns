@@ -14,6 +14,7 @@ AM_CPPFLAGS += $(SYSTEMD_CFLAGS) \
 	-I$(top_srcdir)/dnsdist-rust-lib/rust/src \
 	-DSYSCONFDIR=\"${sysconfdir}\" \
 	-DBOOST_CONTAINER_USE_STD_EXCEPTIONS
+AM_CXXFLAGS =
 
 DNSDIST_RUST_LIBS = $(top_builddir)/dnsdist-rust-lib/rust/libdnsdist_rust.a $(LIBDL)
 
@@ -80,7 +81,7 @@ min_js: $(MIN_JS_FILES)
 if HAVE_RE2
 # Some versions of pkg_config add -std=c11++, override that
 AM_CPPFLAGS += $(RE2_CFLAGS)
-AM_CPPFLAGS += -std=c++17
+AM_CXXFLAGS += -std=c++17
 endif
 
 if HAVE_DNS_OVER_TLS
