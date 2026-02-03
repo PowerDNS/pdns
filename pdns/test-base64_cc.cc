@@ -76,5 +76,11 @@ BOOST_AUTO_TEST_CASE(test_Base64_Encode) {
   }
 }
 
+BOOST_AUTO_TEST_CASE(test_Base64_Decode_Garbage)
+{
+  const std::string paddingOnly("====");
+  std::string decoded;
+  BOOST_CHECK_EQUAL(B64Decode(paddingOnly, decoded), -1);
+}
 
 BOOST_AUTO_TEST_SUITE_END()
