@@ -1015,6 +1015,27 @@ BOOST_AUTO_TEST_CASE(test_getlastlabel) {
   BOOST_CHECK_EQUAL(ans, DNSName("com"));
 }
 
+BOOST_AUTO_TEST_CASE(test_getfirtslabel)
+{
+
+  DNSName name("www.powerdns.com");
+  DNSName ans = name.getFirstLabel();
+
+  // Check the const-ness
+  BOOST_CHECK_EQUAL(name, DNSName("www.powerdns.com"));
+
+  // Check if the first label is indeed returned
+  BOOST_CHECK_EQUAL(ans, DNSName("www"));
+
+  // Check empty name
+  name = DNSName();
+  BOOST_CHECK(name.getFirstLabel().empty());
+
+  // Check root name
+  name = DNSName(".");
+  BOOST_CHECK(name.getFirstLabel().isRoot());
+}
+
 BOOST_AUTO_TEST_CASE(test_getcommonlabels) {
   const DNSName name1("www.powerdns.com");
   const DNSName name2("a.long.list.of.labels.powerdns.com");
