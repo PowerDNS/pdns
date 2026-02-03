@@ -733,12 +733,12 @@ async fn serveweb_async(
     if !config.certificate.is_empty() {
         let certs;
         let key;
-        if config.key.is_empty() { // Assuming its pkcs12 (aka pfx).
-            (key, certs) = load_pkcs12_key_and_cert(&config.certificate, &config.password, &ctx)?;
+        if config.key.is_empty() { // Assuming it's pkcs12 (aka pfx).
+            (key, certs) = load_pkcs12_key_and_certs(&config.certificate, &config.password, &ctx)?;
         }
         else {
-            certs = load_certs(&config.certificate, &ctx)?;
-            key = load_private_key(&config.key, &ctx)?;
+            certs = load_pem_certs(&config.certificate, &ctx)?;
+            key = load_pem_private_key(&config.key, &ctx)?;
         }
         let mut server_config = rustls::ServerConfig::builder()
             .with_no_client_auth()
@@ -989,7 +989,7 @@ pub fn serveweb(
 }
 
 // Load public certificates from file.
-fn load_certs(
+fn load_pem_certs(
     filename: &str,
     ctx: &Arc<Context>,
 ) -> std::io::Result<Vec<pki_types::CertificateDer<'static>>> {
@@ -1038,7 +1038,7 @@ fn load_certs(
 }
 
 // Load private key from file.
-fn load_private_key(
+fn load_pem_private_key(
     filename: &str,
     ctx: &Arc<Context>,
 ) -> std::io::Result<pki_types::PrivateKeyDer<'static>> {
@@ -1063,8 +1063,8 @@ fn load_private_key(
 }
 
 
-// Load private and cert key from pkcs12 (pfx) file.
-fn load_pkcs12_key_and_cert(
+// Load private key and certs from pkcs12 (pfx) file.
+fn load_pkcs12_key_and_certs(
     filename: &str,
     password: &str,
     ctx: &Arc<Context>,
