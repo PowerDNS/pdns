@@ -509,6 +509,9 @@ int B64Decode(const std::string& strInput, Container& strOutput)
 #endif
   } // while
   if (pad) {
+    if (pad > strOutput.size()) {
+      return -1; // padding-only (or otherwise invalid) Base64
+    }
     strOutput.resize(strOutput.size() - pad);
   }
 
