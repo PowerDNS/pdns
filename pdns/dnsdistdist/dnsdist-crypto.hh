@@ -23,7 +23,6 @@
 #include "config.h"
 #include <array>
 #include <string>
-#include <cstdint>
 #include <cstring>
 
 #if defined(HAVE_LIBSODIUM)
@@ -65,7 +64,7 @@ constexpr size_t getEncryptedSize(size_t plainTextSize)
 #if defined(HAVE_LIBSODIUM)
   return plainTextSize + crypto_secretbox_MACBYTES;
 #elif defined(HAVE_LIBCRYPTO)
-  return plainTextSize + 16;
+  return plainTextSize + 16U;
 #else
   return plainTextSize;
 #endif
