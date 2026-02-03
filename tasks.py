@@ -766,6 +766,7 @@ def ci_dnsdist_configure_autotools(features, additional_flags, additional_ld_fla
                       --enable-dns-over-https \
                       --enable-dns-over-quic \
                       --enable-dns-over-http3 \
+                      --enable-ipcrypt2 \
                       --enable-systemd \
                       --enable-yaml \
                       --prefix=/opt/dnsdist \
