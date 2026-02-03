@@ -32,6 +32,7 @@ ring = "0.17.13"
 rustls = { version = "0.23", default-features = false, features = ["ring"] }
 pki-types = { package = "rustls-pki-types", version = "1.10" }
 tokio-rustls = { version = "0.26", default-features = false }
+p12-keystore = "0.2.0"
 
 [build-dependencies]
 cxx-build = "1.0"
