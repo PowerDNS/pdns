@@ -857,6 +857,20 @@ public:
 
     libssl_set_alpn_protos(d_tlsCtx.get(), getALPNVector(params.d_alpn, true));
 
+    if (!params.d_client_certificate.empty()) {
+      std::optional<std::string> key = std::nullopt;
+      if (!params.d_client_certificate_key.empty()) {
+        key = params.d_client_certificate_key;
+      }
+      std::optional<std::string> password = std::nullopt;
+      if (!params.d_client_certificate_password.empty()) {
+        password = params.d_client_certificate_password;
+      }
+      TLSCertKeyPair pair{params.d_client_certificate, key, password};
+      std::vector<int> keyTypes;
+      libssl_setup_context_no_sni(d_tlsCtx.get(), pair, keyTypes);
+    }
+
 #ifdef SSL_MODE_RELEASE_BUFFERS
     if (params.d_releaseBuffers) {
       SSL_CTX_set_mode(d_tlsCtx.get(), SSL_MODE_RELEASE_BUFFERS);

@@ -167,7 +167,7 @@ public:
 }
 
 /* add a keypair to an SSL context */
-void libssl_setup_context_no_sni(std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>& ctx, const TLSCertKeyPair& pair, std::vector<int>& keyTypes);
+void libssl_setup_context_no_sni(SSL_CTX* ctx, const TLSCertKeyPair& pair, std::vector<int>& keyTypes);
 
 /* return the created context, and a list of warning messages for issues not severe enough
    to trigger raising an exception, like failing to load an OCSP response file */
