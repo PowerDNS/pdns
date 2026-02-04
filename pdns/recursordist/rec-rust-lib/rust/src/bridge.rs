@@ -778,6 +778,7 @@ impl IncomingWSConfig {
         let mut tls = serde_yaml::Mapping::new();
         inserts(&mut tls, "certificate", &self.tls.certificate);
         inserts(&mut tls, "key", &self.tls.key);
+        inserts(&mut tls, "password", &self.tls.password);
         map.insert(
             serde_yaml::Value::String("tls".to_owned()),
             serde_yaml::Value::Mapping(tls),
