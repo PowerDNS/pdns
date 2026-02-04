@@ -258,6 +258,7 @@ class DoTWithLocalResponderTests(RecursorTest):
     _responsesCounter = {}
     _answerUnexpected = True
     _roothints = None
+    _clientCert = False
 
     @staticmethod
     def sniCallback(sslSocket, sni, sslContext):
@@ -299,8 +300,12 @@ class DoTWithLocalResponderTests(RecursorTest):
         if hasattr(tlsContext, 'sni_callback'):
             tlsContext.sni_callback = cls.sniCallback
 
+        if cls._clientCert:
+            tlsContext.verify_mode = ssl.CERT_REQUIRED
+            tlsContext.load_verify_locations(cafile="ca.pem")
+
         print("Launching TLS responder..")
-        cls._TLSResponder = threading.Thread(name='TLS Responder', target=cls.TCPResponder, args=[cls._tlsBackendPort, cls._toResponderQueue, cls._fromResponderQueue, False, False, None, tlsContext])
+        cls._TLSResponder = threading.Thread(name='TLS Responder', target=cls.TCPResponder, args=[cls._tlsBackendPort, cls._toResponderQueue, cls._fromResponderQueue, False, False, None, tlsContext, False, '127.0.0.1', False, cls._clientCert])
         cls._TLSResponder.daemon = True
         cls._TLSResponder.start()
 
@@ -376,6 +381,75 @@ webservice:
             'dot-outqueries': 1
         })
 
+class DoTOKWithClientCertOpenSSLTest(DoTWithLocalResponderTests):
+    """
+    This tests DoT to responder with openssl validation using a proper CA store for the locally generated cert
+    """
+
+    _confdir = 'DoTOKWithClientCertOpenSSL'
+    _wsPort = 8042
+    _wsTimeout = 2
+    _wsPassword = 'secretpassword'
+    _apiKey = 'secretapikey'
+    _clientCert = True
+    _config_template = """
+dnssec:
+    validation: off
+outgoing:
+    dot_to_auth_names: [powerdns.com]
+    tls_configurations:
+    - name: dotwithverifyopensslandclientcert
+      ca_store: 'ca.pem'
+      subject_name: tls.tests.powerdns.com
+      subnets: ['127.0.0.1']
+      validate_certificate: true
+      verbose_logging: true
+      client_certificate: client.p12
+      client_certificate_password: passw0rd
+recursor:
+    forward_zones_recurse:
+      - zone: powerdns.com
+        forwarders: ['127.0.0.1:853']
+    devonly_regression_test_mode: true
+webservice:
+    webserver: true
+    port: %d
+    address: 127.0.0.1
+    password: %s
+    api_key: %s
+    """ % (_wsPort, _wsPassword, _apiKey)
+
+    @classmethod
+    def generateRecursorConfig(cls, confdir):
+        super(DoTOKWithClientCertOpenSSLTest, cls).generateRecursorYamlConfig(confdir, False)
+
+    def testUDP(self):
+        """
+        Outgoing TLS: UDP query is sent via TLS
+        """
+        name = 'udp.outgoing-tls.test.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        expectedResponse = dns.message.make_response(query, True)
+        rrset = dns.rrset.from_text(name,
+                                    15,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        expectedResponse.answer.append(rrset)
+
+        currentCount = 0
+        if 'TLS Responder' in self._responsesCounter:
+            currentCount = self._responsesCounter['TLS Responder']
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, expectedResponse)
+        receivedQuery.id = query.id
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(receivedResponse, expectedResponse)
+
+        # there was one TCP query
+        self.checkOnlyTLSResponderHit(currentCount + 1)
+        self.checkMetrics({
+            'dot-outqueries': 1
+        })
 
 class DoTOKGnuTLSTest(DoTWithLocalResponderTests):
     """

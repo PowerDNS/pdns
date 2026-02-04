@@ -1,5 +1,5 @@
 clean-certs:
-	rm -f ca.key ca.pem ca.srl server.csr server.key server.pem server.chain server.ocsp client csr clien.pem client.key client.p12
+	rm -f ca.key ca.pem ca.srl server.csr server.key server.pem server.chain server.ocsp client.csr clien.pem client.key client.p12
 clean-configs:
 	rm -rf configs/*
 certs:
