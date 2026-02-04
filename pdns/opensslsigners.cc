@@ -942,7 +942,7 @@ void OpenSSLRSADNSCryptoKeyEngine::fromPublicKeyString(const std::string& conten
     if (contentLen < 3) {
       throw runtime_error(getName() + " invalid input size for the public key");
     }
-    const size_t exponentSize = raw[1] * 0xff + raw[2];
+    const size_t exponentSize = (static_cast<size_t>(raw[1])) * 0x100 + raw[2];
     if (contentLen < (exponentSize + 4)) {
       throw runtime_error(getName() + " invalid input size for the public key");
     }
