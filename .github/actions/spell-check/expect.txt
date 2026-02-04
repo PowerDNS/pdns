@@ -1338,6 +1338,7 @@ srv
 sshfp
 SSQ
 stacksize
+stampfile
 starttransaction
 Stasic
 statbag
