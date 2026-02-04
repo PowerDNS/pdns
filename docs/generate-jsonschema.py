@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 
-import yaml
 import argparse
-
-from typing import Dict, Any, overload, cast
 from collections.abc import Mapping
+from pathlib import Path
+from typing import Any, Dict, cast, overload
+
+import yaml
+
 
 # This function was taken (and slightly modified) from https://github.com/instrumenta/openapi2jsonschema
-
-
 # overload function signatures for different input types
 @overload
 def change_dict_values(
@@ -77,6 +77,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("infile", type=str)
     ap.add_argument("outfile", type=str)
+    ap.add_argument("--stampfile", type=str)
     args = ap.parse_args()
 
     data: dict | None = None
@@ -94,6 +95,9 @@ def main():
 
     with open(args.outfile, "w") as w:
         yaml.safe_dump(out, w)
+
+    if args.stampfile:
+        Path.touch(args.stampfile)
 
 
 if __name__ == "__main__":
