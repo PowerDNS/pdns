@@ -311,7 +311,7 @@ class DoTWithLocalResponderTests(RecursorTest):
 
 class DoTOKOpenSSLTest(DoTWithLocalResponderTests):
     """
-    This tests DoT to responder with openssl validation using a proper CA store for the locally generated cert"
+    This tests DoT to responder with openssl validation using a proper CA store for the locally generated cert
     """
 
     _confdir = 'DoTOKOpenSSL'
@@ -325,7 +325,7 @@ dnssec:
 outgoing:
     dot_to_auth_names: [powerdns.com]
     tls_configurations:
-    - name: dotwithverifygnu
+    - name: dotwithverifyopenssl
       ca_store: 'ca.pem'
       subject_name: tls.tests.powerdns.com
       subnets: ['127.0.0.1']
@@ -364,7 +364,7 @@ webservice:
 
         currentCount = 0
         if 'TLS Responder' in self._responsesCounter:
-            currentCount = self._responsesCounter['TLS Responder'] 
+            currentCount = self._responsesCounter['TLS Responder']
         (receivedQuery, receivedResponse) = self.sendUDPQuery(query, expectedResponse)
         receivedQuery.id = query.id
         self.assertEqual(query, receivedQuery)
@@ -379,7 +379,7 @@ webservice:
 
 class DoTOKGnuTLSTest(DoTWithLocalResponderTests):
     """
-    This tests DoT to responder with gnutls validation using a proper CA store for the locally generated cert"
+    This tests DoT to responder with gnutls validation using a proper CA store for the locally generated cert
     """
 
     _confdir = 'DoTOKGnuTLS'
@@ -447,7 +447,7 @@ webservice:
 
 class DoTNOKOpenSSLTest(DoTWithLocalResponderTests):
     """
-    This tests DoT to responder with openssl validation using a missing CA store for the locally generated cert"
+    This tests DoT to responder with openssl validation using a missing CA store for the locally generated cert
     """
 
     _confdir = 'DoTNOKOpenSSL'
@@ -461,7 +461,7 @@ dnssec:
 outgoing:
     dot_to_auth_names: [powerdns.com]
     tls_configurations:
-    - name: dotwithverifygnu
+    - name: dotwithverifyopenssl
       subject_name: tls.tests.powerdns.com
       subnets: ['127.0.0.1']
       validate_certificate: true
@@ -499,7 +499,7 @@ webservice:
 
         currentCount = 0
         if 'TLS Responder' in self._responsesCounter:
-            currentCount = self._responsesCounter['TLS Responder'] 
+            currentCount = self._responsesCounter['TLS Responder']
         (receivedQuery, receivedResponse) = self.sendUDPQuery(query, expectedResponse)
 
         self.assertRcodeEqual(receivedResponse, dns.rcode.SERVFAIL)
@@ -513,7 +513,7 @@ webservice:
 
 class DoTNOKGnuTLSTest(DoTWithLocalResponderTests):
     """
-    This tests DoT to responder with gnutls validation using a missing CA store for the locally generated cert"
+    This tests DoT to responder with gnutls validation using a missing CA store for the locally generated cert
     """
 
     _confdir = 'DoTNOKGnuTLS'
