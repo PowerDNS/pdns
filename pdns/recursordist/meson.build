@@ -774,6 +774,19 @@ dep_conf_distfile = custom_target(
 )
 
 if python.found()
+  json_schema = custom_target(
+    'recursor-json-schema',
+    input: product_source_dir / docs_dir / 'http-api' / 'authoritative-api-swagger.yaml',
+    output: 'rec-schema-generated.stamp',
+    command: [
+      python,
+      product_source_dir / docs_dir / 'generate-jsonschema.py',
+      '@INPUT@',
+      product_source_dir / docs_dir / 'http-api' / 'recursor-generated-schema.yaml',
+      '--stampfile',
+      '@OUTPUT@'
+    ],
+  )
 
   html_docs = custom_target(
     'html-docs',
@@ -790,7 +803,7 @@ if python.found()
     output: 'sphinx.stamp',
     console: true,
     depfile: 'sphinx.d',
-    depends: [ metricfiles, recrust ], # for generated .rst files
+    depends: [ metricfiles, recrust, json_schema ], # for generated .rst files
   )
 
   docs_tarball = custom_target(
