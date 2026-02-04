@@ -12,3 +12,8 @@
 /server.key
 /server.pem
 /server.p12
+/client.chain
+/client.csr
+/client.key
+/client.pem
+/client.p12
