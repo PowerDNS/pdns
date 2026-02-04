@@ -57,7 +57,7 @@ int B64Decode(const std::string& src, Container& dst)
   }
   bio = BIO_push(b64, bio);
   BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL);
-  ssize_t olen = BIO_read(b64, &dst.at(0), dlen);
+  auto olen = BIO_read(b64, &dst.at(0), dlen);
   if ((olen == 0 || olen == -1) && BIO_should_retry(bio)) {
     BIO_free_all(bio);
     throw std::runtime_error("BIO_read failed to read all data from memory buffer");
@@ -82,7 +82,7 @@ std::string Base64Encode(const std::string& src)
     BIO* bio = BIO_new(BIO_s_mem());
     if (bio == nullptr) {
       BIO_free_all(b64);
-      std::runtime_error("BIO_new failed");
+      throw std::runtime_error("BIO_new failed");
     }
     bio = BIO_push(b64, bio);
     BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL);
@@ -94,7 +94,7 @@ std::string Base64Encode(const std::string& src)
     (void)BIO_flush(bio);
     char* pp;
     std::string out;
-    size_t olen = BIO_get_mem_data(bio, &pp);
+    auto olen = BIO_get_mem_data(bio, &pp);
     if (olen > 0) {
       out = std::string(pp, olen);
     }
