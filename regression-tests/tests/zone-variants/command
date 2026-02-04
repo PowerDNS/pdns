@@ -7,14 +7,14 @@ $PDNSUTIL --config-dir=. --config-name=$backend $* 2>&1 | egrep -v 'destructor'
 
 set -e # to make this first call exit us early for non-variant capable backends. This relies on the existing example.com causing "already exists"
 
-pdnsutil_wrapper create-zone example.com..variant1 | egrep -v 'file|use them'
+pdnsutil_wrapper -q create-zone example.com..variant1
 set +e
 pdnsutil_wrapper show-zone example.com..variant1
 
-pdnsutil_wrapper create-zone ..myroot | egrep -v 'file|use them'
+pdnsutil_wrapper -q create-zone ..myroot
 pdnsutil_wrapper show-zone ..myroot
 
-pdnsutil_wrapper create-zone . | egrep -v 'file|use them'
+pdnsutil_wrapper -q create-zone .
 pdnsutil_wrapper show-zone .
 
 pdnsutil_wrapper list-all-zones | LC_ALL=C sort

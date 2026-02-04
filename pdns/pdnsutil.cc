@@ -2645,17 +2645,19 @@ static int createZone(const ZoneName &zone, const DNSName& nsname) {
 
   di.backend->commitTransaction();
 
-  // Zone is not secured yet, suggest applying default-soa-edit rule to the
-  // serial number, if applicable.
-  if (sd.serial == 0) {
-    string edit_kind = ::arg()["default-soa-edit"];
-    if (!edit_kind.empty() && !pdns_iequals(edit_kind, "NONE")) {
-      cout << "Consider invoking 'pdnsutil zone increase-serial " << zone << "'" << endl;
+  if (!g_quiet) {
+    // Zone is not secured yet, suggest applying default-soa-edit rule to the
+    // serial number, if applicable.
+    if (sd.serial == 0) {
+      string edit_kind = ::arg()["default-soa-edit"];
+      if (!edit_kind.empty() && !pdns_iequals(edit_kind, "NONE")) {
+        cout << "Consider invoking 'pdnsutil zone increase-serial " << zone << "'" << endl;
+      }
     }
-  }
 
-  if (::arg().asNum("zone-cache-refresh-interval") != 0) {
-    cout << "If the authoritative server is running, be sure to refresh its zone cache" << endl << "with 'pdns_control rediscover'" << endl;
+    if (::arg().asNum("zone-cache-refresh-interval") != 0) {
+      cout << "If the authoritative server is running, be sure to refresh its zone cache" << endl << "with 'pdns_control rediscover'" << endl;
+    }
   }
 
   return EXIT_SUCCESS;
