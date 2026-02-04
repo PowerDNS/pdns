@@ -3,9 +3,7 @@
 #endif
 
 #define BOOST_TEST_NO_MAIN
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+
 #include <boost/test/unit_test.hpp>
 #include <boost/assign/std/map.hpp>
 
@@ -16,21 +14,23 @@ using namespace boost;
 BOOST_AUTO_TEST_SUITE(test_base64_cc)
 
 BOOST_AUTO_TEST_CASE(test_Base64_Roundtrip) {
-  std::string before("Some Random String"), after;
-  std::string encoded = Base64Encode(before);
+  const std::string before("Some Random String");
+  const auto encoded = Base64Encode(before);
+
+  std::string after;
   B64Decode(encoded, after);
   BOOST_CHECK_EQUAL(before, after);
 }
 
-/* for a in $(seq 1 32); 
-   do 
-    plain=$(pwgen -1  -s $a) 
-    echo  \(\"$plain\",\"$(echo -n $plain | openssl enc -base64)\"\) ; 
+/* for a in $(seq 1 32);
+   do
+    plain=$(pwgen -1  -s $a)
+    echo  \(\"$plain\",\"$(echo -n $plain | openssl enc -base64)\"\) ;
    done
 */
 
 BOOST_AUTO_TEST_CASE(test_Base64_Encode) {
-  typedef std::map<std::string, std::string> cases_t;
+  using cases_t = std::map<std::string, std::string>;
   cases_t cases;
   assign::insert(cases)
     ("", "")
@@ -67,14 +67,20 @@ BOOST_AUTO_TEST_CASE(test_Base64_Encode) {
     ("eSHBt7Xx5F7A4HFtabXEzDLD01bnSiG","ZVNIQnQ3WHg1RjdBNEhGdGFiWEV6RExEMDFiblNpRw==")
     ("dq4KydZjmcoQQ45VYBP2EDR8FqKaMul0","ZHE0S3lkWmptY29RUTQ1VllCUDJFRFI4RnFLYU11bDA=");
 
-  for(const cases_t::value_type& val :  cases) {
-    std::string encoded = Base64Encode(val.first), decoded;
+  for (const auto& val : cases) {
+    const auto encoded = Base64Encode(val.first);
     BOOST_CHECK_EQUAL(encoded, val.second);
-    decoded.clear();
+    std::string decoded;
     B64Decode(val.second, decoded);
     BOOST_CHECK_EQUAL(decoded, val.first);
   }
 }
 
+BOOST_AUTO_TEST_CASE(test_Base64_Decode_Garbage)
+{
+  const std::string paddingOnly("====");
+  std::string decoded;
+  BOOST_CHECK_EQUAL(B64Decode(paddingOnly, decoded), -1);
+}
 
 BOOST_AUTO_TEST_SUITE_END()
