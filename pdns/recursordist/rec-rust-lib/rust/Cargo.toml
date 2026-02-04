@@ -25,7 +25,7 @@ hyper = { version = "1", features = ["server", "http1"]}
 tokio = { version = "1" , features = ["rt", "net"]}
 http-body-util = "0.1"
 hyper-util = { version = "0.1", features = ["tokio"]}
-bytes = "1.8"
+bytes = "1.11"
 form_urlencoded = "1.2"
 hyper-rustls = { version = "0.27",  default-features = false }
 ring = "0.17.13"
