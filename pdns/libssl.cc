@@ -1081,7 +1081,7 @@ static void mergeNewCertificateAndKey(pdns::libssl::ServerContext& serverContext
   }
 }
 
-void libssl_setup_context_no_sni(std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>& ctx, const TLSCertKeyPair& pair, std::vector<int>& keyTypes)
+void libssl_setup_context_no_sni(SSL_CTX* ctx, const TLSCertKeyPair& pair, std::vector<int>& keyTypes)
 {
   if (!pair.d_key) {
 #if defined(HAVE_SSL_CTX_USE_CERT_AND_KEY)
@@ -1126,7 +1126,7 @@ void libssl_setup_context_no_sni(std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free
     auto cert = std::unique_ptr<X509, void(*)(X509*)>(certptr, X509_free);
     auto ca = std::unique_ptr<STACK_OF(X509), void(*)(STACK_OF(X509)*)>(captr, [](STACK_OF(X509)* st){ sk_X509_free(st); });
 
-    if (SSL_CTX_use_cert_and_key(ctx.get(), cert.get(), key.get(), ca.get(), 1) != 1) {
+    if (SSL_CTX_use_cert_and_key(ctx, cert.get(), key.get(), ca.get(), 1) != 1) {
       ERR_print_errors_fp(stderr);
       throw std::runtime_error("An error occurred while trying to load the TLS certificate and key from PKCS12 file " + pair.d_cert);
     }
@@ -1134,17 +1134,17 @@ void libssl_setup_context_no_sni(std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free
     throw std::runtime_error("PKCS12 files are not supported by your openssl version");
 #endif /* HAVE_SSL_CTX_USE_CERT_AND_KEY */
   } else {
-    if (SSL_CTX_use_certificate_chain_file(ctx.get(), pair.d_cert.c_str()) != 1) {
+    if (SSL_CTX_use_certificate_chain_file(ctx, pair.d_cert.c_str()) != 1) {
       ERR_print_errors_fp(stderr);
       throw std::runtime_error("An error occurred while trying to load the TLS server certificate file: " + pair.d_cert);
     }
-    if (SSL_CTX_use_PrivateKey_file(ctx.get(), pair.d_key->c_str(), SSL_FILETYPE_PEM) != 1) {
+    if (SSL_CTX_use_PrivateKey_file(ctx, pair.d_key->c_str(), SSL_FILETYPE_PEM) != 1) {
       ERR_print_errors_fp(stderr);
       throw std::runtime_error("An error occurred while trying to load the TLS server private key file: " + pair.d_key.value());
     }
   }
 
-  if (SSL_CTX_check_private_key(ctx.get()) != 1) {
+  if (SSL_CTX_check_private_key(ctx) != 1) {
     ERR_print_errors_fp(stderr);
     throw std::runtime_error("The key from '" + pair.d_key.value() + "' does not match the certificate from '" + pair.d_cert + "'");
   }
@@ -1165,7 +1165,7 @@ std::pair<std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>, std::vector<std::st
   std::vector<int> keyTypes;
   /* load certificate and private key */
   for (const auto& pair : config.d_certKeyPairs) {
-    libssl_setup_context_no_sni(ctx, pair, keyTypes);
+    libssl_setup_context_no_sni(ctx.get(), pair, keyTypes);
   }
 
 #ifndef DISABLE_OCSP_STAPLING

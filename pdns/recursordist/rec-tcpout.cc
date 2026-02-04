@@ -142,6 +142,10 @@ std::shared_ptr<TLSCtx> TCPOutConnectionManager::getTLSContext(const std::string
       verboseLogging = config->verbose_logging;
       tlsParams.d_ciphers = std::string(config->ciphers);
       tlsParams.d_ciphers13 = std::string(config->ciphers_tls_13);
+
+      tlsParams.d_client_certificate = std::string(config->client_certificate);
+      tlsParams.d_client_certificate_key = std::string(config->client_certificate_key);
+      tlsParams.d_client_certificate_password = std::string(config->client_certificate_password);
     }
   }
   return ::getTLSContext(tlsParams);
