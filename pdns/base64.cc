@@ -23,6 +23,7 @@
 #include "config.h"
 
 #include "base64.hh"
+#include <limits>
 #include <stdexcept>
 #include <boost/scoped_array.hpp>
 #include <openssl/bio.h>
@@ -86,7 +87,7 @@ std::string Base64Encode(const std::string& src)
     bio = BIO_push(b64, bio);
     BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL);
     int bioWriteRet = BIO_write(bio, src.c_str(), src.length());
-    if (bioWriteRet < 0 || (size_t)bioWriteRet != src.length()) {
+    if (bioWriteRet < 0 || static_cast<size_t>(bioWriteRet) != src.length()) {
       BIO_free_all(bio);
       throw std::runtime_error("BIO_write failed to write all data to memory buffer");
     }

@@ -8,6 +8,7 @@
 #include <boost/assign/std/map.hpp>
 
 #include "base64.hh"
+#include "openssl/conf.h"
 
 using namespace boost;
 
@@ -80,7 +81,13 @@ BOOST_AUTO_TEST_CASE(test_Base64_Decode_Garbage)
 {
   const std::string paddingOnly("====");
   std::string decoded;
-  BOOST_CHECK_EQUAL(B64Decode(paddingOnly, decoded), -1);
+  auto ret = B64Decode(paddingOnly, decoded);
+#if OPENSSL_VERSION_NUMBER >= 0x30500000
+  BOOST_CHECK_EQUAL(ret, -1);
+#else
+  // does not test anything meaningful, but avoids a "ret unused" warning
+  BOOST_CHECK(ret == 0 || ret == -1);
+#endif
 }
 
 BOOST_AUTO_TEST_SUITE_END()
