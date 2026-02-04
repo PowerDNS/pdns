@@ -28,10 +28,10 @@
 #include <openssl/bio.h>
 #include <openssl/evp.h>
 
-
-template <typename Container> int B64Decode(const std::string& src, Container& dst)
+template <typename Container>
+int B64Decode(const std::string& src, Container& dst)
 {
-  if (src.empty() ) {
+  if (src.empty()) {
     dst.clear();
     return 0;
   }
@@ -39,7 +39,7 @@ template <typename Container> int B64Decode(const std::string& src, Container& d
   if (src.length() > std::numeric_limits<size_t>::max() / 7 || src.length() > std::numeric_limits<int>::max()) {
     throw std::runtime_error("B64Decode too large");
   }
-  const size_t dlen = (src.length() * 6 + 7) / 8 ;
+  const size_t dlen = (src.length() * 6 + 7) / 8;
   dst.resize(dlen);
   BIO* bio = BIO_new(BIO_s_mem());
   if (bio == nullptr) {
@@ -86,7 +86,7 @@ std::string Base64Encode(const std::string& src)
     bio = BIO_push(b64, bio);
     BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL);
     int bioWriteRet = BIO_write(bio, src.c_str(), src.length());
-    if (bioWriteRet < 0 || (size_t) bioWriteRet != src.length()) {
+    if (bioWriteRet < 0 || (size_t)bioWriteRet != src.length()) {
       BIO_free_all(bio);
       throw std::runtime_error("BIO_write failed to write all data to memory buffer");
     }

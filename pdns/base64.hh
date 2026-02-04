@@ -22,5 +22,6 @@
 #pragma once
 #include <string>
 
-template <typename Container> int B64Decode(const std::string& strInput, Container& strOutput);
+template <typename Container>
+int B64Decode(const std::string& strInput, Container& strOutput);
 std::string Base64Encode(const std::string& src);

@@ -17,8 +17,6 @@
 ./pdns/backends/gsql/gsqlbackend.cc
 ./pdns/backends/gsql/gsqlbackend.hh
 ./pdns/base32.cc
-./pdns/base64.cc
-./pdns/base64.hh
 ./pdns/bindparserclasses.hh
 ./pdns/calidns.cc
 ./pdns/capabilities.cc
