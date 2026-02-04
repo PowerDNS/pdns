@@ -1327,7 +1327,7 @@ distributor-threads={threads}
         return response
 
     @classmethod
-    def handleTCPConnection(cls, conn, fromQueue, toQueue, trailingDataResponse=False, multipleResponses=False, callback=None, partialWrite=False):
+    def handleTCPConnection(cls, conn, fromQueue, toQueue, trailingDataResponse=False, multipleResponses=False, callback=None, partialWrite=False,clientCert=False):
       ignoreTrailing = trailingDataResponse is True
       try:
         data = conn.recv(2)
@@ -1337,6 +1337,12 @@ distributor-threads={threads}
       if not data:
         conn.close()
         return
+
+      if clientCert:
+          print("Checking client cert")
+          cert = conn.getpeercert()
+          if cert is None:
+              raise AssertionError("Client certificate expected, got none")
 
       (datalen,) = struct.unpack("!H", data)
       data = conn.recv(datalen)
@@ -1398,7 +1404,7 @@ distributor-threads={threads}
       conn.close()
 
     @classmethod
-    def TCPResponder(cls, port, fromQueue, toQueue, trailingDataResponse=False, multipleResponses=False, callback=None, tlsContext=None, multipleConnections=False, listeningAddr='127.0.0.1', partialWrite=False):
+    def TCPResponder(cls, port, fromQueue, toQueue, trailingDataResponse=False, multipleResponses=False, callback=None, tlsContext=None, multipleConnections=False, listeningAddr='127.0.0.1', partialWrite=False,clientCert=False):
         cls._backgroundThreads[threading.get_native_id()] = True
         # trailingDataResponse=True means "ignore trailing data".
         # Other values are either False (meaning "raise an exception")
@@ -1438,11 +1444,11 @@ distributor-threads={threads}
             if multipleConnections:
               thread = threading.Thread(name='TCP Connection Handler',
                                         target=cls.handleTCPConnection,
-                                        args=[conn, fromQueue, toQueue, trailingDataResponse, multipleResponses, callback, partialWrite])
+                                        args=[conn, fromQueue, toQueue, trailingDataResponse, multipleResponses, callback, partialWrite,clientCert])
               thread.daemon = True
               thread.start()
             else:
-              cls.handleTCPConnection(conn, fromQueue, toQueue, trailingDataResponse, multipleResponses, callback, partialWrite)
+              cls.handleTCPConnection(conn, fromQueue, toQueue, trailingDataResponse, multipleResponses, callback, partialWrite,clientCert)
 
         sock.close()
 
