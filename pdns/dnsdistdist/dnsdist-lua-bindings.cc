@@ -34,6 +34,7 @@
 
 #include "dolog.hh"
 #include "xsk.hh"
+#include <variant>
 
 void setupLuaBindingsLogging(LuaContext& luaCtx)
 {
@@ -492,6 +493,22 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
   /* DNSName */
   luaCtx.registerFunction("isPartOf", &DNSName::isPartOf);
   luaCtx.registerFunction<bool (DNSName::*)()>("chopOff", [](DNSName& name) { return name.chopOff(); });
+  luaCtx.registerFunction<void (DNSName::*)(const std::variant<DNSName, std::string>&)>("append", [](DNSName& name, const std::variant<DNSName, std::string>& labels) {
+    if (std::holds_alternative<DNSName>(labels)) {
+      name += std::get<DNSName>(labels);
+    }
+    if (std::holds_alternative<string>(labels)) {
+      name += DNSName(std::get<std::string>(labels));
+    }
+  });
+  luaCtx.registerFunction<void (DNSName::*)(const std::variant<DNSName, std::string>&)>("prepend", [](DNSName& name, const std::variant<DNSName, std::string>& labels) {
+    if (std::holds_alternative<DNSName>(labels)) {
+      name = std::get<DNSName>(labels) + name;
+    }
+    if (std::holds_alternative<string>(labels)) {
+      name = DNSName(std::get<std::string>(labels)) + name;
+    }
+  });
   luaCtx.registerFunction<unsigned int (DNSName::*)() const>("countLabels", [](const DNSName& name) { return name.countLabels(); });
   luaCtx.registerFunction<size_t (DNSName::*)() const>("hash", [](const DNSName& name) { return name.hash(); });
   luaCtx.registerFunction<size_t (DNSName::*)() const>("wirelength", [](const DNSName& name) { return name.wirelength(); });

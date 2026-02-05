@@ -79,3 +79,21 @@ Functions and methods of a ``DNSName``
   .. method:: DNSName:wirelength() -> int
 
     Returns the length in bytes of the DNSName as it would be on the wire.
+
+  .. method:: DNSName:append(labels: [DNSName,string])
+
+    .. versionadded:: 2.2.0
+
+    Append ``labels`` to the DNSName. ``labels`` can be a string or DNSName containing one or more labels.
+
+    .. codeblock:: lua
+      local n = newDNSName("example.com")
+      n:append("example") -- n is now "example.com.example"
+      local other_name = newDNSName("foobar.invalid")
+      n:append(other_name) -- n is now "example.com.example.foobar.invalid")
+
+  .. method:: DNSName:prepend(labels: [DNSName,string])
+
+    .. versionadded:: 2.2.0
+
+    Prepend ``labels`` to the DNSName. ``labels`` can be a string or DNSName containing one or more labels.
