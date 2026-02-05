@@ -29,6 +29,7 @@
 
 #include "config.h"
 #include "dnsdist-configuration.hh"
+#include "dnsdist-opentelemetry.hh"
 #include "dnsdist.hh"
 #include "dnsdist-async.hh"
 #include "dnsdist-dnsparser.hh"
@@ -1741,6 +1742,7 @@ public:
     tracer->setRootSpanAttribute("query.qtype", AnyValue{QType(dnsquestion->ids.qtype).toString()});
     tracer->setRootSpanAttribute("query.remote.address", AnyValue{dnsquestion->ids.origRemote.toString()});
     tracer->setRootSpanAttribute("query.remote.port", AnyValue{dnsquestion->ids.origRemote.getPort()});
+    tracer->setTraceAttribute("instance", AnyValue{dnsdist::configuration::getCurrentRuntimeConfiguration().d_server_id});
 
     if (!d_useIncomingTraceID && !d_stripIncomingTraceID) {
       // No need to check EDNS
