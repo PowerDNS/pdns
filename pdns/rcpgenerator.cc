@@ -121,6 +121,13 @@ void RecordTextReader::xfrTime(uint32_t &val)
     throw RecordTextException("unable to parse '"+std::to_string(itmp)+"' into a valid time at position "+std::to_string(d_pos)+" in '"+d_string+"'");
   }
 
+  // Note tm_mon is still in 1..12 range at this point
+  if (tm.tm_sec < 0 || tm.tm_sec > 60 || tm.tm_min < 0 || tm.tm_min > 59 ||
+      tm.tm_hour < 0 || tm.tm_hour > 23 || tm.tm_mday < 0 || tm.tm_mday > 31 ||
+      tm.tm_mon < 1 || tm.tm_mon > 12) {
+    throw RecordTextException("invalid time specification '"+std::to_string(itmp)+"' at position "+std::to_string(d_pos)+" in '"+d_string+"'");
+  }
+
   tm.tm_year-=1900;
   tm.tm_mon-=1;
   // coverity[store_truncates_time_t]
