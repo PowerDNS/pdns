@@ -176,8 +176,8 @@ void DNSDistProtoBufMessage::serialize(std::string& data, bool withOpenTelemetry
     msg.setHeaderFlags(*getFlagsFromDNSHeader(d_dq.getHeader().get()));
   }
   catch (const std::exception& exp) {
-      VERBOSESLOG(infolog("Error while getting the flags from the DNS header of a packet to add them to the protobuf message: %s", exp.what()),
-                  dnsdist::logging::getTopLogger("protobuf")->error(Logr::Info, exp.what(), "Error while getting the flags from the DNS header of a packet to add them to the protobuf message"));
+    VERBOSESLOG(infolog("Error while getting the flags from the DNS header of a packet to add them to the protobuf message: %s", exp.what()),
+                dnsdist::logging::getTopLogger("protobuf")->error(Logr::Info, exp.what(), "Error while getting the flags from the DNS header of a packet to add them to the protobuf message"));
   }
 
   if (d_serverIdentity) {
