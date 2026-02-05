@@ -2,17 +2,17 @@
 
 import base64
 import binascii
+import threading
+import time
+
+import dns.edns
 import dns.message
-import dns.rrset
 import dns.rcode
 import dns.rdataclass
 import dns.rdatatype
-import dns.edns
-import time
-import threading
-
-import opentelemetry.proto.trace.v1.trace_pb2
+import dns.rrset
 import google.protobuf.json_format
+import opentelemetry.proto.trace.v1.trace_pb2
 
 import test_Protobuf
 
@@ -415,7 +415,7 @@ query_rules:
    action:
      type: SetTrace
      value: true
-     use_incoming_traceid: true
+     use_incoming_traceparent: true
 
 response_rules:
  - name: Do PB logging
@@ -772,7 +772,7 @@ query_rules:
    action:
      type: SetTrace
      value: true
-     strip_incoming_traceid: true
+     strip_incoming_traceparent: true
 """
 
     @classmethod
@@ -814,6 +814,7 @@ query_rules:
         ottrace = dns.edns.GenericOption(str(65500), "\x00\x00")
         ottrace.data += binascii.a2b_hex("12345678901234567890123456789012")
         ottrace.data += binascii.a2b_hex("1234567890123456")
+        ottrace.data += binascii.a2b_hex("00")
         query = dns.message.make_query(
             name, "A", "IN", use_edns=True, options=[ottrace]
         )
@@ -832,3 +833,129 @@ query_rules:
 
     def testStripIncomingTraceIDTCP(self):
         self.doQuery(True)
+
+
+def verifyTraceparentInQuery(request: dns.message.Message):
+    print(request)
+    response = dns.message.make_response(request)
+
+    traceparent : dns.edns.Option|None = next((i for i in request.options if i.otype == 65500), None)
+
+    print(traceparent)
+
+    if traceparent is None:
+        response.set_rcode(dns.rcode.SERVFAIL)
+        return response.to_wire()
+
+    # Ensure the SpanID is not 1234567890123456
+    if traceparent.to_text()[-17:-1] == "1234567890123456":
+        response.set_rcode(dns.rcode.SERVFAIL)
+        return response.to_wire()
+
+    # technically wrong, as we include the TRACEPARENT in the response
+    return response.to_wire()
+
+
+
+class TestOpenTelemetryTracingSendTraceparentDownstream(
+    DNSDistOpenTelemetryProtobufTest
+):
+    _yaml_config_params = [
+        "_testServerPort",
+    ]
+    _yaml_config_template = """---
+logging:
+  open_telemetry_tracing: true
+
+backends:
+  - address: 127.0.0.1:%d
+    protocol: Do53
+    health_checks:
+      mode: up
+
+query_rules:
+ - name: Enable tracing
+   selector:
+     type: All
+   action:
+     type: SetTrace
+     value: true
+     downstream_edns_traceparent_option_code: 65500
+"""
+
+    @classmethod
+    def startResponders(cls):
+        print("Launching responders..")
+
+        cls._UDPResponder = threading.Thread(
+            name="UDP Responder",
+            target=cls.UDPResponder,
+            args=[
+                cls._testServerPort,
+                cls._toResponderQueue,
+                cls._fromResponderQueue,
+                False,
+                verifyTraceparentInQuery,
+            ],
+        )
+        cls._UDPResponder.daemon = True
+        cls._UDPResponder.start()
+
+        cls._TCPResponder = threading.Thread(
+            name="TCP Responder",
+            target=cls.TCPResponder,
+            args=[
+                cls._testServerPort,
+                cls._toResponderQueue,
+                cls._fromResponderQueue,
+                False,
+                False,
+                verifyTraceparentInQuery,
+            ],
+        )
+        cls._TCPResponder.daemon = True
+        cls._TCPResponder.start()
+
+    def doQuery(self, useTCP=False):
+        name = "query.ot.tests.powerdns.com."
+
+        ottrace = dns.edns.GenericOption(str(65500), "\x00\x00")
+        ottrace.data += binascii.a2b_hex("12345678901234567890123456789012")
+        ottrace.data += binascii.a2b_hex("1234567890123456")
+        ottrace.data += binascii.a2b_hex("00")
+        query = dns.message.make_query(
+            name, "A", "IN", use_edns=True, options=[ottrace]
+        )
+
+        if useTCP:
+            (_, receivedResponse) = self.sendTCPQuery(query, response=None)
+        else:
+            (_, receivedResponse) = self.sendUDPQuery(query, response=None)
+
+        self.assertIsNotNone(receivedResponse)
+        # If we stripped the OpenTelemetry Trace ID from the query, we should not get a SERVFAIL
+        self.assertEqual(receivedResponse.rcode(), dns.rcode.NOERROR)
+
+    def testSetDownstreamTraceparentUDP(self):
+        self.doQuery()
+
+    def testSetDownstreamTraceparentTCP(self):
+        self.doQuery(True)
+
+class TestOpenTelemetryTracingSendTraceparentDownstreamLua(
+    TestOpenTelemetryTracingSendTraceparentDownstream
+):
+    _yaml_config_template = None
+    _config_params = [
+        "_testServerPort",
+        "_protobufServerPort",
+    ]
+    _config_template = """
+newServer{address="127.0.0.1:%d"}
+getServer(0):setUp()
+rl = newRemoteLogger('127.0.0.1:%d')
+setOpenTelemetryTracing(true)
+
+addAction(AllRule(), SetTraceAction(true, {rl}, false, 65500, 65500, false), {name="Enable tracing"})
+addResponseAction(AllRule(), RemoteLogResponseAction(rl), {name="Do PB logging"})
+        """

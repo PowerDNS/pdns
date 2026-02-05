@@ -78,7 +78,7 @@ Passing Trace ID and Span ID to downstream servers
 ==================================================
 
 When storing traces, it is beneficial to correlate traces of the same query through different applications.
-The `PowerDNS Recursor <https://doc.powerdns.com/recursor>`__ (since 5.3.0) supports the experimental `draft-edns-otel-trace-ids <https://github.com/PowerDNS/draft-edns-otel-trace-ids>`__ EDNS option to pass the trace identifier.
+The `PowerDNS Recursor <https://doc.powerdns.com/recursor>`__ (since 5.3.0) supports the experimental `TRACEPARENT <https://github.com/PowerDNS/draft-edns-otel-trace-ids>`__ EDNS option to pass the trace identifier.
 The :doc:`DNSQuestion object <dq>` supports the :func:`getTraceID <DNSQuestion:getTraceID>` method to retrieve the trace identifier as a binary string.
 Combining all this, a :func:`LuaAction` can be used to add this EDNS option to the query.
 
@@ -138,8 +138,8 @@ Should there be no ID in the incoming query, a random ID will be generated.
        action:
          type: SetTrace
          value: true
-         use_incoming_traceid: true
+         use_incoming_traceparent: true
 
 As :program:`dnsdist` keeps EDNS existing options in the query, the Trace ID option is passed as-is to the backend, which might not be desirable.
-Using the ``strip_incoming_traceid`` boolean option, the EDNS option will be removed from the query.
+Using the ``strip_incoming_traceparent`` boolean option, the EDNS option will be removed from the query.
 Note that this will only happen when ``value`` is set to ``true``.

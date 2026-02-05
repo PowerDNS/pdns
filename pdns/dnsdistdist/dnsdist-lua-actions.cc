@@ -239,7 +239,7 @@ void setupLuaActions(LuaContext& luaCtx)
   });
 
 #ifndef DISABLE_PROTOBUF
-  luaCtx.writeFunction("SetTraceAction", [](bool value, std::optional<LuaAssociativeTable<std::shared_ptr<RemoteLoggerInterface>>> remote_loggers, std::optional<bool> use_incoming_traceid, std::optional<uint16_t> trace_edns_option, std::optional<uint16_t> downstream_trace_edns_option, std::optional<bool> strip_incoming_traceid) {
+  luaCtx.writeFunction("SetTraceAction", [](bool value, std::optional<LuaAssociativeTable<std::shared_ptr<RemoteLoggerInterface>>> remote_loggers, std::optional<bool> use_incoming_traceparent, std::optional<uint16_t> traceparent_option_code, std::optional<uint16_t> downstream_traceparent_option_code, std::optional<bool> strip_incoming_traceparent) {
     dnsdist::actions::SetTraceActionConfiguration config;
 
     if (remote_loggers) {
@@ -258,10 +258,10 @@ void setupLuaActions(LuaContext& luaCtx)
       config.remote_loggers = std::move(loggers);
     }
     config.value = value;
-    config.trace_edns_option = trace_edns_option.value_or(65500);
-    config.downstream_trace_edns_option = downstream_trace_edns_option.value_or(0);
-    config.use_incoming_traceid = use_incoming_traceid.value_or(false);
-    config.strip_incoming_traceid = strip_incoming_traceid.value_or(false);
+    config.incomingTraceparentOptionCode = traceparent_option_code.value_or(65500);
+    config.downstreamTraceparentOptionCode = downstream_traceparent_option_code.value_or(0);
+    config.useIncomingTraceparent = use_incoming_traceparent.value_or(false);
+    config.stripIncomingTraceparent = strip_incoming_traceparent.value_or(false);
 
     return dnsdist::actions::getSetTraceAction(config);
   });
