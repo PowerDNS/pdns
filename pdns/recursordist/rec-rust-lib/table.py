@@ -1531,7 +1531,7 @@ See :ref:`handling-of-root-hints` for more information on this.
 Maximum size of storage used by a single record cache entry. Entries larger than this number will not be stored.
 Zero means no limit.
 ''',
-    'versionadded': ['5.1.10', '5.2.8', '5.3.5', '5.4.0'],
+    'versionadded': ['5.1.10', '5.2.8', '5.3.5'],
     },
     {
         'name' : 'max_concurrent_requests_per_tcp_connection',
@@ -1620,7 +1620,7 @@ Maximum number of Packet Cache entries. Sharded and shared by all threads since 
 Maximum size of packets stored in the packet cache. Packets larger than this number will not be stored.
 Zero means no limit.
 ''',
-    'versionadded': ['5.1.10', '5.2.8', '5.3.5', '5.4.0'],
+    'versionadded': ['5.1.10', '5.2.8', '5.3.5'],
     },
     {
         'name' : 'max_qperq',
