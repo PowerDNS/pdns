@@ -1355,6 +1355,9 @@ distributor-threads={threads}
           cert = conn.getpeercert()
           if cert is None:
               raise AssertionError("Client certificate expected, got none")
+          if cert['subject'][0][0][1] != 'client.tests.powerdns.com':
+              print(cert)
+              raise AssertionError('Unexpected subject in cert')
 
       (datalen,) = struct.unpack("!H", data)
       data = conn.recv(datalen)
