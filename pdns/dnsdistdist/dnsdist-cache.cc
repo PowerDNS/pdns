@@ -43,10 +43,8 @@ DNSDistPacketCache::DNSDistPacketCache(CacheSettings settings) :
 
   d_shards.resize(d_settings.d_shardCount);
 
-  /* we reserve maxEntries + 1 to avoid rehashing from occurring
-     when we get to maxEntries, as it means a load factor of 1 */
   for (auto& shard : d_shards) {
-    shard.setSize((d_settings.d_maxEntries / d_settings.d_shardCount) + 1);
+    shard.init((d_settings.d_maxEntries / d_settings.d_shardCount), d_settings.d_lru);
   }
 }
 
@@ -91,18 +89,24 @@ bool DNSDistPacketCache::cachedValueMatches(const CacheValue& cachedValue, uint1
   return true;
 }
 
-bool DNSDistPacketCache::insertLocked(std::unordered_map<uint32_t, CacheValue>& map, uint32_t key, CacheValue& newValue)
+bool DNSDistPacketCache::insertLocked(MaybeLruCache<uint32_t, CacheValue>& map, uint32_t key, CacheValue& newValue, bool checkSize)
 {
-  /* check again now that we hold the lock to prevent a race */
-  if (map.size() >= (d_settings.d_maxEntries / d_settings.d_shardCount)) {
-    return false;
+  if (checkSize) {
+    /* check again now that we hold the lock to prevent a race */
+    if (map.size() >= (d_settings.d_maxEntries / d_settings.d_shardCount)) {
+      return false;
+    }
   }
 
   std::unordered_map<uint32_t, CacheValue>::iterator mapIt;
   bool result{false};
-  std::tie(mapIt, result) = map.insert({key, newValue});
+  bool lru_removed{false};
+  std::tie(mapIt, result) = map.insert(key, newValue, lru_removed);
 
   if (result) {
+    if (lru_removed) {
+      return false;
+    }
     return true;
   }
 
@@ -122,6 +126,8 @@ bool DNSDistPacketCache::insertLocked(std::unordered_map<uint32_t, CacheValue>& 
   }
 
   value = newValue;
+
+  map.putFront(key);
   return false;
 }
 
@@ -177,8 +183,12 @@ void DNSDistPacketCache::insert(uint32_t key, const std::optional<Netmask>& subn
 
   uint32_t shardIndex = getShardIndex(key);
 
-  if (d_shards.at(shardIndex).d_entriesCount >= (d_settings.d_maxEntries / d_settings.d_shardCount)) {
-    return;
+  // with LRU cache, we don't check size; we always insert
+  bool checkSize = !isLru();
+  if (checkSize) {
+    if (d_shards.at(shardIndex).d_entriesCount >= (d_settings.d_maxEntries / d_settings.d_shardCount)) {
+      return;
+    }
   }
 
   const time_t now = time(nullptr);
@@ -206,16 +216,100 @@ void DNSDistPacketCache::insert(uint32_t key, const std::optional<Netmask>& subn
       ++d_deferredInserts;
       return;
     }
-    inserted = insertLocked(*lock, key, newValue);
+    inserted = insertLocked(*lock, key, newValue, checkSize);
   }
   else {
     auto lock = shard.d_map.write_lock();
 
-    inserted = insertLocked(*lock, key, newValue);
+    inserted = insertLocked(*lock, key, newValue, checkSize);
   }
   if (inserted) {
     ++shard.d_entriesCount;
   }
+}
+
+std::pair<bool, bool> DNSDistPacketCache::getWriteLocked(MaybeLruCache<uint32_t, CacheValue>& map, DNSQuestion& dnsQuestion, bool& stale, PacketBuffer& response, time_t& age, uint32_t key, bool recordMiss, time_t now, uint32_t allowExpired, bool receivedOverUDP, bool dnssecOK, const std::optional<Netmask>& subnet, bool truncatedOK, uint16_t queryId, const DNSName::string_t& dnsQName)
+{
+  auto mapIt = map.findAndPutFront(key);
+  if (mapIt == map.end()) {
+    if (recordMiss) {
+      ++d_misses;
+    }
+    return {false, false};
+  }
+
+  return getLocked(mapIt->second, dnsQuestion, stale, response, age, recordMiss, now, allowExpired, receivedOverUDP, dnssecOK, subnet, truncatedOK, queryId, dnsQName);
+}
+
+std::pair<bool, bool> DNSDistPacketCache::getLocked(const CacheValue& value, DNSQuestion& dnsQuestion, bool& stale, PacketBuffer& response, time_t& age, bool recordMiss, time_t now, uint32_t allowExpired, bool receivedOverUDP, bool dnssecOK, const std::optional<Netmask>& subnet, bool truncatedOK, uint16_t queryId, const DNSName::string_t& dnsQName)
+{
+  if (value.validity <= now) {
+    if ((now - value.validity) >= static_cast<time_t>(allowExpired)) {
+      if (recordMiss) {
+        ++d_misses;
+      }
+      return {false, false};
+    }
+    stale = true;
+  }
+
+  if (value.len < sizeof(dnsheader)) {
+    return {false, false};
+  }
+
+  /* check for collision */
+  if (!cachedValueMatches(value, *(getFlagsFromDNSHeader(dnsQuestion.getHeader().get())), dnsQuestion.ids.qname, dnsQuestion.ids.qtype, dnsQuestion.ids.qclass, receivedOverUDP, dnssecOK, subnet)) {
+    ++d_lookupCollisions;
+    return {false, false};
+  }
+
+  if (!truncatedOK) {
+    dnsheader_aligned dh_aligned(value.value.data());
+    if (dh_aligned->tc != 0) {
+      return {false, false};
+    }
+  }
+
+  response.resize(value.len);
+  memcpy(&response.at(0), &queryId, sizeof(queryId));
+  memcpy(&response.at(sizeof(queryId)), &value.value.at(sizeof(queryId)), sizeof(dnsheader) - sizeof(queryId));
+
+  if (value.len == sizeof(dnsheader)) {
+    /* DNS header only, our work here is done */
+    return {true, true};
+  }
+
+  const size_t dnsQNameLen = dnsQName.length();
+  if (value.len < (sizeof(dnsheader) + dnsQNameLen)) {
+    return {false, false};
+  }
+
+  memcpy(&response.at(sizeof(dnsheader)), dnsQName.c_str(), dnsQNameLen);
+  if (value.len > (sizeof(dnsheader) + dnsQNameLen)) {
+    memcpy(&response.at(sizeof(dnsheader) + dnsQNameLen), &value.value.at(sizeof(dnsheader) + dnsQNameLen), value.len - (sizeof(dnsheader) + dnsQNameLen));
+  }
+
+  if (!stale) {
+    age = now - value.added;
+  }
+  else {
+    age = (value.validity - value.added) - d_settings.d_staleTTL;
+    dnsQuestion.ids.staleCacheHit = true;
+  }
+  return {true, false};
+}
+
+std::pair<bool, bool> DNSDistPacketCache::getReadLocked(const MaybeLruCache<uint32_t, CacheValue>& map, DNSQuestion& dnsQuestion, bool& stale, PacketBuffer& response, time_t& age, uint32_t key, bool recordMiss, time_t now, uint32_t allowExpired, bool receivedOverUDP, bool dnssecOK, const std::optional<Netmask>& subnet, bool truncatedOK, uint16_t queryId, const DNSName::string_t& dnsQName)
+{
+  auto mapIt = map.find(key);
+  if (mapIt == map.end()) {
+    if (recordMiss) {
+      ++d_misses;
+    }
+    return {false, false};
+  }
+
+  return getLocked(mapIt->second, dnsQuestion, stale, response, age, recordMiss, now, allowExpired, receivedOverUDP, dnssecOK, subnet, truncatedOK, queryId, dnsQName);
 }
 
 bool DNSDistPacketCache::get(DNSQuestion& dnsQuestion, uint16_t queryId, uint32_t* keyOut, std::optional<Netmask>& subnet, bool dnssecOK, bool receivedOverUDP, uint32_t allowExpired, bool skipAging, bool truncatedOK, bool recordMiss)
@@ -243,74 +337,35 @@ bool DNSDistPacketCache::get(DNSQuestion& dnsQuestion, uint16_t queryId, uint32_
   auto& response = dnsQuestion.getMutableData();
   auto& shard = d_shards.at(shardIndex);
   {
-    auto map = shard.d_map.try_read_lock();
-    if (!map.owns_lock()) {
-      ++d_deferredLookups;
-      return false;
-    }
+    bool hit{false};
+    bool hitHeader{false};
 
-    auto mapIt = map->find(key);
-    if (mapIt == map->end()) {
-      if (recordMiss) {
-        ++d_misses;
+    // LRU cache needs a write lock
+    if (isLru()) {
+      auto wmap = shard.d_map.try_write_lock();
+      if (wmap.owns_lock()) {
+        std::tie(hit, hitHeader) = getWriteLocked(*wmap, dnsQuestion, stale, response, age, key, recordMiss, now, allowExpired, receivedOverUDP, dnssecOK, subnet, truncatedOK, queryId, dnsQName);
       }
-      return false;
-    }
-
-    const CacheValue& value = mapIt->second;
-    if (value.validity <= now) {
-      if ((now - value.validity) >= static_cast<time_t>(allowExpired)) {
-        if (recordMiss) {
-          ++d_misses;
-        }
+      else {
+        ++d_deferredLookups;
         return false;
       }
-      stale = true;
-    }
-
-    if (value.len < sizeof(dnsheader)) {
-      return false;
-    }
-
-    /* check for collision */
-    if (!cachedValueMatches(value, *(getFlagsFromDNSHeader(dnsQuestion.getHeader().get())), dnsQuestion.ids.qname, dnsQuestion.ids.qtype, dnsQuestion.ids.qclass, receivedOverUDP, dnssecOK, subnet)) {
-      ++d_lookupCollisions;
-      return false;
-    }
-
-    if (!truncatedOK) {
-      dnsheader_aligned dh_aligned(value.value.data());
-      if (dh_aligned->tc != 0) {
-        return false;
-      }
-    }
-
-    response.resize(value.len);
-    memcpy(&response.at(0), &queryId, sizeof(queryId));
-    memcpy(&response.at(sizeof(queryId)), &value.value.at(sizeof(queryId)), sizeof(dnsheader) - sizeof(queryId));
-
-    if (value.len == sizeof(dnsheader)) {
-      /* DNS header only, our work here is done */
-      ++d_hits;
-      return true;
-    }
-
-    const size_t dnsQNameLen = dnsQName.length();
-    if (value.len < (sizeof(dnsheader) + dnsQNameLen)) {
-      return false;
-    }
-
-    memcpy(&response.at(sizeof(dnsheader)), dnsQName.c_str(), dnsQNameLen);
-    if (value.len > (sizeof(dnsheader) + dnsQNameLen)) {
-      memcpy(&response.at(sizeof(dnsheader) + dnsQNameLen), &value.value.at(sizeof(dnsheader) + dnsQNameLen), value.len - (sizeof(dnsheader) + dnsQNameLen));
-    }
-
-    if (!stale) {
-      age = now - value.added;
     }
     else {
-      age = (value.validity - value.added) - d_settings.d_staleTTL;
-      dnsQuestion.ids.staleCacheHit = true;
+      auto map = shard.d_map.try_read_lock();
+      if (!map.owns_lock()) {
+        ++d_deferredLookups;
+        return false;
+      }
+      std::tie(hit, hitHeader) = getReadLocked(*map, dnsQuestion, stale, response, age, key, recordMiss, now, allowExpired, receivedOverUDP, dnssecOK, subnet, truncatedOK, queryId, dnsQName);
+    }
+
+    if (!hit) {
+      return false;
+    }
+    if (hitHeader) {
+      ++d_hits;
+      return true;
     }
   }
 

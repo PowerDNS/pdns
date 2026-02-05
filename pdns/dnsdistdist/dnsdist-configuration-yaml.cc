@@ -1043,6 +1043,7 @@ static void handlePacketCacheConfiguration(const ::rust::Vec<dnsdist::rust::sett
       .d_parseECS = cache.parse_ecs,
       .d_keepStaleData = cache.keep_stale_data,
       .d_shuffle = cache.shuffle,
+      .d_lru = cache.lru,
     };
     std::unordered_set<uint16_t> ranks;
     if (!cache.options_to_skip.empty()) {
