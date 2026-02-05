@@ -321,4 +321,22 @@ void Tracer::Closer::setAttribute([[maybe_unused]] const std::string& key, [[may
 #endif
 }
 
+std::vector<uint8_t> makeEDNSTraceParentOption(std::shared_ptr<Tracer> tracer)
+{
+  std::vector<uint8_t> ret;
+#ifndef DISABLE_PROTOBUF
+  if (tracer == nullptr) {
+    return ret;
+  }
+  ret.reserve(27);
+  ret.push_back(0); // Version
+  ret.push_back(0); // Reserved
+  auto traceId = tracer->getTraceID();
+  ret.insert(ret.end(), traceId.begin(), traceId.end());
+  auto spanId = tracer->getLastSpanID();
+  ret.insert(ret.end(), spanId.begin(), spanId.end());
+  ret.push_back(0); // Flags
+#endif
+  return ret;
+}
 } // namespace pdns::trace::dnsdist
