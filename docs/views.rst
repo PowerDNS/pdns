@@ -54,8 +54,12 @@ Zone variants can be used in any command or operation where a zone name is
 expected, i.e. with :doc:`pdnsutil <manpages/pdnsutil.1>` or the
 :doc:`HTTP API <http-api/index>`.
 
-There is no mechanism to populate a freshly-created variant from the variantless
-zone contents.
+The :doc:`pdnsutil <manpages/pdnsutil.1>` ``zone copy`` command can be used to
+populate a freshly-created variant from the variantless zone contents.
+
+**Important Note**:
+It is currently advised to use the same backend as the variantless zone
+to host all its variants.
 
 Networks
 ^^^^^^^^
