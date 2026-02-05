@@ -81,7 +81,7 @@ min_js: $(MIN_JS_FILES)
 if HAVE_RE2
 # Some versions of pkg_config add -std=c11++, override that
 AM_CPPFLAGS += $(RE2_CFLAGS)
-AM_CXXFLAGS += -std=c++17
+AM_CXXFLAGS += $(RE2_CFLAGS) -std=c++17
 endif
 
 if HAVE_DNS_OVER_TLS
