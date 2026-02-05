@@ -340,4 +340,6 @@ private:
   LockGuarded<Data> d_data;
 #endif
 };
+
+std::vector<uint8_t> makeEDNSTraceParentOption(std::shared_ptr<Tracer> tracer);
 } // namespace pdns::trace::dnsdist
