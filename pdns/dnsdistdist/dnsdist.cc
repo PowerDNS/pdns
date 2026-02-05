@@ -1900,13 +1900,7 @@ bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& downstrea
         size_t optLen = data.size() - optRDPosition - remaining;
         removeEDNSOptionFromOPT(reinterpret_cast<char*>(data.data() + optRDPosition), &optLen, dnsQuestion.ids.sendTraceParentToDownstreamID);
       }
-
-      std::vector<uint8_t> opt{0, 0};
-      auto traceId = tracer->getTraceID();
-      opt.insert(opt.end(), traceId.begin(), traceId.end());
-      auto spanId = tracer->getLastSpanID();
-      opt.insert(opt.end(), spanId.begin(), spanId.end());
-      opt.push_back(0); // Flags
+      auto opt = pdns::trace::dnsdist::makeEDNSTraceParentOption(tracer);
       setEDNSOption(dnsQuestion, dnsQuestion.ids.sendTraceParentToDownstreamID, std::string(opt.begin(), opt.end()));
     }
 #endif
