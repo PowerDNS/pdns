@@ -574,7 +574,7 @@ bool extractOTraceIDs(const EDNSOptionViewMap& map, EDNSOptionCode::EDNSOptionCo
 {
   EDNSOptionCode::EDNSOptionCodeEnum realEOC = eoc;
   if (realEOC == 0) {
-    realEOC = EDNSOptionCode::OTTRACEIDS;
+    realEOC = EDNSOptionCode::TRACEPARENT;
   }
   bool traceidset = false;
   if (const auto& option = map.find(realEOC); option != map.end()) {

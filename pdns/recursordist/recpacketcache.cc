@@ -103,7 +103,7 @@ uint64_t RecursorPacketCache::doWipePacketCache(const DNSName& name, uint16_t qt
   return count;
 }
 
-static const std::unordered_set<uint16_t> s_skipOptions = {EDNSOptionCode::ECS, EDNSOptionCode::COOKIE, EDNSOptionCode::OTTRACEIDS};
+static const std::unordered_set<uint16_t> s_skipOptions = {EDNSOptionCode::ECS, EDNSOptionCode::COOKIE, EDNSOptionCode::TRACEPARENT};
 
 bool RecursorPacketCache::qrMatch(const packetCache_t::index<HashTag>::type::iterator& iter, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass)
 {
