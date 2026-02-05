@@ -50,18 +50,6 @@ enum class dState : uint8_t { NODENIAL, INCONCLUSIVE, NXDOMAIN, NXQTYPE, ENT, IN
 std::ostream& operator<<(std::ostream &, vState);
 std::ostream& operator<<(std::ostream &, dState);
 
-class DNSRecordOracle
-{
-public:
-  virtual ~DNSRecordOracle() = default;
-  DNSRecordOracle(const DNSRecordOracle&) = default;
-  DNSRecordOracle(DNSRecordOracle&&) = default;
-  DNSRecordOracle& operator=(const DNSRecordOracle&) = default;
-  DNSRecordOracle& operator=(DNSRecordOracle&&) = default;
-  virtual std::vector<DNSRecord> get(const DNSName& qname, uint16_t qtype) = 0;
-};
-
-
 struct ContentSigPair
 {
   sortedRecords_t records;
