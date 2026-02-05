@@ -4,6 +4,15 @@ Upgrade Guide
 Before upgrading, it is advised to read the :doc:`changelog/index`.
 When upgrading several versions, please read **all** notes applying to the upgrade.
 
+5.1.10, 5.2.8 and 5.3.5
+-----------------------
+
+New settings
+^^^^^^^^^^^^
+- The :ref:`setting-yaml-outgoing.max_bytesperq` setting has been introduced to limit the amount of incoming bytes per client query.
+- The :ref:`setting-yaml-recordcache.max_entry_size` setting has been introduced to limit the maximum size of a stored record set.
+- The :ref:`setting-yaml-packetcache.max_entry_size` setting has been introduced to limit the maximum size of a packet cache entry.
+
 5.3.0 to master
 ---------------
 
