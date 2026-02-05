@@ -82,7 +82,9 @@ BOOST_AUTO_TEST_CASE(test_Base64_Decode_Garbage)
   const std::string paddingOnly("====");
   std::string decoded;
   auto ret = B64Decode(paddingOnly, decoded);
-#if OPENSSL_VERSION_NUMBER >= 0x30500000
+  // DNSdist uses a custom base64 implementation,
+  // and older versions of OpenSSL were less strict
+#if defined(DNSDIST) || OPENSSL_VERSION_NUMBER >= 0x30500000
   BOOST_CHECK_EQUAL(ret, -1);
 #else
   // does not test anything meaningful, but avoids a "ret unused" warning
