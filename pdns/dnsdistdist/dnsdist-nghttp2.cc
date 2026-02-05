@@ -978,22 +978,13 @@ struct DoHClientCollection::DoHWorkerThread
   {
   }
 
-  DoHWorkerThread(pdns::channel::Sender<CrossProtocolQuery>&& sender) :
+  DoHWorkerThread(pdns::channel::Sender<CrossProtocolQuery>&& sender) noexcept :
     d_sender(std::move(sender))
   {
   }
 
-  DoHWorkerThread(DoHWorkerThread&& rhs) :
-    d_sender(std::move(rhs.d_sender))
-  {
-  }
-
-  DoHWorkerThread& operator=(DoHWorkerThread&& rhs)
-  {
-    d_sender = std::move(rhs.d_sender);
-    return *this;
-  }
-
+  DoHWorkerThread(DoHWorkerThread&& rhs) noexcept = default;
+  DoHWorkerThread& operator=(DoHWorkerThread&& rhs) noexcept = default;
   DoHWorkerThread(const DoHWorkerThread& rhs) = delete;
   DoHWorkerThread& operator=(const DoHWorkerThread&) = delete;
 

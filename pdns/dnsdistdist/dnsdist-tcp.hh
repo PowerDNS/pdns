@@ -38,7 +38,7 @@ struct ConnectionInfo
     remote(remote_), cs(cs_), fd(-1)
   {
   }
-  ConnectionInfo(ConnectionInfo&& rhs) :
+  ConnectionInfo(ConnectionInfo&& rhs) noexcept :
     remote(rhs.remote), cs(rhs.cs), fd(rhs.fd), d_restricted(rhs.d_restricted)
   {
     rhs.cs = nullptr;
@@ -48,7 +48,7 @@ struct ConnectionInfo
   ConnectionInfo(const ConnectionInfo& rhs) = delete;
   ConnectionInfo& operator=(const ConnectionInfo& rhs) = delete;
 
-  ConnectionInfo& operator=(ConnectionInfo&& rhs)
+  ConnectionInfo& operator=(ConnectionInfo&& rhs) noexcept
   {
     remote = rhs.remote;
     cs = rhs.cs;
