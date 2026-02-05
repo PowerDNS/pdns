@@ -275,9 +275,38 @@ class AuthZones(ZonesApiTestCase, AuthZonesHelperMixin):
         self.assertEqual(data['catalog'], "default-catalog.example.com.")
 
     def test_create_zone_default_soa_edit_api(self):
+        """Test that zones created without soa_edit_api get the configured default-soa-edit-api value."""
         name, payload, data = self.create_zone()
         print(data)
-        self.assertEqual(data['soa_edit_api'], 'DEFAULT')
+        # default-soa-edit-api is set to EPOCH in the test config
+        self.assertEqual(data['soa_edit_api'], 'EPOCH')
+
+    def test_create_zone_override_soa_edit_api(self):
+        """Test that explicitly setting soa_edit_api overrides the default."""
+        name, payload, data = self.create_zone(soa_edit_api='SOA-EDIT-INCREASE')
+        print(data)
+        self.assertEqual(data['soa_edit_api'], 'SOA-EDIT-INCREASE')
+
+    def test_create_zone_empty_soa_edit_api(self):
+        """Test that explicitly setting soa_edit_api to empty does not use default."""
+        name, payload, data = self.create_zone(soa_edit_api='')
+        print(data)
+        self.assertEqual(data['soa_edit_api'], '')
+
+    def test_update_zone_does_not_override_soa_edit_api(self):
+        """Test that updating a zone does not change existing soa_edit_api to default."""
+        # Create zone with empty soa_edit_api
+        name, payload, data = self.create_zone(soa_edit_api='')
+        self.assertEqual(data['soa_edit_api'], '')
+        # Update zone without specifying soa_edit_api - it should remain empty
+        update_payload = {
+            'kind': 'Master',
+            'masters': ['192.0.2.1']
+        }
+        self.put_zone(name, update_payload)
+        data = self.get_zone(name)
+        # Verify soa_edit_api was NOT changed to the default value
+        self.assertEqual(data['soa_edit_api'], '')
 
     def test_create_zone_exists(self):
         name, payload, data = self.create_zone()
@@ -693,7 +722,8 @@ class AuthZones(ZonesApiTestCase, AuthZonesHelperMixin):
         Create a zone, then set and unset "dnssec", then check if the serial was increased
         after every step
         """
-        name, payload, data = self.create_zone()
+        # Use soa_edit_api='DEFAULT' to get predictable INCEPTION-INCREMENT serials
+        name, payload, data = self.create_zone(soa_edit_api='DEFAULT')
 
         soa_serial = get_first_rec(data, name, 'SOA')['content'].split(' ')[2]
         self.assertEqual(soa_serial[-2:], '01')

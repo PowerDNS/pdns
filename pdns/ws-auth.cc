@@ -2094,7 +2094,10 @@ static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp)
 
   try {
     // will be overridden by updateDomainSettingsFromDocument, if given in document.
-    domainInfo.backend->setDomainMetadataOne(zonename, "SOA-EDIT-API", "DEFAULT");
+    const string defaultSOAEditAPI = ::arg()["default-soa-edit-api"];
+    if (!defaultSOAEditAPI.empty()) {
+      domainInfo.backend->setDomainMetadataOne(zonename, "SOA-EDIT-API", defaultSOAEditAPI);
+    }
 
     for (auto& resourceRecord : new_records) {
       resourceRecord.domain_id = static_cast<int>(domainInfo.id);

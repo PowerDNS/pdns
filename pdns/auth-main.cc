@@ -265,6 +265,7 @@ static void declareArguments()
   ::arg().set("default-soa-content", "Default SOA content") = "a.misconfigured.dns.server.invalid hostmaster.@ 0 10800 3600 604800 3600";
   ::arg().set("default-soa-edit", "Default SOA-EDIT value") = "";
   ::arg().set("default-soa-edit-signed", "Default SOA-EDIT value for signed zones") = "";
+  ::arg().set("default-soa-edit-api", "Default SOA-EDIT-API value for new zones") = "DEFAULT";
   ::arg().set("dnssec-key-cache-ttl", "Seconds to cache DNSSEC keys from the database") = "30";
   ::arg().set("domain-metadata-cache-ttl", "Seconds to cache zone metadata from the database") = "";
   ::arg().set("zone-metadata-cache-ttl", "Seconds to cache zone metadata from the database") = "60";

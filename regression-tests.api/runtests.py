@@ -73,6 +73,7 @@ views
 AUTH_COMMON_TPL = """
 module-dir=../regression-tests/modules
 default-soa-edit=INCEPTION-INCREMENT
+default-soa-edit-api=EPOCH
 launch+=bind
 bind-config=bindbackend.conf
 loglevel=5

@@ -483,6 +483,22 @@ Use this soa-edit value for all signed zones if no
 :ref:`metadata-soa-edit` metadata value is set.
 Overrides :ref:`setting-default-soa-edit`
 
+.. _setting-default-soa-edit-api:
+
+``default-soa-edit-api``
+------------------------
+
+-  String
+-  Default: DEFAULT
+
+.. versionadded:: 5.2.0
+
+The default :ref:`metadata-soa-edit-api` metadata value for zones created via
+the API when the zone creation request does not include the ``soa_edit_api`` field.
+Set to empty string to disable automatic SOA serial updates via the API.
+
+See :ref:`metadata-soa-edit-api` for the list of possible values.
+
 .. _setting-default-soa-mail:
 
 ``default-soa-mail``
