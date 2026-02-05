@@ -39,10 +39,10 @@ int B64Decode(const std::string& src, Container& dst)
     return 0;
   }
   // check if the dlen computation might overflow or it does not fit into an int (for IO_write)
-  if (src.length() > std::numeric_limits<size_t>::max() / 7 || src.length() > std::numeric_limits<int>::max()) {
+  if (src.length() > std::numeric_limits<size_t>::max() / 7U || src.length() > std::numeric_limits<int>::max()) {
     throw std::runtime_error("B64Decode too large");
   }
-  const size_t dlen = (src.length() * 6 + 7) / 8;
+  const size_t dlen = (src.length() * 6U + 7U) / 8U;
   dst.resize(dlen);
   auto bio = std::unique_ptr<BIO, void (*)(BIO*)>(BIO_new(BIO_s_mem()), BIO_free_all);
   if (!bio) {
