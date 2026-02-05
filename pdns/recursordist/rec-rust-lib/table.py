@@ -1618,7 +1618,7 @@ This is used to avoid cycles resolving names.
 The maximum number of cumulative bytes that will be accepted during the resolution of a single client query.
 This is useful to limit amplification attacks.
  ''',
-        'versionadded': '5.4.0',
+        'versionadded': ['5.1.10', '5.2.8', '5.3.5'],
     },
     {
         'name' : 'max_cnames_followed',
