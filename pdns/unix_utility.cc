@@ -239,9 +239,10 @@ time_t Utility::timegm(struct tm *const t)
   time_t  i;
   time_t years = t->tm_year - 70;
 
+  // We allow for some benign out-of-range values
   if (t->tm_sec>60) { t->tm_min += t->tm_sec/60; t->tm_sec%=60; }
   if (t->tm_min>60) { t->tm_hour += t->tm_min/60; t->tm_min%=60; }
-  if (t->tm_hour>60) { t->tm_mday += t->tm_hour/60; t->tm_hour%=60; }
+  if (t->tm_hour>24) { t->tm_mday += t->tm_hour/24; t->tm_hour%=24; }
   if (t->tm_mon>11) { t->tm_year += t->tm_mon/12; t->tm_mon%=12; }
 
   while (t->tm_mday>spm[1+t->tm_mon]) {
