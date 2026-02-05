@@ -143,7 +143,7 @@ AS_IF([test "x$enable_yaml" != "xno"], [
 DNSDIST_WITH_CDB
 PDNS_CHECK_LMDB
 PDNS_ENABLE_IPCIPHER
-PDNS_CHECK_AARCH64_UINT64X2_T
+PDNS_ENABLE_IPCRYPT2
 
 AX_CXX_COMPILE_STDCXX_17([noext], [mandatory])
 
@@ -244,6 +244,10 @@ AS_IF([test x"$BPF_LIBS" != "x" -a x"$XDP_LIBS" != "x"],
 AS_IF([test "x$HAVE_IPCIPHER" = "x1"],
   [AC_MSG_NOTICE([ipcipher: yes])],
   [AC_MSG_NOTICE([ipcipher: no])]
+)
+AS_IF([test "x$enable_ipcrypt2" != "xno"],
+  [AC_MSG_NOTICE([ipcrypt2: yes])],
+  [AC_MSG_NOTICE([ipcrypt2: no])]
 )
 AS_IF([test "x$LIBEDIT_LIBS" != "x"],
   [AC_MSG_NOTICE([libedit: yes])],
