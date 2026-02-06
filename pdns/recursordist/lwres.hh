@@ -22,6 +22,7 @@
 #pragma once
 #include <string>
 #include <vector>
+#include <optional>
 #include <sys/types.h>
 #include "misc.hh"
 #include "iputils.hh"
@@ -88,6 +89,7 @@ public:
   bool d_validpacket{false};
   bool d_aabit{false}, d_tcbit{false};
   bool d_haveEDNS{false};
+  std::optional<uint8_t> d_ednsECScope;
 };
 
 class EDNSSubnetOpts;
