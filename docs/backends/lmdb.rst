@@ -171,6 +171,18 @@ to be sent upon startup, unless a ``flush`` command is sent using
 :doc:`pdns_control <../manpages/pdns_control.1>` before stopping the
 PowerDNS Authoritative Server.
 
+``lmdb-split-domains-table``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+  .. versionadded:: 5.1.0
+
+-  Boolean
+-  Default: no
+
+Split the domains table in two, with the last notification timestamp and
+last freshness check timestamp in a separate table.
+This lowers the I/O bandwidth requirements on setups with many zones.
+
 ``lmdb-lightning-stream``
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
