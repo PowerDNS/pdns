@@ -448,7 +448,7 @@ In the following example, two conditions are specified:
   recursor:
     event_trace_enabled: 4
   logging:
-    protobuf_server:
+    protobuf_servers:
       - servers: [127.0.0.1:9999]
     opentelemetry_trace_conditions:
       - acls: [127.0.0.1, '::1']
