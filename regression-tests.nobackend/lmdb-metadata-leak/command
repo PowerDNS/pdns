@@ -21,7 +21,7 @@ EOF
   echo === random=$random
 
   echo == creating zone
-  $PDNSUTIL --config-dir="${workdir}" --config-name=lmdb create-zone example.com
+  $PDNSUTIL --config-dir="${workdir}" --config-name=lmdb -q create-zone example.com
   
   $PDNSUTIL --config-dir="${workdir}" --config-name=lmdb set-meta example.com FOO BAR
   $PDNSUTIL --config-dir="${workdir}" --config-name=lmdb show-zone example.com | grep FOO
