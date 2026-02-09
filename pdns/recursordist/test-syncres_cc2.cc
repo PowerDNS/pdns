@@ -1546,9 +1546,9 @@ BOOST_AUTO_TEST_CASE(test_completely_flawed_big_nsset)
   }
   catch (const ImmediateServFailException& ex) {
     BOOST_CHECK_EQUAL(ret.size(), 0U);
-    // one query to get NSs, then A and AAAA for each NS, 5th NS hits the limit
-    // limit is reduced to 5, because zone publishes many (20) NS
-    BOOST_CHECK_EQUAL(queriesCount, 11U);
+    // one query to get NSs, then A and AAAA for each NS, 7th NS hits the limit
+    // limit is reduced to 7, because zone publishes many (20, but actually reduced to 13 used) NS
+    BOOST_CHECK_EQUAL(queriesCount, 15U);
   }
 }
 

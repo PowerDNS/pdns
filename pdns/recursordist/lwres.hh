@@ -81,6 +81,7 @@ public:
   }
 
   vector<DNSRecord> d_records;
+  uint32_t d_bytesReceived{0};
   int d_rcode{0};
   bool d_validpacket{false};
   bool d_aabit{false}, d_tcbit{false};

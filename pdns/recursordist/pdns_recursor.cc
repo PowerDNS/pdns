@@ -1802,7 +1802,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
 #endif
     }
 
-    const bool intoPC = g_packetCache && !variableAnswer && !resolver.wasVariable();
+    const bool intoPC = g_packetCache && !variableAnswer && !resolver.wasVariable() && (RecursorPacketCache::s_maxEntrySize == 0 || packet.size() <= RecursorPacketCache::s_maxEntrySize);
     if (intoPC) {
       minTTL = capPacketCacheTTL(*packetWriter.getHeader(), minTTL, seenAuthSOA);
       g_packetCache->insertResponsePacket(comboWriter->d_tag, comboWriter->d_qhash, std::move(comboWriter->d_query), comboWriter->d_mdp.d_qname,
@@ -1934,6 +1934,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
                               "answers", Logging::Loggable(ntohs(packetWriter.getHeader()->ancount)),
                               "additional", Logging::Loggable(ntohs(packetWriter.getHeader()->arcount)),
                               "outqueries", Logging::Loggable(resolver.d_outqueries),
+                              "received", Logging::Loggable(resolver.d_bytesReceived),
                               "netms", Logging::Loggable(resolver.d_totUsec / 1000.0),
                               "totms", Logging::Loggable(static_cast<double>(spentUsec) / 1000.0),
                               "throttled", Logging::Loggable(resolver.d_throttledqueries),
