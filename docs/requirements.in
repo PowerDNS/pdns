@@ -13,3 +13,4 @@ pyyaml==6.0.1
 packaging==24.1
 setuptools-scm==8.0.3 # setup-requires for sphinxcontrib-openapi
 pbr # setup-requires for sphinxcontrib-fulltoc
+setuptools<82
