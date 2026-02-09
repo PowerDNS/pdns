@@ -2186,6 +2186,69 @@ BOOST_AUTO_TEST_CASE(test_cname_target_servfail_servestale)
   BOOST_CHECK_EQUAL(ret[0].d_name, target);
 }
 
+BOOST_AUTO_TEST_CASE(test_broken_cname_chain)
+{
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr);
+
+  primeHints();
+
+  const DNSName target("www.powerdns.com.");
+  const DNSName subtarget("sub.www.powerdns.com.");
+  const DNSName subns("new-sub.www.powerdns.com.");
+  const DNSName unrelated("unrelated.com.");
+
+  timeval now{};
+  Utility::gettimeofday(&now, nullptr);
+
+  sr->setAsyncCallback([&](const ComboAddress& address, const DNSName& domain, int qtype, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, std::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
+    if (isRootServer(address)) {
+
+      setLWResult(res, 0, false, false, true);
+      addRecordToLW(res, domain, QType::NS, "a.gtld-servers.net.", DNSResourceRecord::AUTHORITY, 172800);
+      addRecordToLW(res, "a.gtld-servers.net.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+      return LWResult::Result::Success;
+    }
+    if (address == ComboAddress("192.0.2.1:53")) {
+      if (domain == target) {
+        if (qtype == QType::NS) {
+          setLWResult(res, 0, true, false, false);
+          addRecordToLW(res, target, QType::NS, target.toString(), DNSResourceRecord::ANSWER);
+          addRecordToLW(res, subtarget, QType::NS, subns.toString(), DNSResourceRecord::ANSWER);
+          addRecordToLW(res, unrelated, QType::NS, subns.toString(), DNSResourceRecord::ANSWER);
+          addRecordToLW(res, subtarget, QType::NS, subtarget.toString(), DNSResourceRecord::ANSWER);
+          addRecordToLW(res, subtarget, QType::CNAME, subtarget.toString(), DNSResourceRecord::ANSWER);
+          return LWResult::Result::Success;
+        }
+        if (qtype == QType::A) {
+          setLWResult(res, 0, true, false, false);
+          return LWResult::Result::Success;
+        }
+      }
+    }
+
+    return LWResult::Result::Timeout;
+  });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
+
+  time_t cached = g_recCache->get(now.tv_sec, subtarget, QType::NS, MemRecursorCache::None, &ret, ComboAddress());
+  BOOST_CHECK(cached <= 0);
+  cached = g_recCache->get(now.tv_sec, unrelated, QType::NS, MemRecursorCache::None, &ret, ComboAddress());
+  BOOST_CHECK(cached <= 0);
+  cached = g_recCache->get(now.tv_sec, subtarget, QType::CNAME, MemRecursorCache::None, &ret, ComboAddress());
+  BOOST_CHECK(cached <= 0);
+
+  // And again to check cache
+  ret.clear();
+  res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
+}
+
 BOOST_AUTO_TEST_CASE(test_time_limit)
 {
   std::unique_ptr<SyncRes> sr;
