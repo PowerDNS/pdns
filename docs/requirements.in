@@ -13,3 +13,6 @@ jinja2<3.1.0
 pyyaml==6.0.1
 setuptools-scm==8.0.3 # setup-requires for sphinxcontrib-openapi
 pbr==6.1.0 # setup-requires for sphinxcontrib-fulltoc
+standard.pipes
+standard.imghdr
+setuptools<82
