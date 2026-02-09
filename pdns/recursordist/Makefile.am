@@ -587,7 +587,7 @@ endif # if !HAVE_MANPAGES
 
 .venv: docs/requirements.txt
 	$(PYTHON) -m venv .venv
-	.venv/bin/pip install -U pip setuptools
+	.venv/bin/pip install -U pip "setuptools<82"
 	.venv/bin/pip install -r ${top_srcdir}/docs/requirements.txt
 
 html-docs: docs/** .venv
