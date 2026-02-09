@@ -3664,11 +3664,27 @@ static int addOrSetMeta(const ZoneName& zone, const string& kind, const vector<s
   return 0;
 }
 
+static std::unique_ptr<DNSBackend> getBackendByName(const std::string& name)
+{
+  for (auto& backend : BackendMakers().all()) {
+    if (backend->getPrefix() == name) {
+      return std::move(backend);
+    }
+  }
+
+  return nullptr;
+}
+
 // Command handlers
 
 static int lmdbGetBackendVersion([[maybe_unused]] vector<string>& cmds, [[maybe_unused]] const std::string_view synopsis)
 {
-  cout << "6" << endl; // FIXME this should reuse the constant from lmdbbackend but that is currently a #define in a .cc
+  if (auto lmdbBackend = getBackendByName("lmdb"); lmdbBackend) {
+    cout << std::to_string(lmdbBackend->getStorageLayoutVersion()) << endl;
+  }
+  else {
+    cout << "LMDB backend not configured." << endl;
+  }
   return 0;
 }
 
@@ -5410,17 +5426,8 @@ static int B2BMigrate(vector<string>& cmds, const std::string_view synopsis)
     return 1;
   }
 
-  unique_ptr<DNSBackend> src{nullptr};
-  unique_ptr<DNSBackend> tgt{nullptr};
-
-  for (auto& backend : BackendMakers().all()) {
-    if (backend->getPrefix() == cmds.at(0)) {
-       src = std::move(backend);
-    }
-    else if (backend->getPrefix() == cmds.at(1)) {
-       tgt = std::move(backend);
-    }
-  }
+  unique_ptr<DNSBackend> src = getBackendByName(cmds.at(0));
+  unique_ptr<DNSBackend> tgt = getBackendByName(cmds.at(1));
 
   if (src == nullptr) {
     cerr << "Unknown source backend '" << cmds.at(0) << "'" << endl;
@@ -5481,13 +5488,7 @@ static int backendCmd(vector<string>& cmds, const std::string_view synopsis)
     return usage(synopsis);
   }
 
-  std::unique_ptr<DNSBackend> matchingBackend{nullptr};
-
-  for (auto& backend : BackendMakers().all()) {
-    if (backend->getPrefix() == cmds.at(0)) {
-      matchingBackend = std::move(backend);
-    }
-  }
+  std::unique_ptr<DNSBackend> matchingBackend = getBackendByName(cmds.at(0));
 
   if (matchingBackend == nullptr) {
     cerr << "Unknown backend '" << cmds.at(0) << "'" << endl;
@@ -5515,13 +5516,7 @@ static int backendLookup(vector<string>& cmds, const std::string_view synopsis)
     return usage(synopsis);
   }
 
-  std::unique_ptr<DNSBackend> matchingBackend{nullptr};
-
-  for (auto& backend : BackendMakers().all()) {
-    if (backend->getPrefix() == cmds.at(0)) {
-      matchingBackend = std::move(backend);
-    }
-  }
+  std::unique_ptr<DNSBackend> matchingBackend = getBackendByName(cmds.at(0));
 
   if (matchingBackend == nullptr) {
     cerr << "Unknown backend '" << cmds.at(0) << "'" << endl;
