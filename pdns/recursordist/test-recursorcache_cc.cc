@@ -395,6 +395,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimpleDistantFuture)
 BOOST_AUTO_TEST_CASE(test_RecursorCacheBig)
 {
   MemRecursorCache::resetStaticsForTests();
+  MemRecursorCache::s_maxEntrySize = 64 * 1024;
   MemRecursorCache MRC;
 
   std::vector<DNSRecord> records;

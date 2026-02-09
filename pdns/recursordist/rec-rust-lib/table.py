@@ -1521,6 +1521,19 @@ See :ref:`handling-of-root-hints` for more information on this.
      'versionchanged': ('4.1.0', 'The minimum value of this setting is 15. i.e. setting this to lower than 15 will make this value 15.')
     },
     {
+        'name' : 'max_entry_size',
+        'section' : 'recordcache',
+        'oldname': 'max-recordcache-entry-size',
+        'type' : LType.Uint64,
+        'default' : '8192',
+        'help' : 'maximum storage size of a recordset stored in record cache',
+        'doc' : '''
+Maximum size of storage used by a single record cache entry. Entries larger than this number will not be stored.
+Zero means no limit.
+''',
+    'versionadded': ['5.1.10', '5.2.8', '5.3.5'],
+    },
+    {
         'name' : 'max_concurrent_requests_per_tcp_connection',
         'section' : 'incoming',
         'type' : LType.Uint64,
@@ -1595,6 +1608,19 @@ Maximum number of simultaneous MTasker threads, per worker thread.
 Maximum number of Packet Cache entries. Sharded and shared by all threads since 4.9.0.
 ''',
         'runtime': 'set-max-packetcache-entries',
+    },
+    {
+        'name' : 'max_entry_size',
+        'section' : 'packetcache',
+        'oldname' : 'max-packetcache-entry-size',
+        'type' : LType.Uint64,
+        'default' : '8192',
+        'help' : 'maximum size of a packet stored in the the packet cache',
+        'doc' : '''
+Maximum size of packets stored in the packet cache. Packets larger than this number will not be stored.
+Zero means no limit.
+''',
+    'versionadded': ['5.1.10', '5.2.8', '5.3.5'],
     },
     {
         'name' : 'max_qperq',

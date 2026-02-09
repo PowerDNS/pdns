@@ -3240,6 +3240,8 @@ int main(int argc, char** argv)
       pdns::RecResolve::setInstanceParameters(arg()["server-id"], ttl, interval, selfResolveCheck, []() { reloadZoneConfiguration(g_yamlSettings); });
     }
 
+    MemRecursorCache::s_maxEntrySize = ::arg().asNum("max-recordcache-entry-size");
+    RecursorPacketCache::s_maxEntrySize = ::arg().asNum("max-packetcache-entry-size");
     g_recCache = std::make_unique<MemRecursorCache>(::arg().asNum("record-cache-shards"));
     g_negCache = std::make_unique<NegCache>(::arg().asNum("record-cache-shards") / 8);
     if (!::arg().mustDo("disable-packetcache")) {

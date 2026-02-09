@@ -46,6 +46,7 @@ class RecursorPacketCache : public PacketCache
 {
 public:
   static unsigned int s_refresh_ttlperc;
+  static uint32_t s_maxEntrySize;
 
   struct PBData
   {
