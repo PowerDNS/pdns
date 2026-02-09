@@ -10,3 +10,4 @@ sphinxcontrib-fulltoc
 docutils!=0.15,<0.18
 jinja2<3.1.0
 alabaster==0.7.13
+setuptools<82
