@@ -54,7 +54,7 @@ By default, the :program:`Recursor` requires the following libraries and headers
    On Debian and Ubuntu, the following will get you the dependencies::
 
       apt-get install libboost-dev libboost-filesystem-dev libboost-serialization-dev \
-         libboost-system-dev libboost-thread-dev libboost-context-dev \
+         libboost-thread-dev libboost-context-dev \
          libboost-test-dev libssl-dev libboost-test-dev g++ make pkg-config \
          libluajit-5.1-dev cargo
 
