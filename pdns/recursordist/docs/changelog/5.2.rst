@@ -4,6 +4,16 @@ Changelogs for 5.2.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
+  :version: 5.2.8
+  :released: 9th of February 2026
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: TBD
+
+    Fix PowerDNS Security Advisory 2026-01: Crafted zones can lead to increased resource usage in Recursor.
+
+.. changelog::
   :version: 5.2.7
   :released: 8th of December 2025
 
