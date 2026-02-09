@@ -3,3 +3,4 @@ pytest
 Twisted>0.15.0
 requests>=2.18.4
 git+https://github.com/PowerDNS/xfrserver.git@0.3
+setuptools<82

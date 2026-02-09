@@ -6,3 +6,4 @@ pyasn1==0.4.8
 pysnmp>=4.3.4
 requests>=2.1.0
 Twisted>0.15.0
+setuptools<82

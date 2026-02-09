@@ -3,3 +3,4 @@ pytest
 parameterized
 mysql-connector
 psycopg2
+setuptools<82
