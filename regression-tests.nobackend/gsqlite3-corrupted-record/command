@@ -14,7 +14,7 @@ sqlite3 pdns.sqlite3 < ../modules/gsqlite3backend/schema.sqlite3.sql
 echo ANALYZE\; | sqlite3 pdns.sqlite3
 
 # Create zone
-$PDNSUTIL $ARGS zone create bug.less
+$PDNSUTIL -q $ARGS zone create bug.less
 
 # Add some valid records
 $PDNSUTIL $ARGS rrset add bug.less bug.less NS no.bug.less
