@@ -4,3 +4,4 @@
 wheel==0.45.1
 Pdns-Remotebackend==0.8.0
 pyzmq==25.1.2
+setuptools<82
