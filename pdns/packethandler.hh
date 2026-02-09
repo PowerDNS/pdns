@@ -138,10 +138,8 @@ private:
   bool d_doExpandALIAS;
   bool d_doResolveAcrossZones;
   bool d_dnssec{false};
-  bool d_update_policy_is_lua{false};
   SOAData d_sd;
   std::unique_ptr<AuthLua4> d_pdl;
-  std::unique_ptr<AuthLua4> d_update_policy_lua;
   std::unique_ptr<AuthLua4> s_LUA;
   UeberBackend B; // every thread an own instance
   DNSSECKeeper d_dk; // B is shared with DNSSECKeeper
