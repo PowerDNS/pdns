@@ -540,6 +540,8 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
     return ret;
   }
 
+  lwr->d_bytesReceived = len;
+
   if (*chained) {
     auto msec = lwr->d_usec / 1000;
     if (msec > g_networkTimeoutMsec * 2 / 3) {

@@ -75,6 +75,7 @@
 uint16_t MemRecursorCache::s_maxServedStaleExtensions;
 uint16_t MemRecursorCache::s_maxRRSetSize = 256;
 bool MemRecursorCache::s_limitQTypeAny = true;
+uint32_t MemRecursorCache::s_maxEntrySize = 8192;
 
 void MemRecursorCache::resetStaticsForTests()
 {
@@ -84,6 +85,7 @@ void MemRecursorCache::resetStaticsForTests()
   SyncRes::s_minimumTTL = 0;
   s_maxRRSetSize = 256;
   s_limitQTypeAny = true;
+  s_maxEntrySize = 8192;
 }
 
 MemRecursorCache::MemRecursorCache(size_t mapsCount) :
@@ -665,6 +667,7 @@ void MemRecursorCache::replace(time_t now, const DNSName& qname, const QType qty
     cacheEntry.d_tooBig = true;
   }
   cacheEntry.d_records.reserve(toStore);
+  size_t storeSize = sizeof(CacheEntry) + qname.getStorage().size(); // rough estimate
   for (const auto& record : content) {
     /* Yes, we have altered the d_ttl value by adding time(nullptr) to it
        prior to calling this function, so the TTL actually holds a TTD. */
@@ -679,11 +682,15 @@ void MemRecursorCache::replace(time_t now, const DNSName& qname, const QType qty
       cacheEntry.d_orig_ttl = SyncRes::s_minimumTTL;
     }
     cacheEntry.d_records.push_back(record.getContent());
+    storeSize += record.d_clen; // again, rough estimate
     if (--toStore == 0) {
       break;
     }
   }
 
+  if (s_maxEntrySize > 0 && storeSize > s_maxEntrySize) {
+    return;
+  }
   if (!isNew) {
     moveCacheItemToBack<SequencedTag>(lockedShard->d_map, stored);
   }
