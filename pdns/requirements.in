@@ -2,3 +2,4 @@
 #  pip-compile --generate-hashes -U requirements.in
 
 PyYAML==6.0.1
+setuptools<82
