@@ -6,3 +6,4 @@ dnspython==2.6.1
 pytest
 https://github.com/PowerDNS/xfrserver/archive/refs/tags/0.1.zip
 requests
+setuptools<82
