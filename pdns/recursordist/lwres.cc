@@ -789,6 +789,8 @@ static LWResult::Result asyncresolve(const OptLog& log, const ComboAddress& addr
     return ret;
   }
 
+  lwr->d_bytesReceived = len;
+
   if (*chained) {
     auto msec = lwr->d_usec / 1000;
     if (msec > g_networkTimeoutMsec * 2 / 3) {
