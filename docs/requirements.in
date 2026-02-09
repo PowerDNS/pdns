@@ -17,3 +17,4 @@ setuptools-scm==8.0.3 # setup-requires for sphinxcontrib-openapi
 pbr # setup-requires for sphinxcontrib-fulltoc
 standard.pipes
 standard.imghdr
+setuptools<82
