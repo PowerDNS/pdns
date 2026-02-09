@@ -806,8 +806,11 @@ std::vector<ComboAddress> getResolvers(const std::string& resolvConfPath);
 
 DNSName reverseNameFromIP(const ComboAddress& ip);
 
-size_t parseRFC1035CharString(std::string_view in, std::string &val); // from ragel
-size_t parseSVCBValueListFromParsedRFC1035CharString(const std::string &in, vector<std::string> &val); // from ragel
+// The following two routines are generated from Ragel code.
+// Note that parseRFC1035CharString will return zero if the first character
+// being processed is < 0x20, >= 07f, or equal to 0x28, 0x29 or 0x3b.
+size_t parseRFC1035CharString(std::string_view in, std::string &val);
+size_t parseSVCBValueListFromParsedRFC1035CharString(const std::string &in, vector<std::string> &val);
 size_t parseSVCBValueList(const std::string &in, vector<std::string> &val);
 
 std::string makeLuaString(const std::string& in);
