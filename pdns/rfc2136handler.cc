@@ -985,7 +985,13 @@ int PacketHandler::processUpdate(DNSPacket& packet)
   g_log << Logger::Info << ctx.msgPrefix << "Processing started." << endl;
 
   // if there is policy, we delegate all checks to it
-  if (this->d_update_policy_lua == nullptr) {
+  if (d_update_policy_is_lua) {
+    if (d_update_policy_lua == nullptr) {
+      // The policy failed to load earlier.
+      return RCode::Refused;
+    }
+  }
+  else {
     if (!isUpdateAllowed(B, ctx, packet)) {
       return RCode::Refused;
     }

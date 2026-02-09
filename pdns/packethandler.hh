@@ -138,6 +138,7 @@ private:
   bool d_doExpandALIAS;
   bool d_doResolveAcrossZones;
   bool d_dnssec{false};
+  bool d_update_policy_is_lua{false};
   SOAData d_sd;
   std::unique_ptr<AuthLua4> d_pdl;
   std::unique_ptr<AuthLua4> d_update_policy_lua;
