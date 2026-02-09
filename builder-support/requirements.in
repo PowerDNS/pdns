@@ -5,3 +5,4 @@ invoke
 requests==2.32.3
 pulp-cli==0.29.2
 pulp-cli-deb==0.3.1
+setuptools<82
