@@ -6,3 +6,4 @@ meson
 ninja
 invoke
 requests==2.32.4
+setuptools<82

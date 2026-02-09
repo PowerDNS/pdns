@@ -17,3 +17,4 @@ alabaster==0.7.13
 pbr # setup-requires for sphinxcontrib-fulltoc
 standard-imghdr
 standard-pipes
+setuptools<82

@@ -4,3 +4,4 @@
 wheel==0.46.2
 setuptools-git==1.2
 PyYAML==6.0.1
+setuptools<82

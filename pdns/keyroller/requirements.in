@@ -6,3 +6,4 @@ pytimeparse
 requests
 json_tricks
 nose
+setuptools<82
