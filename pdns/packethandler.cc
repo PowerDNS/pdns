@@ -86,10 +86,12 @@ PacketHandler::PacketHandler():B(g_programname), d_dk(&B)
   fname = ::arg()["lua-dnsupdate-policy-script"];
   if (fname.empty())
   {
+    d_update_policy_is_lua = false;
     d_update_policy_lua = nullptr;
   }
   else
   {
+    d_update_policy_is_lua = true;
     try {
       d_update_policy_lua = std::make_unique<AuthLua4>();
       d_update_policy_lua->loadFile(fname);

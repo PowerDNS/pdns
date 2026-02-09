@@ -668,8 +668,13 @@ int PacketHandler::processUpdate(DNSPacket& packet) { // NOLINT(readability-func
   g_log<<Logger::Info<<msgPrefix<<"Processing started."<<endl;
 
   // if there is policy, we delegate all checks to it
-  if (this->d_update_policy_lua == nullptr) {
-
+  if (d_update_policy_is_lua) {
+    if (d_update_policy_lua == nullptr) {
+      // The policy failed to load earlier.
+      return RCode::Refused;
+    }
+  }
+  else {
     // Check permissions - IP based
     vector<string> allowedRanges;
     B.getDomainMetadata(packet.qdomainzone, "ALLOW-DNSUPDATE-FROM", allowedRanges);
