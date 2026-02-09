@@ -2,3 +2,4 @@
 #  pip-compile --generate-hashes -U requirements.in
 
 jinja2
+setuptools<82
