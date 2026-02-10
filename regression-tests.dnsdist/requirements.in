@@ -1,7 +1,7 @@
 # To generate requirements.txt, install pip-tools and run:
 #  pip-compile --generate-hashes -U requirements.in
 
-wheel==0.45.1
+wheel==0.46.2
 dnspython>=2.2.0
 pytest
 pytest-xdist
@@ -17,3 +17,4 @@ cdbx==0.1.2
 h2>=4.0.0
 aioquic
 async_timeout
+setuptools<82
