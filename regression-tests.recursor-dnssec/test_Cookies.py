@@ -48,10 +48,6 @@ packetcache:
         print("Launching tests..")
 
     @classmethod
-    def tearDownClass(cls):
-        cls.tearDownRecursor()
-
-    @classmethod
     def startResponders(cls):
         global cookieReactorRunning
         print("Launching responders..")
