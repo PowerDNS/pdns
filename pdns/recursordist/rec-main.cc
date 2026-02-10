@@ -1825,6 +1825,7 @@ static int initSyncRes(Logr::log_t log)
   SyncRes::s_serverID = ::arg()["server-id"];
   // This bound is dynamically adjusted in SyncRes, depending on qname minimization being active
   SyncRes::s_maxqperq = ::arg().asNum("max-qperq");
+  SyncRes::s_maxbytesperq = ::arg().asNum("max-bytesperq");
   SyncRes::s_maxnsperresolve = ::arg().asNum("max-ns-per-resolve");
   SyncRes::s_maxnsaddressqperq = ::arg().asNum("max-ns-address-qperq");
   SyncRes::s_maxtotusec = 1000 * ::arg().asNum("max-total-msec");
@@ -3355,6 +3356,8 @@ int main(int argc, char** argv)
       pdns::RecResolve::setInstanceParameters(arg()["server-id"], ttl, interval, selfResolveCheck, []() { reloadZoneConfiguration(g_yamlSettings); });
     }
 
+    MemRecursorCache::s_maxEntrySize = ::arg().asNum("max-recordcache-entry-size");
+    RecursorPacketCache::s_maxEntrySize = ::arg().asNum("max-packetcache-entry-size");
     g_recCache = std::make_unique<MemRecursorCache>(::arg().asNum("record-cache-shards"));
     g_negCache = std::make_unique<NegCache>(::arg().asNum("record-cache-shards") / 8);
     if (!::arg().mustDo("disable-packetcache")) {

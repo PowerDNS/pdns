@@ -76,6 +76,7 @@
 uint16_t MemRecursorCache::s_maxServedStaleExtensions;
 uint16_t MemRecursorCache::s_maxRRSetSize = 256;
 bool MemRecursorCache::s_limitQTypeAny = true;
+uint32_t MemRecursorCache::s_maxEntrySize = 8192;
 
 const MemRecursorCache::AuthRecs MemRecursorCache::s_emptyAuthRecs = std::make_shared<MemRecursorCache::AuthRecsVec>();
 const MemRecursorCache::SigRecs MemRecursorCache::s_emptySigRecs = std::make_shared<MemRecursorCache::SigRecsVec>();
@@ -88,6 +89,7 @@ void MemRecursorCache::resetStaticsForTests()
   SyncRes::s_minimumTTL = 0;
   s_maxRRSetSize = 256;
   s_limitQTypeAny = true;
+  s_maxEntrySize = 8192;
 }
 
 MemRecursorCache::MemRecursorCache(size_t mapsCount) :
@@ -752,6 +754,10 @@ void MemRecursorCache::replace(time_t now, const DNSName& qname, const QType qty
     }
   }
 
+  auto storeSize = cacheEntry.sizeEstimate();
+  if (s_maxEntrySize > 0 && storeSize > s_maxEntrySize) {
+    return;
+  }
   if (!isNew) {
     moveCacheItemToBack<SequencedTag>(lockedShard->d_map, stored);
   }

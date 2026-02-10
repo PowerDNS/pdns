@@ -1521,6 +1521,19 @@ See :ref:`handling-of-root-hints` for more information on this.
      'versionchanged': ('4.1.0', 'The minimum value of this setting is 15. i.e. setting this to lower than 15 will make this value 15.')
     },
     {
+        'name' : 'max_entry_size',
+        'section' : 'recordcache',
+        'oldname': 'max-recordcache-entry-size',
+        'type' : LType.Uint64,
+        'default' : '8192',
+        'help' : 'maximum storage size of a recordset stored in record cache',
+        'doc' : '''
+Maximum size of storage used by a single record cache entry. Entries larger than this number will not be stored.
+Zero means no limit.
+''',
+    'versionadded': ['5.1.10', '5.2.8', '5.3.5', '5.4.0'],
+    },
+    {
         'name' : 'max_concurrent_requests_per_tcp_connection',
         'section' : 'incoming',
         'type' : LType.Uint64,
@@ -1597,16 +1610,41 @@ Maximum number of Packet Cache entries. Sharded and shared by all threads since 
         'runtime': 'set-max-packetcache-entries',
     },
     {
+        'name' : 'max_entry_size',
+        'section' : 'packetcache',
+        'oldname' : 'max-packetcache-entry-size',
+        'type' : LType.Uint64,
+        'default' : '8192',
+        'help' : 'maximum size of a packet stored in the the packet cache',
+        'doc' : '''
+Maximum size of packets stored in the packet cache. Packets larger than this number will not be stored.
+Zero means no limit.
+''',
+    'versionadded': ['5.1.10', '5.2.8', '5.3.5', '5.4.0'],
+    },
+    {
         'name' : 'max_qperq',
         'section' : 'outgoing',
         'type' : LType.Uint64,
         'default' : '50',
-        'help' : 'Maximum outgoing queries per query',
+        'help' : 'Maximum outgoing queries per client query',
         'doc' : '''
 The maximum number of outgoing queries that will be sent out during the resolution of a single client query.
 This is used to avoid cycles resolving names.
  ''',
         'versionchanged': ('5.1.0', 'The default used to be 60, with an extra allowance if qname minimization was enabled. Having better algorithms allows for a lower default limit.'),
+    },
+    {
+        'name' : 'max_bytesperq',
+        'section' : 'outgoing',
+        'type' : LType.Uint64,
+        'default' : '100000',
+        'help' : 'Maximum number of received bytes per client query',
+        'doc' : '''
+The maximum number of cumulative bytes that will be accepted during the resolution of a single client query.
+This is useful to limit amplification attacks.
+ ''',
+        'versionadded': '5.4.0',
     },
     {
         'name' : 'max_cnames_followed',
