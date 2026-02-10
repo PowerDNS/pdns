@@ -611,13 +611,16 @@ distributor-threads={threads}
                                                      env=cls._auth_env)
 
         cls.waitForTCPSocket(ipaddress, 53)
+        cls.checkAuth(cls._auths[ipaddress], authcmd, logFile)
 
-        if cls._auths[ipaddress].poll() is not None:
+    @classmethod
+    def checkAuth(cls, auth, authcmd, logFile):
+        if auth.poll() is not None:
             print(f"\n*** startAuth log for {logFile} ***")
             with open(logFile, 'r') as fdLog:
                 print(fdLog.read())
             print(f"*** End startAuth log for {logFile} ***")
-            raise AssertionError('%s failed (%d)' % (authcmd, cls._auths[ipaddress].returncode))
+            raise AssertionError('%s failed (%d)' % (authcmd, auth.returncode))
 
     @classmethod
     def checkConfdir(cls, confdir):
@@ -766,6 +769,12 @@ distributor-threads={threads}
 
         cls.generateRecursorConfig(confdir)
         cls.startRecursor(confdir, cls._recursorPort)
+
+        for auth_suffix, _ in cls._auth_zones.items():
+            ip = cls._PREFIX + '.' + auth_suffix
+            auth = cls._auths[ip]
+            logFile = os.path.join(confdir, 'auth-'+ auth_suffix, 'pdns.log')
+            cls.checkAuth(auth, 'auth-' + ip, logFile)
 
         print("Launching tests..")
 
