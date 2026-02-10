@@ -780,9 +780,27 @@ distributor-threads={threads}
 
     @classmethod
     def tearDownClass(cls):
-        cls.tearDownRecursor()
-        cls.tearDownAuth()
-        cls.tearDownResponders()
+        rec = None
+        auth = None
+        resp = None
+        try:
+            cls.tearDownRecursor()
+        except BaseException as e:
+            rec = e
+        try:
+            cls.tearDownAuth()
+        except BaseException as e:
+            auth = e
+        try:
+            cls.tearDownResponders()
+        except BaseException as e:
+            resp = e
+        if rec is not None:
+            raise rec
+        if auth is not None:
+            raise auth
+        if resp is not None:
+            raise resp
 
     @classmethod
     def tearDownResponders(cls):
