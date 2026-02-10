@@ -1003,7 +1003,7 @@ Servers that are not assigned to a specific pool get assigned to the default poo
 
   .. method:: ServerPool:getZeroScope()
 
-    .. versionadded:: 2.0.1
+    .. versionadded:: 2.1.0
 
     Whether dnsdist will enable the EDNS Client Subnet :doc:`../advanced/zero-scope` feature when looking up into the cache,
     when all servers from this pool are down.
@@ -1021,7 +1021,7 @@ Servers that are not assigned to a specific pool get assigned to the default poo
 
   .. method:: ServerPool:setZeroScope(enabled)
 
-    .. versionadded:: 2.0.1
+    .. versionadded:: 2.1.0
 
     Set to false if dnsdist should disable the EDNS Client Subnet :doc:`../advanced/zero-scope` feature when looking up into the cache,
     when all servers from this pool are down.
