@@ -1,7 +1,7 @@
 {
-  "version": "0.24.8",
+  "version": "0.24.9",
   "license": "BSD-2-Clause",
   "publisher": "https://github.com/cloudflare/quiche",
-  "SHA256SUM": "c99be20ffd2e96f02e283dc42667022b4ec917fc53afd797001a9aef06721a16",
+  "SHA256SUM": "69de340f9eea47279188e4b47345541a415b40e3f0355e419ebda36654c3d020",
   "cargo-based": true
 }
