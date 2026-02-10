@@ -9,7 +9,7 @@ Before upgrading, it is advised to read the :doc:`../upgrade`.
 
   .. change::
     :tags: Bug Fixes
-    :pullreq: TBD
+    :pullreq: 16841
 
     Fix PowerDNS Security Advisory 2026-01: Crafted zones can lead to increased resource usage in Recursor.
 
