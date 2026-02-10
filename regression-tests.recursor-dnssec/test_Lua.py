@@ -518,7 +518,7 @@ class GettagFFIDNS64Test(RecursorTest):
       return {}
     end
     """
-    _auth_zones = []
+    _auth_zones = {}
 
     @classmethod
     def generateRecursorConfig(cls, confdir):
