@@ -466,6 +466,35 @@ class TestProxyProtocol(ProxyProtocolTest):
       # function, but for a short time we will have two concurrent connections.
       self.assertLessEqual(server['tcpMaxConcurrentConnections'], current_conns_before + 2)
 
+class TestProxyProtocolTraceParent(TestProxyProtocol):
+    # dnsdist adds a TRACEPARENT EDNS option.
+    # Test to make sure we don't break the DNS protocol
+    _config_template = """
+    setOpenTelemetryTracing(true)
+    newServer{address="127.0.0.1:%d", useProxyProtocol=true}
+
+    webserver("127.0.0.1:%d")
+    setWebserverConfig{password="%s", apiKey="%s"}
+
+    function addValues(dq)
+      local values = { [0]="foo", [42]="bar" }
+      dq:setProxyProtocolValues(values)
+      return DNSAction.None
+    end
+
+    local counter = 1
+    function addRandomValue(dq)
+      dq:addProxyProtocolValue(0xEE, tostring(counter))
+      counter = counter + 1
+      return DNSAction.None
+    end
+
+    addAction(AllRule(), SetTraceAction(true, {downstreamTraceparentOptionCode=65500}), {name="Enable tracing"})
+    addAction("values-lua.proxy.tests.powerdns.com.", LuaAction(addValues))
+    addAction("values-action.proxy.tests.powerdns.com.", SetProxyProtocolValuesAction({ ["1"]="dnsdist", ["255"]="proxy-protocol"}))
+    addAction("random-values.proxy.tests.powerdns.com.", LuaAction(addRandomValue))
+    """
+
 class TestProxyProtocolIncoming(ProxyProtocolTest):
     """
     dnsdist is configured to prepend a Proxy Protocol header to the query and expect one on incoming queries
