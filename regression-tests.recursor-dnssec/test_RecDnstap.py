@@ -266,8 +266,8 @@ cname 3600 IN CNAME a.example.
 
     @classmethod
     def tearDownClass(cls):
-        for listerner in DNSTapListeners:
-            listerner.close()
+        for listener in DNSTapListeners:
+            listener.close()
         super().tearDownClass()
 
     def getFirstDnstap(self):
