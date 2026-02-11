@@ -446,7 +446,7 @@ newServer{address="127.0.0.1:%d"}
 rl = newRemoteLogger('127.0.0.1:%d')
 setOpenTelemetryTracing(true)
 
-addAction(AllRule(), SetTraceAction(true, {}, true), {name="Enable tracing"})
+addAction(AllRule(), SetTraceAction(true, {useIncomingTraceparent=true}), {name="Enable tracing"})
 addResponseAction(AllRule(), RemoteLogResponseAction(rl, nil, false, {}, {}, false), {name="Do PB logging"})
 """
 
@@ -673,7 +673,7 @@ newServer{address="127.0.0.1:%d"}
 rl = newRemoteLogger('127.0.0.1:%d')
 setOpenTelemetryTracing(true)
 
-addAction(AllRule(), SetTraceAction(true, {rl}), {name="Enable tracing"})
+addAction(AllRule(), SetTraceAction(true, {remoteLoggers={rl}}), {name="Enable tracing"})
 addResponseAction(AllRule(), DropResponseAction(), {name="Drop"})
 """
 
@@ -956,6 +956,6 @@ getServer(0):setUp()
 rl = newRemoteLogger('127.0.0.1:%d')
 setOpenTelemetryTracing(true)
 
-addAction(AllRule(), SetTraceAction(true, {rl}, false, 65500, 65500, false), {name="Enable tracing"})
+addAction(AllRule(), SetTraceAction(true, {remoteLoggers={rl}, downstreamTraceparentOptionCode=65500}), {name="Enable tracing"})
 addResponseAction(AllRule(), RemoteLogResponseAction(rl), {name="Do PB logging"})
         """

@@ -788,7 +788,7 @@ The following actions exist.
 
   :param int ttl: Cache TTL for temporary failure replies
 
-.. function:: SetTraceAction(value[, use_incoming_traceid[, trace_edns_option]])
+.. function:: SetTraceAction(value[, options])
 
   .. versionadded:: 2.1.0
 
@@ -798,8 +798,15 @@ The following actions exist.
   Tracing has to be turned on globally as well using :func:`setOpenTelemetryTracing`.
 
   :param bool value: Whether to enable or disable query tracing.
-  :param bool use_incoming_traceid: If the incoming query has a TraceID in its EDNS options, use that instead of generating one, default false.
-  :param bool trace_edns_option: The EDNS option number that contains the TraceID, default 65500.
+  :param table options: A table with key=value pairs with options
+
+  Options:
+
+  * ``remoteLoggers``: A table of :func:`remoteLogger <newRemoteLogger>` objects to send the traces to. Note that these log messages are empty apart from the trace data.
+  * ``useIncomingTraceparent``: boolean, default false. Use the information in the TRACEPARENT EDNS option (if any) from the query as the Trace ID and initial Span ID.
+  * ``stripIncomingTraceparent``: boolean, default false. Remove the TRACEPARENT EDNS option from the DNS query so it is not passed to the backend server.
+  * ``incomingTraceparentOptionCode``: integer, default 65500. The EDNS option code for TRACEPARENT in the incoming query.
+  * ``downstreamTraceparentOptionCode``: integer, default unset. When set, a TRACEPARENT EDNS option is added to the downstream query with the active Trace ID and the last Span ID of the trace.
 
 .. function:: SkipCacheAction()
 
