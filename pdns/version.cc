@@ -31,6 +31,10 @@
 #include <sstream>
 #include <boost/algorithm/string/join.hpp>
 
+#ifdef RECURSOR
+#include "rust/misc.rs.h"
+#endif
+
 static ProductType productType;
 
 string compilerVersion()
@@ -176,6 +180,9 @@ string getBuildConfiguration()
 #endif
 #ifdef HAVE_LIBCAP
       << " libcap"
+#endif
+#ifdef RECURSOR
+      << pdns::rust::misc::rust_features()
 #endif
       << endl;
 #ifdef PDNS_MODULES

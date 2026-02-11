@@ -750,6 +750,18 @@ distributor-threads={threads}
             raise AssertionError('%s failed (%d): %s' % (rec_controlCmd, e.returncode, e.output))
 
     @classmethod
+    def recFeatures(cls):
+        rec_versionCmd = [os.environ['PDNSRECURSOR'],
+                          '--version']
+        try:
+            full = subprocess.check_output(rec_versionCmd, text=True, stderr=subprocess.STDOUT)
+            for line in full.splitlines():
+                if line.startswith("Features: "):
+                    return line
+        except subprocess.CalledProcessError as e:
+            raise AssertionError('%s failed (%d): %s' % (rec_versionCmd, e.returncode, e.output))
+
+    @classmethod
     def setUpSockets(cls):
         print("Setting up UDP socket..")
         cls._sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)

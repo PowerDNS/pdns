@@ -1064,6 +1064,7 @@ fn load_pem_private_key(
 
 
 // Load private key and certs from pkcs12 (pfx) file.
+#[cfg(feature = "pkcs12")]
 fn load_pkcs12_key_and_certs(
     filename: &str,
     password: &str,
@@ -1129,6 +1130,26 @@ fn load_pkcs12_key_and_certs(
         }
     }
 }
+
+#[cfg(not(feature = "pkcs12"))]
+fn load_pkcs12_key_and_certs(
+    filename: &str,
+    _password: &str,
+    ctx: &Arc<Context>,
+) -> std::io::Result<(pki_types::PrivateKeyDer<'static>, Vec<pki_types::CertificateDer<'static>>)> {
+    let msg = "PKCS12 feature is not enabled";
+    rustmisc::log(
+        &ctx.logger,
+        rustmisc::Priority::Error,
+        msg,
+        &vec![rustmisc::KeyValue {
+            key: "filename".to_string(),
+            value: filename.to_string(),
+        }]);
+    Err(std::io::Error::other(msg))
+}
+
+
 
 // impl below needed because the classes are used in the Context, which gets passed around.
 unsafe impl Send for rustweb::CredentialsHolder {}

@@ -1,6 +1,6 @@
 import requests
 import subprocess
-
+import pytest
 from recursortests import RecursorTest
 
 class RecPrometheusTest(RecursorTest):
@@ -126,6 +126,7 @@ webservice:
     def generateRecursorConfig(cls, confdir):
         super(HttpsPKCS12PrometheusTest, cls).generateRecursorYamlConfig(confdir)
 
+    @pytest.mark.skipif('pkcs12' not in RecursorTest.recFeatures(), reason='pkcs12 feature not available')
     def testPrometheus(self):
         self.waitForTCPSocket("127.0.0.1", self._wsPort)
         url = 'https://user:' + self._wsPassword + '@127.0.0.1:' + str(self._wsPort) + '/metrics'

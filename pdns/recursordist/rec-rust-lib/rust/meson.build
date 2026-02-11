@@ -16,6 +16,10 @@ env.set('srcdir', meson.current_source_dir())
 env.append('RUST_TARGET', '', separator: '')
 env.append('RUSTC_TARGET_ARCH', '', separator: '')
 
+if cargo.version().version_compare('>=1.88')
+env.set('features', '--features pkcs12')
+endif
+
 lib_recrust = custom_target('librecrust.a',
   output: [outfile, 'cxx.h', 'lib.rs.h', 'misc.rs.h', 'web.rs.h'],
   input: infile,

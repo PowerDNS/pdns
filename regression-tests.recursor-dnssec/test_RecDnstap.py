@@ -7,6 +7,7 @@ import threading
 import time
 import dns
 import dnstap_pb2
+import pytest
 from unittest import SkipTest
 from recursortests import RecursorTest
 
@@ -219,12 +220,9 @@ class TestRecursorDNSTap(RecursorTest):
         sock.close()
 
     @classmethod
+    @pytest.mark.skipif('dnstap-framestream' not in RecursorTest.recFeatures(), reason='dnstap feature not available')
     def setUpClass(cls):
-        if os.environ.get("NODNSTAPTESTS") == "1":
-            raise SkipTest("Not Yet Supported")
-
         cls.setUpSockets()
-
         cls.startResponders()
 
         listener = threading.Thread(name='DNSTap Listener', target=cls.FrameStreamUnixListenerMain, args=[DNSTapServerParameters])

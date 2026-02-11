@@ -14,6 +14,10 @@ version = "5.4.0"
 name = "recrust"
 crate-type = ["staticlib"]
 
+[features]
+# default = []
+pkcs12 = ["p12-keystore"]
+
 [dependencies]
 cxx = "1.0.181" # issue #16101
 serde = { version = "1.0", features = ["derive"] }
@@ -34,9 +38,10 @@ pki-types = { package = "rustls-pki-types", version = "1.10" }
 tokio-rustls = { version = "0.26", default-features = false }
 
 # time pinned to avoid too high rustc version dependency (1.88), remove at some point!
-time = { version = "=0.3.45" }
+# Handled in a different way: the pkcs12 feature is now optional, can be enabled is rust version >= 1.88
+#time = { version = "=0.3.45" }
 
-p12-keystore = { version = "0.2.0" }
+p12-keystore = { version = "0.2.0", optional = true }
 
 [build-dependencies]
 cxx-build = "1.0"

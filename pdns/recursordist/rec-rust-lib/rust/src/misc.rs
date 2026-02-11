@@ -66,4 +66,15 @@ pub mod rustmisc {
         );
         fn getUUID() -> String;
     }
+    extern "Rust" {
+        fn rust_features() ->String;
+    }
+}
+
+pub fn rust_features() -> String {
+    #![allow(unused_mut)]
+    let mut ret = String::from("");
+    #[cfg(feature = "pkcs12")]
+    ret.push_str(" pkcs12");
+    ret
 }

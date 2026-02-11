@@ -65,10 +65,6 @@ if [ "${PDNS_DEBUG}" = "YES" ]; then
   set -x
 fi
 
-if ! "$PDNSRECURSOR" --version 2>&1 | grep Features | grep -q dnstap-framestream; then
-  export NODNSTAPTESTS=1
-fi
-
 # Run with -m 'not external' to skip test that require external connectivity
 # Run with -m 'not unreliable_on_gh' to skip tests that are unreliable on GitHUb
 # Run with -m 'not (external or unreliable_on_gh)' to skip both categories
