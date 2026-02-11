@@ -1894,14 +1894,23 @@ bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& downstrea
       // TODO: set a flag in ID State whether or not we should update the SpanID
       uint16_t optRDPosition;
       size_t remaining;
-      auto data = dnsQuestion.getData();
+      PacketBuffer buf{dnsQuestion.getData().begin() + dnsQuestion.ids.d_proxyProtocolPayloadSize, dnsQuestion.getData().end()};
       // clear any existing option
-      if (dnsdist::getEDNSOptionsStart(data, dnsQuestion.ids.qname.wirelength(), &optRDPosition, &remaining) == 0) {
-        size_t optLen = data.size() - optRDPosition - remaining;
-        removeEDNSOptionFromOPT(reinterpret_cast<char*>(data.data() + optRDPosition), &optLen, dnsQuestion.ids.sendTraceParentToDownstreamID);
+      if (dnsdist::getEDNSOptionsStart(buf, dnsQuestion.ids.qname.wirelength(), &optRDPosition, &remaining) == 0) {
+        size_t optLen = buf.size() - optRDPosition - remaining;
+        removeEDNSOptionFromOPT(reinterpret_cast<char*>(buf.data() + optRDPosition), &optLen, dnsQuestion.ids.sendTraceParentToDownstreamID);
       }
       auto opt = pdns::trace::dnsdist::makeEDNSTraceParentOption(tracer);
-      setEDNSOption(dnsQuestion, dnsQuestion.ids.sendTraceParentToDownstreamID, std::string(opt.begin(), opt.end()));
+
+      bool ednsAdded, optionAdded;
+      setEDNSOption(buf, dnsQuestion.ids.sendTraceParentToDownstreamID, std::string(opt.begin(), opt.end()), std::numeric_limits<uint16_t>().max(), ednsAdded, optionAdded);
+      if (ednsAdded) {
+        dnsQuestion.ids.ednsAdded = ednsAdded;
+      }
+
+      // Remove the query, but keep any PROXYv2 data
+      dnsQuestion.getMutableData().resize(dnsQuestion.ids.d_proxyProtocolPayloadSize);
+      dnsQuestion.getMutableData().insert(dnsQuestion.getMutableData().end(), buf.begin(), buf.end());
     }
 #endif
 
