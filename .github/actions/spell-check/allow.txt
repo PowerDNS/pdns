@@ -2218,7 +2218,6 @@ nodelegated
 NODENIAL
 nodist
 nodnssec
-NODNSTAPTESTS
 nodot
 nodownstream
 nodyndns

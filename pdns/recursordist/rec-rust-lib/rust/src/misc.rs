@@ -74,6 +74,7 @@ pub mod rustmisc {
 pub fn rust_features() -> String {
     #![allow(unused_mut)]
     let mut ret = String::from("");
+    // features appended below should start with a space
     #[cfg(feature = "pkcs12")]
     ret.push_str(" pkcs12");
     ret
