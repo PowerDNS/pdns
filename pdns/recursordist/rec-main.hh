@@ -40,6 +40,7 @@
 #include "recpacketcache.hh"
 #include "ratelimitedlog.hh"
 #include "protozero-trace.hh"
+#include "remote_logger.hh"
 
 #ifdef NOD_ENABLED
 #include "nod.hh"

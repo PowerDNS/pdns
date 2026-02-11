@@ -26,7 +26,6 @@
 
 #include <boost/uuid/uuid.hpp>
 #include <boost/optional.hpp>
-#include <functional>
 
 #include "dnsname.hh"
 

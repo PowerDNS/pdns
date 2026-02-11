@@ -20,31 +20,19 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
-#include <string>
-#include <vector>
-#include <sys/types.h>
-#include "misc.hh"
-#include "iputils.hh"
-#include <netdb.h>
-#include <unistd.h>
-#include <sys/time.h>
-#include <sys/uio.h>
-#include <fcntl.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include "dnsparser.hh"
-#include <arpa/inet.h>
-#undef res_mkquery
 
-#include "pdnsexception.hh"
-#include "dns.hh"
-#include "namespaces.hh"
-#include "remote_logger.hh"
-#include "fstrm_logger.hh"
-#include "resolve-context.hh"
-#include "noinitvector.hh"
+#include <string>
+
 #include "logger.hh"
 #include "logr.hh"
+#include "pdnsexception.hh"
+#include "noinitvector.hh"
+
+class RemoteLoggerInterface;
+class RemoteLogger;
+class FrameStreamLogger;
+struct DNSRecord;
+struct ResolveContext;
 
 // Helper to be defined by main program: queue data and log based on return value of queueData()
 void remoteLoggerQueueData(RemoteLoggerInterface&, const std::string&);

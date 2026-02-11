@@ -19,42 +19,19 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifdef HAVE_CONFIG_H
 #include "config.h"
-#endif
-#include "utility.hh"
+
 #include "lwres.hh"
-#include <iostream>
-#include "dnsrecords.hh"
-#include <cerrno>
-#include "misc.hh"
-#include <algorithm>
-#include <sstream>
-#include <cstring>
-#include <string>
-#include <vector>
-#include "dns.hh"
-#include "qtype.hh"
-#include "pdnsexception.hh"
 #include "arguments.hh"
-#include "sstuff.hh"
-#include "syncres.hh"
-#include "dnswriter.hh"
-#include "dnsparser.hh"
-#include "logger.hh"
-#include "dns_random.hh"
-#include <boost/scoped_array.hpp>
-#include <boost/algorithm/string.hpp>
-#include "validate-recursor.hh"
-#include "ednssubnet.hh"
 #include "query-local-address.hh"
-#include "tcpiohandler.hh"
-#include "ednsoptions.hh"
 #include "ednspadding.hh"
 #include "rec-protozero.hh"
-#include "uuid-utils.hh"
+#include "logging.hh"
 #include "rec-tcpout.hh"
 #include "rec-cookiestore.hh"
+#include "syncres.hh"
+#include "resolve-context.hh"
+#include "remote_logger.hh"
 
 static bool g_cookies = false;
 
