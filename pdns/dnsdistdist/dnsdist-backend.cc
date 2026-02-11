@@ -1108,6 +1108,11 @@ void ServerPool::removeServer(shared_ptr<DownstreamState>& server)
   *servers = std::move(newServers);
 }
 
+bool ServerPool::shouldKeepStaleData()
+{
+  return !getServers()->empty() && countServers(true) == 0;
+}
+
 namespace dnsdist::backend
 {
 void registerNewBackend(std::shared_ptr<DownstreamState>& backend)

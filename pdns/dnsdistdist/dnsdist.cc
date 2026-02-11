@@ -2371,7 +2371,7 @@ static void maintThread()
            has all its backends down) */
         if (packetCache->keepStaleData() && !iter->second) {
           /* so far all pools had at least one backend up */
-          if (pool->countServers(true) == 0) {
+          if (pool->shouldKeepStaleData()) {
             iter->second = true;
           }
         }
