@@ -618,6 +618,17 @@ static std::string normalizeJsonString(const std::string& jsonContent)
     // Preserve quotes in the result if the chunk is quoted.
     bool quote = input[pos] == '"';
     auto chunksize = parseRFC1035CharString(input.substr(pos), chunk);
+    if (chunksize == 0) {
+      // Found one of (  ) ; \x7f
+      if (input[pos] < ' ' || input[pos] >= 0x7f) {
+        std::stringstream hexstr;
+        hexstr << std::hex << static_cast<unsigned char>(input[pos]);
+        throw ApiException("Invalid character \\x" + hexstr.str() + " in record content '" + std::string(jsonContent) + "'");
+      }
+      else {
+        throw ApiException("Invalid character '" + std::string(1, input[pos]) + "' in record content '" + std::string(jsonContent) + "'");
+      }
+    }
     if (quote) {
       ret << '"';
     }
