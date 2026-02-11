@@ -60,6 +60,7 @@ constexpr unsigned int SCHEMAVERSION{6};
 BOOST_CLASS_VERSION(LMDBBackend::KeyDataDB, 1)
 BOOST_CLASS_VERSION(ZoneName, 1)
 BOOST_CLASS_VERSION(DomainInfo, 2)
+BOOST_CLASS_VERSION(LMDBBackend::TransientDomainInfo, 0)
 
 static bool s_first = true;
 static uint32_t s_shards = 0;
@@ -735,6 +736,7 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
   }
 
   d_write_notification_update = mustDo("write-notification-update");
+  d_split_domains_table = mustDo("split-domains-table");
 
   if (mustDo("lightning-stream")) {
     d_random_ids = true;
@@ -874,12 +876,16 @@ LMDBBackend::~LMDBBackend()
 
 void LMDBBackend::openAllTheDatabases()
 {
-  d_tdomains = std::make_shared<tdomains_t>(getMDBEnv(getArg("filename").c_str(), MDB_NOSUBDIR | MDB_NORDAHEAD | d_asyncFlag, 0600, d_mapsize_main), "domains_v5");
+  auto filename = getArg("filename");
+  d_tdomains = std::make_shared<tdomains_t>(getMDBEnv(filename.c_str(), MDB_NOSUBDIR | MDB_NORDAHEAD | d_asyncFlag, 0600, d_mapsize_main), "domains_v5");
   d_tmeta = std::make_shared<tmeta_t>(d_tdomains->getEnv(), "metadata_v5");
   d_tkdb = std::make_shared<tkdb_t>(d_tdomains->getEnv(), "keydata_v5");
   d_ttsig = std::make_shared<ttsig_t>(d_tdomains->getEnv(), "tsig_v5");
   d_tnetworks = d_tdomains->getEnv()->openDB("networks_v6", MDB_CREATE);
   d_tviews = d_tdomains->getEnv()->openDB("views_v6", MDB_CREATE);
+  if (d_split_domains_table) {
+    d_tdomains_extra = std::make_shared<tdomain_extra_t>(d_tdomains->getEnv(), "domains_extra_v6");
+  }
 }
 
 unsigned int LMDBBackend::getCapabilities()
@@ -1005,6 +1011,20 @@ namespace serialization
   }
 
   template <class Archive>
+  void save(Archive& ar, const LMDBBackend::TransientDomainInfo& g, const unsigned int /* version */)
+  {
+    ar & g.last_check;
+    ar & g.notified_serial;
+  }
+
+  template <class Archive>
+  void load(Archive& ar, LMDBBackend::TransientDomainInfo& g, const unsigned int /* version */)
+  {
+    ar & g.last_check;
+    ar & g.notified_serial;
+  }
+
+  template <class Archive>
   void serialize(Archive& ar, LMDBBackend::DomainMeta& g, const unsigned int /* version */)
   {
     ar & g.domain & g.key & g.value;
@@ -1043,6 +1063,7 @@ BOOST_SERIALIZATION_SPLIT_FREE(DNSName);
 BOOST_SERIALIZATION_SPLIT_FREE(ZoneName);
 BOOST_SERIALIZATION_SPLIT_FREE(LMDBBackend::KeyDataDB);
 BOOST_SERIALIZATION_SPLIT_FREE(DomainInfo);
+BOOST_SERIALIZATION_SPLIT_FREE(LMDBBackend::TransientDomainInfo);
 BOOST_IS_BITWISE_SERIALIZABLE(ComboAddress);
 
 // Resource records are serialized in the following format:
@@ -1275,22 +1296,52 @@ bool LMDBBackend::findDomain(domainid_t domainid, DomainInfo& info) const
 
 void LMDBBackend::consolidateDomainInfo(DomainInfo& info) const
 {
-  // Update the DomainInfo values if we have cached data in memory.
+  TransientDomainInfo tdi;
+  bool valid{false};
+
+  // Get data from the cache if we don't keep the database up to date.
   if (!d_write_notification_update) {
     auto container = s_transient_domain_info.read_lock();
-    TransientDomainInfo tdi;
     if (container->get(info.id, tdi)) {
-      info.notified_serial = tdi.notified_serial;
-      info.last_check = tdi.last_check;
+      valid = true;
     }
+  }
+
+  // If the DomainInfo table is split, get the TransientDomainInfo part
+  // from the extra table.
+  if (!valid && d_split_domains_table) {
+    auto rotxn = d_tdomains_extra->getROTransaction();
+    if (rotxn.get(info.id, tdi)) {
+      valid = true;
+    }
+  }
+
+  if (valid) {
+    info.notified_serial = tdi.notified_serial;
+    info.last_check = tdi.last_check;
+  }
+}
+
+void LMDBBackend::writeTransientDomainInfo(const DomainInfo& info)
+{
+  // If the DomainInfo table is split, write the TransientDomainInfo part
+  // to the extra table.
+  if (d_split_domains_table) {
+    TransientDomainInfo tdi;
+    tdi.notified_serial = info.notified_serial;
+    tdi.last_check = info.last_check;
+    auto txn = d_tdomains_extra->getRWTransaction();
+    txn.put(tdi, info.id);
+    txn.commit();
   }
 }
 
 void LMDBBackend::writeDomainInfo(const DomainInfo& info)
 {
+  // Update the in-memory cache if we don't keep the database up to date.
   if (!d_write_notification_update) {
-    auto container = s_transient_domain_info.write_lock();
     TransientDomainInfo tdi;
+    auto container = s_transient_domain_info.write_lock();
     if (container->get(info.id, tdi)) {
       // Only remove the in-memory value if it has not been modified since the
       // DomainInfo data was set up.
@@ -1298,10 +1349,13 @@ void LMDBBackend::writeDomainInfo(const DomainInfo& info)
         container->remove(info.id);
       }
     }
+    return;
   }
+
   auto txn = d_tdomains->getRWTransaction();
   txn.put(info, info.id);
   txn.commit();
+  writeTransientDomainInfo(info);
 }
 
 /* Here's the complicated story. Other backends have just one transaction, which is either
@@ -2213,6 +2267,27 @@ bool LMDBBackend::genChangeDomain(domainid_t id, const std::function<void(Domain
   return true;
 }
 
+// Similar to the above, but callback will only change the TransientDomainInfo
+// fields.
+bool LMDBBackend::genChangeTransientDomain(domainid_t id, const std::function<void(DomainInfo&)>& func) // NOLINTNEXT(readability-identifier-length)
+{
+  DomainInfo info;
+  if (!findDomain(id, info)) {
+    return false;
+  }
+  consolidateDomainInfo(info);
+  func(info);
+  if (!d_write_notification_update) {
+    // This won't write anything but update the in-memory cache
+    writeDomainInfo(info);
+  }
+  else {
+    // No need to write the complete DomainInfo in this case
+    writeTransientDomainInfo(info);
+  }
+  return true;
+}
+
 bool LMDBBackend::setKind(const ZoneName& domain, const DomainInfo::DomainKind kind)
 {
   return genChangeDomain(domain, [kind](DomainInfo& di) {
@@ -2251,6 +2326,7 @@ bool LMDBBackend::createDomain(const ZoneName& domain, const DomainInfo::DomainK
 
     txn.put(info, 0, d_random_ids, domain.hash());
     txn.commit();
+    writeTransientDomainInfo(info);
   }
 
   return true;
@@ -2366,24 +2442,24 @@ void LMDBBackend::setFresh(domainid_t domain_id)
 
 void LMDBBackend::setLastCheckTime(domainid_t domain_id, time_t last_check)
 {
-  if (d_write_notification_update) {
-    genChangeDomain(domain_id, [last_check](DomainInfo& info) {
-      info.last_check = last_check;
-    });
+  if (!d_write_notification_update) {
+    DomainInfo info;
+    if (findDomain(domain_id, info)) {
+      auto container = s_transient_domain_info.write_lock();
+      TransientDomainInfo tdi;
+      if (!container->get(info.id, tdi)) {
+        // No data yet, initialize from DomainInfo
+        tdi.notified_serial = info.notified_serial;
+      }
+      tdi.last_check = last_check;
+      container->update(info.id, tdi);
+    }
     return;
   }
 
-  DomainInfo info;
-  if (findDomain(domain_id, info)) {
-    auto container = s_transient_domain_info.write_lock();
-    TransientDomainInfo tdi;
-    if (!container->get(info.id, tdi)) {
-      // No data yet, initialize from DomainInfo
-      tdi.notified_serial = info.notified_serial;
-    }
-    tdi.last_check = last_check;
-    container->update(info.id, tdi);
-  }
+  genChangeTransientDomain(domain_id, [last_check](DomainInfo& info) {
+    info.last_check = last_check;
+  });
 }
 
 void LMDBBackend::getUpdatedPrimaries(vector<DomainInfo>& updatedDomains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes)
@@ -2417,24 +2493,24 @@ void LMDBBackend::getUpdatedPrimaries(vector<DomainInfo>& updatedDomains, std::u
 
 void LMDBBackend::setNotified(domainid_t domain_id, uint32_t serial)
 {
-  if (d_write_notification_update) {
-    genChangeDomain(domain_id, [serial](DomainInfo& info) {
-      info.notified_serial = serial;
-    });
+  if (!d_write_notification_update) {
+    DomainInfo info;
+    if (findDomain(domain_id, info)) {
+      auto container = s_transient_domain_info.write_lock();
+      TransientDomainInfo tdi;
+      if (!container->get(info.id, tdi)) {
+        // No data yet, initialize from DomainInfo
+        tdi.last_check = info.last_check;
+      }
+      tdi.notified_serial = serial;
+      container->update(info.id, tdi);
+    }
     return;
   }
 
-  DomainInfo info;
-  if (findDomain(domain_id, info)) {
-    auto container = s_transient_domain_info.write_lock();
-    TransientDomainInfo tdi;
-    if (!container->get(info.id, tdi)) {
-      // No data yet, initialize from DomainInfo
-      tdi.last_check = info.last_check;
-    }
-    tdi.notified_serial = serial;
-    container->update(info.id, tdi);
-  }
+  genChangeTransientDomain(domain_id, [serial](DomainInfo& info) {
+    info.notified_serial = serial;
+  });
 }
 
 class getCatalogMembersReturnFalseException : std::runtime_error
@@ -3498,9 +3574,15 @@ void LMDBBackend::flush()
       if (findDomain(domid, info)) {
         info.notified_serial = tdi.notified_serial;
         info.last_check = tdi.last_check;
-        auto txn = d_tdomains->getRWTransaction();
-        txn.put(info, info.id);
-        txn.commit();
+        // If the DomainInfo table is split, only update the extra table.
+        if (d_split_domains_table) {
+          writeTransientDomainInfo(info);
+        }
+        else {
+          auto txn = d_tdomains->getRWTransaction();
+          txn.put(info, info.id);
+          txn.commit();
+        }
       }
       else {
         // Domain has been removed. This should not happen because deletion
@@ -3531,6 +3613,7 @@ public:
     declare(suffix, "shards-map-size", "shard LMDB map size in megabytes, zero to use the same size as main", "0");
     declare(suffix, "flag-deleted", "Flag entries on deletion instead of deleting them", "no");
     declare(suffix, "write-notification-update", "Do not update domain table upon notification", "yes");
+    declare(suffix, "split-domains-table", "Use a split domain table to reduce I/O load after XFR notifications", "no");
     declare(suffix, "lightning-stream", "Run in Lightning Stream compatible mode", "no");
   }
   DNSBackend* make(const string& suffix = "") override

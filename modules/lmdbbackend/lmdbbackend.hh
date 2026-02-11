@@ -265,6 +265,14 @@ public:
     bool active{true};
     bool published{true};
   };
+  // Transient DomainInfo data, not necessarily synchronized with the
+  // database.
+  // All the fields exist with the exact same types in DomainInfo.
+  struct TransientDomainInfo
+  {
+    time_t last_check{};
+    uint32_t notified_serial{};
+  };
   class LMDBResourceRecord : public DNSResourceRecord
   {
   public:
@@ -293,6 +301,8 @@ private:
   typedef TypedDBI<TSIGKey,
                    index_on<TSIGKey, DNSName, &TSIGKey::name>>
     ttsig_t;
+
+  using tdomain_extra_t = TypedDBI<TransientDomainInfo, nullindex_t>;
 
   int d_asyncFlag;
 
@@ -327,6 +337,7 @@ private:
   shared_ptr<ttsig_t> d_ttsig;
   MDBDbi d_tnetworks;
   MDBDbi d_tviews;
+  shared_ptr<tdomain_extra_t> d_tdomains_extra; // may be unset if no split domain data
 
   shared_ptr<RecordsROTransaction> d_rotxn; // for lookup and list
   shared_ptr<RecordsRWTransaction> d_rwtxn; // for feedrecord within begin/aborttransaction
@@ -336,12 +347,14 @@ private:
   std::shared_ptr<RecordsROTransaction> getRecordsROTransaction(domainid_t id, const std::shared_ptr<LMDBBackend::RecordsRWTransaction>& rwtxn = nullptr);
   bool genChangeDomain(const ZoneName& domain, const std::function<void(DomainInfo&)>& func);
   bool genChangeDomain(domainid_t id, const std::function<void(DomainInfo&)>& func);
+  bool genChangeTransientDomain(domainid_t id, const std::function<void(DomainInfo&)>& func);
   static void deleteDomainRecords(RecordsRWTransaction& txn, const std::string& match, QType qtype = QType::ANY);
 
   bool findDomain(const ZoneName& domain, DomainInfo& info) const;
   bool findDomain(domainid_t domainid, DomainInfo& info) const;
   void consolidateDomainInfo(DomainInfo& info) const;
   void writeDomainInfo(const DomainInfo& info);
+  void writeTransientDomainInfo(const DomainInfo& info);
 
   void setLastCheckTime(domainid_t domain_id, time_t last_check);
 
@@ -362,14 +375,7 @@ private:
 
   string directBackendCmd_list(std::vector<string>& argv);
 
-  // Transient DomainInfo data, not necessarily synchronized with the
-  // database.
-  struct TransientDomainInfo
-  {
-    time_t last_check{};
-    uint32_t notified_serial{};
-  };
-  // Cache of DomainInfo notified_serial values
+  // Cache of TransientDomainInfo
   class TransientDomainInfoCache : public boost::noncopyable
   {
   public:
@@ -423,6 +429,7 @@ private:
   bool d_handle_dups;
   bool d_views;
   bool d_write_notification_update;
+  bool d_split_domains_table;
   DTime d_dtime; // used only for logging
   uint64_t d_mapsize_main;
   uint64_t d_mapsize_shards;
