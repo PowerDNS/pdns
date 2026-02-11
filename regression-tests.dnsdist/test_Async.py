@@ -285,7 +285,10 @@ class AsyncTests(object):
             for method in ("sendUDPQuery", "sendTCPQuery", "sendDOTQueryWrapper", "sendDOHWithNGHTTP2QueryWrapper", "sendDOHWithH2OQueryWrapper", "sendDOQQueryWrapper"):
                 sender = getattr(self, method)
                 try:
-                    (receivedQuery, receivedResponse) = sender(query, response)
+                    if method in ['sendDOQQueryWrapper']:
+                        (receivedQuery, receivedResponse) = sender(query, response, passExceptions=True)
+                    else:
+                        (receivedQuery, receivedResponse) = sender(query, response)
                 except doqclient.StreamResetError:
                     if not self._fromResponderQueue.empty():
                         receivedQuery = self._fromResponderQueue.get(True, 1.0)

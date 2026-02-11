@@ -67,8 +67,8 @@ class QUICTests(object):
         query = dns.message.make_query(name, 'A', 'IN')
         dropped = False
         try:
-            (_, receivedResponse) = self.sendQUICQuery(query, response=None, useQueue=False)
-            self.assertTrue(False)
+            (_, receivedResponse) = self.sendQUICQuery(query, response=None, useQueue=False, passExceptions=True)
+            self.fail()
         except StreamResetError as e:
             self.assertEqual(e.error, 5);
 
@@ -113,8 +113,8 @@ class QUICTests(object):
         query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
         dropped = False
         try:
-            (_, receivedResponse) = self.sendQUICQuery(query, response=None, useQueue=False)
-            self.assertTrue(False)
+            (_, receivedResponse) = self.sendQUICQuery(query, response=None, useQueue=False, passExceptions=True)
+            self.fail()
         except StreamResetError as e :
             self.assertEqual(e.error, 5);
 
@@ -128,8 +128,8 @@ class QUICACLTests(object):
         query = dns.message.make_query(name, 'A', 'IN')
         dropped = False
         try:
-            (_, receivedResponse) = self.sendQUICQuery(query, response=None, useQueue=False)
-            self.assertTrue(False)
+            (_, receivedResponse) = self.sendQUICQuery(query, response=None, useQueue=False, passExceptions=True)
+            self.fail()
         except StreamResetError as e:
             self.assertEqual(e.error, 5);
             dropped = True
