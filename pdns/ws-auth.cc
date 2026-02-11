@@ -2734,7 +2734,7 @@ static void patchZone(UeberBackend& backend, const ZoneName& zonename, DomainInf
         cacheNeeded = (operations & ((1U << PRUNE) | (1U << EXTEND))) != 0;
       }
 
-      applyResult result;
+      applyResult result{ABORT};
       std::vector<DNSResourceRecord> rrset;
       switch (operationType) {
       case DELETE:
