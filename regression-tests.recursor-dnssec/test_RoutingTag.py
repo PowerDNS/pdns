@@ -83,8 +83,8 @@ ecs-add-for=0.0.0.0/0
 
     @classmethod
     def tearDownClass(cls):
-        cls.tearDownRecursor()
         os.unlink('tagfile')
+        super().tearDownClass()
 
 class RoutingTagTest(RoutingTagTest):
     _confdir = 'RoutingTag'
