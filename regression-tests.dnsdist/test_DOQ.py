@@ -85,6 +85,30 @@ class TestDOQWithCache(QUICWithCacheTests, DNSDistTest):
     def sendQUICQuery(self, query, response=None, useQueue=True, connection=None):
         return self.sendDOQQuery(self._doqServerPort, query, response=response, caFile=self._caCert, useQueue=useQueue, serverName=self._serverName, connection=connection)
 
+class TestDOQWithCacheAndBBR(QUICWithCacheTests, DNSDistTest):
+    _serverKey = 'server.key'
+    _serverCert = 'server.chain'
+    _serverName = 'tls.tests.dnsdist.org'
+    _caCert = 'ca.pem'
+    _doqServerPort = pickAvailablePort()
+    _config_template = """
+    newServer{address="127.0.0.1:%d"}
+
+    -- As of Quiche 0.24.7 BBR is no longer supported, but we should not choke on it
+    -- see https://github.com/cloudflare/quiche/issues/2342
+    addDOQLocal("127.0.0.1:%d", "%s", "%s", {congestionControlAlgo="bbr"})
+
+    pc = newPacketCache(100, {maxTTL=86400, minTTL=1})
+    getPool(""):setCache(pc)
+    """
+    _config_params = ['_testServerPort', '_doqServerPort','_serverCert', '_serverKey']
+
+    def getQUICConnection(self):
+        return self.getDOQConnection(self._doqServerPort, self._caCert)
+
+    def sendQUICQuery(self, query, response=None, useQueue=True, connection=None):
+        return self.sendDOQQuery(self._doqServerPort, query, response=response, caFile=self._caCert, useQueue=useQueue, serverName=self._serverName, connection=connection)
+
 class TestDOQWithACL(QUICACLTests, DNSDistTest):
     _serverKey = 'server.key'
     _serverCert = 'server.chain'
