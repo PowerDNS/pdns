@@ -598,7 +598,8 @@ If a ``tls`` section is present, clients are required to use ``https`` to contac
 If both the ``certificate`` and the ``key`` fields are set, the values specify unencrypted PEM files.
 The ``password`` field is ignored in that case.
 
-Starting with version 5.5.0, if the ``key`` field is not set but the ``certificate`` and ``password`` fields are set, the listed file is assumed to be an encrypted PKCS12 (also known as pfx) file containing both a key and the certificate chain.
+If the ``key`` field is not set but the ``certificate`` and ``password`` fields are set, the listed file is assumed to be an encrypted PKCS12 (also known as pfx) file containing both a key and the certificate chain.
+The ``pkcs12`` feature is only available starting with version 5.5.0 and if the Rust build environment used is version 1.88 or higher.
 
 At the moment it is not possible to list additional properties of the TLS listener.
 
