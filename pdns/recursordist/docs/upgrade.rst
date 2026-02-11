@@ -4,13 +4,15 @@ Upgrade Guide
 Before upgrading, it is advised to read the :doc:`changelog/index`.
 When upgrading several versions, please read **all** notes applying to the upgrade.
 
+
 5.4.0 to master
 ---------------
 
 Changed Settings
 ^^^^^^^^^^^^^^^^
-The :ref:`incoming-ws-config` YAML struct has been extended to be able to specify an encrypted PKCS12 file to configure TLS key and certificate chain.
+The :ref:`incoming-ws-config` YAML struct has been extended to be able to specify an encrypted PKCS12 file to configure TLS key and certificate chain for the embedded web server.
 
+The :ref:`outgoing-tls-configuration` YAML struct has been extended to be able to specify an TLS client certificate to be used for outgoing DoT connections.
 
 5.1.10, 5.2.8 and 5.3.5
 -----------------------
