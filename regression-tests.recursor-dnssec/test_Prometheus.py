@@ -102,6 +102,7 @@ webservice:
         self.checkPrometheusContentBasic(r.text)
         self.checkPrometheusContentPromtool(r.content)
 
+@pytest.mark.skipif('pkcs12' not in RecursorTest.recFeatures(), reason='pkcs12 feature not available')
 class HttpsPKCS12PrometheusTest(RecPrometheusTest):
     _confdir = 'HttpsPKCS12Prometheus'
     _wsPort = 8042
@@ -126,7 +127,6 @@ webservice:
     def generateRecursorConfig(cls, confdir):
         super(HttpsPKCS12PrometheusTest, cls).generateRecursorYamlConfig(confdir)
 
-    @pytest.mark.skipif('pkcs12' not in RecursorTest.recFeatures(), reason='pkcs12 feature not available')
     def testPrometheus(self):
         self.waitForTCPSocket("127.0.0.1", self._wsPort)
         url = 'https://user:' + self._wsPassword + '@127.0.0.1:' + str(self._wsPort) + '/metrics'
