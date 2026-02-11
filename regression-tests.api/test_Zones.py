@@ -1399,6 +1399,26 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
             headers={'content-type': 'application/json'})
         self.assertEqual(r.status_code, 422)
         self.assert_in_json_error("Invalid character '(' in record content", r.json())
+        # rrset with empty contents
+        rrset = {
+            'changetype': 'replace',
+            'name': 'a.'+name,
+            'type': 'A',
+            'ttl': 3600,
+            'records': [
+                {
+                    "content": "",
+                    "disabled": False
+                }
+            ]
+        }
+        payload = {'rrsets': [rrset]}
+        r = self.session.patch(
+            self.url("/api/v1/servers/localhost/zones/" + name),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertEqual(r.status_code, 422)
+        self.assert_in_json_error("missing field at the end of record content ''", r.json())
 
     def test_zone_rr_update(self):
         name, payload, zone = self.create_zone()
