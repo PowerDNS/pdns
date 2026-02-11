@@ -617,6 +617,17 @@ DNSName DNSName::getLastLabel() const
   return ret;
 }
 
+DNSName DNSName::getFirstLabel() const
+{
+  if (empty() || isRoot()) {
+    return *this;
+  }
+
+  DNSName ret;
+  ret.appendRawLabel(getRawLabel(0));
+  return ret;
+}
+
 bool DNSName::chopOff()
 {
   if (d_storage.empty() || d_storage[0]==0) {
