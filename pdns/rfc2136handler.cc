@@ -58,6 +58,7 @@ struct updateContext {
 
   // Logging-related fields
   std::string msgPrefix;
+  std::shared_ptr<Logr::Logger> slog;
 };
 
 static void increaseSerial(const string& soaEditSetting, const updateContext& ctx);
@@ -168,17 +169,20 @@ static bool mayPerformUpdate(const DNSRecord* rr, const updateContext& ctx) // N
   auto rrType = QType(rr->d_type);
 
   if (rrType == QType::NSEC || rrType == QType::NSEC3) {
-    g_log << Logger::Warning << ctx.msgPrefix << "Trying to add/update/delete " << rr->d_name << "|" << rrType.toString() << ". These are generated records, ignoring!" << endl;
+    SLOG(g_log << Logger::Warning << ctx.msgPrefix << "Trying to add/update/delete " << rr->d_name << "|" << rrType.toString() << ". These are generated records, ignoring!" << endl,
+         ctx.slog->info(Logr::Warning, "Update: trying to add/update/delete generated record, ignoring", "name", Logging::Loggable(rr->d_name), "type", Logging::Loggable(rrType)));
     return false;
   }
 
   if (!ctx.isPresigned && rrType == QType::RRSIG) {
-    g_log << Logger::Warning << ctx.msgPrefix << "Trying to add/update/delete " << rr->d_name << "|" << rrType.toString() << " in non-presigned zone, ignoring!" << endl;
+    SLOG(g_log << Logger::Warning << ctx.msgPrefix << "Trying to add/update/delete " << rr->d_name << "|" << rrType.toString() << " in non-presigned zone, ignoring!" << endl,
+         ctx.slog->info(Logr::Warning, "Update: trying to add/update/delete record in non-presigned zone, ignoring", "name", Logging::Loggable(rr->d_name), "type", Logging::Loggable(rrType)));
     return false;
   }
 
   if ((rrType == QType::NSEC3PARAM || rrType == QType::DNSKEY) && rr->d_name != ctx.di.zone.operator const DNSName&()) {
-    g_log << Logger::Warning << ctx.msgPrefix << "Trying to add/update/delete " << rr->d_name << "|" << rrType.toString() << ", " << rrType.toString() << " must be at zone apex, ignoring!" << endl;
+    SLOG(g_log << Logger::Warning << ctx.msgPrefix << "Trying to add/update/delete " << rr->d_name << "|" << rrType.toString() << ", " << rrType.toString() << " must be at zone apex, ignoring!" << endl,
+         ctx.slog->info(Logr::Warning, "Update: trying to add/update/delete record which must be at zone apex, ignoring", "name", Logging::Loggable(rr->d_name), "type", Logging::Loggable(rrType)));
     return false;
   }
 
@@ -217,10 +221,12 @@ static uint performInsert(const DNSRecord* rr, updateContext& ctx, set<DNSName>&
         ctx.di.backend->replaceRRSet(ctx.di.id, oldRec->qname, oldRec->qtype, rrset);
         ctx.updatedSerial = true;
         changedRecords++;
-        g_log << Logger::Notice << ctx.msgPrefix << "Replacing SOA record " << rr->d_name << "|" << rrType.toString() << endl;
+        SLOG(g_log << Logger::Notice << ctx.msgPrefix << "Replacing SOA record " << rr->d_name << "|" << rrType.toString() << endl,
+             ctx.slog->info(Logr::Notice, "Update: replacing SOA record", "name", Logging::Loggable(rr->d_name), "type", Logging::Loggable(rrType)));
       }
       else {
-        g_log << Logger::Notice << ctx.msgPrefix << "Provided serial (" << sdUpdate.serial << ") is older than the current serial (" << sdOld.serial << "), ignoring SOA update." << endl;
+        SLOG(g_log << Logger::Notice << ctx.msgPrefix << "Provided serial (" << sdUpdate.serial << ") is older than the current serial (" << sdOld.serial << "), ignoring SOA update." << endl,
+             ctx.slog->info(Logr::Notice, "Update: provided serial is older than the current serial, ignoring SOA update", "received serial", Logging::Loggable(sdUpdate.serial), "current serial", Logging::Loggable(sdOld.serial)));
       }
     } break;
     case QType::CNAME: {
@@ -235,11 +241,13 @@ static uint performInsert(const DNSRecord* rr, updateContext& ctx, set<DNSName>&
       }
       if (changedCNames > 0) {
         ctx.di.backend->replaceRRSet(ctx.di.id, rr->d_name, rrType, rrset);
-        g_log << Logger::Notice << ctx.msgPrefix << "Replacing CNAME record " << rr->d_name << "|" << rrType.toString() << endl;
+        SLOG(g_log << Logger::Notice << ctx.msgPrefix << "Replacing CNAME record " << rr->d_name << "|" << rrType.toString() << endl,
+             ctx.slog->info(Logr::Notice, "Update: replacing CNAME record", "name", Logging::Loggable(rr->d_name), "type", Logging::Loggable(rrType)));
         changedRecords += changedCNames;
       }
       else {
-        g_log << Logger::Notice << ctx.msgPrefix << "Replace for CNAME record " << rr->d_name << "|" << rrType.toString() << " requested, but no changes made." << endl;
+        SLOG(g_log << Logger::Notice << ctx.msgPrefix << "Replace for CNAME record " << rr->d_name << "|" << rrType.toString() << " requested, but no changes made." << endl,
+             ctx.slog->info(Logr::Notice, "Update: replace for CNAME record requested, but no changes made", "name", Logging::Loggable(rr->d_name), "type", Logging::Loggable(rrType)));
       }
     } break;
     default: {
@@ -278,11 +286,13 @@ static uint performInsert(const DNSRecord* rr, updateContext& ctx, set<DNSName>&
       }
       if (updateTTL > 0) {
         ctx.di.backend->replaceRRSet(ctx.di.id, rr->d_name, rrType, rrset);
-        g_log << Logger::Notice << ctx.msgPrefix << "Updating TTLs for " << rr->d_name << "|" << rrType.toString() << endl;
+        SLOG(g_log << Logger::Notice << ctx.msgPrefix << "Updating TTLs for " << rr->d_name << "|" << rrType.toString() << endl,
+             ctx.slog->info(Logr::Notice, "Update: updating record TTLs", "name", Logging::Loggable(rr->d_name), "type", Logging::Loggable(rrType)));
         changedRecords += updateTTL;
       }
       else if (foundRecord) {
-        g_log << Logger::Notice << ctx.msgPrefix << "Replace for recordset " << rr->d_name << "|" << rrType.toString() << " requested, but no changes made." << endl;
+        SLOG(g_log << Logger::Notice << ctx.msgPrefix << "Replace for recordset " << rr->d_name << "|" << rrType.toString() << " requested, but no changes made." << endl,
+             ctx.slog->info(Logr::Notice, "Update: replace for recordset requested, but no changes made", "name", Logging::Loggable(rr->d_name), "type", Logging::Loggable(rrType)));
       }
     } break;
     }
@@ -306,7 +316,8 @@ static uint performInsert(const DNSRecord* rr, updateContext& ctx, set<DNSName>&
 
   // If we haven't found a record that matches, we must add it.
   if (!foundRecord) {
-    g_log << Logger::Notice << ctx.msgPrefix << "Adding record " << rr->d_name << "|" << rrType.toString() << endl;
+    SLOG(g_log << Logger::Notice << ctx.msgPrefix << "Adding record " << rr->d_name << "|" << rrType.toString() << endl,
+         ctx.slog->info(Logr::Notice, "Update: adding record", "name", Logging::Loggable(rr->d_name), "type", Logging::Loggable(rrType)));
     delnonterm.insert(rr->d_name); // always remove any ENT's in the place where we're going to add a record.
     auto newRec = DNSResourceRecord::fromWire(*rr);
     newRec.domain_id = ctx.di.id;
@@ -366,7 +377,8 @@ static uint performInsert(const DNSRecord* rr, updateContext& ctx, set<DNSName>&
     // If we insert an NS, all the records below it become non auth - so, we're inserting a delegate.
     // Auth can only be false when the rr->d_name is not the zone
     if (!auth && rrType == QType::NS) {
-      DLOG(g_log << ctx.msgPrefix << "Going to fix auth flags below " << rr->d_name << endl);
+      DLOG(SLOG(g_log << ctx.msgPrefix << "Going to fix auth flags below " << rr->d_name << endl,
+                ctx.slog->info(Logr::Debug, "Update: going to fix auth flags below", "name", Logging::Loggable(rr->d_name))));
       insnonterm.clear(); // No ENT's are needed below delegates (auth=0)
       vector<DNSName> qnames;
       ctx.di.backend->listSubZone(ZoneName(rr->d_name), ctx.di.id);
@@ -420,14 +432,17 @@ static uint performDelete(const DNSRecord* rr, const updateContext& ctx, set<DNS
     if (rr->d_class == QClass::NONE) { // 3.4.2.4
       auto repr = rec.getZoneRepresentation();
       if (rec.qtype == QType::TXT) {
-        DLOG(g_log << ctx.msgPrefix << "Adjusting TXT content from [" << repr << "]" << endl);
+        DLOG(SLOG(g_log << ctx.msgPrefix << "Adjusting TXT content from [" << repr << "]" << endl,
+                  ctx.slog->info(Logr::Debug, "Update: adjusting TXT content", "content", Logging::Loggable(repr))));
         auto drc = DNSRecordContent::make(rec.qtype.getCode(), QClass::IN, repr);
         auto ser = drc->serialize(rec.qname, true, true);
         auto rc = DNSRecordContent::deserialize(rec.qname, rec.qtype.getCode(), ser); // NOLINT(readability-identifier-length)
         repr = rc->getZoneRepresentation(true);
-        DLOG(g_log << ctx.msgPrefix << "Adjusted TXT content to [" << repr << "]" << endl);
+        DLOG(SLOG(g_log << ctx.msgPrefix << "Adjusted TXT content to [" << repr << "]" << endl,
+                  ctx.slog->info(Logr::Debug, "Update: adjusted TXT to", "content", Logging::Loggable(repr))));
       }
-      DLOG(g_log << ctx.msgPrefix << "Matching RR in RRset - (adjusted) representation from request=[" << repr << "], rr->getContent()->getZoneRepresentation()=[" << rr->getContent()->getZoneRepresentation() << "]" << endl);
+      DLOG(SLOG(g_log << ctx.msgPrefix << "Matching RR in RRset - (adjusted) representation from request=[" << repr << "], rr->getContent()->getZoneRepresentation()=[" << rr->getContent()->getZoneRepresentation() << "]" << endl,
+                ctx.slog->info(Logr::Debug, "Update: matching RR in RRset, adjusting representation", "requested content", Logging::Loggable(repr), "adjusted content", Logging::Loggable(rr->getContent()->getZoneRepresentation()))));
       if (rrType == rec.qtype && repr == rr->getContent()->getZoneRepresentation()) {
         recordsToDelete.push_back(rec);
       }
@@ -438,13 +453,15 @@ static uint performDelete(const DNSRecord* rr, const updateContext& ctx, set<DNS
   }
 
   if (recordsToDelete.empty()) {
-    g_log << Logger::Notice << ctx.msgPrefix << "Deletion for record " << rr->d_name << "|" << rrType.toString() << " requested, but not found." << endl;
+    SLOG(g_log << Logger::Notice << ctx.msgPrefix << "Deletion for record " << rr->d_name << "|" << rrType.toString() << " requested, but not found." << endl,
+         ctx.slog->info(Logr::Notice, "Update: record deletion requested, but record not found", "name", Logging::Loggable(rr->d_name), "type", Logging::Loggable(rrType)));
     return 0;
   }
 
   ctx.di.backend->replaceRRSet(ctx.di.id, rr->d_name, rrType, recordsToKeep);
   recordsToKeep.clear(); // no longer needed
-  g_log << Logger::Notice << ctx.msgPrefix << "Deleting record " << rr->d_name << "|" << rrType.toString() << endl;
+  SLOG(g_log << Logger::Notice << ctx.msgPrefix << "Deleting record " << rr->d_name << "|" << rrType.toString() << endl,
+       ctx.slog->info(Logr::Notice, "Update: deleting record", "name", Logging::Loggable(rr->d_name), "type", Logging::Loggable(rrType)));
 
   // If we've removed a delegate, we need to reset ordername/auth for some records.
   if (rrType == QType::NS && rr->d_name != ctx.di.zone.operator const DNSName&()) {
@@ -544,7 +561,8 @@ static void updateENT(const updateContext& ctx, set<DNSName>& insnonterm, set<DN
     return;
   }
 
-  DLOG(g_log << ctx.msgPrefix << "Updating ENT records - " << insnonterm.size() << "|" << delnonterm.size() << endl);
+  DLOG(SLOG(g_log << ctx.msgPrefix << "Updating ENT records - " << insnonterm.size() << "|" << delnonterm.size() << endl,
+            ctx.slog->info(Logr::Debug, "Update: updating ENT records", "added ENT records", Logging::Loggable(insnonterm.size()), "deleted ENT records", Logging::Loggable(delnonterm.size()))));
   ctx.di.backend->updateEmptyNonTerminals(ctx.di.id, insnonterm, delnonterm, false);
   if (ctx.haveNSEC3) {
     for (const auto& insert : insnonterm) {
@@ -574,7 +592,8 @@ static uint performUpdate(DNSSECKeeper& dsk, const DNSRecord* rr, updateContext&
   // Special processing for NSEC3PARAM
   if (rrType == QType::NSEC3PARAM) {
     if (insertAction) {
-      g_log << Logger::Notice << ctx.msgPrefix << "Adding/updating NSEC3PARAM for zone, resetting ordernames." << endl;
+      SLOG(g_log << Logger::Notice << ctx.msgPrefix << "Adding/updating NSEC3PARAM for zone, resetting ordernames." << endl,
+           ctx.slog->info(Logr::Notice, "Update: adding/updating NSEC3PARAM for zone, resetting ordernames."));
 
       ctx.ns3pr = NSEC3PARAMRecordContent(rr->getContent()->getZoneRepresentation(), ctx.di.zone);
       // adding a NSEC3 will cause narrow mode to be dropped, as you cannot specify that in a NSEC3PARAM record
@@ -583,7 +602,8 @@ static uint performUpdate(DNSSECKeeper& dsk, const DNSRecord* rr, updateContext&
       ctx.haveNSEC3 = true;
     }
     else {
-      g_log << Logger::Notice << ctx.msgPrefix << "Deleting NSEC3PARAM from zone, resetting ordernames." << endl;
+      SLOG(g_log << Logger::Notice << ctx.msgPrefix << "Deleting NSEC3PARAM from zone, resetting ordernames." << endl,
+           ctx.slog->info(Logr::Notice, "Update: deleting NSEC3PARAM from zone, resetting ordernames."));
       // Be sure to use a ZoneName with a variant matching the domain we are
       // working on, for the sake of unsetNSEC3PARAM.
       ZoneName zonename(rr->d_name, ctx.di.zone.getVariant());
@@ -619,11 +639,13 @@ static uint performUpdate(DNSSECKeeper& dsk, const DNSRecord* rr, updateContext&
   set<DNSName> insnonterm;
 
   if (insertAction) {
-    DLOG(g_log << ctx.msgPrefix << "Add/Update record (QClass == IN) " << rr->d_name << "|" << rrType.toString() << endl);
+    DLOG(SLOG(g_log << ctx.msgPrefix << "Add/Update record (QClass == IN) " << rr->d_name << "|" << rrType.toString() << endl,
+              ctx.slog->info(Logr::Debug, "Update: add/update record", "QClass", Logging::Loggable("IN"), "name", Logging::Loggable(rr->d_name), "type", Logging::Loggable(rrType))));
     changedRecords = performInsert(rr, ctx, insnonterm, delnonterm);
   }
   else {
-    DLOG(g_log << ctx.msgPrefix << "Deleting records: " << rr->d_name << "; QClass:" << rr->d_class << "; rrType: " << rrType.toString() << endl);
+    DLOG(SLOG(g_log << ctx.msgPrefix << "Deleting records: " << rr->d_name << "; QClass:" << rr->d_class << "; rrType: " << rrType.toString() << endl,
+              ctx.slog->info(Logr::Debug, "Update: deleting record", "QClass", Logging::Loggable(rr->d_class), "name", Logging::Loggable(rr->d_name), "type", Logging::Loggable(rrType))));
     changedRecords = performDelete(rr, ctx, insnonterm, delnonterm);
   }
 
@@ -639,12 +661,14 @@ static int forwardPacket(UeberBackend& B, const updateContext& ctx, const DNSPac
   B.getDomainMetadata(p.qdomainzone, "FORWARD-DNSUPDATE", forward);
 
   if (forward.empty() && !::arg().mustDo("forward-dnsupdate")) {
-    g_log << Logger::Notice << ctx.msgPrefix << "Not configured to forward to primary, returning Refused." << endl;
+    SLOG(g_log << Logger::Notice << ctx.msgPrefix << "Not configured to forward to primary, returning Refused." << endl,
+         ctx.slog->info(Logr::Notice, "Update: not configured to forward to primary, returning Refused"));
     return RCode::Refused;
   }
 
   for (const auto& remote : ctx.di.primaries) {
-    g_log << Logger::Notice << ctx.msgPrefix << "Forwarding packet to primary " << remote << endl;
+    SLOG(g_log << Logger::Notice << ctx.msgPrefix << "Forwarding packet to primary " << remote << endl,
+         ctx.slog->info(Logr::Notice, "Update: forwarding packet to primary", "primary", Logging::Loggable(remote)));
 
     if (!pdns::isQueryLocalAddressFamilyEnabled(remote.sin4.sin_family)) {
       continue;
@@ -652,17 +676,20 @@ static int forwardPacket(UeberBackend& B, const updateContext& ctx, const DNSPac
     auto local = pdns::getQueryLocalAddress(remote.sin4.sin_family, 0);
     int sock = makeQuerySocket(local, false); // create TCP socket. RFC2136 section 6.2 seems to be ok with this.
     if (sock < 0) {
-      g_log << Logger::Error << ctx.msgPrefix << "Error creating socket: " << stringerror() << endl;
+      SLOG(g_log << Logger::Error << ctx.msgPrefix << "Error creating socket: " << stringerror() << endl,
+           ctx.slog->error(Logr::Error, errno, "Update: error creating socket"));
       continue;
     }
 
     if (connect(sock, (const struct sockaddr*)&remote, remote.getSocklen()) < 0) { // NOLINT(cppcoreguidelines-pro-type-cstyle-cast): less ugly than a reinterpret_cast + const_cast combination which would require a linter annotation anyway
-      g_log << Logger::Error << ctx.msgPrefix << "Failed to connect to " << remote.toStringWithPort() << ": " << stringerror() << endl;
+      SLOG(g_log << Logger::Error << ctx.msgPrefix << "Failed to connect to " << remote.toStringWithPort() << ": " << stringerror() << endl,
+           ctx.slog->error(Logr::Error, errno, "Update: failed to connect", "remote", Logging::Loggable(remote.toStringWithPort())));
       try {
         closesocket(sock);
       }
       catch (const PDNSException& e) {
-        g_log << Logger::Error << "Error closing primary forwarding socket after connect() failed: " << e.reason << endl;
+        SLOG(g_log << Logger::Error << "Error closing primary forwarding socket after connect() failed: " << e.reason << endl,
+             ctx.slog->error(Logr::Error, errno, "Update: error closing primary forwarding socket after connect() failed"));
       }
       continue;
     }
@@ -674,34 +701,40 @@ static int forwardPacket(UeberBackend& B, const updateContext& ctx, const DNSPac
     string buffer((const char*)&len, 2); // NOLINT(cppcoreguidelines-pro-type-cstyle-cast): less ugly than a reinterpret_cast which would require a linter annotation anyway
     buffer.append(l_forwardPacket.getString());
     if (write(sock, buffer.c_str(), buffer.length()) < 0) {
-      g_log << Logger::Error << ctx.msgPrefix << "Unable to forward update message to " << remote.toStringWithPort() << ", error:" << stringerror() << endl;
+      SLOG(g_log << Logger::Error << ctx.msgPrefix << "Unable to forward update message to " << remote.toStringWithPort() << ", error:" << stringerror() << endl,
+           ctx.slog->error(Logr::Error, errno, "Update: unable to forward update message", "remote", Logging::Loggable(remote.toStringWithPort())));
       try {
         closesocket(sock);
       }
       catch (const PDNSException& e) {
-        g_log << Logger::Error << "Error closing primary forwarding socket after write() failed: " << e.reason << endl;
+        SLOG(g_log << Logger::Error << "Error closing primary forwarding socket after write() failed: " << e.reason << endl,
+             ctx.slog->error(Logr::Error, e.reason, "Update: error closing primary forwarding socket after write() failed"));
       }
       continue;
     }
 
     int res = waitForData(sock, 10, 0);
     if (res == 0) {
-      g_log << Logger::Error << ctx.msgPrefix << "Timeout waiting for reply from primary at " << remote.toStringWithPort() << endl;
+      SLOG(g_log << Logger::Error << ctx.msgPrefix << "Timeout waiting for reply from primary at " << remote.toStringWithPort() << endl,
+           ctx.slog->info(Logr::Error, "Update: timeout waiting for reply from primary", "remote", Logging::Loggable(remote.toStringWithPort())));
       try {
         closesocket(sock);
       }
       catch (const PDNSException& e) {
-        g_log << Logger::Error << "Error closing primary forwarding socket after a timeout occurred: " << e.reason << endl;
+        SLOG(g_log << Logger::Error << "Error closing primary forwarding socket after a timeout occurred: " << e.reason << endl,
+             ctx.slog->error(Logr::Error, e.reason, "Update: error closing primary forwarding socket after a timeout occurred"));
       }
       continue;
     }
     if (res < 0) {
-      g_log << Logger::Error << ctx.msgPrefix << "Error waiting for answer from primary at " << remote.toStringWithPort() << ", error:" << stringerror() << endl;
+      SLOG(g_log << Logger::Error << ctx.msgPrefix << "Error waiting for answer from primary at " << remote.toStringWithPort() << ", error:" << stringerror() << endl,
+           ctx.slog->error(Logr::Error, errno, "Update: error waiting for answer from primary", "remote", Logging::Loggable(remote.toStringWithPort())));
       try {
         closesocket(sock);
       }
       catch (const PDNSException& e) {
-        g_log << Logger::Error << "Error closing primary forwarding socket after an error occurred: " << e.reason << endl;
+        SLOG(g_log << Logger::Error << "Error closing primary forwarding socket after an error occurred: " << e.reason << endl,
+             ctx.slog->error(Logr::Error, e.reason, "Update: error closing primary forwarding socket after an error occurred"));
       }
       continue;
     }
@@ -709,12 +742,14 @@ static int forwardPacket(UeberBackend& B, const updateContext& ctx, const DNSPac
     std::array<unsigned char, 2> lenBuf{};
     ssize_t recvRes = recv(sock, lenBuf.data(), lenBuf.size(), 0);
     if (recvRes < 0 || static_cast<size_t>(recvRes) < lenBuf.size()) {
-      g_log << Logger::Error << ctx.msgPrefix << "Could not receive data (length) from primary at " << remote.toStringWithPort() << ", error:" << stringerror() << endl;
+      SLOG(g_log << Logger::Error << ctx.msgPrefix << "Could not receive data (length) from primary at " << remote.toStringWithPort() << ", error:" << stringerror() << endl,
+           ctx.slog->error(Logr::Error, errno, "Update: could not receive data (length) from primary", "remote", Logging::Loggable(remote.toStringWithPort())));
       try {
         closesocket(sock);
       }
       catch (const PDNSException& e) {
-        g_log << Logger::Error << "Error closing primary forwarding socket after recv() failed: " << e.reason << endl;
+        SLOG(g_log << Logger::Error << "Error closing primary forwarding socket after recv() failed: " << e.reason << endl,
+             ctx.slog->error(Logr::Error, e.reason, "Update: error closing primary forwarding socket after recv() failed"));
       }
       continue;
     }
@@ -723,12 +758,14 @@ static int forwardPacket(UeberBackend& B, const updateContext& ctx, const DNSPac
     buffer.resize(packetLen);
     recvRes = recv(sock, &buffer.at(0), packetLen, 0);
     if (recvRes < 0) {
-      g_log << Logger::Error << ctx.msgPrefix << "Could not receive data (dnspacket) from primary at " << remote.toStringWithPort() << ", error:" << stringerror() << endl;
+      SLOG(g_log << Logger::Error << ctx.msgPrefix << "Could not receive data (dnspacket) from primary at " << remote.toStringWithPort() << ", error:" << stringerror() << endl,
+           ctx.slog->error(Logr::Error, errno, "Update: could not receive data (dnspacket) from primary", "remote", Logging::Loggable(remote.toStringWithPort())));
       try {
         closesocket(sock);
       }
       catch (const PDNSException& e) {
-        g_log << Logger::Error << "Error closing primary forwarding socket after recv() failed: " << e.reason << endl;
+        SLOG(g_log << Logger::Error << "Error closing primary forwarding socket after recv() failed: " << e.reason << endl,
+             ctx.slog->error(Logr::Error, e.reason, "Update: error closing primary forwarding socket after recv() failed"));
       }
       continue;
     }
@@ -736,20 +773,24 @@ static int forwardPacket(UeberBackend& B, const updateContext& ctx, const DNSPac
       closesocket(sock);
     }
     catch (const PDNSException& e) {
-      g_log << Logger::Error << "Error closing primary forwarding socket: " << e.reason << endl;
+      SLOG(g_log << Logger::Error << "Error closing primary forwarding socket: " << e.reason << endl,
+           ctx.slog->error(Logr::Error, e.reason, "Update: error closing primary forwarding socket"));
     }
 
     try {
       MOADNSParser mdp(false, buffer.data(), static_cast<unsigned int>(recvRes));
-      g_log << Logger::Info << ctx.msgPrefix << "Forward update message to " << remote.toStringWithPort() << ", result was RCode " << mdp.d_header.rcode << endl;
+      SLOG(g_log << Logger::Info << ctx.msgPrefix << "Forward update message to " << remote.toStringWithPort() << ", result was RCode " << mdp.d_header.rcode << endl,
+           ctx.slog->info(Logr::Info, "Update: forwarded update message to primary and received result", "remote", Logging::Loggable(remote.toStringWithPort()), "result", Logging::Loggable(RCode::to_s(mdp.d_header.rcode))));
       return mdp.d_header.rcode;
     }
     catch (...) {
-      g_log << Logger::Error << ctx.msgPrefix << "Failed to parse response packet from primary at " << remote.toStringWithPort() << endl;
+      SLOG(g_log << Logger::Error << ctx.msgPrefix << "Failed to parse response packet from primary at " << remote.toStringWithPort() << endl,
+           ctx.slog->info(Logr::Error, "Update: failed to parse response packet from primary", "remote", Logging::Loggable(remote.toStringWithPort())));
       continue;
     }
   }
-  g_log << Logger::Error << ctx.msgPrefix << "Failed to forward packet to primary(s). Returning ServFail." << endl;
+  SLOG(g_log << Logger::Error << ctx.msgPrefix << "Failed to forward packet to primary(s). Returning ServFail." << endl,
+       ctx.slog->info(Logr::Error, "Update: failed to forward packet to primary, returning ServFail,"));
   return RCode::ServFail;
 }
 
@@ -769,7 +810,8 @@ static bool isUpdateAllowed(UeberBackend& UBackend, const updateContext& ctx, DN
   }
 
   if (!nmg.match(packet.getInnerRemote())) {
-    g_log << Logger::Error << ctx.msgPrefix << "Remote not listed in allow-dnsupdate-from or domainmetadata. Sending REFUSED" << endl;
+    SLOG(g_log << Logger::Error << ctx.msgPrefix << "Remote not listed in allow-dnsupdate-from or domainmetadata. Sending REFUSED" << endl,
+         ctx.slog->info(Logr::Error, "Update: remote not listed in allow-dnsupdates-from or domain metadata, sending Refused"));
     return false;
   }
 
@@ -783,7 +825,8 @@ static bool isUpdateAllowed(UeberBackend& UBackend, const updateContext& ctx, DN
     DNSName inputkey;
     string message;
     if (!packet.getTSIGDetails(&trc, &inputkey)) {
-      g_log << Logger::Error << ctx.msgPrefix << "TSIG key required, but packet does not contain key. Sending REFUSED" << endl;
+      SLOG(g_log << Logger::Error << ctx.msgPrefix << "TSIG key required, but packet does not contain key. Sending REFUSED" << endl,
+           ctx.slog->info(Logr::Error, "Update: TSIG key required, but packet doesn't contain any, sending Refused"));
       return false;
     }
 #ifdef ENABLE_GSS_TSIG
@@ -808,17 +851,20 @@ static bool isUpdateAllowed(UeberBackend& UBackend, const updateContext& ctx, DN
     }
 
     if (!validKey) {
-      g_log << Logger::Error << ctx.msgPrefix << "TSIG key (" << inputkey << ") required, but no matching key found in domainmetadata, tried " << tsigKeys.size() << ". Sending REFUSED" << endl;
+      SLOG(g_log << Logger::Error << ctx.msgPrefix << "TSIG key (" << inputkey << ") required, but no matching key found in domainmetadata, tried " << tsigKeys.size() << ". Sending REFUSED" << endl,
+           ctx.slog->info(Logr::Error, "Update: TSIG key required, but no matching key found in domain metadata, sending Refused", "key", Logging::Loggable(inputkey), "keys checked", Logging::Loggable(tsigKeys.size())));
       return false;
     }
   }
   else if (::arg().mustDo("dnsupdate-require-tsig")) {
-    g_log << Logger::Error << ctx.msgPrefix << "TSIG key required, but domain is not secured with TSIG. Sending REFUSED" << endl;
+    SLOG(g_log << Logger::Error << ctx.msgPrefix << "TSIG key required, but domain is not secured with TSIG. Sending REFUSED" << endl,
+         ctx.slog->info(Logr::Error, "Update: TSIG key required, but domain is not secured with TSIG, sending Refused"));
     return false;
   }
 
   if (tsigKeys.empty() && packet.d_havetsig) {
-    g_log << Logger::Warning << ctx.msgPrefix << "TSIG is provided, but domain is not secured with TSIG. Processing continues" << endl;
+    SLOG(g_log << Logger::Warning << ctx.msgPrefix << "TSIG is provided, but domain is not secured with TSIG. Processing continues" << endl,
+         ctx.slog->info(Logr::Error, "Update: TSIG key provided, but domain is not secured with TSIG, processing anyway"));
   }
 
   return true;
@@ -869,7 +915,8 @@ static uint8_t updatePrereqCheck323(MOADNSParser& mdp, const updateContext& ctx)
         }
       }
       if (matchRR != foundRR || foundRR != vec->size()) {
-        g_log << Logger::Error << ctx.msgPrefix << "Failed PreRequisites check (RRs differ), returning NXRRSet" << endl;
+        SLOG(g_log << Logger::Error << ctx.msgPrefix << "Failed PreRequisites check (RRs differ), returning NXRRSet" << endl,
+             ctx.slog->info(Logr::Error, "Update: failed PreRequisites check (RRs differ), returning NXRRSet"));
         return RCode::NXRRSet;
       }
     }
@@ -892,10 +939,12 @@ static uint8_t updateRecords(MOADNSParser& mdp, DNSSECKeeper& dsk, uint& changed
       /* see if it's permitted by policy */
       if (update_policy_lua != nullptr) {
         if (!update_policy_lua->updatePolicy(dnsRecord->d_name, QType(dnsRecord->d_type), ctx.di.zone.operator const DNSName&(), packet)) {
-          g_log << Logger::Warning << ctx.msgPrefix << "Refusing update for " << dnsRecord->d_name << "/" << QType(dnsRecord->d_type).toString() << ": Not permitted by policy" << endl;
+          SLOG(g_log << Logger::Warning << ctx.msgPrefix << "Refusing update for " << dnsRecord->d_name << "/" << QType(dnsRecord->d_type).toString() << ": Not permitted by policy" << endl,
+               ctx.slog->info(Logr::Warning, "Update: refusing record update, not permitted by policy", "name", Logging::Loggable(dnsRecord->d_name), "type", Logging::Loggable(dnsRecord->d_type)));
           continue;
         }
-        g_log << Logger::Debug << ctx.msgPrefix << "Accepting update for " << dnsRecord->d_name << "/" << QType(dnsRecord->d_type).toString() << ": Permitted by policy" << endl;
+        SLOG(g_log << Logger::Debug << ctx.msgPrefix << "Accepting update for " << dnsRecord->d_name << "/" << QType(dnsRecord->d_type).toString() << ": Permitted by policy" << endl,
+             ctx.slog->info(Logr::Debug, "Update: accepting record update, permitted by policy", "name", Logging::Loggable(dnsRecord->d_name), "type", Logging::Loggable(dnsRecord->d_type)));
         anyRecordAcceptedByLua = true;
       }
 
@@ -931,7 +980,8 @@ static uint8_t updateRecords(MOADNSParser& mdp, DNSSECKeeper& dsk, uint& changed
       if (rec.qtype != QType::CNAME && rec.qtype != QType::ENT && rec.qtype != QType::RRSIG) {
         // leave database handle in a consistent state
         ctx.di.backend->lookupEnd();
-        g_log << Logger::Warning << ctx.msgPrefix << "Refusing update for " << resrec->d_name << "/" << QType(resrec->d_type).toString() << ": Data other than CNAME exists for the same name" << endl;
+        SLOG(g_log << Logger::Warning << ctx.msgPrefix << "Refusing update for " << resrec->d_name << "/" << QType(resrec->d_type).toString() << ": Data other than CNAME exists for the same name" << endl,
+             ctx.slog->info(Logr::Warning, "Update: refusing record update, data other than CNAME exists for the same name", "name", Logging::Loggable(resrec->d_name), "type", Logging::Loggable(resrec->d_type)));
         return RCode::Refused;
       }
     }
@@ -944,7 +994,8 @@ static uint8_t updateRecords(MOADNSParser& mdp, DNSSECKeeper& dsk, uint& changed
       if (rec.qtype == QType::CNAME && resrec->d_type != QType::RRSIG) {
         // leave database handle in a consistent state
         ctx.di.backend->lookupEnd();
-        g_log << Logger::Warning << ctx.msgPrefix << "Refusing update for " << resrec->d_name << "/" << QType(resrec->d_type).toString() << ": CNAME exists for the same name" << endl;
+        SLOG(g_log << Logger::Warning << ctx.msgPrefix << "Refusing update for " << resrec->d_name << "/" << QType(resrec->d_type).toString() << ": CNAME exists for the same name" << endl,
+             ctx.slog->info(Logr::Warning, "Update: refusing record update, CNAME exists for the same name", "name", Logging::Loggable(resrec->d_name), "type", Logging::Loggable(resrec->d_type)));
         return RCode::Refused;
       }
     }
@@ -979,10 +1030,15 @@ int PacketHandler::processUpdate(DNSPacket& packet)
   }
 
   updateContext ctx{};
-  string msgPrefix = "UPDATE (" + std::to_string(packet.d.id) + ") from " + packet.getRemoteString() + " for " + packet.qdomainzone.toLogString() + ": ";
-  ctx.msgPrefix = std::move(msgPrefix);
+  if (g_slogStructured) {
+    ctx.slog = d_slog->withValues("remote", Logging::Loggable(packet.getRemoteString()), "target", Logging::Loggable(packet.qdomainzone), "packet id", Logging::Loggable(packet.d.id));
+  }
+  else {
+    ctx.msgPrefix = "UPDATE (" + std::to_string(packet.d.id) + ") from " + packet.getRemoteString() + " for " + packet.qdomainzone.toLogString() + ": ";
+  }
 
-  g_log << Logger::Info << ctx.msgPrefix << "Processing started." << endl;
+  SLOG(g_log << Logger::Info << ctx.msgPrefix << "Processing started." << endl,
+       ctx.slog->info(Logr::Info, "Update: processing started"));
 
   // if there is policy, we delegate all checks to it
   if (this->d_update_policy_lua == nullptr) {
@@ -996,23 +1052,27 @@ int PacketHandler::processUpdate(DNSPacket& packet)
   // variable names during the use of our MOADNSParser.
   MOADNSParser mdp(false, packet.getString());
   if (mdp.d_header.qdcount != 1) {
-    g_log << Logger::Warning << ctx.msgPrefix << "Zone Count is not 1, sending FormErr" << endl;
+    SLOG(g_log << Logger::Warning << ctx.msgPrefix << "Zone Count is not 1, sending FormErr" << endl,
+         ctx.slog->info(Logr::Warning, "Update: zone count is not 1. sending FormErr"));
     return RCode::FormErr;
   }
 
   if (packet.qtype.getCode() != QType::SOA) { // RFC2136 2.3 - ZTYPE must be SOA
-    g_log << Logger::Warning << ctx.msgPrefix << "Query ZTYPE is not SOA, sending FormErr" << endl;
+    SLOG(g_log << Logger::Warning << ctx.msgPrefix << "Query ZTYPE is not SOA, sending FormErr" << endl,
+         ctx.slog->info(Logr::Warning, "Update: query ZTYPE is not SOA, sending FormErr"));
     return RCode::FormErr;
   }
 
   if (packet.qclass != QClass::IN) {
-    g_log << Logger::Warning << ctx.msgPrefix << "Class is not IN, sending NotAuth" << endl;
+    SLOG(g_log << Logger::Warning << ctx.msgPrefix << "Class is not IN, sending NotAuth" << endl,
+         ctx.slog->info(Logr::Warning, "Update: class is not IN, sending NotAuth"));
     return RCode::NotAuth;
   }
 
   ctx.di.backend = nullptr;
   if (!B.getDomainInfo(packet.qdomainzone, ctx.di) || (ctx.di.backend == nullptr)) {
-    g_log << Logger::Error << ctx.msgPrefix << "Can't determine backend for domain '" << packet.qdomainzone << "' (or backend does not support DNS update operation)" << endl;
+    SLOG(g_log << Logger::Error << ctx.msgPrefix << "Can't determine backend for domain (or backend does not support DNS update operation)" << endl,
+         ctx.slog->info(Logr::Error, "Update: can't determine backend for domain, or backend does not support DNS update operation"));
     return RCode::NotAuth;
   }
   // ctx.di field valid from now on
@@ -1031,15 +1091,18 @@ int PacketHandler::processUpdate(DNSPacket& packet)
     }
 
     if (!dnsRecord->d_name.isPartOf(ctx.di.zone)) {
-      g_log << Logger::Error << ctx.msgPrefix << "Received update/record out of zone, sending NotZone." << endl;
+      SLOG(g_log << Logger::Error << ctx.msgPrefix << "Received update/record out of zone, sending NotZone." << endl,
+           ctx.slog->info(Logr::Error, "Update: received update/record out of zone, sending NotZone"));
       return RCode::NotZone;
     }
   }
 
   auto lock = std::scoped_lock(s_rfc2136lock); //TODO: i think this lock can be per zone, not for everything
-  g_log << Logger::Info << ctx.msgPrefix << "starting transaction." << endl;
+  SLOG(g_log << Logger::Info << ctx.msgPrefix << "starting transaction." << endl,
+       ctx.slog->info(Logr::Info, "Update: starting transaction"));
   if (!ctx.di.backend->startTransaction(packet.qdomainzone, UnknownDomainID)) { // Not giving the domain_id means that we do not delete the existing records.
-    g_log << Logger::Error << ctx.msgPrefix << "Backend for domain " << packet.qdomainzone << " does not support transaction. Can't do Update packet." << endl;
+    SLOG(g_log << Logger::Error << ctx.msgPrefix << "Backend does not support transaction. Can't do Update packet." << endl,
+         ctx.slog->info(Logr::Error, "Update: backend does not support transaction. Can't process Update packet."));
     return RCode::NotImp;
   }
 
@@ -1049,7 +1112,8 @@ int PacketHandler::processUpdate(DNSPacket& packet)
     if (dnsRecord->d_place == DNSResourceRecord::ANSWER) {
       int res = checkUpdatePrerequisites(dnsRecord, &ctx.di);
       if (res > 0) {
-        g_log << Logger::Error << ctx.msgPrefix << "Failed PreRequisites check for " << dnsRecord->d_name << ", returning " << RCode::to_s(res) << endl;
+        SLOG(g_log << Logger::Error << ctx.msgPrefix << "Failed PreRequisites check for " << dnsRecord->d_name << ", returning " << RCode::to_s(res) << endl,
+             ctx.slog->info(Logr::Error, "Update: failed PreRequisites check for record", "record", Logging::Loggable(dnsRecord->d_name), "returned value", Logging::Loggable(RCode::to_s(res))));
         ctx.di.backend->abortTransaction();
         return res;
       }
@@ -1070,7 +1134,8 @@ int PacketHandler::processUpdate(DNSPacket& packet)
       if (dnsRecord->d_place == DNSResourceRecord::AUTHORITY) {
         int res = checkUpdatePrescan(dnsRecord);
         if (res > 0) {
-          g_log << Logger::Error << ctx.msgPrefix << "Failed prescan check, returning " << res << endl;
+          SLOG(g_log << Logger::Error << ctx.msgPrefix << "Failed prescan check, returning " << RCode::to_s(res) << endl,
+               ctx.slog->info(Logr::Error, "Update: failed prescan check", "returned value", Logging::Loggable(RCode::to_s(res))));
           ctx.di.backend->abortTransaction();
           return res;
         }
@@ -1091,6 +1156,7 @@ int PacketHandler::processUpdate(DNSPacket& packet)
     // This means we must do it outside the normal performUpdate() because that focusses only on a separate RR.
 
     // Another special case is the addition of both a CNAME and a non-CNAME for the same name (#6270)
+    // TODO: convert to use Check::checkRRSet() for consistency
     set<DNSName> cn; // NOLINT(readability-identifier-length)
     set<DNSName> nocn;
     for (const auto& rr : mdp.d_answers) { // NOLINT(readability-identifier-length)
@@ -1106,7 +1172,8 @@ int PacketHandler::processUpdate(DNSPacket& packet)
     }
     for (auto const& n : cn) { // NOLINT(readability-identifier-length)
       if (nocn.count(n) > 0) {
-        g_log << Logger::Error << ctx.msgPrefix << "Refusing update, found CNAME and non-CNAME addition" << endl;
+        SLOG(g_log << Logger::Error << ctx.msgPrefix << "Refusing update, found CNAME and non-CNAME addition" << endl,
+             ctx.slog->info(Logr::Error, "Update: found CNAME and non-CNAME addition, refusing update"));
         ctx.di.backend->abortTransaction();
         return RCode::FormErr;
       }
@@ -1126,7 +1193,8 @@ int PacketHandler::processUpdate(DNSPacket& packet)
 
     if (changedRecords != 0) {
       if (!ctx.di.backend->commitTransaction()) {
-        g_log << Logger::Error << ctx.msgPrefix << "Failed to commit updates!" << endl;
+        SLOG(g_log << Logger::Error << ctx.msgPrefix << "Failed to commit updates!" << endl,
+             ctx.slog->info(Logr::Error, "Update: failed to commit updates!"));
         return RCode::ServFail;
       }
 
@@ -1145,37 +1213,44 @@ int PacketHandler::processUpdate(DNSPacket& packet)
         }
       }
 
-      g_log << Logger::Info << ctx.msgPrefix << "Update completed, " << changedRecords << " changed records committed." << endl;
+      SLOG(g_log << Logger::Info << ctx.msgPrefix << "Update completed, " << changedRecords << " changed records committed." << endl,
+           ctx.slog->info(Logr::Info, "Update: completed", "number of changed records", Logging::Loggable(changedRecords)));
     }
     else {
       //No change, no commit, we perform abort() because some backends might like this more.
-      g_log << Logger::Info << ctx.msgPrefix << "Update completed, 0 changes, rolling back." << endl;
+      SLOG (g_log << Logger::Info << ctx.msgPrefix << "Update completed, 0 changes, rolling back." << endl,
+            ctx.slog->info(Logr::Info, "Update: completed, no changes, rolling back"));
       ctx.di.backend->abortTransaction();
     }
     return RCode::NoError; //rfc 2136 3.4.2.5
   }
   catch (SSqlException& e) {
-    g_log << Logger::Error << ctx.msgPrefix << "Caught SSqlException: " << e.txtReason() << "; Sending ServFail!" << endl;
+    SLOG(g_log << Logger::Error << ctx.msgPrefix << "Caught SSqlException: " << e.txtReason() << "; Sending ServFail!" << endl,
+         ctx.slog->error(Logr::Error, e.txtReason(), "Update: caught SSqlException, sending ServFail"));
     ctx.di.backend->abortTransaction();
     return RCode::ServFail;
   }
   catch (DBException& e) {
-    g_log << Logger::Error << ctx.msgPrefix << "Caught DBException: " << e.reason << "; Sending ServFail!" << endl;
+    SLOG(g_log << Logger::Error << ctx.msgPrefix << "Caught DBException: " << e.reason << "; Sending ServFail!" << endl,
+         ctx.slog->error(Logr::Error, e.reason, "Update: caught DBException, sending ServFail"));
     ctx.di.backend->abortTransaction();
     return RCode::ServFail;
   }
   catch (PDNSException& e) {
-    g_log << Logger::Error << ctx.msgPrefix << "Caught PDNSException: " << e.reason << "; Sending ServFail!" << endl;
+    SLOG(g_log << Logger::Error << ctx.msgPrefix << "Caught PDNSException: " << e.reason << "; Sending ServFail!" << endl,
+         ctx.slog->error(Logr::Error, e.reason, "Update: caught PDNSException, sending ServFail"));
     ctx.di.backend->abortTransaction();
     return RCode::ServFail;
   }
   catch (std::exception& e) {
-    g_log << Logger::Error << ctx.msgPrefix << "Caught std:exception: " << e.what() << "; Sending ServFail!" << endl;
+    SLOG(g_log << Logger::Error << ctx.msgPrefix << "Caught std:exception: " << e.what() << "; Sending ServFail!" << endl,
+         ctx.slog->error(Logr::Error, e.what(), "Update: caught std::exception, sending ServFail"));
     ctx.di.backend->abortTransaction();
     return RCode::ServFail;
   }
   catch (...) {
-    g_log << Logger::Error << ctx.msgPrefix << "Caught unknown exception when performing update. Sending ServFail!" << endl;
+    SLOG(g_log << Logger::Error << ctx.msgPrefix << "Caught unknown exception when performing update. Sending ServFail!" << endl,
+         ctx.slog->info(Logr::Error, "Update: caught unknown exception, sending ServFail"));
     ctx.di.backend->abortTransaction();
     return RCode::ServFail;
   }
@@ -1198,7 +1273,8 @@ static void increaseSerial(const string& soaEditSetting, const updateContext& ct
     soaEdit2136 = soaEdit2136Setting[0];
     if (pdns_iequals(soaEdit2136, "SOA-EDIT") || pdns_iequals(soaEdit2136, "SOA-EDIT-INCREASE")) {
       if (soaEditSetting.empty()) {
-        g_log << Logger::Error << ctx.msgPrefix << "Using " << soaEdit2136 << " for SOA-EDIT-DNSUPDATE increase on DNS update, but SOA-EDIT is not set for domain \"" << ctx.di.zone << "\". Using DEFAULT for SOA-EDIT-DNSUPDATE" << endl;
+        SLOG(g_log << Logger::Error << ctx.msgPrefix << "Using " << soaEdit2136 << " for SOA-EDIT-DNSUPDATE increase on DNS update, but SOA-EDIT is not set for domain \"" << ctx.di.zone << "\". Using DEFAULT for SOA-EDIT-DNSUPDATE" << endl,
+             ctx.slog->info(Logr::Error, "Update: SOA-EDIT-DNSUPDATE set, but SOA-EDIT not set, using DEFAULT for SOA-EDIT-DNSUPDATE", "SOA-EDIT-DNSUPDATE", Logging::Loggable(soaEdit2136)));
         soaEdit2136 = "DEFAULT";
       }
       else {
@@ -1208,9 +1284,10 @@ static void increaseSerial(const string& soaEditSetting, const updateContext& ct
   }
 
   DNSResourceRecord rr; // NOLINT(readability-identifier-length)
-  if (makeIncreasedSOARecord(sd, soaEdit2136, soaEdit, rr)) {
+  if (makeIncreasedSOARecord(sd, soaEdit2136, soaEdit, rr, ctx.slog)) {
     ctx.di.backend->replaceRRSet(ctx.di.id, rr.qname, rr.qtype, vector<DNSResourceRecord>(1, rr));
-    g_log << Logger::Notice << ctx.msgPrefix << "Increasing SOA serial (" << oldSerial << " -> " << sd.serial << ")" << endl;
+    SLOG(g_log << Logger::Notice << ctx.msgPrefix << "Increasing SOA serial (" << oldSerial << " -> " << sd.serial << ")" << endl,
+         ctx.slog->info(Logr::Notice, "Update: increasing SOA serial", "old serial", Logging::Loggable(oldSerial), "new serial", Logging::Loggable(sd.serial)));
 
     //Correct ordername + auth flag
     DNSName ordername = computeOrdername(ctx, rr.qname);

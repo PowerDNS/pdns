@@ -16,6 +16,8 @@
 #include "dns_random.hh"
 #include "query-local-address.hh"
 
+bool g_slogStructured{false};
+
 StatBag S;
 
 ArgvMap& arg()

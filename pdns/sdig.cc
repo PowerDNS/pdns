@@ -21,6 +21,8 @@
 
 #include "tcpiohandler.hh"
 
+bool g_slogStructured{false};
+
 StatBag S;
 
 // Vars below used by tcpiohandler.cc

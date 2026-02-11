@@ -25,10 +25,12 @@
 #include <config.h>
 #endif
 
+#include "pdns/logging.hh"
+
 class LdapAuthenticator
 {
 public:
   virtual ~LdapAuthenticator() = default;
-  virtual bool authenticate(LDAP* connection) = 0;
+  virtual bool authenticate(Logr::log_t log, LDAP* connection) = 0;
   virtual std::string getError() const = 0;
 };

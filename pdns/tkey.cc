@@ -9,7 +9,8 @@ void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& 
 #ifdef ENABLE_GSS_TSIG
   if (g_doGssTSIG) {
     auto [i,a,s] = GssContext::getCounts();
-    g_log << Logger::Debug << "GSS #init_creds: " << i << " #accept_creds: " << a << " #secctxs: " << s << endl;
+    SLOG(g_log << Logger::Debug << "GSS #init_creds: " << i << " #accept_creds: " << a << " #secctxs: " << s << endl,
+         d_slog->info(Logr::Debug, "GSS credentials", "init", Logging::Loggable(i), "accept", Logging::Loggable(a), "contexts", Logging::Loggable(s)));
   }
 #endif
 
@@ -21,7 +22,8 @@ void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& 
 #endif
 
   if (!p.getTKEYRecord(&tkey_in, &name)) {
-    g_log<<Logger::Error<<"TKEY request but no TKEY RR found"<<endl;
+    SLOG(g_log<<Logger::Error<<"TKEY request but no TKEY RR found"<<endl,
+         d_slog->info(Logr::Error, "TKEY request but no TKEY RR found"));
     r->setRcode(RCode::FormErr);
     return;
   }
@@ -69,9 +71,11 @@ void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& 
       {
       tkey_out->d_error = ERCode::BADALG;
 #ifdef ENABLE_GSS_TSIG
-      g_log<<Logger::Debug<<"GSS-TSIG request but feature not enabled by enable-gss-tsig setting"<<endl;
+      SLOG(g_log<<Logger::Debug<<"GSS-TSIG request but feature not enabled by enable-gss-tsig setting"<<endl,
+           d_slog->info(Logr::Debug, "GSS-TSIG request but feature not enabled by enable-gss-tsig setting"));
 #else
-      g_log<<Logger::Debug<<"GSS-TSIG request but feature not compiled in"<<endl;
+      SLOG(g_log<<Logger::Debug<<"GSS-TSIG request but feature not compiled in"<<endl,
+           d_slog->info(Logr;:Debug, "GSS-TSIG request but feature not compiled in"));
 #endif
     }
   } else if (tkey_in.d_mode == 5) { // destroy context

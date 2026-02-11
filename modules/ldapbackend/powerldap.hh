@@ -84,6 +84,7 @@ public:
   void setOption(int option, int value);
 
   void bind(LdapAuthenticator* authenticator);
+  void bind(Logr::log_t log, LdapAuthenticator* authenticator);
   SearchResult::Ptr search(const string& base, int scope, const string& filter, const char** attr = 0);
   void modify(const string& dn, LDAPMod* mods[], LDAPControl** scontrols = 0, LDAPControl** ccontrols = 0);
 

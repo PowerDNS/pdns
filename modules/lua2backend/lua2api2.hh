@@ -65,8 +65,9 @@ private:
   typedef std::function<string(const string& cmd)> direct_backend_cmd_call_t;
 
 public:
-  Lua2BackendAPIv2(const string& suffix)
+  Lua2BackendAPIv2(Logr::log_t slog, const string& suffix)
   {
+    d_slog = slog;
     d_include_path = ::arg()["lua-global-include-dir"];
     setArgPrefix("lua2" + suffix);
     d_debug_log = mustDo("query-logging");
@@ -115,7 +116,8 @@ public:
       }
       /* domain keys is not strictly speaking necessary for dnssec backend */
       if (f_get_domain_keys == nullptr) {
-        g_log << Logger::Warning << "dns_get_domain_keys missing - cannot do live signing" << endl;
+        SLOG(g_log << Logger::Warning << "dns_get_domain_keys missing - cannot do live signing" << endl,
+             d_slog->info(Logr::Warning, "dns_get_domain_keys missing - cannot perform live signing"));
       }
     }
   }
@@ -181,23 +183,27 @@ public:
           rec.scopeMask = boost::get<int>(item.second);
         }
         else {
-          g_log << Logger::Warning << "Unsupported key '" << item.first << "' in lookup or list result" << endl;
+          SLOG(g_log << Logger::Warning << "Unsupported key '" << item.first << "' in lookup or list result" << endl,
+               d_slog->info(Logr::Warning, "Unsupported kep in lookup or list result", "key", Logging::Loggable(item.first)));
         }
       }
       if (d_debug_log) {
-        g_log << Logger::Debug << "[" << getPrefix() << "] Got result " << "'" << rec.qname << " IN " << rec.qtype.toString() << " " << rec.ttl << " " << rec.getZoneRepresentation() << "'" << endl;
+        SLOG(g_log << Logger::Debug << "[" << getPrefix() << "] Got result " << "'" << rec.qname << " IN " << rec.qtype.toString() << " " << rec.ttl << " " << rec.getZoneRepresentation() << "'" << endl,
+             d_slog->info(Logr::Debug, "Got result", "name", Logging::Loggable(rec.qname), "type", Logging::Loggable(rec.qtype), "ttl", Logging::Loggable(rec.ttl), "data", Logging::Loggable(rec.getZoneRepresentation())));
       }
       d_result.push_back(rec);
     }
     if (d_result.empty() && d_debug_log) {
-      g_log << Logger::Debug << "[" << getPrefix() << "] Got empty result" << endl;
+      SLOG(g_log << Logger::Debug << "[" << getPrefix() << "] Got empty result" << endl,
+           d_slog->info(Logr::Debug, "Got empty result"));
     }
   }
 
   bool list(const ZoneName& target, domainid_t domain_id, bool /* include_disabled */ = false) override
   {
     if (f_list == nullptr) {
-      g_log << Logger::Error << "[" << getPrefix() << "] dns_list missing - cannot do AXFR" << endl;
+      SLOG(g_log << Logger::Error << "[" << getPrefix() << "] dns_list missing - cannot do AXFR" << endl,
+           d_slog->info(Logr::Error, "dns_list missing - cannot perform AXFR"));
       return false;
     }
 
@@ -206,7 +212,8 @@ public:
     }
 
     if (d_debug_log) {
-      g_log << Logger::Debug << "[" << getPrefix() << "] Calling " << "list" << "(" << "target=" << target << ",domain_id=" << domain_id << ")" << endl;
+      SLOG(g_log << Logger::Debug << "[" << getPrefix() << "] Calling " << "list" << "(" << "target=" << target << ",domain_id=" << domain_id << ")" << endl,
+           d_slog->info(Logr::Debug, "Calling list", "target", Logging::Loggable(target), "domain id", Logging::Loggable(domain_id)));
     }
     list_result_t result = f_list(target.operator const DNSName&(), domain_id);
 
@@ -232,7 +239,8 @@ public:
     }
 
     if (d_debug_log) {
-      g_log << Logger::Debug << "[" << getPrefix() << "] Calling " << "lookup" << "(" << "qtype=" << qtype.toString() << ",qname=" << qname << ",domain_id=" << domain_id << ")" << endl;
+      SLOG(g_log << Logger::Debug << "[" << getPrefix() << "] Calling " << "lookup" << "(" << "qtype=" << qtype.toString() << ",qname=" << qname << ",domain_id=" << domain_id << ")" << endl,
+           d_slog->info(Logr::Debug, "Calling lookup", "type", Logging::Loggable(qtype), "name", Logging::Loggable(qname), "domain id", Logging::Loggable(domain_id)));
     }
     lookup_result_t result = f_lookup(qtype, qname, domain_id, ctx);
     parseLookup(result);
@@ -262,7 +270,8 @@ public:
       return cmd + "not found";
     }
     if (d_debug_log) {
-      g_log << Logger::Debug << "[" << getPrefix() << "] Calling " << cmd << "(" << "parameter=" << par << ")" << endl;
+      SLOG(g_log << Logger::Debug << "[" << getPrefix() << "] Calling " << cmd << "(" << "parameter=" << par << ")" << endl,
+           d_slog->info(Logr::Debug, "Direct backend command", "command", Logging::Loggable(cmd), "parameters", Logging::Loggable(par)));
     }
     return f(par);
   }
@@ -273,7 +282,8 @@ public:
       return;
     }
     if (d_debug_log) {
-      g_log << Logger::Debug << "[" << getPrefix() << "] Calling " << "dns_set_notified" << "(" << "id=" << id << ",serial=" << serial << ")" << endl;
+      SLOG(g_log << Logger::Debug << "[" << getPrefix() << "] Calling " << "dns_set_notified" << "(" << "id=" << id << ",serial=" << serial << ")" << endl,
+           d_slog->info(Logr::Debug, "Calling dns_set_notified", "id", Logging::Loggable(id), "serial", Logging::Loggable(serial)));
     }
     f_set_notified(id, serial);
   }
@@ -306,12 +316,14 @@ public:
         di.kind = DomainInfo::stringToKind(boost::get<string>(item.second));
       }
       else {
-        g_log << Logger::Warning << "Unsupported key '" << item.first << "' in domaininfo result" << endl;
+        SLOG(g_log << Logger::Warning << "Unsupported key '" << item.first << "' in domaininfo result" << endl,
+             d_slog->info(Logr::Warning, "Unsupported key in domaininfo result", "key", Logging::Loggable(item.first)));
       }
     }
     di.backend = this;
     if (d_debug_log) {
-      g_log << Logger::Debug << "[" << getPrefix() << "] Got result " << "'" << "zone=" << di.zone << ",serial=" << di.serial << ",kind=" << di.getKindString() << "'" << endl;
+      SLOG(g_log << Logger::Debug << "[" << getPrefix() << "] Got result " << "'" << "zone=" << di.zone << ",serial=" << di.serial << ",kind=" << di.getKindString() << "'" << endl,
+           d_slog->info(Logr::Debug, "Got domain info", "zone", Logging::Loggable(di.zone), "serial", Logging::Loggable(di.serial), "kind", Logging::Loggable(di.getKindString())));
     }
   }
 
@@ -322,7 +334,8 @@ public:
       // getDomainInfo if this is a domain variant, so protect against this
       // would-be infinite recursion.
       if (domain.hasVariant()) {
-        g_log << Logger::Info << "Unable to return domain information for '" << domain.toLogString() << "' due to unimplemented dns_get_domaininfo" << endl;
+        SLOG(g_log << Logger::Info << "Unable to return domain information for '" << domain.toLogString() << "' due to unimplemented dns_get_domaininfo" << endl,
+             d_slog->info(Logr::Info, "Unable to return domain information due to unimplemented dns_get_domaininfo", "domain", Logging::Loggable(domain)));
         return false;
       }
       SOAData sd;
@@ -338,7 +351,8 @@ public:
     }
 
     if (d_debug_log) {
-      g_log << Logger::Debug << "[" << getPrefix() << "] Calling " << "get_domaininfo" << "(" << "domain=" << domain << ")" << endl;
+      SLOG(g_log << Logger::Debug << "[" << getPrefix() << "] Calling " << "get_domaininfo" << "(" << "domain=" << domain << ")" << endl,
+           d_slog->info(Logr::Debug, "Calling get_domaininfo", "domain", Logging::Loggable(domain)));
     }
     get_domaininfo_result_t result = f_get_domaininfo(domain.operator const DNSName&());
 
@@ -359,13 +373,15 @@ public:
     }
 
     if (d_debug_log) {
-      g_log << Logger::Debug << "[" << getPrefix() << "] Calling " << "get_all_domains" << "(" << "" << ")" << endl;
+      SLOG(g_log << Logger::Debug << "[" << getPrefix() << "] Calling " << "get_all_domains" << "(" << "" << ")" << endl,
+           d_slog->info(Logr::Debug, "Calling get_all_domains"));
     }
     for (const auto& row : f_get_all_domains()) {
       DomainInfo di;
       di.zone = ZoneName(row.first);
       if (d_debug_log) {
-        g_log << Logger::Debug << "[" << getPrefix() << "] Got result " << "'" << di.zone << "'" << endl;
+        SLOG(g_log << Logger::Debug << "[" << getPrefix() << "] Got result " << "'" << di.zone << "'" << endl,
+             d_slog->info(Logr::Debug, "Got result", "domain", Logging::Loggable(di.zone)));
       }
       parseDomainInfo(row.second, di);
       domains->push_back(di);
@@ -379,7 +395,8 @@ public:
     }
 
     if (d_debug_log) {
-      g_log << Logger::Debug << "[" << getPrefix() << "] Calling " << "get_all_domain_metadata" << "(" << "name=" << name << ")" << endl;
+      SLOG(g_log << Logger::Debug << "[" << getPrefix() << "] Calling " << "get_all_domain_metadata" << "(" << "name=" << name << ")" << endl,
+           d_slog->info(Logr::Debug, "Calling get_all_domain_metadata", "domain", Logging::Loggable(name)));
     }
     get_all_domain_metadata_result_t result = f_get_all_domain_metadata(name.operator const DNSName&());
     if (result.which() == 0) {
@@ -392,7 +409,8 @@ public:
         meta[row.first].push_back(item.second);
       }
       if (d_debug_log) {
-        g_log << Logger::Debug << "[" << getPrefix() << "] Got result " << "'" << "kind=" << row.first << ",value=" << boost::algorithm::join(meta[row.first], ", ") << "'" << endl;
+        SLOG(g_log << Logger::Debug << "[" << getPrefix() << "] Got result " << "'" << "kind=" << row.first << ",value=" << boost::algorithm::join(meta[row.first], ", ") << "'" << endl,
+             d_slog->info(Logr::Debug, "Got result", "kind", Logging::Loggable(row.first), "value", Logging::Loggable(boost::algorithm::join(meta[row.first], ", "))));
       }
     }
 
@@ -406,7 +424,8 @@ public:
     }
 
     if (d_debug_log) {
-      g_log << Logger::Debug << "[" << getPrefix() << "] Calling " << "get_domain_metadata" << "(" << "name=" << name << ",kind=" << kind << ")" << endl;
+      SLOG(g_log << Logger::Debug << "[" << getPrefix() << "] Calling " << "get_domain_metadata" << "(" << "name=" << name << ",kind=" << kind << ")" << endl,
+           d_slog->info(Logr::Debug, "Calling get_domain_metadata", "domain", Logging::Loggable(name), "kind", Logging::Loggable(kind)));
     }
     get_domain_metadata_result_t result = f_get_domain_metadata(name.operator const DNSName&(), kind);
     if (result.which() == 0) {
@@ -419,7 +438,8 @@ public:
     }
 
     if (d_debug_log) {
-      g_log << Logger::Debug << "[" << getPrefix() << "] Got result " << "'" << "value=" << boost::algorithm::join(meta, ", ") << "'" << endl;
+      SLOG(g_log << Logger::Debug << "[" << getPrefix() << "] Got result " << "'" << "value=" << boost::algorithm::join(meta, ", ") << "'" << endl,
+           d_slog->info(Logr::Debug, "Got result", "value", Logging::Loggable(boost::algorithm::join(meta, ", "))));
     }
     return true;
   }
@@ -431,7 +451,8 @@ public:
     }
 
     if (d_debug_log) {
-      g_log << Logger::Debug << "[" << getPrefix() << "] Calling " << "get_domain_keys" << "(" << "name=" << name << ")" << endl;
+      SLOG(g_log << Logger::Debug << "[" << getPrefix() << "] Calling " << "get_domain_keys" << "(" << "name=" << name << ")" << endl,
+           d_slog->info(Logr::Debug, "Calling get_domain_keys", "domain", Logging::Loggable(name)));
     }
     get_domain_keys_result_t result = f_get_domain_keys(name.operator const DNSName&());
 
@@ -459,11 +480,13 @@ public:
           key.published = boost::get<bool>(item.second);
         }
         else {
-          g_log << Logger::Warning << "[" << getPrefix() << "] Unsupported key '" << item.first << "' in keydata result" << endl;
+          SLOG(g_log << Logger::Warning << "[" << getPrefix() << "] Unsupported key '" << item.first << "' in keydata result" << endl,
+               d_slog->info(Logr::Warning, "Unsupported key in keydata result", "key", Logging::Loggable(item.first)));
         }
       }
       if (d_debug_log) {
-        g_log << Logger::Debug << "[" << getPrefix() << "] Got result " << "'" << "id=" << key.id << ",flags=" << key.flags << ",active=" << (key.active ? "true" : "false") << ",published=" << (key.published ? "true" : "false") << "'" << endl;
+        SLOG(g_log << Logger::Debug << "[" << getPrefix() << "] Got result " << "'" << "id=" << key.id << ",flags=" << key.flags << ",active=" << (key.active ? "true" : "false") << ",published=" << (key.published ? "true" : "false") << "'" << endl,
+             d_slog->info(Logr::Debug, "Got result", "id", Logging::Loggable(key.id), "flags", Logging::Loggable(key.flags), "active", Logging::Loggable(key.active ? "true" : "false"), "published", Logging::Loggable(key.published ? "true" : "false")));
       }
       keys.emplace_back(std::move(key));
     }
@@ -478,7 +501,8 @@ public:
     }
 
     if (d_debug_log) {
-      g_log << Logger::Debug << "[" << getPrefix() << "] Calling " << "get_before_and_after_names_absolute" << "(" << "id=<<" << id << ",qname=" << qname << ")" << endl;
+      SLOG(g_log << Logger::Debug << "[" << getPrefix() << "] Calling " << "get_before_and_after_names_absolute" << "(" << "id=<<" << id << ",qname=" << qname << ")" << endl,
+           d_slog->info(Logr::Debug, "Calling get_before_and_after_names_absolute", "id", Logging::Loggable(id), "name", Logging::Loggable(qname)));
     }
     get_before_and_after_names_absolute_result_t result = f_get_before_and_after_names_absolute(id, qname);
 
@@ -488,7 +512,8 @@ public:
 
     before_and_after_names_result_t row = boost::get<before_and_after_names_result_t>(result);
     if (row.size() != 3) {
-      g_log << Logger::Error << "Invalid result from dns_get_before_and_after_names_absolute, expected array with 3 items, got " << row.size() << "item(s)" << endl;
+      SLOG(g_log << Logger::Error << "Invalid result from dns_get_before_and_after_names_absolute, expected array with 3 items, got " << row.size() << "item(s)" << endl,
+           d_slog->info(Logr::Error, "Invalid result from dns_get_before_and_after_names_absolute, expected array with 3 rows", "rows returned", Logging::Loggable(row.size())));
       return false;
     }
     for (const auto& item : row) {
@@ -509,13 +534,15 @@ public:
         after = value;
       }
       else {
-        g_log << Logger::Error << "Invalid result from dns_get_before_and_after_names_absolute, unexpected key " << item.first << endl;
+        SLOG(g_log << Logger::Error << "Invalid result from dns_get_before_and_after_names_absolute, unexpected key " << item.first << endl,
+             d_slog->info(Logr::Error, "Invalid result from dns_get_before_and_after_names_absolute, unexpected key", "key", Logging::Loggable(item.first)));
         return false;
       }
     }
 
     if (d_debug_log) {
-      g_log << Logger::Debug << "[" << getPrefix() << "] Got result " << "'" << "unhashed=" << unhashed << ",before=" << before << ",after=" << after << "'" << endl;
+      SLOG(g_log << Logger::Debug << "[" << getPrefix() << "] Got result " << "'" << "unhashed=" << unhashed << ",before=" << before << ",after=" << after << "'" << endl,
+           d_slog->info(Logr::Debug, "Got result", "unhashed", Logging::Loggable(unhashed), "before", Logging::Loggable(before), "after", Logging::Loggable(after)));
     }
     return true;
   }

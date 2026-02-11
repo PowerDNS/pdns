@@ -43,12 +43,16 @@ public:
   {
     const std::string apiSet = "lua2" + suffix + "-api";
     const int api = ::arg().asNum(apiSet);
+    std::shared_ptr<Logr::Logger> slog;
     DNSBackend* be;
     switch (api) {
     case 1:
       throw PDNSException("Use luabackend for api version 1");
     case 2:
-      be = new Lua2BackendAPIv2(suffix);
+      if (g_slogStructured) {
+        slog = g_slog->withName("lua2" + suffix);
+      }
+      be = new Lua2BackendAPIv2(slog, suffix);
       break;
     default:
       throw PDNSException("Unsupported ABI version " + ::arg()[apiSet]);
@@ -64,11 +68,24 @@ public:
   {
     BackendMakers().report(std::make_unique<Lua2Factory>());
 
-    g_log << Logger::Info << "[lua2backend] This is the lua2 backend version " VERSION
+    // If this module is not loaded dynamically at runtime, this code runs
+    // as part of a global constructor, before the structured logger has a
+    // chance to be set up, so fallback to simple logging in this case.
+    if (!g_slogStructured || !g_slog) {
+      g_log << Logger::Info << "[lua2backend] This is the lua2 backend version " VERSION
 #ifndef REPRODUCIBLE
-          << " (" __DATE__ " " __TIME__ ")"
+            << " (" __DATE__ " " __TIME__ ")"
 #endif
-          << " reporting" << endl;
+            << " reporting" << endl;
+    }
+    else {
+      g_slog->withName("lua2backend")->info(Logr::Info, "lua2backend starting", "version", Logging::Loggable(VERSION)
+#ifndef REPRODUCIBLE
+                                                                                             ,
+                                            "build date", Logging::Loggable(__DATE__ " " __TIME__)
+#endif
+      );
+    }
   }
 };
 

@@ -27,6 +27,7 @@
 #include "../../dnsname.hh"
 #include "../../namespaces.hh"
 #include "../../misc.hh"
+#include "../../logging.hh"
 
 class SSqlException
 {
@@ -98,4 +99,7 @@ public:
   }
   virtual void reconnect() {};
   virtual ~SSql() = default;
+
+protected:
+  std::shared_ptr<Logr::Logger> d_slog;
 };

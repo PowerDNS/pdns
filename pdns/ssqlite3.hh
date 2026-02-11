@@ -21,6 +21,7 @@
  */
 #pragma once
 #include <sqlite3.h>
+
 #include "pdns/backends/gsql/ssql.hh"
 
 class SSQLite3 : public SSql
@@ -37,7 +38,7 @@ private:
 
 public:
   //! Constructor.
-  SSQLite3(const std::string& database, const std::string& journalmode, bool creat = false);
+  SSQLite3(Logr::log_t log, const std::string& database, const std::string& journalmode, bool creat = false);
 
   //! Destructor.
   ~SSQLite3() override;

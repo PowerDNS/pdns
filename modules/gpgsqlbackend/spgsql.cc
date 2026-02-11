@@ -35,8 +35,9 @@
 class SPgSQLStatement : public SSqlStatement
 {
 public:
-  SPgSQLStatement(const string& query, bool dolog, int nparams, SPgSQL* db, unsigned int nstatement)
+  SPgSQLStatement(Logr::log_t log, const string& query, bool dolog, int nparams, SPgSQL* db, unsigned int nstatement)
   {
+    d_slog = log;
     d_query = query;
     d_dolog = dolog;
     d_parent = db;
@@ -76,11 +77,12 @@ public:
   {
     prepareStatement();
     if (d_dolog) {
-      g_log << Logger::Warning << "Query " << ((long)(void*)this) << ": Statement: " << d_query << endl;
+      std::stringstream log_message;
       if (d_paridx) {
         // Log message is similar, but not exactly the same as the postgres server log.
-        std::stringstream log_message;
-        log_message << "Query " << ((long)(void*)this) << ": Parameters: ";
+        if (!g_slogStructured) {
+          log_message << "Query " << ((long)(void*)this) << ": Parameters: ";
+        }
         for (int i = 0; i < d_paridx; i++) {
           if (i != 0) {
             log_message << ", ";
@@ -93,8 +95,18 @@ public:
             log_message << "'" << paramValues[i] << "'";
           }
         }
-        g_log << Logger::Warning << log_message.str() << endl;
       }
+      SLOG({
+             g_log << Logger::Warning << "Query " << ((long)(void*)this) << ": Statement: " << d_query << endl;
+             if (d_paridx) {
+               g_log << Logger::Warning << log_message.str() << endl;
+             } }, {
+             if (d_paridx) {
+               d_slog->info(Logr::Warning, "execute SQL query", "query", Logging::Loggable(d_query), "query arguments", Logging::Loggable(log_message.str()));
+             }
+             else {
+               d_slog->info(Logr::Warning, "execute SQL query", "query", Logging::Loggable(d_query));
+             } });
       d_dtime.set();
     }
     if (!d_stmt.empty()) {
@@ -112,7 +124,8 @@ public:
     d_cur_set = 0;
     if (d_dolog) {
       auto diff = d_dtime.udiffNoReset();
-      g_log << Logger::Warning << "Query " << ((long)(void*)this) << ": " << diff << " us to execute" << endl;
+      SLOG(g_log << Logger::Warning << "Query " << ((long)(void*)this) << ": " << diff << " us to execute" << endl,
+           d_slog->info(Logr::Warning, "query completed", "microseconds", Logging::Loggable(diff)));
     }
 
     nextResult();
@@ -129,7 +142,8 @@ public:
       return;
     }
     if (PQftype(d_res_set, 0) == 1790) { // REFCURSOR
-      g_log << Logger::Error << "Postgres query returned a REFCURSOR and we do not support those - see https://github.com/PowerDNS/pdns/pull/10259" << endl;
+      SLOG(g_log << Logger::Error << "Postgres query returned a REFCURSOR and we do not support those - see https://github.com/PowerDNS/pdns/pull/10259" << endl,
+           d_slog->info(Logr::Error, "query returned a REFCURSOR which is not supported by PowerDNS", "more information", Logging::Loggable("https://github.com/PowerDNS/pdns/pull/10259")));
       PQclear(d_res_set);
       d_res_set = nullptr;
     }
@@ -143,7 +157,8 @@ public:
   bool hasNextRow() override
   {
     if (d_dolog && d_residx == d_resnum) {
-      g_log << Logger::Warning << "Query " << ((long)(void*)this) << ": " << d_dtime.udiff() << " us total to last row" << endl;
+      SLOG(g_log << Logger::Warning << "Query " << ((long)(void*)this) << ": " << d_dtime.udiff() << " us total to last row" << endl,
+           d_slog->info(Logr::Warning, "all query results procesed", "microseconds", Logging::Loggable(d_dtime.udiff())));
     }
 
     return d_residx < d_resnum;
@@ -282,6 +297,7 @@ private:
   PGresult* d_res_set{nullptr};
   PGresult* d_res{nullptr};
   bool d_dolog;
+  std::shared_ptr<Logr::Logger> d_slog;
   DTime d_dtime; // only used if d_dolog is set
   bool d_prepared{false};
   int d_nparams;
@@ -305,9 +321,10 @@ static string escapeForPQparam(const string& v)
   return string("'") + ret + string("'");
 }
 
-SPgSQL::SPgSQL(const string& database, const string& host, const string& port, const string& user,
+SPgSQL::SPgSQL(Logr::log_t log, const string& database, const string& host, const string& port, const string& user,
                const string& password, const string& extra_connection_parameters, const bool use_prepared)
 {
+  d_slog = log;
   d_db = nullptr;
   d_in_trx = false;
   d_connectstr = "";
@@ -381,7 +398,7 @@ void SPgSQL::execute(const string& query)
 std::unique_ptr<SSqlStatement> SPgSQL::prepare(const string& query, int nparams)
 {
   d_nstatements++;
-  return std::make_unique<SPgSQLStatement>(query, s_dolog, nparams, this, d_nstatements);
+  return std::make_unique<SPgSQLStatement>(d_slog, query, s_dolog, nparams, this, d_nstatements);
 }
 
 void SPgSQL::startTransaction()
