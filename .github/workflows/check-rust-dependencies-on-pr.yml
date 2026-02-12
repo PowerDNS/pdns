@@ -1,6 +1,8 @@
 name: Security audit of Rust dependencies
 on:
-  push:
+  pull_request:
+    branches:
+      - master
     paths:
       - '**/Cargo.toml'
       - '**/Cargo.lock'
