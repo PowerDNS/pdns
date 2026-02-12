@@ -61,23 +61,11 @@ jobs:
         SANITIZERS: asan+ubsan
         UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp"
         UNIT_TESTS: yes
-      options: --privileged --sysctl net.ipv6.conf.all.disable_ipv6=0
+      options: --sysctl net.ipv6.conf.all.disable_ipv6=0
     defaults:
       run:
         working-directory: ./pdns-${{ env.BUILDER_VERSION }}
     steps:
-      # workaround issue 9491 repo actions/runner-images
-      - name: get runner image version
-        id: runner-image-version
-        run: |
-          echo "image-version=$(echo $ImageVersion)" >> "$GITHUB_OUTPUT"
-        working-directory: .
-      - name: modify number of bits to use for aslr entropy
-        if: ${{ steps.runner-image-version.outputs.ImageVersion }} == '20240310.1.0'
-        run: |
-          sudo sysctl -a | grep vm.mmap.rnd
-          sudo sysctl -w vm.mmap_rnd_bits=28
-        working-directory: .
       - uses: actions/checkout@v4
         with:
           fetch-depth: 5
@@ -141,7 +129,7 @@ jobs:
         ASAN_OPTIONS: detect_leaks=0
         TSAN_OPTIONS: "halt_on_error=1:suppressions=${{ env.REPO_HOME }}/pdns/dnsdistdist/dnsdist-tsan.supp"
         AUTH_BACKEND_IP_ADDR: "172.17.0.1"
-      options: --privileged --sysctl net.ipv6.conf.all.disable_ipv6=0
+      options: --sysctl net.ipv6.conf.all.disable_ipv6=0
     strategy:
       matrix:
         include:
@@ -168,18 +156,6 @@ jobs:
         options: >-
           --restart always
     steps:
-      # workaround issue 9491 repo actions/runner-images
-      - name: get runner image version
-        id: runner-image-version
-        run: |
-          echo "image-version=$(echo $ImageVersion)" >> "$GITHUB_OUTPUT"
-        working-directory: .
-      - name: modify number of bits to use for aslr entropy
-        if: ${{ steps.runner-image-version.outputs.ImageVersion }} == '20240310.1.0'
-        run: |
-          sudo sysctl -a | grep vm.mmap.rnd
-          sudo sysctl -w vm.mmap_rnd_bits=28
-        working-directory: .
       - uses: actions/checkout@v4
         with:
           fetch-depth: 5
@@ -220,7 +196,7 @@ jobs:
         LDAPHOST: ldap://ldapserver/
         ODBCINI: /github/home/.odbc.ini
         AUTH_BACKEND_IP_ADDR: "172.17.0.1"
-      options: --privileged --sysctl net.ipv6.conf.all.disable_ipv6=0
+      options: --sysctl net.ipv6.conf.all.disable_ipv6=0
     strategy:
       matrix:
         include:
@@ -307,18 +283,6 @@ jobs:
         options: >-
           --restart always
     steps:
-      # workaround issue 9491 repo actions/runner-images
-      - name: get runner image version
-        id: runner-image-version
-        run: |
-          echo "image-version=$(echo $ImageVersion)" >> "$GITHUB_OUTPUT"
-        working-directory: .
-      - name: modify number of bits to use for aslr entropy
-        if: ${{ steps.runner-image-version.outputs.ImageVersion }} == '20240310.1.0'
-        run: |
-          sudo sysctl -a | grep vm.mmap.rnd
-          sudo sysctl -w vm.mmap_rnd_bits=28
-        working-directory: .
       - uses: actions/checkout@v4
         with:
           fetch-depth: 5
@@ -356,20 +320,8 @@ jobs:
       env:
         UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp"
         ASAN_OPTIONS: detect_leaks=0
-      options: --privileged --sysctl net.ipv6.conf.all.disable_ipv6=0
+      options: --sysctl net.ipv6.conf.all.disable_ipv6=0
     steps:
-      # workaround issue 9491 repo actions/runner-images
-      - name: get runner image version
-        id: runner-image-version
-        run: |
-          echo "image-version=$(echo $ImageVersion)" >> "$GITHUB_OUTPUT"
-        working-directory: .
-      - name: modify number of bits to use for aslr entropy
-        if: ${{ steps.runner-image-version.outputs.ImageVersion }} == '20240310.1.0'
-        run: |
-          sudo sysctl -a | grep vm.mmap.rnd
-          sudo sysctl -w vm.mmap_rnd_bits=28
-        working-directory: .
       - uses: actions/checkout@v4
         with:
           fetch-depth: 5
