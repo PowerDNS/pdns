@@ -1448,7 +1448,7 @@ Toosarani
 Toshifumi
 totms
 traceid
-TRACEPARENT
+traceparent
 Travaille
 treemacs
 tribool
