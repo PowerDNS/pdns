@@ -127,11 +127,11 @@ std::shared_ptr<DNSResponseAction> getDnstapLogResponseAction(const std::string&
 struct SetTraceActionConfiguration
 {
   std::vector<std::shared_ptr<RemoteLoggerInterface>> remote_loggers;
-  std::uint16_t incomingTraceparentOptionCode = 0;
-  std::uint16_t downstreamTraceparentOptionCode = 0;
+  std::uint16_t traceparentOptionCode = 65500;
   bool value = false;
   bool useIncomingTraceparent = false;
   bool stripIncomingTraceparent = false;
+  bool sendDownstreamTraceparent = false;
 };
 std::shared_ptr<DNSAction> getSetTraceAction(SetTraceActionConfiguration& config);
 #endif /* DISABLE_PROTOBUF */

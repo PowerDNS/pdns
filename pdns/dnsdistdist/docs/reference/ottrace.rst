@@ -80,7 +80,7 @@ Passing Trace ID and Span ID to downstream servers
 When storing traces, it is beneficial to correlate traces of the same query through different applications.
 The `PowerDNS Recursor <https://doc.powerdns.com/recursor>`__ (since 5.3.0) supports the experimental `TRACEPARENT <https://github.com/PowerDNS/draft-edns-otel-trace-ids>`__ EDNS option to pass the trace identifier.
 
-This can be easily achieved by adding the `downstream_edns_traceparent_option_code` option with the desired EDNS OptionCode.
+This can be easily achieved by adding the `send_downstream_traceparent` option with the desired EDNS OptionCode.
 
 .. code-block:: yaml
 
@@ -91,7 +91,7 @@ This can be easily achieved by adding the `downstream_edns_traceparent_option_co
       action:
         type: SetTrace
         value: true
-        downstream_edns_traceparent_option_code: 65500
+        send_downstream_traceparent: true
 
 Accepting TRACEPARENT from upstream servers
 ===========================================
@@ -135,5 +135,5 @@ The following example makes :program:`dnsdist` accept a TRACEPARENT, and update 
       action:
         type: SetTrace
         value: true
-        downstream_edns_traceparent_option_code: 65500
+        send_downstream_traceparent: true
         use_incoming_traceparent: true

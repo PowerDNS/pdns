@@ -261,14 +261,14 @@ void setupLuaActions(LuaContext& luaCtx)
         }
       }
       config.remote_loggers = std::move(loggers);
-      if (getOptionalValue<uint16_t>(options, "incomingTraceparentOptionCode", config.incomingTraceparentOptionCode) < 0) {
-        throw std::runtime_error("incomingTraceparentOptionCode in SetTraceAction is not a number");
+      if (getOptionalValue<uint16_t>(options, "traceparentOptionCode", config.traceparentOptionCode) < 0) {
+        throw std::runtime_error("TraceparentOptionCode in SetTraceAction is not a number");
       }
-      if (config.useIncomingTraceparent == 0) {
-        config.useIncomingTraceparent = 65500;
+      if (config.traceparentOptionCode == 0) {
+        config.traceparentOptionCode = EDNSOptionCode::TRACEPARENT;
       }
-      if (getOptionalValue<uint16_t>(options, "downstreamTraceparentOptionCode", config.downstreamTraceparentOptionCode) < 0) {
-        throw std::runtime_error("downstreamTraceparentOptionCode in SetTraceAction is not a number");
+      if (getOptionalValue<bool>(options, "sendDownstreamTraceparent", config.sendDownstreamTraceparent) < 0) {
+        throw std::runtime_error("sendDownstreamTraceparent in SetTraceAction is not a bool");
       }
       if (getOptionalValue<bool>(options, "useIncomingTraceparent", config.useIncomingTraceparent) < 0) {
         throw std::runtime_error("useIncomingTraceparent in SetTraceAction is not a bool");

@@ -336,7 +336,7 @@ query_rules:
    action:
      type: SetTrace
      value: true
-     downstream_edns_traceparent_option_code: 65500
+     send_downstream_traceparent: true
 
 webserver:
   listen_addresses:

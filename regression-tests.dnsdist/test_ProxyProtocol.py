@@ -1,19 +1,21 @@
 #!/usr/bin/env python
 
-import dns
 import selectors
 import socket
 import ssl
-import requests
 import struct
 import sys
 import threading
 import time
 
+import dns
+import requests
+
+from dnsdistdohtests import DNSDistDOHTest
 from dnsdisttests import DNSDistTest, pickAvailablePort
 from proxyprotocol import ProxyProtocol
-from proxyprotocolutils import ProxyProtocolUDPResponder, ProxyProtocolTCPResponder
-from dnsdistdohtests import DNSDistDOHTest
+from proxyprotocolutils import (ProxyProtocolTCPResponder,
+                                ProxyProtocolUDPResponder)
 
 # Python2/3 compatibility hacks
 try:
@@ -489,7 +491,7 @@ class TestProxyProtocolTraceParent(TestProxyProtocol):
       return DNSAction.None
     end
 
-    addAction(AllRule(), SetTraceAction(true, {downstreamTraceparentOptionCode=65500}), {name="Enable tracing"})
+    addAction(AllRule(), SetTraceAction(true, {sendDownstreamTraceparent=true}), {name="Enable tracing"})
     addAction("values-lua.proxy.tests.powerdns.com.", LuaAction(addValues))
     addAction("values-action.proxy.tests.powerdns.com.", SetProxyProtocolValuesAction({ ["1"]="dnsdist", ["255"]="proxy-protocol"}))
     addAction("random-values.proxy.tests.powerdns.com.", LuaAction(addRandomValue))

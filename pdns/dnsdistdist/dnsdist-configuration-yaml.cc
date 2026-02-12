@@ -1776,11 +1776,11 @@ std::shared_ptr<DNSActionWrapper> getSetTraceAction(const SetTraceActionConfigur
 
   dnsdist::actions::SetTraceActionConfiguration actionConfig{
     .remote_loggers = std::move(loggers),
-    .incomingTraceparentOptionCode = config.traceparent_edns_option_code,
-    .downstreamTraceparentOptionCode = config.downstream_edns_traceparent_option_code,
+    .traceparentOptionCode = config.traceparent_edns_option_code,
     .value = config.value,
     .useIncomingTraceparent = config.use_incoming_traceparent,
     .stripIncomingTraceparent = config.strip_incoming_traceparent,
+    .sendDownstreamTraceparent = config.send_downstream_traceparent,
   };
 
   auto action = dnsdist::actions::getSetTraceAction(actionConfig);
