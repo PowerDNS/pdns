@@ -1,0 +1,33 @@
+name: Security audit of Rust dependencies
+on:
+  push:
+    paths:
+      - '**/Cargo.toml'
+      - '**/Cargo.lock'
+
+permissions:
+  contents: read
+  checks: write # to create checks
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    name: Rust dependencies check
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+          submodules: recursive
+          persist-credentials: false
+
+      - name: Check recursor's Rust library dependencies (rec-rust-lib)
+        uses: rustsec/audit-check@69366f33c96575abad1ee0dba8212993eecbe998
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          working-directory: pdns/recursordist/rec-rust-lib/rust
+
+      - name: Check DNSdist's Rust library dependencies
+        uses: rustsec/audit-check@69366f33c96575abad1ee0dba8212993eecbe998
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          working-directory: pdns/dnsdistdist/dnsdist-rust-lib/rust
