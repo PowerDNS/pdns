@@ -1077,15 +1077,15 @@ fn load_pkcs12_key_and_certs(
     match keystore_file {
         Ok(keystore) => {
             if let Some((_alias, chain)) = keystore.private_key_chain() {
-                let key = PrivateKeyDer::try_from(chain.key().to_owned());
-                match key {
-                    Ok(ok) => {
+                let key_or_err = PrivateKeyDer::try_from(chain.key().to_owned());
+                match key_or_err {
+                    Ok(key) => {
                         let mut certs = vec![];
                         for cert in chain.chain().to_owned() {
                             let converted = CertificateDer::from_slice(cert.as_der());
                             certs.push(converted.into_owned());
                         }
-                        return Ok((ok, certs));
+                        return Ok((key, certs));
                     }
                     Err(err) => {
                         let msg = "Failed to parse private key in pkcs12 file";
