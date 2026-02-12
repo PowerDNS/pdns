@@ -51,8 +51,8 @@ struct HealthCheckData
   PacketBuffer d_buffer;
   Socket d_udpSocket;
   DNSName d_checkName;
-  struct timeval d_ttd{
-    0, 0};
+  StopWatch d_elapsed{false};
+  timeval d_ttd{0, 0};
   size_t d_bufferPos{0};
   uint16_t d_checkType;
   uint16_t d_checkClass;
@@ -134,6 +134,7 @@ static bool handleResponse(std::shared_ptr<HealthCheckData>& data)
     return false;
   }
 
+  data->d_ds->d_healthCheckLatency.store(data->d_elapsed.udiff());
   return true;
 }
 
@@ -383,6 +384,7 @@ bool queueHealthCheck(std::unique_ptr<FDMultiplexer>& mplexer, const std::shared
     data->d_ttd.tv_sec += static_cast<decltype(data->d_ttd.tv_sec)>(downstream->d_config.checkTimeout / 1000); /* ms to seconds */
     data->d_ttd.tv_usec += static_cast<decltype(data->d_ttd.tv_usec)>((downstream->d_config.checkTimeout % 1000) * 1000); /* remaining ms to us */
     normalizeTV(data->d_ttd);
+    data->d_elapsed.start();
 
     if (!downstream->doHealthcheckOverTCP()) {
       sock.connect(downstream->d_config.remote);

@@ -612,6 +612,8 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   output << "# TYPE " << statesbase << "healthcheckfailuresmismatch "     << "counter"                                                                              << "\n";
   output << "# HELP " << statesbase << "healthcheckfailuresinvalid "      << "Number of health check attempts where the DNS response was invalid"                   << "\n";
   output << "# TYPE " << statesbase << "healthcheckfailuresinvalid "      << "counter"                                                                              << "\n";
+  output << "# HELP " << statesbase << "healthchecklatency "              << "Latency of the last successful health check attempt, in milliseconds"                << "\n";
+  output << "# TYPE " << statesbase << "healthchecklatency "              << "gauge"                                                                                << "\n";
 
   for (const auto& state : dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends) {
     string serverName;
@@ -660,7 +662,8 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
     output << statesbase << "healthcheckfailurestimeout"       << label << " " << state->d_healthCheckMetrics.d_timeOuts << "\n";
     output << statesbase << "healthcheckfailuresnetwork"       << label << " " << state->d_healthCheckMetrics.d_networkErrors << "\n";
     output << statesbase << "healthcheckfailuresmismatch"      << label << " " << state->d_healthCheckMetrics.d_mismatchErrors << "\n";
-    output << statesbase << "healthcheckfailuresinvalid"        << label << " " << state->d_healthCheckMetrics.d_invalidResponseErrors << "\n";
+    output << statesbase << "healthcheckfailuresinvalid"       << label << " " << state->d_healthCheckMetrics.d_invalidResponseErrors << "\n";
+    output << statesbase << "healthchecklatency"               << label << " " << state->d_healthCheckLatency / 1000.0   << "\n";
   }
 
   const string frontsbase = "dnsdist_frontend_";
@@ -1124,6 +1127,7 @@ static void addServerToJSON(Json::array& servers, int identifier, const std::sha
     {"healthCheckFailuresNetwork", (double)(backend->d_healthCheckMetrics.d_networkErrors)},
     {"healthCheckFailuresMismatch", (double)(backend->d_healthCheckMetrics.d_mismatchErrors)},
     {"healthCheckFailuresInvalid", (double)(backend->d_healthCheckMetrics.d_invalidResponseErrors)},
+    {"healthCheckLatency", (double)(backend->d_healthCheckLatency / 1000.0)},
     {"dropRate", (double)backend->dropRate}};
 
   /* sending a latency for a DOWN server doesn't make sense */
