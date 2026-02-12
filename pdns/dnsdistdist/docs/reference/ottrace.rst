@@ -79,49 +79,22 @@ Passing Trace ID and Span ID to downstream servers
 
 When storing traces, it is beneficial to correlate traces of the same query through different applications.
 The `PowerDNS Recursor <https://doc.powerdns.com/recursor>`__ (since 5.3.0) supports the experimental `TRACEPARENT <https://github.com/PowerDNS/draft-edns-otel-trace-ids>`__ EDNS option to pass the trace identifier.
-The :doc:`DNSQuestion object <dq>` supports the :func:`getTraceID <DNSQuestion:getTraceID>` method to retrieve the trace identifier as a binary string.
-Combining all this, a :func:`LuaAction` can be used to add this EDNS option to the query.
+
+This can be easily achieved by adding the `downstream_edns_traceparent_option_code` option with the desired EDNS OptionCode.
 
 .. code-block:: yaml
 
-   - name: Add TraceID to EDNS for backend
-     selector:
-       type: All
-     action:
-       type: Lua
-       function_code: |
-         return function (dq)
-           tid = dq:getTraceID()
-           if (tid ~= nil) then
-             -- PowerDNS Recursor uses EDNS Option Code 65500.
-             dq:setEDNSOption(65500, "\000\000" .. tid)
-           end
-           return DNSAction.None
-         end
+  query_rules:
+    - name: Add TraceID to EDNS for backend
+      selector:
+        type: All
+      action:
+        type: SetTrace
+        value: true
+        downstream_edns_traceparent_option_code: 65500
 
-Optionally, the Span ID can also be added to the query.
-This value is retrieved with the :func:`getSpanID <DNSQuestion:getSpanID>` function and can be added to the query as follows:
-
-.. code-block:: yaml
-
-   - name: Add TraceID and SpanID to EDNS for backend
-     selector:
-       type: All
-     action:
-       type: Lua
-       function_code: |
-         return function (dq)
-           tid = dq:getTraceID()
-           sid = dq:getSpanID()
-           if (tid ~= nil and sid ~= nil) then
-             -- PowerDNS Recursor uses EDNS Option Code 65500.
-             dq:setEDNSOption(65500, "\000\000" .. tid .. sid)
-           end
-           return DNSAction.None
-         end
-
-Accepting Trace ID and Span ID from upstream servers
-====================================================
+Accepting TRACEPARENT from upstream servers
+===========================================
 
 :program:`dnsdist` can also use a Trace ID and optional Span ID from an incoming query.
 It will not do this by default, but this can be configured with the ``use_incoming_traceid`` argument.
@@ -140,6 +113,27 @@ Should there be no ID in the incoming query, a random ID will be generated.
          value: true
          use_incoming_traceparent: true
 
-As :program:`dnsdist` keeps EDNS existing options in the query, the Trace ID option is passed as-is to the backend, which might not be desirable.
+As :program:`dnsdist` keeps EDNS existing options in the query, the TRACEPARENT option is passed as-is to the backend, which might not be desirable.
 Using the ``strip_incoming_traceparent`` boolean option, the EDNS option will be removed from the query.
+
+By default, :program:`dnsdist` uses 65500 for the TRACEPARENT option code. This code can be changed using the ``traceparent_edns_option_code`` option.
+
 Note that this will only happen when ``value`` is set to ``true``.
+
+Accepting and sending TRACEPARENT
+=================================
+
+The following example makes :program:`dnsdist` accept a TRACEPARENT, and update it with its own Span ID before sending it downstream:
+
+.. code-block:: yaml
+
+  query_rules:
+    - name: Enable tracing
+      selector:
+        # Just as an example, in production don't trace all the queries
+        type: All
+      action:
+        type: SetTrace
+        value: true
+        downstream_edns_traceparent_option_code: 65500
+        use_incoming_traceparent: true
