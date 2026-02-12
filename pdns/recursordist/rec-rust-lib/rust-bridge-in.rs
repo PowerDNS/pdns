@@ -348,6 +348,13 @@ struct OutgoingTLSConfiguration {
     ciphers: String,
     #[serde(default, skip_serializing_if = "crate::is_default")]
     ciphers_tls_13: String,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    // Fields below added in 5.5.0
+    client_certificate: String,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    client_certificate_key: String,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    client_certificate_password: String,
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug, PartialEq)]
