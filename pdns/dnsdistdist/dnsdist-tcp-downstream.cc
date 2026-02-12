@@ -290,33 +290,14 @@ IOState TCPConnectionToBackend::sendQuery(std::shared_ptr<TCPConnectionToBackend
 
 #ifndef DISABLE_PROTOBUF
   if (auto tracer = conn->d_currentQuery.d_query.d_idstate.getTracer(); conn->d_currentQuery.d_query.d_idstate.sendTraceParentToDownstreamID != 0 && tracer != nullptr) {
-    // TODO: set a flag in ID State whether or not we should update the SpanID
-    uint16_t optRDPosition;
-    size_t remaining;
-    PacketBuffer buf{conn->d_currentQuery.d_query.d_buffer.begin() + conn->d_currentQuery.d_query.d_idstate.d_proxyProtocolPayloadSize + 2 /* TCP length */, conn->d_currentQuery.d_query.d_buffer.end()};
-    // clear any existing option
-    if (dnsdist::getEDNSOptionsStart(buf, conn->d_currentQuery.d_query.d_idstate.qname.wirelength(), &optRDPosition, &remaining) == 0) {
-      size_t optLen = buf.size() - optRDPosition - remaining;
-      removeEDNSOptionFromOPT(reinterpret_cast<char*>(buf.data() + optRDPosition), &optLen, conn->d_currentQuery.d_query.d_idstate.sendTraceParentToDownstreamID);
-    }
-
-    auto opt = pdns::trace::dnsdist::makeEDNSTraceParentOption(tracer);
-    bool ednsAdded, optionAdded;
-    setEDNSOption(buf, conn->d_currentQuery.d_query.d_idstate.sendTraceParentToDownstreamID, std::string(opt.begin(), opt.end()), std::numeric_limits<uint16_t>().max(), ednsAdded, optionAdded);
-    if (ednsAdded) {
-      conn->d_currentQuery.d_query.d_idstate.ednsAdded = ednsAdded;
-    }
-
-    // Calculate new TCP size
-    const std::array<uint8_t, 2> sizeBytes{static_cast<uint8_t>(buf.size() / 256), static_cast<uint8_t>(buf.size() % 256)};
-    buf.insert(buf.begin(), sizeBytes.begin(), sizeBytes.end());
-
-    // Resize the buffer twice to remove the existing packet, but keep any PROXYv2 data
-    conn->d_currentQuery.d_query.d_buffer.resize(conn->d_currentQuery.d_query.d_idstate.d_proxyProtocolPayloadSize);
-    conn->d_currentQuery.d_query.d_buffer.resize(conn->d_currentQuery.d_query.d_idstate.d_proxyProtocolPayloadSize + buf.size());
-
-    // Insert the new query into the buffer
-    conn->d_currentQuery.d_query.d_buffer.insert(conn->d_currentQuery.d_query.d_buffer.begin(), buf.begin(), buf.end());
+    auto ednsAdded = pdns::trace::dnsdist::addTraceparentEdnsOptionToPacketBuffer(
+      conn->d_currentQuery.d_query.d_buffer,
+      tracer,
+      conn->d_currentQuery.d_query.d_idstate.qname.wirelength(),
+      conn->d_currentQuery.d_query.d_idstate.d_proxyProtocolPayloadSize,
+      conn->d_currentQuery.d_query.d_idstate.sendTraceParentToDownstreamID,
+      true);
+    conn->d_currentQuery.d_query.d_idstate.ednsAdded = conn->d_currentQuery.d_query.d_idstate.ednsAdded || ednsAdded;
   }
 #endif
 
