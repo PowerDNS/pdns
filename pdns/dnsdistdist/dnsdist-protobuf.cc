@@ -170,6 +170,13 @@ void DNSDistProtoBufMessage::serialize(std::string& data) const
 
   msg.setRequest(d_dq.ids.d_protoBufData && d_dq.ids.d_protoBufData->uniqueId ? *d_dq.ids.d_protoBufData->uniqueId : getUniqueID(), d_requestor ? *d_requestor : d_dq.ids.origRemote, d_responder ? *d_responder : d_dq.ids.origDest, d_question ? d_question->d_name : d_dq.ids.qname, d_question ? d_question->d_type : d_dq.ids.qtype, d_question ? d_question->d_class : d_dq.ids.qclass, d_dq.getHeader()->id, protocol, d_bytes ? *d_bytes : d_dq.getData().size());
 
+  try {
+    msg.setHeaderFlags(*getFlagsFromDNSHeader(d_dq.getHeader().get()));
+  }
+  catch (const std::exception& exp) {
+    vinfolog("Error while getting the flags from the DNS header of a packet to add them to the protobuf message: %s", exp.what());
+  }
+
   if (d_serverIdentity) {
     msg.setServerIdentity(*d_serverIdentity);
   }
