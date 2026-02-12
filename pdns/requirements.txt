@@ -1,1 +1,2 @@
 PyYAML
+setuptools<82
