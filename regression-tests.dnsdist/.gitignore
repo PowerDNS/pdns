@@ -29,6 +29,7 @@
 /server-ocsp.p12
 /server-tls.*
 /server.ocsp
+/server-ip-only.*
 /configs
 /dnsdist.log
 /dnsdist_test.conf

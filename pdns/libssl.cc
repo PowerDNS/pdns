@@ -1249,7 +1249,12 @@ std::pair<pdns::libssl::ServerContext, std::vector<std::string>> libssl_init_ser
 
       addCertificateAndKey(ctx);
       auto names = get_names_from_last_certificate(*ctx);
-      mergeNewCertificateAndKey(serverContext, ctx, names, addCertificateAndKey);
+      if (!names.empty()) {
+        mergeNewCertificateAndKey(serverContext, ctx, names, addCertificateAndKey);
+      }
+      else if (!serverContext.d_defaultContext) {
+        serverContext.d_defaultContext = ctx;
+      }
 #else
       throw std::runtime_error("PKCS12 files are not supported by your openssl version");
 #endif /* HAVE_SSL_CTX_USE_CERT_AND_KEY */
@@ -1267,7 +1272,12 @@ std::pair<pdns::libssl::ServerContext, std::vector<std::string>> libssl_init_ser
 
       addCertificateAndKey(ctx);
       auto names = get_names_from_last_certificate(*ctx);
-      mergeNewCertificateAndKey(serverContext, ctx, names, addCertificateAndKey);
+      if (!names.empty()) {
+        mergeNewCertificateAndKey(serverContext, ctx, names, addCertificateAndKey);
+      }
+      else if (!serverContext.d_defaultContext) {
+        serverContext.d_defaultContext = ctx;
+      }
     }
 
     if (SSL_CTX_check_private_key(ctx.get()) != 1) {
