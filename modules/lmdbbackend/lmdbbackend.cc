@@ -2284,8 +2284,8 @@ void LMDBBackend::getAllDomainsFiltered(vector<DomainInfo>* domains, const std::
     }
 
     for (auto& [k, v] : zonemap) {
+      consolidateDomainInfo(v);
       if (allow(v)) {
-        consolidateDomainInfo(v);
         domains->push_back(std::move(v));
       }
     }
@@ -2296,8 +2296,8 @@ void LMDBBackend::getAllDomainsFiltered(vector<DomainInfo>* domains, const std::
       di.id = iter.getID();
       di.backend = this;
 
+      consolidateDomainInfo(di);
       if (allow(di)) {
-        consolidateDomainInfo(di);
         domains->push_back(di);
       }
     }
