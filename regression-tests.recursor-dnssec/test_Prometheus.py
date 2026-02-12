@@ -1,6 +1,6 @@
 import requests
 import subprocess
-
+import pytest
 from recursortests import RecursorTest
 
 class RecPrometheusTest(RecursorTest):
@@ -76,12 +76,6 @@ class HttpsPrometheusTest(RecPrometheusTest):
     _wsPassword = 'secretpassword'
     _apiKey = 'secretapikey'
 
-    _lua_dns_script_file = """
-    getMetric('metric_just_a_name')
-    getMetric('metric_wpn', 'pdns_recursor_metric_with_name')
-    getMetric('metric_extra', {prometheusName = 'pdns_recursor_metric_with_name2', type = 'gauge', description = 'desc'})
-"""
-
     _config_template = """
 webservice:
   webserver: true
@@ -98,6 +92,40 @@ webservice:
     @classmethod
     def generateRecursorConfig(cls, confdir):
         super(HttpsPrometheusTest, cls).generateRecursorYamlConfig(confdir)
+
+    def testPrometheus(self):
+        self.waitForTCPSocket("127.0.0.1", self._wsPort)
+        url = 'https://user:' + self._wsPassword + '@127.0.0.1:' + str(self._wsPort) + '/metrics'
+        r = requests.get(url, timeout=self._wsTimeout, verify='ca.pem')
+        self.assertTrue(r)
+        self.assertEqual(r.status_code, 200)
+        self.checkPrometheusContentBasic(r.text)
+        self.checkPrometheusContentPromtool(r.content)
+
+@pytest.mark.skipif('pkcs12' not in RecursorTest.recFeatures(), reason='pkcs12 feature not available')
+class HttpsPKCS12PrometheusTest(RecPrometheusTest):
+    _confdir = 'HttpsPKCS12Prometheus'
+    _wsPort = 8042
+    _wsTimeout = 2
+    _wsPassword = 'secretpassword'
+    _apiKey = 'secretapikey'
+
+    _config_template = """
+webservice:
+  webserver: true
+  listen:
+   - addresses: [127.0.0.1:%s]
+     tls:
+       certificate: server.p12
+       password: passw0rd
+  password: %s
+  allow_from: [127.0.0.1]
+  api_key: %s
+""" % (_wsPort, _wsPassword, _apiKey)
+
+    @classmethod
+    def generateRecursorConfig(cls, confdir):
+        super(HttpsPKCS12PrometheusTest, cls).generateRecursorYamlConfig(confdir)
 
     def testPrometheus(self):
         self.waitForTCPSocket("127.0.0.1", self._wsPort)

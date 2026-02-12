@@ -731,8 +731,15 @@ async fn serveweb_async(
     ctx: Arc<Context>,
 ) -> MyResult<()> {
     if !config.certificate.is_empty() {
-        let certs = load_certs(&config.certificate, &ctx)?;
-        let key = load_private_key(&config.key, &ctx)?;
+        let certs;
+        let key;
+        if config.key.is_empty() { // Assuming it's pkcs12 (aka pfx).
+            (key, certs) = load_pkcs12_key_and_certs(&config.certificate, &config.password, &ctx)?;
+        }
+        else {
+            certs = load_pem_certs(&config.certificate, &ctx)?;
+            key = load_pem_private_key(&config.key, &ctx)?;
+        }
         let mut server_config = rustls::ServerConfig::builder()
             .with_no_client_auth()
             .with_single_cert(certs, key)
@@ -920,7 +927,7 @@ pub fn serveweb(
                     let tls = crate::web::rustweb::IncomingTLS {
                         certificate: config.tls.certificate.clone(),
                         key: config.tls.key.clone(),
-                        // password: config.tls.password.clone(), not supported (yet), rusttls does not handle it
+                        password: config.tls.password.clone(),
                     };
                     if !tls.certificate.is_empty() {
                         tls_enabled = true;
@@ -982,7 +989,7 @@ pub fn serveweb(
 }
 
 // Load public certificates from file.
-fn load_certs(
+fn load_pem_certs(
     filename: &str,
     ctx: &Arc<Context>,
 ) -> std::io::Result<Vec<pki_types::CertificateDer<'static>>> {
@@ -1031,7 +1038,7 @@ fn load_certs(
 }
 
 // Load private key from file.
-fn load_private_key(
+fn load_pem_private_key(
     filename: &str,
     ctx: &Arc<Context>,
 ) -> std::io::Result<pki_types::PrivateKeyDer<'static>> {
@@ -1054,6 +1061,95 @@ fn load_private_key(
         }
     }
 }
+
+
+// Load private key and certs from pkcs12 (pfx) file.
+#[cfg(feature = "pkcs12")]
+fn load_pkcs12_key_and_certs(
+    filename: &str,
+    password: &str,
+    ctx: &Arc<Context>,
+) -> std::io::Result<(pki_types::PrivateKeyDer<'static>, Vec<pki_types::CertificateDer<'static>>)> {
+
+    let data = std::fs::read(filename)?;
+    let keystore_file = p12_keystore::KeyStore::from_pkcs12(&data, password);
+
+    match keystore_file {
+        Ok(keystore) => {
+            if let Some((_alias, chain)) = keystore.private_key_chain() {
+                let key_or_err = PrivateKeyDer::try_from(chain.key().to_owned());
+                match key_or_err {
+                    Ok(key) => {
+                        let mut certs = vec![];
+                        for cert in chain.chain().to_owned() {
+                            let converted = CertificateDer::from_slice(cert.as_der());
+                            certs.push(converted.into_owned());
+                        }
+                        return Ok((key, certs));
+                    }
+                    Err(err) => {
+                        let msg = "Failed to parse private key in pkcs12 file";
+                        rustmisc::error(
+                            &ctx.logger,
+                            rustmisc::Priority::Error,
+                            err,
+                            msg,
+                            &vec![rustmisc::KeyValue {
+                                key: "filename".to_string(),
+                                value: filename.to_string(),
+                            }]);
+                        return Err(std::io::Error::other(msg));
+                    }
+                }
+            }
+            else {
+                let msg = "Failed to find private key in pkcs12 file";
+                rustmisc::log(
+                    &ctx.logger,
+                    rustmisc::Priority::Error,
+                    msg,
+                    &vec![rustmisc::KeyValue {
+                        key: "filename".to_string(),
+                        value: filename.to_string(),
+                    }]);
+                return Err(std::io::Error::other(msg));
+            }
+        },
+        Err(err) => {
+            let msg = "Failed to parse pkcs12 file";
+            rustmisc::error(
+                &ctx.logger,
+                rustmisc::Priority::Error,
+                &err.to_string(),
+                msg,
+                &vec![rustmisc::KeyValue {
+                    key: "filename".to_string(),
+                    value: filename.to_string(),
+                }]);
+            Err(std::io::Error::other(msg))
+        }
+    }
+}
+
+#[cfg(not(feature = "pkcs12"))]
+fn load_pkcs12_key_and_certs(
+    filename: &str,
+    _password: &str,
+    ctx: &Arc<Context>,
+) -> std::io::Result<(pki_types::PrivateKeyDer<'static>, Vec<pki_types::CertificateDer<'static>>)> {
+    let msg = "PKCS12 feature is not enabled";
+    rustmisc::log(
+        &ctx.logger,
+        rustmisc::Priority::Error,
+        msg,
+        &vec![rustmisc::KeyValue {
+            key: "filename".to_string(),
+            value: filename.to_string(),
+        }]);
+    Err(std::io::Error::other(msg))
+}
+
+
 
 // impl below needed because the classes are used in the Context, which gets passed around.
 unsafe impl Send for rustweb::CredentialsHolder {}
@@ -1081,7 +1177,7 @@ mod rustweb {
     pub struct IncomingTLS {
         certificate: String,
         key: String,
-        // password: String, Not currently supported, as rusttls does not support that out of the box
+        password: String,
     }
 
     struct IncomingWSConfig {

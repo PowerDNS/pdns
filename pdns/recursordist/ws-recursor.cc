@@ -1161,7 +1161,7 @@ void serveRustWeb()
       for (const auto& address : listen.addresses) {
         tmp.addresses.emplace_back(address);
       }
-      tmp.tls = pdns::rust::web::rec::IncomingTLS{listen.tls.certificate, listen.tls.key};
+      tmp.tls = pdns::rust::web::rec::IncomingTLS{listen.tls.certificate, listen.tls.key, listen.tls.password};
       config.emplace_back(tmp);
     }
   }

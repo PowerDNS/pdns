@@ -310,8 +310,8 @@ pub struct IncomingTLS {
     certificate: String,
     #[serde(default, skip_serializing_if = "crate::is_default")]
     key: String,
-    // #[serde(default, skip_serializing_if = "crate::is_default")]
-    // password: String, Not currently supported, as rusttls does not support this out of the box
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    password: String,
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug, PartialEq)]

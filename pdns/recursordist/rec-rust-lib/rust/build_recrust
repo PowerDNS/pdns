@@ -19,7 +19,7 @@ if [ -n "${CARGO_USE_DEV}" ]; then
     fi
 fi
 
-$CARGO build ${CARGO_PROFILE} $RUST_TARGET --target-dir=$builddir/target --manifest-path $srcdir/Cargo.toml
+$CARGO build ${CARGO_PROFILE} $RUST_TARGET --target-dir=$builddir/target --manifest-path $srcdir/Cargo.toml $features
 
 if [ -n "${CARGO_USE_DEV}" ]; then
     cp -p target/$RUSTC_TARGET_ARCH/debug/librecrust.a $builddir/rec-rust-lib/rust/librecrust.a
