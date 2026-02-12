@@ -313,3 +313,39 @@ class TestOutgoingTLSGnuTLSWrongCertNameButNoCheck(DNSDistTest, OutgoingTLSTests
         cls._TLSResponder = threading.Thread(name='TLS Responder', target=cls.TCPResponder, args=[cls._tlsBackendPort, cls._toResponderQueue, cls._fromResponderQueue, False, False, None, tlsContext])
         cls._TLSResponder.daemon = True
         cls._TLSResponder.start()
+
+
+class TestOutgoingTLSOpenSSLYamlTraceparent(TestOutgoingTLSOpenSSLYaml):
+    _yaml_config_template = """---
+logging:
+  open_telemetry_tracing: true
+
+backends:
+  - address: "127.0.0.1:%d"
+    protocol: "DoT"
+    tls:
+      provider: "openssl"
+      validate_certificate: true
+      ca_store: "ca.pem"
+      subject_name: "powerdns.com"
+
+query_rules:
+ - name: Enable tracing
+   selector:
+     type: All
+   action:
+     type: SetTrace
+     value: true
+     downstream_edns_traceparent_option_code: 65500
+
+webserver:
+  listen_addresses:
+    - "127.0.0.1:%d"
+  password: "%s"
+  api_key: "%s"
+  acl:
+    - 127.0.0.0/8
+tuning:
+  tcp:
+    worker_threads: 1
+    """
