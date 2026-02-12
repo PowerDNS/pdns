@@ -19,12 +19,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#include <optional>
-#ifdef HAVE_CONFIG_H
-#include <utility>
 
 #include "config.h"
-#endif
+
+#include <optional>
+#include <utility>
 
 #include "arguments.hh"
 #include "aggressive_nsec.hh"
@@ -42,6 +41,7 @@
 #include "rec-taskqueue.hh"
 #include "shuffle.hh"
 #include "rec-nsspeeds.hh"
+#include "resolve-context.hh"
 
 rec::GlobalCounters g_Counters;
 thread_local rec::TCounters t_Counters(g_Counters);

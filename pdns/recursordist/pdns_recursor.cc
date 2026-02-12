@@ -283,7 +283,7 @@ unsigned int authWaitTimeMSec(const std::unique_ptr<MT_t>& mtasker)
 }
 
 /* these two functions are used by LWRes */
-LWResult::Result asendto(const void* data, size_t len, int /* flags */,
+LWResult::Result asendto(const void* data, size_t len,
                          const ComboAddress& toAddress, std::optional<ComboAddress>& localAddress, uint16_t qid, const DNSName& domain, uint16_t qtype, const std::optional<EDNSSubnetOpts>& ecs, int* fileDesc, timeval& now)
 {
 
@@ -334,10 +334,8 @@ LWResult::Result asendto(const void* data, size_t len, int /* flags */,
 
   t_fdm->addReadFD(*fileDesc, handleUDPServerResponse, pident);
   ssize_t sent = send(*fileDesc, data, len, 0);
-
-  int tmp = errno;
-
   if (sent < 0) {
+    int tmp = errno;
     t_udpclientsocks->returnSocket(*fileDesc);
     errno = tmp; // this is for logging purposes only
     return LWResult::Result::PermanentError;
@@ -348,7 +346,7 @@ LWResult::Result asendto(const void* data, size_t len, int /* flags */,
 
 static bool checkIncomingECSSource(const PacketBuffer& packet, const Netmask& subnet);
 
-LWResult::Result arecvfrom(PacketBuffer& packet, int /* flags */, const ComboAddress& fromAddr, size_t& len,
+LWResult::Result arecvfrom(PacketBuffer& packet, const ComboAddress& fromAddr, size_t& len,
                            uint16_t qid, const DNSName& domain, uint16_t qtype, int fileDesc, const std::optional<EDNSSubnetOpts>& ecs, const struct timeval& now)
 {
   static const unsigned int nearMissLimit = ::arg().asNum("spoof-nearmiss-max");

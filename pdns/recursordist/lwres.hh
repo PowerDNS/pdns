@@ -20,31 +20,19 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
-#include <string>
-#include <vector>
-#include <sys/types.h>
-#include "misc.hh"
-#include "iputils.hh"
-#include <netdb.h>
-#include <unistd.h>
-#include <sys/time.h>
-#include <sys/uio.h>
-#include <fcntl.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include "dnsparser.hh"
-#include <arpa/inet.h>
-#undef res_mkquery
 
-#include "pdnsexception.hh"
-#include "dns.hh"
-#include "namespaces.hh"
-#include "remote_logger.hh"
-#include "fstrm_logger.hh"
-#include "resolve-context.hh"
-#include "noinitvector.hh"
+#include <string>
+
 #include "logger.hh"
 #include "logr.hh"
+#include "pdnsexception.hh"
+#include "noinitvector.hh"
+
+class RemoteLoggerInterface;
+class RemoteLogger;
+class FrameStreamLogger;
+struct DNSRecord;
+struct ResolveContext;
 
 // Helper to be defined by main program: queue data and log based on return value of queueData()
 void remoteLoggerQueueData(RemoteLoggerInterface&, const std::string&);
@@ -93,10 +81,10 @@ public:
 
 class EDNSSubnetOpts;
 
-LWResult::Result asendto(const void* data, size_t len, int flags, const ComboAddress& toAddress,
+LWResult::Result asendto(const void* data, size_t len, const ComboAddress& toAddress,
                          std::optional<ComboAddress>& localAddress, uint16_t qid,
                          const DNSName& domain, uint16_t qtype, const std::optional<EDNSSubnetOpts>& ecs, int* fileDesc, timeval& now);
-LWResult::Result arecvfrom(PacketBuffer& packet, int flags, const ComboAddress& fromAddr, size_t& len, uint16_t qid,
+LWResult::Result arecvfrom(PacketBuffer& packet, const ComboAddress& fromAddr, size_t& len, uint16_t qid,
                            const DNSName& domain, uint16_t qtype, int fileDesc, const std::optional<EDNSSubnetOpts>& ecs, const struct timeval& now);
 
 LWResult::Result asyncresolve(const OptLog& log, const ComboAddress& address, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, std::optional<Netmask>& srcmask, const ResolveContext& context, const std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>>& outgoingLoggers, const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstrmLoggers, const std::set<uint16_t>& exportTypes, LWResult* lwr, bool* chained);
