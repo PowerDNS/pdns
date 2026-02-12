@@ -2348,12 +2348,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       {
         std::string valueStr;
         if (getOptionalValue<std::string>(vars, "congestionControlAlgo", valueStr) > 0) {
-          if (dnsdist::doq::s_available_cc_algorithms.count(valueStr) > 0) {
-            frontend->d_quicheParams.d_ccAlgo = valueStr;
-          }
-          else {
-            warnlog("Ignoring unknown value '%s' for 'congestionControlAlgo' on 'addDOH3Local'", valueStr);
-          }
+          frontend->d_quicheParams.d_ccAlgo = std::move(valueStr);
         }
       }
       parseTLSConfig(frontend->d_quicheParams.d_tlsConfig, "addDOH3Local", vars);
@@ -2426,12 +2421,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       {
         std::string valueStr;
         if (getOptionalValue<std::string>(vars, "congestionControlAlgo", valueStr) > 0) {
-          if (dnsdist::doq::s_available_cc_algorithms.count(valueStr) > 0) {
-            frontend->d_quicheParams.d_ccAlgo = std::move(valueStr);
-          }
-          else {
-            warnlog("Ignoring unknown value '%s' for 'congestionControlAlgo' on 'addDOQLocal'", valueStr);
-          }
+          frontend->d_quicheParams.d_ccAlgo = std::move(valueStr);
         }
       }
       parseTLSConfig(frontend->d_quicheParams.d_tlsConfig, "addDOQLocal", vars);
