@@ -2,10 +2,6 @@ name: Security audit of Rust dependencies
 on:
   schedule:
     - cron: '0 0 * * *'
-  push:
-    paths:
-      - '**/Cargo.toml'
-      - '**/Cargo.lock'
 
 permissions:
   contents: read
