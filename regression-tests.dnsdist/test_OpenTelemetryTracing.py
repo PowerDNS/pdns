@@ -919,12 +919,8 @@ query_rules:
     def doQuery(self, useTCP=False):
         name = "query.ot.tests.powerdns.com."
 
-        ottrace = dns.edns.GenericOption(str(65500), "\x00\x00")
-        ottrace.data += binascii.a2b_hex("12345678901234567890123456789012")
-        ottrace.data += binascii.a2b_hex("1234567890123456")
-        ottrace.data += binascii.a2b_hex("00")
         query = dns.message.make_query(
-            name, "A", "IN", use_edns=True, options=[ottrace]
+            name, "A", "IN", use_edns=True
         )
 
         if useTCP:
