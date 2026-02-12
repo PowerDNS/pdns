@@ -1717,7 +1717,7 @@ class SetTraceAction : public DNSAction
 {
 public:
   SetTraceAction(SetTraceActionConfiguration& config) :
-    d_loggers(config.remote_loggers), d_incomingTraceparentOptionCode(config.incomingTraceparentOptionCode), d_downstreamTraceparentOptionCode(config.downstreamTraceparentOptionCode), d_value{config.value}, d_useIncomingTraceparent(config.useIncomingTraceparent), d_stripIncomingTraceparent(config.stripIncomingTraceparent) {};
+    d_loggers(config.remote_loggers), d_traceparentOptionCode(config.traceparentOptionCode), d_value{config.value}, d_useIncomingTraceparent(config.useIncomingTraceparent), d_stripIncomingTraceparent(config.stripIncomingTraceparent), d_sendDownstreamTraceparent(config.sendDownstreamTraceparent) {};
 
   DNSAction::Action operator()([[maybe_unused]] DNSQuestion* dnsquestion, [[maybe_unused]] std::string* ruleresult) const override
   {
@@ -1742,8 +1742,8 @@ public:
     tracer->setRootSpanAttribute("query.remote.address", AnyValue{dnsquestion->ids.origRemote.toString()});
     tracer->setRootSpanAttribute("query.remote.port", AnyValue{dnsquestion->ids.origRemote.getPort()});
 
-    if (d_downstreamTraceparentOptionCode != 0) {
-      dnsquestion->ids.sendTraceParentToDownstreamID = d_downstreamTraceparentOptionCode;
+    if (d_sendDownstreamTraceparent) {
+      dnsquestion->ids.sendTraceParentToDownstreamID = d_traceparentOptionCode;
     }
 
     if (!d_useIncomingTraceparent && !d_stripIncomingTraceparent) {
@@ -1766,7 +1766,7 @@ public:
     if (d_useIncomingTraceparent) {
       pdns::trace::TraceID traceID;
       pdns::trace::SpanID spanID;
-      if (pdns::trace::extractOTraceIDs(*(dnsquestion->ednsOptions), EDNSOptionCode::EDNSOptionCodeEnum(d_incomingTraceparentOptionCode), traceID, spanID)) {
+      if (pdns::trace::extractOTraceIDs(*(dnsquestion->ednsOptions), EDNSOptionCode::EDNSOptionCodeEnum(d_traceparentOptionCode), traceID, spanID)) {
         tracer->setTraceID(traceID);
         if (spanID != pdns::trace::s_emptySpanID) {
           tracer->setRootSpanID(spanID);
@@ -1791,7 +1791,7 @@ public:
       }
 
       size_t existingOptLen = optLen;
-      removeEDNSOptionFromOPT(reinterpret_cast<char*>(&dnsquestion->getMutableData().at(optStart)), &optLen, d_incomingTraceparentOptionCode);
+      removeEDNSOptionFromOPT(reinterpret_cast<char*>(&dnsquestion->getMutableData().at(optStart)), &optLen, d_traceparentOptionCode);
       dnsquestion->getMutableData().resize(dnsquestion->getData().size() - (existingOptLen - optLen));
       // Ensure the EDNS Option View is not out of date
       dnsquestion->ednsOptions.reset();
@@ -1807,12 +1807,12 @@ public:
 
 private:
   std::vector<std::shared_ptr<RemoteLoggerInterface>> d_loggers;
-  short unsigned int d_incomingTraceparentOptionCode;
-  short unsigned int d_downstreamTraceparentOptionCode;
+  short unsigned int d_traceparentOptionCode;
 
   bool d_value;
   bool d_useIncomingTraceparent;
   bool d_stripIncomingTraceparent;
+  bool d_sendDownstreamTraceparent;
 };
 #endif
 

@@ -41,7 +41,7 @@ class DNSDistOpenTelemetryProtobufTest(test_Protobuf.DNSDistProtobufTest):
             ottrace.data += binascii.a2b_hex(traceID)
             if spanID != "":
                 ottrace.data += binascii.a2b_hex(spanID)
-            ottrace.data += b"\x00" # flags
+            ottrace.data += b"\x00"  # flags
             query = dns.message.make_query(
                 name, "A", "IN", use_edns=True, options=[ottrace]
             )
@@ -59,9 +59,9 @@ class DNSDistOpenTelemetryProtobufTest(test_Protobuf.DNSDistProtobufTest):
         response.answer.append(rrset)
 
         if useTCP:
-            (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
+            receivedQuery, receivedResponse = self.sendTCPQuery(query, response)
         else:
-            (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+            receivedQuery, receivedResponse = self.sendUDPQuery(query, response)
 
         if querySentByDNSDist:
             self.assertTrue(receivedQuery)
@@ -820,9 +820,9 @@ query_rules:
         )
 
         if useTCP:
-            (_, receivedResponse) = self.sendTCPQuery(query, response=None)
+            _, receivedResponse = self.sendTCPQuery(query, response=None)
         else:
-            (_, receivedResponse) = self.sendUDPQuery(query, response=None)
+            _, receivedResponse = self.sendUDPQuery(query, response=None)
 
         self.assertIsNotNone(receivedResponse)
         # If we stripped the OpenTelemetry Trace ID from the query, we should not get a SERVFAIL
@@ -839,7 +839,9 @@ def verifyTraceparentInQuery(request: dns.message.Message):
     print(request)
     response = dns.message.make_response(request)
 
-    traceparent : dns.edns.Option|None = next((i for i in request.options if i.otype == 65500), None)
+    traceparent: dns.edns.Option | None = next(
+        (i for i in request.options if i.otype == 65500), None
+    )
 
     print(traceparent)
 
@@ -854,7 +856,6 @@ def verifyTraceparentInQuery(request: dns.message.Message):
 
     # technically wrong, as we include the TRACEPARENT in the response
     return response.to_wire()
-
 
 
 class TestOpenTelemetryTracingSendTraceparentDownstream(
@@ -880,7 +881,7 @@ query_rules:
    action:
      type: SetTrace
      value: true
-     downstream_edns_traceparent_option_code: 65500
+     send_downstream_traceparent: true
 """
 
     @classmethod
@@ -919,14 +920,12 @@ query_rules:
     def doQuery(self, useTCP=False):
         name = "query.ot.tests.powerdns.com."
 
-        query = dns.message.make_query(
-            name, "A", "IN", use_edns=True
-        )
+        query = dns.message.make_query(name, "A", "IN", use_edns=True)
 
         if useTCP:
-            (_, receivedResponse) = self.sendTCPQuery(query, response=None)
+            _, receivedResponse = self.sendTCPQuery(query, response=None)
         else:
-            (_, receivedResponse) = self.sendUDPQuery(query, response=None)
+            _, receivedResponse = self.sendUDPQuery(query, response=None)
 
         self.assertIsNotNone(receivedResponse)
         # If we stripped the OpenTelemetry Trace ID from the query, we should not get a SERVFAIL
@@ -937,6 +936,7 @@ query_rules:
 
     def testSetDownstreamTraceparentTCP(self):
         self.doQuery(True)
+
 
 class TestOpenTelemetryTracingSendTraceparentDownstreamLua(
     TestOpenTelemetryTracingSendTraceparentDownstream
@@ -952,6 +952,6 @@ getServer(0):setUp()
 rl = newRemoteLogger('127.0.0.1:%d')
 setOpenTelemetryTracing(true)
 
-addAction(AllRule(), SetTraceAction(true, {remoteLoggers={rl}, downstreamTraceparentOptionCode=65500}), {name="Enable tracing"})
+addAction(AllRule(), SetTraceAction(true, {remoteLoggers={rl}, sendDownstreamTraceparent=true}), {name="Enable tracing"})
 addResponseAction(AllRule(), RemoteLogResponseAction(rl), {name="Do PB logging"})
         """

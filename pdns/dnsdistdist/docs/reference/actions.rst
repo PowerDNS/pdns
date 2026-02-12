@@ -802,11 +802,11 @@ The following actions exist.
 
   Options:
 
-  * ``remoteLoggers``: A table of :func:`remoteLogger <newRemoteLogger>` objects to send the traces to. Note that these log messages are empty apart from the trace data.
+  * ``remoteLoggers``: A table of :func:`remoteLogger <newRemoteLogger>` objects to send the traces to. Note that these log messages will be empty, apart from the trace data.
   * ``useIncomingTraceparent``: boolean, default false. Use the information in the TRACEPARENT EDNS option (if any) from the query as the Trace ID and initial Span ID.
   * ``stripIncomingTraceparent``: boolean, default false. Remove the TRACEPARENT EDNS option from the DNS query so it is not passed to the backend server.
-  * ``incomingTraceparentOptionCode``: integer, default 65500. The EDNS option code for TRACEPARENT in the incoming query.
-  * ``downstreamTraceparentOptionCode``: integer, default unset. When set, a TRACEPARENT EDNS option is added to the downstream query with the active Trace ID and the last Span ID of the trace.
+  * ``traceparentOptionCode``: integer, default 65500. The EDNS option code for TRACEPARENT EDNS option.
+  * ``sendDownstreamTraceparent``: boolean, default false. When true, a TRACEPARENT EDNS option is added to the downstream query with the active Trace ID and the last Span ID of the trace.
 
 .. function:: SkipCacheAction()
 
