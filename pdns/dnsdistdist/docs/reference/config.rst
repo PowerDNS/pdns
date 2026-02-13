@@ -1858,7 +1858,7 @@ faster than the existing rules.
 
     .. versionadded:: 2.1.0
 
-    Adds a rate-limiting rule for the ratio of responses of with a code not present in ``rcodes`` over the total number of responses for a given client.
+    Adds a rate-limiting rule for the ratio of responses with a code not present in ``rcodes`` over the total number of responses for a given client.
 
     :param list of int rcodes: The response codes that are allowed and won't count towards the ratio
     :param float ratio: Ratio of responses per second with a not allowed rcode over the total number of responses for this client to exceed
