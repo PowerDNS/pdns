@@ -949,6 +949,28 @@ static uint32_t capPacketCacheTTL(const struct dnsheader& hdr, uint32_t ttl, boo
   return ttl;
 }
 
+static bool hasRelevantAnswerForQType(const std::vector<DNSRecord>& records, uint16_t qtype)
+{
+  for (const auto& record : records) {
+    if (record.d_place != DNSResourceRecord::ANSWER || record.d_type == QType::OPT || record.d_class != QClass::IN) {
+      continue;
+    }
+    if (qtype == QType::ANY) {
+      return true;
+    }
+    if (qtype == QType::ADDR) {
+      if (record.d_type == QType::A || record.d_type == QType::AAAA) {
+        return true;
+      }
+      continue;
+    }
+    if (record.d_type == qtype) {
+      return true;
+    }
+  }
+  return false;
+}
+
 static void addPolicyTagsToPBMessageIfNeeded(DNSComboWriter& comboWriter, pdns::ProtoZero::RecMessage& pbMessage)
 {
   /* we do _not_ want to store policy tags set by the gettag hook into the packet cache,
@@ -1573,16 +1595,32 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
     }
   sendit:;
 
-    if (g_useIncomingECS && comboWriter->d_ecsFound && !resolver.wasVariable() && !variableAnswer) {
+    if (g_useIncomingECS && g_returnIncomingECS && comboWriter->d_ecsFound) {
       EDNSSubnetOpts ednsOptions;
       ednsOptions.setSource(comboWriter->d_ednssubnet.getSource());
       ComboAddress sourceAddr;
       sourceAddr.reset();
       sourceAddr.sin4.sin_family = ednsOptions.getFamily();
-      ednsOptions.setScopePrefixLength(0);
+      uint8_t scope = 0;
+      if (const auto& answerScope = resolver.getAnswerECSScope(); answerScope) {
+        bool noData = false;
+        if (g_ECSScopeZeroOnNoRecord) {
+          const auto* hdr = packetWriter.getHeader();
+          noData = (hdr->rcode == RCode::NoError && !hasRelevantAnswerForQType(ret, comboWriter->d_mdp.d_qtype));
+        }
+        if (!g_ECSScopeZeroOnNoRecord || !noData) {
+          scope = *answerScope;
+        }
+      }
+      ednsOptions.setScopePrefixLength(scope);
       auto ecsPayload = ednsOptions.makeOptString();
 
-      // if we don't have enough space available let's just not set that scope of zero,
+      if (scope > 0) {
+        // Avoid packet cache for ECS-specific responses
+        variableAnswer = true;
+      }
+
+      // if we don't have enough space available let's just not add the ECS option,
       // it will prevent some caching, mostly from dnsdist, but that's fine
       if (packetWriter.size() < maxanswersize && (maxanswersize - packetWriter.size()) >= (EDNSOptionCodeSize + EDNSOptionLengthSize + ecsPayload.size())) {
 

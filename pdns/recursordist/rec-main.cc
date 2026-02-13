@@ -96,6 +96,7 @@ std::unique_ptr<nod::UniqueResponseDB> g_udrDBp;
 std::atomic<bool> statsWanted;
 uint32_t g_disthashseed;
 bool g_useIncomingECS;
+bool g_returnIncomingECS;
 static shared_ptr<NetmaskGroup> g_initialProxyProtocolACL;
 static shared_ptr<std::set<ComboAddress>> g_initialProxyProtocolExceptions;
 std::optional<ComboAddress> g_dns64Prefix{std::nullopt};
@@ -1842,6 +1843,8 @@ static int initSyncRes(Logr::log_t log)
   SyncRes::parseEDNSSubnetAllowlist(::arg()["edns-subnet-allow-list"]);
   SyncRes::parseEDNSSubnetAddFor(::arg()["ecs-add-for"]);
   g_useIncomingECS = ::arg().mustDo("use-incoming-edns-subnet");
+  g_returnIncomingECS = ::arg().mustDo("return-incoming-edns-subnet");
+  g_ECSScopeZeroOnNoRecord = ::arg().mustDo("ecs-scope-zero-on-no-record");
   SyncRes::s_outAnyToTcp = ::arg().mustDo("out-any-to-tcp");
   return 0;
 }

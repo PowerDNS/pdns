@@ -791,6 +791,7 @@ static LWResult::Result asyncresolve(const OptLog& log, const ComboAddress& addr
 #endif /* HAVE_FSTRM */
 
   lwr->d_records.clear();
+  lwr->d_ednsECScope.reset();
   try {
     lwr->d_tcbit = 0;
     MOADNSParser mdp(false, reinterpret_cast<const char*>(buf.data()), buf.size());
@@ -848,6 +849,7 @@ static LWResult::Result asyncresolve(const OptLog& log, const ComboAddress& addr
                               "incoming", Logging::Loggable(reso.getSource()));
               return LWResult::Result::Spoofed;
             }
+            lwr->d_ednsECScope = reso.getScopePrefixLength();
             /* rfc7871 states that 0 "indicate[s] that the answer is suitable for all addresses in FAMILY",
                so we might want to still pass the information along to be able to differentiate between
                IPv4 and IPv6. Still I'm pretty sure it doesn't matter in real life, so let's not duplicate

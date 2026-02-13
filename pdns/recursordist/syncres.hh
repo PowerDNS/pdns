@@ -26,6 +26,7 @@
 #include "dns.hh"
 #include "qtype.hh"
 #include <vector>
+#include <optional>
 #include <set>
 #include <unordered_set>
 #include <map>
@@ -443,6 +444,11 @@ public:
     return d_wasOutOfBand;
   }
 
+  const std::optional<uint8_t>& getAnswerECSScope() const
+  {
+    return d_answerECSScope;
+  }
+
   struct timeval getNow() const
   {
     return d_now;
@@ -713,6 +719,8 @@ private:
   size_t countSupportedDS(const dsset_t& dsSet, const string& prefix);
 
   void handleNewTarget(const std::string& prefix, const DNSName& qname, const DNSName& newtarget, QType qtype, std::vector<DNSRecord>& ret, int& rcode, unsigned int depth, const std::vector<DNSRecord>& recordsFromAnswer, vState& state);
+  void mergeAnswerECSScope(uint8_t scope);
+  void mergeAnswerECSScope(const std::optional<uint8_t>& scope);
 
   void handlePolicyHit(const std::string& prefix, const DNSName& qname, QType qtype, vector<DNSRecord>& ret, bool& done, int& rcode, unsigned int depth);
   unsigned int getAdjustedRecursionBound() const;
@@ -738,6 +746,7 @@ private:
   ostringstream d_trace;
   shared_ptr<RecursorLua4> d_pdl;
   std::optional<Netmask> d_outgoingECSNetwork;
+  std::optional<uint8_t> d_answerECSScope;
   std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>> d_outgoingProtobufServers;
   std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>> d_frameStreamServers;
   boost::optional<const boost::uuids::uuid&> d_initialRequestId;

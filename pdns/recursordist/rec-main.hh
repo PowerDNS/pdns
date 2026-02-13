@@ -228,6 +228,8 @@ extern thread_local std::unique_ptr<UDPClientSocks> t_udpclientsocks;
 extern thread_local std::shared_ptr<NetmaskGroup> t_proxyProtocolACL;
 extern thread_local std::shared_ptr<std::set<ComboAddress>> t_proxyProtocolExceptions;
 extern bool g_useIncomingECS;
+extern bool g_returnIncomingECS;
+extern bool g_ECSScopeZeroOnNoRecord;
 extern std::optional<ComboAddress> g_dns64Prefix;
 extern DNSName g_dns64PrefixReverse;
 extern uint64_t g_latencyStatSize;
