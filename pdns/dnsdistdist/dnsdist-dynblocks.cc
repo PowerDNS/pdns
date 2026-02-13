@@ -121,7 +121,6 @@ void DynBlockRulesGroup::apply(const timespec& now)
       addBlock(blocks, now, requestor, d_allowedRCodesRatioRule, updated);
       continue;
     }
-
   }
 
   if (updated && blocks) {
