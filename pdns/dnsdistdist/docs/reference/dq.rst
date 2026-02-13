@@ -441,6 +441,15 @@ This state can be modified from the various hooks.
     :param int queryID: A numeric identifier used to identify the suspended query for later retrieval. This ID does not have to match the query ID present in the initial DNS header. A given (asyncID, queryID) tuple should be unique at a given time. Valid values range from 0 to 65535, both included.
     :param int timeoutMS: The maximum duration this query will be kept in the asynchronous holder before being automatically resumed,  in milliseconds.
 
+  .. method:: DNSQuestion:unsetTag(key)
+
+    .. versionadded:: 2.1.0
+
+    Remove a tag from the DNSQuestion object.
+
+    :param string key: The tag's key
+
+
 .. _DNSResponse:
 
 DNSResponse object

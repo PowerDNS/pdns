@@ -1012,3 +1012,21 @@ The following actions exist.
   Subsequent rules are processed after this action.
 
   :param int ttl: Cache TTL for temporary failure replies
+
+.. function:: UnsetTagAction(name)
+
+  .. versionadded:: 2.1.0
+
+  Remove a tag named ``name``.
+  Subsequent rules are processed after this action.
+
+  :param string name: The name of the tag to set
+
+.. function:: UnsetTagResponseAction(name)
+
+  .. versionadded:: 2.1.0
+
+  Remove a tag named ``name``.
+  Subsequent rules are processed after this action.
+
+  :param string name: The name of the tag to set
