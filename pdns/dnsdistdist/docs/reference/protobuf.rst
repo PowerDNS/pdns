@@ -18,7 +18,7 @@ Protobuf Logging Reference
 
   This object represents a single protobuf message as emitted by :program:`dnsdist`.
 
-  .. method:: DNSDistProtoBufMessage:addResponseRR(name, type, class, ttl, blob)
+  .. method:: addResponseRR(name, type, class, ttl, blob)
 
     Add a response RR to the protobuf message.
 
@@ -28,26 +28,26 @@ Protobuf Logging Reference
     :param int ttl: The RR TTL.
     :param string blob: The RR binary content.
 
-  .. method:: DNSDistProtoBufMessage:setBytes(bytes)
+  .. method:: setBytes(bytes)
 
     Set the size of the query
 
     :param int bytes: Number of bytes in the query.
 
-  .. method:: DNSDistProtoBufMessage:setEDNSSubnet(netmask)
+  .. method:: setEDNSSubnet(netmask)
 
     Set the EDNS Subnet to ``netmask``.
 
     :param string netmask: The netmask to set to.
 
-  .. method:: DNSDistProtoBufMessage:setQueryTime(sec, usec)
+  .. method:: setQueryTime(sec, usec)
 
     In a response message, set the time at which the query has been received.
 
     :param int sec: Unix timestamp when the query was received.
     :param int usec: The microsecond the query was received.
 
-  .. method:: DNSDistProtoBufMessage:setQuestion(name, qtype, qclass)
+  .. method:: setQuestion(name, qtype, qclass)
 
     Set the question in the protobuf message.
 
@@ -55,14 +55,14 @@ Protobuf Logging Reference
     :param int qtype: The qtype of the question
     :param int qclass: The qclass of the question
 
-  .. method:: DNSDistProtoBufMessage:setProtobufResponseType(sec, usec)
+  .. method:: setProtobufResponseType(sec, usec)
 
     Change the protobuf response type from a query to a response, and optionally set the query time.
 
     :param int sec: Optional query time in seconds.
     :param int usec: Optional query time in additional micro-seconds.
 
-  .. method:: DNSDistProtoBufMessage:setRequestor(address [, port])
+  .. method:: setRequestor(address [, port])
 
     .. versionchanged:: 1.5.0
       ``port`` optional parameter added.
@@ -72,7 +72,7 @@ Protobuf Logging Reference
     :param ComboAddress address: The address to set to
     :param int port: The requestor source port
 
-  .. method:: DNSDistProtoBufMessage:setRequestorFromString(address [, port])
+  .. method:: setRequestorFromString(address [, port])
 
     .. versionchanged:: 1.5.0
       ``port`` optional parameter added.
@@ -82,7 +82,7 @@ Protobuf Logging Reference
     :param string address: The address to set to
     :param int port: The requestor source port
 
-  .. method:: DNSDistProtoBufMessage:setResponder(address [, port])
+  .. method:: setResponder(address [, port])
 
     .. versionchanged:: 1.5.0
       ``port`` optional parameter added.
@@ -92,7 +92,7 @@ Protobuf Logging Reference
     :param ComboAddress address: The address to set to
     :param int port: The responder port
 
-  .. method:: DNSDistProtoBufMessage:setResponderFromString(address [, port])
+  .. method:: setResponderFromString(address [, port])
 
     .. versionchanged:: 1.5.0
       ``port`` optional parameter added.
@@ -102,37 +102,37 @@ Protobuf Logging Reference
     :param string address: The address to set to
     :param int port: The responder port
 
-  .. method:: DNSDistProtoBufMessage:setResponseCode(rcode)
+  .. method:: setResponseCode(rcode)
 
     Set the response code of the query.
 
     :param int rcode: The response code of the answer
 
-  .. method:: DNSDistProtoBufMessage:setServerIdentity(id)
+  .. method:: setServerIdentity(id)
 
     Set the server identify field.
 
     :param string id: The server ID
 
-  .. method:: DNSDistProtoBufMessage:setTag(value)
+  .. method:: setTag(value)
 
     Add a tag to the list of tags.
 
     :param string value: The tag value
 
-  .. method:: DNSDistProtoBufMessage:setTagArray(valueList)
+  .. method:: setTagArray(valueList)
 
     Add a list of tags.
 
     :param table tags: A list of tags as strings
 
-  .. method:: DNSDistProtoBufMessage:setTime(sec, usec)
+  .. method:: setTime(sec, usec)
 
     Set the time at which the query or response has been received.
 
     :param int sec: Unix timestamp when the query was received.
     :param int usec: The microsecond the query was received.
 
-  .. method:: DNSDistProtoBufMessage:toDebugString() -> string
+  .. method:: toDebugString() -> string
 
     Return a string containing the content of the message
