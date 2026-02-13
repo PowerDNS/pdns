@@ -70,20 +70,20 @@ These are all the functions, objects and methods related to the :doc:`../advance
 
   Represents an eBPF filter
 
-  .. method:: BPFFilter:attachToAllBinds()
+  .. method:: attachToAllBinds()
 
     Attach this filter to every bind already defined.
     This is the run-time equivalent of :func:`setDefaultBPFFilter`.
     This method can be used at run-time only.
 
 
-  .. method:: BPFFilter:block(address)
+  .. method:: block(address)
 
     Block this address
 
     :param ComboAddress address: The address to block
 
-  .. method:: BPFFilter:addRangeRule(Netmask , action [, force=false])
+  .. method:: addRangeRule(Netmask , action [, force=false])
 
     .. versionadded:: 1.8.0
 
@@ -95,7 +95,7 @@ These are all the functions, objects and methods related to the :doc:`../advance
     :param int action: set ``action``  to ``0`` to allow a range, set ``action`` to ``1`` to block a range, set ``action`` to ``2`` to truncate a range.
     :param bool force: When ``force`` is set to true, DNSDist always accepts adding a new item to BPF maps, even if the item to be added may already be included in the larger network range.
 
-  .. method:: BPFFilter:blockQName(name [, qtype=65535])
+  .. method:: blockQName(name [, qtype=65535])
 
   .. versionchanged:: 2.0.0
     Before 2.0.0 the value used to block queries for all types was 255. It also used to be the default value. This was changed because it prevented blocking only queries for the ``ANY`` (255) qtype.
@@ -105,29 +105,29 @@ These are all the functions, objects and methods related to the :doc:`../advance
     :param DNSName name: The name to block
     :param int qtype: QType to block
 
-  .. method:: BPFFilter:getStats()
+  .. method:: getStats()
 
     Print the block tables.
 
-  .. method:: BPFFilter:unblock(address)
+  .. method:: unblock(address)
 
     Unblock this address.
 
     :param ComboAddress address: The address to unblock
 
-  .. method:: BPFFilter:rmRangeRule(Netmask)
+  .. method:: rmRangeRule(Netmask)
 
     .. versionadded:: 1.8.0
 
     :param Netmask string: The rule you want to remove
 
-  .. method:: BPFFilter:lsRangeRule()
+  .. method:: lsRangeRule()
 
     .. versionadded:: 1.8.0
 
     List all range rule.
 
-  .. method:: BPFFilter:unblockQName(name [, qtype=65535])
+  .. method:: unblockQName(name [, qtype=65535])
 
   .. versionchanged:: 2.0.0
     Before 2.0.0 the value used to block queries for all types was 255. It also used to be the default value. This was changed because it prevented blocking only queries for the ``ANY`` (255) qtype.
@@ -141,17 +141,17 @@ These are all the functions, objects and methods related to the :doc:`../advance
 
   Represents a dynamic eBPF filter, allowing the use of ephemeral rules to an existing eBPF filter. Note that since 1.6.0 the default BPF filter set via :func:`setDefaultBPFFilter` will automatically be used by a :ref:`DynBlockRulesGroup`, becoming the preferred way of dealing with ephemeral rules.
 
-  .. method:: DynBPFFilter:purgeExpired()
+  .. method:: purgeExpired()
 
     Remove the expired ephemeral rules associated with this filter.
 
-  .. method:: DynBPFFilter:excludeRange(netmasks)
+  .. method:: excludeRange(netmasks)
 
     Exclude this range, or list of ranges, meaning that no dynamic block will ever be inserted for clients in that range. Default to empty, meaning rules are applied to all ranges. When used in combination with :meth:`DynBPFFilter:includeRange`, the more specific entry wins.
 
     :param str or list of str netmasks: A netmask, or list of netmasks, as strings, like for example "192.0.2.1/24"
 
-  .. method:: DynBPFFilter:includeRange(netmasks)
+  .. method:: includeRange(netmasks)
 
     Include this range, or list of ranges, meaning that rules will be applied to this range. When used in combination with :meth:`DynBPFFilter:excludeRange`, the more specific entry wins.
 

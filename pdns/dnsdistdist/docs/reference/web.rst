@@ -7,31 +7,31 @@ Webserver-related objects
 
   Represent a HTTP query, whose attributes are read-only.
 
-  .. attribute:: WebRequest.body
+  .. attribute:: body
 
     The body of this query, as a string.
 
-  .. attribute:: WebRequest.getvars
+  .. attribute:: getvars
 
     The GET parameters of this query, as a table whose keys and values are strings.
 
-  .. attribute:: WebRequest.headers
+  .. attribute:: headers
 
     The HTTP headers of this query, as a table whose keys and values are strings.
 
-  .. attribute:: WebRequest.method
+  .. attribute:: method
 
     The method of this query, as a string.
 
-  .. attribute:: WebRequest.path
+  .. attribute:: path
 
     The path of this query, as a string.
 
-  .. attribute:: WebRequest.postvars
+  .. attribute:: postvars
 
     The POST parameters of this query, as a table whose keys and values are strings.
 
-  .. attribute:: WebRequest.version
+  .. attribute:: version
 
     The HTTP version of this query, as an integer.
 
@@ -39,14 +39,14 @@ Webserver-related objects
 
   Represent a HTTP response.
 
-  .. attribute:: WebResponse.body
+  .. attribute:: body
 
     The body of this response, as a string.
 
-  .. attribute:: WebResponse.headers
+  .. attribute:: headers
 
     The HTTP headers of this response, as a table whose keys and values are strings.
 
-  .. attribute:: WebResponse.status
+  .. attribute:: status
 
     The HTTP status code of this response, as an integer.

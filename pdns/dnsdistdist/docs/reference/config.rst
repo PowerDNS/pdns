@@ -997,29 +997,29 @@ Servers that are not assigned to a specific pool get assigned to the default poo
 
   This represents the pool where zero or more servers are part of.
 
-  .. method:: ServerPool:getCache() -> PacketCache
+  .. method:: getCache() -> PacketCache
 
     Returns the :class:`PacketCache` for this pool or nil.
 
-  .. method:: ServerPool:getZeroScope()
+  .. method:: getZeroScope()
 
     .. versionadded:: 2.1.0
 
     Whether dnsdist will enable the EDNS Client Subnet :doc:`../advanced/zero-scope` feature when looking up into the cache,
     when all servers from this pool are down.
 
-  .. method:: ServerPool:getECS()
+  .. method:: getECS()
 
     Whether dnsdist will add EDNS Client Subnet information to the query before looking up into the cache,
     when all servers from this pool are down. For more information see :meth:`ServerPool:setECS`.
 
-  .. method:: ServerPool:setCache(cache)
+  .. method:: setCache(cache)
 
     Adds ``cache`` as the pool's cache.
 
     :param PacketCache cache: The new cache to add to the pool
 
-  .. method:: ServerPool:setZeroScope(enabled)
+  .. method:: setZeroScope(enabled)
 
     .. versionadded:: 2.1.0
 
@@ -1028,7 +1028,7 @@ Servers that are not assigned to a specific pool get assigned to the default poo
 
     :param bool enabled: Whether to enable the zero scope feature for this pool
 
-  .. method:: ServerPool:setECS()
+  .. method:: setECS()
 
     Set to true if dnsdist should add EDNS Client Subnet information to the query before looking up into the cache,
     when all servers from this pool are down. If at least one server is up, the preference of the
@@ -1036,7 +1036,7 @@ Servers that are not assigned to a specific pool get assigned to the default poo
     and have EDNS Client Subnet enabled, since the queries in the cache will have been inserted with
     ECS information. Default is false.
 
-  .. method:: ServerPool:unsetCache()
+  .. method:: unsetCache()
 
     Removes the cache from this pool.
 
@@ -1113,7 +1113,7 @@ See :doc:`../guides/cache` for a how to.
 
   Represents a cache that can be part of :class:`ServerPool`.
 
-  .. method:: PacketCache:dump(fname [, rawResponse=false])
+  .. method:: dump(fname [, rawResponse=false])
 
     .. versionchanged:: 2.0.0
       ``rawResponse`` added
@@ -1123,13 +1123,13 @@ See :doc:`../guides/cache` for a how to.
     :param str fname: The path to a file where the cache summary should be dumped. Note that if the target file already exists, it will not be overwritten.
     :param bool rawResponse: Dump the raw packet response encoded with base64.
 
-  .. method:: PacketCache:expunge(n)
+  .. method:: expunge(n)
 
     Remove entries from the cache, leaving at most ``n`` entries
 
     :param int n: Number of entries to keep
 
-  .. method:: PacketCache:expungeByName(name [, qtype=DNSQType.ANY[, suffixMatch=false]])
+  .. method:: expungeByName(name [, qtype=DNSQType.ANY[, suffixMatch=false]])
 
     .. versionchanged:: 1.6.0
       ``name`` can now also be a string
@@ -1140,7 +1140,7 @@ See :doc:`../guides/cache` for a how to.
     :param int qtype: The type to expunge, can be a pre-defined :ref:`DNSQType`
     :param bool suffixMatch: When set to true, remove all entries under ``name``
 
-  .. method:: PacketCache:getAddressListByDomain(domain)
+  .. method:: getAddressListByDomain(domain)
 
     .. versionadded:: 1.8.0
 
@@ -1148,7 +1148,7 @@ See :doc:`../guides/cache` for a how to.
 
     :param DNSName domain: The domain to look for
 
-  .. method:: PacketCache:getDomainListByAddress(addr)
+  .. method:: getDomainListByAddress(addr)
 
     .. versionadded:: 1.8.0
 
@@ -1156,27 +1156,27 @@ See :doc:`../guides/cache` for a how to.
 
     :param ComboAddress addr: The address to look for
 
-  .. method:: PacketCache:getStats()
+  .. method:: getStats()
 
     .. versionadded:: 1.4.0
 
     Return the cache stats (number of entries, hits, misses, deferred lookups, deferred inserts, lookup collisions, insert collisions and TTL too shorts) as a Lua table.
 
-  .. method:: PacketCache:isFull() -> bool
+  .. method:: isFull() -> bool
 
     Return true if the cache has reached the maximum number of entries.
 
-  .. method:: PacketCache:printStats()
+  .. method:: printStats()
 
     Print the cache stats (number of entries, hits, misses, deferred lookups, deferred inserts, lookup collisions, insert collisions and TTL too shorts).
 
-  .. method:: PacketCache:purgeExpired(n)
+  .. method:: purgeExpired(n)
 
     Remove expired entries from the cache until there is at most ``n`` entries remaining in the cache.
 
     :param int n: Number of entries to keep
 
-  .. method:: PacketCache:toString() -> string
+  .. method:: toString() -> string
 
     Return the number of entries in the Packet Cache, and the maximum number of entries
 
@@ -1204,41 +1204,41 @@ ClientState functions
 
   This object represents an address and port dnsdist is listening on. When ``reuseport`` is in use, several ClientState objects can be present for the same address and port.
 
-  .. method:: ClientState:attachFilter(filter)
+  .. method:: attachFilter(filter)
 
      Attach a BPF filter to this frontend.
 
      :param BPFFilter filter: The filter to attach to this frontend
 
-  .. method:: ClientState:detachFilter()
+  .. method:: detachFilter()
 
      Remove the BPF filter associated to this frontend, if any.
 
-  .. method:: ClientState:getEffectiveTLSProvider() -> string
+  .. method:: getEffectiveTLSProvider() -> string
 
     .. versionadded:: 1.7.0
 
     Return the name of the TLS provider actually used.
 
-  .. method:: ClientState:getRequestedTLSProvider() -> string
+  .. method:: getRequestedTLSProvider() -> string
 
     .. versionadded:: 1.7.0
 
     Return the name of the TLS provider requested in the configuration.
 
-  .. method:: ClientState:getType() -> string
+  .. method:: getType() -> string
 
     .. versionadded:: 1.7.0
 
     Return the type of the frontend: UDP, UDP (DNSCrypt), TCP, TCP (DNSCrypt), TCP (DNS over TLS) or TCP (DNS over HTTPS).
 
-  .. method:: ClientState:toString() -> string
+  .. method:: toString() -> string
 
     Return the address and port this frontend is listening on.
 
     :returns: The address and port this frontend is listening on
 
-  .. attribute:: ClientState.muted
+  .. attribute:: muted
 
     If set to true, queries received on this frontend will be normally processed and sent to a backend if needed, but no response will be ever be sent to the client over UDP. TCP queries are processed normally and responses sent to the client.
 
@@ -1768,31 +1768,31 @@ Dynamic Blocks
 
   Represent the current state of a dynamic block.
 
-  .. attribute:: DynBlock.action
+  .. attribute:: action
 
     The action of this block, as an integer representing a :ref:`DNSAction <DNSAction>`.
 
-  .. attribute:: DynBlock.blocks
+  .. attribute:: blocks
 
     The number of queries blocked.
 
-  .. attribute:: DynBlock.bpf
+  .. attribute:: bpf
 
     Whether this block is using eBPF, as a boolean.
 
-  .. attribute:: DynBlock.domain
+  .. attribute:: domain
 
     The domain that is blocked, as a string, for Suffix Match Tree blocks.
 
-  .. attribute:: DynBlock.reason
+  .. attribute:: reason
 
     The reason why this block was inserted, as a string.
 
-  .. attribute:: DynBlock.until
+  .. attribute:: until
 
     The time (in seconds since Epoch) at which the block will expire.
 
-  .. attribute:: DynBlock.warning
+  .. attribute:: warning
 
     Whether this block is only a warning one (true) or is really enforced (false).
 
@@ -1875,7 +1875,7 @@ faster than the existing rules.
     * ``tagName``: str - If ``action`` is set to ``DNSAction.SetTag``, the name of the tag that will be set
     * ``tagValue``: str - If ``action`` is set to ``DNSAction.SetTag``, the value of the tag that will be set. Default is an empty string
 
-  .. method:: DynBlockRulesGroup:setCacheMissRatio(ratio, seconds, reason, blockingTime, minimumNumberOfResponses, minimumGlobalCacheHitRatio, [, action [, warningRate, [options]]])
+  .. method:: setCacheMissRatio(ratio, seconds, reason, blockingTime, minimumNumberOfResponses, minimumGlobalCacheHitRatio, [, action [, warningRate, [options]]])
 
     .. versionadded:: 1.9.0
 
@@ -1900,7 +1900,7 @@ faster than the existing rules.
     * ``tagName``: str - If ``action`` is set to ``DNSAction.SetTag``, the name of the tag that will be set
     * ``tagValue``: str - If ``action`` is set to ``DNSAction.SetTag``, the value of the tag that will be set. Default is an empty string.
 
-  .. method:: DynBlockRulesGroup:setMasks(v4, v6, port)
+  .. method:: setMasks(v4, v6, port)
 
     .. versionadded:: 1.7.0
 
@@ -1918,7 +1918,7 @@ faster than the existing rules.
     :param int v6: Number of bits to keep for IPv6 addresses. Default is 128
     :param int port: Number of bits of port to consider over IPv4. Default is 0 meaning that the port is not taken into account
 
-  .. method:: DynBlockRulesGroup:setQueryRate(rate, seconds, reason, blockingTime [, action [, warningRate, [options]]])
+  .. method:: setQueryRate(rate, seconds, reason, blockingTime [, action [, warningRate, [options]]])
 
     .. versionchanged:: 2.0.0
       ``options`` optional parameter added
@@ -1941,7 +1941,7 @@ faster than the existing rules.
     * ``tagName``: str - If ``action`` is set to ``DNSAction.SetTag``, the name of the tag that will be set
     * ``tagValue``: str - If ``action`` is set to ``DNSAction.SetTag``, the value of the tag that will be set. Default is an empty string
 
-  .. method:: DynBlockRulesGroup:setNewBlockInsertedHook(hook)
+  .. method:: setNewBlockInsertedHook(hook)
 
     .. versionadded:: 1.9.0
 
@@ -1954,7 +1954,7 @@ faster than the existing rules.
     * the duration of the block in seconds
     * whether this is a warning block (true) or not (false)
 
-  .. method:: DynBlockRulesGroup:setRCodeRate(rcode, rate, seconds, reason, blockingTime [, action [, warningRate, [options]]])
+  .. method:: setRCodeRate(rcode, rate, seconds, reason, blockingTime [, action [, warningRate, [options]]])
 
     .. versionadded:: 2.0.0
       ``options`` optional parameter added
@@ -1981,7 +1981,7 @@ faster than the existing rules.
     * ``tagName``: str - If ``action`` is set to ``DNSAction.SetTag``, the name of the tag that will be set
     * ``tagValue``: str - If ``action`` is set to ``DNSAction.SetTag``, the value of the tag that will be set. Default is an empty string
 
-  .. method:: DynBlockRulesGroup:setRCodeRatio(rcode, ratio, seconds, reason, blockingTime, minimumNumberOfResponses [, action [, warningRate, [options]]])
+  .. method:: setRCodeRatio(rcode, ratio, seconds, reason, blockingTime, minimumNumberOfResponses [, action [, warningRate, [options]]])
 
     .. versionadded:: 1.5.0
 
@@ -2008,7 +2008,7 @@ faster than the existing rules.
     * ``tagName``: str - If ``action`` is set to ``DNSAction.SetTag``, the name of the tag that will be set
     * ``tagValue``: str - If ``action`` is set to ``DNSAction.SetTag``, the value of the tag that will be set. Default is an empty string
 
-  .. method:: DynBlockRulesGroup:setQTypeRate(qtype, rate, seconds, reason, blockingTime [, action [, warningRate, [options]]])
+  .. method:: setQTypeRate(qtype, rate, seconds, reason, blockingTime [, action [, warningRate, [options]]])
 
     .. versionadded:: 2.0.0
       ``options`` optional parameter added
@@ -2032,7 +2032,7 @@ faster than the existing rules.
     * ``tagName``: str - If ``action`` is set to ``DNSAction.SetTag``, the name of the tag that will be set
     * ``tagValue``: str - If ``action`` is set to ``DNSAction.SetTag``, the value of the tag that will be set. Default is an empty string
 
-  .. method:: DynBlockRulesGroup:setResponseByteRate(rate, seconds, reason, blockingTime [, action [, warningRate, [options]]])
+  .. method:: setResponseByteRate(rate, seconds, reason, blockingTime [, action [, warningRate, [options]]])
 
     .. versionadded:: 2.0.0
       ``options`` optional parameter added
@@ -2058,7 +2058,7 @@ faster than the existing rules.
     * ``tagName``: str - If ``action`` is set to ``DNSAction.SetTag``, the name of the tag that will be set
     * ``tagValue``: str - If ``action`` is set to ``DNSAction.SetTag``, the value of the tag that will be set. Default is an empty string
 
-  .. method:: DynBlockRulesGroup:setSuffixMatchRule(seconds, reason, blockingTime, action, visitor, [options])
+  .. method:: setSuffixMatchRule(seconds, reason, blockingTime, action, visitor, [options])
 
     .. versionadded:: 1.4.0
 
@@ -2090,7 +2090,7 @@ faster than the existing rules.
     * ``tagName``: str - If ``action`` is set to ``DNSAction.SetTag``, the name of the tag that will be set
     * ``tagValue``: str - If ``action`` is set to ``DNSAction.SetTag``, the value of the tag that will be set. Default is an empty string
 
-  .. method:: DynBlockRulesGroup:setSuffixMatchRuleFFI(seconds, reason, blockingTime, action , visitor, [options])
+  .. method:: setSuffixMatchRuleFFI(seconds, reason, blockingTime, action , visitor, [options])
 
     .. versionadded:: 1.4.0
 
@@ -2113,11 +2113,11 @@ faster than the existing rules.
     * ``tagName``: str - If ``action`` is set to ``DNSAction.SetTag``, the name of the tag that will be set
     * ``tagValue``: str - If ``action`` is set to ``DNSAction.SetTag``, the value of the tag that will be set. Default is an empty string
 
-  .. method:: DynBlockRulesGroup:apply()
+  .. method:: apply()
 
     Walk the in-memory query and response ring buffers and apply the configured rate-limiting rules, adding dynamic blocks when the limits have been exceeded.
 
-  .. method:: DynBlockRulesGroup:setQuiet(quiet)
+  .. method:: setQuiet(quiet)
 
     .. versionadded:: 1.4.0
 
@@ -2125,7 +2125,7 @@ faster than the existing rules.
 
     :param bool quiet: True means that insertions will not be logged, false that they will. Default is false.
 
-  .. method:: DynBlockRulesGroup:excludeDomains(domains)
+  .. method:: excludeDomains(domains)
 
     .. versionadded:: 1.4.0
 
@@ -2133,7 +2133,7 @@ faster than the existing rules.
 
     :param str domain: A domain, or list of domains, as strings, like for example "powerdns.com"
 
-  .. method:: DynBlockRulesGroup:excludeRange(netmasks)
+  .. method:: excludeRange(netmasks)
 
     .. versionchanged:: 1.6.0
       This method now accepts a :class:`NetmaskGroup` object.
@@ -2142,7 +2142,7 @@ faster than the existing rules.
 
     :param list netmasks: A :class:`NetmaskGroup` object, or a netmask or list of netmasks as strings, like for example "192.0.2.1/24"
 
-  .. method:: DynBlockRulesGroup:includeRange(netmasks)
+  .. method:: includeRange(netmasks)
 
     .. versionchanged:: 1.6.0
       This method now accepts a :class:`NetmaskGroup` object.
@@ -2151,7 +2151,7 @@ faster than the existing rules.
 
     :param list netmasks: A :class:`NetmaskGroup` object, or a netmask or list of netmasks as strings, like for example "192.0.2.1/24"
 
-  .. method:: DynBlockRulesGroup:removeRange(netmasks)
+  .. method:: removeRange(netmasks)
 
     .. versionadded:: 1.8.3
 
@@ -2159,7 +2159,7 @@ faster than the existing rules.
 
     :param list netmasks: A :class:`NetmaskGroup` object, or a netmask or list of netmasks as strings, like for example "192.0.2.1/24"
 
-  .. method:: DynBlockRulesGroup:toString()
+  .. method:: toString()
 
     Return a string describing the rules and range exclusions of this DynBlockRulesGroup.
 
@@ -2170,15 +2170,15 @@ StatNode
 
   Represent a given node, for the visitor functions used with :meth:`DynBlockRulesGroup:setSuffixMatchRule` and :meth:`DynBlockRulesGroup:setSuffixMatchRuleFFI`.
 
-  .. attribute:: StatNode.fullname
+  .. attribute:: fullname
 
     The complete name of that node, ie 'www.powerdns.com.'.
 
-  .. attribute:: StatNode.labelsCount
+  .. attribute:: labelsCount
 
     The number of labels in that node, for example 3 for 'www.powerdns.com.'.
 
-  .. method:: StatNode:numChildren
+  .. method:: numChildren
 
     The number of children of that node.
 
@@ -2186,33 +2186,33 @@ StatNode
 
   Represent the metrics for a given node, for the visitor functions used with :meth:`DynBlockRulesGroup:setSuffixMatchRule` and :meth:`DynBlockRulesGroup:setSuffixMatchRuleFFI`.
 
-  .. attribute:: StatNodeStats.bytes
+  .. attribute:: bytes
 
     The number of bytes for all responses returned for that node.
 
-  .. attribute:: StatNodeStats.drops
+  .. attribute:: drops
 
     The number of drops for that node.
 
-  .. attribute:: StatNodeStats.noerrors
+  .. attribute:: noerrors
 
     The number of No Error answers returned for that node.
 
-  .. attribute:: StatNodeStats.hits
+  .. attribute:: hits
 
     .. versionadded:: 1.8.0
 
     The number of cache hits for that node.
 
-  .. attribute:: StatNodeStats.nxdomains
+  .. attribute:: nxdomains
 
     The number of NXDomain answers returned for that node.
 
-  .. attribute:: StatNodeStats.queries
+  .. attribute:: queries
 
     The number of queries for that node.
 
-  .. attribute:: StatNodeStats.servfails
+  .. attribute:: servfails
 
     The number of Server Failure answers returned for that node.
 
@@ -2233,7 +2233,7 @@ If you are looking for exact name matching, your might want to consider using a 
 
   Represent a set of DNS suffixes for quick matching.
 
-  .. method:: SuffixMatchNode:add(name)
+  .. method:: add(name)
 
     .. versionchanged:: 1.4.0
       This method now accepts strings, lists of DNSNames and lists of strings.
@@ -2244,13 +2244,13 @@ If you are looking for exact name matching, your might want to consider using a 
     :param string name: The suffix to add to the set.
     :param table name: The suffixes to add to the set. Elements of the table should be of the same type, either DNSName or string.
 
-  .. method:: SuffixMatchNode:check(name) -> bool
+  .. method:: check(name) -> bool
 
     Return true if the given name is a sub-domain of one of those in the set, and false otherwise.
 
     :param DNSName name: The name to test against the set.
 
-  .. method:: SuffixMatchNode:getBestMatch(name) -> DNSName
+  .. method:: getBestMatch(name) -> DNSName
 
     .. versionadded:: 1.8.0
 
@@ -2258,7 +2258,7 @@ If you are looking for exact name matching, your might want to consider using a 
 
     :param DNSName name: The name to look up.
 
-  .. method:: SuffixMatchNode:remove(name)
+  .. method:: remove(name)
 
     .. versionadded:: 1.5.0
 
@@ -2546,13 +2546,13 @@ DOHFrontend
 
   This object represents an address and port dnsdist is listening on for DNS over HTTPS queries.
 
-  .. method:: DOHFrontend:getAddressAndPort() -> string
+  .. method:: getAddressAndPort() -> string
 
      .. versionadded:: 1.7.1
 
      Return the address and port this frontend is listening on.
 
-  .. method:: DOHFrontend:loadNewCertificatesAndKeys(certFile(s), keyFile(s))
+  .. method:: loadNewCertificatesAndKeys(certFile(s), keyFile(s))
 
      .. versionadded:: 1.6.1
 
@@ -2562,28 +2562,28 @@ DOHFrontend
      :param str certFile(s): The path to a X.509 certificate file in PEM format, a list of paths to such files, or a TLSCertificate object.
      :param str keyFile(s): The path to the private key file corresponding to the certificate, or a list of paths to such files, whose order should match the certFile(s) ones. Ignored if ``certFile`` contains TLSCertificate objects.
 
-  .. method:: DOHFrontend:loadTicketsKeys(ticketsKeysFile)
+  .. method:: loadTicketsKeys(ticketsKeysFile)
 
      Load new tickets keys from the selected file, replacing the existing ones. These keys should be rotated often and never written to persistent storage to preserve forward secrecy. The default is to generate a random key. dnsdist supports several tickets keys to be able to decrypt existing sessions after the rotation.
      See :doc:`../advanced/tls-sessions-management` for more information.
 
     :param str ticketsKeysFile: The path to a file from where TLS tickets keys should be loaded.
 
-  .. method:: DOHFrontend:loadTicketsKey(key)
+  .. method:: loadTicketsKey(key)
 
      Load a new TLS tickets key.
 
      :param str key: the new raw TLS tickets key to load.
 
-  .. method:: DOHFrontend:reloadCertificates()
+  .. method:: reloadCertificates()
 
      Reload the current TLS certificate and key pairs.
 
-  .. method:: DOHFrontend:rotateTicketsKey()
+  .. method:: rotateTicketsKey()
 
      Replace the current TLS tickets key by a new random one.
 
-  .. method:: DOHFrontend:setResponsesMap(rules)
+  .. method:: setResponsesMap(rules)
 
      Set a list of HTTP response rules allowing to intercept HTTP queries very early, before the DNS payload has been processed, and send custom responses including error pages, redirects and static content.
 
@@ -2611,7 +2611,7 @@ DOH3Frontend
 
   This object represents an address and port dnsdist is listening on for DNS over HTTP3 queries.
 
-  .. method:: DOH3Frontend:reloadCertificates()
+  .. method:: reloadCertificates()
 
      Reload the current TLS certificate and key pairs.
 
@@ -2624,7 +2624,7 @@ DOQFrontend
 
   This object represents an address and port dnsdist is listening on for DNS over QUIC queries.
 
-  .. method:: DOQFrontend:reloadCertificates()
+  .. method:: reloadCertificates()
 
      Reload the current TLS certificate and key pairs.
 
@@ -2637,47 +2637,47 @@ LuaRingEntry
 
   This object represents an entry from the in-memory ring buffers, query or response.
 
-  .. attribute:: LuaRingEntry.backend
+  .. attribute:: backend
 
     If this entry is a response, the backend from which it has been received as a :ref:`ComboAddress`.
 
-.. attribute:: LuaRingEntry.dnsheader
+.. attribute:: dnsheader
 
     The :ref:`DNSHeader` of this entry.
 
-  .. attribute:: LuaRingEntry.isResponse
+  .. attribute:: isResponse
 
     Whether this entry is a response (true) or a request (false).
 
-  .. attribute:: LuaRingEntry.macAddress
+  .. attribute:: macAddress
 
     The MAC address of the client as a string, if available.
 
-  .. attribute:: LuaRingEntry.protocol
+  .. attribute:: protocol
 
     The protocol (Do53 UDP, Do53 TCP, DoT, DoH, ...) over which this entry was received, as a string.
 
-  .. attribute:: LuaRingEntry.qname
+  .. attribute:: qname
 
     The qname of this entry as a :ref:`DNSName`.
 
-  .. attribute:: LuaRingEntry.qtype
+  .. attribute:: qtype
 
     The qtype of this entry as an integer.
 
-  .. attribute:: LuaRingEntry.requestor
+  .. attribute:: requestor
 
     The requestor (client IP) of this entry as a :ref:`ComboAddress`.
 
-  .. attribute:: LuaRingEntry.size
+  .. attribute:: size
 
     The size of the DNS payload of that entry, in bytes.
 
-.. attribute:: LuaRingEntry.usec
+.. attribute:: usec
 
     The response time (elapsed time between the request was received and the response sent) in milliseconds.
 
-.. attribute:: LuaRingEntry.when
+.. attribute:: when
 
     The timestamp of this entry, as a :ref:`timespec`.
 
@@ -2717,14 +2717,14 @@ TLSContext
 
   This object represents an address and port dnsdist is listening on for DNS over TLS queries.
 
-  .. method:: TLSContext:loadTicketsKeys(ticketsKeysFile)
+  .. method:: loadTicketsKeys(ticketsKeysFile)
 
      Load new tickets keys from the selected file, replacing the existing ones. These keys should be rotated often and never written to persistent storage to preserve forward secrecy. The default is to generate a random key. The OpenSSL provider supports several tickets keys to be able to decrypt existing sessions after the rotation, while the GnuTLS provider only supports one key.
      See :doc:`../advanced/tls-sessions-management` for more information.
 
     :param str ticketsKeysFile: The path to a file from where TLS tickets keys should be loaded.
 
-  .. method:: TLSContext:rotateTicketsKey()
+  .. method:: rotateTicketsKey()
 
      Replace the current TLS tickets key by a new random one.
 
@@ -2735,20 +2735,20 @@ TLSFrontend
 
   This object represents the configuration of a listening frontend for DNS over TLS queries. To each frontend is associated a TLSContext.
 
-  .. method:: TLSFrontend:getAddressAndPort() -> string
+  .. method:: getAddressAndPort() -> string
 
      .. versionadded:: 1.7.1
 
      Return the address and port this frontend is listening on.
 
-  .. method:: TLSFrontend:loadNewCertificatesAndKeys(certFile(s), keyFile(s))
+  .. method:: loadNewCertificatesAndKeys(certFile(s), keyFile(s))
 
      Create and switch to a new TLS context using the same options than were passed to the corresponding `addTLSLocal()` directive, but loading new certificates and keys from the selected files, replacing the existing ones.
 
      :param str certFile(s): The path to a X.509 certificate file in PEM format, or a list of paths to such files.
      :param str keyFile(s): The path to the private key file corresponding to the certificate, or a list of paths to such files, whose order should match the certFile(s) ones.
 
-  .. method:: TLSFrontend:loadTicketsKeys(ticketsKeysFile)
+  .. method:: loadTicketsKeys(ticketsKeysFile)
 
   .. versionadded:: 1.6.0
 
@@ -2757,19 +2757,19 @@ TLSFrontend
 
     :param str ticketsKeysFile: The path to a file from where TLS tickets keys should be loaded.
 
-  .. method:: TLSFrontend:loadTicketsKey(key)
+  .. method:: loadTicketsKey(key)
 
      Load a new TLS tickets key.
 
     :param str key: the new raw TLS tickets key to load.
 
-  .. method:: TLSFrontend:reloadCertificates()
+  .. method:: reloadCertificates()
 
   .. versionadded:: 1.6.0
 
      Reload the current TLS certificate and key pairs.
 
-  .. method:: TLSFrontend:rotateTicketsKey()
+  .. method:: rotateTicketsKey()
 
   .. versionadded:: 1.6.0
 

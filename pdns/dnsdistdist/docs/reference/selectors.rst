@@ -448,11 +448,11 @@ Objects
   Represents a rule composed of a :class:`DNSRule` selector, to select the queries this applies to,
   and a :class:`DNSAction` action to apply when the selector matches.
 
-  .. method:: DNSDistRuleAction:getAction()
+  .. method:: getAction()
 
     Return the :class:`DNSAction` action of this rule.
 
-  .. method:: DNSDistRuleAction:getSelector()
+  .. method:: getSelector()
 
     Return the :class:`DNSRule` selector of this rule.
 
@@ -463,11 +463,11 @@ Objects
   Represents a rule composed of a :class:`DNSRule` selector, to select the responses this applies to,
   and a :class:`DNSResponseAction` action to apply when the selector matches.
 
-  .. method:: DNSDistResponseRuleAction:getAction()
+  .. method:: getAction()
 
     Return the :class:`DNSResponseAction` action of this rule.
 
-  .. method:: DNSDistResponseRuleAction:getSelector()
+  .. method:: getSelector()
 
     Return the :class:`DNSRule` selector of this rule.
 
@@ -475,7 +475,7 @@ Objects
 
   .. versionadded:: 1.9.0
 
-  .. method:: DNSRule:getMatches() -> int
+  .. method:: getMatches() -> int
 
     Return the number of times this selector matched a query or a response. Note that if the same selector is reused for different ``DNSDistRuleAction``
     objects, the counter will be common to all these objects.
