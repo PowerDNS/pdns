@@ -7721,7 +7721,7 @@ Changelog
     :pullreq: 6400
     :tickets: 6098
 
-    Allow adding :meth:`EDNS Client Subnet information <ServerPool:setECS>` to a query before looking in the cache.
+    Allow adding :meth:`EDNS Client Subnet information <ServerPool.setECS>` to a query before looking in the cache.
     This allows serving ECS enabled answers from the cache when all servers in a pool are down.
 
   .. change::
@@ -8073,7 +8073,7 @@ Changelog
     :tags: New Features
     :pullreq: 5159
 
-    Add a ``suffixMatch`` parameter to :meth:`PacketCache:expungeByName` (Robin Geuze).
+    Add a ``suffixMatch`` parameter to :meth:`PacketCache.expungeByName` (Robin Geuze).
 
   .. change::
     :tags: Improvements
@@ -8110,7 +8110,7 @@ Changelog
     :tags: Improvements, Performance
     :pullreq: 5185
 
-    Add the possibility to fill a :class:`NetmaskGroup` (using :meth:`NetmaskGroup:addMask`) from `exceeds*` results.
+    Add the possibility to fill a :class:`NetmaskGroup` (using :meth:`NetmaskGroup.addMask`) from `exceeds*` results.
 
   .. change::
     :tags: Improvements
