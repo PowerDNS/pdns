@@ -19,3 +19,12 @@
 td > code {
     white-space: nowrap;
 }
+
+/* Have a light background in tab boxes and a subtle border to queue in the reader when it stops */
+.md-typeset > .tabbed-set > .tabbed-content, .tabbed-label {
+    background: padding-box #e66e0011;
+}
+.md-typeset > .tabbed-set > .tabbed-content {
+    box-shadow: 0 .05rem 0 .025rem var(--md-default-fg-color--lightest)
+}
+
