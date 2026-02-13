@@ -1,30 +1,20 @@
-:root {
-    --md-primary-fg-color:        #e66e00;
-    --md-primary-fg-color--light: #e66e00;
-    --md-primary-fg-color--dark:  #e66e00;
+[data-md-color-scheme="powerdns"] {
+    --pdns-orange: #e66e00;
+    --pdns-grey:   #666666;
+
+    --md-primary-fg-color:        var(--pdns-grey);
+
+    --md-accent-fg-color:         var(--pdns-orange);
+    --md-typeset-a-color:         var(--pdns-orange);
 }
 
-.md-header {
-    background-color: #666666;
-}
 
 .md-tabs {
-    background-color: #e66e00;
+  background-color: var(--pdns-orange);
 }
 
-.md-nav .md-nav__item--section {
-    font-size: 125%;
+/* Add a border around the tab boxes so a reader knows where they end */
+.md-typeset > .tabbed-set {
+  border: solid 1px var(--md-default-fg-color);
+  padding: 0 5px;
 }
-
-td > code {
-    white-space: nowrap;
-}
-
-/* Have a light background in tab boxes and a subtle border to queue in the reader when it stops */
-.md-typeset > .tabbed-set > .tabbed-content, .tabbed-label {
-    background: padding-box #e66e0011;
-}
-.md-typeset > .tabbed-set > .tabbed-content {
-    box-shadow: 0 .05rem 0 .025rem var(--md-default-fg-color--lightest)
-}
-
