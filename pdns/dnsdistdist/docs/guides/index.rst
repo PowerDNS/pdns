@@ -12,11 +12,13 @@ These chapters contain several guides and nuggets of information regarding dnsdi
    downstreams
    serverpools
    serverselection
+   ../statistics
    carbon
    dns-over-https
    dns-over-http3
    dns-over-quic
    dns-over-tls
    dnscrypt
+   dynblocks
 
 

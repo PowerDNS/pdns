@@ -49,7 +49,7 @@ If the value found in the LMDB database for the key '\\8powerdns\\3com\\0' was '
 
   Represents a Key Value Store
 
-  .. method:: KeyValueStore:lookup(key [, wireFormat])
+  .. method:: lookup(key [, wireFormat])
 
     Does a lookup into the corresponding key value store, and return the result as a string.
     The key can be a :class:`ComboAddress` obtained via the :func:`newCA`, a :class:`DNSName` obtained via the :func:`newDNSName` function, or a raw string.
@@ -57,7 +57,7 @@ If the value found in the LMDB database for the key '\\8powerdns\\3com\\0' was '
     :param ComboAddress, DNSName or string key: The key to look up
     :param bool wireFormat: If the key is DNSName, whether to use to do the lookup in wire format (default) or in plain text
 
-  .. method:: KeyValueStore:lookupSuffix(key [, minLabels [, wireFormat]])
+  .. method:: lookupSuffix(key [, minLabels [, wireFormat]])
 
     Does a suffix-based lookup into the corresponding key value store, and return the result as a string.
     The key should be a :class:`DNSName` object obtained via the :func:`newDNSName` function, and several lookups will be done, removing one label from the name at a time until a match has been found or there is no label left.
@@ -67,7 +67,7 @@ If the value found in the LMDB database for the key '\\8powerdns\\3com\\0' was '
     :param int minLabels: The minimum number of labels to do a lookup for. Default is 0 which means unlimited
     :param bool wireFormat: Whether to do the lookup in wire format (default) or in plain text
 
-  .. method:: KeyValueStore:reload()
+  .. method:: reload()
 
     Reload the database if this is supported by the underlying store. As of 1.4.0, only CDB stores can be reloaded, and this method is a no-op for LMDB stores.
 

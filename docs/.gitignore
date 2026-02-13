@@ -19,3 +19,6 @@ html-docs.tar.bz2
 /mans
 /mans.tmp
 /_build
+/http-api/swagger/authoritative-api-schema.yaml
+/sphinx.d
+/sphinx.stamp
