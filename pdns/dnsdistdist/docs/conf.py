@@ -152,15 +152,17 @@ html_theme_options = {
     "features": [
         "navigation.tabs",
         "navigation.tabs.sticky",
-        "navigation.top",
+        # "navigation.expand",
         "navigation.tracking",
-        "navigation.sections",
-        "navigation.footer",
+        # "navigation.top",
+        # "navigation.footer",
         "toc.integrate",
         "toc.follow",
         "search.highlight",
         "search.share",
         "search.suggest",
+        "content.tabs.link",
+        "content.code.copy",
     ],
 }
 
