@@ -14,22 +14,22 @@ added in :class:`ComboAddress` form.
 
   Can be used to handle IP addresses differently for a certain time.
 
-  .. method:: TimedIPSetRule:add(address, seconds)
+  .. method:: add(address, seconds)
 
     Add an IP address to the set for the next ``second`` seconds.
 
     :param ComboAddress address: The address to add
     :param int seconds: Time to keep the address in the Rule
 
-  .. method:: TimedIPSetRule:cleanup()
+  .. method:: cleanup()
 
     Purge the set from expired IP addresses
 
-  .. method:: TimedIPSetRule:clear()
+  .. method:: clear()
 
     Clear the entire set
 
-  .. method:: TimedIPSetRule:slice()
+  .. method:: slice()
 
     Convert the TimedIPSetRule into a DNSRule that can be passed to :func:`addAction`
 

@@ -25,35 +25,35 @@ Functions and methods of a ``DNSNameSet``
 
   A ``DNSNameSet`` object is a set of :class:`DNSName` objects.
 
-  .. method:: DNSNameSet:add(name)
+  .. method:: add(name)
 
     Adds the name to the set.
 
     :param DNSName name: The name to add.
 
-  .. method:: DNSNameSet:empty() -> bool
+  .. method:: empty() -> bool
 
     Returns true is the DNSNameSet is empty.
 
-  .. method:: DNSNameSet:clear()
+  .. method:: clear()
 
     Clean up the set.
 
-  .. method:: DNSNameSet:toString() -> string
+  .. method:: toString() -> string
 
     Returns a human-readable form of the DNSNameSet.
 
-  .. method:: DNSNameSet:size() -> int
+  .. method:: size() -> int
 
     Returns the number of names in the set.
 
-  .. method:: DNSNameSet:delete(name) -> int
+  .. method:: delete(name) -> int
 
     Removes the name from the set. Returns the number of deleted elements.
 
     :param DNSName name: The name to remove.
 
-  .. method:: DNSNameSet:check(name) -> bool
+  .. method:: check(name) -> bool
 
     Returns true if the set contains the name.
 
