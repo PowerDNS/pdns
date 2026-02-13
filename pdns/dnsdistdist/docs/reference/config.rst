@@ -2765,13 +2765,13 @@ TLSFrontend
 
   .. method:: reloadCertificates()
 
-  .. versionadded:: 1.6.0
+     .. versionadded:: 1.6.0
 
      Reload the current TLS certificate and key pairs.
 
   .. method:: rotateTicketsKey()
 
-  .. versionadded:: 1.6.0
+     .. versionadded:: 1.6.0
 
      Replace the current TLS tickets key by a new random one.
 
