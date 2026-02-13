@@ -1020,7 +1020,7 @@ The following actions exist.
   Remove a tag named ``name``.
   Subsequent rules are processed after this action.
 
-  :param string name: The name of the tag to set
+  :param string name: The name of the tag to unset
 
 .. function:: UnsetTagResponseAction(name)
 
@@ -1029,4 +1029,4 @@ The following actions exist.
   Remove a tag named ``name``.
   Subsequent rules are processed after this action.
 
-  :param string name: The name of the tag to set
+  :param string name: The name of the tag to unset
