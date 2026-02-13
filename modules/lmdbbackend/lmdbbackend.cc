@@ -1803,8 +1803,8 @@ void LMDBBackend::getAllDomainsFiltered(vector<DomainInfo>* domains, const std::
     }
 
     for (auto& [k, v] : zonemap) {
+      consolidateDomainInfo(v);
       if (allow(v)) {
-        consolidateDomainInfo(v);
         domains->push_back(std::move(v));
       }
     }
@@ -1815,8 +1815,8 @@ void LMDBBackend::getAllDomainsFiltered(vector<DomainInfo>* domains, const std::
       di.id = iter.getID();
       di.backend = this;
 
+      consolidateDomainInfo(di);
       if (allow(di)) {
-        consolidateDomainInfo(di);
         domains->push_back(di);
       }
     }
@@ -2882,7 +2882,7 @@ public:
     declare(suffix, "random-ids", "Numeric IDs inside the database are generated randomly instead of sequentially", "no");
     declare(suffix, "map-size", "LMDB map size in megabytes", (sizeof(void*) == 4) ? "100" : "16000");
     declare(suffix, "flag-deleted", "Flag entries on deletion instead of deleting them", "no");
-    declare(suffix, "write-notification-update", "Do not update domain table upon notification", "yes");
+    declare(suffix, "write-notification-update", "Update domain table upon notification", "yes");
     declare(suffix, "lightning-stream", "Run in Lightning Stream compatible mode", "no");
   }
   DNSBackend* make(const string& suffix = "") override
