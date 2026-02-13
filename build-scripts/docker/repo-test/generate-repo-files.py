@@ -47,13 +47,11 @@ def init_argparser():
                                  'auth-48', 'auth-49', 'auth-50',
                                  'auth-master',
                                  # Recursor
-                                 'rec-48', 'rec-49', 'rec-50', 'rec-51',
-                                 'rec-52', 'rec-53', 'rec-54',
-                                 'rec-master',
+                                 'rec-48', 'rec-49', 'rec-50', 'rec-51', 'rec-52', 'rec-53',
+                                 'rec-54', 'rec-master',
                                  # DNSDist
-                                 'dnsdist-17', 'dnsdist-18', 'dnsdist-19',
-                                 'dnsdist-20', 'dnsdist-21',
-                                 'dnsdist-master'],
+                                 'dnsdist-17', 'dnsdist-18', 'dnsdist-19', 'dnsdist-20',
+                                 'dnsdist-21', 'dnsdist-master'],
                         help='the release to generate Docker files for: ' +
                              '%(choices)s')
     parser.add_argument('--run-output', action='store_true',
@@ -102,11 +100,11 @@ def write_dockerfile (os, os_version, release):
         # > I prefer it to be in the code but I also do not want to add extra vars
         # > and logic to the code unless necessary.
         f.write(tpl.render({ "os": os,
-                             "os_image": os_image,
-                             "os_version": os_version,
-                             "release": release,
-                             "cmd": cmd,
-                             "pkg": pkg }))
+                            "os_image": os_image,
+                            "os_version": os_version,
+                            "release": release,
+                            "cmd": cmd,
+                            "pkg": pkg }))
 
 
 def write_list_file (os, os_version, release):
@@ -114,8 +112,8 @@ def write_list_file (os, os_version, release):
 
     with open('pdns.list.{}.{}-{}'.format(release, os, os_version), 'w') as f:
         f.write(tpl.render({ "os": os,
-                             "os_version": os_version,
-                             "release": release }))
+                            "os_version": os_version,
+                            "release": release }))
 
 
 def write_pkg_pin_file (release):
@@ -127,7 +125,7 @@ def write_pkg_pin_file (release):
         pkg = 'dnsdist'
 
     with open('pkg-pin', 'w') as f:
-        f.write(tpl.render({ "pkg": pkg }))
+       f.write(tpl.render({ "pkg": pkg }))
 
 
 def write_release_files (release):
