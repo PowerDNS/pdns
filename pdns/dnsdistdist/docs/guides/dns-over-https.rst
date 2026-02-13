@@ -69,7 +69,7 @@ This will advertise that HTTP/3 is available on the same IP, port UDP/443.
 Custom responses
 ^^^^^^^^^^^^^^^^
 
-It is also possible to set HTTP response rules to intercept HTTP queries early, before the DNS payload, if any, has been processed, to send custom responses including error pages, redirects or even serve static content. First a rule needs to be defined using :func:`newDOHResponseMapEntry`, then a set of rules can be applied to a DoH frontend via :meth:`DOHFrontend:setResponsesMap`.
+It is also possible to set HTTP response rules to intercept HTTP queries early, before the DNS payload, if any, has been processed, to send custom responses including error pages, redirects or even serve static content. First a rule needs to be defined using :func:`newDOHResponseMapEntry`, then a set of rules can be applied to a DoH frontend via :meth:`DOHFrontend.setResponsesMap`.
 For example, to send an HTTP redirect to queries asking for ``/rfc``, the following configuration can be used::
 
   map = { newDOHResponseMapEntry("^/rfc$", 307, "https://www.rfc-editor.org/info/rfc8484") }
