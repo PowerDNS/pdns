@@ -5,18 +5,24 @@ Working with the dnsdist Console
 
 dnsdist can expose a commandline console over an encrypted tcp connection for controlling it, debugging DNS issues and retrieving statistics.
 
-The console can be enabled with :func:`controlSocket`:
+.. md-tab-set::
 
-.. code-block:: lua
+   .. md-tab-item:: YAML
 
-  controlSocket('192.0.2.53:5199')
+      The :ref:`console <yaml-settings-ConsoleConfiguration>` key is used to create a DNSCrypt bind.
 
-Or in ``yaml``:
+      .. code-block:: yaml
 
-.. code-block:: yaml
+        console:
+          listen_address: "192.0.2.53:5199"
 
-  console:
-    listen_address: "192.0.2.53:5199"
+   .. md-tab-item:: Lua
+
+     The console can be enabled with :func:`controlSocket`:
+
+      .. code-block:: lua
+
+        controlSocket('192.0.2.53:5199')
 
 
 Enabling the console without encryption enabled is not recommended. Note that encryption requires building dnsdist with either libsodium or libcrypto support enabled.
@@ -41,18 +47,27 @@ or using ``openssl``::
 
   $ openssl rand -base64 32
 
-Then add the generated :func:`setKey` line to your dnsdist configuration file, along with a :func:`controlSocket`:
+Then add the generated key to your dnsdist configuration file:
 
-.. code-block:: lua
+.. md-tab-set::
 
-  controlSocket('192.0.2.53:5199') -- Listen on this IP and port for client connections
-  setKey("ENCODED KEY")            -- Shared secret for the console
+   .. md-tab-item:: YAML
 
-.. code-block:: yaml
+      .. code-block:: yaml
 
-  console:
-    listen_address: "192.0.2.53:5199"
-    key: "ENCODED KEY"
+        console:
+          listen_address: "192.0.2.53:5199"
+          key: "ENCODED KEY"
+
+   .. md-tab-item:: Lua
+
+      Add the :func:`setKey` line along with a :func:`controlSocket`.
+
+      .. code-block:: lua
+
+        controlSocket('192.0.2.53:5199') -- Listen on this IP and port for client connections
+        setKey("ENCODED KEY")            -- Shared secret for the console
+
 
 Now you can run ``dnsdist -c`` to connect to the console.
 This makes dnsdist read its configuration file and use the :func:`controlSocket` and :func:`setKey` statements to set up its connection to the server.
@@ -67,23 +82,33 @@ Alternatively, you can specify the address and key on the client commandline::
 
   This will leak the key into your shell's history and is **not** recommended.
 
-Since 1.3.0, dnsdist supports restricting which client can connect to the console with an ACL:
+Access Control for the Console
+------------------------------
 
-.. code-block:: lua
+:program:`dnsdist` supports restricting which client can connect to the console with an ACL:
 
-  controlSocket('192.0.2.53:5199')
-  setConsoleACL('192.0.2.0/24')
-
-.. code-block:: yaml
-
-  console:
-    listen_address: "192.0.2.53:5199"
-    key: "ENCODED KEY"
-    acl:
-      - "192.0.2.0/24"
+The default value is '127.0.0.1', restricting the use of the console to local users. Please make sure that encryption is enabled before allowing connections from remote clients.
+Even if the console is restricted to local users, the use of encryption is still strongly advised to prevent unauthorized local users from connecting to the console.
 
 
-The default value is '127.0.0.1', restricting the use of the console to local users. Please make sure that encryption is enabled
-before using :func:`addConsoleACL` or :func:`setConsoleACL` to allow connection from remote clients. Even if the console is
-restricted to local users, the use of encryption is still strongly advised to prevent unauthorized local users from connecting to
-the console.
+
+.. md-tab-set::
+
+   .. md-tab-item:: YAML
+
+      .. code-block:: yaml
+
+        console:
+          listen_address: "192.0.2.53:5199"
+          key: "ENCODED KEY"
+          acl:
+            - "192.0.2.0/24"
+
+   .. md-tab-item:: Lua
+
+      Use :func:`addConsoleACL` or :func:`setConsoleACL` to set the ACL.
+
+      .. code-block:: lua
+
+        controlSocket('192.0.2.53:5199')
+        setConsoleACL('192.0.2.0/24')

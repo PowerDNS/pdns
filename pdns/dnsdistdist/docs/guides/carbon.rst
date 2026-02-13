@@ -4,25 +4,34 @@ Exporting statistics via Carbon
 Setting up a carbon export
 --------------------------
 
-To emit metrics to Graphite, or any other software supporting the Carbon protocol, use::
+:program:`dnsdist` can emit metrics to Graphite, or any other software supporting the Carbon protocol.
 
-  carbonServer('ip-address-of-carbon-server', 'ourname', 30, 'dnsdist', 'main')
+.. md-tab-set::
 
-Where ``ourname`` can be used to override your hostname, and ``30`` is the reporting interval in seconds. ``dnsdist`` and ``main`` are used as namespace and instance variables. For querycount statistics these two variables are currently ignored. The last four arguments can be omitted.
+  .. md-tab-item:: YAML
+
+      .. code-block:: yaml
+
+        metrics:
+          carbon:
+            - address: "ip-address-of-carbon-server"
+              name: "ourname"
+              interval: "30"
+              namespace: "dnsdist"
+              instance: "main"
+
+  .. md-tab-item:: Lua
+
+     .. code-block:: lua
+
+        carbonServer('ip-address-of-carbon-server', 'ourname', 30, 'dnsdist', 'main')
+
+    Where ``ourname`` can be used to override your hostname, and ``30`` is the reporting interval in seconds.
+    ``dnsdist`` and ``main`` are used as namespace and instance variables.
+    For querycount statistics these two variables are currently ignored.
+    The last four arguments can be omitted.
+
 The latest version of `PowerDNS Metronome <https://github.com/ahupowerdns/metronome>`_ comes with attractive graphs for dnsdist by default.
-
-The equivalent ``yaml`` configuration:
-
-.. code-block:: yaml
-
-  metrics:
-    carbon:
-      - address: "ip-address-of-carbon-server"
-        name: "ourname"
-        interval: "30"
-        namespace: "dnsdist"
-        instance: "main"
-
 
 Query counters
 --------------
@@ -55,4 +64,4 @@ Valid return values for ``QueryCountFilter`` functions are:
 - true: count the specified query
 - false: don't count the query
 
-Note that the query counters are buffered and flushed each time statistics are sent to the carbon server. The current content of the buffer can be inspected with ::func:`getQueryCounters`. If you decide to enable query counting without :func:`carbonServer`, make sure you implement clearing the log from ``maintenance()`` by issuing :func:`clearQueryCounters`.
+Note that the query counters are buffered and flushed each time statistics are sent to the carbon server. The current content of the buffer can be inspected with ::func:`getQueryCounters`. If you decide to enable query counting without :func:`carbonServer`, make sure you implement clearing the log from :func:`maintenance` by issuing :func:`clearQueryCounters`.

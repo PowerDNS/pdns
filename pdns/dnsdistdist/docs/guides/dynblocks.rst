@@ -5,7 +5,7 @@ Dynamic Blocks can be seen are short-lived rules, automatically inserted based o
 
 The analyzed traffic is the one kept by dnsdist in its in-memory ring buffers. The number of entries kept in these ring buffers can be set via the :func:`setRingBuffersSize` directive, and the impact in terms of CPU and memory consumption is described in :doc:`../advanced/tuning`.
 
-That number of entries is crucial for the rate-based rules, like :func:`DynBlockRulesGroup:setQueryRate`, as they will never match if the number of entries in the ring buffer is too small for the required rate, as explained in more details below.
+That number of entries is crucial for the rate-based rules, like :meth:`DynBlockRulesGroup.setQueryRate`, as they will never match if the number of entries in the ring buffer is too small for the required rate, as explained in more details below.
 
 To set dynamic rules, based on recent traffic, define a function called :func:`maintenance` in Lua.
 It will get called every second, and from this function you can set rules to block traffic based on statistics.

@@ -8,39 +8,55 @@ Since version 1.3.0, :program:`dnsdist` supports DNS-over-TLS for incoming queri
 To see if the installation supports this, run ``dnsdist --version``.
 If the output shows ``dns-over-tls`` with one or more SSL libraries in brackets, DNS-over-TLS is supported.
 
-Adding a listen port for DNS-over-TLS can be done with the :func:`addTLSLocal` function, e.g.::
+To make :program:`dnsdist` listen on 192.0.2.55:853 on TCP, and use the provided certificate and key to serve incoming TLS connections:
 
-  addTLSLocal('192.0.2.55', '/etc/ssl/certs/example.com.pem', '/etc/ssl/private/example.com.key')
+.. md-tab-set::
 
-Or in ``yaml``:
+   .. md-tab-item:: YAML
 
-.. code-block:: yaml
+      .. code-block:: yaml
 
-  binds:
-    - listen_address: "192.0.2.55"
-      protocol: "DoT"
-      tls:
-        certificates:
-          - certificate: "/etc/ssl/certs/example.com.pem"
-            key: "/etc/ssl/certs/example.com.key"
+        binds:
+          - listen_address: "192.0.2.55"
+            protocol: "DoT"
+            tls:
+              certificates:
+                - certificate: "/etc/ssl/certs/example.com.pem"
+                  key: "/etc/ssl/certs/example.com.key"
 
-This will make :program:`dnsdist` listen on 192.0.2.55:853 on TCP, and will use the provided certificate and key to serve incoming TLS connections.
+   .. md-tab-item:: Lua
 
-In order to support multiple certificates and keys, for example an ECDSA and an RSA one, the following syntax may be used instead::
+      Use the :func:`addTLSLocal` function, e.g.:
 
-  addTLSLocal('192.0.2.55', {'/etc/ssl/certs/example.com.rsa.pem', '/etc/ssl/certs/example.com.ecdsa.pem'}, {'/etc/ssl/private/example.com.rsa.key', '/etc/ssl/private/example.com.ecdsa.key'})
+      .. code-block:: lua
 
-.. code-block:: yaml
+        addTLSLocal('192.0.2.55', '/etc/ssl/certs/example.com.pem', '/etc/ssl/private/example.com.key')
 
-  binds:
-    - listen_address: "192.0.2.55"
-      protocol: "DoT"
-      tls:
-        certificates:
-          - certificate: "/etc/ssl/certs/example.com.rsa.pem"
-            key: "/etc/ssl/private/example.com.rsa.key"
-          - certificate: "/etc/ssl/certs/example.com.ecdsa.pem"
-            key: "/etc/ssl/private/example.com.ecdsa.key"
+In order to support multiple certificates and keys, for example an ECDSA and an RSA one, the following syntax may be used instead:
+
+.. md-tab-set::
+
+   .. md-tab-item:: YAML
+
+      .. code-block:: yaml
+
+        binds:
+          - listen_address: "192.0.2.55"
+            protocol: "DoT"
+            tls:
+              certificates:
+                - certificate: "/etc/ssl/certs/example.com.rsa.pem"
+                  key: "/etc/ssl/private/example.com.rsa.key"
+                - certificate: "/etc/ssl/certs/example.com.ecdsa.pem"
+                  key: "/etc/ssl/private/example.com.ecdsa.key"
+
+   .. md-tab-item:: Lua
+
+      .. code-block:: lua
+
+        addTLSLocal('192.0.2.55',
+                    {'/etc/ssl/certs/example.com.rsa.pem', '/etc/ssl/certs/example.com.ecdsa.pem'},
+                    {'/etc/ssl/private/example.com.rsa.key', '/etc/ssl/private/example.com.ecdsa.key'})
 
 The certificate chain presented by the server to an incoming client will then be selected based on the algorithms this client advertised support for.
 
@@ -52,28 +68,33 @@ Outgoing
 --------
 
 Since version 1.7.0, :program:`dnsdist` also supports outgoing DNS-over-TLS. This way, all queries, regardless of whether they were initially received by dnsdist over UDP, TCP, DoT or DoH, are forwarded to the backend over a secure DNS-over-TLS channel.
-Such that support can be enabled via the ``tls`` parameter of the :func:`newServer` command. Additional parameters control the validation of the certificate presented by the backend (``caStore``, ``validateCertificates``), the actual TLS ciphers used (``ciphers``, ``ciphersTLS13``) and the SNI value sent (``subjectName``).
 
-.. code-block:: lua
+.. md-tab-set::
 
-  newServer({address="[2001:DB8::1]:853", tls="openssl", subjectName="dot.powerdns.com", validateCertificates=true})
+   .. md-tab-item:: YAML
 
-The same backend configuration in ``yaml``:
+      .. code-block:: yaml
 
-.. code-block:: yaml
+         backends:
+           - address: "[2001:DB8::1]:853"
+             protocol: "DoT"
+             tls:
+               provider: "OpenSSL"
+               subject_name: "dot.powerdns.com"
+               validate_certificate: true
 
-   backends:
-     - address: "[2001:DB8::1]:853"
-       protocol: "DoT"
-       tls:
-         provider: "OpenSSL"
-         subject_name: "dot.powerdns.com"
-         validate_certificate: true
+   .. md-tab-item:: Lua
+
+      Such that support can be enabled via the ``tls`` parameter of the :func:`newServer` command. Additional parameters control the validation of the certificate presented by the backend (``caStore``, ``validateCertificates``), the actual TLS ciphers used (``ciphers``, ``ciphersTLS13``) and the SNI value sent (``subjectName``).
+
+      .. code-block:: lua
+
+        newServer({address="[2001:DB8::1]:853", tls="openssl", subjectName="dot.powerdns.com", validateCertificates=true})
 
 Investigating issues
 --------------------
 
-dnsdist provides a lot of counters to investigate issues:
+dnsdist provides a lot of counters to investigate issues in the :doc:`console <console>`:
 
- * :func:`showTCPStats` will display a lot of information about current and passed connections
- * :func:`showTLSErrorCounters` some metrics about why TLS sessions failed to establish
+* :func:`showTCPStats` will display a lot of information about current and passed connections
+* :func:`showTLSErrorCounters` some metrics about why TLS sessions failed to establish

@@ -1,32 +1,54 @@
 Built-in webserver
 ==================
 
-To visually interact with dnsdist, try adding :func:`webserver` and :func:`setWebserverConfig` directives to the configuration:
+To visually interact with dnsdist, a webserver can be enabled.
 
-.. code-block:: lua
+.. md-tab-set::
 
-  webserver("127.0.0.1:8083")
-  setWebserverConfig({password="supersecretpassword", apiKey="supersecretAPIkey"})
+    .. md-tab-item:: YAML
+
+      .. code-block:: yaml
+
+        webserver:
+          listen_address: "127.0.0.1:8083"
+          password: "supersecretpassword"
+          api_key: "supersecretAPIkey"
+
+    .. md-tab-item:: Lua
+
+      Add :func:`webserver` and :func:`setWebserverConfig` directives to the configuration:
+
+      .. code-block:: lua
+
+        webserver("127.0.0.1:8083")
+        setWebserverConfig({password="supersecretpassword", apiKey="supersecretAPIkey"})
 
 Now point your browser at http://127.0.0.1:8083 and log in with any username, and that password. Enjoy!
 
-Since 1.5.0, only connections from 127.0.0.1 and ::1 are allowed by default. To allow connections from 192.0.2.0/24 but not from 192.0.2.1, instead:
+Only connections from 127.0.0.1 and ::1 are allowed by default. To allow connections from 192.0.2.0/24 but not from 192.0.2.1
 
-.. code-block:: lua
+.. md-tab-set::
 
-  setWebserverConfig({password="supersecretpassword", apiKey="supersecretAPIkey", acl="192.0.2.0/24, !192.0.2.1"})
+    .. md-tab-item:: YAML
 
-The equivalent ``yaml`` configuration would be:
+      .. code-block:: yaml
 
-.. code-block:: yaml
+        webserver:
+          listen_address: "127.0.0.1:8083"
+          password: "supersecretpassword"
+          api_key: "supersecretAPIkey"
+          acl:
+            - "192.0.2.0/24"
+            - "!192.0.2.1"
 
-  webserver:
-    listen_address: "127.0.0.1:8083"
-    password: "supersecretpassword"
-    api_key: "supersecretAPIkey"
-    acl:
-      - "192.0.2.0/24"
-      - "!192.0.2.1"
+    .. md-tab-item:: Lua
+
+      Add :func:`webserver` and :func:`setWebserverConfig` directives to the configuration:
+
+      .. code-block:: lua
+
+        webserver("127.0.0.1:8083")
+        setWebserverConfig({password="supersecretpassword", apiKey="supersecretAPIkey", acl="192.0.2.0/24, !192.0.2.1"})
 
 
 Security of the Webserver
@@ -42,14 +64,34 @@ By default, our web server sends some security-related headers::
    X-XSS-Protection: 1; mode=block
    Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline'
 
-You can override those headers, or add custom headers by using the last parameter to :func:`setWebserverConfig`.
+You can override those headers, or add custom headers.
 For example, to remove the X-Frame-Options header and add a X-Custom one:
 
-.. code-block:: lua
+.. md-tab-set::
 
-  setWebserverConfig({password="supersecretpassword", apiKey="supersecretAPIkey", customHeaders={["X-Frame-Options"]= "", ["X-Custom"]="custom"} })
+    .. md-tab-item:: YAML
 
-Credentials can be changed at run time using the :func:`setWebserverConfig` function.
+      .. code-block:: yaml
+
+        webserver:
+          listen_address: "127.0.0.1:8083"
+          password: "supersecretpassword"
+          api_key: "supersecretAPIkey"
+          custom_headers:
+            - key: "X-Frame-Options"
+              value: ""
+            - key: "X-Custom"
+              value: "custom"
+
+    .. md-tab-item:: Lua
+
+      Use the last parameter to :func:`setWebserverConfig`.
+
+      .. code-block:: lua
+
+        webserver("127.0.0.1:8083")
+        setWebserverConfig({password="supersecretpassword", apiKey="supersecretAPIkey", customHeaders={["X-Frame-Options"]= "", ["X-Custom"]="custom"} })
+
 
 Credentials
 -----------
@@ -89,6 +131,8 @@ the auth for the calls altogether by setting them to false; they are true by def
      - ``apiRequiresAuthentication``
      - not allowed
      - allowed
+
+Credentials can be changed at run time using the :func:`setWebserverConfig` function.
 
 dnsdist API
 -----------
