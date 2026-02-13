@@ -688,6 +688,19 @@ static void loadDynamicBlockConfiguration(const dnsdist::rust::settings::Dynamic
         }
         dbrgObj->setRCodeRatio(strToRCode("dynamic-rules.rules.rcode_ratio", "rcode", rule.rcode), std::move(ruleParams));
       }
+      else if (rule.rule_type == "allowed-rcodes-ratio") {
+        std::unordered_set<uint8_t> allowed;
+        for (const auto& rcode : rule.allowed_rcodes) {
+          allowed.insert(strToRCode("dynamic-rules.rules.allowed_rcodes_ratio", "allowed_rcodes", rcode));
+        }
+        DynBlockRulesGroup::DynBlockAllowedRCodesRatioRule ruleParams(std::move(allowed), std::string(rule.comment), rule.action_duration, rule.ratio, rule.warning_ratio, rule.seconds, rule.action.empty() ? DNSAction::Action::None : DNSAction::typeFromString(std::string(rule.action)), rule.minimum_number_of_responses);
+        if (ruleParams.d_action == DNSAction::Action::SetTag && !rule.tag_name.empty()) {
+          ruleParams.d_tagSettings = std::make_shared<DynBlock::TagSettings>();
+          ruleParams.d_tagSettings->d_name = std::string(rule.tag_name);
+          ruleParams.d_tagSettings->d_value = std::string(rule.tag_value);
+        }
+        dbrgObj->setAllowedRCodesRatio(std::move(ruleParams));
+      }
       else if (rule.rule_type == "qtype-rate") {
         DynBlockRulesGroup::DynBlockRule ruleParams(std::string(rule.comment), rule.action_duration, rule.rate, rule.warning_rate, rule.seconds, rule.action.empty() ? DNSAction::Action::None : DNSAction::typeFromString(std::string(rule.action)));
         if (ruleParams.d_action == DNSAction::Action::SetTag && !rule.tag_name.empty()) {

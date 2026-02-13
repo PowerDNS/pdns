@@ -347,6 +347,39 @@ class TestDynBlockGroupServFailsRatioDoH3CacheHit(DynBlocksTest):
         name = 'servfailratio-doh3-hits.group.dynblocks.tests.powerdns.com.'
         self.doTestRCodeRatioViaProtocol(name, dns.rcode.SERVFAIL, 10, 10, "sendDOH3QueryWrapper", cached=True)
 
+class TestDynBlockGroupAllowedRCodesRatioYaml(DynBlocksTest):
+
+    # we need this period to be quite long because we request the valid
+    # queries to be still looked at to reach the 40 queries count!
+    _dynBlockPeriod = 6
+    _yaml_config_template = """---
+dynamic_rules:
+  - name: "Block client generating too many !NoError compared to the rest of their responses"
+    rules:
+      - type: "allowed-rcodes-ratio"
+        ratio: 0.2
+        allowed_rcodes:
+          - "NoError"
+        seconds: %d
+        action_duration: %d
+        minimum_number_of_responses: 20
+        comment: "Exceeded !NoError ratio"
+
+backends:
+  - address: "127.0.0.1:%d"
+    protocol: Do53
+"""
+    _config_params = []
+    _yaml_config_params = ['_dynBlockPeriod', '_dynBlockDuration', '_testServerPort']
+
+    def testDynBlocksAllowedRCodesRatio(self):
+        """
+        Dyn Blocks (group / YAML): Allowed rcodes ratio
+        """
+        name = 'allowed-rcodes-ratio-yaml.group.dynblocks.tests.powerdns.com.'
+        # we need more queries because of the sampling rate!
+        self.doTestRCodeRatio(name, dns.rcode.SERVFAIL, 20, 20)
+
 class TestDynBlockGroupCacheMissRatio(DynBlocksTest):
 
     # we need this period to be quite long because we request the valid
