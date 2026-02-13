@@ -401,6 +401,10 @@ void DynBlockRulesGroup::processQueryRules(counts_t& counts, const struct timesp
       bool typeRuleMatches = checkIfQueryTypeMatches(ringEntry);
 
       if (qRateMatches || typeRuleMatches) {
+        if (d_excludedSubnets.match(ringEntry.requestor)) {
+          continue;
+        }
+
         auto& entry = counts[AddressAndPortRange(ringEntry.requestor, ringEntry.requestor.isIPv4() ? d_v4Mask : d_v6Mask, d_portMask)];
         if (qRateMatches) {
           ++entry.queries;
@@ -466,11 +470,20 @@ void DynBlockRulesGroup::processResponseRules(counts_t& counts, StatNode& root, 
         continue;
       }
 
+      bool suffixMatchRuleMatches = d_suffixMatchRule.matches(ringEntry.when);
+      if (suffixMatchRuleMatches) {
+        const bool hit = ringEntry.isACacheHit();
+        root.submit(ringEntry.name, ((ringEntry.dh.rcode == 0 && ringEntry.usec == std::numeric_limits<uint32_t>::max()) ? -1 : ringEntry.dh.rcode), ringEntry.size, hit, std::nullopt, g_rings.getSamplingRate());
+      }
+
+      if (d_excludedSubnets.match(ringEntry.requestor)) {
+        continue;
+      }
+
       auto& entry = counts[AddressAndPortRange(ringEntry.requestor, ringEntry.requestor.isIPv4() ? d_v4Mask : d_v6Mask, d_portMask)];
       ++entry.responses;
 
       bool respRateMatches = d_respRateRule.matches(ringEntry.when);
-      bool suffixMatchRuleMatches = d_suffixMatchRule.matches(ringEntry.when);
       bool rcodeRuleMatches = checkIfResponseCodeMatches(ringEntry);
       bool respCacheMissRatioRuleMatches = d_respCacheMissRatioRule.matches(ringEntry.when);
 
@@ -482,11 +495,6 @@ void DynBlockRulesGroup::processResponseRules(counts_t& counts, StatNode& root, 
       }
       if (respCacheMissRatioRuleMatches && !ringEntry.isACacheHit()) {
         ++entry.cacheMisses;
-      }
-
-      if (suffixMatchRuleMatches) {
-        const bool hit = ringEntry.isACacheHit();
-        root.submit(ringEntry.name, ((ringEntry.dh.rcode == 0 && ringEntry.usec == std::numeric_limits<uint32_t>::max()) ? -1 : ringEntry.dh.rcode), ringEntry.size, hit, std::nullopt, g_rings.getSamplingRate());
       }
     }
   }
