@@ -1854,11 +1854,32 @@ faster than the existing rules.
 
   Represents a group of dynamic block rules.
 
+  .. method:: DynBlockRulesGroup:setAllowedRCodesRatio(rcodes, ratio, seconds, reason, blockingTime, minimumNumberOfResponses [, action [, warningRate, [options]]])
+
+    .. versionadded:: 2.1.0
+
+    Adds a rate-limiting rule for the ratio of responses of with a code not present in ``rcodes`` over the total number of responses for a given client.
+
+    :param list of int rcodes: The response codes that are allowed and won't count towards the ratio
+    :param float ratio: Ratio of responses per second with a not allowed rcode over the total number of responses for this client to exceed
+    :param int seconds: Number of seconds the ratio has been exceeded
+    :param string reason: The message to show next to the blocks
+    :param int blockingTime: The number of seconds this block to expire
+    :param int minimumNumberOfResponses: How many total responses is required for this rule to apply
+    :param int action: The action to take when the dynamic block matches, see :ref:`DNSAction <DNSAction>`. (default to the one set with :func:`setDynBlocksAction`)
+    :param float warningRatio: If set to a non-zero value, the ratio above which a warning message will be issued and a no-op block inserted
+    :param table options: A table with key: value pairs, see below for supported values.
+
+    Options:
+
+    * ``tagName``: str - If ``action`` is set to ``DNSAction.SetTag``, the name of the tag that will be set
+    * ``tagValue``: str - If ``action`` is set to ``DNSAction.SetTag``, the value of the tag that will be set. Default is an empty string
+
   .. method:: DynBlockRulesGroup:setCacheMissRatio(ratio, seconds, reason, blockingTime, minimumNumberOfResponses, minimumGlobalCacheHitRatio, [, action [, warningRate, [options]]])
 
     .. versionadded:: 1.9.0
 
-    .. versionadded:: 2.0.0
+    .. versionchanged:: 2.0.0
       ``options`` optional parameter added
 
     Adds a rate-limiting rule for the ratio of cache-misses responses over the total number of responses for a given client.
@@ -1899,7 +1920,7 @@ faster than the existing rules.
 
   .. method:: DynBlockRulesGroup:setQueryRate(rate, seconds, reason, blockingTime [, action [, warningRate, [options]]])
 
-    .. versionadded:: 2.0.0
+    .. versionchanged:: 2.0.0
       ``options`` optional parameter added
 
     Adds a query rate-limiting rule, equivalent to:
@@ -1964,7 +1985,7 @@ faster than the existing rules.
 
     .. versionadded:: 1.5.0
 
-    .. versionadded:: 2.0.0
+    .. versionchanged:: 2.0.0
       ``options`` optional parameter added
 
     .. note::
@@ -2047,7 +2068,7 @@ faster than the existing rules.
     .. versionchanged:: 1.9.0
       This visitor function can now optionally return an additional integer which will be set as the ``action`` for the dynamic block.
 
-    .. versionadded:: 2.0.0
+    .. versionchanged:: 2.0.0
       ``options`` optional parameter added
 
     Set a Lua visitor function that will be called for each label of every domain seen in queries and responses. The function receives a :class:`StatNode` object representing the stats of the parent, a :class:`StatNodeStats` one with the stats of the current label and a second :class:`StatNodeStats` with the stats of the current node plus all its children.
@@ -2073,7 +2094,7 @@ faster than the existing rules.
 
     .. versionadded:: 1.4.0
 
-    .. versionadded:: 2.0.0
+    .. versionchanged:: 2.0.0
       ``options`` optional parameter added
 
     Set a Lua FFI visitor function that will be called for each label of every domain seen in queries and responses. The function receives a `dnsdist_ffi_stat_node_t` object containing the stats of the parent, a second one with the stats of the current label and one with the stats of the current node plus all its children.
