@@ -1,6 +1,12 @@
+{% if os_version == '10' %}
+FROM quay.io/rockylinux/rockylinux:{{ os_version }}
+
+RUN yum install -y epel-release bind-utils
+{% else %}
 FROM {{ os_image }}:{{ os_version }}
 
 RUN yum install -y oracle-epel-release-el{{ os_version }} bind-utils
+{% endif %}
 
 {% if release == 'dnsdist-15' and os_version == '8' %}
 RUN dnf install -y 'dnf-command(config-manager)'

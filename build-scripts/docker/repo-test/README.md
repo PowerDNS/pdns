@@ -10,6 +10,17 @@ To see the supported releases do `./generate-repo-files.py --help`.
 This tool is mainly used internally to test releases but might be useful
 for others.
 
+## EL-10
+
+(temporary section)
+
+We are in the process of updating our GPG keys.  For now:
+
+- `docker run -it quay.io/rockylinux/rockylinux:10`
+- `curl -o /etc/yum.repos.d/powerdns-rec-53.repo https://repo.powerdns.com/repo-files/el-rec-53.repo`
+- `yum install -y oracle-epel-release bind-utils`
+- `yum install --assumeyes --nogpgcheck pdns-recursor`
+
 ## Known Issues
 
 - `--test-aarch64` really only makes sense if the test script is running on
