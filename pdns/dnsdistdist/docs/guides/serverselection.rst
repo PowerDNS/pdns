@@ -91,7 +91,7 @@ If all servers are down, the policy will still select one server by default. Set
 ``orderedWrandUntag`` is another weighted policy with additional server filtering:
 
 - select the group of server(s) with the lowest ``order`` passed to :func:`newServer`.
-- filter out server(s) that were tagged with key string of :meth:`Server:getNameWithAddr` in the query that was set by :meth:`DNSQuestion:setTag`. This can be useful to restart a query with a different server, the user is responsible to set the required tag in lua action before calling :func:`DNSResponse:restart`. Initial queries are not impacted by this filtering if there is no other intentional lua action to set the tag.
+- filter out server(s) that were tagged with key string of :meth:`Server.getNameWithAddr` in the query that was set by :meth:`DNSQuestion.setTag`. This can be useful to restart a query with a different server, the user is responsible to set the required tag in lua action before calling :func:`DNSResponse:restart`. Initial queries are not impacted by this filtering if there is no other intentional lua action to set the tag.
 - policy ``wrandom`` is then applied to the selected server(s) above.
 
 Lua server policies
