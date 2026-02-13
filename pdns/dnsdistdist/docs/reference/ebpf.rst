@@ -147,12 +147,12 @@ These are all the functions, objects and methods related to the :doc:`../advance
 
   .. method:: excludeRange(netmasks)
 
-    Exclude this range, or list of ranges, meaning that no dynamic block will ever be inserted for clients in that range. Default to empty, meaning rules are applied to all ranges. When used in combination with :meth:`DynBPFFilter:includeRange`, the more specific entry wins.
+    Exclude this range, or list of ranges, meaning that no dynamic block will ever be inserted for clients in that range. Default to empty, meaning rules are applied to all ranges. When used in combination with :meth:`DynBPFFilter.includeRange`, the more specific entry wins.
 
     :param str or list of str netmasks: A netmask, or list of netmasks, as strings, like for example "192.0.2.1/24"
 
   .. method:: includeRange(netmasks)
 
-    Include this range, or list of ranges, meaning that rules will be applied to this range. When used in combination with :meth:`DynBPFFilter:excludeRange`, the more specific entry wins.
+    Include this range, or list of ranges, meaning that rules will be applied to this range. When used in combination with :meth:`DynBPFFilter.excludeRange`, the more specific entry wins.
 
     :param str or list of str netmasks: A netmask, or list of netmasks, as strings, like for example "192.0.2.1/24"

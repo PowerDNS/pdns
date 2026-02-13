@@ -5,7 +5,7 @@ Since 1.8.0, dnsdist contains a limited DNS parser class that can be used to ins
 the content of DNS queries and responses in Lua.
 
 The first step is to get the content of the DNS payload into a Lua string,
-for example using :meth:`DNSQuestion:getContent`, or :meth:`DNSResponse:getContent`,
+for example using :meth:`DNSQuestion.getContent`, or :meth:`DNSResponse.getContent`,
 and then to create a :class:`DNSPacketOverlay` object:
 
 .. code-block:: lua
@@ -51,7 +51,7 @@ and then to create a :class:`DNSPacketOverlay` object:
   Nil is returned otherwise.
 
   :param str packet: The DNS payload.
-  :param DNSRecord record: The record to parse, obtained via :meth:`DNSPacketOverlay:getRecord`.
+  :param DNSRecord record: The record to parse, obtained via :meth:`DNSPacketOverlay.getRecord`.
 
 
 .. function:: parseAAAARecord(packet, record) -> ComboAddress
@@ -62,7 +62,7 @@ and then to create a :class:`DNSPacketOverlay` object:
   Nil is returned otherwise.
 
   :param str packet: The DNS payload.
-  :param DNSRecord record: The record to parse, obtained via :meth:`DNSPacketOverlay:getRecord`.
+  :param DNSRecord record: The record to parse, obtained via :meth:`DNSPacketOverlay.getRecord`.
 
 
 .. function:: parseAddressRecord(packet, record) -> ComboAddress
@@ -73,7 +73,7 @@ and then to create a :class:`DNSPacketOverlay` object:
   Nil is returned otherwise.
 
   :param str packet: The DNS payload.
-  :param DNSRecord record: The record to parse, obtained via :meth:`DNSPacketOverlay:getRecord`.
+  :param DNSRecord record: The record to parse, obtained via :meth:`DNSPacketOverlay.getRecord`.
 
 
 .. function:: parseCNAMERecord(packet, record) -> DNSName
@@ -84,7 +84,7 @@ and then to create a :class:`DNSPacketOverlay` object:
   Nil is returned otherwise.
 
   :param str packet: The DNS payload.
-  :param DNSRecord record: The record to parse, obtained via :meth:`DNSPacketOverlay:getRecord`.
+  :param DNSRecord record: The record to parse, obtained via :meth:`DNSPacketOverlay.getRecord`.
 
 .. _DNSPacketOverlay:
 

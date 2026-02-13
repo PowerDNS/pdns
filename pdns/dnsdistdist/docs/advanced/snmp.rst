@@ -7,7 +7,7 @@ SNMP support is enabled via the :func:`snmpAgent` directive.
 By default, the only traps sent when Traps are enabled, are backend status change notifications.
 But custom traps can also be sent:
 
- * from Lua, with :func:`sendCustomTrap` and :meth:`DNSQuestion:sendTrap`
+ * from Lua, with :func:`sendCustomTrap` and :meth:`DNSQuestion.sendTrap`
  * For selected queries and responses, using :func:`SNMPTrapAction` and :func:`SNMPTrapResponseAction`
 
 ``Net SNMP snmpd`` doesn't accept subagent connections by default, so to use the SNMP features of :program:`dnsdist` the following line should be added to the ``snmpd.conf`` configuration file::

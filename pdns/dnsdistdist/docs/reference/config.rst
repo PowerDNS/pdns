@@ -855,7 +855,7 @@ A server object returned by :func:`getServer` can be manipulated with these func
 
     .. versionadded:: 2.0.0
 
-    Get the current health-check mode, ``active`` or ``lazy``. Note that health-checks might be disabled because :meth:`setUp` or :meth:`Server:setDown`
+    Get the current health-check mode, ``active`` or ``lazy``. Note that health-checks might be disabled because :meth:`setUp` or :meth:`setDown`
     were called, in which case this method will return the health-check mode that will be restored if :meth:`setAuto` is called.
 
     :returns: The current health-check mode
@@ -866,11 +866,11 @@ A server object returned by :func:`getServer` can be manipulated with these func
 
     :returns: The number of outstanding queries
 
-  .. classmethod:: isUp() -> bool
+  .. method:: isUp() -> bool
 
     Returns the up status of the server.
     Result is based on the administrative status of the server (as set by either :meth:`setDown` or :meth:`setUp`).
-    If no administrative status is set (see :meth:`setAuto`, :meth:`setActiveAuto` and :meth:`setLazyAuto`), result is based on :attr:`Server.upStatus`
+    If no administrative status is set (see :meth:`setAuto`, :meth:`setActiveAuto` and :meth:`setLazyAuto`), result is based on :attr:`upStatus`
 
     :returns: true when the server is up, false otherwise
 
@@ -896,7 +896,7 @@ A server object returned by :func:`getServer` can be manipulated with these func
       Before 2.0.0 this option forced the health-check mode to ``active`` (see :meth:`setActiveAuto`). After 2.0.0 it restores the previous health-check mode instead.
 
     Set the server in the default ``auto`` state, enabling health check queries that will set the server ``up`` and ``down`` appropriately.
-    See :meth:`setActiveAuto`, :meth:`Server:setLazyAuto` and :ref:`Healthcheck` to understand the different health-check modes.
+    See :meth:`setActiveAuto`, :meth:`setLazyAuto` and :ref:`Healthcheck` to understand the different health-check modes.
 
     :param bool status: Set the initial status of the server to ``up`` (true) or ``down`` (false) instead of using the last known status
 
@@ -1011,7 +1011,7 @@ Servers that are not assigned to a specific pool get assigned to the default poo
   .. method:: getECS()
 
     Whether dnsdist will add EDNS Client Subnet information to the query before looking up into the cache,
-    when all servers from this pool are down. For more information see :meth:`ServerPool:setECS`.
+    when all servers from this pool are down. For more information see :meth:`setECS`.
 
   .. method:: setCache(cache)
 
@@ -2072,9 +2072,9 @@ faster than the existing rules.
       ``options`` optional parameter added
 
     Set a Lua visitor function that will be called for each label of every domain seen in queries and responses. The function receives a :class:`StatNode` object representing the stats of the parent, a :class:`StatNodeStats` one with the stats of the current label and a second :class:`StatNodeStats` with the stats of the current node plus all its children.
-    Note that this function will not be called if a FFI version has been set using :meth:`DynBlockRulesGroup:setSuffixMatchRuleFFI`
+    Note that this function will not be called if a FFI version has been set using :meth:`DynBlockRulesGroup.setSuffixMatchRuleFFI`
     If the function returns ``true``, the current suffix will be added to the block list, meaning that the exact name and all its sub-domains will be blocked according to the `seconds`, `reason`, `blockingTime` and `action` parameters. Since 1.7.0, the function can return an additional string, in addition to the boolean, which will be set as the ``reason`` for the dynamic block.
-    Selected domains can be excluded from this processing using the :meth:`DynBlockRulesGroup:excludeDomains` method.
+    Selected domains can be excluded from this processing using the :meth:`DynBlockRulesGroup.excludeDomains` method.
 
     This replaces the existing :func:`addDynBlockSMT` function.
 
@@ -2099,7 +2099,7 @@ faster than the existing rules.
 
     Set a Lua FFI visitor function that will be called for each label of every domain seen in queries and responses. The function receives a `dnsdist_ffi_stat_node_t` object containing the stats of the parent, a second one with the stats of the current label and one with the stats of the current node plus all its children.
     If the function returns ``true``, the current suffix will be added to the block list, meaning that the exact name and all its sub-domains will be blocked according to the `seconds`, `reason`, `blockingTime` and `action` parameters.
-    Selected domains can be excluded from this processing using the :meth:`DynBlockRulesGroup:excludeDomains` method.
+    Selected domains can be excluded from this processing using the :meth:`DynBlockRulesGroup.excludeDomains` method.
 
     :param int seconds: Number of seconds the rate has been exceeded
     :param string reason: The message to show next to the blocks
@@ -2129,7 +2129,7 @@ faster than the existing rules.
 
     .. versionadded:: 1.4.0
 
-    Exclude this domain, or list of domains, meaning that no dynamic block will ever be inserted for this domain via :meth:`DynBlockRulesGroup:setSuffixMatchRule` or :meth:`DynBlockRulesGroup:setSuffixMatchRuleFFI`. Default to empty, meaning rules are applied to all domains.
+    Exclude this domain, or list of domains, meaning that no dynamic block will ever be inserted for this domain via :meth:`DynBlockRulesGroup.setSuffixMatchRule` or :meth:`DynBlockRulesGroup.setSuffixMatchRuleFFI`. Default to empty, meaning rules are applied to all domains.
 
     :param str domain: A domain, or list of domains, as strings, like for example "powerdns.com"
 
@@ -2138,7 +2138,7 @@ faster than the existing rules.
     .. versionchanged:: 1.6.0
       This method now accepts a :class:`NetmaskGroup` object.
 
-    Exclude this range, or list of ranges, meaning that no dynamic block will ever be inserted for clients in that range. Default to empty, meaning rules are applied to all ranges. When used in combination with :meth:`DynBlockRulesGroup:includeRange`, the more specific entry wins.
+    Exclude this range, or list of ranges, meaning that no dynamic block will ever be inserted for clients in that range. Default to empty, meaning rules are applied to all ranges. When used in combination with :meth:`DynBlockRulesGroup.includeRange`, the more specific entry wins.
 
     :param list netmasks: A :class:`NetmaskGroup` object, or a netmask or list of netmasks as strings, like for example "192.0.2.1/24"
 
@@ -2147,7 +2147,7 @@ faster than the existing rules.
     .. versionchanged:: 1.6.0
       This method now accepts a :class:`NetmaskGroup` object.
 
-    Include this range, or list of ranges, meaning that rules will be applied to this range. When used in combination with :meth:`DynBlockRulesGroup:excludeRange`, the more specific entry wins.
+    Include this range, or list of ranges, meaning that rules will be applied to this range. When used in combination with :meth:`DynBlockRulesGroup.excludeRange`, the more specific entry wins.
 
     :param list netmasks: A :class:`NetmaskGroup` object, or a netmask or list of netmasks as strings, like for example "192.0.2.1/24"
 
@@ -2168,7 +2168,7 @@ StatNode
 
 .. class:: StatNode
 
-  Represent a given node, for the visitor functions used with :meth:`DynBlockRulesGroup:setSuffixMatchRule` and :meth:`DynBlockRulesGroup:setSuffixMatchRuleFFI`.
+  Represent a given node, for the visitor functions used with :meth:`DynBlockRulesGroup.setSuffixMatchRule` and :meth:`DynBlockRulesGroup.setSuffixMatchRuleFFI`.
 
   .. attribute:: fullname
 
@@ -2184,7 +2184,7 @@ StatNode
 
 .. class:: StatNodeStats
 
-  Represent the metrics for a given node, for the visitor functions used with :meth:`DynBlockRulesGroup:setSuffixMatchRule` and :meth:`DynBlockRulesGroup:setSuffixMatchRuleFFI`.
+  Represent the metrics for a given node, for the visitor functions used with :meth:`DynBlockRulesGroup.setSuffixMatchRule` and :meth:`DynBlockRulesGroup.setSuffixMatchRuleFFI`.
 
   .. attribute:: bytes
 
@@ -2594,7 +2594,7 @@ DOHFrontend
 
   .. versionadded:: 1.4.0
 
-  Return a DOHResponseMapEntry that can be used with :meth:`DOHFrontend:setResponsesMap`. Every query whose path is listed in the ``urls`` parameter to :func:`addDOHLocal` and matches the regular expression supplied in ``regex`` will be immediately answered with a HTTP response.
+  Return a DOHResponseMapEntry that can be used with :meth:`DOHFrontend.setResponsesMap`. Every query whose path is listed in the ``urls`` parameter to :func:`addDOHLocal` and matches the regular expression supplied in ``regex`` will be immediately answered with a HTTP response.
   The status of the HTTP response will be the one supplied by ``status``, and the content set to the one supplied by ``content``, except if the status is a redirection (3xx) in which case the content is expected to be the URL to redirect to.
 
   :param str regex: A regular expression to match the path against.
@@ -2750,12 +2750,12 @@ TLSFrontend
 
   .. method:: loadTicketsKeys(ticketsKeysFile)
 
-  .. versionadded:: 1.6.0
+     .. versionadded:: 1.6.0
 
      Load new tickets keys from the selected file, replacing the existing ones. These keys should be rotated often and never written to persistent storage to preserve forward secrecy. The default is to generate a random key. The OpenSSL provider supports several tickets keys to be able to decrypt existing sessions after the rotation, while the GnuTLS provider only supports one key.
      See :doc:`../advanced/tls-sessions-management` for more information.
 
-    :param str ticketsKeysFile: The path to a file from where TLS tickets keys should be loaded.
+     :param str ticketsKeysFile: The path to a file from where TLS tickets keys should be loaded.
 
   .. method:: loadTicketsKey(key)
 
