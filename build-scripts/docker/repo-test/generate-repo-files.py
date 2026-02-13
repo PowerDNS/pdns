@@ -142,7 +142,7 @@ def write_release_files (release):
         write_dockerfile('el', '9', release)
         write_dockerfile('debian', 'bullseye', release)
         write_list_file('debian', 'bullseye', release)
-        if release != 'auth-50' and release != 'rec-54' and release != 'rec-53' and release != 'dnsdist-20' and release != 'dnsdist-21':
+        if not release in ['auth-50', 'rec-54', 'rec-53', 'dnsdist-20', 'dnsdist-21']:
             write_dockerfile('ubuntu', 'focal', release)
             write_list_file('ubuntu', 'focal', release)
         write_dockerfile('ubuntu', 'jammy', release)
@@ -154,7 +154,8 @@ def write_release_files (release):
         write_dockerfile('el', '10', release)
 
     if release in ['auth-48', 'auth-49', 'auth-50', 'auth-master',
-                   'rec-48', 'rec-49', 'rec-50', 'rec-51', 'rec-52', 'rec-53', 'rec-54', 'rec-master',
+                   'rec-48', 'rec-49', 'rec-50', 'rec-51', 'rec-52', 'rec-53',
+                   'rec-54', 'rec-master',
                    'dnsdist-19', 'dnsdist-20', 'dnsdist-21', 'dnsdist-master']:
         write_dockerfile('debian', 'bookworm', release)
         write_list_file('debian', 'bookworm', release)
@@ -254,7 +255,8 @@ def test_release (release, arch='x86_64'):
     returned_versions = []
     print('=== testing {} ({}) ==='.format(release, arch))
     for df in dockerfiles:
-        if arch == 'aarch64' and not release in ['auth-50', 'auth-49', 'rec-49', 'rec-50', 'rec-51', 'rec-52', 'rec-53', 'rec-54', 'rec-master',
+        if arch == 'aarch64' and not release in ['auth-50', 'auth-49',
+                                                 'rec-49', 'rec-50', 'rec-51', 'rec-52', 'rec-53', 'rec-54', 'rec-master',
                                                  'dnsdist-19', 'dnsdist-20', 'dnsdist-21', 'dnsdist-master']:
             continue
         if g_verbose:
