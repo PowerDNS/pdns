@@ -193,6 +193,19 @@ public:
     double d_warningRatio{0.0};
   };
 
+  struct DynBlockAllowedRCodesRatioRule : DynBlockRatioRule
+  {
+    DynBlockAllowedRCodesRatioRule() = default;
+    DynBlockAllowedRCodesRatioRule(const std::unordered_set<uint8_t>& rcodes, const std::string& blockReason, uint32_t blockDuration, double ratio, double warningRatio, uint32_t seconds, DNSAction::Action action, size_t minimumNumberOfResponses) :
+      DynBlockRatioRule(blockReason, blockDuration, ratio, warningRatio, seconds, action, minimumNumberOfResponses), d_allowedRCodes(rcodes)
+    {
+    }
+    bool isRCodeAllowed(uint8_t rcode) const;
+    std::string toString() const;
+
+    std::unordered_set<uint8_t> d_allowedRCodes{};
+  };
+
   struct DynBlockCacheMissRatioRule : public DynBlockRatioRule
   {
     DynBlockCacheMissRatioRule() = default;
@@ -218,6 +231,7 @@ private:
     uint64_t responses{0};
     uint64_t respBytes{0};
     uint64_t cacheMisses{0};
+    uint64_t notAllowedRCodes{0};
   };
   using counts_t = std::unordered_map<AddressAndPortRange, Counts, AddressAndPortRange::hash>;
 
@@ -245,6 +259,11 @@ public:
   void setRCodeRatio(uint8_t rcode, DynBlockRatioRule&& rule)
   {
     d_rcodeRatioRules[rcode] = std::move(rule);
+  }
+
+  void setAllowedRCodesRatio(DynBlockAllowedRCodesRatioRule&& rule)
+  {
+    d_allowedRCodesRatioRule = std::move(rule);
   }
 
   void setQTypeRate(uint16_t qtype, DynBlockRule&& rule)
@@ -343,6 +362,7 @@ public:
     for (const auto& rule : d_rcodeRatioRules) {
       result << "- " << RCode::to_s(rule.first) << ": " << rule.second.toString() << std::endl;
     }
+    result << "Allowed rcodes ratio rule: " << d_allowedRCodesRatioRule.toString() << std::endl;
     result << "QType rules: " << std::endl;
     for (const auto& rule : d_qtypeRules) {
       result << "- " << QType(rule.first).toString() << ": " << rule.second.toString() << std::endl;
@@ -382,7 +402,7 @@ private:
 
   bool hasResponseRules() const
   {
-    return d_respRateRule.isEnabled() || !d_rcodeRules.empty() || !d_rcodeRatioRules.empty() || d_respCacheMissRatioRule.isEnabled();
+    return d_respRateRule.isEnabled() || !d_rcodeRules.empty() || !d_rcodeRatioRules.empty() || d_allowedRCodesRatioRule.isEnabled() || d_respCacheMissRatioRule.isEnabled();
   }
 
   bool hasSuffixMatchRules() const
@@ -405,6 +425,7 @@ private:
   DynBlockRule d_respRateRule;
   DynBlockRule d_suffixMatchRule;
   DynBlockCacheMissRatioRule d_respCacheMissRatioRule;
+  DynBlockAllowedRCodesRatioRule d_allowedRCodesRatioRule;
   NetmaskGroup d_excludedSubnets;
   SuffixMatchNode d_excludedDomains;
   smtVisitor_t d_smtVisitor;

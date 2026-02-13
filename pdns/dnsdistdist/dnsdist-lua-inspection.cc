@@ -973,6 +973,18 @@ void setupLuaInspection(LuaContext& luaCtx)
     }
   });
   // NOLINTNEXTLINE(performance-unnecessary-value-param): optional parameters cannot be passed by const reference
+  luaCtx.registerFunction<void (std::shared_ptr<DynBlockRulesGroup>::*)(std::vector<uint8_t>, double, unsigned int, const std::string&, unsigned int, size_t, std::optional<DNSAction::Action>, std::optional<double>, DynamicActionOptionalParameters)>("setAllowedRCodesRatio", [](std::shared_ptr<DynBlockRulesGroup>& group, std::vector<uint8_t> rcodes, double ratio, unsigned int seconds, const std::string& reason, unsigned int blockDuration, size_t minimumNumberOfResponses, std::optional<DNSAction::Action> action, std::optional<double> warningRatio, DynamicActionOptionalParameters optionalParameters) {
+    if (group) {
+      std::unordered_set<uint8_t> allowed;
+      for (const auto rcode : rcodes) {
+        allowed.insert(rcode);
+      }
+      DynBlockRulesGroup::DynBlockAllowedRCodesRatioRule rule(std::move(allowed), reason, blockDuration, ratio, warningRatio ? *warningRatio : 0.0, seconds, action ? *action : DNSAction::Action::None, minimumNumberOfResponses);
+      parseDynamicActionOptionalParameters("setAllowedRCodesRatio", rule, action, optionalParameters);
+      group->setAllowedRCodesRatio(std::move(rule));
+    }
+  });
+  // NOLINTNEXTLINE(performance-unnecessary-value-param): optional parameters cannot be passed by const reference
   luaCtx.registerFunction<void (std::shared_ptr<DynBlockRulesGroup>::*)(uint16_t, unsigned int, unsigned int, const std::string&, unsigned int, std::optional<DNSAction::Action>, std::optional<unsigned int>, DynamicActionOptionalParameters)>("setQTypeRate", [](std::shared_ptr<DynBlockRulesGroup>& group, uint16_t qtype, unsigned int rate, unsigned int seconds, const std::string& reason, unsigned int blockDuration, std::optional<DNSAction::Action> action, std::optional<unsigned int> warningRate, DynamicActionOptionalParameters optionalParameters) {
     if (group) {
       DynBlockRulesGroup::DynBlockRule rule(reason, blockDuration, rate, warningRate ? *warningRate : 0, seconds, action ? *action : DNSAction::Action::None);
