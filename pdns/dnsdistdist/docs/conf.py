@@ -146,9 +146,7 @@ html_theme = "sphinx_immaterial"
 #
 html_theme_options = {
     "site_url": "https://dnsdist.org",
-    # "palette": {
-    #     "primary": "custom",
-    # },
+    "palette": {"scheme": "powerdns"},
     "features": [
         "navigation.tabs",
         "navigation.tabs.sticky",
