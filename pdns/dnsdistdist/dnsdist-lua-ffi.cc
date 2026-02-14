@@ -614,6 +614,11 @@ void dnsdist_ffi_dnsquestion_set_tag(dnsdist_ffi_dnsquestion_t* dq, const char* 
   dq->dq->setTag(label, value);
 }
 
+void dnsdist_ffi_dnsquestion_unset_tag(dnsdist_ffi_dnsquestion_t* dq, const char* label)
+{
+  dq->dq->unsetTag(label);
+}
+
 void dnsdist_ffi_dnsquestion_set_tag_raw(dnsdist_ffi_dnsquestion_t* dq, const char* label, const char* value, size_t valueSize)
 {
   dq->dq->setTag(label, std::string(value, valueSize));

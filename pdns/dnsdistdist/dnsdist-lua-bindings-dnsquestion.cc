@@ -216,22 +216,20 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
   luaCtx.registerFunction<void (DNSQuestion::*)(std::string, std::string)>("setTag", [](DNSQuestion& dnsQuestion, const std::string& strLabel, const std::string& strValue) {
     dnsQuestion.setTag(strLabel, strValue);
   });
+  luaCtx.registerFunction<void (DNSQuestion::*)(std::string)>("unsetTag", [](DNSQuestion& dnsQuestion, const std::string& strLabel) {
+    dnsQuestion.unsetTag(strLabel);
+  });
   luaCtx.registerFunction<void (DNSQuestion::*)(LuaAssociativeTable<std::string>)>("setTagArray", [](DNSQuestion& dnsQuestion, const LuaAssociativeTable<std::string>& tags) {
     for (const auto& tag : tags) {
       dnsQuestion.setTag(tag.first, tag.second);
     }
   });
   luaCtx.registerFunction<string (DNSQuestion::*)(std::string) const>("getTag", [](const DNSQuestion& dnsQuestion, const std::string& strLabel) {
-    if (!dnsQuestion.ids.qTag) {
+    auto value = dnsQuestion.getTag(strLabel);
+    if (!value) {
       return string();
     }
-
-    std::string strValue;
-    const auto tagIt = dnsQuestion.ids.qTag->find(strLabel);
-    if (tagIt == dnsQuestion.ids.qTag->cend()) {
-      return string();
-    }
-    return tagIt->second;
+    return *value;
   });
   luaCtx.registerFunction<QTag (DNSQuestion::*)(void) const>("getTagArray", [](const DNSQuestion& dnsQuestion) -> QTag {
     if (!dnsQuestion.ids.qTag) {
@@ -539,22 +537,21 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
     dnsResponse.setTag(strLabel, strValue);
   });
 
+  luaCtx.registerFunction<void (DNSResponse::*)(std::string)>("unsetTag", [](DNSResponse& dnsResponse, const std::string& strLabel) {
+    dnsResponse.unsetTag(strLabel);
+  });
+
   luaCtx.registerFunction<void (DNSResponse::*)(LuaAssociativeTable<std::string>)>("setTagArray", [](DNSResponse& dnsResponse, const LuaAssociativeTable<string>& tags) {
     for (const auto& tag : tags) {
       dnsResponse.setTag(tag.first, tag.second);
     }
   });
   luaCtx.registerFunction<string (DNSResponse::*)(std::string) const>("getTag", [](const DNSResponse& dnsResponse, const std::string& strLabel) {
-    if (!dnsResponse.ids.qTag) {
+    auto value = dnsResponse.getTag(strLabel);
+    if (!value) {
       return string();
     }
-
-    std::string strValue;
-    const auto tagIt = dnsResponse.ids.qTag->find(strLabel);
-    if (tagIt == dnsResponse.ids.qTag->cend()) {
-      return string();
-    }
-    return tagIt->second;
+    return *value;
   });
   luaCtx.registerFunction<QTag (DNSResponse::*)(void) const>("getTagArray", [](const DNSResponse& dnsResponse) {
     if (!dnsResponse.ids.qTag) {

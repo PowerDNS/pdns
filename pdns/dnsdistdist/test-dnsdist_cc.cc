@@ -2476,4 +2476,42 @@ BOOST_AUTO_TEST_CASE(test_setEDNSOption)
   BOOST_CHECK_EQUAL(cookiesOptionStr, std::string(ecsOption->second.values.at(0).content, ecsOption->second.values.at(0).size));
 }
 
+BOOST_AUTO_TEST_CASE(test_DNSQuestion_Tags)
+{
+  InternalQueryState ids;
+  ids.origRemote = ComboAddress("192.0.2.1:42");
+  ids.origDest = ComboAddress("127.0.0.1:53");
+  ids.protocol = dnsdist::Protocol::DoUDP;
+  ids.qname = DNSName("powerdns.com.");
+  ids.qtype = QType::A;
+  ids.qclass = QClass::IN;
+  ids.queryRealTime.start();
+
+  PacketBuffer packet;
+  GenericDNSPacketWriter<PacketBuffer> packetWriter(packet, ids.qname, ids.qtype, ids.qclass, 0);
+  packetWriter.addOpt(4096, 0, EDNS_HEADER_FLAG_DO);
+  packetWriter.commit();
+
+  DNSQuestion dnsQuestion(ids, packet);
+
+  BOOST_CHECK(dnsQuestion.getTag("not-existing") == std::nullopt);
+
+  const std::string tagName{"my-tag-name"};
+  const std::string tagValue{"my-tag-value"};
+  const std::string tagValue2{"my-tag-value-2"};
+  dnsQuestion.setTag(tagName, tagValue);
+  auto got = dnsQuestion.getTag(tagName);
+  BOOST_REQUIRE(got);
+  BOOST_CHECK_EQUAL(*got, tagValue);
+
+  dnsQuestion.setTag(tagName, tagValue2);
+  got = dnsQuestion.getTag(tagName);
+  BOOST_REQUIRE(got);
+  BOOST_CHECK_EQUAL(*got, tagValue2);
+
+  dnsQuestion.unsetTag(tagName);
+  got = dnsQuestion.getTag(tagName);
+  BOOST_CHECK(!got);
+}
+
 BOOST_AUTO_TEST_SUITE_END();

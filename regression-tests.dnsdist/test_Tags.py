@@ -335,3 +335,87 @@ class TestSetTag(DNSDistTest):
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertTrue(receivedResponse)
             self.assertEqual(expectedResponse, receivedResponse)
+
+class TestUnsetTag(DNSDistTest):
+
+    _config_template = """
+    newServer{address="127.0.0.1:%d"}
+
+    function dqset(dq)
+      dq:setTag("dns", "value1")
+      return DNSAction.None, ""
+    end
+
+    addAction(AllRule(), LuaAction(dqset))
+
+    addAction(AllRule(), UnsetTagAction("dns"))
+    addAction(TagRule("dns", "value1"), SpoofAction("1.2.3.4"))
+    """
+
+    def testUnsetTag(self):
+
+        """
+        Tag: Test UnsetTagAction
+        """
+        name = 'unset.tags.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        # dnsdist set RA = RD for spoofed responses
+        query.flags &= ~dns.flags.RD
+        expectedResponse = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '1.2.3.50')
+        expectedResponse.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response=expectedResponse)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = query.id
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(expectedResponse, receivedResponse)
+
+class TestUnsetTagViaLua(DNSDistTest):
+
+    _config_template = """
+    newServer{address="127.0.0.1:%d"}
+
+    function dqunset(dq)
+      dq:unsetTag("dns")
+      return DNSAction.None, ""
+    end
+
+    addAction(AllRule(), SetTagAction("dns", "value1"))
+    addAction(AllRule(), LuaAction(dqunset))
+
+    addAction(TagRule("dns", "value1"), SpoofAction("1.2.3.4"))
+    """
+
+    def testUnsetTag(self):
+
+        """
+        Tag: Test UnsetTag via Lua
+        """
+        name = 'unset-lua.tags.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        # dnsdist set RA = RD for spoofed responses
+        query.flags &= ~dns.flags.RD
+        expectedResponse = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '1.2.3.50')
+        expectedResponse.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response=expectedResponse)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = query.id
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(expectedResponse, receivedResponse)
