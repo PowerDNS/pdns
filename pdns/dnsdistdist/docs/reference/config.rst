@@ -909,7 +909,7 @@ A server object returned by :func:`getServer` can be manipulated with these func
 
     .. versionadded:: 2.1.0
 
-    Set a Lua function to be called to validate DNS packets received in response to health-checl queries.
+    Set a Lua function to be called to validate DNS packets received in response to health-check queries.
     The function will receive a class:`DNSResponse` object and return a boolean indicating whether the response
     is valid (`true`) or not (`false`).
 
