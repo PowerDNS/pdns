@@ -84,6 +84,7 @@ struct Stats
   stat_t tcpQueryPipeFull{0};
   stat_t tcpCrossProtocolQueryPipeFull{0};
   stat_t tcpCrossProtocolResponsePipeFull{0};
+  /* Average latency microseconds, over the last N packets */
   pdns::stat_double_t latencyAvg100{0}, latencyAvg1000{0}, latencyAvg10000{0}, latencyAvg1000000{0};
   pdns::stat_double_t latencyTCPAvg100{0}, latencyTCPAvg1000{0}, latencyTCPAvg10000{0}, latencyTCPAvg1000000{0};
   pdns::stat_double_t latencyDoTAvg100{0}, latencyDoTAvg1000{0}, latencyDoTAvg10000{0}, latencyDoTAvg1000000{0};
