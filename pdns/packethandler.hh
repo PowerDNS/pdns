@@ -88,6 +88,8 @@ private:
   void addNSEC(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const DNSName &target, const DNSName &wildcard, int mode);
   bool getNSEC3Hashes(bool narrow, const std::string& hashed, bool decrement, DNSName& unhashed, std::string& before, std::string& after, int mode=0);
   void addNSEC3(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const DNSName &target, const DNSName &wildcard, const NSEC3PARAMRecordContent& nsec3param, bool narrow, int mode);
+  void computeNSECbitmap1(NSECBitmap& bitmap);
+  void computeNSECbitmap2(NSECBitmap& bitmap, const DNSName& name, bool includeENT);
   void emitNSEC(std::unique_ptr<DNSPacket>& r, const DNSName& name, const DNSName& next, int mode);
   void emitNSEC3(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const NSEC3PARAMRecordContent &ns3prc, const DNSName& name, const string& namehash, const string& nexthash, int mode);
   int processUpdate(DNSPacket& p);
