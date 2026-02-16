@@ -1449,6 +1449,45 @@ class TestDOHForwardedForNoTrustedNGHTTP2(DOHForwardedForNoTrusted, DNSDistDOHTe
 class TestDOHForwardedForNoTrustedH2O(DOHForwardedForNoTrusted, DNSDistDOHTest):
     _dohLibrary = 'h2o'
 
+class DOHDelayedACL(DNSDistDOHTest):
+
+    _serverKey = 'server.key'
+    _serverCert = 'server.chain'
+    _serverName = 'tls.tests.dnsdist.org'
+    _caCert = 'ca.pem'
+    _dohServerPort = pickAvailablePort()
+    _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
+    _dohLibrary = 'nghttp2'
+    _config_template = """
+    newServer{address="127.0.0.1:%d"}
+
+    setACL('192.0.2.1/32')
+    addDOHLocal("127.0.0.1:%d", "%s", "%s", { "/" }, {earlyACLDrop=false, library='%s'})
+"""
+    _config_params = ['_testServerPort', '_dohServerPort', '_serverCert', '_serverKey', '_dohLibrary']
+    _verboseMode = True
+
+    def testDOHDelayedACL(self):
+        """
+        DOH: Delayed ACL check
+        """
+        name = 'delayed-acl-drop.doh.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+        query.id = 0
+        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096)
+        expectedQuery.id = 0
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+
+        (receivedQuery, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, response=response, caFile=self._caCert, useQueue=False, rawResponse=True)
+        self.assertEqual(self._rcode, 403)
+        self.assertEqual(receivedResponse, b'DoH query not allowed because of ACL')
+
 class DOHFrontendLimits(object):
 
     # this test suite uses a different responder port
