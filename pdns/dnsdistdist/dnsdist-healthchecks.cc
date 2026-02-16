@@ -61,13 +61,13 @@ struct HealthCheckData
   bool d_initial{false};
 };
 
-static void updateLatencyMetrics(DownstreamState& downstream, int elapsed /* microseconds */)
+static void updateLatencyMetrics(DownstreamState& downstream, double elapsedUs /* microseconds */)
 {
-  if (elapsed >= 0) {
-    downstream.d_healthCheckLatency.store(elapsed);
+  if (elapsedUs >= 0) {
+    downstream.d_healthCheckLatency.store(elapsedUs);
 
     auto& histo = downstream.d_healthCheckLatencyHisto;
-    dnsdist::metrics::updateLatencyHistogram(histo, static_cast<uint64_t>(elapsed));
+    dnsdist::metrics::updateLatencyHistogram(histo, static_cast<uint64_t>(elapsedUs));
   }
 }
 

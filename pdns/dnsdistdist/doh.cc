@@ -797,7 +797,7 @@ static void processDOHQuery(DOHUnitUniquePtr&& unit, bool inMainThread = false)
       }
       if (unit->response.size() >= sizeof(dnsheader) && unit->contentType.empty()) {
         dnsheader_aligned dnsHeader(unit->response.data());
-        handleResponseSent(unit->ids.qname, QType(unit->ids.qtype), 0, unit->ids.origDest, ComboAddress(), unit->response.size(), *(dnsHeader.get()), dnsdist::Protocol::DoH, dnsdist::Protocol::DoH, false);
+        handleResponseSent(unit->ids.qname, QType(unit->ids.qtype), 0, unit->ids.origDest, ComboAddress(), unit->response.size(), *dnsHeader, dnsdist::Protocol::DoH, dnsdist::Protocol::DoH, false);
       }
       handleImmediateResponse(std::move(unit), "DoH self-answered response");
       return;
