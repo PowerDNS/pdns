@@ -77,6 +77,22 @@ static std::shared_ptr<Logr::Logger> getLoggerFromData(const std::shared_ptr<con
   return dnsdist::logging::getTopLogger("backend-health-check")->withValues("health_check.proto", Logging::Loggable(downstream->doHealthcheckOverTCP() ? (data->d_tcpHandler->isTLS() ? "DoT" : "tcp") : "udp"), "backend.name", Logging::Loggable(downstream->getName()), "backend.address", Logging::Loggable(downstream->d_config.remote), "dns.query.id", Logging::Loggable(data->d_queryID), "dns.query.name", Logging::Loggable(data->d_checkName), "dns.query.type", Logging::Loggable(data->d_checkType), "dns.query.class", Logging::Loggable(data->d_checkClass));
 }
 
+static bool validateHealthCheckResponseWithCallback(const std::shared_ptr<const HealthCheckData>& data)
+{
+  InternalQueryState ids;
+  ids.qname = data->d_checkName;
+  ids.qtype = data->d_checkType;
+  ids.qclass = data->d_checkClass;
+  ids.origRemote = data->d_ds->d_config.remote;
+  const auto& downstream = data->d_ds;
+  PacketBuffer buffer{data->d_buffer};
+  DNSResponse response(ids, buffer, downstream);
+  {
+    auto lock = g_lua.lock();
+    return downstream->d_config.d_healthCheckResponseValidationCallback(&response);
+  }
+}
+
 static bool handleResponse(std::shared_ptr<HealthCheckData>& data)
 {
   const auto& downstream = data->d_ds;
@@ -145,6 +161,10 @@ static bool handleResponse(std::shared_ptr<HealthCheckData>& data)
              logger->info(Logr::Info, "Backend responded to health check with an invalid qname, qtype or qclass", "dns.response.name", Logging::Loggable(receivedName), "dns.response.qtype", Logging::Loggable(receivedType), "dns.response.class", Logging::Loggable(receivedClass)));
       }
       return false;
+    }
+
+    if (data->d_ds->d_config.d_healthCheckResponseValidationCallback) {
+      return validateHealthCheckResponseWithCallback(data);
     }
   }
   catch (const std::exception& e) {
@@ -375,9 +395,9 @@ bool queueHealthCheck(std::unique_ptr<FDMultiplexer>& mplexer, const std::shared
       checkHeader.cd = true;
     }
 
-    if (downstream->d_config.checkFunction) {
+    if (downstream->d_config.d_healthCheckGenerationFunction) {
       auto lock = g_lua.lock();
-      auto ret = downstream->d_config.checkFunction(checkName, checkType, checkClass, &checkHeader);
+      auto ret = downstream->d_config.d_healthCheckGenerationFunction(checkName, checkType, checkClass, &checkHeader);
       checkName = std::get<0>(ret);
       checkType = std::get<1>(ret);
       checkClass = std::get<2>(ret);
