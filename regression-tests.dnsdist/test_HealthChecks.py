@@ -416,6 +416,7 @@ class HealthCheckUpdateParams(HealthCheckTest):
 
     _healthQueue = queue.Queue()
     _dropHealthCheck = False
+    _delayResponse = None
 
     @classmethod
     def startResponders(cls):
@@ -430,6 +431,8 @@ class HealthCheckUpdateParams(HealthCheckTest):
           cls._healthQueue.put(False)
           return ResponderDropAction()
         response = dns.message.make_response(request)
+        if cls._delayResponse is not None:
+            time.sleep(cls._delayResponse)
         cls._healthQueue.put(True)
         return response.to_wire()
 
@@ -440,6 +443,10 @@ class HealthCheckUpdateParams(HealthCheckTest):
     @classmethod
     def setDrop(cls, flag=True):
         cls._dropHealthCheck = flag
+
+    @classmethod
+    def setDelay(cls, delay):
+        cls._delayResponse = delay
 
 class TestUpdateHCParamsCombo1(HealthCheckUpdateParams):
 
@@ -547,3 +554,39 @@ class TestUpdateHCParamsCombo2(HealthCheckUpdateParams):
         time.sleep(1)
         # now should timeout and failure increased
         self.assertEqual(self.getBackendMetric(0, 'healthCheckFailures'), beforeFailure+1)
+
+class TestHealthCheckLatency(HealthCheckUpdateParams):
+
+    # this test suite uses a different responder port
+    _testServerPort = pickAvailablePort()
+
+    def testLatency(self):
+        """
+        HealthChecks: Check latency
+        """
+        # consume health checks upon sys init
+        try:
+          while self.wait1(False): pass
+        except queue.Empty: pass
+
+        self.assertEqual(self.wait1(), True)
+        time.sleep(0.1)
+        self.assertEqual(self.getBackendMetric(0, 'healthCheckFailures'), 0)
+        self.assertEqual(self.getBackendStatus(), 'up')
+        latency = self.getBackendMetric(0, 'healthCheckLatency')
+        # less than 500 ms
+        self.assertLess(latency, 500)
+
+        # introduce 500 ms of latency
+        self.setDelay(0.5)
+
+        self.wait1(True)
+
+        # should have no failures, still up
+        self.assertEqual(self.getBackendMetric(0, 'healthCheckFailures'), 0)
+        self.assertEqual(self.getBackendStatus(), 'up')
+        latency = self.getBackendMetric(0, 'healthCheckLatency')
+        # should be at least 500 ms
+        self.assertGreaterEqual(latency, 500)
+
+        self.setDelay(None)
