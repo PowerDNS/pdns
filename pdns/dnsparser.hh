@@ -176,6 +176,11 @@ public:
 
   void skip(uint16_t n)
   {
+    size_t stop = d_pos;
+    stop += n;
+    if (stop > d_content.size()) {
+      throw std::out_of_range("Attempt to skip bytes (" + std::to_string(n) + " starting at " + std::to_string(d_pos) + ") farther than the packet's end (" + std::to_string(d_content.size()) + ")");
+    }
     d_pos += n;
   }
 
