@@ -39,7 +39,7 @@ jobs:
         # Override automatic language detection by changing the below list
         # Supported options are ['csharp', 'cpp', 'go', 'java', 'javascript', 'python']
         language: ['cpp']
-        product: ['auth', 'rec', 'dnsdist']
+        product: ['rec']
         # Learn more...
         # https://docs.github.com/en/github/finding-security-vulnerabilities-and-errors-in-your-code/configuring-code-scanning#overriding-automatic-language-detection
 
@@ -261,8 +261,6 @@ jobs:
     runs-on: ubuntu-22.04
     name: Check whether clang-tidy succeeded
     env:
-      ANNOTATIONS_AUTH: ${{ needs.analyze.outputs.clang-tidy-annotations-auth }}
-      ANNOTATIONS_DIST: ${{ needs.analyze.outputs.clang-tidy-annotations-dnsdist }}
       ANNOTATIONS_REC: ${{ needs.analyze.outputs.clang-tidy-annotations-rec }}
     steps:
       - run: |
