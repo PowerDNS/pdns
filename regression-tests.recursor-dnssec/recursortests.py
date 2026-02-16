@@ -1419,7 +1419,7 @@ distributor-threads={threads}
       conn.close()
 
     @classmethod
-    def TCPResponder(cls, port, fromQueue, toQueue, trailingDataResponse=False, multipleResponses=False, callback=None, tlsContext=None, multipleConnections=False, listeningAddr='127.0.0.1', partialWrite=False,clientCert=False):
+    def TCPResponder(cls, port, fromQueue, toQueue, trailingDataResponse=False, multipleResponses=False, callback=None, tlsContext=None, multipleConnections=False, listeningAddr='127.0.0.1', partialWrite=False, clientCert=False):
         cls._backgroundThreads[threading.get_native_id()] = True
         # trailingDataResponse=True means "ignore trailing data".
         # Other values are either False (meaning "raise an exception")
@@ -1459,11 +1459,11 @@ distributor-threads={threads}
             if multipleConnections:
               thread = threading.Thread(name='TCP Connection Handler',
                                         target=cls.handleTCPConnection,
-                                        args=[conn, fromQueue, toQueue, trailingDataResponse, multipleResponses, callback, partialWrite,clientCert])
+                                        args=[conn, fromQueue, toQueue, trailingDataResponse, multipleResponses, callback, partialWrite, clientCert])
               thread.daemon = True
               thread.start()
             else:
-              cls.handleTCPConnection(conn, fromQueue, toQueue, trailingDataResponse, multipleResponses, callback, partialWrite,clientCert)
+              cls.handleTCPConnection(conn, fromQueue, toQueue, trailingDataResponse, multipleResponses, callback, partialWrite, clientCert)
 
         sock.close()
 
