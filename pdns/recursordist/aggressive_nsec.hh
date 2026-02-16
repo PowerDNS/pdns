@@ -92,7 +92,6 @@ public:
     return d_nsec3WildcardHits;
   }
 
-  // exported for unit test purposes
   static bool isSmallCoveringNSEC3(const DNSName& owner, const std::string& nextHash);
 
   void prune(time_t now);

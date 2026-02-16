@@ -326,11 +326,6 @@ void AggressiveNSECCache::insertNSEC(const DNSName& zone, const DNSName& owner, 
         return;
       }
 
-      if (isSmallCoveringNSEC3(owner, content->d_nexthash)) {
-        /* not accepting small covering answers since they only deny a small subset */
-        return;
-      }
-
       // XXX: Ponder storing everything in raw form, without the zone instead. It still needs to be a DNSName for NSEC, though,
       // but doing the conversion on cache hits only might be faster
       next = DNSName(toBase32Hex(content->d_nexthash)) + zone;

@@ -4689,6 +4689,8 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
   }
 
   bool seenBogusRRSet = false;
+  std::vector<tcache_t::value_type> aggrCacheRecords;
+  bool insertIntoAggressiveCache = false;
   for (auto tCacheEntry = tcache.begin(); tCacheEntry != tcache.end(); ++tCacheEntry) {
 
     if (tCacheEntry->second.records.empty()) { // this happens when we did store signatures, but passed on the records themselves
@@ -4893,11 +4895,32 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
 
     if (g_aggressiveNSECCache && (tCacheEntry->first.type == QType::NSEC || tCacheEntry->first.type == QType::NSEC3) && recordState == vState::Secure && !seenAuth.empty()) {
       // Good candidate for NSEC{,3} caching
-      g_aggressiveNSECCache->insertNSEC(seenAuth, tCacheEntry->first.name, tCacheEntry->second.records.at(0), tCacheEntry->second.signatures, tCacheEntry->first.type == QType::NSEC3, qname, qtype);
+      aggrCacheRecords.emplace_back(*tCacheEntry);
+      if (!insertIntoAggressiveCache) {
+        if (tCacheEntry->first.type == QType::NSEC) {
+          // NSECs have no additonal condition, just take them
+          insertIntoAggressiveCache = true;
+        }
+        else if (tCacheEntry->first.type == QType::NSEC3 && !AggressiveNSECCache::nsec3Disabled()) {
+          // If at least one of the NSEC3s covers quite some names, we will take all of them, as likely all of them are needed for a denial proof.
+          if (auto content = getRR<NSEC3RecordContent>(tCacheEntry->second.records.at(0)); content != nullptr) {
+            if (!AggressiveNSECCache::isSmallCoveringNSEC3(tCacheEntry->first.name, content->d_nexthash)) {
+              insertIntoAggressiveCache = true;
+            }
+          }
+        }
+      }
     }
 
     if (tCacheEntry->first.place == DNSResourceRecord::ANSWER && ednsmask) {
       d_wasVariable = true;
+    }
+  }
+
+  // The primary loop determined if we want to take the NSEC(3) records
+  if (insertIntoAggressiveCache) {
+    for (const auto& entry : aggrCacheRecords) {
+      g_aggressiveNSECCache->insertNSEC(seenAuth, entry.first.name, entry.second.records.at(0), entry.second.signatures, entry.first.type == QType::NSEC3, qname, qtype);
     }
   }
 
