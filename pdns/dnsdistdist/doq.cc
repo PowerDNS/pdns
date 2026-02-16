@@ -161,8 +161,8 @@ public:
     }
 
     if (!unit->ids.selfGenerated) {
-      double udiff = unit->ids.queryRealTime.udiff();
-      vinfolog("Got answer from %s, relayed to %s (quic, %d bytes), took %f us", unit->downstream->d_config.remote.toStringWithPort(), unit->ids.origRemote.toStringWithPort(), unit->response.size(), udiff);
+      auto udiff = unit->ids.queryRealTime.udiff();
+      vinfolog("Got answer from %s, relayed to %s (quic, %d bytes), took %d us", unit->downstream->d_config.remote.toStringWithPort(), unit->ids.origRemote.toStringWithPort(), unit->response.size(), udiff);
 
       auto backendProtocol = unit->downstream->getProtocol();
       if (backendProtocol == dnsdist::Protocol::DoUDP && unit->tcp) {
@@ -501,7 +501,7 @@ static void processDOQQuery(DOQUnitUniquePtr&& doqUnit)
       if (unit->response.size() >= sizeof(dnsheader)) {
         const dnsheader_aligned dnsHeader(unit->response.data());
 
-        handleResponseSent(unit->ids.qname, QType(unit->ids.qtype), 0., unit->ids.origRemote, ComboAddress(), unit->response.size(), *dnsHeader, dnsdist::Protocol::DoQ, dnsdist::Protocol::DoQ, false);
+        handleResponseSent(unit->ids.qname, QType(unit->ids.qtype), 0, unit->ids.origRemote, ComboAddress(), unit->response.size(), *dnsHeader, dnsdist::Protocol::DoQ, dnsdist::Protocol::DoQ, false);
       }
       handleImmediateResponse(std::move(unit), "DoQ self-answered response");
       return;

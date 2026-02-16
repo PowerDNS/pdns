@@ -36,7 +36,12 @@ class TestPrometheus(DNSDistTest):
     """
 
     def checkPrometheusContentBasic(self, content):
+        linesSeen = {}
+        keysSeen = {}
         for line in content.splitlines():
+            if line in linesSeen:
+                raise AssertionError(f"Duplicate line in prometheus output: '{line}'")
+            linesSeen[line] = True
             if line.startswith('# HELP'):
                 tokens = line.split(' ')
                 self.assertGreaterEqual(len(tokens), 4)
@@ -50,6 +55,10 @@ class TestPrometheus(DNSDistTest):
                 if not line.startswith('dnsdist_') and not line.startswith('custom_'):
                     raise AssertionError(
                         'Expecting prometheus metric to be prefixed by \'dnsdist_\', got: "%s"' % (line))
+                key = tokens[0]
+                if key in keysSeen:
+                    raise AssertionError(f"Duplicate prometheus key: '{key}'")
+                keysSeen[key] = True
 
     def checkMetric(self, content, name, expectedType, expectedValue, expectedLabels=""):
         typeFound = False

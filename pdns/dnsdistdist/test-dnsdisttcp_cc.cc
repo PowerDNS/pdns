@@ -59,7 +59,7 @@ uint64_t uptimeOfProcess(const std::string& str)
   return 0;
 }
 
-void handleResponseSent(const InternalQueryState& ids, double udiff, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH, dnsdist::Protocol protocol, bool fromBackend)
+void handleResponseSent(const InternalQueryState& ids, int udiff, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH, dnsdist::Protocol protocol, bool fromBackend)
 {
   (void)ids;
   (void)udiff;
@@ -71,7 +71,7 @@ void handleResponseSent(const InternalQueryState& ids, double udiff, const Combo
   (void)fromBackend;
 }
 
-void handleResponseSent(const DNSName& qname, const QType& qtype, double udiff, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH, dnsdist::Protocol outgoingProtocol, dnsdist::Protocol incomingProtocol, bool fromBackend)
+void handleResponseSent(const DNSName& qname, const QType& qtype, int udiff, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH, dnsdist::Protocol outgoingProtocol, dnsdist::Protocol incomingProtocol, bool fromBackend)
 {
   (void)qname;
   (void)qtype;

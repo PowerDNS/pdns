@@ -103,4 +103,31 @@ struct Stats
 };
 
 extern struct Stats g_stats;
+
+template <class T>
+static inline void updateLatencyHistogram(T& container, uint64_t elapsed /* microseconds */)
+{
+  if (elapsed < 1000U) {
+    ++container.latency0_1;
+  }
+  else if (elapsed < 10000U) {
+    ++container.latency1_10;
+  }
+  else if (elapsed < 50000U) {
+    ++container.latency10_50;
+  }
+  else if (elapsed < 100000U) {
+    ++container.latency50_100;
+  }
+  else if (elapsed < 1000000U) {
+    ++container.latency100_1000;
+  }
+  else {
+    ++container.latencySlow;
+  }
+
+  container.latencySum += elapsed / 1000U;
+  ++container.latencyCount;
+}
+
 }
