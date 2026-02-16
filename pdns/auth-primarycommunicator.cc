@@ -301,7 +301,17 @@ void CommunicatorClass::sendNotification(int sock, const ZoneName& domain, const
   pwriter.getHeader()->id = notificationId;
   pwriter.getHeader()->aa = true;
 
-  if (tsigkeyname.empty() == false) {
+
+  if (SOAData soaData; ueber->getSOAUncached(domain, soaData)) {
+    DNSSECKeeper dnssecKeeper(ueber);
+    auto editedSOA = makeEditedDNSZRFromSOAData(dnssecKeeper, soaData, DNSResourceRecord::ANSWER);
+    auto soaContent = editedSOA.dr.getContent();
+    pwriter.startRecord(domain.operator const DNSName&(), QType::SOA, soaData.ttl, QClass::IN, DNSResourceRecord::ANSWER);
+    soaContent->toPacket(pwriter);
+    pwriter.commit();
+  }
+
+  if (!tsigkeyname.empty()) {
     if (!ueber->getTSIGKey(tsigkeyname, tsigalgorithm, tsigsecret64)) {
       g_log << Logger::Error << "TSIG key '" << tsigkeyname << "' for domain '" << domain << "' not found" << endl;
       return;
@@ -324,7 +334,7 @@ void CommunicatorClass::sendNotification(int sock, const ZoneName& domain, const
     addTSIG(pwriter, trc, tsigkeyname, tsigsecret, "", false);
   }
 
-  if (sendto(sock, &packet[0], packet.size(), 0, (struct sockaddr*)(&remote), remote.getSocklen()) < 0) {
+  if (sendto(sock, packet.data(), packet.size(), 0, reinterpret_cast<const struct sockaddr*>(&remote), remote.getSocklen()) < 0) { // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast) It's the API
     throw ResolverException("Unable to send notify to " + remote.toStringWithPort() + ": " + stringerror());
   }
 }
