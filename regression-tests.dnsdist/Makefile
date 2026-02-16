@@ -27,3 +27,9 @@ certs:
 	openssl x509 -req -days 1 -CA ca.pem -CAkey ca.key -CAcreateserial -in server-ec.csr -out server-ec.pem -extfile configServer.conf -extensions v3_req
 	# Generate a chain
 	cat server-ec.pem ca.pem > server-ec.chain
+	# Generate a new server certificate request (IP-only)
+	openssl req -new -newkey rsa:2048 -nodes -keyout server-ip-only.key -out server-ip-only.csr -config configServer-ip-only.conf
+	# Sign the server cert
+	openssl x509 -req -days 1 -CA ca.pem -CAkey ca.key -CAcreateserial -in server-ip-only.csr -out server-ip-only.pem -extfile configServer-ip-only.conf -extensions v3_req
+	# Generate a chain
+	cat server-ip-only.pem ca.pem > server-ip-only.chain
