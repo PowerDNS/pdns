@@ -888,6 +888,15 @@ void IncomingHTTP2Connection::handleIncomingQuery(IncomingHTTP2Connection::Pendi
       query.d_headers.reset();
     }
   }
+  else if (!d_ci.cs->dohFrontend->d_earlyACLDrop) {
+    /* ONLY ACL lookup because the early check was skipped  */
+    if (!dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL.match(d_proxiedRemote)) {
+      ++dnsdist::metrics::g_stats.aclDrops;
+      vinfolog("Query from %s (%s) (DoH) dropped because of ACL", d_ci.remote.toStringWithPort(), d_proxiedRemote.toStringWithPort());
+      handleImmediateResponse(403, "DoH query not allowed because of ACL");
+      return;
+    }
+  }
 
   if (d_ci.cs->dohFrontend->d_exactPathMatching) {
     if (d_ci.cs->dohFrontend->d_urls.count(query.d_path) == 0) {
