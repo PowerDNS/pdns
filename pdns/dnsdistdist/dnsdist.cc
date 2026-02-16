@@ -1598,6 +1598,8 @@ bool handleTimeoutResponseRules(const std::vector<dnsdist::rules::ResponseRuleAc
     memset(&header, 0, sizeof(header));
     header.id = ids.origID;
     restoreFlags(&header, ids.origFlags);
+    // set QR=1 since this is a response rule
+    header.qr = 1;
     // do not set the qdcount, otherwise the protobuf code will choke on it
     // while trying to parse the response RRs
     return true;
