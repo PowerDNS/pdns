@@ -1,0 +1,106 @@
+name: 'Upload artifacts to pulp'
+description: 'Upload artifacts to pulp'
+
+inputs:
+  pulp-api-url:
+    description: URL of the Pulp API endpoint
+    required: true # required input attributes on actions are not actually enforced
+  pulp-ci-username:
+    description: Username for authentication
+    required: true
+  pulp-ci-password:
+    description: Password for authentication
+    required: true
+  repository-name:
+    description: Name of the repository in Pulp where to upload the packages
+    required: true
+  repository-type:
+    description: Valid options are rpm deb and file
+    required: true
+  distribution-name:
+    description: Name of the distrubution in Pulp. Only for DEB
+    required: true
+  packages-dir:
+    description: Folder where the packages to be uploaded are located
+    required: true
+  destination-path:
+    description: (File repositories) Path inside the distribution where the file will be located
+    required: true
+  upload:
+    description: "Upload packages to a repository"
+    required: true
+    default: 'false'
+  publish:
+    description: "Publish the latest version of a repository"
+    required: true
+    default: 'false'
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-python@v6
+      with:
+        python-version: '3.13'
+    - name: Set environment vars
+      shell: bash
+      run: |
+        echo "PULP_CMD=. ${{ github.action_path }}/.venv/bin/activate && pulp --base-url ${{ inputs.pulp-api-url }} --username ${{ inputs.pulp-ci-username }} --password ${{ inputs.pulp-ci-password }}" >> ${GITHUB_ENV}
+        echo "PULP_API_URL=${{ inputs.pulp-api-url }}" >> ${GITHUB_ENV}
+        echo "PULP_CI_USERNAME=${{ inputs.pulp-ci-username }}" >> ${GITHUB_ENV}
+        echo "PULP_CI_PASSWORD=${{ inputs.pulp-ci-password }}" >> ${GITHUB_ENV}
+    - name: Install Pulp CLI
+      shell: bash
+      run: |
+        python3 -m venv .venv
+        . .venv/bin/activate && pip install -r requirements.txt
+      working-directory: ${{ github.action_path }}
+    - name: Upload DEB packages to a repository
+      if: ${{ inputs.repository-type == 'deb' && inputs.upload == 'true' }}
+      shell: bash
+      run: |
+        . .venv/bin/activate && python3 upload-packages-to-pulp.py \
+          --command upload-packages \
+          --repo_type deb \
+          --repo_name ${{ inputs.repository-name }} \
+          --distribution_name ${{ inputs.distribution-name }} \
+          --source ${{ inputs.packages-dir }}
+      working-directory: ${{ github.action_path }}
+    - name: Publish latest DEB repository version
+      if: ${{ inputs.repository-type == 'deb' && inputs.publish == 'true' }}
+      shell: bash
+      run: |
+        . .venv/bin/activate && python3 upload-packages-to-pulp.py \
+          --command create-publication \
+          --repo_type deb \
+          --repo_name ${{ inputs.repository-name }}
+      working-directory: ${{ github.action_path }}
+    - name: Upload RPM packages to a repository
+      if: ${{ inputs.repository-type == 'rpm' && inputs.upload == 'true' }}
+      shell: bash
+      run: |
+        . .venv/bin/activate && python3 upload-packages-to-pulp.py \
+          --command upload-packages \
+          --repo_type rpm \
+          --repo_name ${{ inputs.repository-name }} \
+          --source ${{ inputs.packages-dir }}
+      working-directory: ${{ github.action_path }}
+    - name: Publish latest RPM repository version
+      if: ${{ inputs.repository-type == 'rpm' && inputs.publish == 'true' }}
+      shell: bash
+      run: |
+        . .venv/bin/activate && python3 upload-packages-to-pulp.py \
+          --command create-publication \
+          --repo_type rpm \
+          --repo_name ${{ inputs.repository-name }}
+      working-directory: ${{ github.action_path }}
+    - name: Test Pulp Credentials
+      if: ${{ inputs.repository-type == 'file' }}
+      shell: bash
+      run: |
+        . .venv/bin/activate && python3 upload-packages-to-pulp.py \
+          --command upload-packages \
+          --repo_type file \
+          --repo_name ${{ inputs.repository-name }} \
+          --destination_path ${{ inputs.destination-path }} \
+          --source ${{ inputs.packages-dir }}
+      working-directory: ${{ github.action_path }}
