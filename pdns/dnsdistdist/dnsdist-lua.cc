@@ -3298,7 +3298,7 @@ void setupLuaBindingsOnly(LuaContext& luaCtx, bool client, bool configCheck)
   setupLuaBindingsDNSQuestion(luaCtx);
   setupLuaBindingsKVS(luaCtx, client);
   setupLuaBindingsLogging(luaCtx);
-  setupLuaBindingsNetwork(luaCtx, client);
+  setupLuaBindingsNetwork(luaCtx, client, configCheck);
   setupLuaBindingsPacketCache(luaCtx, client);
   setupLuaBindingsProtoBuf(luaCtx, client, configCheck);
   setupLuaBindingsRings(luaCtx, client);
