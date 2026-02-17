@@ -1883,6 +1883,9 @@ faster than the existing rules.
 
     .. versionadded:: 1.7.0
 
+    .. versionchanged:: 2.1.0
+      Queries and corresponding responses coming from an excluded (see :meth:`DynBlockRulesGroup::excludeRange`) client no longer count towards the thresholds for the aggregated subnet the client belongs to.
+
     Set the number of bits to keep in the IP address when inserting a block. The default is 32 for IPv4 and 128 for IPv6, meaning
     that only the exact address is blocked, but in some scenarios it might make sense to block a whole /64 IPv6 range instead of a
     single address, for example.

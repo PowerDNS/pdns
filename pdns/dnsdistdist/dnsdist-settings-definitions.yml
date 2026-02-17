@@ -692,10 +692,16 @@ dynamic_rules:
       type: "u8"
       default: "32"
       description: "Number of bits to keep for IPv4 addresses"
+      changes:
+        - version: "2.1.0"
+          content: "Queries and corresponding responses coming from an excluded (``excluded_ranges``) client no longer count towards the thresholds for the aggregated subnet the client belongs to"
     - name: "mask_ipv6"
       type: "u8"
       default: "64"
       description: "Number of bits to keep for IPv6 addresses. In some scenarios it might make sense to block a whole /64 IPv6 range instead of a single address, for example"
+      changes:
+        - version: "2.1.0"
+          content: "Queries and corresponding responses coming from an excluded (``excluded_ranges``) client no longer count towards the thresholds for the aggregated subnet the client belongs to"
     - name: "mask_port"
       type: u8
       default: "0"

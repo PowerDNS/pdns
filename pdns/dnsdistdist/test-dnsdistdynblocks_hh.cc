@@ -196,6 +196,86 @@ BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesGroup_QueryRate, TestFixture)
   }
 }
 
+/* check that even if we group requestors to a /24, excluded IPs will not count toward
+   the group limit */
+BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesGroup_QueryRate_ExcludedSubnets, TestFixture)
+{
+  dnsheader dnsHeader{};
+  memset(&dnsHeader, 0, sizeof(dnsHeader));
+  DNSName qname("rings.powerdns.com.");
+  ComboAddress requestor1("192.0.2.1");
+  ComboAddress requestor2("192.0.2.2");
+  ComboAddress backend("192.0.2.42");
+  uint16_t qtype = QType::AAAA;
+  uint16_t size = 42;
+  dnsdist::Protocol protocol = dnsdist::Protocol::DoUDP;
+  dnsdist::Protocol outgoingProtocol = dnsdist::Protocol::DoUDP;
+  unsigned int responseTime = 0;
+  struct timespec now;
+  gettime(&now);
+  NetmaskTree<DynBlock, AddressAndPortRange> emptyNMG;
+
+  size_t numberOfSeconds = 10;
+  size_t blockDuration = 60;
+  const auto action = DNSAction::Action::Drop;
+  const std::string reason = "Exceeded query rate";
+
+  DynBlockRulesGroup dbrg;
+  dbrg.setQuiet(true);
+  dbrg.setMasks(24, 128, 0);
+  dbrg.excludeRange(Netmask(requestor2, 32));
+
+  {
+    /* block above 50 qps for numberOfSeconds seconds, no warning */
+    DynBlockRulesGroup::DynBlockRule rule(reason, blockDuration, 50, 0, numberOfSeconds, action);
+    dbrg.setQueryRate(std::move(rule));
+  }
+
+  {
+    /* insert just above 50 qps from a given client in the last 10s
+       this should trigger the rule this time */
+    size_t numberOfQueries = (50 * numberOfSeconds) + 1;
+    g_rings.clear();
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), 0U);
+    dnsdist::DynamicBlocks::clearClientAddressDynamicRules();
+
+    for (size_t idx = 0; idx < numberOfQueries; idx++) {
+      g_rings.insertQuery(now, requestor1, qname, qtype, size, dnsHeader, protocol);
+      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dnsHeader, backend, outgoingProtocol);
+    }
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), numberOfQueries);
+
+    dbrg.apply(now);
+    BOOST_CHECK_EQUAL(dnsdist::DynamicBlocks::getClientAddressDynamicRules().size(), 1U);
+    BOOST_CHECK(dnsdist::DynamicBlocks::getClientAddressDynamicRules().lookup(requestor1) != nullptr);
+    BOOST_CHECK(dnsdist::DynamicBlocks::getClientAddressDynamicRules().lookup(requestor2) != nullptr);
+    const auto& block = dnsdist::DynamicBlocks::getClientAddressDynamicRules().lookup(requestor1)->second;
+    BOOST_CHECK_EQUAL(block.reason, reason);
+    BOOST_CHECK_EQUAL(static_cast<size_t>(block.until.tv_sec), now.tv_sec + blockDuration);
+    BOOST_CHECK(block.domain.empty());
+    BOOST_CHECK(block.action == action);
+    BOOST_CHECK_EQUAL(block.blocks, 0U);
+    BOOST_CHECK_EQUAL(block.warning, false);
+  }
+
+  {
+    /* now do the same but from an excluded requestor */
+    size_t numberOfQueries = (50 * numberOfSeconds) + 1;
+    g_rings.clear();
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), 0U);
+    dnsdist::DynamicBlocks::clearClientAddressDynamicRules();
+
+    for (size_t idx = 0; idx < numberOfQueries; idx++) {
+      g_rings.insertQuery(now, requestor2, qname, qtype, size, dnsHeader, protocol);
+      g_rings.insertResponse(now, requestor2, qname, qtype, responseTime, size, dnsHeader, backend, outgoingProtocol);
+    }
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), numberOfQueries);
+
+    dbrg.apply(now);
+    BOOST_CHECK_EQUAL(dnsdist::DynamicBlocks::getClientAddressDynamicRules().size(), 0U);
+  }
+}
+
 BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesGroup_QueryRate_RangeV6, TestFixture)
 {
   /* Check that we correctly group IPv6 addresses from the same /64 subnet into the same

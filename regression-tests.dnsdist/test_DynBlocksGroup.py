@@ -227,6 +227,61 @@ class TestDynBlockGroupExcludedViaNMG(DynBlocksTest):
         self.assertEqual(query, receivedQuery)
         self.assertEqual(receivedResponse, receivedResponse)
 
+class TestDynBlockGroupExcludedRange(DynBlocksTest):
+
+    _config_template = """
+    local dbr = dynBlockRulesGroup()
+    dbr:setQueryRate(%d, %d, "Exceeded query rate", %d)
+    dbr:setMasks(8, 128, 0)
+    dbr:excludeRange("127.0.0.1/32")
+
+    function maintenance()
+	    dbr:apply()
+    end
+
+    newServer{address="127.0.0.1:%d"}
+    """
+
+    def testExcluded(self):
+        """
+        Dyn Blocks (group) : Excluded from the dynamic block rules (range)
+        """
+        name = 'excluded.group.dynblocks.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.0.2.1')
+        response.answer.append(rrset)
+
+        allowed = 0
+        sent = 0
+        for _ in range((self._dynBlockQPS * self._dynBlockPeriod) + 1):
+            (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+            sent = sent + 1
+            if receivedQuery:
+                receivedQuery.id = query.id
+                self.assertEqual(query, receivedQuery)
+                self.assertEqual(response, receivedResponse)
+                allowed = allowed + 1
+            else:
+                # the query has not reached the responder,
+                # let's clear the response queue
+                self.clearToResponderQueue()
+
+        # we should not have been blocked
+        self.assertEqual(allowed, sent)
+
+        waitForMaintenanceToRun()
+
+        # we should still not be blocked
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        receivedQuery.id = query.id
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(receivedResponse, receivedResponse)
+
 class TestDynBlockGroupNoOp(DynBlocksTest):
 
     _config_template = """
