@@ -262,3 +262,9 @@ The function will be invoked in a per-thread Lua state, without access to the gl
       description: "The SNMP trap reason"
 - name: "TC"
   description: "Truncate an existing answer, to force the client to TCP. Only applied to answers that will be sent to the client over TCP. In addition to the TC bit being set, all records are removed from the answer, authority and additional sections"
+- name: "UnsetTag"
+  description: "Remove a tag named ``tag`` from this response. Subsequent rules are processed after this action"
+  parameters:
+    - name: "tag"
+      type: "String"
+      description: "The tag name"

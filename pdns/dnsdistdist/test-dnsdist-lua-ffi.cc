@@ -328,6 +328,11 @@ BOOST_AUTO_TEST_CASE(test_Query)
     BOOST_CHECK_EQUAL(std::string(tags[0].name), tagName.c_str());
     BOOST_CHECK_EQUAL(std::string(tags[0].value), tagValue.c_str());
 
+    dnsdist_ffi_dnsquestion_unset_tag(&lightDQ, tagName.c_str());
+
+    got = dnsdist_ffi_dnsquestion_get_tag(&lightDQ, tagName.c_str());
+    BOOST_CHECK(got == nullptr);
+
     dnsdist_ffi_dnsquestion_set_tag_raw(&lightDQ, tagName.c_str(), tagRawValue.c_str(), tagRawValue.size());
 
     // too small

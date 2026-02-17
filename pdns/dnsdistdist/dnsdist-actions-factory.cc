@@ -1862,6 +1862,30 @@ private:
   std::string d_value;
 };
 
+class UnsetTagAction : public DNSAction
+{
+public:
+  // this action does not stop the processing
+  UnsetTagAction(std::string tag) :
+    d_tag(std::move(tag))
+  {
+  }
+  DNSAction::Action operator()(DNSQuestion* dnsquestion, std::string* ruleresult) const override
+  {
+    (void)ruleresult;
+    dnsquestion->unsetTag(d_tag);
+
+    return Action::None;
+  }
+  [[nodiscard]] std::string toString() const override
+  {
+    return "unset tag '" + d_tag;
+  }
+
+private:
+  std::string d_tag;
+};
+
 #ifndef DISABLE_PROTOBUF
 class DnstapLogResponseAction : public DNSResponseAction, public boost::noncopyable
 {
@@ -2100,6 +2124,30 @@ public:
 private:
   std::string d_tag;
   std::string d_value;
+};
+
+class UnsetTagResponseAction : public DNSResponseAction
+{
+public:
+  // this action does not stop the processing
+  UnsetTagResponseAction(std::string tag) :
+    d_tag(std::move(tag))
+  {
+  }
+  DNSResponseAction::Action operator()(DNSResponse* dnsresponse, std::string* ruleresult) const override
+  {
+    (void)ruleresult;
+    dnsresponse->unsetTag(d_tag);
+
+    return Action::None;
+  }
+  [[nodiscard]] std::string toString() const override
+  {
+    return "unset tag '" + d_tag;
+  }
+
+private:
+  std::string d_tag;
 };
 
 class ClearRecordTypesResponseAction : public DNSResponseAction, public boost::noncopyable
