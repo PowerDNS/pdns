@@ -4,6 +4,68 @@ Changelogs for 5.4.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
+  :version: 5.4.0-rc1
+  :released: 17th of February 2026
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16756
+
+    Harmonize with dnsdist PR #16741 with respect to OpenTelemetry instance name.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16784
+
+    Coverity 1644498 Variable copied when it could be moved.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16786
+
+    Opentelemetry: add flags field in TRACEPARENT EDNS option.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16790
+    :tickets: 16785
+
+    No longer allow passing the api-key as a query argument.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16817
+    :tickets: 16805
+
+    Base64 tidy and unit test fix.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16826
+
+    Drop usage of libboost-system library (Chris Hofstaedtler).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16836
+
+    Allowed names should not include names from CNAMEs that cannot be reached (SA 2026-01).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16837
+
+    Limit amount of work done for a single client query in new ways (SA 2026-01).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16838
+
+    Limit packet and record cache entry size (SA 2026-01).
+
+
+
+.. changelog::
   :version: 5.4.0-beta1
   :released: 27th of January 2026
 
