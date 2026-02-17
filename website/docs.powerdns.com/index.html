@@ -180,6 +180,13 @@
                     </div>
                     <div class="col-md-4">
                         <div class="product-card">
+                            <h3><a href="/spog/latest/">PowerDNS Single Pane of Glass</a></h3>
+                            <p>Observability Platform for Cloud Control.</p>
+                            <div id="spog-versions"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="product-card">
                             <h3><a href="/zonecontrol/latest">PowerDNS ZoneControl</a></h3>
                             <p>DNS zone management and control system.</p>
                             <div id="zonecontrol-versions"></div>
@@ -230,6 +237,12 @@
                     url: 'https://software.open-xchange.com/products/powerdns/doc/cc/',
                     label: '2.X and older'
                 }
+            );
+
+            // Single Pane of Glass
+            loadVersionSelector(
+                '/spog',
+                'spog-versions'
             );
 
             // DNSdist
