@@ -28,9 +28,7 @@
 
 #include "syncres.hh"
 #include "dnsname.hh"
-#include "rec-main.hh"
-
-#include "cxxsettings.hh"
+#include "cxxsettings.hh" // keep despite what clangd says
 
 timeval TCPOutConnectionManager::s_maxIdleTime;
 size_t TCPOutConnectionManager::s_maxQueries;
@@ -90,6 +88,7 @@ struct OutgoingTLSConfigTable
 {
   SuffixMatchTree<pdns::rust::settings::rec::OutgoingTLSConfiguration> d_suffixToConfig;
   NetmaskTree<pdns::rust::settings::rec::OutgoingTLSConfiguration> d_netmaskToConfig;
+  std::map<std::string, std::shared_ptr<TLSCtx>> d_TLSContexts;
 };
 
 static LockGuarded<OutgoingTLSConfigTable> s_outgoingTLSConfigTable;
@@ -114,13 +113,15 @@ void TCPOutConnectionManager::setupOutgoingTLSConfigTables(pdns::rust::settings:
 
 std::shared_ptr<TLSCtx> TCPOutConnectionManager::getTLSContext(const std::string& name, const ComboAddress& address, bool& verboseLogging, std::string& subjectName, std::string& subjectAddress, std::string& configName)
 {
+  const pdns::rust::settings::rec::OutgoingTLSConfiguration* config{nullptr};
   TLSContextParameters tlsParams;
+  std::shared_ptr<TLSCtx> ret;
+
+  configName.clear();
   tlsParams.d_provider = "openssl";
   tlsParams.d_validateCertificates = false;
-  const pdns::rust::settings::rec::OutgoingTLSConfiguration* config{nullptr};
 
   {
-    configName = "";
     auto table = s_outgoingTLSConfigTable.lock();
     if (auto* node = table->d_netmaskToConfig.lookup(address); node != nullptr) {
       config = &node->second;
@@ -129,17 +130,24 @@ std::shared_ptr<TLSCtx> TCPOutConnectionManager::getTLSContext(const std::string
       config = found;
     }
     if (config != nullptr) {
-      configName = std::string(config->name);
-      tlsParams.d_provider = std::string(config->provider);
-      tlsParams.d_validateCertificates = config->validate_certificate;
-      tlsParams.d_caStore = std::string(config->ca_store);
+      // alwasy set the ref arguments to the function if we found a config
+      verboseLogging = config->verbose_logging;
       if (!config->subject_name.empty()) {
         subjectName = std::string(config->subject_name);
       };
       if (!config->subject_address.empty()) {
         subjectAddress = std::string(config->subject_address);
       };
-      verboseLogging = config->verbose_logging;
+      configName = std::string(config->name);
+
+      // Check to see if we already made the TLSContext earlier, in that case we re-use
+      if (auto iter = table->d_TLSContexts.find(configName); iter != table->d_TLSContexts.end()) {
+        return iter->second;
+      }
+      // setup tlsParams for context creation
+      tlsParams.d_provider = std::string(config->provider);
+      tlsParams.d_validateCertificates = config->validate_certificate;
+      tlsParams.d_caStore = std::string(config->ca_store);
       tlsParams.d_ciphers = std::string(config->ciphers);
       tlsParams.d_ciphers13 = std::string(config->ciphers_tls_13);
 
@@ -148,7 +156,19 @@ std::shared_ptr<TLSCtx> TCPOutConnectionManager::getTLSContext(const std::string
       tlsParams.d_client_certificate_password = std::string(config->client_certificate_password);
     }
   }
-  return ::getTLSContext(tlsParams);
+
+  if (!ret) {
+    // Either no table entry found or not yet in table, but TLSParams are set up
+    ret = ::getTLSContext(tlsParams);
+    if (config != nullptr) {
+      // We found a config, save it for later re-use. There is a race here as we do not like to call
+      // ::getTLSContext() holding a lock, first one wins.
+      auto table = s_outgoingTLSConfigTable.lock();
+      table->d_TLSContexts.emplace(configName, ret);
+    }
+  }
+
+  return ret;
 }
 
 uint64_t getCurrentIdleTCPConnections()
