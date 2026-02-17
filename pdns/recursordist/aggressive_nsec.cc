@@ -285,10 +285,14 @@ void AggressiveNSECCache::insertNSEC(const DNSName& zone, const DNSName& owner, 
   std::shared_ptr<LockGuarded<AggressiveNSECCache::ZoneEntry>> entry = getZone(zone);
   {
     auto zoneEntry = entry->lock();
-    if (nsec3 && !zoneEntry->d_nsec3) {
-      d_entriesCount -= zoneEntry->d_entries.size();
-      zoneEntry->d_entries.clear();
-      zoneEntry->d_nsec3 = true;
+    if (zoneEntry->d_denialType == ZoneEntry::ZoneDenialType::Unknown) {
+      zoneEntry->d_denialType = nsec3 ? ZoneEntry::ZoneDenialType::NSEC3 : ZoneEntry::ZoneDenialType::NSEC;
+    }
+    else if (nsec3 && zoneEntry->d_denialType != ZoneEntry::ZoneDenialType::NSEC3) {
+      return;
+    }
+    else if (!nsec3 && zoneEntry->d_denialType != ZoneEntry::ZoneDenialType::NSEC) {
+      return;
     }
 
     DNSName next;
@@ -806,7 +810,7 @@ bool AggressiveNSECCache::getDenial(time_t now, const DNSName& name, const QType
       return false;
     }
     zone = entry->d_zone;
-    nsec3 = entry->d_nsec3;
+    nsec3 = entry->d_denialType == ZoneEntry::ZoneDenialType::NSEC3;
   }
 
   vState cachedState;
@@ -924,12 +928,15 @@ size_t AggressiveNSECCache::dumpToFile(pdns::UniqueFilePtr& filePtr, const struc
     }
 
     auto zone = node.d_value->lock();
+    if (zone->d_denialType == ZoneEntry::ZoneDenialType::Unknown || zone->d_entries.empty()) {
+      return;
+    }
     fprintf(filePtr.get(), "; Zone %s\n", zone->d_zone.toString().c_str());
 
     for (const auto& entry : zone->d_entries) {
       int64_t ttl = entry.d_ttd - now.tv_sec;
       try {
-        fprintf(filePtr.get(), "%s %" PRId64 " IN %s %s by %s/%s\n", entry.d_owner.toString().c_str(), ttl, zone->d_nsec3 ? "NSEC3" : "NSEC", entry.d_record->getZoneRepresentation().c_str(), entry.d_qname.toString().c_str(), entry.d_qtype.toString().c_str());
+        fprintf(filePtr.get(), "%s %" PRId64 " IN %s %s by %s/%s\n", entry.d_owner.toString().c_str(), ttl, zone->d_denialType == ZoneEntry::ZoneDenialType::NSEC3 ? "NSEC3" : "NSEC", entry.d_record->getZoneRepresentation().c_str(), entry.d_qname.toString().c_str(), entry.d_qtype.toString().c_str());
         for (const auto& signature : entry.d_signatures) {
           fprintf(filePtr.get(), "- RRSIG %s\n", signature->getZoneRepresentation().c_str());
         }

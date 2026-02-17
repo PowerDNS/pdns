@@ -1454,6 +1454,132 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_rollover)
   BOOST_CHECK_EQUAL(getDenialWrapper(cache, now, other, QType::AAAA), false);
 }
 
+BOOST_AUTO_TEST_CASE(test_aggressive_nsec_to_nsec3_transition)
+{
+  AggressiveNSECCache::s_maxNSEC3CommonPrefix = 159;
+  auto cache = make_unique<AggressiveNSECCache>(10000);
+  g_recCache = std::make_unique<MemRecursorCache>();
+
+  const DNSName zone("powerdns.com");
+  time_t now = time(nullptr);
+
+  /* first we need a SOA */
+  std::vector<DNSRecord> records;
+  time_t ttd = now + 30;
+  DNSRecord drSOA;
+  drSOA.d_name = zone;
+  drSOA.d_type = QType::SOA;
+  drSOA.d_class = QClass::IN;
+  drSOA.setContent(std::make_shared<SOARecordContent>("pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600"));
+  drSOA.d_ttl = static_cast<uint32_t>(ttd); // XXX truncation
+  drSOA.d_place = DNSResourceRecord::ANSWER;
+  records.push_back(drSOA);
+
+  g_recCache->replace(now, zone, QType(QType::SOA), records, {}, {}, true, zone, std::nullopt, MemRecursorCache::NOTAG, vState::Secure);
+  BOOST_CHECK_EQUAL(g_recCache->size(), 1U);
+
+  /* insert NSEC */
+  DNSRecord rec;
+  rec.d_name = DNSName("www.powerdns.com");
+  rec.d_type = QType::NSEC;
+  rec.d_ttl = now + 10;
+  rec.setContent(getRecordContent(QType::NSEC, "z.powerdns.com. A RRSIG NSEC"));
+  auto rrsig = std::make_shared<RRSIGRecordContent>("NSEC 5 3 10 20370101000000 20370101000000 24567 dummy. data");
+  cache->insertNSEC(DNSName("powerdns.com"), rec.d_name, rec, {rrsig}, false);
+  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 1U);
+
+  const std::string salt = "ab";
+  const unsigned int iterationsCount = 1;
+  const DNSName name("www.powerdns.com");
+  std::string hashed = hashQNameWithSalt(salt, iterationsCount, name);
+
+  rec.d_name = DNSName(toBase32Hex(hashed)) + zone;
+  rec.d_type = QType::NSEC3;
+  rec.d_ttl = now + 10;
+
+  NSEC3RecordContent nrc;
+  nrc.d_algorithm = 1;
+  nrc.d_flags = 0;
+  nrc.d_iterations = iterationsCount;
+  nrc.d_salt = salt;
+  nrc.d_nexthash = hashed;
+  incrementHash(nrc.d_nexthash);
+  for (const auto& type : {QType::A}) {
+    nrc.set(type);
+  }
+
+  rec.setContent(std::make_shared<NSEC3RecordContent>(nrc));
+  rrsig = std::make_shared<RRSIGRecordContent>("NSEC3 5 3 10 20370101000000 20370101000000 24567 dummy. data");
+  cache->insertNSEC(zone, rec.d_name, rec, {rrsig}, true);
+
+  /* the entry should NOT be inserted because the zone was in NSEC mode */
+  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 1U);
+}
+
+BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_to_nsec_transition)
+{
+  AggressiveNSECCache::s_maxNSEC3CommonPrefix = 159;
+  auto cache = make_unique<AggressiveNSECCache>(10000);
+  g_recCache = std::make_unique<MemRecursorCache>();
+
+  const DNSName zone("powerdns.com");
+  time_t now = time(nullptr);
+
+  /* first we need a SOA */
+  std::vector<DNSRecord> records;
+  time_t ttd = now + 30;
+  DNSRecord drSOA;
+  drSOA.d_name = zone;
+  drSOA.d_type = QType::SOA;
+  drSOA.d_class = QClass::IN;
+  drSOA.setContent(std::make_shared<SOARecordContent>("pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600"));
+  drSOA.d_ttl = static_cast<uint32_t>(ttd); // XXX truncation
+  drSOA.d_place = DNSResourceRecord::ANSWER;
+  records.push_back(drSOA);
+
+  g_recCache->replace(now, zone, QType(QType::SOA), records, {}, {}, true, zone, std::nullopt, MemRecursorCache::NOTAG, vState::Secure);
+  BOOST_CHECK_EQUAL(g_recCache->size(), 1U);
+
+  /* insert NSEC3 */
+  const std::string salt = "ab";
+  const unsigned int iterationsCount = 1;
+  const DNSName name("www.powerdns.com");
+  std::string hashed = hashQNameWithSalt(salt, iterationsCount, name);
+
+  DNSRecord rec;
+  rec.d_name = DNSName(toBase32Hex(hashed)) + zone;
+  rec.d_type = QType::NSEC3;
+  rec.d_ttl = now + 10;
+
+  NSEC3RecordContent nrc;
+  nrc.d_algorithm = 1;
+  nrc.d_flags = 0;
+  nrc.d_iterations = iterationsCount;
+  nrc.d_salt = salt;
+  nrc.d_nexthash = hashed;
+  incrementHash(nrc.d_nexthash);
+  for (const auto& type : {QType::A}) {
+    nrc.set(type);
+  }
+
+  rec.setContent(std::make_shared<NSEC3RecordContent>(nrc));
+  auto rrsig = std::make_shared<RRSIGRecordContent>("NSEC3 5 3 10 20370101000000 20370101000000 24567 dummy. data");
+  cache->insertNSEC(zone, rec.d_name, rec, {rrsig}, true);
+
+  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 1U);
+
+  /* now try to insert NSEC */
+  rec.d_name = DNSName("www.powerdns.com");
+  rec.d_type = QType::NSEC;
+  rec.d_ttl = now + 10;
+  rec.setContent(getRecordContent(QType::NSEC, "z.powerdns.com. A RRSIG NSEC"));
+  rrsig = std::make_shared<RRSIGRecordContent>("NSEC 5 3 10 20370101000000 20370101000000 24567 dummy. data");
+  cache->insertNSEC(DNSName("powerdns.com"), rec.d_name, rec, {rrsig}, false);
+
+  /* the entry should NOT be inserted because the zone was in NSEC3 mode */
+  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 1U);
+}
+
 BOOST_AUTO_TEST_CASE(test_aggressive_nsec_ancestor_cases)
 {
   auto cache = make_unique<AggressiveNSECCache>(10000);
