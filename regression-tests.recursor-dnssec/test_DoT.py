@@ -316,9 +316,9 @@ class DoTWithLocalResponderTests(RecursorTest):
     def tearDownResponders(cls):
         cls._backgroundThreads[cls._TLSResponder.native_id] = False
         count = 0
-        while count < 20 and len(cls._backgroundThreads) != 0:
+        while count < 200 and len(cls._backgroundThreads) != 0:
             print(f'Waiting for background responder thread to exit {count}...')
-            time.sleep(0.1)
+            time.sleep(0.01)
             count = count + 1
 
     def checkOnlyTLSResponderHit(self, numberOfTLSQueries=1):

@@ -12,7 +12,7 @@ class CarbonTest(RecursorTest):
     _carbonNamespace = 'NS'
     _carbonInstance = 'Instance'
     _carbonServerName = "carbonname1"
-    _carbonInterval = 2
+    _carbonInterval = 1
     _carbonServer1Port = 8000
     _carbonServer2Port = 8001
     _carbonQueue1 = Queue()

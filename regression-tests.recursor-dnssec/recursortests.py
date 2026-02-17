@@ -580,7 +580,7 @@ distributor-threads={threads}
 
     @classmethod
     def waitForTCPSocket(cls, ipaddress, port):
-        for try_number in range(0, 100):
+        for try_number in range(0, 1000):
             try:
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 sock.settimeout(1.0)
@@ -590,7 +590,7 @@ distributor-threads={threads}
             except Exception as err:
                 if err.errno != errno.ECONNREFUSED:
                     print(f'Error occurred: {try_number} {err}', file=sys.stderr)
-            time.sleep(0.1)
+            time.sleep(0.01)
 
     @classmethod
     def startAuth(cls, confdir, ipaddress):
@@ -825,11 +825,11 @@ distributor-threads={threads}
             return
         try:
             p.terminate()
-            for count in range(100): # tsan can be slow
+            for count in range(1000): # tsan can be slow
                 x = p.poll()
                 if x is not None:
                     break
-                time.sleep(0.1)
+                time.sleep(0.01)
             if x is None:
                 print("kill...", p, file=sys.stderr)
                 p.kill()
@@ -865,10 +865,10 @@ distributor-threads={threads}
             raise AssertionError('%s failed (%d): %s' % (rec_controlCmd, e.returncode, e.output))
         # Wait for it, as the process really should have exited
         p = cls._recursor
-        for count in range(100): # tsan can be slow
+        for count in range(1000): # tsan can be slow
             if p.poll() is not None:
                 break
-            time.sleep(0.1)
+            time.sleep(0.01)
         if p.poll() is None:
             raise AssertionError('Process did not exit on request within 10s')
         if p.returncode not in (0, -15):

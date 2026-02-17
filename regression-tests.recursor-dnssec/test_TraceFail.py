@@ -18,8 +18,8 @@ forward-zones-recurse=.=127.0.0.1:9999
 
         grepCmd = ['grep', 'END OF FAIL TRACE', 'configs/' + self._confdir + '/recursor.log']
         ret = b''
-        for i in range(10):
-            time.sleep(1)
+        for i in range(1000):
+            time.sleep(0.01)
             try:
                 ret = subprocess.check_output(grepCmd, stderr=subprocess.STDOUT)
             except subprocess.CalledProcessError as e:
