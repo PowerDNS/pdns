@@ -78,7 +78,7 @@ class NotificationQueue
 public:
   void add(const ZoneName& domain, const string& ipstring, time_t delay = 0)
   {
-    const ComboAddress ipaddress(ipstring);
+    const ComboAddress ipaddress(ipstring); // may not contain a port number
     add(domain, ipaddress, delay);
   }
 
@@ -98,7 +98,7 @@ public:
   {
     for (auto i = d_nqueue.begin(); i != d_nqueue.end(); ++i) {
       ComboAddress stQueued{i->ip};
-      if (i->id == id && stQueued == remote && i->domain == domain) {
+      if (i->id == id && ComboAddress::addressOnlyEqual()(stQueued, remote) && i->domain == domain) {
         d_nqueue.erase(i);
         return true;
       }
