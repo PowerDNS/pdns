@@ -1807,7 +1807,7 @@ public:
 
 private:
   std::vector<std::shared_ptr<RemoteLoggerInterface>> d_loggers;
-  short unsigned int d_traceparentOptionCode;
+  uint16_t d_traceparentOptionCode;
 
   bool d_value;
   bool d_useIncomingTraceparent;
