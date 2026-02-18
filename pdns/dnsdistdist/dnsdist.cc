@@ -199,51 +199,51 @@ struct DelayedPacket
 static std::unique_ptr<DelayPipe<DelayedPacket>> g_delay{nullptr};
 #endif /* DISABLE_DELAY_PIPE */
 
-static void doLatencyStats(dnsdist::Protocol protocol, int udiff)
+static void doLatencyStats(dnsdist::Protocol protocol, double latencyUs)
 {
-  constexpr auto doAvg = [](pdns::stat_double_t& var, int n, double weight) {
-    var.store((weight - 1) * var.load() / weight + static_cast<double>(n) / weight);
+  constexpr auto doAvg = [](pdns::stat_double_t& var, double n, double weight) {
+    var.store((weight - 1) * var.load() / weight + n / weight);
   };
 
   if (protocol == dnsdist::Protocol::DoUDP || protocol == dnsdist::Protocol::DNSCryptUDP) {
-    if (udiff >= 0) {
-      dnsdist::metrics::updateLatencyHistogram(dnsdist::metrics::g_stats, static_cast<uint64_t>(udiff));
+    if (latencyUs >= 0) {
+      dnsdist::metrics::updateLatencyHistogram(dnsdist::metrics::g_stats, static_cast<uint64_t>(latencyUs));
     }
 
-    doAvg(dnsdist::metrics::g_stats.latencyAvg100, udiff, 100);
-    doAvg(dnsdist::metrics::g_stats.latencyAvg1000, udiff, 1000);
-    doAvg(dnsdist::metrics::g_stats.latencyAvg10000, udiff, 10000);
-    doAvg(dnsdist::metrics::g_stats.latencyAvg1000000, udiff, 1000000);
+    doAvg(dnsdist::metrics::g_stats.latencyAvg100, latencyUs, 100);
+    doAvg(dnsdist::metrics::g_stats.latencyAvg1000, latencyUs, 1000);
+    doAvg(dnsdist::metrics::g_stats.latencyAvg10000, latencyUs, 10000);
+    doAvg(dnsdist::metrics::g_stats.latencyAvg1000000, latencyUs, 1000000);
   }
   else if (protocol == dnsdist::Protocol::DoTCP || protocol == dnsdist::Protocol::DNSCryptTCP) {
-    doAvg(dnsdist::metrics::g_stats.latencyTCPAvg100, udiff, 100);
-    doAvg(dnsdist::metrics::g_stats.latencyTCPAvg1000, udiff, 1000);
-    doAvg(dnsdist::metrics::g_stats.latencyTCPAvg10000, udiff, 10000);
-    doAvg(dnsdist::metrics::g_stats.latencyTCPAvg1000000, udiff, 1000000);
+    doAvg(dnsdist::metrics::g_stats.latencyTCPAvg100, latencyUs, 100);
+    doAvg(dnsdist::metrics::g_stats.latencyTCPAvg1000, latencyUs, 1000);
+    doAvg(dnsdist::metrics::g_stats.latencyTCPAvg10000, latencyUs, 10000);
+    doAvg(dnsdist::metrics::g_stats.latencyTCPAvg1000000, latencyUs, 1000000);
   }
   else if (protocol == dnsdist::Protocol::DoT) {
-    doAvg(dnsdist::metrics::g_stats.latencyDoTAvg100, udiff, 100);
-    doAvg(dnsdist::metrics::g_stats.latencyDoTAvg1000, udiff, 1000);
-    doAvg(dnsdist::metrics::g_stats.latencyDoTAvg10000, udiff, 10000);
-    doAvg(dnsdist::metrics::g_stats.latencyDoTAvg1000000, udiff, 1000000);
+    doAvg(dnsdist::metrics::g_stats.latencyDoTAvg100, latencyUs, 100);
+    doAvg(dnsdist::metrics::g_stats.latencyDoTAvg1000, latencyUs, 1000);
+    doAvg(dnsdist::metrics::g_stats.latencyDoTAvg10000, latencyUs, 10000);
+    doAvg(dnsdist::metrics::g_stats.latencyDoTAvg1000000, latencyUs, 1000000);
   }
   else if (protocol == dnsdist::Protocol::DoH) {
-    doAvg(dnsdist::metrics::g_stats.latencyDoHAvg100, udiff, 100);
-    doAvg(dnsdist::metrics::g_stats.latencyDoHAvg1000, udiff, 1000);
-    doAvg(dnsdist::metrics::g_stats.latencyDoHAvg10000, udiff, 10000);
-    doAvg(dnsdist::metrics::g_stats.latencyDoHAvg1000000, udiff, 1000000);
+    doAvg(dnsdist::metrics::g_stats.latencyDoHAvg100, latencyUs, 100);
+    doAvg(dnsdist::metrics::g_stats.latencyDoHAvg1000, latencyUs, 1000);
+    doAvg(dnsdist::metrics::g_stats.latencyDoHAvg10000, latencyUs, 10000);
+    doAvg(dnsdist::metrics::g_stats.latencyDoHAvg1000000, latencyUs, 1000000);
   }
   else if (protocol == dnsdist::Protocol::DoQ) {
-    doAvg(dnsdist::metrics::g_stats.latencyDoQAvg100, udiff, 100);
-    doAvg(dnsdist::metrics::g_stats.latencyDoQAvg1000, udiff, 1000);
-    doAvg(dnsdist::metrics::g_stats.latencyDoQAvg10000, udiff, 10000);
-    doAvg(dnsdist::metrics::g_stats.latencyDoQAvg1000000, udiff, 1000000);
+    doAvg(dnsdist::metrics::g_stats.latencyDoQAvg100, latencyUs, 100);
+    doAvg(dnsdist::metrics::g_stats.latencyDoQAvg1000, latencyUs, 1000);
+    doAvg(dnsdist::metrics::g_stats.latencyDoQAvg10000, latencyUs, 10000);
+    doAvg(dnsdist::metrics::g_stats.latencyDoQAvg1000000, latencyUs, 1000000);
   }
   else if (protocol == dnsdist::Protocol::DoH3) {
-    doAvg(dnsdist::metrics::g_stats.latencyDoH3Avg100, udiff, 100);
-    doAvg(dnsdist::metrics::g_stats.latencyDoH3Avg1000, udiff, 1000);
-    doAvg(dnsdist::metrics::g_stats.latencyDoH3Avg10000, udiff, 10000);
-    doAvg(dnsdist::metrics::g_stats.latencyDoH3Avg1000000, udiff, 1000000);
+    doAvg(dnsdist::metrics::g_stats.latencyDoH3Avg100, latencyUs, 100);
+    doAvg(dnsdist::metrics::g_stats.latencyDoH3Avg1000, latencyUs, 1000);
+    doAvg(dnsdist::metrics::g_stats.latencyDoH3Avg10000, latencyUs, 10000);
+    doAvg(dnsdist::metrics::g_stats.latencyDoH3Avg1000000, latencyUs, 1000000);
   }
 }
 
@@ -630,17 +630,17 @@ bool sendUDPResponse(int origFD, const PacketBuffer& response, [[maybe_unused]] 
   return true;
 }
 
-void handleResponseSent(const InternalQueryState& ids, int udiff, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH, dnsdist::Protocol outgoingProtocol, bool fromBackend)
+void handleResponseSent(const InternalQueryState& ids, double latencyUs, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH, dnsdist::Protocol outgoingProtocol, bool fromBackend)
 {
-  handleResponseSent(ids.qname, ids.qtype, udiff, client, backend, size, cleartextDH, outgoingProtocol, ids.protocol, fromBackend);
+  handleResponseSent(ids.qname, ids.qtype, latencyUs, client, backend, size, cleartextDH, outgoingProtocol, ids.protocol, fromBackend);
 }
 
-void handleResponseSent(const DNSName& qname, const QType& qtype, int udiff, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH, dnsdist::Protocol outgoingProtocol, dnsdist::Protocol incomingProtocol, bool fromBackend)
+void handleResponseSent(const DNSName& qname, const QType& qtype, double latencyUs, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH, dnsdist::Protocol outgoingProtocol, dnsdist::Protocol incomingProtocol, bool fromBackend)
 {
   if (g_rings.shouldRecordResponses()) {
     timespec now{};
     gettime(&now);
-    g_rings.insertResponse(now, client, qname, qtype, static_cast<unsigned int>(udiff), size, cleartextDH, backend, outgoingProtocol);
+    g_rings.insertResponse(now, client, qname, qtype, static_cast<unsigned int>(latencyUs), size, cleartextDH, backend, outgoingProtocol);
   }
 
   switch (cleartextDH.rcode) {
@@ -658,7 +658,7 @@ void handleResponseSent(const DNSName& qname, const QType& qtype, int udiff, con
     break;
   }
 
-  doLatencyStats(incomingProtocol, udiff);
+  doLatencyStats(incomingProtocol, latencyUs);
 }
 
 static void handleResponseTC4UDPClient(DNSQuestion& dnsQuestion, uint16_t udpPayloadSize, PacketBuffer& response)
@@ -711,32 +711,32 @@ static void handleResponseForUDPClient(InternalQueryState& ids, PacketBuffer& re
   }
 
   if (!selfGenerated) {
-    auto udiff = ids.queryRealTime.udiff();
+    auto latencyUs = ids.queryRealTime.udiff();
     if (!muted) {
       if (!ids.isXSK()) {
-        VERBOSESLOG(infolog("Got answer from %s, relayed to %s (UDP), took %d us", backend->d_config.remote.toStringWithPort(), ids.origRemote.toStringWithPort(), udiff),
+        VERBOSESLOG(infolog("Got answer from %s, relayed to %s (UDP), took %d us", backend->d_config.remote.toStringWithPort(), ids.origRemote.toStringWithPort(), latencyUs),
                     dnsResponse.getLogger()->withName("udp-response")->info(Logr::Info, "Got answer from backend, relayed to client"));
       }
       else {
-        VERBOSESLOG(infolog("Got answer from %s, relayed to %s (UDP via XSK), took %d us", backend->d_config.remote.toStringWithPort(), ids.origRemote.toStringWithPort(), udiff),
+        VERBOSESLOG(infolog("Got answer from %s, relayed to %s (UDP via XSK), took %d us", backend->d_config.remote.toStringWithPort(), ids.origRemote.toStringWithPort(), latencyUs),
                     dnsResponse.getLogger()->withName("udp-xsk-response")->info(Logr::Info, "Got answer from backend, relayed to client"));
       }
     }
     else {
       if (!ids.isXSK()) {
-        VERBOSESLOG(infolog("Got answer from %s, NOT relayed to %s (UDP) since that frontend is muted, took %d us", backend->d_config.remote.toStringWithPort(), ids.origRemote.toStringWithPort(), udiff),
+        VERBOSESLOG(infolog("Got answer from %s, NOT relayed to %s (UDP) since that frontend is muted, took %d us", backend->d_config.remote.toStringWithPort(), ids.origRemote.toStringWithPort(), latencyUs),
                     dnsResponse.getLogger()->withName("udp-response")->info(Logr::Info, "Got answer from backend, NOT relayed to client since that frontend is muted"));
       }
       else {
-        VERBOSESLOG(infolog("Got answer from %s, relayed to %s (UDP via XSK), took %d us", backend->d_config.remote.toStringWithPort(), ids.origRemote.toStringWithPort(), udiff),
+        VERBOSESLOG(infolog("Got answer from %s, relayed to %s (UDP via XSK), took %d us", backend->d_config.remote.toStringWithPort(), ids.origRemote.toStringWithPort(), latencyUs),
                     dnsResponse.getLogger()->withName("udp-xsk-response")->info(Logr::Info, "Got answer from backend, NOT relayed to client since that frontend is muted"));
       }
     }
 
-    handleResponseSent(ids, udiff, dnsResponse.ids.origRemote, backend->d_config.remote, response.size(), cleartextDH, backend->getProtocol(), true);
+    handleResponseSent(ids, latencyUs, dnsResponse.ids.origRemote, backend->d_config.remote, response.size(), cleartextDH, backend->getProtocol(), true);
   }
   else {
-    handleResponseSent(ids, 0, dnsResponse.ids.origRemote, ComboAddress(), response.size(), cleartextDH, dnsdist::Protocol::DoUDP, false);
+    handleResponseSent(ids, 0., dnsResponse.ids.origRemote, ComboAddress(), response.size(), cleartextDH, dnsdist::Protocol::DoUDP, false);
   }
 }
 
@@ -758,9 +758,9 @@ bool processResponderPacket(std::shared_ptr<DownstreamState>& dss, PacketBuffer&
   });
   ++dss->responses;
 
-  double udiff = ids.queryRealTime.udiff();
+  double latencyUs = ids.queryRealTime.udiff();
   // do that _before_ the processing, otherwise it's not fair to the backend
-  dss->latencyUsec = (127.0 * dss->latencyUsec / 128.0) + udiff / 128.0;
+  dss->latencyUsec = (127.0 * dss->latencyUsec / 128.0) + latencyUs / 128.0;
   dss->reportResponse(dnsHeader->rcode);
 
   /* don't call processResponse for DOH */
@@ -2032,7 +2032,7 @@ static void processUDPQuery(ClientState& clientState, const struct msghdr* msgh,
       if (dnsQuestion.ids.delayMsec == 0 && responsesVect != nullptr) {
         queueResponse(query, dest, remote, (*responsesVect)[*queuedResponses], respIOV, respCBuf);
         (*queuedResponses)++;
-        handleResponseSent(dnsQuestion.ids.qname, dnsQuestion.ids.qtype, 0, remote, ComboAddress(), query.size(), *dnsHeader, dnsdist::Protocol::DoUDP, dnsdist::Protocol::DoUDP, false);
+        handleResponseSent(dnsQuestion.ids.qname, dnsQuestion.ids.qtype, 0., remote, ComboAddress(), query.size(), *dnsHeader, dnsdist::Protocol::DoUDP, dnsdist::Protocol::DoUDP, false);
         return;
       }
 #endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
@@ -2040,7 +2040,7 @@ static void processUDPQuery(ClientState& clientState, const struct msghdr* msgh,
       /* we use dest, always, because we don't want to use the listening address to send a response since it could be 0.0.0.0 */
       sendUDPResponse(clientState.udpFD, query, dnsQuestion.ids.delayMsec, dest, remote);
 
-      handleResponseSent(dnsQuestion.ids.qname, dnsQuestion.ids.qtype, 0, remote, ComboAddress(), query.size(), *dnsHeader, dnsdist::Protocol::DoUDP, dnsdist::Protocol::DoUDP, false);
+      handleResponseSent(dnsQuestion.ids.qname, dnsQuestion.ids.qtype, 0., remote, ComboAddress(), query.size(), *dnsHeader, dnsdist::Protocol::DoUDP, dnsdist::Protocol::DoUDP, false);
       return;
     }
 
@@ -2154,7 +2154,7 @@ bool XskProcessQuery(ClientState& clientState, XskPacket& packet)
         packet.addDelay(dnsQuestion.ids.delayMsec);
       }
       const auto dnsHeader = dnsQuestion.getHeader();
-      handleResponseSent(ids.qname, ids.qtype, 0, remote, ComboAddress(), query.size(), *dnsHeader, dnsdist::Protocol::DoUDP, dnsdist::Protocol::DoUDP, false);
+      handleResponseSent(ids.qname, ids.qtype, 0., remote, ComboAddress(), query.size(), *dnsHeader, dnsdist::Protocol::DoUDP, dnsdist::Protocol::DoUDP, false);
       return true;
     }
 
