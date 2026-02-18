@@ -177,6 +177,7 @@ int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSZoneRecord>& r
         DNSZoneRecord zrr;
         zrr.dr = answer;
         zrr.auth = true;
+        // NOTE zrr.domain_id == UnknownDomainID
         ret.push_back(zrr);
       }
     }

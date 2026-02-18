@@ -111,6 +111,7 @@ void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& 
   zrr.dr.d_class = QClass::ANY;
   zrr.dr.setContent(std::move(tkey_out));
   zrr.dr.d_place = DNSResourceRecord::ANSWER;
+  // NOTE zrr.domain_id == UnknownDomainID
   r->addRecord(std::move(zrr));
 
 #ifdef ENABLE_GSS_TSIG

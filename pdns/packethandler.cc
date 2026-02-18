@@ -336,6 +336,7 @@ int PacketHandler::doChaosRequest(const DNSPacket& p, std::unique_ptr<DNSPacket>
     rr.dr.d_name=target;
     rr.dr.d_type=QType::TXT;
     rr.dr.d_class=QClass::CHAOS;
+    // NOTE rr.domain_id == UnknownDomainID
     r->addRecord(std::move(rr));
     return 1;
   }
