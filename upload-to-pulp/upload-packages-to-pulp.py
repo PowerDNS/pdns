@@ -6,9 +6,13 @@ import json
 import time
 import requests
 
-PULP_CMD = os.getenv("PULP_CMD", "")
+# Pulp API/CLI credentials passed as ENV variables
 PULP_API_URL = os.getenv("PULP_API_URL", "")
-PRODUCT = os.getenv("PRODUCT", "")
+PULP_CI_USERNAME = os.getenv("PULP_CI_USERNAME", "")
+PULP_CI_PASSWORD = os.getenv("PULP_CI_PASSWORD", "")
+PULP_CMD_VENV = os.getenv("PULP_CMD_VENV", "")
+PULP_API_AUTH = requests.auth.HTTPBasicAuth(PULP_CI_USERNAME, PULP_CI_PASSWORD)
+PULP_API_HEADERS = {"Content-Type": "application/json"}
 
 
 def run_pulp_cmd(cmd):
@@ -16,6 +20,8 @@ def run_pulp_cmd(cmd):
     Executes pulp cli commands <pulp_cmd_prefix> + <cmd>. Retries up
     to 3 times in case of a temporary error
     """
+
+    PULP_CMD = f'{PULP_CMD_VENV} --base-url {PULP_API_URL} --username {PULP_CI_USERNAME} --password {PULP_CI_PASSWORD}'
 
     max_attempts = 3
     attempts = 0
@@ -62,30 +68,38 @@ def get_pulp_repository_href(repo_name, repo_type):
     return repository_href
 
 
-def get_release_component_href(distribution_name):
-    url = os.getenv("PULP_API_URL", "") + "/pulp/api/v3/content/deb/release_components/"
-    headers = {"Content-Type": "application/json"}
-    auth = requests.auth.HTTPBasicAuth(
-        os.getenv("PULP_CI_USERNAME", ""), os.getenv("PULP_CI_PASSWORD", "")
-    )
-
-    params = {
-        "distribution": distribution_name,
-        "component": "main"
-    }
+def create_deb_release_content(content_type, payload_json):
+    url = PULP_API_URL + f"/pulp/api/v3/content/deb/{content_type}/"
 
     try:
-        res = requests.get(
-            url, auth=auth, headers=headers, params=params
+        res = requests.post(
+            url, auth=PULP_API_AUTH, headers=PULP_API_HEADERS, json=payload_json
         )
         res.raise_for_status()
     except requests.exceptions.HTTPError as e:
-        print(f"::error::Error fetching release_component href: {e.response.text}")
+        print(f"::error::Error creating {content_type}: {e.response.text}")
         sys.exit(1)
 
-    rc_href = res.json().get('results')[0]['pulp_href']
+    return res.json()
 
-    return rc_href
+
+def get_deb_release_content_href(content_type, params_json):
+    url = PULP_API_URL + f"/pulp/api/v3/content/deb/{content_type}/"
+
+    try:
+        res = requests.get(
+            url, auth=PULP_API_AUTH, headers=PULP_API_HEADERS, params=params_json
+        )
+        res.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        print(f"::error::Error fetching {content_type}: {e.response.text}")
+        sys.exit(1)
+
+    if res.json().get('count') > 0:
+        # return first result only
+        return res.json().get('results')[0]['pulp_href']
+    else:
+        return False
 
 
 def pulp_upload_file_packages_by_folder(repo_name, source, destination_path):
@@ -160,16 +174,14 @@ def pulp_upload_deb_packages_by_folder(repo_name, distribution_name, source):
     """
     This function uploads .deb packages to a Pulp deb repository. Done in 2 steps: first, it
     uploads the content without a repository associated and creating also the object associating the
-    package to a distribution (package_release_component, i.e. noble-auth-50), and then adds all objects
+    package to a release (release_component + release_architecture + package_release_component) that
+    references a APT distribution i.e. noble-auth-50), and then adds all objects
     to the repository in batch mode to avoid blocking the resource in case of simultaneous uploads
     """
 
-    headers = {"Content-Type": "application/json"}
-    auth = requests.auth.HTTPBasicAuth(
-        os.getenv("PULP_CI_USERNAME", ""), os.getenv("PULP_CI_PASSWORD", "")
-    )
-
     packages = []
+    release_components = []
+    release_architectures = []
     package_release_components = []
 
     for root, dirs, files in os.walk(source):
@@ -180,43 +192,67 @@ def pulp_upload_deb_packages_by_folder(repo_name, distribution_name, source):
 
                 content = run_pulp_cmd(cmd)
                 content_href = get_pulp_output_attribute(content, "pulp_href")
-                packages.append(content_href)
+                content_architecture = get_pulp_output_attribute(content, "architecture")
 
-                create_prc_url = os.getenv("PULP_API_URL", "") + "/pulp/api/v3/content/deb/package_release_components/"
-
-                prc_data = {
-                    "package": content_href,
-                    "release_component": get_release_component_href(distribution_name)
+                # Check is a new release component needs to be created
+                rc_data = {
+                    "component": "main",
+                    "distribution": distribution_name
                 }
 
-                try:
-                    res = requests.post(
-                        create_prc_url, auth=auth, headers=headers, json=prc_data
-                    )
-                    res.raise_for_status()
-                except requests.exceptions.HTTPError as e:
-                    print(f"::error::Error creating DEB upload: {e.response.strip()}")
-                    sys.exit(1)
+                rc_href = get_deb_release_content_href("release_components", rc_data)
 
-                prc_href = res.json().get('pulp_href')
+                if not rc_href:
+                    rc = create_deb_release_content("release_components", rc_data)
+                    rc_href = rc.get("pulp_href")
+
+                # Check is a new release architecture needs to be created
+                ra_data = {
+                    "architecture": content_architecture,
+                    "distribution": distribution_name
+                }
+
+                ra_href = get_deb_release_content_href("release_architectures", ra_data)
+
+                if not ra_href:
+                    ra = create_deb_release_content("release_architectures", ra_data)
+                    ra_href = ra.get("pulp_href")
+
+                # Check is a new package release component needs to be created
+                prc_data = {
+                    "package": content_href,
+                    "release_component": rc_href
+                }
+
+                prc_href = get_deb_release_content_href("package_release_components", prc_data)
+
+                if not prc_href:
+                    prc = create_deb_release_content("package_release_components", prc_data)
+                    prc_href = prc.get("pulp_href")
+
+                packages.append(content_href)
+                release_components.append(rc_href)
+                release_architectures.append(ra_href)
                 package_release_components.append(prc_href)
 
     # Add all upload packages to the repository
     repository_href = get_pulp_repository_href(repo_name, "deb")
-    modify_repository_url = os.getenv("PULP_API_URL", "") + repository_href + "modify/"
+    modify_repository_url = PULP_API_URL + repository_href + "modify/"
 
     repository_modify_payload = {
         "add_content_units": packages,
+        "add_release_components": release_components,
+        "add_release_architectures": release_architectures,
         "add_package_release_components": package_release_components
     }
 
     try:
         res = requests.post(
-            modify_repository_url, auth=auth, headers=headers, json=repository_modify_payload
+            modify_repository_url, auth=PULP_API_AUTH, headers=PULP_API_HEADERS, json=repository_modify_payload
         )
         res.raise_for_status()
     except requests.exceptions.HTTPError as e:
-        print(f"::error::Error creating DEB upload: {e.response.text}")
+        print(f"::error::Error updating DEB repository in Pulp: {e.response.text}")
         sys.exit(1)
 
     task_href = res.json().get('task')
