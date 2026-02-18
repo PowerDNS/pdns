@@ -8,6 +8,7 @@ import time
 import dns
 import dnstap_pb2
 import pytest
+import traceback
 from recursortests import RecursorTest
 
 FSTRM_CONTROL_ACCEPT = 0x01
@@ -129,7 +130,7 @@ def fstrm_make_control_frame_reply(cft):
     elif cft == FSTRM_CONTROL_START:
         return None
     else:
-        raise Exception('unhandled control frame ' + cft)
+        raise Exception('unhandled control frame ' + str(cft))
 
 
 def fstrm_read_and_dispatch_control_frame(conn):

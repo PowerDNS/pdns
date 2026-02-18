@@ -490,7 +490,7 @@ options {
     @classmethod
     def generateAuthConfig(cls, confdir, threads, extra=''):
         bind_dnssec_db = os.path.join(confdir, 'bind-dnssec.sqlite3')
-
+        print('writing to ' + os.path.join(confdir, 'pdns.conf'))
         with open(os.path.join(confdir, 'pdns.conf'), 'w') as pdnsconf:
             pdnsconf.write("""
 module-dir={moduledir}
@@ -563,7 +563,7 @@ distributor-threads={threads}
                 authconfdir = os.path.join(confdir, 'auth-%s' % auth_suffix)
 
                 os.mkdir(authconfdir)
-
+                print(authconfdir)
                 cls.generateAuthConfig(authconfdir, threads)
                 cls.generateAuthNamedConf(authconfdir, zones)
 
@@ -573,6 +573,17 @@ distributor-threads={threads}
                                          cls._zones[zone])
                     if cls._zone_keys.get(zone, None):
                         cls.secureZone(authconfdir, zone, cls._zone_keys.get(zone))
+
+    @classmethod
+    def setUpClassSpecialAuths(cls):
+        # tear down existing auths, and start with our own special config
+        confdir = os.path.join('configs', 'auths')
+        cls.tearDownAuth()
+        #confdir = os.path.join('configs', cls._confdir)
+        print("Specialized auth setup" + confdir)
+        cls.createConfigDir(confdir)
+        cls.generateAllAuthConfig(confdir)
+        cls.startAllAuth(confdir)
 
     @classmethod
     def startAllAuth(cls, confdir):
@@ -793,26 +804,27 @@ distributor-threads={threads}
         print("Launching tests..")
 
     @classmethod
-    def tearDownClass(cls):
+    def tearDownClass(cls, withAuths=False):
         rec = None
-        #auth = None
+        auth = None
         resp = None
         try:
             cls.tearDownRecursor()
         except BaseException as e:
             rec = e
-        #try:
-        #    cls.tearDownAuth()
-        #except BaseException as e:
-        #    auth = e
+        try:
+            if withAuths:
+                cls.tearDownAuth()
+        except BaseException as e:
+            auth = e
         try:
             cls.tearDownResponders()
         except BaseException as e:
             resp = e
         if rec is not None:
             raise rec
-        #if auth is not None:
-        #    raise auth
+        if auth is not None:
+            raise auth
         if resp is not None:
             raise resp
 
@@ -1474,3 +1486,5 @@ class ResponderDropAction(object):
     An object to indicate a drop action shall be taken
     """
     pass
+
+

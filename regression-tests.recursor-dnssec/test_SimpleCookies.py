@@ -1,9 +1,9 @@
 import dns
 import os
 import pytest
+import shutil
 from recursortests import RecursorTest
 
-@pytest.mark.skip(reason="changes auth config")
 class SimpleCookiesTest(RecursorTest):
     _confdir = 'SimpleCookies'
     _auth_zones = RecursorTest._default_auth_zones
@@ -143,3 +143,21 @@ class SimpleCookiesAuthEnabledTest(SimpleCookiesTest):
     def generateAuthConfig(cls, confdir, threads):
         super(SimpleCookiesAuthEnabledTest, cls).generateAuthConfig(confdir, threads, "edns-cookie-secret=01234567890123456789012345678901")
 
+    @classmethod
+    def setUpClass(cls):
+        cls.setUpClassSpecialAuths()
+        super().setUpClass()
+
+    @classmethod
+    def tearDownClass(cls):
+        confdir = os.path.join('configs', 'auths')
+        print("Specialized auth teardown " + confdir)
+        # tear down specialized auths, and then start standard ones
+        super().tearDownClass(True)
+        print("Starting default auths")
+        #confdir = 'configs/auths'
+        shutil.rmtree(confdir, True)
+        os.mkdir(confdir)
+        # Be careful here, we don't want the overridden secureZone(), so call RecursorTest explicitly
+        RecursorTest.generateAllAuthConfig(confdir)
+        RecursorTest.startAllAuth(confdir)

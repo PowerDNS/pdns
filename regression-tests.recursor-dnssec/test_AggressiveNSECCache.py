@@ -5,6 +5,7 @@ import requests
 import subprocess
 import extendederrors
 import pytest
+import shutil
 
 class AggressiveNSECCacheBase(RecursorTest):
     __test__ = False
@@ -236,10 +237,28 @@ class AggressiveNSECCacheNSECTest(AggressiveNSECCacheBase):
         self.assertEqual(res.options[0].otype, 15)
         self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(9, b''))
 
-@pytest.mark.skip(reason="changes auth config")
 class AggressiveNSECCacheNSEC3Test(AggressiveNSECCacheBase):
     _confdir = 'AggressiveNSECCacheNSEC3'
     __test__ = True
+
+    @classmethod
+    def setUpClass(cls):
+        cls.setUpClassSpecialAuths()
+        super().setUpClass()
+
+    @classmethod
+    def tearDownClass(cls):
+        confdir = os.path.join('configs', cls._confdir)
+        print("Specialized auth teardown " + confdir)
+        # tear down specialized auths, and then start standard ones
+        super().tearDownClass(True)
+        print("Starting default auths")
+        confdir = 'configs/auths'
+        shutil.rmtree(confdir, True)
+        os.mkdir(confdir)
+        # Be careful here, we don't want the overridden secureZone(), so call RecursorTest explicitly
+        RecursorTest.generateAllAuthConfig(confdir)
+        RecursorTest.startAllAuth(confdir)
 
     @classmethod
     def secureZone(cls, confdir, zonename, key=None):
