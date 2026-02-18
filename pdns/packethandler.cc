@@ -122,6 +122,7 @@ bool PacketHandler::addCDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r, SOAD
   rr.dr.d_type=QType::CDNSKEY;
   rr.dr.d_ttl=sd.minimum;
   rr.dr.d_name=p.qdomain;
+  rr.domain_id = sd.domain_id;
   rr.auth=true;
 
   if (publishCDNSKEY == "0") { // delete DS via CDNSKEY
@@ -174,6 +175,7 @@ bool PacketHandler::addDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r)
     rr.dr.d_name=p.qdomain;
     rr.dr.setContent(std::make_shared<DNSKEYRecordContent>(value.first.getDNSKEY()));
     rr.auth=true;
+    rr.domain_id = d_sd.domain_id;
     r->addRecord(std::move(rr));
     haveOne=true;
   }
@@ -218,6 +220,7 @@ bool PacketHandler::addCDS(DNSPacket& p, std::unique_ptr<DNSPacket>& r, SOAData 
   rr.dr.d_type=QType::CDS;
   rr.dr.d_ttl=sd.minimum;
   rr.dr.d_name=p.qdomain;
+  rr.domain_id = sd.domain_id;
   rr.auth=true;
 
   if(std::find(digestAlgos.begin(), digestAlgos.end(), "0") != digestAlgos.end()) { // delete DS via CDS
@@ -266,6 +269,7 @@ bool PacketHandler::addNSEC3PARAM(const DNSPacket& p, std::unique_ptr<DNSPacket>
     ns3prc.d_flags = 0; // the NSEC3PARAM 'flag' is defined to always be zero in RFC5155.
     rr.dr.setContent(std::make_shared<NSEC3PARAMRecordContent>(ns3prc));
     rr.auth = true;
+    rr.domain_id = d_sd.domain_id;
     r->addRecord(std::move(rr));
     return true;
   }
