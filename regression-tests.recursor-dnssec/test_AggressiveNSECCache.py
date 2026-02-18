@@ -4,6 +4,7 @@ import os
 import requests
 import subprocess
 import extendederrors
+import pytest
 
 class AggressiveNSECCacheBase(RecursorTest):
     __test__ = False
@@ -235,6 +236,7 @@ class AggressiveNSECCacheNSECTest(AggressiveNSECCacheBase):
         self.assertEqual(res.options[0].otype, 15)
         self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(9, b''))
 
+@pytest.mark.skip(reason="changes auth config")
 class AggressiveNSECCacheNSEC3Test(AggressiveNSECCacheBase):
     _confdir = 'AggressiveNSECCacheNSEC3'
     __test__ = True

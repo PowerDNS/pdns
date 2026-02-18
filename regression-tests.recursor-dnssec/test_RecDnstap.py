@@ -8,7 +8,6 @@ import time
 import dns
 import dnstap_pb2
 import pytest
-from unittest import SkipTest
 from recursortests import RecursorTest
 
 FSTRM_CONTROL_ACCEPT = 0x01

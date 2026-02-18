@@ -6,7 +6,6 @@ class TrustAnchorsEnabledTest(RecursorTest):
     """This test will do a query for "trustanchor.server CH TXT" and hopes to get
     a proper answer"""
 
-    _auth_zones = {}
     _confdir = 'TrustAnchorsEnabled'
     _roothints = None
     _root_DS = None
@@ -46,7 +45,6 @@ class TrustAnchorsDisabledTest(RecursorTest):
     """This test will do a query for "trustanchor.server CH TXT" and hopes to get
     a proper answer"""
 
-    _auth_zones = {}
     _confdir = 'TrustAnchorsDisabled'
     _roothints = None
     _root_DS = None

@@ -30,8 +30,9 @@ class FlagsTest(RecursorTest):
         confdir = os.path.join('configs', cls._confdir)
         cls.createConfigDir(confdir)
 
-        cls.generateAllAuthConfig(confdir)
-        cls.startAllAuth(confdir)
+        # Moved to fixture
+        #cls.generateAllAuthConfig(confdir)
+        #cls.startAllAuth(confdir)
 
         for dnssec_setting, port in cls._dnssec_setting_ports.items():
             cls._dnssec_setting = dnssec_setting
@@ -72,7 +73,7 @@ class FlagsTest(RecursorTest):
 
     @classmethod
     def tearDownClass(cls):
-        cls.tearDownAuth()
+        #cls.tearDownAuth() moved to fixture
         for subdir, recursor in cls._recursors.items():
             cls._recursor = recursor
             cls.tearDownRecursor(subdir)

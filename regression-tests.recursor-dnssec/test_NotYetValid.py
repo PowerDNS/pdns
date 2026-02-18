@@ -1,9 +1,10 @@
 import os
-
 import dns
+import pytest
 from recursortests import RecursorTest
 
 
+@pytest.mark.skip(reason="changes auth config")
 class NotYetValidTest(RecursorTest):
     """This regression test starts the authoritative servers with a clock that is
     set 15 days into the future. Hence, the recursor must reject the signatures

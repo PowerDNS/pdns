@@ -1,6 +1,6 @@
 import dns
 import sys
-from unittest import SkipTest
+import unittest
 
 from recursortests import RecursorTest
 
@@ -31,7 +31,7 @@ class EDNSTest(RecursorTest):
         the query is not processed any further.
         """
         if sys.version_info >= (3, 11) and sys.version_info <= (3, 11, 3):
-            raise SkipTest("Test skipped, see https://github.com/PowerDNS/pdns/pull/12912")
+            raise unitest.SkipTest("Test skipped, see https://github.com/PowerDNS/pdns/pull/12912")
         query = dns.message.make_query('version.bind.', 'TXT', 'CH', use_edns=5,
                                        payload=4096)
         response = self.sendUDPQuery(query)

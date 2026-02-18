@@ -129,12 +129,6 @@ class RPZIncompleteRecursorTest(RecursorTest):
     _wsPassword = 'secretpassword'
     _apiKey = 'secretapikey'
     _confdir = 'RPZIncompleteRecursor'
-    _auth_zones = {
-        '8': {'threads': 1,
-              'zones': ['ROOT']},
-        '10': {'threads': 1,
-               'zones': ['example']},
-    }
 
     _config_template = """
 auth-zones=example=configs/%s/example.zone

@@ -10,14 +10,6 @@ from recursortests import RecursorTest
 class RecursorEDNSPaddingTest(RecursorTest):
 
     _confdir = 'RecursorEDNSPadding'
-    _auth_zones = {
-        '8': {'threads': 1,
-              'zones': ['ROOT']},
-        '9': {'threads': 1,
-              'zones': ['secure.example', 'islandofsecurity.example']},
-        '10': {'threads': 1,
-            'zones': ['example']},
-    }
 
     def checkPadding(self, message, numberOfBytes=None):
         self.assertEqual(message.edns, 0)

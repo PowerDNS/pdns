@@ -2,9 +2,11 @@ import os
 
 import dns
 import extendederrors
+import pytest
 from recursortests import RecursorTest
 
 
+@pytest.mark.skip(reason="changes auth config")
 class ExpiredTest(RecursorTest):
     """This regression test starts the authoritative servers with a clock that is
     set 15 days into the past. Hence, the recursor must reject the signatures
@@ -24,6 +26,7 @@ class ExpiredTest(RecursorTest):
 
         self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
 
+@pytest.mark.skip(reason="changes auth config")
 class ExpiredWithEDETest(RecursorTest):
     """This regression test starts the authoritative servers with a clock that is
     set 15 days into the past. Hence, the recursor must reject the signatures

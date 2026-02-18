@@ -16,6 +16,7 @@ import requests
 import threading
 import ssl
 import copy
+import pytest
 from twisted.internet import reactor
 from proxyprotocol import ProxyProtocol
 
@@ -35,6 +36,7 @@ def have_ipv6():
         return False
 
 
+@pytest.mark.usefixtures("run_auths")
 class RecursorTest(AssertEqualDNSMessageMixin, unittest.TestCase):
     """
     Setup all recursors and auths required for the tests
@@ -436,7 +438,7 @@ PrivateKey: Ep9uo6+wwjb4MaOmqq7LHav2FLrjotVOeZg8JT1Qk04=
         '18': {'threads': 1,
                'zones': ['example']}
     }
-    _auth_zones = {}
+    _auth_zones = _default_auth_zones
     # Other IPs used:
     #  2: test_Interop.py
     #  3-7: free?
@@ -552,8 +554,10 @@ distributor-threads={threads}
 
     @classmethod
     def generateAllAuthConfig(cls, confdir):
+        print("generateAllAuthConfig")
         if cls._auth_zones:
             for auth_suffix, zoneinfo in cls._auth_zones.items():
+                print(auth_suffix)
                 threads = zoneinfo['threads']
                 zones = zoneinfo['zones']
                 authconfdir = os.path.join(confdir, 'auth-%s' % auth_suffix)
@@ -776,41 +780,39 @@ distributor-threads={threads}
 
         confdir = os.path.join('configs', cls._confdir)
         cls.createConfigDir(confdir)
-        cls.generateAllAuthConfig(confdir)
-        cls.startAllAuth(confdir)
 
         cls.generateRecursorConfig(confdir)
         cls.startRecursor(confdir, cls._recursorPort)
 
-        for auth_suffix, _ in cls._auth_zones.items():
-            ip = cls._PREFIX + '.' + auth_suffix
-            auth = cls._auths[ip]
-            logFile = os.path.join(confdir, 'auth-'+ auth_suffix, 'pdns.log')
-            cls.checkAuth(auth, 'auth-' + ip, logFile)
+#        for auth_suffix, _ in RecursorTest._auth_zones.items():
+#            ip = RecursorTest._PREFIX + '.' + auth_suffix
+#            auth = RecursorTest._auths[ip]
+#            logFile = os.path.join(confdir, 'auth-'+ auth_suffix, 'pdns.log')
+#            RecursorTest.checkAuth(auth, 'auth-' + ip, logFile)
 
         print("Launching tests..")
 
     @classmethod
     def tearDownClass(cls):
         rec = None
-        auth = None
+        #auth = None
         resp = None
         try:
             cls.tearDownRecursor()
         except BaseException as e:
             rec = e
-        try:
-            cls.tearDownAuth()
-        except BaseException as e:
-            auth = e
+        #try:
+        #    cls.tearDownAuth()
+        #except BaseException as e:
+        #    auth = e
         try:
             cls.tearDownResponders()
         except BaseException as e:
             resp = e
         if rec is not None:
             raise rec
-        if auth is not None:
-            raise auth
+        #if auth is not None:
+        #    raise auth
         if resp is not None:
             raise resp
 

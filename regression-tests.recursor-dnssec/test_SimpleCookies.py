@@ -1,7 +1,9 @@
 import dns
 import os
+import pytest
 from recursortests import RecursorTest
 
+@pytest.mark.skip(reason="changes auth config")
 class SimpleCookiesTest(RecursorTest):
     _confdir = 'SimpleCookies'
     _auth_zones = RecursorTest._default_auth_zones

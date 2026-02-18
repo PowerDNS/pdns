@@ -226,12 +226,6 @@ class RPZRecursorTest(RecursorTest):
     _wsPassword = 'secretpassword'
     _apiKey = 'secretapikey'
     _confdir = 'RPZ'
-    _auth_zones = {
-        '8': {'threads': 1,
-              'zones': ['ROOT']},
-        '10': {'threads': 1,
-               'zones': ['example']},
-    }
     _lua_dns_script_file = """
 
     function prerpz(dq)
