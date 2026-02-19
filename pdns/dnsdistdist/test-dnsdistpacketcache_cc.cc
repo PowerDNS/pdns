@@ -21,13 +21,14 @@ BOOST_AUTO_TEST_SUITE(test_dnsdistpacketcache_cc)
 
 static bool receivedOverUDP = true;
 
-static void test_packetcache_simple(bool shuffle)
+static void test_packetcache_simple(bool shuffle, DNSDistPacketCache::EvictionType eviction)
 {
   const DNSDistPacketCache::CacheSettings settings{
     .d_maxEntries = 150000,
     .d_maxTTL = 86400,
     .d_minTTL = 1,
     .d_shuffle = shuffle,
+    .d_eviction = eviction,
   };
   DNSDistPacketCache localCache(settings);
   BOOST_CHECK_EQUAL(localCache.getSize(), 0U);
@@ -137,9 +138,14 @@ static void test_packetcache_simple(bool shuffle)
 
 BOOST_AUTO_TEST_CASE(test_PacketCacheSimple)
 {
-  /* test both with and without shuffle; should be equivalent */
-  test_packetcache_simple(false);
-  test_packetcache_simple(true);
+  for (auto t : std::array{
+         DNSDistPacketCache::EvictionType::NoEviction,
+         DNSDistPacketCache::EvictionType::Lru,
+         DNSDistPacketCache::EvictionType::Sieve}) {
+    /* test both with and without shuffle; should be equivalent */
+    test_packetcache_simple(false, t);
+    test_packetcache_simple(true, t);
+  }
 }
 
 BOOST_AUTO_TEST_CASE(test_PacketCacheSharded)
