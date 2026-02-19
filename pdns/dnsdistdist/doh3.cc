@@ -761,6 +761,10 @@ static void processH3HeaderEvent(ClientState& clientState, DOH3Frontend& fronten
       std::string_view content(reinterpret_cast<char*>(value), value_len);
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): Quiche API
       auto* headersptr = reinterpret_cast<dnsdist::doh3::h3_headers_t*>(argp);
+      if (headersptr->size() >= dnsdist::doh::MAX_INCOMING_HTTP_HEADERS) {
+        /* be nice but not too nice */
+        return 1;
+      }
       headersptr->emplace(key, content);
       return 0;
     },
