@@ -11,6 +11,6 @@ def run_auths() -> str:
     print('Starting auths from fixture..')
     RecursorTest.generateAllAuthConfig(confdir)
     RecursorTest.startAllAuth(confdir)
-    yield "foo"
+    yield "Here's Johnny!"
     print('\nStopping auths by fixture')
     RecursorTest.tearDownAuth()
