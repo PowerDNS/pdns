@@ -180,6 +180,10 @@ components:
           description: "The id of the TSIG keys used for secondary operation in this zone"
           externalDocs:
             url: "https://doc.powerdns.com/authoritative/tsig.html#provisioning-signed-notification-and-axfr-requests"
+        last_check:
+          description: UNIX timestamp when the Serial was checked for the last time
+          type: integer
+          readonly: true
 
     Zones:
       $id: Zones
