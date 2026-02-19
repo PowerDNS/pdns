@@ -86,7 +86,8 @@ Functions and methods of a ``DNSName``
 
     Append ``labels`` to the DNSName. ``labels`` can be a string or DNSName containing one or more labels.
 
-    .. codeblock:: lua
+    .. code-block:: lua
+
       local n = newDNSName("example.com")
       n:append("example") -- n is now "example.com.example"
       local other_name = newDNSName("foobar.invalid")
