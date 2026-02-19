@@ -1,23 +1,19 @@
 import os
+import pathlib
 from setuptools import setup, find_packages
 
-install_reqs = list()
+# reads requirements.txt file and extracts package_name and version (if set)
+def read_requirements_file(fname):
+    reqs = []
 
-# Use pipenv for dependencies, setuptools otherwise.
-# This makes the installation for the packages easier (no pipenv needed)
-try:
-    from pipenv.project import Project
-    from pipenv.utils import convert_deps_to_pip
-    pfile = Project(chdir=False).parsed_pipfile
-    install_reqs = convert_deps_to_pip(pfile['packages'], r=False)
-except ImportError:
-    from pkg_resources import parse_requirements
-    import pathlib
-    with pathlib.Path('requirements.txt').open() as requirements_txt:
-        install_reqs = [
-            str(r)
-            for r
-            in parse_requirements(requirements_txt)]
+    with pathlib.Path(fname).open() as f:
+        for line in f:
+            line = line.strip()
+            # do not consider comments, hashes and remove trailing "\" if needed
+            if line and not line.startswith(('#', '-')):
+                reqs.append(line.rstrip('\\').strip())
+
+    return reqs
 
 
 def exists(fname):
@@ -49,7 +45,7 @@ setup(
     keywords = "PowerDNS keyroller",
     url = "https://www.powerdns.com/",
     packages = find_packages(),
-    install_requires=install_reqs,
+    install_requires=read_requirements_file("requirements.txt"),
     include_package_data = True,
     scripts=['pdns-keyroller.py', 'pdns-keyroller-ctl.py'],
     long_description=read('README.md'),
