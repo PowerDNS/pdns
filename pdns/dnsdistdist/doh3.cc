@@ -847,6 +847,14 @@ static void processH3DataEvent(ClientState& clientState, DOH3Frontend& frontend,
       break;
     }
 
+    if (len > std::numeric_limits<uint16_t>::max() || (std::numeric_limits<uint16_t>::max() - streamBuffer.size()) < static_cast<size_t>(len)) {
+      VERBOSESLOG(infolog("DOH3 data frame of size %d is too large for a DNS query (we already have %d)", len, streamBuffer.size()),
+                  frontend.d_logger->info(Logr::Info, "DOH3 data frame is too large for a DNS query", "http.stream_id", Logging::Loggable(streamID), "frame_size", Logging::Loggable(len), "existing_payload_size", Logging::Loggable(streamBuffer.size())));
+      conn.d_streamBuffers.erase(streamID);
+      handleImmediateError("DoH3 non-compliant query");
+      return;
+    }
+
     buffer.resize(static_cast<size_t>(len));
     streamBuffer.insert(streamBuffer.end(), buffer.begin(), buffer.end());
   }
