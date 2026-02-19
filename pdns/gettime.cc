@@ -23,6 +23,13 @@
 #include "config.h"
 #include "gettime.hh"
 
+time_t getmonotonic()
+{
+  timespec nowMonotonic{};
+  gettime(&nowMonotonic, false);
+  return nowMonotonic.tv_sec;
+}
+
 #ifdef HAVE_CLOCK_GETTIME
 #ifndef CLOCK_MONOTONIC_RAW
 #define CLOCK_MONOTONIC_RAW CLOCK_MONOTONIC

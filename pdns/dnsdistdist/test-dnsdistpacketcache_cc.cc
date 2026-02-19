@@ -35,7 +35,7 @@ static void test_packetcache_simple(bool shuffle)
   size_t counter = 0;
   size_t skipped = 0;
   bool dnssecOK = false;
-  const time_t now = time(nullptr);
+  const time_t now = getmonotonic();
   InternalQueryState ids;
   ids.qtype = QType::A;
   ids.qclass = QClass::IN;
@@ -161,7 +161,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSharded)
   size_t skipped = 0;
   ComboAddress remote;
   bool dnssecOK = false;
-  const time_t now = time(nullptr);
+  const time_t now = getmonotonic();
   InternalQueryState ids;
   ids.qtype = QType::AAAA;
   ids.qclass = QClass::IN;

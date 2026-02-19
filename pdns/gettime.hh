@@ -23,3 +23,4 @@
 
 #include <ctime>
 extern int gettime(struct timespec* timespec, bool needRealTime = false);
+extern time_t getmonotonic();
