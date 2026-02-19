@@ -130,7 +130,7 @@ std::shared_ptr<TLSCtx> TCPOutConnectionManager::getTLSContext(const std::string
       config = found;
     }
     if (config != nullptr) {
-      // alwasy set the ref arguments to the function if we found a config
+      // always set the ref arguments to the function if we found a config
       verboseLogging = config->verbose_logging;
       if (!config->subject_name.empty()) {
         subjectName = std::string(config->subject_name);
