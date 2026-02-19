@@ -24,6 +24,7 @@ BOOST_AUTO_TEST_CASE(test_small_covering_nsec3)
     {"8ujhshp2lhmnpoo9qde4blg4gq3hgl99", "8ujhshp2lhmnpoo9qde4blg4gq3hgl99", 0, false},
     {"8ujhshp2lhmnpoo9qde4blg4gq3hgl99", "8ujhshp2lhmnpoo9qde4blg4gq3hgl99", 1, false},
     {"8ujhshp2lhmnpoo9qde4blg4gq3hgl99", "8ujhshp2lhmnpoo9qde4blg4gq3hgl99", 157, false},
+    {"e731tdlrdip60smlihgnprqdspq0idlp", "e731tcnkl5al8t4r64b292blt4c37j3h", 1, false}, // note order: 1st > 2nd
   };
 
   for (const auto& [owner, next, boundary, result] : table) {

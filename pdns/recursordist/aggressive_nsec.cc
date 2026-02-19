@@ -23,6 +23,7 @@
 #include <climits>
 
 #include "aggressive_nsec.hh"
+#include "base64.hh"
 #include "cachecleaner.hh"
 #include "recursor_cache.hh"
 #include "logger.hh"
@@ -231,15 +232,18 @@ static bool commonPrefixIsLong(const string& one, const string& two, size_t boun
   const auto minLength = std::min(one.length(), two.length());
 
   for (size_t i = 0; i < minLength; i++) {
-    const auto byte1 = one.at(i);
-    const auto byte2 = two.at(i);
+    const uint8_t byte1 = one.at(i);
+    const uint8_t byte2 = two.at(i);
     // shortcut
     if (byte1 == byte2) {
       length += CHAR_BIT;
-      if (length > bound) {
-        return true;
-      }
       continue;
+    }
+    if (byte1 > byte2) { // order is reversed, implies large number of hashes covered
+      return false;
+    }
+    if (length > bound) {
+      return true;
     }
     // bytes differ, let's look at the bits
     for (ssize_t j = CHAR_BIT - 1; j >= 0; j--) {
@@ -319,11 +323,6 @@ void AggressiveNSECCache::insertNSEC(const DNSName& zone, const DNSName& owner, 
 
       if (g_maxNSEC3Iterations && content->d_iterations > g_maxNSEC3Iterations) {
         /* can't use that */
-        return;
-      }
-
-      if (isSmallCoveringNSEC3(owner, content->d_nexthash)) {
-        /* not accepting small covering answers since they only deny a small subset */
         return;
       }
 
