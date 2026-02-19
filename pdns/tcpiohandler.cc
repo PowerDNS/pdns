@@ -1051,6 +1051,7 @@ private:
 
 #ifdef HAVE_GNUTLS
 #include <gnutls/gnutls.h>
+#include <gnutls/socket.h>
 #include <gnutls/x509.h>
 
 static void safe_memory_lock([[maybe_unused]] void* data, [[maybe_unused]] size_t size)
