@@ -46,7 +46,7 @@ tags:
 #       We need to look at the code and figure out the default HTTP response
 #       codes and adjust docs accordingly.
 components:
-  schemas: &schemas
+  schemas:
     Server:
       $id: Server
       type: object
@@ -598,11 +598,13 @@ components:
       properties:
         result:
           type: string
+
   securitySchemes:
     APIKeyHeader:
       type: apiKey
       in: header
       name: X-API-Key
+
   responses: &commonErrors
     "400":
       description: The supplied request was not valid
