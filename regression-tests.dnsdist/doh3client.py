@@ -188,11 +188,16 @@ async def async_h3_query(
     post: bool,
     create_protocol=HttpClient,
     additional_headers: Optional[Dict] = None,
+    raw_query = False,
 ) -> Union[Tuple[str, Dict[str, str]], Tuple[asyncio.TimeoutError, Dict[str, str]]]:
 
     url = baseurl
+    if not raw_query:
+        query = query.to_wire()
+    else:
+        post = True
     if not post:
-        url = "{}?dns={}".format(baseurl, base64.urlsafe_b64encode(query.to_wire()).decode('UTF8').rstrip('='))
+        url = "{}?dns={}".format(baseurl, base64.urlsafe_b64encode(query).decode("UTF8").rstrip("="))
     async with connect(
         host,
         port,
@@ -207,7 +212,7 @@ async def async_h3_query(
                 answer = await perform_http_request(
                     client=client,
                     url=url,
-                    data=query.to_wire() if post else None,
+                    data=query if post else None,
                     include=False,
                     output_dir=None,
                     additional_headers=additional_headers,
@@ -218,7 +223,19 @@ async def async_h3_query(
             return (e,{})
 
 
-def doh3_query(query, host, baseurl, timeout=2, port=853, verify=None, server_hostname=None, post=False, additional_headers=None, raw_response=False):
+def doh3_query(
+    query,
+    host,
+    baseurl,
+    timeout=2,
+    port=853,
+    verify=None,
+    server_hostname=None,
+    post=False,
+    additional_headers=None,
+    raw_response=False,
+    raw_query=False,
+):
     configuration = QuicConfiguration(alpn_protocols=H3_ALPN, is_client=True, server_name=server_hostname)
     if verify:
         configuration.load_verify_locations(verify)
@@ -233,7 +250,8 @@ def doh3_query(query, host, baseurl, timeout=2, port=853, verify=None, server_ho
             timeout=timeout,
             create_protocol=HttpClient,
             post=post,
-            additional_headers=additional_headers
+            additional_headers=additional_headers,
+            raw_query=raw_query,
         )
     )
 

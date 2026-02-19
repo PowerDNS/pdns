@@ -16,14 +16,14 @@ class DnsClientProtocol(QuicConnectionProtocol):
         super().__init__(*args, **kwargs)
         self._ack_waiter: Any = None
 
-    def pack(self, data):
+    @staticmethod
+    def pack(data):
         # serialize query
         data = bytes(data)
         data = struct.pack("!H", len(data)) + data
         return data
 
-    async def query(self, query: dns.message) -> None:
-        data = self.pack(query.to_wire())
+    async def query(self, data) -> None:
         # send query and wait for answer
         stream_id = self._quic.get_next_available_stream_id()
         self._quic.send_stream_data(stream_id, data, end_stream=True)
@@ -48,7 +48,8 @@ class DnsClientProtocol(QuicConnectionProtocol):
                 waiter.set_result(event)
 
 class BogusDnsClientProtocol(DnsClientProtocol):
-    def pack(self, data):
+    @staticmethod
+    def pack(data):
         # serialize query
         data = bytes(data)
         data = struct.pack("!H", len(data) * 2) + data
@@ -59,7 +60,7 @@ async def async_quic_query(
     configuration: QuicConfiguration,
     host: str,
     port: int,
-    query: dns.message,
+    data: bytes,
     timeout: float,
     create_protocol=DnsClientProtocol
 ) -> None:
@@ -74,7 +75,7 @@ async def async_quic_query(
         print("Sending DNS query")
         try:
             async with async_timeout.timeout(timeout):
-                answer = await client.query(query)
+                answer = await client.query(data)
                 return (answer, client._quic.tls._peer_certificate.serial_number)
         except asyncio.TimeoutError as e:
             return (e, None)
@@ -84,16 +85,18 @@ class StreamResetError(Exception):
         self.error = error
         super().__init__(message)
 
-def quic_query(query, host='127.0.0.1', timeout=2, port=853, verify=None, server_hostname=None):
+
+def quic_query(query, host="127.0.0.1", timeout=2, port=853, verify=None, server_hostname=None, rawQuery=False):
     configuration = QuicConfiguration(alpn_protocols=["doq"], is_client=True, server_name=server_hostname)
     if verify:
         configuration.load_verify_locations(verify)
+    data = DnsClientProtocol.pack(query.to_wire()) if not rawQuery else query
     (result, serial) = asyncio.run(
         async_quic_query(
             configuration=configuration,
             host=host,
             port=port,
-            query=query,
+            data=data,
             timeout=timeout,
             create_protocol=DnsClientProtocol
         )
@@ -104,16 +107,18 @@ def quic_query(query, host='127.0.0.1', timeout=2, port=853, verify=None, server
         raise TimeoutError()
     return (result, serial)
 
-def quic_bogus_query(query, host='127.0.0.1', timeout=2, port=853, verify=None, server_hostname=None):
+
+def quic_bogus_query(query, host="127.0.0.1", timeout=2, port=853, verify=None, server_hostname=None, rawQuery=False):
     configuration = QuicConfiguration(alpn_protocols=["doq"], is_client=True, server_name=server_hostname)
     if verify:
         configuration.load_verify_locations(verify)
+    data = BogusDnsClientProtocol.pack(query.to_wire()) if not rawQuery else query
     (result, _) = asyncio.run(
         async_quic_query(
             configuration=configuration,
             host=host,
             port=port,
-            query=query,
+            data=data,
             timeout=timeout,
             create_protocol=BogusDnsClientProtocol
         )
