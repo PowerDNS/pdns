@@ -2,6 +2,45 @@ Changelogs for 5.0.x
 ====================
 
 .. changelog::
+  :version: 5.0.3
+  :released: 20th of February 2026
+
+  This is release 5.0.3 of the Authoritative Server.
+  It contains bug fixes only.
+
+  Please review the :doc:`Upgrade Notes <../upgrading>` before upgrading from versions < 5.0.x.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16878
+
+    fix stupid logic error in lmdb-write-update-notification=no
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16876
+
+    Stricter timestamp checks
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16874
+
+    Correctly compute public key exponent length when larger than 255.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16685
+
+    fix geoip_mmdb backend MMDB_open error handling
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16683
+
+    more robustness in createReverse*
+
+.. changelog::
   :version: 5.0.2
   :released: 11th of December 2025
 

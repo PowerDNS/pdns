@@ -2,6 +2,57 @@ Changelogs for 4.9.x
 ====================
 
 .. changelog::
+  :version: 4.9.13
+  :released: 20th of February 2026
+
+  This is release 4.9.13 of the Authoritative Server.
+  It contains bug fixes only.
+
+  Please review the :doc:`Upgrade Notes <../upgrading>` before upgrading from versions < 4.9.x.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16877
+
+    fix stupid logic error in lmdb-write-update-notification=no
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16875
+
+    Stricter timestamp checks
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16873
+
+    Correctly compute public key exponent length when larger than 255.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16788
+
+    lmdb: be sure to abort pending transactions in the correct order.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16789
+
+    Wrap SSql pointers in a unique pointer earlier
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16686
+
+    fix geoip_mmdb backend MMDB_open error handling
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16684
+
+    more robustness in createReverse*
+
+.. changelog::
   :version: 4.9.12
   :released: 11th of December 2025
 
