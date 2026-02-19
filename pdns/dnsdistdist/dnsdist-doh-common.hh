@@ -37,6 +37,7 @@
 namespace dnsdist::doh
 {
 static constexpr uint32_t MAX_INCOMING_CONCURRENT_STREAMS{100U};
+static constexpr size_t MAX_INCOMING_HTTP_HEADERS{256U};
 
 std::optional<PacketBuffer> getPayloadFromPath(const std::string_view& path);
 }
