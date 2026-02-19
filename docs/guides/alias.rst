@@ -40,6 +40,13 @@ If the ALIAS target cannot be resolved (SERVFAIL) or does not exist (NXDOMAIN) t
   You should make sure that the :ref:`setting-resolver` does not point to
   PowerDNS itself, to prevent infinite query loops.
 
+
+It is strongly advised to only have one ALIAS record per RRset.
+If there are multiple ALIAS records with the same name, only the first one
+will be used to query the resolver. Prior to version 5.1.0, the last one
+was used instead. Remember that the order in which ALIAS records will be
+retrieved is backend-dependent.
+
 .. _alias_axfr:
 
 AXFR Zone transfers

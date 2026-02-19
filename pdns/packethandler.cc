@@ -1833,8 +1833,16 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state, bool re
         g_log<<Logger::Info<<"ALIAS record found for "<<state.target<<", but ALIAS expansion is disabled."<<endl;
         continue;
       }
-      haveAlias=getRR<ALIASRecordContent>(zrr.dr)->getContent();
-      aliasScopeMask=zrr.scopeMask;
+      // DNSProxy::completePacket(), in its current state, can only process one
+      // alias if !state.r->d_tcp, so ignore any further ALIAS results (but
+      // warn about them)
+      if (haveAlias.empty()) {
+        haveAlias=getRR<ALIASRecordContent>(zrr.dr)->getContent();
+        aliasScopeMask=zrr.scopeMask;
+      }
+      else {
+        g_log << Logger::Warning << "extra ALIAS record for " << state.target << ", contents " << getRR<ALIASRecordContent>(zrr.dr)->getContent() << " ignored." << endl;
+      }
     }
 
     // Filter out all SOA's and add them in later
