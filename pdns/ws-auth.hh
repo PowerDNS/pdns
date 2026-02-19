@@ -54,7 +54,8 @@ public:
   static string makePercentage(const double& val);
 
 private:
-  void indexfunction(HttpRequest* req, HttpResponse* resp);
+  void indexGET(HttpRequest* req, HttpResponse* resp);
+  void indexPOST(HttpRequest* req, HttpResponse* resp);
   void jsonstat(HttpRequest* req, HttpResponse* resp);
   void registerApiHandler(const string& url, std::function<void(HttpRequest*, HttpResponse*)> handler);
   void webThread();
@@ -65,6 +66,7 @@ private:
   Ewma d_queries, d_cachehits, d_cachemisses;
   Ewma d_qcachehits, d_qcachemisses;
   unique_ptr<WebServer> d_ws{nullptr};
+  std::string d_unique;
 };
 
 void apiDocs(HttpRequest* req, HttpResponse* resp);
