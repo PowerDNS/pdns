@@ -497,7 +497,8 @@ BOOST_AUTO_TEST_CASE(test_PacketCache)
   DNSDistPacketCache::CacheSettings settings{
     .d_maxEntries = 10,
   };
-  auto packetCache = std::make_shared<DNSDistPacketCache>(settings);
+  DNSDistPacketCache::Time now;
+  auto packetCache = std::make_shared<DNSDistPacketCache>(settings, now);
 
   ComboAddress ipv4("192.0.2.1");
   InternalQueryState ids;
@@ -522,7 +523,8 @@ BOOST_AUTO_TEST_CASE(test_PacketCache)
   std::optional<Netmask> subnet;
   ids.queryRealTime.start();
   DNSQuestion dnsQuestion(ids, query);
-  DNSDistPacketCache::Time now;
+
+  now = DNSDistPacketCache::Time();
   packetCache->get(dnsQuestion, 0, &key, subnet, dnssecOK, receivedOverUDP, now);
   packetCache->insert(key, subnet, *(getFlagsFromDNSHeader(dnsQuestion.getHeader().get())), dnssecOK, ids.qname, QType::A, QClass::IN, response, receivedOverUDP, 0, std::nullopt, now);
 

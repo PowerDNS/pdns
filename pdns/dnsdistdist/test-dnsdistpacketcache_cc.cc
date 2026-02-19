@@ -30,13 +30,15 @@ static void test_packetcache_simple(bool shuffle)
     .d_shuffle = shuffle,
   };
 
-  DNSDistPacketCache localCache(settings);
+  const DNSDistPacketCache::Time now;
+  DNSDistPacketCache localCache(settings, now);
+
   BOOST_CHECK_EQUAL(localCache.getSize(), 0U);
 
   size_t counter = 0;
   size_t skipped = 0;
   bool dnssecOK = false;
-  const DNSDistPacketCache::Time now;
+
   InternalQueryState ids;
   ids.qtype = QType::A;
   ids.qclass = QClass::IN;
@@ -155,14 +157,15 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSharded)
     .d_shardCount = 10,
     .d_dontAge = false,
   };
-  DNSDistPacketCache localCache(settings);
+  DNSDistPacketCache::Time now;
+  DNSDistPacketCache localCache(settings, now);
   BOOST_CHECK_EQUAL(localCache.getSize(), 0U);
 
   size_t counter = 0;
   size_t skipped = 0;
   ComboAddress remote;
   bool dnssecOK = false;
-  DNSDistPacketCache::Time now;
+
   InternalQueryState ids;
   ids.qtype = QType::AAAA;
   ids.qclass = QClass::IN;
@@ -235,6 +238,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSharded)
     BOOST_CHECK_EQUAL(expired, 0U);
 
     now.d_real += 7200 + 3600;
+    now.d_monotonic += 7200 + 3600;
 
     /* but after the TTL .. let's ask for at most 1k entries */
     auto removed = localCache.purgeExpired(1000, now);
@@ -242,6 +246,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSharded)
     BOOST_CHECK_EQUAL(localCache.getSize(), 1000U);
 
     now.d_real += 7200 + 3600;
+    now.d_monotonic += 7200 + 3600;
 
     /* now remove everything */
     removed = localCache.purgeExpired(0, now);
@@ -266,7 +271,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheTCP)
   };
   const DNSDistPacketCache::Time now;
 
-  DNSDistPacketCache localCache(settings);
+  DNSDistPacketCache localCache(settings, now);
   InternalQueryState ids;
   ids.qtype = QType::A;
   ids.qclass = QClass::IN;
@@ -337,7 +342,8 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheServFailTTL)
     .d_minTTL = 1,
   };
   const DNSDistPacketCache::Time now;
-  DNSDistPacketCache localCache(settings);
+
+  DNSDistPacketCache localCache(settings, now);
   InternalQueryState ids;
   ids.qtype = QType::A;
   ids.qclass = QClass::IN;
@@ -396,7 +402,8 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheNoDataTTL)
     .d_maxNegativeTTL = 1,
   };
   const DNSDistPacketCache::Time now;
-  DNSDistPacketCache localCache(settings);
+
+  DNSDistPacketCache localCache(settings, now);
 
   ComboAddress remote;
   bool dnssecOK = false;
@@ -459,7 +466,8 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheNXDomainTTL)
     .d_maxNegativeTTL = 1,
   };
   const DNSDistPacketCache::Time now;
-  DNSDistPacketCache localCache(settings);
+
+  DNSDistPacketCache localCache(settings, now);
 
   InternalQueryState ids;
   ids.qtype = QType::A;
@@ -550,7 +558,8 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheTruncated)
       .d_maxNegativeTTL = 1,
     };
     const DNSDistPacketCache::Time now;
-    DNSDistPacketCache localCache(settings);
+
+    DNSDistPacketCache localCache(settings, now);
     BOOST_CHECK_EQUAL(localCache.getSize(), 0U);
 
     bool found = localCache.get(dnsQuestion, 0, &key, subnet, dnssecOK, receivedOverUDP, now, 0, false, allowTruncated);
@@ -572,7 +581,8 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheTruncated)
       .d_truncatedTTL = 60,
     };
     const DNSDistPacketCache::Time now;
-    DNSDistPacketCache localCache(settings);
+
+    DNSDistPacketCache localCache(settings, now);
     BOOST_CHECK_EQUAL(localCache.getSize(), 0U);
 
     bool found = localCache.get(dnsQuestion, 0, &key, subnet, dnssecOK, receivedOverUDP, now, 0, false, allowTruncated);
@@ -636,7 +646,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheMaximumSize)
       .d_maxTTL = 86400,
       .d_minTTL = 1,
     };
-    DNSDistPacketCache packetCache(settings);
+    DNSDistPacketCache packetCache(settings, now);
 
     {
       /* UDP */
@@ -678,7 +688,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheMaximumSize)
       .d_maxTTL = 86400,
       .d_minTTL = 1,
     };
-    DNSDistPacketCache packetCache(settings);
+    DNSDistPacketCache packetCache(settings, now);
 
     {
       /* UDP */
@@ -736,7 +746,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheMaximumSize)
       .d_maxTTL = 86400,
       .d_minTTL = 1,
     };
-    DNSDistPacketCache packetCache(settings);
+    DNSDistPacketCache packetCache(settings, now);
 
     {
       /* UDP */
@@ -772,7 +782,8 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheMaximumSize)
 const DNSDistPacketCache::CacheSettings s_localCacheSettings{
   .d_maxEntries = 500000,
 };
-static DNSDistPacketCache s_localCache(s_localCacheSettings);
+static const DNSDistPacketCache::Time s_now;
+static DNSDistPacketCache s_localCache(s_localCacheSettings, s_now);
 
 static void threadMangler(unsigned int offset)
 {
@@ -898,7 +909,8 @@ BOOST_AUTO_TEST_CASE(test_PCCollision)
     .d_parseECS = true,
   };
   const DNSDistPacketCache::Time now;
-  DNSDistPacketCache localCache(settings);
+
+  DNSDistPacketCache localCache(settings, now);
   BOOST_CHECK_EQUAL(localCache.getSize(), 0U);
 
   InternalQueryState ids;
@@ -1039,7 +1051,8 @@ BOOST_AUTO_TEST_CASE(test_PCDNSSECCollision)
     .d_parseECS = true,
   };
   const DNSDistPacketCache::Time now;
-  DNSDistPacketCache localCache(settings);
+
+  DNSDistPacketCache localCache(settings, now);
   BOOST_CHECK_EQUAL(localCache.getSize(), 0U);
 
   InternalQueryState ids;
@@ -1099,7 +1112,8 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheInspection)
     .d_minTTL = 1,
   };
   const DNSDistPacketCache::Time now;
-  DNSDistPacketCache localCache(settings);
+
+  DNSDistPacketCache localCache(settings, now);
   BOOST_CHECK_EQUAL(localCache.getSize(), 0U);
 
   ComboAddress remote;
@@ -1346,7 +1360,8 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheXFR)
     .d_minTTL = 1,
   };
   const DNSDistPacketCache::Time now;
-  DNSDistPacketCache localCache(settings);
+
+  DNSDistPacketCache localCache(settings, now);
   BOOST_CHECK_EQUAL(localCache.getSize(), 0U);
 
   const std::set<QType> xfrTypes = {QType::AXFR, QType::IXFR};
@@ -1477,7 +1492,8 @@ static void test_packetcache_shuffle(
     .d_shuffle = true,
   };
   const DNSDistPacketCache::Time now;
-  DNSDistPacketCache localCache(settings);
+
+  DNSDistPacketCache localCache(settings, now);
   BOOST_CHECK_EQUAL(localCache.getSize(), 0U);
 
   bool dnssecOK = false;
