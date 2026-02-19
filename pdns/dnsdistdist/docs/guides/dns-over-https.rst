@@ -4,86 +4,223 @@ DNS-over-HTTPS (DoH)
 .. note::
   This guide is about DNS over HTTP/1 and DNS over HTTP/2. For DNS over HTTP/3, please see :doc:`dns-over-http3`
 
-:program:`dnsdist` supports DNS-over-HTTPS (DoH, standardized in RFC 8484) for incoming queries since 1.4.0, and for outgoing queries since 1.7.0.
+:program:`dnsdist` supports DNS-over-HTTPS (DoH, standardized in :rfc:`8484`) for incoming queries since 1.4.0, and for outgoing queries since 1.7.0.
 To see if the installation supports this, run ``dnsdist --version``.
 If the output shows ``dns-over-https(DOH)`` (``dns-over-https(nghttp2)`` since 1.9.0) , incoming DNS-over-HTTPS is supported. If ``outgoing-dns-over-https(nghttp2)`` shows up then outgoing DNS-over-HTTPS is supported.
 
 Incoming
 --------
 
-Adding a listen port for DNS-over-HTTPS can be done with the :func:`addDOHLocal` function, e.g.::
-
-  addDOHLocal('2001:db8:1:f00::1', '/etc/ssl/certs/example.com.pem', '/etc/ssl/private/example.com.key')
-
-This will make :program:`dnsdist` listen on [2001:db8:1:f00::1]:443 on TCP, and will use the provided certificate and key to serve incoming TLS connections.
-
-In order to support multiple certificates and keys, for example an ECDSA and an RSA one, the following syntax may be used instead::
-
-  addDOHLocal('2001:db8:1:f00::1', {'/etc/ssl/certs/example.com.rsa.pem', '/etc/ssl/certs/example.com.ecdsa.pem'}, {'/etc/ssl/private/example.com.rsa.key', '/etc/ssl/private/example.com.ecdsa.key'})
-
+To make :program:`dnsdist` listen on [2001:db8:1:f00::1]:443 on TCP, and use the provided certificate(s) and key to serve incoming TLS connections.
 The certificate chain presented by the server to an incoming client will then be selected based on the algorithms this client advertised support for.
 
-A fourth parameter may be added to specify the URL path(s) used by DoH. If you want your DoH server to handle ``https://example.com/dns-query-endpoint``, you have to add ``"/dns-query-endpoint"`` to
-the call to :func:`addDOHLocal`. It is optional and defaults to ``/`` in 1.4.0, and ``/dns-query`` since 1.5.0.
+.. md-tab-set::
 
-The fifth parameter, if present, indicates various options. For instance, you use it to indicate custom HTTP headers. An example is::
+   .. md-tab-item:: YAML
 
-  addDOHLocal('2001:db8:1:f00::1', '/etc/ssl/certs/example.com.pem', '/etc/ssl/private/example.com.key', "/dns", {customResponseHeaders={["x-foo"]="bar"}})
+      Add a :ref:`bind <yaml-settings-BindConfiguration>` with ``protocol: DoH``.
+      Multiple certificates are supported by adding them to the ``certificates`` list.
 
-A more complicated (and more realistic) example is when you want to indicate metainformation about the server, such as the stated policy (privacy statement and so on). We use the link types of RFC 8631::
+      .. code-block:: yaml
 
-  addDOHLocal('2001:db8:1:f00::1', '/etc/ssl/certs/example.com.pem', '/etc/ssl/private/example.com.key', "/", {customResponseHeaders={["link"]="<https://example.com/policy.html> rel=\\"service-meta\\"; type=\\"text/html\\""}})
+        binds:
+          - listen_address: "2001:db8:1:f00::1"
+            protocol: "DoH"
+            tls:
+              certificates:
+                - certificate: "/etc/ssl/certs/example.com.pem"
+                  key: "/etc/ssl/private/example.com.key"
 
-Or in ``yaml``:
+   .. md-tab-item:: Lua
 
-.. code-block:: yaml
+      Adding a listen port for DNS-over-HTTPS can be done with the :func:`addDOHLocal` function, e.g.:
 
-  - listen_address: "2001:db8:1:f00::1"
-    protocol: "DoH"
-    tls:
-      certificates:
-        - certificate: "/etc/ssl/certs/example.com.pem"
-          key: "/etc/ssl/private/example.com.key"
-    doh:
-      provider: "nghttp2"
-      paths:
-        - "/"
-      custom_response_headers:
-        - key: "link"
-          value: "<https://example.com/policy.html> rel=\\"service-meta\\"; type=\\"text/html\\""
+      .. code-block:: lua
 
+         addDOHLocal('2001:db8:1:f00::1',
+                     '/etc/ssl/certs/example.com.pem',
+                     '/etc/ssl/private/example.com.key')
+
+
+      In order to support multiple certificates and keys, for example an ECDSA and an RSA one, the following syntax may be used instead:
+
+      .. code-block:: lua
+
+        addDOHLocal('2001:db8:1:f00::1',
+                    {'/etc/ssl/certs/example.com.rsa.pem', '/etc/ssl/certs/example.com.ecdsa.pem'},
+                    {'/etc/ssl/private/example.com.rsa.key', '/etc/ssl/private/example.com.ecdsa.key'})
 
 A particular attention should be taken to the permissions of the certificate and key files. Many ACME clients used to get and renew certificates, like CertBot, set permissions assuming that services are started as root, which is no longer true for dnsdist as of 1.5.0. For that particular case, making a copy of the necessary files in the /etc/dnsdist directory is advised, using for example CertBot's ``--deploy-hook`` feature to copy the files with the right permissions after a renewal.
 
 More information about sessions management can also be found in :doc:`../advanced/tls-sessions-management`.
 
+URL paths and other options
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+By default (since dnsdist 1.5.0), the url path is ``/dns-query``.
+To use ``/my-dns-endpoint`` and ``/``, use the following configuration:
+
+.. md-tab-set::
+
+   .. md-tab-item:: YAML
+
+      Use the ``paths`` key in the :ref:`doh <yaml-settings-IncomingDohConfiguration>`.
+
+      .. code-block:: yaml
+
+        binds:
+          - listen_address: "2001:db8:1:f00::1"
+            protocol: "DoH"
+            doh:
+              paths:
+                - "/"
+                - "/my-dns-endpoint"
+            tls:
+              certificates:
+                - certificate: "/etc/ssl/certs/example.com.pem"
+                  key: "/etc/ssl/private/example.com.key"
+
+   .. md-tab-item:: Lua
+
+      The fourth parameter to :func:`addDOHLocal` may be added to specify the URL path(s) used by DoH.
+
+      .. code-block:: lua
+
+        addDOHLocal('2001:db8:1:f00::1',
+                    '/etc/ssl/certs/example.com.pem',
+                    '/etc/ssl/private/example.com.key',
+                    {"/", "/my-dns-endpoint"})
+
+There's also various other options. For instance, to indicate custom HTTP headers. For example, you may want to indicate metainformation about the server, such as the stated policy (privacy statement and so on). We use the link types of :rfc:`8631`:
+
+.. md-tab-set::
+
+   .. md-tab-item:: YAML
+
+      Use the ``custom_response_headers`` key in the :ref:`doh <yaml-settings-IncomingDohConfiguration>` key.
+
+      .. code-block:: yaml
+
+        binds:
+          - listen_address: "2001:db8:1:f00::1"
+            protocol: "DoH"
+            tls:
+              certificates:
+                - certificate: "/etc/ssl/certs/example.com.pem"
+                  key: "/etc/ssl/private/example.com.key"
+            doh:
+              custom_response_headers:
+                - key: "link"
+                  value: '<https://example.com/policy.html> rel="service-meta"; type="text/html"'
+
+   .. md-tab-item:: Lua
+
+      The fifth parameter, if present, indicates various options, like custom HTTP headers.
+
+      .. code-block:: lua
+
+        addDOHLocal('2001:db8:1:f00::1',
+                    '/etc/ssl/certs/example.com.pem',
+                    '/etc/ssl/private/example.com.key',
+                    "/dns-query",
+                    {customResponseHeaders={["link"]='<https://example.com/policy.html> rel="service-meta"; type="text/html"'}})
+
+.. _DOH-altsvc:
+
 Advertising DNS over HTTP/3 support
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-If DNS over HTTP/3 is also enabled in the configuration via :func:`addDOH3Local` (see :doc:`dns-over-http3` for more information), it might be useful to advertise this support via the ``Alt-Svc`` header::
+If DNS over HTTP/3 is also enabled in the configuration via :func:`addDOH3Local` (see :doc:`dns-over-http3` for more information), it might be useful to advertise this support via the ``Alt-Svc`` header.
 
-  addDOHLocal('2001:db8:1:f00::1', '/etc/ssl/certs/example.com.pem', '/etc/ssl/private/example.com.key', "/dns", {customResponseHeaders={["alt-svc"]="h3=\":443\""}})
+To advertise that HTTP/3 is available on the same IP, port UDP/443:
 
-This will advertise that HTTP/3 is available on the same IP, port UDP/443.
+.. md-tab-set::
+
+   .. md-tab-item:: YAML
+
+      Use the :ref:`custom_response_headers <yaml-settings-HttpCustomResponseHeaderConfiguration>` in the :ref:`doh <yaml-settings-IncomingDohConfiguration>` config.
+
+      .. code-block:: yaml
+
+        binds:
+          - listen_address: "2001:db8:1:f00::1"
+            protocol: "DoH"
+            tls:
+              certificates:
+                - certificate: "/etc/ssl/certs/example.com.pem"
+                  key: "/etc/ssl/private/example.com.key"
+            doh:
+              custom_response_headers:
+                - key: "alt-svc"
+                  value: 'h3=":443"'
+
+   .. md-tab-item:: Lua
+
+      Use the fifth parameter to :func:`addDOHLocal` to add the custom header.
+
+      .. code-block:: lua
+
+        addDOHLocal('2001:db8:1:f00::1', '/etc/ssl/certs/example.com.pem', '/etc/ssl/private/example.com.key', "/dns", {customResponseHeaders={["alt-svc"]='h3=":443"'}})
 
 Custom responses
 ^^^^^^^^^^^^^^^^
 
-It is also possible to set HTTP response rules to intercept HTTP queries early, before the DNS payload, if any, has been processed, to send custom responses including error pages, redirects or even serve static content. First a rule needs to be defined using :func:`newDOHResponseMapEntry`, then a set of rules can be applied to a DoH frontend via :meth:`DOHFrontend:setResponsesMap`.
-For example, to send an HTTP redirect to queries asking for ``/rfc``, the following configuration can be used::
+It is also possible to set HTTP response rules to intercept HTTP queries early, before the DNS payload, if any, has been processed, to send custom responses including error pages, redirects or even serve static content.
 
-  map = { newDOHResponseMapEntry("^/rfc$", 307, "https://www.rfc-editor.org/info/rfc8484") }
-  dohFE = getDOHFrontend(0)
-  dohFE:setResponsesMap(map)
+.. md-tab-set::
+
+   .. md-tab-item:: YAML
+
+      Use the :ref:`responses_map <yaml-settings-HttpResponsesMapConfiguration>` in the :ref:`doh <yaml-settings-IncomingDohConfiguration>` config.
+
+      .. code-block:: yaml
+
+        binds:
+          - listen_address: "2001:db8:1:f00::1"
+            protocol: "DoH"
+            tls:
+              certificates:
+                - certificate: "/etc/ssl/certs/example.com.pem"
+                  key: "/etc/ssl/private/example.com.key"
+            doh:
+              responses_map:
+                - expression: "^/rfc$"
+                  status: 307
+                  content: "https://www.rfc-editor.org/info/rfc8484"
+
+   .. md-tab-item:: Lua
+
+      First a rule needs to be defined using :func:`newDOHResponseMapEntry`, then a set of rules can be applied to a DoH frontend via :meth:`DOHFrontend.setResponsesMap`.
+
+      .. code-block:: lua
+
+        map = { newDOHResponseMapEntry("^/rfc$", 307, "https://www.rfc-editor.org/info/rfc8484") }
+        dohFE = getDOHFrontend(0)
+        dohFE:setResponsesMap(map)
 
 DNS over HTTP
 ^^^^^^^^^^^^^
 
 In case you want to run DNS-over-HTTPS behind a reverse proxy you probably don't want to encrypt your traffic between reverse proxy and dnsdist.
-To let dnsdist listen for DoH queries over HTTP on localhost at port 8053 add one of the following to your config::
+To let dnsdist listen for DoH queries over HTTP on localhost at port 8053 add one of the following to your config:
 
-  addDOHLocal("127.0.0.1:8053")
-  addDOHLocal("127.0.0.1:8053", nil, nil, "/", { reusePort=true })
+.. md-tab-set::
+
+   .. md-tab-item:: YAML
+
+      .. code-block:: yaml
+
+        binds:
+          - listen_address: "2001:db8:1:f00::1"
+            protocol: "DoH"
+
+   .. md-tab-item:: Lua
+
+      .. code-block:: lua
+
+        addDOHLocal("127.0.0.1:8053")
+        -- alternatively, don't define certificates
+        addDOHLocal("127.0.0.1:8053", nil, nil, "/", { reusePort=true })
 
 HTTP/1 support
 ^^^^^^^^^^^^^^
@@ -115,7 +252,7 @@ For nginx in particular, a possible work-around is to use the `grpc_pass <https:
 Internal design
 ^^^^^^^^^^^^^^^
 
-The internal design used for DoH handling uses two threads per :func:`addDOHLocal` directive. The first thread will handle the HTTP/2 communication with the client and pass the received DNS queries to a second thread which will apply the rules and pass the query to a backend, over **UDP** (except if the backend is TCP-only, or uses DNS over TLS, see the second schema below). The response will be received by the regular UDP response handler for that backend and passed back to the first thread. That allows the first thread to be low-latency dealing with TLS and HTTP/2 only and never blocking.
+The internal design used for DoH handling uses two threads per configured DoH bind. The first thread will handle the HTTP/2 communication with the client and pass the received DNS queries to a second thread which will apply the rules and pass the query to a backend, over **UDP** (except if the backend is TCP-only, or uses DNS over TLS, see the second schema below). The response will be received by the regular UDP response handler for that backend and passed back to the first thread. That allows the first thread to be low-latency dealing with TLS and HTTP/2 only and never blocking.
 
 .. figure:: ../imgs/DNSDistDoH.png
    :align: center
@@ -131,34 +268,46 @@ Since 1.7.0, truncated answers received over UDP for a DoH query will lead to a 
 Investigating issues
 ^^^^^^^^^^^^^^^^^^^^
 
-dnsdist provides a lot of counters to investigate issues:
+dnsdist provides a lot of counters to investigate issues using the :doc:`console <console>`:
 
- * :func:`showTCPStats` will display a lot of information about current and passed connections
- * :func:`showTLSErrorCounters` some metrics about why TLS sessions failed to establish
- * :func:`showDOHResponseCodes` returns metrics about HTTP response codes sent by dnsdist
+* :func:`showTCPStats` will display a lot of information about current and passed connections
+* :func:`showTLSErrorCounters` some metrics about why TLS sessions failed to establish
+* :func:`showDOHResponseCodes` returns metrics about HTTP response codes sent by dnsdist
 
 Outgoing
 --------
 
 :program:`dnsdist` also supports outgoing DNS-over-HTTPS since 1.7.0. This way, all queries, regardless of whether they were initially received by dnsdist over UDP, TCP, DoT or DoH, are forwarded to the backend over a secure DNS-over-HTTPS channel.
-Such that support can be enabled via the ``dohPath`` parameter of the :func:`newServer` command. Additional parameters control the TLS provider used (``tls``), the validation of the certificate presented by the backend (``caStore``, ``validateCertificates``), the actual TLS ciphers used (``ciphers``, ``ciphersTLS13``) and the SNI value sent (``subjectName``).
 
-.. code-block:: lua
+.. md-tab-set::
 
-  newServer({address="[2001:DB8::1]:443", tls="openssl", subjectName="doh.powerdns.com", dohPath="/dns-query", validateCertificates=true})
+   .. md-tab-item:: YAML
 
-.. code-block:: yaml
+      .. code-block:: yaml
 
-  backends:
-    - address: "127.0.0.1:%d"
-      protocol: "DoH"
-      tls:
-        provider: "openssl"
-        validate_certificate: true
-        subject_name: "doh.powerdns.com"
-      doh:
-        path: "/dns-query"
+        backends:
+          - address: "127.0.0.1:53"
+            protocol: "DoH"
+            tls:
+              provider: "openssl"
+              validate_certificate: true
+              subject_name: "doh.powerdns.com"
+            doh:
+              path: "/dns-query"
 
+   .. md-tab-item:: Lua
+
+      Support can be enabled via the ``dohPath`` parameter of the :func:`newServer` command. Additional parameters control the TLS provider used (``tls``), the validation of the certificate presented by the backend (``caStore``, ``validateCertificates``), the actual TLS ciphers used (``ciphers``, ``ciphersTLS13``) and the SNI value sent (``subjectName``).
+
+      .. code-block:: lua
+
+        newServer({
+          address="[2001:DB8::1]:443",
+          tls="openssl",
+          subjectName="doh.powerdns.com",
+          dohPath="/dns-query",
+          validateCertificates=true
+        })
 
 Internal design
 ^^^^^^^^^^^^^^^

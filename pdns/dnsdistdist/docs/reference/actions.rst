@@ -100,7 +100,7 @@ The following actions exist.
 .. function:: DnstapLogAction(identity, logger[, alterFunction])
 
   Send the current query to a remote logger as a :doc:`dnstap <dnstap>` message.
-  ``alterFunction`` is a callback, receiving a :class:`DNSQuestion` and a :class:`DnstapMessage`, that can be used to modify the message.
+  ``alterFunction`` is a callback, receiving a :lua:class:`DNSQuestion` and a :class:`DnstapMessage`, that can be used to modify the message.
   Subsequent rules are processed after this action.
 
   :param string identity: Server identity to store in the dnstap message

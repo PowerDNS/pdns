@@ -3,7 +3,7 @@ Configuration endpoint
 
 .. http:get:: /api/v1/servers/:server_id/config
 
-  Returns all :json:object:`ConfigSetting` for a single server
+  Returns all :json:schema:`ConfigSetting` for a single server
 
   :param server_id: The name of the server
 

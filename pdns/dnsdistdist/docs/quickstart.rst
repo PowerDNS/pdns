@@ -15,41 +15,49 @@ This will make dnsdist listen on IP address 127.0.0.1, port 5300 and forward all
 ``dnsdist`` Console and Configuration
 -------------------------------------
 
-Here is more complete configuration, save it to ``dnsdist.yml``:
+Here is more complete configuration:
 
-.. code-block:: yaml
+.. md-tab-set::
 
-  backends:
-    - address: "2001:db8::1"
-      protocol: Do53
-      queries_per_second: 1
-    - address: "2001:db8::2"
-      protocol: Do53
-      queries_per_second: 1
-    - address: "[2001:db8::3]:5300"
-      protocol: Do53
-      queries_per_second: 10
-    - address: "[2001:db8::4]"
-      name: "dns1"
-      protocol: Do53
-      queries_per_second: 10
-    - address: "192.0.2.1"
-      protocol: Do53
-  load_balancing_policies:
-    default_policy: "firstAvailable"
+    .. md-tab-item:: YAML
 
-The ``lua`` equivalent, which was the default before 2.1, would be:
+      Store as ``dnsdist.yml``:
 
-.. code-block:: lua
+      .. code-block:: yaml
 
-  newServer({address="2001:db8::1", qps=1})
-  newServer({address="2001:db8::2", qps=1})
-  newServer({address="[2001:db8::3]:5300", qps=10})
-  newServer({address="2001:db8::4", name="dns1", qps=10})
-  newServer("192.0.2.1")
-  setServerPolicy(firstAvailable) -- first server within its QPS limit
+        backends:
+          - address: "2001:db8::1"
+            protocol: Do53
+            queries_per_second: 1
+          - address: "2001:db8::2"
+            protocol: Do53
+            queries_per_second: 1
+          - address: "[2001:db8::3]:5300"
+            protocol: Do53
+            queries_per_second: 10
+          - address: "[2001:db8::4]"
+            name: "dns1"
+            protocol: Do53
+            queries_per_second: 10
+          - address: "192.0.2.1"
+            protocol: Do53
+        load_balancing_policies:
+          default_policy: "firstAvailable"
 
-The :func:`newServer` function is used to add a backend server to the configuration.
+    .. md-tab-item:: Lua
+
+      The ``lua`` equivalent, which was the default before 2.1, uses the :func:`newServer`
+      function to add a backend server to the configuration:
+
+      .. code-block:: lua
+
+        newServer({address="2001:db8::1", qps=1})
+        newServer({address="2001:db8::2", qps=1})
+        newServer({address="[2001:db8::3]:5300", qps=10})
+        newServer({address="2001:db8::4", name="dns1", qps=10})
+        newServer("192.0.2.1")
+        setServerPolicy(firstAvailable) -- first server within its QPS limit
+
 
 Now run dnsdist again, reading this configuration::
 
@@ -115,9 +123,9 @@ To force a server down, try :attr:`Server:setDown()`::
 
 The ``DOWN`` in all caps means it was forced down.
 A lower case ``down`` would've meant that dnsdist itself had concluded the server was down.
-Similarly, :meth:`Server:setUp()` forces a server to be up, and :meth:`Server:setAuto` returns it to the default availability-probing.
+Similarly, :meth:`Server.setUp()` forces a server to be up, and :meth:`Server.setAuto` returns it to the default availability-probing.
 
-To change the QPS for a server, use :meth:`Server:setQPS`::
+To change the QPS for a server, use :meth:`Server.setQPS`::
 
   > getServer(0):setQPS(1000)
 
@@ -126,37 +134,43 @@ Restricting Access
 
 By default, dnsdist listens on ``127.0.0.1`` (not ``::1``!), port 53.
 
-To listen on a different address, use the ``-l`` command line option (useful for testing in the foreground), or use :func:`setLocal` and :func:`addLocal` in the configuration file:
+To listen on a different address, use the ``-l`` command line option (useful for testing in the foreground).
+Listen addresses can also be set in the configuration files:
 
-.. code-block:: lua
 
-  setLocal('192.0.2.53')      -- Listen on 192.0.2.53, port 53
-  addLocal('[::1]:5300') -- Also listen on ::1, port 5300
+.. md-tab-set::
+
+    .. md-tab-item:: YAML
+
+      In the YAML configuration, configure ``binds``.
+
+      .. code-block:: yaml
+
+        acl:
+          - "192.0.2.0/28"
+          - "2001:db8:1::/56"
+          - "2001:db8:2::/56"
+        binds:
+          - listen_address: "192.0.2.53"
+            protocol: Do53
+          - listen_address: "[::1]:5300"
+            protocol: Do53
+
+    .. md-tab-item:: Lua
+
+      :func:`setLocal` and :func:`addLocal` are use to create listen sockets.
+      Adding network ranges to the :term:`ACL` is done with the :func:`setACL` and :func:`addACL` functions:
+
+      .. code-block:: lua
+
+        setLocal('192.0.2.53')      -- Listen on 192.0.2.53, port 53
+        addLocal('[::1]:5300') -- Also listen on ::1, port 5300
+
+        setACL({'192.0.2.0/28', '2001:db8:1::/56'}) -- Set the ACL to only allow these subnets
+        addACL('2001:db8:2::/56')                   -- Add this subnet to the existing ACL
 
 Before packets are processed they have to pass the ACL, which helpfully defaults to :rfc:`1918` private IP space.
 This prevents us from easily becoming an open DNS resolver.
-
-Adding network ranges to the :term:`ACL` is done with the :func:`setACL` and :func:`addACL` functions:
-
-.. code-block:: lua
-
-  setACL({'192.0.2.0/28', '2001:db8:1::/56'}) -- Set the ACL to only allow these subnets
-  addACL('2001:db8:2::/56')                   -- Add this subnet to the existing ACL
-
-And in ``yaml`` format:
-
-.. code-block:: yaml
-
-acl:
-  - "192.0.2.0/28"
-  - "2001:db8:1::/56"
-  - "2001:db8:2::/56"
-binds:
-  - listen_address: "192.0.2.53"
-    protocol: Do53
-  - listen_address: "[::1]:5300"
-    protocol: Do53
-
 
 Securing the path to the backend
 --------------------------------

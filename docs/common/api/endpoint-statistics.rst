@@ -4,7 +4,7 @@ Statistics endpoint
 .. http:get:: /api/v1/servers/:server_id/statistics?statistic=:statistic
 
   Query PowerDNS internal statistics.
-  Returns a list of :json:object:`StatisticItem` elements.
+  Returns a list of :json:schema:`StatisticItem` elements.
 
   The :ref:`metricnames <metricnames>` page describes the names and meanings of these items.
  

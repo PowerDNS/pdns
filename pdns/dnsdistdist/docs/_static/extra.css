@@ -1,0 +1,20 @@
+[data-md-color-scheme="powerdns"] {
+    --pdns-orange: #e66e00;
+    --pdns-grey:   #666666;
+
+    --md-primary-fg-color:        var(--pdns-grey);
+
+    --md-accent-fg-color:         var(--pdns-orange);
+    --md-typeset-a-color:         var(--pdns-orange);
+}
+
+
+.md-tabs {
+  background-color: var(--pdns-orange);
+}
+
+/* Add a border around the tab boxes so a reader knows where they end */
+.md-typeset > .tabbed-set {
+  border: solid 1px var(--md-default-fg-color);
+  padding: 0 5px;
+}

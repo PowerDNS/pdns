@@ -250,6 +250,7 @@ CXXFLAGS
 cxxsettings
 cxxsupport
 Cybertinus
+cython
 daemonized
 daemonizing
 daemontools
@@ -603,6 +604,7 @@ initscript
 Inno
 innodb
 installable
+instrumenta
 internic
 interoperation
 ipcipher
@@ -1178,7 +1180,6 @@ respawned
 respawning
 respout
 respsizes
-reuseds
 reuseport
 RFCs
 rhel
@@ -1315,7 +1316,6 @@ sortlist
 sourcecode
 SOURCEDIR
 sourceforge
-sourcelink
 sourceware
 Spaans
 Spackages
@@ -1338,6 +1338,7 @@ srv
 sshfp
 SSQ
 stacksize
+stampfile
 starttransaction
 Stasic
 statbag

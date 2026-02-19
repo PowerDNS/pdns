@@ -2,26 +2,35 @@ DNSCrypt
 ========
 
 :program:`dnsdist`, when compiled with ``--enable-dnscrypt``, can be used as a DNSCrypt server, uncurving queries before forwarding them to downstream servers and curving responses back.
-To make :program:`dnsdist` listen to incoming DNSCrypt queries on 127.0.0.1 port 8443, with a provider name of "2.providername", using a resolver certificate and associated key stored respectively in the resolver.cert and resolver.key files, the :func:`addDNSCryptBind` directive can be used::
 
-  addDNSCryptBind("127.0.0.1:8443", "2.providername", "/path/to/resolver.cert", "/path/to/resolver.key")
+Here's a configuration example to make :program:`dnsdist` listen to incoming DNSCrypt queries on 127.0.0.1 port 8443, with a provider name of "2.providername", using a resolver certificate and associated key stored respectively in the resolver.cert and resolver.key files.
 
+.. md-tab-set::
 
-And in ``yaml``:
+   .. md-tab-item:: YAML
 
-.. code-block:: yaml
+      The :ref:`binds <yaml-settings-BindConfiguration>` key is used to create a DNSCrypt bind.
 
-  binds:
-    - listen_address: "127.0.0.1:8443"
-      protocol: "DNSCrypt"
-      dnscrypt:
-        provider_name: "2.providername"
-        certificates:
-          - certificate: "/path/to/resolver.cert"
-            key: "/path/to/resolver.key"
+      .. code-block:: yaml
 
+        binds:
+          - listen_address: "127.0.0.1:8443"
+            protocol: "DNSCrypt"
+            dnscrypt:
+              provider_name: "2.providername"
+              certificates:
+                - certificate: "/path/to/resolver.cert"
+                  key: "/path/to/resolver.key"
 
-To generate the provider and resolver certificates and keys, you can simply do::
+   .. md-tab-item:: Lua
+
+      The :func:`addDNSCryptBind` directive can be used:
+
+      .. code-block:: yaml
+
+         addDNSCryptBind("127.0.0.1:8443", "2.providername", "/path/to/resolver.cert", "/path/to/resolver.key")
+
+To generate the provider and resolver certificates and keys, you can simply do the following in the :doc:`console <console>`::
 
   > generateDNSCryptProviderKeys("/path/to/providerPublic.key", "/path/to/providerPrivate.key")
   Provider fingerprint is: E1D7:2108:9A59:BF8D:F101:16FA:ED5E:EA6A:9F6C:C78F:7F91:AF6B:027E:62F4:69C3:B1AA

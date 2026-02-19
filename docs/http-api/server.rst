@@ -10,11 +10,11 @@ Endpoints
 
 .. openapi:: swagger/authoritative-api-swagger.yaml
   :paths: /servers /servers/{server_id}
+  :examples:
 
 Objects
 -------
-.. openapi:: swagger/authoritative-api-swagger.yaml
-  :definitions: Server
+.. json:schema:: Server
 
 Examples
 --------

@@ -5,27 +5,13 @@ PowerDNS Authoritative Server
     :maxdepth: 3
     :glob:
 
-    index
-    installation
-    upgrading
-    modes-of-operation
-    migration
-    running
-    security
-    performance
-    dnssec/index
-    domainmetadata
-    dnsupdate
-    catalog
-    tsig
-    views
-    lua-records/index
+    Overview <index>
+    operating
+    features
     guides/index
-    backends/index
-    http-api/index
-    manpages/index
-    settings
-    security-advisories/index
-    changelog/index
-    appendices/*
-    common/license
+    Backends <backends/index>
+    HTTP API <http-api/index>
+    Configuration <settings>
+    security
+    Changelogs <changelog/index>
+    appendices/index

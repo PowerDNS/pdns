@@ -1,0 +1,21 @@
+:root {
+    --md-primary-fg-color:        #e66e00;
+    --md-primary-fg-color--light: #e66e00;
+    --md-primary-fg-color--dark:  #e66e00;
+}
+
+.md-header {
+    background-color: #666666;
+}
+
+.md-tabs {
+    background-color: #e66e00;
+}
+
+.md-nav .md-nav__item--section {
+    font-size: 125%;
+}
+
+td > code {
+    white-space: nowrap;
+}

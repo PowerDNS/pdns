@@ -43,7 +43,7 @@ jobs:
       tag: ${{ steps.get-runner-image.outputs.tag }}
     env:
       DEFAULT_IMAGE_TAG: master # update when backporting, e.g. auth-4.9.x
-      DOCKER_IMAGE: ${{ inputs.runner-docker-image-name || 'base-pdns-ci-image/debian-13-pdns-base' }}
+      DOCKER_IMAGE: ${{ inputs.runner-docker-image-name || 'base-pdns-ci-image/debian-13-pdns-base-py13' }}
     steps:
       - id: get-runner-image
         run: |

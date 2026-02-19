@@ -78,39 +78,39 @@ Certificates
 
   Represents a DNSCrypt certificate.
 
-  .. method:: DNSCryptCert:getClientMagic() -> string
+  .. method:: getClientMagic() -> string
 
     Return this certificate's client magic value.
 
-  .. method:: DNSCryptCert:getEsVersion() -> string
+  .. method:: getEsVersion() -> string
 
     Return the cryptographic construction to use with this certificate,.
 
-  .. method:: DNSCryptCert:getMagic() -> string
+  .. method:: getMagic() -> string
 
     Return the certificate magic number.
 
-  .. method:: DNSCryptCert:getProtocolMinorVersion() -> string
+  .. method:: getProtocolMinorVersion() -> string
 
     Return this certificate's minor version.
 
-  .. method:: DNSCryptCert:getResolverPublicKey() -> string
+  .. method:: getResolverPublicKey() -> string
 
     Return the public key corresponding to this certificate.
 
-  .. method:: DNSCryptCert:getSerial() -> int
+  .. method:: getSerial() -> int
 
     Return the certificate serial number.
 
-  .. method:: DNSCryptCert:getSignature() -> string
+  .. method:: getSignature() -> string
 
     Return this certificate's signature.
 
-  .. method:: DNSCryptCert:getTSEnd() -> int
+  .. method:: getTSEnd() -> int
 
     Return the date that the certificate is valid from, as a Unix timestamp.
 
-  .. method:: DNSCryptCert:getTSStart() -> int
+  .. method:: getTSStart() -> int
 
     Return the date that the certificate is valid until (inclusive), as a Unix timestamp
 
@@ -121,11 +121,11 @@ Certificate Pairs
 
   Represents a pair of DNSCrypt certificate and associated key
 
-  .. method:: DNSCryptCertificatePair:getCertificate() -> DNSCryptCert
+  .. method:: getCertificate() -> DNSCryptCert
 
     Return the certificate.
 
-  .. method:: DNSCryptCertificatePair:isActive() -> bool
+  .. method:: isActive() -> bool
 
     Return whether this pair is active and will be advertised to clients.
 
@@ -137,7 +137,7 @@ Context
 
   Represents a DNSCrypt content. Can be used to rotate certs.
 
-  .. method:: DNSCryptContext:addNewCertificate(cert, key[, active])
+  .. method:: addNewCertificate(cert, key[, active])
 
     Add a new certificate to the given context. Active certificates are advertised to
     clients, inactive ones are not.
@@ -146,7 +146,7 @@ Context
     :param DNSCryptPrivateKey key: The private key corresponding to the certificate
     :param bool active: Whether the certificate should be advertised to clients. Default is true
 
-  .. method:: DNSCryptContext:generateAndLoadInMemoryCertificate(keyfile, serial, begin, end [, version]) -> bool
+  .. method:: generateAndLoadInMemoryCertificate(keyfile, serial, begin, end [, version]) -> bool
 
   .. versionchanged:: 2.0.0
     A return value indicating whether the certificate was correctly loaded has been added. Before 2.0.0 the method did not return any value.
@@ -159,27 +159,27 @@ Context
     :param int end: Unix timestamp from until the certificate is valid
     :param DNSCryptExchangeVersion version: The exchange version to use. Possible values are ``DNSCryptExchangeVersion::VERSION1`` (default, X25519-XSalsa20Poly1305) and ``DNSCryptExchangeVersion::VERSION2`` (X25519-XChacha20Poly1305)
 
-  .. method:: DNSCryptContext:getCertificate(index) -> DNSCryptCert
+  .. method:: getCertificate(index) -> DNSCryptCert
 
     Return the certificate with index `index`.
 
     :param int index: The index of the certificate, starting at 0
 
-  .. method:: DNSCryptContext:getCertificatePair(index) -> DNSCryptCertificatePair
+  .. method:: getCertificatePair(index) -> DNSCryptCertificatePair
 
     Return the certificate pair with index `index`.
 
     :param int index: The index of the certificate, starting at 0
 
-  .. method:: DNSCryptContext:getCertificatePair(index) -> table of DNSCryptCertificatePair
+  .. method:: getCertificatePair(index) -> table of DNSCryptCertificatePair
 
     Return a table of certificate pairs.
 
-  .. method:: DNSCryptContext:getProviderName() -> string
+  .. method:: getProviderName() -> string
 
     Return the provider name
 
-  .. method:: DNSCryptContext:loadNewCertificate(certificate, keyfile[, active])
+  .. method:: loadNewCertificate(certificate, keyfile[, active])
 
     Load a new certificate and the corresponding private key. If `active` is false, the
     certificate will not be advertised to clients but can still be used to answer queries
@@ -189,30 +189,30 @@ Context
     :param string keyfile: Path to the corresponding key file
     :param bool active: Whether the certificate should be marked as active. Default is true
 
-  .. method:: DNSCryptContext:markActive(serial)
+  .. method:: markActive(serial)
 
     Mark the certificate with serial `serial` as active, meaning it will be advertised to clients.
 
     :param int serial: The serial of the number to mark as active
 
-  .. method:: DNSCryptContext:markInactive(serial)
+  .. method:: markInactive(serial)
 
     Mark the certificate with serial `serial` as inactive, meaning it will not be advertised
     to clients but can still be used to answer queries tied to this certificate.
 
     :param int serial: The serial of the number to mark as inactive
 
-  .. method:: DNSCryptContext:printCertificates()
+  .. method:: printCertificates()
 
     Print all the certificates.
 
-  .. method:: DNSCryptContext:reloadCertificates()
+  .. method:: reloadCertificates()
 
     .. versionadded:: 1.6.0
 
     Reload the current TLS certificate and key pairs.
 
-  .. method:: DNSCryptContext:removeInactiveCertificate(serial)
+  .. method:: removeInactiveCertificate(serial)
 
     Remove the certificate with serial `serial`. It will not be possible to answer queries tied
     to this certificate, so it should have been marked as inactive for a certain time before that.

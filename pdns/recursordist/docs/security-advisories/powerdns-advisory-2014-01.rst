@@ -14,11 +14,8 @@
 -  Risk of system compromise: No
 -  Solution: Upgrade to PowerDNS Recursor 3.6.1
 -  Workaround: Restrict service using
-   |allow-from|_, install
+   :ref:`setting-allow-from`, install
    script that restarts PowerDNS
-
-.. |allow-from| replace:: ``allow-from``
-.. _allow-from: :ref:`setting-allow-from`
 
 Recently, we've discovered that PowerDNS Recursor 3.6.0 (but NOT
 earlier) can crash when exposed to a specific sequence of malformed

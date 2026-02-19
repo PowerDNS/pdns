@@ -42,16 +42,16 @@ The BPF filter can be used to block incoming queries manually::
 .. note::
     Before 2.0.0 the value used to block queries for all types was 255. This was changed because it prevented blocking only queries for the ``ANY`` (255) qtype.
 
-The :meth:`BPFFilter:blockQName` method can be used to block queries based on the exact qname supplied, in a case-insensitive way, and an optional qtype.
+The :meth:`BPFFilter.blockQName` method can be used to block queries based on the exact qname supplied, in a case-insensitive way, and an optional qtype.
 Using the ``65535`` value for the qtype will block all queries for the qname, regardless of the qtype.
 
 Contrary to source address filtering, qname filtering only works over UDP. TCP qname filtering can be done the usual way::
 
   addAction(AndRule({TCPRule(true), QNameSuffixRule("evildomain.com")}), DropAction())
 
-The :meth:`BPFFilter:attachToAllBinds` method attaches the filter to every existing bind at runtime. It cannot use at configuration time. The :func:`setDefaultBPFFilter()` should be used at configuration time.
+The :meth:`BPFFilter.attachToAllBinds` method attaches the filter to every existing bind at runtime. It cannot use at configuration time. The :func:`setDefaultBPFFilter()` should be used at configuration time.
 
-The :meth:`BPFFilter:attachToAllBinds` automatically attached to every bind::
+The :meth:`BPFFilter.attachToAllBinds` automatically attached to every bind::
 
   bpf = newBPFFilter({ipv4MaxItems=1024, ipv6MaxItems=1024, qnamesMaxItems=1024})
   setDefaultBPFFilter(bpf)

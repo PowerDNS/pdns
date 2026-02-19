@@ -333,8 +333,7 @@ Response code ``4xx`` or ``5xx``, depending on the situation.
 
 Error responses have a JSON body of this format:
 
-.. openapi:: swagger/authoritative-api-swagger.yaml
-  :definitions: Error
+.. json:schema:: Error
 
 Data format
 ~~~~~~~~~~~

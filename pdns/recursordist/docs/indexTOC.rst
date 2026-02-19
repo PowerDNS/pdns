@@ -2,26 +2,16 @@ PowerDNS Recursor
 =================
 
 .. toctree::
-    :maxdepth: 3
+    :maxdepth: 1
     :glob:
 
-    index
-    getting-started
-    running
-    dnssec
-    settings
-    yamlsettings
-    lua-config/index
-    lua-scripting/index
-    dns64
-    metrics
-    performance
-    manpages/index
-    http-api/index
-    security
-    security-advisories/index
-    upgrade
+    Overview <index>
+    Installation <getting-started>
+    Operation <running>
+    Upgrade Guide <upgrade>
+    config
+    Scripting <lua-scripting/index>
+    HTTP API <http-api/index>
+    Security <security>
     changelog/index
-    nod_udr
-    appendices/*
-    common/license
+    Appendices <appendices/index>
