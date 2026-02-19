@@ -1180,7 +1180,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
                 cls._toResponderQueue.put(response, True, timeout)
 
         try:
-            (message, _) = doqclient.quic_query(query, cls._dnsDistListeningAddr, timeout, port, verify=caFile, server_hostname=serverName)
+            (message, _) = doqclient.quic_query(query, cls._dnsDistListeningAddr, timeout, port, verify=caFile, server_hostname=serverName, rawQuery=rawQuery)
         except doqclient.StreamResetError as e:
             if passExceptions:
                 raise
@@ -1207,11 +1207,14 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
             else:
                 cls._toResponderQueue.put(response, True, timeout)
 
+        if rawQuery:
+            rawResponse = True
+
         if rawResponse:
-          return doh3_query(query, cls._dnsDistListeningAddr, baseurl, timeout, port, verify=caFile, server_hostname=serverName, post=post, additional_headers=customHeaders, raw_response=rawResponse)
+            return doh3_query(query, cls._dnsDistListeningAddr, baseurl, timeout, port, verify=caFile, server_hostname=serverName, post=post, additional_headers=customHeaders, raw_response=rawResponse, raw_query=rawQuery)
 
         try:
-            message = doh3_query(query, cls._dnsDistListeningAddr, baseurl, timeout, port, verify=caFile, server_hostname=serverName, post=post, additional_headers=customHeaders, raw_response=rawResponse)
+            message = doh3_query(query, cls._dnsDistListeningAddr, baseurl, timeout, port, verify=caFile, server_hostname=serverName, post=post, additional_headers=customHeaders, raw_response=rawResponse, raw_query=rawQuery)
         except doqclient.StreamResetError as e:
           if passExceptions:
                 raise
