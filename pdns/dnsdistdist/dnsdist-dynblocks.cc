@@ -111,6 +111,16 @@ void DynBlockRulesGroup::apply(const timespec& now)
         }
       }
     }
+
+    if (d_allowedRCodesRatioRule.warningRatioExceeded(counters.responses, counters.notAllowedRCodes)) {
+      handleWarning(blocks, now, requestor, d_allowedRCodesRatioRule, updated);
+      continue;
+    }
+
+    if (d_allowedRCodesRatioRule.ratioExceeded(counters.responses, counters.notAllowedRCodes)) {
+      addBlock(blocks, now, requestor, d_allowedRCodesRatioRule, updated);
+      continue;
+    }
   }
 
   if (updated && blocks) {
@@ -423,7 +433,7 @@ void DynBlockRulesGroup::processResponseRules(counts_t& counts, StatNode& root, 
     return;
   }
 
-  struct timespec responseCutOff = now;
+  timespec responseCutOff{now};
 
   d_respRateRule.d_cutOff = d_respRateRule.d_minTime = now;
   d_respRateRule.d_cutOff.tv_sec -= d_respRateRule.d_seconds;
@@ -459,6 +469,12 @@ void DynBlockRulesGroup::processResponseRules(counts_t& counts, StatNode& root, 
     }
   }
 
+  d_allowedRCodesRatioRule.d_cutOff = d_allowedRCodesRatioRule.d_minTime = now;
+  d_allowedRCodesRatioRule.d_cutOff.tv_sec -= d_allowedRCodesRatioRule.d_seconds;
+  if (d_allowedRCodesRatioRule.d_cutOff < responseCutOff) {
+    responseCutOff = d_allowedRCodesRatioRule.d_cutOff;
+  }
+
   for (const auto& shard : g_rings.d_shards) {
     auto responseRing = shard->respRing.lock();
     for (const auto& ringEntry : *responseRing) {
@@ -486,6 +502,7 @@ void DynBlockRulesGroup::processResponseRules(counts_t& counts, StatNode& root, 
       bool respRateMatches = d_respRateRule.matches(ringEntry.when);
       bool rcodeRuleMatches = checkIfResponseCodeMatches(ringEntry);
       bool respCacheMissRatioRuleMatches = d_respCacheMissRatioRule.matches(ringEntry.when);
+      bool allowedRCodeRatioRuleMatches = d_allowedRCodesRatioRule.matches(ringEntry.when) && !d_allowedRCodesRatioRule.isRCodeAllowed(ringEntry.dh.rcode);
 
       if (respRateMatches) {
         entry.respBytes += ringEntry.size;
@@ -495,6 +512,9 @@ void DynBlockRulesGroup::processResponseRules(counts_t& counts, StatNode& root, 
       }
       if (respCacheMissRatioRuleMatches && !ringEntry.isACacheHit()) {
         ++entry.cacheMisses;
+      }
+      if (allowedRCodeRatioRuleMatches) {
+        ++entry.notAllowedRCodes;
       }
     }
   }
@@ -1008,6 +1028,37 @@ std::string DynBlockRulesGroup::DynBlockCacheMissRatioRule::toString() const
     result << "Apply the global DynBlock action ";
   }
   result << "for " << std::to_string(d_blockDuration) << " seconds when over " << std::to_string(d_ratio) << " ratio during the last " << d_seconds << " seconds, with a global cache-hit ratio of at least " << d_minimumGlobalCacheHitRatio << ", reason: '" << d_blockReason << "'";
+
+  return result.str();
+}
+
+bool DynBlockRulesGroup::DynBlockAllowedRCodesRatioRule::isRCodeAllowed(uint8_t rcode) const
+{
+  return d_allowedRCodes.count(rcode) != 0;
+}
+
+std::string DynBlockRulesGroup::DynBlockAllowedRCodesRatioRule::toString() const
+{
+  if (!isEnabled()) {
+    return "";
+  }
+
+  std::stringstream result;
+  if (d_action != DNSAction::Action::None) {
+    result << DNSAction::typeToString(d_action) << " ";
+  }
+  else {
+    result << "Apply the global DynBlock action ";
+  }
+  std::string allowed;
+  for (const auto rcode : d_allowedRCodes) {
+    if (!allowed.empty()) {
+      allowed += " ,";
+    }
+    allowed += RCode::to_s(rcode);
+  }
+
+  result << "for " << std::to_string(d_blockDuration) << " seconds when over rcodes not in [" << allowed << "] are over a " << std::to_string(d_ratio) << " ratio during the last " << d_seconds << " seconds, reason: '" << d_blockReason << "'";
 
   return result.str();
 }
