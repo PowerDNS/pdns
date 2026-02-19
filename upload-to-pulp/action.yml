@@ -1,0 +1,134 @@
+name: 'Upload artifacts to pulp'
+description: 'Upload artifacts to pulp'
+
+inputs:
+  pulp-api-url:
+    description: URL of the Pulp API endpoint
+    required: true # required input attributes on actions are not actually enforced
+  pulp-ci-username:
+    description: Username for authentication
+    required: true
+  pulp-ci-password:
+    description: Password for authentication
+    required: true
+  repository-name:
+    description: Name of the repository in Pulp where to upload the packages
+    required: true
+  repository-type:
+    description: Valid options are rpm, deb and file
+    required: true
+  distribution-name:
+    description: Name of the distribution in Pulp. Only for DEB
+    required: true
+  packages-dir:
+    description: Folder where the packages to be uploaded are located
+    required: true
+  destination-path:
+    description: (File repositories) Path inside the distribution where the file will be located
+    required: true
+  upload:
+    description: Upload packages to a repository
+    required: true
+    default: 'false'
+  publish:
+    description: Publish the latest version of a repository
+    required: true
+    default: 'false'
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-python@v6
+      with:
+        python-version: '3.13'
+    - name: Install Pulp CLI
+      shell: bash
+      run: |
+        python3 -m venv ${GITHUB_ACTION_PATH}/.venv
+        . ${GITHUB_ACTION_PATH}/.venv/bin/activate && pip install -r requirements.txt
+      working-directory: ${{ github.action_path }}
+    - name: Upload DEB packages to a repository
+      if: ${{ inputs.repository-type == 'deb' && inputs.upload == 'true' }}
+      shell: bash
+      env:
+        PULP_CMD_VENV: ". ${{ github.action_path }}/.venv/bin/activate && pulp"
+        PULP_API_URL: ${{ inputs.pulp-api-url }}
+        PULP_CI_USERNAME: ${{ inputs.pulp-ci-username }}
+        PULP_CI_PASSWORD: ${{ inputs.pulp-ci-password }}
+        REPOSITORY_NAME: ${{ inputs.repository-name }}
+        DISTRIBUTION_NAME: ${{ inputs.distribution-name }}
+        PACKAGES_DIR: ${{ inputs.packages-dir }}
+      run: |
+        . .venv/bin/activate && python3 upload-packages-to-pulp.py \
+          --command upload-packages \
+          --repo_type deb \
+          --repo_name ${REPOSITORY_NAME} \
+          --distribution_name ${DISTRIBUTION_NAME} \
+          --source ${PACKAGES_DIR}
+      working-directory: ${{ github.action_path }}
+    - name: Publish latest DEB repository version
+      if: ${{ inputs.repository-type == 'deb' && inputs.publish == 'true' }}
+      shell: bash
+      env:
+        PULP_CMD_VENV: ". ${{ github.action_path }}/.venv/bin/activate && pulp"
+        PULP_API_URL: ${{ inputs.pulp-api-url }}
+        PULP_CI_USERNAME: ${{ inputs.pulp-ci-username }}
+        PULP_CI_PASSWORD: ${{ inputs.pulp-ci-password }}
+        REPOSITORY_NAME: ${{ inputs.repository-name }}
+      run: |
+        . .venv/bin/activate && python3 upload-packages-to-pulp.py \
+          --command create-publication \
+          --repo_type deb \
+          --repo_name ${REPOSITORY_NAME}
+      working-directory: ${{ github.action_path }}
+    - name: Upload RPM packages to a repository
+      if: ${{ inputs.repository-type == 'rpm' && inputs.upload == 'true' }}
+      shell: bash
+      env:
+        PULP_CMD_VENV: ". ${{ github.action_path }}/.venv/bin/activate && pulp"
+        PULP_API_URL: ${{ inputs.pulp-api-url }}
+        PULP_CI_USERNAME: ${{ inputs.pulp-ci-username }}
+        PULP_CI_PASSWORD: ${{ inputs.pulp-ci-password }}
+        REPOSITORY_NAME: ${{ inputs.repository-name }}
+        PACKAGES_DIR: ${{ inputs.packages-dir }}
+      run: |
+        . .venv/bin/activate && python3 upload-packages-to-pulp.py \
+          --command upload-packages \
+          --repo_type rpm \
+          --repo_name ${REPOSITORY_NAME} \
+          --source ${PACKAGES_DIR}
+      working-directory: ${{ github.action_path }}
+    - name: Publish latest RPM repository version
+      if: ${{ inputs.repository-type == 'rpm' && inputs.publish == 'true' }}
+      shell: bash
+      env:
+        PULP_CMD_VENV: ". ${{ github.action_path }}/.venv/bin/activate && pulp"
+        PULP_API_URL: ${{ inputs.pulp-api-url }}
+        PULP_CI_USERNAME: ${{ inputs.pulp-ci-username }}
+        PULP_CI_PASSWORD: ${{ inputs.pulp-ci-password }}
+        REPOSITORY_NAME: ${{ inputs.repository-name }}
+      run: |
+        . .venv/bin/activate && python3 upload-packages-to-pulp.py \
+          --command create-publication \
+          --repo_type rpm \
+          --repo_name ${REPOSITORY_NAME}
+      working-directory: ${{ github.action_path }}
+    - name: Upload File artifacs to a repository
+      if: ${{ inputs.repository-type == 'file' }}
+      shell: bash
+      env:
+        PULP_CMD_VENV: ". ${{ github.action_path }}/.venv/bin/activate && pulp"
+        PULP_API_URL: ${{ inputs.pulp-api-url }}
+        PULP_CI_USERNAME: ${{ inputs.pulp-ci-username }}
+        PULP_CI_PASSWORD: ${{ inputs.pulp-ci-password }}
+        REPOSITORY_NAME: ${{ inputs.repository-name }}
+        DESTINATION_PATH: ${{ inputs.destination-path }}
+        PACKAGES_DIR: ${{ inputs.packages-dir }}
+      run: |
+        . .venv/bin/activate && python3 upload-packages-to-pulp.py \
+          --command upload-packages \
+          --repo_type file \
+          --repo_name ${REPOSITORY_NAME} \
+          --destination_path ${DESTINATION_PATH} \
+          --source ${PACKAGES_DIR}
+      working-directory: ${{ github.action_path }}
