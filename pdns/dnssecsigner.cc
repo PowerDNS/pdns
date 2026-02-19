@@ -195,7 +195,7 @@ static bool rrsigncomp(const DNSZoneRecord& a, const DNSZoneRecord& b)
 
 static bool getBestAuthFromSet(const set<ZoneName>& authSet, const DNSName& name, ZoneName& signer)
 {
-  signer.trimToLabels(0);
+  signer.clear();
   ZoneName sname(name);
   do {
     for (const auto& auth : authSet) {

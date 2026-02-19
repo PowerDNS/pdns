@@ -683,7 +683,7 @@ bool DNSSECKeeper::getTSIGForAccess(const ZoneName& zone, const ComboAddress& /*
 {
   vector<string> keynames;
   d_keymetadb->getDomainMetadata(zone, "AXFR-MASTER-TSIG", keynames);
-  keyname->trimToLabels(0);
+  keyname->clear();
 
   // XXX FIXME this should check for a specific primary!
   for(const string& dbkey :  keynames) {
