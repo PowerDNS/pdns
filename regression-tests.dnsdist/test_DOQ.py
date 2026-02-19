@@ -4,7 +4,7 @@ import dns
 
 from dnsdisttests import DNSDistTest
 from dnsdisttests import pickAvailablePort
-from quictests import QUICTests, QUICWithCacheTests, QUICACLTests, QUICGetLocalAddressOnAnyBindTests, QUICXFRTests
+from quictests import QUICTests, QUICWithCacheTests, QUICACLTests, QUICGetLocalAddressOnAnyBindTests, QUICXFRTests, QUICTooLargeTests
 import doqclient
 
 
@@ -44,7 +44,7 @@ class DOQCommon(object):
     def getQUICConnection(self):
         return self.getDOQConnection(self._doqServerPort, self._caCert)
 
-    def sendQUICQuery(self, query, response=None, useQueue=True, connection=None, passExceptions=False):
+    def sendQUICQuery(self, query, response=None, useQueue=True, connection=None, passExceptions=False, rawQuery=False):
         return self.sendDOQQuery(
             self._doqServerPort,
             query,
@@ -54,6 +54,7 @@ class DOQCommon(object):
             serverName=self._serverName,
             connection=connection,
             passExceptions=passExceptions,
+            rawQuery=rawQuery,
         )
 
 
@@ -275,3 +276,18 @@ class TestDOQGetLocalAddressOnAnyBind(DOQCommon, QUICGetLocalAddressOnAnyBindTes
     ]
     _acl = ["127.0.0.1/32", "::1/128"]
     _skipListeningOnCL = True
+
+class TestDOQTooLarge(DOQCommon, QUICTooLargeTests, DNSDistTest):
+    _serverKey = 'server.key'
+    _serverCert = 'server.chain'
+    _serverName = 'tls.tests.dnsdist.org'
+    _caCert = 'ca.pem'
+    _doqServerPort = pickAvailablePort()
+    _dohBaseURL = ("https://%s:%d/" % (_serverName, _doqServerPort))
+    _config_template = """
+    newServer{address="127.0.0.1:%d", tcpOnly=true}
+
+    addDOQLocal("127.0.0.1:%d", "%s", "%s")
+    """
+    _config_params = ['_testServerPort', '_doqServerPort','_serverCert', '_serverKey']
+    _verboseMode = True

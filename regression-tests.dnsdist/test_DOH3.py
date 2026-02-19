@@ -3,14 +3,14 @@ import dns
 
 from dnsdisttests import DNSDistTest
 from dnsdisttests import pickAvailablePort
-from quictests import QUICTests, QUICACLTests, QUICGetLocalAddressOnAnyBindTests, QUICXFRTests
+from quictests import QUICTests, QUICACLTests, QUICGetLocalAddressOnAnyBindTests, QUICXFRTests, QUICTooLargeTests
 
 
 class DOH3Common(object):
     def getQUICConnection(self):
         return self.getDOQConnection(self._doqServerPort, self._caCert)
 
-    def sendQUICQuery(self, query, response=None, useQueue=True, connection=None, passExceptions=False):
+    def sendQUICQuery(self, query, response=None, useQueue=True, connection=None, passExceptions=False, rawQuery=False):
         return self.sendDOH3Query(
             self._doqServerPort,
             self._dohBaseURL,
@@ -21,6 +21,7 @@ class DOH3Common(object):
             serverName=self._serverName,
             connection=connection,
             passExceptions=passExceptions,
+            rawQuery=rawQuery,
         )
 
 
@@ -498,3 +499,47 @@ class TestDOH3CustomResponse(DOH3Common, DNSDistTest):
         receivedQuery.id = expectedQuery.id
         self.assertEqual(expectedQuery, receivedQuery)
         self.assertEqual(receivedResponse, response)
+
+class TestDOH3TooLarge(DOH3Common, QUICTooLargeTests, DNSDistTest):
+    _serverKey = 'server.key'
+    _serverCert = 'server.chain'
+    _serverName = 'tls.tests.dnsdist.org'
+    _caCert = 'ca.pem'
+    _doqServerPort = pickAvailablePort()
+    _dohBaseURL = ("https://%s:%d/" % (_serverName, _doqServerPort))
+    _config_template = """
+    newServer{address="127.0.0.1:%d", tcpOnly=true}
+
+    addDOH3Local("127.0.0.1:%d", "%s", "%s")
+    """
+    _config_params = ['_testServerPort', '_doqServerPort','_serverCert', '_serverKey']
+    _verboseMode = True
+
+class TestDOH3TooManyHeadersLarge(DOH3Common, DNSDistTest):
+    _serverKey = 'server.key'
+    _serverCert = 'server.chain'
+    _serverName = 'tls.tests.dnsdist.org'
+    _caCert = 'ca.pem'
+    _doqServerPort = pickAvailablePort()
+    _dohBaseURL = ("https://%s:%d/" % (_serverName, _doqServerPort))
+    _config_template = """
+    newServer{address="127.0.0.1:%d", tcpOnly=true}
+
+    addDOH3Local("127.0.0.1:%d", "%s", "%s")
+    """
+    _config_params = ['_testServerPort', '_doqServerPort','_serverCert', '_serverKey']
+    _verboseMode = True
+
+    def testTooManyHeaders(self):
+        """
+        QUIC: Too many headers
+        """
+        name = 'too-many-headers.doq.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+
+        customHeaders = {}
+        for idx in range(257):
+            customHeaders[str(idx)] = str(idx)
+
+        (_, receivedResponse) = self.sendDOH3Query(self._doqServerPort, self._dohBaseURL, query, response=None, caFile=self._caCert, useQueue=False, timeout=1.0, customHeaders=customHeaders, rawResponse=True)
+        self.assertEqual(receivedResponse, {b':status': b'400', b'content-length': b'31'})
