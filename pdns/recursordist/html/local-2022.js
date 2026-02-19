@@ -68,7 +68,7 @@ function startup() {
             timeBase: new Date().getTime() / 1000
         })
     });
-    var y_ticks = new Rickshaw.Graph.Axis.Y({
+    new Rickshaw.Graph.Axis.Y({
         graph: qpsgraph,
         orientation: 'left',
         tickFormat: Rickshaw.Fixtures.Number.formatKMBT,
@@ -88,7 +88,7 @@ function startup() {
             timeBase: new Date().getTime() / 1000
         })
     });
-    var cpu_y_ticks = new Rickshaw.Graph.Axis.Y({
+    new Rickshaw.Graph.Axis.Y({
         graph: cpugraph,
         orientation: 'left',
         tickFormat: Rickshaw.Fixtures.Number.formatKMBT,
