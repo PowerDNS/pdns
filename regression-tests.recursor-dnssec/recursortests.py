@@ -490,7 +490,6 @@ options {
     @classmethod
     def generateAuthConfig(cls, confdir, threads, extra=''):
         bind_dnssec_db = os.path.join(confdir, 'bind-dnssec.sqlite3')
-        print('writing to ' + os.path.join(confdir, 'pdns.conf'))
         with open(os.path.join(confdir, 'pdns.conf'), 'w') as pdnsconf:
             pdnsconf.write("""
 module-dir={moduledir}
@@ -519,7 +518,6 @@ distributor-threads={threads}
                        'create-bind-db',
                        bind_dnssec_db]
 
-        print(' '.join(pdnsutilCmd))
         try:
             subprocess.check_output(pdnsutilCmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
@@ -554,16 +552,13 @@ distributor-threads={threads}
 
     @classmethod
     def generateAllAuthConfig(cls, confdir):
-        print("generateAllAuthConfig")
         if cls._auth_zones:
             for auth_suffix, zoneinfo in cls._auth_zones.items():
-                print(auth_suffix)
                 threads = zoneinfo['threads']
                 zones = zoneinfo['zones']
                 authconfdir = os.path.join(confdir, 'auth-%s' % auth_suffix)
 
                 os.mkdir(authconfdir)
-                print(authconfdir)
                 cls.generateAuthConfig(authconfdir, threads)
                 cls.generateAuthNamedConf(authconfdir, zones)
 
