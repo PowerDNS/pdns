@@ -601,6 +601,57 @@ components:
       in: header
       name: X-API-Key
 
+  parameters:
+    server_id:
+      name: server_id
+      in: path
+      required: true
+      description: The id of the server to retrieve
+      schema:
+        type: string
+    zone_id:
+      name: zone_id
+      schema:
+        type: string
+      in: path
+      required: true
+      description: The id of the zone to retrieve
+    config_setting_name:
+      name: config_setting_name
+      schema:
+        type: string
+        in: path
+        required: true
+        description: The name of the config setting
+    view:
+      name: view
+      schema:
+        type: string
+      in: path
+      required: true
+      description: The name of the view to update
+    metadata_kind:
+      name: metadata_kind
+      schema:
+        type: string
+      in: path
+      required: true
+      description: The kind of metadata
+    cryptokey_id:
+      name: cryptokey_id
+      in: path
+      required: true
+      description: "The id value of the CryptoKey"
+      schema:
+        type: string
+    tsigkey_id:
+      name: tsigkey_id
+      in: path
+      required: true
+      description: 'The id of the TSIGkey. Should match the "id" field in the TSIGKey object'
+      schema:
+        type: string
+
   responses: &commonErrors
     "400":
       description: The supplied request was not valid
@@ -657,13 +708,7 @@ paths:
       tags:
         - servers
       parameters:
-        - &server_id
-          name: server_id
-          in: path
-          required: true
-          description: The id of the server to retrieve
-          schema:
-            type: string
+        - $ref: "#/components/parameters/server_id"
       responses:
         "200":
           description: An server
@@ -680,7 +725,7 @@ paths:
       tags:
         - servers
       parameters:
-        - <<: *server_id
+        - $ref: "#/components/parameters/server_id"
         - name: domain
           in: query
           required: true
@@ -703,7 +748,7 @@ paths:
       tags:
         - zones
       parameters:
-        - <<: *server_id
+        - $ref: "#/components/parameters/server_id"
         - name: zone
           in: query
           required: false
@@ -734,7 +779,7 @@ paths:
       tags:
         - zones
       parameters:
-        - <<: *server_id
+        - $ref: "#/components/parameters/server_id"
         - name: rrsets
           in: query
           description: "“true” (default) or “false”, whether to include the “rrsets” in the response Zone object."
@@ -765,14 +810,8 @@ paths:
       tags:
         - zones
       parameters:
-        - <<: *server_id
-        - &zone_id
-          name: zone_id
-          in: path
-          required: true
-          description: The id of the zone to retrieve
-          schema:
-            type: string
+        - $ref: "#/components/parameters/server_id"
+        - $ref: "#/components/parameters/zone_id"
         - name: rrsets
           in: query
           description: "“true” (default) or “false”, whether to include the “rrsets” in the response Zone object."
@@ -809,8 +848,8 @@ paths:
       tags:
         - zones
       parameters:
-        - <<: *server_id
-        - <<: *zone_id
+        - $ref: "#/components/parameters/server_id"
+        - $ref: "#/components/parameters/zone_id"
       responses:
         "204":
           description: "Returns 204 No Content on success."
@@ -821,8 +860,8 @@ paths:
       tags:
         - zones
       parameters:
-        - <<: *server_id
-        - <<: *zone_id
+        - $ref: "#/components/parameters/server_id"
+        - $ref: "#/components/parameters/zone_id"
       requestBody:
         required: true
         content:
@@ -843,8 +882,8 @@ paths:
       tags:
         - zones
       parameters:
-        - <<: *server_id
-        - <<: *zone_id
+        - $ref: "#/components/parameters/server_id"
+        - $ref: "#/components/parameters/zone_id"
       requestBody:
         required: true
         content:
@@ -866,8 +905,8 @@ paths:
       tags:
         - zones
       parameters:
-        - <<: *server_id
-        - <<: *zone_id
+        - $ref: "#/components/parameters/server_id"
+        - $ref: "#/components/parameters/zone_id"
       responses:
         "200":
           description: OK
@@ -881,8 +920,8 @@ paths:
       tags:
         - zones
       parameters:
-        - <<: *server_id
-        - <<: *zone_id
+        - $ref: "#/components/parameters/server_id"
+        - $ref: "#/components/parameters/zone_id"
       responses:
         "200":
           description: OK
@@ -895,8 +934,8 @@ paths:
       tags:
         - zones
       parameters:
-        - <<: *server_id
-        - <<: *zone_id
+        - $ref: "#/components/parameters/server_id"
+        - $ref: "#/components/parameters/zone_id"
       responses:
         "200":
           description: OK
@@ -917,8 +956,8 @@ paths:
       tags:
         - zones
       parameters:
-        - <<: *server_id
-        - <<: *zone_id
+        - $ref: "#/components/parameters/server_id"
+        - $ref: "#/components/parameters/zone_id"
       responses:
         "200":
           description: OK
@@ -935,7 +974,7 @@ paths:
       tags:
         - config
       parameters:
-        - <<: *server_id
+        - $ref: "#/components/parameters/server_id"
       responses:
         "200":
           description: List of config values
@@ -955,7 +994,7 @@ paths:
       tags:
         - config
       parameters:
-        - <<: *server_id
+        - $ref: "#/components/parameters/server_id"
         - name: config_setting_name
           in: path
           required: true
@@ -979,7 +1018,7 @@ paths:
       tags:
         - stats
       parameters:
-        - <<: *server_id
+        - $ref: "#/components/parameters/server_id"
         - name: statistic
           in: query
           required: false
@@ -1026,7 +1065,7 @@ paths:
       tags:
         - search
       parameters:
-        - <<: *server_id
+        - $ref: "#/components/parameters/server_id"
         - name: q
           in: query
           required: true
@@ -1061,8 +1100,8 @@ paths:
       tags:
         - zonemetadata
       parameters:
-        - <<: *server_id
-        - <<: *zone_id
+        - $ref: "#/components/parameters/server_id"
+        - $ref: "#/components/parameters/zone_id"
       responses:
         "200":
           description: List of Metadata objects
@@ -1080,8 +1119,8 @@ paths:
       tags:
         - zonemetadata
       parameters:
-        - <<: *server_id
-        - <<: *zone_id
+        - $ref: "#/components/parameters/server_id"
+        - $ref: "#/components/parameters/zone_id"
       requestBody:
         required: true
         content:
@@ -1102,15 +1141,9 @@ paths:
       tags:
         - zonemetadata
       parameters:
-        - <<: *server_id
-        - <<: *zone_id
-        - &metadata_kind
-          name: metadata_kind
-          schema:
-            type: string
-          in: path
-          required: true
-          description: The kind of metadata
+        - $ref: "#/components/parameters/server_id"
+        - $ref: "#/components/parameters/zone_id"
+        - $ref: "#/components/parameters/metadata_kind"
       responses:
         "200":
           description: Metadata object with list of values
@@ -1126,9 +1159,9 @@ paths:
       tags:
         - zonemetadata
       parameters:
-        - <<: *server_id
-        - <<: *zone_id
-        - <<: *metadata_kind
+        - $ref: "#/components/parameters/server_id"
+        - $ref: "#/components/parameters/zone_id"
+        - $ref: "#/components/parameters/metadata_kind"
       requestBody:
         required: true
         content:
@@ -1151,9 +1184,9 @@ paths:
       tags:
         - zonemetadata
       parameters:
-        - <<: *server_id
-        - <<: *zone_id
-        - <<: *metadata_kind
+        - $ref: "#/components/parameters/server_id"
+        - $ref: "#/components/parameters/zone_id"
+        - $ref: "#/components/parameters/metadata_kind"
       responses:
         "204":
           description: OK
@@ -1166,8 +1199,8 @@ paths:
       tags:
         - zonecryptokey
       parameters:
-        - <<: *server_id
-        - <<: *zone_id
+        - $ref: "#/components/parameters/server_id"
+        - $ref: "#/components/parameters/zone_id"
       responses:
         "200":
           description: List of Cryptokey objects
@@ -1185,8 +1218,8 @@ paths:
       tags:
         - zonecryptokey
       parameters:
-        - <<: *server_id
-        - <<: *zone_id
+        - $ref: "#/components/parameters/server_id"
+        - $ref: "#/components/parameters/zone_id"
       requestBody:
         required: true
         content:
@@ -1208,18 +1241,12 @@ paths:
     get:
       description: "Returns all data about the CryptoKey, including the privatekey."
       operationId: getCryptokey
+      parameters:
+        - $ref: "#/components/parameters/server_id"
+        - $ref: "#/components/parameters/zone_id"
+        - $ref: "#/components/parameters/cryptokey_id"
       tags:
         - zonecryptokey
-      parameters:
-        - <<: *server_id
-        - <<: *zone_id
-        - &cryptokey_id
-          name: cryptokey_id
-          in: path
-          required: true
-          description: "The id value of the CryptoKey"
-          schema:
-            type: string
       responses:
         "200":
           description: Cryptokey
@@ -1234,9 +1261,9 @@ paths:
       tags:
         - zonecryptokey
       parameters:
-        - <<: *server_id
-        - <<: *zone_id
-        - <<: *cryptokey_id
+        - $ref: "#/components/parameters/server_id"
+        - $ref: "#/components/parameters/zone_id"
+        - $ref: "#/components/parameters/cryptokey_id"
       requestBody:
         required: true
         content:
@@ -1255,9 +1282,9 @@ paths:
       tags:
         - zonecryptokey
       parameters:
-        - <<: *server_id
-        - <<: *zone_id
-        - <<: *cryptokey_id
+        - $ref: "#/components/parameters/server_id"
+        - $ref: "#/components/parameters/zone_id"
+        - $ref: "#/components/parameters/cryptokey_id"
       responses:
         "204":
           description: OK
@@ -1265,7 +1292,7 @@ paths:
 
   "/servers/{server_id}/tsigkeys":
     parameters:
-      - <<: *server_id
+      - $ref: "#/components/parameters/server_id"
     get:
       description: "Get all TSIGKeys on the server, except the actual key"
       operationId: listTSIGKeys
@@ -1312,7 +1339,7 @@ paths:
 
   "/servers/{server_id}/tsigkeys/{tsigkey_id}":
     parameters:
-      - <<: *server_id
+      - $ref: "#/components/parameters/server_id"
       - name: tsigkey_id
         in: path
         required: true
@@ -1377,7 +1404,7 @@ paths:
 
   "/servers/{server_id}/autoprimaries":
     parameters:
-      - <<: *server_id
+      - $ref: "#/components/parameters/server_id"
     get:
       description: "Get a list of autoprimaries"
       operationId: getAutoprimaries
@@ -1411,7 +1438,7 @@ paths:
 
   "/servers/{server_id}/autoprimaries/{ip}/{nameserver}":
     parameters:
-      - <<: *server_id
+      - $ref: "#/components/parameters/server_id"
       - name: ip
         in: path
         required: true
@@ -1436,7 +1463,7 @@ paths:
 
   "/servers/{server_id}/views":
     parameters:
-      - <<: *server_id
+      - $ref: "#/components/parameters/server_id"
     get:
       description: List all views in a server
       operationId: listViews
@@ -1453,7 +1480,7 @@ paths:
 
   "/servers/{server_id}/views/{view}":
     parameters:
-      - <<: *server_id
+      - $ref: "#/components/parameters/server_id"
       - name: view
         schema:
           type: string
@@ -1479,7 +1506,7 @@ paths:
       tags:
         - views
       parameters:
-        - <<: *server_id
+        - $ref: "#/components/parameters/server_id"
         - name: view
           schema:
             type: string
@@ -1510,7 +1537,7 @@ paths:
       tags:
         - views
       parameters:
-        - <<: *server_id
+        - $ref: "#/components/parameters/server_id"
         - name: view
           schema:
             type: string
@@ -1535,7 +1562,7 @@ paths:
       tags:
         - networks
       parameters:
-        - <<: *server_id
+        - $ref: "#/components/parameters/server_id"
       responses:
         "200":
           description: An array of networks
@@ -1552,7 +1579,7 @@ paths:
       tags:
         - networks
       parameters:
-        - <<: *server_id
+        - $ref: "#/components/parameters/server_id"
         - name: ip
           schema:
             type: string
@@ -1580,7 +1607,7 @@ paths:
       tags:
         - networks
       parameters:
-        - <<: *server_id
+        - $ref: "#/components/parameters/server_id"
         - name: ip
           schema:
             type: string
