@@ -146,6 +146,9 @@ private:
   [[nodiscard]] uint32_t getShardIndex(uint32_t key) const;
   bool insertLocked(std::unordered_map<uint32_t, CacheValue>& map, uint32_t key, CacheValue& newValue);
 
+  [[nodiscard]] std::pair<bool, bool> getReadLocked(const std::unordered_map<uint32_t, CacheValue>& map, DNSQuestion& dnsQuestion, bool& stale, PacketBuffer& response, time_t& age, uint32_t key, bool recordMiss, time_t now, uint32_t allowExpired, bool receivedOverUDP, bool dnssecOK, const std::optional<Netmask>& subnet, bool truncatedOK, uint16_t queryId, const DNSName::string_t& dnsQName);
+  [[nodiscard]] std::pair<bool, bool> getLocked(const CacheValue& value, DNSQuestion& dnsQuestion, bool& stale, PacketBuffer& response, time_t& age, bool recordMiss, time_t now, uint32_t allowExpired, bool receivedOverUDP, bool dnssecOK, const std::optional<Netmask>& subnet, bool truncatedOK, uint16_t queryId, const DNSName::string_t& dnsQName);
+
   std::vector<CacheShard> d_shards{};
 
   pdns::stat_t d_deferredLookups{0};

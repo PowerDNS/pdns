@@ -243,74 +243,22 @@ bool DNSDistPacketCache::get(DNSQuestion& dnsQuestion, uint16_t queryId, uint32_
   auto& response = dnsQuestion.getMutableData();
   auto& shard = d_shards.at(shardIndex);
   {
+    bool hit{false};
+    bool hitHeader{false};
+
     auto map = shard.d_map.try_read_lock();
     if (!map.owns_lock()) {
       ++d_deferredLookups;
       return false;
     }
+    std::tie(hit, hitHeader) = getReadLocked(*map, dnsQuestion, stale, response, age, key, recordMiss, now, allowExpired, receivedOverUDP, dnssecOK, subnet, truncatedOK, queryId, dnsQName);
 
-    auto mapIt = map->find(key);
-    if (mapIt == map->end()) {
-      if (recordMiss) {
-        ++d_misses;
-      }
+    if (!hit) {
       return false;
     }
-
-    const CacheValue& value = mapIt->second;
-    if (value.validity <= now) {
-      if ((now - value.validity) >= static_cast<time_t>(allowExpired)) {
-        if (recordMiss) {
-          ++d_misses;
-        }
-        return false;
-      }
-      stale = true;
-    }
-
-    if (value.len < sizeof(dnsheader)) {
-      return false;
-    }
-
-    /* check for collision */
-    if (!cachedValueMatches(value, *(getFlagsFromDNSHeader(dnsQuestion.getHeader().get())), dnsQuestion.ids.qname, dnsQuestion.ids.qtype, dnsQuestion.ids.qclass, receivedOverUDP, dnssecOK, subnet)) {
-      ++d_lookupCollisions;
-      return false;
-    }
-
-    if (!truncatedOK) {
-      dnsheader_aligned dh_aligned(value.value.data());
-      if (dh_aligned->tc != 0) {
-        return false;
-      }
-    }
-
-    response.resize(value.len);
-    memcpy(&response.at(0), &queryId, sizeof(queryId));
-    memcpy(&response.at(sizeof(queryId)), &value.value.at(sizeof(queryId)), sizeof(dnsheader) - sizeof(queryId));
-
-    if (value.len == sizeof(dnsheader)) {
-      /* DNS header only, our work here is done */
+    if (hitHeader) {
       ++d_hits;
       return true;
-    }
-
-    const size_t dnsQNameLen = dnsQName.length();
-    if (value.len < (sizeof(dnsheader) + dnsQNameLen)) {
-      return false;
-    }
-
-    memcpy(&response.at(sizeof(dnsheader)), dnsQName.c_str(), dnsQNameLen);
-    if (value.len > (sizeof(dnsheader) + dnsQNameLen)) {
-      memcpy(&response.at(sizeof(dnsheader) + dnsQNameLen), &value.value.at(sizeof(dnsheader) + dnsQNameLen), value.len - (sizeof(dnsheader) + dnsQNameLen));
-    }
-
-    if (!stale) {
-      age = now - value.added;
-    }
-    else {
-      age = (value.validity - value.added) - d_settings.d_staleTTL;
-      dnsQuestion.ids.staleCacheHit = true;
     }
   }
 
@@ -336,6 +284,76 @@ bool DNSDistPacketCache::get(DNSQuestion& dnsQuestion, uint16_t queryId, uint32_
 
   ++d_hits;
   return true;
+}
+
+std::pair<bool, bool> DNSDistPacketCache::getReadLocked(const std::unordered_map<uint32_t, CacheValue>& map, DNSQuestion& dnsQuestion, bool& stale, PacketBuffer& response, time_t& age, uint32_t key, bool recordMiss, time_t now, uint32_t allowExpired, bool receivedOverUDP, bool dnssecOK, const std::optional<Netmask>& subnet, bool truncatedOK, uint16_t queryId, const DNSName::string_t& dnsQName)
+{
+  auto mapIt = map.find(key);
+  if (mapIt == map.end()) {
+    if (recordMiss) {
+      ++d_misses;
+    }
+    return {false, false};
+  }
+  return getLocked(mapIt->second, dnsQuestion, stale, response, age, recordMiss, now, allowExpired, receivedOverUDP, dnssecOK, subnet, truncatedOK, queryId, dnsQName);
+}
+
+std::pair<bool, bool> DNSDistPacketCache::getLocked(const CacheValue& value, DNSQuestion& dnsQuestion, bool& stale, PacketBuffer& response, time_t& age, bool recordMiss, time_t now, uint32_t allowExpired, bool receivedOverUDP, bool dnssecOK, const std::optional<Netmask>& subnet, bool truncatedOK, uint16_t queryId, const DNSName::string_t& dnsQName)
+{
+  if (value.validity <= now) {
+    if ((now - value.validity) >= static_cast<time_t>(allowExpired)) {
+      if (recordMiss) {
+        ++d_misses;
+      }
+      return {false, false};
+    }
+    stale = true;
+  }
+
+  if (value.len < sizeof(dnsheader)) {
+    return {false, false};
+  }
+
+  /* check for collision */
+  if (!cachedValueMatches(value, *(getFlagsFromDNSHeader(dnsQuestion.getHeader().get())), dnsQuestion.ids.qname, dnsQuestion.ids.qtype, dnsQuestion.ids.qclass, receivedOverUDP, dnssecOK, subnet)) {
+    ++d_lookupCollisions;
+    return {false, false};
+  }
+
+  if (!truncatedOK) {
+    dnsheader_aligned dh_aligned(value.value.data());
+    if (dh_aligned->tc != 0) {
+      return {false, false};
+    }
+  }
+
+  response.resize(value.len);
+  memcpy(&response.at(0), &queryId, sizeof(queryId));
+  memcpy(&response.at(sizeof(queryId)), &value.value.at(sizeof(queryId)), sizeof(dnsheader) - sizeof(queryId));
+
+  if (value.len == sizeof(dnsheader)) {
+    /* DNS header only, our work here is done */
+    return {true, true};
+  }
+
+  const size_t dnsQNameLen = dnsQName.length();
+  if (value.len < (sizeof(dnsheader) + dnsQNameLen)) {
+    return {false, false};
+  }
+
+  memcpy(&response.at(sizeof(dnsheader)), dnsQName.c_str(), dnsQNameLen);
+  if (value.len > (sizeof(dnsheader) + dnsQNameLen)) {
+    memcpy(&response.at(sizeof(dnsheader) + dnsQNameLen), &value.value.at(sizeof(dnsheader) + dnsQNameLen), value.len - (sizeof(dnsheader) + dnsQNameLen));
+  }
+
+  if (!stale) {
+    age = now - value.added;
+  }
+  else {
+    age = (value.validity - value.added) - d_settings.d_staleTTL;
+    dnsQuestion.ids.staleCacheHit = true;
+  }
+  return {true, false};
 }
 
 /* Remove expired entries, until the cache has at most
