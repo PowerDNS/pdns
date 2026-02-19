@@ -345,6 +345,9 @@ std::vector<uint8_t> makeEDNSTraceParentOption(std::shared_ptr<Tracer> tracer)
 bool addTraceparentEdnsOptionToPacketBuffer(PacketBuffer& origBuf, const std::shared_ptr<Tracer>& tracer, const size_t qnameWireLength, const size_t proxyProtocolPayloadSize, const uint16_t traceparentOptionCode, const bool isTCP)
 {
 #ifndef DISABLE_PROTOBUF
+  if (tracer == nullptr) {
+    return false;
+  }
   // buf contains the whole DNS query without PROXY protocol and TCP length header
   PacketBuffer buf{origBuf.begin() + proxyProtocolPayloadSize + (isTCP ? 2 : 0), origBuf.end()};
 

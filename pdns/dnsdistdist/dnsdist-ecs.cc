@@ -330,7 +330,10 @@ int locateEDNSOptRR(const PacketBuffer& packet, uint16_t* optStart, size_t* optL
 
 namespace dnsdist
 {
-/* extract the start of the OPT RR in a QUERY packet if any */
+/* extract the start of the OPT RR in a QUERY packet if any
+ * optRDPosition points to the first byte of the RDLEN field
+ * remaining contains the number of bytes in the packet after optRDPosition (i.e. packet.size() - optRDPosition)
+ */
 int getEDNSOptionsStart(const PacketBuffer& packet, const size_t qnameWireLength, uint16_t* optRDPosition, size_t* remaining)
 {
   if (optRDPosition == nullptr || remaining == nullptr) {
