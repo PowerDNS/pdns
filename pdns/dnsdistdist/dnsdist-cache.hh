@@ -22,9 +22,9 @@
 #pragma once
 
 #include <atomic>
-#include <unordered_map>
 
 #include "iputils.hh"
+#include "dnsdist-cache-container.hh"
 #include "lock.hh"
 #include "noinitvector.hh"
 #include "stat_t.hh"
@@ -52,24 +52,35 @@ public:
     bool d_dontAge{false};
     bool d_deferrableInsertLock{true};
     bool d_parseECS{false};
+    // this is confusingly named (backwards compat)
+    // d_keepStaleData is keeping stale data only when backend offline
+    // while d_dontExpire keeps stale data ALWAYS
     bool d_keepStaleData{false};
     bool d_shuffle{false};
+    bool d_dontEvict{false};
+    bool d_dontExpire{false};
   };
 
   struct Time
   {
+    time_t d_monotonic;
     time_t d_real;
     Time()
     {
+      timespec nowMonotonic{};
+      gettime(&nowMonotonic, false);
+      d_monotonic = nowMonotonic.tv_sec;
+
       timespec now{};
       gettime(&now, true);
       d_real = now.tv_sec;
     }
-    Time(const time_t real) :
-      d_real(real) {}
+
+    Time(const time_t monotonic, const time_t real) :
+      d_monotonic(monotonic), d_real(real) {}
   };
 
-  DNSDistPacketCache(CacheSettings settings);
+  DNSDistPacketCache(CacheSettings settings, const Time& now);
 
   void insert(uint32_t key, const std::optional<Netmask>& subnet, uint16_t queryFlags, bool dnssecOK, const DNSName& qname, uint16_t qtype, uint16_t qclass, const PacketBuffer& response, bool receivedOverUDP, uint8_t rcode, std::optional<uint32_t> tempFailureTTL, const Time& now);
   bool get(DNSQuestion& dnsQuestion, uint16_t queryId, uint32_t* keyOut, std::optional<Netmask>& subnet, bool dnssecOK, bool receivedOverUDP, const Time& now, uint32_t allowExpired = 0, bool skipAging = false, bool truncatedOK = true, bool recordMiss = true);
@@ -104,6 +115,11 @@ public:
     return d_settings.d_keepStaleData;
   }
 
+  [[nodiscard]] bool dontExpire() const
+  {
+    return d_settings.d_dontExpire;
+  }
+
   [[nodiscard]] size_t getMaximumEntrySize() const { return d_settings.d_maximumEntrySize; }
 
   uint32_t getKey(const DNSName::string_t& qname, size_t qnameWireLength, const PacketBuffer& packet, bool receivedOverUDP) const;
@@ -114,7 +130,6 @@ public:
 private:
   struct CacheValue
   {
-    [[nodiscard]] time_t getTTD() const { return validity; }
     std::string value;
     DNSName qname;
     std::optional<Netmask> subnet;
@@ -148,18 +163,19 @@ private:
     }
     ~CacheShard() = default;
 
-    void setSize(size_t maxSize)
+    void init(size_t maxSize, const Time& now)
     {
-      d_map.write_lock()->reserve(maxSize);
+      d_map.write_lock()->init(maxSize, now.d_monotonic);
     }
 
-    SharedLockGuarded<std::unordered_map<uint32_t, CacheValue>> d_map{};
+    SharedLockGuarded<DNSDistPacketCacheContainer<CacheValue>> d_map{};
+
     std::atomic<uint64_t> d_entriesCount{0};
   };
 
   [[nodiscard]] bool cachedValueMatches(const CacheValue& cachedValue, uint16_t queryFlags, const DNSName& qname, uint16_t qtype, uint16_t qclass, bool receivedOverUDP, bool dnssecOK, const std::optional<Netmask>& subnet) const;
   [[nodiscard]] uint32_t getShardIndex(uint32_t key) const;
-  bool insertLocked(std::unordered_map<uint32_t, CacheValue>& map, uint32_t key, CacheValue& newValue);
+  bool insertLocked(DNSDistPacketCacheContainer<CacheValue>& map, uint32_t key, time_t expiry, CacheValue& newValue);
 
   std::vector<CacheShard> d_shards{};
 

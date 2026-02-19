@@ -62,7 +62,7 @@ TEST_CASE("Cache/Lookup")
   settings.d_shardCount = 10U;
 
   const DNSDistPacketCache::Time now;
-  DNSDistPacketCache cache(settings);
+  DNSDistPacketCache cache(settings, now);
   InternalQueryState ids{};
   const DNSName qname{"dnsdist.org."};
   ids.qname = qname;
@@ -112,7 +112,8 @@ TEST_CASE("Cache/Insertion")
   settings.d_shardCount = 10U;
 
   const DNSDistPacketCache::Time now;
-  DNSDistPacketCache cache(settings);
+
+  DNSDistPacketCache cache(settings, now);
   InternalQueryState ids{};
   const DNSName qname{"dnsdist.org."};
   ids.qname = qname;
@@ -235,7 +236,8 @@ TEST_CASE("Cache/Cleanup")
   settings.d_shardCount = 10U;
 
   const DNSDistPacketCache::Time now;
-  DNSDistPacketCache cache(settings);
+
+  DNSDistPacketCache cache(settings, now);
 
   /* insert entries */
   for (size_t idx = 0; idx < settings.d_maxEntries; idx++) {
@@ -279,7 +281,7 @@ TEST_CASE("Cache/CleanupRealistic")
   {
     std::deque<DNSDistPacketCache> caches;
     for (int i = 0; i < meter.runs(); i++) {
-      caches.emplace_back(settings);
+      caches.emplace_back(settings, now);
       // insert entries with random TTLs
       for (size_t idx = 0; idx < entries; idx++) {
         InternalQueryState ids{};
@@ -308,6 +310,7 @@ TEST_CASE("Cache/CleanupRealistic")
       // 60 is the default delay
       for (time_t s = 0; s < 7200; s += 60) {
         now2.d_real += 60;
+        now2.d_monotonic += 60;
         auto add = cache.purgeExpired(0U, now2);
         expired += add;
       }

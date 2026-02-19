@@ -31,7 +31,7 @@
 void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
 {
   /* PacketCache */
-  luaCtx.writeFunction("newPacketCache", [client](size_t maxEntries, std::optional<LuaAssociativeTable<boost::variant<bool, size_t, LuaArray<uint16_t>>>> vars) {
+  luaCtx.writeFunction("newPacketCache", [client](size_t maxEntries, std::optional<LuaAssociativeTable<boost::variant<bool, size_t, std::string, LuaArray<uint16_t>>>> vars) {
     DNSDistPacketCache::CacheSettings settings{
       .d_maxEntries = maxEntries,
       .d_shardCount = 20,
@@ -46,6 +46,8 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
     getOptionalValue<bool>(vars, "dontAge", settings.d_dontAge);
     getOptionalValue<bool>(vars, "keepStaleData", settings.d_keepStaleData);
     getOptionalValue<bool>(vars, "shuffle", settings.d_shuffle);
+    getOptionalValue<bool>(vars, "dontEvict", settings.d_dontEvict);
+    getOptionalValue<bool>(vars, "dontExpire", settings.d_dontExpire);
     getOptionalValue<size_t>(vars, "maxNegativeTTL", settings.d_maxNegativeTTL);
     getOptionalValue<size_t>(vars, "maxTTL", settings.d_maxTTL);
     getOptionalValue<size_t>(vars, "minTTL", settings.d_minTTL);
@@ -95,12 +97,18 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
       settings.d_shardCount = maxEntries;
     }
 
+    if (settings.d_dontEvict && settings.d_dontExpire) {
+      SLOG(warnlog("dont_evict and dont_expire are both set to true; the packet cache will never remove anything"),
+           dnsdist::logging::getTopLogger("configuration")->info(Logr::Warning, "dont_evict and dont_expire are both set to true; the packet cache will never remove anything"));
+    }
+
     if (client) {
       settings.d_maxEntries = 1;
       settings.d_shardCount = 1;
     }
 
-    return std::make_shared<DNSDistPacketCache>(settings);
+    const DNSDistPacketCache::Time now;
+    return std::make_shared<DNSDistPacketCache>(settings, now);
   });
 
 #ifndef DISABLE_PACKETCACHE_BINDINGS
