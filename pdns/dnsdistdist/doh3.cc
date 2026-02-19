@@ -872,11 +872,13 @@ static void processH3Events(ClientState& clientState, DOH3Frontend& frontend, H3
     if (streamID < 0) {
       break;
     }
+    std::unique_ptr<quiche_h3_event, decltype(&quiche_h3_event_free)> eventPtr(event, quiche_h3_event_free);
+    event = nullptr;
     conn.d_headersBuffers.try_emplace(streamID, dnsdist::doh3::h3_headers_t{});
 
-    switch (quiche_h3_event_type(event)) {
+    switch (quiche_h3_event_type(eventPtr.get())) {
     case QUICHE_H3_EVENT_HEADERS: {
-      processH3HeaderEvent(clientState, frontend, conn, client, serverConnID, streamID, event);
+      processH3HeaderEvent(clientState, frontend, conn, client, serverConnID, streamID, eventPtr.get());
       break;
     }
     case QUICHE_H3_EVENT_DATA: {
@@ -889,8 +891,6 @@ static void processH3Events(ClientState& clientState, DOH3Frontend& frontend, H3
     case QUICHE_H3_EVENT_GOAWAY:
       break;
     }
-
-    quiche_h3_event_free(event);
   }
 }
 
