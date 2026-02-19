@@ -54,13 +54,17 @@ components:
       properties:
         type:
           type: string
-          description: "Set to “Server”"
+          description: "Set to 'Server'"
+          const: Server
         id:
           type: string
           description: "The id of the server, “localhost”"
         daemon_type:
           type: string
           description: "“recursor” for the PowerDNS Recursor and “authoritative” for the Authoritative Server"
+          enum:
+            - authoritative
+            - recursor
         version:
           type: string
           description: "The version of the server software"
@@ -94,7 +98,8 @@ components:
           description: "Name of the zone (e.g. “example.com.”) MUST have a trailing dot"
         type:
           type: string
-          description: "Set to “Zone”"
+          description: "Set to 'Zone'"
+          const: Zone
         url:
           type: string
           description: "API endpoint for this zone"
@@ -274,6 +279,7 @@ components:
           type: string
           description: 'Set to "TSIGKey"'
           readOnly: true
+          const: TSIGKey
 
     Autoprimary:
       $id: Autoprimary
@@ -299,6 +305,7 @@ components:
         name:
           type: string
           description: 'set to "ConfigSetting"'
+          const: ConfigSetting
         type:
           type: string
           description: "The name of this setting (e.g. ‘webserver-port’)"
@@ -328,7 +335,8 @@ components:
           description: "Item name"
         type:
           type: string
-          description: 'set to "StatisticItem"'
+          description: "set to 'StatisticItem'"
+          const: StatisticItem
         value:
           type: string
           description: "Item value"
@@ -344,6 +352,7 @@ components:
         type:
           type: string
           description: 'Set to "MapStatisticItem"'
+          const: MapStatisticItem
         value:
           type: array
           description: "Named values"
@@ -361,6 +370,7 @@ components:
         type:
           type: string
           description: 'Set to "RingStatisticItem"'
+          const: RingStatisticItem
         size:
           type: integer
           description: "Ring size"
@@ -380,6 +390,7 @@ components:
         object_type:
           type: string
           description: 'set to "zone"'
+          const: zone
         zone_id:
           type: string
 
@@ -397,6 +408,7 @@ components:
         object_type:
           type: string
           description: 'set to "record"'
+          const: record
         zone_id:
           type: string
         zone:
@@ -418,6 +430,7 @@ components:
         object_type:
           type: string
           description: 'set to "comment"'
+          const: comment
         zone_id:
           type: string
         zone:
@@ -429,28 +442,6 @@ components:
         - $ref: "#/components/schemas/SearchResultZone"
         - $ref: "#/components/schemas/SearchResultRecord"
         - $ref: "#/components/schemas/SearchResultComment"
-
-    # Since we can't do 'anyOf' at the moment, we create a 'superset object'
-    # SearchResult:
-    #   title: SearchResult
-    #   properties:
-    #     content:
-    #       type: string
-    #     disabled:
-    #       type: boolean
-    #     name:
-    #       type: string
-    #     object_type:
-    #       type: string
-    #       description: 'set to one of "record, zone, comment"'
-    #     zone_id:
-    #       type: string
-    #     zone:
-    #       type: string
-    #     type:
-    #       type: string
-    #     ttl:
-    #       type: integer
 
     SearchResults:
       $id: SearchResults
@@ -482,6 +473,7 @@ components:
         type:
           type: string
           description: 'set to "Cryptokey"'
+          const: Cryptokey
         id:
           type: integer
           description: "The internal identifier, read only"
@@ -1007,6 +999,13 @@ paths:
               schema:
                 type: array
                 items:
+                  type: object
+                  discriminator:
+                    propertyName: object_type
+                    mapping:
+                      StatisticItem: "#/components/schemas/StatisticItem"
+                      MapStatisticItem: "#/components/schemas/MapStatisticItem"
+                      RingStatisticItem: "#/components/schemas/RingStatisticItem"
                   oneOf:
                     - $ref: "#/components/schemas/StatisticItem"
                     - $ref: "#/components/schemas/MapStatisticItem"
