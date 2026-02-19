@@ -137,14 +137,19 @@ forward-zones+=undelegated.insecure.example=%s.12
 
     @classmethod
     def startResponders(cls):
+        global interopReactorRunning
         print("Launching responders..")
 
         address = cls._PREFIX + '.2'
         port = 53
 
-        reactor.listenUDP(port, UDPResponder(), interface=address)
+        if not interopReactorRunning:
+            reactor.listenUDP(port, UDPResponder(), interface=address)
+            interopReactorRunning = True
 
         cls.startReactor()
+
+interopReactorRunning = False
 
 class InteropProcessTest(RecursorTest):
     _confdir = 'InteropProcess'
@@ -155,6 +160,18 @@ packetcache-ttl=0 # explicitly disable packetcache
 forward-zones=undelegated.secure.example=%s.12
 forward-zones+=undelegated.insecure.example=%s.12
     """ % (os.environ['PREFIX'], os.environ['PREFIX'])
+
+    @classmethod
+    def startResponders(cls):
+        global interopReactorRunning
+        print("Launching responders..")
+
+        address = cls._PREFIX + '.2'
+        port = 53
+
+        if not interopReactorRunning:
+            reactor.listenUDP(port, UDPResponder(), interface=address)
+            interopReactorRunning = True
 
     def testNonApexDNSKEY2(self):
         """

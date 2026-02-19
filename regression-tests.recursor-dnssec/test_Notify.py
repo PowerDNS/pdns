@@ -6,11 +6,6 @@ from recursortests import RecursorTest
 
 class NotifyTest(RecursorTest):
 
-    _auth_zones = {
-        '8': {'threads': 1,
-              'zones': ['ROOT']}
-    }
-
     _confdir = 'Notify'
     _wsPort = 8042
     _wsTimeout = 2
@@ -122,11 +117,6 @@ f 3600 IN CNAME f            ; CNAME loop: dirty trick to get a ServFail in an a
 
 class NotifyNameNotAllowedTest(RecursorTest):
 
-    _auth_zones = {
-        '8': {'threads': 1,
-              'zones': ['ROOT']}
-    }
-
     _confdir = 'NotifyNameNotAllowed'
     _wsPort = 8042
     _wsTimeout = 2
@@ -234,11 +224,6 @@ f 3600 IN CNAME f            ; CNAME loop: dirty trick to get a ServFail in an a
         self.checkRecordCacheMetrics(5, 1)
 
 class NotifyNetNotAllowedTest(RecursorTest):
-
-    _auth_zones = {
-        '8': {'threads': 1,
-              'zones': ['ROOT']}
-    }
 
     _confdir = 'NotifyNetNotAllowed'
     _wsPort = 8042

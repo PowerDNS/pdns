@@ -285,7 +285,7 @@ recursor:
 
     def checkForwards(self, expected):
         attempts = 0
-        tries = 10
+        tries = 100
         ex = None
         while attempts < tries:
             try:
@@ -296,7 +296,7 @@ recursor:
             except Exception as e:
                 ex = e
             attempts = attempts + 1
-            time.sleep(0.1)
+            time.sleep(0.01)
         if ex is not None:
             raise ex
         raise AssertionError('expected content not found')

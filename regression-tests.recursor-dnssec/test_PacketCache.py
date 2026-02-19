@@ -9,11 +9,6 @@ from recursortests import RecursorTest
 
 class PacketCacheTest(RecursorTest):
 
-    _auth_zones = {
-        '8': {'threads': 1,
-              'zones': ['ROOT']}
-    }
-
     _confdir = 'PacketCache'
     _wsPort = 8042
     _wsTimeout = 2

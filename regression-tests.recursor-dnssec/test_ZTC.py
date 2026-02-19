@@ -23,8 +23,8 @@ recordcache:
     def testZTC(self):
         grepCmd = ['grep', 'validationStatus="Secure"', 'configs/' + self._confdir + '/recursor.log']
         ret = b''
-        for i in range(300):
-            time.sleep(0.1)
+        for i in range(3000):
+            time.sleep(0.01)
             try:
                 ret = subprocess.check_output(grepCmd, stderr=subprocess.STDOUT)
             except subprocess.CalledProcessError as e:
