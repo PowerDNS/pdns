@@ -298,6 +298,7 @@ void DNSProxy::mainloop()
                 dzr.dr.d_ttl = answer.d_ttl;
                 dzr.dr.d_place = answer.d_place;
                 dzr.dr.setContent(answer.getContent());
+                // NOTE dzr.domain_id == UnknownDomainID
                 iter->second.complete->addRecord(std::move(dzr));
               }
             }

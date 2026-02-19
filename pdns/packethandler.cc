@@ -135,6 +135,7 @@ bool PacketHandler::addCDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r, SOAD
   rr.dr.d_type=QType::CDNSKEY;
   rr.dr.d_ttl=sd.minimum;
   rr.dr.d_name=p.qdomain;
+  rr.domain_id = sd.domain_id;
   rr.auth=true;
 
   if (publishCDNSKEY == "0") { // delete DS via CDNSKEY
@@ -187,6 +188,7 @@ bool PacketHandler::addDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r)
     rr.dr.d_name=p.qdomain;
     rr.dr.setContent(std::make_shared<DNSKEYRecordContent>(value.first.getDNSKEY()));
     rr.auth=true;
+    rr.domain_id = d_sd.domain_id;
     r->addRecord(std::move(rr));
     haveOne=true;
   }
@@ -231,6 +233,7 @@ bool PacketHandler::addCDS(DNSPacket& p, std::unique_ptr<DNSPacket>& r, SOAData 
   rr.dr.d_type=QType::CDS;
   rr.dr.d_ttl=sd.minimum;
   rr.dr.d_name=p.qdomain;
+  rr.domain_id = sd.domain_id;
   rr.auth=true;
 
   if(std::find(digestAlgos.begin(), digestAlgos.end(), "0") != digestAlgos.end()) { // delete DS via CDS
@@ -279,6 +282,7 @@ bool PacketHandler::addNSEC3PARAM(const DNSPacket& p, std::unique_ptr<DNSPacket>
     ns3prc.d_flags = 0; // the NSEC3PARAM 'flag' is defined to always be zero in RFC5155.
     rr.dr.setContent(std::make_shared<NSEC3PARAMRecordContent>(ns3prc));
     rr.auth = true;
+    rr.domain_id = d_sd.domain_id;
     r->addRecord(std::move(rr));
     return true;
   }
@@ -332,6 +336,7 @@ int PacketHandler::doChaosRequest(const DNSPacket& p, std::unique_ptr<DNSPacket>
     rr.dr.d_name=target;
     rr.dr.d_type=QType::TXT;
     rr.dr.d_class=QClass::CHAOS;
+    // NOTE rr.domain_id == UnknownDomainID
     r->addRecord(std::move(rr));
     return 1;
   }
@@ -672,83 +677,125 @@ vector<ComboAddress> PacketHandler::getIPAddressFor(const DNSName &target, const
   return ret;
 }
 
-void PacketHandler::emitNSEC(std::unique_ptr<DNSPacket>& r, const DNSName& name, const DNSName& next, int mode)
+// Common part to NSEC and NSEC3 to compute the QType bitmap in the NSEC
+// or NSEC3 response, part 1.
+void PacketHandler::computeNSECbitmap1(NSECBitmap& bitmap)
 {
-  NSECRecordContent nrc;
-  nrc.d_next = next;
-
-  nrc.set(QType::NSEC);
-  nrc.set(QType::RRSIG);
-  if(d_sd.qname() == name) {
-    nrc.set(QType::SOA); // 1dfd8ad SOA can live outside the records table
-    if(!isPresigned()) {
-      auto keyset = d_dk.getKeys(d_sd.zonename);
-      for(const auto& value: keyset) {
-        if (value.second.published) {
-          nrc.set(QType::DNSKEY);
-          string publishCDNSKEY;
-          d_dk.getPublishCDNSKEY(d_sd.zonename, publishCDNSKEY);
-          if (! publishCDNSKEY.empty())
-            nrc.set(QType::CDNSKEY);
-          string publishCDS;
-          d_dk.getPublishCDS(d_sd.zonename, publishCDS);
-          if (! publishCDS.empty())
-            nrc.set(QType::CDS);
-          break;
+  bitmap.set(QType::SOA); // 1dfd8ad SOA can live outside the records table
+  if (!isPresigned()) {
+    auto keyset = d_dk.getKeys(d_sd.zonename);
+    for (const auto& value: keyset) {
+      if (value.second.published) {
+        bitmap.set(QType::DNSKEY);
+        string publishCDNSKEY;
+        d_dk.getPublishCDNSKEY(d_sd.zonename, publishCDNSKEY);
+        if (!publishCDNSKEY.empty()) {
+          bitmap.set(QType::CDNSKEY);
         }
+        string publishCDS;
+        d_dk.getPublishCDS(d_sd.zonename, publishCDS);
+        if (!publishCDS.empty()) {
+          bitmap.set(QType::CDS);
+        }
+        break;
       }
     }
   }
+}
 
-  DNSZoneRecord rr;
+// Common part to NSEC and NSEC3 to compute the QType bitmap in the NSEC
+// or NSEC3 response, part 2.
+void PacketHandler::computeNSECbitmap2(NSECBitmap& bitmap, const DNSName& name, bool includeENT)
+{
+  DNSZoneRecord rec;
 #ifdef HAVE_LUA_RECORDS
   bool first{true};
   bool doLua{false};
 #endif
 
   B.lookup(QType(QType::ANY), name, d_sd.domain_id);
-  while(B.get(rr)) {
+  while (B.get(rec)) {
 #ifdef HAVE_LUA_RECORDS
-    if (rr.dr.d_type == QType::LUA && first && !isPresigned()) {
+    if (rec.dr.d_type == QType::LUA && first && !isPresigned()) {
       first = false;
       doLua = doLuaRecords();
     }
 
-    if (rr.dr.d_type == QType::LUA && doLua) {
-      nrc.set(getRR<LUARecordContent>(rr.dr)->d_type);
+    if (rec.dr.d_type == QType::LUA && doLua) {
+      bitmap.set(getRR<LUARecordContent>(rec.dr)->d_type);
+      continue;
     }
-    else
 #endif
-    if (d_doExpandALIAS && rr.dr.d_type == QType::ALIAS) {
+
+    if (d_doExpandALIAS && rec.dr.d_type == QType::ALIAS) {
       // Set the A and AAAA in the NSEC bitmap so aggressive NSEC
       // does not falsely deny the type for this name.
       // This does NOT add the ALIAS to the bitmap, as that record cannot
       // be requested.
       if (!isPresigned()) {
-        nrc.set(QType::A);
-        nrc.set(QType::AAAA);
+        bitmap.set(QType::A);
+        bitmap.set(QType::AAAA);
       }
     }
-    else if((rr.dr.d_type == QType::DNSKEY || rr.dr.d_type == QType::CDS || rr.dr.d_type == QType::CDNSKEY) && !isPresigned() && !::arg().mustDo("direct-dnskey")) {
+    else if((rec.dr.d_type == QType::DNSKEY || rec.dr.d_type == QType::CDS || rec.dr.d_type == QType::CDNSKEY) && !isPresigned() && !::arg().mustDo("direct-dnskey")) {
       continue;
     }
-    else if(rr.dr.d_type == QType::NS || rr.auth) {
-      nrc.set(rr.dr.d_type);
+    else if (rec.dr.d_type == QType::NS || rec.auth) {
+      // skip empty non-terminals unless explicitly requested
+      if (rec.dr.d_type != QType::ENT || includeENT) {
+        bitmap.set(rec.dr.d_type);
+      }
     }
   }
+}
 
-  rr.dr.d_name = name;
-  rr.dr.d_ttl = d_sd.getNegativeTTL();
-  rr.dr.d_type = QType::NSEC;
-  rr.dr.setContent(std::make_shared<NSECRecordContent>(std::move(nrc)));
-  rr.dr.d_place = (mode == 5 ) ? DNSResourceRecord::ANSWER: DNSResourceRecord::AUTHORITY;
-  rr.auth = true;
+void PacketHandler::emitNSEC(std::unique_ptr<DNSPacket>& r, const DNSName& name, const DNSName& next, int mode)
+{
+  NSECBitmap bitmap;
+  if (d_sd.qname() == name) {
+    computeNSECbitmap1(bitmap);
+  }
+  computeNSECbitmap2(bitmap, name, true);
 
-  r->addRecord(std::move(rr));
+  NSECRecordContent nrc;
+  nrc.d_next = next;
+  nrc.set(bitmap);
+  nrc.set(QType::NSEC);
+  nrc.set(QType::RRSIG);
+
+  DNSZoneRecord rec;
+  rec.dr.d_name = name;
+  rec.dr.d_ttl = d_sd.getNegativeTTL();
+  rec.dr.d_type = QType::NSEC;
+  rec.dr.setContent(std::make_shared<NSECRecordContent>(std::move(nrc)));
+  rec.dr.d_place = (mode == 5 ) ? DNSResourceRecord::ANSWER: DNSResourceRecord::AUTHORITY;
+  rec.auth = true;
+  // A proper value is required for the sake of addRRSigs() later.
+  rec.domain_id = d_sd.domain_id;
+
+  r->addRecord(std::move(rec));
 }
 
 void PacketHandler::emitNSEC3(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const NSEC3PARAMRecordContent& ns3prc, const DNSName& name, const string& namehash, const string& nexthash, int mode) // NOLINT(readability-identifier-length)
 {
+  NSECBitmap bitmap;
+
+  if (!name.empty()) {
+    if (d_sd.qname() == name) {
+      bitmap.set(QType::NSEC3PARAM);
+      computeNSECbitmap1(bitmap);
+      bitmap.set(QType::SOA); // 1dfd8ad SOA can live outside the records table
+    } else if (mode == 6) {
+      if (p.qtype.getCode() != QType::CDS) {
+        bitmap.set(QType::CDS);
+      }
+      if (p.qtype.getCode() != QType::CDNSKEY) {
+        bitmap.set(QType::CDNSKEY);
+      }
+    }
+    computeNSECbitmap2(bitmap, name, false); // skip empty non-terminals
+  }
+
   NSEC3RecordContent n3rc;
   n3rc.d_algorithm = ns3prc.d_algorithm;
   n3rc.d_flags = ns3prc.d_flags;
@@ -756,89 +803,23 @@ void PacketHandler::emitNSEC3(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const
   n3rc.d_salt = ns3prc.d_salt;
   n3rc.d_nexthash = nexthash;
 
-  DNSZoneRecord rr;
-
-  if(!name.empty()) {
-    if (d_sd.qname() == name) {
-      n3rc.set(QType::SOA); // 1dfd8ad SOA can live outside the records table
-      n3rc.set(QType::NSEC3PARAM);
-      if(!isPresigned()) {
-        auto keyset = d_dk.getKeys(d_sd.zonename);
-        for(const auto& value: keyset) {
-          if (value.second.published) {
-            n3rc.set(QType::DNSKEY);
-            string publishCDNSKEY;
-            d_dk.getPublishCDNSKEY(d_sd.zonename, publishCDNSKEY);
-            if (! publishCDNSKEY.empty())
-              n3rc.set(QType::CDNSKEY);
-            string publishCDS;
-            d_dk.getPublishCDS(d_sd.zonename, publishCDS);
-            if (! publishCDS.empty())
-              n3rc.set(QType::CDS);
-            break;
-          }
-        }
-      }
-    } else if(mode == 6) {
-      if (p.qtype.getCode() != QType::CDS) {
-        n3rc.set(QType::CDS);
-      }
-      if (p.qtype.getCode() != QType::CDNSKEY) {
-        n3rc.set(QType::CDNSKEY);
-      }
-    }
-
-#ifdef HAVE_LUA_RECORDS
-    bool first{true};
-    bool doLua{false};
-#endif
-
-    B.lookup(QType(QType::ANY), name, d_sd.domain_id);
-    while(B.get(rr)) {
-#ifdef HAVE_LUA_RECORDS
-      if (rr.dr.d_type == QType::LUA && first && !isPresigned()) {
-        first = false;
-        doLua = doLuaRecords();
-      }
-
-      if (rr.dr.d_type == QType::LUA && doLua) {
-        n3rc.set(getRR<LUARecordContent>(rr.dr)->d_type);
-      }
-      else
-#endif
-      if (d_doExpandALIAS && rr.dr.d_type == QType::ALIAS) {
-        // Set the A and AAAA in the NSEC3 bitmap so aggressive NSEC
-        // does not falsely deny the type for this name.
-        // This does NOT add the ALIAS to the bitmap, as that record cannot
-        // be requested.
-        if (!isPresigned()) {
-          n3rc.set(QType::A);
-          n3rc.set(QType::AAAA);
-        }
-      }
-      else if((rr.dr.d_type == QType::DNSKEY || rr.dr.d_type == QType::CDS || rr.dr.d_type == QType::CDNSKEY) && !isPresigned() && !::arg().mustDo("direct-dnskey")) {
-        continue;
-      }
-      else if(rr.dr.d_type && (rr.dr.d_type == QType::NS || rr.auth)) {
-          // skip empty non-terminals
-          n3rc.set(rr.dr.d_type);
-      }
-    }
-  }
-
+  n3rc.set(bitmap);
   const auto numberOfTypesSet = n3rc.numberOfTypesSet();
   if (numberOfTypesSet != 0 && !(numberOfTypesSet == 1 && n3rc.isSet(QType::NS))) {
     n3rc.set(QType::RRSIG);
   }
 
-  rr.dr.d_name = DNSName(toBase32Hex(namehash))+d_sd.qname();
-  rr.dr.d_ttl = d_sd.getNegativeTTL();
-  rr.dr.d_type=QType::NSEC3;
-  rr.dr.setContent(std::make_shared<NSEC3RecordContent>(std::move(n3rc)));
-  rr.dr.d_place = (mode == 5 ) ? DNSResourceRecord::ANSWER: DNSResourceRecord::AUTHORITY;
-  rr.auth = true;
+  DNSZoneRecord rec;
+  rec.dr.d_name = DNSName(toBase32Hex(namehash))+d_sd.qname();
+  rec.dr.d_ttl = d_sd.getNegativeTTL();
+  rec.dr.d_type=QType::NSEC3;
+  rec.dr.setContent(std::make_shared<NSEC3RecordContent>(std::move(n3rc)));
+  rec.dr.d_place = (mode == 5 ) ? DNSResourceRecord::ANSWER: DNSResourceRecord::AUTHORITY;
+  rec.auth = true;
+  // A proper value is required for the sake of addRRSigs() later.
+  rec.domain_id = d_sd.domain_id;
 
-  r->addRecord(std::move(rr));
+  r->addRecord(std::move(rec));
 }
 
 /*

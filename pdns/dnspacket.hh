@@ -109,8 +109,6 @@ public:
   unsigned int getMinTTL(); //!< returns lowest TTL of any record in the packet
   bool isEmpty(); //!< returns true if there are no rrs in the packet
 
-  vector<DNSZoneRecord*> getAPRecords(); //!< get a vector with DNSZoneRecords that need additional processing
-  vector<DNSZoneRecord*> getAnswerRecords(); //!< get a vector with DNSZoneRecords that are answers
   vector<DNSZoneRecord*> getServiceRecords(); //!< Get a vector with all Service-style (SVCB) records
   void setCompress(bool compress);
 
