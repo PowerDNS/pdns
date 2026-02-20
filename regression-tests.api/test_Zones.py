@@ -1449,6 +1449,34 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         data = self.get_zone(name)
         self.assertCountEqual(get_rrset(data, name, 'NS')['records'], rrset['records'])
 
+    def test_zone_rr_update_lua(self):
+        # Important to test with LUA records, as their contents should not be
+        # normalized in any way.
+        name, payload, zone = self.create_zone()
+        recname = 'lua.' + name
+        # do a replace (= update)
+        rrset = {
+            'changetype': 'replace',
+            'name': recname,
+            'type': 'LUA',
+            'ttl': 3600,
+            'records': [
+                {
+                    "content": "TXT \"; return 'PowerDNS'\"",
+                    "disabled": False
+                }
+            ]
+        }
+        payload = {'rrsets': [rrset]}
+        r = self.session.patch(
+            self.url("/api/v1/servers/localhost/zones/" + name),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assert_success(r)
+        # verify that (only) the new record is there
+        data = self.get_zone(name)
+        self.assertEqual(get_rrset(data, recname, 'LUA')['records'], rrset['records'])
+
     def test_zone_rr_update_mx(self):
         # Important to test with MX records, as they have a priority field, which must end up in the content field.
         name, payload, zone = self.create_zone()

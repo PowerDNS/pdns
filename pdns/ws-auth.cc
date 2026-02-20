@@ -668,7 +668,15 @@ static void gatherRecords(const Json& container, const DNSName& qname, const QTy
   validateGatheredRRType(resourceRecord);
   const auto& items = container["records"].array_items();
   for (const auto& record : items) {
-    string content = normalizeJsonString(stringFromJson(record, "content"));
+    string content = stringFromJson(record, "content");
+    switch (resourceRecord.qtype.getCode()) {
+    case QType::LUA:
+      // Keep LUA record contents unmodified
+      break;
+    default:
+      content = normalizeJsonString(content);
+      break;
+    }
     if (record.object_items().count("priority") > 0) {
       throw std::runtime_error("`priority` element is not allowed in record");
     }
