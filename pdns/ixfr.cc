@@ -142,7 +142,7 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord>>> getIXFRDeltas(const ComboAddr
 
   pw.commit();
   TSIGRecordContent trc;
-  TSIGTCPVerifier tsigVerifier(tt, primary, trc);
+  TSIGTCPVerifier tsigVerifier(nullptr /* TEMPORARY PLUMBING */, tt, primary, trc);
   if(!tt.algo.empty()) {
     TSIGHashEnum the;
     getTSIGHashEnum(tt.algo, the);

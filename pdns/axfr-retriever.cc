@@ -29,13 +29,14 @@
 
 using pdns::resolver::parseResult;
 
-AXFRRetriever::AXFRRetriever(const ComboAddress& remote,
+AXFRRetriever::AXFRRetriever(Logr::log_t slog,
+                             const ComboAddress& remote,
                              const ZoneName& domain,
                              const TSIGTriplet& tsigConf,
                              const ComboAddress* laddr,
                              size_t maxReceivedBytes,
                              uint16_t timeout) :
-  d_buf(65536), d_tsigVerifier(tsigConf, remote, d_trc), d_maxReceivedBytes(maxReceivedBytes)
+  d_slog(slog), d_tsigVerifier(slog, tsigConf, remote, d_trc), d_buf(65536), d_maxReceivedBytes(maxReceivedBytes)
 {
   ComboAddress local;
   if (laddr != nullptr) {

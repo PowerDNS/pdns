@@ -145,7 +145,7 @@ int main(int argc, char** argv) {
       cout<<"Could not load zone from disk: "<<e.what()<<endl;
       cout << "Retrieving latest from primary " << primary.toStringWithPort() << endl;
       ComboAddress local = primary.sin4.sin_family == AF_INET ? ComboAddress("0.0.0.0") : ComboAddress("::");
-      AXFRRetriever axfr(primary, zone, tt, &local);
+      AXFRRetriever axfr(nullptr /* TEMPORARY PLUMBING */, primary, zone, tt, &local);
       unsigned int nrecords=0;
       Resolver::res_t nop;
       vector<DNSRecord> chunk;

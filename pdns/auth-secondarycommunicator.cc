@@ -593,7 +593,7 @@ static vector<DNSResourceRecord> doAxfr(const TSIGTriplet& tt, const ComboAddres
 {
   uint16_t axfr_timeout = ::arg().asNum("axfr-fetch-timeout");
   vector<DNSResourceRecord> rrs;
-  AXFRRetriever retriever(ctx.remote, ctx.domain.zone, tt, (laddr.sin4.sin_family == 0) ? nullptr : &laddr, ((size_t)::arg().asNum("xfr-max-received-mbytes")) * 1024 * 1024, axfr_timeout);
+  AXFRRetriever retriever(nullptr /* TEMPORARY PLUMBING */, ctx.remote, ctx.domain.zone, tt, (laddr.sin4.sin_family == 0) ? nullptr : &laddr, ((size_t)::arg().asNum("xfr-max-received-mbytes")) * 1024 * 1024, axfr_timeout);
   Resolver::res_t recs;
   bool first = true;
   bool firstNSEC3{true};
