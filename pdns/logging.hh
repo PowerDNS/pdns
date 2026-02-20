@@ -154,7 +154,24 @@ struct IterLoggable : public Logr::Loggable
       else {
         first = false;
       }
-      oss << *i;
+      if constexpr (std::is_same_v<typename T::value_type, std::string>) {
+        oss << *i;
+      }
+      else if constexpr (is_toStructuredLogString_available<typename T::value_type>::value) {
+        oss << i->toStructuredLogString();
+      }
+      else if constexpr (is_toLogString_available<typename T::value_type>::value) {
+        oss << i->toLogString();
+      }
+      else if constexpr (is_toString_available<typename T::value_type>::value) {
+        oss << i->toString();
+      }
+      else if constexpr (is_to_string_available<typename T::value_type>::value) {
+        oss << std::to_string(*i);
+      }
+      else {
+        oss << *i;
+      }
     }
     return oss.str();
   }
