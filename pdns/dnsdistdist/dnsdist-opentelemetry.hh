@@ -25,6 +25,8 @@
 #include <string>
 #include <vector>
 
+#include "ednsoptions.hh"
+
 #ifndef DISABLE_PROTOBUF
 #include "protozero-trace.hh"
 using TraceID = pdns::trace::TraceID;
@@ -340,4 +342,7 @@ private:
   LockGuarded<Data> d_data;
 #endif
 };
+
+std::vector<uint8_t> makeEDNSTraceParentOption(std::shared_ptr<Tracer> tracer);
+bool addTraceparentEdnsOptionToPacketBuffer(PacketBuffer& origBuf, const std::shared_ptr<Tracer>& tracer, const size_t qnameWireLength, const size_t proxyProtocolPayloadSize, const uint16_t traceparentOptionCode = EDNSOptionCode::TRACEPARENT, const bool isTCP = false);
 } // namespace pdns::trace::dnsdist

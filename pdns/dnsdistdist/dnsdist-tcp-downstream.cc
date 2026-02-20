@@ -3,6 +3,10 @@
 #include "dnsdist-tcp-downstream.hh"
 #include "dnsdist-tcp-upstream.hh"
 #include "dnsdist-downstream-connection.hh"
+#include <limits>
+#ifndef DISABLE_PROTOBUF
+#include "dnsdist-ecs.hh"
+#endif
 
 #include "dnsparser.hh"
 
@@ -283,6 +287,19 @@ IOState TCPConnectionToBackend::sendQuery(std::shared_ptr<TCPConnectionToBackend
   auto closer = conn->d_currentQuery.d_query.d_idstate.getCloser(classnamePrefix + __func__);
   (void)now;
   DEBUGLOG("sending query to backend " << conn->getDS()->getNameWithAddr() << " over FD " << conn->d_handler->getDescriptor());
+
+#ifndef DISABLE_PROTOBUF
+  if (auto tracer = conn->d_currentQuery.d_query.d_idstate.getTracer(); conn->d_currentQuery.d_query.d_idstate.sendTraceParentToDownstreamID != 0 && tracer != nullptr) {
+    auto ednsAdded = pdns::trace::dnsdist::addTraceparentEdnsOptionToPacketBuffer(
+      conn->d_currentQuery.d_query.d_buffer,
+      tracer,
+      conn->d_currentQuery.d_query.d_idstate.qname.wirelength(),
+      conn->d_currentQuery.d_query.d_idstate.d_proxyProtocolPayloadSize,
+      conn->d_currentQuery.d_query.d_idstate.sendTraceParentToDownstreamID,
+      true);
+    conn->d_currentQuery.d_query.d_idstate.ednsAdded = conn->d_currentQuery.d_query.d_idstate.ednsAdded || ednsAdded;
+  }
+#endif
 
   IOState state = conn->d_handler->tryWrite(conn->d_currentQuery.d_query.d_buffer, conn->d_currentPos, conn->d_currentQuery.d_query.d_buffer.size());
 

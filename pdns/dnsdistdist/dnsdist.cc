@@ -23,6 +23,7 @@
 #include "config.h"
 
 #include <cstdint>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <getopt.h>
@@ -34,11 +35,13 @@
 #include <set>
 #include <sys/resource.h>
 #include <unistd.h>
+#include <vector>
 
 #include "dns.hh"
 #include "dnsdist-idstate.hh"
 #include "dnsdist-opentelemetry.hh"
 #include "dnsdist-systemd.hh"
+#include "logging.hh"
 #include "protozero-trace.hh"
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-daemon.h>
@@ -1885,6 +1888,19 @@ bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& downstrea
 
     VERBOSESLOG(infolog("Got query for %s|%s from %s%s, relayed to %s%s", dnsQuestion.ids.qname.toLogString(), QType(dnsQuestion.ids.qtype).toString(), dnsQuestion.ids.origRemote.toStringWithPort(), (doh ? " (https)" : ""), downstream->getNameWithAddr(), actuallySend ? "" : " (xsk)"),
                 dnsQuestion.getLogger()->info("Relayed query to backend", "backend.name", Logging::Loggable(downstream->getName()), "backend.address", Logging::Loggable(downstream->d_config.remote), "dnsdist.xsk", Logging::Loggable(!actuallySend)));
+
+#ifndef DISABLE_PROTOBUF
+    if (auto tracer = dnsQuestion.ids.getTracer(); dnsQuestion.ids.sendTraceParentToDownstreamID != 0 && tracer != nullptr) {
+      auto ednsAdded = pdns::trace::dnsdist::addTraceparentEdnsOptionToPacketBuffer(
+        dnsQuestion.getMutableData(),
+        tracer,
+        dnsQuestion.ids.qname.wirelength(),
+        dnsQuestion.ids.d_proxyProtocolPayloadSize,
+        dnsQuestion.ids.sendTraceParentToDownstreamID,
+        false);
+      dnsQuestion.ids.ednsAdded = dnsQuestion.ids.ednsAdded || ednsAdded;
+    }
+#endif
 
     /* make a copy since we cannot touch dnsQuestion.ids after the move */
     auto proxyProtocolPayloadSize = dnsQuestion.ids.d_proxyProtocolPayloadSize;

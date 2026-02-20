@@ -22,7 +22,9 @@
 
 #include "dnsdist-opentelemetry.hh"
 #include "misc.hh"
+#include "dnsdist-ecs.hh"
 
+#include <memory>
 #include <vector>
 
 #ifndef DISABLE_PROTOBUF
@@ -318,6 +320,64 @@ void Tracer::Closer::setAttribute([[maybe_unused]] const std::string& key, [[may
   return;
 #else
   return d_tracer->setSpanAttribute(d_spanID, key, value);
+#endif
+}
+
+std::vector<uint8_t> makeEDNSTraceParentOption(std::shared_ptr<Tracer> tracer)
+{
+  std::vector<uint8_t> ret;
+#ifndef DISABLE_PROTOBUF
+  if (tracer == nullptr) {
+    return ret;
+  }
+  ret.reserve(27);
+  ret.push_back(0); // Version
+  ret.push_back(0); // Reserved
+  auto traceId = tracer->getTraceID();
+  ret.insert(ret.end(), traceId.begin(), traceId.end());
+  auto spanId = tracer->getLastSpanID();
+  ret.insert(ret.end(), spanId.begin(), spanId.end());
+  ret.push_back(0); // Flags
+#endif
+  return ret;
+}
+
+bool addTraceparentEdnsOptionToPacketBuffer(PacketBuffer& origBuf, const std::shared_ptr<Tracer>& tracer, const size_t qnameWireLength, const size_t proxyProtocolPayloadSize, const uint16_t traceparentOptionCode, const bool isTCP)
+{
+#ifndef DISABLE_PROTOBUF
+  if (tracer == nullptr) {
+    return false;
+  }
+  // buf contains the whole DNS query without PROXY protocol and TCP length header
+  PacketBuffer buf{origBuf.begin() + proxyProtocolPayloadSize + (isTCP ? 2 : 0), origBuf.end()};
+
+  uint16_t optRDPosition;
+  size_t remaining;
+  bool queryHadEdns = ::dnsdist::getEDNSOptionsStart(buf, qnameWireLength, &optRDPosition, &remaining) == 0;
+  if (queryHadEdns) {
+    size_t optLen = buf.size() - optRDPosition - remaining;
+    removeEDNSOptionFromOPT(reinterpret_cast<char*>(buf.data() + optRDPosition), &optLen, traceparentOptionCode);
+  }
+
+  auto opt = pdns::trace::dnsdist::makeEDNSTraceParentOption(tracer);
+  bool ednsAdded{false};
+  bool optionAdded{false};
+  uint16_t maxEdnsSize = queryHadEdns ? (uint16_t)(buf.at(optRDPosition - 6) << 8) + buf.at(optRDPosition - 5) : 512;
+  setEDNSOption(buf, traceparentOptionCode, std::string(opt.begin(), opt.end()), isTCP ? std::numeric_limits<uint16_t>().max() : maxEdnsSize, ednsAdded, optionAdded);
+
+  if (isTCP) {
+    const std::array<uint8_t, 2> sizeBytes{static_cast<uint8_t>(buf.size() / 256), static_cast<uint8_t>(buf.size() % 256)};
+    buf.insert(buf.begin(), sizeBytes.begin(), sizeBytes.end());
+  }
+
+  // Resize the buffer to remove the existing packet, but keep any PROXYv2 data
+  origBuf.resize(proxyProtocolPayloadSize);
+  // Insert the new query into the buffer
+  origBuf.insert(origBuf.end(), buf.begin(), buf.end());
+
+  return ednsAdded;
+#else
+  return false;
 #endif
 }
 

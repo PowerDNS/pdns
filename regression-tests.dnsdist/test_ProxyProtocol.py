@@ -1,19 +1,21 @@
 #!/usr/bin/env python
 
-import dns
 import selectors
 import socket
 import ssl
-import requests
 import struct
 import sys
 import threading
 import time
 
+import dns
+import requests
+
+from dnsdistdohtests import DNSDistDOHTest
 from dnsdisttests import DNSDistTest, pickAvailablePort
 from proxyprotocol import ProxyProtocol
-from proxyprotocolutils import ProxyProtocolUDPResponder, ProxyProtocolTCPResponder
-from dnsdistdohtests import DNSDistDOHTest
+from proxyprotocolutils import (ProxyProtocolTCPResponder,
+                                ProxyProtocolUDPResponder)
 
 # Python2/3 compatibility hacks
 try:
@@ -469,6 +471,35 @@ class TestProxyProtocol(ProxyProtocolTest):
       # hold a shared reference to the previous connection. It will be released when we come back to the calling
       # function, but for a short time we will have two concurrent connections.
       self.assertLessEqual(server['tcpMaxConcurrentConnections'], current_conns_before + 2)
+
+class TestProxyProtocolTraceParent(TestProxyProtocol):
+    # dnsdist adds a TRACEPARENT EDNS option.
+    # Test to make sure we don't break the DNS protocol
+    _config_template = """
+    setOpenTelemetryTracing(true)
+    newServer{address="127.0.0.1:%d", useProxyProtocol=true}
+
+    webserver("127.0.0.1:%d")
+    setWebserverConfig{password="%s", apiKey="%s"}
+
+    function addValues(dq)
+      local values = { [0]="foo", [42]="bar" }
+      dq:setProxyProtocolValues(values)
+      return DNSAction.None
+    end
+
+    local counter = 1
+    function addRandomValue(dq)
+      dq:addProxyProtocolValue(0xEE, tostring(counter))
+      counter = counter + 1
+      return DNSAction.None
+    end
+
+    addAction(AllRule(), SetTraceAction(true, {sendDownstreamTraceparent=true}), {name="Enable tracing"})
+    addAction("values-lua.proxy.tests.powerdns.com.", LuaAction(addValues))
+    addAction("values-action.proxy.tests.powerdns.com.", SetProxyProtocolValuesAction({ ["1"]="dnsdist", ["255"]="proxy-protocol"}))
+    addAction("random-values.proxy.tests.powerdns.com.", LuaAction(addRandomValue))
+    """
 
 class TestProxyProtocolIncoming(ProxyProtocolTest):
     """

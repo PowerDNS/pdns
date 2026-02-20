@@ -51,6 +51,7 @@ bool parseEDNSOptions(const DNSQuestion& dnsQuestion);
 bool queryHasEDNS(const DNSQuestion& dnsQuestion);
 bool getEDNS0Record(const PacketBuffer& packet, EDNS0Record& edns0);
 
+bool setEDNSOption(PacketBuffer& buf, uint16_t ednsCode, const std::string& ednsData, size_t maximumSize, bool& ednsAdded, bool& optionAdded);
 bool setEDNSOption(DNSQuestion& dnsQuestion, uint16_t ednsCode, const std::string& data, bool isQuery = true);
 
 struct InternalQueryState;

@@ -33,6 +33,7 @@
 #include <memory>
 #include <optional>
 #include <stdexcept>
+#include <variant>
 #include <vector>
 
 using responseParams_t = std::unordered_map<std::string, boost::variant<bool, uint32_t>>;
@@ -239,12 +240,16 @@ void setupLuaActions(LuaContext& luaCtx)
   });
 
 #ifndef DISABLE_PROTOBUF
-  luaCtx.writeFunction("SetTraceAction", [](bool value, std::optional<LuaAssociativeTable<std::shared_ptr<RemoteLoggerInterface>>> remote_loggers, std::optional<bool> use_incoming_traceid, std::optional<uint16_t> trace_edns_option, std::optional<bool> strip_incoming_traceid) {
+  luaCtx.writeFunction("SetTraceAction", [](bool value, std::optional<LuaAssociativeTable<boost::variant<LuaAssociativeTable<std::shared_ptr<RemoteLoggerInterface>>, bool, uint16_t>>> options) {
     dnsdist::actions::SetTraceActionConfiguration config;
-
-    if (remote_loggers) {
+    config.value = value;
+    if (options) {
+      LuaAssociativeTable<std::shared_ptr<RemoteLoggerInterface>> remote_loggers;
+      if (getOptionalValue<LuaAssociativeTable<std::shared_ptr<RemoteLoggerInterface>>>(options, "remoteLoggers", remote_loggers) < 0) {
+        throw std::runtime_error("remoteLoggers in SetTraceAction are not remote loggers");
+      }
       std::vector<std::shared_ptr<RemoteLoggerInterface>> loggers;
-      for (auto& remote_logger : remote_loggers.value()) {
+      for (auto& remote_logger : remote_loggers) {
         if (remote_logger.second != nullptr) {
           // avoids potentially-evaluated-expression warning with clang.
           RemoteLoggerInterface& remoteLoggerRef = *remote_logger.second;
@@ -256,12 +261,23 @@ void setupLuaActions(LuaContext& luaCtx)
         }
       }
       config.remote_loggers = std::move(loggers);
+      if (getOptionalValue<uint16_t>(options, "traceparentOptionCode", config.traceparentOptionCode) < 0) {
+        throw std::runtime_error("TraceparentOptionCode in SetTraceAction is not a number");
+      }
+      if (config.traceparentOptionCode == 0) {
+        config.traceparentOptionCode = EDNSOptionCode::TRACEPARENT;
+      }
+      if (getOptionalValue<bool>(options, "sendDownstreamTraceparent", config.sendDownstreamTraceparent) < 0) {
+        throw std::runtime_error("sendDownstreamTraceparent in SetTraceAction is not a bool");
+      }
+      if (getOptionalValue<bool>(options, "useIncomingTraceparent", config.useIncomingTraceparent) < 0) {
+        throw std::runtime_error("useIncomingTraceparent in SetTraceAction is not a bool");
+      }
+      if (getOptionalValue<bool>(options, "stripIncomingTraceparent", config.stripIncomingTraceparent) < 0) {
+        throw std::runtime_error("stripIncomingTraceparent in SetTraceAction is not a bool");
+      }
+      checkAllParametersConsumed("SetTraceAction", options);
     }
-    config.value = value;
-    config.trace_edns_option = trace_edns_option.value_or(65500);
-    config.use_incoming_traceid = use_incoming_traceid.value_or(false);
-    config.strip_incoming_traceid = strip_incoming_traceid.value_or(false);
-
     return dnsdist::actions::getSetTraceAction(config);
   });
 
