@@ -2,6 +2,136 @@ Changelog
 =========
 
 .. changelog::
+  :version: 2.1.0-beta1
+  :released: 23rd of February 2026
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16786
+
+    Opentelemetry: add flags field in TRACEPARENT EDNS option
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16793
+
+    Do not create ``dnsdist.yml`` in RPM system configuration directory
+
+  .. change::
+    :tags: New Features
+    :pullreq: 16796
+
+    Add ``prepend`` and ``append`` methods to Lua DNSName
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16798
+
+    Only install ``dnsdist.yml-dist`` if ``yaml`` support was enabled (Holger Hoffstätte)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16799
+
+    Update ``ipcrypt2`` to 1.1.10 + 1 commit
+
+  .. change::
+    :tags: Improvements, DNS over QUIC, DNS over HTTP3
+    :pullreq: 16802
+
+    Work around Quiche not dealing well with removed congestion algorithms
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16805
+
+    Better handling of invalid ``Base64`` content
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16806
+
+    Fix build issues with ``ipcrypt2``
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16822
+
+    Add missing ``noexcept`` on move ctors/assignment operators
+
+  .. change::
+    :tags: Improvements, Protobuf
+    :pullreq: 16823
+
+    Export DNS flags via ProtoBuf
+
+  .. change::
+    :tags: Improvements, DNS over QUIC, DNS over HTTP3
+    :pullreq: 16849
+
+    Update Quiche to 0.24.9 in our packages
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16856
+
+    Update rustc and cargo to 1.93
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16870
+
+    Correctly set Span ID to downstreams
+
+  .. change::
+    :tags: New Features
+    :pullreq: 16879
+
+    Add actions, methods and FFI functions to unset a tag
+
+  .. change::
+    :tags: New Features
+    :pullreq: 16880
+
+    Implement "allowed rcodes/total" ratio dynamic rule
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16881
+
+    Subnets excluded from dynamic rules should not count towards thresholds
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16887
+
+    Fix invalid ``substr()`` use in the DNS overlay parser
+
+  .. change::
+    :tags: New Features
+    :pullreq: 16889
+
+    Add a Lua callback to validate health-check responses
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16890
+
+    Clean up the type mess around latency metrics (again)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16898
+
+    Don't start the NetworkListener thread in config check mode
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16907
+
+    Meson: Add missing checks for ``TLS_client_method``, ``gnutls_transport_set_fastopen``
+
+.. changelog::
   :version: 2.1.0-alpha1
   :released: 29th of January 2026
 
