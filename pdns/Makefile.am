@@ -245,6 +245,7 @@ pdns_server_SOURCES = \
 	lock.hh \
 	logger.cc logger.hh \
 	logging.hh \
+	logr.hh \
 	lua-auth4.cc lua-auth4.hh \
 	lua-base4.cc lua-base4.hh \
 	misc.cc misc.hh \
@@ -741,7 +742,8 @@ ixfrdist_SOURCES = \
 	ixfrdist-web.hh ixfrdist-web.cc \
 	ixfrdist.cc \
 	ixfrutils.cc ixfrutils.hh \
-	logger.cc logger.hh\
+	logger.cc logger.hh \
+	logr.hh \
 	misc.cc misc.hh \
 	mplexer.hh \
 	nsecrecords.cc \
@@ -811,6 +813,7 @@ ixplore_SOURCES = \
 	ixfrutils.cc ixfrutils.hh \
 	ixplore.cc \
 	logger.cc \
+	logr.hh \
 	misc.cc misc.hh \
 	nsecrecords.cc \
 	qtype.cc \
@@ -919,6 +922,7 @@ tsig_tests_SOURCES = \
 	gss_context.cc gss_context.hh \
 	iputils.cc \
 	logger.cc \
+	logr.hh \
 	misc.cc misc.hh \
 	nsecrecords.cc \
 	qtype.cc \
@@ -1379,6 +1383,7 @@ testrunner_SOURCES = \
 	iputils.cc \
 	ixfr.cc ixfr.hh \
 	logger.cc \
+	logr.hh \
 	lua-auth4.hh lua-auth4.cc \
 	lua-base4.hh lua-base4.cc \
 	misc.cc \

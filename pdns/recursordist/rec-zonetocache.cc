@@ -146,7 +146,7 @@ pdns::ZoneMD::Result ZoneData::getByAXFR(const RecZoneToCache::Config& config, p
     local = pdns::getQueryLocalAddress(primary.sin4.sin_family, 0);
   }
 
-  AXFRRetriever axfr(primary, d_zone, tsigTriplet, &local, maxReceivedBytes, axfrTimeout);
+  AXFRRetriever axfr(d_log, primary, d_zone, tsigTriplet, &local, maxReceivedBytes, axfrTimeout);
   Resolver::res_t nop;
   vector<DNSRecord> chunk;
   time_t axfrStart = time(nullptr);

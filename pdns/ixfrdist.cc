@@ -517,7 +517,7 @@ static void updateThread(const string& workdir, const uint16_t& keep, const uint
       uint32_t soaTTL = 0;
       records_t records;
       try {
-        AXFRRetriever axfr(primary, domain, tt, &local);
+        AXFRRetriever axfr(nullptr /* TEMPORARY PLUMBING */, primary, domain, tt, &local);
         uint32_t nrecords=0;
         Resolver::res_t nop;
         vector<DNSRecord> chunk;

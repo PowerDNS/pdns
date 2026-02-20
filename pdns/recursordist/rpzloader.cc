@@ -252,7 +252,7 @@ static shared_ptr<const SOARecordContent> loadRPZFromServer(Logr::log_t plogger,
     local = pdns::getQueryLocalAddress(primary.sin4.sin_family, 0);
   }
 
-  AXFRRetriever axfr(primary, zoneName, tsigTriplet, &local, maxReceivedBytes, axfrTimeout);
+  AXFRRetriever axfr(logger, primary, zoneName, tsigTriplet, &local, maxReceivedBytes, axfrTimeout);
   unsigned int nrecords = 0;
   Resolver::res_t nop;
   vector<DNSRecord> chunk;

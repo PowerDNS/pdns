@@ -24,12 +24,14 @@
 
 #include "iputils.hh"
 #include "dnsname.hh"
+#include "logr.hh"
 #include "resolver.hh"
 
 class AXFRRetriever : public boost::noncopyable
 {
   public:
-    AXFRRetriever(const ComboAddress& remote,
+    AXFRRetriever(Logr::log_t slog,
+                  const ComboAddress& remote,
                   const ZoneName& zone,
                   const TSIGTriplet& tt = TSIGTriplet(),
                   const ComboAddress* laddr = NULL,
@@ -43,13 +45,14 @@ class AXFRRetriever : public boost::noncopyable
     int getLength(uint16_t timeout);
     void timeoutReadn(uint16_t bytes, uint16_t timeoutsec=10);
 
+    Logr::log_t d_slog;
+    TSIGTCPVerifier d_tsigVerifier;
     std::vector<char> d_buf;
     string d_domain;
     int d_sock;
     int d_soacount;
     ComboAddress d_remote;
     TSIGRecordContent d_trc;
-    TSIGTCPVerifier d_tsigVerifier;
 
     size_t d_receivedBytes{0};
     size_t d_maxReceivedBytes;

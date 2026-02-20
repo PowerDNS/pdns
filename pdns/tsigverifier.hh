@@ -3,15 +3,17 @@
 
 #include "dnsrecords.hh"
 #include "iputils.hh"
+#include "logr.hh"
 
 class TSIGTCPVerifier
 {
 public:
-  TSIGTCPVerifier(const TSIGTriplet& tt, const ComboAddress& remote, TSIGRecordContent& trc): d_tt(tt), d_remote(remote), d_trc(trc)
+  TSIGTCPVerifier(Logr::log_t slog, const TSIGTriplet& tt, const ComboAddress& remote, TSIGRecordContent& trc): d_slog(slog), d_tt(tt), d_remote(remote), d_trc(trc)
   {
   }
   bool check(const string& data, const MOADNSParser& mdp);
 private:
+  Logr::log_t d_slog;
   const TSIGTriplet& d_tt;
   const ComboAddress& d_remote;
   TSIGRecordContent& d_trc;
