@@ -295,7 +295,7 @@ void AuthWebServer::indexGET(HttpRequest* req, HttpResponse* resp)
   ret << "Backend query load, 1, 5, 10 minute averages: " << std::setprecision(3) << (int)d_qcachemisses.get1() << ", " << (int)d_qcachemisses.get5() << ", " << (int)d_qcachemisses.get10() << ". Max queries/second: " << (int)d_qcachemisses.getMax() << "<br>" << endl;
 
   ret << "Total queries: " << S.read("udp-queries") << ". Question/answer latency: " << static_cast<double>(S.read("latency")) / 1000.0 << "ms</p><br>" << endl;
-  auto ringname = req->getvars["ring"];
+  const auto& ringname = req->getvars["ring"];
   if (ringname.empty()) {
     auto entries = S.listRings();
     for (const auto& entry : entries) {
