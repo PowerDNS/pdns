@@ -1377,6 +1377,49 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         self.assertEqual(r.status_code, 422)
         self.assert_in_json_error("Exactly one record should be provided", r.json())
 
+    def test_zone_rr_bogus_update_4(self):
+        name, payload, zone = self.create_zone()
+        # rrset with invalid characters which are not processed by parseRFC1035CharString
+        rrset = {
+            'changetype': 'replace',
+            'name': 'a.'+name,
+            'type': 'A',
+            'ttl': 3600,
+            'records': [
+                {
+                    "content": "(127.0.0.1)",
+                    "disabled": False
+                }
+            ]
+        }
+        payload = {'rrsets': [rrset]}
+        r = self.session.patch(
+            self.url("/api/v1/servers/localhost/zones/" + name),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertEqual(r.status_code, 422)
+        self.assert_in_json_error("Invalid character '(' in record content", r.json())
+        # rrset with empty contents
+        rrset = {
+            'changetype': 'replace',
+            'name': 'a.'+name,
+            'type': 'A',
+            'ttl': 3600,
+            'records': [
+                {
+                    "content": "",
+                    "disabled": False
+                }
+            ]
+        }
+        payload = {'rrsets': [rrset]}
+        r = self.session.patch(
+            self.url("/api/v1/servers/localhost/zones/" + name),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertEqual(r.status_code, 422)
+        self.assert_in_json_error("missing field at the end of record content ''", r.json())
+
     def test_zone_rr_update(self):
         name, payload, zone = self.create_zone()
         # do a replace (= update)
@@ -1405,6 +1448,34 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         # verify that (only) the new record is there
         data = self.get_zone(name)
         self.assertCountEqual(get_rrset(data, name, 'NS')['records'], rrset['records'])
+
+    def test_zone_rr_update_lua(self):
+        # Important to test with LUA records, as their contents should not be
+        # normalized in any way.
+        name, payload, zone = self.create_zone()
+        recname = 'lua.' + name
+        # do a replace (= update)
+        rrset = {
+            'changetype': 'replace',
+            'name': recname,
+            'type': 'LUA',
+            'ttl': 3600,
+            'records': [
+                {
+                    "content": "TXT \"; return 'PowerDNS'\"",
+                    "disabled": False
+                }
+            ]
+        }
+        payload = {'rrsets': [rrset]}
+        r = self.session.patch(
+            self.url("/api/v1/servers/localhost/zones/" + name),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assert_success(r)
+        # verify that (only) the new record is there
+        data = self.get_zone(name)
+        self.assertEqual(get_rrset(data, recname, 'LUA')['records'], rrset['records'])
 
     def test_zone_rr_update_mx(self):
         # Important to test with MX records, as they have a priority field, which must end up in the content field.

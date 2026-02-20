@@ -651,6 +651,17 @@ static std::string normalizeJsonString(const std::string& jsonContent)
     // Preserve quotes in the result if the chunk is quoted.
     bool quote = input[pos] == '"';
     auto chunksize = parseRFC1035CharString(input.substr(pos), chunk);
+    if (chunksize == 0) {
+      // Found one of (  ) ; \x7f
+      if (input[pos] < ' ' || input[pos] >= 0x7f) {
+        std::stringstream hexstr;
+        hexstr << std::hex << static_cast<unsigned char>(input[pos]);
+        throw ApiException("Invalid character \\x" + hexstr.str() + " in record content '" + std::string(jsonContent) + "'");
+      }
+      else {
+        throw ApiException("Invalid character '" + std::string(1, input[pos]) + "' in record content '" + std::string(jsonContent) + "'");
+      }
+    }
     if (quote) {
       ret << '"';
     }
@@ -690,7 +701,15 @@ static void gatherRecords(const Json& container, const DNSName& qname, const QTy
   validateGatheredRRType(resourceRecord);
   const auto& items = container["records"].array_items();
   for (const auto& record : items) {
-    string content = normalizeJsonString(stringFromJson(record, "content"));
+    string content = stringFromJson(record, "content");
+    switch (resourceRecord.qtype.getCode()) {
+    case QType::LUA:
+      // Keep LUA record contents unmodified
+      break;
+    default:
+      content = normalizeJsonString(content);
+      break;
+    }
     if (record.object_items().count("priority") > 0) {
       throw std::runtime_error("`priority` element is not allowed in record");
     }

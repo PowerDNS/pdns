@@ -403,6 +403,9 @@ void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val) // NOLINT(readabil
         string value;
         xfrRFC1035CharString(value);
         size_t len = key == SvcParam::ipv4hint ? 4 : 16;
+        if (value.empty()) {
+          throw RecordTextException("value is required for SVC Param " + k);
+        }
         if (value.size() % len != 0) {
           throw RecordTextException(k + " in generic format has wrong number of bytes");
         }
@@ -500,6 +503,9 @@ void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val) // NOLINT(readabil
       if (generic) {
         string v;
         xfrRFC1035CharString(v);
+        if (v.empty()) {
+          throw RecordTextException("value is required for SVC Param " + k);
+        }
         if (v.length() != 2) {
           throw RecordTextException("port in generic format has the wrong length, expected 2, got " + std::to_string(v.length()));
         }
