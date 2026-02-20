@@ -23,7 +23,8 @@ void BaseLua4::loadFile(const std::string& fname, bool doPostLoad)
   if (!ifs) {
     auto ret = errno;
     auto msg = stringerror(ret);
-    g_log << Logger::Error << "Unable to read configuration file from '" << fname << "': " << msg << endl;
+    SLOG(g_log << Logger::Error << "Unable to read configuration file from '" << fname << "': " << msg << endl,
+         g_slog->withName("lua")->error(Logr::Error, msg, "Unable to read configuration file", "file", Logging::Loggable(fname)));
     throw std::runtime_error(msg);
   }
   loadStream(ifs, doPostLoad);
@@ -51,7 +52,8 @@ void BaseLua4::includePath(const std::string& directory) {
       };
       if (stat(fullName.c_str(), &statInfo) != 0 || !S_ISREG(statInfo.st_mode)) {
         string msg = fullName + " is not a regular file";
-        g_log << Logger::Error << msg << std::endl;
+        SLOG(g_log << Logger::Error << msg << std::endl,
+             g_slog->withName("lua")->info(Logr::Error, "include file is not a regular file", "file", Logging::Loggable(fullName)));
         throw PDNSException(std::move(msg));
       }
       vec.emplace_back(fullName);
@@ -62,7 +64,8 @@ void BaseLua4::includePath(const std::string& directory) {
   if (directoryError) {
     int err = errno;
     string msg = directory + " is not accessible: " + stringerror(err);
-    g_log << Logger::Error << msg << std::endl;
+    SLOG(g_log << Logger::Error << msg << std::endl,
+         g_slog->withName("lua")->error(Logr::Error, err, "Error trying to walk directory", "directory", Logging::Loggable(directory)));
     throw PDNSException(std::move(msg));
   }
 
@@ -266,7 +269,7 @@ void BaseLua4::prepareContext() {
   d_lw->registerFunction<void (DNSRecord::*)(const std::string&)>("changeContent", [](DNSRecord& dr, const std::string& newContent) { dr.setContent(shared_ptr<DNSRecordContent>(DNSRecordContent::make(dr.d_type, 1, newContent))); });
 
   // pdnslog
-#ifdef RECURSOR
+#if defined(PDNS_AUTH)||defined(RECURSOR)
   d_lw->writeFunction("pdnslog", [](const std::string& msg, boost::optional<int> loglevel, boost::optional<std::map<std::string, std::string>> values) {
     auto log = g_slog->withName("lua");
     if (values) {

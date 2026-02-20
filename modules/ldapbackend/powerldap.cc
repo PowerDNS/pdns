@@ -208,9 +208,9 @@ void PowerLDAP::getOption(int option, int* value)
   ldapGetOption(d_ld, option, (void*)value);
 }
 
-void PowerLDAP::bind(LdapAuthenticator* authenticator)
+void PowerLDAP::bind(Logr::log_t log, LdapAuthenticator* authenticator)
 {
-  if (!authenticator->authenticate(d_ld))
+  if (!authenticator->authenticate(log, d_ld))
     throw LDAPException("Failed to bind to LDAP server: " + authenticator->getError());
 }
 

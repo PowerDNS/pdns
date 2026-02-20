@@ -71,6 +71,8 @@ public:
     handle();
     ~handle();
 
+    void setSLog(Logr::log_t slog) { d_slog = slog; }
+
     //! The UeberBackend class where this handle belongs to
     UeberBackend* parent{nullptr};
     //! The current real backend, which is answering questions
@@ -87,6 +89,7 @@ public:
 
   private:
     static AtomicCounter instances;
+    std::shared_ptr<Logr::Logger> d_slog;
   };
 
   void lookup(const QType& qtype, const DNSName& qname, domainid_t zoneId, DNSPacket* pkt_p = nullptr);
@@ -155,6 +158,7 @@ private:
   handle d_handle;
   vector<DNSZoneRecord> d_answers;
   vector<DNSZoneRecord>::const_iterator d_cachehandleiter;
+  std::shared_ptr<Logr::Logger> d_slog;
 
   static std::mutex d_mut;
   static std::condition_variable d_cond;

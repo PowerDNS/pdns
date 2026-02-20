@@ -62,7 +62,8 @@ bool Connector::recv(Json& value)
       retval = false;
     }
     for (const auto& message : value["log"].array_items()) {
-      g_log << Logger::Info << "[remotebackend]: " << message.string_value() << std::endl;
+      SLOG(g_log << Logger::Info << "[remotebackend]: " << message.string_value() << std::endl,
+           d_slog->info(Logr::Info, "received", "message", Logging::Loggable(message.string_value())));
     }
     return retval;
   }
@@ -166,20 +167,20 @@ int RemoteBackend::build()
 
   // connectors know what they are doing
   if (type == "unix") {
-    this->connector = std::make_unique<UnixsocketConnector>(options);
+    this->connector = std::make_unique<UnixsocketConnector>(d_slog, options);
   }
   else if (type == "http") {
-    this->connector = std::make_unique<HTTPConnector>(options);
+    this->connector = std::make_unique<HTTPConnector>(d_slog, options);
   }
   else if (type == "zeromq") {
 #ifdef REMOTEBACKEND_ZEROMQ
-    this->connector = std::make_unique<ZeroMQConnector>(options);
+    this->connector = std::make_unique<ZeroMQConnector>(d_slog, options);
 #else
     throw PDNSException("Invalid connection string: zeromq connector support not enabled. Recompile with --enable-remotebackend-zeromq");
 #endif
   }
   else if (type == "pipe") {
-    this->connector = std::make_unique<PipeConnector>(options);
+    this->connector = std::make_unique<PipeConnector>(d_slog, options);
   }
   else {
     throw PDNSException("Invalid connection string: unknown connector");
@@ -675,7 +676,8 @@ void RemoteBackend::setNotified(domainid_t id, uint32_t serial)
 
   Json answer;
   if (!this->send(query) || !this->recv(answer)) {
-    g_log << Logger::Error << kBackendId << " Failed to execute RPC for RemoteBackend::setNotified(" << id << "," << serial << ")" << endl;
+    SLOG(g_log << Logger::Error << kBackendId << " Failed to execute RPC for RemoteBackend::setNotified(" << id << "," << serial << ")" << endl,
+         d_slog->info(Logr::Error, "Failed to execute RPC for RemoteBackend::setNotified", "domain_id", Logging::Loggable(id), "serial", Logging::Loggable(serial)));
   }
 }
 
@@ -986,7 +988,8 @@ void RemoteBackend::setStale(domainid_t domain_id)
 
   Json answer;
   if (!this->send(query) || !this->recv(answer)) {
-    g_log << Logger::Error << kBackendId << " Failed to execute RPC for RemoteBackend::setStale(" << domain_id << ")" << endl;
+    SLOG(g_log << Logger::Error << kBackendId << " Failed to execute RPC for RemoteBackend::setStale(" << domain_id << ")" << endl,
+         d_slog->info(Logr::Error, "Failed to execute RPC for RemoteBackend::setStale", "domain_id", Logging::Loggable(domain_id)));
   }
 }
 
@@ -998,7 +1001,8 @@ void RemoteBackend::setFresh(domainid_t domain_id)
 
   Json answer;
   if (!this->send(query) || !this->recv(answer)) {
-    g_log << Logger::Error << kBackendId << " Failed to execute RPC for RemoteBackend::setFresh(" << domain_id << ")" << endl;
+    SLOG(g_log << Logger::Error << kBackendId << " Failed to execute RPC for RemoteBackend::setFresh(" << domain_id << ")" << endl,
+         d_slog->info(Logr::Error, "Failed to execute RPC for RemoteBackend::setFresh", "domain_id", Logging::Loggable(domain_id)));
   }
 }
 
@@ -1029,11 +1033,24 @@ public:
 RemoteLoader::RemoteLoader()
 {
   BackendMakers().report(std::make_unique<RemoteBackendFactory>());
-  g_log << Logger::Info << kBackendId << " This is the remote backend version " VERSION
+  // If this module is not loaded dynamically at runtime, this code runs
+  // as part of a global constructor, before the structured logger has a
+  // chance to be set up, so fallback to simple logging in this case.
+  if (!g_slogStructured || !g_slog) {
+    g_log << Logger::Info << kBackendId << " This is the remote backend version " VERSION
 #ifndef REPRODUCIBLE
-        << " (" __DATE__ " " __TIME__ ")"
+          << " (" __DATE__ " " __TIME__ ")"
 #endif
-        << " reporting" << endl;
+          << " reporting" << endl;
+  }
+  else {
+    g_slog->withName("remotebackend")->info(Logr::Info, "remote backend starting", "version", Logging::Loggable(VERSION)
+#ifndef REPRODUCIBLE
+                                                                                                ,
+                                            "build date", Logging::Loggable(__DATE__ " " __TIME__)
+#endif
+    );
+  }
 }
 
 static RemoteLoader remoteloader;

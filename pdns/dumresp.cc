@@ -30,6 +30,8 @@
 #include <thread>
 StatBag S;
 
+bool g_slogStructured{false};
+
 static std::atomic<uint64_t>* g_counter;
 
 static void printStatus()

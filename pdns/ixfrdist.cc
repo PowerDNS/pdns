@@ -78,6 +78,8 @@ ArgvMap &arg()
 }
 /* END Needed because of deeper dependencies */
 
+bool g_slogStructured{false};
+
 // Allows reading/writing ComboAddresses and ZoneNames in YAML-cpp
 namespace YAML {
 template<>
@@ -328,7 +330,7 @@ static void communicatorReceiveNotificationAnswers(const int sock4, const int so
     if (size < 0) {
       break;
     }
-    DNSPacket packet(true);
+    DNSPacket packet(nullptr, true); // no structured logging in ixfrdist yet
     packet.setRemote(&from);
 
     if (packet.parse(buffer.data(), (size_t)size) < 0) {

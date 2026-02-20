@@ -28,7 +28,6 @@
 
 #include "packetcache.hh"
 #include "utility.hh"
-#include "dnsproxy.hh"
 #include "pdnsexception.hh"
 #include "dns.hh"
 #include "logger.hh"
@@ -39,14 +38,16 @@
 #include "threadname.hh"
 #include "ednsoptions.hh"
 #include "ednssubnet.hh"
+#include "dnsproxy.hh"
 
 #include <boost/uuid/uuid_io.hpp>
 
 extern StatBag S;
 
-DNSProxy::DNSProxy(const string& remote, const string& udpPortRange) :
+DNSProxy::DNSProxy(Logr::log_t slog, const string& remote, const string& udpPortRange) :
   d_xor(dns_random_uint16())
 {
+  d_slog = slog;
   d_resanswers = S.getPointer("recursing-answers");
   d_resquestions = S.getPointer("recursing-questions");
   d_udpanswers = S.getPointer("udp-answers");
@@ -99,7 +100,8 @@ DNSProxy::DNSProxy(const string& remote, const string& udpPortRange) :
     throw PDNSException("Unable to UDP connect to remote nameserver " + d_remote.toStringWithPort() + ": " + stringerror());
   }
 
-  g_log << Logger::Error << "DNS Proxy launched, local port " << ntohs(local.sin4.sin_port) << ", remote " << d_remote.toStringWithPort() << endl;
+  SLOG(g_log << Logger::Error << "DNS Proxy launched, local port " << ntohs(local.sin4.sin_port) << ", remote " << d_remote.toStringWithPort() << endl,
+       d_slog->info(Logr::Error, "DNS Proxy launched", "local port", Logging::Loggable(ntohs(local.sin4.sin_port)), "remote", Logging::Loggable(d_remote.toStringWithPort())));
 }
 
 void DNSProxy::go()
@@ -114,9 +116,11 @@ bool DNSProxy::completePacket(std::unique_ptr<DNSPacket>& reply, const DNSName& 
   string ECSOptionStr;
 
   if (reply->hasEDNSSubnet()) {
-    DLOG(g_log << "dnsproxy::completePacket: Parsed edns source: " << reply->d_eso.getSource().toString() << ", scope: " << Netmask(reply->d_eso.getSource().getNetwork(), reply->d_eso.getScopePrefixLength()).toString() << ", family = " << std::to_string(reply->d_eso.getFamily()) << endl);
+    DLOG(SLOG(g_log << "dnsproxy::completePacket: Parsed edns source: " << reply->d_eso.getSource().toString() << ", scope: " << Netmask(reply->d_eso.getSource().getNetwork(), reply->d_eso.getScopePrefixLength()).toString() << ", family = " << std::to_string(reply->d_eso.getFamily()) << endl,
+              d_slog->info(Logr::Debug, "DNSProxy::completePacket: Parsed EDNS", "source", Logging::Loggable(reply->d_eso.getSource()), "scope", Logging::Loggable(Netmask(reply->d_eso.getSource().getNetwork(), reply->d_eso.getScopePrefixLength())), "family", Logging::Loggable(reply->d_eso.getFamily()))));
     ECSOptionStr = reply->d_eso.makeOptString();
-    DLOG(g_log << "from dnsproxy::completePacket: Creating ECS option string " << makeHexDump(ECSOptionStr) << endl);
+    DLOG(SLOG(g_log << "from dnsproxy::completePacket: Creating ECS option string " << makeHexDump(ECSOptionStr) << endl,
+              d_slog->info(Logr::Debug, "DNSProxy::completePacket: Creating ECS option string", "string", Logging::Loggable(makeHexDump(ECSOptionStr)))));
   }
 
   if (reply->d_tcp) {
@@ -125,21 +129,26 @@ bool DNSProxy::completePacket(std::unique_ptr<DNSPacket>& reply, const DNSName& 
     int ret2 = 0;
     // rip out edns info here, pass it to the stubDoResolve
     if (reply->qtype == QType::A || reply->qtype == QType::ANY) {
-      ret1 = stubDoResolve(target, QType::A, ips, reply->hasEDNSSubnet() ? &reply->d_eso : nullptr);
+      ret1 = stubDoResolve(d_slog, target, QType::A, ips, reply->hasEDNSSubnet() ? &reply->d_eso : nullptr);
     }
     if (reply->qtype == QType::AAAA || reply->qtype == QType::ANY) {
-      ret2 = stubDoResolve(target, QType::AAAA, ips, reply->hasEDNSSubnet() ? &reply->d_eso : nullptr);
+      ret2 = stubDoResolve(d_slog, target, QType::AAAA, ips, reply->hasEDNSSubnet() ? &reply->d_eso : nullptr);
     }
 
     if (ret1 != RCode::NoError || ret2 != RCode::NoError) {
-      g_log << Logger::Error << "Error resolving for " << aname << " ALIAS " << target << " over UDP, original query came in over TCP";
-      if (ret1 != RCode::NoError) {
-        g_log << Logger::Error << ", A-record query returned " << RCode::to_s(ret1);
+      if (g_slogStructured) {
+        d_slog->info(Logr::Error, "Error resolving ALIAS target over UDP, original query came in over TCP, returning SERVFAIL", "target", Logging::Loggable(target), "A record query", Logging::Loggable(RCode::to_s(ret1)), "AAAA record query", Logging::Loggable(RCode::to_s(ret2)));
       }
-      if (ret2 != RCode::NoError) {
-        g_log << Logger::Error << ", AAAA-record query returned " << RCode::to_s(ret2);
+      else {
+        g_log << Logger::Error << "Error resolving for " << aname << " ALIAS " << target << " over UDP, original query came in over TCP";
+        if (ret1 != RCode::NoError) {
+          g_log << Logger::Error << ", A-record query returned " << RCode::to_s(ret1);
+        }
+        if (ret2 != RCode::NoError) {
+          g_log << Logger::Error << ", AAAA-record query returned " << RCode::to_s(ret2);
+        }
+        g_log << Logger::Error << ", returning SERVFAIL" << endl;
       }
-      g_log << Logger::Error << ", returning SERVFAIL" << endl;
       reply->clearRecords();
       reply->setRcode(RCode::ServFail);
     }
@@ -184,7 +193,8 @@ bool DNSProxy::completePacket(std::unique_ptr<DNSPacket>& reply, const DNSName& 
   pw.getHeader()->id = id ^ d_xor;
   // Add EDNS Subnet if the client sent one - issue #5469
   if (!ECSOptionStr.empty()) {
-    DLOG(g_log << "from dnsproxy::completePacket: adding ECS option string to packet options " << makeHexDump(ECSOptionStr) << endl);
+    DLOG(SLOG(g_log << "from dnsproxy::completePacket: adding ECS option string to packet options " << makeHexDump(ECSOptionStr) << endl,
+              d_slog->info(Logr::Debug, "DNSProxy::completePacket: adding ECS option string to packet options", "ECS options", Logging::Loggable(makeHexDump(ECSOptionStr)))));
     DNSPacketWriter::optvect_t opts;
     opts.emplace_back(EDNSOptionCode::ECS, ECSOptionStr);
     pw.addOpt(512, 0, 0, opts);
@@ -192,7 +202,8 @@ bool DNSProxy::completePacket(std::unique_ptr<DNSPacket>& reply, const DNSName& 
   }
 
   if (send(d_sock, packet.data(), packet.size(), 0) < 0) { // zoom
-    g_log << Logger::Error << "Unable to send a packet to our recursing backend: " << stringerror() << endl;
+    SLOG(g_log << Logger::Error << "Unable to send a packet to our recursing backend: " << stringerror() << endl,
+         d_slog->error(Logr::Error, errno, "Unable to send a packet to our recursing backend"));
   }
 
   return true;
@@ -209,7 +220,8 @@ int DNSProxy::getID_locked(map_t& conntrack)
     }
     if (iter->second.created < time(nullptr) - 60) {
       if (iter->second.created != 0) {
-        g_log << Logger::Warning << "Recursive query for remote " << iter->second.remote.toStringWithPort() << " with internal id " << n << " was not answered by backend within timeout, reusing id" << endl;
+        SLOG(g_log << Logger::Warning << "Recursive query for remote " << iter->second.remote.toStringWithPort() << " with internal id " << n << " was not answered by backend within timeout, reusing id" << endl,
+             d_slog->info(Logr::Warning, "Recursive query was not answered by backend within timeout, reusing id", "remote", Logging::Loggable(iter->second.remote), "id", Logging::Loggable(n)));
         iter->second.complete.reset();
         S.inc("recursion-unanswered");
       }
@@ -235,19 +247,23 @@ void DNSProxy::mainloop()
       len = recvfrom(d_sock, &buffer[0], sizeof(buffer), 0, (struct sockaddr*)&fromaddr, &fromaddrSize); // answer from our backend  NOLINT(cppcoreguidelines-pro-type-cstyle-cast)
       if (len < (ssize_t)sizeof(dnsheader)) {
         if (len < 0) {
-          g_log << Logger::Error << "Error receiving packet from recursor backend: " << stringerror() << endl;
+          SLOG(g_log << Logger::Error << "Error receiving packet from recursor backend: " << stringerror() << endl,
+               d_slog->error(Logr::Error, errno, "Error receiving packet from recursor backend"));
         }
         else if (len == 0) {
-          g_log << Logger::Error << "Error receiving packet from recursor backend, EOF" << endl;
+          SLOG(g_log << Logger::Error << "Error receiving packet from recursor backend, EOF" << endl,
+               d_slog->info(Logr::Error, "Error receiving packet from recursor backend (EOF)"));
         }
         else {
-          g_log << Logger::Error << "Short packet from recursor backend, " << len << " bytes" << endl;
+          SLOG(g_log << Logger::Error << "Short packet from recursor backend, " << len << " bytes" << endl,
+               d_slog->info(Logr::Error, "Short packet from recursor backend", "length", Logging::Loggable(len)));
         }
 
         continue;
       }
       if (fromaddr != d_remote) {
-        g_log << Logger::Error << "Got answer from unexpected host " << fromaddr.toStringWithPort() << " instead of our recursor backend " << d_remote.toStringWithPort() << endl;
+        SLOG(g_log << Logger::Error << "Got answer from unexpected host " << fromaddr.toStringWithPort() << " instead of our recursor backend " << d_remote.toStringWithPort() << endl,
+             d_slog->info(Logr::Error, "Got answer from unexpected host instead of our recursor backend", "answer from", Logging::Loggable(fromaddr.toStringWithPort()), "expected", Logging::Loggable(d_remote.toStringWithPort())));
         continue;
       }
       (*d_resanswers)++;
@@ -259,22 +275,25 @@ void DNSProxy::mainloop()
 
         auto iter = conntrack->find(dHead.id ^ d_xor);
         if (iter == conntrack->end()) {
-          g_log << Logger::Error << "Discarding untracked packet from recursor backend with id " << (dHead.id ^ d_xor) << ". Conntrack table size=" << conntrack->size() << endl;
+          SLOG(g_log << Logger::Error << "Discarding untracked packet from recursor backend with id " << (dHead.id ^ d_xor) << ". Conntrack table size=" << conntrack->size() << endl,
+               d_slog->info(Logr::Error, "Discarding untracked packet from recursor backend", "id", Logging::Loggable(dHead.id ^ d_xor), "conntrack table size", Logging::Loggable(conntrack->size())));
           continue;
         }
         if (iter->second.created == 0) {
-          g_log << Logger::Error << "Received packet from recursor backend with id " << (dHead.id ^ d_xor) << " which is a duplicate" << endl;
+          SLOG(g_log << Logger::Error << "Received packet from recursor backend with id " << (dHead.id ^ d_xor) << " which is a duplicate" << endl,
+               d_slog->info(Logr::Error, "Discarding received packet from recursor backend with duplicate id", "id", Logging::Loggable(dHead.id ^ d_xor)));
           continue;
         }
 
         dHead.id = iter->second.id;
         memcpy(&buffer[0], &dHead, sizeof(dHead)); // commit spoofed id
 
-        DNSPacket packet(false);
+        DNSPacket packet(d_slog, false);
         packet.parse(&buffer[0], (size_t)len);
 
         if (packet.qtype.getCode() != iter->second.qtype || packet.qdomain != iter->second.qname) {
-          g_log << Logger::Error << "Discarding packet from recursor backend with id " << (dHead.id ^ d_xor) << ", qname or qtype mismatch (" << packet.qtype.getCode() << " v " << iter->second.qtype << ", " << packet.qdomain << " v " << iter->second.qname << ")" << endl;
+          SLOG(g_log << Logger::Error << "Discarding packet from recursor backend with id " << (dHead.id ^ d_xor) << ", qname or qtype mismatch (" << packet.qtype.getCode() << " v " << iter->second.qtype << ", " << packet.qdomain << " v " << iter->second.qname << ")" << endl,
+               d_slog->info(Logr::Error, "Discarding received packet from recursor backend with name or type mismatch", "id", Logging::Loggable(dHead.id ^ d_xor), "type", Logging::Loggable(packet.qtype), "expected type", Logging::Loggable(iter->second.qtype), "name", Logging::Loggable(packet.qdomain), "expected name", Logging::Loggable(iter->second.qname)));
           continue;
         }
 
@@ -285,7 +304,8 @@ void DNSProxy::mainloop()
         // update the EDNS options with info from the resolver - issue #5469
         // note that this relies on the ECS string encoder to use the source network, and only take the prefix length from scope
         iter->second.complete->d_eso.setScopePrefixLength(packet.d_eso.getScopePrefixLength());
-        DLOG(g_log << "from dnsproxy::mainLoop: updated EDNS options from resolver EDNS source: " << iter->second.complete->d_eso.getSource().toString() << " EDNS scope: " << iter->second.complete->d_eso.getScope().toString() << endl);
+        DLOG(SLOG(g_log << "from dnsproxy::mainLoop: updated EDNS options from resolver EDNS source: " << iter->second.complete->d_eso.getSource().toString() << " EDNS scope: " << iter->second.complete->d_eso.getScope().toString() << endl,
+                  d_slog->info(Logr::Debug, "DNSProxy::mainloop: updated EDNS options from resolver EDNS", "source", Logging::Loggable(iter->second.complete->d_eso.getSource()), "scope", Logging::Loggable(iter->second.complete->d_eso.getScope()))));
 
         if (mdp.d_header.rcode == RCode::NoError) {
           for (const auto& answer : mdp.d_answers) {
@@ -306,7 +326,8 @@ void DNSProxy::mainloop()
           iter->second.complete->setRcode(mdp.d_header.rcode);
         }
         else {
-          g_log << Logger::Error << "Error resolving for " << iter->second.aname << " ALIAS " << iter->second.qname << " over UDP, " << QType(iter->second.qtype).toString() << "-record query returned " << RCode::to_s(mdp.d_header.rcode) << ", returning SERVFAIL" << endl;
+          SLOG(g_log << Logger::Error << "Error resolving for " << iter->second.aname << " ALIAS " << iter->second.qname << " over UDP, " << QType(iter->second.qtype).toString() << "-record query returned " << RCode::to_s(mdp.d_header.rcode) << ", returning SERVFAIL" << endl,
+               d_slog->info(Logr::Error, "Error resolving ALIAS over UDP, returning SERVFAIL", "alias", Logging::Loggable(iter->second.aname), "query", Logging::Loggable(iter->second.qname), "type", Logging::Loggable(iter->second.qtype), "result", Logging::Loggable(RCode::to_s(mdp.d_header.rcode))));
           iter->second.complete->clearRecords();
           iter->second.complete->setRcode(RCode::ServFail);
         }
@@ -325,22 +346,27 @@ void DNSProxy::mainloop()
         }
         if (sendmsg(iter->second.outsock, &msgh, 0) < 0) {
           int err = errno;
-          g_log << Logger::Warning << "dnsproxy.cc: Error sending reply with sendmsg (socket=" << iter->second.outsock << "): " << stringerror(err) << endl;
+          SLOG(g_log << Logger::Warning << "dnsproxy.cc: Error sending reply with sendmsg (socket=" << iter->second.outsock << "): " << stringerror(err) << endl,
+               d_slog->error(Logr::Warning, errno, "DNSProxy::mainloop: sendmsg() failed", "socket", Logging::Loggable(iter->second.outsock)));
         }
         iter->second.created = 0;
       }
     }
   }
   catch (PDNSException& ae) {
-    g_log << Logger::Error << "Fatal error in DNS proxy: " << ae.reason << endl;
+    SLOG(g_log << Logger::Error << "Fatal error in DNS proxy: " << ae.reason << endl,
+         d_slog->error(Logr::Error, ae.reason, "Fatal error in DNS proxy"));
   }
   catch (std::exception& e) {
-    g_log << Logger::Error << "Communicator thread died because of STL error: " << e.what() << endl;
+    SLOG(g_log << Logger::Error << "DNS Proxy thread died because of STL error: " << e.what() << endl,
+         d_slog->error(Logr::Error, e.what(), "DNS proxy thread died because of STL error"));
   }
   catch (...) {
-    g_log << Logger::Error << "Caught unknown exception." << endl;
+    SLOG(g_log << Logger::Error << "Caught unknown exception." << endl,
+         d_slog->info(Logr::Error, "DNS proxy caught an unknown exception"));
   }
-  g_log << Logger::Error << "Exiting because DNS proxy failed" << endl;
+  SLOG(g_log << Logger::Error << "Exiting because DNS proxy failed" << endl,
+       d_slog->info(Logr::Error, "Exiting because DNS proxy failed"));
   _exit(1);
 }
 

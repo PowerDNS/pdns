@@ -42,6 +42,8 @@ using std::map;
 using std::string;
 using std::vector;
 
+bool g_slogStructured{false};
+
 StatBag S;
 ArgvMap args;
 bool g_dnsttl;

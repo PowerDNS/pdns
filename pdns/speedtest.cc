@@ -20,6 +20,8 @@
 #include <sodium.h>
 #endif
 
+bool g_slogStructured{false};
+
 #ifndef RECURSOR
 #include "statbag.hh"
 #include "base64.hh"

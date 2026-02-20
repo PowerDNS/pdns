@@ -34,6 +34,7 @@
 #include "namespaces.hh"
 #include "dnspacket.hh"
 #include "responsestats.hh"
+#include "logging.hh"
 
 /** This is the main class. It opens a socket on udp port 53 and waits for packets. Those packets can 
     be retrieved with the receive() member function, which returns a DNSPacket.
@@ -78,7 +79,7 @@
 class UDPNameserver
 {
 public:
-  UDPNameserver( bool additional_socket = false );  //!< Opens the socket
+  UDPNameserver(Logr::log_t slog, bool additional_socket = false );  //!< Opens the socket
   bool receive(DNSPacket& packet, std::string& buffer); //!< call this in a while or for(;;) loop to get packets
   void send(DNSPacket&); //!< send a DNSPacket. Will call DNSPacket::truncate() if over 512 bytes
   inline bool canReusePort() {
@@ -91,6 +92,7 @@ private:
   vector<int> d_sockets;
   void bindAddresses();
   vector<pollfd> d_rfds;
+  std::shared_ptr<Logr::Logger> d_slog;
 };
 
 bool AddressIsUs(const ComboAddress& remote);

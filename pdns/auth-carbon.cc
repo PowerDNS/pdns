@@ -32,68 +32,70 @@
 
 #include "namespaces.hh"
 
-void carbonDumpThread()
-try
+void carbonDumpThread(Logr::log_t slog)
 {
-  setThreadName("pdns/carbonDump");
-  extern StatBag S;
+  try {
+    setThreadName("pdns/carbonDump");
+    extern StatBag S;
 
-  string namespace_name=arg()["carbon-namespace"];
-  string hostname=arg()["carbon-ourname"];
-  if (hostname.empty()) {
-    try {
-      hostname = getCarbonHostName();
-    }
-    catch(const std::exception& e) {
-      throw std::runtime_error(std::string("The 'carbon-ourname' setting has not been set and we are unable to determine the system's hostname: ") + e.what());
-    }
-  }
-  string instance_name=arg()["carbon-instance"];
-
-  vector<string> carbonServers;
-  stringtok(carbonServers, arg()["carbon-server"], ", ");
-
-  for(;;) {
-    if(carbonServers.empty()) {
-      sleep(1);
-      continue;
-    }
-
-    string msg;
-    vector<string> entries = S.getEntries();
-    ostringstream str;
-    time_t now=time(nullptr);
-    for(const string& entry : entries) {
-      str<<namespace_name<<'.'<<hostname<<'.'<<instance_name<<'.'<<entry<<' '<<S.read(entry)<<' '<<now<<"\r\n";
-    }
-    msg = str.str();
-
-    for (const auto& carbonServer : carbonServers) {
-      ComboAddress remote(carbonServer, 2003);
-
+    string namespace_name=arg()["carbon-namespace"];
+    string hostname=arg()["carbon-ourname"];
+    if (hostname.empty()) {
       try {
-        Socket s(remote.sin4.sin_family, SOCK_STREAM);
-        s.setNonBlocking();
-        s.connect(remote, 2);
-
-        writen2WithTimeout(s.getHandle(), msg.c_str(), msg.length(), timeval{2,0});
-      } catch (runtime_error &e){
-        g_log<<Logger::Warning<<"Unable to write data to carbon server at "<<remote.toStringWithPort()<<": "<<e.what()<<endl;
-        continue;
+        hostname = getCarbonHostName();
+      }
+      catch(const std::exception& e) {
+        throw std::runtime_error(std::string("The 'carbon-ourname' setting has not been set and we are unable to determine the system's hostname: ") + e.what());
       }
     }
-    sleep(arg().asNum("carbon-interval"));
+    string instance_name=arg()["carbon-instance"];
+
+    vector<string> carbonServers;
+    stringtok(carbonServers, arg()["carbon-server"], ", ");
+
+    for(;;) {
+      if(carbonServers.empty()) {
+        sleep(1);
+        continue;
+      }
+
+      string msg;
+      vector<string> entries = S.getEntries();
+      ostringstream str;
+      time_t now=time(nullptr);
+      for(const string& entry : entries) {
+        str<<namespace_name<<'.'<<hostname<<'.'<<instance_name<<'.'<<entry<<' '<<S.read(entry)<<' '<<now<<"\r\n";
+      }
+      msg = str.str();
+
+      for (const auto& carbonServer : carbonServers) {
+        ComboAddress remote(carbonServer, 2003);
+
+        try {
+          Socket s(remote.sin4.sin_family, SOCK_STREAM);
+          s.setNonBlocking();
+          s.connect(remote, 2);
+
+          writen2WithTimeout(s.getHandle(), msg.c_str(), msg.length(), timeval{2,0});
+        } catch (runtime_error &e){
+          SLOG(g_log<<Logger::Warning<<"Unable to write data to carbon server at "<<remote.toStringWithPort()<<": "<<e.what()<<endl,
+               slog->error(Logr::Warning, e.what(), "Unable to write data to carbon server", "remote", Logging::Loggable(remote.toStringWithPort())));
+          continue;
+        }
+      }
+      sleep(arg().asNum("carbon-interval"));
+    }
   }
-}
-catch(std::exception& e)
-{
-  g_log<<Logger::Error<<"Carbon thread died: "<<e.what()<<endl;
-}
-catch(PDNSException& e)
-{
-  g_log<<Logger::Error<<"Carbon thread died, PDNSException: "<<e.reason<<endl;
-}
-catch(...)
-{
-  g_log<<Logger::Error<<"Carbon thread died"<<endl;
+  catch(std::exception& e) {
+    SLOG(g_log<<Logger::Error<<"Carbon thread died: "<<e.what()<<endl,
+         slog->error(Logr::Error, e.what(), "Carbon thread died"));
+  }
+  catch(PDNSException& e) {
+    SLOG(g_log<<Logger::Error<<"Carbon thread died, PDNSException: "<<e.reason<<endl,
+         slog->error(Logr::Error, e.reason, "Carbon thread died with PDNSException"));
+  }
+  catch(...) {
+    SLOG(g_log<<Logger::Error<<"Carbon thread died"<<endl,
+         slog->error(Logr::Error, "Carbon thread died"));
+  }
 }

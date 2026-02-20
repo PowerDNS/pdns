@@ -35,6 +35,8 @@
 #include "statbag.hh"
 StatBag S;
 
+bool g_slogStructured{false};
+
 static void usage()
 {
   cerr<<"This program reads DNS queries and responses from a PCAP file and stores them into our protobuf format."<<endl;

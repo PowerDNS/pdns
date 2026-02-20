@@ -25,14 +25,17 @@
 #include "remotebackend.hh"
 #ifdef REMOTEBACKEND_ZEROMQ
 
-ZeroMQConnector::ZeroMQConnector(std::map<std::string, std::string> options) :
+ZeroMQConnector::ZeroMQConnector(Logr::log_t log, std::map<std::string, std::string> options) :
   d_ctx(std::unique_ptr<void, int (*)(void*)>(zmq_init(2), zmq_close)), d_sock(std::unique_ptr<void, int (*)(void*)>(zmq_socket(d_ctx.get(), ZMQ_REQ), zmq_close))
 {
   int opt = 0;
 
+  d_slog = log;
+
   // lookup timeout, target and stuff
   if (options.count("endpoint") == 0) {
-    g_log << Logger::Error << "Cannot find 'endpoint' option in connection string" << endl;
+    SLOG(g_log << Logger::Error << "Cannot find 'endpoint' option in connection string" << endl,
+         d_slog->info(Logr::Error, "Cannot find 'endpoint' option in connection string"));
     throw PDNSException("Cannot find 'endpoint' option in connection string");
   }
   this->d_endpoint = options.find("endpoint")->second;
@@ -46,7 +49,8 @@ ZeroMQConnector::ZeroMQConnector(std::map<std::string, std::string> options) :
   zmq_setsockopt(d_sock.get(), ZMQ_LINGER, &opt, sizeof(opt));
 
   if (zmq_connect(this->d_sock.get(), this->d_endpoint.c_str()) < 0) {
-    g_log << Logger::Error << "zmq_connect() failed" << zmq_strerror(errno) << std::endl;
+    SLOG(g_log << Logger::Error << "zmq_connect() failed" << zmq_strerror(errno) << std::endl,
+         d_slog->error(Logr::Error, zmq_strerror(errno), "zmq_connect() failed"));
     ;
     throw PDNSException("Cannot find 'endpoint' option in connection string");
   }
@@ -60,7 +64,8 @@ ZeroMQConnector::ZeroMQConnector(std::map<std::string, std::string> options) :
   this->send(msg);
   msg = nullptr;
   if (!this->recv(msg)) {
-    g_log << Logger::Error << "Failed to initialize zeromq" << std::endl;
+    SLOG(g_log << Logger::Error << "Failed to initialize zeromq" << std::endl,
+         d_slog->info(Logr::Error, "zeromq remote failed to initialize"));
     throw PDNSException("Failed to initialize zeromq");
   }
 };
@@ -85,7 +90,8 @@ int ZeroMQConnector::send_message(const Json& input)
       if (zmq_poll(&item, 1, 1) > 0) {
         if (zmq_msg_send(&message, this->d_sock.get(), 0) == -1) {
           // message was not sent
-          g_log << Logger::Error << "Cannot send to " << this->d_endpoint << ": " << zmq_strerror(errno) << std::endl;
+          SLOG(g_log << Logger::Error << "Cannot send to " << this->d_endpoint << ": " << zmq_strerror(errno) << std::endl,
+               d_slog->error(Logr::Error, zmq_strerror(errno), "Unable to send", "endpoint", Logging::Loggable(d_endpoint)));
         }
         else {
           return line.size();
@@ -94,7 +100,8 @@ int ZeroMQConnector::send_message(const Json& input)
     }
   }
   catch (std::exception& ex) {
-    g_log << Logger::Error << "Cannot send to " << this->d_endpoint << ": " << ex.what() << std::endl;
+    SLOG(g_log << Logger::Error << "Cannot send to " << this->d_endpoint << ": " << ex.what() << std::endl,
+         d_slog->error(Logr::Error, ex.what(), "Unable to send", "endpoint", Logging::Loggable(d_endpoint)));
     throw PDNSException(ex.what());
   }
 
@@ -133,7 +140,8 @@ int ZeroMQConnector::recv_message(Json& output)
               rv = msg_size;
             }
             else {
-              g_log << Logger::Error << "Cannot parse JSON reply from " << this->d_endpoint << ": " << err << endl;
+              SLOG(g_log << Logger::Error << "Cannot parse JSON reply from " << this->d_endpoint << ": " << err << endl,
+                   d_slog->error(Logr::Error, err, "Cannot parse JSON reply", "endpoint", Logging::Loggable(d_endpoint)));
             }
             break;
           }
@@ -146,7 +154,8 @@ int ZeroMQConnector::recv_message(Json& output)
     }
   }
   catch (std::exception& ex) {
-    g_log << Logger::Error << "Cannot receive from " << this->d_endpoint << ": " << ex.what() << std::endl;
+    SLOG(g_log << Logger::Error << "Cannot receive from " << this->d_endpoint << ": " << ex.what() << std::endl,
+         d_slog->error(Logr::Error, ex.what(), "Unable to receive", "endpoint", Logging::Loggable(d_endpoint)));
     throw PDNSException(ex.what());
   }
 

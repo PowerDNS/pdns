@@ -28,6 +28,7 @@
 #include "packetcache.hh"
 #include "dnsseckeeper.hh"
 #include "lua-auth4.hh"
+#include "pdns/logging.hh"
 
 #include "namespaces.hh"
 
@@ -54,7 +55,7 @@ class PacketHandler
 public:
   std::unique_ptr<DNSPacket> doQuestion(DNSPacket&); //!< hand us a DNS packet with a question, we give you an answer
   std::unique_ptr<DNSPacket> question(DNSPacket&); //!< hand us a DNS packet with a question, we give you an answer
-  PacketHandler(); 
+  PacketHandler(Logr::log_t slog); 
   ~PacketHandler(); // defined in packethandler.cc, and does --count
   static int numRunning(){return s_count;}; //!< Returns the number of running PacketHandlers. Called by Distributor
  
@@ -142,7 +143,8 @@ private:
   std::unique_ptr<AuthLua4> d_pdl;
   std::unique_ptr<AuthLua4> d_update_policy_lua;
   std::unique_ptr<AuthLua4> s_LUA;
-  UeberBackend B; // every thread an own instance
+  std::shared_ptr<Logr::Logger> d_slog;
+  UeberBackend B; // every thread has its own instance
   DNSSECKeeper d_dk; // B is shared with DNSSECKeeper
 };
 

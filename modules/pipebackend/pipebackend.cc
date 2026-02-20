@@ -48,11 +48,12 @@ static_assert(std::is_signed<domainid_t>::value);
 
 static const char* kBackendId = "[PIPEBackend]";
 
-CoWrapper::CoWrapper(const string& command, int timeout, int abiVersion)
+CoWrapper::CoWrapper(Logr::log_t log, const string& command, int timeout, int abiVersion)
 {
   d_command = command;
   d_timeout = timeout;
   d_abiVersion = abiVersion;
+  d_slog = log;
   launch(); // let exceptions fall through - if initial launch fails, we want to die
   // I think
 }
@@ -79,7 +80,8 @@ void CoWrapper::launch()
   d_cp->send("HELO\t" + std::to_string(d_abiVersion));
   string banner;
   d_cp->receive(banner);
-  g_log << Logger::Error << "Backend launched with banner: " << banner << endl;
+  SLOG(g_log << Logger::Error << "Backend launched with banner: " << banner << endl,
+       d_slog->info(Logr::Info, "launched", "banner", Logging::Loggable(banner)));
 }
 
 void CoWrapper::send(const string& line)
@@ -102,7 +104,8 @@ void CoWrapper::receive(string& line)
     return;
   }
   catch (PDNSException& ae) {
-    g_log << Logger::Warning << kBackendId << " Unable to receive data from coprocess. " << ae.reason << endl;
+    SLOG(g_log << Logger::Warning << kBackendId << " Unable to receive data from coprocess. " << ae.reason << endl,
+         d_slog->error(Logr::Warning, ae.reason, "Unable to receive data from coprocess"));
     d_cp.reset();
     throw;
   }
@@ -110,13 +113,17 @@ void CoWrapper::receive(string& line)
 
 PipeBackend::PipeBackend(const string& suffix)
 {
+  if (g_slogStructured) {
+    d_slog = g_slog->withName("pipe" + suffix);
+  }
   d_disavow = false;
   setArgPrefix("pipe" + suffix);
   try {
     launch();
   }
   catch (const ArgException& A) {
-    g_log << Logger::Error << kBackendId << " Unable to launch, fatal argument error: " << A.reason << endl;
+    SLOG(g_log << Logger::Error << kBackendId << " Unable to launch, fatal argument error: " << A.reason << endl,
+         d_slog->error(Logr::Error, A.reason, "Unable to launch coprocess"));
     throw;
   }
   catch (...) {
@@ -135,7 +142,7 @@ void PipeBackend::launch()
     }
     d_regexstr = getArg("regex");
     d_abiVersion = getArgAsNum("abi-version");
-    d_coproc = std::make_unique<CoWrapper>(getArg("command"), getArgAsNum("timeout"), getArgAsNum("abi-version"));
+    d_coproc = std::make_unique<CoWrapper>(d_slog, getArg("command"), getArgAsNum("timeout"), getArgAsNum("abi-version"));
   }
 
   catch (const ArgException& A) {
@@ -161,8 +168,10 @@ void PipeBackend::lookup(const QType& qtype, const DNSName& qname, domainid_t zo
     launch();
     d_disavow = false;
     if (d_regex && !d_regex->match(qname.toStringRootDot())) {
-      if (::arg().mustDo("query-logging"))
-        g_log << Logger::Error << "Query for '" << qname << "' failed regex '" << d_regexstr << "'" << endl;
+      if (::arg().mustDo("query-logging")) {
+        SLOG(g_log << Logger::Error << "Query for '" << qname << "' failed regex '" << d_regexstr << "'" << endl,
+             d_slog->info(Logr::Warning, "query failed regex", "name", Logging::Loggable(qname), "regex", Logging::Loggable(d_regexstr)));
+      }
       d_disavow = true; // don't pass to backend
     }
     else {
@@ -185,13 +194,16 @@ void PipeBackend::lookup(const QType& qtype, const DNSName& qname, domainid_t zo
       if (d_abiVersion >= 3)
         query << "\t" << realRemote.toString();
 
-      if (::arg().mustDo("query-logging"))
-        g_log << Logger::Error << "Query: '" << query.str() << "'" << endl;
+      if (::arg().mustDo("query-logging")) {
+        SLOG(g_log << Logger::Error << "Query: '" << query.str() << "'" << endl,
+             d_slog->info(Logr::Warning, "sending query", "query", Logging::Loggable(query.str())));
+      }
       d_coproc->send(query.str());
     }
   }
   catch (PDNSException& pe) {
-    g_log << Logger::Error << kBackendId << " Error from coprocess: " << pe.reason << endl;
+    SLOG(g_log << Logger::Error << kBackendId << " Error from coprocess: " << pe.reason << endl,
+         d_slog->error(Logr::Error, pe.reason, "Error from coprocess"));
     d_disavow = true;
   }
   d_qtype = qtype;
@@ -215,7 +227,8 @@ bool PipeBackend::list(const ZoneName& target, domainid_t domain_id, bool /* inc
     d_coproc->send(query.str());
   }
   catch (PDNSException& ae) {
-    g_log << Logger::Error << kBackendId << " Error from coprocess: " << ae.reason << endl;
+    SLOG(g_log << Logger::Error << kBackendId << " Error from coprocess: " << ae.reason << endl,
+         d_slog->error(Logr::Error, ae.reason, "Error from coprocess"));
   }
   d_qname = DNSName(std::to_string(domain_id)); // why do we store a number here??
   return true;
@@ -233,7 +246,8 @@ string PipeBackend::directBackendCmd(const string& query)
     d_coproc->send(oss.str());
   }
   catch (PDNSException& ae) {
-    g_log << Logger::Error << kBackendId << " Error from coprocess: " << ae.reason << endl;
+    SLOG(g_log << Logger::Error << kBackendId << " Error from coprocess: " << ae.reason << endl,
+         d_slog->error(Logr::Error, ae.reason, "Error from coprocess"));
     cleanup();
   }
 
@@ -256,7 +270,8 @@ PipeBackend::~PipeBackend()
 
 void PipeBackend::throwTooShortDataError(const std::string& what)
 {
-  g_log << Logger::Error << kBackendId << " Coprocess returned incomplete or empty line in data section for query for " << d_qname << endl;
+  SLOG(g_log << Logger::Error << kBackendId << " Coprocess returned incomplete or empty line in data section for query for " << d_qname << endl,
+       d_slog->info(Logr::Error, "Coprocess returned incomplete or empty line", "query", Logging::Loggable(d_qname)));
   throw PDNSException("Format error communicating with coprocess in data section" + what);
 }
 
@@ -277,7 +292,8 @@ bool PipeBackend::get(DNSResourceRecord& r)
       vector<string> parts;
       stringtok(parts, line, "\t");
       if (parts.empty()) {
-        g_log << Logger::Error << kBackendId << " Coprocess returned empty line in query for " << d_qname << endl;
+        SLOG(g_log << Logger::Error << kBackendId << " Coprocess returned empty line in query for " << d_qname << endl,
+             d_slog->info(Logr::Error, "Coprocess returned empty line", "query", Logging::Loggable(d_qname)));
         throw PDNSException("Format error communicating with coprocess");
       }
       else if (parts[0] == "FAIL") {
@@ -287,7 +303,8 @@ bool PipeBackend::get(DNSResourceRecord& r)
         return false;
       }
       else if (parts[0] == "LOG") {
-        g_log << Logger::Error << "Coprocess: " << line.substr(4) << endl;
+        SLOG(g_log << Logger::Error << "Coprocess: " << line.substr(4) << endl,
+             d_slog->info(Logr::Error, "Coprocess log message", "log", Logging::Loggable(line.substr(4))));
         continue;
       }
       else if (parts[0] == "DATA") { // yay
@@ -342,11 +359,13 @@ bool PipeBackend::get(DNSResourceRecord& r)
     }
   }
   catch (DBException& dbe) {
-    g_log << Logger::Error << kBackendId << " " << dbe.reason << endl;
+    SLOG(g_log << Logger::Error << kBackendId << " " << dbe.reason << endl,
+         d_slog->error(Logr::Error, dbe.reason, "Coprocess error"));
     throw;
   }
   catch (PDNSException& pe) {
-    g_log << Logger::Error << kBackendId << " " << pe.reason << endl;
+    SLOG(g_log << Logger::Error << kBackendId << " " << pe.reason << endl,
+         d_slog->error(Logr::Error, pe.reason, "Coprocess error"));
     cleanup();
     throw;
   }
@@ -383,11 +402,24 @@ public:
   PipeLoader()
   {
     BackendMakers().report(std::make_unique<PipeFactory>());
-    g_log << Logger::Info << kBackendId << " This is the pipe backend version " VERSION
+    // If this module is not loaded dynamically at runtime, this code runs
+    // as part of a global constructor, before the structured logger has a
+    // chance to be set up, so fallback to simple logging in this case.
+    if (!g_slogStructured || !g_slog) {
+      g_log << Logger::Info << kBackendId << " This is the pipe backend version " VERSION
 #ifndef REPRODUCIBLE
-          << " (" __DATE__ " " __TIME__ ")"
+            << " (" __DATE__ " " __TIME__ ")"
 #endif
-          << " reporting" << endl;
+            << " reporting" << endl;
+    }
+    else {
+      g_slog->withName("pipebackend")->info(Logr::Info, "pipe backend starting", "version", Logging::Loggable(VERSION)
+#ifndef REPRODUCIBLE
+                                                                                              ,
+                                            "build date", Logging::Loggable(__DATE__ " " __TIME__)
+#endif
+      );
+    }
   }
 };
 

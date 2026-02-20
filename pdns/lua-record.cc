@@ -54,6 +54,7 @@ private:
     ComboAddress rem;
     string url;
     opts_t opts;
+    std::shared_ptr<Logr::Logger> slog;
     bool operator<(const CheckDesc& rhs) const
     {
       std::map<string,string> oopts, rhsoopts;
@@ -89,8 +90,8 @@ public:
     d_checkerThreadStarted.clear();
   }
   ~IsUpOracle() = default;
-  int isUp(const ComboAddress& remote, const opts_t& opts);
-  int isUp(const ComboAddress& remote, const std::string& url, const opts_t& opts);
+  int isUp(Logr::log_t slog, const ComboAddress& remote, const opts_t& opts);
+  int isUp(Logr::log_t slog, const ComboAddress& remote, const std::string& url, const opts_t& opts);
   //NOLINTNEXTLINE(readability-identifier-length)
   int isUp(const CheckDesc& cd);
 
@@ -144,12 +145,14 @@ private:
       try {
         weight = stoi(content);
         if(!status) {
-          g_log<<Logger::Info<<"Lua record monitoring declaring "<<remstring<<" UP for URL "<<cd.url<<"!"<<" with WEIGHT "<<content<<"!"<<endl;
+          SLOG(g_log<<Logger::Info<<"Lua record monitoring declaring "<<remstring<<" UP for URL "<<cd.url<<"!"<<" with WEIGHT "<<content<<"!"<<endl,
+               cd.slog->info(Logr::Info, "Lua record monitoring declares url UP", "ip", Logging::Loggable(remstring), "url", Logging::Loggable(cd.url), "weight", Logging::Loggable(content)));
         }
       }
       catch (const std::exception&) {
         if(!status) {
-          g_log<<Logger::Info<<"Lua record monitoring declaring "<<remstring<<" UP for URL "<<cd.url<<"!"<<endl;
+          SLOG(g_log<<Logger::Info<<"Lua record monitoring declaring "<<remstring<<" UP for URL "<<cd.url<<"!"<<endl,
+               cd.slog->info(Logr::Info, "Lua record monitoring declares url UP", "ip", Logging::Loggable(remstring), "url", Logging::Loggable(cd.url)));
         }
       }
 
@@ -157,8 +160,10 @@ private:
       setUp(cd);
     }
     catch(std::exception& ne) {
-      if(status || first)
-        g_log<<Logger::Info<<"Lua record monitoring declaring "<<remstring<<" DOWN for URL "<<cd.url<<", error: "<<ne.what()<<endl;
+      if(status || first) {
+        SLOG(g_log<<Logger::Info<<"Lua record monitoring declaring "<<remstring<<" DOWN for URL "<<cd.url<<", error: "<<ne.what()<<endl,
+             cd.slog->error(Logr::Info, ne.what(), "Lua record monitoring declares url DOWN", "ip", Logging::Loggable(remstring), "url", Logging::Loggable(cd.url)));
+      }
       setWeight(cd, 0);
       setDown(cd);
     }
@@ -179,16 +184,28 @@ private:
       }
       s.connect(cd.rem, timeout);
       if (!status) {
-        g_log<<Logger::Info<<"Lua record monitoring declaring TCP/IP "<<cd.rem.toStringWithPort()<<" ";
-        if(cd.opts.count("source"))
-          g_log<<"(source "<<src.toString()<<") ";
-        g_log<<"UP!"<<endl;
+        if (g_slogStructured) {
+          if(cd.opts.count("source")) {
+            cd.slog->info(Logr::Info, "Lua record monitoring declares remote UP", "remote", Logging::Loggable(cd.rem.toStringWithPort()), "source", Logging::Loggable(src));
+          }
+          else {
+            cd.slog->info(Logr::Info, "Lua record monitoring declares remote UP", "remote", Logging::Loggable(cd.rem.toStringWithPort()));
+          }
+        }
+        else {
+          g_log<<Logger::Info<<"Lua record monitoring declaring TCP/IP "<<cd.rem.toStringWithPort()<<" ";
+          if(cd.opts.count("source")) {
+            g_log<<"(source "<<src.toString()<<") ";
+          }
+          g_log<<"UP!"<<endl;
+        }
       }
       setUp(cd);
     }
     catch (const NetworkError& ne) {
       if(status || first) {
-        g_log<<Logger::Info<<"Lua record monitoring declaring TCP/IP "<<cd.rem.toStringWithPort()<<" DOWN: "<<ne.what()<<endl;
+        SLOG(g_log<<Logger::Info<<"Lua record monitoring declaring TCP/IP "<<cd.rem.toStringWithPort()<<" DOWN: "<<ne.what()<<endl,
+            cd.slog->error(Logr::Info, ne.what(), "Lua record monitoring declares remote DOWN", "remote", Logging::Loggable(cd.rem.toStringWithPort())));
       }
       setDown(cd);
     }
@@ -358,15 +375,15 @@ int IsUpOracle::isUp(const CheckDesc& cd)
   return 0;
 }
 
-int IsUpOracle::isUp(const ComboAddress& remote, const opts_t& opts)
+int IsUpOracle::isUp(Logr::log_t slog, const ComboAddress& remote, const opts_t& opts)
 {
-  CheckDesc cd{remote, "", opts};
+  CheckDesc cd{remote, "", opts, slog};
   return isUp(cd);
 }
 
-int IsUpOracle::isUp(const ComboAddress& remote, const std::string& url, const opts_t& opts)
+int IsUpOracle::isUp(Logr::log_t slog, const ComboAddress& remote, const std::string& url, const opts_t& opts)
 {
-  CheckDesc cd{remote, url, opts};
+  CheckDesc cd{remote, url, opts, slog};
   return isUp(cd);
 }
 
@@ -387,13 +404,14 @@ bool doCompare(const T& var, const std::string& res, const C& cmp)
 }
 }
 
-static std::string getGeo(const std::string& ip, GeoIPInterface::GeoIPQueryAttribute qa)
+static std::string getGeo(Logr::log_t slog, const std::string& ip, GeoIPInterface::GeoIPQueryAttribute qa)
 {
   static bool initialized;
   extern std::function<std::string(const std::string& ip, int)> g_getGeo;
   if(!g_getGeo) {
     if(!initialized) {
-      g_log<<Logger::Error<<"Lua record attempted to use GeoIPBackend functionality, but backend not launched"<<endl;
+      SLOG(g_log<<Logger::Error<<"Lua record attempted to use GeoIPBackend functionality, but backend not launched"<<endl,
+           slog->info(Logr::Error, "Lua record attempted to use GeoIPBackend functionality, but backend not launched"));
       initialized=true;
     }
     return "unknown";
@@ -520,9 +538,9 @@ static vector<T> pickRandomSample(int n, const vector<T>& items)
   return result;
 }
 
-static bool getLatLon(const std::string& ip, double& lat, double& lon)
+static bool getLatLon(Logr::log_t slog, const std::string& ip, double& lat, double& lon)
 {
-  string inp = getGeo(ip, GeoIPInterface::Location);
+  string inp = getGeo(slog, ip, GeoIPInterface::Location);
   if(inp.empty())
     return false;
   lat=atof(inp.c_str());
@@ -532,14 +550,14 @@ static bool getLatLon(const std::string& ip, double& lat, double& lon)
   return true;
 }
 
-static bool getLatLon(const std::string& ip, string& loc)
+static bool getLatLon(Logr::log_t slog, const std::string& ip, string& loc)
 {
   int latdeg, latmin, londeg, lonmin;
   double latsec, lonsec;
   char lathem='X', lonhem='X';
 
   double lat = 0, lon = 0;
-  if(!getLatLon(ip, lat, lon))
+  if(!getLatLon(slog, ip, lat, lon))
     return false;
 
   if(lat > 0) {
@@ -574,19 +592,19 @@ static bool getLatLon(const std::string& ip, string& loc)
   return true;
 }
 
-static ComboAddress pickclosest(const ComboAddress& bestwho, const vector<ComboAddress>& wips)
+static ComboAddress pickclosest(Logr::log_t slog, const ComboAddress& bestwho, const vector<ComboAddress>& wips)
 {
   if (wips.empty()) {
     throw std::invalid_argument("The IP list cannot be empty");
   }
   map<double, vector<ComboAddress> > ranked;
   double wlat=0, wlon=0;
-  getLatLon(bestwho.toString(), wlat, wlon);
+  getLatLon(slog, bestwho.toString(), wlat, wlon);
   //        cout<<"bestwho "<<wlat<<", "<<wlon<<endl;
   vector<string> ret;
   for(const auto& c : wips) {
     double lat=0, lon=0;
-    getLatLon(c.toString(), lat, lon);
+    getLatLon(slog, c.toString(), lat, lon);
     //          cout<<c.toString()<<": "<<lat<<", "<<lon<<endl;
     double latdiff = wlat-lat;
     double londiff = wlon-lon;
@@ -635,7 +653,7 @@ static std::string getOptionValue(const boost::optional<opts_t>& options, const 
   return selector;
 }
 
-static vector<ComboAddress> useSelector(const std::string &selector, const ComboAddress& bestwho, const vector<ComboAddress>& candidates)
+static vector<ComboAddress> useSelector(Logr::log_t slog, const std::string &selector, const ComboAddress& bestwho, const vector<ComboAddress>& candidates)
 {
   vector<ComboAddress> ret;
 
@@ -646,11 +664,12 @@ static vector<ComboAddress> useSelector(const std::string &selector, const Combo
   else if(selector=="random")
     ret.emplace_back(pickRandom<ComboAddress>(candidates));
   else if(selector=="pickclosest")
-    ret.emplace_back(pickclosest(bestwho, candidates));
+    ret.emplace_back(pickclosest(slog, bestwho, candidates));
   else if(selector=="hashed")
     ret.emplace_back(pickHashed<ComboAddress>(bestwho, candidates));
   else {
-    g_log<<Logger::Warning<<"Lua record called with unknown selector '"<<selector<<"'"<<endl;
+    SLOG(g_log<<Logger::Warning<<"Lua record called with unknown selector '"<<selector<<"'"<<endl,
+         slog->info(Logr::Warning, "Lua record called with unknown selector", "selector", Logging::Loggable(selector)));
     ret.emplace_back(pickRandom<ComboAddress>(candidates));
   }
 
@@ -891,7 +910,7 @@ static std::string pickConsistentWeightedHashed(const ComboAddress& bestwho, con
   return {};
 }
 
-static vector<string> genericIfUp(const boost::variant<iplist_t, ipunitlist_t>& ips, boost::optional<opts_t> options, const std::function<int(const ComboAddress&, const opts_t&)>& upcheckf, uint16_t port = 0)
+static vector<string> genericIfUp(Logr::log_t slog, const boost::variant<iplist_t, ipunitlist_t>& ips, boost::optional<opts_t> options, const std::function<int(Logr::log_t, const ComboAddress&, const opts_t&)>& upcheckf, uint16_t port = 0)
 {
   vector<vector<ComboAddress> > candidates;
   opts_t opts;
@@ -905,7 +924,7 @@ static vector<string> genericIfUp(const boost::variant<iplist_t, ipunitlist_t>& 
   for(const auto& unit : candidates) {
     vector<ComboAddress> available;
     for(const auto& address : unit) {
-      int status = upcheckf(address, opts);
+      int status = upcheckf(slog, address, opts);
       if (status > 0) {
         available.push_back(address);
       }
@@ -914,7 +933,7 @@ static vector<string> genericIfUp(const boost::variant<iplist_t, ipunitlist_t>& 
       }
     }
     if(!available.empty()) {
-      vector<ComboAddress> res = useSelector(getOptionValue(options, "selector", "random"), s_lua_record_ctx->bestwho, available);
+      vector<ComboAddress> res = useSelector(slog, getOptionValue(options, "selector", "random"), s_lua_record_ctx->bestwho, available);
       return convComboAddressListToString(res);
     }
   }
@@ -930,28 +949,28 @@ static vector<string> genericIfUp(const boost::variant<iplist_t, ipunitlist_t>& 
     ret.insert(ret.end(), unit.begin(), unit.end());
   }
 
-  vector<ComboAddress> res = useSelector(getOptionValue(options, "backupSelector", "random"), s_lua_record_ctx->bestwho, ret);
+  vector<ComboAddress> res = useSelector(slog, getOptionValue(options, "backupSelector", "random"), s_lua_record_ctx->bestwho, ret);
   return convComboAddressListToString(res);
 }
 
 // Lua functions available to the user
 
-static string lua_latlon()
+static string lua_latlon(Logr::log_t slog)
 {
   double lat{0};
   double lon{0};
-  getLatLon(s_lua_record_ctx->bestwho.toString(), lat, lon);
+  getLatLon(slog, s_lua_record_ctx->bestwho.toString(), lat, lon);
   return std::to_string(lat)+" "+std::to_string(lon);
 }
 
-static string lua_latlonloc()
+static string lua_latlonloc(Logr::log_t slog)
 {
   string loc;
-  getLatLon(s_lua_record_ctx->bestwho.toString(), loc);
+  getLatLon(slog, s_lua_record_ctx->bestwho.toString(), loc);
   return loc;
 }
 
-static string lua_closestMagic()
+static string lua_closestMagic(Logr::log_t slog)
 {
   vector<ComboAddress> candidates;
   // Getting something like 192-0-2-1.192-0-2-2.198-51-100-1.example.org
@@ -964,10 +983,10 @@ static string lua_closestMagic()
       break ;
     }
   }
-  return pickclosest(s_lua_record_ctx->bestwho, candidates).toString();
+  return pickclosest(slog, s_lua_record_ctx->bestwho, candidates).toString();
 }
 
-static string lua_latlonMagic()
+static string lua_latlonMagic(Logr::log_t slog)
 {
   auto labels = s_lua_record_ctx->qname.getRawLabels();
   if (labels.size() < 4) {
@@ -975,11 +994,11 @@ static string lua_latlonMagic()
   }
   double lat{0};
   double lon{0};
-  getLatLon(labels[3]+"."+labels[2]+"."+labels[1]+"."+labels[0], lat, lon);
+  getLatLon(slog, labels[3]+"."+labels[2]+"."+labels[1]+"."+labels[0], lat, lon);
   return std::to_string(lat)+" "+std::to_string(lon);
 }
 
-static string lua_createReverse(const string &format, boost::optional<opts_t> exceptions)
+static string lua_createReverse(Logr::log_t slog, const string &format, boost::optional<opts_t> exceptions)
 {
   try {
     auto labels = s_lua_record_ctx->qname.getRawLabels();
@@ -1014,10 +1033,12 @@ static string lua_createReverse(const string &format, boost::optional<opts_t> ex
     return fmt.str();
   }
   catch(std::exception& ex) {
-    g_log<<Logger::Error<<"createReverse error: "<<ex.what()<<endl;
+    SLOG(g_log<<Logger::Error<<"createReverse error: "<<ex.what()<<endl,
+         slog->error(Logr::Error, ex.what(), "Lua record exception in createReverse"));
   }
   catch (const PDNSException &e) {
-    g_log<<Logger::Error<<"createReverse error: "<<e.reason<<endl;
+    SLOG(g_log<<Logger::Error<<"createReverse error: "<<e.reason<<endl,
+         slog->error(Logr::Error, e.reason, "Lua record exception in createReverse"));
   }
   return {"error"};
 }
@@ -1140,7 +1161,7 @@ static string lua_createForward6()
   }
 }
 
-static string lua_createReverse6(const string &format, boost::optional<opts_t> exceptions)
+static string lua_createReverse6(Logr::log_t slog, const string &format, boost::optional<opts_t> exceptions)
 {
   try {
     auto labels= s_lua_record_ctx->qname.getRawLabels();
@@ -1201,10 +1222,12 @@ static string lua_createReverse6(const string &format, boost::optional<opts_t> e
     return fmt.str();
   }
   catch(std::exception& ex) {
-    g_log<<Logger::Error<<"createReverse6 exception: "<<ex.what()<<endl;
+    SLOG(g_log<<Logger::Error<<"createReverse6 exception: "<<ex.what()<<endl,
+         slog->error(Logr::Error, ex.what(), "Lua record exception in createReverse6"));
   }
   catch(PDNSException& ex) {
-    g_log<<Logger::Error<<"createReverse6 exception: "<<ex.reason<<endl;
+    SLOG(g_log<<Logger::Error<<"createReverse6 exception: "<<ex.reason<<endl,
+         slog->error(Logr::Error, ex.reason, "Lua record exception in createReverse6"));
   }
   return {"error"};
 }
@@ -1238,18 +1261,18 @@ static vector<string> lua_filterForward(const string& address, NetmaskGroup& nmg
  *
  * @example ifportup(443, { '1.2.3.4', '5.4.3.2' })"
  */
-static vector<string> lua_ifportup(int port, const boost::variant<iplist_t, ipunitlist_t>& ips, boost::optional<opts_t> options)
+static vector<string> lua_ifportup(Logr::log_t slog, int port, const boost::variant<iplist_t, ipunitlist_t>& ips, boost::optional<opts_t> options)
 {
   port = std::max(port, 0);
   port = std::min(port, static_cast<int>(std::numeric_limits<uint16_t>::max()));
 
-  auto checker = [](const ComboAddress& addr, const opts_t& opts) -> int {
-    return g_up.isUp(addr, opts);
+  auto checker = [](Logr::log_t log, const ComboAddress& addr, const opts_t& opts) -> int {
+    return g_up.isUp(log, addr, opts);
   };
-  return genericIfUp(ips, std::move(options), checker, port);
+  return genericIfUp(slog, ips, std::move(options), checker, port);
 }
 
-static vector<string> lua_ifurlextup(const vector<pair<int, opts_t> >& ipurls, boost::optional<opts_t> options)
+static vector<string> lua_ifurlextup(Logr::log_t slog, const vector<pair<int, opts_t> >& ipurls, boost::optional<opts_t> options)
 {
   vector<ComboAddress> candidates;
   opts_t opts;
@@ -1270,7 +1293,7 @@ static vector<string> lua_ifurlextup(const vector<pair<int, opts_t> >& ipurls, b
       // unit: ["192.0.2.1"] = "https://example.com"
       ComboAddress address(ipStr);
       candidates.push_back(address);
-      int status = g_up.isUp(ca_unspec, url, opts);
+      int status = g_up.isUp(slog, ca_unspec, url, opts);
       if (status > 0) {
         available.push_back(address);
       }
@@ -1279,7 +1302,7 @@ static vector<string> lua_ifurlextup(const vector<pair<int, opts_t> >& ipurls, b
       }
     }
     if(!available.empty()) {
-      vector<ComboAddress> res = useSelector(getOptionValue(options, "selector", "random"), s_lua_record_ctx->bestwho, available);
+      vector<ComboAddress> res = useSelector(slog, getOptionValue(options, "selector", "random"), s_lua_record_ctx->bestwho, available);
       return convComboAddressListToString(res);
     }
   }
@@ -1290,16 +1313,16 @@ static vector<string> lua_ifurlextup(const vector<pair<int, opts_t> >& ipurls, b
   }
 
   // Apply backupSelector on all candidates
-  vector<ComboAddress> res = useSelector(getOptionValue(options, "backupSelector", "random"), s_lua_record_ctx->bestwho, candidates);
+  vector<ComboAddress> res = useSelector(slog, getOptionValue(options, "backupSelector", "random"), s_lua_record_ctx->bestwho, candidates);
   return convComboAddressListToString(res);
 }
 
-static vector<string> lua_ifurlup(const std::string& url, const boost::variant<iplist_t, ipunitlist_t>& ips, boost::optional<opts_t> options)
+static vector<string> lua_ifurlup(Logr::log_t slog, const std::string& url, const boost::variant<iplist_t, ipunitlist_t>& ips, boost::optional<opts_t> options)
 {
-  auto checker = [&url](const ComboAddress& addr, const opts_t& opts) -> int {
-    return g_up.isUp(addr, url, opts);
+  auto checker = [&url](Logr::log_t log, const ComboAddress& addr, const opts_t& opts) -> int {
+    return g_up.isUp(log, addr, url, opts);
   };
-  return genericIfUp(ips, std::move(options), checker);
+  return genericIfUp(slog, ips, std::move(options), checker);
 }
 
 /*
@@ -1317,7 +1340,7 @@ static string lua_pickrandom(const iplist_t& ips)
  * supplied, weighted according to the results of isUp calls.
  * @example pickselfweighted('http://example.com/weight', { "192.0.2.20", "203.0.113.4", "203.0.113.2" })
  */
-static string lua_pickselfweighted(const std::string& url, const iplist_t& ips, boost::optional<opts_t> options)
+static string lua_pickselfweighted(Logr::log_t slog, const std::string& url, const iplist_t& ips, boost::optional<opts_t> options)
 {
   vector< pair<int, ComboAddress> > items;
   opts_t opts;
@@ -1331,7 +1354,7 @@ static string lua_pickselfweighted(const std::string& url, const iplist_t& ips, 
   vector<ComboAddress> conv = convComboAddressList(ips);
   for (auto& entry : conv) {
     int weight = 0;
-    weight = g_up.isUp(entry, url, opts);
+    weight = g_up.isUp(slog, entry, url, opts);
     if(weight>0) {
       available = true;
     }
@@ -1419,11 +1442,11 @@ static string lua_pickchashed(const std::unordered_map<int, wiplist_t>& ips)
   return pickConsistentWeightedHashed(s_lua_record_ctx->bestwho, items);
 }
 
-static string lua_pickclosest(const iplist_t& ips)
+static string lua_pickclosest(Logr::log_t slog, const iplist_t& ips)
 {
   vector<ComboAddress> conv = convComboAddressList(ips);
 
-  return pickclosest(s_lua_record_ctx->bestwho, conv).toString();
+  return pickclosest(slog, s_lua_record_ctx->bestwho, conv).toString();
 }
 
 static void lua_report(const string& /* event */, const boost::optional<string>& /* line */)
@@ -1431,71 +1454,71 @@ static void lua_report(const string& /* event */, const boost::optional<string>&
   throw std::runtime_error("Script took too long");
 }
 
-static string lua_geoiplookup(const string &address, const GeoIPInterface::GeoIPQueryAttribute attr)
+static string lua_geoiplookup(Logr::log_t slog, const string &address, const GeoIPInterface::GeoIPQueryAttribute attr)
 {
-  return getGeo(address, attr);
+  return getGeo(slog, address, attr);
 }
 
 using combovar_t = const boost::variant<string,vector<pair<int,string> > >;
 
-static bool lua_asnum(const combovar_t& asns)
+static bool lua_asnum(Logr::log_t slog, const combovar_t& asns)
 {
-  string res=getGeo(s_lua_record_ctx->bestwho.toString(), GeoIPInterface::ASn);
+  string res=getGeo(slog, s_lua_record_ctx->bestwho.toString(), GeoIPInterface::ASn);
   return doCompare(asns, res, [](const std::string& arg1, const std::string& arg2) -> bool {
       return strcasecmp(arg1.c_str(), arg2.c_str()) == 0;
     });
 }
 
-static bool lua_continent(const combovar_t& continent)
+static bool lua_continent(Logr::log_t slog, const combovar_t& continent)
 {
-  string res=getGeo(s_lua_record_ctx->bestwho.toString(), GeoIPInterface::Continent);
+  string res=getGeo(slog, s_lua_record_ctx->bestwho.toString(), GeoIPInterface::Continent);
   return doCompare(continent, res, [](const std::string& arg1, const std::string& arg2) -> bool {
       return strcasecmp(arg1.c_str(), arg2.c_str()) == 0;
     });
 }
 
-static string lua_continentCode()
+static string lua_continentCode(Logr::log_t slog)
 {
   string unknown("unknown");
-  string res = getGeo(s_lua_record_ctx->bestwho.toString(), GeoIPInterface::Continent);
+  string res = getGeo(slog, s_lua_record_ctx->bestwho.toString(), GeoIPInterface::Continent);
   if ( res == unknown ) {
    return {"--"};
   }
   return res;
 }
 
-static bool lua_country(const combovar_t& var)
+static bool lua_country(Logr::log_t slog, const combovar_t& var)
 {
-  string res = getGeo(s_lua_record_ctx->bestwho.toString(), GeoIPInterface::Country2);
+  string res = getGeo(slog, s_lua_record_ctx->bestwho.toString(), GeoIPInterface::Country2);
   return doCompare(var, res, [](const std::string& arg1, const std::string& arg2) -> bool {
       return strcasecmp(arg1.c_str(), arg2.c_str()) == 0;
     });
 
 }
 
-static string lua_countryCode()
+static string lua_countryCode(Logr::log_t slog)
 {
   string unknown("unknown");
-  string res = getGeo(s_lua_record_ctx->bestwho.toString(), GeoIPInterface::Country2);
+  string res = getGeo(slog, s_lua_record_ctx->bestwho.toString(), GeoIPInterface::Country2);
   if (res == unknown) {
    return {"--"};
   }
   return res;
 }
 
-static bool lua_region(const combovar_t& var)
+static bool lua_region(Logr::log_t slog, const combovar_t& var)
 {
-  string res = getGeo(s_lua_record_ctx->bestwho.toString(), GeoIPInterface::Region);
+  string res = getGeo(slog, s_lua_record_ctx->bestwho.toString(), GeoIPInterface::Region);
   return doCompare(var, res, [](const std::string& arg1, const std::string& arg2) -> bool {
       return strcasecmp(arg1.c_str(), arg2.c_str()) == 0;
     });
 
 }
 
-static string lua_regionCode()
+static string lua_regionCode(Logr::log_t slog)
 {
   string unknown("unknown");
-  string res = getGeo(s_lua_record_ctx->bestwho.toString(), GeoIPInterface::Region);
+  string res = getGeo(slog, s_lua_record_ctx->bestwho.toString(), GeoIPInterface::Region);
   if ( res == unknown ) {
    return {"--"};
   }
@@ -1555,7 +1578,7 @@ static vector<string> lua_all(const vector< pair<int,string> >& ips)
   return result;
 }
 
-static vector<string> lua_dblookup(const string& record, uint16_t qtype)
+static vector<string> lua_dblookup(Logr::log_t slog, const string& record, uint16_t qtype)
 {
   ZoneName rec;
   vector<string> ret;
@@ -1563,7 +1586,8 @@ static vector<string> lua_dblookup(const string& record, uint16_t qtype)
     rec = ZoneName(record);
   }
   catch (const std::exception& e) {
-    g_log << Logger::Error << "DB lookup cannot be performed, the name (" << record << ") is malformed: " << e.what() << endl;
+    SLOG(g_log << Logger::Error << "DB lookup cannot be performed, the name (" << record << ") is malformed: " << e.what() << endl,
+         slog->error(Logr::Error, e.what(), "DB lookup cannot be performed", "record", Logging::Loggable(record)));
     return ret;
   }
   try {
@@ -1579,18 +1603,20 @@ static vector<string> lua_dblookup(const string& record, uint16_t qtype)
     }
   }
   catch (std::exception& e) {
-    g_log << Logger::Error << "Failed to do DB lookup for " << rec << "/" << qtype << ": " << e.what() << endl;
+    SLOG(g_log << Logger::Error << "Failed to do DB lookup for " << rec << "/" << qtype << ": " << e.what() << endl,
+         slog->error(Logr::Error, e.what(), "DB lookup failed", "record", Logging::Loggable(rec), "type", Logging::Loggable(qtype)));
   }
   return ret;
 }
 
-static void lua_include(LuaContext& lua, const string& record)
+static void lua_include(Logr::log_t slog, LuaContext& lua, const string& record)
 {
   DNSName rec;
   try {
     rec = DNSName(record) + s_lua_record_ctx->zone;
   } catch (const std::exception &e){
-    g_log<<Logger::Error<<"Included record cannot be loaded, the name ("<<record<<") is malformed: "<<e.what()<<endl;
+    SLOG(g_log<<Logger::Error<<"Included record cannot be loaded, the name ("<<record<<") is malformed: "<<e.what()<<endl,
+         slog->error(Logr::Error, e.what(), "included record cannot be loaded", "record", Logging::Loggable(record)));
     return;
   }
   try {
@@ -1601,7 +1627,8 @@ static void lua_include(LuaContext& lua, const string& record)
     }
   }
   catch(std::exception& e) {
-    g_log<<Logger::Error<<"Failed to load include record for Lua record "<<rec<<": "<<e.what()<<endl;
+    SLOG(g_log<<Logger::Error<<"Failed to load include record for Lua record "<<rec<<": "<<e.what()<<endl,
+         slog->error(Logr::Error, e.what(), "Failed to load included record", "record", Logging::Loggable(rec)));
   }
 }
 
@@ -1618,23 +1645,23 @@ static std::unordered_map<std::string, int> lua_variables{
   {"Location", GeoIPInterface::GeoIPQueryAttribute::Location}
 };
 
-static void setupLuaRecords(LuaContext& lua)
+static void setupLuaRecords(Logr::log_t slog, LuaContext& lua)
 {
   lua.writeFunction("report", [](const string& event, const boost::optional<string>& line) -> void {
       lua_report(event, line);
     });
 
-  lua.writeFunction("latlon", []() -> string {
-      return lua_latlon();
+  lua.writeFunction("latlon", [slog]() -> string {
+      return lua_latlon(slog);
     });
-  lua.writeFunction("latlonloc", []() -> string {
-      return lua_latlonloc();
+  lua.writeFunction("latlonloc", [slog]() -> string {
+      return lua_latlonloc(slog);
     });
-  lua.writeFunction("closestMagic", []() -> string {
-      return lua_closestMagic();
+  lua.writeFunction("closestMagic", [slog]() -> string {
+      return lua_closestMagic(slog);
     });
-  lua.writeFunction("latlonMagic", []()-> string {
-      return lua_latlonMagic();
+  lua.writeFunction("latlonMagic", [slog]()-> string {
+      return lua_latlonMagic(slog);
     });
 
   lua.writeFunction("createForward", []() -> string {
@@ -1644,35 +1671,35 @@ static void setupLuaRecords(LuaContext& lua)
       return lua_createForward6();
     });
 
-  lua.writeFunction("createReverse", [](const string &format, boost::optional<opts_t> exceptions) -> string {
-      return lua_createReverse(format, std::move(exceptions));
+  lua.writeFunction("createReverse", [slog](const string &format, boost::optional<opts_t> exceptions) -> string {
+      return lua_createReverse(slog, format, std::move(exceptions));
     });
-  lua.writeFunction("createReverse6", [](const string &format, boost::optional<opts_t> exceptions) -> string {
-      return lua_createReverse6(format, std::move(exceptions));
+  lua.writeFunction("createReverse6", [slog](const string &format, boost::optional<opts_t> exceptions) -> string {
+      return lua_createReverse6(slog, format, std::move(exceptions));
     });
 
   lua.writeFunction("filterForward", [](const string& address, NetmaskGroup& nmg, boost::optional<string> fallback) -> vector<string> {
       return lua_filterForward(address, nmg, std::move(fallback));
     });
 
-  lua.writeFunction("ifportup", [](int port, const boost::variant<iplist_t, ipunitlist_t>& ips, boost::optional<opts_t> options) -> vector<string> {
-      return lua_ifportup(port, ips, std::move(options));
+  lua.writeFunction("ifportup", [slog](int port, const boost::variant<iplist_t, ipunitlist_t>& ips, boost::optional<opts_t> options) -> vector<string> {
+      return lua_ifportup(slog, port, ips, std::move(options));
     });
 
-  lua.writeFunction("ifurlextup", [](const vector<pair<int, opts_t> >& ipurls, boost::optional<opts_t> options) -> vector<string> {
-      return lua_ifurlextup(ipurls, std::move(options));
+  lua.writeFunction("ifurlextup", [slog](const vector<pair<int, opts_t> >& ipurls, boost::optional<opts_t> options) -> vector<string> {
+      return lua_ifurlextup(slog, ipurls, std::move(options));
     });
 
-  lua.writeFunction("ifurlup", [](const std::string& url, const boost::variant<iplist_t, ipunitlist_t>& ips, boost::optional<opts_t> options) -> vector<string> {
-      return lua_ifurlup(url, ips, std::move(options));
+  lua.writeFunction("ifurlup", [slog](const std::string& url, const boost::variant<iplist_t, ipunitlist_t>& ips, boost::optional<opts_t> options) -> vector<string> {
+      return lua_ifurlup(slog, url, ips, std::move(options));
     });
 
   lua.writeFunction("pickrandom", [](const iplist_t& ips) -> string {
       return lua_pickrandom(ips);
     });
 
-  lua.writeFunction("pickselfweighted", [](const std::string& url, const iplist_t& ips, boost::optional<opts_t> options) -> string {
-      return lua_pickselfweighted(url, ips, std::move(options));
+  lua.writeFunction("pickselfweighted", [slog](const std::string& url, const iplist_t& ips, boost::optional<opts_t> options) -> string {
+      return lua_pickselfweighted(slog, url, ips, std::move(options));
     });
 
   lua.writeFunction("pickrandomsample", [](int n, const iplist_t& ips) -> vector<string> {
@@ -1697,34 +1724,34 @@ static void setupLuaRecords(LuaContext& lua)
       return lua_pickchashed(ips);
     });
 
-  lua.writeFunction("pickclosest", [](const iplist_t& ips) -> string {
-      return lua_pickclosest(ips);
+  lua.writeFunction("pickclosest", [slog](const iplist_t& ips) -> string {
+      return lua_pickclosest(slog, ips);
     });
 
-  lua.writeFunction("geoiplookup", [](const string &address, const GeoIPInterface::GeoIPQueryAttribute attr) -> string {
-      return lua_geoiplookup(address, attr);
+  lua.writeFunction("geoiplookup", [slog](const string &address, const GeoIPInterface::GeoIPQueryAttribute attr) -> string {
+      return lua_geoiplookup(slog, address, attr);
     });
 
-  lua.writeFunction("asnum", [](const combovar_t& asns) -> bool {
-      return lua_asnum(asns);
+  lua.writeFunction("asnum", [slog](const combovar_t& asns) -> bool {
+      return lua_asnum(slog, asns);
     });
-  lua.writeFunction("continent", [](const combovar_t& continent) -> bool {
-      return lua_continent(continent);
+  lua.writeFunction("continent", [slog](const combovar_t& continent) -> bool {
+      return lua_continent(slog, continent);
     });
-  lua.writeFunction("continentCode", []() -> string {
-      return lua_continentCode();
+  lua.writeFunction("continentCode", [slog]() -> string {
+      return lua_continentCode(slog);
     });
-  lua.writeFunction("country", [](const combovar_t& var) -> bool {
-      return lua_country(var);
+  lua.writeFunction("country", [slog](const combovar_t& var) -> bool {
+      return lua_country(slog, var);
     });
-  lua.writeFunction("countryCode", []() -> string {
-      return lua_countryCode();
+  lua.writeFunction("countryCode", [slog]() -> string {
+      return lua_countryCode(slog);
     });
-  lua.writeFunction("region", [](const combovar_t& var) -> bool {
-      return lua_region(var);
+  lua.writeFunction("region", [slog](const combovar_t& var) -> bool {
+      return lua_region(slog, var);
     });
-  lua.writeFunction("regionCode", []() -> string {
-      return lua_regionCode();
+  lua.writeFunction("regionCode", [slog]() -> string {
+      return lua_regionCode(slog);
     });
   lua.writeFunction("netmask", [](const iplist_t& ips) -> bool {
       return lua_netmask(ips);
@@ -1737,18 +1764,18 @@ static void setupLuaRecords(LuaContext& lua)
       return lua_all(ips);
     });
 
-  lua.writeFunction("dblookup", [](const string& record, uint16_t qtype) -> vector<string> {
-      return lua_dblookup(record, qtype);
+  lua.writeFunction("dblookup", [slog](const string& record, uint16_t qtype) -> vector<string> {
+      return lua_dblookup(slog, record, qtype);
     });
 
-  lua.writeFunction("include", [&lua](const string& record) -> void {
-      lua_include(lua, record);
+  lua.writeFunction("include", [slog, &lua](const string& record) -> void {
+      lua_include(slog, lua, record);
     });
 
   lua.writeVariable("GeoIPQueryAttribute", lua_variables);
 }
 
-std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, const DNSName& query, const DNSZoneRecord& zone_record, const DNSName& zone, const DNSPacket& dnsp, uint16_t qtype, unique_ptr<AuthLua4>& LUA)
+std::vector<shared_ptr<DNSRecordContent>> luaSynth(Logr::log_t slog, const std::string& code, const DNSName& query, const DNSZoneRecord& zone_record, const DNSName& zone, const DNSPacket& dnsp, uint16_t qtype, unique_ptr<AuthLua4>& LUA)
 {
   std::vector<shared_ptr<DNSRecordContent>> ret;
 
@@ -1756,7 +1783,7 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
     if(!LUA ||                  // we don't have a Lua state yet
        !g_LuaRecordSharedState) { // or we want a new one even if we had one
       LUA = make_unique<AuthLua4>(::arg()["lua-global-include-dir"]);
-      setupLuaRecords(*LUA->getLua());
+      setupLuaRecords(slog, *LUA->getLua());
     }
 
     LuaContext& lua = *LUA->getLua();
@@ -1812,15 +1839,24 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
         ret.push_back(DNSRecordContent::make(qtype, QClass::IN, content_it));
     }
   } catch(std::exception &e) {
-    g_log << Logger::Info << "Lua record ("<<query<<"|"<<QType(qtype).toString()<<") reported: " << e.what();
+    if (!g_slogStructured) {
+      g_log << Logger::Info << "Lua record ("<<query<<"|"<<QType(qtype).toString()<<") reported: " << e.what();
+    }
     try {
       std::rethrow_if_nested(e);
-      g_log<<endl;
+      if (!g_slogStructured) {
+        g_log<<endl;
+      }
+      else {
+        slog->info(Logr::Info, "exception raised by Lua record", "query", Logging::Loggable(query), "type", Logging::Loggable(qtype));
+      }
     } catch(const std::exception& ne) {
-      g_log << ": " << ne.what() << std::endl;
+      SLOG(g_log << ": " << ne.what() << std::endl,
+           slog->error(Logr::Info, ne.what(), "exception raised by Lua record", "query", Logging::Loggable(query), "type", Logging::Loggable(qtype)));
     }
     catch(const PDNSException& ne) {
-      g_log << ": " << ne.reason << std::endl;
+      SLOG(g_log << ": " << ne.reason << std::endl,
+           slog->error(Logr::Info, ne.reason, "exception raised by Lua record", "query", Logging::Loggable(query), "type", Logging::Loggable(qtype)));
     }
     throw ;
   }

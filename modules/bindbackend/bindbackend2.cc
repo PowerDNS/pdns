@@ -614,7 +614,8 @@ void Bind2Backend::insertRecord(std::shared_ptr<recordstorage_t>& records, const
   else {
     string msg = "Trying to insert non-zone data, name='" + bdr.qname.toLogString() + "', qtype=" + qtype.toString() + ", zone='" + zoneName.toLogString() + "'";
     if (s_ignore_broken_records) {
-      g_log << Logger::Warning << msg << " ignored" << endl;
+      SLOG(g_log << Logger::Warning << msg << " ignored" << endl,
+           d_slog->info(Logr::Warning, "Non-zone data record ignored", "zone", Logging::Loggable(zoneName), "name", Logging::Loggable(bdr.qname), "qtype", Logging::Loggable(qtype)));
       return;
     }
     throw PDNSException(std::move(msg));
@@ -639,7 +640,7 @@ void Bind2Backend::insertRecord(std::shared_ptr<recordstorage_t>& records, const
   records->insert(std::move(bdr));
 }
 
-string Bind2Backend::DLReloadNowHandler(const vector<string>& parts, Utility::pid_t /* ppid */)
+string Bind2Backend::DLReloadNowHandler(const vector<string>& parts, Utility::pid_t /* ppid */, Logr::log_t /* slog */)
 {
   ostringstream ret;
 
@@ -664,7 +665,7 @@ string Bind2Backend::DLReloadNowHandler(const vector<string>& parts, Utility::pi
   return ret.str();
 }
 
-string Bind2Backend::DLDomStatusHandler(const vector<string>& parts, Utility::pid_t /* ppid */)
+string Bind2Backend::DLDomStatusHandler(const vector<string>& parts, Utility::pid_t /* ppid */, Logr::log_t /* slog */)
 {
   ostringstream ret;
 
@@ -726,7 +727,7 @@ static void printDomainExtendedStatus(ostringstream& ret, const BB2DomainInfo& i
   ret << "\t Last notified: " << info.d_lastnotified << std::endl;
 }
 
-string Bind2Backend::DLDomExtendedStatusHandler(const vector<string>& parts, Utility::pid_t /* ppid */)
+string Bind2Backend::DLDomExtendedStatusHandler(const vector<string>& parts, Utility::pid_t /* ppid */, Logr::log_t /* slog */)
 {
   ostringstream ret;
 
@@ -755,7 +756,7 @@ string Bind2Backend::DLDomExtendedStatusHandler(const vector<string>& parts, Uti
   return ret.str();
 }
 
-string Bind2Backend::DLListRejectsHandler(const vector<string>& /* parts */, Utility::pid_t /* ppid */)
+string Bind2Backend::DLListRejectsHandler(const vector<string>& /* parts */, Utility::pid_t /* ppid */, Logr::log_t /* slog */)
 {
   ostringstream ret;
   auto rstate = s_state.read_lock();
@@ -766,7 +767,7 @@ string Bind2Backend::DLListRejectsHandler(const vector<string>& /* parts */, Uti
   return ret.str();
 }
 
-string Bind2Backend::DLAddDomainHandler(const vector<string>& parts, Utility::pid_t /* ppid */)
+string Bind2Backend::DLAddDomainHandler(const vector<string>& parts, Utility::pid_t /* ppid */, Logr::log_t /* slog */)
 {
   if (parts.size() < 3)
     return "ERROR: Domain name and zone filename are required";
@@ -796,7 +797,8 @@ string Bind2Backend::DLAddDomainHandler(const vector<string>& parts, Utility::pi
 
   g_zoneCache.add(domainname, bbd.d_id); // make new zone visible
 
-  g_log << Logger::Warning << "Zone " << domainname << " loaded" << endl;
+  SLOG(g_log << Logger::Warning << "Zone " << domainname << " loaded" << endl,
+       bb2.d_slog->info(Logr::Info, "Zone loaded", "zone", Logging::Loggable(domainname), "file", Logging::Loggable(filename)));
   return "Loaded zone " + domainname.toLogString() + " from " + filename;
 }
 
@@ -819,6 +821,10 @@ Bind2Backend::Bind2Backend(const string& suffix, bool loadZones)
 
   setArgPrefix("bind" + suffix);
   d_logprefix = "[bind" + suffix + "backend]";
+  if (g_slogStructured) {
+    d_slog = g_slog->withName("bind" + suffix);
+    d_handle.setSLog(d_slog);
+  }
   d_hybrid = mustDo("hybrid");
   if (d_hybrid && g_zoneCache.isEnabled()) {
     throw PDNSException("bind-hybrid and the zone cache currently interoperate badly. Please disable the zone cache or stop using bind-hybrid");
@@ -929,7 +935,8 @@ void Bind2Backend::doEmptyNonTerminals(std::shared_ptr<recordstorage_t>& records
     while (shorter.chopOff()) {
       if (qnames.count(shorter) == 0u) {
         if (!(maxent)) {
-          g_log << Logger::Error << "Zone '" << zoneName << "' has too many empty non terminals." << endl;
+          SLOG(g_log << Logger::Error << "Zone '" << zoneName << "' has too many empty non terminals." << endl,
+               d_slog->info(Logr::Error, "Zone has too many empty non terminals.", "zone", Logging::Loggable(zoneName)));
           return;
         }
 
@@ -968,7 +975,8 @@ void Bind2Backend::loadConfig(string* status) // NOLINT(readability-function-cog
       BP.parse(getArg("config"));
     }
     catch (PDNSException& ae) {
-      g_log << Logger::Error << "Error parsing bind configuration: " << ae.reason << endl;
+      SLOG(g_log << Logger::Error << "Error parsing bind configuration: " << ae.reason << endl,
+           d_slog->error(Logr::Error, ae.reason, "Error parsing bind configuration"));
       throw;
     }
 
@@ -978,7 +986,8 @@ void Bind2Backend::loadConfig(string* status) // NOLINT(readability-function-cog
     s_binddirectory = BP.getDirectory();
     //    ZP.setDirectory(d_binddirectory);
 
-    g_log << Logger::Warning << d_logprefix << " Parsing " << domains.size() << " domain(s), will report when done" << endl;
+    SLOG(g_log << Logger::Warning << d_logprefix << " Parsing " << domains.size() << " domain(s), will report when done" << endl,
+         d_slog->info(Logr::Info, "Parsing " + std::to_string(domains.size()) + " domain(s), will report when done"));
 
     set<ZoneName> oldnames;
     set<ZoneName> newnames;
@@ -1003,16 +1012,19 @@ void Bind2Backend::loadConfig(string* status) // NOLINT(readability-function-cog
     sort(domains.begin(), domains.end()); // put stuff in inode order
     for (const auto& domain : domains) {
       if (!(domain.hadFileDirective)) {
-        g_log << Logger::Warning << d_logprefix << " Zone '" << domain.name << "' has no 'file' directive set in " << getArg("config") << endl;
+        SLOG(g_log << Logger::Warning << d_logprefix << " Zone '" << domain.name << "' has no 'file' directive set in " << getArg("config") << endl,
+             d_slog->info(Logr::Warning, "Zone has no 'file' directive set", "zone", Logging::Loggable(domain.name), "filename", Logging::Loggable(getArg("config"))));
         rejected++;
         continue;
       }
 
       if (domain.type.empty()) {
-        g_log << Logger::Notice << d_logprefix << " Zone '" << domain.name << "' has no type specified, assuming 'native'" << endl;
+        SLOG(g_log << Logger::Notice << d_logprefix << " Zone '" << domain.name << "' has no type specified, assuming 'native'" << endl,
+             d_slog->info(Logr::Notice, "Zone has no type specified, assuming 'native'", "zone", Logging::Loggable(domain.name)));
       }
       if (domain.type != "primary" && domain.type != "secondary" && domain.type != "native" && !domain.type.empty() && domain.type != "master" && domain.type != "slave") {
-        g_log << Logger::Warning << d_logprefix << " Warning! Skipping zone '" << domain.name << "' because type '" << domain.type << "' is invalid" << endl;
+        SLOG(g_log << Logger::Warning << d_logprefix << " Warning! Skipping zone '" << domain.name << "' because type '" << domain.type << "' is invalid" << endl,
+             d_slog->info(Logr::Warning, "Skipping zone because type is invalid", "zone", Logging::Loggable(domain.name), "type", Logging::Loggable(domain.type)));
         rejected++;
         continue;
       }
@@ -1053,7 +1065,8 @@ void Bind2Backend::loadConfig(string* status) // NOLINT(readability-function-cog
 
       newnames.insert(bbd.d_name);
       if (filenameChanged || !bbd.d_loaded || !bbd.current()) {
-        g_log << Logger::Info << d_logprefix << " parsing '" << domain.name << "' from file '" << domain.filename << "'" << endl;
+        SLOG(g_log << Logger::Info << d_logprefix << " parsing '" << domain.name << "' from file '" << domain.filename << "'" << endl,
+             d_slog->info(Logr::Info, "Parsing zone from file", "zone", Logging::Loggable(domain.name), "file", Logging::Loggable(domain.filename)));
 
         try {
           parseZoneFile(&bbd);
@@ -1066,7 +1079,8 @@ void Bind2Backend::loadConfig(string* status) // NOLINT(readability-function-cog
             *status += msg.str();
           bbd.d_status = msg.str();
 
-          g_log << Logger::Warning << d_logprefix << msg.str() << endl;
+          SLOG(g_log << Logger::Warning << d_logprefix << msg.str() << endl,
+               d_slog->error(Logr::Error, ae.reason, "Error in zone file", "zone", Logging::Loggable(domain.name), "file", Logging::Loggable(domain.filename)));
           rejected++;
         }
         catch (std::system_error& ae) {
@@ -1082,7 +1096,13 @@ void Bind2Backend::loadConfig(string* status) // NOLINT(readability-function-cog
           if (status != nullptr)
             *status += msg.str();
           bbd.d_status = msg.str();
-          g_log << Logger::Warning << d_logprefix << msg.str() << endl;
+          SLOG(
+            g_log << Logger::Warning << d_logprefix << msg.str() << endl,
+            if (missingNewSecondary) {
+              d_slog->error(Logr::Warning, ae.what(), "Secondary domain has not been AXFR'd yet", "domain", Logging::Loggable(domain.name), "file", Logging::Loggable(domain.filename));
+            } else {
+              d_slog->error(Logr::Warning, ae.what(), "Parse error", "domain", Logging::Loggable(domain.name), "file", Logging::Loggable(domain.filename));
+            });
           rejected++;
         }
         catch (std::exception& ae) {
@@ -1093,7 +1113,8 @@ void Bind2Backend::loadConfig(string* status) // NOLINT(readability-function-cog
             *status += msg.str();
           bbd.d_status = msg.str();
 
-          g_log << Logger::Warning << d_logprefix << msg.str() << endl;
+          SLOG(g_log << Logger::Warning << d_logprefix << msg.str() << endl,
+               d_slog->error(Logr::Warning, ae.what(), "Parse error", "domain", Logging::Loggable(domain.name), "file", Logging::Loggable(domain.filename)));
           rejected++;
         }
         safePutBBDomainInfo(bbd);
@@ -1121,7 +1142,13 @@ void Bind2Backend::loadConfig(string* status) // NOLINT(readability-function-cog
     if (status != nullptr)
       *status = msg.str();
 
-    g_log << Logger::Error << d_logprefix << msg.str() << endl;
+    SLOG(
+      g_log << Logger::Error << d_logprefix << msg.str() << endl,
+      if (rejected == 0) {
+        d_slog->info(Logr::Info, "Done parsing domains", "new", Logging::Loggable(newdomains), "removed", Logging::Loggable(remdomains));
+      } else {
+        d_slog->error(Logr::Error, "Done parsing domains", "new", Logging::Loggable(newdomains), "removed", Logging::Loggable(remdomains), "rejected", Logging::Loggable(rejected));
+      });
   }
 }
 
@@ -1140,12 +1167,14 @@ void Bind2Backend::queueReloadAndStore(domainid_t id)
     parseZoneFile(&bbnew);
     bbnew.d_wasRejectedLastReload = false;
     safePutBBDomainInfo(bbnew);
-    g_log << Logger::Warning << "Zone '" << bbnew.d_name << "' (" << bbnew.main_filename() << ") reloaded" << endl;
+    SLOG(g_log << Logger::Warning << "Zone '" << bbnew.d_name << "' (" << bbnew.main_filename() << ") reloaded" << endl,
+         d_slog->info(Logr::Info, "Zone reloaded", "zone", Logging::Loggable(bbnew.d_name), "file", Logging::Loggable(bbnew.main_filename())));
   }
   catch (PDNSException& ae) {
     ostringstream msg;
     msg << " error at " + nowTime() + " parsing '" << bbold.d_name << "' from file '" << bbold.main_filename() << "': " << ae.reason;
-    g_log << Logger::Warning << "Error parsing '" << bbold.d_name << "' from file '" << bbold.main_filename() << "': " << ae.reason << endl;
+    SLOG(g_log << Logger::Warning << "Error parsing '" << bbold.d_name << "' from file '" << bbold.main_filename() << "': " << ae.reason << endl,
+         d_slog->error(Logr::Error, ae.reason, "Error reloading zone", "zone", Logging::Loggable(bbold.d_name), "file", Logging::Loggable(bbold.main_filename())));
     bbold.d_status = msg.str();
     bbold.d_lastcheck = time(nullptr);
     bbold.d_wasRejectedLastReload = true;
@@ -1154,7 +1183,8 @@ void Bind2Backend::queueReloadAndStore(domainid_t id)
   catch (std::exception& ae) {
     ostringstream msg;
     msg << " error at " + nowTime() + " parsing '" << bbold.d_name << "' from file '" << bbold.main_filename() << "': " << ae.what();
-    g_log << Logger::Warning << "Error parsing '" << bbold.d_name << "' from file '" << bbold.main_filename() << "': " << ae.what() << endl;
+    SLOG(g_log << Logger::Warning << "Error parsing '" << bbold.d_name << "' from file '" << bbold.main_filename() << "': " << ae.what() << endl,
+         d_slog->error(Logr::Error, ae.what(), "Error reloading zone", "zone", Logging::Loggable(bbold.d_name), "file", Logging::Loggable(bbold.main_filename())));
     bbold.d_status = msg.str();
     bbold.d_lastcheck = time(nullptr);
     bbold.d_wasRejectedLastReload = true;
@@ -1243,8 +1273,10 @@ void Bind2Backend::lookup(const QType& qtype, const DNSName& qname, domainid_t z
   ZoneName domain;
   BB2DomainInfo bbd;
 
-  if (mustlog)
-    g_log << Logger::Warning << "Lookup for '" << qtype.toString() << "' of '" << qname << "' within zoneID " << zoneId << endl;
+  if (mustlog) {
+    SLOG(g_log << Logger::Warning << "Lookup for '" << qtype.toString() << "' of '" << qname << "' within zoneID " << zoneId << endl,
+         d_slog->info(Logr::Warning, "Record lookup", "name", Logging::Loggable(qname), "qtype", Logging::Loggable(qtype), "zone id", Logging::Loggable(zoneId)));
+  }
 
   if (zoneId != UnknownDomainID) {
     if ((found = (safeGetBBDomainInfo(zoneId, &bbd) && qname.isPartOf(bbd.d_name)))) {
@@ -1259,14 +1291,18 @@ void Bind2Backend::lookup(const QType& qtype, const DNSName& qname, domainid_t z
   }
 
   if (!found) {
-    if (mustlog)
-      g_log << Logger::Warning << "Found no authoritative zone for '" << qname << "' and/or id " << zoneId << endl;
+    if (mustlog) {
+      SLOG(g_log << Logger::Warning << "Found no authoritative zone for '" << qname << "' and/or id " << zoneId << endl,
+           d_slog->info(Logr::Warning, "Found no authoritative zone", "name", Logging::Loggable(qname), "zone id", Logging::Loggable(zoneId)));
+    }
     d_handle.d_list = false;
     return;
   }
 
-  if (mustlog)
-    g_log << Logger::Warning << "Found a zone '" << domain << "' (with id " << bbd.d_id << ") that might contain data " << endl;
+  if (mustlog) {
+    SLOG(g_log << Logger::Warning << "Found a zone '" << domain << "' (with id " << bbd.d_id << ") that might contain data " << endl,
+         d_slog->info(Logr::Warning, "Found authoritative zone", "zone", Logging::Loggable(domain), "zone id", Logging::Loggable(bbd.d_id)));
+  }
 
   d_handle.id = bbd.d_id;
   d_handle.qname = qname.makeRelative(domain); // strip domain name
@@ -1274,7 +1310,8 @@ void Bind2Backend::lookup(const QType& qtype, const DNSName& qname, domainid_t z
   d_handle.domain = std::move(domain);
 
   if (!bbd.current()) {
-    g_log << Logger::Warning << "Zone '" << d_handle.domain << "' (" << bbd.main_filename() << ") needs reloading" << endl;
+    SLOG(g_log << Logger::Warning << "Zone '" << d_handle.domain << "' (" << bbd.main_filename() << ") needs reloading" << endl,
+         d_slog->info(Logr::Warning, "Zone needs reloading", "zone", Logging::Loggable(d_handle.domain), "file", Logging::Loggable(bbd.main_filename())));
     queueReloadAndStore(bbd.d_id);
     if (!safeGetBBDomainInfo(d_handle.domain, &bbd))
       throw DBException("Zone '" + bbd.d_name.toLogString() + "' (" + bbd.main_filename() + ") gone after reload"); // if we don't throw here, we crash for some reason
@@ -1287,8 +1324,10 @@ void Bind2Backend::lookup(const QType& qtype, const DNSName& qname, domainid_t z
 
   d_handle.d_records = bbd.d_records.get();
 
-  if (d_handle.d_records->empty())
-    DLOG(g_log << "Query with no results" << endl);
+  if (d_handle.d_records->empty()) {
+    DLOG(SLOG(g_log << "Query with no results" << endl,
+              d_slog->info(Logr::Debug, "No results", "name", Logging::Loggable(qname), "qtype", Logging::Loggable(qtype))));
+  }
 
   d_handle.mustlog = mustlog;
 
@@ -1303,21 +1342,27 @@ void Bind2Backend::lookup(const QType& qtype, const DNSName& qname, domainid_t z
 bool Bind2Backend::get(DNSResourceRecord& r)
 {
   if (!d_handle.d_records) {
-    if (d_handle.mustlog)
-      g_log << Logger::Warning << "There were no answers" << endl;
+    if (d_handle.mustlog) {
+      SLOG(g_log << Logger::Warning << "There were no answers" << endl,
+           d_slog->info(Logr::Warning, "No answers"));
+    }
     return false;
   }
 
   if (!d_handle.get(r)) {
-    if (d_handle.mustlog)
-      g_log << Logger::Warning << "End of answers" << endl;
+    if (d_handle.mustlog) {
+      SLOG(g_log << Logger::Warning << "End of answers" << endl,
+           d_slog->info(Logr::Warning, "No more answers"));
+    }
 
     d_handle.reset();
 
     return false;
   }
-  if (d_handle.mustlog)
-    g_log << Logger::Warning << "Returning: '" << r.qtype.toString() << "' of '" << r.qname << "', content: '" << r.content << "'" << endl;
+  if (d_handle.mustlog) {
+    SLOG(g_log << Logger::Warning << "Returning: '" << r.qtype.toString() << "' of '" << r.qname << "', content: '" << r.content << "'" << endl,
+         d_slog->info(Logr::Warning, "Returning record", "name", Logging::Loggable(r.qname), "type", Logging::Loggable(r.qtype), "content", Logging::Loggable(r.content)));
+  }
   return true;
 }
 
@@ -1341,23 +1386,25 @@ void Bind2Backend::handle::reset()
   mustlog = false;
 }
 
-//#define DLOG(x) x
 bool Bind2Backend::handle::get_normal(DNSResourceRecord& r)
 {
-  DLOG(g_log << "Bind2Backend get() was called for " << qtype.toString() << " record for '" << qname << "' - " << d_records->size() << " available in total!" << endl);
+  DLOG(SLOG(g_log << "Bind2Backend get() was called for " << qtype.toString() << " record for '" << qname << "' - " << d_records->size() << " available in total!" << endl,
+            d_slog->info(Logr::Debug, "Bind2Backend get() invoked", "name", Logging::Loggable(qname), "type", Logging::Loggable(qtype), "results", Logging::Loggable(d_records->size()))));
 
   if (d_iter == d_end_iter) {
     return false;
   }
 
   while (d_iter != d_end_iter && !(qtype.getCode() == QType::ANY || (d_iter)->qtype == qtype.getCode())) {
-    DLOG(g_log << Logger::Warning << "Skipped " << qname << "/" << QType(d_iter->qtype).toString() << ": '" << d_iter->content << "'" << endl);
+    DLOG(SLOG(g_log << Logger::Warning << "Skipped " << qname << "/" << QType(d_iter->qtype).toString() << ": '" << d_iter->content << "'" << endl,
+              d_slog->info(Logr::Debug, "Skipped record", "name", Logging::Loggable(qname), "type", Logging::Loggable(d_iter->qtype), "content", Logging::Loggable(d_iter->content))));
     d_iter++;
   }
   if (d_iter == d_end_iter) {
     return false;
   }
-  DLOG(g_log << "Bind2Backend get() returning a rr with a " << QType(d_iter->qtype).getCode() << endl);
+  DLOG(SLOG(g_log << "Bind2Backend get() returning a rr with a " << QType(d_iter->qtype).getCode() << endl,
+            d_slog->info(Logr::Debug, "Bind2Backend get() returning a rr", "type", Logging::Loggable(d_iter->qtype))));
 
   const DNSName& domainName(domain);
   r.qname = qname.empty() ? domainName : (qname + domainName);
@@ -1385,7 +1432,8 @@ bool Bind2Backend::list(const ZoneName& /* target */, domainid_t domainId, bool 
   }
 
   d_handle.reset();
-  DLOG(g_log << "Bind2Backend constructing handle for list of " << domainId << endl);
+  DLOG(SLOG(g_log << "Bind2Backend constructing handle for list of " << domainId << endl,
+            d_slog->info(Logr::Debug, "Bind2Backend constructing handle for zone list", "zone id", Logging::Loggable(domainId))));
 
   if (!bbd.d_loaded) {
     throw PDNSException("zone was not loaded, perhaps because of: " + bbd.d_status);
@@ -1422,9 +1470,11 @@ bool Bind2Backend::autoPrimariesList(std::vector<AutoPrimary>& primaries)
   if (getArg("autoprimary-config").empty())
     return false;
 
-  ifstream c_if(getArg("autoprimaries"), std::ios::in);
+  std::string filename(getArg("autoprimaries"));
+  ifstream c_if(filename, std::ios::in);
   if (!c_if) {
-    g_log << Logger::Error << "Unable to open autoprimaries file for read: " << stringerror() << endl;
+    SLOG(g_log << Logger::Error << "Unable to open autoprimaries file for read: " << stringerror() << endl,
+         d_slog->error(Logr::Error, errno, "Unable to open autoprimaries file", "file", Logging::Loggable(filename)));
     return false;
   }
 
@@ -1448,9 +1498,11 @@ bool Bind2Backend::autoPrimaryBackend(const string& ipAddress, const ZoneName& /
   if (getArg("autoprimary-config").empty())
     return false;
 
-  ifstream c_if(getArg("autoprimaries").c_str(), std::ios::in); // this was nocreate?
+  std::string filename(getArg("autoprimaries"));
+  ifstream c_if(filename.c_str(), std::ios::in); // this was nocreate?
   if (!c_if) {
-    g_log << Logger::Error << "Unable to open autoprimaries file for read: " << stringerror() << endl;
+    SLOG(g_log << Logger::Error << "Unable to open autoprimaries file for read: " << stringerror() << endl,
+         d_slog->error(Logr::Error, errno, "Unable to open autoprimaries file", "file", Logging::Loggable(filename)));
     return false;
   }
 
@@ -1503,17 +1555,22 @@ bool Bind2Backend::createSecondaryDomain(const string& ipAddress, const ZoneName
 {
   string filename = getArg("autoprimary-destdir") + '/' + domain.toStringNoDot();
 
-  g_log << Logger::Warning << d_logprefix
-        << " Writing bind config zone statement for superslave zone '" << domain
-        << "' from autoprimary " << ipAddress << endl;
+  SLOG(g_log << Logger::Warning << d_logprefix
+             << " Writing bind config zone statement for autosecondary zone '" << domain
+             << "' from autoprimary " << ipAddress << endl,
+       d_slog->info(Logr::Warning, "Writing bind config zone statement for autosecondary zone", "zone", Logging::Loggable(domain), "autoprimary address", Logging::Loggable(ipAddress)));
 
   {
     auto lock = std::scoped_lock(s_autosecondary_config_lock);
 
-    ofstream c_of(getArg("autoprimary-config").c_str(), std::ios::app);
+    std::string configfile(getArg("autoprimary-config"));
+    ofstream c_of(configfile.c_str(), std::ios::app);
     if (!c_of) {
-      g_log << Logger::Error << "Unable to open autoprimary configfile for append: " << stringerror() << endl;
-      throw DBException("Unable to open autoprimary configfile for append: " + stringerror());
+      int err = errno;
+      auto errorMessage = stringerror();
+      SLOG(g_log << Logger::Error << "Unable to open autoprimary configfile for append: " << errorMessage << endl,
+           d_slog->error(Logr::Error, err, "Unable to open autoprimary configuration file for append", "file", Logging::Loggable(configfile)));
+      throw DBException("Unable to open autoprimary configfile for append: " + errorMessage);
     }
 
     c_of << endl;
@@ -1540,8 +1597,10 @@ bool Bind2Backend::searchRecords(const string& pattern, size_t maxResults, vecto
 {
   SimpleMatch sm(pattern, true);
   static bool mustlog = ::arg().mustDo("query-logging");
-  if (mustlog)
-    g_log << Logger::Warning << "Search for pattern '" << pattern << "'" << endl;
+  if (mustlog) {
+    SLOG(g_log << Logger::Warning << "Search for pattern '" << pattern << "'" << endl,
+         d_slog->info(Logr::Debug, "Search for pattern", "pattern", Logging::Loggable(pattern)));
+  }
 
   {
     auto state = s_state.read_lock();
@@ -1624,14 +1683,32 @@ public:
   Bind2Loader()
   {
     BackendMakers().report(std::make_unique<Bind2Factory>());
-    g_log << Logger::Info << "[bind2backend] This is the bind backend version " << VERSION
+    // If this module is not loaded dynamically at runtime, this code runs
+    // as part of a global constructor, before the structured logger has a
+    // chance to be set up, so fallback to simple logging in this case.
+    if (!g_slogStructured || !g_slog) {
+      g_log << Logger::Info << "[bind2backend] This is the bind backend version " << VERSION
 #ifndef REPRODUCIBLE
-          << " (" __DATE__ " " __TIME__ ")"
+            << " (" __DATE__ " " __TIME__ ")"
 #endif
 #ifdef HAVE_SQLITE3
-          << " (with bind-dnssec-db support)"
+            << " (with bind-dnssec-db support)"
 #endif
-          << " reporting" << endl;
+            << " reporting" << endl;
+    }
+    else {
+      g_slog->withName("bind2backend")->info(Logr::Info, "Bind backend starting", "version", Logging::Loggable(VERSION),
+#ifndef REPRODUCIBLE
+                                             "build date", Logging::Loggable(__DATE__ " " __TIME__),
+#endif
+                                             "options",
+#ifdef HAVE_SQLITE3
+                                             Logging::Loggable("bind-dnssec-db")
+#else
+                                             Logging::Loggable("")
+#endif
+      );
+    }
   }
 };
 static Bind2Loader bind2loader;

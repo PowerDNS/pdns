@@ -72,9 +72,10 @@ std::mutex SMySQL::s_myinitlock;
 class SMySQLStatement : public SSqlStatement
 {
 public:
-  SMySQLStatement(const string& query, bool dolog, int nparams, MYSQL* db) :
+  SMySQLStatement(Logr::log_t log, const string& query, bool dolog, int nparams, MYSQL* db) :
     d_prepared(false)
   {
+    d_slog = log;
     d_db = db;
     d_dolog = dolog;
     d_query = query;
@@ -210,7 +211,8 @@ public:
       return this;
 
     if (d_dolog) {
-      g_log << Logger::Warning << "Query " << ((long)(void*)this) << ": " << d_query << endl;
+      SLOG(g_log << Logger::Warning << "Query " << ((long)(void*)this) << ": " << d_query << endl,
+           d_slog->info(Logr::Warning, "execute SQL query", "query", Logging::Loggable(d_query)));
       d_dtime.set();
     }
 
@@ -271,8 +273,10 @@ public:
       }
     }
 
-    if (d_dolog)
-      g_log << Logger::Warning << "Query " << ((long)(void*)this) << ": " << d_dtime.udiffNoReset() << " us to execute" << endl;
+    if (d_dolog) {
+      SLOG(g_log << Logger::Warning << "Query " << ((long)(void*)this) << ": " << d_dtime.udiffNoReset() << " us to execute" << endl,
+           d_slog->info(Logr::Warning, "query completed", "microseconds", Logging::Loggable(d_dtime.udiffNoReset())));
+    }
 
     return this;
   }
@@ -280,7 +284,8 @@ public:
   bool hasNextRow() override
   {
     if (d_dolog && d_residx == d_resnum) {
-      g_log << Logger::Warning << "Query " << ((long)(void*)this) << ": " << d_dtime.udiffNoReset() << " us total to last row" << endl;
+      SLOG(g_log << Logger::Warning << "Query " << ((long)(void*)this) << ": " << d_dtime.udiffNoReset() << " us total to last row" << endl,
+           d_slog->info(Logr::Warning, "all query results processed", "microseconds", Logging::Loggable(d_dtime.udiffNoReset())));
     }
     return d_residx < d_resnum;
   }
@@ -305,7 +310,8 @@ public:
 
     for (int i = 0; i < d_fnum; i++) {
       if (err == MYSQL_DATA_TRUNCATED && *d_res_bind[i].error) {
-        g_log << Logger::Warning << "Result field at row " << d_residx << " column " << i << " has been truncated, we allocated " << d_res_bind[i].buffer_length << " bytes but at least " << *d_res_bind[i].length << " was needed" << endl;
+        SLOG(g_log << Logger::Warning << "Result field at row " << d_residx << " column " << i << " has been truncated, we allocated " << d_res_bind[i].buffer_length << " bytes but at least " << *d_res_bind[i].length << " was needed" << endl,
+             d_slog->info(Logr::Warning, "truncated result field", "row", Logging::Loggable(d_residx), "column", Logging::Loggable(i), "bytes allocated", Logging::Loggable(d_res_bind[i].buffer_length), "bytes required", Logging::Loggable(*d_res_bind[i].length)));
       }
       if (*d_res_bind[i].is_null) {
         row.emplace_back("");
@@ -474,6 +480,7 @@ private:
 
   bool d_prepared;
   bool d_dolog;
+  std::shared_ptr<Logr::Logger> d_slog;
   DTime d_dtime; // only used if d_dolog is set
   int d_parnum;
   int d_paridx;
@@ -534,10 +541,11 @@ void SMySQL::connect()
   } while (retry >= 0);
 }
 
-SMySQL::SMySQL(string database, string host, uint16_t port, string msocket, string user,
+SMySQL::SMySQL(Logr::log_t log, string database, string host, uint16_t port, string msocket, string user,
                string password, string group, bool setIsolation, unsigned int timeout, bool threadCleanup) :
   d_database(std::move(database)), d_host(std::move(host)), d_msocket(std::move(msocket)), d_user(std::move(user)), d_password(std::move(password)), d_group(std::move(group)), d_timeout(timeout), d_port(port), d_setIsolation(setIsolation), d_threadCleanup(threadCleanup)
 {
+  d_slog = log;
   connect();
 }
 
@@ -558,13 +566,15 @@ SSqlException SMySQL::sPerrorException(const string& reason)
 
 std::unique_ptr<SSqlStatement> SMySQL::prepare(const string& query, int nparams)
 {
-  return std::make_unique<SMySQLStatement>(query, s_dolog, nparams, &d_db);
+  return std::make_unique<SMySQLStatement>(d_slog, query, s_dolog, nparams, &d_db);
 }
 
 void SMySQL::execute(const string& query)
 {
-  if (s_dolog)
-    g_log << Logger::Warning << "Query: " << query << endl;
+  if (s_dolog) {
+    SLOG(g_log << Logger::Warning << "Query: " << query << endl,
+         d_slog->info(Logr::Warning, "execute SQL query", "query", Logging::Loggable(query)));
+  }
 
   int err;
   if ((err = mysql_query(&d_db, query.c_str())))

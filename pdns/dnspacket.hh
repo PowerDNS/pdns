@@ -42,6 +42,7 @@
 #include "misc.hh"
 #include "utility.hh"
 #include "logger.hh"
+#include "logging.hh"
 #include "pdnsexception.hh"
 #include "dnsrecords.hh"
 
@@ -50,7 +51,7 @@
 class DNSPacket
 {
 public:
-  DNSPacket(bool isQuery);
+  DNSPacket(Logr::log_t slog, bool isQuery);
   DNSPacket(const DNSPacket &orig) = default;
   DNSPacket & operator=(const DNSPacket &) = default;
 
@@ -209,4 +210,6 @@ private:
   bool d_ednscookievalid{false};
   bool d_haveednssection{false};
   bool d_isQuery;
+
+  std::shared_ptr<Logr::Logger> d_slog;
 };

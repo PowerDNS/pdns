@@ -101,6 +101,8 @@ AuthWebServer::AuthWebServer() :
 {
   if (arg().mustDo("webserver") || arg().mustDo("api")) {
     d_ws = std::make_unique<WebServer>(arg()["webserver-address"], arg().asNum("webserver-port"));
+    d_ws->setSLog(g_slog->withName("webserver"));
+
     d_ws->setApiKey(arg()["api-key"], arg().mustDo("webserver-hash-plaintext-credentials"));
     d_ws->setPassword(arg()["webserver-password"], arg().mustDo("webserver-hash-plaintext-credentials"));
     d_ws->setLogLevel(arg()["webserver-loglevel"]);
@@ -116,20 +118,20 @@ AuthWebServer::AuthWebServer() :
   }
 }
 
-void AuthWebServer::go(StatBag& stats)
+void AuthWebServer::go(Logr::log_t slog, StatBag& stats)
 {
   // Compute a unique random value used for indexPOST validation
   std::array<char, 32> buf{};
   dns_random(buf.data(), buf.size());
   d_unique = Base64Encode(std::string(buf.data(), buf.size()));
   S.doRings();
-  std::thread webT([this]() { webThread(); });
+  std::thread webT([this, &slog]() { webThread(slog); });
   webT.detach();
-  std::thread statT([this, &stats]() { statThread(stats); });
+  std::thread statT([this, &slog, &stats]() { statThread(slog, stats); });
   statT.detach();
 }
 
-void AuthWebServer::statThread(StatBag& stats)
+void AuthWebServer::statThread(Logr::log_t slog, StatBag& stats)
 {
   try {
     setThreadName("pdns/statHelper");
@@ -143,7 +145,8 @@ void AuthWebServer::statThread(StatBag& stats)
     }
   }
   catch (...) {
-    g_log << Logger::Error << "Webserver statThread caught an exception, dying" << endl;
+    SLOG(g_log << Logger::Error << "Webserver statThread caught an exception, dying" << endl,
+         slog->error(Logr::Error, "Webserver statThread caught an exception, dying"));
     _exit(1);
   }
 }
@@ -370,7 +373,7 @@ static inline string makeBackendRecordContent(const QType& qtype, const string& 
   return makeRecordContent(qtype, content, true);
 }
 
-static Json::object getZoneInfo(const DomainInfo& domainInfo, DNSSECKeeper* dnssecKeeper)
+static Json::object getZoneInfo(const DomainInfo& domainInfo, DNSSECKeeper* dnssecKeeper, Logr::log_t slog)
 {
   string zoneId = apiZoneNameToId(domainInfo.zone);
   vector<string> primaries;
@@ -395,7 +398,7 @@ static Json::object getZoneInfo(const DomainInfo& domainInfo, DNSSECKeeper* dnss
     obj["dnssec"] = dnssecKeeper->isSecuredZone(domainInfo.zone);
     string soa_edit;
     dnssecKeeper->getSoaEdit(domainInfo.zone, soa_edit, false);
-    obj["edited_serial"] = (double)calculateEditSOA(domainInfo.serial, soa_edit, domainInfo.zone);
+    obj["edited_serial"] = (double)calculateEditSOA(domainInfo.serial, soa_edit, domainInfo.zone, slog);
   }
   return obj;
 }
@@ -421,7 +424,7 @@ static void fillZone(UeberBackend& backend, const ZoneName& zonename, HttpRespon
   }
 
   DNSSECKeeper dnssecKeeper(&backend);
-  Json::object doc = getZoneInfo(domainInfo, &dnssecKeeper);
+  Json::object doc = getZoneInfo(domainInfo, &dnssecKeeper, resp->d_slog);
   // extra stuff getZoneInfo doesn't do for us (more expensive)
   string soa_edit_api;
   domainInfo.backend->getDomainMetadataOne(zonename, "SOA-EDIT-API", soa_edit_api);
@@ -890,11 +893,11 @@ static void extractJsonTSIGKeyIds(UeberBackend& backend, const Json& jsonArray, 
 }
 
 // Wrapper around makeIncreasedSOARecord()
-static void updateZoneSerial(DomainInfo& domainInfo, SOAData& soaData, const std::string& increaseKind, const std::string& editKind)
+static void updateZoneSerial(DomainInfo& domainInfo, SOAData& soaData, const std::string& increaseKind, const std::string& editKind, Logr::log_t slog)
 {
   DNSResourceRecord resourceRecord;
 
-  if (makeIncreasedSOARecord(soaData, increaseKind, editKind, resourceRecord)) {
+  if (makeIncreasedSOARecord(soaData, increaseKind, editKind, resourceRecord, slog)) {
     if (!domainInfo.backend->replaceRRSet(domainInfo.id, resourceRecord.qname, resourceRecord.qtype, vector<DNSResourceRecord>(1, resourceRecord))) {
       throw ApiException("Hosting backend does not support editing records.");
     }
@@ -902,7 +905,7 @@ static void updateZoneSerial(DomainInfo& domainInfo, SOAData& soaData, const std
 }
 
 // Must be called within backend transaction.
-static void updateDomainSettingsFromDocument(UeberBackend& backend, DomainInfo& domainInfo, const ZoneName& zonename, const Json& document, bool zoneWasModified)
+static void updateDomainSettingsFromDocument(UeberBackend& backend, DomainInfo& domainInfo, const ZoneName& zonename, const Json& document, bool zoneWasModified, Logr::log_t slog)
 {
   std::optional<DomainInfo::DomainKind> kind;
   std::optional<vector<ComboAddress>> primaries;
@@ -1044,7 +1047,7 @@ static void updateDomainSettingsFromDocument(UeberBackend& backend, DomainInfo& 
       string soa_edit_kind;
       domainInfo.backend->getDomainMetadataOne(zonename, "SOA-EDIT", soa_edit_kind);
 
-      updateZoneSerial(domainInfo, soaData, soa_edit_api_kind, soa_edit_kind);
+      updateZoneSerial(domainInfo, soaData, soa_edit_api_kind, soa_edit_kind, slog);
     }
   }
 
@@ -1443,7 +1446,7 @@ static void apiZoneCryptokeysGET(HttpRequest* req, HttpResponse* resp)
 // Common processing following a crypto keys operation which caused keys to be
 // added or removed. If this is a primary zone, we need to increase its
 // serial if configured to do so.
-static void apiZoneCryptokeysPostProcessing(ZoneData& zoneData)
+static void apiZoneCryptokeysPostProcessing(ZoneData& zoneData, Logr::log_t slog)
 {
   // We do not check using isPrimaryType() because we also want to include
   // DomainInfo::Native here.
@@ -1459,7 +1462,7 @@ static void apiZoneCryptokeysPostProcessing(ZoneData& zoneData)
       zoneData.domainInfo.backend->getDomainMetadataOne(zoneData.zoneName, "SOA-EDIT-API", soa_edit_api_kind);
       zoneData.domainInfo.backend->getDomainMetadataOne(zoneData.zoneName, "SOA-EDIT", soa_edit_kind);
       zoneData.domainInfo.backend->startTransaction(zoneData.zoneName, UnknownDomainID);
-      updateZoneSerial(zoneData.domainInfo, soaData, soa_edit_api_kind, soa_edit_kind);
+      updateZoneSerial(zoneData.domainInfo, soaData, soa_edit_api_kind, soa_edit_kind, slog);
       zoneData.domainInfo.backend->commitTransaction();
     }
   }
@@ -1486,7 +1489,7 @@ static void apiZoneCryptokeysDELETE(HttpRequest* req, HttpResponse* resp)
   }
 
   if (zoneData.dnssecKeeper.removeKey(zoneData.zoneName, inquireKeyId)) {
-    apiZoneCryptokeysPostProcessing(zoneData);
+    apiZoneCryptokeysPostProcessing(zoneData, resp->d_slog);
     resp->body = "";
     resp->status = 204;
   }
@@ -1635,7 +1638,7 @@ static void apiZoneCryptokeysPOST(HttpRequest* req, HttpResponse* resp)
   else {
     throw ApiException("Either you submit just the 'privatekey' field or you leave 'privatekey' empty and submit the other fields.");
   }
-  apiZoneCryptokeysPostProcessing(zoneData);
+  apiZoneCryptokeysPostProcessing(zoneData, resp->d_slog);
   apiZoneCryptokeysExport(zoneData.zoneName, insertedId, resp, &zoneData.dnssecKeeper);
   resp->status = 201;
 }
@@ -1690,7 +1693,7 @@ static void apiZoneCryptokeysPUT(HttpRequest* req, HttpResponse* resp)
     }
   }
 
-  apiZoneCryptokeysPostProcessing(zoneData);
+  apiZoneCryptokeysPostProcessing(zoneData, resp->d_slog);
   resp->body = "";
   resp->status = 204;
 }
@@ -2162,7 +2165,7 @@ static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp)
       }
     }
 
-    updateDomainSettingsFromDocument(backend, domainInfo, zonename, document, !new_records.empty());
+    updateDomainSettingsFromDocument(backend, domainInfo, zonename, document, !new_records.empty(), resp->d_slog);
 
     if (!catalog && kind == DomainInfo::Primary) {
       const auto& defaultCatalog = ::arg()["default-catalog-zone"];
@@ -2222,7 +2225,7 @@ static void apiServerZonesGET(HttpRequest* req, HttpResponse* resp)
   Json::array doc;
   doc.reserve(domains.size());
   for (const DomainInfo& domainInfo : domains) {
-    doc.emplace_back(getZoneInfo(domainInfo, with_dnssec ? &dnssecKeeper : nullptr));
+    doc.emplace_back(getZoneInfo(domainInfo, with_dnssec ? &dnssecKeeper : nullptr, resp->d_slog));
   }
   resp->setJsonBody(doc);
 }
@@ -2325,7 +2328,7 @@ static void apiServerZoneDetailPUT(HttpRequest* req, HttpResponse* resp)
   }
 
   // updateDomainSettingsFromDocument will rectify the zone and update SOA serial.
-  updateDomainSettingsFromDocument(zoneData.backend, zoneData.domainInfo, zoneData.zoneName, document, zoneWasModified);
+  updateDomainSettingsFromDocument(zoneData.backend, zoneData.domainInfo, zoneData.zoneName, document, zoneWasModified, resp->d_slog);
   zoneData.domainInfo.backend->commitTransaction();
 
   purgeAuthCaches(zoneData.zoneName.operator const DNSName&().toString() + "$");
@@ -2599,7 +2602,7 @@ static applyResult applyReplace(const DomainInfo& domainInfo, const ZoneName& zo
       for (DNSResourceRecord& resourceRecord : new_records) {
         resourceRecord.domain_id = static_cast<int>(domainInfo.id);
         if (resourceRecord.qtype.getCode() == QType::SOA && resourceRecord.qname == zonename.operator const DNSName&()) {
-          soa.edit_done = increaseSOARecord(resourceRecord, soa.edit_api_kind, soa.edit_kind, zonename);
+          soa.edit_done = increaseSOARecord(resourceRecord, soa.edit_api_kind, soa.edit_kind, zonename, resp->d_slog);
         }
       }
       // All records use the same TTL, no need to check for discrepancy.
@@ -2658,7 +2661,7 @@ static applyResult applyPruneOrExtend(const DomainInfo& domainInfo, const ZoneNa
     auto& new_record = new_records.front();
     new_record.domain_id = static_cast<int>(domainInfo.id);
     if (new_record.qtype.getCode() == QType::SOA && new_record.qname == zonename.operator const DNSName&()) {
-      soa.edit_done = increaseSOARecord(new_record, soa.edit_api_kind, soa.edit_kind, zonename);
+      soa.edit_done = increaseSOARecord(new_record, soa.edit_api_kind, soa.edit_kind, zonename, resp->d_slog);
     }
 
     // Check if this record exists in the RRSet
@@ -2836,7 +2839,7 @@ static void patchZone(UeberBackend& backend, const ZoneName& zonename, DomainInf
         // return old serial in headers, before changing it
         resp->headers["X-PDNS-Old-Serial"] = std::to_string(soaData.serial);
 
-        updateZoneSerial(domainInfo, soaData, soa.edit_api_kind, soa.edit_kind);
+        updateZoneSerial(domainInfo, soaData, soa.edit_api_kind, soa.edit_kind, resp->d_slog);
 
         // return new serial in headers
         resp->headers["X-PDNS-New-Serial"] = std::to_string(soaData.serial);
@@ -3286,7 +3289,7 @@ static void cssfunction(HttpRequest* /* req */, HttpResponse* resp)
   resp->status = 200;
 }
 
-void AuthWebServer::webThread()
+void AuthWebServer::webThread(Logr::log_t slog)
 {
   try {
     setThreadName("pdns/webserver");
@@ -3350,7 +3353,8 @@ void AuthWebServer::webThread()
     d_ws->go();
   }
   catch (...) {
-    g_log << Logger::Error << "AuthWebServer thread caught an exception, dying" << endl;
+    SLOG(g_log << Logger::Error << "AuthWebServer thread caught an exception, dying" << endl,
+         slog->error(Logr::Error, "AuthWebserver thread caught an exception, dying"));
     _exit(1);
   }
 }

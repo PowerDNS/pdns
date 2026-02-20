@@ -39,6 +39,7 @@
 #pragma GCC diagnostic ignored "-Wshadow"
 #include <yaml-cpp/yaml.h>
 #pragma GCC diagnostic pop
+#include "pdns/logging.hh"
 
 ReadWriteLock GeoIPBackend::s_state_lock;
 
@@ -102,6 +103,9 @@ GeoIPBackend::GeoIPBackend(const string& suffix)
 {
   WriteLock writeLock(&s_state_lock);
   setArgPrefix("geoip" + suffix);
+  if (g_slogStructured) {
+    d_slog = g_slog->withName("geoip" + suffix);
+  }
   if (!getArg("dnssec-keydir").empty()) {
     auto dirHandle = UniqueDirPtr(opendir(getArg("dnssec-keydir").c_str()));
     if (!dirHandle) {
@@ -282,7 +286,8 @@ bool GeoIPBackend::loadDomain(const std::string& origin, const YAML::Node& domai
             else if (attr == "weight") {
               rr.weight = iter->second.as<int>();
               if (rr.weight <= 0) {
-                g_log << Logger::Error << "Weight must be positive for " << rr.qname << endl;
+                SLOG(g_log << Logger::Error << "Weight must be positive for " << rr.qname << endl,
+                     d_slog->info(Logr::Error, "Weight must be positive", "name", Logging::Loggable(rr.qname), "weight", Logging::Loggable(rr.weight)));
                 throw PDNSException(string("Weight must be positive for ") + rr.qname.toLogString());
               }
               rr.has_weight = true;
@@ -291,7 +296,8 @@ bool GeoIPBackend::loadDomain(const std::string& origin, const YAML::Node& domai
               rr.ttl = iter->second.as<int>();
             }
             else {
-              g_log << Logger::Error << "Unsupported record attribute " << attr << " for " << rr.qname << endl;
+              SLOG(g_log << Logger::Error << "Unsupported record attribute " << attr << " for " << rr.qname << endl,
+                   d_slog->info(Logr::Error, "Unsupported record attribute", "name", Logging::Loggable(rr.qname), "attribute", Logging::Loggable(attr)));
               throw PDNSException(string("Unsupported record attribute ") + attr + string(" for ") + rr.qname.toLogString());
             }
           }
@@ -366,11 +372,13 @@ bool GeoIPBackend::loadDomain(const std::string& origin, const YAML::Node& domai
     }
   }
   catch (std::exception& ex) {
-    g_log << Logger::Error << "Could not load zone from " << origin << ": " << ex.what() << endl;
+    SLOG(g_log << Logger::Error << "Could not load zone from " << origin << ": " << ex.what() << endl,
+         d_slog->error(Logr::Error, ex.what(), "Could not load zone", "origin", Logging::Loggable(origin)));
     return false;
   }
   catch (PDNSException& ex) {
-    g_log << Logger::Error << "Could not load zone from " << origin << ": " << ex.reason << endl;
+    SLOG(g_log << Logger::Error << "Could not load zone from " << origin << ": " << ex.reason << endl,
+         d_slog->error(Logr::Error, ex.reason, "Could not load zone", "origin", Logging::Loggable(origin)));
     return false;
   }
   return true;
@@ -397,7 +405,8 @@ void GeoIPBackend::loadDomainsFromDirectory(const std::string& dir, vector<GeoIP
       }
     }
     catch (std::exception& ex) {
-      g_log << Logger::Warning << "Cannot load zone from " << path << ": " << ex.what() << endl;
+      SLOG(g_log << Logger::Warning << "Cannot load zone from " << path << ": " << ex.what() << endl,
+           d_slog->error(Logr::Error, ex.what(), "Could not load zone", "file", Logging::Loggable(path)));
     }
   }
 }
@@ -413,12 +422,13 @@ void GeoIPBackend::initialize()
     vector<string> files;
     stringtok(files, getArg("database-files"), " ,\t\r\n");
     for (auto const& file : files) {
-      s_geoip_files.push_back(GeoIPInterface::makeInterface(file));
+      s_geoip_files.push_back(GeoIPInterface::makeInterface(d_slog, file));
     }
   }
 
   if (s_geoip_files.empty()) {
-    g_log << Logger::Warning << "No GeoIP database files loaded!" << endl;
+    SLOG(g_log << Logger::Warning << "No GeoIP database files loaded!" << endl,
+         d_slog->info(Logr::Warning, "No GeoIP database files loaded"));
   }
 
   std::string zonesFile{getArg("zones-file")};
@@ -601,9 +611,10 @@ void GeoIPBackend::lookup(const QType& qtype, const DNSName& qdomain, domainid_t
   }
 
   if (!d_result.empty()) {
-    g_log << Logger::Error << "Cannot have static record and CNAME at the same time."
-          << "Please fix your configuration for \"" << qdomain << "\", so that "
-          << "it can be resolved by GeoIP backend directly." << std::endl;
+    SLOG(g_log << Logger::Error << "Cannot have static record and CNAME at the same time."
+               << "Please fix your configuration for \"" << qdomain << "\", so that "
+               << "it can be resolved by GeoIP backend directly." << std::endl,
+         d_slog->info(Logr::Error, "static record conflicts with CNAME", "zone", Logging::Loggable(qdomain)));
     d_result.clear();
     return;
   }
@@ -927,13 +938,16 @@ void GeoIPBackend::reload()
     initialize();
   }
   catch (PDNSException& pex) {
-    g_log << Logger::Error << "GeoIP backend reload failed: " << pex.reason << endl;
+    SLOG(g_log << Logger::Error << "GeoIP backend reload failed: " << pex.reason << endl,
+         d_slog->error(Logr::Error, pex.reason, "GeoIP backend reload failed"));
   }
   catch (std::exception& stex) {
-    g_log << Logger::Error << "GeoIP backend reload failed: " << stex.what() << endl;
+    SLOG(g_log << Logger::Error << "GeoIP backend reload failed: " << stex.what() << endl,
+         d_slog->error(Logr::Error, stex.what(), "GeoIP backend reload failed"));
   }
   catch (...) {
-    g_log << Logger::Error << "GeoIP backend reload failed" << endl;
+    SLOG(g_log << Logger::Error << "GeoIP backend reload failed" << endl,
+         d_slog->info(Logr::Error, "GeoIP backend reload failed"));
   }
 }
 
@@ -1253,11 +1267,24 @@ public:
   GeoIPLoader()
   {
     BackendMakers().report(std::make_unique<GeoIPFactory>());
-    g_log << Logger::Info << "[geoipbackend] This is the geoip backend version " VERSION
+    // If this module is not loaded dynamically at runtime, this code runs
+    // as part of a global constructor, before the structured logger has a
+    // chance to be set up, so fallback to simple logging in this case.
+    if (!g_slogStructured || !g_slog) {
+      g_log << Logger::Info << "[geoipbackend] This is the geoip backend version " VERSION
 #ifndef REPRODUCIBLE
-          << " (" __DATE__ " " __TIME__ ")"
+            << " (" __DATE__ " " __TIME__ ")"
 #endif
-          << " reporting" << endl;
+            << " reporting" << endl;
+    }
+    else {
+      g_slog->withName("geoipbackend")->info(Logr::Info, "GeoIP backend starting", "version", Logging::Loggable(VERSION)
+#ifndef REPRODUCIBLE
+                                                                                                ,
+                                             "build date", Logging::Loggable(__DATE__ " " __TIME__)
+#endif
+      );
+    }
   }
 };
 

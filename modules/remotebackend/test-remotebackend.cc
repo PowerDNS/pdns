@@ -44,6 +44,8 @@
 
 #include "test-remotebackend-keys.hh"
 
+bool g_slogStructured{false};
+
 extern std::unique_ptr<DNSBackend> backendUnderTest;
 
 BOOST_AUTO_TEST_SUITE(test_remotebackend_so)

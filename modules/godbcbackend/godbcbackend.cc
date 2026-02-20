@@ -37,17 +37,23 @@
 gODBCBackend::gODBCBackend(const std::string& mode, const std::string& suffix) :
   GSQLBackend(mode, suffix)
 {
+  if (g_slogStructured) {
+    d_slog = g_slog->withName("godbc" + suffix);
+  }
+
   try {
-    setDB(std::unique_ptr<SSql>(new SODBC(getArg("datasource"), getArg("username"), getArg("password"))));
+    setDB(std::unique_ptr<SSql>(new SODBC(d_slog, getArg("datasource"), getArg("username"), getArg("password"))));
   }
   catch (SSqlException& e) {
-    g_log << Logger::Error << mode << " Connection failed: " << e.txtReason() << std::endl;
+    SLOG(g_log << Logger::Error << mode << " Connection failed: " << e.txtReason() << std::endl,
+         d_slog->error(Logr::Error, e.txtReason(), "Database connection failed", "mode", Logging::Loggable(mode)));
     throw PDNSException("Unable to launch " + mode + " connection: " + e.txtReason());
   }
 
   allocateStatements();
 
-  g_log << Logger::Warning << mode << " Connection successful" << std::endl;
+  SLOG(g_log << Logger::Warning << mode << " Connection successful" << std::endl,
+       d_slog->info(Logr::Info, "Database connection successful", "mode", Logging::Loggable(mode)));
 }
 
 //! Constructs a gODBCBackend
@@ -173,7 +179,15 @@ public:
   gODBCLoader()
   {
     BackendMakers().report(std::make_unique<gODBCFactory>("godbc"));
-    g_log << Logger::Warning << "This is module godbcbackend reporting" << std::endl;
+    // If this module is not loaded dynamically at runtime, this code runs
+    // as part of a global constructor, before the structured logger has a
+    // chance to be set up, so fallback to simple logging in this case.
+    if (!g_slogStructured || !g_slog) {
+      g_log << Logger::Warning << "This is module godbcbackend reporting" << std::endl;
+    }
+    else {
+      g_slog->withName("godbcbackend")->info(Logr::Info, "godbc backend starting");
+    }
   }
 };
 

@@ -45,6 +45,8 @@
 #include "namespaces.hh"
 using namespace ::boost::multi_index;
 
+bool g_slogStructured{false};
+
 namespace po = boost::program_options;
 po::variables_map g_vm;
 

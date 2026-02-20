@@ -24,11 +24,14 @@
 #endif
 #include "remotebackend.hh"
 
-PipeConnector::PipeConnector(std::map<std::string, std::string> optionsMap) :
+PipeConnector::PipeConnector(Logr::log_t log, std::map<std::string, std::string> optionsMap) :
   d_pid(-1)
 {
+  d_slog = log;
+
   if (optionsMap.count("command") == 0) {
-    g_log << Logger::Error << "Cannot find 'command' option in connection string" << endl;
+    SLOG(g_log << Logger::Error << "Cannot find 'command' option in connection string" << endl,
+         d_slog->info(Logr::Error, "Cannot find 'command' option in connection string"));
     throw PDNSException();
   }
   this->command = optionsMap.find("command")->second;
@@ -137,7 +140,8 @@ void PipeConnector::launch()
   this->send(msg);
   msg = nullptr;
   if (!this->recv(msg)) {
-    g_log << Logger::Error << "Failed to initialize coprocess" << std::endl;
+    SLOG(g_log << Logger::Error << "Failed to initialize coprocess" << std::endl,
+         d_slog->info(Logr::Error, "Failed to initialize coprocess"));
   }
 }
 

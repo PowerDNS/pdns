@@ -42,7 +42,7 @@ public:
   
   ChunkedSigningPipe(const ChunkedSigningPipe&) = delete;
   void operator=(const ChunkedSigningPipe&) = delete;
-  ChunkedSigningPipe(ZoneName  signerName, bool mustSign, unsigned int numWorkers, unsigned int maxChunkRecords);
+  ChunkedSigningPipe(Logr::log_t slog, ZoneName signerName, bool mustSign, unsigned int numWorkers, unsigned int maxChunkRecords);
   ~ChunkedSigningPipe();
   bool submit(const DNSZoneRecord& rr);
   chunk_t getChunk(bool final=false);
@@ -59,8 +59,8 @@ private:
   void addSignedToChunks(std::unique_ptr<chunk_t>& signedChunk);
   pair<vector<int>, vector<int> > waitForRW(bool rd, bool wr, int seconds);
 
-  static void* helperWorker(ChunkedSigningPipe* csp, int fd);
-  void worker(int fd);
+  static void* helperWorker(ChunkedSigningPipe* csp, Logr::log_t slog, int fd);
+  void worker(Logr::log_t slog, int fd);
 
   unsigned int d_numworkers;
   unsigned int d_submitted{0};
