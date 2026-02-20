@@ -911,8 +911,8 @@ int TCPNameserver::doAXFR(const ZoneName &targetZone, std::unique_ptr<DNSPacket>
     if(zrr.dr.d_name.isPartOf(target)) {
       if (zrr.dr.d_type == QType::ALIAS && (::arg().mustDo("outgoing-axfr-expand-alias") || ::arg()["outgoing-axfr-expand-alias"] == "ignore-errors")) {
         vector<DNSZoneRecord> ips;
-        int ret1 = stubDoResolve(getRR<ALIASRecordContent>(zrr.dr)->getContent(), QType::A, ips);
-        int ret2 = stubDoResolve(getRR<ALIASRecordContent>(zrr.dr)->getContent(), QType::AAAA, ips);
+        int ret1 = stubDoResolve(slog, getRR<ALIASRecordContent>(zrr.dr)->getContent(), QType::A, ips);
+        int ret2 = stubDoResolve(slog, getRR<ALIASRecordContent>(zrr.dr)->getContent(), QType::AAAA, ips);
         if (ret1 != RCode::NoError || ret2 != RCode::NoError) {
           if (::arg()["outgoing-axfr-expand-alias"] == "ignore-errors") {
             if (ret1 != RCode::NoError) {
@@ -1088,7 +1088,7 @@ send:
   typedef map<DNSName, NSECXEntry, CanonDNSNameCompare> nsecxrepo_t;
   nsecxrepo_t nsecxrepo;
 
-  ChunkedSigningPipe csp(targetZone, (securedZone && !presignedZone), ::arg().asNum("signing-threads", 1), ::arg().mustDo("workaround-11804") ? 1 : 100);
+  ChunkedSigningPipe csp(slog, targetZone, (securedZone && !presignedZone), ::arg().asNum("signing-threads", 1), ::arg().mustDo("workaround-11804") ? 1 : 100);
 
   DNSName keyname;
   unsigned int udiff;

@@ -48,18 +48,21 @@ int readn(int fd, void* buffer, unsigned int len)
 }
 }
 
-void* ChunkedSigningPipe::helperWorker(ChunkedSigningPipe* csp, int fd)
-try {
-  setThreadName("pdns/signer");
-  csp->worker(fd);
-  return nullptr;
-}
-catch(...) {
-  g_log<<Logger::Error<<"Unknown exception in signing thread occurred"<<endl;
-  return nullptr;
+void* ChunkedSigningPipe::helperWorker(ChunkedSigningPipe* csp, Logr::log_t slog, int fd)
+{
+  try {
+    setThreadName("pdns/signer");
+    csp->worker(slog, fd);
+    return nullptr;
+  }
+  catch(...) {
+    SLOG(g_log<<Logger::Error<<"Unknown exception in signing thread occurred"<<endl,
+         slog->error(Logr::Error, "Unknown exception in signing thread occurred"));
+    return nullptr;
+  }
 }
 
-ChunkedSigningPipe::ChunkedSigningPipe(ZoneName signerName, bool mustSign, unsigned int workers, unsigned int maxChunkRecords) :
+ChunkedSigningPipe::ChunkedSigningPipe(Logr::log_t slog, ZoneName signerName, bool mustSign, unsigned int workers, unsigned int maxChunkRecords) :
   d_signed(0), d_numworkers(workers), d_signer(std::move(signerName)), d_maxchunkrecords(maxChunkRecords), d_threads(d_numworkers), d_mustSign(mustSign)
 {
   d_rrsetToSign = make_unique<rrset_t>();
@@ -75,7 +78,7 @@ ChunkedSigningPipe::ChunkedSigningPipe(ZoneName signerName, bool mustSign, unsig
       throw runtime_error("Unable to create communication socket in for ChunkedSigningPipe");
     setCloseOnExec(fds[0]);
     setCloseOnExec(fds[1]);
-    d_threads[n] = std::thread(helperWorker, this, fds[1]);
+    d_threads[n] = std::thread(helperWorker, this, slog, fds[1]);
     setNonBlocking(fds[0]);
     d_sockets.push_back(fds[0]);
     d_outstandings[fds[0]] = 0;
@@ -272,49 +275,52 @@ unsigned int ChunkedSigningPipe::getReady() const
    return sum;
 }
 
-void ChunkedSigningPipe::worker(int fd)
-try
+void ChunkedSigningPipe::worker(Logr::log_t slog, int fd)
 {
-  UeberBackend db("key-only");
-  DNSSECKeeper dk(&db);
+  try {
+    UeberBackend db("key-only");
+    DNSSECKeeper dk(&db);
   
-  chunk_t* chunk = nullptr;
-  int res;
-  for(;;) {
-    res = readn(fd, &chunk, sizeof(chunk));
-    if(!res)
-      break;
-    if(res < 0)
-      unixDie("reading object pointer to sign from pdns");
-    try {
-      set<ZoneName> authSet;
-      authSet.insert(d_signer);
-      addRRSigs(dk, db, authSet, *chunk);
-      ++d_signed;
+    chunk_t* chunk = nullptr;
+    int res;
+    for(;;) {
+      res = readn(fd, &chunk, sizeof(chunk));
+      if(!res)
+        break;
+      if(res < 0)
+        unixDie("reading object pointer to sign from pdns");
+      try {
+        set<ZoneName> authSet;
+        authSet.insert(d_signer);
+        addRRSigs(dk, db, authSet, *chunk);
+        ++d_signed;
 
-      writen2(fd, &chunk, sizeof(chunk));
-      chunk = nullptr;
+        writen2(fd, &chunk, sizeof(chunk));
+        chunk = nullptr;
+      }
+      catch(const PDNSException& pe) {
+        delete chunk;
+        throw;
+      }
+      catch(const std::exception& e) {
+        delete chunk;
+        throw;
+      }
     }
-    catch(const PDNSException& pe) {
-      delete chunk;
-      throw;
-    }
-    catch(const std::exception& e) {
-      delete chunk;
-      throw;
-    }
+    close(fd);
   }
-  close(fd);
-}
-catch(const PDNSException& pe)
-{
-  g_log<<Logger::Error<<"Signing thread died because of PDNSException: "<<pe.reason<<endl;
-  close(fd);
-}
-catch(const std::exception& e)
-{
-  g_log<<Logger::Error<<"Signing thread died because of std::exception: "<<e.what()<<endl;
-  close(fd);
+  catch(const PDNSException& pe)
+  {
+    SLOG(g_log<<Logger::Error<<"Signing thread died because of PDNSException: "<<pe.reason<<endl,
+         slog->error(Logr::Error, pe.reason, "Signing thread died because of PDNSException"));
+    close(fd);
+  }
+  catch(const std::exception& e)
+  {
+    SLOG(g_log<<Logger::Error<<"Signing thread died because of std::exception: "<<e.what()<<endl,
+         slog->error(Logr::Error, e.what(), "Signing thread died because of std::exception"));
+    close(fd);
+  }
 }
 
 void ChunkedSigningPipe::flushToSign()

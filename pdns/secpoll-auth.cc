@@ -51,7 +51,7 @@ void doSecPoll(Logr::log_t slog, bool first)
   int security_status = std::stoi(S.getValueStr("security-status"));
 
   vector<DNSRecord> ret;
-  int res = stubDoResolve(DNSName(query), QType::TXT, ret);
+  int res = stubDoResolve(slog, DNSName(query), QType::TXT, ret);
 
   if (res == RCode::NXDomain && !isReleaseVersion(pkgv)) {
     SLOG(g_log<<Logger::Warning<<"Not validating response for security status update, this is a non-release version"<<endl,

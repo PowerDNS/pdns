@@ -129,10 +129,10 @@ bool DNSProxy::completePacket(std::unique_ptr<DNSPacket>& reply, const DNSName& 
     int ret2 = 0;
     // rip out edns info here, pass it to the stubDoResolve
     if (reply->qtype == QType::A || reply->qtype == QType::ANY) {
-      ret1 = stubDoResolve(target, QType::A, ips, reply->hasEDNSSubnet() ? &reply->d_eso : nullptr);
+      ret1 = stubDoResolve(d_slog, target, QType::A, ips, reply->hasEDNSSubnet() ? &reply->d_eso : nullptr);
     }
     if (reply->qtype == QType::AAAA || reply->qtype == QType::ANY) {
-      ret2 = stubDoResolve(target, QType::AAAA, ips, reply->hasEDNSSubnet() ? &reply->d_eso : nullptr);
+      ret2 = stubDoResolve(d_slog, target, QType::AAAA, ips, reply->hasEDNSSubnet() ? &reply->d_eso : nullptr);
     }
 
     if (ret1 != RCode::NoError || ret2 != RCode::NoError) {

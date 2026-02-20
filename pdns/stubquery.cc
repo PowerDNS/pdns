@@ -50,11 +50,11 @@ try
   ::arg().set("resolver","Use this resolver for ALIAS and the internal stub resolver")="no"; 
 
   reportAllTypes();
-  stubParseResolveConf();
+  stubParseResolveConf(nullptr);
 
   vector<DNSZoneRecord> ret;
 
-  int res=stubDoResolve(DNSName(argv[1]), DNSRecordContent::TypeToNumber(type), ret);
+  int res=stubDoResolve(nullptr, DNSName(argv[1]), DNSRecordContent::TypeToNumber(type), ret);
 
   cout<<"res: "<<res<<endl;
   for(const auto& r : ret) {

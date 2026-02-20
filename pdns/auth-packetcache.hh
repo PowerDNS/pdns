@@ -92,6 +92,9 @@ public:
   {
     return (d_ttl > 0);
   }
+
+  void setSLog(Logr::log_t log) { d_slog = log; }
+
 private:
 
   struct CacheEntry
@@ -157,6 +160,7 @@ private:
   unsigned int d_cleaninterval{4096};
   uint32_t d_ttl{0};
   bool d_cleanskipped{false};
+  std::shared_ptr<Logr::Logger> d_slog;
 
   static const unsigned int s_mincleaninterval=1000, s_maxcleaninterval=300000;
 };

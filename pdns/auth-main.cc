@@ -750,7 +750,7 @@ static void triggerLoadOfLibraries()
 
 static void mainthread()
 {
-  std::shared_ptr<Logr::Logger> slog;
+  static std::shared_ptr<Logr::Logger> slog;
   if (g_slogStructured) {
     slog = g_slog->withName("pdns");
   }
@@ -836,8 +836,10 @@ static void mainthread()
   }
   // (no more checks yet)
 
+  PC.setSLog(slog);
   PC.setTTL(::arg().asNum("cache-ttl"));
   PC.setMaxEntries(::arg().asNum("max-packet-cache-entries"));
+  QC.setSLog(slog);
   QC.setMaxEntries(::arg().asNum("max-cache-entries"));
   DNSSECKeeper::setMaxEntries(::arg().asNum("max-cache-entries"));
 
@@ -850,7 +852,7 @@ static void mainthread()
          slog->info(Logr::Error, "Ignoring ALIAS resolve failures on outgoing AXFR transfers, see option \"outgoing-axfr-expand-alias\""));
   }
 
-  stubParseResolveConf();
+  stubParseResolveConf(slog);
 
   if (!::arg()["chroot"].empty()) {
 #ifdef HAVE_SYSTEMD
@@ -964,7 +966,7 @@ static void mainthread()
   s_dynListener->go();
 
   if (::arg().mustDo("webserver") || ::arg().mustDo("api")) {
-    webserver.go(S);
+    webserver.go(slog, S);
   }
 
   if (::arg().mustDo("primary") || ::arg().mustDo("secondary") || !::arg()["forward-notify"].empty())
@@ -979,7 +981,7 @@ static void mainthread()
     t.detach();
   }
 
-  std::thread carbonThread(carbonDumpThread); // runs even w/o carbon, might change @ runtime
+  std::thread carbonThread(carbonDumpThread, std::ref(slog)); // runs even w/o carbon, might change @ runtime
 
 #ifdef HAVE_SYSTEMD
   /* If we are here, notify systemd that we are ay-ok! This might have some

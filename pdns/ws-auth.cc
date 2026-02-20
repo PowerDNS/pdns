@@ -118,20 +118,20 @@ AuthWebServer::AuthWebServer() :
   }
 }
 
-void AuthWebServer::go(StatBag& stats)
+void AuthWebServer::go(Logr::log_t slog, StatBag& stats)
 {
   // Compute a unique random value used for indexPOST validation
   std::array<char, 32> buf{};
   dns_random(buf.data(), buf.size());
   d_unique = Base64Encode(std::string(buf.data(), buf.size()));
   S.doRings();
-  std::thread webT([this]() { webThread(); });
+  std::thread webT([this, &slog]() { webThread(slog); });
   webT.detach();
-  std::thread statT([this, &stats]() { statThread(stats); });
+  std::thread statT([this, &slog, &stats]() { statThread(slog, stats); });
   statT.detach();
 }
 
-void AuthWebServer::statThread(StatBag& stats)
+void AuthWebServer::statThread(Logr::log_t slog, StatBag& stats)
 {
   try {
     setThreadName("pdns/statHelper");
@@ -145,7 +145,8 @@ void AuthWebServer::statThread(StatBag& stats)
     }
   }
   catch (...) {
-    g_log << Logger::Error << "Webserver statThread caught an exception, dying" << endl;
+    SLOG(g_log << Logger::Error << "Webserver statThread caught an exception, dying" << endl,
+         slog->error(Logr::Error, "Webserver statThread caught an exception, dying"));
     _exit(1);
   }
 }
@@ -3288,7 +3289,7 @@ static void cssfunction(HttpRequest* /* req */, HttpResponse* resp)
   resp->status = 200;
 }
 
-void AuthWebServer::webThread()
+void AuthWebServer::webThread(Logr::log_t slog)
 {
   try {
     setThreadName("pdns/webserver");
@@ -3352,7 +3353,8 @@ void AuthWebServer::webThread()
     d_ws->go();
   }
   catch (...) {
-    g_log << Logger::Error << "AuthWebServer thread caught an exception, dying" << endl;
+    SLOG(g_log << Logger::Error << "AuthWebServer thread caught an exception, dying" << endl,
+         slog->error(Logr::Error, "AuthWebserver thread caught an exception, dying"));
     _exit(1);
   }
 }
