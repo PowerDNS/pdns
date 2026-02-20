@@ -332,7 +332,7 @@ static bool checkConfigurationTime(const std::string& name)
   return false;
 }
 
-using newserver_t = LuaAssociativeTable<boost::variant<bool, std::string, LuaArray<std::string>, LuaArray<std::shared_ptr<XskSocket>>, DownstreamState::checkfunc_t>>;
+using newserver_t = LuaAssociativeTable<boost::variant<bool, std::string, LuaArray<std::string>, LuaArray<std::shared_ptr<XskSocket>>, DownstreamState::HealthCheckQueryGenerator>>;
 
 static void handleNewServerHealthCheckParameters(std::optional<newserver_t>& vars, DownstreamState::Config& config)
 {
@@ -356,7 +356,7 @@ static void handleNewServerHealthCheckParameters(std::optional<newserver_t>& var
 
   getOptionalValue<std::string>(vars, "checkType", config.checkType);
   getOptionalIntegerValue("newServer", vars, "checkClass", config.checkClass);
-  getOptionalValue<DownstreamState::checkfunc_t>(vars, "checkFunction", config.checkFunction);
+  getOptionalValue<DownstreamState::HealthCheckQueryGenerator>(vars, "checkFunction", config.d_healthCheckGenerationFunction);
   getOptionalIntegerValue("newServer", vars, "checkTimeout", config.checkTimeout);
   getOptionalValue<bool>(vars, "checkTCP", config.d_tcpCheck);
   getOptionalValue<bool>(vars, "setCD", config.setCD);

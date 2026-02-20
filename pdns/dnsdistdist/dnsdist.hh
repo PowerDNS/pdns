@@ -549,7 +549,9 @@ struct DownstreamState : public std::enable_shared_from_this<DownstreamState>
   DownstreamState& operator=(const DownstreamState&) = delete;
   DownstreamState& operator=(DownstreamState&&) = delete;
 
-  typedef std::function<std::tuple<DNSName, uint16_t, uint16_t>(const DNSName&, uint16_t, uint16_t, dnsheader*)> checkfunc_t;
+  using HealthCheckQueryGenerator = std::function<std::tuple<DNSName, uint16_t, uint16_t>(const DNSName&, uint16_t, uint16_t, dnsheader*)>;
+  using HealthCheckResponseValidator = std::function<bool(const DNSResponse*)>;
+
   enum class Availability : uint8_t
   {
     Up,
@@ -580,7 +582,8 @@ struct DownstreamState : public std::enable_shared_from_this<DownstreamState>
     TLSContextParameters d_tlsParams;
     set<string> pools;
     std::set<int> d_cpus;
-    checkfunc_t checkFunction;
+    HealthCheckQueryGenerator d_healthCheckGenerationFunction;
+    HealthCheckResponseValidator d_healthCheckResponseValidationCallback;
     std::optional<boost::uuids::uuid> id;
     DNSName checkName{"a.root-servers.net."};
     ComboAddress remote;

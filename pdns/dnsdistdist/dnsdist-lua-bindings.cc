@@ -382,6 +382,16 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
     }
     return boost::uuids::to_string(*state->d_config.id);
   });
+  luaCtx.registerFunction<void (std::shared_ptr<DownstreamState>::*)(DownstreamState::HealthCheckResponseValidator validator)>("setHealthCheckResponseValidator", [](std::shared_ptr<DownstreamState>& state, DownstreamState::HealthCheckResponseValidator validator) {
+    if (!state) {
+      return;
+    }
+    if (dnsdist::configuration::isImmutableConfigurationDone()) {
+      throw std::runtime_error("setHealthCheckResponseValidator cannot be used at configuration time!");
+      return;
+    }
+    state->d_config.d_healthCheckResponseValidationCallback = validator;
+  });
 #endif /* DISABLE_DOWNSTREAM_BINDINGS */
 
 #ifndef DISABLE_DNSHEADER_BINDINGS

@@ -480,7 +480,8 @@ static std::shared_ptr<DownstreamState> createBackendFromConfiguration(const Con
   backendConfig.minRiseSuccesses = hcConf.rise;
   backendConfig.udpTimeout = config.udp_timeout;
 
-  getLuaFunctionFromConfiguration<DownstreamState::checkfunc_t>(backendConfig.checkFunction, hcConf.function, hcConf.lua, hcConf.lua_file, "backend health-check");
+  getLuaFunctionFromConfiguration<DownstreamState::HealthCheckQueryGenerator>(backendConfig.d_healthCheckGenerationFunction, hcConf.function, hcConf.lua, hcConf.lua_file, "backend health-check");
+  getLuaFunctionFromConfiguration<DownstreamState::HealthCheckResponseValidator>(backendConfig.d_healthCheckResponseValidationCallback, hcConf.validation_function, hcConf.validation_lua, hcConf.validation_lua_file, "backend health-check");
 
   DownstreamState::parseAvailabilityConfigFromStr(backendConfig, std::string(hcConf.mode));
 

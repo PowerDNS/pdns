@@ -905,6 +905,61 @@ A server object returned by :func:`getServer` can be manipulated with these func
     Administratively set the server in a ``DOWN`` state.
     The server will not receive queries and the health checks are disabled.
 
+  .. method:: Server:setHealthCheckResponseValidator(validator)
+
+    .. versionadded:: 2.1.0
+
+    Set a Lua function to be called to validate DNS packets received in response to health-check queries.
+    The function will receive a class:`DNSResponse` object and return a boolean indicating whether the response
+    is valid (`true`) or not (`false`).
+
+    .. code-block:: lua
+
+      function myHealthCheckValidationFunction(dr)
+        local rcode = dr.rcode
+        if rcode ~= DNSRCode.NOERROR then
+          return false
+        end
+
+        local packet = dr:getContent()
+        local overlay = newDNSPacketOverlay(packet)
+
+        if overlay.qname:toString() ~= "expected.name." then
+          return false
+        end
+
+        if overlay.qtype ~= DNSQType.A then
+          return false
+        end
+
+        local count = overlay:getRecordsCountInSection(1)
+        if count ~= 1 then
+          return false
+        end
+
+        local record = overlay:getRecord(0)
+        if record.contentLength ~= 4 then
+          return false
+        end
+
+        local offset = record.contentOffset
+        local content = parseARecord(packet, record)
+        if content == nil then
+          return false
+        end
+
+        if content:toString() ~= '127.0.0.2' then
+          return false
+        end
+
+        return true
+      end
+
+      local backend = newServer{address="192.0.2.1"}
+      backend:setHealthCheckResponseValidator(myHealthCheckValidationFunction)
+
+    :param function validator: Function to be called
+
   .. method:: Server:setLazyAuto([status])
 
     .. versionadded:: 1.8.0

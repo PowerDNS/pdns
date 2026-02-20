@@ -228,6 +228,89 @@ class TestHealthCheckCustomFunction(HealthCheckTest):
         self.assertGreater(TestHealthCheckCustomFunction._healthCheckCounter, before)
         self.assertEqual(self.getBackendStatus(), 'up')
 
+class TestHealthCheckCustomResponseValidationFunction(HealthCheckTest):
+    # this test suite uses a different responder port
+    # because it uses a different health check configuration
+    _testServerPort = pickAvailablePort()
+    _healthCheckName = 'powerdns.com.'
+    _config_template = """
+    setKey("%s")
+    controlSocket("127.0.0.1:%d")
+    webserver("127.0.0.1:%d")
+    setWebserverConfig({apiKey="%s"})
+
+    function myHealthCheckValidationFunction(dr)
+      local rcode = dr.rcode
+      if rcode ~= DNSRCode.NOERROR then
+        errlog("Invalid RCODE " .. rcode)
+        return false
+      end
+      local packet = dr:getContent()
+      local overlay = newDNSPacketOverlay(packet)
+      if overlay.qname:toString() ~= "%s" then
+        errlog("Invalid QNAME: " .. overlay.qname:toString())
+        return false
+      end
+      if overlay.qtype ~= DNSQType.A then
+        errlog("Invalid QTYPE:" .. overlay.qtype)
+        return false
+      end
+      local count = overlay:getRecordsCountInSection(1)
+      if count ~= 1 then
+        errlog("Invalid answers count: " .. count)
+        return false
+      end
+      local record = overlay:getRecord(0)
+      if record.contentLength ~= 4 then
+        errlog("Invalid record length: " .. record.contentLength)
+        return false
+      end
+      local offset = record.contentOffset
+      local content = parseARecord(packet, record)
+      if content == nil then
+        errlog("Invalid content")
+        return false
+      end
+      if content:toString() ~= '127.0.0.2' then
+        errlog("Invalid content: " .. content:toString())
+        return false
+      end
+      return true
+    end
+
+    local backend = newServer{address="127.0.0.1:%d", checkName="%s"}
+    backend:setHealthCheckResponseValidator(myHealthCheckValidationFunction)
+    setVerboseHealthChecks(true)
+    """
+    _config_params = ['_consoleKeyB64', '_consolePort', '_webServerPort', '_webServerAPIKeyHashed', '_healthCheckName', '_testServerPort', '_healthCheckName']
+    _verboseMode = True
+
+    @classmethod
+    def startResponders(cls):
+        print("Launching responders..")
+        cls._UDPResponder = threading.Thread(name='UDP health-check Responder', target=cls.UDPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue, False, cls.healthCallback])
+        cls._UDPResponder.daemon = True
+        cls._UDPResponder.start()
+
+    @classmethod
+    def healthCallback(cls, request):
+        print(request)
+        rrset = dns.rrset.from_text(request.question[0].name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.2')
+        response = dns.message.make_response(request)
+        response.answer.append(rrset)
+        return response.to_wire()
+
+    def testAuto(self):
+        """
+        HealthChecks: Custom response validation function
+        """
+        time.sleep(1.5)
+        self.assertEqual(self.getBackendStatus(), 'up')
+
 _do53HealthCheckQueries = 0
 _dotHealthCheckQueries = 0
 _dohHealthCheckQueries = 0
