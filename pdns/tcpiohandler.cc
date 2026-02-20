@@ -866,7 +866,7 @@ public:
       if (!params.d_client_certificate_password.empty()) {
         password = params.d_client_certificate_password;
       }
-      TLSCertKeyPair pair{params.d_client_certificate, key, password};
+      TLSCertKeyPair pair{params.d_client_certificate, std::move(key), std::move(password)};
       std::vector<int> keyTypes;
       libssl_setup_context_no_sni(d_tlsCtx.get(), pair, keyTypes);
     }
