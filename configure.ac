@@ -63,8 +63,6 @@ AS_IF([test "x$enable_hardening" != "xno"], [
   AC_LD_RELRO
 ])
 
-PDNS_ENABLE_KISS
-
 PDNS_CHECK_NETWORK_LIBS
 
 
