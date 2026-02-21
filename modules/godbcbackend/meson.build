@@ -15,4 +15,4 @@ module_resources = files(
   '4.3.0_to_4.7.0_schema.mssql.sql',
 )
 
-module_deps = [deps, dep_odbc]
+module_deps = [deps, dep_odbc, libpdns_sqlbackend]

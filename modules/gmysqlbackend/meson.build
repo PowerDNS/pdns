@@ -19,4 +19,4 @@ module_resources = files(
   'schema.mysql.sql',
 )
 
-module_deps = [deps, dep_mysql]
+module_deps = [deps, dep_mysql, libpdns_sqlbackend]

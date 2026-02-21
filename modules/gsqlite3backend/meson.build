@@ -17,4 +17,4 @@ module_resources = files(
   'schema.sqlite3.sql',
 )
 
-module_deps = [deps, dep_sqlite3]
+module_deps = [deps, dep_sqlite3, libpdns_ssqlite3]
