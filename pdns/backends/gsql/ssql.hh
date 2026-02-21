@@ -31,8 +31,8 @@
 class SSqlException
 {
 public:
-  SSqlException(string reason) :
-    d_reason(std::move(reason))
+  SSqlException(string reason, bool shouldReconnect = false) :
+    d_reason(std::move(reason)), d_reconnect(shouldReconnect)
   {
   }
 
@@ -41,8 +41,14 @@ public:
     return d_reason;
   }
 
+  bool shouldReconnectAndRetry()
+  {
+    return d_reconnect;
+  }
+
 private:
   string d_reason;
+  bool d_reconnect;
 };
 
 class SSqlStatement
