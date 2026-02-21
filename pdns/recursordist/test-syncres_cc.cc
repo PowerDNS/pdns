@@ -268,6 +268,7 @@ void setLWResult(LWResult* res, int rcode, bool aa, bool tc, bool edns, bool val
   res->d_aabit = aa;
   res->d_tcbit = tc;
   res->d_haveEDNS = edns;
+  res->d_ednsECScope.reset();
   res->d_validpacket = validpacket;
 }
 

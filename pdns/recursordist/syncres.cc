@@ -43,6 +43,8 @@
 #include "rec-nsspeeds.hh"
 #include "resolve-context.hh"
 
+bool g_ECSScopeZeroOnNoRecord;
+
 rec::GlobalCounters g_Counters;
 thread_local rec::TCounters t_Counters(g_Counters);
 
@@ -659,6 +661,7 @@ int SyncRes::beginResolve(const DNSName& qname, const QType qtype, QClass qclass
   d_wasVariable = false;
   d_wasOutOfBand = false;
   d_cutStates.clear();
+  d_answerECSScope.reset();
 
   if (doSpecialNamesResolve(qname, qtype, qclass, ret)) {
     d_queryValidationState = vState::Insecure; // this could fool our stats into thinking a validation took place
@@ -712,6 +715,20 @@ int SyncRes::beginResolve(const DNSName& qname, const QType qtype, QClass qclass
   }
   traceScope.close(res);
   return res;
+}
+
+void SyncRes::mergeAnswerECSScope(uint8_t scope)
+{
+  if (!d_answerECSScope || scope > *d_answerECSScope) {
+    d_answerECSScope = scope;
+  }
+}
+
+void SyncRes::mergeAnswerECSScope(const std::optional<uint8_t>& scope)
+{
+  if (scope) {
+    mergeAnswerECSScope(*scope);
+  }
 }
 
 /*! Handles all special, built-in names
@@ -2488,6 +2505,7 @@ bool SyncRes::doCNAMECacheCheck(const DNSName& qname, const QType qtype, vector<
   DNSName foundName;
   DNSName authZone;
   QType foundQT = QType::ENT;
+  uint8_t ecsScope{0};
 
   /* we don't require auth data for forward-recurse lookups */
   MemRecursorCache::Flags flags = MemRecursorCache::None;
@@ -2501,7 +2519,7 @@ bool SyncRes::doCNAMECacheCheck(const DNSName& qname, const QType qtype, vector<
     flags |= MemRecursorCache::ServeStale;
   }
   MemRecursorCache::Extra extra;
-  if (g_recCache->get(d_now.tv_sec, qname, QType::CNAME, flags, &cset, d_cacheRemote, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &context.state, &wasAuth, &authZone, &extra) > 0) {
+  if (g_recCache->get(d_now.tv_sec, qname, QType::CNAME, flags, &cset, d_cacheRemote, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &context.state, &wasAuth, &authZone, &extra, &ecsScope) > 0) {
     foundName = qname;
     foundQT = QType::CNAME;
     d_fromAuthIP = extra.d_address;
@@ -2518,7 +2536,7 @@ bool SyncRes::doCNAMECacheCheck(const DNSName& qname, const QType qtype, vector<
       if (dnameName == qname && qtype != QType::DNAME) { // The client does not want a DNAME, but we've reached the QNAME already. So there is no match
         break;
       }
-      if (g_recCache->get(d_now.tv_sec, dnameName, QType::DNAME, flags, &cset, d_cacheRemote, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &context.state, &wasAuth, &authZone, &extra) > 0) {
+      if (g_recCache->get(d_now.tv_sec, dnameName, QType::DNAME, flags, &cset, d_cacheRemote, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &context.state, &wasAuth, &authZone, &extra, &ecsScope) > 0) {
         foundName = std::move(dnameName);
         foundQT = QType::DNAME;
         d_fromAuthIP = extra.d_address;
@@ -2537,6 +2555,8 @@ bool SyncRes::doCNAMECacheCheck(const DNSName& qname, const QType qtype, vector<
     LOG(prefix << qname << ": Found a " << foundQT.toString() << " cache hit of '" << qname << "' from " << authZone << ", but such a record at the apex of the child zone does not prove that there is no DS in the parent zone" << endl);
     return false;
   }
+
+  mergeAnswerECSScope(ecsScope);
 
   for (auto const& record : cset) {
     if (record.d_class != QClass::IN) {
@@ -2933,6 +2953,7 @@ bool SyncRes::doCacheCheck(const DNSName& qname, const DNSName& authname, bool w
   uint32_t ttl = 0;
   uint32_t capTTL = std::numeric_limits<uint32_t>::max();
   bool wasCachedAuth{};
+  uint8_t ecsScope{0};
   MemRecursorCache::Flags flags = MemRecursorCache::None;
   if (!wasForwardRecurse && d_requireAuthData) {
     flags |= MemRecursorCache::RequireAuth;
@@ -2945,7 +2966,7 @@ bool SyncRes::doCacheCheck(const DNSName& qname, const DNSName& authname, bool w
   }
 
   MemRecursorCache::Extra extra;
-  if (g_recCache->get(d_now.tv_sec, sqname, sqt, flags, &cset, d_cacheRemote, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &cachedState, &wasCachedAuth, nullptr, &extra) > 0) {
+  if (g_recCache->get(d_now.tv_sec, sqname, sqt, flags, &cset, d_cacheRemote, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &cachedState, &wasCachedAuth, nullptr, &extra, &ecsScope) > 0) {
     d_fromAuthIP = extra.d_address;
 
     LOG(prefix << sqname << ": Found cache hit for " << sqt.toString() << ": ");
@@ -3046,6 +3067,7 @@ bool SyncRes::doCacheCheck(const DNSName& qname, const DNSName& authname, bool w
       }
       LOG(prefix << qname << ": Updating validation state with cache content for " << qname << " to " << cachedState << endl);
       context.state = cachedState;
+      mergeAnswerECSScope(ecsScope);
       return true;
     }
     LOG(prefix << qname << ": Cache had only stale entries" << endl);
@@ -4508,6 +4530,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
   bool isCNAMEAnswer = false;
   bool isDNAMEAnswer = false;
   DNSName seenAuth;
+  const uint8_t ecsScope = lwr.d_ednsECScope.value_or(static_cast<uint8_t>(0));
 
   // names that might be expanded from a wildcard, and thus require denial of existence proof
   // this is the queried name and any part of the CNAME chain from the queried name
@@ -4856,7 +4879,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
             thisRRNeedsWildcardProof = true;
           }
         }
-        g_recCache->replace(d_now.tv_sec, tCacheEntry->first.name, tCacheEntry->first.type, tCacheEntry->second.records, tCacheEntry->second.signatures, thisRRNeedsWildcardProof ? authorityRecs : *MemRecursorCache::s_emptyAuthRecs, tCacheEntry->first.type == QType::DS ? true : isAA, auth, tCacheEntry->first.place == DNSResourceRecord::ANSWER ? ednsmask : std::nullopt, d_routingTag, recordState, MemRecursorCache::Extra{remoteIP, overTCP}, d_refresh, tCacheEntry->second.d_ttl_time);
+        g_recCache->replace(d_now.tv_sec, tCacheEntry->first.name, tCacheEntry->first.type, tCacheEntry->second.records, tCacheEntry->second.signatures, thisRRNeedsWildcardProof ? authorityRecs : *MemRecursorCache::s_emptyAuthRecs, tCacheEntry->first.type == QType::DS ? true : isAA, auth, tCacheEntry->first.place == DNSResourceRecord::ANSWER ? ednsmask : std::nullopt, d_routingTag, recordState, MemRecursorCache::Extra{remoteIP, overTCP}, d_refresh, tCacheEntry->second.d_ttl_time, ecsScope);
 
         // Delete potential negcache entry. When a record recovers with serve-stale the negcache entry can cause the wrong entry to
         // be served, as negcache entries are checked before record cache entries
@@ -4881,7 +4904,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
               content.push_back(std::move(nonExpandedRecord));
             }
 
-            g_recCache->replace(d_now.tv_sec, realOwner, QType(tCacheEntry->first.type), content, tCacheEntry->second.signatures, /* no additional records in that case */ {}, tCacheEntry->first.type == QType::DS ? true : isAA, auth, std::nullopt, MemRecursorCache::NOTAG, recordState, MemRecursorCache::Extra{remoteIP, overTCP}, d_refresh, tCacheEntry->second.d_ttl_time);
+            g_recCache->replace(d_now.tv_sec, realOwner, QType(tCacheEntry->first.type), content, tCacheEntry->second.signatures, /* no additional records in that case */ {}, tCacheEntry->first.type == QType::DS ? true : isAA, auth, std::nullopt, MemRecursorCache::NOTAG, recordState, MemRecursorCache::Extra{remoteIP, overTCP}, d_refresh, tCacheEntry->second.d_ttl_time, 0);
           }
         }
       }
@@ -5280,7 +5303,10 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
           if (qtype == QType::CNAME && MemRecursorCache::s_maxServedStaleExtensions > 0) {
             g_recCache->doWipeCache(qname, false, qtype);
           }
-          g_negCache->add(negEntry);
+          const bool ecsSpecificNoData = !g_ECSScopeZeroOnNoRecord && lwr.d_ednsECScope && *lwr.d_ednsECScope > 0;
+          if (!ecsSpecificNoData) {
+            g_negCache->add(negEntry);
+          }
         }
 
         ret.push_back(rec);
@@ -5754,6 +5780,7 @@ bool SyncRes::processAnswer(unsigned int depth, const string& prefix, LWResult& 
   unsigned int wildcardLabelsCount = 0;
   *rcode = updateCacheFromRecords(depth, prefix, lwr, qname, qtype, auth, wasForwarded, ednsmask, state, needWildcardProof, gatherWildcardProof, wildcardLabelsCount, sendRDQuery, remoteIP, overTCP);
   if (*rcode != RCode::NoError) {
+    mergeAnswerECSScope(lwr.d_ednsECScope);
     return true;
   }
 
@@ -5776,11 +5803,13 @@ bool SyncRes::processAnswer(unsigned int depth, const string& prefix, LWResult& 
   if (done) {
     LOG(prefix << qname << ": Status=got results, this level of recursion done" << endl);
     LOG(prefix << qname << ": Validation status is " << state << endl);
+    mergeAnswerECSScope(lwr.d_ednsECScope);
     return true;
   }
 
   if (!newtarget.empty()) {
     handleNewTarget(prefix, qname, newtarget, qtype.getCode(), ret, *rcode, depth, lwr.d_records, state);
+    mergeAnswerECSScope(lwr.d_ednsECScope);
     return true;
   }
 
@@ -5803,6 +5832,7 @@ bool SyncRes::processAnswer(unsigned int depth, const string& prefix, LWResult& 
     }
 
     *rcode = RCode::NXDomain;
+    mergeAnswerECSScope(lwr.d_ednsECScope);
     return true;
   }
 
@@ -5825,6 +5855,7 @@ bool SyncRes::processAnswer(unsigned int depth, const string& prefix, LWResult& 
     }
 
     *rcode = RCode::NoError;
+    mergeAnswerECSScope(lwr.d_ednsECScope);
     return true;
   }
 

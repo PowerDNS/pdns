@@ -870,6 +870,19 @@ found, the recursor fallbacks to sending 127.0.0.1.
     'versionadded': '4.1.0'
     },
     {
+        'name' : 'scope_zero_on_no_record',
+        'section' : 'ecs',
+        'oldname' : 'ecs-scope-zero-on-no-record',
+        'type' : LType.Bool,
+        'default' : 'true',
+        'help' : 'Force ECS scope to zero in responses (including negative answers)',
+        'doc' : '''
+When enabled, the recursor will force the ECS scope prefix-length to 0 in responses, even if the authoritative response contained a different scope.
+When disabled, the authoritative scope will be preserved when available, including for NODATA/SOA responses.
+Responses carrying a non-zero scope are not inserted into the packet cache.
+ ''',
+    },
+    {
         'name' : 'edns_bufsize',
         'section' : 'outgoing',
         'oldname' : 'edns-outgoing-bufsize',
@@ -3133,6 +3146,17 @@ See :ref:`setting-unique-response-ignore-list`.
         'doc' : '''
 Whether to process and pass along a received EDNS Client Subnet to authoritative servers.
 The ECS information will only be sent for netmasks and domains listed in :ref:`setting-edns-subnet-allow-list` and will be truncated if the received scope exceeds :ref:`setting-ecs-ipv4-bits` for IPv4 or :ref:`setting-ecs-ipv6-bits` for IPv6.
+ ''',
+    },
+    {
+        'name' : 'return_incoming_edns_subnet',
+        'section' : 'incoming',
+        'type' : LType.Bool,
+        'default' : 'true',
+        'help' : 'Return EDNS Client Subnet information in responses to clients',
+        'doc' : '''
+When enabled, responses to clients that sent an EDNS Client Subnet option will include an ECS option in the reply (assuming :ref:`setting-use-incoming-edns-subnet` is also enabled).
+Disabling this prevents ECS from being echoed back to downstream resolvers.
  ''',
     },
     {

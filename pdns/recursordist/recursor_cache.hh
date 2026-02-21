@@ -104,9 +104,9 @@ public:
     bool d_tcp{false};
   };
 
-  [[nodiscard]] time_t get(time_t, const DNSName& qname, QType qtype, Flags flags, vector<DNSRecord>* res, const ComboAddress& who, const OptTag& routingTag = NOTAG, SigRecs* signatures = nullptr, AuthRecs* authorityRecs = nullptr, bool* variable = nullptr, vState* state = nullptr, bool* wasAuth = nullptr, DNSName* fromAuthZone = nullptr, Extra* extra = nullptr);
+  [[nodiscard]] time_t get(time_t, const DNSName& qname, QType qtype, Flags flags, vector<DNSRecord>* res, const ComboAddress& who, const OptTag& routingTag = NOTAG, SigRecs* signatures = nullptr, AuthRecs* authorityRecs = nullptr, bool* variable = nullptr, vState* state = nullptr, bool* wasAuth = nullptr, DNSName* fromAuthZone = nullptr, Extra* extra = nullptr, uint8_t* ecsScope = nullptr);
 
-  void replace(time_t, const DNSName& qname, QType qtype, const vector<DNSRecord>& content, const SigRecsVec& signatures, const AuthRecsVec& authorityRecs, bool auth, const DNSName& authZone, const std::optional<Netmask>& ednsmask = std::nullopt, const OptTag& routingTag = NOTAG, vState state = vState::Indeterminate, const std::optional<Extra>& extra = std::nullopt, bool refresh = false, time_t ttl_time = time(nullptr));
+  void replace(time_t, const DNSName& qname, QType qtype, const vector<DNSRecord>& content, const SigRecsVec& signatures, const AuthRecsVec& authorityRecs, bool auth, const DNSName& authZone, const std::optional<Netmask>& ednsmask = std::nullopt, const OptTag& routingTag = NOTAG, vState state = vState::Indeterminate, const std::optional<Extra>& extra = std::nullopt, bool refresh = false, time_t ttl_time = time(nullptr), uint8_t ecsScope = 0);
 
   void doPrune(time_t now, size_t keep);
   uint64_t doDump(int fileDesc, size_t maxCacheEntries);
@@ -186,6 +186,7 @@ private:
     QType d_qtype; // 2
     mutable vState d_state{vState::Indeterminate}; // 1
     bool d_auth; // 1
+    uint8_t d_ecsScope{0};
     mutable bool d_submitted{false}; // 1, whether this entry has been queued for refetch
     bool d_tooBig{false}; // 1
     bool d_tcp{false}; // 1 was entry received over TCP?
@@ -387,7 +388,7 @@ private:
   static Entries getEntries(MapCombo::LockedContent& map, const DNSName& qname, QType qtype, const OptTag& rtag);
   static cache_t::const_iterator getEntryUsingECSIndex(MapCombo::LockedContent& map, time_t now, const DNSName& qname, QType qtype, bool requireAuth, const ComboAddress& who, bool serveStale);
 
-  static time_t handleHit(time_t now, MapCombo::LockedContent& content, OrderedTagIterator_t& entry, const DNSName& qname, uint32_t& origTTL, vector<DNSRecord>* res, SigRecs* signatures, AuthRecs* authorityRecs, bool* variable, std::optional<vState>& state, bool* wasAuth, DNSName* authZone, Extra* extra);
+  static time_t handleHit(time_t now, MapCombo::LockedContent& content, OrderedTagIterator_t& entry, const DNSName& qname, uint32_t& origTTL, vector<DNSRecord>* res, SigRecs* signatures, AuthRecs* authorityRecs, bool* variable, std::optional<vState>& state, bool* wasAuth, DNSName* authZone, Extra* extra, uint8_t* ecsScope);
   static void updateStaleEntry(time_t now, OrderedTagIterator_t& entry);
   static void handleServeStaleBookkeeping(time_t, bool, OrderedTagIterator_t&);
 };
