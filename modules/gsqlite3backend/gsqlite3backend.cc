@@ -76,7 +76,7 @@ public:
   {
     declare(suffix, "database", "Filename of the SQLite3 database", "powerdns.sqlite");
     declare(suffix, "pragma-synchronous", "Set this to 0 for blazing speed", "");
-    declare(suffix, "pragma-foreign-keys", "Enable foreign key constraints", "no");
+    declare(suffix, "pragma-foreign-keys", "Enable foreign key constraints", "yes");
     declare(suffix, "pragma-journal-mode", "SQLite3 journal mode", "WAL");
 
     declare(suffix, "dnssec", "Enable DNSSEC processing", "no");
