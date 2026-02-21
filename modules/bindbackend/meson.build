@@ -12,4 +12,4 @@ module_resources = files(
   product_source_dir / 'pdns' / 'bind-dnssec.schema.sqlite3.sql',
 )
 
-module_deps = [deps]
+module_deps = [deps, libpdns_bindparser]
