@@ -982,6 +982,7 @@ components:
   schemas:
     Server:
       title: Server
+      $id: Server
       type: object
       additionalProperties: False
       properties:
@@ -1014,6 +1015,7 @@ components:
 
     Zone:
       title: Zone
+      $id: Zone
       description: This represents an authoritative DNS Zone.
       type: object
       additionalProperties: False
@@ -1057,7 +1059,7 @@ components:
           type: array
           items:
             type: string
-          description: " List of IP addresses configured as a master for this zone (“Slave” type zones only)"
+          description: "List of IP addresses configured as a master for this zone (“Slave” type zones only)"
         dnssec:
           type: boolean
           description: "Whether or not this zone is DNSSEC signed (inferred from presigned being true XOR presence of at least one cryptokey with active being true)"
@@ -1117,6 +1119,7 @@ components:
 
     RRSet:
       title: RRSet
+      $id: RRSet
       description: This represents a Resource Record Set (all records with the same name and type).
       type: object
       additionalProperties: False
@@ -1152,6 +1155,7 @@ components:
 
     Record:
       title: Record
+      $id: Record
       description: The RREntry object represents a single record.
       type: object
       additionalProperties: False
@@ -1170,6 +1174,7 @@ components:
 
     Comment:
       title: Comment
+      $id: Comment
       description: A comment about an RRSet.
       type: object
       additionalProperties: False
@@ -1186,6 +1191,7 @@ components:
 
     TSIGKey:
       title: TSIGKey
+      $id: TSIGKey
       description: A TSIG key that can be used to authenticate NOTIFY, AXFR, and DNSUPDATE queries.
       type: object
       additionalProperties: False
@@ -1210,6 +1216,7 @@ components:
 
     Autoprimary:
       title: Autoprimary server
+      $id: Autoprimary
       description: An autoprimary server that can provision new domains.
       type: object
       additionalProperties: False
@@ -1227,6 +1234,7 @@ components:
 
     ConfigSetting:
       title: ConfigSetting
+      $id: ConfigSetting
       type: object
       additionalProperties: False
       properties:
@@ -1242,6 +1250,7 @@ components:
 
     SimpleStatisticItem:
       title: SimpleStatisticItem
+      $id: SimpleStatisticItem
       type: object
       additionalProperties: False
       properties:
@@ -1254,6 +1263,7 @@ components:
 
     StatisticItem:
       title: StatisticItem
+      $id: StatisticItem
       type: object
       additionalProperties: False
       properties:
@@ -1269,6 +1279,7 @@ components:
 
     MapStatisticItem:
       title: MapStatisticItem
+      $id: MapStatisticItem
       type: object
       additionalProperties: False
       properties:
@@ -1286,6 +1297,7 @@ components:
 
     RingStatisticItem:
       title: RingStatisticItem
+      $id: RingStatisticItem
       type: object
       additionalProperties: False
       properties:
@@ -1306,6 +1318,7 @@ components:
 
     SearchResultZone:
       title: SearchResultZone
+      $id: SearchResultZone
       type: object
       additionalProperties: False
       properties:
@@ -1320,6 +1333,7 @@ components:
 
     SearchResultRecord:
       title: SearchResultRecord
+      $id: SearchResultRecord
       type: object
       additionalProperties: False
       properties:
@@ -1344,6 +1358,7 @@ components:
 
     SearchResultComment:
       title: SearchResultComment
+      $id: SearchResultComment
       type: object
       additionalProperties: False
       properties:
@@ -1364,6 +1379,7 @@ components:
 
     SearchResult:
       title: SearchResult
+      $id: SearchResult
       type: object
       additionalProperties: False
       oneOf:
@@ -1384,6 +1400,7 @@ components:
 
     Metadata:
       title: Metadata
+      $id: Metadata
       description: Represents zone metadata
       type: object
       additionalProperties: False
@@ -1399,6 +1416,7 @@ components:
 
     Cryptokey:
       title: Cryptokey
+      $id: Cryptokey
       description: "Describes a DNSSEC cryptographic key"
       type: object
       additionalProperties: False
@@ -1443,6 +1461,7 @@ components:
 
     Error:
       title: Error
+      $id: Error
       description: "Returned when the server encounters an error, either in client input or internally"
       type: object
       additionalProperties: False
@@ -1460,6 +1479,7 @@ components:
 
     CacheFlushResult:
       title: CacheFlushResult
+      $id: CacheFlushResult
       description: "The result of a cache-flush"
       type: object
       additionalProperties: False
@@ -1473,6 +1493,7 @@ components:
 
     View:
       title: View
+      $id: View
       properties:
         zones:
           type: array
@@ -1482,6 +1503,7 @@ components:
 
     Views:
       title: Views
+      $id: Views
       properties:
         views:
           type: array
@@ -1491,6 +1513,7 @@ components:
 
     Network:
       title: Network
+      $id: Network
       properties:
         network:
           type: string
@@ -1501,6 +1524,7 @@ components:
 
     Networks:
       title: Networks
+      $id: Networks
       properties:
         networks:
           type: array
