@@ -23,7 +23,6 @@
 
 #include <cstdint>
 #include <cstddef>
-#include <cstdint>
 #include <limits>
 
 #include "noinitvector.hh"
@@ -52,6 +51,7 @@ void sendfromto(int sock, const PacketBuffer& buffer, const ComboAddress& from, 
 void truncateTC(PacketBuffer& packet, size_t maximumSize, unsigned int qnameWireLength, bool addEDNSToSelfGeneratedResponses);
 void handleResponseTC4UDPClient(DNSQuestion& dnsQuestion, uint16_t udpPayloadSize, PacketBuffer& response);
 void handleResponseForUDPClient(InternalQueryState& ids, PacketBuffer& response, const std::shared_ptr<DownstreamState>& backend, bool isAsync, bool selfGenerated);
+void responderThread(std::shared_ptr<DownstreamState> dss);
 
 #if !defined(DISABLE_RECVMMSG) && defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
 void queueResponse(const PacketBuffer& response, const ComboAddress& dest, const ComboAddress& remote, struct mmsghdr& outMsg, struct iovec* iov, cmsgbuf_aligned* cbuf);
@@ -68,12 +68,6 @@ void processUDPQuery(ClientState& clientState, const struct msghdr* msgh, const 
 
 size_t getMaximumIncomingPacketSize(const ClientState& clientState);
 size_t getInitialUDPPacketBufferSize(bool expectProxyProtocol);
-
-#ifndef DISABLE_RECVMMSG
-#if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
-void MultipleMessagesUDPClientThread(ClientState* clientState);
-#endif
-#endif
 
 void udpClientThread(std::vector<ClientState*> states);
 

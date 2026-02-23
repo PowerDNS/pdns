@@ -31,6 +31,7 @@
 #include "threadname.hh"
 #include "dolog.hh"
 #include "dnsdist-configuration.hh"
+#include "xsk.hh"
 
 namespace dnsdist::udp
 {
@@ -403,7 +404,7 @@ void processUDPQuery(ClientState& clientState, const struct msghdr* msgh, const 
     const auto dnsHeader = dnsQuestion.getHeader();
     if (result == ProcessQueryResult::SendAnswer) {
       /* ensure payload size is not exceeded */
-      dnsdist::udp::handleResponseTC4UDPClient(dnsQuestion, udpPayloadSize, query);
+      handleResponseTC4UDPClient(dnsQuestion, udpPayloadSize, query);
 #ifndef DISABLE_RECVMMSG
 #if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
       if (dnsQuestion.ids.delayMsec == 0 && responsesVect != nullptr) {
@@ -436,7 +437,7 @@ void processUDPQuery(ClientState& clientState, const struct msghdr* msgh, const 
       }
 
       ids.origID = dnsHeader->id;
-      auto cpq = std::make_unique<dnsdist::udp::UDPCrossProtocolQuery>(std::move(query), std::move(ids), backend);
+      auto cpq = std::make_unique<UDPCrossProtocolQuery>(std::move(query), std::move(ids), backend);
       cpq->query.d_proxyProtocolPayload = std::move(proxyProtocolPayload);
 
       backend->passCrossProtocolQuery(std::move(cpq));
@@ -477,9 +478,57 @@ size_t getMaximumIncomingPacketSize(const ClientState& clientState)
   return dnsdist::configuration::s_udpIncomingBufferSize + runtimeConfig.d_proxyProtocolMaximumSize;
 }
 
+static void processUDPResponseFromBackend(const Logr::Logger& logger, std::shared_ptr<DownstreamState>& backend, PacketBuffer& response, ssize_t got, size_t initialBufferSize, int sockDesc)
+{
+  uint16_t queryId = 0;
+  try {
+    if (got < 0 || static_cast<size_t>(got) < sizeof(dnsheader) || static_cast<size_t>(got) >= (initialBufferSize + 1)) {
+      return;
+    }
+
+    response.resize(static_cast<size_t>(got));
+    const dnsheader_aligned dnsHeader(response.data());
+    queryId = dnsHeader->id;
+
+    auto ids = backend->getState(queryId);
+    if (!ids) {
+      return;
+    }
+
+    if (!ids->isXSK() && sockDesc != ids->backendFD) {
+      backend->restoreState(queryId, std::move(*ids));
+      return;
+    }
+
+    dnsdist::configuration::refreshLocalRuntimeConfiguration();
+    if (processResponderPacket(backend, response, std::move(*ids)) && ids->isXSK() && ids->cs->xskInfoResponder) {
+#ifdef HAVE_XSK
+      auto& xskInfo = ids->cs->xskInfoResponder;
+      auto xskPacket = xskInfo->getEmptyFrame();
+      if (!xskPacket) {
+        return;
+      }
+      xskPacket->setHeader(ids->xskPacketHeader);
+      if (!xskPacket->setPayload(response)) {
+      }
+      if (ids->delayMsec > 0) {
+        xskPacket->addDelay(ids->delayMsec);
+      }
+      xskPacket->updatePacket();
+      xskInfo->pushToSendQueue(*xskPacket);
+      xskInfo->notifyXskSocket();
+#endif /* HAVE_XSK */
+    }
+  }
+  catch (const std::exception& e) {
+    VERBOSESLOG(infolog("Got an error in UDP responder thread while parsing a response from %s, id %d: %s", backend->d_config.remote.toStringWithPort(), queryId, e.what()),
+                logger.error(Logr::Info, e.what(), "Got an error in UDP responder thread while parsing a response", "dns.response.id", Logging::Loggable(queryId)));
+  }
+}
+
 #ifndef DISABLE_RECVMMSG
 #if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
-void MultipleMessagesUDPClientThread(ClientState* clientState)
+static void MultipleMessagesUDPClientThread(ClientState* clientState)
 {
   struct MMReceiver
   {
@@ -510,10 +559,11 @@ void MultipleMessagesUDPClientThread(ClientState* clientState)
 
   /* initialize the structures needed to receive our messages */
   for (size_t idx = 0; idx < vectSize; idx++) {
-    recvData[idx].remote.sin4.sin_family = clientState->local.sin4.sin_family;
-    recvData[idx].packet.resize(initialBufferSize);
+    auto& slot = recvData[idx];
+    slot.remote.sin4.sin_family = clientState->local.sin4.sin_family;
+    slot.packet.resize(initialBufferSize);
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    fillMSGHdr(&msgVec[idx].msg_hdr, &recvData[idx].iov, &recvData[idx].cbuf, sizeof(decltype(recvData[idx].cbuf)), reinterpret_cast<char*>(recvData[idx].packet.data()), maxIncomingPacketSize, &recvData[idx].remote);
+    fillMSGHdr(&msgVec[idx].msg_hdr, &slot.iov, &slot.cbuf, sizeof(decltype(slot.cbuf)), reinterpret_cast<char*>(slot.packet.data()), maxIncomingPacketSize, &slot.remote);
   }
 
   int msgsGot = static_cast<int>(vectSize);
@@ -587,6 +637,130 @@ void MultipleMessagesUDPClientThread(ClientState* clientState)
                     dnsdist::logging::getTopLogger("udp-sendmmsg-frontend")->error(Logr::Info, savederrno, "Error sending responses with sendmmsg()", "address", Logging::Loggable(clientState->local), "dnsdist.sendmmsg.messages_sent", Logging::Loggable(sent), "dnsdist.sendmmsg.messages_to_send", Logging::Loggable(msgsToSend)));
       }
     }
+  }
+}
+
+static void MultipleMessagesUDPResponseFromBackendThread(std::shared_ptr<DownstreamState> dss)
+{
+  auto responderLogger = dnsdist::logging::getTopLogger("udp-response")->withValues("backend.address", Logging::Loggable(dss->d_config.remote));
+
+  try {
+    setThreadName("dnsdist/respond");
+    const size_t initialBufferSize = getInitialUDPPacketBufferSize(false);
+    std::vector<int> sockets;
+    sockets.reserve(dss->sockets.size());
+
+    struct MMReceiver
+    {
+      PacketBuffer packet;
+      ComboAddress remote;
+      iovec iov{};
+      /* used by HarvestDestinationAddress */
+      cmsgbuf_aligned cbuf{};
+    };
+    const size_t vectSize = dnsdist::configuration::getImmutableConfiguration().d_udpVectorSize;
+
+    if (vectSize > std::numeric_limits<uint16_t>::max()) {
+      throw std::runtime_error("The value of setUDPMultipleMessagesVectorSize is too high, the maximum value is " + std::to_string(std::numeric_limits<uint16_t>::max()));
+    }
+
+    auto recvData = std::vector<MMReceiver>(vectSize);
+    auto msgVec = std::vector<mmsghdr>(vectSize);
+
+    /* initialize the structures needed to receive our messages */
+    for (size_t idx = 0; idx < vectSize; idx++) {
+      auto& slot = recvData[idx];
+      slot.packet.resize(initialBufferSize + 1);
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+      fillMSGHdr(&msgVec[idx].msg_hdr, &slot.iov, &slot.cbuf, sizeof(decltype(slot.cbuf)), reinterpret_cast<char*>(slot.packet.data()), initialBufferSize + 1, &slot.remote);
+    }
+
+    int msgsGot = static_cast<int>(vectSize);
+    /* go now */
+    for (;;) {
+
+      /* reset the IO vector.
+         No need to reset the parts that have not been used, though. */
+      for (int idx = 0; idx < msgsGot; idx++) {
+        auto& slot = recvData[idx];
+        /* only resize if the buffer is actually smaller than expected */
+        if (slot.packet.size() < (initialBufferSize + 1)) {
+          slot.packet.resize((initialBufferSize + 1));
+        }
+        /* but we need to set the IOv pointer and size
+           anyway, because if we resized it the pointer might
+           now be invalid */
+        slot.iov.iov_base = &slot.packet.at(0);
+        slot.iov.iov_len = slot.packet.size();
+      }
+
+      if (dss->isStopped()) {
+        break;
+      }
+
+      if (!dss->connected) {
+        /* the sockets are not connected yet, likely because we detected a problem,
+           tried to reconnect and it failed. We will try to reconnect after the next
+           successful health-check (unless reconnectOnUp is false), or when trying
+           to send in the UDP listener thread, but until then we simply need to wait. */
+        dss->waitUntilConnected();
+        continue;
+      }
+
+      dss->pickSocketsReadyForReceiving(sockets);
+
+      /* check a second time here because we might have waited quite a bit
+         since the first check */
+      if (dss->isStopped()) {
+        break;
+      }
+
+      for (const auto& sockDesc : sockets) {
+        /* block until we have at least one message ready, but return
+           as many as possible to save the syscall costs */
+        msgsGot = recvmmsg(sockDesc, msgVec.data(), vectSize, MSG_WAITFORONE, nullptr);
+        if (msgsGot <= 0) {
+          int savederrno = errno;
+          if (dss->isStopped()) {
+            break;
+          }
+          VERBOSESLOG(infolog("Getting UDP messages from backend via recvmmsg() failed with: %s", stringerror(savederrno)),
+                      responderLogger->error(Logr::Info, savederrno, "Getting UDP messages via recvmmsg failed"));
+          msgsGot = 0;
+          continue;
+        }
+
+        /* process the received messages */
+        for (int msgIdx = 0; msgIdx < msgsGot; msgIdx++) {
+          try {
+            auto& msg = msgVec.at(msgIdx);
+            unsigned int got = msg.msg_len;
+            const struct msghdr* msgh = &msg.msg_hdr;
+            if ((msgh->msg_flags & MSG_TRUNC) != 0) {
+              continue;
+            }
+
+            processUDPResponseFromBackend(*responderLogger, dss, recvData.at(msgIdx).packet, got, initialBufferSize, sockDesc);
+          }
+          catch (const std::exception& e) {
+            VERBOSESLOG(infolog("Got an error in UDP responder thread while parsing a response from %s: %s", dss->d_config.remote.toStringWithPort(), e.what()),
+                        responderLogger->error(Logr::Info, e.what(), "Got an error in UDP responder thread while parsing a response"));
+          }
+        }
+      }
+    }
+  }
+  catch (const std::exception& e) {
+    SLOG(errlog("UDP responder thread died because of exception: %s", e.what()),
+         responderLogger->error(Logr::Error, e.what(), "UDP responder thread died because of an exception"));
+  }
+  catch (const PDNSException& e) {
+    SLOG(errlog("UDP responder thread died because of PowerDNS exception: %s", e.reason),
+         responderLogger->error(Logr::Error, e.reason, "UDP responder thread died because of a PowerDNS exception"));
+  }
+  catch (...) {
+    SLOG(errlog("UDP responder thread died because of an exception: %s", "unknown"),
+         responderLogger->info(Logr::Error, "UDP responder thread died because of an unknown exception"));
   }
 }
 #endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
@@ -720,4 +894,83 @@ std::unique_ptr<CrossProtocolQuery> getUDPCrossProtocolQueryFromDQ(DNSQuestion& 
   dnsQuestion.ids.origID = dnsQuestion.getHeader()->id;
   return std::make_unique<dnsdist::udp::UDPCrossProtocolQuery>(std::move(dnsQuestion.getMutableData()), std::move(dnsQuestion.ids), nullptr);
 }
+
+// listens on a dedicated socket, lobs answers from downstream servers to original requestors
+void responderThread(std::shared_ptr<DownstreamState> dss)
+{
+#ifndef DISABLE_RECVMMSG
+#if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
+  if (dnsdist::configuration::getImmutableConfiguration().d_udpVectorSize > 1) {
+    MultipleMessagesUDPResponseFromBackendThread(dss);
+    return;
+  }
+#endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
+#endif /* DISABLE_RECVMMSG */
+
+  auto responderLogger = dnsdist::logging::getTopLogger("udp-response")->withValues("backend.address", Logging::Loggable(dss->d_config.remote));
+
+  try {
+    setThreadName("dnsdist/respond");
+    const size_t initialBufferSize = dnsdist::udp::getInitialUDPPacketBufferSize(false);
+    /* allocate one more byte so we can detect truncation */
+    PacketBuffer response(initialBufferSize + 1);
+    std::vector<int> sockets;
+    sockets.reserve(dss->sockets.size());
+
+    for (;;) {
+      try {
+        if (dss->isStopped()) {
+          break;
+        }
+
+        if (!dss->connected) {
+          /* the sockets are not connected yet, likely because we detected a problem,
+             tried to reconnect and it failed. We will try to reconnect after the next
+             successful health-check (unless reconnectOnUp is false), or when trying
+             to send in the UDP listener thread, but until then we simply need to wait. */
+          dss->waitUntilConnected();
+          continue;
+        }
+
+        dss->pickSocketsReadyForReceiving(sockets);
+
+        /* check a second time here because we might have waited quite a bit
+           since the first check */
+        if (dss->isStopped()) {
+          break;
+        }
+
+        for (const auto& sockDesc : sockets) {
+          /* allocate one more byte so we can detect truncation */
+          // NOLINTNEXTLINE(bugprone-use-after-move): resizing a vector has no preconditions so it is valid to do so after moving it
+          response.resize(initialBufferSize + 1);
+          ssize_t got = recv(sockDesc, response.data(), response.size(), 0);
+
+          if (got == 0 && dss->isStopped()) {
+            break;
+          }
+
+          processUDPResponseFromBackend(*responderLogger, dss, response, got, initialBufferSize, sockDesc);
+        }
+      }
+      catch (const std::exception& e) {
+        VERBOSESLOG(infolog("Got an error in UDP responder thread while parsing a response from %s: %s", dss->d_config.remote.toStringWithPort(), e.what()),
+                    responderLogger->error(Logr::Info, e.what(), "Got an error in UDP responder thread while parsing a response"));
+      }
+    }
+  }
+  catch (const std::exception& e) {
+    SLOG(errlog("UDP responder thread died because of exception: %s", e.what()),
+         responderLogger->error(Logr::Error, e.what(), "UDP responder thread died because of an exception"));
+  }
+  catch (const PDNSException& e) {
+    SLOG(errlog("UDP responder thread died because of PowerDNS exception: %s", e.reason),
+         responderLogger->error(Logr::Error, e.reason, "UDP responder thread died because of a PowerDNS exception"));
+  }
+  catch (...) {
+    SLOG(errlog("UDP responder thread died because of an exception: %s", "unknown"),
+         responderLogger->info(Logr::Error, "UDP responder thread died because of an unknown exception"));
+  }
+}
+
 } // namespace dnsdist::udp

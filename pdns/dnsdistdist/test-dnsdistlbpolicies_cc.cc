@@ -50,12 +50,6 @@ bool setupDoTProtocolNegotiation(std::shared_ptr<TLSCtx>& tlsCtx)
   return true;
 }
 
-// NOLINTNEXTLINE(performance-unnecessary-value-param): this is a stub, the real one is not that simple and the performance does not matter
-void responderThread(std::shared_ptr<DownstreamState> dss)
-{
-  (void)dss;
-}
-
 string g_outputBuffer;
 
 static DNSQuestion getDQ(const DNSName* providedName = nullptr)
