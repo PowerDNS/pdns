@@ -422,6 +422,7 @@ class TestProxyProtocol(ProxyProtocolTest):
 
       new_conn_before = self.getServerStats()[0]['tcpNewConnections']
       reused_conn_before = self.getServerStats()[0]['tcpReusedConnections']
+      max_conn_before = self.getServerStats()[0]['tcpMaxConcurrentConnections']
 
       conn = self.openTCPConnection(2.0)
       data = query.to_wire()
@@ -454,7 +455,10 @@ class TestProxyProtocol(ProxyProtocolTest):
       server = self.getServerStats()[0]
       self.assertEqual(server['tcpNewConnections'], new_conn_before + number_of_queries)
       self.assertEqual(server['tcpReusedConnections'], reused_conn_before)
-      self.assertEqual(server['tcpMaxConcurrentConnections'], 1)
+      # we can only check that we did not open more than one new connection
+      # compared to the connections that existed before, because connections
+      # triggered by a different test can still be around
+      self.assertLessEqual(server['tcpMaxConcurrentConnections'], max_conn_before + 1)
 
 class TestProxyProtocolIncoming(ProxyProtocolTest):
     """
