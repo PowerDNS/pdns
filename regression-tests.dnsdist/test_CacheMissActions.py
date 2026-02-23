@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 import base64
 import dns
+
+import cookiesoption
 from dnsdisttests import DNSDistTest, pickAvailablePort
 
 
@@ -131,3 +133,48 @@ class TestCacheMissGoToADifferentPool(DNSDistTest):
                 self.assertEqual(queries, 1)
             else:
                 self.assertEqual(queries, 0)
+
+class TestCacheMissAndEDNSOptions(DNSDistTest):
+    _config_template = """
+    newServer{address="127.0.0.1:%d", useClientSubnet=true}
+
+    pc = newPacketCache(100, {maxTTL=86400, minTTL=1})
+    getPool(""):setCache(pc)
+
+    function cacheEDNSOptions(dq)
+      dq.useECS = true;
+      dq:getEDNSOptions();
+      return DNSAction.None
+    end
+    function useEDNSOptions(dq)
+      for _, v in pairs(dq:getEDNSOptions()) do
+        v:getValues()
+      end
+      return DNSAction.None
+    end
+    addAction(AllRule(), LuaAction(cacheEDNSOptions))
+    addCacheMissAction(AllRule(), LuaAction(useEDNSOptions))
+    """
+
+    def testEDNSOptions(self):
+        """
+        CacheMiss: EDNS options
+        """
+        name = 'edns-options.cache-miss.tests.powerdns.com.'
+        eco = cookiesoption.CookiesOption(b'deadbeef', b'deadbeef')
+        query = dns.message.make_query(name, 'AAAA', 'IN', use_edns=True, options=[eco])
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.AAAA,
+                                    '2001:db8::1')
+        response.answer.append(rrset)
+        query.additional.append(rrset)
+
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response=response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEqual(receivedQuery, query)
+        self.assertEqual(receivedResponse, response)
