@@ -128,6 +128,12 @@ changelog_hide_tags_in_entry = True
 # -- Options for the Sphinx-Immaterial JSON Domain ------------------------
 json_schemas = ["http-api/swagger/authoritative-api-schema.yaml"]
 
+# -- Options for the HTTP Domain ------------------------
+# Because we use 'default' in the OpenAPI definition for responses, the HTTP domain
+# complains that 'default' is not an integer. So let's suppress those warnings.
+http_strict_mode = False
+suppress_warnings = ["misc.highlighting_failure"]
+
 # -- Options for HTML output ----------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
