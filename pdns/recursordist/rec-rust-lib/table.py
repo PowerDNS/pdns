@@ -3270,6 +3270,18 @@ This field is ignored if :ref:`setting-yaml-webservice.listen` is set.
  ''',
     },
     {
+        'name': 'max_request_size',
+        'section': 'webservice',
+        'type': LType.Uint64,
+        'oldname': 'webserver-max-request-size',
+        'default': '2',
+        'help': 'Maximum size for webserver requests in megabytes',
+        'doc': '''
+Maximum size of incoming webserver requests in megabytes.
+ ''',
+        'versionadded': '5.5.0',
+    },
+    {
         'name' : 'write_pid',
         'section' : 'recursor',
         'type' : LType.Bool,
