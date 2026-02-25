@@ -348,7 +348,7 @@ bool DNSFilterEngine::getPostPolicy(const DNSRecord& record, const std::unordere
     }
     const auto& zoneName = zone->getName();
     if (discardedPolicies.find(zoneName) != discardedPolicies.end()) {
-      return false;
+      continue;
     }
 
     if (zone->findResponsePolicy(address, pol)) {

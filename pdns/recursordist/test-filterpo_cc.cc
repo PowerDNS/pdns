@@ -832,6 +832,24 @@ BOOST_AUTO_TEST_CASE(test_multiple_filter_policies_order)
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::None);
     BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction);
   }
+
+  {
+    /* blocked A in the response, except 1 is disabled, so 2 should match */
+    DNSRecord dr;
+    dr.d_type = QType::A;
+    dr.setContent(DNSRecordContent::make(QType::A, QClass::IN, responseIP.toString()));
+    const auto matchingPolicy = dfe.getPostPolicy({dr}, {{zone1->getName(), true}}, DNSFilterEngine::maximumPriority);
+    BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::ResponseIP);
+    BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::Custom);
+    auto records = matchingPolicy.getCustomRecords(bad, QType::A);
+    BOOST_CHECK_EQUAL(records.size(), 1U);
+    const auto& record = records.at(0);
+    BOOST_CHECK(record.d_type == QType::CNAME);
+    BOOST_CHECK(record.d_class == QClass::IN);
+    auto content = getRR<CNAMERecordContent>(record);
+    BOOST_CHECK(content != nullptr);
+    BOOST_CHECK_EQUAL(content->getTarget().toString(), "response2a.example.net.");
+  }
 }
 
 BOOST_AUTO_TEST_CASE(test_mask_to_rpz)
