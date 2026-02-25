@@ -1,7 +1,8 @@
 import requests
 import socket
 import time
-from test_helper import ApiTestCase, is_auth
+import unittest
+from test_helper import ApiTestCase, is_auth, is_recursor
 
 
 class TestBasics(ApiTestCase):
@@ -34,6 +35,17 @@ class TestBasics(ApiTestCase):
         status = resp.splitlines(0)[0]
         if b"400" in status:
             raise Exception("Got unwanted response: %s" % status)
+
+    @unittest.skipIf(not is_recursor(), "Only applicable to recursors (for now)")
+    def test_big_request(self):
+        payload = bytearray(10000000)
+        url = '/api/v1/servers/localhost/zones'
+        r = self.session.post(
+            self.url(url),
+            data=payload,
+            headers={"content-type": "application/json"})
+        self.assertEqual(r.status_code, 413)
+
 
     def test_cors(self):
         r = self.session.options(self.url("/api/v1/servers/localhost"))
