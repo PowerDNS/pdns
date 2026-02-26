@@ -22,6 +22,7 @@
 #include <cinttypes>
 
 #include "dnsdist.hh"
+#include "dnsname.hh"
 #include "dolog.hh"
 #include "dnsparser.hh"
 #include "dnsdist-cache.hh"
@@ -29,6 +30,7 @@
 #include "ednssubnet.hh"
 #include "packetcache.hh"
 #include "base64.hh"
+#include "qtype.hh"
 
 DNSDistPacketCache::DNSDistPacketCache(CacheSettings settings) :
   d_settings(std::move(settings))
@@ -426,6 +428,35 @@ size_t DNSDistPacketCache::expungeByName(const DNSName& name, uint16_t qtype, bo
       const CacheValue& value = it->second;
 
       if ((value.qname == name || (suffixMatch && value.qname.isPartOf(name))) && (qtype == QType::ANY || qtype == value.qtype)) {
+        it = map->erase(it);
+        --shard.d_entriesCount;
+        ++removed;
+      }
+      else {
+        ++it;
+      }
+    }
+  }
+
+  return removed;
+}
+
+size_t DNSDistPacketCache::expungeByName(const std::vector<DNSName>& names, uint16_t qtype, bool suffixMatch)
+{
+  size_t removed = 0;
+
+  for (auto& shard : d_shards) {
+    auto map = shard.d_map.write_lock();
+
+    for (auto it = map->begin(); it != map->end();) {
+      const CacheValue& value = it->second;
+
+      if (std::find_if(names.cbegin(), names.cend(),
+                       [&value, &qtype, &suffixMatch](const DNSName& name) {
+                         return (
+                           (value.qname == name || (suffixMatch && value.qname.isPartOf(name))) && (qtype == QType::ANY || value.qtype == qtype));
+                       })
+          != names.cend()) {
         it = map->erase(it);
         --shard.d_entriesCount;
         ++removed;
