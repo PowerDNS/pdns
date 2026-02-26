@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 import base64
 import time
-import dns
+
 import clientsubnetoption
 import cookiesoption
+import dns
 import requests
 from dnsdisttests import DNSDistTest, pickAvailablePort
 
@@ -1441,6 +1442,91 @@ class TestCacheManagement(DNSDistTest):
 
         self.assertEqual(total, misses)
 
+    def testCacheExpungeByMultipleName(self):
+        """
+        Cache: Expunge by multiple names
+
+        """
+        misses = 0
+        ttl = 600
+        name = "expungebynames.cache.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name, ttl, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
+        response.answer.append(rrset)
+
+        name2 = "expungebynamesother.cache.tests.powerdns.com."
+        query2 = dns.message.make_query(name2, "A", "IN")
+        response2 = dns.message.make_response(query2)
+        rrset2 = dns.rrset.from_text(name2, ttl, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
+        response2.answer.append(rrset2)
+
+        # Miss
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
+        misses += 1
+
+        # next queries should hit the cache
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertEqual(receivedResponse, response)
+
+        # cache another entry
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query2, response2)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query2.id
+        self.assertEqual(query2, receivedQuery)
+        self.assertEqual(response2, receivedResponse)
+        misses += 1
+
+        # queries for name and name 2 should hit the cache
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertEqual(receivedResponse, response)
+
+        (_, receivedResponse) = self.sendUDPQuery(query2, response=None, useQueue=False)
+        self.assertEqual(receivedResponse, response2)
+
+        # remove cached entries from name
+        self.sendConsoleCommand(
+            'getPool(""):getCache():expungeByName({newDNSName("' + name + '"), newDNSName("' + name2 + '")})'
+        )
+
+        # Miss for name
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
+        misses += 1
+
+        # Miss for name2
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query2, response2)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query2.id
+        self.assertEqual(query2, receivedQuery)
+        self.assertEqual(response2, receivedResponse)
+        misses += 1
+
+        # next queries for name should hit the cache again
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertEqual(receivedResponse, response)
+
+        # queries for name2 should still hit the cache
+        (_, receivedResponse) = self.sendUDPQuery(query2, response=None, useQueue=False)
+        self.assertEqual(receivedResponse, response2)
+
+        total = 0
+        for key in self._responsesCounter:
+            total += self._responsesCounter[key]
+
+        self.assertEqual(total, misses)
+
     def testCacheExpungeByNameAndType(self):
         """
         Cache: Expunge by name and type
@@ -1490,6 +1576,78 @@ class TestCacheManagement(DNSDistTest):
 
         # remove cached entries from name A
         self.sendConsoleCommand('getPool(""):getCache():expungeByName(newDNSName("' + name + '"), DNSQType.A)')
+
+        # Miss for name A
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
+        misses += 1
+
+        # next queries for name A should hit the cache again
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertEqual(receivedResponse, response)
+
+        # queries for name AAAA should still hit the cache
+        (_, receivedResponse) = self.sendUDPQuery(query2, response=None, useQueue=False)
+        self.assertEqual(receivedResponse, response2)
+
+        total = 0
+        for key in self._responsesCounter:
+            total += self._responsesCounter[key]
+        self.assertEqual(total, misses)
+
+    def testCacheExpungeByNamesAndType(self):
+        """
+        Cache: Expunge by names and type
+
+        """
+        misses = 0
+        ttl = 600
+        name = "expungebynamesandtype.cache.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name, ttl, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
+        response.answer.append(rrset)
+
+        query2 = dns.message.make_query(name, "AAAA", "IN")
+        response2 = dns.message.make_response(query2)
+        rrset2 = dns.rrset.from_text(name, ttl, dns.rdataclass.IN, dns.rdatatype.AAAA, "::1")
+        response2.answer.append(rrset2)
+
+        # Miss
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
+        misses += 1
+
+        # next queries should hit the cache
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertEqual(receivedResponse, response)
+
+        # cache another entry
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query2, response2)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query2.id
+        self.assertEqual(query2, receivedQuery)
+        self.assertEqual(response2, receivedResponse)
+        misses += 1
+
+        # queries for name A and AAAA should hit the cache
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertEqual(receivedResponse, response)
+
+        (_, receivedResponse) = self.sendUDPQuery(query2, response=None, useQueue=False)
+        self.assertEqual(receivedResponse, response2)
+
+        # remove cached entries from name A
+        self.sendConsoleCommand('getPool(""):getCache():expungeByName({newDNSName("' + name + '")}, DNSQType.A)')
 
         # Miss for name A
         (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
@@ -1589,6 +1747,82 @@ class TestCacheManagement(DNSDistTest):
 
         self.assertEqual(total, misses)
 
+    def testCacheExpungeByNamesAndSuffix(self):
+        """
+        Cache: Expunge by names
+
+        """
+        misses = 0
+        ttl = 600
+        name = "expungebynames.suffix-names.cache.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name, ttl, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
+        response.answer.append(rrset)
+
+        name2 = "expungebynames.suffix-namesother.cache.tests.powerdns.com."
+        query2 = dns.message.make_query(name2, "A", "IN")
+        response2 = dns.message.make_response(query2)
+        rrset2 = dns.rrset.from_text(name2, ttl, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
+        response2.answer.append(rrset2)
+
+        # Miss
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
+        misses += 1
+
+        # next queries should hit the cache
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertEqual(receivedResponse, response)
+
+        # cache another entry
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query2, response2)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query2.id
+        self.assertEqual(query2, receivedQuery)
+        self.assertEqual(response2, receivedResponse)
+        misses += 1
+
+        # queries for name and name 2 should hit the cache
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertEqual(receivedResponse, response)
+
+        (_, receivedResponse) = self.sendUDPQuery(query2, response=None, useQueue=False)
+        self.assertEqual(receivedResponse, response2)
+
+        # remove cached entries from name
+        self.sendConsoleCommand(
+            'getPool(""):getCache():expungeByName({newDNSName("suffix-names.cache.tests.powerdns.com.")}, DNSQType.ANY, true)'
+        )
+
+        # Miss for name
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
+        misses += 1
+
+        # next queries for name should hit the cache again
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertEqual(receivedResponse, response)
+
+        # queries for name2 should still hit the cache
+        (_, receivedResponse) = self.sendUDPQuery(query2, response=None, useQueue=False)
+        self.assertEqual(receivedResponse, response2)
+
+        total = 0
+        for key in self._responsesCounter:
+            total += self._responsesCounter[key]
+
+        self.assertEqual(total, misses)
+
     def testCacheExpungeByNameAndTypeAndSuffix(self):
         """
         Cache: Expunge by name and type
@@ -1639,6 +1873,80 @@ class TestCacheManagement(DNSDistTest):
         # remove cached entries from name A
         self.sendConsoleCommand(
             'getPool(""):getCache():expungeByName(newDNSName("suffixtype.cache.tests.powerdns.com."), DNSQType.A, true)'
+        )
+
+        # Miss for name A
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
+        misses += 1
+
+        # next queries for name A should hit the cache again
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertEqual(receivedResponse, response)
+
+        # queries for name AAAA should still hit the cache
+        (_, receivedResponse) = self.sendUDPQuery(query2, response=None, useQueue=False)
+        self.assertEqual(receivedResponse, response2)
+
+        total = 0
+        for key in self._responsesCounter:
+            total += self._responsesCounter[key]
+        self.assertEqual(total, misses)
+
+    def testCacheExpungeByNamesAndTypeAndSuffix(self):
+        """
+        Cache: Expunge by names and type and suffix
+
+        """
+        misses = 0
+        ttl = 600
+        name = "expungebynamesandtype.suffixnamestype.cache.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name, ttl, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
+        response.answer.append(rrset)
+
+        query2 = dns.message.make_query(name, "AAAA", "IN")
+        response2 = dns.message.make_response(query2)
+        rrset2 = dns.rrset.from_text(name, ttl, dns.rdataclass.IN, dns.rdatatype.AAAA, "::1")
+        response2.answer.append(rrset2)
+
+        # Miss
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
+        misses += 1
+
+        # next queries should hit the cache
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertEqual(receivedResponse, response)
+
+        # cache another entry
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query2, response2)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query2.id
+        self.assertEqual(query2, receivedQuery)
+        self.assertEqual(response2, receivedResponse)
+        misses += 1
+
+        # queries for name A and AAAA should hit the cache
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertEqual(receivedResponse, response)
+
+        (_, receivedResponse) = self.sendUDPQuery(query2, response=None, useQueue=False)
+        self.assertEqual(receivedResponse, response2)
+
+        # remove cached entries from name A
+        self.sendConsoleCommand(
+            'getPool(""):getCache():expungeByName({newDNSName("suffixnamestype.cache.tests.powerdns.com.")}, DNSQType.A, true)'
         )
 
         # Miss for name A
