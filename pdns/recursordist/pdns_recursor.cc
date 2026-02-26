@@ -3029,29 +3029,22 @@ static void handleUDPServerResponse(int fileDesc, FDMultiplexer::funcparam_t& va
     return;
   }
 
-  if (dnsheader.qdcount == 0U || // UPC, Nominum, very old BIND on FormErr, NSD
-      dnsheader.qr == 0U) { // one weird server
-    pident->domain.clear();
-    pident->type = 0;
+  try {
+    if (len > signed_sizeof_sdnsheader) {
+      pident->domain = DNSName(reinterpret_cast<const char*>(packet.data()), static_cast<int>(len), static_cast<int>(sizeof(dnsheader)), false, &pident->type); // don't copy this from above - we need to do the actual read  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    }
+    else {
+      // len == sizeof(dnsheader), only header case
+      // We will do a full scan search later to see if we can match this reply even without a domain
+      pident->domain.clear();
+      pident->type = 0;
+    }
   }
-  else {
-    try {
-      if (len > signed_sizeof_sdnsheader) {
-        pident->domain = DNSName(reinterpret_cast<const char*>(packet.data()), static_cast<int>(len), static_cast<int>(sizeof(dnsheader)), false, &pident->type); // don't copy this from above - we need to do the actual read  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-      }
-      else {
-        // len == sizeof(dnsheader), only header case
-        // We will do a full scan search later to see if we can match this reply even without a domain
-        pident->domain.clear();
-        pident->type = 0;
-      }
-    }
-    catch (std::exception& e) {
-      // Parse error, continue waiting for other packets
-      t_Counters.at(rec::Counter::serverParseError)++; // won't be fed to lwres.cc, so we have to increment
-      g_slogudpin->error(Logr::Warning, e.what(), "Error in packet from remote nameserver", "from", Logging::Loggable(fromaddr));
-      return;
-    }
+  catch (std::exception& e) {
+    // Parse error, continue waiting for other packets
+    t_Counters.at(rec::Counter::serverParseError)++; // won't be fed to lwres.cc, so we have to increment
+    g_slogudpin->error(Logr::Warning, e.what(), "Error in packet from remote nameserver", "from", Logging::Loggable(fromaddr));
+    return;
   }
 
   if (!pident->domain.empty()) {
