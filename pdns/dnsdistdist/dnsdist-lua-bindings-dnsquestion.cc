@@ -20,6 +20,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include "dnsdist-edns.hh"
+#include "dnsdist-opentelemetry.hh"
 #include "dnsdist.hh"
 #include "dnsdist-async.hh"
 #include "dnsdist-dnsparser.hh"
@@ -30,7 +31,10 @@
 #include "dnsdist-snmp.hh"
 #include "dnsparser.hh"
 
+#include "protozero-trace.hh"
 #include "protozero.hh"
+#include <functional>
+#include <optional>
 #include <string>
 
 static void addMetaKeyAndValuesToProtobufContent([[maybe_unused]] DNSQuestion& dnsQuestion, [[maybe_unused]] const std::string& key, [[maybe_unused]] const LuaArray<boost::variant<int64_t, std::string>>& values)
@@ -396,6 +400,25 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
 #endif
     });
 
+  luaCtx.registerFunction<void (DNSQuestion::*)(const std::string& name, const std::function<void(const pdns::trace::dnsdist::Tracer::Closer& closer)>& func)>(
+    "withTraceSpan",
+    [](const DNSQuestion& dnsQuestion, const std::string& name, const std::function<void(const pdns::trace::dnsdist::Tracer::Closer& closer)> func) {
+#ifndef DISABLE_PROTOBUF
+      if (auto tracer = dnsQuestion.ids.getTracer(); tracer != nullptr) {
+        auto closer = tracer->openSpan(name);
+        func(closer);
+        return;
+      }
+#endif
+      func(pdns::trace::dnsdist::Tracer::Closer());
+    });
+
+  luaCtx.registerFunction<void (pdns::trace::dnsdist::Tracer::Closer::*)(const std::string& key, const std::string& value)>(
+    "setSpanAttribute",
+    [](pdns::trace::dnsdist::Tracer::Closer& closer, const std::string& key, const std::string& value) {
+      closer.setAttribute(key, AnyValue{value});
+    });
+
   class AsynchronousObject
   {
   public:
@@ -742,6 +765,19 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
     dnsResponse.asynchronous = true;
     return dnsdist::suspendResponse(dnsResponse, asyncID, queryID, timeoutMs);
   });
+
+  luaCtx.registerFunction<void (DNSResponse::*)(const std::string& name, const std::function<void(const pdns::trace::dnsdist::Tracer::Closer& closer)>& func)>(
+    "withTraceSpan",
+    [](const DNSResponse& dnsResponse, const std::string& name, const std::function<void(const pdns::trace::dnsdist::Tracer::Closer& closer)> func) {
+#ifndef DISABLE_PROTOBUF
+      if (auto tracer = dnsResponse.ids.getTracer(); tracer != nullptr) {
+        auto closer = tracer->openSpan(name);
+        func(closer);
+        return;
+      }
+#endif
+      func(pdns::trace::dnsdist::Tracer::Closer());
+    });
 
   luaCtx.registerFunction<bool (DNSResponse::*)(const DNSName& newName)>("changeName", [](DNSResponse& dnsResponse, const DNSName& newName) -> bool {
     if (!dnsdist::changeNameInDNSPacket(dnsResponse.getMutableData(), dnsResponse.ids.qname, newName)) {
