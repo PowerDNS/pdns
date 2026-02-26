@@ -3072,7 +3072,7 @@ retryWithName:
       if (pident->domain.empty() && !d_waiter.key->domain.empty() && pident->type == 0 && d_waiter.key->type != 0 && pident->id == d_waiter.key->id && d_waiter.key->remote == pident->remote) {
         pident->domain = d_waiter.key->domain;
         pident->type = d_waiter.key->type;
-        goto retryWithName; // note that this only passes on an error, lwres will still reject the packet NOLINT(cppcoreguidelines-avoid-goto)
+        goto retryWithName; // note that this only passes on an error, lwres still should reject the packet NOLINT(cppcoreguidelines-avoid-goto)
       }
     }
     t_Counters.at(rec::Counter::unexpectedCount)++; // if we made it here, it really is an unexpected answer
