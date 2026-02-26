@@ -968,3 +968,84 @@ setOpenTelemetryTracing(true)
 addAction(AllRule(), SetTraceAction(true, {remoteLoggers={rl}, sendDownstreamTraceparent=true}), {name="Enable tracing"})
 addResponseAction(AllRule(), RemoteLogResponseAction(rl), {name="Do PB logging"})
         """
+
+
+class TestOpenTelemetryTracingSpansFromLua(DNSDistOpenTelemetryProtobufBaseTest):
+    _yaml_config_params = [
+        "_testServerPort",
+        "_protobufServerPort",
+    ]
+    _yaml_config_template = """---
+logging:
+  open_telemetry_tracing: true
+
+backends:
+  - address: 127.0.0.1:%d
+    protocol: Do53
+    health_checks:
+      mode: up
+
+remote_logging:
+  protobuf_loggers:
+    - name: pblog
+      address: 127.0.0.1:%d
+
+query_rules:
+  - name: Enable tracing
+    selector:
+      type: All
+    action:
+      type: SetTrace
+      value: true
+      remote_loggers:
+        - pblog
+  - name: A traced LuaAction
+    selector:
+      type: All
+    action:
+      type: Lua
+      function_code: |
+        return function (dq)
+          dq:withTraceSpan("my-span",
+            function (closer)
+              closer:setSpanAttribute("my-key-from-lua", "my-value-from-lua")
+              dq:withTraceSpan("my-second-span",
+                function(cl)
+                end
+              )
+            end
+          )
+          return DNSAction.None
+        end
+"""
+
+    def testBasic(self):
+        self.doTest(
+            hasProcessResponseAfterRules=True,
+            hasRemoteLogResponseAction=False,
+            extraFunctions={
+                "my-span",
+                "my-second-span",
+                "Rule: A traced LuaAction",
+            },
+        )
+
+    def testTCP(self):
+        self.doTest(
+            useTCP=True,
+            hasProcessResponseAfterRules=True,
+            hasRemoteLogResponseAction=False,
+            extraFunctions={
+                "my-span",
+                "my-second-span",
+                "Rule: A traced LuaAction",
+                "createTCPQuery",
+                "queueResponse",
+                "TCPConnectionToBackend::handleResponse",
+                "getDownstreamConnection",
+                "TCPConnectionToBackend::sendQuery",
+                "handleResponse",
+                "prepareQueryForSending",
+                "TCPConnectionToBackend::queueQuery",
+            },
+        )
