@@ -3020,8 +3020,13 @@ static void handleUDPServerResponse(int fileDesc, FDMultiplexer::funcparam_t& va
   pident->id = dnsheader.id;
   pident->fd = fileDesc;
 
-  if (!dnsheader.qr && g_logCommonErrors) {
-    g_slogout->info(Logr::Error, "Not taking data from question on outgoing socket", "from", Logging::Loggable(fromaddr));
+  if (!dnsheader.qr) {
+    // RFC 1035 Section 4.1.1: QR=0 means query, not response. Discard.
+    if (g_logCommonErrors) {
+      g_slogout->info(Logr::Error, "Not taking data from question on outgoing socket", "from", Logging::Loggable(fromaddr));
+    }
+    t_Counters.at(rec::Counter::unexpectedCount)++;
+    return;
   }
 
   if (dnsheader.qdcount == 0U || // UPC, Nominum, very old BIND on FormErr, NSD

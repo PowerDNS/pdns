@@ -794,6 +794,15 @@ static LWResult::Result asyncresolve(const OptLog& log, const ComboAddress& addr
   try {
     lwr->d_tcbit = 0;
     MOADNSParser mdp(false, reinterpret_cast<const char*>(buf.data()), buf.size());
+
+    // RFC 1035 Section 4.1.1: QR must be 1 for responses
+    if (!mdp.d_header.qr) {
+      lwr->d_rcode = RCode::ServFail;
+      lwr->d_validpacket = false;
+      t_Counters.at(rec::Counter::serverParseError)++;
+      return LWResult::Result::PermanentError;
+    }
+
     lwr->d_aabit = mdp.d_header.aa;
     lwr->d_tcbit = mdp.d_header.tc;
     lwr->d_rcode = mdp.d_header.rcode;
