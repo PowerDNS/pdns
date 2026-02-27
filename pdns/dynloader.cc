@@ -95,15 +95,10 @@ int main(int argc, char **argv)
 {
   string programname="pdns";
 
-  if (g_slogStructured) {
-    g_slog = Logging::Logger::create(pdnsControlLoggerBackend);
-    auto log = g_slog->withName("config");
-    ::arg().setSLog(log);
-  }
-
   ::arg().set("config-dir","Location of configuration directory (pdns.conf)")=SYSCONFDIR;
   // Note pdns_server defaults to 4, but pdnsutil defaults to 3.
   ::arg().set("loglevel","Amount of logging. Higher is more.")="4";
+  ::arg().setSwitch("logging-structured", "Produce structured log messages") = "no";
   ::arg().set("socket-dir",string("Where the controlsocket will live, ")+LOCALSTATEDIR+"/pdns when unset and not chrooted" )="";
   ::arg().set("remote-address","Remote address to query");
   ::arg().set("remote-port","Remote port to query")="53000";
@@ -116,6 +111,13 @@ int main(int argc, char **argv)
   ::arg().laxParse(argc,argv);
 
   s_logUrgency = (Logger::Urgency)(::arg().asNum("loglevel"));
+
+  g_slogStructured = ::arg().mustDo("logging-structured");
+  if (g_slogStructured) {
+    g_slog = Logging::Logger::create(pdnsControlLoggerBackend);
+    auto log = g_slog->withName("config");
+    ::arg().setSLog(log);
+  }
 
   if(::arg().mustDo("help")) {
     cout<<"syntax:"<<endl<<endl;

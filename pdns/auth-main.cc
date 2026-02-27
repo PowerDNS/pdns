@@ -198,6 +198,7 @@ static void declareArguments()
 
   ::arg().set("version-string", "PowerDNS version in packets - full, anonymous, powerdns or custom") = "full";
   ::arg().set("control-console", "Debugging switch - don't use") = "no"; // but I know you will!
+  ::arg().setSwitch("logging-structured", "Produce structured log messages") = "no";
   ::arg().set("loglevel", "Amount of logging. Higher is more. Do not set below 3") = "4";
   ::arg().setSwitch("loglevel-show", "Include log level indicator in log output") = "no";
   ::arg().set("disable-syslog", "Disable logging to syslog, useful when running inside a supervisor that logs stderr") = "no";
@@ -1408,13 +1409,18 @@ static void setupLogging()
   }
   g_log.setLoglevel(s_logUrgency);
   g_log.toConsole(s_logUrgency);
-  g_log.setPrefixed(::arg().mustDo("loglevel-show"));
   g_log.disableSyslog(::arg().mustDo("disable-syslog"));
   g_log.setTimestamps(::arg().mustDo("log-timestamp"));
 
+  g_slogStructured = ::arg().mustDo("logging-structured");
   if (g_slogStructured) {
     g_slog = Logging::Logger::create(loggerBackend);
+  }
+  else {
+    g_log.setPrefixed(::arg().mustDo("loglevel-show"));
+  }
 
+  if (g_slogStructured) {
     Communicator.setSLog(g_slog->withName("communicator"));
   }
 }
