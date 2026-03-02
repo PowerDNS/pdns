@@ -1130,6 +1130,28 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_replace)
   BOOST_CHECK(diff1 < diff2 * 2 && diff2 < diff1 * 2);
 }
 
+BOOST_AUTO_TEST_CASE(test_aggressive_nsec_very_big_replace)
+{
+  auto cache = make_unique<AggressiveNSECCache>(1000);
+
+  struct timeval now{};
+  Utility::gettimeofday(&now, nullptr);
+
+  DNSRecord rec;
+  rec.d_name = DNSName("powerdns.com");
+  rec.d_type = QType::NSEC3;
+  rec.d_ttl = now.tv_sec + 10;
+  rec.setContent(getRecordContent(QType::NSEC3, "1 0 500 ab HASG==== A RRSIG NSEC3"));
+  std::vector<std::shared_ptr<const RRSIGRecordContent>> sigs;
+  for (auto i = 0; i < 100; i++) {
+    auto rrsig = std::make_shared<RRSIGRecordContent>("NSEC3 5 3 10 20370101000000 20370101000000 24567 dummy. data");
+    sigs.emplace_back(std::move(rrsig));
+  }
+  cache->insertNSEC(DNSName("powerdns.com"), rec.d_name, rec, sigs, true);
+
+  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 0U);
+}
+
 BOOST_AUTO_TEST_CASE(test_aggressive_nsec_wiping)
 {
   auto cache = make_unique<AggressiveNSECCache>(10000);
