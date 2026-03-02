@@ -171,11 +171,15 @@ imagesize==1.4.1 \
 jinja2==3.1.6 \
     --hash=sha256:0137fb05990d35f1275a587e9aee6d56da821fc83491a0fb838183be43f66d6d \
     --hash=sha256:85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67
-    # via sphinx
+    # via
+    #   sphinx
+    #   sphinxcontrib-redoc
 jsonschema==4.26.0 \
     --hash=sha256:0c26707e2efad8aa1bfc5b7ce170f3fccc2e4918ff85989ba9ffa9facb2be326 \
     --hash=sha256:d489f15263b8d200f8387e64b4c3a75f06629559fb73deb8fdfb525f2dab50ce
-    # via sphinxcontrib-openapi
+    # via
+    #   sphinxcontrib-openapi
+    #   sphinxcontrib-redoc
 jsonschema-specifications==2025.9.1 \
     --hash=sha256:98802fee3a11ee76ecaca44429fda8a41bff98b00a0f2838151b113f210cc6fe \
     --hash=sha256:b540987f239e745613c7a9176f3edb72b832a4ac465cf02712288397832b5e8d
@@ -284,7 +288,9 @@ mistune==3.2.0 \
 packaging==26.0 \
     --hash=sha256:00243ae351a257117b6a241061796684b084ed1c516a08c48a3f7e147a9d80b4 \
     --hash=sha256:b36f1fef9334a5588b4166f8bcd26a14e521f2b55e6b9de3aaa80d3ff7a37529
-    # via sphinx
+    # via
+    #   setuptools-scm
+    #   sphinx
 pbr==7.0.3 \
     --hash=sha256:b46004ec30a5324672683ec848aed9e8fc500b0d261d40a3229c2d2bbfcedc29 \
     --hash=sha256:ff223894eb1cd271a98076b13d3badff3bb36c424074d26334cd25aebeecea6b
@@ -509,6 +515,7 @@ pyyaml==6.0.3 \
     # via
     #   sphinx-immaterial
     #   sphinxcontrib-openapi
+    #   sphinxcontrib-redoc
 referencing==0.37.0 \
     --hash=sha256:381329a9f99628c9069361716891d34ad94af76e461dcb0335825aecc7692231 \
     --hash=sha256:44aefc3142c5b842538163acb373e24cce6632bd54bdb01b21ad5863489f50d8
@@ -652,6 +659,14 @@ setuptools-git==1.2 \
     --hash=sha256:e7764dccce7d97b4b5a330d7b966aac6f9ac026385743fd6cedad553f2494cfa \
     --hash=sha256:ff64136da01aabba76ae88b050e7197918d8b2139ccbf6144e14d472b9c40445
     # via -r requirements.in
+setuptools-scm==9.2.2 \
+    --hash=sha256:1c674ab4665686a0887d7e24c03ab25f24201c213e82ea689d2f3e169ef7ef57 \
+    --hash=sha256:30e8f84d2ab1ba7cb0e653429b179395d0c33775d54807fc5f1dd6671801aef7
+    # via -r requirements.in
+six==1.17.0 \
+    --hash=sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274 \
+    --hash=sha256:ff70335d468e7eb6ec65b95b99d3a2836546063f63acc5171de367e834932a81
+    # via sphinxcontrib-redoc
 snowballstemmer==3.0.1 \
     --hash=sha256:6cd7b3897da8d6c9ffb968a6781fa6532dce9c3618a4b127d920dab764a19064 \
     --hash=sha256:6d5eeeec8e9f84d4d56b847692bacf79bc2c8e90c7f80ca4444ff8b6f2e52895
@@ -666,6 +681,7 @@ sphinx==8.2.3 \
     #   sphinx-mdinclude
     #   sphinxcontrib-httpdomain
     #   sphinxcontrib-openapi
+    #   sphinxcontrib-redoc
 sphinx-immaterial[json]==0.13.9 \
     --hash=sha256:5ea92d2ddc6befcd0fedbd3e6766ea4746e94d9a8a5cc0ab092a946e1fde4254
     # via -r requirements.in
@@ -704,6 +720,9 @@ sphinxcontrib-qthelp==2.0.0 \
     --hash=sha256:4fe7d0ac8fc171045be623aba3e2a8f613f8682731f9153bb2e40ece16b9bbab \
     --hash=sha256:b18a828cdba941ccd6ee8445dbe72ffa3ef8cbe7505d8cd1fa0d42d3f2d5f3eb
     # via sphinx
+sphinxcontrib-redoc==1.6.0 \
+    --hash=sha256:e358edbe23927d36432dde748e978cf897283a331a03e93d3ef02e348dee4561
+    # via -r requirements.in
 sphinxcontrib-serializinghtml==2.0.0 \
     --hash=sha256:6e2cb0eef194e10c27ec0023bfeb25badbbb5868244cf5bc5bdc04e4464bf331 \
     --hash=sha256:e9d912827f872c029017a53f0ef2180b327c3f7fd23c87229f7a8e8b70031d4d
@@ -733,3 +752,4 @@ setuptools==81.0.0 \
     # via
     #   -r requirements.in
     #   pbr
+    #   setuptools-scm

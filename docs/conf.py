@@ -42,6 +42,7 @@ extensions = [
     "sphinxcontrib.fulltoc",
     "sphinxcontrib.httpdomain",
     "sphinxcontrib.openapi",
+    "sphinxcontrib.redoc",
 ]
 
 
@@ -168,6 +169,25 @@ html_static_path = ["_static"]
 
 html_favicon = "_static/favicon.ico"
 html_logo = "_static/powerdns_logo_white_orange_rgb.png"
+
+# -- Options for Redoc ----------------------------------------------------
+redoc = [
+    {
+        "name": "PowerDNS Authoritative API",
+        "page": "http-api/redoc",
+        "spec": "http-api/swagger/authoritative-api-swagger.yaml",
+        "embed": True,
+        "opts": {
+            "native-scrollbars": True,
+            "lazy-rendering": True,
+            "hide-hostname": True,
+            "untrusted-spec": True,
+        },
+    }
+]
+
+# Use fetch the latest version of redoc
+redoc_uri = "https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"
 
 # -- Options for HTMLHelp output ------------------------------------------
 
