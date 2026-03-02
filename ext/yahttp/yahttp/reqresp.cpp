@@ -175,7 +175,7 @@ namespace YaHTTP {
           buffer.copy(buf, pos);
           buf[pos]=0; // just in case...
           buffer.erase(buffer.begin(), buffer.begin()+pos+1); // remove line from buffer
-          if (sscanf(buf, "%x", &chunk_size) != 1) {
+          if (sscanf(buf, "%zx", &chunk_size) != 1) {
             throw ParseError("Unable to parse chunk size");
           }
           if (chunk_size == 0) { state = 3; break; } // last chunk
@@ -184,9 +184,9 @@ namespace YaHTTP {
           }
         } else {
           int crlf=1;
-          if (buffer.size() < static_cast<size_t>(chunk_size+1)) return false; // expect newline
+          if (buffer.size() < chunk_size+1) return false; // expect newline
           if (buffer.at(chunk_size) == '\r') {
-            if (buffer.size() < static_cast<size_t>(chunk_size+2) || buffer.at(chunk_size+1) != '\n') return false; // expect newline after carriage return
+            if (buffer.size() < chunk_size+2 || buffer.at(chunk_size+1) != '\n') return false; // expect newline after carriage return
             crlf=2;
           } else if (buffer.at(chunk_size) != '\n') return false;
           std::string tmp = buffer.substr(0, chunk_size);
