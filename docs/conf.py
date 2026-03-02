@@ -143,18 +143,19 @@ html_theme = "sphinx_immaterial"
 
 html_theme_options = {
     "site_url": "https://doc.powerdns.com/authoritative",
+    "palette": {"scheme": "powerdns"},
     "features": [
+        "content.code.copy",
+        "content.tabs.link",
+        "navigation.sections",
         "navigation.tabs",
         "navigation.tabs.sticky",
-        "navigation.top",
         "navigation.tracking",
-        "navigation.sections",
-        "navigation.footer",
-        "toc.integrate",
-        "toc.follow",
         "search.highlight",
         "search.share",
         "search.suggest",
+        "toc.follow",
+        "toc.integrate",
     ],
 }
 

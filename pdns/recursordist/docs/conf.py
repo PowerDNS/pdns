@@ -132,28 +132,23 @@ html_theme = "sphinx_immaterial"
 
 html_theme_options = {
     "site_url": "https://doc.powerdns.com/recursor",
+    "palette": {"scheme": "powerdns"},
     "features": [
+        "content.code.copy",
+        "content.tabs.link",
+        "navigation.sections",
         "navigation.tabs",
         "navigation.tabs.sticky",
-        "navigation.top",
         "navigation.tracking",
-        "navigation.sections",
-        "navigation.footer",
-        "toc.integrate",
-        "toc.follow",
         "search.highlight",
         "search.share",
         "search.suggest",
+        "toc.follow",
+        "toc.integrate",
     ],
 }
 
 html_css_files = ["extra.css"]
-
-# Theme options are theme-specific and customize the look and feel of a theme
-# further.  For a list of options available for each theme, see the
-# documentation.
-#
-# html_theme_options = {}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
