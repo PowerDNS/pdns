@@ -973,11 +973,11 @@ void setupLuaInspection(LuaContext& luaCtx)
     }
   });
   // NOLINTNEXTLINE(performance-unnecessary-value-param): optional parameters cannot be passed by const reference
-  luaCtx.registerFunction<void (std::shared_ptr<DynBlockRulesGroup>::*)(std::vector<uint8_t>, double, unsigned int, const std::string&, unsigned int, size_t, std::optional<DNSAction::Action>, std::optional<double>, DynamicActionOptionalParameters)>("setAllowedRCodesRatio", [](std::shared_ptr<DynBlockRulesGroup>& group, std::vector<uint8_t> rcodes, double ratio, unsigned int seconds, const std::string& reason, unsigned int blockDuration, size_t minimumNumberOfResponses, std::optional<DNSAction::Action> action, std::optional<double> warningRatio, DynamicActionOptionalParameters optionalParameters) {
+  luaCtx.registerFunction<void (std::shared_ptr<DynBlockRulesGroup>::*)(LuaArray<uint8_t>, double, unsigned int, const std::string&, unsigned int, size_t, std::optional<DNSAction::Action>, std::optional<double>, DynamicActionOptionalParameters)>("setAllowedRCodesRatio", [](std::shared_ptr<DynBlockRulesGroup>& group, LuaArray<uint8_t> rcodes, double ratio, unsigned int seconds, const std::string& reason, unsigned int blockDuration, size_t minimumNumberOfResponses, std::optional<DNSAction::Action> action, std::optional<double> warningRatio, DynamicActionOptionalParameters optionalParameters) {
     if (group) {
       std::unordered_set<uint8_t> allowed;
       for (const auto rcode : rcodes) {
-        allowed.insert(rcode);
+        allowed.insert(rcode.second);
       }
       DynBlockRulesGroup::DynBlockAllowedRCodesRatioRule rule(std::move(allowed), reason, blockDuration, ratio, warningRatio ? *warningRatio : 0.0, seconds, action ? *action : DNSAction::Action::None, minimumNumberOfResponses);
       parseDynamicActionOptionalParameters("setAllowedRCodesRatio", rule, action, optionalParameters);
