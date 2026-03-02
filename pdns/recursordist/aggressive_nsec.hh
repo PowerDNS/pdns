@@ -46,6 +46,7 @@ public:
   static constexpr uint8_t s_default_maxNSEC3CommonPrefix = 10;
   static uint64_t s_nsec3DenialProofMaxCost;
   static uint8_t s_maxNSEC3CommonPrefix;
+  static uint32_t s_maxEntrySize;
 
   AggressiveNSECCache(uint64_t entries) :
     d_maxEntries(entries)
@@ -131,6 +132,8 @@ private:
       DNSName d_qname; // of the query data that lead to this entry being created/updated
       time_t d_ttd;
       QType d_qtype; // of the query data that lead to this entry being created/updated
+
+      [[nodiscard]] size_t sizeEstimate() const;
     };
 
     typedef multi_index_container<

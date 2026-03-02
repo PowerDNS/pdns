@@ -31,6 +31,7 @@
 std::unique_ptr<AggressiveNSECCache> g_aggressiveNSECCache{nullptr};
 uint64_t AggressiveNSECCache::s_nsec3DenialProofMaxCost{0};
 uint8_t AggressiveNSECCache::s_maxNSEC3CommonPrefix = AggressiveNSECCache::s_default_maxNSEC3CommonPrefix;
+uint32_t AggressiveNSECCache::s_maxEntrySize{8192};
 
 /* this is defined in syncres.hh and we are not importing that here */
 extern std::unique_ptr<MemRecursorCache> g_recCache;
@@ -257,6 +258,23 @@ static bool commonPrefixIsLong(const string& one, const string& two, size_t boun
   return length > bound;
 }
 
+size_t AggressiveNSECCache::ZoneEntry::CacheEntry::sizeEstimate() const
+{
+  size_t ret = sizeof(AggressiveNSECCache::ZoneEntry::CacheEntry);
+  if (d_record) {
+    ret += d_record->sizeEstimate();
+  }
+  for (const auto& entry : d_signatures) {
+    if (entry) {
+      ret += entry->sizeEstimate();
+    }
+  }
+  ret += d_owner.sizeEstimate();
+  ret += d_next.sizeEstimate();
+  ret += d_qname.sizeEstimate();
+  return ret;
+}
+
 // If the NSEC3 hashes have a long common prefix, they deny only a small subset of all possible hashes
 // So don't take the trouble to store those.
 bool AggressiveNSECCache::isSmallCoveringNSEC3(const DNSName& owner, const std::string& nextHash)
@@ -341,26 +359,22 @@ void AggressiveNSECCache::insertNSEC(const DNSName& zone, const DNSName& owner, 
         zoneEntry->d_entries.clear();
       }
     }
+    DNSName realOwner = owner;
+    if (!nsec3 && isWildcardExpanded(owner.countLabels(), *signatures.at(0))) {
+      realOwner = getNSECOwnerName(owner, signatures);
+    }
+    ZoneEntry::CacheEntry cacheEntry{record.getContent(), signatures, realOwner, next, qname, record.d_ttl, qtype};
+    if (s_maxEntrySize > 0 && cacheEntry.sizeEstimate() > s_maxEntrySize) {
+      return;
+    }
 
     /* the TTL is already a TTD by now */
-    if (!nsec3 && isWildcardExpanded(owner.countLabels(), *signatures.at(0))) {
-      DNSName realOwner = getNSECOwnerName(owner, signatures);
-      auto pair = zoneEntry->d_entries.insert({record.getContent(), signatures, realOwner, next, qname, record.d_ttl, qtype});
-      if (pair.second) {
-        ++d_entriesCount;
-      }
-      else {
-        zoneEntry->d_entries.replace(pair.first, {record.getContent(), signatures, std::move(realOwner), std::move(next), qname, record.d_ttl, qtype});
-      }
+    auto pair = zoneEntry->d_entries.emplace(cacheEntry);
+    if (pair.second) {
+      ++d_entriesCount;
     }
     else {
-      auto pair = zoneEntry->d_entries.insert({record.getContent(), signatures, owner, next, qname, record.d_ttl, qtype});
-      if (pair.second) {
-        ++d_entriesCount;
-      }
-      else {
-        zoneEntry->d_entries.replace(pair.first, {record.getContent(), signatures, owner, std::move(next), qname, record.d_ttl, qtype});
-      }
+      zoneEntry->d_entries.replace(pair.first, std::move(cacheEntry));
     }
   }
 }

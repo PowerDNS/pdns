@@ -28,6 +28,7 @@
 
 // For a description on how ServeStale works, see recursor_cache.cc, the general structure is the same.
 uint16_t NegCache::s_maxServedStaleExtensions;
+uint32_t NegCache::s_maxEntrySize{8192}; // Same default as positive cache
 
 NegCache::NegCache(size_t mapsCount) :
   d_maps(mapsCount == 0 ? 1 : mapsCount)
@@ -41,6 +42,17 @@ size_t NegCache::size() const
     count += map.getEntriesCount();
   }
   return count;
+}
+
+size_t NegCache::NegCacheEntry::sizeEstimate() const
+{
+  auto ret = sizeof(NegCacheEntry);
+  ret += authoritySOA.sizeEstimate();
+  ret += DNSSECRecords.sizeEstimate();
+  ret += d_name.sizeEstimate();
+  ret += d_auth.sizeEstimate();
+
+  return ret;
 }
 
 /*!
@@ -140,6 +152,9 @@ bool NegCache::get(const DNSName& qname, QType qtype, const struct timeval& now,
  */
 void NegCache::add(const NegCacheEntry& negEntry)
 {
+  if (s_maxEntrySize > 0 && negEntry.sizeEstimate() > s_maxEntrySize) {
+    return;
+  }
   bool inserted = false;
   auto& map = getMap(negEntry.d_name);
   auto content = map.lock();
