@@ -301,7 +301,7 @@ public:
     
     std::string buffer; //<! read buffer 
     bool chunked; //<! whether we are parsing chunked data
-    int chunk_size; //<! expected size of next chunk
+    unsigned int chunk_size; //<! expected size of next chunk
     std::ostringstream bodybuf; //<! buffer for body
     size_t maxbody; //<! maximum size of body
     size_t minbody; //<! minimum size of body
