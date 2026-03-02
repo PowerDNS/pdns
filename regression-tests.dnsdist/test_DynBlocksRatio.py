@@ -380,6 +380,23 @@ backends:
         # we need more queries because of the sampling rate!
         self.doTestRCodeRatio(name, dns.rcode.SERVFAIL, 20, 20)
 
+
+class TestDynBlockGroupAllowedRCodesRatioLua(TestDynBlockGroupAllowedRCodesRatioYaml):
+    _yaml_config_template = ""
+    _yaml_config_params = []
+    _config_template = """
+    local dbr = dynBlockRulesGroup()
+    dbr:setAllowedRCodesRatio({DNSRCode.NOERROR}, 0.2, %d, "Exceeded query rate", %d, 20)
+
+    function maintenance()
+	    dbr:apply()
+    end
+
+    newServer{address="127.0.0.1:%d"}
+    """
+    _config_params = ["_dynBlockPeriod", "_dynBlockDuration", "_testServerPort"]
+
+
 class TestDynBlockGroupCacheMissRatio(DynBlocksTest):
 
     # we need this period to be quite long because we request the valid
