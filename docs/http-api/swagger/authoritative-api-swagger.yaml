@@ -982,7 +982,6 @@ components:
   schemas:
     Server:
       title: Server
-      $id: Server
       type: object
       additionalProperties: false
       properties:
@@ -1015,7 +1014,6 @@ components:
 
     Zone:
       title: Zone
-      $id: Zone
       description: This represents an authoritative DNS Zone.
       type: object
       additionalProperties: false
@@ -1119,7 +1117,6 @@ components:
 
     RRSet:
       title: RRSet
-      $id: RRSet
       description: This represents a Resource Record Set (all records with the same name and type).
       type: object
       additionalProperties: false
@@ -1155,7 +1152,6 @@ components:
 
     Record:
       title: Record
-      $id: Record
       description: The RREntry object represents a single record.
       type: object
       additionalProperties: false
@@ -1174,7 +1170,6 @@ components:
 
     Comment:
       title: Comment
-      $id: Comment
       description: A comment about an RRSet.
       type: object
       additionalProperties: false
@@ -1191,7 +1186,6 @@ components:
 
     TSIGKey:
       title: TSIGKey
-      $id: TSIGKey
       description: A TSIG key that can be used to authenticate NOTIFY, AXFR, and DNSUPDATE queries.
       type: object
       additionalProperties: false
@@ -1216,7 +1210,6 @@ components:
 
     Autoprimary:
       title: Autoprimary server
-      $id: Autoprimary
       description: An autoprimary server that can provision new domains.
       type: object
       additionalProperties: false
@@ -1234,7 +1227,6 @@ components:
 
     ConfigSetting:
       title: ConfigSetting
-      $id: ConfigSetting
       type: object
       additionalProperties: false
       properties:
@@ -1250,7 +1242,6 @@ components:
 
     SimpleStatisticItem:
       title: SimpleStatisticItem
-      $id: SimpleStatisticItem
       type: object
       additionalProperties: false
       properties:
@@ -1263,7 +1254,6 @@ components:
 
     StatisticItem:
       title: StatisticItem
-      $id: StatisticItem
       type: object
       additionalProperties: false
       properties:
@@ -1279,7 +1269,6 @@ components:
 
     MapStatisticItem:
       title: MapStatisticItem
-      $id: MapStatisticItem
       type: object
       additionalProperties: false
       properties:
@@ -1297,7 +1286,6 @@ components:
 
     RingStatisticItem:
       title: RingStatisticItem
-      $id: RingStatisticItem
       type: object
       additionalProperties: false
       properties:
@@ -1318,7 +1306,6 @@ components:
 
     SearchResultZone:
       title: SearchResultZone
-      $id: SearchResultZone
       type: object
       additionalProperties: false
       properties:
@@ -1333,7 +1320,6 @@ components:
 
     SearchResultRecord:
       title: SearchResultRecord
-      $id: SearchResultRecord
       type: object
       additionalProperties: false
       properties:
@@ -1358,7 +1344,6 @@ components:
 
     SearchResultComment:
       title: SearchResultComment
-      $id: SearchResultComment
       type: object
       additionalProperties: false
       properties:
@@ -1379,7 +1364,6 @@ components:
 
     SearchResult:
       title: SearchResult
-      $id: SearchResult
       type: object
       additionalProperties: false
       oneOf:
@@ -1400,7 +1384,6 @@ components:
 
     Metadata:
       title: Metadata
-      $id: Metadata
       description: Represents zone metadata
       type: object
       additionalProperties: false
@@ -1416,7 +1399,6 @@ components:
 
     Cryptokey:
       title: Cryptokey
-      $id: Cryptokey
       description: "Describes a DNSSEC cryptographic key"
       type: object
       additionalProperties: false
@@ -1461,7 +1443,6 @@ components:
 
     Error:
       title: Error
-      $id: Error
       description: "Returned when the server encounters an error, either in client input or internally"
       type: object
       additionalProperties: false
@@ -1479,7 +1460,6 @@ components:
 
     CacheFlushResult:
       title: CacheFlushResult
-      $id: CacheFlushResult
       description: "The result of a cache-flush"
       type: object
       additionalProperties: false
@@ -1493,7 +1473,6 @@ components:
 
     View:
       title: View
-      $id: View
       properties:
         zones:
           type: array
@@ -1503,7 +1482,6 @@ components:
 
     Views:
       title: Views
-      $id: Views
       properties:
         views:
           type: array
@@ -1513,7 +1491,6 @@ components:
 
     Network:
       title: Network
-      $id: Network
       properties:
         network:
           type: string
@@ -1524,7 +1501,6 @@ components:
 
     Networks:
       title: Networks
-      $id: Networks
       properties:
         networks:
           type: array
