@@ -93,6 +93,9 @@ def main():
         .get("schemas")
     )
 
+    for k, v in out.get("definitions", {}).items():
+        v["$id"] = k
+
     with open(args.outfile, "w") as w:
         yaml.safe_dump(out, w)
 
