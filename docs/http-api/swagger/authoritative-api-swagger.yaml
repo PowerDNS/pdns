@@ -984,7 +984,7 @@ components:
       title: Server
       $id: Server
       type: object
-      additionalProperties: False
+      additionalProperties: false
       properties:
         type:
           type: string
@@ -1018,7 +1018,7 @@ components:
       $id: Zone
       description: This represents an authoritative DNS Zone.
       type: object
-      additionalProperties: False
+      additionalProperties: false
       properties:
         id:
           type: string
@@ -1122,7 +1122,7 @@ components:
       $id: RRSet
       description: This represents a Resource Record Set (all records with the same name and type).
       type: object
-      additionalProperties: False
+      additionalProperties: false
       required:
         - name
         - type
@@ -1158,7 +1158,7 @@ components:
       $id: Record
       description: The RREntry object represents a single record.
       type: object
-      additionalProperties: False
+      additionalProperties: false
       required:
         - content
       properties:
@@ -1177,7 +1177,7 @@ components:
       $id: Comment
       description: A comment about an RRSet.
       type: object
-      additionalProperties: False
+      additionalProperties: false
       properties:
         content:
           type: string
@@ -1194,7 +1194,7 @@ components:
       $id: TSIGKey
       description: A TSIG key that can be used to authenticate NOTIFY, AXFR, and DNSUPDATE queries.
       type: object
-      additionalProperties: False
+      additionalProperties: false
       properties:
         name:
           type: string
@@ -1219,7 +1219,7 @@ components:
       $id: Autoprimary
       description: An autoprimary server that can provision new domains.
       type: object
-      additionalProperties: False
+      additionalProperties: false
 
       properties:
         ip:
@@ -1236,7 +1236,7 @@ components:
       title: ConfigSetting
       $id: ConfigSetting
       type: object
-      additionalProperties: False
+      additionalProperties: false
       properties:
         name:
           type: string
@@ -1252,7 +1252,7 @@ components:
       title: SimpleStatisticItem
       $id: SimpleStatisticItem
       type: object
-      additionalProperties: False
+      additionalProperties: false
       properties:
         name:
           type: string
@@ -1265,7 +1265,7 @@ components:
       title: StatisticItem
       $id: StatisticItem
       type: object
-      additionalProperties: False
+      additionalProperties: false
       properties:
         name:
           type: string
@@ -1281,7 +1281,7 @@ components:
       title: MapStatisticItem
       $id: MapStatisticItem
       type: object
-      additionalProperties: False
+      additionalProperties: false
       properties:
         name:
           type: string
@@ -1299,7 +1299,7 @@ components:
       title: RingStatisticItem
       $id: RingStatisticItem
       type: object
-      additionalProperties: False
+      additionalProperties: false
       properties:
         name:
           type: string
@@ -1320,7 +1320,7 @@ components:
       title: SearchResultZone
       $id: SearchResultZone
       type: object
-      additionalProperties: False
+      additionalProperties: false
       properties:
         name:
           type: string
@@ -1335,7 +1335,7 @@ components:
       title: SearchResultRecord
       $id: SearchResultRecord
       type: object
-      additionalProperties: False
+      additionalProperties: false
       properties:
         content:
           type: string
@@ -1360,7 +1360,7 @@ components:
       title: SearchResultComment
       $id: SearchResultComment
       type: object
-      additionalProperties: False
+      additionalProperties: false
       properties:
         content:
           type: string
@@ -1381,7 +1381,7 @@ components:
       title: SearchResult
       $id: SearchResult
       type: object
-      additionalProperties: False
+      additionalProperties: false
       oneOf:
         - $ref: "#/components/schemas/SearchResultZone"
         - $ref: "#/components/schemas/SearchResultRecord"
@@ -1403,7 +1403,7 @@ components:
       $id: Metadata
       description: Represents zone metadata
       type: object
-      additionalProperties: False
+      additionalProperties: false
       properties:
         kind:
           type: string
@@ -1419,7 +1419,7 @@ components:
       $id: Cryptokey
       description: "Describes a DNSSEC cryptographic key"
       type: object
-      additionalProperties: False
+      additionalProperties: false
       properties:
         type:
           type: string
@@ -1464,7 +1464,7 @@ components:
       $id: Error
       description: "Returned when the server encounters an error, either in client input or internally"
       type: object
-      additionalProperties: False
+      additionalProperties: false
       properties:
         error:
           type: string
@@ -1482,7 +1482,7 @@ components:
       $id: CacheFlushResult
       description: "The result of a cache-flush"
       type: object
-      additionalProperties: False
+      additionalProperties: false
       properties:
         count:
           type: number
