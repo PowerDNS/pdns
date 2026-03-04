@@ -1,6 +1,6 @@
 openapi: 3.1.0
 info:
-  version: "0.0.17"
+  version: "0.0.18"
   title: PowerDNS Authoritative HTTP API
   license:
     name: MIT
@@ -841,11 +841,14 @@ paths:
         - views
       requestBody:
         required: true
-        description: The zone to add to the view
         content:
           application/json:
             schema:
-              type: string
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: The zone to add to the view
       responses:
         "204":
           description: "Returns 204 No Content on success."
@@ -928,11 +931,14 @@ paths:
         - networks
       requestBody:
         required: true
-        description: The name of the view to use for this network
         content:
           application/json:
             schema:
-              type: string
+              type: object
+              properties:
+                view:
+                  type: string
+                  description: The name of the view to use for this network
 
       responses:
         "204":
