@@ -2152,9 +2152,9 @@ Maximum number of seconds to cache an item in the packet cache, no matter what t
         'default' : '60',
         'help' : 'maximum number of seconds to keep a cached NxDomain or NoData entry in packetcache',
         'doc' : '''
-Maximum number of seconds to cache an ``NxDomain`` or ``NoData`` answer in the packetcache.
+Maximum number of seconds to cache an ``NxDomain`` or ``NoData`` (a ``NoError`` response without answer records) answer in the packetcache.
 This setting's maximum is capped to :ref:`setting-packetcache-ttl`.
-i.e. setting ``packetcache-ttl=15`` and keeping ``packetcache-negative-ttl`` at the default will lower ``packetcache-negative-ttl`` to ``15``.
+i.e. setting :ref:`setting-packetcache-ttl` to 15 and keeping :ref:`setting-packetcache-negative-ttl` at the default will lower the used value of :ref:`setting-packetcache-negative-ttl` to 15.
  ''',
     'versionadded': '4.9.0'
     },
@@ -2167,13 +2167,10 @@ i.e. setting ``packetcache-ttl=15`` and keeping ``packetcache-negative-ttl`` at 
         'help' : 'maximum number of seconds to keep a cached servfail entry in packetcache',
         'doc' : '''
 Maximum number of seconds to cache an answer indicating a failure to resolve in the packet cache.
-Before version 4.6.0 only ``ServFail`` answers were considered as such. Starting with 4.6.0, all responses with a code other than ``NoError`` and ``NXDomain``, or without records in the answer and authority sections, are considered as a failure to resolve.
+Before version 4.6.0 only ``ServFail`` answers were considered as such. All responses with a code other than ``NoError`` and ``NXDomain``, or without records in the answer and authority sections, are considered as a failure to resolve.
+This setting's maximum is capped to :ref:`setting-packetcache-ttl`. Setting :ref:`setting-packetcache-ttl` to 15 and keeping :ref:`setting-packetcache-servfail-ttl` at the default will lower the used value of :ref:`setting-packetcache-servfail-ttl` to 15.
 Since 4.9.0, negative answers are handled separately from resolving failures.
- ''',
-        'doc-rst' : '''
-        'versionchanged': ('4.0.0', "This setting's maximum is capped to :ref:`setting-packetcache-ttl`.
-    i.e. setting ``packetcache-ttl=15`` and keeping ``packetcache-servfail-ttl`` at the default will lower ``packetcache-servfail-ttl`` to ``15``.")
- '''
+''',
     },
     {
         'name' : 'shards',
