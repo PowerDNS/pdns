@@ -4,8 +4,8 @@ import time
 import dns
 from dnsdisttests import DNSDistTest, pickAvailablePort
 
-class TestTimeIPSetYaml(DNSDistTest):
 
+class TestTimeIPSetYaml(DNSDistTest):
     _yaml_config_template = """---
 console:
   listen_address: "127.0.0.1:%d"
@@ -34,24 +34,20 @@ query_rules:
       rcode: "Refused"
 """
     _consoleKey = DNSDistTest.generateConsoleKey()
-    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
     _consolePort = pickAvailablePort()
     _testServerPort = pickAvailablePort()
-    _yaml_config_params = ['_consolePort', '_consoleKeyB64', '_dnsDistPort', '_testServerPort']
+    _yaml_config_params = ["_consolePort", "_consoleKeyB64", "_dnsDistPort", "_testServerPort"]
     _config_params = []
 
     def testTimedIPSet(self):
         """
         TimedIPSet from YAML configuration
         """
-        name = 'timedipset-yaml.test.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "timedipset-yaml.test.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
         refusedResponse = dns.message.make_response(query)
         refusedResponse.set_rcode(dns.rcode.REFUSED)
@@ -64,7 +60,7 @@ query_rules:
             self.assertEqual(receivedResponse, response)
 
         # now we block it for two seconds
-        self.sendConsoleCommand('getObjectFromYAMLConfiguration(\'my-set\'):add(newCA(\'127.0.0.1\'), 2)')
+        self.sendConsoleCommand("getObjectFromYAMLConfiguration('my-set'):add(newCA('127.0.0.1'), 2)")
 
         for method in ["sendUDPQuery", "sendTCPQuery"]:
             sender = getattr(self, method)
@@ -81,6 +77,7 @@ query_rules:
             self.assertEqual(receivedQuery, query)
             self.assertEqual(receivedResponse, response)
 
+
 class TestTimeIPSetLua(DNSDistTest):
     _config_template = """---
     setKey("%s")
@@ -91,24 +88,20 @@ class TestTimeIPSetLua(DNSDistTest):
     addAction(mySet:slice(), RCodeAction(DNSRCode.REFUSED))
 """
     _consoleKey = DNSDistTest.generateConsoleKey()
-    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
     _consolePort = pickAvailablePort()
     _testServerPort = pickAvailablePort()
-    _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort']
+    _config_params = ["_consoleKeyB64", "_consolePort", "_testServerPort"]
 
     def testTimedIPSet(self):
         """
         TimedIPSet from Lua configuration
         """
-        name = 'timedipset-lua.test.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "timedipset-lua.test.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         query.flags &= ~dns.flags.RD
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
         refusedResponse = dns.message.make_response(query)
         refusedResponse.set_rcode(dns.rcode.REFUSED)
@@ -121,7 +114,7 @@ class TestTimeIPSetLua(DNSDistTest):
             self.assertEqual(receivedResponse, response)
 
         # now we block it for two seconds
-        self.sendConsoleCommand('mySet:add(newCA(\'127.0.0.1\'), 2)')
+        self.sendConsoleCommand("mySet:add(newCA('127.0.0.1'), 2)")
 
         for method in ["sendUDPQuery", "sendTCPQuery"]:
             sender = getattr(self, method)

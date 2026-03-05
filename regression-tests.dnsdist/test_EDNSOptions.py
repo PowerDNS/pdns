@@ -4,6 +4,7 @@ import clientsubnetoption
 import cookiesoption
 from dnsdisttests import DNSDistTest
 
+
 class EDNSOptionsBase(DNSDistTest):
     _ednsTestFunction = """
     function testEDNSOptions(dq)
@@ -98,8 +99,8 @@ class EDNSOptionsBase(DNSDistTest):
     end
     """
 
-class TestEDNSOptions(EDNSOptionsBase):
 
+class TestEDNSOptions(EDNSOptionsBase):
     _config_template = """
     %s
 
@@ -107,20 +108,16 @@ class TestEDNSOptions(EDNSOptionsBase):
 
     newServer{address="127.0.0.1:%d"}
     """
-    _config_params = ['_ednsTestFunction', '_testServerPort']
+    _config_params = ["_ednsTestFunction", "_testServerPort"]
 
     def testWithoutEDNS(self):
         """
         EDNS Options: No EDNS
         """
-        name = 'noedns.ednsoptions.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "noedns.ednsoptions.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.255')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.255")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -136,15 +133,11 @@ class TestEDNSOptions(EDNSOptionsBase):
         """
         EDNS Options: Cookie
         """
-        name = 'cookie.ednsoptions.tests.powerdns.com.'
-        eco = cookiesoption.CookiesOption(b'deadbeef', b'deadbeef')
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[eco])
+        name = "cookie.ednsoptions.tests.powerdns.com."
+        eco = cookiesoption.CookiesOption(b"deadbeef", b"deadbeef")
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, options=[eco])
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -160,15 +153,11 @@ class TestEDNSOptions(EDNSOptionsBase):
         """
         EDNS Options: ECS4
         """
-        name = 'ecs4.ednsoptions.tests.powerdns.com.'
-        ecso = clientsubnetoption.ClientSubnetOption('1.2.3.4', 32)
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[ecso])
+        name = "ecs4.ednsoptions.tests.powerdns.com."
+        ecso = clientsubnetoption.ClientSubnetOption("1.2.3.4", 32)
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, options=[ecso])
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -184,15 +173,11 @@ class TestEDNSOptions(EDNSOptionsBase):
         """
         EDNS Options: ECS6
         """
-        name = 'ecs6.ednsoptions.tests.powerdns.com.'
-        ecso = clientsubnetoption.ClientSubnetOption('2001:DB8::1', 128)
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[ecso])
+        name = "ecs6.ednsoptions.tests.powerdns.com."
+        ecso = clientsubnetoption.ClientSubnetOption("2001:DB8::1", 128)
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, options=[ecso])
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -208,16 +193,12 @@ class TestEDNSOptions(EDNSOptionsBase):
         """
         EDNS Options: Cookie + ECS6
         """
-        name = 'cookie-ecs6.ednsoptions.tests.powerdns.com.'
-        eco = cookiesoption.CookiesOption(b'deadbeef', b'deadbeef')
-        ecso = clientsubnetoption.ClientSubnetOption('2001:DB8::1', 128)
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[ecso,eco])
+        name = "cookie-ecs6.ednsoptions.tests.powerdns.com."
+        eco = cookiesoption.CookiesOption(b"deadbeef", b"deadbeef")
+        ecso = clientsubnetoption.ClientSubnetOption("2001:DB8::1", 128)
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, options=[ecso, eco])
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -233,17 +214,13 @@ class TestEDNSOptions(EDNSOptionsBase):
         """
         EDNS Options: Two Cookies + ECS6
         """
-        name = 'multiplecookies-ecs6.ednsoptions.tests.powerdns.com.'
-        eco1 = cookiesoption.CookiesOption(b'deadbeef', b'deadbeef')
-        ecso = clientsubnetoption.ClientSubnetOption('2001:DB8::1', 128)
-        eco2 = cookiesoption.CookiesOption(b'deadc0de', b'deadc0de')
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[eco1, ecso, eco2])
+        name = "multiplecookies-ecs6.ednsoptions.tests.powerdns.com."
+        eco1 = cookiesoption.CookiesOption(b"deadbeef", b"deadbeef")
+        ecso = clientsubnetoption.ClientSubnetOption("2001:DB8::1", 128)
+        eco2 = cookiesoption.CookiesOption(b"deadc0de", b"deadc0de")
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, options=[eco1, ecso, eco2])
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -255,8 +232,8 @@ class TestEDNSOptions(EDNSOptionsBase):
             self.assertEqual(receivedQuery, query)
             self.assertEqual(receivedResponse, response)
 
-class TestEDNSOptionsAddingECS(EDNSOptionsBase):
 
+class TestEDNSOptionsAddingECS(EDNSOptionsBase):
     _config_template = """
     %s
 
@@ -265,22 +242,18 @@ class TestEDNSOptionsAddingECS(EDNSOptionsBase):
 
     newServer{address="127.0.0.1:%d", useClientSubnet=true}
     """
-    _config_params = ['_ednsTestFunction', '_testServerPort']
+    _config_params = ["_ednsTestFunction", "_testServerPort"]
 
     def testWithoutEDNS(self):
         """
         EDNS Options: No EDNS (adding ECS)
         """
-        name = 'noedns.ednsoptions-ecs.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
-        ecso = clientsubnetoption.ClientSubnetOption('127.0.0.1', 24)
-        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, options=[ecso], payload=512)
+        name = "noedns.ednsoptions-ecs.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
+        ecso = clientsubnetoption.ClientSubnetOption("127.0.0.1", 24)
+        expectedQuery = dns.message.make_query(name, "A", "IN", use_edns=True, options=[ecso], payload=512)
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -296,17 +269,13 @@ class TestEDNSOptionsAddingECS(EDNSOptionsBase):
         """
         EDNS Options: Cookie (adding ECS)
         """
-        name = 'cookie.ednsoptions-ecs.tests.powerdns.com.'
-        eco = cookiesoption.CookiesOption(b'deadbeef', b'deadbeef')
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=512, options=[eco])
-        ecso = clientsubnetoption.ClientSubnetOption('127.0.0.1', 24)
-        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, options=[eco,ecso], payload=512)
+        name = "cookie.ednsoptions-ecs.tests.powerdns.com."
+        eco = cookiesoption.CookiesOption(b"deadbeef", b"deadbeef")
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=512, options=[eco])
+        ecso = clientsubnetoption.ClientSubnetOption("127.0.0.1", 24)
+        expectedQuery = dns.message.make_query(name, "A", "IN", use_edns=True, options=[eco, ecso], payload=512)
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -322,17 +291,13 @@ class TestEDNSOptionsAddingECS(EDNSOptionsBase):
         """
         EDNS Options: ECS4 (adding ECS)
         """
-        name = 'ecs4.ednsoptions-ecs.tests.powerdns.com.'
-        ecso = clientsubnetoption.ClientSubnetOption('1.2.3.4', 32)
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[ecso])
-        ecsoResponse = clientsubnetoption.ClientSubnetOption('1.2.3.4', 24, scope=24)
+        name = "ecs4.ednsoptions-ecs.tests.powerdns.com."
+        ecso = clientsubnetoption.ClientSubnetOption("1.2.3.4", 32)
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, options=[ecso])
+        ecsoResponse = clientsubnetoption.ClientSubnetOption("1.2.3.4", 24, scope=24)
         response = dns.message.make_response(query)
         response.use_edns(edns=True, payload=4096, options=[ecsoResponse])
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -348,17 +313,13 @@ class TestEDNSOptionsAddingECS(EDNSOptionsBase):
         """
         EDNS Options: ECS6 (adding ECS)
         """
-        name = 'ecs6.ednsoptions-ecs.tests.powerdns.com.'
-        ecso = clientsubnetoption.ClientSubnetOption('2001:DB8::1', 128)
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[ecso])
-        ecsoResponse = clientsubnetoption.ClientSubnetOption('2001:DB8::1', 128, scope=56)
+        name = "ecs6.ednsoptions-ecs.tests.powerdns.com."
+        ecso = clientsubnetoption.ClientSubnetOption("2001:DB8::1", 128)
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, options=[ecso])
+        ecsoResponse = clientsubnetoption.ClientSubnetOption("2001:DB8::1", 128, scope=56)
         response = dns.message.make_response(query)
         response.use_edns(edns=True, payload=4096, options=[ecsoResponse])
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -374,18 +335,14 @@ class TestEDNSOptionsAddingECS(EDNSOptionsBase):
         """
         EDNS Options: Cookie + ECS6 (adding ECS)
         """
-        name = 'cookie-ecs6.ednsoptions-ecs.tests.powerdns.com.'
-        eco = cookiesoption.CookiesOption(b'deadbeef', b'deadbeef')
-        ecso = clientsubnetoption.ClientSubnetOption('2001:DB8::1', 128)
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[ecso,eco])
-        ecsoResponse = clientsubnetoption.ClientSubnetOption('2001:DB8::1', 128, scope=56)
+        name = "cookie-ecs6.ednsoptions-ecs.tests.powerdns.com."
+        eco = cookiesoption.CookiesOption(b"deadbeef", b"deadbeef")
+        ecso = clientsubnetoption.ClientSubnetOption("2001:DB8::1", 128)
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, options=[ecso, eco])
+        ecsoResponse = clientsubnetoption.ClientSubnetOption("2001:DB8::1", 128, scope=56)
         response = dns.message.make_response(query)
         response.use_edns(edns=True, payload=4096, options=[ecsoResponse])
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -401,17 +358,13 @@ class TestEDNSOptionsAddingECS(EDNSOptionsBase):
         """
         EDNS Options: Two Cookies + ECS6
         """
-        name = 'multiplecookies-ecs6.ednsoptions.tests.powerdns.com.'
-        eco1 = cookiesoption.CookiesOption(b'deadbeef', b'deadbeef')
-        ecso = clientsubnetoption.ClientSubnetOption('2001:DB8::1', 128)
-        eco2 = cookiesoption.CookiesOption(b'deadc0de', b'deadc0de')
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[eco1, ecso, eco2])
+        name = "multiplecookies-ecs6.ednsoptions.tests.powerdns.com."
+        eco1 = cookiesoption.CookiesOption(b"deadbeef", b"deadbeef")
+        ecso = clientsubnetoption.ClientSubnetOption("2001:DB8::1", 128)
+        eco2 = cookiesoption.CookiesOption(b"deadc0de", b"deadc0de")
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, options=[eco1, ecso, eco2])
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -423,8 +376,8 @@ class TestEDNSOptionsAddingECS(EDNSOptionsBase):
             self.assertEqual(receivedQuery, query)
             self.assertEqual(receivedResponse, response)
 
-class TestEDNSOptionsLuaFFI(DNSDistTest):
 
+class TestEDNSOptionsLuaFFI(DNSDistTest):
     _config_template = """
     local ffi = require("ffi")
 
@@ -566,14 +519,10 @@ class TestEDNSOptionsLuaFFI(DNSDistTest):
         """
         EDNS Options: No EDNS (FFI)
         """
-        name = 'noedns.ednsoptions.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "noedns.ednsoptions.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.255')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.255")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -589,15 +538,11 @@ class TestEDNSOptionsLuaFFI(DNSDistTest):
         """
         EDNS Options: Cookie (FFI)
         """
-        name = 'cookie.ednsoptions.tests.powerdns.com.'
-        eco = cookiesoption.CookiesOption(b'deadbeef', b'deadbeef')
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[eco])
+        name = "cookie.ednsoptions.tests.powerdns.com."
+        eco = cookiesoption.CookiesOption(b"deadbeef", b"deadbeef")
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, options=[eco])
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -613,15 +558,11 @@ class TestEDNSOptionsLuaFFI(DNSDistTest):
         """
         EDNS Options: ECS4 (FFI)
         """
-        name = 'ecs4.ednsoptions.tests.powerdns.com.'
-        ecso = clientsubnetoption.ClientSubnetOption('1.2.3.4', 32)
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[ecso])
+        name = "ecs4.ednsoptions.tests.powerdns.com."
+        ecso = clientsubnetoption.ClientSubnetOption("1.2.3.4", 32)
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, options=[ecso])
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -637,15 +578,11 @@ class TestEDNSOptionsLuaFFI(DNSDistTest):
         """
         EDNS Options: ECS6 (FFI)
         """
-        name = 'ecs6.ednsoptions.tests.powerdns.com.'
-        ecso = clientsubnetoption.ClientSubnetOption('2001:DB8::1', 128)
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[ecso])
+        name = "ecs6.ednsoptions.tests.powerdns.com."
+        ecso = clientsubnetoption.ClientSubnetOption("2001:DB8::1", 128)
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, options=[ecso])
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -661,16 +598,12 @@ class TestEDNSOptionsLuaFFI(DNSDistTest):
         """
         EDNS Options: Cookie + ECS6 (FFI)
         """
-        name = 'cookie-ecs6.ednsoptions.tests.powerdns.com.'
-        eco = cookiesoption.CookiesOption(b'deadbeef', b'deadbeef')
-        ecso = clientsubnetoption.ClientSubnetOption('2001:DB8::1', 128)
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[ecso,eco])
+        name = "cookie-ecs6.ednsoptions.tests.powerdns.com."
+        eco = cookiesoption.CookiesOption(b"deadbeef", b"deadbeef")
+        ecso = clientsubnetoption.ClientSubnetOption("2001:DB8::1", 128)
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, options=[ecso, eco])
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -686,17 +619,13 @@ class TestEDNSOptionsLuaFFI(DNSDistTest):
         """
         EDNS Options: Two Cookies + ECS6 (FFI)
         """
-        name = 'multiplecookies-ecs6.ednsoptions.tests.powerdns.com.'
-        eco1 = cookiesoption.CookiesOption(b'deadbeef', b'deadbeef')
-        ecso = clientsubnetoption.ClientSubnetOption('2001:DB8::1', 128)
-        eco2 = cookiesoption.CookiesOption(b'deadc0de', b'deadc0de')
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[eco1, ecso, eco2])
+        name = "multiplecookies-ecs6.ednsoptions.tests.powerdns.com."
+        eco1 = cookiesoption.CookiesOption(b"deadbeef", b"deadbeef")
+        ecso = clientsubnetoption.ClientSubnetOption("2001:DB8::1", 128)
+        eco2 = cookiesoption.CookiesOption(b"deadc0de", b"deadc0de")
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, options=[eco1, ecso, eco2])
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):

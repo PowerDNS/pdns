@@ -25,13 +25,14 @@
 # NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 # EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-""" Class to implement draft-ietf-dnsop-edns-client-subnet (previously known as
+"""Class to implement draft-ietf-dnsop-edns-client-subnet (previously known as
 draft-vandergaast-edns-client-subnet.
 
 The contained class supports both IPv4 and IPv6 addresses.
 Requirements:
   dnspython (http://www.dnspython.org/)
 """
+
 from __future__ import print_function
 from __future__ import division
 
@@ -77,11 +78,11 @@ class ClientSubnetOption(dns.edns.Option):
                 n = socket.inet_pton(family, ip)
                 if family == socket.AF_INET6:
                     f = FAMILY_IPV6
-                    hi, lo = struct.unpack('!QQ', n)
+                    hi, lo = struct.unpack("!QQ", n)
                     ip = hi << 64 | lo
                 elif family == socket.AF_INET:
                     f = FAMILY_IPV4
-                    ip = struct.unpack('!L', n)[0]
+                    ip = struct.unpack("!L", n)[0]
             except Exception:
                 pass
 
@@ -117,13 +118,13 @@ class ClientSubnetOption(dns.edns.Option):
 
         ip = self.ip >> bits - self.mask
 
-        if (self.mask % 8 != 0):
+        if self.mask % 8 != 0:
             ip = ip << 8 - (self.mask % 8)
 
         return ip
 
     def is_draft(self):
-        """" Determines whether this instance is using the draft option code """
+        """ " Determines whether this instance is using the draft option code"""
         return self.option == DRAFT_OPTION_CODE
 
     def to_wire(self, file=None):
@@ -133,13 +134,13 @@ class ClientSubnetOption(dns.edns.Option):
 
         mask_bits = self.mask
         if mask_bits % 8 != 0:
-                mask_bits += 8 - (self.mask % 8)
+            mask_bits += 8 - (self.mask % 8)
 
         if self.family == FAMILY_IPV4:
             test = struct.pack("!L", ip)
         elif self.family == FAMILY_IPV6:
-            test = struct.pack("!QQ", ip >> 64, ip & (2 ** 64 - 1))
-        test = test[-(mask_bits // 8):]
+            test = struct.pack("!QQ", ip >> 64, ip & (2**64 - 1))
+        test = test[-(mask_bits // 8) :]
 
         format = "!HBB%ds" % (mask_bits // 8)
         data = struct.pack(format, self.family, self.mask, self.scope, test)
@@ -155,7 +156,7 @@ class ClientSubnetOption(dns.edns.Option):
             An instance of ClientSubnetOption based on the ENDS packet
         """
 
-        data = wire[current:current + olen]
+        data = wire[current : current + olen]
         (family, mask, scope) = struct.unpack("!HBB", data[:4])
 
         c_mask = mask
@@ -164,11 +165,11 @@ class ClientSubnetOption(dns.edns.Option):
 
         ip = struct.unpack_from("!%ds" % (c_mask // 8), data, 4)[0]
 
-        if (family == FAMILY_IPV4):
-            ip = ip + b'\0' * ((32 - c_mask) // 8)
+        if family == FAMILY_IPV4:
+            ip = ip + b"\0" * ((32 - c_mask) // 8)
             ip = socket.inet_ntop(socket.AF_INET, ip)
-        elif (family == FAMILY_IPV6):
-            ip = ip + b'\0' * ((128 - c_mask) // 8)
+        elif family == FAMILY_IPV6:
+            ip = ip + b"\0" * ((128 - c_mask) // 8)
             ip = socket.inet_ntop(socket.AF_INET6, ip)
         else:
             raise Exception("Returned a family other then IPv4 or IPv6")
@@ -180,35 +181,27 @@ class ClientSubnetOption(dns.edns.Option):
     # needed in 2.0.0..
     @classmethod
     def from_wire_parser(cls, otype, parser):
-        family, src, scope = parser.get_struct('!HBB')
+        family, src, scope = parser.get_struct("!HBB")
         addrlen = int(math.ceil(src / 8.0))
         prefix = parser.get_bytes(addrlen)
         if family == 1:
             pad = 4 - addrlen
-            addr = dns.ipv4.inet_ntoa(prefix + b'\x00' * pad)
+            addr = dns.ipv4.inet_ntoa(prefix + b"\x00" * pad)
         elif family == 2:
             pad = 16 - addrlen
-            addr = dns.ipv6.inet_ntoa(prefix + b'\x00' * pad)
+            addr = dns.ipv6.inet_ntoa(prefix + b"\x00" * pad)
         else:
-            raise ValueError('unsupported family')
+            raise ValueError("unsupported family")
 
         return cls(addr, src, scope, otype)
 
     def __repr__(self):
         if self.family == FAMILY_IPV4:
-            ip = socket.inet_ntop(socket.AF_INET, struct.pack('!L', self.ip))
+            ip = socket.inet_ntop(socket.AF_INET, struct.pack("!L", self.ip))
         elif self.family == FAMILY_IPV6:
-            ip = socket.inet_ntop(socket.AF_INET6,
-                                  struct.pack('!QQ',
-                                              self.ip >> 64,
-                                              self.ip & (2 ** 64 - 1)))
+            ip = socket.inet_ntop(socket.AF_INET6, struct.pack("!QQ", self.ip >> 64, self.ip & (2**64 - 1)))
 
-        return "%s(%s, %s, %s)" % (
-            self.__class__.__name__,
-            ip,
-            self.mask,
-            self.scope
-        )
+        return "%s(%s, %s, %s)" % (self.__class__.__name__, ip, self.mask, self.scope)
 
     def to_text(self):
         return self.__repr__()
@@ -280,13 +273,25 @@ if __name__ == "__main__":
                 print("Found ClientSubnetOption...", end=None, file=sys.stderr)
                 if not cso.family == options.family:
                     error = True
-                    print("\nFailed: returned family (%d) is different from the passed family (%d)" % (options.family, cso.family), file=sys.stderr)
+                    print(
+                        "\nFailed: returned family (%d) is different from the passed family (%d)"
+                        % (options.family, cso.family),
+                        file=sys.stderr,
+                    )
                 if not cso.calculate_ip() == options.calculate_ip():
                     error = True
-                    print("\nFailed: returned ip (%s) is different from the passed ip (%s)." % (options.calculate_ip(), cso.calculate_ip()), file=sys.stderr)
+                    print(
+                        "\nFailed: returned ip (%s) is different from the passed ip (%s)."
+                        % (options.calculate_ip(), cso.calculate_ip()),
+                        file=sys.stderr,
+                    )
                 if not options.mask == cso.mask:
                     error = True
-                    print("\nFailed: returned mask bits (%d) is different from the passed mask bits (%d)" % (options.mask, cso.mask), file=sys.stderr)
+                    print(
+                        "\nFailed: returned mask bits (%d) is different from the passed mask bits (%d)"
+                        % (options.mask, cso.mask),
+                        file=sys.stderr,
+                    )
                 if not options.scope != 0:
                     print("\nWarning: scope indicates edns-clientsubnet data is not used", file=sys.stderr)
                 if options.is_draft():
@@ -299,17 +304,19 @@ if __name__ == "__main__":
         else:
             print("Failed: No ClientSubnetOption returned", file=sys.stderr)
 
-    parser = argparse.ArgumentParser(description='draft-vandergaast-edns-client-subnet-01 tester')
-    parser.add_argument('nameserver', help='The nameserver to test')
-    parser.add_argument('rr', help='DNS record that should return an EDNS enabled response')
-    parser.add_argument('-s', '--subnet', help='Specifies an IP to pass as the client subnet.', default='192.0.2.0')
-    parser.add_argument('-m', '--mask', type=int, help='CIDR mask to use for subnet')
-    parser.add_argument('--timeout', type=int, help='Set the timeout for query to TIMEOUT seconds, default=10', default=10)
-    parser.add_argument('-t', '--type', help='DNS query type, default=A', default='A')
+    parser = argparse.ArgumentParser(description="draft-vandergaast-edns-client-subnet-01 tester")
+    parser.add_argument("nameserver", help="The nameserver to test")
+    parser.add_argument("rr", help="DNS record that should return an EDNS enabled response")
+    parser.add_argument("-s", "--subnet", help="Specifies an IP to pass as the client subnet.", default="192.0.2.0")
+    parser.add_argument("-m", "--mask", type=int, help="CIDR mask to use for subnet")
+    parser.add_argument(
+        "--timeout", type=int, help="Set the timeout for query to TIMEOUT seconds, default=10", default=10
+    )
+    parser.add_argument("-t", "--type", help="DNS query type, default=A", default="A")
     args = parser.parse_args()
 
     if not args.mask:
-        if ':' in args.subnet:
+        if ":" in args.subnet:
             args.mask = 48
         else:
             args.mask = 24
