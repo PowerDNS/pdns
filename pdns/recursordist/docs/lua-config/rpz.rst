@@ -57,7 +57,7 @@ To do the same when loading from a primary:
 
    rpzPrimary("192.0.2.4", "policy.rpz", {tags={"tag1"}, defpol=Policy.Custom, defcontent="badserver.example.com"})
 
-To instead drop all queries matching a rule, while transferred from a primary.
+To instead drop all queries matching a rule, while transferred from a primary:
 
 .. code-block:: Lua
 
