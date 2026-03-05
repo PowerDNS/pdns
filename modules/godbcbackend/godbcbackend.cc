@@ -138,9 +138,9 @@ public:
     declare(suffix, "remove-domain-key-query", "", "delete from cryptokeys where domain_id=(select id from domains where name=?) and cryptokeys.id=?");
     declare(suffix, "clear-domain-all-keys-query", "", "delete from cryptokeys where domain_id=(select id from domains where name=?)");
     declare(suffix, "get-tsig-key-query", "", "select algorithm, secret from tsigkeys where name=?");
-    /* FIXME: set-tsig-key-query only works on an empty database right now. For MySQL we use the "update into" statement..
-       According to the internet, we need to construct a pretty hefty "merge" query: https://msdn.microsoft.com/en-us/library/bb510625.aspx
-    */
+    // FIXME: set-tsig-key-query only works if no existing key is present right
+    // now. According to the internet, we need to construct a pretty hefty
+    // "merge" query: https://msdn.microsoft.com/en-us/library/bb510625.aspx
     declare(suffix, "set-tsig-key-query", "", "insert into tsigkeys (name,algorithm,secret) values(?,?,?)");
     declare(suffix, "delete-tsig-key-query", "", "delete from tsigkeys where name=?");
     declare(suffix, "get-tsig-keys-query", "", "select name,algorithm, secret from tsigkeys");
