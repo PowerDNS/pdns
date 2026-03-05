@@ -165,7 +165,7 @@ public:
     declare(suffix, "remove-domain-key-query", "", "delete from cryptokeys where domain_id=(select id from domains where name=$1) and cryptokeys.id=$2");
     declare(suffix, "clear-domain-all-keys-query", "", "delete from cryptokeys where domain_id=(select id from domains where name=$1)");
     declare(suffix, "get-tsig-key-query", "", "select algorithm, secret from tsigkeys where name=$1");
-    declare(suffix, "set-tsig-key-query", "", "insert into tsigkeys (name,algorithm,secret) values($1,$2,$3)");
+    declare(suffix, "set-tsig-key-query", "", "insert into tsigkeys (name,algorithm,secret) values($1,$2,$3) on conflict(name,algorithm) do update set secret=Excluded.secret");
     declare(suffix, "delete-tsig-key-query", "", "delete from tsigkeys where name=$1");
     declare(suffix, "get-tsig-keys-query", "", "select name,algorithm, secret from tsigkeys");
 
