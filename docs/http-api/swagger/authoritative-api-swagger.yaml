@@ -845,6 +845,7 @@ paths:
           application/json:
             schema:
               type: object
+              additionalProperties: false
               properties:
                 name:
                   type: string
@@ -935,6 +936,7 @@ paths:
           application/json:
             schema:
               type: object
+              additionalProperties: false
               properties:
                 view:
                   type: string
@@ -1479,6 +1481,8 @@ components:
 
     View:
       title: View
+      type: object
+      additionalProperties: false
       properties:
         zones:
           type: array
@@ -1488,6 +1492,8 @@ components:
 
     Views:
       title: Views
+      type: object
+      additionalProperties: false
       properties:
         views:
           type: array
@@ -1497,6 +1503,8 @@ components:
 
     Network:
       title: Network
+      type: object
+      additionalProperties: false
       properties:
         network:
           type: string
@@ -1507,6 +1515,8 @@ components:
 
     Networks:
       title: Networks
+      type: object
+      additionalProperties: false
       properties:
         networks:
           type: array
