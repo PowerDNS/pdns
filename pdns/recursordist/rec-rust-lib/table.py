@@ -2803,7 +2803,7 @@ A sequence of statistic names, that are prevented from being exported via SNMP, 
         'default' : 'true',
         'help' : 'Prefer structured logging',
         'doc' : '''
-Prefer structured logging when both an old style and a structured log messages is available.
+Prefer structured logging when both an old style and a structured log message are available.
  ''',
         'versionadded': '4.6.0',
         'versionchanged': [('5.0.0', 'Disabling structured logging is deprecated'),
