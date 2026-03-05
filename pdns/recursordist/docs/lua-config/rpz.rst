@@ -41,14 +41,21 @@ To transfer from a primary and start IXFR to get updates, use for example:
 
     rpzPrimary("192.0.2.4", "policy.rpz")
 
-In this example, 'policy.rpz' denotes the name of the zone to query for.
+In this example, ``policy.rpz`` denotes the name of the zone to query for.
 
 The action to be taken on a match is defined by the zone itself, but in some cases it might be interesting to be able to override it, and always apply the same action
-regardless of the one specified in the RPZ zone. To load from file and override the default action with a custom CNAME to badserver.example.com., use for example:
+regardless of the one specified in the RPZ zone.
+To load from file, override the default action with a custom CNAME to badserver.example.com and set a tag, use for example:
 
 .. code-block:: Lua
 
-    rpzFile("dblfilename", {defpol=Policy.Custom, defcontent="badserver.example.com"})
+    rpzFile("dblfilename", {tags={"tag1"}, defpol=Policy.Custom, defcontent="badserver.example.com"})
+
+To do the same when loading from a primary:
+
+.. code-block:: Lua
+
+   rpzPrimary("192.0.2.4", "policy.rpz", {tags={"tag1"}, defpol=Policy.Custom, defcontent="badserver.example.com"})
 
 To instead drop all queries matching a rule, while transferred from a primary.
 
