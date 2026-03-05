@@ -2,9 +2,9 @@
 import os
 import paddingoption
 
+
 class RandomPaddingOption(paddingoption.PaddingOption):
-    """Implementation of rfc7830 using random bytes in the payload.
-    """
+    """Implementation of rfc7830 using random bytes in the payload."""
 
     def __init__(self, numberOfBytes):
         super(RandomPaddingOption, self).__init__(12)

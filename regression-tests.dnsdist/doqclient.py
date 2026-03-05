@@ -11,6 +11,7 @@ from aioquic.asyncio.protocol import QuicConnectionProtocol
 from aioquic.quic.configuration import QuicConfiguration
 from aioquic.quic.events import QuicEvent, StreamDataReceived, StreamReset
 
+
 class DnsClientProtocol(QuicConnectionProtocol):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -47,6 +48,7 @@ class DnsClientProtocol(QuicConnectionProtocol):
                 self._ack_waiter = None
                 waiter.set_result(event)
 
+
 class BogusDnsClientProtocol(DnsClientProtocol):
     def pack(self, data):
         # serialize query
@@ -61,7 +63,7 @@ async def async_quic_query(
     port: int,
     query: dns.message,
     timeout: float,
-    create_protocol=DnsClientProtocol
+    create_protocol=DnsClientProtocol,
 ) -> None:
     print("Connecting to {}:{}".format(host, port))
     async with connect(
@@ -79,12 +81,14 @@ async def async_quic_query(
         except asyncio.TimeoutError as e:
             return (e, None)
 
+
 class StreamResetError(Exception):
     def __init__(self, error, message="Stream reset by peer"):
         self.error = error
         super().__init__(message)
 
-def quic_query(query, host='127.0.0.1', timeout=2, port=853, verify=None, server_hostname=None):
+
+def quic_query(query, host="127.0.0.1", timeout=2, port=853, verify=None, server_hostname=None):
     configuration = QuicConfiguration(alpn_protocols=["doq"], is_client=True, server_name=server_hostname)
     if verify:
         configuration.load_verify_locations(verify)
@@ -95,16 +99,17 @@ def quic_query(query, host='127.0.0.1', timeout=2, port=853, verify=None, server
             port=port,
             query=query,
             timeout=timeout,
-            create_protocol=DnsClientProtocol
+            create_protocol=DnsClientProtocol,
         )
     )
-    if (isinstance(result, StreamReset)):
+    if isinstance(result, StreamReset):
         raise StreamResetError(result.error_code)
-    if (isinstance(result, asyncio.TimeoutError)):
+    if isinstance(result, asyncio.TimeoutError):
         raise TimeoutError()
     return (result, serial)
 
-def quic_bogus_query(query, host='127.0.0.1', timeout=2, port=853, verify=None, server_hostname=None):
+
+def quic_bogus_query(query, host="127.0.0.1", timeout=2, port=853, verify=None, server_hostname=None):
     configuration = QuicConfiguration(alpn_protocols=["doq"], is_client=True, server_name=server_hostname)
     if verify:
         configuration.load_verify_locations(verify)
@@ -115,11 +120,11 @@ def quic_bogus_query(query, host='127.0.0.1', timeout=2, port=853, verify=None, 
             port=port,
             query=query,
             timeout=timeout,
-            create_protocol=BogusDnsClientProtocol
+            create_protocol=BogusDnsClientProtocol,
         )
     )
-    if (isinstance(result, StreamReset)):
+    if isinstance(result, StreamReset):
         raise StreamResetError(result.error_code)
-    if (isinstance(result, asyncio.TimeoutError)):
+    if isinstance(result, asyncio.TimeoutError):
         raise TimeoutError()
     return result

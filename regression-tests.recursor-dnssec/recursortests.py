@@ -29,7 +29,7 @@ def have_ipv6():
     """
     try:
         sock = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
-        sock.bind(('::1', 56581))
+        sock.bind(("::1", 56581))
         sock.close()
         return True
     except Exception:
@@ -42,13 +42,13 @@ class RecursorTest(AssertEqualDNSMessageMixin, unittest.TestCase):
     Setup all recursors and auths required for the tests
     """
 
-    _confdir = 'recursor'
+    _confdir = "recursor"
 
     _recursorPort = 5300
 
     _recursor = None
 
-    _PREFIX = os.environ['PREFIX']
+    _PREFIX = os.environ["PREFIX"]
 
     _config_template_default = """
 daemon=no
@@ -91,11 +91,14 @@ logging:
     _config_params = []
     _lua_config_file = None
     _lua_dns_script_file = None
-    _roothints = """
+    _roothints = (
+        """
 .                        3600 IN NS  ns.root.
 ns.root.                 3600 IN A   %s.8
 ns.root.                 3600 IN AAAA ::1
-""" % _PREFIX
+"""
+        % _PREFIX
+    )
     _root_DS = "63149 13 1 a59da3f5c1b97fcd5fa2b3b2b0ac91d38a60d33a"
 
     # The default SOA for zones in the authoritative servers
@@ -106,7 +109,7 @@ ns.root.                 3600 IN AAAA ::1
     #   - {soa} => value of _SOA
     #   - {prefix} value of _PREFIX
     _zones = {
-        'ROOT': """
+        "ROOT": """
 .                        3600 IN SOA  {soa}
 .                        3600 IN NS   ns.root.
 ns.root.                 3600 IN A    {prefix}.8
@@ -118,7 +121,7 @@ example.                 3600 IN DS   53174 13 1 50c9e913818767c236c06c2d8272723
 ns1.example.             3600 IN A    {prefix}.10
 ns2.example.             3600 IN A    {prefix}.18
         """,
-        'example': """
+        "example": """
 example.                 3600 IN SOA  {soa}
 example.                 3600 IN NS   ns1.example.
 example.                 3600 IN NS   ns2.example.
@@ -183,7 +186,7 @@ cname-nodata-target.example.        3600 IN A 192.0.2.101
 cname-custom-a.example.             3600 IN CNAME cname-custom-a-target.example.
 cname-custom-a-target.example.      3600 IN A 192.0.2.102
         """,
-        'secure.example': """
+        "secure.example": """
 secure.example.          3600 IN SOA  {soa}
 secure.example.          3600 IN NS   ns.secure.example.
 ns.secure.example.       3600 IN A    {prefix}.9
@@ -236,7 +239,7 @@ non-apex-dnskey.secure.example. 3600 IN DNSKEY 257 3 13 CT6AJ4MEOtNDgj0+xLtTLGHf
 non-apex-dnskey2.secure.example. 3600 IN DNSKEY 256 3 13 CT6AJ4MEOtNDgj0+xLtTLGHf1WbLsKWZI8ONHOt/6q7hTjeWSnY/SGig1dIKZrHg+pJFUSPaxeShv48SYVRKEg==
 non-apex-dnskey3.secure.example. 3600 IN DNSKEY 256 3 13 DT6AJ4MEOtNDgj0+xLtTLGHf1WbLsKWZI8ONHOt/6q7hTjeWSnY/SGig1dIKZrHg+pJFUSPaxeShv48SYVRKEg==
         """,
-        'dname-secure.example': """
+        "dname-secure.example": """
 dname-secure.example. 3600 IN SOA {soa}
 dname-secure.example. 3600 IN NS ns.dname-secure.example.
 ns.dname-secure.example. 3600 IN A {prefix}.13
@@ -247,26 +250,26 @@ cname-to-secure.dname-secure.example. 3600 IN CNAME host1.secure.example.
 cname-to-insecure.dname-secure.example. 3600 IN CNAME node1.insecure.example.
 cname-to-bogus.dname-secure.example.    3600 IN CNAME ted.bogus.example.
 """,
-        'cname-secure.example': """
+        "cname-secure.example": """
 cname-secure.example.          3600 IN SOA   {soa}
 cname-secure.example.          3600 IN NS    ns.cname-secure.example.
 ns.cname-secure.example.       3600 IN A     {prefix}.15
 cname-secure.example.          3600 IN CNAME secure.example.
         """,
-        'bogus.example': """
+        "bogus.example": """
 bogus.example.           3600 IN SOA  {soa}
 bogus.example.           3600 IN NS   ns1.bogus.example.
 ns1.bogus.example.       3600 IN A    {prefix}.12
 ted.bogus.example.       3600 IN A    192.0.2.1
 bill.bogus.example.      3600 IN AAAA 2001:db8:12::3
         """,
-        'insecure.sub2.secure.example': """
+        "insecure.sub2.secure.example": """
 insecure.sub2.secure.example.        3600 IN SOA  {soa}
 insecure.sub2.secure.example.        3600 IN NS   ns1.insecure.example.
 
 node1.insecure.sub2.secure.example.  3600 IN A    192.0.2.18
         """,
-        'insecure.example': """
+        "insecure.example": """
 insecure.example.        3600 IN SOA  {soa}
 insecure.example.        3600 IN NS   ns1.insecure.example.
 ns1.insecure.example.    3600 IN A    {prefix}.13
@@ -277,7 +280,7 @@ cname-to-secure.insecure.example. 3600 IN CNAME host1.secure.example.
 
 dname-to-secure.insecure.example. 3600 IN DNAME dname-secure.example.
         """,
-        'optout.example': """
+        "optout.example": """
 optout.example.        3600 IN SOA  {soa}
 optout.example.        3600 IN NS   ns1.optout.example.
 ns1.optout.example.    3600 IN A    {prefix}.14
@@ -289,41 +292,40 @@ secure.optout.example.     3600 IN NS ns1.secure.optout.example.
 secure.optout.example.     3600 IN DS 64215 13 1 b88284d7a8d8605c398e8942262f97b9a5a31787
 ns1.secure.optout.example. 3600 IN A  {prefix}.15
         """,
-        'insecure.optout.example': """
+        "insecure.optout.example": """
 insecure.optout.example.        3600 IN SOA  {soa}
 insecure.optout.example.        3600 IN NS   ns1.insecure.optout.example.
 ns1.insecure.optout.example.    3600 IN A    {prefix}.15
 
 node1.insecure.optout.example.  3600 IN A    192.0.2.7
         """,
-        'secure.optout.example': """
+        "secure.optout.example": """
 secure.optout.example.          3600 IN SOA  {soa}
 secure.optout.example.          3600 IN NS   ns1.secure.optout.example.
 ns1.secure.optout.example.      3600 IN A    {prefix}.15
 
 node1.secure.optout.example.    3600 IN A    192.0.2.8
         """,
-        'islandofsecurity.example': """
+        "islandofsecurity.example": """
 islandofsecurity.example.          3600 IN SOA  {soa}
 islandofsecurity.example.          3600 IN NS   ns1.islandofsecurity.example.
 ns1.islandofsecurity.example.      3600 IN A    {prefix}.9
 
 node1.islandofsecurity.example.    3600 IN A    192.0.2.20
         """,
-        'undelegated.secure.example': """
+        "undelegated.secure.example": """
 undelegated.secure.example.        3600 IN SOA  {soa}
 undelegated.secure.example.        3600 IN NS   ns1.undelegated.secure.example.
 
 node1.undelegated.secure.example.  3600 IN A    192.0.2.21
         """,
-        'undelegated.insecure.example': """
+        "undelegated.insecure.example": """
 undelegated.insecure.example.        3600 IN SOA  {soa}
 undelegated.insecure.example.        3600 IN NS   ns1.undelegated.insecure.example.
 
 node1.undelegated.insecure.example.  3600 IN A    192.0.2.22
         """,
-
-        'delay1.example': """
+        "delay1.example": """
 delay1.example.                       3600 IN SOA  {soa}
 delay1.example.                       3600 IN NS n1.delay1.example.
 ns1.delay1.example.                   3600 IN A    {prefix}.16
@@ -331,112 +333,89 @@ ns1.delay1.example.                   3600 IN A    {prefix}.16
 *.delay1.example.                     0    LUA TXT ";" "local socket=require('socket')" "socket.sleep(tonumber(qname:getRawLabels()[1])/10)" "return 'a'"
 *.delay1.example.                     0    LUA AAAA ";" "local socket=require('socket')" "socket.sleep(tonumber(qname:getRawLabels()[1])/10)" "return '1::2'"
         """,
-        
-        'delay2.example': """
+        "delay2.example": """
 delay2.example.                       3600 IN SOA  {soa}
 delay2.example.                       3600 IN NS n1.delay2.example.
 ns1.delay2.example.                   3600 IN A    {prefix}.17
 *.delay2.example.                     0    LUA TXT ";" "local socket=require('socket')" "socket.sleep(tonumber(qname:getRawLabels()[1])/10)" "return 'a'"
-        """
+        """,
     }
 
     # The private keys for the zones (note that DS records should go into
     # the zonecontent in _zones
     _zone_keys = {
-        'ROOT': """
+        "ROOT": """
 Private-key-format: v1.2
 Algorithm: 13 (ECDSAP256SHA256)
 PrivateKey: rhWuEydDz3QaIspSVj683B8Xq5q/ozzA38XUgzD4Fbo=
         """,
-
-        'example': """
+        "example": """
 Private-key-format: v1.2
 Algorithm: 13 (ECDSAP256SHA256)
 PrivateKey: Lt0v0Gol3pRUFM7fDdcy0IWN0O/MnEmVPA+VylL8Y4U=
         """,
-
-        'secure.example': """
+        "secure.example": """
 Private-key-format: v1.2
 Algorithm: 13 (ECDSAP256SHA256)
 PrivateKey: 1G4WRoOFJJXk+fotDCHVORtJmIG2OUhKi8AO2jDPGZA=
         """,
-
-        'bogus.example': """
+        "bogus.example": """
 Private-key-format: v1.2
 Algorithm: 13 (ECDSAP256SHA256)
 PrivateKey: f5jV7Q8kd5hDpMWObsuQ6SQda0ftf+JrO3uZwEg6nVw=
         """,
-
-        'optout.example': """
+        "optout.example": """
 Private-key-format: v1.2
 Algorithm: 13 (ECDSAP256SHA256)
 PrivateKey: efmq9G+J4Y2iPnIBRwJiy6Z/nIHSzpsCy/7XHhlS19A=
         """,
-
-        'secure.optout.example': """
+        "secure.optout.example": """
 Private-key-format: v1.2
 Algorithm: 13 (ECDSAP256SHA256)
 PrivateKey: xcNUxt1Knj14A00lKQFDboluiJyM2f7FxpgsQaQ3AQ4=
         """,
-
-        'islandofsecurity.example': """
+        "islandofsecurity.example": """
 Private-key-format: v1.2
 Algorithm: 13 (ECDSAP256SHA256)
 PrivateKey: o9F5iix8V68tnMcuOaM2Lt8XXhIIY//SgHIHEePk6cM=
         """,
-
-        'cname-secure.example': """
+        "cname-secure.example": """
 Private-key-format: v1.2
 Algorithm: 13 (ECDSAP256SHA256)
 PrivateKey: kvoV/g4IO/tefSro+FLJ5UC7H3BUf0IUtZQSUOfQGyA=
 """,
-
-        'dname-secure.example': """
+        "dname-secure.example": """
 Private-key-format: v1.2
 Algorithm: 13 (ECDSAP256SHA256)
 PrivateKey: Ep9uo6+wwjb4MaOmqq7LHav2FLrjotVOeZg8JT1Qk04=
 """,
-
-        'delay1.example': """
+        "delay1.example": """
 Private-key-format: v1.2
 Algorithm: 13 (ECDSAP256SHA256)
 PrivateKey: Ep9uo6+wwjb4MaOmqq7LHav2FLrjotVOeZg8JT1Qk04=
 """,
-
-        'delay2.example': """
+        "delay2.example": """
 Private-key-format: v1.2
 Algorithm: 13 (ECDSAP256SHA256)
 PrivateKey: Ep9uo6+wwjb4MaOmqq7LHav2FLrjotVOeZg8JT1Qk04=
-"""
+""",
     }
 
     # This dict is keyed with the suffix of the IP address and its value
     # is a list of zones hosted on that IP. Note that delegations should
     # go into the _zones's zonecontent
     _default_auth_zones = {
-        '8': {'threads': 1,
-              'zones': ['ROOT']},
-        '9': {'threads': 1,
-              'zones': ['secure.example', 'islandofsecurity.example']},
-        '10': {'threads': 1,
-               'zones': ['example']},
-
+        "8": {"threads": 1, "zones": ["ROOT"]},
+        "9": {"threads": 1, "zones": ["secure.example", "islandofsecurity.example"]},
+        "10": {"threads": 1, "zones": ["example"]},
         # 11 is used by CircleCI provided resolver
-
-        '12': {'threads': 1,
-               'zones': ['bogus.example', 'undelegated.secure.example', 'undelegated.insecure.example']},
-        '13': {'threads': 1,
-               'zones': ['insecure.example', 'insecure.sub2.secure.example', 'dname-secure.example']},
-        '14': {'threads': 1,
-               'zones': ['optout.example']},
-        '15': {'threads': 1,
-               'zones': ['insecure.optout.example', 'secure.optout.example', 'cname-secure.example']},
-        '16': {'threads': 10,
-               'zones': ['delay1.example']},
-        '17': {'threads': 10,
-               'zones': ['delay2.example']},
-        '18': {'threads': 1,
-               'zones': ['example']}
+        "12": {"threads": 1, "zones": ["bogus.example", "undelegated.secure.example", "undelegated.insecure.example"]},
+        "13": {"threads": 1, "zones": ["insecure.example", "insecure.sub2.secure.example", "dname-secure.example"]},
+        "14": {"threads": 1, "zones": ["optout.example"]},
+        "15": {"threads": 1, "zones": ["insecure.optout.example", "secure.optout.example", "cname-secure.example"]},
+        "16": {"threads": 10, "zones": ["delay1.example"]},
+        "17": {"threads": 10, "zones": ["delay2.example"]},
+        "18": {"threads": 1, "zones": ["example"]},
     }
     _auth_zones = _default_auth_zones
     # Other IPs used:
@@ -451,8 +430,7 @@ PrivateKey: Ep9uo6+wwjb4MaOmqq7LHav2FLrjotVOeZg8JT1Qk04=
     # 25: test_Cookies.py
     # 26: test_Cookies.py
 
-    _auth_cmd = ['authbind',
-                 os.environ['PDNS']]
+    _auth_cmd = ["authbind", os.environ["PDNS"]]
     _auth_env = {}
     _auths = {}
 
@@ -464,34 +442,41 @@ PrivateKey: Ep9uo6+wwjb4MaOmqq7LHav2FLrjotVOeZg8JT1Qk04=
             if e.errno != errno.ENOENT:
                 raise
         os.mkdir(confdir, 0o755)
-        os.mkdir(confdir + '/include', 0o755)
+        os.mkdir(confdir + "/include", 0o755)
 
     @classmethod
     def generateAuthZone(cls, confdir, zonename, zonecontent):
-        with open(os.path.join(confdir, '%s.zone' % zonename), 'w') as zonefile:
+        with open(os.path.join(confdir, "%s.zone" % zonename), "w") as zonefile:
             zonefile.write(zonecontent.format(prefix=cls._PREFIX, soa=cls._SOA))
 
     @classmethod
     def generateAuthNamedConf(cls, confdir, zones):
-        with open(os.path.join(confdir, 'named.conf'), 'w') as namedconf:
-            namedconf.write("""
+        with open(os.path.join(confdir, "named.conf"), "w") as namedconf:
+            namedconf.write(
+                """
 options {
     directory "%s";
-};""" % confdir)
+};"""
+                % confdir
+            )
             for zonename in zones:
-                zone = '.' if zonename == 'ROOT' else zonename
+                zone = "." if zonename == "ROOT" else zonename
 
-                namedconf.write("""
+                namedconf.write(
+                    """
         zone "%s" {
             type master;
             file "%s.zone";
-        };""" % (zone, zonename))
+        };"""
+                    % (zone, zonename)
+                )
 
     @classmethod
-    def generateAuthConfig(cls, confdir, threads, extra=''):
-        bind_dnssec_db = os.path.join(confdir, 'bind-dnssec.sqlite3')
-        with open(os.path.join(confdir, 'pdns.conf'), 'w') as pdnsconf:
-            pdnsconf.write("""
+    def generateAuthConfig(cls, confdir, threads, extra=""):
+        bind_dnssec_db = os.path.join(confdir, "bind-dnssec.sqlite3")
+        with open(os.path.join(confdir, "pdns.conf"), "w") as pdnsconf:
+            pdnsconf.write(
+                """
 module-dir={moduledir}
 launch=bind
 daemon=no
@@ -507,74 +492,71 @@ loglevel=9
 enable-lua-records
 dname-processing=yes
 distributor-threads={threads}
-{extra}""".format(moduledir=os.environ['PDNSMODULEDIR'],
-                  confdir=confdir,
-                  bind_dnssec_db=bind_dnssec_db,
-                  threads=threads,
-                  extra=extra))
+{extra}""".format(
+                    moduledir=os.environ["PDNSMODULEDIR"],
+                    confdir=confdir,
+                    bind_dnssec_db=bind_dnssec_db,
+                    threads=threads,
+                    extra=extra,
+                )
+            )
 
-        pdnsutilCmd = [os.environ['PDNSUTIL'],
-                       '--config-dir=%s' % confdir,
-                       'create-bind-db',
-                       bind_dnssec_db]
+        pdnsutilCmd = [os.environ["PDNSUTIL"], "--config-dir=%s" % confdir, "create-bind-db", bind_dnssec_db]
 
         try:
             subprocess.check_output(pdnsutilCmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
-            raise AssertionError('%s failed (%d): %s' % (pdnsutilCmd, e.returncode, e.output))
+            raise AssertionError("%s failed (%d): %s" % (pdnsutilCmd, e.returncode, e.output))
 
     @classmethod
     def secureZone(cls, confdir, zonename, key=None):
-        zone = '.' if zonename == 'ROOT' else zonename
+        zone = "." if zonename == "ROOT" else zonename
         if not key:
-            pdnsutilCmd = [os.environ['PDNSUTIL'],
-                           '--config-dir=%s' % confdir,
-                           'secure-zone',
-                           zone]
+            pdnsutilCmd = [os.environ["PDNSUTIL"], "--config-dir=%s" % confdir, "secure-zone", zone]
         else:
-            keyfile = os.path.join(confdir, 'dnssec.key')
-            with open(keyfile, 'w') as fdKeyfile:
+            keyfile = os.path.join(confdir, "dnssec.key")
+            with open(keyfile, "w") as fdKeyfile:
                 fdKeyfile.write(key)
 
-            pdnsutilCmd = [os.environ['PDNSUTIL'],
-                           '--config-dir=%s' % confdir,
-                           'import-zone-key',
-                           zone,
-                           keyfile,
-                           'active',
-                           'ksk']
+            pdnsutilCmd = [
+                os.environ["PDNSUTIL"],
+                "--config-dir=%s" % confdir,
+                "import-zone-key",
+                zone,
+                keyfile,
+                "active",
+                "ksk",
+            ]
 
-        print(' '.join(pdnsutilCmd))
+        print(" ".join(pdnsutilCmd))
         try:
             subprocess.check_output(pdnsutilCmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
-            raise AssertionError('%s failed (%d): %s' % (pdnsutilCmd, e.returncode, e.output))
+            raise AssertionError("%s failed (%d): %s" % (pdnsutilCmd, e.returncode, e.output))
 
     @classmethod
     def generateAllAuthConfig(cls, confdir):
         if cls._auth_zones:
             for auth_suffix, zoneinfo in cls._auth_zones.items():
-                threads = zoneinfo['threads']
-                zones = zoneinfo['zones']
-                authconfdir = os.path.join(confdir, 'auth-%s' % auth_suffix)
+                threads = zoneinfo["threads"]
+                zones = zoneinfo["zones"]
+                authconfdir = os.path.join(confdir, "auth-%s" % auth_suffix)
 
                 os.mkdir(authconfdir)
                 cls.generateAuthConfig(authconfdir, threads)
                 cls.generateAuthNamedConf(authconfdir, zones)
 
                 for zone in zones:
-                    cls.generateAuthZone(authconfdir,
-                                         zone,
-                                         cls._zones[zone])
+                    cls.generateAuthZone(authconfdir, zone, cls._zones[zone])
                     if cls._zone_keys.get(zone, None):
                         cls.secureZone(authconfdir, zone, cls._zone_keys.get(zone))
 
     @classmethod
     def setUpClassSpecialAuths(cls):
         # tear down existing auths, and start with our own special config
-        confdir = os.path.join('configs', 'auths')
+        confdir = os.path.join("configs", "auths")
         cls.tearDownAuth()
-        #confdir = os.path.join('configs', cls._confdir)
+        # confdir = os.path.join('configs', cls._confdir)
         print("Specialized auth setup" + confdir)
         cls.createConfigDir(confdir)
         cls.generateAllAuthConfig(confdir)
@@ -584,8 +566,8 @@ distributor-threads={threads}
     def startAllAuth(cls, confdir):
         if cls._auth_zones:
             for auth_suffix, _ in cls._auth_zones.items():
-                authconfdir = os.path.join(confdir, 'auth-%s' % auth_suffix)
-                ipaddress = cls._PREFIX + '.' + auth_suffix
+                authconfdir = os.path.join(confdir, "auth-%s" % auth_suffix)
+                ipaddress = cls._PREFIX + "." + auth_suffix
                 cls.startAuth(authconfdir, ipaddress)
 
     @classmethod
@@ -599,26 +581,26 @@ distributor-threads={threads}
                 return
             except Exception as err:
                 if err.errno != errno.ECONNREFUSED:
-                    print(f'Error occurred: {try_number} {err}', file=sys.stderr)
+                    print(f"Error occurred: {try_number} {err}", file=sys.stderr)
             time.sleep(0.01)
 
     @classmethod
     def startAuth(cls, confdir, ipaddress):
         print("Launching pdns_server..")
         authcmd = list(cls._auth_cmd)
-        authcmd.append('--config-dir=%s' % confdir)
+        authcmd.append("--config-dir=%s" % confdir)
         ipconfig = ipaddress
         # auth-8 is the auth serving the root, it gets an ipv6 address
         if (confdir[-6:] == "auth-8") and have_ipv6():
-            ipconfig += ',::1'
-        authcmd.append('--local-address=%s' % ipconfig)
-        print(' '.join(authcmd))
+            ipconfig += ",::1"
+        authcmd.append("--local-address=%s" % ipconfig)
+        print(" ".join(authcmd))
 
-        logFile = os.path.join(confdir, 'pdns.log')
-        with open(logFile, 'w') as fdLog:
-            cls._auths[ipaddress] = subprocess.Popen(authcmd, close_fds=True,
-                                                     stdout=fdLog, stderr=fdLog,
-                                                     env=cls._auth_env)
+        logFile = os.path.join(confdir, "pdns.log")
+        with open(logFile, "w") as fdLog:
+            cls._auths[ipaddress] = subprocess.Popen(
+                authcmd, close_fds=True, stdout=fdLog, stderr=fdLog, env=cls._auth_env
+            )
 
         cls.waitForTCPSocket(ipaddress, 53)
         cls.checkAuth(cls._auths[ipaddress], authcmd, logFile)
@@ -627,15 +609,15 @@ distributor-threads={threads}
     def checkAuth(cls, auth, authcmd, logFile):
         if auth.poll() is not None:
             print(f"\n*** startAuth log for {logFile} ***")
-            with open(logFile, 'r') as fdLog:
+            with open(logFile, "r") as fdLog:
                 print(fdLog.read())
             print(f"*** End startAuth log for {logFile} ***")
-            raise AssertionError('%s failed (%d)' % (authcmd, auth.returncode))
+            raise AssertionError("%s failed (%d)" % (authcmd, auth.returncode))
 
     @classmethod
     def checkConfdir(cls, confdir):
-        if cls.__name__ != 'FlagsTest' and os.path.basename(confdir) + 'Test' != cls.__name__:
-            raise AssertionError('conf dir ' + confdir + ' and ' + cls.__name__ + ' inconsistent with convention')
+        if cls.__name__ != "FlagsTest" and os.path.basename(confdir) + "Test" != cls.__name__:
+            raise AssertionError("conf dir " + confdir + " and " + cls.__name__ + " inconsistent with convention")
 
     @classmethod
     def generateRecursorConfig(cls, confdir):
@@ -644,30 +626,30 @@ distributor-threads={threads}
         if len(params):
             print(params)
 
-        recursorconf = os.path.join(confdir, 'recursor.conf')
+        recursorconf = os.path.join(confdir, "recursor.conf")
 
-        with open(recursorconf, 'w') as conf:
+        with open(recursorconf, "w") as conf:
             conf.write("# Autogenerated by recursortests.py\n")
             conf.write(cls._config_template_default)
             conf.write(cls._config_template % params)
             conf.write("\n")
             conf.write("socket-dir=%s\n" % confdir)
             if cls._lua_config_file or cls._root_DS:
-                luaconfpath = os.path.join(confdir, 'conffile.lua')
-                with open(luaconfpath, 'w') as luaconf:
+                luaconfpath = os.path.join(confdir, "conffile.lua")
+                with open(luaconfpath, "w") as luaconf:
                     if cls._root_DS:
                         luaconf.write("addTA('.', '%s')\n" % cls._root_DS)
                     if cls._lua_config_file:
                         luaconf.write(cls._lua_config_file)
                 conf.write("lua-config-file=%s\n" % luaconfpath)
             if cls._lua_dns_script_file:
-                luascriptpath = os.path.join(confdir, 'dnsscript.lua')
-                with open(luascriptpath, 'w') as luascript:
+                luascriptpath = os.path.join(confdir, "dnsscript.lua")
+                with open(luascriptpath, "w") as luascript:
                     luascript.write(cls._lua_dns_script_file)
                 conf.write("lua-dns-script=%s\n" % luascriptpath)
             if cls._roothints:
-                roothintspath = os.path.join(confdir, 'root.hints')
-                with open(roothintspath, 'w') as roothints:
+                roothintspath = os.path.join(confdir, "root.hints")
+                with open(roothintspath, "w") as roothints:
                     roothints.write(cls._roothints)
                 conf.write("hint-file=%s\n" % roothintspath)
 
@@ -678,35 +660,35 @@ distributor-threads={threads}
         if len(params):
             print(params)
 
-        recursorconf = os.path.join(confdir, 'recursor.yml')
+        recursorconf = os.path.join(confdir, "recursor.yml")
 
-        with open(recursorconf, 'w') as conf:
+        with open(recursorconf, "w") as conf:
             conf.write("# Autogenerated by recursortests.py\n")
-            conf.write(cls._config_template_yaml_default % os.path.join(confdir, 'include'))
-        recursorconf = os.path.join(confdir, 'include', 'recursor01.yml')
-        with open(recursorconf, 'w') as conf:
+            conf.write(cls._config_template_yaml_default % os.path.join(confdir, "include"))
+        recursorconf = os.path.join(confdir, "include", "recursor01.yml")
+        with open(recursorconf, "w") as conf:
             conf.write(cls._config_template % params)
             conf.write("\n")
-        recursorconf = os.path.join(confdir, 'include', 'recursor02.yml')
-        with open(recursorconf, 'w') as conf:
+        recursorconf = os.path.join(confdir, "include", "recursor02.yml")
+        with open(recursorconf, "w") as conf:
             conf.write("recursor:\n")
             conf.write("  socket_dir: %s\n" % confdir)
             if luaConfig and (cls._lua_config_file or cls._root_DS):
-                luaconfpath = os.path.join(confdir, 'conffile.lua')
-                with open(luaconfpath, 'w') as luaconf:
+                luaconfpath = os.path.join(confdir, "conffile.lua")
+                with open(luaconfpath, "w") as luaconf:
                     if cls._root_DS:
                         luaconf.write("addTA('.', '%s')\n" % cls._root_DS)
                     if cls._lua_config_file:
                         luaconf.write(cls._lua_config_file)
                 conf.write("  lua_config_file: %s\n" % luaconfpath)
             if cls._lua_dns_script_file:
-                luascriptpath = os.path.join(confdir, 'dnsscript.lua')
-                with open(luascriptpath, 'w') as luascript:
+                luascriptpath = os.path.join(confdir, "dnsscript.lua")
+                with open(luascriptpath, "w") as luascript:
                     luascript.write(cls._lua_dns_script_file)
                 conf.write("  lua_dns_script: %s\n" % luascriptpath)
             if cls._roothints:
-                roothintspath = os.path.join(confdir, 'root.hints')
-                with open(roothintspath, 'w') as roothints:
+                roothintspath = os.path.join(confdir, "root.hints")
+                with open(roothintspath, "w") as roothints:
                     roothints.write(cls._roothints)
                 conf.write("  hint_file: %s\n" % roothintspath)
 
@@ -717,59 +699,54 @@ distributor-threads={threads}
     @classmethod
     def startRecursor(cls, confdir, port):
         print("Launching pdns_recursor..")
-        recursorcmd = [os.environ['PDNSRECURSOR'],
-                       '--config-dir=%s' % confdir,
-                       '--local-port=%s' % port,
-                       '--security-poll-suffix=',
-                       '--enable-old-settings']
-        print(' '.join(recursorcmd))
+        recursorcmd = [
+            os.environ["PDNSRECURSOR"],
+            "--config-dir=%s" % confdir,
+            "--local-port=%s" % port,
+            "--security-poll-suffix=",
+            "--enable-old-settings",
+        ]
+        print(" ".join(recursorcmd))
 
-        logFile = os.path.join(confdir, 'recursor.log')
-        with open(logFile, 'w') as fdLog:
-            cls._recursor = subprocess.Popen(recursorcmd, close_fds=True,
-                                             stdout=fdLog, stderr=fdLog)
+        logFile = os.path.join(confdir, "recursor.log")
+        with open(logFile, "w") as fdLog:
+            cls._recursor = subprocess.Popen(recursorcmd, close_fds=True, stdout=fdLog, stderr=fdLog)
 
         cls.waitForTCPSocket("127.0.0.1", port)
 
         if cls._recursor.poll() is not None:
             print(f"\n*** startRecursor log for {logFile} ***")
-            with open(logFile, 'r') as fdLog:
+            with open(logFile, "r") as fdLog:
                 print(fdLog.read())
             print(f"*** End startRecursor log for {logFile} ***")
-            raise AssertionError('%s failed (%d)' % (recursorcmd, cls._recursor.returncode))
+            raise AssertionError("%s failed (%d)" % (recursorcmd, cls._recursor.returncode))
 
     @classmethod
-    def wipeRecursorCache(cls, confdir, name='.$'):
-        rec_controlCmd = [os.environ['RECCONTROL'],
-                          '--config-dir=%s' % confdir,
-                          'wipe-cache',
-                          name]
+    def wipeRecursorCache(cls, confdir, name=".$"):
+        rec_controlCmd = [os.environ["RECCONTROL"], "--config-dir=%s" % confdir, "wipe-cache", name]
         try:
             subprocess.check_output(rec_controlCmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
-            raise AssertionError('%s failed (%d): %s' % (rec_controlCmd, e.returncode, e.output))
+            raise AssertionError("%s failed (%d): %s" % (rec_controlCmd, e.returncode, e.output))
 
     @classmethod
     def recControl(cls, confdir, *command):
-        rec_controlCmd = [os.environ['RECCONTROL'],
-                          '--config-dir=%s' % confdir
-                          ] + list(command)
+        rec_controlCmd = [os.environ["RECCONTROL"], "--config-dir=%s" % confdir] + list(command)
         try:
             return subprocess.check_output(rec_controlCmd, text=True, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
-            raise AssertionError('%s failed (%d): %s' % (rec_controlCmd, e.returncode, e.output))
+            raise AssertionError("%s failed (%d): %s" % (rec_controlCmd, e.returncode, e.output))
 
     @classmethod
     def recFeatures(cls):
-        rec_versionCmd = [os.environ['PDNSRECURSOR'],
-                          '--version']
+        rec_versionCmd = [os.environ["PDNSRECURSOR"], "--version"]
         try:
             full = subprocess.check_output(rec_versionCmd, text=True, stderr=subprocess.STDOUT)
             for line in full.splitlines():
                 if line.startswith("Features: "):
                     return line
         except subprocess.CalledProcessError as e:
-            raise AssertionError('%s failed (%d): %s' % (rec_versionCmd, e.returncode, e.output))
+            raise AssertionError("%s failed (%d): %s" % (rec_versionCmd, e.returncode, e.output))
 
     @classmethod
     def setUpSockets(cls):
@@ -784,17 +761,17 @@ distributor-threads={threads}
 
         cls.startResponders()
 
-        confdir = os.path.join('configs', cls._confdir)
+        confdir = os.path.join("configs", cls._confdir)
         cls.createConfigDir(confdir)
 
         cls.generateRecursorConfig(confdir)
         cls.startRecursor(confdir, cls._recursorPort)
 
-#        for auth_suffix, _ in RecursorTest._auth_zones.items():
-#            ip = RecursorTest._PREFIX + '.' + auth_suffix
-#            auth = RecursorTest._auths[ip]
-#            logFile = os.path.join(confdir, 'auth-'+ auth_suffix, 'pdns.log')
-#            RecursorTest.checkAuth(auth, 'auth-' + ip, logFile)
+        #        for auth_suffix, _ in RecursorTest._auth_zones.items():
+        #            ip = RecursorTest._PREFIX + '.' + auth_suffix
+        #            auth = RecursorTest._auths[ip]
+        #            logFile = os.path.join(confdir, 'auth-'+ auth_suffix, 'pdns.log')
+        #            RecursorTest.checkAuth(auth, 'auth-' + ip, logFile)
 
         print("Launching tests..")
 
@@ -834,7 +811,7 @@ distributor-threads={threads}
             return
         try:
             p.terminate()
-            for count in range(1000): # tsan can be slow
+            for count in range(1000):  # tsan can be slow
                 x = p.poll()
                 if x is not None:
                     break
@@ -861,27 +838,24 @@ distributor-threads={threads}
     def tearDownRecursor(cls, subdir=None):
         # We now kill the recursor in a friendly way, as systemd is doing the same.
         if subdir is None:
-            confdir = os.path.join('configs', cls._confdir)
+            confdir = os.path.join("configs", cls._confdir)
         else:
-            confdir = os.path.join('configs', cls._confdir, subdir)
-        rec_controlCmd = [os.environ['RECCONTROL'],
-                          '--config-dir=%s' % confdir,
-                          '--timeout=20',
-                          'quit-nicely']
+            confdir = os.path.join("configs", cls._confdir, subdir)
+        rec_controlCmd = [os.environ["RECCONTROL"], "--config-dir=%s" % confdir, "--timeout=20", "quit-nicely"]
         try:
             subprocess.check_output(rec_controlCmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
-            raise AssertionError('%s failed (%d): %s' % (rec_controlCmd, e.returncode, e.output))
+            raise AssertionError("%s failed (%d): %s" % (rec_controlCmd, e.returncode, e.output))
         # Wait for it, as the process really should have exited
         p = cls._recursor
-        for count in range(1000): # tsan can be slow
+        for count in range(1000):  # tsan can be slow
             if p.poll() is not None:
                 break
             time.sleep(0.01)
         if p.poll() is None:
-            raise AssertionError('Process did not exit on request within 10s')
+            raise AssertionError("Process did not exit on request within 10s")
         if p.returncode not in (0, -15):
-            raise AssertionError('Process exited with return code %d' % (p.returncode))
+            raise AssertionError("Process exited with return code %d" % (p.returncode))
 
     @classmethod
     def sendUDPQuery(cls, query, timeout=2.0, decode=True, fwparams=dict()):
@@ -1004,10 +978,10 @@ distributor-threads={threads}
         missingEdnsFlags = [ednsflag for ednsflag in ednsflags if ednsflag not in msgEdnsFlags]
 
         if len(missingFlags) or len(missingEdnsFlags) or len(msgFlags) > len(flags):
-            raise AssertionError("Expected flags '%s' (EDNS: '%s'), found '%s' (EDNS: '%s') in query %s" %
-                                 (' '.join(flags), ' '.join(ednsflags),
-                                  ' '.join(msgFlags), ' '.join(msgEdnsFlags),
-                                  msg.question[0]))
+            raise AssertionError(
+                "Expected flags '%s' (EDNS: '%s'), found '%s' (EDNS: '%s') in query %s"
+                % (" ".join(flags), " ".join(ednsflags), " ".join(msgFlags), " ".join(msgEdnsFlags), msg.question[0])
+            )
 
     def assertMessageIsAuthenticated(self, msg):
         """Asserts that the message has the AD bit set
@@ -1018,7 +992,7 @@ distributor-threads={threads}
             raise TypeError("msg is not a dns.message.Message")
 
         msgFlags = dns.flags.to_text(msg.flags)
-        self.assertIn('AD', msgFlags, "No AD flag found in the message for %s" % msg.question[0].name)
+        self.assertIn("AD", msgFlags, "No AD flag found in the message for %s" % msg.question[0].name)
 
     def assertRRsetInAnswer(self, msg, rrset):
         """Asserts the rrset (without comparing TTL) exists in the
@@ -1027,7 +1001,7 @@ distributor-threads={threads}
         @param msg: the dns.message.Message to check
         @param rrset: a dns.rrset.RRset object"""
 
-        ret = ''
+        ret = ""
         if not isinstance(msg, dns.message.Message):
             raise TypeError("msg is not a dns.message.Message")
 
@@ -1051,7 +1025,7 @@ distributor-threads={threads}
         @param msg: the dns.message.Message to check
         @param rrset: a dns.rrset.RRset object"""
 
-        ret = ''
+        ret = ""
         if not isinstance(msg, dns.message.Message):
             raise TypeError("msg is not a dns.message.Message")
 
@@ -1086,7 +1060,7 @@ distributor-threads={threads}
         msgRRsigRRSet = None
         msgRRSet = None
 
-        ret = ''
+        ret = ""
         for ans in msg.answer:
             ret += ans.to_text() + "\n"
 
@@ -1101,7 +1075,9 @@ distributor-threads={threads}
             raise AssertionError("RRset for '%s' not found in answer" % msg.question[0].to_text())
 
         if not msgRRsigRRSet:
-            raise AssertionError("No RRSIGs found in answer for %s:\nFull answer:\n%s" % (msg.question[0].to_text(), ret))
+            raise AssertionError(
+                "No RRSIGs found in answer for %s:\nFull answer:\n%s" % (msg.question[0].to_text(), ret)
+            )
 
         if keys:
             try:
@@ -1127,7 +1103,7 @@ distributor-threads={threads}
         msgRRsigRRSet = None
         msgRRSet = None
 
-        ret = ''
+        ret = ""
         for ans in msg.additional:
             ret += ans.to_text() + "\n"
 
@@ -1142,7 +1118,9 @@ distributor-threads={threads}
             raise AssertionError("RRset for '%s' not found in additional" % msg.question[0].to_text())
 
         if not msgRRsigRRSet:
-            raise AssertionError("No RRSIGs found in additional for %s:\nFull answer:\n%s" % (msg.question[0].to_text(), ret))
+            raise AssertionError(
+                "No RRSIGs found in additional for %s:\nFull answer:\n%s" % (msg.question[0].to_text(), ret)
+            )
 
         if keys:
             try:
@@ -1165,10 +1143,20 @@ distributor-threads={threads}
             raise AssertionError("RRSIG found in answers for:\n%s" % ret)
 
     def assertAnswerEmpty(self, msg):
-        self.assertEqual(len(msg.answer), 0, "Data found in the answer section for %s:\n%s" % (msg.question[0].to_text(), '\n'.join([i.to_text() for i in msg.answer])))
+        self.assertEqual(
+            len(msg.answer),
+            0,
+            "Data found in the answer section for %s:\n%s"
+            % (msg.question[0].to_text(), "\n".join([i.to_text() for i in msg.answer])),
+        )
 
     def assertAdditionalEmpty(self, msg):
-        self.assertEqual(len(msg.additional), 0, "Data found in the additional section for %s:\n%s" % (msg.question[0].to_text(), '\n'.join([i.to_text() for i in msg.additional])))
+        self.assertEqual(
+            len(msg.additional),
+            0,
+            "Data found in the additional section for %s:\n%s"
+            % (msg.question[0].to_text(), "\n".join([i.to_text() for i in msg.additional])),
+        )
 
     def assertRcodeEqual(self, msg, rcode):
         if not isinstance(msg, dns.message.Message):
@@ -1184,7 +1172,9 @@ distributor-threads={threads}
             msgRcode = dns.rcode.to_text(msg.rcode())
             wantedRcode = dns.rcode.to_text(rcode)
 
-            raise AssertionError("Rcode for %s is %s, expected %s." % (msg.question[0].to_text(), msgRcode, wantedRcode))
+            raise AssertionError(
+                "Rcode for %s is %s, expected %s." % (msg.question[0].to_text(), msgRcode, wantedRcode)
+            )
 
     def assertAuthorityHasSOA(self, msg):
         if not isinstance(msg, dns.message.Message):
@@ -1227,12 +1217,14 @@ distributor-threads={threads}
         The flags need to be strings (no checking is performed atm)"""
         msg = dns.message.make_query(name, rdtype)
         msg.flags = dns.flags.from_text(flags)
-        msg.flags += dns.flags.from_text('RD')
+        msg.flags += dns.flags.from_text("RD")
         msg.use_edns(edns=0, ednsflags=dns.flags.edns_from_text(ednsflags))
         return msg
 
     @classmethod
-    def sendUDPQueryWithProxyProtocol(cls, query, v6, source, destination, sourcePort, destinationPort, values=[], timeout=2.0):
+    def sendUDPQueryWithProxyProtocol(
+        cls, query, v6, source, destination, sourcePort, destinationPort, values=[], timeout=2.0
+    ):
         queryPayload = query.to_wire()
         ppPayload = ProxyProtocol.getPayload(False, False, v6, source, destination, sourcePort, destinationPort, values)
         payload = ppPayload + queryPayload
@@ -1255,7 +1247,9 @@ distributor-threads={threads}
         return message
 
     @classmethod
-    def sendTCPQueryWithProxyProtocol(cls, query, v6, source, destination, sourcePort, destinationPort, values=[], timeout=2.0):
+    def sendTCPQueryWithProxyProtocol(
+        cls, query, v6, source, destination, sourcePort, destinationPort, values=[], timeout=2.0
+    ):
         queryPayload = query.to_wire()
         ppPayload = ProxyProtocol.getPayload(False, False, v6, source, destination, sourcePort, destinationPort, values)
 
@@ -1289,8 +1283,8 @@ distributor-threads={threads}
 
     def checkMetrics(self, map):
         self.waitForTCPSocket("127.0.0.1", self._wsPort)
-        headers = {'x-api-key': self._apiKey}
-        url = 'http://127.0.0.1:' + str(self._wsPort) + '/api/v1/servers/localhost/statistics'
+        headers = {"x-api-key": self._apiKey}
+        url = "http://127.0.0.1:" + str(self._wsPort) + "/api/v1/servers/localhost/statistics"
         r = requests.get(url, headers=headers, timeout=self._wsTimeout)
         self.assertEqual(r.status_code, 200)
         self.assertTrue(r.json())
@@ -1298,8 +1292,8 @@ distributor-threads={threads}
         count = 0
         for entry in content:
             for key, expected in map.items():
-                if entry['name'] == key:
-                    value = int(entry['value'])
+                if entry["name"] == key:
+                    value = int(entry["value"])
                     if callable(expected):
                         self.assertTrue(expected(value), key + ": value " + str(value) + " is not expected")
                     else:
@@ -1310,10 +1304,9 @@ distributor-threads={threads}
     @classmethod
     def startReactor(cls):
         if not reactor.running:
-            cls.Responder = threading.Thread(name='Responder', target=reactor.run, args=(False,))
+            cls.Responder = threading.Thread(name="Responder", target=reactor.run, args=(False,))
             cls.Responder.daemon = True
             cls.Responder.start()
-
 
     @classmethod
     def _ResponderIncrementCounter(cls):
@@ -1337,8 +1330,8 @@ distributor-threads={threads}
                 response.id = request.id
 
         if synthesize is not None:
-          response = dns.message.make_response(request)
-          response.set_rcode(synthesize)
+            response = dns.message.make_response(request)
+            response.set_rcode(synthesize)
 
         if not response:
             if cls._answerUnexpected:
@@ -1348,87 +1341,110 @@ distributor-threads={threads}
         return response
 
     @classmethod
-    def handleTCPConnection(cls, conn, fromQueue, toQueue, trailingDataResponse=False, multipleResponses=False, callback=None, partialWrite=False,clientCert=False):
-      ignoreTrailing = trailingDataResponse is True
-      try:
-        data = conn.recv(2)
-      except Exception as err:
-        data = None
-        print(f'Error while reading query size in TCP responder thread {err=}, {type(err)=}')
-      if not data:
-        conn.close()
-        return
-
-      if clientCert:
-          print("Checking client cert")
-          cert = conn.getpeercert()
-          if cert is None:
-              raise AssertionError("Client certificate expected, got none")
-          if cert['subject'][0][0][1] != 'client.tests.powerdns.com':
-              print(cert)
-              raise AssertionError('Unexpected subject in cert')
-
-      (datalen,) = struct.unpack("!H", data)
-      data = conn.recv(datalen)
-      forceRcode = None
-      try:
-        request = dns.message.from_wire(data, ignore_trailing=ignoreTrailing)
-      except dns.message.TrailingJunk as e:
-        if trailingDataResponse is False or forceRcode is True:
-          raise
-        print("TCP query with trailing data, synthesizing response")
-        request = dns.message.from_wire(data, ignore_trailing=True)
-        forceRcode = trailingDataResponse
-
-      if callback:
-        wire = callback(request)
-      else:
-        if request.edns > 1:
-          forceRcode = dns.rcode.BADVERS
-        response = cls._getResponse(request, fromQueue, toQueue, synthesize=forceRcode)
-        if response:
-          wire = response.to_wire(max_size=65535)
-
-      if not wire:
-        conn.close()
-        return
-      elif isinstance(wire, ResponderDropAction):
-        return
-
-      wireLen = struct.pack("!H", len(wire))
-      if partialWrite:
-        for b in wireLen:
-          conn.send(bytes([b]))
-          time.sleep(0.5)
-      else:
-        conn.send(wireLen)
-      conn.send(wire)
-
-      while multipleResponses:
-        # do not block, and stop as soon as the queue is empty, either the next response is already here or we are done
-        # otherwise we might read responses intended for the next connection
-        if fromQueue.empty():
-          break
-
-        response = fromQueue.get(False)
-        if not response:
-          break
-
-        response = copy.copy(response)
-        response.id = request.id
-        wire = response.to_wire(max_size=65535)
+    def handleTCPConnection(
+        cls,
+        conn,
+        fromQueue,
+        toQueue,
+        trailingDataResponse=False,
+        multipleResponses=False,
+        callback=None,
+        partialWrite=False,
+        clientCert=False,
+    ):
+        ignoreTrailing = trailingDataResponse is True
         try:
-          conn.send(struct.pack("!H", len(wire)))
-          conn.send(wire)
-        except socket.error as e:
-          # some of the tests are going to close
-          # the connection on us, just deal with it
-          break
+            data = conn.recv(2)
+        except Exception as err:
+            data = None
+            print(f"Error while reading query size in TCP responder thread {err=}, {type(err)=}")
+        if not data:
+            conn.close()
+            return
 
-      conn.close()
+        if clientCert:
+            print("Checking client cert")
+            cert = conn.getpeercert()
+            if cert is None:
+                raise AssertionError("Client certificate expected, got none")
+            if cert["subject"][0][0][1] != "client.tests.powerdns.com":
+                print(cert)
+                raise AssertionError("Unexpected subject in cert")
+
+        (datalen,) = struct.unpack("!H", data)
+        data = conn.recv(datalen)
+        forceRcode = None
+        try:
+            request = dns.message.from_wire(data, ignore_trailing=ignoreTrailing)
+        except dns.message.TrailingJunk as e:
+            if trailingDataResponse is False or forceRcode is True:
+                raise
+            print("TCP query with trailing data, synthesizing response")
+            request = dns.message.from_wire(data, ignore_trailing=True)
+            forceRcode = trailingDataResponse
+
+        if callback:
+            wire = callback(request)
+        else:
+            if request.edns > 1:
+                forceRcode = dns.rcode.BADVERS
+            response = cls._getResponse(request, fromQueue, toQueue, synthesize=forceRcode)
+            if response:
+                wire = response.to_wire(max_size=65535)
+
+        if not wire:
+            conn.close()
+            return
+        elif isinstance(wire, ResponderDropAction):
+            return
+
+        wireLen = struct.pack("!H", len(wire))
+        if partialWrite:
+            for b in wireLen:
+                conn.send(bytes([b]))
+                time.sleep(0.5)
+        else:
+            conn.send(wireLen)
+        conn.send(wire)
+
+        while multipleResponses:
+            # do not block, and stop as soon as the queue is empty, either the next response is already here or we are done
+            # otherwise we might read responses intended for the next connection
+            if fromQueue.empty():
+                break
+
+            response = fromQueue.get(False)
+            if not response:
+                break
+
+            response = copy.copy(response)
+            response.id = request.id
+            wire = response.to_wire(max_size=65535)
+            try:
+                conn.send(struct.pack("!H", len(wire)))
+                conn.send(wire)
+            except socket.error as e:
+                # some of the tests are going to close
+                # the connection on us, just deal with it
+                break
+
+        conn.close()
 
     @classmethod
-    def TCPResponder(cls, port, fromQueue, toQueue, trailingDataResponse=False, multipleResponses=False, callback=None, tlsContext=None, multipleConnections=False, listeningAddr='127.0.0.1', partialWrite=False, clientCert=False):
+    def TCPResponder(
+        cls,
+        port,
+        fromQueue,
+        toQueue,
+        trailingDataResponse=False,
+        multipleResponses=False,
+        callback=None,
+        tlsContext=None,
+        multipleConnections=False,
+        listeningAddr="127.0.0.1",
+        partialWrite=False,
+        clientCert=False,
+    ):
         cls._backgroundThreads[threading.get_native_id()] = True
         # trailingDataResponse=True means "ignore trailing data".
         # Other values are either False (meaning "raise an exception")
@@ -1448,38 +1464,58 @@ distributor-threads={threads}
         sock.listen(100)
         sock.settimeout(0.5)
         if tlsContext:
-          sock = tlsContext.wrap_socket(sock, server_side=True)
+            sock = tlsContext.wrap_socket(sock, server_side=True)
 
         while True:
             try:
-              (conn, _) = sock.accept()
+                (conn, _) = sock.accept()
             except ssl.SSLError:
-              continue
-            except ConnectionResetError:
-              continue
-            except socket.timeout:
-              if cls._backgroundThreads.get(threading.get_native_id(), False) == False:
-                 del cls._backgroundThreads[threading.get_native_id()]
-                 break
-              else:
                 continue
+            except ConnectionResetError:
+                continue
+            except socket.timeout:
+                if cls._backgroundThreads.get(threading.get_native_id(), False) == False:
+                    del cls._backgroundThreads[threading.get_native_id()]
+                    break
+                else:
+                    continue
 
             conn.settimeout(5.0)
             if multipleConnections:
-              thread = threading.Thread(name='TCP Connection Handler',
-                                        target=cls.handleTCPConnection,
-                                        args=[conn, fromQueue, toQueue, trailingDataResponse, multipleResponses, callback, partialWrite, clientCert])
-              thread.daemon = True
-              thread.start()
+                thread = threading.Thread(
+                    name="TCP Connection Handler",
+                    target=cls.handleTCPConnection,
+                    args=[
+                        conn,
+                        fromQueue,
+                        toQueue,
+                        trailingDataResponse,
+                        multipleResponses,
+                        callback,
+                        partialWrite,
+                        clientCert,
+                    ],
+                )
+                thread.daemon = True
+                thread.start()
             else:
-              cls.handleTCPConnection(conn, fromQueue, toQueue, trailingDataResponse, multipleResponses, callback, partialWrite, clientCert)
+                cls.handleTCPConnection(
+                    conn,
+                    fromQueue,
+                    toQueue,
+                    trailingDataResponse,
+                    multipleResponses,
+                    callback,
+                    partialWrite,
+                    clientCert,
+                )
 
         sock.close()
+
 
 class ResponderDropAction(object):
     """
     An object to indicate a drop action shall be taken
     """
+
     pass
-
-

@@ -61,9 +61,7 @@ def get_objects(def_file):
 
 def rust_type_to_human_str(rust_type, entry_type, generate_ref=True):
     if is_vector_of(rust_type):
-        return "Sequence of " + rust_type_to_human_str(
-            get_vector_sub_type(rust_type), entry_type, generate_ref
-        )
+        return "Sequence of " + rust_type_to_human_str(get_vector_sub_type(rust_type), entry_type, generate_ref)
     if rust_type in ["u8", "u16", "u32", "u64"]:
         return "Unsigned integer"
     if rust_type == "f64":
@@ -111,9 +109,7 @@ def print_structure(parameters, entry_type):
     return output
 
 
-def process_object(
-    object_name, entries, entry_type, is_setting_struct=False, lua_equivalent=None
-):
+def process_object(object_name, entries, entry_type, is_setting_struct=False, lua_equivalent=None):
     output = f".. _yaml-{entry_type}-{object_name}:\n\n"
 
     output += f"{object_name}\n"
@@ -153,12 +149,8 @@ def process_object(
 
 
 def get_temporary_file_for_generated_content(directory):
-    generated_fp = tempfile.NamedTemporaryFile(
-        mode="w+t", encoding="utf-8", dir=directory, delete=False
-    )
-    generated_fp.write(
-        ".. THIS IS A GENERATED FILE. DO NOT EDIT. See dnsdist-settings-documentation-generator.py\n\n"
-    )
+    generated_fp = tempfile.NamedTemporaryFile(mode="w+t", encoding="utf-8", dir=directory, delete=False)
+    generated_fp.write(".. THIS IS A GENERATED FILE. DO NOT EDIT. See dnsdist-settings-documentation-generator.py\n\n")
     return generated_fp
 
 
@@ -224,9 +216,7 @@ def process_selectors_or_actions(def_file, entry_type):
         lua_equivalent = object_name + ("Rule" if entry_type == "selector" else suffix)
         if "no-lua-equivalent" in entry:
             lua_equivalent = None
-        output += process_object(
-            object_name + suffix, entry, "settings", lua_equivalent=lua_equivalent
-        )
+        output += process_object(object_name + suffix, entry, "settings", lua_equivalent=lua_equivalent)
 
     return output
 
@@ -239,9 +229,7 @@ def main():
     source_dir = sys.argv[1]
     docs_folder = f"{source_dir}/docs/"
     if not os.path.isdir(docs_folder):
-        print(
-            "Skipping settings documentation generation because the docs/ folder does not exist"
-        )
+        print("Skipping settings documentation generation because the docs/ folder does not exist")
         return
 
     generated_fp = get_temporary_file_for_generated_content(docs_folder)
@@ -250,23 +238,17 @@ def main():
     os.rename(generated_fp.name, f"{docs_folder}/reference/yaml-settings.rst")
 
     generated_fp = get_temporary_file_for_generated_content(docs_folder)
-    output = process_selectors_or_actions(
-        f"{source_dir}/dnsdist-actions-definitions.yml", "action"
-    )
+    output = process_selectors_or_actions(f"{source_dir}/dnsdist-actions-definitions.yml", "action")
     generated_fp.write(output)
     os.rename(generated_fp.name, f"{docs_folder}/reference/yaml-actions.rst")
 
     generated_fp = get_temporary_file_for_generated_content(docs_folder)
-    output = process_selectors_or_actions(
-        f"{source_dir}/dnsdist-response-actions-definitions.yml", "response-action"
-    )
+    output = process_selectors_or_actions(f"{source_dir}/dnsdist-response-actions-definitions.yml", "response-action")
     generated_fp.write(output)
     os.rename(generated_fp.name, f"{docs_folder}/reference/yaml-response-actions.rst")
 
     generated_fp = get_temporary_file_for_generated_content(docs_folder)
-    output = process_selectors_or_actions(
-        f"{source_dir}/dnsdist-selectors-definitions.yml", "selector"
-    )
+    output = process_selectors_or_actions(f"{source_dir}/dnsdist-selectors-definitions.yml", "selector")
     generated_fp.write(output)
     os.rename(generated_fp.name, f"{docs_folder}/reference/yaml-selectors.rst")
 

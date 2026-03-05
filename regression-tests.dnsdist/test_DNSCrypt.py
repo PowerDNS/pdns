@@ -7,6 +7,7 @@ import dns.message
 from dnsdisttests import DNSDistTest, pickAvailablePort
 import dnscrypt
 
+
 class DNSCryptTest(DNSDistTest):
     """
     dnsdist is configured to accept DNSCrypt queries on 127.0.0.1:_dnsDistPortDNSCrypt.
@@ -18,9 +19,9 @@ class DNSCryptTest(DNSDistTest):
     _dnsDistPortDNSCrypt = pickAvailablePort()
 
     _consoleKey = DNSDistTest.generateConsoleKey()
-    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
 
-    _providerFingerprint = 'E1D7:2108:9A59:BF8D:F101:16FA:ED5E:EA6A:9F6C:C78F:7F91:AF6B:027E:62F4:69C3:B1AA'
+    _providerFingerprint = "E1D7:2108:9A59:BF8D:F101:16FA:ED5E:EA6A:9F6C:C78F:7F91:AF6B:027E:62F4:69C3:B1AA"
     _providerName = "2.provider.name"
     _resolverCertificateSerial = 42
 
@@ -69,21 +70,28 @@ class TestDNSCrypt(DNSCryptTest):
     addAction("tcp.protocols.dnscrypt.tests.powerdns.com.", LuaAction(checkDNSCryptTCP))
     """
 
-    _config_params = ['_consoleKeyB64', '_consolePort', '_resolverCertificateSerial', '_resolverCertificateValidFrom', '_resolverCertificateValidUntil', '_dnsDistPortDNSCrypt', '_providerName', '_testServerPort']
+    _config_params = [
+        "_consoleKeyB64",
+        "_consolePort",
+        "_resolverCertificateSerial",
+        "_resolverCertificateValidFrom",
+        "_resolverCertificateValidUntil",
+        "_dnsDistPortDNSCrypt",
+        "_providerName",
+        "_testServerPort",
+    ]
 
     def testSimpleA(self):
         """
         DNSCrypt: encrypted A query
         """
-        client = dnscrypt.DNSCryptClient(self._providerName, self._providerFingerprint, "127.0.0.1", self._dnsDistPortDNSCrypt)
-        name = 'a.dnscrypt.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        client = dnscrypt.DNSCryptClient(
+            self._providerName, self._providerFingerprint, "127.0.0.1", self._dnsDistPortDNSCrypt
+        )
+        name = "a.dnscrypt.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.2.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "192.2.0.1")
         response.answer.append(rrset)
 
         self.doDNSCryptQuery(client, query, response, False)
@@ -97,15 +105,13 @@ class TestDNSCrypt(DNSCryptTest):
         the padding into account) and check that the response
         is truncated.
         """
-        client = dnscrypt.DNSCryptClient(self._providerName, self._providerFingerprint, "127.0.0.1", self._dnsDistPortDNSCrypt)
-        name = 'smallquerylargeresponse.dnscrypt.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'TXT', 'IN', use_edns=True, payload=4096)
+        client = dnscrypt.DNSCryptClient(
+            self._providerName, self._providerFingerprint, "127.0.0.1", self._dnsDistPortDNSCrypt
+        )
+        name = "smallquerylargeresponse.dnscrypt.tests.powerdns.com."
+        query = dns.message.make_query(name, "TXT", "IN", use_edns=True, payload=4096)
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.TXT,
-                                    'A'*255)
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.TXT, "A" * 255)
         response.answer.append(rrset)
 
         self._toResponderQueue.put(response)
@@ -129,30 +135,36 @@ class TestDNSCrypt(DNSCryptTest):
         """
         DNSCrypt: certificate rotation
         """
-        client = dnscrypt.DNSCryptClient(self._providerName, self._providerFingerprint, "127.0.0.1", self._dnsDistPortDNSCrypt)
+        client = dnscrypt.DNSCryptClient(
+            self._providerName, self._providerFingerprint, "127.0.0.1", self._dnsDistPortDNSCrypt
+        )
         client.refreshResolverCertificates()
 
         cert = client.getResolverCertificate()
         self.assertTrue(cert)
         self.assertEqual(cert.serial, self._resolverCertificateSerial)
 
-        name = 'rotation.dnscrypt.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "rotation.dnscrypt.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.2.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "192.2.0.1")
         response.answer.append(rrset)
 
         self.doDNSCryptQuery(client, query, response, False)
         self.doDNSCryptQuery(client, query, response, True)
 
         # generate a new certificate
-        self.sendConsoleCommand("generateDNSCryptCertificate('DNSCryptProviderPrivate.key', 'DNSCryptResolver.cert.2', 'DNSCryptResolver.key.2', {!s}, {:.0f}, {:.0f})".format(self._resolverCertificateSerial + 1, self._resolverCertificateValidFrom, self._resolverCertificateValidUntil))
+        self.sendConsoleCommand(
+            "generateDNSCryptCertificate('DNSCryptProviderPrivate.key', 'DNSCryptResolver.cert.2', 'DNSCryptResolver.key.2', {!s}, {:.0f}, {:.0f})".format(
+                self._resolverCertificateSerial + 1,
+                self._resolverCertificateValidFrom,
+                self._resolverCertificateValidUntil,
+            )
+        )
         # add that new certificate
-        self.sendConsoleCommand("getDNSCryptBind(0):loadNewCertificate('DNSCryptResolver.cert.2', 'DNSCryptResolver.key.2')")
+        self.sendConsoleCommand(
+            "getDNSCryptBind(0):loadNewCertificate('DNSCryptResolver.cert.2', 'DNSCryptResolver.key.2')"
+        )
 
         oldSerial = self.sendConsoleCommand("getDNSCryptBind(0):getCertificate(0):getSerial()")
         self.assertEqual(int(oldSerial), self._resolverCertificateSerial)
@@ -182,7 +194,13 @@ class TestDNSCrypt(DNSCryptTest):
         self.assertEqual(certs[1].serial, self._resolverCertificateSerial + 1)
 
         # generate a third certificate, this time in memory
-        self.sendConsoleCommand("getDNSCryptBind(0):generateAndLoadInMemoryCertificate('DNSCryptProviderPrivate.key', {!s}, {:.0f}, {:.0f})".format(self._resolverCertificateSerial + 2, self._resolverCertificateValidFrom, self._resolverCertificateValidUntil))
+        self.sendConsoleCommand(
+            "getDNSCryptBind(0):generateAndLoadInMemoryCertificate('DNSCryptProviderPrivate.key', {!s}, {:.0f}, {:.0f})".format(
+                self._resolverCertificateSerial + 2,
+                self._resolverCertificateValidFrom,
+                self._resolverCertificateValidUntil,
+            )
+        )
 
         # we should still be able to send queries with the previous certificate
         self.doDNSCryptQuery(client, query, response, False)
@@ -204,7 +222,13 @@ class TestDNSCrypt(DNSCryptTest):
         self.assertEqual(certs[2].serial, self._resolverCertificateSerial + 2)
 
         # generate a fourth certificate, still in memory
-        self.sendConsoleCommand("getDNSCryptBind(0):generateAndLoadInMemoryCertificate('DNSCryptProviderPrivate.key', {!s}, {:.0f}, {:.0f})".format(self._resolverCertificateSerial + 3, self._resolverCertificateValidFrom, self._resolverCertificateValidUntil))
+        self.sendConsoleCommand(
+            "getDNSCryptBind(0):generateAndLoadInMemoryCertificate('DNSCryptProviderPrivate.key', {!s}, {:.0f}, {:.0f})".format(
+                self._resolverCertificateSerial + 3,
+                self._resolverCertificateValidFrom,
+                self._resolverCertificateValidUntil,
+            )
+        )
 
         # mark the old ones as inactive
         self.sendConsoleCommand("getDNSCryptBind(0):markInactive({!s})".format(self._resolverCertificateSerial))
@@ -217,9 +241,15 @@ class TestDNSCrypt(DNSCryptTest):
         self.assertTrue(cert)
         self.assertEqual(cert.serial, self._resolverCertificateSerial + 2)
         # now remove them
-        self.sendConsoleCommand("getDNSCryptBind(0):removeInactiveCertificate({!s})".format(self._resolverCertificateSerial))
-        self.sendConsoleCommand("getDNSCryptBind(0):removeInactiveCertificate({!s})".format(self._resolverCertificateSerial + 1))
-        self.sendConsoleCommand("getDNSCryptBind(0):removeInactiveCertificate({!s})".format(self._resolverCertificateSerial + 2))
+        self.sendConsoleCommand(
+            "getDNSCryptBind(0):removeInactiveCertificate({!s})".format(self._resolverCertificateSerial)
+        )
+        self.sendConsoleCommand(
+            "getDNSCryptBind(0):removeInactiveCertificate({!s})".format(self._resolverCertificateSerial + 1)
+        )
+        self.sendConsoleCommand(
+            "getDNSCryptBind(0):removeInactiveCertificate({!s})".format(self._resolverCertificateSerial + 2)
+        )
 
         # we should not be able to send with the old ones anymore
         try:
@@ -247,9 +277,11 @@ class TestDNSCrypt(DNSCryptTest):
         """
         DNSCrypt: Test DNSQuestion.Protocol over UDP
         """
-        client = dnscrypt.DNSCryptClient(self._providerName, self._providerFingerprint, "127.0.0.1", self._dnsDistPortDNSCrypt)
-        name = 'udp.protocols.dnscrypt.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        client = dnscrypt.DNSCryptClient(
+            self._providerName, self._providerFingerprint, "127.0.0.1", self._dnsDistPortDNSCrypt
+        )
+        name = "udp.protocols.dnscrypt.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
 
         self.doDNSCryptQuery(client, query, response, False)
@@ -258,12 +290,15 @@ class TestDNSCrypt(DNSCryptTest):
         """
         DNSCrypt: Test DNSQuestion.Protocol over TCP
         """
-        client = dnscrypt.DNSCryptClient(self._providerName, self._providerFingerprint, "127.0.0.1", self._dnsDistPortDNSCrypt)
-        name = 'tcp.protocols.dnscrypt.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        client = dnscrypt.DNSCryptClient(
+            self._providerName, self._providerFingerprint, "127.0.0.1", self._dnsDistPortDNSCrypt
+        )
+        name = "tcp.protocols.dnscrypt.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
 
         self.doDNSCryptQuery(client, query, response, True)
+
 
 class TestDNSCryptYaml(TestDNSCrypt):
     _config_template = """
@@ -313,11 +348,18 @@ query_rules:
       function_name: "checkDNSCryptTCP"
 """
     _config_params = []
-    _yaml_config_params = ['_consoleKeyB64', '_consolePort', '_dnsDistPortDNSCrypt', '_providerName', '_testServerPort']
+    _yaml_config_params = ["_consoleKeyB64", "_consolePort", "_dnsDistPortDNSCrypt", "_providerName", "_testServerPort"]
+
 
 class TestDNSCryptWithCache(DNSCryptTest):
-
-    _config_params = ['_resolverCertificateSerial', '_resolverCertificateValidFrom', '_resolverCertificateValidUntil', '_dnsDistPortDNSCrypt', '_providerName', '_testServerPort']
+    _config_params = [
+        "_resolverCertificateSerial",
+        "_resolverCertificateValidFrom",
+        "_resolverCertificateValidUntil",
+        "_dnsDistPortDNSCrypt",
+        "_providerName",
+        "_testServerPort",
+    ]
     _config_template = """
     generateDNSCryptCertificate("DNSCryptProviderPrivate.key", "DNSCryptResolver.cert", "DNSCryptResolver.key", %d, %d, %d)
     addDNSCryptBind("127.0.0.1:%d", "%s", "DNSCryptResolver.cert", "DNSCryptResolver.key")
@@ -331,15 +373,13 @@ class TestDNSCryptWithCache(DNSCryptTest):
         DNSCrypt: encrypted A query served from cache
         """
         misses = 0
-        client = dnscrypt.DNSCryptClient(self._providerName, self._providerFingerprint, "127.0.0.1", self._dnsDistPortDNSCrypt)
-        name = 'cacheda.dnscrypt.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        client = dnscrypt.DNSCryptClient(
+            self._providerName, self._providerFingerprint, "127.0.0.1", self._dnsDistPortDNSCrypt
+        )
+        name = "cacheda.dnscrypt.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.2.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "192.2.0.1")
         response.answer.append(rrset)
 
         # first query to fill the cache
@@ -372,6 +412,7 @@ class TestDNSCryptWithCache(DNSCryptTest):
             total += self._responsesCounter[key]
         self.assertEqual(total, misses)
 
+
 class TestDNSCryptAutomaticRotation(DNSCryptTest):
     _config_template = """
     setKey("%s")
@@ -403,7 +444,19 @@ class TestDNSCryptAutomaticRotation(DNSCryptTest):
     """
 
     _dnsDistPortDNSCrypt2 = pickAvailablePort()
-    _config_params = ['_consoleKeyB64', '_consolePort', '_resolverCertificateSerial', '_resolverCertificateValidFrom', '_resolverCertificateValidUntil', '_dnsDistPortDNSCrypt', '_providerName', '_dnsDistPortDNSCrypt2', '_providerName', '_testServerPort', '_resolverCertificateSerial']
+    _config_params = [
+        "_consoleKeyB64",
+        "_consolePort",
+        "_resolverCertificateSerial",
+        "_resolverCertificateValidFrom",
+        "_resolverCertificateValidUntil",
+        "_dnsDistPortDNSCrypt",
+        "_providerName",
+        "_dnsDistPortDNSCrypt2",
+        "_providerName",
+        "_testServerPort",
+        "_resolverCertificateSerial",
+    ]
 
     def testCertRotation(self):
         """
@@ -429,14 +482,10 @@ class TestDNSCryptAutomaticRotation(DNSCryptTest):
             self.assertTrue(cert)
             self.assertGreater(cert.serial, serials[client])
 
-        name = 'automatic-rotation.dnscrypt.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "automatic-rotation.dnscrypt.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.2.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "192.2.0.1")
         response.answer.append(rrset)
 
         for client in clients:

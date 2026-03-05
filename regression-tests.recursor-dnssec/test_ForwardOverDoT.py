@@ -4,12 +4,13 @@ import os
 import subprocess
 from recursortests import RecursorTest
 
+
 class SimpleForwardOverDoTTest(RecursorTest):
     """
     This is forwarding to DoT servers in a very basic way and is dependent on the forwards working for DoT
     """
 
-    _confdir = 'SimpleForwardOverDoT'
+    _confdir = "SimpleForwardOverDoT"
     _config_template = """
 dnssec:
     validation: validate
@@ -28,18 +29,18 @@ outgoing:
         super(SimpleForwardOverDoTTest, cls).generateRecursorYamlConfig(confdir, False)
 
     def reloadConfig(self, config):
-      confdir = os.path.join('configs', SimpleForwardOverDoTTest._confdir)
-      SimpleForwardOverDoTTest._config_template = config
-      SimpleForwardOverDoTTest.generateRecursorYamlConfig(confdir, False)
-      SimpleForwardOverDoTTest.recControl(confdir, 'reload-yaml')
+        confdir = os.path.join("configs", SimpleForwardOverDoTTest._confdir)
+        SimpleForwardOverDoTTest._config_template = config
+        SimpleForwardOverDoTTest.generateRecursorYamlConfig(confdir, False)
+        SimpleForwardOverDoTTest.recControl(confdir, "reload-yaml")
 
     @pytest.mark.external
     def testBasic(self):
-        confdir = 'configs/' + self._confdir
+        confdir = "configs/" + self._confdir
         self.reloadConfig(self._config_template)
-        self.recControl(confdir, 'reload-zones')
-        expected = dns.rrset.from_text('dns.google.', 0, dns.rdataclass.IN, 'A', '8.8.8.8', '8.8.4.4')
-        query = dns.message.make_query('dns.google', 'A', want_dnssec=True)
+        self.recControl(confdir, "reload-zones")
+        expected = dns.rrset.from_text("dns.google.", 0, dns.rdataclass.IN, "A", "8.8.8.8", "8.8.4.4")
+        query = dns.message.make_query("dns.google", "A", want_dnssec=True)
         query.flags |= dns.flags.AD
 
         res = self.sendUDPQuery(query)
@@ -48,12 +49,12 @@ outgoing:
         self.assertRRsetInAnswer(res, expected)
         self.assertMatchingRRSIGInAnswer(res, expected)
 
-        ret = self.recControl(confdir, 'get', 'dot-outqueries')
-        self.assertNotEqual(ret, 'UNKNOWN\n')
-        self.assertNotEqual(ret, '0\n')
+        ret = self.recControl(confdir, "get", "dot-outqueries")
+        self.assertNotEqual(ret, "UNKNOWN\n")
+        self.assertNotEqual(ret, "0\n")
 
-        ret = self.recControl(confdir, 'get', 'tcp-outqueries')
-        self.assertEqual(ret, '0\n')
+        ret = self.recControl(confdir, "get", "tcp-outqueries")
+        self.assertEqual(ret, "0\n")
 
     _config_template_test2 = """
 dnssec:
@@ -80,11 +81,11 @@ recursor:
 
     @pytest.mark.external
     def testWithVerify(self):
-        confdir = 'configs/' + self._confdir
+        confdir = "configs/" + self._confdir
         self.reloadConfig(self._config_template_test2)
-        self.recControl(confdir, 'reload-zones')
-        expected = dns.rrset.from_text('dns.google.', 0, dns.rdataclass.IN, 'A', '8.8.8.8', '8.8.4.4')
-        query = dns.message.make_query('dns.google', 'A', want_dnssec=True)
+        self.recControl(confdir, "reload-zones")
+        expected = dns.rrset.from_text("dns.google.", 0, dns.rdataclass.IN, "A", "8.8.8.8", "8.8.4.4")
+        query = dns.message.make_query("dns.google", "A", want_dnssec=True)
         query.flags |= dns.flags.AD
 
         res = self.sendUDPQuery(query)
@@ -93,12 +94,12 @@ recursor:
         self.assertRRsetInAnswer(res, expected)
         self.assertMatchingRRSIGInAnswer(res, expected)
 
-        ret = self.recControl(confdir, 'get', 'dot-outqueries')
-        self.assertNotEqual(ret, 'UNKNOWN\n')
-        self.assertNotEqual(ret, '0\n')
+        ret = self.recControl(confdir, "get", "dot-outqueries")
+        self.assertNotEqual(ret, "UNKNOWN\n")
+        self.assertNotEqual(ret, "0\n")
 
-        ret = self.recControl(confdir, 'get', 'tcp-outqueries')
-        self.assertEqual(ret, '0\n')
+        ret = self.recControl(confdir, "get", "tcp-outqueries")
+        self.assertEqual(ret, "0\n")
 
     _config_template_test3 = """
 dnssec:
@@ -126,11 +127,11 @@ recursor:
 
     @pytest.mark.external
     def testCertFailed(self):
-        confdir = 'configs/' + self._confdir
+        confdir = "configs/" + self._confdir
         self.reloadConfig(self._config_template_test3)
-        self.recControl(confdir, 'reload-zones')
-        expected = dns.rrset.from_text('dns.google.', 0, dns.rdataclass.IN, 'A', '8.8.8.8', '8.8.4.4')
-        query = dns.message.make_query('dns.google', 'A', want_dnssec=True)
+        self.recControl(confdir, "reload-zones")
+        expected = dns.rrset.from_text("dns.google.", 0, dns.rdataclass.IN, "A", "8.8.8.8", "8.8.4.4")
+        query = dns.message.make_query("dns.google", "A", want_dnssec=True)
         query.flags |= dns.flags.AD
 
         res = self.sendUDPQuery(query)

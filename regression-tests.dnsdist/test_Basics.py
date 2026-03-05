@@ -3,8 +3,8 @@ import dns
 import clientsubnetoption
 from dnsdisttests import DNSDistTest
 
-class TestBasics(DNSDistTest):
 
+class TestBasics(DNSDistTest):
     _config_template = """
     newServer{address="127.0.0.1:%d"}
     truncateTC(true)
@@ -27,8 +27,8 @@ class TestBasics(DNSDistTest):
         which is dropped by configuration. We expect
         no response.
         """
-        for name in ['drop.test.powerdns.com.', 'drop2.test.powerdns.com.']:
-            query = dns.message.make_query(name, 'A', 'IN')
+        for name in ["drop.test.powerdns.com.", "drop2.test.powerdns.com."]:
+            query = dns.message.make_query(name, "A", "IN")
             for method in ("sendUDPQuery", "sendTCPQuery"):
                 sender = getattr(self, method)
                 (_, receivedResponse) = sender(query, response=None, useQueue=False)
@@ -38,15 +38,11 @@ class TestBasics(DNSDistTest):
         """
         Basics: A query with an ECS value
         """
-        name = 'awithecs.tests.powerdns.com.'
-        ecso = clientsubnetoption.ClientSubnetOption('1.2.3.4')
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, options=[ecso])
+        name = "awithecs.tests.powerdns.com."
+        ecso = clientsubnetoption.ClientSubnetOption("1.2.3.4")
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, options=[ecso])
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
 
         response.answer.append(rrset)
 
@@ -61,14 +57,10 @@ class TestBasics(DNSDistTest):
         """
         Basics: A query without EDNS
         """
-        name = 'simplea.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+        name = "simplea.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN", use_edns=False)
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -88,8 +80,8 @@ class TestBasics(DNSDistTest):
         send an ANY query and check the result.
         It should be truncated over UDP, not over TCP.
         """
-        name = 'any.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'ANY', 'IN')
+        name = "any.tests.powerdns.com."
+        query = dns.message.make_query(name, "ANY", "IN")
         # dnsdist sets RA = RD for TC responses
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
@@ -99,11 +91,7 @@ class TestBasics(DNSDistTest):
         self.assertEqual(receivedResponse, expectedResponse)
 
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
 
         response.answer.append(rrset)
 
@@ -123,14 +111,10 @@ class TestBasics(DNSDistTest):
         with TC set and additional content,
         and check that the received response has been fixed.
         """
-        name = 'atruncatetc.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "atruncatetc.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
 
         response.answer.append(rrset)
         response.flags |= dns.flags.TC
@@ -159,16 +143,12 @@ class TestBasics(DNSDistTest):
         Note that the query and initial response had EDNS,
         so the final response should have it too.
         """
-        name = 'atruncatetc.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, want_dnssec=True)
+        name = "atruncatetc.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, want_dnssec=True)
         # force a different responder payload than the one in the query,
         # so we check that we don't just mirror it
         response = dns.message.make_response(query, our_payload=4242)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
 
         response.answer.append(rrset)
         response.flags |= dns.flags.TC
@@ -199,8 +179,8 @@ class TestBasics(DNSDistTest):
         We send a query for evil4242.powerdns.com
         and check that the response is "refused".
         """
-        name = 'evil4242.regex.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "evil4242.regex.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.REFUSED)
@@ -216,16 +196,12 @@ class TestBasics(DNSDistTest):
 
         dnsdist is configured to reply 1.2.3.4 for A query for exactly ds9a.nl
         """
-        name = 'ds9a.nl.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "ds9a.nl."
+        query = dns.message.make_query(name, "A", "IN")
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.NOERROR)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '1.2.3.4')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "1.2.3.4")
         expectedResponse.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -242,8 +218,8 @@ class TestBasics(DNSDistTest):
         We send a TXT query for "nameAndQtype.powerdns.com."
         and check that the response is 'not implemented'.
         """
-        name = 'nameAndQtype.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'TXT', 'IN')
+        name = "nameAndQtype.tests.powerdns.com."
+        query = dns.message.make_query(name, "TXT", "IN")
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.NOTIMP)
@@ -262,14 +238,10 @@ class TestBasics(DNSDistTest):
         We send a A query for "nameAndQtype.tests.powerdns.com."
         and check that the response is OK.
         """
-        name = 'nameAndQtype.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "nameAndQtype.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -290,14 +262,10 @@ class TestBasics(DNSDistTest):
         We send a TXT query for "OtherNameAndQtype.tests.powerdns.com."
         and check that the response is OK.
         """
-        name = 'OtherNameAndQtype.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'TXT', 'IN')
+        name = "OtherNameAndQtype.tests.powerdns.com."
+        query = dns.message.make_query(name, "TXT", "IN")
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.TXT,
-                                    'nothing to see here')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.TXT, "nothing to see here")
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -319,16 +287,12 @@ class TestBasics(DNSDistTest):
         queries to a specific backend in the air over UDP,
         but does not really make sense over TCP.
         """
-        name = 'query.unrelated.tests.powerdns.com.'
-        unrelatedName = 'answer.unrelated.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'TXT', 'IN')
-        unrelatedQuery = dns.message.make_query(unrelatedName, 'TXT', 'IN')
+        name = "query.unrelated.tests.powerdns.com."
+        unrelatedName = "answer.unrelated.tests.powerdns.com."
+        query = dns.message.make_query(name, "TXT", "IN")
+        unrelatedQuery = dns.message.make_query(unrelatedName, "TXT", "IN")
         unrelatedResponse = dns.message.make_response(unrelatedQuery)
-        rrset = dns.rrset.from_text(unrelatedName,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.TXT,
-                                    'nothing to see here')
+        rrset = dns.rrset.from_text(unrelatedName, 3600, dns.rdataclass.IN, dns.rdatatype.TXT, "nothing to see here")
         unrelatedResponse.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -343,8 +307,8 @@ class TestBasics(DNSDistTest):
         """
         Basics: Header-only refused response
         """
-        name = 'header-only-refused-response.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "header-only-refused-response.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
         response.set_rcode(dns.rcode.REFUSED)
         response.question = []
@@ -361,8 +325,8 @@ class TestBasics(DNSDistTest):
         """
         Basics: Header-only NoError response should be dropped
         """
-        name = 'header-only-noerror-response.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "header-only-noerror-response.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
         response.question = []
 
@@ -378,8 +342,8 @@ class TestBasics(DNSDistTest):
         """
         Basics: Header-only NXD response should be dropped
         """
-        name = 'header-only-nxd-response.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "header-only-nxd-response.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
         response.set_rcode(dns.rcode.NXDOMAIN)
         response.question = []
@@ -396,8 +360,8 @@ class TestBasics(DNSDistTest):
         """
         Basics: test if addAction accepts a DNSName
         """
-        name = 'dnsname.addaction.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "dnsname.addaction.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.REFUSED)
@@ -411,8 +375,8 @@ class TestBasics(DNSDistTest):
         """
         Basics: test if addAction accepts a table of DNSNames
         """
-        for name in ['dnsname-table{}.addaction.powerdns.com.'.format(i) for i in range(1,2)]:
-            query = dns.message.make_query(name, 'A', 'IN')
+        for name in ["dnsname-table{}.addaction.powerdns.com.".format(i) for i in range(1, 2)]:
+            query = dns.message.make_query(name, "A", "IN")
             query.flags &= ~dns.flags.RD
             expectedResponse = dns.message.make_response(query)
             expectedResponse.set_rcode(dns.rcode.REFUSED)
