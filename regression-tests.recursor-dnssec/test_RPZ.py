@@ -393,7 +393,7 @@ webserver-port=%d
 webserver-address=127.0.0.1
 webserver-password=%s
 api-key=%s
-disable-packetcache
+#disable-packetcache no longer needed since the auto-PC clearing
 allow-notify-from=127.0.0.0/8
 allow-notify-for=zone.rpz
 """ % (_confdir, _wsPort, _wsPassword, _apiKey)
