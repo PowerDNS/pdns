@@ -71,6 +71,8 @@ hashed.example.org.          3600 IN LUA  A     "pickhashed({{ '1.2.3.4', '4.3.2
 hashed-v6.example.org.       3600 IN LUA  AAAA  "pickhashed({{ '2001:db8:a0b:12f0::1', 'fe80::2a1:9bff:fe9b:f268' }})"
 hashed-txt.example.org.      3600 IN LUA  TXT   "pickhashed({{ 'bob', 'alice' }})"
 whashed.example.org.         3600 IN LUA  A     "pickwhashed({{ {{15, '1.2.3.4'}}, {{42, '4.3.2.1'}} }})"
+whashedzero.example.org.     3600 IN LUA  A     "pickwhashed({{ {{15, '1.2.3.4'}}, {{0, '4.3.2.1'}} }})"
+whashednegative.example.org. 3600 IN LUA  A     "pickwhashed({{ {{15, '1.2.3.4'}}, {{-3, '4.3.2.1'}} }})"
 *.namehashed.example.org.    3600 IN LUA  A     "picknamehashed({{ {{15, '1.2.3.4'}}, {{42, '4.3.2.1'}} }})"
 whashed-txt.example.org.     3600 IN LUA  TXT   "pickwhashed({{ {{15, 'bob'}}, {{42, 'alice'}} }})"
 chashed.example.org.         3600 IN LUA  A     "pickchashed({{ {{15, '1.2.3.4'}}, {{42, '4.3.2.1'}} }})"
@@ -977,6 +979,26 @@ class TestLuaRecords(BaseLuaTest):
             res = self.sendUDPQuery(query)
             self.assertRcodeEqual(res, dns.rcode.NOERROR)
             self.assertRRsetInAnswer(res, first.answer[0])
+
+    def testWHashedZero(self):
+        """
+        Test that pickwhashed() does not accept zero weights
+        """
+
+        query = dns.message.make_query('whashedzero.example.org', 'A')
+
+        response = self.sendUDPQuery(query)
+        self.assertRcodeEqual(response, dns.rcode.SERVFAIL)
+
+    def testWHashedNegative(self):
+        """
+        Test that pickwhashed() does not accept negative weights
+        """
+
+        query = dns.message.make_query('whashednegative.example.org', 'A')
+
+        response = self.sendUDPQuery(query)
+        self.assertRcodeEqual(response, dns.rcode.SERVFAIL)
 
     def testTimeout(self):
         """

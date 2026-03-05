@@ -1,5 +1,7 @@
 #ifndef BOOST_TEST_DYN_LINK
 #define BOOST_TEST_DYN_LINK
+#include <boost/test/tools/old/interface.hpp>
+#include <stdexcept>
 #endif
 
 #define BOOST_TEST_NO_MAIN
@@ -417,6 +419,26 @@ BOOST_AUTO_TEST_CASE(test_CleanSlashes) {
   BOOST_CHECK_EQUAL(cleanSlashesWrapper("//test//"), "/test/");
   BOOST_CHECK_EQUAL(cleanSlashesWrapper("///test//"), "/test/");
   BOOST_CHECK_EQUAL(cleanSlashesWrapper("test///"), "test/");
+}
+
+BOOST_AUTO_TEST_CASE(test_checked_stoi)
+{
+  BOOST_CHECK_EQUAL(pdns::checked_stoi<uint8_t>("0"), 0);
+
+  BOOST_CHECK_EQUAL(pdns::checked_stoi<uint8_t>("15"), 15);
+  BOOST_CHECK_EQUAL(pdns::checked_stoi<uint8_t>("255"), 255);
+  BOOST_CHECK_THROW(pdns::checked_stoi<uint8_t>("256"), std::out_of_range);
+  BOOST_CHECK_THROW(pdns::checked_stoi<uint8_t>("-1"), std::out_of_range);
+
+  BOOST_CHECK_EQUAL(pdns::checked_stoi<int8_t>("-15"), -15);
+  BOOST_CHECK_EQUAL(pdns::checked_stoi<int8_t>("-128"), -128);
+  BOOST_CHECK_THROW(pdns::checked_stoi<int8_t>("-129"), std::out_of_range);
+  BOOST_CHECK_THROW(pdns::checked_stoi<int8_t>("128"), std::out_of_range);
+}
+
+BOOST_AUTO_TEST_CASE(test_checked_stoi_nonzero)
+{
+  BOOST_CHECK_THROW(pdns::checked_stoi_nonzero<int8_t>("0"), std::out_of_range);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
