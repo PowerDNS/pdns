@@ -45,7 +45,7 @@ struct RPZTrackerParams
   bool ignoreDuplicates{false};
 };
 
-std::shared_ptr<const SOARecordContent> loadRPZFromFile(const std::string& fname, const std::shared_ptr<DNSFilterEngine::Zone>& zone, const std::optional<DNSFilterEngine::Policy>& defpol, bool defpolOverrideLocal, uint32_t maxTTL);
+std::shared_ptr<const SOARecordContent> loadRPZFromFile(const std::string& fname, const std::shared_ptr<DNSFilterEngine::Zone>& zone, const std::optional<DNSFilterEngine::Policy>& defpol, bool defpolOverrideLocal, uint32_t maxTTL, std::unordered_set<DNSName>& namesAffected);
 void RPZIXFRTracker(RPZTrackerParams params, uint64_t configGeneration);
 
 struct rpzStats

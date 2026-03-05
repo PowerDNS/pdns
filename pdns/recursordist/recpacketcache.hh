@@ -86,6 +86,7 @@ public:
   void doPruneTo(time_t now, size_t maxSize);
   uint64_t doDump(int file);
   uint64_t doWipePacketCache(const DNSName& name, uint16_t qtype = 0xffff, bool subtree = false);
+  uint64_t doWipePacketCache(const std::unordered_set<DNSName>& names);
 
   void setMaxSize(size_t size)
   {
