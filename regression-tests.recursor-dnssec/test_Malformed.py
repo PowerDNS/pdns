@@ -111,7 +111,6 @@ outgoing:
     def testHeaderOnlyAnswer(self):
         # Case: rec gets a header-only answer
         query = dns.message.make_query('headeronly.malformed.example.', 'A')
-        res = self.sendUDPQuery(query)
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
             res = sender(query)
