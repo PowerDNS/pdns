@@ -504,7 +504,7 @@ static void fillZone(UeberBackend& backend, const ZoneName& zonename, HttpRespon
            the records and comments below */
         if (rrA.qname == rrB.qname) {
           if (rrA.qtype == rrB.qtype) {
-            return rrB.content < rrA.content;
+            return rrB.content > rrA.content;
           }
           return rrB.qtype < rrA.qtype;
         }
@@ -527,7 +527,7 @@ static void fillZone(UeberBackend& backend, const ZoneName& zonename, HttpRespon
            the records and comments below */
         if (rrA.qname == rrB.qname) {
           if (rrA.qtype == rrB.qtype) {
-            return rrB.content < rrA.content;
+            return rrB.content > rrA.content;
           }
           return rrB.qtype < rrA.qtype;
         }
