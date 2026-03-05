@@ -25,6 +25,24 @@ actual zone representation.
 As a result of this change, reading back these records may show a different
 representation than expected.
 
+TSIG key updates using PostgreSQL
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The default value of the ``set-tsig-key-query`` query used to update TSIG
+keys, for the :doc:`PostgreSQL <backends/generic-postgresql>` backend, has been
+updated to be able to perform key replacement, rather than failing, when an
+existing key with the given algorithm exists.
+
+This updated query relies upon functionality only made available from
+PostgreSQL version 9.5 onwards.
+
+If you are using an older version, the old query can be restored using::
+
+  gpgsql-set-tsig-key-query=insert into tsigkeys (name,algorithm,secret) values($1,$2,$3)
+
+but it is advised to upgrade to a supported version of PostgreSQL whenever
+possible.
+
 4.9.0 to 5.0.0
 --------------
 
