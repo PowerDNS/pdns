@@ -37,19 +37,9 @@ bool Logger::enabled(Logr::Priority prio) const
   return _level <= _verbosity || prio != Logr::Absent;
 }
 
-void Logger::info(const std::string& msg) const
-{
-  logMessage(msg, Logr::Absent, std::nullopt);
-}
-
 void Logger::info(Logr::Priority prio, const std::string& msg) const
 {
   logMessage(msg, prio, std::nullopt);
-}
-
-void Logger::logMessage(const std::string& msg, const std::optional<std::string>& err) const
-{
-  logMessage(msg, Logr::Absent, err);
 }
 
 void Logger::logMessage(const std::string& msg, Logr::Priority prio, const std::optional<std::string>& err) const
@@ -81,16 +71,6 @@ void Logger::error(Logr::Priority prio, int err, const std::string& msg) const
 void Logger::error(Logr::Priority prio, const std::string& err, const std::string& msg) const
 {
   logMessage(msg, prio, err);
-}
-
-void Logger::error(int err, const std::string& msg) const
-{
-  logMessage(msg, Logr::Absent, std::string(stringerror(err)));
-}
-
-void Logger::error(const std::string& err, const std::string& msg) const
-{
-  logMessage(msg, Logr::Absent, err);
 }
 
 std::shared_ptr<Logr::Logger> Logger::v(size_t level) const

@@ -355,7 +355,7 @@ void PacketHandler::getBestDNAMESynth(DNSPacket& p, DNSName &target, vector<DNSZ
   DNSName subdomain(target);
   do {
     DLOG(SLOG(g_log<<"Attempting DNAME lookup for "<<subdomain<<", d_sd.qname()="<<d_sd.qname()<<endl,
-              d_slog->info("Attempting DNAME lookup", "subdomain", Logging::Loggable(subdomain), "name", Logging::Loggable(d_sd.qname()))));
+              d_slog->info(Logr::Debug, "Attempting DNAME lookup", "subdomain", Logging::Loggable(subdomain), "name", Logging::Loggable(d_sd.qname()))));
 
     B.lookup(QType(QType::DNAME), subdomain, d_sd.domain_id, &p);
     while(B.get(rr)) {
@@ -412,12 +412,12 @@ bool PacketHandler::getBestWildcard(DNSPacket& p, const DNSName &target, DNSName
       if (rr.dr.d_type == QType::LUA && !isPresigned()) {
         if(!doLua) {
           DLOG(SLOG(g_log<<"Have a wildcard Lua match, but not doing Lua record for this zone"<<endl,
-                    d_slog->info("Have a wildcard Lua match, but not doing Lua record for this zone")));
+                    d_slog->info(Logr::Debug, "Have a wildcard Lua match, but not doing Lua record for this zone")));
           continue;
         }
 
         DLOG(SLOG(g_log<<"Have a wildcard Lua match"<<endl,
-                  d_slog->info("Have a wildcard Lua match")));
+                  d_slog->info(Logr::Debug, "Have a wildcard Lua match")));
 
         auto rec=getRR<LUARecordContent>(rr.dr);
         if (!rec) {
@@ -426,7 +426,7 @@ bool PacketHandler::getBestWildcard(DNSPacket& p, const DNSName &target, DNSName
         if(rec->d_type == QType::CNAME || rec->d_type == p.qtype.getCode() || (p.qtype.getCode() == QType::ANY && rec->d_type != QType::RRSIG)) {
           //    noCache=true;
           DLOG(SLOG(g_log<<"Executing Lua: '"<<rec->getCode()<<"'"<<endl,
-                    d_slog->info("Executing Lua", "code", Logging::Loggable(rec->getCode()))));
+                    d_slog->info(Logr::Debug, "Executing Lua", "code", Logging::Loggable(rec->getCode()))));
           try {
             auto recvec=luaSynth(d_slog, rec->getCode(), target, rr, d_sd.qname(), p, rec->d_type, s_LUA);
             for (const auto& r : recvec) {
@@ -470,7 +470,7 @@ bool PacketHandler::getBestWildcard(DNSPacket& p, const DNSName &target, DNSName
     B.lookup(QType(QType::ANY), subdomain, d_sd.domain_id, &p);
     if (B.get(rr)) {
       DLOG(SLOG(g_log<<"No wildcard match, ancestor exists"<<endl,
-                d_slog->info("No wildcard match, ancestor exists")));
+                d_slog->info(Logr::Debug, "No wildcard match, ancestor exists")));
       B.lookupEnd();
       break;
     }
@@ -885,12 +885,12 @@ bool PacketHandler::getNSEC3Hashes(bool narrow, const std::string& hashed, bool 
 void PacketHandler::addNSEC3(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const DNSName& target, const DNSName& wildcard, const NSEC3PARAMRecordContent& ns3rc, bool narrow, int mode)
 {
   DLOG(SLOG(g_log<<"addNSEC3() mode="<<mode<<" auth="<<d_sd.qname()<<" target="<<target<<" wildcard="<<wildcard<<endl,
-            d_slog->info("addNSEC3()", "mode", Logging::Loggable(mode), "auth", Logging::Loggable(d_sd.qname()), "target", Logging::Loggable(target), "wildcard", Logging::Loggable(wildcard))));
+            d_slog->info(Logr::Debug, "addNSEC3()", "mode", Logging::Loggable(mode), "auth", Logging::Loggable(d_sd.qname()), "target", Logging::Loggable(target), "wildcard", Logging::Loggable(wildcard))));
 
   if (d_sd.db == nullptr) {
     if(!B.getSOAUncached(d_sd.zonename, d_sd)) {
       DLOG(SLOG(g_log<<"Could not get SOA for domain"<<endl,
-                d_slog->info("Could not get SOA for domain")));
+                d_slog->info(Logr::Debug, "Could not get SOA for domain")));
       return;
     }
   }
@@ -921,13 +921,13 @@ void PacketHandler::addNSEC3(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const 
     unhashed=(mode == 0 || mode == 1 || mode == 5) ? target : closest;
     hashed=hashQNameWithSalt(ns3rc, unhashed);
     DLOG(SLOG(g_log<<"1 hash: "<<toBase32Hex(hashed)<<" "<<unhashed<<endl,
-              d_slog->info("1 hash", "hash", Logging::Loggable(toBase32Hex(hashed)), "unhashed", Logging::Loggable(unhashed))));
+              d_slog->info(Logr::Debug, "1 hash", "hash", Logging::Loggable(toBase32Hex(hashed)), "unhashed", Logging::Loggable(unhashed))));
 
     getNSEC3Hashes(narrow, hashed, false, unhashed, before, after, mode);
 
     if (((mode == 0 && ns3rc.d_flags) ||  mode == 1) && (hashed != before)) {
       DLOG(SLOG(g_log<<"No matching NSEC3, do closest (provable) encloser"<<endl,
-                d_slog->info("No matching NSEC3, do closest (provable) encloser")));
+                d_slog->info(Logr::Debug, "No matching NSEC3, do closest (provable) encloser")));
 
       bool doBreak = false;
       DNSZoneRecord rr;
@@ -947,14 +947,14 @@ void PacketHandler::addNSEC3(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const 
       unhashed=closest;
       hashed=hashQNameWithSalt(ns3rc, unhashed);
       DLOG(SLOG(g_log<<"1 hash: "<<toBase32Hex(hashed)<<" "<<unhashed<<endl,
-                d_slog->info("1 hash", "hash", Logging::Loggable(toBase32Hex(hashed)), "unhashed", Logging::Loggable(unhashed))));
+                d_slog->info(Logr::Debug, "1 hash", "hash", Logging::Loggable(toBase32Hex(hashed)), "unhashed", Logging::Loggable(unhashed))));
 
       getNSEC3Hashes(narrow, hashed, false, unhashed, before, after);
     }
 
     if (!after.empty()) {
       DLOG(SLOG(g_log<<"Done calling for matching, hashed: '"<<toBase32Hex(hashed)<<"' before='"<<toBase32Hex(before)<<"', after='"<<toBase32Hex(after)<<"'"<<endl,
-                d_slog->info("Done calling for matching", "hash", Logging::Loggable(toBase32Hex(hashed)), "before", Logging::Loggable(toBase32Hex(before)), "after", Logging::Loggable(toBase32Hex(after)))));
+                d_slog->info(Logr::Debug, "Done calling for matching", "hash", Logging::Loggable(toBase32Hex(hashed)), "before", Logging::Loggable(toBase32Hex(before)), "after", Logging::Loggable(toBase32Hex(after)))));
       emitNSEC3(p, r, ns3rc, unhashed, before, after, mode);
     }
   }
@@ -969,11 +969,11 @@ void PacketHandler::addNSEC3(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const 
 
     hashed=hashQNameWithSalt(ns3rc, unhashed);
     DLOG(SLOG(g_log<<"2 hash: "<<toBase32Hex(hashed)<<" "<<unhashed<<endl,
-              d_slog->info("2 hash", "hash", Logging::Loggable(toBase32Hex(hashed)), "unhashed", Logging::Loggable(unhashed))));
+              d_slog->info(Logr::Debug, "2 hash", "hash", Logging::Loggable(toBase32Hex(hashed)), "unhashed", Logging::Loggable(unhashed))));
 
     getNSEC3Hashes(narrow, hashed, true, unhashed, before, after);
     DLOG(SLOG(g_log<<"Done calling for covering, hashed: '"<<toBase32Hex(hashed)<<"' before='"<<toBase32Hex(before)<<"', after='"<<toBase32Hex(after)<<"'"<<endl,
-              d_slog->info("Done calling for covering", "hash", Logging::Loggable(toBase32Hex(hashed)), "before", Logging::Loggable(toBase32Hex(before)), "after", Logging::Loggable(toBase32Hex(after)))));
+              d_slog->info(Logr::Debug, "Done calling for covering", "hash", Logging::Loggable(toBase32Hex(hashed)), "before", Logging::Loggable(toBase32Hex(before)), "after", Logging::Loggable(toBase32Hex(after)))));
     emitNSEC3(p, r, ns3rc, unhashed, before, after, mode);
   }
 
@@ -983,11 +983,11 @@ void PacketHandler::addNSEC3(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const 
 
     hashed=hashQNameWithSalt(ns3rc, unhashed);
     DLOG(SLOG(g_log<<"3 hash: "<<toBase32Hex(hashed)<<" "<<unhashed<<endl,
-              d_slog->info("3 hash", "hashed", Logging::Loggable(toBase32Hex(hashed)), "unhashed", Logging::Loggable(unhashed))));
+              d_slog->info(Logr::Debug, "3 hash", "hashed", Logging::Loggable(toBase32Hex(hashed)), "unhashed", Logging::Loggable(unhashed))));
 
     getNSEC3Hashes(narrow, hashed, (mode != 2), unhashed, before, after);
     DLOG(SLOG(g_log<<"Done calling for '*', hashed: '"<<toBase32Hex(hashed)<<"' before='"<<toBase32Hex(before)<<"', after='"<<toBase32Hex(after)<<"'"<<endl,
-              d_slog->info("Done calling for '*'", "hash", Logging::Loggable(toBase32Hex(hashed)), "before", Logging::Loggable(toBase32Hex(before)), "after", Logging::Loggable(toBase32Hex(after)))));
+              d_slog->info(Logr::Debug, "Done calling for '*'", "hash", Logging::Loggable(toBase32Hex(hashed)), "before", Logging::Loggable(toBase32Hex(before)), "after", Logging::Loggable(toBase32Hex(after)))));
     emitNSEC3(p, r, ns3rc, unhashed, before, after, mode);
   }
 }
@@ -995,12 +995,12 @@ void PacketHandler::addNSEC3(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const 
 void PacketHandler::addNSEC(DNSPacket& /* p */, std::unique_ptr<DNSPacket>& r, const DNSName& target, const DNSName& wildcard, int mode)
 {
   DLOG(SLOG(g_log<<"addNSEC() mode="<<mode<<" auth="<<d_sd.qname()<<" target="<<target<<" wildcard="<<wildcard<<endl,
-            d_slog->info("addNSEC()", "mode", Logging::Loggable(mode), "auth", Logging::Loggable(d_sd.qname()), "target", Logging::Loggable(target), "wildcard", Logging::Loggable(wildcard))));
+            d_slog->info(Logr::Debug, "addNSEC()", "mode", Logging::Loggable(mode), "auth", Logging::Loggable(d_sd.qname()), "target", Logging::Loggable(target), "wildcard", Logging::Loggable(wildcard))));
 
   if (d_sd.db == nullptr) {
     if(!B.getSOAUncached(d_sd.zonename, d_sd)) {
       DLOG(SLOG(g_log<<"Could not get SOA for domain"<<endl,
-                d_slog->info("Could not get SOA for domain")));
+                d_slog->info(Logr::Debug, "Could not get SOA for domain")));
       return;
     }
   }
@@ -1492,7 +1492,7 @@ bool PacketHandler::tryWildcard(DNSPacket& p, std::unique_ptr<DNSPacket>& r, DNS
 
   if(rrset.empty()) {
     DLOG(SLOG(g_log<<"Wildcard matched something, but not of the correct type"<<endl,
-              d_slog->info("Wildcard matched something, but not of the correct type")));
+              d_slog->info(Logr::Debug, "Wildcard matched something, but not of the correct type")));
     nodata=true;
   }
   else {
@@ -1812,13 +1812,13 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state, bool re
   }
 
   DLOG(SLOG(g_log<<"Checking for referrals first, unless this is a DS query"<<endl,
-            d_slog->info("Checking for referrals first, unless this is a DS query")));
+            d_slog->info(Logr::Debug, "Checking for referrals first, unless this is a DS query")));
   if(pkt.qtype.getCode() != QType::DS && tryReferral(pkt, state.r, state.target, retargeted)) {
     return true;
   }
 
   DLOG(SLOG(g_log<<"Got no referrals, trying ANY"<<endl,
-            d_slog->info("Got no referrals, trying ANY")));
+            d_slog->info(Logr::Debug, "Got no referrals, trying ANY")));
 
 #ifdef HAVE_LUA_RECORDS
   bool doLua = doLuaRecords();
@@ -1926,10 +1926,10 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state, bool re
   }
 
   DLOG(SLOG(g_log<<"After first ANY query for '"<<state.target<<"', id="<<d_sd.domain_id<<": weDone="<<weDone<<", weHaveUnauth="<<weHaveUnauth<<", weRedirected="<<weRedirected<<", haveAlias='"<<haveAlias<<"'"<<endl,
-            d_slog->info("After first ANY query", "query", Logging::Loggable(state.target), "id", Logging::Loggable(d_sd.domain_id), "weDone", Logging::Loggable(weDone), "weHaveUnauth", Logging::Loggable(weHaveUnauth), "weRedirected", Logging::Loggable(weRedirected), "haveAlias", Logging::Loggable(haveAlias))));
+            d_slog->info(Logr::Debug, "After first ANY query", "query", Logging::Loggable(state.target), "id", Logging::Loggable(d_sd.domain_id), "weDone", Logging::Loggable(weDone), "weHaveUnauth", Logging::Loggable(weHaveUnauth), "weRedirected", Logging::Loggable(weRedirected), "haveAlias", Logging::Loggable(haveAlias))));
   if(pkt.qtype.getCode() == QType::DS && weHaveUnauth &&  !weDone && !weRedirected) {
     DLOG(SLOG(g_log<<"Q for DS of a name for which we do have NS, but for which we don't have DS; need to provide an AUTH answer that shows we don't"<<endl,
-              d_slog->info("Query for DS of a name for which we do have NS, but don't have any DS; need to provide an AUTH answer that shows this")));
+              d_slog->info(Logr::Debug, "Query for DS of a name for which we do have NS, but don't have any DS; need to provide an AUTH answer that shows this")));
     makeNOError(pkt, state.r, state.target, DNSName(), 1);
     return true;
   }
@@ -1945,7 +1945,7 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state, bool re
   // referral for DS query
   if(pkt.qtype.getCode() == QType::DS) {
     DLOG(SLOG(g_log<<"Qtype is DS"<<endl,
-              d_slog->info("QType is DS")));
+              d_slog->info(Logr::Debug, "QType is DS")));
     bool doReferral = true;
     if(d_dk.doesDNSSEC()) {
       for(auto& loopRR: rrset) {
@@ -1969,10 +1969,10 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state, bool re
     }
     if(doReferral) {
       DLOG(SLOG(g_log<<"DS query found no direct result, trying referral now"<<endl,
-                d_slog->info("DS query found no direct result, trying referral now")));
+                d_slog->info(Logr::Debug, "DS query found no direct result, trying referral now")));
       if(tryReferral(pkt, state.r, state.target, retargeted)) {
         DLOG(SLOG(g_log<<"Got referral for DS query"<<endl,
-                  d_slog->info("Got referral for DS query")));
+                  d_slog->info(Logr::Debug, "Got referral for DS query")));
         return true;
       }
     }
@@ -2063,7 +2063,7 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state, bool re
   }
   else if(weHaveUnauth) {
     DLOG(SLOG(g_log<<"Have unauth data, so need to hunt for best NS records"<<endl,
-              d_slog->info("Have unauth data, searching for best NS record")));
+              d_slog->info(Logr::Debug, "Have unauth data, searching for best NS record")));
     if (tryReferral(pkt, state.r, state.target, retargeted)) {
       return true;
     }
@@ -2081,7 +2081,7 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state, bool re
   }
   else {
     DLOG(SLOG(g_log<<"Have some data, but not the right data"<<endl,
-              d_slog->info("Have some data, but not the right data")));
+              d_slog->info(Logr::Debug, "Have some data, but not the right data")));
     makeNOError(pkt, state.r, state.target, DNSName(), 0);
   }
   return true;

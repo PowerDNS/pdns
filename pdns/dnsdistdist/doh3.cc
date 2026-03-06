@@ -168,7 +168,7 @@ public:
     if (!unit->ids.selfGenerated) {
       auto udiff = unit->ids.queryRealTime.udiff();
       VERBOSESLOG(infolog("Got answer from %s, relayed to %s (DoH3, %d bytes), took %d us", unit->downstream->d_config.remote.toStringWithPort(), unit->ids.origRemote.toStringWithPort(), unit->response.size(), udiff),
-                  dnsResponse.getLogger()->info("Got answer from backend, relayed to client"));
+                  dnsResponse.getLogger()->info(Logr::Info, "Got answer from backend, relayed to client"));
 
       auto backendProtocol = unit->downstream->getProtocol();
       if (backendProtocol == dnsdist::Protocol::DoUDP && unit->tcp) {
@@ -514,7 +514,7 @@ static void processDOH3Query(DOH3UnitUniquePtr&& doh3Unit)
 
     if (!dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL.match(remote)) {
       VERBOSESLOG(infolog("Query from %s (DoH3) dropped because of ACL", remote.toStringWithPort()),
-                  dsc->df->getLogger().info("DoH3 query dropped because of ACL", "client.address", Logging::Loggable(remote)));
+                  dsc->df->getLogger().info(Logr::Info, "DoH3 query dropped because of ACL", "client.address", Logging::Loggable(remote)));
       ++dnsdist::metrics::g_stats.aclDrops;
       unit->response.clear();
 
@@ -697,7 +697,7 @@ static void flushResponses(pdns::channel::Receiver<DOH3Unit>& receiver, const Lo
     }
     catch (const std::exception& e) {
       SLOG(errlog("Error while processing response received over DoH3: %s", e.what()),
-           frontendLogger.error(e.what(), "Error while processing response received over DoH3"));
+           frontendLogger.error(Logr::Error, e.what(), "Error while processing response received over DoH3"));
     }
     catch (...) {
       SLOG(errlog("Unspecified error while processing response received over DoH3"),

@@ -412,7 +412,7 @@ static void processExportEtcHosts(std::shared_ptr<SyncRes::domainmap_t>& newMap,
   string fname = ::arg()["etc-hosts-file"];
   ifstream ifs(fname);
   if (!ifs) {
-    log->error(Logr::Warning, "Could not open file for reading", "file", Logging::Loggable(fname));
+    log->info(Logr::Warning, "Could not open file for reading", "file", Logging::Loggable(fname));
     return;
   }
   vector<string> parts;
