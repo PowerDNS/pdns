@@ -182,10 +182,7 @@ class Logger : public Logr::Logger, public std::enable_shared_from_this<const Lo
 public:
   bool enabled(Logr::Priority) const override;
 
-  void info(const std::string& msg) const override;
   void info(Logr::Priority, const std::string& msg) const override;
-  void error(int err, const std::string& msg) const override;
-  void error(const std::string& err, const std::string& msg) const override;
   void error(Logr::Priority, int err, const std::string& msg) const override;
   void error(Logr::Priority, const std::string& err, const std::string& msg) const override;
 
@@ -205,7 +202,6 @@ public:
   void setVerbosity(size_t verbosity);
 
 private:
-  void logMessage(const std::string& msg, const std::optional<std::string>& err) const;
   void logMessage(const std::string& msg, Logr::Priority prio, const std::optional<std::string>& err) const;
   std::shared_ptr<const Logger> getptr() const;
 
@@ -233,7 +229,7 @@ constexpr bool g_slogStructured = true;
 // A typical use:
 //
 // SLOG(g_log<<Logger::Warning<<"Unable to parse configuration file '"<<configname<<"'"<<endl,
-//      startupLog->error("No such file", "Unable to parse configuration file", "config_file", Logging::Loggable(configname));
+//      startupLog->error(Logr::Warning, "No such file", "Unable to parse configuration file", "config_file", Logging::Loggable(configname));
 //
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define SLOG(oldStyle, slogCall) \
