@@ -116,12 +116,12 @@ usa-ext      IN    LUA    A   ( ";include('config')                         "
                                 "{{EUEips, USAips}}, settings)              ")
 
 usa-unreachable IN LUA    A   ( ";settings={{stringmatch='Programming in Lua', minimumFailures=2}} "
-                                "USAips={{'{prefix}.103', '192.168.42.105'}}"
+                                "USAips={{'{prefix}.103', '192.168.42.106'}}"
                                 "return ifurlup('http://www.lua.org:8080/', "
                                 "USAips, settings)                          ")
 
 usa-slowcheck IN   LUA    A   ( ";settings={{stringmatch='Programming in Lua', interval=8}} "
-                                "USAips={{'{prefix}.103', '192.168.42.105'}}"
+                                "USAips={{'{prefix}.103', '192.168.42.107'}}"
                                 "return ifurlup('http://www.lua.org:8080/', "
                                 "USAips, settings)                          ")
 
@@ -1415,7 +1415,7 @@ lua-health-checks-interval=5
         Simple ifurlup() test with minimumFailures option set.
         """
         reachable = ["{prefix}.103".format(prefix=self._PREFIX)]
-        unreachable = ["192.168.42.105"]
+        unreachable = ["192.168.42.106"]
         ips = reachable + unreachable
         all_rrs = []
         reachable_rrs = []
@@ -1435,12 +1435,12 @@ lua-health-checks-interval=5
 
         # The above request being sent at time T, the following events occur:
         # T+00: results computed using backupSelector as no data available yet
-        # T+00: checker thread starts
-        # T+02: 192.168.42.105 found down, first time, still kept up
-        # T+05: checker thread wakes up, decides to skip 192.168.42.105 check,
+        # T+00: checker thread starts (if it was not running already)
+        # T+02: 192.168.42.106 found down, first time, still kept up
+        # T+05: checker thread wakes up, decides to skip 192.168.42.106 check,
         #       as its last update time was T+02, hence no check until T+07
-        # T+10: checker thread wakes up
-        # T+12: 192.168.42.105 found down, second time, finally marked down
+        # T+10: checker thread wakes up, performs the 192.168.42.106 check
+        # T+12: 192.168.42.106 found down, second time, finally marked down
 
         # Due to minimumFailures set, there should be no error yet.
         time.sleep(5)
@@ -1462,7 +1462,7 @@ lua-health-checks-interval=5
         Simple ifurlup() test with interval option set.
         """
         reachable = ["{prefix}.103".format(prefix=self._PREFIX)]
-        unreachable = ["192.168.42.105"]
+        unreachable = ["192.168.42.107"]
         ips = reachable + unreachable
         all_rrs = []
         reachable_rrs = []
