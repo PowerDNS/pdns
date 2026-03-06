@@ -452,11 +452,17 @@ def is_compiler_clang():
     compiler = os.getenv('COMPILER', 'clang')
     return compiler == 'clang'
 
-def get_c_compiler():
-    return f'clang-{clang_version}' if is_compiler_clang() else 'gcc'
+def get_c_compiler(versioned_clang=True):
+    compiler = f'clang' if is_compiler_clang() else 'gcc'
+    if is_compiler_clang() and versioned_clang:
+        compiler = f'clang-{clang_version}'
+    return compiler
 
-def get_cxx_compiler():
-    return f'clang++-{clang_version}' if is_compiler_clang() else 'g++'
+def get_cxx_compiler(versioned_clang=True):
+    compiler = f'clang++' if is_compiler_clang() else 'g++'
+    if is_compiler_clang() and versioned_clang:
+        compiler = f'clang++-{clang_version}'
+    return compiler
 
 def get_optimizations():
     optimizations = os.getenv('OPTIMIZATIONS', 'yes')
@@ -565,31 +571,113 @@ def ci_auth_configure_autotools(c):
         c.run('cat config.log')
         raise UnexpectedExit(res)
 
+AUTH_CONFIGURE_MESON_ALL_BACKENDS_STATIC = " ".join([
+    "-D module-bind=static",
+    "-D module-geoip=static",
+    "-D module-gmysql=static",
+    "-D module-godbc=static",
+    "-D module-gpgsql=static",
+    "-D module-gsqlite3=static",
+    "-D module-ldap=static",
+    "-D module-lmdb=static",
+    "-D module-lua2=static",
+    "-D module-pipe=static",
+    "-D module-remote=static",
+    "-D module-remote-zeromq=true",
+    "-D module-tinydns=static"])
+
+AUTH_CONFIGURE_MESON_LEAST_BACKENDS_STATIC = " ".join([
+    "-D module-bind=static",
+    "-D module-gsqlite3=static",
+    "-D module-remote=static"])
+
+AUTH_CONFIGURE_MESON_TOOLS = " ".join([
+    "-D tools=true",
+    "-D tools-ixfrdist=true"])
+
+AUTH_CONFIGURE_MESON_FEATURES = " ".join([
+    "-D dns-over-tls=enabled",
+    "-D experimental-pkcs11=enabled",
+    "-D experimental-gss-tsig=enabled"])
+
+@task(help={
+    'features': 'What feature-set to build, one of "full" or "least". The former builds all backends, the latter only bind, gsqlite3 and remote',
+    'build_dir': 'Where Meson should configure into',
+    'clang': 'Use clang instead of GCC',
+    'ccache': 'Use ccache',
+    'tools': 'Build all tools (sdig, ixfrdist, etc.)',
+    'unit_tests': 'Enable unit tests',
+    'coverage': 'Create code coverage files',
+})
+def dev_auth_configure_meson(c, features, build_dir="build", clang=False, ccache=False, tools=True, unit_tests=False, coverage=False):
+    additional_ld_flags = ''
+    unittests=''
+    cc = 'gcc'
+    cxx = 'g++'
+    if clang:
+        additional_ld_flags += '-fuse-ld=lld '
+        cc = 'clang'
+        cxx = 'clang++'
+
+    os.environ['COMPILER'] = cc
+
+    if ccache:
+        cc = f'ccache {cc}'
+        cxx = f'ccache {cxx}'
+    if unit_tests:
+        unittests = '-D unit-tests=true'
+
+    cflags = " ".join([get_cflags()])
+    cxxflags = " ".join([get_cxxflags()])
+
+    tools_opts = ""
+    if tools:
+      tools_opts = AUTH_CONFIGURE_MESON_TOOLS
+
+    features_set = ""
+    if features == 'full':
+      features_set = AUTH_CONFIGURE_MESON_FEATURES
+      backend_opts = AUTH_CONFIGURE_MESON_ALL_BACKENDS_STATIC
+    elif features == 'least':
+      backend_opts = AUTH_CONFIGURE_MESON_LEAST_BACKENDS_STATIC
+    else:
+        raise KeyError(f'features should be one of "full" or "least", not "{features}"')
+
+    if coverage:
+        os.environ['COVERAGE'] = 'yes'
+
+    reconf_opt = "--reconfigure" if os.path.exists(build_dir) else ""
+
+    env = " ".join([
+        f"CC='{cc}'",
+        f"CXX='{cxx}'",
+        f'CFLAGS="{cflags}"',
+        f'LDFLAGS="{additional_ld_flags}"',
+        f'CXXFLAGS="{cxxflags}"',
+    ])
+    c.run(" ".join([
+        f'{env} meson setup {build_dir}',
+        reconf_opt,
+        features_set,
+        tools_opts,
+        backend_opts,
+        unittests,
+        "-D hardening-fortify-source=auto",
+        "-D auto-var-init=pattern",
+        get_coverage(meson=True),
+        get_sanitizers(meson=True)
+    ]))
+
 def ci_auth_configure_meson(c, build_dir):
     unittests = get_unit_tests(meson=True, auth=True)
     fuzz_targets = get_fuzzing_targets(meson=True)
     configure_cmd = " ".join([
         "LDFLAGS='-L/usr/local/lib -Wl,-rpath,/usr/local/lib'",
         get_base_configure_cmd_meson(build_dir),
-        "-D module-bind=static",
-        "-D module-geoip=static",
-        "-D module-gmysql=static",
-        "-D module-godbc=static",
-        "-D module-gpgsql=static",
-        "-D module-gsqlite3=static",
-        "-D module-ldap=static",
-        "-D module-lmdb=static",
-        "-D module-lua2=static",
-        "-D module-pipe=static",
-        "-D module-remote=static",
-        "-D module-remote-zeromq=true",
-        "-D module-tinydns=static",
-        "-D tools=true",
-        "-D dns-over-tls=enabled",
-        "-D experimental-pkcs11=enabled",
-        "-D experimental-gss-tsig=enabled",
         "-D prefix=/opt/pdns-auth",
-        "-D tools-ixfrdist=true",
+        AUTH_CONFIGURE_MESON_FEATURES,
+        AUTH_CONFIGURE_MESON_ALL_BACKENDS_STATIC,
+        AUTH_CONFIGURE_MESON_TOOLS,
         unittests,
         fuzz_targets
     ])
@@ -609,6 +697,81 @@ def ci_auth_configure(c, build_dir=None, meson=False):
             with c.cd(f'{build_dir}'):
                 ci_auth_configure_autotools(c)
 
+REC_CONFIGURE_MESON_FEATURE_SET_FULL = " ".join([
+    "-D dns-over-tls=enabled",
+    "-D tls-libssl=enabled",
+    "-D tls-gnutls=enabled",
+    "-D nod=enabled",
+    "-D libcap=enabled",
+    "-D lua=luajit",
+    "-D snmp=enabled"])
+
+REC_CONFIGURE_MESON_FEATURE_SET_LEAST = " ".join([
+    "-D dnstap=disabled",
+    "-D dns-over-tls=disabled",
+    "-D tls-libssl=disabled",
+    "-D tls-gnutls=disabled",
+    "-D nod=disabled",
+    "-D systemd-service=disabled",
+    "-D lua=luajit",
+    "-D libcap=disabled",
+    "-D libcurl=disabled",
+    "-D signers-libsodium=disabled",
+    "-D snmp=disabled"])
+
+@task
+def dev_rec_configure_meson(c, features, build_dir="build", clang=False, ccache=False, unit_tests=False, coverage=False):
+    additional_ld_flags = ''
+    unittests=''
+    cc = 'gcc'
+    cxx = 'g++'
+    if clang:
+        additional_ld_flags += '-fuse-ld=lld '
+        cc = 'clang'
+        cxx = 'clang++'
+
+    os.environ['COMPILER'] = cc
+
+    if ccache:
+        cc = f'ccache {cc}'
+        cxx = f'ccache {cxx}'
+    if unit_tests:
+        unittests = '-D unit-tests=true'
+
+    cflags = " ".join([get_cflags()])
+    cxxflags = " ".join([get_cxxflags()])
+
+    if features == 'full':
+      features_set = REC_CONFIGURE_MESON_FEATURE_SET_FULL
+    elif features == "least":
+      features_set = REC_CONFIGURE_MESON_FEATURE_SET_LEAST
+    else:
+        raise KeyError(f'features should be one of "full", "least", not "{features}"')
+
+    if coverage:
+        os.environ['COVERAGE'] = 'yes'
+
+    reconf_opt = "--reconfigure" if os.path.exists(build_dir) else ""
+
+    env = " ".join([
+        f"CC='{cc}'",
+        f"CXX='{cxx}'",
+        f'CFLAGS="{cflags}"',
+        f'LDFLAGS="{additional_ld_flags}"',
+        f'CXXFLAGS="{cxxflags}"',
+    ])
+    c.run(" ".join([
+        f'{env} meson setup {build_dir}',
+        reconf_opt,
+        features_set,
+        unittests,
+        "-D hardening-fortify-source=auto",
+        "-D auto-var-init=pattern",
+        get_coverage(meson=True),
+        get_sanitizers(meson=True)
+    ]))
+
+
 def ci_rec_configure_meson(c, features, build_dir):
     builder_version = os.getenv('BUILDER_VERSION')
     dist_dir = '/tmp/rec-meson-dist-build'
@@ -622,33 +785,16 @@ def ci_rec_configure_meson(c, features, build_dir):
         configure_cmd = " ".join([
             "LDFLAGS='-L/usr/local/lib -Wl,-rpath,/usr/local/lib'",
             get_base_configure_cmd_meson(build_dir, src_dir=src_dir),
-            "-D prefix=/opt/pdns-recursor",
-            "-D dns-over-tls=enabled",
-            "-D tls-libssl=enabled",
-            "-D tls-gnutls=enabled",
-            "-D nod=enabled",
-            "-D libcap=enabled",
-            "-D lua=luajit",
-            "-D snmp=enabled",
             unittests,
+            REC_CONFIGURE_MESON_FEATURE_SET_FULL
         ])
     else:
         configure_cmd = " ".join([
             "LDFLAGS='-L/usr/local/lib -Wl,-rpath,/usr/local/lib'",
             get_base_configure_cmd_meson(build_dir, src_dir=src_dir),
             "-D prefix=/opt/pdns-recursor",
-            "-D dnstap=disabled",
-            "-D dns-over-tls=disabled",
-            "-D tls-libssl=disabled",
-            "-D tls-gnutls=disabled",
-            "-D nod=disabled",
-            "-D systemd-service=disabled",
-            "-D lua=luajit",
-            "-D libcap=disabled",
-            "-D libcurl=disabled",
-            "-D signers-libsodium=disabled",
-            "-D snmp=disabled",
             unittests,
+            REC_CONFIGURE_MESON_FEATURE_SET_LEAST
         ])
     res = c.run(configure_cmd, warn=True)
     if res.exited != 0:
@@ -705,6 +851,39 @@ def ci_rec_configure(c, features, build_dir=None, meson=False):
         else:
             ci_rec_configure_autotools(c, features)
 
+DNSDIST_CONFIGURE_CXXFLAGS_LEAST= " ".join([
+    '-DDISABLE_COMPLETION',
+    '-DDISABLE_DELAY_PIPE',
+    '-DDISABLE_DYNBLOCKS',
+    '-DDISABLE_PROMETHEUS',
+    '-DDISABLE_PROTOBUF',
+    '-DDISABLE_BUILTIN_HTML',
+    '-DDISABLE_CARBON',
+    '-DDISABLE_SECPOLL',
+    '-DDISABLE_DEPRECATED_DYNBLOCK',
+    '-DDISABLE_LUA_WEB_HANDLERS',
+    '-DDISABLE_NON_FFI_DQ_BINDINGS',
+    '-DDISABLE_POLICIES_BINDINGS',
+    '-DDISABLE_PACKETCACHE_BINDINGS',
+    '-DDISABLE_DOWNSTREAM_BINDINGS',
+    '-DDISABLE_COMBO_ADDR_BINDINGS',
+    '-DDISABLE_CLIENT_STATE_BINDINGS',
+    '-DDISABLE_QPS_LIMITER_BINDINGS',
+    '-DDISABLE_SUFFIX_MATCH_BINDINGS',
+    '-DDISABLE_NETMASK_BINDINGS',
+    '-DDISABLE_DNSNAME_BINDINGS',
+    '-DDISABLE_DNSHEADER_BINDINGS',
+    '-DDISABLE_RECVMMSG',
+    '-DDISABLE_WEB_CACHE_MANAGEMENT',
+    '-DDISABLE_WEB_CONFIG',
+    '-DDISABLE_RULES_ALTERING_QUERIES',
+    '-DDISABLE_ECS_ACTIONS',
+    '-DDISABLE_TOP_N_BINDINGS',
+    '-DDISABLE_OCSP_STAPLING',
+    '-DDISABLE_HASHED_CREDENTIALS',
+    '-DDISABLE_FALSE_SHARING_PADDING',
+    '-DDISABLE_NPN'])
+
 @task
 def ci_dnsdist_configure(c, features, builder, build_dir):
     additional_flags = ''
@@ -713,37 +892,7 @@ def ci_dnsdist_configure(c, features, builder, build_dir):
         additional_ld_flags += '-fuse-ld=lld '
 
     if features == 'least':
-        additional_flags = '-DDISABLE_COMPLETION \
-                            -DDISABLE_DELAY_PIPE \
-                            -DDISABLE_DYNBLOCKS \
-                            -DDISABLE_PROMETHEUS \
-                            -DDISABLE_PROTOBUF \
-                            -DDISABLE_BUILTIN_HTML \
-                            -DDISABLE_CARBON \
-                            -DDISABLE_SECPOLL \
-                            -DDISABLE_DEPRECATED_DYNBLOCK \
-                            -DDISABLE_LUA_WEB_HANDLERS \
-                            -DDISABLE_NON_FFI_DQ_BINDINGS \
-                            -DDISABLE_POLICIES_BINDINGS \
-                            -DDISABLE_PACKETCACHE_BINDINGS \
-                            -DDISABLE_DOWNSTREAM_BINDINGS \
-                            -DDISABLE_COMBO_ADDR_BINDINGS \
-                            -DDISABLE_CLIENT_STATE_BINDINGS \
-                            -DDISABLE_QPS_LIMITER_BINDINGS \
-                            -DDISABLE_SUFFIX_MATCH_BINDINGS \
-                            -DDISABLE_NETMASK_BINDINGS \
-                            -DDISABLE_DNSNAME_BINDINGS \
-                            -DDISABLE_DNSHEADER_BINDINGS \
-                            -DDISABLE_RECVMMSG \
-                            -DDISABLE_WEB_CACHE_MANAGEMENT \
-                            -DDISABLE_WEB_CONFIG \
-                            -DDISABLE_RULES_ALTERING_QUERIES \
-                            -DDISABLE_ECS_ACTIONS \
-                            -DDISABLE_TOP_N_BINDINGS \
-                            -DDISABLE_OCSP_STAPLING \
-                            -DDISABLE_HASHED_CREDENTIALS \
-                            -DDISABLE_FALSE_SHARING_PADDING \
-                            -DDISABLE_NPN'
+        additional_flags = DNSDIST_CONFIGURE_CXXFLAGS_LEAST
 
     if builder == 'meson':
         cmd = ci_dnsdist_configure_meson(c, features, additional_flags, additional_ld_flags, build_dir)
@@ -805,49 +954,55 @@ def ci_dnsdist_configure_autotools(features, additional_flags, additional_ld_fla
         '--prefix=/opt/dnsdist'
     ])
 
+DNSDIST_CONFIGURE_MESON_FEATURE_SET_FULL = " ".join([
+    '-D cdb=enabled',
+    '-D dnscrypt=enabled',
+    '-D dnstap=enabled',
+    '-D ebpf=enabled',
+    '-D ipcipher=enabled',
+    '-D ipcrypt2=enabled',
+    '-D libedit=enabled',
+    '-D libsodium=enabled',
+    '-D lmdb=enabled',
+    '-D nghttp2=enabled',
+    '-D re2=enabled',
+    '-D systemd-service=enabled',
+    '-D tls-gnutls=enabled',
+    '-D dns-over-https=enabled',
+    '-D dns-over-http3=enabled',
+    '-D dns-over-quic=enabled',
+    '-D dns-over-tls=enabled',
+    '-D reproducible=true',
+    '-D snmp=enabled',
+    '-D yaml=enabled'])
+
+DNSDIST_CONFIGURE_MESON_FEATURE_SET_LEAST = " ".join([
+    '-D cdb=disabled',
+    '-D dnscrypt=disabled',
+    '-D dnstap=disabled',
+    '-D ebpf=disabled',
+    '-D ipcipher=disabled',
+    '-D ipcrypt2=disabled',
+    '-D libedit=disabled',
+    '-D libsodium=disabled',
+    '-D lmdb=disabled',
+    '-D nghttp2=disabled',
+    '-D re2=disabled',
+    '-D systemd-service=disabled',
+    '-D tls-gnutls=disabled',
+    '-D dns-over-https=disabled',
+    '-D dns-over-http3=disabled',
+    '-D dns-over-quic=disabled',
+    '-D dns-over-tls=disabled',
+    '-D reproducible=false',
+    '-D snmp=disabled',
+    '-D yaml=disabled'])
+
 def ci_dnsdist_configure_meson(c, features, additional_flags, additional_ld_flags, build_dir):
     if features == 'full':
-      features_set = '-D cdb=enabled \
-                      -D dnscrypt=enabled \
-                      -D dnstap=enabled \
-                      -D ebpf=enabled \
-                      -D ipcipher=enabled \
-                      -D ipcrypt2=enabled \
-                      -D libedit=enabled \
-                      -D libsodium=enabled \
-                      -D lmdb=enabled \
-                      -D nghttp2=enabled \
-                      -D re2=enabled \
-                      -D systemd-service=enabled \
-                      -D tls-gnutls=enabled \
-                      -D dns-over-https=enabled \
-                      -D dns-over-http3=enabled \
-                      -D dns-over-quic=enabled \
-                      -D dns-over-tls=enabled \
-                      -D reproducible=true \
-                      -D snmp=enabled \
-                      -D yaml=enabled'
+      features_set = DNSDIST_CONFIGURE_MESON_FEATURE_SET_FULL
     else:
-      features_set = '-D cdb=disabled \
-                      -D dnscrypt=disabled \
-                      -D dnstap=disabled \
-                      -D ebpf=disabled \
-                      -D ipcipher=disabled \
-                      -D ipcrypt2=disabled \
-                      -D libedit=disabled \
-                      -D libsodium=disabled \
-                      -D lmdb=disabled \
-                      -D nghttp2=disabled \
-                      -D re2=disabled \
-                      -D systemd-service=disabled \
-                      -D tls-gnutls=disabled \
-                      -D dns-over-https=disabled \
-                      -D dns-over-http3=disabled \
-                      -D dns-over-quic=disabled \
-                      -D dns-over-tls=disabled \
-                      -D reproducible=false \
-                      -D snmp=disabled \
-                      -D yaml=disabled'
+      features_set = DNSDIST_CONFIGURE_MESON_FEATURE_SET_LEAST
     unittests = get_unit_tests(meson=True)
     fuzztargets = get_fuzzing_targets(meson=True)
     tools = f'''AR=llvm-ar-{clang_version} RANLIB=llvm-ranlib-{clang_version}''' if is_compiler_clang() else ''
@@ -880,6 +1035,70 @@ def ci_dnsdist_configure_meson(c, features, additional_flags, additional_ld_flag
         get_coverage(meson=True),
         get_sanitizers(meson=True)
     ])
+
+@task(help={
+    'features': 'What feature-set to build, one of "full" or "least"',
+    'build_dir': 'Where Meson should configure into',
+    'clang': 'Use clang instead of GCC',
+    'ccache': 'Use ccache',
+    'unit_tests': 'Enable unit tests',
+    'coverage': 'Create code coverage files',
+})
+def dev_dnsdist_configure_meson(c, features, build_dir="build", clang=False, ccache=False, unit_tests=False, coverage=False):
+    '''
+    Configures dnsdist using Meson.
+    '''
+    additional_ld_flags = ''
+    unittests=''
+    cc = 'gcc'
+    cxx = 'g++'
+    if clang:
+        additional_ld_flags += '-fuse-ld=lld '
+        cc = 'clang'
+        cxx = 'clang++'
+
+    os.environ['COMPILER'] = cc
+
+    if ccache:
+        cc = f'ccache {cc}'
+        cxx = f'ccache {cxx}'
+    if unit_tests:
+        unittests = '-D unit-tests=true'
+
+
+    cflags = " ".join([get_cflags()])
+    cxxflags = " ".join([get_cxxflags()])
+
+    if features == 'full':
+      features_set = DNSDIST_CONFIGURE_MESON_FEATURE_SET_FULL
+    elif features == "least":
+      features_set = DNSDIST_CONFIGURE_MESON_FEATURE_SET_LEAST
+      cxxflags = " ".join([cxxflags, DNSDIST_CONFIGURE_CXXFLAGS_LEAST])
+    else:
+        raise KeyError(f'features should be one of "full", "least", not "{features}"')
+
+    if coverage:
+        os.environ['COVERAGE'] = 'yes'
+
+    reconf_opt = "--reconfigure" if os.path.exists(build_dir) else ""
+
+    env = " ".join([
+        f"CC='{cc}'",
+        f"CXX='{cxx}'",
+        f'CFLAGS="{cflags}"',
+        f'LDFLAGS="{additional_ld_flags}"',
+        f'CXXFLAGS="{cxxflags}"',
+    ])
+    c.run(" ".join([
+        f'{env} meson setup {build_dir}',
+        reconf_opt,
+        features_set,
+        unittests,
+        "-D hardening-fortify-source=auto",
+        "-D auto-var-init=pattern",
+        get_coverage(meson=True),
+        get_sanitizers(meson=True)
+    ]))
 
 @task
 def ci_auth_make(c):
