@@ -106,12 +106,19 @@ Record creation functions
   - ``byteslimit``: Limit the maximum download size to ``byteslimit`` bytes (default 0 meaning no limit).
   - ``minimumFailures``: The number of unsuccessful checks in a row required to mark the address as down. Defaults to 1 if not specified, i.e. report as down on the first unsuccessful check.
   - ``failOnIncompleteCheck``: if set to ``true``, return SERVFAIL instead of applying ``backupSelector``, if none of the addresses have completed their background health check yet.
+  - ``headers``: A table of HTTP headers to be added to the request. Any ``_`` in the header name will be replaced with a ``-``.
 
   An example of a list of address sets:
 
   .. code-block:: lua
 
     ifurlup("https://example.com/", { {"192.0.2.20", "203.0.113.4"}, {"203.0.113.2"} })
+
+  An example usage of headers:
+
+  .. code-block:: lua
+
+    ifurlup("https://example.com/", { {"192.0.2.20", "203.0.113.4"}, {"203.0.113.2"} }, { headers={X_API_Key="example-key", Cache_Control="no-cache"} })
 
 .. function:: ifurlextup(groups-of-address-url-pairs[, options])
 

@@ -143,6 +143,13 @@ private:
       int http_code = pdns::checked_stoi<int>(cd.getOption<string>("httpcode", "200"));
 
       MiniCurl minicurl(useragent, false);
+      
+      MiniCurl::MiniCurlHeaders mch;
+      for (auto const & header:cd.getOption<LuaAssociativeTable<string>>("headers", {})) {
+        auto headername = header.first;
+        std::replace(headername.begin(), headername.end(), '_', '-');
+        mch.emplace(headername, header.second);
+      }
 
       string content;
       const ComboAddress* rem = nullptr;
@@ -155,10 +162,10 @@ private:
 
       if (cd.opts.count("source")) {
         ComboAddress src{cd.getOption<string>("source")};
-        content=minicurl.getURL(cd.url, rem, &src, timeout, nullptr, false, false, byteslimit, http_code);
+        content=minicurl.getURL(cd.url, rem, &src, timeout, &mch, false, false, byteslimit, http_code);
       }
       else {
-        content=minicurl.getURL(cd.url, rem, nullptr, timeout, nullptr, false, false, byteslimit, http_code);
+        content=minicurl.getURL(cd.url, rem, nullptr, timeout, &mch, false, false, byteslimit, http_code);
       }
       if (cd.opts.count("stringmatch") && content.find(cd.getOption<string>("stringmatch")) == string::npos) {
         throw std::runtime_error(boost::str(boost::format("unable to match content with `%s`") % cd.getOption<string>("stringmatch")));
