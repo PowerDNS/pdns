@@ -60,6 +60,11 @@ When set to 'yes', PowerDNS will look up the A and AAAA records of the name in t
 This is useful when your secondary servers do not understand ALIAS, or should not look up the addresses themselves.
 Note that secondaries will not automatically follow changes in those A/AAAA records unless you AXFR regularly.
 
+If secondaries are operated with name server software which is not capable of synthesizing ALIAS records, the zone will probably go out of sync.
+Because updated ALIAS target records will not result in an increment of the zone serial number, secondaries won't consider the zone as in need of an update, and won't pull its contents.
+To keep secondary name servers up to date with the ALIAS target, you'll have to periodically retransfer the zone from PowerDNS to force ALIAS-resolving during AXFR.
+This can be done either in a dumb-but-reliable way, for example every minute, or using some "out of band" logic to retransfer zones only when the ALIAS target actually changes.
+
 If the ALIAS target cannot be resolved, the AXFR will fail.
 When set to 'ignore-errors', an unresolvable ALIAS target will be omitted from the outgoing transfer.
 
