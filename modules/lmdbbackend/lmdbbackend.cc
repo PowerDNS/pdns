@@ -1988,7 +1988,7 @@ bool LMDBBackend::listComments(domainid_t domain_id)
 {
   DomainInfo info;
   if (!findDomain(domain_id, info)) {
-    throw DBException("Domain with id '" + std::to_string(domain_id) + "not found");
+    throw DBException("Domain with id '" + std::to_string(domain_id) + "' not found");
   }
 
   d_lookupstate.domain = info.zone;
