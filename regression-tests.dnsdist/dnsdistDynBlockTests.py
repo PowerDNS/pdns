@@ -484,7 +484,7 @@ class DynBlocksTest(DNSDistTest):
         self.assertEqual(response, receivedResponse)
 
     def doTestRCodeRatioViaProtocol(self, name, rcode, noerrorcount, rcodecount, method, cached=False):
-        sender = sender = getattr(self, method)
+        sender = getattr(self, method)
         query = dns.message.make_query(name, 'A', 'IN')
         response = dns.message.make_response(query)
         rrset = dns.rrset.from_text(name,
