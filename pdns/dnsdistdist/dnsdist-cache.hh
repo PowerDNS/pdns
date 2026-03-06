@@ -22,9 +22,9 @@
 #pragma once
 
 #include <atomic>
-#include <unordered_map>
 
 #include "iputils.hh"
+#include "dnsdist-cache-containers.hh"
 #include "lock.hh"
 #include "noinitvector.hh"
 #include "stat_t.hh"
@@ -35,6 +35,30 @@ struct DNSQuestion;
 class DNSDistPacketCache : boost::noncopyable
 {
 public:
+  enum class EvictionType : uint8_t
+  {
+    NoEviction,
+    Lru,
+    Sieve,
+  };
+
+  static bool parseEvictionType(const std::string& type, EvictionType& ev)
+  {
+    if (type == "none") {
+      ev = EvictionType::NoEviction;
+      return true;
+    }
+    if (type == "lru") {
+      ev = EvictionType::Lru;
+      return true;
+    }
+    if (type == "sieve") {
+      ev = EvictionType::Sieve;
+      return true;
+    }
+    return false;
+  }
+
   struct CacheSettings
   {
     std::unordered_set<uint16_t> d_optionsToSkip{EDNSOptionCode::COOKIE, EDNSOptionCode::PADDING};
@@ -53,6 +77,7 @@ public:
     bool d_parseECS{false};
     bool d_keepStaleData{false};
     bool d_shuffle{false};
+    EvictionType d_eviction{EvictionType::NoEviction};
   };
 
   DNSDistPacketCache(CacheSettings settings);
@@ -87,6 +112,26 @@ public:
   [[nodiscard]] bool keepStaleData() const
   {
     return d_settings.d_keepStaleData;
+  }
+
+  [[nodiscard]] EvictionType eviction() const
+  {
+    return d_settings.d_eviction;
+  }
+
+  [[nodiscard]] bool keepStaleEntriesOnUpServers() const
+  {
+    return d_settings.d_eviction != EvictionType::NoEviction;
+  }
+
+  [[nodiscard]] bool checkSizeBeforeInsert() const
+  {
+    return d_settings.d_eviction == EvictionType::NoEviction;
+  }
+
+  [[nodiscard]] bool getNeedsWriteLock() const
+  {
+    return d_settings.d_eviction == EvictionType::Lru;
   }
 
   [[nodiscard]] size_t getMaximumEntrySize() const { return d_settings.d_maximumEntrySize; }
@@ -133,18 +178,36 @@ private:
     }
     ~CacheShard() = default;
 
-    void setSize(size_t maxSize)
+    void init(size_t maxSize, EvictionType eviction)
     {
-      d_map.write_lock()->reserve(maxSize);
+      auto lock = d_container.write_lock();
+      switch (eviction) {
+      case EvictionType::NoEviction:
+        *lock = std::make_unique<NoEvictionCache<CacheValue>>(maxSize);
+        break;
+      case EvictionType::Lru:
+        *lock = std::make_unique<LruCache<CacheValue>>(maxSize);
+        break;
+      case EvictionType::Sieve:
+        *lock = std::make_unique<SieveCache<CacheValue>>(maxSize);
+        break;
+      default:
+        throw std::logic_error("eviction type not known");
+      }
     }
 
-    SharedLockGuarded<std::unordered_map<uint32_t, CacheValue>> d_map{};
+    SharedLockGuarded<std::unique_ptr<CacheContainer<CacheValue>>> d_container{};
+
     std::atomic<uint64_t> d_entriesCount{0};
   };
 
   [[nodiscard]] bool cachedValueMatches(const CacheValue& cachedValue, uint16_t queryFlags, const DNSName& qname, uint16_t qtype, uint16_t qclass, bool receivedOverUDP, bool dnssecOK, const std::optional<Netmask>& subnet) const;
   [[nodiscard]] uint32_t getShardIndex(uint32_t key) const;
-  bool insertLocked(std::unordered_map<uint32_t, CacheValue>& map, uint32_t key, CacheValue& newValue);
+  bool insertLocked(CacheContainer<CacheValue>& map, uint32_t key, CacheValue& newValue);
+
+  [[nodiscard]] std::pair<bool, bool> getReadLocked(const CacheContainer<CacheValue>& map, DNSQuestion& dnsQuestion, bool& stale, PacketBuffer& response, time_t& age, uint32_t key, bool recordMiss, time_t now, uint32_t allowExpired, bool receivedOverUDP, bool dnssecOK, const std::optional<Netmask>& subnet, bool truncatedOK, uint16_t queryId, const DNSName::string_t& dnsQName);
+  [[nodiscard]] std::pair<bool, bool> getWriteLocked(CacheContainer<CacheValue>& map, DNSQuestion& dnsQuestion, bool& stale, PacketBuffer& response, time_t& age, uint32_t key, bool recordMiss, time_t now, uint32_t allowExpired, bool receivedOverUDP, bool dnssecOK, const std::optional<Netmask>& subnet, bool truncatedOK, uint16_t queryId, const DNSName::string_t& dnsQName);
+  [[nodiscard]] std::pair<bool, bool> getLocked(const CacheValue& value, DNSQuestion& dnsQuestion, bool& stale, PacketBuffer& response, time_t& age, bool recordMiss, time_t now, uint32_t allowExpired, bool receivedOverUDP, bool dnssecOK, const std::optional<Netmask>& subnet, bool truncatedOK, uint16_t queryId, const DNSName::string_t& dnsQName);
 
   std::vector<CacheShard> d_shards{};
 
