@@ -132,10 +132,10 @@ private:
 
       if (cd.opts.count("source")) {
         ComboAddress src(cd.opts.at("source"));
-        content=minicurl.getURL(cd.url, rem, &src, timeout, false, false, byteslimit, http_code);
+        content=minicurl.getURL(cd.url, rem, &src, timeout, nullptr, false, false, byteslimit, http_code);
       }
       else {
-        content=minicurl.getURL(cd.url, rem, nullptr, timeout, false, false, byteslimit, http_code);
+        content=minicurl.getURL(cd.url, rem, nullptr, timeout, nullptr, false, false, byteslimit, http_code);
       }
       if (cd.opts.count("stringmatch") && content.find(cd.opts.at("stringmatch")) == string::npos) {
         throw std::runtime_error(boost::str(boost::format("unable to match content with `%s`") % cd.opts.at("stringmatch")));
