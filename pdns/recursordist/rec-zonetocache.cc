@@ -202,7 +202,7 @@ static std::vector<std::string> getURL([[maybe_unused]] const RecZoneToCache::Co
 #ifdef HAVE_LIBCURL
   MiniCurl miniCurl;
   ComboAddress local = config.d_local;
-  std::string reply = miniCurl.getURL(config.d_sources.at(0), nullptr, local == ComboAddress() ? nullptr : &local, static_cast<int>(config.d_timeout), false, true);
+  std::string reply = miniCurl.getURL(config.d_sources.at(0), nullptr, local == ComboAddress() ? nullptr : &local, nullptr, static_cast<int>(config.d_timeout), false, true);
   if (config.d_maxReceivedBytes > 0 && reply.size() > config.d_maxReceivedBytes) {
     // We should actually detect this *during* the GET
     throw std::runtime_error("Retrieved data exceeds maxReceivedBytes");
