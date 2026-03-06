@@ -82,17 +82,6 @@ bool HttpRequest::compareAuthorization(const CredentialsHolder& credentials) con
   return auth_ok;
 }
 
-bool HttpRequest::compareHeader(const string &header_name, const string &expected_value) const
-{
-  auto header = headers.find(header_name);
-  if (header == headers.end()) {
-    return false;
-  }
-
-  // this gets rid of terminating zeros
-  return (0==strcmp(header->second.c_str(), expected_value.c_str()));
-}
-
 bool HttpRequest::compareHeader(const string &header_name, const CredentialsHolder& credentials) const
 {
   auto header = headers.find(header_name);

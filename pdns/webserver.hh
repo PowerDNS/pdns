@@ -61,7 +61,6 @@ public:
   // checks password _only_.
   bool compareAuthorization(const CredentialsHolder& expectedCredentials) const;
   bool compareHeader(const string &header_name, const CredentialsHolder& expectedCredentials) const;
-  bool compareHeader(const string &header_name, const string &expected_value) const;
 
   void setSLog(Logr::log_t log)
   {
