@@ -214,7 +214,7 @@ size_t nsspeeds_t::putPB(time_t cutoff, const std::string& pbuf)
     log->error(Logr::Error, e.what(), "Exception processing cache dump");
   }
   catch (...) {
-    log->error(Logr::Error, "Other exception processing cache dump");
+    log->info(Logr::Error, "Other exception processing cache dump");
   }
   return 0;
 }

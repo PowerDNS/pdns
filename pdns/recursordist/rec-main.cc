@@ -2362,7 +2362,7 @@ static void handlePipeRequest(int fileDesc, FDMultiplexer::funcparam_t& /* var *
   }
   catch (const MOADNSException& moadnsexception) {
     if (g_logCommonErrors) {
-      g_slog->withName("runtime")->error(moadnsexception.what(), "PIPE function created an exception", "exception", Logging::Loggable("MOADNSException"));
+      g_slog->withName("runtime")->error(Logr::Error, moadnsexception.what(), "PIPE function created an exception", "exception", Logging::Loggable("MOADNSException"));
     }
   }
   catch (const std::exception& stdException) {
@@ -2942,14 +2942,14 @@ static pair<int, bool> doConfig(Logr::log_t startupLog, const string& configname
     if (config == "check") {
       try {
         if (!::arg().file(configname)) {
-          startupLog->error("No such file", "Unable to open configuration file", "config_file", Logging::Loggable(configname));
+          startupLog->error(Logr::Error, "No such file", "Unable to open configuration file", "config_file", Logging::Loggable(configname));
           return {1, true};
         }
         ::arg().parse(argc, argv);
         return {0, true};
       }
       catch (const ArgException& argException) {
-        startupLog->error("Cannot parse configuration", "Unable to parse configuration file", "config_file", Logging::Loggable(configname), "reason", Logging::Loggable(argException.reason));
+        startupLog->error(Logr::Error, "Cannot parse configuration", "Unable to parse configuration file", "config_file", Logging::Loggable(configname), "reason", Logging::Loggable(argException.reason));
         return {1, true};
       }
     }
@@ -2959,7 +2959,7 @@ static pair<int, bool> doConfig(Logr::log_t startupLog, const string& configname
     }
     else if (config == "diff") {
       if (!::arg().laxFile(configname)) {
-        startupLog->error("No such file", "Unable to open configuration file", "config_file", Logging::Loggable(configname));
+        startupLog->error(Logr::Error, "No such file", "Unable to open configuration file", "config_file", Logging::Loggable(configname));
         return {1, true};
       }
       ::arg().laxParse(argc, argv);
@@ -2967,7 +2967,7 @@ static pair<int, bool> doConfig(Logr::log_t startupLog, const string& configname
     }
     else {
       if (!::arg().laxFile(configname)) {
-        startupLog->error("No such file", "Unable to open configuration file", "config_file", Logging::Loggable(configname));
+        startupLog->error(Logr::Error, "No such file", "Unable to open configuration file", "config_file", Logging::Loggable(configname));
         return {1, true};
       }
       ::arg().laxParse(argc, argv);
@@ -3191,7 +3191,7 @@ int main(int argc, char** argv)
         return ret;
       }
       if (!::arg().file(configname)) {
-        startupLog->error("No such file", "Unable to open configuration file", "config_file", Logging::Loggable(configname));
+        startupLog->error(Logr::Error, "No such file", "Unable to open configuration file", "config_file", Logging::Loggable(configname));
       }
       else {
         if (!::arg().mustDo("enable-old-settings")) {

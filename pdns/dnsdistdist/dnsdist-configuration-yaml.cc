@@ -371,7 +371,7 @@ static bool handleTLSConfiguration(const Context& context, const dnsdist::rust::
     }
     else {
       SLOG(errlog("DOH bind %s is configured to use an unknown library ('%s')", bind.listen_address, frontend->d_library),
-           context.logger->error(Logr::Error, "DoH frontend is configured to use an unknown library", "frontend.address", Logging::Loggable(bind.listen_address), "library", Logging::Loggable(frontend->d_library)));
+           context.logger->info(Logr::Error, "DoH frontend is configured to use an unknown library", "frontend.address", Logging::Loggable(bind.listen_address), "library", Logging::Loggable(frontend->d_library)));
       return false;
     }
 

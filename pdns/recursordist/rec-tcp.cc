@@ -368,7 +368,7 @@ static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, s
         }
         catch (const MOADNSException& moadnsexception) {
           if (g_logCommonErrors) {
-            g_slogtcpin->error(moadnsexception.what(), "Error parsing a query packet for tag determination", "qname", Logging::Loggable(qname), "exception", Logging::Loggable("MOADNSException"));
+            g_slogtcpin->error(Logr::Error, moadnsexception.what(), "Error parsing a query packet for tag determination", "qname", Logging::Loggable(qname), "exception", Logging::Loggable("MOADNSException"));
           }
         }
         catch (const std::exception& stdException) {

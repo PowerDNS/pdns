@@ -1249,7 +1249,7 @@ public:
         }
         else {
           SLOG(infolog("Answer to %s for %s %s (%s) with id %u", response->ids.origRemote.toStringWithPort(), response->ids.qname.toString(), QType(response->ids.qtype).toString(), RCode::to_s(response->getHeader()->rcode), response->getHeader()->id),
-               response->getLogger()->info("Logging response packet"));
+               response->getLogger()->info(Logr::Info, "Logging response packet"));
         }
       }
     }

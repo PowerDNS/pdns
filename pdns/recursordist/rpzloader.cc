@@ -692,7 +692,7 @@ void RPZIXFRTracker(RPZTrackerParams params, uint64_t configGeneration)
   /* we can _never_ modify this zone directly, we need to do a full copy then replace the existing zone */
   std::shared_ptr<DNSFilterEngine::Zone> oldZone = g_luaconfs.getLocal()->dfe.getZone(params.zoneXFRParams.zoneIdx);
   if (!oldZone) {
-    logger->error(Logr::Error, "Unable to retrieve RPZ zone from configuration", "index", Logging::Loggable(params.zoneXFRParams.zoneIdx));
+    logger->info(Logr::Error, "Unable to retrieve RPZ zone from configuration", "index", Logging::Loggable(params.zoneXFRParams.zoneIdx));
     return;
   }
 

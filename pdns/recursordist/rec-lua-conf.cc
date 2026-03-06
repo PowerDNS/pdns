@@ -351,7 +351,7 @@ static void rpzPrimary(LuaConfigItems& lci, const boost::variant<string, std::ve
     lci.d_slog->error(Logr::Error, e.what(), "Exception configuring 'rpzPrimary'", "exception", Logging::Loggable("std::exception"));
   }
   catch (const PDNSException& e) {
-    lci.d_slog->error(Logr::Error, e.reason, "Exception configuring 'rpzPrimary'", Logging::Loggable("PDNSException"));
+    lci.d_slog->error(Logr::Error, e.reason, "Exception configuring 'rpzPrimary'", "exception", Logging::Loggable("PDNSException"));
   }
 }
 
@@ -651,10 +651,10 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
         parseProtobufOptions(vars, lci.outgoingProtobufExportConfig);
       }
       catch (std::exception& e) {
-        lci.d_slog->error(Logr::Error, "Exception while starting outgoing protobuf logger", "exception", Logging::Loggable("std::exception"));
+        lci.d_slog->error(Logr::Error, e.what(), "Exception while starting outgoing protobuf logger", "exception", Logging::Loggable("std::exception"));
       }
       catch (PDNSException& e) {
-        lci.d_slog->error(Logr::Error, "Exception while starting outgoing protobuf logger", "exception", Logging::Loggable("PDNSException"));
+        lci.d_slog->error(Logr::Error, e.reason, "Exception while starting outgoing protobuf logger", "exception", Logging::Loggable("PDNSException"));
       }
     }
     else {
@@ -687,14 +687,14 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
         parseFrameStreamOptions(vars, lci.frameStreamExportConfig);
       }
       catch (std::exception& e) {
-        lci.d_slog->error(Logr::Error, "Exception reading config for dnstap framestream logger", "exception", Logging::Loggable("std::exception"));
+        lci.d_slog->error(Logr::Error, e.what(), "Exception reading config for dnstap framestream logger", "exception", Logging::Loggable("std::exception"));
       }
       catch (PDNSException& e) {
-        lci.d_slog->error(Logr::Error, "Exception reading config for dnstap framestream logger", "exception", Logging::Loggable("PDNSException"));
+        lci.d_slog->error(Logr::Error, e.reason, "Exception reading config for dnstap framestream logger", "exception", Logging::Loggable("PDNSException"));
       }
     }
     else {
-      lci.d_slog->info(Logr::Error,  "Only one dnstapFrameStreamServer() directive can be configured",  "existing", Logging::Loggable(lci.frameStreamExportConfig.servers.at(0)));
+      lci.d_slog->info(Logr::Error, "Only one dnstapFrameStreamServer() directive can be configured",  "existing", Logging::Loggable(lci.frameStreamExportConfig.servers.at(0)));
     }
   });
   // NOLINTNEXTLINE(performance-unnecessary-value-param) Lua wrapper does not handle optional &
@@ -720,14 +720,14 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
         parseFrameStreamOptions(vars, lci.nodFrameStreamExportConfig);
       }
       catch (std::exception& e) {
-        lci.d_slog->error(Logr::Error, "Exception reading config for dnstap NOD framestream logger", "exception", Logging::Loggable("std::exception"));
+        lci.d_slog->error(Logr::Error, e.what(), "Exception reading config for dnstap NOD framestream logger", "exception", Logging::Loggable("std::exception"));
       }
       catch (PDNSException& e) {
-        lci.d_slog->error(Logr::Error, "Exception reading config for dnstap NOD framestream logger", "exception", Logging::Loggable("PDNSException"));
+        lci.d_slog->error(Logr::Error, e.reason, "Exception reading config for dnstap NOD framestream logger", "exception", Logging::Loggable("PDNSException"));
       }
     }
     else {
-      lci.d_slog->info(Logr::Error,  "Only one dnstapNODFrameStreamServer() directive can be configured",  "existing", Logging::Loggable(lci.nodFrameStreamExportConfig.servers.at(0)));
+      lci.d_slog->info(Logr::Error, "Only one dnstapNODFrameStreamServer() directive can be configured",  "existing", Logging::Loggable(lci.nodFrameStreamExportConfig.servers.at(0)));
     }
   });
 #endif /* HAVE_FSTRM */

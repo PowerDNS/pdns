@@ -1953,7 +1953,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
       std::rethrow_if_nested(e);
     }
     catch (const std::exception& ne) {
-      resolver.d_slog->error(Logr::Error, ne.what(), "Nested exception in resolver context", Logging::Loggable("std::exception"));
+      resolver.d_slog->error(Logr::Error, ne.what(), "Nested exception in resolver context", "exception", Logging::Loggable("std::exception"));
     }
     catch (...) {
       ;
@@ -2321,7 +2321,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
           }
           catch (const MOADNSException& moadnsexception) {
             if (g_logCommonErrors) {
-              g_slogudpin->error(moadnsexception.what(), "Error parsing a query packet for tag determination", "qname", Logging::Loggable(qname), "exception", Logging::Loggable("MOADNSException"));
+              g_slogudpin->error(Logr::Error, moadnsexception.what(), "Error parsing a query packet for tag determination", "qname", Logging::Loggable(qname), "exception", Logging::Loggable("MOADNSException"));
             }
           }
           catch (const std::exception& stdException) {

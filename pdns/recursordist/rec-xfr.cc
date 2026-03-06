@@ -471,7 +471,7 @@ void FWCatZoneXFR::zoneXFRTracker(ZoneXFRParams params, uint64_t configGeneratio
     oldZone = g_luaconfs.getLocal()->catalogzones.at(params.zoneIdx).d_catz;
   }
   if (!oldZone) {
-    logger->error(Logr::Error, "Unable to retrieve catalog zone from configuration", "index", Logging::Loggable(params.zoneIdx));
+    logger->info(Logr::Error, "Unable to retrieve catalog zone from configuration", "index", Logging::Loggable(params.zoneIdx));
     return;
   }
 
