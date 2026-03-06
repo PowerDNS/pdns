@@ -1,12 +1,17 @@
+#include <boost/format/format_fwd.hpp>
+#include <stdexcept>
 #include <thread>
 #include <future>
 #include <boost/format.hpp>
 #include <boost/uuid/string_generator.hpp>
+#include <boost/algorithm/string/erase.hpp>
 #include <utility>
 #include <algorithm>
 #include <random>
+#include "misc.hh"
 #include "qtype.hh"
 #include <tuple>
+#include <variant>
 #include "version.hh"
 #include "ext/luawrapper/include/LuaContext.hpp"
 #include "lock.hh"
@@ -41,10 +46,15 @@
 
 extern int  g_luaRecordExecLimit;
 
+// Slightly different from dnsdist-lua.hh, as we need ordering
+template <class T>
+using LuaAssociativeTable = std::map<std::string, T>;
+
 using iplist_t = vector<pair<int, string> >;
 using wiplist_t = std::unordered_map<int, string>;
 using ipunitlist_t = vector<pair<int, iplist_t> >;
-using opts_t = std::unordered_map<string,string>;
+using optvalue_t = std::variant<LuaAssociativeTable<string>, string>;
+using opts_t = LuaAssociativeTable<optvalue_t>;
 
 class IsUpOracle
 {
@@ -55,9 +65,34 @@ private:
     string url;
     opts_t opts;
     std::shared_ptr<Logr::Logger> slog;
+
+    template <class T>
+    T getOption(const std::string &optName) const
+    {
+      if (!opts.count(optName)) {
+        throw std::runtime_error(boost::str(boost::format("%s does not exist") % optName));
+      }
+      if (!std::holds_alternative<T>(opts.at(optName))) {
+        throw std::runtime_error(boost::str(boost::format("%s is not of the correct type") % optName));
+      }
+      return std::get<T>(opts.at(optName));
+    }
+    template <class T>
+    T getOption(const std::string &optName, const T& default_value) const
+    {
+      if (!opts.count(optName)) {
+        return default_value;
+      }
+      if (!std::holds_alternative<T>(opts.at(optName))) {
+        throw std::runtime_error(boost::str(boost::format("%s is not of the correct type") % optName));
+      }
+      return std::get<T>(opts.at(optName));
+    }
+
     bool operator<(const CheckDesc& rhs) const
     {
-      std::map<string,string> oopts, rhsoopts;
+      std::map<string, optvalue_t> oopts, rhsoopts;
+
       for(const auto& m : opts)
         oopts[m.first]=m.second;
       for(const auto& m : rhs.opts)
@@ -102,22 +137,10 @@ private:
 
     string remstring;
     try {
-      int timeout = 2;
-      if (cd.opts.count("timeout")) {
-        timeout = std::atoi(cd.opts.at("timeout").c_str());
-      }
-      string useragent = productName();
-      if (cd.opts.count("useragent")) {
-        useragent = cd.opts.at("useragent");
-      }
-      size_t byteslimit = 0;
-      if (cd.opts.count("byteslimit")) {
-        byteslimit = static_cast<size_t>(std::atoi(cd.opts.at("byteslimit").c_str()));
-      }
-      int http_code = 200;
-      if (cd.opts.count("httpcode") != 0) {
-        http_code = pdns::checked_stoi<int>(cd.opts.at("httpcode"));
-      }
+      int timeout = std::atoi(cd.getOption<string>("timeout", "2").c_str());
+      string useragent = cd.getOption("useragent", productName());
+      size_t byteslimit = pdns::checked_stoi<size_t>(cd.getOption<string>("byteslimit", "0"));
+      int http_code = pdns::checked_stoi<int>(cd.getOption<string>("httpcode", "200"));
 
       MiniCurl minicurl(useragent, false);
 
@@ -131,14 +154,14 @@ private:
       }
 
       if (cd.opts.count("source")) {
-        ComboAddress src(cd.opts.at("source"));
+        ComboAddress src{cd.getOption<string>("source")};
         content=minicurl.getURL(cd.url, rem, &src, timeout, nullptr, false, false, byteslimit, http_code);
       }
       else {
         content=minicurl.getURL(cd.url, rem, nullptr, timeout, nullptr, false, false, byteslimit, http_code);
       }
-      if (cd.opts.count("stringmatch") && content.find(cd.opts.at("stringmatch")) == string::npos) {
-        throw std::runtime_error(boost::str(boost::format("unable to match content with `%s`") % cd.opts.at("stringmatch")));
+      if (cd.opts.count("stringmatch") && content.find(cd.getOption<string>("stringmatch")) == string::npos) {
+        throw std::runtime_error(boost::str(boost::format("unable to match content with `%s`") % cd.getOption<string>("stringmatch")));
       }
 
       int weight = 0;
@@ -171,15 +194,12 @@ private:
   void checkTCP(const CheckDesc& cd, const bool status, const bool first) { // NOLINT(readability-identifier-length)
     setThreadName("pdns/lua-c-tcp");
     try {
-      int timeout = 2;
-      if (cd.opts.count("timeout")) {
-        timeout = std::atoi(cd.opts.at("timeout").c_str());
-      }
+      int timeout = std::atoi(cd.getOption<string>("timeout", "2").c_str());
       Socket s(cd.rem.sin4.sin_family, SOCK_STREAM);
       ComboAddress src;
       s.setNonBlocking();
       if (cd.opts.count("source")) {
-        src = ComboAddress(cd.opts.at("source"));
+        src = ComboAddress(cd.getOption<string>("source"));
         s.bind(src);
       }
       s.connect(cd.rem, timeout);
@@ -228,11 +248,9 @@ private:
           time_t checkInterval{0};
           auto lastAccess = std::chrono::system_clock::from_time_t(state->lastAccess);
 
-          if (desc.opts.count("interval") != 0) {
-            checkInterval = std::atoi(desc.opts.at("interval").c_str());
-            if (checkInterval != 0) {
-              interval = std::gcd(interval, checkInterval);
-            }
+          checkInterval = std::atoi(desc.getOption<string>("interval", "0").c_str());
+          if (checkInterval != 0) {
+            interval = std::gcd(interval, checkInterval);
           }
 
           if (not state->first) {
@@ -297,11 +315,9 @@ private:
       state->status = true;
     } else {
       unsigned int minimumFailures = 1;
-      if (cd.opts.count("minimumFailures") != 0) {
-        unsigned int value = std::atoi(cd.opts.at("minimumFailures").c_str());
-        if (value != 0) {
-          minimumFailures = std::max(minimumFailures, value);
-        }
+      unsigned int value = std::atoi(cd.getOption<string>("minimumFailures", "0").c_str());
+      if (value != 0) {
+        minimumFailures = std::max(minimumFailures, value);
       }
       // Since `status' was set to false at constructor time, we need to
       // recompute its value unconditionally to expose "down, but not enough
@@ -355,7 +371,7 @@ int IsUpOracle::isUp(const CheckDesc& cd)
   }
   // try to parse options so we don't insert any malformed content
   if (cd.opts.count("source")) {
-    ComboAddress src(cd.opts.at("source"));
+    ComboAddress src(cd.getOption<string>("source"));
   }
   {
     auto statuses = d_statuses.write_lock();
@@ -368,7 +384,7 @@ int IsUpOracle::isUp(const CheckDesc& cd)
   // a negative value).
   static const std::string foic{"failOnIncompleteCheck"};
   if (cd.opts.count(foic) != 0) {
-    if (cd.opts.at(foic) == "true") {
+    if (cd.getOption<string>(foic) == "true") {
       return -1;
     }
   }
@@ -643,12 +659,13 @@ static bool getAuth(const ZoneName& name, uint16_t qtype, SOAData* soaData, Netm
   }
 }
 
-static std::string getOptionValue(const boost::optional<opts_t>& options, const std::string &name, const std::string &defaultValue)
+template<typename T>
+static T getOptionValue(const boost::optional<opts_t>& options, const std::string &name, const T &defaultValue)
 {
-  string selector=defaultValue;
+  T selector=defaultValue;
   if(options) {
     if(options->count(name))
-      selector=options->find(name)->second;
+      selector = std::get<T>(options->find(name)->second);
   }
   return selector;
 }
@@ -933,7 +950,7 @@ static vector<string> genericIfUp(Logr::log_t slog, const boost::variant<iplist_
       }
     }
     if(!available.empty()) {
-      vector<ComboAddress> res = useSelector(slog, getOptionValue(options, "selector", "random"), s_lua_record_ctx->bestwho, available);
+      vector<ComboAddress> res = useSelector(slog, getOptionValue<string>(options, "selector", "random"), s_lua_record_ctx->bestwho, available);
       return convComboAddressListToString(res);
     }
   }
@@ -949,7 +966,7 @@ static vector<string> genericIfUp(Logr::log_t slog, const boost::variant<iplist_
     ret.insert(ret.end(), unit.begin(), unit.end());
   }
 
-  vector<ComboAddress> res = useSelector(slog, getOptionValue(options, "backupSelector", "random"), s_lua_record_ctx->bestwho, ret);
+  vector<ComboAddress> res = useSelector(slog, getOptionValue<string>(options, "backupSelector", "random"), s_lua_record_ctx->bestwho, ret);
   return convComboAddressListToString(res);
 }
 
@@ -1013,7 +1030,7 @@ static string lua_createReverse(Logr::log_t slog, const string &format, boost::o
       const auto& uom = *exceptions;
       for (const auto& address : uom) {
         if(ComboAddress(address.first, 0) == req) {
-          return address.second;
+          return std::get<string>(address.second);
         }
       }
     }
@@ -1192,7 +1209,7 @@ static string lua_createReverse6(Logr::log_t slog, const string &format, boost::
       for(const auto& addr: addrs) {
         // this makes sure we catch all forms of the address
         if (ComboAddress(addr.first, 0) == ip6) {
-          return addr.second;
+          return std::get<string>(addr.second);
         }
       }
     }
@@ -1293,7 +1310,7 @@ static vector<string> lua_ifurlextup(Logr::log_t slog, const vector<pair<int, op
       // unit: ["192.0.2.1"] = "https://example.com"
       ComboAddress address(ipStr);
       candidates.push_back(address);
-      int status = g_up.isUp(slog, ca_unspec, url, opts);
+      int status = g_up.isUp(slog, ca_unspec, std::get<string>(url), opts);
       if (status > 0) {
         available.push_back(address);
       }
@@ -1302,7 +1319,7 @@ static vector<string> lua_ifurlextup(Logr::log_t slog, const vector<pair<int, op
       }
     }
     if(!available.empty()) {
-      vector<ComboAddress> res = useSelector(slog, getOptionValue(options, "selector", "random"), s_lua_record_ctx->bestwho, available);
+      vector<ComboAddress> res = useSelector(slog, getOptionValue<string>(options, "selector", "random"), s_lua_record_ctx->bestwho, available);
       return convComboAddressListToString(res);
     }
   }
@@ -1313,7 +1330,7 @@ static vector<string> lua_ifurlextup(Logr::log_t slog, const vector<pair<int, op
   }
 
   // Apply backupSelector on all candidates
-  vector<ComboAddress> res = useSelector(slog, getOptionValue(options, "backupSelector", "random"), s_lua_record_ctx->bestwho, candidates);
+  vector<ComboAddress> res = useSelector(slog, getOptionValue<string>(options, "backupSelector", "random"), s_lua_record_ctx->bestwho, candidates);
   return convComboAddressListToString(res);
 }
 
