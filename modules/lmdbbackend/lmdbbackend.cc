@@ -701,6 +701,10 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
     throw std::runtime_error("LMDB backend does not support multiple instances");
   }
 
+  if (g_slogStructured) {
+    d_slog = g_slog->withName("lmdb" + suffix);
+  }
+
   d_views = ::arg().mustDo("views"); // This is a global setting
 
   setArgPrefix("lmdb" + suffix);
@@ -817,13 +821,14 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
         }
 
         if (s_shards != configShards) {
-          g_log << Logger::Warning
-                << "Note: configured number of lmdb shards ("
-                << atoi(getArg("shards").c_str())
-                << ") is different from on-disk ("
-                << s_shards
-                << "). Using on-disk shard number"
-                << endl;
+          SLOG(g_log << Logger::Warning
+                     << "Note: configured number of lmdb shards ("
+                     << configShards
+                     << ") is different from on-disk ("
+                     << s_shards
+                     << "). Using on-disk shard number"
+                     << endl,
+               d_slog->info(Logr::Warning, "Note: configured number of lmdb shards differs from on-disk; using the on-disk value", "configured", Logging::Loggable(configShards), "on-disk", Logging::Loggable(s_shards)));
         }
       }
       else {
@@ -1955,7 +1960,8 @@ bool LMDBBackend::listSubZone(const ZoneName& target, domainid_t domain_id)
 void LMDBBackend::lookupInternal(const QType& type, const DNSName& qdomain, domainid_t zoneId, DNSPacket* /* p */, bool include_disabled)
 {
   if (d_dolog) {
-    g_log << Logger::Warning << "Got lookup for " << qdomain << "|" << type.toString() << " in zone " << zoneId << endl;
+    SLOG(g_log << Logger::Warning << "Got lookup for " << qdomain << "|" << type.toString() << " in zone " << zoneId << endl,
+         d_slog->info(Logr::Warning, "lookup", "domain", Logging::Loggable(qdomain), "type", Logging::Loggable(type), "zone id", Logging::Loggable(zoneId)));
     d_dtime.set();
   }
 
@@ -2018,13 +2024,15 @@ void LMDBBackend::lookupStart(domainid_t domain_id, const std::string& match, bo
   if (d_lookupstate.cursor->prefix(match, key, val) != 0) {
     d_lookupstate.reset(); // will cause get() to fail
     if (dolog) {
-      g_log << Logger::Warning << "Query " << ((long)(void*)this) << ": " << d_dtime.udiffNoReset() << " us to execute (found nothing)" << endl;
+      SLOG(g_log << Logger::Warning << "Query " << ((long)(void*)this) << ": " << d_dtime.udiffNoReset() << " us to execute (found nothing)" << endl,
+           d_slog->info(Logr::Warning, "query returned no results", "microseconds", Logging::Loggable(d_dtime.udiffNoReset())));
     }
     return;
   }
 
   if (dolog) {
-    g_log << Logger::Warning << "Query " << ((long)(void*)this) << ": " << d_dtime.udiffNoReset() << " us to execute" << endl;
+    SLOG(g_log << Logger::Warning << "Query " << ((long)(void*)this) << ": " << d_dtime.udiffNoReset() << " us to execute" << endl,
+         d_slog->info(Logr::Warning, "query returned results", "microseconds", Logging::Loggable(d_dtime.udiffNoReset())));
   }
 }
 
@@ -2449,7 +2457,7 @@ bool LMDBBackend::getCatalogMembers(const ZoneName& catalog, vector<CatalogInfo>
   vector<DomainInfo> scratch;
 
   try {
-    getAllDomainsFiltered(&scratch, [&catalog, &members, &type](DomainInfo& di) {
+    getAllDomainsFiltered(&scratch, [this, &catalog, &members, &type](DomainInfo& di) {
       if ((type == CatalogInfo::CatalogType::Producer && di.kind != DomainInfo::Primary) || (type == CatalogInfo::CatalogType::Consumer && di.kind != DomainInfo::Secondary) || di.catalog != catalog) {
         return false;
       }
@@ -2462,7 +2470,8 @@ bool LMDBBackend::getCatalogMembers(const ZoneName& catalog, vector<CatalogInfo>
         ci.fromJson(di.options, type);
       }
       catch (const std::runtime_error& e) {
-        g_log << Logger::Warning << __PRETTY_FUNCTION__ << " options '" << di.options << "' for zone '" << di.zone << "' is no valid JSON: " << e.what() << endl;
+        SLOG(g_log << Logger::Warning << __PRETTY_FUNCTION__ << " options '" << di.options << "' for zone '" << di.zone << "' is no valid JSON: " << e.what() << endl,
+             d_slog->error(Logr::Warning, e.what(), "zone options are not in valid JSON format", "zone", Logging::Loggable(di.zone), "options", Logging::Loggable(di.options)));
         members.clear();
         throw getCatalogMembersReturnFalseException();
       }
@@ -2573,7 +2582,7 @@ bool LMDBBackend::addDomainKey(const ZoneName& name, const KeyData& key, int64_t
 
   // all this just to get the tag - while most of our callers (except b2b-migrate) already have a dpk
   DNSKEYRecordContent dkrc;
-  auto keyEngine = shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(dkrc, key.content));
+  auto keyEngine = shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(d_slog, dkrc, key.content));
   DNSSECPrivateKey dpk;
   dpk.setKey(keyEngine, key.flags);
   auto tag = dpk.getDNSKEY().getTag();
@@ -3547,11 +3556,24 @@ public:
   LMDBLoader()
   {
     BackendMakers().report(std::make_unique<LMDBFactory>());
-    g_log << Logger::Info << "[lmdbbackend] This is the lmdb backend version " VERSION
+    // If this module is not loaded dynamically at runtime, this code runs
+    // as part of a global constructor, before the structured logger has a
+    // chance to be set up, so fallback to simple logging in this case.
+    if (!g_slogStructured || !g_slog) {
+      g_log << Logger::Info << "[lmdbbackend] This is the lmdb backend version " VERSION
 #ifndef REPRODUCIBLE
-          << " (" __DATE__ " " __TIME__ ")"
+            << " (" __DATE__ " " __TIME__ ")"
 #endif
-          << " reporting" << endl;
+            << " reporting" << endl;
+    }
+    else {
+      g_slog->withName("lmdbbackend")->info(Logr::Info, "LMDB backend starting", "version", Logging::Loggable(VERSION)
+#ifndef REPRODUCIBLE
+                                                                                              ,
+                                            "build date", Logging::Loggable(__DATE__ " " __TIME__)
+#endif
+      );
+    }
   }
 };
 

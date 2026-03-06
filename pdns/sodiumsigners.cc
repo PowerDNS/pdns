@@ -13,8 +13,8 @@ extern "C"
 class SodiumED25519DNSCryptoKeyEngine : public DNSCryptoKeyEngine
 {
 public:
-  explicit SodiumED25519DNSCryptoKeyEngine(unsigned int algo) :
-    DNSCryptoKeyEngine(algo)
+  explicit SodiumED25519DNSCryptoKeyEngine(Logr::log_t slog, unsigned int algo) :
+    DNSCryptoKeyEngine(slog, algo)
   {}
   string getName() const override { return "Sodium ED25519"; }
   void create(unsigned int bits) override;
@@ -56,9 +56,9 @@ public:
   void fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap) override;
   void fromPublicKeyString(const std::string& content) override;
 
-  static std::unique_ptr<DNSCryptoKeyEngine> maker(unsigned int algorithm)
+  static std::unique_ptr<DNSCryptoKeyEngine> maker(Logr::log_t slog, unsigned int algorithm)
   {
-    return make_unique<SodiumED25519DNSCryptoKeyEngine>(algorithm);
+    return make_unique<SodiumED25519DNSCryptoKeyEngine>(slog, algorithm);
   }
 
 private:

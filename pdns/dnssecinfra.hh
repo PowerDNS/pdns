@@ -36,7 +36,7 @@ class UeberBackend;
 class DNSCryptoKeyEngine
 {
   public:
-    explicit DNSCryptoKeyEngine(unsigned int algorithm) : d_algorithm(algorithm) {}
+    explicit DNSCryptoKeyEngine(Logr::log_t slog, unsigned int algorithm) : d_slog(slog), d_algorithm(algorithm) {}
     virtual ~DNSCryptoKeyEngine() = default;
     [[nodiscard]] virtual string getName() const = 0;
 
@@ -123,7 +123,7 @@ class DNSCryptoKeyEngine
       return true;
     }
 
-    static std::unique_ptr<DNSCryptoKeyEngine> makeFromISCFile(DNSKEYRecordContent& drc, const char* fname);
+    static std::unique_ptr<DNSCryptoKeyEngine> makeFromISCFile(Logr::log_t slog, DNSKEYRecordContent& drc, const char* fname);
 
     /**
      * \brief Creates a key engine from a PEM file.
@@ -143,7 +143,7 @@ class DNSCryptoKeyEngine
      * \return A key engine corresponding to the requested algorithm and populated with
      * the contents of the PEM file.
      */
-    static std::unique_ptr<DNSCryptoKeyEngine> makeFromPEMFile(DNSKEYRecordContent& drc, uint8_t algorithm, std::FILE& inputFile, const std::string& filename);
+    static std::unique_ptr<DNSCryptoKeyEngine> makeFromPEMFile(Logr::log_t slog, DNSKEYRecordContent& drc, uint8_t algorithm, std::FILE& inputFile, const std::string& filename);
 
     /**
      * \brief Creates a key engine from a PEM string.
@@ -161,26 +161,26 @@ class DNSCryptoKeyEngine
      * \return A key engine corresponding to the requested algorithm and populated with
      * the contents of the PEM string.
      */
-    static std::unique_ptr<DNSCryptoKeyEngine> makeFromPEMString(DNSKEYRecordContent& drc, uint8_t algorithm, const std::string& contents);
+    static std::unique_ptr<DNSCryptoKeyEngine> makeFromPEMString(Logr::log_t slog, DNSKEYRecordContent& drc, uint8_t algorithm, const std::string& contents);
 
-    static std::unique_ptr<DNSCryptoKeyEngine> makeFromISCString(DNSKEYRecordContent& drc, const std::string& content);
-    static std::unique_ptr<DNSCryptoKeyEngine> makeFromPublicKeyString(unsigned int algorithm, const std::string& raw);
-    static std::unique_ptr<DNSCryptoKeyEngine> make(unsigned int algorithm);
+    static std::unique_ptr<DNSCryptoKeyEngine> makeFromISCString(Logr::log_t slog, DNSKEYRecordContent& drc, const std::string& content);
+    static std::unique_ptr<DNSCryptoKeyEngine> makeFromPublicKeyString(Logr::log_t slog, unsigned int algorithm, const std::string& raw);
+    static std::unique_ptr<DNSCryptoKeyEngine> make(Logr::log_t slog, unsigned int algorithm);
     static bool isAlgorithmSupported(unsigned int algo);
     static bool isAlgorithmSwitchedOff(unsigned int algo);
     static void switchOffAlgorithm(unsigned int algo);
     static bool isDigestSupported(uint8_t digest);
 
-    using maker_t = std::unique_ptr<DNSCryptoKeyEngine> (unsigned int);
+    using maker_t = std::unique_ptr<DNSCryptoKeyEngine> (Logr::log_t, unsigned int);
 
     static void report(unsigned int algorithm, maker_t* maker, bool fallback=false);
-    static void testMakers(unsigned int algorithm, maker_t* creator, maker_t* signer, maker_t* verifier);
-    static vector<pair<uint8_t, string>> listAllAlgosWithBackend();
-    static bool testAll();
-    static bool testOne(int algo);
-    static bool verifyOne(unsigned int algo);
-    static bool testVerify(unsigned int algo, maker_t* verifier);
-    static string listSupportedAlgoNames();
+    static void testMakers(Logr::log_t slog, unsigned int algorithm, maker_t* creator, maker_t* signer, maker_t* verifier);
+    static vector<pair<uint8_t, string>> listAllAlgosWithBackend(Logr::log_t slog);
+    static bool testAll(Logr::log_t slog);
+    static bool testOne(Logr::log_t slog, int algo);
+    static bool verifyOne(Logr::log_t slog, unsigned int algo);
+    static bool testVerify(Logr::log_t slog, unsigned int algo, maker_t* verifier);
+    static string listSupportedAlgoNames(Logr::log_t slog);
 
   private:
     using makers_t = std::map<unsigned int, maker_t *>;
@@ -199,6 +199,7 @@ class DNSCryptoKeyEngine
     static std::unordered_set<unsigned int> s_switchedOff;
 
   protected:
+    Logr::log_t d_slog;
     const unsigned int d_algorithm;
 };
 
@@ -280,7 +281,7 @@ typedef std::set<std::shared_ptr<const DNSRecordContent>, sharedDNSSECRecordComp
 
 string getMessageForRRSET(const DNSName& qname, const RRSIGRecordContent& rrc, const sortedRecords_t& signRecords, bool processRRSIGLabels = false, bool includeRRSIG_RDATA = true);
 
-DSRecordContent makeDSFromDNSKey(const DNSName& qname, const DNSKEYRecordContent& drc, uint8_t digest);
+DSRecordContent makeDSFromDNSKey(Logr::log_t slog, const DNSName& qname, const DNSKEYRecordContent& drc, uint8_t digest);
 
 class DNSSECKeeper;
 
@@ -294,7 +295,7 @@ void decrementHash(std::string& raw);
 
 void addRRSigs(DNSSECKeeper& dsk, UeberBackend& ueber, const std::set<ZoneName>& authSet, vector<DNSZoneRecord>& rrs, DNSPacket* packet=nullptr);
 
-void addTSIG(DNSPacketWriter& pw, TSIGRecordContent& trc, const DNSName& tsigkeyname, const string& tsigsecret, const string& tsigprevious, bool timersonly);
-bool validateTSIG(const std::string& packet, size_t sigPos, const TSIGTriplet& tt, const TSIGRecordContent& trc, const std::string& previousMAC, const std::string& theirMAC, bool timersOnly, unsigned int dnsHeaderOffset=0);
+void addTSIG(Logr::log_t slog, DNSPacketWriter& pw, TSIGRecordContent& trc, const DNSName& tsigkeyname, const string& tsigsecret, const string& tsigprevious, bool timersonly);
+bool validateTSIG(Logr::log_t slog, const std::string& packet, size_t sigPos, const TSIGTriplet& tt, const TSIGRecordContent& trc, const std::string& previousMAC, const std::string& theirMAC, bool timersOnly, unsigned int dnsHeaderOffset=0);
 
 uint64_t signatureCacheSize(const std::string& str);

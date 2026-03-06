@@ -558,7 +558,7 @@ static bool RPZTrackerIteration(RPZTrackerParams& params, const DNSName& zoneNam
     }
 
     try {
-      deltas = getIXFRDeltas(primary, zoneName, dnsRecord, params.zoneXFRParams.xfrTimeout, true, params.zoneXFRParams.tsigtriplet, &local, params.zoneXFRParams.maxReceivedMBytes);
+      deltas = getIXFRDeltas(logger, primary, zoneName, dnsRecord, params.zoneXFRParams.xfrTimeout, true, params.zoneXFRParams.tsigtriplet, &local, params.zoneXFRParams.maxReceivedMBytes);
 
       /* no need to try another primary */
       break;

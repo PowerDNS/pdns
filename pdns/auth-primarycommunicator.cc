@@ -59,33 +59,42 @@ void CommunicatorClass::queueNotifyDomain(const DomainInfo& di, UeberBackend* B)
 
       for (const auto& ns : nsset) {
         vector<string> nsips = fns.lookup(ns, B);
-        if (nsips.empty())
-          g_log << Logger::Warning << "Unable to queue notification of domain '" << di.zone << "' to nameserver '" << ns << "': nameserver does not resolve!" << endl;
-        else
+        if (nsips.empty()) {
+          SLOG(g_log << Logger::Warning << "Unable to queue notification of domain '" << di.zone << "' to nameserver '" << ns << "': nameserver does not resolve!" << endl,
+               d_slog->info(Logr::Warning, "Unable to queue notification, nameserver does not resolve!", "domain", Logging::Loggable(di.zone), "nameserver", Logging::Loggable(ns)));
+        }
+        else {
           for (const auto& nsip : nsips) {
             const ComboAddress caIp(nsip, 53);
             if (!d_preventSelfNotification || !AddressIsUs(caIp)) {
-              if (!d_onlyNotify.match(&caIp))
-                g_log << Logger::Notice << "Skipped notification of domain '" << di.zone << "' to " << ns << " because " << caIp << " does not match only-notify." << endl;
-              else
+              if (!d_onlyNotify.match(&caIp)) {
+                SLOG(g_log << Logger::Notice << "Skipped notification of domain '" << di.zone << "' to " << ns << " because " << caIp << " does not match only-notify." << endl,
+                     d_slog->info(Logr::Notice, "Skipped notification because address does not match only-notify", "domain", Logging::Loggable(di.zone), "nameserver", Logging::Loggable(ns), "address", Logging::Loggable(caIp)));
+              }
+              else {
                 ips.insert(caIp.toStringWithPort());
+              }
             }
           }
+        }
       }
 
       for (const auto& ip : ips) {
-        g_log << Logger::Notice << "Queued notification of domain '" << di.zone << "' to " << ip << endl;
+        SLOG(g_log << Logger::Notice << "Queued notification of domain '" << di.zone << "' to " << ip << endl,
+             d_slog->info(Logr::Notice, "Queued notification", "domain", Logging::Loggable(di.zone), "address", Logging::Loggable(ip)));
         d_nq.add(di.zone, ip, d_delayNotifications);
         hasQueuedItem = true;
       }
     }
   }
   catch (PDNSException& ae) {
-    g_log << Logger::Error << "Error looking up name servers for " << di.zone << ", cannot notify: " << ae.reason << endl;
+    SLOG(g_log << Logger::Error << "Error looking up name servers for " << di.zone << ", cannot notify: " << ae.reason << endl,
+         d_slog->error(Logr::Error, ae.reason, "Error looking up name servers, cannot notify", "domain", Logging::Loggable(di.zone)));
     return;
   }
   catch (std::exception& e) {
-    g_log << Logger::Error << "Error looking up name servers for " << di.zone << ", cannot notify: " << e.what() << endl;
+    SLOG(g_log << Logger::Error << "Error looking up name servers for " << di.zone << ", cannot notify: " << e.what() << endl,
+         d_slog->error(Logr::Error, e.what(), "Error looking up name servers, cannot notify", "domain", Logging::Loggable(di.zone)));
     return;
   }
 
@@ -95,7 +104,8 @@ void CommunicatorClass::queueNotifyDomain(const DomainInfo& di, UeberBackend* B)
   for (const auto& j : alsoNotify) {
     try {
       const ComboAddress caIp(j, 53);
-      g_log << Logger::Notice << "Queued also-notification of domain '" << di.zone << "' to " << caIp.toStringWithPort() << endl;
+      SLOG(g_log << Logger::Notice << "Queued also-notification of domain '" << di.zone << "' to " << caIp.toStringWithPort() << endl,
+           d_slog->info(Logr::Notice, "Queued also-notification", "domain", Logging::Loggable(di.zone), "target", Logging::Loggable(caIp.toStringWithPort())));
       if (!ips.count(caIp.toStringWithPort())) {
         ips.insert(caIp.toStringWithPort());
         d_nq.add(di.zone, caIp.toStringWithPort(), d_delayNotifications);
@@ -103,19 +113,23 @@ void CommunicatorClass::queueNotifyDomain(const DomainInfo& di, UeberBackend* B)
       hasQueuedItem = true;
     }
     catch (PDNSException& e) {
-      g_log << Logger::Warning << "Unparseable IP in ALSO-NOTIFY metadata of domain '" << di.zone << "'. Warning: " << e.reason << endl;
+      SLOG(g_log << Logger::Warning << "Unparseable IP in ALSO-NOTIFY metadata of domain '" << di.zone << "'. Warning: " << e.reason << endl,
+           d_slog->error(Logr::Warning, e.reason, "Unparseable IP in ALSO-NOTIFY metadata", "domain", Logging::Loggable(di.zone)));
     }
   }
 
-  if (!hasQueuedItem)
-    g_log << Logger::Warning << "Request to queue notification for domain '" << di.zone << "' was processed, but no valid nameservers or ALSO-NOTIFYs found. Not notifying!" << endl;
+  if (!hasQueuedItem) {
+    SLOG(g_log << Logger::Warning << "Request to queue notification for domain '" << di.zone << "' was processed, but no valid nameservers or ALSO-NOTIFYs found. Not notifying!" << endl,
+         d_slog->info(Logr::Warning, "Request to queue notification was processed, but no valid nameservers or ALSO-NOTIFYs found. Not notifying!", "domain", Logging::Loggable(di.zone)));
+  }
 }
 
 bool CommunicatorClass::notifyDomain(const ZoneName& domain, UeberBackend* ueber)
 {
   DomainInfo di;
   if (!ueber->getDomainInfo(domain, di)) {
-    g_log << Logger::Warning << "No such domain '" << domain << "' in our database" << endl;
+    SLOG(g_log << Logger::Warning << "No such domain '" << domain << "' in our database" << endl,
+         d_slog->info(Logr::Warning, "No such domain in our database", "domain", Logging::Loggable(domain)));
     return false;
   }
   queueNotifyDomain(di, ueber);
@@ -140,7 +154,8 @@ void CommunicatorClass::getUpdatedProducers(UeberBackend* B, vector<DomainInfo>&
   std::string mapHash;
   for (auto& ch : catalogHashes) {
     if (catalogs.count(ch.first.operator const DNSName&()) == 0) {
-      g_log << Logger::Warning << "orphaned member zones found with catalog '" << ch.first << "'" << endl;
+      SLOG(g_log << Logger::Warning << "orphaned member zones found with catalog '" << ch.first << "'" << endl,
+           d_slog->info(Logr::Warning, "orphaned member zones found with catalog", "catalog", Logging::Loggable(ch.first)));
       continue;
     }
 
@@ -153,22 +168,25 @@ void CommunicatorClass::getUpdatedProducers(UeberBackend* B, vector<DomainInfo>&
       DomainInfo di;
       if (B->getDomainInfo(ch.first, di)) {
         if (di.kind != DomainInfo::Producer) {
-          g_log << Logger::Warning << "zone '" << di.zone << "' is no producer zone" << endl;
+          SLOG(g_log << Logger::Warning << "zone '" << di.zone << "' is no producer zone" << endl,
+               d_slog->info(Logr::Warning, "zone is no producer zone", "zone", Logging::Loggable(di.zone)));
           continue;
         }
 
         B->setDomainMetadata(di.zone, "CATALOG-HASH", mapHash);
 
-        g_log << Logger::Warning << "new CATALOG-HASH '" << mapHash << "' for zone '" << di.zone << "'" << endl;
+        SLOG(g_log << Logger::Warning << "new CATALOG-HASH '" << mapHash << "' for zone '" << di.zone << "'" << endl,
+             d_slog->info(Logr::Warning, "new CATALOG-HASH for zone", "zone", Logging::Loggable(di.zone), "hash", Logging::Loggable(mapHash)));
 
         SOAData sd;
         if (!B->getSOAUncached(di.zone, sd)) {
-          g_log << Logger::Warning << "SOA lookup failed for producer zone '" << di.zone << "'" << endl;
+          SLOG(g_log << Logger::Warning << "SOA lookup failed for producer zone '" << di.zone << "'" << endl,
+               d_slog->info(Logr::Warning, "SOA lookup failed for producer zone", "zone", Logging::Loggable(di.zone)));
           continue;
         }
 
         DNSResourceRecord rr;
-        makeIncreasedSOARecord(sd, "EPOCH", "", rr);
+        makeIncreasedSOARecord(sd, "EPOCH", "", rr, d_slog);
         di.backend->startTransaction(sd.zonename, UnknownDomainID);
         if (!di.backend->replaceRRSet(di.id, rr.qname, rr.qtype, vector<DNSResourceRecord>(1, rr))) {
           di.backend->abortTransaction();
@@ -195,10 +213,12 @@ void CommunicatorClass::primaryUpdateCheck(PacketHandler* P)
   getUpdatedProducers(B, cmdomains, catalogs, catalogHashes);
 
   if (cmdomains.empty()) {
-    g_log << Logger::Info << "no primary or producer domains need notifications" << endl;
+    SLOG(g_log << Logger::Info << "no primary or producer domains need notifications" << endl,
+         d_slog->info(Logr::Info, "no primary or producer domain needs notifications"));
   }
   else {
-    g_log << Logger::Info << cmdomains.size() << " domain" << addS(cmdomains.size()) << " for which we are primary or producer need" << addS(cmdomains.size()) << " notifications" << endl;
+    SLOG(g_log << Logger::Info << cmdomains.size() << " domain" << addS(cmdomains.size()) << " for which we are primary or producer need" << addS(cmdomains.size()) << " notifications" << endl,
+         d_slog->info(Logr::Info, "domains for which we are primary or producer in need of notification", "count", Logging::Loggable(cmdomains.size())));
   }
 
   for (auto& di : cmdomains) {
@@ -226,24 +246,28 @@ time_t CommunicatorClass::doNotifications(PacketHandler* P)
     if (size < 0) {
       break;
     }
-    DNSPacket p(true);
+    DNSPacket p(d_slog, true);
 
     p.setRemote(&from);
 
     if (p.parse(buffer, (size_t)size) < 0) {
-      g_log << Logger::Warning << "Unable to parse SOA notification answer from " << p.getRemote() << endl;
+      SLOG(g_log << Logger::Warning << "Unable to parse SOA notification answer from " << p.getRemote() << endl,
+           d_slog->info(Logr::Warning, "Unable to parse SOA notification answer", "remote", Logging::Loggable(p.getRemote())));
       continue;
     }
 
     if (p.d.rcode) {
-      g_log << Logger::Warning << "Received unsuccessful notification report for '" << p.qdomain << "' from " << from.toStringWithPort() << ", error: " << RCode::to_s(p.d.rcode) << endl;
+      SLOG(g_log << Logger::Warning << "Received unsuccessful notification report for '" << p.qdomain << "' from " << from.toStringWithPort() << ", error: " << RCode::to_s(p.d.rcode) << endl,
+           d_slog->error(Logr::Warning, RCode::to_s(p.d.rcode), "Received unsucessful notification report", "domain", Logging::Loggable(p.qdomain), "remote", Logging::Loggable(from.toStringWithPort())));
     }
 
     if (d_nq.removeIf(from, p.d.id, ZoneName(p.qdomain))) {
-      g_log << Logger::Notice << "Removed from notification list: '" << p.qdomain << "' to " << from.toStringWithPort() << " " << (p.d.rcode ? RCode::to_s(p.d.rcode) : "(was acknowledged)") << endl;
+      SLOG(g_log << Logger::Notice << "Removed from notification list: '" << p.qdomain << "' to " << from.toStringWithPort() << " " << (p.d.rcode ? RCode::to_s(p.d.rcode) : "(was acknowledged)") << endl,
+           d_slog->info(Logr::Notice, "Removed from notification list", "domain", Logging::Loggable(p.qdomain), "remote", Logging::Loggable(from.toStringWithPort()), "result", Logging::Loggable(p.d.rcode != RCode::NoError ? RCode::to_s(p.d.rcode) : "acknowledged")));
     }
     else {
-      g_log << Logger::Warning << "Received spurious notify answer for '" << p.qdomain << "' from " << from.toStringWithPort() << endl;
+      SLOG(g_log << Logger::Warning << "Received spurious notify answer for '" << p.qdomain << "' from " << from.toStringWithPort() << endl,
+           d_slog->info(Logr::Warning, "Received spurious notify answer", "domain", Logging::Loggable(p.qdomain), "remote", Logging::Loggable(from.toStringWithPort())));
 #if 0
       d_nq.dump();
 #endif
@@ -261,7 +285,8 @@ time_t CommunicatorClass::doNotifications(PacketHandler* P)
       try {
         ComboAddress remote(ip, 53); // default to 53
         if ((d_nsock6 < 0 && remote.sin4.sin_family == AF_INET6) || (d_nsock4 < 0 && remote.sin4.sin_family == AF_INET)) {
-          g_log << Logger::Warning << "Unable to notify " << remote.toStringWithPort() << " for domain '" << domain << "', address family is disabled. Is an IPv" << (remote.sin4.sin_family == AF_INET ? "4" : "6") << " address set in query-local-address?" << endl;
+          SLOG(g_log << Logger::Warning << "Unable to notify " << remote.toStringWithPort() << " for domain '" << domain << "', address family is disabled. Is an IPv" << (remote.sin4.sin_family == AF_INET ? "4" : "6") << " address set in query-local-address?" << endl,
+               d_slog->info(Logr::Warning, "Unable to notify due to address family being disabled. Check query-local-address for an address of the proper family", "domain", Logging::Loggable(domain), "remote", Logging::Loggable(remote.toStringWithPort()), "address family", Logging::Loggable(remote.sin4.sin_family == AF_INET ? 4 : 6)));
           d_nq.removeIf(remote, id, domain); // Remove, we'll never be able to notify
           continue; // don't try to notify what we can't!
         }
@@ -273,11 +298,13 @@ time_t CommunicatorClass::doNotifications(PacketHandler* P)
         drillHole(domain, ip);
       }
       catch (ResolverException& re) {
-        g_log << Logger::Warning << "Error trying to resolve '" << ip << "' for notifying '" << domain << "' to server: " << re.reason << endl;
+        SLOG(g_log << Logger::Warning << "Error trying to resolve '" << ip << "' for notifying '" << domain << "' to server: " << re.reason << endl,
+             d_slog->error(Logr::Warning, re.reason, "Error trying to resolve remote server for notifying", "domain", Logging::Loggable(domain), "remote", Logging::Loggable(ip)));
       }
     }
     else {
-      g_log << Logger::Warning << "Notification for " << domain << " to " << ip << " failed after retries" << endl;
+      SLOG(g_log << Logger::Warning << "Notification for " << domain << " to " << ip << " failed after retries" << endl,
+           d_slog->info(Logr::Warning, "Notification failed after retries", "domain", Logging::Loggable(domain), "remote", Logging::Loggable(ip)));
     }
   }
 
@@ -303,7 +330,8 @@ void CommunicatorClass::sendNotification(int sock, const ZoneName& domain, const
 
   if (tsigkeyname.empty() == false) {
     if (!ueber->getTSIGKey(tsigkeyname, tsigalgorithm, tsigsecret64)) {
-      g_log << Logger::Error << "TSIG key '" << tsigkeyname << "' for domain '" << domain << "' not found" << endl;
+      SLOG(g_log << Logger::Error << "TSIG key '" << tsigkeyname << "' for domain '" << domain << "' not found" << endl,
+           d_slog->info(Logr::Error, "TSIG key not found", "domain", Logging::Loggable(domain), "key", Logging::Loggable(tsigkeyname)));
       return;
     }
     TSIGRecordContent trc;
@@ -318,10 +346,11 @@ void CommunicatorClass::sendNotification(int sock, const ZoneName& domain, const
     trc.d_origID = ntohs(notificationId);
     trc.d_eRcode = 0;
     if (B64Decode(tsigsecret64, tsigsecret) == -1) {
-      g_log << Logger::Error << "Unable to Base-64 decode TSIG key '" << tsigkeyname << "' for domain '" << domain << "'" << endl;
+      SLOG(g_log << Logger::Error << "Unable to Base-64 decode TSIG key '" << tsigkeyname << "' for domain '" << domain << "'" << endl,
+           d_slog->info(Logr::Error, "Unable to Base-64 decode TSIG key", "domain", Logging::Loggable(domain), "key", Logging::Loggable(tsigkeyname)));
       return;
     }
-    addTSIG(pwriter, trc, tsigkeyname, tsigsecret, "", false);
+    addTSIG(d_slog, pwriter, trc, tsigkeyname, tsigsecret, "", false);
   }
 
   if (sendto(sock, &packet[0], packet.size(), 0, (struct sockaddr*)(&remote), remote.getSocklen()) < 0) {

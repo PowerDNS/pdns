@@ -22,10 +22,11 @@
 #pragma once
 #include "namespaces.hh"
 #include "iputils.hh"
+#include "logr.hh"
 #include "dnsparser.hh"
 #include "dnsrecords.hh"
 
-vector<pair<vector<DNSRecord>, vector<DNSRecord>>>   getIXFRDeltas(const ComboAddress& primary, const DNSName& zone, 
+vector<pair<vector<DNSRecord>, vector<DNSRecord>>>   getIXFRDeltas(Logr::log_t slog, const ComboAddress& primary, const DNSName& zone, 
                                                                    const DNSRecord& sr,
                                                                    uint16_t xfrTimeout = 0, bool totalTime = false,
                                                                    const TSIGTriplet& tt=TSIGTriplet(),

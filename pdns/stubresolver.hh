@@ -23,8 +23,9 @@
 #include "namespaces.hh"
 #include "dnsparser.hh"
 #include "ednssubnet.hh"
+#include "logr.hh"
 
-void stubParseResolveConf();
-bool resolversDefined();
-int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSZoneRecord>& ret, const EDNSSubnetOpts* d_eso = nullptr);
-int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSRecord>& ret, const EDNSSubnetOpts* d_eso = nullptr);
+void stubParseResolveConf(Logr::log_t slog);
+bool resolversDefined(Logr::log_t slog);
+int stubDoResolve(Logr::log_t slog, const DNSName& qname, uint16_t qtype, vector<DNSZoneRecord>& ret, const EDNSSubnetOpts* d_eso = nullptr);
+int stubDoResolve(Logr::log_t slog, const DNSName& qname, uint16_t qtype, vector<DNSRecord>& ret, const EDNSSubnetOpts* d_eso = nullptr);

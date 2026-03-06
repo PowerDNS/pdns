@@ -22,6 +22,7 @@
 
 #include "gss_context.hh"
 #include "logger.hh"
+#include "logging.hh"
 
 #ifndef ENABLE_GSS_TSIG
 
@@ -535,24 +536,34 @@ void GssContext::processError(const std::string& method, OM_uint32 maj, OM_uint3
 
 #endif
 
-bool gss_add_signature(const DNSName& context, const std::string& message, std::string& mac)
+bool gss_add_signature(Logr::log_t slog, const DNSName& context, const std::string& message, std::string& mac)
 {
   string tmp_mac;
   GssContext gssctx(context);
   if (!gssctx.valid()) {
-    g_log << Logger::Error << "GSS context '" << context << "' is not valid" << endl;
-    for (const string& error : gssctx.getErrorStrings()) {
-      g_log << Logger::Error << "GSS error: " << error << endl;
-      ;
+    if (g_slogStructured) {
+      const auto errs = gssctx.getErrorStrings();
+      slog->info(Logr::Error, "GSS context is not valid", "context", Logging::Loggable(context), "error", Logging::IterLoggable(errs.cbegin(), errs.cend()));
+    }
+    else {
+      g_log << Logger::Error << "GSS context '" << context << "' is not valid" << endl;
+      for (const string& error : gssctx.getErrorStrings()) {
+        g_log << Logger::Error << "GSS error: " << error << endl;
+      }
     }
     return false;
   }
 
   if (!gssctx.sign(message, tmp_mac)) {
-    g_log << Logger::Error << "Could not sign message using GSS context '" << context << "'" << endl;
-    for (const string& error : gssctx.getErrorStrings()) {
-      g_log << Logger::Error << "GSS error: " << error << endl;
-      ;
+    if (g_slogStructured) {
+      const auto errs = gssctx.getErrorStrings();
+      slog->info(Logr::Error, "Could not sign message using GSS context", "context", Logging::Loggable(context), "error", Logging::IterLoggable(errs.cbegin(), errs.cend()));
+    }
+    else {
+      g_log << Logger::Error << "Could not sign message using GSS context '" << context << "'" << endl;
+      for (const string& error : gssctx.getErrorStrings()) {
+        g_log << Logger::Error << "GSS error: " << error << endl;
+      }
     }
     return false;
   }
@@ -560,23 +571,33 @@ bool gss_add_signature(const DNSName& context, const std::string& message, std::
   return true;
 }
 
-bool gss_verify_signature(const DNSName& context, const std::string& message, const std::string& mac)
+bool gss_verify_signature(Logr::log_t slog, const DNSName& context, const std::string& message, const std::string& mac)
 {
   GssContext gssctx(context);
   if (!gssctx.valid()) {
-    g_log << Logger::Error << "GSS context '" << context << "' is not valid" << endl;
-    for (const string& error : gssctx.getErrorStrings()) {
-      g_log << Logger::Error << "GSS error: " << error << endl;
-      ;
+    if (g_slogStructured) {
+      const auto errs = gssctx.getErrorStrings();
+      slog->info(Logr::Error, "GSS context is not valid", "context", Logging::Loggable(context), "error", Logging::IterLoggable(errs.cbegin(), errs.cend()));
+    }
+    else {
+      g_log << Logger::Error << "GSS context '" << context << "' is not valid" << endl;
+      for (const string& error : gssctx.getErrorStrings()) {
+        g_log << Logger::Error << "GSS error: " << error << endl;
+      }
     }
     return false;
   }
 
   if (!gssctx.verify(message, mac)) {
-    g_log << Logger::Error << "Could not verify message using GSS context '" << context << "'" << endl;
-    for (const string& error : gssctx.getErrorStrings()) {
-      g_log << Logger::Error << "GSS error: " << error << endl;
-      ;
+    if (g_slogStructured) {
+      const auto errs = gssctx.getErrorStrings();
+      slog->info(Logr::Error, "Could not verify message using GSS context", "context", Logging::Loggable(context), "error", Logging::IterLoggable(errs.cbegin(), errs.cend()));
+    }
+    else {
+      g_log << Logger::Error << "Could not verify message using GSS context '" << context << "'" << endl;
+      for (const string& error : gssctx.getErrorStrings()) {
+        g_log << Logger::Error << "GSS error: " << error << endl;
+      }
     }
     return false;
   }

@@ -97,7 +97,7 @@ int makeQuerySocket(const ComboAddress& local, bool udpOrTCP, bool nonLocalBind)
   return sock;
 }
 
-Resolver::Resolver()
+Resolver::Resolver(Logr::log_t slog) : d_slog(slog)
 {
   locals["default4"] = -1;
   locals["default6"] = -1;
@@ -154,7 +154,7 @@ uint16_t Resolver::sendResolve(const ComboAddress& remote, const ComboAddress& l
     trc.d_fudge = 300;
     trc.d_origID=ntohs(randomid);
     trc.d_eRcode=0;
-    addTSIG(pw, trc, tsigkeyname, tsigsecret, "", false);
+    addTSIG(d_slog, pw, trc, tsigkeyname, tsigsecret, "", false);
   }
 
   int sock;

@@ -112,7 +112,7 @@ bool DNSSECKeeper::addKey(const ZoneName& name, bool setSEPBit, int algorithm, i
       }
     }
   }
-  shared_ptr<DNSCryptoKeyEngine> dpk(DNSCryptoKeyEngine::make(algorithm));
+  shared_ptr<DNSCryptoKeyEngine> dpk(DNSCryptoKeyEngine::make(d_slog, algorithm));
   try{
     dpk->create(bits);
   } catch (const std::runtime_error& error){
@@ -177,7 +177,7 @@ DNSSECPrivateKey DNSSECKeeper::getKeyById(const ZoneName& zname, unsigned int ke
     }
 
     DNSKEYRecordContent dkrc;
-    auto key = shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(dkrc, kd.content));
+    auto key = shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(d_slog, dkrc, kd.content));
     DNSSECPrivateKey dpk;
     dpk.setKey(key, kd.flags, dkrc.d_algorithm);
 
@@ -346,10 +346,12 @@ bool DNSSECKeeper::getNSEC3PARAM(const ZoneName& zname, NSEC3PARAMRecordContent*
     *ns3p = NSEC3PARAMRecordContent(value);
     if (ns3p->d_iterations > maxNSEC3Iterations && !isPresigned(zname, useCache)) {
       ns3p->d_iterations = maxNSEC3Iterations;
-      g_log<<Logger::Error<<"Number of NSEC3 iterations for zone '"<<zname<<"' is above 'max-nsec3-iterations'. Value adjusted to: "<<maxNSEC3Iterations<<endl;
+      SLOG(g_log<<Logger::Error<<"Number of NSEC3 iterations for zone '"<<zname<<"' is above 'max-nsec3-iterations'. Value adjusted to: "<<maxNSEC3Iterations<<endl,
+           d_slog->info(Logr::Error, "Number of NSEC3 iterations is above 'max-nsec3-iterations', clamping", "zone", Logging::Loggable(zname), "corrected value", Logging::Loggable(maxNSEC3Iterations)));
     }
     if (ns3p->d_algorithm != 1) {
-      g_log<<Logger::Error<<"Invalid hash algorithm for NSEC3: '"<<std::to_string(ns3p->d_algorithm)<<"', setting to 1 for zone '"<<zname<<"'."<<endl;
+      SLOG(g_log<<Logger::Error<<"Invalid hash algorithm for NSEC3: '"<<std::to_string(ns3p->d_algorithm)<<"', setting to 1 for zone '"<<zname<<"'."<<endl,
+           d_slog->info(Logr::Error, "Invalid hash algorithm for NSEC3, setting to 1", "zone", Logging::Loggable(zname), "algorithm", Logging::Loggable(ns3p->d_algorithm)));
       ns3p->d_algorithm = 1;
     }
   }
@@ -574,7 +576,7 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const ZoneName& zone, bool useCache
   vector<uint8_t> algoHasSeparateKSK;
   for(const DNSBackend::KeyData &keydata : dbkeyset) {
     DNSKEYRecordContent dkrc;
-    auto key = shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(dkrc, keydata.content));
+    auto key = shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(d_slog, dkrc, keydata.content));
     DNSSECPrivateKey dpk;
     dpk.setKey(key, dkrc.d_flags);
 
@@ -591,7 +593,7 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const ZoneName& zone, bool useCache
   for(DNSBackend::KeyData& kd : dbkeyset)
   {
     DNSKEYRecordContent dkrc;
-    auto key = shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(dkrc, kd.content));
+    auto key = shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(d_slog, dkrc, kd.content));
     DNSSECPrivateKey dpk;
     dpk.setKey(key, kd.flags, dkrc.d_algorithm);
 
@@ -634,7 +636,7 @@ bool DNSSECKeeper::checkKeys(const ZoneName& zone, std::optional<std::reference_
 
   for(const DNSBackend::KeyData &keydata : dbkeyset) {
     DNSKEYRecordContent dkrc;
-    auto dke = DNSCryptoKeyEngine::makeFromISCString(dkrc, keydata.content);
+    auto dke = DNSCryptoKeyEngine::makeFromISCString(d_slog, dkrc, keydata.content);
     retval = dke->checkKey(errorMessages) && retval;
   }
 
@@ -920,7 +922,8 @@ bool DNSSECKeeper::rectifyZone(const ZoneName& zone, string& error, string& info
           {
             if(!(maxent))
             {
-              g_log<<Logger::Warning<<"Zone '"<<zone<<"' has too many empty non terminals."<<endl;
+              SLOG(g_log<<Logger::Warning<<"Zone '"<<zone<<"' has too many empty non terminals."<<endl,
+                   d_slog->info(Logr::Warning, "Too many empty non terminals in zone", "zone", Logging::Loggable(zone)));
               insnonterm.clear();
               delnonterm.clear();
               doent=false;

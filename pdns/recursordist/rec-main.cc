@@ -1695,7 +1695,7 @@ static int initDNSSEC(Logr::log_t log)
   }
   else {
     for (auto algo : {DNSSEC::RSASHA1, DNSSEC::RSASHA1NSEC3SHA1}) {
-      if (!DNSCryptoKeyEngine::verifyOne(algo)) {
+      if (!DNSCryptoKeyEngine::verifyOne(log, algo)) {
         DNSCryptoKeyEngine::switchOffAlgorithm(algo);
         nums.push_back(std::to_string(algo));
       }

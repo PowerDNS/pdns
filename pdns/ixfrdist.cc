@@ -78,6 +78,8 @@ ArgvMap &arg()
 }
 /* END Needed because of deeper dependencies */
 
+bool g_slogStructured{false};
+
 // Allows reading/writing ComboAddresses and ZoneNames in YAML-cpp
 namespace YAML {
 template<>
@@ -328,7 +330,7 @@ static void communicatorReceiveNotificationAnswers(const int sock4, const int so
     if (size < 0) {
       break;
     }
-    DNSPacket packet(true);
+    DNSPacket packet(nullptr, true); // no structured logging in ixfrdist yet
     packet.setRemote(&from);
 
     if (packet.parse(buffer.data(), (size_t)size) < 0) {
@@ -493,7 +495,7 @@ static void updateThread(const string& workdir, const uint16_t& keep, const uint
       try {
         zoneLastCheck = now;
         g_stats.incrementSOAChecks(domain);
-        auto newSerial = getSerialFromPrimary(primary, domain, sr); // TODO TSIG
+        auto newSerial = getSerialFromPrimary(nullptr /* no structured logging */, primary, domain, sr); // TODO TSIG
         if(current_soa != nullptr) {
           g_log << Logger::Info << "Got SOA Serial for " << domain << " from " << primary.toStringWithPort() << ": " << newSerial << ", had Serial: " << current_soa->d_st.serial;
           if (newSerial == current_soa->d_st.serial) {

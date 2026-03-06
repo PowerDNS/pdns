@@ -53,7 +53,7 @@ int makeQuerySocket(const ComboAddress& local, bool udpOrTCP, bool nonLocalBind=
 class Resolver  : public boost::noncopyable
 {
 public:
-  Resolver();
+  Resolver(Logr::log_t slog);
   ~Resolver();
 
   typedef vector<DNSResourceRecord> res_t;
@@ -73,6 +73,7 @@ public:
   void getSoaSerial(const ComboAddress&, const DNSName &, uint32_t *);
   
 private:
+  Logr::log_t d_slog;
   std::map<std::string, int> locals;
 };
 

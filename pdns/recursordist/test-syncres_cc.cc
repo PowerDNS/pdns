@@ -493,11 +493,12 @@ void addNSEC3NarrowRecordToLW(const DNSName& domain, const DNSName& zone, const 
 
 void generateKeyMaterial(const DNSName& name, unsigned int algo, uint8_t digest, testkeysset_t& keys)
 {
-  auto dcke = std::shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::make(algo));
+  auto log = g_slog->withName("testrunner");
+  auto dcke = std::shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::make(log, algo));
   dcke->create((algo <= 10) ? 2048 : dcke->getBits());
   DNSSECPrivateKey dpk;
   dpk.setKey(dcke, 256);
-  DSRecordContent ds = makeDSFromDNSKey(name, dpk.getDNSKEY(), digest);
+  DSRecordContent ds = makeDSFromDNSKey(log, name, dpk.getDNSKEY(), digest);
   keys[name] = std::pair<DNSSECPrivateKey, DSRecordContent>(dpk, ds);
 }
 

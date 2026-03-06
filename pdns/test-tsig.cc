@@ -67,7 +67,7 @@ static vector<uint8_t> generateTSIGQuery(const DNSName& qname, const DNSName& ts
   trc.d_origID = ntohs(pw.getHeader()->id);
   trc.d_eRcode = 0;
 
-  addTSIG(pw, trc, tt.name, tt.secret, "", false);
+  addTSIG(nullptr, pw, trc, tt.name, tt.secret, "", false);
   return packet;
 }
 
@@ -116,7 +116,7 @@ static void checkTSIG(const DNSName& tsigName, const DNSName& tsigAlgo, const st
   tt.algo = tsigAlgo;
   tt.secret = tsigSecret;
 
-  BOOST_CHECK(validateTSIG(packetStr, mdp.getTSIGPos(), tt, trc, "", theirMac, false));
+  BOOST_CHECK(validateTSIG(nullptr, packetStr, mdp.getTSIGPos(), tt, trc, "", theirMac, false));
 }
 
 BOOST_AUTO_TEST_CASE(test_TSIG_valid) {

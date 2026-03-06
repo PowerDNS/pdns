@@ -25,7 +25,7 @@
 #include "geoipbackend.hh"
 #include "geoipinterface.hh"
 
-unique_ptr<GeoIPInterface> GeoIPInterface::makeInterface(const string& dbStr)
+unique_ptr<GeoIPInterface> GeoIPInterface::makeInterface(Logr::log_t slog, const string& dbStr)
 {
   /* parse dbStr */
   map<string, string> opts;
@@ -63,7 +63,7 @@ unique_ptr<GeoIPInterface> GeoIPInterface::makeInterface(const string& dbStr)
     return makeDATInterface(filename, opts);
   }
   else if (driver == "mmdb") {
-    return makeMMDBInterface(filename, opts);
+    return makeMMDBInterface(slog, filename, opts);
   }
   else {
     throw PDNSException(string("Unsupported file type '") + driver + string("' (use type: prefix to force type)"));

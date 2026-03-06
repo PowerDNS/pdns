@@ -32,7 +32,7 @@ LdapSimpleAuthenticator::LdapSimpleAuthenticator(const std::string& dn, const st
 {
 }
 
-bool LdapSimpleAuthenticator::authenticate(LDAP* conn)
+bool LdapSimpleAuthenticator::authenticate([[maybe_unused]] Logr::log_t log, LDAP* conn)
 {
   int msgid;
 
@@ -106,20 +106,22 @@ LdapGssapiAuthenticator::~LdapGssapiAuthenticator()
   krb5_free_context(d_context);
 }
 
-bool LdapGssapiAuthenticator::authenticate(LDAP* conn)
+bool LdapGssapiAuthenticator::authenticate(Logr::log_t log, LDAP* conn)
 {
-  int code = attemptAuth(conn);
+  int code = attemptAuth(log, conn);
 
   if (code == -1) {
     return false;
   }
   else if (code == -2) {
     // Here it may be possible to retry after obtaining a fresh ticket
-    g_log << Logger::Debug << d_logPrefix << "No TGT found, trying to acquire a new one" << std::endl;
-    code = updateTgt();
+    SLOG(g_log << Logger::Debug << d_logPrefix << "No TGT found, trying to acquire a new one" << std::endl,
+         log->info(Logr::Debug, "No TGT found, trying to acquire a new one"));
+    updateTgt(log);
 
-    if (attemptAuth(conn) != 0) {
-      g_log << Logger::Error << d_logPrefix << "Failed to acquire a TGT" << std::endl;
+    if (attemptAuth(log, conn) != 0) {
+      SLOG(g_log << Logger::Error << d_logPrefix << "Failed to acquire a TGT" << std::endl,
+           log->info(Logr::Error, "Failed to acquire a TGT"));
       return false;
     }
   }
@@ -132,7 +134,7 @@ std::string LdapGssapiAuthenticator::getError() const
   return d_lastError;
 }
 
-int LdapGssapiAuthenticator::attemptAuth(LDAP* conn)
+int LdapGssapiAuthenticator::attemptAuth(Logr::log_t log, LDAP* conn)
 {
   // Create SASL defaults
   SaslDefaults defaults;
@@ -168,7 +170,8 @@ int LdapGssapiAuthenticator::attemptAuth(LDAP* conn)
   int rc = ldap_sasl_interactive_bind_s(conn, "", defaults.mech.c_str(),
                                         NULL, NULL, LDAP_SASL_QUIET,
                                         ldapGssapiAuthenticatorSaslInteractCallback, &defaults);
-  g_log << Logger::Debug << d_logPrefix << "ldap_sasl_interactive_bind_s returned " << rc << std::endl;
+  SLOG(g_log << Logger::Debug << d_logPrefix << "ldap_sasl_interactive_bind_s returned " << rc << std::endl,
+       log->info(Logr::Debug, "ldap_sasl_interactive_bind_s returned", "value", Logging::Loggable(rc)));
 
   if (rc == LDAP_LOCAL_ERROR) {
     // This may mean that the ticket has expired, so let the caller know
@@ -183,7 +186,7 @@ int LdapGssapiAuthenticator::attemptAuth(LDAP* conn)
   return rc;
 }
 
-int LdapGssapiAuthenticator::updateTgt()
+int LdapGssapiAuthenticator::updateTgt(Logr::log_t log)
 {
   krb5_error_code code;
   krb5_creds credentials;
@@ -200,27 +203,31 @@ int LdapGssapiAuthenticator::updateTgt()
   }
 
   if (code != 0) {
-    g_log << Logger::Error << d_logPrefix << "krb5 error when locating the keytab file: " << std::string(krb5_get_error_message(d_context, code)) << std::endl;
+    SLOG(g_log << Logger::Error << d_logPrefix << "krb5 error when locating the keytab file: " << std::string(krb5_get_error_message(d_context, code)) << std::endl,
+         log->error(Logr::Error, krb5_get_error_message(d_context, code), "krb5 error when locating the keytab file"));
     return code;
   }
 
   // Extract the principal name from the keytab
   krb5_kt_cursor cursor;
   if ((code = krb5_kt_start_seq_get(d_context, keytab, &cursor)) != 0) {
-    g_log << Logger::Error << d_logPrefix << "krb5 error when initiating keytab search: " << std::string(krb5_get_error_message(d_context, code)) << std::endl;
+    SLOG(g_log << Logger::Error << d_logPrefix << "krb5 error when initiating keytab search: " << std::string(krb5_get_error_message(d_context, code)) << std::endl,
+         log->error(Logr::Error, krb5_get_error_message(d_context, code), "krb5 error when initiating keytab search"));
     krb5_kt_close(d_context, keytab);
     return code;
   }
 
   krb5_keytab_entry entry;
   if ((code = krb5_kt_next_entry(d_context, keytab, &entry, &cursor)) != 0) {
-    g_log << Logger::Error << d_logPrefix << "krb5 error when retrieving first keytab entry: " << std::string(krb5_get_error_message(d_context, code)) << std::endl;
+    SLOG(g_log << Logger::Error << d_logPrefix << "krb5 error when retrieving first keytab entry: " << std::string(krb5_get_error_message(d_context, code)) << std::endl,
+         log->error(Logr::Error, krb5_get_error_message(d_context, code), "krb5 error when retrieving first keytab entry"));
     krb5_kt_close(d_context, keytab);
     return code;
   }
 
   if ((code = krb5_copy_principal(d_context, entry.principal, &principal)) != 0) {
-    g_log << Logger::Error << d_logPrefix << "krb5 error when extracting principal information: " << std::string(krb5_get_error_message(d_context, code)) << std::endl;
+    SLOG(g_log << Logger::Error << d_logPrefix << "krb5 error when extracting principal information: " << std::string(krb5_get_error_message(d_context, code)) << std::endl,
+         log->error(Logr::Error, krb5_get_error_message(d_context, code), "krb5 error when extracting principal information"));
     krb5_kt_close(d_context, keytab);
     krb5_kt_free_entry(d_context, &entry);
     return code;
@@ -230,7 +237,8 @@ int LdapGssapiAuthenticator::updateTgt()
   krb5_kt_end_seq_get(d_context, keytab, &cursor);
 
   if ((code = krb5_get_init_creds_opt_alloc(d_context, &options)) != 0) {
-    g_log << Logger::Error << d_logPrefix << "krb5 error when allocating credentials cache structure: " << std::string(krb5_get_error_message(d_context, code)) << std::endl;
+    SLOG(g_log << Logger::Error << d_logPrefix << "krb5 error when allocating credentials cache structure: " << std::string(krb5_get_error_message(d_context, code)) << std::endl,
+         log->error(Logr::Error, krb5_get_error_message(d_context, code), "krb5 error when allocating credentials cache structure"));
     krb5_kt_close(d_context, keytab);
     krb5_free_principal(d_context, principal);
     return code;
@@ -240,7 +248,8 @@ int LdapGssapiAuthenticator::updateTgt()
   // Get the ticket
   code = krb5_get_init_creds_keytab(d_context, &credentials, principal, keytab, 0, NULL, options);
   if (code) {
-    g_log << Logger::Error << d_logPrefix << "krb5 error when getting the TGT: " << std::string(krb5_get_error_message(d_context, code)) << std::endl;
+    SLOG(g_log << Logger::Error << d_logPrefix << "krb5 error when getting the TGT: " << std::string(krb5_get_error_message(d_context, code)) << std::endl,
+         log->error(Logr::Error, krb5_get_error_message(d_context, code), "krb5 error when getting the TGT"));
     krb5_get_init_creds_opt_free(d_context, options);
     krb5_free_cred_contents(d_context, &credentials);
     krb5_kt_close(d_context, keytab);
@@ -256,7 +265,8 @@ int LdapGssapiAuthenticator::updateTgt()
 
   code = krb5_cc_new_unique(d_context, krb5_cc_get_type(d_context, d_ccache), NULL, &tmp_ccache);
   if (code) {
-    g_log << Logger::Error << d_logPrefix << "krb5 error when creating the temporary cache file: " << std::string(krb5_get_error_message(d_context, code)) << std::endl;
+    SLOG(g_log << Logger::Error << d_logPrefix << "krb5 error when creating the temporary cache file: " << std::string(krb5_get_error_message(d_context, code)) << std::endl,
+         log->error(Logr::Error, krb5_get_error_message(d_context, code), "krb5 error when creating the temporary cache file"));
     krb5_free_cred_contents(d_context, &credentials);
     krb5_free_principal(d_context, principal);
     return code;
@@ -264,7 +274,8 @@ int LdapGssapiAuthenticator::updateTgt()
 
   code = krb5_cc_initialize(d_context, tmp_ccache, principal);
   if (code) {
-    g_log << Logger::Error << d_logPrefix << "krb5 error when initializing the temporary cache file: " << std::string(krb5_get_error_message(d_context, code)) << std::endl;
+    SLOG(g_log << Logger::Error << d_logPrefix << "krb5 error when initializing the temporary cache file: " << std::string(krb5_get_error_message(d_context, code)) << std::endl,
+         log->error(Logr::Error, krb5_get_error_message(d_context, code), "krb5 error when initializing the temporary cache file"));
     krb5_free_cred_contents(d_context, &credentials);
     krb5_free_principal(d_context, principal);
     return code;
@@ -272,7 +283,8 @@ int LdapGssapiAuthenticator::updateTgt()
 
   code = krb5_cc_store_cred(d_context, tmp_ccache, &credentials);
   if (code) {
-    g_log << Logger::Error << d_logPrefix << "krb5 error when storing the ticket in the credentials cache: " << std::string(krb5_get_error_message(d_context, code)) << std::endl;
+    SLOG(g_log << Logger::Error << d_logPrefix << "krb5 error when storing the ticket in the credentials cache: " << std::string(krb5_get_error_message(d_context, code)) << std::endl,
+         log->error(Logr::Error, krb5_get_error_message(d_context, code), "krb5 error when storing the ticket in the credentials cache"));
     krb5_cc_close(d_context, tmp_ccache);
     krb5_free_cred_contents(d_context, &credentials);
     krb5_free_principal(d_context, principal);
@@ -281,7 +293,8 @@ int LdapGssapiAuthenticator::updateTgt()
 
   code = krb5_cc_move(d_context, tmp_ccache, d_ccache);
   if (code) {
-    g_log << Logger::Error << d_logPrefix << "krb5 error when moving the credentials cache: " << std::string(krb5_get_error_message(d_context, code)) << std::endl;
+    SLOG(g_log << Logger::Error << d_logPrefix << "krb5 error when moving the credentials cache: " << std::string(krb5_get_error_message(d_context, code)) << std::endl,
+         log->error(Logr::Error, krb5_get_error_message(d_context, code), "krb5 error when moving the credentials cache"));
     krb5_free_cred_contents(d_context, &credentials);
     krb5_free_principal(d_context, principal);
     return code;
@@ -290,6 +303,7 @@ int LdapGssapiAuthenticator::updateTgt()
   krb5_free_cred_contents(d_context, &credentials);
   krb5_free_principal(d_context, principal);
 
-  g_log << Logger::Debug << d_logPrefix << "done getting TGT, will return " << code << std::endl;
+  SLOG(g_log << Logger::Debug << d_logPrefix << "done getting TGT, will return " << code << std::endl,
+       log->info(Logr::Debug, "done getting TGT, returning", "value", Logging::Loggable(code)));
   return code;
 }

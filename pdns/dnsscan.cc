@@ -41,8 +41,9 @@
 
 #include "namespaces.hh"
 using namespace ::boost::multi_index;
-#include "namespaces.hh"
 StatBag S;
+
+bool g_slogStructured{false};
 
 static void usage() {
   cerr<<"syntax: dnsscan INFILE ..."<<endl;

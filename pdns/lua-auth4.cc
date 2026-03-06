@@ -22,7 +22,11 @@ void AuthLua4::postPrepareContext() {
   d_lw->writeFunction("resolve", [](const std::string& qname, uint16_t qtype) {
       std::vector<DNSZoneRecord> ret;
       std::unordered_map<int, DNSResourceRecord> luaResult;
-      stubDoResolve(DNSName(qname), qtype, ret);
+      std::shared_ptr<Logr::Logger> slog;
+      if (g_slogStructured) {
+        slog = g_slog->withName("lua");
+      }
+      stubDoResolve(slog, DNSName(qname), qtype, ret);
       int i = 0;
       for(const auto &row: ret) {
         luaResult[++i] = DNSResourceRecord::fromWire(row.dr);

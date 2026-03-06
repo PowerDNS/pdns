@@ -1066,6 +1066,19 @@ Disable this if the process supervisor timestamps these lines already.
 If set to a digit, logging is performed under this LOCAL facility. See :ref:`logging-to-syslog`.
 Do not pass names like 'local0'!
 
+.. _setting-logging-structured:
+
+``logging-structured``
+----------------------
+
+- Bool
+- Default: no
+
+.. versionadded:: 5.1.0
+
+When enabled, log messages are formatted as structured logs, to help software
+analysis.
+
 .. _setting-loglevel:
 
 ``loglevel``

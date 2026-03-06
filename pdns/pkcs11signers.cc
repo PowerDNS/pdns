@@ -213,6 +213,7 @@ public:
 
 class Pkcs11Slot {
   private:
+    Logr::log_t d_slog;
     bool d_logged_in{};
     CK_FUNCTION_LIST* d_functions; // module functions
     CK_SESSION_HANDLE d_session;
@@ -222,13 +223,19 @@ class Pkcs11Slot {
 
     void logError(const std::string& operation) const {
       if (d_err) {
-        std::string msg = boost::str( boost::format("PKCS#11 operation %s failed: %s (0x%X) (%s)") % operation % p11_kit_strerror(d_err) % d_err % p11_kit_message() );
-        g_log<<Logger::Error<< msg << endl;
+        if (g_slogStructured) {
+          d_slog->error(Logr::Error, p11_kit_strerror(d_err), "PKCS#11 operation failed", "operation", Logging::Loggable(operation), "errorcode", Logging::Loggable(d_err), "details", Logging::Loggable(p11_kit_message()));
+        }
+        else {
+          std::string msg = boost::str( boost::format("PKCS#11 operation %s failed: %s (0x%X) (%s)") % operation % p11_kit_strerror(d_err) % d_err % p11_kit_message() );
+          g_log<<Logger::Error<< msg << endl;
+        }
       }
     }
 
   public:
-    Pkcs11Slot(CK_FUNCTION_LIST* functions, const CK_SLOT_ID& slot) :
+    Pkcs11Slot(Logr::log_t slog, CK_FUNCTION_LIST* functions, const CK_SLOT_ID& slot) :
+      d_slog(slog),
       d_logged_in(false),
       d_functions(functions),
       d_slot(slot),
@@ -277,12 +284,13 @@ class Pkcs11Slot {
 
     CK_FUNCTION_LIST* f() { return d_functions; }
 
-    static std::shared_ptr<LockGuarded<Pkcs11Slot>> GetSlot(const std::string& module, const string& tokenId);
-    static CK_RV HuntSlot(const string& tokenId, CK_SLOT_ID &slotId, _CK_SLOT_INFO* info, CK_FUNCTION_LIST* functions);
+    static std::shared_ptr<LockGuarded<Pkcs11Slot>> GetSlot(Logr::log_t slog, const std::string& module, const string& tokenId);
+    static CK_RV HuntSlot(Logr::log_t slog, const string& tokenId, CK_SLOT_ID &slotId, _CK_SLOT_INFO* info, CK_FUNCTION_LIST* functions);
 };
 
 class Pkcs11Token {
   private:
+    Logr::log_t d_slog;
     std::shared_ptr<LockGuarded<Pkcs11Slot>> d_slot;
 
     CK_OBJECT_HANDLE d_public_key{0};
@@ -304,8 +312,13 @@ class Pkcs11Token {
 
     void logError(const std::string& operation) const {
       if (d_err) {
-        std::string msg = boost::str( boost::format("PKCS#11 operation %s failed: %s (0x%X) (%s)") % operation % p11_kit_strerror(d_err) % d_err % p11_kit_message());
-        g_log<<Logger::Error<< msg << endl;
+        if (g_slogStructured) {
+          d_slog->error(Logr::Error, p11_kit_strerror(d_err), "PKCS#11 operation failed", "operation", Logging::Loggable(operation), "errorcode", Logging::Loggable(d_err), "details", Logging::Loggable(p11_kit_message()));
+        }
+        else {
+          std::string msg = boost::str( boost::format("PKCS#11 operation %s failed: %s (0x%X) (%s)") % operation % p11_kit_strerror(d_err) % d_err % p11_kit_message());
+          g_log<<Logger::Error<< msg << endl;
+        }
       }
     }
 
@@ -356,7 +369,7 @@ class Pkcs11Token {
     }
 
   public:
-    Pkcs11Token(const std::shared_ptr<LockGuarded<Pkcs11Slot>>& slot, const std::string& label, const std::string& pub_label);
+    Pkcs11Token(Logr::log_t slog, const std::shared_ptr<LockGuarded<Pkcs11Slot>>& slot, const std::string& label, const std::string& pub_label);
     ~Pkcs11Token();
 
     bool Login(const std::string& pin) {
@@ -383,7 +396,8 @@ class Pkcs11Token {
       attr.emplace_back(CKA_LABEL, d_label);
       FindObjects2(*slot, attr, key, 1);
       if (key.size() == 0) {
-        g_log<<Logger::Warning<<"Cannot load PKCS#11 private key "<<d_label<<std::endl;;
+        SLOG(g_log<<Logger::Warning<<"Cannot load PKCS#11 private key "<<d_label<<std::endl,
+             d_slog->info(Logr::Warning, "Cannot load PKCS#11 private key", "label", Logging::Loggable(d_label)));
         return;
       }
       d_private_key = key[0];
@@ -397,7 +411,8 @@ class Pkcs11Token {
       attr.emplace_back(CKA_LABEL, d_pub_label);
       FindObjects2(*slot, attr, key, 1);
       if (key.size() == 0) {
-        g_log<<Logger::Warning<<"Cannot load PKCS#11 public key "<<d_pub_label<<std::endl;
+        SLOG(g_log<<Logger::Warning<<"Cannot load PKCS#11 public key "<<d_pub_label<<std::endl,
+             d_slog->info(Logr::Warning, "Cannot load PKCS#11 public key", "label", Logging::Loggable(d_pub_label)));
         return;
       }
       d_public_key = key[0];
@@ -650,13 +665,13 @@ class Pkcs11Token {
       return d_bits;
     }
 
-    static std::shared_ptr<Pkcs11Token> GetToken(const std::string& module, const string& tokenId, const std::string& label, const std::string& pub_label);
+    static std::shared_ptr<Pkcs11Token> GetToken(Logr::log_t slog, const std::string& module, const string& tokenId, const std::string& label, const std::string& pub_label);
 };
 
 static std::map<std::string, std::shared_ptr<LockGuarded<Pkcs11Slot> > > pkcs11_slots;
 static std::map<std::string, std::shared_ptr<Pkcs11Token> > pkcs11_tokens;
 
-CK_RV Pkcs11Slot::HuntSlot(const string& tokenId, CK_SLOT_ID &slotId, _CK_SLOT_INFO* info, CK_FUNCTION_LIST* functions)
+CK_RV Pkcs11Slot::HuntSlot(Logr::log_t slog, const string& tokenId, CK_SLOT_ID &slotId, _CK_SLOT_INFO* info, CK_FUNCTION_LIST* functions)
 {
   CK_RV err;
   unsigned int i;
@@ -667,7 +682,8 @@ CK_RV Pkcs11Slot::HuntSlot(const string& tokenId, CK_SLOT_ID &slotId, _CK_SLOT_I
   // this is required by certain tokens, otherwise C_GetSlotInfo will not return a token
   err = functions->C_GetSlotList(CK_FALSE, NULL_PTR, &slots);
   if (err) {
-    g_log<<Logger::Warning<<"C_GetSlotList(CK_FALSE, NULL_PTR, &slots) = " << err << std::endl;
+    SLOG(g_log<<Logger::Warning<<"C_GetSlotList(CK_FALSE, NULL_PTR, &slots) = " << err << std::endl,
+         slog->info(Logr::Warning, "C_GetSlotList(CK_FALSE, NULL_PTR) failed", "errorcode", Logging::Loggable(err)));
     return err;
   }
 
@@ -675,7 +691,8 @@ CK_RV Pkcs11Slot::HuntSlot(const string& tokenId, CK_SLOT_ID &slotId, _CK_SLOT_I
   std::vector<CK_SLOT_ID> slotIds(slots);
   err = functions->C_GetSlotList(CK_FALSE, slotIds.data(), &slots);
   if (err) {
-    g_log<<Logger::Warning<<"C_GetSlotList(CK_FALSE, slotIds, &slots) = " << err << std::endl;
+    SLOG(g_log<<Logger::Warning<<"C_GetSlotList(CK_FALSE, slotIds, &slots) = " << err << std::endl,
+         slog->info(Logr::Warning, "C_GetSlotList(CK_FALSE, slotIds) failed", "errorcode", Logging::Loggable(err)));
     return err;
   }
 
@@ -685,11 +702,13 @@ CK_RV Pkcs11Slot::HuntSlot(const string& tokenId, CK_SLOT_ID &slotId, _CK_SLOT_I
     if (slotId == static_cast<CK_SLOT_ID>(-1))
       continue;
     if ((err = functions->C_GetSlotInfo(slotId, info))) {
-      g_log<<Logger::Warning<<"C_GetSlotList("<<slotId<<", info) = " << err << std::endl;
+      SLOG(g_log<<Logger::Warning<<"C_GetSlotInfo("<<slotId<<", info) = " << err << std::endl,
+           slog->info(Logr::Warning, "C_GetSlotInfo failed", "slotId", Logging::Loggable(slotId), "errorcode", Logging::Loggable(err)));
       return err;
     }
     if ((err = functions->C_GetTokenInfo(slotId, &tinfo))) {
-      g_log<<Logger::Warning<<"C_GetSlotList("<<slotId<<", &tinfo) = " << err << std::endl;
+      SLOG(g_log<<Logger::Warning<<"C_GetTokenInfo("<<slotId<<", &tinfo) = " << err << std::endl,
+           slog->info(Logr::Warning, "C_GetTokenInfo failed", "slotId", Logging::Loggable(slotId), "errorcode", Logging::Loggable(err)));
       return err;
     }
     std::string slotName;
@@ -706,10 +725,12 @@ CK_RV Pkcs11Slot::HuntSlot(const string& tokenId, CK_SLOT_ID &slotId, _CK_SLOT_I
   try {
     slotId = std::stoi(tokenId);
     if ((err = functions->C_GetSlotInfo(slotId, info))) {
-      g_log<<Logger::Warning<<"C_GetSlotList("<<slotId<<", info) = " << err << std::endl;
+      SLOG(g_log<<Logger::Warning<<"C_GetSlotInfo("<<slotId<<", info) = " << err << std::endl,
+           slog->info(Logr::Warning, "C_GetSlotInfo failed", "slotId", Logging::Loggable(slotId), "errorcode", Logging::Loggable(err)));
       return err;
     }
-    g_log<<Logger::Warning<<"Specifying PKCS#11 token by SLOT ID is deprecated and should not be used"<<std::endl;
+    SLOG(g_log<<Logger::Warning<<"Specifying PKCS#11 token by SLOT ID is deprecated and should not be used"<<std::endl,
+         slog->info(Logr::Warning, "Specifying PKCS#11 token by SLOT ID is deprecated and should not be used"));
     return 0;
   } catch (...) {
     return CKR_SLOT_ID_INVALID;
@@ -717,7 +738,7 @@ CK_RV Pkcs11Slot::HuntSlot(const string& tokenId, CK_SLOT_ID &slotId, _CK_SLOT_I
   return CKR_SLOT_ID_INVALID;
 }
 
-std::shared_ptr<LockGuarded<Pkcs11Slot>> Pkcs11Slot::GetSlot(const std::string& module, const string& tokenId) {
+std::shared_ptr<LockGuarded<Pkcs11Slot>> Pkcs11Slot::GetSlot(Logr::log_t slog, const std::string& module, const string& tokenId) {
   // see if we can find module
   std::string sidx = module;
   sidx.append("|");
@@ -743,17 +764,17 @@ std::shared_ptr<LockGuarded<Pkcs11Slot>> Pkcs11Slot::GetSlot(const std::string& 
    _CK_SLOT_INFO info;
   CK_SLOT_ID slotId;
 
-  if ((err = Pkcs11Slot::HuntSlot(tokenId, slotId, &info, functions))) {
+  if ((err = Pkcs11Slot::HuntSlot(slog, tokenId, slotId, &info, functions))) {
     throw PDNSException(std::string("Cannot find PKCS#11 token ") + tokenId + std::string(" on module ") + module + std::string(": ") + boost::str( boost::format("%s (0x%X)") % p11_kit_strerror(err) % err));
   }
 
   // store slot
-  pkcs11_slots[sidx] = std::make_shared<LockGuarded<Pkcs11Slot>>(Pkcs11Slot(functions, slotId));
+  pkcs11_slots[sidx] = std::make_shared<LockGuarded<Pkcs11Slot>>(Pkcs11Slot(slog, functions, slotId));
 
   return pkcs11_slots[sidx];
 }
 
-std::shared_ptr<Pkcs11Token> Pkcs11Token::GetToken(const std::string& module, const string& tokenId, const std::string& label, const std::string& pub_label) {
+std::shared_ptr<Pkcs11Token> Pkcs11Token::GetToken(Logr::log_t slog, const std::string& module, const string& tokenId, const std::string& label, const std::string& pub_label) {
   // see if we can find module
   std::string tidx = module;
   tidx.append("|");
@@ -763,12 +784,13 @@ std::shared_ptr<Pkcs11Token> Pkcs11Token::GetToken(const std::string& module, co
   std::map<std::string, std::shared_ptr<Pkcs11Token> >::iterator tokenIter;
   if ((tokenIter = pkcs11_tokens.find(tidx)) != pkcs11_tokens.end()) return tokenIter->second;
 
-  std::shared_ptr<LockGuarded<Pkcs11Slot>> slot = Pkcs11Slot::GetSlot(module, tokenId);
-  pkcs11_tokens[tidx] = std::make_shared<Pkcs11Token>(slot, label, pub_label);
+  std::shared_ptr<LockGuarded<Pkcs11Slot>> slot = Pkcs11Slot::GetSlot(slog, module, tokenId);
+  pkcs11_tokens[tidx] = std::make_shared<Pkcs11Token>(slog, slot, label, pub_label);
   return pkcs11_tokens[tidx];
 }
 
-Pkcs11Token::Pkcs11Token(const std::shared_ptr<LockGuarded<Pkcs11Slot>>& slot, const std::string& label, const std::string& pub_label) :
+Pkcs11Token::Pkcs11Token(Logr::log_t slog, const std::shared_ptr<LockGuarded<Pkcs11Slot>>& slot, const std::string& label, const std::string& pub_label) :
+  d_slog(slog),
   d_slot(slot),
   d_bits(0),
   d_label(label),
@@ -782,16 +804,16 @@ Pkcs11Token::Pkcs11Token(const std::shared_ptr<LockGuarded<Pkcs11Slot>>& slot, c
 
 Pkcs11Token::~Pkcs11Token() = default;
 
-bool PKCS11ModuleSlotLogin(const std::string& module, const string& tokenId, const std::string& pin)
+bool PKCS11ModuleSlotLogin(Logr::log_t slog, const std::string& module, const string& tokenId, const std::string& pin)
 {
-  std::shared_ptr<LockGuarded<Pkcs11Slot>> slot = Pkcs11Slot::GetSlot(module, tokenId);
+  std::shared_ptr<LockGuarded<Pkcs11Slot>> slot = Pkcs11Slot::GetSlot(slog, module, tokenId);
   if (slot->lock()->LoggedIn()) return true; // no point failing
   return slot->lock()->Login(pin);
 }
 
-PKCS11DNSCryptoKeyEngine::PKCS11DNSCryptoKeyEngine(unsigned int algorithm): DNSCryptoKeyEngine(algorithm) {}
+PKCS11DNSCryptoKeyEngine::PKCS11DNSCryptoKeyEngine(Logr::log_t slog, unsigned int algorithm): DNSCryptoKeyEngine(slog, algorithm) {}
 PKCS11DNSCryptoKeyEngine::~PKCS11DNSCryptoKeyEngine() = default;
-PKCS11DNSCryptoKeyEngine::PKCS11DNSCryptoKeyEngine(const PKCS11DNSCryptoKeyEngine& orig) : DNSCryptoKeyEngine(orig.d_algorithm) {}
+PKCS11DNSCryptoKeyEngine::PKCS11DNSCryptoKeyEngine(const PKCS11DNSCryptoKeyEngine& orig) : DNSCryptoKeyEngine(orig.d_slog, orig.d_algorithm) {}
 
 void PKCS11DNSCryptoKeyEngine::create(unsigned int bits) {
   std::vector<P11KitAttribute> pubAttr;
@@ -799,7 +821,7 @@ void PKCS11DNSCryptoKeyEngine::create(unsigned int bits) {
   CK_MECHANISM mech;
   CK_OBJECT_HANDLE pubKey, privKey;
   std::shared_ptr<Pkcs11Token> d_slot;
-  d_slot = Pkcs11Token::GetToken(d_module, d_slot_id, d_label, d_pub_label);
+  d_slot = Pkcs11Token::GetToken(d_slog, d_module, d_slot_id, d_label, d_pub_label);
   if (d_slot->LoggedIn() == false)
     if (d_slot->Login(d_pin) == false)
       throw PDNSException("Not logged in to token");
@@ -873,7 +895,7 @@ void PKCS11DNSCryptoKeyEngine::create(unsigned int bits) {
 std::string PKCS11DNSCryptoKeyEngine::sign(const std::string& msg) const {
   std::string result;
   std::shared_ptr<Pkcs11Token> d_slot;
-  d_slot = Pkcs11Token::GetToken(d_module, d_slot_id, d_label, d_pub_label);
+  d_slot = Pkcs11Token::GetToken(d_slog, d_module, d_slot_id, d_label, d_pub_label);
   if (d_slot->LoggedIn() == false)
     if (d_slot->Login(d_pin) == false)
       throw PDNSException("Not logged in to token");
@@ -898,13 +920,14 @@ std::string PKCS11DNSCryptoKeyEngine::hash(const std::string& msg) const {
   mech.pParameter = nullptr;
   mech.ulParameterLen = 0;
   std::shared_ptr<Pkcs11Token> d_slot;
-  d_slot = Pkcs11Token::GetToken(d_module, d_slot_id, d_label, d_pub_label);
+  d_slot = Pkcs11Token::GetToken(d_slog, d_module, d_slot_id, d_label, d_pub_label);
   if (d_slot->LoggedIn() == false)
     if (d_slot->Login(d_pin) == false)
       throw PDNSException("Not logged in to token");
 
   if (d_slot->Digest(msg, result, &mech)) {
-    g_log<<Logger::Error<<"Could not digest using PKCS#11 token - using software workaround"<<endl;
+    SLOG(g_log<<Logger::Error<<"Could not digest using PKCS#11 token - using software workaround"<<endl,
+         d_slog->info(Logr::Error, "Could not digest using PKCS#11 token - using software workaround"));
     // FINE! I'll do this myself, then, shall I?
     switch(d_algorithm) {
     case 5: {
@@ -929,7 +952,7 @@ std::string PKCS11DNSCryptoKeyEngine::hash(const std::string& msg) const {
 
 bool PKCS11DNSCryptoKeyEngine::verify(const std::string& msg, const std::string& signature) const {
   std::shared_ptr<Pkcs11Token> d_slot;
-  d_slot = Pkcs11Token::GetToken(d_module, d_slot_id, d_label, d_pub_label);
+  d_slot = Pkcs11Token::GetToken(d_slog, d_module, d_slot_id, d_label, d_pub_label);
   if (d_slot->LoggedIn() == false)
     if (d_slot->Login(d_pin) == false)
       throw PDNSException("Not logged in to token");
@@ -948,7 +971,7 @@ bool PKCS11DNSCryptoKeyEngine::verify(const std::string& msg, const std::string&
 std::string PKCS11DNSCryptoKeyEngine::getPublicKeyString() const {
   std::string result("");
   std::shared_ptr<Pkcs11Token> d_slot;
-  d_slot = Pkcs11Token::GetToken(d_module, d_slot_id, d_label, d_pub_label);
+  d_slot = Pkcs11Token::GetToken(d_slog, d_module, d_slot_id, d_label, d_pub_label);
   if (d_slot->LoggedIn() == false)
     if (d_slot->Login(d_pin) == false)
       throw PDNSException("Not logged in to token");
@@ -971,7 +994,7 @@ std::string PKCS11DNSCryptoKeyEngine::getPublicKeyString() const {
 
 int PKCS11DNSCryptoKeyEngine::getBits() const {
   std::shared_ptr<Pkcs11Token> d_slot;
-  d_slot = Pkcs11Token::GetToken(d_module, d_slot_id, d_label, d_pub_label);
+  d_slot = Pkcs11Token::GetToken(d_slog, d_module, d_slot_id, d_label, d_pub_label);
   if (d_slot->LoggedIn() == false)
     if (d_slot->Login(d_pin) == false)
       throw PDNSException("Not logged in to token");
@@ -1005,15 +1028,15 @@ void PKCS11DNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, stormap_t& s
   // validate parameters
 
   std::shared_ptr<Pkcs11Token> d_slot;
-  d_slot = Pkcs11Token::GetToken(d_module, d_slot_id, d_label, d_pub_label);
+  d_slot = Pkcs11Token::GetToken(d_slog, d_module, d_slot_id, d_label, d_pub_label);
   if (d_pin != "" && d_slot->LoggedIn() == false)
     if (d_slot->Login(d_pin) == false)
       throw PDNSException("Could not log in to token (PIN wrong?)");
 };
 
-std::unique_ptr<DNSCryptoKeyEngine> PKCS11DNSCryptoKeyEngine::maker(unsigned int algorithm)
+std::unique_ptr<DNSCryptoKeyEngine> PKCS11DNSCryptoKeyEngine::maker(Logr::log_t slog, unsigned int algorithm)
 {
-  return make_unique<PKCS11DNSCryptoKeyEngine>(algorithm);
+  return make_unique<PKCS11DNSCryptoKeyEngine>(slog, algorithm);
 }
 
 // this is called during program startup

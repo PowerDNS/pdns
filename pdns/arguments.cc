@@ -537,7 +537,7 @@ bool ArgvMap::file(const string& fname, bool lax, bool included)
 
   if (!parseFile(fname, "", lax)) {
     SLOG(g_log << Logger::Warning << "Unable to open " << fname << std::endl,
-         d_log->error(Logr::Warning, "Unable to open file", "name", Logging::Loggable(fname)));
+         d_log->info(Logr::Warning, "Unable to open file", "name", Logging::Loggable(fname)));
     return false;
   }
 

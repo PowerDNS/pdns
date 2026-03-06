@@ -51,7 +51,7 @@ To fix: how to remove the stale entries that will surely accumulate
 class DNSProxy
 {
 public:
-  DNSProxy(const string& remote, const string& udpPortRange); //!< creates socket
+  DNSProxy(Logr::log_t slog, const string& remote, const string& udpPortRange); //!< creates socket
   ~DNSProxy(); //<! dtor for DNSProxy
   void go(); //!< launches the actual thread
   bool completePacket(std::unique_ptr<DNSPacket>& reply, const DNSName& target, const DNSName& aname, uint8_t scopeMask);
@@ -82,6 +82,7 @@ private:
   LockGuarded<map_t> d_conntrack;
   int d_sock;
   const uint16_t d_xor;
+  std::shared_ptr<Logr::Logger> d_slog;
 
-  static int getID_locked(map_t&);
+  int getID_locked(map_t&);
 };

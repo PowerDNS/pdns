@@ -1042,7 +1042,7 @@ namespace
 {
   bool result = false;
   try {
-    auto dke = DNSCryptoKeyEngine::makeFromPublicKeyString(key.d_algorithm, key.d_key);
+    auto dke = DNSCryptoKeyEngine::makeFromPublicKeyString(g_slog->withName("validate"), key.d_algorithm, key.d_key);
     result = dke->verify(msg, sig.d_signature);
     VLOG(log, qname << ": Signature by key with tag " << sig.d_tag << " and algorithm " << DNSSEC::algorithm2name(sig.d_algorithm) << " was " << (result ? "" : "NOT ") << "valid" << endl);
     if (!result) {
@@ -1200,6 +1200,7 @@ vState validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsset_t& 
     auto record = getByTag(tkeys, dsrc.d_tag, dsrc.d_algorithm, log);
     // cerr<<"looking at DS with tag "<<dsrc.d_tag<<", algo "<<DNSSEC::algorithm2name(dsrc.d_algorithm)<<", digest "<<std::to_string(dsrc.d_digesttype)<<" for "<<zone<<", got "<<r.size()<<" DNSKEYs for tag"<<endl;
 
+    auto slog = g_slog->withName("validate");
     for (const auto& drc : record) {
       bool isValid = false;
       bool dsCreated = false;
@@ -1216,7 +1217,7 @@ vState validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsset_t& 
       dnskeysConsidered++;
 
       try {
-        dsrc2 = makeDSFromDNSKey(zone, *drc, dsrc.d_digesttype);
+        dsrc2 = makeDSFromDNSKey(slog, zone, *drc, dsrc.d_digesttype);
         dsCreated = true;
         isValid = dsrc.operator==(dsrc2);
       }

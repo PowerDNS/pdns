@@ -195,7 +195,8 @@ void AuthQueryCache::cleanup()
   uint64_t totErased = pruneLockedCollectionsVector<SequencedTag>(d_maps);
   *d_statnumentries -= totErased;
 
-  DLOG(g_log<<"Done with cache clean, cacheSize: "<<*d_statnumentries<<", totErased"<<totErased<<endl);
+  DLOG(SLOG(g_log<<"Done with cache clean, cacheSize: "<<*d_statnumentries<<", totErased"<<totErased<<endl,
+            d_slog->info(Logr::Debug, "Query Cache: cleanup completed", "cache size", Logging::Loggable(*d_statnumentries), "erased entries", Logging::Loggable(totErased))));
 }
 
 /* the logic:
@@ -213,13 +214,15 @@ void AuthQueryCache::cleanupIfNeeded()
     time_t now = time(nullptr);
     int timediff = max((int)(now - d_lastclean), 1);
 
-    DLOG(g_log<<"cleaninterval: "<<d_cleaninterval<<", timediff: "<<timediff<<endl);
+    DLOG(SLOG(g_log<<"cleaninterval: "<<d_cleaninterval<<", timediff: "<<timediff<<endl,
+              d_slog->info(Logr::Debug, "Query Cache: checking if cleanup needed", "clean interval", Logging::Loggable(d_cleaninterval), "time diff", Logging::Loggable(timediff))));
 
     if (d_cleaninterval == s_maxcleaninterval && timediff < 30) {
       d_cleanskipped = true;
       d_nextclean += d_cleaninterval;
 
-      DLOG(g_log<<"cleaning skipped, timediff: "<<timediff<<endl);
+      DLOG(SLOG(g_log<<"cleaning skipped, timediff: "<<timediff<<endl,
+                d_slog->info(Logr::Debug, "Query Cache: cleanup skipped", "timediff", Logging::Loggable(timediff))));
 
       return;
     }
@@ -229,7 +232,8 @@ void AuthQueryCache::cleanupIfNeeded()
       d_cleaninterval=std::max(d_cleaninterval, s_mincleaninterval);
       d_cleaninterval=std::min(d_cleaninterval, s_maxcleaninterval);
 
-      DLOG(g_log<<"new cleaninterval: "<<d_cleaninterval<<endl);
+      DLOG(SLOG(g_log<<"new cleaninterval: "<<d_cleaninterval<<endl,
+                d_slog->info(Logr::Debug, "Query Cache: updating clean interval", "value", Logging::Loggable(d_cleaninterval))));
     } else {
       d_cleanskipped = false;
     }

@@ -45,6 +45,7 @@ class AXFRRetriever : public boost::noncopyable
     int getLength(uint16_t timeout);
     void timeoutReadn(uint16_t bytes, uint16_t timeoutsec=10);
 
+    Logr::log_t d_slog;
     TSIGTCPVerifier d_tsigVerifier;
     std::vector<char> d_buf;
     string d_domain;

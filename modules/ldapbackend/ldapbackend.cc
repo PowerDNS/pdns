@@ -36,6 +36,10 @@ LdapBackend::LdapBackend(const string& suffix)
   unsigned int i, idx;
   vector<string> hosts;
 
+  if (g_slogStructured) {
+    d_slog = g_slog->withName("ldap" + suffix);
+  }
+
   try {
     d_qname.clear();
     d_pldap = nullptr;
@@ -69,7 +73,8 @@ LdapBackend::LdapBackend(const string& suffix)
       hoststr += " " + hosts[(idx + i) % hosts.size()];
     }
 
-    g_log << Logger::Info << d_myname << " LDAP servers = " << hoststr << endl;
+    SLOG(g_log << Logger::Info << d_myname << " LDAP servers = " << hoststr << endl,
+         d_slog->info(Logr::Info, "LDAP servers", "servers", Logging::Loggable(hoststr)));
 
     d_pldap = new PowerLDAP(hoststr.c_str(), LDAP_PORT, mustDo("starttls"), getArgAsNum("timeout"));
     d_pldap->setOption(LDAP_OPT_DEREF, LDAP_DEREF_ALWAYS);
@@ -82,19 +87,23 @@ LdapBackend::LdapBackend(const string& suffix)
     else {
       d_authenticator = new LdapSimpleAuthenticator(getArg("binddn"), getArg("secret"), getArgAsNum("timeout"));
     }
-    d_pldap->bind(d_authenticator);
+    d_pldap->bind(d_slog, d_authenticator);
 
-    g_log << Logger::Notice << d_myname << " Ldap connection succeeded" << endl;
+    SLOG(g_log << Logger::Notice << d_myname << " Ldap connection succeeded" << endl,
+         d_slog->info(Logr::Notice, "LDAP connection succeeded"));
     return;
   }
   catch (LDAPTimeout& lt) {
-    g_log << Logger::Error << d_myname << " Ldap connection to server failed because of timeout" << endl;
+    SLOG(g_log << Logger::Error << d_myname << " Ldap connection to server failed because of timeout" << endl,
+         d_slog->error(Logr::Error, "timeout", "LDAP connection failed"));
   }
   catch (LDAPException& le) {
-    g_log << Logger::Error << d_myname << " Ldap connection to server failed: " << le.what() << endl;
+    SLOG(g_log << Logger::Error << d_myname << " Ldap connection to server failed: " << le.what() << endl,
+         d_slog->error(Logr::Error, le.what(), "LDAP connection failed"));
   }
   catch (std::exception& e) {
-    g_log << Logger::Error << d_myname << " Caught STL exception: " << e.what() << endl;
+    SLOG(g_log << Logger::Error << d_myname << " Caught STL exception: " << e.what() << endl,
+         d_slog->error(Logr::Error, e.what(), "LDAP connection failed"));
   }
 
   if (d_pldap != nullptr) {
@@ -110,7 +119,8 @@ LdapBackend::~LdapBackend()
                     // current operation to be abandoned
   delete (d_pldap);
   delete (d_authenticator);
-  g_log << Logger::Notice << d_myname << " Ldap connection closed" << endl;
+  SLOG(g_log << Logger::Notice << d_myname << " Ldap connection closed" << endl,
+       d_slog->info(Logr::Notice, "LDAP connection closed"));
 }
 
 bool LdapBackend::reconnect()
@@ -118,7 +128,8 @@ bool LdapBackend::reconnect()
   int attempts = d_reconnect_attempts;
   bool connected = false;
   while (!connected && attempts > 0) {
-    g_log << Logger::Debug << d_myname << " Reconnection attempts left: " << attempts << endl;
+    SLOG(g_log << Logger::Debug << d_myname << " Reconnection attempts left: " << attempts << endl,
+         d_slog->info(Logr::Debug, "Trying to reconnect", "attempts left", Logging::Loggable(attempts)));
     connected = d_pldap->connect();
     if (!connected)
       Utility::usleep(250);
@@ -126,7 +137,7 @@ bool LdapBackend::reconnect()
   }
 
   if (connected)
-    d_pldap->bind(d_authenticator);
+    d_pldap->bind(d_slog, d_authenticator);
 
   return connected;
 }
@@ -142,7 +153,8 @@ void LdapBackend::extract_common_attributes(DNSResult& result)
       // TODO: improve this.
       //   - Check how d_getdn is used, because if it's never false then we
       //     might as well use it.
-      g_log << Logger::Warning << d_myname << " Invalid time to live for " << d_qname << ": " << d_result["dNSTTL"][0] << endl;
+      SLOG(g_log << Logger::Warning << d_myname << " Invalid time to live for " << d_qname << ": " << d_result["dNSTTL"][0] << endl,
+           d_slog->info(Logr::Warning, "Invalid time to live", "record", Logging::Loggable(d_qname), "ttl", Logging::Loggable(d_result["dNSTTL"][0])));
     }
     else {
       result.ttl = ttl;
@@ -156,7 +168,8 @@ void LdapBackend::extract_common_attributes(DNSResult& result)
     time_t tstamp = 0;
     if ((tstamp = str2tstamp(d_result["modifyTimestamp"][0])) == 0) {
       // Same note as above, we don't know which entry failed here
-      g_log << Logger::Warning << d_myname << " Invalid modifyTimestamp for " << d_qname << ": " << d_result["modifyTimestamp"][0] << endl;
+      SLOG(g_log << Logger::Warning << d_myname << " Invalid modifyTimestamp for " << d_qname << ": " << d_result["modifyTimestamp"][0] << endl,
+           d_slog->info(Logr::Warning, "Invalid modifyTimestamp", "record", Logging::Loggable(d_qname), "timestamp", Logging::Loggable(d_result["modifyTimestamp"][0])));
     }
     else {
       result.lastmod = tstamp;
@@ -297,11 +310,24 @@ public:
   LdapLoader()
   {
     BackendMakers().report(std::make_unique<LdapFactory>());
-    g_log << Logger::Info << "[ldapbackend] This is the ldap backend version " VERSION
+    // If this module is not loaded dynamically at runtime, this code runs
+    // as part of a global constructor, before the structured logger has a
+    // chance to be set up, so fallback to simple logging in this case.
+    if (!g_slogStructured || !g_slog) {
+      g_log << Logger::Info << "[ldapbackend] This is the ldap backend version " VERSION
 #ifndef REPRODUCIBLE
-          << " (" __DATE__ " " __TIME__ ")"
+            << " (" __DATE__ " " __TIME__ ")"
 #endif
-          << " reporting" << endl;
+            << " reporting" << endl;
+    }
+    else {
+      g_slog->withName("ldapbackend")->info(Logr::Info, "LDAP bagkend starting", "version", Logging::Loggable(VERSION)
+#ifndef REPRODUCIBLE
+                                                                                              ,
+                                            "build date", Logging::Loggable(__DATE__ " " __TIME__)
+#endif
+      );
+    }
   }
 };
 

@@ -31,7 +31,7 @@ class PKCS11DNSCryptoKeyEngine : public DNSCryptoKeyEngine
     std::string d_pub_label;
 
   public:
-    PKCS11DNSCryptoKeyEngine(unsigned int algorithm);
+    PKCS11DNSCryptoKeyEngine(Logr::log_t slog, unsigned int algorithm);
     ~PKCS11DNSCryptoKeyEngine() override;
 
     PKCS11DNSCryptoKeyEngine(const PKCS11DNSCryptoKeyEngine& orig);
@@ -55,7 +55,7 @@ class PKCS11DNSCryptoKeyEngine : public DNSCryptoKeyEngine
 
     void fromPublicKeyString(const std::string& /* content */) override { throw "Unimplemented"; };
 
-    static std::unique_ptr<DNSCryptoKeyEngine> maker(unsigned int algorithm);
+    static std::unique_ptr<DNSCryptoKeyEngine> maker(Logr::log_t slog, unsigned int algorithm);
 };
 
-bool PKCS11ModuleSlotLogin(const std::string& module, const string& tokenId, const std::string& pin);
+bool PKCS11ModuleSlotLogin(Logr::log_t slog, const std::string& module, const string& tokenId, const std::string& pin);

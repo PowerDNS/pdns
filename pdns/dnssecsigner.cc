@@ -98,7 +98,8 @@ static void fillOutRRSIG(DNSSECPrivateKey& dpk, const DNSName& signQName, RRSIGR
     {
       auto signatures = g_signatures.write_lock();
       if (g_cacheweekno < weekno || signatures->size() >= (uint) maxcachesize) {  // blunt but effective (C) Habbie, mind04
-        g_log<<Logger::Warning<<"Cleared signature cache."<<endl;
+        SLOG(g_log<<Logger::Warning<<"Cleared signature cache."<<endl,
+             g_slog->info(Logr::Warning, "Cleared signature cache."));
         std::swap(oldsigs, *signatures);
         g_cacheweekno = weekno;
       }

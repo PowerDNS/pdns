@@ -16,6 +16,8 @@
 #include "dns_random.hh"
 #include "query-local-address.hh"
 
+bool g_slogStructured{false};
+
 StatBag S;
 
 ArgvMap& arg()
@@ -55,7 +57,7 @@ try
   trc.d_origID=ntohs(pw.getHeader()->id);
   trc.d_eRcode=0;
 
-  addTSIG(pw, trc, keyname, key, "", false);
+  addTSIG(nullptr, pw, trc, keyname, key, "", false);
 
   Socket sock(AF_INET, SOCK_DGRAM);
   ComboAddress dest(argv[1] + (*argv[1]=='@'), atoi(argv[2]));
