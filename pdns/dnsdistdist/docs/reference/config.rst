@@ -1189,9 +1189,12 @@ See :doc:`../guides/cache` for a how to.
     .. versionchanged:: 1.6.0
       ``name`` can now also be a string
 
+    .. versionchanged:: 2.2.0
+      ``name`` can now also be a list of strings or DNSNames
+
     Remove entries matching ``name`` and type from the cache.
 
-    :param DNSName name: The name to expunge
+    :param string,[string],DNSName,[DNSName] name: The name(s) to expunge
     :param int qtype: The type to expunge, can be a pre-defined :ref:`DNSQType`
     :param bool suffixMatch: When set to true, remove all entries under ``name``
 

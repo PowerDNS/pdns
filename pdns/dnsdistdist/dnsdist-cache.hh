@@ -62,6 +62,7 @@ public:
   size_t purgeExpired(size_t upTo, time_t now);
   size_t expunge(size_t upTo = 0);
   size_t expungeByName(const DNSName& name, uint16_t qtype = QType::ANY, bool suffixMatch = false);
+  size_t expungeByName(const std::vector<DNSName>& names, uint16_t qtype = QType::ANY, bool suffixMatch = false);
   [[nodiscard]] bool isFull();
   [[nodiscard]] string toString();
   [[nodiscard]] uint64_t getSize();
