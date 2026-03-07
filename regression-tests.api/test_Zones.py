@@ -52,7 +52,6 @@ def eq_zone_rrsets(rrsets, expected):
 
     assert data_got == data_expected, "%r != %r" % (data_got, data_expected)
 
-
 def assert_eq_rrsets(rrsets, expected):
     """Assert rrsets sets are equal, ignoring sort order."""
     key = lambda rrset: (rrset['name'], rrset['type'])
@@ -368,6 +367,67 @@ class AuthZones(ZonesApiTestCase, AuthZonesHelperMixin):
         name, payload, data = self.create_zone(name=name, rrsets=[rrset])
         # check our record has appeared
         self.assertEqual(get_rrset(data, name, 'A')['records'], rrset['records'])
+
+    def test_create_zone_with_records_ordered(self):
+        name = unique_zone_name()
+        rrset_a = {
+            "name": name,
+            "type": "A",
+            "ttl": 3600,
+            "records": [
+                # The contents are not lexographically ordered when creating
+                {
+                    "content": "4.3.2.1",
+                    "disabled": False,
+                },
+                {
+                    "content": "127.0.0.1",
+                    "disabled": False,
+                },
+            ],
+        }
+
+        rrset_ns = {
+            "name": "foo." + name,
+            "type": "NS",
+            "ttl": 3600,
+            "records": [
+                # The contents are not lexographically ordered when creating
+                {
+                    "content": "ns2.example.com.",
+                    "disabled": False,
+                },
+                {
+                    "content": "ns1.example.net.",
+                    "disabled": False,
+                }
+            ],
+        }
+
+        name, payload, data = self.create_zone(name=name, rrsets=[rrset_a, rrset_ns])
+        # check our record has appeared
+        self.assertEqual(get_rrset(data, name, 'A')['records'], [
+            # The content should be lexographically ordered when retrieving
+            {
+                "content": "127.0.0.1",
+                "disabled": False,
+            },
+            {
+                "content": "4.3.2.1",
+                "disabled": False,
+            },
+        ])
+
+        self.assertEqual(get_rrset(data, rrset_ns['name'], 'NS')['records'], [
+            {
+                "content": "ns1.example.net.",
+                "disabled": False,
+            },
+            {
+                "content": "ns2.example.com.",
+                "disabled": False,
+            }
+        ])
 
     def test_create_zone_with_wildcard_records(self):
         name = unique_zone_name()
