@@ -58,7 +58,7 @@
       description: "A regular expression to match the content of the specified header"
 
 - name: "HTTPPath"
-  description: "Matches DNS over HTTPS queries with a specific HTTP path. For example, if the query has been sent to the https://192.0.2.1:443/PowerDNS?dns=... URL, the path would be '/PowerDNS'. Only valid DNS over HTTPS queries are matched. If you want to match all HTTP queries, see :meth:`DOHFrontend:setResponsesMap` instead"
+  description: "Matches DNS over HTTPS queries with a specific HTTP path. For example, if the query has been sent to the https://192.0.2.1:443/PowerDNS?dns=... URL, the path would be '/PowerDNS'. Only valid DNS over HTTPS queries are matched. If you want to match all HTTP queries, see :meth:`DOHFrontend.setResponsesMap` instead"
   parameters:
     - name: "path"
       type: "String"
@@ -66,7 +66,7 @@
 - name: "HTTPPathRegex"
   description: |
                Matches DNS over HTTPS queries with a path matching the supplied regular expression. For example, if the query has been sent to the https://192.0.2.1:443/PowerDNS?dns=... URL, the path would be '/PowerDNS'.
-               Only valid DNS over HTTPS queries are matched. If you want to match all HTTP queries, see :meth:`DOHFrontend:setResponsesMap` instead
+               Only valid DNS over HTTPS queries are matched. If you want to match all HTTP queries, see :meth:`DOHFrontend.setResponsesMap` instead
   parameters:
     - name: "expression"
       type: "String"
@@ -423,6 +423,7 @@ Set the ``source`` parameter to ``false`` to match against destination address i
 - name: "TimedIPSet"
   skip-cpp: true
   skip-rust: true
+  docs-is-class: true
   description: "Can be used to handle IP addresses differently for a certain time"
   parameters:
     - name: "set_name"

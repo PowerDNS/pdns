@@ -6,8 +6,8 @@ Endpoints
 ---------
 .. openapi:: swagger/authoritative-api-swagger.yaml
   :paths: /servers/{server_id}/zones/{zone_id}/cryptokeys /servers/{server_id}/zones/{zone_id}/cryptokeys/{cryptokey_id}
+  :examples:
 
 Objects
 -------
-.. openapi:: swagger/authoritative-api-swagger.yaml
-  :definitions: Cryptokey
+.. json:schema:: Cryptokey

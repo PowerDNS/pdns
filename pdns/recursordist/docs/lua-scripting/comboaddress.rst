@@ -35,43 +35,43 @@ To get only the port number, use :meth:`:getPort() <ComboAddress:getPort>`.
 
   An object representing an IP address and port tuple.
 
-  .. method:: ComboAddress:equal(ComboAddress) -> bool
+  .. method:: equal(ComboAddress) -> bool
 
       Compare the address to another :class:`ComboAddress` object. The port numbers are *not* relevant.
 
-  .. method:: ComboAddress:getPort() -> int
+  .. method:: getPort() -> int
 
       The portnumber.
 
-  .. method:: ComboAddress:getRaw() -> str
+  .. method:: getRaw() -> str
 
       A bytestring representing the address.
 
-  .. method:: ComboAddress:isIPv4() -> bool
+  .. method:: isIPv4() -> bool
 
       True if the address is an IPv4 address.
 
-  .. method:: ComboAddress:isIPv6() -> bool
+  .. method:: isIPv6() -> bool
 
       True if the address is an IPv6 address.
 
-  .. method:: ComboAddress:isMappedIPv4() -> bool
+  .. method:: isMappedIPv4() -> bool
 
       True if the address is an IPv4 address mapped into an IPv6 one.
 
-  .. method:: ComboAddress:mapToIPv4() -> ComboAddress
+  .. method:: mapToIPv4() -> ComboAddress
 
       If the address is an IPv4 mapped into an IPv6 one, return the corresponding IPv4 :class:`ComboAddress`.
 
-  .. method:: ComboAddress:toString() -> str
+  .. method:: toString() -> str
 
       Returns the IP address without the port number as a string.
 
-  .. method:: ComboAddress:toStringWithPort() -> str
+  .. method:: toStringWithPort() -> str
 
       Returns the IP address with the port number as a string.
 
-  .. method:: ComboAddress:truncate(bits)
+  .. method:: truncate(bits)
 
       Truncate to the supplied number of bits
 

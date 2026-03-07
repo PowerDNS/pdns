@@ -1,7 +1,8 @@
-import os
-import time
 import json
+import os
 import platform
+import time
+
 import requests
 from invoke import task
 from invoke.exceptions import Failure, UnexpectedExit
@@ -1143,7 +1144,7 @@ def setup_godbc_mssql(c):
     with open(os.path.expanduser("~/.odbc.ini"), "a") as f:
         f.write(godbc_config)
     c.sudo('sh -c \'echo "Threading=1" | cat /usr/share/tdsodbc/odbcinst.ini - | tee -a /etc/odbcinst.ini\'')
-    c.sudo('sed -i "s/libtdsodbc.so/\/usr\/lib\/x86_64-linux-gnu\/odbc\/libtdsodbc.so/g" /etc/odbcinst.ini')
+    c.sudo('sed -i "s,libtdsodbc.so,/usr/lib/x86_64-linux-gnu/odbc/libtdsodbc.so,g" /etc/odbcinst.ini')
     c.run(f'echo "create database pdns" | isql -v pdns-mssql-docker-nodb {godbc_mssql_credentials["username"]} {godbc_mssql_credentials["password"]}')
     # FIXME: Skip 8bit-txt-unescaped test
     c.run('touch ${PWD}/regression-tests/tests/8bit-txt-unescaped/skip')
@@ -1151,7 +1152,7 @@ def setup_godbc_mssql(c):
 def setup_godbc_sqlite3(c):
     with open(os.path.expanduser("~/.odbc.ini"), "a") as f:
         f.write(godbc_config)
-    c.sudo('sed -i "s/libsqlite3odbc.so/\/usr\/lib\/x86_64-linux-gnu\/odbc\/libsqlite3odbc.so/g" /etc/odbcinst.ini')
+    c.sudo('sed -i "s,libsqlite3odbc.so,/usr/lib/x86_64-linux-gnu/odbc/libsqlite3odbc.so,g" /etc/odbcinst.ini')
 
 def setup_ldap_client(c):
     c.sudo('DEBIAN_FRONTEND=noninteractive apt-get install -y ldap-utils')
@@ -1247,12 +1248,10 @@ def install_swagger_tools(c):
     c.run('sudo apt-get update && sudo apt-get install -y npm')
     c.run('sudo mkdir -p /usr/local/lib/node_modules && sudo chmod 777 /usr/local/lib/node_modules')
     c.run('npm install -g @stoplight/spectral-cli')
-    c.run('npm install -g api-spec-converter')
 
 @task
 def swagger_syntax_check(c):
     c.run('spectral lint --ruleset docs/http-api/swagger/spectral-ruleset.yaml --fail-severity error --display-only-failures docs/http-api/swagger/authoritative-api-swagger.yaml')
-    c.run('api-spec-converter docs/http-api/swagger/authoritative-api-swagger.yaml -f swagger_2 -t openapi_3 -s json -c')
 
 @task
 def install_coverity_tools(c, project):
