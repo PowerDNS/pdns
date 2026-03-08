@@ -189,6 +189,7 @@ class TestDynBlockGroupServFailsRatioDoHCacheHit(DynBlocksTest):
         for _ in range(rcodecount):
             if firstQuery:
                 (receivedQuery, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, rcodeQuery, response=expectedResponse, caFile=self._caCert, customHeaders=['x-forwarded-for: 192.0.2.1'])
+                firstQuery = False
             else:
                 (_, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, rcodeQuery, response=None, caFile=self._caCert, customHeaders=['x-forwarded-for: 192.0.2.1'], useQueue=False)
 
