@@ -381,6 +381,7 @@ size_t DNSDistPacketCache::expunge(size_t upTo)
 size_t DNSDistPacketCache::expunge([[maybe_unused]] size_t upTo) { return 0; }
 #endif
 
+#if 0
 size_t DNSDistPacketCache::expungeByName(const DNSName& name, uint16_t qtype, bool suffixMatch)
 {
   size_t removed = 0;
@@ -404,6 +405,9 @@ size_t DNSDistPacketCache::expungeByName(const DNSName& name, uint16_t qtype, bo
 
   return removed;
 }
+#else
+size_t DNSDistPacketCache::expungeByName([[maybe_unused]] const DNSName& name, [[maybe_unused]] uint16_t qtype, [[maybe_unused]] bool suffixMatch) { return 0; }
+#endif
 
 bool DNSDistPacketCache::isFull()
 {
