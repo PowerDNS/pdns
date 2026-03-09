@@ -197,7 +197,7 @@ void DNSDistPacketCache::insert(CacheKey key, const std::optional<Netmask>& subn
   (*d_cache)->insert(std::move(key.bytes), newValue);
 }
 
-bool DNSDistPacketCache::get(DNSQuestion& dnsQuestion, uint16_t queryId, CacheKey& key, std::optional<Netmask>& subnet, bool dnssecOK, bool receivedOverUDP, uint32_t allowExpired, bool skipAging, bool truncatedOK, bool recordMiss)
+bool DNSDistPacketCache::get(DNSQuestion& dnsQuestion, uint16_t queryId, CacheKey& key, std::optional<Netmask>& subnet, bool receivedOverUDP, uint32_t allowExpired, bool skipAging, bool truncatedOK, bool recordMiss)
 {
   if (dnsQuestion.ids.qtype == QType::AXFR || dnsQuestion.ids.qtype == QType::IXFR) {
     ++d_misses;
