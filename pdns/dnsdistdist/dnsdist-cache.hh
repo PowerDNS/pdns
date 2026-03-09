@@ -69,7 +69,6 @@ struct CacheValue
     time_t validity{0};
     uint16_t len{0};
     bool receivedOverUDP{false};
-    bool dnssecOK{false};
 };
 
 class DNSDistPacketCache : boost::noncopyable

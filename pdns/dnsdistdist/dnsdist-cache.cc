@@ -132,7 +132,6 @@ void DNSDistPacketCache::insert(CacheKey key, const std::optional<Netmask>& subn
     .validity = newValidity,
     .len = static_cast<uint16_t>(response.size()),
     .receivedOverUDP = receivedOverUDP,
-    .dnssecOK = dnssecOK,
   });
 
   (*d_cache)->insert(std::move(key.bytes), newValue);
