@@ -544,7 +544,7 @@ bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse,
     }
     {
       auto cacheInsertCloser = dnsResponse.ids.getCloser("packetCacheInsert"); // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
-      dnsResponse.ids.packetCache->insert(std::move(cacheKey), zeroScope ? std::nullopt : dnsResponse.ids.subnet, dnsResponse.ids.cacheFlags, dnsResponse.ids.dnssecOK ? *dnsResponse.ids.dnssecOK : false, dnsResponse.ids.qname, dnsResponse.ids.qtype, dnsResponse.ids.qclass, response, dnsResponse.ids.forwardedOverUDP, dnsResponse.getHeader()->rcode, dnsResponse.ids.tempFailureTTL);
+      dnsResponse.ids.packetCache->insert(std::move(cacheKey), zeroScope ? std::nullopt : dnsResponse.ids.subnet, dnsResponse.ids.cacheFlags, dnsResponse.ids.dnssecOK ? *dnsResponse.ids.dnssecOK : false, dnsResponse.ids.qtype, dnsResponse.ids.qclass, response, dnsResponse.ids.forwardedOverUDP, dnsResponse.getHeader()->rcode, dnsResponse.ids.tempFailureTTL);
     }
     const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
     const auto& cacheInsertedRespRuleActions = dnsdist::rules::getResponseRuleChain(chains, dnsdist::rules::ResponseRuleChain::CacheInsertedResponseRules);
