@@ -64,7 +64,6 @@ struct CacheValue
 {
     [[nodiscard]] time_t getTTD() const { return validity; }
     std::string value;
-    DNSName qname;
     std::optional<Netmask> subnet;
     uint16_t qtype{0};
     uint16_t qclass{0};
