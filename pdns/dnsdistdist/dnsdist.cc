@@ -2453,7 +2453,7 @@ static void maintThread()
 {
   setThreadName("dnsdist/main");
   constexpr int interval = 1;
-  size_t counter = 0;
+  // size_t counter = 0;
   int32_t secondsToWaitLog = 0;
 
   for (;;) {
@@ -2483,6 +2483,7 @@ static void maintThread()
       }
     }
 
+#if 0
     counter++;
     if (counter >= dnsdist::configuration::getCurrentRuntimeConfiguration().d_cacheCleaningDelay) {
       /* keep track, for each cache, of whether we should keep
@@ -2525,6 +2526,7 @@ static void maintThread()
       }
       counter = 0;
     }
+#endif
   }
 }
 
