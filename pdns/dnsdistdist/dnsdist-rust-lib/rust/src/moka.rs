@@ -16,7 +16,7 @@ mod rustmoka {
     // C++ types and signatures exposed to Rust.
     #[namespace = ""]
     unsafe extern "C++" {
-        include!("dnsdist-cache.hh");
+        include!("dnsdist-cache-value.hh");
         type CacheValue;
     }
 }

@@ -24,13 +24,13 @@
 #include <atomic>
 #include <unordered_map>
 
+#include "dnsdist-cache-value.hh"
 #include "iputils.hh"
 #include "lock.hh"
 #include "noinitvector.hh"
 #include "stat_t.hh"
 #include "ednsoptions.hh"
 
-struct CacheValue;
 #include "rust/moka.rs.h"
 typedef rust::Box<dnsdist::rust::moka::Cache> MokaCache;
 
@@ -53,15 +53,6 @@ struct CacheKey
     }
     dnsdist::rust::moka::vec_u8_extend(bytes, rust::Slice<const uint8_t>(reinterpret_cast<const uint8_t*>(lower_data.data()), lower_data.size()));
   }
-};
-
-struct CacheValue
-{
-    [[nodiscard]] time_t getTTD() const { return validity; }
-    std::string value;
-    std::optional<Netmask> subnet;
-    time_t added{0};
-    time_t validity{0};
 };
 
 class DNSDistPacketCache : boost::noncopyable
