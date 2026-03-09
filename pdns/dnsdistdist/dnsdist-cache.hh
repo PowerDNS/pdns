@@ -30,6 +30,10 @@
 #include "stat_t.hh"
 #include "ednsoptions.hh"
 
+struct CacheValue;
+#include "rust/moka.rs.h"
+typedef rust::Box<dnsdist::rust::moka::Cache> MokaCache;
+
 struct DNSQuestion;
 
 struct CacheValue
@@ -158,4 +162,6 @@ private:
   pdns::stat_t d_cleanupCount{0};
 
   CacheSettings d_settings;
+
+  std::unique_ptr<MokaCache> d_cache{nullptr};
 };

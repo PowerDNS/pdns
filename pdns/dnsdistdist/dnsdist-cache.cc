@@ -48,6 +48,8 @@ DNSDistPacketCache::DNSDistPacketCache(CacheSettings settings) :
   for (auto& shard : d_shards) {
     shard.setSize((d_settings.d_maxEntries / d_settings.d_shardCount) + 1);
   }
+
+  d_cache = std::make_unique<MokaCache>(dnsdist::rust::moka::cache_new(d_settings.d_maxEntries, d_settings.d_shardCount));
 }
 
 bool DNSDistPacketCache::getClientSubnet(const PacketBuffer& packet, size_t qnameWireLength, std::optional<Netmask>& subnet)
