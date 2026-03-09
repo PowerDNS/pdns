@@ -301,6 +301,7 @@ bool DNSDistPacketCache::get(DNSQuestion& dnsQuestion, uint16_t queryId, CacheKe
    If the cache has more than one shard, we will try hard
    to make sure that every shard has free space remaining.
 */
+#if 0
 size_t DNSDistPacketCache::purgeExpired(size_t upTo, const time_t now)
 {
   const size_t maxPerShard = upTo / d_settings.d_shardCount;
@@ -333,6 +334,9 @@ size_t DNSDistPacketCache::purgeExpired(size_t upTo, const time_t now)
 
   return removed;
 }
+#else
+size_t DNSDistPacketCache::purgeExpired([[maybe_unused]] size_t upTo, [[maybe_unused]] const time_t now) { return 0; }
+#endif
 
 /* Remove all entries, keeping only upTo
    entries in the cache.
