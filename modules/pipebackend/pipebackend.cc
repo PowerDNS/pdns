@@ -404,22 +404,12 @@ public:
     BackendMakers().report(std::make_unique<PipeFactory>());
     // If this module is not loaded dynamically at runtime, this code runs
     // as part of a global constructor, before the structured logger has a
-    // chance to be set up, so fallback to simple logging in this case.
-    if (!g_slogStructured || !g_slog) {
-      g_log << Logger::Info << kBackendId << " This is the pipe backend version " VERSION
+    // chance to be set up, so fallback to simple logging.
+    g_log << Logger::Info << kBackendId << " This is the pipe backend version " VERSION
 #ifndef REPRODUCIBLE
-            << " (" __DATE__ " " __TIME__ ")"
+          << " (" __DATE__ " " __TIME__ ")"
 #endif
-            << " reporting" << endl;
-    }
-    else {
-      g_slog->withName("pipebackend")->info(Logr::Info, "pipe backend starting", "version", Logging::Loggable(VERSION)
-#ifndef REPRODUCIBLE
-                                                                                              ,
-                                            "build date", Logging::Loggable(__DATE__ " " __TIME__)
-#endif
-      );
-    }
+          << " reporting" << endl;
   }
 };
 
