@@ -65,7 +65,6 @@ struct CacheValue
     [[nodiscard]] time_t getTTD() const { return validity; }
     std::string value;
     std::optional<Netmask> subnet;
-    uint16_t qclass{0};
     uint16_t queryFlags{0};
     time_t added{0};
     time_t validity{0};
@@ -99,7 +98,7 @@ public:
 
   DNSDistPacketCache(CacheSettings settings);
 
-  void insert(CacheKey key, const std::optional<Netmask>& subnet, uint16_t queryFlags, bool dnssecOK, uint16_t qtype, uint16_t qclass, const PacketBuffer& response, bool receivedOverUDP, uint8_t rcode, std::optional<uint32_t> tempFailureTTL);
+  void insert(CacheKey key, const std::optional<Netmask>& subnet, uint16_t queryFlags, bool dnssecOK, uint16_t qtype, const PacketBuffer& response, bool receivedOverUDP, uint8_t rcode, std::optional<uint32_t> tempFailureTTL);
   bool get(DNSQuestion& dnsQuestion, uint16_t queryId, CacheKey& key, std::optional<Netmask>& subnet, bool receivedOverUDP, uint32_t allowExpired = 0, bool skipAging = false, bool truncatedOK = true, bool recordMiss = true);
   size_t purgeExpired(size_t upTo, time_t now);
   size_t expunge(size_t upTo = 0);
