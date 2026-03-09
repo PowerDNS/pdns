@@ -39,14 +39,23 @@ struct DNSQuestion;
 struct CacheKey
 {
   uint32_t hash{0};
+  rust::Vec<uint8_t> bytes{};
 
   void update(const char* data, const size_t size)
   {
+    dnsdist::rust::moka::vec_u8_extend(bytes, rust::Slice<const uint8_t>(reinterpret_cast<const uint8_t*>(data), size));
+
     hash = burtle(reinterpret_cast<const unsigned char*>(data), size, hash);
   }
 
   void updateCI(const char* data, const size_t size)
   {
+    std::string lower_data{};
+    for (const auto c : std::span(data, size)) {
+      lower_data.push_back(dns_tolower(c));
+    }
+    dnsdist::rust::moka::vec_u8_extend(bytes, rust::Slice<const uint8_t>(reinterpret_cast<const uint8_t*>(lower_data.data()), lower_data.size()));
+
     hash = burtleCI(reinterpret_cast<const unsigned char*>(data), size, hash);
   }
 };
