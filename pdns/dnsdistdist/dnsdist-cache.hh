@@ -67,7 +67,6 @@ struct CacheValue
     std::optional<Netmask> subnet;
     time_t added{0};
     time_t validity{0};
-    uint16_t len{0};
 };
 
 class DNSDistPacketCache : boost::noncopyable
