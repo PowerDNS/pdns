@@ -20,6 +20,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
+
+#include "dnsdist-cache.hh"
 #include "ednsoptions.hh"
 #include "misc.hh"
 #include "iputils.hh"
@@ -33,7 +35,7 @@ public:
      - EDNS Cookie options, if any ;
      - Any given option code present in optionsToSkip
   */
-  static uint32_t hashAfterQname(const std::string_view& packet, uint32_t currentHash, size_t pos, const std::unordered_set<uint16_t>& optionsToSkip = {EDNSOptionCode::COOKIE}, const std::vector<uint16_t>& payloadRanks = {})
+  static void hashAfterQname(const std::string_view& packet, CacheKey& key, size_t pos, const std::unordered_set<uint16_t>& optionsToSkip = {EDNSOptionCode::COOKIE}, const std::vector<uint16_t>& payloadRanks = {})
   {
     const size_t packetSize = packet.size();
     assert(packetSize >= sizeof(dnsheader));
@@ -48,13 +50,13 @@ public:
     const struct dnsheader *dh = dnsheaderdata.get();
     if (ntohs(dh->qdcount) != 1 || ntohs(dh->ancount) != 0 || ntohs(dh->nscount) != 0 || ntohs(dh->arcount) != 1 || (pos + 15) > packetSize) {
       if (packetSize > pos) {
-        currentHash = burtle(reinterpret_cast<const unsigned char*>(&packet.at(pos)), packetSize - pos, currentHash);
+        key.update(&packet.at(pos), packetSize - pos);
       }
-      return currentHash;
+      return;
     }
 
     if (payloadRanks.empty()) {
-      currentHash = burtle(reinterpret_cast<const unsigned char*>(&packet.at(pos)), 15, currentHash);
+      key.update(&packet.at(pos), 15);
     }
     else {
       std::vector<unsigned char> optrr(packet.begin() + pos, packet.begin() + pos + 15);
@@ -65,10 +67,10 @@ public:
         optrr[7] = (*it) >> 8;
         optrr[8] = (*it) & 0xff;
       }
-      currentHash = burtle(reinterpret_cast<const unsigned char*>(&optrr.at(0)), 15, currentHash);
+      key.update(reinterpret_cast<const char*>(&optrr.at(0)), 15);
     }
     if ( (pos + 15) == packetSize ) {
-      return currentHash;
+      return;
     }
 
     /* skip the qtype (2), qclass (2) */
@@ -83,9 +85,9 @@ public:
 
     if (rdLen > (packetSize - pos)) {
       if (pos < packetSize) {
-        currentHash = burtle(reinterpret_cast<const unsigned char*>(&packet.at(pos)), packetSize - pos, currentHash);
+        key.update(&packet.at(pos), packetSize - pos);
       }
-      return currentHash;
+      return;
     }
 
     uint16_t rdataRead = 0;
@@ -95,18 +97,18 @@ public:
     while (pos < packetSize && rdataRead < rdLen && getNextEDNSOption(&packet.at(pos), rdLen - rdataRead, optionCode, optionLen)) {
       if (optionLen > (rdLen - rdataRead - 4)) {
         if (packetSize > pos) {
-          currentHash = burtle(reinterpret_cast<const unsigned char*>(&packet.at(pos)), packetSize - pos, currentHash);
+          key.update(&packet.at(pos), packetSize - pos);
         }
-        return currentHash;
+        return;
       }
 
       if (optionsToSkip.count(optionCode) == 0) {
         /* hash the option code, length and content */
-        currentHash = burtle(reinterpret_cast<const unsigned char*>(&packet.at(pos)), 4 + optionLen, currentHash);
+        key.update(&packet.at(pos), static_cast<size_t>(4 + optionLen));
       }
       else {
         /* skip option: hash only its code and length */
-        currentHash = burtle(reinterpret_cast<const unsigned char*>(&packet.at(pos)), 4, currentHash);
+        key.update(&packet.at(pos), 4);
       }
 
       pos += 4 + optionLen;
@@ -114,10 +116,8 @@ public:
     }
 
     if (pos < packetSize) {
-      currentHash = burtle(reinterpret_cast<const unsigned char*>(&packet.at(pos)), packetSize - pos, currentHash);
+      key.update(&packet.at(pos), packetSize - pos);
     }
-
-    return currentHash;
   }
 
 };

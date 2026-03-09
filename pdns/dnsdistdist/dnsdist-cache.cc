@@ -228,17 +228,17 @@ bool DNSDistPacketCache::get(DNSQuestion& dnsQuestion, uint16_t queryId, uint32_
   }
 
   const auto& dnsQName = dnsQuestion.ids.qname.getStorage();
-  uint32_t key = getKey(dnsQName, dnsQuestion.ids.qname.wirelength(), dnsQuestion.getData(), receivedOverUDP);
+  auto key = getKey(dnsQName, dnsQuestion.ids.qname.wirelength(), dnsQuestion.getData(), receivedOverUDP);
 
   if (keyOut != nullptr) {
-    *keyOut = key;
+    *keyOut = key.hash;
   }
 
   if (d_settings.d_parseECS) {
     getClientSubnet(dnsQuestion.getData(), dnsQuestion.ids.qname.wirelength(), subnet);
   }
 
-  uint32_t shardIndex = getShardIndex(key);
+  uint32_t shardIndex = getShardIndex(key.hash);
   time_t now = time(nullptr);
   time_t age{0};
   bool stale = false;
@@ -251,7 +251,7 @@ bool DNSDistPacketCache::get(DNSQuestion& dnsQuestion, uint16_t queryId, uint32_
       return false;
     }
 
-    auto mapIt = map->find(key);
+    auto mapIt = map->find(key.hash);
     if (mapIt == map->end()) {
       if (recordMiss) {
         ++d_misses;
@@ -462,17 +462,17 @@ uint32_t DNSDistPacketCache::getMinTTL(const char* packet, uint16_t length, bool
   return getDNSPacketMinTTL(packet, length, seenNoDataSOA);
 }
 
-uint32_t DNSDistPacketCache::getKey(const DNSName::string_t& qname, size_t qnameWireLength, const PacketBuffer& packet, bool receivedOverUDP) const
+CacheKey DNSDistPacketCache::getKey(const DNSName::string_t& qname, size_t qnameWireLength, const PacketBuffer& packet, bool receivedOverUDP) const
 {
-  uint32_t result = 0;
+  CacheKey key{};
   /* skip the query ID */
   if (packet.size() < sizeof(dnsheader)) {
     throw std::range_error("Computing packet cache key for an invalid packet size (" + std::to_string(packet.size()) + ")");
   }
 
-  result = burtle(&packet.at(2), sizeof(dnsheader) - 2, result);
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-  result = burtleCI(reinterpret_cast<const unsigned char*>(qname.c_str()), qname.length(), result);
+  key.update(reinterpret_cast<const char *>(&packet.at(2)), sizeof(dnsheader) - 2);
+  key.updateCI(qname.c_str(), qname.length());
   if (packet.size() < sizeof(dnsheader) + qnameWireLength) {
     throw std::range_error("Computing packet cache key for an invalid packet (" + std::to_string(packet.size()) + " < " + std::to_string(sizeof(dnsheader) + qnameWireLength) + ")");
   }
@@ -480,15 +480,16 @@ uint32_t DNSDistPacketCache::getKey(const DNSName::string_t& qname, size_t qname
     if (!d_settings.d_optionsToSkip.empty() || !d_settings.d_payloadRanks.empty()) {
       /* skip EDNS options if any */
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-      result = PacketCache::hashAfterQname(std::string_view(reinterpret_cast<const char*>(packet.data()), packet.size()), result, sizeof(dnsheader) + qnameWireLength, d_settings.d_optionsToSkip, d_settings.d_payloadRanks);
+      PacketCache::hashAfterQname(std::string_view(reinterpret_cast<const char*>(packet.data()), packet.size()), key, sizeof(dnsheader) + qnameWireLength, d_settings.d_optionsToSkip, d_settings.d_payloadRanks);
     }
     else {
-      result = burtle(&packet.at(sizeof(dnsheader) + qnameWireLength), packet.size() - (sizeof(dnsheader) + qnameWireLength), result);
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+      key.update(reinterpret_cast<const char *>(&packet.at(sizeof(dnsheader) + qnameWireLength)), packet.size() - (sizeof(dnsheader) + qnameWireLength));
     }
   }
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-  result = burtle(reinterpret_cast<const unsigned char*>(&receivedOverUDP), sizeof(receivedOverUDP), result);
-  return result;
+  key.update(reinterpret_cast<const char*>(&receivedOverUDP), sizeof(receivedOverUDP));
+  return key;
 }
 
 uint32_t DNSDistPacketCache::getShardIndex(uint32_t key) const
