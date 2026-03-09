@@ -41,14 +41,6 @@ DNSDistPacketCache::DNSDistPacketCache(CacheSettings settings) :
     d_settings.d_shardCount = 1;
   }
 
-  d_shards.resize(d_settings.d_shardCount);
-
-  /* we reserve maxEntries + 1 to avoid rehashing from occurring
-     when we get to maxEntries, as it means a load factor of 1 */
-  for (auto& shard : d_shards) {
-    shard.setSize((d_settings.d_maxEntries / d_settings.d_shardCount) + 1);
-  }
-
   d_cache = std::make_unique<MokaCache>(dnsdist::rust::moka::cache_new(d_settings.d_maxEntries, d_settings.d_shardCount));
 }
 

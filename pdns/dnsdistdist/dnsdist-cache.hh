@@ -174,8 +174,6 @@ private:
   [[nodiscard]] uint32_t getShardIndex(uint32_t key) const;
   bool insertLocked(std::unordered_map<uint32_t, CacheValue>& map, uint32_t key, CacheValue& newValue);
 
-  std::vector<CacheShard> d_shards{};
-
   pdns::stat_t d_deferredLookups{0};
   pdns::stat_t d_deferredInserts{0};
   pdns::stat_t d_hits{0};
