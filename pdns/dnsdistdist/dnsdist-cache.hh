@@ -32,6 +32,22 @@
 
 struct DNSQuestion;
 
+struct CacheValue
+{
+    [[nodiscard]] time_t getTTD() const { return validity; }
+    std::string value;
+    DNSName qname;
+    std::optional<Netmask> subnet;
+    uint16_t qtype{0};
+    uint16_t qclass{0};
+    uint16_t queryFlags{0};
+    time_t added{0};
+    time_t validity{0};
+    uint16_t len{0};
+    bool receivedOverUDP{false};
+    bool dnssecOK{false};
+};
+
 class DNSDistPacketCache : boost::noncopyable
 {
 public:
@@ -97,22 +113,6 @@ public:
   static bool getClientSubnet(const PacketBuffer& packet, size_t qnameWireLength, std::optional<Netmask>& subnet);
 
 private:
-  struct CacheValue
-  {
-    [[nodiscard]] time_t getTTD() const { return validity; }
-    std::string value;
-    DNSName qname;
-    std::optional<Netmask> subnet;
-    uint16_t qtype{0};
-    uint16_t qclass{0};
-    uint16_t queryFlags{0};
-    time_t added{0};
-    time_t validity{0};
-    uint16_t len{0};
-    bool receivedOverUDP{false};
-    bool dnssecOK{false};
-  };
-
   class CacheShard
   {
   public:
