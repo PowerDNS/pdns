@@ -4,6 +4,10 @@ Changelogs for 5.4.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
+  :version: 5.4.0
+  :released: 9th of March 2026 with no changes since 5.4.0-rc1 except the version.
+
+.. changelog::
   :version: 5.4.0-rc1
   :released: 17th of February 2026
 
@@ -40,6 +44,12 @@ Before upgrading, it is advised to read the :doc:`../upgrade`.
     Base64 tidy and unit test fix.
 
   .. change::
+    :tags: Bug Fixes
+    :pullreq: 16810
+
+    Correctly compute DNSSEC public key exponent lengths when larger than 255.
+
+  .. change::
     :tags: Improvements
     :pullreq: 16826
 
@@ -62,8 +72,6 @@ Before upgrading, it is advised to read the :doc:`../upgrade`.
     :pullreq: 16838
 
     Limit packet and record cache entry size (SA 2026-01).
-
-
 
 .. changelog::
   :version: 5.4.0-beta1
