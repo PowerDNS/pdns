@@ -72,7 +72,7 @@ bool DNSDistPacketCache::getClientSubnet(const PacketBuffer& packet, size_t qnam
   return false;
 }
 
-void DNSDistPacketCache::insert(CacheKey key, const std::optional<Netmask>& subnet, bool dnssecOK, uint16_t qtype, const PacketBuffer& response, bool receivedOverUDP, uint8_t rcode, std::optional<uint32_t> tempFailureTTL)
+void DNSDistPacketCache::insert(CacheKey key, const std::optional<Netmask>& subnet, uint16_t qtype, const PacketBuffer& response, bool receivedOverUDP, uint8_t rcode, std::optional<uint32_t> tempFailureTTL)
 {
   if (response.size() < sizeof(dnsheader) || response.size() > getMaximumEntrySize()) {
     return;
