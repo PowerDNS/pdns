@@ -404,13 +404,7 @@ bool DNSDistPacketCache::isFull()
 
 uint64_t DNSDistPacketCache::getSize()
 {
-  uint64_t count = 0;
-
-  for (auto& shard : d_shards) {
-    count += shard.d_entriesCount;
-  }
-
-  return count;
+  return (*d_cache)->entry_count();
 }
 
 uint32_t DNSDistPacketCache::getMinTTL(const char* packet, uint16_t length, bool* seenNoDataSOA)
