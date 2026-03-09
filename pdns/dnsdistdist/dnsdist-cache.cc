@@ -446,11 +446,6 @@ CacheKey DNSDistPacketCache::getKey(const DNSName::string_t& qname, size_t qname
   return key;
 }
 
-uint32_t DNSDistPacketCache::getShardIndex(uint32_t key) const
-{
-  return key % d_settings.d_shardCount;
-}
-
 string DNSDistPacketCache::toString()
 {
   return std::to_string(getSize()) + "/" + std::to_string(d_settings.d_maxEntries);
