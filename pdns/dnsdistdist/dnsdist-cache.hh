@@ -65,7 +65,6 @@ struct CacheValue
     [[nodiscard]] time_t getTTD() const { return validity; }
     std::string value;
     std::optional<Netmask> subnet;
-    uint16_t queryFlags{0};
     time_t added{0};
     time_t validity{0};
     uint16_t len{0};

@@ -128,7 +128,6 @@ void DNSDistPacketCache::insert(CacheKey key, const std::optional<Netmask>& subn
   auto newValue = std::make_shared<CacheValue>(CacheValue {
     .value = std::string(response.begin(), response.end()),
     .subnet = subnet,
-    .queryFlags = queryFlags,
     .added = now,
     .validity = newValidity,
     .len = static_cast<uint16_t>(response.size()),
