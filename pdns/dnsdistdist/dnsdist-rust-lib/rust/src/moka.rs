@@ -9,6 +9,8 @@ mod rustmoka {
         fn insert(&self, key: Vec<u8>, value: SharedPtr<CacheValue>);
 
         fn cache_new(capacity: usize, segments: usize) -> Box<Cache>;
+
+        fn vec_u8_extend(data: &mut Vec<u8>, slice: &[u8]);
     }
 
     // C++ types and signatures exposed to Rust.
@@ -21,6 +23,10 @@ mod rustmoka {
 
 unsafe impl Send for rustmoka::CacheValue {}
 unsafe impl Sync for rustmoka::CacheValue {}
+
+fn vec_u8_extend(data: &mut Vec<u8>, slice: &[u8]) {
+    data.extend_from_slice(slice);
+}
 
 pub struct Cache {
     cache: moka::sync::SegmentedCache<Vec<u8>, cxx::SharedPtr<rustmoka::CacheValue>>,
