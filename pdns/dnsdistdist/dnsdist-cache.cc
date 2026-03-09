@@ -343,6 +343,7 @@ size_t DNSDistPacketCache::purgeExpired([[maybe_unused]] size_t upTo, [[maybe_un
    If the cache has more than one shard, we will try hard
    to make sure that every shard has free space remaining.
 */
+#if 0
 size_t DNSDistPacketCache::expunge(size_t upTo)
 {
   const size_t maxPerShard = upTo / d_settings.d_shardCount;
@@ -376,6 +377,9 @@ size_t DNSDistPacketCache::expunge(size_t upTo)
 
   return removed;
 }
+#else
+size_t DNSDistPacketCache::expunge([[maybe_unused]] size_t upTo) { return 0; }
+#endif
 
 size_t DNSDistPacketCache::expungeByName(const DNSName& name, uint16_t qtype, bool suffixMatch)
 {
