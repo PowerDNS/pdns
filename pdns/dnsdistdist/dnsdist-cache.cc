@@ -166,7 +166,8 @@ bool DNSDistPacketCache::get(DNSQuestion& dnsQuestion, uint16_t queryId, CacheKe
       stale = true;
     }
 
-    if (value->len < sizeof(dnsheader)) {
+    const auto lenValue = value->value.length();
+    if (lenValue < sizeof(dnsheader)) {
       return false;
     }
 
@@ -177,24 +178,24 @@ bool DNSDistPacketCache::get(DNSQuestion& dnsQuestion, uint16_t queryId, CacheKe
       }
     }
 
-    response.resize(value->len);
+    response.resize(lenValue);
     memcpy(&response.at(0), &queryId, sizeof(queryId));
     memcpy(&response.at(sizeof(queryId)), &value->value.at(sizeof(queryId)), sizeof(dnsheader) - sizeof(queryId));
 
-    if (value->len == sizeof(dnsheader)) {
+    if (lenValue == sizeof(dnsheader)) {
       /* DNS header only, our work here is done */
       ++d_hits;
       return true;
     }
 
     const size_t dnsQNameLen = dnsQName.length();
-    if (value->len < (sizeof(dnsheader) + dnsQNameLen)) {
+    if (lenValue < (sizeof(dnsheader) + dnsQNameLen)) {
       return false;
     }
 
     memcpy(&response.at(sizeof(dnsheader)), dnsQName.c_str(), dnsQNameLen);
-    if (value->len > (sizeof(dnsheader) + dnsQNameLen)) {
-      memcpy(&response.at(sizeof(dnsheader) + dnsQNameLen), &value->value.at(sizeof(dnsheader) + dnsQNameLen), value->len - (sizeof(dnsheader) + dnsQNameLen));
+    if (lenValue > (sizeof(dnsheader) + dnsQNameLen)) {
+      memcpy(&response.at(sizeof(dnsheader) + dnsQNameLen), &value->value.at(sizeof(dnsheader) + dnsQNameLen), lenValue - (sizeof(dnsheader) + dnsQNameLen));
     }
 
     if (!stale) {
