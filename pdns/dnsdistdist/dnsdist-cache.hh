@@ -171,7 +171,6 @@ private:
   };
 
   [[nodiscard]] bool cachedValueMatches(const CacheValue& cachedValue, uint16_t queryFlags, const DNSName& qname, uint16_t qtype, uint16_t qclass, bool receivedOverUDP, bool dnssecOK, const std::optional<Netmask>& subnet) const;
-  bool insertLocked(std::unordered_map<uint32_t, CacheValue>& map, uint32_t key, CacheValue& newValue);
 
   pdns::stat_t d_deferredLookups{0};
   pdns::stat_t d_deferredInserts{0};
