@@ -581,6 +581,7 @@ std::set<DNSName> DNSDistPacketCache::getDomainsContainingRecords(const ComboAdd
 std::set<DNSName> DNSDistPacketCache::getDomainsContainingRecords([[maybe_unused]] const ComboAddress& addr) { return {}; }
 #endif
 
+#if 0
 std::set<ComboAddress> DNSDistPacketCache::getRecordsForDomain(const DNSName& domain)
 {
   std::set<ComboAddress> addresses;
@@ -630,3 +631,6 @@ std::set<ComboAddress> DNSDistPacketCache::getRecordsForDomain(const DNSName& do
 
   return addresses;
 }
+#else
+std::set<ComboAddress> DNSDistPacketCache::getRecordsForDomain([[maybe_unused]] const DNSName& domain) { return {}; }
+#endif
