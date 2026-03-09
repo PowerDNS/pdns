@@ -170,8 +170,6 @@ private:
     std::atomic<uint64_t> d_entriesCount{0};
   };
 
-  [[nodiscard]] bool cachedValueMatches(const CacheValue& cachedValue, uint16_t queryFlags, const DNSName& qname, uint16_t qtype, uint16_t qclass, bool receivedOverUDP, bool dnssecOK, const std::optional<Netmask>& subnet) const;
-
   pdns::stat_t d_deferredLookups{0};
   pdns::stat_t d_deferredInserts{0};
   pdns::stat_t d_hits{0};
