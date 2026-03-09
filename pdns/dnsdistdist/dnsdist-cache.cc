@@ -457,7 +457,7 @@ uint64_t DNSDistPacketCache::getEntriesCount()
   return getSize();
 }
 
-uint64_t DNSDistPacketCache::dump(int fileDesc, bool rawResponse)
+uint64_t DNSDistPacketCache::dump(int fileDesc, [[maybe_unused]] bool rawResponse)
 {
   auto fileDescDuplicated = dup(fileDesc);
   if (fileDescDuplicated < 0) {
@@ -471,6 +471,7 @@ uint64_t DNSDistPacketCache::dump(int fileDesc, bool rawResponse)
   fprintf(filePtr.get(), "; dnsdist's packet cache dump follows\n;\n");
 
   uint64_t count = 0;
+#if 0
   time_t now = time(nullptr);
   for (auto& shard : d_shards) {
     auto map = shard.d_map.read_lock();
@@ -500,6 +501,9 @@ uint64_t DNSDistPacketCache::dump(int fileDesc, bool rawResponse)
       }
     }
   }
+#endif
+
+  fprintf(filePtr.get(), "; XXX: Moka cache dumping not implemented\n");
 
   return count;
 }
