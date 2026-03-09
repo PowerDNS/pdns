@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 import unittest
 import threading
-import dns
+import dns.rrset
+import dns.rcode
+import dns.rdataclass
+import dns.message
 import time
 import clientsubnetoption
 
@@ -22,6 +25,12 @@ class FakeHTTPServer(BaseHTTPRequestHandler):
             self._set_headers(404)
             self.wfile.write(bytes('this page does not exist', 'utf-8'))
             return
+
+        if self.path == "/check-headers":
+            if self.headers.get("my-header", "") != "myvalue":
+                self._set_headers(400)
+                self.wfile.write(bytes('Wrong Header value!', 'utf-8'))
+                return
 
         self._set_headers()
         if self.path == '/ping.json':
@@ -128,6 +137,14 @@ usa-404      IN    LUA    A   ( ";include('config')                         "
                                 "USAips, {{ httpcode='404' }})              ")
 
 ifurlextup   IN    LUA    A   "ifurlextup({{{{['192.168.0.1']='http://{prefix}.101:8080/404',['192.168.0.2']='http://{prefix}.102:8080/404'}}, {{['192.168.0.3']='http://{prefix}.101:8080/'}}}})"
+
+goodheaders.ifurlup IN  LUA   A   ("ifurlup('http://example.com:8080/check-headers', "
+                                   "        {{'{prefix}.102', '192.168.42.105'}},    "
+                                   "        {{headers={{my_header='myvalue'}}}})     ")
+
+badheaders.ifurlup IN  LUA    A   ("ifurlup('http://example.com:8080/check-headers', "
+                                   "        {{'{prefix}.102', '192.168.42.105'}},    "
+                                   "        {{headers={{my_header='wrong-value'}}}}) ")
 
 nl           IN    LUA    A   ( ";include('config')                                "
                                 "return ifportup(8081, NLips) ")
@@ -584,6 +601,60 @@ class TestLuaRecords(BaseLuaTest):
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertAnyRRsetInAnswer(res, reachable_rrs)
+
+    def testIfurlupHeaders(self):
+        """
+        ifurlup() test where send headers.
+        """
+        reachable = [
+            '{prefix}.102'.format(prefix=self._PREFIX)
+        ]
+        unreachable = ['192.168.42.105']
+        ips = reachable + unreachable
+        all_rrs = []
+        reachable_rrs = []
+        for ip in ips:
+            rr = dns.rrset.from_text('goodheaders.ifurlup.example.org.', 0, dns.rdataclass.IN, 'A', ip)
+            all_rrs.append(rr)
+            if ip in reachable:
+                reachable_rrs.append(rr)
+
+        query = dns.message.make_query('goodheaders.ifurlup.example.org', 'A')
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertAnyRRsetInAnswer(res, all_rrs)
+
+        time.sleep(3)
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertAnyRRsetInAnswer(res, reachable_rrs)
+
+    def testIfurlupHeadersBad(self):
+        """
+        ifurlup() test where send headers, but the value is wrong
+        """
+        reachable = [
+            '{prefix}.102'.format(prefix=self._PREFIX)
+        ]
+        unreachable = ['192.168.42.105']
+        ips = reachable + unreachable
+        all_rrs = []
+        reachable_rrs = []
+        for ip in ips:
+            rr = dns.rrset.from_text('badheaders.ifurlup.example.org.', 0, dns.rdataclass.IN, 'A', ip)
+            all_rrs.append(rr)
+            if ip in reachable:
+                reachable_rrs.append(rr)
+
+        query = dns.message.make_query('badheaders.ifurlup.example.org', 'A')
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertAnyRRsetInAnswer(res, all_rrs)
+
+        time.sleep(3)
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertAnyRRsetInAnswer(res, all_rrs)
 
     def testLatlon(self):
         """
