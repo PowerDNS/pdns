@@ -160,7 +160,7 @@ vector<string> BackendMakerClass::getModules()
 
 void BackendMakerClass::load_all()
 {
-  auto directory = arg()["module-dir"];
+  const auto& directory = arg()["module-dir"];
   auto directoryError = pdns::visit_directory(directory, []([[maybe_unused]] ino_t inodeNumber, const std::string_view& name) {
     if (boost::starts_with(name, "lib") && name.size() > 13 && boost::ends_with(name, "backend.so")) {
       load(std::string(name));
@@ -177,7 +177,7 @@ void BackendMakerClass::load(const string& module)
 {
   bool res = false;
 
-  auto moduleDir = arg()["module-dir"];
+  const auto& moduleDir = arg()["module-dir"];
   SLOG(g_log << Logger::Debug << "BackendMakerClass: module = " << module << endl
              << Logger::Debug << "BackendMakerClass: module-dir = " << moduleDir << endl,
        s_slog->info(Logr::Debug, "BackendMakerClass", "module-dir", Logging::Loggable(moduleDir), "module", Logging::Loggable(module)));

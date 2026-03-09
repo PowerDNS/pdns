@@ -181,13 +181,8 @@ public:
     BackendMakers().report(std::make_unique<gODBCFactory>("godbc"));
     // If this module is not loaded dynamically at runtime, this code runs
     // as part of a global constructor, before the structured logger has a
-    // chance to be set up, so fallback to simple logging in this case.
-    if (!g_slogStructured || !g_slog) {
-      g_log << Logger::Warning << "This is module godbcbackend reporting" << std::endl;
-    }
-    else {
-      g_slog->withName("godbcbackend")->info(Logr::Info, "godbc backend starting");
-    }
+    // chance to be set up, so fallback to simple logging.
+    g_log << Logger::Warning << "This is module godbcbackend reporting" << std::endl;
   }
 };
 
