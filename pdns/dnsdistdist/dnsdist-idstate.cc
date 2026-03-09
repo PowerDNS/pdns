@@ -98,6 +98,7 @@ InternalQueryState::~InternalQueryState()
       pdns::ProtoZero::Message minimalMsg{pbBuf};
       minimalMsg.setType(pdns::ProtoZero::Message::MessageType::DNSQueryType);
       minimalMsg.setOpenTelemetryData(OTData);
+      minimalMsg.setOpenTelemetryTraceID(d_OTTracer->getTraceID());
       for (auto const& msg_logger : ottraceLoggers) {
         msg_logger->queueData(pbBuf);
       }
