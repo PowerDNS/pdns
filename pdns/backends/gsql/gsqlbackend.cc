@@ -1928,7 +1928,7 @@ void GSQLBackend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, boo
 
       di.backend = this;
 
-      domains->push_back(di);
+      domains->push_back(std::move(di));
     }
     d_getAllDomainsQuery_stmt->reset();
   }
@@ -2336,7 +2336,7 @@ bool GSQLBackend::searchRecords(const string &pattern, size_t maxResults, vector
       } catch (...) {
         continue;
       }
-      result.push_back(r);
+      result.push_back(std::move(r));
     }
 
     d_SearchRecordsQuery_stmt->reset();

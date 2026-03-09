@@ -184,7 +184,7 @@ int stubDoResolve(Logr::log_t slog, const DNSName& qname, uint16_t qtype, vector
         DNSZoneRecord zrr;
         zrr.dr = answer;
         zrr.auth = true;
-        ret.push_back(zrr);
+        ret.push_back(std::move(zrr));
       }
     }
     SLOG(g_log << Logger::Debug << logPrefix << "Question for '" << queryNameType << "' got answered by " << dest.toString() << endl,

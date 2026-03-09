@@ -2306,7 +2306,7 @@ void LMDBBackend::getAllDomainsFiltered(vector<DomainInfo>* domains, const std::
 
       consolidateDomainInfo(di);
       if (allow(di)) {
-        domains->push_back(di);
+        domains->push_back(std::move(di));
       }
     }
   }
@@ -3252,7 +3252,7 @@ bool LMDBBackend::getTSIGKeys(std::vector<struct TSIGKey>& keys)
     for (auto key_id : ids) {
       TSIGKey key;
       if (txn.get(key_id, key)) {
-        keys.push_back(key);
+        keys.push_back(std::move(key));
       }
     }
   }
