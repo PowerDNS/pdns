@@ -36,6 +36,21 @@ typedef rust::Box<dnsdist::rust::moka::Cache> MokaCache;
 
 struct DNSQuestion;
 
+struct CacheKey
+{
+  uint32_t hash{0};
+
+  void update(const char* data, const size_t size)
+  {
+    hash = burtle(reinterpret_cast<const unsigned char*>(data), size, hash);
+  }
+
+  void updateCI(const char* data, const size_t size)
+  {
+    hash = burtleCI(reinterpret_cast<const unsigned char*>(data), size, hash);
+  }
+};
+
 struct CacheValue
 {
     [[nodiscard]] time_t getTTD() const { return validity; }
