@@ -520,6 +520,7 @@ uint64_t DNSDistPacketCache::dump(int fileDesc, [[maybe_unused]] bool rawRespons
   return count;
 }
 
+#if 0
 std::set<DNSName> DNSDistPacketCache::getDomainsContainingRecords(const ComboAddress& addr)
 {
   std::set<DNSName> domains;
@@ -576,6 +577,9 @@ std::set<DNSName> DNSDistPacketCache::getDomainsContainingRecords(const ComboAdd
 
   return domains;
 }
+#else
+std::set<DNSName> DNSDistPacketCache::getDomainsContainingRecords([[maybe_unused]] const ComboAddress& addr) { return {}; }
+#endif
 
 std::set<ComboAddress> DNSDistPacketCache::getRecordsForDomain(const DNSName& domain)
 {
