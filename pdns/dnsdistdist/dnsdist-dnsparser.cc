@@ -132,7 +132,7 @@ bool changeNameInDNSPacket(PacketBuffer& initialPacket, const DNSName& from, con
     pw.startRecord(rrname, ah.d_type, ah.d_ttl, ah.d_class, place, true);
     if (nameOnlyTypes.count(ah.d_type)) {
       rrname = pr.getName();
-      pw.xfrName(rrname);
+      pw.xfrName(rrname, true);
     }
     else if (noNameTypes.count(ah.d_type)) {
       pr.xfrBlob(blob);
@@ -147,13 +147,13 @@ bool changeNameInDNSPacket(PacketBuffer& initialPacket, const DNSName& from, con
       auto prio = pr.get16BitInt();
       rrname = pr.getName();
       pw.xfr16BitInt(prio);
-      pw.xfrName(rrname);
+      pw.xfrName(rrname, true);
     }
     else if (ah.d_type == QType::SOA) {
       auto mname = pr.getName();
-      pw.xfrName(mname);
+      pw.xfrName(mname, true);
       auto rname = pr.getName();
-      pw.xfrName(rname);
+      pw.xfrName(rname, true);
       /* serial */
       pw.xfr32BitInt(pr.get32BitInt());
       /* refresh */
@@ -173,7 +173,7 @@ bool changeNameInDNSPacket(PacketBuffer& initialPacket, const DNSName& from, con
       /* port */
       pw.xfr16BitInt(pr.get16BitInt());
       auto target = pr.getName();
-      pw.xfrName(target);
+      pw.xfrName(target, true);
     }
     else {
       /* sorry, unsafe type */
