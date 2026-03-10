@@ -2,6 +2,17 @@ Changelog
 =========
 
 .. changelog::
+  :version: 2.1.0-beta2
+  :released: 12th of March 2026
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16964
+    :tickets: 16934
+
+    Fix Lua configuration of Dynamic Block AllowedRCodeRatio
+
+.. changelog::
   :version: 2.1.0-beta1
   :released: 23rd of February 2026
 
