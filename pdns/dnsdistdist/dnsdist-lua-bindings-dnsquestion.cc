@@ -379,23 +379,27 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
 #endif
     });
 
-  luaCtx.registerFunction<void (DNSQuestion::*)(const std::string& name, const std::function<void(const pdns::trace::dnsdist::Tracer::Closer& closer)>& func)>(
+  luaCtx.registerFunction<void (DNSQuestion::*)(const std::string& name, const std::function<void()>& func)>(
     "withTraceSpan",
-    [](const DNSQuestion& dnsQuestion, const std::string& name, const std::function<void(const pdns::trace::dnsdist::Tracer::Closer& closer)> func) {
+    [](const DNSQuestion& dnsQuestion, const std::string& name, const std::function<void()>& func) {
 #ifndef DISABLE_PROTOBUF
       if (auto tracer = dnsQuestion.ids.getTracer(); tracer != nullptr) {
         auto closer = tracer->openSpan(name);
-        func(closer);
+        func();
         return;
       }
 #endif
-      func(pdns::trace::dnsdist::Tracer::Closer());
+      func();
     });
 
-  luaCtx.registerFunction<void (pdns::trace::dnsdist::Tracer::Closer::*)(const std::string& key, const std::string& value)>(
+  luaCtx.registerFunction<void (DNSQuestion::*)(const std::string& key, const std::string& value)>(
     "setSpanAttribute",
-    [](pdns::trace::dnsdist::Tracer::Closer& closer, const std::string& key, const std::string& value) {
-      closer.setAttribute(key, AnyValue{value});
+    [](const DNSQuestion& dnsQuestion, const std::string& key, const std::string& value) {
+#ifndef DISABLE_PROTOBUF
+      if (auto tracer = dnsQuestion.ids.getTracer(); tracer != nullptr) {
+        tracer->setSpanAttribute(tracer->getLastSpanID(), key, AnyValue{value});
+      }
+#endif
     });
 
   class AsynchronousObject
@@ -739,17 +743,27 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
     return dnsdist::suspendResponse(dnsResponse, asyncID, queryID, timeoutMs);
   });
 
-  luaCtx.registerFunction<void (DNSResponse::*)(const std::string& name, const std::function<void(const pdns::trace::dnsdist::Tracer::Closer& closer)>& func)>(
+  luaCtx.registerFunction<void (DNSResponse::*)(const std::string&, const std::function<void()>&)>(
     "withTraceSpan",
-    [](const DNSResponse& dnsResponse, const std::string& name, const std::function<void(const pdns::trace::dnsdist::Tracer::Closer& closer)> func) {
+    [](const DNSResponse& dnsResponse, const std::string& name, const std::function<void()>& func) {
 #ifndef DISABLE_PROTOBUF
       if (auto tracer = dnsResponse.ids.getTracer(); tracer != nullptr) {
         auto closer = tracer->openSpan(name);
-        func(closer);
+        func();
         return;
       }
 #endif
-      func(pdns::trace::dnsdist::Tracer::Closer());
+      func();
+    });
+
+  luaCtx.registerFunction<void (DNSResponse::*)(const std::string& key, const std::string& value)>(
+    "setSpanAttribute",
+    [](const DNSResponse& dnsResponse, const std::string& key, const std::string& value) {
+#ifndef DISABLE_PROTOBUF
+      if (auto tracer = dnsResponse.ids.getTracer(); tracer != nullptr) {
+        tracer->setSpanAttribute(tracer->getLastSpanID(), key, AnyValue{value});
+      }
+#endif
     });
 
   luaCtx.registerFunction<bool (DNSResponse::*)(const DNSName& newName)>("changeName", [](DNSResponse& dnsResponse, const DNSName& newName) -> bool {

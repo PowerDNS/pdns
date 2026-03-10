@@ -1007,10 +1007,10 @@ query_rules:
       function_code: |
         return function (dq)
           dq:withTraceSpan("my-span",
-            function (closer)
-              closer:setSpanAttribute("my-key-from-lua", "my-value-from-lua")
+            function ()
+              dq:setSpanAttribute("my-key-from-lua", "my-value-from-lua")
               dq:withTraceSpan("my-second-span",
-                function(cl)
+                function()
                 end
               )
             end
