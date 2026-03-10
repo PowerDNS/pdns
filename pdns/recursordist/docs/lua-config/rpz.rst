@@ -202,6 +202,12 @@ zoneSizeHint
 ^^^^^^^^^^^^
 An indication of the number of expected entries in the zone, speeding up the loading of huge zones by reserving space in advance.
 
+wipePacketCache
+^^^^^^^^^^^^^^^
+.. versionadded:: 5.5.0
+
+When set, relevant names are cleared from the packet cache on (re)load of the RPZ. Defaults to ``false``.
+
 Extra settings for rpzPrimary
 -----------------------------
 In addition to the settings above the settings for :func:`rpzPrimary` may contain:

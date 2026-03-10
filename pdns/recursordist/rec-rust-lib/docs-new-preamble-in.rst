@@ -404,8 +404,11 @@ As of version 5.1.0, an RPZ entry is defined as
     axfrTimeout: number
     dumpFile: string
     seedFile: string
+    wipePacketCache: false
 
 .. versionchanged:: 5.3.0 The aliases ``defpol_override_local_data``, ``extended_error_code``, ``extended_error_extra``, ``include_soa``, ``ignore_duplicates``, ``policy_name``, ``overriddes_gettag``, ``zone_size_hint``, ``max_received_bytes``, ``local_address``, ``axfr_timeout``, ``dump_file``, ``seed_file`` have been introduced.
+
+.. versionchanged:: 5.5.0 The flag ``wipePacketCache`` (default ``false``) has been added. When set, relevant names are cleared from the packet cache on (re)load of the RPZ.
 
 If ``addresses`` is empty, the ``name`` field specifies the path name of the RPZ; otherwise, the ``name`` field defines the name of the RPZ.
 Starting with version 5.2.0, names instead of IP addresses can be used for ``addresses`` if

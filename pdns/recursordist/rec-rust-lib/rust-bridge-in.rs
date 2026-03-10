@@ -179,6 +179,9 @@ pub struct RPZ {
     dumpFile: String,
     #[serde(default, skip_serializing_if = "crate::is_default", alias = "seed_file")]
     seedFile: String,
+    // Added in 5.5.0
+    #[serde(default, skip_serializing_if = "crate::is_default", alias = "wipe_packet_cache")]
+    wipePacketCache: bool,
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug, PartialEq)]

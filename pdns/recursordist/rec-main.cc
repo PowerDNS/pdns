@@ -3410,14 +3410,14 @@ static void* pleaseInitPolCounts(const string& name)
   return nullptr;
 }
 
-static bool activateRPZFile(const RPZTrackerParams& params, LuaConfigItems& lci, shared_ptr<DNSFilterEngine::Zone>& zone,       std::unordered_set<DNSName>& affected)
+static bool activateRPZFile(const RPZTrackerParams& params, LuaConfigItems& lci, shared_ptr<DNSFilterEngine::Zone>& zone, std::unordered_set<DNSName>& affected)
 {
   auto log = lci.d_slog->withValues("file", Logging::Loggable(params.zoneXFRParams.name));
 
   zone->setName(params.polName.empty() ? "rpzFile" : params.polName);
   try {
     log->info(Logr::Info, "Loading RPZ from file");
-    loadRPZFromFile(params.zoneXFRParams.name, zone, params.defpol, params.defpolOverrideLocal, params.maxTTL, affected);
+    loadRPZFromFile(params.zoneXFRParams.name, zone, params.defpol, params.defpolOverrideLocal, params.maxTTL, affected, params.wipePacketCache);
     log->info(Logr::Info, "Done loading RPZ from file");
   }
   catch (const std::exception& e) {
@@ -3435,7 +3435,7 @@ static void activateRPZPrimary(RPZTrackerParams& params, LuaConfigItems& lci, sh
   if (!params.seedFileName.empty()) {
     log->info(Logr::Info, "Pre-loading RPZ zone from seed file");
     try {
-      params.zoneXFRParams.soaRecordContent = loadRPZFromFile(params.seedFileName, zone, params.defpol, params.defpolOverrideLocal, params.maxTTL, affected);
+      params.zoneXFRParams.soaRecordContent = loadRPZFromFile(params.seedFileName, zone, params.defpol, params.defpolOverrideLocal, params.maxTTL, affected, params.wipePacketCache);
 
       if (zone->getDomain() != domain) {
         throw PDNSException("The RPZ zone " + params.zoneXFRParams.name + " loaded from the seed file (" + zone->getDomain().toString() + ") does not match the one passed in parameter (" + domain.toString() + ")");
