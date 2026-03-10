@@ -250,20 +250,31 @@ template <typename Container> uint16_t GenericDNSPacketWriter<Container>::lookup
       cout<<"Looking at '"<<pname<<"' in packet at position "<<p<<"/"<<d_content.size()<<", option "<<counter<<"/"<<d_namepositions.size()<<endl;
       ++counter;
     }
+    size_t pointerQuota = 50U;
     // memcmp here makes things _slower_
     pvect.clear();
     try {
-      for(auto iter = d_content.cbegin() + p; iter < d_content.cend();) {
-        uint8_t c=*iter;
+      for(auto iter = d_content.cbegin() + p; iter < d_content.cend() && pointerQuota > 0;) {
+        uint8_t c = *iter;
+        const uint16_t currentPos = (iter - d_content.cbegin());
         if(l_verbose)
           cout<<"Found label length: "<<(int)c<<endl;
         if(c & 0xc0) {
           uint16_t npos = 0x100*(c & (~0xc0)) + *++iter;
+          // check against going forward here
+          if (npos >= currentPos || npos < sizeof(dnsheader)) {
+            /* something is not right */
+            break;
+          }
           iter = d_content.begin() + npos;
           if(l_verbose)
             cout<<"Is compressed label to newpos "<<npos<<", going there"<<endl;
-          // check against going forward here
-          continue;
+
+          if (pointerQuota >= 1) {
+            pointerQuota--;
+            continue;
+          }
+          break;
         }
         if(!c)
           break;
