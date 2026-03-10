@@ -143,17 +143,20 @@ The following example makes :program:`dnsdist` accept a TRACEPARENT, and update 
 Creating Trace Spans from LuaActions
 ====================================
 
-It is possible to create Spans inside :func:`LuaRules <LuaRule>` in order to track performance of your Lua code.
+.. versionadded:: 2.2.0
+
+It is possible to create Spans inside :func:`LuaRules <LuaRule>` or :func:`LuaResponseRules <LuaResponseRule>` in order to track performance of your Lua code.
 To do this, you can call the :func:`DNSQuestion:withTraceSpan` function of the :class:`DNSQuestion` object.
-This function takes a string that is the name of the Span and a function that accepts a single :class:`Closer` object.
+This function takes a string that is the name of the Span and the function with will be instrumented.
 
 .. code-block:: lua
 
   function myLuaAction(dq)
+    dq:setSpanAttribute("attr-in-the-rule-span", "hello from Lua!")
     dq:withTraceSpan(
       'my-trace-span',
-      function (closer)
-        closer:setAttribute("some.key", "some-value")
+      function ()
+        dq:setSpanAttribute("some.key", "some-value")
         -- Do some actual things with the DNSQuestion here
       end
     )
@@ -167,14 +170,14 @@ Within the function body, you can create more spans by calling :func:`DNSQuestio
   function myLuaAction(dq)
     dq:withTraceSpan(
       'my-trace-span',
-      function (closer)
+      function ()
         -- Some set up
-        closer:setAttribute("some.key", "some-value")
+        dq:setSpanAttribute("some.key", "some-value")
 
         -- This will create a child span of 'my-trace-span'
         dq:withTraceSpan(
           'inner-span',
-          function (_) -- We're not using closer functions, so no need to assign it
+          function ()
             -- Do some longer-running thing
           end
         )

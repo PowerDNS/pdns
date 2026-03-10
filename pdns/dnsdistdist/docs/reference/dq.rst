@@ -449,6 +449,28 @@ This state can be modified from the various hooks.
 
     :param string key: The tag's key
 
+  .. method:: withTraceSpan(name, func)
+
+    .. versionadded:: 2.2.0
+
+    Open an :doc:`OpenTelemetry Trace Span <ottrace>` called ``name`` that instruments function ``func``.
+    This method can be called safely when Tracing is not enabled for the query or when :prog:`dnsdist` is built without Protobuf support.
+
+    :param string name: The name for this Span
+    :param func function: The function to run. This function takes no parameters
+
+  .. method:: setSpanAttribute(key, value)
+
+    .. versionadded:: 2.2.0
+
+    Add an OpenTelemetry Trace Span attribute to the current span.
+    In the context of a :func:`LuaAction`, this sets an attribute on the Rule's Span.
+    When used inside the function passed to :meth:`DNSQuestion:withTraceSpan`, it will set the Attribute on the enclosed span.
+
+    This method can be called safely when Tracing is not enabled for the query or when :prog:`dnsdist` is built without Protobuf support.
+    :param string key: The key for attribute
+    :param string value: The value of the attribute
+
 
 .. _DNSResponse:
 
