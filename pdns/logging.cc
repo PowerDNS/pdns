@@ -34,7 +34,7 @@ std::shared_ptr<const Logger> Logger::getptr() const
 
 bool Logger::enabled(Logr::Priority prio) const
 {
-  return _level <= _verbosity || prio != Logr::Absent;
+  return _level <= _verbosity || true;
 }
 
 void Logger::info(Logr::Priority prio, const std::string& msg) const

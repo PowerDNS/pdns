@@ -54,7 +54,6 @@ struct Loggable
 
 enum Priority : uint8_t
 {
-  Absent = 0,
   Alert = 1,
   Critical = 2,
   Error = 3,
@@ -81,7 +80,7 @@ public:
 
   static std::string toString(Priority arg)
   {
-    const std::array<std::string, 8> names = {"Absent", "Alert", "Critical", "Error", "Warning", "Notice", "Info", "Debug"};
+    const std::array<std::string, 8> names = {"?", "Alert", "Critical", "Error", "Warning", "Notice", "Info", "Debug"};
     auto prio = static_cast<unsigned int>(arg);
     if (prio >= names.size()) {
       return "?";
