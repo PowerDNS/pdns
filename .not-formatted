@@ -119,8 +119,6 @@
 ./pdns/query-local-address.hh
 ./pdns/rcpgenerator.cc
 ./pdns/rcpgenerator.hh
-./pdns/remote_logger.cc
-./pdns/remote_logger.hh
 ./pdns/resolver.cc
 ./pdns/resolver.hh
 ./pdns/responsestats-auth.cc

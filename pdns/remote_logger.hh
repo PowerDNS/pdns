@@ -20,16 +20,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
-#ifdef HAVE_CONFIG_H
+
 #include "config.h"
-#endif
 
 #include <atomic>
-#include <queue>
 #include <thread>
 
 #include "iputils.hh"
-#include "circular_buffer.hh"
+#include "circular_buffer.hh" // Keep, despite what clang-tidy days
 #include "lock.hh"
 #include "sstuff.hh"
 
@@ -50,9 +48,9 @@ public:
   {
   }
 
-  bool hasRoomFor(const std::string& str) const;
+  [[nodiscard]] bool hasRoomFor(const std::string& str) const;
   bool write(const std::string& str);
-  bool flush(int fd);
+  bool flush(int fileDesc);
 private:
   boost::circular_buffer<char> d_buffer;
 };
@@ -60,19 +58,31 @@ private:
 class RemoteLoggerInterface
 {
 public:
-  enum class Result : uint8_t { Queued, PipeFull, TooLarge, OtherError };
-  static const std::string& toErrorString(Result r);
 
+  enum class Result : uint8_t
+  {
+    Queued,
+    PipeFull,
+    TooLarge,
+    OtherError
+  };
+  static const std::string& toErrorString(Result result);
 
-  virtual ~RemoteLoggerInterface() {};
+  RemoteLoggerInterface() = default;
+  RemoteLoggerInterface(const RemoteLoggerInterface&) = delete;
+  RemoteLoggerInterface(RemoteLoggerInterface&&) = delete;
+  RemoteLoggerInterface& operator=(const RemoteLoggerInterface&) = delete;
+  RemoteLoggerInterface& operator=(RemoteLoggerInterface&&) = delete;
+  virtual ~RemoteLoggerInterface() = default;
+
   virtual Result queueData(const std::string& data) = 0;
   [[nodiscard]] virtual std::string address() const = 0;
   [[nodiscard]] virtual std::string toString() = 0;
   [[nodiscard]] virtual std::string name() const = 0;
-  bool logQueries(void) const { return d_logQueries; }
-  bool logResponses(void) const { return d_logResponses; }
-  bool logNODs(void) const { return d_logNODs; }
-  bool logUDRs(void) const { return d_logUDRs; }
+  [[nodiscard]] bool logQueries() const { return d_logQueries; }
+  [[nodiscard]] bool logResponses() const { return d_logResponses; }
+  [[nodiscard]] bool logNODs() const { return d_logNODs; }
+  [[nodiscard]] bool logUDRs() const { return d_logUDRs; }
   void setLogQueries(bool flag) { d_logQueries = flag; }
   void setLogResponses(bool flag) { d_logResponses = flag; }
   void setLogNODs(bool flag) { d_logNODs = flag; }
@@ -112,11 +122,15 @@ private:
 class RemoteLogger : public RemoteLoggerInterface
 {
 public:
-  RemoteLogger(const ComboAddress& remote, uint16_t timeout=2,
-               uint64_t maxQueuedBytes=100000,
-               uint8_t reconnectWaitTime=1,
-               bool asyncConnect=false);
-  ~RemoteLogger();
+  RemoteLogger(const RemoteLogger&) = delete;
+  RemoteLogger(RemoteLogger&&) = delete;
+  RemoteLogger& operator=(const RemoteLogger&) = delete;
+  RemoteLogger& operator=(RemoteLogger&&) = delete;
+  RemoteLogger(const ComboAddress& remote, uint16_t timeout = 2,
+               uint64_t maxQueuedBytes = 100000,
+               uint8_t reconnectWaitTime = 1,
+               bool asyncConnect = false);
+  ~RemoteLogger() override;
 
   std::string address() const override
   {
