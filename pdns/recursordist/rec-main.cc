@@ -3147,7 +3147,6 @@ int main(int argc, char** argv)
 
     setupLogging(s_structured_logger_backend);
 
-    // Missing: a mechanism to call setVerbosity(x)
     auto startupLog = g_slog->withName("config");
     g_slogtcpin = g_slog->withName("in")->withValues("proto", Logging::Loggable("tcp"));
     g_slogudpin = g_slog->withName("in")->withValues("proto", Logging::Loggable("udp"));

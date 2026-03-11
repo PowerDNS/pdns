@@ -193,11 +193,8 @@ public:
 
   Logger(EntryLogger callback);
   Logger(EntryLogger callback, std::optional<std::string> name);
-  Logger(std::shared_ptr<const Logger> parent, std::optional<std::string> name, size_t verbosity, size_t lvl, EntryLogger callback);
+  Logger(std::shared_ptr<const Logger> parent, std::optional<std::string> name, size_t lvl, EntryLogger callback);
   ~Logger() override;
-
-  size_t getVerbosity() const;
-  void setVerbosity(size_t verbosity);
 
 private:
   void logMessage(const std::string& msg, Logr::Priority prio, const std::optional<std::string>& err) const;
@@ -209,8 +206,6 @@ private:
   std::map<std::string, std::string> _values;
   // current Logger's level. the higher the more verbose.
   size_t _level{0};
-  // verbosity settings. messages with level higher's than verbosity won't appear
-  size_t _verbosity{0};
 };
 }
 

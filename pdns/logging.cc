@@ -67,13 +67,13 @@ void Logger::error(Logr::Priority prio, const std::string& err, const std::strin
 
 std::shared_ptr<Logr::Logger> Logger::v(size_t level) const
 {
-  auto res = std::make_shared<Logger>(getptr(), _name, getVerbosity(), level + _level, _callback);
+  auto res = std::make_shared<Logger>(getptr(), _name, level + _level, _callback);
   return res;
 }
 
 std::shared_ptr<Logr::Logger> Logger::withValues(const std::map<std::string, std::string>& values) const
 {
-  auto res = std::make_shared<Logger>(getptr(), _name, getVerbosity(), _level, _callback);
+  auto res = std::make_shared<Logger>(getptr(), _name, _level, _callback);
   res->_values = values;
   return res;
 }
@@ -82,12 +82,11 @@ std::shared_ptr<Logr::Logger> Logger::withName(const std::string& name) const
 {
   std::shared_ptr<Logger> res;
   if (_name) {
-    res = std::make_shared<Logger>(getptr(), _name.value() + "." + name, getVerbosity(), _level, _callback);
+    res = std::make_shared<Logger>(getptr(), _name.value() + "." + name, _level, _callback);
   }
   else {
-    res = std::make_shared<Logger>(getptr(), name, getVerbosity(), _level, _callback);
+    res = std::make_shared<Logger>(getptr(), name, _level, _callback);
   }
-  res->setVerbosity(getVerbosity());
   return res;
 }
 std::shared_ptr<Logger> Logger::create(EntryLogger callback)
@@ -99,16 +98,6 @@ std::shared_ptr<Logger> Logger::create(EntryLogger callback, const std::string& 
   return std::make_shared<Logger>(callback, name);
 }
 
-size_t Logger::getVerbosity() const
-{
-  return _verbosity;
-}
-
-void Logger::setVerbosity(size_t verbosity)
-{
-  _verbosity = verbosity;
-}
-
 Logger::Logger(EntryLogger callback) :
   _callback(callback)
 {
@@ -117,8 +106,8 @@ Logger::Logger(EntryLogger callback, std::optional<std::string> name) :
   _callback(callback), _name(std::move(name))
 {
 }
-Logger::Logger(std::shared_ptr<const Logger> parent, std::optional<std::string> name, size_t verbosity, size_t lvl, EntryLogger callback) :
-  _parent(std::move(parent)), _callback(callback), _name(std::move(name)), _level(lvl), _verbosity(verbosity)
+Logger::Logger(std::shared_ptr<const Logger> parent, std::optional<std::string> name, size_t lvl, EntryLogger callback) :
+  _parent(std::move(parent)), _callback(callback), _name(std::move(name)), _level(lvl)
 {
 }
 
