@@ -474,8 +474,8 @@ void GSQLBackend::getUnfreshSecondaryInfos(vector<DomainInfo>* unfreshDomains)
         continue;
       }
       catch (...) {
-        SLOG(g_log << Logger::Warning << __PRETTY_FUNCTION__ << " error while parsing SOA data for zone '" << di.zone << endl,
-           d_slog->info(Logr::Warning, "error while parsing SOA data", "zone", Logging::Loggable(di.zone)));
+        SLOG(g_log << Logger::Warning << __PRETTY_FUNCTION__ << " error while parsing SOA data for zone '" << di.zone << "'" << endl,
+             d_slog->info(Logr::Warning, "error while parsing SOA data", "zone", Logging::Loggable(di.zone)));
         continue;
       }
 
@@ -606,7 +606,7 @@ void GSQLBackend::getUpdatedPrimaries(vector<DomainInfo>& updatedDomains, std::u
 
     if (pdns_iequals(row[2], "PRODUCER")) {
       catalogs.insert(di.zone.operator const DNSName&());
-      catalogHashes[di.zone].process("\0");
+      catalogHashes[di.zone].process("");
       continue; // Producer freshness check is performed elsewhere
     }
     else if (!pdns_iequals(row[2], "MASTER")) {
@@ -616,8 +616,8 @@ void GSQLBackend::getUpdatedPrimaries(vector<DomainInfo>& updatedDomains, std::u
 
     try {
       if (!row[5].empty()) {
-        ci.fromJson(row[4], CatalogInfo::CatalogType::Producer);
-        ci.updateHash(catalogHashes, di);
+        di.options = row[4];
+        CatalogInfo::updateCatalogHash(catalogHashes, di);
       }
     }
     catch (const std::exception& e) {
@@ -653,6 +653,7 @@ void GSQLBackend::getUpdatedPrimaries(vector<DomainInfo>& updatedDomains, std::u
       di.kind = DomainInfo::Primary;
       di.serial = sd.serial;
       di.catalog.clear();
+      di.options.clear();
 
       updatedDomains.emplace_back(di);
     }

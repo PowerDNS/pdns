@@ -173,17 +173,22 @@ void CommunicatorClass::getUpdatedProducers(UeberBackend* B, vector<DomainInfo>&
           continue;
         }
 
-        B->setDomainMetadata(di.zone, "CATALOG-HASH", mapHash);
+        SOAData sd;
+        try {
+          if (!B->getSOAUncached(di.zone, sd)) {
+            SLOG(g_log << Logger::Warning << "SOA lookup failed for producer zone '" << di.zone << "'" << endl,
+                 d_slog->info(Logr::Warning, "SOA lookup failed for producer zone", "zone", Logging::Loggable(di.zone)));
+            continue;
+          }
+        }
+        catch (...) {
+          continue;
+        }
 
         SLOG(g_log << Logger::Warning << "new CATALOG-HASH '" << mapHash << "' for zone '" << di.zone << "'" << endl,
              d_slog->info(Logr::Warning, "new CATALOG-HASH for zone", "zone", Logging::Loggable(di.zone), "hash", Logging::Loggable(mapHash)));
 
-        SOAData sd;
-        if (!B->getSOAUncached(di.zone, sd)) {
-          SLOG(g_log << Logger::Warning << "SOA lookup failed for producer zone '" << di.zone << "'" << endl,
-               d_slog->info(Logr::Warning, "SOA lookup failed for producer zone", "zone", Logging::Loggable(di.zone)));
-          continue;
-        }
+        B->setDomainMetadata(di.zone, "CATALOG-HASH", mapHash);
 
         DNSResourceRecord rr;
         makeIncreasedSOARecord(sd, "EPOCH", "", rr, d_slog);
