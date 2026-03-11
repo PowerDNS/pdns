@@ -125,7 +125,7 @@ uint64_t dumpCookies(int fileDesc)
   return copy.dump(fileDesc);
 }
 
-void remoteLoggerQueueData(RemoteLoggerInterface& rli, const std::string& data)
+RemoteLoggerInterface::Result remoteLoggerQueueData(RemoteLoggerInterface& rli, const std::string& data)
 {
   auto ret = rli.queueData(data);
 
@@ -148,6 +148,7 @@ void remoteLoggerQueueData(RemoteLoggerInterface& rli, const std::string& data)
     break;
   }
   }
+  return ret;
 }
 
 #include "dnstap.hh"

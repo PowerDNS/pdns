@@ -486,6 +486,31 @@ bool checkOutgoingProtobufExport(LocalStateHolder<LuaConfigItems>& luaconfsLocal
   return true;
 }
 
+static void protobufLog(ProtobufServersInfo& pbConfig, const string& msg)
+{
+  switch (pbConfig.config.strategy) {
+  case ProtobufExportConfig::Strategy::All:
+    for (auto& server : *pbConfig.servers) {
+      remoteLoggerQueueData(*server, msg);
+    }
+    break;
+  case ProtobufExportConfig::Strategy::Roundrobin: {
+    if (pbConfig.servers->size() > 0) {
+      size_t index = pbConfig.count++ % pbConfig.servers->size();
+      remoteLoggerQueueData(*pbConfig.servers->at(index), msg);
+    }
+    break;
+  }
+  case ProtobufExportConfig::Strategy::FirstAvailable:
+    for (auto& server : *pbConfig.servers) {
+      if (remoteLoggerQueueData(*server, msg) == RemoteLoggerInterface::Result::Queued) { // XXX causes redundant logging!!
+        break;
+      }
+    }
+    break;
+  }
+}
+
 void protobufLogQuery(LocalStateHolder<LuaConfigItems>& luaconfsLocal, const boost::uuids::uuid& uniqueId, const ComboAddress& remote, const ComboAddress& local, const ComboAddress& mappedSource, const Netmask& ednssubnet, bool tcp, size_t len, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::unordered_set<std::string>& policyTags, const std::string& requestorId, const std::string& deviceId, const std::string& deviceName, const std::map<std::string, RecursorLua4::MetaValue>& meta, const std::optional<uint32_t>& ednsVersion, const dnsheader& header, const pdns::trace::TraceID& traceID)
 {
   auto log = g_slog->withName("pblq");
@@ -532,9 +557,7 @@ void protobufLogQuery(LocalStateHolder<LuaConfigItems>& luaconfsLocal, const boo
   }
 
   std::string strMsg(msg.finishAndMoveBuf());
-  for (auto& server : *t_protobufServers.servers) {
-    remoteLoggerQueueData(*server, strMsg);
-  }
+  protobufLog(t_protobufServers, strMsg);
 }
 
 void protobufLogResponse(pdns::ProtoZero::RecMessage& message)
@@ -544,9 +567,7 @@ void protobufLogResponse(pdns::ProtoZero::RecMessage& message)
   }
 
   std::string msg(message.finishAndMoveBuf());
-  for (auto& server : *t_protobufServers.servers) {
-    remoteLoggerQueueData(*server, msg);
-  }
+  protobufLog(t_protobufServers, msg);
 }
 
 void protobufLogResponse(const DNSName& qname, QType qtype,

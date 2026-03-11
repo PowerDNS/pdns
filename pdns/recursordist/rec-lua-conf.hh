@@ -33,11 +33,18 @@
 
 struct ProtobufExportConfig
 {
+  enum class Strategy : uint8_t
+  {
+    All,
+    Roundrobin,
+    FirstAvailable,
+  };
   std::set<uint16_t> exportTypes = {QType::A, QType::AAAA, QType::CNAME};
   std::vector<ComboAddress> servers;
   uint64_t maxQueuedEntries{100};
   uint16_t timeout{2};
   uint16_t reconnectWaitTime{1};
+  Strategy strategy{Strategy::Roundrobin};
   bool asyncConnect{false};
   bool enabled{false};
   bool logQueries{true};
