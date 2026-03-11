@@ -139,7 +139,7 @@ bool RemoteLogger::reconnect()
          g_slog->withName("protobuf")->error(Logr::Error, e.what(), "Exception while connecting to remote logger", "address", Logging::Loggable(d_remote)));
 #else
     SLOG(warnlog("Error connecting to remote logger %s: %s", d_remote.toStringWithPort(), e.what()),
-         dnsdist::logging::getTopLogger("protobuf")->error(Logr::Error, e.what(), "Exception while connecting to remote logger", "address", Logging::Loggable(d_remote))
+         dnsdist::logging::getTopLogger("protobuf")->error(Logr::Warning, e.what(), "Exception while connecting to remote logger", "address", Logging::Loggable(d_remote))
       );
 #endif
 
