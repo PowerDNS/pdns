@@ -73,11 +73,6 @@ public:
   Logger& operator=(Logger&&) = delete;
   virtual ~Logger() = default;
 
-  // Enabled tests whether this Logger is enabled.  For example, commandline
-  // flags might be used to set the logging verbosity and disable some info
-  // logs.
-  [[nodiscard]] virtual bool enabled(Priority) const = 0;
-
   static std::string toString(Priority arg)
   {
     const std::array<std::string, 8> names = {"?", "Alert", "Critical", "Error", "Warning", "Notice", "Info", "Debug"};

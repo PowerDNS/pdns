@@ -32,11 +32,6 @@ std::shared_ptr<const Logger> Logger::getptr() const
   return shared_from_this();
 }
 
-bool Logger::enabled(Logr::Priority prio) const
-{
-  return _level <= _verbosity || true;
-}
-
 void Logger::info(Logr::Priority prio, const std::string& msg) const
 {
   logMessage(msg, prio, std::nullopt);
@@ -44,9 +39,6 @@ void Logger::info(Logr::Priority prio, const std::string& msg) const
 
 void Logger::logMessage(const std::string& msg, Logr::Priority prio, const std::optional<std::string>& err) const
 {
-  if (!enabled(prio)) {
-    return;
-  }
   Entry entry;
   entry.level = _level;
   entry.d_priority = prio;

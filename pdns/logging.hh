@@ -180,8 +180,6 @@ using EntryLogger = void (*)(const Entry&);
 class Logger : public Logr::Logger, public std::enable_shared_from_this<const Logger>
 {
 public:
-  bool enabled(Logr::Priority) const override;
-
   void info(Logr::Priority, const std::string& msg) const override;
   void error(Logr::Priority, int err, const std::string& msg) const override;
   void error(Logr::Priority, const std::string& err, const std::string& msg) const override;
