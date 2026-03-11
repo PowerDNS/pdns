@@ -160,7 +160,7 @@ class PDNSPBConnHandler(object):
 
     @staticmethod
     def getAppliedPolicyTypeAsString(polType):
-        return messageTypeToStringMap.get(polType, "Unrecognized")
+        return PDNSPBConnHandler.messageTypeToStringMap.get(polType, "Unrecognized")
 
     @staticmethod
     def getEventAsString(event):
