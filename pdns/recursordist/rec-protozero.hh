@@ -109,7 +109,7 @@ namespace ProtoZero
 
     // DNSResponse related fields below
 
-    void addRR(const DNSRecord& record, const std::set<uint16_t>& exportTypes, std::optional<bool> udr);
+    void addRR(const DNSRecord& record, const std::set<uint16_t>& exportTypes, std::optional<bool> udr, size_t limit);
 
     void setAppliedPolicyType(const DNSFilterEngine::PolicyType type)
     {

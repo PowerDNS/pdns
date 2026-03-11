@@ -416,7 +416,7 @@ static std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>> startProtobuf
 
   for (const auto& server : config.servers) {
     try {
-      auto logger = make_unique<RemoteLogger>(server, config.timeout, 100 * config.maxQueuedEntries, config.reconnectWaitTime, config.asyncConnect);
+      auto logger = make_unique<RemoteLogger>(server, config.timeout, 100 * config.maxQueuedEntries, config.reconnectWaitTime, config.asyncConnect, config.frame4 ? RemoteLogger::FrameSize::Four : RemoteLogger::FrameSize::Two);
       logger->setLogQueries(config.logQueries);
       logger->setLogResponses(config.logResponses);
       result->emplace_back(std::move(logger));

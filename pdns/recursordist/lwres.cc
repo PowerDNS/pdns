@@ -339,8 +339,9 @@ static void logIncomingResponse(const std::shared_ptr<std::vector<std::unique_pt
     m.setResponseCode(rcode);
   }
 
+  const auto limit = (outgoingLoggers->size() > 0 ? outgoingLoggers->at(0)->maxSize() : std::numeric_limits<uint16_t>::max()) / 2;
   for (const auto& record : records) {
-    m.addRR(record, exportTypes, std::nullopt);
+    m.addRR(record, exportTypes, std::nullopt, limit);
   }
   m.commitResponse();
 

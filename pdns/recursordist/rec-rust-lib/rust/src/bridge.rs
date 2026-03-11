@@ -438,6 +438,7 @@ impl ProtobufServer {
         }
         insertseq(&mut map, "exportTypes", &seq2);
         insertb(&mut map, "logMappedFrom", self.logMappedFrom);
+        insertb(&mut map, "frame4", self.frame4);
         serde_yaml::Value::Mapping(map)
     }
 }

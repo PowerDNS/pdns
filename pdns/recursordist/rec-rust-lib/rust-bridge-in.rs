@@ -71,6 +71,9 @@ pub struct ProtobufServer {
     exportTypes: Vec<String>,
     #[serde(default, skip_serializing_if = "crate::is_default", alias = "log_mapped_from")]
     logMappedFrom: bool,
+    // Added in 5.5.0
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    frame4: bool,
 }
 
 // A dnstap logging server

@@ -44,6 +44,7 @@ struct ProtobufExportConfig
   bool logResponses{true};
   bool taggedOnly{false};
   bool logMappedFrom{false};
+  bool frame4{false};
 };
 
 bool operator==(const ProtobufExportConfig& configA, const ProtobufExportConfig& configB);

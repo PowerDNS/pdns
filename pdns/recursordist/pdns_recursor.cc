@@ -1537,11 +1537,12 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
 #endif /* NOD ENABLED */
 
         if (t_protobufServers.servers) {
-          // Max size is 64k, but we're conservative here, as other fields are added after the answers have been added
-          // If a single answer causes a too big protobuf message, it will be dropped by queueData()
-          // But note addRR has code to prevent that
-          if (pbMessage.size() < std::numeric_limits<uint16_t>::max() / 2) {
-            pbMessage.addRR(record, luaconfsLocal->protobufExportConfig.exportTypes, udr);
+          // Max size is 64k for 2 bytes frames, but we're conservative here, as other fields are
+          // added after the answers have been added. If a single answer causes a too big protobuf
+          // message, it will be dropped by queueData(), but note addRR has code to prevent that.
+          const auto limit = (t_protobufServers.servers->size() > 0 ? t_protobufServers.servers->at(0)->maxSize() : std::numeric_limits<uint16_t>::max()) / 2;
+          if (pbMessage.size() < limit) {
+            pbMessage.addRR(record, luaconfsLocal->protobufExportConfig.exportTypes, udr, limit);
           }
         }
       }

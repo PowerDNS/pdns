@@ -44,16 +44,18 @@
 class CircularWriteBuffer
 {
 public:
-  explicit CircularWriteBuffer(size_t size) : d_buffer(size)
+  explicit CircularWriteBuffer(size_t size, uint8_t frame) : d_buffer(size), d_framesize(frame)
   {
   }
 
   [[nodiscard]] bool hasRoomFor(const std::string& str) const;
+  [[nodiscard]] bool tooBig(const std::string& str) const;
   bool write(const std::string& str);
   bool flush(int fileDesc);
 
 private:
   boost::circular_buffer<char> d_buffer;
+  uint8_t d_framesize;
 };
 
 class RemoteLoggerInterface
@@ -122,6 +124,11 @@ private:
 class RemoteLogger : public RemoteLoggerInterface
 {
 public:
+  enum class FrameSize : uint8_t
+  {
+    Two,
+    Four,
+  };
   RemoteLogger(const RemoteLogger&) = delete;
   RemoteLogger(RemoteLogger&&) = delete;
   RemoteLogger& operator=(const RemoteLogger&) = delete;
@@ -129,7 +136,8 @@ public:
   RemoteLogger(const ComboAddress& remote, uint16_t timeout = 2,
                uint64_t maxQueuedBytes = 100000,
                uint8_t reconnectWaitTime = 1,
-               bool asyncConnect = false);
+               bool asyncConnect = false,
+               FrameSize frame = FrameSize::Two);
   ~RemoteLogger() override;
 
   std::string address() const override
@@ -138,6 +146,10 @@ public:
   }
 
   [[nodiscard]] Result queueData(const std::string& data) override;
+  [[nodiscard]] size_t maxSize() const
+  {
+    return d_framesize == FrameSize::Two ? std::numeric_limits<uint16_t>::max() : std::numeric_limits<uint32_t>::max();
+  }
   [[nodiscard]] std::string name() const override
   {
     return "protobuf";
@@ -177,4 +189,5 @@ private:
 
   LockGuarded<RuntimeData> d_runtime;
   std::thread d_thread;
+  FrameSize d_framesize;
 };

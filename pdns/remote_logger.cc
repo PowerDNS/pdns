@@ -38,20 +38,31 @@
 
 bool CircularWriteBuffer::hasRoomFor(const std::string& str) const
 {
-  return d_buffer.size() + 2 + str.size() <= d_buffer.capacity();
+  return d_buffer.size() + d_framesize + str.size() <= d_buffer.capacity();
+}
+
+bool CircularWriteBuffer::tooBig(const std::string& str) const
+{
+  return str.size() > (d_framesize == 2 ? std::numeric_limits<uint16_t>::max() : std::numeric_limits<uint32_t>::max());
 }
 
 bool CircularWriteBuffer::write(const std::string& str)
 {
-  if (str.size() > std::numeric_limits<uint16_t>::max() || !hasRoomFor(str)) {
+  if (tooBig(str) || !hasRoomFor(str)) {
     return false;
   }
 
-  uint16_t len = htons(str.size());
-  const char* ptr = reinterpret_cast<const char*>(&len); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-  d_buffer.insert(d_buffer.end(), ptr, ptr + sizeof(len)); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+  if (d_framesize == 2) {
+    uint16_t len = htons(str.size());
+    const char* ptr = reinterpret_cast<const char*>(&len); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    d_buffer.insert(d_buffer.end(), ptr, ptr + sizeof(len)); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+  }
+  else {
+    uint32_t len = htonl(str.size());
+    const char* ptr = reinterpret_cast<const char*>(&len); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    d_buffer.insert(d_buffer.end(), ptr, ptr + sizeof(len)); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+  }
   d_buffer.insert(d_buffer.end(), str.begin(), str.end());
-
   return true;
 }
 
@@ -125,7 +136,7 @@ const std::string& RemoteLoggerInterface::toErrorString(Result result)
   return str.at(std::min(tmp, 4U));
 }
 
-RemoteLogger::RemoteLogger(const ComboAddress& remote, uint16_t timeout, uint64_t maxQueuedBytes, uint8_t reconnectWaitTime, bool asyncConnect) : d_remote(remote), d_timeout(timeout), d_reconnectWaitTime(reconnectWaitTime), d_asyncConnect(asyncConnect), d_runtime({CircularWriteBuffer(maxQueuedBytes), nullptr})
+RemoteLogger::RemoteLogger(const ComboAddress& remote, uint16_t timeout, uint64_t maxQueuedBytes, uint8_t reconnectWaitTime, bool asyncConnect, RemoteLogger::FrameSize frame) : d_remote(remote), d_timeout(timeout), d_reconnectWaitTime(reconnectWaitTime), d_asyncConnect(asyncConnect), d_runtime({CircularWriteBuffer(maxQueuedBytes, frame == FrameSize::Two ? 2 : 4), nullptr}), d_framesize(frame)
 {
   if (!d_asyncConnect) {
     reconnect();
@@ -171,7 +182,7 @@ RemoteLoggerInterface::Result RemoteLogger::queueData(const std::string& data)
 {
   auto runtime = d_runtime.lock();
 
-  if (data.size() > std::numeric_limits<uint16_t>::max()) {
+  if (runtime->d_writer.tooBig(data)) {
     ++runtime->d_stats.d_tooLarge;
     return Result::TooLarge;
   }

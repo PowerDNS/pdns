@@ -75,7 +75,8 @@ bool operator==(const ProtobufExportConfig& configA, const ProtobufExportConfig&
          configA.logQueries           == configB.logQueries        &&
          configA.logResponses         == configB.logResponses      &&
          configA.taggedOnly           == configB.taggedOnly        &&
-         configA.logMappedFrom        == configB.logMappedFrom;
+         configA.logMappedFrom        == configB.logMappedFrom     &&
+         configA.frame4               == configB.frame4;
   // clang-format on
 }
 
@@ -212,6 +213,10 @@ static void parseProtobufOptions(const std::optional<protobufOptions_t>& vars, P
 
   if (have.count("logMappedFrom") != 0) {
     config.logMappedFrom = boost::get<bool>(have.at("logMappedFrom"));
+  }
+
+  if (have.count("frame4") != 0) {
+    config.frame4 = boost::get<bool>(have.at("frame4"));
   }
 
   if (have.count("exportTypes") != 0) {
