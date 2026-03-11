@@ -65,9 +65,9 @@ bool CircularWriteBuffer::flush(int fileDesc)
   auto arr1 = d_buffer.array_one();
   auto arr2 = d_buffer.array_two();
 
-  std::array<iovec,2> iov{};
+  std::array<iovec, 2> iov{};
   int pos = 0;
-  for(const auto& arr : {arr1, arr2}) {
+  for (const auto& arr : {arr1, arr2}) {
     if (arr.second != 0) {
       iov.at(pos).iov_base = arr.first;
       iov.at(pos).iov_len = arr.second;
@@ -99,8 +99,7 @@ bool CircularWriteBuffer::flush(int fileDesc)
       d_buffer.clear();
       throw std::runtime_error("EOF");
     }
-  }
-  while (res < 0);
+  } while (res < 0);
 
   if (static_cast<size_t>(res) == d_buffer.size()) {
     d_buffer.clear();
@@ -116,18 +115,17 @@ bool CircularWriteBuffer::flush(int fileDesc)
 
 const std::string& RemoteLoggerInterface::toErrorString(Result result)
 {
-  static const std::array<std::string,5> str = {
+  static const std::array<std::string, 5> str = {
     "Queued",
     "Queue full, dropping",
     "Not sending too large protobuf message",
     "Submiting to queue failed",
-    "?"
-  };
+    "?"};
   auto tmp = static_cast<unsigned int>(result);
   return str.at(std::min(tmp, 4U));
 }
 
-RemoteLogger::RemoteLogger(const ComboAddress& remote, uint16_t timeout, uint64_t maxQueuedBytes, uint8_t reconnectWaitTime, bool asyncConnect): d_remote(remote), d_timeout(timeout), d_reconnectWaitTime(reconnectWaitTime), d_asyncConnect(asyncConnect), d_runtime({CircularWriteBuffer(maxQueuedBytes), nullptr})
+RemoteLogger::RemoteLogger(const ComboAddress& remote, uint16_t timeout, uint64_t maxQueuedBytes, uint8_t reconnectWaitTime, bool asyncConnect) : d_remote(remote), d_timeout(timeout), d_reconnectWaitTime(reconnectWaitTime), d_asyncConnect(asyncConnect), d_runtime({CircularWriteBuffer(maxQueuedBytes), nullptr})
 {
   if (!d_asyncConnect) {
     reconnect();
@@ -152,12 +150,16 @@ bool RemoteLogger::reconnect()
   }
   catch (const std::exception& e) {
 #ifdef RECURSOR
-    SLOG(g_log<<Logger::Warning<<"Error connecting to remote logger "<<d_remote.toStringWithPort()<<": "<<e.what()<<std::endl,
+    SLOG(g_log << Logger::Warning << "Error connecting to remote logger " << d_remote.toStringWithPort() << ": " << e.what() << std::endl,
          g_slog->withName("protobuf")->error(Logr::Error, e.what(), "Exception while connecting to remote logger", "address", Logging::Loggable(d_remote)));
 #else
     SLOG(warnlog("Error connecting to remote logger %s: %s", d_remote.toStringWithPort(), e.what()),
+<<<<<<< HEAD
          dnsdist::logging::getTopLogger("protobuf")->error(Logr::Warning, e.what(), "Exception while connecting to remote logger", "address", Logging::Loggable(d_remote))
       );
+=======
+         dnsdist::logging::getTopLogger("protobuf")->error(e.what(), "Exception while connecting to remote logger", "address", Logging::Loggable(d_remote)));
+>>>>>>> f20db98a8 (Format)
 #endif
 
     return false;
@@ -195,7 +197,7 @@ RemoteLoggerInterface::Result RemoteLogger::queueData(const std::string& data)
         return Result::PipeFull;
       }
     }
-    catch(const std::exception& e) {
+    catch (const std::exception& e) {
       //      cout << "Got exception writing: "<<e.what()<<endl;
       runtime->d_socket.reset();
       ++runtime->d_stats.d_otherError;
@@ -263,8 +265,7 @@ void RemoteLogger::maintenanceThread()
       std::this_thread::sleep_for(std::chrono::seconds(d_reconnectWaitTime));
     }
   }
-  catch (const std::exception& e)
-  {
+  catch (const std::exception& e) {
 #ifdef RECURSOR
     SLOG(cerr << "Remote Logger's maintenance thread died on: " << e.what() << endl,
          g_slog->withName("protobuf")->error(Logr::Error, e.what(), "Remote Logger's maintenance thread died"));
@@ -280,8 +281,7 @@ void RemoteLogger::maintenanceThread()
          g_slog->withName("protobuf")->info(Logr::Error, "Remote Logger's maintenance thread died"));
 #else
     SLOG(errlog("Remote Logger's maintenance thread died on: %s"),
-         dnsdist::logging::getTopLogger("protobuf")->info(Logr::Error, "Remote Logger's maintenance thread died")
-      );
+         dnsdist::logging::getTopLogger("protobuf")->info(Logr::Error, "Remote Logger's maintenance thread died"));
 #endif
   }
 }

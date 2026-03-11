@@ -51,6 +51,7 @@ public:
   [[nodiscard]] bool hasRoomFor(const std::string& str) const;
   bool write(const std::string& str);
   bool flush(int fileDesc);
+
 private:
   boost::circular_buffer<char> d_buffer;
 };
@@ -58,7 +59,6 @@ private:
 class RemoteLoggerInterface
 {
 public:
-
   enum class Result : uint8_t
   {
     Queued,
@@ -95,7 +95,7 @@ public:
     uint64_t d_tooLarge{};
     uint64_t d_otherError{};
 
-    Stats& operator += (const Stats& rhs)
+    Stats& operator+=(const Stats& rhs)
     {
       d_queued += rhs.d_queued;
       d_pipeFull += rhs.d_pipeFull;
@@ -178,4 +178,3 @@ private:
   LockGuarded<RuntimeData> d_runtime;
   std::thread d_thread;
 };
-
