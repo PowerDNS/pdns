@@ -1506,9 +1506,27 @@ Status, Statistics and More
 
   .. versionadded:: 2.1.0
 
-  Enable or disable collection of OpenTelemetry trace data. This will allow the use of :func:`SetTraceAction` to trace queries. This can be called at runtime.
+  Enable or disable collection of OpenTelemetry trace data. This will allow the use of :func:`SetTraceAction` to trace queries and :func:`setOpenTelemetryInternalTrace` to instrument internal functions. This can be called at runtime.
 
   :param bool enable: true to enable, false to disable.
+
+.. function:: setOpenTelemetryInternalTrace(kind, remote_loggers, sample_interval)
+
+  .. versionadded:: 2.2.0
+
+  Collect Spans for ``kind`` and send them to ``remote_loggers``. ``sample_interval`` can be set to only collect spans for one in ``sample_interval`` times the internal function is run.
+
+  The following table lists the possible ``kind``s and their default ``sample_interval``.
+
+  =========== ===========================
+  ``kind``    default ``sample_interval``
+  =========== ===========================
+  maintenance 60
+  =========== ===========================
+
+  :param string kind: The internal function to collect traces for, see above.
+  :param {RemoteLogger} remote_loggers: A table of remote_loggers to send the resulting traces to.
+  :param int sample_interval: Only sample one in this many runs
 
 .. function:: setVerbose(verbose)
 
