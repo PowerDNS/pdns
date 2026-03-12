@@ -22,6 +22,11 @@ The following webserver related configuration items are available:
 * :ref:`setting-webserver-max-bodysize`: Maximum request/response body size in megabytes
 * :ref:`setting-webserver-connection-timeout`: Request/response timeout in seconds
 
+.. warning::
+
+   To achieve defense-in-depth, expose the webserver only to client addresses that have a real need for access.
+   Network access is configured by setting :ref:``setting-webserver-address` and :ref:`setting-webserver-allow_from`.
+
 
 Metrics Endpoint
 ----------------
