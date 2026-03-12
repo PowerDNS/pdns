@@ -1,6 +1,27 @@
 Upgrade Guide
 =============
 
+2.1.0-beta2 to 2.1.0
+--------------------
+
+The :doc:`reference/ottrace` YAML configuration has changed.
+It is now a structure with a single ``enabled`` field.
+
+Old:
+
+.. code-block:: yaml
+
+  logging:
+    open_telemetry_tracing: true
+
+New:
+
+.. code-block:: yaml
+
+  logging:
+    open_telemetry_tracing:
+      enabled: true
+
 2.0.x to 2.1.0
 --------------
 

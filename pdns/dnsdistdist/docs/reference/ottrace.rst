@@ -7,7 +7,7 @@ OpenTelemetry Tracing
 
 Since version 2.1.0, when :program:`dnsdist` is built with ProtoBuf support, sent messages (using e.g. :func:`RemoteLogResponseAction`) can contain `OpenTelemetry traces <https://opentelemetry.io/docs/concepts/signals/traces>`__ data.
 
-To enable tracing, use :func:`setOpenTelemetryTracing(true) <setOpenTelemetryTracing>` in your configuration, or ``logging.open_telemetry_tracing`` to ``true`` in your:ref:`YAML Logging Configuration <yaml-settings-LoggingConfiguration>`.
+To enable tracing, use :func:`setOpenTelemetryTracing(true) <setOpenTelemetryTracing>` in your configuration, or ``logging.open_telemetry_tracing.enabled`` to ``true`` in your :ref:`YAML Logging Configuration <yaml-settings-LoggingConfiguration>`.
 It is also possible to call :func:`setOpenTelemetryTracing` at runtime.
 Once enabled, Rules can be used to turn on tracing on a per-query basis.
 
@@ -27,7 +27,8 @@ When sending the trace in this way, the Protobuf message is essentially empty ap
 .. code-block:: yaml
 
    logging:
-     open_telemetry_tracing: true
+     open_telemetry_tracing:
+       enabled: true
    remote_logging:
      protobuf_loggers:
        - name: pblog
@@ -48,7 +49,8 @@ Should you only want to receive the trace, including a fully filled Protobuf mes
 .. code-block:: yaml
 
    logging:
-     open_telemetry_tracing: true
+     open_telemetry_tracing:
+       enabled: true
    remote_logging:
      protobuf_loggers:
        - name: pblog
