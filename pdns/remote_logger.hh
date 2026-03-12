@@ -44,7 +44,8 @@
 class CircularWriteBuffer
 {
 public:
-  explicit CircularWriteBuffer(size_t size, uint8_t frame) : d_buffer(size), d_framesize(frame)
+  explicit CircularWriteBuffer(size_t size, uint8_t frame) :
+    d_buffer(size), d_framesize(frame)
   {
   }
 

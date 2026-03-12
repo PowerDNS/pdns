@@ -1877,7 +1877,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
         pbMessage.setOpenTelemetryTraceID(resolver.d_otTrace.trace_id);
       }
       if (comboWriter->d_logResponse) {
-        protobufLogResponse(pbMessage);
+        protobufLogResponse(pbMessage, comboWriter->d_mdp.d_qname, comboWriter->d_mdp.d_qtype);
       }
     }
 

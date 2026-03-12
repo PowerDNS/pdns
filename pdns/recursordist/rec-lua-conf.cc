@@ -76,7 +76,9 @@ bool operator==(const ProtobufExportConfig& configA, const ProtobufExportConfig&
          configA.logResponses         == configB.logResponses      &&
          configA.taggedOnly           == configB.taggedOnly        &&
          configA.logMappedFrom        == configB.logMappedFrom     &&
-         configA.frame4               == configB.frame4;
+         configA.frame4               == configB.frame4            &&
+         configA.strategy             == configB.strategy
+    ;
   // clang-format on
 }
 
@@ -176,6 +178,31 @@ static void parseRPZParameters(const rpzOptions_t& have, RPZTrackerParams& param
 
 using protobufOptions_t = std::unordered_map<std::string, boost::variant<bool, uint64_t, std::string, std::vector<std::pair<int, std::string>>>>;
 
+const std::array<std::string, 4> ProtobufExportConfig::strategyNames = {
+  "All",
+  "Roundrobin",
+  "FirstAvailable",
+  "Hashed",
+};
+
+ProtobufExportConfig::Strategy ProtobufExportConfig::strategyFromString(const std::string& strategy)
+{
+  const auto* res = std::find(ProtobufExportConfig::strategyNames.begin(), strategyNames.end(), strategy);
+  if (res == ProtobufExportConfig::strategyNames.end()) {
+    throw runtime_error("Unknown strategy name " + strategy);
+  }
+  return static_cast<ProtobufExportConfig::Strategy>(res - ProtobufExportConfig::strategyNames.begin());
+}
+
+std::string ProtobufExportConfig::toString(ProtobufExportConfig::Strategy strategy)
+{
+  auto index = static_cast<size_t>(strategy);
+  if (index >= strategyNames.size()) {
+    return "?";
+  }
+  return strategyNames.at(index);
+}
+
 static void parseProtobufOptions(const std::optional<protobufOptions_t>& vars, ProtobufExportConfig& config)
 {
   if (!vars) {
@@ -217,6 +244,11 @@ static void parseProtobufOptions(const std::optional<protobufOptions_t>& vars, P
 
   if (have.count("frame4") != 0) {
     config.frame4 = boost::get<bool>(have.at("frame4"));
+  }
+
+  if (have.count("strategy") != 0) {
+    auto strategy = boost::get<string>(have.at("strategy"));
+    config.strategy = ProtobufExportConfig::strategyFromString(strategy);
   }
 
   if (have.count("exportTypes") != 0) {

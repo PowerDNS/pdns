@@ -790,6 +790,7 @@ void fromLuaToRust(const ProtobufExportConfig& pbConfig, pdns::rust::settings::r
   }
   pbServer.logMappedFrom = pbConfig.logMappedFrom;
   pbServer.frame4 = pbConfig.frame4;
+  pbServer.strategy = ProtobufExportConfig::toString(pbConfig.strategy);
 }
 
 void fromLuaToRust(const FrameStreamExportConfig& fsc, pdns::rust::settings::rec::DNSTapFrameStreamServer& dnstap)
@@ -1144,6 +1145,7 @@ void fromRustToLuaConfig(const pdns::rust::settings::rec::ProtobufServer& pbServ
   exp.taggedOnly = pbServer.taggedOnly;
   exp.logMappedFrom = pbServer.logMappedFrom;
   exp.frame4 = pbServer.frame4;
+  exp.strategy = ProtobufExportConfig::strategyFromString(std::string(pbServer.strategy));
 }
 
 void fromRustToLuaConfig(const pdns::rust::settings::rec::DNSTapFrameStreamServer& dnstap, FrameStreamExportConfig& exp)

@@ -328,6 +328,7 @@ testrunner_SOURCES = \
 	ratelimitedlog.hh \
 	rcpgenerator.cc \
 	rec-eventtrace.cc rec-eventtrace.hh \
+	rec-lua-conf.hh rec-lua-conf.cc \
 	rec-nsspeeds.cc rec-nsspeeds.hh \
 	rec-responsestats.hh rec-responsestats.cc \
 	rec-rust-lib/cxxsupport.cc \

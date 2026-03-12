@@ -439,6 +439,7 @@ impl ProtobufServer {
         insertseq(&mut map, "exportTypes", &seq2);
         insertb(&mut map, "logMappedFrom", self.logMappedFrom);
         insertb(&mut map, "frame4", self.frame4);
+        inserts(&mut map, "strategy", &self.strategy);
         serde_yaml::Value::Mapping(map)
     }
 }
@@ -1381,6 +1382,14 @@ pub fn def_additional_mode() -> String {
 
 pub fn default_value_equals_additional_mode(value: &String) -> bool {
     &def_additional_mode() == value
+}
+
+pub fn def_pb_strategy() -> String {
+    String::from("All")
+}
+
+pub fn def_value_equals_pb_strategy(value: &String) -> bool {
+    &def_pb_strategy() == value
 }
 
 pub fn validate_dnssec(dnssec: &recsettings::Dnssec) -> Result<(), ValidationError> {

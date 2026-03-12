@@ -486,7 +486,7 @@ bool checkOutgoingProtobufExport(LocalStateHolder<LuaConfigItems>& luaconfsLocal
   return true;
 }
 
-static void protobufLog(ProtobufServersInfo& pbConfig, const string& msg)
+static void protobufLog(ProtobufServersInfo& pbConfig, const string& msg, const DNSName& qname, QType qtype)
 {
   switch (pbConfig.config.strategy) {
   case ProtobufExportConfig::Strategy::All:
@@ -506,6 +506,13 @@ static void protobufLog(ProtobufServersInfo& pbConfig, const string& msg)
       if (remoteLoggerQueueData(*server, msg) == RemoteLoggerInterface::Result::Queued) { // XXX causes redundant logging!!
         break;
       }
+    }
+    break;
+  case ProtobufExportConfig::Strategy::Hashed:
+    if (pbConfig.servers->size() > 0) {
+      uint32_t hash = qname.hash() ^ qtype;
+      size_t index = hash % pbConfig.servers->size();
+      remoteLoggerQueueData(*pbConfig.servers->at(index), msg);
     }
     break;
   }
@@ -557,17 +564,17 @@ void protobufLogQuery(LocalStateHolder<LuaConfigItems>& luaconfsLocal, const boo
   }
 
   std::string strMsg(msg.finishAndMoveBuf());
-  protobufLog(t_protobufServers, strMsg);
+  protobufLog(t_protobufServers, strMsg, qname, qtype);
 }
 
-void protobufLogResponse(pdns::ProtoZero::RecMessage& message)
+void protobufLogResponse(pdns::ProtoZero::RecMessage& message, const DNSName& qname, QType qtype)
 {
   if (!t_protobufServers.servers) {
     return;
   }
 
   std::string msg(message.finishAndMoveBuf());
-  protobufLog(t_protobufServers, msg);
+  protobufLog(t_protobufServers, msg, qname, qtype);
 }
 
 void protobufLogResponse(const DNSName& qname, QType qtype,
@@ -654,7 +661,7 @@ void protobufLogResponse(const DNSName& qname, QType qtype,
   }
   pbMessage.addPolicyTags(policyTags);
 
-  protobufLogResponse(pbMessage);
+  protobufLogResponse(pbMessage, qname, qtype);
 }
 
 #ifdef HAVE_FSTRM

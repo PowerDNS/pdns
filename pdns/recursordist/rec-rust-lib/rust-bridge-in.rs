@@ -74,6 +74,8 @@ pub struct ProtobufServer {
     // Added in 5.5.0
     #[serde(default, skip_serializing_if = "crate::is_default")]
     frame4: bool,
+    #[serde(default = "crate::def_pb_strategy", skip_serializing_if = "crate::def_value_equals_pb_strategy")]
+    strategy: String,
 }
 
 // A dnstap logging server

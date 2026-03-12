@@ -38,13 +38,18 @@ struct ProtobufExportConfig
     All,
     Roundrobin,
     FirstAvailable,
+    Hashed,
   };
+  static const std::array<std::string, 4> strategyNames;
+
+  static Strategy strategyFromString(const std::string& str);
+  static std::string toString(Strategy strategy);
   std::set<uint16_t> exportTypes = {QType::A, QType::AAAA, QType::CNAME};
   std::vector<ComboAddress> servers;
   uint64_t maxQueuedEntries{100};
   uint16_t timeout{2};
   uint16_t reconnectWaitTime{1};
-  Strategy strategy{Strategy::Roundrobin};
+  Strategy strategy{Strategy::All};
   bool asyncConnect{false};
   bool enabled{false};
   bool logQueries{true};
