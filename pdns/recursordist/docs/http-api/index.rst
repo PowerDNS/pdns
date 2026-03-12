@@ -36,7 +36,7 @@ The following webserver related configuration items are available:
 
 .. warning::
 
-   To achieve defense-in-depth, expose the webserver only to clients addresses that need to access it.
+   To achieve defense-in-depth, expose the webserver only to client addresses that have a real need for access.
    Network access is configured by setting :ref:`setting-yaml-webservice.address` and :ref:`setting-yaml-webservice.allow_from`. Starting with version 5.3.0 :ref:`setting-yaml-webservice.listen` has been introduced, superseding :ref:`setting-yaml-webservice.address` if set.
 
 .. warning::
