@@ -33,7 +33,6 @@ except Exception:
 
 
 class PDNSPBConnHandler(object):
-
     def __init__(self, conn, oturl, printjson, frame4):
         self._conn = conn
         self._oturl = oturl
@@ -146,7 +145,7 @@ class PDNSPBConnHandler(object):
         if isinstance(values, dict):
             for key, value in values.items():
                 self.convertKV(values, key, value)
-        elif isintance(values, list):
+        elif isinstance(values, list):
             for key, value in enumerate(values):
                 self.convertKV(values, key, value)
 
@@ -162,7 +161,9 @@ class PDNSPBConnHandler(object):
                     json_string = json.dumps(values, indent=True)
                     print("- openTelemetry: " + json_string)
             else:
-                print("- openTelemetry decoding not available, see the comments in ProtoBuffer.py to make it available.")
+                print(
+                    "- openTelemetry decoding not available, see the comments in ProtoBuffer.py to make it available."
+                )
 
     @staticmethod
     def getAppliedPolicyTypeAsString(polType):
@@ -394,13 +395,12 @@ class PDNSPBConnHandler(object):
         return requestorstr
 
 
+class PDNSPBListener(object):
     def __init__(self, addr, port, oturl, printjson, frame4):
         self._oturl = oturl
         self._printjson = printjson
         self._frame4 = frame4
-        res = socket.getaddrinfo(addr, port, socket.AF_UNSPEC,
-                                 socket.SOCK_STREAM, 0,
-                                 socket.AI_PASSIVE)
+        res = socket.getaddrinfo(addr, port, socket.AF_UNSPEC, socket.SOCK_STREAM, 0, socket.AI_PASSIVE)
         if len(res) != 1:
             print("Error parsing the supplied address")
             sys.exit(1)
@@ -420,9 +420,7 @@ class PDNSPBConnHandler(object):
             (conn, _) = self._sock.accept()
 
             handler = PDNSPBConnHandler(conn, self._oturl, self._printjson, self._frame4)
-            thread = threading.Thread(name='Connection Handler',
-                                      target=PDNSPBConnHandler.run,
-                                      args=[handler])
+            thread = threading.Thread(name="Connection Handler", target=PDNSPBConnHandler.run, args=[handler])
             thread.daemon = True
             thread.start()
 
@@ -434,11 +432,11 @@ if __name__ == "__main__":
         epilog="URL is an optional url of a OpenTelemetry Trace collector endpoint",
     )
 
-    parser.add_argument('-json', action='store_true')
-    parser.add_argument('address')
-    parser.add_argument('port')
-    parser.add_argument('-url')
-    parser.add_argument('-frame4', action='store_true')
-    args = parser.parse_args();
+    parser.add_argument("-json", action="store_true")
+    parser.add_argument("address")
+    parser.add_argument("port")
+    parser.add_argument("-url")
+    parser.add_argument("-frame4", action="store_true")
+    args = parser.parse_args()
     PDNSPBListener(args.address, args.port, args.url, args.json, args.frame4).run()
     sys.exit(0)

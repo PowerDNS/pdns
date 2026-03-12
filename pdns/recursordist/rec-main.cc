@@ -486,7 +486,7 @@ bool checkOutgoingProtobufExport(LocalStateHolder<LuaConfigItems>& luaconfsLocal
   return true;
 }
 
-static void protobufLog(ProtobufServersInfo& pbConfig, const string& msg, const DNSName& qname, QType qtype)
+static void protobufLog(ProtobufServersInfo& pbConfig, const string& msg, const DNSName& qname, const ComboAddress& address)
 {
   switch (pbConfig.config.strategy) {
   case ProtobufExportConfig::Strategy::All:
@@ -501,16 +501,26 @@ static void protobufLog(ProtobufServersInfo& pbConfig, const string& msg, const 
     }
     break;
   }
-  case ProtobufExportConfig::Strategy::FirstAvailable:
+  case ProtobufExportConfig::Strategy::FirstAvailable: {
+    RemoteLoggerInterface::Result ret = RemoteLoggerInterface::Result::OtherError;
     for (auto& server : *pbConfig.servers) {
-      if (remoteLoggerQueueData(*server, msg) == RemoteLoggerInterface::Result::Queued) { // XXX causes redundant logging!!
+      ret = remoteLoggerQueueData(*server, msg, false);
+      if (ret == RemoteLoggerInterface::Result::Queued) {
         break;
       }
     }
+    if (ret != RemoteLoggerInterface::Result::Queued && pbConfig.servers->size() > 0) {
+      // We fell through the loop without queueing
+      const auto& errMsg = RemoteLoggerInterface::toErrorString(ret);
+      g_slog->withName(pbConfig.servers->at(0)->name())->info(Logr::Debug, errMsg);
+    }
     break;
+  }
   case ProtobufExportConfig::Strategy::Hashed:
     if (pbConfig.servers->size() > 0) {
-      uint32_t hash = qname.hash() ^ qtype;
+      // We arbitrarily take qname and IP of requestor, to same queries from the same client end up in the same logger
+      // Likely there are better choices
+      uint32_t hash = qname.hash() ^ ComboAddress::addressOnlyHash()(address);
       size_t index = hash % pbConfig.servers->size();
       remoteLoggerQueueData(*pbConfig.servers->at(index), msg);
     }
@@ -564,17 +574,17 @@ void protobufLogQuery(LocalStateHolder<LuaConfigItems>& luaconfsLocal, const boo
   }
 
   std::string strMsg(msg.finishAndMoveBuf());
-  protobufLog(t_protobufServers, strMsg, qname, qtype);
+  protobufLog(t_protobufServers, strMsg, qname, requestor);
 }
 
-void protobufLogResponse(pdns::ProtoZero::RecMessage& message, const DNSName& qname, QType qtype)
+void protobufLogResponse(pdns::ProtoZero::RecMessage& message, const DNSName& qname, const ComboAddress& address)
 {
   if (!t_protobufServers.servers) {
     return;
   }
 
   std::string msg(message.finishAndMoveBuf());
-  protobufLog(t_protobufServers, msg, qname, qtype);
+  protobufLog(t_protobufServers, msg, qname, address);
 }
 
 void protobufLogResponse(const DNSName& qname, QType qtype,
@@ -661,7 +671,7 @@ void protobufLogResponse(const DNSName& qname, QType qtype,
   }
   pbMessage.addPolicyTags(policyTags);
 
-  protobufLogResponse(pbMessage, qname, qtype);
+  protobufLogResponse(pbMessage, qname, luaconfsLocal->protobufExportConfig.logMappedFrom ? mappedSource : source);
 }
 
 #ifdef HAVE_FSTRM

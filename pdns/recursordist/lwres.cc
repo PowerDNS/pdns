@@ -125,18 +125,19 @@ uint64_t dumpCookies(int fileDesc)
   return copy.dump(fileDesc);
 }
 
-RemoteLoggerInterface::Result remoteLoggerQueueData(RemoteLoggerInterface& rli, const std::string& data)
+RemoteLoggerInterface::Result remoteLoggerQueueData(RemoteLoggerInterface& rli, const std::string& data, bool dolog)
 {
   auto ret = rli.queueData(data);
 
   switch (ret) {
   case RemoteLoggerInterface::Result::Queued:
     break;
-  case RemoteLoggerInterface::Result::PipeFull: {
-    const auto& msg = RemoteLoggerInterface::toErrorString(ret);
-    g_slog->withName(rli.name())->info(Logr::Debug, msg);
+  case RemoteLoggerInterface::Result::PipeFull:
+    if (dolog) {
+      const auto& msg = RemoteLoggerInterface::toErrorString(ret);
+      g_slog->withName(rli.name())->info(Logr::Debug, msg);
+    }
     break;
-  }
   case RemoteLoggerInterface::Result::TooLarge: {
     const auto& msg = RemoteLoggerInterface::toErrorString(ret);
     g_slog->withName(rli.name())->info(Logr::Debug, msg);

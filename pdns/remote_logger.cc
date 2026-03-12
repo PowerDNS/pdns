@@ -166,12 +166,7 @@ bool RemoteLogger::reconnect()
          g_slog->withName("protobuf")->error(Logr::Error, e.what(), "Exception while connecting to remote logger", "address", Logging::Loggable(d_remote)));
 #else
     SLOG(warnlog("Error connecting to remote logger %s: %s", d_remote.toStringWithPort(), e.what()),
-<<<<<<< HEAD
-         dnsdist::logging::getTopLogger("protobuf")->error(Logr::Warning, e.what(), "Exception while connecting to remote logger", "address", Logging::Loggable(d_remote))
-      );
-=======
-         dnsdist::logging::getTopLogger("protobuf")->error(e.what(), "Exception while connecting to remote logger", "address", Logging::Loggable(d_remote)));
->>>>>>> f20db98a8 (Format)
+         dnsdist::logging::getTopLogger("protobuf")->error(Logr::Warning, e.what(), "Exception while connecting to remote logger", "address", Logging::Loggable(d_remote)));
 #endif
 
     return false;
@@ -283,8 +278,7 @@ void RemoteLogger::maintenanceThread()
          g_slog->withName("protobuf")->error(Logr::Error, e.what(), "Remote Logger's maintenance thread died"));
 #else
     SLOG(errlog("Remote Logger's maintenance thread died on: %s", e.what()),
-         dnsdist::logging::getTopLogger("protobuf")->error(Logr::Error, e.what(), "Remote Logger's maintenance thread died")
-      );
+         dnsdist::logging::getTopLogger("protobuf")->error(Logr::Error, e.what(), "Remote Logger's maintenance thread died"));
 #endif
   }
   catch (...) {

@@ -34,7 +34,7 @@ struct DNSRecord;
 struct ResolveContext;
 
 // Helper to be defined by main program: queue data and log based on return value of queueData()
-RemoteLoggerInterface::Result remoteLoggerQueueData(RemoteLoggerInterface&, const std::string&);
+RemoteLoggerInterface::Result remoteLoggerQueueData(RemoteLoggerInterface&, const std::string&, bool dolog = true);
 
 extern std::shared_ptr<Logr::Logger> g_slogout;
 extern bool g_paddingOutgoing;
