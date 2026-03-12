@@ -1,0 +1,2 @@
+#!/bin/sh
+cleandig test.wallet.example.com WALLET

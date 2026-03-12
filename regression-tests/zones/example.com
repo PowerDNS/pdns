@@ -20230,3 +20230,5 @@ bar.svcb IN AAAA 2001:db8::3:4
 bar.svcb IN A 192.0.2.1
 
 baz.svcb IN SVCB 0 foo1.svcb.example.net. ; AliasMode - should not trigger additional processing, the target is in another zone
+
+test.wallet	 IN WALLET "currency-identifier" "wallet-identifier"

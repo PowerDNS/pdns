@@ -20134,6 +20134,7 @@
 :phil.mb.example.com:7:\002pc\303\343:120
 :philip.mb.example.com:9:\303\362:120
 :sheila.mb.example.com:7:\004bill\303\343:120
+:test.wallet.example.com:262:\023currency-identifier\021wallet-identifier:120
 :text.example.com:16:\025Hi\054\040this\040is\040some\040text:120
 :text0.example.com:16:\014k\075rsa\073\040p\075one:120
 :text1.example.com:16:\014k\075rsa\073\040p\075one:120
