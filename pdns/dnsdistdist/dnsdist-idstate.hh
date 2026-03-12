@@ -139,6 +139,7 @@ struct InternalQueryState
       }
       // OpenTelemetry tracing is enabled, but we don't have a tracer yet
       d_OTTracer = pdns::trace::dnsdist::Tracer::getTracer();
+      d_OTTracer->setScopeSpanName("dnsdist/queryFromFrontend");
       return d_OTTracer;
     }
     return nullptr;
