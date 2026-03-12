@@ -62,7 +62,7 @@ TracesData Tracer::getTracesData()
           .span_id = span.span_id == data->d_oldAndNewRootSpanID.oldID ? data->d_oldAndNewRootSpanID.newID : span.span_id,
           .parent_span_id = span.parent_span_id == data->d_oldAndNewRootSpanID.oldID ? data->d_oldAndNewRootSpanID.newID : span.parent_span_id,
           .name = span.name,
-          .kind = pdns::trace::Span::SpanKind::SPAN_KIND_SERVER,
+          .kind = span.span_kind == Span::SpanKind::SPAN_KIND_UNSPECIFIED ? Span::SpanKind::SPAN_KIND_SERVER : span.span_kind,
           .start_time_unix_nano = span.start_time_unix_nano,
           .end_time_unix_nano = span.end_time_unix_nano,
           .attributes = span.attributes,
@@ -104,6 +104,7 @@ SpanID Tracer::addSpan([[maybe_unused]] const std::string& name, [[maybe_unused]
       .name = name,
       .span_id = spanID,
       .parent_span_id = parentSpanID,
+      .span_kind = Span::SpanKind::SPAN_KIND_UNSPECIFIED,
       .start_time_unix_nano = pdns::trace::timestamp(),
       .end_time_unix_nano = 0,
       .attributes = {},
@@ -229,6 +230,20 @@ void Tracer::setSpanAttribute([[maybe_unused]] const SpanID& spanid, [[maybe_unu
 #endif
 }
 
+void Tracer::setSpanKind([[maybe_unused]] const SpanID& spanid, [[maybe_unused]] const SpanKind spankind)
+{
+#ifndef DISABLE_PROTOBUF
+  auto data = d_data.lock();
+  auto& spans = data->d_spans;
+  if (auto iter = std::find_if(spans.rbegin(),
+                               spans.rend(),
+                               [&spanid](const auto& span) { return span.span_id == spanid; });
+      iter != spans.rend()) {
+    iter->span_kind = spankind;
+  }
+#endif
+}
+
 SpanID Tracer::getRootSpanID()
 {
 #ifdef DISABLE_PROTOBUF
@@ -341,6 +356,15 @@ void Tracer::Closer::setAttribute([[maybe_unused]] const std::string& key, [[may
   return;
 #else
   return d_tracer->setSpanAttribute(d_spanID, key, value);
+#endif
+}
+
+void Tracer::Closer::setKind([[maybe_unused]] const SpanKind spankind)
+{
+#ifdef DISABLE_PROTOBUF
+  return;
+#else
+  d_tracer->setSpanKind(d_spanID, spankind);
 #endif
 }
 

@@ -33,6 +33,7 @@ using TraceID = pdns::trace::TraceID;
 using SpanID = pdns::trace::SpanID;
 using AnyValue = pdns::trace::AnyValue;
 using TracesData = pdns::trace::TracesData;
+using SpanKind = pdns::trace::Span::SpanKind;
 #else
 // Define the minimal things needed
 #include <variant>
@@ -40,6 +41,7 @@ using TraceID = int;
 using SpanID = int;
 using AnyValue = std::variant<std::string, int>;
 using TracesData = int;
+using SpanKind = int;
 #endif
 
 #include "lock.hh"
@@ -129,6 +131,16 @@ public:
    * @param value
    */
   void setSpanAttribute(const SpanID& spanID, const std::string& key, const AnyValue& value);
+
+  /**
+   * @brief Sets the Kind of a Span
+   *
+   * This does not work when the Tracer is not active
+   *
+   * @param spanID The SpanID of the Span to add the attribute to
+   * @param spanking The Kind to set the Span to
+   */
+  void setSpanKind(const SpanID& spanID, const SpanKind spankind);
 
   /**
    * @brief Sets the stop timestamp for a span
@@ -262,6 +274,13 @@ public:
      */
     void setAttribute(const std::string& key, const AnyValue& value);
 
+    /**
+     * @brief Set the Kind of Span
+     *
+     * @param spankind
+     */
+    void setKind(const SpanKind);
+
   private:
 #ifndef DISABLE_PROTOBUF
     std::shared_ptr<Tracer> d_tracer{nullptr};
@@ -328,6 +347,7 @@ private:
     std::string name;
     SpanID span_id;
     SpanID parent_span_id;
+    SpanKind span_kind;
     uint64_t start_time_unix_nano;
     uint64_t end_time_unix_nano;
     std::vector<pdns::trace::KeyValue> attributes;
