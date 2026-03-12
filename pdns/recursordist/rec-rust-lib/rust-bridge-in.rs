@@ -180,7 +180,7 @@ pub struct RPZ {
     #[serde(default, skip_serializing_if = "crate::is_default", alias = "seed_file")]
     seedFile: String,
     // Added in 5.5.0
-    #[serde(default, skip_serializing_if = "crate::is_default", alias = "wipe_packet_cache")]
+    #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true", alias = "wipe_packet_cache")]
     wipePacketCache: bool,
 }
 

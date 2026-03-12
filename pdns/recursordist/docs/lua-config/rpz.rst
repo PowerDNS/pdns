@@ -206,7 +206,7 @@ wipePacketCache
 ^^^^^^^^^^^^^^^
 .. versionadded:: 5.5.0
 
-When set, relevant names are cleared from the packet cache on (re)load of the RPZ. Defaults to ``false``.
+When set, relevant names from qname triggers are cleared from the packet cache on (re)load of the RPZ. Defaults to ``true``.
 
 Extra settings for rpzPrimary
 -----------------------------

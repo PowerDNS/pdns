@@ -43,7 +43,7 @@ struct RPZTrackerParams
   std::string extendedErrorExtra;
   bool includeSOA{false};
   bool ignoreDuplicates{false};
-  bool wipePacketCache{false};
+  bool wipePacketCache{true};
 };
 
 std::shared_ptr<const SOARecordContent> loadRPZFromFile(const std::string& fname, const std::shared_ptr<DNSFilterEngine::Zone>& zone, const std::optional<DNSFilterEngine::Policy>& defpol, bool defpolOverrideLocal, uint32_t maxTTL, std::unordered_set<DNSName>& namesAffected, bool registerAffected);
