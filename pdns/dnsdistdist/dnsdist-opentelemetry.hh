@@ -96,6 +96,13 @@ public:
   void setRootSpanID(const SpanID& spanID);
 
   /**
+   * @brief Set the name for the Scope Span
+   *
+   * @param name
+   */
+  void setScopeSpanName(const std::string& name);
+
+  /**
    * @brief Add an attribute to the Trace
    *
    * @param key
@@ -357,6 +364,8 @@ private:
       SpanID oldID;
       SpanID newID;
     } d_oldAndNewRootSpanID;
+
+    std::string scope_span_name;
   };
   LockGuarded<Data> d_data;
 #endif
