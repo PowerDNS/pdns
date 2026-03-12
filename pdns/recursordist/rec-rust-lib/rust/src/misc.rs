@@ -29,7 +29,6 @@ pub mod rustmisc {
         Detailed,
     }
     enum Priority {
-        Absent = 0,
         Alert = 1,
         Critical = 2,
         Error = 3,

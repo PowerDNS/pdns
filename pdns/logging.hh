@@ -180,12 +180,7 @@ using EntryLogger = void (*)(const Entry&);
 class Logger : public Logr::Logger, public std::enable_shared_from_this<const Logger>
 {
 public:
-  bool enabled(Logr::Priority) const override;
-
-  void info(const std::string& msg) const override;
   void info(Logr::Priority, const std::string& msg) const override;
-  void error(int err, const std::string& msg) const override;
-  void error(const std::string& err, const std::string& msg) const override;
   void error(Logr::Priority, int err, const std::string& msg) const override;
   void error(Logr::Priority, const std::string& err, const std::string& msg) const override;
 
@@ -198,14 +193,10 @@ public:
 
   Logger(EntryLogger callback);
   Logger(EntryLogger callback, std::optional<std::string> name);
-  Logger(std::shared_ptr<const Logger> parent, std::optional<std::string> name, size_t verbosity, size_t lvl, EntryLogger callback);
+  Logger(std::shared_ptr<const Logger> parent, std::optional<std::string> name, size_t lvl, EntryLogger callback);
   ~Logger() override;
 
-  size_t getVerbosity() const;
-  void setVerbosity(size_t verbosity);
-
 private:
-  void logMessage(const std::string& msg, const std::optional<std::string>& err) const;
   void logMessage(const std::string& msg, Logr::Priority prio, const std::optional<std::string>& err) const;
   std::shared_ptr<const Logger> getptr() const;
 
@@ -215,8 +206,6 @@ private:
   std::map<std::string, std::string> _values;
   // current Logger's level. the higher the more verbose.
   size_t _level{0};
-  // verbosity settings. messages with level higher's than verbosity won't appear
-  size_t _verbosity{0};
 };
 }
 
@@ -233,7 +222,7 @@ constexpr bool g_slogStructured = true;
 // A typical use:
 //
 // SLOG(g_log<<Logger::Warning<<"Unable to parse configuration file '"<<configname<<"'"<<endl,
-//      startupLog->error("No such file", "Unable to parse configuration file", "config_file", Logging::Loggable(configname));
+//      startupLog->error(Logr::Warning, "No such file", "Unable to parse configuration file", "config_file", Logging::Loggable(configname));
 //
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define SLOG(oldStyle, slogCall) \

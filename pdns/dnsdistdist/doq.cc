@@ -163,7 +163,7 @@ public:
     if (!unit->ids.selfGenerated) {
       auto udiff = unit->ids.queryRealTime.udiff();
       VERBOSESLOG(infolog("Got answer from %s, relayed to %s (quic, %d bytes), took %d us", unit->downstream->d_config.remote.toStringWithPort(), unit->ids.origRemote.toStringWithPort(), unit->response.size(), udiff),
-                  dnsResponse.getLogger()->info("Got answer from backend, relayed to client"));
+                  dnsResponse.getLogger()->info(Logr::Info, "Got answer from backend, relayed to client"));
 
       auto backendProtocol = unit->downstream->getProtocol();
       if (backendProtocol == dnsdist::Protocol::DoUDP && unit->tcp) {
@@ -424,7 +424,7 @@ static void processDOQQuery(DOQUnitUniquePtr&& doqUnit)
 
     if (!dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL.match(remote)) {
       VERBOSESLOG(infolog("Query from %s (DoQ) dropped because of ACL", remote.toStringWithPort()),
-                  dsc->df->getLogger().info("DoQ query dropped because of ACL", "client.address", Logging::Loggable(remote)));
+                  dsc->df->getLogger().info(Logr::Info, "DoQ query dropped because of ACL", "client.address", Logging::Loggable(remote)));
       ++dnsdist::metrics::g_stats.aclDrops;
       unit->response.clear();
 
@@ -597,7 +597,7 @@ static void flushResponses(pdns::channel::Receiver<DOQUnit>& receiver, const Log
     }
     catch (const std::exception& e) {
       SLOG(errlog("Error while processing response received over DoQ: %s", e.what()),
-           frontendLogger.error(e.what(), "Error while processing response received over DoQ"));
+           frontendLogger.error(Logr::Error, e.what(), "Error while processing response received over DoQ"));
     }
     catch (...) {
       SLOG(errlog("Unspecified error while processing response received over DoQ"),

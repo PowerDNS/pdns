@@ -143,7 +143,7 @@ static void sendfromto(int sock, const PacketBuffer& buffer, const ComboAddress&
     if (ret == -1) {
       int error = errno;
       VERBOSESLOG(infolog("Error sending UDP response to %s: %s", dest.toStringWithPort(), stringerror(error)),
-                  dnsdist::logging::getTopLogger("sendfromto")->error(error, "Error sending UDP response", "client.address", Logging::Loggable(dest)));
+                  dnsdist::logging::getTopLogger("sendfromto")->error(Logr::Info, error, "Error sending UDP response", "client.address", Logging::Loggable(dest)));
     }
     return;
   }
@@ -153,7 +153,7 @@ static void sendfromto(int sock, const PacketBuffer& buffer, const ComboAddress&
   }
   catch (const std::exception& exp) {
     VERBOSESLOG(infolog("Error sending UDP response from %s to %s: %s", from.toStringWithPort(), dest.toStringWithPort(), exp.what()),
-                dnsdist::logging::getTopLogger("sendfromto")->error(exp.what(), "Error sending UDP response", "source.address", Logging::Loggable(from), "client.address", Logging::Loggable(dest)));
+                dnsdist::logging::getTopLogger("sendfromto")->error(Logr::Info, exp.what(), "Error sending UDP response", "source.address", Logging::Loggable(from), "client.address", Logging::Loggable(dest)));
   }
 }
 
@@ -297,7 +297,7 @@ bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, 
   catch (const std::exception& e) {
     if (remote && !response.empty() && static_cast<size_t>(response.size()) > sizeof(dnsheader)) {
       VERBOSESLOG(infolog("Backend %s sent us a response with id %d that did not parse: %s", remote->d_config.remote.toStringWithPort(), ntohs(dnsHeader->id), e.what()),
-                  dnsdist::logging::getTopLogger("udp-response-worker")->error(e.what(), "Received a DNS response from a backend that we could not parse", "backend.address", Logging::Loggable(remote->d_config.remote), "dns.query.id", Logging::Loggable(ntohs(dnsHeader->id))));
+                  dnsdist::logging::getTopLogger("udp-response-worker")->error(Logr::Info, e.what(), "Received a DNS response from a backend that we could not parse", "backend.address", Logging::Loggable(remote->d_config.remote), "dns.query.id", Logging::Loggable(ntohs(dnsHeader->id))));
     }
     ++dnsdist::metrics::g_stats.nonCompliantResponses;
     if (remote) {
@@ -867,17 +867,17 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
       }
       catch (const std::exception& e) {
         VERBOSESLOG(infolog("Got an error in UDP responder thread while parsing a response from %s, id %d: %s", dss->d_config.remote.toStringWithPort(), queryId, e.what()),
-                    responderLogger->error(e.what(), "Got an error in UDP responder thread while parsing a response", "dns.response.id", Logging::Loggable(queryId)));
+                    responderLogger->error(Logr::Info, e.what(), "Got an error in UDP responder thread while parsing a response", "dns.response.id", Logging::Loggable(queryId)));
       }
     }
   }
   catch (const std::exception& e) {
     SLOG(errlog("UDP responder thread died because of exception: %s", e.what()),
-         responderLogger->error(e.what(), "UDP responder thread died because of an exception"));
+         responderLogger->error(Logr::Error, e.what(), "UDP responder thread died because of an exception"));
   }
   catch (const PDNSException& e) {
     SLOG(errlog("UDP responder thread died because of PowerDNS exception: %s", e.reason),
-         responderLogger->error(e.reason, "UDP responder thread died because of a PowerDNS exception"));
+         responderLogger->error(Logr::Error, e.reason, "UDP responder thread died because of a PowerDNS exception"));
   }
   catch (...) {
     SLOG(errlog("UDP responder thread died because of an exception: %s", "unknown"),
@@ -1106,7 +1106,7 @@ static bool applyRulesToQuery(DNSQuestion& dnsQuestion, const timespec& now)
 
       case DNSAction::Action::Nxdomain:
         VERBOSESLOG(infolog("Query from %s turned into NXDomain because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort()),
-                    dnsQuestion.getLogger()->info("Query turned into NXDomain because of a dynamic rule"));
+                    dnsQuestion.getLogger()->info(Logr::Info, "Query turned into NXDomain because of a dynamic rule"));
         updateBlockStats();
 
         setRCode(RCode::NXDomain);
@@ -1114,7 +1114,7 @@ static bool applyRulesToQuery(DNSQuestion& dnsQuestion, const timespec& now)
 
       case DNSAction::Action::Refused:
         VERBOSESLOG(infolog("Query from %s refused because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort()),
-                    dnsQuestion.getLogger()->info("Query refused because of a dynamic rule"));
+                    dnsQuestion.getLogger()->info(Logr::Info, "Query refused because of a dynamic rule"));
         updateBlockStats();
 
         setRCode(RCode::Refused);
@@ -1123,7 +1123,7 @@ static bool applyRulesToQuery(DNSQuestion& dnsQuestion, const timespec& now)
       case DNSAction::Action::Truncate:
         if (!dnsQuestion.overTCP()) {
           VERBOSESLOG(infolog("Query from %s truncated because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort()),
-                      dnsQuestion.getLogger()->info("Query truncated because of a dynamic rule"));
+                      dnsQuestion.getLogger()->info(Logr::Info, "Query truncated because of a dynamic rule"));
           updateBlockStats();
           dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [](dnsheader& header) {
             header.tc = true;
@@ -1137,12 +1137,12 @@ static bool applyRulesToQuery(DNSQuestion& dnsQuestion, const timespec& now)
         }
         else {
           VERBOSESLOG(infolog("Query from %s for %s over TCP *not* truncated because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort(), dnsQuestion.ids.qname.toLogString()),
-                      dnsQuestion.getLogger()->info("Query received over TCP *not* truncated because of a dynamic rule"));
+                      dnsQuestion.getLogger()->info(Logr::Info, "Query received over TCP *not* truncated because of a dynamic rule"));
         }
         break;
       case DNSAction::Action::NoRecurse:
         VERBOSESLOG(infolog("Query from %s setting rd=0 because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort()),
-                    dnsQuestion.getLogger()->info("Setting RD=0 because of a dynamic rule"));
+                    dnsQuestion.getLogger()->info(Logr::Info, "Setting RD=0 because of a dynamic rule"));
         updateBlockStats();
         dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [](dnsheader& header) {
           header.rd = false;
@@ -1152,13 +1152,13 @@ static bool applyRulesToQuery(DNSQuestion& dnsQuestion, const timespec& now)
       case DNSAction::Action::SetTag: {
         if (!got->second.tagSettings) {
           VERBOSESLOG(infolog("Skipping set tag dynamic block for query from %s because of missing options", dnsQuestion.ids.origRemote.toStringWithPort()),
-                      dnsQuestion.getLogger()->info("Skipping 'set tag' dynamic rule because of missing options"));
+                      dnsQuestion.getLogger()->info(Logr::Info, "Skipping 'set tag' dynamic rule because of missing options"));
           break;
         }
         const auto& tagName = got->second.tagSettings->d_name;
         const auto& tagValue = got->second.tagSettings->d_value;
         VERBOSESLOG(infolog("Query from %s setting tag %s to %s because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort(), tagName, tagValue),
-                    dnsQuestion.getLogger()->info("Setting tag on query because of a dynamic rule", "dnsdist.tag.name", Logging::Loggable(tagName), "dnsdist.tag.value", Logging::Loggable(tagValue)));
+                    dnsQuestion.getLogger()->info(Logr::Info, "Setting tag on query because of a dynamic rule", "dnsdist.tag.name", Logging::Loggable(tagName), "dnsdist.tag.value", Logging::Loggable(tagValue)));
         updateBlockStats();
         dnsQuestion.setTag(tagName, tagValue);
         // do not return, the whole point it to set a Tag to be able to do further processing in rules
@@ -1166,7 +1166,7 @@ static bool applyRulesToQuery(DNSQuestion& dnsQuestion, const timespec& now)
       }
       default:
         VERBOSESLOG(infolog("Query from %s dropped because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort()),
-                    dnsQuestion.getLogger()->info("Query dropped because of a dynamic rule"));
+                    dnsQuestion.getLogger()->info(Logr::Info, "Query dropped because of a dynamic rule"));
         updateBlockStats();
         return false;
       }
@@ -1190,21 +1190,21 @@ static bool applyRulesToQuery(DNSQuestion& dnsQuestion, const timespec& now)
         break;
       case DNSAction::Action::Nxdomain:
         VERBOSESLOG(infolog("Query from %s turned into NXDomain because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort()),
-                    dnsQuestion.getLogger()->info("Query turned into NXDomain because of a suffix-based dynamic rule"));
+                    dnsQuestion.getLogger()->info(Logr::Info, "Query turned into NXDomain because of a suffix-based dynamic rule"));
         updateBlockStats();
 
         setRCode(RCode::NXDomain);
         return true;
       case DNSAction::Action::Refused:
         VERBOSESLOG(infolog("Query from %s refused because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort()),
-                    dnsQuestion.getLogger()->info("Query refused because of a suffix-based dynamic rule"));
+                    dnsQuestion.getLogger()->info(Logr::Info, "Query refused because of a suffix-based dynamic rule"));
         updateBlockStats();
         setRCode(RCode::Refused);
         return true;
       case DNSAction::Action::Truncate:
         if (!dnsQuestion.overTCP()) {
           VERBOSESLOG(infolog("Query from %s truncated because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort()),
-                      dnsQuestion.getLogger()->info("Query truncated because of a suffix-based dynamic rule"));
+                      dnsQuestion.getLogger()->info(Logr::Info, "Query truncated because of a suffix-based dynamic rule"));
           updateBlockStats();
           dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [](dnsheader& header) {
             header.tc = true;
@@ -1218,12 +1218,12 @@ static bool applyRulesToQuery(DNSQuestion& dnsQuestion, const timespec& now)
         }
         else {
           VERBOSESLOG(infolog("Query from %s for %s over TCP *not* truncated because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort(), dnsQuestion.ids.qname.toLogString()),
-                      dnsQuestion.getLogger()->info("Query received over TCP *not* truncated because of a dynamic rule"));
+                      dnsQuestion.getLogger()->info(Logr::Info, "Query received over TCP *not* truncated because of a dynamic rule"));
         }
         break;
       case DNSAction::Action::NoRecurse:
         VERBOSESLOG(infolog("Query from %s setting rd=0 because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort()),
-                    dnsQuestion.getLogger()->info("Setting RD=0 because of a suffix-based dynamic rule"));
+                    dnsQuestion.getLogger()->info(Logr::Info, "Setting RD=0 because of a suffix-based dynamic rule"));
         updateBlockStats();
         dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [](dnsheader& header) {
           header.rd = false;
@@ -1233,13 +1233,13 @@ static bool applyRulesToQuery(DNSQuestion& dnsQuestion, const timespec& now)
       case DNSAction::Action::SetTag: {
         if (!got->tagSettings) {
           VERBOSESLOG(infolog("Skipping set tag dynamic block for query from %s because of missing options", dnsQuestion.ids.origRemote.toStringWithPort()),
-                      dnsQuestion.getLogger()->info("Skipping 'set tag' suffix-based dynamic rule because of missing options"));
+                      dnsQuestion.getLogger()->info(Logr::Info, "Skipping 'set tag' suffix-based dynamic rule because of missing options"));
           break;
         }
         const auto& tagName = got->tagSettings->d_name;
         const auto& tagValue = got->tagSettings->d_value;
         VERBOSESLOG(infolog("Query from %s setting tag %s to %s because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort(), tagName, tagValue),
-                    dnsQuestion.getLogger()->info("Setting tag on query because of a suffix-based dynamic rule", "dnsdist.tag.name", Logging::Loggable(tagName), "dnsdist.tag.value", Logging::Loggable(tagValue)));
+                    dnsQuestion.getLogger()->info(Logr::Info, "Setting tag on query because of a suffix-based dynamic rule", "dnsdist.tag.name", Logging::Loggable(tagName), "dnsdist.tag.value", Logging::Loggable(tagValue)));
         updateBlockStats();
         dnsQuestion.setTag(tagName, tagValue);
         // do not return, the whole point it to set a Tag to be able to do further processing in rules
@@ -1248,7 +1248,7 @@ static bool applyRulesToQuery(DNSQuestion& dnsQuestion, const timespec& now)
       default:
         updateBlockStats();
         VERBOSESLOG(infolog("Query from %s dropped because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort()),
-                    dnsQuestion.getLogger()->info("Query dropped because of a suffix-based dynamic rule"));
+                    dnsQuestion.getLogger()->info(Logr::Info, "Query dropped because of a suffix-based dynamic rule"));
         return false;
       }
     }
@@ -1281,7 +1281,7 @@ ssize_t udpClientSendRequestToBackend(const std::shared_ptr<DownstreamState>& ba
   if (result == -1) {
     int savederrno = errno;
     VERBOSESLOG(infolog("Error sending request to backend %s: %s", backend->d_config.remote.toStringWithPort(), stringerror(savederrno)),
-                dnsdist::logging::getTopLogger("udp-frontend")->error(savederrno, "Error sending request to the backend", "backend.address", Logging::Loggable(backend->d_config.remote)));
+                dnsdist::logging::getTopLogger("udp-frontend")->error(Logr::Info, savederrno, "Error sending request to the backend", "backend.address", Logging::Loggable(backend->d_config.remote)));
 
     /* This might sound silly, but on Linux send() might fail with EINVAL
        if the interface the socket was bound to doesn't exist anymore.
@@ -1304,7 +1304,7 @@ static bool isUDPQueryAcceptable(ClientState& clientState, const struct msghdr* 
   if ((msgh->msg_flags & MSG_TRUNC) != 0) {
     /* message was too large for our buffer */
     VERBOSESLOG(infolog("Dropping message too large for our buffer"),
-                dnsdist::logging::getTopLogger("udp-query")->info("Dropping query from client that is too large for our buffer", "client.address", Logging::Loggable(remote), "destination.address", Logging::Loggable(dest), "frontend.address", Logging::Loggable(clientState.local)));
+                dnsdist::logging::getTopLogger("udp-query")->info(Logr::Info, "Dropping query from client that is too large for our buffer", "client.address", Logging::Loggable(remote), "destination.address", Logging::Loggable(dest), "frontend.address", Logging::Loggable(clientState.local)));
     ++clientState.nonCompliantQueries;
     ++dnsdist::metrics::g_stats.nonCompliantQueries;
     return false;
@@ -1313,7 +1313,7 @@ static bool isUDPQueryAcceptable(ClientState& clientState, const struct msghdr* 
   expectProxyProtocol = clientState.d_enableProxyProtocol && expectProxyProtocolFrom(remote);
   if (!dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL.match(remote) && !expectProxyProtocol) {
     VERBOSESLOG(infolog("Query from %s dropped because of ACL", remote.toStringWithPort()),
-                dnsdist::logging::getTopLogger("udp-query")->info("Query dropped because of ACL", "source.address", Logging::Loggable(dest)));
+                dnsdist::logging::getTopLogger("udp-query")->info(Logr::Info, "Query dropped because of ACL", "source.address", Logging::Loggable(dest)));
     ++dnsdist::metrics::g_stats.aclDrops;
     return false;
   }
@@ -1548,7 +1548,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
         if (serverPool.packetCache->get(dnsQuestion, dnsQuestion.getHeader()->id, &dnsQuestion.ids.cacheKeyNoECS, dnsQuestion.ids.subnet, *dnsQuestion.ids.dnssecOK, willBeForwardedOverUDP, allowExpired, false, true, false)) {
 
           VERBOSESLOG(infolog("Packet cache hit for query for %s|%s from %s (%s, %d bytes)", dnsQuestion.ids.qname.toLogString(), QType(dnsQuestion.ids.qtype).toString(), dnsQuestion.ids.origRemote.toStringWithPort(), dnsQuestion.ids.protocol.toString(), dnsQuestion.getData().size()),
-                      dnsQuestion.getLogger()->info("Packet cache hit"));
+                      dnsQuestion.getLogger()->info(Logr::Info, "Packet cache hit"));
 
           if (!prepareOutgoingResponse(*dnsQuestion.ids.cs, dnsQuestion, true)) {
             return ProcessQueryResult::Drop;
@@ -1565,7 +1565,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
 
       if (!handleEDNSClientSubnet(dnsQuestion, dnsQuestion.ids.ednsAdded, dnsQuestion.ids.ecsAdded)) {
         VERBOSESLOG(infolog("Dropping query from %s because we couldn't insert the ECS value", dnsQuestion.ids.origRemote.toStringWithPort()),
-                    dnsQuestion.getLogger()->info("Dropping query because we couldn't insert the ECS value"));
+                    dnsQuestion.getLogger()->info(Logr::Info, "Dropping query because we couldn't insert the ECS value"));
         return ProcessQueryResult::Drop;
       }
     }
@@ -1583,7 +1583,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
         });
 
         VERBOSESLOG(infolog("Packet cache hit for query for %s|%s from %s (%s, %d bytes)", dnsQuestion.ids.qname.toLogString(), QType(dnsQuestion.ids.qtype).toString(), dnsQuestion.ids.origRemote.toStringWithPort(), dnsQuestion.ids.protocol.toString(), dnsQuestion.getData().size()),
-                    dnsQuestion.getLogger()->info("Packet cache hit"));
+                    dnsQuestion.getLogger()->info(Logr::Info, "Packet cache hit"));
 
         if (!prepareOutgoingResponse(*dnsQuestion.ids.cs, dnsQuestion, true)) {
           return ProcessQueryResult::Drop;
@@ -1604,7 +1604,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
       }
 
       VERBOSESLOG(infolog("Packet cache miss for query for %s|%s from %s (%s, %d bytes)", dnsQuestion.ids.qname.toLogString(), QType(dnsQuestion.ids.qtype).toString(), dnsQuestion.ids.origRemote.toStringWithPort(), dnsQuestion.ids.protocol.toString(), dnsQuestion.getData().size()),
-                  dnsQuestion.getLogger()->info("Packet cache miss"));
+                  dnsQuestion.getLogger()->info(Logr::Info, "Packet cache miss"));
 
       ++dnsdist::metrics::g_stats.cacheMisses;
 
@@ -1641,7 +1641,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
       ++dnsdist::metrics::g_stats.noPolicy;
 
       VERBOSESLOG(infolog("%s query for %s|%s from %s, no downstream server available", servFailOnNoPolicy ? "ServFailed" : "Dropped", dnsQuestion.ids.qname.toLogString(), QType(dnsQuestion.ids.qtype).toString(), dnsQuestion.ids.origRemote.toStringWithPort()),
-                  dnsQuestion.getLogger()->info("No downstream server available", "dnsdist.action", Logging::Loggable(servFailOnNoPolicy ? "ServFailed" : "Dropped")));
+                  dnsQuestion.getLogger()->info(Logr::Info, "No downstream server available", "dnsdist.action", Logging::Loggable(servFailOnNoPolicy ? "ServFailed" : "Dropped")));
 
       if (servFailOnNoPolicy) {
         dnsdist::self_answers::removeRecordsAndSetRCode(dnsQuestion, RCode::ServFail);
@@ -1673,7 +1673,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
   }
   catch (const std::exception& e) {
     VERBOSESLOG(infolog("Got an error while parsing a %s query (after applying rules)  from %s, id %d: %s", (dnsQuestion.overTCP() ? "TCP" : "UDP"), dnsQuestion.ids.origRemote.toStringWithPort(), queryId, e.what()),
-                dnsQuestion.getLogger()->error(e.what(), "Got an error while parsing a query (after applying rules)"));
+                dnsQuestion.getLogger()->error(Logr::Info, e.what(), "Got an error while parsing a query (after applying rules)"));
   }
   return ProcessQueryResult::Drop;
 }
@@ -1696,7 +1696,7 @@ bool handleTimeoutResponseRules(const std::vector<dnsdist::rules::ResponseRuleAc
   auto protocol = dnsResponse.getProtocol();
 
   VERBOSESLOG(infolog("Handling timeout response rules for incoming protocol = %s", protocol.toString()),
-              dnsResponse.getLogger()->info("Handling timeout response rules"));
+              dnsResponse.getLogger()->info(Logr::Info, "Handling timeout response rules"));
 
   if (protocol == dnsdist::Protocol::DoH) {
 #if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
@@ -1718,7 +1718,7 @@ bool handleTimeoutResponseRules(const std::vector<dnsdist::rules::ResponseRuleAc
   }
   catch (const std::exception& exp) {
     VERBOSESLOG(infolog("Exception while processing timeout response rules: %s", exp.what()),
-                dnsResponse.getLogger()->error(exp.what(), "Exception while processing timeout response rules"));
+                dnsResponse.getLogger()->error(Logr::Info, exp.what(), "Exception while processing timeout response rules"));
   }
 
   return dnsResponse.isAsynchronous();
@@ -1732,7 +1732,7 @@ void handleServerStateChange(const string& nameWithAddr, bool newResult)
   }
   catch (const std::exception& exp) {
     SLOG(warnlog("Error calling the Lua hook for Server State Change: %s", exp.what()),
-         dnsdist::logging::getTopLogger("backend-state-update")->error(exp.what(), "Error calling the Lua hook for backend state change", "backend.name", Logging::Loggable(nameWithAddr)));
+         dnsdist::logging::getTopLogger("backend-state-update")->error(Logr::Warning, exp.what(), "Error calling the Lua hook for backend state change", "backend.name", Logging::Loggable(nameWithAddr)));
   }
 }
 
@@ -1847,7 +1847,7 @@ ProcessQueryResult processQuery(DNSQuestion& dnsQuestion, std::shared_ptr<Downst
   }
   catch (const std::exception& e) {
     VERBOSESLOG(infolog("Got an error while parsing a %s query from %s, id %d: %s", (dnsQuestion.overTCP() ? "TCP" : "UDP"), dnsQuestion.ids.origRemote.toStringWithPort(), queryId, e.what()),
-                dnsQuestion.getLogger()->error(e.what(), "Got and error while parsing a query", "dns.question.id", Logging::Loggable(queryId)));
+                dnsQuestion.getLogger()->error(Logr::Info, e.what(), "Got and error while parsing a query", "dns.question.id", Logging::Loggable(queryId)));
   }
   return ProcessQueryResult::Drop;
 }
@@ -1869,7 +1869,7 @@ bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& downstrea
     }
     catch (const std::exception& e) {
       VERBOSESLOG(infolog("Adding proxy protocol payload to %s query from %s failed: %s", (dnsQuestion.ids.du ? "DoH" : ""), dnsQuestion.ids.origDest.toStringWithPort(), e.what()),
-                  dnsQuestion.getLogger()->error(e.what(), "Adding a proxy protocol payload to the query failed"));
+                  dnsQuestion.getLogger()->error(Logr::Info, e.what(), "Adding a proxy protocol payload to the query failed"));
       return false;
     }
   }
@@ -1887,7 +1887,7 @@ bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& downstrea
     dnsQuestion.ids.forwardedOverUDP = true;
 
     VERBOSESLOG(infolog("Got query for %s|%s from %s%s, relayed to %s%s", dnsQuestion.ids.qname.toLogString(), QType(dnsQuestion.ids.qtype).toString(), dnsQuestion.ids.origRemote.toStringWithPort(), (doh ? " (https)" : ""), downstream->getNameWithAddr(), actuallySend ? "" : " (xsk)"),
-                dnsQuestion.getLogger()->info("Relayed query to backend", "backend.name", Logging::Loggable(downstream->getName()), "backend.address", Logging::Loggable(downstream->d_config.remote), "dnsdist.xsk", Logging::Loggable(!actuallySend)));
+                dnsQuestion.getLogger()->info(Logr::Info, "Relayed query to backend", "backend.name", Logging::Loggable(downstream->getName()), "backend.address", Logging::Loggable(downstream->d_config.remote), "dnsdist.xsk", Logging::Loggable(!actuallySend)));
 
 #ifndef DISABLE_PROTOBUF
     if (auto tracer = dnsQuestion.ids.getTracer(); dnsQuestion.ids.sendTraceParentToDownstreamID != 0 && tracer != nullptr) {
@@ -2084,7 +2084,7 @@ static void processUDPQuery(ClientState& clientState, const struct msghdr* msgh,
   }
   catch (const std::exception& e) {
     VERBOSESLOG(infolog("Got an error in UDP question thread while parsing a query from %s, id %d: %s", ids.origRemote.toStringWithPort(), queryId, e.what()),
-                dnsdist::logging::getTopLogger("udp-frontend")->error(e.what(), "Got an error in UDP question thread while parsing a query", "source.address", Logging::Loggable(ids.origRemote), "dns.question.id", Logging::Loggable(queryId)));
+                dnsdist::logging::getTopLogger("udp-frontend")->error(Logr::Info, e.what(), "Got an error in UDP question thread while parsing a query", "source.address", Logging::Loggable(ids.origRemote), "dns.question.id", Logging::Loggable(queryId)));
   }
 }
 
@@ -2210,7 +2210,7 @@ bool XskProcessQuery(ClientState& clientState, XskPacket& packet)
   }
   catch (const std::exception& e) {
     VERBOSESLOG(infolog("Got an error in UDP question thread while parsing a query from %s, id %d: %s", ids.origRemote.toStringWithPort(), queryId, e.what()),
-                dnsdist::logging::getTopLogger("udp-xsk-frontend")->error(e.what(), "Got an error in XSK UDP question thread while parsing a query", "source.address", Logging::Loggable(ids.origRemote), "dns.question.id", Logging::Loggable(queryId)));
+                dnsdist::logging::getTopLogger("udp-xsk-frontend")->error(Logr::Info, e.what(), "Got an error in XSK UDP question thread while parsing a query", "source.address", Logging::Loggable(ids.origRemote), "dns.question.id", Logging::Loggable(queryId)));
   }
   return false;
 }
@@ -2283,7 +2283,7 @@ static void MultipleMessagesUDPClientThread(ClientState* clientState)
     if (msgsGot <= 0) {
       int savederrno = errno;
       VERBOSESLOG(infolog("Getting UDP messages via recvmmsg() failed with: %s", stringerror(savederrno)),
-                  dnsdist::logging::getTopLogger("udp-recvmmsg-frontend")->error(savederrno, "Getting UDP messages via recvmmsg failed", "frontend.address", Logging::Loggable(clientState->local)));
+                  dnsdist::logging::getTopLogger("udp-recvmmsg-frontend")->error(Logr::Info, savederrno, "Getting UDP messages via recvmmsg failed", "frontend.address", Logging::Loggable(clientState->local)));
       msgsGot = 0;
       continue;
     }
@@ -2318,7 +2318,7 @@ static void MultipleMessagesUDPClientThread(ClientState* clientState)
       if (sent < 0 || static_cast<unsigned int>(sent) != msgsToSend) {
         int savederrno = errno;
         VERBOSESLOG(infolog("Error sending responses with sendmmsg() (%d on %u): %s", sent, msgsToSend, stringerror(savederrno)),
-                    dnsdist::logging::getTopLogger("udp-sendmmsg-frontend")->error(savederrno, "Error sending responses with sendmmsg()", "address", Logging::Loggable(clientState->local), "dnsdist.sendmmsg.messages_sent", Logging::Loggable(sent), "dnsdist.sendmmsg.messages_to_send", Logging::Loggable(msgsToSend)));
+                    dnsdist::logging::getTopLogger("udp-sendmmsg-frontend")->error(Logr::Info, savederrno, "Error sending responses with sendmmsg()", "address", Logging::Loggable(clientState->local), "dnsdist.sendmmsg.messages_sent", Logging::Loggable(sent), "dnsdist.sendmmsg.messages_to_send", Logging::Loggable(msgsToSend)));
       }
     }
   }
@@ -2437,11 +2437,11 @@ static void udpClientThread(std::vector<ClientState*> states)
   }
   catch (const std::exception& e) {
     SLOG(errlog("UDP client thread died because of exception: %s", e.what()),
-         dnsdist::logging::getTopLogger("udp-frontend")->error(e.what(), "UDP client thread died because of exception"));
+         dnsdist::logging::getTopLogger("udp-frontend")->error(Logr::Error, e.what(), "UDP client thread died because of exception"));
   }
   catch (const PDNSException& e) {
     SLOG(errlog("UDP client thread died because of PowerDNS exception: %s", e.reason),
-         dnsdist::logging::getTopLogger("udp-frontend")->error(e.reason, "UDP client thread died because of PowerDNS exception"));
+         dnsdist::logging::getTopLogger("udp-frontend")->error(Logr::Error, e.reason, "UDP client thread died because of PowerDNS exception"));
   }
   catch (...) {
     SLOG(errlog("UDP client thread died because of an exception: unknown"),
@@ -2621,7 +2621,7 @@ static void healthChecksThread()
     }
     catch (const std::exception& exp) {
       VERBOSESLOG(infolog("Exception in the health-check thread: %s", exp.what()),
-                  dnsdist::logging::getTopLogger("health-check")->error(exp.what(), "Exception in the health-check thread"));
+                  dnsdist::logging::getTopLogger("health-check")->error(Logr::Info, exp.what(), "Exception in the health-check thread"));
     }
   }
 }
@@ -2785,7 +2785,7 @@ static void setupLocalSocket(ClientState& clientState, const ComboAddress& addr,
 #ifdef IPV6_RECVPKTINFO
     if (addr.isIPv6() && setsockopt(socket, IPPROTO_IPV6, IPV6_RECVPKTINFO, &one, sizeof(one)) < 0 && !s_warned_ipv6_recvpktinfo) {
       SLOG(warnlog("Warning: IPV6_RECVPKTINFO setsockopt failed: %s", stringerror()),
-           logger->error(stringerror(), "IPV6_RECVPKTINFO setsockopt failed", "frontend.address", Logging::Loggable(addr)));
+           logger->error(Logr::Warning, stringerror(), "IPV6_RECVPKTINFO setsockopt failed", "frontend.address", Logging::Loggable(addr)));
       s_warned_ipv6_recvpktinfo = true;
     }
 #endif
@@ -3552,7 +3552,7 @@ static ListeningSockets initListeningSockets()
     }
     catch (const std::exception& exp) {
       SLOG(errlog("Unable to bind to control socket on %s: %s", local.toStringWithPort(), exp.what()),
-           dnsdist::logging::getTopLogger("setup")->error(exp.what(), "Unable to bind to console control socket", "network.local.address", Logging::Loggable(local)));
+           dnsdist::logging::getTopLogger("setup")->error(Logr::Error, exp.what(), "Unable to bind to console control socket", "network.local.address", Logging::Loggable(local)));
     }
   }
 
@@ -3565,7 +3565,7 @@ static ListeningSockets initListeningSockets()
     }
     catch (const std::exception& exp) {
       SLOG(errlog("Unable to bind to web server socket on %s: %s", local.toStringWithPort(), exp.what()),
-           dnsdist::logging::getTopLogger("setup")->error(exp.what(), "Unable to bind to web server socket", "network.local.address", Logging::Loggable(local)));
+           dnsdist::logging::getTopLogger("setup")->error(Logr::Error, exp.what(), "Unable to bind to web server socket", "network.local.address", Logging::Loggable(local)));
     }
   }
 

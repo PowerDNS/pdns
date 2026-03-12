@@ -200,7 +200,7 @@ static void possiblyConvertACLFile(const string& includeDir, const string& apiDi
   ofconf << yaml << endl;
   ofconf.close();
   if (ofconf.bad()) {
-    log->error(Logr::Error, "Error writing YAML", "to", Logging::Loggable(tmpfilename));
+    log->info(Logr::Error, "Error writing YAML", "to", Logging::Loggable(tmpfilename));
     unlink(tmpfilename.c_str());
     throw runtime_error("YAML Conversion");
   }
@@ -255,7 +255,7 @@ static void fileCopy(const string& src, const string& dst, Logr::log_t log)
   ifconf.close();
   ofconf.close();
   if (ofconf.bad()) {
-    log->error(Logr::Error, "Error writing YAML", "to", Logging::Loggable(dst));
+    log->info(Logr::Error, "Error writing YAML", "to", Logging::Loggable(dst));
     throw runtime_error("YAML Conversion");
   }
 }

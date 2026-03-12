@@ -1497,7 +1497,6 @@ int main(int argc, char** argv)
   try {
     std::shared_ptr<Logr::Logger> startupLog;
     if (g_slogStructured) {
-      // Missing: a mechanism to call setVerbosity(x)
       startupLog = g_slog->withName("config");
       ::arg().setSLog(startupLog);
     }

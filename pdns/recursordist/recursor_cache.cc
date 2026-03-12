@@ -1298,7 +1298,7 @@ size_t MemRecursorCache::putRecordSets(const std::string& pbuf)
     log->error(Logr::Error, e.what(), "Exception processing cache dump");
   }
   catch (...) {
-    log->error(Logr::Error, "Other exception processing cache dump");
+    log->info(Logr::Error, "Other exception processing cache dump");
   }
   return 0;
 }

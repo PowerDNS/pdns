@@ -209,7 +209,7 @@ bool pdns::RecResolve::refresh(time_t now)
         ttd += d_ttl;
       }
       else {
-        log->error(Logr::Error, "Name did not resolve", "name", Logging::Loggable(entry.first));
+        log->info(Logr::Error, "Name did not resolve", "name", Logging::Loggable(entry.first));
       }
       if (newAddress != entry.second.d_address) {
         log->info(Logr::Debug, "Name resolved to new address",
@@ -323,7 +323,7 @@ ComboAddress pdns::fromNameOrIP(const string& str, uint16_t defPort, Logr::log_t
       address.setPort(port);
       return address;
     }
-    log->error(Logr::Error, "Could not resolve name", "name", Logging::Loggable(str));
+    log->info(Logr::Error, "Could not resolve name", "name", Logging::Loggable(str));
     throw PDNSException("Could not resolve " + str);
   }
 }

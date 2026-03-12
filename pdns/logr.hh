@@ -54,7 +54,6 @@ struct Loggable
 
 enum Priority : uint8_t
 {
-  Absent = 0,
   Alert = 1,
   Critical = 2,
   Error = 3,
@@ -74,14 +73,9 @@ public:
   Logger& operator=(Logger&&) = delete;
   virtual ~Logger() = default;
 
-  // Enabled tests whether this Logger is enabled.  For example, commandline
-  // flags might be used to set the logging verbosity and disable some info
-  // logs.
-  [[nodiscard]] virtual bool enabled(Priority) const = 0;
-
   static std::string toString(Priority arg)
   {
-    const std::array<std::string, 8> names = {"Absent", "Alert", "Critical", "Error", "Warning", "Notice", "Info", "Debug"};
+    const std::array<std::string, 8> names = {"?", "Alert", "Critical", "Error", "Warning", "Notice", "Info", "Debug"};
     auto prio = static_cast<unsigned int>(arg);
     if (prio >= names.size()) {
       return "?";
@@ -94,15 +88,7 @@ public:
   // the log line.  The key/value pairs can then be used to add additional
   // variable information.  The key/value pairs should alternate string
   // keys and arbitrary values.
-  virtual void info(const std::string& msg) const = 0;
   virtual void info(Logr::Priority, const std::string& msg) const = 0;
-
-  template <typename... Args>
-  void info(const std::string& msg, const std::string& key, const Loggable& value, const Args&... args) const
-  {
-    auto logger = this->withValues(key, value, args...);
-    logger->info(msg);
-  }
 
   template <typename... Args>
   void info(Priority prio, const std::string& msg, const std::string& key, const Loggable& value, const Args&... args) const
@@ -119,24 +105,8 @@ public:
   // The msg field should be used to add context to any underlying error,
   // while the err field should be used to attach the actual error that
   // triggered this log line, if present.
-  virtual void error(const std::string& err, const std::string& msg) const = 0;
-  virtual void error(int err, const std::string& msg) const = 0;
   virtual void error(Logr::Priority, const std::string& err, const std::string& msg) const = 0;
   virtual void error(Logr::Priority, int err, const std::string& msg) const = 0;
-
-  template <typename... Args>
-  void error(const std::string& err, const std::string& msg, const std::string& key, const Loggable& value, const Args&... args) const
-  {
-    auto logger = this->withValues(key, value, args...);
-    logger->error(Logr::Absent, err, msg);
-  }
-
-  template <typename... Args>
-  void error(int err, const std::string& msg, const std::string& key, const Loggable& value, const Args&... args) const
-  {
-    auto logger = this->withValues(key, value, args...);
-    logger->error(Logr::Absent, err, msg);
-  }
 
   template <typename... Args>
   void error(Priority prio, const std::string& err, const std::string& msg, const std::string& key, const Loggable& value, const Args&... args) const

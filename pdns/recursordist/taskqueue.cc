@@ -49,7 +49,7 @@ bool ResolveTask::run(bool logErrors) const
 {
   if (d_func == nullptr) {
     auto log = g_slog->withName("taskq")->withValues("name", Logging::Loggable(d_qname), "qtype", Logging::Loggable(QType(d_qtype).toString()));
-    log->error(Logr::Debug, "null task");
+    log->info(Logr::Debug, "null task");
     return false;
   }
   struct timeval now{};
