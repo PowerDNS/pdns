@@ -25,6 +25,9 @@
 #include <vector>
 
 #include "dnsdist-configuration-yaml.hh"
+#include "dnsdist-configuration.hh"
+#include "logging.hh"
+#include "logr.hh"
 
 #if defined(HAVE_YAML_CONFIGURATION)
 #include "base64.hh"
@@ -1041,6 +1044,29 @@ static void handleLoggingConfiguration(const Context& context, const dnsdist::ru
     }
     config.d_structuredLoggingUseServerID = settings.structured.set_instance_from_server_id;
   });
+
+  if (!settings.open_telemetry_tracing.internal_tracing.empty() && !settings.open_telemetry_tracing.enabled) {
+    VERBOSESLOG(infolog("Internal OpenTelemetry tracing requested, but OpenTelemetry is disabled"),
+                context.logger->info(Logr::Info, "Internal OpenTelemetry tracing requested, but OpenTelemetry is disabled"));
+  }
+  else {
+    for (const auto& internal_trace_config : settings.open_telemetry_tracing.internal_tracing) {
+      dnsdist::configuration::updateRuntimeConfiguration([context, internal_trace_config](dnsdist::configuration::RuntimeConfiguration& config) {
+        if (internal_trace_config.kind == "maintenance") {
+          std::vector<std::shared_ptr<RemoteLoggerInterface>> loggers;
+          for (const auto& logger_name : internal_trace_config.remote_loggers) {
+            auto logger = dnsdist::configuration::yaml::getRegisteredTypeByName<RemoteLoggerInterface>(std::string(logger_name));
+            if (!logger && !(dnsdist::configuration::yaml::s_inClientMode || dnsdist::configuration::yaml::s_inConfigCheckMode)) {
+              throw std::runtime_error("Unable to find the protobuf logger named '" + std::string(logger_name) + "'");
+            }
+            loggers.push_back(std::move(logger));
+          }
+          config.d_maintenanceRemoteLoggers = std::move(loggers);
+          config.d_opentelemetryMaintenanceInterval = internal_trace_config.sample_rate == 0 ? 60 : internal_trace_config.sample_rate;
+        }
+      });
+    }
+  }
 }
 
 static void handleConsoleConfiguration(const dnsdist::rust::settings::ConsoleConfiguration& consoleConf)

@@ -1858,6 +1858,29 @@ structured_logging:
         Add a field "instance" to each log line with the value of ``general.server_id``.
       version_added: 2.1.0
 
+internal_tracing:
+  description: "Internal OpenTelemetry Trace settings"
+  parameters:
+    - name: "kind"
+      type: "String"
+      default: ""
+      description: "The functionality to instrument."
+      supported-values:
+        - maintenance
+    - name: "remote_loggers"
+      type: "Vec<String>"
+      default: ""
+      description: "The names of all the loggers that should be sent the protobuf messages that includes the tracing information."
+    - name: "sample_rate"
+      type: "u64"
+      default: 0
+      description: |
+        Some internal processes might be run many times (e.g. ``maintenance`` is run every second), this setting allows for sampling of the traces. The value configures one in how many traces should be created, e.g. ``10`` means "every tenth call should be traced".
+
+        The default of 0 picks a "sane" default interval, depending on the ``kind``:
+
+        * maintenance: 60
+
 open_telemetry_tracing:
   category: "logging.open_telemetry_tracing"
   description: "OpenTelemetry Trace settings"
@@ -1869,6 +1892,11 @@ open_telemetry_tracing:
       lua-name: "setOpenTelemetryTracing"
       internal-field-name: "d_openTelemetryTracing"
       description: "Set to true to enable OpenTelemetry tracing. When true, the :func:`DNSQuestion:setTrace` makes the query store tracing information (see :doc:`OpenTelemetry tracing <ottrace>`). When this setting is false, no tracing information is gathered at all."
+    - name: "internal_tracing"
+      type: "Vec<InternalTracingConfiguration>"
+      lua-name: "setInternalOpenTelemetryTracing"
+      runtime-configurable: true
+      default: true
 
 logging:
   description: "Logging settings"
