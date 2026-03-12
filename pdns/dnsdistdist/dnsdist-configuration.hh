@@ -26,6 +26,7 @@
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 #include "config.h"
 #include "credentials.hh"
@@ -35,6 +36,7 @@
 #include "dnsdist-rule-chains.hh"
 #include "dnsdist-server-pool.hh"
 #include "iputils.hh"
+#include "remote_logger.hh"
 
 class ServerPolicy;
 struct ServerPool;
@@ -135,6 +137,9 @@ struct RuntimeConfiguration
   std::shared_ptr<const CredentialsHolder> d_webAPIKey;
   std::optional<std::unordered_map<std::string, std::string>> d_webCustomHeaders;
   std::shared_ptr<ServerPolicy> d_lbPolicy;
+#ifndef DISABLE_PROTOBUF
+  std::vector<std::shared_ptr<RemoteLoggerInterface>> d_maintenanceRemoteLoggers;
+#endif
   NetmaskGroup d_ACL;
   NetmaskGroup d_proxyProtocolACL;
   NetmaskGroup d_consoleACL;
@@ -150,6 +155,7 @@ struct RuntimeConfiguration
   size_t d_maxTCPQueriesPerConn{0};
   size_t d_maxTCPConnectionDuration{0};
   size_t d_proxyProtocolMaximumSize{512};
+  size_t d_opentelemetryMaintenanceInterval{0}; // Sample interval for the maintenance function, 0 means disabled
   uint32_t d_staleCacheEntriesTTL{0};
   uint32_t d_secPollInterval{3600};
   uint32_t d_consoleOutputMsgMaxSize{10000000};
