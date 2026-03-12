@@ -297,9 +297,11 @@ bool UDPNameserver::receive(DNSPacket& packet, std::string& buffer)
   }
   if(sock==-1)
     throw PDNSException("poll betrayed us! (should not happen)");
-  
-  DLOG(SLOG(g_log<<"Received a packet " << len <<" bytes long from "<< remote.toString()<<endl,
-            d_slog->info(Logr::Debug, "Received a packet", "remote", Logging::Loggable(remote), "size", Logging::Loggable(len))));
+
+  buffer.resize(len);
+
+  DLOG(SLOG(g_log<<"Received a packet " << buffer.size() <<" bytes long from "<< remote.toString()<<endl,
+            d_slog->info(Logr::Debug, "Received a packet", "remote", Logging::Loggable(remote), "size", Logging::Loggable(buffer.size()))));
 
   BOOST_STATIC_ASSERT(offsetof(sockaddr_in, sin_port) == offsetof(sockaddr_in6, sin6_port));
 
@@ -327,9 +329,8 @@ bool UDPNameserver::receive(DNSPacket& packet, std::string& buffer)
     bool proxyProto, tcp;
     std::vector<ProxyProtocolValue> ppvalues;
 
-    buffer.resize(len);
     ssize_t used = parseProxyHeader(buffer, proxyProto, psource, pdestination, tcp, ppvalues);
-    if (used <= 0 || (size_t) used > g_proxyProtocolMaximumSize || (len - used) > DNSPacket::s_udpTruncationThreshold) {
+    if (used <= 0 || (size_t) used > g_proxyProtocolMaximumSize || (buffer.size() - used) > DNSPacket::s_udpTruncationThreshold) {
       S.inc("corrupt-packets");
       S.ringAccount("remotes-corrupt", packet.d_remote);
       return false;
@@ -342,7 +343,7 @@ bool UDPNameserver::receive(DNSPacket& packet, std::string& buffer)
     packet.d_inner_remote.reset();
   }
 
-  if(packet.parse(&buffer.at(0), (size_t) len)<0) {
+  if (packet.parse(buffer.data(), buffer.size()) < 0) {
     S.inc("corrupt-packets");
     S.ringAccount("remotes-corrupt", packet.getInnerRemote());
 
