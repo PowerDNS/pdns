@@ -49,7 +49,7 @@ TracesData Tracer::getTracesData()
              {"service.name", {"dnsdist"}},
            }},
          .scope_spans = {{.scope = {
-                            .name = "dnsdist/queryFromFrontend",
+                            .name = data->scope_span_name,
                             .version = PACKAGE_VERSION,
                             .attributes = {data->d_attributes.cbegin(), data->d_attributes.cend()},
                           },
@@ -145,6 +145,13 @@ void Tracer::setRootSpanID([[maybe_unused]] const SpanID& spanID)
     data->d_oldAndNewRootSpanID.oldID = oldRootSpanID;
     data->d_oldAndNewRootSpanID.newID = spanID;
   }
+#endif
+}
+
+void Tracer::setScopeSpanName([[maybe_unused]] const std::string& name)
+{
+#ifndef DISABLE_PROTOBUF
+  d_data.lock()->scope_span_name = name;
 #endif
 }
 
