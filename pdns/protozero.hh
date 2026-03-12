@@ -70,7 +70,8 @@ namespace ProtoZero
       DNSQueryType = 1,
       DNSResponseType = 2,
       DNSOutgoingQueryType = 3,
-      DNSIncomingResponseType = 4
+      DNSIncomingResponseType = 4,
+      InternalType = 5
     };
     enum class Field : protozero::pbf_tag_type
     {
