@@ -220,7 +220,8 @@ class TestOpenTelemetryTracingBaseYAML(DNSDistOpenTelemetryProtobufBaseTest):
     ]
     _yaml_config_template = """---
 logging:
-  open_telemetry_tracing: true
+  open_telemetry_tracing:
+    enabled: true
 
 backends:
   - address: 127.0.0.1:%d
@@ -306,7 +307,8 @@ class TestOpenTelemetryTracingBaseDelayYAML(DNSDistOpenTelemetryProtobufBaseTest
     ]
     _yaml_config_template = """---
 logging:
-  open_telemetry_tracing: true
+  open_telemetry_tracing:
+    enabled: true
 
 backends:
   - address: 127.0.0.1:%d
@@ -397,7 +399,8 @@ class TestOpenTelemetryTracingUseIncomingYAML(DNSDistOpenTelemetryProtobufBaseTe
     ]
     _yaml_config_template = """---
 logging:
-  open_telemetry_tracing: true
+  open_telemetry_tracing:
+    enabled: true
 
 backends:
   - address: 127.0.0.1:%d
@@ -475,7 +478,8 @@ class DNSDistOpenTelemetryProtobufEnabledButUnsetYAML(
     _yaml_config_template = """---
 
 logging:
-  open_telemetry_tracing: true
+  open_telemetry_tracing:
+    enabled: true
 
 backends:
   - address: 127.0.0.1:%d
@@ -524,7 +528,8 @@ class DNSDistOpenTelemetryProtobufEnabledSetButTurnedOffYAML(
 
     _yaml_config_template = """---
 logging:
-  open_telemetry_tracing: true
+  open_telemetry_tracing:
+    enabled: true
 
 backends:
   - address: 127.0.0.1:%d
@@ -589,7 +594,8 @@ class TestOpenTelemetryTracingBaseYAMLIncludedRemoteLoggerDropped(
     ]
     _yaml_config_template = """---
 logging:
-  open_telemetry_tracing: true
+  open_telemetry_tracing:
+    enabled: true
 
 backends:
   - address: 127.0.0.1:%d
@@ -687,7 +693,8 @@ class TestOpenTelemetryTracingBaseYAMLIncludedRemoteLoggerSpoofed(
     ]
     _yaml_config_template = """---
 logging:
-  open_telemetry_tracing: true
+  open_telemetry_tracing:
+    enabled: true
 
 backends:
   - address: 127.0.0.1:%d
@@ -759,7 +766,8 @@ class TestOpenTelemetryTracingStripIncomingTraceParent(
     ]
     _yaml_config_template = """---
 logging:
-  open_telemetry_tracing: true
+  open_telemetry_tracing:
+    enabled: true
 
 backends:
   - address: 127.0.0.1:%d
@@ -866,7 +874,8 @@ class TestOpenTelemetryTracingSendTraceparentDownstream(
     ]
     _yaml_config_template = """---
 logging:
-  open_telemetry_tracing: true
+  open_telemetry_tracing:
+    enabled: true
 
 backends:
   - address: 127.0.0.1:%d
