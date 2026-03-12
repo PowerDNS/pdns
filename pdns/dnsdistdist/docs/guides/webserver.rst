@@ -28,6 +28,9 @@ The equivalent ``yaml`` configuration would be:
       - "192.0.2.0/24"
       - "!192.0.2.1"
 
+.. warning::
+
+   To achieve defense-in-depth, expose the webserver only to client addresses that have a real need for access using the listen address and acls.
 
 Security of the Webserver
 -------------------------
