@@ -23,7 +23,7 @@ done
 
 # CD to regression test because named.conf has relative paths.
 cd ../../regression-tests
-../pdns/pdns_server --daemon=no --local-port=5300 --socket-dir=./ \
+${PDNS_BUILD_PATH:-../pdns}/pdns_server --daemon=no --local-port=5300 --socket-dir=./ \
   --no-shuffle --launch=bind --bind-config=../regression-tests/named.conf \
   --query-logging --loglevel=0 \
   --cache-ttl=0 --no-config --local-address=127.0.0.1 \
