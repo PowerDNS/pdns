@@ -7,7 +7,6 @@ from dnsdisttests import DNSDistTest, pickAvailablePort
 
 
 class DNSDistOCSPStaplingTest(DNSDistTest):
-
     @classmethod
     def checkOCSPStaplingStatus(cls, addr, port, serverName, caFile):
         testcmd = [
@@ -32,9 +31,7 @@ class DNSDistOCSPStaplingTest(DNSDistTest):
             )
             output = process.communicate(input="")
         except subprocess.CalledProcessError as exc:
-            raise AssertionError(
-                "openssl s_client failed (%d): %s" % (exc.returncode, exc.output)
-            )
+            raise AssertionError("openssl s_client failed (%d): %s" % (exc.returncode, exc.output))
 
         return output[0].decode()
 
@@ -63,7 +60,6 @@ class DNSDistOCSPStaplingTest(DNSDistTest):
 
 @unittest.skipIf("SKIP_DOH_TESTS" in os.environ, "DNS over HTTPS tests are disabled")
 class TestOCSPStaplingDOH(DNSDistOCSPStaplingTest):
-
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
     _serverKey = "server-ocsp.key"
@@ -115,9 +111,7 @@ class TestOCSPStaplingDOH(DNSDistOCSPStaplingTest):
         OCSP Stapling: DOH
         """
         for port in [self._dohWithNGHTTP2ServerPort]:
-            output = self.checkOCSPStaplingStatus(
-                "127.0.0.1", port, self._serverName, self._caCert
-            )
+            output = self.checkOCSPStaplingStatus("127.0.0.1", port, self._serverName, self._caCert)
             self.assertIn("OCSP Response Status: successful (0x0)", output)
 
             serialNumber = self.getOCSPSerial(output)
@@ -130,9 +124,7 @@ class TestOCSPStaplingDOH(DNSDistOCSPStaplingTest):
             )
             self.sendConsoleCommand("reloadAllCertificates()")
 
-            output = self.checkOCSPStaplingStatus(
-                "127.0.0.1", port, self._serverName, self._caCert
-            )
+            output = self.checkOCSPStaplingStatus("127.0.0.1", port, self._serverName, self._caCert)
             self.assertIn("OCSP Response Status: successful (0x0)", output)
             serialNumber2 = self.getOCSPSerial(output)
             self.assertTrue(serialNumber2)
@@ -140,7 +132,6 @@ class TestOCSPStaplingDOH(DNSDistOCSPStaplingTest):
 
 
 class TestBrokenOCSPStaplingDoH(DNSDistOCSPStaplingTest):
-
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
     _serverKey = "server-ocsp.key"
@@ -173,14 +164,11 @@ class TestBrokenOCSPStaplingDoH(DNSDistOCSPStaplingTest):
         OCSP Stapling: Broken (DoH)
         """
         for port in [self._dohWithNGHTTP2ServerPort]:
-            output = self.checkOCSPStaplingStatus(
-                "127.0.0.1", port, self._serverName, self._caCert
-            )
+            output = self.checkOCSPStaplingStatus("127.0.0.1", port, self._serverName, self._caCert)
             self.assertNotIn("OCSP Response Status: successful (0x0)", output)
 
 
 class TestOCSPStaplingTLSGnuTLS(DNSDistOCSPStaplingTest):
-
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
     _serverKey = "server-ocsp.key"
@@ -217,9 +205,7 @@ class TestOCSPStaplingTLSGnuTLS(DNSDistOCSPStaplingTest):
         """
         OCSP Stapling: TLS (GnuTLS)
         """
-        output = self.checkOCSPStaplingStatus(
-            "127.0.0.1", self._tlsServerPort, self._serverName, self._caCert
-        )
+        output = self.checkOCSPStaplingStatus("127.0.0.1", self._tlsServerPort, self._serverName, self._caCert)
         self.assertIn("OCSP Response Status: successful (0x0)", output)
         self.assertEqual(self.getTLSProvider(), "gnutls")
 
@@ -233,9 +219,7 @@ class TestOCSPStaplingTLSGnuTLS(DNSDistOCSPStaplingTest):
         )
         self.sendConsoleCommand("reloadAllCertificates()")
 
-        output = self.checkOCSPStaplingStatus(
-            "127.0.0.1", self._tlsServerPort, self._serverName, self._caCert
-        )
+        output = self.checkOCSPStaplingStatus("127.0.0.1", self._tlsServerPort, self._serverName, self._caCert)
         self.assertIn("OCSP Response Status: successful (0x0)", output)
         serialNumber2 = self.getOCSPSerial(output)
         self.assertTrue(serialNumber2)
@@ -243,7 +227,6 @@ class TestOCSPStaplingTLSGnuTLS(DNSDistOCSPStaplingTest):
 
 
 class TestBrokenOCSPStaplingTLSGnuTLS(DNSDistOCSPStaplingTest):
-
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
     _serverKey = "server-ocsp.key"
@@ -274,15 +257,12 @@ class TestBrokenOCSPStaplingTLSGnuTLS(DNSDistOCSPStaplingTest):
         """
         OCSP Stapling: Broken (GnuTLS)
         """
-        output = self.checkOCSPStaplingStatus(
-            "127.0.0.1", self._tlsServerPort, self._serverName, self._caCert
-        )
+        output = self.checkOCSPStaplingStatus("127.0.0.1", self._tlsServerPort, self._serverName, self._caCert)
         self.assertNotIn("OCSP Response Status: successful (0x0)", output)
         self.assertEqual(self.getTLSProvider(), "gnutls")
 
 
 class TestOCSPStaplingTLSOpenSSL(DNSDistOCSPStaplingTest):
-
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
     _serverKey = "server-ocsp.key"
@@ -319,9 +299,7 @@ class TestOCSPStaplingTLSOpenSSL(DNSDistOCSPStaplingTest):
         """
         OCSP Stapling: TLS (OpenSSL)
         """
-        output = self.checkOCSPStaplingStatus(
-            "127.0.0.1", self._tlsServerPort, self._serverName, self._caCert
-        )
+        output = self.checkOCSPStaplingStatus("127.0.0.1", self._tlsServerPort, self._serverName, self._caCert)
         self.assertIn("OCSP Response Status: successful (0x0)", output)
         self.assertEqual(self.getTLSProvider(), "openssl")
 
@@ -335,9 +313,7 @@ class TestOCSPStaplingTLSOpenSSL(DNSDistOCSPStaplingTest):
         )
         self.sendConsoleCommand("reloadAllCertificates()")
 
-        output = self.checkOCSPStaplingStatus(
-            "127.0.0.1", self._tlsServerPort, self._serverName, self._caCert
-        )
+        output = self.checkOCSPStaplingStatus("127.0.0.1", self._tlsServerPort, self._serverName, self._caCert)
         self.assertIn("OCSP Response Status: successful (0x0)", output)
         serialNumber2 = self.getOCSPSerial(output)
         self.assertTrue(serialNumber2)
@@ -345,7 +321,6 @@ class TestOCSPStaplingTLSOpenSSL(DNSDistOCSPStaplingTest):
 
 
 class TestBrokenOCSPStaplingTLSOpenSSL(DNSDistOCSPStaplingTest):
-
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
     _serverKey = "server-ocsp.key"
@@ -376,8 +351,6 @@ class TestBrokenOCSPStaplingTLSOpenSSL(DNSDistOCSPStaplingTest):
         """
         OCSP Stapling: Broken (OpenSSL)
         """
-        output = self.checkOCSPStaplingStatus(
-            "127.0.0.1", self._tlsServerPort, self._serverName, self._caCert
-        )
+        output = self.checkOCSPStaplingStatus("127.0.0.1", self._tlsServerPort, self._serverName, self._caCert)
         self.assertNotIn("OCSP Response Status: successful (0x0)", output)
         self.assertEqual(self.getTLSProvider(), "openssl")

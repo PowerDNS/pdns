@@ -18,7 +18,6 @@ except NameError:
 
 
 class DNSDistTLSSessionResumptionTest(DNSDistTest):
-
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
 
@@ -66,21 +65,16 @@ class DNSDistTLSSessionResumptionTest(DNSDistTest):
             time.sleep(0.5)
             output = process.communicate(input=b"")
         except subprocess.CalledProcessError as exc:
-            raise AssertionError(
-                "%s failed (%d): %s" % (testcmd, process.returncode, process.output)
-            )
+            raise AssertionError("%s failed (%d): %s" % (testcmd, process.returncode, process.output))
 
         if process.returncode != 0:
-            raise AssertionError(
-                "%s failed (%d): %s" % (testcmd, process.returncode, output)
-            )
+            raise AssertionError("%s failed (%d): %s" % (testcmd, process.returncode, output))
 
         if os.stat(outFile.name).st_size == 0:
             # if tickets have been disabled, or if the session ticket encryption key is exactly the same, we might not get a new ticket
             if not allowNoTicket:
                 raise AssertionError(
-                    "%s failed (%d) to write a session to the output file: %s"
-                    % (testcmd, process.returncode, output)
+                    "%s failed (%d) to write a session to the output file: %s" % (testcmd, process.returncode, output)
                 )
         else:
             shutil.copyfile(outFile.name, ticketFileOut)
@@ -99,7 +93,6 @@ class DNSDistTLSSessionResumptionTest(DNSDistTest):
 
 @unittest.skipIf("SKIP_DOH_TESTS" in os.environ, "DNS over HTTPS tests are disabled")
 class TestNoTLSSessionResumptionDOH(DNSDistTLSSessionResumptionTest):
-
     _serverKey = "server.key"
     _serverCert = "server.chain"
     _serverName = "tls.tests.dnsdist.org"
@@ -150,7 +143,6 @@ class TestNoTLSSessionResumptionDOH(DNSDistTLSSessionResumptionTest):
 
 @unittest.skipIf("SKIP_DOH_TESTS" in os.environ, "DNS over HTTPS tests are disabled")
 class TestTLSSessionResumptionDOH(DNSDistTLSSessionResumptionTest):
-
     _serverKey = "server.key"
     _serverCert = "server.chain"
     _serverName = "tls.tests.dnsdist.org"
@@ -254,9 +246,7 @@ class TestTLSSessionResumptionDOH(DNSDistTLSSessionResumptionTest):
             self.generateTicketKeysFile(self._numberOfKeys, "/tmp/ticketKeys.1")
             self.generateTicketKeysFile(self._numberOfKeys - 1, "/tmp/ticketKeys.2")
             # load all ticket keys from the file
-            self.sendConsoleCommand(
-                f"getDOHFrontend({bindIdx}):loadTicketsKeys('/tmp/ticketKeys.1')"
-            )
+            self.sendConsoleCommand(f"getDOHFrontend({bindIdx}):loadTicketsKeys('/tmp/ticketKeys.1')")
 
             # create a new session, resume it
             self.assertFalse(
@@ -282,9 +272,7 @@ class TestTLSSessionResumptionDOH(DNSDistTLSSessionResumptionTest):
             )
 
             # reload the same keys
-            self.sendConsoleCommand(
-                f"getDOHFrontend({bindIdx}):loadTicketsKeys('/tmp/ticketKeys.1')"
-            )
+            self.sendConsoleCommand(f"getDOHFrontend({bindIdx}):loadTicketsKeys('/tmp/ticketKeys.1')")
 
             # should still be able to resume
             self.assertTrue(
@@ -315,9 +303,7 @@ class TestTLSSessionResumptionDOH(DNSDistTLSSessionResumptionTest):
             )
 
             # reload the same keys
-            self.sendConsoleCommand(
-                f"getDOHFrontend({bindIdx}):loadTicketsKeys('/tmp/ticketKeys.1')"
-            )
+            self.sendConsoleCommand(f"getDOHFrontend({bindIdx}):loadTicketsKeys('/tmp/ticketKeys.1')")
             # since the last key was only present in memory, we should not be able to resume
             self.assertFalse(
                 self.checkSessionResumed(
@@ -345,9 +331,7 @@ class TestTLSSessionResumptionDOH(DNSDistTLSSessionResumptionTest):
 
             # generate a file with only _numberOfKeys - 1 keys, so the last active one should still be around after loading that one
             self.generateTicketKeysFile(self._numberOfKeys - 1, "/tmp/ticketKeys.2")
-            self.sendConsoleCommand(
-                f"getDOHFrontend({bindIdx}):loadTicketsKeys('/tmp/ticketKeys.2')"
-            )
+            self.sendConsoleCommand(f"getDOHFrontend({bindIdx}):loadTicketsKeys('/tmp/ticketKeys.2')")
             # we should be able to resume, and the ticket should be re-encrypted with the new key (NOTE THAT we store into a new file!!)
             self.assertTrue(
                 self.checkSessionResumed(
@@ -386,9 +370,7 @@ class TestTLSSessionResumptionDOH(DNSDistTLSSessionResumptionTest):
             )
 
             # reload from file 1, the old session should resume
-            self.sendConsoleCommand(
-                f"getDOHFrontend({bindIdx}):loadTicketsKeys('/tmp/ticketKeys.1')"
-            )
+            self.sendConsoleCommand(f"getDOHFrontend({bindIdx}):loadTicketsKeys('/tmp/ticketKeys.1')")
             self.assertTrue(
                 self.checkSessionResumed(
                     "127.0.0.1",
@@ -402,9 +384,7 @@ class TestTLSSessionResumptionDOH(DNSDistTLSSessionResumptionTest):
             )
 
             # reload from file 2, the latest session should resume
-            self.sendConsoleCommand(
-                f"getDOHFrontend({bindIdx}):loadTicketsKeys('/tmp/ticketKeys.2')"
-            )
+            self.sendConsoleCommand(f"getDOHFrontend({bindIdx}):loadTicketsKeys('/tmp/ticketKeys.2')")
             self.assertTrue(
                 self.checkSessionResumed(
                     "127.0.0.1",
@@ -419,7 +399,6 @@ class TestTLSSessionResumptionDOH(DNSDistTLSSessionResumptionTest):
 
 
 class TestNoTLSSessionResumptionDOT(DNSDistTLSSessionResumptionTest):
-
     _serverKey = "server.key"
     _serverCert = "server.chain"
     _serverName = "tls.tests.dnsdist.org"
@@ -468,7 +447,6 @@ class TestNoTLSSessionResumptionDOT(DNSDistTLSSessionResumptionTest):
 
 
 class TestTLSSessionResumptionDOT(DNSDistTLSSessionResumptionTest):
-
     _serverKey = "server.key"
     _serverCert = "server.chain"
     _serverName = "tls.tests.dnsdist.org"
@@ -569,9 +547,7 @@ class TestTLSSessionResumptionDOT(DNSDistTLSSessionResumptionTest):
         self.generateTicketKeysFile(self._numberOfKeys, "/tmp/ticketKeys.1")
         self.generateTicketKeysFile(self._numberOfKeys - 1, "/tmp/ticketKeys.2")
         # load all ticket keys from the file
-        self.sendConsoleCommand(
-            "getTLSFrontend(0):loadTicketsKeys('/tmp/ticketKeys.1')"
-        )
+        self.sendConsoleCommand("getTLSFrontend(0):loadTicketsKeys('/tmp/ticketKeys.1')")
 
         # create a new session, resume it
         self.assertFalse(
@@ -597,9 +573,7 @@ class TestTLSSessionResumptionDOT(DNSDistTLSSessionResumptionTest):
         )
 
         # reload the same keys
-        self.sendConsoleCommand(
-            "getTLSFrontend(0):loadTicketsKeys('/tmp/ticketKeys.1')"
-        )
+        self.sendConsoleCommand("getTLSFrontend(0):loadTicketsKeys('/tmp/ticketKeys.1')")
 
         # should still be able to resume
         self.assertTrue(
@@ -630,9 +604,7 @@ class TestTLSSessionResumptionDOT(DNSDistTLSSessionResumptionTest):
         )
 
         # reload the same keys
-        self.sendConsoleCommand(
-            "getTLSFrontend(0):loadTicketsKeys('/tmp/ticketKeys.1')"
-        )
+        self.sendConsoleCommand("getTLSFrontend(0):loadTicketsKeys('/tmp/ticketKeys.1')")
         # since the last key was only present in memory, we should not be able to resume
         self.assertFalse(
             self.checkSessionResumed(
@@ -660,9 +632,7 @@ class TestTLSSessionResumptionDOT(DNSDistTLSSessionResumptionTest):
 
         # generate a file with only _numberOfKeys - 1 keys, so the last active one should still be around after loading that one
         self.generateTicketKeysFile(self._numberOfKeys - 1, "/tmp/ticketKeys.2")
-        self.sendConsoleCommand(
-            "getTLSFrontend(0):loadTicketsKeys('/tmp/ticketKeys.2')"
-        )
+        self.sendConsoleCommand("getTLSFrontend(0):loadTicketsKeys('/tmp/ticketKeys.2')")
         # we should be able to resume, and the ticket should be re-encrypted with the new key (NOTE THAT we store into a new file!!)
         self.assertTrue(
             self.checkSessionResumed(
@@ -701,9 +671,7 @@ class TestTLSSessionResumptionDOT(DNSDistTLSSessionResumptionTest):
         )
 
         # reload from file 1, the old session should resume
-        self.sendConsoleCommand(
-            "getTLSFrontend(0):loadTicketsKeys('/tmp/ticketKeys.1')"
-        )
+        self.sendConsoleCommand("getTLSFrontend(0):loadTicketsKeys('/tmp/ticketKeys.1')")
         self.assertTrue(
             self.checkSessionResumed(
                 "127.0.0.1",
@@ -717,9 +685,7 @@ class TestTLSSessionResumptionDOT(DNSDistTLSSessionResumptionTest):
         )
 
         # reload from file 2, the latest session should resume
-        self.sendConsoleCommand(
-            "getTLSFrontend(0):loadTicketsKeys('/tmp/ticketKeys.2')"
-        )
+        self.sendConsoleCommand("getTLSFrontend(0):loadTicketsKeys('/tmp/ticketKeys.2')")
         self.assertTrue(
             self.checkSessionResumed(
                 "127.0.0.1",
@@ -742,8 +708,12 @@ class TestTLSSessionResumptionDOTIdenticalFrontends(DNSDistTest):
     _webServerPort = pickAvailablePort()
     _webServerBasicAuthPassword = "secret"
     _webServerAPIKey = "apisecret"
-    _webServerBasicAuthPasswordHashed = "$scrypt$ln=10,p=1,r=8$6DKLnvUYEeXWh3JNOd3iwg==$kSrhdHaRbZ7R74q3lGBqO1xetgxRxhmWzYJ2Qvfm7JM="
-    _webServerAPIKeyHashed = "$scrypt$ln=10,p=1,r=8$9v8JxDfzQVyTpBkTbkUqYg==$bDQzAOHeK1G9UvTPypNhrX48w974ZXbFPtRKS34+aso="
+    _webServerBasicAuthPasswordHashed = (
+        "$scrypt$ln=10,p=1,r=8$6DKLnvUYEeXWh3JNOd3iwg==$kSrhdHaRbZ7R74q3lGBqO1xetgxRxhmWzYJ2Qvfm7JM="
+    )
+    _webServerAPIKeyHashed = (
+        "$scrypt$ln=10,p=1,r=8$9v8JxDfzQVyTpBkTbkUqYg==$bDQzAOHeK1G9UvTPypNhrX48w974ZXbFPtRKS34+aso="
+    )
     _serverKey = "server.key"
     _serverCert = "server.chain"
     _serverName = "tls.tests.dnsdist.org"
@@ -806,9 +776,7 @@ binds:
                 session=session,
             )
             self.sendTCPQueryOverConnection(conn, query, response=response, timeout=1)
-            (receivedQuery, receivedResponse) = self.recvTCPResponseOverConnection(
-                conn, useQueue=True, timeout=1
-            )
+            (receivedQuery, receivedResponse) = self.recvTCPResponseOverConnection(conn, useQueue=True, timeout=1)
             receivedQuery.id = query.id
             self.assertEqual(receivedQuery, query)
             self.assertEqual(receivedResponse, response)
@@ -819,9 +787,7 @@ binds:
                 self.assertTrue(conn.session_reused)
 
         headers = {"x-api-key": self._webServerAPIKey}
-        url = (
-            "http://127.0.0.1:" + str(self._webServerPort) + "/api/v1/servers/localhost"
-        )
+        url = "http://127.0.0.1:" + str(self._webServerPort) + "/api/v1/servers/localhost"
         r = requests.get(url, headers=headers, timeout=self._webTimeout)
         self.assertTrue(r)
         self.assertEqual(r.status_code, 200)
@@ -837,10 +803,7 @@ binds:
                 continue
             new_sessions = new_sessions + int(frontend["tlsNewSessions"])
             resumed_sessions = resumed_sessions + int(frontend["tlsResumptions"])
-            if (
-                int(frontend["tlsNewSessions"]) > 0
-                or int(frontend["tlsResumptions"]) > 0
-            ):
+            if int(frontend["tlsNewSessions"]) > 0 or int(frontend["tlsResumptions"]) > 0:
                 tls_frontends_seen[frontend["id"]] = True
 
         self.assertEqual(new_sessions, 1)

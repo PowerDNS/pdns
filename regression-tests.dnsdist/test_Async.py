@@ -115,9 +115,7 @@ class AsyncTests(object):
             query = dns.message.make_query(name, "A", "IN")
 
             response = dns.message.make_response(query)
-            rrset = dns.rrset.from_text(
-                name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1"
-            )
+            rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
             response.answer.append(rrset)
 
             for method in (
@@ -144,9 +142,7 @@ class AsyncTests(object):
         query = dns.message.make_query(name, "A", "IN")
 
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(
-            name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1"
-        )
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
         response.answer.append(rrset)
 
         for method in (
@@ -184,9 +180,7 @@ class AsyncTests(object):
             query = dns.message.make_query(name, "A", "IN")
 
             response = dns.message.make_response(query)
-            rrset = dns.rrset.from_text(
-                name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1"
-            )
+            rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
             response.answer.append(rrset)
 
             for method in (
@@ -216,9 +210,7 @@ class AsyncTests(object):
             query = dns.message.make_query(name, "A", "IN")
 
             response = dns.message.make_response(query)
-            rrset = dns.rrset.from_text(
-                name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1"
-            )
+            rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
             response.answer.append(rrset)
 
             for method in (
@@ -248,9 +240,7 @@ class AsyncTests(object):
             query = dns.message.make_query(name, "A", "IN")
 
             response = dns.message.make_response(query)
-            rrset = dns.rrset.from_text(
-                name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1"
-            )
+            rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
             response.answer.append(rrset)
 
             expectedResponse = dns.message.make_response(query)
@@ -284,9 +274,7 @@ class AsyncTests(object):
             query = dns.message.make_query(name, "A", "IN")
 
             response = dns.message.make_response(query)
-            rrset = dns.rrset.from_text(
-                name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1"
-            )
+            rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
             response.answer.append(rrset)
 
             expectedQuery = dns.message.make_query(name, "A", "IN")
@@ -322,9 +310,7 @@ class AsyncTests(object):
             query = dns.message.make_query(name, "A", "IN")
 
             response = dns.message.make_response(query)
-            rrset = dns.rrset.from_text(
-                name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1"
-            )
+            rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
             response.answer.append(rrset)
 
             for method in (
@@ -336,7 +322,7 @@ class AsyncTests(object):
             ):
                 sender = getattr(self, method)
                 try:
-                    if method in ['sendDOQQueryWrapper']:
+                    if method in ["sendDOQQueryWrapper"]:
                         (receivedQuery, receivedResponse) = sender(query, response, passExceptions=True)
                     else:
                         (receivedQuery, receivedResponse) = sender(query, response)
@@ -433,14 +419,10 @@ class AsyncTests(object):
             name = "timeout-then-accept." + method + ".tc.async.tests.powerdns.com."
             query = dns.message.make_query(name, "A", "IN")
             query.id = 42
-            expectedQuery = dns.message.make_query(
-                name, "A", "IN", use_edns=True, payload=4096
-            )
+            expectedQuery = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096)
             expectedQuery.id = 42
             response = dns.message.make_response(query)
-            rrset = dns.rrset.from_text(
-                name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1"
-            )
+            rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
             response.answer.append(rrset)
 
             # first response is a TC=1

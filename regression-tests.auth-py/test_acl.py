@@ -1,6 +1,7 @@
 import requests
 from authtests import AuthTest
 
+
 class TestBasic(AuthTest):
     _config_template = """
     launch = {backend}
@@ -15,8 +16,9 @@ class TestBasic(AuthTest):
         super(TestBasic, cls).setUpClass()
 
     def test_basic(self):
-        r = requests.get('http://127.0.0.1:8053')
+        r = requests.get("http://127.0.0.1:8053")
         self.assertEqual(r.status_code, 200)
+
 
 class TestDualStack(AuthTest):
     _config_template = """
@@ -32,8 +34,9 @@ class TestDualStack(AuthTest):
         super(TestDualStack, cls).setUpClass()
 
     def test_ds(self):
-        r = requests.get('http://127.0.0.1:8053')
+        r = requests.get("http://127.0.0.1:8053")
         self.assertEqual(r.status_code, 200)
+
 
 class TestDualStackBackwardsCompat(AuthTest):
     _config_template = """
@@ -45,8 +48,9 @@ class TestDualStackBackwardsCompat(AuthTest):
     """
 
     def test_ds_compat(self):
-        r = requests.get('http://127.0.0.1:8053')
+        r = requests.get("http://127.0.0.1:8053")
         self.assertEqual(r.status_code, 200)
+
 
 class TestUnauthorized(AuthTest):
     _config_template = """
@@ -59,10 +63,11 @@ class TestUnauthorized(AuthTest):
 
     def test_unauthorized(self):
         try:
-            requests.get('http://127.0.0.1:8053')
+            requests.get("http://127.0.0.1:8053")
             self.fail()
         except requests.exceptions.ConnectionError:
             pass
+
 
 class TestUnauthorizedDualStack(AuthTest):
     _config_template = """
@@ -75,8 +80,7 @@ class TestUnauthorizedDualStack(AuthTest):
 
     def test_unauthorized(self):
         try:
-            requests.get('http://127.0.0.1:8053')
+            requests.get("http://127.0.0.1:8053")
             self.fail()
         except requests.exceptions.ConnectionError:
             pass
-

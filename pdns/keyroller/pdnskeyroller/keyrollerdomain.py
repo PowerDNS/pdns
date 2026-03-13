@@ -7,10 +7,11 @@ import datetime
 
 logger = logging.getLogger(__name__)
 
+
 class KeyrollerDomain:
     def __init__(self, zone, api, config=None, state=None):
         if not isinstance(api, PDNSApi):
-            raise Exception('api is not a PDNSApi')
+            raise Exception("api is not a PDNSApi")
 
         self.zone = zone
         self.api = api
@@ -18,7 +19,7 @@ class KeyrollerDomain:
             config = pdnskeyroller.domainconfig.from_api(zone, api)
 
         if not isinstance(config, pdnskeyroller.domainconfig.DomainConfig):
-            raise Exception('config is not a DomainConfig')
+            raise Exception("config is not a DomainConfig")
 
         self.config = config
 
@@ -26,20 +27,24 @@ class KeyrollerDomain:
             state = pdnskeyroller.domainstate.from_api(zone, api)
 
         if not isinstance(state, pdnskeyroller.domainstate.DomainState):
-            raise Exception('state is not a DomainState')
+            raise Exception("state is not a DomainState")
 
         self.state = state
 
     def next_ksk_roll(self):
         if not self.state.is_rolling:
-            if self.config.ksk_frequency != 0 :
-                return self.state.last_roll_date('ksk') + datetime.timedelta(seconds=timeparse(self.config.ksk_frequency))
+            if self.config.ksk_frequency != 0:
+                return self.state.last_roll_date("ksk") + datetime.timedelta(
+                    seconds=timeparse(self.config.ksk_frequency)
+                )
         return None
 
     def next_zsk_roll(self):
         if not self.state.is_rolling:
             if self.config.zsk_frequency != 0:
-                return self.state.last_roll_date('zsk') + datetime.timedelta(seconds=timeparse(self.config.zsk_frequency))
+                return self.state.last_roll_date("zsk") + datetime.timedelta(
+                    seconds=timeparse(self.config.zsk_frequency)
+                )
         return None
 
     @property
@@ -80,8 +85,5 @@ class KeyrollerDomain:
             return ret[0]
         return None
 
-
     def __repr__(self):
-        return 'keyrollerDomain("{}", {}, {}, {})'.format(
-            self.zone, self.api, self.config, self.state
-        )
+        return 'keyrollerDomain("{}", {}, {}, {})'.format(self.zone, self.api, self.config, self.state)

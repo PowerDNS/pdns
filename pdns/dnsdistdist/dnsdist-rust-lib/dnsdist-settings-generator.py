@@ -184,9 +184,7 @@ def write_rust_default_trait_impl(struct, skip_namespace=False):
     return result
 
 
-def get_rust_serde_annotations(
-    rust_type, default, rename, obj, field, default_functions
-):
+def get_rust_serde_annotations(rust_type, default, rename, obj, field, default_functions):
     rename_value = f'rename = "{rename}", ' if rename else ""
     if default is None:
         if not rename_value:
@@ -199,9 +197,7 @@ def get_rust_serde_annotations(
         return f"""#[serde({rename_value}default = "crate::{type_upper}::<{default}>::value", skip_serializing_if = "crate::if_true")]"""
     if rust_type in ["String", "Vec<String>"]:
         basename = obj + "_" + field
-        default_functions.append(
-            gen_rust_default_functions(rust_type, default, basename)
-        )
+        default_functions.append(gen_rust_default_functions(rust_type, default, basename))
         return f"""#[serde({rename_value}default = "crate::default_value_{basename}", skip_serializing_if = "crate::default_value_equal_{basename}")]"""
     return f"""#[serde({rename_value}default = "crate::{type_upper}::<{default}>::value", skip_serializing_if = "crate::{type_upper}::<{default}>::is_equal")]"""
 
@@ -221,18 +217,12 @@ def get_converted_serde_type(rust_type):
     return f"dnsdistsettings::{rust_type}"
 
 
-def get_rust_struct_fields_from_definition(
-    name, keys, default_functions, indent, special_serde_object=False
-):
+def get_rust_struct_fields_from_definition(name, keys, default_functions, indent, special_serde_object=False):
     if not "parameters" in keys:
         return ""
     output = ""
     for parameter in keys["parameters"]:
-        parameter_name = (
-            get_rust_field_name(parameter["name"])
-            if not "rename" in parameter
-            else parameter["rename"]
-        )
+        parameter_name = get_rust_field_name(parameter["name"]) if not "rename" in parameter else parameter["rename"]
         rust_type = parameter["type"]
         if "rust-type" in parameter:
             rust_type = parameter["rust-type"]
@@ -265,9 +255,7 @@ def get_rust_struct_fields_from_definition(
     return output
 
 
-def get_rust_struct_from_definition(
-    name, keys, default_functions, indent_spaces=4, special_serde_object=False
-):
+def get_rust_struct_from_definition(name, keys, default_functions, indent_spaces=4, special_serde_object=False):
     if not "parameters" in keys:
         return ""
     obj_name = get_rust_object_name(name)
@@ -291,9 +279,7 @@ def get_rust_struct_from_definition(
     output += "    }\n"
     if special_serde_object or not "skip-serde" in keys or not keys["skip-serde"]:
         default_functions.append(
-            write_rust_default_trait_impl(
-                f"{obj_name}Configuration{name_suffix}", special_serde_object
-            )
+            write_rust_default_trait_impl(f"{obj_name}Configuration{name_suffix}", special_serde_object)
         )
     return output
 
@@ -321,9 +307,7 @@ def get_validation_for_field(field_name, rust_type):
 """
 
 
-def get_struct_validation_function_from_definition(
-    name, parameters, special_serde_object=False
-):
+def get_struct_validation_function_from_definition(name, parameters, special_serde_object=False):
     if len(parameters) == 0:
         return ""
     namespace = "dnsdistsettings::" if not special_serde_object else ""
@@ -333,11 +317,7 @@ def get_struct_validation_function_from_definition(
     fn validate(&self) -> Result<(), ValidationError> {{
 """
     for parameter in parameters:
-        field_name = (
-            get_rust_field_name(parameter["name"])
-            if parameter["name"] != "namespace"
-            else "name_space"
-        )
+        field_name = get_rust_field_name(parameter["name"]) if parameter["name"] != "namespace" else "name_space"
         rust_type = parameter["type"]
         output += get_validation_for_field(field_name, rust_type)
     output += """        Ok(())
@@ -363,9 +343,7 @@ def include_file(out_fp, include_file_name):
 def generate_flat_settings_for_cxx(definitions, src_dir, out_file_path):
     cxx_flat_settings_fp = get_temporary_file_for_generated_code(out_file_path)
 
-    include_file(
-        cxx_flat_settings_fp, src_dir + "/dnsdist-configuration-yaml-items-pre-in.cc"
-    )
+    include_file(cxx_flat_settings_fp, src_dir + "/dnsdist-configuration-yaml-items-pre-in.cc")
 
     # first we do runtime-settable settings
     cxx_flat_settings_fp.write("""#if defined(HAVE_YAML_CONFIGURATION)
@@ -395,18 +373,10 @@ void convertRuntimeFlatSettingsFromRust(const dnsdist::rust::settings::GlobalCon
                 continue
             internal_field_name = parameter["internal-field-name"]
             rust_field_name = (
-                get_rust_field_name(parameter["name"])
-                if not "rename" in parameter
-                else parameter["rename"]
+                get_rust_field_name(parameter["name"]) if not "rename" in parameter else parameter["rename"]
             )
-            default = (
-                parameter["default"]
-                if parameter["type"] != "String"
-                else '"' + parameter["default"] + '"'
-            )
-            cxx_flat_settings_fp.write(
-                f"  if (config.{internal_field_name} == {default}) {{\n"
-            )
+            default = parameter["default"] if parameter["type"] != "String" else '"' + parameter["default"] + '"'
+            cxx_flat_settings_fp.write(f"  if (config.{internal_field_name} == {default}) {{\n")
             if parameter["type"] != "String":
                 cxx_flat_settings_fp.write(
                     f"    config.{internal_field_name} = yamlConfig.{category_name}.{rust_field_name};\n"
@@ -440,18 +410,10 @@ void convertRuntimeFlatSettingsFromRust(const dnsdist::rust::settings::GlobalCon
                 continue
             internal_field_name = parameter["internal-field-name"]
             rust_field_name = (
-                get_rust_field_name(parameter["name"])
-                if not "rename" in parameter
-                else parameter["rename"]
+                get_rust_field_name(parameter["name"]) if not "rename" in parameter else parameter["rename"]
             )
-            default = (
-                parameter["default"]
-                if parameter["type"] != "String"
-                else '"' + parameter["default"] + '"'
-            )
-            cxx_flat_settings_fp.write(
-                f"  if (config.{internal_field_name} == {default}) {{\n"
-            )
+            default = parameter["default"] if parameter["type"] != "String" else '"' + parameter["default"] + '"'
+            cxx_flat_settings_fp.write(f"  if (config.{internal_field_name} == {default}) {{\n")
             if parameter["type"] != "String":
                 cxx_flat_settings_fp.write(
                     f"    config.{internal_field_name} = yamlConfig.{category_name}.{rust_field_name};\n"
@@ -494,9 +456,7 @@ def generate_actions_config(output, def_dir, response, default_functions):
             action_buffer += f'{indent}#[serde(default, skip_serializing_if = "crate::is_default")]\n'
         action_buffer += f"{indent}name: String,\n"
 
-        action_buffer += get_rust_struct_fields_from_definition(
-            struct_name, action, default_functions, indent
-        )
+        action_buffer += get_rust_struct_fields_from_definition(struct_name, action, default_functions, indent)
 
         action_buffer += "    }\n\n"
 
@@ -524,9 +484,7 @@ def generate_selectors_config(output, def_dir, default_functions):
             selector_buffer += f'{indent}#[serde(default, skip_serializing_if = "crate::is_default")]\n'
         selector_buffer += f"{indent}name: String,\n"
 
-        selector_buffer += get_rust_struct_fields_from_definition(
-            struct_name, selector, default_functions, indent
-        )
+        selector_buffer += get_rust_struct_fields_from_definition(struct_name, selector, default_functions, indent)
 
         selector_buffer += "    }\n\n"
 
@@ -625,11 +583,7 @@ def generate_cpp_action_wrappers(def_dir, cxx_dest_dir):
             continue
         name = get_rust_object_name(action["name"])
         struct_name = f"{name}{suffix}Configuration"
-        parameters = (
-            get_cpp_parameters("config", action["parameters"], True)
-            if "parameters" in action
-            else ""
-        )
+        parameters = get_cpp_parameters("config", action["parameters"], True) if "parameters" in action else ""
         wrappers_buffer += f"""std::shared_ptr<DNS{suffix}Wrapper> get{name}{suffix}(const {struct_name}& config)
 {{
   auto action = dnsdist::actions::get{name}{suffix}({parameters});
@@ -645,11 +599,7 @@ def generate_cpp_action_wrappers(def_dir, cxx_dest_dir):
             continue
         name = get_rust_object_name(action["name"])
         struct_name = f"{name}{suffix}Configuration"
-        parameters = (
-            get_cpp_parameters("config", action["parameters"], True)
-            if "parameters" in action
-            else ""
-        )
+        parameters = get_cpp_parameters("config", action["parameters"], True) if "parameters" in action else ""
         wrappers_buffer += f"""std::shared_ptr<DNS{suffix}Wrapper> get{name}{suffix}(const {struct_name}& config)
 {{
   auto action = dnsdist::actions::get{name}{suffix}({parameters});
@@ -675,11 +625,7 @@ def generate_cpp_selector_wrappers(def_dir, cxx_dest_dir):
             continue
         name = get_rust_object_name(selector["name"])
         struct_name = f"{name}{suffix}Configuration"
-        parameters = (
-            get_cpp_parameters("config", selector["parameters"], True)
-            if "parameters" in selector
-            else ""
-        )
+        parameters = get_cpp_parameters("config", selector["parameters"], True) if "parameters" in selector else ""
         wrappers_buffer += f"""std::shared_ptr<DNS{suffix}> get{name}{suffix}(const {struct_name}& config)
 {{
   auto selector = dnsdist::selectors::get{name}{suffix}({parameters});
@@ -788,7 +734,9 @@ def generate_cpp_action_selector_functions_callable_from_rust(output, def_dir):
     suffix = "Selector"
     for selector in selectors_definitions:
         name = get_rust_object_name(selector["name"])
-        output_buffer += f"        fn get{name}{suffix}(config: &{name}{suffix}Configuration) -> Result<SharedPtr<DNS{suffix}>>;\n"
+        output_buffer += (
+            f"        fn get{name}{suffix}(config: &{name}{suffix}Configuration) -> Result<SharedPtr<DNS{suffix}>>;\n"
+        )
 
     output_buffer += "    }\n"
     output.write(output_buffer)
@@ -797,11 +745,7 @@ def generate_cpp_action_selector_functions_callable_from_rust(output, def_dir):
 def generate_rust_action_to_config(output, def_dir, response):
     suffix = "ResponseAction" if response else "Action"
     actions_definitions = get_actions_definitions(def_dir, response)
-    function_name = (
-        "get_one_action_from_serde"
-        if not response
-        else "get_one_response_action_from_serde"
-    )
+    function_name = "get_one_action_from_serde" if not response else "get_one_response_action_from_serde"
     enum_buffer = f"""fn {function_name}(action: &{suffix}) -> Result<dnsdistsettings::SharedDNS{suffix}, cxx::Exception> {{
     match action {{
         {suffix}::Default => {{}}
@@ -893,14 +837,9 @@ def generate_rust_selector_to_config(output, def_dir):
     output.write(enum_buffer)
 
 
-def handle_structures(
-    generated_fp, definitions, default_functions, validation_functions
-):
+def handle_structures(generated_fp, definitions, default_functions, validation_functions):
     for definition_name, keys in definitions.items():
-        generated_fp.write(
-            get_rust_struct_from_definition(definition_name, keys, default_functions)
-            + "\n"
-        )
+        generated_fp.write(get_rust_struct_from_definition(definition_name, keys, default_functions) + "\n")
         if definition_name not in [
             "global",
             "proto_buf_meta",
@@ -916,28 +855,20 @@ def handle_structures(
 
 
 def get_temporary_file_for_generated_code(directory):
-    generated_fp = tempfile.NamedTemporaryFile(
-        mode="w+t", encoding="utf-8", dir=directory, delete=False
-    )
-    generated_fp.write(
-        "// !! This file has been generated by dnsdist-settings-generator.py, do not edit by hand!!\n"
-    )
+    generated_fp = tempfile.NamedTemporaryFile(mode="w+t", encoding="utf-8", dir=directory, delete=False)
+    generated_fp.write("// !! This file has been generated by dnsdist-settings-generator.py, do not edit by hand!!\n")
     return generated_fp
 
 
 def main():
     if len(sys.argv) != 4:
-        print(
-            f"Usage: {sys.argv[0]} <path/to/definitions/files> <rust/output/dir> <cxx/build/root/dir>"
-        )
+        print(f"Usage: {sys.argv[0]} <path/to/definitions/files> <rust/output/dir> <cxx/build/root/dir>")
         sys.exit(1)
 
     definitions_dir = sys.argv[1]
     rust_dir = sys.argv[2]
     cxx_build_dir = sys.argv[3]
-    definitions = get_definitions_from_file(
-        definitions_dir + "/dnsdist-settings-definitions.yml"
-    )
+    definitions = get_definitions_from_file(definitions_dir + "/dnsdist-settings-definitions.yml")
     default_functions = []
     validation_functions = []
 
@@ -953,13 +884,9 @@ def main():
     generate_actions_config(generated_fp, definitions_dir, True, default_functions)
     generate_selectors_config(generated_fp, definitions_dir, default_functions)
 
-    handle_structures(
-        generated_fp, definitions, default_functions, validation_functions
-    )
+    handle_structures(generated_fp, definitions, default_functions, validation_functions)
 
-    generate_cpp_action_selector_functions_callable_from_rust(
-        generated_fp, definitions_dir
-    )
+    generate_cpp_action_selector_functions_callable_from_rust(generated_fp, definitions_dir)
 
     include_file(generated_fp, f"{rust_dir}/rust-middle-in.rs")
     # we are now outside of the dnsdistsettings namespace
@@ -968,9 +895,7 @@ def main():
     for definition_name, keys in definitions.items():
         if definition_name == "global":
             generated_fp.write(
-                get_rust_struct_from_definition(
-                    definition_name, keys, default_functions, special_serde_object=True
-                )
+                get_rust_struct_from_definition(definition_name, keys, default_functions, special_serde_object=True)
                 + "\n"
             )
             validation_functions.append(
