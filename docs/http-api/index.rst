@@ -3,6 +3,7 @@ Built-in Webserver and HTTP API
 
 The PowerDNS Authoritative Server features a built-in webserver that exposes a JSON/REST API.
 This API allows for controlling several functions, reading statistics and modifying zone content, metadata and DNSSEC key material.
+The API has an `OpenAPI definition <redoc.html>`__.
 
 Webserver
 ---------
@@ -338,8 +339,7 @@ Response code ``4xx`` or ``5xx``, depending on the situation.
 
 Error responses have a JSON body of this format:
 
-.. openapi:: swagger/authoritative-api-swagger.yaml
-  :definitions: Error
+.. json:schema:: Error
 
 Data format
 ~~~~~~~~~~~

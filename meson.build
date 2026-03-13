@@ -1180,6 +1180,20 @@ if get_option('unit-tests-backends')
 endif
 
 if python.found()
+  json_schema = custom_target(
+    'auth-json-schema',
+    input: product_source_dir / docs_dir / 'http-api' / 'swagger' / 'authoritative-api-swagger.yaml',
+    output: 'auth-schema-generated.stamp',
+    command: [
+      python,
+      product_source_dir / docs_dir / 'generate-jsonschema.py',
+      '@INPUT@',
+      product_source_dir / docs_dir / 'http-api' / 'swagger' / 'authoritative-api-schema.yaml',
+      '--stampfile',
+      '@OUTPUT@'
+    ],
+  )
+
   html_docs = custom_target(
     'html-docs',
     command: [
@@ -1195,6 +1209,7 @@ if python.found()
     output: 'sphinx.stamp',
     console: true,
     depfile: 'sphinx.d',
+    depends: [json_schema],
   )
 
   docs_tarball = custom_target(
@@ -1218,6 +1233,7 @@ if python.found()
     output: 'PowerDNS-Authoritative.pdf',
     console: true,
     depfile: 'sphinx.d',
+    depends: [json_schema],
   )
 
   run_target(

@@ -1,0 +1,93 @@
+$id: "PDNS Recursor webserver"
+
+definitions:
+  Record:
+    $id: RecursorRecord
+    title: Record
+    type: object
+    description: This represents a DNS Record in a zone
+    properties:
+      name:
+        type: string
+        description: "The owner name of the record"
+      type:
+        type: string
+        description: "Type of this record (e.g. “A”, “PTR”, “MX”)"
+      ttl:
+        type: integer
+        description: "DNS TTL of the record, in seconds"
+      content:
+        type: string
+        description: "The content of this record"
+
+  Zone:
+    $id: RecursorZone
+    title: Zone
+    type: object
+    properties:
+      id:
+        type: string
+        description: Opaque zone id (string), assigned by the server, should not be interpreted by the application. Guaranteed to be safe for embedding in URLs.
+      name:
+        type: string
+        description: Name of the zone (e.g. "example.com.") MUST have a trailing dot
+      type:
+        type: string
+        description: Set to "Zone"
+      url:
+        type: string
+        description: API endpoint for this zone
+      kind:
+        enum:
+          - Native
+          - Forwarded
+        description: Zone kind, one of "Native", "Forwarded".
+      records:
+        type: array
+        items:
+          $ref: "RecursorRecord"
+        description: Records in this zone
+      servers:
+        type: array
+        items:
+          type: string
+        description: For zones of type "Forwarded", addresses to send the queries to
+      recursion_desired:
+        type: bool
+        description: For zones of type "Forwarded", Whether or not the RD bit should be set in the query
+      notify_allowed:
+        type: bool
+        description: For zones of type "Forwarded", Whether or not to permit incoming NOTIFY to wipe cache for the domain
+
+  OpenTelemetryTraceCondition:
+    $id: OpenTelemetryTraceCondition
+    title: OpenTelemetryTraceCondition
+    type: object
+    properties:
+      acl:
+        type: string
+        description: The subnet of the entry. Note that the YAML settings file allows multiple subnets for convenience. This object does not allow multiple subnets to be specified.
+      type:
+        type: string
+        description: set to "OpenTelemetryTraceCondition"
+      edns_option_required:
+        type: boolean
+        default: false
+        description: Whether or not the incoming query has an EDNS TRACEPARENT option specifying the TraceID.
+      qid:
+        type: integer
+        description: A specific query id required to start tracing
+      qnames:
+        type: array
+        items:
+          type: string
+        description: suffixmatch with the incoming qname is done against this list
+      qtypes:
+        type: array
+        items:
+          type: string
+        description: List of qtypes to trigger tracing on
+      traceid_only:
+        type: boolean
+        default: false
+        description: Whether or not to pick up the TraceID from EDNS data (if present) and placed into the protobuf `openTelemetryTraceID` field; no detailed `openTelemetryData` is produced

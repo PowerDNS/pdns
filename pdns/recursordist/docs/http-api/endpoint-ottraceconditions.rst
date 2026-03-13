@@ -7,13 +7,13 @@ OpenTelemetryTraceConditions endpoint
 
 .. http:get:: /api/v1/servers/:server_id/ottraceconditions
 
-  Get all :json:object:`OpenTelemetryTraceCondition` from the server. Note that while the settings file allows a list of subnets to be associated with a condition, this list will be flattened, with only one subnet per condition.
+  Get all :json:schema:`OpenTelemetryTraceCondition` from the server. Note that while the settings file allows a list of subnets to be associated with a condition, this list will be flattened, with only one subnet per condition.
 
   :query server_id: The name of the server
 
 .. http:post:: /api/v1/servers/:server_id/ottraceconditions
 
-  Creates a new trace condition. The client body must contain a :json:object:`OpenTelemetryTraceCondition`.
+  Creates a new trace condition. The client body must contain a :json:schema:`OpenTelemetryTraceCondition`.
 
   :query server_id: The name of the server
 
@@ -22,11 +22,11 @@ OpenTelemetryTraceConditions endpoint
   Returns trace condition information.
 
   :query server_id: The name of the server
-  :query ip/prefixlen: The subnet of the :json:object:`OpenTelemetryTraceCondition`.
+  :query ip/prefixlen: The subnet of the :json:schema:`OpenTelemetryTraceCondition`.
 
 .. http:delete:: /api/v1/servers/:server_id/ottraceconditions/:ip/:prefixlen
 
   Deletes this zone, all attached metadata and rrsets.
 
   :query server_id: The name of the server
-  :query ip/prefixlen: The subnet of the :json:object:`OpenTelemetryTraceCondition`.
+  :query ip/prefixlen: The subnet of the :json:schema:`OpenTelemetryTraceCondition`.

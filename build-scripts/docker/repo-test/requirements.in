@@ -1,5 +1,5 @@
 # To generate requirements.txt, install pip-tools and run:
-#  pip-compile --generate-hashes -U requirements.in
+#  pip-compile --allow-unsafe --generate-hashes-U requirements.in
 
 jinja2
 setuptools<82
