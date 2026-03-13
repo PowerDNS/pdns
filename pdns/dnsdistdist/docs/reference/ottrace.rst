@@ -140,14 +140,17 @@ The following example makes :program:`dnsdist` accept a TRACEPARENT, and update 
         send_downstream_traceparent: true
         use_incoming_traceparent: true
 
-Creating Trace Spans from LuaActions
-====================================
+Creating Trace Spans from Lua
+=============================
 
 .. versionadded:: 2.2.0
 
 It is possible to create Spans inside :func:`LuaRules <LuaRule>` or :func:`LuaResponseRules <LuaResponseRule>` in order to track performance of your Lua code.
 To do this, you can call the :func:`withTraceSpan` function.
 This function takes a string that is the name of the Span and the function with will be instrumented.
+
+Trace Spans from LuaActions
+---------------------------
 
 .. code-block:: lua
 
@@ -189,12 +192,58 @@ Within the function body, you can create more spans by calling :func:`withTraceS
 Using :func:`withTraceSpan` or :func:`setSpanAttribute` when tracing is not enabled is completely safe and transparent.
 The Lua code will be run, but no Trace Span will be created.
 
+Trace Spans from maintenance functions
+--------------------------------------
+
+It is possible to create Spans inside :func:`Maintenance <maintenance>` or :func:`Maintenance callback <addMaintenanceCallback>` functions in order to track performance of your Lua code.
+To do this, you can call the :func:`withTraceSpan` function inside your function.
+This function takes a string that is the name of the Span and the function with will be instrumented.
+
+.. code-block:: lua
+
+  function maintenance()
+    setSpanAttribute("attr-in-the-span", "hello from Lua!")
+    withTraceSpan(
+      'my-maintenance-trace-span',
+      function ()
+        setSpanAttribute("some.key", "some-value")
+      end
+    )
+  end
+
+Within the function body, you can create more spans by calling :func:`withTraceSpan` again.
+
+.. code-block:: lua
+
+  function maintenance()
+    setSpanAttribute("attr-in-the-span", "hello from Lua!")
+    withTraceSpan(
+      'my-maintenance-trace-span',
+      function ()
+        setSpanAttribute("some.key", "some-value")
+
+        -- This will create a child span of 'my-maintenance-trace-span'
+        withTraceSpan(
+          'inner-span',
+          function ()
+            -- Do something here
+          end
+        )
+      end
+    )
+  end
+
+Using :func:`withTraceSpan` when tracing is disabled is completely safe and transparent.
+The Lua code will be run, but no Trace Span will be created.
+
 Functions
 =========
 
 The following functions are always available, but only produce Trace Spans within the following contexts:
 
 * :func:`LuaAction`
+* :func:`maintenance`
+* Any function added with :func:`addMaintenanceCallback`
 
 .. function:: withTraceSpan(name, func)
 
@@ -211,8 +260,8 @@ The following functions are always available, but only produce Trace Spans withi
   .. versionadded:: 2.2.0
 
   Add an OpenTelemetry Trace Span attribute to the current span.
-  In the context of a :func:`LuaAction`, this sets an attribute on the Rule's Span.
-  When used inside the function passed to :meth:`DNSQuestion:withTraceSpan`, it will set the Attribute on the enclosed span.
+  In the context of a :func:`LuaAction` or :func:`maintenance`, this sets an attribute on the function's Span.
+  When used inside the function passed to :func:`withTraceSpan`, it will set the Attribute on the enclosed span.
 
   This method can be called safely when Tracing is not enabled for the query or when :program:`dnsdist` is built without Protobuf support.
 
