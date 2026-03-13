@@ -2,7 +2,7 @@ case $context in
     bind)
         backend=bind
         cat > pdns-bind.conf << __EOF__
-module-dir=$PDNS_BUILD_PATH/modules
+module-dir=./modules
 launch=bind
 bind-config=./named.conf
 bind-ignore-broken-records=yes
@@ -20,7 +20,7 @@ __EOF__
         rm -f dnssec.sqlite3
         backend=bind
         cat > pdns-bind.conf << __EOF__
-module-dir=$PDNS_BUILD_PATH/modules
+module-dir=./modules
 launch=bind
 bind-config=./named.conf
 bind-ignore-broken-records=yes

@@ -137,6 +137,7 @@ static bool catalogDiff(const XFRContext& ctx, vector<CatalogInfo>& fromXFR, vec
         CatalogInfo ciDB = *db;
         if (ciDB.d_unique.empty() || ciXFR.d_unique == ciDB.d_unique) { // update
           bool doOptions{false};
+          bool doType{false};
 
           if (ciDB.d_unique.empty()) { // set unique
             SLOG(g_log << Logger::Warning << ctx.logPrefix << "set unique, zone '" << ciXFR.d_zone << "' is now a member" << endl,
@@ -155,6 +156,7 @@ static bool catalogDiff(const XFRContext& ctx, vector<CatalogInfo>& fromXFR, vec
           if (ciXFR.d_group != ciDB.d_group) { // update group
             SLOG(g_log << Logger::Warning << ctx.logPrefix << "update group for zone '" << ciXFR.d_zone << "' to '" << boost::join(ciXFR.d_group, ", ") << "'" << endl,
                  ctx.slog->info(Logr::Warning, "Catalog-Zone: update group", "zone", Logging::Loggable(ciXFR.d_zone), "group", Logging::Loggable(boost::join(ciXFR.d_group, ", ")))); // can't apply Logging::IterLoggable on set
+            doType = !empty(g_memberCatalogGroup) && ((ciXFR.d_group.count(g_memberCatalogGroup) != 0) != (ciDB.d_group.count(g_memberCatalogGroup) != 0));
             ciDB.d_group = ciXFR.d_group;
             doOptions = true;
           }
@@ -169,6 +171,19 @@ static bool catalogDiff(const XFRContext& ctx, vector<CatalogInfo>& fromXFR, vec
             SLOG(g_log << Logger::Warning << ctx.logPrefix << "update options for zone '" << ciXFR.d_zone << "'" << endl,
                  ctx.slog->info(Logr::Warning, "Catalog-Zone: update options", "zone", Logging::Loggable(ciXFR.d_zone)));
             ctx.domain.backend->setOptions(ciXFR.d_zone, ciDB.toJson());
+          }
+
+          if (doType) { // update zone type
+            if (doTransaction && (inTransaction = ctx.domain.backend->startTransaction(ctx.domain.zone))) {
+              SLOG(g_log << Logger::Warning << ctx.logPrefix << "backend transaction started" << endl,
+                   ctx.slog->info(Logr::Warning, "Catalog-Zone: backend transaction started"));
+              doTransaction = false;
+            }
+
+            DomainInfo::DomainKind kind = ciXFR.d_group.count(g_memberCatalogGroup) != 0 ? DomainInfo::Consumer : DomainInfo::Secondary;
+            SLOG(g_log << Logger::Warning << ctx.logPrefix << "update type to '" << DomainInfo::getKindString(kind) << "' for zone '" << ciXFR.d_zone << "'" << endl,
+                 ctx.slog->info(Logr::Warning, "Catalog-Zone: update type", "zone", Logging::Loggable(ciXFR.d_zone), "type", Logging::Loggable(kind)));
+            ctx.domain.backend->setKind(ciXFR.d_zone, kind);
           }
 
           if (ctx.domain.primaries != ciDB.d_primaries) { // update primaries
@@ -277,7 +292,8 @@ static bool catalogDiff(const XFRContext& ctx, vector<CatalogInfo>& fromXFR, vec
 
         SLOG(g_log << Logger::Warning << ctx.logPrefix << "create zone '" << ciCreate.d_zone << "'" << endl,
              ctx.slog->info(Logr::Warning, "Catalog-Zone: create zone", "zone", Logging::Loggable(ciCreate.d_zone)));
-        ctx.domain.backend->createDomain(ciCreate.d_zone, DomainInfo::Secondary, ciCreate.d_primaries, "");
+        d.kind = !empty(g_memberCatalogGroup) && ciCreate.d_group.count(g_memberCatalogGroup) != 0 ? DomainInfo::Consumer : DomainInfo::Secondary;
+        ctx.domain.backend->createDomain(ciCreate.d_zone, d.kind, ciCreate.d_primaries, "");
 
         ctx.domain.backend->setPrimaries(ciCreate.d_zone, ctx.domain.primaries);
         ctx.domain.backend->setOptions(ciCreate.d_zone, ciCreate.toJson());
@@ -471,7 +487,7 @@ static bool catalogProcess(const XFRContext& ctx, vector<DNSResourceRecord>& rrs
     return false;
   }
 
-  // Get catalog ifo from db
+  // Get catalog info from db
   if (!ctx.domain.backend->getCatalogMembers(ctx.domain.zone, fromDB, CatalogInfo::CatalogType::Consumer)) {
     return false;
   }

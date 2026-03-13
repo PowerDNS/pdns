@@ -58,6 +58,7 @@ public:
   void fromJson(const std::string& json, CatalogType type);
   std::string toJson() const;
   void setType(CatalogType type) { d_type = type; }
+  void addGroup(const std::string& group) { d_group.insert(group); }
 
   static void updateCatalogHash(CatalogHashMap& hashes, const DomainInfo& di);
   DNSName getUnique() const { return DNSName(toBase32Hex(hashQNameWithSalt(std::to_string(d_id), 0, DNSName(d_zone)))); } // salt with domain id to detect recreated zones
@@ -81,3 +82,5 @@ private:
 
   bool parseJson(const std::string& json, CatalogType type);
 };
+
+extern std::string g_memberCatalogGroup;
