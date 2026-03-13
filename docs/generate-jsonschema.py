@@ -11,9 +11,7 @@ import yaml
 # This function was taken (and slightly modified) from https://github.com/instrumenta/openapi2jsonschema
 # overload function signatures for different input types
 @overload
-def change_dict_values(
-    d: Mapping[str, Any], prefix: str, version: str
-) -> Dict[str, Any]: ...
+def change_dict_values(d: Mapping[str, Any], prefix: str, version: str) -> Dict[str, Any]: ...
 @overload
 def change_dict_values(d: list[Any], prefix: str, version: str) -> list[Any]: ...
 @overload
@@ -50,11 +48,7 @@ def change_dict_values(d: Any, prefix: str, version: str) -> Any:
                 new[k] = new_list
             elif isinstance(v, str):
                 if k == "$ref":
-                    new[k] = (
-                        f"{prefix}{v}"
-                        if (version < "3")
-                        else v.replace("#/components/schemas/", prefix)
-                    )
+                    new[k] = f"{prefix}{v}" if (version < "3") else v.replace("#/components/schemas/", prefix)
                 else:
                     new[k] = v
             else:
@@ -87,11 +81,7 @@ def main():
         return
 
     out = {"$id": "PowerDNS Auth Objects"}
-    out["definitions"] = (
-        change_dict_values(data, "", version=data["openapi"])
-        .get("components", {})
-        .get("schemas")
-    )
+    out["definitions"] = change_dict_values(data, "", version=data["openapi"]).get("components", {}).get("schemas")
 
     for k, v in out.get("definitions", {}).items():
         v["$id"] = k
