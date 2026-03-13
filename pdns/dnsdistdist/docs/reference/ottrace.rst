@@ -139,3 +139,52 @@ The following example makes :program:`dnsdist` accept a TRACEPARENT, and update 
         value: true
         send_downstream_traceparent: true
         use_incoming_traceparent: true
+
+Creating Trace Spans from LuaActions
+====================================
+
+.. versionadded:: 2.2.0
+
+It is possible to create Spans inside :func:`LuaRules <LuaRule>` or :func:`LuaResponseRules <LuaResponseRule>` in order to track performance of your Lua code.
+To do this, you can call the :func:`DNSQuestion:withTraceSpan` function of the :class:`DNSQuestion` object.
+This function takes a string that is the name of the Span and the function with will be instrumented.
+
+.. code-block:: lua
+
+  function myLuaAction(dq)
+    dq:setSpanAttribute("attr-in-the-rule-span", "hello from Lua!")
+    dq:withTraceSpan(
+      'my-trace-span',
+      function ()
+        dq:setSpanAttribute("some.key", "some-value")
+        -- Do some actual things with the DNSQuestion here
+      end
+    )
+    return DNSAction.None
+  end
+
+Within the function body, you can create more spans by calling :func:`DNSQuestion:withTraceSpan` again.
+
+.. code-block:: lua
+
+  function myLuaAction(dq)
+    dq:withTraceSpan(
+      'my-trace-span',
+      function ()
+        -- Some set up
+        dq:setSpanAttribute("some.key", "some-value")
+
+        -- This will create a child span of 'my-trace-span'
+        dq:withTraceSpan(
+          'inner-span',
+          function ()
+            -- Do some longer-running thing
+          end
+        )
+      end
+    )
+    return DNSAction.None
+  end
+
+Using :func:`DNSQuestion:withTraceSpan` on a query that does not have tracing enabled is completely safe and transparent.
+The Lua code will be run, but no Trace Span will be created.
