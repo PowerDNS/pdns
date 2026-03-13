@@ -2483,6 +2483,17 @@ static void maintThread()
     auto maint_closer = getCloser(tracer, "maintenanceThread");
     {
       auto lua = g_lua.lock();
+      lua->writeFunction("withTraceSpan",
+                         [&tracer](const std::string& name, const std::function<void()>& func) {
+                           auto funcCloser = getCloser(tracer, name);
+                           func();
+                         });
+      lua->writeFunction("setSpanAttribute",
+                         [&tracer](const std::string& key, const std::string& value) {
+                           if (tracer != nullptr) {
+                             tracer->setSpanAttribute(tracer->getLastSpanID(), key, AnyValue{value});
+                           }
+                         });
       try {
         auto maintenanceCallback = lua->readVariable<std::optional<std::function<void()>>>("maintenance");
         if (maintenanceCallback) {
