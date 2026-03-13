@@ -318,7 +318,8 @@ class TestOutgoingTLSGnuTLSWrongCertNameButNoCheck(DNSDistTest, OutgoingTLSTests
 class TestOutgoingTLSOpenSSLYamlTraceparent(TestOutgoingTLSOpenSSLYaml):
     _yaml_config_template = """---
 logging:
-  open_telemetry_tracing: true
+  open_telemetry_tracing:
+    enabled: true
 
 backends:
   - address: "127.0.0.1:%d"
