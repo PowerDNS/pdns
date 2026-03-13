@@ -20,8 +20,9 @@
 
 attributetype ( 1.3.6.1.4.1.27080.2.1.1 NAME 'PdnsDomainId'
     DESC 'Domain identifier in the LDAP backend - mapped to DomainInfo::id'
-    EQUALITY numericStringMatch
-    SYNTAX 1.3.6.1.4.1.1466.115.121.1.36 SINGLE-VALUE )
+    EQUALITY integerMatch
+    ORDERING integerOrderingMatch
+    SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 SINGLE-VALUE )
 
 attributetype ( 1.3.6.1.4.1.27080.2.1.2 NAME 'PdnsDomainNotifiedSerial'
     DESC 'Last serial number of this zone that slaves have seen - mapped to DomainInfo::notified_serial'
