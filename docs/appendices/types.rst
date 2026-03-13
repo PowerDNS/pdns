@@ -393,6 +393,7 @@ The following, rarely used or obsolete record types, are also supported:
 -  MR (:rfc:`1035`)
 -  NID (:rfc:`6742`)
 -  RKEY (`draft-reid-dnsext-rkey-00.txt <https://tools.ietf.org/html/draft-reid-dnsext-rkey-00>`__)
+- WALLET (`wallet-completed-template <https://www.iana.org/assignments/dns-parameters/WALLET/wallet-completed-template>`__)
 
 .. _types-unknown:
 

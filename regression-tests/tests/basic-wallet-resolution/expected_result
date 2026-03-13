@@ -1,0 +1,3 @@
+0	test.wallet.example.com.	120	IN	WALLET	"currency-identifier" "wallet-identifier"
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='test.wallet.example.com.', qtype=WALLET
