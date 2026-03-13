@@ -6,7 +6,7 @@ class TrustAnchorsEnabledTest(RecursorTest):
     """This test will do a query for "trustanchor.server CH TXT" and hopes to get
     a proper answer"""
 
-    _confdir = 'TrustAnchorsEnabled'
+    _confdir = "TrustAnchorsEnabled"
     _roothints = None
     _root_DS = None
     _config_template = """
@@ -20,10 +20,9 @@ addNTA("example.com", "some reason")
 
     def testTrustanchorDotServer(self):
         expected = dns.rrset.from_text_list(
-            'trustanchor.server.', 86400, dns.rdataclass.CH, 'TXT',
-            ['". 20326 38696"', '"powerdns.com. 44030"'])
-        query = dns.message.make_query('trustanchor.server', 'TXT',
-                                       dns.rdataclass.CH)
+            "trustanchor.server.", 86400, dns.rdataclass.CH, "TXT", ['". 20326 38696"', '"powerdns.com. 44030"']
+        )
+        query = dns.message.make_query("trustanchor.server", "TXT", dns.rdataclass.CH)
         result = self.sendUDPQuery(query)
 
         self.assertRcodeEqual(result, dns.rcode.NOERROR)
@@ -31,10 +30,9 @@ addNTA("example.com", "some reason")
 
     def testNegativerustanchorDotServer(self):
         expected = dns.rrset.from_text_list(
-            'negativetrustanchor.server.', 86400, dns.rdataclass.CH, 'TXT',
-            ['"example."', '"example.com. some reason"'])
-        query = dns.message.make_query('negativetrustanchor.server', 'TXT',
-                                       dns.rdataclass.CH)
+            "negativetrustanchor.server.", 86400, dns.rdataclass.CH, "TXT", ['"example."', '"example.com. some reason"']
+        )
+        query = dns.message.make_query("negativetrustanchor.server", "TXT", dns.rdataclass.CH)
         result = self.sendUDPQuery(query)
 
         self.assertRcodeEqual(result, dns.rcode.NOERROR)
@@ -45,22 +43,20 @@ class TrustAnchorsDisabledTest(RecursorTest):
     """This test will do a query for "trustanchor.server CH TXT" and hopes to get
     a proper answer"""
 
-    _confdir = 'TrustAnchorsDisabled'
+    _confdir = "TrustAnchorsDisabled"
     _roothints = None
     _root_DS = None
     _config_template = """
 """
 
     def testTrustanchorDotServer(self):
-        query = dns.message.make_query('trustanchor.server', 'TXT',
-                                       dns.rdataclass.CH)
+        query = dns.message.make_query("trustanchor.server", "TXT", dns.rdataclass.CH)
         result = self.sendUDPQuery(query)
 
         self.assertRcodeEqual(result, dns.rcode.SERVFAIL)
 
     def testNegativerustanchorDotServer(self):
-        query = dns.message.make_query('negativetrustanchor.server', 'TXT',
-                                       dns.rdataclass.CH)
+        query = dns.message.make_query("negativetrustanchor.server", "TXT", dns.rdataclass.CH)
         result = self.sendUDPQuery(query)
 
         self.assertRcodeEqual(result, dns.rcode.SERVFAIL)

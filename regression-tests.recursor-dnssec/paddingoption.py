@@ -6,9 +6,9 @@ import dns.flags
 import dns.message
 import dns.query
 
+
 class PaddingOption(dns.edns.Option):
-    """Implementation of rfc7830.
-    """
+    """Implementation of rfc7830."""
 
     def __init__(self, numberOfBytes):
         super(PaddingOption, self).__init__(12)
@@ -42,10 +42,7 @@ class PaddingOption(dns.edns.Option):
         return cls(len(data))
 
     def __repr__(self):
-        return '%s(%d)' % (
-            self.__class__.__name__,
-            self.numberOfBytes
-        )
+        return "%s(%d)" % (self.__class__.__name__, self.numberOfBytes)
 
     def to_text(self):
         return self.__repr__()

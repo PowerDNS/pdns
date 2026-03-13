@@ -5,7 +5,7 @@ from recursortests import RecursorTest
 
 
 class ReadTrustAnchorsFromFileTest(RecursorTest):
-    _confdir = 'ReadTrustAnchorsFromFile'
+    _confdir = "ReadTrustAnchorsFromFile"
 
     _config_template = """dnssec=validate"""
     _lua_config_file = """clearTA()
@@ -13,9 +13,7 @@ readTrustAnchorsFromFile('root.keys')"""
 
     def testCorrectFile(self):
         """Ensure the file is read correctly"""
-        rec_controlCmd = [os.environ['RECCONTROL'],
-                          '--config-dir=%s' % 'configs/' + self._confdir,
-                          'get-tas']
+        rec_controlCmd = [os.environ["RECCONTROL"], "--config-dir=%s" % "configs/" + self._confdir, "get-tas"]
         expected = b"""Configured Trust Anchors:
 .
 \t\t36914 13 2 c94ed457ff79afe03804c26ce4fa832687db92bc231aff98617791fc71a65870
@@ -28,4 +26,3 @@ readTrustAnchorsFromFile('root.keys')"""
         except subprocess.CalledProcessError as e:
             print(e.output)
             raise
-

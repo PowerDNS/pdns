@@ -42,20 +42,14 @@ class DNSDistOpenTelemetryProtobufTest(test_Protobuf.DNSDistProtobufTest):
             if spanID != "":
                 ottrace.data += binascii.a2b_hex(spanID)
             ottrace.data += b"\x00"  # flags
-            query = dns.message.make_query(
-                name, "A", "IN", use_edns=True, options=[ottrace]
-            )
+            query = dns.message.make_query(name, "A", "IN", use_edns=True, options=[ottrace])
 
         response = dns.message.make_response(query)
 
-        rrset = dns.rrset.from_text(
-            name, 3600, dns.rdataclass.IN, dns.rdatatype.CNAME, target
-        )
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.CNAME, target)
         response.answer.append(rrset)
 
-        rrset = dns.rrset.from_text(
-            target, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1"
-        )
+        rrset = dns.rrset.from_text(target, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
         if useTCP:
@@ -98,19 +92,11 @@ class DNSDistOpenTelemetryProtobufTest(test_Protobuf.DNSDistProtobufTest):
 
         # Ensure the values are correct
         # TODO: query.remote with port
-        msg_scope_attr_keys = [
-            v["key"]
-            for v in otData["resource_spans"][0]["scope_spans"][0]["scope"][
-                "attributes"
-            ]
-        ]
+        msg_scope_attr_keys = [v["key"] for v in otData["resource_spans"][0]["scope_spans"][0]["scope"]["attributes"]]
         self.assertListEqual(msg_scope_attr_keys, ["instance"])
 
         root_span_attr_keys = [
-            v["key"]
-            for v in otData["resource_spans"][0]["scope_spans"][0]["spans"][0][
-                "attributes"
-            ]
+            v["key"] for v in otData["resource_spans"][0]["scope_spans"][0]["spans"][0]["attributes"]
         ]
         self.assertListEqual(
             root_span_attr_keys,
@@ -120,9 +106,7 @@ class DNSDistOpenTelemetryProtobufTest(test_Protobuf.DNSDistProtobufTest):
         # No way to guess the test port, but check the rest of the values
         root_span_attrs = {
             v["key"]: v["value"]["string_value"]
-            for v in otData["resource_spans"][0]["scope_spans"][0]["spans"][0][
-                "attributes"
-            ]
+            for v in otData["resource_spans"][0]["scope_spans"][0]["spans"][0]["attributes"]
             if v["key"] not in ["query.remote.port"]
         }
         self.assertDictEqual(
@@ -134,9 +118,7 @@ class DNSDistOpenTelemetryProtobufTest(test_Protobuf.DNSDistProtobufTest):
             root_span_attrs,
         )
 
-        msg_span_name = {
-            v["name"] for v in otData["resource_spans"][0]["scope_spans"][0]["spans"]
-        }
+        msg_span_name = {v["name"] for v in otData["resource_spans"][0]["scope_spans"][0]["spans"]}
 
         funcs = {
             "processQuery",
@@ -190,13 +172,9 @@ class DNSDistOpenTelemetryProtobufBaseTest(DNSDistOpenTelemetryProtobufTest):
         self.assertTrue(msg.HasField("openTelemetryData"))
         traces_data = opentelemetry.proto.trace.v1.trace_pb2.TracesData()
         traces_data.ParseFromString(msg.openTelemetryData)
-        ot_data = google.protobuf.json_format.MessageToDict(
-            traces_data, preserving_proto_field_name=True
-        )
+        ot_data = google.protobuf.json_format.MessageToDict(traces_data, preserving_proto_field_name=True)
 
-        self.checkOTData(
-            ot_data, hasProcessResponseAfterRules, useTCP, extraFunctions=extraFunctions
-        )
+        self.checkOTData(ot_data, hasProcessResponseAfterRules, useTCP, extraFunctions=extraFunctions)
 
         traceId = base64.b64encode(msg.openTelemetryTraceID).decode()
         for msg_span in ot_data["resource_spans"][0]["scope_spans"][0]["spans"]:
@@ -471,9 +449,7 @@ class DNSDistOpenTelemetryProtobufNoOTDataTest(DNSDistOpenTelemetryProtobufTest)
         self.assertFalse(msg.HasField("openTelemetryData"))
 
 
-class DNSDistOpenTelemetryProtobufEnabledButUnsetYAML(
-    DNSDistOpenTelemetryProtobufNoOTDataTest
-):
+class DNSDistOpenTelemetryProtobufEnabledButUnsetYAML(DNSDistOpenTelemetryProtobufNoOTDataTest):
     _yaml_config_params = ["_testServerPort", "_protobufServerPort"]
     _yaml_config_template = """---
 
@@ -503,9 +479,7 @@ response_rules:
         self.doTest()
 
 
-class DNSDistOpenTelemetryProtobufEnabledButUnsetLua(
-    DNSDistOpenTelemetryProtobufNoOTDataTest
-):
+class DNSDistOpenTelemetryProtobufEnabledButUnsetLua(DNSDistOpenTelemetryProtobufNoOTDataTest):
     _config_params = ["_testServerPort", "_protobufServerPort"]
     _config_template = """
 newServer{address="127.0.0.1:%d"}
@@ -519,9 +493,7 @@ addResponseAction(AllRule(), RemoteLogResponseAction(rl))
         self.doTest()
 
 
-class DNSDistOpenTelemetryProtobufEnabledSetButTurnedOffYAML(
-    DNSDistOpenTelemetryProtobufNoOTDataTest
-):
+class DNSDistOpenTelemetryProtobufEnabledSetButTurnedOffYAML(DNSDistOpenTelemetryProtobufNoOTDataTest):
     """Here we turn tracing on for the query, only to disable it after that"""
 
     _yaml_config_params = ["_testServerPort", "_protobufServerPort"]
@@ -567,9 +539,7 @@ response_rules:
         self.doTest()
 
 
-class DNSDistOpenTelemetryProtobufEnabledSetButTurnedOffLua(
-    DNSDistOpenTelemetryProtobufNoOTDataTest
-):
+class DNSDistOpenTelemetryProtobufEnabledSetButTurnedOffLua(DNSDistOpenTelemetryProtobufNoOTDataTest):
     _config_params = ["_testServerPort", "_protobufServerPort"]
     _config_template = """
 newServer{address="127.0.0.1:%d"}
@@ -585,9 +555,7 @@ addResponseAction(AllRule(), RemoteLogResponseAction(rl))
         self.doTest()
 
 
-class TestOpenTelemetryTracingBaseYAMLIncludedRemoteLoggerDropped(
-    DNSDistOpenTelemetryProtobufTest
-):
+class TestOpenTelemetryTracingBaseYAMLIncludedRemoteLoggerDropped(DNSDistOpenTelemetryProtobufTest):
     _yaml_config_params = [
         "_testServerPort",
         "_protobufServerPort",
@@ -628,9 +596,7 @@ response_rules:
         msg = self.sendQueryAndGetProtobuf(useTCP=useTCP, dropped=True)
         traces_data = opentelemetry.proto.trace.v1.trace_pb2.TracesData()
         traces_data.ParseFromString(msg.openTelemetryData)
-        ot_data = google.protobuf.json_format.MessageToDict(
-            traces_data, preserving_proto_field_name=True
-        )
+        ot_data = google.protobuf.json_format.MessageToDict(traces_data, preserving_proto_field_name=True)
 
         funcs = extraFunctions.union(
             {
@@ -684,9 +650,7 @@ addResponseAction(AllRule(), DropResponseAction(), {name="Drop"})
 """
 
 
-class TestOpenTelemetryTracingBaseYAMLIncludedRemoteLoggerSpoofed(
-    DNSDistOpenTelemetryProtobufTest
-):
+class TestOpenTelemetryTracingBaseYAMLIncludedRemoteLoggerSpoofed(DNSDistOpenTelemetryProtobufTest):
     _yaml_config_params = [
         "_testServerPort",
         "_protobufServerPort",
@@ -724,14 +688,10 @@ query_rules:
 """
 
     def doTest(self, useTCP=False, extraFunctions=set()):
-        msg = self.sendQueryAndGetProtobuf(
-            useTCP=useTCP, querySentByDNSDist=False, dropped=True
-        )
+        msg = self.sendQueryAndGetProtobuf(useTCP=useTCP, querySentByDNSDist=False, dropped=True)
         traces_data = opentelemetry.proto.trace.v1.trace_pb2.TracesData()
         traces_data.ParseFromString(msg.openTelemetryData)
-        ot_data = google.protobuf.json_format.MessageToDict(
-            traces_data, preserving_proto_field_name=True
-        )
+        ot_data = google.protobuf.json_format.MessageToDict(traces_data, preserving_proto_field_name=True)
 
         funcs = extraFunctions.union({"Rule: Spoof A record"})
         self.checkOTData(
@@ -758,9 +718,7 @@ def servfailOnTraceParent(request: dns.message.Message):
     return response.to_wire()
 
 
-class TestOpenTelemetryTracingStripIncomingTraceParent(
-    DNSDistOpenTelemetryProtobufTest
-):
+class TestOpenTelemetryTracingStripIncomingTraceParent(DNSDistOpenTelemetryProtobufTest):
     _yaml_config_params = [
         "_testServerPort",
     ]
@@ -823,9 +781,7 @@ query_rules:
         ottrace.data += binascii.a2b_hex("12345678901234567890123456789012")
         ottrace.data += binascii.a2b_hex("1234567890123456")
         ottrace.data += binascii.a2b_hex("00")
-        query = dns.message.make_query(
-            name, "A", "IN", use_edns=True, options=[ottrace]
-        )
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, options=[ottrace])
 
         if useTCP:
             _, receivedResponse = self.sendTCPQuery(query, response=None)
@@ -847,9 +803,7 @@ def verifyTraceparentInQuery(request: dns.message.Message):
     print(request)
     response = dns.message.make_response(request)
 
-    traceparent: dns.edns.Option | None = next(
-        (i for i in request.options if i.otype == 65500), None
-    )
+    traceparent: dns.edns.Option | None = next((i for i in request.options if i.otype == 65500), None)
 
     print(traceparent)
 
@@ -866,9 +820,7 @@ def verifyTraceparentInQuery(request: dns.message.Message):
     return response.to_wire()
 
 
-class TestOpenTelemetryTracingSendTraceparentDownstream(
-    DNSDistOpenTelemetryProtobufTest
-):
+class TestOpenTelemetryTracingSendTraceparentDownstream(DNSDistOpenTelemetryProtobufTest):
     _yaml_config_params = [
         "_testServerPort",
     ]
@@ -947,9 +899,7 @@ query_rules:
         self.doQuery(True)
 
 
-class TestOpenTelemetryTracingSendTraceparentDownstreamLua(
-    TestOpenTelemetryTracingSendTraceparentDownstream
-):
+class TestOpenTelemetryTracingSendTraceparentDownstreamLua(TestOpenTelemetryTracingSendTraceparentDownstream):
     _yaml_config_template = None
     _config_params = [
         "_testServerPort",

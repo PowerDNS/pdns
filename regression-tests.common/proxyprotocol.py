@@ -4,8 +4,9 @@ import copy
 import socket
 import struct
 
+
 class ProxyProtocol(object):
-    MAGIC = b'\x0D\x0A\x0D\x0A\x00\x0D\x0A\x51\x55\x49\x54\x0A'
+    MAGIC = b"\x0d\x0a\x0d\x0a\x00\x0d\x0a\x51\x55\x49\x54\x0a"
     # Header is magic + versioncommand (1) + family (1) + content length (2)
     HEADER_SIZE = len(MAGIC) + 1 + 1 + 2
     PORT_SIZE = 2
@@ -17,10 +18,10 @@ class ProxyProtocol(object):
         if len(data) < self.HEADER_SIZE:
             return False
 
-        if data[:len(self.MAGIC)] != self.MAGIC:
+        if data[: len(self.MAGIC)] != self.MAGIC:
             return False
 
-        value = struct.unpack('!B', bytes(bytearray([data[12]])))[0]
+        value = struct.unpack("!B", bytes(bytearray([data[12]])))[0]
         self.version = value >> 4
         if self.version != 0x02:
             return False
@@ -32,7 +33,7 @@ class ProxyProtocol(object):
         if self.command == 0x00:
             self.local = True
         elif self.command == 0x01:
-            value = struct.unpack('!B', bytes(bytearray([data[13]])))[0]
+            value = struct.unpack("!B", bytes(bytearray([data[13]])))[0]
             self.family = value >> 4
             if self.family == 0x01:
                 self.addrSize = 4
@@ -65,9 +66,9 @@ class ProxyProtocol(object):
 
         value = None
         if self.family == 0x01:
-            value = socket.inet_ntop(socket.AF_INET, data[self.offset:self.offset + self.addrSize])
+            value = socket.inet_ntop(socket.AF_INET, data[self.offset : self.offset + self.addrSize])
         else:
-            value = socket.inet_ntop(socket.AF_INET6, data[self.offset:self.offset + self.addrSize])
+            value = socket.inet_ntop(socket.AF_INET6, data[self.offset : self.offset + self.addrSize])
 
         self.offset = self.offset + self.addrSize
         return value
@@ -76,7 +77,7 @@ class ProxyProtocol(object):
         if len(data) < (self.consumed() + self.PORT_SIZE):
             return False
 
-        value = struct.unpack('!H', data[self.offset:self.offset + self.PORT_SIZE])[0]
+        value = struct.unpack("!H", data[self.offset : self.offset + self.PORT_SIZE])[0]
         self.offset = self.offset + self.PORT_SIZE
         return value
 
@@ -108,14 +109,14 @@ class ProxyProtocol(object):
         while remaining >= 3:
             valueType = struct.unpack("!B", bytes(bytearray([data[self.offset]])))[0]
             self.offset = self.offset + 1
-            valueLen = struct.unpack("!H", data[self.offset:self.offset+2])[0]
+            valueLen = struct.unpack("!H", data[self.offset : self.offset + 2])[0]
             self.offset = self.offset + 2
 
             remaining = remaining - 3
             if valueLen > 0:
                 if valueLen > remaining:
                     return False
-                self.values.append([valueType, data[self.offset:self.offset+valueLen]])
+                self.values.append([valueType, data[self.offset : self.offset + valueLen]])
                 self.offset = self.offset + valueLen
                 remaining = remaining - valueLen
 
@@ -134,7 +135,7 @@ class ProxyProtocol(object):
         else:
             command = 0x01
 
-        value = struct.pack('!B', (version << 4) + command)
+        value = struct.pack("!B", (version << 4) + command)
         payload = payload + value
 
         addrSize = 0
@@ -154,12 +155,12 @@ class ProxyProtocol(object):
                 family = 0x02
                 addrSize = 16
 
-        value = struct.pack('!B', (family << 4)  + protocol)
+        value = struct.pack("!B", (family << 4) + protocol)
         payload = payload + value
 
         contentSize = 0
         if not local:
-            contentSize = contentSize + addrSize * 2 + cls.PORT_SIZE *2
+            contentSize = contentSize + addrSize * 2 + cls.PORT_SIZE * 2
 
         valuesSize = 0
         for value in values:
@@ -167,8 +168,8 @@ class ProxyProtocol(object):
 
         contentSize = contentSize + valuesSize
 
-        value = struct.pack('!H', contentSize)
-        payload = payload +  value
+        value = struct.pack("!H", contentSize)
+        payload = payload + value
 
         if not local:
             if family == 0x01:
@@ -180,14 +181,14 @@ class ProxyProtocol(object):
             payload = payload + value
             value = socket.inet_pton(af, destination)
             payload = payload + value
-            value = struct.pack('!H', sourcePort)
+            value = struct.pack("!H", sourcePort)
             payload = payload + value
-            value = struct.pack('!H', destinationPort)
+            value = struct.pack("!H", destinationPort)
             payload = payload + value
 
         for value in values:
-            valueType = struct.pack('!B', value[0])
-            valueLen = struct.pack('!H', len(value[1]))
+            valueType = struct.pack("!B", value[0])
+            valueLen = struct.pack("!H", len(value[1]))
             payload = payload + valueType + valueLen + value[1]
 
         return payload

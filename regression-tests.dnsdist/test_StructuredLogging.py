@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 from dnsdisttests import DNSDistTest, pickAvailablePort
 
-class TestStructuredLoggingDefaultBackendFromYaml(DNSDistTest):
 
+class TestStructuredLoggingDefaultBackendFromYaml(DNSDistTest):
     _yaml_config_template = """---
 binds:
   - listen_address: "127.0.0.1:%d"
@@ -18,7 +18,7 @@ logging:
 """
     _dnsDistPort = pickAvailablePort()
     _testServerPort = pickAvailablePort()
-    _yaml_config_params = ['_dnsDistPort', '_testServerPort']
+    _yaml_config_params = ["_dnsDistPort", "_testServerPort"]
     _config_params = []
     _checkConfigExpectedOutput = None
     _checkConfigExpectedOutputPrefix = b'msg="Configuration OK" subsystem="setup"'
@@ -26,8 +26,8 @@ logging:
     def testOK(self):
         pass
 
-class TestStructuredLoggingJSONBackendFromYaml(DNSDistTest):
 
+class TestStructuredLoggingJSONBackendFromYaml(DNSDistTest):
     _yaml_config_template = """---
 binds:
   - listen_address: "127.0.0.1:%d"
@@ -44,7 +44,7 @@ logging:
 """
     _dnsDistPort = pickAvailablePort()
     _testServerPort = pickAvailablePort()
-    _yaml_config_params = ['_dnsDistPort', '_testServerPort']
+    _yaml_config_params = ["_dnsDistPort", "_testServerPort"]
     _config_params = []
     _checkConfigExpectedOutput = None
     _checkConfigExpectedOutputPrefix = b'{"level": "0", "msg": "Configuration OK", "path":'
@@ -52,8 +52,8 @@ logging:
     def testOK(self):
         pass
 
-class TestStructuredLoggingDefaultBackendFromLua(DNSDistTest):
 
+class TestStructuredLoggingDefaultBackendFromLua(DNSDistTest):
     _config_template = """
 setStructuredLogging(true)
 
@@ -66,8 +66,8 @@ newServer{address="127.0.0.1:%d"}
     def testOK(self):
         pass
 
-class TestStructuredLoggingJSONBackendFromLua(DNSDistTest):
 
+class TestStructuredLoggingJSONBackendFromLua(DNSDistTest):
     _config_template = """
 setStructuredLogging(true, {backend="json"})
 
@@ -81,9 +81,7 @@ newServer{address="127.0.0.1:%d"}
         pass
 
 
-class TestStructuredLoggingDefaultBackendWithInstanceFromYaml(
-    TestStructuredLoggingDefaultBackendFromYaml
-):
+class TestStructuredLoggingDefaultBackendWithInstanceFromYaml(TestStructuredLoggingDefaultBackendFromYaml):
     _yaml_config_template = """---
 general:
   server_id: "foobar"
@@ -104,9 +102,7 @@ logging:
     _checkConfigExpectedOutputPrefix = b'msg="Configuration OK" subsystem="setup"'
 
 
-class TestStructuredLoggingJSONBackendWithInstanceFromYaml(
-    TestStructuredLoggingJSONBackendFromYaml
-):
+class TestStructuredLoggingJSONBackendWithInstanceFromYaml(TestStructuredLoggingJSONBackendFromYaml):
     _yaml_config_template = """---
 general:
   server_id: "foobar"
@@ -125,33 +121,26 @@ logging:
     backend: "json"
     set_instance_from_server_id: true
 """
-    _checkConfigExpectedOutputPrefix = (
-        b'{"instance": "foobar", "level": "0", "msg": "Configuration OK", "path":'
-    )
+    _checkConfigExpectedOutputPrefix = b'{"instance": "foobar", "level": "0", "msg": "Configuration OK", "path":'
 
 
-class TestStructuredLoggingDefaultBackendWithInstanceFromLua(
-    TestStructuredLoggingDefaultBackendFromLua
-):
+class TestStructuredLoggingDefaultBackendWithInstanceFromLua(TestStructuredLoggingDefaultBackendFromLua):
     _config_template = """
 setServerID("foobar")
 setStructuredLogging(true, {setInstanceFromServerID=true})
 
 newServer{address="127.0.0.1:%d"}
 """
-    _checkConfigExpectedOutputPrefix = b'msg="Configuration OK" subsystem="setup" level="0" prio="Info" instance="foobar" ts='
+    _checkConfigExpectedOutputPrefix = (
+        b'msg="Configuration OK" subsystem="setup" level="0" prio="Info" instance="foobar" ts='
+    )
 
 
-class TestStructuredLoggingJSONBackendWithInstanceFromLua(
-    TestStructuredLoggingJSONBackendFromLua
-):
-
+class TestStructuredLoggingJSONBackendWithInstanceFromLua(TestStructuredLoggingJSONBackendFromLua):
     _config_template = """
 setServerID("foobar")
 setStructuredLogging(true, {backend="json", setInstanceFromServerID=true})
 
 newServer{address="127.0.0.1:%d"}
 """
-    _checkConfigExpectedOutputPrefix = (
-        b'{"instance": "foobar", "level": "0", "msg": "Configuration OK", "path":'
-    )
+    _checkConfigExpectedOutputPrefix = b'{"instance": "foobar", "level": "0", "msg": "Configuration OK", "path":'
