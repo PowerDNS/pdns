@@ -456,10 +456,10 @@ void DownstreamState::handleUDPTimeout(IDState& ids)
   ++reuseds;
   --outstanding;
   ++dnsdist::metrics::g_stats.downstreamTimeouts; // this is an 'actively' discovered timeout
-  SLOG(infolog("Had a downstream timeout from %s (%s) for query for %s|%s from %s",
-               d_config.remote.toStringWithPort(), getName(),
-               ids.internal.qname.toLogString(), QType(ids.internal.qtype).toString(), ids.internal.origRemote.toStringWithPort()),
-       getLogger()->info(Logr::Info, "Had a downstream timeout", "dns.question.name", Logging::Loggable(ids.internal.qname), "dns.question.type", Logging::Loggable(ids.internal.qtype), "dns.question.class", Logging::Loggable(ids.internal.qclass), "dns.question.id", Logging::Loggable(ntohs(ids.internal.origID)), "client.address", Logging::Loggable(ids.internal.origRemote)));
+  VERBOSESLOG(infolog("Had a downstream timeout from %s (%s) for query for %s|%s from %s",
+                      d_config.remote.toStringWithPort(), getName(),
+                      ids.internal.qname.toLogString(), QType(ids.internal.qtype).toString(), ids.internal.origRemote.toStringWithPort()),
+              getLogger()->info(Logr::Info, "Had a downstream timeout", "dns.question.name", Logging::Loggable(ids.internal.qname), "dns.question.type", Logging::Loggable(ids.internal.qtype), "dns.question.class", Logging::Loggable(ids.internal.qclass), "dns.question.id", Logging::Loggable(ntohs(ids.internal.origID)), "client.address", Logging::Loggable(ids.internal.origRemote)));
 
   const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
   const auto& timeoutRespRules = dnsdist::rules::getResponseRuleChain(chains, dnsdist::rules::ResponseRuleChain::TimeoutResponseRules);
