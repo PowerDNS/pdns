@@ -1503,9 +1503,27 @@ Status, Statistics and More
 
   .. versionadded:: 2.1.0
 
-  Enable or disable collection of OpenTelemetry trace data. This will allow the use of :func:`SetTraceAction` to trace queries. This can be called at runtime.
+  Enable or disable collection of OpenTelemetry trace data. This will allow the use of :func:`SetTraceAction` to trace queries and :func:`setOpenTelemetryInternalTrace` to instrument internal functions. This can be called at runtime.
 
   :param bool enable: true to enable, false to disable.
+
+.. function:: setOpenTelemetryInternalTrace(kind, remote_loggers, sample_interval)
+
+  .. versionadded:: 2.2.0
+
+  Collect Spans for ``kind`` and send them to ``remote_loggers``. ``sample_interval`` can be set to only collect spans for one in ``sample_interval`` times the internal function is run.
+
+  The following table lists the possible ``kind``s and their default ``sample_interval``.
+
+  =========== ===========================
+  ``kind``    default ``sample_interval``
+  =========== ===========================
+  maintenance 60
+  =========== ===========================
+
+  :param string kind: The internal function to collect traces for, see above.
+  :param {RemoteLogger} remote_loggers: A table of remote_loggers to send the resulting traces to.
+  :param int sample_interval: Only sample one in this many runs
 
 .. function:: setVerbose(verbose)
 
@@ -2591,6 +2609,32 @@ Other functions
 
     newTLSCertificate("path/to/pub.crt", {key="path/to/private.pem"})
     newTLSCertificate("path/to/domain.p12", {password="passphrase"}) -- use a password protected ``PKCS12`` file
+
+.. function:: withTraceSpan(name, func)
+
+.. versionadded:: 2.2.0
+
+    Open an :doc:`OpenTelemetry Trace Span <ottrace>` called ``name`` that instruments function ``func``.
+    This method can be called safely when Tracing is not enabled or when :prog:`dnsdist` is built without Protobuf support.
+
+    This function is only available inside :func:`Maintenance <maintenance>` or :func:`Maintenance callback <addMaintenanceCallback>` functions.
+
+    :param string name: The name for this Span
+    :param func function: The function to run. This function takes no parameters
+
+  .. function:: setSpanAttribute(key, value)
+
+    .. versionadded:: 2.2.0
+
+    Add an OpenTelemetry Trace Span attribute to the current span.
+    When used inside the function passed to :func:`withTraceSpan`, it will set the Attribute on the enclosed span.
+
+    This function is only available inside :func:`Maintenance <maintenance>` or :func:`Maintenance callback <addMaintenanceCallback>` functions.
+
+    This method can be called safely when Tracing is not enabled for the query or when :prog:`dnsdist` is built without Protobuf support.
+
+    :param string key: The key for attribute
+    :param string value: The value of the attribute
 
 DOHFrontend
 ~~~~~~~~~~~
