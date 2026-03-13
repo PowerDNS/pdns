@@ -2610,6 +2610,32 @@ Other functions
     newTLSCertificate("path/to/pub.crt", {key="path/to/private.pem"})
     newTLSCertificate("path/to/domain.p12", {password="passphrase"}) -- use a password protected ``PKCS12`` file
 
+.. function:: withTraceSpan(name, func)
+
+.. versionadded:: 2.2.0
+
+    Open an :doc:`OpenTelemetry Trace Span <ottrace>` called ``name`` that instruments function ``func``.
+    This method can be called safely when Tracing is not enabled or when :prog:`dnsdist` is built without Protobuf support.
+
+    This function is only available inside :func:`Maintenance <maintenance>` or :func:`Maintenance callback <addMaintenanceCallback>` functions.
+
+    :param string name: The name for this Span
+    :param func function: The function to run. This function takes no parameters
+
+  .. function:: setSpanAttribute(key, value)
+
+    .. versionadded:: 2.2.0
+
+    Add an OpenTelemetry Trace Span attribute to the current span.
+    When used inside the function passed to :func:`withTraceSpan`, it will set the Attribute on the enclosed span.
+
+    This function is only available inside :func:`Maintenance <maintenance>` or :func:`Maintenance callback <addMaintenanceCallback>` functions.
+
+    This method can be called safely when Tracing is not enabled for the query or when :prog:`dnsdist` is built without Protobuf support.
+
+    :param string key: The key for attribute
+    :param string value: The value of the attribute
+
 DOHFrontend
 ~~~~~~~~~~~
 
