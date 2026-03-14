@@ -1216,6 +1216,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
 
       if (luaconfsLocal->dfe.getClientPolicy(comboWriter->d_source, resolver.d_discardedPolicies, appliedPolicy)) {
         mergePolicyTags(comboWriter->d_policyTags, appliedPolicy.getTags());
+        variableAnswer = true;
       }
     }
 
