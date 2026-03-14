@@ -15,10 +15,10 @@ The webserver does not allow remote management of the daemon, but allows control
 The following webserver related configuration items are available:
 
 * :ref:`setting-webserver`: If set to anything but 'no', a webserver is launched.
-* :ref:`setting-webserver-address`: IP address (or UNIX domain socket path, from version 5.0.0 onward) to bind the webserver to. Defaults to 127.0.0.1, which implies that only the local computer is able to connect to the nameserver! To allow remote hosts to connect, change to 0.0.0.0 or the physical IP address of your nameserver.
+* :ref:`setting-webserver-address`: IP address, UNIX domain socket path (from version 5.0.0 onward) or abstract namespace (Linux only) to bind the webserver to. Defaults to 127.0.0.1, which implies that only the local computer is able to connect to the nameserver! To allow remote hosts to connect, change to 0.0.0.0 or the physical IP address of your nameserver.
 * :ref:`setting-webserver-password`: If set, viewers will have to enter this password in order to gain access to the statistics, in addition to entering the configured API key on the index page.
-* :ref:`setting-webserver-port`: Port to bind the webserver to (not relevant if :ref:`setting-webserver-address` is set to a UNIX domain socket).
-* :ref:`setting-webserver-allow-from`: Netmasks that are allowed to connect to the webserver (not relevant if :ref:`setting-webserver-address` is set to a UNIX domain socket).
+* :ref:`setting-webserver-port`: Port to bind the webserver to (only relevant if :ref:`setting-webserver-address` is set to an IP address).
+* :ref:`setting-webserver-allow-from`: Netmasks that are allowed to connect to the webserver (only relevant if :ref:`setting-webserver-address` is set to an IP address).
 * :ref:`setting-webserver-max-bodysize`: Maximum request/response body size in megabytes
 * :ref:`setting-webserver-connection-timeout`: Request/response timeout in seconds
 
