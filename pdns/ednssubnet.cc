@@ -97,21 +97,27 @@ std::string EDNSSubnetOpts::makeOptString() const
 {
   std::string ret;
   EDNSSubnetOptsWire esow{};
-  uint16_t family = htons(source.getNetwork().sin4.sin_family == AF_INET ? 1 : 2);
+  uint16_t family = htons(source.isIPv4() ? 1 : 2);
   esow.family = family;
   esow.sourcePrefixLength = source.getBits();
   esow.scopePrefixLength = scopeBits;
   // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
   ret.assign(reinterpret_cast<const char*>(&esow), sizeof(esow));
-  int octetsout = ((esow.sourcePrefixLength - 1) >> 3) + 1;
+  size_t octetsout = esow.sourcePrefixLength > 0U ? ((esow.sourcePrefixLength - 1) >> 3) + 1 : 0U;
 
   ComboAddress src = source.getNetwork();
   src.truncate(esow.sourcePrefixLength);
 
-  if (family == htons(1)) {
+  if (source.isIPv4()) {
+    if (octetsout > sizeof(src.sin4.sin_addr.s_addr)) {
+      throw std::runtime_error("Trying to copy too many bytes while generating an EDNS Client Subnet option");
+    }
     ret.append(reinterpret_cast<const char*>(&src.sin4.sin_addr.s_addr), octetsout);
   }
   else {
+    if (octetsout > sizeof(src.sin6.sin6_addr.s6_addr)) {
+      throw std::runtime_error("Trying to copy too many bytes while generating an EDNS Client Subnet option");
+    }
     ret.append(reinterpret_cast<const char*>(&src.sin6.sin6_addr.s6_addr), octetsout);
   }
   // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
