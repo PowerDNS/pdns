@@ -1221,7 +1221,7 @@ private:
 class TKEYRecordContent : public DNSRecordContent
 {
 public:
-  TKEYRecordContent();
+  TKEYRecordContent() = default;
   includeboilerplate(TKEY)
   [[nodiscard]] size_t sizeEstimate() const override
   {
