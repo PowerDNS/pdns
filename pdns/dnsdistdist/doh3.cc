@@ -30,13 +30,12 @@
 #include "misc.hh"
 #include "sstuff.hh"
 #include "threadname.hh"
-#include "base64.hh"
 
+#include "dnsdist-concurrent-connections.hh"
 #include "dnsdist-dnsparser.hh"
 #include "dnsdist-ecs.hh"
 #include "dnsdist-proxy-protocol.hh"
 #include "dnsdist-tcp.hh"
-#include "dnsdist-random.hh"
 
 #include "doq-common.hh"
 
@@ -60,7 +59,18 @@ public:
   H3Connection(H3Connection&&) = default;
   H3Connection& operator=(const H3Connection&) = delete;
   H3Connection& operator=(H3Connection&&) = default;
-  ~H3Connection() = default;
+  ~H3Connection()
+  {
+    try {
+      /* do not account if we have been moved! */
+      if (d_conn) {
+        dnsdist::IncomingConcurrentTCPConnectionsManager::accountClosedTCPConnection(d_peer);
+      }
+    }
+    catch (...) {
+      /* in theory it might raise an exception, and we cannot allow it to be uncaught in a dtor */
+    }
+  }
 
   std::shared_ptr<const std::string> getSNI()
   {
@@ -989,6 +999,12 @@ static void handleSocketReadable(DOH3Frontend& frontend, ClientState& clientStat
       if (!originalDestinationID) {
         ++frontend.d_doh3InvalidTokensReceived;
         DEBUGLOG("Discarding invalid token");
+        continue;
+      }
+
+      auto connectionResult = dnsdist::IncomingConcurrentTCPConnectionsManager::accountNewTCPConnection(client, true, true);
+      if (connectionResult == dnsdist::IncomingConcurrentTCPConnectionsManager::NewConnectionResult::Denied) {
+        DEBUGLOG("Connection not allowed!");
         continue;
       }
 

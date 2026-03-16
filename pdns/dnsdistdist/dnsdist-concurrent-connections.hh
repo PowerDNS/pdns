@@ -34,7 +34,7 @@ public:
     Denied = 1,
     Restricted = 2,
   };
-  static NewConnectionResult accountNewTCPConnection(const ComboAddress& from, bool isTLS);
+  static NewConnectionResult accountNewTCPConnection(const ComboAddress& from, bool isTLS, bool isQUIC = false);
   static bool isClientOverThreshold(const ComboAddress& from);
   static void accountTLSNewSession(const ComboAddress& from);
   static void accountTLSResumedSession(const ComboAddress& from);
