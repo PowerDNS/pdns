@@ -502,25 +502,33 @@ string PacketReader::getText(bool multi, bool lenField)
 {
   string ret;
   ret.reserve(40);
-  while(d_pos < d_startrecordpos + d_recordlen ) {
-    if(!ret.empty()) {
+  while (d_pos < d_startrecordpos + d_recordlen ) {
+    if (!ret.empty()) {
       ret.append(1,' ');
     }
     uint16_t labellen;
-    if(lenField)
-      labellen=static_cast<uint8_t>(d_content.at(d_pos++));
-    else
-      labellen=d_recordlen - (d_pos - d_startrecordpos);
+    if (lenField) {
+      labellen = static_cast<uint8_t>(d_content.at(d_pos++));
+    }
+    else {
+      labellen = d_recordlen - (d_pos - d_startrecordpos);
+    }
 
-    ret.append(1,'"');
-    if(labellen) { // no need to do anything for an empty string
-      string val(&d_content.at(d_pos), &d_content.at(d_pos+labellen-1)+1);
+    const uint16_t remaining = (d_startrecordpos + d_recordlen) - d_pos;
+    if (labellen > remaining) {
+      throw std::out_of_range("label length in text record exceeds record boundary");
+    }
+
+    ret.append(1, '"');
+    if (labellen) { // no need to do anything for an empty string
+      string val(&d_content.at(d_pos), &d_content.at(d_pos + labellen - 1) + 1);
       ret.append(txtEscape(val)); // the end is one beyond the packet
     }
-    ret.append(1,'"');
-    d_pos+=labellen;
-    if(!multi)
+    ret.append(1, '"');
+    d_pos += labellen;
+    if (!multi) {
       break;
+    }
   }
 
   if (ret.empty() && !lenField) {

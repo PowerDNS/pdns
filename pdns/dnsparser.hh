@@ -165,7 +165,11 @@ public:
   string getUnquotedText(bool lenField);
 
 
-  bool eof() { return true; };
+  bool eof() const
+  {
+    return d_pos >= (d_startrecordpos + d_recordlen);
+  }
+
   const string getRemaining() const {
     return "";
   };
