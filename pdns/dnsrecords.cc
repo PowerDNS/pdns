@@ -879,7 +879,6 @@ boilerplate_conv(TKEY,
                  conv.xfr16BitInt(d_othersize);
                  if (d_othersize>0) conv.xfrBlobNoSpaces(d_other, d_othersize);
                  )
-TKEYRecordContent::TKEYRecordContent() { d_othersize = 0; } // fix CID#1288932
 
 boilerplate_conv(URI,
                  conv.xfr16BitInt(d_priority);
