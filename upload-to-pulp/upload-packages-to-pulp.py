@@ -52,7 +52,8 @@ def run_pulp_cmd(cmd):
 def get_pulp_output_attribute(output, attribute):
     try:
         data = json.loads(output)
-        return data.get(attribute).strip()
+        value = data.get(attribute)
+        return value.strip() if isinstance(value, str) else value
     except json.JSONDecodeError as e:
         print(f"::error::Pulp output {output} not parseable: {e}")
         sys.exit(1)
@@ -170,6 +171,24 @@ def is_pulp_task_completed(task_href):
     return False
 
 
+def get_pulp_task_result(task_href):
+    """
+    This function returns a dictionary with the result of the created component of a task
+    """
+
+    if not is_pulp_task_completed(task_href):
+        print(
+            f"::error::Error fetching task result. Task {task_href} is not in state <completed>"
+        )
+        sys.exit(1)
+
+    cmd = f"task show --href {task_href}"
+    task = run_pulp_cmd(cmd)
+    task_result = get_pulp_output_attribute(task, "result")
+
+    return task_result
+
+
 def pulp_upload_deb_packages_by_folder(repo_name, distribution_name, source):
     """
     This function uploads .deb packages to a Pulp deb repository. Done in 2 steps: first, it
@@ -203,8 +222,11 @@ def pulp_upload_deb_packages_by_folder(repo_name, distribution_name, source):
                 rc_href = get_deb_release_content_href("release_components", rc_data)
 
                 if not rc_href:
-                    rc = create_deb_release_content("release_components", rc_data)
-                    rc_href = rc.get("pulp_href")
+                    res_rc = create_deb_release_content("release_components", rc_data)
+                    # The result of creating a release_component is not the actual object but a task_href
+                    task_href = res_rc.get('task')
+                    rc = get_pulp_task_result(task_href)
+                    rc_href = rc.get("pulp_href").strip()
 
                 # Check is a new release architecture needs to be created
                 ra_data = {
@@ -215,8 +237,11 @@ def pulp_upload_deb_packages_by_folder(repo_name, distribution_name, source):
                 ra_href = get_deb_release_content_href("release_architectures", ra_data)
 
                 if not ra_href:
-                    ra = create_deb_release_content("release_architectures", ra_data)
-                    ra_href = ra.get("pulp_href")
+                    res_ra = create_deb_release_content("release_architectures", ra_data)
+                    # The result of creating a release_architecture is not the actual object but a task_href
+                    task_href = res_ra.get('task')
+                    ra = get_pulp_task_result(task_href)
+                    ra_href = ra.get("pulp_href").strip()
 
                 # Check is a new package release component needs to be created
                 prc_data = {
