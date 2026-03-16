@@ -51,7 +51,7 @@ bool EDNSSubnetOpts::getFromString(const char* options, unsigned int len, EDNSSu
   esow.family = ntohs(esow.family);
 
   ComboAddress address;
-  unsigned int octetsin = esow.sourcePrefixLength > 0 ? (((esow.sourcePrefixLength - 1) >> 3) + 1) : 0;
+  size_t octetsin = esow.sourcePrefixLength > 0U ? (((esow.sourcePrefixLength - 1) >> 3) + 1) : 0U;
 
   if (esow.family == 1) {
     if (len != sizeof(esow) + octetsin) {
