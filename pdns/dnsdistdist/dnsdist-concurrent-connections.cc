@@ -164,7 +164,7 @@ static ClientActivity& getCurrentClientActivity(const ClientEntry& entry, time_t
   return activity.front();
 }
 
-IncomingConcurrentTCPConnectionsManager::NewConnectionResult IncomingConcurrentTCPConnectionsManager::accountNewTCPConnection(const ComboAddress& from, bool isTLS)
+IncomingConcurrentTCPConnectionsManager::NewConnectionResult IncomingConcurrentTCPConnectionsManager::accountNewTCPConnection(const ComboAddress& from, bool isTLS, bool isQUIC)
 {
   const auto& immutable = dnsdist::configuration::getImmutableConfiguration();
   const auto maxConnsPerClient = immutable.d_maxTCPConnectionsPerClient;
@@ -185,18 +185,22 @@ IncomingConcurrentTCPConnectionsManager::NewConnectionResult IncomingConcurrentT
     ++activity.tcpConnections;
   };
 
-  auto checkConnectionAllowed = [now, from, maxConnsPerClient, threshold, tcpRate, tlsNewRate, tlsResumedRate, interval, isTLS, &immutable](const ClientEntry& entry) {
+  auto getProtocol = [isQUIC]() -> std::string {
+    return isQUIC ? "QUIC" : "TCP";
+  };
+
+  auto checkConnectionAllowed = [now, from, maxConnsPerClient, threshold, tcpRate, tlsNewRate, tlsResumedRate, interval, isTLS, &immutable, &getProtocol](const ClientEntry& entry) {
     if (entry.d_bannedUntil != 0 && entry.d_bannedUntil >= now) {
-      vinfolog("Refusing TCP connection from %s: banned", from.toStringWithPort());
+      vinfolog("Refusing %s connection from %s: banned", getProtocol(), from.toStringWithPort());
       return NewConnectionResult::Denied;
     }
     if (maxConnsPerClient > 0 && entry.d_concurrentConnections >= maxConnsPerClient) {
-      vinfolog("Refusing TCP connection from %s: too many connections", from.toStringWithPort());
+      vinfolog("Refusing %s connection from %s: too many connections", getProtocol(), from.toStringWithPort());
       return NewConnectionResult::Denied;
     }
     if (!checkTCPConnectionsRate(entry.d_activity, now, tcpRate, tlsNewRate, tlsResumedRate, interval, isTLS)) {
       entry.d_bannedUntil = now + immutable.d_tcpBanDurationForExceedingTCPTLSRate;
-      vinfolog("Banning TCP connections from %s for %d seconds: too many new TCP/TLS connections per second", from.toStringWithPort(), immutable.d_tcpBanDurationForExceedingTCPTLSRate);
+      vinfolog("Banning connections from %s for %d seconds: too many new QUIC/TCP/TLS connections per second", from.toStringWithPort(), immutable.d_tcpBanDurationForExceedingTCPTLSRate);
       return NewConnectionResult::Denied;
     }
 
@@ -208,7 +212,7 @@ IncomingConcurrentTCPConnectionsManager::NewConnectionResult IncomingConcurrentT
     if (current < threshold) {
       return NewConnectionResult::Allowed;
     }
-    vinfolog("Restricting TCP connection from %s: nearly reaching the maximum number of concurrent TCP connections", from.toStringWithPort());
+    vinfolog("Restricting %s connection from %s: nearly reaching the maximum number of concurrent TCP connections", getProtocol(), from.toStringWithPort());
     return NewConnectionResult::Restricted;
   };
 
