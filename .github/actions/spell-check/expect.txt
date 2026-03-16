@@ -80,6 +80,7 @@ axfrfilter
 Baan
 backgrounding
 backticks
+backupselector
 BADALG
 BADCOOKIE
 badguys
@@ -164,6 +165,7 @@ Cairney
 calculatesoaserial
 calidns
 capf
+catalogzone
 catzone
 Cauquil
 ccache
@@ -290,6 +292,7 @@ destname
 Detlef
 devicename
 devtoolset
+Deyan
 DHCID
 dhcpd
 dhcpdupdate
@@ -352,6 +355,7 @@ docnamecachelookup
 documentclass
 documentwrapper
 Dohmen
+dohpath
 domaininfo
 domainmetadata
 domainname
@@ -431,6 +435,7 @@ Exx
 ezdns
 Faerch
 failedservers
+Fallah
 famfo
 farsightsec
 fcontext
@@ -556,6 +561,7 @@ Hendriks
 Henk
 Hensbergen
 Heuer
+HHIT
 hidesoadetails
 hidettl
 highlighttable
@@ -605,6 +611,7 @@ innodb
 installable
 internic
 interoperation
+IPbackend
 ipcipher
 ipcrypt
 ipdecrypt
@@ -777,6 +784,7 @@ malware
 Mamane
 mapasync
 Mapbox
+mapsize
 mariadb
 Markmann
 Massar
@@ -799,6 +807,7 @@ menuselection
 metadatabase
 metadatas
 metainformation
+metaprogramming
 metricnames
 metricscarbon
 Meulen
@@ -959,6 +968,7 @@ Odintsov
 Oestreicher
 offsite
 oftc
+ohttp
 Olafur
 Omroep
 openapis
@@ -1123,6 +1133,7 @@ qytpe
 ragel
 raii
 Rak
+Ramsanker
 randombackend
 randombit
 randomisation
@@ -1575,6 +1586,7 @@ wrandom
 wrapv
 wuh
 Wzs
+Xabier
 Xander
 xchacha
 xdb

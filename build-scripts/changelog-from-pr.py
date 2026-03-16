@@ -66,6 +66,7 @@ for pr in sorted(arguments.pullrequest):
         "chbruyand",
         "omoerbeek",
         "miodvallat",
+        "pieterlexis",
     ]:
         try:
             if access_token:

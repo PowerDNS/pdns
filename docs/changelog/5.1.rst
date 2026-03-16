@@ -1,0 +1,863 @@
+Changelogs for 5.1.x
+====================
+
+.. changelog::
+  :version: 5.1.0-alpha1
+  :released: 16th of March 2025
+
+  This is release 5.1.0-alpha1 of the Authoritative Server.
+  It provides many small new features and improvements, as well as bug fixes.
+
+  Please review the :doc:`Upgrade Notes <../upgrading>` before upgrading from versions < 5.0.x.
+
+  .. change::
+    :tags: New Features
+    :pullreq: 16977
+    :tickets: 15449
+
+    Add support to the new WALLET RRType
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16951
+    :tickets: 11140, 11140
+
+    Sort API RRs by content if name and type are equal
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 16956
+
+    Remove logging interfaces which lack priority arguments
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16965
+
+    Use the proper size after processing a proxy protocol payload
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14057
+
+    fix a crash and some cleanup in the auth-catalogzone.cc (Kees Monshouwer)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 16955
+    :tickets: 8295, 11610
+
+    Allow adding HTTP Headers in LUA Record ifurlup
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16958
+
+    coverity-induced fixes
+
+  .. change::
+    :tags: New Features
+    :pullreq: 16693, 16370, 16240
+
+    structured logging
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16947
+    :tickets: 16945, 16945
+
+    correctly update tsig keys with PostgreSQL
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16948
+    :tickets: 8854, 8854
+
+    Ensure LUA record weights are > 0
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16831
+
+    stricter handling of the Lua DNS update policy
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16928
+
+    trim labels faster
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 16919
+    :tickets: 16639
+
+    remove configurable random generator leftovers, take 2
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 16830
+
+    one less infinite loop
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 16917
+
+    More metaprogramming sugar
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 16915
+
+    Fix some performance inefficiencies reported by Coverity
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16731
+
+    web: stricter control of statistics rings changes
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16884
+    :tickets: 16864
+
+    fix and document behaviour when multiple ALIAS records in an RRset
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16902
+
+    loosen check in NotificationQueue::removeIf
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16871
+
+    fix stupid logic error in lmdb-write-update-notification=no
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 16854
+
+    get rid of a "may be uninitialized" warning.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16670
+
+    better advice when creating zones
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 16573
+
+    minor getAllDomains optimizations
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 16826
+
+    Drop usage of libboost-system library (Chris Hofstaedtler)
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 16817
+    :tickets: 16805
+
+    Base64 tidy and unit test fix
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 16820
+
+    Stricter timestamp checks
+
+  .. change::
+    :tags: New Features
+    :pullreq: 16807
+    :tickets: 6173
+
+    add default-soa-edit-api setting for API zone creation (Seena Fallah)
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 16810
+
+    correctly compute DNSSEC public key exponent lengths when larger than 255
+
+  .. change::
+    :tags: Removed Features
+    :pullreq: 16790
+    :tickets: 16785
+
+    No longer allow passing the api-key as a query argument
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16710
+
+    harden SVCB record parsing
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16753
+    :tickets: 7230
+
+    stricter TTL enforcement for RRset updates
+
+  .. change::
+    :tags: Bug Fixes, Tools
+    :pullreq: 16751
+    :tickets: 16747
+
+    pdnsutil: Fix command synopsis of "view list".
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16733
+
+    EDNS cookies: Test the timestamp handling in our unit tests
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16730
+
+    EDNS cookies: fix timestamp handling
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 16703
+
+    Calidns: Also handle `PDNSException`s in `main`
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 16622
+
+    LuaWrapper: Add support for `std::variant`
+
+  .. change::
+    :tags: New Features, Tools
+    :pullreq: 15301
+
+    Calidns: Initial proxy protocol support
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16636
+    :tickets: 16418
+
+    perform axfr immediately when creating an autosecondary domain
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 16348
+
+    rfc2136: more code cleanup
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16301
+
+    always send a response for {A,I}XFR requests
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16671
+
+    Actually install binaries when building with meson
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16669
+
+    fix geoip_mmdb backend MMDB_open error handling (Ensar Sarajčić)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 16659
+    :tickets: 16074
+
+    Add fail-close backupselector mode for Lua healthcheck functions (Xabier Napal)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16657
+
+    more robustness in createReverse*
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16642
+
+    lmdb: winter paranoia
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16652
+
+    `EXTEND` and `PRUNE` are new in 4.9.12 and 5.0.2, not `REPLACE`
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16639
+    :tickets: 16554
+
+    remove configurable random generator leftovers
+
+  .. change::
+    :tags: New Features, Tools
+    :pullreq: 16569
+
+    Pdnsutil: make "zone list" record sorting optional
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16638
+
+    coverity-induced fixes
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16568
+
+    yet another boring autoconf regression
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16601
+
+    Remove some `boost::optional` leftovers
+
+  .. change::
+    :tags: New Features
+    :pullreq: 16589
+
+    allow finer-grained rrset changes through the API
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16520
+
+    webserver: recognize Accept: */* header
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 16547
+
+    lmdb: error path cleanup in upgrade code
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16564
+    :tickets: 15222
+
+    lua: add missing catch block for STL exceptions in createForward
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16538
+
+    M4/pdns_check_libcrypto: fix ecdsa/eddsa includedir (famfo)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16539
+    :tickets: 16537
+
+    sstuff: convert mapped IPv4 addresses for ACL (famfo)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16517
+
+    regress: Fix PDNS_BUILD_PATH for non-meson builds
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16401
+
+    meson: reset binary names to original
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 16077
+    :tickets: 14734
+
+    Prep, but do not actually move to C++20
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 16467
+
+    bunch of boring idempotent commits
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 16343
+
+    rfc2136: more churning
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16398
+
+    sdist: copy files as files, not as new dirs
+
+  .. change::
+    :tags: New Features
+    :pullreq: 16361
+
+    Lmdb: allow different mapsize values for main and shards
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16451
+
+    Luawrapper: on luajit+arm64+tsan, retry allocs harder
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16440
+    :tickets: 16091
+
+    Cleanup endianness determining code
+
+  .. change::
+    :tags: Bug Fixes, Tools
+    :pullreq: 16374
+    :tickets: 16365
+
+    dumresp: fix fd leak
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16352
+    :tickets: 16351
+
+    Api: relax zone name check in view removal
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16337
+    :tickets: 16335
+
+    Drop Socket::getline (Chris Hofstaedtler)
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 16306
+
+    attempt at technical debt reduction in RFC2136 code
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16287
+    :tickets: 16286
+
+    Prevent a potential race condition in cache cleaning (DeyanSG)
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 16293
+
+    Ext/json: sync with upstream
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 16334
+
+    Luawrapper: correct lua_pop argument
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16259
+
+    Allow selecting a specific version of Lua with meson
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16230
+    :tickets: 15173, 16229, 16229
+
+    Luawrapper: don't segfault on failure in traceback handler
+
+  .. change::
+    :tags: New Features
+    :pullreq: 15550
+
+    Support new SVCB parameters: ohttp, dohpath, tls-supported-groups (Chris Hofstaedtler)
+
+  .. change::
+    :tags: Bug Fixes, Tools
+    :pullreq: 16209
+
+    Pdnsutil: fix b2b-migrate to from sql to non-sql
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16213
+
+    fix a secondary domain type check in bind backend
+
+  .. change::
+    :tags: Bug Fixes, LDAP
+    :pullreq: 16245
+
+    yet another logic botch
+
+  .. change::
+    :tags: Bug Fixes, LDAP
+    :pullreq: 16225
+
+    logic botch in ldap backend
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 16954, 16678, 16445, 16243, 16226
+
+    Remove dead code
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16195
+
+    missing space in error message
+
+  .. change::
+    :tags: New Features
+    :pullreq: 16193
+    :tickets: 16154, 13024
+
+    Lmdb: optional memory-only freshness check timestamp
+
+  .. change::
+    :tags: New Features
+    :pullreq: 16151
+    :tickets: 15386
+
+    knob to allow underscores in hostnames
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16185
+
+    handle ENT in pipe backend
+
+  .. change::
+    :tags: New Features, Tools
+    :pullreq: 16179
+
+    Pdnsutil: add zone copy command
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16113
+    :tickets: 2353
+
+    remove confusing message
+
+  .. change::
+    :tags: New Features
+    :pullreq: 16142
+
+    Feat: Add DRIP records (HHIT and BRID)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 16184
+
+    backend flush command
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16183
+
+    Provide more context in GeoIPbackend YAML parsing failures
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16176
+
+    some more lmdb polish
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16152
+
+    views: perform character set validation of view names
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16150
+    :tickets: 16109
+
+    odbc tweaks to appease coverity
+
+  .. change::
+    :tags: New Features
+    :pullreq: 16141
+
+    Lmdb: optional memory-only notification timestamps
+
+  .. change::
+    :tags: Bug Fixes, Tools
+    :pullreq: 16120
+
+    Pdnsutil: allow spaces in EDITOR
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16121
+    :tickets: 16118, 16119
+
+    handle early lua-records-exec-limit exception correctly
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16119
+    :tickets: 16118
+
+    LUA shared exec: reset exec limit for every invocation
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16112
+
+    Fix EDNS Cookie & Proxy protocol (Jelle Kaufmann)
+
+  .. change::
+    :tags: Bug Fixes, Tools
+    :pullreq: 16114
+
+    Fix interaction between "pdnsutil zone edit" and pipe backend
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16116
+
+    one more configuration sanity check
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15873
+    :tickets: 9015
+
+    TSIG metadata tweaks
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16111
+
+    try to improve some error messages
+
+  .. change::
+    :tags: Improvements, Tools
+    :pullreq: 15386
+    :tickets: 6031
+
+    make pdnsutil add-record perform the same checks as the REST API
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16109
+
+    memory corruption in ODBC
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16087
+    :tickets: 5208
+
+    record contents handling changes
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15994
+    :tickets: 15990
+
+    REST API: normalize record contents received
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 16083
+    :tickets: 12663
+
+    LMDB: try to reduce the cost of the LS header
+
+  .. change::
+    :tags: Bug Fixes, Tools
+    :pullreq: 16063
+
+    Fix case sensitivity handling for IXFR requests in ixfrdist (Jeremy Muriel)
+
+  .. change::
+    :tags: Improvements, Tools
+    :pullreq: 15999
+    :tickets: 11053, 15891
+
+    Pdnsutil: prettier zone output
+
+  .. change::
+    :tags: New Features
+    :pullreq: 16041
+    :tickets: 11052
+
+    API: stricter record content validation
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16035
+    :tickets: 469
+
+    smarter bind zone file freshness check
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16059
+
+    REST API: bring back 404 errors
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15891
+
+    Improve lmdb dyndns test results
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16024
+    :tickets: 14953
+
+    Correctly handle dnsupdate reject by Lua policy
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16050
+    :tickets: 11134
+
+    Display SOA check timestamps in human-readable form
+
+  .. change::
+    :tags: Improvements, Tools
+    :pullreq: 15966
+    :tickets: 4941
+
+    Pdnsutil: report corrupted records
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15969
+    :tickets: 7097
+
+    Web server: try harder to return response in the same type as the request
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16056
+
+    Fix misleading description of tcp-control-port argument. (Ramsanker K R)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16046
+    :tickets: 11084
+
+    Make axfr error message more helpful when a domain can't be found
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 16033
+
+    Remove boost < 1.54 leftovers
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16006
+    :tickets: 12154
+
+    More zone names in error messages
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 15844
+
+    Lmdb-safe: Remove the read-only transactions counter
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 15991
+    :tickets: 15972
+
+    Fix Boost system lib req: it is no longer a lib for boost >= 1.89
+
+  .. change::
+    :tags: Bug Fixes, Tools
+    :pullreq: 15962
+
+    be a bit more explicit regarding @ no longer being magic in pdnsutil
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 15864
+    :tickets: 1
+
+    objectionable LMDB logic speedups
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 15958
+
+    Prefer milliseconds to microseconds for timeouts
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 15450
+
+    smarter backend lookup aborts
+
+  .. change::
+    :tags: Bug Fixes, Tools
+    :pullreq: 15971
+
+    Pdnsutil: smarter SOA handling in zone edit
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15968
+
+    List supported record types in alphabetical order
+
+  .. change::
+    :tags: Bug Fixes, Tools
+    :pullreq: 15894
+
+    Scrub harder in zone rectify
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 15866
+
+    Provide a default searchRecords implementation
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 15947
+    :tickets: 15922
+
+    cache the result of some metadata lookups during packet processing
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 15944
+
+    Lmdb: be more careful when looking into the domains table
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 15922
+
+    Miscellaneous boring cleanups
+
