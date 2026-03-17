@@ -2157,7 +2157,7 @@ bool LMDBBackend::getInternal(DNSName& basename, std::string_view& key)
       d_lookupstate.comment.content = message.get_string();
     }
     catch (protozero::exception& e) {
-      throw DBException("got invalid serialized comment: " + e.what());
+      throw DBException(std::string("got invalid serialized comment: ") + e.what());
     }
 
     if (d_lookupstate.cursor && d_lookupstate.cursor->next(d_lookupstate.key, d_lookupstate.val) != 0) {
