@@ -372,6 +372,9 @@ void PacketReader::getDnsrecordheader(struct dnsrecordheader &ah)
 
   d_startrecordpos = d_pos; // needed for getBlob later on
   d_recordlen = ah.d_clen;
+  if (d_pos > d_content.size() || (d_content.size() - d_pos) < (d_recordlen)) {
+    throw std::out_of_range("DNS record length (" + std::to_string(d_recordlen) + " starting at " + std::to_string(d_pos) + ") goes beyond the packet's content (" + std::to_string(d_content.size()) + ")");
+  }
 }
 
 
