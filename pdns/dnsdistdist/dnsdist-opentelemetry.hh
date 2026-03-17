@@ -214,11 +214,30 @@ public:
         d_tracer->closeSpan(d_spanID);
       }
 #endif
-    };
-    Closer(const Closer&) = default;
-    Closer& operator=(const Closer&) = default;
-    Closer& operator=(Closer&&) noexcept = default;
-    Closer(Closer&&) = default;
+    }
+    Closer(const Closer&) = delete;
+    Closer& operator=(const Closer&) = delete;
+    Closer& operator=(Closer&& rhs) noexcept
+    {
+#ifndef DISABLE_PROTOBUF
+      this->d_tracer = std::move(rhs.d_tracer);
+      this->d_spanID = rhs.d_spanID;
+      /* we wouldn't want to close it twice */
+      rhs.d_tracer.reset();
+      rhs.d_spanID.clear();
+#endif
+      return *this;
+    }
+    Closer(Closer&& rhs)
+    {
+#ifndef DISABLE_PROTOBUF
+      this->d_tracer = std::move(rhs.d_tracer);
+      this->d_spanID = rhs.d_spanID;
+      /* we wouldn't want to close it twice */
+      rhs.d_tracer.reset();
+      rhs.d_spanID.clear();
+#endif
+    }
 
     /**
      * @brief Get the SpanID
