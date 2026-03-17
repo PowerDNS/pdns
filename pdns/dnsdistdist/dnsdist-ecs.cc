@@ -265,6 +265,10 @@ int locateEDNSOptRR(const PacketBuffer& packet, uint16_t* optStart, size_t* optL
     throw std::runtime_error("Invalid values passed to locateEDNSOptRR");
   }
 
+  if (packet.size() < sizeof(dnsheader)) {
+    throw std::runtime_error("Packet passed to locateEDNSOptRR was too small");
+  }
+
   const dnsheader_aligned dnsHeader(packet.data());
 
   if (ntohs(dnsHeader->arcount) == 0) {
