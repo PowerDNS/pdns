@@ -28,6 +28,7 @@
 #include "dnswriter.hh"
 #include "ednsoptions.hh"
 #include "ednssubnet.hh"
+#include "qtype.hh"
 
 int rewriteResponseWithoutEDNS(const PacketBuffer& initialPacket, PacketBuffer& newContent)
 {
@@ -275,27 +276,23 @@ int locateEDNSOptRR(const PacketBuffer& packet, uint16_t* optStart, size_t* optL
     return ENOENT;
   }
 
+  if (ntohs(dnsHeader->qdcount) != 1) {
+    throw std::runtime_error("Packet passed to locateEDNSOptRR did not have QDCOUNT=1");
+  }
+
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
   PacketReader packetReader(std::string_view(reinterpret_cast<const char*>(packet.data()), packet.size()));
 
   size_t idx = 0;
   DNSName rrname;
-  uint16_t qdcount = ntohs(dnsHeader->qdcount);
   uint16_t ancount = ntohs(dnsHeader->ancount);
   uint16_t nscount = ntohs(dnsHeader->nscount);
   uint16_t arcount = ntohs(dnsHeader->arcount);
-  uint16_t rrtype{};
-  uint16_t rrclass{};
   dnsrecordheader recordHeader{};
 
-  /* consume qd */
-  for (idx = 0; idx < qdcount; idx++) {
-    rrname = packetReader.getName();
-    rrtype = packetReader.get16BitInt();
-    rrclass = packetReader.get16BitInt();
-    (void)rrtype;
-    (void)rrclass;
-  }
+  /* consume query section */
+  rrname = packetReader.getName();
+  packetReader.skip(4); // Skip Type and Class
 
   /* consume AN and NS */
   for (idx = 0; idx < ancount + nscount; idx++) {
