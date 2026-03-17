@@ -285,7 +285,13 @@ static const groupCommandDispatcher rrsetCommands{
     "\tCalculate the NSEC3 hash for NAME in ZONE"}},
    {"replace", {true, replaceRRSet,
     R"(ZONE NAME TYPE [TTL] "CONTENT" ["CONTENT"...])",
-    "\tReplace named rrset from ZONE"}}}
+    "\tReplace named rrset from ZONE"}},
+  {"add-comment", {true, addComment,
+    "ZONE NAME TYPE COMMENT [ACCOUNT]",
+    "\tAdd a comment"}},
+   {"list-comments", {true, listComments,
+     "ZONE",
+     "\tList comments for a zone"}}}
 };
 
 // TSIG-KEY / TSIGKEY
@@ -514,16 +520,6 @@ static const groupCommandDispatcher zoneKeyCommands{
     "\tUnpublish the zone key with key id KEY_ID in ZONE"}}}
 };
 
-static const groupCommandDispatcher commentCommands{
-  "Comment",
-  {{"add", {true, addComment,
-    "ZONE NAME TYPE COMMENT [ACCOUNT]",
-    "\tAdd a comment"}},
-   {"list", {true, listComments,
-     "ZONE",
-     "\tList comments for a zone"}}}
-};
-
 // OTHER (NO OBJECT NAME PREFIX)
 
 static const groupCommandDispatcher otherCommands{
@@ -593,7 +589,6 @@ using commandDispatcher = std::map<std::string_view, std::pair<bool, std::vector
 static const commandDispatcher topLevelDispatcher{
   {"autoprimary", {true, {autoprimaryCommands}}},
   {"catalog", {true, {catalogCommands}}},
-  {"comment", {true, {commentCommands}}},
 #ifdef HAVE_P11KIT1 // [
   {"hsm", {true, {HSMCommands}}},
 #endif // ]
