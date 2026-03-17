@@ -285,7 +285,7 @@ bool IncomingHTTP2Connection::checkALPN()
     ++d_ci.cs->dohFrontend->d_http1Stats.d_nbQueries;
   }
 
-  static const std::string data0("HTTP/1.1 400 Bad Request\r\nConnection: Close\r\n");
+  static const std::string data0("HTTP/1.1 505 HTTP Version Not Supported\r\nConnection: Close\r\n");
 
   std::array<char, 40> data1{};
   static const std::string dateformat("Date: %a, %d %h %Y %T GMT\r\n");
