@@ -544,7 +544,7 @@ static std::pair<bool, LWResult::Result> incomingCookie(const OptLog& log, const
     if (EDNSCookiesOpt received; received.makeFromString(opt->second)) {
       cookieFoundInReply = true;
       VLOG(log, "Received cookie info back from " << address.toString() << ": " << received.toDisplayString() << endl);
-      if (received.getClient() == cookieSentOut->getClient()) {
+      if (cookieSentOut && received.getClient() == cookieSentOut->getClient()) {
         VLOG(log, "Client cookie from " << address.toString() << " matched! Storing with localAddress " << localip.toString() << endl);
         ++t_Counters.at(rec::Counter::cookieMatched);
         found->d_localaddress = localip;
@@ -870,7 +870,7 @@ static LWResult::Result asyncresolve(const OptLog& log, const ComboAddress& addr
           }
         }
       }
-      if (g_cookies && !*chained) {
+      if (g_cookies && cookieSentOut && !*chained) {
         auto [done, result] = incomingCookie(log, address, localip, *now, cookieSentOut, edo, doTCP, *lwr, cookieFoundInReply);
         if (done) {
           return result;
