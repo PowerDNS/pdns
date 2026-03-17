@@ -171,7 +171,7 @@ public:
   }
 
   const string getRemaining() const {
-    return "";
+    return "Remaining data from PacketReader, current position " + std::to_string(d_pos) + " in packet of size " + std::to_string(d_content.size()) + ", end of record expected at " + std::to_string(d_startrecordpos + d_recordlen) + ": " + makeHexDump(std::string(d_content.begin() + d_pos, d_content.begin() + d_startrecordpos + d_recordlen));
   };
 
   uint16_t getPosition() const
