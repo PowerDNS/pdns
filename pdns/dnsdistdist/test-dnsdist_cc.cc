@@ -2053,7 +2053,7 @@ BOOST_AUTO_TEST_CASE(test_isEDNSOptionInOpt)
 
     /* truncated packet */
     query.resize(query.size() - 1);
-    BOOST_CHECK_THROW(locateEDNSOption(query, EDNSOptionCode::ECS, &optContentStart, &optContentLen), std::range_error);
+    BOOST_CHECK_THROW(locateEDNSOption(query, EDNSOptionCode::ECS, &optContentStart, &optContentLen), std::out_of_range);
   }
 
   {
@@ -2075,7 +2075,7 @@ BOOST_AUTO_TEST_CASE(test_isEDNSOptionInOpt)
 
     /* truncated packet */
     query.resize(query.size() - 1);
-    BOOST_CHECK_THROW(locateEDNSOption(query, EDNSOptionCode::ECS, &optContentStart, &optContentLen), std::range_error);
+    BOOST_CHECK_THROW(locateEDNSOption(query, EDNSOptionCode::ECS, &optContentStart, &optContentLen), std::out_of_range);
   }
 
   {
@@ -2098,7 +2098,7 @@ BOOST_AUTO_TEST_CASE(test_isEDNSOptionInOpt)
 
     /* truncated packet */
     query.resize(query.size() - 1);
-    BOOST_CHECK_THROW(locateEDNSOption(query, EDNSOptionCode::ECS, &optContentStart, &optContentLen), std::range_error);
+    BOOST_CHECK_THROW(locateEDNSOption(query, EDNSOptionCode::ECS, &optContentStart, &optContentLen), std::out_of_range);
   }
 
   {
@@ -2120,7 +2120,7 @@ BOOST_AUTO_TEST_CASE(test_isEDNSOptionInOpt)
 
     /* truncated packet */
     query.resize(query.size() - 1);
-    BOOST_CHECK_THROW(locateEDNSOption(query, 65002, &optContentStart, &optContentLen), std::range_error);
+    BOOST_CHECK_THROW(locateEDNSOption(query, 65002, &optContentStart, &optContentLen), std::out_of_range);
   }
 }
 
