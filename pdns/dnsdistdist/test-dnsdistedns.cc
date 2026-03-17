@@ -24,16 +24,21 @@
 #endif
 
 #define BOOST_TEST_NO_MAIN
-
 #include <boost/test/unit_test.hpp>
+#include <boost/test/tools/old/interface.hpp>
+#include <boost/test/unit_test_suite.hpp>
+#include <stdexcept>
 
 #include "dnsdist-edns.hh"
+#include "dnsdist-ecs.hh"
 #include "dnsname.hh"
 #include "dnswriter.hh"
 #include "ednscookies.hh"
 #include "ednsextendederror.hh"
 #include "ednsoptions.hh"
 #include "ednssubnet.hh"
+#include "dns.hh"
+#include "qtype.hh"
 
 BOOST_AUTO_TEST_SUITE(test_dnsdist_edns)
 
@@ -196,6 +201,85 @@ BOOST_AUTO_TEST_CASE(getExtendedDNSError)
     BOOST_CHECK_EQUAL(*infoCode, ede.infoCode);
     BOOST_CHECK(extraText);
     BOOST_CHECK_EQUAL(*extraText, ede.extraText);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_locateEDNSOptRR)
+{
+  PacketBuffer packet;
+  DNSName qname{"example.com"};
+  uint16_t optStart;
+  size_t optLen;
+  bool last;
+
+  auto reset = [&packet, &optStart, &optLen, &last]() {
+    packet.clear();
+    optStart = 0;
+    optLen = 0;
+    last = false;
+  };
+
+  {
+    reset();
+    BOOST_CHECK_THROW(locateEDNSOptRR(packet, nullptr, &optLen, &last), std::runtime_error);
+    BOOST_CHECK_THROW(locateEDNSOptRR(packet, &optStart, nullptr, &last), std::runtime_error);
+    BOOST_CHECK_THROW(locateEDNSOptRR(packet, &optStart, &optLen, nullptr), std::runtime_error);
+  }
+
+  {
+    reset();
+    // A normal packet with OPT
+    GenericDNSPacketWriter<PacketBuffer> pw(packet, qname, 1);
+    pw.getHeader()->rd = 1;
+    pw.addOpt(1232, 0, 0);
+    pw.commit();
+    BOOST_CHECK_EQUAL(locateEDNSOptRR(packet, &optStart, &optLen, &last), 0U);
+    BOOST_CHECK_EQUAL(optStart, 29);
+    BOOST_CHECK_EQUAL(optLen, 11);
+    BOOST_CHECK(last);
+
+    // Make only a header, should error, as there is no question section but QDCOUNT=1
+    BOOST_CHECK_THROW(locateEDNSOptRR(PacketBuffer(packet.begin(), packet.begin() + 12), &optStart, &optLen, &last), std::out_of_range);
+
+    // Only a Question section in the packet, but header has ARCOUNT=1, should error
+    BOOST_CHECK_THROW(locateEDNSOptRR(PacketBuffer(packet.begin(), packet.begin() + 28), &optStart, &optLen, &last), std::out_of_range);
+  }
+
+  {
+    reset();
+    // No OPT in the packet
+    GenericDNSPacketWriter<PacketBuffer> pw(packet, qname, 1);
+    pw.getHeader()->rd = 1;
+    BOOST_CHECK_EQUAL(locateEDNSOptRR(packet, &optStart, &optLen, &last), ENOENT);
+
+    // Too small packet, should error
+    packet.resize(11);
+    BOOST_CHECK_THROW(locateEDNSOptRR(packet, &optStart, &optLen, &last), std::runtime_error);
+  }
+
+  {
+    // An OPT record that has the wrong Owner name
+    reset();
+    GenericDNSPacketWriter<PacketBuffer> pw(packet, qname, 1);
+    pw.getHeader()->rd = 1;
+    pw.startRecord(DNSName("notroot"), QType::OPT, 3600, QClass::IN, DNSResourceRecord::Place::ADDITIONAL, false);
+    pw.commit();
+    BOOST_CHECK_EQUAL(locateEDNSOptRR(packet, &optStart, &optLen, &last), ENOENT);
+  }
+
+  {
+    // Adds an OPT record that has the wrong Owner name *and* a good one, we should see the good one
+    reset();
+    GenericDNSPacketWriter<PacketBuffer> pw(packet, qname, 1);
+    pw.getHeader()->rd = 1;
+    pw.addOpt(1232, 0, 0);
+    pw.commit();
+    pw.startRecord(DNSName("notroot"), QType::OPT, 3600, QClass::IN, DNSResourceRecord::Place::ADDITIONAL, false);
+    pw.commit();
+    BOOST_CHECK_EQUAL(locateEDNSOptRR(packet, &optStart, &optLen, &last), 0U);
+    BOOST_CHECK_EQUAL(optStart, 29);
+    BOOST_CHECK_EQUAL(optLen, 11);
+    BOOST_CHECK(!last);
   }
 }
 
