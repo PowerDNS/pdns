@@ -20,6 +20,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include "dns.hh"
+#include "dnsname.hh"
 #include "dolog.hh"
 #include "dnsdist.hh"
 #include "dnsdist-dnsparser.hh"
@@ -307,7 +308,7 @@ int locateEDNSOptRR(const PacketBuffer& packet, uint16_t* optStart, size_t* optL
     rrname = packetReader.getName();
     packetReader.getDnsrecordheader(recordHeader);
 
-    if (recordHeader.d_type == QType::OPT) {
+    if (rrname == g_rootdnsname && recordHeader.d_type == QType::OPT) {
       *optStart = start;
       *optLen = (packetReader.getPosition() - start) + recordHeader.d_clen;
 
