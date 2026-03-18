@@ -1016,10 +1016,10 @@ query_rules:
       type: Lua
       function_code: |
         return function (dq)
-          dq:withTraceSpan("my-span",
+          withTraceSpan("my-span",
             function ()
-              dq:setSpanAttribute("my-key-from-lua", "my-value-from-lua")
-              dq:withTraceSpan("my-second-span",
+              setSpanAttribute("my-key-from-lua", "my-value-from-lua")
+              withTraceSpan("my-second-span",
                 function()
                 end
               )
