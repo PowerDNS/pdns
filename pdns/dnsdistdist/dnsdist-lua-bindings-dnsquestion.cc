@@ -379,29 +379,6 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
 #endif
     });
 
-  luaCtx.registerFunction<void (DNSQuestion::*)(const std::string&, const std::function<void()>&)>(
-    "withTraceSpan",
-    [](const DNSQuestion& dnsQuestion, const std::string& name, const std::function<void()>& func) {
-#ifndef DISABLE_PROTOBUF
-      if (auto tracer = dnsQuestion.ids.getTracer(); tracer != nullptr) {
-        auto closer = tracer->openSpan(name);
-        func();
-        return;
-      }
-#endif
-      func();
-    });
-
-  luaCtx.registerFunction<void (DNSQuestion::*)(const std::string&, const std::string&)>(
-    "setSpanAttribute",
-    [](const DNSQuestion& dnsQuestion, const std::string& key, const std::string& value) {
-#ifndef DISABLE_PROTOBUF
-      if (auto tracer = dnsQuestion.ids.getTracer(); tracer != nullptr) {
-        tracer->setSpanAttribute(tracer->getLastSpanID(), key, AnyValue{value});
-      }
-#endif
-    });
-
   class AsynchronousObject
   {
   public:
