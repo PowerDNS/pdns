@@ -1076,7 +1076,7 @@ void serializeToBuffer(std::string& buffer, const LMDBBackend::LMDBResourceRecor
 
   // Reserve space to store the size of the resource record + the content of the resource
   // record + a few other things.
-  buffer.reserve(buffer.size() + sizeof(len) + len + sizeof(value.ttl) + sizeof(value.auth) + sizeof(value.disabled) + sizeof(value.hasOrderName));
+  buffer.reserve(buffer.size() + serialize_prefix_size + len + serialize_trailing_size);
 
   // Store the size of the resource record (in host order).
   // NOLINTNEXTLINE.
@@ -1108,7 +1108,7 @@ static inline size_t deserializeRRFromBuffer(const string_view& str, LMDBBackend
 {
   const auto* data = str.data();
   uint16_t len;
-  if (str.size() < sizeof(len)) {
+  if (str.size() < serialize_prefix_size) {
     return 0;
   }
   memcpy(&len, data, sizeof(len));
