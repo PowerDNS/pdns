@@ -5531,7 +5531,7 @@ static int B2BMigrate(vector<string>& cmds, const std::string_view synopsis)
 
 static int backendCmd(vector<string>& cmds, const std::string_view synopsis)
 {
-  if (cmds.size() < 2) {
+  if (cmds.empty()) {
     return usage(synopsis);
   }
 
@@ -5553,11 +5553,17 @@ static int backendCmd(vector<string>& cmds, const std::string_view synopsis)
     return 1;
   }
 
-  for (auto i = next(begin(cmds), 1); i != end(cmds); ++i) {
-    if (cmds.size() != 2 && !g_quiet) {
-      cerr << "== " << *i << endl;
+  if (cmds.size() == 1) {
+    // get usage synposis from backend, if available
+    cout << matchingBackend->directBackendCmd("");
+  }
+  else {
+    for (auto i = next(begin(cmds), 1); i != end(cmds); ++i) {
+      if (cmds.size() != 2 && !g_quiet) {
+        cerr << "== " << *i << endl;
+      }
+      cout << matchingBackend->directBackendCmd(*i);
     }
-    cout << matchingBackend->directBackendCmd(*i);
   }
 
   return 0;
