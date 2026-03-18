@@ -1569,6 +1569,10 @@ bool LMDBBackend::replaceRRSet(domainid_t domain_id, const DNSName& qname, const
   else {
     if (qt.getCode() == QType::NSEC3) {
       deleteNSEC3RecordPair(txn, domain_id, relative);
+      // Compute key if insertions are to follow
+      if (!rrset.empty()) {
+        match = co(domain_id, relative, qt.getCode());
+      }
     }
     else {
       auto cursor = txn->txn->getCursor(txn->db->dbi);
