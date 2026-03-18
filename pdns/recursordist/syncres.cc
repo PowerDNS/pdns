@@ -4467,15 +4467,19 @@ void SyncRes::rememberParentSetIfNeeded(const DNSName& domain, const vector<DNSR
 
   set<DNSName> authSet;
   for (const auto& dnsRecord : newRecords) {
-    auto content = getRR<NSRecordContent>(dnsRecord);
-    authSet.insert(content->getNS());
+    if (auto content = getRR<NSRecordContent>(dnsRecord)) {
+      authSet.insert(content->getNS());
+    }
+    else {
+      return; // invalid record, do not save
+    }
   }
   // The glue IPs could also differ, but we're not checking that yet, we're only looking for parent NS records not
   // in the child set
   bool shouldSave = false;
   for (const auto& dnsRecord : existing) {
     auto content = getRR<NSRecordContent>(dnsRecord);
-    if (authSet.count(content->getNS()) == 0) {
+    if (content && authSet.count(content->getNS()) == 0) {
       LOG(prefix << domain << ": At least one parent-side NS was not in the child-side NS set, remembering parent NS set and cached IPs" << endl);
       shouldSave = true;
       break;
@@ -4485,12 +4489,16 @@ void SyncRes::rememberParentSetIfNeeded(const DNSName& domain, const vector<DNSR
   if (shouldSave) {
     map<DNSName, vector<ComboAddress>> entries;
     for (const auto& dnsRecord : existing) {
-      auto content = getRR<NSRecordContent>(dnsRecord);
-      const DNSName& name = content->getNS();
-      set<GetBestNSAnswer> beenthereIgnored;
-      unsigned int nretrieveAddressesForNSIgnored{};
-      auto addresses = getAddrs(name, depth, prefix, beenthereIgnored, true, nretrieveAddressesForNSIgnored);
-      entries.emplace(name, addresses);
+      if (auto content = getRR<NSRecordContent>(dnsRecord)) {
+        const DNSName& name = content->getNS();
+        set<GetBestNSAnswer> beenthereIgnored;
+        unsigned int nretrieveAddressesForNSIgnored{};
+        auto addresses = getAddrs(name, depth, prefix, beenthereIgnored, true, nretrieveAddressesForNSIgnored);
+        entries.emplace(name, addresses);
+      }
+      else {
+        return; // invalid record; do not save
+      }
     }
     s_savedParentNSSet.lock()->emplace(domain, std::move(entries), d_now.tv_sec + ttl);
   }
