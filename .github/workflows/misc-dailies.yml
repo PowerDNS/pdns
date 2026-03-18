@@ -31,7 +31,7 @@ jobs:
     if: ${{ vars.SCHEDULED_MISC_DAILIES }}
     runs-on: ubuntu-22.04
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
       with:
         fetch-depth: 5
         submodules: recursive
@@ -80,7 +80,7 @@ jobs:
         IPv6: [0, 1]
       max-parallel: 1
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 5
           submodules: recursive

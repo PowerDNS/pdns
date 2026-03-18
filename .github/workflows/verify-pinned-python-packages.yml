@@ -35,7 +35,7 @@ jobs:
     outputs:
       req-files: ${{ steps.get-list-requirements.outputs.files }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           persist-credentials: false
       - name: Get all requirements.txt files and export them as outputs
@@ -66,7 +66,7 @@ jobs:
     steps:
       - run: echo "${REQUIREMENTS_FILE}"
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           persist-credentials: false
       - name: add problem matchers

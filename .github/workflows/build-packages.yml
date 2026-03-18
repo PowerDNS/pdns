@@ -80,7 +80,7 @@ jobs:
       # but, as this whole workflow needs at least 30 minutes to run, I prefer spending a few seconds here
       # so that the command remains readable, because jo is simpler to use.
       - run: sudo apt-get update && sudo apt-get -y install jo
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 1
           submodules: recursive
@@ -146,7 +146,7 @@ jobs:
       PRODUCT: ${{ inputs.product }}
       OS: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0 # for correct version numbers
           submodules: recursive
@@ -180,7 +180,7 @@ jobs:
           TARGET_ARCH: ${{ steps.getarch.outputs.target-arch }}
         run: for f in $(ls ./built_pkgs/*/*/*-${OS}.tar.bz2 | sed 's/\.tar.bz2$//'); do mv $f.tar.bz2 $f-${TARGET_ARCH}.tar.bz2; done
       - name: Upload packages as GH artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ inputs.product }}-${{ matrix.os }}-${{ steps.getversion.outputs.version }}-${{ steps.getarch.outputs.target-arch }}
           path: built_pkgs/
@@ -257,7 +257,7 @@ jobs:
       actions: read   # To read the workflow path.
       id-token: write # To sign the provenance.
       contents: write # To be able to upload assets as release artifacts
-    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.0.0
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
     with:
       base64-subjects: "${{ needs.build.outputs[format('pkghashes-{0}-{1}', matrix.os, matrix.architecture)] }}"
       upload-assets: false
@@ -271,7 +271,7 @@ jobs:
       actions: read   # To read the workflow path.
       id-token: write # To sign the provenance.
       contents: write # To be able to upload assets as release artifacts
-    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.0.0
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
     with:
       base64-subjects: "${{ needs.build.outputs.srchashes }}"
       upload-assets: false
@@ -289,12 +289,12 @@ jobs:
     steps:
       - name: Download source tarball provenance for ${{ inputs.product }} (${{ inputs.ref }})
         id: download-src-provenance
-        uses: actions/download-artifact@v4 # be careful, this needs to match what https://github.com/slsa-framework/slsa-github-generator is using
+        uses: actions/download-artifact@v8
         with:
           name: "${{ inputs.product }}-${{ needs.build.outputs.version }}-src.intoto.jsonl"
       - name: Download provenance for ${{ inputs.product }} (${{ inputs.ref }}) for ${{ matrix.os }}
         id: download-provenance
-        uses: actions/download-artifact@v4 # be careful, this needs to match what https://github.com/slsa-framework/slsa-github-generator is using
+        uses: actions/download-artifact@v8
         with:
           name: "${{ inputs.product }}-${{ needs.build.outputs.version }}-${{ matrix.os }}-${{ matrix.architecture }}.intoto.jsonl"
       - name: Upload provenance artifacts to downloads.powerdns.com
@@ -340,12 +340,12 @@ jobs:
     outputs:
       check-finished: ${{ steps.check-finished.outputs.completed }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 1
           persist-credentials: false
       - name: Download packages
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           pattern: "${{ inputs.product }}-${{ matrix.os }}-${{ needs.build.outputs.version }}-${{ matrix.architecture }}"
           path: "${{ runner.temp }}/files"
@@ -410,12 +410,12 @@ jobs:
       PRODUCT: ${{ needs.build.outputs.product-name }}
       VERSION: ${{ needs.build.outputs.version }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 1
           persist-credentials: false
       - name: Download packages
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           pattern: "${{ inputs.product }}-${{ matrix.os }}-${{ env.VERSION }}-${{ matrix.architecture }}"
           path: "${{ runner.temp }}/files"
@@ -449,12 +449,12 @@ jobs:
       PRODUCT: ${{ needs.build.outputs.product-name }}
       VERSION: ${{ needs.build.outputs.version }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 1
           persist-credentials: false
       - name: Download provenance files
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           pattern: "${{ inputs.product }}-${{ env.VERSION }}-*.intoto.jsonl"
           path: "${{ runner.temp }}/files"
@@ -463,7 +463,7 @@ jobs:
         run: |
           echo "OS=$(echo ${OSLIST} | awk '{print $1}')" >> $GITHUB_ENV
       - name: Download a package artifact
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           pattern: "${{ inputs.product }}-${{ env.OS }}-${{ env.VERSION }}-x86_64"
           path: "${{ runner.temp }}/files"
@@ -495,7 +495,7 @@ jobs:
     outputs:
       check-finished: ${{ steps.check-finished.outputs.completed }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 1
           persist-credentials: false
@@ -543,7 +543,7 @@ jobs:
       SHORTVERSION: ${{ needs.build.outputs.shortversion }}
       DEBIAN_FRONTEND: noninteractive
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 1
           persist-credentials: false
