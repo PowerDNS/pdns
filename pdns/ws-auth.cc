@@ -2537,7 +2537,7 @@ static void replaceZoneRecords(const DomainInfo& domainInfo, const ZoneName& zon
   }
   if (!new_records.empty() && ent_present) {
     QType qt_ent{QType::ENT};
-    if (!domainInfo.backend->replaceRRSet(domainInfo.id, qname, qt_ent, new_records)) {
+    if (!domainInfo.backend->replaceRRSet(domainInfo.id, qname, qt_ent, {})) {
       throw ApiException("Hosting backend does not support editing records.");
     }
   }
