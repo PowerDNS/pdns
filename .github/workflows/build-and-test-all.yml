@@ -216,15 +216,13 @@ jobs:
     needs: get-runner-container-image
     strategy:
       matrix:
-        builder: [autotools, meson]
+        builder: meson
         sanitizers: [asan+ubsan, tsan]
         features: [least, full]
         architecture_suffix: ${{ contains(needs.get-runner-container-image.outputs.id, 'debian-11') && fromJson('[""]') || fromJson('["", "-arm"]') }}
         exclude:
           - sanitizers: tsan
             features: least
-          - architecture_suffix: '-arm'
-            builder: autotools
           - architecture_suffix: '-arm'
             features: least
       fail-fast: false
@@ -269,20 +267,10 @@ jobs:
       - run: ${{ env.INV_CMD }} ci-build-and-install-quiche ${REPO_HOME}
         if: ${{ matrix.features != 'least' }}
         working-directory: ./pdns/dnsdistdist/
-      - run: ${{ env.INV_CMD }} ci-autoconf
-        if: ${{ matrix.builder == 'autotools' }}
+      - run: ${{ env.INV_CMD }} ci-dnsdist-configure ${{ matrix.features }} dnsdist-${{ env.BUILDER_VERSION }}
         working-directory: ./pdns/dnsdistdist/
-      - run: ${{ env.INV_CMD }} ci-dnsdist-configure ${{ matrix.features }} ${{ matrix.builder }} dnsdist-${{ env.BUILDER_VERSION }}
-        working-directory: ./pdns/dnsdistdist/
-        if: ${{ matrix.builder != 'autotools' }}
-      - run: |
-          mkdir dnsdist-${{ env.BUILDER_VERSION }}
-        if: ${{ matrix.builder == 'autotools' }}
-        working-directory: ./pdns/dnsdistdist/
-      - run: ${{ env.INV_CMD }} ci-dnsdist-configure ${{ matrix.features }} ${{ matrix.builder }} dnsdist-${{ env.BUILDER_VERSION }}
-        if: ${{ matrix.builder == 'autotools' }}
-      - run: ${{ env.INV_CMD }} ci-dnsdist-make-bear ${{ matrix.builder }}
-      - run: ${{ env.INV_CMD }} ci-dnsdist-run-unit-tests ${{ matrix.builder }}
+      - run: ${{ env.INV_CMD }} ci-dnsdist-run-ninja dnsdist-${{ env.BUILDER_VERSION }}
+      - run: ${{ env.INV_CMD }} ci-dnsdist-run-unit-tests
       - run: ${{ env.INV_CMD }} generate-coverage-info ./testrunner 'dnsdist' $GITHUB_WORKSPACE
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' && matrix.builder == 'meson'}}
       - name: Coveralls Parallel dnsdist unit
@@ -294,17 +282,14 @@ jobs:
           parallel: true
           allow-empty: true
           fail-on-error: false
-      - run: ${{ env.INV_CMD }} ci-dnsdist-install ${{ matrix.builder == 'meson' && '--meson' || '' }}
+      - run: ${{ env.INV_CMD }} ci-dnsdist-install
       - run: ccache -s
       - uses: ./.github/actions/normalize-branch-name
-        if: ${{ matrix.builder == 'meson' }}
       - name: Prepare binaries folder
-        if: ${{ matrix.builder == 'meson' }}
         run: |
           mkdir -p /opt/dnsdist/bin
           for i in $(find . -maxdepth 1 -type f -executable); do cp ${i} /opt/dnsdist/bin/; done
       - name: Store the binaries
-        if: ${{ matrix.builder == 'meson' }}
         uses: actions/upload-artifact@v7 # this takes 30 seconds, maybe we want to tar
         with:
           name: dnsdist-${{ matrix.features }}-${{ matrix.sanitizers }}-${{ matrix.builder}}${{ matrix.architecture_suffix }}-${{ env.normalized-branch-name }}

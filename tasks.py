@@ -1018,7 +1018,7 @@ DNSDIST_CONFIGURE_CXXFLAGS_LEAST = " ".join(
 
 
 @task
-def ci_dnsdist_configure(c, features, builder, build_dir):
+def ci_dnsdist_configure(c, features, build_dir):
     additional_flags = ""
     additional_ld_flags = ""
     if is_compiler_clang():
@@ -1027,75 +1027,13 @@ def ci_dnsdist_configure(c, features, builder, build_dir):
     if features == "least":
         additional_flags = DNSDIST_CONFIGURE_CXXFLAGS_LEAST
 
-    if builder == "meson":
-        cmd = ci_dnsdist_configure_meson(c, features, additional_flags, additional_ld_flags, build_dir)
-        logfile = "meson-logs/meson-log.txt"
-    else:
-        cmd = ci_dnsdist_configure_autotools(features, additional_flags, additional_ld_flags, build_dir)
-        logfile = "config.log"
+    cmd = ci_dnsdist_configure_meson(c, features, additional_flags, additional_ld_flags, build_dir)
+    logfile = "meson-logs/meson-log.txt"
 
     res = c.run(cmd, warn=True)
     if res.exited != 0:
         c.run(f"cat {logfile}")
         raise UnexpectedExit(res)
-
-
-def ci_dnsdist_configure_autotools(features, additional_flags, additional_ld_flags, build_dir):
-    if features == "full":
-        features_set = "--enable-dnstap \
-                      --enable-dnscrypt \
-                      --enable-dns-over-tls \
-                      --enable-dns-over-https \
-                      --enable-dns-over-quic \
-                      --enable-dns-over-http3 \
-                      --enable-ipcrypt2 \
-                      --enable-systemd \
-                      --enable-yaml \
-                      --prefix=/opt/dnsdist \
-                      --with-gnutls \
-                      --with-libsodium \
-                      --with-lua=luajit \
-                      --with-libcap \
-                      --with-net-snmp \
-                      --with-nghttp2 \
-                      --with-re2"
-    else:
-        features_set = "--disable-dnstap \
-                      --disable-dnscrypt \
-                      --disable-ipcipher \
-                      --disable-ipcrypt2 \
-                      --disable-systemd \
-                      --without-cdb \
-                      --without-ebpf \
-                      --without-gnutls \
-                      --without-libedit \
-                      --without-libsodium \
-                      --without-lmdb \
-                      --without-net-snmp \
-                      --without-nghttp2 \
-                      --without-re2"
-    unittests = get_unit_tests()
-    fuzztargets = get_fuzzing_targets()
-    tools = f"""AR=llvm-ar-{clang_version} RANLIB=llvm-ranlib-{clang_version}""" if is_compiler_clang() else ""
-    out_of_tree_build = build_dir != ""
-    return " ".join(
-        [
-            tools,
-            get_base_configure_cmd(
-                additional_c_flags="",
-                additional_cxx_flags=additional_flags,
-                additional_ld_flags=additional_ld_flags,
-                enable_systemd=False,
-                enable_sodium=False,
-                out_of_tree_build=out_of_tree_build,
-            ),
-            features_set,
-            unittests,
-            fuzztargets,
-            "--enable-lto=thin",
-            "--prefix=/opt/dnsdist",
-        ]
-    )
 
 
 DNSDIST_CONFIGURE_MESON_FEATURE_SET_FULL = " ".join(
@@ -1303,22 +1241,8 @@ def ci_rec_build(c, meson=False):
 
 
 @task
-def ci_dnsdist_make(c):
-    c.run(f"make -j{get_build_concurrency(4)} -k V=1")
-
-
-def ci_dnsdist_run_ninja(c):
-    c.run(f". {repo_home}/.venv/bin/activate && ninja -j{get_build_concurrency(4)} --verbose")
-
-
-@task
-def ci_dnsdist_make_bear(c, builder):
-    if builder == "meson":
-        ci_dnsdist_run_ninja(c)
-        return
-
-    # Assumed to be running under ./pdns/dnsdistdist/
-    c.run(f"bear --append -- make -j{get_build_concurrency(4)} -k V=1")
+def ci_dnsdist_run_ninja(c, build_dir):
+    c.run(f". {repo_home}/.venv/bin/activate && meson compile -C {build_dir} -j{get_build_concurrency(4)} --verbose")
 
 
 @task
@@ -1359,14 +1283,11 @@ def ci_rec_run_unit_tests(c, meson=False):
 
 
 @task
-def ci_dnsdist_run_unit_tests(c, builder):
-    if builder == "meson":
-        suite_timeout_sec = 120
-        logfile = "meson-logs/testlog.txt"
-        res = c.run(f". {repo_home}/.venv/bin/activate && meson test --verbose -t {suite_timeout_sec}", warn=True)
-    else:
-        logfile = "test-suite.log"
-        res = c.run("make check", warn=True)
+def ci_dnsdist_run_unit_tests(c):
+    suite_timeout_sec = 120
+    logfile = "meson-logs/testlog.txt"
+    res = c.run(f". {repo_home}/.venv/bin/activate && meson test --verbose -t {suite_timeout_sec}", warn=True)
+
     if res.exited != 0:
         c.run(f"cat {logfile}", warn=True)
         raise UnexpectedExit(res)
@@ -1393,11 +1314,8 @@ def ci_rec_install(c, meson=False):
 
 
 @task
-def ci_dnsdist_install(c, meson=False):
-    if meson:
-        c.sudo(f"bash -c 'source {repo_home}/.venv/bin/activate && meson install'")
-    else:
-        c.run("make install")
+def ci_dnsdist_install(c):
+    c.sudo(f"bash -c 'source {repo_home}/.venv/bin/activate && meson install'")
 
 
 @task
