@@ -5,7 +5,7 @@ dnspython>=1.11
 pytest
 protobuf>=3.0
 pyasn1==0.6.3
-pysnmp>=5,<6
+pysnmp>=7
 requests>=2.1.0
 Twisted>0.15.0
 pyyaml==6.0.1
