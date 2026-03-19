@@ -714,7 +714,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                        });
 
   luaCtx.writeFunction("rmServer",
-                       [](boost::variant<std::shared_ptr<DownstreamState>, int, std::string> var) {
+                       [client, configCheck](boost::variant<std::shared_ptr<DownstreamState>, int, std::string> var) {
                          setLuaSideEffect();
                          shared_ptr<DownstreamState> server = nullptr;
                          if (auto* rem = boost::get<shared_ptr<DownstreamState>>(&var)) {
@@ -750,6 +750,11 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          dnsdist::configuration::updateRuntimeConfiguration([&server](dnsdist::configuration::RuntimeConfiguration& config) {
                            config.d_backends.erase(std::remove(config.d_backends.begin(), config.d_backends.end(), server), config.d_backends.end());
                          });
+
+                         if (!(client || configCheck)) {
+                           SLOG(infolog("Removed downstream server %s", server->d_config.remote.toStringWithPort()),
+                                getLogger("rmServer")->info(Logr::Info, "Removed downstream server", "backend.address", Logging::Loggable(server->d_config.remote)));
+                         }
 
                          server->stop();
                        });
