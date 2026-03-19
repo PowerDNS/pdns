@@ -20,7 +20,7 @@ runs:
       run: mkdir -p ~/.ccache
       working-directory: .
     - name: let GitHub cache our ccache data
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ~/.ccache
         key: ${{ inputs.cache-key-base }}-${{ steps.get-stamp.outputs.stamp }}
