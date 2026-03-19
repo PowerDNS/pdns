@@ -1111,7 +1111,9 @@ def ci_dnsdist_configure_meson(c, features, additional_flags, additional_ld_flag
     builder_version = os.getenv("BUILDER_VERSION")
     dist_dir = "/tmp/dnsdist-meson-dist-build"
 
-    c.run(f". {repo_home}/.venv/bin/activate && meson setup {dist_dir} && meson dist -C {dist_dir} --no-tests")
+    c.run(
+        f". {repo_home}/.venv/bin/activate && meson setup {dist_dir} && BUILDER_VERSION='{builder_version}' meson dist -C {dist_dir} --no-tests"
+    )
     with c.cd(f"{dist_dir}/meson-dist/"):
         c.run(f"tar xf dnsdist-{builder_version}.tar.xz")
 
