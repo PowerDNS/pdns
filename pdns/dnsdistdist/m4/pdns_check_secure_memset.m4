@@ -1,1 +1,0 @@
-../../../m4/pdns_check_secure_memset.m4
