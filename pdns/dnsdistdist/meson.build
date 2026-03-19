@@ -477,6 +477,8 @@ tools = {
   },
 }
 
+fuzz_targets = []
+
 if get_option('fuzz-targets')
   fuzz_extra_sources = []
   fuzzer_ldflags = []
@@ -496,6 +498,7 @@ if get_option('fuzz-targets')
        ]
     },
   }
+  fuzz_targets += 'fuzz-target-dnsdistcache'.underscorify()
   if get_option('xsk').allowed() and dep_libbpf.found() and dep_libxdp.found()
     tools += {
       'fuzz-target-xsk' : {
@@ -513,6 +516,7 @@ if get_option('fuzz-targets')
          ]
        },
     }
+    fuzz_targets += 'fuzz-target-xsk'.underscorify()
   endif
 endif
 
@@ -663,6 +667,19 @@ foreach tool, info: tools
     endforeach
   endif
 endforeach
+
+if get_option('fuzz-targets')
+  real_fuzz_targets = []
+  foreach name : fuzz_targets
+    real_fuzz_targets += get_variable(name)
+  endforeach
+  custom_target('fuzz-targets',
+    command: ['/bin/true'],
+    output: 'fuzz-targets',
+    build_always_stale: true,
+    depends: real_fuzz_targets
+  )
+endif
 
 if get_option('unit-tests')
   test('testrunner', testrunner)
