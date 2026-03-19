@@ -2123,6 +2123,7 @@ bool LMDBBackend::get(DNSZoneRecord& zr) // NOLINT(readability-identifier-length
     zr.disabled = lrr.disabled;
   }
   catch (const std::exception& e) {
+    lookupEnd();
     throw PDNSException(e.what());
   }
 
