@@ -180,7 +180,7 @@ using protobufOptions_t = std::unordered_map<std::string, boost::variant<bool, u
 
 const std::array<std::string, 4> ProtobufExportConfig::strategyNames = {
   "All",
-  "Roundrobin",
+  "RoundRobin",
   "FirstAvailable",
   "Hashed",
 };

@@ -36,7 +36,7 @@ struct ProtobufExportConfig
   enum class Strategy : uint8_t
   {
     All,
-    Roundrobin,
+    RoundRobin,
     FirstAvailable,
     Hashed,
   };

@@ -494,7 +494,7 @@ static void protobufLog(ProtobufServersInfo& pbConfig, const string& msg, const 
       remoteLoggerQueueData(*server, msg);
     }
     break;
-  case ProtobufExportConfig::Strategy::Roundrobin: {
+  case ProtobufExportConfig::Strategy::RoundRobin: {
     if (pbConfig.servers->size() > 0) {
       size_t index = pbConfig.count++ % pbConfig.servers->size();
       remoteLoggerQueueData(*pbConfig.servers->at(index), msg);

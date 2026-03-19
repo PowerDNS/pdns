@@ -273,9 +273,11 @@ As of version 5.1.0, a protobuf server is defined as
     logResponses: true
     exportTypes: [A, AAAA, CNAME] Sequence of QType names
     logMappedFrom: false
+    frame4: false # since 5.5.0
+    strategy: All # since 5.5.0
 
 .. versionchanged:: 5.3.0 The aliases ``max_queued_entries``, ``reconnect_wait_time``, ``tagged_only``, ``async_connect``, ``log_queries``, ``log_responses``, ``export_types``, ``log_mapped_from`` have been introduced.
-    
+
 An example of a ``protobuf_servers`` entry, which is a sequence of `ProtobufServer`_:
 
 .. code-block:: yaml

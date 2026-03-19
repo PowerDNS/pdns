@@ -47,7 +47,17 @@ Protobuf export to a server is enabled using the ``protobufServer()`` directive:
 
   .. versionchanged:: 5.1.0
 
-     Added support for the HTTPS, SVCB and NAPTR record types.
+  Added support for the HTTPS, SVCB and NAPTR record types.
+
+  .. versionadded:: 5.5.0
+
+  * ``frame4=false``: bool - Whether to use 4 byte ints as framing value. Default is to use 2 bytes, which limits the message size to 64k.
+  * ``strategy='All'``: string - The strategy to use, possible values are:
+
+    - ``'All'`` send to all servers.
+    - ``'RoundRobin'`` alternate between servers in a cyclic way.
+    - ``'FirstAvailable'`` send to first server that has room in its queue.
+    - ``'Hashed'`` send to a single server, indexed by a hash of the qname and client address.
 
 .. function:: protobufServer(server [[[[[[[, timeout=2], maxQueuedEntries=100], reconnectWaitTime=1], maskV4=32], maskV6=128], asyncConnect=false], taggedOnly=false])
 
