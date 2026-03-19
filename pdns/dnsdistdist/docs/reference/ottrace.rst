@@ -139,3 +139,82 @@ The following example makes :program:`dnsdist` accept a TRACEPARENT, and update 
         value: true
         send_downstream_traceparent: true
         use_incoming_traceparent: true
+
+Creating Trace Spans from LuaActions
+====================================
+
+.. versionadded:: 2.2.0
+
+It is possible to create Spans inside :func:`LuaRules <LuaRule>` or :func:`LuaResponseRules <LuaResponseRule>` in order to track performance of your Lua code.
+To do this, you can call the :func:`withTraceSpan` function.
+This function takes a string that is the name of the Span and the function with will be instrumented.
+
+.. code-block:: lua
+
+  function myLuaAction(dq)
+    setSpanAttribute("attr-in-the-rule-span", "hello from Lua!")
+    withTraceSpan(
+      'my-trace-span',
+      function ()
+        setSpanAttribute("some.key", "some-value")
+        -- Do some actual things with the DNSQuestion here
+      end
+    )
+    return DNSAction.None
+  end
+
+Within the function body, you can create more spans by calling :func:`withTraceSpan` again.
+
+.. code-block:: lua
+
+  function myLuaAction(dq)
+    withTraceSpan(
+      'my-trace-span',
+      function ()
+        -- Some set up
+        setSpanAttribute("some.key", "some-value")
+
+        -- This will create a child span of 'my-trace-span'
+        withTraceSpan(
+          'inner-span',
+          function ()
+            -- Do some longer-running thing
+          end
+        )
+      end
+    )
+    return DNSAction.None
+  end
+
+Using :func:`withTraceSpan` or :func:`setSpanAttribute` when tracing is not enabled is completely safe and transparent.
+The Lua code will be run, but no Trace Span will be created.
+
+Functions
+=========
+
+The following functions are always available, but only produce Trace Spans within the following contexts:
+
+* :func:`LuaAction`
+
+.. function:: withTraceSpan(name, func)
+
+  .. versionadded:: 2.2.0
+
+  Open an OpenTelemetry Trace Span called ``name`` that instruments function ``func``.
+  This method can be called safely when Tracing is not enabled for the query or when :program:`dnsdist` is built without Protobuf support.
+
+  :param string name: The name for this Span
+  :param func function: The function to run. This function takes no parameters
+
+.. function:: setSpanAttribute(key, value)
+
+  .. versionadded:: 2.2.0
+
+  Add an OpenTelemetry Trace Span attribute to the current span.
+  In the context of a :func:`LuaAction`, this sets an attribute on the Rule's Span.
+  When used inside the function passed to :meth:`DNSQuestion:withTraceSpan`, it will set the Attribute on the enclosed span.
+
+  This method can be called safely when Tracing is not enabled for the query or when :program:`dnsdist` is built without Protobuf support.
+
+  :param string key: The key for attribute
+  :param string value: The value of the attribute

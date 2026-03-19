@@ -156,6 +156,7 @@ class DNSDistOpenTelemetryProtobufBaseTest(DNSDistOpenTelemetryProtobufTest):
     def doTest(
         self,
         hasProcessResponseAfterRules=False,
+        hasRemoteLogResponseAction=True,
         useTCP=False,
         traceID="",
         spanID="",
@@ -174,7 +175,13 @@ class DNSDistOpenTelemetryProtobufBaseTest(DNSDistOpenTelemetryProtobufTest):
         traces_data.ParseFromString(msg.openTelemetryData)
         ot_data = google.protobuf.json_format.MessageToDict(traces_data, preserving_proto_field_name=True)
 
-        self.checkOTData(ot_data, hasProcessResponseAfterRules, useTCP, extraFunctions=extraFunctions)
+        self.checkOTData(
+            ot_data,
+            useTCP=useTCP,
+            extraFunctions=extraFunctions,
+            hasRemoteLogResponseAction=hasRemoteLogResponseAction,
+            hasProcessResponseAfterRules=hasProcessResponseAfterRules,
+        )
 
         traceId = base64.b64encode(msg.openTelemetryTraceID).decode()
         for msg_span in ot_data["resource_spans"][0]["scope_spans"][0]["spans"]:
@@ -555,6 +562,55 @@ addResponseAction(AllRule(), RemoteLogResponseAction(rl))
         self.doTest()
 
 
+class DNSDistOpenTelemetryProtobufBaseLoggersInActionYAML(DNSDistOpenTelemetryProtobufBaseTest):
+    _yaml_config_params = ["_testServerPort", "_protobufServerPort"]
+
+    _yaml_config_template = """---
+logging:
+  open_telemetry_tracing:
+    enabled: true
+
+backends:
+  - address: 127.0.0.1:%d
+    protocol: Do53
+
+remote_logging:
+ protobuf_loggers:
+   - name: pblog
+     address: 127.0.0.1:%d
+
+query_rules:
+ - name: Enable tracing
+   selector:
+     type: All
+   action:
+     type: SetTrace
+     value: true
+     remote_loggers:
+       - pblog
+"""
+
+    def testBasic(self):
+        self.doTest(hasRemoteLogResponseAction=False, hasProcessResponseAfterRules=True)
+
+    def testTCP(self):
+        self.doTest(
+            useTCP=True,
+            hasRemoteLogResponseAction=False,
+            hasProcessResponseAfterRules=True,
+            extraFunctions={
+                "createTCPQuery",
+                "queueResponse",
+                "TCPConnectionToBackend::handleResponse",
+                "getDownstreamConnection",
+                "TCPConnectionToBackend::sendQuery",
+                "handleResponse",
+                "prepareQueryForSending",
+                "TCPConnectionToBackend::queueQuery",
+            },
+        )
+
+
 class TestOpenTelemetryTracingBaseYAMLIncludedRemoteLoggerDropped(DNSDistOpenTelemetryProtobufTest):
     _yaml_config_params = [
         "_testServerPort",
@@ -914,3 +970,85 @@ setOpenTelemetryTracing(true)
 addAction(AllRule(), SetTraceAction(true, {remoteLoggers={rl}, sendDownstreamTraceparent=true}), {name="Enable tracing"})
 addResponseAction(AllRule(), RemoteLogResponseAction(rl), {name="Do PB logging"})
         """
+
+
+class TestOpenTelemetryTracingSpansFromLua(DNSDistOpenTelemetryProtobufBaseTest):
+    _yaml_config_params = [
+        "_testServerPort",
+        "_protobufServerPort",
+    ]
+    _yaml_config_template = """---
+logging:
+  open_telemetry_tracing:
+    enabled: true
+
+backends:
+  - address: 127.0.0.1:%d
+    protocol: Do53
+    health_checks:
+      mode: up
+
+remote_logging:
+  protobuf_loggers:
+    - name: pblog
+      address: 127.0.0.1:%d
+
+query_rules:
+  - name: Enable tracing
+    selector:
+      type: All
+    action:
+      type: SetTrace
+      value: true
+      remote_loggers:
+        - pblog
+  - name: A traced LuaAction
+    selector:
+      type: All
+    action:
+      type: Lua
+      function_code: |
+        return function (dq)
+          withTraceSpan("my-span",
+            function ()
+              setSpanAttribute("my-key-from-lua", "my-value-from-lua")
+              withTraceSpan("my-second-span",
+                function()
+                end
+              )
+            end
+          )
+          return DNSAction.None
+        end
+"""
+
+    def testBasic(self):
+        self.doTest(
+            hasProcessResponseAfterRules=True,
+            hasRemoteLogResponseAction=False,
+            extraFunctions={
+                "my-span",
+                "my-second-span",
+                "Rule: A traced LuaAction",
+            },
+        )
+
+    def testTCP(self):
+        self.doTest(
+            useTCP=True,
+            hasProcessResponseAfterRules=True,
+            hasRemoteLogResponseAction=False,
+            extraFunctions={
+                "my-span",
+                "my-second-span",
+                "Rule: A traced LuaAction",
+                "createTCPQuery",
+                "queueResponse",
+                "TCPConnectionToBackend::handleResponse",
+                "getDownstreamConnection",
+                "TCPConnectionToBackend::sendQuery",
+                "handleResponse",
+                "prepareQueryForSending",
+                "TCPConnectionToBackend::queueQuery",
+            },
+        )

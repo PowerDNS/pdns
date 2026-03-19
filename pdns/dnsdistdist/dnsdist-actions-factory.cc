@@ -44,6 +44,7 @@
 #include "dnsdist-rule-chains.hh"
 #include "dnsdist-self-answers.hh"
 #include "dnsdist-snmp.hh"
+#include "dnsdist-lua-bindings-opentelemetry.hh"
 
 #include "dnstap.hh"
 #include "dnswriter.hh"
@@ -533,8 +534,8 @@ public:
     try {
       DNSAction::Action result{};
       {
-        auto lock = g_lua.lock();
-        auto ret = d_func(dnsquestion);
+        auto tracer = dnsquestion->ids.getTracer();
+        auto ret = pdns::trace::dnsdist::runWithLuaTracing(tracer, d_func, dnsquestion);
         if (ruleresult != nullptr) {
           if (std::optional<std::string> rule = std::get<1>(ret)) {
             *ruleresult = *rule;
