@@ -130,16 +130,37 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
     }
     return static_cast<size_t>(0);
   });
-  luaCtx.registerFunction<void (std::shared_ptr<DNSDistPacketCache>::*)(const boost::variant<DNSName, string>& dname, std::optional<uint16_t> qtype, std::optional<bool> suffixMatch)>("expungeByName", [](std::shared_ptr<DNSDistPacketCache>& cache, const boost::variant<DNSName, string>& dname, std::optional<uint16_t> qtype, std::optional<bool> suffixMatch) {
+  luaCtx.registerFunction<void (std::shared_ptr<DNSDistPacketCache>::*)(const boost::variant<LuaArray<DNSName>, LuaArray<string>, DNSName, string>& dname, std::optional<uint16_t> qtype, std::optional<bool> suffixMatch)>("expungeByName", [](std::shared_ptr<DNSDistPacketCache>& cache, const boost::variant<LuaArray<DNSName>, LuaArray<string>, DNSName, string>& dname, std::optional<uint16_t> qtype, std::optional<bool> suffixMatch) {
+    if (cache == nullptr) {
+      return;
+    }
     DNSName qname;
+    vector<DNSName> qnames;
     if (dname.type() == typeid(DNSName)) {
       qname = boost::get<DNSName>(dname);
     }
-    if (dname.type() == typeid(string)) {
+    else if (dname.type() == typeid(string)) {
       qname = DNSName(boost::get<string>(dname));
     }
-    if (cache) {
+    else if (dname.type() == typeid(LuaArray<DNSName>)) {
+      auto qnamesArr = boost::get<LuaArray<DNSName>>(dname);
+      qnames.reserve(qnamesArr.size());
+      for (auto const& qnameVal : qnamesArr) {
+        qnames.push_back(qnameVal.second);
+      }
+    }
+    else if (dname.type() == typeid(LuaArray<string>)) {
+      auto strArr = boost::get<LuaArray<string>>(dname);
+      qnames.reserve(strArr.size());
+      for (auto const& strVal : strArr) {
+        qnames.push_back(DNSName(strVal.second));
+      }
+    }
+    if (qnames.empty()) {
       g_outputBuffer += "Expunged " + std::to_string(cache->expungeByName(qname, qtype ? *qtype : QType(QType::ANY).getCode(), suffixMatch ? *suffixMatch : false)) + " records\n";
+    }
+    else {
+      g_outputBuffer += "Expunged " + std::to_string(cache->expungeByName(qnames, qtype ? *qtype : QType(QType::ANY).getCode(), suffixMatch ? *suffixMatch : false)) + " records\n";
     }
   });
   luaCtx.registerFunction<void (std::shared_ptr<DNSDistPacketCache>::*)() const>("printStats", [](const std::shared_ptr<DNSDistPacketCache>& cache) {
