@@ -162,6 +162,12 @@ jobs:
     - run: inv ci-build-and-install-quiche $REPO_HOME
       if: matrix.product == 'dnsdist'
       working-directory: ./pdns/dnsdistdist/
+    - name: install pip build dependencies
+      if: matrix.product == 'dnsdist'
+      uses: ./.github/actions/pip-build-dependencies
+      with:
+        venv-parent: ${{ env.REPO_HOME }}
+        working-directory: .
     - name: Configure dnsdist
       if: matrix.product == 'dnsdist'
       working-directory: ./pdns/dnsdistdist/
