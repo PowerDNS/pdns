@@ -799,7 +799,7 @@ if dep_systemd_prog.found()
   dnsdist_service_conf_general.set('ConfigFile', '')
 
   configure_file(
-    input: 'dnsdist.service.meson.in',
+    input: 'dnsdist.service.in',
     output: 'dnsdist.service',
     configuration: dnsdist_service_conf_general,
     install: true,
@@ -813,7 +813,7 @@ if dep_systemd_prog.found()
   dnsdist_service_conf_instance.set('ConfigFile', '--config ' + get_option('sysconfdir') + '/dnsdist-%i.conf')
 
   configure_file(
-    input: 'dnsdist.service.meson.in',
+    input: 'dnsdist.service.in',
     output: 'dnsdist@.service',
     configuration: dnsdist_service_conf_instance,
     install: true,
