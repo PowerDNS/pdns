@@ -777,29 +777,35 @@ bool DNSSECKeeper::rectifyZone(const ZoneName& zone, string& error, string& info
     isOptOut = (haveNSEC3 && ns3pr.d_flags);
   }
 
-  while(sd.db->get(rr)) {
-    rr.qname.makeUsLowerCase();
+  try {
+    while(sd.db->get(rr)) {
+      rr.qname.makeUsLowerCase();
 
-    auto res=rss.insert({rr.qname,{rr.ordername, rr.auth, rr.ordername.empty() != (!securedZone || narrow)}}); // only a set ordername is reliable
-    if (!res.second && !res.first->second.update) {
-      res.first->second.update = res.first->second.auth != rr.auth || res.first->second.ordername != rr.ordername;
-    }
-    else if ((!securedZone || narrow) && rr.qname == zone.operator const DNSName&()) {
-      res.first->second.update = true;
-    }
-
-    if (rr.qtype.getCode())
-    {
-      qnames.insert(rr.qname);
-      if(rr.qtype.getCode() == QType::NS && rr.qname != zone.operator const DNSName&()) {
-        nsset.insert(rr.qname);
+      auto res=rss.insert({rr.qname,{rr.ordername, rr.auth, rr.ordername.empty() != (!securedZone || narrow)}}); // only a set ordername is reliable
+      if (!res.second && !res.first->second.update) {
+        res.first->second.update = res.first->second.auth != rr.auth || res.first->second.ordername != rr.ordername;
       }
-      if(rr.qtype.getCode() == QType::DS)
-        dsnames.insert(rr.qname);
-      rrs.emplace_back(rr);
+      else if ((!securedZone || narrow) && rr.qname == zone.operator const DNSName&()) {
+        res.first->second.update = true;
+      }
+
+      if (rr.qtype.getCode())
+      {
+        qnames.insert(rr.qname);
+        if(rr.qtype.getCode() == QType::NS && rr.qname != zone.operator const DNSName&()) {
+          nsset.insert(rr.qname);
+        }
+        if(rr.qtype.getCode() == QType::DS)
+          dsnames.insert(rr.qname);
+        rrs.emplace_back(rr);
+      }
+      else
+        delnonterm.insert(std::move(rr.qname));
     }
-    else
-      delnonterm.insert(std::move(rr.qname));
+  }
+  catch (PDNSException& e) {
+    error = std::string("Exception while listing zone '") + zone.toLogString() + "': " + e.reason;
+    return false;
   }
 
   if(securedZone) {
@@ -846,128 +852,134 @@ bool DNSSECKeeper::rectifyZone(const ZoneName& zone, string& error, string& info
     }
   }
 
-  if (doTransaction)
+  if (doTransaction) {
     sd.db->startTransaction(zone, UnknownDomainID);
+  }
 
-  sd.db->rectifyZoneHook(sd.domain_id, true);
+  int updates{0};
 
-  bool realrr=true;
-  bool doent=true;
-  int updates=0;
-  uint32_t maxent = ::arg().asNum("max-ent-entries");
+  try {
+    sd.db->rectifyZoneHook(sd.domain_id, true);
+
+    bool realrr=true;
+    bool doent=true;
+    uint32_t maxent = ::arg().asNum("max-ent-entries");
 
   dononterm:;
-  std::unordered_map<DNSName,RecordStatus>::const_iterator it;
-  for (const auto& qname: qnames)
-  {
-    bool auth=true;
-    DNSName ordername;
-    auto shorter(qname);
+    std::unordered_map<DNSName,RecordStatus>::const_iterator it;
+    for (const auto& qname: qnames) {
+      bool auth=true;
+      DNSName ordername;
+      auto shorter(qname);
 
-    if(realrr) {
-      do {
-        if(nsset.count(shorter)) {
-          auth=false;
-          break;
-        }
-      } while(shorter.chopOff());
-    } else {
-      auth=nonterm.find(qname)->second;
-    }
-
-    if(haveNSEC3) // NSEC3
-    {
-      if(nsec3set.count(qname)) {
-        if(!narrow)
-          ordername=DNSName(toBase32Hex(hashQNameWithSalt(ns3pr, qname)));
-        if(!realrr && !isOptOut)
-          auth=true;
+      if(realrr) {
+        do {
+          if(nsset.count(shorter)) {
+            auth=false;
+            break;
+          }
+        } while(shorter.chopOff());
+      } else {
+        auth=nonterm.find(qname)->second;
       }
-    }
-    else if (realrr && securedZone) // NSEC
-    {
-      ordername=qname.makeRelative(zone);
-    }
 
-    it = rss.find(qname);
-    if(it == rss.end() || it->second.update || it->second.auth != auth || it->second.ordername != ordername) {
-      sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, auth, QType::ANY, haveNSEC3 && !narrow);
-      ++updates;
-    }
+      if(haveNSEC3) { // NSEC3
+        if(nsec3set.count(qname)) {
+          if(!narrow) {
+            ordername=DNSName(toBase32Hex(hashQNameWithSalt(ns3pr, qname)));
+          }
+          if(!realrr && !isOptOut) {
+            auth=true;
+          }
+        }
+      }
+      else if (realrr && securedZone) { // NSEC
+        ordername=qname.makeRelative(zone);
+      }
 
-    if(realrr)
-    {
-      if (dsnames.count(qname)) {
-        sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, true, QType::DS, haveNSEC3 && !narrow);
+      it = rss.find(qname);
+      if(it == rss.end() || it->second.update || it->second.auth != auth || it->second.ordername != ordername) {
+        sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, auth, QType::ANY, haveNSEC3 && !narrow);
         ++updates;
       }
-      if (!auth || nsset.count(qname)) {
-        ordername.clear();
-        if(isOptOut && !dsnames.count(qname)){
-          sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, false, QType::NS, haveNSEC3 && !narrow);
+
+      if(realrr) {
+        if (dsnames.count(qname)) {
+          sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, true, QType::DS, haveNSEC3 && !narrow);
           ++updates;
         }
-        sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, false, QType::A, haveNSEC3 && !narrow);
-        ++updates;
-        sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, false, QType::AAAA, haveNSEC3 && !narrow);
-        ++updates;
-      }
+        if (!auth || nsset.count(qname)) {
+          ordername.clear();
+          if(isOptOut && !dsnames.count(qname)){
+            sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, false, QType::NS, haveNSEC3 && !narrow);
+            ++updates;
+          }
+          sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, false, QType::A, haveNSEC3 && !narrow);
+          ++updates;
+          sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, false, QType::AAAA, haveNSEC3 && !narrow);
+          ++updates;
+        }
 
-      if(doent)
-      {
-        shorter=qname;
-        while(shorter!=zone.operator const DNSName&() && shorter.chopOff())
-        {
-          if(!qnames.count(shorter))
-          {
-            if(!(maxent))
-            {
-              SLOG(g_log<<Logger::Warning<<"Zone '"<<zone<<"' has too many empty non terminals."<<endl,
-                   d_slog->info(Logr::Warning, "Too many empty non terminals in zone", "zone", Logging::Loggable(zone)));
-              insnonterm.clear();
-              delnonterm.clear();
-              doent=false;
-              break;
+        if(doent) {
+          shorter=qname;
+          while(shorter!=zone.operator const DNSName&() && shorter.chopOff()) {
+            if(!qnames.count(shorter)) {
+              if(!(maxent)) {
+                SLOG(g_log<<Logger::Warning<<"Zone '"<<zone<<"' has too many empty non terminals."<<endl,
+                     d_slog->info(Logr::Warning, "Too many empty non terminals in zone", "zone", Logging::Loggable(zone)));
+                insnonterm.clear();
+                delnonterm.clear();
+                doent=false;
+                break;
+              }
+
+              if (!delnonterm.count(shorter) && !nonterm.count(shorter)) {
+                insnonterm.insert(shorter);
+              }
+              else {
+                delnonterm.erase(shorter);
+              }
+
+              if (!nonterm.count(shorter)) {
+                nonterm.insert(pair<DNSName, bool>(shorter, auth));
+                --maxent;
+              } else if (auth) {
+                nonterm[shorter]=true;
+              }
             }
-
-            if (!delnonterm.count(shorter) && !nonterm.count(shorter))
-              insnonterm.insert(shorter);
-            else
-              delnonterm.erase(shorter);
-
-            if (!nonterm.count(shorter)) {
-              nonterm.insert(pair<DNSName, bool>(shorter, auth));
-              --maxent;
-            } else if (auth)
-              nonterm[shorter]=true;
           }
         }
       }
     }
-  }
 
-  if(realrr)
-  {
-    //cerr<<"Total: "<<nonterm.size()<<" Insert: "<<insnonterm.size()<<" Delete: "<<delnonterm.size()<<endl;
-    if(!insnonterm.empty() || !delnonterm.empty() || !doent)
-    {
-      sd.db->updateEmptyNonTerminals(sd.domain_id, insnonterm, delnonterm, !doent);
-    }
-    if(doent)
-    {
-      realrr=false;
-      qnames.clear();
-      for(const auto& nt :  nonterm){
-        qnames.insert(nt.first);
+    if(realrr) {
+      //cerr<<"Total: "<<nonterm.size()<<" Insert: "<<insnonterm.size()<<" Delete: "<<delnonterm.size()<<endl;
+      if(!insnonterm.empty() || !delnonterm.empty() || !doent) {
+        sd.db->updateEmptyNonTerminals(sd.domain_id, insnonterm, delnonterm, !doent);
       }
-      goto dononterm;
+      if(doent) {
+        realrr=false;
+        qnames.clear();
+        for(const auto& nt :  nonterm){
+          qnames.insert(nt.first);
+        }
+        goto dononterm;
+      }
+    }
+
+    sd.db->rectifyZoneHook(sd.domain_id, false);
+
+    if (doTransaction) {
+      sd.db->commitTransaction();
     }
   }
-
-  sd.db->rectifyZoneHook(sd.domain_id, false);
-
-  if (doTransaction)
-    sd.db->commitTransaction();
+  catch (PDNSException& e) {
+    error = std::string("Exception while rectifying zone '") + zone.toLogString() + "': " + e.reason;
+    if (doTransaction) {
+      sd.db->abortTransaction();
+    }
+    return false;
+  }
 
   infostream<<", "<<updates<<" updates";
   info = infostream.str();
