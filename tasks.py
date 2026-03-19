@@ -1618,6 +1618,11 @@ def coverity_make(c):
 
 
 @task
+def coverity_ninja(c):
+    c.run("/usr/local/bin/cov-build --dir cov-int ninja -C build -k")
+
+
+@task
 def coverity_tarball(c, tarball):
     c.run(f"tar caf {tarball} cov-int")
 
