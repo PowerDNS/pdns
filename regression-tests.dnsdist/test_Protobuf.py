@@ -93,7 +93,7 @@ class DNSDistProtobufTest(DNSDistTest):
 
     # let the protobuf messages the time to get there
     def waitUntilPBQueueIsNoLongerEmpty(self, timeout=1):
-        remaining = timeout * 1000 # milliseconds
+        remaining = timeout * 1000  # milliseconds
         while self._protobufQueue.empty() and remaining > 0:
             time.sleep(0.01)
             remaining -= 10
@@ -180,6 +180,7 @@ class DNSDistProtobufTest(DNSDistTest):
         self.assertTrue(record.HasField("ttl"))
         self.assertEqual(record.ttl, rttl)
         self.assertTrue(record.HasField("rdata"))
+
 
 class TestProtobuf(DNSDistProtobufTest):
     _config_params = ["_testServerPort", "_protobufServerPort", "_protobufServerID", "_protobufServerID"]
@@ -581,6 +582,7 @@ class TestProtobufMetaTags(DNSDistProtobufTest):
         self.assertIn("bar", msg.meta[4].value.stringVal)
         self.assertIn(42, msg.meta[4].value.intVal)
 
+
 class TestProtobufTagsPrefix(DNSDistProtobufTest):
     _config_params = ["_testServerPort", "_protobufServerPort"]
     _config_template = """
@@ -620,6 +622,7 @@ class TestProtobufTagsPrefix(DNSDistProtobufTest):
         self.assertEqual(len(msg.response.tags), 2)
         self.assertIn("pdns-tag-key:pdns-tag-value", msg.response.tags)
         self.assertIn("powerdns-empty-key", msg.response.tags)
+
 
 class TestProtobufTagsPrefixYAML(DNSDistProtobufTest):
     _yaml_config_template = """---
@@ -700,6 +703,7 @@ query_rules:
         self.assertIn("pdns-tag-key:pdns-tag-value", msg.response.tags)
         self.assertIn("powerdns-empty-key", msg.response.tags)
 
+
 class TestProtobufTagsPrefixStrip(DNSDistProtobufTest):
     _config_params = ["_testServerPort", "_protobufServerPort"]
     _config_template = """
@@ -739,6 +743,7 @@ class TestProtobufTagsPrefixStrip(DNSDistProtobufTest):
         self.assertEqual(len(msg.response.tags), 2)
         self.assertIn("tag-key", msg.response.tags)
         self.assertIn("empty-key", msg.response.tags)
+
 
 class TestProtobufTagsPrefixStripYAML(DNSDistProtobufTest):
     _yaml_config_template = """---
@@ -820,6 +825,7 @@ query_rules:
         self.assertEqual(len(msg.response.tags), 2)
         self.assertIn("tag-key", msg.response.tags)
         self.assertIn("empty-key", msg.response.tags)
+
 
 class TestProtobufExtendedDNSErrorTags(DNSDistProtobufTest):
     _config_params = ["_testServerPort", "_protobufServerPort"]
