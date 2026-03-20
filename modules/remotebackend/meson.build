@@ -10,7 +10,7 @@ module_extras = files(
   'remotebackend.hh',
 )
 
-module_deps = [deps, dep_zeromq]
+module_deps = [deps, dep_protozero, dep_zeromq]
 
 if get_option('unit-tests-backends')
   module_remotebackend_testrunner = files('testrunner.sh')[0]
