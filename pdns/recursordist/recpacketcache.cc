@@ -104,6 +104,24 @@ uint64_t RecursorPacketCache::doWipePacketCache(const DNSName& name, uint16_t qt
   return count;
 }
 
+uint64_t RecursorPacketCache::doWipePacketCache(const std::unordered_set<DNSName>& names)
+{
+  uint64_t count = 0;
+  for (const auto& name : names) {
+    if (name.isWildcard()) {
+      DNSName base{name};
+      if (base.chopOff()) {
+        count += doWipePacketCache(base, 0xffff, true); // will wipe too much but we don't have a proper method atm
+      }
+    }
+    else {
+      count += doWipePacketCache(name, 0xffff, false);
+    }
+  }
+  cerr << "Wiped " << count << " names from " << names.size() << " candidates" << endl;
+  return count;
+}
+
 static const std::unordered_set<uint16_t> s_skipOptions = {EDNSOptionCode::ECS, EDNSOptionCode::COOKIE, EDNSOptionCode::TRACEPARENT};
 
 bool RecursorPacketCache::qrMatch(const packetCache_t::index<HashTag>::type::iterator& iter, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass)

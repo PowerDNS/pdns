@@ -575,6 +575,7 @@ impl RPZ {
         insertu32(&mut map, "axfrTimeout", self.axfrTimeout);
         inserts(&mut map, "dumpFile", &self.dumpFile);
         inserts(&mut map, "seedFile", &self.seedFile);
+        insertb(&mut map, "wipePacketCache", self.wipePacketCache);
         serde_yaml::Value::Mapping(map)
     }
 }
