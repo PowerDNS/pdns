@@ -2276,29 +2276,33 @@ bool GSQLBackend::replaceComments(const domainid_t domain_id, const DNSName& qna
 
 string GSQLBackend::directBackendCmd(const string &query)
 {
- try {
-   ostringstream out;
+  if (query.empty()) {
+    return "";
+  }
 
-   auto stmt = d_db->prepare(query,0);
+  try {
+    ostringstream out;
 
-   reconnectIfNeeded();
+    auto stmt = d_db->prepare(query,0);
 
-   stmt->execute();
+    reconnectIfNeeded();
 
-   SSqlStatement::row_t row;
+    stmt->execute();
 
-   while(stmt->hasNextRow()) {
-     stmt->nextRow(row);
-     for(const auto& col: row)
-       out<<"\'"<<col<<"\'\t";
-     out<<endl;
-   }
+    SSqlStatement::row_t row;
 
-   return out.str();
- }
- catch (SSqlException &e) {
-   throw PDNSException("GSQLBackend unable to execute direct command query '" + query + "': "+e.txtReason());
- }
+    while(stmt->hasNextRow()) {
+      stmt->nextRow(row);
+      for(const auto& col: row)
+        out<<"\'"<<col<<"\'\t";
+      out<<endl;
+    }
+
+    return out.str();
+  }
+  catch (SSqlException &e) {
+    throw PDNSException("GSQLBackend unable to execute direct command query '" + query + "': "+e.txtReason());
+  }
 }
 
 string GSQLBackend::pattern2SQLPattern(const string &pattern)
