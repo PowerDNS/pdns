@@ -603,7 +603,7 @@ query_rules:
           suffixes:
             - "multiraw.spoofing.tests.powerdns.com"
         - type: "QType"
-          qtype: "A"
+          numeric_value: 1
     action:
       type: "SpoofRaw"
       answers:

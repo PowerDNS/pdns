@@ -340,6 +340,7 @@ Set the ``source`` parameter to ``false`` to match against destination address i
   parameters:
     - name: "qtype"
       type: "String"
+      default: ""
       description: "The qtype, as a string"
     - name: "numeric_value"
       type: "u16"
