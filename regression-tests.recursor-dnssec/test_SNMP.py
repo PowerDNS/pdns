@@ -41,7 +41,7 @@ class SNMPTest(RecursorTest):
         results = {}
         snmpEngine = SnmpEngine()
         iterator = walk_cmd(
-            SnmpEngine(),
+            snmpEngine,
             auth,
             await UdpTransportTarget.create((self._snmpServer, self._snmpPort), timeout=self._snmpTimeout),
             ContextData(),
