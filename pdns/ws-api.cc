@@ -100,13 +100,33 @@ void apiServerDetail(HttpRequest* /* req */, HttpResponse* resp)
   resp->setJsonBody(getServerDetail());
 }
 
+static bool shouldBeRedacted(const std::string& setting)
+{
+  // auth, rec: webserver-password
+  if (boost::ends_with(setting, "-password")) {
+    return true;
+  }
+  // auth, rec: api-key
+  if (boost::ends_with(setting, "api-key")) {
+    return true;
+  }
+#ifdef PDNS_AUTH // [
+  // auth: {edns-cookie,tcp-control}-secret
+  if (boost::ends_with(setting, "-secret")) {
+    return true;
+  }
+#endif // ]
+  return false;
+}
+
 void apiServerConfig(HttpRequest* /* req */, HttpResponse* resp)
 {
   const vector<string>& items = ::arg().list();
   string value;
   Json::array doc;
   for (const string& item : items) {
-    if (item.find("password") != string::npos || item.find("api-key") != string::npos) {
+    // Prevent sensitive configuration values from being leaked
+    if (shouldBeRedacted(item)) {
       value = "***";
     }
     else {
