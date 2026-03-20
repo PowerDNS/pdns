@@ -52,14 +52,14 @@ class SNMPTest(RecursorTest):
         list = [item async for item in iterator]
 
         for errorIndication, errorStatus, errorIndex, varBinds in list:
-           self.assertFalse(errorIndication)
-           self.assertFalse(errorStatus)
-           self.assertTrue(varBinds)
-           for key, value in varBinds:
-               keystr = key.prettyPrint()
-               if not keystr.startswith(self._snmpOID):
-                   continue
-               results[keystr] = value
+            self.assertFalse(errorIndication)
+            self.assertFalse(errorStatus)
+            self.assertTrue(varBinds)
+            for key, value in varBinds:
+                keystr = key.prettyPrint()
+                if not keystr.startswith(self._snmpOID):
+                    continue
+                results[keystr] = value
 
         snmpEngine.close_dispatcher()
         return results

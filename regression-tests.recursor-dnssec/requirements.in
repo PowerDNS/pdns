@@ -6,6 +6,7 @@ pytest
 protobuf>=3.0
 pyasn1==0.6.3
 pysnmp>=7
+cryptography>=43
 requests>=2.1.0
 Twisted>0.15.0
 pyyaml==6.0.1
