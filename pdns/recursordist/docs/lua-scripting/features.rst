@@ -11,6 +11,6 @@ Currently, the following keys are defined:
 
 .. code-block:: Lua
                 
-    pdns_feature["PR8001_devicename"] = true
+    pdns_features["PR8001_devicename"] = true
 
 
