@@ -1658,8 +1658,14 @@ BOOST_AUTO_TEST_CASE(test_cache_min_max_ttl)
   const DNSName target("cachettl.powerdns.com.");
   const ComboAddress ns("192.0.2.1:53");
 
-  sr->setAsyncCallback([&](const ComboAddress& address, const DNSName& domain, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, std::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
+  sr->setAsyncCallback([&](const ComboAddress& address, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, std::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
     if (isRootServer(address)) {
+      if (domain == g_rootdnsname && type == QType::NS) {
+        setLWResult(res, 0, true, false, true);
+        // one is enough, use small TTL
+        addRecordToLW(res, g_rootdnsname, QType::NS, "a.root-servers.net.", DNSResourceRecord::ANSWER, 10);
+        return LWResult::Result::Success;
+      }
 
       setLWResult(res, 0, false, false, true);
       addRecordToLW(res, domain, QType::NS, "a.gtld-servers.net.", DNSResourceRecord::AUTHORITY, 172800);
@@ -1681,11 +1687,19 @@ BOOST_AUTO_TEST_CASE(test_cache_min_max_ttl)
   SyncRes::s_minimumTTL = 60;
   SyncRes::s_maxcachettl = 3600;
 
+  // wipe the primed root NS records from cache, so they get asked to asyncresolve
+  g_recCache->doWipeCache(g_rootdnsname, false, QType::NS);
+
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_CHECK_EQUAL(ret[0].d_ttl, SyncRes::s_minimumTTL);
+
+  auto ttl = g_recCache->get(now, g_rootdnsname, QType::NS, MemRecursorCache::None, &ret, ComboAddress());
+  // The special root ns ttl override
+  BOOST_CHECK_GT(ttl, SyncRes::s_minimumTTL);
+  BOOST_CHECK_LE(ttl, 3600);
 
   const ComboAddress who;
   vector<DNSRecord> cached;
