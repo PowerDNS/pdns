@@ -275,19 +275,13 @@ protected:
     }
     return false;
   }
-  void reconnectIfNeeded()
-  {
-    if (inTransaction() || isConnectionUsable()) {
-      return;
-    }
-
-    reconnect();
-  }
+  void reconnectIfNeeded(bool force = false);
   virtual void reconnect() { }
   bool inTransaction() override
   {
     return d_inTransaction;
   }
+  void executeStatement(unique_ptr<SSqlStatement>* stmt);
 
   bool d_list{false};
   string d_query_name;
@@ -452,6 +446,7 @@ private:
 
 protected:
   std::unique_ptr<SSql> d_db{nullptr};
+  unsigned int d_transactionStatementCount{0};
   bool d_dnssecQueries;
   bool d_inTransaction{false};
   bool d_upgradeContent{false};
