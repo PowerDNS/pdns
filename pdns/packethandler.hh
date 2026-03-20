@@ -71,6 +71,7 @@ public:
   static const std::shared_ptr<CDSRecordContent> s_deleteCDSContent;
 
 private:
+  std::unique_ptr<DNSPacket> doQuestionInner(DNSPacket&); //!< hand us a DNS packet with a question, we give you an answer
   int tryAutoPrimary(const DNSPacket& p);
   int processNotify(const DNSPacket& );
   void addRootReferral(DNSPacket& r);
