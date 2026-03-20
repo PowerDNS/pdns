@@ -189,7 +189,7 @@ The function will be invoked in a per-thread Lua state, without access to the gl
     - name: "export_tags_prefixes"
       type: "Vec<String>"
       default: ""
-      description: "Internal tags whose keys match at least of these prefixes will be exported into the ``tags`` Protocol Buffer field, as ``key:value`` strings (or as ``key`` if ``export_tags_key_only`` is set). Tags whose keys match at least of the entries in ``export_tags`` will be exported as well."
+      description: "Internal tags whose keys match at least one of these prefixes will be exported into the ``tags`` Protocol Buffer field, as ``key:value`` strings (or as ``key`` if ``export_tags_key_only`` is set). Tags whose keys match at least of the entries in ``export_tags`` will be exported as well."
     - name: "export_tags_strip_prefixes"
       type: "bool"
       default: "false"
