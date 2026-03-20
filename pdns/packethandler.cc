@@ -2130,7 +2130,8 @@ std::unique_ptr<DNSPacket> PacketHandler::opcodeQuery(DNSPacket& pkt, bool noCac
 
   if (mustSendProtoBuf()) {
     std::string data;
-    // data.reserve()
+    // Will hopefully be good enough...
+    data.reserve(pkt.getString().length() + 64);
     pdns::ProtoZero::Message msg{data};
 
     fillProtoZeroMessageFromDNSPacket(msg, pkt);
@@ -2160,6 +2161,8 @@ std::unique_ptr<DNSPacket> PacketHandler::opcodeQuery(DNSPacket& pkt, bool noCac
 
     if (mustSendProtoBuf()) {
       std::string data;
+      // Will hopefully be good enough...
+      data.reserve(state.r->getString().length() + 64);
       pdns::ProtoZero::Message msg{data};
 
       fillProtoZeroMessageFromDNSPacket(msg, *state.r);
