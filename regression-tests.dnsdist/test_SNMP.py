@@ -1,7 +1,9 @@
 #!/usr/bin/env python
+import asyncio
 import dns
 
 from pysnmp.hlapi import *
+from pysnmp.hlapi.v3arch.asyncio import *
 from dnsdisttests import DNSDistTest
 
 
@@ -81,16 +83,22 @@ class TestSNMP(DNSDistTest):
         ## order
         self.assertEqual(results["1.3.6.1.4.1.43315.3.2.1.13.0"], 1)
 
-    def _getSNMPStats(self, auth):
+    async def _getSNMPStats(self, auth):
         results = {}
-        for errorIndication, errorStatus, errorIndex, varBinds in nextCmd(
-            SnmpEngine(),
+        snmpEngine = SnmpEngine()
+
+        iterator = walk_cmd(
+            snmpEngine,
             auth,
-            UdpTransportTarget((self._snmpServer, self._snmpPort), timeout=self._snmpTimeout),
+            await UdpTransportTarget.create((self._snmpServer, self._snmpPort), timeout=self._snmpTimeout),
             ContextData(),
             ObjectType(ObjectIdentity(self._snmpOID)),
             lookupMib=False,
-        ):
+        )
+
+        list = [item async for item in iterator]
+
+        for errorIndication, errorStatus, errorIndex, varBinds in list:
             self.assertFalse(errorIndication)
             self.assertFalse(errorStatus)
             self.assertTrue(varBinds)
@@ -100,11 +108,12 @@ class TestSNMP(DNSDistTest):
                     continue
                 results[keystr] = value
 
+        snmpEngine.close_dispatcher()
         return results
 
     def _checkStats(self, auth, name):
 
-        results = self._getSNMPStats(auth)
+        results = asyncio.run(self._getSNMPStats(auth))
         self._checkStatsValues(results, self.__class__._queriesSent)
 
         query = dns.message.make_query(name, "A", "IN", use_edns=False)
@@ -121,7 +130,7 @@ class TestSNMP(DNSDistTest):
         self.assertEqual(response, receivedResponse)
         self.__class__._queriesSent = self.__class__._queriesSent + 1
 
-        results = self._getSNMPStats(auth)
+        results = asyncio.run(self._getSNMPStats(auth))
         self._checkStatsValues(results, self.__class__._queriesSent)
 
     def testSNMPv2Stats(self):
