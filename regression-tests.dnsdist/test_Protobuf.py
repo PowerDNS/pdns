@@ -181,7 +181,6 @@ class DNSDistProtobufTest(DNSDistTest):
         self.assertEqual(record.ttl, rttl)
         self.assertTrue(record.HasField("rdata"))
 
-
 class TestProtobuf(DNSDistProtobufTest):
     _config_params = ["_testServerPort", "_protobufServerPort", "_protobufServerID", "_protobufServerID"]
     _config_template = """
@@ -314,9 +313,7 @@ class TestProtobuf(DNSDistProtobufTest):
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
 
-        if self._protobufQueue.empty():
-            # let the protobuf messages the time to get there
-            time.sleep(1)
+        self.waitUntilPBQueueIsNoLongerEmpty(timeout=1)
 
         # check the protobuf message corresponding to the UDP query
         msg = self.getFirstProtobufMessage()
@@ -347,9 +344,7 @@ class TestProtobuf(DNSDistProtobufTest):
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
 
-        if self._protobufQueue.empty():
-            # let the protobuf messages the time to get there
-            time.sleep(1)
+        self.waitUntilPBQueueIsNoLongerEmpty(timeout=1)
 
         # check the protobuf message corresponding to the TCP query
         msg = self.getFirstProtobufMessage()
@@ -391,9 +386,7 @@ class TestProtobuf(DNSDistProtobufTest):
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
 
-        if self._protobufQueue.empty():
-            # let the protobuf messages the time to get there
-            time.sleep(1)
+        self.waitUntilPBQueueIsNoLongerEmpty(timeout=1)
 
         # check the protobuf message corresponding to the UDP query
         msg = self.getFirstProtobufMessage()
@@ -423,9 +416,7 @@ class TestProtobuf(DNSDistProtobufTest):
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
 
-        if self._protobufQueue.empty():
-            # let the protobuf messages the time to get there
-            time.sleep(1)
+        self.waitUntilPBQueueIsNoLongerEmpty(timeout=1)
 
         # check the protobuf message corresponding to the TCP query
         msg = self.getFirstProtobufMessage()
@@ -515,9 +506,7 @@ class TestProtobufMetaTags(DNSDistProtobufTest):
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
 
-        if self._protobufQueue.empty():
-            # let the protobuf messages the time to get there
-            time.sleep(1)
+        self.waitUntilPBQueueIsNoLongerEmpty(timeout=1)
 
         # check the protobuf message corresponding to the UDP query
         msg = self.getFirstProtobufMessage()
@@ -861,9 +850,7 @@ class TestProtobufExtendedDNSErrorTags(DNSDistProtobufTest):
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
 
-        if self._protobufQueue.empty():
-            # let the protobuf messages the time to get there
-            time.sleep(1)
+        self.waitUntilPBQueueIsNoLongerEmpty(timeout=1)
 
         # check the protobuf message corresponding to the UDP query
         msg = self.getFirstProtobufMessage()
@@ -917,9 +904,7 @@ class TestProtobufCacheHit(DNSDistProtobufTest):
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
 
-        if self._protobufQueue.empty():
-            # let the protobuf messages the time to get there
-            time.sleep(1)
+        self.waitUntilPBQueueIsNoLongerEmpty(timeout=1)
 
         # check the protobuf message corresponding to the UDP response
         msg = self.getFirstProtobufMessage()
@@ -934,9 +919,7 @@ class TestProtobufCacheHit(DNSDistProtobufTest):
         self.assertTrue(receivedResponse)
         self.assertEqual(response, receivedResponse)
 
-        if self._protobufQueue.empty():
-            # let the protobuf messages the time to get there
-            time.sleep(1)
+        self.waitUntilPBQueueIsNoLongerEmpty(timeout=1)
 
         # check the protobuf message corresponding to the UDP response
         msg = self.getFirstProtobufMessage()
@@ -998,9 +981,7 @@ class TestProtobufMetaDOH(DNSDistProtobufTest):
             self.assertEqual(query, receivedQuery)
             self.assertEqual(response, receivedResponse)
 
-            if self._protobufQueue.empty():
-                # let the protobuf messages the time to get there
-                time.sleep(1)
+            self.waitUntilPBQueueIsNoLongerEmpty(timeout=1)
 
             # check the protobuf message corresponding to the query
             msg = self.getFirstProtobufMessage()
@@ -1097,9 +1078,7 @@ class TestProtobufMetaProxy(DNSDistProtobufTest):
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
 
-        if self._protobufQueue.empty():
-            # let the protobuf messages the time to get there
-            time.sleep(1)
+        self.waitUntilPBQueueIsNoLongerEmpty(timeout=1)
 
         # check the protobuf message corresponding to the UDP query
         msg = self.getFirstProtobufMessage()
@@ -1161,9 +1140,7 @@ class TestProtobufIPCipher(DNSDistProtobufTest):
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
 
-        if self._protobufQueue.empty():
-            # let the protobuf messages the time to get there
-            time.sleep(1)
+        self.waitUntilPBQueueIsNoLongerEmpty(timeout=1)
 
         # check the protobuf message corresponding to the UDP query
         msg = self.getFirstProtobufMessage()
@@ -1192,9 +1169,7 @@ class TestProtobufIPCipher(DNSDistProtobufTest):
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
 
-        if self._protobufQueue.empty():
-            # let the protobuf messages the time to get there
-            time.sleep(1)
+        self.waitUntilPBQueueIsNoLongerEmpty(timeout=1)
 
         # check the protobuf message corresponding to the TCP query
         msg = self.getFirstProtobufMessage()
@@ -1249,9 +1224,7 @@ class TestProtobufIPCrypt2PFX(DNSDistProtobufTest):
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
 
-        if self._protobufQueue.empty():
-            # let the protobuf messages the time to get there
-            time.sleep(1)
+        self.waitUntilPBQueueIsNoLongerEmpty(timeout=1)
 
         # check the protobuf message corresponding to the UDP query
         msg = self.getFirstProtobufMessage()
@@ -1280,9 +1253,7 @@ class TestProtobufIPCrypt2PFX(DNSDistProtobufTest):
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
 
-        if self._protobufQueue.empty():
-            # let the protobuf messages the time to get there
-            time.sleep(1)
+        self.waitUntilPBQueueIsNoLongerEmpty(timeout=1)
 
         # check the protobuf message corresponding to the TCP query
         msg = self.getFirstProtobufMessage()
@@ -1351,9 +1322,7 @@ class TestProtobufQUIC(DNSDistProtobufTest):
             self.assertEqual(query, receivedQuery)
             self.assertEqual(response, receivedResponse)
 
-            if self._protobufQueue.empty():
-                # let the protobuf messages the time to get there
-                time.sleep(1)
+            self.waitUntilPBQueueIsNoLongerEmpty(timeout=1)
 
             # check the protobuf message corresponding to the query
             msg = self.getFirstProtobufMessage()
@@ -1470,9 +1439,7 @@ class TestProtobufAXFR(DNSDistProtobufTest):
         self.assertEqual(query, receivedQuery)
         self.assertEqual(len(receivedResponses), len(responses))
 
-        if self._protobufQueue.empty():
-            # let the protobuf messages the time to get there
-            time.sleep(1)
+        self.waitUntilPBQueueIsNoLongerEmpty(timeout=1)
 
         # check the protobuf messages corresponding to the responses
         count = 0
@@ -1547,16 +1514,14 @@ query_rules:
             self.assertEqual(receivedQuery, query)
             self.assertEqual(receivedResponse, response)
 
-        if self._protobufQueue.empty():
-            # let the protobuf messages the time to get there
-            time.sleep(1)
+        self.waitUntilPBQueueIsNoLongerEmpty(timeout=1)
+
         # check the protobuf message corresponding to the UDP query
         msg = self.getFirstProtobufMessage()
         self.checkProtobufQuery(msg, dnsmessage_pb2.PBDNSMessage.UDP, query, dns.rdataclass.IN, dns.rdatatype.A, name)
 
-        if self._protobufQueue.empty():
-            # let the protobuf messages the time to get there
-            time.sleep(1)
+        self.waitUntilPBQueueIsNoLongerEmpty(timeout=1)
+
         # TCP query
         msg = self.getFirstProtobufMessage()
         self.checkProtobufQuery(msg, dnsmessage_pb2.PBDNSMessage.TCP, query, dns.rdataclass.IN, dns.rdatatype.A, name)
@@ -1619,16 +1584,14 @@ response_rules:
             self.assertEqual(receivedResponse, response)
             receivedResponses.append(receivedResponse)
 
-        if self._protobufQueue.empty():
-            # let the protobuf messages the time to get there
-            time.sleep(1)
+        self.waitUntilPBQueueIsNoLongerEmpty(timeout=1)
+
         # check the protobuf message corresponding to the UDP query
         msg = self.getFirstProtobufMessage()
         self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, receivedResponses[0])
 
-        if self._protobufQueue.empty():
-            # let the protobuf messages the time to get there
-            time.sleep(1)
+        self.waitUntilPBQueueIsNoLongerEmpty(timeout=1)
+
         # TCP query
         msg = self.getFirstProtobufMessage()
         self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.TCP, receivedResponses[1])
@@ -1692,8 +1655,7 @@ timeout_response_rules:
         waited = 0
         while (not gotUDP or not gotTCP) and waited <= 4:
             if self._protobufQueue.empty():
-                # let the protobuf messages the time to get there
-                time.sleep(1)
+                self.waitUntilPBQueueIsNoLongerEmpty(timeout=1)
                 waited += 1
                 if self._protobufQueue.empty():
                     continue
