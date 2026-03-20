@@ -384,7 +384,7 @@ recursor:
     devonly_regression_test_mode: true
 logging:
   protobuf_servers:
-    - servers: [127.0.0.1:%s, 127.0.0.1:%s]
+    - servers: [127.0.0.1:%d, 127.0.0.1:%d]
       frame4: true
   opentelemetry_trace_conditions:
     - acls: ['0.0.0.0/0']
@@ -472,7 +472,7 @@ recursor:
     event_trace_enabled: 4
 logging:
   protobuf_servers:
-    - servers: [127.0.0.1:%s, 127.0.0.1:%s]
+    - servers: [127.0.0.1:%d, 127.0.0.1:%d]
       frame4: true
   opentelemetry_trace_conditions:
     - acls: ['0.0.0.0/0']
@@ -528,7 +528,7 @@ recursor:
     event_trace_enabled: 4
 logging:
   protobuf_servers:
-    - servers: [127.0.0.1:%s, 127.0.0.1:%s]
+    - servers: [127.0.0.1:%d, 127.0.0.1:%d]
       frame4: true
       strategy: Hashed
   opentelemetry_trace_conditions:

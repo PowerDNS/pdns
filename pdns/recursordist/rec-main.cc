@@ -518,7 +518,7 @@ static void protobufLog(ProtobufServersInfo& pbConfig, const string& msg, const 
   }
   case ProtobufExportConfig::Strategy::Hashed:
     if (pbConfig.servers->size() > 0) {
-      // We arbitrarily take qname and IP of requestor, to same queries from the same client end up in the same logger
+      // We arbitrarily take qname and IP of requestor, so same queries from the same client end up in the same logger
       // Likely there are better choices
       uint32_t hash = qname.hash() ^ ComboAddress::addressOnlyHash()(address);
       size_t index = hash % pbConfig.servers->size();
