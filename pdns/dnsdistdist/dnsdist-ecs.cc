@@ -20,6 +20,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include "dns.hh"
+#include "dnsname.hh"
 #include "dolog.hh"
 #include "dnsdist.hh"
 #include "dnsdist-dnsparser.hh"
@@ -28,6 +29,7 @@
 #include "dnswriter.hh"
 #include "ednsoptions.hh"
 #include "ednssubnet.hh"
+#include "qtype.hh"
 
 int rewriteResponseWithoutEDNS(const PacketBuffer& initialPacket, PacketBuffer& newContent)
 {
@@ -265,10 +267,18 @@ int locateEDNSOptRR(const PacketBuffer& packet, uint16_t* optStart, size_t* optL
     throw std::runtime_error("Invalid values passed to locateEDNSOptRR");
   }
 
+  if (packet.size() < sizeof(dnsheader)) {
+    throw std::runtime_error("Packet passed to locateEDNSOptRR was too small");
+  }
+
   const dnsheader_aligned dnsHeader(packet.data());
 
   if (ntohs(dnsHeader->arcount) == 0) {
     return ENOENT;
+  }
+
+  if (ntohs(dnsHeader->qdcount) != 1) {
+    throw std::runtime_error("Packet passed to locateEDNSOptRR did not have QDCOUNT=1");
   }
 
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
@@ -276,22 +286,14 @@ int locateEDNSOptRR(const PacketBuffer& packet, uint16_t* optStart, size_t* optL
 
   size_t idx = 0;
   DNSName rrname;
-  uint16_t qdcount = ntohs(dnsHeader->qdcount);
   uint16_t ancount = ntohs(dnsHeader->ancount);
   uint16_t nscount = ntohs(dnsHeader->nscount);
   uint16_t arcount = ntohs(dnsHeader->arcount);
-  uint16_t rrtype{};
-  uint16_t rrclass{};
   dnsrecordheader recordHeader{};
 
-  /* consume qd */
-  for (idx = 0; idx < qdcount; idx++) {
-    rrname = packetReader.getName();
-    rrtype = packetReader.get16BitInt();
-    rrclass = packetReader.get16BitInt();
-    (void)rrtype;
-    (void)rrclass;
-  }
+  /* consume query section */
+  rrname = packetReader.getName();
+  packetReader.skip(4); // Skip Type and Class
 
   /* consume AN and NS */
   for (idx = 0; idx < ancount + nscount; idx++) {
@@ -306,7 +308,7 @@ int locateEDNSOptRR(const PacketBuffer& packet, uint16_t* optStart, size_t* optL
     rrname = packetReader.getName();
     packetReader.getDnsrecordheader(recordHeader);
 
-    if (recordHeader.d_type == QType::OPT) {
+    if (rrname == g_rootdnsname && recordHeader.d_type == QType::OPT) {
       *optStart = start;
       *optLen = (packetReader.getPosition() - start) + recordHeader.d_clen;
 
