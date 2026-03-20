@@ -125,6 +125,7 @@ auth_test_deps = [  # FIXME: we should be generating some of these from shlibdep
     "libzmq3-dev",
     "lmdb-utils",
     "prometheus",
+    "protobuf-compiler",
     "python3-venv",
     "socat",
     "softhsm2",
