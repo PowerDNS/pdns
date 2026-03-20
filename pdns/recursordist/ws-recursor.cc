@@ -65,11 +65,19 @@ std::optional<uint64_t> productServerStatisticsFetch(const std::string& name)
   return getStatByName(name);
 }
 
-static void apiWriteConfigFile(const string& filebasename, const string& content)
+static void checkApiDirSet()
 {
   if (::arg()["api-config-dir"].empty()) {
+    if (g_yamlSettings) {
+      throw ApiException("Config option webservice.api_dir must be set");
+    }
     throw ApiException("Config Option \"api-config-dir\" must be set");
   }
+}
+
+static void apiWriteConfigFile(const string& filebasename, const string& content)
+{
+  checkApiDirSet();
 
   string filename = ::arg()["api-config-dir"] + "/" + filebasename;
   if (g_yamlSettings) {
@@ -243,9 +251,7 @@ static void fillZone(const DNSName& zonename, HttpResponse* resp)
 
 static void doCreateZone(const Json& document)
 {
-  if (::arg()["api-config-dir"].empty()) {
-    throw ApiException("Config Option \"api-config-dir\" must be set");
-  }
+  checkApiDirSet();
 
   const DNSName zone = apiNameToDNSName(stringFromJson(document, "name"));
   const string zonename = zone.toString();
@@ -347,9 +353,7 @@ static void doCreateZone(const Json& document)
 
 static bool doDeleteZone(const DNSName& zonename)
 {
-  if (::arg()["api-config-dir"].empty()) {
-    throw ApiException("Config Option \"api-config-dir\" must be set");
-  }
+  checkApiDirSet();
 
   string filename;
   if (g_yamlSettings) {
@@ -372,9 +376,7 @@ static bool doDeleteZone(const DNSName& zonename)
 
 static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp)
 {
-  if (::arg()["api-config-dir"].empty()) {
-    throw ApiException("Config Option \"api-config-dir\" must be set");
-  }
+  checkApiDirSet();
 
   Json document = req->json();
 

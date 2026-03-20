@@ -295,6 +295,8 @@ def gen_cxx_defineoldsettings(file, entries):
     """Generate C++ code to declare old-style settings"""
     file.write("void pdns::settings::rec::defineOldStyleSettings()\n{\n")
     for entry in entries:
+        if "skip-old" in entry:
+            continue
         helptxt = quote(entry["help"])
         oldname = quote(entry["oldname"])
         if entry["type"] == LType.Bool:
