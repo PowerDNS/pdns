@@ -15,9 +15,7 @@ fi
 
 if [ -z "${CARGO}" ]; then
     echo PATH=$PATH
-    ls -l /usr/bin/cargo
     export CARGO=/usr/bin/cargo
-    #exit 1
 fi
 
 cd "$MESON_PROJECT_DIST_ROOT"
@@ -62,7 +60,7 @@ echo Updating the version of the Rust library to ${BUILDER_VERSION}
 # Unfortunately we cannot use --offline because for some reason cargo-update wants
 # to check all dependencies even though we are telling it exactly what to update
 cd "$MESON_PROJECT_DIST_ROOT"/rec-rust-lib/rust/
-ls -l /usr/bin/cargo
+
 echo $CARGO update --verbose --precise ${BUILDER_VERSION} recrust
 $CARGO update --verbose --precise ${BUILDER_VERSION} recrust
 cd "$MESON_PROJECT_BUILD_ROOT"
