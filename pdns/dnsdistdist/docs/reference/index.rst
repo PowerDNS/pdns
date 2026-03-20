@@ -37,3 +37,4 @@ These chapters contain extensive information on all functions and object availab
   yaml-actions
   yaml-response-actions
   yaml-support-structures
+  features
