@@ -258,7 +258,7 @@ struct ProtobufServersInfo
   std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>> servers;
   uint64_t generation;
   ProtobufExportConfig config;
-  size_t count;
+  mutable size_t roundRobinCounter;
 };
 extern thread_local ProtobufServersInfo t_protobufServers;
 extern thread_local ProtobufServersInfo t_outgoingProtobufServers;

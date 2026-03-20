@@ -486,7 +486,7 @@ bool checkOutgoingProtobufExport(LocalStateHolder<LuaConfigItems>& luaconfsLocal
   return true;
 }
 
-static void protobufLog(ProtobufServersInfo& pbConfig, const string& msg, const DNSName& qname, const ComboAddress& address)
+static void protobufLog(const ProtobufServersInfo& pbConfig, const string& msg, const DNSName& qname, const ComboAddress& address)
 {
   switch (pbConfig.config.strategy) {
   case ProtobufExportConfig::Strategy::All:
@@ -496,7 +496,7 @@ static void protobufLog(ProtobufServersInfo& pbConfig, const string& msg, const 
     break;
   case ProtobufExportConfig::Strategy::RoundRobin: {
     if (pbConfig.servers->size() > 0) {
-      size_t index = pbConfig.count++ % pbConfig.servers->size();
+      size_t index = pbConfig.roundRobinCounter++ % pbConfig.servers->size();
       remoteLoggerQueueData(*pbConfig.servers->at(index), msg);
     }
     break;

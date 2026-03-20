@@ -76,9 +76,6 @@ for param in protobufServersParameters:
 
 
 class TestRecursorProtobuf(RecursorTest):
-    _lua_config_file = """
-    protobufServer({"127.0.0.1:%d", "127.0.0.1:%d"})
-    """ % (protobufServersParameters[0].port, protobufServersParameters[1].port)
 
     def getFirstProtobufMessage(self, all=True, retries=100, waitTime=0.01):
         msg = None

@@ -47,7 +47,7 @@ Protobuf export to a server is enabled using the ``protobufServer()`` directive:
 
   .. versionchanged:: 5.1.0
 
-  Added support for the HTTPS, SVCB and NAPTR record types.
+     Added support for the HTTPS, SVCB and NAPTR record types.
 
   .. versionadded:: 5.5.0
 
