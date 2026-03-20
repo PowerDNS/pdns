@@ -393,11 +393,9 @@ bool CredentialsHolder::matches(const std::string& password) const
   }
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
   uint32_t fallback = burtle(reinterpret_cast<const unsigned char*>(password.data()), password.size(), d_fallbackHashPerturb);
-  if (fallback != d_fallbackHash) {
-    return false;
-  }
-
-  return constantTimeStringEquals(password, d_credentials.getString());
+  bool criterion1 = fallback == d_fallbackHash;
+  bool criterion2 = constantTimeStringEquals(password, d_credentials.getString());
+  return criterion2 && criterion1;
 }
 
 bool CredentialsHolder::isHashingAvailable()
