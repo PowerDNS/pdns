@@ -57,6 +57,7 @@
 #include "dnsdist-configuration-yaml.hh"
 #include "dnsdist-console.hh"
 #include "dnsdist-console-completion.hh"
+#include "dnsdist-lua-bindings-opentelemetry.hh"
 #include "dnsdist-crypto.hh"
 #include "dnsdist-discovery.hh"
 #include "dnsdist-dynblocks.hh"
@@ -2481,8 +2482,9 @@ static void maintThread()
       tracer->setScopeSpanName("dnsdist/maintenance");
     }
     auto maint_closer = getCloser(tracer, "maintenanceThread");
-    {
-      auto lua = g_lua.lock();
+    auto lua = g_lua.lock();
+
+    pdns::trace::dnsdist::runWithLuaTracing(*lua, tracer, [&lua, &tracer, &secondsToWaitLog]() {
       try {
         auto maintenanceCallback = lua->readVariable<std::optional<std::function<void()>>>("maintenance");
         if (maintenanceCallback) {
@@ -2509,7 +2511,7 @@ static void maintThread()
         }
         secondsToWaitLog -= interval;
       }
-    }
+    });
 
     counter++;
     if (counter >= dnsdist::configuration::getCurrentRuntimeConfiguration().d_cacheCleaningDelay) {

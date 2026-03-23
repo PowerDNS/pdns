@@ -13,6 +13,7 @@ import dns.rdatatype
 import dns.rrset
 import google.protobuf.json_format
 import opentelemetry.proto.trace.v1.trace_pb2
+
 import test_Protobuf
 
 
@@ -1056,7 +1057,37 @@ query_rules:
         )
 
 
-class TestOpenTelemetryTracingInternalYaml(DNSDistOpenTelemetryProtobufTest):
+class TestOpenTelemetryTracingInternalBase(DNSDistOpenTelemetryProtobufTest):
+    @staticmethod
+    def getSpan(otData, name):
+        result = [v for v in otData["resource_spans"][0]["scope_spans"][0]["spans"] if v["name"] == name]
+        if len(result) > 0:
+            return result[0]
+        raise KeyError(f"{name} not found in OT Data")
+
+    def checkMaintenanceSpanNames(self, all_span_name, extra_names=set()):
+        all_names = {
+            "maintenanceThread",
+            "maintenanceHooks",
+            "DynamicBlocks::runRegisteredGroups",
+        }.union(extra_names)
+
+        self.assertSetEqual(all_span_name, all_names)
+
+    def getFirstMaintenanceProtobufMessage(self):
+        while self._protobufQueue.empty():
+            # let the protobuf messages the time to get there
+            time.sleep(1)
+
+        msg = self.getFirstProtobufMessage()
+        traces_data = opentelemetry.proto.trace.v1.trace_pb2.TracesData()
+        traces_data.ParseFromString(msg.openTelemetryData)
+        otData = google.protobuf.json_format.MessageToDict(traces_data, preserving_proto_field_name=True)
+        self.checkOTDataBase(otData)
+        return otData
+
+
+class TestOpenTelemetryTracingInternalYaml(TestOpenTelemetryTracingInternalBase):
     _yaml_config_template = """---
 logging:
   open_telemetry_tracing:
@@ -1085,26 +1116,9 @@ remote_logging:
     ]
 
     def testMaintenance(self):
-        while self._protobufQueue.empty():
-            # let the protobuf messages the time to get there
-            time.sleep(1)
-
-        msg = self.getFirstProtobufMessage()
-        traces_data = opentelemetry.proto.trace.v1.trace_pb2.TracesData()
-        traces_data.ParseFromString(msg.openTelemetryData)
-        otData = google.protobuf.json_format.MessageToDict(traces_data, preserving_proto_field_name=True)
-        self.checkOTDataBase(otData)
-
+        otData = self.getFirstMaintenanceProtobufMessage()
         msg_span_name = {v["name"] for v in otData["resource_spans"][0]["scope_spans"][0]["spans"]}
-
-        self.assertSetEqual(
-            msg_span_name,
-            {
-                "maintenanceThread",
-                "maintenanceHooks",
-                "DynamicBlocks::runRegisteredGroups",
-            },
-        )
+        self.checkMaintenanceSpanNames(msg_span_name)
 
 
 class TestOpenTelemetryTracingInternalLua(TestOpenTelemetryTracingInternalYaml):
@@ -1121,3 +1135,99 @@ setOpenTelemetryInternalTrace('maintenance', {rl}, 60)
         "_testServerPort",
         "_protobufServerPort",
     ]
+
+
+class TestOpenTelemetryTracingInternalWithFunctionsLua(TestOpenTelemetryTracingInternalBase):
+    _config_template = """
+newServer{address="127.0.0.1:%d"}
+getServer(0):setUp()
+rl = newRemoteLogger('127.0.0.1:%d')
+setOpenTelemetryTracing(true)
+setOpenTelemetryInternalTrace('maintenance', {rl}, 60)
+
+function maintenance()
+	setSpanAttribute("outside", "hello from the outside")
+	withTraceSpan("my-span", function()
+		setSpanAttribute("inside", "hello from the inside")
+		os.execute("sleep 0.1")
+	end)
+end
+"""
+    _config_params = [
+        "_testServerPort",
+        "_protobufServerPort",
+    ]
+
+    def testMaintenance(self):
+        otData = self.getFirstMaintenanceProtobufMessage()
+
+        msg_span_name = {v["name"] for v in otData["resource_spans"][0]["scope_spans"][0]["spans"]}
+
+        self.checkMaintenanceSpanNames(
+            msg_span_name,
+            {
+                "maintenanceFunction",
+                "my-span",
+            },
+        )
+
+        maintenanceFunction_span = self.getSpan(otData, "maintenanceFunction")
+        self.assertListEqual(
+            maintenanceFunction_span["attributes"],
+            [{"key": "outside", "value": {"string_value": "hello from the outside"}}],
+        )
+
+        my_span = self.getSpan(otData, "my-span")
+        self.assertListEqual(
+            my_span["attributes"],
+            [{"key": "inside", "value": {"string_value": "hello from the inside"}}],
+        )
+
+
+class TestOpenTelemetryTracingInternalWithFunctionsCallbackLua(TestOpenTelemetryTracingInternalBase):
+    _config_template = """
+local function my_maintenance()
+	setSpanAttribute("outside", "hello from the outside")
+	withTraceSpan("my-span", function()
+		setSpanAttribute("inside", "hello from the inside")
+		os.execute("sleep 0.1")
+	end)
+end
+
+newServer{address="127.0.0.1:%d"}
+getServer(0):setUp()
+rl = newRemoteLogger('127.0.0.1:%d')
+setOpenTelemetryTracing(true)
+setOpenTelemetryInternalTrace('maintenance', {rl}, 60)
+
+addMaintenanceCallback(my_maintenance)
+"""
+
+    _config_params = [
+        "_testServerPort",
+        "_protobufServerPort",
+    ]
+
+    def testMaintenance(self):
+        otData = self.getFirstMaintenanceProtobufMessage()
+
+        msg_span_name = {v["name"] for v in otData["resource_spans"][0]["scope_spans"][0]["spans"]}
+
+        self.checkMaintenanceSpanNames(
+            msg_span_name,
+            {
+                "my-span",
+            },
+        )
+
+        maintenanceFunction_span = self.getSpan(otData, "maintenanceHooks")
+        self.assertListEqual(
+            maintenanceFunction_span["attributes"],
+            [{"key": "outside", "value": {"string_value": "hello from the outside"}}],
+        )
+
+        my_span = self.getSpan(otData, "my-span")
+        self.assertListEqual(
+            my_span["attributes"],
+            [{"key": "inside", "value": {"string_value": "hello from the inside"}}],
+        )
