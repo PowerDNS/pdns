@@ -917,6 +917,19 @@ bool AggressiveNSECCache::getDenial(time_t now, const DNSName& name, const QType
   return true;
 }
 
+const std::string& AggressiveNSECCache::ZoneEntry::getZoneTypeAsString(ZoneEntry::ZoneDenialType type)
+{
+  static const std::array<std::string, 3> s_typeToStr{
+    "Unknown",
+    "NSEC",
+    "NSEC3",
+  };
+  if (static_cast<uint8_t>(type) < s_typeToStr.size()) {
+    return s_typeToStr.at(static_cast<uint8_t>(type));
+  }
+  return s_typeToStr.at(0);
+}
+
 size_t AggressiveNSECCache::dumpToFile(pdns::UniqueFilePtr& filePtr, const struct timeval& now)
 {
   size_t ret = 0;
@@ -936,7 +949,7 @@ size_t AggressiveNSECCache::dumpToFile(pdns::UniqueFilePtr& filePtr, const struc
     for (const auto& entry : zone->d_entries) {
       int64_t ttl = entry.d_ttd - now.tv_sec;
       try {
-        fprintf(filePtr.get(), "%s %" PRId64 " IN %s %s by %s/%s\n", entry.d_owner.toString().c_str(), ttl, zone->d_denialType == ZoneEntry::ZoneDenialType::NSEC3 ? "NSEC3" : "NSEC", entry.d_record->getZoneRepresentation().c_str(), entry.d_qname.toString().c_str(), entry.d_qtype.toString().c_str());
+        fprintf(filePtr.get(), "%s %" PRId64 " IN %s %s by %s/%s\n", entry.d_owner.toString().c_str(), ttl, AggressiveNSECCache::ZoneEntry::getZoneTypeAsString(zone->d_denialType).c_str(), entry.d_record->getZoneRepresentation().c_str(), entry.d_qname.toString().c_str(), entry.d_qtype.toString().c_str());
         for (const auto& signature : entry.d_signatures) {
           fprintf(filePtr.get(), "- RRSIG %s\n", signature->getZoneRepresentation().c_str());
         }

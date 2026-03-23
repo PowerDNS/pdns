@@ -134,6 +134,8 @@ private:
       NSEC3 = 2
     };
 
+    static const std::string& getZoneTypeAsString(ZoneDenialType type);
+
     using cache_t = multi_index_container<
       CacheEntry,
       indexed_by<
