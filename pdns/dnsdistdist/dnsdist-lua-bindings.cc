@@ -390,7 +390,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
       throw std::runtime_error("setHealthCheckResponseValidator cannot be used at configuration time!");
       return;
     }
-    state->d_config.d_healthCheckResponseValidationCallback = validator;
+    state->d_config.d_healthCheckResponseValidationCallback = std::move(validator);
   });
 #endif /* DISABLE_DOWNSTREAM_BINDINGS */
 
