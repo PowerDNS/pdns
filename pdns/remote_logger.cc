@@ -5,14 +5,12 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#ifdef RECURSOR
+#ifndef DNSDIST // PDNS_AUTH or RECURSOR
 #include "logger.hh"
-#else /* !RECURSOR */
+#else
 #include "dolog.hh"
-#if defined(DNSDIST)
 #include "dnsdist-logging.hh"
-#endif /* DNSDIST */
-#endif /* !RECURSOR */
+#endif
 #include "logging.hh"
 
 bool CircularWriteBuffer::hasRoomFor(const std::string& str) const
@@ -134,7 +132,7 @@ bool RemoteLogger::reconnect()
     }
   }
   catch (const std::exception& e) {
-#ifdef RECURSOR
+#ifndef DNSDIST // PDNS_AUTH or RECURSOR
     SLOG(g_log<<Logger::Warning<<"Error connecting to remote logger "<<d_remote.toStringWithPort()<<": "<<e.what()<<std::endl,
          g_slog->withName("protobuf")->error(Logr::Error, e.what(), "Exception while connecting to remote logger", "address", Logging::Loggable(d_remote)));
 #else
@@ -202,6 +200,8 @@ void RemoteLogger::maintenanceThread()
   try {
 #ifdef RECURSOR
     string threadName = "rec/remlog";
+#elif defined(PDNS_AUTH)
+    string threadName = "auth/remlog";
 #else
     string threadName = "dnsdist/remLog";
 #endif
@@ -249,7 +249,7 @@ void RemoteLogger::maintenanceThread()
   }
   catch (const std::exception& e)
   {
-#ifdef RECURSOR
+#ifndef DNSDIST // PDNS_AUTH or RECURSOR
     SLOG(cerr << "Remote Logger's maintenance thread died on: " << e.what() << endl,
          g_slog->withName("protobuf")->error(Logr::Error, e.what(), "Remote Logger's maintenance thread died"));
 #else
@@ -259,7 +259,7 @@ void RemoteLogger::maintenanceThread()
 #endif
   }
   catch (...) {
-#ifdef RECURSOR
+#ifndef DNSDIST // PDNS_AUTH or RECURSOR
     SLOG(cerr << "Remote Logger's maintenance thread died on unknown exception" << endl,
          g_slog->withName("protobuf")->info(Logr::Error, "Remote Logger's maintenance thread died"));
 #else
