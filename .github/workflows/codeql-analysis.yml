@@ -22,6 +22,9 @@ permissions: # least privileges, see https://docs.github.com/en/actions/using-wo
 # merging the results for all processed files to a YAML file. Finally clang-tidy.py converts the YAML output to GitHub annotations
 # (GitHub only supports 10 of these per job, the rest are not displayed) and to GitHub markdown step summary (which has no such limits).
 
+env:
+  BUILDER_VERSION: '0.0.0-git1'
+
 jobs:
   analyze:
     name: Analyze
