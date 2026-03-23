@@ -5766,7 +5766,12 @@ bool SyncRes::processAnswer(unsigned int depth, const string& prefix, LWResult& 
 {
   if (s_minimumTTL != 0) {
     for (auto& rec : lwr.d_records) {
-      rec.d_ttl = max(rec.d_ttl, s_minimumTTL);
+      rec.d_ttl = std::max(rec.d_ttl, s_minimumTTL);
+      if (d_updatingRootNS && rec.d_type == QType::NS && rec.d_name.isRoot()) {
+        // Enforce a higher minimum for root records with a silly TTL (only relevant in setups with
+        // questionable root records).
+        rec.d_ttl = std::max(rec.d_ttl, 3600U);
+      }
     }
   }
 
