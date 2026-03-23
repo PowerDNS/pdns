@@ -4,7 +4,7 @@ Reference Guides
 These chapters contain extensive information on all functions and object available in dnsdist.
 
 .. toctree::
-  :maxdepth: 3
+  :maxdepth: 1
 
   selectors
   actions
@@ -37,3 +37,5 @@ These chapters contain extensive information on all functions and object availab
   yaml-actions
   yaml-response-actions
   yaml-support-structures
+  ../glossary
+  ../manpages/index

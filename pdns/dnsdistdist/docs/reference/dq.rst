@@ -11,100 +11,100 @@ This state can be modified from the various hooks.
 
   The DNSQuestion object has several attributes, many of them read-only:
 
-  .. attribute:: DNSQuestion.deviceID
+  .. attribute:: deviceID
 
     .. versionadded:: 1.8.0
 
     The identifier of the remote device, which will be exported via ProtoBuf if set.
 
-  .. attribute:: DNSQuestion.deviceName
+  .. attribute:: deviceName
 
     .. versionadded:: 1.8.0
 
     The name of the remote device, which will be exported via ProtoBuf if set.
 
-  .. attribute:: DNSQuestion.dh
+  .. attribute:: dh
 
     The :ref:`DNSHeader` of this query.
 
-  .. attribute:: DNSQuestion.ecsOverride
+  .. attribute:: ecsOverride
 
     Whether an existing ECS value should be overridden, settable.
 
-  .. attribute:: DNSQuestion.ecsPrefixLength
+  .. attribute:: ecsPrefixLength
 
      The ECS prefix length to use, settable.
 
-  .. attribute:: DNSQuestion.len
+  .. attribute:: len
 
     The length of the data starting at :attr:`DNSQuestion.dh`, including any trailing bytes following the DNS message.
 
-  .. attribute:: DNSQuestion.localaddr
+  .. attribute:: localaddr
 
     :ref:`ComboAddress` of the local bind this question was received on.
 
-  .. attribute:: DNSQuestion.opcode
+  .. attribute:: opcode
 
     Integer describing the OPCODE of the packet. Can be matched against :ref:`DNSOpcode`.
 
-  .. attribute:: DNSQuestion.pool
+  .. attribute:: pool
 
     .. versionadded:: 1.8.0
 
     The pool of servers to which this query will be routed.
 
-  .. attribute:: DNSQuestion.qclass
+  .. attribute:: qclass
 
     QClass (as an unsigned integer) of this question.
     Can be compared against :ref:`DNSClass`.
 
-  .. attribute:: DNSQuestion.qname
+  .. attribute:: qname
 
     :class:`DNSName` of this question.
 
-  .. attribute:: DNSQuestion.qtype
+  .. attribute:: qtype
 
     QType (as an unsigned integer) of this question.
     Can be compared against the pre-defined :ref:`constants <DNSQType>` like ``DNSQType.A``, ``DNSQType.AAAA``.
 
-  .. attribute:: DNSQuestion.remoteaddr
+  .. attribute:: remoteaddr
 
     :ref:`ComboAddress` of the remote client.
 
-  .. attribute:: DNSQuestion.requestorID
+  .. attribute:: requestorID
 
     .. versionadded:: 1.8.0
 
     The identifier of the requestor, which will be exported via ProtoBuf if set.
 
-  .. attribute:: DNSQuestion.rcode
+  .. attribute:: rcode
 
     RCode (as an unsigned integer) of this question.
     Can be compared against :ref:`DNSRCode`
 
-  .. attribute:: DNSQuestion.size
+  .. attribute:: size
 
     The total size of the buffer starting at :attr:`DNSQuestion.dh`.
 
-  .. attribute:: DNSQuestion.skipCache
+  .. attribute:: skipCache
 
     Whether to skip cache lookup / storing the answer for this question, settable.
 
-  .. attribute:: DNSQuestion.tempFailureTTL
+  .. attribute:: tempFailureTTL
 
     On a SERVFAIL or REFUSED from the backend, cache for this amount of seconds, settable.
 
-  .. attribute:: DNSQuestion.tcp
+  .. attribute:: tcp
 
     Whether the query was received over TCP.
 
-  .. attribute:: DNSQuestion.useECS
+  .. attribute:: useECS
 
     Whether to send ECS to the backend, settable.
 
   It also supports the following methods:
 
-  .. method:: DNSQuestion:addProxyProtocolValue(type, value)
+  .. method:: addProxyProtocolValue(type, value)
 
     .. versionadded:: 1.6.0
 
@@ -113,25 +113,25 @@ This state can be modified from the various hooks.
     :param int type: The type of the new value, ranging from 0 to 255 (both included)
     :param str value: The binary-safe value
 
-  .. method:: DNSQuestion:getContent() -> str
+  .. method:: getContent() -> str
 
     .. versionadded:: 1.8.0
 
     Get the content of the DNS packet as a string
 
-  .. method:: DNSQuestion:getDO() -> bool
+  .. method:: getDO() -> bool
 
     Get the value of the DNSSEC OK bit.
 
     :returns: true if the DO bit was set, false otherwise
 
-  .. method:: DNSQuestion:getEDNSOptions() -> table
+  .. method:: getEDNSOptions() -> table
 
     Return the list of EDNS Options, if any.
 
     :returns: A table of EDNSOptionView objects, indexed on the ECS Option code
 
-  .. method:: DNSQuestion::getElapsedUs -> double
+  .. method:: getElapsedUs() -> double
 
      .. versionadded:: 1.9.8
 
@@ -139,7 +139,7 @@ This state can be modified from the various hooks.
 
      :returns: A double indicating elapsed time in microseconds
 
-  .. method:: DNSQuestion:getHTTPHeaders() -> table
+  .. method:: getHTTPHeaders() -> table
 
     .. versionadded:: 1.4.0
     .. versionchanged:: 1.8.0
@@ -150,7 +150,7 @@ This state can be modified from the various hooks.
 
     :returns: A table of HTTP headers
 
-  .. method:: DNSQuestion:getHTTPHost() -> string
+  .. method:: getHTTPHost() -> string
 
     .. versionadded:: 1.4.0
 
@@ -158,7 +158,7 @@ This state can be modified from the various hooks.
 
     :returns: The host of the DoH query
 
-  .. method:: DNSQuestion:getHTTPPath() -> string
+  .. method:: getHTTPPath() -> string
 
     .. versionadded:: 1.4.0
 
@@ -166,7 +166,7 @@ This state can be modified from the various hooks.
 
     :returns: The path part of the DoH query URI
 
-  .. method:: DNSQuestion:getHTTPQueryString() -> string
+  .. method:: getHTTPQueryString() -> string
 
     .. versionadded:: 1.4.0
 
@@ -174,7 +174,7 @@ This state can be modified from the various hooks.
 
     :returns: The query string part of the DoH query URI
 
-  .. method:: DNSQuestion:getHTTPScheme() -> string
+  .. method:: getHTTPScheme() -> string
 
     .. versionadded:: 1.4.0
 
@@ -182,7 +182,7 @@ This state can be modified from the various hooks.
 
     :returns: The scheme of the DoH query, for example ``http`` or ``https``
 
-  .. method:: DNSQuestion:getIncomingInterface() -> string
+  .. method:: getIncomingInterface() -> string
 
     .. versionadded:: 1.9.10
 
@@ -194,7 +194,7 @@ This state can be modified from the various hooks.
 
     :returns: The name of the network interface this query was received on, or an empty string.
 
-  .. method:: DNSQuestion:getProtocol() -> string
+  .. method:: getProtocol() -> string
 
     .. versionadded:: 1.7.0
 
@@ -209,7 +209,7 @@ This state can be modified from the various hooks.
 
     :returns: A string
 
-  .. method:: DNSQuestion:getProxyProtocolValues() -> table
+  .. method:: getProxyProtocolValues() -> table
 
     .. versionadded:: 1.6.0
 
@@ -217,7 +217,7 @@ This state can be modified from the various hooks.
 
     :returns: A table whose keys are types and values are binary-safe strings
 
-  .. method:: DNSQuestion:getQueryTime -> timespec
+  .. method:: getQueryTime() -> timespec
 
     .. versionadded:: 1.8.0
 
@@ -225,7 +225,7 @@ This state can be modified from the various hooks.
 
     :returns: A :ref:`timespec` object
 
-  .. method:: DNSQuestion:getServerNameIndication() -> string
+  .. method:: getServerNameIndication() -> string
 
     .. versionadded:: 1.4.0
 
@@ -234,20 +234,20 @@ This state can be modified from the various hooks.
 
     :returns: A string containing the TLS SNI value, if any
 
-  .. method:: DNSQuestion:getTag(key) -> string
+  .. method:: getTag(key) -> string
 
     Get the value of a tag stored into the DNSQuestion object.
 
     :param string key: The tag's key
     :returns: The tag's value if it was set, an empty string otherwise
 
-  .. method:: DNSQuestion:getTagArray() -> table
+  .. method:: getTagArray() -> table
 
     Get all the tags stored into the DNSQuestion object.
 
     :returns: A table of tags, using strings as keys and values
 
-  .. method:: DNSQuestion:getTraceID() -> string
+  .. method:: getTraceID() -> string
 
     .. versionadded:: 2.1.0
 
@@ -255,7 +255,7 @@ This state can be modified from the various hooks.
 
     :returns: A binary string containing the OpenTelemetry trace identifier
 
-  .. method:: DNSQuestion:getSpanID() -> string
+  .. method:: getSpanID() -> string
 
     .. versionadded:: 2.1.0
 
@@ -263,7 +263,7 @@ This state can be modified from the various hooks.
 
     :returns: A binary string containing the OpenTelemetry Span identifier
 
-  .. method:: DNSQuestion:getTrailingData() -> string
+  .. method:: getTrailingData() -> string
 
     .. versionadded:: 1.4.0
 
@@ -271,7 +271,7 @@ This state can be modified from the various hooks.
 
     :returns: The trailing data as a null-safe string
 
-  .. method:: DNSQuestion:changeName(newName) -> bool
+  .. method:: changeName(newName) -> bool
 
     .. versionadded:: 1.8.0
 
@@ -282,13 +282,13 @@ This state can be modified from the various hooks.
 
     :param DNSName newName: The new qname to use
 
-  .. method:: DNSQuestion:sendTrap(reason)
+  .. method:: sendTrap(reason)
 
     Send an SNMP trap.
 
     :param string reason: An optional string describing the reason why this trap was sent
 
-  .. method:: DNSQuestion:setContent(data)
+  .. method:: setContent(data)
 
     .. versionadded:: 1.8.0
 
@@ -306,7 +306,7 @@ This state can be modified from the various hooks.
 
     :param string data: The raw DNS payload
 
-  .. method:: DNSQuestion:setEDNSOption(code, data)
+  .. method:: setEDNSOption(code, data)
 
     .. versionadded:: 1.8.0
 
@@ -315,7 +315,7 @@ This state can be modified from the various hooks.
     :param int code: The EDNS option code
     :param string data: The EDNS option raw data
 
-  .. method:: DNSQuestion:setExtendedDNSError(infoCode [, extraText [, clearExistingEntries]])
+  .. method:: setExtendedDNSError(infoCode [, extraText [, clearExistingEntries]])
 
     .. versionadded:: 1.9.0
 
@@ -328,7 +328,7 @@ This state can be modified from the various hooks.
     :param string extraText: The optional EDNS Extended DNS Error extra text
     :param bool clearExistingEntries: Whether to clear existing EDNS Extended DNS Error codes, default true
 
-  .. method:: DNSQuestion:setHTTPResponse(status, body, contentType="")
+  .. method:: setHTTPResponse(status, body, contentType="")
 
     .. versionadded:: 1.4.0
 
@@ -341,7 +341,7 @@ This state can be modified from the various hooks.
     :param string body: The body of the HTTP response, or a URL if the status code is a redirect (3xx)
     :param string contentType: The HTTP Content-Type header to return for a 200 response, ignored otherwise. Default is ``application/dns-message``.
 
-  .. method:: DNSQuestion:setMetaKey(key, values)
+  .. method:: setMetaKey(key, values)
 
     .. versionadded:: 2.0.0
 
@@ -353,7 +353,7 @@ This state can be modified from the various hooks.
     :param string key: The key
     :param list values: A list containing strings, integers, or a mix of integers and strings
 
-  .. method:: DNSQuestion:setNegativeAndAdditionalSOA(nxd, zone, ttl, mname, rname, serial, refresh, retry, expire, minimum)
+  .. method:: setNegativeAndAdditionalSOA(nxd, zone, ttl, mname, rname, serial, refresh, retry, expire, minimum)
 
     .. versionadded:: 1.5.0
 
@@ -370,7 +370,7 @@ This state can be modified from the various hooks.
     :param int expire: The value of the expire field in the SOA record
     :param int minimum: The value of the minimum field in the SOA record
 
-  .. method:: DNSQuestion:setProxyProtocolValues(values)
+  .. method:: setProxyProtocolValues(values)
 
     .. versionadded:: 1.5.0
 
@@ -378,7 +378,7 @@ This state can be modified from the various hooks.
 
     :param table values: A table of types and values to send, for example: ``{ [0x00] = "foo", [0x42] = "bar" }``. Note that the type must be an integer. Try to avoid these values: 0x01 - 0x05, 0x20 - 0x25, 0x30 as those are predefined in https://www.haproxy.org/download/2.3/doc/proxy-protocol.txt (search for `PP2_TYPE_ALPN`)
 
-  .. method:: DNSQuestion:setRestartable()
+  .. method:: setRestartable()
 
     .. versionadded:: 1.8.0
 
@@ -386,7 +386,7 @@ This state can be modified from the various hooks.
     Under the hood, this tells dnsdist to keep a copy of the initial query around so that we can send it a second time if needed. Copying the initial DNS payload has a small memory and CPU cost and thus is not done by default.
     See also :func:`DNSResponse:restart`.
 
-  .. method:: DNSQuestion:setTag(key, value)
+  .. method:: setTag(key, value)
 
     .. versionchanged:: 1.7.0
       Prior to 1.7.0 calling :func:`DNSQuestion:setTag` would not overwrite an existing tag value if already set.
@@ -396,7 +396,7 @@ This state can be modified from the various hooks.
     :param string key: The tag's key
     :param string value: The tag's value
 
-  .. method:: DNSQuestion:setTagArray(tags)
+  .. method:: setTagArray(tags)
 
     .. versionchanged:: 1.7.0
       Prior to 1.7.0 calling :func:`DNSQuestion:setTagArray` would not overwrite existing tag values if already set.
@@ -405,7 +405,7 @@ This state can be modified from the various hooks.
 
     :param table tags: A table of tags, using strings as keys and values
 
-  .. method:: DNSQuestion:setTrailingData(tail) -> bool
+  .. method:: setTrailingData(tail) -> bool
 
     .. versionadded:: 1.4.0
 
@@ -414,7 +414,7 @@ This state can be modified from the various hooks.
     :param string tail: The new data
     :returns: true if the operation succeeded, false otherwise
 
-  .. method:: DNSQuestion:spoof(ip|ips|raw|raws [, typeForAny])
+  .. method:: spoof(ip|ips|raw|raws [, typeForAny])
 
     .. versionadded:: 1.6.0
 
@@ -429,7 +429,7 @@ This state can be modified from the various hooks.
     :param table raws: The raw strings to be spoofed, e.g. `{ "\\192\\000\\002\\001", "\\192\\000\\002\\002" }`.
     :param int typeForAny: The type to use for raw responses when the requested type is ``ANY``, as using ``ANY`` for the type of the response record would not make sense.
 
-  .. method:: DNSQuestion:suspend(asyncID, queryID, timeoutMS) -> bool
+  .. method:: suspend(asyncID, queryID, timeoutMS) -> bool
 
     .. versionadded:: 1.8.0
 
@@ -479,25 +479,25 @@ DNSResponse object
   If the value is really needed while the response is being processed, it is possible to set a tag while the query is processed, as tags will be passed to the response object.
   It also has additional methods:
 
-  .. method:: DNSResponse:getSelectedBackend() -> Server
+  .. method:: getSelectedBackend() -> Server
 
     .. versionadded:: 1.9.0
 
     Get the selected backend :class:`Server` or nil
 
-  .. method:: DNSResponse:getStaleCacheHit() -> bool
+  .. method:: getStaleCacheHit() -> bool
 
     .. versionadded:: 2.0.0
 
     Get the indicator of whether the cache lookup hit a stale entry.
 
-  .. method:: DNSResponse:getRestartCount() -> int
+  .. method:: getRestartCount() -> int
 
     .. versionadded:: 2.0.0
 
     Get the current restart count, useful when the number of restart attempts is to be checked.
 
-  .. method:: DNSResponse:editTTLs(func)
+  .. method:: editTTLs(func)
 
     The function ``func`` is invoked for every entry in the answer, authority and additional section.
 
@@ -515,7 +515,7 @@ DNSResponse object
 
     :param string func: The function to call to edit TTLs.
 
-  .. method:: DNSResponse:changeName(initialName) -> bool
+  .. method:: changeName(initialName) -> bool
 
     .. versionadded:: 1.8.0
 
@@ -533,7 +533,7 @@ DNSResponse object
 
     :param DNSName initialName: The initial qname
 
-  .. method:: DNSResponse:restart()
+  .. method:: restart()
 
     .. versionadded:: 1.8.0
 
@@ -571,76 +571,76 @@ DNSHeader (``dh``) object
 
   This object holds a representation of a DNS packet's header.
 
-  .. method:: DNSHeader:getAA() -> bool
+  .. method:: getAA() -> bool
 
     Get authoritative answer flag.
 
-  .. method:: DNSHeader:getAD() -> bool
+  .. method:: getAD() -> bool
 
     Get authentic data flag.
 
-  .. method:: DNSHeader:getCD() -> bool
+  .. method:: getCD() -> bool
 
     Get checking disabled flag.
 
-  .. method:: DNSHeader:getID() -> int
+  .. method:: getID() -> int
 
     .. versionadded:: 1.8.0
 
     Get the ID.
 
-  .. method:: DNSHeader:getRA() -> bool
+  .. method:: getRA() -> bool
 
     Get recursion available flag.
 
-  .. method:: DNSHeader:getRD() -> bool
+  .. method:: getRD() -> bool
 
     Get recursion desired flag.
 
-  .. method:: DNSHeader:getTC() -> bool
+  .. method:: getTC() -> bool
 
     .. versionadded:: 1.8.1
 
     Get the TC flag.
 
-  .. method:: DNSHeader:setAA(aa)
+  .. method:: setAA(aa)
 
     Set authoritative answer flag.
 
     :param bool aa: State of the AA flag
 
-  .. method:: DNSHeader:setAD(ad)
+  .. method:: setAD(ad)
 
     Set authentic data flag.
 
     :param bool ad: State of the AD flag
 
-  .. method:: DNSHeader:setCD(cd)
+  .. method:: setCD(cd)
 
     Set checking disabled flag.
 
     :param bool cd: State of the CD flag
 
-  .. method:: DNSHeader:setQR(qr)
+  .. method:: setQR(qr)
 
     Set Query/Response flag.
     Setting QR to true means "This is an answer packet".
 
     :param bool qr: State of the QR flag
 
-  .. method:: DNSHeader:setRA(ra)
+  .. method:: setRA(ra)
 
     Set recursion available flag.
 
     :param bool ra: State of the RA flag
 
-  .. method:: DNSHeader:setRD(rd)
+  .. method:: setRD(rd)
 
     Set recursion desired flag.
 
     :param bool rd: State of the RD flag
 
-  .. method:: DNSHeader:setTC(tc)
+  .. method:: setTC(tc)
 
     Set truncation flag (TC).
 
@@ -655,11 +655,11 @@ EDNSOptionView object
 
   An object that represents the values of a single EDNS option received in a query.
 
-  .. method:: EDNSOptionView:count()
+  .. method:: count()
 
     The number of values for this EDNS option.
 
-  .. method:: EDNSOptionView:getValues()
+  .. method:: getValues()
 
     Return a table of NULL-safe strings values for this EDNS option.
 
@@ -674,20 +674,20 @@ AsynchronousObject object
 
   This object holds a representation of a DNS query or response that has been suspended.
 
-  .. method:: AsynchronousObject:drop() -> bool
+  .. method:: drop() -> bool
 
     Drop that object immediately, without resuming it.
     Returns true on success, false on failure.
 
-  .. method:: AsynchronousObject:getDQ() -> DNSQuestion
+  .. method:: getDQ() -> DNSQuestion
 
     Return a DNSQuestion object for the suspended object.
 
-  .. method:: AsynchronousObject:getDR() -> DNSResponse
+  .. method:: getDR() -> DNSResponse
 
     Return a DNSResponse object for the suspended object.
 
-  .. method:: AsynchronousObject:resume() -> bool
+  .. method:: resume() -> bool
 
     Resume the processing of the suspended object.
     For a question, it means first checking whether it was turned into a response,
@@ -699,7 +699,7 @@ AsynchronousObject object
     Note that the AsynchronousObject object should NOT be accessed after successfully calling this method.
     Returns true on success, false on failure.
 
-  .. method:: AsynchronousObject:setRCode(rcode, clearRecords) -> bool
+  .. method:: setRCode(rcode, clearRecords) -> bool
 
     Set the response code in the DNS header of the current object to the supplied value,
     optionally removing all records from the existing payload, if any.
