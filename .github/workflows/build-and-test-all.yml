@@ -269,7 +269,7 @@ jobs:
         working-directory: ./pdns/dnsdistdist/
       - run: ${{ env.INV_CMD }} ci-dnsdist-configure ${{ matrix.features }} dnsdist-${{ env.BUILDER_VERSION }}
         working-directory: ./pdns/dnsdistdist/
-      - run: ${{ env.INV_CMD }} ci-dnsdist-run-ninja
+      - run: ${{ env.INV_CMD }} ci-dnsdist-run-ninja dnsdist-${{ env.BUILDER_VERSION }}
       - run: ${{ env.INV_CMD }} ci-dnsdist-run-unit-tests
       - run: ${{ env.INV_CMD }} generate-coverage-info ./testrunner 'dnsdist' $GITHUB_WORKSPACE
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' && matrix.builder == 'meson'}}
