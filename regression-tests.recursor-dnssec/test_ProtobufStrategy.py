@@ -76,7 +76,6 @@ for param in protobufServersParameters:
 
 
 class TestRecursorProtobuf(RecursorTest):
-
     def getFirstProtobufMessage(self, all=True, retries=100, waitTime=0.01):
         msg = None
         # print("in getFirstProtobufMessage")
