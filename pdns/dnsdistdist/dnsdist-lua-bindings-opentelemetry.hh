@@ -32,17 +32,24 @@
 
 namespace pdns::trace::dnsdist
 {
-void emptyLuaTracing(RecursiveLockGuardedHolder<LuaContext>&);
-void setupLuaTracing(RecursiveLockGuardedHolder<LuaContext>&, std::shared_ptr<Tracer>&);
+void emptyLuaTracing(LuaContext&);
+void setupLuaTracing(LuaContext&, std::shared_ptr<Tracer>&);
 
 template <typename Func, typename... Args>
-auto runWithLuaTracing(std::shared_ptr<Tracer>& tracer, Func&& func, Args&&... args)
+auto runWithLuaTracing(LuaContext& luaCtx, std::shared_ptr<Tracer>& tracer, Func&& func, Args&&... args)
 {
-  auto luaCtx = g_lua.lock();
   setupLuaTracing(luaCtx, tracer);
   auto exitGuard = ::pdns::defer([&luaCtx] {
     emptyLuaTracing(luaCtx);
   });
   return std::invoke(std::forward<Func>(func), std::forward<Args>(args)...);
 }
+
+template <typename Func, typename... Args>
+auto runWithLuaTracing(std::shared_ptr<Tracer>& tracer, Func&& func, Args&&... args)
+{
+  auto luaCtx = g_lua.lock();
+  return runWithLuaTracing(*luaCtx, tracer, func, args...);
+}
+
 } // namespace pdns::trace::dnsdist

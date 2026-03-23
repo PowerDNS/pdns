@@ -24,25 +24,25 @@
 
 namespace pdns::trace::dnsdist
 {
-void emptyLuaTracing(RecursiveLockGuardedHolder<LuaContext>& luaCtx)
+void emptyLuaTracing(LuaContext& luaCtx)
 {
-  luaCtx->writeFunction<void(const std::string&, const std::function<void()>&)>(
+  luaCtx.writeFunction<void(const std::string&, const std::function<void()>&)>(
     "withTraceSpan",
     []([[maybe_unused]] const std::string& name, const std::function<void()>& luaFunc) {
       luaFunc();
     });
 
-  luaCtx->writeFunction<void(const std::string&, const std::string&)>(
+  luaCtx.writeFunction<void(const std::string&, const std::string&)>(
     "setSpanAttribute",
     []([[maybe_unused]] const std::string& key, [[maybe_unused]] const std::string& value) {
       return;
     });
 };
 
-void setupLuaTracing(RecursiveLockGuardedHolder<LuaContext>& luaCtx, std::shared_ptr<Tracer>& tracer)
+void setupLuaTracing(LuaContext& luaCtx, std::shared_ptr<Tracer>& tracer)
 {
   if (tracer != nullptr) {
-    luaCtx->writeFunction<void(const std::string&, const std::function<void()>&)>(
+    luaCtx.writeFunction<void(const std::string&, const std::function<void()>&)>(
       "withTraceSpan",
       [&tracer](const std::string& name, const std::function<void()>& luaFunc) {
 #ifndef DISABLE_PROTOBUF
@@ -55,7 +55,7 @@ void setupLuaTracing(RecursiveLockGuardedHolder<LuaContext>& luaCtx, std::shared
         luaFunc();
       });
 
-    luaCtx->writeFunction<void(const std::string&, const std::string&)>(
+    luaCtx.writeFunction<void(const std::string&, const std::string&)>(
       "setSpanAttribute",
       [&tracer](const std::string& key, const std::string& value) {
 #ifndef DISABLE_PROTOBUF
