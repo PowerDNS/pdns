@@ -132,8 +132,6 @@ common_sources += files(
   src_dir / 'libssl.cc',
   src_dir / 'logger.cc',
   src_dir / 'logging.cc',
-  src_dir / 'lua-base4.cc',
-  src_dir / 'lua-recursor4.cc',
   src_dir / 'misc.cc',
   src_dir / 'mtasker_context.cc',
   src_dir / 'negcache.cc',
@@ -444,6 +442,8 @@ tools = {
       src_dir / 'rec-snmp.cc',
       src_dir / 'rec-tcp.cc',
       src_dir / 'lwres.cc',
+      src_dir / 'lua-base4.cc',
+      src_dir / 'lua-recursor4.cc',
       mplexer_sources,
     ],
     'manpages': ['pdns_recursor.1'],
@@ -467,8 +467,13 @@ tools = {
   'rec_control': {
     'main': src_dir / 'rec_control.cc',
     'manpages': ['rec_control.1'],
+    'files-extra': [
+      src_dir / 'lua-base4.cc',
+      mplexer_sources,
+    ],
     'deps-extra': [
       dep_boost,
+      dep_lua,
       dep_recrust,
       dep_rust_recrust,
     ],

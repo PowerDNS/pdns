@@ -33,17 +33,30 @@
 
 struct ProtobufExportConfig
 {
+  enum class Strategy : uint8_t
+  {
+    All,
+    RoundRobin,
+    FirstAvailable,
+    Hashed,
+  };
+  static const std::array<std::string, 4> strategyNames;
+  static Strategy strategyFromString(const std::string& str);
+  static std::string toString(Strategy strategy);
+
   std::set<uint16_t> exportTypes = {QType::A, QType::AAAA, QType::CNAME};
   std::vector<ComboAddress> servers;
   uint64_t maxQueuedEntries{100};
   uint16_t timeout{2};
   uint16_t reconnectWaitTime{1};
+  Strategy strategy{Strategy::All};
   bool asyncConnect{false};
   bool enabled{false};
   bool logQueries{true};
   bool logResponses{true};
   bool taggedOnly{false};
   bool logMappedFrom{false};
+  bool frame4{false};
 };
 
 bool operator==(const ProtobufExportConfig& configA, const ProtobufExportConfig& configB);

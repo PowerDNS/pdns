@@ -416,7 +416,7 @@ static std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>> startProtobuf
 
   for (const auto& server : config.servers) {
     try {
-      auto logger = make_unique<RemoteLogger>(server, config.timeout, 100 * config.maxQueuedEntries, config.reconnectWaitTime, config.asyncConnect);
+      auto logger = make_unique<RemoteLogger>(server, config.timeout, 100 * config.maxQueuedEntries, config.reconnectWaitTime, config.asyncConnect, config.frame4 ? RemoteLogger::FrameSize::Four : RemoteLogger::FrameSize::Two);
       logger->setLogQueries(config.logQueries);
       logger->setLogResponses(config.logResponses);
       result->emplace_back(std::move(logger));
@@ -486,6 +486,48 @@ bool checkOutgoingProtobufExport(LocalStateHolder<LuaConfigItems>& luaconfsLocal
   return true;
 }
 
+static void protobufLog(const ProtobufServersInfo& pbConfig, const string& msg, const DNSName& qname, const ComboAddress& address)
+{
+  switch (pbConfig.config.strategy) {
+  case ProtobufExportConfig::Strategy::All:
+    for (auto& server : *pbConfig.servers) {
+      remoteLoggerQueueData(*server, msg);
+    }
+    break;
+  case ProtobufExportConfig::Strategy::RoundRobin: {
+    if (pbConfig.servers->size() > 0) {
+      size_t index = pbConfig.roundRobinCounter++ % pbConfig.servers->size();
+      remoteLoggerQueueData(*pbConfig.servers->at(index), msg);
+    }
+    break;
+  }
+  case ProtobufExportConfig::Strategy::FirstAvailable: {
+    RemoteLoggerInterface::Result ret = RemoteLoggerInterface::Result::OtherError;
+    for (auto& server : *pbConfig.servers) {
+      ret = remoteLoggerQueueData(*server, msg, false);
+      if (ret == RemoteLoggerInterface::Result::Queued) {
+        break;
+      }
+    }
+    if (ret != RemoteLoggerInterface::Result::Queued && pbConfig.servers->size() > 0) {
+      // We fell through the loop without queueing
+      const auto& errMsg = RemoteLoggerInterface::toErrorString(ret);
+      g_slog->withName(pbConfig.servers->at(0)->name())->info(Logr::Debug, errMsg);
+    }
+    break;
+  }
+  case ProtobufExportConfig::Strategy::Hashed:
+    if (pbConfig.servers->size() > 0) {
+      // We arbitrarily take qname and IP of requestor, so same queries from the same client end up in the same logger
+      // Likely there are better choices
+      uint32_t hash = qname.hash() ^ ComboAddress::addressOnlyHash()(address);
+      size_t index = hash % pbConfig.servers->size();
+      remoteLoggerQueueData(*pbConfig.servers->at(index), msg);
+    }
+    break;
+  }
+}
+
 void protobufLogQuery(LocalStateHolder<LuaConfigItems>& luaconfsLocal, const boost::uuids::uuid& uniqueId, const ComboAddress& remote, const ComboAddress& local, const ComboAddress& mappedSource, const Netmask& ednssubnet, bool tcp, size_t len, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::unordered_set<std::string>& policyTags, const std::string& requestorId, const std::string& deviceId, const std::string& deviceName, const std::map<std::string, RecursorLua4::MetaValue>& meta, const std::optional<uint32_t>& ednsVersion, const dnsheader& header, const pdns::trace::TraceID& traceID)
 {
   auto log = g_slog->withName("pblq");
@@ -532,21 +574,17 @@ void protobufLogQuery(LocalStateHolder<LuaConfigItems>& luaconfsLocal, const boo
   }
 
   std::string strMsg(msg.finishAndMoveBuf());
-  for (auto& server : *t_protobufServers.servers) {
-    remoteLoggerQueueData(*server, strMsg);
-  }
+  protobufLog(t_protobufServers, strMsg, qname, requestor);
 }
 
-void protobufLogResponse(pdns::ProtoZero::RecMessage& message)
+void protobufLogResponse(pdns::ProtoZero::RecMessage& message, const DNSName& qname, const ComboAddress& address)
 {
   if (!t_protobufServers.servers) {
     return;
   }
 
   std::string msg(message.finishAndMoveBuf());
-  for (auto& server : *t_protobufServers.servers) {
-    remoteLoggerQueueData(*server, msg);
-  }
+  protobufLog(t_protobufServers, msg, qname, address);
 }
 
 void protobufLogResponse(const DNSName& qname, QType qtype,
@@ -633,7 +671,7 @@ void protobufLogResponse(const DNSName& qname, QType qtype,
   }
   pbMessage.addPolicyTags(policyTags);
 
-  protobufLogResponse(pbMessage);
+  protobufLogResponse(pbMessage, qname, luaconfsLocal->protobufExportConfig.logMappedFrom ? mappedSource : source);
 }
 
 #ifdef HAVE_FSTRM

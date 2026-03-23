@@ -1876,12 +1876,12 @@ void registerProtobufLogger(const ProtobufLoggerConfiguration& config)
     std::vector<std::shared_ptr<RemoteLoggerInterface>> loggers;
     loggers.reserve(config.connection_count);
     for (uint64_t i = 0; i < config.connection_count; i++) {
-      loggers.push_back(std::make_shared<RemoteLogger>(ComboAddress(std::string(config.address)), config.timeout, config.max_queued_entries * 100, config.reconnect_wait_time, dnsdist::configuration::yaml::s_inClientMode));
+      loggers.push_back(std::make_shared<RemoteLogger>(ComboAddress(std::string(config.address)), config.timeout, config.max_queued_entries * 100, config.reconnect_wait_time, dnsdist::configuration::yaml::s_inClientMode, RemoteLogger::FrameSize::Two));
     }
     object = std::shared_ptr<RemoteLoggerInterface>(std::make_shared<RemoteLoggerPool>(std::move(loggers)));
   }
   else {
-    object = std::shared_ptr<RemoteLoggerInterface>(std::make_shared<RemoteLogger>(ComboAddress(std::string(config.address)), config.timeout, config.max_queued_entries * 100, config.reconnect_wait_time, dnsdist::configuration::yaml::s_inClientMode));
+    object = std::shared_ptr<RemoteLoggerInterface>(std::make_shared<RemoteLogger>(ComboAddress(std::string(config.address)), config.timeout, config.max_queued_entries * 100, config.reconnect_wait_time, dnsdist::configuration::yaml::s_inClientMode, RemoteLogger::FrameSize::Two));
   }
   dnsdist::configuration::yaml::registerType<RemoteLoggerInterface>(object, config.name);
 #endif

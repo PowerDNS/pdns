@@ -130,12 +130,12 @@ void setupLuaBindingsProtoBuf(LuaContext& luaCtx, bool client, bool configCheck)
       std::vector<std::shared_ptr<RemoteLoggerInterface>> loggers;
       loggers.reserve(count);
       for (uint64_t i = 0; i < count; i++) {
-        loggers.push_back(std::make_shared<RemoteLogger>(ComboAddress(remote), timeout ? *timeout : 2, maxQueuedEntries ? (*maxQueuedEntries * 100) : 10000, reconnectWaitTime ? *reconnectWaitTime : 1, client));
+        loggers.push_back(std::make_shared<RemoteLogger>(ComboAddress(remote), timeout ? *timeout : 2, maxQueuedEntries ? (*maxQueuedEntries * 100) : 10000, reconnectWaitTime ? *reconnectWaitTime : 1, client, RemoteLogger::FrameSize::Two));
       }
       return std::shared_ptr<RemoteLoggerInterface>(new RemoteLoggerPool(std::move(loggers)));
     }
 
-    return std::shared_ptr<RemoteLoggerInterface>(new RemoteLogger(ComboAddress(remote), timeout ? *timeout : 2, maxQueuedEntries ? (*maxQueuedEntries * 100) : 10000, reconnectWaitTime ? *reconnectWaitTime : 1, client));
+    return std::shared_ptr<RemoteLoggerInterface>(new RemoteLogger(ComboAddress(remote), timeout ? *timeout : 2, maxQueuedEntries ? (*maxQueuedEntries * 100) : 10000, reconnectWaitTime ? *reconnectWaitTime : 1, client, RemoteLogger::FrameSize::Two));
   });
 
   luaCtx.writeFunction("newFrameStreamUnixLogger", [client, configCheck]([[maybe_unused]] const std::string& address, [[maybe_unused]] std::optional<LuaAssociativeTable<unsigned int>> params) {

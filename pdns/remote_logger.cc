@@ -1,10 +1,31 @@
-#include <unistd.h>
-#include "threadname.hh"
+/*
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 #include "remote_logger.hh"
+
+#include <unistd.h>
 #include <sys/uio.h>
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+
+#include "threadname.hh"
+
 #ifdef RECURSOR
 #include "logger.hh"
 #else /* !RECURSOR */
@@ -17,28 +38,35 @@
 
 bool CircularWriteBuffer::hasRoomFor(const std::string& str) const
 {
-  if (d_buffer.size() + 2 + str.size() > d_buffer.capacity()) {
-    return false;
-  }
+  return d_buffer.size() + d_framesize + str.size() <= d_buffer.capacity();
+}
 
-  return true;
+bool CircularWriteBuffer::tooBig(const std::string& str) const
+{
+  return str.size() > (d_framesize == 2 ? std::numeric_limits<uint16_t>::max() : std::numeric_limits<uint32_t>::max());
 }
 
 bool CircularWriteBuffer::write(const std::string& str)
 {
-  if (str.size() > std::numeric_limits<uint16_t>::max() || !hasRoomFor(str)) {
+  if (tooBig(str) || !hasRoomFor(str)) {
     return false;
   }
 
-  uint16_t len = htons(str.size());
-  const char* ptr = reinterpret_cast<const char*>(&len);
-  d_buffer.insert(d_buffer.end(), ptr, ptr + 2);
+  if (d_framesize == 2) {
+    uint16_t len = htons(str.size());
+    const char* ptr = reinterpret_cast<const char*>(&len); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    d_buffer.insert(d_buffer.end(), ptr, ptr + sizeof(len)); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+  }
+  else {
+    uint32_t len = htonl(str.size());
+    const char* ptr = reinterpret_cast<const char*>(&len); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    d_buffer.insert(d_buffer.end(), ptr, ptr + sizeof(len)); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+  }
   d_buffer.insert(d_buffer.end(), str.begin(), str.end());
-
   return true;
 }
 
-bool CircularWriteBuffer::flush(int fd)
+bool CircularWriteBuffer::flush(int fileDesc)
 {
   if (d_buffer.empty()) {
     // not optional, we report EOF otherwise
@@ -48,19 +76,19 @@ bool CircularWriteBuffer::flush(int fd)
   auto arr1 = d_buffer.array_one();
   auto arr2 = d_buffer.array_two();
 
-  struct iovec iov[2];
+  std::array<iovec, 2> iov{};
   int pos = 0;
-  for(const auto& arr : {arr1, arr2}) {
-    if(arr.second) {
-      iov[pos].iov_base = arr.first;
-      iov[pos].iov_len = arr.second;
+  for (const auto& arr : {arr1, arr2}) {
+    if (arr.second != 0) {
+      iov.at(pos).iov_base = arr.first;
+      iov.at(pos).iov_len = arr.second;
       ++pos;
     }
   }
 
   ssize_t res = 0;
   do {
-    res = writev(fd, iov, pos);
+    res = ::writev(fileDesc, iov.data(), pos);
 
     if (res < 0) {
       if (errno == EINTR) {
@@ -76,20 +104,19 @@ bool CircularWriteBuffer::flush(int fd)
       d_buffer.clear();
       throw std::runtime_error("Couldn't flush a thing: " + stringerror());
     }
-    else if (!res) {
+    if (res == 0) {
       /* we can't be sure we haven't sent a partial message,
          and we don't want to send the remaining part after reconnecting */
       d_buffer.clear();
       throw std::runtime_error("EOF");
     }
-  }
-  while (res < 0);
+  } while (res < 0);
 
   if (static_cast<size_t>(res) == d_buffer.size()) {
     d_buffer.clear();
   }
   else {
-    while (res--) {
+    while (res-- != 0) {
       d_buffer.pop_front();
     }
   }
@@ -97,20 +124,20 @@ bool CircularWriteBuffer::flush(int fd)
   return true;
 }
 
-const std::string& RemoteLoggerInterface::toErrorString(Result r)
+const std::string& RemoteLoggerInterface::toErrorString(Result result)
 {
-  static const std::array<std::string,5> str = {
+  static const std::array<std::string, 5> str = {
     "Queued",
     "Queue full, dropping",
     "Not sending too large protobuf message",
     "Submiting to queue failed",
-    "?"
-  };
-  auto i = static_cast<unsigned int>(r);
-  return str[std::min(i, 4U)];
+    "?"};
+  auto tmp = static_cast<unsigned int>(result);
+  return str.at(std::min(tmp, 4U));
 }
 
-RemoteLogger::RemoteLogger(const ComboAddress& remote, uint16_t timeout, uint64_t maxQueuedBytes, uint8_t reconnectWaitTime, bool asyncConnect): d_remote(remote), d_timeout(timeout), d_reconnectWaitTime(reconnectWaitTime), d_asyncConnect(asyncConnect), d_runtime({CircularWriteBuffer(maxQueuedBytes), nullptr})
+RemoteLogger::RemoteLogger(const ComboAddress& remote, uint16_t timeout, uint64_t maxQueuedBytes, uint8_t reconnectWaitTime, bool asyncConnect, RemoteLogger::FrameSize frame) :
+  d_remote(remote), d_timeout(timeout), d_reconnectWaitTime(reconnectWaitTime), d_asyncConnect(asyncConnect), d_runtime({CircularWriteBuffer(maxQueuedBytes, frame == FrameSize::Two ? 2 : 4), nullptr}), d_framesize(frame)
 {
   if (!d_asyncConnect) {
     reconnect();
@@ -135,12 +162,11 @@ bool RemoteLogger::reconnect()
   }
   catch (const std::exception& e) {
 #ifdef RECURSOR
-    SLOG(g_log<<Logger::Warning<<"Error connecting to remote logger "<<d_remote.toStringWithPort()<<": "<<e.what()<<std::endl,
+    SLOG(g_log << Logger::Warning << "Error connecting to remote logger " << d_remote.toStringWithPort() << ": " << e.what() << std::endl,
          g_slog->withName("protobuf")->error(Logr::Error, e.what(), "Exception while connecting to remote logger", "address", Logging::Loggable(d_remote)));
 #else
     SLOG(warnlog("Error connecting to remote logger %s: %s", d_remote.toStringWithPort(), e.what()),
-         dnsdist::logging::getTopLogger("protobuf")->error(Logr::Warning, e.what(), "Exception while connecting to remote logger", "address", Logging::Loggable(d_remote))
-      );
+         dnsdist::logging::getTopLogger("protobuf")->error(Logr::Warning, e.what(), "Exception while connecting to remote logger", "address", Logging::Loggable(d_remote)));
 #endif
 
     return false;
@@ -152,7 +178,7 @@ RemoteLoggerInterface::Result RemoteLogger::queueData(const std::string& data)
 {
   auto runtime = d_runtime.lock();
 
-  if (data.size() > std::numeric_limits<uint16_t>::max()) {
+  if (runtime->d_writer.tooBig(data)) {
     ++runtime->d_stats.d_tooLarge;
     return Result::TooLarge;
   }
@@ -178,7 +204,7 @@ RemoteLoggerInterface::Result RemoteLogger::queueData(const std::string& data)
         return Result::PipeFull;
       }
     }
-    catch(const std::exception& e) {
+    catch (const std::exception& e) {
       //      cout << "Got exception writing: "<<e.what()<<endl;
       runtime->d_socket.reset();
       ++runtime->d_stats.d_otherError;
@@ -243,19 +269,16 @@ void RemoteLogger::maintenanceThread()
           reconnect();
         }
       }
-
-      sleep(d_reconnectWaitTime);
+      std::this_thread::sleep_for(std::chrono::seconds(d_reconnectWaitTime));
     }
   }
-  catch (const std::exception& e)
-  {
+  catch (const std::exception& e) {
 #ifdef RECURSOR
     SLOG(cerr << "Remote Logger's maintenance thread died on: " << e.what() << endl,
          g_slog->withName("protobuf")->error(Logr::Error, e.what(), "Remote Logger's maintenance thread died"));
 #else
     SLOG(errlog("Remote Logger's maintenance thread died on: %s", e.what()),
-         dnsdist::logging::getTopLogger("protobuf")->error(Logr::Error, e.what(), "Remote Logger's maintenance thread died")
-      );
+         dnsdist::logging::getTopLogger("protobuf")->error(Logr::Error, e.what(), "Remote Logger's maintenance thread died"));
 #endif
   }
   catch (...) {
@@ -264,8 +287,7 @@ void RemoteLogger::maintenanceThread()
          g_slog->withName("protobuf")->info(Logr::Error, "Remote Logger's maintenance thread died"));
 #else
     SLOG(errlog("Remote Logger's maintenance thread died on: %s"),
-         dnsdist::logging::getTopLogger("protobuf")->info(Logr::Error, "Remote Logger's maintenance thread died")
-      );
+         dnsdist::logging::getTopLogger("protobuf")->info(Logr::Error, "Remote Logger's maintenance thread died"));
 #endif
   }
 }

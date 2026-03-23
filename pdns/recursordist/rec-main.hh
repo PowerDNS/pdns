@@ -258,6 +258,7 @@ struct ProtobufServersInfo
   std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>> servers;
   uint64_t generation;
   ProtobufExportConfig config;
+  mutable size_t roundRobinCounter;
 };
 extern thread_local ProtobufServersInfo t_protobufServers;
 extern thread_local ProtobufServersInfo t_outgoingProtobufServers;
@@ -621,7 +622,7 @@ bool checkForCacheHit(bool qnameParsed, unsigned int tag, const string& data,
                       const struct timeval& now,
                       string& response, uint32_t& qhash,
                       RecursorPacketCache::OptPBData& pbData, bool tcp, const ComboAddress& source, const ComboAddress& mappedSource);
-void protobufLogResponse(pdns::ProtoZero::RecMessage& message);
+void protobufLogResponse(pdns::ProtoZero::RecMessage& message, const DNSName& name, const ComboAddress& address);
 void protobufLogResponse(const DNSName& qname, QType qtype, const struct dnsheader* header, LocalStateHolder<LuaConfigItems>& luaconfsLocal,
                          const RecursorPacketCache::OptPBData& pbData, const struct timeval& tval,
                          bool tcp, const ComboAddress& source, const ComboAddress& destination,

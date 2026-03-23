@@ -81,7 +81,7 @@ class TestRecursorProtobuf(RecursorTest):
     protobufServer({"127.0.0.1:%d", "127.0.0.1:%d"})
     """ % (protobufServersParameters[0].port, protobufServersParameters[1].port)
 
-    def getFirstProtobufMessage(self, retries=10, waitTime=0.1):
+    def getFirstProtobufMessage(self, retries=100, waitTime=0.01):
         msg = None
         # print("in getFirstProtobufMessage")
         for param in protobufServersParameters:

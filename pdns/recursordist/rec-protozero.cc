@@ -24,7 +24,7 @@
 #include "rec-protozero.hh"
 #include <variant>
 
-void pdns::ProtoZero::RecMessage::addRR(const DNSRecord& record, const std::set<uint16_t>& exportTypes, [[maybe_unused]] std::optional<bool> udr)
+void pdns::ProtoZero::RecMessage::addRR(const DNSRecord& record, const std::set<uint16_t>& exportTypes, [[maybe_unused]] std::optional<bool> udr, size_t limit)
 {
   if (record.d_place != DNSResourceRecord::ANSWER || record.d_class != QClass::IN) {
     return;
@@ -42,7 +42,7 @@ void pdns::ProtoZero::RecMessage::addRR(const DNSRecord& record, const std::set<
   pbf_rr.add_uint32(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::RRField::ttl), record.d_ttl);
 
   auto add = [&](const std::string& str) {
-    if (size() + str.length() < std::numeric_limits<uint16_t>::max() / 2) {
+    if (size() + str.length() < limit) {
       pbf_rr.add_string(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::RRField::rdata), str);
     }
   };

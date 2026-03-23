@@ -12,7 +12,6 @@
 #include "test-syncres_cc.hh"
 #include "recpacketcache.hh"
 
-GlobalStateHolder<LuaConfigItems> g_luaconfs;
 GlobalStateHolder<SuffixMatchNode> g_xdnssec;
 GlobalStateHolder<SuffixMatchNode> g_dontThrottleNames;
 GlobalStateHolder<NetmaskGroup> g_dontThrottleNetmasks;
@@ -33,6 +32,10 @@ ArgvMap& arg()
 BaseLua4::~BaseLua4() = default;
 
 void BaseLua4::getFeatures(Features& /* features */)
+{
+}
+
+void BaseLua4::prepareContext()
 {
 }
 
@@ -117,14 +120,6 @@ bool primeHints(time_t now)
   }
   g_recCache->replace(now, g_rootdnsname, QType(QType::NS), nsset, vector<std::shared_ptr<const RRSIGRecordContent>>(), {}, false, g_rootdnsname); // and stuff in the cache
   return true;
-}
-
-LuaConfigItems::LuaConfigItems()
-{
-  for (const auto& dsRecord : rootDSs) {
-    auto ds = std::dynamic_pointer_cast<DSRecordContent>(DSRecordContent::make(dsRecord));
-    dsAnchors[g_rootdnsname].insert(*ds);
-  }
 }
 
 /* Some helpers functions */
