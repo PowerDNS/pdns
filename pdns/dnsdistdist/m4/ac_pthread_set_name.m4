@@ -1,1 +1,0 @@
-../../../m4/ac_pthread_set_name.m4

@@ -22,6 +22,9 @@ permissions: # least privileges, see https://docs.github.com/en/actions/using-wo
 # merging the results for all processed files to a YAML file. Finally clang-tidy.py converts the YAML output to GitHub annotations
 # (GitHub only supports 10 of these per job, the rest are not displayed) and to GitHub markdown step summary (which has no such limits).
 
+env:
+  BUILDER_VERSION: '0.0.0-git1'
+
 jobs:
   analyze:
     name: Analyze
@@ -156,27 +159,28 @@ jobs:
     - name: Install python yaml
       run: |
         pip install pyyaml
-    - name: Autoreconf dnsdist
-      if: matrix.product == 'dnsdist'
-      working-directory: ./pdns/dnsdistdist/
-      run: |
-        inv ci-autoconf
     - run: inv ci-install-rust $REPO_HOME
       if: matrix.product == 'dnsdist'
       working-directory: ./pdns/dnsdistdist/
     - run: inv ci-build-and-install-quiche $REPO_HOME
       if: matrix.product == 'dnsdist'
       working-directory: ./pdns/dnsdistdist/
+    - name: install pip build dependencies
+      if: matrix.product == 'dnsdist'
+      uses: ./.github/actions/pip-build-dependencies
+      with:
+        venv-parent: ${{ env.REPO_HOME }}
+        working-directory: .
     - name: Configure dnsdist
       if: matrix.product == 'dnsdist'
       working-directory: ./pdns/dnsdistdist/
       run: |
-        inv ci-dnsdist-configure full autotools ''
+        inv ci-dnsdist-configure full build
     - name: Build dnsdist
       if: matrix.product == 'dnsdist'
       working-directory: ./pdns/dnsdistdist/
       run: |
-        inv ci-dnsdist-make-bear autotools
+        inv ci-dnsdist-run-ninja build
     - run: ln -s ../../.clang-tidy.full .clang-tidy
       if: matrix.product == 'dnsdist'
       working-directory: ./pdns/dnsdistdist/

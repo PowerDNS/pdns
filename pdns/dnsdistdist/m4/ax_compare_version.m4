@@ -1,1 +1,0 @@
-../../../m4/ax_compare_version.m4
