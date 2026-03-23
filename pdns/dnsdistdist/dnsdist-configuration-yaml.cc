@@ -1813,11 +1813,18 @@ std::shared_ptr<DNSActionWrapper> getRemoteLogAction(const RemoteLogActionConfig
       actionConfig.tagsToExport->emplace(std::string(tag));
     }
   }
+  if (!config.export_tags_prefixes.empty()) {
+    for (const auto& prefix : config.export_tags_prefixes) {
+      actionConfig.tagsPrefixesToExport.emplace(std::string(prefix));
+    }
+  }
   dnsdist::actions::ProtobufAlterFunction alterFunc;
   if (dnsdist::configuration::yaml::getLuaFunctionFromConfiguration(alterFunc, config.alter_function_name, config.alter_function_code, config.alter_function_file, "remote log action")) {
     actionConfig.alterQueryFunc = std::move(alterFunc);
   }
   actionConfig.useServerID = config.use_server_id;
+  actionConfig.tagsExportKeyOnly = config.export_tags_key_only;
+  actionConfig.tagsStripPrefixes = config.export_tags_strip_prefixes;
   auto action = dnsdist::actions::getRemoteLogAction(actionConfig);
   return newDNSActionWrapper(std::move(action), config.name);
 #endif
@@ -1847,6 +1854,11 @@ std::shared_ptr<DNSResponseActionWrapper> getRemoteLogResponseAction(const Remot
       actionConfig.tagsToExport->emplace(std::string(tag));
     }
   }
+  if (!config.export_tags_prefixes.empty()) {
+    for (const auto& prefix : config.export_tags_prefixes) {
+      actionConfig.tagsPrefixesToExport.emplace(std::string(prefix));
+    }
+  }
   if (!config.export_extended_errors_to_meta.empty()) {
     actionConfig.exportExtendedErrorsToMeta = std::string(config.export_extended_errors_to_meta);
   }
@@ -1856,6 +1868,8 @@ std::shared_ptr<DNSResponseActionWrapper> getRemoteLogResponseAction(const Remot
   }
   actionConfig.delay = config.delay;
   actionConfig.useServerID = config.use_server_id;
+  actionConfig.tagsExportKeyOnly = config.export_tags_key_only;
+  actionConfig.tagsStripPrefixes = config.export_tags_strip_prefixes;
   auto action = dnsdist::actions::getRemoteLogResponseAction(actionConfig);
   return newDNSResponseActionWrapper(std::move(action), config.name);
 #endif

@@ -457,6 +457,9 @@ The following actions exist.
     ``metas`` optional parameter added.
     ``exportTags`` optional key added to the options table.
 
+  .. versionchanged:: 2.2.0
+    ``exportTagsKeyOnly``, ``exportTagsPrefixes`` and ``exportTagsStripPrefixes`` optional keys added to the options table.
+
   Send the content of this query to a remote logger via Protocol Buffer.
   ``alterFunction`` is a callback, receiving a :class:`DNSQuestion` and a :class:`DNSDistProtoBufMessage`, that can be used to modify the Protocol Buffer content, for example for anonymization purposes.
   Since 1.8.0 it is possible to add configurable meta-data fields to the Protocol Buffer message via the ``metas`` parameter, which takes a list of ``name``=``key`` pairs. For each entry in the list, a new value named ``name``
@@ -487,6 +490,9 @@ The following actions exist.
   * ``serverID=""``: str - Set the Server Identity field.
   * ``ipEncryptKey=""``: str - A key, that can be generated via the :func:`makeIPCipherKey` function, to encrypt the IP address of the requestor for anonymization purposes. The encryption is done using ipcrypt for IPv4 and a 128-bit AES ECB operation for IPv6.
   * ``exportTags=""``: str - The comma-separated list of keys of internal tags to export into the ``tags`` Protocol Buffer field, as "key:value" strings. Note that a tag with an empty value will be exported as "<key>", not "<key>:". An empty string means that no internal tag will be exported. The special value ``*`` means that all tags will be exported.
+  * ``exportTagsKeyOnly=false``: boolean - Whether to export tags matched by ``exportTags`` or ``exportTagsPrefixes`` as ``key`` (``true``) or ``key:value`` strings (``false``, the default).
+  * ``exportTagsPrefixes="""``: str - Comma-separated list of prefixes: internal tags whose keys match at least one of these prefixes will be exported into the ``tags`` Protocol Buffer field, as ``key:value`` strings (or as ``key`` if ``exportTagsKeyOnly`` is set). Tags whose keys match at least one of the entries in ``exportTags`` will be exported as well.
+  * ``exportTagsStripPrefixes=false``: boolean - Whether to strip the prefix part of the key when exporting a tag matched by one of the prefixes defined in ``exportTagsPrefixes``.
 
 .. function:: RemoteLogResponseAction(remoteLogger[, alterFunction[, includeCNAME [, options [, metas [, delay]]]]])
 
@@ -502,6 +508,9 @@ The following actions exist.
 
   .. versionchanged:: 2.1.0
     ``delay`` optional parameter added.
+
+  .. versionchanged:: 2.2.0
+    ``exportTagsKeyOnly``, ``exportTagsPrefixes`` and ``exportTagsStripPrefixes`` optional keys added to the options table.
 
   Send the content of this response to a remote logger via Protocol Buffer.
   ``alterFunction`` is the same callback that receiving a :class:`DNSResponse` and a :class:`DNSDistProtoBufMessage`, that can be used to modify the Protocol Buffer content, for example for anonymization purposes.
@@ -522,6 +531,9 @@ The following actions exist.
   * ``serverID=""``: str - Set the Server Identity field.
   * ``ipEncryptKey=""``: str - A key, that can be generated via the :func:`makeIPCipherKey` function, to encrypt the IP address of the requestor for anonymization purposes. The encryption is done using ipcrypt for IPv4 and a 128-bit AES ECB operation for IPv6.
   * ``exportTags=""``: str - The comma-separated list of keys of internal tags to export into the ``tags`` Protocol Buffer field, as "key:value" strings. Note that a tag with an empty value will be exported as "<key>", not "<key>:". An empty string means that no internal tag will be exported. The special value ``*`` means that all tags will be exported.
+  * ``exportTagsKeyOnly=false``: boolean - Whether to export tags matched by ``exportTags`` or ``exportTagsPrefixes`` as ``key`` (``true``) or ``key:value`` strings (``false``, the default).
+  * ``exportTagsPrefixes="""``: str - Comma-separate list of prefixes:internal tags whose keys match at least of these prefixes will be exported into the ``tags`` Protocol Buffer field, as ``key:value`` strings (or as ``key`` if ``exportTagsKeyOnly`` is set). Tags whose keys match at least of the entries in ``exportTags`` will be exported as well.
+  * ``exportTagsStripPrefixes=false``: boolean - Whether to strip the prefix part of the key when exporting a tag matched by one of the prefixes defined in ``exportTagsPrefixes``.
   * ``exportExtendedErrorsToMeta=""``: str - Export Extended DNS Errors present in the DNS response, if any, into the ``meta`` Protocol Buffer field using the specified ``key``. The EDE info code will be exported as an integer value, and the EDE extra text, if present, as a string value.
 
 .. function:: SetAdditionalProxyProtocolValueAction(type, value)

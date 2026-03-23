@@ -295,6 +295,7 @@ void setupLuaActions(LuaContext& luaCtx)
     }
 
     std::string tags;
+    std::string tagsPrefixes;
     dnsdist::actions::RemoteLogActionConfiguration config;
     config.logger = std::move(logger);
     if (alterFunc) {
@@ -312,8 +313,17 @@ void setupLuaActions(LuaContext& luaCtx)
     if (getOptionalValue<std::string>(vars, "exportTags", tags) < 0) {
       throw std::runtime_error("exportTags in RemoteLogAction is not a string");
     }
+    if (getOptionalValue<std::string>(vars, "exportTagsPrefixes", tagsPrefixes) < 0) {
+      throw std::runtime_error("exportTagsPrefixes in RemoteLogAction is not a string");
+    }
+    if (getOptionalValue<bool>(vars, "exportTagsKeyOnly", config.tagsExportKeyOnly) < 0) {
+      throw std::runtime_error("exportTagsKeyOnly in RemoteLogAction is not a boolean");
+    }
+    if (getOptionalValue<bool>(vars, "exportTagsStripPrefixes", config.tagsStripPrefixes) < 0) {
+      throw std::runtime_error("exportTagsStripPrefixes in RemoteLogAction is not a boolean");
+    }
     if (getOptionalValue<bool>(vars, "useServerID", config.useServerID) < 0) {
-      throw std::runtime_error("useServerID in RemoteLogAction is not a string");
+      throw std::runtime_error("useServerID in RemoteLogAction is not a boolean");
     }
 
     if (config.useServerID && !config.serverID.empty()) {
@@ -337,8 +347,16 @@ void setupLuaActions(LuaContext& luaCtx)
         std::vector<std::string> tokens;
         stringtok(tokens, tags, ",");
         for (auto& token : tokens) {
-          config.tagsToExport->insert(std::move(token));
+          config.tagsToExport->emplace(std::move(token));
         }
+      }
+    }
+
+    if (!tagsPrefixes.empty()) {
+      std::vector<std::string> tokens;
+      stringtok(tokens, tagsPrefixes, ",");
+      for (auto& token : tokens) {
+        config.tagsPrefixesToExport.emplace(std::move(token));
       }
     }
 
@@ -358,6 +376,7 @@ void setupLuaActions(LuaContext& luaCtx)
     }
 
     std::string tags;
+    std::string tagsPrefixes;
     dnsdist::actions::RemoteLogActionConfiguration config;
     config.logger = std::move(logger);
     if (alterFunc) {
@@ -376,11 +395,20 @@ void setupLuaActions(LuaContext& luaCtx)
     if (getOptionalValue<std::string>(vars, "exportTags", tags) < 0) {
       throw std::runtime_error("exportTags in RemoteLogResponseAction is not a string");
     }
+    if (getOptionalValue<std::string>(vars, "exportTagsPrefixes", tagsPrefixes) < 0) {
+      throw std::runtime_error("exportTagsPrefixes in RemoteLogAction is not a string");
+    }
+    if (getOptionalValue<bool>(vars, "exportTagsKeyOnly", config.tagsExportKeyOnly) < 0) {
+      throw std::runtime_error("exportTagsKeyOnly in RemoteLogAction is not a boolean");
+    }
+    if (getOptionalValue<bool>(vars, "exportTagsStripPrefixes", config.tagsStripPrefixes) < 0) {
+      throw std::runtime_error("exportTagsStripPrefixes in RemoteLogAction is not a boolean");
+    }
     if (getOptionalValue<std::string>(vars, "exportExtendedErrorsToMeta", config.exportExtendedErrorsToMeta) < 0) {
       throw std::runtime_error("exportExtendedErrorsToMeta in RemoteLogResponseAction is not a string");
     }
     if (getOptionalValue<bool>(vars, "useServerID", config.useServerID) < 0) {
-      throw std::runtime_error("useServerID in RemoteLogResponseAction is not a string");
+      throw std::runtime_error("useServerID in RemoteLogResponseAction is not a boolean");
     }
 
     if (config.useServerID && !config.serverID.empty()) {
@@ -404,10 +432,19 @@ void setupLuaActions(LuaContext& luaCtx)
         std::vector<std::string> tokens;
         stringtok(tokens, tags, ",");
         for (auto& token : tokens) {
-          config.tagsToExport->insert(std::move(token));
+          config.tagsToExport->emplace(std::move(token));
         }
       }
     }
+
+    if (!tagsPrefixes.empty()) {
+      std::vector<std::string> tokens;
+      stringtok(tokens, tagsPrefixes, ",");
+      for (auto& token : tokens) {
+        config.tagsPrefixesToExport.emplace(std::move(token));
+      }
+    }
+
     if (std::find(s_validIpEncryptMethods.begin(), s_validIpEncryptMethods.end(), config.ipEncryptMethod) == s_validIpEncryptMethods.end()) {
       throw std::runtime_error("Invalid IP Encryption method in RemoteLogResponseAction");
     }
