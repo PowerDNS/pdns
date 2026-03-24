@@ -17,128 +17,188 @@ It is recommended to send the traces out through a RemoteLogger in ResponseRules
 
 Tracing uses more memory and CPU than usual query processing and it is recommended to enable tracing only for certain queries using specific :doc:`selectors <selectors>`.
 
-Example configuration
-=====================
+Example configurations
+======================
 
-In this configuration, the RemoteLogger is passed directly to the ``SetTrace`` action.
+In this configuration, the :class:`RemoteLogger` is passed directly to the :func:`SetTrace <SetTraceAction>` action.
 Doing this ensures that no matter what happens with the query (timeout, self-answered, cache-hit, dropped, answered by the backend), the trace will be sent out.
 When sending the trace in this way, the Protobuf message is essentially empty apart from the OpenTelemetry Trace.
 
-.. code-block:: yaml
+.. md-tab-set::
 
-   logging:
-     open_telemetry_tracing:
-       enabled: true
-   remote_logging:
-     protobuf_loggers:
-       - name: pblog
-         address: 127.0.0.1:5301
-   query_rules:
-     - name: Enable tracing
-       selector:
-         # Just as an example, in production don't trace all the queries
-         type: All
-       action:
-         type: SetTrace
-         value: true
-         remote_loggers:
-           - pblog
+  .. md-tab-item:: YAML
 
-Should you only want to receive the trace, including a fully filled Protobuf message, a `RemoteLog` can be used:
+    .. code-block:: yaml
 
-.. code-block:: yaml
+      logging:
+        open_telemetry_tracing:
+          enabled: true
+      remote_logging:
+        protobuf_loggers:
+          - name: pblog
+            address: 127.0.0.1:5301
+      query_rules:
+        - name: Enable tracing
+          selector:
+            # Just as an example, in production don't trace all the queries
+            type: All
+          action:
+            type: SetTrace
+            value: true
+            remote_loggers:
+              - pblog
 
-   logging:
-     open_telemetry_tracing:
-       enabled: true
-   remote_logging:
-     protobuf_loggers:
-       - name: pblog
-         address: 127.0.0.1:5301
-   query_rules:
-     - name: Enable tracing
-       selector:
-         # Just as an example, in production don't trace all the queries
-         type: All
-       action:
-         type: SetTrace
-         value: true
-    response_rules:
-      - name: Send PB log
-        selector:
-          type: All
-        action:
-          type: RemoteLog
-          logger_name: pblog
-          # Delay ensures that the PB message is sent
-          # after the response is sent to client, instead
-          # of immediately. This ensures all Trace Spans
-          # have proper end timestamps.
-          delay: true
+  .. md-tab-item:: Lua
+
+    .. code-block:: lua
+
+      -- newServer should go here
+      rl = newRemoteLogger('127.0.0.1:5301')
+      setOpenTelemetryTracing(true)
+
+      addAction(AllRule(), SetTraceAction(true, {remoteLoggers={rl}}), {name="Enable tracing"})
+
+Should you only want to receive the trace after a response was received from the backend, including a fully filled Protobuf message, a :func:`RemoteLog <RemoteLogAction>` action can be used:
+
+.. md-tab-set::
+
+  .. md-tab-item:: YAML
+
+      .. code-block:: yaml
+
+         logging:
+           open_telemetry_tracing:
+             enabled: true
+         remote_logging:
+           protobuf_loggers:
+             - name: pblog
+               address: 127.0.0.1:5301
+         query_rules:
+           - name: Enable tracing
+             selector:
+               # Just as an example, in production don't trace all the queries
+               type: All
+             action:
+               type: SetTrace
+               value: true
+          response_rules:
+            - name: Send PB log
+              selector:
+                type: All
+              action:
+                type: RemoteLog
+                logger_name: pblog
+                # Delay ensures that the PB message is sent
+                # after the response is sent to client, instead
+                # of immediately. This ensures all Trace Spans
+                # have proper end timestamps.
+                delay: true
+
+  .. md-tab-item:: Lua
+
+    To receive *all* trace spans, set the ``delay`` option of the :func:`addResponseAction`. This will delay the sending of the ProtoBuf message to after the response has been sent to the client.
+
+    .. code-block:: lua
+
+      rl = newRemoteLogger('127.0.0.1:5301')
+      setOpenTelemetryTracing(true)
+
+      addAction(AllRule(), SetTraceAction(true), {name="Enable tracing"})
+      addResponseAction(AllRule(), RemoteLogResponseAction(rl, nil, false, {}, {}, true), {name="Do PB logging"})
 
 Passing Trace ID and Span ID to downstream servers
-==================================================
+--------------------------------------------------
 
 When storing traces, it is beneficial to correlate traces of the same query through different applications.
 The `PowerDNS Recursor <https://doc.powerdns.com/recursor>`__ (since 5.3.0) supports the experimental `TRACEPARENT <https://github.com/PowerDNS/draft-edns-otel-trace-ids>`__ EDNS option to pass the trace identifier.
 
 This can be easily achieved by adding the `send_downstream_traceparent` option with the desired EDNS OptionCode.
 
-.. code-block:: yaml
+.. md-tab-set::
 
-  query_rules:
-    - name: Add TraceID to EDNS for backend
-      selector:
-        type: All
-      action:
-        type: SetTrace
-        value: true
-        send_downstream_traceparent: true
+  .. md-tab-item:: YAML
+
+    .. code-block:: yaml
+
+      query_rules:
+        - name: Add TraceID to EDNS for backend
+          selector:
+            type: All
+          action:
+            type: SetTrace
+            value: true
+            send_downstream_traceparent: true
+
+    .. code-block:: lua
+
+      addAction(AllRule(), SetTraceAction(true, {sendDownstreamTraceparent=true}), {name="Enable tracing"})
 
 Accepting TRACEPARENT from upstream servers
-===========================================
+-------------------------------------------
 
 :program:`dnsdist` can also use a Trace ID and optional Span ID from an incoming query.
-It will not do this by default, but this can be configured with the ``use_incoming_traceid`` argument.
-When set to ``true`` incoming Trace and Span IDs will be used.
+It will not do this by default, but this can be configured to do so.
+When set, the Trace and Span IDs from the query will be used.
 Should there be no ID in the incoming query, a random ID will be generated.
 
-.. code-block:: yaml
+.. md-tab-set::
 
-   query_rules:
-     - name: Enable tracing
-       selector:
-         # Just as an example, in production don't trace all the queries
-         type: All
-       action:
-         type: SetTrace
-         value: true
-         use_incoming_traceparent: true
+  .. md-tab-item:: YAML
+
+    Set the ``use_incoming_traceid`` argument to ``true`` in the SetTrace action.
+
+    .. code-block:: yaml
+
+       query_rules:
+         - name: Enable tracing
+           selector:
+             # Just as an example, in production don't trace all the queries
+             type: All
+           action:
+             type: SetTrace
+             value: true
+             use_incoming_traceparent: true
+
+  .. md-tab-item:: Lua
+
+    .. code-block:: lua
+
+      addAction(AllRule(), SetTraceAction(true, {useIncomingTraceparent=true}), {name="Enable tracing"})
 
 As :program:`dnsdist` keeps EDNS existing options in the query, the TRACEPARENT option is passed as-is to the backend, which might not be desirable.
 Using the ``strip_incoming_traceparent`` boolean option, the EDNS option will be removed from the query.
 
-By default, :program:`dnsdist` uses 65500 for the TRACEPARENT option code. This code can be changed using the ``traceparent_edns_option_code`` option.
+By default, :program:`dnsdist` uses 65500 for the TRACEPARENT option code. This code can be changed using the ``traceparent_edns_option_code`` option in the YAML config and the ``traceparentOptionCode`` for Lua.
 
 Note that this will only happen when ``value`` is set to ``true``.
 
 Accepting and sending TRACEPARENT
-=================================
+---------------------------------
 
 The following example makes :program:`dnsdist` accept a TRACEPARENT, and update it with its own Span ID before sending it downstream:
 
-.. code-block:: yaml
+.. md-tab-set::
 
-  query_rules:
-    - name: Enable tracing
-      selector:
-        # Just as an example, in production don't trace all the queries
-        type: All
-      action:
-        type: SetTrace
-        value: true
-        send_downstream_traceparent: true
-        use_incoming_traceparent: true
+  .. md-tab-item:: YAML
+
+    .. code-block:: yaml
+
+      query_rules:
+        - name: Enable tracing
+          selector:
+            # Just as an example, in production don't trace all the queries
+            type: All
+          action:
+            type: SetTrace
+            value: true
+            send_downstream_traceparent: true
+            use_incoming_traceparent: true
+
+  .. md-tab-item:: Lua
+
+    .. code-block:: lua
+
+      addAction(AllRule(), SetTraceAction(true, {useIncomingTraceparent=true, sendDownstreamTraceparent=true}), {name="Enable tracing"})
 
 Creating Trace Spans from Lua
 =============================
@@ -237,7 +297,7 @@ Using :func:`withTraceSpan` when tracing is disabled is completely safe and tran
 The Lua code will be run, but no Trace Span will be created.
 
 Functions
-=========
+---------
 
 The following functions are always available, but only produce Trace Spans within the following contexts:
 
