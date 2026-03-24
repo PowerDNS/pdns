@@ -1850,6 +1850,18 @@ structured_logging:
         Add a field "instance" to each log line with the value of ``general.server_id``.
       version_added: 2.1.0
 
+open_telemetry_tracing:
+  category: "logging.open_telemetry_tracing"
+  description: "OpenTelemetry Trace settings"
+  parameters:
+    - name: "enabled"
+      type: "bool"
+      default: "false"
+      runtime-configurable: true
+      lua-name: "setOpenTelemetryTracing"
+      internal-field-name: "d_openTelemetryTracing"
+      description: "Set to true to enable OpenTelemetry tracing. When true, the :func:`DNSQuestion:setTrace` makes the query store tracing information (see :doc:`OpenTelemetry tracing <ottrace>`). When this setting is false, no tracing information is gathered at all."
+
 logging:
   description: "Logging settings"
   parameters:
@@ -1924,12 +1936,8 @@ logging:
       type: "StructuredLoggingConfiguration"
       default: true
     - name: "open_telemetry_tracing"
-      type: "bool"
-      default: "false"
-      lua-name: "setOpenTelemetryTracing"
-      internal-field-name: "d_openTelemetryTracing"
-      runtime-configurable: true
-      description: "Set to true to enable OpenTelemetry tracing. When true, the :func:`DNSQuestion:setTrace` makes the query store tracing information (see :doc:`OpenTelemetry tracing <ottrace>`). When this setting is false, no tracing information is gathered at all."
+      type: "OpenTelemetryTracingConfiguration"
+      default: true
 
 general:
   description: "General settings"
