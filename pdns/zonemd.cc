@@ -261,7 +261,7 @@ void pdns::ZoneMD::verify(bool& validationDone, bool& validationOK)
   // Final verify
   for (const auto& [k, v] : d_zonemdRecords) {
     auto [zonemd, duplicate] = v;
-    if (zonemd->d_hashalgo == 1) {
+    if (zonemd->d_hashalgo == 1 && sha384digest) {
       validationDone = true;
       auto computed = sha384digest->digest();
       if (constantTimeStringEquals(zonemd->d_digest, computed)) {
@@ -269,7 +269,7 @@ void pdns::ZoneMD::verify(bool& validationDone, bool& validationOK)
         break; // Per RFC: a single succeeding validation is enough
       }
     }
-    else if (zonemd->d_hashalgo == 2) {
+    else if (zonemd->d_hashalgo == 2 && sha512digest) {
       validationDone = true;
       auto computed = sha512digest->digest();
       if (constantTimeStringEquals(zonemd->d_digest, computed)) {
