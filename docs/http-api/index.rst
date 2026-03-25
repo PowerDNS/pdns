@@ -26,7 +26,7 @@ The following webserver related configuration items are available:
 .. warning::
 
    To achieve defense-in-depth, expose the webserver only to client addresses that have a real need for access.
-   Network access is configured by setting :ref:``setting-webserver-address` and :ref:`setting-webserver-allow_from`.
+   Network access is configured by setting :ref:``setting-webserver-address` and :ref:`setting-webserver-allow-from`.
 
 
 Metrics Endpoint
