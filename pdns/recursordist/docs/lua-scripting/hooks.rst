@@ -302,16 +302,16 @@ dq.followupPrefix to the same prefix as used with
 
 Follow up actions
 -----------------
-When modifying queries, it might be needed that the Recursor does some extra work after the function returns.
+When modifying queries, it might be needed that the :program:`Recursor` does some extra work after the function returns.
 The :attr:`dq.followupFunction <DNSQuestion.followupFunction>` can be set in this case.
 
 .. _cnamechainresolution:
 
 CNAME chain resolution
 ^^^^^^^^^^^^^^^^^^^^^^
-It may be useful to return a CNAME record for Lua, and then have the PowerDNS Recursor continue resolving that CNAME.
-This can be achieved by setting dq.followupFunction to ``followCNAMERecords`` and dq.followupDomain to "www.powerdns.com".
-PowerDNS will do the rest.
+It may be useful to return a ``CNAME`` record for Lua, and then have :program:`Recursor` continue resolving that ``CNAME``.
+This can be achieved by adding or setting a ``CNAME`` record and setting :attr:`dq.followupFunction <DNSQuestion.followupFunction>` to ``"followCNAMERecords"``.
+:program:`Recursor` will inspect the current records and resolve the ``CNAME`` found.
 
 .. _udpqueryresponse:
 

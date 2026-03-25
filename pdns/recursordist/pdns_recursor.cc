@@ -702,6 +702,9 @@ int followCNAMERecords(vector<DNSRecord>& ret, const QType qtype, int rcode)
 {
   vector<DNSRecord> resolved;
   DNSName target;
+  // Docs do not specify *which* CNAME is picked. We take the first
+  // and do not mind the section. Maybe the last in the answer section
+  // would be what users expect?
   for (const DNSRecord& record : ret) {
     if (record.d_type == QType::CNAME) {
       auto rec = getRR<CNAMERecordContent>(record);
