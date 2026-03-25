@@ -618,11 +618,11 @@ endif
 py = import('python')
 python = py.find_installation('python3', modules: 'venv', required: false)
 
-summary('Python', python.found(), bool_yn: true, section: 'Manual Pages')
-summary('Path', python.full_path(), section: 'Manual Pages')
-summary('Version', python.version(), section: 'Manual Pages')
+summary('Python with venv', python.found(), bool_yn: true, section: 'Manual Pages')
 
-if python.found()
+if get_option('man-pages') and python.found()
+  summary('Path', python.full_path(), section: 'Manual Pages')
+  summary('Version', python.version(), section: 'Manual Pages')
   generated_man_pages = []
   foreach tool, info: tools
     if 'manpages' in info
@@ -660,6 +660,8 @@ if python.found()
   else
     summary('Generating man pages', false, section: 'Manual Pages')
   endif
+else
+  summary('Generating man pages', false, section: 'Manual Pages')
 endif
 
 if dep_systemd_prog.found()
