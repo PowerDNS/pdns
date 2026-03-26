@@ -581,8 +581,8 @@ public:
     try {
       DNSResponseAction::Action result{};
       {
-        auto lock = g_lua.lock();
-        auto ret = d_func(response);
+        auto tracer = response->ids.getTracer();
+        auto ret = pdns::trace::dnsdist::runWithLuaTracing(tracer, d_func, response);
         if (ruleresult != nullptr) {
           if (std::optional<std::string> rule = std::get<1>(ret)) {
             *ruleresult = *rule;
