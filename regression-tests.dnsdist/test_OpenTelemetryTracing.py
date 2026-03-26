@@ -1057,6 +1057,91 @@ query_rules:
         )
 
 
+class TestOpenTelemetryTracingSpansFromLuaResponseAction(DNSDistOpenTelemetryProtobufBaseTest):
+    _yaml_config_params = [
+        "_testServerPort",
+        "_protobufServerPort",
+    ]
+
+    _yaml_config_template = """---
+logging:
+  open_telemetry_tracing:
+    enabled: true
+
+backends:
+  - address: 127.0.0.1:%d
+    protocol: Do53
+    health_checks:
+      mode: up
+
+remote_logging:
+  protobuf_loggers:
+    - name: pblog
+      address: 127.0.0.1:%d
+
+query_rules:
+  - name: Enable tracing
+    selector:
+      type: All
+    action:
+      type: SetTrace
+      value: true
+      remote_loggers:
+        - pblog
+
+response_rules:
+  - name: A traced LuaResponseAction
+    selector:
+      type: All
+    action:
+      type: Lua
+      function_code: |
+        return function (dq)
+          withTraceSpan("my-span",
+            function ()
+              setSpanAttribute("my-key-from-lua", "my-value-from-lua")
+              withTraceSpan("my-second-span",
+                function()
+                end
+              )
+            end
+          )
+          return DNSAction.None
+        end
+"""
+
+    def testBasic(self):
+        self.doTest(
+            hasProcessResponseAfterRules=True,
+            hasRemoteLogResponseAction=False,
+            extraFunctions={
+                "my-span",
+                "my-second-span",
+                "ResponseRule: A traced LuaResponseAction",
+            },
+        )
+
+    def testTCP(self):
+        self.doTest(
+            useTCP=True,
+            hasProcessResponseAfterRules=True,
+            hasRemoteLogResponseAction=False,
+            extraFunctions={
+                "my-span",
+                "my-second-span",
+                "ResponseRule: A traced LuaResponseAction",
+                "createTCPQuery",
+                "queueResponse",
+                "TCPConnectionToBackend::handleResponse",
+                "getDownstreamConnection",
+                "TCPConnectionToBackend::sendQuery",
+                "handleResponse",
+                "prepareQueryForSending",
+                "TCPConnectionToBackend::queueQuery",
+            },
+        )
+
+
 class TestOpenTelemetryTracingInternalBase(DNSDistOpenTelemetryProtobufTest):
     @staticmethod
     def getSpan(otData, name):
