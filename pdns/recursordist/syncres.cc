@@ -1858,134 +1858,134 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName& qname, const QType qtyp
     if (d_serveStale) {
       LOG(prefix << qname << ": Restart, with serve-stale enabled" << endl);
     }
-    // This is a difficult way of expressing "this is a normal query", i.e. not getRootNS.
-    if (!d_updatingRootNS || qtype.getCode() != QType::NS || !qname.isRoot()) {
-      DNSName authname(qname);
-      const auto iter = getBestAuthZone(&authname);
 
-      if (d_cacheonly) {
-        if (iter != t_sstorage.domainmap->end()) {
-          if (iter->second.isAuth()) {
-            LOG(prefix << qname << ": Cache only lookup for '" << qname << "|" << qtype << "', in auth zone" << endl);
-            ret.clear();
-            d_wasOutOfBand = doOOBResolve(qname, qtype, ret, depth, prefix, res);
-            if (fromCache != nullptr) {
-              *fromCache = d_wasOutOfBand;
-            }
-            return res;
-          }
-        }
-      }
+    // Originally this was all skipped for root refresh cases, but we now have a generic solution
+    // for that via forcedRefresh
+    DNSName authname(qname);
+    const auto iter = getBestAuthZone(&authname);
 
-      bool wasForwardedOrAuthZone = false;
-      bool wasAuthZone = false;
-      bool wasForwardRecurse = false;
-
+    if (d_cacheonly) {
       if (iter != t_sstorage.domainmap->end()) {
-        wasForwardedOrAuthZone = true;
-
         if (iter->second.isAuth()) {
-          wasAuthZone = true;
+          LOG(prefix << qname << ": Cache only lookup for '" << qname << "|" << qtype << "', in auth zone" << endl);
+          ret.clear();
+          d_wasOutOfBand = doOOBResolve(qname, qtype, ret, depth, prefix, res);
+          if (fromCache != nullptr) {
+            *fromCache = d_wasOutOfBand;
+          }
+          return res;
         }
-        else if (iter->second.shouldRecurse()) {
-          wasForwardRecurse = true;
+      }
+    }
+
+    bool wasForwardedOrAuthZone = false;
+    bool wasAuthZone = false;
+    bool wasForwardRecurse = false;
+
+    if (iter != t_sstorage.domainmap->end()) {
+      wasForwardedOrAuthZone = true;
+
+      if (iter->second.isAuth()) {
+        wasAuthZone = true;
+      }
+      else if (iter->second.shouldRecurse()) {
+        wasForwardRecurse = true;
+      }
+    }
+
+    /* When we are looking for a DS, we want to the non-CNAME cache check first
+       because we can actually have a DS (from the parent zone) AND a CNAME (from
+       the child zone), and what we really want is the DS */
+    if (qtype != QType::DS && doCNAMECacheCheck(qname, qtype, ret, depth, prefix, res, context, wasAuthZone, wasForwardRecurse, loop == 1)) { // will reroute us if needed
+      d_wasOutOfBand = wasAuthZone;
+      // Here we have an issue. If we were prevented from going out to the network (cache-only was set, possibly because we
+      // are in QM Step0) we might have a CNAME but not the corresponding target.
+      // It means that we will sometimes go to the next steps when we are in fact done, but that's fine since
+      // we will get the records from the cache, resulting in a small overhead.
+      // This might be a real problem if we had a RPZ hit, though, because we do not want the processing to continue, since
+      // RPZ rules will not be evaluated anymore (we already matched).
+      bool stoppedByPolicyHit = d_appliedPolicy.wasHit();
+      if (stoppedByPolicyHit && d_appliedPolicy.d_kind == DNSFilterEngine::PolicyKind::Custom && d_appliedPolicy.d_custom) {
+        // if the custom RPZ record was a CNAME we still need a full chase
+        // tested by unit test test_following_cname_chain_with_rpz
+        if (!d_appliedPolicy.d_custom->empty() && d_appliedPolicy.d_custom->at(0)->getType() == QType::CNAME) {
+          stoppedByPolicyHit = false;
+        }
+      }
+      if (fromCache != nullptr && (!d_cacheonly || stoppedByPolicyHit)) {
+        *fromCache = true;
+      }
+      /* Apply Post filtering policies */
+
+      if (d_wantsRPZ && !d_appliedPolicy.wasHit()) {
+        auto luaLocal = g_luaconfs.getLocal();
+        if (luaLocal->dfe.getPostPolicy(ret, d_discardedPolicies, d_appliedPolicy)) {
+          mergePolicyTags(d_policyTags, d_appliedPolicy.getTags());
+          bool done = false;
+          handlePolicyHit(prefix, qname, qtype, ret, done, res, depth);
+          if (done && fromCache != nullptr) {
+            *fromCache = true;
+          }
+        }
+      }
+      // This handles the case mentioned above: if the full CNAME chain leading to the answer was
+      // constructed from the cache, indicate that.
+      if (fromCache != nullptr && !*fromCache && haveFinalAnswer(qname, qtype, res, ret)) {
+        *fromCache = true;
+      }
+      return res;
+    }
+
+    if (doCacheCheck(qname, authname, wasForwardedOrAuthZone, wasAuthZone, wasForwardRecurse, qtype, ret, depth, prefix, res, context)) {
+      // we done
+      d_wasOutOfBand = wasAuthZone;
+      if (fromCache != nullptr) {
+        *fromCache = true;
+      }
+
+      if (d_wantsRPZ && !d_appliedPolicy.wasHit()) {
+        auto luaLocal = g_luaconfs.getLocal();
+        if (luaLocal->dfe.getPostPolicy(ret, d_discardedPolicies, d_appliedPolicy)) {
+          mergePolicyTags(d_policyTags, d_appliedPolicy.getTags());
+          bool done = false;
+          handlePolicyHit(prefix, qname, qtype, ret, done, res, depth);
         }
       }
 
-      /* When we are looking for a DS, we want to the non-CNAME cache check first
-         because we can actually have a DS (from the parent zone) AND a CNAME (from
-         the child zone), and what we really want is the DS */
-      if (qtype != QType::DS && doCNAMECacheCheck(qname, qtype, ret, depth, prefix, res, context, wasAuthZone, wasForwardRecurse, loop == 1)) { // will reroute us if needed
-        d_wasOutOfBand = wasAuthZone;
-        // Here we have an issue. If we were prevented from going out to the network (cache-only was set, possibly because we
-        // are in QM Step0) we might have a CNAME but not the corresponding target.
-        // It means that we will sometimes go to the next steps when we are in fact done, but that's fine since
-        // we will get the records from the cache, resulting in a small overhead.
-        // This might be a real problem if we had a RPZ hit, though, because we do not want the processing to continue, since
-        // RPZ rules will not be evaluated anymore (we already matched).
-        bool stoppedByPolicyHit = d_appliedPolicy.wasHit();
-        if (stoppedByPolicyHit && d_appliedPolicy.d_kind == DNSFilterEngine::PolicyKind::Custom && d_appliedPolicy.d_custom) {
-          // if the custom RPZ record was a CNAME we still need a full chase
-          // tested by unit test test_following_cname_chain_with_rpz
-          if (!d_appliedPolicy.d_custom->empty() && d_appliedPolicy.d_custom->at(0)->getType() == QType::CNAME) {
-            stoppedByPolicyHit = false;
-          }
-        }
-        if (fromCache != nullptr && (!d_cacheonly || stoppedByPolicyHit)) {
-          *fromCache = true;
-        }
-        /* Apply Post filtering policies */
+      return res;
+    }
 
-        if (d_wantsRPZ && !d_appliedPolicy.wasHit()) {
-          auto luaLocal = g_luaconfs.getLocal();
-          if (luaLocal->dfe.getPostPolicy(ret, d_discardedPolicies, d_appliedPolicy)) {
-            mergePolicyTags(d_policyTags, d_appliedPolicy.getTags());
-            bool done = false;
-            handlePolicyHit(prefix, qname, qtype, ret, done, res, depth);
-            if (done && fromCache != nullptr) {
-              *fromCache = true;
-            }
-          }
-        }
-        // This handles the case mentioned above: if the full CNAME chain leading to the answer was
-        // constructed from the cache, indicate that.
-        if (fromCache != nullptr && !*fromCache && haveFinalAnswer(qname, qtype, res, ret)) {
-          *fromCache = true;
-        }
-        return res;
+    /* if we have not found a cached DS (or denial of), now is the time to look for a CNAME */
+    if (qtype == QType::DS && doCNAMECacheCheck(qname, qtype, ret, depth, prefix, res, context, wasAuthZone, wasForwardRecurse, loop == 1)) { // will reroute us if needed
+      d_wasOutOfBand = wasAuthZone;
+      // Here we have an issue. If we were prevented from going out to the network (cache-only was set, possibly because we
+      // are in QM Step0) we might have a CNAME but not the corresponding target.
+      // It means that we will sometimes go to the next steps when we are in fact done, but that's fine since
+      // we will get the records from the cache, resulting in a small overhead.
+      // This might be a real problem if we had a RPZ hit, though, because we do not want the processing to continue, since
+      // RPZ rules will not be evaluated anymore (we already matched).
+      const bool stoppedByPolicyHit = d_appliedPolicy.wasHit();
+
+      if (fromCache != nullptr && (!d_cacheonly || stoppedByPolicyHit)) {
+        *fromCache = true;
       }
+      /* Apply Post filtering policies */
 
-      if (doCacheCheck(qname, authname, wasForwardedOrAuthZone, wasAuthZone, wasForwardRecurse, qtype, ret, depth, prefix, res, context)) {
-        // we done
-        d_wasOutOfBand = wasAuthZone;
-        if (fromCache != nullptr) {
-          *fromCache = true;
-        }
-
-        if (d_wantsRPZ && !d_appliedPolicy.wasHit()) {
-          auto luaLocal = g_luaconfs.getLocal();
-          if (luaLocal->dfe.getPostPolicy(ret, d_discardedPolicies, d_appliedPolicy)) {
-            mergePolicyTags(d_policyTags, d_appliedPolicy.getTags());
-            bool done = false;
-            handlePolicyHit(prefix, qname, qtype, ret, done, res, depth);
+      if (d_wantsRPZ && !stoppedByPolicyHit) {
+        auto luaLocal = g_luaconfs.getLocal();
+        if (luaLocal->dfe.getPostPolicy(ret, d_discardedPolicies, d_appliedPolicy)) {
+          mergePolicyTags(d_policyTags, d_appliedPolicy.getTags());
+          bool done = false;
+          handlePolicyHit(prefix, qname, qtype, ret, done, res, depth);
+          if (done && fromCache != nullptr) {
+            *fromCache = true;
           }
         }
-
-        return res;
       }
-
-      /* if we have not found a cached DS (or denial of), now is the time to look for a CNAME */
-      if (qtype == QType::DS && doCNAMECacheCheck(qname, qtype, ret, depth, prefix, res, context, wasAuthZone, wasForwardRecurse, loop == 1)) { // will reroute us if needed
-        d_wasOutOfBand = wasAuthZone;
-        // Here we have an issue. If we were prevented from going out to the network (cache-only was set, possibly because we
-        // are in QM Step0) we might have a CNAME but not the corresponding target.
-        // It means that we will sometimes go to the next steps when we are in fact done, but that's fine since
-        // we will get the records from the cache, resulting in a small overhead.
-        // This might be a real problem if we had a RPZ hit, though, because we do not want the processing to continue, since
-        // RPZ rules will not be evaluated anymore (we already matched).
-        const bool stoppedByPolicyHit = d_appliedPolicy.wasHit();
-
-        if (fromCache != nullptr && (!d_cacheonly || stoppedByPolicyHit)) {
-          *fromCache = true;
-        }
-        /* Apply Post filtering policies */
-
-        if (d_wantsRPZ && !stoppedByPolicyHit) {
-          auto luaLocal = g_luaconfs.getLocal();
-          if (luaLocal->dfe.getPostPolicy(ret, d_discardedPolicies, d_appliedPolicy)) {
-            mergePolicyTags(d_policyTags, d_appliedPolicy.getTags());
-            bool done = false;
-            handlePolicyHit(prefix, qname, qtype, ret, done, res, depth);
-            if (done && fromCache != nullptr) {
-              *fromCache = true;
-            }
-          }
-        }
-        if (fromCache != nullptr && !*fromCache && haveFinalAnswer(qname, qtype, res, ret)) {
-          *fromCache = true;
-        }
-        return res;
+      if (fromCache != nullptr && !*fromCache && haveFinalAnswer(qname, qtype, res, ret)) {
+        *fromCache = true;
       }
+      return res;
     }
 
     if (d_cacheonly) {
@@ -2502,6 +2502,9 @@ bool SyncRes::doCNAMECacheCheck(const DNSName& qname, const QType qtype, vector<
   if (d_refresh) {
     flags |= MemRecursorCache::Refresh;
   }
+  if (d_forcedRefresh) {
+    flags |= MemRecursorCache::ForcedRefresh;
+  }
   if (d_serveStale) {
     flags |= MemRecursorCache::ServeStale;
   }
@@ -2947,6 +2950,9 @@ bool SyncRes::doCacheCheck(const DNSName& qname, const DNSName& authname, bool w
   }
   if (d_refresh) {
     flags |= MemRecursorCache::Refresh;
+  }
+  if (d_forcedRefresh) {
+    flags |= MemRecursorCache::ForcedRefresh;
   }
 
   MemRecursorCache::Extra extra;
@@ -6304,6 +6310,7 @@ int SyncRes::getRootNS(struct timeval now, asyncresolve_t asyncCallback, unsigne
   resolver.setUpdatingRootNS();
   resolver.setAsyncCallback(std::move(asyncCallback));
   resolver.setRefreshAlmostExpired(true);
+  resolver.setForcedRefresh(true);
 
   const string msg = "Failed to update . records";
   vector<DNSRecord> ret;
