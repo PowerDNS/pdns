@@ -26,7 +26,6 @@
 #include <unordered_map>
 
 #include "config.h"
-#include "dnsdist-doh-common.hh"
 #include "noinitvector.hh"
 
 #ifdef HAVE_DNS_OVER_HTTP3
@@ -49,6 +48,7 @@ using h3_headers_t = std::unordered_map<std::string, std::string>;
 
 #include "dnsdist-idstate.hh"
 #include "doq-common.hh"
+#include "dnsdist-doh-common.hh"
 
 struct DOH3Frontend
 {
