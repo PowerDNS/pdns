@@ -536,9 +536,7 @@ static void processDOH3Query(DOH3UnitUniquePtr&& doh3Unit)
             unit->headers = *customHeaders;
           }
 
-          auto conn = getConnection(unit->dsc->df->d_server_config->d_connections, unit->serverConnID);
-          handleResponse(*unit->dsc->df, *conn, unit->streamID, unit->status_code, unit->response, unit->d_contentTypeOut);
-          unit->ids.doh3u.reset();
+          handleImmediateResponse(std::move(unit), "DoH3 custom response");
           return;
         }
       }
