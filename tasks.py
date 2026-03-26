@@ -83,7 +83,7 @@ rec_bulk_ubicloud_deps = [
 ]
 dnsdist_build_deps = [
     "libcap-dev",
-    "libcatch2-dev",
+    "catch2",
     "libcdb-dev",
     "libedit-dev",
     "libfstrm-dev",
