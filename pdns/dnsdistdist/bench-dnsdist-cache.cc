@@ -83,16 +83,18 @@ TEST_CASE("Cache/Lookup")
   };
 
   for (size_t threadsCount : std::vector<size_t>{1, 10, 20}) {
+    std::vector<std::thread> threads;
+    threads.reserve(threadsCount);
+
     BENCHMARK(std::to_string(threadsCount))
     {
-      std::vector<std::thread> threads;
-      threads.reserve(threadsCount);
       for (size_t idx = 0U; idx < threadsCount; idx++) {
         threads.emplace_back(std::thread(testCode, iterations / threadsCount));
       }
       for (auto& thread : threads) {
         thread.join();
       }
+      return threads.size();
     };
   }
 }
@@ -126,16 +128,18 @@ TEST_CASE("Cache/Insertion")
   };
 
   for (size_t threadsCount : std::vector<size_t>{1, 10, 20}) {
+    std::vector<std::thread> threads;
+    threads.reserve(threadsCount);
+
     BENCHMARK(std::to_string(threadsCount))
     {
-      std::vector<std::thread> threads;
-      threads.reserve(threadsCount);
       for (size_t idx = 0U; idx < threadsCount; idx++) {
         threads.emplace_back(std::thread(testCode, iterations / threadsCount));
       }
       for (auto& thread : threads) {
         thread.join();
       }
+      return threads.size();
     };
   }
 }
@@ -170,7 +174,7 @@ TEST_CASE("Cache/Cleanup")
   const auto now = time(nullptr);
   BENCHMARK("cleanup")
   {
-    cache.purgeExpired(0U, now);
+    return cache.purgeExpired(0U, now);
   };
 
   CHECK(cache.getSize() == before);
