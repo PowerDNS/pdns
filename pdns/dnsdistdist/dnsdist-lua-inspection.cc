@@ -902,7 +902,7 @@ void setupLuaInspection(LuaContext& luaCtx)
                                                               [](const StatNode& node) -> unsigned int {
                                                                 return node.size();
                                                               });
-  luaCtx.registerMember("fullname", &StatNode::fullname);
+  luaCtx.registerMember<std::string(StatNode::*)>(std::string("fullname"), [](const StatNode& node) -> std::string { return node.fullname.toString(); });
   luaCtx.registerMember("labelsCount", &StatNode::labelsCount);
   luaCtx.registerMember("servfails", &StatNode::Stat::servfails);
   luaCtx.registerMember("nxdomains", &StatNode::Stat::nxdomains);

@@ -61,7 +61,7 @@ public:
 
   Stat s;
   std::string name;
-  std::string fullname;
+  DNSName fullname;
   uint8_t labelsCount{0};
 
   void submit(const DNSName& domain, int rcode, uint32_t bytes, bool hit, const std::optional<ComboAddress>& remote, size_t samplingRate);
@@ -77,7 +77,7 @@ public:
   }
 
 private:
-  void submit(std::vector<string>::const_iterator end, std::vector<string>::const_iterator begin, const std::string& domain, int rcode, uint32_t bytes, const std::optional<ComboAddress>& remote, unsigned int count, bool hit, size_t samplingRate);
+  void submit(std::vector<string>::const_iterator end, std::vector<string>::const_iterator begin, const DNSName& domain, int rcode, uint32_t bytes, const std::optional<ComboAddress>& remote, unsigned int count, bool hit, size_t samplingRate);
 
   using children_t = std::map<std::string, StatNode, CIStringCompare>;
   children_t children;
