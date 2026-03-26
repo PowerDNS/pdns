@@ -78,10 +78,17 @@ using NsSet = std::unordered_map<DNSName, pair<vector<ComboAddress>, bool>>;
 
 extern std::unique_ptr<NegCache> g_negCache;
 
-class SyncRes : public boost::noncopyable
+class SyncRes
 {
 public:
-  enum LogMode
+  SyncRes();
+  ~SyncRes() = default;
+  SyncRes(const SyncRes&) = delete;
+  SyncRes(SyncRes&&) = delete;
+  SyncRes& operator=(const SyncRes&) = delete;
+  SyncRes& operator=(SyncRes&&) = delete;
+
+  enum LogMode : uint8_t
   {
     LogNone,
     Log,
@@ -593,18 +600,18 @@ public:
   std::shared_ptr<Logr::Logger> d_slog = g_slog->withName("syncres");
   std::optional<EDNSExtendedError> d_extendedError;
 
-  unsigned int d_authzonequeries;
-  unsigned int d_outqueries;
-  unsigned int d_tcpoutqueries;
-  unsigned int d_dotoutqueries;
-  unsigned int d_throttledqueries;
-  unsigned int d_timeouts;
-  unsigned int d_unreachables;
-  unsigned int d_bytesReceived;
-  unsigned int d_totUsec;
+  unsigned int d_authzonequeries{0};
+  unsigned int d_outqueries{0};
+  unsigned int d_tcpoutqueries{0};
+  unsigned int d_dotoutqueries{0};
+  unsigned int d_throttledqueries{0};
+  unsigned int d_timeouts{0};
+  unsigned int d_unreachables{0};
+  unsigned int d_bytesReceived{0};
+  unsigned int d_totUsec{0};
   unsigned int d_maxdepth{0};
   // Initialized only once, as opposed to d_now which gets updated after outgoing requests
-  struct timeval d_fixednow;
+  const struct timeval d_fixednow;
 
 private:
   ComboAddress d_requestor;
@@ -749,15 +756,15 @@ private:
   /* When d_cacheonly is set to true, we will only check the cache.
    * This is set when the RD bit is unset in the incoming query
    */
-  bool d_cacheonly;
+  bool d_cacheonly{false};
   bool d_doDNSSEC;
-  bool d_DNSSECValidationRequested{false};
+  bool d_DNSSECValidationRequested;
   bool d_requireAuthData{true};
   bool d_updatingRootNS{false};
   bool d_wantsRPZ{true};
   bool d_wasOutOfBand{false};
   bool d_wasVariable{false};
-  bool d_qNameMinimization{false};
+  bool d_qNameMinimization;
   bool d_qNameMinimizationFallbackMode{false};
   bool d_queryReceivedOverTCP{false};
   bool d_followCNAME{true};

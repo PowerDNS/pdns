@@ -120,13 +120,14 @@ static void resolveInternal(const struct timeval& now, bool logErrors, const pdn
   auto log = g_slog->withName("taskq")->withValues("name", Logging::Loggable(task.d_qname), "qtype", Logging::Loggable(QType(task.d_qtype).toString()), "netmask", Logging::Loggable(task.d_netmask.empty() ? "" : task.d_netmask.toString()));
   const string msg = "Exception while running a background ResolveTask";
   SyncRes resolver(now);
-  vector<DNSRecord> ret;
   resolver.setRefreshAlmostExpired(task.d_refreshMode);
   resolver.setQuerySource(task.d_netmask);
   if (forceNoQM) {
     resolver.setQNameMinimization(false);
   }
+
   bool exceptionOccurred = true;
+  vector<DNSRecord> ret;
   try {
     log->info(Logr::Debug, "resolving", "refresh", Logging::Loggable(task.d_refreshMode));
     int res = resolver.beginResolve(task.d_qname, QType(task.d_qtype), QClass::IN, ret);
@@ -186,7 +187,6 @@ static void tryDoT(const struct timeval& now, bool logErrors, const pdns::Resolv
   const string msg = "Exception while running a background tryDoT task";
   SyncRes resolver(now);
   vector<DNSRecord> ret;
-  resolver.setRefreshAlmostExpired(false);
   bool exceptionOccurred = true;
   try {
     log->info(Logr::Debug, "trying DoT");
