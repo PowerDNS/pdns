@@ -408,21 +408,21 @@ bool MemRecursorCache::entryMatches(MemRecursorCache::OrderedTagIterator_t& entr
 }
 
 // Fake a cache miss if more than refreshTTLPerc of the original TTL has passed
-time_t MemRecursorCache::fakeTTD(MemRecursorCache::OrderedTagIterator_t& entry, const DNSName& qname, QType qtype, time_t ret, time_t now, uint32_t origTTL, bool refresh)
+time_t MemRecursorCache::fakeTTD(MemRecursorCache::OrderedTagIterator_t& entry, const DNSName& qname, QType qtype, time_t ret, time_t now, uint32_t origTTL, MemRecursorCache::Flags flags)
 {
   time_t ttl = ret - now;
   // If we are checking an entry being served stale in refresh mode,
   // we always consider it stale so a real refresh attempt will be
   // kicked by SyncRes
-  if (refresh && entry->d_servedStale > 0) {
+  if (refresh(flags) && entry->d_servedStale > 0) {
     return -1;
   }
-  if (ttl > 0 && SyncRes::s_refresh_ttlperc > 0) {
-    const uint32_t deadline = origTTL * SyncRes::s_refresh_ttlperc / 100;
+  if (ttl > 0 && (forcedRefresh(flags) || SyncRes::s_refresh_ttlperc > 0)) {
+    const uint32_t deadline = forcedRefresh(flags) ? origTTL / 2 : origTTL * SyncRes::s_refresh_ttlperc / 100;
     // coverity[store_truncates_time_t]
     const bool almostExpired = static_cast<uint32_t>(ttl) <= deadline;
     if (almostExpired && qname != g_rootdnsname) {
-      if (refresh) {
+      if (refresh(flags)) {
         return -1;
       }
       if (!entry->d_submitted) {
@@ -438,7 +438,6 @@ time_t MemRecursorCache::fakeTTD(MemRecursorCache::OrderedTagIterator_t& entry, 
 time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qtype, Flags flags, vector<DNSRecord>* res, const ComboAddress& who, const OptTag& routingTag, SigRecs* signatures, AuthRecs* authorityRecs, bool* variable, vState* state, bool* wasAuth, DNSName* fromAuthZone, Extra* extra) // NOLINT(readability-function-cognitive-complexity)
 {
   bool requireAuth = (flags & RequireAuth) != 0;
-  bool refresh = (flags & Refresh) != 0;
   bool serveStale = (flags & ServeStale) != 0;
 
   std::optional<vState> cachedState{std::nullopt};
@@ -492,7 +491,7 @@ time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qtype
       if (cachedState && ret > now) {
         ptrAssign(state, *cachedState);
       }
-      return fakeTTD(entry, qname, qtype, ret, now, origTTL, refresh);
+      return fakeTTD(entry, qname, qtype, ret, now, origTTL, flags);
     }
     return -1;
   }
@@ -538,7 +537,7 @@ time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qtype
         if (cachedState && ttd > now) {
           ptrAssign(state, *cachedState);
         }
-        return fakeTTD(firstIndexIterator, qname, qtype, ttd, now, origTTL, refresh);
+        return fakeTTD(firstIndexIterator, qname, qtype, ttd, now, origTTL, flags);
       }
       return -1;
     }
@@ -584,7 +583,7 @@ time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qtype
       if (cachedState && ttd > now) {
         ptrAssign(state, *cachedState);
       }
-      return fakeTTD(firstIndexIterator, qname, qtype, ttd, now, origTTL, refresh);
+      return fakeTTD(firstIndexIterator, qname, qtype, ttd, now, origTTL, flags);
     }
   }
   return -1;
