@@ -120,7 +120,8 @@ static void resolveInternal(const struct timeval& now, bool logErrors, const pdn
   auto log = g_slog->withName("taskq")->withValues("name", Logging::Loggable(task.d_qname), "qtype", Logging::Loggable(QType(task.d_qtype).toString()), "netmask", Logging::Loggable(task.d_netmask.empty() ? "" : task.d_netmask.toString()));
   const string msg = "Exception while running a background ResolveTask";
   SyncRes resolver(now);
-  resolver.setRefreshAlmostExpired(task.d_refreshMode);
+  resolver.setRefreshAlmostExpired(task.d_refreshMode != pdns::ResolveTask::RefreshMode::None);
+  resolver.setForcedRefresh(task.d_refreshMode == pdns::ResolveTask::RefreshMode::Forced);
   resolver.setQuerySource(task.d_netmask);
   if (forceNoQM) {
     resolver.setQNameMinimization(false);
@@ -248,14 +249,14 @@ bool runTaskOnce(bool logErrors)
   return true;
 }
 
-void pushAlmostExpiredTask(const DNSName& qname, uint16_t qtype, time_t deadline, const Netmask& netmask)
+void pushAlmostExpiredTask(const DNSName& qname, uint16_t qtype, time_t deadline, const Netmask& netmask, bool force)
 {
   if (SyncRes::isUnsupported(qtype)) {
     auto log = g_slog->withName("taskq")->withValues("name", Logging::Loggable(qname), "qtype", Logging::Loggable(QType(qtype).toString()), "netmask", Logging::Loggable(netmask.empty() ? "" : netmask.toString()));
     log->error(Logr::Error, "Cannot push task", "qtype unsupported");
     return;
   }
-  pdns::ResolveTask task{qname, qtype, deadline, true, resolve, {}, {}, netmask};
+  pdns::ResolveTask task{qname, qtype, deadline, force ? pdns::ResolveTask::ResolveTask::Forced : pdns::ResolveTask::RefreshMode::Refresh, resolve, {}, {}, netmask};
   if (s_taskQueue.lock()->queue.push(std::move(task))) {
     ++s_almost_expired_tasks.pushed;
   }
@@ -269,7 +270,7 @@ void pushResolveTask(const DNSName& qname, uint16_t qtype, time_t now, time_t de
     return;
   }
   auto func = forceQMOff ? resolveForceNoQM : resolve;
-  pdns::ResolveTask task{qname, qtype, deadline, false, func, {}, {}, {}};
+  pdns::ResolveTask task{qname, qtype, deadline, pdns::ResolveTask::RefreshMode::None, func, {}, {}, {}};
   auto lock = s_taskQueue.lock();
   bool inserted = lock->rateLimitSet.insert(now, task);
   if (inserted) {
@@ -287,7 +288,7 @@ bool pushTryDoTTask(const DNSName& qname, uint16_t qtype, const ComboAddress& ip
     return false;
   }
 
-  pdns::ResolveTask task{qname, qtype, deadline, false, tryDoT, ipAddress, nsname, {}};
+  pdns::ResolveTask task{qname, qtype, deadline, pdns::ResolveTask::RefreshMode::None, tryDoT, ipAddress, nsname, {}};
   bool pushed = s_taskQueue.lock()->queue.push(std::move(task));
   if (pushed) {
     ++s_almost_expired_tasks.pushed;

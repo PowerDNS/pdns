@@ -421,7 +421,7 @@ time_t MemRecursorCache::fakeTTD(MemRecursorCache::OrderedTagIterator_t& entry, 
     const uint32_t deadline = forcedRefresh(flags) ? origTTL / 2 : origTTL * SyncRes::s_refresh_ttlperc / 100;
     // coverity[store_truncates_time_t]
     const bool almostExpired = static_cast<uint32_t>(ttl) <= deadline;
-    if (almostExpired && qname != g_rootdnsname) {
+    if (almostExpired /* && qname != g_rootdnsname */) {
       if (refresh(flags)) {
         return -1;
       }

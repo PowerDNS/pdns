@@ -235,7 +235,7 @@ public:
   struct EDNSStatus
   {
     EDNSStatus(const ComboAddress& arg) :
-      address(arg) {}
+      address(arg) { }
     ComboAddress address;
     time_t ttd{0};
     enum EDNSMode : uint8_t
@@ -368,6 +368,13 @@ public:
   {
     auto old = d_refresh;
     d_refresh = doit;
+    return old;
+  }
+
+  bool setForcedRefresh(bool doit)
+  {
+    auto old = d_forcedRefresh;
+    d_forcedRefresh = doit;
     return old;
   }
 
@@ -769,6 +776,7 @@ private:
   bool d_queryReceivedOverTCP{false};
   bool d_followCNAME{true};
   bool d_refresh{false};
+  bool d_forcedRefresh{false};
   bool d_serveStale{false};
 
   LogMode d_lm;
@@ -930,7 +938,7 @@ class ImmediateServFailException
 {
 public:
   ImmediateServFailException(string reason_) :
-    reason(std::move(reason_)) {};
+    reason(std::move(reason_)) { };
 
   string reason; //! Print this to tell the user what went wrong
 };

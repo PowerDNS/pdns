@@ -35,7 +35,7 @@ struct ResolveTask;
 }
 void runTasks(size_t max, bool logErrors);
 bool runTaskOnce(bool logErrors);
-void pushAlmostExpiredTask(const DNSName& qname, uint16_t qtype, time_t deadline, const Netmask& netmask);
+void pushAlmostExpiredTask(const DNSName& qname, uint16_t qtype, time_t deadline, const Netmask& netmask, bool force = false);
 void pushResolveTask(const DNSName& qname, uint16_t qtype, time_t now, time_t deadline, bool forceQMOff);
 bool pushTryDoTTask(const DNSName& qname, uint16_t qtype, const ComboAddress& ipAddress, time_t deadline, const DNSName& nsname);
 void taskQueueClear();
