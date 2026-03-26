@@ -302,6 +302,7 @@ Functions
 The following functions are always available, but only produce Trace Spans within the following contexts:
 
 * :func:`LuaAction`
+* :func:`LuaResponseAction`
 * :func:`maintenance`
 * Any function added with :func:`addMaintenanceCallback`
 
