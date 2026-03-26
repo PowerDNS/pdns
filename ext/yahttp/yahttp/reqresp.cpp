@@ -191,7 +191,7 @@ namespace YaHTTP {
             throw ParseError("Unable to parse chunk size");
           }
           if (chunk_size == 0) { state = 3; break; } // last chunk
-          if (chunk_size > (std::numeric_limits<decltype(chunk_size)>::max() - 2)) {
+          if (chunk_size > (std::numeric_limits<decltype(chunk_size)>::max() - 2) || chunk_size > maxbody) {
             throw ParseError("Chunk is too large");
           }
         } else {
@@ -201,6 +201,9 @@ namespace YaHTTP {
             if (buffer.size() < chunk_size+2 || buffer.at(chunk_size+1) != '\n') return false; // expect newline after carriage return
             crlf=2;
           } else if (buffer.at(chunk_size) != '\n') return false;
+          if (bodybuf.str().length() + chunk_size > maxbody) {
+            throw ParseError("Chunked body is too large");
+          }
           std::string tmp = buffer.substr(0, chunk_size);
           buffer.erase(buffer.begin(), buffer.begin()+chunk_size+crlf);
           bodybuf << tmp;
