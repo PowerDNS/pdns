@@ -858,6 +858,18 @@ bool TCPConnectionToBackend::isXFRFinished(const TCPResponse& response, TCPQuery
   return done;
 }
 
+bool TCPConnectionToBackend::reachedMaxStreamID() const
+{
+  /* TCP/DoT has only 2^16 usable identifiers, DoH has 2^32 */
+  const uint32_t maximumStreamID = std::numeric_limits<uint16_t>::max() - 1;
+  if (d_highestStreamID >= maximumStreamID) {
+    return true;
+  }
+
+  /* pending queries will need IDs, so we need to take them into account as well */
+  return (d_pendingQueries.size() >= (maximumStreamID - d_highestStreamID));
+}
+
 void setTCPDownstreamMaxIdleConnectionsPerBackend(uint64_t max)
 {
   DownstreamTCPConnectionsManager::setMaxIdleConnectionsPerDownstream(max);
