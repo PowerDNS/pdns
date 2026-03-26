@@ -2673,6 +2673,14 @@ DOH3Frontend
 
      Reload the current TLS certificate and key pairs.
 
+  .. method:: setResponsesMap(rules)
+
+    .. versionadded:: 2.2.0
+
+     Set a list of HTTP response rules allowing to intercept HTTP queries very early, before the DNS payload has been processed, and send custom responses including error pages, redirects and static content.
+
+     :param list of DOHResponseMapEntry objects rules: A list of DOHResponseMapEntry objects, obtained with :func:`newDOHResponseMapEntry`.
+
 DOQFrontend
 ~~~~~~~~~~~
 
