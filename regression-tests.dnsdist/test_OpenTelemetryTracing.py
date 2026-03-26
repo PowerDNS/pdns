@@ -1057,6 +1057,130 @@ query_rules:
         )
 
 
+class TestOpenTelemetryTracingSpansFromLuaFFI(TestOpenTelemetryTracingSpansFromLua):
+    _yaml_config_template = None
+    _yaml_config_params = []
+    _config_params = [
+        "_testServerPort",
+        "_protobufServerPort",
+    ]
+    _config_template = """
+    newServer{address="127.0.0.1:%d"}
+    rl = newRemoteLogger('127.0.0.1:%d')
+    setOpenTelemetryTracing(true)
+
+
+    function luaffiaction(dq)
+      withTraceSpan("my-span",
+        function ()
+          setSpanAttribute("my-key-from-lua", "my-value-from-lua")
+          withTraceSpan("my-second-span",
+            function()
+            end
+          )
+        end
+      )
+      return DNSAction.None
+    end
+
+addAction(AllRule(), SetTraceAction(true, {remoteLoggers={rl}}), {name="Enable tracing"})
+addAction(AllRule(), LuaFFIAction(luaffiaction), {name="A traced LuaFFIAction"})
+"""
+
+    def testBasic(self):
+        self.doTest(
+            hasProcessResponseAfterRules=True,
+            hasRemoteLogResponseAction=False,
+            extraFunctions={
+                "my-span",
+                "my-second-span",
+                "Rule: A traced LuaFFIAction",
+            },
+        )
+
+    def testTCP(self):
+        self.doTest(
+            useTCP=True,
+            hasProcessResponseAfterRules=True,
+            hasRemoteLogResponseAction=False,
+            extraFunctions={
+                "my-span",
+                "my-second-span",
+                "Rule: A traced LuaFFIAction",
+                "createTCPQuery",
+                "queueResponse",
+                "TCPConnectionToBackend::handleResponse",
+                "getDownstreamConnection",
+                "TCPConnectionToBackend::sendQuery",
+                "handleResponse",
+                "prepareQueryForSending",
+                "TCPConnectionToBackend::queueQuery",
+            },
+        )
+
+
+class TestOpenTelemetryTracingSpansFromLuaFFIResponse(TestOpenTelemetryTracingSpansFromLua):
+    _yaml_config_template = None
+    _yaml_config_params = []
+    _config_params = [
+        "_testServerPort",
+        "_protobufServerPort",
+    ]
+    _config_template = """
+    newServer{address="127.0.0.1:%d"}
+    rl = newRemoteLogger('127.0.0.1:%d')
+    setOpenTelemetryTracing(true)
+
+
+    function luaffiaction(dq)
+      withTraceSpan("my-span",
+        function ()
+          setSpanAttribute("my-key-from-lua", "my-value-from-lua")
+          withTraceSpan("my-second-span",
+            function()
+            end
+          )
+        end
+      )
+      return DNSAction.None
+    end
+
+addAction(AllRule(), SetTraceAction(true, {remoteLoggers={rl}}), {name="Enable tracing"})
+addResponseAction(AllRule(), LuaFFIResponseAction(luaffiaction), {name="A traced LuaFFIResponseAction"})
+"""
+
+    def testBasic(self):
+        self.doTest(
+            hasProcessResponseAfterRules=True,
+            hasRemoteLogResponseAction=False,
+            extraFunctions={
+                "my-span",
+                "my-second-span",
+                "ResponseRule: A traced LuaFFIResponseAction",
+            },
+        )
+
+    def testTCP(self):
+        self.doTest(
+            useTCP=True,
+            hasProcessResponseAfterRules=True,
+            hasRemoteLogResponseAction=False,
+            extraFunctions={
+                "my-span",
+                "my-second-span",
+                "ResponseRule: A traced LuaFFIResponseAction",
+                "createTCPQuery",
+                "queueResponse",
+                "TCPConnectionToBackend::handleResponse",
+                "getDownstreamConnection",
+                "TCPConnectionToBackend::sendQuery",
+                "handleResponse",
+                "prepareQueryForSending",
+                "TCPConnectionToBackend::queueQuery",
+            },
+        )
+
+
 class TestOpenTelemetryTracingSpansFromLuaResponseAction(DNSDistOpenTelemetryProtobufBaseTest):
     _yaml_config_params = [
         "_testServerPort",
