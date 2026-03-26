@@ -26,6 +26,7 @@
 #include <unordered_map>
 
 #include "config.h"
+#include "dnsdist-doh-common.hh"
 #include "noinitvector.hh"
 
 #ifdef HAVE_DNS_OVER_HTTP3
@@ -66,6 +67,7 @@ struct DOH3Frontend
   }
 
   std::shared_ptr<const Logr::Logger> d_logger{nullptr};
+  std::shared_ptr<std::vector<std::shared_ptr<DOHResponseMapEntry>>> d_responsesMap;
   std::unique_ptr<DOH3ServerConfig> d_server_config;
   ComboAddress d_local;
 
