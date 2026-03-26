@@ -22,10 +22,10 @@ StatNode::Stat StatNode::print(unsigned int depth, Stat newstat, bool silent) co
     childstat=child.second.print(depth+8, childstat, silent || children.size()>1024);
   }
   if(!silent || children.size()>1)
-    cout<<string(depth, ' ')<<childstat.queries<<" queries, " << 
-      childstat.noerrors<<" noerrors, "<< 
-      childstat.nxdomains<<" nxdomains, "<< 
-      childstat.servfails<<" servfails, "<< 
+    cout<<string(depth, ' ')<<childstat.queries<<" queries, " <<
+      childstat.noerrors<<" noerrors, "<<
+      childstat.nxdomains<<" nxdomains, "<<
+      childstat.servfails<<" servfails, "<<
       childstat.drops<<" drops, "<<
       childstat.bytes<<" bytes, "<<
       childstat.hits<<" hits"<<endl;
@@ -57,20 +57,20 @@ void StatNode::submit(const DNSName& domain, int rcode, unsigned int bytes, bool
   }
 
   auto last = tmp.end() - 1;
-  children[*last].submit(last, tmp.begin(), "", rcode, bytes, remote, 1, hit);
+  children[*last].submit(last, tmp.begin(), g_rootdnsname, rcode, bytes, remote, 1, hit);
 }
 
-/* www.powerdns.com. -> 
+/* www.powerdns.com. ->
    .                 <- fullnames
    com.
    powerdns.com
-   www.powerdns.com. 
+   www.powerdns.com.
 */
 
-void StatNode::submit(std::vector<string>::const_iterator end, std::vector<string>::const_iterator begin, const std::string& domain, int rcode, unsigned int bytes, const std::optional<ComboAddress>& remote, unsigned int count, bool hit)
+void StatNode::submit(std::vector<string>::const_iterator end, std::vector<string>::const_iterator begin, const DNSName& domain, int rcode, unsigned int bytes, const std::optional<ComboAddress>& remote, unsigned int count, bool hit)
 {
   //  cerr<<"Submit called for domain='"<<domain<<"': ";
-  //  for(const std::string& n :  labels) 
+  //  for(const std::string& n :  labels)
   //    cerr<<n<<".";
   //  cerr<<endl;
   if (name.empty()) {
@@ -84,13 +84,8 @@ void StatNode::submit(std::vector<string>::const_iterator end, std::vector<strin
 
   if (end == begin) {
     if (fullname.empty()) {
-      size_t needed = name.size() + 1 + domain.size();
-      if (fullname.capacity() < needed) {
-        fullname.reserve(needed);
-      }
-      fullname = name;
-      fullname.append(".");
-      fullname.append(domain);
+      fullname = domain;
+      fullname.prependRawLabel(name);
       labelsCount = count;
     }
     //    cerr<<"Hit the end, set our fullname to '"<<fullname<<"'"<<endl<<endl;
@@ -119,13 +114,8 @@ void StatNode::submit(std::vector<string>::const_iterator end, std::vector<strin
   }
   else {
     if (fullname.empty()) {
-      size_t needed = name.size() + 1 + domain.size();
-      if (fullname.capacity() < needed) {
-        fullname.reserve(needed);
-      }
-      fullname = name;
-      fullname.append(".");
-      fullname.append(domain);
+      fullname = domain;
+      fullname.prependRawLabel(name);
       labelsCount = count;
     }
     //    cerr<<"Not yet end, set our fullname to '"<<fullname<<"', recursing"<<endl;

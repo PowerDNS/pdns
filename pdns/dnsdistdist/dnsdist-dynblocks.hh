@@ -65,6 +65,7 @@ struct dnsdist_ffi_stat_node_t
   {
   }
 
+  mutable std::string fullname;
   const StatNode& node;
   const StatNode::Stat& self;
   const StatNode::Stat& children;
