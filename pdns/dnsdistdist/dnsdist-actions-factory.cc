@@ -631,8 +631,8 @@ public:
     try {
       DNSAction::Action result{};
       {
-        auto lock = g_lua.lock();
-        auto ret = d_func(&dqffi);
+        auto tracer = dnsquestion->ids.getTracer();
+        auto ret = pdns::trace::dnsdist::runWithLuaTracing(tracer, d_func, &dqffi);
         if (ruleresult != nullptr) {
           if (dqffi.result) {
             *ruleresult = *dqffi.result;
@@ -754,8 +754,8 @@ public:
     try {
       DNSResponseAction::Action result{};
       {
-        auto lock = g_lua.lock();
-        auto ret = d_func(&ffiResponse);
+        auto tracer = response->ids.getTracer();
+        auto ret = pdns::trace::dnsdist::runWithLuaTracing(tracer, d_func, &ffiResponse);
         if (ruleresult != nullptr) {
           if (ffiResponse.result) {
             *ruleresult = *ffiResponse.result;
