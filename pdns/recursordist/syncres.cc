@@ -462,7 +462,12 @@ static inline void accountAuthLatency(uint64_t usec, int family)
 }
 
 SyncRes::SyncRes(const struct timeval& now) :
-  d_authzonequeries(0), d_outqueries(0), d_tcpoutqueries(0), d_dotoutqueries(0), d_throttledqueries(0), d_timeouts(0), d_unreachables(0), d_bytesReceived(0), d_totUsec(0), d_fixednow(now), d_now(now), d_cacheonly(false), d_doDNSSEC(false), d_qNameMinimization(s_qnameminimization), d_lm(s_lm)
+  d_fixednow(now),
+  d_now(now),
+  d_doDNSSEC(g_dnssecmode != DNSSECMode::Off),
+  d_DNSSECValidationRequested(g_dnssecmode != DNSSECMode::Off && g_dnssecmode != DNSSECMode::ProcessNoValidate),
+  d_qNameMinimization(s_qnameminimization),
+  d_lm(s_lm)
 {
   d_validationContext.d_nsec3IterationsRemainingQuota = s_maxnsec3iterationsperq > 0 ? s_maxnsec3iterationsperq : std::numeric_limits<decltype(d_validationContext.d_nsec3IterationsRemainingQuota)>::max();
 }
@@ -6297,8 +6302,6 @@ int SyncRes::getRootNS(struct timeval now, asyncresolve_t asyncCallback, unsigne
   SyncRes resolver(now);
   resolver.d_prefix = "[getRootNS]";
   resolver.setUpdatingRootNS();
-  resolver.setDoDNSSEC(g_dnssecmode != DNSSECMode::Off);
-  resolver.setDNSSECValidationRequested(g_dnssecmode != DNSSECMode::Off && g_dnssecmode != DNSSECMode::ProcessNoValidate);
   resolver.setAsyncCallback(std::move(asyncCallback));
   resolver.setRefreshAlmostExpired(true);
 
