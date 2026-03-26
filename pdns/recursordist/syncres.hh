@@ -383,11 +383,6 @@ public:
     return d_qNameMinimizationFallbackMode;
   }
 
-  void setDoEDNS0(bool state = true)
-  {
-    d_doEDNS0 = state;
-  }
-
   void setDoDNSSEC(bool state = true)
   {
     d_doDNSSEC = state;
@@ -757,7 +752,6 @@ private:
   bool d_cacheonly;
   bool d_doDNSSEC;
   bool d_DNSSECValidationRequested{false};
-  bool d_doEDNS0{true};
   bool d_requireAuthData{true};
   bool d_updatingRootNS{false};
   bool d_wantsRPZ{true};
