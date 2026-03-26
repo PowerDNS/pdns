@@ -624,6 +624,7 @@ if get_option('benchmark')
         dep_ffi_interface,
         dep_lua,
         dep_protozero,
+        dep_libsystemd,
       ],
     }
   }

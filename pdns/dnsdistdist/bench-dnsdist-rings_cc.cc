@@ -46,8 +46,12 @@ auto simpleRings = std::vector<ringInfo>{
 TEST_CASE("Rings/insert")
 {
   for (auto const ringInfo : simpleRings) {
+    Rings::RingsConfiguration config;
+    config.capacity = ringInfo.maxEntries;
+    config.numberOfShards = ringInfo.numberOfShards;
+    config.nbLockTries = ringInfo.nbLockTries;
     Rings rings;
-    rings.init(ringInfo.maxEntries, ringInfo.numberOfShards, ringInfo.nbLockTries);
+    rings.init(config);
 
     dnsheader dnsheader{};
     memset(&dnsheader, 0, sizeof(dnsheader));
