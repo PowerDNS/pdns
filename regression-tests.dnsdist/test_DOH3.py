@@ -430,3 +430,71 @@ class TestDOH3XFR(DOH3Common, QUICXFRTests, DNSDistTest):
     """
     _config_params = ["_testServerPort", "_doqServerPort", "_serverCert", "_serverKey"]
     _verboseMode = True
+
+
+class TestDOH3CustomResponse(DOH3Common, DNSDistTest):
+    _serverKey = "server.key"
+    _serverCert = "server.chain"
+    _serverName = "tls.tests.dnsdist.org"
+    _caCert = "ca.pem"
+    _doqServerPort = pickAvailablePort()
+    _dohBaseURL = "https://%s:%d/" % (_serverName, _doqServerPort)
+    _config_template = """
+    newServer{address="127.0.0.1:%d"}
+
+    addDOH3Local("127.0.0.1:%d", "%s", "%s", {keyLogFile='/tmp/keys'})
+
+    doh3 = getDOH3Frontend(0)
+    doh3:setResponsesMap({ newDOHResponseMapEntry("^/rfc$", 307,
+                                                  "https://www.rfc-editor.org/info/rfc8484")
+                          })
+    """
+    _config_params = ["_testServerPort", "_doqServerPort", "_serverCert", "_serverKey"]
+    _verboseMode = True
+
+    def testDOH3CustomResponse(self):
+        """
+        DOH3: Custom response when matching responses map
+        """
+        name = "simple.doh3.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN", use_edns=False)
+        (receivedResponse, receivedHeaders) = self.sendDOH3Query(
+            self._doqServerPort,
+            f"{self._dohBaseURL}rfc",
+            query,
+            rawResponse=True,
+            caFile=self._caCert,
+            serverName=self._serverName,
+        )
+        self.assertTrue(receivedResponse)
+        self.assertIn(b":status", receivedHeaders)
+        self.assertEqual(receivedHeaders[b":status"], b"307")
+        self.assertIn(b"location", receivedHeaders)
+        self.assertEqual(receivedHeaders[b"location"], b"https://www.rfc-editor.org/info/rfc8484")
+
+    def testDOH3Passthrough(self):
+        """
+        DOH3: Passthrough when not matching responses map
+        """
+        name = "simple.doh3.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN", use_edns=False)
+        query.id = 0
+        expectedQuery = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096)
+        expectedQuery.id = 0
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
+        response.answer.append(rrset)
+
+        (receivedQuery, receivedResponse) = self.sendDOH3Query(
+            self._doqServerPort,
+            self._dohBaseURL,
+            query,
+            response=response,
+            caFile=self._caCert,
+            serverName=self._serverName,
+        )
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = expectedQuery.id
+        self.assertEqual(expectedQuery, receivedQuery)
+        self.assertEqual(receivedResponse, response)
