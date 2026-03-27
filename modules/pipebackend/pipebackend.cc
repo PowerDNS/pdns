@@ -239,6 +239,10 @@ string PipeBackend::directBackendCmd(const string& query)
   if (d_abiVersion < 5)
     return "not supported on ABI version " + std::to_string(d_abiVersion) + " (use ABI version 5 or later)\n";
 
+  if (query.empty()) {
+    return "";
+  }
+
   try {
     launch();
     ostringstream oss;
