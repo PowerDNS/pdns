@@ -138,7 +138,7 @@ unsigned int ZoneParserTNG::makeTTLFromZone(const string& str)
   try {
     pdns::checked_stoi_into(val, str);
   }
-  catch (const std::out_of_range& oor) {
+  catch (const std::logic_error&) {
     throw PDNSException("Unable to parse time specification '"+str+"' "+getLineOfFile());
   }
 

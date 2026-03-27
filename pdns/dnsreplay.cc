@@ -432,11 +432,7 @@ try
     {
       s_wednserrors++;
     }
-    catch(std::out_of_range &e)
-    {
-      s_wednserrors++;
-    }
-    catch(std::exception& e)
+    catch(std::exception&)
     {
       s_wednserrors++;
     }
