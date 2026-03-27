@@ -633,17 +633,17 @@ bool sendUDPResponse(int origFD, const PacketBuffer& response, [[maybe_unused]] 
   return true;
 }
 
-void handleResponseSent(const InternalQueryState& ids, double latencyUs, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH, dnsdist::Protocol outgoingProtocol, bool fromBackend)
+void handleResponseSent(InternalQueryState& ids, double latencyUs, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH, dnsdist::Protocol outgoingProtocol, bool fromBackend)
 {
-  handleResponseSent(ids.qname, ids.qtype, latencyUs, client, backend, size, cleartextDH, outgoingProtocol, ids.protocol, fromBackend);
+  handleResponseSent(std::move(ids.qname), ids.qtype, latencyUs, client, backend, size, cleartextDH, outgoingProtocol, ids.protocol, fromBackend);
 }
 
-void handleResponseSent(const DNSName& qname, const QType& qtype, double latencyUs, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH, dnsdist::Protocol outgoingProtocol, dnsdist::Protocol incomingProtocol, bool fromBackend)
+void handleResponseSent(DNSName&& qname, const QType& qtype, double latencyUs, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH, dnsdist::Protocol outgoingProtocol, dnsdist::Protocol incomingProtocol, bool fromBackend)
 {
   if (g_rings.shouldRecordResponses()) {
     timespec now{};
     gettime(&now);
-    g_rings.insertResponse(now, client, qname, qtype, static_cast<unsigned int>(latencyUs), size, cleartextDH, backend, outgoingProtocol);
+    g_rings.insertResponse(now, client, std::move(qname), qtype, static_cast<unsigned int>(latencyUs), size, cleartextDH, backend, outgoingProtocol);
   }
 
   switch (cleartextDH.rcode) {
@@ -2048,7 +2048,7 @@ static void processUDPQuery(ClientState& clientState, const struct msghdr* msgh,
       if (dnsQuestion.ids.delayMsec == 0 && responsesVect != nullptr) {
         queueResponse(query, dest, remote, (*responsesVect)[*queuedResponses], respIOV, respCBuf);
         (*queuedResponses)++;
-        handleResponseSent(dnsQuestion.ids.qname, dnsQuestion.ids.qtype, 0., remote, ComboAddress(), query.size(), *dnsHeader, dnsdist::Protocol::DoUDP, dnsdist::Protocol::DoUDP, false);
+        handleResponseSent(std::move(dnsQuestion.ids.qname), dnsQuestion.ids.qtype, 0., remote, ComboAddress(), query.size(), *dnsHeader, dnsdist::Protocol::DoUDP, dnsdist::Protocol::DoUDP, false);
         return;
       }
 #endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
@@ -2056,7 +2056,7 @@ static void processUDPQuery(ClientState& clientState, const struct msghdr* msgh,
       /* we use dest, always, because we don't want to use the listening address to send a response since it could be 0.0.0.0 */
       sendUDPResponse(clientState.udpFD, query, dnsQuestion.ids.delayMsec, dest, remote);
 
-      handleResponseSent(dnsQuestion.ids.qname, dnsQuestion.ids.qtype, 0., remote, ComboAddress(), query.size(), *dnsHeader, dnsdist::Protocol::DoUDP, dnsdist::Protocol::DoUDP, false);
+      handleResponseSent(std::move(dnsQuestion.ids.qname), dnsQuestion.ids.qtype, 0., remote, ComboAddress(), query.size(), *dnsHeader, dnsdist::Protocol::DoUDP, dnsdist::Protocol::DoUDP, false);
       return;
     }
 
@@ -2170,7 +2170,7 @@ bool XskProcessQuery(ClientState& clientState, XskPacket& packet)
         packet.addDelay(dnsQuestion.ids.delayMsec);
       }
       const auto dnsHeader = dnsQuestion.getHeader();
-      handleResponseSent(ids.qname, ids.qtype, 0., remote, ComboAddress(), query.size(), *dnsHeader, dnsdist::Protocol::DoUDP, dnsdist::Protocol::DoUDP, false);
+      handleResponseSent(std::move(ids.qname), ids.qtype, 0., remote, ComboAddress(), query.size(), *dnsHeader, dnsdist::Protocol::DoUDP, dnsdist::Protocol::DoUDP, false);
       return true;
     }
 

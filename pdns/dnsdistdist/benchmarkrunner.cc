@@ -37,11 +37,11 @@ shared_ptr<BPFFilter> g_defaultBPFFilter{nullptr};
 Rings g_rings;
 string g_outputBuffer;
 
-void handleResponseSent([[maybe_unused]] const InternalQueryState& ids, [[maybe_unused]] double udiff, [[maybe_unused]] const ComboAddress& client, [[maybe_unused]] const ComboAddress& backend, [[maybe_unused]] unsigned int size, [[maybe_unused]] const dnsheader& cleartextDH, [[maybe_unused]] dnsdist::Protocol protocol, [[maybe_unused]] bool fromBackend)
+void handleResponseSent([[maybe_unused]] InternalQueryState& ids, [[maybe_unused]] double udiff, [[maybe_unused]] const ComboAddress& client, [[maybe_unused]] const ComboAddress& backend, [[maybe_unused]] unsigned int size, [[maybe_unused]] const dnsheader& cleartextDH, [[maybe_unused]] dnsdist::Protocol protocol, [[maybe_unused]] bool fromBackend)
 {
 }
 
-void handleResponseSent([[maybe_unused]] const DNSName& qname, [[maybe_unused]] const QType& qtype, [[maybe_unused]] double udiff, [[maybe_unused]] const ComboAddress& client, [[maybe_unused]] const ComboAddress& backend, [[maybe_unused]] unsigned int size, [[maybe_unused]] const dnsheader& cleartextDH, [[maybe_unused]] dnsdist::Protocol outgoingProtocol, [[maybe_unused]] dnsdist::Protocol incomingProtocol, [[maybe_unused]] bool fromBackend)
+void handleResponseSent([[maybe_unused]] DNSName&& qname, [[maybe_unused]] const QType& qtype, [[maybe_unused]] double udiff, [[maybe_unused]] const ComboAddress& client, [[maybe_unused]] const ComboAddress& backend, [[maybe_unused]] unsigned int size, [[maybe_unused]] const dnsheader& cleartextDH, [[maybe_unused]] dnsdist::Protocol outgoingProtocol, [[maybe_unused]] dnsdist::Protocol incomingProtocol, [[maybe_unused]] bool fromBackend)
 {
 }
 

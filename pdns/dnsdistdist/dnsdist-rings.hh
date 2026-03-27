@@ -160,12 +160,11 @@ struct Rings
     }
   }
 
-  void insertResponse(const struct timespec& when, const ComboAddress& requestor, const DNSName& name, uint16_t qtype, unsigned int usec, unsigned int size, const struct dnsheader& dh, const ComboAddress& backend, dnsdist::Protocol protocol)
+  void insertResponse(const struct timespec& when, const ComboAddress& requestor, DNSName&& name, uint16_t qtype, unsigned int usec, unsigned int size, const struct dnsheader& dh, const ComboAddress& backend, dnsdist::Protocol protocol)
   {
     if (shouldSkipResponseDueToSampling()) {
       return;
     }
-    auto ourName = DNSName(name);
     for (size_t idx = 0; idx < d_nbLockTries; idx++) {
       auto& shard = getOneShard();
       bool wasFull = false;
@@ -177,7 +176,7 @@ struct Rings
           }
           continue;
         }
-        wasFull = insertResponseLocked(*lock, when, requestor, std::move(ourName), qtype, usec, size, dh, backend, protocol);
+        wasFull = insertResponseLocked(*lock, when, requestor, std::move(name), qtype, usec, size, dh, backend, protocol);
       }
       if (!wasFull) {
         d_nbResponseEntries++;
@@ -193,7 +192,7 @@ struct Rings
     bool wasFull = false;
     {
       auto lock = shard->respRing.lock();
-      wasFull = insertResponseLocked(*lock, when, requestor, std::move(ourName), qtype, usec, size, dh, backend, protocol);
+      wasFull = insertResponseLocked(*lock, when, requestor, std::move(name), qtype, usec, size, dh, backend, protocol);
     }
     if (!wasFull) {
       d_nbResponseEntries++;

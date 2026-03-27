@@ -112,7 +112,7 @@ static void test_ring(size_t maxEntries, size_t numberOfShards, size_t nbLockTri
 
   /* fill the response ring */
   for (size_t idx = 0; idx < maxEntries; idx++) {
-    rings.insertResponse(now, requestor1, qname, qtype, latency, size, dh, server, outgoingProtocol);
+    rings.insertResponse(now, requestor1, DNSName(qname), qtype, latency, size, dh, server, outgoingProtocol);
   }
   BOOST_CHECK_EQUAL(rings.getNumberOfQueryEntries(), maxEntries);
   BOOST_CHECK_EQUAL(rings.getNumberOfResponseEntries(), maxEntries);
@@ -126,7 +126,7 @@ static void test_ring(size_t maxEntries, size_t numberOfShards, size_t nbLockTri
 
   /* push enough responses to get rid of the existing ones */
   for (size_t idx = 0; idx < maxEntries; idx++) {
-    rings.insertResponse(now, requestor2, qname, qtype, latency, size, dh, server, outgoingProtocol);
+    rings.insertResponse(now, requestor2, DNSName(qname), qtype, latency, size, dh, server, outgoingProtocol);
   }
   BOOST_CHECK_EQUAL(rings.getNumberOfQueryEntries(), maxEntries);
   BOOST_CHECK_EQUAL(rings.getNumberOfResponseEntries(), maxEntries);
@@ -198,7 +198,7 @@ static void ringWriterThread(Rings& rings, size_t numberOfEntries, const Rings::
 {
   for (size_t idx = 0; idx < numberOfEntries; idx++) {
     rings.insertQuery(query.when, query.requestor, query.name, query.qtype, query.size, query.dh, query.protocol);
-    rings.insertResponse(response.when, response.requestor, response.name, response.qtype, response.usec, response.size, response.dh, response.ds, response.protocol);
+    rings.insertResponse(response.when, response.requestor, DNSName(response.name), response.qtype, response.usec, response.size, response.dh, response.ds, response.protocol);
   }
 }
 
@@ -355,7 +355,7 @@ BOOST_AUTO_TEST_CASE(test_Rings_Sampling)
 
   size_t numberOfResponses = 5000U;
   for (size_t idx = 0; idx < numberOfResponses; idx++) {
-    rings.insertResponse(now, requestor, qname, qtype, latency, size, dh, server, outgoingProtocol);
+    rings.insertResponse(now, requestor, DNSName(qname), qtype, latency, size, dh, server, outgoingProtocol);
   }
   BOOST_CHECK_EQUAL(rings.getNumberOfResponseEntries(), numberOfResponses / samplingRate);
 
@@ -370,7 +370,7 @@ BOOST_AUTO_TEST_CASE(test_Rings_Sampling)
 
   numberOfResponses = 2U * samplingRate * numberOfEntries;
   for (size_t idx = 0; idx < numberOfResponses; idx++) {
-    rings.insertResponse(now, requestor, qname, qtype, latency, size, dh, server, outgoingProtocol);
+    rings.insertResponse(now, requestor, DNSName(qname), qtype, latency, size, dh, server, outgoingProtocol);
   }
   BOOST_CHECK_EQUAL(rings.getNumberOfResponseEntries(), numberOfEntries);
 }
