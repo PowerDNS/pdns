@@ -1089,3 +1089,46 @@ end
         self.assertEqual(len(res.authority), 0)
         self.assertEqual(len(res.additional), 0)
         self.assertEqual(res.answer, expectedAnswerRecords)
+
+
+class AddRecordRecusrorTest(RecursorTest):
+    """Test addRecord can add SOA to authority section.
+    """
+
+    _confdir = "AddRecordRecusror"
+    _soa = "ns1.example. admin.example. 2026033101 3600 1200 604800 60"
+    _config_template = """
+    """
+    _lua_dns_script_file = f"""
+    local PLACE_AUTHORITY = 2
+
+    function preresolve(dq)
+      if dq.qname == newDN("nxd-addrecord.example.") then
+        dq.rcode = pdns.NXDOMAIN
+        dq:addRecord(
+          pdns.SOA,
+          "{_soa}",
+          PLACE_AUTHORITY,
+          3600,
+          newDN("example.")
+        )
+        return true
+      end
+      return false
+    end
+    """
+
+    def testAddRecord4AuthSeection(self):
+        """addRecord: NXDOMAIN response with SOA in authority section"""
+        expectedAuthority = dns.rrset.from_text(
+            "example.", 3600, dns.rdataclass.IN, "SOA", AddRecordRecusrorTest._soa
+        )
+        query = dns.message.make_query("nxd-addrecord.example.", "A")
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            res = sender(query)
+            self.assertRcodeEqual(res, dns.rcode.NXDOMAIN)
+            self.assertEqual(len(res.answer), 0)
+            self.assertEqual(len(res.authority), 1)
+            self.assertEqual(res.authority[0], expectedAuthority)
