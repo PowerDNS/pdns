@@ -70,7 +70,7 @@ __EOF__
 	# setup catalog zone
 	if [ $zones -ne 1 ] # detect root tests
 	then
-		zones=$((zones+1))
+		zones=$((zones+2))
 		$PDNSUTIL --config-dir=. --config-name=gmysql2 create-secondary-zone catalog.invalid 127.0.0.1:$port
 		$PDNSUTIL --config-dir=. --config-name=gmysql2 set-kind catalog.invalid consumer
 
