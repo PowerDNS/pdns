@@ -144,6 +144,9 @@ Listen Sockets
   .. versionchanged:: 1.9.0
      ``enableProxyProtocol``, ``ktls``, ``library``, ``proxyProtocolOutsideTLS``, ``readAhead``, ``tlsAsyncMode`` options added.
 
+  .. versionchanged:: 2.2.0
+     ``padResponses`` option added.
+
   Listen on the specified address and TCP port for incoming DNS over HTTPS connections, presenting the specified X.509 certificate. See :doc:`../advanced/tls-certificates-management` for details about the handling of TLS certificates and keys.
   If no certificate (or key) files are specified, listen for incoming DNS over HTTP connections instead.
   More information is available in :doc:`../guides/dns-over-https`.
@@ -193,6 +196,7 @@ Listen Sockets
   * ``readAhead``: bool - When the TLS provider is set to OpenSSL, whether we tell the library to read as many input bytes as possible, which leads to better performance by reducing the number of syscalls. Default is true.
   * ``proxyProtocolOutsideTLS``: bool - When the use of incoming proxy protocol is enabled, whether the payload is prepended after the start of the TLS session (so inside, meaning it is protected by the TLS layer providing encryption and authentication) or not (outside, meaning it is in clear-text). Default is false which means inside. Note that most third-party software like HAproxy expect the proxy protocol payload to be outside, in clear-text.
   * ``enableProxyProtocol=true``: bool - Whether to expect a proxy protocol v2 header in front of incoming queries coming from an address in :func:`setProxyProtocolACL`. Default is ``true``, meaning that queries are expected to have a proxy protocol payload if they come from an address present in the :func:`setProxyProtocolACL` ACL.
+  * ``padResponses``: bool - Whether to pad DNS responses as specified in RFC 7830. Default is ``false``, meaning responses are not padded.
 
 .. function:: addDOH3Local(address, certFile(s), keyFile(s) [, options])
 
@@ -200,6 +204,9 @@ Listen Sockets
 
   .. versionchanged:: 2.1.0
     The default congestion algorithm used to be ``reno`` and is now ``cubic``.
+
+  .. versionchanged:: 2.2.0
+     ``padResponses`` option added.
 
   Listen on the specified address and UDP port for incoming DNS over HTTP3 connections, presenting the specified X.509 certificate. See :doc:`../advanced/tls-certificates-management` for details about the handling of TLS certificates and keys.
   More information is available in :doc:`../guides/dns-over-http3`.
@@ -220,6 +227,7 @@ Listen Sockets
   * ``maxInFlight=65535``: int - Maximum number of in-flight queries. The default is 0, which disables out-of-order processing.
   * ``congestionControlAlgo="cubic"``: str - The congestion control algorithm to be chosen between ``reno``, ``cubic`` and ``bbr``.
   * ``keyLogFile``: str - Write the TLS keys in the specified file so that an external program can decrypt TLS exchanges, in the format described in https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Key_Log_Format.
+  * ``padResponses``: bool - Whether to pad DNS responses as specified in RFC 7830. Default is ``false``, meaning responses are not padded.
 
 .. function:: addDOQLocal(address, certFile(s), keyFile(s) [, options])
 
@@ -227,6 +235,9 @@ Listen Sockets
 
   .. versionchanged:: 2.1.0
     The default congestion algorithm used to be ``reno`` and is now ``cubic``.
+
+  .. versionchanged:: 2.2.0
+     ``padResponses`` option added.
 
   Listen on the specified address and UDP port for incoming DNS over QUIC connections, presenting the specified X.509 certificate.
   See :doc:`../advanced/tls-certificates-management` for details about the handling of TLS certificates and keys.
@@ -248,6 +259,7 @@ Listen Sockets
   * ``maxInFlight=65535``: int - Maximum number of in-flight queries. The default is 0, which disables out-of-order processing.
   * ``congestionControlAlgo="cubic"``: str - The congestion control algorithm to be chosen between ``reno``, ``cubic`` and ``bbr``.
   * ``keyLogFile``: str - Write the TLS keys in the specified file so that an external program can decrypt TLS exchanges, in the format described in https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Key_Log_Format.
+  * ``padResponses``: bool - Whether to pad DNS responses as specified in RFC 7830. Default is ``false``, meaning responses are not padded.
 
 .. function:: addTLSLocal(address, certFile(s), keyFile(s) [, options])
 
@@ -264,6 +276,8 @@ Listen Sockets
      ``additionalAddresses``, ``ignoreTLSConfigurationErrors`` and ``ktls`` options added.
   .. versionchanged:: 1.9.0
      ``enableProxyProtocol``, ``readAhead`` and ``proxyProtocolOutsideTLS`` options added.
+  .. versionchanged:: 2.2.0
+     ``padResponses`` option added.
 
   Listen on the specified address and TCP port for incoming DNS over TLS connections, presenting the specified X.509 certificate. See :doc:`../advanced/tls-certificates-management` for details about the handling of TLS certificates and keys.
   More information is available at :doc:`../guides/dns-over-tls`.
@@ -305,6 +319,7 @@ Listen Sockets
   * ``readAhead``: bool - When the TLS provider is set to OpenSSL, whether we tell the library to read as many input bytes as possible, which leads to better performance by reducing the number of syscalls. Default is true.
   * ``proxyProtocolOutsideTLS``: bool - When the use of incoming proxy protocol is enabled, whether the payload is prepended after the start of the TLS session (so inside, meaning it is protected by the TLS layer providing encryption and authentication) or not (outside, meaning it is in clear-text). Default is false which means inside. Note that most third-party software like HAproxy expect the proxy protocol payload to be outside, in clear-text.
   * ``enableProxyProtocol=true``: str - Whether to expect a proxy protocol v2 header in front of incoming queries coming from an address in :func:`setProxyProtocolACL`. Default is ``true``, meaning that queries are expected to have a proxy protocol payload if they come from an address present in the :func:`setProxyProtocolACL` ACL.
+  * ``padResponses``: bool - Whether to pad DNS responses as specified in RFC 7830. Default is ``false``, meaning responses are not padded.
 
 .. function:: setLocal(address[, options])
 

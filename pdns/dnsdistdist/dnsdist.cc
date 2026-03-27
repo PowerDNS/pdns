@@ -563,6 +563,10 @@ bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse,
     }
   }
 
+  if (dnsResponse.ids.cs->d_padResponses) {
+    dnsdist::edns::addEDNSPadding(*dnsResponse.ids.d_packet, dnsResponse.getMutableData(), dnsResponse.getMaximumSize());
+  }
+
 #ifdef HAVE_DNSCRYPT
   if (!muted) {
     if (!encryptResponse(response, dnsResponse.getMaximumSize(), dnsResponse.overTCP(), dnsResponse.ids.dnsCryptQuery)) {
@@ -1435,6 +1439,10 @@ static bool prepareOutgoingResponse([[maybe_unused]] const ClientState& clientSt
     for (const auto& ede : *dnsResponse.ids.d_extendedErrors) {
       dnsdist::edns::addExtendedDNSError(dnsResponse.getMutableData(), dnsResponse.getMaximumSize(), ede);
     }
+  }
+
+  if (dnsResponse.ids.cs->d_padResponses) {
+    dnsdist::edns::addEDNSPadding(dnsQuestion.getData(), dnsResponse.getMutableData(), dnsResponse.getMaximumSize());
   }
 
   if (cacheHit) {
@@ -3433,17 +3441,17 @@ static void initFrontends(const CommandLineParameters& cmdLine)
 
     for (const auto& loc : cmdLine.locals) {
       /* UDP */
-      frontends.emplace_back(std::make_unique<ClientState>(ComboAddress(loc, 53), false, false, 0, "", std::set<int>{}, true));
+      frontends.emplace_back(std::make_unique<ClientState>(ComboAddress(loc, 53), false, false, 0, "", std::set<int>{}, true, false));
       /* TCP */
-      frontends.emplace_back(std::make_unique<ClientState>(ComboAddress(loc, 53), true, false, 0, "", std::set<int>{}, true));
+      frontends.emplace_back(std::make_unique<ClientState>(ComboAddress(loc, 53), true, false, 0, "", std::set<int>{}, true, false));
     }
   }
 
   if (frontends.empty()) {
     /* UDP */
-    frontends.emplace_back(std::make_unique<ClientState>(ComboAddress("127.0.0.1", 53), false, false, 0, "", std::set<int>{}, true));
+    frontends.emplace_back(std::make_unique<ClientState>(ComboAddress("127.0.0.1", 53), false, false, 0, "", std::set<int>{}, true, false));
     /* TCP */
-    frontends.emplace_back(std::make_unique<ClientState>(ComboAddress("127.0.0.1", 53), true, false, 0, "", std::set<int>{}, true));
+    frontends.emplace_back(std::make_unique<ClientState>(ComboAddress("127.0.0.1", 53), true, false, 0, "", std::set<int>{}, true, false));
   }
 
   dnsdist::configuration::updateImmutableConfiguration([&frontends](dnsdist::configuration::ImmutableConfiguration& config) {

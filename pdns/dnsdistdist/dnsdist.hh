@@ -340,8 +340,8 @@ class DNSCryptContext;
 
 struct ClientState
 {
-  ClientState(const ComboAddress& local_, bool isTCP_, bool doReusePort, int fastOpenQueue, const std::string& itfName, const std::set<int>& cpus_, bool enableProxyProtocol) :
-    cpus(cpus_), interface(itfName), local(local_), fastOpenQueueSize(fastOpenQueue), tcp(isTCP_), reuseport(doReusePort), d_enableProxyProtocol(enableProxyProtocol)
+  ClientState(const ComboAddress& local_, bool isTCP_, bool doReusePort, int fastOpenQueue, const std::string& itfName, const std::set<int>& cpus_, bool enableProxyProtocol, bool padResponses) :
+    cpus(cpus_), interface(itfName), local(local_), fastOpenQueueSize(fastOpenQueue), tcp(isTCP_), reuseport(doReusePort), d_enableProxyProtocol(enableProxyProtocol), d_padResponses(padResponses)
   {
   }
 
@@ -392,6 +392,7 @@ struct ClientState
   bool tcp;
   bool reuseport;
   bool d_enableProxyProtocol{true}; // the global proxy protocol ACL still applies
+  bool d_padResponses{false};
   bool ready{false};
 
   int getSocket() const
