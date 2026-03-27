@@ -3377,8 +3377,8 @@ string LMDBBackend::directBackendCmd(const string& query)
       try {
         pdns::checked_stoi_into(id, argv[3]);
       }
-      catch (const std::out_of_range& e) {
-        return "ID out of range\n";
+      catch (const std::logic_error&) {
+        return "ill-formed ID\n";
       }
 
       if (genChangeDomain(id, [](DomainInfo& /* di */) {})) {

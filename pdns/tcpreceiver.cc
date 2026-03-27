@@ -1271,9 +1271,9 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_
         try {
           pdns::checked_stoi_into(serial, parts[2]);
         }
-        catch(const std::out_of_range& oor) {
+        catch(const std::logic_error& exc) {
           SLOG(g_log<<Logger::Warning<<logPrefix<<"invalid serial in IXFR query"<<endl,
-               slog->info(Logr::Warning, "IXFR: invalid serial in query", "zone", Logging::Loggable(q->qdomainzone), "client", Logging::Loggable(q->getRemoteStringWithPort())));
+               slog->error(Logr::Warning, exc.what(), "IXFR: invalid serial in query", "zone", Logging::Loggable(q->qdomainzone), "client", Logging::Loggable(q->getRemoteStringWithPort())));
           outpacket->setRcode(RCode::FormErr);
           sendPacket(outpacket,outsock);
           return 0;
