@@ -2112,5 +2112,6 @@ class DOHEDNSPadding(object):
         self.assertEqual(receivedResponse.edns, 0)
         self.assertEqual(len(receivedResponse.options), 0)
 
+
 class TestDOHEDNSPadding(DOHEDNSPadding, DNSDistDOHTest):
     _dohLibrary = "nghttp2"
