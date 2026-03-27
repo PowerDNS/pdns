@@ -23,6 +23,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include "protozero.hh"
 #include "ueberbackend.hh"
 #include "dnspacket.hh"
 #include "packetcache.hh"
@@ -70,6 +71,7 @@ public:
   static const std::shared_ptr<CDSRecordContent> s_deleteCDSContent;
 
 private:
+  std::unique_ptr<DNSPacket> doQuestionInner(DNSPacket&); //!< hand us a DNS packet with a question, we give you an answer
   int tryAutoPrimary(const DNSPacket& p);
   int processNotify(const DNSPacket& );
   void addRootReferral(DNSPacket& r);
