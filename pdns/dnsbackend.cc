@@ -441,7 +441,7 @@ void fillSOAData(const string& content, SOAData& soaData)
     pdns::checked_stoi_into(soaData.expire, parts.at(5));
     pdns::checked_stoi_into(soaData.minimum, parts.at(6));
   }
-  catch (const std::out_of_range& oor) {
-    throw PDNSException("Out of range exception parsing '" + content + "'");
+  catch (const std::logic_error& exc) {
+    throw PDNSException("exception parsing '" + content + "': " + exc.what());
   }
 }

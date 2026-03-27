@@ -720,7 +720,7 @@ int makeIPv6sockaddr(const std::string& addr, struct sockaddr_in6* ret)
         auto tmpPort = pdns::checked_stoi<uint16_t>(addr.substr(pos + 2));
         port = std::make_optional(tmpPort);
       }
-      catch (const std::out_of_range&) {
+      catch (const std::logic_error&) {
         return -1;
       }
     }

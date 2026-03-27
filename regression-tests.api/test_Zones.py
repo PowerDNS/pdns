@@ -2461,7 +2461,7 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
             headers={"content-type": "application/json"},
         )
         self.assertEqual(r.status_code, 422)
-        self.assert_in_json_error("Key 'modified_at' is out of range", r.json())
+        self.assert_in_json_error("Key 'modified_at' is not a valid number", r.json())
 
     @unittest.skipIf(is_auth_lmdb(), "No comments in LMDB")
     def test_zone_comment_stay_intact(self):
