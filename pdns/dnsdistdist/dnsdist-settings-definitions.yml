@@ -1140,6 +1140,10 @@ bind:
       type: "bool"
       default: "true"
       description: "Whether to expect a proxy protocol v2 header in front of incoming queries coming from an address allowed by the ACL in :ref:`yaml-settings-ProxyProtocolConfiguration`. Default is ``true``, meaning that queries are expected to have a proxy protocol payload if they come from an address present in the proxy protocol ACL"
+    - name: "pad_responses"
+      type: "bool"
+      default: "false"
+      description: "Whether to pad DNS responses as specified in RFC 7830."
     - name: "tcp"
       type: "IncomingTcpConfiguration"
       default: true

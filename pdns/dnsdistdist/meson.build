@@ -198,6 +198,7 @@ common_sources += files(
   src_dir / 'ednscookies.cc',
   src_dir / 'ednsextendederror.cc',
   src_dir / 'ednsoptions.cc',
+  src_dir / 'ednspadding.cc',
   src_dir / 'ednssubnet.cc',
   src_dir / 'gettime.cc',
   src_dir / 'iputils.cc',
