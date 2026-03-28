@@ -1091,14 +1091,11 @@ end
         self.assertEqual(res.answer, expectedAnswerRecords)
 
 
-class AddRecordRecusrorTest(RecursorTest):
-    """Test addRecord can add SOA to authority section.
-    """
+class RecursorAddRecordTest(RecursorTest):
+    "Test addRecord in recursor"
 
-    _confdir = "AddRecordRecusror"
+    _confdir = "RecursorAddRecord"
     _soa = "ns1.example. admin.example. 2026033101 3600 1200 604800 60"
-    _config_template = """
-    """
     _lua_dns_script_file = f"""
     local PLACE_AUTHORITY = 2
 
@@ -1118,10 +1115,10 @@ class AddRecordRecusrorTest(RecursorTest):
     end
     """
 
-    def testAddRecord4AuthSeection(self):
+    def testAddRecord4AuthSection(self):
         """addRecord: NXDOMAIN response with SOA in authority section"""
         expectedAuthority = dns.rrset.from_text(
-            "example.", 3600, dns.rdataclass.IN, "SOA", AddRecordRecusrorTest._soa
+            "example.", 3600, dns.rdataclass.IN, "SOA", RecursorAddRecordTest._soa
         )
         query = dns.message.make_query("nxd-addrecord.example.", "A")
 
