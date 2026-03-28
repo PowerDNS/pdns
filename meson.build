@@ -458,6 +458,14 @@ if dep_pkcs11.found()
   )
 endif
 
+libpdns_sqlbackend = declare_dependency(
+  link_whole: static_library(
+    'pdns-sqlbackend',
+    sources: files(src_dir / 'backends' / 'gsql' / 'gsqlbackend.cc', src_dir / 'backends' / 'gsql' / 'gsqlbackend.hh', src_dir / 'backends' / 'gsql' / 'ssql.hh'),
+    dependencies: deps,
+  )
+)
+
 # This needs to be link_whole'd because it's needed by auth backends.
 libpdns_ssqlite3 = dependency('', required: false)
 if dep_sqlite3.found()
@@ -465,7 +473,7 @@ if dep_sqlite3.found()
     link_whole: static_library(
       'pdns-ssqlite3',
       sources: files(src_dir / 'ssqlite3.cc', src_dir / 'ssqlite3.hh'),
-      dependencies: deps,
+      dependencies: [deps, libpdns_sqlbackend],
     )
   )
 endif
@@ -497,9 +505,6 @@ common_sources += files(
   src_dir / 'auth-zonecache.hh',
   src_dir / 'axfr-retriever.cc',
   src_dir / 'axfr-retriever.hh',
-  src_dir / 'backends' / 'gsql' / 'gsqlbackend.cc', # TODO Move to a separate module.
-  src_dir / 'backends' / 'gsql' / 'gsqlbackend.hh', # TODO Move to a separate module.
-  src_dir / 'backends' / 'gsql' / 'ssql.hh',        # TODO Move to a separate module.
   src_dir / 'base32.cc',
   src_dir / 'base32.hh',
   src_dir / 'base64.cc',
