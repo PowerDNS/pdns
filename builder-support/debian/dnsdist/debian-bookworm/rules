@@ -44,6 +44,7 @@ override_dh_auto_clean:
 # build-id SHA1 prevents an issue with the debug symbols ("export: `-Wl,--build-id=sha1': not a valid identifier")
 
 override_dh_auto_configure:
+	dpkg -l | grep libstdc
 	LDFLAGS="-latomic -fuse-ld=lld -Wl,--build-id=sha1" \
 	CC=clang \
 	CXX=clang++ \

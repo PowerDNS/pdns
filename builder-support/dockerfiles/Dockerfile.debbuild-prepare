@@ -1,6 +1,6 @@
 FROM dist-base AS package-builder
 ARG APT_URL
-RUN DEBIAN_FRONTEND=noninteractive apt-get -y install --no-install-recommends devscripts dpkg-dev build-essential python3-venv equivs curl jq
+RUN DEBIAN_FRONTEND=noninteractive apt-get -y install --no-install-recommends devscripts dpkg-dev build-essential python3-venv equivs curl jq libstdc++-16-dev
 
 RUN mkdir /dist /pdns
 WORKDIR /pdns
