@@ -5,6 +5,6 @@ pyyaml==6.0.3
 meson
 ninja
 invoke
-requests==2.32.4
+requests==2.33.0
 cython>=3.0.0
 setuptools<82
