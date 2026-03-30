@@ -41,31 +41,29 @@ void emptyLuaTracing(LuaContext& luaCtx)
 
 void setupLuaTracing(LuaContext& luaCtx, std::shared_ptr<Tracer>& tracer)
 {
-  if (tracer != nullptr) {
-    luaCtx.writeFunction<void(const std::string&, const std::function<void()>&)>(
-      "withTraceSpan",
-      [&tracer](const std::string& name, const std::function<void()>& luaFunc) {
-#ifndef DISABLE_PROTOBUF
-        if (tracer != nullptr) {
-          auto closer = tracer->openSpan(name);
-          luaFunc();
-          return;
-        }
-#endif
-        luaFunc();
-      });
-
-    luaCtx.writeFunction<void(const std::string&, const std::string&)>(
-      "setSpanAttribute",
-      [&tracer](const std::string& key, const std::string& value) {
-#ifndef DISABLE_PROTOBUF
-        if (tracer != nullptr) {
-          tracer->setSpanAttribute(tracer->getLastSpanID(), key, AnyValue{value});
-        }
-#endif
-        return;
-      });
+  if (tracer == nullptr) {
+    return;
   }
+
+  luaCtx.writeFunction<void(const std::string&, const std::function<void()>&)>(
+    "withTraceSpan",
+    [&tracer](const std::string& name, const std::function<void()>& luaFunc) {
+#ifndef DISABLE_PROTOBUF
+      auto closer = tracer->openSpan(name);
+      luaFunc();
+      return;
+#endif
+      luaFunc();
+    });
+
+  luaCtx.writeFunction<void(const std::string&, const std::string&)>(
+    "setSpanAttribute",
+    [&tracer](const std::string& key, const std::string& value) {
+#ifndef DISABLE_PROTOBUF
+      tracer->setSpanAttribute(tracer->getLastSpanID(), key, AnyValue{value});
+#endif
+      return;
+    });
 }
 
 } // namespace pdns::trace::dnsdist
