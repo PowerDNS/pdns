@@ -217,6 +217,7 @@ dnsdist_SOURCES = \
 	dnsdist-lua-bindings-dnsquestion.cc \
 	dnsdist-lua-bindings-kvs.cc \
 	dnsdist-lua-bindings-network.cc \
+	dnsdist-lua-bindings-opentelemetry.cc dnsdist-lua-bindings-opentelemetry.hh \
 	dnsdist-lua-bindings-packetcache.cc \
 	dnsdist-lua-bindings-protobuf.cc \
 	dnsdist-lua-bindings-rings.cc \

@@ -39,6 +39,7 @@
 #include "dnsdist-concurrent-connections.hh"
 #include "dnsdist-configuration.hh"
 #include "dnsdist-configuration-yaml.hh"
+#include "dnsdist-lua-bindings-opentelemetry.hh"
 #include "dnsdist-console.hh"
 #include "dnsdist-console-completion.hh"
 #include "dnsdist-crypto.hh"
@@ -3324,6 +3325,7 @@ void setupLuaBindingsOnly(LuaContext& luaCtx, bool client, bool configCheck)
   setupLuaVars(luaCtx);
   setupLuaWeb(luaCtx);
   dnsdist::configuration::yaml::addLuaBindingsForYAMLObjects(luaCtx);
+  pdns::trace::dnsdist::emptyLuaTracing(luaCtx); // This sets up the withTraceSpan and setSpanAttribute functions as empty
 
 #ifdef LUAJIT_VERSION
   luaCtx.executeCode(getLuaFFIWrappers());

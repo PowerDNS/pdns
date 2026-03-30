@@ -29,6 +29,7 @@
 #include <getopt.h>
 #include <grp.h>
 #include <limits>
+#include <memory>
 #include <netinet/tcp.h>
 #include <optional>
 #include <pwd.h>
@@ -42,6 +43,7 @@
 #include "dnsdist-opentelemetry.hh"
 #include "dnsdist-systemd.hh"
 #include "logging.hh"
+#include "logr.hh"
 #include "protozero-trace.hh"
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-daemon.h>
@@ -55,6 +57,7 @@
 #include "dnsdist-configuration-yaml.hh"
 #include "dnsdist-console.hh"
 #include "dnsdist-console-completion.hh"
+#include "dnsdist-lua-bindings-opentelemetry.hh"
 #include "dnsdist-crypto.hh"
 #include "dnsdist-discovery.hh"
 #include "dnsdist-dynblocks.hh"
@@ -2449,27 +2452,54 @@ static void udpClientThread(std::vector<ClientState*> states)
   }
 }
 
+static std::optional<pdns::trace::dnsdist::Tracer::Closer> getCloser([[maybe_unused]] std::shared_ptr<pdns::trace::dnsdist::Tracer>& tracer, [[maybe_unused]] const std::string& spanName)
+{
+#ifndef DISABLE_PROTOBUF
+  if (tracer != nullptr) {
+    auto ret = std::make_optional(tracer->openSpan(spanName));
+    ret->setKind(SpanKind::SPAN_KIND_INTERNAL);
+    return ret;
+  }
+#endif
+  return std::nullopt;
+}
+
 static void maintThread()
 {
   setThreadName("dnsdist/main");
   constexpr int interval = 1;
   size_t counter = 0;
+  size_t otCounter = 0;
   int32_t secondsToWaitLog = 0;
 
   for (;;) {
     std::this_thread::sleep_for(std::chrono::seconds(interval));
 
     dnsdist::configuration::refreshLocalRuntimeConfiguration();
-    {
-      auto lua = g_lua.lock();
+    std::shared_ptr<pdns::trace::dnsdist::Tracer> tracer = dnsdist::configuration::getCurrentRuntimeConfiguration().d_opentelemetryMaintenanceInterval != 0 && otCounter % dnsdist::configuration::getCurrentRuntimeConfiguration().d_opentelemetryMaintenanceInterval == 0 ? pdns::trace::dnsdist::Tracer::getTracer() : nullptr;
+    otCounter++;
+    if (tracer != nullptr) {
+      tracer->setScopeSpanName("dnsdist/maintenance");
+    }
+    auto maint_closer = getCloser(tracer, "maintenanceThread");
+    auto lua = g_lua.lock();
+
+    pdns::trace::dnsdist::runWithLuaTracing(*lua, tracer, [&lua, &tracer, &secondsToWaitLog]() {
       try {
         auto maintenanceCallback = lua->readVariable<std::optional<std::function<void()>>>("maintenance");
         if (maintenanceCallback) {
+          auto closer = getCloser(tracer, "maintenanceFunction");
           (*maintenanceCallback)();
         }
-        dnsdist::lua::hooks::runMaintenanceHooks(*lua);
+        {
+          auto closer = getCloser(tracer, "maintenanceHooks");
+          dnsdist::lua::hooks::runMaintenanceHooks(*lua);
+        }
 #if !defined(DISABLE_DYNBLOCKS)
-        dnsdist::DynamicBlocks::runRegisteredGroups(*lua);
+        {
+          auto closer = getCloser(tracer, "DynamicBlocks::runRegisteredGroups");
+          dnsdist::DynamicBlocks::runRegisteredGroups(*lua);
+        }
 #endif /* DISABLE_DYNBLOCKS */
         secondsToWaitLog = 0;
       }
@@ -2481,10 +2511,11 @@ static void maintThread()
         }
         secondsToWaitLog -= interval;
       }
-    }
+    });
 
     counter++;
     if (counter >= dnsdist::configuration::getCurrentRuntimeConfiguration().d_cacheCleaningDelay) {
+      auto closer = getCloser(tracer, "CacheClean");
       /* keep track, for each cache, of whether we should keep
        expired entries */
       std::map<std::shared_ptr<DNSDistPacketCache>, bool> caches;
@@ -2525,6 +2556,21 @@ static void maintThread()
       }
       counter = 0;
     }
+
+#ifndef DISABLE_PROTOBUF
+    if (tracer != nullptr) {
+      maint_closer = std::nullopt; // set the stop time by destructing the Closer
+      static thread_local string pbBuf;
+      pbBuf.clear();
+      pdns::ProtoZero::Message minimalMsg{pbBuf};
+      minimalMsg.setType(pdns::ProtoZero::Message::MessageType::InternalType);
+      minimalMsg.setOpenTelemetryTraceID(tracer->getTraceID());
+      minimalMsg.setOpenTelemetryData(tracer->getOTProtobuf());
+      for (const auto& remotelogger : dnsdist::configuration::getCurrentRuntimeConfiguration().d_maintenanceRemoteLoggers) {
+        remotelogger->queueData(pbBuf);
+      }
+    }
+#endif
   }
 }
 

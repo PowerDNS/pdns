@@ -449,7 +449,6 @@ This state can be modified from the various hooks.
 
     :param string key: The tag's key
 
-
 .. _DNSResponse:
 
 DNSResponse object
