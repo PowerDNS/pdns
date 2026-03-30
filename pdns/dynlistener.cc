@@ -242,7 +242,7 @@ string DynListener::getLine()
         }
         string password(mesg.data());
         boost::trim(password);
-        if(password.empty() || password!=arg()["tcp-control-secret"]) {
+        if(password.empty() || !constantTimeStringEquals(password, arg()["tcp-control-secret"])) {
           g_log<<Logger::Error<<"Wrong password on TCP control socket"<<endl;
           writen2(d_client, "Wrong password");
 
