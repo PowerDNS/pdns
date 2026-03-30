@@ -2690,6 +2690,19 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       frontend->reloadCertificates();
     }
   });
+
+  luaCtx.registerFunction<void (std::shared_ptr<DOH3Frontend>::*)(const LuaArray<std::shared_ptr<DOHResponseMapEntry>>&)>("setResponsesMap", [](const std::shared_ptr<DOH3Frontend>& frontend, const LuaArray<std::shared_ptr<DOHResponseMapEntry>>& map) {
+    if (frontend != nullptr) {
+      auto newMap = std::make_shared<std::vector<std::shared_ptr<DOHResponseMapEntry>>>();
+      newMap->reserve(map.size());
+
+      for (const auto& entry : map) {
+        newMap->push_back(entry.second);
+      }
+
+      frontend->d_responsesMap = std::move(newMap);
+    }
+  });
 #endif
 
   luaCtx.writeFunction("showDOHResponseCodes", []() {

@@ -352,6 +352,23 @@ static bool handleTLSConfiguration(const Context& context, const dnsdist::rust::
     frontend->d_quicheParams.d_keyLogFile = std::string(bind.tls.key_log_file);
     frontend->d_quicheParams.d_ccAlgo = std::string(bind.quic.congestion_control_algorithm);
     frontend->d_internalPipeBufferSize = bind.quic.internal_pipe_buffer_size;
+
+    if (!bind.doh.responses_map.empty()) {
+      auto newMap = std::make_shared<std::vector<std::shared_ptr<DOHResponseMapEntry>>>();
+      for (const auto& responsesMap : bind.doh.responses_map) {
+        std::optional<std::unordered_map<std::string, std::string>> headers;
+        if (!responsesMap.headers.empty()) {
+          headers = std::unordered_map<std::string, std::string>();
+          for (const auto& header : responsesMap.headers) {
+            headers->emplace(boost::to_lower_copy(std::string(header.key)), std::string(header.value));
+          }
+        }
+        auto entry = std::make_shared<DOHResponseMapEntry>(std::string(responsesMap.expression), responsesMap.status, PacketBuffer(responsesMap.content.begin(), responsesMap.content.end()), headers);
+        newMap->emplace_back(std::move(entry));
+      }
+      frontend->d_responsesMap = std::move(newMap);
+    }
+
     state.doh3Frontend = std::move(frontend);
   }
 #endif /* HAVE_DNS_OVER_HTTP3 */

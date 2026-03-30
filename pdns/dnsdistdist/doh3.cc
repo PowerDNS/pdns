@@ -523,6 +523,25 @@ static void processDOH3Query(DOH3UnitUniquePtr&& doh3Unit)
       return;
     }
 
+    /* the responses map can be updated at runtime, so we need to take a copy of
+       the shared pointer, increasing the reference counter */
+    auto responsesMap = unit->dsc->df->d_responsesMap;
+    if (responsesMap) {
+      for (const auto& entry : *responsesMap) {
+        if (entry->matches(unit->getHTTPPath())) {
+          const auto& customHeaders = entry->getHeaders();
+          unit->status_code = entry->getStatusCode();
+          unit->response = entry->getContent();
+          if (customHeaders) {
+            unit->headers = *customHeaders;
+          }
+
+          handleImmediateResponse(std::move(unit), "DoH3 custom response");
+          return;
+        }
+      }
+    }
+
     if (unit->query.size() < sizeof(dnsheader)) {
       ++dnsdist::metrics::g_stats.nonCompliantQueries;
       ++clientState.nonCompliantQueries;

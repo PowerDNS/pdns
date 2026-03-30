@@ -48,6 +48,7 @@ using h3_headers_t = std::unordered_map<std::string, std::string>;
 
 #include "dnsdist-idstate.hh"
 #include "doq-common.hh"
+#include "dnsdist-doh-common.hh"
 
 struct DOH3Frontend
 {
@@ -66,6 +67,7 @@ struct DOH3Frontend
   }
 
   std::shared_ptr<const Logr::Logger> d_logger{nullptr};
+  std::shared_ptr<std::vector<std::shared_ptr<DOHResponseMapEntry>>> d_responsesMap;
   std::unique_ptr<DOH3ServerConfig> d_server_config;
   ComboAddress d_local;
 
