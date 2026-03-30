@@ -122,15 +122,8 @@ bool addEDNSPadding(const PacketBuffer& requestPacket, PacketBuffer& packet, siz
   int res = locateEDNSOptRR(packet, &optStart, &optLen, &last);
 
   if (res != 0) {
-    /* no EDNS OPT record in the response, lets add it */
-    optStart = packet.size();
-    // TODO: Generate EDNS with padding right away?
-    if (!addEDNS(packet, maximumPacketSize, false, 4096, 0)) {
-      /* couldn't add EDNS OPT record in the response, padding can't be added */
-      return false;
-    }
-    optLen = packet.size() - optStart;
-    last = true;
+    /* no EDNS OPT record in the response, something is not right */
+    return false;
   }
 
   if (packet.size() < maximumPacketSize - 4) {
