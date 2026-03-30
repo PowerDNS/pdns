@@ -1186,6 +1186,12 @@ std::pair<std::string, std::string> LMDBBackend::serializeComment(const Comment&
   val_writer.add_string(2, comment.account);
   val_writer.add_string(3, comment.content);
 
+  // because of Lightning Stream, we don't want to put all comments for an RRSET in a single LMDB value
+  // because if we did, then after adding one comment on node A and adding one comment on B, the set from one will overwrite
+  // the set from the other, deleting one of the comments.
+  // instead, we use one LMDB key/value per comment. This requires a unique key. Our unique key is the hash of our value.
+  // This makes sure that identical/duplicate comments do not actually duplicate, and that different comments do not
+  // overwrite each other, because their hashes are different.
   auto hash = pdns::sha256sum(val);
 
   key.append(hash);
