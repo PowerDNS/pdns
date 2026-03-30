@@ -9,4 +9,4 @@ Currently, the following keys are defined:
 
 .. code-block:: Lua
 
-    pdns_features["PR17017_protobuf_tags_prefixes"] = true
+    pdns_features["protobuf_tags_prefixes"] = true

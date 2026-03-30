@@ -55,5 +55,5 @@ void setupLuaVars(LuaContext& luaCtx)
 #endif
 
   using Features = LuaAssociativeTable<boost::variant<string, bool, int, double>>;
-  luaCtx.writeVariable("pdns_features", Features{{"PR17017_protobuf_tags_prefixes", true}});
+  luaCtx.writeVariable("pdns_features", Features{{"protobuf_tags_prefixes", true}});
 }
