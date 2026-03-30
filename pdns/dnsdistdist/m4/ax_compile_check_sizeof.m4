@@ -1,1 +1,0 @@
-../../../m4/ax_compile_check_sizeof.m4
