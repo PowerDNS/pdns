@@ -2398,7 +2398,8 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         r = self.session.patch(
             self.url("/api/v1/servers/localhost/zones/" + name),
             data=json.dumps(payload),
-            headers={'content-type': 'application/json'})
+            headers={"content-type": "application/json"},
+        )
         self.assert_success(r)
         # make sure the comments have been set, and that the NS
         # records are still present
@@ -2418,17 +2419,12 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         # Test: Delete ONLY comments.
         name, payload, zone = self.create_zone()
         rrset = {
-            'changetype': 'replace',
-            'name': name,
-            'type': 'NS',
-            'comments': [
-                {
-                    'account': 'test4',
-                    'content': 'this should not show up after delete'
-                }
-            ]
+            "changetype": "replace",
+            "name": name,
+            "type": "NS",
+            "comments": [{"account": "test4", "content": "this should not show up after delete"}],
         }
-        payload = {'rrsets': [rrset]}
+        payload = {"rrsets": [rrset]}
         r = self.session.patch(
             self.url("/api/v1/servers/localhost/zones/" + name),
             data=json.dumps(payload),
@@ -2436,16 +2432,17 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         )
         self.assert_success(r)
         data = self.get_zone(name)
-        serverset = get_rrset(data, name, 'NS')
+        serverset = get_rrset(data, name, "NS")
         print(serverset)
-        self.assertNotEqual(serverset['records'], [])
-        self.assertNotEqual(serverset['comments'], [])
+        self.assertNotEqual(serverset["records"], [])
+        self.assertNotEqual(serverset["comments"], [])
 
-        payload['rrsets'][0]['comments'] = []
+        payload["rrsets"][0]["comments"] = []
         r = self.session.patch(
             self.url("/api/v1/servers/localhost/zones/" + name),
             data=json.dumps(payload),
-            headers={'content-type': 'application/json'})
+            headers={"content-type": "application/json"},
+        )
         # make sure the NS records are still present
         data = self.get_zone(name)
         serverset = get_rrset(data, name, "NS")
