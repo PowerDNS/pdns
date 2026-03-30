@@ -83,6 +83,7 @@ rec_bulk_ubicloud_deps = [
 ]
 dnsdist_build_deps = [
     "libcap-dev",
+    "catch2",
     "libcdb-dev",
     "libedit-dev",
     "libfstrm-dev",
@@ -1120,6 +1121,7 @@ DNSDIST_CONFIGURE_MESON_FEATURE_SET_FULL = " ".join(
         "-D reproducible=true",
         "-D snmp=enabled",
         "-D yaml=enabled",
+        "-D benchmark=true",
     ]
 )
 
