@@ -4402,7 +4402,8 @@ static int addComment(vector<string>& cmds, const std::string_view synopsis)
   comment.modified_at = time(nullptr);
 
   if (!comment.qname.isPartOf(zone)) {
-    throw PDNSException("Name \"" + comment.qname.toString() + "\" to add comment to is not part of zone \"" + zone.toString() + "\".");
+    cerr << "Name \"" << comment.qname.toString() << "\" to add comment to is not part of zone \"" << zone.toString()  << "\"." << endl;
+    return EXIT_FAILURE;
   }
 
   di.backend->startTransaction(zone, UnknownDomainID);
