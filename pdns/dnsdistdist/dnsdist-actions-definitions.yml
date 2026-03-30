@@ -301,7 +301,7 @@
     - name: "export_tags"
       type: "Vec<String>"
       default: ""
-      description: "The list of keys of internal tags to export into the ``tags`` Protocol Buffer field, as ``key:value`` strings (or as ``key`` if ``export_tags_key_only`` is set). Note that a tag with an empty value will be exported as ``<key>``, not ``<key>:``. An empty string means that no internal tag will be exported. The special value ``*`` means that all tags will be exported"
+      description: "The list of keys of internal tags to export into the ``tags`` Protocol Buffer field, as ``key:value`` strings (or as ``key`` if ``export_tags_key_only`` is set). Note that a tag with an empty value will be exported as ``<key>``, not ``<key>:``. An empty string means that no internal tag will be exported. The special value ``*`` means that all tags will be exported. See :doc:`protobuf` for some examples."
     - name: "export_tags_key_only"
       type: "bool"
       default: "false"

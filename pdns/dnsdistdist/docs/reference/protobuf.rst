@@ -136,3 +136,66 @@ Protobuf Logging Reference
   .. method:: toDebugString() -> string
 
     Return a string containing the content of the message
+
+
+Exporting tags
+--------------
+
+func:`RemoteLogAction` and :func:`RemoteLogResponseAction` can be configured to include internal tags in the protocol buffer messages that are exported, using the ``exportTags``/``export_tags`` options. The following example exports all internal tags using the special ``*`` value:
+
+.. md-tab-set::
+
+  .. md-tab-item:: YAML
+
+    .. code-block:: yaml
+
+      remote_logging:
+        protobuf_loggers:
+          - name: "pblog"
+            address: "127.0.0.1:5301"
+      query_rules:
+        - name: Export queries including internal tags
+          selector:
+            type: All
+          action:
+            type: RemoteLog
+            logger_name: "pblog"
+            export_tags: "*"
+
+  .. md-tab-item:: Lua
+
+    .. code-block:: lua
+
+      rl = newRemoteLogger('127.0.0.1:5301')
+      addAction(AllRule(), RemoteLogAction(rl, nil, {exportTags='*'}))
+
+
+The ``exportTagsPrefixes``/``export_tags_prefixes`` options can also be used to export all tags whose keys start with a given prefix, and ``exportTagsStripPrefixes``/``export_tags_strip_prefixes`` to remove the specified prefix from the key before inserting into the message. The following example exports all internal tags starting with ``pdns-`` and removes the prefix from the key before adding them to the protocol buffer message:
+
+.. md-tab-set::
+
+  .. md-tab-item:: YAML
+
+    .. code-block:: yaml
+
+      remote_logging:
+        protobuf_loggers:
+          - name: "pblog"
+            address: "127.0.0.1:5301"
+      query_rules:
+        - name: Export queries including internal tags
+          selector:
+            type: All
+          action:
+            type: RemoteLog
+            logger_name: "pblog"
+            export_tags_prefixes:
+              - "pdns-"
+            export_tags_strip_prefixes: true
+
+  .. md-tab-item:: Lua
+
+    .. code-block:: lua
+
+      rl = newRemoteLogger('127.0.0.1:5301')
+      addAction(AllRule(), RemoteLogAction(rl, nil, {exportTagsPrefixes='pdns-', exportTagsStripPrefixes=true}))
