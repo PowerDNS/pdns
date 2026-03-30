@@ -13,6 +13,7 @@ import pycurl
 import clientsubnetoption
 from dnsdistdohtests import DNSDistDOHTest
 from dnsdisttests import DNSDistTest, pickAvailablePort
+import paddingoption
 
 
 class DOHTests(object):
@@ -2051,4 +2052,90 @@ class DOHXFR(object):
 
 
 class TestDOHXFRNGHTTP2(DOHXFR, DNSDistDOHTest):
+    _dohLibrary = "nghttp2"
+
+
+class DOHEDNSPadding(object):
+    _serverKey = "server.key"
+    _serverCert = "server.chain"
+    _serverName = "tls.tests.dnsdist.org"
+    _caCert = "ca.pem"
+    _dohServerPort = pickAvailablePort()
+    _dohBaseURL = "https://%s:%d/" % (_serverName, _dohServerPort)
+    _config_template = """
+    newServer{address="127.0.0.1:%d"}
+
+    addDOHLocal("127.0.0.1:%d", "%s", "%s", { "/" }, {padResponses=true, library='%s'})
+    """
+    _config_params = ["_testServerPort", "_dohServerPort", "_serverCert", "_serverKey", "_dohLibrary"]
+
+    def testDOHWithPadding(self):
+        """
+        DOH with EDNS Padding
+        """
+        name = "padded.doh.tests.powerdns.com."
+        po = paddingoption.PaddingOption(64)
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, options=[po])
+
+        (_, receivedResponse) = self.sendDOHQuery(
+            self._dohServerPort,
+            self._serverName,
+            self._dohBaseURL,
+            query,
+            caFile=self._caCert,
+        )
+        self.assertEqual(len(receivedResponse.to_wire()) % 468, 0)
+        self.assertTrue(receivedResponse)
+        self.assertEqual(receivedResponse.edns, 0)
+        self.assertEqual(len(receivedResponse.options), 1)
+        for option in receivedResponse.options:
+            self.assertEqual(option.otype, 12)
+
+    def testDOHWithPaddedResponse(self):
+        """
+        DOH with EDNS Padding, with already padded response
+        """
+        name = "paddedresponse.doh.tests.powerdns.com."
+        po = paddingoption.PaddingOption(64)
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, options=[po])
+        response = dns.message.make_response(query, pad=128)
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
+        response.answer.append(rrset)
+
+        (_, receivedResponse) = self.sendDOHQuery(
+            self._dohServerPort,
+            self._serverName,
+            self._dohBaseURL,
+            query,
+            response=response,
+            caFile=self._caCert,
+        )
+        self.assertEqual(len(receivedResponse.to_wire()) % 128, 0)
+        self.assertNotEqual(len(receivedResponse.to_wire()) % 468, 0)
+        self.assertTrue(receivedResponse)
+        self.assertEqual(receivedResponse.edns, 0)
+        self.assertEqual(len(receivedResponse.options), 1)
+        for option in receivedResponse.options:
+            self.assertEqual(option.otype, 12)
+
+    def testDOHWithoutEDNS(self):
+        """
+        DOH without EDNS in query
+        """
+        name = "no.edns.doh.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
+
+        (_, receivedResponse) = self.sendDOHQuery(
+            self._dohServerPort,
+            self._serverName,
+            self._dohBaseURL,
+            query,
+            caFile=self._caCert,
+        )
+        self.assertTrue(receivedResponse)
+        self.assertNotEqual(receivedResponse.edns, 0)
+        self.assertEqual(len(receivedResponse.options), 0)
+
+
+class TestDOHEDNSPadding(DOHEDNSPadding, DNSDistDOHTest):
     _dohLibrary = "nghttp2"

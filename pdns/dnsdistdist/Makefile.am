@@ -273,6 +273,7 @@ dnsdist_SOURCES = \
 	ednscookies.cc ednscookies.hh \
 	ednsextendederror.cc ednsextendederror.hh \
 	ednsoptions.cc ednsoptions.hh \
+	ednspadding.cc ednspadding.hh \
 	ednssubnet.cc ednssubnet.hh \
 	ext/json11/json11.cpp \
 	ext/json11/json11.hpp \
@@ -382,6 +383,7 @@ testrunner_SOURCES = \
 	ednscookies.cc ednscookies.hh \
 	ednsextendederror.cc ednsextendederror.hh \
 	ednsoptions.cc ednsoptions.hh \
+	ednspadding.cc ednspadding.hh \
 	ednssubnet.cc ednssubnet.hh \
 	ext/json11/json11.cpp \
 	ext/json11/json11.hpp \
@@ -647,6 +649,7 @@ fuzz_target_dnsdistcache_SOURCES = \
 	dnswriter.cc dnswriter.hh \
 	dolog.cc dolog.hh \
 	ednsoptions.cc ednsoptions.hh \
+	ednspadding.cc ednspadding.hh \
 	ednssubnet.cc ednssubnet.hh \
 	ext/json11/json11.cpp \
 	ext/json11/json11.hpp \
