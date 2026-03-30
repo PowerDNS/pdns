@@ -584,7 +584,7 @@ struct TestFixture
 BOOST_FIXTURE_TEST_CASE(test_SingleQuery, TestFixture)
 {
   auto local = getBackendAddress("1", 80);
-  ClientState localCS(local, true, false, 0, "", {}, true);
+  ClientState localCS(local, true, false, 0, "", {}, true, false);
   auto tlsCtx = std::make_shared<MockupTLSCtx>();
   localCS.tlsFrontend = std::make_shared<TLSFrontend>(tlsCtx);
 
@@ -660,7 +660,7 @@ BOOST_FIXTURE_TEST_CASE(test_SingleQuery, TestFixture)
 BOOST_FIXTURE_TEST_CASE(test_ConcurrentQueries, TestFixture)
 {
   auto local = getBackendAddress("1", 80);
-  ClientState localCS(local, true, false, 0, "", {}, true);
+  ClientState localCS(local, true, false, 0, "", {}, true, false);
   auto tlsCtx = std::make_shared<MockupTLSCtx>();
   localCS.tlsFrontend = std::make_shared<TLSFrontend>(tlsCtx);
 
@@ -749,7 +749,7 @@ BOOST_FIXTURE_TEST_CASE(test_ConcurrentQueries, TestFixture)
 BOOST_FIXTURE_TEST_CASE(test_ConnectionReuse, TestFixture)
 {
   auto local = getBackendAddress("1", 80);
-  ClientState localCS(local, true, false, 0, "", {}, true);
+  ClientState localCS(local, true, false, 0, "", {}, true, false);
   auto tlsCtx = std::make_shared<MockupTLSCtx>();
   localCS.tlsFrontend = std::make_shared<TLSFrontend>(tlsCtx);
 
@@ -860,7 +860,7 @@ BOOST_FIXTURE_TEST_CASE(test_ConnectionReuse, TestFixture)
 BOOST_FIXTURE_TEST_CASE(test_InvalidDNSAnswer, TestFixture)
 {
   auto local = getBackendAddress("1", 80);
-  ClientState localCS(local, true, false, 0, "", {}, true);
+  ClientState localCS(local, true, false, 0, "", {}, true, false);
   auto tlsCtx = std::make_shared<MockupTLSCtx>();
   localCS.tlsFrontend = std::make_shared<TLSFrontend>(tlsCtx);
 
@@ -942,7 +942,7 @@ BOOST_FIXTURE_TEST_CASE(test_InvalidDNSAnswer, TestFixture)
 BOOST_FIXTURE_TEST_CASE(test_TimeoutWhileWriting, TestFixture)
 {
   auto local = getBackendAddress("1", 80);
-  ClientState localCS(local, true, false, 0, "", {}, true);
+  ClientState localCS(local, true, false, 0, "", {}, true, false);
   auto tlsCtx = std::make_shared<MockupTLSCtx>();
   localCS.tlsFrontend = std::make_shared<TLSFrontend>(tlsCtx);
 
@@ -1030,7 +1030,7 @@ BOOST_FIXTURE_TEST_CASE(test_TimeoutWhileWriting, TestFixture)
 BOOST_FIXTURE_TEST_CASE(test_TimeoutWhileReading, TestFixture)
 {
   auto local = getBackendAddress("1", 80);
-  ClientState localCS(local, true, false, 0, "", {}, true);
+  ClientState localCS(local, true, false, 0, "", {}, true, false);
   auto tlsCtx = std::make_shared<MockupTLSCtx>();
   localCS.tlsFrontend = std::make_shared<TLSFrontend>(tlsCtx);
 
@@ -1118,7 +1118,7 @@ BOOST_FIXTURE_TEST_CASE(test_TimeoutWhileReading, TestFixture)
 BOOST_FIXTURE_TEST_CASE(test_ShortWrite, TestFixture)
 {
   auto local = getBackendAddress("1", 80);
-  ClientState localCS(local, true, false, 0, "", {}, true);
+  ClientState localCS(local, true, false, 0, "", {}, true, false);
   auto tlsCtx = std::make_shared<MockupTLSCtx>();
   localCS.tlsFrontend = std::make_shared<TLSFrontend>(tlsCtx);
 
@@ -1205,7 +1205,7 @@ BOOST_FIXTURE_TEST_CASE(test_ShortWrite, TestFixture)
 BOOST_FIXTURE_TEST_CASE(test_ShortRead, TestFixture)
 {
   auto local = getBackendAddress("1", 80);
-  ClientState localCS(local, true, false, 0, "", {}, true);
+  ClientState localCS(local, true, false, 0, "", {}, true, false);
   auto tlsCtx = std::make_shared<MockupTLSCtx>();
   localCS.tlsFrontend = std::make_shared<TLSFrontend>(tlsCtx);
 
@@ -1299,7 +1299,7 @@ BOOST_FIXTURE_TEST_CASE(test_ShortRead, TestFixture)
 BOOST_FIXTURE_TEST_CASE(test_ConnectionClosedWhileReading, TestFixture)
 {
   auto local = getBackendAddress("1", 80);
-  ClientState localCS(local, true, false, 0, "", {}, true);
+  ClientState localCS(local, true, false, 0, "", {}, true, false);
   auto tlsCtx = std::make_shared<MockupTLSCtx>();
   localCS.tlsFrontend = std::make_shared<TLSFrontend>(tlsCtx);
 
@@ -1385,7 +1385,7 @@ BOOST_FIXTURE_TEST_CASE(test_ConnectionClosedWhileReading, TestFixture)
 BOOST_FIXTURE_TEST_CASE(test_ConnectionClosedWhileWriting, TestFixture)
 {
   auto local = getBackendAddress("1", 80);
-  ClientState localCS(local, true, false, 0, "", {}, true);
+  ClientState localCS(local, true, false, 0, "", {}, true, false);
   auto tlsCtx = std::make_shared<MockupTLSCtx>();
   localCS.tlsFrontend = std::make_shared<TLSFrontend>(tlsCtx);
 
@@ -1479,7 +1479,7 @@ BOOST_FIXTURE_TEST_CASE(test_ConnectionClosedWhileWriting, TestFixture)
 BOOST_FIXTURE_TEST_CASE(test_GoAwayFromServer, TestFixture)
 {
   auto local = getBackendAddress("1", 80);
-  ClientState localCS(local, true, false, 0, "", {}, true);
+  ClientState localCS(local, true, false, 0, "", {}, true, false);
   auto tlsCtx = std::make_shared<MockupTLSCtx>();
   localCS.tlsFrontend = std::make_shared<TLSFrontend>(tlsCtx);
 
@@ -1590,7 +1590,7 @@ BOOST_FIXTURE_TEST_CASE(test_GoAwayFromServer, TestFixture)
 BOOST_FIXTURE_TEST_CASE(test_HTTP500FromServer, TestFixture)
 {
   auto local = getBackendAddress("1", 80);
-  ClientState localCS(local, true, false, 0, "", {}, true);
+  ClientState localCS(local, true, false, 0, "", {}, true, false);
   auto tlsCtx = std::make_shared<MockupTLSCtx>();
   localCS.tlsFrontend = std::make_shared<TLSFrontend>(tlsCtx);
 
@@ -1683,7 +1683,7 @@ BOOST_FIXTURE_TEST_CASE(test_HTTP500FromServer, TestFixture)
 BOOST_FIXTURE_TEST_CASE(test_WrongStreamID, TestFixture)
 {
   auto local = getBackendAddress("1", 80);
-  ClientState localCS(local, true, false, 0, "", {}, true);
+  ClientState localCS(local, true, false, 0, "", {}, true, false);
   auto tlsCtx = std::make_shared<MockupTLSCtx>();
   localCS.tlsFrontend = std::make_shared<TLSFrontend>(tlsCtx);
 
@@ -1784,7 +1784,7 @@ BOOST_FIXTURE_TEST_CASE(test_WrongStreamID, TestFixture)
 BOOST_FIXTURE_TEST_CASE(test_ProxyProtocol, TestFixture)
 {
   auto local = getBackendAddress("1", 80);
-  ClientState localCS(local, true, false, 0, "", {}, true);
+  ClientState localCS(local, true, false, 0, "", {}, true, false);
   auto tlsCtx = std::make_shared<MockupTLSCtx>();
   tlsCtx->d_needProxyProtocol = true;
   localCS.tlsFrontend = std::make_shared<TLSFrontend>(tlsCtx);

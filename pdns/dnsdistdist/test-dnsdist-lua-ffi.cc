@@ -381,7 +381,7 @@ BOOST_AUTO_TEST_CASE(test_Query)
   {
     /* frontend without and interface set */
     const std::string interface{};
-    ClientState frontend(ids.origDest, false, false, 0, interface, {}, false);
+    ClientState frontend(ids.origDest, false, false, 0, interface, {}, false, false);
     ids.cs = &frontend;
     const auto* itfPtr = dnsdist_ffi_dnsquestion_get_incoming_interface(&lightDQ);
     BOOST_REQUIRE(itfPtr != nullptr);
@@ -391,7 +391,7 @@ BOOST_AUTO_TEST_CASE(test_Query)
   {
     /* frontend with interface set */
     const std::string interface{"interface-name-0"};
-    ClientState frontend(ids.origDest, false, false, 0, interface, {}, false);
+    ClientState frontend(ids.origDest, false, false, 0, interface, {}, false, false);
     ids.cs = &frontend;
     const auto* itfPtr = dnsdist_ffi_dnsquestion_get_incoming_interface(&lightDQ);
     BOOST_REQUIRE(itfPtr != nullptr);
