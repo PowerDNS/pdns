@@ -185,7 +185,7 @@ size_t Rings::loadFromFile(const std::string& filepath, const struct timespec& n
     QType qtype(QType::chartocode(parts.at(idx++).c_str()));
 
     if (isResponse) {
-      insertResponse(when, from, qname, qtype.getCode(), 0, 0, dnsHeader, dest, protocol);
+      insertResponse(when, from, std::move(qname), qtype.getCode(), 0, 0, dnsHeader, dest, protocol);
     }
     else {
       insertQuery(when, from, qname, qtype.getCode(), 0, dnsHeader, protocol);
