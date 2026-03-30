@@ -46,11 +46,6 @@ The UDP threads handling the responses from the backends do not use a lot of CPU
 When dispatching UDP queries to backend servers, dnsdist keeps track of at most **n** outstanding queries for each backend.
 This number **n** can be tuned by the :func:`setMaxUDPOutstanding` directive, defaulting to 65535 which is the maximum value.
 
-.. versionchanged:: 1.4.0
-  The default was 10240 before 1.4.0
-
-Large installations running dnsdist before 1.4.0 are advised to increase the default value at the cost of a slightly increased memory usage.
-
 Looking at ``udp-in-errors`` in :func:`dumpStats` will reveal whether the system is dropping UDP datagrams because dnsdist does not pick them up fast enough. In that case it might be good to add more :func:`addLocal` directives.
 In the same way, if the number of ``Drops`` in :func:`showServers` increase fast enough, it might mean that the backend is overloaded but also that the UDP received thread is. In that case adding more :func:`newServer`
 

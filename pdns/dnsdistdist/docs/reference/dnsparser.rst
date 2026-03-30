@@ -36,8 +36,6 @@ and then to create a :class:`DNSPacketOverlay` object:
 
 .. function:: newDNSPacketOverlay(packet) -> DNSPacketOverlay
 
-  .. versionadded:: 1.8.0
-
   Returns a DNSPacketOverlay
 
   :param str packet: The DNS payload
@@ -93,8 +91,6 @@ DNSPacketOverlay
 
 .. class:: DNSPacketOverlay
 
-  .. versionadded:: 1.8.0
-
   The DNSPacketOverlay object has several attributes, all of them read-only:
 
   .. attribute:: qname
@@ -137,8 +133,6 @@ DNSRecord object
 ==================
 
 .. class:: DNSRecord
-
-  .. versionadded:: 1.8.0
 
   This object represents an unparsed DNS record, as returned by the :ref:`DNSPacketOverlay` class. It has several attributes, all of them read-only:
 

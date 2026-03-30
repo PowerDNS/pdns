@@ -248,8 +248,6 @@ Functions
 
 .. function:: setServerPolicyLuaFFI(name, function)
 
-  .. versionadded:: 1.5.0
-
   .. versionchanged:: 1.9.2
     Returning a value equal or greater than the number of servers will be interpreted as all servers being unavailable.
 
@@ -259,8 +257,6 @@ Functions
   :param string function: name of the FFI function
 
 .. function:: setServerPolicyLuaFFIPerThread(name, code)
-
-  .. versionadded:: 1.6.0
 
   .. versionchanged:: 1.9.2
     Returning a value equal or greater than the number of servers will be interpreted as all servers being unavailable.
@@ -294,15 +290,11 @@ Functions
 
 .. function:: setRoundRobinFailOnNoServer(value)
 
-  .. versionadded:: 1.4.0
-
   By default the roundrobin load-balancing policy will still try to select a backend even if all backends are currently down. Setting this to true will make the policy fail and return that no server is available instead.
 
   :param bool value: whether to fail when all servers are down
 
 .. function:: setWeightedBalancingFactor(factor)
-
-  .. versionadded: 1.5.0
 
   Set the maximum imbalance between the number of outstanding queries intended for a given server, based on its weight,
   and the actual number, when using the ``whashed``, ``wrandom`` or ``orderedWrandUntag`` load-balancing policy.

@@ -746,8 +746,6 @@ URL Endpoints
   :query string type: DNS type, optional. Defaults to all types when unset
   :query string suffix: Set to any value to wipe treat ``name`` as a suffix
 
-  .. versionadded:: 1.8.0
-
   Allows removing entries from a cache. The pool to which the cache is associated should be specified in the ``pool`` parameter, and the name to remove in the ``name`` parameter.
   By default only entries matching the exact name will be removed, but it is possible to remove all entries below that name by passing the ``suffix`` parameter set to any value.
   By default entries for all types for the name are removed, but it is possible to only remove entries for a specific type by passing the ``type`` parameter set to the requested type. Supported values are DNS type names as a strings (``AAAA``), or numerical values (as either ``#64`` or ``TYPE64``).
@@ -899,8 +897,6 @@ URL Endpoints
      }
 
 .. http:get:: /api/v1/servers/localhost/pool
-
-  .. versionadded:: 1.6.1
 
   Get a quick overview of the pool named "pool-name".
 

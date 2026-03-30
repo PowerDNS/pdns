@@ -31,14 +31,10 @@ Selectors can be combined via :func:`AndRule`, :func:`OrRule` and :func:`NotRule
 
 .. function:: EDNSOptionRule(optcode)
 
-  .. versionadded:: 1.4.0
-
   Matches queries or responses with the specified EDNS option present.
   ``optcode`` is specified as an integer, or a constant such as `EDNSOptionCode.ECS`.
 
 .. function:: EDNSVersionRule(version)
-
-  .. versionadded:: 1.4.0
 
   Matches queries or responses with an OPT record whose EDNS version is greater than the specified EDNS version.
 
@@ -54,11 +50,6 @@ Selectors can be combined via :func:`AndRule`, :func:`OrRule` and :func:`NotRule
 
 .. function:: HTTPHeaderRule(name, regex)
 
-  .. versionadded:: 1.4.0
-
-  .. versionchanged:: 1.8.0
-     see ``keepIncomingHeaders`` on :func:`addDOHLocal`
-
   Matches DNS over HTTPS queries with a HTTP header ``name`` whose content matches the regular expression ``regex`` in Posix Extended Regular Expressions format. The match is done in a case-insensitive way.
   Since 1.8.0 it is necessary to set the ``keepIncomingHeaders`` option to true on :func:`addDOHLocal` to be able to use this rule.
 
@@ -67,16 +58,12 @@ Selectors can be combined via :func:`AndRule`, :func:`OrRule` and :func:`NotRule
 
 .. function:: HTTPPathRegexRule(regex)
 
-  .. versionadded:: 1.4.0
-
   Matches DNS over HTTPS queries with a HTTP path matching the regular expression supplied in ``regex`` in Posix Extended Regular Expressions format. The match is done in a case-insensitive way. For example, if the query has been sent to the https://192.0.2.1:443/PowerDNS?dns=... URL, the path would be '/PowerDNS'.
   Only valid DNS over HTTPS queries are matched. If you want to match all HTTP queries, see :meth:`DOHFrontend:setResponsesMap` instead.
 
   :param str regex: The regex to match on
 
 .. function:: HTTPPathRule(path)
-
-  .. versionadded:: 1.4.0
 
   Matches DNS over HTTPS queries with a HTTP path of ``path``. For example, if the query has been sent to the https://192.0.2.1:443/PowerDNS?dns=... URL, the path would be '/PowerDNS'.
   Only valid DNS over HTTPS queries are matched. If you want to match all HTTP queries, see :meth:`DOHFrontend:setResponsesMap` instead.
@@ -93,8 +80,6 @@ Selectors can be combined via :func:`AndRule`, :func:`OrRule` and :func:`NotRule
 
 .. function:: KeyValueStoreLookupRule(kvs, lookupKey)
 
-  .. versionadded:: 1.4.0
-
   Return true if the key returned by 'lookupKey' exists in the key value store referenced by 'kvs'.
   The store can be a CDB (:func:`newCDBKVStore`) or a LMDB database (:func:`newLMDBKVStore`).
   The key can be based on the qname (:func:`KeyValueLookupKeyQName` and :func:`KeyValueLookupKeySuffix`),
@@ -105,8 +90,6 @@ Selectors can be combined via :func:`AndRule`, :func:`OrRule` and :func:`NotRule
 
 .. function:: KeyValueStoreRangeLookupRule(kvs, lookupKey)
 
-  .. versionadded:: 1.7.0
-
   Does a range-based lookup into the key value store referenced by 'kvs' using the key returned by 'lookupKey' and returns true if there is a range covering that key.
 
   This assumes that there is a key, in network byte order, for the last element of the range (for example 2001:0db8:ffff:ffff:ffff:ffff:ffff:ffff for 2001:db8::/32) which contains the first element of the range (2001:0db8:0000:0000:0000:0000:0000:0000) (optionally followed by any data) as value, still in network byte order, and that there is no overlapping ranges in the database.
@@ -116,8 +99,6 @@ Selectors can be combined via :func:`AndRule`, :func:`OrRule` and :func:`NotRule
   :param KeyValueLookupKey lookupKey: The key to use for the lookup
 
 .. function:: LuaFFIPerThreadRule(function)
-
-  .. versionadded:: 1.7.0
 
   Invoke a Lua FFI function that accepts a pointer to a ``dnsdist_ffi_dnsquestion_t`` object, whose bindings are defined in ``dnsdist-lua-ffi-interface.h``.
 
@@ -131,8 +112,6 @@ Selectors can be combined via :func:`AndRule`, :func:`OrRule` and :func:`NotRule
 
 .. function:: LuaFFIRule(function)
 
-  .. versionadded:: 1.5.0
-
   Invoke a Lua FFI function that accepts a pointer to a ``dnsdist_ffi_dnsquestion_t`` object, whose bindings are defined in ``dnsdist-lua-ffi-interface.h``.
 
   The ``function`` should return true if the query matches, or false otherwise. If the Lua code fails, false is returned.
@@ -141,8 +120,6 @@ Selectors can be combined via :func:`AndRule`, :func:`OrRule` and :func:`NotRule
 
 .. function:: LuaRule(function)
 
-  .. versionadded:: 1.5.0
-
   Invoke a Lua function that accepts a :class:`DNSQuestion` object.
 
   The ``function`` should return true if the query matches, or false otherwise. If the Lua code fails, false is returned.
@@ -150,9 +127,6 @@ Selectors can be combined via :func:`AndRule`, :func:`OrRule` and :func:`NotRule
   :param string function: the name of a Lua function
 
 .. function:: MaxQPSIPRule(qps[, v4Mask[, v6Mask[, burst[, expiration[, cleanupDelay[, scanFraction [, shards]]]]]]])
-
-  .. versionchanged:: 1.8.0
-    ``shards`` parameter added
 
   Matches traffic for a subnet specified by ``v4Mask`` or ``v6Mask`` exceeding ``qps`` queries per second up to ``burst`` allowed.
   This rule keeps track of QPS by netmask or source IP. This state is cleaned up regularly if  ``cleanupDelay`` is greater than zero,
@@ -175,9 +149,6 @@ Selectors can be combined via :func:`AndRule`, :func:`OrRule` and :func:`NotRule
   :param int qps: The number of queries per second allowed, above this number the traffic is **not** matched anymore
 
 .. function:: NetmaskGroupRule(nmg[, src[, quiet]])
-
-  .. versionchanged:: 1.4.0
-    ``quiet`` parameter added
 
   .. versionchanged:: 1.9.0
     The ``nmg`` parameter now accepts a string or a list of strings in addition to a class:`NetmaskGroup` object.
@@ -216,9 +187,6 @@ Selectors can be combined via :func:`AndRule`, :func:`OrRule` and :func:`NotRule
 
 .. function:: ProxyProtocolValueRule(type [, value])
 
-  .. versionadded:: 1.6.0
-
-  Matches queries that have a proxy protocol TLV value of the specified type. If ``value`` is set,
   the content of the value should also match the content of ``value``.
 
   :param int type: The type of the value, ranging from 0 to 255 (both included)
@@ -238,8 +206,6 @@ Selectors can be combined via :func:`AndRule`, :func:`OrRule` and :func:`NotRule
    :param string qname: Qname to match
 
 .. function:: QNameSetRule(set)
-
-  .. versionadded:: 1.4.0
 
    Matches if the set contains exact qname.
 
@@ -349,8 +315,6 @@ Selectors can be combined via :func:`AndRule`, :func:`OrRule` and :func:`NotRule
 
 .. function:: SNIRule(name)
 
-  .. versionadded:: 1.4.0
-
   Matches against the TLS Server Name Indication value sent by the client, if any. Only makes
   sense for DoT or DoH, and for that last one matching on the HTTP Host header using :func:`HTTPHeaderRule`
   might provide more consistent results.
@@ -404,8 +368,6 @@ Selectors can be combined via :func:`AndRule`, :func:`OrRule` and :func:`NotRule
   :param string poolname: Pool to check
 
 .. function:: PoolOutstandingRule(poolname, limit)
-
-  .. versionadded:: 1.7.0
 
   Check whether a pool has total outstanding queries above limit
 

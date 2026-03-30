@@ -45,14 +45,10 @@ Number of times an answer was not found in the :doc:`packet cache <guides/cache>
 
 cpu-iowait
 ----------
-.. versionadded:: 1.5.0
-
 Time spent waiting for I/O to complete by the whole system, in units of USER_HZ.
 
 cpu-steal
 ---------
-.. versionadded:: 1.5.0
-
 Stolen time, which is the time spent by the whole system in other operating systems when running in a virtualized environment, in units of USER_HZ.
 
 cpu-sys-msec
@@ -246,8 +242,6 @@ Number of outgoing DoH queries dropped because the internal pipe used to distrib
 
 proxy-protocol-invalid
 ----------------------
-.. versionadded:: 1.6.0
-
 Number of queries dropped because of an invalid Proxy Protocol header.
 
 queries
@@ -286,8 +280,6 @@ Number of ServFail answers returned because of a rule.
 
 rule-truncated
 --------------
-.. versionadded:: 1.6.0
-
 Number of truncated answers returned because of a rule.
 
 security-status
@@ -317,8 +309,6 @@ Number of TCP cross-protocol responses dropped because the internal pipe used to
 
 tcp-listen-overflows
 --------------------
-.. versionadded:: 1.6.0
-
 From ``/proc/net/netstat`` ``ListenOverflows``.
 
 tcp-query-pipe-full
@@ -331,62 +321,42 @@ Number of errors encountered while truncating an answer.
 
 udp-in-csum-errors
 ------------------
-.. versionadded:: 1.7.0
-
 From ``/proc/net/snmp`` ``InErrors``.
 
 udp-in-errors
 -------------
-.. versionadded:: 1.5.0
-
 From ``/proc/net/snmp`` ``InErrors``.
 
 udp-noport-errors
 -----------------
-.. versionadded:: 1.5.0
-
 From ``/proc/net/snmp`` ``NoPorts``.
 
 udp-recvbuf-errors
 ------------------
-.. versionadded:: 1.5.0
-
 From ``/proc/net/snmp`` ``RcvbufErrors``.
 
 udp-sndbuf-errors
 -----------------
-.. versionadded:: 1.5.0
-
 From ``/proc/net/snmp`` ``SndbufErrors``.
 
 udp6-in-csum-errors
 -------------------
-.. versionadded:: 1.7.0
-
 From ``/proc/net/snmp6`` ``InErrors``.
 
 udp6-in-errors
 --------------
-.. versionadded:: 1.7.0
-
 From ``/proc/net/snmp6`` ``InErrors``.
 
 udp6-noport-errors
 ------------------
-.. versionadded:: 1.7.0
-
 From ``/proc/net/snmp6`` ``NoPorts``.
 
 udp6-recvbuf-errors
 -------------------
-.. versionadded:: 1.7.0
-
 From ``/proc/net/snmp6`` ``RcvbufErrors``.
 
 udp6-sndbuf-errors
 ------------------
-.. versionadded:: 1.7.0
-
 From ``/proc/net/snmp6`` ``SndbufErrors``.
 
 uptime

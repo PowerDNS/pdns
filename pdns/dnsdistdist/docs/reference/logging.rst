@@ -25,8 +25,6 @@ There are some functions to create log output.
 
 .. function:: vinfolog(line)
 
-  .. versionadded:: 1.8.0
-
   Writes an info line if dnsdist is running in verbose (debug) mode.
 
   :param str line: The line to write.

@@ -8,9 +8,6 @@ For Rules related to the incoming query:
 
 .. function:: addAction(DNSrule, action [, options])
 
-  .. versionchanged:: 1.6.0
-    Added ``name`` to the ``options``.
-
   .. versionchanged:: 1.9.0
     Passing a string or list of strings instead of a :class:`DNSRule` is deprecated, use :func:`NetmaskGroupRule` or :func:`QNameSuffixRule` instead
 
@@ -56,8 +53,6 @@ For Rules related to the incoming query:
 
 .. function:: mvRuleToTop()
 
-  .. versionadded:: 1.6.0
-
   This function moves the last rule to the first position. Before 1.6.0 this was handled by :func:`topRule`.
 
 .. function:: setRules(rules)
@@ -77,17 +72,7 @@ For Rules related to the incoming query:
   * ``showUUIDs=false``: bool - Whether to display the UUIDs, defaults to false.
   * ``truncateRuleWidth=-1``: int - Truncate rules output to ``truncateRuleWidth`` size. Defaults to ``-1`` to display the full rule.
 
-.. function:: topRule()
-
-  .. versionchanged:: 1.6.0
-    Replaced by :func:`mvRuleToTop`
-
-  Before 1.6.0 this function used to move the last rule to the first position, which is now handled by :func:`mvRuleToTop`.
-
 .. function:: rmRule(id)
-
-  .. versionchanged:: 1.6.0
-    ``id`` can now be a string representing the name of the rule.
 
   Remove rule ``id``.
 
@@ -197,9 +182,6 @@ For Rules related to responses:
 
 .. function:: addResponseAction(DNSRule, action [, options])
 
-  .. versionchanged:: 1.6.0
-    Added ``name`` to the ``options``.
-
   .. versionchanged:: 1.9.0
     Passing a string or list of strings instead of a :class:`DNSRule` is deprecated, use :func:`NetmaskGroupRule` or :func:`QNameSuffixRule` instead
 
@@ -241,14 +223,9 @@ For Rules related to responses:
 
 .. function:: mvResponseRuleToTop()
 
-  .. versionadded:: 1.6.0
-
   This function moves the last response rule to the first position. Before 1.6.0 this was handled by :func:`topResponseRule`.
 
 .. function:: rmResponseRule(id)
-
-  .. versionchanged:: 1.6.0
-    ``id`` can now be a string representing the name of the rule.
 
   Remove response rule ``id``.
 
@@ -267,9 +244,6 @@ For Rules related to responses:
 
 .. function:: topResponseRule()
 
-  .. versionchanged:: 1.6.0
-    Replaced by :func:`mvResponseRuleToTop`
-
   Before 1.6.0 this function used to move the last response rule to the first position, which is now handled by :func:`mvResponseRuleToTop`.
 
 Cache hits
@@ -278,9 +252,6 @@ Cache hits
 Functions for manipulating Cache Hit Response Rules:
 
 .. function:: addCacheHitResponseAction(DNSRule, action [, options])
-
-  .. versionchanged:: 1.6.0
-    Added ``name`` to the ``options``.
 
   .. versionchanged:: 1.9.0
     Passing a string or list of strings instead of a :class:`DNSRule` is deprecated, use :func:`NetmaskGroupRule` or :func:`QNameSuffixRule` instead
@@ -323,14 +294,9 @@ Functions for manipulating Cache Hit Response Rules:
 
 .. function:: mvCacheHitResponseRuleToTop()
 
-  .. versionadded:: 1.6.0
-
   This function moves the last cache hit response rule to the first position. Before 1.6.0 this was handled by :func:`topCacheHitResponseRule`.
 
 .. function:: rmCacheHitResponseRule(id)
-
-  .. versionchanged:: 1.6.0
-    ``id`` can now be a string representing the name of the rule.
 
   :param int id: The position of the rule to remove if ``id`` is numerical, its UUID or name otherwise
 
@@ -345,21 +311,12 @@ Functions for manipulating Cache Hit Response Rules:
   * ``showUUIDs=false``: bool - Whether to display the UUIDs, defaults to false.
   * ``truncateRuleWidth=-1``: int - Truncate rules output to ``truncateRuleWidth`` size. Defaults to ``-1`` to display the full rule.
 
-.. function:: topCacheHitResponseRule()
-
-  .. versionchanged:: 1.6.0
-    Replaced by :func:`mvCacheHitResponseRuleToTop`
-
-  Before 1.6.0 this function used to move the last cache hit response rule to the first position, which is now handled by :func:`mvCacheHitResponseRuleToTop`.
-
 Cache inserted
 --------------
 
 Functions for manipulating Cache Inserted Response Rules:
 
 .. function:: addCacheInsertedResponseAction(DNSRule, action [, options])
-
-  .. versionadded:: 1.8.0
 
   .. versionchanged:: 1.9.0
     Passing a string or list of strings instead of a :class:`DNSRule` is deprecated, use :func:`NetmaskGroupRule` or :func:`QNameSuffixRule` instead
@@ -394,8 +351,6 @@ Functions for manipulating Cache Inserted Response Rules:
 
 .. function:: mvCacheInsertedResponseRule(from, to)
 
-  .. versionadded:: 1.8.0
-
   Move cache inserted response rule ``from`` to a position where it is in front of ``to``.
   ``to`` can be one larger than the largest rule, in which case the rule will be moved to the last position.
 
@@ -404,19 +359,13 @@ Functions for manipulating Cache Inserted Response Rules:
 
 .. function:: mvCacheInsertedResponseRuleToTop()
 
-  .. versionadded:: 1.8.0
-
   This function moves the last cache inserted response rule to the first position.
 
 .. function:: rmCacheInsertedResponseRule(id)
 
-  .. versionadded:: 1.8.0
-
   :param int id: The position of the rule to remove if ``id`` is numerical, its UUID or name otherwise
 
 .. function:: showCacheInsertedResponseRules([options])
-
-  .. versionadded:: 1.8.0
 
   Show all defined cache inserted response rules, optionally displaying their UUIDs.
 
@@ -433,9 +382,6 @@ Self-answered responses
 Functions for manipulating Self-Answered Response Rules:
 
 .. function:: addSelfAnsweredResponseAction(DNSRule, action [, options])
-
-  .. versionchanged:: 1.6.0
-    Added ``name`` to the ``options``.
 
   .. versionchanged:: 1.9.0
     Passing a string or list of strings instead of a :class:`DNSRule` is deprecated, use :func:`NetmaskGroupRule` or :func:`QNameSuffixRule` instead
@@ -478,14 +424,9 @@ Functions for manipulating Self-Answered Response Rules:
 
 .. function:: mvSelfAnsweredResponseRuleToTop()
 
-  .. versionadded:: 1.6.0
-
   This function moves the last self-answered response rule to the first position. Before 1.6.0 this was handled by :func:`topSelfAnsweredResponseRule`.
 
 .. function:: rmSelfAnsweredResponseRule(id)
-
-  .. versionchanged:: 1.6.0
-    ``id`` can now be a string representing the name of the rule.
 
   Remove self answered response rule ``id``.
 
@@ -501,15 +442,6 @@ Functions for manipulating Self-Answered Response Rules:
 
   * ``showUUIDs=false``: bool - Whether to display the UUIDs, defaults to false.
   * ``truncateRuleWidth=-1``: int - Truncate rules output to ``truncateRuleWidth`` size. Defaults to ``-1`` to display the full rule.
-
-.. function:: topSelfAnsweredResponseRule()
-
-  .. versionchanged:: 1.6.0
-    Replaced by :func:`mvSelfAnsweredResponseRuleToTop`
-
-  Before 1.6.0 this function used to move the last self-answered response rule to the first position, which is now handled by :func:`mvSelfAnsweredResponseRuleToTop`.
-
-  Move the last self answered response rule to the first position.
 
 Timeout
 -------
@@ -688,9 +620,6 @@ Convenience Functions
   :param string rule: A string, or list of strings, to convert to a rule.
 
 .. function:: newRuleAction(rule, action[, options])
-
-  .. versionchanged:: 1.6.0
-    Added ``name`` to the ``options``.
 
   Return a pair of DNS Rule and DNS Action, to be used with :func:`setRules`.
 

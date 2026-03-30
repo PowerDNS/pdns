@@ -3,8 +3,6 @@ SVCRecordParameters
 
 .. function:: newSVCRecordParameters(priority, target[, SVCParams]) -> SVCRecordParameters
 
-  .. versionadded:: 1.7.0
-
   Returns a :class:`SVCRecordParameters` to use with :func:`SpoofSVCAction`.
 
   .. code-block:: Lua
@@ -39,7 +37,5 @@ SVCRecordParameters
     key776="hello\0world"
 
 .. class:: SVCRecordParameters
-
-  .. versionadded:: 1.7.0
 
   Represents Service Binding (SVCB, HTTPS) record parameters, which can be used with :func:`SpoofSVCAction`.

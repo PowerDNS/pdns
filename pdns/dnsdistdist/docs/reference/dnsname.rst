@@ -52,8 +52,6 @@ Functions and methods of a ``DNSName``
 
   .. method:: makeRelative(name) -> DNSName
 
-    .. versionadded:: 1.8.0
-
     Provided that the current name is part of the supplied name, returns a new DNSName
     composed only of the labels that are below the supplied name (ie making www.powerdns.com
     relative to powerdns.com would return only wwww)
@@ -71,8 +69,6 @@ Functions and methods of a ``DNSName``
     Returns a human-readable form of the DNSName.
 
   .. method:: toStringNoDot() -> string
-
-    .. versionadded:: 1.8.0
 
     Returns a human-readable form of the DNSName, without the trailing dot.
 
