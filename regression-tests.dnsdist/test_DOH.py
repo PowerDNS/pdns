@@ -2091,15 +2091,39 @@ class DOHEDNSPadding(object):
         for option in receivedResponse.options:
             self.assertEqual(option.otype, 12)
 
-    def testDOHWithoutPadding(self):
+    def testDOHWithPaddedResponse(self):
         """
-        DOH with EDNS Padding
+        DOH with EDNS Padding, with already padded response
         """
-        name = "not.padded.doh.tests.powerdns.com."
-        query = dns.message.make_query(name, "A", "IN", use_edns=True)
-        response = dns.message.make_response(query)
+        name = "paddedresponse.doh.tests.powerdns.com."
+        po = paddingoption.PaddingOption(64)
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, options=[po])
+        response = dns.message.make_response(query, pad=128)
         rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
+
+        (_, receivedResponse) = self.sendDOHQuery(
+            self._dohServerPort,
+            self._serverName,
+            self._dohBaseURL,
+            query,
+            response=response,
+            caFile=self._caCert,
+        )
+        self.assertEqual(len(receivedResponse.to_wire()) % 128, 0)
+        self.assertNotEqual(len(receivedResponse.to_wire()) % 468, 0)
+        self.assertTrue(receivedResponse)
+        self.assertEqual(receivedResponse.edns, 0)
+        self.assertEqual(len(receivedResponse.options), 1)
+        for option in receivedResponse.options:
+            self.assertEqual(option.otype, 12)
+
+    def testDOHWithoutEDNS(self):
+        """
+        DOH without EDNS in query
+        """
+        name = "no.edns.doh.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
 
         (_, receivedResponse) = self.sendDOHQuery(
             self._dohServerPort,
@@ -2109,7 +2133,7 @@ class DOHEDNSPadding(object):
             caFile=self._caCert,
         )
         self.assertTrue(receivedResponse)
-        self.assertEqual(receivedResponse.edns, 0)
+        self.assertNotEqual(receivedResponse.edns, 0)
         self.assertEqual(len(receivedResponse.options), 0)
 
 

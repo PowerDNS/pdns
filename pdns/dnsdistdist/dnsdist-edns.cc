@@ -104,6 +104,11 @@ bool addEDNSPadding(PacketBuffer& packet, size_t maximumPacketSize)
     return false;
   }
 
+  if (isEDNSOptionInOpt(packet, optStart, optLen, EDNSOptionCode::PADDING)) {
+    /* padding is already present, exit */
+    return false;
+  }
+
   if (packet.size() < maximumPacketSize - 4) {
     return true;
   }
