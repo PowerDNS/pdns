@@ -91,30 +91,8 @@ bool addExtendedDNSError(PacketBuffer& packet, size_t maximumPacketSize, const S
   return true;
 }
 
-bool addEDNSPadding(const PacketBuffer& requestPacket, PacketBuffer& packet, size_t maximumPacketSize)
+bool addEDNSPadding(PacketBuffer& packet, size_t maximumPacketSize)
 {
-  uint16_t reqOptStart = 0;
-  size_t reqOptLen = 0;
-  bool reqLast = false;
-
-  int reqRes = locateEDNSOptRR(requestPacket, &reqOptStart, &reqOptLen, &reqLast);
-
-  if (reqRes != 0) {
-    /* no EDNS OPT record in the request, padding shouldn't be added */
-    return false;
-  }
-
-  EDNSOptionViewMap requestOptions;
-  if (getEDNSOptions(reinterpret_cast<const char*>(&requestPacket.at(reqOptStart)), reqOptLen, requestOptions) != 0) {
-    /* EDNS options parsing failed, padding shouldn't be added */
-    return false;
-  }
-
-  if (requestOptions.find(EDNSOptionCode::PADDING) == requestOptions.end()) {
-    /* no EDNS padding in the request, padding shouldn't be added */
-    return false;
-  }
-
   uint16_t optStart = 0;
   size_t optLen = 0;
   bool last = false;

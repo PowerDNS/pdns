@@ -563,8 +563,8 @@ bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse,
     }
   }
 
-  if (dnsResponse.ids.cs->d_padResponses) {
-    dnsdist::edns::addEDNSPadding(*dnsResponse.ids.d_packet, dnsResponse.getMutableData(), dnsResponse.getMaximumSize());
+  if (dnsResponse.ids.cs->d_padResponses && !dnsResponse.ids.ednsAdded) {
+    dnsdist::edns::addEDNSPadding(dnsResponse.getMutableData(), dnsResponse.getMaximumSize());
   }
 
 #ifdef HAVE_DNSCRYPT
@@ -1441,8 +1441,8 @@ static bool prepareOutgoingResponse([[maybe_unused]] const ClientState& clientSt
     }
   }
 
-  if (dnsResponse.ids.cs->d_padResponses) {
-    dnsdist::edns::addEDNSPadding(dnsQuestion.getData(), dnsResponse.getMutableData(), dnsResponse.getMaximumSize());
+  if (dnsResponse.ids.cs->d_padResponses && !dnsResponse.ids.ednsAdded) {
+    dnsdist::edns::addEDNSPadding(dnsResponse.getMutableData(), dnsResponse.getMaximumSize());
   }
 
   if (cacheHit) {
