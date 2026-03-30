@@ -12,5 +12,5 @@ changelog>=0.6,<0.7
 sphinxcontrib-fulltoc
 pbr # setup-requires for sphinxcontrib-fulltoc
 sphinxcontrib-redoc==1.6.0
-setuptools-scm==9.2.2 # setup-requires for sphinxcontrib-redoc
+setuptools-scm>=10 # setup-requires for sphinxcontrib-redoc
 setuptools<82
