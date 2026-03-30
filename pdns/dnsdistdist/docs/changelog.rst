@@ -2,6 +2,212 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.9.12
+  :released: 31st of March 2026
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16311
+
+    luawrapper: don't segfault on failure in traceback handler
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16312
+
+    Fix handling of large XSK frames
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16313
+
+    ComboAddress: Fix "unspecified address" test when the port is set
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16347
+
+    Refactor the FFI "alternate name" interface
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16433
+
+    Fix a memory leak with OCSP and OpenSSL 3.6.0
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16847
+
+    Raise the maximum number of descriptors to 1M
+
+  .. change::
+    :tags: Bug Fixes, DNS over QUIC, DNS over HTTP3
+    :pullreq: 16848
+
+    Work around Quiche not dealing well with removed congestion algorithms
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16901
+
+    Don't start the NetworkListener thread in config check mode
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: TBD
+
+    CVE-2026-0396: An attacker might be able to inject HTML content into the internal web dashboard by sending crafted DNS queries to a DNSdist instance where domain-based dynamic rules have been enabled via either "DynBlockRulesGroup:setSuffixMatchRule" or "DynBlockRulesGroup:setSuffixMatchRuleFFI"
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: TBD
+
+    CVE-2026-0397: When the internal webserver is enabled (default is disabled), an attacker might be able to trick an administrator logged into the dashboard into visiting a malicious website and extract information about the running configuration from the dashboard
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: TBD
+
+    CVE-2026-24028: An attacker might be able to trigger an out-of-bounds read by sending a crafted DNS response packet, when custom Lua code uses "newDNSPacketOverlay" to parse DNS packets
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: TBD
+
+    CVE-2026-24029: When the "early_acl_drop" ("earlyACLDrop" in Lua) option is disabled (default is enabled) on a DNS over HTTPs frontend using the "nghttp2" provider, the ACL check is skipped, allowing all clients to send DoH queries regardless of the configured ACL
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: TBD
+
+    CVE-2026-24030: An attacker might be able to trick DNSdist into allocating too much memory while processing DNS over QUIC or DNS over HTTP/3 payloads, resulting in denial of service
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: TBD
+
+    CVE-2026-27853: An attacker might be able to trigger an out-of-bounds write by sending crafted DNS responses to a DNSdist using the "DNSQuestion:changeName" or "DNSResponse:changeName" methods in custom Lua code. In some cases the rewritten packet might become larger than the initial response and even exceed 65535 bytes, potentially leading to a crash resulting in denial of service
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: TBD
+
+    CVE-2026-27854: Denial of service when using "DNSQuestion:getEDNSOptions" method in custom Lua code
+
+.. changelog::
+  :version: 2.0.3
+  :released: 31st of March 2026
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16584
+
+    Fix build error when only protobuf is enabled
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16592
+
+    Add missing ``#if`` statements to ``dnsdist-lua.cc``
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16850
+
+    Do not keep stale cache entries around for empty pools
+
+  .. change::
+    :tags: Bug Fixes, DNS over QUIC, DNS over HTTP3
+    :pullreq: 16851
+
+    Fix wrong address being inserted in the rings for responses
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16860
+
+    Fix handling of IP-only TLS certificates
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16863
+
+    Add a metric for the latency of the latest health-check
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16865
+
+    Export DNS flags via ProtoBuf
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16866
+
+    Handle escaped values in YAML SpoofRaw parameters
+
+  .. change::
+    :tags: Bug Fixes, DNS over QUIC, DNS over HTTP3
+    :pullreq: 16867
+
+    Work around Quiche not dealing well with removed congestion algorithms
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16883
+
+    Add a histogram of health-check latencies for backends
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16900
+
+    Don't start the NetworkListener thread in config check mode
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: TBD
+
+    CVE-2026-0396: An attacker might be able to inject HTML content into the internal web dashboard by sending crafted DNS queries to a DNSdist instance where domain-based dynamic rules have been enabled via either "DynBlockRulesGroup:setSuffixMatchRule" or "DynBlockRulesGroup:setSuffixMatchRuleFFI"
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: TBD
+
+    CVE-2026-0397: When the internal webserver is enabled (default is disabled), an attacker might be able to trick an administrator logged into the dashboard into visiting a malicious website and extract information about the running configuration from the dashboard
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: TBD
+
+    CVE-2026-24028: An attacker might be able to trigger an out-of-bounds read by sending a crafted DNS response packet, when custom Lua code uses "newDNSPacketOverlay" to parse DNS packets
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: TBD
+
+    CVE-2026-24029: When the "early_acl_drop" ("earlyACLDrop" in Lua) option is disabled (default is enabled) on a DNS over HTTPs frontend using the "nghttp2" provider, the ACL check is skipped, allowing all clients to send DoH queries regardless of the configured ACL
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: TBD
+
+    CVE-2026-24030: An attacker might be able to trick DNSdist into allocating too much memory while processing DNS over QUIC or DNS over HTTP/3 payloads, resulting in denial of service
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: TBD
+
+    CVE-2026-27853: An attacker might be able to trigger an out-of-bounds write by sending crafted DNS responses to a DNSdist using the "DNSQuestion:changeName" or "DNSResponse:changeName" methods in custom Lua code. In some cases the rewritten packet might become larger than the initial response and even exceed 65535 bytes, potentially leading to a crash resulting in denial of service
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: TBD
+
+    CVE-2026-27854: Denial of service when using "DNSQuestion:getEDNSOptions" method in custom Lua code
+
+.. changelog::
   :version: 2.1.0-beta2
   :released: 12th of March 2026
 
