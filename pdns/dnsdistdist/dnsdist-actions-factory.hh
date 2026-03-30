@@ -108,6 +108,7 @@ struct RemoteLogActionConfiguration
 {
   std::vector<std::pair<std::string, ProtoBufMetaKey>> metas;
   std::optional<std::unordered_set<std::string>> tagsToExport{std::nullopt};
+  std::unordered_set<std::string> tagsPrefixesToExport;
   std::optional<ProtobufAlterFunction> alterQueryFunc;
   std::optional<ProtobufAlterResponseFunction> alterResponseFunc;
   std::shared_ptr<RemoteLoggerInterface> logger;
@@ -118,6 +119,8 @@ struct RemoteLogActionConfiguration
   bool includeCNAME{false};
   bool delay{false};
   bool useServerID{false};
+  bool tagsExportKeyOnly{false};
+  bool tagsStripPrefixes{false};
 };
 std::shared_ptr<DNSAction> getRemoteLogAction(RemoteLogActionConfiguration& config);
 std::shared_ptr<DNSResponseAction> getRemoteLogResponseAction(RemoteLogActionConfiguration& config);
