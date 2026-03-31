@@ -168,6 +168,7 @@ capf
 catalogzone
 catzone
 Cauquil
+Cavid
 ccache
 ccls
 ccounts
@@ -597,6 +598,7 @@ ifportup
 ifurlextup
 ifurlup
 ihsinme
+ilya
 Ilyin
 imenu
 Imhard
@@ -696,6 +698,7 @@ kskrollcdnskey
 ktls
 KTNAME
 Kuehrer
+Kushwaha
 kvs
 KVTo
 kxdpgun
@@ -869,6 +872,7 @@ mywebapp
 namedroppers
 nameserving
 Nankai
+Naoki
 naptr
 Nauck
 Navarrete
@@ -1209,6 +1213,7 @@ Roel
 Rolff
 rolltype
 Rosmalen
+rozentsvaig
 roundrobin
 rping
 rpms
@@ -1545,6 +1550,7 @@ VRF
 vulns
 Waidner
 WAITFORONE
+Wakamatsu
 wal
 warnlog
 wds
@@ -1590,6 +1596,7 @@ wuh
 Wzs
 Xabier
 Xander
+Xav
 xchacha
 xdb
 xdp
