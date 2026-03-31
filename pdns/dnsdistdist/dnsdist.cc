@@ -3531,6 +3531,9 @@ static ListeningSockets initListeningSockets()
     catch (const std::exception& exp) {
       SLOG(errlog("Unable to bind to control socket on %s: %s", local.toStringWithPort(), exp.what()),
            dnsdist::logging::getTopLogger("setup")->error(Logr::Error, exp.what(), "Unable to bind to console control socket", "network.local.address", Logging::Loggable(local)));
+      if (currentConfig.d_consoleBindFatal) {
+        _exit(EXIT_FAILURE);
+      }
     }
   }
 
@@ -3544,6 +3547,9 @@ static ListeningSockets initListeningSockets()
     catch (const std::exception& exp) {
       SLOG(errlog("Unable to bind to web server socket on %s: %s", local.toStringWithPort(), exp.what()),
            dnsdist::logging::getTopLogger("setup")->error(Logr::Error, exp.what(), "Unable to bind to web server socket", "network.local.address", Logging::Loggable(local)));
+      if (currentConfig.d_webserverBindFatal) {
+        _exit(EXIT_FAILURE);
+      }
     }
   }
 
