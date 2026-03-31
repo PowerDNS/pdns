@@ -712,6 +712,10 @@ static void processH3HeaderEvent(ClientState& clientState, DOH3Frontend& fronten
       std::string_view content(reinterpret_cast<char*>(value), value_len);
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): Quiche API
       auto* headersptr = reinterpret_cast<h3_headers_t*>(argp);
+      if (headersptr->size() >= dnsdist::doh::MAX_INCOMING_HTTP_HEADERS) {
+        /* be nice but not too nice */
+        return 1;
+      }
       headersptr->emplace(key, content);
       return 0;
     },
@@ -798,6 +802,13 @@ static void processH3DataEvent(ClientState& clientState, DOH3Frontend& frontend,
       break;
     }
 
+    if (len > std::numeric_limits<uint16_t>::max() || (std::numeric_limits<uint16_t>::max() - streamBuffer.size()) < static_cast<size_t>(len)) {
+      vinfolog("DOH3 data frame of size %d is too large for a DNS query (we already have %d)", len, streamBuffer.size());
+      conn.d_streamBuffers.erase(streamID);
+      handleImmediateError("DoH3 non-compliant query");
+      return;
+    }
+
     buffer.resize(static_cast<size_t>(len));
     streamBuffer.insert(streamBuffer.end(), buffer.begin(), buffer.end());
   }
@@ -830,15 +841,17 @@ static void processH3Events(ClientState& clientState, DOH3Frontend& frontend, H3
     if (streamID < 0) {
       break;
     }
+    std::unique_ptr<quiche_h3_event, decltype(&quiche_h3_event_free)> eventPtr(event, quiche_h3_event_free);
+    event = nullptr;
     conn.d_headersBuffers.try_emplace(streamID, h3_headers_t{});
 
-    switch (quiche_h3_event_type(event)) {
+    switch (quiche_h3_event_type(eventPtr.get())) {
     case QUICHE_H3_EVENT_HEADERS: {
-      processH3HeaderEvent(clientState, frontend, conn, client, serverConnID, streamID, event);
+      processH3HeaderEvent(clientState, frontend, conn, client, serverConnID, streamID, eventPtr.get());
       break;
     }
     case QUICHE_H3_EVENT_DATA: {
-      processH3DataEvent(clientState, frontend, conn, client, serverConnID, streamID, event, buffer);
+      processH3DataEvent(clientState, frontend, conn, client, serverConnID, streamID, eventPtr.get(), buffer);
       break;
     }
     case QUICHE_H3_EVENT_FINISHED:
@@ -847,8 +860,6 @@ static void processH3Events(ClientState& clientState, DOH3Frontend& frontend, H3
     case QUICHE_H3_EVENT_GOAWAY:
       break;
     }
-
-    quiche_h3_event_free(event);
   }
 }
 

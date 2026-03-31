@@ -162,21 +162,19 @@ public:
 
 private:
   uint16_t lookupName(const DNSName& name, uint16_t* matchlen);
-  vector<uint16_t> d_namepositions;
-  // We declare 1 uint_16 in the public section, these 3 align on a 8-byte boundary
-  uint16_t d_sor;
-  uint16_t d_rollbackmarker; // start of last complete packet, for rollback
 
-  Container& d_content;
+  std::vector<uint16_t> d_namepositions;
   DNSName d_qname;
-
-  uint16_t d_truncatemarker; // end of header, for truncate
-  DNSResourceRecord::Place d_recordplace;
-  bool d_canonic, d_lowerCase, d_compress{false};
+  Container& d_content;
+  size_t d_sor{0};
+  uint16_t d_rollbackmarker{0}; // start of last complete packet, for rollback
+  uint16_t d_truncatemarker{0}; // end of header, for truncate
+  DNSResourceRecord::Place d_recordplace{DNSResourceRecord::QUESTION};
+  bool d_canonic{false};
+  bool d_lowerCase{false};
+  bool d_compress{false};
 };
 
 using DNSPacketWriter = GenericDNSPacketWriter<std::vector<uint8_t>>;
 
-typedef vector<pair<string::size_type, string::size_type> > labelparts_t;
-// bool labeltokUnescape(labelparts_t& parts, const DNSName& label);
 std::vector<string> segmentDNSText(const string& text); // from dnslabeltext.rl

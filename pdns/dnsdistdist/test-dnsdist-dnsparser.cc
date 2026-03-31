@@ -386,6 +386,7 @@ BOOST_AUTO_TEST_CASE(test_Response)
 BOOST_AUTO_TEST_CASE(test_Overlay)
 {
   const DNSName target("powerdns.com.");
+  const DNSName notTheTarget("not-powerdns.com.");
 
   {
     PacketBuffer response;
@@ -459,6 +460,23 @@ BOOST_AUTO_TEST_CASE(test_Overlay)
       BOOST_CHECK_GE(record.d_contentOffset, lastOffset);
       lastOffset = record.d_contentOffset + record.d_contentLength;
     }
+  }
+
+  {
+    /* response with overflowing CNAME record */
+    PacketBuffer response;
+    GenericDNSPacketWriter<PacketBuffer> pwR(response, target, QType::A, QClass::IN, 0);
+    pwR.getHeader()->qr = 1;
+    pwR.getHeader()->rd = 1;
+    pwR.getHeader()->ra = 1;
+    pwR.getHeader()->id = htons(42);
+    pwR.startRecord(target, QType::CNAME, 7200, QClass::IN, DNSResourceRecord::ANSWER);
+    pwR.xfrName(notTheTarget);
+    pwR.commit();
+
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): this is the API we have
+    auto packet = std::string_view(reinterpret_cast<const char*>(response.data()), response.size() - 1U);
+    BOOST_CHECK_THROW(dnsdist::DNSPacketOverlay overlay(packet), std::runtime_error);
   }
 }
 
