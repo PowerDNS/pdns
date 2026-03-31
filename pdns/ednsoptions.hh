@@ -20,7 +20,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
-#include "namespaces.hh"
+#include <cstdint>
+#include <map>
+#include <vector>
 
 struct EDNSOptionCode
 {

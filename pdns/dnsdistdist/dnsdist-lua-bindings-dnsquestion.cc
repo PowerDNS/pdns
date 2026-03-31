@@ -162,15 +162,13 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
       return true;
     });
   });
-  luaCtx.registerFunction<std::map<uint16_t, EDNSOptionView> (DNSQuestion::*)() const>("getEDNSOptions", [](const DNSQuestion& dnsQuestion) {
-    if (dnsQuestion.ednsOptions == nullptr) {
-      parseEDNSOptions(dnsQuestion);
-      if (dnsQuestion.ednsOptions == nullptr) {
-        throw std::runtime_error("parseEDNSOptions should have populated the EDNS options");
-      }
+  luaCtx.registerFunction<std::map<uint16_t, EDNSOptionView> (DNSQuestion::*)() const>("getEDNSOptions", [](const DNSQuestion& dnsQuestion) -> std::map<uint16_t, EDNSOptionView> {
+    auto ednsOptions = parseEDNSOptions(dnsQuestion);
+    if (!ednsOptions) {
+      return {};
     }
 
-    return *dnsQuestion.ednsOptions;
+    return *ednsOptions;
   });
   luaCtx.registerFunction<std::string (DNSQuestion::*)(void) const>("getTrailingData", [](const DNSQuestion& dnsQuestion) {
     return dnsQuestion.getTrailingData();
@@ -477,15 +475,13 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
     });
   });
 
-  luaCtx.registerFunction<std::map<uint16_t, EDNSOptionView> (DNSResponse::*)() const>("getEDNSOptions", [](const DNSResponse& dnsQuestion) {
-    if (dnsQuestion.ednsOptions == nullptr) {
-      parseEDNSOptions(dnsQuestion);
-      if (dnsQuestion.ednsOptions == nullptr) {
-        throw std::runtime_error("parseEDNSOptions should have populated the EDNS options");
-      }
+  luaCtx.registerFunction<std::map<uint16_t, EDNSOptionView> (DNSResponse::*)() const>("getEDNSOptions", [](const DNSResponse& dnsQuestion) -> std::map<uint16_t, EDNSOptionView> {
+    auto ednsOptions = parseEDNSOptions(dnsQuestion);
+    if (!ednsOptions) {
+      return {};
     }
 
-    return *dnsQuestion.ednsOptions;
+    return *ednsOptions;
   });
   luaCtx.registerFunction<std::string (DNSResponse::*)(void) const>("getTrailingData", [](const DNSResponse& dnsQuestion) {
     return dnsQuestion.getTrailingData();
