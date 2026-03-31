@@ -2366,7 +2366,8 @@ void SyncRes::getBestNSFromCache(const DNSName& qname, const QType qtype, vector
       /* let's prevent an infinite loop */
       if (!d_updatingRootNS) {
         auto log = g_slog->withName("housekeeping");
-        getRootNS(d_now, d_asyncResolve, depth, log);
+        uint32_t dummy{};
+        getRootNS(d_now, d_asyncResolve, depth, log, dummy);
       }
     }
   } while (subdomain.chopOff());
@@ -6300,7 +6301,7 @@ int directResolve(const DNSName& qname, const QType qtype, const QClass qclass, 
   return res;
 }
 
-int SyncRes::getRootNS(struct timeval now, asyncresolve_t asyncCallback, unsigned int depth, Logr::log_t log)
+int SyncRes::getRootNS(struct timeval now, asyncresolve_t asyncCallback, unsigned int depth, Logr::log_t log, uint32_t& minttl)
 {
   if (::arg()["hint-file"] == "no-refresh") {
     return 0;
@@ -6343,6 +6344,10 @@ int SyncRes::getRootNS(struct timeval now, asyncresolve_t asyncCallback, unsigne
   }
 
   if (res == 0) {
+    minttl = SyncRes::s_maxcachettl;
+    for (const auto& record : ret) {
+      minttl = std::min(minttl, record.d_ttl);
+    }
     log->info(Logr::Debug, "Refreshed . records");
   }
   else {

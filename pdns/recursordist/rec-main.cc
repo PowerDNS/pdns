@@ -2608,17 +2608,18 @@ static void houseKeepingWork(Logr::log_t log)
       pruneCookies(now.tv_sec - 3000);
     });
 
-    // By default, refresh at 80% of max-cache-ttl with a minimum period of 10s
+    // By default, refresh at 80% of lowest TTL seen in the result with a minimum period of 10s
     const unsigned int minRootRefreshInterval = 10;
     static PeriodicTask rootUpdateTask{"rootUpdateTask", std::max(SyncRes::s_maxcachettl * 8 / 10, minRootRefreshInterval)};
     rootUpdateTask.runIfDue(now, [now, &log, minRootRefreshInterval]() {
       int res = 0;
+      uint32_t minttl = SyncRes::s_maxcachettl;
       if (!g_regressionTestMode) {
-        res = SyncRes::getRootNS(now, nullptr, 0, log);
+        res = SyncRes::getRootNS(now, nullptr, 0, log, minttl);
       }
       if (res == 0) {
         // Success, go back to the default period
-        rootUpdateTask.setPeriod(std::max(SyncRes::s_maxcachettl * 8 / 10, minRootRefreshInterval));
+        rootUpdateTask.setPeriod(std::max(minttl * 8 / 10, minRootRefreshInterval));
       }
       else {
         // On failure, go to the middle of the remaining period (initially 80% / 8 = 10%) and shorten the interval on each
