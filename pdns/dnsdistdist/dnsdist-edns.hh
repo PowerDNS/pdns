@@ -38,4 +38,5 @@ struct SetExtendedDNSErrorOperation
 
 std::pair<std::optional<uint16_t>, std::optional<std::string>> getExtendedDNSError(const PacketBuffer& packet);
 bool addExtendedDNSError(PacketBuffer& packet, size_t maximumPacketSize, const SetExtendedDNSErrorOperation& setErrorOp);
+bool addEDNSPadding(PacketBuffer& packet, size_t maximumPacketSize);
 }
