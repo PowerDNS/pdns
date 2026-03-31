@@ -964,6 +964,12 @@ static void doh_dispatch_query(DOHServerConfig* dsc, h2o_handler_t* self, h2o_re
 
     if (dsc->dohFrontend->d_keepIncomingHeaders) {
       dohUnit->headers = std::make_unique<std::unordered_map<std::string, std::string>>();
+      if (req->headers.size >= dnsdist::doh::MAX_INCOMING_HTTP_HEADERS) {
+        /* be nice but not too nice */
+        vinfolog("Too many incoming DoH headers");
+        h2o_send_error_400(req, "Bad Request", "The DNS query had too many HTTP headers", 0);
+        return;
+      }
       dohUnit->headers->reserve(req->headers.size);
       for (size_t i = 0; i < req->headers.size; ++i) {
         // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): h2o API

@@ -1106,6 +1106,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       bool apiRequiresAuthentication{true};
       bool dashboardRequiresAuthentication{true};
       bool hashPlaintextCredentials = false;
+      bool allowCrossOriginRequests = false;
       getOptionalValue<bool>(vars, "hashPlaintextCredentials", hashPlaintextCredentials);
 
       if (getOptionalValue<std::string>(vars, "password", password) > 0) {
@@ -1144,6 +1145,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
       if (getOptionalValue<bool>(vars, "dashboardRequiresAuthentication", dashboardRequiresAuthentication) > 0) {
         config.d_dashboardRequiresAuthentication = dashboardRequiresAuthentication;
+      }
+
+      if (getOptionalValue<bool>(vars, "allowCrossOriginRequests", allowCrossOriginRequests) > 0) {
+        config.d_webServerAllowCrossOriginRequests = allowCrossOriginRequests;
       }
     });
 
