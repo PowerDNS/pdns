@@ -40,7 +40,7 @@
 
 template <typename Container>
 GenericDNSPacketWriter<Container>::GenericDNSPacketWriter(Container& content, const DNSName& qname, uint16_t qtype, uint16_t qclass, uint8_t opcode) :
-  d_content(content), d_qname(qname)
+  d_qname(qname), d_content(content)
 {
   d_content.clear();
   dnsheader dnsheader;
@@ -61,9 +61,10 @@ GenericDNSPacketWriter<Container>::GenericDNSPacketWriter(Container& content, co
   xfr16BitInt(qtype);
   xfr16BitInt(qclass);
 
-  d_truncatemarker=d_content.size();
-  d_sor = 0;
-  d_rollbackmarker = 0;
+  if (d_content.size() > std::numeric_limits<decltype(d_truncatemarker)>::max()) {
+    throw std::range_error("Trying to build a packet larger than " + std::to_string(std::numeric_limits<decltype(d_truncatemarker)>::max()) + " bytes");
+  }
+  d_truncatemarker = d_content.size();
 }
 
 template <typename Container> dnsheader* GenericDNSPacketWriter<Container>::getHeader()
@@ -76,11 +77,14 @@ template <typename Container> void GenericDNSPacketWriter<Container>::startRecor
 {
   d_compress = compress;
   commit();
-  d_rollbackmarker=d_content.size();
+  if (d_content.size() > std::numeric_limits<decltype(d_rollbackmarker)>::max()) {
+    throw std::range_error("Trying to build a packet larger than " + std::to_string(std::numeric_limits<decltype(d_rollbackmarker)>::max()) + " bytes");
+  }
+  d_rollbackmarker = d_content.size();
 
-  if(compress && !name.isRoot() && d_qname==name) {  // don't do the whole label compression thing if we *know* we can get away with "see question" - except when compressing the root
-    static unsigned char marker[2]={0xc0, 0x0c};
-    d_content.insert(d_content.end(), (const char *) &marker[0], (const char *) &marker[2]);
+  if (compress && !name.isRoot() && d_qname==name) {  // don't do the whole label compression thing if we *know* we can get away with "see question" - except when compressing the root
+    static const std::array<unsigned char, 2> marker{0xc0, 0x0c};
+    d_content.insert(d_content.end(), reinterpret_cast<const char *>(marker.begin()), reinterpret_cast<const char *>(marker.end()));
   }
   else {
     xfrName(name, compress);
@@ -90,7 +94,8 @@ template <typename Container> void GenericDNSPacketWriter<Container>::startRecor
   xfr32BitInt(ttl);
   xfr16BitInt(0); // this will be the record size
   d_recordplace = place;
-  d_sor=d_content.size(); // this will remind us where to stuff the record size
+
+  d_sor = d_content.size(); // this will remind us where to stuff the record size
 }
 
 template <typename Container> void GenericDNSPacketWriter<Container>::addOpt(const uint16_t udpsize, const uint16_t extRCode, const uint16_t ednsFlags, const optvect_t& options, const uint8_t version)
@@ -490,13 +495,23 @@ template <typename Container> void GenericDNSPacketWriter<Container>::truncate()
 
 template <typename Container> void GenericDNSPacketWriter<Container>::commit()
 {
-  if(!d_sor)
+  if (d_sor == 0) {
     return;
+  }
+
+  if (d_sor < 2 || d_sor > d_content.size()) {
+    throw std::range_error("Invalid start of record when trying to build a packet: " + std::to_string(d_sor) + " / " + std::to_string(d_content.size()));
+  }
+
+  if (d_content.size() > std::numeric_limits<uint16_t>::max()) {
+    throw std::range_error("Trying to build a packet larger than " + std::to_string(std::numeric_limits<uint16_t>::max()) + " bytes");
+  }
+
   uint16_t rlen = d_content.size() - d_sor;
-  d_content[d_sor-2]=rlen >> 8;
-  d_content[d_sor-1]=rlen & 0xff;
-  d_sor=0;
-  dnsheader* dh=reinterpret_cast<dnsheader*>( &*d_content.begin());
+  d_content.at(d_sor-2) = rlen >> 8;
+  d_content.at(d_sor-1) = rlen & 0xff;
+  d_sor = 0;
+  auto* dh = reinterpret_cast<dnsheader*>( &*d_content.begin());
   switch(d_recordplace) {
   case DNSResourceRecord::QUESTION:
     dh->qdcount = htons(ntohs(dh->qdcount) + 1);
