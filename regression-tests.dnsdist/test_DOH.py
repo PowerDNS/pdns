@@ -547,23 +547,27 @@ class DOHTests(object):
         """
         DOH: Too many HTTP headers
         """
-        name = 'too-many-headers.doh.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+        name = "too-many-headers.doh.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN", use_edns=False)
         query.id = 0
-        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096)
+        expectedQuery = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096)
         expectedQuery.id = 0
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
         customHeaders = []
         for idx in range(257):
             customHeaders.append(f"X-{idx}: {idx}")
         try:
-            (receivedQuery, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, response=response, caFile=self._caCert, customHeaders=customHeaders)
+            (receivedQuery, receivedResponse) = self.sendDOHQuery(
+                self._dohServerPort,
+                self._serverName,
+                self._dohBaseURL,
+                query,
+                response=response,
+                caFile=self._caCert,
+                customHeaders=customHeaders,
+            )
             self.assertFalse(receivedQuery)
             self.assertFalse(receivedResponse)
         except pycurl.error:

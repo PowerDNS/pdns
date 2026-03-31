@@ -181,7 +181,7 @@ async def async_h3_query(
     post: bool,
     create_protocol=HttpClient,
     additional_headers: Optional[Dict] = None,
-    raw_query = False,
+    raw_query=False,
 ) -> Union[Tuple[str, Dict[str, str]], Tuple[asyncio.TimeoutError, Dict[str, str]]]:
 
     url = baseurl

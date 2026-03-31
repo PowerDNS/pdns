@@ -1437,7 +1437,13 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
 
         try:
             (message, _) = doqclient.quic_query(
-                query, cls._dnsDistListeningAddr, timeout, port, verify=caFile, server_hostname=serverName, rawQuery=rawQuery
+                query,
+                cls._dnsDistListeningAddr,
+                timeout,
+                port,
+                verify=caFile,
+                server_hostname=serverName,
+                rawQuery=rawQuery,
             )
         except doqclient.StreamResetError as e:
             if passExceptions:
