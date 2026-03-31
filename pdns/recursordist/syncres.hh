@@ -180,7 +180,7 @@ public:
   static size_t getNSSpeedTable(size_t maxSize, std::string& ret);
   static size_t putIntoNSSpeedTable(const std::string& ret);
 
-  static int getRootNS(struct timeval now, asyncresolve_t asyncCallback, unsigned int depth, Logr::log_t);
+  static int getRootNS(struct timeval now, asyncresolve_t asyncCallback, unsigned int depth, Logr::log_t, uint32_t& minttl);
   static void addDontQuery(const std::string& mask)
   {
     if (!s_dontQuery) {
