@@ -915,6 +915,7 @@ static void loadWebServer(const Context& context, const dnsdist::rust::settings:
     dnsdist::webserver::setMaxConcurrentConnections(webConfig.max_concurrent_connections);
     config.d_apiConfigDirectory = std::string(webConfig.api_configuration_directory);
     config.d_apiReadWrite = webConfig.api_read_write;
+    config.d_webserverBindFatal = webConfig.bind_fatal;
   });
 }
 
@@ -1037,6 +1038,7 @@ static void handleConsoleConfiguration(const dnsdist::rust::settings::ConsoleCon
         config.d_consoleACL.addMask(std::string(aclEntry));
       }
       B64Decode(std::string(consoleConf.key), config.d_consoleKey);
+      config.d_consoleBindFatal = consoleConf.bind_fatal;
     });
   }
 }

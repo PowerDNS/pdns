@@ -361,6 +361,14 @@ Control Socket, Console and Webserver
 
   Generate and print an encryption key.
 
+.. function:: setConsoleBindFatal(enable)
+
+  .. versionadded:: 2.2.0
+
+  Whether a failure to bind a console control socket is fatal.
+
+  :param bool enabled: Default to false.
+
 .. function:: setConsoleConnectionsLogging(enabled)
 
   Whether to log the opening and closing of console connections.
@@ -457,6 +465,14 @@ Webserver configuration
 
   :param bool allow: Set to true to allow modification through the API
   :param str dir: A valid directory where the configuration files will be written by the API.
+
+.. function:: setWebserverBindFatal(enable)
+
+  .. versionadded:: 2.2.0
+
+  Whether a failure to bind a web server socket is fatal.
+
+  :param bool enabled: Default to false.
 
 .. function:: setWebserverConfig(options)
 
