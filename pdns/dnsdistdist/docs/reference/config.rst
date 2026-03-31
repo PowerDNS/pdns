@@ -474,7 +474,7 @@ Webserver configuration
     ``apiRequiresAuthentication``, ``dashboardRequiresAuthentication`` optional parameters added.
 
   .. versionchanged:: 2.1.0
-    ``prometheusAddInstanceLabel`` optional parameter added.
+    ``allowCrossOriginRequests`` and ``prometheusAddInstanceLabel`` optional parameters added.
 
   Setup webserver configuration. See :func:`webserver` and :doc:`../guides/webserver`.
 
@@ -486,6 +486,7 @@ Webserver configuration
   * ``apiKey=newKey``: string - Changes the API Key (set to an empty string do disable it). Since 1.7.0 the key should be hashed and salted via the :func:`hashPassword` command.
   * ``customHeaders={[str]=str,...}``: map of string - Allows setting custom headers and removing the defaults.
   * ``acl=newACL``: string - List of IP addresses, as a string, that are allowed to open a connection to the web server. Defaults to "127.0.0.1, ::1".
+  * ``allowCrossOriginRequests``: bool - Whether the webserver allows cross-origin HTTP requests. This might allow a malicious website to read metrics provided by the API if a user's browser has valid credentials cached for the webserver while the user visits the malicious website. Default to false.
   * ``apiRequiresAuthentication``: bool - Whether access to the API (/api endpoints) require a valid API key. Defaults to true.
   * ``dashboardRequiresAuthentication``: bool - Whether access to the internal dashboard requires a valid password. Defaults to true.
   * ``statsRequireAuthentication``: bool - Whether access to the statistics (/metrics and /jsonstat endpoints) require a valid password or API key. Defaults to true.

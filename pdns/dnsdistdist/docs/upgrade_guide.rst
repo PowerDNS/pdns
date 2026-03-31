@@ -36,6 +36,8 @@ Structured logging is now enabled by default, and can be disabled via :func:`set
 
 :program:`dnsdist` now looks by default for a configuration file named ``dnsdist.yml`` in the system configuration directory (determined by the ``SYSCONFDIR`` variable during compilation), instead of ``dnsdist.conf``. Please be aware that if a file named ``dnsdist.lua`` is present in the system configuration directory, it will also be loaded but without the ability to use configuration directives. Please see :doc:`the YAML settings reference <reference/yaml-settings>` for more information.
 
+The webserver no longer allows cross-origin HTTP requests by default, please have a look at ``webserver.allow_cross_origin_requests`` (:func:`setWebserverConfig`'s ``allowCrossOriginRequests`` for Lua-based configurations) if your setup requires them.
+
 1.9.x to 2.0.0
 --------------
 

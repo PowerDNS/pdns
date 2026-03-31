@@ -412,7 +412,7 @@ key_value_stores:
 webserver:
   changes:
     - version: 2.1.0
-      content: "Added the ``prometheus_add_instance`` option"
+      content: "Added the ``prometheus_add_instance`` and ``allow_cross_origin_requests`` options"
   parameters:
     - name: "listen_addresses"
       type: "Vec<String>"
@@ -430,6 +430,10 @@ webserver:
       type: "Vec<String>"
       default: "127.0.0.1, ::1"
       description: "List of network masks or IP addresses that are allowed to open a connection to the web server"
+    - name: "allow_cross_origin_requests"
+      type: "bool"
+      default: "false"
+      description: "Whether the webserver allows cross-origin HTTP requests. This might allow a malicious website to read metrics provided by the API if a user's browser has valid credentials cached for the webserver while the user visits the malicious website"
     - name: "api_requires_authentication"
       type: "bool"
       default: "true"

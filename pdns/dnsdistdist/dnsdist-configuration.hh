@@ -185,6 +185,7 @@ struct RuntimeConfiguration
   bool d_addEDNSToSelfGeneratedResponses{true};
   bool d_applyACLToProxiedClients{false};
   bool d_openTelemetryTracing{false}; // XXX: It would be nice to #ifndef DISABLE_PROTOBUF, but as this is defined in dnsdist-settings-definitions.yml, we can't
+  bool d_webServerAllowCrossOriginRequests{false}; // Whether the webserver / API allows cross-origin requests
 };
 
 /* Be careful not to hold on this for too long, it can be invalidated
