@@ -37,30 +37,49 @@ class BadRPZServer(object):
         records = []
 
         if message.question[0].rdtype == dns.rdatatype.AXFR:
-            if self._currentSerial != 0:
+            if self._currentSerial not in (0, 1):
                 print(
                     "Received an AXFR query but IXFR expected because the current serial is %d" % (self._currentSerial)
                 )
                 return (None, self._currentSerial)
 
             newSerial = self._targetSerial
-            records = [
-                dns.rrset.from_text(
-                    "zone.rpz.",
-                    60,
-                    dns.rdataclass.IN,
-                    dns.rdatatype.SOA,
-                    "ns.zone.rpz. hostmaster.zone.rpz. %d 3600 3600 3600 1" % newSerial,
-                ),
-                dns.rrset.from_text("a.example.zone.rpz.", 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1"),
-                dns.rrset.from_text(
-                    "zone.rpz.",
-                    60,
-                    dns.rdataclass.IN,
-                    dns.rdatatype.SOA,
-                    "ns.zone.rpz. hostmaster.zone.rpz. %d 3600 3600 3600 1" % newSerial,
-                ),
-            ]
+            if newSerial == 1:
+                records = [
+                    dns.rrset.from_text(
+                        "zone.rpz.",
+                        60,
+                        dns.rdataclass.CH,
+                        dns.rdatatype.SOA,
+                        "ns.zone.rpz. hostmaster.zone.rpz. %d 3600 3600 3600 1" % newSerial,
+                    ),
+                    dns.rrset.from_text("a.example.zone.rpz.", 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1"),
+                    dns.rrset.from_text(
+                        "zone.rpz.",
+                        60,
+                        dns.rdataclass.CH,
+                        dns.rdatatype.SOA,
+                        "ns.zone.rpz. hostmaster.zone.rpz. %d 3600 3600 3600 1" % newSerial,
+                    ),
+                ]
+            else:
+                records = [
+                    dns.rrset.from_text(
+                        "zone.rpz.",
+                        60,
+                        dns.rdataclass.IN,
+                        dns.rdatatype.SOA,
+                        "ns.zone.rpz. hostmaster.zone.rpz. %d 3600 3600 3600 1" % newSerial,
+                    ),
+                    dns.rrset.from_text("a.example.zone.rpz.", 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1"),
+                    dns.rrset.from_text(
+                        "zone.rpz.",
+                        60,
+                        dns.rdataclass.IN,
+                        dns.rdatatype.SOA,
+                        "ns.zone.rpz. hostmaster.zone.rpz. %d 3600 3600 3600 1" % newSerial,
+                    ),
+                ]
 
         elif message.question[0].rdtype == dns.rdatatype.IXFR:
             oldSerial = message.authority[0][0].serial
@@ -244,7 +263,7 @@ e 3600 IN A 192.0.2.42
             )
         super(RPZXFRIncompleteRecursorTest, cls).generateRecursorConfig(confdir)
 
-    def waitUntilCorrectSerialIsLoaded(self, serial, timeout=5):
+    def waitUntilCorrectSerialIsLoaded(self, serial, timeout=15):
         global badrpzServer
 
         badrpzServer.moveToSerial(serial)
@@ -267,14 +286,15 @@ e 3600 IN A 192.0.2.42
 
     def testRPZ(self):
         self.waitForTCPSocket("127.0.0.1", self._wsPort)
-        # First zone
+        # First AXFR takes two tries
         self.waitUntilCorrectSerialIsLoaded(1)
-        self.checkRPZStats(1, 1, 1, 1, 1)  # failure count includes a port 9999 attempt
+        self.waitUntilCorrectSerialIsLoaded(2)
+        self.checkRPZStats(2, 1, 1, 1, 3)  # failure count includes a port 9999 attempt
 
         # second zone, should fail, incomplete IXFR
-        self.waitUntilCorrectSerialIsLoaded(2)
-        self.checkRPZStats(1, 1, 1, 1, 3)
+        self.waitUntilCorrectSerialIsLoaded(3)
+        self.checkRPZStats(2, 1, 1, 1, 5)
 
         # third zone, should fail, incomplete AXFR
-        self.waitUntilCorrectSerialIsLoaded(3)
-        self.checkRPZStats(1, 1, 1, 1, 5)
+        self.waitUntilCorrectSerialIsLoaded(4)
+        self.checkRPZStats(2, 1, 1, 1, 7)

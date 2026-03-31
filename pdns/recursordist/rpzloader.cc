@@ -289,6 +289,10 @@ static shared_ptr<const SOARecordContent> loadRPZFromServer(Logr::log_t plogger,
       last = time(nullptr);
     }
   }
+  if (!soaRecordContent) {
+    throw PDNSException("No valid SOA found");
+  }
+
   logger->info(Logr::Info, "RPZ load completed", "nrecords", Logging::Loggable(nrecords), "soa", Logging::Loggable(soaRecordContent->getZoneRepresentation()));
   return soaRecordContent;
 }
