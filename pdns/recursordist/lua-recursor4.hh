@@ -136,8 +136,9 @@ public:
     bool isTcp;
     vState validationState{vState::Indeterminate};
 
-    void addAnswer(uint16_t type, const std::string& content, std::optional<int> ttl, std::optional<DNSName> name);
-    void addRecord(uint16_t type, const std::string& content, DNSResourceRecord::Place place, std::optional<int> ttl, std::optional<DNSName> name);
+    using OptDNSNameOrString = std::optional<boost::variant<std::string, DNSName>>;
+    void addAnswer(uint16_t type, const std::string& content, std::optional<int> ttl, OptDNSNameOrString name);
+    void addRecord(uint16_t type, const std::string& content, DNSResourceRecord::Place place, std::optional<int> ttl, OptDNSNameOrString name);
     [[nodiscard]] vector<pair<int, DNSRecord>> getRecords() const;
     [[nodiscard]] std::optional<dnsheader> getDH() const;
     [[nodiscard]] vector<pair<uint16_t, string>> getEDNSOptions() const;

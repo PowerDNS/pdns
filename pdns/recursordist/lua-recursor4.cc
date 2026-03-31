@@ -132,10 +132,20 @@ void RecursorLua4::DNSQuestion::setRecords(const vector<pair<int, DNSRecord>>& a
   }
 }
 
-void RecursorLua4::DNSQuestion::addRecord(uint16_t type, const std::string& content, DNSResourceRecord::Place place, std::optional<int> ttl, std::optional<DNSName> name)
+void RecursorLua4::DNSQuestion::addRecord(uint16_t type, const std::string& content, DNSResourceRecord::Place place, std::optional<int> ttl, RecursorLua4::DNSQuestion::OptDNSNameOrString name)
 {
-  DNSRecord dnsRecord;
-  dnsRecord.d_name = name.value_or(qname);
+  DNSRecord dnsRecord{};
+  if (name) {
+    if (const auto* ptr = boost::get<std::string>(&*name)) {
+      dnsRecord.d_name = DNSName(*ptr);
+    }
+    else {
+      dnsRecord.d_name = *boost::get<DNSName>(&*name);
+    }
+  }
+  else {
+    dnsRecord.d_name = qname;
+  }
   dnsRecord.d_ttl = ttl.value_or(3600);
   dnsRecord.d_type = type;
   dnsRecord.d_place = place;
@@ -143,7 +153,7 @@ void RecursorLua4::DNSQuestion::addRecord(uint16_t type, const std::string& cont
   records.push_back(std::move(dnsRecord));
 }
 
-void RecursorLua4::DNSQuestion::addAnswer(uint16_t type, const std::string& content, std::optional<int> ttl, std::optional<DNSName> name)
+void RecursorLua4::DNSQuestion::addAnswer(uint16_t type, const std::string& content, std::optional<int> ttl, OptDNSNameOrString name)
 {
   addRecord(type, content, DNSResourceRecord::ANSWER, ttl, std::move(name));
 }
