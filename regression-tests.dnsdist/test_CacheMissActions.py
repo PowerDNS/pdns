@@ -77,7 +77,12 @@ class TestCacheMissGoToADifferentPool(DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
     _testServer2Port = pickAvailablePort()
-    _config_params = ["_consoleKeyB64", "_consolePort", "_testServerPort", "_testServer2Port"]
+    _config_params = [
+        "_consoleKeyB64",
+        "_consolePort",
+        "_testServerPort",
+        "_testServer2Port",
+    ]
 
     _config_template = """
     setKey("%s")
@@ -134,6 +139,7 @@ class TestCacheMissGoToADifferentPool(DNSDistTest):
             else:
                 self.assertEqual(queries, 0)
 
+
 class TestCacheMissAndEDNSOptions(DNSDistTest):
     _config_template = """
     newServer{address="127.0.0.1:%d", useClientSubnet=true}
@@ -160,15 +166,11 @@ class TestCacheMissAndEDNSOptions(DNSDistTest):
         """
         CacheMiss: EDNS options
         """
-        name = 'edns-options.cache-miss.tests.powerdns.com.'
-        eco = cookiesoption.CookiesOption(b'deadbeef', b'deadbeef')
-        query = dns.message.make_query(name, 'AAAA', 'IN', use_edns=True, options=[eco])
+        name = "edns-options.cache-miss.tests.powerdns.com."
+        eco = cookiesoption.CookiesOption(b"deadbeef", b"deadbeef")
+        query = dns.message.make_query(name, "AAAA", "IN", use_edns=True, options=[eco])
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.AAAA,
-                                    '2001:db8::1')
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.AAAA, "2001:db8::1")
         response.answer.append(rrset)
         query.additional.append(rrset)
 
