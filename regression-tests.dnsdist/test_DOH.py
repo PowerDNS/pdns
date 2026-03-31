@@ -1751,14 +1751,13 @@ class TestDOHForwardedForNoTrustedNGHTTP2(DOHForwardedForNoTrusted, DNSDistDOHTe
 
 
 class DOHDelayedACL(DNSDistDOHTest):
-
-    _serverKey = 'server.key'
-    _serverCert = 'server.chain'
-    _serverName = 'tls.tests.dnsdist.org'
-    _caCert = 'ca.pem'
+    _serverKey = "server.key"
+    _serverCert = "server.chain"
+    _serverName = "tls.tests.dnsdist.org"
+    _caCert = "ca.pem"
     _dohServerPort = pickAvailablePort()
-    _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
-    _dohLibrary = 'nghttp2'
+    _dohBaseURL = "https://%s:%d/" % (_serverName, _dohServerPort)
+    _dohLibrary = "nghttp2"
     _yaml_config_template = """
 acl:
   - "192.0.2.1/32"
@@ -1779,7 +1778,7 @@ binds:
         - "/"
       early_acl_drop: false
 """
-    _yaml_config_params = ['_testServerPort', '_dohServerPort', '_serverCert', '_serverKey', '_dohLibrary']
+    _yaml_config_params = ["_testServerPort", "_dohServerPort", "_serverCert", "_serverKey", "_dohLibrary"]
     _config_params = []
     _verboseMode = True
 
@@ -1787,22 +1786,28 @@ binds:
         """
         DOH: Delayed ACL check
         """
-        name = 'delayed-acl-drop.doh.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+        name = "delayed-acl-drop.doh.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN", use_edns=False)
         query.id = 0
-        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096)
+        expectedQuery = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096)
         expectedQuery.id = 0
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
 
-        (receivedQuery, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, response=response, caFile=self._caCert, useQueue=False, rawResponse=True)
+        (receivedQuery, receivedResponse) = self.sendDOHQuery(
+            self._dohServerPort,
+            self._serverName,
+            self._dohBaseURL,
+            query,
+            response=response,
+            caFile=self._caCert,
+            useQueue=False,
+            rawResponse=True,
+        )
         self.assertEqual(self._rcode, 403)
-        self.assertEqual(receivedResponse, b'DoH query not allowed because of ACL')
+        self.assertEqual(receivedResponse, b"DoH query not allowed because of ACL")
+
 
 class DOHFrontendLimits(object):
     # this test suite uses a different responder port
