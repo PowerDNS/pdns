@@ -235,7 +235,7 @@ public:
   struct EDNSStatus
   {
     EDNSStatus(const ComboAddress& arg) :
-      address(arg) { }
+      address(arg) {}
     ComboAddress address;
     time_t ttd{0};
     enum EDNSMode : uint8_t
@@ -938,7 +938,7 @@ class ImmediateServFailException
 {
 public:
   ImmediateServFailException(string reason_) :
-    reason(std::move(reason_)) { };
+    reason(std::move(reason_)) {};
 
   string reason; //! Print this to tell the user what went wrong
 };

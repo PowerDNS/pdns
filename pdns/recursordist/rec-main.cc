@@ -99,7 +99,6 @@ LockGuarded<std::shared_ptr<NetmaskGroup>> g_initialAllowNotifyFrom; // new thre
 LockGuarded<std::shared_ptr<notifyset_t>> g_initialAllowNotifyFor; // new threads need this to be setup
 LockGuarded<std::shared_ptr<OpenTelemetryTraceConditions>> g_initialOpenTelemetryConditions; // new threads need this to be setup
 static time_t s_statisticsInterval;
-static std::atomic<uint32_t> s_counter;
 int g_argc;
 char** g_argv;
 static string s_structured_logger_backend;
@@ -2452,6 +2451,75 @@ static void handleRCC(int fileDesc, FDMultiplexer::funcparam_t& /* var */)
   }
 }
 
+static time_t keepCacheWarm(const timeval& now, LocalStateHolder<LuaConfigItems>& luaconfsLocal)
+{
+  auto log = g_slog->withName("cachewarmer");
+  time_t wait = 60;
+
+  for (const auto& [qname, qtype] : luaconfsLocal->keepWarm) {
+    SyncRes resolver(now);
+    resolver.setQNameMinimization(true);
+    resolver.setCacheOnly(true);
+    resolver.setDoDNSSEC(g_dnssecmode != DNSSECMode::Off);
+    resolver.setDNSSECValidationRequested(g_dnssecmode != DNSSECMode::Off && g_dnssecmode != DNSSECMode::ProcessNoValidate);
+    std::vector<DNSRecord> ret;
+    int res = -1;
+    const std::string msg = "Exception while resolving";
+    try {
+      res = resolver.beginResolve(qname, qtype, QClass::IN, ret, 0);
+    }
+    catch (const PDNSException& e) {
+      log->error(Logr::Warning, e.reason, msg, "exception", Logging::Loggable("PDNSException"));
+      ret.clear();
+    }
+    catch (const ImmediateServFailException& e) {
+      log->error(Logr::Warning, e.reason, msg, "exception", Logging::Loggable("ImmediateServFailException"));
+      ret.clear();
+    }
+    catch (const PolicyHitException& e) {
+      log->info(Logr::Warning, msg, "exception", Logging::Loggable("PolicyHitException"));
+      ret.clear();
+    }
+    catch (const std::exception& e) {
+      log->error(Logr::Warning, e.what(), msg, "exception", Logging::Loggable("std::exception"));
+      ret.clear();
+    }
+    catch (...) {
+      log->info(Logr::Warning, msg);
+      ret.clear();
+    }
+
+    if (res == RCode::NoError && ret.size() > 0) {
+      uint32_t minttl = std::numeric_limits<uint32_t>::max();
+      for (const auto& record : ret) {
+        minttl = std::min(minttl, record.d_ttl);
+      }
+      if (minttl > 5) {
+        wait = std::min(wait, static_cast<time_t>(minttl - 5));
+        continue;
+      }
+      wait = std::min(wait, static_cast<time_t>(1));
+    }
+
+    NegCache::NegCacheEntry negEntry;
+    bool inNegCache = g_negCache->get(qname, qtype, now, negEntry, false);
+    if (!inNegCache) {
+      log->info(Logr::Debug, "Absent or expiring and not in negache, pushing task", "qname", Logging::Loggable(qname),
+                "qtype", Logging::Loggable(qtype),
+                "res", Logging::Loggable(res), "size", Logging::Loggable(ret.size()));
+      // Work to be done
+      pushAlmostExpiredTask(qname, qtype, now.tv_sec + 60, ComboAddress("255.255.255.255"), true);
+      wait = std::min(wait, static_cast<time_t>(1));
+    }
+    else {
+      auto expiring = negEntry.d_ttd - now.tv_sec;
+      wait = std::min(wait, expiring);
+    }
+  }
+  log->info(Logr::Debug, "Wait", "interval", Logging::Loggable(wait));
+  return wait;
+}
+
 class PeriodicTask
 {
 public:
@@ -2530,6 +2598,12 @@ static void houseKeepingWork(Logr::log_t log)
   // Below are the thread specific tasks for the handler and the taskThread
   // Likley a few handler tasks could be moved to the taskThread
   if (info.isTaskThread()) {
+    static PeriodicTask keepWarmTask{"KeepWarmTask", 1};
+    keepWarmTask.runIfDue(now, [now, &luaconfsLocal] {
+      auto actionRequired = keepCacheWarm(now, luaconfsLocal);
+      keepWarmTask.setPeriod(actionRequired);
+    });
+
     // TaskQueue is run always
     runTasks(10, g_logCommonErrors);
 
@@ -2735,6 +2809,13 @@ static void recLoop()
 
   auto& threadInfo = RecThreadInfo::self();
 
+  static std::atomic<uint32_t> s_counter;
+
+  // Use primes, it avoid not being scheduled in cases where the counter has a regular pattern.
+  // We want to call handler thread often, it gets scheduled about 2 times per second on an idle recursor
+  constexpr uint32_t handlerAndTaskInterval = 11;
+  constexpr uint32_t otherInterval = 499;
+
   while (!RecursorControlChannel::stop) {
     try {
       while (g_multiTasker->schedule(g_now)) {
@@ -2743,7 +2824,7 @@ static void recLoop()
 
       // Use primes, it avoid not being scheduled in cases where the counter has a regular pattern.
       // We want to call handler thread often, it gets scheduled about 2 times per second
-      if (((threadInfo.isHandler() || threadInfo.isTaskThread()) && s_counter % 11 == 0) || s_counter % 499 == 0) {
+      if (((threadInfo.isHandler() || threadInfo.isTaskThread()) && s_counter % handlerAndTaskInterval == 0) || s_counter % otherInterval == 0) {
         timeval start{};
         Utility::gettimeofday(&start);
         g_multiTasker->makeThread(houseKeeping, nullptr);
@@ -2784,7 +2865,7 @@ static void recLoop()
       }
       runLuaMaintenance(threadInfo, last_lua_maintenance, luaMaintenanceInterval);
 
-      auto timeoutUsec = g_multiTasker->nextWaiterDelayUsec(500000);
+      auto timeoutUsec = g_multiTasker->nextWaiterDelayUsec(1000000U / handlerAndTaskInterval / 2);
       t_fdm->run(&g_now, static_cast<int>(timeoutUsec / 1000));
       // 'run' updates g_now for us
     }

@@ -141,6 +141,7 @@ public:
   ProtobufExportConfig outgoingProtobufExportConfig;
   FrameStreamExportConfig frameStreamExportConfig;
   FrameStreamExportConfig nodFrameStreamExportConfig;
+  std::vector<std::pair<DNSName, QType>> keepWarm;
   std::shared_ptr<Logr::Logger> d_slog;
   /* we need to increment this every time the configuration
      is reloaded, so we know if we need to reload the protobuf
