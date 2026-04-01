@@ -164,11 +164,31 @@ public:
   string getText(bool multi, bool lenField);
   string getUnquotedText(bool lenField);
 
+  /* Whether the current position is at (or after, which would indicate a problem
+     and should have been detected earlier) the end of wire data corresponding to
+     the current DNS record */
+  bool eof() const
+  {
+    return d_pos >= (d_startrecordpos + d_recordlen);
+  }
 
-  bool eof() { return true; };
-  const string getRemaining() const {
-    return "";
+  /* Returns a string, formatted for human/log consumption, containing information
+     about the wire data from the current position to the end of the current DNS record */
+  std::string getRemaining() const {
+    return "Remaining data from PacketReader, current position " + std::to_string(d_pos) + " in packet of size " + std::to_string(d_content.size()) + ", end of record expected at " + std::to_string(d_startrecordpos + d_recordlen) + ": " + makeHexDump(std::string(d_content.begin() + d_pos, d_content.begin() + d_startrecordpos + d_recordlen));
   };
+
+#if defined(PDNS_AUTH) // [
+  /* This method moves the position to the end of the current DNS record.
+     The only case where it makes sense to call this method is when processing ENT
+     records, and only because of a bug in the authoritative server used to insert
+     non-empty content for some ENT records (see https://github.com/PowerDNS/pdns/pull/17000)
+  */
+  void consumeRemaining()
+  {
+    d_pos = (d_startrecordpos + d_recordlen);
+  }
+#endif // ]
 
   uint16_t getPosition() const
   {

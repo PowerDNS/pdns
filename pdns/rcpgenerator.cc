@@ -236,7 +236,7 @@ void RecordTextReader::xfrCAPort(ComboAddress &val)
   val.sin4.sin_port = port;
 }
 
-bool RecordTextReader::eof()
+bool RecordTextReader::eof() const
 {
   return d_pos==d_end;
 }

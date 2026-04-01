@@ -126,7 +126,7 @@ BOOST_AUTO_TEST_CASE(getExtendedDNSError)
     /* truncate the EDE text by one byte */
     query.resize(query.size() - 1U);
 
-    BOOST_CHECK_THROW(dnsdist::edns::getExtendedDNSError(query), std::range_error);
+    BOOST_CHECK_THROW(dnsdist::edns::getExtendedDNSError(query), std::out_of_range);
   }
 
   {
