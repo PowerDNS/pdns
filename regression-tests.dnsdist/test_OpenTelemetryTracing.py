@@ -2,6 +2,7 @@
 
 import base64
 import binascii
+import pprint
 import threading
 import time
 
@@ -74,6 +75,7 @@ class DNSDistOpenTelemetryProtobufTest(test_Protobuf.DNSDistProtobufTest):
         return self.getFirstProtobufMessage()
 
     def checkOTDataBase(self, otData):
+        pprint.pprint(otData)
         self.assertEqual(len(otData["resource_spans"]), 1)
         self.assertEqual(len(otData["resource_spans"][0]["resource"]["attributes"]), 1)
 
@@ -1274,12 +1276,12 @@ class TestOpenTelemetryTracingInternalBase(DNSDistOpenTelemetryProtobufTest):
             return result[0]
         raise KeyError(f"{name} not found in OT Data")
 
-    def checkMaintenanceSpanNames(self, all_span_name, extra_names=set()):
+    def checkMaintenanceSpanNames(self, all_span_name, extra_names=set(), callback_names=set()):
         all_names = {
             "maintenanceThread",
             "maintenanceHooks",
             "DynamicBlocks::runRegisteredGroups",
-        }.union(extra_names)
+        }.union(extra_names).union({f"maintenanceCallback/{name}" for name in callback_names})
 
         self.assertSetEqual(all_span_name, all_names)
 
@@ -1426,6 +1428,61 @@ addMaintenanceCallback(my_maintenance)
             msg_span_name,
             {
                 "my-span",
+            },
+            {
+                "unnamed",
+            },
+        )
+
+        maintenanceFunction_span = self.getSpan(otData, "maintenanceHooks")
+        self.assertListEqual(
+            maintenanceFunction_span["attributes"],
+            [{"key": "outside", "value": {"string_value": "hello from the outside"}}],
+        )
+
+        my_span = self.getSpan(otData, "my-span")
+        self.assertListEqual(
+            my_span["attributes"],
+            [{"key": "inside", "value": {"string_value": "hello from the inside"}}],
+        )
+
+
+class TestOpenTelemetryTracingInternalWithFunctionsNamedCallbackLua(TestOpenTelemetryTracingInternalBase):
+    _config_template = """
+local function my_maintenance()
+	setSpanAttribute("outside", "hello from the outside")
+	withTraceSpan("my-span", function()
+		setSpanAttribute("inside", "hello from the inside")
+		os.execute("sleep 0.1")
+	end)
+end
+
+newServer{address="127.0.0.1:%d"}
+getServer(0):setUp()
+rl = newRemoteLogger('127.0.0.1:%d')
+setOpenTelemetryTracing(true)
+setOpenTelemetryInternalTrace('maintenance', {rl}, 60)
+
+addMaintenanceCallback(my_maintenance, "my_maintenance")
+"""
+
+    _config_params = [
+        "_testServerPort",
+        "_protobufServerPort",
+    ]
+
+    def testMaintenance(self):
+        otData = self.getFirstMaintenanceProtobufMessage()
+
+        msg_span_name = {v["name"] for v in otData["resource_spans"][0]["scope_spans"][0]["spans"]}
+
+        self.checkMaintenanceSpanNames(
+            msg_span_name,
+            {
+                "my-span",
+            },
+            {
+                "my_maintenance",
             },
         )
 

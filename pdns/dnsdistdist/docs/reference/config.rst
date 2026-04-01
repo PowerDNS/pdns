@@ -2156,14 +2156,17 @@ Other functions
 
   :param function callback: The function to be called. It takes no parameter and returns no value.
 
-.. function:: addMaintenanceCallback(callback)
+.. function:: addMaintenanceCallback(callback[, name])
 
   .. versionadded:: 1.9.0
+  .. versionchanged:: 2.2.0
+    ``name`` parameter added.
 
   Register a Lua function to be called as part of the ``maintenance`` hook, which is executed roughly every second.
   The function should not block for a long period of time, as it would otherwise delay the execution of the other functions registered for this hook, as well as the execution of the :func:`maintenance` function.
 
   :param function callback: The function to be called. It takes no parameter and returns no value.
+  :param string name: The name of the callback, currently only exposed in :doc:`OpenTelemetry traces <ottrace>`.
 
   .. code-block:: lua
 
