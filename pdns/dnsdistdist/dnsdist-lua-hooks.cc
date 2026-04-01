@@ -1,8 +1,10 @@
 
 #include "dnsdist-lua-hooks.hh"
 #include "dnsdist-lua.hh"
+#include "dnsdist-opentelemetry.hh"
 #include "lock.hh"
 #include "tcpiohandler.hh"
+#include <memory>
 
 namespace dnsdist::lua::hooks
 {
@@ -12,21 +14,22 @@ using TicketsKeyAddedHook = std::function<void(const std::string&, size_t)>;
 using ServerStateChangeCallback = std::function<void(const std::string&, bool)>;
 
 static LockGuarded<std::vector<ExitCallback>> s_exitCallbacks;
-static LockGuarded<std::vector<MaintenanceCallback>> s_maintenanceHooks;
+static LockGuarded<std::vector<std::pair<std::string, MaintenanceCallback>>> s_maintenanceHooks;
 static LockGuarded<std::vector<ServerStateChangeCallback>> s_serverStateChangeHooks;
 
-void runMaintenanceHooks(const LuaContext& context)
+void runMaintenanceHooks(const LuaContext& context, std::shared_ptr<pdns::trace::dnsdist::Tracer>& tracer)
 {
   (void)context;
   for (const auto& callback : *(s_maintenanceHooks.lock())) {
-    callback();
+    pdns::trace::dnsdist::getCloserForInternalSpan(tracer, callback.first);
+    callback.second();
   }
 }
 
-static void addMaintenanceCallback(const LuaContext& context, MaintenanceCallback callback)
+static void addMaintenanceCallback(const LuaContext& context, MaintenanceCallback callback, std::string name = "")
 {
   (void)context;
-  s_maintenanceHooks.lock()->push_back(std::move(callback));
+  s_maintenanceHooks.lock()->push_back({"maintenanceCallback/" + name, std::move(callback)});
 }
 
 void clearMaintenanceHooks()
@@ -89,9 +92,9 @@ void clearServerStateChangeCallbacks()
 
 void setupLuaHooks(LuaContext& luaCtx)
 {
-  luaCtx.writeFunction("addMaintenanceCallback", [&luaCtx](const MaintenanceCallback& callback) {
+  luaCtx.writeFunction("addMaintenanceCallback", [&luaCtx](const MaintenanceCallback& callback, const std::optional<std::string> name) {
     setLuaSideEffect();
-    addMaintenanceCallback(luaCtx, callback);
+    addMaintenanceCallback(luaCtx, callback, name.value_or("unnamed"));
   });
   luaCtx.writeFunction("addExitCallback", [&luaCtx](const ExitCallback& callback) {
     setLuaSideEffect();

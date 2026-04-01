@@ -21,14 +21,15 @@
  */
 #pragma once
 
-#include <functional>
+#include "dnsdist-opentelemetry.hh"
+#include <memory>
 #include <string>
 
 class LuaContext;
 
 namespace dnsdist::lua::hooks
 {
-void runMaintenanceHooks(const LuaContext& context);
+void runMaintenanceHooks(const LuaContext& context, std::shared_ptr<pdns::trace::dnsdist::Tracer>& tracer);
 void clearMaintenanceHooks();
 void runExitCallbacks(const LuaContext& context);
 void clearExitCallbacks();
