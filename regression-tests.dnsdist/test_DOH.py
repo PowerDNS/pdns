@@ -1,18 +1,19 @@
 #!/usr/bin/env python
 
 import base64
-import dns
 import os
-import time
 import subprocess
+import time
 import unittest
-import clientsubnetoption
+from io import BytesIO
 
+import dns
+import pycurl
+
+import clientsubnetoption
 from dnsdistdohtests import DNSDistDOHTest
 from dnsdisttests import DNSDistTest, pickAvailablePort
 
-import pycurl
-from io import BytesIO
 
 class DOHTests(object):
     _consoleKey = DNSDistTest.generateConsoleKey()
@@ -415,11 +416,14 @@ class DOHTests(object):
         data = conn.perform_rb()
         rcode = conn.getinfo(pycurl.RESPONSE_CODE)
         responseHeaders = responseHeaders.getvalue()
-        self.assertEqual(rcode, 400)
-        self.assertEqual(data, b'<html><body>This server implements RFC 8484 - DNS Queries over HTTP, and requires HTTP/2 in accordance with section 5.2 of the RFC.</body></html>\r\n')
-        self.assertEqual(self.getHTTPCounter('connects'), httpConnections + 1)
-        self.assertEqual(self.getHTTPCounter('http/1.1'), http1 + 1)
-        self.assertEqual(self.getHTTPCounter('http/2'), http2)
+        self.assertEqual(rcode, 505)
+        self.assertEqual(
+            data,
+            b"<html><body>This server implements RFC 8484 - DNS Queries over HTTP, and requires HTTP/2 in accordance with section 5.2 of the RFC.</body></html>\r\n",
+        )
+        self.assertEqual(self.getHTTPCounter("connects"), httpConnections + 1)
+        self.assertEqual(self.getHTTPCounter("http/1.1"), http1 + 1)
+        self.assertEqual(self.getHTTPCounter("http/2"), http2)
 
         dateFound = False
         for header in responseHeaders.decode().splitlines(False):
@@ -1860,4 +1864,3 @@ class DOHXFR(object):
 
 class TestDOHXFRNGHTTP2(DOHXFR, DNSDistDOHTest):
     _dohLibrary = 'nghttp2'
-
