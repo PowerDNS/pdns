@@ -199,6 +199,13 @@
                             <div id="defender-versions"></div>
                         </div>
                     </div>
+                    <div class="col-md-4">
+                        <div class="product-card">
+                            <h3><a href="/recursor-plexus">PowerDNS Recursor Plexus</a></h3>
+                            <p>Add-on to PowerDNS Recursor for preserving and sharing critical runtime state across Recursor instances.</p>
+                            <div id="recursor-plexus-versions"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -294,6 +301,12 @@
             loadVersionSelector(
                 '/defender',
                 'defender-versions'
+            );
+
+            // Plexus
+            loadVersionSelector(
+                '/recursor-plexus',
+                'recursor-plexus-versions'
             );
         });
     </script>
