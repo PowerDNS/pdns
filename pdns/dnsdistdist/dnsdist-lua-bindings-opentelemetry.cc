@@ -47,7 +47,7 @@ void setupLuaTracing(LuaContext& luaCtx, std::shared_ptr<Tracer>& tracer)
 
   luaCtx.writeFunction<void(const std::string&, const std::function<void()>&)>(
     "withTraceSpan",
-    [&tracer](const std::string& name, const std::function<void()>& luaFunc) {
+    [&tracer]([[maybe_unused]] const std::string& name, [[maybe_unused]] const std::function<void()>& luaFunc) {
 #ifndef DISABLE_PROTOBUF
       auto closer = tracer->openSpan(name);
       luaFunc();
@@ -58,7 +58,7 @@ void setupLuaTracing(LuaContext& luaCtx, std::shared_ptr<Tracer>& tracer)
 
   luaCtx.writeFunction<void(const std::string&, const std::string&)>(
     "setSpanAttribute",
-    [&tracer](const std::string& key, const std::string& value) {
+    [&tracer]([[maybe_unused]] const std::string& key, [[maybe_unused]] const std::string& value) {
 #ifndef DISABLE_PROTOBUF
       tracer->setSpanAttribute(tracer->getLastSpanID(), key, AnyValue{value});
 #endif
