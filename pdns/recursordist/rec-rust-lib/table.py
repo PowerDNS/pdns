@@ -3690,4 +3690,17 @@ A DoT connection is matched against the subnets lists (using the remote IP) and 
         "versionadded": "5.4.0",
         "runtime": ["reload-lua-config", "reload-yaml"],
     },
+    {
+        "name": "keepwarm",
+        "section": "recordcache",
+        "type": LType.ListQNameAndQTypes,
+        "default": "",
+        "help": "Sequence of QNameAndQType",
+        "doc": """
+        List of names to keep warm in the cache
+        """,
+        "skip-old": "No equivalent old style setting",
+        "versionadded": "5.5.0",
+        "runtime": ["reload-lua-config", "reload-yaml"],
+    },
 ]

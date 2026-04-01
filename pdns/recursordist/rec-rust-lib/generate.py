@@ -119,9 +119,9 @@ class LType(Enum):
     ListSubnets = auto()
     ListTrustAnchors = auto()
     ListZoneToCaches = auto()
+    ListQNameAndQTypes = auto()
     String = auto()
     Uint64 = auto()
-
 
 listOfStringTypes = (LType.ListSocketAddresses, LType.ListStrings, LType.ListSubnets, LType.ListAddressAndInterfaces)
 listOfStructuredTypes = (
@@ -141,6 +141,7 @@ listOfStructuredTypes = (
     LType.ListIncomingWSConfigs,
     LType.ListOutgoingTLSConfigurations,
     LType.ListOpenTelemetryTraceConditions,
+    LType.ListQNameAndQTypes,
 )
 
 
@@ -219,6 +220,8 @@ def get_newdoc_typename(typ):
         return "Sequence of `OpenTelemetryTraceCondition`_"
     if typ == LType.ListAddressAndInterfaces:
         return "Sequence of address or address@interface_"
+    if typ == LType.ListQNameAndQTypes:
+        return "Sequence of `QNameAndQType`_"
     return "Unknown2" + str(typ)
 
 
