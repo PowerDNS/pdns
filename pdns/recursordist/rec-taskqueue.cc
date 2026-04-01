@@ -130,7 +130,7 @@ static void resolveInternal(const struct timeval& now, bool logErrors, const pdn
   bool exceptionOccurred = true;
   vector<DNSRecord> ret;
   try {
-    log->info(Logr::Debug, "resolving", "refresh", Logging::Loggable(task.d_refreshMode));
+    log->info(Logr::Debug, "resolving", "refreshMode", Logging::Loggable(task.d_refreshMode));
     int res = resolver.beginResolve(task.d_qname, QType(task.d_qtype), QClass::IN, ret);
     exceptionOccurred = false;
     log->info(Logr::Debug, "done", "rcode", Logging::Loggable(res), "records", Logging::Loggable(ret.size()));
@@ -155,7 +155,7 @@ static void resolveInternal(const struct timeval& now, bool logErrors, const pdn
     log->error(Logr::Warning, msg, "Unexpected exception");
   }
   if (exceptionOccurred) {
-    if (task.d_refreshMode) {
+    if (task.d_refreshMode != 0) {
       ++s_almost_expired_tasks.exceptions;
     }
     else {
@@ -163,7 +163,7 @@ static void resolveInternal(const struct timeval& now, bool logErrors, const pdn
     }
   }
   else {
-    if (task.d_refreshMode) {
+    if (task.d_refreshMode != 0) {
       ++s_almost_expired_tasks.run;
     }
     else {
