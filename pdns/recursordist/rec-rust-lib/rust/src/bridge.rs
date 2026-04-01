@@ -896,6 +896,18 @@ impl OpenTelemetryTraceCondition {
     }
 }
 
+impl QNameAndQType {
+    pub fn validate(&self, field: &str) -> Result<(), ValidationError> {
+        if self.qname.is_empty() {
+            let msg = format!("{}: value may not be empty", field);
+            return Err(ValidationError { msg });
+        }
+        validate_qtype(&(field.to_string() + ".qtype"), &self.qtype)?;
+        Ok(())
+    }
+}
+
+
 #[allow(clippy::ptr_arg)] //# Avoids creating a rust::Slice object on the C++ side.
 pub fn validate_auth_zones(field: &str, vec: &Vec<AuthZone>) -> Result<(), ValidationError> {
     validate_vec(field, vec, |field, element| element.validate(field))
@@ -1420,6 +1432,14 @@ pub fn def_pb_strategy() -> String {
 
 pub fn def_value_equals_pb_strategy(value: &String) -> bool {
     &def_pb_strategy() == value
+}
+
+pub fn def_qnameandqtype_qtype() -> String {
+    String::from("A")
+}
+
+pub fn def_value_equals_qnameqtype_qtype(value: &String) -> bool {
+    &def_qnameandqtype_qtype() == value
 }
 
 pub fn validate_dnssec(dnssec: &recsettings::Dnssec) -> Result<(), ValidationError> {

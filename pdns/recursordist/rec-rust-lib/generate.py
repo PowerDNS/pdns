@@ -118,6 +118,7 @@ class LType(Enum):
     ListZoneToCaches = auto()
     ListOutgoingTLSConfigurations = auto()
     ListOpenTelemetryTraceConditions = auto()
+    ListQNameAndQTypes = auto()
     String = auto()
     Uint64 = auto()
 
@@ -140,6 +141,7 @@ listOfStructuredTypes = (
     LType.ListIncomingWSConfigs,
     LType.ListOutgoingTLSConfigurations,
     LType.ListOpenTelemetryTraceConditions,
+    LType.ListQNameAndQTypes,
 )
 
 
@@ -214,6 +216,8 @@ def get_newdoc_typename(typ):
         return "Sequence of `OutgoingTLSConfiguration`_"
     if typ == LType.ListOpenTelemetryTraceConditions:
         return "Sequence of `OpenTelemetryTraceCondition`_"
+    if typ == LType.ListQNameAndQTypes:
+        return "Sequence of `QNameAndQType`_"
     return "Unknown2" + str(typ)
 
 
