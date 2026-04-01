@@ -24,6 +24,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <optional>
 
 #include "ednsoptions.hh"
 
@@ -393,4 +394,12 @@ private:
 
 std::vector<uint8_t> makeEDNSTraceParentOption(std::shared_ptr<Tracer> tracer);
 bool addTraceparentEdnsOptionToPacketBuffer(PacketBuffer& origBuf, const std::shared_ptr<Tracer>& tracer, const size_t qnameWireLength, const size_t proxyProtocolPayloadSize, const uint16_t traceparentOptionCode = EDNSOptionCode::TRACEPARENT, const bool isTCP = false);
+
+/*
+ * @brief Use this to *maybe* get an Internal Kind Closer in the current scope
+ *
+ * @param tracer A shared_ptr to a Tracer, if it is a nullptr, the returned closer is a nullopt
+ * @param spanName The name of the span
+ */
+std::optional<pdns::trace::dnsdist::Tracer::Closer> getCloserForInternalSpan([[maybe_unused]] std::shared_ptr<pdns::trace::dnsdist::Tracer>& tracer, [[maybe_unused]] const std::string& spanName);
 } // namespace pdns::trace::dnsdist

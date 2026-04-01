@@ -2467,18 +2467,6 @@ static void udpClientThread(std::vector<ClientState*> states)
   }
 }
 
-static std::optional<pdns::trace::dnsdist::Tracer::Closer> getCloser([[maybe_unused]] std::shared_ptr<pdns::trace::dnsdist::Tracer>& tracer, [[maybe_unused]] const std::string& spanName)
-{
-#ifndef DISABLE_PROTOBUF
-  if (tracer != nullptr) {
-    auto ret = std::make_optional(tracer->openSpan(spanName));
-    ret->setKind(SpanKind::SPAN_KIND_INTERNAL);
-    return ret;
-  }
-#endif
-  return std::nullopt;
-}
-
 static void maintThread()
 {
   setThreadName("dnsdist/main");
@@ -2496,23 +2484,23 @@ static void maintThread()
     if (tracer != nullptr) {
       tracer->setScopeSpanName("dnsdist/maintenance");
     }
-    auto maint_closer = getCloser(tracer, "maintenanceThread");
+    auto maint_closer = pdns::trace::dnsdist::getCloserForInternalSpan(tracer, "maintenanceThread");
     auto lua = g_lua.lock();
 
     pdns::trace::dnsdist::runWithLuaTracing(*lua, tracer, [&lua, &tracer, &secondsToWaitLog]() {
       try {
         auto maintenanceCallback = lua->readVariable<std::optional<std::function<void()>>>("maintenance");
         if (maintenanceCallback) {
-          auto closer = getCloser(tracer, "maintenanceFunction");
+          auto closer = pdns::trace::dnsdist::getCloserForInternalSpan(tracer, "maintenanceFunction");
           (*maintenanceCallback)();
         }
         {
-          auto closer = getCloser(tracer, "maintenanceHooks");
-          dnsdist::lua::hooks::runMaintenanceHooks(*lua);
+          auto closer = pdns::trace::dnsdist::getCloserForInternalSpan(tracer, "maintenanceHooks");
+          dnsdist::lua::hooks::runMaintenanceHooks(*lua, tracer);
         }
 #if !defined(DISABLE_DYNBLOCKS)
         {
-          auto closer = getCloser(tracer, "DynamicBlocks::runRegisteredGroups");
+          auto closer = pdns::trace::dnsdist::getCloserForInternalSpan(tracer, "DynamicBlocks::runRegisteredGroups");
           dnsdist::DynamicBlocks::runRegisteredGroups(*lua);
         }
 #endif /* DISABLE_DYNBLOCKS */
@@ -2530,7 +2518,7 @@ static void maintThread()
 
     counter++;
     if (counter >= dnsdist::configuration::getCurrentRuntimeConfiguration().d_cacheCleaningDelay) {
-      auto closer = getCloser(tracer, "CacheClean");
+      auto closer = pdns::trace::dnsdist::getCloserForInternalSpan(tracer, "CacheClean");
       /* keep track, for each cache, of whether we should keep
        expired entries */
       std::map<std::shared_ptr<DNSDistPacketCache>, bool> caches;

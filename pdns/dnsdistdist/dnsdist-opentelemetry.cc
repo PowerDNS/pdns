@@ -410,4 +410,15 @@ bool addTraceparentEdnsOptionToPacketBuffer(PacketBuffer& origBuf, const std::sh
 #endif
 }
 
+std::optional<pdns::trace::dnsdist::Tracer::Closer> getCloserForInternalSpan([[maybe_unused]] std::shared_ptr<pdns::trace::dnsdist::Tracer>& tracer, [[maybe_unused]] const std::string& spanName)
+{
+#ifndef DISABLE_PROTOBUF
+  if (tracer != nullptr) {
+    auto ret = std::make_optional(tracer->openSpan(spanName));
+    ret->setKind(SpanKind::SPAN_KIND_INTERNAL);
+    return ret;
+  }
+#endif
+  return std::nullopt;
+}
 } // namespace pdns::trace::dnsdist
