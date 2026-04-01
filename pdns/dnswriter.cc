@@ -219,101 +219,155 @@ template <typename Container> uint16_t GenericDNSPacketWriter<Container>::lookup
      b\xc0\x0c
   */
   unsigned int bestpos=0;
-  *matchLen=0;
-  boost::container::static_vector<uint16_t, 34> nvect;
-  boost::container::static_vector<uint16_t, 34> pvect;
+  *matchLen = 0;
+
+  // positions of each label in the name we are trying to compress
+  boost::container::static_vector<uint16_t, 34> positionsInName;
+  // positions of labels in the packet we are building
+  boost::container::static_vector<uint16_t, 34> positionsInPacket;
 
   try {
     for(auto riter= raw.cbegin(); riter < raw.cend(); ) {
-      if(!*riter)
+      if (*riter == 0) {
         break;
-      nvect.push_back(riter - raw.cbegin());
-      riter+=*riter+1;
+      }
+      positionsInName.push_back(riter - raw.cbegin());
+      riter += *riter + 1;
     }
   }
-  catch(std::bad_alloc& ba) {
-    if(l_verbose)
-      cout<<"Domain "<<name<<" too large to compress"<<endl;
+  catch (const std::bad_alloc& ba) {
+    if (l_verbose) {
+      cout << "Domain " << name << " too large to compress" << endl;
+    }
     return 0;
   }
 
-  if(l_verbose) {
+  if (l_verbose) {
     cout<<"Input vector for lookup "<<name<<": ";
-    for(const auto n : nvect)
-      cout << n<<" ";
+    for (const auto n : positionsInName) {
+      cout << n << " ";
+    }
     cout<<endl;
     cout<<makeHexDump(string(raw.c_str(), raw.c_str()+raw.size()))<<endl;
   }
 
-  if(l_verbose)
-    cout<<"Have "<<d_namepositions.size()<<" to ponder"<<endl;
+  if (l_verbose) {
+    cout << "Have " << d_namepositions.size() << " to ponder" << endl;
+  }
+
   int counter=1;
-  for(auto p : d_namepositions) {
-    if(l_verbose) {
-      cout<<"Pos: "<<p<<", "<<d_content.size()<<endl;
-      DNSName pname((const char*)&d_content[0], d_content.size(), p, true); // only for debugging
-      cout<<"Looking at '"<<pname<<"' in packet at position "<<p<<"/"<<d_content.size()<<", option "<<counter<<"/"<<d_namepositions.size()<<endl;
+  for (const auto positionInPacket : d_namepositions) {
+    // here it's a bit tricky because the names might be compressed,
+    // so we will gather all labels composing the name, following
+    // pointers if needed
+    // for example if there is an uncompressed \1a\1b\1c\0 we will store
+    // the position of \1a, \1b, \1c
+    // if there is instead \1a followed by a pointer to \1b\1c\0 earlier
+    // in the packet we will store the position of \1a, \1b, \1c as well
+    // they will just be disjoint
+    if (l_verbose) {
+      cout<<"Pos: "<<positionInPacket<<", "<<d_content.size()<<endl;
+      DNSName pname(reinterpret_cast<const char*>(d_content.data()), d_content.size(), positionInPacket, true); // only for debugging
+      cout<<"Looking at '"<<pname<<"' in packet at position "<<positionInPacket<<"/"<<d_content.size()<<", option "<<counter<<"/"<<d_namepositions.size()<<endl;
       ++counter;
     }
+    size_t pointerQuota = 50U;
     // memcmp here makes things _slower_
-    pvect.clear();
+    positionsInPacket.clear();
     try {
-      for(auto iter = d_content.cbegin() + p; iter < d_content.cend();) {
-        uint8_t c=*iter;
-        if(l_verbose)
-          cout<<"Found label length: "<<(int)c<<endl;
-        if(c & 0xc0) {
-          uint16_t npos = 0x100*(c & (~0xc0)) + *++iter;
-          iter = d_content.begin() + npos;
-          if(l_verbose)
-            cout<<"Is compressed label to newpos "<<npos<<", going there"<<endl;
-          // check against going forward here
-          continue;
+      for (auto iter = d_content.cbegin() + positionInPacket; iter < d_content.cend() && pointerQuota > 0;) {
+        uint8_t labelLength = *iter;
+        const uint16_t currentPos = (iter - d_content.cbegin());
+        if (l_verbose) {
+          cout << "Found label length: " << std::to_string(labelLength) << " at " << currentPos << endl;
         }
-        if(!c)
+        if (labelLength & 0xc0) {
+          uint16_t npos = 0x100*(labelLength & (~0xc0)) + *++iter;
+          // check against going forward
+          if (npos >= currentPos || npos < sizeof(dnsheader)) {
+            /* something is not right */
+            break;
+          }
+
+          // jump to the target of the pointer
+          iter = d_content.begin() + npos;
+          if (l_verbose) {
+            cout << "Is compressed label to newpos " << npos << ", going there" << endl;
+          }
+
+          if (pointerQuota >= 1) {
+            pointerQuota--;
+            continue;
+          }
+
+          // out of pointer quota, let's stop there
           break;
-        auto offset = iter - d_content.cbegin();
-        if (offset >= maxCompressionOffset) break; // compression pointers cannot point here
-        pvect.push_back(offset);
-        iter+=*iter+1;
+        }
+
+        if (labelLength == 0) {
+          break;
+        }
+
+        if (currentPos >= maxCompressionOffset) {
+          break; // compression pointers cannot point here
+        }
+
+        positionsInPacket.push_back(currentPos);
+        // jump to the next label
+        iter += labelLength + 1;
       }
     }
-    catch(std::bad_alloc& ba) {
-      if(l_verbose)
-        cout<<"Domain "<<name<<" too large to compress"<<endl;
+    catch (const std::bad_alloc& ba) {
+      if (l_verbose) {
+        cout << "Domain " << name << " too large to compress" << endl;
+      }
       continue;
     }
-    if(l_verbose) {
+
+    if (l_verbose) {
       cout<<"Packet vector: "<<endl;
-      for(const auto n : pvect)
-        cout << n<<" ";
+      for (const auto n : positionsInPacket) {
+        cout << n << " ";
+      }
       cout<<endl;
     }
-    auto niter=nvect.crbegin(), piter=pvect.crbegin();
+
+    auto positionInNameIter = positionsInName.crbegin();
+    auto positionInPacketIter = positionsInPacket.crbegin();
     unsigned int cmatchlen=1;
-    for(; niter != nvect.crend() && piter != pvect.crend(); ++niter, ++piter) {
-      // niter is an offset in raw, pvect an offset in packet
-      uint8_t nlen = raw[*niter], plen=d_content[*piter];
-      if(l_verbose)
-        cout<<"nlnen="<<(int)nlen<<", plen="<<(int)plen<<endl;
-      if(nlen != plen)
-        break;
-      if(strncasecmp(raw.c_str()+*niter+1, (const char*)&d_content[*piter]+1, nlen)) {
-        if(l_verbose)
-          cout<<"Mismatch: "<<string(raw.c_str()+*niter+1, raw.c_str()+*niter+nlen+1)<< " != "<<string((const char*)&d_content[*piter]+1, (const char*)&d_content[*piter]+nlen+1)<<endl;
+    for(; positionInNameIter != positionsInName.crend() && positionInPacketIter != positionsInPacket.crend(); ++positionInNameIter, ++positionInPacketIter) {
+      // positionInNameIter is an offset in raw, pvect an offset in packet
+      uint8_t nlen = raw[*positionInNameIter];
+      uint8_t plen = d_content[*positionInPacketIter];
+
+      if (l_verbose) {
+        cout << "nlnen=" << (int)nlen << ", plen=" << (int)plen << endl;
+      }
+
+      if (nlen != plen) {
         break;
       }
-      cmatchlen+=nlen+1;
-      if(cmatchlen == raw.length()) { // have matched all of it, can't improve
-        if(l_verbose)
-          cout<<"Stopping search, matched whole name"<<endl;
+
+      if (strncasecmp(raw.c_str() + *positionInNameIter + 1, (const char*)&d_content[*positionInPacketIter] + 1, nlen)) {
+        if (l_verbose) {
+          cout << "Mismatch: " << string(raw.c_str() + *positionInNameIter + 1, raw.c_str() + *positionInNameIter + nlen + 1) << " != " << string((const char*)&d_content[*positionInPacketIter] + 1, (const char*)&d_content[*positionInPacketIter] + nlen + 1) << endl;
+        }
+        break;
+      }
+
+      cmatchlen += nlen + 1;
+      if (cmatchlen == raw.length()) { // have matched all of it, can't improve
+        if (l_verbose) {
+          cout << "Stopping search, matched whole name" << endl;
+        }
+
         *matchLen = cmatchlen;
-        return *piter;
+        return *positionInPacketIter;
       }
     }
-    if(piter != pvect.crbegin() && *matchLen < cmatchlen) {
+    if (positionInPacketIter != positionsInPacket.crbegin() && *matchLen < cmatchlen) {
       *matchLen = cmatchlen;
-      bestpos=*--piter;
+      bestpos = *--positionInPacketIter;
     }
   }
   return bestpos;
