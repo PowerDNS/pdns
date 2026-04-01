@@ -395,6 +395,7 @@ static void handleCORS(const YaHTTP::Request& req, YaHTTP::Response& resp)
     const auto allowCrossOrigin = g_webserverConfig.lock()->allowCrossOriginRequests;
     if (allowCrossOrigin) {
       resp.headers["Access-Control-Allow-Origin"] = origin->second;
+      resp.headers["Vary"] = "Origin"; // prevents cached data to be used for a different Origin
 
       if (isAStatsRequest(req) || isAnAPIRequestAllowedWithWebAuth(req)) {
         resp.headers["Access-Control-Allow-Credentials"] = "true";
