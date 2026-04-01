@@ -237,7 +237,7 @@ public:
     }
     Closer(const Closer&) = delete;
     Closer& operator=(const Closer&) = delete;
-    Closer& operator=(Closer&& rhs) noexcept
+    Closer& operator=([[maybe_unused]] Closer&& rhs) noexcept
     {
 #ifndef DISABLE_PROTOBUF
       this->d_tracer = std::move(rhs.d_tracer);
@@ -248,7 +248,7 @@ public:
 #endif
       return *this;
     }
-    Closer(Closer&& rhs)
+    Closer([[maybe_unused]] Closer&& rhs)
     {
 #ifndef DISABLE_PROTOBUF
       this->d_tracer = std::move(rhs.d_tracer);
