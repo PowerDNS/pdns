@@ -105,11 +105,6 @@ private:
     {
     }
 
-    ZoneEntry(const DNSName& zone, const std::string& salt, uint16_t iterations, bool nsec3) :
-      d_zone(zone), d_salt(salt), d_iterations(iterations), d_nsec3(nsec3)
-    {
-    }
-
     struct HashedTag
     {
     };
@@ -132,7 +127,16 @@ private:
       QType d_qtype; // of the query data that lead to this entry being created/updated
     };
 
-    typedef multi_index_container<
+    enum class ZoneDenialType : uint8_t
+    {
+      Unknown = 0,
+      NSEC = 1,
+      NSEC3 = 2
+    };
+
+    static const std::string& getZoneTypeAsString(ZoneDenialType type);
+
+    using cache_t = multi_index_container<
       CacheEntry,
       indexed_by<
         ordered_unique<tag<OrderedTag>,
@@ -140,14 +144,13 @@ private:
                        CanonDNSNameCompare>,
         sequenced<tag<SequencedTag>>,
         hashed_non_unique<tag<HashedTag>,
-                          member<CacheEntry, const DNSName, &CacheEntry::d_owner>>>>
-      cache_t;
+                          member<CacheEntry, const DNSName, &CacheEntry::d_owner>>>>;
 
     cache_t d_entries;
     const DNSName d_zone;
     std::string d_salt;
     uint16_t d_iterations{0};
-    bool d_nsec3{false};
+    ZoneDenialType d_denialType{ZoneDenialType::Unknown};
   };
 
   std::shared_ptr<LockGuarded<ZoneEntry>> getZone(const DNSName& zone);
