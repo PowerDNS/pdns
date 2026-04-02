@@ -604,6 +604,7 @@ inetutils
 infolog
 infosecinstitute
 initscript
+innerspan
 Inno
 innodb
 installable
@@ -1172,6 +1173,7 @@ remi
 remoteaddr
 remotebackend
 remoteip
+remoteloggers
 removedomainkey
 replacerrset
 requery
@@ -1197,6 +1199,7 @@ rocommunity
 Roel
 Rolff
 rolltype
+rootspan
 Rosmalen
 roundrobin
 rozentsvaig

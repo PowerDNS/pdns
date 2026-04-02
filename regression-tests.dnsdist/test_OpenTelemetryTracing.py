@@ -1288,7 +1288,7 @@ class TestOpenTelemetryTracingInternalBase(DNSDistOpenTelemetryProtobufTest):
     def getFirstMaintenanceProtobufMessage(self):
         while self._protobufQueue.empty():
             # let the protobuf messages the time to get there
-            time.sleep(1)
+            time.sleep(0.1)
 
         msg = self.getFirstProtobufMessage()
         traces_data = opentelemetry.proto.trace.v1.trace_pb2.TracesData()
@@ -1497,3 +1497,63 @@ addMaintenanceCallback(my_maintenance, "my_maintenance")
             my_span["attributes"],
             [{"key": "inside", "value": {"string_value": "hello from the inside"}}],
         )
+
+
+class TestOpenTelemetryTracingInternalNewThreadLua(TestOpenTelemetryTracingInternalBase):
+    _config_template = """
+newServer{address="127.0.0.1:%d"}
+getServer(0):setUp()
+rl = newRemoteLogger('127.0.0.1:%d')
+setOpenTelemetryTracing(true)
+newThread([==[
+    -- do some setup here
+    local ctr = 0
+    while true do
+        withTraceSpan("newThreadRootSpan", function()
+            setSpanAttribute("rootspan", "I am a root span")
+            setSpanAttribute("loop", ctr)
+            withTraceSpan("innerspan", function()
+                setSpanAttribute("inner", "I am an inner span")
+                os.execute("sleep 0.1")
+            end)
+        end)
+        ctr = ctr + 1
+        -- make sure we only send 2 traces for this test
+        if ctr < 2 then
+            sendOpenTelemetryTrace()
+        end
+    end
+]==],
+  {interval=1, remoteloggers={rl}}
+)
+"""
+
+    _config_params = [
+        "_testServerPort",
+        "_protobufServerPort",
+    ]
+
+    def testNewThread(self):
+        for ctr in range(1):
+            otData = self.getFirstMaintenanceProtobufMessage()
+
+            msg_span_names = {v["name"] for v in otData["resource_spans"][0]["scope_spans"][0]["spans"]}
+            self.assertSetEqual(msg_span_names, {"newThreadRootSpan", "innerspan"})
+
+            root_span = self.getSpan(otData, "newThreadRootSpan")
+            self.assertListEqual(
+                root_span["attributes"],
+                [
+                    {"key": "rootspan", "value": {"string_value": "I am a root span"}},
+                    {
+                        "key": "loop",
+                        "value": {"string_value": str(ctr)},
+                    },  # TODO: let setSpanAttribute accept an std::variant
+                ],
+            )
+
+            inner_span = self.getSpan(otData, "innerspan")
+            self.assertListEqual(
+                inner_span["attributes"],
+                [{"key": "inner", "value": {"string_value": "I am an inner span"}}],
+            )

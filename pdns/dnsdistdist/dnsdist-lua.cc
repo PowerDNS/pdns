@@ -20,18 +20,22 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include <boost/variant/variant.hpp>
 #include <cstdint>
 #include <cstdio>
 #include <dirent.h>
 #include <fstream>
 #include <cinttypes>
 
+#include <memory>
+#include <optional>
 #include <regex>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <thread>
 #include <vector>
 
+#include "dnsdist-opentelemetry.hh"
 #include "dnsdist.hh"
 #include "dnsdist-backend.hh"
 #include "dnsdist-cache.hh"
@@ -52,6 +56,8 @@
 #include "dnsdist-logging.hh"
 #include "dnsdist-lua.hh"
 #include "dnsdist-lua-hooks.hh"
+#include "logging.hh"
+#include "logr.hh"
 #include "xsk.hh"
 #ifdef LUAJIT_VERSION
 #include "dnsdist-lua-ffi.hh"
@@ -87,6 +93,7 @@ using std::thread;
 
 using update_metric_opts_t = LuaAssociativeTable<boost::variant<uint64_t, LuaAssociativeTable<std::string>>>;
 using declare_metric_opts_t = LuaAssociativeTable<boost::variant<bool, std::string>>;
+using opentelemetry_opts_t = LuaAssociativeTable<boost::variant<size_t, LuaArray<std::shared_ptr<RemoteLoggerInterface>>>>;
 
 static boost::tribool s_noLuaSideEffect;
 
@@ -273,7 +280,7 @@ void checkParameterBound(const std::string& parameter, uint64_t value, uint64_t 
   }
 }
 
-static void LuaThread(const std::string& code)
+static void LuaThread(const std::string& code, const size_t openTelemetryTraceInterval = 0, const std::vector<std::shared_ptr<RemoteLoggerInterface>>& remoteloggers = {})
 {
   setThreadName("dnsdist/lua-bg");
   LuaContext context;
@@ -303,10 +310,26 @@ static void LuaThread(const std::string& code)
 
   // function threadmessage(cmd, data) print("got thread data:", cmd) for k,v in pairs(data) do print(k,v) end end
 
+  size_t otCounter = 0;
   for (;;) {
     try {
-      dnsdist::configuration::refreshLocalRuntimeConfiguration();
-      context.executeCode(code);
+      auto config = dnsdist::configuration::refreshLocalRuntimeConfiguration();
+      std::shared_ptr<pdns::trace::dnsdist::Tracer> tracer = config.d_openTelemetryTracing && openTelemetryTraceInterval != 0 && otCounter % openTelemetryTraceInterval == 0 ? pdns::trace::dnsdist::Tracer::getTracer() : nullptr;
+
+      context.writeFunction("sendOpenTelemetryTrace", [&tracer, &otCounter, &config, &remoteloggers, openTelemetryTraceInterval]() {
+        pdns::trace::dnsdist::sendTracesToRemoteLoggers(tracer, remoteloggers);
+
+        otCounter++;
+        config = dnsdist::configuration::refreshLocalRuntimeConfiguration();
+        auto newTracer = config.d_openTelemetryTracing && openTelemetryTraceInterval != 0 && otCounter % openTelemetryTraceInterval == 0 ? pdns::trace::dnsdist::Tracer::getTracer() : nullptr;
+        tracer.swap(newTracer);
+      });
+
+      pdns::trace::dnsdist::runWithLuaTracing(context, tracer, [&context, tracer, code, remoteloggers]() {
+        // Why no root-closer? Because people probably want to do some setup before going into a main loop.
+        context.executeCode(code);
+      });
+      pdns::trace::dnsdist::sendTracesToRemoteLoggers(tracer, remoteloggers);
       SLOG(errlog("Lua thread exited, restarting in 5 seconds"),
            getLogger("LuaThread")->info(Logr::Error, "Lua thread exited, restarting in 5 seconds"));
     }
@@ -3197,12 +3220,30 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 #endif /* HAVE_LIBSSL && OPENSSL_VERSION_MAJOR >= 3 && HAVE_TLS_PROVIDERS */
 
-  luaCtx.writeFunction("newThread", [client, configCheck](const std::string& code) {
+  luaCtx.writeFunction("newThread", [client, configCheck](const std::string& code, std::optional<opentelemetry_opts_t> otOpts) {
+    size_t openTelemetryTraceInterval{0};
+    LuaArray<std::shared_ptr<RemoteLoggerInterface>> remoteloggers;
+
+    getOptionalValue<size_t>(otOpts, "interval", openTelemetryTraceInterval);
+    getOptionalValue<LuaArray<std::shared_ptr<RemoteLoggerInterface>>>(otOpts, "remoteloggers", remoteloggers);
+    checkAllParametersConsumed("newThread", otOpts);
+
+    if (openTelemetryTraceInterval != 0 && remoteloggers.empty()) {
+      SLOG(warnlog("newThread called with an OpenTelemetry trace interval (%i), but no RemoteLoggers. No OpenTelemetry Traces can be sent", openTelemetryTraceInterval),
+           getLogger("declareMetric")->info(Logr::Warning, "newThread called with an OpenTelemetry trace interval, but no RemoteLoggers. No OpenTelemetry Traces can be sent", "interval", Logging::Loggable(openTelemetryTraceInterval)));
+    }
+
     if (client || configCheck) {
       return;
     }
-    std::thread newThread(LuaThread, code);
 
+    std::vector<std::shared_ptr<RemoteLoggerInterface>> loggers;
+    loggers.reserve(remoteloggers.size());
+    for (const auto& logger : remoteloggers) {
+      loggers.emplace_back(logger.second);
+    }
+
+    std::thread newThread(LuaThread, code, openTelemetryTraceInterval, loggers);
     newThread.detach();
   });
 

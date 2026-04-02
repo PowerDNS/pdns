@@ -2247,11 +2247,23 @@ Other functions
 
   This function, if it exists, is called when a separate thread (made with :func:`newThread`) calls :func:`submitToMainThread`.
 
-.. function:: newThread(code)
+.. function:: newThread(code [, openTelemetryTraceOptions])
+
+  .. versionchanged:: 2.2.0
+    ``opentelemetryTraceOptions`` optional parameter added
 
   Spawns a separate thread running the supplied code.
   Code is supplied as a string, not as a function object.
+  The code is run, after which :program:`dnsdist` sleeps for 5 seconds before running the code again.
   Note that this function does nothing in 'client' or 'config-check' modes.
+
+  :param string code: The code to run in the separate thread
+  :param int openTelemetryTraceOptions: A table with key: value pairs with options for OpenTelemetry tracing (see :doc:`ottrace`).
+
+  OpenTelemetry Trace Options:
+
+  * ``interval=number``: one in ``interval`` traces will actually be created and sent
+  * ``remoteloggers``: A table of :func:`remoteLogger <newRemoteLogger>` objects to send the traces to. Note that these log messages will be empty, apart from the trace data.
 
 .. function:: refreshRuntimeConfiguration()
 
