@@ -1236,8 +1236,8 @@ static bool isUDPQueryAcceptable(ClientState& clientState, const struct msghdr* 
   if ((msgh->msg_flags & MSG_TRUNC) != 0) {
     /* message was too large for our buffer */
     vinfolog("Dropping message too large for our buffer");
-    ++clientState.nonCompliantQueries;
     ++dnsdist::metrics::g_stats.nonCompliantQueries;
+    ++clientState.nonCompliantQueries;
     return false;
   }
 
@@ -2159,8 +2159,8 @@ static void MultipleMessagesUDPClientThread(ClientState* clientState)
 
       if ((msgh->msg_flags & MSG_TRUNC) != 0) {
         /* message was too large for our buffer */
-        ++clientState->nonCompliantQueries;
         ++dnsdist::metrics::g_stats.nonCompliantQueries;
+        ++clientState->nonCompliantQueries;
         continue;
       }
 
