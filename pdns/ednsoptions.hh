@@ -43,6 +43,11 @@ struct EDNSOptionView
   std::vector<EDNSOptionViewValue> values;
 };
 
+struct EDNSOptionValues
+{
+  std::vector<std::string> values;
+};
+
 static constexpr size_t EDNSOptionCodeSize = 2;
 static constexpr size_t EDNSOptionLengthSize = 2;
 
