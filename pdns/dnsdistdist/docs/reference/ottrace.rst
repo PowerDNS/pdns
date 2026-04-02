@@ -296,6 +296,46 @@ Within the function body, you can create more spans by calling :func:`withTraceS
 Using :func:`withTraceSpan` when tracing is disabled is completely safe and transparent.
 The Lua code will be run, but no Trace Span will be created.
 
+Trace Spans from Lua threads
+----------------------------
+
+When running Lua code in its own thread (created with :func:`newThread`), Trace Spans can be created since version 2.2.0.
+However, compared to query traces and maintenance traces, the called code itself is responsible for sending the Traces.
+Sending traces can be done with :func:`sendOpenTelemetryTrace`.
+
+  .. code-block:: lua
+
+    setOpenTelemetryTracing(true)
+    rl = newRemoteLogger("127.0.0.1:55555")
+
+    newThread(
+      [==[
+        -- setup, can use withTraceSpan
+        withTraceSpan("setup", function()
+            -- Do your setup here
+        end)
+        -- if you do use WithTraceSpan, send the setup trace before opening new spans
+        sendOpenTelemetryTrace()
+
+        while true do
+            -- this is your main-loop
+            withTraceSpan("newThreadRootSpan", function()
+                setSpanAttribute("rootspan", "I am a root span")
+                -- do useful things
+                withTraceSpan("innerspan", function()
+                    setSpanAttribute("inner", "I am an inner span")
+                end)
+            end)
+            -- Send the trace before going back into the main-loop
+            sendOpenTelemetryTrace()
+        end
+    ]==],
+      {
+        interval = 1, -- send all traces
+        remoteloggers = { rl },
+      }
+    )
+
 Functions
 ---------
 
@@ -307,6 +347,7 @@ The following functions are always available, but only produce Trace Spans withi
 * :func:`LuaFFIResponseAction`
 * :func:`maintenance`
 * Any function added with :func:`addMaintenanceCallback`
+* Inside code ran with :func:`newThread`, but requires using :func:`sendOpenTelemetryTrace`
 
 .. function:: withTraceSpan(name, func)
 
@@ -330,3 +371,13 @@ The following functions are always available, but only produce Trace Spans withi
 
   :param string key: The key for attribute
   :param string value: The value of the attribute
+
+.. function:: sendOpenTelemetryTrace()
+
+  .. versionadded:: 2.2.0
+
+  Only available in code run inside :func:`newThread`.
+  When using :func:`newThread`, it is customary to use a main-loop inside the thread. This means that control is never returned to :program:`dnsdist`. Hence, :program:`dnsdist` can't figure out when to send the trace.
+
+  Use this function to send the completed trace.
+  To ensure that the Trace Spans are closed and complete, it is highly recommended to call :func:`sendOpenTelemetryTrace` outside of any :func:`withTraceSpan`.
