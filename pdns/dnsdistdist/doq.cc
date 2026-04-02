@@ -647,6 +647,7 @@ static void handleReadableStream(DOQFrontend& frontend, ClientState& clientState
       ++dnsdist::metrics::g_stats.nonCompliantQueries;
       ++clientState.nonCompliantQueries;
       quiche_conn_stream_shutdown(conn.d_conn.get(), streamID, QUICHE_SHUTDOWN_WRITE, static_cast<uint64_t>(DOQ_Error_Codes::DOQ_PROTOCOL_ERROR));
+      conn.d_streamBuffers.erase(streamID);
       return;
     }
 
@@ -660,6 +661,7 @@ static void handleReadableStream(DOQFrontend& frontend, ClientState& clientState
     ++dnsdist::metrics::g_stats.nonCompliantQueries;
     ++clientState.nonCompliantQueries;
     quiche_conn_stream_shutdown(conn.d_conn.get(), streamID, QUICHE_SHUTDOWN_WRITE, static_cast<uint64_t>(DOQ_Error_Codes::DOQ_PROTOCOL_ERROR));
+    conn.d_streamBuffers.erase(streamID);
     return;
   }
 
@@ -669,6 +671,7 @@ static void handleReadableStream(DOQFrontend& frontend, ClientState& clientState
     ++dnsdist::metrics::g_stats.nonCompliantQueries;
     ++clientState.nonCompliantQueries;
     quiche_conn_stream_shutdown(conn.d_conn.get(), streamID, QUICHE_SHUTDOWN_WRITE, static_cast<uint64_t>(DOQ_Error_Codes::DOQ_PROTOCOL_ERROR));
+    conn.d_streamBuffers.erase(streamID);
     return;
   }
   DEBUGLOG("Dispatching query");
