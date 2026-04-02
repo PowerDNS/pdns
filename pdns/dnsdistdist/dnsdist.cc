@@ -2135,7 +2135,7 @@ static void MultipleMessagesUDPClientThread(ClientState* clientState)
 
     /* block until we have at least one message ready, but return
        as many as possible to save the syscall costs */
-    msgsGot = recvmmsg(clientState->udpFD, msgVec.data(), vectSize, MSG_WAITFORONE | MSG_TRUNC, nullptr);
+    msgsGot = recvmmsg(clientState->udpFD, msgVec.data(), vectSize, MSG_WAITFORONE, nullptr);
     if (msgsGot <= 0) {
       vinfolog("Getting UDP messages via recvmmsg() failed with: %s", stringerror());
       msgsGot = 0;
@@ -2154,6 +2154,13 @@ static void MultipleMessagesUDPClientThread(ClientState* clientState)
       if (static_cast<size_t>(got) < sizeof(struct dnsheader)) {
         ++dnsdist::metrics::g_stats.nonCompliantQueries;
         ++clientState->nonCompliantQueries;
+        continue;
+      }
+
+      if ((msgh->msg_flags & MSG_TRUNC) != 0) {
+        /* message was too large for our buffer */
+        ++clientState->nonCompliantQueries;
+        ++dnsdist::metrics::g_stats.nonCompliantQueries;
         continue;
       }
 
