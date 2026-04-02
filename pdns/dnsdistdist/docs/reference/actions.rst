@@ -32,8 +32,6 @@ The following actions exist.
 
 .. function:: ClearRecordTypesResponseAction(types)
 
-  .. versionadded:: 1.8.0
-
   Removes given type(s) records from the response. Beware you can accidentally turn the answer into a NODATA response
   without a SOA record in the additional section in which case you may want to use :func:`NegativeAndSOAAction` to generate an answer,
   see example below.
@@ -56,8 +54,6 @@ The following actions exist.
 
 .. function:: ContinueAction(action)
 
-  .. versionadded:: 1.4.0
-
   Execute the specified action and override its return with None, making it possible to continue the processing.
   Subsequent rules are processed after this action.
 
@@ -78,24 +74,6 @@ The following actions exist.
   Subsequent rules are processed after this action.
 
   :param int milliseconds: The amount of milliseconds to delay the response
-
-.. function:: DisableECSAction()
-
-  .. deprecated:: 1.6.0
-
-  This function has been deprecated in 1.6.0 and removed in 1.7.0, please use :func:`SetDisableECSAction` instead.
-
-  Disable the sending of ECS to the backend.
-  Subsequent rules are processed after this action.
-
-.. function:: DisableValidationAction()
-
-  .. deprecated:: 1.6.0
-
-  This function has been deprecated in 1.6.0 and removed in 1.7.0, please use :func:`SetDisableValidationAction` instead.
-
-  Set the CD bit in the query and let it go through.
-  Subsequent rules are processed after this action.
 
 .. function:: DnstapLogAction(identity, logger[, alterFunction])
 
@@ -125,35 +103,7 @@ The following actions exist.
 
   Drop the packet.
 
-.. function:: ECSOverrideAction(override)
-
-  .. deprecated:: 1.6.0
-
-  This function has been deprecated in 1.6.0 and removed in 1.7.0, please use :func:`SetECSOverrideAction` instead.
-
-  Whether an existing EDNS Client Subnet value should be overridden (true) or not (false).
-  Subsequent rules are processed after this action.
-
-  :param bool override: Whether or not to override ECS value
-
-.. function:: ECSPrefixLengthAction(v4, v6)
-
-  .. deprecated:: 1.6.0
-
-  This function has been deprecated in 1.6.0 and removed in 1.7.0, please use :func:`SetECSPrefixLengthAction` instead.
-
-  Set the ECS prefix length.
-  Subsequent rules are processed after this action.
-
-  :param int v4: The IPv4 netmask length
-  :param int v6: The IPv6 netmask length
-
 .. function:: ERCodeAction(rcode [, options])
-
-  .. versionadded:: 1.4.0
-
-  .. versionchanged:: 1.5.0
-    Added the optional parameter ``options``.
 
   Reply immediately by turning the query into a response with the specified EDNS extended ``rcode``.
   ``rcode`` can be specified as an integer or as one of the built-in :ref:`DNSRCode`.
@@ -168,11 +118,6 @@ The following actions exist.
   * ``ra``: bool - Set the RA bit to this value (true means the bit is set, false means it's cleared). Default is to copy the value of the RD bit from the incoming query.
 
 .. function:: HTTPStatusAction(status, body, contentType="" [, options])
-
-  .. versionadded:: 1.4.0
-
-  .. versionchanged:: 1.5.0
-    Added the optional parameter ``options``.
 
   .. versionchanged:: 2.0.0
     The ``options`` parameter is now deprecated.
@@ -192,8 +137,6 @@ The following actions exist.
 
 .. function:: KeyValueStoreLookupAction(kvs, lookupKey, destinationTag)
 
-  .. versionadded:: 1.4.0
-
   Does a lookup into the key value store referenced by 'kvs' using the key returned by 'lookupKey',
   and storing the result if any into the tag named 'destinationTag'.
   The store can be a CDB (:func:`newCDBKVStore`) or a LMDB database (:func:`newLMDBKVStore`).
@@ -208,8 +151,6 @@ The following actions exist.
 
 .. function:: KeyValueStoreRangeLookupAction(kvs, lookupKey, destinationTag)
 
-  .. versionadded:: 1.7.0
-
   Does a range-based lookup into the key value store referenced by 'kvs' using the key returned by 'lookupKey',
   and storing the result if any into the tag named 'destinationTag'.
   This assumes that there is a key in network byte order for the last element of the range (for example 2001:0db8:ffff:ffff:ffff:ffff:ffff:ffff for 2001:db8::/32) which contains the first element of the range (2001:0db8:0000:0000:0000:0000:0000:0000) (optionally followed by any data) as value, also in network byte order, and that there is no overlapping ranges in the database.
@@ -223,8 +164,6 @@ The following actions exist.
 
 .. function:: LimitTTLResponseAction(min[, max [, types]])
 
-  .. versionadded:: 1.8.0
-
   Cap the TTLs of the response to the given boundaries.
 
   :param int min: The minimum allowed value
@@ -232,12 +171,6 @@ The following actions exist.
   :param table types: The record types to cap the TTL for, as integers. Default is empty which means all records will be capped.
 
 .. function:: LogAction([filename[, binary[, append[, buffered[, verboseOnly[, includeTimestamp]]]]]])
-
-  .. versionchanged:: 1.4.0
-    Added the optional parameters ``verboseOnly`` and ``includeTimestamp``, made ``filename`` optional.
-
-  .. versionchanged:: 1.7.0
-    Added the ``reload`` method.
 
   Log a line for each query, to the specified ``file`` if any, to the console (require verbose) if the empty string is given as filename.
 
@@ -260,11 +193,6 @@ The following actions exist.
   :param bool includeTimestamp: Whether to include a timestamp for every entry. Default is false
 
 .. function:: LogResponseAction([filename[, append[, buffered[, verboseOnly[, includeTimestamp]]]]]])
-
-  .. versionadded:: 1.5.0
-
-  .. versionchanged:: 1.7.0
-    Added the ``reload`` method.
 
   Log a line for each response, to the specified ``file`` if any, to the console (require verbose) if the empty string is given as filename.
 
@@ -293,8 +221,6 @@ The following actions exist.
 
 .. function:: LuaFFIAction(function)
 
-  .. versionadded:: 1.5.0
-
   Invoke a Lua FFI function that accepts a pointer to a ``dnsdist_ffi_dnsquestion_t`` object, whose bindings are defined in ``dnsdist-lua-ffi-interface.h``.
 
   The ``function`` should return a :ref:`DNSAction`. If the Lua code fails, ServFail is returned.
@@ -302,8 +228,6 @@ The following actions exist.
   :param string function: the name of a Lua function
 
 .. function:: LuaFFIPerThreadAction(function)
-
-  .. versionadded:: 1.7.0
 
   Invoke a Lua FFI function that accepts a pointer to a ``dnsdist_ffi_dnsquestion_t`` object, whose bindings are defined in ``dnsdist-lua-ffi-interface.h``.
 
@@ -317,8 +241,6 @@ The following actions exist.
 
 .. function:: LuaFFIPerThreadResponseAction(function)
 
-  .. versionadded:: 1.7.0
-
   Invoke a Lua FFI function that accepts a pointer to a ``dnsdist_ffi_dnsquestion_t`` object, whose bindings are defined in ``dnsdist-lua-ffi-interface.h``.
 
   The ``function`` should return a :ref:`DNSResponseAction`. If the Lua code fails, ServFail is returned.
@@ -330,8 +252,6 @@ The following actions exist.
   :param string function: a Lua string returning a Lua function
 
 .. function:: LuaFFIResponseAction(function)
-
-  .. versionadded:: 1.5.0
 
   Invoke a Lua FFI function that accepts a pointer to a ``dnsdist_ffi_dnsquestion_t`` object, whose bindings are defined in ``dnsdist-lua-ffi-interface.h``.
 
@@ -347,27 +267,9 @@ The following actions exist.
 
   :param string function: the name of a Lua function
 
-.. function:: MacAddrAction(option)
-
-  .. deprecated:: 1.6.0
-
-  This function has been deprecated in 1.6.0 and removed in 1.7.0, please use :func:`SetMacAddrAction` instead.
-
-  Add the source MAC address to the query as EDNS0 option ``option``.
-  This action is currently only supported on Linux.
-  Subsequent rules are processed after this action.
-
-  :param int option: The EDNS0 option number
-
 .. function:: NegativeAndSOAAction(nxd, zone, ttl, mname, rname, serial, refresh, retry, expire, minimum [, options])
 
-  .. versionadded:: 1.6.0
-
-  .. versionchanged:: 1.8.0
-    Added the ``soaInAuthoritySection`` option.
-
   Turn a question into a response, either a NXDOMAIN or a NODATA one based on ''nxd'', setting the QR bit to 1 and adding a SOA record in the additional section.
-  Note that this function was called :func:`SetNegativeAndSOAAction` before 1.6.0.
 
   :param bool nxd: Whether the answer is a NXDOMAIN (true) or a NODATA (false)
   :param string zone: The owner name for the SOA record
@@ -393,19 +295,7 @@ The following actions exist.
   Does nothing.
   Subsequent rules are processed after this action.
 
-.. function:: NoRecurseAction()
-
-  .. deprecated:: 1.6.0
-
-  This function has been deprecated in 1.6.0 and removed in 1.7.0, please use :func:`SetNoRecurseAction` instead.
-
-  Strip RD bit from the question, let it go through.
-  Subsequent rules are processed after this action.
-
 .. function:: PoolAction(poolname [, stop])
-
-  .. versionchanged:: 1.8.0
-    Added the ``stop`` optional parameter.
 
   Send the packet into the specified pool. If ``stop`` is set to false, subsequent rules will be processed after this action.
 
@@ -421,9 +311,6 @@ The following actions exist.
 
 .. function:: QPSPoolAction(maxqps, poolname [, stop])
 
-  .. versionchanged:: 1.8.0
-    Added the ``stop`` optional parameter.
-
   Send the packet into the specified pool only if it does not exceed the ``maxqps`` queries per second limits. If ``stop`` is set to false, subsequent rules will be processed after this action.
   Letting the subsequent rules apply otherwise.
 
@@ -432,9 +319,6 @@ The following actions exist.
   :param bool stop: Whether to stop processing rules after this action. Default is true, meaning the remaining rules will not be processed.
 
 .. function:: RCodeAction(rcode [, options])
-
-  .. versionchanged:: 1.5.0
-    Added the optional parameter ``options``.
 
   Reply immediately by turning the query into a response with the specified ``rcode``.
   ``rcode`` can be specified as an integer or as one of the built-in :ref:`DNSRCode`.
@@ -449,13 +333,6 @@ The following actions exist.
   * ``ra``: bool - Set the RA bit to this value (true means the bit is set, false means it's cleared). Default is to copy the value of the RD bit from the incoming query.
 
 .. function:: RemoteLogAction(remoteLogger[, alterFunction [, options [, metas]]])
-
-  .. versionchanged:: 1.4.0
-    ``ipEncryptKey`` optional key added to the options table.
-
-  .. versionchanged:: 1.8.0
-    ``metas`` optional parameter added.
-    ``exportTags`` optional key added to the options table.
 
   .. versionchanged:: 2.2.0
     ``exportTagsKeyOnly``, ``exportTagsPrefixes`` and ``exportTagsStripPrefixes`` optional keys added to the options table.
@@ -496,13 +373,6 @@ The following actions exist.
 
 .. function:: RemoteLogResponseAction(remoteLogger[, alterFunction[, includeCNAME [, options [, metas [, delay]]]]])
 
-  .. versionchanged:: 1.4.0
-    ``ipEncryptKey`` optional key added to the options table.
-
-  .. versionchanged:: 1.8.0
-    ``metas`` optional parameter added.
-    ``exportTags`` optional key added to the options table.
-
   .. versionchanged:: 1.9.0
     ``exportExtendedErrorsToMeta`` optional key added to the options table.
 
@@ -538,8 +408,6 @@ The following actions exist.
 
 .. function:: SetAdditionalProxyProtocolValueAction(type, value)
 
-  .. versionadded:: 1.6.0
-
   Add a Proxy-Protocol Type-Length value to be sent to the server along with this query. It does not replace any
   existing value with the same type but adds a new value.
   Be careful that Proxy Protocol values are sent once at the beginning of the TCP connection for TCP and DoT queries.
@@ -552,16 +420,12 @@ The following actions exist.
 
 .. function:: SetDisableECSAction()
 
-  .. versionadded:: 1.6.0
-
   Disable the addition of EDNS Client Subnet information by :program:`dnsdist` before passing queries to the backend.
   This does not remove any existing EDNS Client Subnet value sent by the client, please have a look at :func:`SetEDNSOptionAction` instead.
   Subsequent rules are processed after this action.
   Note that this function was called :func:`DisableECSAction` before 1.6.0.
 
 .. function:: SetDisableValidationAction()
-
-  .. versionadded:: 1.6.0
 
   Set the CD bit in the query and let it go through.
   Subsequent rules are processed after this action.
@@ -580,8 +444,6 @@ The following actions exist.
 
 .. function:: SetECSOverrideAction(override)
 
-  .. versionadded:: 1.6.0
-
   Whether an existing EDNS Client Subnet value should be overridden (true) or not (false).
   Subsequent rules are processed after this action.
   Note that this function was called :func:`ECSOverrideAction` before 1.6.0.
@@ -589,8 +451,6 @@ The following actions exist.
   :param bool override: Whether or not to override ECS value
 
 .. function:: SetECSPrefixLengthAction(v4, v6)
-
-  .. versionadded:: 1.6.0
 
   Set the ECS prefix length.
   Subsequent rules are processed after this action.
@@ -600,8 +460,6 @@ The following actions exist.
   :param int v6: The IPv6 netmask length
 
 .. function:: SetEDNSOptionAction(option)
-
-  .. versionadded:: 1.7.0
 
   Add arbitrary EDNS option and data to the query. Any existing EDNS content with the same option code will be overwritten.
   Subsequent rules are processed after this action.
@@ -649,8 +507,6 @@ The following actions exist.
 
 .. function:: SetMacAddrAction(option)
 
-  .. versionadded:: 1.6.0
-
   Add the source MAC address to the query as EDNS0 option ``option``.
   This action is currently only supported on Linux.
   Subsequent rules are processed after this action.
@@ -660,15 +516,11 @@ The following actions exist.
 
 .. function:: SetMaxReturnedTTLAction(max)
 
-  .. versionadded:: 1.8.0
-
   Cap the TTLs of the response to the given maximum, but only after inserting the response into the packet cache with the initial TTL values.
 
   :param int max: The maximum allowed value
 
 .. function:: SetMaxReturnedTTLResponseAction(max)
-
-  .. versionadded:: 1.8.0
 
   Cap the TTLs of the response to the given maximum, but only after inserting the response into the packet cache with the initial TTL values.
 
@@ -676,15 +528,11 @@ The following actions exist.
 
 .. function:: SetMaxTTLResponseAction(max)
 
-  .. versionadded:: 1.8.0
-
   Cap the TTLs of the response to the given maximum.
 
   :param int max: The maximum allowed value
 
 .. function:: SetMinTTLResponseAction(min)
-
-  .. versionadded:: 1.8.0
 
   Cap the TTLs of the response to the given minimum.
 
@@ -692,43 +540,11 @@ The following actions exist.
 
 .. function:: SetNoRecurseAction()
 
-  .. versionadded:: 1.6.0
-
   Strip RD bit from the question, let it go through.
   Subsequent rules are processed after this action.
   Note that this function was called :func:`NoRecurseAction` before 1.6.0.
 
-.. function:: SetNegativeAndSOAAction(nxd, zone, ttl, mname, rname, serial, refresh, retry, expire, minimum [, options])
-
-  .. versionadded:: 1.5.0
-
-  .. deprecated:: 1.6.0
-
-  This function has been deprecated in 1.6.0 and removed in 1.7.0, please use :func:`NegativeAndSOAAction` instead.
-
-  Turn a question into a response, either a NXDOMAIN or a NODATA one based on ''nxd'', setting the QR bit to 1 and adding a SOA record in the additional section.
-
-  :param bool nxd: Whether the answer is a NXDOMAIN (true) or a NODATA (false)
-  :param string zone: The owner name for the SOA record
-  :param int ttl: The TTL of the SOA record
-  :param string mname: The mname of the SOA record
-  :param string rname: The rname of the SOA record
-  :param int serial: The value of the serial field in the SOA record
-  :param int refresh: The value of the refresh field in the SOA record
-  :param int retry: The value of the retry field in the SOA record
-  :param int expire: The value of the expire field in the SOA record
-  :param int minimum: The value of the minimum field in the SOA record
-  :param table options: A table with key: value pairs with options
-
-  Options:
-
-  * ``aa``: bool - Set the AA bit to this value (true means the bit is set, false means it's cleared). Default is to clear it.
-  * ``ad``: bool - Set the AD bit to this value (true means the bit is set, false means it's cleared). Default is to clear it.
-  * ``ra``: bool - Set the RA bit to this value (true means the bit is set, false means it's cleared). Default is to copy the value of the RD bit from the incoming query.
-
 .. function:: SetProxyProtocolValuesAction(values)
-
-  .. versionadded:: 1.5.0
 
   Set the Proxy-Protocol Type-Length values to be sent to the server along with this query to ``values``.
   Subsequent rules are processed after this action.
@@ -736,8 +552,6 @@ The following actions exist.
   :param table values: A table of types and values to send, for example: ``{ [0] = foo", [42] = "bar" }``
 
 .. function:: SetReducedTTLResponseAction(percentage)
-
-  .. versionadded:: 1.8.0
 
   Reduce the TTL of records in a response to a percentage of the original TTL. For example,
   passing 50 means that the original TTL will be cut in half.
@@ -747,25 +561,16 @@ The following actions exist.
 
 .. function:: SetSkipCacheAction()
 
-  .. versionadded:: 1.6.0
-
   Don't lookup the cache for this query, don't store the answer.
   Subsequent rules are processed after this action.
   Note that this function was called :func:`SkipCacheAction` before 1.6.0.
 
 .. function:: SetSkipCacheResponseAction()
 
-  .. versionadded:: 1.6.0
-
   Don't store this answer into the cache.
   Subsequent rules are processed after this action.
 
 .. function:: SetTagAction(name, value)
-
-  .. versionadded:: 1.6.0
-
-  .. versionchanged:: 1.7.0
-    Prior to 1.7.0 :func:`SetTagAction` would not overwrite an existing tag value if already set.
 
   Associate a tag named ``name`` with a value of ``value`` to this query, that will be passed on to the response.
   This function will overwrite any existing tag value.
@@ -777,11 +582,6 @@ The following actions exist.
 
 .. function:: SetTagResponseAction(name, value)
 
-  .. versionadded:: 1.6.0
-
-  .. versionchanged:: 1.7.0
-    Prior to 1.7.0 :func:`SetTagResponseAction` would not overwrite an existing tag value if already set.
-
   Associate a tag named ``name`` with a value of ``value`` to this response.
   This function will overwrite any existing tag value.
   Subsequent rules are processed after this action.
@@ -791,8 +591,6 @@ The following actions exist.
   :param string value: The value of the tag
 
 .. function:: SetTempFailureCacheTTLAction(ttl)
-
-  .. versionadded:: 1.6.0
 
   Set the cache TTL to use for ServFail and Refused replies. TTL is not applied for successful replies.
   Subsequent rules are processed after this action.
@@ -820,15 +618,6 @@ The following actions exist.
   * ``traceparentOptionCode``: integer, default 65500. The EDNS option code for TRACEPARENT EDNS option.
   * ``sendDownstreamTraceparent``: boolean, default false. When true, a TRACEPARENT EDNS option is added to the downstream query with the active Trace ID and the last Span ID of the trace.
 
-.. function:: SkipCacheAction()
-
-  .. deprecated:: 1.6.0
-
-  This function has been deprecated in 1.6.0 and removed in 1.7.0, please use :func:`SetSkipAction` instead.
-
-  Don't lookup the cache for this query, don't store the answer.
-  Subsequent rules are processed after this action.
-
 .. function:: SNMPTrapAction([message])
 
   Send an SNMP trap, adding the optional ``message`` string as the query description.
@@ -845,12 +634,6 @@ The following actions exist.
 
 .. function:: SpoofAction(ip [, options])
               SpoofAction(ips [, options])
-
-  .. versionchanged:: 1.5.0
-    Added the optional parameter ``options``.
-
-  .. versionchanged:: 1.6.0
-    Up to 1.6.0, the syntax for this function was ``SpoofAction(ips[, ip[, options]])``.
 
   Forge a response with the specified IPv4 (for an A query) or IPv6 (for an AAAA) addresses.
   If you specify multiple addresses, all that match the query type (A, AAAA or ANY) will get spoofed in.
@@ -871,9 +654,6 @@ The following actions exist.
 
 .. function:: SpoofCNAMEAction(cname [, options])
 
-  .. versionchanged:: 1.5.0
-    Added the optional parameter ``options``.
-
   Forge a response with the specified CNAME value.
 
   :param string cname: The name to respond with
@@ -888,11 +668,6 @@ The following actions exist.
 
 .. function:: SpoofRawAction(rawAnswer [, options])
               SpoofRawAction(rawAnswers [, options])
-
-  .. versionadded:: 1.5.0
-
-  .. versionchanged:: 1.6.0
-    Up to 1.6.0, it was only possible to spoof one answer.
 
   .. versionchanged:: 1.9.0
     Added the optional parameter ``typeForAny``.
@@ -939,8 +714,6 @@ The following actions exist.
 
 .. function:: SpoofSVCAction(svcParams [, options])
 
-  .. versionadded:: 1.7.0
-
   Forge a response with the specified SVC record data. If the list contains more than one :class:`SVCRecordParameters` (generated via :func:`newSVCRecordParameters`) object, they are all returned,
   and should have different priorities.
   The hints provided in the SVC parameters, if any, will also be added as A/AAAA records in the additional section, using the target name present in the parameters as owner name if it's not empty (root) and the qname instead.
@@ -957,39 +730,12 @@ The following actions exist.
 
 .. function:: SpoofPacketAction(rawPacket, len)
 
-  .. versionadded:: 1.8.0
-
   Spoof a raw self-generated answer
 
   :param string rawPacket: The raw wire-ready DNS answer
   :param int len: The length of the packet
 
-.. function:: TagAction(name, value)
-
-  .. deprecated:: 1.6.0
-    This function has been deprecated in 1.6.0 and removed in 1.7.0, please use :func:`SetTagAction` instead.
-
-  Associate a tag named ``name`` with a value of ``value`` to this query, that will be passed on to the response.
-  Subsequent rules are processed after this action.
-
-  :param string name: The name of the tag to set
-  :param string value: The value of the tag
-
-.. function:: TagResponseAction(name, value)
-
-  .. deprecated:: 1.6.0
-    This function has been deprecated in 1.6.0 and removed in 1.7.0, please use :func:`SetTagResponseAction` instead.
-
-  Associate a tag named ``name`` with a value of ``value`` to this response.
-  Subsequent rules are processed after this action.
-
-  :param string name: The name of the tag to set
-  :param string value: The value of the tag
-
 .. function:: TCAction()
-
-  .. versionchanged:: 1.7.0
-    This action is now only performed over UDP transports.
 
   Create answer to query with the TC bit set, and the RA bit set to the value of RD in the query, to force the client to TCP.
   Before 1.7.0 this action was performed even when the query had been received over TCP, which required the use of :func:`TCPRule` to
@@ -1004,9 +750,6 @@ The following actions exist.
 
 .. function:: TeeAction(remote[, addECS[, local [, addProxyProtocol]]])
 
-  .. versionchanged:: 1.8.0
-    Added the optional parameter ``local``.
-
   .. versionchanged:: 1.9.0
     Added the optional parameter ``addProxyProtocol``.
 
@@ -1020,17 +763,6 @@ The following actions exist.
   :param bool addECS: Whether to add ECS information. Default false.
   :param str local: The local address to use to send queries. The default is to let the kernel pick one.
   :param bool addProxyProtocol: Whether to prepend a proxy protocol v2 payload in front of the query. Default to false.
-
-.. function:: TempFailureCacheTTLAction(ttl)
-
-  .. deprecated:: 1.6.0
-
-  This function has been deprecated in 1.6.0 and removed in 1.7.0, please use :func:`SetTempFailureCacheTTLAction` instead.
-
-  Set the cache TTL to use for ServFail and Refused replies. TTL is not applied for successful replies.
-  Subsequent rules are processed after this action.
-
-  :param int ttl: Cache TTL for temporary failure replies
 
 .. function:: UnsetTagAction(name)
 

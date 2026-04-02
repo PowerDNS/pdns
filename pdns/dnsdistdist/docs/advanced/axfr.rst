@@ -23,10 +23,6 @@ and moving the source address check to :program:`dnsdist`'s side::
 
   addAction(AndRule({OrRule({QTypeRule(DNSQType.AXFR), QTypeRule(DNSQType.IXFR)}), NotRule(NetmaskGroupRule("192.168.1.0/24"))}), RCodeAction(DNSRCode.REFUSED))
 
-.. versionchanged:: 1.4.0
-  Before 1.4.0, the QTypes were in the ``dnsdist`` namespace. Use ``dnsdist.AXFR`` and ``dnsdist.IXFR`` in these versions.
-  Before 1.4.0, the RCodes were in the ``dnsdist`` namespace. Use ``dnsdist.REFUSED`` in these versions.
-
 A different way would be to configure dnsdist to pass the source IP of the client to the backend. The different options
 to do that are described in :doc:`Passing the source address to the backend <passing-source-address>`.
 
@@ -43,9 +39,6 @@ to do that are described in :doc:`Passing the source address to the backend <pas
     -- this rule will route SOA, AXFR and IXFR queries to a specific pool of servers
     addAction(OrRule({QTypeRule(DNSQType.SOA), QTypeRule(DNSQType.AXFR), QTypeRule(DNSQType.IXFR)}), PoolAction("primary"))
 
-.. versionchanged:: 1.8.0
-  Since 1.8.0, dnsdist will no longer cache responses to AXFR and IXFR queries.
-
 In front of secondaries
 -----------------------
 
@@ -56,9 +49,6 @@ address on the secondary side (for example with PowerDNS's `trusted-notification
 check to :program:`dnsdist`'s side::
 
   addAction(AndRule({OpcodeRule(DNSOpcode.Notify), NotRule(NetmaskGroupRule("192.168.1.0/24"))}), RCodeAction(DNSRCode.REFUSED))
-
-.. versionchanged:: 1.4.0
-  Before 1.4.0, the RCodes were in the ``dnsdist`` namespace. Use ``dnsdist.REFUSED`` in these versions.
 
 .. warning::
 

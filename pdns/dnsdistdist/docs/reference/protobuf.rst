@@ -64,18 +64,12 @@ Protobuf Logging Reference
 
   .. method:: setRequestor(address [, port])
 
-    .. versionchanged:: 1.5.0
-      ``port`` optional parameter added.
-
     Set the requestor's address.
 
     :param ComboAddress address: The address to set to
     :param int port: The requestor source port
 
   .. method:: setRequestorFromString(address [, port])
-
-    .. versionchanged:: 1.5.0
-      ``port`` optional parameter added.
 
     Set the requestor's address from a string.
 
@@ -84,18 +78,12 @@ Protobuf Logging Reference
 
   .. method:: setResponder(address [, port])
 
-    .. versionchanged:: 1.5.0
-      ``port`` optional parameter added.
-
     Set the responder's address.
 
     :param ComboAddress address: The address to set to
     :param int port: The responder port
 
   .. method:: setResponderFromString(address [, port])
-
-    .. versionchanged:: 1.5.0
-      ``port`` optional parameter added.
 
     Set the responder's address.
 

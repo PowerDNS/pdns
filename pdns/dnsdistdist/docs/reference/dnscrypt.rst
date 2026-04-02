@@ -3,16 +3,6 @@ DNSCrypt objects and functions
 
 .. function:: addDNSCryptBind(address, provider, certFile(s), keyFile(s) [, options])
 
-  .. versionchanged:: 1.4.0
-    Removed ``doTCP`` from the options. A listen socket on TCP is always created.
-    ``certFile(s)`` and ``keyFile(s)`` now accept a list of files.
-
-  .. versionchanged:: 1.5.0
-    Added ``tcpListenQueueSize`` parameter.
-
-  .. versionchanged:: 1.6.0
-    Added ``maxInFlight`` and ``maxConcurrentTCPConnections`` parameters.
-
   Adds a DNSCrypt listen socket on ``address``.
 
   :param string address: The address and port to listen on
@@ -66,8 +56,6 @@ DNSCrypt objects and functions
   Return the :class:`DNSCryptContext` object corresponding to the bind ``n``.
 
 .. function:: getDNSCryptBindCount()
-
-  .. versionadded:: 1.5.0
 
   Return the number of DNSCrypt binds.
 
@@ -207,8 +195,6 @@ Context
     Print all the certificates.
 
   .. method:: reloadCertificates()
-
-    .. versionadded:: 1.6.0
 
     Reload the current TLS certificate and key pairs.
 
