@@ -227,6 +227,8 @@ jobs:
             builder: autotools
           - architecture_suffix: '-arm'
             features: least
+          - architecture_suffix: '-arm'
+            sanitizers: tsan
       fail-fast: false
     container:
       image: "${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"
