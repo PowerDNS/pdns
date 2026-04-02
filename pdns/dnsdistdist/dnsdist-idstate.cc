@@ -22,6 +22,7 @@
 
 #include "dnsdist-idstate.hh"
 #include "dnsdist-doh-common.hh"
+#include "dnsdist-opentelemetry.hh"
 #include "dnsdist-protobuf.hh"
 #include "doh3.hh"
 #include "doq.hh"
@@ -93,16 +94,7 @@ InternalQueryState::~InternalQueryState()
       }
     }
 
-    if (!ottraceLoggers.empty()) {
-      pbBuf.clear();
-      pdns::ProtoZero::Message minimalMsg{pbBuf};
-      minimalMsg.setType(pdns::ProtoZero::Message::MessageType::DNSQueryType);
-      minimalMsg.setOpenTelemetryData(OTData);
-      minimalMsg.setOpenTelemetryTraceID(d_OTTracer->getTraceID());
-      for (auto const& msg_logger : ottraceLoggers) {
-        msg_logger->queueData(pbBuf);
-      }
-    }
+    pdns::trace::dnsdist::sendTracesToRemoteLoggers(d_OTTracer, ottraceLoggers);
   }
   catch (...) {
     /* We don't want any uncaught exceptions in a dtor and
