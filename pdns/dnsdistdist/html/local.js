@@ -1,10 +1,10 @@
 "use strict";
 
-var gdata={}
+var gdata = {}
 
 $(document).ready(function() {
     $.ajaxSetup({ cache: false });
-    
+
     var qpsgraph = new Rickshaw.Graph( {
         element: document.getElementById("qpschart"),
         width: 400,
@@ -14,7 +14,7 @@ $(document).ready(function() {
             timeInterval: 1000,
             maxDataPoints: 100,
             timeBase: new Date().getTime() / 1000
-        }) 
+        })
     } );
     var y_ticks = new Rickshaw.Graph.Axis.Y( {
         graph: qpsgraph,
@@ -34,7 +34,7 @@ $(document).ready(function() {
             timeInterval: 1000,
             maxDataPoints: 100,
             timeBase: new Date().getTime() / 1000
-        }) 
+        })
     } );
     var y_ticks = new Rickshaw.Graph.Axis.Y( {
         graph: cpugraph,
@@ -46,95 +46,14 @@ $(document).ready(function() {
     cpugraph.render();
     var intervalcount=0;
 
-    function updateRingBuffers()
+    function appendCellToRow(row, untrusted, align)
     {
-        var filtered=$("#filter1").is(':checked')
-        var qstring='jsonstat?command=get-query-ring&name=queries';
-        if(filtered)
-            qstring=qstring+"&public-filtered=1";
-
-        $.getJSON(qstring,
-                  function(data) {
-                      console.log(data);
-                      var bouw="<table><tr><th>Number</th><th>Domain</th><th>Type</th></tr>";
-                      var num=0;
-                      var total=0, rest=0;
-                      $.each(data["entries"], function(a,b) {
-                          total+=b[0];
-                          if(num++ > 10) {
-                              rest+=b[0];
-                              return;
-                          }
-                          if(b[1].length > 25)
-                              b[1]=b[1].substring(0,25);
-
-                          bouw=bouw+("<tr><td>"+b[0]+"</td><td>"+b[1]+"</td><td>"+b[2]+"</td></tr>");
-                      });
-                      bouw+="<tr><td>"+rest+"</td><td>Rest</td></tr>";
-                      bouw=bouw+"</table>";
-                      $("#queryring").html(bouw);
-
-                  });
-
-        filtered=$("#filter2").is(':checked')
-        qstring='jsonstat?command=get-query-ring&name=servfail-queries';
-        if(filtered)
-            qstring=qstring+"&public-filtered=1";
-
-        $.getJSON(qstring, 
-                  function(data) {
-                      var bouw="<table><tr><th>Number</th><th>Servfail domain</th><th>Type</th></tr>";
-                      var num=0, total=0, rest=0;
-                      $.each(data["entries"], function(a,b) {
-                          total+=b[0];
-                          if(num++ > 10) {
-                              rest+=b[0];
-                              return;
-                          }
-                          if(b[1].length > 25)
-                              b[1]=b[1].substring(0,25);
-                          bouw=bouw+("<tr><td>"+b[0]+"</td><td>"+b[1]+"</td><td>"+b[2]+"</td></tr>");
-                      });
-                      bouw+="<tr><td>"+rest+"</td><td>Rest</td></tr>";
-                      bouw=bouw+"</table>";
-                      $("#servfailqueryring").html(bouw);
-
-                  });
-
-        $.getJSON('jsonstat?command=get-remote-ring&name=remotes', 
-                  function(data) {
-                      var bouw="<table><tr><th>Number</th><th>Remote</th></tr>";
-                      var num=0, total=0, rest=0;
-                      $.each(data["entries"], function(a,b) {
-                          total+=b[0];
-                          if(num++ > 10) {
-                              rest +=b[0];
-                              return;
-                          }
-                          bouw=bouw+("<tr><td>"+b[0]+"</td><td>"+b[1]+"</td></tr>");
-                      });
-                      bouw+="<tr><td>"+rest+"</td><td>Rest</td></tr>";
-                      bouw=bouw+"</table>";
-                      $("#remotering").html(bouw);
-
-                  });
-
-        $.getJSON('jsonstat?command=get-remote-ring&name=servfail-remotes', 
-                  function(data) {
-                      var bouw="<table><tr><th>Number</th><th>Servfail Remote</th></tr>";
-                      var num=0, total=0, rest=0;
-                      $.each(data["entries"], function(a,b) {
-                          total+=b[0];
-                          if(num++ > 10) {
-                              rest += b[0];
-                              return;
-                          }
-                          bouw=bouw+("<tr><td>"+b[0]+"</td><td>"+b[1]+"</td></tr>");
-                      });
-                      bouw+="<tr><td>"+rest+"</td><td>Rest</td></tr>";
-                      bouw=bouw+"</table>";
-                      $("#servfailremotering").html(bouw);
-                  });
+        var cell = $('<td/>');
+        if (align) {
+            cell =  $('<td align=' + align + '/>');
+        }
+        cell.text(untrusted);
+        row.append(cell);
     }
 
     function update()
@@ -155,125 +74,147 @@ $(document).ready(function() {
                 $("#latency-dot").text((data["latency-dot-avg10000"]/1000.0).toFixed(2));
                 $("#latency-doh").text((data["latency-doh-avg10000"]/1000.0).toFixed(2));
                 $("#latency-doq").text((data["latency-doq-avg10000"]/1000.0).toFixed(2));
-                if(!gdata["cpu-sys-msec"]) 
-                    gdata=data;
+                if (!gdata["cpu-sys-msec"]) {
+                    gdata = data;
+                }
 
-                var cpu=((1*data["cpu-sys-msec"] + 1*data["cpu-user-msec"]) - (1*gdata["cpu-sys-msec"] + 1*gdata["cpu-user-msec"]))/10.0;
+                var cpu = ((1*data["cpu-sys-msec"] + 1*data["cpu-user-msec"]) - (1*gdata["cpu-sys-msec"] + 1*gdata["cpu-user-msec"]))/10.0;
 
                 $("#cpu").text(cpu.toFixed(2));
-                var qps=1.0*data["queries"]-1.0*gdata["queries"];
+                var qps = 1.0*data["queries"]-1.0*gdata["queries"];
                 $("#qps").text(qps.toFixed(2));
                 $("#server-policy").text(data["server-policy"]);
 
-                var servfailps=(1*data["servfail-responses"]) - (1*gdata["servfail-responses"]);
+                var servfailps = (1*data["servfail-responses"]) - (1*gdata["servfail-responses"]);
 
-                var totpcache=(1*data["cache-hits"] + 1*data["cache-misses"]) - (1*gdata["cache-hits"] + 1*gdata["cache-misses"]);
-                var hitrate=0;
-                if(totpcache > 0) {
-                    hitrate=100.0*(data["cache-hits"]-1.0*gdata["cache-hits"])/totpcache;
+                var totpcache = (1*data["cache-hits"] + 1*data["cache-misses"]) - (1*gdata["cache-hits"] + 1*gdata["cache-misses"]);
+                var hitrate = 0;
+                if (totpcache > 0) {
+                    hitrate = 100.0*(data["cache-hits"]-1.0*gdata["cache-hits"])/totpcache;
                     $("#phitrate").text(hitrate.toFixed(2));
                 }
-                else
+                else {
                     $("#phitrate").text(0);
-                
+                }
+
                 qpsgraph.series.addData({ qps: qps, servfailps: servfailps});
                 qpsgraph.render();
 
                 cpugraph.series.addData({ one: cpu, two: hitrate});
                 cpugraph.render();
 
-                gdata=data;
+                gdata = data;
             },
             error:  function() {
 
             },
         });
-        
+
         $.ajax({ url: 'api/v1/servers/localhost', type: 'GET', dataType: 'json', jsonp: false,
                  success: function(data) {
                      $("#version").text(data["daemon_type"]+" "+data["version"]);
                      $("#acl").text(data["acl"]);
                      $("#local").text(data["local"]);
-                     var bouw='<table width="100%"><tr align=right><th>#</th><th align=left>Name</th><th align=left>Address</th><th>Status</th><th>UDP Latency</th><th>TCP Latency</th><th>Queries</th><th>Drops</th><th>QPS</th><th>Out</th><th>Weight</th><th>Order</th><th align=left>Pools</th></tr>';
+                     var tableElement = $('<table width="100%"><tr align=right><th>#</th><th align=left>Name</th><th align=left>Address</th><th>Status</th><th>UDP Latency</th><th>TCP Latency</th><th>Queries</th><th>Drops</th><th>QPS</th><th>Out</th><th>Weight</th><th>Order</th><th align=left>Pools</th></tr></table>');
                      $.each(data["servers"], function(a,b) {
-                         bouw = bouw + ("<tr align=right><td>"+b["id"]+"</td><td align=left>"+b["name"]+"</td><td align=left>"+b["address"]+"</td><td>"+b["state"]+"</td>");
+                         var row = $('<tr align=right/>');
                          var latency = (b["latency"] === null || b["latency"] === 0.0) ? "-" : b["latency"].toFixed(2);
                          var tcpLatency = (b["tcpLatency"] === null || b["tcpLatency"] === 0.0) ? "-" : b["tcpLatency"].toFixed(2);
-                         bouw = bouw + ("<td>"+latency+"</td><td>"+tcpLatency+"</td><td>"+b["queries"]+"</td><td>"+b["reuseds"]+"</td><td>"+(b["qps"]).toFixed(2)+"</td><td>"+b["outstanding"]+"</td>");
-                         bouw = bouw + ("<td>"+b["weight"]+"</td><td>"+b["order"]+"</td><td align=left>"+b["pools"]+"</td></tr>");
-                     }); 
-                     bouw = bouw + "</table>";
-                     $("#downstreams").html(bouw);
-                     
-                     bouw='<table width="100%"><tr align=left><th>#</th><th align=left>Name</th><th align=left>Rule</th><th>Action</th><th>Matches</th></tr>';
-                     if(data["rules"].length) {
-                         $.each(data["rules"], function(a,b) {
-                             bouw = bouw + ("<tr align=left><td>"+b["id"]+"</td><td align=left>"+b["name"]+"</td><td align=left>"+b["rule"]+"</td><td>"+b["action"]+"</td>");
-                             bouw = bouw + ("<td>"+b["matches"]+"</td></tr>");
-                         }); 
-                     }
-                     else
-                         bouw = bouw + '<tr><td align="center" colspan="4"><font color="#aaaaaa">No rules defined</font></td></tr>';
-                     bouw = bouw + "</table>";
-                     $("#rules").html(bouw);
+                         appendCellToRow(row, b["id"]);
+                         appendCellToRow(row, b["name"], 'left');
+                         appendCellToRow(row, b["address"], 'left');
+                         appendCellToRow(row, b["state"]);
+                         appendCellToRow(row, latency);
+                         appendCellToRow(row, tcpLatency);
+                         appendCellToRow(row, b["queries"]);
+                         appendCellToRow(row, b["reused"]);
+                         appendCellToRow(row, b["qps"].toFixed(2));
+                         appendCellToRow(row, b["outstanding"]);
+                         appendCellToRow(row, b["weight"]);
+                         appendCellToRow(row, b["order"]);
+                         appendCellToRow(row, b["pools"], 'left');
+                         tableElement.append(row);
+                     });
+                     $("#downstreams").html(tableElement);
 
-                     bouw='<table width="100%"><tr align=left><th>#</th><th align=left>Name</th><th align=left>Response Rule</th><th>Action</th><th>Matches</th></tr>';
-                     if(data["response-rules"].length) {
-                         $.each(data["response-rules"], function(a,b) {
-                             bouw = bouw + ("<tr align=left><td>"+b["id"]+"</td><td align=left>"+b["name"]+"</td><td align=left>"+b["rule"]+"</td><td>"+b["action"]+"</td>");
-                             bouw = bouw + ("<td>"+b["matches"]+"</td></tr>");
+                     tableElement = $('<table width="100%"><tr align=left><th>#</th><th align=left>Name</th><th align=left>Rule</th><th>Action</th><th>Matches</th></tr></table>');
+                     if (data["rules"].length) {
+                         $.each(data["rules"], function(a,b) {
+                             var row = $('<tr align=left />');
+                             appendCellToRow(row, b["id"]);
+                             appendCellToRow(row, b["name"], 'left');
+                             appendCellToRow(row, b["rule"], 'left');
+                             appendCellToRow(row, b["action"]);
+                             appendCellToRow(row, b["matches"]);
+                             tableElement.append(row);
                          });
                      }
-                     else
-                         bouw = bouw + '<tr><td align="center" colspan="4"><font color="#aaaaaa">No response rules defined</font></td></tr>';
-                     bouw = bouw + "</table>";
-                     $("#response-rules").html(bouw);
+                     else {
+                         tableElement.append($('<tr><td align="center" colspan="4"><font color="#aaaaaa">No rules defined</font></td></tr>'));
+                     }
+                     $("#rules").html(tableElement);
+
+                     tableElement = $('<table width="100%"><tr align=left><th>#</th><th align=left>Name</th><th align=left>Response Rule</th><th>Action</th><th>Matches</th></tr></table>');
+                     if (data["response-rules"].length) {
+                         $.each(data["response-rules"], function(a,b) {
+                             var row = $('<tr align=left />');
+                             appendCellToRow(row, b["id"]);
+                             appendCellToRow(row, b["name"], 'left');
+                             appendCellToRow(row, b["rule"], 'left');
+                             appendCellToRow(row, b["action"]);
+                             appendCellToRow(row, b["matches"]);
+                             tableElement.append(row);
+                         });
+                     }
+                     else {
+                         tableElement.append($('<tr><td align="center" colspan="4"><font color="#aaaaaa">No response rules defined</font></td></tr>'));
+                     }
+                     $("#response-rules").html(tableElement);
                  }
                });
 
-
-//        if((intervalcount++)%5)
-  //          return;
-        //      updateRingBuffers();
-
         $.ajax({ url: 'jsonstat?command=dynblocklist', type: 'GET', dataType: 'json', jsonp: false,
                  success: function(data) {
-                     var bouw='<table width="100%"><tr align=left><th>Dyn blocked netmask</th><th>Seconds</th><th>Blocks</th><th>eBPF</th><th align=left>Reason</th></tr>';
-		     var gotsome=false;
+                     var tableElement = $('<table width="100%"><tr align=left><th>Dyn blocked netmask</th><th>Seconds</th><th>Blocks</th><th>eBPF</th><th align=left>Reason</th></tr></table>');
+                     var gotsome = false;
                      $.each(data, function(a,b) {
-                         bouw=bouw+("<tr><td>"+a+"</td><td>"+b.seconds+"</td><td>"+b.blocks+"</td><td>"+b.ebpf+"</td><td>"+b.reason+"</td></tr>");
-			 gotsome=true;
+                         var row = $('<tr/>');
+                         appendCellToRow(row, a);
+                         appendCellToRow(row, b.seconds);
+                         appendCellToRow(row, b.blocks);
+                         appendCellToRow(row, b.ebpf);
+                         appendCellToRow(row, b.reason);
+                         tableElement.append(row);
+                         gotsome = true;
                      });
-                     
-		     if(!gotsome)
-                         bouw = bouw + '<tr><td align="center" colspan="4"><font color="#aaaaaa">No dynamic blocks active</font></td></tr>';
 
-                     bouw=bouw+"</table>";
-                     $("#dynblock").html(bouw);
+                     if (!gotsome) {
+                         tableElement.append($('<tr><td align="center" colspan="4"><font color="#aaaaaa">No dynamic blocks active</font></td></tr>'));
+                     }
 
+                     $("#dynblock").html(tableElement);
                  }});
 
         $.ajax({ url: 'jsonstat?command=ebpfblocklist', type: 'GET', dataType: 'json', jsonp: false,
                  success: function(data) {
-                     var bouw='<table width="100%"><tr align=left><th>Kernel-based dyn blocked netmask</th><th>Seconds</th></th><th>Blocks</th></tr>';
-		     var gotsome=false;
+                     var tableElement = $('<table width="100%"><tr align=left><th>Kernel-based dyn blocked netmask</th><th>Seconds</th></th><th>Blocks</th></tr>');
+                     var gotsome = false;
                      $.each(data, function(a,b) {
-                         bouw=bouw+("<tr><td>"+a+"</td><td>"+b.seconds+"</td><td>"+b.blocks+"</td></tr>");
-			 gotsome=true;
+                         var row = $('<tr/>');
+                         appendCellToRow(row, a);
+                         appendCellToRow(row, b.seconds);
+                         appendCellToRow(row, b.blocks);
+                         tableElement.append(row);
+                         gotsome = true;
                      });
 
-		     if(!gotsome)
-                         bouw = bouw + '<tr><td align="center" colspan="4"><font color="#aaaaaa">No eBPF blocks active</font></td></tr>';
+                     if (!gotsome) {
+                         tableElement.append($('<tr><td align="center" colspan="4"><font color="#aaaaaa">No eBPF blocks active</font></td></tr>'));
+                     }
 
-                     bouw=bouw+"</table>";
-                     $("#ebpfblock").html(bouw);
-
+                     $("#ebpfblock").html(tableElement);
                  }});
-
     };
-    
-    $("#filter1").click(updateRingBuffers);
-    $("#filter2").click(updateRingBuffers);
 
     update();
     setInterval(update, 1000);
