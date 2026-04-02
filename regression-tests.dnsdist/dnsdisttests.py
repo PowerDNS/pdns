@@ -1437,7 +1437,13 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
 
         try:
             (message, _) = doqclient.quic_query(
-                query, cls._dnsDistListeningAddr, timeout, port, verify=caFile, server_hostname=serverName
+                query,
+                cls._dnsDistListeningAddr,
+                timeout,
+                port,
+                verify=caFile,
+                server_hostname=serverName,
+                rawQuery=rawQuery,
             )
         except doqclient.StreamResetError as e:
             if passExceptions:
@@ -1483,6 +1489,9 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
             else:
                 cls._toResponderQueue.put(response, True, timeout)
 
+        if rawQuery:
+            rawResponse = True
+
         if rawResponse:
             return doh3_query(
                 query,
@@ -1495,6 +1504,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
                 post=post,
                 additional_headers=customHeaders,
                 raw_response=rawResponse,
+                raw_query=rawQuery,
             )
 
         try:
@@ -1509,6 +1519,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
                 post=post,
                 additional_headers=customHeaders,
                 raw_response=rawResponse,
+                raw_query=rawQuery,
             )
         except doqclient.StreamResetError as e:
             if passExceptions:

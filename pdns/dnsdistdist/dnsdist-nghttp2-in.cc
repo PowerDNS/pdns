@@ -1170,6 +1170,12 @@ int IncomingHTTP2Connection::on_header_callback(nghttp2_session* session, const 
       if (!query.d_headers) {
         query.d_headers = std::make_unique<HeadersMap>();
       }
+      if (query.d_headers->size() >= dnsdist::doh::MAX_INCOMING_HTTP_HEADERS) {
+        /* be nice but not too nice */
+        VERBOSESLOG(infolog("Too many incoming DoH headers"),
+                    conn->getLogger()->info(Logr::Info, "Too many incoming DoH headers"));
+        return NGHTTP2_ERR_CALLBACK_FAILURE;
+      }
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): nghttp2 API
       query.d_headers->insert({std::string(reinterpret_cast<const char*>(name), nameLen), std::string(valueView)});
     }
