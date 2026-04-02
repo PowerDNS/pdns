@@ -2563,15 +2563,7 @@ static void maintThread()
 #ifndef DISABLE_PROTOBUF
     if (tracer != nullptr) {
       maint_closer = std::nullopt; // set the stop time by destructing the Closer
-      static thread_local string pbBuf;
-      pbBuf.clear();
-      pdns::ProtoZero::Message minimalMsg{pbBuf};
-      minimalMsg.setType(pdns::ProtoZero::Message::MessageType::InternalType);
-      minimalMsg.setOpenTelemetryTraceID(tracer->getTraceID());
-      minimalMsg.setOpenTelemetryData(tracer->getOTProtobuf());
-      for (const auto& remotelogger : dnsdist::configuration::getCurrentRuntimeConfiguration().d_maintenanceRemoteLoggers) {
-        remotelogger->queueData(pbBuf);
-      }
+      pdns::trace::dnsdist::sendTracesToRemoteLoggers(tracer, dnsdist::configuration::getCurrentRuntimeConfiguration().d_maintenanceRemoteLoggers);
     }
 #endif
   }

@@ -27,6 +27,7 @@
 #include <optional>
 
 #include "ednsoptions.hh"
+#include "remote_logger.hh"
 
 #ifndef DISABLE_PROTOBUF
 #include "protozero-trace.hh"
@@ -402,4 +403,9 @@ bool addTraceparentEdnsOptionToPacketBuffer(PacketBuffer& origBuf, const std::sh
  * @param spanName The name of the span
  */
 std::optional<pdns::trace::dnsdist::Tracer::Closer> getCloserForInternalSpan([[maybe_unused]] std::shared_ptr<pdns::trace::dnsdist::Tracer>& tracer, [[maybe_unused]] const std::string& spanName);
+
+/*
+ * @brief sends the protobuf for tracer to remoteloggers
+ */
+void sendTracesToRemoteLoggers(const std::shared_ptr<Tracer>& tracer, const std::vector<std::shared_ptr<RemoteLoggerInterface>>& remoteloggers);
 } // namespace pdns::trace::dnsdist

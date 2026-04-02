@@ -28,6 +28,7 @@
 #include <vector>
 
 #ifndef DISABLE_PROTOBUF
+#include "protozero.hh"
 #include "protozero-trace.hh"
 #endif
 
@@ -420,5 +421,24 @@ std::optional<pdns::trace::dnsdist::Tracer::Closer> getCloserForInternalSpan([[m
   }
 #endif
   return std::nullopt;
+}
+
+void sendTracesToRemoteLoggers(const std::shared_ptr<Tracer>& tracer, [[maybe_unused]] const std::vector<std::shared_ptr<RemoteLoggerInterface>>& remoteloggers)
+{
+  if (tracer == nullptr || remoteloggers.empty()) {
+    return;
+  }
+
+#ifndef DISABLE_PROTOBUF
+  static thread_local string pbBuf;
+  pbBuf.clear();
+  pdns::ProtoZero::Message minimalMsg{pbBuf};
+  minimalMsg.setType(pdns::ProtoZero::Message::MessageType::InternalType);
+  minimalMsg.setOpenTelemetryTraceID(tracer->getTraceID());
+  minimalMsg.setOpenTelemetryData(tracer->getOTProtobuf());
+  for (const auto& remotelogger : remoteloggers) {
+    remotelogger->queueData(pbBuf);
+  }
+#endif // DISABLE_PROTOBUF
 }
 } // namespace pdns::trace::dnsdist
