@@ -41,7 +41,7 @@ static std::optional<ServerPolicy::SelectedServerPosition> getLeastOutstanding(c
   double lowestLatencySeen = std::numeric_limits<double>::max();
 
   for (const auto& server : servers) {
-    if (!server.second->isUp()) {
+    if (!server.second->canAcceptNewQueries(false)) {
       continue;
     }
 
@@ -75,7 +75,7 @@ static std::optional<ServerPolicy::SelectedServerPosition> getLeastOutstanding(c
 // get server with least outstanding queries, and within those, with the lowest order, and within those: the fastest
 std::optional<ServerPolicy::SelectedServerPosition> leastOutstanding(const ServerPolicy::NumberedServerVector& servers, [[maybe_unused]] const DNSQuestion* dnsQuestion)
 {
-  if (servers.size() == 1 && servers[0].second->isUp()) {
+  if (servers.size() == 1 && servers[0].second->canAcceptNewQueries(false)) {
     return 1;
   }
 
@@ -85,7 +85,7 @@ std::optional<ServerPolicy::SelectedServerPosition> leastOutstanding(const Serve
 std::optional<ServerPolicy::SelectedServerPosition> firstAvailable(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dnsQuestion)
 {
   for (const auto& server : servers) {
-    if (server.second->isUp() && (!server.second->d_qpsLimiter || server.second->d_qpsLimiter->checkOnly())) {
+    if (server.second->canAcceptNewQueries(true)) {
       return server.first;
     }
   }
@@ -101,7 +101,7 @@ static std::optional<ServerPolicy::SelectedServerPosition> getValRandom(const Se
   size_t usableServers = 0;
   const auto weightedBalancingFactor = dnsdist::configuration::getImmutableConfiguration().d_weightedBalancingFactor;
   for (const auto& server : servers) { // w=1, w=10 -> 1, 11
-    if (server.second->isUp() && (weightedBalancingFactor == 0 || (static_cast<double>(server.second->outstanding.load()) <= (targetLoad * server.second->d_config.d_weight)))) {
+    if (server.second->canAcceptNewQueries(false) && (weightedBalancingFactor == 0 || (static_cast<double>(server.second->outstanding.load()) <= (targetLoad * server.second->d_config.d_weight)))) {
       // Don't overflow sum when adding high weights
       if (server.second->d_config.d_weight > max - sum) {
         sum = max;
@@ -139,7 +139,7 @@ static std::optional<ServerPolicy::SelectedServerPosition> valrandom(const unsig
     double currentLoad = 1;
     size_t totalWeight = 0;
     for (const auto& pair : servers) {
-      if (pair.second->isUp()) {
+      if (pair.second->canAcceptNewQueries(false)) {
         currentLoad += pair.second->outstanding;
         totalWeight += pair.second->d_config.d_weight;
       }
@@ -190,7 +190,7 @@ std::optional<ServerPolicy::SelectedServerPosition> chashedFromHash(const Server
     double currentLoad = 1;
     size_t totalWeight = 0;
     for (const auto& pair : servers) {
-      if (pair.second->isUp()) {
+      if (pair.second->canAcceptNewQueries(false)) {
         currentLoad += pair.second->outstanding;
         totalWeight += pair.second->d_config.d_weight;
       }
@@ -202,7 +202,7 @@ std::optional<ServerPolicy::SelectedServerPosition> chashedFromHash(const Server
   }
 
   for (const auto& serverPair : servers) {
-    if (serverPair.second->isUp() && (consistentHashBalancingFactor == 0 || static_cast<double>(serverPair.second->outstanding.load()) <= (targetLoad * serverPair.second->d_config.d_weight))) {
+    if (serverPair.second->canAcceptNewQueries(false) && (consistentHashBalancingFactor == 0 || static_cast<double>(serverPair.second->outstanding.load()) <= (targetLoad * serverPair.second->d_config.d_weight))) {
       // make sure hashes have been computed
       if (!serverPair.second->hashesComputed) {
         serverPair.second->hash();
@@ -252,7 +252,7 @@ std::optional<ServerPolicy::SelectedServerPosition> roundrobin(const ServerPolic
 
   size_t serverIdx = (counter++) % servers.size();
   auto currentServer = servers.at(serverIdx);
-  if (currentServer.second->isUp()) {
+  if (currentServer.second->canAcceptNewQueries(false)) {
     return currentServer.first;
   }
 
@@ -260,7 +260,7 @@ std::optional<ServerPolicy::SelectedServerPosition> roundrobin(const ServerPolic
   candidates.reserve(servers.size());
 
   for (const auto& server : servers) {
-    if (server.second->isUp()) {
+    if (server.second->canAcceptNewQueries(false)) {
       candidates.push_back(server.first);
     }
   }
@@ -292,7 +292,7 @@ std::optional<ServerPolicy::SelectedServerPosition> orderedWrandUntag(const Serv
   unsigned int curNumber = 1;
 
   for (const auto& svr : servers) {
-    if (svr.second->isUp() && (!dnsQuestion->ids.qTag || dnsQuestion->ids.qTag->count(svr.second->getNameWithAddr()) == 0)) {
+    if (svr.second->canAcceptNewQueries(false) && (!dnsQuestion->ids.qTag || dnsQuestion->ids.qTag->count(svr.second->getNameWithAddr()) == 0)) {
       // the servers in a pool are already sorted in ascending order by its 'order', see ``ServerPool::addServer()``
       if (svr.second->d_config.order > curOrder) {
         break;

@@ -1043,11 +1043,28 @@ unsigned int DownstreamState::getQPSLimit() const
   return dnsdist::logging::getTopLogger("backend")->withValues("backend.name", Logging::Loggable(getName()), "backend.address", Logging::Loggable(d_config.remote), "backend.protocol", Logging::Loggable(getProtocol()));
 }
 
+bool DownstreamState::canAcceptNewQueries(bool enforceQPS) const
+{
+  if (!isUp()) {
+    return false;
+  }
+
+  if (d_config.d_maxOutstandingQueries > 0 && outstanding.load() >= d_config.d_maxOutstandingQueries) {
+    return false;
+  }
+
+  if (enforceQPS && d_qpsLimiter && !d_qpsLimiter->checkOnly()) {
+    return false;
+  }
+
+  return true;
+}
+
 size_t ServerPool::countServers(bool upOnly) const
 {
   size_t count = 0;
   for (const auto& server : d_servers) {
-    if (!upOnly || std::get<1>(server)->isUp()) {
+    if (!upOnly || std::get<1>(server)->canAcceptNewQueries(true)) {
       count++;
     }
   }
@@ -1069,7 +1086,7 @@ bool ServerPool::hasAtLeastOneServerAvailable() const
 {
   // NOLINTNEXTLINE(readability-use-anyofallof): no it's not more readable
   for (const auto& server : d_servers) {
-    if (std::get<1>(server)->isUp()) {
+    if (std::get<1>(server)->canAcceptNewQueries(true)) {
       return true;
     }
   }
