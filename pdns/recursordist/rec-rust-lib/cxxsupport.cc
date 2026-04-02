@@ -884,7 +884,7 @@ void fromLuaToRust(const vector<RPZTrackerParams>& rpzs, pdns::rust::settings::r
       .axfrTimeout = 20,
       .dumpFile = "",
       .seedFile = "",
-      .wipePacketCache = false,
+      .wipePacketCache = true,
     };
 
     for (const auto& address : rpz.zoneXFRParams.primaries) {
