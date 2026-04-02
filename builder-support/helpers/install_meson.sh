@@ -11,7 +11,7 @@ readonly MESON_TARBALL_HASH=$(jq -r .SHA256SUM < meson.json)
 
 cd /tmp
 echo $0: Downloading ${MESON_TARBALL}
-curl -L -o "${MESON_TARBALL}" "${MESON_TARBALL_URL}"
+curl --fail -L -o "${MESON_TARBALL}" "${MESON_TARBALL_URL}"
 echo $0: Checking that the hash of ${MESON_TARBALL} is ${MESON_TARBALL_HASH}
 # Line below should echo two spaces between digest and name
 if echo "${MESON_TARBALL_HASH}  ${MESON_TARBALL}" | sha256sum -c -; then
