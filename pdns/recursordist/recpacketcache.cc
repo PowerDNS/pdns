@@ -118,7 +118,6 @@ uint64_t RecursorPacketCache::doWipePacketCache(const std::unordered_set<DNSName
       count += doWipePacketCache(name, 0xffff, false);
     }
   }
-  cerr << "Wiped " << count << " names from " << names.size() << " candidates" << endl;
   return count;
 }
 
