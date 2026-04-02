@@ -1309,8 +1309,8 @@ static bool isUDPQueryAcceptable(ClientState& clientState, const struct msghdr* 
     /* message was too large for our buffer */
     VERBOSESLOG(infolog("Dropping message too large for our buffer"),
                 dnsdist::logging::getTopLogger("udp-query")->info(Logr::Info, "Dropping query from client that is too large for our buffer", "client.address", Logging::Loggable(remote), "destination.address", Logging::Loggable(dest), "frontend.address", Logging::Loggable(clientState.local)));
-    ++clientState.nonCompliantQueries;
     ++dnsdist::metrics::g_stats.nonCompliantQueries;
+    ++clientState.nonCompliantQueries;
     return false;
   }
 
@@ -2313,8 +2313,8 @@ static void MultipleMessagesUDPClientThread(ClientState* clientState)
 
       if ((msgh->msg_flags & MSG_TRUNC) != 0) {
         /* message was too large for our buffer */
-        ++clientState->nonCompliantQueries;
         ++dnsdist::metrics::g_stats.nonCompliantQueries;
+        ++clientState->nonCompliantQueries;
         continue;
       }
 
