@@ -78,6 +78,7 @@ struct DNSQuestion
   }
   PacketBuffer& getMutableData()
   {
+    ednsOptions.reset();
     return data;
   }
 
