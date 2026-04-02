@@ -1309,8 +1309,8 @@ static bool isUDPQueryAcceptable(ClientState& clientState, const struct msghdr* 
     /* message was too large for our buffer */
     VERBOSESLOG(infolog("Dropping message too large for our buffer"),
                 dnsdist::logging::getTopLogger("udp-query")->info(Logr::Info, "Dropping query from client that is too large for our buffer", "client.address", Logging::Loggable(remote), "destination.address", Logging::Loggable(dest), "frontend.address", Logging::Loggable(clientState.local)));
-    ++clientState.nonCompliantQueries;
     ++dnsdist::metrics::g_stats.nonCompliantQueries;
+    ++clientState.nonCompliantQueries;
     return false;
   }
 
@@ -2287,7 +2287,7 @@ static void MultipleMessagesUDPClientThread(ClientState* clientState)
 
     /* block until we have at least one message ready, but return
        as many as possible to save the syscall costs */
-    msgsGot = recvmmsg(clientState->udpFD, msgVec.data(), vectSize, MSG_WAITFORONE | MSG_TRUNC, nullptr);
+    msgsGot = recvmmsg(clientState->udpFD, msgVec.data(), vectSize, MSG_WAITFORONE, nullptr);
     if (msgsGot <= 0) {
       int savederrno = errno;
       VERBOSESLOG(infolog("Getting UDP messages via recvmmsg() failed with: %s", stringerror(savederrno)),
@@ -2306,6 +2306,13 @@ static void MultipleMessagesUDPClientThread(ClientState* clientState)
       const ComboAddress& remote = recvData[msgIdx].remote;
 
       if (static_cast<size_t>(got) < sizeof(struct dnsheader)) {
+        ++dnsdist::metrics::g_stats.nonCompliantQueries;
+        ++clientState->nonCompliantQueries;
+        continue;
+      }
+
+      if ((msgh->msg_flags & MSG_TRUNC) != 0) {
+        /* message was too large for our buffer */
         ++dnsdist::metrics::g_stats.nonCompliantQueries;
         ++clientState->nonCompliantQueries;
         continue;
