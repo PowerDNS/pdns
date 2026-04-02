@@ -371,6 +371,10 @@ static void rpzPrimary(LuaConfigItems& lci, const boost::variant<string, std::ve
       if (have.count("dumpFile") != 0) {
         params.dumpZoneFileName = boost::get<std::string>(have.at("dumpFile"));
       }
+
+      if (have.count("wipePacketCache") != 0) {
+        params.wipePacketCache = boost::get<bool>(have.at("wipePacketCache"));
+      }
     }
 
     if (params.zoneXFRParams.localAddress != ComboAddress()) {

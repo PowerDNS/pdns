@@ -886,6 +886,7 @@ void fromLuaToRust(const vector<RPZTrackerParams>& rpzs, pdns::rust::settings::r
       .axfrTimeout = 20,
       .dumpFile = "",
       .seedFile = "",
+      .wipePacketCache = true,
     };
 
     for (const auto& address : rpz.zoneXFRParams.primaries) {
@@ -918,6 +919,7 @@ void fromLuaToRust(const vector<RPZTrackerParams>& rpzs, pdns::rust::settings::r
     rustrpz.axfrTimeout = rpz.zoneXFRParams.xfrTimeout;
     rustrpz.dumpFile = rpz.dumpZoneFileName;
     rustrpz.seedFile = rpz.seedFileName;
+    rustrpz.wipePacketCache = rpz.wipePacketCache;
 
     rec.rpzs.emplace_back(rustrpz);
   }
@@ -1246,6 +1248,7 @@ void fromRustToLuaConfig(const rust::Vec<pdns::rust::settings::rec::RPZ>& rpzs, 
     params.zoneXFRParams.xfrTimeout = rpz.axfrTimeout;
     params.dumpZoneFileName = std::string(rpz.dumpFile);
     params.seedFileName = std::string(rpz.seedFile);
+    params.wipePacketCache = rpz.wipePacketCache;
     luaConfig.rpzs.emplace_back(params);
   }
 }
