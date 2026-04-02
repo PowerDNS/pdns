@@ -204,3 +204,21 @@ class QUICXFRTests(object):
 
             (_, receivedResponse) = self.sendQUICQuery(query, response=None, useQueue=False)
             self.assertEqual(receivedResponse, expectedResponse)
+
+class QUICTooLargeTests(object):
+
+    def testTooLarge(self):
+        """
+        QUIC: Too large
+        """
+        name = 'too-large.doq.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+
+        raw = query.to_wire()
+        padding = b'A'* (65536 - len(raw))
+        raw = raw + padding
+
+        (_, receivedResponse) = self.sendQUICQuery(raw, response=None, useQueue=False, rawQuery=True)
+        # None over DoQ
+        if receivedResponse is not None:
+            self.assertEqual(receivedResponse, {b':status': b'400', b'content-length': b'24'})
