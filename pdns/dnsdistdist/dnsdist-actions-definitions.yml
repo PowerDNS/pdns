@@ -260,6 +260,9 @@
   skip-cpp: true
   skip-rust: true
   description: "Send the current query to a remote logger as a Protocol Buffer message. ``alter_function`` is a callback, receiving a :class:`DNSQuestion` and a :class:`DNSDistProtoBufMessage`, that can be used to modify the message, for example for anonymization purposes. Subsequent rules are processed after this action"
+  changes:
+    - version: 2.2.0
+      content: "Added the ``export_tags_key_only``, ``export_tags_prefixes`` and ``export_tags_strip_prefixes`` options"
   parameters:
     - name: "logger_name"
       type: "String"
@@ -298,7 +301,19 @@
     - name: "export_tags"
       type: "Vec<String>"
       default: ""
-      description: "The comma-separated list of keys of internal tags to export into the ``tags`` Protocol Buffer field, as ``key:value`` strings. Note that a tag with an empty value will be exported as ``<key>``, not ``<key>:``. An empty string means that no internal tag will be exported. The special value ``*`` means that all tags will be exported"
+      description: "The list of keys of internal tags to export into the ``tags`` Protocol Buffer field, as ``key:value`` strings (or as ``key`` if ``export_tags_key_only`` is set). Note that a tag with an empty value will be exported as ``<key>``, not ``<key>:``. An empty string means that no internal tag will be exported. The special value ``*`` means that all tags will be exported. See :doc:`protobuf` for some examples."
+    - name: "export_tags_key_only"
+      type: "bool"
+      default: "false"
+      description: "Whether to export tags matched by ``export_tags`` or ``export_tags_prefixes`` as ``key`` (``true``) or ``key:value`` strings (``false``, the default)."
+    - name: "export_tags_prefixes"
+      type: "Vec<String>"
+      default: ""
+      description: "Internal tags whose keys match at least one of these prefixes will be exported into the ``tags`` Protocol Buffer field, as ``key:value`` strings (or as ``key`` if ``export_tags_key_only`` is set). Tags whose keys match at least of the entries in ``export_tags`` will be exported as well."
+    - name: "export_tags_strip_prefixes"
+      type: "bool"
+      default: "false"
+      description: "Whether to strip the prefix part of the key when exporting a tag matched by one of the prefixes defined in ``export_tags_prefixes``."
     - name: "metas"
       type: "Vec<ProtoBufMetaConfiguration>"
       default: true
