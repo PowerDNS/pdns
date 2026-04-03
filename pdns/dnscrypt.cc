@@ -627,6 +627,10 @@ uint16_t DNSCryptQuery::computePaddingSize(uint16_t unpaddedLen, size_t maxLen) 
   assert(d_header.clientNonce);
   assert(d_pair != nullptr);
 
+  if (unpaddedLen > maxLen) {
+    throw std::runtime_error("Trying to compute the padding size for an oversized content");
+  }
+
   unsigned char nonce[DNSCRYPT_NONCE_SIZE];
   memcpy(nonce, d_header.clientNonce, (DNSCRYPT_NONCE_SIZE / 2));
   memcpy(&(nonce[DNSCRYPT_NONCE_SIZE / 2]), d_header.clientNonce, (DNSCRYPT_NONCE_SIZE / 2));
@@ -677,6 +681,9 @@ int DNSCryptQuery::encryptResponse(PacketBuffer& response, size_t maxResponseSiz
 
   size_t requiredSize = sizeof(responseHeader) + DNSCRYPT_MAC_SIZE + response.size();
   size_t maxSize = std::min(maxResponseSize, requiredSize + DNSCRYPT_MAX_RESPONSE_PADDING_SIZE);
+  if (requiredSize > maxResponseSize) {
+    return ENOBUFS;
+  }
   uint16_t paddingSize = computePaddingSize(requiredSize, maxSize);
   requiredSize += paddingSize;
 
