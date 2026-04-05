@@ -3540,7 +3540,17 @@ static void startFrontends()
     std::thread udpThreadHandle(udpClientThread, udpStates);
     udpThreadHandle.detach();
   }
-  if (!tcpStates.empty()) {
+     
+  /* Gives a TCP Thread to DoQ or DoH3 for cross-protocol communication when a request is too big for dnsdist to use UDP so it uses TCP instead */
+  bool needsTCP = !tcpStates.empty();
+  for (const auto& clientState : dnsdist::getFrontends()) {
+     if (clientState->doqFrontend != nullptr || clientState->doh3Frontend != nullptr) {
+        needsTCP = true;
+        break;
+     }
+  }
+     
+  if (needsTCP) {
     g_tcpclientthreads = std::make_unique<TCPClientCollection>(1, tcpStates);
   }
 #endif /* USE_SINGLE_ACCEPTOR_THREAD */
