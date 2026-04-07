@@ -225,7 +225,7 @@ must be modified. The dn of the SOA record *must* have the object class
 ``PdnsDomain``, and thus the ``PdnsDomainId`` attribute. This attribute
 is an integer that *must* be unique across all zones served by the
 backend. Furthermore the ``PdnsDomainType`` must be equal to 'master'
-(lower case).
+(lowercase).
 
 Example
 ^^^^^^^

@@ -138,7 +138,7 @@ Bug fixes
 -  `#5289 <https://github.com/PowerDNS/pdns/pull/5289>`__: Sort NSEC
    record case-insensitive (Kees Monshouwer)
 -  `#5378 <https://github.com/PowerDNS/pdns/pull/5378>`__: Make sure
-   NSEC ordernames are always lower case
+   NSEC ordernames are always lowercase
 -  `#4781 <https://github.com/PowerDNS/pdns/pull/4781>`__: API:
    correctly take TTL from first record even if we are at the last
    comment (Chris Hofstaedtler)

@@ -25,4 +25,4 @@ For those unable to upgrade to a new version, a minimal patch is
 `available <https://downloads.powerdns.com/patches/2018-01>`__
 
 We would like to thank CZ.NIC for finding and subsequently reporting this
-issue! Please also see https://lists.nic.cz/pipermail/knot-dns-users/2018-January/001309.html
+issue! See also https://web.archive.org/web/20180203081941/https://lists.nic.cz/pipermail/knot-dns-users/2018-January/001309.html
