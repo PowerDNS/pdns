@@ -11,9 +11,9 @@ import dns
 import pycurl
 
 import clientsubnetoption
+import paddingoption
 from dnsdistdohtests import DNSDistDOHTest
 from dnsdisttests import DNSDistTest, pickAvailablePort
-import paddingoption
 
 
 class DOHTests(object):
@@ -906,7 +906,7 @@ class DOHTests(object):
                 testcmd, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.STDOUT, close_fds=True
             )
             output = process.communicate(input=b"showVersion()\n")
-        except subprocess.CalledProcessError as exc:
+        except subprocess.CalledProcessError:
             raise AssertionError("%s failed (%d): %s" % (testcmd, process.returncode, process.output))
 
         if process.returncode != 0:
@@ -1770,7 +1770,7 @@ class DOHForwardedForNoTrusted(object):
             )
             self.assertEqual(self._rcode, 403)
             self.assertEqual(receivedResponse, b"DoH query not allowed because of ACL")
-        except pycurl.error as e:
+        except pycurl.error:
             dropped = True
 
         self.assertTrue(dropped)
@@ -2155,6 +2155,8 @@ class DOHEDNSPadding(object):
     newServer{address="127.0.0.1:%d"}
 
     addDOHLocal("127.0.0.1:%d", "%s", "%s", { "/" }, {padResponses=true, library='%s'})
+
+    addAction(QNameRule("padded-self-answered.doh.tests.powerdns.com"), SpoofAction("192.0.2.1"))
     """
     _config_params = ["_testServerPort", "_dohServerPort", "_serverCert", "_serverKey", "_dohLibrary"]
 
@@ -2224,6 +2226,49 @@ class DOHEDNSPadding(object):
         self.assertTrue(receivedResponse)
         self.assertNotEqual(receivedResponse.edns, 0)
         self.assertEqual(len(receivedResponse.options), 0)
+
+    def testDOHWithSelfAnswered(self):
+        """
+        DOH with EDNS Padding, but we answer ourselves via SpoofAction
+        """
+        name = "padded-self-answered.doh.tests.powerdns.com."
+        po = paddingoption.PaddingOption(64)
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, options=[po])
+
+        (_, receivedResponse) = self.sendDOHQuery(
+            self._dohServerPort,
+            self._serverName,
+            self._dohBaseURL,
+            query,
+            caFile=self._caCert,
+        )
+        self.assertEqual(len(receivedResponse.to_wire()) % 468, 0)
+        self.assertTrue(receivedResponse)
+        self.assertEqual(receivedResponse.edns, 0)
+        self.assertEqual(len(receivedResponse.options), 1)
+        for option in receivedResponse.options:
+            self.assertEqual(option.otype, 12)
+
+    def testDOHWithSelfAnsweredNoPaddingOpt(self):
+        """
+        DOH without EDNS Padding, but with EDNS that we answer ourselves via SpoofAction
+        """
+        name = "padded-self-answered.doh.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN", use_edns=True)
+
+        (_, receivedResponse) = self.sendDOHQuery(
+            self._dohServerPort,
+            self._serverName,
+            self._dohBaseURL,
+            query,
+            caFile=self._caCert,
+        )
+        self.assertEqual(len(receivedResponse.to_wire()) % 468, 0)
+        self.assertTrue(receivedResponse)
+        self.assertEqual(receivedResponse.edns, 0)
+        self.assertEqual(len(receivedResponse.options), 1)
+        for option in receivedResponse.options:
+            self.assertEqual(option.otype, 12)
 
 
 class TestDOHEDNSPadding(DOHEDNSPadding, DNSDistDOHTest):
