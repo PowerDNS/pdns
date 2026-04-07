@@ -947,7 +947,7 @@ Changes between RC1, RC2 and RC3.
    not cleaned efficiently. Code in `commit
    1712 <http://wiki.powerdns.com/projects/trac/changeset/1712>`__,
    spotted by Imre Gergely.
--  RC3: Root failed to be renewed automatically, relied on fallback to
+-  RC3: Root failed to be renewed automatically, relied on a fallback to
    make this happen. Code in `commit
    1716 <http://wiki.powerdns.com/projects/trac/changeset/1716>`__,
    spotted by Detlef Peeters.

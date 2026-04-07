@@ -88,7 +88,7 @@ Note that dnsdist dropped us in a prompt above, where we can get some statistics
 
 :func:`showServers()` is usually one of the first commands you will use when logging into the console. More advanced topics are covered in :doc:`guides/console`.
 
-Here we also see our configuration. 5 downstream servers have been configured, of which the first 4 have a QPS limit (of 1, 1, 10 and 10 queries per second, respectively).
+Here we also see our configuration: 5 downstream servers have been configured, of which the first 4 have a QPS limit (of 1, 1, 10 and 10 queries per second, respectively).
 
 The final server has no limit, which we can easily test::
 
@@ -122,7 +122,7 @@ To force a server down, try :attr:`Server:setDown()`::
   ...
 
 The ``DOWN`` in all caps means it was forced down.
-A lower case ``down`` would've meant that dnsdist itself had concluded the server was down.
+A lowercase ``down`` would've meant that dnsdist itself had concluded the server was down.
 Similarly, :meth:`Server.setUp()` forces a server to be up, and :meth:`Server.setAuto` returns it to the default availability-probing.
 
 To change the QPS for a server, use :meth:`Server.setQPS`::

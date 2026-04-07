@@ -42,7 +42,7 @@ Global configuration
   Accept a Linux capability as a string, or a list of these, to retain after startup so that privileged operations can still be performed at runtime.
   Keeping ``CAP_SYS_ADMIN`` on kernel 5.8+ for example allows loading eBPF programs and altering eBPF maps at runtime even if the ``kernel.unprivileged_bpf_disabled`` sysctl is set.
   Note that this does not grant the capabilities to the process, doing so might be done by running it as root which we don't advise, or by adding capabilities via the systemd unit file, for example.
-  Please also be aware that switching to a different user via ``--uid`` will still drop all capabilities.
+  Please be aware that switching to a different user via ``--uid`` will still drop all capabilities.
 
 .. function:: enableLuaConfiguration()
 
@@ -1744,7 +1744,7 @@ faster than the existing rules.
       ``options`` optional parameter added
 
     Adds a rate-limiting rule for the ratio of cache-misses responses over the total number of responses for a given client.
-    A minimum global cache-hit ratio has to specified to prevent false-positive when the cache is empty.
+    A minimum global cache-hit ratio has to be specified to prevent false-positive when the cache is empty.
 
     :param float ratio: Ratio of cache-miss responses per second over the total number of responses for this client to exceed
     :param int seconds: Number of seconds the ratio has been exceeded
@@ -2055,7 +2055,7 @@ StatNode
 SuffixMatchNode
 ~~~~~~~~~~~~~~~
 
-A SuffixMatchNode can be used to quickly check whether a given name belongs to a set or not. This is achieved
+A SuffixMatchNode can be used to quickly check whether or not a given name belongs to a set. This is achieved
 using an efficient tree structure based on DNS labels, making lookups cheap.
 Be careful that Suffix Node matching will match for any sub-domain, regardless of the depth, under the name added to the set. For example,
 if 'example.com.' is added to the set, 'www.example.com.' and 'sub.www.example.com.' will match as well.
