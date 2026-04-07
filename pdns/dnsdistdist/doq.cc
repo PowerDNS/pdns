@@ -541,9 +541,11 @@ static void processDOQQuery(DOQUnitUniquePtr&& doqUnit)
     if (downstream->passCrossProtocolQuery(std::move(cpq))) {
       return;
     }
-    // NOLINTNEXTLINE(bugprone-use-after-move): it was only moved if the call succeeded
-    unit = cpq->releaseDU();
-    handleImmediateResponse(std::move(unit), "DoQ internal error");
+    /* On exceptional cases, cpq is moved but returns false above. So we check to make sure. See https://github.com/PowerDNS/pdns/issues/17109 */
+    if (cpq) {
+      unit = cpq->releaseDU();
+      handleImmediateResponse(std::move(unit), "DoQ internal error");
+    }
     return;
   }
   catch (const std::exception& e) {
