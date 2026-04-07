@@ -288,8 +288,6 @@ defttl
 Dehaine
 delichik
 DENIC
-descclassname
-descname
 Dessel
 destname
 Detlef
@@ -306,7 +304,6 @@ dijk
 dilinger
 Dimitrios
 Directi
-Disqus
 distclean
 djbdns
 dlerror
@@ -353,6 +350,7 @@ dnsupdate
 dnsviz
 dnswasher
 dnszone
+dnt
 Dobrawy
 docnamecachelookup
 documentclass
@@ -414,7 +412,6 @@ elgoog
 elisp
 elpa
 emacs
-Emph
 endblock
 endbr
 Enden
@@ -423,7 +420,6 @@ Ensar
 ents
 envoutput
 epel
-eqno
 Eriksson
 errlog
 errorlevels
@@ -487,7 +483,6 @@ gcna
 gcovr
 gdpr
 Geijn
-genindex
 geobackend
 geoipbackend
 geolocated
@@ -526,7 +521,6 @@ gnutls
 godbc
 godbcbackend
 Godwottery
-goodmatch
 goracle
 goraclebackend
 gouv
@@ -542,7 +536,6 @@ gsqlite
 gss
 gssapi
 gtld
-guilabel
 Guo
 gutenberg
 Gyselinck
@@ -572,7 +565,6 @@ Hiljanen
 hinfo
 hitrate
 hkraal
-hll
 Hoentjen
 Hofstaedtler
 Holger
@@ -605,7 +597,6 @@ Imhard
 incbin
 includeboilerplate
 includerings
-indextable
 inetutils
 infolog
 infosecinstitute
@@ -656,7 +647,6 @@ jpmens
 jsonstat
 jsrender
 Juergen
-jumpbox
 Juraj
 Kadyshev
 Kaminsky
@@ -678,7 +668,6 @@ keysize
 keystyle
 keytab
 keytype
-keywordmatches
 kickdaddy
 Kirill
 Klebermass
@@ -734,7 +723,6 @@ LIBPQ
 libsodium
 lightningstream
 Lindqvist
-linenos
 linenum
 linkcolor
 lintian
@@ -749,7 +737,6 @@ loadbalancer
 loadbalancing
 localaddr
 localip
-localtoc
 locaweb
 lochiiconnectivity
 lockfree
@@ -760,8 +747,6 @@ Loopia
 Lorbach
 lordievader
 Louwers
-loweralpha
-lowerroman
 Lrhazi
 lsock
 lsp
@@ -809,7 +794,6 @@ Mekking
 melpa
 memlock
 Memusage
-menuselection
 metadatabase
 metadatas
 metainformation
@@ -834,7 +818,6 @@ MOADNS
 Modderman
 modeline
 modifyingpolicydecisions
-modindex
 monshouwer
 motherboards
 mozilla
@@ -1091,7 +1074,6 @@ pqpp
 Predota
 prefixpowerdns
 preoutquery
-Preproc
 prepublishkeyroll
 prequery
 prerpz
@@ -1176,7 +1158,6 @@ reid
 reimplementation
 Reinier
 Rejo
-relbar
 relbarbgcolor
 relbarlinkcolor
 relbartextcolor
@@ -1213,8 +1194,8 @@ Roel
 Rolff
 rolltype
 Rosmalen
-rozentsvaig
 roundrobin
+rozentsvaig
 rping
 rpms
 rpz
@@ -1517,8 +1498,6 @@ unreachables
 unshadowing
 updatepolicy
 upgradeable
-upperalpha
-upperroman
 urandom
 usecase
 userbase
@@ -1536,7 +1515,6 @@ Vasiliy
 Veldhuyzen
 Verheijen
 Verschuren
-versionmodified
 Viala
 viewcode
 visitedlinkcolor
