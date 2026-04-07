@@ -505,6 +505,31 @@ static void addHistogramToPrometheusOutput(std::ostringstream& output, const T& 
   output << metricName << "_count" << label << " " << container.latencyCount << "\n";
 }
 
+static std::string escapePrometheusLabelValue(const std::string& labelValue)
+{
+  /* "label_value can be any sequence of UTF-8 characters, but the backslash (\), double-quote ("),
+      and line feed (\n) characters have to be escaped as \\, \", and \n, respectively." */
+  std::string result;
+  result.reserve(labelValue.size());
+  for (char val : labelValue) {
+    switch (val) {
+    case '"':
+      result += "\\\"";
+      break;
+    case '\\':
+      result += "\\\\";
+      break;
+    case '\n':
+      result += "\\n";
+      break;
+    default:
+      result += val;
+      break;
+    }
+  }
+  return result;
+}
+
 static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp, const Logr::Logger& logger)
 {
   handleCORS(req, resp);
@@ -972,7 +997,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp,
   auto topSuffixesByReason = DynBlockMaintenance::getHitsForTopSuffixes();
   for (const auto& entry : topSuffixesByReason) {
     for (const auto& suffix : entry.second) {
-      output << "dnsdist_dynblocks_smt_top_offenders_hits_per_second{reason=\"" << entry.first << "\",suffix=\"" << suffix.first.toString() << "\"" << (instanceLabel.empty() ? "" : instanceLabelPlusComma) << "} " << suffix.second << "\n";
+      output << "dnsdist_dynblocks_smt_top_offenders_hits_per_second{reason=\"" << entry.first << "\",suffix=\"" << escapePrometheusLabelValue(suffix.first.toString()) << "\"" << (instanceLabel.empty() ? "" : instanceLabelPlusComma) << "} " << suffix.second << "\n";
     }
   }
 #endif /* DISABLE_DYNBLOCKS */
