@@ -11,7 +11,7 @@ Description
 
 This program takes recorded questions and answers and replays them to
 the specified nameserver and reporting afterwards which percentage of
-answers matched, were worse or better.
+answers matched, were better or worse.
 
 :program:`dnsreplay` compares the answers and some other metrics with the actual
 ones with those found in the dumpfile.
