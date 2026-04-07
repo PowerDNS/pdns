@@ -1744,7 +1744,7 @@ faster than the existing rules.
       ``options`` optional parameter added
 
     Adds a rate-limiting rule for the ratio of cache-misses responses over the total number of responses for a given client.
-    A minimum global cache-hit ratio has to specified to prevent false-positive when the cache is empty.
+    A minimum global cache-hit ratio has to be specified to prevent false-positive when the cache is empty.
 
     :param float ratio: Ratio of cache-miss responses per second over the total number of responses for this client to exceed
     :param int seconds: Number of seconds the ratio has been exceeded

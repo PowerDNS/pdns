@@ -19,7 +19,7 @@ This can be done with the following lines in ``snmpd.conf`` (assuming `dnsdist` 
 
   agentxperms 0700 0700 dnsdist dnsdist
 
-In order to allow the retrieval of statistics via SNMP, ``snmpd``'s access control has to configured.
+In order to allow the retrieval of statistics via SNMP, ``snmpd``'s access control has to be configured.
 A very simple SNMPv2c setup only needs the configuration of a read-only community in ``snmpd.conf``::
 
   rocommunity dnsdist42

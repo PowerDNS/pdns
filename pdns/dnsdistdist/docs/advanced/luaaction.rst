@@ -31,7 +31,7 @@ And for a custom action:
   addAction(AllRule(), LuaAction(lua_route_tc_to_abuse_pool))
 
 If the YAML configuration is used, there are three different ways of calling a Lua function. The first option is to declare the Lua function in
-a global Lua file that will loaded before the YAML configuration is parsed. This is done by creating a Lua file with the exact same name as
+a global Lua file that will be loaded before the YAML configuration is parsed. This is done by creating a Lua file with the exact same name as
 the YAML configuration one, but with a ``.lua`` extension. See :doc:`../reference/yaml-settings` for more information. For example, creating
 a file named ``/etc/dnsdist/dnsdist.lua`` containing:
 
