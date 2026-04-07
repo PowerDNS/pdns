@@ -90,6 +90,9 @@ void ZoneData::parseDRForCache(DNSRecord& dnsRecord)
   if (dnsRecord.d_class != QClass::IN) {
     return;
   }
+  if (!dnsRecord.d_name.isPartOf(d_zone)) {
+    return;
+  }
   const auto key = pair(dnsRecord.d_name, dnsRecord.d_type);
 
   dnsRecord.d_ttl += d_now;
