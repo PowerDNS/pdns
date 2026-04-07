@@ -29,6 +29,7 @@
 #include <boost/test/unit_test_suite.hpp>
 #include <stdexcept>
 
+#include "iputils.hh"
 #include "dnsdist-edns.hh"
 #include "dnsdist-ecs.hh"
 #include "dnsname.hh"
@@ -280,6 +281,78 @@ BOOST_AUTO_TEST_CASE(test_locateEDNSOptRR)
     BOOST_CHECK_EQUAL(optStart, 29);
     BOOST_CHECK_EQUAL(optLen, 11);
     BOOST_CHECK(!last);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(addEDNSPadding)
+{
+  const DNSName qname{"powerdns.com"};
+  const uint16_t defaultEdnsBufSize{1232};
+  const ComboAddress answer{"192.0.2.1"};
+
+  auto getPacket = [qname, answer](bool edns = false, uint16_t ednsBufSize = 0, size_t padding = 0) {
+    if (ednsBufSize == 0) {
+      ednsBufSize = defaultEdnsBufSize;
+    }
+    PacketBuffer buf;
+    GenericDNSPacketWriter<PacketBuffer> pwQ(buf, qname, QType::A, QClass::IN, 0);
+    pwQ.getHeader()->qr = 1; // This is a response
+    pwQ.getHeader()->rd = 1;
+    pwQ.startRecord(qname, QType::A);
+    pwQ.xfrCAWithoutPort(4, answer);
+    pwQ.commit();
+    if (edns) {
+      vector<pair<uint16_t, std::string>> ednsopts;
+      if (padding > 0) {
+        std::string paddingOptStr;
+        paddingOptStr.resize(padding);
+        ednsopts.push_back({EDNSOptionCode::PADDING, paddingOptStr});
+      }
+      pwQ.addOpt(ednsBufSize, 0, 0, ednsopts);
+    }
+    pwQ.commit();
+
+    return buf;
+  };
+
+  {
+    // A packet where padding should not be added, as the option exists
+    auto packet = getPacket(true, defaultEdnsBufSize, 64);
+    auto initial_size = packet.size();
+
+    BOOST_CHECK(!dnsdist::edns::addEDNSPadding(packet, defaultEdnsBufSize));
+    BOOST_CHECK_EQUAL(packet.size(), initial_size);
+  }
+
+  {
+    // A packet where padding should not be added, as there is no EDNS
+    auto packet = getPacket(false);
+    auto initial_size = packet.size();
+    BOOST_CHECK(!dnsdist::edns::addEDNSPadding(packet, defaultEdnsBufSize));
+    BOOST_CHECK_EQUAL(packet.size(), initial_size);
+  }
+
+  {
+    // A packet where padding should not be added, as there is no more room
+    auto packet = getPacket(true);
+    auto initial_size = packet.size();
+
+    BOOST_CHECK(!dnsdist::edns::addEDNSPadding(packet, packet.size()));
+    BOOST_CHECK_EQUAL(packet.size(), initial_size);
+
+    BOOST_CHECK(!dnsdist::edns::addEDNSPadding(packet, packet.size() + 2));
+    BOOST_CHECK_EQUAL(packet.size(), initial_size);
+
+    // 4 bytes should fit as that is the EDNS OptionCode + Length field
+    BOOST_CHECK(dnsdist::edns::addEDNSPadding(packet, packet.size() + 4));
+    BOOST_CHECK_EQUAL(packet.size(), initial_size + 4);
+  }
+
+  {
+    // A packet where padding *should* be added
+    auto packetWithEDNSNoPadding = getPacket(true, defaultEdnsBufSize, 0);
+    BOOST_CHECK(dnsdist::edns::addEDNSPadding(packetWithEDNSNoPadding, defaultEdnsBufSize));
+    BOOST_CHECK_EQUAL(packetWithEDNSNoPadding.size() % 468, 0);
   }
 }
 
