@@ -88,7 +88,7 @@ Note that dnsdist dropped us in a prompt above, where we can get some statistics
 
 :func:`showServers()` is usually one of the first commands you will use when logging into the console. More advanced topics are covered in :doc:`guides/console`.
 
-Here we also see our configuration. 5 downstream servers have been configured, of which the first 4 have a QPS limit (of 1, 1, 10 and 10 queries per second, respectively).
+Here we also see our configuration: 5 downstream servers have been configured, of which the first 4 have a QPS limit (of 1, 1, 10 and 10 queries per second, respectively).
 
 The final server has no limit, which we can easily test::
 
