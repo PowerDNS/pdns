@@ -2055,7 +2055,7 @@ StatNode
 SuffixMatchNode
 ~~~~~~~~~~~~~~~
 
-A SuffixMatchNode can be used to quickly check whether a given name belongs to a set or not. This is achieved
+A SuffixMatchNode can be used to quickly check whether or not a given name belongs to a set. This is achieved
 using an efficient tree structure based on DNS labels, making lookups cheap.
 Be careful that Suffix Node matching will match for any sub-domain, regardless of the depth, under the name added to the set. For example,
 if 'example.com.' is added to the set, 'www.example.com.' and 'sub.www.example.com.' will match as well.
