@@ -337,7 +337,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         healthCheck = str(request.question[0].name).endswith(cls._healthCheckName)
         if healthCheck:
             cls._healthCheckCounter += 1
-            response = dns.message.make_response(request)
+            response = dns.message.make_response(request, pad=0)
         else:
             cls._ResponderIncrementCounter()
             if not fromQueue.empty():
@@ -348,12 +348,12 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
                     response.id = request.id
 
         if synthesize is not None:
-            response = dns.message.make_response(request)
+            response = dns.message.make_response(request, pad=0)
             response.set_rcode(synthesize)
 
         if not response:
             if cls._answerUnexpected:
-                response = dns.message.make_response(request)
+                response = dns.message.make_response(request, pad=0)
                 response.set_rcode(dns.rcode.SERVFAIL)
 
         return response
