@@ -5329,7 +5329,7 @@ Bugs fixed
    which the documentation now spells out.
 -  PostgreSQL backend was case-sensitive and returned only answers in
    case an exact match was found. The Generic PostgreSQL backend is now
-   officially all lower case and zone2sql in PostgreSQL mode enforces
+   officially all lowercase and zone2sql in PostgreSQL mode enforces
    this. Documentation has been updated to reflect the case change.
    Thanks to Maikel Verheijen of Ladot for spotting this!
 -  Documentation bug - postgresql create/index statements created a

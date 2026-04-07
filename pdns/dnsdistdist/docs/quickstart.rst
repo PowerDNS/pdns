@@ -122,7 +122,7 @@ To force a server down, try :attr:`Server:setDown()`::
   ...
 
 The ``DOWN`` in all caps means it was forced down.
-A lower case ``down`` would've meant that dnsdist itself had concluded the server was down.
+A lowercase ``down`` would've meant that dnsdist itself had concluded the server was down.
 Similarly, :meth:`Server.setUp()` forces a server to be up, and :meth:`Server.setAuto` returns it to the default availability-probing.
 
 To change the QPS for a server, use :meth:`Server.setQPS`::
