@@ -175,26 +175,10 @@ void Tracer::closeSpan([[maybe_unused]] const SpanID& spanID)
     // Only closers are allowed, so this can never happen
     assert(!data->d_spanIDStack.empty());
 
-#if defined(__SANITIZE_THREAD__) || defined(__SANITIZE_ADDRESS__)
-    if (data->d_spanIDStack.back() != spanID) {
-      std::cout << "data->d_spanIDStack.back() != spanID " << std::endl;
-      std::cout << "SpanID: " << spanID.toLogString() << std::endl;
-      std::cout << "SpanID stack:" << std::endl;
-      for (const auto& sanitzerSpanID : data->d_spanIDStack) {
-        auto sanitizer_spanIt = std::find_if(
-          spans.rbegin(),
-          spans.rend(),
-          [sanitzerSpanID](const miniSpan& span) { return span.span_id == sanitzerSpanID; });
-        std::cout << "  " << sanitzerSpanID.toLogString() << "(" << sanitizer_spanIt->name << ")" << std::endl;
-      }
-      abort();
-    }
-#endif
-
-    // XXX: This assert should always pass, but there are some timing issues
-    //   assert(data->d_spanIDStack.back() == spanID);
-    //   data->d_spanIDStack.pop_back();
-    // So we'll clean up the stack for now.
+    // Preferebly, we'd use d_spanIDStack.pop() after verifing that that back() is the correct spanID.
+    // It turns out that due to dnsdist's multi-threaded nature some backend receivers can create new
+    // spans when receiving backend responses before the closer in the frontend thread is destructed.
+    // So we find the SpanID in the stack and remove it.
     data->d_spanIDStack.erase(std::find(data->d_spanIDStack.begin(), data->d_spanIDStack.end(), spanID));
   }
 #endif
