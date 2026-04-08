@@ -1842,7 +1842,7 @@ std::shared_ptr<DNSActionWrapper> getRemoteLogAction(const RemoteLogActionConfig
   actionConfig.useServerID = config.use_server_id;
   actionConfig.tagsExportKeyOnly = config.export_tags_key_only;
   actionConfig.tagsStripPrefixes = config.export_tags_strip_prefixes;
-  auto action = dnsdist::actions::getRemoteLogAction(actionConfig);
+  auto action = dnsdist::actions::getRemoteLogAction(std::move(actionConfig));
   return newDNSActionWrapper(std::move(action), config.name);
 #endif
 }
@@ -1887,7 +1887,7 @@ std::shared_ptr<DNSResponseActionWrapper> getRemoteLogResponseAction(const Remot
   actionConfig.useServerID = config.use_server_id;
   actionConfig.tagsExportKeyOnly = config.export_tags_key_only;
   actionConfig.tagsStripPrefixes = config.export_tags_strip_prefixes;
-  auto action = dnsdist::actions::getRemoteLogResponseAction(actionConfig);
+  auto action = dnsdist::actions::getRemoteLogResponseAction(std::move(actionConfig));
   return newDNSResponseActionWrapper(std::move(action), config.name);
 #endif
 }

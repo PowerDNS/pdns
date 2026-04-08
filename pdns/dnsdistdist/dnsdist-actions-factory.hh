@@ -122,8 +122,8 @@ struct RemoteLogActionConfiguration
   bool tagsExportKeyOnly{false};
   bool tagsStripPrefixes{false};
 };
-std::shared_ptr<DNSAction> getRemoteLogAction(RemoteLogActionConfiguration& config);
-std::shared_ptr<DNSResponseAction> getRemoteLogResponseAction(RemoteLogActionConfiguration& config);
+std::shared_ptr<DNSAction> getRemoteLogAction(RemoteLogActionConfiguration&& config);
+std::shared_ptr<DNSResponseAction> getRemoteLogResponseAction(RemoteLogActionConfiguration&& config);
 std::shared_ptr<DNSAction> getDnstapLogAction(const std::string& identity, std::shared_ptr<RemoteLoggerInterface> logger, std::optional<DnstapAlterFunction> alterFunc);
 std::shared_ptr<DNSResponseAction> getDnstapLogResponseAction(const std::string& identity, std::shared_ptr<RemoteLoggerInterface> logger, std::optional<DnstapAlterResponseFunction> alterFunc);
 
