@@ -1608,6 +1608,10 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
   sendit:;
 
     if (g_useIncomingECS && comboWriter->d_ecsFound && !resolver.wasVariable() && !variableAnswer) {
+      // The moment we add an ECS option we should no longer packet cache this.  An alternative is to
+      // overwrite the ECS info after retrieval from the packet cache, but that is much more
+      // complicated.
+      variableAnswer = true;
       EDNSSubnetOpts ednsOptions;
       ednsOptions.source = comboWriter->d_ednssubnet.source;
       ComboAddress sourceAddr;
