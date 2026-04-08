@@ -40,6 +40,7 @@
 #include "threadname.hh"
 #include "version.hh"
 #include "ws-recursor.hh"
+#include "rec-keepwarm.hh"
 
 #ifdef NOD_ENABLED
 #include "nod.hh"
@@ -2454,68 +2455,103 @@ static void handleRCC(int fileDesc, FDMultiplexer::funcparam_t& /* var */)
 static time_t keepCacheWarm(const timeval& now, LocalStateHolder<LuaConfigItems>& luaconfsLocal)
 {
   auto log = g_slog->withName("cachewarmer");
-  time_t wait = 60;
 
-  for (const auto& [qname, qtype] : luaconfsLocal->keepWarm) {
-    SyncRes resolver(now);
-    resolver.setQNameMinimization(true);
-    resolver.setCacheOnly(true);
-    resolver.setDoDNSSEC(g_dnssecmode != DNSSECMode::Off);
-    resolver.setDNSSECValidationRequested(g_dnssecmode != DNSSECMode::Off && g_dnssecmode != DNSSECMode::ProcessNoValidate);
-    std::vector<DNSRecord> ret;
-    int res = -1;
-    const std::string msg = "Exception while resolving";
-    try {
-      res = resolver.beginResolve(qname, qtype, QClass::IN, ret, 0);
-    }
-    catch (const PDNSException& e) {
-      log->error(Logr::Warning, e.reason, msg, "exception", Logging::Loggable("PDNSException"));
-      ret.clear();
-    }
-    catch (const ImmediateServFailException& e) {
-      log->error(Logr::Warning, e.reason, msg, "exception", Logging::Loggable("ImmediateServFailException"));
-      ret.clear();
-    }
-    catch (const PolicyHitException& e) {
-      log->info(Logr::Warning, msg, "exception", Logging::Loggable("PolicyHitException"));
-      ret.clear();
-    }
-    catch (const std::exception& e) {
-      log->error(Logr::Warning, e.what(), msg, "exception", Logging::Loggable("std::exception"));
-      ret.clear();
-    }
-    catch (...) {
-      log->info(Logr::Warning, msg);
-      ret.clear();
-    }
+  static LockGuarded<rec::KeepWarm> s_keepwarm;
+  static uint64_t lastgeneration = 0;
 
-    if (res == RCode::NoError && ret.size() > 0) {
-      uint32_t minttl = std::numeric_limits<uint32_t>::max();
-      for (const auto& record : ret) {
-        minttl = std::min(minttl, record.d_ttl);
+  auto lock = s_keepwarm.lock();
+
+  if (lastgeneration != luaconfsLocal->generation) {
+    lastgeneration = luaconfsLocal->generation;
+    for (const auto& [qname, qtype] : luaconfsLocal->keepWarm) {
+      lock->emplace(qname, qtype);
+    }
+    std::set<std::pair<DNSName, QType>> all;
+    std::copy(luaconfsLocal->keepWarm.begin(), luaconfsLocal->keepWarm.end(), std::inserter(all, all.end()));
+    for (auto iter = lock->begin(); iter != lock->end();) {
+      if (all.count({iter->d_qname, QType(iter->d_qtype)}) == 0) {
+        iter = lock->erase(iter);
       }
-      if (minttl > 5) {
-        wait = std::min(wait, static_cast<time_t>(minttl - 5));
-        continue;
+      else {
+        ++iter;
       }
-      wait = std::min(wait, static_cast<time_t>(1));
-    }
-
-    NegCache::NegCacheEntry negEntry;
-    bool inNegCache = g_negCache->get(qname, qtype, now, negEntry, false);
-    if (!inNegCache) {
-      log->info(Logr::Debug, "Absent or expiring and not in negache, pushing task", "qname", Logging::Loggable(qname),
-                "qtype", Logging::Loggable(qtype),
-                "res", Logging::Loggable(res), "size", Logging::Loggable(ret.size()));
-      // Work to be done
-      pushAlmostExpiredTask(qname, qtype, now.tv_sec + 60, ComboAddress("255.255.255.255"), true);
-      wait = std::min(wait, static_cast<time_t>(1));
-    }
-    else {
-      auto expiring = negEntry.d_ttd - now.tv_sec;
-      wait = std::min(wait, expiring);
     }
   }
+
+  std::vector<rec::KeepWarmEntry> toBeHandled;
+
+  auto& sidx = lock->get().template get<rec::KeepWarm::TTDTag>();
+  auto siter = sidx.begin();
+
+  const int batchSize = 100;
+  const time_t specialTime = 1;
+  const time_t cooldown = 60;
+  const time_t almost = 5;
+  for (int i = 0; i < batchSize && siter != sidx.end(); i++, siter++) {
+    if (siter->d_ttd > now.tv_sec + almost) {
+      break;
+    }
+    toBeHandled.emplace_back(*siter);
+  }
+
+
+  for (auto& element : toBeHandled) {
+    if (element.d_ttd == specialTime) {
+      SyncRes resolver(now);
+      resolver.setQNameMinimization(true);
+      resolver.setCacheOnly(true);
+      resolver.setDoDNSSEC(g_dnssecmode != DNSSECMode::Off);
+      resolver.setDNSSECValidationRequested(g_dnssecmode != DNSSECMode::Off && g_dnssecmode != DNSSECMode::ProcessNoValidate);
+      std::vector<DNSRecord> ret;
+      const std::string msg = "Exception while resolving";
+      try {
+        resolver.beginResolve(element.d_qname, element.d_qtype, QClass::IN, ret, 0);
+      }
+      catch (const PDNSException& e) {
+        log->error(Logr::Warning, e.reason, msg, "exception", Logging::Loggable("PDNSException"));
+        ret.clear();
+      }
+      catch (const ImmediateServFailException& e) {
+        log->error(Logr::Warning, e.reason, msg, "exception", Logging::Loggable("ImmediateServFailException"));
+        ret.clear();
+      }
+      catch (const PolicyHitException& e) {
+        log->info(Logr::Warning, msg, "exception", Logging::Loggable("PolicyHitException"));
+        ret.clear();
+      }
+      catch (const std::exception& e) {
+        log->error(Logr::Warning, e.what(), msg, "exception", Logging::Loggable("std::exception"));
+        ret.clear();
+      }
+      catch (...) {
+        log->info(Logr::Warning, msg);
+        ret.clear();
+      }
+
+      uint32_t minttl = cooldown; // If no records found, either it did not resolve at all, or it did
+                                  // not resolve yet. In both cases, pace the work.
+      if (ret.size() > 0) {
+        minttl = std::numeric_limits<uint32_t>::max();
+        for (const auto& record : ret) {
+          minttl = std::min(minttl, record.d_ttl);
+        }
+      }
+      lock->modifyTTD(element.d_qname, element.d_qtype, now.tv_sec + minttl);
+    }
+    else if (element.d_ttd == 0 || element.d_ttd <= now.tv_sec + almost) {
+      pushAlmostExpiredTask(element.d_qname, element.d_qtype, now.tv_sec + cooldown, ComboAddress("255.255.255.255"), true);
+        lock->modifyTTD(element.d_qname, element.d_qtype, specialTime);
+    }
+  }
+
+  time_t wait = cooldown;
+  siter = sidx.begin();
+  if (siter != sidx.end()) {
+    wait = siter->d_ttd - now.tv_sec - 1;
+    wait = std::max(static_cast<time_t>(1), wait);
+    wait = std::min(static_cast<time_t>(cooldown), wait);
+  }
+
   log->info(Logr::Debug, "Wait", "interval", Logging::Loggable(wait));
   return wait;
 }
