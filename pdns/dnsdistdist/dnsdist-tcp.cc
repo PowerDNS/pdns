@@ -254,7 +254,7 @@ void IncomingTCPConnectionState::handleResponseSent(TCPResponse& currentResponse
 
   const auto& backend = currentResponse.d_connection ? currentResponse.d_connection->getDS() : currentResponse.d_ds;
   if (!currentResponse.d_idstate.selfGenerated && backend) {
-    const auto& ids = currentResponse.d_idstate;
+    auto& ids = currentResponse.d_idstate;
     auto udiff = ids.queryRealTime.udiff();
     VERBOSESLOG(infolog("Got answer from %s, relayed to %s (%s, %d bytes), took %d us", backend->d_config.remote.toStringWithPort(), ids.origRemote.toStringWithPort(), getProtocol().toString(), sentBytes, udiff),
                 ids.getLogger(getLogger())->info(Logr::Info, "Relayed response to client", "backend.name", Logging::Loggable(backend->getName()), "backend.address", Logging::Loggable(backend->d_config.remote), "dns.response.size", Logging::Loggable(sentBytes), "dns.response.latency_us", Logging::Loggable(udiff), "dns.response.rcode", Logging::Loggable(currentResponse.d_cleartextDH.rcode)));
@@ -266,7 +266,7 @@ void IncomingTCPConnectionState::handleResponseSent(TCPResponse& currentResponse
     ::handleResponseSent(ids, udiff, ids.origRemote, backend->d_config.remote, static_cast<unsigned int>(sentBytes), currentResponse.d_cleartextDH, backendProtocol, true);
   }
   else {
-    const auto& ids = currentResponse.d_idstate;
+    auto& ids = currentResponse.d_idstate;
     ::handleResponseSent(ids, 0., ids.origRemote, ComboAddress(), static_cast<unsigned int>(currentResponse.d_buffer.size()), currentResponse.d_cleartextDH, ids.protocol, false);
   }
 

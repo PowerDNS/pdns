@@ -851,7 +851,7 @@ BOOST_AUTO_TEST_CASE(test_RingBuffers)
   BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), 0U);
 
   g_rings.insertQuery(now, requestor1, qname, qtype, size, dh, protocol);
-  g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dh, backend, outgoingProtocol);
+  g_rings.insertResponse(now, requestor1, DNSName(qname), qtype, responseTime, size, dh, backend, outgoingProtocol);
 
   dnsdist_ffi_ring_entry_list_t* list = nullptr;
 
