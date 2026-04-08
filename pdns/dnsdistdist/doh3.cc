@@ -620,10 +620,13 @@ static void processDOH3Query(DOH3UnitUniquePtr&& doh3Unit)
     if (downstream->passCrossProtocolQuery(std::move(cpq))) {
       return;
     }
-    // NOLINTNEXTLINE(bugprone-use-after-move): it was only moved if the call succeeded
-    unit = cpq->releaseDU();
-    unit->status_code = 500;
-    handleImmediateResponse(std::move(unit), "DoH3 internal error");
+
+    /* On exceptional cases, cpq is moved but returns false above. So we check to make sure. See https://github.com/PowerDNS/pdns/issues/17109 */
+    if (cpq) {
+      unit = cpq->releaseDU();
+      unit->status_code = 500;
+      handleImmediateResponse(std::move(unit), "DoH3 internal error");
+    }
     return;
   }
   catch (const std::exception& e) {
