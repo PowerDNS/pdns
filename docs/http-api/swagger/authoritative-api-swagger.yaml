@@ -60,6 +60,25 @@ paths:
         default:
           $ref: "#/components/responses/Error"
 
+  "/servers/{server_id}/backends/{backend_id}/storageversion":
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+      - $ref: "#/components/parameters/backend_id"
+    get:
+      summary: Return the backend storage version used to store zone data
+      description: This returns a backend-dependent version information. Currently only supported by the LMDB backend
+      tags:
+        - servers
+      responses:
+        "200":
+          description: Storage version number
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StorageVersion"
+        default:
+          $ref: "#/components/responses/Error"
+
   "/servers/{server_id}/cache/flush":
     parameters:
       - $ref: "#/components/parameters/server_id"
@@ -978,6 +997,13 @@ components:
       in: path
       required: true
       description: The name of the view to update
+    backend_id:
+      name: backend_id
+      in: path
+      required: true
+      description: The name of the backend to query
+      schema:
+        type: string
 
   responses:
     Error:
@@ -1522,3 +1548,11 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Network"
+          
+    StorageVersion:
+      title: StorageVersion
+      type: object
+      properties:
+        storageversion:
+          type: number
+          description: 'The version number of the backend storage for a zone'
