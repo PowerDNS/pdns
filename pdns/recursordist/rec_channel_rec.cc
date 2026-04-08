@@ -2130,6 +2130,8 @@ RecursorControlChannel::Answer luaconfig(bool broadcast)
         pdns::settings::rec::fromBridgeStructToLuaConfig(settings, dummyLuaConfig, dummyProxyMapping, conditions);
         TCPOutConnectionManager::setupOutgoingTLSConfigTables(settings);
         lci.keepWarm = dummyLuaConfig.keepWarm; // XXX
+        auto generation = g_luaconfs.getLocal()->generation;
+        lci.generation = generation + 1;
       }
       if (!::arg()["lua-config-file"].empty()) {
         loadRecursorLuaConfig(::arg()["lua-config-file"], proxyMapping, lci); // will bump generation
