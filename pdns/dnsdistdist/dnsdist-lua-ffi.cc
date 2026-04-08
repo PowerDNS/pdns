@@ -399,16 +399,13 @@ static void fill_edns_option(const EDNSOptionViewValue& value, dnsdist_ffi_ednso
 // returns the length of the resulting 'out' array. 'out' is not set if the length is 0
 size_t dnsdist_ffi_dnsquestion_get_edns_options(dnsdist_ffi_dnsquestion_t* dq, const dnsdist_ffi_ednsoption_t** out)
 {
-  if (dq->dq->ednsOptions == nullptr) {
-    parseEDNSOptions(*(dq->dq));
-
-    if (dq->dq->ednsOptions == nullptr) {
-      return 0;
-    }
+  auto ednsOptions = parseEDNSOptions(*(dq->dq));
+  if (!ednsOptions) {
+    return 0;
   }
 
   size_t totalCount = 0;
-  for (const auto& option : *dq->dq->ednsOptions) {
+  for (const auto& option : *ednsOptions) {
     totalCount += option.second.values.size();
   }
 
@@ -418,7 +415,7 @@ size_t dnsdist_ffi_dnsquestion_get_edns_options(dnsdist_ffi_dnsquestion_t* dq, c
   dq->ednsOptionsVect->clear();
   dq->ednsOptionsVect->resize(totalCount);
   size_t pos = 0;
-  for (const auto& option : *dq->dq->ednsOptions) {
+  for (const auto& option : *ednsOptions) {
     for (const auto& entry : option.second.values) {
       fill_edns_option(entry, dq->ednsOptionsVect->at(pos));
       dq->ednsOptionsVect->at(pos).optionCode = option.first;

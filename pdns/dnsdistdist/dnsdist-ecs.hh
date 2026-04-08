@@ -23,6 +23,7 @@
 
 #include <string>
 
+#include "ednsoptions.hh"
 #include "iputils.hh"
 #include "noinitvector.hh"
 
@@ -46,7 +47,7 @@ bool setNegativeAndAdditionalSOA(DNSQuestion& dnsQuestion, bool nxd, const DNSNa
 bool handleEDNSClientSubnet(DNSQuestion& dnsQuestion, bool& ednsAdded, bool& ecsAdded);
 bool handleEDNSClientSubnet(PacketBuffer& packet, size_t maximumSize, size_t qnameWireLength, bool& ednsAdded, bool& ecsAdded, bool overrideExisting, const string& newECSOption);
 
-bool parseEDNSOptions(const DNSQuestion& dnsQuestion);
+std::optional<EDNSOptionViewMap> parseEDNSOptions(const DNSQuestion& dnsQuestion);
 
 bool queryHasEDNS(const DNSQuestion& dnsQuestion);
 bool getEDNS0Record(const PacketBuffer& packet, EDNS0Record& edns0);

@@ -43,7 +43,6 @@
 #include "dnsdist-doh-common.hh"
 #include "doq.hh"
 #include "doh3.hh"
-#include "ednsoptions.hh"
 #include "iputils.hh"
 #include "misc.hh"
 #include "mplexer.hh"
@@ -78,7 +77,6 @@ struct DNSQuestion
   }
   PacketBuffer& getMutableData()
   {
-    ednsOptions.reset();
     return data;
   }
 
@@ -201,7 +199,6 @@ public:
   InternalQueryState& ids;
   std::unique_ptr<Netmask> ecs{nullptr};
   std::string sni; /* Server Name Indication, if any (DoT or DoH) */
-  mutable std::unique_ptr<EDNSOptionViewMap> ednsOptions; /* this needs to be mutable because it is parsed just in time, when DNSQuestion is read-only */
   std::shared_ptr<IncomingTCPConnectionState> d_incomingTCPState{nullptr};
   std::unique_ptr<std::vector<ProxyProtocolValue>> proxyProtocolValues{nullptr};
   uint16_t ecsPrefixLength;

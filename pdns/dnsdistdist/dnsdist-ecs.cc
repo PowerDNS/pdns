@@ -471,23 +471,20 @@ static bool replaceEDNSClientSubnetOption(PacketBuffer& packet, size_t maximumSi
 
 /* This function looks for an OPT RR, return true if a valid one was found (even if there was no options)
    and false otherwise. */
-bool parseEDNSOptions(const DNSQuestion& dnsQuestion)
+std::optional<EDNSOptionViewMap> parseEDNSOptions(const DNSQuestion& dnsQuestion)
 {
+  EDNSOptionViewMap ednsOptions{};
   const auto dnsHeader = dnsQuestion.getHeader();
-  if (dnsQuestion.ednsOptions != nullptr) {
-    return true;
-  }
-
-  // dnsQuestion.ednsOptions is mutable
-  dnsQuestion.ednsOptions = std::make_unique<EDNSOptionViewMap>();
-
   if (ntohs(dnsHeader->arcount) == 0) {
     /* nothing in additional so no EDNS */
-    return false;
+    return std::nullopt;
   }
 
   if (ntohs(dnsHeader->ancount) != 0 || ntohs(dnsHeader->nscount) != 0 || ntohs(dnsHeader->arcount) > 1) {
-    return slowParseEDNSOptions(dnsQuestion.getData(), *dnsQuestion.ednsOptions);
+    if (slowParseEDNSOptions(dnsQuestion.getData(), ednsOptions)) {
+      return ednsOptions;
+    }
+    return std::nullopt;
   }
 
   size_t remaining = 0;
@@ -496,11 +493,14 @@ bool parseEDNSOptions(const DNSQuestion& dnsQuestion)
 
   if (res == 0) {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    res = getEDNSOptions(reinterpret_cast<const char*>(&dnsQuestion.getData().at(optRDPosition)), remaining, *dnsQuestion.ednsOptions);
-    return (res == 0);
+    res = getEDNSOptions(reinterpret_cast<const char*>(&dnsQuestion.getData().at(optRDPosition)), remaining, ednsOptions);
+    if (res != 0) {
+      return std::nullopt;
+    }
+    return ednsOptions;
   }
 
-  return false;
+  return std::nullopt;
 }
 
 static bool addECSToExistingOPT(PacketBuffer& packet, size_t maximumSize, const string& newECSOption, size_t optRDLenPosition, bool& ecsAdded)

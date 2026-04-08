@@ -1780,21 +1780,16 @@ public:
     }
 
     // We need to check if EDNS Options exist
-    if (dnsquestion->ednsOptions == nullptr && !parseEDNSOptions(*dnsquestion)) {
+    auto ednsOptions = parseEDNSOptions(*dnsquestion);
+    if (!ednsOptions) {
       // Maybe parsed, but no EDNS found
-      return Action::None;
-    }
-    if (dnsquestion->ednsOptions == nullptr) {
-      // Parsing failed, log a warning and return
-      VERBOSESLOG(infolog("parsing EDNS options failed while looking for OpenTelemetry Trace ID"),
-                  dnsquestion->getLogger()->info(Logr::Info, "Parsing EDNS options failed while looking for OpenTelemetry Trace ID"));
       return Action::None;
     }
 
     if (d_useIncomingTraceparent) {
       pdns::trace::TraceID traceID;
       pdns::trace::SpanID spanID;
-      if (pdns::trace::extractOTraceIDs(*(dnsquestion->ednsOptions), EDNSOptionCode::EDNSOptionCodeEnum(d_traceparentOptionCode), traceID, spanID)) {
+      if (pdns::trace::extractOTraceIDs(*(ednsOptions), EDNSOptionCode::EDNSOptionCodeEnum(d_traceparentOptionCode), traceID, spanID)) {
         tracer->setTraceID(traceID);
         if (spanID != pdns::trace::s_emptySpanID) {
           tracer->setRootSpanID(spanID);
@@ -1821,8 +1816,6 @@ public:
       size_t existingOptLen = optLen;
       removeEDNSOptionFromOPT(reinterpret_cast<char*>(&dnsquestion->getMutableData().at(optStart)), &optLen, d_traceparentOptionCode);
       dnsquestion->getMutableData().resize(dnsquestion->getData().size() - (existingOptLen - optLen));
-      // Ensure the EDNS Option View is not out of date
-      dnsquestion->ednsOptions.reset();
     }
 
     return Action::None;
