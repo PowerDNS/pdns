@@ -109,8 +109,9 @@ bool addEDNSPadding(PacketBuffer& packet, size_t maximumPacketSize)
     return false;
   }
 
-  if (packet.size() < maximumPacketSize - 4) {
-    return true;
+  if (packet.size() + 4 > maximumPacketSize) {
+    /* Can not pad, as we can't add the PADDING EDNS Option */
+    return false;
   }
 
   size_t remaining = maximumPacketSize - (packet.size() + 4);
@@ -142,4 +143,5 @@ bool addEDNSPadding(PacketBuffer& packet, size_t maximumPacketSize)
   packet = std::move(newContent);
   return true;
 }
-}
+
+} // namespace dnsdist::edns

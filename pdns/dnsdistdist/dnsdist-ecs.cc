@@ -141,6 +141,11 @@ static bool addOrReplaceEDNSOption(std::vector<std::pair<uint16_t, std::string>>
     }
   }
 
+  if (newOptionContent.size() == EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE) {
+    options.emplace_back(optionCode, "");
+    return true;
+  }
+
   options.emplace_back(optionCode, std::string(&newOptionContent.at(EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE), newOptionContent.size() - (EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE)));
   return true;
 }
