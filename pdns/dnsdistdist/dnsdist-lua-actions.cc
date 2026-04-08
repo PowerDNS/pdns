@@ -362,7 +362,7 @@ void setupLuaActions(LuaContext& luaCtx)
 
     checkAllParametersConsumed("RemoteLogAction", vars);
 
-    return dnsdist::actions::getRemoteLogAction(config);
+    return dnsdist::actions::getRemoteLogAction(std::move(config));
   });
 
   luaCtx.writeFunction("RemoteLogResponseAction", [](std::shared_ptr<RemoteLoggerInterface> logger, std::optional<dnsdist::actions::ProtobufAlterResponseFunction> alterFunc, std::optional<bool> includeCNAME, std::optional<LuaAssociativeTable<boost::variant<std::string, bool>>> vars, std::optional<LuaAssociativeTable<std::string>> metas, std::optional<bool> delay) {
@@ -451,7 +451,7 @@ void setupLuaActions(LuaContext& luaCtx)
 
     checkAllParametersConsumed("RemoteLogResponseAction", vars);
 
-    return dnsdist::actions::getRemoteLogResponseAction(config);
+    return dnsdist::actions::getRemoteLogResponseAction(std::move(config));
   });
 
   luaCtx.writeFunction("DnstapLogAction", [](const std::string& identity, std::shared_ptr<RemoteLoggerInterface> logger, std::optional<dnsdist::actions::DnstapAlterFunction> alterFunc) {

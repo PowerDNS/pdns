@@ -1670,7 +1670,7 @@ class RemoteLogAction : public DNSAction, public boost::noncopyable
 {
 public:
   // this action does not stop the processing
-  RemoteLogAction(RemoteLogActionConfiguration& config) :
+  RemoteLogAction(RemoteLogActionConfiguration&& config) :
     d_config(std::move(config))
   {
     if (!d_config.ipEncryptKey.empty() && d_config.ipEncryptMethod == "ipcrypt-pfx") {
@@ -1959,7 +1959,7 @@ class RemoteLogResponseAction : public DNSResponseAction, public boost::noncopya
 {
 public:
   // this action does not stop the processing
-  RemoteLogResponseAction(RemoteLogActionConfiguration& config) :
+  RemoteLogResponseAction(RemoteLogActionConfiguration&& config) :
     d_config(std::move(config))
   {
     if (!d_config.ipEncryptKey.empty() && d_config.ipEncryptMethod == "ipcrypt-pfx") {
@@ -2680,14 +2680,14 @@ std::shared_ptr<DNSAction> getSetTraceAction(SetTraceActionConfiguration& config
   return std::shared_ptr<DNSAction>(new SetTraceAction(config));
 }
 
-std::shared_ptr<DNSAction> getRemoteLogAction(RemoteLogActionConfiguration& config)
+std::shared_ptr<DNSAction> getRemoteLogAction(RemoteLogActionConfiguration&& config)
 {
-  return std::shared_ptr<DNSAction>(new RemoteLogAction(config));
+  return std::shared_ptr<DNSAction>(new RemoteLogAction(std::move(config)));
 }
 
-std::shared_ptr<DNSResponseAction> getRemoteLogResponseAction(RemoteLogActionConfiguration& config)
+std::shared_ptr<DNSResponseAction> getRemoteLogResponseAction(RemoteLogActionConfiguration&& config)
 {
-  return std::shared_ptr<DNSResponseAction>(new RemoteLogResponseAction(config));
+  return std::shared_ptr<DNSResponseAction>(new RemoteLogResponseAction(std::move(config)));
 }
 
 std::shared_ptr<DNSAction> getDnstapLogAction(const std::string& identity, std::shared_ptr<RemoteLoggerInterface> logger, std::optional<DnstapAlterFunction> alterFunc)
