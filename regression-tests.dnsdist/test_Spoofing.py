@@ -655,7 +655,9 @@ class TestSpoofingLuaSpoof(DNSDistTest):
         elseif dq.qtype == DNSQType.TXT then
              return DNSAction.SpoofRaw, "\\003aaa\\004bbbb\\011ccccccccccc"
         elseif dq.qtype == DNSQType.SRV then
-            dq.dh:setAA(true)
+            local header = dq:getHeader()
+            header:setAA(true)
+            dq:setHeader(header)
             return DNSAction.SpoofRaw, "\\000\\000\\000\\000\\255\\255\\003srv\\008powerdns\\003com\\000"
         end
         return DNSAction.None, ""
@@ -833,7 +835,9 @@ class TestSpoofingLuaSpoofMulti(DNSDistTest):
             dq:spoof({ "\\003aaa\\004bbbb", "\\011ccccccccccc" })
             return DNSAction.HeaderModify
         elseif dq.qtype == DNSQType.SRV then
-            dq.dh:setAA(true)
+            local header = dq:getHeader()
+            header:setAA(true)
+            dq:setHeader(header)
             dq:spoof({ "\\000\\000\\000\\000\\255\\255\\004srv1\\008powerdns\\003com\\000","\\000\\000\\000\\000\\255\\255\\004srv2\\008powerdns\\003com\\000" })
             return DNSAction.HeaderModify
         end

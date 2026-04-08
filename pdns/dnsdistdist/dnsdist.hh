@@ -84,26 +84,26 @@ struct DNSQuestion
 
   const dnsheader_aligned getHeader() const
   {
-    if (data.size() < sizeof(dnsheader)) {
-      throw std::runtime_error("Trying to access the dnsheader of a too small (" + std::to_string(data.size()) + ") DNSQuestion buffer");
+    if (getData().size() < sizeof(dnsheader)) {
+      throw std::runtime_error("Trying to access the dnsheader of a too small (" + std::to_string(getData().size()) + ") DNSQuestion buffer");
     }
-    return dnsheader_aligned(data.data());
+    return dnsheader_aligned(getData().data());
   }
 
   /* this function is not safe against unaligned access, you should
-     use editHeader() instead, but we need it for the Lua bindings */
-  dnsheader* getMutableHeader() const
+     use editHeader() instead, but we need it for the deprecated Lua bindings */
+  dnsheader* getMutableHeader()
   {
-    if (data.size() < sizeof(dnsheader)) {
-      throw std::runtime_error("Trying to access the dnsheader of a too small (" + std::to_string(data.size()) + ") DNSQuestion buffer");
+    if (getData().size() < sizeof(dnsheader)) {
+      throw std::runtime_error("Trying to access the dnsheader of a too small (" + std::to_string(getData().size()) + ") DNSQuestion buffer");
     }
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    return reinterpret_cast<dnsheader*>(data.data());
+    return reinterpret_cast<dnsheader*>(getMutableData().data());
   }
 
   bool hasRoomFor(size_t more) const
   {
-    return data.size() <= getMaximumSize() && (getMaximumSize() - data.size()) >= more;
+    return getData().size() <= getMaximumSize() && (getMaximumSize() - getData().size()) >= more;
   }
 
   size_t getMaximumSize() const
@@ -192,6 +192,7 @@ struct DNSQuestion
 protected:
   virtual std::shared_ptr<const Logr::Logger> getThisLogger(std::shared_ptr<const Logr::Logger> parent) const;
 
+  /* do not access the data field directly: use getData() or getMutableData() */
   PacketBuffer& data;
   std::shared_ptr<const Logr::Logger> d_logger;
 

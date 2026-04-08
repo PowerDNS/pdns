@@ -48,7 +48,7 @@ class TestLuaDNSHeaderBindings(DNSDistTest):
     newServer{address="127.0.0.1:%d"}
 
     function checkTCSet(dq)
-      local tc = dq.dh:getTC()
+      local tc = dq:getHeader():getTC()
       if not tc then
         return DNSAction.Spoof, 'tc-not-set.check-tc.lua-dnsheaders.tests.powerdns.com.'
       end

@@ -160,6 +160,35 @@ void* dnsdist_ffi_dnsquestion_get_header(const dnsdist_ffi_dnsquestion_t* dq)
   return dq->dq->getMutableHeader();
 }
 
+const unsigned char* dnsdist_ffi_dnsquestion_get_data(const dnsdist_ffi_dnsquestion_t* dq)
+{
+  return dq->dq->getData().data();
+}
+
+bool dnsdist_ffi_dnsquestion_get_header_copy(const dnsdist_ffi_dnsquestion_t* dnsQuestion, char* buffer, size_t buffer_size)
+{
+  if (dnsQuestion == nullptr || dnsQuestion->dq == nullptr || buffer == nullptr || buffer_size < sizeof(dnsheader)) {
+    return false;
+  }
+
+  const auto aligned = dnsQuestion->dq->getHeader();
+  memcpy(buffer, aligned.get(), sizeof(dnsheader));
+  return true;
+}
+
+bool dnsdist_ffi_dnsquestion_set_header(const dnsdist_ffi_dnsquestion_t* dnsQuestion, const char* buffer)
+{
+  if (dnsQuestion == nullptr || dnsQuestion->dq == nullptr || buffer == nullptr) {
+    return false;
+  }
+
+  dnsQuestion->dq->editHeader([&buffer](dnsheader& header) -> bool {
+    memcpy(&header, buffer, sizeof(dnsheader));
+    return true;
+  });
+  return true;
+}
+
 uint16_t dnsdist_ffi_dnsquestion_get_len(const dnsdist_ffi_dnsquestion_t* dq)
 {
   return dq->dq->getData().size();

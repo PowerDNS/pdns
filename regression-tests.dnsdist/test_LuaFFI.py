@@ -353,10 +353,10 @@ class TestLuaFFIHeader(DNSDistTest):
 
     -- check that the AA bit is clear, set the rcode to REFUSED otherwise
     function checkAAResponseAction(dr)
-      local header_void = ffi.C.dnsdist_ffi_dnsquestion_get_header(dr)
-      local header = ffi.cast("unsigned char *", header_void)
+      local header_ptr = ffi.new("char [12]")
+      ffi.C.dnsdist_ffi_dnsquestion_get_header_copy(dr, header_ptr, 12)
       -- get AA
-      local aa = bit.band(header[2], bit.lshift(1, 2)) ~= 0
+      local aa = bit.band(header_ptr[2], bit.lshift(1, 2)) ~= 0
       if aa then
           ffi.C.dnsdist_ffi_dnsquestion_set_rcode(dr, DNSRCode.REFUSED)
           -- prevent subsequent rules from being applied
@@ -367,10 +367,11 @@ class TestLuaFFIHeader(DNSDistTest):
 
     -- set the AA bit to 1
     function setAAResponseAction(dr)
-      local header_void = ffi.C.dnsdist_ffi_dnsquestion_get_header(dr)
-      local header = ffi.cast("unsigned char *", header_void)
+      local header_ptr = ffi.new("char [12]")
+      ffi.C.dnsdist_ffi_dnsquestion_get_header_copy(dr, header_ptr, 12)
       -- set AA=1
-      header[2] = bit.bor(header[2], bit.lshift(1, 2))
+      header_ptr[2] = bit.bor(header_ptr[2], bit.lshift(1, 2))
+      ffi.C.dnsdist_ffi_dnsquestion_set_header(dr, header_ptr)
       return DNSResponseAction.None
     end
 

@@ -99,7 +99,7 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
   luaCtx.registerMember<dnsheader*(DNSQuestion::*)>(
     "dh",
     [](const DNSQuestion& dnsQuestion) -> dnsheader* {
-      return dnsQuestion.getMutableHeader();
+      return const_cast<DNSQuestion&>(dnsQuestion).getMutableHeader();
     },
     [](DNSQuestion& dnsQuestion, const dnsheader* dnsHeader) {
       dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [&dnsHeader](dnsheader& header) {
@@ -185,6 +185,15 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
       return {};
     }
     return EDNSOptionViewsToValues(*ednsOptions);
+  });
+  luaCtx.registerFunction<dnsheader (DNSQuestion::*)() const>("getHeader", [](const DNSQuestion& dnsQuestion) -> dnsheader {
+    return *(dnsQuestion.getHeader());
+  });
+  luaCtx.registerFunction<void (DNSQuestion::*)(dnsheader)>("setHeader", [](DNSQuestion& dnsQuestion, dnsheader newHeader) {
+    dnsQuestion.editHeader([&newHeader](dnsheader& header) -> bool {
+      header = newHeader;
+      return true;
+    });
   });
   luaCtx.registerFunction<std::string (DNSQuestion::*)(void) const>("getTrailingData", [](const DNSQuestion& dnsQuestion) {
     return dnsQuestion.getTrailingData();
@@ -488,7 +497,7 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
   luaCtx.registerMember<dnsheader*(DNSResponse::*)>(
     "dh",
     [](const DNSResponse& dnsResponse) -> dnsheader* {
-      return dnsResponse.getMutableHeader();
+      return const_cast<DNSResponse&>(dnsResponse).getMutableHeader();
     },
     [](DNSResponse& dnsResponse, const dnsheader* dnsHeader) {
       dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsResponse.getMutableData(), [&dnsHeader](dnsheader& header) {
@@ -534,6 +543,15 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
       return {};
     }
     return EDNSOptionViewsToValues(*ednsOptions);
+  });
+  luaCtx.registerFunction<dnsheader (DNSResponse::*)() const>("getHeader", [](const DNSResponse& dnsQuestion) -> dnsheader {
+    return *(dnsQuestion.getHeader());
+  });
+  luaCtx.registerFunction<void (DNSResponse::*)(dnsheader)>("setHeader", [](DNSResponse& dnsQuestion, dnsheader newHeader) {
+    dnsQuestion.editHeader([&newHeader](dnsheader& header) -> bool {
+      header = newHeader;
+      return true;
+    });
   });
   luaCtx.registerFunction<std::string (DNSResponse::*)(void) const>("getTrailingData", [](const DNSResponse& dnsQuestion) {
     return dnsQuestion.getTrailingData();

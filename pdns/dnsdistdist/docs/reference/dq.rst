@@ -21,6 +21,9 @@ This state can be modified from the various hooks.
 
   .. attribute:: dh
 
+    .. versionchanged:: 2.1.0
+      This attribute is now deprecated, :meth:`DNSQuestion.getHeader` and :meth:`DNSQuestion.setHeader` should be used instead.
+
     The :ref:`DNSHeader` of this query.
 
   .. attribute:: ecsOverride
@@ -33,7 +36,7 @@ This state can be modified from the various hooks.
 
   .. attribute:: len
 
-    The length of the data starting at :attr:`DNSQuestion.dh`, including any trailing bytes following the DNS message.
+    The length of the data returned by :meth:`DNSQuestion.getContent`, including any trailing bytes following the DNS message.
 
   .. attribute:: localaddr
 
@@ -76,7 +79,7 @@ This state can be modified from the various hooks.
 
   .. attribute:: size
 
-    The total size of the buffer starting at :attr:`DNSQuestion.dh`.
+    The total size of the buffer returned by :attr:`DNSQuestion.getContent`.
 
   .. attribute:: skipCache
 
@@ -126,6 +129,12 @@ This state can be modified from the various hooks.
      Return the amount of time that has elapsed since the query was received.
 
      :returns: A double indicating elapsed time in microseconds
+
+  .. method:: getHeader() -> :ref:`DNSHeader`
+
+    .. versionadded:: 2.1.0
+
+    The :ref:`DNSHeader` of this query.
 
   .. method:: getHTTPHeaders() -> table
 
@@ -287,6 +296,12 @@ This state can be modified from the various hooks.
     :param int infoCode: The EDNS Extended DNS Error code
     :param string extraText: The optional EDNS Extended DNS Error extra text
     :param bool clearExistingEntries: Whether to clear existing EDNS Extended DNS Error codes, default true
+
+  .. method:: setHeader(header)
+
+    .. versionadded:: 2.1.0
+
+    Set a new :ref:`DNSHeader` for this query.
 
   .. method:: setHTTPResponse(status, body, contentType="")
 
