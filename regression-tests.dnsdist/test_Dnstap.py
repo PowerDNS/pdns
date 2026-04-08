@@ -133,8 +133,10 @@ class TestDnstapOverRemoteLogger(DNSDistTest):
     end
 
     function luaFunc(dq)
-      dq.dh:setQR(true)
-      dq.dh:setRCode(DNSRCode.NXDOMAIN)
+      local header = dq:getHeader()
+      header:setQR(true)
+      header:setRCode(DNSRCode.NXDOMAIN)
+      dq:setHeader(header)
       return DNSAction.None, ""
     end
 
@@ -343,8 +345,10 @@ class TestDnstapOverRemoteLoggerPool(DNSDistTest):
     end
 
     function luaFunc(dq)
-      dq.dh:setQR(true)
-      dq.dh:setRCode(DNSRCode.NXDOMAIN)
+      local header = dq:getHeader()
+      header:setQR(true)
+      header:setRCode(DNSRCode.NXDOMAIN)
+      dq:setHeader(header)
       return DNSAction.None, ""
     end
 

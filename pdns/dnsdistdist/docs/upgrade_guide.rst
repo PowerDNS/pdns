@@ -22,6 +22,8 @@ New:
     open_telemetry_tracing:
       enabled: true
 
+The use of :attr:`DNSQuestion.dh` is now deprecated and strongly discouraged as it has proven to be error-prone. :meth:`DNSQuestion.getHeader` and :meth:`DNSQuestion.setHeader` should be used instead.
+
 2.0.x to 2.1.0
 --------------
 
