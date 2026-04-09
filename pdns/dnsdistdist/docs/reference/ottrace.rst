@@ -345,6 +345,8 @@ The following functions are always available, but only produce Trace Spans withi
 * :func:`LuaResponseAction`
 * :func:`LuaFFIAction`
 * :func:`LuaFFIResponseAction`
+* :func:`LuaFFIPerThreadAction`
+* :func:`LuaFFIPerThreadResponseAction`
 * :func:`maintenance`
 * Any function added with :func:`addMaintenanceCallback`
 * Inside code ran with :func:`newThread`, but requires using :func:`sendOpenTelemetryTrace`

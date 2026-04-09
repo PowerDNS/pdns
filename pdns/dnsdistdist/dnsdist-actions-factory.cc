@@ -692,7 +692,11 @@ public:
       }
 
       dnsdist_ffi_dnsquestion_t dqffi(dnsquestion);
-      auto ret = state.d_func(&dqffi);
+      int ret{0};
+      auto tracer = dnsquestion->ids.getTracer();
+      pdns::trace::dnsdist::runWithLuaTracing(state.d_luaContext, tracer, [&state, &dqffi, &ret]() {
+        ret = state.d_func(&dqffi);
+      });
       if (ruleresult != nullptr) {
         if (dqffi.result) {
           *ruleresult = *dqffi.result;
@@ -815,7 +819,11 @@ public:
       }
 
       dnsdist_ffi_dnsresponse_t ffiResponse(response);
-      auto ret = state.d_func(&ffiResponse);
+      int ret{0};
+      auto tracer = response->ids.getTracer();
+      pdns::trace::dnsdist::runWithLuaTracing(state.d_luaContext, tracer, [&state, &ffiResponse, &ret]() {
+        ret = state.d_func(&ffiResponse);
+      });
       if (ruleresult != nullptr) {
         if (ffiResponse.result) {
           *ruleresult = *ffiResponse.result;
