@@ -129,8 +129,8 @@ PDNS_WITH_SQLITE3
 
 PDNS_CHECK_PYTHON_VENV
 
-AM_CONDITIONAL([HAVE_API_SWAGGER_JSON], [test -e "$srcdir/pdns/api-swagger.json"])
-AM_COND_IF([HAVE_API_SWAGGER_JSON],[],[
+AM_CONDITIONAL([HAVE_API_OPENAPI_JSON], [test -e "$srcdir/pdns/api-openapi.json"])
+AM_COND_IF([HAVE_API_OPENAPI_JSON],[],[
   AM_COND_IF([HAVE_VENV],[],[
     AC_MSG_ERROR([Python 3 and/or venv module are not available, Authoritative Server cannot be built.])
   ])

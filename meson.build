@@ -359,21 +359,21 @@ if not fs.is_file(libpdns_dnslabeltext_gen)
   libpdns_dnslabeltext_gen = ragel_generator.process(libpdns_dnslabeltext_source)
 endif
 
-libpdns_apidocfiles_source = 'docs' / 'http-api' / 'swagger' / 'authoritative-api-swagger.yaml'
+libpdns_apidocfiles_source = 'docs' / 'http-api' / 'openapi' / 'authoritative-api-openapi.yaml'
 libpdns_apidocfiles_gen    = src_dir / 'apidocfiles.h'
-generate_api_swagger_py    = src_dir / 'generate-api-swagger.py'
+generate_api_openapi_py    = src_dir / 'generate-api-openapi.py'
 if not fs.is_file(libpdns_apidocfiles_gen)
   py = import('python')
   python = py.find_installation('python3', modules: 'yaml', required: true)
 
-  summary('Python', python.found(), bool_yn: true, section: 'Swagger API')
-  summary('Path', python.full_path(), section: 'Swagger API')
-  summary('Version', python.version(), section: 'Swagger API')
+  summary('Python', python.found(), bool_yn: true, section: 'Openapi API')
+  summary('Path', python.full_path(), section: 'Openapi API')
+  summary('Version', python.version(), section: 'Openapi API')
 
   libpdns_apidocfiles_gen = custom_target(
     'pdns-apidocfiles-h',
     command: [python, '@INPUT0@', '@INPUT1@'],
-    input: [generate_api_swagger_py, libpdns_apidocfiles_source],
+    input: [generate_api_openapi_py, libpdns_apidocfiles_source],
     output: 'apidocfiles.h',
     capture: true,
   )
@@ -1186,13 +1186,13 @@ endif
 if python.found()
   json_schema = custom_target(
     'auth-json-schema',
-    input: product_source_dir / docs_dir / 'http-api' / 'swagger' / 'authoritative-api-swagger.yaml',
+    input: product_source_dir / docs_dir / 'http-api' / 'openapi' / 'authoritative-api-openapi.yaml',
     output: 'auth-schema-generated.stamp',
     command: [
       python,
       product_source_dir / docs_dir / 'generate-jsonschema.py',
       '@INPUT@',
-      product_source_dir / docs_dir / 'http-api' / 'swagger' / 'authoritative-api-schema.yaml',
+      product_source_dir / docs_dir / 'http-api' / 'openapi' / 'authoritative-api-schema.yaml',
       '--stampfile',
       '@OUTPUT@'
     ],

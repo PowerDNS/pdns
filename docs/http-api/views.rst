@@ -6,7 +6,7 @@ These endpoints allow configuration of per-zone :doc:`../views`.
 Views Endpoints
 ---------------
 
-.. openapi:: swagger/authoritative-api-swagger.yaml
+.. openapi:: openapi/authoritative-api-openapi.yaml
   :paths: /servers/{server_id}/views /servers/{server_id}/views/{view} /servers/{server_id}/views/{view}/{id}
   :examples:
 

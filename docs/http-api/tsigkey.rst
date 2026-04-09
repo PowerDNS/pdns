@@ -7,7 +7,7 @@ TSIGKeys can be manipulated via the API.
 TSIGKey Endpoints
 -----------------
 
-.. openapi:: swagger/authoritative-api-swagger.yaml
+.. openapi:: openapi/authoritative-api-openapi.yaml
   :paths: /servers/{server_id}/tsigkeys /servers/{server_id}/tsigkeys/{tsigkey_id}
   :examples:
 

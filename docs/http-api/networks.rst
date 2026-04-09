@@ -6,7 +6,7 @@ These endpoints allow configuration of networks, used by :doc:`../views`.
 Networks Endpoints
 ------------------
 
-.. openapi:: swagger/authoritative-api-swagger.yaml
+.. openapi:: openapi/authoritative-api-openapi.yaml
   :paths: /servers/{server_id}/networks /servers/{server_id}/networks/{ip}/{prefixlen}
   :examples:
 

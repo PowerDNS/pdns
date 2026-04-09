@@ -51,7 +51,7 @@ man_MANS = $(MANPAGES_INSTALL)
 
 EXTRA_DIST = \
 	$(MANPAGES_DIST) \
-	http-api/swagger/authoritative-api-swagger.yaml
+	http-api/openapi/authoritative-api-openapi.yaml
 
 if HAVE_VENV
 if !HAVE_MANPAGES
@@ -88,13 +88,13 @@ if !HAVE_MANPAGES
 endif
 	rm -rf mans
 
-http-api/swagger/authoritative-api-schema.yaml: .venv generate-jsonschema.py http-api/swagger/authoritative-api-swagger.yaml
-	.venv/bin/python ./generate-jsonschema.py http-api/swagger/authoritative-api-swagger.yaml $@
+http-api/openapi/authoritative-api-schema.yaml: .venv generate-jsonschema.py http-api/openapi/authoritative-api-openapi.yaml
+	.venv/bin/python ./generate-jsonschema.py http-api/openapi/authoritative-api-openapi.yaml $@
 
-html-docs: common/** manpages/** .venv *.rst http-api/swagger/authoritative-api-schema.yaml
+html-docs: common/** manpages/** .venv *.rst http-api/openapi/authoritative-api-schema.yaml
 	.venv/bin/python -msphinx -b html . html-docs
 
-latex/PowerDNS-Authoritative.pdf: common/** manpages/** .venv *.rst http-api/swagger/authoritative-api-schema.yaml
+latex/PowerDNS-Authoritative.pdf: common/** manpages/** .venv *.rst http-api/openapi/authoritative-api-schema.yaml
 	.venv/bin/python -msphinx -M latexpdf . .
 
 PowerDNS-Authoritative.pdf: latex/PowerDNS-Authoritative.pdf

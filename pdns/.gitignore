@@ -54,10 +54,10 @@ version_generated.h
 /calidns
 /dumresp
 /apidocfiles.h
-/api-swagger.yaml
-/api-swagger.json
+/api-openapi.yaml
+/api-openapi.json
 /.venv
-/.swagger-api-venv
+/.openapi-api-venv
 effective_tld_names.dat
 /dnsmessage.pb.cc
 /dnsmessage.pb.h

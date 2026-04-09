@@ -48,11 +48,11 @@
             ]
         },
         {
-            "owner": "pdns-swagger",
+            "owner": "pdns-openapi",
             "severity": "error",
             "pattern": [
                 {
-                    "regexp": "(docs/http-api/swagger/.*\\.yaml)$",
+                    "regexp": "(docs/http-api/openapi/.*\\.yaml)$",
                     "file": 1
                 },
                 {

@@ -1,4 +1,4 @@
-"""Produce API swagger YAML and JSON representations usable from C."""
+"""Produce API OpenAPI YAML and JSON representations usable from C."""
 
 import json
 import sys
@@ -35,8 +35,8 @@ with open(yaml_filename, mode="r", encoding="utf-8") as f_in:
     print(header)
     print()
 
-    dump_hex(yaml_contents, "api_swagger_yamlData", "g_api_swagger_yaml")
+    dump_hex(yaml_contents, "api_openapi_yamlData", "g_api_openapi_yaml")
     print()
     print("// -----------------------------------------------------------")
     print()
-    dump_hex(json_contents, "api_swagger_jsonData", "g_api_swagger_json")
+    dump_hex(json_contents, "api_openapi_jsonData", "g_api_openapi_json")

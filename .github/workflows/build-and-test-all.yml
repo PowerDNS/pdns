@@ -846,7 +846,7 @@ jobs:
           allow-empty: true
           fail-on-error: false
 
-  swagger-syntax-check:
+  openapi-syntax-check:
     if: ${{ (!github.event.schedule || vars.SCHEDULED_JOBS_BUILD_AND_TEST_ALL) && ! contains(needs.get-runner-container-image.outputs.id, 'debian-11') }}
     runs-on: ubuntu-24.04
     needs:
@@ -868,15 +868,15 @@ jobs:
         with:
           venv-parent: ${{ env.REPO_HOME }}
           working-directory: .
-      - run: ${{ env.INV_CMD }} install-swagger-tools
-      - run: ${{ env.INV_CMD }} swagger-syntax-check
+      - run: ${{ env.INV_CMD }} install-openapi-tools
+      - run: ${{ env.INV_CMD }} openapi-syntax-check
 
   collect:
     needs:
       - build-auth
       - build-dnsdist
       - build-recursor
-      - swagger-syntax-check
+      - openapi-syntax-check
       - test-auth-api
       - test-auth-backend
       - test-dnsdist-regression
