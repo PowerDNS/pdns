@@ -1557,3 +1557,88 @@ newThread([==[
                 inner_span["attributes"],
                 [{"key": "inner", "value": {"string_value": "I am an inner span"}}],
             )
+
+
+class TestOpenTelemetryTracingFFIActionPerThread(DNSDistOpenTelemetryProtobufBaseTest):
+    _config_template = """
+newServer{address="127.0.0.1:%d"}
+getServer(0):setUp()
+rl = newRemoteLogger('127.0.0.1:%d')
+setOpenTelemetryTracing(true)
+
+local action = [[
+  return function(dq)
+    withTraceSpan("action-span",
+      function ()
+        setSpanAttribute("my-key-from-lua", "my-value-from-lua")
+        withTraceSpan("my-second-action-span",
+          function()
+          end
+        )
+      end
+    )
+    return DNSAction.None
+  end
+]]
+
+local responseAction = [[
+  return function(dq)
+    withTraceSpan("response-action-span",
+      function ()
+        setSpanAttribute("my-key-from-lua", "my-value-from-lua")
+        withTraceSpan("my-second-response-action-span",
+          function()
+          end
+        )
+      end
+    )
+    return DNSAction.None
+  end
+]]
+
+addAction(AllRule(), SetTraceAction(true, {remoteLoggers={rl}}), {name="Enable tracing"})
+addAction(AllRule(), LuaFFIPerThreadAction(action), {name="FFI"})
+addResponseAction(AllRule(), LuaFFIPerThreadResponseAction(responseAction), {name="FFIResponse"})
+"""
+
+    _config_params = [
+        "_testServerPort",
+        "_protobufServerPort",
+    ]
+
+    def testBasic(self):
+        self.doTest(
+            hasProcessResponseAfterRules=True,
+            hasRemoteLogResponseAction=False,
+            extraFunctions={
+                "action-span",
+                "my-second-action-span",
+                "response-action-span",
+                "my-second-response-action-span",
+                "Rule: FFI",
+                "ResponseRule: FFIResponse",
+            },
+        )
+
+    def testTCP(self):
+        self.doTest(
+            useTCP=True,
+            hasProcessResponseAfterRules=True,
+            hasRemoteLogResponseAction=False,
+            extraFunctions={
+                "action-span",
+                "my-second-action-span",
+                "response-action-span",
+                "my-second-response-action-span",
+                "Rule: FFI",
+                "ResponseRule: FFIResponse",
+                "createTCPQuery",
+                "queueResponse",
+                "TCPConnectionToBackend::handleResponse",
+                "getDownstreamConnection",
+                "TCPConnectionToBackend::sendQuery",
+                "handleResponse",
+                "prepareQueryForSending",
+                "TCPConnectionToBackend::queueQuery",
+            },
+        )
