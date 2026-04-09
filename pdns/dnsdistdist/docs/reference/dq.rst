@@ -26,9 +26,9 @@ This state can be modified from the various hooks.
   .. attribute:: DNSQuestion.dh
 
     .. versionchanged:: 2.1.0
-      This attribute is now deprecated, :meth:`DNSQuestion.getHeader` and :meth:`DNSQuestion.setHeader` should be used instead.
+      This attribute is now deprecated and will be removed in 2.2.0, :meth:`DNSQuestion.getHeader` and :meth:`DNSQuestion.setHeader` should be used instead.
 
-    The :ref:`DNSHeader` of this query.
+    The :class:`DNSHeader` of this query.
 
   .. attribute:: DNSQuestion.ecsOverride
 
@@ -87,7 +87,7 @@ This state can be modified from the various hooks.
 
   .. attribute:: DNSQuestion.size
 
-    The total size of the buffer returned by :attr:`DNSQuestion.getContent`.
+    The total size of the buffer returned by :meth:`DNSQuestion.getContent`.
 
   .. attribute:: DNSQuestion.skipCache
 
@@ -142,11 +142,11 @@ This state can be modified from the various hooks.
 
      :returns: A double indicating elapsed time in microseconds
 
-  .. method:: getHeader() -> :ref:`DNSHeader`
+  .. method:: getHeader() -> DNSHeader
 
     .. versionadded:: 2.1.0
 
-    The :ref:`DNSHeader` of this query.
+    The :class:`DNSHeader` of this query.
 
   .. method:: DNSQuestion:getHTTPHeaders() -> table
 
@@ -341,7 +341,7 @@ This state can be modified from the various hooks.
 
     .. versionadded:: 2.1.0
 
-    Set a new :ref:`DNSHeader` for this query.
+    Set a new :class:`DNSHeader` for this query.
 
   .. method:: DNSQuestion:setHTTPResponse(status, body, contentType="")
 
