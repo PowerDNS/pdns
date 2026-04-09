@@ -1126,13 +1126,13 @@ static bool isValidMetadataKind(const string& kind, bool readonly)
 void apiDocs(HttpRequest* req, HttpResponse* resp)
 {
   if (req->accept_yaml) {
-    resp->setYamlBody(g_api_swagger_yaml);
+    resp->setYamlBody(g_api_openapi_yaml);
   }
   else if (req->accept_json) {
-    resp->setJsonBody(g_api_swagger_json);
+    resp->setJsonBody(g_api_openapi_json);
   }
   else {
-    resp->setPlainBody(g_api_swagger_yaml);
+    resp->setPlainBody(g_api_openapi_yaml);
   }
 }
 

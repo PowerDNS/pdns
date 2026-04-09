@@ -6,7 +6,7 @@ Manipulating zones is the primary use of the API.
 Zone Endpoints
 --------------
 
-.. openapi:: swagger/authoritative-api-swagger.yaml
+.. openapi:: openapi/authoritative-api-openapi.yaml
   :paths: /servers/{server_id}/zones /servers/{server_id}/zones/{zone_id} /servers/{server_id}/zones/{zone_id}/axfr-retrieve /servers/{server_id}/zones/{zone_id}/notify /servers/{server_id}/zones/{zone_id}/export /servers/{server_id}/zones/{zone_id}/rectify
   :examples:
 

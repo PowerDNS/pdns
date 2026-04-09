@@ -4,7 +4,7 @@ Statistics
 Endpoints
 ---------
 
-.. openapi:: swagger/authoritative-api-swagger.yaml
+.. openapi:: openapi/authoritative-api-openapi.yaml
   :paths: /servers/{server_id}/statistics
   :examples:
 

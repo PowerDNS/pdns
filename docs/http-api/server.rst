@@ -8,7 +8,7 @@ However, the API is written in a way that a proxy could be in front of many serv
 Endpoints
 ---------
 
-.. openapi:: swagger/authoritative-api-swagger.yaml
+.. openapi:: openapi/authoritative-api-openapi.yaml
   :paths: /servers /servers/{server_id}
   :examples:
 

@@ -126,7 +126,7 @@ changelog_inner_tag_sort = [
 changelog_hide_tags_in_entry = True
 
 # -- Options for the Sphinx-Immaterial JSON Domain ------------------------
-json_schemas = ["http-api/swagger/authoritative-api-schema.yaml"]
+json_schemas = ["http-api/openapi/authoritative-api-schema.yaml"]
 
 # -- Options for the HTTP Domain ------------------------
 # Because we use 'default' in the OpenAPI definition for responses, the HTTP domain
@@ -174,7 +174,7 @@ redoc = [
     {
         "name": "PowerDNS Authoritative API",
         "page": "http-api/redoc",
-        "spec": "http-api/swagger/authoritative-api-swagger.yaml",
+        "spec": "http-api/openapi/authoritative-api-openapi.yaml",
         "embed": True,
         "opts": {
             "native-scrollbars": True,

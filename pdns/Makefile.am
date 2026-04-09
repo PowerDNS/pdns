@@ -46,14 +46,14 @@ AM_CPPFLAGS +=$(LIBSODIUM_CFLAGS)
 endif
 
 EXTRA_DIST = \
-	api-swagger.json \
-	api-swagger.yaml \
+	api-openapi.json \
+	api-openapi.yaml \
 	bindparser.hh \
 	convert-yaml-to-json.py \
 	dnslabeltext.cc \
 	dnslabeltext.rl \
 	dnsmessage.proto \
-	generate-api-swagger.py \
+	generate-api-openapi.py \
 	incfiles \
 	inflighter.cc \
 	ixfrdist.example.yml \
@@ -84,34 +84,34 @@ CLEANFILES = \
 	pdns.conf-dist \
 	apidocfiles.h
 
-if !HAVE_API_SWAGGER_JSON
+if !HAVE_API_OPENAPI_JSON
 # don't clean these files if they were present
 # at 'configure' time (e.g. from a source dist)
 CLEANFILES += \
-	api-swagger.yaml \
-	api-swagger.json
+	api-openapi.yaml \
+	api-openapi.json
 endif
 
 # use a $(wildcard) wrapper here to allow build to proceed if output
 # file is present but input file is not (e.g. in a dist tarball)
-api-swagger.yaml: $(wildcard ${srcdir}/../docs/http-api/swagger/authoritative-api-swagger.yaml)
+api-openapi.yaml: $(wildcard ${srcdir}/../docs/http-api/openapi/authoritative-api-openapi.yaml)
 	cp $< $@
 
 if HAVE_VENV
-api-swagger.json: api-swagger.yaml requirements.txt
+api-openapi.json: api-openapi.yaml requirements.txt
 	$(PYTHON) -m venv .venv
 	.venv/bin/pip install -U pip "setuptools<82"
 	.venv/bin/pip install -r ${srcdir}/requirements.txt
 	.venv/bin/python ${srcdir}/convert-yaml-to-json.py $< $@
 else # if HAVE_VENV
-if !HAVE_API_SWAGGER_JSON
-api-swagger.json:
+if !HAVE_API_OPENAPI_JSON
+api-openapi.json:
 	echo "You need Python 3 and the 'venv' module to generate the JSON API document"
 	exit 1
 endif
 endif
 
-apidocfiles.h: api-swagger.yaml api-swagger.json
+apidocfiles.h: api-openapi.yaml api-openapi.json
 	$(AM_V_GEN)$(srcdir)/incfiles $^ > $@.tmp
 	@mv $@.tmp $@
 

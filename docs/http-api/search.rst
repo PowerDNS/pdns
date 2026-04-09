@@ -11,7 +11,7 @@ The API allows searching for data in :json:schema:`Zones <Zone>`, :json:schema:`
 Endpoints
 ---------
 
-.. openapi:: swagger/authoritative-api-swagger.yaml
+.. openapi:: openapi/authoritative-api-openapi.yaml
   :paths: /servers/{server_id}/search-data
   :examples:
 

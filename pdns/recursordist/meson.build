@@ -787,7 +787,7 @@ if python.found()
     command: [
       python,
       product_source_dir / docs_dir / 'generate-jsonschema.py',
-      product_source_dir / docs_dir / 'http-api' / 'authoritative-api-swagger.yaml',
+      product_source_dir / docs_dir / 'http-api' / 'authoritative-api-openapi.yaml',
       product_source_dir / docs_dir / 'http-api' / 'recursor-generated-schema.yaml',
       '--stampfile',
       '@OUTPUT@'

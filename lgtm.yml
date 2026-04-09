@@ -24,7 +24,7 @@ extraction:
       - "autoreconf -vi"
       - "./configure --with-modules='bind gsqlite3 gmysql gpgsql ldap'"
       - "pushd pdns"
-      - "touch .venv api-swagger.yaml api-swagger.json"
+      - "touch .venv api-openapi.yaml api-openapi.json"
       - "popd"
     index:
       build_command:
