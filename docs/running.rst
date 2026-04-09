@@ -90,6 +90,12 @@ Over this socket, instructions can be sent using the ``pdns_control``
 program. The control socket is called ``pdns.controlsocket`` and is
 created inside the :ref:`setting-socket-dir`.
 
+The controlsocket is created only if
+:ref:`setting-tcp-control-address` is configured. Access to the socket can be
+further restricted to the networks listed in
+:ref:`setting-tcp-control-range`, and to require a password set in
+:ref:`setting-tcp-control-secret`.
+
 .. _running-pdnscontrol:
 
 ``pdns_control``
