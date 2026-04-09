@@ -1106,12 +1106,13 @@ static string lua_createForward()
         string ret;
         for (size_t index=4; index > 0; index--) {
           const auto octet = ip_parts.at(ip_parts.size() - index);
-          auto octetVal = std::stol(octet); // may throw
-          if (octetVal >= 0 && octetVal <= 255) {
-            ret += octet + ".";
-          } else {
+          size_t octetLength{0};
+          auto octetVal = pdns::checked_stoi<uint8_t>(octet, &octetLength); // may throw
+
+          if (octetLength != octet.length()) { // trailing chars after number
             return allZerosIP;
           }
+          ret += std::to_string(octetVal) + ".";
         }
         ret.resize(ret.size() - 1); // remove trailing dot after last octet
         return ret;
@@ -1131,7 +1132,7 @@ static string lua_createForward()
     return allZerosIP;
   } catch (const PDNSException &) {
     return allZerosIP;
-  } catch (const std::exception &) { // thrown by std::stol
+  } catch (const std::exception &) { // thrown by pdns::checked_stoi
     return allZerosIP;
   }
 }
