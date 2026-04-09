@@ -247,7 +247,7 @@ static void parseProtobufOptions(const std::optional<protobufOptions_t>& vars, P
   }
 
   if (have.count("strategy") != 0) {
-    auto strategy = boost::get<string>(have.at("strategy"));
+    const auto& strategy = boost::get<string>(have.at("strategy"));
     config.strategy = ProtobufExportConfig::strategyFromString(strategy);
   }
 
