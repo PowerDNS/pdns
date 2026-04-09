@@ -1032,7 +1032,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
   luaCtx.registerFunction<size_t (EDNSOptionValues::*)() const>("count", [](const EDNSOptionValues& values) {
     return values.values.size();
   });
-  luaCtx.registerFunction<std::vector<string> (EDNSOptionValues::*)() const>("getValues", [](const EDNSOptionValues& values) {
+  luaCtx.registerFunction<std::vector<string> (EDNSOptionValues::*)() const>("getValues", [](const EDNSOptionValues& values) -> std::vector<string> {
     return values.values;
   });
 
