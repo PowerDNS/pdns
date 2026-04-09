@@ -842,6 +842,9 @@ static vector<string> genericIfUp(const boost::variant<iplist_t, ipunitlist_t>& 
   return convComboAddressListToString(res);
 }
 
+static string allZerosIP{"0.0.0.0"};
+static string allZerosIP6{"::"};
+
 static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cognitive-complexity)
 {
   lua.writeFunction("latlon", []() {
@@ -916,7 +919,6 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
       return std::string("error");
     });
   lua.writeFunction("createForward", []() {
-      static string allZerosIP{"0.0.0.0"};
       try {
         DNSName rel{s_lua_record_ctx->qname.makeRelative(s_lua_record_ctx->zone)};
 
@@ -977,7 +979,6 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
     });
 
   lua.writeFunction("createForward6", []() {
-      static string allZerosIP{"::"};
       try {
         DNSName rel{s_lua_record_ctx->qname.makeRelative(s_lua_record_ctx->zone)};
 
@@ -1015,9 +1016,9 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
             return address.toString();
           }
         }
-        return allZerosIP;
+        return allZerosIP6;
       } catch (const PDNSException &e) {
-        return allZerosIP;
+        return allZerosIP6;
       }
     });
   lua.writeFunction("createReverse6", [](const string &format, boost::optional<std::unordered_map<string,string>> excp){
@@ -1081,7 +1082,7 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
   lua.writeFunction("filterForward", [](const string& address, NetmaskGroup& nmg, boost::optional<string> fallback) -> vector<string> {
       ComboAddress ca(address);
 
-      if (nmg.match(ComboAddress(address))) {
+      if (nmg.match(ca)) {
         return {address};
       } else {
         if (fallback) {
@@ -1093,9 +1094,9 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
         }
 
         if (ca.isIPv4()) {
-          return {string("0.0.0.0")};
+          return {allZerosIP};
         } else {
-          return {string("::")};
+          return {allZerosIP6};
         }
       }
     });
