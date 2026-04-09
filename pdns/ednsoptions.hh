@@ -20,7 +20,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
-#include "namespaces.hh"
+#include <map>
+#include <vector>
 
 #include "noinitvector.hh"
 
@@ -42,6 +43,11 @@ struct EDNSOptionViewValue
 struct EDNSOptionView
 {
   std::vector<EDNSOptionViewValue> values;
+};
+
+struct EDNSOptionValues
+{
+  std::vector<std::string> values;
 };
 
 static constexpr size_t EDNSOptionCodeSize = 2;
