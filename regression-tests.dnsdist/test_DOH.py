@@ -7,7 +7,11 @@ import time
 import unittest
 from io import BytesIO
 
-import dns
+import dns.message
+import dns.rcode
+import dns.rdataclass
+import dns.rdatatype
+import dns.rrset
 import pycurl
 
 import clientsubnetoption
@@ -2154,11 +2158,24 @@ class DOHEDNSPadding(object):
     _config_template = """
     newServer{address="127.0.0.1:%d"}
 
+    setECSOverride(false)
+    setECSSourcePrefixV4(32)
+    setECSSourcePrefixV6(128)
+    newServer{address="127.0.0.1:%d", name="ecs", pool="ecs", useClientSubnet=true}
+
     addDOHLocal("127.0.0.1:%d", "%s", "%s", { "/" }, {padResponses=true, library='%s'})
 
     addAction(QNameRule("padded-self-answered.doh.tests.powerdns.com"), SpoofAction("192.0.2.1"))
+    addAction(QNameRule("padded-ecs.doh.tests.powerdns.com"), PoolAction("ecs"))
     """
-    _config_params = ["_testServerPort", "_dohServerPort", "_serverCert", "_serverKey", "_dohLibrary"]
+    _config_params = [
+        "_testServerPort",
+        "_testServerPort",
+        "_dohServerPort",
+        "_serverCert",
+        "_serverKey",
+        "_dohLibrary",
+    ]
 
     def testDOHWithPadding(self):
         """
@@ -2254,6 +2271,27 @@ class DOHEDNSPadding(object):
         DOH without EDNS Padding, but with EDNS that we answer ourselves via SpoofAction
         """
         name = "padded-self-answered.doh.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN", use_edns=True)
+
+        (_, receivedResponse) = self.sendDOHQuery(
+            self._dohServerPort,
+            self._serverName,
+            self._dohBaseURL,
+            query,
+            caFile=self._caCert,
+        )
+        self.assertEqual(len(receivedResponse.to_wire()) % 468, 0)
+        self.assertTrue(receivedResponse)
+        self.assertEqual(receivedResponse.edns, 0)
+        self.assertEqual(len(receivedResponse.options), 1)
+        for option in receivedResponse.options:
+            self.assertEqual(option.otype, 12)
+
+    def testDOHWithPaddingWithECS(self):
+        """
+        DOH with EDNS, no padding in query. Backend uses ECS.
+        """
+        name = "padded-ecs.doh.tests.powerdns.com"
         query = dns.message.make_query(name, "A", "IN", use_edns=True)
 
         (_, receivedResponse) = self.sendDOHQuery(
