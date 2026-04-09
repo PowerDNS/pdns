@@ -183,6 +183,12 @@ Split the domains table in two, with the last notification timestamp and
 last freshness check timestamp in a separate table.
 This lowers the I/O bandwidth requirements on setups with many zones.
 
+Except for the first time this feature gets enabled, after changing the value
+of this option, the next time the authoritative server starts, it will operate
+on out-of-date data and may send unnecessary notifications, as well as
+perform unnecessary freshness checks. This however allows this feature to work
+without requiring a database schema upgrade.
+
 ``lmdb-lightning-stream``
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
