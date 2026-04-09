@@ -63,7 +63,6 @@ default: >-
 ```
 
 If release packages should be automatically built for this new target, then `.github/workflows/build-packages.yml` has to be updated as well:
-``
 ```
 default: >-
   el-8
