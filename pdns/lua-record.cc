@@ -1067,9 +1067,11 @@ static string lua_createReverse(Logr::log_t slog, const string &format, boost::o
   return {"error"};
 }
 
+static string allZerosIP{"0.0.0.0"};
+static string allZerosIP6{"::"};
+
 static string lua_createForward()
 {
-  static string allZerosIP{"0.0.0.0"};
   try {
     DNSName record_name{s_lua_record_ctx->zone_record.dr.d_name};
     if (!record_name.isWildcard()) {
@@ -1136,11 +1138,10 @@ static string lua_createForward()
 
 static string lua_createForward6()
 {
-   static string allZerosIP{"::"};
    try {
      DNSName record_name{s_lua_record_ctx->zone_record.dr.d_name};
      if (!record_name.isWildcard()) {
-       return allZerosIP;
+       return allZerosIP6;
      }
      record_name.chopOff();
      DNSName rel{s_lua_record_ctx->qname.makeRelative(record_name)};
@@ -1179,9 +1180,9 @@ static string lua_createForward6()
         return address.toString();
       }
     }
-    return allZerosIP;
+    return allZerosIP6;
   } catch (const PDNSException &e) {
-    return allZerosIP;
+    return allZerosIP6;
   }
 }
 
@@ -1260,7 +1261,7 @@ static vector<string> lua_filterForward(const string& address, NetmaskGroup& nmg
 {
   ComboAddress caddr(address);
 
-  if (nmg.match(ComboAddress(address))) {
+  if (nmg.match(caddr)) {
     return {address};
   }
   if (fallback) {
@@ -1272,9 +1273,9 @@ static vector<string> lua_filterForward(const string& address, NetmaskGroup& nmg
   }
 
   if (caddr.isIPv4()) {
-    return {string("0.0.0.0")};
+    return {allZerosIP};
   }
-  return {"::"};
+  return {allZerosIP6};
 }
 
 /*
