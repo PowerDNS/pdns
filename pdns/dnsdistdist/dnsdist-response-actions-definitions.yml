@@ -105,7 +105,7 @@ Subsequent rules are processed after this action"
       default: ""
       description: "The path to a file containing the code of the Lua function"
 - name: "LuaFFI"
-  description: "Invoke a Lua function that accepts a pointer to a ``dnsdist_ffi_dnsquestion_t`` object, whose bindings are defined in ``dnsdist-lua-ffi-interface.h``. The function should return a :ref:`DNSResponseAction`. If the Lua code fails, ``ServFail`` is returned"
+  description: "Invoke a Lua function that accepts a pointer to a ``dnsdist_ffi_dnsresponse_t`` object, whose bindings are defined in ``dnsdist-lua-ffi-interface.h``. The function should return a :ref:`DNSResponseAction`. If the Lua code fails, ``ServFail`` is returned"
   skip-cpp: true
   skip-rust: true
   parameters:
@@ -122,7 +122,7 @@ Subsequent rules are processed after this action"
       default: ""
       description: "The path to a file containing the code of the Lua function"
 - name: "LuaFFIPerThread"
-  description: "Invoke a Lua function that accepts a pointer to a ``dnsdist_ffi_dnsquestion_t`` object, whose bindings are defined in ``dnsdist-lua-ffi-interface.h``. The function should return a :ref:`DNSResponseAction`. If the Lua code fails, ``ServFail`` is returned.
+  description: "Invoke a Lua function that accepts a pointer to a ``dnsdist_ffi_dnsresponse_t`` object, whose bindings are defined in ``dnsdist-lua-ffi-interface.h``. The function should return a :ref:`DNSResponseAction`. If the Lua code fails, ``ServFail`` is returned.
 The function will be invoked in a per-thread Lua state, without access to the global Lua state. All constants (:ref:`DNSQType`, :ref:`DNSRCode`, ...) are available in that per-thread context, as well as all FFI functions. Objects and their bindings that are not usable in a FFI context (:class:`DNSQuestion`, :class:`DNSDistProtoBufMessage`, :class:`PacketCache`, ...) are not available."
   parameters:
     - name: "code"
