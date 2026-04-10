@@ -258,6 +258,7 @@ dnsdist_SOURCES = \
 	dnsdist-tcp-downstream.cc dnsdist-tcp-downstream.hh \
 	dnsdist-tcp-upstream.hh \
 	dnsdist-tcp.cc dnsdist-tcp.hh \
+	dnsdist-udp.cc dnsdist-udp.hh \
 	dnsdist-web.cc dnsdist-web.hh \
 	dnsdist-xsk.cc dnsdist-xsk.hh \
 	dnsdist.cc dnsdist.hh \
@@ -372,6 +373,7 @@ testrunner_SOURCES = \
 	dnsdist-svc.cc dnsdist-svc.hh \
 	dnsdist-tcp-downstream.cc \
 	dnsdist-tcp.cc dnsdist-tcp.hh \
+	dnsdist-udp.cc dnsdist-udp.hh \
 	dnsdist-xsk.cc dnsdist-xsk.hh \
 	dnsdist.hh \
 	dnslabeltext.cc \
