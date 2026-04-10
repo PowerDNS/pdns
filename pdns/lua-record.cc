@@ -1067,9 +1067,11 @@ static string lua_createReverse(Logr::log_t slog, const string &format, boost::o
   return {"error"};
 }
 
+static string allZerosIP{"0.0.0.0"};
+static string allZerosIP6{"::"};
+
 static string lua_createForward()
 {
-  static string allZerosIP{"0.0.0.0"};
   try {
     DNSName record_name{s_lua_record_ctx->zone_record.dr.d_name};
     if (!record_name.isWildcard()) {
@@ -1104,12 +1106,13 @@ static string lua_createForward()
         string ret;
         for (size_t index=4; index > 0; index--) {
           const auto octet = ip_parts.at(ip_parts.size() - index);
-          auto octetVal = std::stol(octet); // may throw
-          if (octetVal >= 0 && octetVal <= 255) {
-            ret += octet + ".";
-          } else {
+          size_t octetLength{0};
+          auto octetVal = pdns::checked_stoi<uint8_t>(octet, &octetLength); // may throw
+
+          if (octetLength != octet.length()) { // trailing chars after number
             return allZerosIP;
           }
+          ret += std::to_string(octetVal) + ".";
         }
         ret.resize(ret.size() - 1); // remove trailing dot after last octet
         return ret;
@@ -1129,18 +1132,17 @@ static string lua_createForward()
     return allZerosIP;
   } catch (const PDNSException &) {
     return allZerosIP;
-  } catch (const std::exception &) { // thrown by std::stol
+  } catch (const std::exception &) { // thrown by pdns::checked_stoi
     return allZerosIP;
   }
 }
 
 static string lua_createForward6()
 {
-   static string allZerosIP{"::"};
    try {
      DNSName record_name{s_lua_record_ctx->zone_record.dr.d_name};
      if (!record_name.isWildcard()) {
-       return allZerosIP;
+       return allZerosIP6;
      }
      record_name.chopOff();
      DNSName rel{s_lua_record_ctx->qname.makeRelative(record_name)};
@@ -1179,9 +1181,9 @@ static string lua_createForward6()
         return address.toString();
       }
     }
-    return allZerosIP;
+    return allZerosIP6;
   } catch (const PDNSException &e) {
-    return allZerosIP;
+    return allZerosIP6;
   }
 }
 
@@ -1260,7 +1262,7 @@ static vector<string> lua_filterForward(const string& address, NetmaskGroup& nmg
 {
   ComboAddress caddr(address);
 
-  if (nmg.match(ComboAddress(address))) {
+  if (nmg.match(caddr)) {
     return {address};
   }
   if (fallback) {
@@ -1272,9 +1274,9 @@ static vector<string> lua_filterForward(const string& address, NetmaskGroup& nmg
   }
 
   if (caddr.isIPv4()) {
-    return {string("0.0.0.0")};
+    return {allZerosIP};
   }
-  return {"::"};
+  return {allZerosIP6};
 }
 
 /*
