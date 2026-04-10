@@ -29,11 +29,12 @@ extern StatBag S;
 
 /** Do an actual secpoll for the current version
  * @param first bool that tells if this is the first secpoll run since startup
+ * @return whether polling should continue
  */
-void doSecPoll(Logr::log_t slog, bool first)
+bool doSecPoll(Logr::log_t slog, bool first)
 {
   if(::arg()["security-poll-suffix"].empty())
-    return;
+    return false;
 
   struct timeval now;
   gettimeofday(&now, nullptr);
@@ -56,7 +57,7 @@ void doSecPoll(Logr::log_t slog, bool first)
   if (res == RCode::NXDomain && !isReleaseVersion(pkgv)) {
     SLOG(g_log<<Logger::Warning<<"Not validating response for security status update, this is a non-release version"<<endl,
          slog->info(Logr::Warning, "Not validating response for security status update, this is a non-release version"));
-    return;
+    return false;
   }
 
   string security_message;
@@ -67,7 +68,7 @@ void doSecPoll(Logr::log_t slog, bool first)
     S.set("security-status", security_status);
     SLOG(g_log<<Logger::Warning<<"Failed to retrieve security status update for '" + pkgv + "' on '"+ query + "': "<<pe.reason<<endl,
          slog->error(Logr::Warning, pe.reason, "Failed to retrieve security status update", "package", Logging::Loggable(pkgv), "query", Logging::Loggable(query)));
-    return;
+    return true;
   }
 
 
@@ -86,4 +87,5 @@ void doSecPoll(Logr::log_t slog, bool first)
     SLOG(g_log<<Logger::Error<<"PowerDNS Security Update Mandatory: "<<g_security_message<<endl,
          slog->info(Logr::Error, "PowerDNS Security Update Mandatory", "status", Logging::Loggable(g_security_message)));
   }
+  return true;
 }

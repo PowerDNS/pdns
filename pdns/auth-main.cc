@@ -890,8 +890,9 @@ static void mainthread()
     DP->go();
   }
 
+  bool performSecPoll{true};
   try {
-    doSecPoll(slog, true);
+    performSecPoll = doSecPoll(slog, true);
   }
   catch (...) {
   }
@@ -1017,13 +1018,15 @@ static void mainthread()
       }
     }
 
-    secpollSince += sleeptime;
-    if (secpollSince >= secpollInterval) {
-      secpollSince = 0;
-      try {
-        doSecPoll(slog, false);
-      }
-      catch (...) {
+    if (performSecPoll) {
+      secpollSince += sleeptime;
+      if (secpollSince >= secpollInterval) {
+        secpollSince = 0;
+        try {
+          performSecPoll = doSecPoll(slog, false);
+        }
+        catch (...) {
+        }
       }
     }
   }

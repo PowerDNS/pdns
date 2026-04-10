@@ -24,4 +24,4 @@
 #include "namespaces.hh"
 #include "stubresolver.hh"
 
-void doSecPoll(Logr::log_t slog, bool first);
+bool doSecPoll(Logr::log_t slog, bool first);
