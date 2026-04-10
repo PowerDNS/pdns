@@ -167,6 +167,21 @@ BOOST_AUTO_TEST_CASE(test_Query)
   }
 
   {
+    // dnsdist_ffi_dnsquestion_get_header_copy
+    dnsheader copy{};
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    BOOST_REQUIRE(dnsdist_ffi_dnsquestion_get_header_copy(&lightDQ, reinterpret_cast<char*>(&copy), sizeof(copy)));
+    BOOST_CHECK(memcmp(&copy, pwQ.getHeader(), sizeof(dnsheader)) == 0);
+  }
+
+  {
+    // dnsdist_ffi_dnsquestion_get_data
+    const auto* data = dnsdist_ffi_dnsquestion_get_data(&lightDQ);
+    BOOST_REQUIRE(data != nullptr);
+    BOOST_CHECK(memcmp(data, query.data(), query.size()) == 0);
+  }
+
+  {
     // dnsdist_ffi_dnsquestion_get_len, dnsdist_ffi_dnsquestion_get_size
     BOOST_CHECK_EQUAL(dnsdist_ffi_dnsquestion_get_len(&lightDQ), query.size());
     BOOST_CHECK_EQUAL(dnsdist_ffi_dnsquestion_get_size(&lightDQ), query.size());

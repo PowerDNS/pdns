@@ -58,7 +58,9 @@ class DOHTests(object):
         end
         if foundct then
           dq:setHTTPResponse(200, 'It works!', 'text/plain')
-          dq.dh:setQR(true)
+          local header = dq:getHeader()
+          header:setQR(true)
+          dq:setHeader(header)
           return DNSAction.HeaderModify
         end
       end
@@ -1065,7 +1067,9 @@ query_rules:
         end
         if foundct then
           dq:setHTTPResponse(200, 'It works!', 'text/plain')
-          dq.dh:setQR(true)
+          local header = dq:getHeader()
+          header:setQR(true)
+          dq:setHeader(header)
           return DNSAction.HeaderModify
         end
       end

@@ -531,7 +531,7 @@ class TestAsyncFFI(DNSDistTest, AsyncTests):
       print('in passQueryToAsyncFilter')
       local timeout = 500 -- 500 ms
 
-      local queryPtr = C.dnsdist_ffi_dnsquestion_get_header(dq)
+      local queryPtr = C.dnsdist_ffi_dnsquestion_get_data(dq)
       local querySize = C.dnsdist_ffi_dnsquestion_get_len(dq)
 
       -- we need to take a copy, as we can no longer touch that data after calling set_async
@@ -549,7 +549,7 @@ class TestAsyncFFI(DNSDistTest, AsyncTests):
       print('in passResponseToAsyncFilter')
       local timeout = 500 -- 500 ms
 
-      local responsePtr = C.dnsdist_ffi_dnsquestion_get_header(dr)
+      local responsePtr = C.dnsdist_ffi_dnsquestion_get_data(dr)
       local responseSize = C.dnsdist_ffi_dnsquestion_get_len(dr)
 
       -- we need to take a copy, as we can no longer touch that data after calling set_async
@@ -673,7 +673,7 @@ class TestAsyncLua(DNSDistTest, AsyncTests):
       local timeout = 500 -- 500 ms
 
       local buffer = dq:getContent()
-      local id = dq.dh:getID()
+      local id = dq:getHeader():getID()
       dq:suspend(asyncID, id, timeout)
       asyncResponderEndpoint:send(buffer)
 
@@ -685,7 +685,7 @@ class TestAsyncLua(DNSDistTest, AsyncTests):
       local timeout = 500 -- 500 ms
 
       local buffer = dr:getContent()
-      local id = dr.dh:getID()
+      local id = dr:getHeader():getID()
       dr:suspend(asyncID, id, timeout)
       asyncResponderEndpoint:send(buffer)
 
