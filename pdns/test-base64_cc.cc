@@ -92,4 +92,16 @@ BOOST_AUTO_TEST_CASE(test_Base64_Decode_Garbage)
 #endif
 }
 
+BOOST_AUTO_TEST_CASE(test_Base64_Decode_Trailing_Whitespace)
+{
+  const std::string trailing("eg== ");
+  std::string decoded;
+  auto ret = B64Decode(trailing, decoded);
+#if defined(DNSDIST)
+  BOOST_CHECK_EQUAL(ret, -1);
+#else
+  BOOST_CHECK(ret == 0);
+#endif
+}
+
 BOOST_AUTO_TEST_SUITE_END()
