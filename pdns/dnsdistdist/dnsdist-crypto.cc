@@ -452,6 +452,9 @@ int B64Decode(const std::string& strInput, Container& strOutput)
         }
         while (isspace(strInput.at(iInNum))) {
           iInNum++;
+          if (iInNum >= iInSize) {
+            return -1;
+          }
         }
         cChar = B64Decode1(strInput.at(iInNum++));
 
