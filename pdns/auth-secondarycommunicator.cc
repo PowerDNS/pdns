@@ -505,6 +505,36 @@ void CommunicatorClass::ixfrSuck(const TSIGTriplet& tsig, const ComboAddress& la
     ctx.numDeltas = deltas.size();
     //    cout<<"Got "<<deltas.size()<<" deltas from serial "<<ctx.domain.serial<<", applying.."<<endl;
 
+    // Do not perform Lua records updates if not allowed to.
+    if (!::arg().mustDo("enable-lua-record-updates")) {
+      bool foundLua{false};
+      for (const auto& d : deltas) { // NOLINT(readability-identifier-length)
+        for (const auto& rec : d.first) {
+          if (rec.d_type == QType::LUA) {
+            foundLua = true;
+            break;
+          }
+        }
+        if (foundLua) {
+          break;
+        }
+        for (const auto& rec : d.second) {
+          if (rec.d_type == QType::LUA) {
+            foundLua = true;
+            break;
+          }
+        }
+        if (foundLua) {
+          break;
+        }
+      }
+      if (foundLua) {
+        SLOG(g_log << Logger::Warning << ctx.logPrefix << "refused as it contains Lua record updates" << endl,
+             ctx.slog->info(Logr::Warning, "IXFR: refused as it contains Lua record updates"));
+        return;
+      }
+    }
+
     for (const auto& d : deltas) { // NOLINT(readability-identifier-length)
       const auto& remove = d.first;
       const auto& add = d.second;
@@ -566,15 +596,6 @@ void CommunicatorClass::ixfrSuck(const TSIGTriplet& tsig, const ComboAddress& la
           }
 
           replacement.emplace_back(std::move(rr));
-        }
-
-        // Do not perform Lua records updates if not allowed to.
-        if (QType(g.first.second) == QType::LUA) {
-          if (!::arg().mustDo("enable-lua-record-updates")) {
-            SLOG(g_log << Logger::Warning << ctx.logPrefix << "skipping Lua record updates, not allowed" << endl,
-                 ctx.slog->info(Logr::Warning, "IXFR: skipping Lua record updates, not allowed"));
-            continue;
-          }
         }
         ctx.domain.backend->replaceRRSet(ctx.domain.id, g.first.first.operator const DNSName&() + ctx.domain.zone.operator const DNSName&(), QType(g.first.second), replacement);
       }
@@ -924,6 +945,16 @@ void CommunicatorClass::suck(const ZoneName& domain, const ComboAddress& remote,
       }
     }
 
+    // Do not perform Lua records updates if not allowed to.
+    if (!::arg().mustDo("enable-lua-record-updates")) {
+      for (DNSResourceRecord& drr : rrs) {
+        if (drr.qtype.getCode() == QType::LUA) {
+          SLOG(g_log << Logger::Warning << ctx.logPrefix << "refused as it contains Lua record updates" << endl,
+               ctx.slog->info(Logr::Warning, "AXFR: refused as it contains Lua record updates"));
+          return;
+        }
+      }
+    }
     transaction = ctx.domain.backend->startTransaction(domain, ctx.domain.id);
     SLOG(g_log << Logger::Info << ctx.logPrefix << "storage transaction started" << endl,
          ctx.slog->info(Logr::Info, "AXFR: storage transaction started"));
@@ -971,15 +1002,6 @@ void CommunicatorClass::suck(const ZoneName& domain, const ComboAddress& remote,
     map<DNSName, bool> nonterm;
 
     for (DNSResourceRecord& rr : rrs) { // NOLINT(readability-identifier-length)
-      // Do not perform Lua records updates if not allowed to.
-      if (rr.qtype.getCode() == QType::LUA) {
-        if (!::arg().mustDo("enable-lua-record-updates")) {
-          SLOG(g_log << Logger::Warning << ctx.logPrefix << "skipping Lua record updates, not allowed" << endl,
-               ctx.slog->info(Logr::Warning, "AXFR: skipping Lua record updates, not allowed"));
-          continue;
-        }
-      }
-
       if (!ctx.isPresigned) {
         if (rr.qtype.getCode() == QType::RRSIG) {
           continue;
