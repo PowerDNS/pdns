@@ -337,6 +337,7 @@ DNSR
 dnsrecord
 dnsreplay
 dnsresourcerecord
+dnsresponse
 dnsscan
 dnsscope
 dnssec

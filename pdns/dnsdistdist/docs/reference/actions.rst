@@ -241,7 +241,7 @@ The following actions exist.
 
 .. function:: LuaFFIPerThreadResponseAction(function)
 
-  Invoke a Lua FFI function that accepts a pointer to a ``dnsdist_ffi_dnsquestion_t`` object, whose bindings are defined in ``dnsdist-lua-ffi-interface.h``.
+  Invoke a Lua FFI function that accepts a pointer to a ``dnsdist_ffi_dnsresponse_t`` object, whose bindings are defined in ``dnsdist-lua-ffi-interface.h``.
 
   The ``function`` should return a :ref:`DNSResponseAction`. If the Lua code fails, ServFail is returned.
 
@@ -253,7 +253,7 @@ The following actions exist.
 
 .. function:: LuaFFIResponseAction(function)
 
-  Invoke a Lua FFI function that accepts a pointer to a ``dnsdist_ffi_dnsquestion_t`` object, whose bindings are defined in ``dnsdist-lua-ffi-interface.h``.
+  Invoke a Lua FFI function that accepts a pointer to a ``dnsdist_ffi_dnsresponse_t`` object, whose bindings are defined in ``dnsdist-lua-ffi-interface.h``.
 
   The ``function`` should return a :ref:`DNSResponseAction`. If the Lua code fails, ServFail is returned.
 
