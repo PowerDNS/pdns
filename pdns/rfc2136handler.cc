@@ -932,6 +932,17 @@ static uint8_t updateRecords(const MOADNSParser::answers_t& answers, DNSSECKeepe
   for (const auto& rec : answers) {
     if (rec.d_place == DNSResourceRecord::AUTHORITY) {
       anyRecordProcessed = true;
+
+      // Reject Lua record updates unless explicitly allowed, regardless of any
+      // other policy.
+      if (QType(dnsRecord->d_type) == QType::LUA) {
+        if (!::arg().mustDo("enable-lua-record-updates")) {
+          SLOG(g_log << Logger::Warning << ctx.msgPrefix << "Refusing update for " << dnsRecord->d_name << "/" << QType(dnsRecord->d_type).toString() << ": Not permitted by global settings" << endl,
+               ctx.slog->info(Logr::Warning, "Update: refusing record update, not permitted by global settings", "name", Logging::Loggable(dnsRecord->d_name), "type", Logging::Loggable(dnsRecord->d_type)));
+          continue;
+        }
+      }
+
       /* see if it's permitted by policy */
       if (update_policy_lua != nullptr) {
         if (!update_policy_lua->updatePolicy(rec.d_name, QType(rec.d_type), ctx.di.zone.operator const DNSName&(), packet)) {

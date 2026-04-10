@@ -319,6 +319,7 @@ static void declareArguments()
   ::arg().setSwitch("8bit-dns", "Allow 8bit dns queries") = "no";
 #ifdef HAVE_LUA_RECORDS
   ::arg().setSwitch("enable-lua-records", "Process Lua records for all zones (metadata overrides this)") = "no";
+  ::arg().setSwitch("enable-lua-record-updates", "Allow updates to Lua records") = "no";
   ::arg().setSwitch("lua-records-insert-whitespace", "Insert whitespace when combining Lua chunks") = "no";
   ::arg().set("lua-records-exec-limit", "Lua records scripts execution limit (instructions count). Values <= 0 mean no limit") = "1000";
   ::arg().set("lua-health-checks-expire-delay", "Stops doing health checks after the record hasn't been used for that delay (in seconds)") = "3600";
