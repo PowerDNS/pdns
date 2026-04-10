@@ -36,6 +36,7 @@
 #include "dnsdist-rings.hh"
 #include "dnsdist-snmp.hh"
 #include "dnsdist-tcp.hh"
+#include "dnsdist-udp.hh"
 #include "dnsdist-xsk.hh"
 #include "dolog.hh"
 #include "xsk.hh"
@@ -134,6 +135,8 @@ bool DownstreamState::reconnect(bool initialAttempt)
       }
     }
 #endif
+
+    dnsdist::udp::setUDPSocketBufferSizes(fd, *getLogger(), dnsdist::udp::Context::Backend, d_config.remote);
 
     if (!IsAnyAddress(d_config.sourceAddr)) {
 #ifdef IP_BIND_ADDRESS_NO_PORT
