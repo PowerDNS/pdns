@@ -753,7 +753,7 @@ static void processH3HeaderEvent(ClientState& clientState, DOH3Frontend& fronten
   };
 
   try {
-    auto& headers = conn.d_headersBuffers.at(streamID);
+    auto& headers = conn.d_headersBuffers[streamID];
     // Callback result. Any value other than 0 will interrupt further header processing.
     int cbresult = quiche_h3_event_for_each_header(
       event,
@@ -836,13 +836,19 @@ static void processH3DataEvent(ClientState& clientState, DOH3Frontend& frontend,
   };
 
   try {
-    auto& headers = conn.d_headersBuffers.at(streamID);
-
-    if (headers.at(":method") != "POST") {
-      handleImmediateError("DATA frame for non-POST method");
+    auto headersIt = conn.d_headersBuffers.find(streamID);
+    if (headersIt == conn.d_headersBuffers.end()) {
+      handleImmediateError("DATA frame for stream without headers");
       return;
     }
-
+    auto& headers = headersIt->second;
+    {
+      auto methodIt = headers.find(":method");
+      if (methodIt == headers.end() || methodIt->second != "POST") {
+        handleImmediateError("DATA frame for non-POST method");
+        return;
+      }
+    }
     if (headers.count("content-type") == 0 || headers.at("content-type") != "application/dns-message") {
       handleImmediateError("Unsupported content-type");
       return;
@@ -905,26 +911,32 @@ static void processH3Events(ClientState& clientState, DOH3Frontend& frontend, H3
     if (streamID < 0) {
       break;
     }
-    std::unique_ptr<quiche_h3_event, decltype(&quiche_h3_event_free)> eventPtr(event, quiche_h3_event_free);
-    event = nullptr;
-    conn.d_headersBuffers.try_emplace(streamID, dnsdist::doh3::h3_headers_t{});
 
-    switch (quiche_h3_event_type(eventPtr.get())) {
-    case QUICHE_H3_EVENT_HEADERS: {
-      processH3HeaderEvent(clientState, frontend, conn, client, serverConnID, streamID, eventPtr.get());
-      break;
+    try {
+      std::unique_ptr<quiche_h3_event, decltype(&quiche_h3_event_free)> eventPtr(event, quiche_h3_event_free);
+      event = nullptr;
+
+      switch (quiche_h3_event_type(eventPtr.get())) {
+      case QUICHE_H3_EVENT_HEADERS: {
+        processH3HeaderEvent(clientState, frontend, conn, client, serverConnID, streamID, eventPtr.get());
+        break;
+      }
+      case QUICHE_H3_EVENT_DATA: {
+        processH3DataEvent(clientState, frontend, conn, client, serverConnID, streamID, buffer);
+        break;
+      }
+      case QUICHE_H3_EVENT_FINISHED:
+      case QUICHE_H3_EVENT_RESET:
+        conn.removeTemporaryQueryContent(streamID);
+        break;
+      case QUICHE_H3_EVENT_PRIORITY_UPDATE:
+      case QUICHE_H3_EVENT_GOAWAY:
+        break;
+      }
     }
-    case QUICHE_H3_EVENT_DATA: {
-      processH3DataEvent(clientState, frontend, conn, client, serverConnID, streamID, buffer);
-      break;
-    }
-    case QUICHE_H3_EVENT_FINISHED:
-    case QUICHE_H3_EVENT_RESET:
-      conn.removeTemporaryQueryContent(streamID);
-      break;
-    case QUICHE_H3_EVENT_GOAWAY:
-    case QUICHE_H3_EVENT_PRIORITY_UPDATE:
-      break;
+    catch (const std::exception& exp) {
+      VERBOSESLOG(infolog("Error processing DoH3 event for stream %d: %s", streamID, exp.what()),
+                  frontend.d_logger->error(Logr::Info, exp.what(), "Error processing DoH3 event", "http.stream_id", Logging::Loggable(streamID)));
     }
   }
 }
