@@ -870,14 +870,14 @@ static bool isUpdateAllowed(UeberBackend& UBackend, const updateContext& ctx, DN
   return true;
 }
 
-static uint8_t updatePrereqCheck323(MOADNSParser& mdp, const updateContext& ctx)
+static uint8_t updatePrereqCheck323(const MOADNSParser::answers_t& answers, const updateContext& ctx)
 {
   using rrSetKey_t = pair<DNSName, QType>;
   using rrVector_t = vector<DNSResourceRecord>;
   using RRsetMap_t = std::map<rrSetKey_t, rrVector_t>;
   RRsetMap_t preReqRRsets;
 
-  for (const auto& rec : mdp.d_answers) {
+  for (const auto& rec : answers) {
     const DNSRecord* dnsRecord = &rec;
     if (dnsRecord->d_place == DNSResourceRecord::ANSWER) {
       // Last line of 3.2.3
@@ -924,7 +924,7 @@ static uint8_t updatePrereqCheck323(MOADNSParser& mdp, const updateContext& ctx)
   return RCode::NoError;
 }
 
-static uint8_t updateRecords(MOADNSParser& mdp, DNSSECKeeper& dsk, uint& changedRecords, const std::unique_ptr<AuthLua4>& update_policy_lua, DNSPacket& packet, updateContext& ctx)
+static uint8_t updateRecords(const MOADNSParser::answers_t& answers, DNSSECKeeper& dsk, uint& changedRecords, const std::unique_ptr<AuthLua4>& update_policy_lua, DNSPacket& packet, updateContext& ctx)
 {
   vector<const DNSRecord*> cnamesToAdd;
   vector<const DNSRecord*> nonCnamesToAdd;
@@ -932,7 +932,7 @@ static uint8_t updateRecords(MOADNSParser& mdp, DNSSECKeeper& dsk, uint& changed
 
   bool anyRecordProcessed{false};
   bool anyRecordAcceptedByLua{false};
-  for (const auto& answer : mdp.d_answers) {
+  for (const auto& answer : answers) {
     const DNSRecord* dnsRecord = &answer;
     if (dnsRecord->d_place == DNSResourceRecord::AUTHORITY) {
       anyRecordProcessed = true;
@@ -1134,7 +1134,7 @@ int PacketHandler::processUpdate(DNSPacket& packet)
   }
 
   // 3.2.3 - Prerequisite check - this is outside of updatePrerequisitesCheck because we check an RRSet and not the RR.
-  if (auto rcode = updatePrereqCheck323(mdp, ctx); rcode != RCode::NoError) {
+  if (auto rcode = updatePrereqCheck323(mdp.d_answers, ctx); rcode != RCode::NoError) {
     ctx.di.backend->abortTransaction();
     return rcode;
   }
@@ -1193,7 +1193,7 @@ int PacketHandler::processUpdate(DNSPacket& packet)
     }
 
     uint changedRecords = 0;
-    if (auto rcode = updateRecords(mdp, d_dk, changedRecords, update_policy_lua, packet, ctx); rcode != RCode::NoError) {
+    if (auto rcode = updateRecords(mdp.d_answers, d_dk, changedRecords, update_policy_lua, packet, ctx); rcode != RCode::NoError) {
       ctx.di.backend->abortTransaction();
       return rcode;
     }
