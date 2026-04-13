@@ -1063,11 +1063,15 @@ int PacketHandler::processUpdate(DNSPacket& packet)
   // RFC2136 uses the same DNS Header and Message as defined in RFC1035.
   // This means we can use the MOADNSParser to parse the incoming packet. The result is that we have some different
   // variable names during the use of our MOADNSParser.
-  MOADNSParser mdp(false, packet.getString());
-  if (mdp.d_header.qdcount != 1) {
-    SLOG(g_log << Logger::Warning << ctx.msgPrefix << "Zone Count is not 1, sending FormErr" << endl,
-         ctx.slog->info(Logr::Warning, "Update: zone count is not 1. sending FormErr"));
-    return RCode::FormErr;
+  MOADNSParser::answers_t answers;
+  {
+    MOADNSParser mdp(false, packet.getString());
+    if (mdp.d_header.qdcount != 1) {
+      SLOG(g_log << Logger::Warning << ctx.msgPrefix << "Zone Count is not 1, sending FormErr" << endl,
+           ctx.slog->info(Logr::Warning, "Update: zone count is not 1. sending FormErr"));
+      return RCode::FormErr;
+    }
+    answers = std::move(mdp.d_answers);
   }
 
   if (packet.qtype.getCode() != QType::SOA) { // RFC2136 2.3 - ZTYPE must be SOA
@@ -1095,7 +1099,7 @@ int PacketHandler::processUpdate(DNSPacket& packet)
   }
 
   // Check if all the records provided are within the zone
-  for (const auto& answer : mdp.d_answers) {
+  for (const auto& answer : answers) {
     const DNSRecord* dnsRecord = &answer;
     // Skip this check for other field types (like the TSIG -  which is in the additional section)
     // For a TSIG, the label is the dnskey, so it does not pass the endOn validation.
@@ -1120,7 +1124,7 @@ int PacketHandler::processUpdate(DNSPacket& packet)
   }
 
   // 3.2.1 and 3.2.2 - Prerequisite check
-  for (const auto& answer : mdp.d_answers) {
+  for (const auto& answer : answers) {
     const DNSRecord* dnsRecord = &answer;
     if (dnsRecord->d_place == DNSResourceRecord::ANSWER) {
       int res = checkUpdatePrerequisites(dnsRecord, &ctx.di);
@@ -1134,7 +1138,7 @@ int PacketHandler::processUpdate(DNSPacket& packet)
   }
 
   // 3.2.3 - Prerequisite check - this is outside of updatePrerequisitesCheck because we check an RRSet and not the RR.
-  if (auto rcode = updatePrereqCheck323(mdp.d_answers, ctx); rcode != RCode::NoError) {
+  if (auto rcode = updatePrereqCheck323(answers, ctx); rcode != RCode::NoError) {
     ctx.di.backend->abortTransaction();
     return rcode;
   }
@@ -1142,7 +1146,7 @@ int PacketHandler::processUpdate(DNSPacket& packet)
   // 3.4 - Prescan & Add/Update/Delete records - is all done within a try block.
   try {
     // 3.4.1 - Prescan section
-    for (const auto& answer : mdp.d_answers) {
+    for (const auto& answer : answers) {
       const DNSRecord* dnsRecord = &answer;
       if (dnsRecord->d_place == DNSResourceRecord::AUTHORITY) {
         int res = checkUpdatePrescan(dnsRecord);
@@ -1172,7 +1176,7 @@ int PacketHandler::processUpdate(DNSPacket& packet)
     // TODO: convert to use Check::checkRRSet() for consistency
     set<DNSName> cn; // NOLINT(readability-identifier-length)
     set<DNSName> nocn;
-    for (const auto& rr : mdp.d_answers) { // NOLINT(readability-identifier-length)
+    for (const auto& rr : answers) { // NOLINT(readability-identifier-length)
       if (rr.d_place == DNSResourceRecord::AUTHORITY && rr.d_class == QClass::IN && rr.d_ttl > 0) {
         // Addition
         if (rr.d_type == QType::CNAME) {
@@ -1193,7 +1197,7 @@ int PacketHandler::processUpdate(DNSPacket& packet)
     }
 
     uint changedRecords = 0;
-    if (auto rcode = updateRecords(mdp.d_answers, d_dk, changedRecords, update_policy_lua, packet, ctx); rcode != RCode::NoError) {
+    if (auto rcode = updateRecords(answers, d_dk, changedRecords, update_policy_lua, packet, ctx); rcode != RCode::NoError) {
       ctx.di.backend->abortTransaction();
       return rcode;
     }
