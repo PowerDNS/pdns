@@ -209,6 +209,10 @@ static bool getSerialFromIXFRQuery(TCPQuery& query)
     DEBUGLOG("Exception when parsing IXFR TCP Query to DNS: " << e.what());
     /* ponder what to do here, shall we close the connection? */
   }
+  catch (const std::exception& exp) {
+    DEBUGLOG("Exception when parsing IXFR TCP Query to DNS: " << exp.what());
+    /* ponder what to do here, shall we close the connection? */
+  }
 
   return false;
 }
@@ -550,14 +554,14 @@ void TCPConnectionToBackend::queueQuery(std::shared_ptr<TCPQuerySender>& sender,
   // if we are not already sending a query or in the middle of reading a response (so idle),
   // start sending the query
   if (d_state == State::idle || d_state == State::waitingForResponseFromBackend) {
-    DEBUGLOG("Sending new query to backend right away, with ID "<<d_highestStreamID);
-    d_state = State::sendingQueryToBackend;
+    DEBUGLOG("Sending new query to backend right away, with ID " << d_highestStreamID);
     d_currentPos = 0;
 
     uint16_t id = d_highestStreamID;
 
     d_currentQuery = PendingRequest({sender, std::move(query)});
     prepareQueryForSending(d_currentQuery.d_query, id, needProxyProtocolPayload() ? ConnectionState::needProxy : ConnectionState::proxySent);
+    d_state = State::sendingQueryToBackend;
 
     struct timeval now;
     gettimeofday(&now, 0);
