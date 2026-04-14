@@ -284,17 +284,18 @@ bool IncomingHTTP2Connection::checkALPN()
 
   static const std::string data0("HTTP/1.1 400 Bad Request\r\nConnection: Close\r\n");
 
-  std::array<char, 40> data1{};
+  std::array<char, 64> date_header{};
   static const std::string dateformat("Date: %a, %d %h %Y %T GMT\r\n");
   struct tm tmval{};
   time_t timestamp = time(nullptr);
-  size_t len = strftime(data1.data(), data1.size(), dateformat.data(), gmtime_r(&timestamp, &tmval));
-  assert(len != 0);
+  size_t date_header_written = strftime(date_header.data(), date_header.size(), dateformat.data(), gmtime_r(&timestamp, &tmval));
 
   static const std::string data2("\r\n<html><body>This server implements RFC 8484 - DNS Queries over HTTP, and requires HTTP/2 in accordance with section 5.2 of the RFC.</body></html>\r\n");
 
   d_out.insert(d_out.end(), data0.begin(), data0.end());
-  d_out.insert(d_out.end(), data1.begin(), data1.begin() + len);
+  if (date_header_written > 0 && date_header_written <= date_header.size()) {
+    d_out.insert(d_out.end(), date_header.begin(), date_header.begin() + date_header_written);
+  }
   d_out.insert(d_out.end(), data2.begin(), data2.end());
   writeToSocket(false);
 
