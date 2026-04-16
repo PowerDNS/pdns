@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import base64
+from datetime import datetime
 import os
 import subprocess
 import time
@@ -64,6 +65,9 @@ class DOHTests(object):
     addDOHLocal("127.0.0.1:%d", "%s", "%s", { "/", "/coffee", "/PowerDNS", "/PowerDNS2", "/PowerDNS-999" }, {customResponseHeaders={["access-control-allow-origin"]="*",["user-agent"]="derp",["UPPERCASE"]="VaLuE"}, keepIncomingHeaders=true, library='%s'})
     dohFE = getDOHFrontend(0)
     dohFE:setResponsesMap({newDOHResponseMapEntry('^/coffee$', 418, 'C0FFEE', {['FoO']='bar'})})
+
+    -- check that the HTTP Date header is fine even if someone messes with the locale
+    os.setlocale('fr_FR')
     """
     _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_serverName', '_dohServerPort', '_dohServerPort', '_serverCert', '_serverKey', '_dohLibrary']
     _verboseMode = True
@@ -426,11 +430,13 @@ class DOHTests(object):
         self.assertEqual(self.getHTTPCounter("http/2"), http2)
 
         dateFound = False
+        expectedDatePrefix = datetime.now().strftime("%a, %d %h %Y")
         for header in responseHeaders.decode().splitlines(False):
             values = header.split(':')
             key = values[0]
             if key.lower() == 'date':
                 dateFound = True
+                self.assertTrue(values[1].strip().startswith(expectedDatePrefix))
                 break
         self.assertTrue(dateFound)
 
