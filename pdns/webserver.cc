@@ -220,9 +220,16 @@ void WebServer::registerWebHandler(const string& url, const HandlerFunction& han
   registerBareHandler(url, func, method);
 }
 
-static void* WebServerConnectionThreadStart(const WebServer* webServer, const std::shared_ptr<Socket>& client)
+static void* WebServerConnectionThreadStart(WebServer* webServer, const std::shared_ptr<Socket>& client)
 {
   setThreadName("rec/webhndlr");
+
+  if (!webServer->registerConnection()) {
+    SLOG(g_log<<Logger::Error<<"Too many concurrent web server connections"<<endl,
+         webServer->d_slog->info(Logr::Error, "Too many concurrent web server connections"));
+    return nullptr;
+  }
+
   const std::string msg = "Exception while serving a connection in main webserver thread";
   try {
     webServer->serveConnection(client);
@@ -239,6 +246,8 @@ static void* WebServerConnectionThreadStart(const WebServer* webServer, const st
     SLOG(g_log<<Logger::Error<<"Unknown exception while serving a connection in main webserver thread"<<endl,
          webServer->d_slog->info(Logr::Error, msg));
   }
+
+  webServer->releaseConnection();
   return nullptr;
 }
 
@@ -504,7 +513,8 @@ bool WebServer::validURL(const YaHTTP::URL& url)
   return isOK;
 }
 
-void WebServer::serveConnection(const std::shared_ptr<Socket>& client) const {
+void WebServer::serveConnection(const std::shared_ptr<Socket>& client) const
+{
   const auto unique = getUniqueID();
   const string logprefix = d_logprefix + to_string(unique) + " ";
 
@@ -587,7 +597,8 @@ void WebServer::serveConnection(const std::shared_ptr<Socket>& client) const {
   }
 }
 
-WebServer::WebServer(string listenaddress, int port) :
+WebServer::WebServer(std::shared_ptr<ConcurrentConnectionManager> ccm, string listenaddress, int port) :
+  d_ccm(ccm),
   d_listenaddress(std::move(listenaddress)),
   d_port(port),
   d_server(nullptr),

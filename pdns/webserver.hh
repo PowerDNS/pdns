@@ -184,10 +184,12 @@ protected:
   Socket d_server_socket;
 };
 
+#include "connection-management.hh"
+
 class WebServer : public boost::noncopyable
 {
 public:
-  WebServer(string listenaddress, int port);
+  WebServer(std::shared_ptr<ConcurrentConnectionManager> ccm, string listenaddress, int port);
   virtual ~WebServer() = default;
 
   void setSLog(Logr::log_t log)
@@ -237,6 +239,18 @@ public:
   void registerApiHandler(const string& url, const HandlerFunction& handler, const std::string& method = "", bool allowPassword=false);
   void registerWebHandler(const string& url, const HandlerFunction& handler, const std::string& method = "");
 
+  bool registerConnection() {
+    if (!d_ccm) {
+      return true;
+    }
+    return d_ccm->registerConnection();
+  }
+  void releaseConnection() {
+    if (d_ccm) {
+      d_ccm->releaseConnection();
+    }
+  }
+
   enum class LogLevel : uint8_t {
     None = 0,                // No logs from requests at all
     Normal = 10,             // A "common log format"-like line e.g. '127.0.0.1 "GET /apache_pb.gif HTTP/1.0" 200 2326'
@@ -284,6 +298,7 @@ protected:
   void apiWrapper(const WebServer::HandlerFunction& handler, HttpRequest* req, HttpResponse* resp, bool allowPassword);
   void webWrapper(const WebServer::HandlerFunction& handler, HttpRequest* req, HttpResponse* resp);
 
+  std::shared_ptr<ConcurrentConnectionManager> d_ccm;
   string d_listenaddress;
   int d_port;
   std::shared_ptr<Server> d_server;

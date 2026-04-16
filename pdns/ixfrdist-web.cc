@@ -26,7 +26,7 @@
 #include "ixfrdist-stats.hh"
 
 IXFRDistWebServer::IXFRDistWebServer(const ComboAddress& listenAddress, const NetmaskGroup& acl, const string& loglevel) :
-  d_ws(std::make_unique<WebServer>(listenAddress.toString(), listenAddress.getPort()))
+  d_ws(std::make_unique<WebServer>(nullptr, listenAddress.toString(), listenAddress.getPort()))
 {
   d_ws->setACL(acl);
   d_ws->setLogLevel(loglevel);

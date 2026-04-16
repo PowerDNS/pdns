@@ -100,7 +100,7 @@ AuthWebServer::AuthWebServer() :
 
 {
   if (arg().mustDo("webserver") || arg().mustDo("api")) {
-    d_ws = std::make_unique<WebServer>(arg()["webserver-address"], arg().asNum("webserver-port"));
+    d_ws = std::make_unique<WebServer>(std::make_shared<ConcurrentConnectionManager>(arg().asNum("webserver-max-concurrent-connections")), arg()["webserver-address"], arg().asNum("webserver-port"));
     if (g_slogStructured) {
       d_ws->setSLog(g_slog->withName("webserver"));
     }
