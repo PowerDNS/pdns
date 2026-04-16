@@ -306,25 +306,30 @@ string nowTime()
 }
 
 /** does domain end on suffix? Is smart about "wwwds9a.nl" "ds9a.nl" not matching */
-static bool endsOn(const string &domain, const string &suffix)
+static bool endsOn(const string& domain, const string& suffix)
 {
-  if( suffix.empty() || pdns_iequals(domain, suffix) ) {
-    return true;
-  }
-
-  if(domain.size() <= suffix.size()) {
+  if (domain.size() <= suffix.size()) {
     return false;
   }
 
   string::size_type dpos = domain.size() - suffix.size() - 1;
-  string::size_type spos = 0;
-
   if (domain[dpos++] != '.') {
     return false;
   }
+  // That dot might have been escaped. So we now need to count how many '\'
+  // characters we can find in a row before it; if their number is odd, the
+  // dot is escaped and we are not a proper suffix.
+  size_t slashes{0};
+  while (dpos >= 2 + slashes && domain.at(dpos - 2 - slashes) == '\\') {
+    ++slashes;
+  }
+  if ((slashes % 2) != 0) {
+    return false;
+  }
 
-  for(; dpos < domain.size(); ++dpos, ++spos) {
-    if (dns_tolower(domain[dpos]) != dns_tolower(suffix[spos])) {
+  string::size_type spos = 0;
+  for (; dpos < domain.size(); ++dpos, ++spos) {
+    if (!pdns_iequals_ch(domain[dpos], suffix[spos])) {
       return false;
     }
   }
@@ -332,20 +337,21 @@ static bool endsOn(const string &domain, const string &suffix)
   return true;
 }
 
-/** strips a domain suffix from a domain, returns true if it stripped */
+/** strips a domain suffix from a domain */
 void stripDomainSuffix(string *qname, const DNSName &zonename)
 {
   std::string domain = zonename.toString();
 
+  if (domain.empty()) {
+    return;
+  }
+  if (pdns_iequals(*qname, domain)) {
+    *qname = "@";
+    return;
+  }
   if (endsOn(*qname, domain)) {
-    if (toLower(*qname) == toLower(domain)) {
-      *qname = "@";
-    }
-    else {
-      if ((*qname)[qname->size() - domain.size() - 1] == '.') {
-        qname->resize(qname->size() - domain.size() - 1);
-      }
-    }
+    auto prefix = qname->size() - domain.size();
+    qname->resize(prefix - 1); // also strip dot
   }
 }
 
