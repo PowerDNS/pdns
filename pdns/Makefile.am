@@ -211,6 +211,7 @@ pdns_server_SOURCES = \
 	circular_buffer.hh \
 	comment.hh \
 	communicator.cc communicator.hh \
+	connection-management.hh \
 	coverage.cc coverage.hh \
 	credentials.cc credentials.hh \
 	dbdnsseckeeper.cc \
@@ -730,6 +731,7 @@ ixfrdist_SOURCES = \
 	axfr-retriever.cc \
 	base32.cc \
 	base64.cc base64.hh \
+	connection-management.hh \
 	credentials.cc credentials.hh \
 	dns.cc \
 	dns_random.hh \

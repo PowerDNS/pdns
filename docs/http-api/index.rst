@@ -22,6 +22,7 @@ The following webserver related configuration items are available:
 * :ref:`setting-webserver-allow-from`: Netmasks that are allowed to connect to the webserver (not relevant if :ref:`setting-webserver-address` is set to a UNIX domain socket).
 * :ref:`setting-webserver-max-bodysize`: Maximum request/response body size in megabytes
 * :ref:`setting-webserver-connection-timeout`: Request/response timeout in seconds
+* :ref:`setting-webserver-max-concurrent-connections`: Maximum number of allowed concurrent connections to the web server.
 
 .. warning::
 

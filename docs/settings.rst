@@ -2176,6 +2176,17 @@ The value between the hooks is a UUID that is generated for each request. This c
 
 Maximum request/response body size in megabytes.
 
+.. _setting-webserver-max-concurrent-connections:
+
+``webserver-max-concurrent-connections``
+----------------------------------------
+.. versionadded:: 5.1.0
+
+-  Integer
+-  Default: 100
+
+Maximum number of allowed concurrent connections to the web server.
+
 .. _setting-webserver-connection-timeout:
 
 ``webserver-connection-timeout``

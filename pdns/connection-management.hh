@@ -19,31 +19,49 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#include "ixfrdist-web.hh"
-#include <thread>
-#include "threadname.hh"
-#include "iputils.hh"
-#include "ixfrdist-stats.hh"
+#pragma once
 
-IXFRDistWebServer::IXFRDistWebServer(const ComboAddress& listenAddress, const NetmaskGroup& acl, const string& loglevel) :
-  d_ws(std::make_unique<WebServer>(nullptr, listenAddress.toString(), listenAddress.getPort()))
+#include "lock.hh"
+
+class ConcurrentConnectionManager
 {
-  d_ws->setACL(acl);
-  d_ws->setLogLevel(loglevel);
-  d_ws->registerWebHandler("/metrics", [this](HttpRequest* req, HttpResponse* resp){getMetrics(req, resp);});
-  d_ws->bind();
-}
+public:
+  ConcurrentConnectionManager(size_t max)
+  {
+    setMaxConcurrentConnections(max);
+  }
 
-void IXFRDistWebServer::go() {
-  setThreadName("ixfrdist/web");
-  d_ws->go();
-}
+  void setMaxConcurrentConnections(size_t max)
+  {
+    d_data.lock()->d_maxConcurrentConnections = max;
+  }
 
-void IXFRDistWebServer::getMetrics(HttpRequest* req, HttpResponse* resp) {
-  if(req->method != "GET")
-    throw HttpMethodNotAllowedException();
+  size_t getMaxConcurrentConnections()
+  {
+    return d_data.lock()->d_maxConcurrentConnections;
+  }
 
-  resp->body = doGetStats();
-  resp->headers["Content-Type"] = "text/plain; version=0.0.4"; // https://prometheus.io/docs/instrumenting/exposition_formats/#text-based-format
-  resp->status = 200;
-}
+  bool registerConnection()
+  {
+    auto data = d_data.lock();
+    if (data->d_maxConcurrentConnections == 0 || data->d_currentConnectionsCount < data->d_maxConcurrentConnections) {
+      ++data->d_currentConnectionsCount;
+      return true;
+    }
+    return false;
+  }
+
+  void releaseConnection()
+  {
+    --(d_data.lock()->d_currentConnectionsCount);
+  }
+
+private:
+  struct Data
+  {
+    size_t d_maxConcurrentConnections{0};
+    size_t d_currentConnectionsCount{0};
+  };
+
+  LockGuarded<Data> d_data;
+};
