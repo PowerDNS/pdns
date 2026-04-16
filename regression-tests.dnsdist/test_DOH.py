@@ -1783,6 +1783,7 @@ class DOHForwardedFor(object):
         self.assertEqual(self._rcode, 403)
         self.assertEqual(receivedResponse, b"DoH query not allowed because of ACL")
 
+
 class TestDOHForwardedForNGHTTP2(DOHForwardedFor, DNSDistDOHTest):
     _dohLibrary = "nghttp2"
 
