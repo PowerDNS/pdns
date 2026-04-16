@@ -276,13 +276,23 @@ static void addDateHeader(PacketBuffer& out)
   timebuf_t date_header{};
   struct tm tmval{};
   time_t timestamp = time(nullptr);
-  // we do not call setlocale(), and according to https://en.cppreference.com/w/cpp/locale/setlocale.html:
-  // "During program startup, the equivalent of std::setlocale(LC_ALL, "C"); is executed before any user code is run.""
-  size_t date_header_written = strftime(date_header.data(), date_header.size(), dateformat.data(), gmtime_r(&timestamp, &tmval));
-
-  if (date_header_written > 0 && date_header_written <= date_header.size()) {
-    out.insert(out.end(), date_header.begin(), date_header.begin() + date_header_written);
+  // apparently someone might be crazy enough to change the locale using Lua (why?)
+  // so we have to do extra work just in case
+  auto posixLocale = newlocale(LC_ALL_MASK, "POSIX", nullptr);
+  if (!posixLocale) {
+    return;
   }
+  try {
+    size_t date_header_written = strftime_l(date_header.data(), date_header.size(), dateformat.data(), gmtime_r(&timestamp, &tmval), posixLocale);
+
+    if (date_header_written > 0 && date_header_written <= date_header.size()) {
+      out.insert(out.end(), date_header.begin(), date_header.begin() + date_header_written);
+    }
+  }
+  catch (...) {
+  }
+
+  freelocale(posixLocale);
 }
 
 bool IncomingHTTP2Connection::checkALPN()
