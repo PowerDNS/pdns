@@ -399,8 +399,11 @@ void DoHConnectionToBackend::handleReadableIOCallback(int fd, FDMultiplexer::fun
         auto readlen = nghttp2_session_mem_recv(conn->d_session.get(), conn->d_in.data(), conn->d_inPos);
         /* as long as we don't require a pause by returning nghttp2_error.NGHTTP2_ERR_PAUSE from a CB,
            all data should be consumed before returning */
-        if (readlen > 0 && static_cast<size_t>(readlen) < conn->d_inPos) {
-          throw std::runtime_error("Fatal error while passing received data to nghttp2: " + std::string(nghttp2_strerror((int)readlen)));
+        if (readlen < 0) {
+          throw std::runtime_error("Fatal error while passing received data to nghttp2: " + std::string(nghttp2_strerror(static_cast<int>(readlen))));
+        }
+        if (static_cast<size_t>(readlen) < conn->d_inPos) {
+          throw std::runtime_error("Data was not entirely processed (" + std::to_string(readlen) + " bytes out of " + std::to_string(conn->d_inPos) + ") while passing received data to nghttp2");
         }
 
         struct timeval now{
@@ -409,8 +412,10 @@ void DoHConnectionToBackend::handleReadableIOCallback(int fd, FDMultiplexer::fun
         gettimeofday(&now, nullptr);
         conn->d_lastDataReceivedTime = now;
 
-        // cerr<<"after read send"<<endl;
-        nghttp2_session_send(conn->d_session.get());
+        auto sendCode = nghttp2_session_send(conn->d_session.get());
+        if (sendCode != 0) {
+          throw std::runtime_error("Fatal error while flushing HTTP data: " + std::string(nghttp2_strerror(static_cast<int>(sendCode))));
+        }
       }
 
       if (newState == IOState::Done) {
