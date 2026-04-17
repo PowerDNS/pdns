@@ -1245,7 +1245,10 @@ IOState IncomingHTTP2Connection::readHTTPData()
         throw std::runtime_error("Fatal error while passing received data to nghttp2: " + std::string(nghttp2_strerror((int)readlen)));
       }
 
-      nghttp2_session_send(d_session.get());
+      auto sendCode = nghttp2_session_send(d_session.get());
+      if (sendCode != 0) {
+        throw std::runtime_error("Fatal error while flushing HTTP data: " + std::string(nghttp2_strerror(static_cast<int>(sendCode))));
+      }
     }
   }
   catch (const std::exception& e) {
