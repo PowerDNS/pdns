@@ -651,6 +651,20 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<LockGuarded
         return false;
       }
 
+      if (nsec3->isSet(QType::DNAME)) {
+        /* rfc6672 section 5.3.2: DNAME Bit in NSEC Type Map
+
+           In any negative response, the NSEC or NSEC3 [RFC5155] record type
+           bitmap SHOULD be checked to see that there was no DNAME that could
+           have been applied.  If the DNAME bit in the type bitmap is set and
+           the query name is a subdomain of the closest encloser that is
+           asserted, then DNAME substitution should have been done, but the
+           substitution has not been done as specified.
+        */
+        VLOG_NO_PREFIX(log, " but this NSEC3 has the DNAME bit set");
+        return false;
+      }
+
       found = true;
       break;
     }
