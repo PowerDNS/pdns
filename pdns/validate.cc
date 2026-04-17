@@ -546,13 +546,13 @@ dState matchesNSEC(const DNSName& name, uint16_t qtype, const DNSName& nsecOwner
   - If `wantsNoDataProof` is set but a NSEC proves that the whole name does not exist, the function will return
   NXQTYPE if the name is proven to be ENT and NXDOMAIN otherwise.
   - If `needWildcardProof` is false, the proof that a wildcard covering this qname|qtype is not checked. It is
-  useful when we have a positive answer synthesized from a wildcard and we only need to prove that the exact
-  name does not exist.
+  useful when we have a positive answer synthesized from a wildcard and we only need to prove that the next closer
+  does not exist.
 */
 dState getDenial(const cspmap_t& validrrsets, const DNSName& qname, const uint16_t qtype, bool referralToUnsigned, bool wantsNoDataProof, pdns::validation::ValidationContext& context, const OptLog& log, bool needWildcardProof, unsigned int wildcardLabelsCount) // NOLINT(readability-function-cognitive-complexity): https://github.com/PowerDNS/pdns/issues/12791
 {
   bool nsec3Seen = false;
-  if (!needWildcardProof && wildcardLabelsCount == 0) {
+  if ((!needWildcardProof && wildcardLabelsCount == 0) || wildcardLabelsCount > qname.countLabels()) {
     throw PDNSException("Invalid wildcard labels count for the validation of a positive answer synthesized from a wildcard");
   }
 
@@ -574,9 +574,24 @@ dState getDenial(const cspmap_t& validrrsets, const DNSName& qname, const uint16
           continue;
         }
 
+        DNSName nameToDeny;
+        if (!needWildcardProof) {
+          /* we are trying to prove that a wildcard can apply, so in effect we need to prove that the
+             next closer does not exist: the next closer can be different from the qname,
+             and can prevent the wildcard from applying.
+          */
+          nameToDeny = qname;
+          const auto chopCount = nameToDeny.countLabels() - wildcardLabelsCount - 1;
+          for (size_t idx = 0; idx < chopCount; ++idx) {
+            nameToDeny.chopOff();
+          }
+        }
+        else {
+          nameToDeny = qname;
+        }
         const DNSName owner = getNSECOwnerName(validset.first.first, validset.second.signatures);
         const DNSName signer = getSigner(validset.second.signatures);
-        if (!validset.first.first.isPartOf(signer) || !owner.isPartOf(signer) || !qname.isPartOf(signer)) {
+        if (!validset.first.first.isPartOf(signer) || !owner.isPartOf(signer) || !nameToDeny.isPartOf(signer)) {
           continue;
         }
 
@@ -586,7 +601,7 @@ dState getDenial(const cspmap_t& validrrsets, const DNSName& qname, const uint16
          */
         const bool notApex = signer.countLabels() < owner.countLabels();
         if (notApex && nsec->isSet(QType::NS) && nsec->isSet(QType::SOA)) {
-          VLOG(log, qname << ": However, that NSEC is not at the apex and has both the NS and the SOA bits set!" << endl);
+          VLOG(log, nameToDeny << ": However, that NSEC is not at the apex and has both the NS and the SOA bits set!" << endl);
           continue;
         }
 
@@ -596,27 +611,27 @@ dState getDenial(const cspmap_t& validrrsets, const DNSName& qname, const uint16
            that (original) owner name other than DS RRs, and all RRs below that
            owner name regardless of type.
         */
-        if (qname.isPartOf(owner) && isNSECAncestorDelegation(signer, owner, *nsec)) {
+        if (nameToDeny.isPartOf(owner) && isNSECAncestorDelegation(signer, owner, *nsec)) {
           /* this is an "ancestor delegation" NSEC RR */
-          if (qtype != QType::DS || qname != owner) {
-            VLOG(log, qname << ": An ancestor delegation NSEC RR can only deny the existence of a DS" << endl);
+          if (qtype != QType::DS || nameToDeny != owner) {
+            VLOG(log, nameToDeny << ": An ancestor delegation NSEC RR can only deny the existence of a DS" << endl);
             return dState::NODENIAL;
           }
         }
 
-        if (qtype == QType::DS && !qname.isRoot() && signer == qname) {
-          VLOG(log, qname << ": A NSEC RR from the child zone cannot deny the existence of a DS" << endl);
+        if (qtype == QType::DS && !nameToDeny.isRoot() && signer == nameToDeny) {
+          VLOG(log, nameToDeny << ": A NSEC RR from the child zone cannot deny the existence of a DS" << endl);
           continue;
         }
 
         /* check if the type is denied */
-        if (qname == owner) {
+        if (nameToDeny == owner) {
           if (!isTypeDenied(*nsec, QType(qtype))) {
-            VLOG(log, qname << ": Does _not_ deny existence of type " << QType(qtype) << endl);
+            VLOG(log, nameToDeny << ": Does _not_ deny existence of type " << QType(qtype) << endl);
             return dState::NODENIAL;
           }
 
-          VLOG(log, qname << ": Denies existence of type " << QType(qtype) << endl);
+          VLOG(log, nameToDeny << ": Denies existence of type " << QType(qtype) << endl);
 
           /*
            * RFC 4035 Section 2.3:
@@ -626,7 +641,7 @@ dState getDenial(const cspmap_t& validrrsets, const DNSName& qname, const uint16
            */
           if (referralToUnsigned && qtype == QType::DS) {
             if (!nsec->isSet(QType::NS)) {
-              VLOG(log, qname << ": However, no NS record exists at this level!" << endl);
+              VLOG(log, nameToDeny << ": However, no NS record exists at this level!" << endl);
               return dState::NODENIAL;
             }
           }
@@ -642,16 +657,16 @@ dState getDenial(const cspmap_t& validrrsets, const DNSName& qname, const uint16
             return dState::NXQTYPE;
           }
 
-          DNSName closestEncloser = getClosestEncloserFromNSEC(qname, owner, nsec->d_next);
-          if (provesNoWildCard(qname, qtype, closestEncloser, validrrsets, log)) {
+          DNSName closestEncloser = getClosestEncloserFromNSEC(nameToDeny, owner, nsec->d_next);
+          if (provesNoWildCard(nameToDeny, qtype, closestEncloser, validrrsets, log)) {
             return dState::NXQTYPE;
           }
 
-          VLOG(log, qname << ": But the existence of a wildcard is not denied for " << qname << "/" << endl);
+          VLOG(log, nameToDeny << ": But the existence of a wildcard is not denied for " << nameToDeny << "/" << endl);
           return dState::NODENIAL;
         }
 
-        if (qname.isPartOf(owner) && nsec->isSet(QType::DNAME)) {
+        if (nameToDeny.isPartOf(owner) && nsec->isSet(QType::DNAME)) {
           /* rfc6672 section 5.3.2: DNAME Bit in NSEC Type Map
 
              In any negative response, the NSEC or NSEC3 [RFC5155] record type
@@ -661,23 +676,23 @@ dState getDenial(const cspmap_t& validrrsets, const DNSName& qname, const uint16
              asserted, then DNAME substitution should have been done, but the
              substitution has not been done as specified.
           */
-          VLOG(log, qname << ": The DNAME bit is set and the query name is a subdomain of that NSEC" << endl);
+          VLOG(log, nameToDeny << ": The DNAME bit is set and the query name is a subdomain of that NSEC" << endl);
           return dState::NODENIAL;
         }
 
         /* check if the whole NAME is denied existing */
-        if (isCoveredByNSEC(qname, owner, nsec->d_next)) {
-          VLOG(log, qname << ": Is covered by (" << owner << " to " << nsec->d_next << ") ");
+        if (isCoveredByNSEC(nameToDeny, owner, nsec->d_next)) {
+          VLOG(log, nameToDeny << ": Is covered by (" << owner << " to " << nsec->d_next << ") ");
 
-          if (nsecProvesENT(qname, owner, nsec->d_next)) {
+          if (nsecProvesENT(nameToDeny, owner, nsec->d_next)) {
             if (wantsNoDataProof) {
               /* if the name is an ENT and we received a NODATA answer,
                  we are fine with a NSEC proving that the name does not exist. */
-              VLOG_NO_PREFIX(log, "Denies existence of type " << qname << "/" << QType(qtype) << " by proving that " << qname << " is an ENT" << endl);
+              VLOG_NO_PREFIX(log, "Denies existence of type " << nameToDeny << "/" << QType(qtype) << " by proving that " << nameToDeny << " is an ENT" << endl);
               return dState::NXQTYPE;
             }
             /* but for a NXDOMAIN proof, this doesn't make sense! */
-            VLOG_NO_PREFIX(log, "but it tries to deny the existence of " << qname << " by proving that " << qname << " is an ENT, this does not make sense!" << endl);
+            VLOG_NO_PREFIX(log, "but it tries to deny the existence of " << nameToDeny << " by proving that " << nameToDeny << " is an ENT, this does not make sense!" << endl);
             return dState::NODENIAL;
           }
 
@@ -687,25 +702,25 @@ dState getDenial(const cspmap_t& validrrsets, const DNSName& qname, const uint16
           }
 
           VLOG_NO_PREFIX(log, "but we do need a wildcard proof so ");
-          DNSName closestEncloser = getClosestEncloserFromNSEC(qname, owner, nsec->d_next);
+          DNSName closestEncloser = getClosestEncloserFromNSEC(nameToDeny, owner, nsec->d_next);
           if (wantsNoDataProof) {
             VLOG_NO_PREFIX(log, "looking for NODATA proof" << endl);
-            if (provesNoDataWildCard(qname, qtype, closestEncloser, validrrsets, log)) {
+            if (provesNoDataWildCard(nameToDeny, qtype, closestEncloser, validrrsets, log)) {
               return dState::NXQTYPE;
             }
           }
           else {
             VLOG_NO_PREFIX(log, "looking for NO wildcard proof" << endl);
-            if (provesNoWildCard(qname, qtype, closestEncloser, validrrsets, log)) {
+            if (provesNoWildCard(nameToDeny, qtype, closestEncloser, validrrsets, log)) {
               return dState::NXDOMAIN;
             }
           }
 
-          VLOG(log, qname << ": But the existence of a wildcard is not denied for " << qname << "/" << endl);
+          VLOG(log, nameToDeny << ": But the existence of a wildcard is not denied for " << nameToDeny << "/" << endl);
           return dState::NODENIAL;
         }
 
-        VLOG(log, qname << ": Did not deny existence of " << QType(qtype) << ", " << validset.first.first << "?=" << qname << ", " << nsec->isSet(qtype) << ", next: " << nsec->d_next << endl);
+        VLOG(log, nameToDeny << ": Did not deny existence of " << QType(qtype) << ", " << validset.first.first << "?=" << nameToDeny << ", " << nsec->isSet(qtype) << ", next: " << nsec->d_next << endl);
       }
     }
     else if (validset.first.second == QType::NSEC3) {

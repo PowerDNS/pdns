@@ -946,6 +946,117 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard)
   BOOST_CHECK_EQUAL(queriesCount, 6U);
 }
 
+BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_does_not_deny_next_closer)
+{
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr, true, true);
+
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
+
+  primeHints();
+  const DNSName target("a.b.powerdns.com.");
+  testkeysset_t keys;
+
+  auto luaconfsCopy = g_luaconfs.getCopy();
+  luaconfsCopy.dsAnchors.clear();
+  generateKeyMaterial(g_rootdnsname, DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("powerdns.com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
+
+  g_luaconfs.setState(luaconfsCopy);
+
+  size_t queriesCount = 0;
+
+  sr->setAsyncCallback([&](const ComboAddress& address, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, std::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
+    queriesCount++;
+
+    if (type == QType::DS || type == QType::DNSKEY) {
+      if (type == QType::DS && domain == target) {
+        setLWResult(res, RCode::NoError, true, false, true);
+        addRecordToLW(res, DNSName("powerdns.com."), QType::SOA, "pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600", DNSResourceRecord::AUTHORITY, 3600);
+        addRRSIG(keys, res->d_records, DNSName("powerdns.com."), 300);
+        addNSECRecordToLW(DNSName("www.powerdns.com."), DNSName("wwz.powerdns.com."), {QType::A, QType::NSEC, QType::RRSIG}, 600, res->d_records);
+        addRRSIG(keys, res->d_records, DNSName("powerdns.com"), 300);
+        return LWResult::Result::Success;
+      }
+      return genericDSAndDNSKEYHandler(res, domain, domain, type, keys);
+    }
+    {
+      if (isRootServer(address)) {
+        setLWResult(res, 0, false, false, true);
+        addRecordToLW(res, "com.", QType::NS, "a.gtld-servers.com.", DNSResourceRecord::AUTHORITY, 3600);
+        addDS(DNSName("com."), 300, res->d_records, keys);
+        addRRSIG(keys, res->d_records, DNSName("."), 300);
+        addRecordToLW(res, "a.gtld-servers.com.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+        return LWResult::Result::Success;
+      }
+      if (address == ComboAddress("192.0.2.1:53")) {
+        if (domain == DNSName("com.")) {
+          setLWResult(res, 0, true, false, true);
+          addRecordToLW(res, domain, QType::NS, "a.gtld-servers.com.");
+          addRRSIG(keys, res->d_records, domain, 300);
+          addRecordToLW(res, "a.gtld-servers.com.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+          addRRSIG(keys, res->d_records, domain, 300);
+        }
+        else {
+          setLWResult(res, 0, false, false, true);
+          addRecordToLW(res, "powerdns.com.", QType::NS, "ns1.powerdns.com.", DNSResourceRecord::AUTHORITY, 3600);
+          addDS(DNSName("powerdns.com."), 300, res->d_records, keys);
+          addRRSIG(keys, res->d_records, DNSName("com."), 300);
+          addRecordToLW(res, "ns1.powerdns.com.", QType::A, "192.0.2.2", DNSResourceRecord::ADDITIONAL, 3600);
+        }
+        return LWResult::Result::Success;
+      }
+      if (address == ComboAddress("192.0.2.2:53")) {
+        setLWResult(res, 0, true, false, true);
+        if (type == QType::NS) {
+          if (domain == DNSName("powerdns.com.")) {
+            addRecordToLW(res, domain, QType::NS, "ns1.powerdns.com.");
+            addRRSIG(keys, res->d_records, DNSName("powerdns.com"), 300);
+            addRecordToLW(res, "ns1.powerdns.com.", QType::A, "192.0.2.2", DNSResourceRecord::ADDITIONAL, 3600);
+            addRRSIG(keys, res->d_records, DNSName("powerdns.com"), 300);
+          }
+          else {
+            addRecordToLW(res, domain, QType::SOA, "pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600", DNSResourceRecord::AUTHORITY, 3600);
+            addRRSIG(keys, res->d_records, DNSName("powerdns.com"), 300);
+            addNSECRecordToLW(DNSName("www.powerdns.com."), DNSName("wwz.powerdns.com."), {QType::A, QType::NSEC, QType::RRSIG}, 600, res->d_records);
+            addRRSIG(keys, res->d_records, DNSName("powerdns.com"), 300);
+          }
+        }
+        else {
+          addRecordToLW(res, domain, QType::A, "192.0.2.42", DNSResourceRecord::ANSWER, 600);
+          addRRSIG(keys, res->d_records, DNSName("powerdns.com"), 300, false, std::nullopt, DNSName("*.powerdns.com"));
+          /* we need to add the proof that this name does not exist, so the wildcard may apply */
+          addNSECRecordToLW(DNSName("b.powerdns.com."), DNSName("c.powerdns.com."), {QType::A, QType::NSEC, QType::RRSIG}, 60, res->d_records);
+          addRRSIG(keys, res->d_records, DNSName("powerdns.com"), 300);
+        }
+        return LWResult::Result::Success;
+      }
+    }
+
+    return LWResult::Result::Timeout;
+  });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusInvalidDenial);
+  BOOST_REQUIRE_EQUAL(ret.size(), 4U);
+  BOOST_CHECK_EQUAL(queriesCount, 6U);
+
+  /* again, to test the cache */
+  ret.clear();
+  res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusInvalidDenial);
+  BOOST_REQUIRE_EQUAL(ret.size(), 4U);
+  for (const auto& rec : ret) {
+    /* check that we applied the lowest TTL, here this is from the NSEC proving that the exact name did not exist */
+    BOOST_CHECK_LE(rec.d_ttl, 60U);
+  }
+  BOOST_CHECK_EQUAL(queriesCount, 6U);
+}
+
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_proof_before_rrsig)
 {
   /* this tests makes sure that we correctly detect that we need to gather

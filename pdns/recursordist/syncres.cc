@@ -5009,7 +5009,7 @@ void SyncRes::checkWildcardProof(const DNSName& qname, const QType& qtype, DNSRe
 
     if (recordState == vState::Secure) {
       /* We have a positive answer synthesized from a wildcard, we need to check that we have
-         proof that the exact name doesn't exist so the wildcard can be used,
+         proof that the next closer doesn't exist so the wildcard can be used,
          as described in section 5.3.4 of RFC 4035 and 5.3 of RFC 7129.
       */
       cspmap_t csp = harvestCSPFromNE(negEntry);
