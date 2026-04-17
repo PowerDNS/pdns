@@ -897,7 +897,7 @@ int PacketHandler::processUpdate(DNSPacket& p) {
 
         if (rr->d_class == QClass::NONE  && rr->d_type == QType::NS && rr->d_name == di.zone)
           nsRRtoDelete.push_back(rr);
-        else if (rr->d_class == QClass::IN &&  rr->d_ttl > 0) {
+        else if (rr->d_class == QClass::IN) {
           if (rr->d_type == QType::CNAME) {
             cnamesToAdd.push_back(rr);
           } else {
