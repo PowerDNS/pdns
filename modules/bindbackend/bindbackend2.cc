@@ -287,42 +287,31 @@ bool Bind2Backend::abortTransaction()
   return true;
 }
 
-static bool ciEqual(const string& lhs, const string& rhs)
-{
-  if (lhs.size() != rhs.size()) {
-    return false;
-  }
-
-  string::size_type pos = 0;
-  const string::size_type epos = lhs.size();
-  for (; pos < epos; ++pos) {
-    if (dns_tolower(lhs[pos]) != dns_tolower(rhs[pos])) {
-      return false;
-    }
-  }
-  return true;
-}
-
 /** does domain end on suffix? Is smart about "wwwds9a.nl" "ds9a.nl" not matching */
 static bool endsOn(const string& domain, const string& suffix)
 {
-  if (suffix.empty() || ciEqual(domain, suffix)) {
-    return true;
-  }
-
   if (domain.size() <= suffix.size()) {
     return false;
   }
 
   string::size_type dpos = domain.size() - suffix.size() - 1;
-  string::size_type spos = 0;
-
   if (domain[dpos++] != '.') {
     return false;
   }
+  // That dot might have been escaped. So we now need to count how many '\'
+  // characters we can find in a row before it; if their number is odd, the
+  // dot is escaped and we are not a proper suffix.
+  size_t slashes{0};
+  while (dpos >= 2 + slashes && domain.at(dpos - 2 - slashes) == '\\') {
+    ++slashes;
+  }
+  if ((slashes % 2) != 0) {
+    return false;
+  }
 
+  string::size_type spos = 0;
   for (; dpos < domain.size(); ++dpos, ++spos) {
-    if (dns_tolower(domain[dpos]) != dns_tolower(suffix[spos])) {
+    if (!pdns_iequals_ch(domain[dpos], suffix[spos])) {
       return false;
     }
   }
@@ -330,26 +319,22 @@ static bool endsOn(const string& domain, const string& suffix)
   return true;
 }
 
-/** strips a domain suffix from a domain, returns true if it stripped */
-static bool stripDomainSuffix(string* qname, const ZoneName& zonename)
+/** strips a domain suffix from a domain */
+static void stripDomainSuffix(string* qname, const ZoneName& zonename)
 {
   std::string domain = zonename.operator const DNSName&().toString();
 
-  if (!endsOn(*qname, domain)) {
-    return false;
+  if (domain.empty()) {
+    return;
   }
-
-  if (toLower(*qname) == toLower(domain)) {
+  if (pdns_iequals(*qname, domain)) {
     *qname = "@";
+    return;
   }
-  else {
-    if ((*qname)[qname->size() - domain.size() - 1] != '.') {
-      return false;
-    }
-
-    qname->resize(qname->size() - domain.size() - 1);
+  if (endsOn(*qname, domain)) {
+    auto prefix = qname->size() - domain.size();
+    qname->resize(prefix - 1); // also strip dot
   }
-  return true;
 }
 
 bool Bind2Backend::feedRecord(const DNSResourceRecord& rr, const DNSName& /* ordername */, bool /* ordernameIsNSEC3 */)
@@ -386,7 +371,7 @@ bool Bind2Backend::feedRecord(const DNSResourceRecord& rr, const DNSName& /* ord
   case QType::DNAME:
   case QType::NS:
     stripDomainSuffix(&content, d_transaction_qname);
-    // fallthrough
+    [[fallthrough]];
   default:
     if (d_of && *d_of) {
       *d_of << qname << "\t" << rr.ttl << "\t" << rr.qtype.toString() << "\t" << content << endl;
