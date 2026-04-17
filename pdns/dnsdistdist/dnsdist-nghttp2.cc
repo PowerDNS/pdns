@@ -235,7 +235,6 @@ bool DoHConnectionToBackend::reachedMaxStreamID() const
 
 bool DoHConnectionToBackend::reachedMaxConcurrentQueries() const
 {
-  // cerr<<"Got "<<getConcurrentStreamsCount()<<" concurrent streams, max is "<<nghttp2_session_get_remote_settings(d_session.get(), NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS)<<endl;
   if (nghttp2_session_get_remote_settings(d_session.get(), NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS) <= getConcurrentStreamsCount()) {
     return true;
   }
@@ -391,16 +390,13 @@ void DoHConnectionToBackend::handleReadableIOCallback(int fd, FDMultiplexer::fun
   do {
     conn->d_inPos = 0;
     conn->d_in.resize(conn->d_in.size() + 512);
-    // cerr<<"trying to read "<<conn->d_in.size()<<endl;
     try {
       IOState newState = conn->d_handler->tryRead(conn->d_in, conn->d_inPos, conn->d_in.size(), true);
-      // cerr<<"got a "<<(int)newState<<" state and "<<conn->d_inPos<<" bytes"<<endl;
       conn->d_in.resize(conn->d_inPos);
 
       if (conn->d_inPos > 0) {
         /* we got something */
         auto readlen = nghttp2_session_mem_recv(conn->d_session.get(), conn->d_in.data(), conn->d_inPos);
-        // cerr<<"nghttp2_session_mem_recv returned "<<readlen<<endl;
         /* as long as we don't require a pause by returning nghttp2_error.NGHTTP2_ERR_PAUSE from a CB,
            all data should be consumed before returning */
         if (readlen > 0 && static_cast<size_t>(readlen) < conn->d_inPos) {
@@ -427,7 +423,6 @@ void DoHConnectionToBackend::handleReadableIOCallback(int fd, FDMultiplexer::fun
       }
       else {
         if (newState == IOState::NeedWrite) {
-          // cerr<<"need write"<<endl;
           conn->updateIO(IOState::NeedWrite, handleReadableIOCallback);
         }
         ioGuard.release();
@@ -452,15 +447,12 @@ void DoHConnectionToBackend::handleWritableIOCallback(int fd, FDMultiplexer::fun
   }
   IOStateGuard ioGuard(conn->d_ioState);
 
-  // cerr<<"in "<<__PRETTY_FUNCTION__<<" trying to write "<<conn->d_out.size()-conn->d_outPos<<endl;
   try {
     IOState newState = conn->d_handler->tryWrite(conn->d_out, conn->d_outPos, conn->d_out.size());
-    // cerr<<"got a "<<(int)newState<<" state, "<<conn->d_out.size()-conn->d_outPos<<" bytes remaining"<<endl;
     if (newState == IOState::NeedRead) {
       conn->updateIO(IOState::NeedRead, handleWritableIOCallback);
     }
     else if (newState == IOState::Done) {
-      // cerr<<"done, buffer size was "<<conn->d_out.size()<<", pos was "<<conn->d_outPos<<endl;
       conn->d_firstWrite = false;
       conn->d_out.clear();
       conn->d_outPos = 0;
@@ -555,9 +547,7 @@ ssize_t DoHConnectionToBackend::send_callback(nghttp2_session* session, const ui
 
   if (bufferWasEmpty) {
     try {
-      // cerr<<"in "<<__PRETTY_FUNCTION__<<" trying to write "<<conn->d_out.size()-conn->d_outPos<<endl;
       auto state = conn->d_handler->tryWrite(conn->d_out, conn->d_outPos, conn->d_out.size());
-      // cerr<<"got a "<<(int)state<<" state, "<<conn->d_out.size()-conn->d_outPos<<" bytes remaining"<<endl;
       if (state == IOState::Done) {
         conn->d_firstWrite = false;
         conn->d_out.clear();
@@ -589,8 +579,8 @@ int DoHConnectionToBackend::on_frame_recv_callback(nghttp2_session* session, con
 {
   (void)session;
   DoHConnectionToBackend* conn = reinterpret_cast<DoHConnectionToBackend*>(user_data);
-  // cerr<<"Frame type is "<<std::to_string(frame->hd.type)<<endl;
 #if 0
+  // cerr<<"Frame type is "<<std::to_string(frame->hd.type)<<endl;
   switch (frame->hd.type) {
   case NGHTTP2_HEADERS:
     cerr<<"got headers"<<endl;
@@ -622,7 +612,6 @@ int DoHConnectionToBackend::on_frame_recv_callback(nghttp2_session* session, con
   else if ((frame->hd.type == NGHTTP2_HEADERS || frame->hd.type == NGHTTP2_DATA) && frame->hd.flags & NGHTTP2_FLAG_END_STREAM) {
     auto stream = conn->d_currentStreams.find(frame->hd.stream_id);
     if (stream != conn->d_currentStreams.end()) {
-      // cerr<<"Stream "<<frame->hd.stream_id<<" is now finished"<<endl;
       stream->second.d_finished = true;
       ++conn->d_queries;
 
@@ -664,7 +653,6 @@ int DoHConnectionToBackend::on_data_chunk_recv_callback(nghttp2_session* session
   (void)session;
   (void)flags;
   DoHConnectionToBackend* conn = reinterpret_cast<DoHConnectionToBackend*>(user_data);
-  // cerr<<"Got data of size "<<len<<" for stream "<<stream_id<<endl;
   auto stream = conn->d_currentStreams.find(stream_id);
   if (stream == conn->d_currentStreams.end()) {
     VERBOSESLOG(infolog("Unable to match the stream ID %d to a known one!", stream_id),
@@ -716,7 +704,6 @@ int DoHConnectionToBackend::on_stream_close_callback(nghttp2_session* session, S
     return 0;
   }
 
-  // cerr << "Stream " << stream_id << " closed with error_code=" << error_code << endl;
   conn->d_connectionDied = true;
   ++conn->d_ds->tcpDiedReadingResponse;
 
@@ -733,9 +720,7 @@ int DoHConnectionToBackend::on_stream_close_callback(nghttp2_session* session, S
   auto request = std::move(stream->second);
   conn->d_currentStreams.erase(stream->first);
 
-  // cerr<<"Query has "<<request.d_query.d_downstreamFailures<<" failures, backend limit is "<<conn->d_ds->d_retries<<endl;
   if (request.d_query.d_downstreamFailures < conn->d_ds->d_config.d_retries) {
-    // cerr<<"in "<<__PRETTY_FUNCTION__<<", looking for a connection to send a query of size "<<request.d_query.d_buffer.size()<<endl;
     ++request.d_query.d_downstreamFailures;
     auto downstream = t_downstreamDoHConnectionsManager.getConnectionToDownstream(conn->d_mplexer, conn->d_ds, now, std::string(conn->d_proxyProtocolPayload));
     downstream->queueQuery(request.d_sender, std::move(request.d_query));
@@ -744,9 +729,7 @@ int DoHConnectionToBackend::on_stream_close_callback(nghttp2_session* session, S
     conn->handleResponseError(std::move(request), now);
   }
 
-  // cerr<<"we now have "<<conn->getConcurrentStreamsCount()<<" concurrent connections"<<endl;
   if (conn->isIdle()) {
-    // cerr<<"stopping IO"<<endl;
     conn->stopIO();
     conn->watchForRemoteHostClosingConnection();
   }
@@ -762,9 +745,6 @@ int DoHConnectionToBackend::on_header_callback(nghttp2_session* session, const n
 
   const std::string status(":status");
   if (frame->hd.type == NGHTTP2_HEADERS && frame->headers.cat == NGHTTP2_HCAT_RESPONSE) {
-    // cerr<<"got header for "<<frame->hd.stream_id<<":"<<endl;
-    // cerr<<"- "<<std::string(reinterpret_cast<const char*>(name), namelen)<<endl;
-    // cerr<<"- "<<std::string(reinterpret_cast<const char*>(value), valuelen)<<endl;
     if (namelen == status.size() && memcmp(status.data(), name, status.size()) == 0) {
       auto stream = conn->d_currentStreams.find(frame->hd.stream_id);
       if (stream == conn->d_currentStreams.end()) {
