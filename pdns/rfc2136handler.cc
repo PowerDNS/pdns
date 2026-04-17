@@ -947,7 +947,7 @@ static uint8_t updateRecords(const MOADNSParser::answers_t& answers, DNSSECKeepe
       if (rec.d_class == QClass::NONE && rec.d_type == QType::NS && rec.d_name == ctx.di.zone.operator const DNSName&()) {
         nsRRtoDelete.push_back(&rec);
       }
-      else if (rec.d_class == QClass::IN && rec.d_ttl > 0) {
+      else if (rec.d_class == QClass::IN) {
         if (rec.d_type == QType::CNAME) {
           cnamesToAdd.push_back(&rec);
         }
