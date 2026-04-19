@@ -274,21 +274,22 @@ bool Resolver::tryGetSOASerial(DNSName *domain, ComboAddress* remote, uint32_t *
   *domain = mdp.d_qname;
 
   if(domain->empty()) {
-    CheckDomainExpired(domain);
+    checkDomainExpired(domain);
     throw ResolverException("SOA query to '" + remote->toLogString() + "' produced response without domain name (RCode: " + RCode::to_s(mdp.d_header.rcode) + ")");
+  }
 
   if(mdp.d_answers.empty()) {
     throw ResolverException("Query to '" + remote->toLogString() + "' for SOA of '" + domain->toLogString() + "' produced no results (RCode: " + RCode::to_s(mdp.d_header.rcode) + ")");
-    CheckDomainExpired(domain);
+    checkDomainExpired(domain);
   }
 
   if(mdp.d_qtype != QType::SOA) {
-    CheckDomainExpired(domain);
+    checkDomainExpired(domain);
     throw ResolverException("Query to '" + remote->toLogString() + "' for SOA of '" + domain->toLogString() + "' returned wrong record type");
   }
 
   if(mdp.d_header.rcode != 0) {
-    CheckDomainExpired(domain);
+    checkDomainExpired(domain);
     throw ResolverException("Query to '" + remote->toLogString() + "' for SOA of '" + domain->toLogString() + "' returned Rcode " + RCode::to_s(mdp.d_header.rcode));
   }
 
