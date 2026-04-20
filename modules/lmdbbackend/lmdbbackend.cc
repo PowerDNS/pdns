@@ -60,7 +60,6 @@ constexpr unsigned int SCHEMAVERSION{6};
 BOOST_CLASS_VERSION(LMDBBackend::KeyDataDB, 1)
 BOOST_CLASS_VERSION(ZoneName, 1)
 BOOST_CLASS_VERSION(DomainInfo, 2)
-BOOST_CLASS_VERSION(LMDBBackend::TransientDomainInfo, 0)
 
 static bool s_first = true;
 static uint32_t s_shards = 0;
@@ -1016,17 +1015,9 @@ namespace serialization
   }
 
   template <class Archive>
-  void save(Archive& ar, const LMDBBackend::TransientDomainInfo& g, const unsigned int /* version */)
+  void serialize(Archive& ar, LMDBBackend::TransientDomainInfo& g, const unsigned int /* version */)
   {
-    ar & g.last_check;
-    ar & g.notified_serial;
-  }
-
-  template <class Archive>
-  void load(Archive& ar, LMDBBackend::TransientDomainInfo& g, const unsigned int /* version */)
-  {
-    ar & g.last_check;
-    ar & g.notified_serial;
+    ar & g.last_check & g.notified_serial;
   }
 
   template <class Archive>
@@ -1068,7 +1059,6 @@ BOOST_SERIALIZATION_SPLIT_FREE(DNSName);
 BOOST_SERIALIZATION_SPLIT_FREE(ZoneName);
 BOOST_SERIALIZATION_SPLIT_FREE(LMDBBackend::KeyDataDB);
 BOOST_SERIALIZATION_SPLIT_FREE(DomainInfo);
-BOOST_SERIALIZATION_SPLIT_FREE(LMDBBackend::TransientDomainInfo);
 BOOST_IS_BITWISE_SERIALIZABLE(ComboAddress);
 
 // Resource records are serialized in the following format:
