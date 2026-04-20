@@ -75,9 +75,9 @@ public:
   bool publishDomainKey(const DNSName& name, unsigned int id) override;
   bool unpublishDomainKey(const DNSName& name, unsigned int id) override;
 
-private:
   static ReadWriteLock s_state_lock;
 
+private:
   void initialize();
   string format2str(string format, const Netmask& addr, GeoIPNetmask& gl, const GeoIPDomain& dom);
   bool d_dnssec{};
