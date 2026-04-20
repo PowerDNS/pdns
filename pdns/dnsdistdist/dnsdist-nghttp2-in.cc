@@ -847,15 +847,16 @@ bool IncomingHTTP2Connection::sendResponse(IncomingHTTP2Connection::StreamID str
   return true;
 }
 
-static void processForwardedForHeader(std::shared_ptr<const Logr::Logger> logger, const std::unique_ptr<HeadersMap>& headers, ComboAddress& remote)
+static std::optional<ComboAddress> processForwardedForHeader(std::shared_ptr<const Logr::Logger> logger, const std::unique_ptr<HeadersMap>& headers, const ComboAddress& remote)
 {
+  std::optional<ComboAddress> result{std::nullopt};
   if (!headers) {
-    return;
+    return result;
   }
 
   auto headerIt = headers->find(s_xForwardedForHeaderName);
   if (headerIt == headers->end()) {
-    return;
+    return result;
   }
 
   std::string_view value = headerIt->second;
@@ -870,8 +871,7 @@ static void processForwardedForHeader(std::shared_ptr<const Logr::Logger> logger
         value = value.substr(pos);
       }
     }
-    auto newRemote = ComboAddress(std::string(value));
-    remote = newRemote;
+    result.emplace(std::string(value));
   }
   catch (const std::exception& e) {
     VERBOSESLOG(infolog("Invalid X-Forwarded-For header ('%s') received from %s : %s", std::string(value), remote.toStringWithPort(), e.what()),
@@ -881,6 +881,7 @@ static void processForwardedForHeader(std::shared_ptr<const Logr::Logger> logger
     VERBOSESLOG(infolog("Invalid X-Forwarded-For header ('%s') received from %s : %s", std::string(value), remote.toStringWithPort(), e.reason),
                 logger->error(Logr::Info, e.reason, "Invalid X-Forwarded-For header received", "http.request.header.x-forwarded-for", Logging::Loggable(value)));
   }
+  return result;
 }
 
 void IncomingHTTP2Connection::handleIncomingQuery(IncomingHTTP2Connection::PendingQuery&& query, IncomingHTTP2Connection::StreamID streamID)
@@ -906,7 +907,13 @@ void IncomingHTTP2Connection::handleIncomingQuery(IncomingHTTP2Connection::Pendi
   ++d_ci.cs->dohFrontend->d_http2Stats.d_nbQueries;
 
   if (d_ci.cs->dohFrontend->d_trustForwardedForHeader) {
-    processForwardedForHeader(dnsdist::logging::doVerboseLogging() ? getLogger() : std::shared_ptr<const Logr::Logger>(), query.d_headers, d_proxiedRemote);
+    auto xForwardedForRemote = processForwardedForHeader(dnsdist::logging::doVerboseLogging() ? getLogger() : std::shared_ptr<const Logr::Logger>(), query.d_headers, d_ci.remote);
+    if (xForwardedForRemote) {
+      d_proxiedRemote = std::move(*xForwardedForRemote);
+    }
+    else {
+      d_proxiedRemote = d_ci.remote;
+    }
 
     /* second ACL lookup based on the updated address */
     if (!dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL.match(d_proxiedRemote)) {
