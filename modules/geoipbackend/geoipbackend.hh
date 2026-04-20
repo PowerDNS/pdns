@@ -35,14 +35,14 @@
 #include "pdns/dnsbackend.hh"
 #include "pdns/lock.hh"
 
-class GeoIPInterface;
-
 namespace YAML
 {
 class Node;
 };
 
 struct GeoIPDomain;
+
+class GeoIPInterface;
 
 struct GeoIPNetmask
 {
@@ -54,6 +54,18 @@ class GeoIPBackend : public DNSBackend
 public:
   GeoIPBackend(const std::string& suffix = "");
   ~GeoIPBackend() override;
+
+  using filevec_t = std::vector<std::unique_ptr<GeoIPInterface>>;
+  using state_t = struct
+  {
+    unsigned int instance_count{0};
+    std::vector<GeoIPDomain> domains;
+    filevec_t geoip_files;
+  };
+
+  // Needs to be public, for the Lua interface needs to access this outside
+  // of a backend instance.
+  static SharedLockGuarded<state_t> s_state;
 
   unsigned int getCapabilities() override
   {
@@ -84,19 +96,17 @@ public:
   bool publishDomainKey(const ZoneName& name, unsigned int keyId) override;
   bool unpublishDomainKey(const ZoneName& name, unsigned int keyId) override;
 
-  static ReadWriteLock s_state_lock;
-
 private:
-  void initialize();
-  string format2str(string format, const Netmask& addr, GeoIPNetmask& gl, const GeoIPDomain& dom);
+  void initialize(state_t& state);
+  string format2str(const filevec_t& geoip_files, string format, const Netmask& addr, GeoIPNetmask& gl, const GeoIPDomain& dom);
   bool d_dnssec{};
   bool hasDNSSECkey(const ZoneName& name);
-  bool lookup_static(const GeoIPDomain& dom, const DNSName& search, const QType& qtype, const DNSName& qdomain, const Netmask& addr, GeoIPNetmask& gl);
+  bool lookup_static(const filevec_t& geoip_files, const GeoIPDomain& dom, const DNSName& search, const QType& qtype, const DNSName& qdomain, const Netmask& addr, GeoIPNetmask& gl);
   void setupNetmasks(const YAML::Node& domain, GeoIPDomain& dom);
   bool loadDomain(const std::string& origin, const YAML::Node& domain, domainid_t domainID, GeoIPDomain& dom);
   void loadDomainsFromDirectory(const std::string& dir, vector<GeoIPDomain>& domains);
+
   vector<DNSResourceRecord> d_result;
-  vector<GeoIPInterface> d_files;
   std::vector<std::string> d_global_mapping_lookup_formats;
   std::map<std::string, std::string> d_global_custom_mapping;
 };
