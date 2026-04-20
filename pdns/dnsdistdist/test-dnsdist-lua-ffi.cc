@@ -1195,4 +1195,29 @@ BOOST_AUTO_TEST_CASE(test_set_altername_name)
   BOOST_CHECK(dnsdist_ffi_dnsquestion_set_alternate_name(&lightDQ, target.getStorage().data(), target.getStorage().size(), tag.data(), tag.size(), nullptr, 0, nullptr, 0));
 }
 
+BOOST_AUTO_TEST_CASE(query_response_pointer_mismatch)
+{
+  InternalQueryState ids;
+  ids.origRemote = ComboAddress("192.0.2.1:4242");
+  ids.origDest = ComboAddress("192.0.2.255:53");
+  ids.qtype = QType::A;
+  ids.qclass = QClass::IN;
+  ids.protocol = dnsdist::Protocol::DoUDP;
+  ids.qname = DNSName("www.powerdns.com.");
+  ids.queryRealTime.start();
+  PacketBuffer query;
+  GenericDNSPacketWriter<PacketBuffer> pwQ(query, ids.qname, QType::A, QClass::IN, 0);
+  pwQ.getHeader()->rd = 1;
+  pwQ.getHeader()->id = htons(42);
+
+  DNSResponse dnsResponse(ids, query, nullptr);
+  dnsdist_ffi_dnsresponse_t lightDR(&dnsResponse);
+
+  const char* buffer = nullptr;
+  size_t bufferSize = 0;
+  dnsdist_ffi_dnsquestion_get_masked_remoteaddr(reinterpret_cast<dnsdist_ffi_dnsquestion_t*>(&lightDR), reinterpret_cast<const void**>(&buffer), &bufferSize, 16);
+  BOOST_CHECK(buffer == nullptr);
+  BOOST_CHECK_EQUAL(bufferSize, 0U);
+}
+
 BOOST_AUTO_TEST_SUITE_END();
