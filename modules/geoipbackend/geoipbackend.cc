@@ -1015,7 +1015,6 @@ bool GeoIPBackend::removeDomainKey(const DNSName& name, unsigned int id)
   if (!d_dnssec)
     return false;
   WriteLock rl(&s_state_lock);
-  ostringstream path;
 
   for (GeoIPDomain dom : s_domains) {
     if (dom.domain == name) {
