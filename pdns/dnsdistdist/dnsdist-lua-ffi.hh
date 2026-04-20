@@ -45,6 +45,15 @@ struct LuaContext::Pusher<dnsdist_ffi_dnsquestion_t*>
   }
 };
 
+namespace dnsdist::lua::ffi
+{
+enum class ObjectType : uint64_t
+{
+  Question = 1,
+  Response = 2,
+};
+}
+
 struct dnsdist_ffi_dnsquestion_t
 {
   dnsdist_ffi_dnsquestion_t(DNSQuestion* dq_) :
@@ -53,6 +62,7 @@ struct dnsdist_ffi_dnsquestion_t
   }
 
   DNSQuestion* dq{nullptr};
+  const dnsdist::lua::ffi::ObjectType objectType{dnsdist::lua::ffi::ObjectType::Question};
   ComboAddress maskedRemote;
   std::string trailingData;
   std::optional<std::string> result{std::nullopt};
@@ -94,6 +104,7 @@ struct dnsdist_ffi_dnsresponse_t
   }
 
   DNSResponse* dr{nullptr};
+  const dnsdist::lua::ffi::ObjectType objectType{dnsdist::lua::ffi::ObjectType::Response};
   std::optional<std::string> result{std::nullopt};
 #if !defined(DISABLE_PROTOBUF)
   protozero::pbf_writer pbfWriter{};
@@ -101,6 +112,9 @@ struct dnsdist_ffi_dnsresponse_t
   protozero::pbf_writer pbfMetaValueWriter{};
 #endif /* DISABLE_PROTOBUF */
 };
+
+static_assert(offsetof(dnsdist_ffi_dnsresponse_t, dr) == offsetof(dnsdist_ffi_dnsquestion_t, dq), "The DNSQuestion object in dnsdist_ffi_dnsquestion_t and DNSResponse object in dnsdist_ffi_dnsresponse_t must have the same offset");
+static_assert(offsetof(dnsdist_ffi_dnsresponse_t, objectType) == offsetof(dnsdist_ffi_dnsquestion_t, objectType), "The object type in dnsdist_ffi_dnsquestion_t and dnsdist_ffi_dnsresponse_t must have the same offset");
 
 // dnsdist_ffi_server_t is a lightuserdata
 template <>

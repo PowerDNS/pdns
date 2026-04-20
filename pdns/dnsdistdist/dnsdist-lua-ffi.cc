@@ -114,8 +114,32 @@ uint64_t dnsdist_ffi_dnsquestion_get_elapsed_us(const dnsdist_ffi_dnsquestion_t*
   return static_cast<uint64_t>(std::round(dq->dq->ids.queryRealTime.udiff()));
 }
 
+static bool checkDNSQuestionType(const char* functionName, const dnsdist_ffi_dnsquestion_t* dnsQuestion)
+{
+  if (dnsQuestion->objectType != dnsdist::lua::ffi::ObjectType::Question) {
+    VERBOSESLOG(infolog("Error: calling FFI function %s with a wrong type", functionName),
+                getLogger(functionName)->info(Logr::Info, "Error: calling FFI function with a wrong type"));
+    return false;
+  }
+  return true;
+}
+
+static bool checkDNSResponseType(const char* functionName, const dnsdist_ffi_dnsresponse_t* dnsResponse)
+{
+  if (dnsResponse->objectType != dnsdist::lua::ffi::ObjectType::Response) {
+    VERBOSESLOG(infolog("Error: calling FFI function %s with a wrong type", functionName),
+                getLogger(functionName)->info(Logr::Info, "Error: calling FFI function with a wrong type"));
+    return false;
+  }
+  return true;
+}
+
 void dnsdist_ffi_dnsquestion_get_masked_remoteaddr(dnsdist_ffi_dnsquestion_t* dq, const void** addr, size_t* addrSize, uint8_t bits)
 {
+  if (!checkDNSQuestionType(__func__, dq)) {
+    return;
+  }
+
   dq->maskedRemote = Netmask(dq->dq->ids.origRemote, bits).getMaskedNetwork();
   dnsdist_ffi_comboaddress_to_raw(dq->maskedRemote, addr, addrSize);
 }
@@ -337,6 +361,10 @@ size_t dnsdist_ffi_dnsquestion_get_tag_raw(const dnsdist_ffi_dnsquestion_t* dq, 
 
 const char* dnsdist_ffi_dnsquestion_get_http_path(dnsdist_ffi_dnsquestion_t* dq)
 {
+  if (!checkDNSQuestionType(__func__, dq)) {
+    return nullptr;
+  }
+
   if (!dq->httpPath) {
     if (dq->dq->ids.du) {
 #if defined(HAVE_DNS_OVER_HTTPS)
@@ -357,6 +385,10 @@ const char* dnsdist_ffi_dnsquestion_get_http_path(dnsdist_ffi_dnsquestion_t* dq)
 
 const char* dnsdist_ffi_dnsquestion_get_http_query_string(dnsdist_ffi_dnsquestion_t* dq)
 {
+  if (!checkDNSQuestionType(__func__, dq)) {
+    return nullptr;
+  }
+
   if (!dq->httpQueryString) {
     if (dq->dq->ids.du) {
 #ifdef HAVE_DNS_OVER_HTTPS
@@ -377,6 +409,10 @@ const char* dnsdist_ffi_dnsquestion_get_http_query_string(dnsdist_ffi_dnsquestio
 
 const char* dnsdist_ffi_dnsquestion_get_http_host(dnsdist_ffi_dnsquestion_t* dq)
 {
+  if (!checkDNSQuestionType(__func__, dq)) {
+    return nullptr;
+  }
+
   if (!dq->httpHost) {
     if (dq->dq->ids.du) {
 #ifdef HAVE_DNS_OVER_HTTPS
@@ -397,6 +433,10 @@ const char* dnsdist_ffi_dnsquestion_get_http_host(dnsdist_ffi_dnsquestion_t* dq)
 
 const char* dnsdist_ffi_dnsquestion_get_http_scheme(dnsdist_ffi_dnsquestion_t* dq)
 {
+  if (!checkDNSQuestionType(__func__, dq)) {
+    return nullptr;
+  }
+
   if (!dq->httpScheme) {
     if (dq->dq->ids.du) {
 #ifdef HAVE_DNS_OVER_HTTPS
@@ -428,6 +468,10 @@ static void fill_edns_option(const EDNSOptionViewValue& value, dnsdist_ffi_ednso
 // returns the length of the resulting 'out' array. 'out' is not set if the length is 0
 size_t dnsdist_ffi_dnsquestion_get_edns_options(dnsdist_ffi_dnsquestion_t* dq, const dnsdist_ffi_ednsoption_t** out)
 {
+  if (!checkDNSQuestionType(__func__, dq)) {
+    return 0U;
+  }
+
   auto ednsOptions = parseEDNSOptions(*(dq->dq));
   if (!ednsOptions) {
     return 0;
@@ -462,6 +506,10 @@ size_t dnsdist_ffi_dnsquestion_get_edns_options(dnsdist_ffi_dnsquestion_t* dq, c
 size_t dnsdist_ffi_dnsquestion_get_http_headers([[maybe_unused]] dnsdist_ffi_dnsquestion_t* ref, [[maybe_unused]] const dnsdist_ffi_http_header_t** out)
 {
 #if defined(HAVE_DNS_OVER_HTTPS) || defined(HAVE_DNS_OVER_HTTP3)
+  if (!checkDNSQuestionType(__func__, ref)) {
+    return 0U;
+  }
+
   const auto processHeaders = [&ref](const std::unordered_map<std::string, std::string>& headers) {
     if (headers.empty()) {
       return;
@@ -511,6 +559,9 @@ size_t dnsdist_ffi_dnsquestion_get_tag_array(dnsdist_ffi_dnsquestion_t* dq, cons
   if (dq == nullptr || dq->dq == nullptr || dq->dq->ids.qTag == nullptr || dq->dq->ids.qTag->size() == 0) {
     return 0;
   }
+  if (!checkDNSQuestionType(__func__, dq)) {
+    return 0U;
+  }
 
   if (!dq->tagsVect) {
     dq->tagsVect = std::make_unique<std::vector<dnsdist_ffi_tag_t>>();
@@ -535,6 +586,9 @@ size_t dnsdist_ffi_dnsquestion_get_tag_array(dnsdist_ffi_dnsquestion_t* dq, cons
 
 void dnsdist_ffi_dnsquestion_set_result(dnsdist_ffi_dnsquestion_t* dq, const char* str, size_t strSize)
 {
+  if (!checkDNSQuestionType(__func__, dq)) {
+    return;
+  }
   dq->result = std::string(str, strSize);
 }
 
@@ -685,6 +739,9 @@ void dnsdist_ffi_dnsquestion_set_device_name(dnsdist_ffi_dnsquestion_t* dq, cons
 
 size_t dnsdist_ffi_dnsquestion_get_trailing_data(dnsdist_ffi_dnsquestion_t* dq, const char** out)
 {
+  if (!checkDNSQuestionType(__func__, dq)) {
+    return 0U;
+  }
   dq->trailingData = dq->dq->getTrailingData();
   if (!dq->trailingData.empty()) {
     *out = dq->trailingData.data();
@@ -847,6 +904,10 @@ void dnsdist_ffi_dnsresponse_set_max_ttl(dnsdist_ffi_dnsresponse_t* dr, uint32_t
 void dnsdist_ffi_dnsresponse_limit_ttl(dnsdist_ffi_dnsresponse_t* dr, uint32_t min, uint32_t max)
 {
   if (dr != nullptr && dr->dr != nullptr) {
+    if (!checkDNSResponseType(__func__, dr)) {
+      return;
+    }
+
     dnsdist::PacketMangling::restrictDNSPacketTTLs(dr->dr->getMutableData(), min, max);
   }
 }
@@ -854,6 +915,9 @@ void dnsdist_ffi_dnsresponse_limit_ttl(dnsdist_ffi_dnsresponse_t* dr, uint32_t m
 void dnsdist_ffi_dnsresponse_set_max_returned_ttl(dnsdist_ffi_dnsresponse_t* dr, uint32_t max)
 {
   if (dr != nullptr && dr->dr != nullptr) {
+    if (!checkDNSResponseType(__func__, dr)) {
+      return;
+    }
     dr->dr->ids.ttlCap = max;
   }
 }
@@ -861,6 +925,9 @@ void dnsdist_ffi_dnsresponse_set_max_returned_ttl(dnsdist_ffi_dnsresponse_t* dr,
 void dnsdist_ffi_dnsresponse_clear_records_type(dnsdist_ffi_dnsresponse_t* dr, uint16_t qtype)
 {
   if (dr != nullptr && dr->dr != nullptr) {
+    if (!checkDNSResponseType(__func__, dr)) {
+      return;
+    }
     clearDNSPacketRecordTypes(dr->dr->getMutableData(), std::unordered_set<QType>{qtype});
   }
 }
@@ -868,6 +935,9 @@ void dnsdist_ffi_dnsresponse_clear_records_type(dnsdist_ffi_dnsresponse_t* dr, u
 bool dnsdist_ffi_dnsresponse_rebase(dnsdist_ffi_dnsresponse_t* dr, const char* initialName, size_t initialNameSize)
 {
   if (dr == nullptr || dr->dr == nullptr || initialName == nullptr || initialNameSize == 0) {
+    return false;
+  }
+  if (!checkDNSResponseType(__func__, dr)) {
     return false;
   }
 
@@ -893,16 +963,25 @@ bool dnsdist_ffi_dnsresponse_rebase(dnsdist_ffi_dnsresponse_t* dr, const char* i
 
 bool dnsdist_ffi_dnsresponse_get_stale_cache_hit(const dnsdist_ffi_dnsresponse_t* dnsResponse)
 {
+  if (!checkDNSResponseType(__func__, dnsResponse)) {
+    return false;
+  }
   return dnsResponse->dr->ids.staleCacheHit;
 }
 
 uint8_t dnsdist_ffi_dnsresponse_get_restart_count(const dnsdist_ffi_dnsresponse_t* dnsResponse)
 {
+  if (!checkDNSResponseType(__func__, dnsResponse)) {
+    return 0U;
+  }
   return dnsResponse->dr->ids.restartCount;
 }
 
 bool dnsdist_ffi_dnsquestion_set_async(dnsdist_ffi_dnsquestion_t* dq, uint16_t asyncID, uint16_t queryID, uint32_t timeoutMs)
 {
+  if (!checkDNSQuestionType(__func__, dq)) {
+    return false;
+  }
   try {
     dq->dq->asynchronous = true;
     return dnsdist::suspendQuery(*dq->dq, asyncID, queryID, timeoutMs);
@@ -919,11 +998,15 @@ bool dnsdist_ffi_dnsquestion_set_async(dnsdist_ffi_dnsquestion_t* dq, uint16_t a
   return false;
 }
 
-bool dnsdist_ffi_dnsresponse_set_async(dnsdist_ffi_dnsquestion_t* dq, uint16_t asyncID, uint16_t queryID, uint32_t timeoutMs)
+bool dnsdist_ffi_dnsresponse_set_async(dnsdist_ffi_dnsresponse_t* dnsResponse, uint16_t asyncID, uint16_t queryID, uint32_t timeoutMs)
 {
+  if (!checkDNSResponseType(__func__, dnsResponse)) {
+    return false;
+  }
+
   try {
-    dq->dq->asynchronous = true;
-    auto dr = dynamic_cast<DNSResponse*>(dq->dq);
+    dnsResponse->dr->asynchronous = true;
+    auto dr = dynamic_cast<DNSResponse*>(dnsResponse->dr);
     if (!dr) {
       VERBOSESLOG(infolog("Passed a DNSQuestion instead of a DNSResponse to dnsdist_ffi_dnsresponse_set_async"),
                   getLogger(__func__)->info(Logr::Info, "Passed a DNSQuestion instead of a DNSResponse"));
@@ -1269,6 +1352,10 @@ size_t dnsdist_ffi_dnsquestion_get_proxy_protocol_values(dnsdist_ffi_dnsquestion
 {
   if (dnsQuestion == nullptr || dnsQuestion->dq == nullptr || !dnsQuestion->dq->proxyProtocolValues) {
     return 0;
+  }
+
+  if (!checkDNSQuestionType(__func__, dnsQuestion)) {
+    return 0U;
   }
 
   if (out == nullptr) {
@@ -2478,6 +2565,9 @@ void dnsdist_ffi_dnsquestion_meta_begin_key([[maybe_unused]] dnsdist_ffi_dnsques
   if (dnsQuestion == nullptr || key == nullptr || keyLen == 0) {
     return;
   }
+  if (!checkDNSQuestionType(__func__, dnsQuestion)) {
+    return;
+  }
 
   if (dnsQuestion->pbfWriter.valid()) {
     VERBOSESLOG(infolog("Error in dnsdist_ffi_dnsquestion_meta_begin_key: the previous key has not been ended"),
@@ -2498,6 +2588,9 @@ void dnsdist_ffi_dnsquestion_meta_add_str_value_to_key([[maybe_unused]] dnsdist_
   if (dnsQuestion == nullptr || value == nullptr || valueLen == 0) {
     return;
   }
+  if (!checkDNSQuestionType(__func__, dnsQuestion)) {
+    return;
+  }
 
   if (!dnsQuestion->pbfMetaValueWriter.valid()) {
     VERBOSESLOG(infolog("Error in dnsdist_ffi_dnsquestion_meta_add_str_value_to_key: trying to add a value without starting a key"),
@@ -2515,6 +2608,9 @@ void dnsdist_ffi_dnsquestion_meta_add_int64_value_to_key([[maybe_unused]] dnsdis
   if (dnsQuestion == nullptr) {
     return;
   }
+  if (!checkDNSQuestionType(__func__, dnsQuestion)) {
+    return;
+  }
 
   if (!dnsQuestion->pbfMetaValueWriter.valid()) {
     VERBOSESLOG(infolog("Error in dnsdist_ffi_dnsquestion_meta_add_int64_value_to_key: trying to add a value without starting a key"),
@@ -2530,6 +2626,9 @@ void dnsdist_ffi_dnsquestion_meta_end_key([[maybe_unused]] dnsdist_ffi_dnsquesti
 {
 #if !defined(DISABLE_PROTOBUF)
   if (dnsQuestion == nullptr) {
+    return;
+  }
+  if (!checkDNSQuestionType(__func__, dnsQuestion)) {
     return;
   }
 
@@ -2559,6 +2658,10 @@ void dnsdist_ffi_dnsresponse_meta_begin_key([[maybe_unused]] dnsdist_ffi_dnsresp
     return;
   }
 
+  if (!checkDNSResponseType(__func__, dnsResponse)) {
+    return;
+  }
+
   if (dnsResponse->pbfWriter.valid()) {
     VERBOSESLOG(infolog("Error in dnsdist_ffi_dnsresponse_meta_begin_key: the previous key has not been ended"),
                 getLogger(__func__)->info(Logr::Info, "Error ending meta key for response : the previous key has not been ended"));
@@ -2579,6 +2682,10 @@ void dnsdist_ffi_dnsresponse_meta_add_str_value_to_key([[maybe_unused]] dnsdist_
     return;
   }
 
+  if (!checkDNSResponseType(__func__, dnsResponse)) {
+    return;
+  }
+
   if (!dnsResponse->pbfMetaValueWriter.valid()) {
     VERBOSESLOG(infolog("Error in dnsdist_ffi_dnsresponse_meta_add_str_value_to_key: trying to add a value without starting a key"),
                 getLogger(__func__)->info(Logr::Info, "Error adding meta value: the key has not been started"));
@@ -2596,6 +2703,10 @@ void dnsdist_ffi_dnsresponse_meta_add_int64_value_to_key([[maybe_unused]] dnsdis
     return;
   }
 
+  if (!checkDNSResponseType(__func__, dnsResponse)) {
+    return;
+  }
+
   if (!dnsResponse->pbfMetaValueWriter.valid()) {
     VERBOSESLOG(infolog("Error in dnsdist_ffi_dnsresponse_meta_add_int64_value_to_key: trying to add a value without starting a key"),
                 getLogger(__func__)->info(Logr::Info, "Error adding meta value: the key has not been started"));
@@ -2610,6 +2721,10 @@ void dnsdist_ffi_dnsresponse_meta_end_key([[maybe_unused]] dnsdist_ffi_dnsrespon
 {
 #if !defined(DISABLE_PROTOBUF)
   if (dnsResponse == nullptr) {
+    return;
+  }
+
+  if (!checkDNSResponseType(__func__, dnsResponse)) {
     return;
   }
 
