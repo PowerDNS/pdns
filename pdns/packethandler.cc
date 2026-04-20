@@ -48,6 +48,8 @@
 #include "auth-main.hh"
 #include "trusted-notification-proxy.hh"
 #include "gss_context.hh"
+#include "gettime.hh"
+#include "protozero.hh"
 
 #if 0
 #undef DLOG
@@ -1517,11 +1519,43 @@ bool PacketHandler::tryWildcard(DNSPacket& p, std::unique_ptr<DNSPacket>& r, DNS
   return true;
 }
 
+static void fillProtoZeroMessageFromDNSPacket(pdns::ProtoZero::Message& msg, DNSPacket& pkt)
+{
+  struct timeval now{};
+
+  gettimeofday(&now, nullptr);
+  msg.setRequest(getUniqueID(), pkt.getRemote(), pkt.getLocal(), pkt.qdomain, pkt.qtype, pkt.qclass, pkt.d.id, pkt.d_tcp ? pdns::ProtoZero::Message::TransportProtocol::TCP : pdns::ProtoZero::Message::TransportProtocol::UDP, pkt.getString().length());
+
+  if (pkt.hasEDNS()) {
+    msg.setEDNSVersion(pkt.getEDNSVersion());
+  }
+
+  msg.setTime(now.tv_sec, now.tv_usec);
+  msg.setHeaderFlags(*getFlagsFromDNSHeader(&pkt.d));
+
+  if (pkt.d.qr == 0) {
+    msg.setType(pdns::ProtoZero::Message::MessageType::DNSQueryType);
+  }
+  else {
+    msg.setType(pdns::ProtoZero::Message::MessageType::DNSResponseType);
+  }
+}
+
+static inline bool mustSendProtoBuf()
+{
+  return !g_remote_loggers.empty();
+}
+
+static void sendProtobuf(const std::string& data)
+{
+  for (const auto& logger : g_remote_loggers) {
+    std::ignore = logger->queueData(data);
+  }
+}
+
 //! Called by the Distributor to ask a question. Returns 0 in case of an error
 std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& pkt)
 {
-  bool noCache=false;
-
   if(pkt.d.qr) { // QR bit from dns packet (thanks RA from N)
     if(d_logDNSDetails) {
       SLOG(g_log<<Logger::Error<<"Received an answer (non-query) packet from "<<pkt.getRemoteString()<<", dropping"<<endl,
@@ -1541,6 +1575,33 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& pkt)
     S.ringAccount("remotes-corrupt", pkt.getInnerRemote());
     return nullptr;
   }
+
+  bool doProtobuf = mustSendProtoBuf();
+
+  if (doProtobuf) {
+    std::string data;
+    pdns::ProtoZero::Message msg{data};
+
+    fillProtoZeroMessageFromDNSPacket(msg, pkt);
+    sendProtobuf(data);
+  }
+
+  auto resp = doQuestionInner(pkt);
+
+  if (resp && doProtobuf) {
+    std::string data;
+    pdns::ProtoZero::Message msg{data};
+
+    fillProtoZeroMessageFromDNSPacket(msg, *resp);
+    sendProtobuf(data);
+  }
+
+  return resp;
+}
+
+std::unique_ptr<DNSPacket> PacketHandler::doQuestionInner(DNSPacket& pkt)
+{
+  bool noCache=false;
 
   if (pkt.hasEDNS()) {
     if(pkt.getEDNSVersion() > 0) {
