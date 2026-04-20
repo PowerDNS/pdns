@@ -581,10 +581,7 @@ dState getDenial(const cspmap_t& validrrsets, const DNSName& qname, const uint16
              and can prevent the wildcard from applying.
           */
           nameToDeny = qname;
-          const auto chopCount = nameToDeny.countLabels() - wildcardLabelsCount - 1;
-          for (size_t idx = 0; idx < chopCount; ++idx) {
-            nameToDeny.chopOff();
-          }
+          nameToDeny.trimToLabels(wildcardLabelsCount + 1);
         }
         else {
           nameToDeny = qname;
