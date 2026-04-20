@@ -84,9 +84,9 @@ public:
   bool publishDomainKey(const ZoneName& name, unsigned int keyId) override;
   bool unpublishDomainKey(const ZoneName& name, unsigned int keyId) override;
 
-private:
   static ReadWriteLock s_state_lock;
 
+private:
   void initialize();
   string format2str(string format, const Netmask& addr, GeoIPNetmask& gl, const GeoIPDomain& dom);
   bool d_dnssec{};

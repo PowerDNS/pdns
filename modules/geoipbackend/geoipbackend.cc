@@ -730,6 +730,7 @@ static string queryGeoIP(const Netmask& addr, GeoIPInterface::GeoIPQueryAttribut
 
 string getGeoForLua(const std::string& ip, int qaint)
 {
+  ReadLock rl(&GeoIPBackend::s_state_lock);
   GeoIPInterface::GeoIPQueryAttribute qa((GeoIPInterface::GeoIPQueryAttribute)qaint);
   try {
     const Netmask addr{ip};
