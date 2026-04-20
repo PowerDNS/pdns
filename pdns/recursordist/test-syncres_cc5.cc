@@ -949,7 +949,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard)
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_does_not_deny_next_closer)
 {
   std::unique_ptr<SyncRes> sr;
-  initSR(sr, true, true);
+  initSR(sr, true);
 
   setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
