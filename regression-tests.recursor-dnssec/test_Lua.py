@@ -1089,3 +1089,112 @@ end
         self.assertEqual(len(res.authority), 0)
         self.assertEqual(len(res.additional), 0)
         self.assertEqual(res.answer, expectedAnswerRecords)
+
+
+class RecursorAddRecordTest(RecursorTest):
+    """Test that addRecord works as expected with different pdns.place'es
+    and accepts 'name' argument as a string or DNSName
+    """
+
+    _confdir = "RecursorAddRecord"
+    _soa_1 = "ns.example. admin.example. 2026033101 3600 1200 604800 60"
+    _soa_2 = "ns.example. admin.example. 1970010101 3600 1200 604800 60"
+    _lua_dns_script_file = f"""
+
+    -- preresolve handles 3 names, all use addRecord in different capacity:
+    -- - nxdomain-addrecord-as-dnsname.example. - returns NXDOMAIN, uses addRecord with
+    --   name argument as DNSName
+    -- - nxdomain-addrecord-as-string.example. - returns NXDOMAIN, uses addRecord with
+    --   name argument as string
+    -- - addrecord-as-string.example. returns A, uses addRecord to use a different
+    --   pdns.place
+    --
+    function preresolve(dq)
+      if dq.qname == newDN("nxdomain-addrecord-as-dnsname.example.") then
+        dq.rcode = pdns.NXDOMAIN
+        dq:addRecord(
+          pdns.SOA,
+          "{_soa_1}",
+          pdns.place.AUTHORITY,
+          3600,
+          newDN("example.")
+        )
+        return true
+      end
+      if dq.qname == newDN("nxdomain-addrecord-as-string.example.") then
+        dq.rcode = pdns.NXDOMAIN
+        dq:addRecord(
+          pdns.SOA,
+          "{_soa_2}",
+          pdns.place.AUTHORITY,
+          3600,
+          "example."
+        )
+        return true
+      end
+      if dq.qname == newDN("addrecord-as-string.example.") then
+        dq.rcode = pdns.NOERROR
+        dq:addRecord(
+          pdns.A,
+          "192.0.2.1",
+          pdns.place.ANSWER,
+          60,
+          "addrecord-as-string.example."
+        )
+        return true
+      end
+      return false
+    end
+    """
+
+    def testAddRecord4NXDOMAINAuthSectionUseDNSName(self):
+        """test that addRecord can add AUTHORITY section to NXDOMAIN
+        providing name argument as an DNSName instance"""
+
+        expectedAuthority = dns.rrset.from_text(
+            "example.", 3600, dns.rdataclass.IN, "SOA", RecursorAddRecordTest._soa_1
+        )
+        query = dns.message.make_query("nxdomain-addrecord-as-dnsname.example.", "A")
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            res = sender(query)
+            self.assertRcodeEqual(res, dns.rcode.NXDOMAIN)
+            self.assertEqual(len(res.answer), 0)
+            self.assertEqual(len(res.authority), 1)
+            self.assertEqual(res.authority[0], expectedAuthority)
+
+    def testAddRecord4NXDOMAINAuthSectionUseString(self):
+        """test that addRecord can add AUTHORITY section to NXDOMAIN
+        providing name argument as a string"""
+
+        expectedAuthority = dns.rrset.from_text(
+            "example.", 3600, dns.rdataclass.IN, "SOA", RecursorAddRecordTest._soa_2
+        )
+        query = dns.message.make_query("nxdomain-addrecord-as-string.example.", "A")
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            res = sender(query)
+            self.assertRcodeEqual(res, dns.rcode.NXDOMAIN)
+            self.assertEqual(len(res.answer), 0)
+            self.assertEqual(len(res.authority), 1)
+            self.assertEqual(res.authority[0], expectedAuthority)
+
+    def testAddRecord4NOERROR_A_WithStringAsName(self):
+        """also check a simple case when we use addRecord to generate simple
+        NOERROR's ANSWER section
+        """
+
+        qname = "addrecord-as-string.example."
+        query = dns.message.make_query(qname, "A")
+        expected = [
+            dns.rrset.from_text(qname, 0, dns.rdataclass.IN, "A", "192.0.2.1"),
+        ]
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            res = sender(query)
+            self.assertRcodeEqual(res, dns.rcode.NOERROR)
+            self.assertEqual(len(res.answer), 1)
+            self.assertEqual(len(res.authority), 0)
+            self.assertResponseMatches(query, expected, res)
