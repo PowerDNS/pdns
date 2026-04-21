@@ -812,15 +812,13 @@ static void processH3DataEvent(ClientState& clientState, DOH3Frontend& frontend,
     }
     auto& headers = headersIt->second;
     {
-      auto methodIt = headers.find(":method");
-      if (methodIt == headers.end() || methodIt->second != "POST") {
+      if (auto methodIt = headers.find(":method"); methodIt == headers.end() || methodIt->second != "POST") {
         handleImmediateError("DATA frame for non-POST method");
         return;
       }
     }
 
-    auto contentTypeHeaderIt = headers.find("content-type");
-    if (contentTypeHeaderIt == headers.end() || contentTypeHeaderIt->second != "application/dns-message") {
+    if (auto contentTypeHeaderIt = headers.find("content-type"); contentTypeHeaderIt == headers.end() || contentTypeHeaderIt->second != "application/dns-message") {
       handleImmediateError("Unsupported content-type");
       return;
     }
