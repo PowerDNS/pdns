@@ -849,7 +849,8 @@ static void processH3DataEvent(ClientState& clientState, DOH3Frontend& frontend,
         return;
       }
     }
-    if (headers.count("content-type") == 0 || headers.at("content-type") != "application/dns-message") {
+    auto contentTypeHeaderIt = headers.find("content-type");
+    if (contentTypeHeaderIt == headers.end() || contentTypeHeaderIt->second != "application/dns-message") {
       handleImmediateError("Unsupported content-type");
       return;
     }
