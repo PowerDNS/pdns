@@ -698,10 +698,10 @@ int DNSCryptQuery::encryptResponse(PacketBuffer& response, size_t maxResponseSiz
   }
 
   size_t requiredSize = sizeof(responseHeader) + DNSCRYPT_MAC_SIZE + response.size();
-  size_t maxSize = std::min(maxResponseSize, requiredSize + DNSCRYPT_MAX_RESPONSE_PADDING_SIZE);
   if (requiredSize > maxResponseSize) {
     return ENOBUFS;
   }
+  size_t maxSize = std::min(maxResponseSize, requiredSize + DNSCRYPT_MAX_RESPONSE_PADDING_SIZE);
   uint16_t paddingSize = computePaddingSize(requiredSize, maxSize);
   requiredSize += paddingSize;
 
