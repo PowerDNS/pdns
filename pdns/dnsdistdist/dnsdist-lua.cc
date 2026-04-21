@@ -3379,7 +3379,7 @@ void setupLuaBindingsOnly(LuaContext& luaCtx, bool client, bool configCheck)
   setupLuaVars(luaCtx);
   setupLuaWeb(luaCtx);
   dnsdist::configuration::yaml::addLuaBindingsForYAMLObjects(luaCtx);
-  pdns::trace::dnsdist::emptyLuaTracing(luaCtx); // This sets up the withTraceSpan and setSpanAttribute functions as empty
+  pdns::trace::dnsdist::setupGlobalLuaTracing(luaCtx);
 
 #ifdef LUAJIT_VERSION
   luaCtx.executeCode(getLuaFFIWrappers());

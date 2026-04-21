@@ -1,5 +1,6 @@
 
 #include "dnsdist-lua-hooks.hh"
+#include "dnsdist-lua-bindings-opentelemetry.hh"
 #include "dnsdist-lua.hh"
 #include "dnsdist-opentelemetry.hh"
 #include "lock.hh"
@@ -22,7 +23,7 @@ void runMaintenanceHooks(const LuaContext& context, std::shared_ptr<pdns::trace:
   (void)context;
   for (const auto& callback : *(s_maintenanceHooks.lock())) {
     pdns::trace::dnsdist::getCloserForInternalSpan(tracer, callback.first);
-    callback.second();
+    pdns::trace::dnsdist::runWithGlobalLuaTracing(tracer, callback.second);
   }
 }
 

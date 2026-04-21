@@ -30,26 +30,33 @@
 #include "lock.hh"
 #include "misc.hh"
 
+extern std::shared_ptr<pdns::trace::dnsdist::Tracer> g_otTracer;
+
 namespace pdns::trace::dnsdist
 {
-void emptyLuaTracing(LuaContext&);
 void setupLuaTracing(LuaContext&, std::shared_ptr<Tracer>&);
+void setupGlobalLuaTracing(LuaContext&);
+
+static std::shared_ptr<Tracer> s_emptyTracer{nullptr};
+
+template <typename Func, typename... Args>
+auto runWithGlobalLuaTracing(std::shared_ptr<Tracer>& tracer, Func&& func, Args&&... args)
+{
+  auto luaCtx = g_lua.lock();
+  g_otTracer = tracer;
+  auto exitGuard = ::pdns::defer([] {
+    g_otTracer = s_emptyTracer;
+  });
+  return std::invoke(std::forward<Func>(func), std::forward<Args>(args)...);
+}
 
 template <typename Func, typename... Args>
 auto runWithLuaTracing(LuaContext& luaCtx, std::shared_ptr<Tracer>& tracer, Func&& func, Args&&... args)
 {
   setupLuaTracing(luaCtx, tracer);
   auto exitGuard = ::pdns::defer([&luaCtx] {
-    emptyLuaTracing(luaCtx);
+    setupLuaTracing(luaCtx, s_emptyTracer);
   });
   return std::invoke(std::forward<Func>(func), std::forward<Args>(args)...);
 }
-
-template <typename Func, typename... Args>
-auto runWithLuaTracing(std::shared_ptr<Tracer>& tracer, Func&& func, Args&&... args)
-{
-  auto luaCtx = g_lua.lock();
-  return runWithLuaTracing(*luaCtx, tracer, func, args...);
-}
-
 } // namespace pdns::trace::dnsdist

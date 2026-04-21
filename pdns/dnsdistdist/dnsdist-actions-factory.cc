@@ -535,7 +535,7 @@ public:
       DNSAction::Action result{};
       {
         auto tracer = dnsquestion->ids.getTracer();
-        auto ret = pdns::trace::dnsdist::runWithLuaTracing(tracer, d_func, dnsquestion);
+        auto ret = pdns::trace::dnsdist::runWithGlobalLuaTracing(tracer, d_func, dnsquestion);
         if (ruleresult != nullptr) {
           if (std::optional<std::string> rule = std::get<1>(ret)) {
             *ruleresult = *rule;
@@ -582,7 +582,7 @@ public:
       DNSResponseAction::Action result{};
       {
         auto tracer = response->ids.getTracer();
-        auto ret = pdns::trace::dnsdist::runWithLuaTracing(tracer, d_func, response);
+        auto ret = pdns::trace::dnsdist::runWithGlobalLuaTracing(tracer, d_func, response);
         if (ruleresult != nullptr) {
           if (std::optional<std::string> rule = std::get<1>(ret)) {
             *ruleresult = *rule;
@@ -632,7 +632,7 @@ public:
       DNSAction::Action result{};
       {
         auto tracer = dnsquestion->ids.getTracer();
-        auto ret = pdns::trace::dnsdist::runWithLuaTracing(tracer, d_func, &dqffi);
+        auto ret = pdns::trace::dnsdist::runWithGlobalLuaTracing(tracer, d_func, &dqffi);
         if (ruleresult != nullptr) {
           if (dqffi.result) {
             *ruleresult = *dqffi.result;
@@ -759,7 +759,7 @@ public:
       DNSResponseAction::Action result{};
       {
         auto tracer = response->ids.getTracer();
-        auto ret = pdns::trace::dnsdist::runWithLuaTracing(tracer, d_func, &ffiResponse);
+        auto ret = pdns::trace::dnsdist::runWithGlobalLuaTracing(tracer, d_func, &ffiResponse);
         if (ruleresult != nullptr) {
           if (ffiResponse.result) {
             *ruleresult = *ffiResponse.result;

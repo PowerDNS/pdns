@@ -27,14 +27,16 @@
 #include "dnsdist-opentelemetry.hh"
 #include "dnsdist-lua-bindings-opentelemetry.hh"
 
-TEST_CASE("lua-bindings-opentelemetry")
+extern std::shared_ptr<pdns::trace::dnsdist::Tracer> g_otTracer;
+
+TEST_CASE("lua-bindings-opentelemetry-runWithGlobalLuaTracing")
 {
   auto tracer = pdns::trace::dnsdist::Tracer::getTracer();
   size_t testnum = 0;
 
   BENCHMARK("withTracer")
   {
-    return pdns::trace::dnsdist::runWithLuaTracing(tracer, [&testnum]() {
+    return pdns::trace::dnsdist::runWithGlobalLuaTracing(tracer, [&testnum]() {
       return testnum++;
     });
   };
@@ -43,7 +45,7 @@ TEST_CASE("lua-bindings-opentelemetry")
   tracer = nullptr;
   BENCHMARK("withoutTracer")
   {
-    return pdns::trace::dnsdist::runWithLuaTracing(tracer, [&testnum]() {
+    return pdns::trace::dnsdist::runWithGlobalLuaTracing(tracer, [&testnum]() {
       return testnum++;
     });
   };

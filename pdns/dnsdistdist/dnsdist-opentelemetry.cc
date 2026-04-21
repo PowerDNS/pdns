@@ -22,7 +22,6 @@
 
 #include "dnsdist-opentelemetry.hh"
 #include "dnsdist-ecs.hh"
-#include "sanitizer.hh"
 
 #include <memory>
 #include <vector>
@@ -32,9 +31,18 @@
 #include "protozero-trace.hh"
 #endif
 
+// Setting up Lua's withTraceSpan function each time with a new tracer is quite expensive.
+// This shared_ptr needs to be set *after* g_lua is locked so the correct Tracer is used
+// inside Lua. The locking of g_lua and setting this is taken care of in
+//
+// pdns::trace::dnsdist::runWithGlobalLuaTracing.
+//
+// This shared_ptr is *NOT* used for per-thread Lua contexts, where
+// pdns::trace::dnsdist::runWithLuaTracing should be used
+std::shared_ptr<pdns::trace::dnsdist::Tracer> g_otTracer;
+
 namespace pdns::trace::dnsdist
 {
-
 TracesData Tracer::getTracesData()
 {
 #ifdef DISABLE_PROTOBUF

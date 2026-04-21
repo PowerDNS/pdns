@@ -21,37 +21,51 @@
  */
 
 #include "dnsdist-lua-bindings-opentelemetry.hh"
+#include "dnsdist-opentelemetry.hh"
+#include <memory>
+
+extern std::shared_ptr<pdns::trace::dnsdist::Tracer> g_otTracer;
 
 namespace pdns::trace::dnsdist
 {
-void emptyLuaTracing(LuaContext& luaCtx)
+void setupGlobalLuaTracing(LuaContext& luaCtx)
 {
   luaCtx.writeFunction<void(const std::string&, const std::function<void()>&)>(
     "withTraceSpan",
-    []([[maybe_unused]] const std::string& name, const std::function<void()>& luaFunc) {
+    []([[maybe_unused]] const std::string& name, [[maybe_unused]] const std::function<void()>& luaFunc) {
+#ifndef DISABLE_PROTOBUF
+      if (g_otTracer == nullptr) {
+        luaFunc();
+        return;
+      }
+      auto closer = g_otTracer->openSpan(name);
+#endif
       luaFunc();
     });
 
   luaCtx.writeFunction<void(const std::string&, const std::string&)>(
     "setSpanAttribute",
     []([[maybe_unused]] const std::string& key, [[maybe_unused]] const std::string& value) {
+#ifndef DISABLE_PROTOBUF
+      if (g_otTracer != nullptr) {
+        g_otTracer->setSpanAttribute(g_otTracer->getLastSpanID(), key, AnyValue{value});
+      }
+#endif
       return;
     });
-};
+}
 
 void setupLuaTracing(LuaContext& luaCtx, std::shared_ptr<Tracer>& tracer)
 {
-  if (tracer == nullptr) {
-    return;
-  }
-
   luaCtx.writeFunction<void(const std::string&, const std::function<void()>&)>(
     "withTraceSpan",
     [&tracer]([[maybe_unused]] const std::string& name, [[maybe_unused]] const std::function<void()>& luaFunc) {
 #ifndef DISABLE_PROTOBUF
+      if (tracer == nullptr) {
+        luaFunc();
+        return;
+      }
       auto closer = tracer->openSpan(name);
-      luaFunc();
-      return;
 #endif
       luaFunc();
     });
@@ -60,7 +74,9 @@ void setupLuaTracing(LuaContext& luaCtx, std::shared_ptr<Tracer>& tracer)
     "setSpanAttribute",
     [&tracer]([[maybe_unused]] const std::string& key, [[maybe_unused]] const std::string& value) {
 #ifndef DISABLE_PROTOBUF
-      tracer->setSpanAttribute(tracer->getLastSpanID(), key, AnyValue{value});
+      if (tracer != nullptr) {
+        tracer->setSpanAttribute(tracer->getLastSpanID(), key, AnyValue{value});
+      }
 #endif
       return;
     });
