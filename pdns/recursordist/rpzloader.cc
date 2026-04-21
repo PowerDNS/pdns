@@ -267,7 +267,7 @@ static shared_ptr<const SOARecordContent> loadRPZFromServer(Logr::log_t plogger,
   // coverity[store_truncates_time_t]
   while (axfr.getChunk(nop, &chunk, (axfrStart + axfrTimeout - axfrNow)) != 0) {
     for (auto& dnsRecord : chunk) {
-      if (dnsRecord.d_type == QType::NS || dnsRecord.d_type == QType::TSIG) {
+      if (dnsRecord.d_type == QType::NS || dnsRecord.d_type == QType::TSIG || dnsRecord.d_type == QType::ZONEMD) {
         continue;
       }
 
@@ -362,7 +362,7 @@ std::shared_ptr<const SOARecordContent> loadRPZFromFile(const std::string& fname
         zone->setDomain(domain);
         soaRecord = std::move(dnsRecord);
       }
-      else if (dnsRecord.d_type == QType::NS) {
+      else if (dnsRecord.d_type == QType::NS || dnsRecord.d_type == QType::ZONEMD) {
         continue;
       }
       else {
@@ -642,7 +642,7 @@ static bool RPZTrackerIteration(RPZTrackerParams& params, const DNSName& zoneNam
       }
 
       for (const auto& resourceRecord : add) { // should always contain the new SOA
-        if (resourceRecord.d_type == QType::NS) {
+        if (resourceRecord.d_type == QType::NS || resourceRecord.d_type == QType::ZONEMD) {
           continue;
         }
         if (resourceRecord.d_type == QType::SOA) {
