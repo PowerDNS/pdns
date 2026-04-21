@@ -248,9 +248,14 @@ public:
     return d_highestStreamID == maximumStreamID;
   }
 
+  size_t getConcurrentQueriesCount() const
+  {
+    return d_pendingQueries.size() + d_pendingResponses.size() + (d_state == State::sendingQueryToBackend ? 1 : 0);
+  }
+
   bool reachedMaxConcurrentQueries() const override
   {
-    const size_t concurrent = d_pendingQueries.size() + d_pendingResponses.size() + (d_state == State::sendingQueryToBackend ? 1 : 0);
+    const auto concurrent = getConcurrentQueriesCount();
     if (concurrent > 0 && concurrent >= d_ds->d_config.d_maxInFlightQueriesPerConn) {
       return true;
     }

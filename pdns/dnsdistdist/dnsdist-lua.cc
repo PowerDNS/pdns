@@ -490,6 +490,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          }
 
                          getOptionalIntegerValue("newServer", vars, "maxInFlight", config.d_maxInFlightQueriesPerConn);
+                         getOptionalIntegerValue("newServer", vars, "maxOutstandingQueries", config.d_maxOutstandingQueries);
                          getOptionalIntegerValue("newServer", vars, "maxConcurrentTCPConnections", config.d_tcpConcurrentConnectionsLimit);
 
                          getOptionalValue<std::string>(vars, "name", config.name);

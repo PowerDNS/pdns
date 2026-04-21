@@ -600,6 +600,7 @@ struct DownstreamState : public std::enable_shared_from_this<DownstreamState>
     size_t d_numberOfSockets{1};
     size_t d_maxInFlightQueriesPerConn{1};
     size_t d_tcpConcurrentConnectionsLimit{0};
+    size_t d_maxOutstandingQueries{0};
     int order{1};
     int d_weight{1};
     int tcpConnectTimeout{5};
@@ -811,6 +812,13 @@ public:
     }
     return upStatus.load(std::memory_order_relaxed);
   }
+
+  /* whether this backend can accept new queries, for that it needs:
+     - to be in the Up state
+     - below the outstanding queries limit, if any
+     - if enforceQPS is true, below the QPS threshold
+  */
+  bool canAcceptNewQueries(bool enforceQPS) const;
 
   void setUp()
   {
