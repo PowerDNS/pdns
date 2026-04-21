@@ -69,7 +69,7 @@ Changelog
     :tags: Bug Fixes, Security
     :pullreq: TBD
 
-    CVE-2026-33602: A rogue backend can send a crafted UDP response with a query ID off by one related to the maximum configured value, triggering a out-of-bounds write leading to a denial of service
+    CVE-2026-33602: A rogue backend can send a crafted UDP response with a query ID off by one related to the maximum configured value, triggering an out-of-bounds write leading to a denial of service
 
   .. change::
     :tags: Bug Fixes, YAML
@@ -145,7 +145,7 @@ Changelog
     :tags: Bug Fixes, Security
     :pullreq: TBD
 
-    CVE-2026-33602: A rogue backend can send a crafted UDP response with a query ID off by one related to the maximum configured value, triggering a out-of-bounds write leading to a denial of service
+    CVE-2026-33602: A rogue backend can send a crafted UDP response with a query ID off by one related to the maximum configured value, triggering an out-of-bounds write leading to a denial of service
 
   .. change::
     :tags: Bug Fixes, Security, DNS over HTTP3

@@ -26,7 +26,7 @@ server, leading to a denial of service. The internal web server is disabled by d
 `https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L`__
 
 The remedy is: upgrade to a patched version, or prevent network access to the internal webserver. In
-general for defense in depth reasons we recommend making the internal web server only accessible to
+general for defense in-depth reasons we recommend making the internal web server only accessible to
 trusted clients.
 
 We would like to thank Vitaly Simonovich for bringing this issue to our attention.
@@ -56,7 +56,7 @@ server, leading to a denial of service. The internal web server is disabled by d
 `https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L`__
 
 The remedy is: upgrade to a patched version, or prevent network access to the internal webserver. In
-general for defense in depth reasons we recommend making the internal web server only accessible to
+general for defense in-depth reasons we recommend making the internal web server only accessible to
 trusted clients.
 
 We would like to thank Cavid for bringing this issue to our attention.
@@ -109,7 +109,7 @@ CVE-2026-33602: Off-by-one access when processing crafted UDP responses
 - Internal ID: 402
 
 A rogue backend can send a crafted UDP response with a query ID off by one related to the maximum
-configured value, triggering a out-of-bounds write leading to a denial of service.
+configured value, triggering an out-of-bounds write leading to a denial of service.
 
 `https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:L/A:H`__
 
