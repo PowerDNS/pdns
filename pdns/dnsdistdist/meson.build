@@ -473,6 +473,7 @@ tools = {
       dep_libsystemd,
       dep_yahttp,
       libdnsdist_yaml_items,
+      dep_dnsdist_rust_lib,
     ],
     'install': true,
   },
