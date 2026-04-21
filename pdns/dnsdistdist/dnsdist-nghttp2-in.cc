@@ -877,7 +877,7 @@ void IncomingHTTP2Connection::handleIncomingQuery(IncomingHTTP2Connection::Pendi
   if (d_ci.cs->dohFrontend->d_trustForwardedForHeader) {
     auto xForwardedForRemote = processForwardedForHeader(query.d_headers, d_ci.remote);
     if (xForwardedForRemote) {
-      d_proxiedRemote = std::move(*xForwardedForRemote);
+      d_proxiedRemote = *xForwardedForRemote;
     }
     else {
       d_proxiedRemote = d_ci.remote;
