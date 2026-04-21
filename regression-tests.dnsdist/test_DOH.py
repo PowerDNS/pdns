@@ -1560,7 +1560,60 @@ class DOHForwardedFor(object):
         (receivedQuery, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, response=response, caFile=self._caCert, useQueue=False, rawResponse=True, customHeaders=['x-forwarded-for: 127.0.0.1:42, 127.0.0.1'])
 
         self.assertEqual(self._rcode, 403)
-        self.assertEqual(receivedResponse, b'DoH query not allowed because of ACL')
+        self.assertEqual(receivedResponse, b"DoH query not allowed because of ACL")
+
+    def testDOHForwardedOnFirstQueryButNotSecond(self):
+        """
+        DOH with X-Forwarded-For (allowed) on first query, but not the second one
+        """
+        name = "missing-from-second.forwarded.doh.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN", use_edns=False)
+        query.id = 0
+        expectedQuery = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096)
+        expectedQuery.id = 0
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
+        response.answer.append(rrset)
+
+        conn = self.openDOHConnection(self._dohServerPort, caFile=self._caCert, timeout=2.0)
+        # this means "really do HTTP/2, not HTTP/1 with Upgrade headers"
+        conn.setopt(pycurl.HTTP_VERSION, pycurl.CURL_HTTP_VERSION_2_PRIOR_KNOWLEDGE)
+
+        (receivedQuery, receivedResponse) = self.sendDOHQuery(
+            self._dohServerPort,
+            self._serverName,
+            self._dohBaseURL,
+            query,
+            response=response,
+            caFile=self._caCert,
+            customHeaders=["x-forwarded-for: 192.0.2.1"],
+            conn=conn,
+        )
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = expectedQuery.id
+        self.assertEqual(expectedQuery, receivedQuery)
+        self.checkQueryEDNSWithoutECS(expectedQuery, receivedQuery)
+        self.assertEqual(response, receivedResponse)
+
+        conn.unsetopt(pycurl.HTTPHEADER)
+        conn.setopt(pycurl.HTTPHEADER, ["Content-type: application/dns-message", "Accept: application/dns-message"])
+
+        (receivedQuery, receivedResponse) = self.sendDOHQuery(
+            self._dohServerPort,
+            self._serverName,
+            self._dohBaseURL,
+            query,
+            response=response,
+            caFile=self._caCert,
+            useQueue=False,
+            rawResponse=True,
+            customHeaders=[],
+            conn=conn,
+        )
+
+        self.assertEqual(self._rcode, 403)
+        self.assertEqual(receivedResponse, b"DoH query not allowed because of ACL")
 
 class TestDOHForwardedForNGHTTP2(DOHForwardedFor, DNSDistDOHTest):
     _dohLibrary = 'nghttp2'
