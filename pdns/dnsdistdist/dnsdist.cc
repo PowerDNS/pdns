@@ -3532,9 +3532,9 @@ static void startFrontends()
     std::thread udpThreadHandle(udpClientThread, udpStates);
     udpThreadHandle.detach();
   }
-  if (!tcpStates.empty()) {
-    g_tcpclientthreads = std::make_unique<TCPClientCollection>(1, tcpStates);
-  }
+
+  /* Gives TCP client threads by default */
+  g_tcpclientthreads = std::make_unique<TCPClientCollection>(1, tcpStates);
 #endif /* USE_SINGLE_ACCEPTOR_THREAD */
 }
 }
