@@ -2,6 +2,158 @@ Changelog
 =========
 
 .. changelog::
+  :version: 2.0.4
+  :released: 22nd of April 2026
+
+  .. change::
+    :tags: Bug Fixes, Security, DNS over HTTP3
+    :pullreq: TBD
+
+    CVE-2026-33254: An attacker can create a large number of concurrent DoQ or DoH3 connections, causing unlimited memory allocation in DNSdist and leading to a denial of service. DOQ and DoH3 are disabled by default
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: TBD
+
+    CVE-2026-33257: An attacker can send a web request that causes unlimited memory allocation in the internal web server, leading to a denial of service. The web server is disabled and restricted by an ACL by default
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: TBD
+
+    CVE-2026-33260: An attacker can send a web request that causes unlimited memory allocation in the internal web server, leading to a denial of service. The web server is disabled and restricted by an ACL by default
+
+  .. change::
+    :tags: Bug Fixes, Security, DNSCrypt
+    :pullreq: TBD
+
+    CVE-2026-33593: A client can trigger a divide by zero error leading to crash by sending a crafted DNSCrypt query
+
+  .. change::
+    :tags: Bug Fixes, Security, DNS over HTTPS
+    :pullreq: TBD
+
+    CVE-2026-33594: A client can trigger excessive memory allocation by generating a lot of queries that are routed to an overloaded DoH backend, causing queries to accumulate into a buffer that will not be released until the end of the connection. Outgoing DoH is disabled by default
+
+  .. change::
+    :tags: Bug Fixes, Security, DNS over QUIC, DNS over HTTP3
+    :pullreq: TBD
+
+    CVE-2026-33595: A client can trigger excessive memory allocation by generating a lot of errors responses over a single DoQ and DoH3 connection, as some resources were not properly released until the end of the connection. DOQ and DoH3 are disabled by default
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: TBD
+
+    CVE-2026-33596: A client might theoretically be able to cause a mismatch between queries sent to a backend and the received responses by sending a flood of perfectly timed queries that are routed to a TCP-only or DNS over TLS backend
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: TBD
+
+    CVE-2026-33597: A crafted query containing an invalid DNS label can prevent the PRSD detection algorithm executed via DynBlockRulesGroup:setSuffixMatchRule or DynBlockRulesGroup:setSuffixMatchRuleFFI from being executed
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: TBD
+
+    CVE-2026-33598: A cached crafted response can cause an out-of-bounds read if custom Lua code calls getDomainListByAddress() or getAddressListByDomain() on a packet cache
+
+  .. change::
+    :tags: Bug Fixes, Security,
+    :pullreq: TBD
+
+    CVE-2026-33599: A rogue backend can send a crafted SVCB response to a Discovery of Designated Resolvers request, when requested via either the autoUpgrade (Lua) option to newServer or auto_upgrade (YAML) settings. DDR upgrade is not enabled by default
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: TBD
+
+    CVE-2026-33602: A rogue backend can send a crafted UDP response with a query ID off by one related to the maximum configured value, triggering a out-of-bounds write leading to a denial of service
+
+  .. change::
+    :tags: Bug Fixes, YAML
+    :pullreq: 17089
+
+    Fix passing a numeric value to the YAML QType selector
+
+.. changelog::
+  :version: 1.9.13
+  :released: 22nd of April 2026
+
+  .. change::
+    :tags: Bug Fixes, Security, DNS over HTTP3
+    :pullreq: TBD
+
+    CVE-2026-33254: An attacker can create a large number of concurrent DoQ or DoH3 connections, causing unlimited memory allocation in DNSdist and leading to a denial of service. DOQ and DoH3 are disabled by default
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: TBD
+
+    CVE-2026-33257: An attacker can send a web request that causes unlimited memory allocation in the internal web server, leading to a denial of service. The web server is disabled and restricted by an ACL by default
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: TBD
+
+    CVE-2026-33260: An attacker can send a web request that causes unlimited memory allocation in the internal web server, leading to a denial of service. The web server is disabled and restricted by an ACL by default
+
+  .. change::
+    :tags: Bug Fixes, Security, DNSCrypt
+    :pullreq: TBD
+
+    CVE-2026-33593: A client can trigger a divide by zero error leading to crash by sending a crafted DNSCrypt query
+
+  .. change::
+    :tags: Bug Fixes, Security, DNS over HTTPS
+    :pullreq: TBD
+
+    CVE-2026-33594: A client can trigger excessive memory allocation by generating a lot of queries that are routed to an overloaded DoH backend, causing queries to accumulate into a buffer that will not be released until the end of the connection. Outgoing DoH is disabled by default
+
+  .. change::
+    :tags: Bug Fixes, Security, DNS over QUIC, DNS over HTTP3
+    :pullreq: TBD
+
+    CVE-2026-33595: A client can trigger excessive memory allocation by generating a lot of errors responses over a single DoQ and DoH3 connection, as some resources were not properly released until the end of the connection. DOQ and DoH3 are disabled by default
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: TBD
+
+    CVE-2026-33596: A client might theoretically be able to cause a mismatch between queries sent to a backend and the received responses by sending a flood of perfectly timed queries that are routed to a TCP-only or DNS over TLS backend
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: TBD
+
+    CVE-2026-33597: A crafted query containing an invalid DNS label can prevent the PRSD detection algorithm executed via DynBlockRulesGroup:setSuffixMatchRule or DynBlockRulesGroup:setSuffixMatchRuleFFI from being executed
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: TBD
+
+    CVE-2026-33598: A cached crafted response can cause an out-of-bounds read if custom Lua code calls getDomainListByAddress() or getAddressListByDomain() on a packet cache
+
+  .. change::
+    :tags: Bug Fixes, Security,
+    :pullreq: TBD
+
+    CVE-2026-33599: A rogue backend can send a crafted SVCB response to a Discovery of Designated Resolvers request, when requested via either the autoUpgrade (Lua) option to newServer or auto_upgrade (YAML) settings. DDR upgrade is not enabled by default
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: TBD
+
+    CVE-2026-33602: A rogue backend can send a crafted UDP response with a query ID off by one related to the maximum configured value, triggering a out-of-bounds write leading to a denial of service
+
+  .. change::
+    :tags: Bug Fixes, Security, DNS over HTTP3
+    :pullreq: TBD
+
+    CVE-2026-33254: An attacker can create a large number of concurrent DoQ or DoH3 connections, causing unlimited memory allocation in DNSdist and leading to a denial of service. DOQ and DoH3 are disabled by default
+
+.. changelog::
   :version: 1.9.12
   :released: 31st of March 2026
 
