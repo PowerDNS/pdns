@@ -380,7 +380,8 @@ void DownstreamState::connectUDPSockets()
     idStates.clear();
   }
   else {
-    idStates.resize(config.d_maxUDPOutstanding);
+    const auto maxUDPOutstanding = d_config.d_maxUDPOutstanding > 0 ? d_config.d_maxUDPOutstanding : config.d_maxUDPOutstanding;
+    idStates.resize(maxUDPOutstanding);
   }
   sockets.resize(d_config.d_numberOfSockets);
 

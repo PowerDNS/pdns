@@ -460,6 +460,7 @@ static std::shared_ptr<DownstreamState> createBackendFromConfiguration(const Con
   backendConfig.order = config.order;
   backendConfig.d_weight = config.weight;
   backendConfig.d_maxInFlightQueriesPerConn = config.max_in_flight;
+  backendConfig.d_maxUDPOutstanding = config.max_udp_outstanding;
   backendConfig.d_tcpConcurrentConnectionsLimit = config.max_concurrent_tcp_connections;
   backendConfig.name = std::string(config.name);
   if (!config.id.empty()) {
