@@ -439,7 +439,7 @@ public:
 
   static unsigned int numTaskThreads()
   {
-    return 1;
+    return s_numTaskThreads;
   }
 
   static unsigned int numUDPWorkers()
@@ -480,6 +480,11 @@ public:
   static void setNumDistributorThreads(unsigned int n)
   {
     s_numDistributorThreads = n;
+  }
+
+  static void setNumTaskThreads(unsigned int n)
+  {
+    s_numTaskThreads = n;
   }
 
   static unsigned int numRecursorThreads()
@@ -589,6 +594,7 @@ private:
   static unsigned int s_numDistributorThreads;
   static unsigned int s_numUDPWorkerThreads;
   static unsigned int s_numTCPWorkerThreads;
+  static unsigned int s_numTaskThreads;
 };
 
 struct ThreadMSG

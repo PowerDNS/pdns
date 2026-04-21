@@ -127,6 +127,7 @@ bool RecThreadInfo::s_weDistributeQueries; // if true, 1 or more threads listen 
 unsigned int RecThreadInfo::s_numDistributorThreads;
 unsigned int RecThreadInfo::s_numUDPWorkerThreads;
 unsigned int RecThreadInfo::s_numTCPWorkerThreads;
+unsigned int RecThreadInfo::s_numTaskThreads;
 thread_local unsigned int RecThreadInfo::t_id{RecThreadInfo::TID_NOT_INITED};
 
 pdns::RateLimitedLog g_rateLimitedLogger;
@@ -2254,6 +2255,7 @@ static int serviceMain(Logr::log_t log)
 
   RecThreadInfo::setNumDistributorThreads(::arg().asNum("distributor-threads"));
   RecThreadInfo::setNumUDPWorkerThreads(::arg().asNum("threads"));
+  RecThreadInfo::setNumTaskThreads(::arg().asNum("taskthreads"));
   if (RecThreadInfo::numUDPWorkers() < 1) {
     log->info(Logr::Warning, "Asked to run with 0 threads, raising to 1 instead");
     RecThreadInfo::setNumUDPWorkerThreads(1);
