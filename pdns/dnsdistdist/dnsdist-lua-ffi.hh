@@ -49,8 +49,8 @@ namespace dnsdist::lua::ffi
 {
 enum class ObjectType : uint64_t
 {
-  Question = 1,
-  Response = 2,
+  Question = 0xaa55aa55,
+  Response = 0x55aa55aa,
 };
 }
 
@@ -113,8 +113,8 @@ struct dnsdist_ffi_dnsresponse_t
 #endif /* DISABLE_PROTOBUF */
 };
 
-static_assert(offsetof(dnsdist_ffi_dnsresponse_t, dr) == offsetof(dnsdist_ffi_dnsquestion_t, dq), "The DNSQuestion object in dnsdist_ffi_dnsquestion_t and DNSResponse object in dnsdist_ffi_dnsresponse_t must have the same offset");
-static_assert(offsetof(dnsdist_ffi_dnsresponse_t, objectType) == offsetof(dnsdist_ffi_dnsquestion_t, objectType), "The object type in dnsdist_ffi_dnsquestion_t and dnsdist_ffi_dnsresponse_t must have the same offset");
+static_assert(offsetof(dnsdist_ffi_dnsresponse_t, dr) == offsetof(dnsdist_ffi_dnsquestion_t, dq), "The DNSQuestion object in dnsdist_ffi_dnsquestion_t and DNSResponse object in dnsdist_ffi_dnsresponse_t must be located at the same offset");
+static_assert(offsetof(dnsdist_ffi_dnsresponse_t, objectType) == offsetof(dnsdist_ffi_dnsquestion_t, objectType), "The object type in dnsdist_ffi_dnsquestion_t and dnsdist_ffi_dnsresponse_t must be located at the same offset");
 
 // dnsdist_ffi_server_t is a lightuserdata
 template <>
