@@ -4,6 +4,16 @@ Changelogs for 5.4.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
+  :version: 5.4.1
+  :released: 22th of April 2026
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: TBD
+
+    Fix PowerDNS Security Advisory 2026-03 for PowerDNS Recursor: Multiple Issues
+
+.. changelog::
   :version: 5.4.0
   :released: 9th of March 2026 with no changes since 5.4.0-rc1 except the version.
 

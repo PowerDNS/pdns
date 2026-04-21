@@ -5,6 +5,16 @@ Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
   :version: 5.3.5
+  :released: 22th of April 2026
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: TBD
+
+    Fix PowerDNS Security Advisory 2026-03 for PowerDNS Recursor: Multiple Issues
+
+.. changelog::
+  :version: 5.3.5
   :released: 9th of February 2026
 
   .. change::
