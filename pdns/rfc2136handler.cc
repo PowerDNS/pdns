@@ -59,6 +59,9 @@ struct updateContext {
   // Logging-related fields
   std::string msgPrefix;
   std::shared_ptr<Logr::Logger> slog;
+  
+  // forwardPacket-related fields
+  mutable int sock{-1};
 };
 
 static void increaseSerial(const string& soaEditSetting, const updateContext& ctx);
@@ -653,6 +656,22 @@ static uint performUpdate(DNSSECKeeper& dsk, const DNSRecord* rec, updateContext
   return changedRecords;
 }
 
+static void socketCleaner(const updateContext* ctx)
+{
+  if (ctx->sock < 0) {
+    return; // nothing to do
+  }
+
+  try {
+    closesocket(ctx->sock);
+    ctx->sock = -1;
+  }
+  catch (const PDNSException& e) {
+    SLOG(g_log << Logger::Error << "Error closing primary forwarding socket: " << e.reason << endl,
+         ctx->slog->error(Logr::Error, e.reason, "Update: error closing primary forwarding socket"));
+  }
+}
+
 static int forwardPacket(UeberBackend& B, const updateContext& ctx, const DNSPacket& p) // NOLINT(readability-identifier-length)
 {
   vector<string> forward;
@@ -672,108 +691,71 @@ static int forwardPacket(UeberBackend& B, const updateContext& ctx, const DNSPac
       continue;
     }
     auto local = pdns::getQueryLocalAddress(remote.sin4.sin_family, 0);
-    int sock = makeQuerySocket(local, false); // create TCP socket. RFC2136 section 6.2 seems to be ok with this.
-    if (sock < 0) {
+    ctx.sock = makeQuerySocket(local, false); // create TCP socket. RFC2136 section 6.2 seems to be ok with this.
+    if (ctx.sock < 0) {
       SLOG(g_log << Logger::Error << ctx.msgPrefix << "Error creating socket: " << stringerror() << endl,
            ctx.slog->error(Logr::Error, errno, "Update: error creating socket"));
       continue;
     }
 
-    if (connect(sock, (const struct sockaddr*)&remote, remote.getSocklen()) < 0) { // NOLINT(cppcoreguidelines-pro-type-cstyle-cast): less ugly than a reinterpret_cast + const_cast combination which would require a linter annotation anyway
-      SLOG(g_log << Logger::Error << ctx.msgPrefix << "Failed to connect to " << remote.toStringWithPort() << ": " << stringerror() << endl,
-           ctx.slog->error(Logr::Error, errno, "Update: failed to connect", "remote", Logging::Loggable(remote.toStringWithPort())));
-      try {
-        closesocket(sock);
-      }
-      catch (const PDNSException& e) {
-        SLOG(g_log << Logger::Error << "Error closing primary forwarding socket after connect() failed: " << e.reason << endl,
-             ctx.slog->error(Logr::Error, errno, "Update: error closing primary forwarding socket after connect() failed"));
-      }
-      continue;
-    }
+    string buffer;
+    ssize_t recvRes{0};
+    {
+      std::unique_ptr<const updateContext, decltype(&socketCleaner)> guard{&ctx, socketCleaner};
 
-    DNSPacket l_forwardPacket(p);
-    l_forwardPacket.setID(dns_random_uint16());
-    l_forwardPacket.setRemote(&remote);
-    uint16_t len = htons(l_forwardPacket.getString().length());
-    string buffer((const char*)&len, 2); // NOLINT(cppcoreguidelines-pro-type-cstyle-cast): less ugly than a reinterpret_cast which would require a linter annotation anyway
-    buffer.append(l_forwardPacket.getString());
-    if (write(sock, buffer.c_str(), buffer.length()) < 0) {
-      SLOG(g_log << Logger::Error << ctx.msgPrefix << "Unable to forward update message to " << remote.toStringWithPort() << ", error:" << stringerror() << endl,
-           ctx.slog->error(Logr::Error, errno, "Update: unable to forward update message", "remote", Logging::Loggable(remote.toStringWithPort())));
-      try {
-        closesocket(sock);
+      if (connect(ctx.sock, (const struct sockaddr*)&remote, remote.getSocklen()) < 0) { // NOLINT(cppcoreguidelines-pro-type-cstyle-cast): less ugly than a reinterpret_cast + const_cast combination which would require a linter annotation anyway
+        SLOG(g_log << Logger::Error << ctx.msgPrefix << "Failed to connect to " << remote.toStringWithPort() << ": " << stringerror() << endl,
+             ctx.slog->error(Logr::Error, errno, "Update: failed to connect", "remote", Logging::Loggable(remote.toStringWithPort())));
+        continue;
       }
-      catch (const PDNSException& e) {
-        SLOG(g_log << Logger::Error << "Error closing primary forwarding socket after write() failed: " << e.reason << endl,
-             ctx.slog->error(Logr::Error, e.reason, "Update: error closing primary forwarding socket after write() failed"));
-      }
-      continue;
-    }
 
-    int res = waitForData(sock, 10, 0);
-    if (res == 0) {
-      SLOG(g_log << Logger::Error << ctx.msgPrefix << "Timeout waiting for reply from primary at " << remote.toStringWithPort() << endl,
-           ctx.slog->info(Logr::Error, "Update: timeout waiting for reply from primary", "remote", Logging::Loggable(remote.toStringWithPort())));
-      try {
-        closesocket(sock);
+      DNSPacket l_forwardPacket(p);
+      l_forwardPacket.setID(dns_random_uint16());
+      l_forwardPacket.setRemote(&remote);
+      uint16_t len = htons(l_forwardPacket.getString().length());
+      buffer.assign((const char*)&len, 2); // NOLINT(cppcoreguidelines-pro-type-cstyle-cast): less ugly than a reinterpret_cast which would require a linter annotation anyway
+      buffer.append(l_forwardPacket.getString());
+      if (write(ctx.sock, buffer.c_str(), buffer.length()) < 0) {
+        SLOG(g_log << Logger::Error << ctx.msgPrefix << "Unable to forward update message to " << remote.toStringWithPort() << ", error:" << stringerror() << endl,
+             ctx.slog->error(Logr::Error, errno, "Update: unable to forward update message", "remote", Logging::Loggable(remote.toStringWithPort())));
+        continue;
       }
-      catch (const PDNSException& e) {
-        SLOG(g_log << Logger::Error << "Error closing primary forwarding socket after a timeout occurred: " << e.reason << endl,
-             ctx.slog->error(Logr::Error, e.reason, "Update: error closing primary forwarding socket after a timeout occurred"));
-      }
-      continue;
-    }
-    if (res < 0) {
-      SLOG(g_log << Logger::Error << ctx.msgPrefix << "Error waiting for answer from primary at " << remote.toStringWithPort() << ", error:" << stringerror() << endl,
-           ctx.slog->error(Logr::Error, errno, "Update: error waiting for answer from primary", "remote", Logging::Loggable(remote.toStringWithPort())));
-      try {
-        closesocket(sock);
-      }
-      catch (const PDNSException& e) {
-        SLOG(g_log << Logger::Error << "Error closing primary forwarding socket after an error occurred: " << e.reason << endl,
-             ctx.slog->error(Logr::Error, e.reason, "Update: error closing primary forwarding socket after an error occurred"));
-      }
-      continue;
-    }
 
-    std::array<unsigned char, 2> lenBuf{};
-    ssize_t recvRes = recv(sock, lenBuf.data(), lenBuf.size(), 0);
-    if (recvRes < 0 || static_cast<size_t>(recvRes) < lenBuf.size()) {
-      SLOG(g_log << Logger::Error << ctx.msgPrefix << "Could not receive data (length) from primary at " << remote.toStringWithPort() << ", error:" << stringerror() << endl,
-           ctx.slog->error(Logr::Error, errno, "Update: could not receive data (length) from primary", "remote", Logging::Loggable(remote.toStringWithPort())));
-      try {
-        closesocket(sock);
+      int res = waitForData(ctx.sock, 10, 0);
+      if (res == 0) {
+        SLOG(g_log << Logger::Error << ctx.msgPrefix << "Timeout waiting for reply from primary at " << remote.toStringWithPort() << endl,
+             ctx.slog->info(Logr::Error, "Update: timeout waiting for reply from primary", "remote", Logging::Loggable(remote.toStringWithPort())));
+        continue;
       }
-      catch (const PDNSException& e) {
-        SLOG(g_log << Logger::Error << "Error closing primary forwarding socket after recv() failed: " << e.reason << endl,
-             ctx.slog->error(Logr::Error, e.reason, "Update: error closing primary forwarding socket after recv() failed"));
+      if (res < 0) {
+        SLOG(g_log << Logger::Error << ctx.msgPrefix << "Error waiting for answer from primary at " << remote.toStringWithPort() << ", error:" << stringerror() << endl,
+             ctx.slog->error(Logr::Error, errno, "Update: error waiting for answer from primary", "remote", Logging::Loggable(remote.toStringWithPort())));
+        continue;
       }
-      continue;
-    }
-    size_t packetLen = lenBuf[0] * 256 + lenBuf[1];
 
-    buffer.resize(packetLen);
-    recvRes = recv(sock, &buffer.at(0), packetLen, 0);
-    if (recvRes < 0) {
-      SLOG(g_log << Logger::Error << ctx.msgPrefix << "Could not receive data (dnspacket) from primary at " << remote.toStringWithPort() << ", error:" << stringerror() << endl,
-           ctx.slog->error(Logr::Error, errno, "Update: could not receive data (dnspacket) from primary", "remote", Logging::Loggable(remote.toStringWithPort())));
-      try {
-        closesocket(sock);
+      std::array<unsigned char, 2> lenBuf{};
+      recvRes = recv(ctx.sock, lenBuf.data(), lenBuf.size(), 0);
+      if (recvRes < 0 || static_cast<size_t>(recvRes) < lenBuf.size()) {
+        SLOG(g_log << Logger::Error << ctx.msgPrefix << "Could not receive data (length) from primary at " << remote.toStringWithPort() << ", error:" << stringerror() << endl,
+             ctx.slog->error(Logr::Error, errno, "Update: could not receive data (length) from primary", "remote", Logging::Loggable(remote.toStringWithPort())));
+        continue;
       }
-      catch (const PDNSException& e) {
-        SLOG(g_log << Logger::Error << "Error closing primary forwarding socket after recv() failed: " << e.reason << endl,
-             ctx.slog->error(Logr::Error, e.reason, "Update: error closing primary forwarding socket after recv() failed"));
+      size_t packetLen = lenBuf[0] * 256 + lenBuf[1];
+
+      if (packetLen == 0) {
+        SLOG(g_log << Logger::Warning << ctx.msgPrefix << "Empty update sent by primary at " << remote.toStringWithPort() << endl,
+             ctx.slog->info(Logr::Warning, "Update: empty update from primary", "remote", Logging::Loggable(remote.toStringWithPort())));
+        continue;
       }
-      continue;
-    }
-    try {
-      closesocket(sock);
-    }
-    catch (const PDNSException& e) {
-      SLOG(g_log << Logger::Error << "Error closing primary forwarding socket: " << e.reason << endl,
-           ctx.slog->error(Logr::Error, e.reason, "Update: error closing primary forwarding socket"));
-    }
+
+      buffer.resize(packetLen);
+      recvRes = recv(ctx.sock, &buffer.at(0), packetLen, 0);
+      if (recvRes < 0) {
+        SLOG(g_log << Logger::Error << ctx.msgPrefix << "Could not receive data (dnspacket) from primary at " << remote.toStringWithPort() << ", error:" << stringerror() << endl,
+             ctx.slog->error(Logr::Error, errno, "Update: could not receive data (dnspacket) from primary", "remote", Logging::Loggable(remote.toStringWithPort())));
+        continue;
+      }
+    } // socketCleaner scope
 
     try {
       MOADNSParser mdp(false, buffer.data(), static_cast<unsigned int>(recvRes));
