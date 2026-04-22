@@ -818,15 +818,16 @@ bool IncomingHTTP2Connection::sendResponse(IncomingHTTP2Connection::StreamID str
   return true;
 }
 
-static void processForwardedForHeader(const std::unique_ptr<HeadersMap>& headers, ComboAddress& remote)
+static std::optional<ComboAddress> processForwardedForHeader(const std::unique_ptr<HeadersMap>& headers, const ComboAddress& remote)
 {
+  std::optional<ComboAddress> result{std::nullopt};
   if (!headers) {
-    return;
+    return result;
   }
 
   auto headerIt = headers->find(s_xForwardedForHeaderName);
   if (headerIt == headers->end()) {
-    return;
+    return result;
   }
 
   std::string_view value = headerIt->second;
@@ -841,8 +842,7 @@ static void processForwardedForHeader(const std::unique_ptr<HeadersMap>& headers
         value = value.substr(pos);
       }
     }
-    auto newRemote = ComboAddress(std::string(value));
-    remote = newRemote;
+    result.emplace(std::string(value));
   }
   catch (const std::exception& e) {
     vinfolog("Invalid X-Forwarded-For header ('%s') received from %s : %s", std::string(value), remote.toStringWithPort(), e.what());
@@ -850,6 +850,7 @@ static void processForwardedForHeader(const std::unique_ptr<HeadersMap>& headers
   catch (const PDNSException& e) {
     vinfolog("Invalid X-Forwarded-For header ('%s') received from %s : %s", std::string(value), remote.toStringWithPort(), e.reason);
   }
+  return result;
 }
 
 void IncomingHTTP2Connection::handleIncomingQuery(IncomingHTTP2Connection::PendingQuery&& query, IncomingHTTP2Connection::StreamID streamID)
@@ -874,7 +875,13 @@ void IncomingHTTP2Connection::handleIncomingQuery(IncomingHTTP2Connection::Pendi
   ++d_ci.cs->dohFrontend->d_http2Stats.d_nbQueries;
 
   if (d_ci.cs->dohFrontend->d_trustForwardedForHeader) {
-    processForwardedForHeader(query.d_headers, d_proxiedRemote);
+    auto xForwardedForRemote = processForwardedForHeader(query.d_headers, d_ci.remote);
+    if (xForwardedForRemote) {
+      d_proxiedRemote = *xForwardedForRemote;
+    }
+    else {
+      d_proxiedRemote = d_ci.remote;
+    }
 
     /* second ACL lookup based on the updated address */
     if (!dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL.match(d_proxiedRemote)) {
