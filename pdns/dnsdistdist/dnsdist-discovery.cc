@@ -219,7 +219,7 @@ static bool handleSVCResult(const Logr::Logger& logger, const PacketBuffer& answ
     }
 
     /* we prefer the address we already know, whenever possible */
-    if (tentativeAddresses.count(existingAddr) != 0) {
+    if (tentativeAddresses.empty() || tentativeAddresses.count(existingAddr) != 0) {
       tempConfig.d_addr = existingAddr;
     }
     else {
