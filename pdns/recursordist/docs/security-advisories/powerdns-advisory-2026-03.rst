@@ -187,7 +187,7 @@ CVE-2026-33262: Insufficient validation of cookie reply
 - Not affected: PowerDNS Recursor 5.4.1
 - Severity: Medium
 - Impact: Denial of service
-- Exploit: This problem can be triggered by an attacker sending crafted DNS responses, but ony if cookies are enabled
+- Exploit: This problem can be triggered by an attacker sending crafted DNS responses, but only if cookies are enabled
 - Risk of system compromise: None
 - Solution: Upgrade to patched version
 - CWE: CWE-476
