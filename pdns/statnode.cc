@@ -57,7 +57,7 @@ void StatNode::submit(const DNSName& domain, int rcode, unsigned int bytes, bool
   }
 
   auto last = tmp.end() - 1;
-  children[*last].submit(last, tmp.begin(), "", rcode, bytes, remote, 1, hit, samplingRate);
+  children[*last].submit(last, tmp.begin(), g_rootdnsname, rcode, bytes, remote, 1, hit, samplingRate);
 }
 
 static uint64_t adjustForSampling(uint32_t count, size_t samplingRate)
@@ -76,7 +76,7 @@ static uint64_t adjustForSampling(uint32_t count, size_t samplingRate)
    www.powerdns.com. 
 */
 
-void StatNode::submit(std::vector<string>::const_iterator end, std::vector<string>::const_iterator begin, const std::string& domain, int rcode, unsigned int bytes, const std::optional<ComboAddress>& remote, unsigned int count, bool hit, size_t samplingRate)
+void StatNode::submit(std::vector<string>::const_iterator end, std::vector<string>::const_iterator begin, const DNSName& domain, int rcode, unsigned int bytes, const std::optional<ComboAddress>& remote, unsigned int count, bool hit, size_t samplingRate)
 {
   //  cerr<<"Submit called for domain='"<<domain<<"': ";
   //  for(const std::string& n :  labels) 
@@ -93,13 +93,8 @@ void StatNode::submit(std::vector<string>::const_iterator end, std::vector<strin
 
   if (end == begin) {
     if (fullname.empty()) {
-      size_t needed = name.size() + 1 + domain.size();
-      if (fullname.capacity() < needed) {
-        fullname.reserve(needed);
-      }
-      fullname = name;
-      fullname.append(".");
-      fullname.append(domain);
+      fullname = domain;
+      fullname.prependRawLabel(name);
       labelsCount = count;
     }
     //    cerr<<"Hit the end, set our fullname to '"<<fullname<<"'"<<endl<<endl;
@@ -128,13 +123,8 @@ void StatNode::submit(std::vector<string>::const_iterator end, std::vector<strin
   }
   else {
     if (fullname.empty()) {
-      size_t needed = name.size() + 1 + domain.size();
-      if (fullname.capacity() < needed) {
-        fullname.reserve(needed);
-      }
-      fullname = name;
-      fullname.append(".");
-      fullname.append(domain);
+      fullname = domain;
+      fullname.prependRawLabel(name);
       labelsCount = count;
     }
     //    cerr<<"Not yet end, set our fullname to '"<<fullname<<"', recursing"<<endl;

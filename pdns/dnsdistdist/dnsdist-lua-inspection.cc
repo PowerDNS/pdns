@@ -902,7 +902,13 @@ void setupLuaInspection(LuaContext& luaCtx)
                                                               [](const StatNode& node) -> unsigned int {
                                                                 return node.size();
                                                               });
-  luaCtx.registerMember("fullname", &StatNode::fullname);
+  luaCtx.registerMember<std::string(StatNode::*)>(std::string("fullname"), [](const StatNode& node) -> std::string {
+    /* we are not using toLogString() because we want:
+       - an empty string for empty
+       - trailing dots otherwise
+    */
+    return !node.fullname.empty() ? node.fullname.toString() : "";
+  });
   luaCtx.registerMember("labelsCount", &StatNode::labelsCount);
   luaCtx.registerMember("servfails", &StatNode::Stat::servfails);
   luaCtx.registerMember("nxdomains", &StatNode::Stat::nxdomains);
