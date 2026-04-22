@@ -51,6 +51,21 @@ static void addMetaKeyAndValuesToProtobufContent([[maybe_unused]] DNSQuestion& d
 #endif /* DISABLE_PROTOBUF */
 }
 
+#ifndef DISABLE_NON_FFI_DQ_BINDINGS
+static LuaArray<EDNSOptionValues> EDNSOptionViewsToValues(const EDNSOptionViewMap& ednsOptions)
+{
+  LuaArray<EDNSOptionValues> copy;
+  for (const auto& [code, views] : ednsOptions) {
+    EDNSOptionValues options;
+    for (const auto& value : views.values) {
+      options.values.emplace_back(value.content, value.size);
+    }
+    copy.emplace_back(code, std::move(options));
+  }
+  return copy;
+}
+#endif /* DISABLE_NON_FFI_DQ_BINDINGS */
+
 // NOLINTNEXTLINE(readability-function-cognitive-complexity): this function declares Lua bindings, even with a good refactoring it will likely blow up the threshold
 void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
 {
@@ -162,15 +177,12 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
       return true;
     });
   });
-  luaCtx.registerFunction<std::map<uint16_t, EDNSOptionView> (DNSQuestion::*)() const>("getEDNSOptions", [](const DNSQuestion& dnsQuestion) {
-    if (dnsQuestion.ednsOptions == nullptr) {
-      parseEDNSOptions(dnsQuestion);
-      if (dnsQuestion.ednsOptions == nullptr) {
-        throw std::runtime_error("parseEDNSOptions should have populated the EDNS options");
-      }
+  luaCtx.registerFunction<LuaArray<EDNSOptionValues> (DNSQuestion::*)() const>("getEDNSOptions", [](const DNSQuestion& dnsQuestion) -> LuaArray<EDNSOptionValues> {
+    auto ednsOptions = parseEDNSOptions(dnsQuestion);
+    if (!ednsOptions) {
+      return {};
     }
-
-    return *dnsQuestion.ednsOptions;
+    return EDNSOptionViewsToValues(*ednsOptions);
   });
   luaCtx.registerFunction<std::string (DNSQuestion::*)(void) const>("getTrailingData", [](const DNSQuestion& dnsQuestion) {
     return dnsQuestion.getTrailingData();
@@ -477,15 +489,12 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
     });
   });
 
-  luaCtx.registerFunction<std::map<uint16_t, EDNSOptionView> (DNSResponse::*)() const>("getEDNSOptions", [](const DNSResponse& dnsQuestion) {
-    if (dnsQuestion.ednsOptions == nullptr) {
-      parseEDNSOptions(dnsQuestion);
-      if (dnsQuestion.ednsOptions == nullptr) {
-        throw std::runtime_error("parseEDNSOptions should have populated the EDNS options");
-      }
+  luaCtx.registerFunction<LuaArray<EDNSOptionValues> (DNSResponse::*)() const>("getEDNSOptions", [](const DNSResponse& dnsQuestion) -> LuaArray<EDNSOptionValues> {
+    auto ednsOptions = parseEDNSOptions(dnsQuestion);
+    if (!ednsOptions) {
+      return {};
     }
-
-    return *dnsQuestion.ednsOptions;
+    return EDNSOptionViewsToValues(*ednsOptions);
   });
   luaCtx.registerFunction<std::string (DNSResponse::*)(void) const>("getTrailingData", [](const DNSResponse& dnsQuestion) {
     return dnsQuestion.getTrailingData();
