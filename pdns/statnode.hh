@@ -62,7 +62,7 @@ public:
 
   Stat s;
   std::string name;
-  std::string fullname;
+  DNSName fullname;
   uint8_t labelsCount{0};
 
   void submit(const DNSName& domain, int rcode, unsigned int bytes, bool hit, const boost::optional<const ComboAddress&>& remote);
@@ -75,5 +75,5 @@ public:
   children_t children;
 
 private:
-  void submit(std::vector<string>::const_iterator end, std::vector<string>::const_iterator begin, const std::string& domain, int rcode, unsigned int bytes, const boost::optional<const ComboAddress&>& remote, unsigned int count, bool hit);
+  void submit(std::vector<string>::const_iterator end, std::vector<string>::const_iterator begin, const DNSName& domain, int rcode, unsigned int bytes, const boost::optional<const ComboAddress&>& remote, unsigned int count, bool hit);
 };

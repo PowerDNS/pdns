@@ -77,6 +77,10 @@ public:
   }
 
 private:
+  /* how many bytes we are willing to keep in a buffer waiting for the socket to become writable
+     again, until we stop accepting new queries */
+  static constexpr size_t s_maxBufferedBytes = 65536U;
+
   static ssize_t send_callback(nghttp2_session* session, const uint8_t* data, size_t length, int flags, void* user_data);
   static int on_frame_recv_callback(nghttp2_session* session, const nghttp2_frame* frame, void* user_data);
   static int on_data_chunk_recv_callback(nghttp2_session* session, uint8_t flags, StreamID stream_id, const uint8_t* data, size_t len, void* user_data);
@@ -218,7 +222,7 @@ void DoHConnectionToBackend::handleTimeout(const struct timeval& now, bool write
 bool DoHConnectionToBackend::reachedMaxStreamID() const
 {
   const uint32_t maximumStreamID = (static_cast<uint32_t>(1) << 31) - 1;
-  return d_highestStreamID == maximumStreamID;
+  return d_highestStreamID >= maximumStreamID;
 }
 
 bool DoHConnectionToBackend::reachedMaxConcurrentQueries() const
@@ -227,6 +231,13 @@ bool DoHConnectionToBackend::reachedMaxConcurrentQueries() const
   if (nghttp2_session_get_remote_settings(d_session.get(), NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS) <= getConcurrentStreamsCount()) {
     return true;
   }
+
+  /* somehow we already have a lot of data queued that we have not been able to
+     write to the outgoing socket, do not accept new queries just yet */
+  if (d_out.size() >= s_maxBufferedBytes) {
+    return true;
+  }
+
   return false;
 }
 
