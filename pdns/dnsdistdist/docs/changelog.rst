@@ -28,13 +28,13 @@ Changelog
     :tags: Bug Fixes, DNS over QUIC
     :pullreq: 17170
 
-    Hardened DoQ internal error handling for cpq
+    Hardened DoQ internal error handling for cross-protocol queries
 
   .. change::
     :tags: Bug Fixes, DNS over HTTP3
     :pullreq: 17173
 
-    Hardened DoH3 internal error handling for cpq
+    Hardened DoH3 internal error handling for cross-protocol queries
 
   .. change::
     :tags: Bug Fixes, DNS over HTTPS
@@ -75,13 +75,13 @@ Changelog
     :tags: Bug Fixes, DNS over QUIC
     :pullreq: 17171
 
-    Hardened DoQ internal error handling for cpq
+    Hardened DoQ internal error handling for cross-protocol queries
 
   .. change::
     :tags: Bug Fixes, DNS over HTTP3
     :pullreq: 17174
 
-    Hardened DoH3 internal error handling for cpq
+    Hardened DoH3 internal error handling for cross-protocol queries
 
   .. change::
     :tags: Bug Fixes
