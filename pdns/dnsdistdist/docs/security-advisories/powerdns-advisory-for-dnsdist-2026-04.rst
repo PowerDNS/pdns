@@ -23,7 +23,7 @@ CVE-2026-33257: Insufficient input validation of internal webserver
 An attacker can send a web request that causes unlimited memory allocation in the internal web
 server, leading to a denial of service. The internal web server is disabled by default.
 
-`https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L`__
+`CVSS Score: 5.3 <https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L&version=3.1>`__
 
 The remedy is: upgrade to a patched version, or prevent network access to the internal webserver. In
 general for defense in-depth reasons we recommend making the internal web server only accessible to
@@ -53,7 +53,7 @@ CVE-2026-33260: Insufficient input validation of internal webserver
 An attacker can send a web request that causes unlimited memory allocation in the internal web
 server, leading to a denial of service. The internal web server is disabled by default.
 
-`https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L`__
+`CVSS Score: 5.3 <https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L&version=3.1>`__
 
 The remedy is: upgrade to a patched version, or prevent network access to the internal webserver. In
 general for defense in-depth reasons we recommend making the internal web server only accessible to
@@ -83,7 +83,7 @@ CVE-2026-33254: Resource exhaustion via DoQ/DoH3 connections
 An attacker can create a large number of concurrent DoQ or DoH3 connections, causing unlimited memory
 allocation in DNSdist and leading to a denial of service. DOQ and DoH3 are disabled by default.
 
-`https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L`__
+`CVSS Score: 5.3 <https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L&version=3.1>`__
 
 The remedy is: upgrade to a patched version, or do not enable DoQ or DoH3.
 
@@ -111,7 +111,7 @@ CVE-2026-33602: Off-by-one access when processing crafted UDP responses
 A rogue backend can send a crafted UDP response with a query ID off by one related to the maximum
 configured value, triggering an out-of-bounds write leading to a denial of service.
 
-`https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:L/A:H`__
+`CVSS Score: 6.5 <https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:L/A:H&version=3.1>`__
 
 The remedy is: upgrade to a patched version.
 
@@ -138,7 +138,7 @@ CVE-2026-33599: Out-of-bounds read in service discovery
 
 A rogue backend can send a crafted SVCB response to a Discovery of Designated Resolvers request, when requested via either the autoUpgrade (Lua) option to newServer or auto_upgrade (YAML) settings. DDR upgrade is not enabled by default.
 
-`https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:A/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:L`__
+`CVSS Score: 3.1 <https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:A/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:L&version=3.1>`__
 
 The remedy is: upgrade to a patched version or do not enable DDR.
 
@@ -165,7 +165,7 @@ CVE-2026-33598: Out-of-bounds read in cache inspection via Lua
 
 A cached crafted response can cause an out-of-bounds read if custom Lua code calls getDomainListByAddress() or getAddressListByDomain() on a packet cache.
 
-`https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:A/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:L`__
+`CVSS Score: 3.1 <https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:A/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:L&version=3.1>`__
 
 The remedy is: upgrade to a patched version or getDomainListByAddress or getAddressListByDomain.
 
@@ -192,7 +192,7 @@ CVE-2026-33597: PRSD detection denial of service
 
 A crafted query containing an invalid DNS label can prevent the PRSD detection algorithm executed via DynBlockRulesGroup:setSuffixMatchRule or DynBlockRulesGroup:setSuffixMatchRuleFFI from being executed.
 
-`https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:L`__
+`CVSS Score: 3.7 <https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:L&version=3.1>`__
 
 The remedy is: upgrade to a patched version.
 
@@ -219,7 +219,7 @@ CVE-2026-33596: TCP backend stream ID overflow
 
 A client might theoretically be able to cause a mismatch between queries sent to a backend and the received responses by sending a flood of perfectly timed queries that are routed to a TCP-only or DNS over TLS backend.
 
-`https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:A/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:L`__
+`CVSS Score: 3.1 <https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:A/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:L&version=3.1>`__
 
 The remedy is: upgrade to a patched version.
 
@@ -246,7 +246,7 @@ CVE-2026-33595: DoQ/DoH3 excessive memory allocation
 
 A client can trigger excessive memory allocation by generating a lot of errors responses over a single DoQ and DoH3 connection, as some resources were not properly released until the end of the connection.
 
-`https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L`__
+`CVSS Score: 5.3 <https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L&version=3.1>`__
 
 The remedy is: upgrade to a patched version or disable DoQ or DoH3.
 
@@ -273,7 +273,7 @@ CVE-2026-33594: Outgoing DoH excessive memory allocation
 
 A client can trigger excessive memory allocation by generating a lot of queries that are routed to an overloaded DoH backend, causing queries to accumulate into a buffer that will not be released until the end of the connection.
 
-`https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L`__
+`CVSS Score: 5.3 <https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L&version=3.1>`__
 
 The remedy is: upgrade to a patched version or disable outgoing DoH.
 
@@ -300,7 +300,7 @@ CVE-2026-33593: Denial of service via crafted DNSCrypt query
 
 A client can trigger a divide by zero error leading to crash by sending a crafted DNSCrypt query.
 
-`https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H`__
+`CVSS Score: 7.5 <https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H&version=3.1>`__
 
 The remedy is: upgrade to a patched version or disable DNSCrypt.
 
