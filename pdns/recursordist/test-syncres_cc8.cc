@@ -555,10 +555,10 @@ BOOST_AUTO_TEST_CASE(test_nsec_expanded_wildcard_proof)
   sortedRecords_t recordContents;
   vector<shared_ptr<const RRSIGRecordContent>> signatureContents;
 
-  /* proves that a.example.com does exist, and has been generated from a wildcard (see the RRSIG below) */
+  /* proves that b.example.com does NOT exist, and the answer has been generated from a wildcard (see the RRSIG below) */
   addNSECRecordToLW(DNSName("a.example.org."), DNSName("d.example.org"), {QType::A, QType::TXT, QType::RRSIG, QType::NSEC}, 600, records);
   recordContents.insert(records.at(0).getContent());
-  addRRSIG(keys, records, DNSName("example.org."), 300, false, std::nullopt, DNSName("example.org."));
+  addRRSIG(keys, records, DNSName("example.org."), 300, false);
   signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
   records.clear();
 
@@ -570,8 +570,39 @@ BOOST_AUTO_TEST_CASE(test_nsec_expanded_wildcard_proof)
 
   /* This is an expanded wildcard proof, meaning that it does prove that the exact name
      does not exist so the wildcard can apply */
-  dState denialState = getDenial(denialMap, DNSName("a.example.org."), QType(0).getCode(), false, false, std::nullopt, false, /* normally retrieved from the RRSIG's d_labels */ 2);
+  dState denialState = getDenial(denialMap, DNSName("b.example.org."), QType(0).getCode(), false, false, std::nullopt, false, /* normally retrieved from the RRSIG's d_labels */ 2);
   BOOST_CHECK_EQUAL(denialState, dState::NXDOMAIN);
+}
+
+BOOST_AUTO_TEST_CASE(test_nsec_expanded_wildcard_proof_missing_next_closer)
+{
+  initSR(true);
+
+  testkeysset_t keys;
+  generateKeyMaterial(DNSName("example.org."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
+
+  vector<DNSRecord> records;
+
+  sortedRecords_t recordContents;
+  vector<shared_ptr<const RRSIGRecordContent>> signatureContents;
+
+  /* proves that a.b.example.com does not exist, and the answer has been generated from a wildcard (see the RRSIG below) */
+  addNSECRecordToLW(DNSName("b.example.org."), DNSName("c.example.org"), {QType::A, QType::TXT, QType::RRSIG, QType::NSEC}, 600, records);
+  recordContents.insert(records.at(0).getContent());
+  addRRSIG(keys, records, DNSName("example.org."), 300, false);
+  signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
+  records.clear();
+
+  ContentSigPair pair;
+  pair.records = recordContents;
+  pair.signatures = signatureContents;
+  cspmap_t denialMap;
+  denialMap[std::pair(DNSName("b.example.org."), QType::NSEC)] = pair;
+
+  /* This is an expanded wildcard proof, meaning that it does prove that the exact name
+     does not exist so the wildcard might apply EXCEPT the next closer does exist! */
+  dState denialState = getDenial(denialMap, DNSName("a.b.example.org."), QType(0).getCode(), false, false, std::nullopt, false, /* normally retrieved from the RRSIG's d_labels */ 2);
+  BOOST_CHECK_EQUAL(denialState, dState::NXQTYPE);
 }
 
 BOOST_AUTO_TEST_CASE(test_nsec_wildcard_with_cname)
