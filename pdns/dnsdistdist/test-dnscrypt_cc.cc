@@ -180,6 +180,48 @@ BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValid)
   BOOST_CHECK(mdp.d_qtype == QType::AAAA);
 }
 
+BOOST_AUTO_TEST_CASE(DNSCryptEncryptResponse)
+{
+  DNSCryptPrivateKey resolverPrivateKey;
+  DNSCryptCert resolverCert;
+  DNSCryptCertSignedData::ResolverPublicKeyType providerPublicKey;
+  DNSCryptCertSignedData::ResolverPrivateKeyType providerPrivateKey;
+  time_t now = time(nullptr);
+  DNSCryptContext::generateProviderKeys(providerPublicKey, providerPrivateKey);
+  DNSCryptContext::generateCertificate(1, now, oneDayFromNow(now), DNSCryptExchangeVersion::VERSION1, providerPrivateKey, resolverPrivateKey, resolverCert);
+  auto ctx = std::make_shared<DNSCryptContext>("2.name", resolverCert, resolverPrivateKey);
+
+  DNSCryptPrivateKey clientPrivateKey;
+  DNSCryptPublicKeyType clientPublicKey;
+  DNSCryptContext::generateResolverKeyPair(clientPrivateKey, clientPublicKey);
+
+  DNSCryptClientNonceType clientNonce{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x08, 0x09, 0x0A, 0x0B};
+
+  DNSName name("www.powerdns.com.");
+  PacketBuffer plainQuery;
+  GenericDNSPacketWriter<PacketBuffer> packetWriter(plainQuery, name, QType::AAAA, QClass::IN, 0);
+  packetWriter.getHeader()->rd = 1;
+
+  plainQuery.resize(4096U);
+  int res = ctx->encryptQuery(plainQuery, 8192, clientPublicKey, clientPrivateKey, clientNonce, false, std::make_shared<DNSCryptCert>(resolverCert));
+
+  BOOST_CHECK_EQUAL(res, 0);
+
+  std::shared_ptr<DNSCryptQuery> query = std::make_shared<DNSCryptQuery>(ctx);
+
+  query->parsePacket(plainQuery, false, now);
+
+  BOOST_CHECK_EQUAL(query->isValid(), true);
+  BOOST_CHECK_EQUAL(query->isEncrypted(), true);
+
+  PacketBuffer response;
+  GenericDNSPacketWriter<PacketBuffer> responseWriter(response, name, QType::AAAA, QClass::IN, 0);
+  packetWriter.getHeader()->rd = 1;
+  response.resize(4049U);
+
+  query->encryptResponse(response, 4096U, false);
+}
+
 // valid encrypted query with not enough room
 BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValidButShort)
 {
