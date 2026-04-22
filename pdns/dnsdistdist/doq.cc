@@ -31,11 +31,11 @@
 #include "sstuff.hh"
 #include "threadname.hh"
 
+#include "dnsdist-concurrent-connections.hh"
 #include "dnsdist-dnsparser.hh"
 #include "dnsdist-ecs.hh"
 #include "dnsdist-proxy-protocol.hh"
 #include "dnsdist-tcp.hh"
-#include "dnsdist-random.hh"
 
 #include "doq-common.hh"
 
@@ -59,7 +59,18 @@ public:
   Connection(Connection&&) = default;
   Connection& operator=(const Connection&) = delete;
   Connection& operator=(Connection&&) = default;
-  ~Connection() = default;
+  ~Connection()
+  {
+    try {
+      /* do not account if we have been moved! */
+      if (d_conn) {
+        dnsdist::IncomingConcurrentTCPConnectionsManager::accountClosedTCPConnection(d_peer);
+      }
+    }
+    catch (...) {
+      /* in theory it might raise an exception, and we cannot allow it to be uncaught in a dtor */
+    }
+  }
 
   std::shared_ptr<const std::string> getSNI()
   {
@@ -637,6 +648,7 @@ static void handleReadableStream(DOQFrontend& frontend, ClientState& clientState
       ++dnsdist::metrics::g_stats.nonCompliantQueries;
       ++clientState.nonCompliantQueries;
       quiche_conn_stream_shutdown(conn.d_conn.get(), streamID, QUICHE_SHUTDOWN_WRITE, static_cast<uint64_t>(DOQ_Error_Codes::DOQ_PROTOCOL_ERROR));
+      conn.d_streamBuffers.erase(streamID);
       return;
     }
 
@@ -659,6 +671,7 @@ static void handleReadableStream(DOQFrontend& frontend, ClientState& clientState
     ++dnsdist::metrics::g_stats.nonCompliantQueries;
     ++clientState.nonCompliantQueries;
     quiche_conn_stream_shutdown(conn.d_conn.get(), streamID, QUICHE_SHUTDOWN_WRITE, static_cast<uint64_t>(DOQ_Error_Codes::DOQ_PROTOCOL_ERROR));
+    conn.d_streamBuffers.erase(streamID);
     return;
   }
 
@@ -668,6 +681,7 @@ static void handleReadableStream(DOQFrontend& frontend, ClientState& clientState
     ++dnsdist::metrics::g_stats.nonCompliantQueries;
     ++clientState.nonCompliantQueries;
     quiche_conn_stream_shutdown(conn.d_conn.get(), streamID, QUICHE_SHUTDOWN_WRITE, static_cast<uint64_t>(DOQ_Error_Codes::DOQ_PROTOCOL_ERROR));
+    conn.d_streamBuffers.erase(streamID);
     return;
   }
   DEBUGLOG("Dispatching query");
@@ -750,6 +764,12 @@ static void handleSocketReadable(DOQFrontend& frontend, ClientState& clientState
       if (!originalDestinationID) {
         ++frontend.d_doqInvalidTokensReceived;
         DEBUGLOG("Discarding invalid token");
+        continue;
+      }
+
+      auto connectionResult = dnsdist::IncomingConcurrentTCPConnectionsManager::accountNewTCPConnection(client, true, true);
+      if (connectionResult == dnsdist::IncomingConcurrentTCPConnectionsManager::NewConnectionResult::Denied) {
+        DEBUGLOG("Connection not allowed!");
         continue;
       }
 

@@ -20,6 +20,10 @@ namespace funcptr = boost;
 
 #include <algorithm>
 
+#ifndef YAHTTP_MAX_HEADER_SIZE
+#define YAHTTP_MAX_HEADER_SIZE (100 * 1024)
+#endif
+
 #ifndef YAHTTP_MAX_REQUEST_SIZE
 #define YAHTTP_MAX_REQUEST_SIZE 2097152
 #endif
@@ -108,6 +112,7 @@ namespace YaHTTP {
 #endif
       max_request_size = YAHTTP_MAX_REQUEST_SIZE;
       max_response_size = YAHTTP_MAX_RESPONSE_SIZE;
+      max_header_size = YAHTTP_MAX_HEADER_SIZE;
       url = "";
       method = "";
       statusText = "";
@@ -130,6 +135,7 @@ protected:
       this->parameters = rhs.parameters; this->getvars = rhs.getvars;
       this->body = rhs.body; this->max_request_size = rhs.max_request_size;
       this->max_response_size = rhs.max_response_size; this->version = rhs.version;
+      this->max_header_size = rhs.max_header_size;
 #ifdef HAVE_CPP_FUNC_PTR
       this->renderer = rhs.renderer;
 #endif
@@ -143,6 +149,7 @@ protected:
       this->parameters = rhs.parameters; this->getvars = rhs.getvars;
       this->body = rhs.body; this->max_request_size = rhs.max_request_size;
       this->max_response_size = rhs.max_response_size; this->version = rhs.version;
+      this->max_header_size = rhs.max_header_size;
 #ifdef HAVE_CPP_FUNC_PTR
       this->renderer = rhs.renderer;
 #endif
@@ -166,8 +173,9 @@ public:
 
     std::string body; //<! the actual content
 
-    ssize_t max_request_size; //<! maximum size of request
-    ssize_t max_response_size;  //<! maximum size of response
+    size_t max_request_size; //<! maximum size of request
+    size_t max_response_size; //<! maximum size of response
+    size_t max_header_size; //<! maximum size of headers
     bool is_multipart; //<! if the request is multipart, prevents Content-Length header
 #ifdef HAVE_CPP_FUNC_PTR
     funcptr::function<size_t(const HTTPBase*,std::ostream&,bool)> renderer; //<! rendering function
@@ -301,10 +309,11 @@ public:
     
     std::string buffer; //<! read buffer 
     bool chunked; //<! whether we are parsing chunked data
-    int chunk_size; //<! expected size of next chunk
+    size_t chunk_size; //<! expected size of next chunk
     std::ostringstream bodybuf; //<! buffer for body
     size_t maxbody; //<! maximum size of body
     size_t minbody; //<! minimum size of body
+    size_t headersize;                 
     bool hasBody; //<! are we expecting body
 
     void keyValuePair(const std::string &keyvalue, std::string &key, std::string &value); //<! key value pair parser helper
@@ -315,6 +324,7 @@ public:
       pos = 0; state = 0; this->target = target_;
       hasBody = false;
       buffer = "";
+      headersize = 0;
       this->target->initialize();
     }; //<! Initialize the parser for target and clear state
     bool feed(const std::string& somedata); //<! Feed data to the parser
