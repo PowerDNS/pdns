@@ -424,6 +424,7 @@ epel
 Eriksson
 errlog
 errorlevels
+Ethicxz
 EUips
 evanjones
 evildomain
@@ -544,6 +545,7 @@ Haixin
 Hakulinen
 Hannu
 Harker
+Haruto
 Hausberger
 headbgcolor
 headerline
@@ -790,6 +792,7 @@ mbed
 mbedtls
 MBOXFW
 mbytes
+Medjahed
 Meerwald
 Mekking
 melpa
@@ -1285,6 +1288,7 @@ Signingpiper
 signpipe
 signttl
 signzone
+Simonovich
 singlethreaded
 Sipek
 siphash
@@ -1449,6 +1453,7 @@ Toshifumi
 totms
 traceid
 traceparent
+transitioning
 Travaille
 treemacs
 tribool
@@ -1519,6 +1524,7 @@ Verschuren
 Viala
 viewcode
 visitedlinkcolor
+Vitaly
 Vixie
 vla
 Voegeli
@@ -1598,6 +1604,7 @@ Yehuda
 yeswehack
 Yiu
 Ylitalo
+ylwango
 YMMV
 Yogesh
 yourcompany
