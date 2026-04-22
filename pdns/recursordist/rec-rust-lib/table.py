@@ -3302,26 +3302,26 @@ This field is ignored if :ref:`setting-yaml-webservice.listen` is set.
  """,
     },
     {
-        'name': 'max_request_size',
-        'section': 'webservice',
-        'type': LType.Uint64,
-        'oldname': 'webserver-max-request-size',
-        'default': '2',
-        'help': 'Maximum size for webserver requests in megabytes',
-        'doc': '''
+        "name": "max_request_size",
+        "section": "webservice",
+        "type": LType.Uint64,
+        "oldname": "webserver-max-request-size",
+        "default": "2",
+        "help": "Maximum size for webserver requests in megabytes",
+        "doc": """
 Maximum size of incoming webserver requests in megabytes.
- ''',
-        'versionadded': '5.5.0',
+ """,
+        "versionadded": "5.5.0",
     },
     {
-        'name': 'write_pid',
-        'section': 'recursor',
-        'type': LType.Bool,
-        'default': 'true',
-        'help': 'Write a PID file',
-        'doc': '''
+        "name": "write_pid",
+        "section": "recursor",
+        "type": LType.Bool,
+        "default": "true",
+        "help": "Write a PID file",
+        "doc": """
 If a PID file should be written to :ref:`setting-socket-dir`
- ''',
+ """,
     },
     {
         "name": "x_dnssec_names",

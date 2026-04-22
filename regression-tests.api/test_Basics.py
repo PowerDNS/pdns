@@ -39,13 +39,9 @@ class TestBasics(ApiTestCase):
     @unittest.skipIf(not is_recursor(), "Only applicable to recursors (for now)")
     def test_big_request(self):
         payload = bytearray(10000000)
-        url = '/api/v1/servers/localhost/zones'
-        r = self.session.post(
-            self.url(url),
-            data=payload,
-            headers={"content-type": "application/json"})
+        url = "/api/v1/servers/localhost/zones"
+        r = self.session.post(self.url(url), data=payload, headers={"content-type": "application/json"})
         self.assertEqual(r.status_code, 413)
-
 
     def test_cors(self):
         r = self.session.options(self.url("/api/v1/servers/localhost"))
