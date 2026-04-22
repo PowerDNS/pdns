@@ -2,6 +2,94 @@ Changelog
 =========
 
 .. changelog::
+  :version: 2.0.5
+  :released: 23rd of April 2026
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 17165
+
+    Do not keep the parsed EDNS options around
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17166
+
+    Do not oversize the received buffer with ``recvmmsg``
+
+  .. change::
+    :tags: Bug Fixes, DNS over QUIC, DNS over HTTP3
+    :pullreq: 17168
+    :tickets: 17109
+
+    Give TCP thread as default for definition USE_SINGLE_ACCEPTOR_THREAD
+
+  .. change::
+    :tags: Bug Fixes, DNS over QUIC
+    :pullreq: 17170
+
+    Hardened DoQ internal error handling for cpq
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTP3
+    :pullreq: 17173
+
+    Hardened DoH3 internal error handling for cpq
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 17176
+
+    Handle missing X-Forwarded-For on existing DoH connection
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 17178
+
+    Fix handling of long HTTP/2 Date headers, handle non-POSIX locales
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17179
+
+    meson: Add missing checks for ``TLS_client_method``, ``gnutls_transport_set_fastopen``
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17207
+
+    Fix the ``StatNode::fullname`` issue introduced in 2.0.4
+
+.. changelog::
+  :version: 1.9.14
+  :released: 23rd of April 2026
+
+  .. change::
+    :tags: Bug Fixes, DNS over QUIC, DNS over HTTP3
+    :pullreq: 17167
+    :tickets: 17109
+
+    Give TCP thread for DoQ and DoH3
+
+  .. change::
+    :tags: Bug Fixes, DNS over QUIC
+    :pullreq: 17171
+
+    Hardened DoQ internal error handling for cpq
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTP3
+    :pullreq: 17174
+
+    Hardened DoH3 internal error handling for cpq
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17206
+
+    Fix the ``StatNode::fullname`` issue introduced in 1.9.13
+
+.. changelog::
   :version: 2.0.4
   :released: 22nd of April 2026
 
