@@ -198,8 +198,12 @@ template <typename Container> void GenericDNSPacketWriter<Container>::xfrUnquote
     d_content.push_back(0);
     return;
   }
-  if(lenField)
+  if (lenField) {
+    if (text.length() > 255) {
+      throw runtime_error("invalid unquoted text length");
+    }
     d_content.push_back(text.length());
+  }
   d_content.insert(d_content.end(), text.c_str(), text.c_str() + text.length());
 }
 
@@ -410,11 +414,14 @@ template <typename Container> void GenericDNSPacketWriter<Container>::xfrSvcPara
       break;
     case SvcParam::alpn:
     {
-      uint16_t totalSize = param.getALPN().size(); // All 1 octet size headers for each value
+      size_t totalSize = param.getALPN().size(); // All 1 octet size headers for each value
       for (auto const &a : param.getALPN()) {
         totalSize += a.length();
       }
-      xfr16BitInt(totalSize);
+      if (totalSize > std::numeric_limits<uint16_t>::max()) {
+        throw runtime_error("invalid total length of alpn parameters");
+      }
+      xfr16BitInt(static_cast<uint16_t>(totalSize));
       for (auto const &a : param.getALPN()) {
         xfrUnquotedText(a, true); // will add the 1-byte length field
       }

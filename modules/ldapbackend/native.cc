@@ -281,7 +281,7 @@ void LdapBackend::lookup_tree(const QType& qtype, const DNSName& qname, DNSPacke
 
   stringtok(parts, toLower(qname.toString()), ".");
   for (auto i = parts.crbegin(); i != parts.crend(); i++) {
-    dn = "dc=" + *i + "," + dn;
+    dn = "dc=" + d_pldap->escape(*i) + "," + dn;
   }
 
   g_log << Logger::Debug << d_myname << " Search = basedn: " << dn + getArg("basedn") << ", filter: " << filter << ", qtype: " << qtype.toString() << endl;
