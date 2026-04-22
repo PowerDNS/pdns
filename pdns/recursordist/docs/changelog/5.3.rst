@@ -4,7 +4,7 @@ Changelogs for 5.3.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
-  :version: 5.3.5
+  :version: 5.3.6
   :released: 22th of April 2026
 
   .. change::
