@@ -1413,13 +1413,35 @@ BB2DomainInfo Bind2Backend::createDomainEntry(const DNSName& domain, const strin
   return bbd;
 }
 
-bool Bind2Backend::createSecondaryDomain(const string& ip, const DNSName& domain, const string& /* nameserver */, const string& account)
+bool Bind2Backend::createSecondaryDomain(const string& ipAddress, const DNSName& domain, const string& /* nameserver */, const string& account)
 {
-  string filename = getArg("autoprimary-destdir") + '/' + domain.toStringNoDot();
+  std::string domainname = domain.toStringNoDot();
+
+  // Reject domain name if it embeds quotes; this may happen if 8bit-dns is
+  // used, and bind currently does not allow for character escapes in zone
+  // names.
+  if (domainname.find_first_of("\"") != std::string::npos) {
+    SLOG(g_log << Logger::Error << d_logprefix
+               << " Unable to accept autosecondary zone '" << domain
+               << "' from autoprimary " << ipAddress
+               << " due to unauthorized characters in domain name for bind configuration file"
+               << endl,
+         d_slog->error(Logr::Error, "unauthorized characters in domain name for bind configuration file", "Unable to accept autosecondary zone", "zone", Logging::Loggable(domain), "autoprimary address", Logging::Loggable(ipAddress)));
+    throw PDNSException("Unauthorized characters in domain name for bind configuration file");
+  }
+
+  string filename = getArg("autoprimary-destdir") + '/';
+  if (domainname.empty()) {
+    filename.append("rootzone.");
+  }
+  else {
+    // Make sure the zone file name does not contain path separators.
+    filename.append(boost::replace_all_copy(domainname, "/", "\\047"));
+  }
 
   g_log << Logger::Warning << d_logprefix
         << " Writing bind config zone statement for superslave zone '" << domain
-        << "' from autoprimary " << ip << endl;
+        << "' from autoprimary " << ipAddress << endl;
 
   {
     std::lock_guard<std::mutex> l2(s_autosecondary_config_lock);
@@ -1431,18 +1453,18 @@ bool Bind2Backend::createSecondaryDomain(const string& ip, const DNSName& domain
     }
 
     c_of << endl;
-    c_of << "# AutoSecondary zone '" << domain.toString() << "' (added: " << nowTime() << ") (account: " << account << ')' << endl;
-    c_of << "zone \"" << domain.toStringNoDot() << "\" {" << endl;
+    c_of << "# AutoSecondary zone '" << domainname << "' (added: " << nowTime() << ") (account: " << account << ')' << endl;
+    c_of << "zone \"" << domainname << "\" {" << endl;
     c_of << "\ttype secondary;" << endl;
     c_of << "\tfile \"" << filename << "\";" << endl;
-    c_of << "\tprimaries { " << ip << "; };" << endl;
+    c_of << "\tprimaries { " << ipAddress << "; };" << endl;
     c_of << "};" << endl;
     c_of.close();
   }
 
   BB2DomainInfo bbd = createDomainEntry(domain, filename);
   bbd.d_kind = DomainInfo::Secondary;
-  bbd.d_primaries.push_back(ComboAddress(ip, 53));
+  bbd.d_primaries.push_back(ComboAddress(ipAddress, 53));
   bbd.setCtime();
   safePutBBDomainInfo(bbd);
 
