@@ -45,9 +45,9 @@ cython==3.2.4 \
     --hash=sha256:fdfdd753ad7e18e5092b413e9f542e8d28b8a08203126090e1c15f7783b7fe57 \
     --hash=sha256:ff9af2134c05e3734064808db95b4dd7341a39af06e8945d05ea358e1741aaed
     # via -r requirements.in
-packaging==26.0 \
-    --hash=sha256:00243ae351a257117b6a241061796684b084ed1c516a08c48a3f7e147a9d80b4 \
-    --hash=sha256:b36f1fef9334a5588b4166f8bcd26a14e521f2b55e6b9de3aaa80d3ff7a37529
+packaging==26.1 \
+    --hash=sha256:5d9c0669c6285e491e0ced2eee587eaf67b670d94a19e94e3984a481aba6802f \
+    --hash=sha256:f042152b681c4bfac5cae2742a55e103d27ab2ec0f3d88037136b6bfe7c9c5de
     # via
     #   setuptools-scm
     #   vcs-versioning
@@ -158,9 +158,9 @@ vcs-versioning==1.1.1 \
     --hash=sha256:b541e2ba79fc6aaa3850f8a7f88af43d97c1c80649c01142ee4146eddbc599e4 \
     --hash=sha256:fabd75a3cab7dd8ac02fe24a3a9ba936bf258667b5a62ed468c9a1da0f5775bc
     # via setuptools-scm
-wheel==0.46.3 \
-    --hash=sha256:4b399d56c9d9338230118d705d9737a2a468ccca63d5e813e2a4fc7815d8bc4d \
-    --hash=sha256:e3e79874b07d776c40bd6033f8ddf76a7dad46a7b8aa1b2787a83083519a1803
+wheel==0.47.0 \
+    --hash=sha256:212281cab4dff978f6cedd499cd893e1f620791ca6ff7107cf270781e587eced \
+    --hash=sha256:cc72bd1009ba0cf63922e28f94d9d83b920aa2bb28f798a31d0691b02fa3c9b3
     # via -r requirements.in
 
 # The following packages are considered to be unsafe in a requirements file:

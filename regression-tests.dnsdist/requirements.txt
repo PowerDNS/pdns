@@ -29,9 +29,9 @@ attrs==26.1.0 \
 cdbx==0.1.2 \
     --hash=sha256:38c6b303f6c66be58427d724204a5873881854ecab3653ce056e7b689fb57f8a
     # via -r requirements.in
-certifi==2026.2.25 \
-    --hash=sha256:027692e4402ad994f1c42e52a4997a9763c646b73e4096e4d5d6db8af1d6f0fa \
-    --hash=sha256:e887ab5cee78ea814d3472169153c2d12cd43b14bd03329a39a9c6e2e80bfba7
+certifi==2026.4.22 \
+    --hash=sha256:3cb2210c8f88ba2318d29b0388d1023c8492ff72ecdde4ebdaddbb13a31b1c4a \
+    --hash=sha256:8d455352a37b71bf76a79caa83a3d6c25afee4a385d632127b6afb3963f1c580
     # via
     #   aioquic
     #   requests
@@ -331,9 +331,9 @@ hyperframe==6.1.0 \
     --hash=sha256:b03380493a519fce58ea5af42e4a42317bf9bd425596f7a0835ffce80f1a42e5 \
     --hash=sha256:f630908a00854a7adeabd6382b43923a4c4cd4b821fcb527e6ab9e15382a3b08
     # via h2
-idna==3.11 \
-    --hash=sha256:771a87f49d9defaf64091e6e6fe9c18d4833f140bd19464795bc32d966ca37ea \
-    --hash=sha256:795dafcc9c04ed0c1fb032c2aa73654d8e8c5023a7df64a53f39190ada629902
+idna==3.13 \
+    --hash=sha256:585ea8fe5d69b9181ec1afba340451fba6ba764af97026f92a91d4eef164a242 \
+    --hash=sha256:892ea0cde124a99ce773decba204c5552b69c3c67ffd5f232eb7696135bc8bb3
     # via requests
 iniconfig==2.3.0 \
     --hash=sha256:c76315c77db068650d49c5b56314774a7804df16fee4402c1f19d6d15d8c4730 \
@@ -383,13 +383,13 @@ lmdb==2.2.0 \
     --hash=sha256:e86d3403a74d2b6f57459fa6bae07c5be97ad41be4baa102153f355125f058a0 \
     --hash=sha256:fec85043d18a870e98eca2ba062297ab54960a5dc159fcb8c27bde25ef80c935
     # via -r requirements.in
-opentelemetry-proto==1.40.0 \
-    --hash=sha256:03f639ca129ba513f5819810f5b1f42bcb371391405d99c168fe6937c62febcd \
-    --hash=sha256:266c4385d88923a23d63e353e9761af0f47a6ed0d486979777fe4de59dc9b25f
+opentelemetry-proto==1.41.0 \
+    --hash=sha256:95d2e576f9fb1800473a3e4cfcca054295d06bdb869fda4dc9f4f779dc68f7b6 \
+    --hash=sha256:b970ab537309f9eed296be482c3e7cca05d8aca8165346e929f658dbe153b247
     # via -r requirements.in
-packaging==26.0 \
-    --hash=sha256:00243ae351a257117b6a241061796684b084ed1c516a08c48a3f7e147a9d80b4 \
-    --hash=sha256:b36f1fef9334a5588b4166f8bcd26a14e521f2b55e6b9de3aaa80d3ff7a37529
+packaging==26.1 \
+    --hash=sha256:5d9c0669c6285e491e0ced2eee587eaf67b670d94a19e94e3984a481aba6802f \
+    --hash=sha256:f042152b681c4bfac5cae2742a55e103d27ab2ec0f3d88037136b6bfe7c9c5de
     # via
     #   pytest
     #   wheel
@@ -494,9 +494,9 @@ pyopenssl==26.0.0 \
     --hash=sha256:df94d28498848b98cc1c0ffb8ef1e71e40210d3b0a8064c9d29571ed2904bf81 \
     --hash=sha256:f293934e52936f2e3413b89c6ce36df66a0b34ae1ea3a053b8c5020ff2f513fc
     # via aioquic
-pysnmp==7.1.22 \
-    --hash=sha256:37ac595c7f0c1c00514505939b4dcf5b4fd5a9ffe51b0349f60bb640c11b0f77 \
-    --hash=sha256:57e704a6ba2bbf571d16cd5dc08b89bb3fa0ebeb5f4f26b87fececad3b3de7a6
+pysnmp==7.1.25 \
+    --hash=sha256:561f3870b0c186375d78554d8e25ea6676671b2d58c628c1fb845b9dc85ee7a9 \
+    --hash=sha256:e75528ffe9550fb6a920f14095eb446b03824c8737ecc06c9bac45a18adb81a9
     # via -r requirements.in
 pytest==9.0.3 \
     --hash=sha256:2c5efc453d45394fdd706ade797c0a81091eccd1d6e4bccfcd476e2b8e0ab5d9 \

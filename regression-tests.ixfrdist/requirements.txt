@@ -4,9 +4,9 @@
 #
 #    pip-compile --allow-unsafe --generate-hashes requirements.in
 #
-certifi==2026.2.25 \
-    --hash=sha256:027692e4402ad994f1c42e52a4997a9763c646b73e4096e4d5d6db8af1d6f0fa \
-    --hash=sha256:e887ab5cee78ea814d3472169153c2d12cd43b14bd03329a39a9c6e2e80bfba7
+certifi==2026.4.22 \
+    --hash=sha256:3cb2210c8f88ba2318d29b0388d1023c8492ff72ecdde4ebdaddbb13a31b1c4a \
+    --hash=sha256:8d455352a37b71bf76a79caa83a3d6c25afee4a385d632127b6afb3963f1c580
     # via requests
 charset-normalizer==3.4.7 \
     --hash=sha256:007d05ec7321d12a40227aae9e2bc6dca73f3cb21058999a1df9e193555a9dcc \
@@ -145,17 +145,17 @@ dnspython==2.6.1 \
     # via
     #   -r requirements.in
     #   xfrserver
-idna==3.11 \
-    --hash=sha256:771a87f49d9defaf64091e6e6fe9c18d4833f140bd19464795bc32d966ca37ea \
-    --hash=sha256:795dafcc9c04ed0c1fb032c2aa73654d8e8c5023a7df64a53f39190ada629902
+idna==3.13 \
+    --hash=sha256:585ea8fe5d69b9181ec1afba340451fba6ba764af97026f92a91d4eef164a242 \
+    --hash=sha256:892ea0cde124a99ce773decba204c5552b69c3c67ffd5f232eb7696135bc8bb3
     # via requests
 iniconfig==2.3.0 \
     --hash=sha256:c76315c77db068650d49c5b56314774a7804df16fee4402c1f19d6d15d8c4730 \
     --hash=sha256:f631c04d2c48c52b84d0d0549c99ff3859c98df65b3101406327ecc7d53fbf12
     # via pytest
-packaging==26.0 \
-    --hash=sha256:00243ae351a257117b6a241061796684b084ed1c516a08c48a3f7e147a9d80b4 \
-    --hash=sha256:b36f1fef9334a5588b4166f8bcd26a14e521f2b55e6b9de3aaa80d3ff7a37529
+packaging==26.1 \
+    --hash=sha256:5d9c0669c6285e491e0ced2eee587eaf67b670d94a19e94e3984a481aba6802f \
+    --hash=sha256:f042152b681c4bfac5cae2742a55e103d27ab2ec0f3d88037136b6bfe7c9c5de
     # via
     #   pytest
     #   wheel

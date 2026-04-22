@@ -45,9 +45,9 @@ cython==3.2.4 \
     --hash=sha256:fdfdd753ad7e18e5092b413e9f542e8d28b8a08203126090e1c15f7783b7fe57 \
     --hash=sha256:ff9af2134c05e3734064808db95b4dd7341a39af06e8945d05ea358e1741aaed
     # via -r requirements.in
-packaging==26.0 \
-    --hash=sha256:00243ae351a257117b6a241061796684b084ed1c516a08c48a3f7e147a9d80b4 \
-    --hash=sha256:b36f1fef9334a5588b4166f8bcd26a14e521f2b55e6b9de3aaa80d3ff7a37529
+packaging==26.1 \
+    --hash=sha256:5d9c0669c6285e491e0ced2eee587eaf67b670d94a19e94e3984a481aba6802f \
+    --hash=sha256:f042152b681c4bfac5cae2742a55e103d27ab2ec0f3d88037136b6bfe7c9c5de
     # via wheel
 pyyaml==6.0.3 \
     --hash=sha256:00c4bdeba853cc34e7dd471f16b4114f4162dc03e6b7afcc2128711f0eca823c \
