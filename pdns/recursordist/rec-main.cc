@@ -3271,6 +3271,8 @@ int main(int argc, char** argv)
     }
 
     MemRecursorCache::s_maxEntrySize = ::arg().asNum("max-recordcache-entry-size");
+    NegCache::s_maxEntrySize = MemRecursorCache::s_maxEntrySize;
+    AggressiveNSECCache::s_maxEntrySize = MemRecursorCache::s_maxEntrySize;
     RecursorPacketCache::s_maxEntrySize = ::arg().asNum("max-packetcache-entry-size");
     g_recCache = std::make_unique<MemRecursorCache>(::arg().asNum("record-cache-shards"));
     g_negCache = std::make_unique<NegCache>(::arg().asNum("record-cache-shards") / 8);
