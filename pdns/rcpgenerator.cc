@@ -431,6 +431,12 @@ void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val) // NOLINT(readabil
         while (spos < v.length()) {
           len = v.at(spos);
           spos += 1;
+          if (len == 0) {
+            throw RecordTextException("ALPN values cannot be empty strings");
+          }
+          if (len > 255) {
+            throw RecordTextException("Length of ALPN value goes over 255");
+          }
           if (len > v.length() - spos) {
             throw RecordTextException("Length of ALPN value goes over total length of alpn SVC Param");
           }
@@ -439,6 +445,11 @@ void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val) // NOLINT(readabil
         }
       } else {
         xfrSVCBValueList(value);
+        for (const auto& item : value) {
+          if (item.length() > 255) {
+            throw RecordTextException("Length of SVC ALPN value goes over 255");
+          }
+        }
       }
       val.insert(SvcParam(key, std::move(value)));
       break;

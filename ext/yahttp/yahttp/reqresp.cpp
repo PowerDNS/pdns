@@ -40,7 +40,19 @@ namespace YaHTTP {
   }
 
   template <class T>
-  bool AsyncLoader<T>::feed(const std::string& somedata) {
+  bool AsyncLoader<T>::feed(const std::string& somedata)
+  {
+    if (state < 2) {
+      headersize += somedata.length(); // maye include some body data, we don't know yet...
+      if (headersize > target->max_header_size) {
+        if (target->kind == YAHTTP_TYPE_REQUEST) {
+          throw ParseError("Request header too large");
+        }
+        else {
+          throw ParseError("Response header too large");
+        }
+      }
+    }
     buffer.append(somedata);
     while(state < 2) {
       int cr=0;
@@ -155,8 +167,8 @@ namespace YaHTTP {
         maxbody = minbody;
       }
       if (minbody < 1) return true; // guess there isn't anything left.
-      if (target->kind == YAHTTP_TYPE_REQUEST && static_cast<ssize_t>(minbody) > target->max_request_size) throw ParseError("Max request body size exceeded");
-      else if (target->kind == YAHTTP_TYPE_RESPONSE && static_cast<ssize_t>(minbody) > target->max_response_size) throw ParseError("Max response body size exceeded");
+      if (target->kind == YAHTTP_TYPE_REQUEST && minbody > target->max_request_size) throw ParseError("Max request body size exceeded");
+      else if (target->kind == YAHTTP_TYPE_RESPONSE && minbody > target->max_response_size) throw ParseError("Max response body size exceeded");
     }
 
     if (maxbody == 0) hasBody = false;
@@ -175,20 +187,23 @@ namespace YaHTTP {
           buffer.copy(buf, pos);
           buf[pos]=0; // just in case...
           buffer.erase(buffer.begin(), buffer.begin()+pos+1); // remove line from buffer
-          if (sscanf(buf, "%x", &chunk_size) != 1) {
+          if (sscanf(buf, "%zx", &chunk_size) != 1) {
             throw ParseError("Unable to parse chunk size");
           }
           if (chunk_size == 0) { state = 3; break; } // last chunk
-          if (chunk_size > (std::numeric_limits<decltype(chunk_size)>::max() - 2)) {
+          if (chunk_size > (std::numeric_limits<decltype(chunk_size)>::max() - 2) || chunk_size > maxbody) {
             throw ParseError("Chunk is too large");
           }
         } else {
           int crlf=1;
-          if (buffer.size() < static_cast<size_t>(chunk_size+1)) return false; // expect newline
+          if (buffer.size() < chunk_size+1) return false; // expect newline
           if (buffer.at(chunk_size) == '\r') {
-            if (buffer.size() < static_cast<size_t>(chunk_size+2) || buffer.at(chunk_size+1) != '\n') return false; // expect newline after carriage return
+            if (buffer.size() < chunk_size+2 || buffer.at(chunk_size+1) != '\n') return false; // expect newline after carriage return
             crlf=2;
           } else if (buffer.at(chunk_size) != '\n') return false;
+          if (bodybuf.str().length() + chunk_size > maxbody) {
+            throw ParseError("Chunked body is too large");
+          }
           std::string tmp = buffer.substr(0, chunk_size);
           buffer.erase(buffer.begin(), buffer.begin()+chunk_size+crlf);
           bodybuf << tmp;
