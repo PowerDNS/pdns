@@ -7,6 +7,7 @@ if dep_gnutls.found()
     'gnutls_session_set_verify_cert',
     'gnutls_session_get_verify_cert_status',
     'gnutls_alpn_set_protocols',
+    'gnutls_transport_set_fastopen',
   ]
 
   foreach func: funcs
