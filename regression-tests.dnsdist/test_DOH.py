@@ -2,6 +2,7 @@
 
 import base64
 import dns
+from datetime import datetime
 import os
 import time
 import subprocess
@@ -63,6 +64,9 @@ class DOHTests(object):
     addDOHLocal("127.0.0.1:%d", "%s", "%s", { "/", "/coffee", "/PowerDNS", "/PowerDNS2", "/PowerDNS-999" }, {customResponseHeaders={["access-control-allow-origin"]="*",["user-agent"]="derp",["UPPERCASE"]="VaLuE"}, keepIncomingHeaders=true, library='%s'})
     dohFE = getDOHFrontend(0)
     dohFE:setResponsesMap({newDOHResponseMapEntry('^/coffee$', 418, 'C0FFEE', {['FoO']='bar'})})
+
+    -- check that the HTTP Date header is fine even if someone messes with the locale
+    os.setlocale('fr_FR')
     """
     _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_serverName', '_dohServerPort', '_dohServerPort', '_serverCert', '_serverKey', '_dohLibrary']
     _verboseMode = True
@@ -410,6 +414,7 @@ class DOHTests(object):
         wire = query.to_wire()
         b64 = base64.urlsafe_b64encode(wire).decode('UTF8').rstrip('=')
         url = self._dohBaseURL + '?dns=' + b64
+        responseHeaders = BytesIO()
         conn = pycurl.Curl()
         conn.setopt(pycurl.HTTP_VERSION, pycurl.CURL_HTTP_VERSION_1_1)
         conn.setopt(pycurl.HTTPHEADER, ["Content-type: application/dns-message",
@@ -419,13 +424,26 @@ class DOHTests(object):
         conn.setopt(pycurl.SSL_VERIFYPEER, 1)
         conn.setopt(pycurl.SSL_VERIFYHOST, 2)
         conn.setopt(pycurl.CAINFO, self._caCert)
+        conn.setopt(pycurl.HEADERFUNCTION, responseHeaders.write)
         data = conn.perform_rb()
         rcode = conn.getinfo(pycurl.RESPONSE_CODE)
-        self.assertEqual(rcode, 400)
+        responseHeaders = responseHeaders.getvalue()
+        self.assertEqual(rcode, 505)
         self.assertEqual(data, b'<html><body>This server implements RFC 8484 - DNS Queries over HTTP, and requires HTTP/2 in accordance with section 5.2 of the RFC.</body></html>\r\n')
         self.assertEqual(self.getHTTPCounter('connects'), httpConnections + 1)
         self.assertEqual(self.getHTTPCounter('http/1.1'), http1 + 1)
         self.assertEqual(self.getHTTPCounter('http/2'), http2)
+
+        dateFound = False
+        expectedDatePrefix = datetime.now().strftime("%a, %d %h %Y")
+        for header in responseHeaders.decode().splitlines(False):
+            values = header.split(":")
+            key = values[0]
+            if key.lower() == "date":
+                dateFound = True
+                self.assertTrue(values[1].strip().startswith(expectedDatePrefix))
+                break
+        self.assertTrue(dateFound)
 
     def testDOHHTTP1NotSelectedOverH2(self):
         """

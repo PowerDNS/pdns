@@ -269,6 +269,32 @@ IncomingHTTP2Connection::IncomingHTTP2Connection(ConnectionInfo&& connectionInfo
   sess = nullptr;
 }
 
+static void addDateHeader(PacketBuffer& out)
+{
+  static const std::string dateformat("Date: %a, %d %h %Y %T GMT\r\n");
+  using timebuf_t = std::array<char, 64>;
+  timebuf_t date_header{};
+  struct tm tmval{};
+  time_t timestamp = time(nullptr);
+  // apparently someone might be crazy enough to change the locale using Lua (why?)
+  // so we have to do extra work just in case
+  auto posixLocale = newlocale(LC_ALL_MASK, "POSIX", nullptr);
+  if (!posixLocale) {
+    return;
+  }
+  try {
+    size_t date_header_written = strftime_l(date_header.data(), date_header.size(), dateformat.data(), gmtime_r(&timestamp, &tmval), posixLocale);
+
+    if (date_header_written > 0 && date_header_written <= date_header.size()) {
+      out.insert(out.end(), date_header.begin(), date_header.begin() + date_header_written);
+    }
+  }
+  catch (...) {
+  }
+
+  freelocale(posixLocale);
+}
+
 bool IncomingHTTP2Connection::checkALPN()
 {
   constexpr std::array<uint8_t, 2> h2ALPN{'h', '2'};
@@ -282,19 +308,13 @@ bool IncomingHTTP2Connection::checkALPN()
     ++d_ci.cs->dohFrontend->d_http1Stats.d_nbQueries;
   }
 
-  static const std::string data0("HTTP/1.1 400 Bad Request\r\nConnection: Close\r\n");
+  static const std::string data0("HTTP/1.1 505 HTTP Version Not Supported\r\nConnection: Close\r\n");
+  d_out.insert(d_out.end(), data0.begin(), data0.end());
 
-  std::array<char, 40> data1{};
-  static const std::string dateformat("Date: %a, %d %h %Y %T GMT\r\n");
-  struct tm tmval{};
-  time_t timestamp = time(nullptr);
-  size_t len = strftime(data1.data(), data1.size(), dateformat.data(), gmtime_r(&timestamp, &tmval));
-  assert(len != 0);
+  addDateHeader(d_out);
 
   static const std::string data2("\r\n<html><body>This server implements RFC 8484 - DNS Queries over HTTP, and requires HTTP/2 in accordance with section 5.2 of the RFC.</body></html>\r\n");
 
-  d_out.insert(d_out.end(), data0.begin(), data0.end());
-  d_out.insert(d_out.end(), data1.begin(), data1.begin() + len);
   d_out.insert(d_out.end(), data2.begin(), data2.end());
   writeToSocket(false);
 
