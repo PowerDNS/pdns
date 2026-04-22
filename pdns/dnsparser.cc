@@ -1361,13 +1361,12 @@ bool visitDNSPacket(const std::string_view& packet, const std::function<bool(uin
       uint32_t dnsttl = reader.get32BitInt();
       uint16_t contentLength = reader.get16BitInt();
       uint16_t pos = reader.getPosition();
+      reader.skip(contentLength);
 
       bool done = visitor(section, dnsclass, dnstype, dnsttl, contentLength, &packet.at(pos));
       if (done) {
         return true;
       }
-
-      reader.skip(contentLength);
     }
   }
   catch (...) {
