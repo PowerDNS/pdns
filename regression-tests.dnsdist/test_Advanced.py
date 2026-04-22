@@ -161,28 +161,16 @@ class TestStatNodeRespRingSince(DNSDistTest):
         Advanced: StatNodeRespRing with optional since parameter
 
         """
-        name = 'statnodesince.advanced.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
-        response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    1,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
-        response.answer.append(rrset)
-
-        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = query.id
-        self.assertEqual(query, receivedQuery)
-        self.assertEqual(response, receivedResponse)
+        queryRaw = b"\315m\001\000\000\001\000\000\000\000\000\000\016stat\x2enodesince\badvanced\005tests\bpowerdns\003com\000\000\001\000\001"
+        (_, _) = self.sendUDPQuery(queryRaw, response=None, rawQuery=True, useQueue=False)
 
         self.sendConsoleCommand("nodesSeen = {}")
         self.sendConsoleCommand("statNodeRespRing(visitor)")
         nodes = self.sendConsoleCommand("str = '' for key,value in pairs(nodesSeen) do str = str..value..\"\\n\" end return str")
         nodes = nodes.strip("\n")
-        self.assertEqual(nodes, """statnodesince.advanced.tests.powerdns.com.
+        self.assertEqual(
+            nodes,
+            """stat\\.nodesince.advanced.tests.powerdns.com.
 advanced.tests.powerdns.com.
 tests.powerdns.com.
 powerdns.com.
@@ -192,7 +180,9 @@ com.""")
         self.sendConsoleCommand("statNodeRespRing(visitor, 0)")
         nodes = self.sendConsoleCommand("str = '' for key,value in pairs(nodesSeen) do str = str..value..\"\\n\" end return str")
         nodes = nodes.strip("\n")
-        self.assertEqual(nodes, """statnodesince.advanced.tests.powerdns.com.
+        self.assertEqual(
+            nodes,
+            """stat\\.nodesince.advanced.tests.powerdns.com.
 advanced.tests.powerdns.com.
 tests.powerdns.com.
 powerdns.com.
@@ -204,7 +194,9 @@ com.""")
         self.sendConsoleCommand("statNodeRespRing(visitor)")
         nodes = self.sendConsoleCommand("str = '' for key,value in pairs(nodesSeen) do str = str..value..\"\\n\" end return str")
         nodes = nodes.strip("\n")
-        self.assertEqual(nodes, """statnodesince.advanced.tests.powerdns.com.
+        self.assertEqual(
+            nodes,
+            """stat\\.nodesince.advanced.tests.powerdns.com.
 advanced.tests.powerdns.com.
 tests.powerdns.com.
 powerdns.com.
@@ -220,7 +212,9 @@ com.""")
         self.sendConsoleCommand("statNodeRespRing(visitor, 10)")
         nodes = self.sendConsoleCommand("str = '' for key,value in pairs(nodesSeen) do str = str..value..\"\\n\" end return str")
         nodes = nodes.strip("\n")
-        self.assertEqual(nodes, """statnodesince.advanced.tests.powerdns.com.
+        self.assertEqual(
+            nodes,
+            """stat\\.nodesince.advanced.tests.powerdns.com.
 advanced.tests.powerdns.com.
 tests.powerdns.com.
 powerdns.com.
