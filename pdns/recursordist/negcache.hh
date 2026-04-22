@@ -47,6 +47,18 @@ struct recordsAndSignatures
 {
   vector<DNSRecord> records;
   vector<DNSRecord> signatures;
+
+  [[nodiscard]] size_t sizeEstimate() const
+  {
+    size_t ret = sizeof(recordsAndSignatures);
+    for (const auto& entry : records) {
+      ret += entry.sizeEstimate();
+    }
+    for (const auto& entry : signatures) {
+      ret += entry.sizeEstimate();
+    }
+    return ret;
+  }
 };
 
 class NegCache : public boost::noncopyable
@@ -59,6 +71,7 @@ public:
   static uint16_t s_maxServedStaleExtensions;
   // The time a stale cache entry is extended
   static constexpr uint32_t s_serveStaleExtensionPeriod = 30;
+  static uint32_t s_maxEntrySize;
 
   struct NegCacheEntry
   {
@@ -86,6 +99,7 @@ public:
       // When serving stale, we consider expired records
       return d_ttd > now || serveStale || d_servedStale != 0;
     }
+    [[nodiscard]] size_t sizeEstimate() const;
   };
 
   void add(const NegCacheEntry& negEntry);

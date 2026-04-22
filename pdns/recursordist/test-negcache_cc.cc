@@ -73,6 +73,39 @@ BOOST_AUTO_TEST_CASE(test_get_entry)
   BOOST_CHECK_EQUAL(ne.d_auth, auth);
 }
 
+BOOST_AUTO_TEST_CASE(test_get_verybig_entry)
+{
+  /* Try adddd a full name negative entry to the cache that's to big and attempt to get an entry for
+   * the A record. Should not yield the full name not exist entry
+   */
+  DNSName qname("www2.powerdns.com");
+  DNSName auth("powerdns.com");
+
+  struct timeval now;
+  Utility::gettimeofday(&now, 0);
+
+  NegCache cache;
+
+  auto entry = genNegCacheEntry(qname, auth, now);
+  for (auto i = 0; i < 100; i++) {
+    DNSRecord rec;
+    rec.d_name = qname;
+    rec.d_type = QType::RRSIG;
+    rec.d_ttl = 600;
+    rec.d_place = DNSResourceRecord::AUTHORITY;
+    rec.setContent(std::make_shared<RRSIGRecordContent>(QType(QType::A).toString() + " 5 3 600 2037010100000000 2037010100000000 24567 dummy data"));
+    entry.DNSSECRecords.signatures.emplace_back(std::move(rec));
+  }
+  cache.add(entry);
+
+  BOOST_CHECK_EQUAL(cache.size(), 0U);
+
+  NegCache::NegCacheEntry ne;
+  bool ret = cache.get(qname, QType(1), now, ne);
+
+  BOOST_CHECK(!ret);
+}
+
 BOOST_AUTO_TEST_CASE(test_get_entry2038)
 {
   /* Add a full name negative entry to the cache and attempt to get an entry for

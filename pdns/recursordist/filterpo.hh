@@ -303,6 +303,25 @@ public:
     {
     }
 
+    // Special copy constructor, as we want a deep copy of d_zoneData
+    Zone(const Zone& other) :
+      d_qpolName(other.d_qpolName),
+      d_qpolAddr(other.d_qpolAddr),
+      d_propolName(other.d_propolName),
+      d_propolNSAddr(other.d_propolNSAddr),
+      d_postpolAddr(other.d_postpolAddr),
+      d_domain(other.d_domain),
+      d_zoneData(std::make_shared<PolicyZoneData>(*other.d_zoneData)), // deep copy, d_zoneData is never nullptr
+      d_serial(other.d_serial),
+      d_refresh(other.d_refresh)
+    {
+    }
+
+    Zone& operator=(const Zone&) = delete;
+    Zone& operator=(Zone&&) = delete;
+    Zone(Zone&&) = delete;
+    ~Zone() = default;
+
     void clear()
     {
       d_qpolAddr.clear();
