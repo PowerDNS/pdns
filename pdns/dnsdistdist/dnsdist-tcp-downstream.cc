@@ -924,6 +924,18 @@ bool TCPConnectionToBackend::isXFRFinished(const TCPResponse& response, TCPQuery
   return done;
 }
 
+bool TCPConnectionToBackend::reachedMaxStreamID() const
+{
+  /* TCP/DoT has only 2^16 usable identifiers, DoH has 2^32 */
+  const uint32_t maximumStreamID = std::numeric_limits<uint16_t>::max() - 1;
+  if (d_highestStreamID >= maximumStreamID) {
+    return true;
+  }
+
+  /* pending queries will need IDs, so we need to take them into account as well */
+  return (d_pendingQueries.size() >= (maximumStreamID - d_highestStreamID));
+}
+
 std::shared_ptr<const Logr::Logger> ConnectionToBackend::getLogger() const
 {
   auto logger = dnsdist::logging::getTopLogger("outgoing-tcp-connection")->withValues("fresh_connection", Logging::Loggable(d_fresh), "tcp_fast_open", Logging::Loggable(d_enableFastOpen), "proxy_protocol_payload_sent", Logging::Loggable(d_proxyProtocolPayloadSent), "downstream_failures", Logging::Loggable(d_downstreamFailures), "highest_stream_id", Logging::Loggable(d_highestStreamID), "queries_count", Logging::Loggable(d_queries), "io_state", Logging::Loggable(d_ioState ? d_ioState->getState() : "empty"));

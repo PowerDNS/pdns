@@ -234,7 +234,7 @@ void DoHConnectionToBackend::handleTimeout(const struct timeval& now, bool write
 bool DoHConnectionToBackend::reachedMaxStreamID() const
 {
   const uint32_t maximumStreamID = (static_cast<uint32_t>(1) << 31) - 1;
-  return d_highestStreamID == maximumStreamID;
+  return d_highestStreamID >= maximumStreamID;
 }
 
 bool DoHConnectionToBackend::reachedMaxConcurrentQueries() const
