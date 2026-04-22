@@ -581,7 +581,7 @@ uint16_t DownstreamState::saveState(InternalQueryState&& state)
 
   do {
     uint16_t selectedID = (idOffset++) % idStates.size();
-    IDState& ids = idStates[selectedID];
+    IDState& ids = idStates.at(selectedID);
     auto guard = ids.acquire();
     if (!guard) {
       continue;
@@ -624,7 +624,7 @@ void DownstreamState::restoreState(uint16_t id, InternalQueryState&& state)
     return;
   }
 
-  auto& ids = idStates[id];
+  auto& ids = idStates.at(id);
   auto guard = ids.acquire();
   if (!guard) {
     /* already used */
@@ -663,11 +663,11 @@ std::optional<InternalQueryState> DownstreamState::getState(uint16_t id)
     return result;
   }
 
-  if (id > idStates.size()) {
+  if (id >= idStates.size()) {
     return result;
   }
 
-  auto& ids = idStates[id];
+  auto& ids = idStates.at(id);
   auto guard = ids.acquire();
   if (!guard) {
     return result;
