@@ -2,6 +2,21 @@ Changelogs for 4.9.x
 ====================
 
 .. changelog::
+  :version: 4.9.14
+  :released: 22th of April 2026
+
+  This is release 4.9.14 of the Authoritative Server.
+  It contains security fixes only.
+
+  Please review the :doc:`Upgrade Notes <../upgrading>` before upgrading from versions < 4.9.x.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17192
+
+    Fix PowerDNS Security Advisory 2026-05 for PowerDNS Authoritative Server: Multiple Issues
+
+.. changelog::
   :version: 4.9.13
   :released: 20th of February 2026
 
