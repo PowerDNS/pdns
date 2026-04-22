@@ -24,7 +24,7 @@ An attacker can send a web request that causes unlimited memory allocation in
 the internal web server, leading to a denial of service. The internal web server
 is disabled by default.
 
-`https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L`
+`CVSS Score: 5.3 <https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L>`__
 
 The remedy is: upgrade to a patched version, or prevent network access to the
 internal webserver. In general, for defense in-depth reasons, we recommend
@@ -56,7 +56,7 @@ An attacker can send a web request that causes unlimited memory allocation in
 the internal web server, leading to a denial of service. The internal web server
 is disabled by default.
 
-`https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L`
+`CVSS Score: 5.3 <https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L>`__
 
 The remedy is: upgrade to a patched version, or prevent network access to the
 internal webserver. In general, for defense in-depth reasons, we recommend
@@ -87,7 +87,7 @@ An operator allowed to use the REST API can cause the Authoritative server to
 produce invalid HTTPS or SVCB record data, which can in turn cause LMDB database
 corruption, if using the LMDB backend.
 
-`https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:N/AC:L/PR:H/UI:N/S:U/C:N/I:H/A:H`
+`CVSS Score: 5.5 <https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:N/AC:L/PR:H/UI:N/S:U/C:N/I:H/A:H>`__
 
 The remedy is: upgrade to a patched version.
 
@@ -104,8 +104,7 @@ Possible file descriptor exhaustion in forward-dnsupdate
 - Not affected: PowerDNS Authoritative Server 4.9.14, 5.0.4
 - Severity: Medium
 - Impact: Denial of service
-- Exploit: This problem can be triggered by a rogue primary server answering to
-a forward dnsupdate performed by a secondary server.
+- Exploit: This problem can be triggered by a rogue primary server answering to a forward dnsupdate performed by a secondary server.
 - Risk of system compromise: None
 - Solution: Upgrade to patched version or disable forward dnsupdate operation
 - CWE: CWE-400
@@ -118,7 +117,7 @@ A rogue primary server may cause file descriptor exhaustion and eventually a
 denial of service, when a PowerDNS secondary server forwards a DNS update
 request to it.
 
-`https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:H`
+`CVSS Score: 5.3 <https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:H>`__
 
 The remedy is: upgrade to a patched version, or disable forward dnsupdate
 operation, or restrict allowed dnsupdate addresses to trusted primary servers.
@@ -148,7 +147,7 @@ LDAP DN injection
 Incomplete escaping of LDAP queries when running with 8bit-dns enabled allows
 users to perform queries of internal domain subtrees.
 
-`https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:N/AC:H/PR:L/UI:N/S:U/C:H/I:N/A:N`
+`CVSS Score: 5.3 <https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:N/AC:H/PR:L/UI:N/S:U/C:H/I:N/A:N>`__
 
 The remedy is: upgrade to a patched version, or do not enable 8bit-dns.
 
@@ -179,7 +178,7 @@ added to the bind backend, but causes said backend to update its configuration
 to an invalid one, leading to the backend no longer able to run on the next
 restart, requiring manual operation to fix it.
 
-`https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:H/A:H`
+`CVSS Score: 5.9 <https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:H/A:H>`__
 
 The remedy is: upgrade to a patched version, or disable autosecondary operation,
 if the Bind backend is used, or limit bind-autoprimaries to trusted addresses
