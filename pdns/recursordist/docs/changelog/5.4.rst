@@ -9,7 +9,7 @@ Before upgrading, it is advised to read the :doc:`../upgrade`.
 
   .. change::
     :tags: Bug Fixes
-    :pullreq: TBD
+    :pullreq: 17194,17197,17199,17201,17202,17203,17205
 
     Fix PowerDNS Security Advisory 2026-03 for PowerDNS Recursor: Multiple Issues
 

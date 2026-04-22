@@ -1,8 +1,8 @@
 PowerDNS Security Advisory 2026-03 for PowerDNS Recursor: Multiple issues
-========================================================================
+=========================================================================
 
 CVE-2026-33256: Unbounded memory allocation by internal web server
------------------------------------------------------------------
+------------------------------------------------------------------
 
 - CVE: CVE-2026-33256
 - Date: 2026-04-22T00:00:00+01:00
@@ -222,7 +222,7 @@ CVE-2026-33601: Insufficient validation of ZONEMD record
 - CVSS: 3.1/AV:N/AC:H/PR:H/UI:N/S:U/C:N/I:N/A:H
 - Last affected: 5.2.8, 5.3.5, 5.4.0
 - First fixed: 5.2.9, 5.3.6, 5.4.1
-- Internal ID: 386
+- Internal ID: 418
 
 If you use the zoneToCache function with a malicious authoritative server, an attacker can send a
 zone that result in a null pointer dereference, caused by a missing consistency check and leading to
