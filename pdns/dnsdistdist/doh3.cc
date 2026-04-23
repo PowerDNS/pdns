@@ -673,6 +673,7 @@ static void processDOH3Query(DOH3UnitUniquePtr&& doh3Unit)
     }
 
     /* On exceptional cases, cpq is moved but returns false above. So we check to make sure. See https://github.com/PowerDNS/pdns/issues/17109 */
+    // NOLINTNEXTLINE(bugprone-use-after-move): the behaviour of a moved std::unique_ptr is actually specified
     if (cpq) {
       unit = cpq->releaseDU();
       unit->status_code = 500;
