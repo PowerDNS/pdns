@@ -554,6 +554,12 @@ string PacketReader::getUnquotedText(bool lenField)
     throw std::out_of_range("getUnquotedText out of record range");
   }
 
+  /* Validate against record boundary */
+  const uint16_t recordEnd = d_startrecordpos + d_recordlen;
+  if (stop_at > recordEnd) {
+    throw std::out_of_range("getUnquotedText: length exceeds record boundary");
+  }
+
   if(stop_at == d_pos)
     return "";
 
