@@ -280,8 +280,8 @@ static void addDateHeader(PacketBuffer& out)
   time_t timestamp = time(nullptr);
   // apparently someone might be crazy enough to change the locale using Lua (why?)
   // so we have to do extra work just in case
-  auto posixLocale = newlocale(LC_ALL_MASK, "POSIX", nullptr);
-  if (!posixLocale) {
+  auto* posixLocale = newlocale(LC_ALL_MASK, "POSIX", nullptr);
+  if (posixLocale == nullptr) {
     return;
   }
   try {
