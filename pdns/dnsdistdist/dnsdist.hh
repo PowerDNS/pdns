@@ -599,6 +599,7 @@ struct DownstreamState : public std::enable_shared_from_this<DownstreamState>
 #endif /* HAVE_XSK */
     size_t d_numberOfSockets{1};
     size_t d_maxInFlightQueriesPerConn{1};
+    size_t d_maxUDPOutstanding{0};
     size_t d_tcpConcurrentConnectionsLimit{0};
     int order{1};
     int d_weight{1};
