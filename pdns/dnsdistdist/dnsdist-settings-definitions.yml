@@ -470,6 +470,13 @@ webserver:
       type: "bool"
       default: "false"
       description: "Allow modifications via the API. Optionally saving these changes to disk. Modifications done via the API will not be written to the configuration by default and will not persist after a reload"
+    - name: "bind_fatal"
+      type: "bool"
+      default: "false"
+      lua-name: "setWebserverBindFatal"
+      internal-field-name: "d_webserverBindFatal"
+      runtime-configurable: true
+      description: "Whether a failure to bind a web server socket should be fatal"
 
 console:
   description: "Console-related settings"
@@ -507,6 +514,13 @@ console:
       internal-field-name: "d_consoleMaxConcurrentConnections"
       runtime-configurable: false
       description: "Set the maximum number of concurrent console connection"
+    - name: "bind_fatal"
+      type: "bool"
+      default: "false"
+      lua-name: "setConsoleBindFatal"
+      internal-field-name: "d_consoleBindFatal"
+      runtime-configurable: true
+      description: "Whether a failure to bind the console control socket should be fatal"
 
 ebpf_map:
   description: "An ``eBPF`` map that is used to share data with kernel-land ``AF_XDP``/``XSK``, ``socket filter`` or ``XDP`` programs. Maps can be pinned to a filesystem path, which makes their content persistent across restarts and allows external programs to read their content and to add new entries. :program:`dnsdist` will try to load maps that are pinned to a filesystem path on startups, inheriting any existing entries, and fall back to creating them if they do not exist yet. Note that the user :program`dnsdist` is running under must have the right privileges to read and write to the given file, and to go through all the directories in the path leading to that file. The pinned path must be on a filesystem of type ``BPF``, usually below ``/sys/fs/bpf/``"

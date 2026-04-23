@@ -75,7 +75,9 @@ static const std::map<std::string, BooleanConfigurationItems> s_booleanConfigIte
   {"setRoundRobinFailOnNoServer", {[](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_roundrobinFailOnNoServer = newValue; }}},
   {"setDropEmptyQueries", {[](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_dropEmptyQueries = newValue; }}},
   {"setAllowEmptyResponse", {[](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_allowEmptyResponse = newValue; }}},
+  {"setConsoleBindFatal", {[](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_consoleBindFatal = newValue; }}},
   {"setConsoleConnectionsLogging", {[](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_logConsoleConnections = newValue; }}},
+  {"setWebserverBindFatal", {[](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_webserverBindFatal = newValue; }}},
   {"setProxyProtocolApplyACLToProxiedClients", {[](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_applyACLToProxiedClients = newValue; }}},
   {"setAddEDNSToSelfGeneratedResponses", {[](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_addEDNSToSelfGeneratedResponses = newValue; }}},
 };
