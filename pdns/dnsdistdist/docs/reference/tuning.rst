@@ -11,7 +11,10 @@ Tuning related functions
 
   .. versionadded:: 2.0.0
 
-  Set for how long, in seconds, a client (or range, see :func:`setTCPConnectionsMaskV4`, :func:`setTCPConnectionsMaskV6` and :func:`setTCPConnectionsMaskV4Port` to see how clients can be aggregated) will be prevented from opening a new TCP connection when it has exceeded :func:`setMaxTCPConnectionRatePerClient`, :func:`setMaxTLSNewSessionRatePerClient` or :func:`setMaxTLSResumedSessionRatePerClient`. Default is 10 seconds.
+  .. versionchanged:: 2.0.4
+    QUIC connections are now affected as well
+
+  Set for how long, in seconds, a client (or range, see :func:`setTCPConnectionsMaskV4`, :func:`setTCPConnectionsMaskV6` and :func:`setTCPConnectionsMaskV4Port` to see how clients can be aggregated) will be prevented from opening a new TCP or QUIC connection when it has exceeded :func:`setMaxTCPConnectionRatePerClient`, :func:`setMaxTLSNewSessionRatePerClient` or :func:`setMaxTLSResumedSessionRatePerClient`. Default is 10 seconds.
 
   :param int num: Duration of the ban in seconds
 
@@ -62,13 +65,19 @@ Tuning related functions
 
   .. versionadded:: 2.0.0
 
-  Set the maximum number of new TCP connections that a given client (or range, see :func:`setTCPConnectionsMaskV4`, :func:`setTCPConnectionsMaskV6` and :func:`setTCPConnectionsMaskV4Port` to see how clients can be aggregated) can open, per second, over the last :func:`setTCPConnectionRateInterval` minutes. Clients exceeding this rate will not be able to open new TCP connections for :func:`setBanDurationForExceedingTCPTLSRate` seconds. See also :func:`setMaxTLSNewSessionRatePerClient` and :func:`setMaxTLSResumedSessionRatePerClient`. 0 (the default) means unlimited.
+  .. versionchanged:: 2.0.4
+    QUIC connections are now affected as well
+
+  Set the maximum number of new TCP or QUIC connections that a given client (or range, see :func:`setTCPConnectionsMaskV4`, :func:`setTCPConnectionsMaskV6` and :func:`setTCPConnectionsMaskV4Port` to see how clients can be aggregated) can open, per second, over the last :func:`setTCPConnectionRateInterval` minutes. Clients exceeding this rate will not be able to open new TCP connections for :func:`setBanDurationForExceedingTCPTLSRate` seconds. See also :func:`setMaxTLSNewSessionRatePerClient` and :func:`setMaxTLSResumedSessionRatePerClient`. 0 (the default) means unlimited.
 
   :param int num: Number of new connections per second
 
 .. function:: setMaxTCPConnectionsPerClient(num)
 
-  Set the maximum number of TCP connections per client. 0 (the default) means unlimited.
+  .. versionchanged:: 2.0.4
+    QUIC connections are now affected as well
+
+  Set the maximum number of TCP or QUIC connections per client. 0 (the default) means unlimited.
 
   :param int num:
 
