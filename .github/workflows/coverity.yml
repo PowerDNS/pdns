@@ -87,13 +87,13 @@ jobs:
         working-directory: ./pdns/dnsdistdist/
       - run: inv ci-build-and-install-quiche $REPO_HOME
         working-directory: ./pdns/dnsdistdist/
-      - run: inv ci-dnsdist-configure full autotools ''
+      - run: inv ci-dnsdist-configure full build
         working-directory: ./pdns/dnsdistdist/
-      - run: inv coverity-make
+      - run: inv coverity-ninja
         working-directory: ./pdns/dnsdistdist/
-      - run: inv coverity-tarball dnsdist.tar.bz2
+      - run: inv coverity-tarball build/dnsdist.tar.bz2
         working-directory: ./pdns/dnsdistdist/
-      - run: inv coverity-upload ${{ secrets.COVERITY_EMAIL }} dnsdist dnsdist.tar.bz2
+      - run: inv coverity-upload ${{ secrets.COVERITY_EMAIL }} dnsdist build/dnsdist.tar.bz2
         working-directory: ./pdns/dnsdistdist/
 
   coverity-rec:
