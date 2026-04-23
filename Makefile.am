@@ -16,6 +16,7 @@ EXTRA_DIST = \
 	regression-tests/zones/zonemd-allunsup.zone \
 	regression-tests/zones/zonemd-duplicate.zone \
 	regression-tests/zones/zonemd-invalid.zone \
+	regression-tests/zones/zonemd-invalidscheme.zone \
 	regression-tests/zones/zonemd-nozonemd.zone \
 	regression-tests/zones/zonemd-serialmismatch.zone \
 	regression-tests/zones/zonemd-sha512.zone \
