@@ -43,6 +43,16 @@ If you are using an older version, the old query can be restored using::
 but it is advised to upgrade to a supported version of PostgreSQL whenever
 possible.
 
+LUA record updates no longer allowed by default
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Modifications of :doc:`LUA records <lua-records/index>`, either from AXFR/IXFR,
+DNS Update, or the API, are now only allowed if the new
+:ref:`setting-enable-lua-record-updates` configuration setting is set to
+``yes``.
+Its default value being ``no``, a configuration update will be
+necessary when upgrading to 5.1 in order to allow such updates.
+
 4.9.0 to 5.0.0
 --------------
 

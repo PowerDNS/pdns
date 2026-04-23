@@ -1752,6 +1752,15 @@ static bool checkNewRecords(HttpResponse* resp, vector<DNSResourceRecord>& recor
 {
   std::vector<std::pair<DNSResourceRecord, string>> errors;
 
+  // Do not perform Lua records updates if not allowed to.
+  if (!::arg().mustDo("enable-lua-record-updates")) {
+    for (const auto& rec : records) {
+      if (rec.qtype == QType::LUA) {
+        errors.emplace_back(std::make_pair(rec, std::string("update of Lua records is not allowed")));
+      }
+    }
+  }
+
   Check::checkRRSet({}, records, zone, flags, errors);
   if (errors.empty()) {
     return true;
@@ -2568,6 +2577,12 @@ enum applyResult
 // Apply a DELETE changetype.
 static applyResult applyDelete(const DomainInfo& domainInfo, DNSName& qname, QType& qtype, bool returnRRset, std::vector<DNSResourceRecord>& rrset)
 {
+  // Do not perform Lua records deletions if not allowed to.
+  if (!::arg().mustDo("enable-lua-record-updates")) {
+    if (qtype == QType::LUA) {
+      throw ApiException("Update of Lua records is not allowed");
+    }
+  }
   // Delete all matching qname/qtype RRs (and implicitly, comments).
   if (!domainInfo.backend->replaceRRSet(domainInfo.id, qname, qtype, {})) {
     throw ApiException("Hosting backend does not support editing records.");

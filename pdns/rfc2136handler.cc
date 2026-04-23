@@ -905,6 +905,18 @@ static uint8_t updatePrereqCheck323(const MOADNSParser::answers_t& answers, cons
 
 static uint8_t updateRecords(const MOADNSParser::answers_t& answers, DNSSECKeeper& dsk, uint& changedRecords, const std::unique_ptr<AuthLua4>& update_policy_lua, DNSPacket& packet, updateContext& ctx)
 {
+  // Reject the complete update if it contains Lua records, unless explicitly
+  // allowed, regardless of any other policy.
+  if (!::arg().mustDo("enable-lua-record-updates")) {
+    for (const auto& rec : answers) {
+      if (QType(rec.d_type) == QType::LUA) {
+        SLOG(g_log << Logger::Warning << ctx.msgPrefix << "Refusing update due to Lua record " << rec.d_name << ": Not permitted by global settings" << endl,
+             ctx.slog->info(Logr::Warning, "Update: refusing update due to Lua record, not permitted by global settings", "name", Logging::Loggable(rec.d_name)));
+        return RCode::Refused;
+      }
+    }
+  }
+
   vector<const DNSRecord*> cnamesToAdd;
   vector<const DNSRecord*> nonCnamesToAdd;
   vector<const DNSRecord*> nsRRtoDelete;
@@ -914,6 +926,7 @@ static uint8_t updateRecords(const MOADNSParser::answers_t& answers, DNSSECKeepe
   for (const auto& rec : answers) {
     if (rec.d_place == DNSResourceRecord::AUTHORITY) {
       anyRecordProcessed = true;
+
       /* see if it's permitted by policy */
       if (update_policy_lua != nullptr) {
         if (!update_policy_lua->updatePolicy(rec.d_name, QType(rec.d_type), ctx.di.zone.operator const DNSName&(), packet)) {

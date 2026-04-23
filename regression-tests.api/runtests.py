@@ -291,7 +291,11 @@ if daemon == "authoritative":
         run_check_call(PDNSUTIL_CMD + ["load-zone", zone, ZONE_DIR + zone])
 
     run_check_call(PDNSUTIL_CMD + ["secure-zone", "powerdnssec.org"])
-    servercmd = [pdns_server] + common_args + ["--no-shuffle", "--dnsupdate=yes", "--cache-ttl=0", "--api=yes"]
+    servercmd = (
+        [pdns_server]
+        + common_args
+        + ["--no-shuffle", "--dnsupdate=yes", "--cache-ttl=0", "--api=yes", "--enable-lua-record-updates"]
+    )
 
 else:
     conf_dir = "rec-conf.d"
