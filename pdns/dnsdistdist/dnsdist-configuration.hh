@@ -104,7 +104,7 @@ struct ImmutableConfiguration
   uint32_t d_maxTCPReadIOsPerQuery{50};
   uint32_t d_tcpBanDurationForExceedingMaxReadIOsPerQuery{60};
   uint32_t d_tcpBanDurationForExceedingTCPTLSRate{10};
-  uint16_t d_maxUDPOutstanding{std::numeric_limits<uint16_t>::max()};
+  uint32_t d_maxUDPOutstanding{65536U};
   TimeFormat d_structuredLoggingTimeFormat{TimeFormat::Numeric};
   uint8_t d_udpTimeout{2};
   uint8_t d_tcpConnectionsOverloadThreshold{90};
