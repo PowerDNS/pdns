@@ -543,19 +543,28 @@ string PacketReader::getText(bool multi, bool lenField)
 
 string PacketReader::getUnquotedText(bool lenField)
 {
-  uint16_t stop_at;
-  if(lenField)
+  uint16_t stop_at{};
+  if (lenField) {
     stop_at = static_cast<uint8_t>(d_content.at(d_pos)) + d_pos + 1;
-  else
+  }
+  else {
     stop_at = d_recordlen;
+  }
 
   /* think unsigned overflow */
   if (stop_at < d_pos) {
     throw std::out_of_range("getUnquotedText out of record range");
   }
 
-  if(stop_at == d_pos)
+  /* Validate against record boundary */
+  const uint16_t recordEnd = d_startrecordpos + d_recordlen;
+  if (stop_at > recordEnd) {
+    throw std::out_of_range("getUnquotedText: length exceeds record boundary");
+  }
+
+  if (stop_at == d_pos) {
     return "";
+  }
 
   d_pos++;
   string ret(d_content.substr(d_pos, stop_at-d_pos));
