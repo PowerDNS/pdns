@@ -1,7 +1,7 @@
         context=${context}-presigned-lmdb
         backend=lmdb2
         cat > pdns-lmdb2.conf << __EOF__
-module-dir=./modules
+module-dir=$PDNS_MODULE_PATH
 launch=lmdb
 lmdb-filename=./pdns2.lmdb
 __EOF__

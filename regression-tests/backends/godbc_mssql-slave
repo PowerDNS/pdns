@@ -7,7 +7,7 @@
 	$ISQL < ../modules/godbcbackend/schema.mssql.sql
 	backend=godbc2
 	cat > pdns-godbc2.conf << __EOF__
-module-dir=./modules
+module-dir=$PDNS_MODULE_PATH
 launch=godbc
 godbc-datasource=$GODBC_MSSQL2_DSN
 godbc-username=$GODBC_MSSQL2_USERNAME

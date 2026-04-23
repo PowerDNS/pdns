@@ -13,7 +13,7 @@
 
 	backend=gmysql2
 	cat > pdns-gmysql2.conf << __EOF__
-module-dir=./modules
+module-dir=$PDNS_MODULE_PATH
 launch=gmysql
 gmysql-dbname=$GMYSQL2DB
 gmysql-user=$GMYSQL2USER

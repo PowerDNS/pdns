@@ -7,12 +7,12 @@ case $context in
 		echo 'ANALYZE; PRAGMA journal_mode=WAL;' | sqlite3 pdns.sqlite3
 
 		cat > pdns-godbc_sqlite3.conf << __EOF__
-module-dir=$PDNS_BUILD_PATH/modules
+module-dir=$PDNS_MODULE_PATH
 launch=godbc
 godbc-datasource=$GODBC_SQLITE3_DSN
 
 __EOF__
-		${PDNSSERVER:-../pdns/pdns_server} --module-dir=./modules/ --launch=gsqlite3 --config | grep query= | perl -pe 's/^# gsqlite3/godbc/; s/:\w+/?/g' >> pdns-godbc_sqlite3.conf
+		${PDNSSERVER:-../pdns/pdns_server} --launch=gsqlite3 --config | grep query= | perl -pe 's/^# gsqlite3/godbc/; s/:\w+/?/g' >> pdns-godbc_sqlite3.conf
 
 		gsql_master godbc_sqlite3 nodyndns
 		;;
