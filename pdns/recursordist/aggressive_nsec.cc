@@ -896,6 +896,9 @@ bool AggressiveNSECCache::getDenial(time_t now, const DNSName& name, const QType
     VLOG_NO_PREFIX(log, ": found a possible NSEC at " << wcEntry.d_owner << " ");
 
     auto nsecContent = std::dynamic_pointer_cast<const NSECRecordContent>(wcEntry.d_record);
+    if (!nsecContent) {
+      return false;
+    }
 
     denial = matchesNSEC(wc, type.getCode(), wcEntry.d_owner, *nsecContent, wcEntry.d_signatures, log);
     if (denial == dState::NODENIAL || denial == dState::INCONCLUSIVE) {
