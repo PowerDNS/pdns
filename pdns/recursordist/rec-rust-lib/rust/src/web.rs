@@ -175,15 +175,6 @@ fn api_wrapper(
     headers: &mut header::HeaderMap,
     allow_password: bool,
 ) {
-    // security headers
-    if !ctx.cross_origin_request_header.is_empty()  {
-        if let Ok(value) = header::HeaderValue::from_str(&ctx.cross_origin_request_header) {
-            headers.insert(
-                header::ACCESS_CONTROL_ALLOW_ORIGIN,
-                value,
-            );
-        }
-    }
 
     // XXX AUDIT!
 
@@ -241,6 +232,16 @@ fn api_wrapper(
         return;
     }
     response.status = StatusCode::OK.as_u16(); // 200;
+
+    // security headers
+    if !ctx.cross_origin_request_header.is_empty()  {
+        if let Ok(value) = header::HeaderValue::from_str(&ctx.cross_origin_request_header) {
+            headers.insert(
+                header::ACCESS_CONTROL_ALLOW_ORIGIN,
+                value,
+            );
+        }
+    }
 
     headers.insert(
         header::X_CONTENT_TYPE_OPTIONS,
