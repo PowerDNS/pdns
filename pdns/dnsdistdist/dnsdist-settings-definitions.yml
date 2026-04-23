@@ -1690,7 +1690,7 @@ udp_tuning:
       runtime-configurable: false
     - name: "max_outstanding_per_backend"
       type: "u32"
-      default: 65535
+      default: 65536
       lua-name: "setMaxUDPOutstanding"
       internal-field-name: "d_maxUDPOutstanding"
       runtime-configurable: false
