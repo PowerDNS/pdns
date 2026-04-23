@@ -20,6 +20,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include "dnsdist-edns.hh"
+#include "dnsdist-opentelemetry.hh"
 #include "dnsdist.hh"
 #include "dnsdist-async.hh"
 #include "dnsdist-dnsparser.hh"
@@ -30,7 +31,10 @@
 #include "dnsdist-snmp.hh"
 #include "dnsparser.hh"
 
+#include "protozero-trace.hh"
 #include "protozero.hh"
+#include <functional>
+#include <optional>
 #include <string>
 
 static void addMetaKeyAndValuesToProtobufContent([[maybe_unused]] DNSQuestion& dnsQuestion, [[maybe_unused]] const std::string& key, [[maybe_unused]] const LuaArray<boost::variant<int64_t, std::string>>& values)

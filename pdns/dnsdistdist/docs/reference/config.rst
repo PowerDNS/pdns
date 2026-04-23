@@ -1336,9 +1336,27 @@ Status, Statistics and More
 
   .. versionadded:: 2.1.0
 
-  Enable or disable collection of OpenTelemetry trace data. This will allow the use of :func:`SetTraceAction` to trace queries. This can be called at runtime.
+  Enable or disable collection of OpenTelemetry trace data. This will allow the use of :func:`SetTraceAction` to trace queries and :func:`setOpenTelemetryInternalTrace` to instrument internal functions. This can be called at runtime.
 
   :param bool enable: true to enable, false to disable.
+
+.. function:: setOpenTelemetryInternalTrace(kind, remote_loggers, sample_interval)
+
+  .. versionadded:: 2.2.0
+
+  Collect Spans for ``kind`` and send them to ``remote_loggers``. ``sample_interval`` can be set to only collect spans for one in ``sample_interval`` times the internal function is run.
+
+  The following table lists the possible ``kind``s and their default ``sample_interval``.
+
+  =========== ===========================
+  ``kind``    default ``sample_interval``
+  =========== ===========================
+  maintenance 60
+  =========== ===========================
+
+  :param string kind: The internal function to collect traces for, see above.
+  :param {RemoteLogger} remote_loggers: A table of remote_loggers to send the resulting traces to.
+  :param int sample_interval: Only sample one in this many runs
 
 .. function:: setVerbose(verbose)
 
@@ -2138,14 +2156,17 @@ Other functions
 
   :param function callback: The function to be called. It takes no parameter and returns no value.
 
-.. function:: addMaintenanceCallback(callback)
+.. function:: addMaintenanceCallback(callback[, name])
 
   .. versionadded:: 1.9.0
+  .. versionchanged:: 2.2.0
+    ``name`` parameter added.
 
   Register a Lua function to be called as part of the ``maintenance`` hook, which is executed roughly every second.
   The function should not block for a long period of time, as it would otherwise delay the execution of the other functions registered for this hook, as well as the execution of the :func:`maintenance` function.
 
   :param function callback: The function to be called. It takes no parameter and returns no value.
+  :param string name: The name of the callback, currently only exposed in :doc:`OpenTelemetry traces <ottrace>`.
 
   .. code-block:: lua
 
@@ -2226,11 +2247,23 @@ Other functions
 
   This function, if it exists, is called when a separate thread (made with :func:`newThread`) calls :func:`submitToMainThread`.
 
-.. function:: newThread(code)
+.. function:: newThread(code [, openTelemetryTraceOptions])
+
+  .. versionchanged:: 2.2.0
+    ``opentelemetryTraceOptions`` optional parameter added
 
   Spawns a separate thread running the supplied code.
   Code is supplied as a string, not as a function object.
+  The code is run, after which :program:`dnsdist` sleeps for 5 seconds before running the code again.
   Note that this function does nothing in 'client' or 'config-check' modes.
+
+  :param string code: The code to run in the separate thread
+  :param int openTelemetryTraceOptions: A table with key: value pairs with options for OpenTelemetry tracing (see :doc:`ottrace`).
+
+  OpenTelemetry Trace Options:
+
+  * ``interval=number``: one in ``interval`` traces will actually be created and sent
+  * ``remoteloggers``: A table of :func:`remoteLogger <newRemoteLogger>` objects to send the traces to. Note that these log messages will be empty, apart from the trace data.
 
 .. function:: refreshRuntimeConfiguration()
 

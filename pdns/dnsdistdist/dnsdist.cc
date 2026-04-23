@@ -29,6 +29,7 @@
 #include <getopt.h>
 #include <grp.h>
 #include <limits>
+#include <memory>
 #include <netinet/tcp.h>
 #include <optional>
 #include <pwd.h>
@@ -42,6 +43,7 @@
 #include "dnsdist-opentelemetry.hh"
 #include "dnsdist-systemd.hh"
 #include "logging.hh"
+#include "logr.hh"
 #include "protozero-trace.hh"
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-daemon.h>
@@ -55,6 +57,7 @@
 #include "dnsdist-configuration-yaml.hh"
 #include "dnsdist-console.hh"
 #include "dnsdist-console-completion.hh"
+#include "dnsdist-lua-bindings-opentelemetry.hh"
 #include "dnsdist-crypto.hh"
 #include "dnsdist-discovery.hh"
 #include "dnsdist-dynblocks.hh"
@@ -2469,22 +2472,37 @@ static void maintThread()
   setThreadName("dnsdist/main");
   constexpr int interval = 1;
   size_t counter = 0;
+  size_t otCounter = 0;
   int32_t secondsToWaitLog = 0;
 
   for (;;) {
     std::this_thread::sleep_for(std::chrono::seconds(interval));
 
     dnsdist::configuration::refreshLocalRuntimeConfiguration();
-    {
-      auto lua = g_lua.lock();
+    std::shared_ptr<pdns::trace::dnsdist::Tracer> tracer = dnsdist::configuration::getCurrentRuntimeConfiguration().d_opentelemetryMaintenanceInterval != 0 && otCounter % dnsdist::configuration::getCurrentRuntimeConfiguration().d_opentelemetryMaintenanceInterval == 0 ? pdns::trace::dnsdist::Tracer::getTracer() : nullptr;
+    otCounter++;
+    if (tracer != nullptr) {
+      tracer->setScopeSpanName("dnsdist/maintenance");
+    }
+    auto maint_closer = pdns::trace::dnsdist::getCloserForInternalSpan(tracer, "maintenanceThread");
+    auto lua = g_lua.lock();
+
+    pdns::trace::dnsdist::runWithLuaTracing(*lua, tracer, [&lua, &tracer, &secondsToWaitLog]() {
       try {
         auto maintenanceCallback = lua->readVariable<std::optional<std::function<void()>>>("maintenance");
         if (maintenanceCallback) {
+          auto closer = pdns::trace::dnsdist::getCloserForInternalSpan(tracer, "maintenanceFunction");
           (*maintenanceCallback)();
         }
-        dnsdist::lua::hooks::runMaintenanceHooks(*lua);
+        {
+          auto closer = pdns::trace::dnsdist::getCloserForInternalSpan(tracer, "maintenanceHooks");
+          dnsdist::lua::hooks::runMaintenanceHooks(*lua, tracer);
+        }
 #if !defined(DISABLE_DYNBLOCKS)
-        dnsdist::DynamicBlocks::runRegisteredGroups(*lua);
+        {
+          auto closer = pdns::trace::dnsdist::getCloserForInternalSpan(tracer, "DynamicBlocks::runRegisteredGroups");
+          dnsdist::DynamicBlocks::runRegisteredGroups(*lua);
+        }
 #endif /* DISABLE_DYNBLOCKS */
         secondsToWaitLog = 0;
       }
@@ -2496,10 +2514,11 @@ static void maintThread()
         }
         secondsToWaitLog -= interval;
       }
-    }
+    });
 
     counter++;
     if (counter >= dnsdist::configuration::getCurrentRuntimeConfiguration().d_cacheCleaningDelay) {
+      auto closer = pdns::trace::dnsdist::getCloserForInternalSpan(tracer, "CacheClean");
       /* keep track, for each cache, of whether we should keep
        expired entries */
       std::map<std::shared_ptr<DNSDistPacketCache>, bool> caches;
@@ -2540,6 +2559,13 @@ static void maintThread()
       }
       counter = 0;
     }
+
+#ifndef DISABLE_PROTOBUF
+    if (tracer != nullptr) {
+      maint_closer = std::nullopt; // set the stop time by destructing the Closer
+      pdns::trace::dnsdist::sendTracesToRemoteLoggers(tracer, dnsdist::configuration::getCurrentRuntimeConfiguration().d_maintenanceRemoteLoggers);
+    }
+#endif
   }
 }
 

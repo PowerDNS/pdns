@@ -2,6 +2,7 @@
 
 import base64
 import binascii
+import pprint
 import threading
 import time
 
@@ -73,6 +74,15 @@ class DNSDistOpenTelemetryProtobufTest(test_Protobuf.DNSDistProtobufTest):
         # check the protobuf message corresponding to the UDP query
         return self.getFirstProtobufMessage()
 
+    def checkOTDataBase(self, otData):
+        pprint.pprint(otData)
+        self.assertEqual(len(otData["resource_spans"]), 1)
+        self.assertEqual(len(otData["resource_spans"][0]["resource"]["attributes"]), 1)
+
+        # Ensure all attributes exist
+        for field in otData["resource_spans"][0]["resource"]["attributes"]:
+            self.assertIn(field["key"], ["service.name"])
+
     def checkOTData(
         self,
         otData,
@@ -83,12 +93,7 @@ class DNSDistOpenTelemetryProtobufTest(test_Protobuf.DNSDistProtobufTest):
         hasResponse=True,
         extraFunctions=set(),
     ):
-        self.assertEqual(len(otData["resource_spans"]), 1)
-        self.assertEqual(len(otData["resource_spans"][0]["resource"]["attributes"]), 1)
-
-        # Ensure all attributes exist
-        for field in otData["resource_spans"][0]["resource"]["attributes"]:
-            self.assertIn(field["key"], ["service.name"])
+        self.checkOTDataBase(otData)
 
         # Ensure the values are correct
         # TODO: query.remote with port
@@ -156,6 +161,7 @@ class DNSDistOpenTelemetryProtobufBaseTest(DNSDistOpenTelemetryProtobufTest):
     def doTest(
         self,
         hasProcessResponseAfterRules=False,
+        hasRemoteLogResponseAction=True,
         useTCP=False,
         traceID="",
         spanID="",
@@ -174,7 +180,13 @@ class DNSDistOpenTelemetryProtobufBaseTest(DNSDistOpenTelemetryProtobufTest):
         traces_data.ParseFromString(msg.openTelemetryData)
         ot_data = google.protobuf.json_format.MessageToDict(traces_data, preserving_proto_field_name=True)
 
-        self.checkOTData(ot_data, hasProcessResponseAfterRules, useTCP, extraFunctions=extraFunctions)
+        self.checkOTData(
+            ot_data,
+            useTCP=useTCP,
+            extraFunctions=extraFunctions,
+            hasRemoteLogResponseAction=hasRemoteLogResponseAction,
+            hasProcessResponseAfterRules=hasProcessResponseAfterRules,
+        )
 
         traceId = base64.b64encode(msg.openTelemetryTraceID).decode()
         for msg_span in ot_data["resource_spans"][0]["scope_spans"][0]["spans"]:
@@ -555,6 +567,55 @@ addResponseAction(AllRule(), RemoteLogResponseAction(rl))
         self.doTest()
 
 
+class DNSDistOpenTelemetryProtobufBaseLoggersInActionYAML(DNSDistOpenTelemetryProtobufBaseTest):
+    _yaml_config_params = ["_testServerPort", "_protobufServerPort"]
+
+    _yaml_config_template = """---
+logging:
+  open_telemetry_tracing:
+    enabled: true
+
+backends:
+  - address: 127.0.0.1:%d
+    protocol: Do53
+
+remote_logging:
+ protobuf_loggers:
+   - name: pblog
+     address: 127.0.0.1:%d
+
+query_rules:
+ - name: Enable tracing
+   selector:
+     type: All
+   action:
+     type: SetTrace
+     value: true
+     remote_loggers:
+       - pblog
+"""
+
+    def testBasic(self):
+        self.doTest(hasRemoteLogResponseAction=False, hasProcessResponseAfterRules=True)
+
+    def testTCP(self):
+        self.doTest(
+            useTCP=True,
+            hasRemoteLogResponseAction=False,
+            hasProcessResponseAfterRules=True,
+            extraFunctions={
+                "createTCPQuery",
+                "queueResponse",
+                "TCPConnectionToBackend::handleResponse",
+                "getDownstreamConnection",
+                "TCPConnectionToBackend::sendQuery",
+                "handleResponse",
+                "prepareQueryForSending",
+                "TCPConnectionToBackend::queueQuery",
+            },
+        )
+
+
 class TestOpenTelemetryTracingBaseYAMLIncludedRemoteLoggerDropped(DNSDistOpenTelemetryProtobufTest):
     _yaml_config_params = [
         "_testServerPort",
@@ -914,3 +975,670 @@ setOpenTelemetryTracing(true)
 addAction(AllRule(), SetTraceAction(true, {remoteLoggers={rl}, sendDownstreamTraceparent=true}), {name="Enable tracing"})
 addResponseAction(AllRule(), RemoteLogResponseAction(rl), {name="Do PB logging"})
         """
+
+
+class TestOpenTelemetryTracingSpansFromLua(DNSDistOpenTelemetryProtobufBaseTest):
+    _yaml_config_params = [
+        "_testServerPort",
+        "_protobufServerPort",
+    ]
+    _yaml_config_template = """---
+logging:
+  open_telemetry_tracing:
+    enabled: true
+
+backends:
+  - address: 127.0.0.1:%d
+    protocol: Do53
+    health_checks:
+      mode: up
+
+remote_logging:
+  protobuf_loggers:
+    - name: pblog
+      address: 127.0.0.1:%d
+
+query_rules:
+  - name: Enable tracing
+    selector:
+      type: All
+    action:
+      type: SetTrace
+      value: true
+      remote_loggers:
+        - pblog
+  - name: A traced LuaAction
+    selector:
+      type: All
+    action:
+      type: Lua
+      function_code: |
+        return function (dq)
+          withTraceSpan("my-span",
+            function ()
+              setSpanAttribute("my-key-from-lua", "my-value-from-lua")
+              withTraceSpan("my-second-span",
+                function()
+                end
+              )
+            end
+          )
+          return DNSAction.None
+        end
+"""
+
+    def testBasic(self):
+        self.doTest(
+            hasProcessResponseAfterRules=True,
+            hasRemoteLogResponseAction=False,
+            extraFunctions={
+                "my-span",
+                "my-second-span",
+                "Rule: A traced LuaAction",
+            },
+        )
+
+    def testTCP(self):
+        self.doTest(
+            useTCP=True,
+            hasProcessResponseAfterRules=True,
+            hasRemoteLogResponseAction=False,
+            extraFunctions={
+                "my-span",
+                "my-second-span",
+                "Rule: A traced LuaAction",
+                "createTCPQuery",
+                "queueResponse",
+                "TCPConnectionToBackend::handleResponse",
+                "getDownstreamConnection",
+                "TCPConnectionToBackend::sendQuery",
+                "handleResponse",
+                "prepareQueryForSending",
+                "TCPConnectionToBackend::queueQuery",
+            },
+        )
+
+
+class TestOpenTelemetryTracingSpansFromLuaFFI(TestOpenTelemetryTracingSpansFromLua):
+    _yaml_config_template = None
+    _yaml_config_params = []
+    _config_params = [
+        "_testServerPort",
+        "_protobufServerPort",
+    ]
+    _config_template = """
+    newServer{address="127.0.0.1:%d"}
+    rl = newRemoteLogger('127.0.0.1:%d')
+    setOpenTelemetryTracing(true)
+
+
+    function luaffiaction(dq)
+      withTraceSpan("my-span",
+        function ()
+          setSpanAttribute("my-key-from-lua", "my-value-from-lua")
+          withTraceSpan("my-second-span",
+            function()
+            end
+          )
+        end
+      )
+      return DNSAction.None
+    end
+
+addAction(AllRule(), SetTraceAction(true, {remoteLoggers={rl}}), {name="Enable tracing"})
+addAction(AllRule(), LuaFFIAction(luaffiaction), {name="A traced LuaFFIAction"})
+"""
+
+    def testBasic(self):
+        self.doTest(
+            hasProcessResponseAfterRules=True,
+            hasRemoteLogResponseAction=False,
+            extraFunctions={
+                "my-span",
+                "my-second-span",
+                "Rule: A traced LuaFFIAction",
+            },
+        )
+
+    def testTCP(self):
+        self.doTest(
+            useTCP=True,
+            hasProcessResponseAfterRules=True,
+            hasRemoteLogResponseAction=False,
+            extraFunctions={
+                "my-span",
+                "my-second-span",
+                "Rule: A traced LuaFFIAction",
+                "createTCPQuery",
+                "queueResponse",
+                "TCPConnectionToBackend::handleResponse",
+                "getDownstreamConnection",
+                "TCPConnectionToBackend::sendQuery",
+                "handleResponse",
+                "prepareQueryForSending",
+                "TCPConnectionToBackend::queueQuery",
+            },
+        )
+
+
+class TestOpenTelemetryTracingSpansFromLuaFFIResponse(TestOpenTelemetryTracingSpansFromLua):
+    _yaml_config_template = None
+    _yaml_config_params = []
+    _config_params = [
+        "_testServerPort",
+        "_protobufServerPort",
+    ]
+    _config_template = """
+    newServer{address="127.0.0.1:%d"}
+    rl = newRemoteLogger('127.0.0.1:%d')
+    setOpenTelemetryTracing(true)
+
+
+    function luaffiaction(dq)
+      withTraceSpan("my-span",
+        function ()
+          setSpanAttribute("my-key-from-lua", "my-value-from-lua")
+          withTraceSpan("my-second-span",
+            function()
+            end
+          )
+        end
+      )
+      return DNSAction.None
+    end
+
+addAction(AllRule(), SetTraceAction(true, {remoteLoggers={rl}}), {name="Enable tracing"})
+addResponseAction(AllRule(), LuaFFIResponseAction(luaffiaction), {name="A traced LuaFFIResponseAction"})
+"""
+
+    def testBasic(self):
+        self.doTest(
+            hasProcessResponseAfterRules=True,
+            hasRemoteLogResponseAction=False,
+            extraFunctions={
+                "my-span",
+                "my-second-span",
+                "ResponseRule: A traced LuaFFIResponseAction",
+            },
+        )
+
+    def testTCP(self):
+        self.doTest(
+            useTCP=True,
+            hasProcessResponseAfterRules=True,
+            hasRemoteLogResponseAction=False,
+            extraFunctions={
+                "my-span",
+                "my-second-span",
+                "ResponseRule: A traced LuaFFIResponseAction",
+                "createTCPQuery",
+                "queueResponse",
+                "TCPConnectionToBackend::handleResponse",
+                "getDownstreamConnection",
+                "TCPConnectionToBackend::sendQuery",
+                "handleResponse",
+                "prepareQueryForSending",
+                "TCPConnectionToBackend::queueQuery",
+            },
+        )
+
+
+class TestOpenTelemetryTracingSpansFromLuaResponseAction(DNSDistOpenTelemetryProtobufBaseTest):
+    _yaml_config_params = [
+        "_testServerPort",
+        "_protobufServerPort",
+    ]
+
+    _yaml_config_template = """---
+logging:
+  open_telemetry_tracing:
+    enabled: true
+
+backends:
+  - address: 127.0.0.1:%d
+    protocol: Do53
+    health_checks:
+      mode: up
+
+remote_logging:
+  protobuf_loggers:
+    - name: pblog
+      address: 127.0.0.1:%d
+
+query_rules:
+  - name: Enable tracing
+    selector:
+      type: All
+    action:
+      type: SetTrace
+      value: true
+      remote_loggers:
+        - pblog
+
+response_rules:
+  - name: A traced LuaResponseAction
+    selector:
+      type: All
+    action:
+      type: Lua
+      function_code: |
+        return function (dq)
+          withTraceSpan("my-span",
+            function ()
+              setSpanAttribute("my-key-from-lua", "my-value-from-lua")
+              withTraceSpan("my-second-span",
+                function()
+                end
+              )
+            end
+          )
+          return DNSAction.None
+        end
+"""
+
+    def testBasic(self):
+        self.doTest(
+            hasProcessResponseAfterRules=True,
+            hasRemoteLogResponseAction=False,
+            extraFunctions={
+                "my-span",
+                "my-second-span",
+                "ResponseRule: A traced LuaResponseAction",
+            },
+        )
+
+    def testTCP(self):
+        self.doTest(
+            useTCP=True,
+            hasProcessResponseAfterRules=True,
+            hasRemoteLogResponseAction=False,
+            extraFunctions={
+                "my-span",
+                "my-second-span",
+                "ResponseRule: A traced LuaResponseAction",
+                "createTCPQuery",
+                "queueResponse",
+                "TCPConnectionToBackend::handleResponse",
+                "getDownstreamConnection",
+                "TCPConnectionToBackend::sendQuery",
+                "handleResponse",
+                "prepareQueryForSending",
+                "TCPConnectionToBackend::queueQuery",
+            },
+        )
+
+
+class TestOpenTelemetryTracingInternalBase(DNSDistOpenTelemetryProtobufTest):
+    @staticmethod
+    def getSpan(otData, name):
+        result = [v for v in otData["resource_spans"][0]["scope_spans"][0]["spans"] if v["name"] == name]
+        if len(result) > 0:
+            return result[0]
+        raise KeyError(f"{name} not found in OT Data")
+
+    def checkMaintenanceSpanNames(self, all_span_name, extra_names=set(), callback_names=set()):
+        all_names = {
+            "maintenanceThread",
+            "maintenanceHooks",
+            "DynamicBlocks::runRegisteredGroups",
+        }.union(extra_names).union({f"maintenanceCallback/{name}" for name in callback_names})
+
+        self.assertSetEqual(all_span_name, all_names)
+
+    def getFirstMaintenanceProtobufMessage(self):
+        while self._protobufQueue.empty():
+            # let the protobuf messages the time to get there
+            time.sleep(0.1)
+
+        msg = self.getFirstProtobufMessage()
+        traces_data = opentelemetry.proto.trace.v1.trace_pb2.TracesData()
+        traces_data.ParseFromString(msg.openTelemetryData)
+        otData = google.protobuf.json_format.MessageToDict(traces_data, preserving_proto_field_name=True)
+        self.checkOTDataBase(otData)
+        return otData
+
+
+class TestOpenTelemetryTracingInternalYaml(TestOpenTelemetryTracingInternalBase):
+    _yaml_config_template = """---
+logging:
+  open_telemetry_tracing:
+    enabled: true
+    internal_tracing:
+      - kind: maintenance
+        sample_rate: 60
+        remote_loggers:
+          - pblog
+
+backends:
+  - address: 127.0.0.1:%d
+    protocol: Do53
+    health_checks:
+      mode: up
+
+remote_logging:
+  protobuf_loggers:
+    - name: pblog
+      address: 127.0.0.1:%d
+"""
+
+    _yaml_config_params = [
+        "_testServerPort",
+        "_protobufServerPort",
+    ]
+
+    def testMaintenance(self):
+        otData = self.getFirstMaintenanceProtobufMessage()
+        msg_span_name = {v["name"] for v in otData["resource_spans"][0]["scope_spans"][0]["spans"]}
+        self.checkMaintenanceSpanNames(msg_span_name)
+
+
+class TestOpenTelemetryTracingInternalLua(TestOpenTelemetryTracingInternalYaml):
+    _yaml_config_template = None
+
+    _config_template = """
+newServer{address="127.0.0.1:%d"}
+getServer(0):setUp()
+rl = newRemoteLogger('127.0.0.1:%d')
+setOpenTelemetryTracing(true)
+setOpenTelemetryInternalTrace('maintenance', {rl}, 60)
+"""
+    _config_params = [
+        "_testServerPort",
+        "_protobufServerPort",
+    ]
+
+
+class TestOpenTelemetryTracingInternalWithFunctionsLua(TestOpenTelemetryTracingInternalBase):
+    _config_template = """
+newServer{address="127.0.0.1:%d"}
+getServer(0):setUp()
+rl = newRemoteLogger('127.0.0.1:%d')
+setOpenTelemetryTracing(true)
+setOpenTelemetryInternalTrace('maintenance', {rl}, 60)
+
+function maintenance()
+	setSpanAttribute("outside", "hello from the outside")
+	withTraceSpan("my-span", function()
+		setSpanAttribute("inside", "hello from the inside")
+		os.execute("sleep 0.1")
+	end)
+end
+"""
+    _config_params = [
+        "_testServerPort",
+        "_protobufServerPort",
+    ]
+
+    def testMaintenance(self):
+        otData = self.getFirstMaintenanceProtobufMessage()
+
+        msg_span_name = {v["name"] for v in otData["resource_spans"][0]["scope_spans"][0]["spans"]}
+
+        self.checkMaintenanceSpanNames(
+            msg_span_name,
+            {
+                "maintenanceFunction",
+                "my-span",
+            },
+        )
+
+        maintenanceFunction_span = self.getSpan(otData, "maintenanceFunction")
+        self.assertListEqual(
+            maintenanceFunction_span["attributes"],
+            [{"key": "outside", "value": {"string_value": "hello from the outside"}}],
+        )
+
+        my_span = self.getSpan(otData, "my-span")
+        self.assertListEqual(
+            my_span["attributes"],
+            [{"key": "inside", "value": {"string_value": "hello from the inside"}}],
+        )
+
+
+class TestOpenTelemetryTracingInternalWithFunctionsCallbackLua(TestOpenTelemetryTracingInternalBase):
+    _config_template = """
+local function my_maintenance()
+	setSpanAttribute("outside", "hello from the outside")
+	withTraceSpan("my-span", function()
+		setSpanAttribute("inside", "hello from the inside")
+		os.execute("sleep 0.1")
+	end)
+end
+
+newServer{address="127.0.0.1:%d"}
+getServer(0):setUp()
+rl = newRemoteLogger('127.0.0.1:%d')
+setOpenTelemetryTracing(true)
+setOpenTelemetryInternalTrace('maintenance', {rl}, 60)
+
+addMaintenanceCallback(my_maintenance)
+"""
+
+    _config_params = [
+        "_testServerPort",
+        "_protobufServerPort",
+    ]
+
+    def testMaintenance(self):
+        otData = self.getFirstMaintenanceProtobufMessage()
+
+        msg_span_name = {v["name"] for v in otData["resource_spans"][0]["scope_spans"][0]["spans"]}
+
+        self.checkMaintenanceSpanNames(
+            msg_span_name,
+            {
+                "my-span",
+            },
+            {
+                "unnamed",
+            },
+        )
+
+        maintenanceFunction_span = self.getSpan(otData, "maintenanceHooks")
+        self.assertListEqual(
+            maintenanceFunction_span["attributes"],
+            [{"key": "outside", "value": {"string_value": "hello from the outside"}}],
+        )
+
+        my_span = self.getSpan(otData, "my-span")
+        self.assertListEqual(
+            my_span["attributes"],
+            [{"key": "inside", "value": {"string_value": "hello from the inside"}}],
+        )
+
+
+class TestOpenTelemetryTracingInternalWithFunctionsNamedCallbackLua(TestOpenTelemetryTracingInternalBase):
+    _config_template = """
+local function my_maintenance()
+	setSpanAttribute("outside", "hello from the outside")
+	withTraceSpan("my-span", function()
+		setSpanAttribute("inside", "hello from the inside")
+		os.execute("sleep 0.1")
+	end)
+end
+
+newServer{address="127.0.0.1:%d"}
+getServer(0):setUp()
+rl = newRemoteLogger('127.0.0.1:%d')
+setOpenTelemetryTracing(true)
+setOpenTelemetryInternalTrace('maintenance', {rl}, 60)
+
+addMaintenanceCallback(my_maintenance, "my_maintenance")
+"""
+
+    _config_params = [
+        "_testServerPort",
+        "_protobufServerPort",
+    ]
+
+    def testMaintenance(self):
+        otData = self.getFirstMaintenanceProtobufMessage()
+
+        msg_span_name = {v["name"] for v in otData["resource_spans"][0]["scope_spans"][0]["spans"]}
+
+        self.checkMaintenanceSpanNames(
+            msg_span_name,
+            {
+                "my-span",
+            },
+            {
+                "my_maintenance",
+            },
+        )
+
+        maintenanceFunction_span = self.getSpan(otData, "maintenanceHooks")
+        self.assertListEqual(
+            maintenanceFunction_span["attributes"],
+            [{"key": "outside", "value": {"string_value": "hello from the outside"}}],
+        )
+
+        my_span = self.getSpan(otData, "my-span")
+        self.assertListEqual(
+            my_span["attributes"],
+            [{"key": "inside", "value": {"string_value": "hello from the inside"}}],
+        )
+
+
+class TestOpenTelemetryTracingInternalNewThreadLua(TestOpenTelemetryTracingInternalBase):
+    _config_template = """
+newServer{address="127.0.0.1:%d"}
+getServer(0):setUp()
+rl = newRemoteLogger('127.0.0.1:%d')
+setOpenTelemetryTracing(true)
+newThread([==[
+    -- do some setup here
+    local ctr = 0
+    while true do
+        withTraceSpan("newThreadRootSpan", function()
+            setSpanAttribute("rootspan", "I am a root span")
+            setSpanAttribute("loop", ctr)
+            withTraceSpan("innerspan", function()
+                setSpanAttribute("inner", "I am an inner span")
+                os.execute("sleep 0.1")
+            end)
+        end)
+        ctr = ctr + 1
+        -- make sure we only send 2 traces for this test
+        if ctr < 2 then
+            sendOpenTelemetryTrace()
+        end
+    end
+]==],
+  {interval=1, remoteloggers={rl}}
+)
+"""
+
+    _config_params = [
+        "_testServerPort",
+        "_protobufServerPort",
+    ]
+
+    def testNewThread(self):
+        for ctr in range(1):
+            otData = self.getFirstMaintenanceProtobufMessage()
+
+            msg_span_names = {v["name"] for v in otData["resource_spans"][0]["scope_spans"][0]["spans"]}
+            self.assertSetEqual(msg_span_names, {"newThreadRootSpan", "innerspan"})
+
+            root_span = self.getSpan(otData, "newThreadRootSpan")
+            self.assertListEqual(
+                root_span["attributes"],
+                [
+                    {"key": "rootspan", "value": {"string_value": "I am a root span"}},
+                    {
+                        "key": "loop",
+                        "value": {"string_value": str(ctr)},
+                    },  # TODO: let setSpanAttribute accept an std::variant
+                ],
+            )
+
+            inner_span = self.getSpan(otData, "innerspan")
+            self.assertListEqual(
+                inner_span["attributes"],
+                [{"key": "inner", "value": {"string_value": "I am an inner span"}}],
+            )
+
+
+class TestOpenTelemetryTracingFFIActionPerThread(DNSDistOpenTelemetryProtobufBaseTest):
+    _config_template = """
+newServer{address="127.0.0.1:%d"}
+getServer(0):setUp()
+rl = newRemoteLogger('127.0.0.1:%d')
+setOpenTelemetryTracing(true)
+
+local action = [[
+  return function(dq)
+    withTraceSpan("action-span",
+      function ()
+        setSpanAttribute("my-key-from-lua", "my-value-from-lua")
+        withTraceSpan("my-second-action-span",
+          function()
+          end
+        )
+      end
+    )
+    return DNSAction.None
+  end
+]]
+
+local responseAction = [[
+  return function(dq)
+    withTraceSpan("response-action-span",
+      function ()
+        setSpanAttribute("my-key-from-lua", "my-value-from-lua")
+        withTraceSpan("my-second-response-action-span",
+          function()
+          end
+        )
+      end
+    )
+    return DNSAction.None
+  end
+]]
+
+addAction(AllRule(), SetTraceAction(true, {remoteLoggers={rl}}), {name="Enable tracing"})
+addAction(AllRule(), LuaFFIPerThreadAction(action), {name="FFI"})
+addResponseAction(AllRule(), LuaFFIPerThreadResponseAction(responseAction), {name="FFIResponse"})
+"""
+
+    _config_params = [
+        "_testServerPort",
+        "_protobufServerPort",
+    ]
+
+    def testBasic(self):
+        self.doTest(
+            hasProcessResponseAfterRules=True,
+            hasRemoteLogResponseAction=False,
+            extraFunctions={
+                "action-span",
+                "my-second-action-span",
+                "response-action-span",
+                "my-second-response-action-span",
+                "Rule: FFI",
+                "ResponseRule: FFIResponse",
+            },
+        )
+
+    def testTCP(self):
+        self.doTest(
+            useTCP=True,
+            hasProcessResponseAfterRules=True,
+            hasRemoteLogResponseAction=False,
+            extraFunctions={
+                "action-span",
+                "my-second-action-span",
+                "response-action-span",
+                "my-second-response-action-span",
+                "Rule: FFI",
+                "ResponseRule: FFIResponse",
+                "createTCPQuery",
+                "queueResponse",
+                "TCPConnectionToBackend::handleResponse",
+                "getDownstreamConnection",
+                "TCPConnectionToBackend::sendQuery",
+                "handleResponse",
+                "prepareQueryForSending",
+                "TCPConnectionToBackend::queueQuery",
+            },
+        )

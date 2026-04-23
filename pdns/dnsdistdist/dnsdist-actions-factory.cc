@@ -44,6 +44,7 @@
 #include "dnsdist-rule-chains.hh"
 #include "dnsdist-self-answers.hh"
 #include "dnsdist-snmp.hh"
+#include "dnsdist-lua-bindings-opentelemetry.hh"
 
 #include "dnstap.hh"
 #include "dnswriter.hh"
@@ -533,8 +534,8 @@ public:
     try {
       DNSAction::Action result{};
       {
-        auto lock = g_lua.lock();
-        auto ret = d_func(dnsquestion);
+        auto tracer = dnsquestion->ids.getTracer();
+        auto ret = pdns::trace::dnsdist::runWithGlobalLuaTracing(tracer, d_func, dnsquestion);
         if (ruleresult != nullptr) {
           if (std::optional<std::string> rule = std::get<1>(ret)) {
             *ruleresult = *rule;
@@ -580,8 +581,8 @@ public:
     try {
       DNSResponseAction::Action result{};
       {
-        auto lock = g_lua.lock();
-        auto ret = d_func(response);
+        auto tracer = response->ids.getTracer();
+        auto ret = pdns::trace::dnsdist::runWithGlobalLuaTracing(tracer, d_func, response);
         if (ruleresult != nullptr) {
           if (std::optional<std::string> rule = std::get<1>(ret)) {
             *ruleresult = *rule;
@@ -630,8 +631,8 @@ public:
     try {
       DNSAction::Action result{};
       {
-        auto lock = g_lua.lock();
-        auto ret = d_func(&dqffi);
+        auto tracer = dnsquestion->ids.getTracer();
+        auto ret = pdns::trace::dnsdist::runWithGlobalLuaTracing(tracer, d_func, &dqffi);
         if (ruleresult != nullptr) {
           if (dqffi.result) {
             *ruleresult = *dqffi.result;
@@ -692,7 +693,11 @@ public:
       }
 
       dnsdist_ffi_dnsquestion_t dqffi(dnsquestion);
-      auto ret = state.d_func(&dqffi);
+      int ret{0};
+      auto tracer = dnsquestion->ids.getTracer();
+      pdns::trace::dnsdist::runWithLuaTracing(state.d_luaContext, tracer, [&state, &dqffi, &ret]() {
+        ret = state.d_func(&dqffi);
+      });
       if (ruleresult != nullptr) {
         if (dqffi.result) {
           *ruleresult = *dqffi.result;
@@ -753,8 +758,8 @@ public:
     try {
       DNSResponseAction::Action result{};
       {
-        auto lock = g_lua.lock();
-        auto ret = d_func(&ffiResponse);
+        auto tracer = response->ids.getTracer();
+        auto ret = pdns::trace::dnsdist::runWithGlobalLuaTracing(tracer, d_func, &ffiResponse);
         if (ruleresult != nullptr) {
           if (ffiResponse.result) {
             *ruleresult = *ffiResponse.result;
@@ -815,7 +820,11 @@ public:
       }
 
       dnsdist_ffi_dnsresponse_t ffiResponse(response);
-      auto ret = state.d_func(&ffiResponse);
+      int ret{0};
+      auto tracer = response->ids.getTracer();
+      pdns::trace::dnsdist::runWithLuaTracing(state.d_luaContext, tracer, [&state, &ffiResponse, &ret]() {
+        ret = state.d_func(&ffiResponse);
+      });
       if (ruleresult != nullptr) {
         if (ffiResponse.result) {
           *ruleresult = *ffiResponse.result;

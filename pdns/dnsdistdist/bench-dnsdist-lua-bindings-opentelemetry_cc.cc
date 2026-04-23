@@ -19,21 +19,34 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#pragma once
+#include <memory>
+#define CATCH_CONFIG_NO_MAIN
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/benchmark/catch_benchmark.hpp>
 
 #include "dnsdist-opentelemetry.hh"
-#include <memory>
-#include <string>
+#include "dnsdist-lua-bindings-opentelemetry.hh"
 
-class LuaContext;
+extern std::shared_ptr<pdns::trace::dnsdist::Tracer> g_otTracer;
 
-namespace dnsdist::lua::hooks
+TEST_CASE("lua-bindings-opentelemetry-runWithGlobalLuaTracing")
 {
-void runMaintenanceHooks(const LuaContext& context, std::shared_ptr<pdns::trace::dnsdist::Tracer>& tracer);
-void clearMaintenanceHooks();
-void runExitCallbacks(const LuaContext& context);
-void clearExitCallbacks();
-void runServerStateChangeHooks(const LuaContext& context, const std::string& nameWithAddr, bool newState);
-void clearServerStateChangeCallbacks();
-void setupLuaHooks(LuaContext& luaCtx);
+  auto tracer = pdns::trace::dnsdist::Tracer::getTracer();
+  size_t testnum = 0;
+
+  BENCHMARK("withTracer")
+  {
+    return pdns::trace::dnsdist::runWithGlobalLuaTracing(tracer, [&testnum]() {
+      return testnum++;
+    });
+  };
+
+  testnum = 0;
+  tracer = nullptr;
+  BENCHMARK("withoutTracer")
+  {
+    return pdns::trace::dnsdist::runWithGlobalLuaTracing(tracer, [&testnum]() {
+      return testnum++;
+    });
+  };
 }

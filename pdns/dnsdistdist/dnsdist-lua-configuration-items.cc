@@ -20,6 +20,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include <optional>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -27,6 +29,7 @@
 #include "dnsdist-configuration.hh"
 #include "dnsdist-lua.hh"
 #include "dolog.hh"
+#include "ext/luawrapper/include/LuaContext.hpp"
 
 namespace dnsdist::lua
 {
@@ -175,6 +178,38 @@ static const std::map<std::string, DoubleImmutableConfigurationItems> s_doubleIm
 };
 // clang-format on
 
+static void setupOpenTelemetryConfigurationItems(LuaContext& luaCtx)
+{
+  luaCtx.writeFunction("setOpenTelemetryInternalTrace", []([[maybe_unused]] const std::string& kind, [[maybe_unused]] LuaAssociativeTable<std::shared_ptr<RemoteLoggerInterface>> remote_loggers, [[maybe_unused]] size_t sample_interval = 60) {
+#ifndef DISABLE_PROTOBUF
+    static const std::vector<std::string> validKinds{
+      "maintenance",
+    };
+    if (auto it = std::find(validKinds.cbegin(), validKinds.cend(), kind); it == validKinds.cend()) {
+      throw std::runtime_error(kind + " is not a valid Trace kind for setOpenTelemetryInternalTrace");
+    }
+
+    setLuaSideEffect();
+    dnsdist::configuration::updateRuntimeConfiguration([kind, remote_loggers, sample_interval](dnsdist::configuration::RuntimeConfiguration& config) {
+      std::vector<std::shared_ptr<RemoteLoggerInterface>> loggers;
+      for (auto& remote_logger : remote_loggers) {
+        if (remote_logger.second != nullptr) {
+          // avoids potentially-evaluated-expression warning with clang.
+          RemoteLoggerInterface& remoteLoggerRef = *remote_logger.second;
+          if (typeid(remoteLoggerRef) != typeid(RemoteLogger)) {
+            // We could let the user do what he wants, but wrapping PowerDNS Protobuf inside a FrameStream tagged as dnstap is logically wrong.
+            throw std::runtime_error(std::string("setOpenTelemetryInternalTrace only takes RemoteLogger."));
+          }
+          loggers.push_back(remote_logger.second);
+        }
+      }
+      config.d_maintenanceRemoteLoggers = std::move(loggers);
+      config.d_opentelemetryMaintenanceInterval = sample_interval == 0 ? 60 : sample_interval;
+    });
+#endif
+  });
+}
+
 void setupConfigurationItems(LuaContext& luaCtx)
 {
   for (const auto& item : s_booleanConfigItems) {
@@ -257,5 +292,6 @@ void setupConfigurationItems(LuaContext& luaCtx)
       setLuaSideEffect();
     });
   }
+  setupOpenTelemetryConfigurationItems(luaCtx);
 }
 }
