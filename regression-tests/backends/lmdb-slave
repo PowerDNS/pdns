@@ -1,7 +1,7 @@
         context=${context}-presigned-lmdb
         backend=lmdb2
         cat > pdns-lmdb2.conf << __EOF__
-module-dir=./modules
+module-dir=$PDNS_MODULE_PATH
 launch=lmdb
 lmdb-filename=./pdns2.lmdb
 __EOF__
@@ -47,7 +47,7 @@ __EOF__
         # setup catalog zone
         if [ $zones -ne 1 ] # detect root tests
         then
-                zones=$((zones+1))
+                zones=$((zones+2))
                 $PDNSUTIL --config-dir=. --config-name=lmdb2 create-secondary-zone catalog.invalid 127.0.0.1:$port
                 $PDNSUTIL --config-dir=. --config-name=lmdb2 set-kind catalog.invalid consumer
 

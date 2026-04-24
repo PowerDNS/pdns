@@ -119,6 +119,7 @@ bool g_doGssTSIG;
 bool g_views;
 bool g_slogStructured{false};
 static Logger::Urgency s_logUrgency;
+std::string g_memberCatalogGroup;
 typedef Distributor<DNSPacket, DNSPacket, PacketHandler> DNSDistributor;
 
 ArgvMap theArg;
@@ -344,6 +345,7 @@ static void declareArguments()
   ::arg().setSwitch("consistent-backends", "Assume individual zones are not divided over backends. Send only ANY lookup operations to the backend to reduce the number of lookups") = "yes";
 
   ::arg().set("default-catalog-zone", "Catalog zone to assign newly created primary zones (via the API) to") = "";
+  ::arg().set("member-catalog-group", "Catalog group used to signal that a member zone is a catalog") = "pdns-member-catalog";
 
   ::arg().set("protobuf-servers", "Servers to send protobuf logging to");
 
@@ -784,6 +786,7 @@ static void mainthread()
   g_doGssTSIG = ::arg().mustDo("enable-gss-tsig");
 #endif
   g_views = ::arg().mustDo("views");
+  g_memberCatalogGroup = ::arg()["member-catalog-group"];
 
   DNSPacket::s_udpTruncationThreshold = std::max(512, ::arg().asNum("udp-truncation-threshold"));
   DNSPacket::s_doEDNSSubnetProcessing = ::arg().mustDo("edns-subnet-processing");

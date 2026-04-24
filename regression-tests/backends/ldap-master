@@ -18,7 +18,7 @@ __EOF__
 
 		backend=ldap
 		cat > pdns-ldap.conf << __EOF__
-module-dir=$PDNS_BUILD_PATH/modules
+module-dir=$PDNS_MODULE_PATH
 launch=ldap
 ldap-basedn=$LDAPBASEDN
 ldap-binddn=$LDAPUSER

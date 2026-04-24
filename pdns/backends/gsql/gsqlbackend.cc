@@ -539,7 +539,7 @@ void GSQLBackend::getUnfreshSecondaryInfos(vector<DomainInfo>* unfreshDomains)
 void GSQLBackend::getUpdatedPrimaries(vector<DomainInfo>& updatedDomains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes)
 {
   /*
-    list all domains that need notifications for which we are promary, and insert into
+    list all domains that need notifications for which we are primary, and insert into
     updatedDomains: id, name, notified_serial, serial
   */
 
@@ -581,6 +581,8 @@ void GSQLBackend::getUpdatedPrimaries(vector<DomainInfo>& updatedDomains, std::u
       continue;
     }
 
+    di.kind = DomainInfo::stringToKind(row[2]);
+
     try {
       pdns::checked_stoi_into(di.id, row[0]);
     }
@@ -594,24 +596,27 @@ void GSQLBackend::getUpdatedPrimaries(vector<DomainInfo>& updatedDomains, std::u
       di.catalog = ZoneName(row[5]);
     }
     catch (const std::runtime_error& e) {
-      SLOG(g_log << Logger::Warning << __PRETTY_FUNCTION__ << " zone name '" << row[5] << "' is not a valid DNS name: " << e.what() << endl,
-           d_slog->error(Logr::Warning, e.what(), "zone name is not a valid DNS name", "zone", Logging::Loggable(row[5])));
+      SLOG(g_log << Logger::Warning << __PRETTY_FUNCTION__ << " catalog name '" << row[5] << "' is not a valid DNS name: " << e.what() << endl,
+           d_slog->error(Logr::Warning, e.what(), "catalog name is not a valid DNS name", "zone", Logging::Loggable(row[5])));
       continue;
     }
     catch (PDNSException& ae) {
-      SLOG(g_log << Logger::Warning << __PRETTY_FUNCTION__ << " zone name '" << row[5] << "' is not a valid DNS name: " << ae.reason << endl,
-           d_slog->error(Logr::Warning, ae.reason, "zone name is not a valid DNS name", "zone", Logging::Loggable(row[5])));
+      SLOG(g_log << Logger::Warning << __PRETTY_FUNCTION__ << " catalog name '" << row[5] << "' is not a valid DNS name: " << ae.reason << endl,
+           d_slog->error(Logr::Warning, ae.reason, "catalog name is not a valid DNS name", "zone", Logging::Loggable(row[5])));
       continue;
     }
 
-    if (pdns_iequals(row[2], "PRODUCER")) {
+    if (di.kind == DomainInfo::Producer) {
       catalogs.insert(di.zone.operator const DNSName&());
       catalogHashes[di.zone].process("");
-      continue; // Producer freshness check is performed elsewhere
+      if (di.catalog.empty()) {
+        continue; // Producer is no catalog member, freshness check is performed elsewhere
+      }
     }
-    else if (!pdns_iequals(row[2], "MASTER")) {
+    else if (di.kind != DomainInfo::Primary) {
       SLOG(g_log << Logger::Warning << __PRETTY_FUNCTION__ << " type '" << row[2] << "' for zone '" << di.zone << "' is no primary type" << endl,
            d_slog->info(Logr::Warning, "zone type is not fit for a primary", "zone", Logging::Loggable(di.zone), "type", Logging::Loggable(row[2])));
+      continue;
     }
 
     try {
@@ -624,6 +629,10 @@ void GSQLBackend::getUpdatedPrimaries(vector<DomainInfo>& updatedDomains, std::u
       SLOG(g_log << Logger::Warning << __PRETTY_FUNCTION__ << " catalog hash update failed'" << row[4] << "' for zone '" << di.zone << "' member of '" << di.catalog << "': " << e.what() << endl,
            d_slog->error(Logr::Warning, e.what(), "catalog hash update failed", "zone", Logging::Loggable(di.zone), "catalog", Logging::Loggable(di.catalog)));
       continue;
+    }
+
+    if (di.kind == DomainInfo::Producer) {
+      continue; // Producer is a catalog member, freshness check is performed elsewhere
     }
 
     try {
@@ -692,12 +701,12 @@ bool GSQLBackend::getCatalogMembers(const ZoneName& catalog, vector<CatalogInfo>
   }
 
   members.reserve(d_result.size());
-  for (const auto& row : d_result) { // id, zone, options, [master]
+  for (const auto& row : d_result) { // id, zone, type, options, [master]
     if (type == CatalogInfo::CatalogType::Producer) {
-      ASSERT_ROW_COLUMNS("info-producer/consumer-members-query", row, 3);
+      ASSERT_ROW_COLUMNS("info-producer/consumer-members-query", row, 4);
     }
     else {
-      ASSERT_ROW_COLUMNS("info-producer/consumer-members-query", row, 4);
+      ASSERT_ROW_COLUMNS("info-producer/consumer-members-query", row, 5);
     }
 
     CatalogInfo ci;
@@ -718,6 +727,16 @@ bool GSQLBackend::getCatalogMembers(const ZoneName& catalog, vector<CatalogInfo>
       return false;
     }
 
+    auto kind = DomainInfo::stringToKind(row[2]);
+    auto isCatalog = kind == DomainInfo::Producer || kind == DomainInfo::Consumer;
+
+    if (isCatalog && ci.d_zone == catalog) {
+      SLOG(g_log << Logger::Warning << __PRETTY_FUNCTION__ << " catalog '" << ci.d_zone << "' cannot be a member of itself" << endl,
+           d_slog->info(Logr::Warning, "catalog cannot be a member of itself", "catalog", Logging::Loggable(ci.d_zone)));
+      members.clear();
+      return false;
+    }
+
     try {
       pdns::checked_stoi_into(ci.d_id, row[0]);
     }
@@ -729,18 +748,21 @@ bool GSQLBackend::getCatalogMembers(const ZoneName& catalog, vector<CatalogInfo>
     }
 
     try {
-      ci.fromJson(row[2], type);
+      ci.fromJson(row[3], type);
+      if (isCatalog) {
+        ci.addGroup(g_memberCatalogGroup);
+      }
     }
     catch (const std::runtime_error& e) {
-      SLOG(g_log << Logger::Warning << __PRETTY_FUNCTION__ << " options '" << row[2] << "' for zone '" << ci.d_zone << "' is no valid JSON: " << e.what() << endl,
-           d_slog->error(Logr::Warning, e.what(), "catalog 'options' field is not valid JSON", "zone", Logging::Loggable(ci.d_zone), "field", Logging::Loggable(row[2])));
+      SLOG(g_log << Logger::Warning << __PRETTY_FUNCTION__ << " options '" << row[3] << "' for zone '" << ci.d_zone << "' is no valid JSON: " << e.what() << endl,
+           d_slog->error(Logr::Warning, e.what(), "catalog 'options' field is not valid JSON", "zone", Logging::Loggable(ci.d_zone), "field", Logging::Loggable(row[3])));
       members.clear();
       return false;
     }
 
-    if (row.size() >= 4) { // Consumer only
+    if (type == CatalogInfo::CatalogType::Consumer) { // Consumer only
       vector<string> primaries;
-      stringtok(primaries, row[3], ", \t");
+      stringtok(primaries, row[4], ", \t");
       for (const auto& m : primaries) {
         try {
           ci.d_primaries.emplace_back(m, 53);

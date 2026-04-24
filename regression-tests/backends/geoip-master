@@ -118,7 +118,7 @@ EOF
 		# generate pdns.conf for pdnsutil
 		backend=geoip
 		cat > pdns-geoip.conf <<EOF
-module-dir=./modules
+module-dir=$PDNS_MODULE_PATH
 launch=geoip
 geoip-zones-file=$testsdir/geo.yaml
 geoip-database-files=$geoipdatabase
@@ -138,7 +138,7 @@ EOF
 			--cache-ttl=$cachettl --dname-processing --no-config \
 			--distributor-threads=1 \
                         --geoip-zones-file=$testsdir/geo.yaml --geoip-database-files="$geoipdatabase" \
-                        --module-dir="$PDNS_BUILD_PATH/modules" --edns-subnet-processing=yes \
+                        --edns-subnet-processing=yes \
 			$geoipkeydir &
 		;;
 

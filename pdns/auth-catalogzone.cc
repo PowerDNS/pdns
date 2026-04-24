@@ -117,7 +117,7 @@ std::string CatalogInfo::toJson() const
 void CatalogInfo::updateCatalogHash(CatalogHashMap& hashes, const DomainInfo& di)
 {
   CatalogInfo ci;
-  hashes[di.catalog].process(std::to_string(di.id) + di.zone.toLogString());
+  hashes[di.catalog].process(std::to_string(di.id) + di.zone.toLogString() + DomainInfo::getKindString(di.kind));
   if (ci.parseJson(di.options, CatalogType::Producer)) {
     hashes[di.catalog].process(ci.d_doc["producer"].dump());
   }

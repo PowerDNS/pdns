@@ -2671,8 +2671,15 @@ bool LMDBBackend::getCatalogMembers(const ZoneName& catalog, vector<CatalogInfo>
 
   try {
     getAllDomainsFiltered(&scratch, [this, &catalog, &members, &type](DomainInfo& di) {
-      if ((type == CatalogInfo::CatalogType::Producer && di.kind != DomainInfo::Primary) || (type == CatalogInfo::CatalogType::Consumer && di.kind != DomainInfo::Secondary) || di.catalog != catalog) {
+      if ((type == CatalogInfo::CatalogType::Producer && !di.isPrimaryType()) || (type == CatalogInfo::CatalogType::Consumer && !di.isSecondaryType()) || di.catalog != catalog) {
         return false;
+      }
+
+      if (di.isCatalogType() && di.zone == di.catalog) {
+        SLOG(g_log << Logger::Warning << __PRETTY_FUNCTION__ << " catalog '" << di.zone << "' cannot be a member of itself" << endl,
+             d_slog->info(Logr::Warning, "catalog cannot be a member of itself", "catalog", Logging::Loggable(di.zone)));
+        members.clear();
+        throw getCatalogMembersReturnFalseException();
       }
 
       CatalogInfo ci;
@@ -2681,6 +2688,9 @@ bool LMDBBackend::getCatalogMembers(const ZoneName& catalog, vector<CatalogInfo>
       ci.d_primaries = di.primaries;
       try {
         ci.fromJson(di.options, type);
+        if (di.isCatalogType()) {
+          ci.addGroup(g_memberCatalogGroup);
+        }
       }
       catch (const std::runtime_error& e) {
         SLOG(g_log << Logger::Warning << __PRETTY_FUNCTION__ << " options '" << di.options << "' for zone '" << di.zone << "' is no valid JSON: " << e.what() << endl,

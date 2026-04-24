@@ -119,6 +119,8 @@ or, prior to version 5.0:
   pdnsutil set-catalog example.com catalog.example
   pdnsutil set-kind example.com primary
 
+Since version 5.1.0 a catalog zone can be a member of another catalog.
+
 Setting catalog values is supported in the :doc:`API <http-api/zone>`, by setting the ``catalog`` property in the zone properties.
 Setting the catalog to an empty ``""`` removes the member zone from the catalog it is in.
 

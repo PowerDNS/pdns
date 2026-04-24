@@ -57,6 +57,7 @@ AuthPacketCache PC;
 AuthQueryCache QC;
 AuthZoneCache g_zoneCache;
 uint16_t g_maxNSEC3Iterations{0};
+std::string g_memberCatalogGroup;
 
 namespace po = boost::program_options;
 po::variables_map g_vm;
