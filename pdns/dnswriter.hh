@@ -87,8 +87,8 @@ public:
 
   void xfr48BitInt(uint64_t val);
   void xfrNodeOrLocatorID(const NodeOrLocatorID& val);
-  void xfr32BitInt(uint32_t val);
-  void xfr16BitInt(uint16_t val);
+  void xfr32BitInt(uint64_t val);
+  void xfr16BitInt(uint64_t val);
   void xfrType(uint16_t val)
   {
     xfr16BitInt(val);
@@ -125,7 +125,7 @@ public:
     xfr32BitInt(val);
   }
 
-  void xfr8BitInt(uint8_t val);
+  void xfr8BitInt(uint64_t val);
 
   void xfrName(const DNSName& name, bool compress=false);
   void xfrText(const string& text, bool multi=false, bool lenField=true);
