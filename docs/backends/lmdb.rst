@@ -10,7 +10,7 @@ LMDB backend
 * DNS Update: since version 5.0.0
 * DNSSEC: Yes
 * Disabled data: Yes
-* Comments: No
+* Comments: since version 5.1.0
 * Search: since version 5.0.0
 * Views: Yes
 * API: Read-Write
