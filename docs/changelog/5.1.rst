@@ -2,6 +2,170 @@ Changelogs for 5.1.x
 ====================
 
 .. changelog::
+  :version: 5.1.0-beta1
+  :released: 27th of April 2026
+
+  This is release 5.1.0-beta1 of the Authoritative Server.
+  It provides many small new features and improvements, as well as bug fixes,
+  including fixes for the PowerDNS Security Advisory 2026-05.
+
+  Please review the :doc:`Upgrade Notes <../upgrading>` before upgrading from versions < 5.0.x.
+
+  .. change::
+    :tags: New Features
+    :pullreq: 16522
+
+    lmdb: full support for comments
+
+  .. change::
+    :tags: New Features
+    :pullreq: 16725
+
+    lmdb: split domains table
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 16734
+    :tickets: 13987, 16702
+
+    Fix a bunch of issues when building with `meson`
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16783, 17035
+
+    Modernize documentation
+
+  .. change::
+    :tags: Bug Fixes,API
+    :pullreq: 17000
+
+    correctly delete ENT records from the API
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17004
+
+    minor lmdb fixes (for the 42nd time)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17011
+
+    redact more configuration secrets in the /config endpoint
+
+  .. change::
+    :tags: New Features
+    :pullreq: 17014
+    :tickets: 16073
+
+    simple protobuf logging support
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17048
+
+    Broader exception catching around stoi usage
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17071
+
+    DNSWriter: Prevent overflow when generating (too) large DNS packets
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17076
+
+    Handle malformed pointers in dnswriter
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17077
+
+    Dnsparser: Harden the DNS parser against malformed records
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17126
+
+    lua: one more bad case of createForward
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 17127
+
+    Complete the transition from Swagger to OpenAPI (Kevin P. Fleming)
+
+  .. change::
+    :tags: Bug Fixes,Tools
+    :pullreq: 17130
+
+    some pdns_control love
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 17134
+
+    only perform secpoll checks when they make sense
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 17148
+
+    add a configurable limit of web server connections
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17149
+
+    Webserver: correctly split the basic authorization cookie
+
+  .. change::
+    :tags: Bug Fixes,BIND
+    :pullreq: 17152
+
+    fixes to AXFR in Bind backend
+
+  .. change::
+    :tags: Bug Fixes,DNSUpdate
+    :pullreq: 17155
+
+    dnsupdate handling buglet
+
+  .. change::
+    :tags: Bug Fixes,GeoIP
+    :pullreq: 17160
+    :tickets: 17158
+
+    safer lua geoip queries
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17196
+
+    better handling of yahttp chunk size
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17198, 17193, 17228
+
+    Auth: fixes for SA 2026-05
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17200
+
+    Fix two cases of lacking/wrong max size compares
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17235
+    :tickets: 17077
+
+    Check boundary in getUnquotedText() as we do in getText()
+
+.. changelog::
   :version: 5.1.0-alpha1
   :released: 16th of March 2026
 
