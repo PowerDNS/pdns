@@ -888,9 +888,6 @@ void CommunicatorClass::suck(const ZoneName& domain, const ComboAddress& remote,
       SLOG(g_log << Logger::Notice << ctx.logPrefix << "starting AXFR" << endl,
            ctx.slog->info(Logr::Notice, "AXFR: starting"));
       rrs = doAxfr(tt, laddr, pdl, ctx);
-      if (!g_slogStructured) {
-        ctx.logPrefix.insert(0, 1, 'A'); // XFR -> AXFR
-      }
       SLOG(g_log << Logger::Notice << ctx.logPrefix << "retrieval finished" << endl,
            ctx.slog->info(Logr::Notice, "AXFR: retrieval finished"));
     }
