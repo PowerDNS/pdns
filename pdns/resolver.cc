@@ -229,6 +229,33 @@ namespace pdns {
   } // namespace resolver
 } // namespace pdns
 
+void Resolver::checkDomainExpired(DNSName* domain) {
+  if (::arg()["serve-after-expire"] == "on") return; // Config option should be "off" for this function to run
+  // Get the current time
+  time_t currentUnixTime = time(NULL);
+  if (currentUnixTime < 0) return; // Time could not be checked, so skip the expire check 
+/*
+  for (auto& backend : backends) {
+    // Do not risk passing variant zones to variant-unaware backends.
+    if (domain.hasVariant() && (backend->getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+      continue;
+    }
+    if (backend->getDomainInfo(domain, domainInfo, getSerial)) {
+      return true;
+    }
+  }
+  return false;
+*/
+  // <SQL execute (using currently used backend) "SELECT id as domain_id, last_check FROM domains WHERE name = ${domain.toString()}">
+  // <SQL execute (using currently used backend) "SELECT content FROM records WHERE type='SOA'" and export EXPIRE (index 5) from the record as soa_expire
+  // If at any point bullshit data or no data is returned, just return.
+
+  // if (currentUnixTime < (soa_expire + last_check)) return; // Check if the EXPIRE has elapsed. If no, return (do nothing)
+  // <SQL execute (using currently used backend) "DELETE FROM records WHERE domain_id=${domain_id} AND NOT type='SOA'">
+
+  // Maybe add a HINFO record to indicate that this domain was automatically removed?
+}
+
 bool Resolver::tryGetSOASerial(DNSName *domain, ComboAddress* remote, uint32_t *theirSerial, uint32_t *theirInception, uint32_t *theirExpire, uint16_t* id)
 {
   auto fds = std::make_unique<struct pollfd[]>(locals.size());
