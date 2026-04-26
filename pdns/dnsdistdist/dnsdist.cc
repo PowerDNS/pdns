@@ -77,6 +77,7 @@
 #include "dnsdist-tcp.hh"
 #include "dnsdist-tcp-downstream.hh"
 #include "dnsdist-tcp-upstream.hh"
+#include "dnsdist-udp.hh"
 #include "dnsdist-web.hh"
 #include "dnsdist-xsk.hh"
 
@@ -2841,51 +2842,7 @@ static void setupLocalSocket(ClientState& clientState, const ComboAddress& addr,
   }
 
   if (!tcp) {
-    if (immutableConfig.d_socketUDPSendBuffer > 0) {
-      try {
-        setSocketSendBuffer(socket, immutableConfig.d_socketUDPSendBuffer);
-      }
-      catch (const std::exception& e) {
-        SLOG(warnlog(e.what()),
-             logger->error(Logr::Warning, e.what(), "Failed to raise send buffer size on UDP server socket", "frontend.address", Logging::Loggable(addr)));
-      }
-    }
-    else {
-      try {
-        auto result = raiseSocketSendBufferToMax(socket);
-        if (result > 0) {
-          SLOG(infolog("Raised send buffer to %u for local address '%s'", result, addr.toStringWithPort()),
-               logger->info(Logr::Info, "Raised send buffer size", "frontend.address", Logging::Loggable(addr), "network.send_buffer_size", Logging::Loggable(result)));
-        }
-      }
-      catch (const std::exception& e) {
-        SLOG(warnlog(e.what()),
-             logger->error(Logr::Warning, e.what(), "Failed to raise send buffer size on UDP server socket", "frontend.address", Logging::Loggable(addr)));
-      }
-    }
-
-    if (immutableConfig.d_socketUDPRecvBuffer > 0) {
-      try {
-        setSocketReceiveBuffer(socket, immutableConfig.d_socketUDPRecvBuffer);
-      }
-      catch (const std::exception& e) {
-        SLOG(warnlog(e.what()),
-             logger->error(Logr::Warning, e.what(), "Failed to raise receive buffer size on UDP server socket", "frontend.address", Logging::Loggable(addr)));
-      }
-    }
-    else {
-      try {
-        auto result = raiseSocketReceiveBufferToMax(socket);
-        if (result > 0) {
-          SLOG(infolog("Raised receive buffer to %u for local address '%s'", result, addr.toStringWithPort()),
-               logger->info(Logr::Info, "Raised receive buffer size", "frontend.address", Logging::Loggable(addr), "buffer_size", Logging::Loggable(result)));
-        }
-      }
-      catch (const std::exception& e) {
-        SLOG(warnlog(e.what()),
-             logger->error(Logr::Warning, e.what(), "Failed to raise receive buffer size on UDP server socket", "frontend.address", Logging::Loggable(addr)));
-      }
-    }
+    dnsdist::udp::setUDPSocketBufferSizes(socket, *logger, dnsdist::udp::Context::Frontend, addr);
   }
 
   const std::string& itf = clientState.interface;
