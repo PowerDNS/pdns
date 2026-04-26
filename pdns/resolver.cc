@@ -51,6 +51,8 @@
 #include "gss_context.hh"
 #include "namespaces.hh"
 
+#include "dnsbackend.hh"
+
 using pdns::resolver::parseResult;
 
 int makeQuerySocket(const ComboAddress& local, bool udpOrTCP, bool nonLocalBind)
@@ -233,24 +235,26 @@ void Resolver::checkDomainExpired(DNSName* domain) {
   if (::arg()["serve-after-expire"] == "on") return; // Config option should be "off" for this function to run
   // Get the current time
   time_t currentUnixTime = time(NULL);
-  if (currentUnixTime < 0) return; // Time could not be checked, so skip the expire check 
-/*
-  for (auto& backend : backends) {
-    // Do not risk passing variant zones to variant-unaware backends.
-    if (domain.hasVariant() && (backend->getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
-      continue;
-    }
-    if (backend->getDomainInfo(domain, domainInfo, getSerial)) {
-      return true;
-    }
+  if (currentUnixTime < 0) return; // Time could not be checked, so skip the expire check
+  // Get the "last_check" time for the domain "domain"
+  
+  //! TODO GET THE BACKEND WORKING
+  UeberBackend B("default");  //NOLINT(readability-identifier-length)
+  //UtilBackend B; //NOLINT(readability-identifier-length)
+  DomainInfo di;
+  if (!B.getDomainInfo(domain, di)){
+    // If you get this to print, well fucking done.
+    cerr << "WTF? We just asked for an SOA for a zone that is not in the database" << endl;
+    return;
   }
-  return false;
-*/
-  // <SQL execute (using currently used backend) "SELECT id as domain_id, last_check FROM domains WHERE name = ${domain.toString()}">
-  // <SQL execute (using currently used backend) "SELECT content FROM records WHERE type='SOA'" and export EXPIRE (index 5) from the record as soa_expire
-  // If at any point bullshit data or no data is returned, just return.
+  time_t last_check = di.last_check;
+  
+  // Get SOA EXPIRE time
+  SOAData sd;
+  if(!B.getSOAUncached(domain, sd)) return; // We never had an SOA recieved from the server, so just skip the check.
+  uint32_t expire = sd.expire;
 
-  // if (currentUnixTime < (soa_expire + last_check)) return; // Check if the EXPIRE has elapsed. If no, return (do nothing)
+  if (currentUnixTime < (expire + last_check)) return; // Check if the EXPIRE has elapsed. If no, return (do nothing)
   // <SQL execute (using currently used backend) "DELETE FROM records WHERE domain_id=${domain_id} AND NOT type='SOA'">
 
 }
