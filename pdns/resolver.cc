@@ -253,7 +253,6 @@ void Resolver::checkDomainExpired(DNSName* domain) {
   // if (currentUnixTime < (soa_expire + last_check)) return; // Check if the EXPIRE has elapsed. If no, return (do nothing)
   // <SQL execute (using currently used backend) "DELETE FROM records WHERE domain_id=${domain_id} AND NOT type='SOA'">
 
-  // Maybe add a HINFO record to indicate that this domain was automatically removed?
 }
 
 bool Resolver::tryGetSOASerial(DNSName *domain, ComboAddress* remote, uint32_t *theirSerial, uint32_t *theirInception, uint32_t *theirExpire, uint16_t* id)
