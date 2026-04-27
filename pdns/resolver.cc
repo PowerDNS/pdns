@@ -51,7 +51,7 @@
 #include "gss_context.hh"
 #include "namespaces.hh"
 
-#include "dnsbackend.hh"
+#include "ueberbackend.hh"
 
 using pdns::resolver::parseResult;
 
@@ -244,12 +244,15 @@ void Resolver::checkDomainExpired(const DNSName& domain)
     g_log << "ERROR: We just asked for an SOA for a zone that is not in the database." << endl;
     return;
   }
+
+  if (!di.last_check) return;
   time_t last_check = di.last_check;
   
   SOAData sd;
-  if(!B.getSOAUncached(domain, sd)) return; // We never had an SOA recieved from the server, so just skip the check.
-  uint32_t expire = sd.expire;
+  if(!B.getSOAUncached((ZoneName&)domain, sd)) return;
+  uint64_t expire = (uint64_t)sd.expire;
 
+  if ((uint64_t)currentUnixTime - (uint64_t)last_check < expire) return;
 
   g_log << "Domain " << domain.toLogString() << " expired. Deleting domain records.";
   
@@ -310,7 +313,6 @@ bool Resolver::tryGetSOASerial(DNSName *domain, ComboAddress* remote, uint32_t *
   *domain = mdp.d_qname;
 
   if(domain->empty()) {
-    checkDomainExpired(*domain);
     throw ResolverException("SOA query to '" + remote->toLogString() + "' produced response without domain name (RCode: " + RCode::to_s(mdp.d_header.rcode) + ")");
   }
 
