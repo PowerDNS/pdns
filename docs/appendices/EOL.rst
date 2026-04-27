@@ -15,7 +15,7 @@ PowerDNS Authoritative Server 4.9 will only receive critical updates; it will be
 
 PowerDNS Authoritative Server 4.8 will only receive critical updates; it will be end of life after PowerDNS Authoritative Server 5.1 is released.
 
-PowerDNS Authoritative Server 4.0 through 4.7, 3.x, and 2.x are End of Life.
+PowerDNS Authoritative Server 4.0 through 4.8, 3.x, and 2.x are End of Life.
 
 Please refer to the support `commitment <https://www.powerdns.com/support-commitment>`_ for details on which versions are supported.
 
