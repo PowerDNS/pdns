@@ -250,9 +250,19 @@ void Resolver::checkDomainExpired(const DNSName& domain)
   if(!B.getSOAUncached(domain, sd)) return; // We never had an SOA recieved from the server, so just skip the check.
   uint32_t expire = sd.expire;
 
-  if (currentUnixTime < (expire + last_check)) return; // Check if the EXPIRE has elapsed. If no, return (do nothing)
-  // <SQL execute (using currently used backend) "DELETE FROM records WHERE domain_id=${domain_id} AND NOT type='SOA'">
 
+  g_log << "Domain " << domain.toLogString() << " expired. Deleting domain records.";
+  
+  di.backend->startTransaction((ZoneName&)domain, UnknownDomainID);
+  try {
+    if(!di.backend->deleteDomain((ZoneName&)domain)) {
+      throw PDNSException("Failed to delete domain '" + domain.toLogString() + "'");
+    }
+    di.backend->commitTransaction();
+  } catch (...) {
+    di.backend->abortTransaction();
+    throw;
+  }
 }
 
 bool Resolver::tryGetSOASerial(DNSName *domain, ComboAddress* remote, uint32_t *theirSerial, uint32_t *theirInception, uint32_t *theirExpire, uint16_t* id)
