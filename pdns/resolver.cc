@@ -237,20 +237,15 @@ void Resolver::checkDomainExpired(const DNSName& domain)
     return;
   }
   time_t currentUnixTime = time(nullptr);
-  // Get the "last_check" time for the domain "domain"
   
-  //! TODO GET THE BACKEND WORKING
   UeberBackend B;  //NOLINT(readability-identifier-length)
-  //UtilBackend B; //NOLINT(readability-identifier-length)
   DomainInfo di;
-  if (!B.getDomainInfo(domain, di)){
-    // If you get this to print, well fucking done.
-    cerr << "WTF? We just asked for an SOA for a zone that is not in the database" << endl;
+  if (!B.getDomainInfo((ZoneName&)domain, di)){
+    g_log << "ERROR: We just asked for an SOA for a zone that is not in the database." << endl;
     return;
   }
   time_t last_check = di.last_check;
   
-  // Get SOA EXPIRE time
   SOAData sd;
   if(!B.getSOAUncached(domain, sd)) return; // We never had an SOA recieved from the server, so just skip the check.
   uint32_t expire = sd.expire;
