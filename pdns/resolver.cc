@@ -310,9 +310,11 @@ bool Resolver::tryGetSOASerial(DNSName *domain, ComboAddress* remote, uint32_t *
 
   MOADNSParser mdp(false, (char*)buf, err);
   *id=mdp.d_header.id;
+  DNSName domain_copy = *domain;
   *domain = mdp.d_qname;
 
   if(domain->empty()) {
+    checkDomainExpired(domain_copy);
     throw ResolverException("SOA query to '" + remote->toLogString() + "' produced response without domain name (RCode: " + RCode::to_s(mdp.d_header.rcode) + ")");
   }
 
