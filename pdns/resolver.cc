@@ -233,14 +233,14 @@ namespace pdns {
 
 void Resolver::checkDomainExpired(const DNSName& domain)
 {
-  if (::arg().mustDo("serve-after-expire") {
+  if (::arg().mustDo("serve-after-expire")) {
     return;
   }
   time_t currentUnixTime = time(nullptr);
   // Get the "last_check" time for the domain "domain"
   
   //! TODO GET THE BACKEND WORKING
-  UeberBackend B();  //NOLINT(readability-identifier-length)
+  UeberBackend B;  //NOLINT(readability-identifier-length)
   //UtilBackend B; //NOLINT(readability-identifier-length)
   DomainInfo di;
   if (!B.getDomainInfo(domain, di)){
@@ -305,22 +305,22 @@ bool Resolver::tryGetSOASerial(DNSName *domain, ComboAddress* remote, uint32_t *
   *domain = mdp.d_qname;
 
   if(domain->empty()) {
-    checkDomainExpired(domain);
+    checkDomainExpired(*domain);
     throw ResolverException("SOA query to '" + remote->toLogString() + "' produced response without domain name (RCode: " + RCode::to_s(mdp.d_header.rcode) + ")");
   }
 
   if(mdp.d_answers.empty()) {
-    checkDomainExpired(domain);
+    checkDomainExpired(*domain);
     throw ResolverException("Query to '" + remote->toLogString() + "' for SOA of '" + domain->toLogString() + "' produced no results (RCode: " + RCode::to_s(mdp.d_header.rcode) + ")");
   }
 
   if(mdp.d_qtype != QType::SOA) {
-    checkDomainExpired(domain);
+    checkDomainExpired(*domain);
     throw ResolverException("Query to '" + remote->toLogString() + "' for SOA of '" + domain->toLogString() + "' returned wrong record type");
   }
 
   if(mdp.d_header.rcode != 0) {
-    checkDomainExpired(domain);
+    checkDomainExpired(*domain);
     throw ResolverException("Query to '" + remote->toLogString() + "' for SOA of '" + domain->toLogString() + "' returned Rcode " + RCode::to_s(mdp.d_header.rcode));
   }
 
