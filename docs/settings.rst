@@ -1533,7 +1533,7 @@ Turn on operating as a primary. See :ref:`primary-operation`.
 .. _setting-protobuf-servers:
 
 ``protobuf-servers``
------------
+--------------------
 
 .. versionadded:: 5.1.0
 

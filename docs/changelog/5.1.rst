@@ -3,7 +3,7 @@ Changelogs for 5.1.x
 
 .. changelog::
   :version: 5.1.0-beta1
-  :released: 27th of April 2026
+  :released: 29th of April 2026
 
   This is release 5.1.0-beta1 of the Authoritative Server.
   It provides many small new features and improvements, as well as bug fixes,
