@@ -277,6 +277,8 @@ static void declareArguments()
   ::arg().set("domain-metadata-cache-ttl", "Seconds to cache zone metadata from the database") = "";
   ::arg().set("zone-metadata-cache-ttl", "Seconds to cache zone metadata from the database") = "60";
 
+  ::arg().setSwitch("serve-after-expire", "Continue to serve RRs even when the SOA expire has elapsed") = "on";
+
   ::arg().set("trusted-notification-proxy", "IP address of incoming notification proxy") = "";
   ::arg().set("secondary-do-renotify", "If this secondary should send out notifications after receiving zone transfers from a primary") = "no";
   ::arg().set("forward-notify", "IP addresses to forward received notifications to regardless of primary or secondary settings") = "";
