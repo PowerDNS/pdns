@@ -231,15 +231,16 @@ namespace pdns {
   } // namespace resolver
 } // namespace pdns
 
-void Resolver::checkDomainExpired(DNSName* domain) {
-  if (::arg()["serve-after-expire"] == "on") return; // Config option should be "off" for this function to run
-  // Get the current time
-  time_t currentUnixTime = time(NULL);
-  if (currentUnixTime < 0) return; // Time could not be checked, so skip the expire check
+void Resolver::checkDomainExpired(const DNSName& domain)
+{
+  if (::arg().mustDo("serve-after-expire") {
+    return;
+  }
+  time_t currentUnixTime = time(nullptr);
   // Get the "last_check" time for the domain "domain"
   
   //! TODO GET THE BACKEND WORKING
-  UeberBackend B("default");  //NOLINT(readability-identifier-length)
+  UeberBackend B();  //NOLINT(readability-identifier-length)
   //UtilBackend B; //NOLINT(readability-identifier-length)
   DomainInfo di;
   if (!B.getDomainInfo(domain, di)){
