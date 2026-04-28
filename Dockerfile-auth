@@ -88,16 +88,12 @@ RUN apt-get update && apt-get -y dist-upgrade && \
         /tmp/equivs-dummy_1.0_all.deb && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Start script
+# Create unprivileged pdns user and directories
+RUN adduser --system --disabled-password --disabled-login --no-create-home --group pdns --uid 953 && \
+    install -d --owner pdns --group pdns /var/run/pdns /var/lib/powerdns /etc/powerdns/pdns.d /etc/powerdns/templates.d
+
 COPY dockerdata/startup.py /usr/local/sbin/pdns_server-startup
-
 COPY dockerdata/pdns.conf /etc/powerdns/
-RUN mkdir -p /etc/powerdns/pdns.d /var/run/pdns /var/lib/powerdns /etc/powerdns/templates.d
-
-# Work with pdns user - not root
-RUN adduser --system --disabled-password --disabled-login --no-create-home --group pdns --uid 953
-RUN chown pdns:pdns /var/run/pdns /var/lib/powerdns /etc/powerdns/pdns.d /etc/powerdns/templates.d
-USER pdns
 
 # Set up database - this needs to be smarter
 RUN sqlite3 /var/lib/powerdns/pdns.sqlite3 < /usr/local/share/doc/pdns/schema.sqlite3.sql
@@ -109,4 +105,5 @@ EXPOSE 53/tcp
 # Default webserver port
 EXPOSE 8081/tcp
 
+USER pdns
 ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/sbin/pdns_server-startup"]

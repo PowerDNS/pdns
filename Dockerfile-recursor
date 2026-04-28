@@ -105,19 +105,12 @@ RUN apt-get update && apt-get -y dist-upgrade && \
         /tmp/equivs-dummy_1.0_all.deb && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Start script
+# Create unprivileged pdns user and directories
+RUN adduser --system --disabled-password --disabled-login --no-create-home --group pdns --uid 953 && \
+    install -d --owner pdns --group pdns /var/run/pdns-recursor /etc/powerdns/recursor.d /etc/powerdns/templates.d
+
 COPY dockerdata/startup.py /usr/local/sbin/pdns_recursor-startup
-
-# Config file(s) from builder
 COPY dockerdata/recursor.conf /etc/powerdns/
-
-# Is recursor.d necessary if we copy the config into recursor.conf? (see above)
-RUN mkdir -p /etc/powerdns/recursor.d /var/run/pdns-recursor /etc/powerdns/templates.d
-
-# Work with pdns user - not root
-RUN adduser --system --disabled-password --disabled-login --no-create-home --group pdns --uid 953
-RUN chown pdns:pdns /var/run/pdns-recursor /etc/powerdns/recursor.d /etc/powerdns/templates.d
-USER pdns
 
 # Default DNS ports
 EXPOSE 53/udp
@@ -126,4 +119,5 @@ EXPOSE 53/tcp
 # Default webserver port
 EXPOSE 8082/tcp
 
+USER pdns
 ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/sbin/pdns_recursor-startup"]
