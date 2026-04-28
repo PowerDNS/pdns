@@ -92,32 +92,25 @@ RUN cd /tmp && mkdir /build/tmp/ && mkdir debian && \
 # Runtime
 FROM debian:trixie-slim
 
-# Reusable layer for base update - Should be cached from builder
-RUN apt-get update && apt-get -y dist-upgrade && apt-get clean
-
-# Ensure python3 and jinja2 is present (for startup script), and tini for signal management
-RUN apt-get install -y python3 python3-jinja2 tini libcap2-bin adduser && apt-get clean
-
-# Executables from builder
+# Copy build output
 COPY --from=builder /build /
 RUN chmod 1777 /tmp # FIXME: better not use /build/tmp for equivs at all
 
-# Ensure dependencies are present
-RUN apt-get install -y /tmp/equivs-dummy_1.0_all.deb && apt-get clean
+# Install python3 + jinja2 (for startup script), tini (for signal management) and dependencies
+RUN apt-get update && apt-get -y dist-upgrade && \
+    apt-get install -y \
+        python3 python3-jinja2 \
+        tini \
+        libcap2-bin adduser \
+        /tmp/equivs-dummy_1.0_all.deb && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Start script
+# Create unprivileged pdns user and directories
+RUN adduser --system --disabled-password --disabled-login --no-create-home --group pdns --uid 953 && \
+    install -d --owner pdns --group pdns /var/run/pdns-recursor /etc/powerdns/recursor.d /etc/powerdns/templates.d
+
 COPY dockerdata/startup.py /usr/local/sbin/pdns_recursor-startup
-
-# Config file(s) from builder
 COPY dockerdata/recursor.conf /etc/powerdns/
-
-# Is recursor.d necessary if we copy the config into recursor.conf? (see above)
-RUN mkdir -p /etc/powerdns/recursor.d /var/run/pdns-recursor /etc/powerdns/templates.d
-
-# Work with pdns user - not root
-RUN adduser --system --disabled-password --disabled-login --no-create-home --group pdns --uid 953
-RUN chown pdns:pdns /var/run/pdns-recursor /etc/powerdns/recursor.d /etc/powerdns/templates.d
-USER pdns
 
 # Default DNS ports
 EXPOSE 53/udp
@@ -126,4 +119,5 @@ EXPOSE 53/tcp
 # Default webserver port
 EXPOSE 8082/tcp
 
+USER pdns
 ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/sbin/pdns_recursor-startup"]
