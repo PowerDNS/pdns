@@ -70,19 +70,23 @@ RUN cd /tmp && mkdir /build/tmp/ && mkdir debian && \
 # Runtime
 FROM debian:trixie-slim
 
-# Reusable layer for base update - Should be cached from builder
-RUN apt-get update && apt-get -y dist-upgrade && apt-get clean
-
-# Ensure python3 and jinja2 is present (for startup script), and sqlite3 (for db schema), and tini (for signal management),
-#   and vim (for pdnsutil edit-zone) , and supervisor (for special use cases requiring advanced process management)
-RUN apt-get install -y python3 python3-jinja2 sqlite3 tini libcap2-bin vim-tiny supervisor adduser && apt-get clean
-
-# Output from builder
+# Copy build output
 COPY --from=builder /build /
 RUN chmod 1777 /tmp # FIXME: better not use /build/tmp for equivs at all
 
-# Ensure dependencies are present
-RUN apt-get install -y /tmp/equivs-dummy_1.0_all.deb && apt-get clean
+# Install python3 + jinja2 (for startup script), sqlite3 (for db schema), tini (for signal management),
+# vim (for pdnsutil edit-zone), supervisor (for special use cases requiring advanced process management)
+# and dependencies
+RUN apt-get update && apt-get -y dist-upgrade && \
+    apt-get install -y \
+        python3 python3-jinja2 \
+        sqlite3 \
+        tini \
+        vim-tiny \
+        supervisor \
+        libcap2-bin adduser \
+        /tmp/equivs-dummy_1.0_all.deb && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Start script
 COPY dockerdata/startup.py /usr/local/sbin/pdns_server-startup
@@ -101,6 +105,7 @@ RUN sqlite3 /var/lib/powerdns/pdns.sqlite3 < /usr/local/share/doc/pdns/schema.sq
 # Default DNS ports
 EXPOSE 53/udp
 EXPOSE 53/tcp
+
 # Default webserver port
 EXPOSE 8081/tcp
 
