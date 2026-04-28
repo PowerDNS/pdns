@@ -967,10 +967,13 @@ static vector<string> genericIfUp(Logr::log_t slog, const boost::variant<iplist_
     throw std::runtime_error("if{url,port}up health check has not completed yet");
   }
 
-  // Apply backupSelector on all candidates
+  // Apply backupSelector on all candidates in the first non-empty group
   vector<ComboAddress> ret{};
   for(const auto& unit : candidates) {
-    ret.insert(ret.end(), unit.begin(), unit.end());
+    if (!unit.empty()) {
+      ret.insert(ret.end(), unit.begin(), unit.end());
+      break;
+    }
   }
 
   vector<ComboAddress> res = useSelector(slog, getOptionValue<string>(options, "backupSelector", "random"), s_lua_record_ctx->bestwho, ret);
