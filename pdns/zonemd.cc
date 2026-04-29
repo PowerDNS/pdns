@@ -117,6 +117,9 @@ void pdns::ZoneMD::processRecord(const DNSRecord& record)
       }
       break;
     }
+    default:
+      // nothing
+      break;
     }
   }
 }
@@ -153,6 +156,9 @@ void pdns::ZoneMD::readRecord(const DNSRecord& record)
       }
       break;
     }
+    default:
+      // nothing
+      break;
     }
   }
   RRSetKey_t key = std::pair(record.d_name, record.d_type);
@@ -259,8 +265,16 @@ void pdns::ZoneMD::verify(bool& validationDone, bool& validationOK)
   }
 
   // Final verify
-  for (const auto& [k, v] : d_zonemdRecords) {
-    auto [zonemd, duplicate] = v;
+  for (const auto& record : d_zonemdRecords) {
+    const auto scheme = record.first.first;
+    const auto duplicate = record.second.duplicate;
+    if (scheme != 1 || duplicate) {
+      continue;
+    }
+    const auto zonemd = record.second.record;
+    if (zonemd->d_serial != d_soaRecordContent->d_st.serial) {
+      continue;
+    }
     if (zonemd->d_hashalgo == 1 && sha384digest) {
       validationDone = true;
       auto computed = sha384digest->digest();
