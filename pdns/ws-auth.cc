@@ -192,6 +192,7 @@ static void printtable(ostringstream& ret, const string& ringname, const std::st
 
   ret << "<div class=\"panel\">";
 
+  // NOLINTBEGIN(modernize-raw-string-literal)
   ret << "<span class=resetring><i></i>";
   ret << "<form method=\"post\">";
   ret << "<input type=\"hidden\" name=\"resetring\" value=\"" << htmlescape(ringname) << "\" />";
@@ -221,6 +222,7 @@ static void printtable(ostringstream& ret, const string& ringname, const std::st
   ret << "<input type=\"submit\" value=\"resize\" />";
   ret << "</form>";
   ret << "</span></div>";
+  // NOLINTEND(modernize-raw-string-literal)
 
   ret << "<table class=\"data\">";
   unsigned int printed = 0;
