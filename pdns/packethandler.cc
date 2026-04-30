@@ -988,18 +988,17 @@ How MySQLBackend would implement this:
 
 */
 
-int PacketHandler::tryAutoPrimary(const DNSPacket& p)
+int PacketHandler::tryAutoPrimary(const DNSPacket& p) // NOLINT(readability-identifier-length)
+
 {
   if(p.d_tcp) {
     // Do it right now if the client is TCP (rarely happens)
     return tryAutoPrimarySynchronous(p, p.getTSIGKeyname());
   }
-  else {
-    // Queue it if the client is on UDP; the communicator will invoke
-    // tryAutoPrimarySynchronous later.
-    Communicator.addTryAutoPrimaryRequest(p);
-    return RCode::NoError;
-  }
+  // Queue it if the client is on UDP; the communicator will invoke
+  // tryAutoPrimarySynchronous later.
+  Communicator.addTryAutoPrimaryRequest(p);
+  return RCode::NoError;
 }
 
 int PacketHandler::tryAutoPrimarySynchronous(const DNSPacket& p, const DNSName& tsigkeyname)
