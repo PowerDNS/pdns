@@ -41,6 +41,11 @@ inline uint16_t dns_random_uint16()
   return arc4random() & 0xffff;
 }
 
+inline void dns_random(void* buf, size_t size)
+{
+  arc4random_buf(buf, size);
+}
+
 namespace pdns
 {
 struct dns_random_engine
