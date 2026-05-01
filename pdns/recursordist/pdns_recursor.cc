@@ -3061,6 +3061,12 @@ static void handleUDPServerResponse(int fileDesc, FDMultiplexer::funcparam_t& va
     return;
   }
 
+  if (ntohs(dnsheader.qdcount) != 1 && (ntohs(dnsheader.ancount) > 0 || ntohs(dnsheader.nscount) > 0 || ntohs(dnsheader.arcount) > 0)) {
+    g_slogout->info(Logr::Error, "Invalid qdcount in answer", "from", Logging::Loggable(fromaddr));
+    t_Counters.at(rec::Counter::unexpectedCount)++;
+    return;
+  }
+
   try {
     if (len > signed_sizeof_sdnsheader) {
       pident->domain = DNSName(reinterpret_cast<const char*>(packet.data()), static_cast<int>(len), static_cast<int>(sizeof(dnsheader)), false, &pident->type); // don't copy this from above - we need to do the actual read  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
