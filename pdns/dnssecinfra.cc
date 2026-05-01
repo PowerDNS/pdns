@@ -19,6 +19,8 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include <cstdint>
+#include <limits>
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -49,6 +51,8 @@
 #include "misc.hh"
 
 using namespace boost::assign;
+
+uint32_t g_soa_edit_spread{0};
 
 std::unique_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromISCFile(Logr::log_t slog, DNSKEYRecordContent& drc, const char* fname)
 {
@@ -647,12 +651,36 @@ static DNSKEYRecordContent makeDNSKEYFromDNSCryptoKeyEngine(const std::shared_pt
   return drc;
 }
 
-uint32_t getStartOfWeek()
+// returns [startOfWeek, secondsSince]
+// startOfWeek is always 0:00 UTC on a Thursday
+// secondsSince is the number of seconds since that 0:00 UTC
+std::pair<uint32_t, uint32_t> getStartOfWeek()
 {
   // coverity[store_truncates_time_t]
   uint32_t now = time(nullptr);
-  now -= (now % (7*86400));
-  return now;
+  uint32_t secondsSince = (now % (7*86400));
+  return std::make_pair(now-secondsSince, secondsSince);
+}
+
+// if spreading is disabled: returns 0 (this means calling code behaves as before we introduced spreading)
+// if spreading is enabled: return the number of seconds since the 'week epoch' (thursday 0:00 UTC) that this zone should be soa-edit bumped at
+uint32_t weekSpreadDelay(const ZoneName& zone)
+{
+  if (g_soa_edit_spread == 0) {
+    return 0;
+  }
+
+  // uint32_t because our underlying burtleCI returns 32 bits
+  // don't change this to auto, it'll zero-extend the result which ends badly
+  uint32_t zonehash = zone.hash();
+
+  static_assert(sizeof(zonehash) == 4, "our burtleCI is 32 bits so this also needs to be 32 bits");
+
+  // this stacked division does two things:
+  // (1) take the zonehash value as an ordering, independent of the configured spread
+  // (2) stretch/compress (depending on how you look at it) this ordered list to the given number of spread seconds
+  auto spreaddelay = zonehash / (std::numeric_limits<decltype(zonehash)>::max() / g_soa_edit_spread);
+  return spreaddelay;
 }
 
 string hashQNameWithSalt(const NSEC3PARAMRecordContent& ns3prc, const DNSName& qname)

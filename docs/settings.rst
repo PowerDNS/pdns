@@ -1869,6 +1869,20 @@ signing-secondary.
 
 See :ref:`metadata-slave-renotify` to set this per-zone.
 
+.. _setting-soa-edit-spread:
+
+``soa-edit-spread``
+-------------------
+
+.. versionadded:: 5.1.3
+
+-  Integer (seconds)
+-  Default: 0
+-  Valid range: 0..604800
+
+If set to a non-zero value, SOA-EDIT will apply serial increases to different zones at different times.
+Over the configured spread time, a time will be chosen for each zone based on a hash over the zone name (including variant).
+
 .. _setting-soa-expire-default:
 
 ``soa-expire-default``
