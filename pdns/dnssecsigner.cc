@@ -115,7 +115,7 @@ static int getRRSIGsForRRSET(DNSSECKeeper& dsk, const ZoneName& signer, const DN
 {
   if(toSign.empty())
     return -1;
-  uint32_t startOfWeek = getStartOfWeek();
+  auto [startOfWeek, _] = getStartOfWeek();
   RRSIGRecordContent rrc;
   rrc.d_type=signQType;
 

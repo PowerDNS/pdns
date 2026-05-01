@@ -753,6 +753,7 @@ static void loadMainConfig(const std::string& configdir)
   ::arg().set("domain-metadata-cache-ttl", "Seconds to cache zone metadata from the database") = "0";
   ::arg().set("zone-metadata-cache-ttl", "Seconds to cache zone metadata from the database") = "60";
   ::arg().set("consistent-backends", "Assume individual zones are not divided over backends. Send only ANY lookup operations to the backend to reduce the number of lookups") = "yes";
+  ::arg().set("soa-edit-spread", "Seconds to spread SOA-EDIT bumps over") = "0";
 
   // Keep this line below all ::arg().set() statements
   if (! ::arg().laxFile(configname)) {
@@ -3343,6 +3344,16 @@ static bool showZone(DNSSECKeeper& dnsseckeeper, const ZoneName& zone, bool expo
       // for scripts to know that something is odd here
       return false;
     }
+  }
+
+  g_soa_edit_spread = ::arg().asNum("soa-edit-spread");
+  if (g_verbose && g_soa_edit_spread > 0) {
+    auto [inception, _] = getStartOfWeek();
+    auto delay = weekSpreadDelay(zone);
+    time_t bumpTt = inception + delay;
+    std::tm bumpTm{};
+    localtime_r(&bumpTt, &bumpTm);
+    cout << "soa-edit spread delay: " << delay << " (change time " << std::put_time(&bumpTm, "%c %Z") << ")" << endl;
   }
 
   NSEC3PARAMRecordContent ns3pr;
