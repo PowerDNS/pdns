@@ -2475,6 +2475,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       getOptionalValue<int>(vars, "internalPipeBufferSize", frontend->d_internalPipeBufferSize);
       getOptionalValue<int>(vars, "idleTimeout", frontend->d_quicheParams.d_idleTimeout);
       getOptionalValue<std::string>(vars, "keyLogFile", frontend->d_quicheParams.d_keyLogFile);
+      getOptionalValue<std::string>(vars, "qLogDir", frontend->d_quicheParams.d_qLogDir);
       getOptionalValue<bool>(vars, "padResponses", padResponses);
       {
         std::string valueStr;
@@ -2551,6 +2552,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       getOptionalValue<int>(vars, "internalPipeBufferSize", frontend->d_internalPipeBufferSize);
       getOptionalValue<int>(vars, "idleTimeout", frontend->d_quicheParams.d_idleTimeout);
       getOptionalValue<std::string>(vars, "keyLogFile", frontend->d_quicheParams.d_keyLogFile);
+      getOptionalValue<std::string>(vars, "qLogDir", frontend->d_quicheParams.d_qLogDir);
       getOptionalValue<bool>(vars, "padResponses", padResponses);
       {
         std::string valueStr;

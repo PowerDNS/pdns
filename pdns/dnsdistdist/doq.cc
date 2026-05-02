@@ -340,6 +340,14 @@ static std::optional<std::reference_wrapper<Connection>> createConnection(DOQSer
     quiche_conn_set_keylog_path(quicheConn.get(), config.df->d_quicheParams.d_keyLogFile.c_str());
   }
 
+#ifdef HAVE_QUICHE_CONN_SET_QLOG_PATH
+  if (config.df && !config.df->d_quicheParams.d_qLogDir.empty()) {
+    auto description = "peer_ip=" + peer.toString();
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): std::string's API
+    quiche_conn_set_qlog_path(quicheConn.get(), (config.df->d_quicheParams.d_qLogDir + "/" + std::string(reinterpret_cast<const char*>(originalDestinationID.data()), originalDestinationID.size()) + ".qlog").c_str(), "", description.c_str());
+  }
+#endif
+
   auto conn = Connection(*config.clientState, peer, localAddr, std::move(quicheConfig), std::move(quicheConn));
   gettimeofday(&conn.d_connectionStartTime, nullptr);
   auto pair = config.d_connections.emplace(serverSideID, std::move(conn));

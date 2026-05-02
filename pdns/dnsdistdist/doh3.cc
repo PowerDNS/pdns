@@ -449,6 +449,18 @@ static std::optional<std::reference_wrapper<H3Connection>> createConnection(DOH3
     quiche_conn_set_keylog_path(quicheConn.get(), config.df->d_quicheParams.d_keyLogFile.c_str());
   }
 
+#ifdef HAVE_QUICHE_CONN_SET_QLOG_PATH
+  if (config.df && !config.df->d_quicheParams.d_qLogDir.empty()) {
+    const unsigned char* trace_id = nullptr;
+    size_t trace_id_len = 0;
+    quiche_conn_trace_id(quicheConn.get(), &trace_id, &trace_id_len);
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): std::string's API
+    auto path = (config.df->d_quicheParams.d_qLogDir + "/" + std::string(reinterpret_cast<const char*>(trace_id), trace_id_len)) + ".qlog";
+    auto description = "peer_ip=" + peer.toString();
+    quiche_conn_set_qlog_path(quicheConn.get(), path.c_str(), "", description.c_str());
+  }
+#endif
+
   auto conn = H3Connection(peer, localAddr, std::move(quicheConfig), std::move(quicheConn), *config.clientState);
   gettimeofday(&conn.d_connectionStartTime, nullptr);
   auto pair = config.d_connections.emplace(serverSideID, std::move(conn));
