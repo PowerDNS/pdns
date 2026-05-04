@@ -313,7 +313,8 @@ public:
     std::ostringstream bodybuf; //<! buffer for body
     size_t maxbody; //<! maximum size of body
     size_t minbody; //<! minimum size of body
-    size_t headersize;                 
+    size_t headersize;
+    size_t bodysize;
     bool hasBody; //<! are we expecting body
 
     void keyValuePair(const std::string &keyvalue, std::string &key, std::string &value); //<! key value pair parser helper
@@ -325,28 +326,27 @@ public:
       hasBody = false;
       buffer = "";
       headersize = 0;
+      bodysize = 0;
       this->target->initialize();
     }; //<! Initialize the parser for target and clear state
     bool feed(const std::string& somedata); //<! Feed data to the parser
     bool ready() {
      return (chunked == true && state == 3) || // if it's chunked we get end of data indication
              (chunked == false && state > 1 &&  
-               (!hasBody || 
-                 (bodybuf.str().size() <= maxbody && 
-                  bodybuf.str().size() >= minbody)
-               )
-             ); 
+               (!hasBody || (bodysize <= maxbody && bodysize >= minbody))); 
     }; //<! whether we have received enough data
     void finalize() {
       bodybuf.flush();
       if (ready()) {
+        std::string body = bodybuf.str();
         strstr_map_t::iterator cpos = target->headers.find("content-type");
         if (cpos != target->headers.end() && Utility::iequals(cpos->second, "application/x-www-form-urlencoded", 32)) {
-          target->postvars = Utility::parseUrlParameters(bodybuf.str());
+          target->postvars = Utility::parseUrlParameters(body);
         }
-        target->body = bodybuf.str();
+        target->body = std::move(body);
       }
       bodybuf.str("");
+      bodysize = 0;
       this->target = NULL;
     }; //<! finalize and release target
   };
