@@ -162,3 +162,35 @@ class TestSimpleEBPF(DNSDistTest):
 
         # unblock 127.0.0.1
         self.sendConsoleCommand('bpf:unblock(newCA("127.0.0.1"))')
+
+
+@unittest.skipUnless("ENABLE_SUDO_TESTS" in os.environ, "sudo is not available")
+class TestEBPFRange(DNSDistTest):
+    _config_template = """
+    newServer{address="127.0.0.1:%d"}
+
+    bpf = newBPFFilter({ipv4MaxItems=10, ipv6MaxItems=10, qnamesMaxItems=10, cidr4MaxItems=10, cidr6MaxItems=10, external=true})
+    -- note that this is NOT enforced by DNSdist itself, and we are not going to load a XDP program, but at the very least we check that the maps have been created and entries can be inserted
+    bpf:addRangeRule("192.0.2.1/8", 1)
+    bpf:addRangeRule("2001:db8::1/32", 2)
+    """
+    _config_params = [
+        "_testServerPort",
+    ]
+    _sudoMode = True
+
+    def testNotBlocked(self):
+        name = "simplea.range-ebpf.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN", use_edns=False)
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
+        response.answer.append(rrset)
+        for method in [
+            "sendUDPQuery",
+            "sendTCPQuery",
+        ]:
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response, timeout=1)
+            receivedQuery.id = query.id
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
