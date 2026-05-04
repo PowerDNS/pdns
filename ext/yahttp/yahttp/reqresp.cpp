@@ -201,20 +201,25 @@ namespace YaHTTP {
             if (buffer.size() < chunk_size+2 || buffer.at(chunk_size+1) != '\n') return false; // expect newline after carriage return
             crlf=2;
           } else if (buffer.at(chunk_size) != '\n') return false;
-          if (bodybuf.str().length() + chunk_size > maxbody) {
+          if (bodysize + chunk_size > maxbody) {
             throw ParseError("Chunked body is too large");
           }
           std::string tmp = buffer.substr(0, chunk_size);
           buffer.erase(buffer.begin(), buffer.begin()+chunk_size+crlf);
           bodybuf << tmp;
+          bodysize += chunk_size;
           chunk_size = 0;
           if (buffer.size() == 0) break; // just in case
         }
       } else {
-        if (bodybuf.str().length() + buffer.length() > maxbody)
+        if (bodysize + buffer.length() > maxbody) {
           bodybuf << buffer.substr(0, maxbody - bodybuf.str().length());
-        else
+          bodysize = maxbody;
+        }
+        else {
           bodybuf << buffer;
+          bodysize += buffer.length();
+        }
         buffer = "";
       }
     }
