@@ -117,7 +117,7 @@ int rewriteResponseWithoutEDNS(const PacketBuffer& initialPacket, PacketBuffer& 
     rrname = pr.getName();
     pr.getDnsrecordheader(ah);
 
-    if (ah.d_type != QType::OPT) {
+    if (!rrname.isRoot() || ah.d_type != QType::OPT) {
       pw.startRecord(rrname, ah.d_type, ah.d_ttl, ah.d_class, DNSResourceRecord::ADDITIONAL, true);
       pr.xfrBlob(blob);
       pw.xfrBlob(blob);
@@ -231,7 +231,7 @@ bool slowRewriteEDNSOptionInQueryWithRecords(const PacketBuffer& initialPacket, 
     rrname = pr.getName();
     pr.getDnsrecordheader(ah);
 
-    if (ah.d_type != QType::OPT) {
+    if (!rrname.isRoot() || ah.d_type != QType::OPT) {
       pw.startRecord(rrname, ah.d_type, ah.d_ttl, ah.d_class, DNSResourceRecord::ADDITIONAL, true);
       pr.xfrBlob(blob);
       pw.xfrBlob(blob);
@@ -367,7 +367,7 @@ int locateEDNSOptRR(const PacketBuffer& packet, uint16_t * optStart, size_t * op
     rrname = pr.getName();
     pr.getDnsrecordheader(ah);
 
-    if (ah.d_type == QType::OPT) {
+    if (rrname.isRoot() && ah.d_type == QType::OPT) {
       *optStart = start;
       *optLen = (pr.getPosition() - start) + ah.d_clen;
 
@@ -830,7 +830,7 @@ int rewriteResponseWithoutEDNSOption(const PacketBuffer& initialPacket, const ui
     rrname = pr.getName();
     pr.getDnsrecordheader(ah);
 
-    if (ah.d_type != QType::OPT) {
+    if (!rrname.isRoot() || ah.d_type != QType::OPT) {
       pw.startRecord(rrname, ah.d_type, ah.d_ttl, ah.d_class, DNSResourceRecord::ADDITIONAL, true);
       pr.xfrBlob(blob);
       pw.xfrBlob(blob);
