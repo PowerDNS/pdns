@@ -226,6 +226,9 @@ void pdns::ZoneMD::verify(bool& validationDone, bool& validationOK)
     for (auto& resourceRecord : rrset.second) {
       if (qtype == QType::RRSIG) {
         const auto rrsig = std::dynamic_pointer_cast<const RRSIGRecordContent>(resourceRecord);
+        if (rrsig == nullptr) {
+          continue;
+        }
         if (rrsig->d_type == QType::ZONEMD && qname == DNSName(d_zone)) {
           continue;
         }
@@ -248,7 +251,10 @@ void pdns::ZoneMD::verify(bool& validationDone, bool& validationOK)
       // RRSIG is special, since  original TTL depends on qtype covered by RRSIG
       // which can be different per record
       for (const auto& rrsig : sorted) {
-        auto rrsigc = std::dynamic_pointer_cast<const RRSIGRecordContent>(rrsig);
+        const auto rrsigc = std::dynamic_pointer_cast<const RRSIGRecordContent>(rrsig);
+        if (rrsigc == nullptr) {
+          continue;
+        }
         RRSIGRecordContent rrc;
         rrc.d_originalttl = d_resourceRecordSetTTLs[pair(rrset.first.first, rrsigc->d_type)];
         rrc.d_type = qtype;
