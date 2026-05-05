@@ -653,8 +653,19 @@ int PacketHandler::processUpdate(DNSPacket& p) {
   g_log<<Logger::Info<<msgPrefix<<"Processing started."<<endl;
 
   // if there is policy, we delegate all checks to it
-  if (this->d_update_policy_lua == nullptr) {
-
+  string fname = ::arg()["lua-dnsupdate-policy-script"];
+  std::unique_ptr<AuthLua4> update_policy_lua;
+  if (!fname.empty()) {
+    try {
+      update_policy_lua = std::make_unique<AuthLua4>();
+      update_policy_lua->loadFile(fname);
+    }
+    catch (const std::runtime_error& e) {
+      g_log<<Logger::Warning<<"Failed to load update policy - disabling: "<<e.what()<<endl;
+      return RCode::Refused;
+    }
+  }
+  else {
     // Check permissions - IP based
     vector<string> allowedRanges;
     B.getDomainMetadata(p.qdomain, "ALLOW-DNSUPDATE-FROM", allowedRanges);
@@ -886,8 +897,8 @@ int PacketHandler::processUpdate(DNSPacket& p) {
       const DNSRecord *rr = &answer.first;
       if (rr->d_place == DNSResourceRecord::AUTHORITY) {
         /* see if it's permitted by policy */
-        if (this->d_update_policy_lua != nullptr) {
-          if (this->d_update_policy_lua->updatePolicy(rr->d_name, QType(rr->d_type), di.zone, p) == false) {
+        if (update_policy_lua != nullptr) {
+          if (update_policy_lua->updatePolicy(rr->d_name, QType(rr->d_type), di.zone, p) == false) {
             g_log<<Logger::Warning<<msgPrefix<<"Refusing update for " << rr->d_name << "/" << QType(rr->d_type).toString() << ": Not permitted by policy"<<endl;
             continue;
           } else {
