@@ -918,7 +918,7 @@ int PacketHandler::processUpdate(DNSPacket& packet) { // NOLINT(readability-func
         if (dnsRecord->d_class == QClass::NONE  && dnsRecord->d_type == QType::NS && dnsRecord->d_name == di.zone.operator const DNSName&()) {
           nsRRtoDelete.push_back(dnsRecord);
         }
-        else if (dnsRecord->d_class == QClass::IN &&  dnsRecord->d_ttl > 0) {
+        else if (dnsRecord->d_class == QClass::IN) {
           if (dnsRecord->d_type == QType::CNAME) {
             cnamesToAdd.push_back(dnsRecord);
           } else {
