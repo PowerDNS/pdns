@@ -15,7 +15,9 @@ module_extras = files(
   'ldaputils.hh',
   'powerldap.hh',
   'utils.hh',
+)
 
+module_resources = files(
   'dnsdomain2.schema',
   'pdns-domaininfo.schema',
 )

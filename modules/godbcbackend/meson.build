@@ -6,7 +6,9 @@ module_sources = files(
 module_extras = files(
   'godbcbackend.hh',
   'sodbc.hh',
+)
 
+module_resources = files(
   'schema.mssql.sql',
   '4.0.0_to_4.2.0_schema.mssql.sql',
   '4.2.0_to_4.3.0_schema.mssql.sql',

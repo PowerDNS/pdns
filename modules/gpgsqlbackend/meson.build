@@ -6,7 +6,9 @@ module_sources = files(
 module_extras = files(
   'gpgsqlbackend.hh',
   'spgsql.hh',
+)
 
+module_resources = files(
   'schema.pgsql.sql',
   'nodnssec-3.x_to_3.4.0_schema.pgsql.sql',
   'dnssec-3.x_to_3.4.0_schema.pgsql.sql',
