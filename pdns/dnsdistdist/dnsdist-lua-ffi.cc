@@ -2019,12 +2019,19 @@ bool dnsdist_ffi_dnspacket_parse_cname_record(const char* raw, const dnsdist_ffi
     return false;
   }
 
-  DNSName parsed(raw, record.d_contentOffset + record.d_contentLength, record.d_contentOffset, true);
-  const auto& storage = parsed.getStorage();
-  memcpy(name, storage.data(), storage.size());
-  *nameSize = storage.size();
+  try {
+    DNSName parsed(raw, record.d_contentOffset + record.d_contentLength, record.d_contentOffset, true);
+    const auto& storage = parsed.getStorage();
+    memcpy(name, storage.data(), storage.size());
+    *nameSize = storage.size();
 
-  return true;
+    return true;
+  }
+  catch (const std::exception& e) {
+    VERBOSESLOG(infolog("Error parsing CNAME record: %s", e.what()),
+                getLogger(__func__)->error(Logr::Info, e.what(), "Error parsing CNAME record"));
+    return false;
+  }
 }
 
 void dnsdist_ffi_dnspacket_free(dnsdist_ffi_dnspacket_t* packet)
