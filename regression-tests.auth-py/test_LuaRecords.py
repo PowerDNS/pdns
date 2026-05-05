@@ -1005,6 +1005,7 @@ createforward6.example.org.                 3600 IN NS   ns2.example.org.
                 "1-2-3-4": "1.2.3.4",
                 "1-2-3-4.foo": "1.2.3.4",
                 "1-2-3-4.foo.bar": "0.0.0.0",
+                "1-2-3-4aa.foo.bar": "0.0.0.0",
                 "1-2-3-4.foo.bar.baz": "0.0.0.0",
                 "1-2-3-4.foo.bar.baz.quux": "0.0.0.0",
                 "ip-1-2-3-4": "1.2.3.4",

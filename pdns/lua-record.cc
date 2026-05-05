@@ -842,6 +842,9 @@ static vector<string> genericIfUp(const boost::variant<iplist_t, ipunitlist_t>& 
   return convComboAddressListToString(res);
 }
 
+static string allZerosIP{"0.0.0.0"};
+static string allZerosIP6{"::"};
+
 static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cognitive-complexity)
 {
   lua.writeFunction("latlon", []() {
@@ -916,7 +919,6 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
       return std::string("error");
     });
   lua.writeFunction("createForward", []() {
-      static string allZerosIP{"0.0.0.0"};
       try {
         DNSName rel{s_lua_record_ctx->qname.makeRelative(s_lua_record_ctx->zone)};
 
@@ -945,13 +947,13 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
             // 1-2-3-4 with any prefix (e.g. ip-foo-bar-1-2-3-4)
             string ret;
             for (size_t index=4; index > 0; index--) {
-              auto octet = ip_parts.at(ip_parts.size() - index);
-              auto octetVal = std::stol(octet); // may throw
-              if (octetVal >= 0 && octetVal <= 255) {
-                ret += octet + ".";
-              } else {
+              const auto octet = ip_parts.at(ip_parts.size() - index);
+              size_t octetLength{0};
+              auto octetVal = pdns::checked_stoi<uint8_t>(octet, &octetLength); // may throw
+              if (octetLength != octet.length()) { // trailing chars after number
                 return allZerosIP;
               }
+              ret += std::to_string(octetVal) + ".";
             }
             ret.resize(ret.size() - 1); // remove trailing dot after last octet
             return ret;
@@ -971,13 +973,12 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
         return allZerosIP;
       } catch (const PDNSException &e) {
         return allZerosIP;
-      } catch (const std::exception &) { // thrown by std::stol
+      } catch (const std::exception &) { // thrown by pdns::checked_stoi
         return allZerosIP;
       }
     });
 
   lua.writeFunction("createForward6", []() {
-      static string allZerosIP{"::"};
       try {
         DNSName rel{s_lua_record_ctx->qname.makeRelative(s_lua_record_ctx->zone)};
 
@@ -1015,9 +1016,9 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
             return address.toString();
           }
         }
-        return allZerosIP;
+        return allZerosIP6;
       } catch (const PDNSException &e) {
-        return allZerosIP;
+        return allZerosIP6;
       }
     });
   lua.writeFunction("createReverse6", [](const string &format, boost::optional<std::unordered_map<string,string>> excp){
@@ -1081,7 +1082,7 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
   lua.writeFunction("filterForward", [](const string& address, NetmaskGroup& nmg, boost::optional<string> fallback) -> vector<string> {
       ComboAddress ca(address);
 
-      if (nmg.match(ComboAddress(address))) {
+      if (nmg.match(ca)) {
         return {address};
       } else {
         if (fallback) {
@@ -1093,9 +1094,9 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
         }
 
         if (ca.isIPv4()) {
-          return {string("0.0.0.0")};
+          return {allZerosIP};
         } else {
-          return {string("::")};
+          return {allZerosIP6};
         }
       }
     });
