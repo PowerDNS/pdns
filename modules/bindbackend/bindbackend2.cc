@@ -308,8 +308,8 @@ bool Bind2Backend::feedRecord(const DNSResourceRecord& rr, const DNSName& /* ord
   case QType::CNAME:
   case QType::DNAME:
   case QType::NS:
-    stripDomainSuffix(&content, d_transaction_qname.toString());
-    // fallthrough
+    stripDomainSuffix(&content, d_transaction_qname);
+    [[fallthrough]];
   default:
     if (d_of && *d_of) {
       *d_of << qname << "\t" << rr.ttl << "\t" << rr.qtype.toString() << "\t" << content << endl;

@@ -86,7 +86,7 @@ namespace OpenSSL
 string nowTime();
 string unquotify(const string &item);
 string humanDuration(time_t passed);
-bool stripDomainSuffix(string *qname, const string &domain);
+void stripDomainSuffix(string *qname, const DNSName &zonename);
 void stripLine(string &line);
 std::optional<string> getHostname();
 std::string getCarbonHostName();

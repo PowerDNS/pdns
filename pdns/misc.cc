@@ -305,42 +305,31 @@ string nowTime()
   return {buffer.data()};
 }
 
-static bool ciEqual(const string& lhs, const string& rhs)
-{
-  if (lhs.size() != rhs.size()) {
-    return false;
-  }
-
-  string::size_type pos = 0;
-  const string::size_type epos = lhs.size();
-  for (; pos < epos; ++pos) {
-    if (dns_tolower(lhs[pos]) != dns_tolower(rhs[pos])) {
-      return false;
-    }
-  }
-  return true;
-}
-
 /** does domain end on suffix? Is smart about "wwwds9a.nl" "ds9a.nl" not matching */
-static bool endsOn(const string &domain, const string &suffix)
+static bool endsOn(const string& domain, const string& suffix)
 {
-  if( suffix.empty() || ciEqual(domain, suffix) ) {
-    return true;
-  }
-
-  if(domain.size() <= suffix.size()) {
+  if (domain.size() <= suffix.size()) {
     return false;
   }
 
   string::size_type dpos = domain.size() - suffix.size() - 1;
-  string::size_type spos = 0;
-
   if (domain[dpos++] != '.') {
     return false;
   }
+  // That dot might have been escaped. So we now need to count how many '\'
+  // characters we can find in a row before it; if their number is odd, the
+  // dot is escaped and we are not a proper suffix.
+  size_t slashes{0};
+  while (dpos >= 2 + slashes && domain.at(dpos - 2 - slashes) == '\\') {
+    ++slashes;
+  }
+  if ((slashes % 2) != 0) {
+    return false;
+  }
 
-  for(; dpos < domain.size(); ++dpos, ++spos) {
-    if (dns_tolower(domain[dpos]) != dns_tolower(suffix[spos])) {
+  string::size_type spos = 0;
+  for (; dpos < domain.size(); ++dpos, ++spos) {
+    if (!pdns_iequals_ch(domain[dpos], suffix[spos])) {
       return false;
     }
   }
@@ -348,24 +337,22 @@ static bool endsOn(const string &domain, const string &suffix)
   return true;
 }
 
-/** strips a domain suffix from a domain, returns true if it stripped */
-bool stripDomainSuffix(string *qname, const string &domain)
+/** strips a domain suffix from a domain */
+void stripDomainSuffix(string *qname, const DNSName &zonename)
 {
-  if (!endsOn(*qname, domain)) {
-    return false;
-  }
+  std::string domain = zonename.toString();
 
-  if (toLower(*qname) == toLower(domain)) {
-    *qname="@";
+  if (domain.empty()) {
+    return;
   }
-  else {
-    if ((*qname)[qname->size() - domain.size() - 1] != '.') {
-      return false;
-    }
-
-    qname->resize(qname->size() - domain.size()-1);
+  if (pdns_iequals(*qname, domain)) {
+    *qname = "@";
+    return;
   }
-  return true;
+  if (endsOn(*qname, domain)) {
+    auto prefix = qname->size() - domain.size();
+    qname->resize(prefix - 1); // also strip dot
+  }
 }
 
 // returns -1 in case if error, 0 if no data is available, 1 if there is. In the first two cases, errno is set
