@@ -1596,12 +1596,15 @@ LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& address, bool 
 
   for (int tries = 0; tries < 2; ++tries) {
 
-    if (mode == EDNSStatus::NOEDNS) {
+    // We might have recorded (due to transient or spoofing issues) the target as not supporting
+    // EDNS. But if we plan to do DNSSEC validation, actually force EDNS for the first try so DNSSEC
+    // has a chance.
+    if ((tries == 0 && ednsMANDATORY) || mode != EDNSStatus::NOEDNS) {
+      EDNSLevel = 1;
+    }
+    else {
       t_Counters.at(rec::Counter::noEdnsOutQueries)++;
       EDNSLevel = 0; // level != mode
-    }
-    else if (ednsMANDATORY || mode != EDNSStatus::NOEDNS) {
-      EDNSLevel = 1;
     }
 
     DNSName sendQname(domain);
