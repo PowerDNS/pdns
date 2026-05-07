@@ -865,7 +865,6 @@ bool DNSSECKeeper::rectifyZone(const ZoneName& zone, string& error, string& info
     bool doent{true};
     uint32_t maxent = ::arg().asNum("max-ent-entries");
 
-  dononterm:;
     std::unordered_map<DNSName,RecordStatus>::const_iterator it;
     for (const auto& qname: qnames) {
       bool auth{true};
@@ -963,7 +962,107 @@ bool DNSSECKeeper::rectifyZone(const ZoneName& zone, string& error, string& info
         for(const auto& nt : nonterm) {
           qnames.insert(nt.first);
         }
-        goto dononterm;
+      }
+    }
+
+    if (doent) {
+      for (const auto& qname: qnames) {
+        bool auth{true};
+        DNSName ordername;
+        auto shorter(qname);
+
+        if (realrr) {
+          do {
+            if (nsset.count(shorter) != 0) {
+              auth = false;
+              break;
+            }
+          } while (shorter.chopOff());
+        } else {
+          auth = nonterm.find(qname)->second;
+        }
+
+        if (haveNSEC3) { // NSEC3
+          if (nsec3set.count(qname) != 0) {
+            if (!narrow) {
+              ordername = DNSName(toBase32Hex(hashQNameWithSalt(ns3pr, qname)));
+            }
+            if (!realrr && !isOptOut) {
+              auth = true;
+            }
+          }
+        }
+        else if (realrr && securedZone) { // NSEC
+          ordername = qname.makeRelative(zone);
+        }
+
+        it = rss.find(qname);
+        if (it == rss.end() || it->second.update || it->second.auth != auth || it->second.ordername != ordername) {
+          sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, auth, QType::ANY, haveNSEC3 && !narrow);
+          ++updates;
+        }
+
+        if (realrr) {
+          if (dsnames.count(qname) != 0) {
+            sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, true, QType::DS, haveNSEC3 && !narrow);
+            ++updates;
+          }
+          if (!auth || nsset.count(qname) != 0) {
+            ordername.clear();
+            if (isOptOut && dsnames.count(qname) == 0) {
+              sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, false, QType::NS, haveNSEC3 && !narrow);
+              ++updates;
+            }
+            sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, false, QType::A, haveNSEC3 && !narrow);
+            ++updates;
+            sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, false, QType::AAAA, haveNSEC3 && !narrow);
+            ++updates;
+          }
+
+          if (doent) {
+            shorter = qname;
+            while(shorter != zone.operator const DNSName&() && shorter.chopOff()) {
+              if (qnames.count(shorter) == 0) {
+                if (maxent == 0) {
+                  SLOG(g_log<<Logger::Warning<<"Zone '"<<zone<<"' has too many empty non terminals."<<endl,
+                       d_slog->info(Logr::Warning, "Too many empty non terminals in zone", "zone", Logging::Loggable(zone)));
+                  insnonterm.clear();
+                  delnonterm.clear();
+                  doent = false;
+                  break;
+                }
+
+                if (delnonterm.count(shorter) == 0 && nonterm.count(shorter) == 0) {
+                  insnonterm.insert(shorter);
+                }
+                else {
+                  delnonterm.erase(shorter);
+                }
+
+                if (nonterm.count(shorter) == 0) {
+                  nonterm.insert(pair<DNSName, bool>(shorter, auth));
+                  --maxent;
+                } else if (auth) {
+                  nonterm[shorter] = true;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      if (realrr) {
+        //cerr<<"Total: "<<nonterm.size()<<" Insert: "<<insnonterm.size()<<" Delete: "<<delnonterm.size()<<endl;
+        if (!insnonterm.empty() || !delnonterm.empty() || !doent) {
+          sd.db->updateEmptyNonTerminals(sd.domain_id, insnonterm, delnonterm, !doent);
+        }
+        if (doent) {
+          realrr = false;
+          qnames.clear();
+          for(const auto& nt : nonterm) {
+            qnames.insert(nt.first);
+          }
+        }
       }
     }
 
