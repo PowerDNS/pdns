@@ -1328,10 +1328,10 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheDumpAndRestore)
   const size_t expected = 100;
 
   for (size_t counter = 0; counter < expected; ++counter) {
-    DNSName a = DNSName("hello ") + DNSName(std::to_string(counter));
-    BOOST_CHECK_EQUAL(DNSName(a.toString()), a);
+    DNSName name = DNSName("hello ") + DNSName(std::to_string(counter));
+    BOOST_CHECK_EQUAL(DNSName(name.toString()), name);
 
-    MRC.replace(now, a, QType(QType::A), rset0, signatures, authRecords, true, authZone, boost::none, boost::none, vState::Insecure, somebody, false, ttl_time);
+    MRC.replace(now, name, QType(QType::A), rset0, signatures, authRecords, true, authZone, boost::none, boost::none, vState::Insecure, somebody, false, ttl_time);
   }
 
   BOOST_CHECK_EQUAL(MRC.size(), expected);
