@@ -764,7 +764,6 @@ bool DNSSECKeeper::rectifyZone(const ZoneName& zone, string& error, string& info
   ostringstream infostream;
   DNSResourceRecord rr;
   set<DNSName> qnames, nsset, dsnames, insnonterm, delnonterm;
-  std::unordered_map<DNSName,bool> nonterm;
   vector<DNSResourceRecord> rrs;
   std::unordered_map<DNSName,RecordStatus> rss;
 
@@ -861,6 +860,7 @@ bool DNSSECKeeper::rectifyZone(const ZoneName& zone, string& error, string& info
   try {
     sd.db->rectifyZoneHook(sd.domain_id, true);
 
+    std::unordered_map<DNSName,bool> nonterm;
     bool doent{true};
     uint32_t maxent = ::arg().asNum("max-ent-entries");
 
@@ -945,20 +945,12 @@ bool DNSSECKeeper::rectifyZone(const ZoneName& zone, string& error, string& info
     if (!insnonterm.empty() || !delnonterm.empty() || !doent) {
       sd.db->updateEmptyNonTerminals(sd.domain_id, insnonterm, delnonterm, !doent);
     }
-    if (doent) {
-      qnames.clear();
-      for(const auto& nt : nonterm) {
-        qnames.insert(nt.first);
-      }
-    }
+    qnames.clear();
 
     if (doent) {
-      for (const auto& qname: qnames) {
-        bool auth{true};
+      for (const auto& nt : nonterm) { // NOLINT(readability-identifier-length)
+        auto [qname, auth] = nt;
         DNSName ordername;
-        auto shorter(qname);
-
-        auth = nonterm.find(qname)->second;
 
         if (haveNSEC3) { // NSEC3
           if (nsec3set.count(qname) != 0) {
