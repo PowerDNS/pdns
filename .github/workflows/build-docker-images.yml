@@ -178,7 +178,7 @@ jobs:
       IMAGE_NAME: ${{ secrets.DOCKERHUB_ORGANIZATION_NAME }}/${{ inputs.image-name }}
     steps:
       - name: Install cosign
-        uses: sigstore/cosign-installer@v4.1.1
+        uses: sigstore/cosign-installer@v4.1.2
       - name: Download digests
         uses: actions/download-artifact@v8
         with:
