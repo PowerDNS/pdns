@@ -1301,7 +1301,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheDumpAndRestore)
   dr.d_name = DNSName("hi");
   dr.d_type = QType::AAAA;
   dr.d_ttl = 3600;
-  dr.setContent(std::make_shared<ARecordContent>(ComboAddress("1::2:3:4")));
+  dr.setContent(std::make_shared<AAAARecordContent>(ComboAddress("1::2:3:4")));
   authRecords.emplace_back(dr);
 
   std::vector<std::shared_ptr<const RRSIGRecordContent>> signatures;
@@ -1326,9 +1326,18 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheDumpAndRestore)
   const ComboAddress somebody("::1");
   const time_t ttl_time = 90;
 
-  auto checker = [&] {
-    const size_t expected = 100;
+  const size_t expected = 100;
 
+  for (size_t counter = 0; counter < expected; ++counter) {
+    DNSName a = DNSName("hello ") + DNSName(std::to_string(counter));
+    BOOST_CHECK_EQUAL(DNSName(a.toString()), a);
+
+    MRC.replace(now, a, QType(QType::A), rset0, signatures, authRecords, true, authZone, boost::none, boost::none, vState::Insecure, somebody, false, ttl_time);
+  }
+
+  BOOST_CHECK_EQUAL(MRC.size(), expected);
+
+  auto checker = [&] {
     for (size_t counter = 0; counter < expected; ++counter) {
       DNSName a = DNSName("hello ") + DNSName(std::to_string(counter));
       BOOST_CHECK_EQUAL(DNSName(a.toString()), a);
