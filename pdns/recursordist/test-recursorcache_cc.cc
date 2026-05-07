@@ -1338,8 +1338,6 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheDumpAndRestore)
   BOOST_CHECK_EQUAL(MRC.size(), expected);
 
   auto checker = [&] {
-    const size_t expected = 100;
-
     for (size_t counter = 0; counter < expected; ++counter) {
       DNSName a = DNSName("hello ") + DNSName(std::to_string(counter));
       BOOST_CHECK_EQUAL(DNSName(a.toString()), a);
