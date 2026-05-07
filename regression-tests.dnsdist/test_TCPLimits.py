@@ -228,8 +228,8 @@ class TestTCPLimitsConnectionRate(DNSDistTest):
         query = dns.message.make_query(name, 'A', 'IN')
         response = dns.message.make_response(query)
 
-        # _maxConnectionRate connections in a row
-        for idx in range(self._maxConnectionRate):
+        # _maxConnectionRate connections in a row (minus one because startResponders opens a TCP connection to see if dnsdist is running)
+        for idx in range(self._maxConnectionRate - 1):
             (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response=response)
             receivedQuery.id = query.id
             self.assertEqual(receivedQuery, query)
