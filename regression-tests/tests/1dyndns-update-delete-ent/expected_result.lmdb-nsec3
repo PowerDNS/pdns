@@ -31,7 +31,7 @@ Reply to question for qname='nested.test.dyndns.', qtype=ANY
 Check ENT record disappearance and proper NSEC3 chaining
 --- Start: diff start step.2 ---
 > deeply.nested.test.dyndns	A	0	1.2.3.4	3600	'8os5tdupgih8h9limmlsb3hascs0uu72'	1
-> nested.test.dyndns	A	0	5.6.7.8	3600	''	1
+> nested.test.dyndns	A	0	5.6.7.8	3600	'atlj98b73ejgobef9qob8vjh1utc9hff'	1
 --- End: diff start step.2 ---
 
 Answer:

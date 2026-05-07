@@ -3356,10 +3356,14 @@ bool LMDBBackend::updateEmptyNonTerminals(domainid_t domain_id, set<DNSName>& in
       name.makeUsRelative(info.zone);
       std::string match = order(domain_id, name, QType::ENT);
       MDBOutVal val{};
+      // If the given ENT record actually exists, and has a matching NSEC3
+      // record, check if there are any other records with the same name,
+      // and remove the NSEC3 record if not, to not leave a dangling record.
       if (txn->txn->get(txn->db->rdbi, match, val) == 0) {
         bool hadOrderName = peekAtHasOrderName(val.get<string_view>());
         txn->txn->del(txn->db->rdbi, match);
-        if (hadOrderName) {
+        auto cursor = txn->txn->getCursor(txn->db->rdbi);
+        if (hadOrderName && hasOrphanedNSEC3Record(cursor, domain_id, name)) {
           deleteNSEC3RecordPair(txn, domain_id, name);
         }
       }
