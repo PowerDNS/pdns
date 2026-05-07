@@ -394,6 +394,7 @@ testrunner_SOURCES = \
 	test-delaypipe_hh.cc \
 	test-dns_cc.cc \
 	test-dnscrypt_cc.cc \
+	test-dnsdist-concurrent-connections.cc \
 	test-dnsdist-connections-cache.cc \
 	test-dnsdist-dnsparser.cc \
 	test-dnsdist-lua-ffi.cc \

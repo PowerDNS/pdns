@@ -34,12 +34,13 @@ public:
     Denied = 1,
     Restricted = 2,
   };
-  static NewConnectionResult accountNewTCPConnection(const ComboAddress& from, bool isTLS, bool isQUIC = false);
+  static NewConnectionResult accountNewTCPConnection(const ComboAddress& from, bool isTLS, bool isQUIC = false, std::optional<time_t> now = std::nullopt);
   static bool isClientOverThreshold(const ComboAddress& from);
   static void accountTLSNewSession(const ComboAddress& from);
   static void accountTLSResumedSession(const ComboAddress& from);
   static void accountClosedTCPConnection(const ComboAddress& from);
   static void banClientFor(const ComboAddress& from, time_t now, uint32_t seconds);
   static void cleanup(time_t now);
+  static void clear();
 };
 }
