@@ -1045,12 +1045,13 @@ void MemRecursorCache::getRecordSet(T& message, U recordSet)
     for (const auto& authRec : *recordSet->d_authorityRecs) {
       protozero::pbf_builder<PBAuthRecord> auth(message, PBCacheEntry::repeated_message_authRecord);
       auth.add_bytes(PBAuthRecord::required_bytes_name, authRec.d_name.toString());
-      auth.add_bytes(PBAuthRecord::required_bytes_rdata, authRec.getContent()->serialize(authRec.d_name, true));
       auth.add_uint32(PBAuthRecord::required_uint32_type, authRec.d_type);
       auth.add_uint32(PBAuthRecord::required_uint32_class, authRec.d_class);
       auth.add_uint32(PBAuthRecord::required_uint32_ttl, authRec.d_ttl);
       auth.add_uint32(PBAuthRecord::required_uint32_place, authRec.d_place);
       auth.add_uint32(PBAuthRecord::required_uint32_clen, authRec.d_clen);
+      /* content needs to be done last otherwise we have a problem when deserializing because we don't know the correct type! */
+      auth.add_bytes(PBAuthRecord::required_bytes_rdata, authRec.getContent()->serialize(authRec.d_name, true));
     }
   }
   message.add_bytes(PBCacheEntry::required_bytes_authZone, recordSet->d_authZone.toString());
