@@ -38,17 +38,20 @@ namespace dnsdist
 {
 
 static constexpr size_t NB_SHARDS = 16;
+static constexpr time_t BUCKET_VALIDITY_SECONDS{60};
 
 struct ClientActivity
 {
   uint64_t tcpConnections{0};
   uint64_t tlsNewSessions{0}; /* without resumption */
   uint64_t tlsResumedSessions{0};
+  // the bucket is valid for BUCKET_VALIDITY_SECONDS seconds
   time_t bucketEndTime{0};
 };
 
 struct ClientEntry
 {
+  // we have "interval" buckets, each holding up to 1 minute of traffic
   mutable boost::circular_buffer<ClientActivity> d_activity;
   AddressAndPortRange d_addr;
   mutable uint64_t d_concurrentConnections{0};
@@ -73,7 +76,6 @@ using map_t = boost::multi_index_container<
 
 static std::vector<LockGuarded<map_t>> s_tcpClientsConnectionMetrics{NB_SHARDS};
 static std::atomic<time_t> s_nextCleanup{0};
-static constexpr time_t INACTIVITY_DELAY{60};
 
 static AddressAndPortRange getRange(const ComboAddress& from)
 {
@@ -93,8 +95,8 @@ static bool checkTCPConnectionsRate(const boost::circular_buffer<ClientActivity>
     return true;
   }
   uint64_t bucketsConsidered = 0;
-  uint64_t connectionsSeen = 0;
-  uint64_t tlsNewSeen = 0;
+  uint64_t connectionsSeen = 1U; /* the current one */
+  uint64_t tlsNewSeen = isTLS ? 1U : 0U;
   uint64_t tlsResumedSeen = 0;
   const auto cutOff = static_cast<time_t>(now - (interval * 60)); // interval is in minutes
   for (const auto& entry : activity) {
@@ -106,23 +108,34 @@ static bool checkTCPConnectionsRate(const boost::circular_buffer<ClientActivity>
     tlsNewSeen += entry.tlsNewSessions;
     tlsResumedSeen += entry.tlsResumedSessions;
   }
+
   if (bucketsConsidered == 0) {
     return true;
   }
+  size_t secondsLeftInCurrentBucket{0};
+  if (!activity.empty() && activity.front().bucketEndTime > now) {
+    secondsLeftInCurrentBucket = activity.front().bucketEndTime - now - 1;
+  }
+
+  auto period = (bucketsConsidered * BUCKET_VALIDITY_SECONDS) - secondsLeftInCurrentBucket;
+  if (period == 0) {
+    return true;
+  }
+
   if (maxTCPRate > 0) {
-    auto rate = connectionsSeen / bucketsConsidered;
+    auto rate = connectionsSeen / period;
     if (rate > maxTCPRate) {
       return false;
     }
   }
   if (maxTLSNewRate > 0 && isTLS) {
-    auto rate = tlsNewSeen / bucketsConsidered;
+    auto rate = tlsNewSeen / period;
     if (rate > maxTLSNewRate) {
       return false;
     }
   }
   if (maxTLSResumedRate > 0 && isTLS) {
-    auto rate = tlsResumedSeen / bucketsConsidered;
+    auto rate = tlsResumedSeen / period;
     if (rate > maxTLSResumedRate) {
       return false;
     }
@@ -155,16 +168,24 @@ void IncomingConcurrentTCPConnectionsManager::cleanup(time_t now)
   }
 }
 
+void IncomingConcurrentTCPConnectionsManager::clear()
+{
+  for (auto& shard : s_tcpClientsConnectionMetrics) {
+    auto db = shard.lock();
+    db->clear();
+  }
+}
+
 static ClientActivity& getCurrentClientActivity(const ClientEntry& entry, time_t now)
 {
   auto& activity = entry.d_activity;
   if (activity.empty() || activity.front().bucketEndTime < now) {
-    activity.push_front(ClientActivity{1, 0, 0, now + INACTIVITY_DELAY});
+    activity.push_front(ClientActivity{0U, 0U, 0U, now + BUCKET_VALIDITY_SECONDS});
   }
   return activity.front();
 }
 
-IncomingConcurrentTCPConnectionsManager::NewConnectionResult IncomingConcurrentTCPConnectionsManager::accountNewTCPConnection(const ComboAddress& from, bool isTLS, bool isQUIC)
+IncomingConcurrentTCPConnectionsManager::NewConnectionResult IncomingConcurrentTCPConnectionsManager::accountNewTCPConnection(const ComboAddress& from, bool isTLS, bool isQUIC, std::optional<time_t> now)
 {
   const auto& immutable = dnsdist::configuration::getImmutableConfiguration();
   const auto maxConnsPerClient = immutable.d_maxTCPConnectionsPerClient;
@@ -177,11 +198,14 @@ IncomingConcurrentTCPConnectionsManager::NewConnectionResult IncomingConcurrentT
     return NewConnectionResult::Allowed;
   }
 
-  auto now = time(nullptr);
+  if (!now) {
+    now = time(nullptr);
+  }
+
   auto updateActivity = [now](ClientEntry& entry) {
     ++entry.d_concurrentConnections;
-    entry.d_lastSeen = now;
-    auto& activity = getCurrentClientActivity(entry, now);
+    entry.d_lastSeen = *now;
+    auto& activity = getCurrentClientActivity(entry, *now);
     ++activity.tcpConnections;
   };
 
@@ -200,8 +224,8 @@ IncomingConcurrentTCPConnectionsManager::NewConnectionResult IncomingConcurrentT
                   dnsdist::logging::getTopLogger("concurrent-tcp-connections-manager")->info(Logr::Info, "Refusing connection", "reason", Logging::Loggable("too many connections"), "protocol", Logging::Loggable(getProtocol()), "client.address", Logging::Loggable(from)));
       return NewConnectionResult::Denied;
     }
-    if (!checkTCPConnectionsRate(entry.d_activity, now, tcpRate, tlsNewRate, tlsResumedRate, interval, isTLS)) {
-      entry.d_bannedUntil = now + immutable.d_tcpBanDurationForExceedingTCPTLSRate;
+    if (!checkTCPConnectionsRate(entry.d_activity, *now, tcpRate, tlsNewRate, tlsResumedRate, interval, isTLS)) {
+      entry.d_bannedUntil = *now + immutable.d_tcpBanDurationForExceedingTCPTLSRate;
       VERBOSESLOG(infolog("Banning connections from %s for %d seconds: too many new QUIC/TCP/TLS connections per second", from.toStringWithPort(), immutable.d_tcpBanDurationForExceedingTCPTLSRate),
                   dnsdist::logging::getTopLogger("concurrent-tcp-connections-manager")->info(Logr::Info, "Banning connections from this client", "reason", Logging::Loggable("too many new TCP/TLS connections per second"), "client.address", Logging::Loggable(from), "duration-seconds", Logging::Loggable(immutable.d_tcpBanDurationForExceedingTCPTLSRate)));
       return NewConnectionResult::Denied;
@@ -229,8 +253,7 @@ IncomingConcurrentTCPConnectionsManager::NewConnectionResult IncomingConcurrentT
       ClientEntry newEntry;
       newEntry.d_activity.set_capacity(interval);
       newEntry.d_addr = addr;
-      newEntry.d_concurrentConnections = 1;
-      newEntry.d_lastSeen = now;
+      updateActivity(newEntry);
       db->insert(std::move(newEntry));
       return NewConnectionResult::Allowed;
     }
