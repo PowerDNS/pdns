@@ -1143,7 +1143,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_very_big_replace)
   rec.d_ttl = now.tv_sec + 10;
   rec.setContent(getRecordContent(QType::NSEC3, "1 0 500 ab HASG==== A RRSIG NSEC3"));
   std::vector<std::shared_ptr<const RRSIGRecordContent>> sigs;
-  for (auto i = 0; i < 100; i++) {
+  for (auto i = 0; i < 200; i++) {
     auto rrsig = std::make_shared<RRSIGRecordContent>("NSEC3 5 3 10 20370101000000 20370101000000 24567 dummy. data");
     sigs.emplace_back(std::move(rrsig));
   }
