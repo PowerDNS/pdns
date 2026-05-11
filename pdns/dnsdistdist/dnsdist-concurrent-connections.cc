@@ -220,7 +220,7 @@ IncomingConcurrentTCPConnectionsManager::NewConnectionResult IncomingConcurrentT
   };
 
   auto checkConnectionAllowed = [now, from, maxConnsPerClient, threshold, tcpRate, tlsNewRate, tlsResumedRate, interval, isTLS, &immutable, &getProtocol](const ClientEntry& entry) {
-    if (entry.d_bannedUntil != 0 && entry.d_bannedUntil >= now) {
+    if (entry.d_bannedUntil != 0 && entry.d_bannedUntil >= *now) {
       VERBOSESLOG(infolog("Refusing %s connection from %s: banned", getProtocol(), from.toStringWithPort()),
                   dnsdist::logging::getTopLogger("concurrent-connections-manager")->info(Logr::Info, "Refusing connection", "reason", Logging::Loggable("banned"), "protocol", Logging::Loggable(getProtocol()), "client.address", Logging::Loggable(from)));
       return NewConnectionResult::Denied;
@@ -336,7 +336,9 @@ void IncomingConcurrentTCPConnectionsManager::accountClosedTCPConnection(const C
   }
   editEntryIfPresent(from, [](const ClientEntry& entry) {
     auto& count = entry.d_concurrentConnections;
-    count--;
+    if (count > 0) {
+      count--;
+    }
   });
 }
 
