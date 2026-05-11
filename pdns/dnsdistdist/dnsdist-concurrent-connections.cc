@@ -37,11 +37,20 @@
 namespace dnsdist
 {
 
-static constexpr size_t NB_SHARDS = 16;
-static constexpr time_t BUCKET_VALIDITY_SECONDS{60};
+static constexpr size_t NB_SHARDS = 16U;
+static constexpr time_t BUCKET_VALIDITY_SECONDS{60U};
 
 struct ClientActivity
 {
+  time_t getStartTime() const
+  {
+    return bucketEndTime - BUCKET_VALIDITY_SECONDS;
+  }
+  bool isStillValid(time_t now) const
+  {
+    return bucketEndTime > now;
+  }
+
   uint64_t tcpConnections{0};
   uint64_t tlsNewSessions{0}; /* without resumption */
   uint64_t tlsResumedSessions{0};
@@ -94,49 +103,46 @@ static bool checkTCPConnectionsRate(const boost::circular_buffer<ClientActivity>
   if (maxTCPRate == 0 && (!isTLS || (maxTLSNewRate == 0 && maxTLSResumedRate == 0))) {
     return true;
   }
-  uint64_t bucketsConsidered = 0;
   uint64_t connectionsSeen = 1U; /* the current one */
   uint64_t tlsNewSeen = 0U;
   uint64_t tlsResumedSeen = 0;
-  const auto cutOff = static_cast<time_t>(now - (interval * 60)); // interval is in minutes
+  time_t firstSeen{};
+  const auto cutOff = static_cast<time_t>(now - (interval * 60U)); // interval is in minutes
   for (const auto& entry : activity) {
-    if (entry.bucketEndTime < cutOff) {
+    if (entry.getStartTime() <= cutOff) {
       continue;
     }
-    ++bucketsConsidered;
+    if (firstSeen == 0 || entry.getStartTime() < firstSeen) {
+      firstSeen = entry.getStartTime();
+    }
     connectionsSeen += entry.tcpConnections;
     tlsNewSeen += entry.tlsNewSessions;
     tlsResumedSeen += entry.tlsResumedSessions;
   }
 
-  if (bucketsConsidered == 0) {
+  if (firstSeen == 0) {
     return true;
   }
-  size_t secondsLeftInCurrentBucket{0};
-  if (!activity.empty() && activity.front().bucketEndTime > now) {
-    secondsLeftInCurrentBucket = activity.front().bucketEndTime - now - 1;
-  }
 
-  auto period = (bucketsConsidered * BUCKET_VALIDITY_SECONDS) - secondsLeftInCurrentBucket;
+  auto period = 1U + (now - firstSeen);
   if (period == 0) {
     return true;
   }
-
   if (maxTCPRate > 0) {
-    auto rate = connectionsSeen / period;
-    if (rate > maxTCPRate) {
+    auto rate = connectionsSeen / (period * 1.0);
+    if (rate > (maxTCPRate * 1.0)) {
       return false;
     }
   }
   if (maxTLSNewRate > 0 && isTLS) {
-    auto rate = tlsNewSeen / period;
-    if (rate > maxTLSNewRate) {
+    auto rate = tlsNewSeen / (period * 1.0);
+    if (rate > (maxTLSNewRate * 1.0)) {
       return false;
     }
   }
   if (maxTLSResumedRate > 0 && isTLS) {
-    auto rate = tlsResumedSeen / period;
-    if (rate > maxTLSResumedRate) {
+    auto rate = tlsResumedSeen / (period * 1.0);
+    if (rate > (maxTLSResumedRate * 1.0)) {
       return false;
     }
   }
@@ -179,7 +185,7 @@ void IncomingConcurrentTCPConnectionsManager::clear()
 static ClientActivity& getCurrentClientActivity(const ClientEntry& entry, time_t now)
 {
   auto& activity = entry.d_activity;
-  if (activity.empty() || activity.front().bucketEndTime < now) {
+  if (activity.empty() || !activity.front().isStillValid(now)) {
     activity.push_front(ClientActivity{0U, 0U, 0U, now + BUCKET_VALIDITY_SECONDS});
   }
   return activity.front();

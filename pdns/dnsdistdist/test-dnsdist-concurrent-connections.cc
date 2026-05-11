@@ -51,15 +51,120 @@ BOOST_AUTO_TEST_CASE(test_Below_Rate)
     const ComboAddress client{"192.0.2.1"};
     for (size_t idx = 0; idx < maxTCPConnectionsRatePerClient; idx++) {
       auto result = dnsdist::IncomingConcurrentTCPConnectionsManager::accountNewTCPConnection(client, false, false, now);
-      BOOST_CHECK(result == dnsdist::IncomingConcurrentTCPConnectionsManager::NewConnectionResult::Allowed);
+      BOOST_REQUIRE(result == dnsdist::IncomingConcurrentTCPConnectionsManager::NewConnectionResult::Allowed);
       dnsdist::IncomingConcurrentTCPConnectionsManager::accountClosedTCPConnection(client);
     }
-    BOOST_CHECK(!dnsdist::IncomingConcurrentTCPConnectionsManager::isClientOverThreshold(client));
+    BOOST_REQUIRE(!dnsdist::IncomingConcurrentTCPConnectionsManager::isClientOverThreshold(client));
 
     /* one second later */
     now++;
   }
 }
+
+BOOST_AUTO_TEST_CASE(test_Below_Rate_Skipping_Bucket)
+{
+  const uint64_t maxTCPConnectionsRatePerClient = 10U;
+  const uint64_t tcpConnectionsRatePerClientInterval = 5U;
+  const uint64_t maxTCPConnectionsPerClient = 1U;
+  dnsdist::configuration::updateImmutableConfiguration([&](dnsdist::configuration::ImmutableConfiguration& config) {
+    config.d_maxTCPConnectionsPerClient = maxTCPConnectionsPerClient;
+    config.d_maxTCPConnectionsRatePerClient = maxTCPConnectionsRatePerClient;
+    config.d_tcpConnectionsRatePerClientInterval = tcpConnectionsRatePerClientInterval;
+  });
+
+  dnsdist::IncomingConcurrentTCPConnectionsManager::clear();
+  time_t now = time(nullptr);
+
+  /* simulate a client sending up to maxTCPConnectionsRatePerClient for 60 seconds */
+  for (size_t elapsed = 0; elapsed < 60U; elapsed++) {
+    const ComboAddress client{"192.0.2.1"};
+    for (size_t idx = 0; idx < maxTCPConnectionsRatePerClient; idx++) {
+      auto result = dnsdist::IncomingConcurrentTCPConnectionsManager::accountNewTCPConnection(client, false, false, now);
+      BOOST_REQUIRE(result == dnsdist::IncomingConcurrentTCPConnectionsManager::NewConnectionResult::Allowed);
+      dnsdist::IncomingConcurrentTCPConnectionsManager::accountClosedTCPConnection(client);
+    }
+    BOOST_REQUIRE(!dnsdist::IncomingConcurrentTCPConnectionsManager::isClientOverThreshold(client));
+
+    /* one second later */
+    now++;
+  }
+
+  /* nothing for one minute */
+  now += 60U;
+
+  /* than twice maxTCPConnectionsRatePerClient for 60 seconds, should be OK since it is averaged over 3 minutes */
+  for (size_t elapsed = 0; elapsed < 60U; elapsed++) {
+    const ComboAddress client{"192.0.2.1"};
+    for (size_t idx = 0; idx < (maxTCPConnectionsRatePerClient * 2U); idx++) {
+      auto result = dnsdist::IncomingConcurrentTCPConnectionsManager::accountNewTCPConnection(client, false, false, now);
+      BOOST_REQUIRE(result == dnsdist::IncomingConcurrentTCPConnectionsManager::NewConnectionResult::Allowed);
+      dnsdist::IncomingConcurrentTCPConnectionsManager::accountClosedTCPConnection(client);
+    }
+    BOOST_REQUIRE(!dnsdist::IncomingConcurrentTCPConnectionsManager::isClientOverThreshold(client));
+
+    /* one second later */
+    now++;
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_Above_Rate_After_Being_Below)
+{
+  const uint64_t maxTCPConnectionsRatePerClient = 10U;
+  const uint64_t tcpConnectionsRatePerClientInterval = 5U;
+  const uint64_t maxTCPConnectionsPerClient = 1U;
+  dnsdist::configuration::updateImmutableConfiguration([&](dnsdist::configuration::ImmutableConfiguration& config) {
+    config.d_maxTCPConnectionsPerClient = maxTCPConnectionsPerClient;
+    config.d_maxTCPConnectionsRatePerClient = maxTCPConnectionsRatePerClient;
+    config.d_tcpConnectionsRatePerClientInterval = tcpConnectionsRatePerClientInterval;
+  });
+
+  dnsdist::IncomingConcurrentTCPConnectionsManager::clear();
+  time_t now = time(nullptr);
+  const ComboAddress client{"192.0.2.1"};
+
+  /* simulate a client creating only one connection per minute for tcpConnectionsRatePerClientInterval minutes */
+  for (size_t elapsed = 0; elapsed < tcpConnectionsRatePerClientInterval; elapsed++) {
+    auto result = dnsdist::IncomingConcurrentTCPConnectionsManager::accountNewTCPConnection(client, false, false, now);
+    BOOST_REQUIRE(result == dnsdist::IncomingConcurrentTCPConnectionsManager::NewConnectionResult::Allowed);
+    dnsdist::IncomingConcurrentTCPConnectionsManager::accountClosedTCPConnection(client);
+    BOOST_REQUIRE(!dnsdist::IncomingConcurrentTCPConnectionsManager::isClientOverThreshold(client));
+
+    /* one MINUTE later */
+    now += 60U;
+  }
+
+  /* now 4 * maxTCPConnectionsRatePerClient connections per second for 60 seconds */
+  for (size_t elapsed = 0; elapsed < 60U; elapsed++) {
+    for (size_t idx = 0; idx < (4U * maxTCPConnectionsRatePerClient); idx++) {
+      auto result = dnsdist::IncomingConcurrentTCPConnectionsManager::accountNewTCPConnection(client, false, false, now);
+      BOOST_REQUIRE(result == dnsdist::IncomingConcurrentTCPConnectionsManager::NewConnectionResult::Allowed);
+      dnsdist::IncomingConcurrentTCPConnectionsManager::accountClosedTCPConnection(client);
+    }
+    BOOST_REQUIRE(!dnsdist::IncomingConcurrentTCPConnectionsManager::isClientOverThreshold(client));
+
+    /* one second later */
+    now++;
+  }
+
+  /* go back to the last second of the last bucket */
+  now--;
+
+  /* 596 new connections should bring us over the top, since the first bucket of one connection per minute
+     is no longer valid, so we have 4 buckets at 1 connection per minute + 1 bucket at 4 * maxTCPConnectionsRatePerClient connections per second
+     so 4 + (4 * maxTCPConnectionsRatePerClient * 60) = 2404, and the budget is maxTCPConnectionsRatePerClient * 60 * interval = 3000
+  */
+  for (size_t count = 0; count < (maxTCPConnectionsRatePerClient * 60U * tcpConnectionsRatePerClientInterval) - (tcpConnectionsRatePerClientInterval - 1U + (4U * maxTCPConnectionsRatePerClient * 60U)); count++) {
+    auto result = dnsdist::IncomingConcurrentTCPConnectionsManager::accountNewTCPConnection(client, false, false, now);
+    BOOST_REQUIRE(result == dnsdist::IncomingConcurrentTCPConnectionsManager::NewConnectionResult::Allowed);
+    dnsdist::IncomingConcurrentTCPConnectionsManager::accountClosedTCPConnection(client);
+    BOOST_REQUIRE(!dnsdist::IncomingConcurrentTCPConnectionsManager::isClientOverThreshold(client));
+  }
+  /* the last one */
+  auto result = dnsdist::IncomingConcurrentTCPConnectionsManager::accountNewTCPConnection(client, false, false, now);
+  BOOST_REQUIRE(result == dnsdist::IncomingConcurrentTCPConnectionsManager::NewConnectionResult::Denied);
+  dnsdist::IncomingConcurrentTCPConnectionsManager::accountClosedTCPConnection(client);
+}
+
 BOOST_AUTO_TEST_CASE(test_Above_Max_Concurrent_Connections)
 {
   const uint64_t maxTCPConnectionsRatePerClient = 10U;
@@ -77,14 +182,14 @@ BOOST_AUTO_TEST_CASE(test_Above_Max_Concurrent_Connections)
   const ComboAddress client{"192.0.2.1"};
   for (size_t idx = 0; idx < maxTCPConnectionsPerClient; idx++) {
     auto result = dnsdist::IncomingConcurrentTCPConnectionsManager::accountNewTCPConnection(client, false, false, now);
-    BOOST_CHECK(result == dnsdist::IncomingConcurrentTCPConnectionsManager::NewConnectionResult::Allowed);
+    BOOST_REQUIRE(result == dnsdist::IncomingConcurrentTCPConnectionsManager::NewConnectionResult::Allowed);
   }
-  BOOST_CHECK(dnsdist::IncomingConcurrentTCPConnectionsManager::isClientOverThreshold(client));
+  BOOST_REQUIRE(dnsdist::IncomingConcurrentTCPConnectionsManager::isClientOverThreshold(client));
 
   /* now go over the top */
   auto result = dnsdist::IncomingConcurrentTCPConnectionsManager::accountNewTCPConnection(client, false, false);
-  BOOST_CHECK(result == dnsdist::IncomingConcurrentTCPConnectionsManager::NewConnectionResult::Denied);
-  BOOST_CHECK(dnsdist::IncomingConcurrentTCPConnectionsManager::isClientOverThreshold(client));
+  BOOST_REQUIRE(result == dnsdist::IncomingConcurrentTCPConnectionsManager::NewConnectionResult::Denied);
+  BOOST_REQUIRE(dnsdist::IncomingConcurrentTCPConnectionsManager::isClientOverThreshold(client));
 }
 
 BOOST_AUTO_TEST_CASE(test_Above_Max_Connection_Rate)
@@ -104,14 +209,14 @@ BOOST_AUTO_TEST_CASE(test_Above_Max_Connection_Rate)
   const ComboAddress client{"192.0.2.1"};
   for (size_t idx = 0; idx < maxTCPConnectionsRatePerClient; idx++) {
     auto result = dnsdist::IncomingConcurrentTCPConnectionsManager::accountNewTCPConnection(client, false, false, now);
-    BOOST_CHECK(result == dnsdist::IncomingConcurrentTCPConnectionsManager::NewConnectionResult::Allowed);
+    BOOST_REQUIRE(result == dnsdist::IncomingConcurrentTCPConnectionsManager::NewConnectionResult::Allowed);
     dnsdist::IncomingConcurrentTCPConnectionsManager::accountClosedTCPConnection(client);
   }
-  BOOST_CHECK(!dnsdist::IncomingConcurrentTCPConnectionsManager::isClientOverThreshold(client));
+  BOOST_REQUIRE(!dnsdist::IncomingConcurrentTCPConnectionsManager::isClientOverThreshold(client));
 
   /* now go over the top */
   auto result = dnsdist::IncomingConcurrentTCPConnectionsManager::accountNewTCPConnection(client, false, false, now);
-  BOOST_CHECK(result == dnsdist::IncomingConcurrentTCPConnectionsManager::NewConnectionResult::Denied);
+  BOOST_REQUIRE(result == dnsdist::IncomingConcurrentTCPConnectionsManager::NewConnectionResult::Denied);
 }
 
 BOOST_AUTO_TEST_SUITE_END();
