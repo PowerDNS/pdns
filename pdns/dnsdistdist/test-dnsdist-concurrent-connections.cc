@@ -32,18 +32,35 @@
 
 BOOST_AUTO_TEST_SUITE(test_dnsdist_concurrent_connections)
 
-BOOST_AUTO_TEST_CASE(test_Below_Rate)
+static void initConfiguration(uint64_t maxTCPConnectionsRatePerClient, uint64_t tcpConnectionsRatePerClientInterval, uint64_t maxTCPConnectionsPerClient, uint32_t banDuration)
 {
-  const uint64_t maxTCPConnectionsRatePerClient = 10U;
-  const uint64_t tcpConnectionsRatePerClientInterval = 5U;
-  const uint64_t maxTCPConnectionsPerClient = 1U;
   dnsdist::configuration::updateImmutableConfiguration([&](dnsdist::configuration::ImmutableConfiguration& config) {
     config.d_maxTCPConnectionsPerClient = maxTCPConnectionsPerClient;
     config.d_maxTCPConnectionsRatePerClient = maxTCPConnectionsRatePerClient;
     config.d_tcpConnectionsRatePerClientInterval = tcpConnectionsRatePerClientInterval;
+    config.d_tcpBanDurationForExceedingTCPTLSRate = banDuration;
   });
+}
 
-  dnsdist::IncomingConcurrentTCPConnectionsManager::clear();
+struct TestFixture
+{
+  TestFixture()
+  {
+    dnsdist::IncomingConcurrentTCPConnectionsManager::clear();
+  }
+  ~TestFixture()
+  {
+    dnsdist::IncomingConcurrentTCPConnectionsManager::clear();
+  }
+};
+
+BOOST_FIXTURE_TEST_CASE(test_Below_Rate, TestFixture)
+{
+  const uint64_t maxTCPConnectionsRatePerClient = 10U;
+  const uint64_t tcpConnectionsRatePerClientInterval = 5U;
+  const uint64_t maxTCPConnectionsPerClient = 1U;
+  const uint32_t banDuration = 10U;
+  initConfiguration(maxTCPConnectionsRatePerClient, tcpConnectionsRatePerClientInterval, maxTCPConnectionsPerClient, banDuration);
   time_t now = time(nullptr);
 
   /* simulate a client sending up to maxTCPConnectionsRatePerClient every second, for 120 seconds (so 2 buckets) */
@@ -61,16 +78,13 @@ BOOST_AUTO_TEST_CASE(test_Below_Rate)
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_Below_Rate_Skipping_Bucket)
+BOOST_FIXTURE_TEST_CASE(test_Below_Rate_Skipping_Bucket, TestFixture)
 {
   const uint64_t maxTCPConnectionsRatePerClient = 10U;
   const uint64_t tcpConnectionsRatePerClientInterval = 5U;
   const uint64_t maxTCPConnectionsPerClient = 1U;
-  dnsdist::configuration::updateImmutableConfiguration([&](dnsdist::configuration::ImmutableConfiguration& config) {
-    config.d_maxTCPConnectionsPerClient = maxTCPConnectionsPerClient;
-    config.d_maxTCPConnectionsRatePerClient = maxTCPConnectionsRatePerClient;
-    config.d_tcpConnectionsRatePerClientInterval = tcpConnectionsRatePerClientInterval;
-  });
+  const uint32_t banDuration = 10U;
+  initConfiguration(maxTCPConnectionsRatePerClient, tcpConnectionsRatePerClientInterval, maxTCPConnectionsPerClient, banDuration);
 
   dnsdist::IncomingConcurrentTCPConnectionsManager::clear();
   time_t now = time(nullptr);
@@ -107,16 +121,13 @@ BOOST_AUTO_TEST_CASE(test_Below_Rate_Skipping_Bucket)
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_Above_Rate_After_Being_Below)
+BOOST_FIXTURE_TEST_CASE(test_Above_Rate_After_Being_Below, TestFixture)
 {
   const uint64_t maxTCPConnectionsRatePerClient = 10U;
   const uint64_t tcpConnectionsRatePerClientInterval = 5U;
   const uint64_t maxTCPConnectionsPerClient = 1U;
-  dnsdist::configuration::updateImmutableConfiguration([&](dnsdist::configuration::ImmutableConfiguration& config) {
-    config.d_maxTCPConnectionsPerClient = maxTCPConnectionsPerClient;
-    config.d_maxTCPConnectionsRatePerClient = maxTCPConnectionsRatePerClient;
-    config.d_tcpConnectionsRatePerClientInterval = tcpConnectionsRatePerClientInterval;
-  });
+  const uint32_t banDuration = 10U;
+  initConfiguration(maxTCPConnectionsRatePerClient, tcpConnectionsRatePerClientInterval, maxTCPConnectionsPerClient, banDuration);
 
   dnsdist::IncomingConcurrentTCPConnectionsManager::clear();
   time_t now = time(nullptr);
@@ -162,19 +173,19 @@ BOOST_AUTO_TEST_CASE(test_Above_Rate_After_Being_Below)
   /* the last one */
   auto result = dnsdist::IncomingConcurrentTCPConnectionsManager::accountNewTCPConnection(client, false, false, now);
   BOOST_REQUIRE(result == dnsdist::IncomingConcurrentTCPConnectionsManager::NewConnectionResult::Denied);
-  dnsdist::IncomingConcurrentTCPConnectionsManager::accountClosedTCPConnection(client);
+
+  /* check that the ban properly expires (takes a while to go below the rate, though, because we opened a lot of connections during the last minute ) */
+  result = dnsdist::IncomingConcurrentTCPConnectionsManager::accountNewTCPConnection(client, false, false, now + std::max(tcpConnectionsRatePerClientInterval * 60U, static_cast<uint64_t>(banDuration)) + 1U);
+  BOOST_REQUIRE(result == dnsdist::IncomingConcurrentTCPConnectionsManager::NewConnectionResult::Allowed);
 }
 
-BOOST_AUTO_TEST_CASE(test_Above_Max_Concurrent_Connections)
+BOOST_FIXTURE_TEST_CASE(test_Above_Max_Concurrent_Connections, TestFixture)
 {
   const uint64_t maxTCPConnectionsRatePerClient = 10U;
   const uint64_t tcpConnectionsRatePerClientInterval = 5U;
   const uint64_t maxTCPConnectionsPerClient = 1U;
-  dnsdist::configuration::updateImmutableConfiguration([&](dnsdist::configuration::ImmutableConfiguration& config) {
-    config.d_maxTCPConnectionsPerClient = maxTCPConnectionsPerClient;
-    config.d_maxTCPConnectionsRatePerClient = maxTCPConnectionsRatePerClient;
-    config.d_tcpConnectionsRatePerClientInterval = tcpConnectionsRatePerClientInterval;
-  });
+  const uint32_t banDuration = 10U;
+  initConfiguration(maxTCPConnectionsRatePerClient, tcpConnectionsRatePerClientInterval, maxTCPConnectionsPerClient, banDuration);
 
   dnsdist::IncomingConcurrentTCPConnectionsManager::clear();
   const time_t now = time(nullptr);
@@ -190,18 +201,22 @@ BOOST_AUTO_TEST_CASE(test_Above_Max_Concurrent_Connections)
   auto result = dnsdist::IncomingConcurrentTCPConnectionsManager::accountNewTCPConnection(client, false, false);
   BOOST_REQUIRE(result == dnsdist::IncomingConcurrentTCPConnectionsManager::NewConnectionResult::Denied);
   BOOST_REQUIRE(dnsdist::IncomingConcurrentTCPConnectionsManager::isClientOverThreshold(client));
+
+  /* now check that we are correctly allowed once at least one existing connections has been closed */
+  dnsdist::IncomingConcurrentTCPConnectionsManager::accountClosedTCPConnection(client);
+  result = dnsdist::IncomingConcurrentTCPConnectionsManager::accountNewTCPConnection(client, false, false);
+  BOOST_REQUIRE(result == dnsdist::IncomingConcurrentTCPConnectionsManager::NewConnectionResult::Allowed);
+  dnsdist::IncomingConcurrentTCPConnectionsManager::accountClosedTCPConnection(client);
+  BOOST_REQUIRE(!dnsdist::IncomingConcurrentTCPConnectionsManager::isClientOverThreshold(client));
 }
 
-BOOST_AUTO_TEST_CASE(test_Above_Max_Connection_Rate)
+BOOST_FIXTURE_TEST_CASE(test_Above_Max_Connection_Rate, TestFixture)
 {
   const uint64_t maxTCPConnectionsRatePerClient = 10U;
   const uint64_t tcpConnectionsRatePerClientInterval = 5U;
   const uint64_t maxTCPConnectionsPerClient = 1U;
-  dnsdist::configuration::updateImmutableConfiguration([&](dnsdist::configuration::ImmutableConfiguration& config) {
-    config.d_maxTCPConnectionsPerClient = maxTCPConnectionsPerClient;
-    config.d_maxTCPConnectionsRatePerClient = maxTCPConnectionsRatePerClient;
-    config.d_tcpConnectionsRatePerClientInterval = tcpConnectionsRatePerClientInterval;
-  });
+  const uint32_t banDuration = 10U;
+  initConfiguration(maxTCPConnectionsRatePerClient, tcpConnectionsRatePerClientInterval, maxTCPConnectionsPerClient, banDuration);
 
   dnsdist::IncomingConcurrentTCPConnectionsManager::clear();
   const time_t now = time(nullptr);
@@ -217,6 +232,10 @@ BOOST_AUTO_TEST_CASE(test_Above_Max_Connection_Rate)
   /* now go over the top */
   auto result = dnsdist::IncomingConcurrentTCPConnectionsManager::accountNewTCPConnection(client, false, false, now);
   BOOST_REQUIRE(result == dnsdist::IncomingConcurrentTCPConnectionsManager::NewConnectionResult::Denied);
+
+  /* check that the ban properly expires (takes a while to go below the rate) */
+  result = dnsdist::IncomingConcurrentTCPConnectionsManager::accountNewTCPConnection(client, false, false, now + std::max(60U, banDuration) + 1U);
+  BOOST_REQUIRE(result == dnsdist::IncomingConcurrentTCPConnectionsManager::NewConnectionResult::Allowed);
 }
 
 BOOST_AUTO_TEST_SUITE_END();
