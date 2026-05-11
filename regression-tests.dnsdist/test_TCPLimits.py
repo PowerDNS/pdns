@@ -234,10 +234,19 @@ class TestTCPLimitsConnectionRate(DNSDistTest):
             receivedQuery.id = query.id
             self.assertEqual(receivedQuery, query)
             self.assertEqual(receivedResponse, response)
-        # the next one should be past the max rate
-        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
-        self.assertEqual(receivedQuery, None)
-        self.assertEqual(receivedResponse, None)
+
+        blocked = False
+        # if we are unlucky a few of our connections fell into a different bucket,
+        # which is more likely if the test runner is slow, so let's allow up to
+        # self._maxConnectionRate * 2
+        for idx in range(self._maxConnectionRate):
+            (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
+            if receivedQuery is None and receivedResponse is None:
+                blocked = True
+                break
+
+        if not blocked:
+            self.fail()
 
 class TestTCPLimitsTLSNewSessionRate(DNSDistTest):
     # separate test suite because we get banned for a few seconds
@@ -280,12 +289,20 @@ class TestTCPLimitsTLSNewSessionRate(DNSDistTest):
             self.assertEqual(receivedQuery, query)
             self.assertEqual(receivedResponse, response)
 
-        try:
-            # the next one should be past the max rate
-            self.sendDOTQueryWrapper(query, response=None, useQueue=False)
+        blocked = False
+        # if we are unlucky a few of our connections fell into a different bucket,
+        # which is more likely if the test runner is slow, so let's allow up to
+        # _maxNewTLSSessionRate * 2 + 1
+        for idx in range(self._maxNewTLSSessionRate):
+            try:
+                self.sendDOTQueryWrapper(query, response=None, useQueue=False)
+            except ConnectionResetError:
+                blocked = True
+                break
+
+        if not blocked:
             self.fail()
-        except ConnectionResetError:
-          pass
+
 
 class TestTCPLimitsTLSResumedSessionRate(DNSDistTest):
     # separate test suite because we get banned for a few seconds
@@ -341,14 +358,24 @@ class TestTCPLimitsTLSResumedSessionRate(DNSDistTest):
             else:
                 self.assertTrue(conn.session_reused)
 
-        try:
-            # the next one should be past the max rate
-            conn = self.openTLSConnection(self._tlsServerPort, self._serverName, self._caCert, timeout=1, sslctx=sslctx, session=session)
-            self.sendTCPQueryOverConnection(conn, query, response=response, timeout=1)
-            self.recvTCPResponseOverConnection(conn, useQueue=True, timeout=1)
+        blocked = False
+        # if we are unlucky a few of our connections fell into a different bucket,
+        # which is more likely if the test runner is slow, so let's allow up to
+        # self._maxResumedTLSSessionRate * 2 = 2
+        for idx in range(self._maxResumedTLSSessionRate):
+            try:
+                conn = self.openTLSConnection(
+                    self._tlsServerPort, self._serverName, self._caCert, timeout=1, sslctx=sslctx, session=session
+                )
+                self.sendTCPQueryOverConnection(conn, query, response=response, timeout=1)
+                self.recvTCPResponseOverConnection(conn, useQueue=True, timeout=1)
+            except ConnectionResetError:
+                blocked = True
+                break
+
+        if not blocked:
             self.fail()
-        except ConnectionResetError:
-          pass
+
 
 class TestTCPFrontendLimits(DNSDistTest):
 
