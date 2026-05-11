@@ -275,6 +275,7 @@ static void declareArguments()
   ::arg().set("default-soa-edit", "Default SOA-EDIT value") = "";
   ::arg().set("default-soa-edit-signed", "Default SOA-EDIT value for signed zones") = "";
   ::arg().set("default-soa-edit-api", "Default SOA-EDIT-API value for new zones") = "DEFAULT";
+  ::arg().set("rrsig-expiry-extend", "Seconds to extend RRSIG expiry by") = "0";
   ::arg().set("dnssec-key-cache-ttl", "Seconds to cache DNSSEC keys from the database") = "30";
   ::arg().set("domain-metadata-cache-ttl", "Seconds to cache zone metadata from the database") = "";
   ::arg().set("zone-metadata-cache-ttl", "Seconds to cache zone metadata from the database") = "60";
@@ -802,6 +803,7 @@ static void mainthread()
   g_anyToTcp = ::arg().mustDo("any-to-tcp");
   g_8bitDNS = ::arg().mustDo("8bit-dns");
   g_logDNSQueries = ::arg().mustDo("log-dns-queries");
+  g_rrsig_expiry_extend = ::arg().asNum("rrsig-expiry-extend");
 #ifdef HAVE_LUA_RECORDS
   g_doLuaRecord = ::arg().mustDo("enable-lua-records");
   g_LuaRecordSharedState = (::arg()["enable-lua-records"] == "shared");

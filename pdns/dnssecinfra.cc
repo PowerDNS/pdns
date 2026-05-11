@@ -50,6 +50,8 @@
 
 using namespace boost::assign;
 
+int32_t g_rrsig_expiry_extend{0}; // not uint, so negative numbers are legal too
+
 std::unique_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromISCFile(Logr::log_t slog, DNSKEYRecordContent& drc, const char* fname)
 {
   string sline, isc;

@@ -299,3 +299,5 @@ void addTSIG(Logr::log_t slog, DNSPacketWriter& pw, TSIGRecordContent& trc, cons
 bool validateTSIG(Logr::log_t slog, const std::string& packet, size_t sigPos, const TSIGTriplet& tt, const TSIGRecordContent& trc, const std::string& previousMAC, const std::string& theirMAC, bool timersOnly, unsigned int dnsHeaderOffset=0);
 
 uint64_t signatureCacheSize(const std::string& str);
+
+extern int32_t g_rrsig_expiry_extend;
