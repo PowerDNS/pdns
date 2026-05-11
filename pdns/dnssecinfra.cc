@@ -52,6 +52,7 @@
 
 using namespace boost::assign;
 
+uint32_t g_rrsig_expiry_extend{0};
 uint32_t g_soa_edit_spread{0};
 
 std::unique_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromISCFile(Logr::log_t slog, DNSKEYRecordContent& drc, const char* fname)

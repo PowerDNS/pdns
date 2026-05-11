@@ -302,4 +302,5 @@ bool validateTSIG(Logr::log_t slog, const std::string& packet, size_t sigPos, co
 
 uint64_t signatureCacheSize(const std::string& str);
 
+extern uint32_t g_rrsig_expiry_extend;
 extern uint32_t g_soa_edit_spread;
