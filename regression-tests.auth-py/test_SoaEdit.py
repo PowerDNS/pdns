@@ -52,18 +52,21 @@ PrivateKey: Lt0v0Gol3pRUFM7fDdcy0IWN0O/MnEmVPA+VylL8Y4U=
 
         for i in range(15):
             for j in [1, 2]:
-                query = dns.message.make_query(f"{j}.example.org", "SOA", use_edns=True)
+                query = dns.message.make_query(f"{j}.example.org", "SOA", use_edns=True, want_dnssec=True)
                 res = self.sendUDPQuery(query)
 
                 # Ensure no error in response
                 self.assertRcodeEqual(res, dns.rcode.NOERROR)
 
-                # Validate SOA record
-                soa_found = any(rrset.rdtype == dns.rdatatype.SOA for rrset in res.answer)
-                self.assertTrue(soa_found, "SOA record not found in the answer section")
+                soa = list(filter(lambda rrset: rrset.rdtype == dns.rdatatype.SOA, res.answer))[0]
+                rrsig = list(filter(lambda rrset: rrset.rdtype == dns.rdatatype.RRSIG, res.answer))[0]
 
-                serials[j].append(res.answer[0][0].serial)
+                serials[j].append(soa[0].serial)
                 self.assertListEqual(serials[j], sorted(serials[j]))
+                print(rrsig[0].expiration)
+                self.assertEqual(
+                    rrsig[0].expiration, 1767830400 + self.extend
+                )  # 2026-01-08 00:00:00 UTC + self.extend, or two weeks plus self.extend seconds after our FAKETIME
 
             if set(serials[1]) == self.expected and set(serials[2]) == self.expected:
                 done = True
@@ -106,9 +109,11 @@ class TestSoaEditSpreadInceptionIncrement(TestSoaEditSpreadBase):
 launch={backend}
 default-soa-edit=INCEPTION-INCREMENT
 soa-edit-spread=10
+rrsig-expiry-extend=20
     """
 
     expected = {2025121801, 2025122501}
+    extend = 20
 
 
 class TestSoaEditSpreadIncrementWeeks(TestSoaEditSpreadBase):
@@ -119,6 +124,7 @@ soa-edit-spread=10
     """
 
     expected = {2921, 2922}
+    extend = 10
 
 
 class TestSoaEditSpreadInceptionEpoch(TestSoaEditSpreadBase):
@@ -128,7 +134,8 @@ default-soa-edit=INCEPTION-EPOCH
 soa-edit-spread=10
     """
 
-    expected = {2920*604800, 2921*604800}
+    expected = {2920 * 604800, 2921 * 604800}
+    extend = 10
 
 
 # with thanks to https://adamj.eu/tech/2025/05/30/python-unittest-common-tests/

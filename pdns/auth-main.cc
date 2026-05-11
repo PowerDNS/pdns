@@ -276,6 +276,7 @@ static void declareArguments()
   ::arg().set("default-soa-edit-signed", "Default SOA-EDIT value for signed zones") = "";
   ::arg().set("default-soa-edit-api", "Default SOA-EDIT-API value for new zones") = "DEFAULT";
   ::arg().set("soa-edit-spread", "Seconds to spread SOA-EDIT bumps over") = "0";
+  ::arg().set("rrsig-expiry-extend", "Seconds to extend RRSIG expiry by, or follow soa-edit-spread") = "soa-edit-spread";
   ::arg().set("dnssec-key-cache-ttl", "Seconds to cache DNSSEC keys from the database") = "30";
   ::arg().set("domain-metadata-cache-ttl", "Seconds to cache zone metadata from the database") = "";
   ::arg().set("zone-metadata-cache-ttl", "Seconds to cache zone metadata from the database") = "60";
@@ -807,6 +808,21 @@ static void mainthread()
 
     exit(1); // NOLINT(concurrency-mt-unsafe) we're single threaded at this point
   }
+
+  if (::arg()["rrsig-expiry-extend"] == "soa-edit-spread") {
+    g_rrsig_expiry_extend = g_soa_edit_spread;
+  }
+  else {
+    g_rrsig_expiry_extend = ::arg().asNum("rrsig-expiry-extend");
+
+    if (g_rrsig_expiry_extend > 31536000) {
+      SLOG(g_log << Logger::Error << "Value " << ::arg()["rrsig-expiry-extend"] << " for rrsig-expiry-extend too large" << endl,
+           slog->error(Logr::Error, "Out of range", "Invalid value", "rrsig-expiry-extend", Logging::Loggable(::arg()["rrsig-expiry-extend"])));
+
+      exit(1); // NOLINT(concurrency-mt-unsafe) we're single threaded at this point
+    }
+  }
+
 #ifdef HAVE_LUA_RECORDS
   g_doLuaRecord = ::arg().mustDo("enable-lua-records");
   g_LuaRecordSharedState = (::arg()["enable-lua-records"] == "shared");

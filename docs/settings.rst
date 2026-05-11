@@ -1739,6 +1739,21 @@ Specify which random number generator to use. Permissible choices are:
 .. note::
   Not all choices are available on all systems.
 
+.. _setting-rrsig-expiry-extend:
+
+``rrsig-expiry-extend``
+-----------------------
+
+.. versionadded:: 5.1.3
+
+- Integer (seconds)
+- Default: ``soa-edit-spread``
+- Valid range: 0..31536000 (zero seconds to one year), or special value ``soa-edit-spread``
+
+Seconds to extend RRSIG expiry by.
+This is added to the default 3 week span described in :ref:`dnssec-signatures`.
+If set to ``soa-edit-spread`` (the default), this copies the value of :ref:`setting-soa-edit-spread`, extending all RRSIG expiries by that full number.
+
 .. _setting-secondary:
 
 ``secondary``
