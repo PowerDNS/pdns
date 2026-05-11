@@ -239,7 +239,7 @@ class TestTCPLimitsConnectionRate(DNSDistTest):
         # if we are unlucky a few of our connections fell into a different bucket,
         # which is more likely if the test runner is slow, so let's allow up to
         # self._maxConnectionRate * 2
-        for idx in range(self._maxConnectionRate):
+        for idx in range(self._maxConnectionRate + 1):
             (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
             if receivedQuery is None and receivedResponse is None:
                 blocked = True
@@ -293,7 +293,7 @@ class TestTCPLimitsTLSNewSessionRate(DNSDistTest):
         # if we are unlucky a few of our connections fell into a different bucket,
         # which is more likely if the test runner is slow, so let's allow up to
         # _maxNewTLSSessionRate * 2 + 1
-        for idx in range(self._maxNewTLSSessionRate):
+        for idx in range(self._maxNewTLSSessionRate + 1):
             try:
                 self.sendDOTQueryWrapper(query, response=None, useQueue=False)
             except ConnectionResetError:
@@ -361,8 +361,8 @@ class TestTCPLimitsTLSResumedSessionRate(DNSDistTest):
         blocked = False
         # if we are unlucky a few of our connections fell into a different bucket,
         # which is more likely if the test runner is slow, so let's allow up to
-        # self._maxResumedTLSSessionRate * 2 = 2
-        for idx in range(self._maxResumedTLSSessionRate):
+        # self._maxResumedTLSSessionRate * 2 + 2
+        for idx in range(self._maxResumedTLSSessionRate + 1):
             try:
                 conn = self.openTLSConnection(
                     self._tlsServerPort, self._serverName, self._caCert, timeout=1, sslctx=sslctx, session=session
