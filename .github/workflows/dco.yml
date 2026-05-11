@@ -10,7 +10,7 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: KineticCafe/actions-dco@6e1652ef3027ce128e65e6edd215ae053350bd16 # 2.1.1
+      - uses: KineticCafe/actions-dco@f7fe2fdfb5808e2528042be3919b67079100b96b # 3.0.0
         with:
           exempt-authors: |
             @powerdns.com
