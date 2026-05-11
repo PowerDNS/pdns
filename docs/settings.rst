@@ -1739,6 +1739,20 @@ Specify which random number generator to use. Permissible choices are:
 .. note::
   Not all choices are available on all systems.
 
+.. _setting-rrsig-expiry-extend:
+
+``rrsig-expiry-extend``
+-----------------------
+
+.. versionadded:: 5.1.0
+
+- Integer
+- Default: 0
+- Valid range: -1814400..31536000 (minus 3 weeks to plus one year)
+
+Seconds to extend RRSIG expiry by.
+This is calculated relative to the default 3 week span described in :ref:`dnssec-signatures`.
+
 .. _setting-secondary:
 
 ``secondary``
