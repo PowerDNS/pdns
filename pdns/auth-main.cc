@@ -804,6 +804,14 @@ static void mainthread()
   g_8bitDNS = ::arg().mustDo("8bit-dns");
   g_logDNSQueries = ::arg().mustDo("log-dns-queries");
   g_rrsig_expiry_extend = ::arg().asNum("rrsig-expiry-extend");
+
+  if (g_rrsig_expiry_extend < -1814400 || g_rrsig_expiry_extend > 31536000) {
+    SLOG(g_log << Logger::Error << "Value " << ::arg()["rrsig-expiry-extend"] << " for rrsig-expiry-extend out of valid range" << endl,
+         slog->error(Logr::Error, "Out of range", "Invalid value", "rrsig-expiry-extend", Logging::Loggable(::arg()["rrsig-expiry-extend"])));
+
+    exit(1);
+  }
+
 #ifdef HAVE_LUA_RECORDS
   g_doLuaRecord = ::arg().mustDo("enable-lua-records");
   g_LuaRecordSharedState = (::arg()["enable-lua-records"] == "shared");
