@@ -20,7 +20,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
-
+#include <ctime>
 #include "iputils.hh"
 
 namespace dnsdist
@@ -34,7 +34,7 @@ public:
     Denied = 1,
     Restricted = 2,
   };
-  static NewConnectionResult accountNewTCPConnection(const ComboAddress& from, bool isTLS, bool isQUIC = false, std::optional<time_t> now = std::nullopt);
+  static NewConnectionResult accountNewTCPConnection(const ComboAddress& from, bool isTLS, bool isQUIC = false, time_t now = time(nullptr));
   static bool isClientOverThreshold(const ComboAddress& from);
   static void accountTLSNewSession(const ComboAddress& from);
   static void accountTLSResumedSession(const ComboAddress& from);
