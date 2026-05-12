@@ -154,11 +154,11 @@ void IncomingConcurrentTCPConnectionsManager::cleanup(time_t now)
   if (s_nextCleanup.load() > now) {
     return;
   }
-  s_nextCleanup.store(now + 60);
+  s_nextCleanup.store(now + 60U);
 
   const auto& immutable = dnsdist::configuration::getImmutableConfiguration();
   const auto interval = immutable.d_tcpConnectionsRatePerClientInterval;
-  const auto cutOff = static_cast<time_t>(now - (interval * 60)); // interval in minutes
+  const auto cutOff = static_cast<time_t>(now - (interval * 60U)); // interval in minutes
   for (auto& shard : s_tcpClientsConnectionMetrics) {
     auto db = shard.lock();
     auto& index = db->get<TimeTag>();
@@ -180,6 +180,16 @@ void IncomingConcurrentTCPConnectionsManager::clear()
     auto db = shard.lock();
     db->clear();
   }
+}
+
+size_t IncomingConcurrentTCPConnectionsManager::getNumberOfEntries()
+{
+  size_t total = 0;
+  for (auto& shard : s_tcpClientsConnectionMetrics) {
+    auto db = shard.lock();
+    total += db->size();
+  }
+  return total;
 }
 
 static ClientActivity& getCurrentClientActivity(const ClientEntry& entry, time_t now)
