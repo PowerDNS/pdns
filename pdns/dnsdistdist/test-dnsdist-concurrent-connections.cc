@@ -32,13 +32,16 @@
 
 BOOST_AUTO_TEST_SUITE(test_dnsdist_concurrent_connections)
 
-static void initConfiguration(uint64_t maxTCPConnectionsRatePerClient, uint64_t tcpConnectionsRatePerClientInterval, uint64_t maxTCPConnectionsPerClient, uint32_t banDuration)
+static void initConfiguration(uint64_t maxTCPConnectionsRatePerClient, uint64_t tcpConnectionsRatePerClientInterval, uint64_t maxTCPConnectionsPerClient, uint32_t banDuration, uint64_t maxTLSNewSessionsRatePerClient = 0U, uint64_t maxTLSResumedSessionsRatePerClient = 0U, uint32_t maxTCPReadIOsPerQuery = 50U)
 {
   dnsdist::configuration::updateImmutableConfiguration([&](dnsdist::configuration::ImmutableConfiguration& config) {
     config.d_maxTCPConnectionsPerClient = maxTCPConnectionsPerClient;
     config.d_maxTCPConnectionsRatePerClient = maxTCPConnectionsRatePerClient;
     config.d_tcpConnectionsRatePerClientInterval = tcpConnectionsRatePerClientInterval;
     config.d_tcpBanDurationForExceedingTCPTLSRate = banDuration;
+    config.d_maxTLSNewSessionsRatePerClient = maxTLSNewSessionsRatePerClient;
+    config.d_maxTLSResumedSessionsRatePerClient = maxTLSResumedSessionsRatePerClient;
+    config.d_maxTCPReadIOsPerQuery = maxTCPReadIOsPerQuery;
   });
 }
 
@@ -53,6 +56,28 @@ struct TestFixture
     dnsdist::IncomingConcurrentTCPConnectionsManager::clear();
   }
 };
+
+BOOST_FIXTURE_TEST_CASE(test_No_Rate_Limiting, TestFixture)
+{
+  const uint64_t maxTCPConnectionsRatePerClient = 0U;
+  const uint64_t tcpConnectionsRatePerClientInterval = 5U;
+  const uint64_t maxTCPConnectionsPerClient = 0U;
+  const uint32_t banDuration = 10U;
+  /* disable this to completely disable tracking */
+  const uint32_t maxTCPReadIOsPerQuery = 0U;
+  initConfiguration(maxTCPConnectionsRatePerClient, tcpConnectionsRatePerClientInterval, maxTCPConnectionsPerClient, banDuration, 0U, 0U, maxTCPReadIOsPerQuery);
+  const ComboAddress client{"192.0.2.1"};
+  time_t now = time(nullptr);
+
+  BOOST_REQUIRE_EQUAL(dnsdist::IncomingConcurrentTCPConnectionsManager::getNumberOfEntries(), 0U);
+
+  auto result = dnsdist::IncomingConcurrentTCPConnectionsManager::accountNewTCPConnection(client, false, false, now);
+  BOOST_REQUIRE(result == dnsdist::IncomingConcurrentTCPConnectionsManager::NewConnectionResult::Allowed);
+  dnsdist::IncomingConcurrentTCPConnectionsManager::accountClosedTCPConnection(client);
+  BOOST_REQUIRE(!dnsdist::IncomingConcurrentTCPConnectionsManager::isClientOverThreshold(client));
+
+  BOOST_REQUIRE_EQUAL(dnsdist::IncomingConcurrentTCPConnectionsManager::getNumberOfEntries(), 0U);
+}
 
 BOOST_FIXTURE_TEST_CASE(test_Below_Rate, TestFixture)
 {
@@ -76,6 +101,23 @@ BOOST_FIXTURE_TEST_CASE(test_Below_Rate, TestFixture)
     /* one second later */
     now++;
   }
+
+  BOOST_REQUIRE_EQUAL(dnsdist::IncomingConcurrentTCPConnectionsManager::getNumberOfEntries(), 1U);
+
+  /* should not remove anything */
+  dnsdist::IncomingConcurrentTCPConnectionsManager::cleanup(now);
+  BOOST_REQUIRE_EQUAL(dnsdist::IncomingConcurrentTCPConnectionsManager::getNumberOfEntries(), 1U);
+
+  /* more than the 60s between two cleanups, but entries should still be valid */
+  now += 120U;
+  dnsdist::IncomingConcurrentTCPConnectionsManager::cleanup(now);
+  BOOST_REQUIRE_EQUAL(dnsdist::IncomingConcurrentTCPConnectionsManager::getNumberOfEntries(), 1U);
+
+  /* now we should be after interval * 60s, entries should no longer be valid */
+  now += 180U;
+  dnsdist::IncomingConcurrentTCPConnectionsManager::cleanup(now);
+  BOOST_REQUIRE_EQUAL(dnsdist::IncomingConcurrentTCPConnectionsManager::getNumberOfEntries(), 0U);
+
 }
 
 BOOST_FIXTURE_TEST_CASE(test_Below_Rate_Skipping_Bucket, TestFixture)
@@ -210,6 +252,39 @@ BOOST_FIXTURE_TEST_CASE(test_Above_Max_Concurrent_Connections, TestFixture)
   BOOST_REQUIRE(!dnsdist::IncomingConcurrentTCPConnectionsManager::isClientOverThreshold(client));
 }
 
+BOOST_FIXTURE_TEST_CASE(test_Max_Concurrent_Connections_Overload_Threshold, TestFixture)
+{
+  const uint64_t maxTCPConnectionsRatePerClient = 0U;
+  const uint64_t tcpConnectionsRatePerClientInterval = 5U;
+  const uint64_t maxTCPConnectionsPerClient = 100U;
+  const uint32_t banDuration = 10U;
+  initConfiguration(maxTCPConnectionsRatePerClient, tcpConnectionsRatePerClientInterval, maxTCPConnectionsPerClient, banDuration);
+  const auto overloadThreshold = dnsdist::configuration::getImmutableConfiguration().d_tcpConnectionsOverloadThreshold;
+  BOOST_REQUIRE_GT(overloadThreshold, 0U);
+
+  dnsdist::IncomingConcurrentTCPConnectionsManager::clear();
+  const time_t now = time(nullptr);
+
+  const ComboAddress client{"192.0.2.1"};
+  for (size_t idx = 0; idx < maxTCPConnectionsPerClient * overloadThreshold / 100.0; idx++) {
+    auto result = dnsdist::IncomingConcurrentTCPConnectionsManager::accountNewTCPConnection(client, false, false, now);
+    BOOST_REQUIRE(result == dnsdist::IncomingConcurrentTCPConnectionsManager::NewConnectionResult::Allowed);
+  }
+
+  /* now go over the top */
+  auto result = dnsdist::IncomingConcurrentTCPConnectionsManager::accountNewTCPConnection(client, false, false, now);
+  BOOST_REQUIRE(result == dnsdist::IncomingConcurrentTCPConnectionsManager::NewConnectionResult::Restricted);
+  BOOST_REQUIRE(dnsdist::IncomingConcurrentTCPConnectionsManager::isClientOverThreshold(client));
+  dnsdist::IncomingConcurrentTCPConnectionsManager::accountClosedTCPConnection(client);
+
+  /* now check that we are correctly allowed once at least one existing connections has been closed */
+  dnsdist::IncomingConcurrentTCPConnectionsManager::accountClosedTCPConnection(client);
+  result = dnsdist::IncomingConcurrentTCPConnectionsManager::accountNewTCPConnection(client, false, false);
+  BOOST_REQUIRE(result == dnsdist::IncomingConcurrentTCPConnectionsManager::NewConnectionResult::Allowed);
+  dnsdist::IncomingConcurrentTCPConnectionsManager::accountClosedTCPConnection(client);
+  BOOST_REQUIRE(!dnsdist::IncomingConcurrentTCPConnectionsManager::isClientOverThreshold(client));
+}
+
 BOOST_FIXTURE_TEST_CASE(test_Above_Max_Connection_Rate, TestFixture)
 {
   const uint64_t maxTCPConnectionsRatePerClient = 10U;
@@ -236,6 +311,87 @@ BOOST_FIXTURE_TEST_CASE(test_Above_Max_Connection_Rate, TestFixture)
   /* check that the ban properly expires (takes a while to go below the rate) */
   result = dnsdist::IncomingConcurrentTCPConnectionsManager::accountNewTCPConnection(client, false, false, now + std::max(60U, banDuration) + 1U);
   BOOST_REQUIRE(result == dnsdist::IncomingConcurrentTCPConnectionsManager::NewConnectionResult::Allowed);
+}
+
+BOOST_FIXTURE_TEST_CASE(test_TLS_New_Without_TCP_Rate_Limiting, TestFixture)
+{
+  const uint64_t maxTCPConnectionsRatePerClient = 0U;
+  const uint64_t tcpConnectionsRatePerClientInterval = 5U;
+  const uint64_t maxTCPConnectionsPerClient = 0U;
+  const uint64_t maxTLSNewSessionsRatePerClient = 1U;
+  const uint32_t banDuration = 10U;
+  initConfiguration(maxTCPConnectionsRatePerClient, tcpConnectionsRatePerClientInterval, maxTCPConnectionsPerClient, banDuration, maxTLSNewSessionsRatePerClient);
+  const ComboAddress client{"192.0.2.1"};
+  time_t now = time(nullptr);
+
+  /* TCP (not TLS) connections should not be rate-limited */
+  for (size_t counter = 0U; counter < 20U; counter++) {
+    auto result = dnsdist::IncomingConcurrentTCPConnectionsManager::accountNewTCPConnection(client, false, false, now);
+    BOOST_REQUIRE(result == dnsdist::IncomingConcurrentTCPConnectionsManager::NewConnectionResult::Allowed);
+    dnsdist::IncomingConcurrentTCPConnectionsManager::accountClosedTCPConnection(client);
+    BOOST_REQUIRE(!dnsdist::IncomingConcurrentTCPConnectionsManager::isClientOverThreshold(client));
+  }
+
+  /* TLS ones should be rate-limited, but resumed sessions are OK */
+  for (size_t counter = 0U; counter < 20U; counter++) {
+    auto result = dnsdist::IncomingConcurrentTCPConnectionsManager::accountNewTCPConnection(client, true, false, now);
+    BOOST_REQUIRE(result == dnsdist::IncomingConcurrentTCPConnectionsManager::NewConnectionResult::Allowed);
+    dnsdist::IncomingConcurrentTCPConnectionsManager::accountTLSResumedSession(client);
+    dnsdist::IncomingConcurrentTCPConnectionsManager::accountClosedTCPConnection(client);
+    BOOST_REQUIRE(!dnsdist::IncomingConcurrentTCPConnectionsManager::isClientOverThreshold(client));
+  }
+
+  /* TLS ones should be rate-limited, only two NEW sessions allowed (because we need to establish the connection to see if it is resumed or not, we are off by one) */
+  for (size_t counter = 0U; counter < 2U; counter++) {
+    auto result = dnsdist::IncomingConcurrentTCPConnectionsManager::accountNewTCPConnection(client, true, false, now);
+    BOOST_REQUIRE(result == dnsdist::IncomingConcurrentTCPConnectionsManager::NewConnectionResult::Allowed);
+    dnsdist::IncomingConcurrentTCPConnectionsManager::accountTLSNewSession(client);
+    dnsdist::IncomingConcurrentTCPConnectionsManager::accountClosedTCPConnection(client);
+    BOOST_REQUIRE(!dnsdist::IncomingConcurrentTCPConnectionsManager::isClientOverThreshold(client));
+  }
+  auto result = dnsdist::IncomingConcurrentTCPConnectionsManager::accountNewTCPConnection(client, true, false, now);
+  BOOST_REQUIRE(result == dnsdist::IncomingConcurrentTCPConnectionsManager::NewConnectionResult::Denied);
+}
+
+BOOST_FIXTURE_TEST_CASE(test_TLS_Resumed_Without_TCP_Rate_Limiting, TestFixture)
+{
+  const uint64_t maxTCPConnectionsRatePerClient = 0U;
+  const uint64_t tcpConnectionsRatePerClientInterval = 5U;
+  const uint64_t maxTCPConnectionsPerClient = 0U;
+  const uint64_t maxTLSNewSessionsRatePerClient = 0U;
+  const uint64_t maxTLSResumedSessionsRatePerClient = 1U;
+  const uint32_t banDuration = 10U;
+  initConfiguration(maxTCPConnectionsRatePerClient, tcpConnectionsRatePerClientInterval, maxTCPConnectionsPerClient, banDuration, maxTLSNewSessionsRatePerClient, maxTLSResumedSessionsRatePerClient);
+  const ComboAddress client{"192.0.2.1"};
+  time_t now = time(nullptr);
+
+  /* TCP (not TLS) connections should not be rate-limited */
+  for (size_t counter = 0U; counter < 20U; counter++) {
+    auto result = dnsdist::IncomingConcurrentTCPConnectionsManager::accountNewTCPConnection(client, false, false, now);
+    BOOST_REQUIRE(result == dnsdist::IncomingConcurrentTCPConnectionsManager::NewConnectionResult::Allowed);
+    dnsdist::IncomingConcurrentTCPConnectionsManager::accountClosedTCPConnection(client);
+    BOOST_REQUIRE(!dnsdist::IncomingConcurrentTCPConnectionsManager::isClientOverThreshold(client));
+  }
+
+  /* TLS ones should be rate-limited, but NEW sessions are OK (don't ask) */
+  for (size_t counter = 0U; counter < 20U; counter++) {
+    auto result = dnsdist::IncomingConcurrentTCPConnectionsManager::accountNewTCPConnection(client, true, false, now);
+    BOOST_REQUIRE(result == dnsdist::IncomingConcurrentTCPConnectionsManager::NewConnectionResult::Allowed);
+    dnsdist::IncomingConcurrentTCPConnectionsManager::accountTLSNewSession(client);
+    dnsdist::IncomingConcurrentTCPConnectionsManager::accountClosedTCPConnection(client);
+    BOOST_REQUIRE(!dnsdist::IncomingConcurrentTCPConnectionsManager::isClientOverThreshold(client));
+  }
+
+  /* only two resumed sessions allowed (because we need to establish the connection to see if it is resumed or not, we are off by one) */
+  for (size_t counter = 0U; counter < 2U; counter++) {
+    auto result = dnsdist::IncomingConcurrentTCPConnectionsManager::accountNewTCPConnection(client, true, false, now);
+    BOOST_REQUIRE(result == dnsdist::IncomingConcurrentTCPConnectionsManager::NewConnectionResult::Allowed);
+    dnsdist::IncomingConcurrentTCPConnectionsManager::accountTLSResumedSession(client);
+    dnsdist::IncomingConcurrentTCPConnectionsManager::accountClosedTCPConnection(client);
+    BOOST_REQUIRE(!dnsdist::IncomingConcurrentTCPConnectionsManager::isClientOverThreshold(client));
+  }
+  auto result = dnsdist::IncomingConcurrentTCPConnectionsManager::accountNewTCPConnection(client, true, false, now);
+  BOOST_REQUIRE(result == dnsdist::IncomingConcurrentTCPConnectionsManager::NewConnectionResult::Denied);
 }
 
 BOOST_AUTO_TEST_SUITE_END();

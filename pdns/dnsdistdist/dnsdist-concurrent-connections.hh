@@ -42,5 +42,6 @@ public:
   static void banClientFor(const ComboAddress& from, time_t now, uint32_t seconds);
   static void cleanup(time_t now);
   static void clear();
+  static size_t getNumberOfEntries();
 };
 }
