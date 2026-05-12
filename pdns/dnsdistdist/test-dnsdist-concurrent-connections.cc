@@ -32,6 +32,7 @@
 
 BOOST_AUTO_TEST_SUITE(test_dnsdist_concurrent_connections)
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 static void initConfiguration(uint64_t maxTCPConnectionsRatePerClient, uint64_t tcpConnectionsRatePerClientInterval, uint64_t maxTCPConnectionsPerClient, uint32_t banDuration, uint64_t maxTLSNewSessionsRatePerClient = 0U, uint64_t maxTLSResumedSessionsRatePerClient = 0U, uint32_t maxTCPReadIOsPerQuery = 50U)
 {
   dnsdist::configuration::updateImmutableConfiguration([&](dnsdist::configuration::ImmutableConfiguration& config) {
@@ -55,6 +56,10 @@ struct TestFixture
   {
     dnsdist::IncomingConcurrentTCPConnectionsManager::clear();
   }
+  TestFixture(const TestFixture&) = default;
+  TestFixture(TestFixture&&) = default;
+  TestFixture& operator=(const TestFixture&) = default;
+  TestFixture& operator=(TestFixture&&) = default;
 };
 
 BOOST_FIXTURE_TEST_CASE(test_No_Rate_Limiting, TestFixture)
@@ -265,7 +270,7 @@ BOOST_FIXTURE_TEST_CASE(test_Max_Concurrent_Connections_Overload_Threshold, Test
   const time_t now = time(nullptr);
 
   const ComboAddress client{"192.0.2.1"};
-  for (size_t idx = 0; idx < maxTCPConnectionsPerClient * overloadThreshold / 100.0; idx++) {
+  for (size_t idx = 0; idx < static_cast<size_t>(static_cast<double>(maxTCPConnectionsPerClient) * overloadThreshold / 100.0); idx++) {
     auto result = dnsdist::IncomingConcurrentTCPConnectionsManager::accountNewTCPConnection(client, false, false, now);
     BOOST_REQUIRE(result == dnsdist::IncomingConcurrentTCPConnectionsManager::NewConnectionResult::Allowed);
   }
