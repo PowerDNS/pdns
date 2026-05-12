@@ -523,6 +523,7 @@ test_sources += files(
   src_dir / 'test-dnsdistbackend_cc.cc',
   src_dir / 'test-dnsdistbackoff.cc',
   src_dir / 'test-dnsdist_cc.cc',
+  src_dir / 'test-dnsdist-concurrent-connections.cc',
   src_dir / 'test-dnsdist-connections-cache.cc',
   src_dir / 'test-dnsdist-dnsparser.cc',
   src_dir / 'test-dnsdistdynblocks_hh.cc',
