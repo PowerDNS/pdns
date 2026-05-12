@@ -71,10 +71,25 @@ static void updateLatencyMetrics(DownstreamState& downstream, double elapsedUs /
   }
 }
 
+static std::string getHealthCheckProtocol(const std::shared_ptr<const HealthCheckData>& data)
+{
+  const auto& downstream = data->d_ds;
+  if (!downstream->doHealthcheckOverTCP()) {
+    return "udp";
+  }
+  if (downstream->isDoH()) {
+    return "DoH";
+  }
+  if (data->d_tcpHandler && data->d_tcpHandler->isTLS()) {
+    return "DoT";
+  }
+  return "tcp";
+}
+
 static std::shared_ptr<Logr::Logger> getLoggerFromData(const std::shared_ptr<const HealthCheckData>& data)
 {
   const auto& downstream = data->d_ds;
-  return dnsdist::logging::getTopLogger("backend-health-check")->withValues("health_check.proto", Logging::Loggable(downstream->doHealthcheckOverTCP() ? (data->d_tcpHandler->isTLS() ? "DoT" : "tcp") : "udp"), "backend.name", Logging::Loggable(downstream->getName()), "backend.address", Logging::Loggable(downstream->d_config.remote), "dns.query.id", Logging::Loggable(data->d_queryID), "dns.query.name", Logging::Loggable(data->d_checkName), "dns.query.type", Logging::Loggable(data->d_checkType), "dns.query.class", Logging::Loggable(data->d_checkClass));
+  return dnsdist::logging::getTopLogger("backend-health-check")->withValues("health_check.proto", Logging::Loggable(getHealthCheckProtocol(data)), "backend.name", Logging::Loggable(downstream->getName()), "backend.address", Logging::Loggable(downstream->d_config.remote), "dns.query.id", Logging::Loggable(data->d_queryID), "dns.query.name", Logging::Loggable(data->d_checkName), "dns.query.type", Logging::Loggable(data->d_checkType), "dns.query.class", Logging::Loggable(data->d_checkClass));
 }
 
 static bool validateHealthCheckResponseWithCallback(const std::shared_ptr<const HealthCheckData>& data)
