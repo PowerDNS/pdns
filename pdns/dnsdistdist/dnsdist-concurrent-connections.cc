@@ -160,8 +160,8 @@ void IncomingConcurrentTCPConnectionsManager::cleanup(time_t now)
   const auto interval = immutable.d_tcpConnectionsRatePerClientInterval;
   const auto cutOff = static_cast<time_t>(now - (interval * 60U)); // interval in minutes
   for (auto& shard : s_tcpClientsConnectionMetrics) {
-    auto db = shard.lock();
-    auto& index = db->get<TimeTag>();
+    auto clients = shard.lock();
+    auto& index = clients->get<TimeTag>();
     for (auto entry = index.begin(); entry != index.end();) {
       if (entry->d_lastSeen >= cutOff) {
         /* this index is ordered on timestamps,
@@ -177,8 +177,8 @@ void IncomingConcurrentTCPConnectionsManager::cleanup(time_t now)
 void IncomingConcurrentTCPConnectionsManager::clear()
 {
   for (auto& shard : s_tcpClientsConnectionMetrics) {
-    auto db = shard.lock();
-    db->clear();
+    auto clients = shard.lock();
+    clients->clear();
   }
 }
 
@@ -186,8 +186,8 @@ size_t IncomingConcurrentTCPConnectionsManager::getNumberOfEntries()
 {
   size_t total = 0;
   for (auto& shard : s_tcpClientsConnectionMetrics) {
-    auto db = shard.lock();
-    total += db->size();
+    auto clients = shard.lock();
+    total += clients->size();
   }
   return total;
 }
