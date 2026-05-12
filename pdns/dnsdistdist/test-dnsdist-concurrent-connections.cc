@@ -117,7 +117,6 @@ BOOST_FIXTURE_TEST_CASE(test_Below_Rate, TestFixture)
   now += 180U;
   dnsdist::IncomingConcurrentTCPConnectionsManager::cleanup(now);
   BOOST_REQUIRE_EQUAL(dnsdist::IncomingConcurrentTCPConnectionsManager::getNumberOfEntries(), 0U);
-
 }
 
 BOOST_FIXTURE_TEST_CASE(test_Below_Rate_Skipping_Bucket, TestFixture)
