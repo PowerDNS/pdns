@@ -757,6 +757,25 @@ static void triggerLoadOfLibraries()
   dummy.join();
 }
 
+static bool updateZoneCache(Logr::log_t slog)
+{
+  try {
+    UeberBackend B;
+    B.updateZoneCache();
+  }
+  catch (PDNSException& e) {
+    SLOG(g_log << Logger::Error << "PDNSException while filling the zone cache: " << e.reason << endl,
+         slog->error(Logr::Error, e.reason, "PDNSException while filling the zone cache"));
+    return false;
+  }
+  catch (std::exception& e) {
+    SLOG(g_log << Logger::Error << "STL Exception while filling the zone cache: " << e.what() << endl,
+         slog->error(Logr::Error, e.what(), "STL Exception while filling the zone cache"));
+    return false;
+  }
+  return true;
+}
+
 static void mainthread()
 {
   static std::shared_ptr<Logr::Logger> slog;
@@ -968,18 +987,7 @@ static void mainthread()
   // Setup the zone cache
   g_zoneCache.setRefreshInterval(::arg().asNum("zone-cache-refresh-interval"));
   if (g_zoneCache.getRefreshInterval() != 0) {
-    try {
-      UeberBackend B;
-      B.updateZoneCache();
-    }
-    catch (PDNSException& e) {
-      SLOG(g_log << Logger::Error << "PDNSException while filling the zone cache: " << e.reason << endl,
-           slog->error(Logr::Error, e.reason, "PDNSException while filling the zone cache"));
-      exit(1);
-    }
-    catch (std::exception& e) {
-      SLOG(g_log << Logger::Error << "STL Exception while filling the zone cache: " << e.what() << endl,
-           slog->error(Logr::Error, e.what(), "STL Exception while filling the zone cache"));
+    if (!updateZoneCache(slog)) {
       exit(1);
     }
   }
@@ -1025,18 +1033,8 @@ static void mainthread()
     if (zoneCacheRefresh != 0) {
       zoneCacheUpdateSince += sleeptime;
       if (zoneCacheUpdateSince >= zoneCacheRefresh) {
-        try {
-          UeberBackend B;
-          B.updateZoneCache();
+        if (updateZoneCache(slog)) {
           zoneCacheUpdateSince = 0;
-        }
-        catch (PDNSException& e) {
-          SLOG(g_log << Logger::Error << "PDNSException while updating zone cache: " << e.reason << endl,
-               slog->error(Logr::Error, e.reason, "PDNSException while updating the zone cache"));
-        }
-        catch (std::exception& e) {
-          SLOG(g_log << Logger::Error << "STL Exception while updating zone cache: " << e.what() << endl,
-               slog->error(Logr::Error, e.what(), "STL Exception while updating the zone cache"));
         }
       }
     }
