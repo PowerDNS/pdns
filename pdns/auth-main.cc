@@ -969,6 +969,7 @@ static void mainthread()
   UeberBackend::go();
 
   // Setup the zone cache
+  g_zoneCache.setSLog(slog);
   g_zoneCache.setRefreshInterval(::arg().asNum("zone-cache-refresh-interval"));
   try {
     UeberBackend B;
