@@ -29,6 +29,8 @@
 #include "statbag.hh"
 #include "arguments.hh"
 #include "cachecleaner.hh"
+#include "auth-main.hh"
+
 extern StatBag S;
 
 AuthZoneCache::AuthZoneCache(size_t mapsCount) :
@@ -71,6 +73,10 @@ std::string AuthZoneCache::getViewFromNetwork(Netmask* net)
   string view{};
 
   if (net == nullptr || net->empty()) {
+    if (g_logDNSQueries) {
+      SLOG(g_log << Logger::Notice << "missing or empty netmask, unable to pick a view" << endl,
+           d_log->info(Logr::Notice, "Missing or empty netmask, unable to pick a view"));
+    }
     return view;
   }
 
@@ -82,12 +88,21 @@ std::string AuthZoneCache::getViewFromNetwork(Netmask* net)
       *net = netview->first;
       // ...and which view it covers.
       view = netview->second;
+      if (g_logDNSQueries) {
+        SLOG(g_log << Logger::Notice << "netmask " << net->toString() << " matches view '" << view << "'" << endl,
+             d_log->info(Logr::Notice, "matching view", "netmask", Logging::Loggable(net), "view", Logging::Loggable(view)));
+      }
+      return view;
     }
   }
   catch (...) {
     // this handles the "empty" case, but might hide other errors
   }
 
+  if (g_logDNSQueries) {
+    SLOG(g_log << Logger::Notice << "no view found matching netmask " << net->toString() << endl,
+         d_log->info(Logr::Notice, "no view found", "netmask", Logging::Loggable(net)));
+  }
   return view;
 }
 
