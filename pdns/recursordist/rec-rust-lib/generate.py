@@ -454,14 +454,14 @@ def gen_rust_vec_default_functions(name, typeName, defvalue):
     """Generate Rust code for the default handling of a vector for typeName"""
     ret = f"// DEFAULT HANDLING for {name}\n"
     ret += f"fn default_value_{name}() -> Vec<recsettings::{typeName}> {{\n"
-    ret += f'    let msg = "default value defined for `{name}\' should be valid YAML";'
+    ret += f'    let msg = "default value defined for `{name}\' should be valid YAML";\n'
     ret += (
         f"    let deserialized: Vec<recsettings::{typeName}> = serde_yaml::from_str({quote(defvalue)}).expect(msg);\n"
     )
     ret += f"    deserialized\n"
     ret += "}\n"
     ret += f"fn default_value_equal_{name}(value: &Vec<recsettings::{typeName}>)"
-    ret += "-> bool {\n"
+    ret += " -> bool {\n"
     ret += f"    let def = default_value_{name}();\n"
     ret += "    &def == value\n"
     ret += "}\n\n"
@@ -649,7 +649,10 @@ def gen_rust(srcdir, entries):
         with open(srcdir + "/rust-bridge-in.rs", mode="r", encoding="UTF-8") as bridge:
             file.write("    // START INCLUDE rust-bridge-in.rs\n")
             for line in bridge:
-                file.write("    " + line)
+                if len(line) <= 1:
+                    file.write(line)
+                else:
+                    file.write("    " + line)
 
         file.write("    // END INCLUDE rust-bridge-in.rs\n\n")
         for entry in entries:

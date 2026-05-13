@@ -850,6 +850,28 @@ impl OutgoingTLSConfiguration {
 }
 
 impl OpenTelemetryTraceCondition {
+    fn to_yaml_map(&self) -> serde_yaml::Value {
+        let mut map = serde_yaml::Mapping::new();
+        let mut acls = serde_yaml::Sequence::new();
+        for entry in &self.acls {
+            acls.push(serde_yaml::Value::String(entry.to_owned()));
+        }
+        insertseq(&mut map, "acls", &acls);
+        let mut qnames = serde_yaml::Sequence::new();
+        for entry in &self.qnames {
+            qnames.push(serde_yaml::Value::String(entry.to_owned()));
+        }
+        insertseq(&mut map, "qtypes", &qnames);
+        let mut qtypes = serde_yaml::Sequence::new();
+        for entry in &self.qtypes {
+            qtypes.push(serde_yaml::Value::String(entry.to_owned()));
+        }
+        insertseq(&mut map, "qtypes", &qtypes);
+        insertu32(&mut map, "qid", self.qid);
+        insertb(&mut map, "edns_option_required", self.edns_option_required);
+        insertb(&mut map, "traceid_only", self.traceid_only);
+        serde_yaml::Value::Mapping(map)
+    }
     pub fn validate(&self, field: &str) -> Result<(), ValidationError> {
         validate_vec(
             &(field.to_string() + ".acls"),
@@ -1207,6 +1229,13 @@ pub fn map_to_yaml_string(vec: &Vec<OldStyle>) -> Result<String, serde_yaml::Err
                     "Vec<IncomingWSConfig>" => {
                         let mut seq = serde_yaml::Sequence::new();
                         for element in &entry.value.vec_incomingwsconfig_val {
+                            seq.push(element.to_yaml_map());
+                        }
+                        serde_yaml::Value::Sequence(seq)
+                    }
+                    "Vec<OpenTelemetryTraceCondition>" => {
+                        let mut seq = serde_yaml::Sequence::new();
+                        for element in &entry.value.vec_opentelemetrytracecondition_val {
                             seq.push(element.to_yaml_map());
                         }
                         serde_yaml::Value::Sequence(seq)

@@ -405,6 +405,7 @@ struct Value {
     vec_forwardingcatalogzone_val: Vec<ForwardingCatalogZone>,
     vec_incomingwsconfig_val: Vec<IncomingWSConfig>,
     vec_outgoingtlsconfiguration_val: Vec<OutgoingTLSConfiguration>,
+    vec_opentelemetrytracecondition_val: Vec<OpenTelemetryTraceCondition>,
 }
 
 struct OldStyle {

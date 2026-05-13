@@ -463,7 +463,7 @@ fn collect_options(
     if !ctx.cross_origin_request_header.is_empty() {
         response.headers.push(rustweb::KeyValue {
             key: String::from("access-control-allow-origin"),
-            value: String::from(ctx.cross_origin_request_header.clone()),
+            value: ctx.cross_origin_request_header.clone(),
         });
     }
 
