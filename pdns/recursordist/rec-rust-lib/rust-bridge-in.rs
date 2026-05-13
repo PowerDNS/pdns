@@ -415,6 +415,7 @@ struct Value {
     vec_incomingwsconfig_val: Vec<IncomingWSConfig>,
     vec_outgoingtlsconfiguration_val: Vec<OutgoingTLSConfiguration>,
     vec_opentelemetrytracecondition_val: Vec<OpenTelemetryTraceCondition>,
+    vec_qnameandqtype_val: Vec<QNameAndQType>,
 }
 
 struct OldStyle {

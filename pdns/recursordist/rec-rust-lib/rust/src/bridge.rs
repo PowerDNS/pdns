@@ -800,7 +800,6 @@ impl IncomingWSConfig {
 }
 
 impl OutgoingTLSConfiguration {
-
     fn to_yaml_map(&self) -> serde_yaml::Value {
         let mut map = serde_yaml::Mapping::new();
         inserts(&mut map, "name", &self.name);
@@ -897,6 +896,13 @@ impl OpenTelemetryTraceCondition {
 }
 
 impl QNameAndQType {
+    fn to_yaml_map(&self) -> serde_yaml::Value {
+        let mut map = serde_yaml::Mapping::new();
+        inserts(&mut map, "qname", &self.qname);
+        inserts(&mut map, "qtype", &self.qtype);
+        serde_yaml::Value::Mapping(map)
+    }
+
     pub fn validate(&self, field: &str) -> Result<(), ValidationError> {
         if self.qname.is_empty() {
             let msg = format!("{}: value may not be empty", field);
@@ -1248,6 +1254,13 @@ pub fn map_to_yaml_string(vec: &Vec<OldStyle>) -> Result<String, serde_yaml::Err
                     "Vec<OpenTelemetryTraceCondition>" => {
                         let mut seq = serde_yaml::Sequence::new();
                         for element in &entry.value.vec_opentelemetrytracecondition_val {
+                            seq.push(element.to_yaml_map());
+                        }
+                        serde_yaml::Value::Sequence(seq)
+                    }
+                    "Vec<QNameAndQType>" => {
+                        let mut seq = serde_yaml::Sequence::new();
+                        for element in &entry.value.vec_qnameandqtype_val {
                             seq.push(element.to_yaml_map());
                         }
                         serde_yaml::Value::Sequence(seq)
