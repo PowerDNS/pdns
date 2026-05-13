@@ -990,6 +990,7 @@ bool primeHints(time_t now = time(nullptr));
 
 using timebuf_t = std::array<char, 64>;
 const char* isoDateTimeMillis(const struct timeval& tval, timebuf_t& buf);
+bool haveFinalAnswer(const DNSName& qname, QType qtype, int res, const vector<DNSRecord>& ret);
 
 struct WipeCacheResult
 {
@@ -1012,3 +1013,4 @@ struct ThreadTimes
     return *this;
   }
 };
+

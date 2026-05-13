@@ -69,13 +69,13 @@ public:
   {
     return d_queue;
   }
-  void modifyTTD(const DNSName& qname, uint16_t qtype, uint32_t ttd)
+  void modifyTTD(KeepWarmEntry& entry, uint32_t ttd)
   {
-      auto item = d_queue.find(std::tie(qname, qtype));
+      auto item = d_queue.find(std::tie(entry.d_qname, entry.d_qtype));
       if (item != d_queue.end()) {
         d_queue.modify(item, [ttd](rec::KeepWarmEntry& entry) { entry.d_ttd = ttd; });
       }
-    
+      entry.d_ttd = ttd; 
   }
   void emplace(const DNSName& name, uint16_t qtype)
   {
@@ -92,6 +92,10 @@ public:
   Queue::iterator end()
   {
     return d_queue.end();
+  }
+  [[nodiscard]] size_t size() const
+  {
+    return d_queue.size();
   }
 
 private:

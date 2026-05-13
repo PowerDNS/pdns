@@ -1794,7 +1794,7 @@ unsigned int SyncRes::getAdjustedRecursionBound() const
   return bound;
 }
 
-static bool haveFinalAnswer(const DNSName& qname, QType qtype, int res, const vector<DNSRecord>& ret)
+bool haveFinalAnswer(const DNSName& qname, QType qtype, int res, const vector<DNSRecord>& ret)
 {
   if (res != RCode::NoError) {
     return false;
