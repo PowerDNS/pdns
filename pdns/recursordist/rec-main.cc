@@ -2482,20 +2482,20 @@ static time_t keepCacheWarm(const timeval& now, LocalStateHolder<LuaConfigItems>
 
   std::vector<rec::KeepWarmEntry> toBeHandled;
 
-  auto& sidx = lock->get().template get<rec::KeepWarm::TTDTag>();
+  const auto& sidx = lock->get().template get<rec::KeepWarm::TTDTag>();
   auto siter = sidx.begin();
 
-  const int batchSize = 100;
+  const auto batchSize = std::min(static_cast<size_t>(1000), lock->size());
   const time_t specialTime = 1;
   const time_t cooldown = 60;
   const time_t almost = 5;
-  for (int i = 0; i < batchSize && siter != sidx.end(); i++, siter++) {
+  for (size_t i = 0; i < batchSize && siter != sidx.end(); i++, siter++) {
+
     if (siter->d_ttd > now.tv_sec + almost) {
       break;
     }
     toBeHandled.emplace_back(*siter);
   }
-
 
   for (auto& element : toBeHandled) {
     if (element.d_ttd == specialTime) {
@@ -2505,9 +2505,10 @@ static time_t keepCacheWarm(const timeval& now, LocalStateHolder<LuaConfigItems>
       resolver.setDoDNSSEC(g_dnssecmode != DNSSECMode::Off);
       resolver.setDNSSECValidationRequested(g_dnssecmode != DNSSECMode::Off && g_dnssecmode != DNSSECMode::ProcessNoValidate);
       std::vector<DNSRecord> ret;
+      int res = -1;
       const std::string msg = "Exception while resolving";
       try {
-        resolver.beginResolve(element.d_qname, element.d_qtype, QClass::IN, ret, 0);
+        res = resolver.beginResolve(element.d_qname, element.d_qtype, QClass::IN, ret, 0);
       }
       catch (const PDNSException& e) {
         log->error(Logr::Warning, e.reason, msg, "exception", Logging::Loggable("PDNSException"));
@@ -2534,15 +2535,23 @@ static time_t keepCacheWarm(const timeval& now, LocalStateHolder<LuaConfigItems>
                                   // not resolve yet. In both cases, pace the work.
       if (ret.size() > 0) {
         minttl = std::numeric_limits<uint32_t>::max();
+        bool haveAnswerRecord = false;
         for (const auto& record : ret) {
+          if (record.d_place == DNSResourceRecord::ANSWER) {
+	    haveAnswerRecord = true;
+          }
           minttl = std::min(minttl, record.d_ttl);
         }
+        if (haveAnswerRecord && !haveFinalAnswer(element.d_qname, element.d_qtype, res, ret)) {
+          // Common cause: a record in the CNAME chain expired, setting the minttl will trigger a task push below
+	  minttl = 0;
+        }
       }
-      lock->modifyTTD(element.d_qname, element.d_qtype, now.tv_sec + minttl);
+      lock->modifyTTD(element, now.tv_sec + minttl);
     }
-    else if (element.d_ttd == 0 || element.d_ttd <= now.tv_sec + almost) {
+    if (element.d_ttd <= now.tv_sec + almost) { // include non-initialized (0) case
       pushAlmostExpiredTask(element.d_qname, element.d_qtype, now.tv_sec + cooldown, ComboAddress("255.255.255.255"), true);
-        lock->modifyTTD(element.d_qname, element.d_qtype, specialTime);
+      lock->modifyTTD(element, specialTime);
     }
   }
 
@@ -2643,7 +2652,7 @@ static void houseKeepingWork(Logr::log_t log)
     });
 
     // TaskQueue is run always
-    runTasks(10, g_logCommonErrors);
+    runTasks(100, g_logCommonErrors);
 
     static PeriodicTask ztcTask{"ZTC", 60};
     static map<DNSName, RecZoneToCache::State> ztcStates;
