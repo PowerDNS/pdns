@@ -760,7 +760,7 @@ static void triggerLoadOfLibraries()
 static bool updateZoneCache(Logr::log_t slog)
 {
   try {
-    UeberBackend B;
+    UeberBackend B; // NOLINT(readability-identifier-length)
     B.updateZoneCache();
   }
   catch (PDNSException& e) {
@@ -776,6 +776,7 @@ static bool updateZoneCache(Logr::log_t slog)
   return true;
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 static void mainthread()
 {
   static std::shared_ptr<Logr::Logger> slog;
@@ -988,7 +989,7 @@ static void mainthread()
   g_zoneCache.setRefreshInterval(::arg().asNum("zone-cache-refresh-interval"));
   if (g_zoneCache.getRefreshInterval() != 0) {
     if (!updateZoneCache(slog)) {
-      exit(1);
+      exit(1); // NOLINT(concurrency-mt-unsafe) we're single threaded at this point
     }
   }
 
