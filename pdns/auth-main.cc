@@ -669,17 +669,22 @@ static void qthread(unsigned int num)
           }
         }
 
+        bool logAtNewline{false};
         if (PC.enabled() && (question.d.opcode != Opcode::Notify && question.d.opcode != Opcode::Update) && question.couldBeCached()) {
           start = diff;
           std::string view{};
           if (g_views) {
+            if (!g_slogStructured) {
+              g_log << endl;
+              logAtNewline = true; // because of getViewFromNetwork below
+            }
             Netmask netmask(accountremote);
             view = g_zoneCache.getViewFromNetwork(&netmask);
           }
           bool haveSomething = PC.get(question, cached, view); // does the PacketCache recognize this question?
           if (haveSomething) {
             if (g_logDNSQueries) {
-              SLOG(g_log << ": packetcache HIT" << endl,
+              SLOG(g_log << (logAtNewline ? "" : ": ") << "packetcache HIT" << endl,
                    slog->info(Logr::Notice, "packetcache HIT"));
             }
             cached.setRemote(&question.d_remote); // inlined
@@ -707,7 +712,7 @@ static void qthread(unsigned int num)
 
         if (distributor->isOverloaded()) {
           if (g_logDNSQueries) {
-            SLOG(g_log << ": Dropped query, backends are overloaded" << endl,
+            SLOG(g_log << (logAtNewline ? "" : ": ") << "Dropped query, backends are overloaded" << endl,
                  slog->info(Logr::Notice, "Dropped query, backends are overloaded"));
           }
           overloadDrops++;
@@ -716,7 +721,7 @@ static void qthread(unsigned int num)
 
         if (g_logDNSQueries) {
           if (PC.enabled()) {
-            SLOG(g_log << ": packetcache MISS" << endl,
+            SLOG(g_log << (logAtNewline ? "" : ": ") << "packetcache MISS" << endl,
                  slog->info(Logr::Notice, "packetcache MISS"));
           }
           else {
