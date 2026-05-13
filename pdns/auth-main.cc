@@ -105,6 +105,7 @@ const char* funnytext = "*******************************************************
 
 bool g_anyToTcp;
 bool g_8bitDNS;
+bool g_logDNSQueries;
 #ifdef HAVE_LUA_RECORDS
 bool g_doLuaRecord;
 int g_luaRecordExecLimit;
@@ -594,7 +595,6 @@ static void qthread(unsigned int num)
 
     int diff{};
     int start{};
-    bool logDNSQueries = ::arg().mustDo("log-dns-queries");
     shared_ptr<UDPNameserver> NS; // NOLINT(readability-identifier-length)
     std::string buffer;
     ComboAddress accountremote;
@@ -652,7 +652,7 @@ static void qthread(unsigned int num)
 
         S.ringAccount("queries", question.qdomain, question.qtype);
         S.ringAccount("remotes", question.getInnerRemote());
-        if (logDNSQueries) {
+        if (g_logDNSQueries) {
           if (g_slogStructured) {
             if (question.d_ednsRawPacketSizeLimit > 0 && question.getMaxReplyLen() != (unsigned int)question.d_ednsRawPacketSizeLimit) {
               slog->info(Logr::Notice, "Query received", "remote", Logging::Loggable(question.getRemoteString()), "query", Logging::Loggable(question.qdomain), "type", Logging::Loggable(question.qtype), "dnssec", Logging::Loggable(question.d_dnssecOk), "max reply length", Logging::Loggable(question.getMaxReplyLen()), "raw packet size limit", Logging::Loggable(question.d_ednsRawPacketSizeLimit));
@@ -678,7 +678,7 @@ static void qthread(unsigned int num)
           }
           bool haveSomething = PC.get(question, cached, view); // does the PacketCache recognize this question?
           if (haveSomething) {
-            if (logDNSQueries) {
+            if (g_logDNSQueries) {
               SLOG(g_log << ": packetcache HIT" << endl,
                    slog->info(Logr::Notice, "packetcache HIT"));
             }
@@ -706,7 +706,7 @@ static void qthread(unsigned int num)
         }
 
         if (distributor->isOverloaded()) {
-          if (logDNSQueries) {
+          if (g_logDNSQueries) {
             SLOG(g_log << ": Dropped query, backends are overloaded" << endl,
                  slog->info(Logr::Notice, "Dropped query, backends are overloaded"));
           }
@@ -714,7 +714,7 @@ static void qthread(unsigned int num)
           continue;
         }
 
-        if (logDNSQueries) {
+        if (g_logDNSQueries) {
           if (PC.enabled()) {
             SLOG(g_log << ": packetcache MISS" << endl,
                  slog->info(Logr::Notice, "packetcache MISS"));
@@ -772,6 +772,7 @@ static void mainthread()
 
   g_anyToTcp = ::arg().mustDo("any-to-tcp");
   g_8bitDNS = ::arg().mustDo("8bit-dns");
+  g_logDNSQueries = ::arg().mustDo("log-dns-queries");
 #ifdef HAVE_LUA_RECORDS
   g_doLuaRecord = ::arg().mustDo("enable-lua-records");
   g_LuaRecordSharedState = (::arg()["enable-lua-records"] == "shared");

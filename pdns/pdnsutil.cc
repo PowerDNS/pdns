@@ -63,6 +63,7 @@ namespace po = boost::program_options;
 po::variables_map g_vm;
 
 bool g_slogStructured{false};
+bool g_logDNSQueries{false};
 static Logger::Urgency s_logUrgency;
 
 string g_programname="pdns";

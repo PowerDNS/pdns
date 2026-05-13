@@ -46,6 +46,7 @@ extern CommunicatorClass Communicator;
 void carbonDumpThread(Logr::log_t slog); // Implemented in auth-carbon.cc. Avoids having an auth-carbon.hh declaring exactly one function.
 extern bool g_anyToTcp;
 extern bool g_8bitDNS;
+extern bool g_logDNSQueries;
 extern NetmaskGroup g_proxyProtocolACL;
 extern size_t g_proxyProtocolMaximumSize;
 #ifdef HAVE_LUA_RECORDS
