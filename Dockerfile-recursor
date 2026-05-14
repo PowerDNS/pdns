@@ -33,8 +33,7 @@ COPY m4/ m4/
 COPY ext/ ext/
 COPY .git/ .git/
 
-COPY builder-support/helpers/install_rust.sh install_rust.sh
-COPY builder-support/helpers/rust.json rust.json
+COPY builder-support/helpers/install_rust.sh  builder-support/helpers/rust.json .
 RUN ./install_rust.sh
 
 # build and install (TODO: before we hit this line, rearrange /source structure if we are coming from a tarball)
