@@ -30,7 +30,7 @@ COPY build-aux/ build-aux/
 COPY m4/ m4/
 COPY ext/ ext/
 COPY .git/ .git/
-ADD configure.ac Makefile.am source/
+ADD configure.ac Makefile.am .
 COPY builder/helpers/set-configure-ac-version.sh /usr/local/bin
 
 ARG MAKEFLAGS=
