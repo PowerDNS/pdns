@@ -589,7 +589,7 @@ void BPFFilter::addRangeRule(const Netmask& addr, bool force, BPFFilter::MatchAc
     }
 
     res = bpf_lookup_elem(map.d_fd.getHandle(), &key, &value);
-    if (((res != -1 && value.action == action) || (res == -1 && value.action == BPFFilter::MatchAction::Pass)) && !force) {
+    if (((res != -1 && value.action == action) || (res == -1 && action == BPFFilter::MatchAction::Pass)) && !force) {
       throw std::runtime_error("Trying to add a useless rule: " + addr.toString());
     }
 
@@ -614,7 +614,7 @@ void BPFFilter::addRangeRule(const Netmask& addr, bool force, BPFFilter::MatchAc
     }
 
     res = bpf_lookup_elem(map.d_fd.getHandle(), &key, &value);
-    if (((res != -1 && value.action == action) || (res == -1 && value.action == BPFFilter::MatchAction::Pass)) && !force) {
+    if (((res != -1 && value.action == action) || (res == -1 && action == BPFFilter::MatchAction::Pass)) && !force) {
       throw std::runtime_error("Trying to add a useless rule: " + addr.toString());
     }
 
