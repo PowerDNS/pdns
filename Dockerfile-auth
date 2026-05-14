@@ -11,25 +11,26 @@ RUN apt-get update && apt-get -y dist-upgrade && apt-get clean
 # devscripts gives us mk-build-deps (and a lot of other stuff)
 RUN apt-get update && apt-get -y dist-upgrade && apt-get install -y  --no-install-recommends devscripts dpkg-dev equivs git python3-venv && apt-get clean
 
+WORKDIR /source
+
 # import everything - this could be pdns.git OR an auth tarball!
-COPY builder-support /source/builder-support
+COPY builder-support/ builder-support/
 
 # TODO: control file is not in tarballs at all right now
-RUN mk-build-deps -i -t 'apt-get -y -o Debug::pkgProblemResolver=yes --no-install-recommends' /source/builder-support/debian/authoritative/debian-buster/control && \
+RUN mk-build-deps -i -t 'apt-get -y -o Debug::pkgProblemResolver=yes --no-install-recommends' builder-support/debian/authoritative/debian-buster/control && \
     apt-get clean
 
-# build and install (TODO: before we hit this line, rearrange /source structure if we are coming from a tarball)
-WORKDIR /source/
+# build and install
 
-COPY pdns /source/pdns
-COPY modules /source/modules
-COPY codedocs /source/codedocs
-COPY docs /source/docs
-COPY build-aux /source/build-aux
-COPY m4 /source/m4
-COPY ext /source/ext
-COPY .git /source/.git
-ADD configure.ac Makefile.am /source/
+COPY pdns/ pdns/
+COPY modules/ modules/
+COPY codedocs/ codedocs/
+COPY docs/ docs/
+COPY build-aux/ build-aux/
+COPY m4/ m4/
+COPY ext/ ext/
+COPY .git/ .git/
+ADD configure.ac Makefile.am source/
 COPY builder/helpers/set-configure-ac-version.sh /usr/local/bin
 
 ARG MAKEFLAGS=
@@ -66,6 +67,7 @@ RUN cd /tmp && mkdir /build/tmp/ && mkdir debian && \
     sed 's/^shlibs:Depends=/Depends: /' debian/substvars >> debian/control && \
     equivs-build debian/control && \
     dpkg-deb -I equivs-dummy_1.0_all.deb && cp equivs-dummy_1.0_all.deb /build/tmp/
+
 
 # Runtime
 FROM debian:trixie-slim
