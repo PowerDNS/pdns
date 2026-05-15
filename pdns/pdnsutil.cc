@@ -646,6 +646,8 @@ static void loadMainConfig(const std::string& configdir)
   ::arg().set("max-include-depth", "Maximum nested $INCLUDE depth when loading a zone from a file")="20";
   ::arg().setSwitch("upgrade-unknown-types","Transparently upgrade known TYPExxx records. Recommended to keep off, except for PowerDNS upgrades until data sources are cleaned up")="no";
   ::arg().setSwitch("views", "Enable views (variants) of zones, for backends which support them") = "no";
+  // Needed by Lua backend
+  ::arg().set("lua-global-include-dir", "Include *.lua files from this directory into Lua contexts") = "";
   ::arg().laxFile(configname);
 
   if(!::arg()["load-modules"].empty()) {
