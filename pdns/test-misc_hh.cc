@@ -297,6 +297,96 @@ BOOST_AUTO_TEST_CASE(test_parseRFC1035CharString)
   BOOST_CHECK_EQUAL(out, expected);
 }
 
+BOOST_AUTO_TEST_CASE(test_parseRFC1035CharStringRelaxed)
+{
+  string in;
+  string out;
+  string expected;
+  size_t amount;
+
+  // Same tests as for parseRFC1035CharString
+
+  in = "foobar123";
+  amount = parseRFC1035CharStringRelaxed(in, out);
+  BOOST_CHECK_EQUAL(amount, in.size());
+  BOOST_CHECK_EQUAL(out, "foobar123");
+
+  in = "foobar123\\,bazquux456";
+  amount = parseRFC1035CharStringRelaxed(in, out);
+  BOOST_CHECK_EQUAL(amount, in.size());
+  BOOST_CHECK_EQUAL(out, "foobar123,bazquux456");
+
+  in = string("\"")+string(16262, 'A')+string("\"");
+  expected = string(16262, 'A');
+  amount = parseRFC1035CharStringRelaxed(in, out);
+  BOOST_CHECK_EQUAL(amount, in.size());
+  BOOST_CHECK_EQUAL(out, expected);
+
+  in = "hello\\044world\\002";
+  expected = "hello,world\x02";
+  amount = parseRFC1035CharStringRelaxed(in, out);
+  BOOST_CHECK_EQUAL(amount, in.size());
+  BOOST_CHECK_EQUAL(out, expected);
+
+  in = "\"hello\\044world\"";
+  expected = "hello,world";
+  amount = parseRFC1035CharStringRelaxed(in, out);
+  BOOST_CHECK_EQUAL(amount, in.size());
+  BOOST_CHECK_EQUAL(out, expected);
+
+  // Here we'll only read until the space
+  in = "hello world";
+  expected = "hello";
+  amount = parseRFC1035CharStringRelaxed(in, out);
+  BOOST_CHECK_EQUAL(amount, 5U);
+  BOOST_CHECK_EQUAL(out, expected);
+
+  // \032 is a space, but it is read because it is escaped
+  in = "hello\\032world";
+  expected = "hello world";
+  amount = parseRFC1035CharStringRelaxed(in, out);
+  BOOST_CHECK_EQUAL(amount, in.size());
+  BOOST_CHECK_EQUAL(out, expected);
+
+  in = "\"hello\\032world\"";
+  expected = "hello world";
+  amount = parseRFC1035CharStringRelaxed(in, out);
+  BOOST_CHECK_EQUAL(amount, in.size());
+  BOOST_CHECK_EQUAL(out, expected);
+
+  in = "\"hello\\032world XXXX\"";
+  expected = "hello world XXXX";
+  amount = parseRFC1035CharStringRelaxed(in, out);
+  BOOST_CHECK_EQUAL(amount, in.size());
+  BOOST_CHECK_EQUAL(out, expected);
+
+  // From draft-ietf-dnsop-svcb-https-03
+  expected = R"FOO(part1,part2,part3\,part4\\)FOO";
+  in = R"FOO("part1,part2,part3\\,part4\\\\)FOO";
+  amount = parseRFC1035CharStringRelaxed(in, out);
+  BOOST_CHECK_EQUAL(amount, in.size());
+  BOOST_CHECK_EQUAL(out, expected);
+
+  in = R"FOO(part1\,\p\a\r\t2\044part3\092,part4\092\\)FOO";
+  amount = parseRFC1035CharStringRelaxed(in, out);
+  BOOST_CHECK_EQUAL(amount, in.size());
+  BOOST_CHECK_EQUAL(out, expected);
+
+  // Specific checks for ( ) ;
+
+  in = "\"();etc\"";
+  expected = "();etc";
+  amount = parseRFC1035CharStringRelaxed(in, out);
+  BOOST_CHECK_EQUAL(amount, in.size());
+  BOOST_CHECK_EQUAL(out, expected);
+
+  in = ";login";
+  expected = "";
+  amount = parseRFC1035CharStringRelaxed(in, out);
+  BOOST_CHECK_EQUAL(amount, 0);
+  BOOST_CHECK_EQUAL(out, expected);
+}
+
 BOOST_AUTO_TEST_CASE(test_parseSVCBValueList)
 {
   vector<string> out;
