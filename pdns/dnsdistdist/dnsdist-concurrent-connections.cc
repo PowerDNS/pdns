@@ -182,17 +182,18 @@ void IncomingConcurrentTCPConnectionsManager::cleanup(time_t now)
 void IncomingConcurrentTCPConnectionsManager::clear()
 {
   for (auto& shard : s_tcpClientsConnectionMetrics) {
-    auto db = shard.lock();
-    db->clear();
+    auto clients = shard.lock();
+    clients->clear();
   }
+  s_nextCleanup.store(0);
 }
 
 size_t IncomingConcurrentTCPConnectionsManager::getNumberOfEntries()
 {
   size_t total = 0;
   for (auto& shard : s_tcpClientsConnectionMetrics) {
-    auto db = shard.lock();
-    total += db->size();
+    auto clients = shard.lock();
+    total += clients->size();
   }
   return total;
 }
