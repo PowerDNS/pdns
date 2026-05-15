@@ -117,3 +117,4 @@ EXPOSE 8081/tcp
 
 USER pdns
 ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/sbin/pdns_server-startup"]
+HEALTHCHECK --interval=10s --timeout=5s --start-period=1s --start-interval=1s --retries=3 CMD ["pdns_control", "rping"]
