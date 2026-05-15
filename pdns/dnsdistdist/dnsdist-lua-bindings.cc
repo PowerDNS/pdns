@@ -299,7 +299,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
     if (getOptionalValue<size_t>(vars, "rise", value) > 0 && value > 0) {
       state->d_config.minRiseSuccesses.store(value);
     }
-    if (getOptionalValue<size_t>(vars, "checkTimeout", value) && value > 0) {
+    if (getOptionalValue<size_t>(vars, "checkTimeout", value) > 0 && value > 0) {
       state->d_config.checkTimeout.store(value);
     }
     if (getOptionalValue<size_t>(vars, "checkInterval", value) > 0 && value > 0) {
