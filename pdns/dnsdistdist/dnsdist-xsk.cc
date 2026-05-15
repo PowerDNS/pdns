@@ -70,6 +70,8 @@ void XskResponderThread(std::shared_ptr<DownstreamState> dss, std::shared_ptr<Xs
           auto response = packet.clonePacketBuffer();
           if (response.size() > packet.getCapacity()) {
             /* fallback to sending the packet via normal socket */
+            VERBOSESLOG(infolog("XSK packet falling back because packet is too large"),
+                        logger->info(Logr::Info, "XSK packet falling back because packet is too large"));
             ids->xskPacketHeader.clear();
           }
           if (!processResponderPacket(dss, response, std::move(*ids))) {
@@ -79,10 +81,6 @@ void XskResponderThread(std::shared_ptr<DownstreamState> dss, std::shared_ptr<Xs
             return;
           }
           if (response.size() > packet.getCapacity()) {
-            /* fallback to sending the packet via normal socket */
-            sendUDPResponse(ids->cs->udpFD, response, ids->delayMsec, ids->hopLocal, ids->hopRemote);
-            VERBOSESLOG(infolog("XSK packet falling back because packet is too large"),
-                        logger->info(Logr::Info, "XSK packet falling back because packet is too large"));
             xskInfo->markAsFree(packet);
             return;
           }
