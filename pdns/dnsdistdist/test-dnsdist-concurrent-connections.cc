@@ -412,7 +412,6 @@ BOOST_FIXTURE_TEST_CASE(test_Live_Connections_Cleanup, TestFixture)
   auto result = dnsdist::IncomingConcurrentTCPConnectionsManager::accountNewTCPConnection(client, false, false, now);
   BOOST_REQUIRE(result == dnsdist::IncomingConcurrentTCPConnectionsManager::NewConnectionResult::Allowed);
 
-
   BOOST_REQUIRE_EQUAL(dnsdist::IncomingConcurrentTCPConnectionsManager::getNumberOfEntries(), 1U);
 
   /* now we should be after interval * 60s, entries should NOT be removed because it is active */
