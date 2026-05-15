@@ -24,12 +24,16 @@ class TestTags(DNSDistTest):
     addAction(TagRule("dns"), SpoofAction("1.2.3.100"))
 
     function responseHandlerSetTC(dr)
-      dr.dh:setTC(true)
+      local header = dr:getHeader()
+      header:setTC(true)
+      dr:setHeader(header)
       return DNSResponseAction.HeaderModify, ""
     end
 
     function responseHandlerUnsetQR(dr)
-      dr.dh:setQR(false)
+      local header = dr:getHeader()
+      header:setQR(false)
+      dr:setHeader(header)
       return DNSResponseAction.HeaderModify, ""
     end
 

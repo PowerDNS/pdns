@@ -91,7 +91,7 @@ response_rules:
           name: "Match responses on RD=0 (inline)"
           function_code: |
             return function(dr)
-              local rd = dr.dh:getRD()
+              local rd = dr:getHeader():getRD()
               if not rd then
                 return true
               end
