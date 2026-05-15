@@ -569,6 +569,7 @@ static void sendout(std::unique_ptr<DNSPacket>& a, Logr::log_t slog, int start)
 }
 
 //! The qthread receives questions over the internet via the Nameserver class, and hands them to the Distributor for further processing
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 static void qthread(unsigned int num)
 {
   std::shared_ptr<Logr::Logger> slog;
