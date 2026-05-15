@@ -136,6 +136,7 @@ static bool checkDNSResponseType(const char* functionName, const dnsdist_ffi_dns
 
 void dnsdist_ffi_dnsquestion_get_masked_remoteaddr(dnsdist_ffi_dnsquestion_t* dq, const void** addr, size_t* addrSize, uint8_t bits)
 {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay): __func__ is what it is
   if (!checkDNSQuestionType(__func__, dq)) {
     return;
   }
