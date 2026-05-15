@@ -68,6 +68,7 @@
 #include "dnsdist-tcp.hh"
 #include "dnsdist-tcp-downstream.hh"
 #include "dnsdist-tcp-upstream.hh"
+#include "dnsdist-udp.hh"
 #include "dnsdist-web.hh"
 #include "dnsdist-xsk.hh"
 
@@ -2665,45 +2666,7 @@ static void setupLocalSocket(ClientState& clientState, const ComboAddress& addr,
   }
 
   if (!tcp) {
-    if (immutableConfig.d_socketUDPSendBuffer > 0) {
-      try {
-        setSocketSendBuffer(socket, immutableConfig.d_socketUDPSendBuffer);
-      }
-      catch (const std::exception& e) {
-        warnlog(e.what());
-      }
-    }
-    else {
-      try {
-        auto result = raiseSocketSendBufferToMax(socket);
-        if (result > 0) {
-          infolog("Raised send buffer to %u for local address '%s'", result, addr.toStringWithPort());
-        }
-      }
-      catch (const std::exception& e) {
-        warnlog(e.what());
-      }
-    }
-
-    if (immutableConfig.d_socketUDPRecvBuffer > 0) {
-      try {
-        setSocketReceiveBuffer(socket, immutableConfig.d_socketUDPRecvBuffer);
-      }
-      catch (const std::exception& e) {
-        warnlog(e.what());
-      }
-    }
-    else {
-      try {
-        auto result = raiseSocketReceiveBufferToMax(socket);
-        if (result > 0) {
-          infolog("Raised receive buffer to %u for local address '%s'", result, addr.toStringWithPort());
-        }
-      }
-      catch (const std::exception& e) {
-        warnlog(e.what());
-      }
-    }
+    dnsdist::udp::setUDPSocketBufferSizes(socket, dnsdist::udp::Context::Frontend, addr);
   }
 
   const std::string& itf = clientState.interface;
