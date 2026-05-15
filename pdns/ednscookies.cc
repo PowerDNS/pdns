@@ -85,8 +85,8 @@ static bool cookieTSIsValid(uint32_t timestamp, uint32_t now)
   //    The DNS server
   //    SHOULD allow cookies within a 1-hour period in the past and a
   //    5-minute period into the future
-  // valid: now - 300 < timestamp < now + 3600
-  return rfc1982LessThan(now - 300, timestamp) && rfc1982LessThan(timestamp, now + 3600);
+  // valid: now - 3600 < timestamp < now + 300
+  return rfc1982LessThan(now - 3600, timestamp) && rfc1982LessThan(timestamp, now + 300);
 }
 
 bool EDNSCookiesOpt::isValid([[maybe_unused]] const string& secret, [[maybe_unused]] const ComboAddress& source) const
