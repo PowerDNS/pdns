@@ -205,7 +205,7 @@ bool CDBKVStore::reload(const struct stat& st)
 {
   auto newCDB = std::make_unique<CDB>(d_fname);
   {
-    *(d_cdb.write_lock()) = std::move(newCDB);
+    *(d_cdb.lock()) = std::move(newCDB);
   }
   d_mtime = st.st_mtime;
   return true;
@@ -263,7 +263,7 @@ bool CDBKVStore::getValue(const std::string& key, std::string& value)
     }
 
     {
-      auto cdb = d_cdb.read_lock();
+      auto cdb = d_cdb.lock();
       if (*cdb && (*cdb)->findOne(key, value)) {
         return true;
       }
@@ -286,7 +286,7 @@ bool CDBKVStore::keyExists(const std::string& key)
     }
 
     {
-      auto cdb = d_cdb.read_lock();
+      auto cdb = d_cdb.lock();
       if (!*cdb) {
         return false;
       }
