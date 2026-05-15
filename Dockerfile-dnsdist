@@ -7,7 +7,7 @@ ENV NO_LUA_JIT="s390x arm64"
 
 # Enable backports to get a recent enough version of meson
 # devscripts gives us mk-build-deps (and a lot of other stuff)
-RUN echo "deb http://deb.debian.org/debian bookworm-backports main" > /etc/apt/sources.list.d/bookworm-backports.list && \
+RUN echo "deb http://deb.debian.org/debian trixie-backports main" > /etc/apt/sources.list.d/trixie-backports.list && \
     apt-get update && apt-get -y dist-upgrade && \
     apt-get install -y  --no-install-recommends \
         devscripts \
