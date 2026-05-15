@@ -100,7 +100,7 @@ uint8_t dnsdist_ffi_dnsquestion_get_edns_version(const dnsdist_ffi_dnsquestion_t
 uint8_t dnsdist_ffi_dnsquestion_get_edns_extended_rcode(const dnsdist_ffi_dnsquestion_t* dnsQuestion) __attribute__((visibility("default")));
 /* sni will be updated to point to a buffer containing the SNI in wire format, and sniSize will contain the number of bytes in the buffer pointed to by sni */
 void dnsdist_ffi_dnsquestion_get_sni(const dnsdist_ffi_dnsquestion_t* dq, const char** sni, size_t* sniSize) __attribute__((visibility("default")));
-/* return a pointer to a NULL-terminated string containing the value of the corresponding tag, if any. Note that the string will be invalidated as soon as the tags are altered in any way, so don't hold unto it */
+/* return a pointer to a NUL-terminated string containing the value of the corresponding tag, if any. Note that the string will be invalidated as soon as the tags are altered in any way, so don't hold unto it */
 const char* dnsdist_ffi_dnsquestion_get_tag(const dnsdist_ffi_dnsquestion_t* dq, const char* label) __attribute__ ((visibility ("default")));
 /* bufferSize must be set to the size of buffer. If a tag exists for the key passed in label, and buffer is big enough to contain the value of the tag, the content of the value is copied into buffer and the amount of bytes copied is returned */
 size_t dnsdist_ffi_dnsquestion_get_tag_raw(const dnsdist_ffi_dnsquestion_t* dq, const char* label, char* buffer, size_t bufferSize) __attribute__((visibility("default")));
