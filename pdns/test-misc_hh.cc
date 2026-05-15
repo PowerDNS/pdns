@@ -299,10 +299,10 @@ BOOST_AUTO_TEST_CASE(test_parseRFC1035CharString)
 
 BOOST_AUTO_TEST_CASE(test_parseRFC1035CharStringRelaxed)
 {
-  string in;
+  string in; // NOLINT(readability-identifier-length)
   string out;
   string expected;
-  size_t amount;
+  size_t amount{0};
 
   // Same tests as for parseRFC1035CharString
 
@@ -328,7 +328,7 @@ BOOST_AUTO_TEST_CASE(test_parseRFC1035CharStringRelaxed)
   BOOST_CHECK_EQUAL(amount, in.size());
   BOOST_CHECK_EQUAL(out, expected);
 
-  in = "\"hello\\044world\"";
+  in = R"("hello\044world")";
   expected = "hello,world";
   amount = parseRFC1035CharStringRelaxed(in, out);
   BOOST_CHECK_EQUAL(amount, in.size());
@@ -348,13 +348,13 @@ BOOST_AUTO_TEST_CASE(test_parseRFC1035CharStringRelaxed)
   BOOST_CHECK_EQUAL(amount, in.size());
   BOOST_CHECK_EQUAL(out, expected);
 
-  in = "\"hello\\032world\"";
+  in = R"("hello\032world")";
   expected = "hello world";
   amount = parseRFC1035CharStringRelaxed(in, out);
   BOOST_CHECK_EQUAL(amount, in.size());
   BOOST_CHECK_EQUAL(out, expected);
 
-  in = "\"hello\\032world XXXX\"";
+  in = R"("hello\032world XXXX")";
   expected = "hello world XXXX";
   amount = parseRFC1035CharStringRelaxed(in, out);
   BOOST_CHECK_EQUAL(amount, in.size());
