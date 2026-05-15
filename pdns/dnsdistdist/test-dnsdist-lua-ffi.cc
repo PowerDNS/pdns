@@ -59,9 +59,9 @@ BOOST_AUTO_TEST_CASE(test_Query)
   pwQ.getHeader()->rd = 1;
   pwQ.getHeader()->id = htons(42);
 
-  DNSQuestion dq(ids, query);
-  dnsdist_ffi_dnsquestion_t lightDQ(&dq);
-  const auto initialData = dq.getData();
+  DNSQuestion dnsQuestion(ids, query);
+  dnsdist_ffi_dnsquestion_t lightDQ(&dnsQuestion);
+  const auto initialData = dnsQuestion.getData();
 
   {
     // dnsdist_ffi_dnsquestion_get_qtype
@@ -83,6 +83,7 @@ BOOST_AUTO_TEST_CASE(test_Query)
     // dnsdist_ffi_dnsquestion_get_localaddr, dnsdist_ffi_dnsquestion_get_local_port
     const char* buffer = nullptr;
     size_t bufferSize = 0;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     dnsdist_ffi_dnsquestion_get_localaddr(&lightDQ, reinterpret_cast<const void**>(&buffer), &bufferSize);
     BOOST_REQUIRE(buffer != nullptr);
     BOOST_REQUIRE_EQUAL(bufferSize, sizeof(ids.origDest.sin4.sin_addr.s_addr));
@@ -94,6 +95,7 @@ BOOST_AUTO_TEST_CASE(test_Query)
     // dnsdist_ffi_dnsquestion_get_remoteaddr, dnsdist_ffi_dnsquestion_get_remote_port
     const char* buffer = nullptr;
     size_t bufferSize = 0;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     dnsdist_ffi_dnsquestion_get_remoteaddr(&lightDQ, reinterpret_cast<const void**>(&buffer), &bufferSize);
     BOOST_REQUIRE(buffer != nullptr);
     BOOST_REQUIRE_EQUAL(bufferSize, sizeof(ids.origRemote.sin4.sin_addr.s_addr));
@@ -107,6 +109,7 @@ BOOST_AUTO_TEST_CASE(test_Query)
     // dnsdist_ffi_dnsquestion_get_masked_remoteaddr
     const char* buffer = nullptr;
     size_t bufferSize = 0;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     dnsdist_ffi_dnsquestion_get_masked_remoteaddr(&lightDQ, reinterpret_cast<const void**>(&buffer), &bufferSize, 16);
     BOOST_REQUIRE(buffer != nullptr);
     auto masked = Netmask(ids.origRemote, 16).getMaskedNetwork();
@@ -115,16 +118,15 @@ BOOST_AUTO_TEST_CASE(test_Query)
   }
 
   {
-    const char* buffer[6];
-    size_t bufferSize = 6;
+    std::array<char, 6> buffer{};
 
     // invalid
-    BOOST_CHECK_EQUAL(dnsdist_ffi_dnsquestion_get_mac_addr(nullptr, buffer, 0), 0U);
+    BOOST_CHECK_EQUAL(dnsdist_ffi_dnsquestion_get_mac_addr(nullptr, buffer.data(), 0), 0U);
     // too small
-    BOOST_CHECK_EQUAL(dnsdist_ffi_dnsquestion_get_mac_addr(&lightDQ, buffer, 0), 0U);
+    BOOST_CHECK_EQUAL(dnsdist_ffi_dnsquestion_get_mac_addr(&lightDQ, buffer.data(), 0), 0U);
 
     // we will not find the corresponding MAC address in /proc/net/arp, unfortunately, especially not on !linux
-    BOOST_CHECK_EQUAL(dnsdist_ffi_dnsquestion_get_mac_addr(&lightDQ, buffer, bufferSize), 0U);
+    BOOST_CHECK_EQUAL(dnsdist_ffi_dnsquestion_get_mac_addr(&lightDQ, buffer.data(), buffer.size()), 0U);
   }
 
   {
@@ -144,6 +146,7 @@ BOOST_AUTO_TEST_CASE(test_Query)
 
     const char* buffer = nullptr;
     size_t bufferSize = 0;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     dnsdist_ffi_dnsquestion_get_remoteaddr(&lightDQ, reinterpret_cast<const void**>(&buffer), &bufferSize);
     BOOST_REQUIRE(buffer != nullptr);
     BOOST_REQUIRE_EQUAL(bufferSize, sizeof(ids.origRemote.sin6.sin6_addr.s6_addr));
@@ -212,7 +215,7 @@ BOOST_AUTO_TEST_CASE(test_Query)
 
     BOOST_CHECK(static_cast<uint8_t>(dnsdist_ffi_dnsquestion_get_protocol(&lightDQ)) == dnsdist::Protocol(dnsdist::Protocol::DoUDP).toNumber());
     for (const auto protocol : {dnsdist::Protocol::DoUDP, dnsdist::Protocol::DoTCP, dnsdist::Protocol::DNSCryptUDP, dnsdist::Protocol::DNSCryptTCP, dnsdist::Protocol::DoT, dnsdist::Protocol::DoH}) {
-      dq.ids.protocol = protocol;
+      dnsQuestion.ids.protocol = protocol;
       BOOST_CHECK(static_cast<uint8_t>(dnsdist_ffi_dnsquestion_get_protocol(&lightDQ)) == protocol);
     }
   }
@@ -278,20 +281,21 @@ BOOST_AUTO_TEST_CASE(test_Query)
   }
 
   {
-    dq.getMutableData() = initialData;
-    const auto oldData = dq.getData();
+    dnsQuestion.getMutableData() = initialData;
+    const auto oldData = dnsQuestion.getData();
     std::vector<dnsdist_ffi_raw_value> values;
-    ComboAddress v4("192.0.2.1");
-    ComboAddress v6("[2001:db8::42]");
+    ComboAddress v4Addr("192.0.2.1");
+    ComboAddress v6Addr("[2001:db8::42]");
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    values.push_back({reinterpret_cast<const char*>(&v4.sin4.sin_addr.s_addr), sizeof(v4.sin4.sin_addr.s_addr)});
+    values.push_back({reinterpret_cast<const char*>(&v4Addr.sin4.sin_addr.s_addr), sizeof(v4Addr.sin4.sin_addr.s_addr)});
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    values.push_back({reinterpret_cast<const char*>(&v6.sin6.sin6_addr.s6_addr), sizeof(v6.sin6.sin6_addr.s6_addr)});
+    values.push_back({reinterpret_cast<const char*>(&v6Addr.sin6.sin6_addr.s6_addr), sizeof(v6Addr.sin6.sin6_addr.s6_addr)});
 
     dnsdist_ffi_dnsquestion_spoof_addrs(&lightDQ, values.data(), values.size());
-    BOOST_CHECK(dq.getData().size() > oldData.size());
+    BOOST_CHECK(dnsQuestion.getData().size() > oldData.size());
 
-    MOADNSParser mdp(false, reinterpret_cast<const char*>(dq.getData().data()), dq.getData().size());
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    MOADNSParser mdp(false, reinterpret_cast<const char*>(dnsQuestion.getData().data()), dnsQuestion.getData().size());
     BOOST_CHECK_EQUAL(mdp.d_qname, ids.qname);
     BOOST_CHECK_EQUAL(mdp.d_header.qdcount, 1U);
     /* only the A has been added since the query was not ANY */
@@ -304,7 +308,7 @@ BOOST_AUTO_TEST_CASE(test_Query)
     BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_class, QClass::IN);
     BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_name, ids.qname);
 
-    dq.getMutableData() = oldData;
+    dnsQuestion.getMutableData() = oldData;
   }
 
   {
@@ -333,14 +337,16 @@ BOOST_AUTO_TEST_CASE(test_Query)
 
     dnsdist_ffi_dnsquestion_set_tag(&lightDQ, tagName.c_str(), tagValue.c_str());
 
-    auto got = dnsdist_ffi_dnsquestion_get_tag(&lightDQ, tagName.c_str());
+    const auto* got = dnsdist_ffi_dnsquestion_get_tag(&lightDQ, tagName.c_str());
     BOOST_CHECK(got != nullptr);
     BOOST_CHECK_EQUAL(got, tagValue.c_str());
 
     const dnsdist_ffi_tag_t* tags = nullptr;
     BOOST_CHECK_EQUAL(dnsdist_ffi_dnsquestion_get_tag_array(nullptr, nullptr), 0U);
     BOOST_REQUIRE_EQUAL(dnsdist_ffi_dnsquestion_get_tag_array(&lightDQ, &tags), 1U);
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): it's the API
     BOOST_CHECK_EQUAL(std::string(tags[0].name), tagName.c_str());
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): it's the API
     BOOST_CHECK_EQUAL(std::string(tags[0].value), tagValue.c_str());
 
     dnsdist_ffi_dnsquestion_unset_tag(&lightDQ, tagName.c_str());
@@ -433,10 +439,10 @@ BOOST_AUTO_TEST_CASE(test_Response)
   pwR.getHeader()->id = htons(42);
 
   ComboAddress dsAddr("192.0.2.1:53");
-  auto ds = std::make_shared<DownstreamState>(dsAddr);
+  auto downstream = std::make_shared<DownstreamState>(dsAddr);
 
-  DNSResponse dr(ids, response, ds);
-  dnsdist_ffi_dnsresponse_t lightDR(&dr);
+  DNSResponse dnsResponse(ids, response, downstream);
+  dnsdist_ffi_dnsresponse_t lightDR(&dnsResponse);
 
   {
     dnsdist_ffi_dnsresponse_set_min_ttl(&lightDR, 42);
@@ -479,8 +485,8 @@ BOOST_AUTO_TEST_CASE(test_Response)
 BOOST_AUTO_TEST_CASE(test_Server)
 {
   ComboAddress dsAddr("192.0.2.1:53");
-  auto ds = std::make_shared<DownstreamState>(dsAddr);
-  dnsdist_ffi_server_t server(ds);
+  auto downstream = std::make_shared<DownstreamState>(dsAddr);
+  dnsdist_ffi_server_t server(downstream);
 
   BOOST_CHECK_EQUAL(dnsdist_ffi_server_get_outstanding(&server), 0U);
   BOOST_CHECK_EQUAL(dnsdist_ffi_server_is_up(&server), false);
@@ -520,9 +526,9 @@ BOOST_AUTO_TEST_CASE(test_PacketCache)
   uint32_t key = 0;
   std::optional<Netmask> subnet;
   ids.queryRealTime.start();
-  DNSQuestion dq(ids, query);
-  packetCache->get(dq, 0, &key, subnet, dnssecOK, receivedOverUDP);
-  packetCache->insert(key, subnet, *(getFlagsFromDNSHeader(dq.getHeader().get())), dnssecOK, ids.qname, QType::A, QClass::IN, response, receivedOverUDP, 0, std::nullopt);
+  DNSQuestion dnsQuestion(ids, query);
+  packetCache->get(dnsQuestion, 0, &key, subnet, dnssecOK, receivedOverUDP);
+  packetCache->insert(key, subnet, *(getFlagsFromDNSHeader(dnsQuestion.getHeader().get())), dnssecOK, ids.qname, QType::A, QClass::IN, response, receivedOverUDP, 0, std::nullopt);
 
   std::string poolName("test-pool");
   auto testPool = ServerPool();
@@ -603,8 +609,8 @@ BOOST_AUTO_TEST_CASE(test_PacketCache)
 
 BOOST_AUTO_TEST_CASE(test_ProxyProtocol)
 {
-  ComboAddress v4("192.0.2.1");
-  ComboAddress v6("[2001:db8::42]");
+  ComboAddress v4Addr("192.0.2.1");
+  ComboAddress v6Addr("[2001:db8::42]");
 
   std::vector<dnsdist_ffi_proxy_protocol_value> values;
   values.push_back({"test-value", 10U, 1U});
@@ -614,18 +620,18 @@ BOOST_AUTO_TEST_CASE(test_ProxyProtocol)
 
   {
     // too small buffer
-    auto got = dnsdist_ffi_generate_proxy_protocol_payload(sizeof(v4.sin4.sin_addr.s_addr), &v4.sin4.sin_addr.s_addr, &v4.sin4.sin_addr.s_addr, 4242U, 53U, true, values.size(), values.data(), output.data(), 0);
+    auto got = dnsdist_ffi_generate_proxy_protocol_payload(sizeof(v4Addr.sin4.sin_addr.s_addr), &v4Addr.sin4.sin_addr.s_addr, &v4Addr.sin4.sin_addr.s_addr, 4242U, 53U, true, values.size(), values.data(), output.data(), 0);
     BOOST_CHECK_EQUAL(got, 0U);
   }
 
   {
     // invalid address size
-    auto got = dnsdist_ffi_generate_proxy_protocol_payload(0U, &v4.sin4.sin_addr.s_addr, &v4.sin4.sin_addr.s_addr, 4242U, 53U, true, values.size(), values.data(), output.data(), 0);
+    auto got = dnsdist_ffi_generate_proxy_protocol_payload(0U, &v4Addr.sin4.sin_addr.s_addr, &v4Addr.sin4.sin_addr.s_addr, 4242U, 53U, true, values.size(), values.data(), output.data(), 0);
     BOOST_CHECK_EQUAL(got, 0U);
   }
 
   {
-    auto got = dnsdist_ffi_generate_proxy_protocol_payload(sizeof(v4.sin4.sin_addr.s_addr), &v4.sin4.sin_addr.s_addr, &v4.sin4.sin_addr.s_addr, 4242U, 53U, true, values.size(), values.data(), output.data(), output.size());
+    auto got = dnsdist_ffi_generate_proxy_protocol_payload(sizeof(v4Addr.sin4.sin_addr.s_addr), &v4Addr.sin4.sin_addr.s_addr, &v4Addr.sin4.sin_addr.s_addr, 4242U, 53U, true, values.size(), values.data(), output.data(), output.size());
     BOOST_CHECK_EQUAL(got, 41U);
   }
 }
@@ -740,12 +746,12 @@ BOOST_AUTO_TEST_CASE(test_PacketOverlay)
   pwR.getHeader()->ra = 1;
   pwR.getHeader()->id = htons(42);
   pwR.startRecord(target, QType::A, 7200, QClass::IN, DNSResourceRecord::ANSWER);
-  ComboAddress v4("192.0.2.1");
-  pwR.xfrCAWithoutPort(4, v4);
+  ComboAddress v4Addr("192.0.2.1");
+  pwR.xfrCAWithoutPort(4, v4Addr);
   pwR.commit();
   pwR.startRecord(target, QType::AAAA, 7200, QClass::IN, DNSResourceRecord::ADDITIONAL);
-  ComboAddress v6("2001:db8::1");
-  pwR.xfrCAWithoutPort(6, v6);
+  ComboAddress v6Addr("2001:db8::1");
+  pwR.xfrCAWithoutPort(6, v6Addr);
   pwR.commit();
   pwR.addOpt(4096, 0, 0);
   pwR.commit();
@@ -755,7 +761,9 @@ BOOST_AUTO_TEST_CASE(test_PacketOverlay)
 
   dnsdist_ffi_dnspacket_t* packet = nullptr;
   // invalid packet
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
   BOOST_CHECK(!dnsdist_ffi_dnspacket_parse(reinterpret_cast<const char*>(response.data()), response.size() - 1, &packet));
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
   BOOST_REQUIRE(dnsdist_ffi_dnspacket_parse(reinterpret_cast<const char*>(response.data()), response.size(), &packet));
   BOOST_REQUIRE(packet != nullptr);
 
@@ -763,7 +771,7 @@ BOOST_AUTO_TEST_CASE(test_PacketOverlay)
   size_t qnameSize = 0;
 
   // invalid parameters
-  dnsdist_ffi_dnspacket_get_qname_raw(nullptr, nullptr, 0);
+  dnsdist_ffi_dnspacket_get_qname_raw(nullptr, nullptr, nullptr);
   BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_qtype(nullptr), 0U);
   BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_qclass(nullptr), 0U);
   BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_qtype(packet), QType::A);
@@ -786,12 +794,15 @@ BOOST_AUTO_TEST_CASE(test_PacketOverlay)
     parsedName.resize(1024);
 
     // too small
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_name_at_offset_raw(reinterpret_cast<const char*>(response.data()), response.size(), sizeof(dnsheader), parsedName.data(), 1U), 0U);
     // invalid parameters
     BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_name_at_offset_raw(nullptr, 0, sizeof(dnsheader), parsedName.data(), parsedName.size()), 0U);
     // invalid packet
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_name_at_offset_raw(reinterpret_cast<const char*>(response.data()), sizeof(dnsheader) + 2, sizeof(dnsheader), parsedName.data(), parsedName.size()), 0U);
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     auto parsedNameSize = dnsdist_ffi_dnspacket_get_name_at_offset_raw(reinterpret_cast<const char*>(response.data()), response.size(), sizeof(dnsheader), parsedName.data(), parsedName.size());
     BOOST_REQUIRE_GT(parsedNameSize, 0U);
     BOOST_REQUIRE_EQUAL(parsedNameSize, target.wirelength());
@@ -800,7 +811,7 @@ BOOST_AUTO_TEST_CASE(test_PacketOverlay)
 
   const char* name = nullptr;
   size_t nameSize = 0;
-  dnsdist_ffi_dnspacket_get_record_name_raw(nullptr, 0, nullptr, 0);
+  dnsdist_ffi_dnspacket_get_record_name_raw(nullptr, 0, nullptr, nullptr);
   BOOST_REQUIRE(name == nullptr);
 
   // invalid parameters
@@ -819,7 +830,7 @@ BOOST_AUTO_TEST_CASE(test_PacketOverlay)
   BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_record_type(packet, 0), QType::A);
   BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_record_class(packet, 0), QClass::IN);
   BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_record_ttl(packet, 0), 7200U);
-  BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_record_content_length(packet, 0), sizeof(v4.sin4.sin_addr.s_addr));
+  BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_record_content_length(packet, 0), sizeof(v4Addr.sin4.sin_addr.s_addr));
   BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_record_content_offset(packet, 0), 42U);
 
   // second record
@@ -830,7 +841,7 @@ BOOST_AUTO_TEST_CASE(test_PacketOverlay)
   BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_record_type(packet, 1), QType::AAAA);
   BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_record_class(packet, 1), QClass::IN);
   BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_record_ttl(packet, 1), 7200U);
-  BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_record_content_length(packet, 1), sizeof(v6.sin6.sin6_addr.s6_addr));
+  BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_record_content_length(packet, 1), sizeof(v6Addr.sin6.sin6_addr.s6_addr));
   BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_record_content_offset(packet, 1), 58U);
 
   dnsdist_ffi_dnspacket_free(packet);
@@ -838,14 +849,14 @@ BOOST_AUTO_TEST_CASE(test_PacketOverlay)
 
 BOOST_AUTO_TEST_CASE(test_RingBuffers)
 {
-  dnsheader dh;
-  memset(&dh, 0, sizeof(dh));
-  dh.id = htons(42);
-  dh.rd = 1;
-  dh.ancount = htons(1);
-  dh.nscount = htons(1);
-  dh.arcount = htons(1);
-  dh.rcode = RCode::NXDomain;
+  dnsheader ourHeader{};
+  memset(&ourHeader, 0, sizeof(ourHeader));
+  ourHeader.id = htons(42);
+  ourHeader.rd = 1;
+  ourHeader.ancount = htons(1);
+  ourHeader.nscount = htons(1);
+  ourHeader.arcount = htons(1);
+  ourHeader.rcode = RCode::NXDomain;
   DNSName qname("rings.luaffi.powerdns.com.");
   ComboAddress requestor1("192.0.2.1");
   ComboAddress backend("192.0.2.42");
@@ -854,7 +865,7 @@ BOOST_AUTO_TEST_CASE(test_RingBuffers)
   dnsdist::Protocol protocol = dnsdist::Protocol::DoUDP;
   dnsdist::Protocol outgoingProtocol = dnsdist::Protocol::DoUDP;
   unsigned int responseTime = 0;
-  struct timespec now;
+  timespec now{};
   gettime(&now);
 
   g_rings.reset();
@@ -865,8 +876,8 @@ BOOST_AUTO_TEST_CASE(test_RingBuffers)
   g_rings.init(config);
   BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), 0U);
 
-  g_rings.insertQuery(now, requestor1, qname, qtype, size, dh, protocol);
-  g_rings.insertResponse(now, requestor1, DNSName(qname), qtype, responseTime, size, dh, backend, outgoingProtocol);
+  g_rings.insertQuery(now, requestor1, qname, qtype, size, ourHeader, protocol);
+  g_rings.insertResponse(now, requestor1, DNSName(qname), qtype, responseTime, size, ourHeader, backend, outgoingProtocol);
 
   dnsdist_ffi_ring_entry_list_t* list = nullptr;
 
@@ -1215,6 +1226,7 @@ BOOST_AUTO_TEST_CASE(query_response_pointer_mismatch)
 
   const char* buffer = nullptr;
   size_t bufferSize = 0;
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
   dnsdist_ffi_dnsquestion_get_masked_remoteaddr(reinterpret_cast<dnsdist_ffi_dnsquestion_t*>(&lightDR), reinterpret_cast<const void**>(&buffer), &bufferSize, 16);
   BOOST_CHECK(buffer == nullptr);
   BOOST_CHECK_EQUAL(bufferSize, 0U);
