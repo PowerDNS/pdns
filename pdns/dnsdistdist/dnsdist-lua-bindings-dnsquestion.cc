@@ -294,7 +294,7 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
       return result;
     }
 
-    result.resize(dnsQuestion.proxyProtocolValues->size());
+    result.reserve(dnsQuestion.proxyProtocolValues->size());
     for (const auto& value : *dnsQuestion.proxyProtocolValues) {
       result.emplace_back(value.type, value.content);
     }
