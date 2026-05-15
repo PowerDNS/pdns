@@ -59,6 +59,10 @@ static size_t const pwhash_prefix_size = pwhash_prefix.size();
 SensitiveData::SensitiveData(std::string&& data) :
   d_data(std::move(data))
 {
+#ifdef HAVE_LIBSODIUM
+  // let's be nice and try to zero out the SSO buffer
+  sodium_memzero(data.data(), data.capacity());
+#endif
   data.clear();
 #ifdef HAVE_LIBSODIUM
   sodium_mlock(d_data.data(), d_data.size());
@@ -88,6 +92,9 @@ SensitiveData::~SensitiveData()
 void SensitiveData::clear()
 {
 #ifdef HAVE_LIBSODIUM
+  // let's be nice and try to zero out the SSO buffer (be careful, sodium_munlock will zero out the current size
+  // which might be zero if the object was moved)
+  sodium_memzero(d_data.data(), d_data.capacity());
   sodium_munlock(d_data.data(), d_data.size());
 #endif
   d_data.clear();
