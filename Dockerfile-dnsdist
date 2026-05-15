@@ -20,7 +20,7 @@ COPY builder-support/ builder-support/
 
 # TODO: control file is not in tarballs at all right now
 RUN mk-build-deps -i -t 'apt-get -y -o Debug::pkgProblemResolver=yes --no-install-recommends' /source/builder-support/debian/dnsdist/debian-bookworm/control && \
-    apt-get install -y -t bookworm-backports meson
+    apt-get install -y -t trixie-backports meson
 
 COPY meson/ meson/
 COPY pdns/ pdns/
