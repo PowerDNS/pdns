@@ -146,7 +146,7 @@ static const std::map<std::string, UnsignedIntegerImmutableConfigurationItems> s
   {"setDoHDownstreamCleanupInterval", {[](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_outgoingDoHCleanupInterval = newValue; }, std::numeric_limits<uint32_t>::max()}},
   {"setDoHDownstreamMaxIdleTime", {[](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_outgoingDoHMaxIdleTime = newValue; }, std::numeric_limits<uint16_t>::max()}},
 #endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
-  {"setMaxUDPOutstanding", {[](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_maxUDPOutstanding = newValue; }, std::numeric_limits<uint16_t>::max()}},
+  {"setMaxUDPOutstanding", {[](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_maxUDPOutstanding = newValue; }, 65536U}},
   {"setWHashedPertubation" /* Deprecated */, {[](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_hashPerturbation = newValue; }, std::numeric_limits<uint32_t>::max()}},
   {"setWHashedPerturbation", {[](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_hashPerturbation = newValue; }, std::numeric_limits<uint32_t>::max()}},
 #ifndef DISABLE_RECVMMSG

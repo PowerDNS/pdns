@@ -124,7 +124,7 @@ Tuning related functions
   .. versionchanged:: 1.4.0
     Before 1.4.0 the default value was 10240
 
-  Set the maximum number of outstanding UDP queries to a given backend server. This can only be set at configuration time and defaults to 65535 (10240 before 1.4.0).
+  Set the maximum number of outstanding UDP queries to a given backend server. This can only be set at configuration time and defaults to 65536 (10240 before 1.4.0).
 
   :param int num:
 
