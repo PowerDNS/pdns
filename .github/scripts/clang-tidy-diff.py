@@ -227,12 +227,10 @@ def main():
     # A lock for console output.
     lock = threading.Lock()
 
-     # List of files with a non-zero return code.
+    # List of files with a non-zero return code.
     failed_files = []
     # Run a pool of clang-tidy workers.
-    start_workers(
-        max_task_count, run_tidy, (task_queue, lock, args.timeout, failed_files)
-    )
+    start_workers(max_task_count, run_tidy, (task_queue, lock, args.timeout, failed_files))
 
     # Form the common args list.
     common_clang_tidy_args = []
@@ -294,6 +292,7 @@ def main():
     if tmpdir:
         shutil.rmtree(tmpdir)
     sys.exit(return_code)
+
 
 if __name__ == "__main__":
     main()
