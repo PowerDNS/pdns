@@ -758,10 +758,10 @@ void DynBlockMaintenance::generateMetrics()
         auto& stat = reasonStat[entry.first];
         if (entry.second < stat.lastSeenValue) {
           /* it wrapped, or we did not have a last value */
-          stat.sum = entry.second;
+          stat.sum += entry.second;
         }
         else {
-          stat.sum = entry.second - stat.lastSeenValue;
+          stat.sum += entry.second - stat.lastSeenValue;
         }
         stat.lastSeenValue = entry.second;
       }
