@@ -293,20 +293,16 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
       return;
     }
     size_t value = 0;
-    getOptionalValue<size_t>(vars, "maxCheckFailures", value);
-    if (value > 0) {
+    if (getOptionalValue<size_t>(vars, "maxCheckFailures", value) > 0 && value > 0) {
       state->d_config.maxCheckFailures.store(value);
     }
-    getOptionalValue<size_t>(vars, "rise", value);
-    if (value > 0) {
+    if (getOptionalValue<size_t>(vars, "rise", value) > 0 && value > 0) {
       state->d_config.minRiseSuccesses.store(value);
     }
-    getOptionalValue<size_t>(vars, "checkTimeout", value);
-    if (value > 0) {
+    if (getOptionalValue<size_t>(vars, "checkTimeout", value) && value > 0) {
       state->d_config.checkTimeout.store(value);
     }
-    getOptionalValue<size_t>(vars, "checkInterval", value);
-    if (value > 0) {
+    if (getOptionalValue<size_t>(vars, "checkInterval", value) > 0 && value > 0) {
       state->d_config.checkInterval.store(value);
     }
   });
