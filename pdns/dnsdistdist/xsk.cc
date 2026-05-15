@@ -880,8 +880,7 @@ void XskWorker::notify(int desc)
   ssize_t res = 0;
   do {
     res = write(desc, &value, sizeof(value));
-  }
-  while (res == -1 && errno == EINTR);
+  } while (res == -1 && errno == EINTR);
 
   if (res != sizeof(value)) {
     throw runtime_error("Unable Wake Up XskSocket Failed");
