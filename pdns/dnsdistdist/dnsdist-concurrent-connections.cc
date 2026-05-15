@@ -185,6 +185,7 @@ void IncomingConcurrentTCPConnectionsManager::clear()
     auto clients = shard.lock();
     clients->clear();
   }
+  s_nextCleanup.store(0);
 }
 
 size_t IncomingConcurrentTCPConnectionsManager::getNumberOfEntries()
