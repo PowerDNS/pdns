@@ -420,6 +420,7 @@ testrunner_SOURCES = \
 	test-dnsdist-ipcrypt2_cc.cc \
 	test-dnsdist-lua-ffi.cc \
 	test-dnsdist-opentelemetry_cc.cc \
+	test-dnsdist-session-cache.cc \
 	test-dnsdist-xsk.cc \
 	test-dnsdist_cc.cc \
 	test-dnsdistasync.cc \
