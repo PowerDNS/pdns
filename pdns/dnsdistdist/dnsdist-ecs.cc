@@ -513,7 +513,11 @@ static bool addECSToExistingOPT(PacketBuffer& packet, size_t maximumSize, const 
     return false;
   }
 
-  uint16_t newRDLen = oldRDLen + newECSOption.size();
+  const uint32_t computedRDLen = static_cast<uint32_t>(oldRDLen) + newECSOption.size();
+  if (computedRDLen > std::numeric_limits<uint16_t>::max()) {
+    return false;
+  }
+  const auto newRDLen = static_cast<uint16_t>(computedRDLen);
   packet.at(optRDLenPosition) = newRDLen / 256;
   packet.at(optRDLenPosition + 1) = newRDLen % 256;
 
@@ -603,6 +607,11 @@ bool handleEDNSClientSubnet(PacketBuffer& packet, const size_t maximumSize, cons
     }
 
     return replaceEDNSClientSubnetOption(packet, maximumSize, optRDPosition + ecsOptionStartPosition, ecsOptionSize, optRDPosition, newECSOption);
+  }
+
+  if (res != ENOENT) {
+    /* something is wrong */
+    return false;
   }
 
   /* we have an EDNS OPT RR but no existing ECS option */
