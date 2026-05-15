@@ -2,6 +2,7 @@
 
 import json
 import os
+import sys
 
 import git
 import yaml
@@ -43,6 +44,6 @@ def index_compdb(file_contents):
     """Index the compilation database."""
     result = set()
     for item in file_contents:
-        filename = os.path.join(item["directory"], item["file"])
+        filename = os.path.normpath(os.path.join(item["directory"], item["file"]))
         result.add(filename)
     return result
