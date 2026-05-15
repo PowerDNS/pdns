@@ -5,14 +5,14 @@ ENV NO_LUA_JIT="s390x arm64"
 
 # TODO: make sure /source looks roughly the same from git or tar
 
-# Reusable layer for base update
-RUN apt-get update && apt-get -y dist-upgrade && apt-get clean
-
 # Enable backports to get a recent enough version of meson
-RUN echo "deb http://deb.debian.org/debian bookworm-backports main" > /etc/apt/sources.list.d/bookworm-backports.list
-
 # devscripts gives us mk-build-deps (and a lot of other stuff)
-RUN apt-get update && apt-get -y dist-upgrade && apt-get install -y  --no-install-recommends devscripts equivs git && apt-get clean
+RUN echo "deb http://deb.debian.org/debian bookworm-backports main" > /etc/apt/sources.list.d/bookworm-backports.list && \
+    apt-get update && apt-get -y dist-upgrade && \
+    apt-get install -y  --no-install-recommends \
+        devscripts \
+        equivs \
+        git
 
 WORKDIR /source
 
@@ -20,8 +20,7 @@ COPY builder-support/ builder-support/
 
 # TODO: control file is not in tarballs at all right now
 RUN mk-build-deps -i -t 'apt-get -y -o Debug::pkgProblemResolver=yes --no-install-recommends' /source/builder-support/debian/dnsdist/debian-bookworm/control && \
-    apt-get install -y -t bookworm-backports meson && \
-    apt-get clean
+    apt-get install -y -t bookworm-backports meson
 
 COPY meson/ meson/
 COPY pdns/ pdns/
@@ -41,16 +40,15 @@ ENV DOCKER_FAKE_RELEASE=${DOCKER_FAKE_RELEASE}
 
 RUN touch dnsdist.1 # avoid having to install pandoc and venv
 
-RUN mkdir /quiche && cd /quiche && \
-    apt-get install -y cmake curl jq libclang-dev && \
-    apt-get clean && \
+WORKDIR /quiche
+RUN apt-get install -y cmake curl jq libclang-dev && \
     cd /source/builder-support/helpers/ && \
     ./install_rust.sh && \
     ./install_quiche.sh
 
 RUN mkdir /build && \
     LUAVER=$([ -z "${NO_LUA_JIT##*$(dpkg --print-architecture)*}" ] && echo 'lua5.3' || echo 'luajit') && \
-    apt-get install -y lib${LUAVER}-*dev ninja-build && \
+    apt-get install -y lib${LUAVER}-*dev ninja-build && apt-get clean && rm -rf /var/lib/apt/lists/* && \
     BUILDDIR=$(mktemp -d) && \
     IS_RELEASE="${DOCKER_FAKE_RELEASE}" \
     LDFLAGS="-latomic -fuse-ld=lld -Wl,--build-id=sha1 -ldl" \
@@ -111,14 +109,16 @@ RUN apt-get update && apt-get -y dist-upgrade && apt-get clean
 COPY --from=builder /build /
 RUN chmod 1777 /tmp # FIXME: better not use /build/tmp for equivs at all
 
-# Install python3 + jinja2 (for startup script), tini (for signal management),
-# ca-certificates (for verifying downstream DoH/DoT certificates)
-# and dependencies
+# Install dependencies
+# - python3 + jinja2 (for startup script)
+# - tini (for signal management),
+# - ca-certificates (for verifying downstream DoH/DoT certificates)
+# - adduser (for adding an unprivileged user)
 RUN apt-get install -y --no-install-recommends \
     python3 python3-jinja2 \
     tini \
     ca-certificates \
-    libcap2-bin adduser \
+    adduser libcap2-bin \
     /tmp/equivs-dummy_1.0_all.deb && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 

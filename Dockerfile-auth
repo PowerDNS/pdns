@@ -5,11 +5,14 @@ ENV NO_LUA_JIT="s390x arm64"
 
 # TODO: make sure /source looks roughly the same from git or tar
 
-# Reusable layer for base update
-RUN apt-get update && apt-get -y dist-upgrade && apt-get clean
-
 # devscripts gives us mk-build-deps (and a lot of other stuff)
-RUN apt-get update && apt-get -y dist-upgrade && apt-get install -y  --no-install-recommends devscripts dpkg-dev equivs git python3-venv && apt-get clean
+RUN apt-get update && apt-get -y dist-upgrade && \
+    apt-get install -y  --no-install-recommends 
+        devscripts \
+        dpkg-dev \
+        equivs \
+        git \
+        python3-venv
 
 WORKDIR /source
 
@@ -17,8 +20,7 @@ WORKDIR /source
 COPY builder-support/ builder-support/
 
 # TODO: control file is not in tarballs at all right now
-RUN mk-build-deps -i -t 'apt-get -y -o Debug::pkgProblemResolver=yes --no-install-recommends' builder-support/debian/authoritative/debian-buster/control && \
-    apt-get clean
+RUN mk-build-deps -i -t 'apt-get -y -o Debug::pkgProblemResolver=yes --no-install-recommends' builder-support/debian/authoritative/debian-buster/control
 
 # build and install
 
@@ -47,7 +49,7 @@ RUN if [ "${DOCKER_FAKE_RELEASE}" = "YES" ]; then \
 # simplify repeated -C calls with SUBDIRS?
 RUN mkdir /build && \
     LUAVER=$([ -z "${NO_LUA_JIT##*$(dpkg --print-architecture)*}" ] && echo 'lua5.3' || echo 'luajit') && \
-    apt-get install -y lib${LUAVER}-*dev && \
+    apt-get install -y lib${LUAVER}-*dev && apt-get clean && rm -rf /var/lib/apt/lists/* && \
     ./configure \
       --with-lua=${LUAVER} \
       --sysconfdir=/etc/powerdns \
@@ -61,7 +63,9 @@ RUN mkdir /build && \
     make $MAKEFLAGS -C ext && make $MAKEFLAGS -C modules && make $MAKEFLAGS -C pdns && \
     make -C pdns install DESTDIR=/build && make -C modules install DESTDIR=/build && make clean && \
     strip /build/usr/local/bin/* /build/usr/local/sbin/* /build/usr/local/lib/pdns/*.so
-RUN cd /tmp && mkdir /build/tmp/ && mkdir debian && \
+
+WORKDIR /tmp
+RUN mkdir /build/tmp/ && mkdir debian && \
     echo 'Source: docker-deps-for-pdns' > debian/control && \
     dpkg-shlibdeps /build/usr/local/bin/* /build/usr/local/sbin/* /build/usr/local/lib/pdns/*.so && \
     sed 's/^shlibs:Depends=/Depends: /' debian/substvars >> debian/control && \
@@ -76,9 +80,13 @@ FROM debian:trixie-slim
 COPY --from=builder /build /
 RUN chmod 1777 /tmp # FIXME: better not use /build/tmp for equivs at all
 
-# Install python3 + jinja2 (for startup script), sqlite3 (for db schema), tini (for signal management),
-# vim (for pdnsutil edit-zone), supervisor (for special use cases requiring advanced process management)
-# and dependencies
+# Install dependencies
+# - python3 + jinja2 (for startup script)
+# - sqlite3 (for db schema)
+# - tini (for signal management),
+# - vim-tiny (for pdnsutil edit-zone)
+# - supervisor (for special use cases requiring advanced process management)
+# - adduser (for adding an unprivileged user)
 RUN apt-get update && apt-get -y dist-upgrade && \
     apt-get install -y \
         python3 python3-jinja2 \
@@ -86,7 +94,7 @@ RUN apt-get update && apt-get -y dist-upgrade && \
         tini \
         vim-tiny \
         supervisor \
-        libcap2-bin adduser \
+        adduser libcap2-bin \
         /tmp/equivs-dummy_1.0_all.deb && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
