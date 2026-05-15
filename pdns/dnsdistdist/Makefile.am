@@ -400,6 +400,7 @@ testrunner_SOURCES = \
 	test-dnsdist-connections-cache.cc \
 	test-dnsdist-dnsparser.cc \
 	test-dnsdist-lua-ffi.cc \
+	test-dnsdist-session-cache.cc \
 	test-dnsdist_cc.cc \
 	test-dnsdistasync.cc \
 	test-dnsdistbackend_cc.cc \
