@@ -31,10 +31,6 @@
 class TLSSessionCache
 {
 public:
-  TLSSessionCache()
-  {
-  }
-
   void putSessions(const boost::uuids::uuid& backendID, time_t now, std::vector<std::unique_ptr<TLSSession>>&& sessions);
   std::unique_ptr<TLSSession> getSession(const boost::uuids::uuid& backendID, time_t now);
 
