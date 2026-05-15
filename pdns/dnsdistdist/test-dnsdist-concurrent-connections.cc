@@ -398,4 +398,34 @@ BOOST_FIXTURE_TEST_CASE(test_TLS_Resumed_Without_TCP_Rate_Limiting, TestFixture)
   BOOST_REQUIRE(result == dnsdist::IncomingConcurrentTCPConnectionsManager::NewConnectionResult::Denied);
 }
 
+BOOST_FIXTURE_TEST_CASE(test_Live_Connections_Cleanup, TestFixture)
+{
+  const uint64_t maxTCPConnectionsRatePerClient = 10U;
+  const uint64_t tcpConnectionsRatePerClientInterval = 5U;
+  const uint64_t maxTCPConnectionsPerClient = 1U;
+  const uint32_t banDuration = 10U;
+  initConfiguration(maxTCPConnectionsRatePerClient, tcpConnectionsRatePerClientInterval, maxTCPConnectionsPerClient, banDuration);
+  time_t now = time(nullptr);
+
+  const ComboAddress client{"192.0.2.1"};
+  /* open one connection */
+  auto result = dnsdist::IncomingConcurrentTCPConnectionsManager::accountNewTCPConnection(client, false, false, now);
+  BOOST_REQUIRE(result == dnsdist::IncomingConcurrentTCPConnectionsManager::NewConnectionResult::Allowed);
+
+
+  BOOST_REQUIRE_EQUAL(dnsdist::IncomingConcurrentTCPConnectionsManager::getNumberOfEntries(), 1U);
+
+  /* now we should be after interval * 60s, entries should NOT be removed because it is active */
+  now += 300U;
+  dnsdist::IncomingConcurrentTCPConnectionsManager::cleanup(now);
+  BOOST_REQUIRE_EQUAL(dnsdist::IncomingConcurrentTCPConnectionsManager::getNumberOfEntries(), 1U);
+
+  /* close it */
+  dnsdist::IncomingConcurrentTCPConnectionsManager::accountClosedTCPConnection(client);
+  /* now it should be removed (we need more than 60s between two cleanups) */
+  now += 120U;
+  dnsdist::IncomingConcurrentTCPConnectionsManager::cleanup(now);
+  BOOST_REQUIRE_EQUAL(dnsdist::IncomingConcurrentTCPConnectionsManager::getNumberOfEntries(), 0U);
+}
+
 BOOST_AUTO_TEST_SUITE_END();
