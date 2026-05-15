@@ -8,24 +8,27 @@ ENV NO_LUA_JIT="s390x arm64"
 # Reusable layer for base update
 RUN apt-get update && apt-get -y dist-upgrade && apt-get clean
 
-# Unable backports to get a recent enough version of meson
+# Enable backports to get a recent enough version of meson
 RUN echo "deb http://deb.debian.org/debian bookworm-backports main" > /etc/apt/sources.list.d/bookworm-backports.list
+
 # devscripts gives us mk-build-deps (and a lot of other stuff)
 RUN apt-get update && apt-get -y dist-upgrade && apt-get install -y  --no-install-recommends devscripts equivs git && apt-get clean
 
-COPY builder-support /source/builder-support
+WORKDIR /source
+
+COPY builder-support/ builder-support/
 
 # TODO: control file is not in tarballs at all right now
 RUN mk-build-deps -i -t 'apt-get -y -o Debug::pkgProblemResolver=yes --no-install-recommends' /source/builder-support/debian/dnsdist/debian-bookworm/control && \
     apt-get install -y -t bookworm-backports meson && \
     apt-get clean
 
-COPY meson /source/meson
-COPY pdns /source/pdns
-COPY build-aux /source/build-aux
-COPY m4 /source/m4
-COPY ext /source/ext
-COPY .git /source/.git
+COPY meson/ meson/
+COPY pdns/ pdns/
+COPY build-aux/ build-aux/
+COPY m4/ m4/
+COPY ext/ ext/
+COPY .git/ .git/
 
 # build and install (TODO: before we hit this line, rearrange /source structure if we are coming from a tarball)
 WORKDIR /source/pdns/dnsdistdist
@@ -89,54 +92,54 @@ RUN for tentative in "lib/x86_64-linux-gnu" "lib/aarch64-linux-gnu" "lib64" "lib
       fi; \
     done
 
-RUN cd /tmp && mkdir /build/tmp/ && mkdir debian && \
+WORKDIR /tmp
+RUN mkdir /build/tmp/ && mkdir debian && \
     echo 'Source: docker-deps-for-pdns' > debian/control && \
     dpkg-shlibdeps /build/usr/local/bin/dnsdist && \
     sed 's/^shlibs:Depends=/Depends: /' debian/substvars >> debian/control && \
     equivs-build debian/control && \
     dpkg-deb -I equivs-dummy_1.0_all.deb && cp equivs-dummy_1.0_all.deb /build/tmp/
 
-# Runtime
 
+# Runtime
 FROM debian:trixie-slim
 
 # Reusable layer for base update - Should be cached from builder
 RUN apt-get update && apt-get -y dist-upgrade && apt-get clean
 
-# - python3 and jinja2 (for startup script)
-# - tini (for signal management)
-# - ca-certificates (for verifying downstream DoH/DoT certificates)
-RUN apt-get install -y python3 python3-jinja2 tini libcap2-bin ca-certificates adduser && apt-get clean
-
 # Output from builder
 COPY --from=builder /build /
 RUN chmod 1777 /tmp # FIXME: better not use /build/tmp for equivs at all
 
-# Ensure dependencies are present
-RUN apt-get install -y /tmp/equivs-dummy_1.0_all.deb && apt-get clean
+# Install python3 + jinja2 (for startup script), tini (for signal management),
+# ca-certificates (for verifying downstream DoH/DoT certificates)
+# and dependencies
+RUN apt-get install -y --no-install-recommends \
+    python3 python3-jinja2 \
+    tini \
+    ca-certificates \
+    libcap2-bin adduser \
+    /tmp/equivs-dummy_1.0_all.deb && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Config
-RUN mkdir -p /etc/dnsdist/conf.d /etc/dnsdist/templates.d
-COPY dockerdata/dnsdist.conf /etc/dnsdist/
+# Create unprivileged pdns user and directories
+RUN adduser --system --disabled-password --disabled-login --no-create-home --group pdns --uid 953 && \
+    install -d --owner pdns --group pdns /etc/dnsdist/conf.d /etc/dnsdist/templates.d
 
-# Start script
 COPY dockerdata/startup.py /usr/local/bin/dnsdist-startup
 
-# Work with pdns user - not root
-RUN adduser --system --disabled-password --disabled-login --no-create-home --group pdns --uid 953
-RUN chown pdns:pdns /etc/dnsdist/conf.d /etc/dnsdist/templates.d
-USER pdns
+WORKDIR /etc/dnsdist
+COPY dockerdata/dnsdist.conf dockerdata/dnsdist-resolver.lua .
 
 # Default DNS ports
 EXPOSE 53/udp
 EXPOSE 53/tcp
+
 # Default console port
 EXPOSE 5199/tcp
+
 # Default webserver port
 EXPOSE 8083/tcp
 
-WORKDIR /etc/dnsdist
-
-COPY dockerdata/dnsdist-resolver.lua /etc/dnsdist/
-
+USER pdns
 ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/dnsdist-startup"]
