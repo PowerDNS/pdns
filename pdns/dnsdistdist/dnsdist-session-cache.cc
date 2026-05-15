@@ -31,7 +31,7 @@ void TLSSessionCache::cleanup(time_t now, LockGuardedHolder<TLSSessionCache::Cac
   time_t cutOff = now - runtimeConfig.d_tlsSessionCacheSessionValidity;
 
   for (auto it = data->d_sessions.begin(); it != data->d_sessions.end();) {
-    if (it->second.d_lastUsed < cutOff || it->second.d_sessions.size() == 0) {
+    if (it->second.d_lastUsed < cutOff || it->second.d_sessions.empty()) {
       it = data->d_sessions.erase(it);
     }
     else {
