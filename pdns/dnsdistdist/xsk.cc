@@ -878,8 +878,11 @@ void XskWorker::notify(int desc)
 {
   uint64_t value = 1;
   ssize_t res = 0;
-  while ((res = write(desc, &value, sizeof(value))) == EINTR) {
+  do {
+    res = write(desc, &value, sizeof(value));
   }
+  while (res == -1 && errno == EINTR);
+
   if (res != sizeof(value)) {
     throw runtime_error("Unable Wake Up XskSocket Failed");
   }
