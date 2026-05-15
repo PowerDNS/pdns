@@ -24,6 +24,7 @@
 #include <memory>
 #include <optional>
 #include <vector>
+#include <stdexcept>
 
 struct dnsdist_ffi_servers_list_t;
 struct dnsdist_ffi_server_t;
@@ -87,6 +88,9 @@ public:
 
     DownstreamState* operator->() const
     {
+      if (!d_selected.has_value()) {
+        throw std::runtime_error("Trying to access an invalid SelectedBackend");
+      }
       return (*d_backends)[*d_selected].second.get();
     }
 

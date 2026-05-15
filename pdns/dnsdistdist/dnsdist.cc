@@ -1490,7 +1490,7 @@ static ServerPolicy::SelectedBackend selectBackendForOutgoingQuery(DNSQuestion& 
   const auto& servers = serverPool.getServers();
   auto selectedBackend = policy.getSelectedBackend(servers, dnsQuestion);
 
-  if (closer) {
+  if (closer && selectedBackend) {
     closer->setAttribute("backend.name", AnyValue{selectedBackend->getNameWithAddr()});
     closer->setAttribute("backend.id", AnyValue{boost::uuids::to_string(selectedBackend->getID())});
   }
