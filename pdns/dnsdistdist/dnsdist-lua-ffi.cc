@@ -31,7 +31,6 @@
 #include "dnsdist-metrics.hh"
 #include "dnsdist-lua-network.hh"
 #include "dnsdist-lua.hh"
-#include "dnsdist-ecs.hh"
 #include "dnsdist-rings.hh"
 #include "dnsdist-self-answers.hh"
 #include "dnsdist-svc.hh"
@@ -97,6 +96,7 @@ size_t dnsdist_ffi_dnsquestion_get_mac_addr(const dnsdist_ffi_dnsquestion_t* dq,
   if (dq == nullptr) {
     return 0;
   }
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
   auto ret = dnsdist::MacAddressesCache::get(dq->dq->ids.origRemote, reinterpret_cast<unsigned char*>(buffer), bufferSize);
   if (ret != 0) {
     return 0;
@@ -114,7 +114,8 @@ uint64_t dnsdist_ffi_dnsquestion_get_elapsed_us(const dnsdist_ffi_dnsquestion_t*
   return static_cast<uint64_t>(std::round(dq->dq->ids.queryRealTime.udiff()));
 }
 
-static bool checkDNSQuestionType(const char* functionName, const dnsdist_ffi_dnsquestion_t* dnsQuestion)
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
+static bool checkDNSQuestionType(const char functionName[], const dnsdist_ffi_dnsquestion_t* dnsQuestion)
 {
   if (dnsQuestion->objectType != dnsdist::lua::ffi::ObjectType::Question) {
     VERBOSESLOG(infolog("Error: calling FFI function %s with a wrong type", functionName),
@@ -124,7 +125,8 @@ static bool checkDNSQuestionType(const char* functionName, const dnsdist_ffi_dns
   return true;
 }
 
-static bool checkDNSResponseType(const char* functionName, const dnsdist_ffi_dnsresponse_t* dnsResponse)
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
+static bool checkDNSResponseType(const char functionName[], const dnsdist_ffi_dnsresponse_t* dnsResponse)
 {
   if (dnsResponse->objectType != dnsdist::lua::ffi::ObjectType::Response) {
     VERBOSESLOG(infolog("Error: calling FFI function %s with a wrong type", functionName),
@@ -136,7 +138,6 @@ static bool checkDNSResponseType(const char* functionName, const dnsdist_ffi_dns
 
 void dnsdist_ffi_dnsquestion_get_masked_remoteaddr(dnsdist_ffi_dnsquestion_t* dq, const void** addr, size_t* addrSize, uint8_t bits)
 {
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay): __func__ is what it is
   if (!checkDNSQuestionType(__func__, dq)) {
     return;
   }
@@ -252,19 +253,19 @@ dnsdist_ffi_protocol_type dnsdist_ffi_dnsquestion_get_protocol(const dnsdist_ffi
     if (proto == dnsdist::Protocol::DoUDP) {
       return dnsdist_ffi_protocol_type_doudp;
     }
-    else if (proto == dnsdist::Protocol::DoTCP) {
+    if (proto == dnsdist::Protocol::DoTCP) {
       return dnsdist_ffi_protocol_type_dotcp;
     }
-    else if (proto == dnsdist::Protocol::DNSCryptUDP) {
+    if (proto == dnsdist::Protocol::DNSCryptUDP) {
       return dnsdist_ffi_protocol_type_dnscryptudp;
     }
-    else if (proto == dnsdist::Protocol::DNSCryptTCP) {
+    if (proto == dnsdist::Protocol::DNSCryptTCP) {
       return dnsdist_ffi_protocol_type_dnscrypttcp;
     }
-    else if (proto == dnsdist::Protocol::DoT) {
+    if (proto == dnsdist::Protocol::DoT) {
       return dnsdist_ffi_protocol_type_dot;
     }
-    else if (proto == dnsdist::Protocol::DoH) {
+    if (proto == dnsdist::Protocol::DoH) {
       return dnsdist_ffi_protocol_type_doh;
     }
   }
@@ -467,13 +468,13 @@ static void fill_edns_option(const EDNSOptionViewValue& value, dnsdist_ffi_ednso
 }
 
 // returns the length of the resulting 'out' array. 'out' is not set if the length is 0
-size_t dnsdist_ffi_dnsquestion_get_edns_options(dnsdist_ffi_dnsquestion_t* dq, const dnsdist_ffi_ednsoption_t** out)
+size_t dnsdist_ffi_dnsquestion_get_edns_options(dnsdist_ffi_dnsquestion_t* dnsQuestion, const dnsdist_ffi_ednsoption_t** out)
 {
-  if (!checkDNSQuestionType(__func__, dq)) {
+  if (!checkDNSQuestionType(__func__, dnsQuestion)) {
     return 0U;
   }
 
-  auto ednsOptions = parseEDNSOptions(*(dq->dq));
+  auto ednsOptions = parseEDNSOptions(*(dnsQuestion->dq));
   if (!ednsOptions) {
     return 0;
   }
@@ -483,22 +484,22 @@ size_t dnsdist_ffi_dnsquestion_get_edns_options(dnsdist_ffi_dnsquestion_t* dq, c
     totalCount += option.second.values.size();
   }
 
-  if (!dq->ednsOptionsVect) {
-    dq->ednsOptionsVect = std::make_unique<std::vector<dnsdist_ffi_ednsoption_t>>();
+  if (!dnsQuestion->ednsOptionsVect) {
+    dnsQuestion->ednsOptionsVect = std::make_unique<std::vector<dnsdist_ffi_ednsoption_t>>();
   }
-  dq->ednsOptionsVect->clear();
-  dq->ednsOptionsVect->resize(totalCount);
+  dnsQuestion->ednsOptionsVect->clear();
+  dnsQuestion->ednsOptionsVect->resize(totalCount);
   size_t pos = 0;
   for (const auto& option : *ednsOptions) {
     for (const auto& entry : option.second.values) {
-      fill_edns_option(entry, dq->ednsOptionsVect->at(pos));
-      dq->ednsOptionsVect->at(pos).optionCode = option.first;
+      fill_edns_option(entry, dnsQuestion->ednsOptionsVect->at(pos));
+      dnsQuestion->ednsOptionsVect->at(pos).optionCode = option.first;
       pos++;
     }
   }
 
   if (totalCount > 0) {
-    *out = dq->ednsOptionsVect->data();
+    *out = dnsQuestion->ednsOptionsVect->data();
   }
 
   return totalCount;
@@ -555,34 +556,34 @@ size_t dnsdist_ffi_dnsquestion_get_http_headers([[maybe_unused]] dnsdist_ffi_dns
 #endif /* HAVE_DNS_OVER_HTTPS || HAVE_DNS_OVER_HTTP3 */
 }
 
-size_t dnsdist_ffi_dnsquestion_get_tag_array(dnsdist_ffi_dnsquestion_t* dq, const dnsdist_ffi_tag_t** out)
+size_t dnsdist_ffi_dnsquestion_get_tag_array(dnsdist_ffi_dnsquestion_t* dnsQuestion, const dnsdist_ffi_tag_t** out)
 {
-  if (dq == nullptr || dq->dq == nullptr || dq->dq->ids.qTag == nullptr || dq->dq->ids.qTag->size() == 0) {
+  if (dnsQuestion == nullptr || dnsQuestion->dq == nullptr || dnsQuestion->dq->ids.qTag == nullptr || dnsQuestion->dq->ids.qTag->size() == 0) {
     return 0;
   }
-  if (!checkDNSQuestionType(__func__, dq)) {
+  if (!checkDNSQuestionType(__func__, dnsQuestion)) {
     return 0U;
   }
 
-  if (!dq->tagsVect) {
-    dq->tagsVect = std::make_unique<std::vector<dnsdist_ffi_tag_t>>();
+  if (!dnsQuestion->tagsVect) {
+    dnsQuestion->tagsVect = std::make_unique<std::vector<dnsdist_ffi_tag_t>>();
   }
-  dq->tagsVect->clear();
-  dq->tagsVect->resize(dq->dq->ids.qTag->size());
+  dnsQuestion->tagsVect->clear();
+  dnsQuestion->tagsVect->resize(dnsQuestion->dq->ids.qTag->size());
   size_t pos = 0;
 
-  for (const auto& tag : *dq->dq->ids.qTag) {
-    auto& entry = dq->tagsVect->at(pos);
+  for (const auto& tag : *dnsQuestion->dq->ids.qTag) {
+    auto& entry = dnsQuestion->tagsVect->at(pos);
     entry.name = tag.first.c_str();
     entry.value = tag.second.c_str();
     ++pos;
   }
 
-  if (!dq->tagsVect->empty()) {
-    *out = dq->tagsVect->data();
+  if (!dnsQuestion->tagsVect->empty()) {
+    *out = dnsQuestion->tagsVect->data();
   }
 
-  return dq->tagsVect->size();
+  return dnsQuestion->tagsVect->size();
 }
 
 void dnsdist_ffi_dnsquestion_set_result(dnsdist_ffi_dnsquestion_t* dq, const char* str, size_t strSize)
@@ -707,7 +708,7 @@ void dnsdist_ffi_dnsquestion_set_tag_raw(dnsdist_ffi_dnsquestion_t* dq, const ch
 
 void dnsdist_ffi_dnsquestion_set_requestor_id(dnsdist_ffi_dnsquestion_t* dq, const char* value, size_t valueSize)
 {
-  if (!dq || !dq->dq || !value) {
+  if (dq == nullptr || dq->dq == nullptr || value == nullptr) {
     return;
   }
   if (!dq->dq->ids.d_protoBufData) {
@@ -718,7 +719,7 @@ void dnsdist_ffi_dnsquestion_set_requestor_id(dnsdist_ffi_dnsquestion_t* dq, con
 
 void dnsdist_ffi_dnsquestion_set_device_id(dnsdist_ffi_dnsquestion_t* dq, const char* value, size_t valueSize)
 {
-  if (!dq || !dq->dq || !value) {
+  if (dq == nullptr || dq->dq == nullptr || value == nullptr) {
     return;
   }
   if (!dq->dq->ids.d_protoBufData) {
@@ -729,7 +730,7 @@ void dnsdist_ffi_dnsquestion_set_device_id(dnsdist_ffi_dnsquestion_t* dq, const 
 
 void dnsdist_ffi_dnsquestion_set_device_name(dnsdist_ffi_dnsquestion_t* dq, const char* value, size_t valueSize)
 {
-  if (!dq || !dq->dq || !value) {
+  if (dq == nullptr || dq->dq == nullptr || value == nullptr) {
     return;
   }
   if (!dq->dq->ids.d_protoBufData) {
@@ -775,6 +776,7 @@ void dnsdist_ffi_dnsquestion_spoof_raw(dnsdist_ffi_dnsquestion_t* dq, const dnsd
   data.reserve(valuesCount);
 
   for (size_t idx = 0; idx < valuesCount; idx++) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     data.emplace_back(values[idx].value, values[idx].size);
   }
 
@@ -788,19 +790,23 @@ void dnsdist_ffi_dnsquestion_spoof_addrs(dnsdist_ffi_dnsquestion_t* dq, const dn
   data.reserve(valuesCount);
 
   for (size_t idx = 0; idx < valuesCount; idx++) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     if (values[idx].size == 4) {
-      sockaddr_in sin;
+      sockaddr_in sin{};
       sin.sin_family = AF_INET;
       sin.sin_port = 0;
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
       memcpy(&sin.sin_addr.s_addr, values[idx].value, sizeof(sin.sin_addr.s_addr));
       data.emplace_back(&sin);
     }
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     else if (values[idx].size == 16) {
-      sockaddr_in6 sin6;
+      sockaddr_in6 sin6{};
       sin6.sin6_family = AF_INET6;
       sin6.sin6_port = 0;
       sin6.sin6_scope_id = 0;
       sin6.sin6_flowinfo = 0;
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
       memcpy(&sin6.sin6_addr.s6_addr, values[idx].value, sizeof(sin6.sin6_addr.s6_addr));
       data.emplace_back(&sin6);
     }
@@ -1007,14 +1013,14 @@ bool dnsdist_ffi_dnsresponse_set_async(dnsdist_ffi_dnsresponse_t* dnsResponse, u
 
   try {
     dnsResponse->dr->asynchronous = true;
-    auto dr = dynamic_cast<DNSResponse*>(dnsResponse->dr);
-    if (!dr) {
+    auto* drPtr = dnsResponse->dr;
+    if (drPtr == nullptr) {
       VERBOSESLOG(infolog("Passed a DNSQuestion instead of a DNSResponse to dnsdist_ffi_dnsresponse_set_async"),
                   getLogger(__func__)->info(Logr::Info, "Passed a DNSQuestion instead of a DNSResponse"));
       return false;
     }
 
-    return dnsdist::suspendResponse(*dr, asyncID, queryID, timeoutMs);
+    return dnsdist::suspendResponse(*drPtr, asyncID, queryID, timeoutMs);
   }
   catch (const std::exception& e) {
     VERBOSESLOG(infolog("Error in dnsdist_ffi_dnsresponse_set_async: %s", e.what()),
@@ -1188,7 +1194,7 @@ bool dnsdist_ffi_drop_from_async(uint16_t asyncID, uint16_t queryID)
     return false;
   }
 
-  struct timeval now;
+  timeval now{};
   gettimeofday(&now, nullptr);
   TCPResponse tresponse(std::move(query->query));
   sender->notifyIOError(now, std::move(tresponse));
@@ -1215,6 +1221,7 @@ bool dnsdist_ffi_set_answer_from_async(uint16_t asyncID, uint16_t queryID, const
   dnsheader_aligned alignedHeader(query->query.d_buffer.data());
   auto oldID = alignedHeader->id;
   query->query.d_buffer.clear();
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic)
   query->query.d_buffer.insert(query->query.d_buffer.begin(), raw, raw + rawSize);
 
   dnsdist::PacketMangling::editDNSHeaderFromPacket(query->query.d_buffer, [oldID](dnsheader& header) {
@@ -1226,6 +1233,7 @@ bool dnsdist_ffi_set_answer_from_async(uint16_t asyncID, uint16_t queryID, const
   return dnsdist::queueQueryResumptionEvent(std::move(query));
 }
 
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
 static constexpr char s_lua_ffi_code[] = R"FFICodeContent(
   local ffi = require("ffi")
   local C = ffi.C
@@ -1240,6 +1248,7 @@ static constexpr char s_lua_ffi_code[] = R"FFICodeContent(
 
 const char* getLuaFFIWrappers()
 {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
   return s_lua_ffi_code;
 }
 
@@ -1269,13 +1278,16 @@ void setupLuaFFIPerThreadContext(LuaContext& luaCtx)
 size_t dnsdist_ffi_generate_proxy_protocol_payload(const size_t addrSize, const void* srcAddr, const void* dstAddr, const uint16_t srcPort, const uint16_t dstPort, const bool tcp, const size_t valuesCount, const dnsdist_ffi_proxy_protocol_value* values, void* out, const size_t outSize)
 {
   try {
-    ComboAddress src, dst;
+    ComboAddress src;
+    ComboAddress dst;
     if (addrSize != sizeof(src.sin4.sin_addr) && addrSize != sizeof(src.sin6.sin6_addr.s6_addr)) {
       return 0;
     }
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     src = makeComboAddressFromRaw(addrSize == sizeof(src.sin4.sin_addr) ? 4 : 6, reinterpret_cast<const char*>(srcAddr), addrSize);
     src.sin4.sin_port = htons(srcPort);
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     dst = makeComboAddressFromRaw(addrSize == sizeof(dst.sin4.sin_addr) ? 4 : 6, reinterpret_cast<const char*>(dstAddr), addrSize);
     dst.sin4.sin_port = htons(dstPort);
 
