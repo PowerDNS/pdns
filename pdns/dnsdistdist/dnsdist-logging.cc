@@ -40,10 +40,8 @@ static const char* convertTime(const timeval& tval, std::array<char, 64>& buffer
 {
   auto format = dnsdist::configuration::getImmutableConfiguration().d_structuredLoggingTimeFormat;
   if (format == dnsdist::configuration::TimeFormat::ISO8601) {
-    time_t now{};
-    time(&now);
     struct tm localNow{};
-    localtime_r(&now, &localNow);
+    localtime_r(&tval.tv_sec, &localNow);
 
     {
       // strftime is not thread safe, it can access locale information
