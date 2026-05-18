@@ -39,7 +39,7 @@ int MacAddressesCache::get(const ComboAddress& ca, unsigned char* dest, size_t d
   {
     auto cache = s_cache.read_lock();
     for (const auto& entry : *cache) {
-      if (entry.ttd >= now && compare(entry.ca, ca) == true) {
+      if (entry.ttd >= now && compare(entry.ca, ca)) {
         if (!entry.found) {
           // negative entry
           return ENOENT;
@@ -50,8 +50,12 @@ int MacAddressesCache::get(const ComboAddress& ca, unsigned char* dest, size_t d
     }
   }
 
+  // in theory we might encounter a MAC address smaller than 6 bytes,
+  // don't enter garbage data into our cache
+  memset(dest, 0, destLen);
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
   auto res = getMACAddress(ca, reinterpret_cast<char*>(dest), destLen);
-  Entry entry;
+  Entry entry{};
   entry.ca = ca;
   if (res == 0) {
     memcpy(entry.mac.data(), dest, entry.mac.size());
