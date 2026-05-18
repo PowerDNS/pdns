@@ -585,16 +585,20 @@ void BPFFilter::addRangeRule(const Netmask& addr, bool force, BPFFilter::MatchAc
       throw std::runtime_error("Table full when trying to add this rule: " + addr.toString());
     }
 
+    bool entryExisted = false;
     res = bpf_lookup_elem(map.d_fd.getHandle(), &key, &value);
     if (((res != -1 && value.action == action) || (res == -1 && action == BPFFilter::MatchAction::Pass)) && !force) {
       throw std::runtime_error("Trying to add a useless rule: " + addr.toString());
+    }
+    if (res != -1) {
+      entryExisted = true;
     }
 
     value.counter = 0;
     value.action = action;
 
     res = bpf_update_elem(map.d_fd.getHandle(), &key, &value, force ? BPF_ANY : BPF_NOEXIST);
-    if (res == 0) {
+    if (res == 0 && !entryExisted) {
       ++map.d_count;
     }
   }
@@ -610,16 +614,20 @@ void BPFFilter::addRangeRule(const Netmask& addr, bool force, BPFFilter::MatchAc
       throw std::runtime_error("Table full when trying to add this rule: " + addr.toString());
     }
 
+    bool entryExisted = false;
     res = bpf_lookup_elem(map.d_fd.getHandle(), &key, &value);
     if (((res != -1 && value.action == action) || (res == -1 && action == BPFFilter::MatchAction::Pass)) && !force) {
       throw std::runtime_error("Trying to add a useless rule: " + addr.toString());
+    }
+    if (res != -1) {
+      entryExisted = true;
     }
 
     value.counter = 0;
     value.action = action;
 
     res = bpf_update_elem(map.d_fd.getHandle(), &key, &value, BPF_NOEXIST);
-    if (res == 0) {
+    if (res == 0 && !entryExisted) {
       map.d_count++;
     }
   }
