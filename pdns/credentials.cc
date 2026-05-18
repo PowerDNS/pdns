@@ -68,12 +68,13 @@ void SensitiveData::reallyClearContent(void* data, size_t size) noexcept
   gnutls_memset(data, 0, size);
 #else
   /* shamelessly taken from Dovecot's src/lib/safe-memset.c */
-  volatile unsigned int volatile_zero_idx = 0;
-  volatile unsigned char *p = reinterpret_cast<volatile unsigned char *>(data);
-
-  if (size == 0)
+  if (size == 0) {
     return;
+  }
 
+  volatile unsigned int volatile_zero_idx = 0;
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): sorry!
+  volatile unsigned char *p = reinterpret_cast<volatile unsigned char*>(data);
   do {
     memset(data, 0, size);
   } while (p[volatile_zero_idx] != 0);
