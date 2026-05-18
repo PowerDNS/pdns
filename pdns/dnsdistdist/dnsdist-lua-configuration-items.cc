@@ -162,11 +162,10 @@ static const std::map<std::string, UnsignedIntegerImmutableConfigurationItems> s
   {"setMaxTCPReadIOsPerQuery", {[](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_maxTCPReadIOsPerQuery = newValue; }, std::numeric_limits<uint32_t>::max()}},
   {"setBanDurationForExceedingMaxReadIOsPerQuery", {[](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_tcpBanDurationForExceedingMaxReadIOsPerQuery = newValue; }, std::numeric_limits<uint32_t>::max()}},
   {"setBanDurationForExceedingTCPTLSRate", {[](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_tcpBanDurationForExceedingTCPTLSRate = newValue; }, std::numeric_limits<uint32_t>::max()}},
-  {"setTCPConnectionsOverloadThreshold", {[](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_tcpConnectionsOverloadThreshold = newValue; }, std::numeric_limits<uint8_t>::max()}},
   {"setTCPConnectionsMaskV4", {[](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_tcpConnectionsMaskV4 = newValue; }, std::numeric_limits<uint8_t>::max()}},
   {"setTCPConnectionsMaskV6", {[](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_tcpConnectionsMaskV6 = newValue; }, std::numeric_limits<uint8_t>::max()}},
   {"setTCPConnectionsMaskV4Port", {[](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_tcpConnectionsMaskV4Port = newValue; }, std::numeric_limits<uint8_t>::max()}},
-  {"setTCPConnectionsOverloadThreshold", {[](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_tcpConnectionsOverloadThreshold = newValue; }, 100}},
+  {"setTCPConnectionsOverloadThreshold", {[](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_tcpConnectionsOverloadThreshold = newValue; }, 100U}},
 };
 
 static const std::map<std::string, DoubleImmutableConfigurationItems> s_doubleImmutableConfigItems{
