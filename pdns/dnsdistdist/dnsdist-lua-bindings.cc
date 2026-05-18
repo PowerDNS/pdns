@@ -387,7 +387,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
       return;
     }
     if (dnsdist::configuration::isImmutableConfigurationDone()) {
-      throw std::runtime_error("setHealthCheckResponseValidator cannot be used at configuration time!");
+      throw std::runtime_error("setHealthCheckResponseValidator cannot be used at runtime!");
       return;
     }
     state->d_config.d_healthCheckResponseValidationCallback = std::move(validator);
