@@ -37,7 +37,7 @@ static inline int intFromJsonInternal(const Json& container, const std::string& 
 
   if (val.is_string()) {
     try {
-      return std::stoi(val.string_value());
+      return pdns::checked_stoi<int>(val.string_value());
     } catch (std::logic_error&) {
       throw JsonException("Key '" + string(key) + "' is not a valid number");
     }

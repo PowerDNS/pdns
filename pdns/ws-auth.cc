@@ -1352,7 +1352,7 @@ static inline int getInquireKeyId(HttpRequest* req, const ZoneName& zonename, DN
 {
   int inquireKeyId = -1;
   if (req->parameters.count("key_id") == 1) {
-    inquireKeyId = std::stoi(req->parameters["key_id"]);
+    pdns::checked_stoi_into(inquireKeyId, req->parameters["key_id"]);
     apiZoneCryptoKeysCheckKeyExists(zonename, inquireKeyId, dnsseckeeper);
   }
   return inquireKeyId;

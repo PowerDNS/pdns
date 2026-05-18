@@ -1066,7 +1066,7 @@ bool GSQLBackend::addDomainKey(const ZoneName& name, const KeyData& key, int64_t
     if (d_AddDomainKeyQuery_stmt->hasNextRow()) {
       SSqlStatement::row_t row;
       d_AddDomainKeyQuery_stmt->nextRow(row);
-      keyId = std::stoi(row[0]);
+      pdns::checked_stoi_into(keyId, row[0]);
       d_AddDomainKeyQuery_stmt->reset();
       return true;
     } else {
@@ -1088,7 +1088,7 @@ bool GSQLBackend::addDomainKey(const ZoneName& name, const KeyData& key, int64_t
     SSqlStatement::row_t row;
     d_GetLastInsertedKeyIdQuery_stmt->nextRow(row);
     ASSERT_ROW_COLUMNS("get-last-inserted-key-id-query", row, 1);
-    keyId = std::stoi(row[0]);
+    pdns::checked_stoi_into(keyId, row[0]);
     d_GetLastInsertedKeyIdQuery_stmt->reset();
     if (keyId == 0) {
       // No insert took place, report as error.

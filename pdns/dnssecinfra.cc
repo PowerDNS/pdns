@@ -343,7 +343,7 @@ static map<string, string> ISCStringtoMap(const string& argStr)
       continue;
     }
     if (pdns_iequals(key,"slot")) {
-      int slot = std::stoi(value);
+      auto slot = pdns::checked_stoi<int>(value);
       stormap["slot"]=std::to_string(slot);
       continue;
     }

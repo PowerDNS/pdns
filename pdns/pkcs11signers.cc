@@ -723,7 +723,7 @@ CK_RV Pkcs11Slot::HuntSlot(Logr::log_t slog, const string& tokenId, CK_SLOT_ID &
 
   // see if we can find it with slotId
   try {
-    slotId = std::stoi(tokenId);
+    pdns::checked_stoi_into(slotId, tokenId);
     if ((err = functions->C_GetSlotInfo(slotId, info))) {
       SLOG(g_log<<Logger::Warning<<"C_GetSlotInfo("<<slotId<<", info) = " << err << std::endl,
            slog->info(Logr::Warning, "C_GetSlotInfo failed", "slotId", Logging::Loggable(slotId), "errorcode", Logging::Loggable(err)));
