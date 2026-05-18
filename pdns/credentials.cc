@@ -74,7 +74,7 @@ void SensitiveData::reallyClearContent(void* data, size_t size) noexcept
 
   volatile unsigned int volatile_zero_idx = 0;
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): sorry!
-  volatile unsigned char *p = reinterpret_cast<volatile unsigned char*>(data);
+  volatile unsigned char* p = reinterpret_cast<volatile unsigned char*>(data);
   do {
     memset(data, 0, size);
   } while (p[volatile_zero_idx] != 0);
