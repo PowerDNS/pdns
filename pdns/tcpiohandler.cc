@@ -1305,6 +1305,7 @@ public:
       return 0;
     }
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): GnuTLS API
     auto* conn = reinterpret_cast<GnuTLSConnection*>(gnutls_session_get_ptr(session));
     if (conn == nullptr) {
       return 0;
