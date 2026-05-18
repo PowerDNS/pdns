@@ -94,60 +94,70 @@ void AsynchronousHolder::mainThread(std::shared_ptr<Data> data)
   std::vector<int> readyFDs;
 
   while (true) {
-    bool shouldWait = true;
-    int timeout = -1;
-    dnsdist::configuration::refreshLocalRuntimeConfiguration();
+    try {
+      bool shouldWait = true;
+      int timeout = -1;
+      dnsdist::configuration::refreshLocalRuntimeConfiguration();
 
-    {
-      auto content = data->d_content.lock();
-      if (data->d_done) {
-        return;
-      }
-
-      if (!content->empty()) {
-        gettimeofday(&now, nullptr);
-        struct timeval next = getNextTTD(*content);
-        if (next <= now) {
-          pickupExpired(*content, now, expiredEvents);
-          shouldWait = false;
+      {
+        auto content = data->d_content.lock();
+        if (data->d_done) {
+          return;
         }
-        else {
-          auto remainingUsec = uSec(next - now);
-          timeout = static_cast<int>(std::round(static_cast<double>(remainingUsec) / 1000.0));
-          if (timeout == 0 && remainingUsec > 0) {
-            /* if we have less than 1 ms, let's wait at least 1 ms */
-            timeout = 1;
+
+        if (!content->empty()) {
+          gettimeofday(&now, nullptr);
+          struct timeval next = getNextTTD(*content);
+          if (next <= now) {
+            pickupExpired(*content, now, expiredEvents);
+            shouldWait = false;
+          }
+          else {
+            auto remainingUsec = uSec(next - now);
+            timeout = static_cast<int>(std::round(static_cast<double>(remainingUsec) / 1000.0));
+            if (timeout == 0 && remainingUsec > 0) {
+              /* if we have less than 1 ms, let's wait at least 1 ms */
+              timeout = 1;
+            }
           }
         }
       }
-    }
 
-    if (shouldWait) {
-      auto timedOut = wait(*data, *mplexer, readyFDs, timeout);
-      if (timedOut) {
-        auto content = data->d_content.lock();
-        gettimeofday(&now, nullptr);
-        pickupExpired(*content, now, expiredEvents);
-      }
-    }
-
-    while (!expiredEvents.empty()) {
-      auto [queryID, query] = std::move(expiredEvents.front());
-      expiredEvents.pop_front();
-      if (!data->d_failOpen) {
-        VERBOSESLOG(infolog("Asynchronous query %d has expired at %d.%d, notifying the sender", queryID, now.tv_sec, now.tv_usec),
-                    dnsdist::logging::getTopLogger("async-thread")->info(Logr::Info, "Asynchronous query has expired, notifying the sender", "dns.question.id", Logging::Loggable(queryID)));
-        auto sender = query->getTCPQuerySender();
-        if (sender) {
-          TCPResponse tresponse(std::move(query->query));
-          sender->notifyIOError(now, std::move(tresponse));
+      if (shouldWait) {
+        auto timedOut = wait(*data, *mplexer, readyFDs, timeout);
+        if (timedOut) {
+          auto content = data->d_content.lock();
+          gettimeofday(&now, nullptr);
+          pickupExpired(*content, now, expiredEvents);
         }
       }
-      else {
-        VERBOSESLOG(infolog("Asynchronous query %d has expired at %d.%d, resuming", queryID, now.tv_sec, now.tv_usec),
-                    dnsdist::logging::getTopLogger("async-thread")->info(Logr::Info, "Asynchronous query has expired, resuming", "dns.question.id", Logging::Loggable(queryID)));
-        resumeQuery(std::move(query));
+
+      while (!expiredEvents.empty()) {
+        auto [queryID, query] = std::move(expiredEvents.front());
+        expiredEvents.pop_front();
+        if (!data->d_failOpen) {
+          VERBOSESLOG(infolog("Asynchronous query %d has expired at %d.%d, notifying the sender", queryID, now.tv_sec, now.tv_usec),
+                      dnsdist::logging::getTopLogger("async-thread")->info(Logr::Info, "Asynchronous query has expired, notifying the sender", "dns.question.id", Logging::Loggable(queryID)));
+          auto sender = query->getTCPQuerySender();
+          if (sender) {
+            TCPResponse tresponse(std::move(query->query));
+            sender->notifyIOError(now, std::move(tresponse));
+          }
+        }
+        else {
+          VERBOSESLOG(infolog("Asynchronous query %d has expired at %d.%d, resuming", queryID, now.tv_sec, now.tv_usec),
+                      dnsdist::logging::getTopLogger("async-thread")->info(Logr::Info, "Asynchronous query has expired, resuming", "dns.question.id", Logging::Loggable(queryID)));
+          resumeQuery(std::move(query));
+        }
       }
+    }
+    catch (const std::exception& exp) {
+      VERBOSESLOG(infolog("Got exception in the main asynchronous handler thread: %s", exp.what()),
+                  dnsdist::logging::getTopLogger("async-thread")->error(Logr::Info, exp.what(), "Got exception in the main asynchronous handler thread"));
+    }
+    catch (...) {
+      VERBOSESLOG(infolog("Got exception in the main asynchronous handler thread"),
+                  dnsdist::logging::getTopLogger("async-thread")->info(Logr::Info, "Got exception in the main asynchronous handler thread"));
     }
   }
 }
