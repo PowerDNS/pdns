@@ -182,11 +182,14 @@ void Tracer::closeSpan([[maybe_unused]] const SpanID& spanID)
     // Only closers are allowed, so this can never happen
     assert(!data->d_spanIDStack.empty());
 
-    // Preferebly, we'd use d_spanIDStack.pop() after verifing that that back() is the correct spanID.
+    // Preferably, we'd use d_spanIDStack.pop() after verifing that that back() is the correct spanID.
     // It turns out that due to dnsdist's multi-threaded nature some backend receivers can create new
     // spans when receiving backend responses before the closer in the frontend thread is destructed.
     // So we find the SpanID in the stack and remove it.
-    data->d_spanIDStack.erase(std::find(data->d_spanIDStack.begin(), data->d_spanIDStack.end(), spanID));
+    auto stackIt = std::find(data->d_spanIDStack.begin(), data->d_spanIDStack.end(), spanID);
+    if (stackIt != data->d_spanIDStack.end()) {
+      data->d_spanIDStack.erase(stackIt);
+    }
   }
 #endif
 }
