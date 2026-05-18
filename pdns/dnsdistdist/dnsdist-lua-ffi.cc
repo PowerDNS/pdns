@@ -114,8 +114,7 @@ uint64_t dnsdist_ffi_dnsquestion_get_elapsed_us(const dnsdist_ffi_dnsquestion_t*
   return static_cast<uint64_t>(std::round(dnsQuestion->dq->ids.queryRealTime.udiff()));
 }
 
-// NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
-static bool checkDNSQuestionType(const char functionName[], const dnsdist_ffi_dnsquestion_t* dnsQuestion)
+static bool checkDNSQuestionType(const std::string_view& functionName, const dnsdist_ffi_dnsquestion_t* dnsQuestion)
 {
   if (dnsQuestion->objectType != dnsdist::lua::ffi::ObjectType::Question) {
     VERBOSESLOG(infolog("Error: calling FFI function %s with a wrong type", functionName),
@@ -557,7 +556,7 @@ size_t dnsdist_ffi_dnsquestion_get_http_headers([[maybe_unused]] dnsdist_ffi_dns
 
 size_t dnsdist_ffi_dnsquestion_get_tag_array(dnsdist_ffi_dnsquestion_t* dnsQuestion, const dnsdist_ffi_tag_t** out)
 {
-  if (dnsQuestion == nullptr || dnsQuestion->dq == nullptr || dnsQuestion->dq->ids.qTag == nullptr || dnsQuestion->dq->ids.qTag->size() == 0) {
+  if (dnsQuestion == nullptr || dnsQuestion->dq == nullptr || dnsQuestion->dq->ids.qTag == nullptr || dnsQuestion->dq->ids.qTag->empty()) {
     return 0;
   }
   if (!checkDNSQuestionType(__func__, dnsQuestion)) {
@@ -1456,7 +1455,7 @@ size_t dnsdist_ffi_packetcache_get_domain_list_by_addr(const char* poolName, con
   }
 
   auto domains = pool.packetCache->getDomainsContainingRecords(caAddr);
-  if (domains.size() == 0) {
+  if (domains.empty()) {
     return 0;
   }
 
@@ -1507,7 +1506,7 @@ size_t dnsdist_ffi_packetcache_get_address_list_by_domain(const char* poolName, 
   }
 
   auto addresses = pool.packetCache->getRecordsForDomain(name);
-  if (addresses.size() == 0) {
+  if (addresses.empty()) {
     return 0;
   }
 
@@ -2511,7 +2510,7 @@ void dnsdist_ffi_svc_record_parameters_add_ipv4_hint(dnsdist_ffi_svc_record_para
     return;
   }
   try {
-    parameters->parameters.ipv4hints.emplace_back(ComboAddress(std::string(value, valueLen)));
+    parameters->parameters.ipv4hints.emplace_back(std::string(value, valueLen));
   }
   catch (const std::exception& exp) {
     SLOG(errlog("Exception in dnsdist_ffi_svc_record_parameters_add_ipv4_hint: %s", exp.what()),
@@ -2533,7 +2532,7 @@ void dnsdist_ffi_svc_record_parameters_add_ipv6_hint(dnsdist_ffi_svc_record_para
     return;
   }
   try {
-    parameters->parameters.ipv6hints.emplace_back(ComboAddress(std::string(value, valueLen)));
+    parameters->parameters.ipv6hints.emplace_back(std::string(value, valueLen));
   }
   catch (const std::exception& exp) {
     SLOG(errlog("Exception in dnsdist_ffi_svc_record_parameters_add_ipv6_hint: %s", exp.what()),
