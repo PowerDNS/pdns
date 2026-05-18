@@ -158,12 +158,9 @@ void NetworkListener::runOnce(timeval& now, uint32_t timeout)
   runOnce(*d_data, now, timeout);
 }
 
-void NetworkListener::mainThread(std::shared_ptr<ListenerData>& dataArg)
+// NOLINTNEXTLINE(performance-unnecessary-value-param): take our own copy of the shared_ptr so it's still alive if the NetworkListener object gets destroyed while we are still running
+void NetworkListener::mainThread(std::shared_ptr<ListenerData> data)
 {
-  /* take our own copy of the shared_ptr so it's still alive if the NetworkListener object
-     gets destroyed while we are still running */
-  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization): we really need a copy here, or we end up with use-after-free as explained above
-  auto data = dataArg;
   setThreadName("dnsdist/lua-net");
   timeval now{};
 
@@ -174,8 +171,8 @@ void NetworkListener::mainThread(std::shared_ptr<ListenerData>& dataArg)
 
 void NetworkListener::start()
 {
-  std::thread main = std::thread([this] {
-    mainThread(d_data);
+  std::thread main = std::thread([data = d_data]() mutable {
+    mainThread(std::move(data));
   });
   main.detach();
 }

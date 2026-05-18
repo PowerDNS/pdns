@@ -58,7 +58,7 @@ private:
   };
 
   static void readCB(int desc, FDMultiplexer::funcparam_t& param);
-  static void mainThread(std::shared_ptr<ListenerData>& data);
+  static void mainThread(std::shared_ptr<ListenerData> data);
   static void runOnce(ListenerData& data, timeval& now, uint32_t timeout);
 
   struct CBData
