@@ -136,10 +136,8 @@ void MiniCurl::setupURL(const std::string& str, const ComboAddress* rem, const C
     std::size_t found = host4.find(':');
     vector<uint16_t> ports{80, 443};
     if (found != std::string::npos) {
-      int port = std::stoi(host4.substr(found + 1));
-      if (port <= 0 || port > 65535)
-        throw std::overflow_error("Invalid port number");
-      ports = {(uint16_t)port};
+      auto port = pdns::checked_stoi<uint16_t>(host4.substr(found + 1));
+      ports = {port};
       host4 = host4.substr(0, found);
     }
 

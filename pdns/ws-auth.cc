@@ -1352,7 +1352,7 @@ static inline int getInquireKeyId(HttpRequest* req, const ZoneName& zonename, DN
 {
   int inquireKeyId = -1;
   if (req->parameters.count("key_id") == 1) {
-    inquireKeyId = std::stoi(req->parameters["key_id"]);
+    pdns::checked_stoi_into(inquireKeyId, req->parameters["key_id"]);
     apiZoneCryptoKeysCheckKeyExists(zonename, inquireKeyId, dnsseckeeper);
   }
   return inquireKeyId;
@@ -2906,7 +2906,12 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp)
     throw ApiException("Query q can't be blank");
   }
   if (!sMaxVar.empty()) {
-    maxEnts = std::stoi(sMaxVar);
+    try {
+      pdns::checked_stoi_into(maxEnts, sMaxVar);
+    }
+    catch (std::logic_error&) {
+      throw ApiException("Invalid value for maximum entries");
+    }
   }
   if (maxEnts < 1) {
     throw ApiException("Maximum entries must be larger than 0");

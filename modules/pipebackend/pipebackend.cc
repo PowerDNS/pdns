@@ -320,7 +320,7 @@ bool PipeBackend::get(DNSResourceRecord& r)
         }
 
         if (d_abiVersion >= 3) {
-          r.scopeMask = std::stoi(parts[1]);
+          pdns::checked_stoi_into(r.scopeMask, parts[1]);
           r.auth = (parts[2] == "1");
           parts.erase(parts.begin() + 1, parts.begin() + 3);
         }
