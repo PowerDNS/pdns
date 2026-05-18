@@ -45,6 +45,8 @@ public:
     return d_data;
   }
 
+  static void reallyClearContent(void* data, size_t size) noexcept;
+
 private:
   std::string d_data;
 };

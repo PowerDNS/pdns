@@ -1065,23 +1065,8 @@ static void safe_memory_release(void* data, size_t size)
 {
 #ifdef HAVE_LIBSODIUM
   sodium_munlock(data, size);
-#elif defined(HAVE_EXPLICIT_BZERO)
-  explicit_bzero(data, size);
-#elif defined(HAVE_EXPLICIT_MEMSET)
-  explicit_memset(data, 0, size);
-#elif defined(HAVE_GNUTLS_MEMSET)
-  gnutls_memset(data, 0, size);
 #else
-  /* shamelessly taken from Dovecot's src/lib/safe-memset.c */
-  volatile unsigned int volatile_zero_idx = 0;
-  volatile unsigned char *p = reinterpret_cast<volatile unsigned char *>(data);
-
-  if (size == 0)
-    return;
-
-  do {
-    memset(data, 0, size);
-  } while (p[volatile_zero_idx] != 0);
+  SensitiveData::reallyClearContent(data, size);
 #endif
 }
 
