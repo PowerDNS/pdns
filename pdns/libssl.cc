@@ -452,29 +452,29 @@ static std::map<int, std::string> libssl_load_ocsp_responses(const std::vector<s
 
   size_t count = 0;
   for (const auto& filename : ocspFiles) {
+    const size_t idx = count++;
     std::ifstream file(filename, std::ios::binary);
     std::string content;
     while (file) {
-      char buffer[4096];
-      file.read(buffer, sizeof(buffer));
+      std::array<char, 4096> buffer{};
+      file.read(buffer.data(), buffer.size());
       if (file.bad()) {
         file.close();
         warnings.push_back("Unable to load OCSP response from " + filename);
         continue;
       }
-      content.append(buffer, file.gcount());
+      content.append(buffer.data(), file.gcount());
     }
     file.close();
 
     try {
       libssl_validate_ocsp_response(content);
-      ocspResponses.insert({keyTypes.at(count), std::move(content)});
+      ocspResponses.insert({keyTypes.at(idx), std::move(content)});
     }
     catch (const std::exception& e) {
       warnings.push_back("Error checking the validity of OCSP response from '" + filename + "': " + e.what());
       continue;
     }
-    ++count;
   }
 
   return ocspResponses;
@@ -1400,7 +1400,7 @@ std::string libssl_get_error_string()
   size_t len = BIO_get_mem_data(mem, &p);
   std::string msg(p, len);
   // replace newlines by /
-  if (msg.back() == '\n') {
+  if (!msg.empty() && msg.back() == '\n') {
     msg.pop_back();
   }
   std::replace(msg.begin(), msg.end(), '\n', '/');
