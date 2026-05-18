@@ -28,10 +28,10 @@ TLSSessionCache g_sessionCache;
 void TLSSessionCache::cleanup(time_t now, LockGuardedHolder<TLSSessionCache::CacheData>& data)
 {
   const auto& runtimeConfig = dnsdist::configuration::getCurrentRuntimeConfiguration();
-  time_t cutOff = now + runtimeConfig.d_tlsSessionCacheSessionValidity;
+  time_t cutOff = now - runtimeConfig.d_tlsSessionCacheSessionValidity;
 
   for (auto it = data->d_sessions.begin(); it != data->d_sessions.end();) {
-    if (it->second.d_lastUsed > cutOff || it->second.d_sessions.size() == 0) {
+    if (it->second.d_lastUsed < cutOff || it->second.d_sessions.empty()) {
       it = data->d_sessions.erase(it);
     }
     else {
@@ -50,6 +50,10 @@ void TLSSessionCache::putSessions(const boost::uuids::uuid& backendID, time_t no
   }
 
   const auto& runtimeConfig = dnsdist::configuration::getCurrentRuntimeConfiguration();
+  if (runtimeConfig.d_tlsSessionCacheMaxSessionsPerBackend == 0) {
+    return;
+  }
+
   for (auto& session : sessions) {
     auto& entry = data->d_sessions[backendID];
     if (entry.d_sessions.size() >= runtimeConfig.d_tlsSessionCacheMaxSessionsPerBackend) {
