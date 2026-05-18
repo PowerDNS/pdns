@@ -296,12 +296,11 @@ void TeeAction::worker()
       continue;
     }
     res = recv(d_socket.getHandle(), packet.data(), packet.size(), 0);
-    if (static_cast<size_t>(res) <= sizeof(struct dnsheader)) {
+    if (res < 0 || static_cast<size_t>(res) <= sizeof(struct dnsheader)) {
       d_recverrors++;
+      continue;
     }
-    else {
-      d_responses++;
-    }
+    d_responses++;
 
     // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions): rcode is unsigned, RCode::rcodes_ as well
     if (dnsheader->rcode == RCode::NoError) {
