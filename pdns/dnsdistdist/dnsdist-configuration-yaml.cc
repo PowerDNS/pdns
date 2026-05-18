@@ -438,11 +438,11 @@ static std::shared_ptr<DownstreamState> createBackendFromConfiguration(const dns
   backendConfig.d_numberOfSockets = config.sockets;
   backendConfig.d_qpsLimit = config.queries_per_second;
   backendConfig.order = config.order;
-  if (config.weight < 1) {
+  if (config.weight < 1 || config.weight > std::numeric_limits<decltype(backendConfig.d_weight)>::max()) {
     warnlog("Ignoring invalid weight on backend %s", std::string(config.address));
   }
   else {
-    backendConfig.d_weight = config.weight;
+    backendConfig.d_weight = static_cast<int>(config.weight);
   }
 
   backendConfig.d_maxInFlightQueriesPerConn = config.max_in_flight;
