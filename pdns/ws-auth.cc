@@ -2906,7 +2906,12 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp)
     throw ApiException("Query q can't be blank");
   }
   if (!sMaxVar.empty()) {
-    maxEnts = std::stoi(sMaxVar);
+    try {
+      pdns::checked_stoi_into(maxEnts, sMaxVar);
+    }
+    catch (std::logic_error&) {
+      throw ApiException("Invalid value for maximum entries");
+    }
   }
   if (maxEnts < 1) {
     throw ApiException("Maximum entries must be larger than 0");
