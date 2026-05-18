@@ -59,21 +59,20 @@ static int bpf_load_pinned_map(const std::string& path)
 
 static void bpf_check_map_sizes(int descriptor, uint32_t expectedKeySize, uint32_t expectedValueSize)
 {
-  struct bpf_map_info info;
-  uint32_t info_len = sizeof(info);
+  bpf_map_info info{};
   memset(&info, 0, sizeof(info));
 
-  union bpf_attr attr;
+  bpf_attr attr{};
   memset(&attr, 0, sizeof(attr));
   attr.info.bpf_fd = descriptor;
-  attr.info.info_len = info_len;
+  attr.info.info_len = sizeof(info);
   attr.info.info = ptr_to_u64(&info);
 
   int err = syscall(SYS_bpf, BPF_OBJ_GET_INFO_BY_FD, &attr, sizeof(attr));
   if (err != 0) {
     throw std::runtime_error("Error checking the size of eBPF map: " + stringerror());
   }
-  if (info_len != sizeof(info)) {
+  if (attr.info.info_len != sizeof(info)) {
     throw std::runtime_error("Error checking the size of eBPF map: invalid info size returned");
   }
   if (info.key_size != expectedKeySize) {
