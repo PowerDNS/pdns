@@ -458,7 +458,14 @@ static std::shared_ptr<DownstreamState> createBackendFromConfiguration(const Con
   backendConfig.d_numberOfSockets = config.sockets;
   backendConfig.d_qpsLimit = config.queries_per_second;
   backendConfig.order = config.order;
-  backendConfig.d_weight = config.weight;
+  if (config.weight < 1) {
+    SLOG(warnlog("Ignoring invalid weight on backend %s", std::string(config.address)),
+         context.logger->info(Logr::Warning, "Ignoring invalid weight on backend", "backend.address", Logging::Loggable(config.address)));
+  }
+  else {
+    backendConfig.d_weight = config.weight;
+  }
+
   backendConfig.d_maxInFlightQueriesPerConn = config.max_in_flight;
   backendConfig.d_maxUDPOutstanding = config.max_udp_outstanding;
   backendConfig.d_tcpConcurrentConnectionsLimit = config.max_concurrent_tcp_connections;
