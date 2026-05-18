@@ -690,6 +690,10 @@ std::vector<Netmask> getListOfRangesOfNetworkInterface(const std::string& itf)
     if (ifa->ifa_addr == nullptr || (ifa->ifa_addr->sa_family != AF_INET && ifa->ifa_addr->sa_family != AF_INET6)) {
       continue;
     }
+    if (ifa->ifa_netmask == nullptr) {
+      continue;
+    }
+
     ComboAddress addr;
     try {
       addr.setSockaddr(ifa->ifa_addr, ifa->ifa_addr->sa_family == AF_INET ? sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6));
