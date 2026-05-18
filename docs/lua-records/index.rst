@@ -216,7 +216,8 @@ they will not function, and will in fact leak the content of the LUA records.
 .. note::
   Under NO circumstances serve LUA records from zones from untrusted sources!
   LUA records will be able to bring down your system and possible take over
-  control of it. Use TSIG on AXFR even from trusted sources!
+  control of it. Use TSIG on AXFR even from trusted sources, and only
+  enable :ref:`setting-enable-lua-record-updates` if needed!
 
 LUA records can be DNSSEC signed, but because they are dynamic, it is not
 possible to combine pre-signed DNSSEC zone and LUA records. In other words,

@@ -796,6 +796,19 @@ Globally enable the :doc:`LUA records <lua-records/index>` feature.
 
 To use shared LUA states, set this to ``shared``, see :ref:`lua-records-shared-state`.
 
+.. _setting-enable-lua-record-updates:
+
+``enable-lua-record-updates``
+-----------------------------
+
+.. versionadded:: 5.1.0
+
+-  Boolean
+-  Default: no
+
+Allow updating :doc:`LUA records <lua-records/index>` as part of AXFR/IXFR,
+DNS Update or API operations.
+
 .. _setting-entropy-source:
 
 ``entropy-source``
