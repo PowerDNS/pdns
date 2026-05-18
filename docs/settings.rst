@@ -2138,6 +2138,28 @@ IP Address for webserver/API to listen on.
 Webserver/API access is only allowed from these subnets.
 Ignored if ``webserver-address`` is set to a UNIX domain socket.
 
+.. _setting-webserver-connection-timeout:
+
+``webserver-connection-timeout``
+--------------------------------
+.. versionadded:: 4.8.5
+
+-  Integer
+-  Default: 5
+
+Request/response timeout in seconds.
+
+.. _setting-webserver-cross-origin-request-header:
+
+``webserver-cross-origin-request-header``
+-----------------------------------------
+.. versionadded:: 5.1.0
+
+-  String
+-  Default: empty
+
+The value if the access-control-allow-origin HTTP header to include. This header is not included if the value is empty.
+
 .. _setting-webserver-hash-plaintext-credentials:
 
 ``webserver-hash-plaintext-credentials``
@@ -2212,17 +2234,6 @@ Maximum request/response body size in megabytes.
 
 Maximum number of allowed concurrent connections to the web server.
 
-.. _setting-webserver-connection-timeout:
-
-``webserver-connection-timeout``
---------------------------------
-.. versionadded:: 4.8.5
-
--  Integer
--  Default: 5
-
-Request/response timeout in seconds.
-
 .. _setting-webserver-password:
 
 ``webserver-password``
@@ -2254,17 +2265,6 @@ Ignored if ``webserver-address`` is set to a UNIX domain socket.
 -  Default: no
 
 If the webserver should print arguments.
-
-.. _setting-webserver-cross-origin-request-header:
-
-``webserver-cross-origin-request-header``
------------------------------------------
-.. versionadded:: 5.1.0
-
--  String
--  Default: empty
-
-The value if the access-control-allow-origin HTTP header to include. This header is not included if the value is empty.
 
 .. _setting-write-pid:
 

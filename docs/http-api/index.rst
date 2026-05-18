@@ -26,8 +26,9 @@ The following webserver related configuration items are available:
 
 .. warning::
 
-   To achieve defense-in-depth, expose the webserver only to client addresses that have a real need for access.
+   To achieve defense-in-depth, expose the webserver only to client addresses that have a real need for access, and configure a webserver password.
    Network access is configured by setting :ref:`setting-webserver-address` and :ref:`setting-webserver-allow-from`.
+   Password protection is configured by setting :ref:`setting-webserver-password`.
 
 
 Metrics Endpoint
