@@ -1146,12 +1146,15 @@ bool setEDNSOption(PacketBuffer& buf, uint16_t ednsCode, const std::string& edns
     return true;
   }
 
-  if (generateOptRR(optRData, buf, maximumSize, dnsdist::configuration::s_EdnsUDPPayloadSize, 0, false)) {
-    dnsdist::PacketMangling::editDNSHeaderFromPacket(buf, [](dnsheader& header) {
-      header.arcount = htons(1);
-      return true;
-    });
+  if (!generateOptRR(optRData, buf, maximumSize, dnsdist::configuration::s_EdnsUDPPayloadSize, 0, false)) {
+    return false;
   }
+
+  dnsdist::PacketMangling::editDNSHeaderFromPacket(buf, [](dnsheader& header) {
+    header.arcount = htons(1);
+    return true;
+  });
+  ednsAdded = true;
 
   return true;
 }
