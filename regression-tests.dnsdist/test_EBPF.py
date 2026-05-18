@@ -172,6 +172,7 @@ class TestSimpleEBPF(DNSDistTest):
         stats = self.sendConsoleCommand("bpf:getStats()")
         self.assertIn("0.0.0.0: 0", stats)
 
+
 @unittest.skipUnless("ENABLE_SUDO_TESTS" in os.environ, "sudo is not available")
 class TestEBPFRange(DNSDistTest):
     _config_template = """
