@@ -438,7 +438,13 @@ static std::shared_ptr<DownstreamState> createBackendFromConfiguration(const dns
   backendConfig.d_numberOfSockets = config.sockets;
   backendConfig.d_qpsLimit = config.queries_per_second;
   backendConfig.order = config.order;
-  backendConfig.d_weight = config.weight;
+  if (config.weight < 1) {
+    warnlog("Ignoring invalid weight on backend %s", std::string(config.address));
+  }
+  else {
+    backendConfig.d_weight = config.weight;
+  }
+
   backendConfig.d_maxInFlightQueriesPerConn = config.max_in_flight;
   backendConfig.d_tcpConcurrentConnectionsLimit = config.max_concurrent_tcp_connections;
   backendConfig.name = std::string(config.name);
