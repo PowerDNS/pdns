@@ -1400,7 +1400,7 @@ std::string libssl_get_error_string()
   size_t len = BIO_get_mem_data(mem, &p);
   std::string msg(p, len);
   // replace newlines by /
-  if (msg.back() == '\n') {
+  if (!msg.empty() && msg.back() == '\n') {
     msg.pop_back();
   }
   std::replace(msg.begin(), msg.end(), '\n', '/');
