@@ -711,6 +711,7 @@ int DoHConnectionToBackend::on_data_chunk_recv_callback(nghttp2_session* session
 int DoHConnectionToBackend::on_stream_close_callback(nghttp2_session* session, StreamID stream_id, uint32_t error_code, void* user_data)
 {
   (void)session;
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): nghttp2 API
   auto* conn = reinterpret_cast<DoHConnectionToBackend*>(user_data);
 
   if (error_code == 0) {
