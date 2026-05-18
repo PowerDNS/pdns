@@ -310,7 +310,9 @@ void DoHConnectionToBackend::queueQuery(std::shared_ptr<TCPQuerySender>& sender,
 
   PendingRequest pending;
   pending.d_query = std::move(query);
-  pending.d_sender = std::move(sender);
+  /* don't move the sender, we don't own it at this point and the caller might need it,
+     especially if we throw below */
+  pending.d_sender = sender;
 
   uint32_t tentativeStreamId = nghttp2_session_get_next_stream_id(d_session.get());
   if (tentativeStreamId == static_cast<uint32_t>(1 << 31)) {
@@ -726,7 +728,7 @@ int DoHConnectionToBackend::on_data_chunk_recv_callback(nghttp2_session* session
 int DoHConnectionToBackend::on_stream_close_callback(nghttp2_session* session, StreamID stream_id, uint32_t error_code, void* user_data)
 {
   (void)session;
-  DoHConnectionToBackend* conn = reinterpret_cast<DoHConnectionToBackend*>(user_data);
+  auto* conn = reinterpret_cast<DoHConnectionToBackend*>(user_data);
 
   if (error_code == 0) {
     return 0;
@@ -753,8 +755,16 @@ int DoHConnectionToBackend::on_stream_close_callback(nghttp2_session* session, S
   if (request.d_query.d_downstreamFailures < conn->d_ds->d_config.d_retries) {
     // cerr<<"in "<<__PRETTY_FUNCTION__<<", looking for a connection to send a query of size "<<request.d_query.d_buffer.size()<<endl;
     ++request.d_query.d_downstreamFailures;
-    auto downstream = t_downstreamDoHConnectionsManager.getConnectionToDownstream(conn->d_mplexer, conn->d_ds, now, std::string(conn->d_proxyProtocolPayload));
-    downstream->queueQuery(request.d_sender, std::move(request.d_query));
+    try {
+      auto downstream = t_downstreamDoHConnectionsManager.getConnectionToDownstream(conn->d_mplexer, conn->d_ds, now, std::string(conn->d_proxyProtocolPayload));
+      downstream->queueQuery(request.d_sender, std::move(request.d_query));
+    }
+    catch (const std::exception& exp) {
+      ++conn->d_ds->tcpDiedSendingQuery;
+      VERBOSESLOG(infolog("Failed to retry DoH query after stream close: %s", exp.what()),
+                  conn->getLogger()->error(Logr::Info, exp.what(), "Failed to retry DoH query after stream close"));
+      conn->handleResponseError(std::move(request), now);
+    }
   }
   else {
     conn->handleResponseError(std::move(request), now);
