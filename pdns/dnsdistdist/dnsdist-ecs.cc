@@ -1196,16 +1196,18 @@ bool setEDNSOption(DNSQuestion& dnsQuestion, uint16_t ednsCode, const std::strin
   }
 
   auto& data = dnsQuestion.getMutableData();
-  if (generateOptRR(optRData, data, dnsQuestion.getMaximumSize(), dnsdist::configuration::s_EdnsUDPPayloadSize, 0, false)) {
-    dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [](dnsheader& header) {
-      header.arcount = htons(1);
-      return true;
-    });
+  if (!generateOptRR(optRData, data, dnsQuestion.getMaximumSize(), dnsdist::configuration::s_EdnsUDPPayloadSize, 0, false)) {
+    return false;
+  }
 
-    if (isQuery) {
-      // make sure that any EDNS sent by the backend is removed before forwarding the response to the client
-      dnsQuestion.ids.ednsAdded = true;
-    }
+  dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [](dnsheader& header) {
+    header.arcount = htons(1);
+    return true;
+  });
+
+  if (isQuery) {
+    // make sure that any EDNS sent by the backend is removed before forwarding the response to the client
+    dnsQuestion.ids.ednsAdded = true;
   }
 
   return true;
