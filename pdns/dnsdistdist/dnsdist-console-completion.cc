@@ -186,6 +186,9 @@ static std::vector<dnsdist::console::completion::ConsoleKeyword> s_consoleKeywor
 #ifdef HAVE_LMDB
   {"newLMDBKVStore", true, "fname, dbName [, noLock]", "Return a new KeyValueStore object associated to the corresponding LMDB database"},
 #endif
+#ifdef HAVE_MMDB
+  {"newMMDBKVStore", true, "mmdb, queryParams", "Return a new KeyValueStore object associated to the corresponding MMDB database"},
+#endif
   {"newNMG", true, "", "Returns a NetmaskGroup"},
   {"newPacketCache", true, "maxEntries[, maxTTL=86400, minTTL=0, temporaryFailureTTL=60, staleTTL=60, dontAge=false, shuffle=false, numberOfShards=1, deferrableInsertLock=true, options={}]", "return a new Packet Cache"},
   {"newQPSLimiter", true, "rate, burst", "configure a QPS limiter with that rate and that burst capacity"},
@@ -199,6 +202,9 @@ static std::vector<dnsdist::console::completion::ConsoleKeyword> s_consoleKeywor
   {"NoneAction", true, "", "Does nothing. Subsequent rules are processed after this action"},
   {"NotRule", true, "selector", "Matches the traffic if the selector rule does not match"},
   {"OpcodeRule", true, "code", "Matches queries with opcode code. code can be directly specified as an integer, or one of the built-in DNSOpcodes"},
+#ifdef HAVE_MMDB
+  {"openMMDB", true, "name, [, options]", "Open a MMDB database and return a reference to it"},
+#endif
   {"OrRule", true, "selectors", "Matches the traffic if one or more of the selectors rules does match"},
   {"PoolAction", true, "poolname [, stop]", "set the packet into the specified pool"},
   {"PoolAvailableRule", true, "poolname", "Check whether a pool has any servers available to handle queries"},
