@@ -89,6 +89,7 @@ dnsdist_build_deps = [
     "libfstrm-dev",
     "libgnutls28-dev",
     "liblmdb-dev",
+    "libmaxminddb-dev",
     "libnghttp2-dev",
     "libre2-dev",
     "libsnmp-dev",
@@ -377,6 +378,7 @@ def install_dnsdist_test_deps(c, skipXDP=False):  # FIXME: rename this, we do wa
             libfstrm0 \
             libgnutls30 \
             liblmdb0 \
+            libmaxminddb0 \
             libnghttp2-14 \
             "libre2-[1-9]+" \
             libssl-dev \
@@ -1000,6 +1002,7 @@ DNSDIST_CONFIGURE_MESON_FEATURE_SET_FULL = " ".join(
         "-D libedit=enabled",
         "-D libsodium=enabled",
         "-D lmdb=enabled",
+        "-D mmdb=enabled",
         "-D nghttp2=enabled",
         "-D re2=enabled",
         "-D systemd-service=enabled",
