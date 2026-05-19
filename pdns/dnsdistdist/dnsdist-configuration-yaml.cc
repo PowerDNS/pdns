@@ -463,7 +463,7 @@ static std::shared_ptr<DownstreamState> createBackendFromConfiguration(const Con
          context.logger->info(Logr::Warning, "Ignoring invalid weight on backend", "backend.address", Logging::Loggable(config.address)));
   }
   else {
-    backendConfig.d_weight = static_cast<int>(config.weight);
+    backendConfig.d_weight = static_cast<decltype(backendConfig.d_weight)>(config.weight);
   }
 
   backendConfig.d_maxInFlightQueriesPerConn = config.max_in_flight;
