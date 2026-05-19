@@ -442,7 +442,7 @@ static std::shared_ptr<DownstreamState> createBackendFromConfiguration(const dns
     warnlog("Ignoring invalid weight on backend %s", std::string(config.address));
   }
   else {
-    backendConfig.d_weight = static_cast<int>(config.weight);
+    backendConfig.d_weight = static_cast<decltype(backendConfig.d_weight)>(config.weight);
   }
 
   backendConfig.d_maxInFlightQueriesPerConn = config.max_in_flight;
