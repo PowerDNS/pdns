@@ -84,11 +84,11 @@ void SensitiveData::reallyClearContent(void* data, size_t size) noexcept
 SensitiveData::SensitiveData(std::string&& data) :
   d_data(std::move(data))
 {
+  data.clear();
 #ifdef HAVE_LIBSODIUM
   // let's be nice and try to zero out the SSO buffer
   reallyClearContent(data.data(), data.capacity());
 #endif
-  data.clear();
 #ifdef HAVE_LIBSODIUM
   sodium_mlock(d_data.data(), d_data.size());
 #endif
