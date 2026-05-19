@@ -56,10 +56,41 @@ static std::string const pwhash_prefix = "$scrypt$";
 static size_t const pwhash_prefix_size = pwhash_prefix.size();
 #endif
 
+void SensitiveData::reallyClearContent(void* data, size_t size) noexcept
+{
+#ifdef HAVE_LIBSODIUM
+  sodium_memzero(data, size);
+#elif defined(HAVE_EXPLICIT_BZERO)
+  explicit_bzero(data, size);
+#elif defined(HAVE_EXPLICIT_MEMSET)
+  explicit_memset(data, 0, size);
+#elif defined(HAVE_GNUTLS_MEMSET)
+  gnutls_memset(data, 0, size);
+#else
+  /* shamelessly taken from Dovecot's src/lib/safe-memset.c */
+  if (size == 0) {
+    return;
+  }
+
+  volatile unsigned int volatile_zero_idx = 0;
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): sorry!
+  volatile unsigned char* p = reinterpret_cast<volatile unsigned char*>(data);
+  do {
+    memset(data, 0, size);
+  } while (p[volatile_zero_idx] != 0);
+#endif
+}
+
 SensitiveData::SensitiveData(std::string&& data) :
   d_data(std::move(data))
 {
+  // linters are complaining that we are calling data() and capacity() on a moved-from object,
+  // so clear the object first so they shut up
   data.clear();
+#ifdef HAVE_LIBSODIUM
+  // let's be nice and try to zero out the SSO buffer, that cannot be moved
+  reallyClearContent(data.data(), data.capacity());
+#endif
 #ifdef HAVE_LIBSODIUM
   sodium_mlock(d_data.data(), d_data.size());
 #endif
@@ -88,6 +119,9 @@ SensitiveData::~SensitiveData()
 void SensitiveData::clear()
 {
 #ifdef HAVE_LIBSODIUM
+  // let's be nice and try to zero out the SSO buffer (be careful, sodium_munlock will zero out the current size
+  // which might be zero if the object was moved)
+  reallyClearContent(d_data.data(), d_data.capacity());
   sodium_munlock(d_data.data(), d_data.size());
 #endif
   d_data.clear();
