@@ -421,6 +421,8 @@ BOOST_FIXTURE_TEST_CASE(test_Live_Connections_Cleanup, TestFixture)
 
   /* close it */
   dnsdist::IncomingConcurrentTCPConnectionsManager::accountClosedTCPConnection(client);
+  BOOST_REQUIRE_EQUAL(dnsdist::IncomingConcurrentTCPConnectionsManager::getNumberOfEntries(), 1U);
+
   /* now it should be removed (we need more than 60s between two cleanups) */
   now += 120U;
   dnsdist::IncomingConcurrentTCPConnectionsManager::cleanup(now);
