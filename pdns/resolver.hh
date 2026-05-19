@@ -66,6 +66,7 @@ public:
   uint16_t sendResolve(const ComboAddress& remote, const ComboAddress& local, const DNSName &domain, int type, int *localsock, bool dnssecOk=false,
     const DNSName& tsigkeyname=DNSName(), const DNSName& tsigalgorithm=DNSName(), const string& tsigsecret="");
 
+  void checkDomainExpired(const DNSName& domain);
   //! see if we got a SOA response from our sendResolve
   bool tryGetSOASerial(DNSName *theirDomain, ComboAddress* remote, uint32_t* theirSerial, uint32_t* theirInception, uint32_t* theirExpire, uint16_t* id);
   

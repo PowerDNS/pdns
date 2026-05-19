@@ -51,6 +51,8 @@
 #include "gss_context.hh"
 #include "namespaces.hh"
 
+#include "ueberbackend.hh"
+
 using pdns::resolver::parseResult;
 
 int makeQuerySocket(const ComboAddress& local, bool udpOrTCP, bool nonLocalBind)
@@ -229,6 +231,43 @@ namespace pdns {
   } // namespace resolver
 } // namespace pdns
 
+void Resolver::checkDomainExpired(const DNSName& domain)
+{
+  if (::arg().mustDo("serve-after-expire")) {
+    return;
+  }
+  time_t currentUnixTime = time(nullptr);
+  
+  UeberBackend B;  //NOLINT(readability-identifier-length)
+  DomainInfo di;
+  if (!B.getDomainInfo((ZoneName&)domain, di)){
+    g_log << "ERROR: We just asked for an SOA for a zone that is not in the database." << endl;
+    return;
+  }
+
+  if (!di.last_check) return;
+  time_t last_check = di.last_check;
+  
+  SOAData sd;
+  if(!B.getSOAUncached((ZoneName&)domain, sd)) return;
+  uint64_t expire = (uint64_t)sd.expire;
+
+  if ((uint64_t)currentUnixTime - (uint64_t)last_check < expire) return;
+
+  g_log << "Domain " << domain.toLogString() << " expired. Deleting domain records.";
+  
+  di.backend->startTransaction((ZoneName&)domain, UnknownDomainID);
+  try {
+    if(!di.backend->deleteDomain((ZoneName&)domain)) {
+      throw PDNSException("Failed to delete domain '" + domain.toLogString() + "'");
+    }
+    di.backend->commitTransaction();
+  } catch (...) {
+    di.backend->abortTransaction();
+    throw;
+  }
+}
+
 bool Resolver::tryGetSOASerial(DNSName *domain, ComboAddress* remote, uint32_t *theirSerial, uint32_t *theirInception, uint32_t *theirExpire, uint16_t* id)
 {
   auto fds = std::make_unique<struct pollfd[]>(locals.size());
@@ -271,19 +310,28 @@ bool Resolver::tryGetSOASerial(DNSName *domain, ComboAddress* remote, uint32_t *
 
   MOADNSParser mdp(false, (char*)buf, err);
   *id=mdp.d_header.id;
+  DNSName domain_copy = *domain;
   *domain = mdp.d_qname;
 
-  if(domain->empty())
+  if(domain->empty()) {
+    checkDomainExpired(domain_copy);
     throw ResolverException("SOA query to '" + remote->toLogString() + "' produced response without domain name (RCode: " + RCode::to_s(mdp.d_header.rcode) + ")");
+  }
 
-  if(mdp.d_answers.empty())
+  if(mdp.d_answers.empty()) {
+    checkDomainExpired(*domain);
     throw ResolverException("Query to '" + remote->toLogString() + "' for SOA of '" + domain->toLogString() + "' produced no results (RCode: " + RCode::to_s(mdp.d_header.rcode) + ")");
+  }
 
-  if(mdp.d_qtype != QType::SOA)
+  if(mdp.d_qtype != QType::SOA) {
+    checkDomainExpired(*domain);
     throw ResolverException("Query to '" + remote->toLogString() + "' for SOA of '" + domain->toLogString() + "' returned wrong record type");
+  }
 
-  if(mdp.d_header.rcode != 0)
+  if(mdp.d_header.rcode != 0) {
+    checkDomainExpired(*domain);
     throw ResolverException("Query to '" + remote->toLogString() + "' for SOA of '" + domain->toLogString() + "' returned Rcode " + RCode::to_s(mdp.d_header.rcode));
+  }
 
   *theirInception = *theirExpire = 0;
   bool gotSOA=false;
