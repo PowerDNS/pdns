@@ -114,7 +114,7 @@ uint64_t dnsdist_ffi_dnsquestion_get_elapsed_us(const dnsdist_ffi_dnsquestion_t*
   return static_cast<uint64_t>(std::round(dnsQuestion->dq->ids.queryRealTime.udiff()));
 }
 
-static bool checkDNSQuestionType(const std::string_view& functionName, const dnsdist_ffi_dnsquestion_t* dnsQuestion)
+static bool checkDNSQuestionType(const char* functionName, const dnsdist_ffi_dnsquestion_t* dnsQuestion)
 {
   if (dnsQuestion->objectType != dnsdist::lua::ffi::ObjectType::Question) {
     VERBOSESLOG(infolog("Error: calling FFI function %s with a wrong type", functionName),
@@ -124,7 +124,7 @@ static bool checkDNSQuestionType(const std::string_view& functionName, const dns
   return true;
 }
 
-static bool checkDNSResponseType(const std::string_view& functionName, const dnsdist_ffi_dnsresponse_t* dnsResponse)
+static bool checkDNSResponseType(const char* functionName, const dnsdist_ffi_dnsresponse_t* dnsResponse)
 {
   if (dnsResponse->objectType != dnsdist::lua::ffi::ObjectType::Response) {
     VERBOSESLOG(infolog("Error: calling FFI function %s with a wrong type", functionName),
@@ -136,6 +136,7 @@ static bool checkDNSResponseType(const std::string_view& functionName, const dns
 
 void dnsdist_ffi_dnsquestion_get_masked_remoteaddr(dnsdist_ffi_dnsquestion_t* dnsQuestion, const void** addr, size_t* addrSize, uint8_t bits)
 {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
   if (!checkDNSQuestionType(__func__, dnsQuestion)) {
     return;
   }
@@ -361,6 +362,7 @@ size_t dnsdist_ffi_dnsquestion_get_tag_raw(const dnsdist_ffi_dnsquestion_t* dnsQ
 
 const char* dnsdist_ffi_dnsquestion_get_http_path(dnsdist_ffi_dnsquestion_t* dnsQuestion)
 {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
   if (!checkDNSQuestionType(__func__, dnsQuestion)) {
     return nullptr;
   }
@@ -385,6 +387,7 @@ const char* dnsdist_ffi_dnsquestion_get_http_path(dnsdist_ffi_dnsquestion_t* dns
 
 const char* dnsdist_ffi_dnsquestion_get_http_query_string(dnsdist_ffi_dnsquestion_t* dnsQuestion)
 {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
   if (!checkDNSQuestionType(__func__, dnsQuestion)) {
     return nullptr;
   }
@@ -409,6 +412,7 @@ const char* dnsdist_ffi_dnsquestion_get_http_query_string(dnsdist_ffi_dnsquestio
 
 const char* dnsdist_ffi_dnsquestion_get_http_host(dnsdist_ffi_dnsquestion_t* dnsQuestion)
 {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
   if (!checkDNSQuestionType(__func__, dnsQuestion)) {
     return nullptr;
   }
@@ -433,6 +437,7 @@ const char* dnsdist_ffi_dnsquestion_get_http_host(dnsdist_ffi_dnsquestion_t* dns
 
 const char* dnsdist_ffi_dnsquestion_get_http_scheme(dnsdist_ffi_dnsquestion_t* dnsQuestion)
 {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
   if (!checkDNSQuestionType(__func__, dnsQuestion)) {
     return nullptr;
   }
@@ -468,6 +473,7 @@ static void fill_edns_option(const EDNSOptionViewValue& value, dnsdist_ffi_ednso
 // returns the length of the resulting 'out' array. 'out' is not set if the length is 0
 size_t dnsdist_ffi_dnsquestion_get_edns_options(dnsdist_ffi_dnsquestion_t* dnsQuestion, const dnsdist_ffi_ednsoption_t** out)
 {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
   if (!checkDNSQuestionType(__func__, dnsQuestion)) {
     return 0U;
   }
@@ -506,6 +512,7 @@ size_t dnsdist_ffi_dnsquestion_get_edns_options(dnsdist_ffi_dnsquestion_t* dnsQu
 size_t dnsdist_ffi_dnsquestion_get_http_headers([[maybe_unused]] dnsdist_ffi_dnsquestion_t* dnsQuestion, [[maybe_unused]] const dnsdist_ffi_http_header_t** out)
 {
 #if defined(HAVE_DNS_OVER_HTTPS) || defined(HAVE_DNS_OVER_HTTP3)
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
   if (!checkDNSQuestionType(__func__, dnsQuestion)) {
     return 0U;
   }
@@ -559,6 +566,7 @@ size_t dnsdist_ffi_dnsquestion_get_tag_array(dnsdist_ffi_dnsquestion_t* dnsQuest
   if (dnsQuestion == nullptr || dnsQuestion->dq == nullptr || dnsQuestion->dq->ids.qTag == nullptr || dnsQuestion->dq->ids.qTag->empty()) {
     return 0;
   }
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
   if (!checkDNSQuestionType(__func__, dnsQuestion)) {
     return 0U;
   }
@@ -586,6 +594,7 @@ size_t dnsdist_ffi_dnsquestion_get_tag_array(dnsdist_ffi_dnsquestion_t* dnsQuest
 
 void dnsdist_ffi_dnsquestion_set_result(dnsdist_ffi_dnsquestion_t* dnsQuestion, const char* str, size_t strSize)
 {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
   if (!checkDNSQuestionType(__func__, dnsQuestion)) {
     return;
   }
@@ -739,6 +748,7 @@ void dnsdist_ffi_dnsquestion_set_device_name(dnsdist_ffi_dnsquestion_t* dnsQuest
 
 size_t dnsdist_ffi_dnsquestion_get_trailing_data(dnsdist_ffi_dnsquestion_t* dnsQuestion, const char** out)
 {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
   if (!checkDNSQuestionType(__func__, dnsQuestion)) {
     return 0U;
   }
@@ -910,6 +920,7 @@ void dnsdist_ffi_dnsresponse_set_max_ttl(dnsdist_ffi_dnsresponse_t* dnsResponse,
 void dnsdist_ffi_dnsresponse_limit_ttl(dnsdist_ffi_dnsresponse_t* dnsResponse, uint32_t min, uint32_t max)
 {
   if (dnsResponse != nullptr && dnsResponse->dr != nullptr) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     if (!checkDNSResponseType(__func__, dnsResponse)) {
       return;
     }
@@ -921,6 +932,7 @@ void dnsdist_ffi_dnsresponse_limit_ttl(dnsdist_ffi_dnsresponse_t* dnsResponse, u
 void dnsdist_ffi_dnsresponse_set_max_returned_ttl(dnsdist_ffi_dnsresponse_t* dnsResponse, uint32_t max)
 {
   if (dnsResponse != nullptr && dnsResponse->dr != nullptr) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     if (!checkDNSResponseType(__func__, dnsResponse)) {
       return;
     }
@@ -931,6 +943,7 @@ void dnsdist_ffi_dnsresponse_set_max_returned_ttl(dnsdist_ffi_dnsresponse_t* dns
 void dnsdist_ffi_dnsresponse_clear_records_type(dnsdist_ffi_dnsresponse_t* dnsResponse, uint16_t qtype)
 {
   if (dnsResponse != nullptr && dnsResponse->dr != nullptr) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     if (!checkDNSResponseType(__func__, dnsResponse)) {
       return;
     }
@@ -943,6 +956,7 @@ bool dnsdist_ffi_dnsresponse_rebase(dnsdist_ffi_dnsresponse_t* dnsResponse, cons
   if (dnsResponse == nullptr || dnsResponse->dr == nullptr || initialName == nullptr || initialNameSize == 0) {
     return false;
   }
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
   if (!checkDNSResponseType(__func__, dnsResponse)) {
     return false;
   }
@@ -969,6 +983,7 @@ bool dnsdist_ffi_dnsresponse_rebase(dnsdist_ffi_dnsresponse_t* dnsResponse, cons
 
 bool dnsdist_ffi_dnsresponse_get_stale_cache_hit(const dnsdist_ffi_dnsresponse_t* dnsResponse)
 {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
   if (!checkDNSResponseType(__func__, dnsResponse)) {
     return false;
   }
@@ -977,6 +992,7 @@ bool dnsdist_ffi_dnsresponse_get_stale_cache_hit(const dnsdist_ffi_dnsresponse_t
 
 uint8_t dnsdist_ffi_dnsresponse_get_restart_count(const dnsdist_ffi_dnsresponse_t* dnsResponse)
 {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
   if (!checkDNSResponseType(__func__, dnsResponse)) {
     return 0U;
   }
@@ -985,6 +1001,7 @@ uint8_t dnsdist_ffi_dnsresponse_get_restart_count(const dnsdist_ffi_dnsresponse_
 
 bool dnsdist_ffi_dnsquestion_set_async(dnsdist_ffi_dnsquestion_t* dnsQuestion, uint16_t asyncID, uint16_t queryID, uint32_t timeoutMs)
 {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
   if (!checkDNSQuestionType(__func__, dnsQuestion)) {
     return false;
   }
@@ -1006,6 +1023,7 @@ bool dnsdist_ffi_dnsquestion_set_async(dnsdist_ffi_dnsquestion_t* dnsQuestion, u
 
 bool dnsdist_ffi_dnsresponse_set_async(dnsdist_ffi_dnsresponse_t* dnsResponse, uint16_t asyncID, uint16_t queryID, uint32_t timeoutMs)
 {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
   if (!checkDNSResponseType(__func__, dnsResponse)) {
     return false;
   }
@@ -1366,6 +1384,7 @@ size_t dnsdist_ffi_dnsquestion_get_proxy_protocol_values(dnsdist_ffi_dnsquestion
     return 0;
   }
 
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
   if (!checkDNSQuestionType(__func__, dnsQuestion)) {
     return 0U;
   }
@@ -2578,6 +2597,7 @@ void dnsdist_ffi_dnsquestion_meta_begin_key([[maybe_unused]] dnsdist_ffi_dnsques
   if (dnsQuestion == nullptr || key == nullptr || keyLen == 0) {
     return;
   }
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
   if (!checkDNSQuestionType(__func__, dnsQuestion)) {
     return;
   }
@@ -2601,6 +2621,7 @@ void dnsdist_ffi_dnsquestion_meta_add_str_value_to_key([[maybe_unused]] dnsdist_
   if (dnsQuestion == nullptr || value == nullptr || valueLen == 0) {
     return;
   }
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
   if (!checkDNSQuestionType(__func__, dnsQuestion)) {
     return;
   }
@@ -2621,6 +2642,7 @@ void dnsdist_ffi_dnsquestion_meta_add_int64_value_to_key([[maybe_unused]] dnsdis
   if (dnsQuestion == nullptr) {
     return;
   }
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
   if (!checkDNSQuestionType(__func__, dnsQuestion)) {
     return;
   }
@@ -2641,6 +2663,7 @@ void dnsdist_ffi_dnsquestion_meta_end_key([[maybe_unused]] dnsdist_ffi_dnsquesti
   if (dnsQuestion == nullptr) {
     return;
   }
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
   if (!checkDNSQuestionType(__func__, dnsQuestion)) {
     return;
   }
@@ -2671,6 +2694,7 @@ void dnsdist_ffi_dnsresponse_meta_begin_key([[maybe_unused]] dnsdist_ffi_dnsresp
     return;
   }
 
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
   if (!checkDNSResponseType(__func__, dnsResponse)) {
     return;
   }
@@ -2695,6 +2719,7 @@ void dnsdist_ffi_dnsresponse_meta_add_str_value_to_key([[maybe_unused]] dnsdist_
     return;
   }
 
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
   if (!checkDNSResponseType(__func__, dnsResponse)) {
     return;
   }
@@ -2716,6 +2741,7 @@ void dnsdist_ffi_dnsresponse_meta_add_int64_value_to_key([[maybe_unused]] dnsdis
     return;
   }
 
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
   if (!checkDNSResponseType(__func__, dnsResponse)) {
     return;
   }
@@ -2737,6 +2763,7 @@ void dnsdist_ffi_dnsresponse_meta_end_key([[maybe_unused]] dnsdist_ffi_dnsrespon
     return;
   }
 
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
   if (!checkDNSResponseType(__func__, dnsResponse)) {
     return;
   }
