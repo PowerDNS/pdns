@@ -84,9 +84,11 @@ void SensitiveData::reallyClearContent(void* data, size_t size) noexcept
 SensitiveData::SensitiveData(std::string&& data) :
   d_data(std::move(data))
 {
+  // linters are complaining that we are calling data() and capacity() on a moved-from object,
+  // so clear the object first so they shut up
   data.clear();
 #ifdef HAVE_LIBSODIUM
-  // let's be nice and try to zero out the SSO buffer
+  // let's be nice and try to zero out the SSO buffer, that cannot be moved
   reallyClearContent(data.data(), data.capacity());
 #endif
 #ifdef HAVE_LIBSODIUM
