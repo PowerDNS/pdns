@@ -691,7 +691,7 @@ void setupLuaInspection(LuaContext& luaCtx)
             iter->second++;
           }
           else {
-            histo.rbegin()++;
+            histo.rbegin()->second++;
           }
           totlat += entry.usec;
         }

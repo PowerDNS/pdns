@@ -391,7 +391,7 @@ std::vector<XskPacket> XskSocket::recv(uint32_t recvSizeMax, uint32_t* failedCou
     try {
       const auto* desc = xsk_ring_cons__rx_desc(&rx, idx++);
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast,performance-no-int-to-ptr)
-      XskPacket packet = XskPacket(reinterpret_cast<uint8_t*>(desc->addr + baseAddr), desc->len, frameSize);
+      auto packet = XskPacket(reinterpret_cast<uint8_t*>(desc->addr + baseAddr), desc->len, frameSize);
 #ifdef DEBUG_UMEM
       checkUmemIntegrity(__PRETTY_FUNCTION__, __LINE__, sharedEmptyFrameOffset, frameOffset(packet), {UmemEntryStatus::Status::FillQueue}, UmemEntryStatus::Status::Received);
 #endif /* DEBUG_UMEM */
@@ -407,12 +407,12 @@ std::vector<XskPacket> XskSocket::recv(uint32_t recvSizeMax, uint32_t* failedCou
     catch (const std::exception& exp) {
       ++failed;
       ++processed;
-      break;
+      continue;
     }
     catch (...) {
       ++failed;
       ++processed;
-      break;
+      continue;
     }
   }
 
@@ -796,7 +796,7 @@ bool XskPacket::isIPV6() const noexcept
   return v6;
 }
 
-XskPacket::XskPacket(uint8_t* frame_, size_t dataSize, size_t frameSize_) :
+XskPacket::XskPacket(uint8_t* frame_, size_t dataSize, size_t frameSize_) noexcept :
   frame(frame_), frameLength(dataSize), frameSize(frameSize_ - XDP_PACKET_HEADROOM)
 {
 }
