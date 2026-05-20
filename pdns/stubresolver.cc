@@ -167,21 +167,27 @@ int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSZoneRecord>& r
     catch (...) {
       continue;
     }
-    MOADNSParser mdp(false, reply);
-    if (mdp.d_header.rcode == RCode::ServFail) {
+    try {
+      MOADNSParser mdp(false, reply);
+      if (mdp.d_header.rcode == RCode::ServFail) {
+        continue;
+      }
+
+      for (const auto& answer : mdp.d_answers) {
+        if (answer.d_place == 1 && answer.d_type == qtype) {
+          DNSZoneRecord zrr;
+          zrr.dr = answer;
+          zrr.auth = true;
+          ret.push_back(std::move(zrr));
+        }
+      }
+      g_log << Logger::Debug << logPrefix << "Question for '" << queryNameType << "' got answered by " << dest.toString() << endl;
+      return mdp.d_header.rcode;
+    }
+    catch (const MOADNSException& exc) {
+      g_log << Logger::Debug << logPrefix << "Question for '" << queryNameType << "' got ill-formed answer from " << dest.toString() << ": " << exc.what() << endl;
       continue;
     }
-
-    for (const auto& answer : mdp.d_answers) {
-      if (answer.d_place == 1 && answer.d_type == qtype) {
-        DNSZoneRecord zrr;
-        zrr.dr = answer;
-        zrr.auth = true;
-        ret.push_back(zrr);
-      }
-    }
-    g_log << Logger::Debug << logPrefix << "Question for '" << queryNameType << "' got answered by " << dest.toString() << endl;
-    return mdp.d_header.rcode;
   }
   return RCode::ServFail;
 }
