@@ -19,6 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include "dnsdist-lua-types.hh"
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -225,6 +226,35 @@ static bool doOneCarbonExport(const Carbon::Endpoint& endpoint, const Logr::Logg
       }
     }
 
+    for (const auto& entry : dnsdist::configuration::getCurrentRuntimeConfiguration().d_caches) {
+      string cacheName = entry.first;
+      std::replace(cacheName.begin(), cacheName.end(), '.', '_');
+      if (cacheName.empty()) {
+        cacheName = "_default_";
+      }
+      string base = namespace_name;
+      base += ".";
+      base += hostname;
+      base += ".";
+      base += instance_name;
+      base += ".caches.";
+      base += cacheName;
+      base += ".";
+      const std::shared_ptr<GenericCacheInterface<std::string, std::optional<LuaAny>>> cache = entry.second;
+      const auto& stats = cache->getStats();
+      str << base << "memory-used"
+          << " " << stats.d_memoryUsed << " " << now << "\r\n";
+      str << base << "entries"
+          << " " << stats.d_entriesCount << " " << now << "\r\n";
+      str << base << "cache-hits"
+          << " " << stats.d_cacheHits << " " << now << "\r\n";
+      str << base << "cache-misses"
+          << " " << stats.d_cacheMisses << " " << now << "\r\n";
+      str << base << "expired"
+          << " " << stats.d_expiredItems << " " << now << "\r\n";
+      str << base << "kicked"
+          << " " << stats.d_kickedItems << " " << now << "\r\n";
+    }
 #ifdef HAVE_DNS_OVER_HTTPS
     {
       std::map<std::string, uint64_t> dohFrontendDuplicates;
