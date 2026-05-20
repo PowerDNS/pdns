@@ -336,6 +336,7 @@ static void declareArguments()
 
 #ifdef ENABLE_GSS_TSIG
   ::arg().setSwitch("enable-gss-tsig", "Enable GSS TSIG processing") = "no";
+  ::arg().set("gss-max-contexts", "The maximum number of simultaneous GSS contexts allowed") = "1000";
 #endif
   ::arg().setDefaults();
 }
@@ -712,6 +713,9 @@ static void mainthread()
 #endif
 #ifdef ENABLE_GSS_TSIG
   g_doGssTSIG = ::arg().mustDo("enable-gss-tsig");
+  if (g_doGssTSIG) {
+    GssContext::s_maxGssContexts = ::arg().asNum("gss-max-contexts");
+  }
 #endif
 
   DNSPacket::s_udpTruncationThreshold = std::max(512, ::arg().asNum("udp-truncation-threshold"));
