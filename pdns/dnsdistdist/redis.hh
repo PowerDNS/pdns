@@ -36,7 +36,7 @@ template <typename T>
 class RedisReplyInterface
 {
 public:
-  virtual ~RedisReplyInterface() { };
+  virtual ~RedisReplyInterface() {};
   virtual bool ok() const = 0;
   virtual T getValue() const = 0;
   virtual std::string getError() const = 0;
@@ -81,7 +81,7 @@ class MappedRedisReply : public RedisReplyInterface<T>
 {
 public:
   MappedRedisReply(std::unique_ptr<RedisReplyInterface<S>> inner) :
-    d_inner(std::move(inner)) { };
+    d_inner(std::move(inner)) {};
 
   virtual bool ok() const override
   {
@@ -272,7 +272,7 @@ struct RedisHExistsCommand : public RedisCommand<bool, std::string, std::string>
 class RedisLookupAction
 {
 public:
-  RedisLookupAction() { };
+  RedisLookupAction() {};
   virtual ~RedisLookupAction() = default;
 
   virtual std::unique_ptr<RedisReplyInterface<std::string>> getValue(const RedisClient& client, const std::string& key) const = 0;
