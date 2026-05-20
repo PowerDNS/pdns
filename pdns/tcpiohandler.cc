@@ -888,7 +888,13 @@ public:
       return 0;
     }
 
-    conn->addNewTicket(session);
+    try {
+      conn->addNewTicket(session);
+    }
+    // NOLINTNEXTLINE(bugprone-empty-catch)
+    catch (...) {
+    }
+
     return 1;
   }
 
@@ -1251,7 +1257,8 @@ public:
       return 0;
     }
 
-    GnuTLSConnection* conn = reinterpret_cast<GnuTLSConnection*>(gnutls_session_get_ptr(session));
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): GnuTLS API
+    auto* conn = reinterpret_cast<GnuTLSConnection*>(gnutls_session_get_ptr(session));
     if (conn == nullptr) {
       return 0;
     }
@@ -1260,7 +1267,10 @@ public:
     auto ret = gnutls_session_get_data2(session, &sess);
     /* GnuTLS returns a 'fake' ticket of 4 bytes set to zero when there is no ticket available */
     if (ret != GNUTLS_E_SUCCESS || sess.size <= 4) {
-      throw std::runtime_error("Error getting GnuTLSSession: " + std::string(gnutls_strerror(ret)));
+      if (sess.data != nullptr) {
+        gnutls_free(sess.data);
+      }
+      return 0;
     }
     conn->d_tlsSessions.push_back(std::make_unique<GnuTLSSession>(sess));
     return 0;
