@@ -14,6 +14,7 @@
         type DNSResponseActionWrapper;
         fn registerProtobufLogger(config: &ProtobufLoggerConfiguration);
         fn registerDnstapLogger(config: &DnstapLoggerConfiguration);
+        fn registerGenericCacheObjects(config: &GenericCachesConfiguration);
         fn registerKVSObjects(config: &KeyValueStoresConfiguration);
         fn registerMMDBObjects(config: &Vec<MmdbConfiguration>);
         fn registerNMGObjects(nmgs: &Vec<NetmaskGroupConfiguration>);

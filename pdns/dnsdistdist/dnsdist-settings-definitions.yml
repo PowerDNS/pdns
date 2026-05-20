@@ -57,6 +57,10 @@ global:
       type: "GeneralConfiguration"
       default: true
       description: "General settings"
+    - name: "generic_caches"
+      type: "GenericCachesConfiguration"
+      default: true
+      description: "Generic object caches"
     - name: "key_value_stores"
       type: "KeyValueStoresConfiguration"
       default: true
@@ -2105,6 +2109,41 @@ general:
           Keeping ``CAP_SYS_ADMIN`` on kernel 5.8+ for example allows loading eBPF programs and altering eBPF maps at runtime even if the ``kernel.unprivileged_bpf_disabled`` sysctl is set.
           Note that this does not grant the capabilities to the process, doing so might be done by running it as root which we don't advise, or by adding capabilities via the systemd unit file, for example.
           Please also be aware that switching to a different user via ``--uid`` will still drop all capabilities."
+
+generic_caches:
+  description: "Generic caches"
+  parameters:
+    - name: "object"
+      type: "Vec<GenericObjectCacheConfiguration>"
+      default: true
+      description: "List of generic object caches"
+
+generic_object_cache:
+  description: "Generic object cache"
+  parameters:
+    - name: "name"
+      type: "String"
+      description: "The name of this cache"
+    - name: "ttl_enabled"
+      type: "bool"
+      default: "false"
+      description: "Whether this cache should use TTL based eviction"
+    - name: "lru_enabled"
+      type: "bool"
+      default: "false"
+      description: "Whether this cache should use LRU based eviction"
+    - name: "shard_count"
+      type: "u32"
+      description: "Number of shards this cache should be split up in"
+    - name: "max_entries"
+      type: "u32"
+      description: "Total maximum number of entries this cache can hold"
+    - name: "lru_delete_up_to"
+      type: "u32"
+      description: "If defined, number of items that should be left in the cache after LRU cleanup is triggered, when cache is full"
+    - name: "ttl"
+      type: "u32"
+      description: "The TTL value to assign to new objects in the cache"
 
 netmask_group:
   description: "Group of netmasks"
