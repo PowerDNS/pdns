@@ -866,7 +866,6 @@ bool validateTSIG(const std::string& packet, size_t sigPos, const TSIGTriplet& t
   tsigMsg = makeTSIGMessageFromTSIGPacket(packet, sigPos, tt.name, trc, previousMAC, timersOnly, dnsHeaderOffset);
 
   if (algo == TSIG_GSS) {
-    GssContext gssctx(tt.name);
     if (!gss_verify_signature(tt.name, tsigMsg, theirMAC)) {
       throw std::runtime_error("Signature with TSIG key '"+tt.name.toLogString()+"' failed to validate");
     }

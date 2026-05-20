@@ -123,6 +123,26 @@ DNSZoneRecord CatalogInfo::getCatalogVersionRecord(const DNSName& zone)
   return dzr;
 }
 
+static string txtEscape(const string &name)
+{
+  string ret;
+  char ebuf[5];
+
+  for(char i : name) {
+    if((unsigned char) i >= 127 || (unsigned char) i < 32) {
+      snprintf(ebuf, sizeof(ebuf), "\\%03u", (unsigned char)i);
+      ret += ebuf;
+    }
+    else if(i=='"' || i=='\\'){
+      ret += '\\';
+      ret += i;
+    }
+    else
+      ret += i;
+  }
+  return ret;
+}
+
 void CatalogInfo::toDNSZoneRecords(const DNSName& zone, vector<DNSZoneRecord>& dzrs) const
 {
   DNSName prefix;
@@ -138,7 +158,7 @@ void CatalogInfo::toDNSZoneRecords(const DNSName& zone, vector<DNSZoneRecord>& d
   dzr.dr.d_name = prefix;
   dzr.dr.d_ttl = 0;
   dzr.dr.d_type = QType::PTR;
-  dzr.dr.setContent(std::make_shared<PTRRecordContent>(d_zone.toString()));
+  dzr.dr.setContent(std::make_shared<PTRRecordContent>(d_zone));
   dzrs.emplace_back(dzr);
 
   if (!d_coo.empty()) {
@@ -153,7 +173,7 @@ void CatalogInfo::toDNSZoneRecords(const DNSName& zone, vector<DNSZoneRecord>& d
     dzr.dr.d_name = DNSName("group") + prefix;
     dzr.dr.d_ttl = 0;
     dzr.dr.d_type = QType::TXT;
-    dzr.dr.setContent(std::make_shared<TXTRecordContent>("\"" + group + "\""));
+    dzr.dr.setContent(std::make_shared<TXTRecordContent>("\"" + txtEscape(group) + "\""));
     dzrs.emplace_back(dzr);
   }
 }

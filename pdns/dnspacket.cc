@@ -507,60 +507,77 @@ void DNSPacket::setTSIGDetails(const TSIGRecordContent& tr, const DNSName& keyna
 
 bool DNSPacket::getTSIGDetails(TSIGRecordContent* trc, DNSName* keyname, uint16_t* tsigPosOut) const
 {
-  MOADNSParser mdp(d_isQuery, d_rawpacket);
-  uint16_t tsigPos = mdp.getTSIGPos();
-  if(!tsigPos)
-    return false;
-
-  bool gotit=false;
-  for(const auto & answer : mdp.d_answers) {
-    if(answer.first.d_type == QType::TSIG && answer.first.d_class == QType::ANY) {
-      // cast can fail, f.e. if d_content is an UnknownRecordContent.
-      auto content = getRR<TSIGRecordContent>(answer.first);
-      if (!content) {
-        g_log<<Logger::Error<<"TSIG record has no or invalid content (invalid packet)"<<endl;
-        return false;
-      }
-      *trc = *content;
-      *keyname = answer.first.d_name;
-      gotit=true;
+  try {
+    MOADNSParser mdp(d_isQuery, d_rawpacket);
+    uint16_t tsigPos = mdp.getTSIGPos();
+    if (tsigPos == 0) {
+      return false;
     }
+
+    bool gotit=false;
+    for(const auto & answer : mdp.d_answers) {
+      if(answer.first.d_type == QType::TSIG && answer.first.d_class == QType::ANY) {
+        // cast can fail, f.e. if d_content is an UnknownRecordContent.
+        auto content = getRR<TSIGRecordContent>(answer.first);
+        if (!content) {
+          g_log<<Logger::Error<<"TSIG record has no or invalid content (invalid packet)"<<endl;
+          return false;
+        }
+        *trc = *content;
+        *keyname = answer.first.d_name;
+        gotit=true;
+      }
+    }
+    if(!gotit)
+      return false;
+
+    if (tsigPosOut != nullptr) {
+      *tsigPosOut = tsigPos;
+    }
+
+    return true;
   }
-  if(!gotit)
+  catch (const MOADNSException&) {
+    // If execution has reached this routine, we can reasonably assume that
+    // the packet is good enough to pass the sanity checks of
+    // MOADNSParser::init(). But just in case it doesn't, better handle this.
     return false;
-
-  if (tsigPosOut) {
-    *tsigPosOut = tsigPos;
   }
-
-  return true;
 }
 
 bool DNSPacket::getTKEYRecord(TKEYRecordContent *tr, DNSName *keyname) const
 {
-  MOADNSParser mdp(d_isQuery, d_rawpacket);
-  bool gotit=false;
+  try {
+    MOADNSParser mdp(d_isQuery, d_rawpacket);
+    bool gotit=false;
 
-  for(const auto & answer : mdp.d_answers) {
-    if (gotit) {
-      g_log<<Logger::Error<<"More than one TKEY record found in query"<<endl;
-      return false;
-    }
-
-    if(answer.first.d_type == QType::TKEY) {
-      // cast can fail, f.e. if d_content is an UnknownRecordContent.
-      auto content = getRR<TKEYRecordContent>(answer.first);
-      if (!content) {
-        g_log<<Logger::Error<<"TKEY record has no or invalid content (invalid packet)"<<endl;
+    for(const auto & answer : mdp.d_answers) {
+      if (gotit) {
+        g_log<<Logger::Error<<"More than one TKEY record found in query"<<endl;
         return false;
       }
-      *tr = *content;
-      *keyname = answer.first.d_name;
-      gotit=true;
-    }
-  }
 
-  return gotit;
+      if(answer.first.d_type == QType::TKEY) {
+        // cast can fail, f.e. if d_content is an UnknownRecordContent.
+        auto content = getRR<TKEYRecordContent>(answer.first);
+        if (!content) {
+          g_log<<Logger::Error<<"TKEY record has no or invalid content (invalid packet)"<<endl;
+          return false;
+        }
+        *tr = *content;
+        *keyname = answer.first.d_name;
+        gotit=true;
+      }
+    }
+
+    return gotit;
+  }
+  catch (const MOADNSException&) {
+    // If execution has reached this routine, we can reasonably assume that
+    // the packet is good enough to pass the sanity checks of
+    // MOADNSParser::init(). But just in case it doesn't, better handle this.
+    return false;
+  }
 }
 
 /** This function takes data from the network, possibly received with recvfrom, and parses
