@@ -550,6 +550,9 @@ try
   }
   //  cout<<g_mtracer->topAllocatorsString(20)<<endl;
 }
-catch(PDNSException& pe) {
-  cerr<<"Fatal error: "<<pe.reason<<endl;
+catch(const PDNSException& exc) {
+  cerr<<"Fatal error: "<<exc.reason<<endl;
+}
+catch(const std::exception& exc) {
+  cerr<<"Fatal error: "<<exc.what()<<endl;
 }

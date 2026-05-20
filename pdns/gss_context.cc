@@ -55,6 +55,8 @@ GssContextError GssContext::getError() { return GSS_CONTEXT_UNSUPPORTED; }
 
 #define TSIG_GSS_EXPIRE_INTERVAL 60
 
+unsigned int GssContext::s_maxGssContexts{1000};
+
 class GssCredential : boost::noncopyable
 {
 public:
@@ -136,7 +138,7 @@ public:
 static LockGuarded<std::unordered_map<std::string, std::shared_ptr<GssCredential>>> s_gss_accept_creds;
 static LockGuarded<std::unordered_map<std::string, std::shared_ptr<GssCredential>>> s_gss_init_creds;
 
-class GssSecContext : boost::noncopyable
+class GssSecContext
 {
 public:
   GssSecContext(std::shared_ptr<GssCredential> cred)
@@ -173,7 +175,7 @@ public:
   } d_state{GssStateInitial};
 }; // GssSecContext
 
-static LockGuarded<std::unordered_map<DNSName, std::shared_ptr<GssSecContext>>> s_gss_sec_context;
+static LockGuarded<std::unordered_map<DNSName, std::shared_ptr<LockGuarded<GssSecContext>>>> s_gss_sec_context;
 
 template <typename T>
 static void doExpire(T& m, time_t now)
@@ -189,9 +191,29 @@ static void doExpire(T& m, time_t now)
   }
 }
 
+// Same as above, for s_gss_sec_context
+template <typename T>
+static void doExpireL(T& m, time_t now)
+{
+  auto lock = m.lock();
+  for (auto i = lock->begin(); i != lock->end();) {
+    time_t expiretime{0};
+    {
+      auto ctx = i->second->lock();
+      expiretime = ctx->d_expires;
+    }
+    if (now > expiretime) {
+      i = lock->erase(i);
+    }
+    else {
+      ++i;
+    }
+  }
+}
+
 static void expire()
 {
-  static time_t s_last_expired;
+  static std::atomic<time_t> s_last_expired;
   time_t now = time(nullptr);
   if (now - s_last_expired < TSIG_GSS_EXPIRE_INTERVAL) {
     return;
@@ -199,7 +221,7 @@ static void expire()
   s_last_expired = now;
   doExpire(s_gss_init_creds, now);
   doExpire(s_gss_accept_creds, now);
-  doExpire(s_gss_sec_context, now);
+  doExpireL(s_gss_sec_context, now);
 }
 
 bool GssContext::supported() { return true; }
@@ -238,18 +260,56 @@ void GssContext::setLabel(const DNSName& label)
   auto it = lock->find(d_label);
   if (it != lock->end()) {
     d_secctx = it->second;
-    d_type = d_secctx->d_type;
+    auto ctx = d_secctx->lock();
+    d_type = ctx->d_type;
   }
 }
 
 bool GssContext::expired()
 {
-  return (!d_secctx || (d_secctx->d_expires > -1 && d_secctx->d_expires < time(nullptr)));
+  if (!d_secctx) {
+    return true;
+  }
+  auto ctx = d_secctx->lock();
+  return (ctx->d_expires > -1 && ctx->d_expires < time(nullptr));
 }
 
 bool GssContext::valid()
 {
-  return (d_secctx && !expired() && d_secctx->d_state == GssSecContext::GssStateComplete);
+  if (expired()) {
+    return false;
+  }
+  auto ctx = d_secctx->lock();
+  return ctx->d_state == GssSecContext::GssStateComplete;
+}
+
+bool GssContext::createOrReuseContext(std::shared_ptr<GssCredential> cred)
+{
+  // see if we can find a context in non-completed state
+  if (d_secctx) {
+    auto ctx = d_secctx->lock();
+    if (ctx->d_state != GssSecContext::GssStateNegotiate) {
+      d_error = GSS_CONTEXT_INVALID;
+      return false;
+    }
+  }
+  else {
+    // make context
+    auto lock = s_gss_sec_context.lock();
+    if (lock->size() == s_maxGssContexts) {
+      d_error = GSS_CONTEXT_LIMIT_REACHED;
+      d_gss_errors.push_back("Limit of concurrent GSS contexts reached");
+      return false;
+    }
+    d_secctx = std::make_shared<LockGuarded<GssSecContext>>(cred);
+    {
+      auto ctx = d_secctx->lock();
+      ctx->d_state = GssSecContext::GssStateNegotiate;
+      ctx->d_type = d_type;
+    }
+    (*lock)[d_label] = d_secctx;
+  }
+  return true;
 }
 
 bool GssContext::init(const std::string& input, std::string& output)
@@ -278,53 +338,45 @@ bool GssContext::init(const std::string& input, std::string& output)
     cred = it->second;
   }
 
-  // see if we can find a context in non-completed state
-  if (d_secctx) {
-    if (d_secctx->d_state != GssSecContext::GssStateNegotiate) {
-      d_error = GSS_CONTEXT_INVALID;
-      return false;
-    }
-  }
-  else {
-    // make context
-    auto lock = s_gss_sec_context.lock();
-    d_secctx = std::make_shared<GssSecContext>(cred);
-    d_secctx->d_state = GssSecContext::GssStateNegotiate;
-    d_secctx->d_type = d_type;
-    (*lock)[d_label] = d_secctx;
+  if (!createOrReuseContext(cred)) {
+    return false;
   }
 
   recv_tok.length = input.size();
   recv_tok.value = const_cast<void*>(static_cast<const void*>(input.c_str()));
 
-  if (!d_peerPrincipal.empty()) {
-    buffer.value = const_cast<void*>(static_cast<const void*>(d_peerPrincipal.c_str()));
-    buffer.length = d_peerPrincipal.size();
-    maj = gss_import_name(&min, &buffer, (gss_OID)GSS_KRB5_NT_PRINCIPAL_NAME, &(d_secctx->d_peer_name));
-    if (maj != GSS_S_COMPLETE) {
-      processError("gss_import_name", maj, min);
-      return false;
+  {
+    auto ctx = d_secctx->lock();
+
+    if (!d_peerPrincipal.empty()) {
+      buffer.value = const_cast<void*>(static_cast<const void*>(d_peerPrincipal.c_str()));
+      buffer.length = d_peerPrincipal.size();
+      maj = gss_import_name(&min, &buffer, (gss_OID)GSS_KRB5_NT_PRINCIPAL_NAME, &(ctx->d_peer_name));
+      if (maj != GSS_S_COMPLETE) {
+        processError("gss_import_name", maj, min);
+        return false;
+      }
     }
-  }
 
-  maj = gss_init_sec_context(&min, cred->d_cred, &d_secctx->d_ctx, d_secctx->d_peer_name, GSS_C_NO_OID, GSS_C_MUTUAL_FLAG | GSS_C_REPLAY_FLAG, GSS_C_INDEFINITE, GSS_C_NO_CHANNEL_BINDINGS, &recv_tok, nullptr, &send_tok, &flags, &expires);
+    maj = gss_init_sec_context(&min, cred->d_cred, &ctx->d_ctx, ctx->d_peer_name, GSS_C_NO_OID, GSS_C_MUTUAL_FLAG | GSS_C_REPLAY_FLAG, GSS_C_INDEFINITE, GSS_C_NO_CHANNEL_BINDINGS, &recv_tok, nullptr, &send_tok, &flags, &expires);
 
-  if (send_tok.length > 0) {
-    output.assign(static_cast<char*>(send_tok.value), send_tok.length);
-    tmp_maj = gss_release_buffer(&tmp_min, &send_tok);
-  }
-
-  if (maj == GSS_S_COMPLETE) {
-    // We do not want forever
-    if (expires == GSS_C_INDEFINITE) {
-      expires = 60;
+    if (send_tok.length > 0) {
+      output.assign(static_cast<char*>(send_tok.value), send_tok.length);
+      tmp_maj = gss_release_buffer(&tmp_min, &send_tok);
     }
-    d_secctx->d_expires = time(nullptr) + expires;
-    d_secctx->d_state = GssSecContext::GssStateComplete;
-    return true;
-  }
-  else if (maj != GSS_S_CONTINUE_NEEDED) {
-    processError("gss_init_sec_context", maj, min);
+
+    if (maj == GSS_S_COMPLETE) {
+      // We do not want forever
+      if (expires == GSS_C_INDEFINITE) {
+        expires = 60;
+      }
+      ctx->d_expires = time(nullptr) + expires;
+      ctx->d_state = GssSecContext::GssStateComplete;
+      return true;
+    }
+    else if (maj != GSS_S_CONTINUE_NEEDED) {
+      processError("gss_init_sec_context", maj, min);
+    }
   }
 
   return (maj == GSS_S_CONTINUE_NEEDED);
@@ -356,44 +408,36 @@ bool GssContext::accept(const std::string& input, std::string& output)
     cred = it->second;
   }
 
-  // see if we can find a context in non-completed state
-  if (d_secctx) {
-    if (d_secctx->d_state != GssSecContext::GssStateNegotiate) {
-      d_error = GSS_CONTEXT_INVALID;
-      return false;
-    }
-  }
-  else {
-    // make context
-    auto lock = s_gss_sec_context.lock();
-    d_secctx = std::make_shared<GssSecContext>(cred);
-    d_secctx->d_state = GssSecContext::GssStateNegotiate;
-    d_secctx->d_type = d_type;
-    (*lock)[d_label] = d_secctx;
+  if (!createOrReuseContext(cred)) {
+    return false;
   }
 
   recv_tok.length = input.size();
   recv_tok.value = const_cast<void*>(static_cast<const void*>(input.c_str()));
 
-  maj = gss_accept_sec_context(&min, &d_secctx->d_ctx, cred->d_cred, &recv_tok, GSS_C_NO_CHANNEL_BINDINGS, &d_secctx->d_peer_name, nullptr, &send_tok, &flags, &expires, nullptr);
+  {
+    auto ctx = d_secctx->lock();
+    maj = gss_accept_sec_context(&min, &ctx->d_ctx, cred->d_cred, &recv_tok, GSS_C_NO_CHANNEL_BINDINGS, &ctx->d_peer_name, nullptr, &send_tok, &flags, &expires, nullptr);
 
-  if (send_tok.length > 0) {
-    output.assign(static_cast<char*>(send_tok.value), send_tok.length);
-    tmp_maj = gss_release_buffer(&tmp_min, &send_tok);
-  }
-
-  if (maj == GSS_S_COMPLETE) {
-    // We do not want forever
-    if (expires == GSS_C_INDEFINITE) {
-      expires = 60;
+    if (send_tok.length > 0) {
+      output.assign(static_cast<char*>(send_tok.value), send_tok.length);
+      tmp_maj = gss_release_buffer(&tmp_min, &send_tok);
     }
-    d_secctx->d_expires = time(nullptr) + expires;
-    d_secctx->d_state = GssSecContext::GssStateComplete;
-    return true;
+
+    if (maj == GSS_S_COMPLETE) {
+      // We do not want forever
+      if (expires == GSS_C_INDEFINITE) {
+        expires = 60;
+      }
+      ctx->d_expires = time(nullptr) + expires;
+      ctx->d_state = GssSecContext::GssStateComplete;
+      return true;
+    }
+    else if (maj != GSS_S_CONTINUE_NEEDED) {
+      processError("gss_accept_sec_context", maj, min);
+    }
   }
-  else if (maj != GSS_S_CONTINUE_NEEDED) {
-    processError("gss_accept_sec_context", maj, min);
-  }
+
   return (maj == GSS_S_CONTINUE_NEEDED);
 };
 
@@ -408,7 +452,10 @@ bool GssContext::sign(const std::string& input, std::string& output)
   recv_tok.length = input.size();
   recv_tok.value = const_cast<void*>(static_cast<const void*>(input.c_str()));
 
-  maj = gss_get_mic(&min, d_secctx->d_ctx, GSS_C_QOP_DEFAULT, &recv_tok, &send_tok);
+  {
+    auto ctx = d_secctx->lock();
+    maj = gss_get_mic(&min, ctx->d_ctx, GSS_C_QOP_DEFAULT, &recv_tok, &send_tok);
+  }
 
   if (send_tok.length > 0) {
     output.assign(static_cast<char*>(send_tok.value), send_tok.length);
@@ -434,7 +481,10 @@ bool GssContext::verify(const std::string& input, const std::string& signature)
   sign_tok.length = signature.size();
   sign_tok.value = const_cast<void*>(static_cast<const void*>(signature.c_str()));
 
-  maj = gss_verify_mic(&min, d_secctx->d_ctx, &recv_tok, &sign_tok, nullptr);
+  {
+    auto ctx = d_secctx->lock();
+    maj = gss_verify_mic(&min, ctx->d_ctx, &recv_tok, &sign_tok, nullptr);
+  }
 
   if (maj != GSS_S_COMPLETE) {
     processError("gss_get_mic", maj, min);
@@ -473,19 +523,22 @@ bool GssContext::getPeerPrincipal(std::string& name)
   gss_buffer_desc value;
   OM_uint32 maj, min;
 
-  if (d_secctx->d_peer_name != GSS_C_NO_NAME) {
-    maj = gss_display_name(&min, d_secctx->d_peer_name, &value, nullptr);
-    if (maj == GSS_S_COMPLETE && value.length > 0) {
-      name.assign(static_cast<char*>(value.value), value.length);
-      maj = gss_release_buffer(&min, &value);
-      return true;
+  {
+    auto ctx = d_secctx->lock();
+    if (ctx->d_peer_name != GSS_C_NO_NAME) {
+      maj = gss_display_name(&min, ctx->d_peer_name, &value, nullptr);
+      if (maj == GSS_S_COMPLETE && value.length > 0) {
+        name.assign(static_cast<char*>(value.value), value.length);
+        maj = gss_release_buffer(&min, &value);
+        return true;
+      }
+      else {
+        return false;
+      }
     }
     else {
       return false;
     }
-  }
-  else {
-    return false;
   }
 }
 

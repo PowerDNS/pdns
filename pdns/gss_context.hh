@@ -28,6 +28,7 @@
 #include "namespaces.hh"
 #include "pdnsexception.hh"
 #include "dns.hh"
+#include "lock.hh"
 #include "logr.hh"
 
 #ifdef ENABLE_GSS_TSIG
@@ -45,7 +46,8 @@ enum GssContextError
   GSS_CONTEXT_NOT_INITIALIZED,
   GSS_CONTEXT_INVALID,
   GSS_CONTEXT_EXPIRED,
-  GSS_CONTEXT_ALREADY_INITIALIZED
+  GSS_CONTEXT_ALREADY_INITIALIZED,
+  GSS_CONTEXT_LIMIT_REACHED,
 };
 
 //! GSS context types
@@ -57,6 +59,7 @@ enum GssContextType
 };
 
 class GssSecContext;
+class GssCredential;
 
 /*! Class for representing GSS names, such as host/host.domain.com@REALM.
  */
@@ -194,11 +197,15 @@ public:
 
   GssContextError getError(); //<! Get error
   const std::vector<std::string> getErrorStrings() { return d_gss_errors; } //<! Get native error texts
+
+  static unsigned int s_maxGssContexts; //<! Maximum number of simultaneous Gss contexts allowed
+
 private:
   void release(); //<! Release context
   void initialize(); //<! Initialize context
 #ifdef ENABLE_GSS_TSIG
   void processError(const string& method, OM_uint32 maj, OM_uint32 min); //<! Process and fill error text vector
+  bool createOrReuseContext(std::shared_ptr<GssCredential> cred);
 #endif
   DNSName d_label; //<! Context name
   std::string d_peerPrincipal; //<! Remote name
@@ -206,7 +213,7 @@ private:
   GssContextError d_error; //<! Context error
   GssContextType d_type; //<! Context type
   std::vector<std::string> d_gss_errors; //<! Native error string(s)
-  std::shared_ptr<GssSecContext> d_secctx; //<! Attached security context
+  std::shared_ptr<LockGuarded<GssSecContext>> d_secctx; //<! Attached security context
 }; // GssContext
 
 bool gss_add_signature(Logr::log_t slog, const DNSName& context, const std::string& message, std::string& mac); //<! Create signature
