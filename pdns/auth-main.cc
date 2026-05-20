@@ -629,10 +629,7 @@ static void qthread(unsigned int num)
 
         numreceived++;
 
-        accountremote = question.d_remote;
-        if (question.d_inner_remote) {
-          accountremote = *question.d_inner_remote;
-        }
+        accountremote = question.getInnerRemote();
 
         if (accountremote.sin4.sin_family == AF_INET) {
           numreceived4++;
