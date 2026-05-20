@@ -11,6 +11,7 @@ The first step is to get a :class:`KeyValueStore` object via one of the followin
 
  * :func:`newCDBKVStore` for a CDB database ;
  * :func:`newLMDBKVStore` for a LMDB one.
+ * :func:`newMMDBKVStore` for a MMDB one.
 
 Then the key used for the lookup can be selected via one of the following functions:
 
@@ -126,3 +127,12 @@ If the value found in the LMDB database for the key '\\8powerdns\\3com\\0' was '
   :param string filename: The path to an existing LMDB database created with ``MDB_NOSUBDIR``
   :param string dbName: The name of the database to use
   :param bool noLock: Whether to open the database with the ``MDB_NOLOCK`` flag. Default is false
+
+.. function:: newMMDBKVStore(mmdb, queryParams) -> KeyValueStore
+
+  .. versionadded:: 2.2.0
+
+  Return a new KeyValueStore object associated to the corresponding MMDB database. The database can be created using :func:`openMMDB`.
+
+  :param MMDB mmdb: The reference to an existing MMDB database created with :func:`openMMDB`.
+  :param str-or-list queryParams: Key or list of keys to fetch from the retrieved object from the MMDB database. Use empty list to retrieve the whole object.
