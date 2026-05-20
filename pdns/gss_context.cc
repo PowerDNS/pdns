@@ -191,7 +191,7 @@ static void doExpire(T& m, time_t now)
 
 static void expire()
 {
-  static time_t s_last_expired;
+  static std::atomic<time_t> s_last_expired;
   time_t now = time(nullptr);
   if (now - s_last_expired < TSIG_GSS_EXPIRE_INTERVAL) {
     return;
