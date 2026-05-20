@@ -2,6 +2,105 @@ Changelogs for 5.0.x
 ====================
 
 .. changelog::
+  :version: 5.0.5
+  :released: 20th of May 2026
+
+  This is release 5.0.5 of the Authoritative Server.
+  It contains bug fixes and security fixes.
+
+  Please review the :doc:`Upgrade Notes <../upgrading>` before upgrading from versions < 4.9.x.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17443
+
+    Fix PowerDNS Security Advisory 2026-06 for PowerDNS Authoritative Server: Multiple Issues
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17296
+    :tickets: 17284
+
+    use less inefficient code in web server
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17294
+    :tickets: 17240
+
+    harden xfr*BitInt writers
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17259
+    :tickets: 16636
+
+    perform axfr immediately when creating an autosecondary domain
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17261
+    :tickets: 16671
+
+    Actually install binaries when building with meson
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17263
+    :tickets: 16731
+
+    web: stricter control of statistics rings changes
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17264
+    :tickets: 16831
+
+    stricter handing of the Lua DNS update policy
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17266
+    :tickets: 17000
+
+    correctly delete ENT records from the API
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17268
+    :tickets: 17126
+
+    lua: one more bad case of createForward
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17270
+    :tickets: 17130
+
+    minor pdns_control bugfixes
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17273
+    :tickets: 17149
+
+    webserver: correctly split the basic authorization cookie
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17275
+    :tickets: 17152
+
+    fixes to AXFR in Bind backend
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17277
+    :tickets: 17155
+
+    dnsupdate handling buglet
+
+.. changelog::
   :version: 5.0.4
   :released: 22th of April 2026
 
