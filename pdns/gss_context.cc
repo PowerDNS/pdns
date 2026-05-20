@@ -55,6 +55,8 @@ GssContextError GssContext::getError() { return GSS_CONTEXT_UNSUPPORTED; }
 
 #define TSIG_GSS_EXPIRE_INTERVAL 60
 
+unsigned int GssContext::s_maxGssContexts{1000};
+
 class GssCredential : boost::noncopyable
 {
 public:
@@ -294,6 +296,11 @@ bool GssContext::createOrReuseContext(std::shared_ptr<GssCredential> cred)
   else {
     // make context
     auto lock = s_gss_sec_context.lock();
+    if (lock->size() == s_maxGssContexts) {
+      d_error = GSS_CONTEXT_LIMIT_REACHED;
+      d_gss_errors.push_back("Limit of concurrent GSS contexts reached");
+      return false;
+    }
     d_secctx = std::make_shared<LockGuarded<GssSecContext>>(cred);
     {
       auto ctx = d_secctx->lock();

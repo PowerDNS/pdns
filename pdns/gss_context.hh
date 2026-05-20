@@ -46,7 +46,8 @@ enum GssContextError
   GSS_CONTEXT_NOT_INITIALIZED,
   GSS_CONTEXT_INVALID,
   GSS_CONTEXT_EXPIRED,
-  GSS_CONTEXT_ALREADY_INITIALIZED
+  GSS_CONTEXT_ALREADY_INITIALIZED,
+  GSS_CONTEXT_LIMIT_REACHED,
 };
 
 //! GSS context types
@@ -196,6 +197,9 @@ public:
 
   GssContextError getError(); //<! Get error
   const std::vector<std::string> getErrorStrings() { return d_gss_errors; } //<! Get native error texts
+
+  static unsigned int s_maxGssContexts; //<! Maximum number of simultaneous Gss contexts allowed
+
 private:
   void release(); //<! Release context
   void initialize(); //<! Initialize context
