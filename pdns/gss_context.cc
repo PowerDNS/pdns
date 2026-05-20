@@ -281,6 +281,30 @@ bool GssContext::valid()
   return ctx->d_state == GssSecContext::GssStateComplete;
 }
 
+bool GssContext::createOrReuseContext(std::shared_ptr<GssCredential> cred)
+{
+  // see if we can find a context in non-completed state
+  if (d_secctx) {
+    auto ctx = d_secctx->lock();
+    if (ctx->d_state != GssSecContext::GssStateNegotiate) {
+      d_error = GSS_CONTEXT_INVALID;
+      return false;
+    }
+  }
+  else {
+    // make context
+    auto lock = s_gss_sec_context.lock();
+    d_secctx = std::make_shared<LockGuarded<GssSecContext>>(cred);
+    {
+      auto ctx = d_secctx->lock();
+      ctx->d_state = GssSecContext::GssStateNegotiate;
+      ctx->d_type = d_type;
+    }
+    (*lock)[d_label] = d_secctx;
+  }
+  return true;
+}
+
 bool GssContext::init(const std::string& input, std::string& output)
 {
   expire();
@@ -307,24 +331,8 @@ bool GssContext::init(const std::string& input, std::string& output)
     cred = it->second;
   }
 
-  // see if we can find a context in non-completed state
-  if (d_secctx) {
-    auto ctx = d_secctx->lock();
-    if (ctx->d_state != GssSecContext::GssStateNegotiate) {
-      d_error = GSS_CONTEXT_INVALID;
-      return false;
-    }
-  }
-  else {
-    // make context
-    auto lock = s_gss_sec_context.lock();
-    d_secctx = std::make_shared<LockGuarded<GssSecContext>>(cred);
-    {
-      auto ctx = d_secctx->lock();
-      ctx->d_state = GssSecContext::GssStateNegotiate;
-      ctx->d_type = d_type;
-    }
-    (*lock)[d_label] = d_secctx;
+  if (!createOrReuseContext(cred)) {
+    return false;
   }
 
   recv_tok.length = input.size();
@@ -393,24 +401,8 @@ bool GssContext::accept(const std::string& input, std::string& output)
     cred = it->second;
   }
 
-  // see if we can find a context in non-completed state
-  if (d_secctx) {
-    auto ctx = d_secctx->lock();
-    if (ctx->d_state != GssSecContext::GssStateNegotiate) {
-      d_error = GSS_CONTEXT_INVALID;
-      return false;
-    }
-  }
-  else {
-    // make context
-    auto lock = s_gss_sec_context.lock();
-    d_secctx = std::make_shared<LockGuarded<GssSecContext>>(cred);
-    {
-      auto ctx = d_secctx->lock();
-      ctx->d_state = GssSecContext::GssStateNegotiate;
-      ctx->d_type = d_type;
-    }
-    (*lock)[d_label] = d_secctx;
+  if (!createOrReuseContext(cred)) {
+    return false;
   }
 
   recv_tok.length = input.size();

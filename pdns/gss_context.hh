@@ -58,6 +58,7 @@ enum GssContextType
 };
 
 class GssSecContext;
+class GssCredential;
 
 /*! Class for representing GSS names, such as host/host.domain.com@REALM.
  */
@@ -200,6 +201,7 @@ private:
   void initialize(); //<! Initialize context
 #ifdef ENABLE_GSS_TSIG
   void processError(const string& method, OM_uint32 maj, OM_uint32 min); //<! Process and fill error text vector
+  bool createOrReuseContext(std::shared_ptr<GssCredential> cred);
 #endif
   DNSName d_label; //<! Context name
   std::string d_peerPrincipal; //<! Remote name
