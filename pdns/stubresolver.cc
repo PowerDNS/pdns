@@ -174,22 +174,30 @@ int stubDoResolve(Logr::log_t slog, const DNSName& qname, uint16_t qtype, vector
     catch (...) {
       continue;
     }
-    MOADNSParser mdp(false, reply);
-    if (mdp.d_header.rcode == RCode::ServFail) {
+
+    try {
+      MOADNSParser mdp(false, reply);
+      if (mdp.d_header.rcode == RCode::ServFail) {
+        continue;
+      }
+
+      for (const auto& answer : mdp.d_answers) {
+        if (answer.d_place == 1 && answer.d_type == qtype) {
+          DNSZoneRecord zrr;
+          zrr.dr = answer;
+          zrr.auth = true;
+          ret.push_back(std::move(zrr));
+        }
+      }
+      SLOG(g_log << Logger::Debug << logPrefix << "Question for '" << queryNameType << "' got answered by " << dest.toString() << endl,
+           slog->info(Logr::Debug, "stub-resolver: got an answer", "query", Logging::Loggable(qname), "type", Logging::Loggable(QType(qtype)), "resolver", Logging::Loggable(dest)));
+      return mdp.d_header.rcode;
+    }
+    catch (const MOADNSException& exc) {
+      SLOG(g_log << Logger::Debug << logPrefix << "Question for '" << queryNameType << "' got ill-formed answer from " << dest.toString() << ": " << exc.what() << endl,
+           slog->error(Logr::Debug, exc.what(), "stub-resolver: got an ill-formed answer", "query", Logging::Loggable(qname), "type", Logging::Loggable(QType(qtype)), "resolver", Logging::Loggable(dest)));
       continue;
     }
-
-    for (const auto& answer : mdp.d_answers) {
-      if (answer.d_place == 1 && answer.d_type == qtype) {
-        DNSZoneRecord zrr;
-        zrr.dr = answer;
-        zrr.auth = true;
-        ret.push_back(std::move(zrr));
-      }
-    }
-    SLOG(g_log << Logger::Debug << logPrefix << "Question for '" << queryNameType << "' got answered by " << dest.toString() << endl,
-         slog->info(Logr::Debug, "stub-resolver: got an answer", "query", Logging::Loggable(qname), "type", Logging::Loggable(QType(qtype)), "resolver", Logging::Loggable(dest)));
-    return mdp.d_header.rcode;
   }
   return RCode::ServFail;
 }
