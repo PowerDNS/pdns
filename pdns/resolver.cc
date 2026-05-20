@@ -267,42 +267,52 @@ bool Resolver::tryGetSOASerial(DNSName *domain, ComboAddress* remote, uint32_t *
     throw ResolverException("recvfrom error waiting for answer: "+stringerror());
   }
 
-  MOADNSParser mdp(false, (char*)buf, err);
-  *id=mdp.d_header.id;
-  *domain = mdp.d_qname;
+  bool gotSOA{false};
+  try {
+    MOADNSParser mdp(false, (char*)buf, err);
+    *id=mdp.d_header.id;
+    *domain = mdp.d_qname;
 
-  if(domain->empty())
-    throw ResolverException("SOA query to '" + remote->toLogString() + "' produced response without domain name (RCode: " + RCode::to_s(mdp.d_header.rcode) + ")");
-
-  if(mdp.d_answers.empty())
-    throw ResolverException("Query to '" + remote->toLogString() + "' for SOA of '" + domain->toLogString() + "' produced no results (RCode: " + RCode::to_s(mdp.d_header.rcode) + ")");
-
-  if(mdp.d_qtype != QType::SOA)
-    throw ResolverException("Query to '" + remote->toLogString() + "' for SOA of '" + domain->toLogString() + "' returned wrong record type");
-
-  if(mdp.d_header.rcode != 0)
-    throw ResolverException("Query to '" + remote->toLogString() + "' for SOA of '" + domain->toLogString() + "' returned Rcode " + RCode::to_s(mdp.d_header.rcode));
-
-  *theirInception = *theirExpire = 0;
-  bool gotSOA=false;
-  for(const MOADNSParser::answers_t::value_type& drc :  mdp.d_answers) {
-    if(drc.d_type == QType::SOA && drc.d_name == *domain) {
-      auto src = getRR<SOARecordContent>(drc);
-      if (src) {
-        *theirSerial = src->d_st.serial;
-        gotSOA = true;
-      }
+    if(domain->empty()) {
+      throw ResolverException("SOA query to '" + remote->toLogString() + "' produced response without domain name (RCode: " + RCode::to_s(mdp.d_header.rcode) + ")");
     }
-    if(drc.d_type == QType::RRSIG && drc.d_name == *domain) {
-      auto rrc = getRR<RRSIGRecordContent>(drc);
-      if(rrc && rrc->d_type == QType::SOA) {
-        *theirInception= std::max(*theirInception, rrc->d_siginception);
-        *theirExpire = std::max(*theirExpire, rrc->d_sigexpire);
+
+    if(mdp.d_answers.empty()) {
+      throw ResolverException("Query to '" + remote->toLogString() + "' for SOA of '" + domain->toLogString() + "' produced no results (RCode: " + RCode::to_s(mdp.d_header.rcode) + ")");
+    }
+
+    if(mdp.d_qtype != QType::SOA) {
+      throw ResolverException("Query to '" + remote->toLogString() + "' for SOA of '" + domain->toLogString() + "' returned wrong record type");
+    }
+
+    if(mdp.d_header.rcode != 0) {
+      throw ResolverException("Query to '" + remote->toLogString() + "' for SOA of '" + domain->toLogString() + "' returned Rcode " + RCode::to_s(mdp.d_header.rcode));
+    }
+
+    *theirInception = *theirExpire = 0;
+    for(const MOADNSParser::answers_t::value_type& drc :  mdp.d_answers) {
+      if(drc.d_type == QType::SOA && drc.d_name == *domain) {
+        auto src = getRR<SOARecordContent>(drc);
+        if (src) {
+          *theirSerial = src->d_st.serial;
+          gotSOA = true;
+        }
+      }
+      if(drc.d_type == QType::RRSIG && drc.d_name == *domain) {
+        auto rrc = getRR<RRSIGRecordContent>(drc);
+        if(rrc && rrc->d_type == QType::SOA) {
+          *theirInception= std::max(*theirInception, rrc->d_siginception);
+          *theirExpire = std::max(*theirExpire, rrc->d_sigexpire);
+        }
       }
     }
   }
-  if(!gotSOA)
+  catch (const MOADNSException& exc) {
+    throw ResolverException("SOA Query to '" + remote->toLogString() + "' produced ill-formed response: " + exc.what());
+  }
+  if(!gotSOA) {
     throw ResolverException("Query to '" + remote->toLogString() + "' for SOA of '" + domain->toLogString() + "' did not return a SOA");
+  }
   return true;
 }
 
@@ -336,6 +346,9 @@ int Resolver::resolve(const ComboAddress& to, const DNSName &domain, int type, R
   }
   catch(ResolverException &re) {
     throw ResolverException(re.reason+" from "+to.toLogString());
+  }
+  catch (const MOADNSException& exc) {
+    throw ResolverException(std::string(exc.what()) + " from " + to.toLogString());
   }
 }
 

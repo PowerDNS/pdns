@@ -331,6 +331,35 @@ static void stripDomainSuffix(string* qname, const ZoneName& zonename)
   }
 }
 
+// Perform adequate escaping of characters which have special meaning in
+// Bind zone files.
+// Note that the input is supposed to be a DNSName::toString() - or any of
+// its variants - so we assume \ and . have been correctly escaped by
+// DNSName::appendEscapedLabel already.
+static const std::string bindEscape(const std::string& name)
+{
+  std::string ret;
+  std::array<char, 5> ebuf{};
+
+  for (char letter : name) {
+    switch (letter) {
+    case '$':
+    case '@':
+    case '"':
+    case ';':
+    case '(':
+    case ')':
+      snprintf(ebuf.data(), ebuf.size(), "\\%03u", static_cast<unsigned char>(letter));
+      ret += ebuf.data();
+      break;
+    default:
+      ret += letter;
+      break;
+    }
+  }
+  return ret;
+}
+
 bool Bind2Backend::feedRecord(const DNSResourceRecord& rr, const DNSName& /* ordername */, bool /* ordernameIsNSEC3 */)
 {
   if (d_transaction_id == UnknownDomainID) {
@@ -339,7 +368,7 @@ bool Bind2Backend::feedRecord(const DNSResourceRecord& rr, const DNSName& /* ord
 
   string qname;
   if (d_transaction_qname.empty()) {
-    qname = rr.qname.toString();
+    qname = bindEscape(rr.qname.toString());
   }
   else if (rr.qname.isPartOf(d_transaction_qname)) {
     if (rr.qname == d_transaction_qname.operator const DNSName&()) {
@@ -347,7 +376,7 @@ bool Bind2Backend::feedRecord(const DNSResourceRecord& rr, const DNSName& /* ord
     }
     else {
       DNSName relName = rr.qname.makeRelative(d_transaction_qname);
-      qname = relName.toStringNoDot();
+      qname = bindEscape(relName.toStringNoDot());
     }
   }
   else {
