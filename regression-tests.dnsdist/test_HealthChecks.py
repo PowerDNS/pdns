@@ -580,6 +580,13 @@ class TestHealthCheckLatency(HealthCheckUpdateParams):
         # introduce 500 ms of latency
         self.setDelay(0.5)
 
+        # consume any value received in the meantime (it does happen on GH actions runners)
+        try:
+            while self.wait1(False):
+                pass
+        except queue.Empty:
+            pass
+
         self.wait1(True)
 
         # should have no failures, still up
