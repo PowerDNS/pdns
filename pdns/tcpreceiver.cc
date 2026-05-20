@@ -408,7 +408,7 @@ void TCPNameserver::doConnection(int fd, Logr::log_t slog)
         if (packet->couldBeCached()) {
           std::string view{};
           if (g_views) {
-            Netmask netmask(packet->d_remote);
+            Netmask netmask(packet->getInnerRemote());
             view = g_zoneCache.getViewFromNetwork(&netmask);
           }
           if (PC.get(*packet, *cached, view)) { // short circuit - does the PacketCache recognize this question?
