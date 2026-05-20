@@ -162,7 +162,7 @@ void CatalogInfo::toDNSZoneRecords(const ZoneName& zone, vector<DNSZoneRecord>& 
   for (const auto& group : d_group) {
     dzr.dr.d_name = g_groupdnsname + prefix;
     dzr.dr.d_type = QType::TXT;
-    dzr.dr.setContent(std::make_shared<TXTRecordContent>("\"" + group + "\""));
+    dzr.dr.setContent(std::make_shared<TXTRecordContent>("\"" + txtEscape(group) + "\""));
     dzrs.emplace_back(dzr);
   }
 }
