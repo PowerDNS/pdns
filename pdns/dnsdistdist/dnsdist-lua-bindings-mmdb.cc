@@ -39,7 +39,7 @@ void setupLuaBindingsMMDB([[maybe_unused]] LuaContext& luaCtx)
     return mmdb;
   });
 
-  luaCtx.registerFunction<std::optional<LuaAny> (std::shared_ptr<MMDB>::*)(const LuaTypeOrArrayOf<std::string>&, const ComboAddress&)>("query", [](std::shared_ptr<MMDB>& mmdb, const LuaTypeOrArrayOf<std::string>& queryParams, const ComboAddress& ip) {
+  luaCtx.registerFunction<std::optional<LuaAny> (std::shared_ptr<MMDB>::*)(const LuaTypeOrArrayOf<std::string>&, const boost::variant<ComboAddress, std::string>)>("query", [](std::shared_ptr<MMDB>& mmdb, const LuaTypeOrArrayOf<std::string>& queryParams, const boost::variant<ComboAddress, std::string>& ip) {
     std::optional<LuaAny> result{std::nullopt};
     if (!mmdb) {
       return result;
@@ -47,20 +47,37 @@ void setupLuaBindingsMMDB([[maybe_unused]] LuaContext& luaCtx)
 
     LuaAny value{false};
 
-    if (mmdb->query(value, MMDB::convertParams(queryParams), ip)) {
+    ComboAddress queryIp;
+    if (const auto str = boost::get<std::string>(&ip)) {
+      queryIp = ComboAddress(*str);
+    }
+    else if (const auto addr = boost::get<ComboAddress>(&ip)) {
+      queryIp = *addr;
+    }
+    else {
+      return result;
+    }
+
+    if (mmdb->query(value, MMDB::convertParams(queryParams), queryIp)) {
       result = value;
     }
 
     return result;
   });
 
-  luaCtx.registerFunction<bool (std::shared_ptr<MMDB>::*)(const ComboAddress&)>("exists", [](std::shared_ptr<MMDB>& mmdb, const ComboAddress& ip) {
+  luaCtx.registerFunction<bool (std::shared_ptr<MMDB>::*)(const boost::variant<ComboAddress, std::string>)>("exists", [](std::shared_ptr<MMDB>& mmdb, const boost::variant<ComboAddress, std::string>& ip) {
     bool result = false;
     if (!mmdb) {
       return result;
     }
 
-    return mmdb->exists(ip);
+    if (const auto str = boost::get<std::string>(&ip)) {
+      return mmdb->exists(ComboAddress(*str));
+    }
+    else if (const auto addr = boost::get<ComboAddress>(&ip)) {
+      return mmdb->exists(*addr);
+    }
+    return false;
   });
 #endif
 }
