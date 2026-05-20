@@ -28,6 +28,7 @@
 #include "namespaces.hh"
 #include "pdnsexception.hh"
 #include "dns.hh"
+#include "lock.hh"
 #include "logr.hh"
 
 #ifdef ENABLE_GSS_TSIG
@@ -206,7 +207,7 @@ private:
   GssContextError d_error; //<! Context error
   GssContextType d_type; //<! Context type
   std::vector<std::string> d_gss_errors; //<! Native error string(s)
-  std::shared_ptr<GssSecContext> d_secctx; //<! Attached security context
+  std::shared_ptr<LockGuarded<GssSecContext>> d_secctx; //<! Attached security context
 }; // GssContext
 
 bool gss_add_signature(Logr::log_t slog, const DNSName& context, const std::string& message, std::string& mac); //<! Create signature
