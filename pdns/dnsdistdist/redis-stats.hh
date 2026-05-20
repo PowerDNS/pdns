@@ -26,9 +26,9 @@
 
 struct RedisStats
 {
-  RedisStats() { };
+  RedisStats() {};
   explicit RedisStats(std::string labels) :
-    d_labels(labels) { };
+    d_labels(labels) {};
 
   std::string d_labels{};
 
