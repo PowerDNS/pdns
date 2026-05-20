@@ -258,3 +258,69 @@ allow-axfr-ips=192.0.2.53
                 res = dns.message.from_wire(data)
 
             self.assertRcodeEqual(res, expectedrcode)
+
+class TestProxyProtocolViews(AuthTest):
+    _config_template = """
+launch={backend}
+proxy-protocol-from=127.0.0.1
+"""
+
+    @classmethod
+    def setUpClass(cls):
+        super(TestProxyProtocolViews, cls).setUpClass()
+
+        if (cls._backend == "lmdb"):
+            os.system("$PDNSUTIL --config-dir=configs/auth zone create views.test")
+            os.system("$PDNSUTIL --config-dir=configs/auth rrset replace views.test views.test SOA 'no.where no.where 1 10800 3600 604800 3600'")
+            os.system("$PDNSUTIL --config-dir=configs/auth zone create views.test..squint")
+            os.system("$PDNSUTIL --config-dir=configs/auth rrset replace views.test..squint views.test SOA 'no.where no.where 1 10800 3600 604800 3600'")
+            os.system("$PDNSUTIL --config-dir=configs/auth rrset add views.test..squint a.views.test A 1.2.3.4")
+            os.system("$PDNSUTIL --config-dir=configs/auth network set 192.168.0.0/16 squinted")
+            os.system("$PDNSUTIL --config-dir=configs/auth view add-zone squinted views.test..squint")
+            os.system("$PDNSCONTROL --socket-dir=configs/auth rediscover")
+
+    def testViews(self):
+        """
+        Check that views correctly operate on the PROXY header inner address
+        """
+
+        if (self._backend == "lmdb"):
+            query = dns.message.make_query("a.views.test", "A")
+
+            queryPayload = query.to_wire()
+
+            for task in (
+                ("192.0.2.1", dns.rcode.NXDOMAIN),
+                ("192.168.2.53", dns.rcode.NOERROR),
+            ):
+                ip, expectedrcode = task
+
+                ppPayload = ProxyProtocol.getPayload(False, True, False, ip, "10.1.2.3", 12345, 53, [])
+
+                # TCP
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.settimeout(2.0)
+                sock.connect(("127.0.0.1", self._authPort))
+
+                try:
+                    sock.send(ppPayload)
+                    sock.send(struct.pack("!H", len(queryPayload)))
+                    sock.send(queryPayload)
+                    data = sock.recv(2)
+                    if data:
+                        (datalen,) = struct.unpack("!H", data)
+                        data = sock.recv(datalen)
+                except socket.timeout as e:
+                    print("Timeout: %s" % (str(e)))
+                    data = None
+                except socket.error as e:
+                    print("Network error: %s" % (str(e)))
+                    data = None
+                finally:
+                    sock.close()
+
+                res = None
+                if data:
+                    res = dns.message.from_wire(data)
+
+                self.assertRcodeEqual(res, expectedrcode)
