@@ -92,6 +92,7 @@ void SNMPAgent::handleSNMPQueryEvent(int fd)
   NETSNMP_LARGE_FD_ZERO(&fdset);
   NETSNMP_LARGE_FD_SET(fd, &fdset);
   snmp_read2(&fdset);
+  netsnmp_large_fd_set_cleanup(&fdset);
 }
 
 void SNMPAgent::handleTrapsCB(int /* fd */, FDMultiplexer::funcparam_t& var)
@@ -173,6 +174,7 @@ void SNMPAgent::worker()
         }
       }
     }
+    netsnmp_large_fd_set_cleanup(&fdset);
   }
 #endif /* HAVE_NET_SNMP */
 }
