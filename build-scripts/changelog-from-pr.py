@@ -20,25 +20,22 @@ ticket_regex = re.compile(r"(?:[Cc]loses|[Ff]ixes)? #(\d+)")
 
 out = ""
 httpAuth = None
+session = requests.Session()
 if arguments.username:
     password = getpass.getpass("GitHub password for '" + arguments.username + "': ")
-    httpAuth = requests.auth.HTTPBasicAuth(arguments.username, password)
+    session.auth(arguments.username, password)
 
 # https://github.com/settings/tokens
 # A token with `repo` and `user` access will definitely work.
 access_token = arguments.access_token
+if access_token:
+    session.headers.update({"Authorization": "token " + access_token})
 
 for pr in sorted(arguments.pullrequest):
     if pr[0] == "#":
         pr = pr[1:]
     try:
-        if access_token:
-            res = requests.get(
-                "https://api.github.com/repos/PowerDNS/pdns/pulls/{}".format(pr),
-                headers={"Authorization": "token " + access_token},
-            )
-        else:
-            res = requests.get("https://api.github.com/repos/PowerDNS/pdns/pulls/{}".format(pr), auth=httpAuth)
+        res = session.get("https://api.github.com/repos/PowerDNS/pdns/pulls/{}".format(pr))
         pr_info = res.json()
     except (requests.exceptions.HTTPError, ValueError) as e:
         print(e)
@@ -69,12 +66,7 @@ for pr in sorted(arguments.pullrequest):
         "pieterlexis",
     ]:
         try:
-            if access_token:
-                user_info = requests.get(
-                    pr_info["user"]["url"], headers={"Authorization": "token " + access_token}
-                ).json()
-            else:
-                user_info = requests.get(pr_info["user"]["url"], auth=httpAuth).json()
+            user_info = session.get(pr_info["user"]["url"]).json()
         except (requests.exceptions.HTTPError, ValueError) as e:
             print(e)
             sys.exit(1)
