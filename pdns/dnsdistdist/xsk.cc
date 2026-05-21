@@ -878,8 +878,10 @@ void XskWorker::notify(int desc)
 {
   uint64_t value = 1;
   ssize_t res = 0;
-  while ((res = write(desc, &value, sizeof(value))) == EINTR) {
-  }
+  do {
+    res = write(desc, &value, sizeof(value));
+  } while (res == -1 && errno == EINTR);
+
   if (res != sizeof(value)) {
     throw runtime_error("Unable Wake Up XskSocket Failed");
   }
@@ -1010,7 +1012,7 @@ void XskPacket::rewrite() noexcept
 {
   size_t position{0};
   /* Main loop: 32 bits at a time */
-  for (position = 0; position < len; position += sizeof(uint32_t)) {
+  for (position = 0; position + sizeof(uint32_t) <= len; position += sizeof(uint32_t)) {
     uint32_t value{};
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     memcpy(&value, static_cast<const uint8_t*>(ptr) + position, sizeof(value));
