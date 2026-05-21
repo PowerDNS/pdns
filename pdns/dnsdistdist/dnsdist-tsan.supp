@@ -6,11 +6,12 @@ race:handleStats
 race:ClientState::updateTCPMetrics
 race:DownstreamState::updateTCPMetrics
 race:DownstreamState::updateTCPLatency
-# There is a race when we update the status of a backend,
+# There is a race when we update the latency of a backend,
 # but eventual consistency is fine there
 race:DownstreamState::setDown
 race:DownstreamState::setUp
 race:DownstreamState::setAuto
+race:DownstreamState::setUpStatus
 # Same thing for whether a backend has been stopped,
 # eventual consistency is fine
 race:DownstreamState::stop
