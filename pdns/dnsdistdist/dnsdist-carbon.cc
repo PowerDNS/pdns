@@ -19,7 +19,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#include "dnsdist-lua-types.hh"
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -31,6 +30,7 @@
 #include "dnsdist-configuration.hh"
 #include "dnsdist-frontend.hh"
 #include "dnsdist-metrics.hh"
+#include "dnsdist-lua-types.hh"
 
 #ifndef DISABLE_CARBON
 #include "dolog.hh"

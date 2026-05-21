@@ -47,6 +47,7 @@
 #include "dnsdist-xsk.hh"
 #include "fstrm_logger.hh"
 #include "iputils.hh"
+#include "mmdb.hh"
 #include "remote_logger.hh"
 #include "remote_logger_pool.hh"
 #include "xsk.hh"

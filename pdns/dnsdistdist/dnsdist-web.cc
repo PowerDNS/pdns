@@ -27,7 +27,6 @@
 #include <thread>
 #include <variant>
 
-#include "dnsdist-lua-types.hh"
 #include "ext/json11/json11.hpp"
 #include <yahttp/yahttp.hpp>
 
@@ -41,6 +40,7 @@
 #include "dnsdist-frontend.hh"
 #include "dnsdist-healthchecks.hh"
 #include "dnsdist-lua.hh"
+#include "dnsdist-lua-types.hh"
 #include "dnsdist-metrics.hh"
 #include "dnsdist-prometheus.hh"
 #include "dnsdist-rings.hh"
