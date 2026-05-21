@@ -1085,6 +1085,10 @@ constexpr size_t serialize_offset_ordername = serialize_offset_disabled + sizeof
 template <>
 void serializeToBuffer(std::string& buffer, const LMDBBackend::LMDBResourceRecord& value)
 {
+  if (value.content.length() > std::numeric_limits<uint16_t>::max()) {
+    throw PDNSException("DNS record is too large (" + std::to_string(value.content.length()) + "), unable to serialize in LMDB");
+  }
+
   // Data size of the resource record.
   uint16_t len = value.content.length();
 
