@@ -163,6 +163,11 @@ void IncomingConcurrentTCPConnectionsManager::cleanup(time_t now)
     auto clients = shard.lock();
     auto& index = clients->get<TimeTag>();
     for (auto entry = index.begin(); entry != index.end();) {
+      if (entry->d_concurrentConnections > 0) {
+        /* we need to keep this around as we still have open connections */
+        ++entry;
+        continue;
+      }
       if (entry->d_lastSeen >= cutOff) {
         /* this index is ordered on timestamps,
            so the first valid entry we see means we are done */
@@ -180,6 +185,7 @@ void IncomingConcurrentTCPConnectionsManager::clear()
     auto clients = shard.lock();
     clients->clear();
   }
+  s_nextCleanup.store(0);
 }
 
 size_t IncomingConcurrentTCPConnectionsManager::getNumberOfEntries()
