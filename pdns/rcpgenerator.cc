@@ -327,7 +327,7 @@ void RecordTextReader::xfrBlobNoSpaces(string& val, int len)
     throw RecordTextException("Record length "+std::to_string(val.size()) + " does not match expected length '"+std::to_string(len));
 }
 
-void RecordTextReader::xfrBlob(string& val, int)
+void RecordTextReader::xfrBlob(string& val, int len)
 {
   skipSpaces();
   auto pos = d_pos;
@@ -342,6 +342,10 @@ void RecordTextReader::xfrBlob(string& val, int)
   boost::erase_all(tmp," ");
   val.clear();
   B64Decode(tmp, val);
+
+  if (len>-1 && val.size() != static_cast<size_t>(len)) {
+    throw RecordTextException("Record length "+std::to_string(val.size()) + " does not match expected length '"+std::to_string(len));
+  }
 }
 
 void RecordTextReader::xfrRFC1035CharString(string &val) {
