@@ -610,6 +610,10 @@ void PacketReader::xfrBlob(string& blob, int length)
     if (length < 0) {
       throw std::out_of_range("xfrBlob out of range (negative length)");
     }
+    auto available = (d_startrecordpos + d_recordlen) - d_pos;
+    if (available < length) {
+      throw std::out_of_range("xfrBlob out of range (excessive length)");
+    }
 
     blob.assign(&d_content.at(d_pos), &d_content.at(d_pos + length - 1 ) + 1 );
 
