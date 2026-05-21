@@ -2,6 +2,142 @@ Changelog
 =========
 
 .. changelog::
+  :version: 2.0.6
+  :released: 21st of May 2026
+
+ .. change::
+    :tags: Bug Fixes
+    :pullreq: 17336
+
+    Fix invalid TCP rate limiting computation
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17338
+
+    Bail out when a ``NULL`` pointer is passed to ``dnsdist_ffi_dnsquestion_get_proxy_protocol_values``
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17340
+
+    Fix ``BPFFilter::addRangeRule``
+
+  .. change::
+    :tags: Bug Fixes, Webserver
+    :pullreq: 17343
+
+    Maintain a "current size of received body" counter.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 17345
+
+    Fix clang-tidy warnings
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 17346
+
+    Also apply UDP socket buffer sizes to backend sockets
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 17349
+
+    Make code boost-1.91 compatible
+
+  .. change::
+    :tags: Bug Fixes, YAML
+    :pullreq: 17404
+
+    Fix XSK configuration via YAML
+
+  .. change::
+    :tags: Bug Fixes, DNS over TLS, DNS over HTTPS
+    :pullreq: 17407
+
+   Fix outgoing TLS session cache cleanup
+
+  .. change::
+    :tags: Bug Fixes, Metrics
+    :pullreq: 17409
+
+    Fix the dynamic block top suffixes counters computation
+
+  .. change::
+    :tags: Bug Fixes, Performance
+    :pullreq: 17411
+
+    Compute a less inaccurate number of DNS records to pass to ``reserve()``
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17412
+
+    Fix DownstreamState::setHealthCheckParams
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17415
+
+    Fix a data race on concurrent CDB KVS lookups
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17416
+
+    Fix a few issues in our AF_XDP/XSK code
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17419
+
+    Fixes several eBPF issues
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17420
+
+    Better handling of exceptions
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17423
+
+    Fix two small EDNS addition related bugs
+
+  .. change::
+    :tags: Bug Fixes, Metrics
+    :pullreq: 17425
+
+    snmp-agent: Fix a memory leak
+
+  .. change::
+    :tags: Bug Fixes, DNS over QUIC
+    :pullreq: 17427
+
+    Check the DoQ query size against the received size
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17429
+
+    More minor fixes
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17432
+
+    Keep concurrent connection entries for live connections
+
+  .. change::
+    :tags: Bug Fixes, YAML
+    :pullreq: 17434
+
+    Ignore invalid backend weight coming from YAML
+
+.. changelog::
   :version: 2.0.5
   :released: 23rd of April 2026
 
