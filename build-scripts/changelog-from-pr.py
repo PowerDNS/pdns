@@ -6,14 +6,16 @@ import argparse
 import re
 import getpass
 
+
 def isIssue(session, number):
     try:
         res = session.get(f"https://api.github.com/repos/PowerDNS/pdns/issues/{number}")
         issue_info = res.json()
         # GitHub's REST API considers every pull request an issue, but not every issue is a pull request. For this reason, "Issues" endpoints may return both issues and pull requests in the response. You can identify pull requests by the pull_request key.
-        return not 'pull_request' in issue_info
+        return not "pull_request" in issue_info
     except (requests.exceptions.HTTPError, ValueError):
         return False
+
 
 argp = argparse.ArgumentParser()
 argp.add_argument("--oneline", action="store_true", help="Make one-lined changelog entries (for 4.0 and older)")
