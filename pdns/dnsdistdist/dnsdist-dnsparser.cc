@@ -32,22 +32,28 @@ DNSPacketOverlay::DNSPacketOverlay(const std::string_view& packet)
   }
 
   memcpy(&d_header, packet.data(), sizeof(dnsheader));
-  uint64_t numRecords = ntohs(d_header.ancount) + ntohs(d_header.nscount) + ntohs(d_header.arcount);
-  d_records.reserve(numRecords);
+  uint64_t supposedRecordCount = ntohs(d_header.ancount) + ntohs(d_header.nscount) + ntohs(d_header.arcount);
+  // No need to reserve more memory for more records than the request can
+  // contain. We could try to be smarter and actually count the records
+  // by doing getDnsrecordheader and skip the payload in a loop, but all
+  // we really want here is to avoid reserving too much memory in case of
+  // maliciously high record counts.
+  auto reserveRecordCount = std::min(1 + ((packet.size() - sizeof(dnsheader)) / sizeof(dnsrecordheader)), static_cast<size_t>(supposedRecordCount));
+  d_records.reserve(reserveRecordCount);
 
   try {
     PacketReader reader(std::string_view(reinterpret_cast<const char*>(packet.data()), packet.size()));
 
-    for (uint16_t n = 0; n < ntohs(d_header.qdcount); ++n) {
+    for (uint16_t idx = 0; idx < ntohs(d_header.qdcount); ++idx) {
       reader.xfrName(d_qname);
       reader.xfrType(d_qtype);
       reader.xfrType(d_qclass);
     }
 
-    for (uint64_t n = 0; n < numRecords; ++n) {
+    for (uint64_t idx = 0; idx < supposedRecordCount; ++idx) {
       Record rec;
       reader.xfrName(rec.d_name);
-      rec.d_place = n < ntohs(d_header.ancount) ? DNSResourceRecord::ANSWER : (n < (ntohs(d_header.ancount) + ntohs(d_header.nscount)) ? DNSResourceRecord::AUTHORITY : DNSResourceRecord::ADDITIONAL);
+      rec.d_place = idx < ntohs(d_header.ancount) ? DNSResourceRecord::ANSWER : (idx < (ntohs(d_header.ancount) + ntohs(d_header.nscount)) ? DNSResourceRecord::AUTHORITY : DNSResourceRecord::ADDITIONAL);
       reader.xfrType(rec.d_type);
       reader.xfrType(rec.d_class);
       reader.xfr32BitInt(rec.d_ttl);
