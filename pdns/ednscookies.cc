@@ -74,6 +74,16 @@ void EDNSCookiesOpt::getEDNSCookiesOptFromString(const char* option, unsigned in
   }
 }
 
+static bool cookieTSIsValid(uint32_t timestamp, uint32_t now)
+{
+  // RFC 9018 section 4.3:
+  //    The DNS server
+  //    SHOULD allow cookies within a 1-hour period in the past and a
+  //    5-minute period into the future
+  // valid: now - 3600 < timestamp < now + 300
+  return rfc1982LessThan(now - 3600, timestamp) && rfc1982LessThan(timestamp, now + 300);
+}
+
 bool EDNSCookiesOpt::isValid([[maybe_unused]] const string& secret, [[maybe_unused]] const ComboAddress& source) const
 {
 #ifdef HAVE_CRYPTO_SHORTHASH
@@ -84,16 +94,12 @@ bool EDNSCookiesOpt::isValid([[maybe_unused]] const string& secret, [[maybe_unus
     // Version is not 1, can't verify
     return false;
   }
-  uint32_t ts;
-  memcpy(&ts, &server[4], sizeof(ts));
-  ts = ntohl(ts);
+  uint32_t timestamp;
+  memcpy(&timestamp, &server[4], sizeof(timestamp));
+  timestamp = ntohl(timestamp);
   // coverity[store_truncates_time_t]
-  uint32_t now = static_cast<uint32_t>(time(nullptr));
-  // RFC 9018 section 4.3:
-  //    The DNS server
-  //    SHOULD allow cookies within a 1-hour period in the past and a
-  //    5-minute period into the future
-  if (rfc1982LessThan(now + 300, ts) && rfc1982LessThan(ts + 3600, now)) {
+  auto now = static_cast<uint32_t>(time(nullptr));
+  if (!cookieTSIsValid(timestamp, now)) {
     return false;
   }
   if (secret.length() != crypto_shorthash_KEYBYTES) {
@@ -119,24 +125,20 @@ bool EDNSCookiesOpt::shouldRefresh() const
   if (server.size() < 16) {
     return true;
   }
-  uint32_t ts;
-  memcpy(&ts, &server[4], sizeof(ts));
-  ts = ntohl(ts);
+  uint32_t timestamp;
+  memcpy(&timestamp, &server[4], sizeof(timestamp));
+  timestamp = ntohl(timestamp);
   // coverity[store_truncates_time_t]
-  uint32_t now = static_cast<uint32_t>(time(nullptr));
-  // RFC 9018 section 4.3:
-  //    The DNS server
-  //    SHOULD allow cookies within a 1-hour period in the past and a
-  //    5-minute period into the future
-  // If this is not the case, we need to refresh
-  if (rfc1982LessThan(now + 300, ts) && rfc1982LessThan(ts + 3600, now)) {
+  auto now = static_cast<uint32_t>(time(nullptr));
+  // If the cookie is not within acceptable time bounds, we need to refresh
+  if (!cookieTSIsValid(timestamp, now)) {
     return true;
   }
 
   // RFC 9018 section 4.3:
   //    The DNS server SHOULD generate a new Server Cookie at least if the
   //     received Server Cookie from the client is more than half an hour old
-  return rfc1982LessThan(ts + 1800, now);
+  return rfc1982LessThan(timestamp + 1800, now);
 }
 
 bool EDNSCookiesOpt::makeServerCookie([[maybe_unused]] const string& secret, [[maybe_unused]] const ComboAddress& source)
