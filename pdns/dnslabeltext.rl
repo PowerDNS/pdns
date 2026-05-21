@@ -241,6 +241,76 @@ size_t parseRFC1035CharString(std::string_view in, std::string &val) {
   return counter;
 }
 
+// Similar to above, but allows ( ) ; within quoted parts.
+size_t parseRFC1035CharStringRelaxed(std::string_view in, std::string &val) {
+
+  val.clear();
+  val.reserve(in.size());
+  const char *p = in.data();
+  const char *pe = p + in.size();
+  int cs = 0;
+  uint8_t escaped_octet = 0;
+  // Keeps track of how many chars we read from the source string
+  size_t counter=0;
+
+/* This parses an RFC 1035 char-string, but allows ( ) and ; to occur in
+ * quoted parts.
+ */
+%%{
+  machine dns_text_to_string_r;
+
+  action doEscapedNumber {
+    escaped_octet *= 10;
+    escaped_octet += fc-'0';
+    counter++;
+  }
+
+  action doneEscapedNumber {
+    val += escaped_octet;
+    escaped_octet = 0;
+  }
+
+  action addToVal {
+    val += fc;
+    counter++;
+  }
+
+  action incrementCounter {
+    counter++;
+  }
+
+  # generated rules, define required actions
+  DIGIT = 0x30..0x39;
+  DQUOTE = "\"";
+  HTAB = "\t";
+  SP = " ";
+  WSP = (SP | HTAB)@addToVal;
+  non_special = "!" | 0x23..0x27 | 0x2a..0x3a | 0x3c..0x5b | 0x5d..0x7e;
+  special = 0x28..0x29 | 0x3b;
+  non_digit = 0x21..0x2f | 0x3a..0x7e;
+  dec_octet = ( ( "0" | "1" ) DIGIT{2} ) | ( "2" ( ( 0x30..0x34 DIGIT ) | ( "5" 0x30..0x35 ) ) );
+  escaped = '\\'@incrementCounter ( non_digit$addToVal | dec_octet$doEscapedNumber@doneEscapedNumber );
+  contiguous = ( non_special$addToVal | escaped )+;
+  # rules differ from parseRFC1035CharString starting from here
+  quotedcontiguous = ( non_special$addToVal | special$addToVal | escaped )+;
+  quoted = DQUOTE@incrementCounter ( quotedcontiguous | ( '\\'? WSP ) )* DQUOTE@incrementCounter;
+  char_string = (contiguous | quoted);
+
+  # instantiate machine rules
+  main := char_string;
+  write data;
+  write init;
+}%%
+
+  // silence warnings
+  (void) dns_text_to_string_r_first_final;
+  (void) dns_text_to_string_r_error;
+  (void) dns_text_to_string_r_en_main;
+  %% write exec;
+
+  return counter;
+}
+
 size_t parseSVCBValueListFromParsedRFC1035CharString(const std::string &in, std::vector<std::string> &val) {
   val.clear();
   const char *p = in.c_str();

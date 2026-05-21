@@ -662,9 +662,9 @@ static std::string normalizeJsonString(const std::string& jsonContent)
     std::string chunk;
     // Preserve quotes in the result if the chunk is quoted.
     bool quote = input[pos] == '"';
-    auto chunksize = parseRFC1035CharString(input.substr(pos), chunk);
+    auto chunksize = parseRFC1035CharStringRelaxed(input.substr(pos), chunk);
     if (chunksize == 0) {
-      // Found one of (  ) ; \x7f
+      // Found one of (  ) ; (non-quoted) or a non-printable character
       if (input[pos] < ' ' || input[pos] >= 0x7f) {
         std::stringstream hexstr;
         hexstr << std::hex << static_cast<unsigned char>(input[pos]);
