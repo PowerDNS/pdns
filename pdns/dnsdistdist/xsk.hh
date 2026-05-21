@@ -260,7 +260,7 @@ public:
   /* Rewrite the headers, usually called after setAddr() then setPayload() */
   void rewrite() noexcept;
   void setHeader(PacketBuffer& buf);
-  XskPacket(uint8_t* frame, size_t dataSize, size_t frameSize);
+  XskPacket(uint8_t* frame, size_t dataSize, size_t frameSize) noexcept;
   void addDelay(int relativeMilliseconds) noexcept;
   /* If the payload has been updated, and the headers have not been rewritten via rewrite() yet,
      exchange the source and destination addresses (ethernet and IP) and rewrite the headers.
