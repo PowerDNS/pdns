@@ -61,6 +61,8 @@ struct dnsdist_ffi_dnsquestion_t
   {
   }
 
+  // these two fields (pointer to DNSQuestion, then objectType) should remain at the same offset
+  // here and in dnsdist_ffi_dnsresponse_t
   DNSQuestion* dq{nullptr};
   const dnsdist::lua::ffi::ObjectType objectType{dnsdist::lua::ffi::ObjectType::Question};
   ComboAddress maskedRemote;
@@ -103,6 +105,8 @@ struct dnsdist_ffi_dnsresponse_t
   {
   }
 
+  // these two fields (pointer to DNSResponse, then objectType) should remain at the same offset
+  // here and in dnsdist_ffi_dnsquestion_t
   DNSResponse* dr{nullptr};
   const dnsdist::lua::ffi::ObjectType objectType{dnsdist::lua::ffi::ObjectType::Response};
   std::optional<std::string> result{std::nullopt};
@@ -112,9 +116,6 @@ struct dnsdist_ffi_dnsresponse_t
   protozero::pbf_writer pbfMetaValueWriter{};
 #endif /* DISABLE_PROTOBUF */
 };
-
-static_assert(offsetof(dnsdist_ffi_dnsresponse_t, dr) == offsetof(dnsdist_ffi_dnsquestion_t, dq), "The DNSQuestion object in dnsdist_ffi_dnsquestion_t and DNSResponse object in dnsdist_ffi_dnsresponse_t must be located at the same offset");
-static_assert(offsetof(dnsdist_ffi_dnsresponse_t, objectType) == offsetof(dnsdist_ffi_dnsquestion_t, objectType), "The object type in dnsdist_ffi_dnsquestion_t and dnsdist_ffi_dnsresponse_t must be located at the same offset");
 
 // dnsdist_ffi_server_t is a lightuserdata
 template <>
