@@ -1982,7 +1982,9 @@ static void processUDPQuery(ClientState& clientState, const struct msghdr* msgh,
 
     auto dnsCryptResponse = checkDNSCryptQuery(clientState, query, ids.dnsCryptQuery, ids.queryRealTime.d_start.tv_sec, false);
     if (dnsCryptResponse) {
-      sendUDPResponse(clientState.udpFD, query, 0, dest, remote);
+      if (!clientState.muted) {
+        sendUDPResponse(clientState.udpFD, query, 0, dest, remote);
+      }
       return;
     }
 
@@ -2002,7 +2004,9 @@ static void processUDPQuery(ClientState& clientState, const struct msghdr* msgh,
           return true;
         });
 
-        sendUDPResponse(clientState.udpFD, query, 0, dest, remote);
+        if (!clientState.muted) {
+          sendUDPResponse(clientState.udpFD, query, 0, dest, remote);
+        }
         return;
       }
     }
@@ -2055,7 +2059,9 @@ static void processUDPQuery(ClientState& clientState, const struct msghdr* msgh,
 #endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
 #endif /* DISABLE_RECVMMSG */
       /* we use dest, always, because we don't want to use the listening address to send a response since it could be 0.0.0.0 */
-      sendUDPResponse(clientState.udpFD, query, dnsQuestion.ids.delayMsec, dest, remote);
+      if (!clientState.muted) {
+        sendUDPResponse(clientState.udpFD, query, dnsQuestion.ids.delayMsec, dest, remote);
+      }
 
       handleResponseSent(dnsQuestion.ids.qname, dnsQuestion.ids.qtype, 0., remote, ComboAddress(), query.size(), *dnsHeader, dnsdist::Protocol::DoUDP, dnsdist::Protocol::DoUDP, false);
       return;
