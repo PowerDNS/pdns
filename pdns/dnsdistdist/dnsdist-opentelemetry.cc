@@ -219,7 +219,7 @@ SpanID Tracer::getRootSpanID()
     return data->d_oldAndNewRootSpanID.newID;
   }
 
-  if (auto& spans = data->d_spans; !spans.empty()) {
+  if (const auto& spans = data->d_spans; !spans.empty()) {
     auto iter = std::find_if(spans.cbegin(), spans.cend(), [](const auto& span) { return span.parent_span_id == pdns::trace::s_emptySpanID; });
     if (iter != spans.cend()) {
       return iter->span_id;
@@ -251,7 +251,7 @@ SpanID Tracer::getLastSpanIDForName([[maybe_unused]] const std::string& name)
   return 0;
 #else
   auto data = d_data.read_only_lock();
-  if (auto& spans = data->d_spans; !spans.empty()) {
+  if (const auto& spans = data->d_spans; !spans.empty()) {
     if (auto iter = std::find_if(spans.rbegin(),
                                  spans.rend(),
                                  [name](const miniSpan& span) { return span.name == name; });
@@ -320,11 +320,11 @@ void Tracer::Closer::setAttribute([[maybe_unused]] const std::string& key, [[may
 #ifdef DISABLE_PROTOBUF
   return;
 #else
-  return d_tracer->setSpanAttribute(d_spanID, key, value);
+  d_tracer->setSpanAttribute(d_spanID, key, value);
 #endif
 }
 
-std::vector<uint8_t> makeEDNSTraceParentOption([[maybe_unused]] std::shared_ptr<Tracer> tracer)
+std::vector<uint8_t> makeEDNSTraceParentOption([[maybe_unused]] const std::shared_ptr<Tracer>& tracer)
 {
   std::vector<uint8_t> ret;
 #ifndef DISABLE_PROTOBUF
@@ -352,19 +352,20 @@ bool addTraceparentEdnsOptionToPacketBuffer([[maybe_unused]] PacketBuffer& origB
   // buf contains the whole DNS query without PROXY protocol and TCP length header
   PacketBuffer buf{origBuf.begin() + proxyProtocolPayloadSize + (isTCP ? 2 : 0), origBuf.end()};
 
-  uint16_t optRDPosition;
-  size_t remaining;
+  uint16_t optRDPosition{};
+  size_t remaining{};
   bool queryHadEdns = ::dnsdist::getEDNSOptionsStart(buf, qnameWireLength, &optRDPosition, &remaining) == 0;
   if (queryHadEdns) {
     size_t optLen = buf.size() - optRDPosition - remaining;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     removeEDNSOptionFromOPT(reinterpret_cast<char*>(buf.data() + optRDPosition), &optLen, traceparentOptionCode);
   }
 
   auto opt = pdns::trace::dnsdist::makeEDNSTraceParentOption(tracer);
   bool ednsAdded{false};
   bool optionAdded{false};
-  uint16_t maxEdnsSize = queryHadEdns ? (uint16_t)(buf.at(optRDPosition - 6) << 8) + buf.at(optRDPosition - 5) : 512;
-  setEDNSOption(buf, traceparentOptionCode, std::string(opt.begin(), opt.end()), isTCP ? std::numeric_limits<uint16_t>().max() : maxEdnsSize, ednsAdded, optionAdded);
+  uint16_t maxEdnsSize = queryHadEdns ? static_cast<uint16_t>(buf.at(optRDPosition - 6) << 8) + buf.at(optRDPosition - 5) : 512;
+  setEDNSOption(buf, traceparentOptionCode, std::string(opt.begin(), opt.end()), isTCP ? std::numeric_limits<uint16_t>::max() : maxEdnsSize, ednsAdded, optionAdded);
 
   if (isTCP) {
     const std::array<uint8_t, 2> sizeBytes{static_cast<uint8_t>(buf.size() / 256), static_cast<uint8_t>(buf.size() % 256)};
