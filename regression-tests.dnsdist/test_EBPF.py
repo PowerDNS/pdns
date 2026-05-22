@@ -146,7 +146,8 @@ class TestSimpleEBPF(DNSDistTest):
         # block 127.0.0.1
         self.sendConsoleCommand('bpf:block(newCA("127.0.0.1"))')
         stats = self.sendConsoleCommand("bpf:getStats()")
-        self.assertIn("127.0.0.1: 0", stats)
+        # careful with the counters, we might have already been blocked during TestDynBlockEBPFQPS
+        self.assertIn("127.0.0.1: ", stats)
 
         name = "ip-blocked.ebpf.tests.powerdns.com."
         query = dns.message.make_query(name, "A", "IN", use_edns=False)
