@@ -128,20 +128,22 @@ struct InternalQueryState
    *
    * @return
    */
-  std::shared_ptr<pdns::trace::dnsdist::Tracer> getTracer()
+  std::shared_ptr<pdns::trace::dnsdist::Tracer>& getTracer()
   {
 #ifdef DISABLE_PROTOBUF
-    return nullptr;
+    return d_OTTracer;
 #else
-    if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_openTelemetryTracing) {
-      if (d_OTTracer != nullptr) {
-        return d_OTTracer;
-      }
-      // OpenTelemetry tracing is enabled, but we don't have a tracer yet
-      d_OTTracer = pdns::trace::dnsdist::Tracer::getTracer();
+    if (d_OTTracingDisabled || d_OTTracer != nullptr) {
       return d_OTTracer;
     }
-    return nullptr;
+    if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_openTelemetryTracing) {
+      // OpenTelemetry tracing is enabled, but we don't have a tracer yet
+      d_OTTracer = pdns::trace::dnsdist::Tracer::getTracer();
+    }
+    else {
+      d_OTTracingDisabled = true;
+    }
+    return d_OTTracer;
 #endif
   }
 
@@ -243,6 +245,7 @@ public:
   bool staleCacheHit{false};
   bool tracingEnabled{false}; // Whether or not Open Telemetry tracing is enabled for this query
   bool rulesAppliedToQuery{false}; // Whether applyRulesToQuery has been called for the query, used to determine if we need to trace
+  bool d_OTTracingDisabled{false}; // Whether OpenTelemetry tracing is disabled, prevent having to check the configuration several times for the same query
   struct rulesAppliedToQuerySetter
   {
     rulesAppliedToQuerySetter(bool& pastProcessRules) :

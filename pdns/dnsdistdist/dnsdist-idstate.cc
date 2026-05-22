@@ -117,7 +117,7 @@ std::optional<pdns::trace::dnsdist::Tracer::Closer> InternalQueryState::getClose
   // getTracer returns a Tracer when tracing is globally enabled
   // tracingEnabled tells us whether or not tracing is enabled for this query
   // Should tracing be disabled, *but* we have not processed query rules, we will still return a closer if tracing is globally enabled
-  if (auto tracer = getTracer(); tracer != nullptr && (tracingEnabled || !rulesAppliedToQuery)) {
+  if (auto& tracer = getTracer(); tracer != nullptr && (tracingEnabled || !rulesAppliedToQuery)) {
     ret = d_OTTracer->openSpan(std::string(name), parentSpanID);
   }
 #endif
@@ -128,7 +128,7 @@ std::optional<pdns::trace::dnsdist::Tracer::Closer> InternalQueryState::getClose
 {
   std::optional<pdns::trace::dnsdist::Tracer::Closer> ret{std::nullopt};
 #ifndef DISABLE_PROTOBUF
-  if (auto tracer = getTracer(); tracer != nullptr) {
+  if (auto& tracer = getTracer(); tracer != nullptr) {
     auto parentSpanID = d_OTTracer->getLastSpanIDForName(std::string(parentSpanName));
     ret = getCloser(name, parentSpanID);
   }
@@ -140,7 +140,7 @@ std::optional<pdns::trace::dnsdist::Tracer::Closer> InternalQueryState::getClose
 {
   std::optional<pdns::trace::dnsdist::Tracer::Closer> ret{std::nullopt};
 #ifndef DISABLE_PROTOBUF
-  if (auto tracer = getTracer(); tracer != nullptr) {
+  if (auto& tracer = getTracer(); tracer != nullptr) {
     ret = getCloser(std::string(name), tracer->getLastSpanID());
   }
 #endif
@@ -155,7 +155,7 @@ std::optional<pdns::trace::dnsdist::Tracer::Closer> InternalQueryState::getRules
   // getTracer returns a Tracer when tracing is globally enabled
   // tracingEnabled tells us whether or not tracing is enabled for this query
   // Should tracing be disabled, *but* we have not processed query rules, we will still return a closer if tracing is globally enabled
-  if (auto tracer = getTracer(); tracer != nullptr && (tracingEnabled || !rulesAppliedToQuery)) {
+  if (auto& tracer = getTracer(); tracer != nullptr && (tracingEnabled || !rulesAppliedToQuery)) {
     auto parentSpanID = tracer->getLastSpanID();
     auto name = ruleType + prefix + std::string(ruleName);
     ret = tracer->openSpan(name, parentSpanID);

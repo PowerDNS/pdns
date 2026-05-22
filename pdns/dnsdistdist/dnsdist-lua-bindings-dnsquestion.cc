@@ -374,7 +374,7 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
 #ifdef DISABLE_PROTOBUF
       return std::nullopt;
 #else
-      if (auto tracer = dnsQuestion.ids.getTracer(); tracer != nullptr && dnsQuestion.ids.tracingEnabled) {
+      if (auto& tracer = dnsQuestion.ids.getTracer(); tracer != nullptr && dnsQuestion.ids.tracingEnabled) {
         auto traceID = tracer->getTraceID();
         return std::string(traceID.begin(), traceID.end());
       }
@@ -388,7 +388,7 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
 #ifdef DISABLE_PROTOBUF
       return std::nullopt;
 #else
-      if (auto tracer = dnsQuestion.ids.getTracer(); tracer != nullptr && dnsQuestion.ids.tracingEnabled) {
+      if (auto& tracer = dnsQuestion.ids.getTracer(); tracer != nullptr && dnsQuestion.ids.tracingEnabled) {
         auto spanID = tracer->getLastSpanID();
         return std::string(spanID.begin(), spanID.end());
       }
