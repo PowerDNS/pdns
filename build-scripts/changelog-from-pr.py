@@ -6,6 +6,17 @@ import argparse
 import re
 import getpass
 
+
+def isIssue(session, number):
+    try:
+        res = session.get(f"https://api.github.com/repos/PowerDNS/pdns/issues/{number}")
+        issue_info = res.json()
+        # GitHub's REST API considers every pull request an issue, but not every issue is a pull request. For this reason, "Issues" endpoints may return both issues and pull requests in the response. You can identify pull requests by the pull_request key.
+        return not "pull_request" in issue_info
+    except (requests.exceptions.HTTPError, ValueError):
+        return False
+
+
 argp = argparse.ArgumentParser()
 argp.add_argument("--oneline", action="store_true", help="Make one-lined changelog entries (for 4.0 and older)")
 argp.add_argument(
@@ -20,25 +31,22 @@ ticket_regex = re.compile(r"(?:[Cc]loses|[Ff]ixes)? #(\d+)")
 
 out = ""
 httpAuth = None
+session = requests.Session()
 if arguments.username:
     password = getpass.getpass("GitHub password for '" + arguments.username + "': ")
-    httpAuth = requests.auth.HTTPBasicAuth(arguments.username, password)
+    session.auth(arguments.username, password)
 
 # https://github.com/settings/tokens
 # A token with `repo` and `user` access will definitely work.
 access_token = arguments.access_token
+if access_token:
+    session.headers.update({"Authorization": "token " + access_token})
 
 for pr in sorted(arguments.pullrequest):
     if pr[0] == "#":
         pr = pr[1:]
     try:
-        if access_token:
-            res = requests.get(
-                "https://api.github.com/repos/PowerDNS/pdns/pulls/{}".format(pr),
-                headers={"Authorization": "token " + access_token},
-            )
-        else:
-            res = requests.get("https://api.github.com/repos/PowerDNS/pdns/pulls/{}".format(pr), auth=httpAuth)
+        res = session.get("https://api.github.com/repos/PowerDNS/pdns/pulls/{}".format(pr))
         pr_info = res.json()
     except (requests.exceptions.HTTPError, ValueError) as e:
         print(e)
@@ -54,7 +62,12 @@ for pr in sorted(arguments.pullrequest):
             print("{}".format(pr_info["message"]))
             sys.exit(1)
         elif body:
-            tickets = re.findall(ticket_regex, body)
+            tickets = []
+            candidateTicketNumbers = re.findall(ticket_regex, body)
+            for ticket in candidateTicketNumbers:
+                if isIssue(session, ticket):
+                    tickets.append(ticket)
+
             if len(tickets):
                 out += "    :tickets: {}\n".format(", ".join(tickets))
         out += "\n    {}".format(pr_info["title"][0].capitalize() + pr_info["title"][1:])
@@ -69,12 +82,7 @@ for pr in sorted(arguments.pullrequest):
         "pieterlexis",
     ]:
         try:
-            if access_token:
-                user_info = requests.get(
-                    pr_info["user"]["url"], headers={"Authorization": "token " + access_token}
-                ).json()
-            else:
-                user_info = requests.get(pr_info["user"]["url"], auth=httpAuth).json()
+            user_info = session.get(pr_info["user"]["url"]).json()
         except (requests.exceptions.HTTPError, ValueError) as e:
             print(e)
             sys.exit(1)
