@@ -324,7 +324,7 @@ void Tracer::Closer::setAttribute([[maybe_unused]] const std::string& key, [[may
 #endif
 }
 
-std::vector<uint8_t> makeEDNSTraceParentOption(std::shared_ptr<Tracer> tracer)
+std::vector<uint8_t> makeEDNSTraceParentOption([[maybe_unused]] std::shared_ptr<Tracer> tracer)
 {
   std::vector<uint8_t> ret;
 #ifndef DISABLE_PROTOBUF
@@ -343,7 +343,7 @@ std::vector<uint8_t> makeEDNSTraceParentOption(std::shared_ptr<Tracer> tracer)
   return ret;
 }
 
-bool addTraceparentEdnsOptionToPacketBuffer(PacketBuffer& origBuf, const std::shared_ptr<Tracer>& tracer, const size_t qnameWireLength, const size_t proxyProtocolPayloadSize, const uint16_t traceparentOptionCode, const bool isTCP)
+bool addTraceparentEdnsOptionToPacketBuffer([[maybe_unused]] PacketBuffer& origBuf, [[maybe_unused]] const std::shared_ptr<Tracer>& tracer, [[maybe_unused]] const size_t qnameWireLength, [[maybe_unused]] const size_t proxyProtocolPayloadSize, [[maybe_unused]] const uint16_t traceparentOptionCode, [[maybe_unused]] const bool isTCP)
 {
 #ifndef DISABLE_PROTOBUF
   if (tracer == nullptr) {
