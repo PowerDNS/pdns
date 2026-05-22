@@ -14,7 +14,7 @@ LDAP backend
 * Search: No
 * Views: No
 * API: Read-only
-* Multiple instances: Yes
+* :ref:`Multiple instances <setting-launch>`: Yes
 * Zone caching: No
 * Module name: ldap
 * Launch name: ``ldap``

@@ -14,7 +14,7 @@ Remote Backend
 * Search: Yes\*
 * Views: No
 * API: Read-Write
-* Multiple instances: Yes
+* :ref:`Multiple instances <setting-launch>`: Yes
 * Zone caching: Yes\*
 * Module name: remote
 * Launch: ``remote``

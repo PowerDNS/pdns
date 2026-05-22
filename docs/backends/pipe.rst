@@ -14,7 +14,7 @@ Pipe Backend
 * Search: No
 * Views: No
 * API: Read-only
-* Multiple instances: Yes
+* :ref:`Multiple instances <setting-launch>`: Yes
 * Zone caching: No
 * Module name: pipe
 * Launch name: ``pipe``

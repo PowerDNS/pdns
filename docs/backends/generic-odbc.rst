@@ -14,7 +14,7 @@ Generic ODBC Backend
 * Search: Yes
 * Views: No
 * API: Read-Write
-* Multiple instances: yes
+* :ref:`Multiple instances <setting-launch>`: Yes
 * Zone caching: Yes
 * Module name: godbc
 * Launch name: ``godbc``
