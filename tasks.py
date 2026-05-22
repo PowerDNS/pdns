@@ -270,7 +270,8 @@ def setup_authbind(c):
 def build_and_install_libfaketime(c):
     c.run(f"git clone https://github.com/wolfcw/libfaketime.git {repo_home}/libfaketime")
     with c.cd(f"{repo_home}/libfaketime"):
-        c.run("git checkout master")
+        # this commit is master as of 21 May 2026
+        c.run("git checkout 1051677b467ab243cecd956bd26f5cceb57c5f02")
         c.run("make && sudo make install")
 
 
