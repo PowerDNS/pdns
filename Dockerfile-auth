@@ -7,7 +7,7 @@ ENV NO_LUA_JIT="s390x arm64"
 
 # devscripts gives us mk-build-deps (and a lot of other stuff)
 RUN apt-get update && apt-get -y dist-upgrade && \
-    apt-get install -y  --no-install-recommends 
+    apt-get install -y  --no-install-recommends \
         devscripts \
         dpkg-dev \
         equivs \
