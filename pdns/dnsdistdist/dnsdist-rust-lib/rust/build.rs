@@ -3,7 +3,11 @@ use std::path::PathBuf;
 use std::env;
 
 fn main() {
-    let mut bridge = cxx_build::bridge("src/lib.rs");
+    let sources = vec![
+        "src/lib.rs",
+        "src/moka.rs",
+    ];
+    let mut bridge = cxx_build::bridges(&sources);
     let mut build = bridge
             .std("c++17")
             .flag("-Isrc")
@@ -21,6 +25,8 @@ fn main() {
 
     build.compile("dnsdist_rust");
 
-    println!("cargo:rerun-if-changed=src/lib.rs");
+    for source in sources {
+        println!("cargo:rerun-if-changed={source}");
+    }
     println!("cargo:rerun-if-changed=src/helpers.rs");
 }

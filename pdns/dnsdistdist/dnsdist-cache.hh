@@ -24,13 +24,36 @@
 #include <atomic>
 #include <unordered_map>
 
+#include "dnsdist-cache-value.hh"
 #include "iputils.hh"
 #include "lock.hh"
 #include "noinitvector.hh"
 #include "stat_t.hh"
 #include "ednsoptions.hh"
 
+#include "rust/moka.rs.h"
+typedef rust::Box<dnsdist::rust::moka::Cache> MokaCache;
+
 struct DNSQuestion;
+
+struct CacheKey
+{
+  rust::Vec<uint8_t> bytes{};
+
+  void update(const char* data, const size_t size)
+  {
+    dnsdist::rust::moka::vec_u8_extend(bytes, rust::Slice<const uint8_t>(reinterpret_cast<const uint8_t*>(data), size));
+  }
+
+  void updateCI(const char* data, const size_t size)
+  {
+    std::string lower_data{};
+    for (const auto c : std::span(data, size)) {
+      lower_data.push_back(dns_tolower(c));
+    }
+    dnsdist::rust::moka::vec_u8_extend(bytes, rust::Slice<const uint8_t>(reinterpret_cast<const uint8_t*>(lower_data.data()), lower_data.size()));
+  }
+};
 
 class DNSDistPacketCache : boost::noncopyable
 {
@@ -57,8 +80,8 @@ public:
 
   DNSDistPacketCache(CacheSettings settings);
 
-  void insert(uint32_t key, const std::optional<Netmask>& subnet, uint16_t queryFlags, bool dnssecOK, const DNSName& qname, uint16_t qtype, uint16_t qclass, const PacketBuffer& response, bool receivedOverUDP, uint8_t rcode, std::optional<uint32_t> tempFailureTTL);
-  bool get(DNSQuestion& dnsQuestion, uint16_t queryId, uint32_t* keyOut, std::optional<Netmask>& subnet, bool dnssecOK, bool receivedOverUDP, uint32_t allowExpired = 0, bool skipAging = false, bool truncatedOK = true, bool recordMiss = true);
+  void insert(CacheKey key, const std::optional<Netmask>& subnet, uint16_t qtype, const PacketBuffer& response, uint8_t rcode, std::optional<uint32_t> tempFailureTTL);
+  bool get(DNSQuestion& dnsQuestion, uint16_t queryId, CacheKey& key, std::optional<Netmask>& subnet, bool receivedOverUDP, uint32_t allowExpired = 0, bool skipAging = false, bool truncatedOK = true, bool recordMiss = true);
   size_t purgeExpired(size_t upTo, time_t now);
   size_t expunge(size_t upTo = 0);
   size_t expungeByName(const DNSName& name, uint16_t qtype = QType::ANY, bool suffixMatch = false);
@@ -92,28 +115,12 @@ public:
 
   [[nodiscard]] size_t getMaximumEntrySize() const { return d_settings.d_maximumEntrySize; }
 
-  uint32_t getKey(const DNSName::string_t& qname, size_t qnameWireLength, const PacketBuffer& packet, bool receivedOverUDP) const;
+  void getKey(CacheKey& key, const DNSName::string_t& qname, size_t qnameWireLength, const PacketBuffer& packet, bool receivedOverUDP) const;
 
   static uint32_t getMinTTL(const char* packet, uint16_t length, bool* seenNoDataSOA);
   static bool getClientSubnet(const PacketBuffer& packet, size_t qnameWireLength, std::optional<Netmask>& subnet);
 
 private:
-  struct CacheValue
-  {
-    [[nodiscard]] time_t getTTD() const { return validity; }
-    std::string value;
-    DNSName qname;
-    std::optional<Netmask> subnet;
-    uint16_t qtype{0};
-    uint16_t qclass{0};
-    uint16_t queryFlags{0};
-    time_t added{0};
-    time_t validity{0};
-    uint16_t len{0};
-    bool receivedOverUDP{false};
-    bool dnssecOK{false};
-  };
-
   class CacheShard
   {
   public:
@@ -143,12 +150,6 @@ private:
     std::atomic<uint64_t> d_entriesCount{0};
   };
 
-  [[nodiscard]] bool cachedValueMatches(const CacheValue& cachedValue, uint16_t queryFlags, const DNSName& qname, uint16_t qtype, uint16_t qclass, bool receivedOverUDP, bool dnssecOK, const std::optional<Netmask>& subnet) const;
-  [[nodiscard]] uint32_t getShardIndex(uint32_t key) const;
-  bool insertLocked(std::unordered_map<uint32_t, CacheValue>& map, uint32_t key, CacheValue& newValue);
-
-  std::vector<CacheShard> d_shards{};
-
   pdns::stat_t d_deferredLookups{0};
   pdns::stat_t d_deferredInserts{0};
   pdns::stat_t d_hits{0};
@@ -159,4 +160,6 @@ private:
   pdns::stat_t d_cleanupCount{0};
 
   CacheSettings d_settings;
+
+  std::unique_ptr<MokaCache> d_cache{nullptr};
 };

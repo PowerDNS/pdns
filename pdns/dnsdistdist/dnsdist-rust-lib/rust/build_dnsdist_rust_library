@@ -27,7 +27,9 @@ else
     cp -p target/$RUSTC_TARGET_ARCH/release/libdnsdist_rust.a $builddir/dnsdist-rust-lib/rust/libdnsdist_rust.a
 fi
 
-cp -p $mytarget/$RUSTC_TARGET_ARCH/cxxbridge/dnsdist-rust/src/lib.rs.h $srcdir/lib.rs.h
-cp -p $mytarget/$RUSTC_TARGET_ARCH/cxxbridge/dnsdist-rust/src/lib.rs.h $builddir/dnsdist-rust-lib/rust/lib.rs.h
+for header in lib.rs.h moka.rs.h; do
+    cp -p $mytarget/$RUSTC_TARGET_ARCH/cxxbridge/dnsdist-rust/src/${header} $srcdir/${header}
+    cp -p $mytarget/$RUSTC_TARGET_ARCH/cxxbridge/dnsdist-rust/src/${header} $builddir/dnsdist-rust-lib/rust/${header}
+done
 cp -p $mytarget/$RUSTC_TARGET_ARCH/cxxbridge/rust/cxx.h $srcdir/cxx.h
 cp -p $mytarget/$RUSTC_TARGET_ARCH/cxxbridge/rust/cxx.h $builddir/dnsdist-rust-lib/rust/cxx.h
