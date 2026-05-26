@@ -16,6 +16,7 @@ Under some circumstances, 'some time' has been measured at 2 seconds.
 This technique was first used by ``dnscache`` by Dan J. Bernstein and is standardized in :rfc:`5452`
 
 In addition, PowerDNS detects when it is being sent too many unexpected answers, and mistrusts a proper answer if found within a clutch of unexpected ones.
+When this happens, the query to the authoritative server is retried over TCP.
 
 This behaviour can be tuned using the :ref:`setting-yaml-recursor.spoof_nearmiss_max`.
 
