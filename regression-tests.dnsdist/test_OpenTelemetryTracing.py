@@ -66,12 +66,8 @@ class DNSDistOpenTelemetryProtobufTest(test_Protobuf.DNSDistProtobufTest):
             self.assertTrue(receivedResponse)
             self.assertEqual(response, receivedResponse)
 
-        if self._protobufQueue.empty():
-            # let the protobuf messages the time to get there
-            time.sleep(1)
-
         # check the protobuf message corresponding to the UDP query
-        return self.getFirstProtobufMessage()
+        return self.getFirstProtobufMessage(timeout=1)
 
     def checkOTData(
         self,
