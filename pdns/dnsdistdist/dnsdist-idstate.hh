@@ -133,7 +133,7 @@ struct InternalQueryState
 #ifdef DISABLE_PROTOBUF
     return d_OTTracer;
 #else
-    if (d_OTTracingDisabled || d_OTTracer != nullptr) {
+    if (!d_OTTracingEnabled || d_OTTracer != nullptr) {
       return d_OTTracer;
     }
     if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_openTelemetryTracing) {
@@ -141,7 +141,7 @@ struct InternalQueryState
       d_OTTracer = pdns::trace::dnsdist::Tracer::getTracer();
     }
     else {
-      d_OTTracingDisabled = true;
+      d_OTTracingEnabled = false;
     }
     return d_OTTracer;
 #endif
@@ -245,7 +245,7 @@ public:
   bool staleCacheHit{false};
   bool tracingEnabled{false}; // Whether or not Open Telemetry tracing is enabled for this query
   bool rulesAppliedToQuery{false}; // Whether applyRulesToQuery has been called for the query, used to determine if we need to trace
-  bool d_OTTracingDisabled{false}; // Whether OpenTelemetry tracing is disabled, prevent having to check the configuration several times for the same query
+  bool d_OTTracingEnabled{true}; // Whether OpenTelemetry tracing is enabled in the configuration. This prevents having to check the configuration several times for the same query
   struct rulesAppliedToQuerySetter
   {
     rulesAppliedToQuerySetter(bool& pastProcessRules) :
