@@ -88,8 +88,9 @@ TEST_CASE("Cache/Lookup")
 
     BENCHMARK(std::to_string(threadsCount))
     {
+      threads.clear();
       for (size_t idx = 0U; idx < threadsCount; idx++) {
-        threads.emplace_back(std::thread(testCode, iterations / threadsCount));
+        threads.emplace_back(testCode, iterations / threadsCount);
       }
       for (auto& thread : threads) {
         thread.join();
@@ -133,8 +134,9 @@ TEST_CASE("Cache/Insertion")
 
     BENCHMARK(std::to_string(threadsCount))
     {
+      threads.clear();
       for (size_t idx = 0U; idx < threadsCount; idx++) {
-        threads.emplace_back(std::thread(testCode, iterations / threadsCount));
+        threads.emplace_back(testCode, iterations / threadsCount);
       }
       for (auto& thread : threads) {
         thread.join();
