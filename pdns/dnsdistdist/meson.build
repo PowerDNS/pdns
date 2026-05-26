@@ -479,8 +479,6 @@ tools = {
   },
 }
 
-fuzz_targets = []
-
 if get_option('fuzz-targets')
   fuzz_extra_sources = []
   fuzzer_ldflags = []
@@ -497,10 +495,10 @@ if get_option('fuzz-targets')
       'files-extra': fuzz_extra_sources,
       'deps-extra': [
          dep_libsystemd,
-       ]
+       ],
+      'fuzzing-target': true,
     },
   }
-  fuzz_targets += 'fuzz-target-dnsdistcache'.underscorify()
   if get_option('xsk').allowed() and dep_libbpf.found() and dep_libxdp.found()
     tools += {
       'fuzz-target-xsk' : {
@@ -513,12 +511,12 @@ if get_option('fuzz-targets')
            src_dir / 'misc.cc',
            src_dir / 'xsk.cc'
            ],
-        'deps-extra': [
+         'deps-extra': [
            dep_libsystemd,
-         ]
+          ],
+         'fuzzing-target': true,
        },
     }
-    fuzz_targets += 'fuzz-target-xsk'.underscorify()
   endif
 endif
 
@@ -641,6 +639,7 @@ if get_option('benchmark')
 endif
 
 man_pages = []
+fuzzing_binaries = []
 foreach tool, info: tools
   var_name = tool.underscorify()
   main = files(info['main'])
@@ -651,21 +650,22 @@ foreach tool, info: tools
   link_args = 'link-args' in info ? info['link-args'] : []
   install = 'install' in info ? info['install'] : false
 
+  new_binary = executable(
+    tool,
+    main,
+    config_h,
+    files_extra,
+    export_dynamic: export_dynamic,
+    link_args: link_args,
+    dependencies: [
+      libdnsdist_common,
+      deps_extra,
+    ],
+    install: install,
+  )
   set_variable(
     var_name,
-    executable(
-      tool,
-      main,
-      config_h,
-      files_extra,
-      export_dynamic: export_dynamic,
-      link_args: link_args,
-      dependencies: [
-        libdnsdist_common,
-        deps_extra,
-      ],
-      install: install,
-    )
+    new_binary,
   )
 
   if 'manpages' in info
@@ -673,19 +673,14 @@ foreach tool, info: tools
       man_pages += docs_dir / 'manpages' / (man_page + '.rst')
     endforeach
   endif
+  if 'fuzzing-target' in info
+    fuzzing_binaries += new_binary
+  endif
 endforeach
 
 if get_option('fuzz-targets')
-  real_fuzz_targets = []
-  foreach name : fuzz_targets
-    real_fuzz_targets += get_variable(name)
-  endforeach
-  custom_target('fuzz-targets',
-    command: ['/bin/true'],
-    output: 'fuzz-targets',
-    build_always_stale: true,
-    depends: real_fuzz_targets
-  )
+  alias_target('fuzz-targets',
+               fuzzing_binaries)
 endif
 
 if get_option('unit-tests')
