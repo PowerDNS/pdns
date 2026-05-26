@@ -19,14 +19,16 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#ifdef HAVE_REDIS
 #include "gettime.hh"
 #include "threadname.hh"
 #include <condition_variable>
 #include <memory>
 #include <stdexcept>
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
 
 #include "redis.hh"
 #include "dolog.hh"
@@ -327,3 +329,4 @@ bool RedisClient::RedisConnection::reconnect()
   *(d_context.lock()) = std::move(context);
   return true;
 }
+#endif
