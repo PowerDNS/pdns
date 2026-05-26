@@ -236,7 +236,7 @@ public:
   std::optional<bool> dnssecOK;
 #ifndef DISABLE_PROTOBUF
   std::optional<bool> d_OTTracingEnabledInConfiguration; // Whether OpenTelemetry tracing is enabled in the configuration. This prevents having to check the configuration several times for the same query
-#endif /* DISABLE_PROTOBUF */                                                         //
+#endif /* DISABLE_PROTOBUF */
   dnsdist::Protocol protocol; // 1
   uint8_t restartCount{0}; // 1
   bool ednsAdded{false};
