@@ -21,6 +21,8 @@
  */
 #pragma once
 
+#ifdef HAVE_REDIS
+
 #include "channel.hh"
 #include "lock.hh"
 #include <thread>
@@ -448,3 +450,8 @@ private:
   std::unique_ptr<RedisLookupAction> d_lookupAction;
   std::shared_ptr<RedisStats> d_stats;
 };
+#else
+class RedisClient
+{
+};
+#endif

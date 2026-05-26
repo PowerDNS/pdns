@@ -17,6 +17,7 @@
         fn registerKVSObjects(config: &KeyValueStoresConfiguration);
         fn registerMMDBObjects(config: &Vec<MmdbConfiguration>);
         fn registerNMGObjects(nmgs: &Vec<NetmaskGroupConfiguration>);
+        fn registerRedisClientObjects(nmgs: &Vec<RedisClientConfiguration>);
         fn registerTimedIPSetObjects(sets: &Vec<TimedIpSetConfiguration>);
     }
 }

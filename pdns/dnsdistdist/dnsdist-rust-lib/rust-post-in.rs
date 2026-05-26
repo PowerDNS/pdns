@@ -80,6 +80,7 @@ fn get_global_configuration_from_serde(
         pools: serde.pools,
         proxy_protocol: serde.proxy_protocol,
         query_count: serde.query_count,
+        redis_clients: serde.redis_clients,
         remote_logging: serde.remote_logging,
         ring_buffers: serde.ring_buffers,
         security_polling: serde.security_polling,
