@@ -21,9 +21,7 @@
  */
 #include "dnsdist-lua.hh"
 #include <memory>
-#ifdef HAVE_REDIS
 #include "redis.hh"
-#endif /* HAVE_REDIS */
 
 void setupLuaBindingsRedis([[maybe_unused]] LuaContext& luaCtx, [[maybe_unused]] bool client)
 {

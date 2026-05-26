@@ -84,6 +84,7 @@ fn get_global_configuration_from_serde(
         pools: serde.pools,
         proxy_protocol: serde.proxy_protocol,
         query_count: serde.query_count,
+        redis_clients: serde.redis_clients,
         remote_logging: serde.remote_logging,
         ring_buffers: serde.ring_buffers,
         security_polling: serde.security_polling,
@@ -98,6 +99,8 @@ fn get_global_configuration_from_serde(
     register_remote_loggers(&config.remote_logging)?;
     // this needs to be done before the KVS so they can refer to the DBs
     dnsdistsettings::registerMMDBObjects(&config.mmdbs)?;
+    // this needs to be done before the KVS so they can refer to the redis clients
+    dnsdistsettings::registerRedisClientObjects(&config.redis_clients)?;
     // this needs to be done before the rules so that they can refer to the KVS objects
     dnsdistsettings::registerKVSObjects(&config.key_value_stores)?;
     // this needs to be done before the rules so that they can refer to the NMG objects
