@@ -3,15 +3,19 @@ name: Test Developer Certificate of Origin
 on:
   pull_request:
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   check:
+    permissions:
+      contents: read
+      pull-requests: write # Track DCO results in a comment on the pull request
     runs-on: ubuntu-latest
     steps:
       - uses: KineticCafe/actions-dco@1da04282bbf757dab7d92a5c8535dbfb8113da5c # 3.1.0
         with:
-          exempt-authors: |
-            @powerdns.com
-            @open-xchange.com
+          config: |
+            comment = true
+            exempt-authors = ["@powerdns.com", "@open-xchange.com"]
+            bot.policy = "well-known"
+            bot.categories = ["dependency-updaters"]
