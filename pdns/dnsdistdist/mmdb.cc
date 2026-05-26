@@ -20,13 +20,16 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#ifdef HAVE_MMDB
+#include "dnsdist-logging.hh"
 #include "dnsdist-lua-types.hh"
 #include <boost/variant/get.hpp>
 #include <memory>
 #include <string>
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
 
 #include "dolog.hh"
 #include "iputils.hh"
@@ -254,3 +257,4 @@ std::optional<MMDBEntryList> MMDB::getEntryList(MMDB_entry_s* entry) const
   }
   return {entry_data_list};
 }
+#endif

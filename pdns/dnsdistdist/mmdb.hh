@@ -21,6 +21,7 @@
  */
 #pragma once
 
+#ifdef HAVE_MMDB
 #include "dnsdist-lua-types.hh"
 #include "iputils.hh"
 #include <maxminddb.h>
@@ -77,3 +78,8 @@ public:
 private:
   std::unique_ptr<MMDB_entry_data_list_s, decltype(&MMDB_free_entry_data_list)> d_entry_list_first;
 };
+#else
+class MMDB
+{
+};
+#endif

@@ -23,9 +23,7 @@
 #include "dnsdist-lua.hh"
 #include "iputils.hh"
 #include <memory>
-#ifdef HAVE_MMDB
 #include "mmdb.hh"
-#endif
 
 void setupLuaBindingsMMDB([[maybe_unused]] LuaContext& luaCtx)
 {
