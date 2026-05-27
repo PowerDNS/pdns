@@ -45,6 +45,7 @@
 #include "test-remotebackend-keys.hh"
 
 bool g_slogStructured{false};
+bool g_logDNSQueries{false};
 
 extern std::unique_ptr<DNSBackend> backendUnderTest;
 

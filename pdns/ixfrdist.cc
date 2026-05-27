@@ -70,6 +70,7 @@ AuthPacketCache PC;
 // NOLINTNEXTLINE(readability-identifier-length)
 AuthQueryCache QC;
 AuthZoneCache g_zoneCache;
+bool g_logDNSQueries{false};
 
 ArgvMap &arg()
 {

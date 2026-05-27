@@ -78,6 +78,11 @@ public:
 
   void clear();
 
+  void setSLog(Logr::log_t log)
+  {
+    d_log = log;
+  }
+
 private:
   SharedLockGuarded<NetmaskTree<string>> d_nets;
   SharedLockGuarded<ViewsMap> d_views;
@@ -121,6 +126,8 @@ private:
     bool d_replacePending{false};
   };
   LockGuarded<PendingData> d_pending;
+
+  std::shared_ptr<Logr::Logger> d_log;
 };
 
 extern AuthZoneCache g_zoneCache;

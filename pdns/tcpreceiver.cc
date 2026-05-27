@@ -264,7 +264,6 @@ void TCPNameserver::doConnection(int fd, Logr::log_t slog)
 
     DLOG(SLOG(g_log<<"TCP Connection accepted on fd "<<fd<<endl,
               slog->info(Logr::Debug, "TCP Connection accepted", "fd", Logging::Loggable(fd))));
-    bool logDNSQueries= ::arg().mustDo("log-dns-queries");
     if (g_proxyProtocolACL.match(remote)) {
       unsigned int remainingTime = 0;
       PacketBuffer proxyData;
@@ -398,7 +397,7 @@ void TCPNameserver::doConnection(int fd, Logr::log_t slog)
       std::unique_ptr<DNSPacket> reply;
       auto cached = make_unique<DNSPacket>(slog, false);
       std::shared_ptr<Logr::Logger> slogger;
-      if(logDNSQueries)  {
+      if(g_logDNSQueries)  {
         if (g_slogStructured) {
           slogger = slog->withValues("remote", Logging::Loggable(packet->getRemoteString()), "query", Logging::Loggable(packet->qdomain), "type", Logging::Loggable(packet->qtype), "dnssecok", Logging::Loggable(packet->d_dnssecOk), "bufsize", Logging::Loggable(packet->getMaxReplyLen()));
 	}
@@ -408,16 +407,21 @@ void TCPNameserver::doConnection(int fd, Logr::log_t slog)
         }
       }
 
+      bool logAtNewline{false};
       if (PC.enabled()) {
         if (packet->couldBeCached()) {
           std::string view{};
           if (g_views) {
+            if (!g_slogStructured) {
+              g_log << endl;
+              logAtNewline = true; // because of getViewFromNetwork below
+            }
             Netmask netmask(packet->getInnerRemote());
             view = g_zoneCache.getViewFromNetwork(&netmask);
           }
           if (PC.get(*packet, *cached, view)) { // short circuit - does the PacketCache recognize this question?
-            if(logDNSQueries) {
-              SLOG(g_log<<": packetcache HIT"<<endl,
+            if(g_logDNSQueries) {
+              SLOG(g_log << (logAtNewline ? "" : ": ") << "packetcache HIT"<<endl,
                    slogger->info(Logr::Notice, "Received TCP query", "packetcache", Logging::Loggable("hit")));
             }
             cached->setRemote(&packet->d_remote);
@@ -430,12 +434,12 @@ void TCPNameserver::doConnection(int fd, Logr::log_t slog)
             continue;
           }
         }
-        if(logDNSQueries) {
-          SLOG(g_log<<": packetcache MISS"<<endl,
+        if(g_logDNSQueries) {
+          SLOG(g_log<< (logAtNewline ? "" : ": ") << "packetcache MISS"<<endl,
                slogger->info(Logr::Notice, "Received TCP query", "packetcache", Logging::Loggable("miss")));
         }
       } else {
-        if (logDNSQueries) {
+        if (g_logDNSQueries) {
           SLOG(g_log<<endl,
                slogger->info(Logr::Notice, "Received TCP query"));
         }

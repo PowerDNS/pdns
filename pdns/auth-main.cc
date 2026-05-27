@@ -105,6 +105,7 @@ const char* funnytext = "*******************************************************
 
 bool g_anyToTcp;
 bool g_8bitDNS;
+bool g_logDNSQueries;
 #ifdef HAVE_LUA_RECORDS
 bool g_doLuaRecord;
 int g_luaRecordExecLimit;
@@ -568,6 +569,7 @@ static void sendout(std::unique_ptr<DNSPacket>& a, Logr::log_t slog, int start)
 }
 
 //! The qthread receives questions over the internet via the Nameserver class, and hands them to the Distributor for further processing
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 static void qthread(unsigned int num)
 {
   std::shared_ptr<Logr::Logger> slog;
@@ -594,7 +596,6 @@ static void qthread(unsigned int num)
 
     int diff{};
     int start{};
-    bool logDNSQueries = ::arg().mustDo("log-dns-queries");
     shared_ptr<UDPNameserver> NS; // NOLINT(readability-identifier-length)
     std::string buffer;
     ComboAddress accountremote;
@@ -652,7 +653,7 @@ static void qthread(unsigned int num)
 
         S.ringAccount("queries", question.qdomain, question.qtype);
         S.ringAccount("remotes", question.getInnerRemote());
-        if (logDNSQueries) {
+        if (g_logDNSQueries) {
           if (g_slogStructured) {
             if (question.d_ednsRawPacketSizeLimit > 0 && question.getMaxReplyLen() != (unsigned int)question.d_ednsRawPacketSizeLimit) {
               slog->info(Logr::Notice, "Query received", "remote", Logging::Loggable(question.getRemoteString()), "query", Logging::Loggable(question.qdomain), "type", Logging::Loggable(question.qtype), "dnssec", Logging::Loggable(question.d_dnssecOk), "max reply length", Logging::Loggable(question.getMaxReplyLen()), "raw packet size limit", Logging::Loggable(question.d_ednsRawPacketSizeLimit));
@@ -669,17 +670,22 @@ static void qthread(unsigned int num)
           }
         }
 
+        bool logAtNewline{false};
         if (PC.enabled() && (question.d.opcode != Opcode::Notify && question.d.opcode != Opcode::Update) && question.couldBeCached()) {
           start = diff;
           std::string view{};
           if (g_views) {
+            if (!g_slogStructured) {
+              g_log << endl;
+              logAtNewline = true; // because of getViewFromNetwork below
+            }
             Netmask netmask(accountremote);
             view = g_zoneCache.getViewFromNetwork(&netmask);
           }
           bool haveSomething = PC.get(question, cached, view); // does the PacketCache recognize this question?
           if (haveSomething) {
-            if (logDNSQueries) {
-              SLOG(g_log << ": packetcache HIT" << endl,
+            if (g_logDNSQueries) {
+              SLOG(g_log << (logAtNewline ? "" : ": ") << "packetcache HIT" << endl,
                    slog->info(Logr::Notice, "packetcache HIT"));
             }
             cached.setRemote(&question.d_remote); // inlined
@@ -706,17 +712,17 @@ static void qthread(unsigned int num)
         }
 
         if (distributor->isOverloaded()) {
-          if (logDNSQueries) {
-            SLOG(g_log << ": Dropped query, backends are overloaded" << endl,
+          if (g_logDNSQueries) {
+            SLOG(g_log << (logAtNewline ? "" : ": ") << "Dropped query, backends are overloaded" << endl,
                  slog->info(Logr::Notice, "Dropped query, backends are overloaded"));
           }
           overloadDrops++;
           continue;
         }
 
-        if (logDNSQueries) {
+        if (g_logDNSQueries) {
           if (PC.enabled()) {
-            SLOG(g_log << ": packetcache MISS" << endl,
+            SLOG(g_log << (logAtNewline ? "" : ": ") << "packetcache MISS" << endl,
                  slog->info(Logr::Notice, "packetcache MISS"));
           }
           else {
@@ -772,6 +778,7 @@ static void mainthread()
 
   g_anyToTcp = ::arg().mustDo("any-to-tcp");
   g_8bitDNS = ::arg().mustDo("8bit-dns");
+  g_logDNSQueries = ::arg().mustDo("log-dns-queries");
 #ifdef HAVE_LUA_RECORDS
   g_doLuaRecord = ::arg().mustDo("enable-lua-records");
   g_LuaRecordSharedState = (::arg()["enable-lua-records"] == "shared");
@@ -968,6 +975,7 @@ static void mainthread()
   UeberBackend::go();
 
   // Setup the zone cache
+  g_zoneCache.setSLog(slog);
   g_zoneCache.setRefreshInterval(::arg().asNum("zone-cache-refresh-interval"));
   try {
     UeberBackend B;
