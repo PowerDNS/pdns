@@ -316,22 +316,15 @@ private:
 class RedisClient
 {
 public:
-  RedisClient(const std::string& url, bool enablePipeline = true, uint32_t pipelineInterval = 10)
-  {
-    if (enablePipeline) {
-      d_executor = std::make_unique<PipelineExecutor>(url, pipelineInterval);
-    }
-    else {
-      d_executor = std::make_unique<DirectExecutor>(url);
-    }
-  }
+  RedisClient(const std::string& url) :
+    d_connection(url) {}
 
   redisReply* executeCommand(const char* format, ...) const;
   redisReply* executeCommandArgv(std::vector<std::string> args) const;
 
   const YaHTTP::URL& getUrl() const
   {
-    return d_executor->getUrl();
+    return d_connection.getUrl();
   }
 
 private:
@@ -361,68 +354,7 @@ private:
     YaHTTP::URL d_url;
   };
 
-  class Executor
-  {
-  public:
-    virtual ~Executor() = default;
-    virtual redisReply* executeCommand(const char* format, va_list ap) const = 0;
-    virtual redisReply* executeCommandArgv(int argc, const char** argv, const size_t* argvlen) const = 0;
-    virtual const YaHTTP::URL& getUrl() const = 0;
-  };
-
-  class DirectExecutor : public Executor
-  {
-  public:
-    DirectExecutor(const std::string& url) :
-      d_connection(url)
-    {
-    }
-    redisReply* executeCommand(const char* format, va_list ap) const override;
-    redisReply* executeCommandArgv(int argc, const char** argv, const size_t* argvlen) const override;
-
-    const YaHTTP::URL& getUrl() const override
-    {
-      return d_connection.getUrl();
-    }
-
-  private:
-    RedisConnection d_connection;
-  };
-
-  class PipelineExecutor : public Executor
-  {
-  public:
-    PipelineExecutor(const std::string& url, uint32_t pipelineInterval);
-    ~PipelineExecutor();
-    redisReply* executeCommand(const char* format, va_list ap) const override;
-    redisReply* executeCommandArgv(int argc, const char** argv, const size_t* argvlen) const override;
-
-    const YaHTTP::URL& getUrl() const override
-    {
-      return d_connection.getUrl();
-    }
-
-  private:
-    void maintenanceThread();
-    redisReply* pipelineCommand(const char* command, size_t len) const;
-
-    struct PipelineCommand
-    {
-      typedef std::function<void(redisReply*)> callback_t;
-      const char* command;
-      size_t length;
-      callback_t callback;
-    };
-    RedisConnection d_connection;
-    uint32_t d_interval;
-    pdns::channel::Sender<PipelineCommand> d_pipelineSender;
-    pdns::channel::Receiver<PipelineCommand> d_pipelineReceiver;
-
-    std::atomic<bool> d_exiting{false};
-    std::thread d_thread;
-  };
-
-  std::unique_ptr<Executor> d_executor;
+  RedisConnection d_connection;
 };
 
 class RedisKVClientInterface

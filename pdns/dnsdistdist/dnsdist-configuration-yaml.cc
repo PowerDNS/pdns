@@ -2131,7 +2131,7 @@ void registerRedisClientObjects([[maybe_unused]] const ::rust::Vec<RedisClientCo
 {
 #ifdef HAVE_REDIS
   for (const auto& redisClient : redisClients) {
-    dnsdist::configuration::yaml::registerType<RedisClient>(std::make_shared<RedisClient>(std::string(redisClient.url), redisClient.pipeline_enabled, redisClient.pipeline_interval), redisClient.name);
+    dnsdist::configuration::yaml::registerType<RedisClient>(std::make_shared<RedisClient>(std::string(redisClient.url)), redisClient.name);
   }
 #endif
 }
