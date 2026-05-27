@@ -1022,7 +1022,7 @@ DNSDIST_CONFIGURE_CXXFLAGS_LEAST = " ".join(
 
 
 @task
-def ci_dnsdist_configure(c, features, build_dir):
+def ci_dnsdist_configure(c, features, build_dir, benchmark=False):
     additional_flags = ""
     additional_ld_flags = ""
     if is_compiler_clang():
@@ -1031,7 +1031,7 @@ def ci_dnsdist_configure(c, features, build_dir):
     if features == "least":
         additional_flags = DNSDIST_CONFIGURE_CXXFLAGS_LEAST
 
-    cmd = ci_dnsdist_configure_meson(c, features, additional_flags, additional_ld_flags, build_dir)
+    cmd = ci_dnsdist_configure_meson(c, features, additional_flags, additional_ld_flags, build_dir, benchmark)
     logfile = "meson-logs/meson-log.txt"
 
     res = c.run(cmd, warn=True)
@@ -1062,7 +1062,6 @@ DNSDIST_CONFIGURE_MESON_FEATURE_SET_FULL = " ".join(
         "-D reproducible=true",
         "-D snmp=enabled",
         "-D yaml=enabled",
-        "-D benchmark=true",
     ]
 )
 
@@ -1092,11 +1091,13 @@ DNSDIST_CONFIGURE_MESON_FEATURE_SET_LEAST = " ".join(
 )
 
 
-def ci_dnsdist_configure_meson(c, features, additional_flags, additional_ld_flags, build_dir):
+def ci_dnsdist_configure_meson(c, features, additional_flags, additional_ld_flags, build_dir, benchmark=False):
     if features == "full":
         features_set = DNSDIST_CONFIGURE_MESON_FEATURE_SET_FULL
     else:
         features_set = DNSDIST_CONFIGURE_MESON_FEATURE_SET_LEAST
+    if benchmark:
+        features_set += "-D benchmark=true"
     unittests = get_unit_tests(meson=True)
     fuzztargets = get_fuzzing_targets(meson=True)
     tools = f"""AR=llvm-ar-{clang_version} RANLIB=llvm-ranlib-{clang_version}""" if is_compiler_clang() else ""
@@ -1146,7 +1147,7 @@ def ci_dnsdist_configure_meson(c, features, additional_flags, additional_ld_flag
     }
 )
 def dev_dnsdist_configure_meson(
-    c, features, build_dir="build", clang=False, ccache=False, unit_tests=False, coverage=False
+    c, features, build_dir="build", clang=False, ccache=False, unit_tests=False, coverage=False, benchmark=False
 ):
     """
     Configures dnsdist using Meson.
@@ -1178,6 +1179,9 @@ def dev_dnsdist_configure_meson(
         cxxflags = " ".join([cxxflags, DNSDIST_CONFIGURE_CXXFLAGS_LEAST])
     else:
         raise KeyError(f'features should be one of "full", "least", not "{features}"')
+
+    if benchmark:
+        features_set += "-D benchmark=true"
 
     if coverage:
         os.environ["COVERAGE"] = "yes"
