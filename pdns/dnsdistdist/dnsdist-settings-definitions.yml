@@ -205,14 +205,6 @@ redis_client:
     - name: "url"
       type: "String"
       description: "URL of the Redis instance to connect to"
-    - name: "pipeline_enabled"
-      type: "bool"
-      default: "true"
-      description: "Whether command pipelining should be enabled for this client"
-    - name: "pipeline_interval"
-      type: "u32"
-      default: "10"
-      description: "Interval to send commands at when pipelining is enabled"
 
 remote_logging:
   description: "Queries and/or responses remote logging settings"
