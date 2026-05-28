@@ -217,7 +217,7 @@ public:
     }
     Closer(const Closer&) = delete;
     Closer& operator=(const Closer&) = delete;
-    Closer& operator=(Closer&& rhs) noexcept
+    Closer& operator=([[maybe_unused]] Closer&& rhs) noexcept
     {
 #ifndef DISABLE_PROTOBUF
       this->d_tracer = std::move(rhs.d_tracer);
@@ -228,7 +228,7 @@ public:
 #endif
       return *this;
     }
-    Closer(Closer&& rhs)
+    Closer([[maybe_unused]] Closer&& rhs) noexcept
     {
 #ifndef DISABLE_PROTOBUF
       this->d_tracer = std::move(rhs.d_tracer);
@@ -362,6 +362,6 @@ private:
 #endif
 };
 
-std::vector<uint8_t> makeEDNSTraceParentOption(std::shared_ptr<Tracer> tracer);
-bool addTraceparentEdnsOptionToPacketBuffer(PacketBuffer& origBuf, const std::shared_ptr<Tracer>& tracer, const size_t qnameWireLength, const size_t proxyProtocolPayloadSize, const uint16_t traceparentOptionCode = EDNSOptionCode::TRACEPARENT, const bool isTCP = false);
+std::vector<uint8_t> makeEDNSTraceParentOption(const std::shared_ptr<Tracer>& tracer);
+bool addTraceparentEdnsOptionToPacketBuffer(PacketBuffer& origBuf, const std::shared_ptr<Tracer>& tracer, size_t qnameWireLength, size_t proxyProtocolPayloadSize, uint16_t traceparentOptionCode = EDNSOptionCode::TRACEPARENT, bool isTCP = false);
 } // namespace pdns::trace::dnsdist

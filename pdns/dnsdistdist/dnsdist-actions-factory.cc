@@ -1747,7 +1747,7 @@ public:
 
   DNSAction::Action operator()([[maybe_unused]] DNSQuestion* dnsquestion, [[maybe_unused]] std::string* ruleresult) const override
   {
-    auto tracer = dnsquestion->ids.getTracer();
+    auto& tracer = dnsquestion->ids.getTracer();
     if (tracer == nullptr) {
       VERBOSESLOG(infolog("SetTraceAction called, but OpenTelemetry tracing is globally disabled. Did you forget to call setOpenTelemetryTracing?"),
                   dnsquestion->getLogger()->info(Logr::Info, "SetTraceAction called, but OpenTelemetry tracing is globally disabled. Did you forget to call setOpenTelemetryTracing?"));
