@@ -39,9 +39,8 @@
 MMDB::MMDB(const std::string& fname, const std::string& modeStr) :
   d_fname(fname)
 {
-  int ec;
   int flags = 0;
-  if (modeStr == "") {
+  if (modeStr.empty()) {
     /* for the benefit of ifdef */
   }
 #ifdef HAVE_MMAP
@@ -50,30 +49,34 @@ MMDB::MMDB(const std::string& fname, const std::string& modeStr) :
   }
 #endif
   else {
-    throw std::runtime_error(std::string("Unsupported mode ") + modeStr + ("for mmdb"));
+    throw std::runtime_error(std::string("Unsupported mode ") + modeStr + "for mmdb");
   }
   memset(&d_db, 0, sizeof(d_db));
-  if ((ec = MMDB_open(fname.c_str(), flags, &d_db)) < 0)
-    throw std::runtime_error(std::string("Cannot open ") + fname + std::string(": ") + std::string(MMDB_strerror(ec)));
+  if (int errorCode = MMDB_open(fname.c_str(), flags, &d_db); errorCode != MMDB_SUCCESS) {
+    throw std::runtime_error(std::string("Cannot open ") + fname + std::string(": ") + std::string(MMDB_strerror(errorCode)));
+  }
+
   VERBOSESLOG(infolog("Opened MMDB database %s (type: %s version: %d.%d)", fname, d_db.metadata.database_type, d_db.metadata.binary_format_major_version, d_db.metadata.binary_format_minor_version),
               dnsdist::logging::getTopLogger("mmdb")->info(Logr::Info, "Opened MMDB database", "path", Logging::Loggable(fname), "type", Logging::Loggable(d_db.metadata.database_type), "version", Logging::Loggable(std::to_string(d_db.metadata.binary_format_major_version) + "." + std::to_string(d_db.metadata.binary_format_minor_version))));
 }
 
-bool MMDB::query(LuaAny& ret, const boost::variant<const char*, std::vector<const char*>>& queryParams, const ComboAddress& ip) const
+bool MMDB::query(LuaAny& ret, const boost::variant<const char*, std::vector<const char*>>& queryParams, const ComboAddress& address) const
 {
   MMDB_entry_data_s data;
   MMDB_lookup_result_s res;
-  if (!mmdbLookup(ip, res)) {
+  if (!mmdbLookup(address, res)) {
     return false;
   }
 
-  if (auto q = boost::get<const char*>(&queryParams)) {
-    if (MMDB_get_value(&res.entry, &data, q, NULL) != MMDB_SUCCESS || !data.has_data)
+  if (const auto* param = boost::get<const char*>(&queryParams); param != nullptr) {
+    if (MMDB_get_value(&res.entry, &data, param, NULL) != MMDB_SUCCESS || !data.has_data) {
       return false;
+    }
   }
-  else if (auto params = boost::get<std::vector<const char*>>(&queryParams)) {
-    if (MMDB_aget_value(&res.entry, &data, &params->at(0)) != MMDB_SUCCESS || !data.has_data)
+  else if (const auto* params = boost::get<std::vector<const char*>>(&queryParams); params != nullptr) {
+    if (MMDB_aget_value(&res.entry, &data, &params->at(0)) != MMDB_SUCCESS || !data.has_data) {
       return false;
+    }
   }
 
   if (mmdbDecode(&data, ret)) {
@@ -86,26 +89,24 @@ bool MMDB::query(LuaAny& ret, const boost::variant<const char*, std::vector<cons
     return false;
   }
   auto elist = std::move(*elistopt);
-  auto first = elist.getFirst();
+  auto* first = elist.getFirst();
   return mmdbDecodeEntryList(&first, ret);
 }
 
-const boost::variant<const char*, std::vector<const char*>> MMDB::convertParams(const LuaTypeOrArrayOf<std::string>& queryParams)
+boost::variant<const char*, std::vector<const char*>> MMDB::convertParams(const LuaTypeOrArrayOf<std::string>& queryParams)
 {
-  if (auto param = boost::get<std::string>(&queryParams)) {
+  if (const auto* param = boost::get<std::string>(&queryParams)) {
     return param->c_str();
   }
-  else if (auto params = boost::get<std::vector<std::pair<int, std::string>>>(&queryParams)) {
+  if (const auto* params = boost::get<std::vector<std::pair<int, std::string>>>(&queryParams)) {
     auto paramsArray = std::vector<const char*>(params->size() + 1);
     for (size_t i = 0; i < params->size(); ++i) {
       paramsArray.at(i) = params->at(i).second.c_str();
     }
-    paramsArray.at(params->size()) = NULL;
+    paramsArray.at(params->size()) = nullptr;
     return paramsArray;
   }
-  else {
-    return "";
-  }
+  return "";
 }
 
 std::shared_ptr<const Logr::Logger> MMDB::getLogger() const
@@ -113,7 +114,7 @@ std::shared_ptr<const Logr::Logger> MMDB::getLogger() const
   return dnsdist::logging::getTopLogger("mmdb")->withValues("path", Logging::Loggable(d_fname));
 }
 
-bool MMDB::mmdbDecode(MMDB_entry_data_s* data, LuaAny& ret) const
+bool MMDB::mmdbDecode(MMDB_entry_data_s* data, LuaAny& ret)
 {
   switch (data->type) {
   case MMDB_DATA_TYPE_BOOLEAN:
@@ -138,7 +139,7 @@ bool MMDB::mmdbDecode(MMDB_entry_data_s* data, LuaAny& ret) const
     ret = static_cast<uint64_t>(data->uint32);
     break;
   case MMDB_DATA_TYPE_UINT64:
-    ret = static_cast<uint64_t>(data->uint64);
+    ret = data->uint64;
     break;
   default:
     return false;
@@ -178,7 +179,7 @@ bool MMDB::mmdbDecodeMap(MMDB_entry_data_list_s** data, LuaAny& ret) const
   for (auto size = this_data->entry_data.data_size; size > 0; --size) {
     *data = (*data)->next;
 
-    if (!*data) {
+    if (*data == nullptr) {
       break;
     }
 
@@ -190,7 +191,7 @@ bool MMDB::mmdbDecodeMap(MMDB_entry_data_list_s** data, LuaAny& ret) const
     std::string key{(*data)->entry_data.utf8_string, (*data)->entry_data.data_size};
 
     *data = (*data)->next;
-    if (!*data) {
+    if (*data == nullptr) {
       break;
     }
 
@@ -216,7 +217,7 @@ bool MMDB::mmdbDecodeArray(MMDB_entry_data_list_s** data, LuaAny& ret) const
   for (uint32_t i = 0; i < this_data->entry_data.data_size; ++i) {
     *data = (*data)->next;
 
-    if (!*data) {
+    if (*data == nullptr) {
       break;
     }
 
@@ -233,13 +234,15 @@ bool MMDB::mmdbDecodeArray(MMDB_entry_data_list_s** data, LuaAny& ret) const
   return true;
 }
 
-bool MMDB::mmdbLookup(const ComboAddress& ip, MMDB_lookup_result_s& res) const
+bool MMDB::mmdbLookup(const ComboAddress& address, MMDB_lookup_result_s& res) const
 {
   int mmdb_ec = 0;
-  res = MMDB_lookup_sockaddr(&d_db, reinterpret_cast<const struct sockaddr*>(&ip), &mmdb_ec);
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+  res = MMDB_lookup_sockaddr(&d_db, reinterpret_cast<const struct sockaddr*>(&address), &mmdb_ec);
 
   if (mmdb_ec != MMDB_SUCCESS) {
-    VERBOSESLOG(infolog("mmdbLookup(%s) failed: %s", ip.toString(), MMDB_strerror(mmdb_ec)), getLogger()->error(Logr::Info, MMDB_strerror(mmdb_ec), "mmdbLookup failed", "ip", Logging::Loggable(ip)));
+    VERBOSESLOG(infolog("mmdbLookup(%s) failed: %s", address.toString(), MMDB_strerror(mmdb_ec)),
+                getLogger()->error(Logr::Info, MMDB_strerror(mmdb_ec), "mmdbLookup failed", "ip", Logging::Loggable(address)));
   }
   else if (res.found_entry) {
     return true;
@@ -247,9 +250,9 @@ bool MMDB::mmdbLookup(const ComboAddress& ip, MMDB_lookup_result_s& res) const
   return false;
 }
 
-std::optional<MMDBEntryList> MMDB::getEntryList(MMDB_entry_s* entry) const
+std::optional<MMDBEntryList> MMDB::getEntryList(MMDB_entry_s* entry)
 {
-  MMDB_entry_data_list_s* entry_data_list;
+  MMDB_entry_data_list_s* entry_data_list{};
   int status = MMDB_get_entry_data_list(entry, &entry_data_list);
 
   if (status != MMDB_SUCCESS) {

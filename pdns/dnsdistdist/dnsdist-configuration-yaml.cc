@@ -2039,9 +2039,9 @@ void registerKVSObjects([[maybe_unused]] const KeyValueStoresConfiguration& conf
     else {
       std::vector<std::pair<int, std::string>> params;
       params.reserve(mmdb.query_params.size());
-      int i = 1;
+      int idx = 1;
       for (const auto& param : mmdb.query_params) {
-        params.emplace_back(i++, param);
+        params.emplace_back(idx++, param);
       }
       queryParams = params;
     }

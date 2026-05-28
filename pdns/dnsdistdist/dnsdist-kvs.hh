@@ -242,7 +242,7 @@ private:
 class MMDBKVStore : public KeyValueStore
 {
 public:
-  MMDBKVStore(const std::shared_ptr<MMDB> mmdb, const LuaTypeOrArrayOf<std::string>& queryParams) :
+  MMDBKVStore(const std::shared_ptr<MMDB>& mmdb, const LuaTypeOrArrayOf<std::string>& queryParams) :
     d_mmdb(mmdb), d_originalParams(queryParams), d_queryParams(MMDB::convertParams(d_originalParams)) {};
 
   bool keyExists(const std::string& key) override;
@@ -253,11 +253,11 @@ public:
   }
 
 private:
-  std::shared_ptr<const Logr::Logger> getLogger() const;
+  [[nodiscard]] std::shared_ptr<const Logr::Logger> getLogger() const;
+  json11::Json parseAny(const LuaAny& any);
+
   std::shared_ptr<MMDB> d_mmdb;
   const LuaTypeOrArrayOf<std::string> d_originalParams;
   const boost::variant<const char*, std::vector<const char*>> d_queryParams;
-
-  json11::Json parseAny(const LuaAny& any);
 };
 #endif // HAVE_MMDB

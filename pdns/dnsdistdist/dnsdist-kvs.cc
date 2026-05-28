@@ -318,56 +318,50 @@ std::shared_ptr<const Logr::Logger> MMDBKVStore::getLogger() const
 json11::Json MMDBKVStore::parseAny(const LuaAny& any)
 {
   if (any.type() == typeid(std::string)) {
-    return json11::Json(boost::get<std::string>(any));
+    return boost::get<std::string>(any);
   }
-  else if (any.type() == typeid(int64_t)) {
+  if (any.type() == typeid(int64_t)) {
     auto val = boost::get<int64_t>(any);
     if (val > static_cast<int64_t>(INT_MAX) || val < static_cast<int64_t>(INT_MIN)) {
-      SLOG(warnlog("Error while retrieving a value from MMDB database: integer overflow. Returning null."),
-           getLogger()->error(Logr::Warning, "", "Error while retrieving a value from MMDB database: integer overflow. Returning null."));
-      return json11::Json();
+      VERBOSESLOG(warnlog("Error while retrieving a value from MMDB database: integer overflow. Returning null."),
+                  getLogger()->info(Logr::Warning, "Error while retrieving a value from MMDB database: integer overflow. Returning null."));
+      return {};
     }
-    else {
-      return json11::Json(static_cast<int>(val));
-    }
+    return static_cast<int>(val);
   }
-  else if (any.type() == typeid(uint64_t)) {
+  if (any.type() == typeid(uint64_t)) {
     auto val = boost::get<uint64_t>(any);
     if (val > static_cast<uint64_t>(INT_MAX)) {
-      SLOG(warnlog("Error while retrieving a value from MMDB database: integer overflow. Returning null."),
-           getLogger()->error(Logr::Warning, "", "Error while retrieving a value from MMDB database: integer overflow. Returning null."));
-      return json11::Json();
+      VERBOSESLOG(warnlog("Error while retrieving a value from MMDB database: integer overflow. Returning null."),
+                  getLogger()->info(Logr::Warning, "Error while retrieving a value from MMDB database: integer overflow. Returning null."));
+      return {};
     }
-    else {
-      return json11::Json(static_cast<int>(val));
-    }
+    return static_cast<int>(val);
   }
-  else if (any.type() == typeid(double)) {
-    return json11::Json(boost::get<double>(any));
+  if (any.type() == typeid(double)) {
+    return boost::get<double>(any);
   }
-  else if (any.type() == typeid(bool)) {
-    return json11::Json(boost::get<bool>(any));
+  if (any.type() == typeid(bool)) {
+    return boost::get<bool>(any);
   }
-  else if (any.type() == typeid(LuaArray<LuaAny>)) {
+  if (any.type() == typeid(LuaArray<LuaAny>)) {
     auto luaArray = boost::get<LuaArray<LuaAny>>(any);
     std::vector<json11::Json> array;
     array.reserve(luaArray.size());
-    for (auto& kv : luaArray) {
-      array.emplace_back(parseAny(kv.second));
+    for (auto& keyValue : luaArray) {
+      array.emplace_back(parseAny(keyValue.second));
     }
-    return json11::Json(array);
+    return array;
   }
-  else if (any.type() == typeid(LuaAssociativeTable<LuaAny>)) {
+  if (any.type() == typeid(LuaAssociativeTable<LuaAny>)) {
     auto luaTable = boost::get<LuaAssociativeTable<LuaAny>>(any);
     std::unordered_map<std::string, json11::Json> map(luaTable.size());
-    for (auto& kv : luaTable) {
-      map.emplace(kv.first, parseAny(kv.second));
+    for (auto& [key, value] : luaTable) {
+      map.emplace(key, parseAny(value));
     }
-    return json11::Json(map);
+    return map;
   }
-  else {
-    return json11::Json();
-  }
+  return {};
 }
 
 bool MMDBKVStore::keyExists(const std::string& key)
