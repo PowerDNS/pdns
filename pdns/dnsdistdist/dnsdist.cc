@@ -81,7 +81,6 @@
 #include "dnsdist-udp.hh"
 #include "dnsdist-web.hh"
 #include "dnsdist-xsk.hh"
-#include "dnsdist-udp.hh"
 
 #include "base64.hh"
 #include "capabilities.hh"
