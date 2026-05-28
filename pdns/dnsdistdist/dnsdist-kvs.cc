@@ -20,13 +20,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include <climits>
+#include <sys/stat.h>
+
 #include "dnsdist-kvs.hh"
 #include "dnsdist-lua-types.hh"
 #include "dolog.hh"
-
-#include <limits.h>
-#include <sys/stat.h>
-#include <boost/variant.hpp>
 
 std::vector<std::string> KeyValueLookupKeySourceIP::getKeys(const ComboAddress& addr)
 {

@@ -237,6 +237,7 @@ private:
 
 #ifdef HAVE_MMDB
 
+#include <boost/variant.hpp>
 #include "mmdb.hh"
 
 class MMDBKVStore : public KeyValueStore
