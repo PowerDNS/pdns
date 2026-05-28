@@ -42,6 +42,9 @@ dnsdist is also available in `FreeBSD ports <https://www.freshports.org/dns/dnsd
 Installing from Source
 ----------------------
 
+.. versionchanged:: 2.2.0
+   Support for autotools and make have been removed, use the ``meson`` instructions.
+
 In order to compile dnsdist, a modern compiler with C++ 2017 support, a Python 3 interpreter with the ``YAML`` module, and either GNU make or ``meson`` with ``ninja`` are required.
 dnsdist depends on the following libraries:
 
@@ -88,36 +91,31 @@ Older (1.0.x) releases can also be signed with one of the following keys:
 * `1628 90D0 689D D12D D33E 4696 1C5E E990 D2E7 1575 <https://pgp.mit.edu/pks/lookup?op=get&search=0x1C5EE990D2E71575>`_
 * `B76C D467 1C09 68BA A87D E61C 5E50 715B F2FF E1A7 <https://pgp.mit.edu/pks/lookup?op=get&search=0x5E50715BF2FFE1A7>`_
 
-To compile from tarball:
+To compile from tarball using make (until version 2.2.0):
 
 * Untar the tarball and ``cd`` into the source directory
 * Run ``./configure``
 * Run ``make`` or ``gmake`` (on BSD)
+
+To compile from tarball using meson:
+
+* Untar the tarball and ``cd`` into the source directory
+* Run ``meson setup build``
+* Run ``meson compile -C build``
 
 From git
 ~~~~~~~~
 
 To compile from git, these additional dependencies are required:
 
-* GNU `Autoconf <https://www.gnu.org/software/autoconf/autoconf.html>`_
-* GNU `Automake <https://www.gnu.org/software/automake/>`_
 * `Ragel <https://www.colm.net/open-source/ragel/>`_
 
-dnsdist source code lives in the `PowerDNS git repository <https://github.com/PowerDNS/pdns>`_ but is independent of PowerDNS.
+:program:`dnsdist` source code lives in the `PowerDNS git repository <https://github.com/PowerDNS/pdns>`_ but is independent of PowerDNS.
 
-::
+.. code-block:: sh
 
   git clone https://github.com/PowerDNS/pdns.git
   cd pdns/pdns/dnsdistdist
-  autoreconf -i
-  ./configure
-  make
-
-Using meson
-~~~~~~~~~~~
-
-dnsdist can also be compiled with ``meson`` and ``ninja``. For example::
-
   meson setup build
   meson compile -C build
 
