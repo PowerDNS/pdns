@@ -92,10 +92,8 @@ EXTRA_DIST = \
 	builder-support/gen-version
 
 dist-hook:
-	for file in $$(find $(distdir)/docs -type l); do \
-	  t=`stat -c%N $$file | awk '{print $$NF}' | sed "s/'//g"` ; \
-	  ln -fs ../$$t $$file; \
-	done
+	@echo "\`make dist' is no longer supported, use \`meson dist'" >&2
+	@false
 
 sbin_PROGRAMS = pdns_recursor
 bin_PROGRAMS = rec_control
