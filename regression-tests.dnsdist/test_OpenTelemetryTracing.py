@@ -14,6 +14,7 @@ import dns.rrset
 import google.protobuf.json_format
 import opentelemetry.proto.trace.v1.trace_pb2
 
+from dnsdisttests import pickAvailablePort
 import test_Protobuf
 
 
@@ -757,6 +758,11 @@ def servfailOnTraceParent(request: dns.message.Message):
 class TestOpenTelemetryTracingStripIncomingTraceParent(
     DNSDistOpenTelemetryProtobufTest
 ):
+    # this test suite uses a different responder port
+    # because it uses a different responder logic so we
+    # need to make sure we are not hitting the backend
+    # from a different test
+    _testServerPort = pickAvailablePort()
     _yaml_config_params = [
         "_testServerPort",
     ]
@@ -865,6 +871,11 @@ def verifyTraceparentInQuery(request: dns.message.Message):
 class TestOpenTelemetryTracingSendTraceparentDownstream(
     DNSDistOpenTelemetryProtobufTest
 ):
+    # this test suite uses a different responder port
+    # because it uses a different responder logic so we
+    # need to make sure we are not hitting the backend
+    # from a different test
+    _testServerPort = pickAvailablePort()
     _yaml_config_params = [
         "_testServerPort",
     ]
