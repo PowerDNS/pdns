@@ -14,7 +14,7 @@ Generic MySQL/MariaDB  backend
 * Search: Yes
 * Views: No
 * API: Read-Write
-* Multiple instances: yes
+* :ref:`Multiple instances <setting-launch>`: Yes
 * Zone caching: Yes
 * Module name: gmysql
 * Launch name: ``gmysql``

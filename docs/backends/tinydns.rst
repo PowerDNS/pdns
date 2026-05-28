@@ -14,7 +14,7 @@ TinyDNS Backend
 * Search: since version 5.1.0
 * Views: No
 * API: Read-only
-* Multiple Instances: Yes
+* :ref:`Multiple instances <setting-launch>`: Yes
 * Zone caching: Yes
 * Module name: tinydns
 * Launch: ``tinydns``

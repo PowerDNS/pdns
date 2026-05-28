@@ -14,7 +14,7 @@ GeoIP backend
 * Search: No
 * Views: No
 * API: Read-only
-* Multiple instances: Yes
+* :ref:`Multiple instances <setting-launch>`: Yes
 * Zone caching: Yes
 * Module name: geoip
 * Launch name: ``geoip``

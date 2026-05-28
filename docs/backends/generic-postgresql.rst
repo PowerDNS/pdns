@@ -14,7 +14,7 @@ Generic PostgreSQL backend
 * Search: Yes
 * Views: No
 * API: Read-Write
-* Multiple instances: yes
+* :ref:`Multiple instances <setting-launch>`: Yes
 * Zone caching: Yes
 * Module name: gpgsql
 * Launch name: ``gpgsql``

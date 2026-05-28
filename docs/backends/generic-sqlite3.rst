@@ -14,7 +14,7 @@ Generic SQLite 3 backend
 * Search: Yes
 * Views: No
 * API: Read-Write
-* Multiple instances: yes
+* :ref:`Multiple instances <setting-launch>`: Yes
 * Zone caching: Yes
 * Module name: gsqlite3
 * Launch name: ``gsqlite3``
