@@ -24,6 +24,7 @@ on:
           ubuntu-focal
           ubuntu-jammy
           ubuntu-noble
+          ubuntu-resolute
       ref:
         description: git ref to checkout
         type: string
@@ -140,6 +141,8 @@ jobs:
       pkghashes-ubuntu-jammy-aarch64: ${{ steps.pkghashes.outputs.pkghashes-ubuntu-jammy-aarch64 }}
       pkghashes-ubuntu-noble-x86_64: ${{ steps.pkghashes.outputs.pkghashes-ubuntu-noble-x86_64 }}
       pkghashes-ubuntu-noble-aarch64: ${{ steps.pkghashes.outputs.pkghashes-ubuntu-noble-aarch64 }}
+      pkghashes-ubuntu-resolute-x86_64: ${{ steps.pkghashes.outputs.pkghashes-ubuntu-resolute-x86_64 }}
+      pkghashes-ubuntu-resolute-aarch64: ${{ steps.pkghashes.outputs.pkghashes-ubuntu-resolute-aarch64 }}
       srchashes: ${{ steps.srchashes.outputs.srchashes }}
     env:
       IS_RELEASE: ${{ inputs.is_release}}
