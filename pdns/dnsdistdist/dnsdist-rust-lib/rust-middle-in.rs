@@ -12,13 +12,13 @@
         type DNSSelector;
         type DNSActionWrapper;
         type DNSResponseActionWrapper;
-        fn registerProtobufLogger(config: &ProtobufLoggerConfiguration);
-        fn registerDnstapLogger(config: &DnstapLoggerConfiguration);
-        fn registerOtlpLogger(config: &OtlpLoggerConfiguration);
-        fn registerKVSObjects(config: &KeyValueStoresConfiguration);
-        fn registerMMDBObjects(config: &Vec<MmdbConfiguration>);
-        fn registerNMGObjects(nmgs: &Vec<NetmaskGroupConfiguration>);
-        fn registerTimedIPSetObjects(sets: &Vec<TimedIpSetConfiguration>);
+        fn registerProtobufLogger(config: &ProtobufLoggerConfiguration) -> Result<()>;
+        fn registerDnstapLogger(config: &DnstapLoggerConfiguration) -> Result<()>;
+        fn registerOtlpLogger(config: &OtlpLoggerConfiguration) -> Result<()>;
+        fn registerKVSObjects(config: &KeyValueStoresConfiguration) -> Result<()>;
+        fn registerMMDBObjects(config: &Vec<MmdbConfiguration>) -> Result<()>;
+        fn registerNMGObjects(nmgs: &Vec<NetmaskGroupConfiguration>) -> Result<()>;
+        fn registerTimedIPSetObjects(sets: &Vec<TimedIpSetConfiguration>) -> Result<()>;
     }
 }
 
