@@ -47,13 +47,14 @@ fn get_response_rules_from_serde(
 
 fn register_remote_loggers(
   config: &dnsdistsettings::RemoteLoggingConfiguration,
-) {
+) -> Result<(), cxx::Exception> {
   for logger in &config.protobuf_loggers {
-    dnsdistsettings::registerProtobufLogger(&logger);
+    dnsdistsettings::registerProtobufLogger(&logger)?;
   }
   for logger in &config.dnstap_loggers {
-    dnsdistsettings::registerDnstapLogger(&logger);
+    dnsdistsettings::registerDnstapLogger(&logger)?;
   }
+  Ok(())
 }
 
 fn get_global_configuration_from_serde(
@@ -88,13 +89,13 @@ fn get_global_configuration_from_serde(
     config.webserver = serde.webserver;
     config.xsk = serde.xsk;
     // this needs to be done before the rules so that they can refer to the loggers
-    register_remote_loggers(&config.remote_logging);
+    register_remote_loggers(&config.remote_logging)?;
     // this needs to be done before the rules so that they can refer to the KVS objects
-    dnsdistsettings::registerKVSObjects(&config.key_value_stores);
+    dnsdistsettings::registerKVSObjects(&config.key_value_stores)?;
     // this needs to be done before the rules so that they can refer to the NMG objects
-    dnsdistsettings::registerNMGObjects(&config.netmask_groups);
+    dnsdistsettings::registerNMGObjects(&config.netmask_groups)?;
     // this needs to be done before the rules so that they can refer to the TimeIPSet objects
-    dnsdistsettings::registerTimedIPSetObjects(&config.timed_ip_sets);
+    dnsdistsettings::registerTimedIPSetObjects(&config.timed_ip_sets)?;
     // this needs to be done BEFORE the rules so that they can refer to the selectors
     // by name
     config.selectors = get_selectors_from_serde(&serde.selectors)?;
