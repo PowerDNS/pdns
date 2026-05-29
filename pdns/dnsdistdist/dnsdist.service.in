@@ -1,17 +1,17 @@
 [Unit]
-Description=DNS Loadbalancer
+Description=@Description@
 Documentation=man:dnsdist(1)
 Documentation=https://dnsdist.org
 Wants=network-online.target
 After=network-online.target time-sync.target
 
 [Service]
-ExecStartPre=@bindir@/dnsdist --check-config
+ExecStartPre=@BinDir@/dnsdist --check-config @ConfigFile@
 # Note: when editing the ExecStart command, keep --supervised and --disable-syslog
-ExecStart=@bindir@/dnsdist --supervised --disable-syslog
-User=@service_user@
-Group=@service_group@
-SyslogIdentifier=dnsdist
+ExecStart=@BinDir@/dnsdist --supervised --disable-syslog @ConfigFile@
+User=@ServiceUser@
+Group=@ServiceGroup@
+SyslogIdentifier=@SyslogIdentifier@
 Type=notify
 Restart=on-failure
 RestartSec=2
@@ -31,31 +31,31 @@ LimitNOFILE=1000000
 # capability: adding a 'capability sys_admin,' line to the policy is usually enough.
 CapabilityBoundingSet=CAP_NET_BIND_SERVICE
 AmbientCapabilities=CAP_NET_BIND_SERVICE
-LockPersonality=true
+@LockPersonality@
 NoNewPrivileges=true
-PrivateDevices=true
-PrivateTmp=true
+@PrivateDevices@
+@PrivateTmp@
 # Setting PrivateUsers=true prevents us from opening our sockets
-ProtectClock=true
-ProtectControlGroups=true
-ProtectHome=true
-ProtectHostname=true
-ProtectKernelLogs=true
-ProtectKernelModules=true
-ProtectKernelTunables=true
-ProtectSystem=full
-RestrictAddressFamilies=AF_INET AF_INET6 AF_NETLINK AF_UNIX AF_XDP
-RestrictNamespaces=true
-RestrictRealtime=true
-RestrictSUIDSGID=true
-SystemCallArchitectures=native
-SystemCallFilter=~ @clock @debug @module @mount @raw-io @reboot @swap @cpu-emulation @obsolete
-ProtectProc=invisible
-PrivateIPC=true
-RemoveIPC=true
+@ProtectClock@
+@ProtectControlGroups@
+@ProtectHome@
+@ProtectHostname@
+@ProtectKernelLogs@
+@ProtectKernelModules@
+@ProtectKernelTunables@
+@ProtectSystem@
+@RestrictAddressFamilies@
+@RestrictNamespaces@
+@RestrictRealtime@
+@RestrictSUIDSGID@
+@SystemCallArchitectures@
+@SystemCallFilter@
+@ProtectProc@
+@PrivateIPC@
+@RemoveIPC@
 DevicePolicy=closed
 # Not enabled by default because it does not play well with LuaJIT
-# MemoryDenyWriteExecute=true
+@MemoryDenyWriteExecute@
 
 [Install]
 WantedBy=multi-user.target

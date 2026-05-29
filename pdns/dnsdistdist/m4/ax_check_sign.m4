@@ -1,1 +1,0 @@
-../../../m4/ax_check_sign.m4

@@ -495,7 +495,8 @@ if get_option('fuzz-targets')
       'files-extra': fuzz_extra_sources,
       'deps-extra': [
          dep_libsystemd,
-       ]
+       ],
+      'fuzzing-target': true,
     },
   }
   if get_option('xsk').allowed() and dep_libbpf.found() and dep_libxdp.found()
@@ -510,9 +511,10 @@ if get_option('fuzz-targets')
            src_dir / 'misc.cc',
            src_dir / 'xsk.cc'
            ],
-        'deps-extra': [
+         'deps-extra': [
            dep_libsystemd,
-         ]
+          ],
+         'fuzzing-target': true,
        },
     }
   endif
@@ -637,6 +639,7 @@ if get_option('benchmark')
 endif
 
 man_pages = []
+fuzzing_binaries = []
 foreach tool, info: tools
   var_name = tool.underscorify()
   main = files(info['main'])
@@ -647,21 +650,22 @@ foreach tool, info: tools
   link_args = 'link-args' in info ? info['link-args'] : []
   install = 'install' in info ? info['install'] : false
 
+  new_binary = executable(
+    tool,
+    main,
+    config_h,
+    files_extra,
+    export_dynamic: export_dynamic,
+    link_args: link_args,
+    dependencies: [
+      libdnsdist_common,
+      deps_extra,
+    ],
+    install: install,
+  )
   set_variable(
     var_name,
-    executable(
-      tool,
-      main,
-      config_h,
-      files_extra,
-      export_dynamic: export_dynamic,
-      link_args: link_args,
-      dependencies: [
-        libdnsdist_common,
-        deps_extra,
-      ],
-      install: install,
-    )
+    new_binary,
   )
 
   if 'manpages' in info
@@ -669,7 +673,15 @@ foreach tool, info: tools
       man_pages += docs_dir / 'manpages' / (man_page + '.rst')
     endforeach
   endif
+  if 'fuzzing-target' in info
+    fuzzing_binaries += new_binary
+  endif
 endforeach
+
+if get_option('fuzz-targets')
+  alias_target('fuzz-targets',
+               fuzzing_binaries)
+endif
 
 if get_option('unit-tests')
   test('testrunner', testrunner)
@@ -799,7 +811,7 @@ if dep_systemd_prog.found()
   dnsdist_service_conf_general.set('ConfigFile', '')
 
   configure_file(
-    input: 'dnsdist.service.meson.in',
+    input: 'dnsdist.service.in',
     output: 'dnsdist.service',
     configuration: dnsdist_service_conf_general,
     install: true,
@@ -813,7 +825,7 @@ if dep_systemd_prog.found()
   dnsdist_service_conf_instance.set('ConfigFile', '--config ' + get_option('sysconfdir') + '/dnsdist-%i.conf')
 
   configure_file(
-    input: 'dnsdist.service.meson.in',
+    input: 'dnsdist.service.in',
     output: 'dnsdist@.service',
     configuration: dnsdist_service_conf_instance,
     install: true,
