@@ -1,0 +1,39 @@
+#!/bin/sh
+
+mysqldiff
+
+# add the nested record
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update add deeply.nested.test.dyndns. 3600 A 1.2.3.4
+send
+answer
+!
+
+cleandig deeply.nested.test.dyndns ANY
+cleandig nested.test.dyndns ANY
+mysqldiff 1 "Check ENT record"
+
+# add the intermediate level
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update add nested.test.dyndns. 3600 A 5.6.7.8
+send
+answer
+!
+
+cleandig deeply.nested.test.dyndns ANY
+cleandig nested.test.dyndns ANY
+mysqldiff 2 "Check ENT record disappearance and proper NSEC3 chaining"
+
+# restore zone for the sake of following tests
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update delete deeply.nested.test.dyndns. 3600 A 1.2.3.4
+update delete nested.test.dyndns. 3600 A 5.6.7.8
+send
+answer
+!

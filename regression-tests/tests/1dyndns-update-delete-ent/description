@@ -1,0 +1,2 @@
+This test adds a nested record to create an empty non-terminal, then
+adds another record causing the empty non-terminal to get removed.

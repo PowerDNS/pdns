@@ -1,0 +1,42 @@
+Answer:
+;; ->>HEADER<<- opcode: UPDATE, status: NOERROR, id: [id]
+;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+;; ZONE SECTION:
+;test.dyndns.			IN	SOA
+
+0	deeply.nested.test.dyndns.	3600	IN	A	1.2.3.4
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='deeply.nested.test.dyndns.', qtype=ANY
+1	test.dyndns.	3600	IN	SOA	ns1.test.dyndns. ahu.example.dyndns. 2026050754 28800 7200 604800 86400
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='nested.test.dyndns.', qtype=ANY
+Check ENT record
+--- Start: diff start step.1 ---
+> deeply.nested.test.dyndns	A	0	1.2.3.4	3600	NULL	1
+> nested.test.dyndns	NULL	NULL	NULL	NULL	NULL	1
+--- End: diff start step.1 ---
+
+Answer:
+;; ->>HEADER<<- opcode: UPDATE, status: NOERROR, id: [id]
+;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+;; ZONE SECTION:
+;test.dyndns.			IN	SOA
+
+0	deeply.nested.test.dyndns.	3600	IN	A	1.2.3.4
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='deeply.nested.test.dyndns.', qtype=ANY
+0	nested.test.dyndns.	3600	IN	A	5.6.7.8
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='nested.test.dyndns.', qtype=ANY
+Check ENT record disappearance and proper NSEC3 chaining
+--- Start: diff start step.2 ---
+> deeply.nested.test.dyndns	A	0	1.2.3.4	3600	NULL	1
+> nested.test.dyndns	A	0	5.6.7.8	3600	NULL	1
+--- End: diff start step.2 ---
+
+Answer:
+;; ->>HEADER<<- opcode: UPDATE, status: NOERROR, id: [id]
+;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+;; ZONE SECTION:
+;test.dyndns.			IN	SOA
+
