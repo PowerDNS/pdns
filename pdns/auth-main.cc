@@ -762,6 +762,26 @@ static void triggerLoadOfLibraries()
   dummy.join();
 }
 
+static bool updateZoneCache(Logr::log_t slog)
+{
+  try {
+    UeberBackend B; // NOLINT(readability-identifier-length)
+    B.updateZoneCache();
+  }
+  catch (PDNSException& e) {
+    SLOG(g_log << Logger::Error << "PDNSException while filling the zone cache: " << e.reason << endl,
+         slog->error(Logr::Error, e.reason, "PDNSException while filling the zone cache"));
+    return false;
+  }
+  catch (std::exception& e) {
+    SLOG(g_log << Logger::Error << "STL Exception while filling the zone cache: " << e.what() << endl,
+         slog->error(Logr::Error, e.what(), "STL Exception while filling the zone cache"));
+    return false;
+  }
+  return true;
+}
+
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 static void mainthread()
 {
   static std::shared_ptr<Logr::Logger> slog;
@@ -977,19 +997,10 @@ static void mainthread()
   // Setup the zone cache
   g_zoneCache.setSLog(slog);
   g_zoneCache.setRefreshInterval(::arg().asNum("zone-cache-refresh-interval"));
-  try {
-    UeberBackend B;
-    B.updateZoneCache();
-  }
-  catch (PDNSException& e) {
-    SLOG(g_log << Logger::Error << "PDNSException while filling the zone cache: " << e.reason << endl,
-         slog->error(Logr::Error, e.reason, "PDNSException while filling the zone cache"));
-    exit(1);
-  }
-  catch (std::exception& e) {
-    SLOG(g_log << Logger::Error << "STL Exception while filling the zone cache: " << e.what() << endl,
-         slog->error(Logr::Error, e.what(), "STL Exception while filling the zone cache"));
-    exit(1);
+  if (g_zoneCache.getRefreshInterval() != 0) {
+    if (!updateZoneCache(slog)) {
+      exit(1); // NOLINT(concurrency-mt-unsafe) we're single threaded at this point
+    }
   }
 
   // NOW SAFE TO CREATE THREADS!
@@ -1026,23 +1037,16 @@ static void mainthread()
   uint32_t secpollSince = 0;
   uint32_t zoneCacheUpdateSince = 0;
   for (;;) {
-    const uint32_t sleeptime = g_zoneCache.getRefreshInterval() == 0 ? secpollInterval : std::min(secpollInterval, g_zoneCache.getRefreshInterval());
+    auto zoneCacheRefresh = g_zoneCache.getRefreshInterval();
+    const uint32_t sleeptime = zoneCacheRefresh == 0 ? secpollInterval : std::min(secpollInterval, zoneCacheRefresh);
     sleep(sleeptime); // if any signals arrive, we might run more often than expected.
 
-    zoneCacheUpdateSince += sleeptime;
-    if (zoneCacheUpdateSince >= g_zoneCache.getRefreshInterval()) {
-      try {
-        UeberBackend B;
-        B.updateZoneCache();
-        zoneCacheUpdateSince = 0;
-      }
-      catch (PDNSException& e) {
-        SLOG(g_log << Logger::Error << "PDNSException while updating zone cache: " << e.reason << endl,
-             slog->error(Logr::Error, e.reason, "PDNSException while updating the zone cache"));
-      }
-      catch (std::exception& e) {
-        SLOG(g_log << Logger::Error << "STL Exception while updating zone cache: " << e.what() << endl,
-             slog->error(Logr::Error, e.what(), "STL Exception while updating the zone cache"));
+    if (zoneCacheRefresh != 0) {
+      zoneCacheUpdateSince += sleeptime;
+      if (zoneCacheUpdateSince >= zoneCacheRefresh) {
+        if (updateZoneCache(slog)) {
+          zoneCacheUpdateSince = 0;
+        }
       }
     }
 
