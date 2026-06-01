@@ -40,7 +40,8 @@ using namespace ::boost::multi_index;
 
 struct KeepWarmEntry
 {
-  KeepWarmEntry(DNSName name, QType qtype, time_t ttd = 0) : d_qname(std::move(name)), d_ttd(ttd), d_qtype(qtype) {}
+  KeepWarmEntry(DNSName name, QType qtype, time_t ttd = 0) :
+    d_qname(std::move(name)), d_ttd(ttd), d_qtype(qtype) {}
   DNSName d_qname;
   time_t d_ttd;
   uint16_t d_qtype;
@@ -71,11 +72,11 @@ public:
   }
   void modifyTTD(KeepWarmEntry& entry, uint32_t ttd)
   {
-      auto item = d_queue.find(std::tie(entry.d_qname, entry.d_qtype));
-      if (item != d_queue.end()) {
-        d_queue.modify(item, [ttd](rec::KeepWarmEntry& entry) { entry.d_ttd = ttd; });
-      }
-      entry.d_ttd = ttd; 
+    auto item = d_queue.find(std::tie(entry.d_qname, entry.d_qtype));
+    if (item != d_queue.end()) {
+      d_queue.modify(item, [ttd](rec::KeepWarmEntry& entryLambda) { entryLambda.d_ttd = ttd; });
+    }
+    entry.d_ttd = ttd;
   }
   void emplace(const DNSName& name, uint16_t qtype)
   {
