@@ -16,7 +16,7 @@ def writeMMDB(fname, empty=False):
     if not empty:
         writer.insert_network(
             IPSet(IPNetwork("127.0.0.0/24")),
-            {"country": {"iso_code": "US"}, "result_ip": "6.7.8.9"},
+            {"country": {"iso_code": "US"}, "result_ip": "6.7.8.9", "array": [1, 2, 3]},
         )
     writer.to_db_file(fname)
 
@@ -29,8 +29,13 @@ class MMDBTest(DNSDistTest):
 
     mmdb = openMMDB('%s')
     kvs = newMMDBKVStore(mmdb, { "country", "iso_code" })
+    full_object_kvs = newMMDBKVStore(mmdb, {})
 
     function lua_mmdb_query(dq)
+        -- Additional exists check is not needed, but it is added here to test it
+        if not mmdb:exists(dq.remoteaddr) then
+            return DNSAction.None
+        end
     	local mmdbData = mmdb:query({"result_ip"}, dq.remoteaddr)
         if mmdbData == nil then
             return DNSAction.None
@@ -40,9 +45,13 @@ class MMDBTest(DNSDistTest):
 
     -- does a lookup in the MMDB database using the source IP as key, and store the result into the 'kvs-sourceip-result' tag
     addAction(RegexRule('regular.*'), KeyValueStoreLookupAction(kvs, KeyValueLookupKeySourceIP(), 'kvs-sourceip-result'))
+    addAction(RegexRule('full.*'), KeyValueStoreLookupAction(full_object_kvs, KeyValueLookupKeySourceIP(), 'kvs-full-sourceip-result'))
 
     -- if the value of the 'kvs-sourceip-result' is set to 'US', spoof a response
     addAction(TagRule('kvs-sourceip-result', 'US'), SpoofAction('5.6.7.8'))
+
+    -- if the value of the 'kvs-full-sourceip-result' is set to the set object, spoof a response
+    addAction(TagRule('kvs-full-sourceip-result', '{"array": [1, 2, 3], "country": {"iso_code": "US"}, "result_ip": "6.7.8.9"}'), SpoofAction('7.8.9.10'))
 
     -- does a lookup and directly spoofs if found, using data from MMDB
     addAction(RegexRule('lua.*'), LuaAction(lua_mmdb_query))
@@ -50,6 +59,7 @@ class MMDBTest(DNSDistTest):
     -- otherwise, spoof a different response
     addAction(RegexRule('regular.*'), SpoofAction('9.9.9.9'))
     addAction(RegexRule('lua.*'), SpoofAction('9.9.9.10'))
+    addAction(RegexRule('full.*'), SpoofAction('9.9.9.11'))
     """
     _config_params = ["_testServerPort", "_mmdbFileName"]
 
@@ -79,6 +89,25 @@ class TestMMDBSimple(MMDBTest):
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "5.6.7.8")
+        expectedResponse.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.assertFalse(receivedQuery)
+            self.assertTrue(receivedResponse)
+            self.assertEqual(expectedResponse, receivedResponse)
+
+    def testMMDBComplexObject(self):
+        """
+        MMDB: Match on source address, returning a comple object
+        """
+        name = "full.source-ip.mmdb.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
+        # dnsdist set RA = RD for spoofed responses
+        query.flags &= ~dns.flags.RD
+        expectedResponse = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "7.8.9.10")
         expectedResponse.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
