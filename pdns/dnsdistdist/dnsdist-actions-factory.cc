@@ -533,7 +533,7 @@ public:
     try {
       DNSAction::Action result{};
       {
-        auto tracer = dnsquestion->ids.getTracer();
+        auto& tracer = dnsquestion->ids.getTracer();
         auto ret = pdns::trace::dnsdist::runWithLuaTracing(tracer, d_func, dnsquestion);
         if (ruleresult != nullptr) {
           if (std::optional<std::string> rule = std::get<1>(ret)) {
@@ -580,7 +580,7 @@ public:
     try {
       DNSResponseAction::Action result{};
       {
-        auto tracer = response->ids.getTracer();
+        auto& tracer = response->ids.getTracer();
         auto ret = pdns::trace::dnsdist::runWithLuaTracing(tracer, d_func, response);
         if (ruleresult != nullptr) {
           if (std::optional<std::string> rule = std::get<1>(ret)) {
@@ -630,7 +630,7 @@ public:
     try {
       DNSAction::Action result{};
       {
-        auto tracer = dnsquestion->ids.getTracer();
+        auto& tracer = dnsquestion->ids.getTracer();
         auto ret = pdns::trace::dnsdist::runWithLuaTracing(tracer, d_func, &dqffi);
         if (ruleresult != nullptr) {
           if (dqffi.result) {
@@ -693,7 +693,7 @@ public:
 
       dnsdist_ffi_dnsquestion_t dqffi(dnsquestion);
       int ret{0};
-      auto tracer = dnsquestion->ids.getTracer();
+      auto& tracer = dnsquestion->ids.getTracer();
       pdns::trace::dnsdist::runWithLuaTracing(state.d_luaContext, tracer, [&state, &dqffi, &ret]() {
         ret = state.d_func(&dqffi);
       });
@@ -757,7 +757,7 @@ public:
     try {
       DNSResponseAction::Action result{};
       {
-        auto tracer = response->ids.getTracer();
+        auto& tracer = response->ids.getTracer();
         auto ret = pdns::trace::dnsdist::runWithLuaTracing(tracer, d_func, &ffiResponse);
         if (ruleresult != nullptr) {
           if (ffiResponse.result) {
@@ -820,7 +820,7 @@ public:
 
       dnsdist_ffi_dnsresponse_t ffiResponse(response);
       int ret{0};
-      auto tracer = response->ids.getTracer();
+      auto& tracer = response->ids.getTracer();
       pdns::trace::dnsdist::runWithLuaTracing(state.d_luaContext, tracer, [&state, &ffiResponse, &ret]() {
         ret = state.d_func(&ffiResponse);
       });
