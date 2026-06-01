@@ -11,8 +11,8 @@ send
 answer
 !
 
-cleandig deeply.nested.test.dyndns ANY
-cleandig nested.test.dyndns ANY
+cleandig deeply.nested.test.dyndns ANY hidesoadetails
+cleandig nested.test.dyndns ANY hidesoadetails
 mysqldiff 1 "Check ENT record"
 
 # add the intermediate level
@@ -24,8 +24,8 @@ send
 answer
 !
 
-cleandig deeply.nested.test.dyndns ANY
-cleandig nested.test.dyndns ANY
+cleandig deeply.nested.test.dyndns ANY hidesoadetails
+cleandig nested.test.dyndns ANY hidesoadetails
 mysqldiff 2 "Check ENT record disappearance and proper NSEC3 chaining"
 
 # restore zone for the sake of following tests
