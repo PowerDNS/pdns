@@ -27,6 +27,7 @@ jobs:
           debian-trixie
           ubuntu-jammy
           ubuntu-noble
+          ubuntu-resolute
     secrets:
       DOWNLOADS_AUTOBUILT_SECRET: ${{ secrets.DOWNLOADS_AUTOBUILT_SECRET }}
       DOWNLOADS_AUTOBUILT_RSYNCTARGET: ${{ secrets.DOWNLOADS_AUTOBUILT_RSYNCTARGET }}
@@ -55,6 +56,7 @@ jobs:
           debian-trixie
           ubuntu-jammy
           ubuntu-noble
+          ubuntu-resolute
     secrets:
       DOWNLOADS_AUTOBUILT_SECRET: ${{ secrets.DOWNLOADS_AUTOBUILT_SECRET }}
       DOWNLOADS_AUTOBUILT_RSYNCTARGET: ${{ secrets.DOWNLOADS_AUTOBUILT_RSYNCTARGET }}
@@ -83,6 +85,7 @@ jobs:
           debian-trixie
           ubuntu-jammy
           ubuntu-noble
+          ubuntu-resolute
     secrets:
       DOWNLOADS_AUTOBUILT_SECRET: ${{ secrets.DOWNLOADS_AUTOBUILT_SECRET }}
       DOWNLOADS_AUTOBUILT_RSYNCTARGET: ${{ secrets.DOWNLOADS_AUTOBUILT_RSYNCTARGET }}
