@@ -26,7 +26,7 @@ void runMaintenanceHooks(const LuaContext& context, std::shared_ptr<pdns::trace:
   }
 }
 
-static void addMaintenanceCallback(const LuaContext& context, MaintenanceCallback callback, std::string name = "")
+static void addMaintenanceCallback(const LuaContext& context, MaintenanceCallback callback, const std::string& name = "")
 {
   (void)context;
   s_maintenanceHooks.lock()->push_back({"maintenanceCallback/" + name, std::move(callback)});
