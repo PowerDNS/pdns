@@ -289,7 +289,7 @@ IOState TCPConnectionToBackend::sendQuery(std::shared_ptr<TCPConnectionToBackend
   DEBUGLOG("sending query to backend " << conn->getDS()->getNameWithAddr() << " over FD " << conn->d_handler->getDescriptor());
 
 #ifndef DISABLE_PROTOBUF
-  if (auto tracer = conn->d_currentQuery.d_query.d_idstate.getTracer(); conn->d_currentQuery.d_query.d_idstate.sendTraceParentToDownstreamID != 0 && tracer != nullptr) {
+  if (auto& tracer = conn->d_currentQuery.d_query.d_idstate.getTracer(); conn->d_currentQuery.d_query.d_idstate.sendTraceParentToDownstreamID != 0 && tracer != nullptr) {
     auto ednsAdded = pdns::trace::dnsdist::addTraceparentEdnsOptionToPacketBuffer(
       conn->d_currentQuery.d_query.d_buffer,
       tracer,

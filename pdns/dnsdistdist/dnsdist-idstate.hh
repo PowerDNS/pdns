@@ -128,20 +128,23 @@ struct InternalQueryState
    *
    * @return
    */
-  std::shared_ptr<pdns::trace::dnsdist::Tracer> getTracer()
+  std::shared_ptr<pdns::trace::dnsdist::Tracer>& getTracer()
   {
 #ifdef DISABLE_PROTOBUF
-    return nullptr;
+    return d_OTTracer;
 #else
-    if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_openTelemetryTracing) {
-      if (d_OTTracer != nullptr) {
-        return d_OTTracer;
-      }
-      // OpenTelemetry tracing is enabled, but we don't have a tracer yet
-      d_OTTracer = pdns::trace::dnsdist::Tracer::getTracer();
+    if ((d_OTTracingEnabledInConfiguration && !*d_OTTracingEnabledInConfiguration) || d_OTTracer != nullptr) {
       return d_OTTracer;
     }
-    return nullptr;
+    if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_openTelemetryTracing) {
+      // OpenTelemetry tracing is enabled, but we don't have a tracer yet
+      d_OTTracingEnabledInConfiguration = true;
+      d_OTTracer = pdns::trace::dnsdist::Tracer::getTracer();
+    }
+    else {
+      d_OTTracingEnabledInConfiguration = false;
+    }
+    return d_OTTracer;
 #endif
   }
 
@@ -231,6 +234,9 @@ public:
   uint16_t udpPayloadSize{0}; // Max UDP payload size from the query // 2
   uint16_t sendTraceParentToDownstreamID{0}; // Whether or not to add a TRACEPARENT EDNS option to downstreams, set to non-0 for the EDNS Option ID
   std::optional<bool> dnssecOK;
+#ifndef DISABLE_PROTOBUF
+  std::optional<bool> d_OTTracingEnabledInConfiguration; // Whether OpenTelemetry tracing is enabled in the configuration. This prevents having to check the configuration several times for the same query
+#endif /* DISABLE_PROTOBUF */
   dnsdist::Protocol protocol; // 1
   uint8_t restartCount{0}; // 1
   bool ednsAdded{false};
