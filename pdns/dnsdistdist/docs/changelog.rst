@@ -2,6 +2,418 @@ Changelog
 =========
 
 .. changelog::
+  :version: 2.0.1-rc1
+  :released: 2nd of June 2026
+
+  .. change::
+    :tags: Improvements, Open Telemetry, YAML
+    :pullreq: 17027
+
+    Change OT Trace YAML config to a struct
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17082
+
+    Downstream timeouts should be logged at verbose level
+
+  .. change::
+    :tags: Improvements, DNS over HTTPS
+    :pullreq: 17085
+
+    Respond 505 to DoH HTTP/1.1 reqs
+
+  .. change::
+    :tags: Improvements, Performance, Open Telemetry
+    :pullreq: 17086
+
+    Prevent copies of OT closers
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 17087
+
+    Log downstream removal
+
+  .. change::
+    :tags: Bug Fixes, YAML
+    :pullreq: 17088
+
+    Fix passing a numeric value to the YAML QType selector
+
+  .. change::
+    :tags: Bug Fixes, Open Telemetry
+    :pullreq: 17090
+
+    Don't assert on OT SpanID mismatch
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17091
+
+    Fix micro-benchmarks compilation
+
+  .. change::
+    :tags: Bug Fixes, Security, Webserver
+    :pullreq: 17092
+
+    Fix HTML injection in the Web dashboard
+
+  .. change::
+    :tags: Bug Fixes, Security, Webserver
+    :pullreq: 17093
+
+    Disable cross-origin HTTP requests by default
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: 17094
+
+    Fix out-of-bounds read when parsing DNS packets via Lua
+
+  .. change::
+    :tags: Bug Fixes, Security, DNS over HTTPS
+    :pullreq: 17095
+
+    Fix DoH ACL bypass when early ACL check is disabled
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: 17096
+
+    DNSWriter: Prevent overflow when generating (too) large DNS packets
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: 17097
+
+    Fix use-after-free in EDNS options handling
+
+  .. change::
+    :tags: Bug Fixes, Security, DNS over QUIC, DNS over HTTP3
+    :pullreq: 17098
+
+    Prevent unbounded memory allocation for DoQ/DoH3
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: 17121
+
+    Do not oversize the received buffer with ``recvmmsg``
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 17122
+
+    Do not keep the parsed EDNS options around
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17163
+
+    Give TCP thread as default for definition ``USE_SINGLE_ACCEPTOR_THREAD``
+
+  .. change::
+    :tags: Bug Fixes, DNS over QUIC
+    :pullreq: 17169
+
+    Hardened DoQ internal error handling for cpq
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTP3
+    :pullreq: 17172
+
+    Hardened DoH3 internal error handling for cpq
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 17175
+
+    Handle missing X-Forwarded-For on existing DoH connection
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 17177
+
+    Fix handling of long HTTP/2 Date headers, handle non-POSIX locales
+
+  .. change::
+    :tags: Bug Fixes, Security, DNSCrypt
+    :pullreq: 17219
+
+    Prevent division by zero when computing DNSCrypt padding
+
+  .. change::
+    :tags: Bug Fixes, Security, DNS over HTTPS
+    :pullreq: 17220
+
+    Cap the amount of data buffered toward a DoH server
+
+  .. change::
+    :tags: Bug Fixes, Security, DNS over QUIC
+    :pullreq: 17221
+
+    Clean QUIC stream-related data after errors
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: 17222
+
+    Prevent ID overflow in outgoing TCP connections
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: 17223
+
+    Use DNSName in StatNode to avoid encoding issues
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: 17224
+
+    Check record length before calling the visitor function
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: 17225
+
+    Handle SVCB response without any usable address
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: 17226
+
+    Fix out-of-bounds check for UDP responses from backend
+
+  .. change::
+    :tags: Bug Fixes, Security, DNS over QUIC, DNS over HTTP3
+    :pullreq: 17227
+
+    Apply TCP connections limits to DoQ/DoH3 connections
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17335
+
+    Fix invalid TCP rate limiting computation
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 17337
+
+    Bail out when a ``NULL`` pointer is passed to ``dnsdist_ffi_dnsquestion_get_proxy_protocol_values``
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 17339
+
+    Fix a crash with DoH backends in verbose health-check mode
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17341
+
+    Fix ``BPFFilter::addRangeRule``
+
+  .. change::
+    :tags: Bug Fixes, Security, Webserver
+    :pullreq: 17342
+
+    Better handling of YaHTTP chunksize, Fix two cases of lacking/wrong max size compares, use less inefficient code in web server
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 17344
+
+    Fix clang-tidy warnings
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 17347
+
+    Set default number of outstanding queries per backend to 65536
+
+  .. change::
+    :tags: Improvements, Performance
+    :pullreq: 17348
+
+    Also apply UDP socket buffer sizes to backend sockets
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 17350
+
+    Make code boost-1.91 compatible
+
+  .. change::
+    :tags: Improvements, DNS over HTTPS
+    :pullreq: 17351
+
+    Better handling of nghttp2 errors
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 17352
+
+    Clean up troubleshooting code
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 17353
+
+    Refactor access to DNS headers from Lua
+
+  .. change::
+    :tags: Bug Fixes, Open Telemetry
+    :pullreq: 17370
+
+    Fix a crash when OpenTelemetry tracing is enabled
+
+  .. change::
+    :tags: Bug Fixes, YAML
+    :pullreq: 17405
+
+    Fix XSK configuration via YAML
+
+  .. change::
+    :tags: Bug Fixes, DNS over TLS, DNS over HTTPS
+    :pullreq: 17406
+
+    Fix outgoing TLS session cache cleanup
+
+  .. change::
+    :tags: Bug Fixes, Metrics
+    :pullreq: 17408
+
+    Fix the dynamic block top suffixes counters computation
+
+  .. change::
+    :tags: Bug Fixes, Performance
+    :pullreq: 17410
+
+    Compute a less inaccurate number of DNS records to pass to ``reserve()``
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17413
+
+    Fix DownstreamState::setHealthCheckParams
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17414
+
+    Fix a data race on concurrent CDB KVS lookups
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17417
+
+    Fix a few issues in our AF_XDP/XSK code
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17418
+
+    Fixes several eBPF issues
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17421
+
+    Better handling of exceptions
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17422
+
+    Fix two small EDNS addition related bugs
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17424
+
+    snmp-agent: Fix a memory leak
+
+  .. change::
+    :tags: Bug Fixes, DNS over QUIC
+    :pullreq: 17426
+
+    Check the DoQ query size against the received size
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17428
+
+    More minor fixes
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17431
+
+    Keep concurrent connection entries for live connections
+
+  .. change::
+    :tags: Bug Fixes, YAML
+    :pullreq: 17433
+
+    Ignore invalid backend weight coming from YAML
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17435
+
+    Fix useless allocation in DNSQuestion:getProxyProtocolValues
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17436
+
+    Fix OPT rdlen computation when adding ECS
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17437
+
+    Fix TeeAction metrics on error/short datagrams
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17438
+
+    Use the correct timestamp, not now, for ISO-8601 format
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17439
+
+    libssl: Minor fixes
+
+  .. change::
+    :tags: Improvements, Performance
+    :pullreq: 17474
+
+    iputils: Return early when the tree is empty
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17475
+
+    Do not send UDP responses when the frontend is muted
+
+  .. change::
+    :tags: Improvements, Performance, Open Telemetry
+    :pullreq: 17476
+
+    Reduce the cost of disabled OpenTelemetry tracing
+
+  .. change::
+    :tags: Improvements, DNS over QUIC, DNS over HTTP3
+    :pullreq: 17480
+
+    Update Quiche to 0.29.1 in our packages
+
+.. changelog::
   :version: 2.0.6
   :released: 21st of May 2026
 
