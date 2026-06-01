@@ -515,7 +515,7 @@ void MultipleMessagesUDPClientThread(ClientState* clientState)
     recvData[idx].remote.sin4.sin_family = clientState->local.sin4.sin_family;
     recvData[idx].packet.resize(initialBufferSize);
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    fillMSGHdr(&msgVec[idx].msg_hdr, &recvData[idx].iov, &recvData[idx].cbuf, sizeof(recvData[idx].cbuf), reinterpret_cast<char*>(recvData[idx].packet.data()), maxIncomingPacketSize, &recvData[idx].remote);
+    fillMSGHdr(&msgVec[idx].msg_hdr, &recvData[idx].iov, &recvData[idx].cbuf, sizeof(decltype(recvData[idx].cbuf)), reinterpret_cast<char*>(recvData[idx].packet.data()), maxIncomingPacketSize, &recvData[idx].remote);
   }
 
   int msgsGot = static_cast<int>(vectSize);
