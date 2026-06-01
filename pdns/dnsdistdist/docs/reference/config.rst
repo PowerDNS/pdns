@@ -2271,7 +2271,7 @@ Other functions
 
   Spawns a separate thread running the supplied code.
   Code is supplied as a string, not as a function object.
-  The code is run, after which :program:`dnsdist` sleeps for 5 seconds before running the code again.
+  The code is executed, and is expected to loop indefinitely. If it crashes or exits, an error message is logged and the thread sleeps for 5 seconds before executing the code again.
   Note that this function does nothing in 'client' or 'config-check' modes.
 
   :param string code: The code to run in the separate thread
