@@ -7,7 +7,7 @@ Answer:
 0	deeply.nested.test.dyndns.	3600	IN	A	1.2.3.4
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='deeply.nested.test.dyndns.', qtype=ANY
-1	test.dyndns.	3600	IN	SOA	ns1.test.dyndns. ahu.example.dyndns. 2026050754 28800 7200 604800 86400
+1	test.dyndns.	3600	IN	SOA	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='nested.test.dyndns.', qtype=ANY
 Check ENT record
