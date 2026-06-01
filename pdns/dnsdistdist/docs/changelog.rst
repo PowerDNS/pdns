@@ -2,7 +2,7 @@ Changelog
 =========
 
 .. changelog::
-  :version: 2.0.1-rc1
+  :version: 2.1.0-rc1
   :released: 2nd of June 2026
 
   .. change::
