@@ -2518,7 +2518,7 @@ static time_t keepCacheWarm(const timeval& now, LocalStateHolder<LuaConfigItems>
         log->error(Logr::Warning, e.reason, msg, "exception", Logging::Loggable("ImmediateServFailException"));
         ret.clear();
       }
-      catch (const PolicyHitException& e) {
+      catch (const PolicyHitException&) {
         log->info(Logr::Warning, msg, "exception", Logging::Loggable("PolicyHitException"));
         ret.clear();
       }
@@ -2533,18 +2533,18 @@ static time_t keepCacheWarm(const timeval& now, LocalStateHolder<LuaConfigItems>
 
       uint32_t minttl = cooldown; // If no records found, either it did not resolve at all, or it did
                                   // not resolve yet. In both cases, pace the work.
-      if (ret.size() > 0) {
+      if (!ret.empty()) {
         minttl = std::numeric_limits<uint32_t>::max();
         bool haveAnswerRecord = false;
         for (const auto& record : ret) {
           if (record.d_place == DNSResourceRecord::ANSWER) {
-	    haveAnswerRecord = true;
+            haveAnswerRecord = true;
           }
           minttl = std::min(minttl, record.d_ttl);
         }
         if (haveAnswerRecord && !haveFinalAnswer(element.d_qname, element.d_qtype, res, ret)) {
           // Common cause: a record in the CNAME chain expired, setting the minttl will trigger a task push below
-	  minttl = 0;
+          minttl = 0;
         }
       }
       lock->modifyTTD(element, now.tv_sec + minttl);
@@ -2858,7 +2858,7 @@ static void recLoop()
 
   static std::atomic<uint32_t> s_counter;
 
-  // Use primes, it avoid not being scheduled in cases where the counter has a regular pattern.
+  // Use primes, they avoid not being scheduled in cases where the counter shows a regular pattern.
   // We want to call handler thread often, it gets scheduled about 2 times per second on an idle recursor
   constexpr uint32_t handlerAndTaskInterval = 11;
   constexpr uint32_t otherInterval = 499;

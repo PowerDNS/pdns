@@ -1013,4 +1013,3 @@ struct ThreadTimes
     return *this;
   }
 };
-
