@@ -1123,6 +1123,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         g_outputBuffer = "Unable to bind to webserver socket on " + local.toStringWithPort() + ": " + e.what();
         SLOG(errlog("Unable to bind to webserver socket on %s: %s", local.toStringWithPort(), e.what()),
              getLogger("webserver")->error(Logr::Error, e.what(), "Error while trying to bind the web server socket", "network.local.address", Logging::Loggable(local)));
+        if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_webserverBindFatal) {
+          _exit(EXIT_FAILURE);
+        }
       }
     }
   });
@@ -1248,6 +1251,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         g_outputBuffer = "Unable to bind to control socket on " + local.toStringWithPort() + ": " + exp.what();
         SLOG(errlog("Unable to bind to control socket on %s: %s", local.toStringWithPort(), exp.what()),
              getLogger("controlSocket")->error(Logr::Error, exp.what(), "Unable to bind to console's control socket", "network.local.address", Logging::Loggable(local)));
+        if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_consoleBindFatal) {
+          _exit(EXIT_FAILURE);
+        }
       }
     }
   });

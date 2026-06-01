@@ -181,6 +181,8 @@ struct RuntimeConfiguration
   bool d_allowEmptyResponse{false};
   bool d_dropEmptyQueries{false};
   bool d_consoleEnabled{false};
+  bool d_consoleBindFatal{false};
+  bool d_webserverBindFatal{false};
   bool d_logConsoleConnections{true};
   bool d_addEDNSToSelfGeneratedResponses{true};
   bool d_applyACLToProxiedClients{false};
