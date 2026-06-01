@@ -117,13 +117,13 @@ Changelog
     :tags: Bug Fixes, DNS over QUIC
     :pullreq: 17169
 
-    Hardened DoQ internal error handling for cpq
+    Hardened DoQ internal error handling for cross-protocol queries
 
   .. change::
     :tags: Bug Fixes, DNS over HTTP3
     :pullreq: 17172
 
-    Hardened DoH3 internal error handling for cpq
+    Hardened DoH3 internal error handling for cross-protocol queries
 
   .. change::
     :tags: Bug Fixes, DNS over HTTPS
@@ -219,7 +219,7 @@ Changelog
     :tags: Bug Fixes, Security, Webserver
     :pullreq: 17342
 
-    Better handling of YaHTTP chunksize, Fix two cases of lacking/wrong max size compares, use less inefficient code in web server
+    Better handling of YaHTTP chunk size, Fix two cases of lacking/wrong max size compares, use less inefficient code in web server
 
   .. change::
     :tags: Improvements
