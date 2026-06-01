@@ -604,6 +604,7 @@ benchmark_sources = files(
   src_dir / 'bench-dnsdist-opentelemetry_cc.cc',
   src_dir / 'bench-dnsdist-rings_cc.cc',
   src_dir / 'bench-misc_hh.cc',
+  src_dir / 'bench-iputils.cc',
 )
 
 if get_option('benchmark')
