@@ -616,7 +616,7 @@ Servers
     Removed ``addXPF`` from server_table.
 
   .. versionchanged:: 2.2.0
-    Added ``echdeCurves`` to server_table.
+    Added ``ecdheCurves`` to server_table.
 
   :param str server_string: A simple IP:PORT string.
   :param table server_table: A table with at least an ``address`` key
