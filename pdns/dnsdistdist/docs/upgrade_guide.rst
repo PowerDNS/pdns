@@ -1,6 +1,11 @@
 Upgrade Guide
 =============
 
+2.1.x to 2.2.0
+--------------
+
+Queries received from clients that have the truncated bit (TC) set are now dropped.
+
 2.1.0-beta2 to 2.1.0
 --------------------
 

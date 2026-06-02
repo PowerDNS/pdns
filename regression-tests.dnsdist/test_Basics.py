@@ -34,6 +34,30 @@ class TestBasics(DNSDistTest):
                 (_, receivedResponse) = sender(query, response=None, useQueue=False)
                 self.assertEqual(receivedResponse, None)
 
+    def testQRDropped(self):
+        """
+        Basics: Dropped QR=1 query
+        """
+        name = "qr-set.test.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
+        query.flags |= dns.flags.QR
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.assertEqual(receivedResponse, None)
+
+    def testTCDropped(self):
+        """
+        Basics: Dropped TC=1 query
+        """
+        name = "tc-set.test.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
+        query.flags |= dns.flags.TC
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.assertEqual(receivedResponse, None)
+
     def testAWithECS(self):
         """
         Basics: A query with an ECS value
