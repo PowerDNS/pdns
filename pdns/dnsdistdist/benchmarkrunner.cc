@@ -27,6 +27,7 @@
 #include "dnsdist-rings.hh"
 #include "dnsdist-xsk.hh"
 #include "dnsdist-tcp.hh"
+#include "dnsdist-udp.hh"
 
 // NOTE: This file contains waaaaaay too many mocked things to make bench-dnsdist-action-rcode.cc
 // link. In the future, all these functions and declarations should go away and be put into their
@@ -36,6 +37,7 @@ RecursiveLockGuarded<LuaContext> g_lua{LuaContext()};
 shared_ptr<BPFFilter> g_defaultBPFFilter{nullptr};
 Rings g_rings;
 string g_outputBuffer;
+std::shared_ptr<dnsdist::udp::UDPTCPCrossQuerySender> dnsdist::udp::UDPCrossProtocolQuery::s_sender = std::make_shared<UDPTCPCrossQuerySender>();
 
 void handleResponseSent([[maybe_unused]] InternalQueryState& ids, [[maybe_unused]] double udiff, [[maybe_unused]] const ComboAddress& client, [[maybe_unused]] const ComboAddress& backend, [[maybe_unused]] unsigned int size, [[maybe_unused]] const dnsheader& cleartextDH, [[maybe_unused]] dnsdist::Protocol protocol, [[maybe_unused]] bool fromBackend)
 {
@@ -99,16 +101,6 @@ bool assignOutgoingUDPQueryToBackend([[maybe_unused]] std::shared_ptr<Downstream
 {
   return true;
 }
-
-#ifdef HAVE_XSK
-namespace dnsdist::xsk
-{
-bool XskProcessQuery([[maybe_unused]] ClientState& clientState, [[maybe_unused]] XskPacket& packet)
-{
-  return false;
-}
-}
-#endif /* HAVE_XSK */
 
 bool processResponderPacket([[maybe_unused]] std::shared_ptr<DownstreamState>& dss, [[maybe_unused]] PacketBuffer& response, [[maybe_unused]] InternalQueryState&& ids)
 {
