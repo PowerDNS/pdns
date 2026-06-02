@@ -619,6 +619,12 @@ EDNS Client Subnet
 Ringbuffers
 ~~~~~~~~~~~
 
+.. function:: getRingBuffersSampingRate() -> int
+
+  .. versionadded:: 2.1.0
+
+  Return the current sampling rate of the rings buffers, as configured via the ``samplingRate`` option to :func:`setRingBuffersOptions`
+
 .. function:: setRingBuffersLockRetries(num)
 
   .. deprecated:: 1.8.0

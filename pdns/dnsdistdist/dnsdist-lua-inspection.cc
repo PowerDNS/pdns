@@ -897,6 +897,13 @@ void setupLuaInspection(LuaContext& luaCtx)
 
   luaCtx.writeFunction("getRespRing", getRespRing);
 
+  luaCtx.writeFunction("getRingBuffersSamplingRate", []() -> size_t {
+    if (dnsdist::configuration::isImmutableConfigurationDone()) {
+      return g_rings.getSamplingRate();
+    }
+    return dnsdist::configuration::getImmutableConfiguration().d_ringsSamplingRate;
+  });
+
   /* StatNode */
   luaCtx.registerFunction<unsigned int (StatNode::*)() const>("numChildren",
                                                               [](const StatNode& node) -> unsigned int {
