@@ -383,7 +383,7 @@ BOOST_AUTO_TEST_CASE(test_parseRFC1035CharStringRelaxed)
   in = ";login";
   expected = "";
   amount = parseRFC1035CharStringRelaxed(in, out);
-  BOOST_CHECK_EQUAL(amount, 0);
+  BOOST_CHECK_EQUAL(amount, 0U);
   BOOST_CHECK_EQUAL(out, expected);
 }
 
