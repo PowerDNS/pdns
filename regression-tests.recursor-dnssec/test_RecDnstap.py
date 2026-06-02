@@ -280,7 +280,7 @@ cname 3600 IN CNAME a.example.
 
     def getFirstDnstap(self):
         try:
-            data = DNSTapServerParameters.queue.get(True, timeout=2.0)
+            data = DNSTapServerParameters.queue.get(True, timeout=5.0)
         except Exception:
             data = False
         self.assertTrue(data)

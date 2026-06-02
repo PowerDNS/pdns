@@ -1,4 +1,5 @@
 import time
+import os
 import subprocess
 
 from recursortests import RecursorTest
@@ -9,13 +10,18 @@ class ZTCTest(RecursorTest):
     _config_template = """
 dnssec:
     validation: validate
+    trustanchors:
+        - name: .
+          dsrecords:
+              - %s
 recordcache:
     zonetocaches:
     - zone: .
       method: axfr
       sources:
-      - 193.0.14.129
+          - %s.8
 """
+    _config_params = ["_root_DS", "_PREFIX"]
 
     @classmethod
     def generateRecursorConfig(cls, confdir):
@@ -34,3 +40,27 @@ recordcache:
             break
         print(ret)
         self.assertNotEqual(ret, b"")
+
+
+class ZTCIgnoreZoneMDTest(ZTCTest):
+    _confdir = "ZTCIgnoreZoneMD"
+    _config_template = """
+dnssec:
+    validation: validate
+    trustanchors:
+        - name: .
+          dsrecords:
+              - %s
+recordcache:
+    zonetocaches:
+    - zone: .
+      method: axfr
+      zonemd: ignore
+      sources:
+          - %s.8
+"""
+    _config_params = ["_root_DS", "_PREFIX"]
+
+    @classmethod
+    def generateRecursorConfig(cls, confdir):
+        super(ZTCTest, cls).generateRecursorYamlConfig(confdir, False)
