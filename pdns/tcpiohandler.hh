@@ -596,6 +596,7 @@ struct TLSContextParameters
   std::string d_provider;
   std::string d_ciphers;
   std::string d_ciphers13;
+  std::string d_ecdheCurves;
   std::string d_caStore;
   std::string d_keyLogFile;
   std::string d_client_certificate;

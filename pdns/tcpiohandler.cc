@@ -831,6 +831,15 @@ public:
     }
 #endif /* HAVE_SSL_CTX_SET_CIPHERSUITES */
 
+#ifdef SSL_CTX_set1_curves_list
+  if (!params.d_ecdheCurves.empty()) {
+    if (SSL_CTX_set1_curves_list(d_tlsCtx.get(), params.d_ecdheCurves.c_str()) != 1) {
+      ERR_print_errors_fp(stderr);
+      throw std::runtime_error("Failed to set the TLS ECDHE curve to '" + params.d_ecdheCurves + "' for the TLS context");
+    }
+  }
+#endif /* SSL_CTX_set1_curves_list */
+
     if (params.d_validateCertificates) {
       if (params.d_caStore.empty())  {
         if (SSL_CTX_set_default_verify_paths(d_tlsCtx.get()) != 1) {

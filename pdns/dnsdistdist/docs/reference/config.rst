@@ -113,7 +113,7 @@ Listen Sockets
      ``enableProxyProtocol``, ``ktls``, ``library``, ``proxyProtocolOutsideTLS``, ``readAhead``, ``tlsAsyncMode`` options added.
 
   .. versionchanged:: 2.2.0
-     ``padResponses`` option added.
+     ``padResponses`` and "ecdheCurves" options added.
 
   Listen on the specified address and TCP port for incoming DNS over HTTPS connections, presenting the specified X.509 certificate. See :doc:`../advanced/tls-certificates-management` for details about the handling of TLS certificates and keys.
   If no certificate (or key) files are specified, listen for incoming DNS over HTTP connections instead.
@@ -135,6 +135,7 @@ Listen Sockets
   * ``idleTimeout=30``: int - Set the idle timeout, in seconds.
   * ``ciphers``: str - The TLS ciphers to use, in OpenSSL format. Ciphers for TLS 1.3 must be specified via ``ciphersTLS13``.
   * ``ciphersTLS13``: str - The TLS ciphers to use for TLS 1.3, in OpenSSL format.
+  * ``ecdheCurves``: str - The curves to use with TLS ECDHE ciphers, in OpenSSL format.
   * ``serverTokens``: str - The content of the Server: HTTP header returned by dnsdist. The default is "nghttp2-<version>/dnsdist" when ``nghttp2`` is used.
   * ``customResponseHeaders={}``: table - Set custom HTTP header(s) returned by dnsdist.
   * ``ocspResponses``: list - List of files containing OCSP responses, in the same order than the certificates and keys, that will be used to provide OCSP stapling responses.
@@ -234,7 +235,7 @@ Listen Sockets
   .. versionchanged:: 1.9.0
      ``enableProxyProtocol``, ``readAhead`` and ``proxyProtocolOutsideTLS`` options added.
   .. versionchanged:: 2.2.0
-     ``padResponses`` option added.
+     ``padResponses`` and "ecdheCurves" options added.
 
   Listen on the specified address and TCP port for incoming DNS over TLS connections, presenting the specified X.509 certificate. See :doc:`../advanced/tls-certificates-management` for details about the handling of TLS certificates and keys.
   More information is available at :doc:`../guides/dns-over-tls`.
@@ -254,6 +255,7 @@ Listen Sockets
   * ``provider``: str - The TLS library to use between GnuTLS and OpenSSL, if they were available and enabled at compilation time. Default is to use OpenSSL when available.
   * ``ciphers``: str - The TLS ciphers to use. The exact format depends on the provider used. When the OpenSSL provider is used, ciphers for TLS 1.3 must be specified via ``ciphersTLS13``.
   * ``ciphersTLS13``: str - The ciphers to use for TLS 1.3, when the OpenSSL provider is used. When the GnuTLS provider is used, ``ciphers`` applies regardless of the TLS protocol and this setting is not used.
+  * ``ecdheCurves``: str - The curves to use with TLS ECDHE ciphers, in OpenSSL format.
   * ``numberOfTicketsKeys``: int - The maximum number of tickets keys to keep in memory at the same time, if the provider supports it (GnuTLS doesn't, OpenSSL does). Only one key is marked as active and used to encrypt new tickets while the remaining ones can still be used to decrypt existing tickets after a rotation. Default to 5.
   * ``ticketKeyFile``: str - The path to a file from where TLS tickets keys should be loaded, to support :rfc:`5077`. These keys should be rotated often and never written to persistent storage to preserve forward secrecy. The default is to generate a random key. The OpenSSL provider supports several tickets keys to be able to decrypt existing sessions after the rotation, while the GnuTLS provider only supports one key. See :doc:`../advanced/tls-sessions-management` for more information.
   * ``ticketsKeysRotationDelay``: int - Set the delay before the TLS tickets key is rotated, in seconds. Default is 43200 (12h).  A value of 0 disables the automatic rotation, which might be useful when ``ticketKeyFile`` is used.
@@ -613,6 +615,9 @@ Servers
   .. versionchanged:: 2.0.0
     Removed ``addXPF`` from server_table.
 
+  .. versionchanged:: 2.2.0
+    Added ``echdeCurves`` to server_table.
+
   :param str server_string: A simple IP:PORT string.
   :param table server_table: A table with at least an ``address`` key
 
@@ -676,6 +681,7 @@ Servers
     ``caStore``                              ``string``            "Specifies the path to the CA certificate file, in PEM format, to use to check the certificate presented by the backend. Default is an empty string, which means to use the system CA store. Note that this directive is only used if ``validateCertificates`` is set."
     ``ciphers``                              ``string``            "The TLS ciphers to use. The exact format depends on the provider used. When the OpenSSL provider is used, ciphers for TLS 1.3 must be specified via ``ciphersTLS13``."
     ``ciphersTLS13``                         ``string``            "The ciphers to use for TLS 1.3, when the OpenSSL provider is used. When the GnuTLS provider is used, ``ciphers`` applies regardless of the TLS protocol and this setting is not used."
+    ``ecdheCurves``                          ``string``            "The curves to use with TLS ECDHE ciphers, in OpenSSL format."
     ``subjectName``                          ``string``              "The subject name passed in the SNI value of the TLS handshake, and against which to validate the certificate presented by the backend. Default is empty. If set this value supersedes any ``subjectAddr`` one."
     ``subjectAddr``                          ``string``            "The subject IP address passed in the SNI value of the TLS handshake, and against which to validate the certificate presented by the backend. Default is empty."
     ``validateCertificates``                 ``bool``              "Whether the certificate presented by the backend should be validated against the CA store (see ``caStore``). Default is true."
