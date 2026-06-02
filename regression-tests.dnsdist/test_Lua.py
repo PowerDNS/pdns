@@ -230,5 +230,5 @@ class TestLuaRingBuffersSamplingRates(DNSDistTest):
         """
         Lua: Test ring buffers sampling rate
         """
-        res = self.sendConsoleCommand('getRingBuffersSamplingRate()').rstrip()
+        res = self.sendConsoleCommand("getRingBuffersSamplingRate()").rstrip()
         self.assertEqual(res, "10")
