@@ -1029,7 +1029,9 @@ static std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)> getNewServerContext(con
   }
 
 #ifdef SSL_CTX_set_ecdh_auto
+#if !defined(OPENSSL_VERSION_MAJOR) || OPENSSL_VERSION_MAJOR < 4
   SSL_CTX_set_ecdh_auto(ctx.get(), 1);
+#endif /* OPENSSL_VERSION_MAJOR < 4 */
 #endif
 
   if (config.d_maxStoredSessions == 0) {

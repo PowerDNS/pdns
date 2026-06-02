@@ -214,7 +214,12 @@ public:
     else {
 #if (OPENSSL_VERSION_NUMBER >= 0x1010000fL) && defined(HAVE_SSL_SET_HOSTFLAGS) // grrr libressl
       SSL_set_hostflags(d_conn.get(), X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS);
-      if (SSL_set1_host(d_conn.get(), d_hostname.c_str()) != 1) {
+#if !defined(OPENSSL_VERSION_MAJOR) || OPENSSL_VERSION_MAJOR < 4
+      auto ret = SSL_set1_host(d_conn.get(), d_hostname.c_str());
+#else
+      auto ret = SSL_set1_dnsname(d_conn.get(), d_hostname.c_str());
+#endif
+      if (ret != 1) {
         throw std::runtime_error("Error setting TLS hostname for certificate validation");
       }
 #elif (OPENSSL_VERSION_NUMBER >= 0x10002000L)
@@ -806,7 +811,9 @@ public:
 
     SSL_CTX_set_options(d_tlsCtx.get(), sslOptions);
 #if defined(SSL_CTX_set_ecdh_auto)
+#if !defined(OPENSSL_VERSION_MAJOR) || OPENSSL_VERSION_MAJOR < 4
     SSL_CTX_set_ecdh_auto(d_tlsCtx.get(), 1);
+#endif /* OPENSSL_VERSION_MAJOR < 4 */
 #endif
 
     if (!params.d_ciphers.empty()) {
