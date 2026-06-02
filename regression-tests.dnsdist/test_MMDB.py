@@ -16,7 +16,7 @@ def writeMMDB(fname, empty=False):
     if not empty:
         writer.insert_network(
             IPSet(IPNetwork("127.0.0.0/24")),
-            {"country": {"iso_code": "US"}, "result_ip": "6.7.8.9", "array": [1, 2, 3]},
+            {"country": {"iso_code": "US"}, "result_ip": "6.7.8.9", "array": [1, -2, 3]},
         )
     writer.to_db_file(fname)
 
@@ -53,7 +53,7 @@ class MMDBTest(DNSDistTest):
     addAction(TagRule('kvs-sourceip-result', 'US'), SpoofAction('5.6.7.8'))
 
     -- if the value of the 'kvs-full-sourceip-result' is set to the set object, spoof a response
-    addAction(TagRule('kvs-full-sourceip-result', '{"array": [1, 2, 3], "country": {"iso_code": "US"}, "result_ip": "6.7.8.9"}'), SpoofAction('7.8.9.10'))
+    addAction(TagRule('kvs-full-sourceip-result', '{"array": [1, -2, 3], "country": {"iso_code": "US"}, "result_ip": "6.7.8.9"}'), SpoofAction('7.8.9.10'))
 
     -- if the value of the 'kvs-top-sourceip-result' is set to '6.7.8.9', spoof a response
     addAction(TagRule('kvs-top-sourceip-result', '6.7.8.9'), SpoofAction('6.7.8.9'))
