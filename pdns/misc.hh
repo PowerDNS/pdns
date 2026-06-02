@@ -25,6 +25,7 @@
 #include <cstdio>
 #include <regex.h>
 #include <climits>
+#include <tuple>
 #include <type_traits>
 
 #include <boost/algorithm/string.hpp>
@@ -826,6 +827,67 @@ auto checked_stoi_into(T& out, const std::string& str, size_t* idx = nullptr, in
 {
   out = checked_stoi<T>(str, idx, base);
 }
+
+/**
+ * \brief execute a lambda on scope exit
+ *
+ * This struct allows the execution of a lambda when the instantiation goes out of scope.
+ *
+ * Usage:
+ * void bla() {
+ *   // Create the defer object
+ *   auto run_on_exit = pdns::defer([] {
+ *     // do this on scope exit
+ *     printf("goodbye");
+ *   });
+ *   // do things
+ *   printf("hello");
+ *
+ *   // Now the deferred lambda will be run and print "goodbye"
+ * }
+ */
+template<class Func>
+struct defer {
+  defer(Func&& func) : d_func(std::forward<Func>(func)) {};
+  ~defer() noexcept { std::invoke(d_func); }
+
+  defer(const defer&) = delete;
+  defer& operator=(const defer&) = delete;
+  defer(defer&&) = delete;
+  defer& operator=(defer&&) = delete;
+private:
+  Func d_func;
+};
+
+/**
+ * \brief execute a function with arguments on scope exit
+ *
+ * This struct allows the execution of a function when the instantiation goes out of scope.
+ *
+ * Usage:
+ * void bla() {
+ *   // Create the defer object
+ *   auto run_on_exit = pdns::deferFunc(printf, "goodbye");
+ *
+ *   // do things
+ *   printf("hello");
+ *
+ *   // Now the deferred function will be run and print "goodbye"
+ * }
+ */
+template<class Func, typename... Args>
+struct deferFunc {
+  deferFunc(Func&& func, Args&&... args) : d_func(std::forward<Func>(func)), d_args(std::forward<Args>(args)...) {};
+  ~deferFunc() noexcept { std::invoke(d_func, d_args); }
+
+  deferFunc(const deferFunc&) = delete;
+  deferFunc& operator=(const deferFunc&) = delete;
+  deferFunc(deferFunc&&) = delete;
+  deferFunc& operator=(deferFunc&&) = delete;
+private:
+  Func d_func;
+  std::tuple<Args...> d_args;
+};
 }
 
 bool isSettingThreadCPUAffinitySupported();

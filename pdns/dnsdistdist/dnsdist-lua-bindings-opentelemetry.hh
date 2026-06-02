@@ -21,19 +21,35 @@
  */
 #pragma once
 
-#include "dnsdist-opentelemetry.hh"
 #include <memory>
-#include <string>
 
-class LuaContext;
+#include "ext/luawrapper/include/LuaContext.hpp"
 
-namespace dnsdist::lua::hooks
+#include "dnsdist-lua.hh"
+#include "dnsdist-opentelemetry.hh"
+#include "lock.hh"
+#include "misc.hh"
+
+namespace pdns::trace::dnsdist
 {
-void runMaintenanceHooks(const LuaContext& context, std::shared_ptr<pdns::trace::dnsdist::Tracer>& tracer);
-void clearMaintenanceHooks();
-void runExitCallbacks(const LuaContext& context);
-void clearExitCallbacks();
-void runServerStateChangeHooks(const LuaContext& context, const std::string& nameWithAddr, bool newState);
-void clearServerStateChangeCallbacks();
-void setupLuaHooks(LuaContext& luaCtx);
+void emptyLuaTracing(LuaContext&);
+void setupLuaTracing(LuaContext&, std::shared_ptr<Tracer>&);
+
+template <typename Func, typename... Args>
+auto runWithLuaTracing(LuaContext& luaCtx, std::shared_ptr<Tracer>& tracer, Func&& func, Args&&... args)
+{
+  setupLuaTracing(luaCtx, tracer);
+  auto exitGuard = ::pdns::defer([&luaCtx] {
+    emptyLuaTracing(luaCtx);
+  });
+  return std::invoke(std::forward<Func>(func), std::forward<Args>(args)...);
 }
+
+template <typename Func, typename... Args>
+auto runWithLuaTracing(std::shared_ptr<Tracer>& tracer, Func&& func, Args&&... args)
+{
+  auto luaCtx = g_lua.lock();
+  return runWithLuaTracing(*luaCtx, tracer, func, args...);
+}
+
+} // namespace pdns::trace::dnsdist
