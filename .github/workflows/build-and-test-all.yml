@@ -139,7 +139,7 @@ jobs:
     needs: get-runner-container-image
     strategy:
       matrix:
-        builder: [autotools, meson]
+        builder: [meson]
         sanitizers: [asan+ubsan, tsan]
         features: [least, full]
         exclude:
