@@ -233,11 +233,11 @@ namespace pdns {
 
 void Resolver::checkDomainExpired(const DNSName& domain)
 {
-  if (::arg().mustDo("serve-after-expire")) {
+  if (::arg().mustDo("serve-after-soa-expire")) {
     return;
   }
   time_t currentUnixTime = time(nullptr);
-  
+
   UeberBackend B;  //NOLINT(readability-identifier-length)
   DomainInfo di;
   if (!B.getDomainInfo((ZoneName&)domain, di)){
@@ -247,7 +247,7 @@ void Resolver::checkDomainExpired(const DNSName& domain)
 
   if (!di.last_check) return;
   time_t last_check = di.last_check;
-  
+
   SOAData sd;
   if(!B.getSOAUncached((ZoneName&)domain, sd)) return;
   uint64_t expire = (uint64_t)sd.expire;
@@ -255,7 +255,7 @@ void Resolver::checkDomainExpired(const DNSName& domain)
   if ((uint64_t)currentUnixTime - (uint64_t)last_check < expire) return;
 
   g_log << "Domain " << domain.toLogString() << " expired. Deleting domain records.";
-  
+
   di.backend->startTransaction((ZoneName&)domain, UnknownDomainID);
   try {
     if(!di.backend->deleteDomain((ZoneName&)domain)) {
