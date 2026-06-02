@@ -47,28 +47,28 @@ class TestLuaDNSHeaderBindings(DNSDistTest):
     _config_template = """
     newServer{address="127.0.0.1:%d"}
 
-    function checkTCSet(dq)
-      local tc = dq:getHeader():getTC()
-      if not tc then
-        return DNSAction.Spoof, 'tc-not-set.check-tc.lua-dnsheaders.tests.powerdns.com.'
+    function checkCDSet(dq)
+      local checkDisabled = dq:getHeader():getCD()
+      if not checkDisabled then
+        return DNSAction.Spoof, 'cd-not-set.check-cd.lua-dnsheaders.tests.powerdns.com.'
       end
       return DNSAction.Allow
     end
 
-    addAction('check-tc.lua-dnsheaders.tests.powerdns.com.', LuaAction(checkTCSet))
+    addAction('check-cd.lua-dnsheaders.tests.powerdns.com.', LuaAction(checkCDSet))
     """
 
-    def testLuaGetTC(self):
+    def testLuaGetCD(self):
         """
-        LuaDNSHeaders: TC
+        LuaDNSHeaders: CD
         """
-        name = "notset.check-tc.lua-dnsheaders.tests.powerdns.com."
+        name = "notset.check-cd.lua-dnsheaders.tests.powerdns.com."
         query = dns.message.make_query(name, "A", "IN")
         # dnsdist set RA = RD for spoofed responses
         query.flags &= ~dns.flags.RD
         response = dns.message.make_response(query)
         rrset = dns.rrset.from_text(
-            name, 60, dns.rdataclass.IN, dns.rdatatype.CNAME, "tc-not-set.check-tc.lua-dnsheaders.tests.powerdns.com."
+            name, 60, dns.rdataclass.IN, dns.rdatatype.CNAME, "cd-not-set.check-cd.lua-dnsheaders.tests.powerdns.com."
         )
         response.answer.append(rrset)
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -76,12 +76,13 @@ class TestLuaDNSHeaderBindings(DNSDistTest):
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertEqual(response, receivedResponse)
 
-        name = "set.check-tc.lua-dnsheaders.tests.powerdns.com."
+        name = "set.check-cd.lua-dnsheaders.tests.powerdns.com."
         query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
         rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
-        query.flags |= dns.flags.TC
+        query.flags |= dns.flags.CD
+        response.flags |= dns.flags.CD
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
             (receivedQuery, receivedResponse) = sender(query, response)

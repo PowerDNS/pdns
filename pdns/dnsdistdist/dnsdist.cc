@@ -1380,6 +1380,12 @@ bool checkQueryHeaders(const struct dnsheader& dnsHeader, ClientState& clientSta
     return false;
   }
 
+  if (dnsHeader.tc != 0) { // don't respond to truncated queries
+    ++dnsdist::metrics::g_stats.nonCompliantQueries;
+    ++clientState.nonCompliantQueries;
+    return false;
+  }
+
   if (dnsHeader.qdcount == 0) {
     ++dnsdist::metrics::g_stats.emptyQueries;
     if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_dropEmptyQueries) {
