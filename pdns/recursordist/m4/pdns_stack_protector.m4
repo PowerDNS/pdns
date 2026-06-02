@@ -1,1 +1,0 @@
-../../../m4/pdns_stack_protector.m4
