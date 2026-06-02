@@ -216,21 +216,22 @@ jobs:
     - run: inv ci-install-rust $REPO_HOME
       if: matrix.product == 'rec'
       working-directory: ./pdns/recursordist/
-    - name: Autoreconf rec
+    - name: install pip build dependencies
       if: matrix.product == 'rec'
-      working-directory: ./pdns/recursordist/
-      run: |
-        inv ci-autoconf
+      uses: ./.github/actions/pip-build-dependencies
+      with:
+        venv-parent: ${{ env.REPO_HOME }}
+        working-directory: .
     - name: Configure rec
       if: matrix.product == 'rec'
       working-directory: ./pdns/recursordist/
       run: |
-        inv ci-rec-configure full
+        inv ci-rec-configure full build
     - name: Build rec
       if: matrix.product == 'rec'
       working-directory: ./pdns/recursordist/
       run: |
-        CONCURRENCY=4 inv ci-rec-make-bear
+        CONCURRENCY=4 inv ci-rec-run-ninja build
     - run: ln -s ../../.clang-tidy.full .clang-tidy
       if: matrix.product == 'rec'
       working-directory: ./pdns/recursordist/
