@@ -69,7 +69,7 @@ bool MMDB::query(LuaAny& ret, const boost::variant<const char*, std::vector<cons
   }
 
   if (const auto* param = boost::get<const char*>(&queryParams); param != nullptr) {
-    if (MMDB_get_value(&res.entry, &data, param, NULL) != MMDB_SUCCESS || !data.has_data) {
+    if (MMDB_get_value(&res.entry, &data, *param, NULL) != MMDB_SUCCESS || !data.has_data) {
       return false;
     }
   }
