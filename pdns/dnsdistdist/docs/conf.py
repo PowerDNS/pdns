@@ -124,6 +124,7 @@ changelog_inner_tag_sort = [
     "Webserver",
     "Metrics",
     "Meson",
+    "Open Telemetry",
     "YAML",
 ]
 
