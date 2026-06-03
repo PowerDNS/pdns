@@ -2,6 +2,128 @@ Changelogs for 5.1.x
 ====================
 
 .. changelog::
+  :version: 5.1.0
+  :released: 3rd of June 2026
+
+  This is release 5.1.0 of the Authoritative Server.
+  It provides many small new features and improvements, as well as bug fixes.
+
+  Please review the :doc:`Upgrade Notes <../upgrading>` before upgrading from versions < 5.0.x.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 16389
+    :tickets: 16369
+
+    Lua health checks: more responsiveness
+
+  .. change::
+    :tags: New Features
+    :pullreq: 17131
+
+    make Lua records immutable by default
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 17239
+    :tickets: 12789
+
+    only apply backupSelector to the first non-empty group (Daniel Micay)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17240, 17455
+
+    harden xfr*BitInt writers
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 17284
+
+    use less inefficient code in web server
+
+  .. change::
+    :tags: New Features
+    :pullreq: 17297
+
+    Implement a cors flag to set allowed origin in webserver
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17304
+    :tickets: 16816
+
+    lmdb: yet another NSEC bug
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 17320
+
+    smarter memory need computation
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 17355
+
+    skip zone cache refresh logic if disabled
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17363
+
+    Clarify the documentation regarding lmdb-shards-map-size (Håkan Lindqvist)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17365
+    :tickets: 17364
+
+    let pdnsutil work with lua backend
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17367
+
+    Correctly display APL DNS records with IPv4 addresses ending in .0
+
+  .. change::
+    :tags: Bug Fixes, API
+    :pullreq: 17373
+    :tickets: 17368
+
+    once again, relax JSON normalization code for record contents
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17384
+
+    Ednscookies: Fix timestamp validity check
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 17389
+
+    stricter string-to-int conversions
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17442
+
+    Auth: fixes for SA 2026-06
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 17447
+
+    lmdb: do not serialize records over 64K in length
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 17459
+
+    stricter proxy protocol size limit enforcement
+
+.. changelog::
   :version: 5.1.0-beta1
   :released: 29th of April 2026
 
