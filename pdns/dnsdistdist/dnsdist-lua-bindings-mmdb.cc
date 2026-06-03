@@ -56,7 +56,7 @@ void setupLuaBindingsMMDB([[maybe_unused]] LuaContext& luaCtx)
       return result;
     }
 
-    if (mmdb->query(value, MMDB::convertParams(queryParams), queryIp)) {
+    if (mmdb->query(value, MMDBQueryParams(queryParams), queryIp)) {
       result = value;
     }
 

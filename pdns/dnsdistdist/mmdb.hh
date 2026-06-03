@@ -30,6 +30,7 @@
 #include <string>
 
 class MMDBEntryList;
+class MMDBQueryParams;
 
 class MMDB
 {
@@ -40,8 +41,7 @@ public:
   MMDB& operator=(const MMDB&) = delete;
   MMDB& operator=(MMDB&&) = delete;
 
-  static std::vector<const char*> convertParams(const LuaTypeOrArrayOf<std::string>& queryParams);
-  bool query(LuaAny& ret, const std::vector<const char*>& queryParams, const ComboAddress& address) const;
+  bool query(LuaAny& ret, const MMDBQueryParams& queryParams, const ComboAddress& address) const;
   [[nodiscard]] bool exists(const ComboAddress& address) const
   {
     MMDB_lookup_result_s res{};
@@ -68,6 +68,21 @@ private:
   bool mmdbDecodeMap(MMDB_entry_data_list_s** data, LuaAny& ret) const;
   bool mmdbDecodeArray(MMDB_entry_data_list_s** data, LuaAny& ret) const;
   bool mmdbLookup(const ComboAddress& address, MMDB_lookup_result_s& res) const;
+};
+
+class MMDBQueryParams
+{
+public:
+  MMDBQueryParams(const LuaTypeOrArrayOf<std::string>& queryParams);
+
+  // libmaxmind takes params (path) as a pointer to a const char*,
+  // representing a const char* array, which should end with nullptr
+  // This returns a pointer to the first element of the vector,
+  // which still works because vector has contiguous storage
+  [[nodiscard]] const char* const* get() const;
+
+private:
+  std::vector<const char*> d_params;
 };
 
 class MMDBEntryList

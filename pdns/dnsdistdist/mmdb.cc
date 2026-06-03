@@ -60,7 +60,7 @@ MMDB::MMDB(const std::string& fname, const std::string& modeStr) :
               dnsdist::logging::getTopLogger("mmdb")->info(Logr::Info, "Opened MMDB database", "path", Logging::Loggable(fname), "type", Logging::Loggable(d_db.metadata.database_type), "version", Logging::Loggable(std::to_string(d_db.metadata.binary_format_major_version) + "." + std::to_string(d_db.metadata.binary_format_minor_version))));
 }
 
-bool MMDB::query(LuaAny& ret, const std::vector<const char*>& queryParams, const ComboAddress& address) const
+bool MMDB::query(LuaAny& ret, const MMDBQueryParams& queryParams, const ComboAddress& address) const
 {
   MMDB_entry_data_s data;
   MMDB_lookup_result_s res;
@@ -68,7 +68,7 @@ bool MMDB::query(LuaAny& ret, const std::vector<const char*>& queryParams, const
     return false;
   }
 
-  if (MMDB_aget_value(&res.entry, &data, &queryParams.at(0)) != MMDB_SUCCESS || !data.has_data) {
+  if (MMDB_aget_value(&res.entry, &data, queryParams.get()) != MMDB_SUCCESS || !data.has_data) {
     return false;
   }
 
@@ -84,22 +84,6 @@ bool MMDB::query(LuaAny& ret, const std::vector<const char*>& queryParams, const
   auto elist = std::move(*elistopt);
   auto* first = elist.getFirst();
   return mmdbDecodeEntryList(&first, ret);
-}
-
-std::vector<const char*> MMDB::convertParams(const LuaTypeOrArrayOf<std::string>& queryParams)
-{
-  if (const auto* param = boost::get<std::string>(&queryParams)) {
-    return {param->c_str(), nullptr};
-  }
-  if (const auto* params = boost::get<std::vector<std::pair<int, std::string>>>(&queryParams)) {
-    auto paramsArray = std::vector<const char*>(params->size() + 1);
-    for (size_t i = 0; i < params->size(); ++i) {
-      paramsArray.at(i) = params->at(i).second.c_str();
-    }
-    paramsArray.at(params->size()) = nullptr;
-    return paramsArray;
-  }
-  return {nullptr};
 }
 
 std::shared_ptr<const Logr::Logger> MMDB::getLogger() const
@@ -252,5 +236,31 @@ std::optional<MMDBEntryList> MMDB::getEntryList(MMDB_entry_s* entry)
     return std::nullopt;
   }
   return {entry_data_list};
+}
+
+static std::vector<const char*> convertParams(const LuaTypeOrArrayOf<std::string>& queryParams)
+{
+  if (const auto* param = boost::get<std::string>(&queryParams)) {
+    return {param->c_str(), nullptr};
+  }
+  if (const auto* params = boost::get<std::vector<std::pair<int, std::string>>>(&queryParams)) {
+    auto paramsArray = std::vector<const char*>(params->size() + 1);
+    for (size_t i = 0; i < params->size(); ++i) {
+      paramsArray.at(i) = params->at(i).second.c_str();
+    }
+    paramsArray.at(params->size()) = nullptr;
+    return paramsArray;
+  }
+  return {nullptr};
+}
+
+MMDBQueryParams::MMDBQueryParams(const LuaTypeOrArrayOf<std::string>& queryParams) :
+  d_params(convertParams(queryParams))
+{
+}
+
+const char* const* MMDBQueryParams::get() const
+{
+  return &d_params.at(0);
 }
 #endif
