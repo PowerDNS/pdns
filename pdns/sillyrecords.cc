@@ -7,46 +7,51 @@
 
 #include "utility.hh"
 #include <cstdio>
-#include <math.h>
+#include <cmath>
 #include <cstdlib>
 #include <sys/types.h>
 #include <string>
 #include <cerrno>
 #include "dnsrecords.hh"
 
-const static unsigned int poweroften[10] = {1, 10, 100, 1000, 10000, 100000,
-  1000000,10000000,100000000,1000000000};
+const static std::array<unsigned int,10> poweroften = {
+  1, 10, 100, 1000, 10000, 100000,
+  1000000,10000000,100000000,1000000000
+};
 
 /* converts ascii size/precision X * 10**Y(cm) to 0xXY. moves pointer.*/
 static uint8_t precsize_aton(const char **strptr)
 {
-  unsigned int mval = 0, cmval = 0;
+  unsigned int mval = 0;
+  unsigned int cmval = 0;
   uint8_t retval = 0;
-  const char *cp;
-  int exponent;
-  int mantissa;
+  int exponent{};
+  int mantissa{};
 
-  cp = *strptr;
+  const char *cp = *strptr;
 
-  while (isdigit(*cp))
+  while (isdigit(*cp) != 0) {
     mval = mval * 10 + (*cp++ - '0');
+  }
 
   if (*cp == '.') {               /* centimeters */
     cp++;
-    if (isdigit(*cp)) {
+    if (isdigit(*cp) != 0) {
       cmval = (*cp++ - '0') * 10;
-      if (isdigit(*cp)) {
+      if (isdigit(*cp) != 0) {
         cmval += (*cp++ - '0');
       }
     }
   }
   cmval = (mval * 100) + cmval;
 
-  for (exponent = 0; exponent < 9; exponent++)
-    if (cmval < poweroften[exponent+1])
+  for (exponent = 0; exponent < 9; exponent++) {
+    if (cmval < poweroften.at(exponent+1)) {
       break;
+    }
+  }
 
-  mantissa = cmval / poweroften[exponent];
+  mantissa = cmval / poweroften.at(exponent);
   mantissa = std::min(mantissa, 9);
 
   retval = (mantissa << 4) | exponent;
@@ -61,68 +66,76 @@ static uint8_t precsize_aton(const char **strptr)
 static uint32_t
 latlon2ul(const char **latlonstrptr, int *which)
 {
-  const char *cp;
-  uint32_t retval;
-  int deg = 0, min = 0, secs = 0, secsfrac = 0;
+  uint32_t retval{0}; /* invalid value -- indicates error */
+  int deg = 0;
+  int min = 0;
+  int secs = 0;
+  int secsfrac = 0;
 
-  cp = *latlonstrptr;
+  const char *cp = *latlonstrptr;
 
-  while (isdigit(*cp))
+  while (isdigit(*cp) != 0) {
     deg = deg * 10 + (*cp++ - '0');
+  }
 
-  while (isspace(*cp))
+  while (isspace(*cp) != 0) {
     cp++;
+  }
 
-  if (!(isdigit(*cp)))
+  if (isdigit(*cp) == 0) {
     goto fndhemi;
+  }
 
-  while (isdigit(*cp))
+  while (isdigit(*cp) != 0) {
     min = min * 10 + (*cp++ - '0');
+  }
 
-  while (isspace(*cp))
+  while (isspace(*cp) != 0) {
     cp++;
+  }
 
-  if (*cp && !(isdigit(*cp)))
+  if (*cp != '\0' && isdigit(*cp) == 0) {
     goto fndhemi;
+  }
 
-  while (isdigit(*cp))
+  while (isdigit(*cp) != 0) {
     secs = secs * 10 + (*cp++ - '0');
+  }
 
   if (*cp == '.') {               /* decimal seconds */
     cp++;
-    if (isdigit(*cp)) {
+    if (isdigit(*cp) != 0) {
       secsfrac = (*cp++ - '0') * 100;
-      if (isdigit(*cp)) {
+      if (isdigit(*cp) != 0) {
         secsfrac += (*cp++ - '0') * 10;
-        if (isdigit(*cp)) {
+        if (isdigit(*cp) != 0) {
           secsfrac += (*cp++ - '0');
         }
       }
     }
   }
 
-  while (*cp && !isspace(*cp))   /* if any trailing garbage */
+  while (*cp != '\0' && isspace(*cp) == 0)   /* if any trailing garbage */
     cp++;
 
-  while (isspace(*cp))
+  while (isspace(*cp) != 0)
     cp++;
 
  fndhemi:
   switch (*cp) {
   case 'N': case 'n':
   case 'E': case 'e':
-    retval = ((unsigned)1<<31)
+    retval = (1U<<31)
       + (((((deg * 60) + min) * 60) + secs) * 1000)
       + secsfrac;
     break;
   case 'S': case 's':
   case 'W': case 'w':
-    retval = ((unsigned)1<<31)
+    retval = (1U<<31)
       - (((((deg * 60) + min) * 60) + secs) * 1000)
       - secsfrac;
     break;
   default:
-    retval = 0;     /* invalid value -- indicates error */
     break;
   }
 
@@ -140,16 +153,18 @@ latlon2ul(const char **latlonstrptr, int *which)
     break;
   }
 
-  if (!*cp)
+  if (*cp == '\0')
     return 0;
 
   cp++;                   /* skip the hemisphere */
 
-  while (*cp && !isspace(*cp))   /* if any trailing garbage */
+  while (*cp != '\0' && isspace(*cp) == 0) { /* if any trailing garbage */
     cp++;
+  }
 
-  while (isspace(*cp))    /* move to next field */
+  while (isspace(*cp) != 0) {  /* move to next field */
     cp++;
+  }
 
   *latlonstrptr = cp;
 
@@ -201,14 +216,19 @@ LOCRecordContent::LOCRecordContent(const string& content, const string& /* zone 
   // convert this to d_version, d_size, d_horiz/vertpre, d_latitude, d_longitude, d_altitude
   d_version = 0;
 
-  const char *cp, *maxcp;
+  const char *cp;
+  const char *maxcp;
 
-  uint32_t lltemp1 = 0, lltemp2 = 0;
-  int altmeters = 0, altfrac = 0, altsign = 1;
+  uint32_t lltemp1 = 0;
+  uint32_t lltemp2 = 0;
+  int altmeters = 0;
+  int altfrac = 0;
+  int altsign = 1;
   d_horizpre = 0x16;    /* default = 1e6 cm = 10000.00m = 10km */
   d_vertpre = 0x13;    /* default = 1e3 cm = 10.00m */
   d_size = 0x12;   /* default = 1e2 cm = 1.00m */
-  int which1 = 0, which2 = 0;
+  int which1 = 0;
+  int which2 = 0;
 
   cp = content.c_str();
   maxcp = cp + strlen(content.c_str());
@@ -218,13 +238,15 @@ LOCRecordContent::LOCRecordContent(const string& content, const string& /* zone 
 
   switch (which1 + which2) {
   case 3:                 /* 1 + 2, the only valid combination */
-    if ((which1 == 1) && (which2 == 2)) { /* normal case */
+    if (which1 == 1 && which2 == 2) { /* normal case */
       d_latitude = lltemp1;
       d_longitude = lltemp2;
-    } else if ((which1 == 2) && (which2 == 1)) {/*reversed*/
+    }
+    else if (which1 == 2 && which2 == 1) {/*reversed*/
       d_latitude = lltemp1;
       d_longitude = lltemp2;
-    } else {        /* some kind of brokenness */
+    }
+    else {        /* some kind of brokenness */
       return;
     }
     break;
@@ -238,17 +260,19 @@ LOCRecordContent::LOCRecordContent(const string& content, const string& /* zone 
     cp++;
   }
 
-  if (*cp == '+')
+  if (*cp == '+') {
     cp++;
+  }
 
-  while (isdigit(*cp))
+  while (isdigit(*cp) != 0) {
     altmeters = altmeters * 10 + (*cp++ - '0');
+  }
 
   if (*cp == '.') {               /* decimal meters */
     cp++;
-    if (isdigit(*cp)) {
+    if (isdigit(*cp) != 0) {
       altfrac = (*cp++ - '0') * 10;
-      if (isdigit(*cp)) {
+      if (isdigit(*cp) != 0) {
         altfrac += (*cp++ - '0');
       }
     }
@@ -256,38 +280,47 @@ LOCRecordContent::LOCRecordContent(const string& content, const string& /* zone 
 
   d_altitude = (10000000 + (altsign * (altmeters * 100 + altfrac)));
 
-  while (!isspace(*cp) && (cp < maxcp))
+  while (isspace(*cp) == 0 && cp < maxcp) {
     /* if trailing garbage or m */
     cp++;
+  }
 
-  while (isspace(*cp) && (cp < maxcp))
+  while (isspace(*cp) != 0 && cp < maxcp) {
     cp++;
+  }
 
 
-  if (cp >= maxcp)
+  if (cp >= maxcp) {
     goto defaults;
+  }
 
   d_size = precsize_aton(&cp);
 
-  while (!isspace(*cp) && (cp < maxcp))/*if trailing garbage or m*/
+  while (isspace(*cp) == 0 && cp < maxcp) { /*if trailing garbage or m*/
     cp++;
+  }
 
-  while (isspace(*cp) && (cp < maxcp))
+  while (isspace(*cp) != 0 && cp < maxcp) {
     cp++;
+  }
 
-  if (cp >= maxcp)
+  if (cp >= maxcp) {
     goto defaults;
+  }
 
   d_horizpre = precsize_aton(&cp);
 
-  while (!isspace(*cp) && (cp < maxcp))/*if trailing garbage or m*/
+  while (isspace(*cp) == 0 && cp < maxcp) { /*if trailing garbage or m*/
     cp++;
+  }
 
-  while (isspace(*cp) && (cp < maxcp))
+  while (isspace(*cp) != 0 && cp < maxcp) {
     cp++;
+  }
 
-  if (cp >= maxcp)
+  if (cp >= maxcp) {
     goto defaults;
+  }
 
   d_vertpre = precsize_aton(&cp);
 
@@ -305,18 +338,21 @@ string LOCRecordContent::getZoneRepresentation(bool /* noDot */) const
 
   double size=0.01*((d_size>>4)&0xf);
   int count=d_size & 0xf;
-  while(count--)
+  while (count-- != 0) {
     size*=10;
+  }
 
   double horizpre=0.01*((d_horizpre>>4) & 0xf);
   count=d_horizpre&0xf;
-  while(count--)
+  while (count-- != 0) {
     horizpre*=10;
+  }
 
   double vertpre=0.01*((d_vertpre>>4)&0xf);
   count=d_vertpre&0xf;
-  while(count--)
+  while (count-- != 0) {
     vertpre*=10;
+  }
 
   char hemLat = 'N';
   uint32_t lat = d_latitude;
