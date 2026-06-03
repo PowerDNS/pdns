@@ -38,14 +38,14 @@ ENV MAKEFLAGS=${MAKEFLAGS:--j2}
 ARG DOCKER_FAKE_RELEASE=NO
 ENV DOCKER_FAKE_RELEASE=${DOCKER_FAKE_RELEASE}
 
-RUN touch dnsdist.1 # avoid having to install pandoc and venv
-
 WORKDIR /quiche
 RUN apt-get install -y cmake curl jq libclang-dev && \
     cd /source/builder-support/helpers/ && \
     ./install_rust.sh && \
     ./install_quiche.sh
 
+WORKDIR /source/pdns/dnsdistdist
+RUN touch dnsdist.1 # avoid having to install pandoc and venv
 RUN mkdir /build && \
     LUAVER=$([ -z "${NO_LUA_JIT##*$(dpkg --print-architecture)*}" ] && echo 'lua5.3' || echo 'luajit') && \
     apt-get install -y lib${LUAVER}-*dev ninja-build && apt-get clean && rm -rf /var/lib/apt/lists/* && \
