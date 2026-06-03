@@ -4,6 +4,31 @@ Changelogs for 5.3.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
+  :version: 5.3.7
+  :released: 3rd of June 2026
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17487
+    :tickets: 17396
+
+    snmp-agent: Fix a memory leak.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17317
+    :tickets: 17252
+
+    Increase entry count in unit test so we hit the 8192 byte limit on 32 bit systems too.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17302
+    :tickets: 16993
+
+    Fix serialization of cached authority record.
+
+.. changelog::
   :version: 5.3.6
   :released: 22th of April 2026
 

@@ -4,6 +4,73 @@ Changelogs for 5.4.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
+  :version: 5.4.2
+  :released: 3rd of June 2026
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17301
+    :tickets: 16993
+
+    Fix serialization of cached authority records.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17312
+    :tickets: 17005
+
+    Continue processing response Policies if a discarded policy is hit.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 17313
+    :tickets: 16936
+
+    Drop QR=0 responses from auths.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17314
+    :tickets: 17161
+
+    Skip ZONEMD records in RPZs.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 17315
+    :tickets: 17240
+
+    Widen types passed to xfr*BitInt to reject too large values.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17316
+    :tickets: 17252
+
+    Increase entry count in unit test so we hit the 8192 byte limit on 32 bit systems too.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17319
+    :tickets: 17238
+
+    build(deps): bump rustls-webpki from 0.103.10 to 0.103.13.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17486
+    :tickets: 17396
+
+    snmp-agent: Fix a memory leak.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17489
+    :tickets: 17398
+
+    Minor libssl fixes.
+
+.. changelog::
   :version: 5.4.1
   :released: 22th of April 2026
 
