@@ -234,6 +234,13 @@ def write_release_files(release):
         write_dockerfile("ubuntu", "noble", release)
         write_list_file("ubuntu", "noble", release)
 
+    if release in [
+        "dnsdist-21",
+        "dnsdist-master",
+    ]:
+        write_dockerfile("ubuntu", "resolute", release)
+        write_list_file("ubuntu", "resolute", release)
+
 
 # Test Release Functions
 
