@@ -306,6 +306,6 @@ jobs:
       with:
         fetch-depth: 0
         persist-credentials: false
-    - uses: astral-sh/ruff-action@v3
+    - uses: astral-sh/ruff-action@v4
       with:
         args: 'format --check --diff'
