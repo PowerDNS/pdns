@@ -243,8 +243,8 @@ LOCRecordContent::LOCRecordContent(const string& content, const string& /* zone 
       d_longitude = lltemp2;
     }
     else if (which1 == 2 && which2 == 1) {/*reversed*/
-      d_latitude = lltemp1;
-      d_longitude = lltemp2;
+      d_latitude = lltemp2;
+      d_longitude = lltemp1;
     }
     else {        /* some kind of brokenness */
       return;
