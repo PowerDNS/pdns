@@ -40,8 +40,8 @@ public:
   MMDB& operator=(const MMDB&) = delete;
   MMDB& operator=(MMDB&&) = delete;
 
-  static boost::variant<const char*, std::vector<const char*>> convertParams(const LuaTypeOrArrayOf<std::string>& queryParams);
-  bool query(LuaAny& ret, const boost::variant<const char*, std::vector<const char*>>& queryParams, const ComboAddress& address) const;
+  static std::vector<const char*> convertParams(const LuaTypeOrArrayOf<std::string>& queryParams);
+  bool query(LuaAny& ret, const std::vector<const char*>& queryParams, const ComboAddress& address) const;
   [[nodiscard]] bool exists(const ComboAddress& address) const
   {
     MMDB_lookup_result_s res{};

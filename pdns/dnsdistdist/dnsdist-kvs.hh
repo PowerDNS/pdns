@@ -259,6 +259,6 @@ private:
 
   std::shared_ptr<MMDB> d_mmdb;
   const LuaTypeOrArrayOf<std::string> d_originalParams;
-  const boost::variant<const char*, std::vector<const char*>> d_queryParams;
+  const std::vector<const char*> d_queryParams;
 };
 #endif // HAVE_MMDB

@@ -60,7 +60,7 @@ MMDB::MMDB(const std::string& fname, const std::string& modeStr) :
               dnsdist::logging::getTopLogger("mmdb")->info(Logr::Info, "Opened MMDB database", "path", Logging::Loggable(fname), "type", Logging::Loggable(d_db.metadata.database_type), "version", Logging::Loggable(std::to_string(d_db.metadata.binary_format_major_version) + "." + std::to_string(d_db.metadata.binary_format_minor_version))));
 }
 
-bool MMDB::query(LuaAny& ret, const boost::variant<const char*, std::vector<const char*>>& queryParams, const ComboAddress& address) const
+bool MMDB::query(LuaAny& ret, const std::vector<const char*>& queryParams, const ComboAddress& address) const
 {
   MMDB_entry_data_s data;
   MMDB_lookup_result_s res;
@@ -68,15 +68,8 @@ bool MMDB::query(LuaAny& ret, const boost::variant<const char*, std::vector<cons
     return false;
   }
 
-  if (const auto* param = boost::get<const char*>(&queryParams); param != nullptr) {
-    if (MMDB_get_value(&res.entry, &data, *param, NULL) != MMDB_SUCCESS || !data.has_data) {
-      return false;
-    }
-  }
-  else if (const auto* params = boost::get<std::vector<const char*>>(&queryParams); params != nullptr) {
-    if (MMDB_aget_value(&res.entry, &data, &params->at(0)) != MMDB_SUCCESS || !data.has_data) {
-      return false;
-    }
+  if (MMDB_aget_value(&res.entry, &data, &queryParams.at(0)) != MMDB_SUCCESS || !data.has_data) {
+    return false;
   }
 
   if (mmdbDecode(&data, ret)) {
@@ -93,10 +86,10 @@ bool MMDB::query(LuaAny& ret, const boost::variant<const char*, std::vector<cons
   return mmdbDecodeEntryList(&first, ret);
 }
 
-boost::variant<const char*, std::vector<const char*>> MMDB::convertParams(const LuaTypeOrArrayOf<std::string>& queryParams)
+std::vector<const char*> MMDB::convertParams(const LuaTypeOrArrayOf<std::string>& queryParams)
 {
   if (const auto* param = boost::get<std::string>(&queryParams)) {
-    return param->c_str();
+    return {param->c_str(), nullptr};
   }
   if (const auto* params = boost::get<std::vector<std::pair<int, std::string>>>(&queryParams)) {
     auto paramsArray = std::vector<const char*>(params->size() + 1);
@@ -106,7 +99,7 @@ boost::variant<const char*, std::vector<const char*>> MMDB::convertParams(const 
     paramsArray.at(params->size()) = nullptr;
     return paramsArray;
   }
-  return "";
+  return {nullptr};
 }
 
 std::shared_ptr<const Logr::Logger> MMDB::getLogger() const
