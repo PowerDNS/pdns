@@ -5,6 +5,7 @@ import dns.rrset
 import dns.rcode
 import dns.rdataclass
 import dns.message
+import os
 import time
 import clientsubnetoption
 
@@ -1453,6 +1454,14 @@ lua-health-checks-interval=5
         # reached the minimumFailures threshold and mark the unreachable IP
         # as such.
         time.sleep(8)
+
+        # Unfortunately, the above delay appears to be too tight for CI to
+        # pass reliably, so apply the good old workaround of putting our heads
+        # in the sand and sleep a bit longer, hoping that the failure rate will
+        # go down to acceptable "once in a blue moon" levels.
+        if os.environ.get("GITHUB_ACTIONS") == "true":
+            time.sleep(1 + 1)
+
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertAnyRRsetInAnswer(res, reachable_rrs)
