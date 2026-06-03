@@ -6,6 +6,7 @@ import pytest
 from recursortests import RecursorTest
 
 
+@pytest.mark.xfail(os.environ.get("GITHUB_ACTIONS") == "true", reason="GH actions have flaky net")
 class ExtendedErrorsTest(RecursorTest):
     _confdir = "ExtendedErrors"
     _config_template = """
@@ -197,6 +198,7 @@ extended-resolution-errors=yes
         self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(10, b"Extra text from Lua!"))
 
 
+@pytest.mark.xfail(os.environ.get("GITHUB_ACTIONS") == "true", reason="GH actions have flaky net")
 class NoExtendedErrorsTest(RecursorTest):
     _confdir = "NoExtendedErrors"
     _config_template = """
