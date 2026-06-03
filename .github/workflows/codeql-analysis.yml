@@ -80,6 +80,7 @@ jobs:
       uses: github/codeql-action/init@v4
       with:
         languages: ${{ matrix.language }}
+        build-mode: manual
         queries: +security-and-quality
         # TODO: go through +security-and-quality (400 alerts) once, then see if we can upgrade to it
 
@@ -305,6 +306,6 @@ jobs:
       with:
         fetch-depth: 0
         persist-credentials: false
-    - uses: astral-sh/ruff-action@v3
+    - uses: astral-sh/ruff-action@v4.0.0
       with:
         args: 'format --check --diff'
