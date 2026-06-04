@@ -1354,6 +1354,13 @@ void LMDBBackend::consolidateDomainInfo(DomainInfo& info) const
   }
 }
 
+void LMDBBackend::writeDomainInfo(const DomainInfo& info)
+{
+  auto txn = d_tdomains->getRWTransaction();
+  txn.put(info, info.id);
+  txn.commit();
+}
+
 void LMDBBackend::writeTransientDomainInfo(const DomainInfo& info)
 {
   // If the DomainInfo table is split, write the TransientDomainInfo part
@@ -1384,9 +1391,7 @@ void LMDBBackend::updateDomainInfo(const DomainInfo& info)
     return;
   }
 
-  auto txn = d_tdomains->getRWTransaction();
-  txn.put(info, info.id);
-  txn.commit();
+  writeDomainInfo(info);
   writeTransientDomainInfo(info);
 }
 
@@ -2437,9 +2442,7 @@ bool LMDBBackend::genChangeTransientDomain(domainid_t id, const std::function<vo
       writeTransientDomainInfo(info);
     }
     else {
-      auto txn = d_tdomains->getRWTransaction();
-      txn.put(info, info.id);
-      txn.commit();
+      writeDomainInfo(info);
     }
   }
   return true;
@@ -3752,9 +3755,7 @@ void LMDBBackend::flush()
           writeTransientDomainInfo(info);
         }
         else {
-          auto txn = d_tdomains->getRWTransaction();
-          txn.put(info, info.id);
-          txn.commit();
+          writeDomainInfo(info);
         }
       }
       else {
