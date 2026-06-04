@@ -31,6 +31,7 @@
 #include "base64.hh"
 #include "dnsdist-cache.hh"
 #include "dnsdist-configuration.hh"
+#include "dnsdist-dynblocks.hh"
 #include "dnsdist-rings.hh"
 #include "dnsdist-web.hh"
 #include "dnsparser.hh"
@@ -1193,6 +1194,51 @@ BOOST_AUTO_TEST_CASE(test_set_altername_name)
 
   /* and that we can pass a tag name without a value */
   BOOST_CHECK(dnsdist_ffi_dnsquestion_set_alternate_name(&lightDQ, target.getStorage().data(), target.getStorage().size(), tag.data(), tag.size(), nullptr, 0, nullptr, 0));
+}
+
+BOOST_AUTO_TEST_CASE(stat_node)
+{
+  StatNode node{};
+  StatNode::Stat nodeStats{};
+  nodeStats.queries = 42U;
+  StatNode::Stat childrenStats{};
+  childrenStats.queries = 84U;
+  SMTBlockParameters blockParameters{};
+  dnsdist_ffi_stat_node_t ffi_node(node, nodeStats, childrenStats, blockParameters);
+
+  BOOST_CHECK_EQUAL(dnsdist_ffi_stat_node_get_queries_count(&ffi_node), nodeStats.queries);
+  BOOST_CHECK_EQUAL(dnsdist_ffi_stat_node_get_noerrors_count(&ffi_node), nodeStats.noerrors);
+  BOOST_CHECK_EQUAL(dnsdist_ffi_stat_node_get_nxdomains_count(&ffi_node), nodeStats.nxdomains);
+  BOOST_CHECK_EQUAL(dnsdist_ffi_stat_node_get_servfails_count(&ffi_node), nodeStats.servfails);
+  BOOST_CHECK_EQUAL(dnsdist_ffi_stat_node_get_drops_count(&ffi_node), nodeStats.drops);
+  BOOST_CHECK_EQUAL(dnsdist_ffi_stat_node_get_bytes(&ffi_node), nodeStats.bytes);
+  BOOST_CHECK_EQUAL(dnsdist_ffi_stat_node_get_hits(&ffi_node), nodeStats.hits);
+  BOOST_CHECK_EQUAL(dnsdist_ffi_stat_node_get_labels_count(&ffi_node), node.fullname.countLabels());
+  {
+    const char* name = nullptr;
+    size_t nameSize{0};
+    dnsdist_ffi_stat_node_get_full_name_raw(&ffi_node, &name, &nameSize);
+    BOOST_CHECK_EQUAL(nameSize, 0U);
+  }
+
+  BOOST_CHECK_EQUAL(dnsdist_ffi_stat_node_get_children_count(&ffi_node), node.size());
+  BOOST_CHECK_EQUAL(dnsdist_ffi_stat_node_get_children_queries_count(&ffi_node), childrenStats.queries);
+  BOOST_CHECK_EQUAL(dnsdist_ffi_stat_node_get_children_noerrors_count(&ffi_node), childrenStats.noerrors);
+  BOOST_CHECK_EQUAL(dnsdist_ffi_stat_node_get_children_nxdomains_count(&ffi_node), childrenStats.nxdomains);
+  BOOST_CHECK_EQUAL(dnsdist_ffi_stat_node_get_children_servfails_count(&ffi_node), childrenStats.servfails);
+  BOOST_CHECK_EQUAL(dnsdist_ffi_stat_node_get_children_drops_count(&ffi_node), childrenStats.drops);
+  BOOST_CHECK_EQUAL(dnsdist_ffi_stat_node_get_children_bytes_count(&ffi_node), childrenStats.bytes);
+  BOOST_CHECK_EQUAL(dnsdist_ffi_stat_node_get_children_hits(&ffi_node), childrenStats.hits);
+
+  const std::string customReason{"myCustomReason"};
+  BOOST_CHECK(!blockParameters.d_reason.has_value());
+  dnsdist_ffi_state_node_set_reason(&ffi_node, customReason.c_str(), customReason.size());
+  BOOST_REQUIRE(blockParameters.d_reason.has_value());
+  BOOST_CHECK_EQUAL(*blockParameters.d_reason, customReason);
+  BOOST_CHECK(!blockParameters.d_action.has_value());
+  dnsdist_ffi_state_node_set_action(&ffi_node, static_cast<int>(DNSAction::Action::NoRecurse));
+  BOOST_REQUIRE(blockParameters.d_action.has_value());
+  BOOST_CHECK(*blockParameters.d_action == DNSAction::Action::NoRecurse);
 }
 
 BOOST_AUTO_TEST_SUITE_END();
