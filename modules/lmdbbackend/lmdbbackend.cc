@@ -1368,7 +1368,7 @@ void LMDBBackend::writeTransientDomainInfo(const DomainInfo& info)
   }
 }
 
-void LMDBBackend::writeDomainInfo(const DomainInfo& info)
+void LMDBBackend::updateDomainInfo(const DomainInfo& info)
 {
   // Update the in-memory cache if we don't keep the database up to date.
   if (!d_write_notification_update) {
@@ -2400,7 +2400,7 @@ bool LMDBBackend::genChangeDomain(const ZoneName& domain, const std::function<vo
   }
   consolidateDomainInfo(info);
   func(info);
-  writeDomainInfo(info);
+  updateDomainInfo(info);
   return true;
 }
 
@@ -2413,7 +2413,7 @@ bool LMDBBackend::genChangeDomain(domainid_t id, const std::function<void(Domain
   }
   consolidateDomainInfo(info);
   func(info);
-  writeDomainInfo(info);
+  updateDomainInfo(info);
   return true;
 }
 
@@ -2429,7 +2429,7 @@ bool LMDBBackend::genChangeTransientDomain(domainid_t id, const std::function<vo
   func(info);
   if (!d_write_notification_update) {
     // This won't write anything but update the in-memory cache
-    writeDomainInfo(info);
+    updateDomainInfo(info);
   }
   else {
     // If the DomainInfo table is split, only update the extra table.
