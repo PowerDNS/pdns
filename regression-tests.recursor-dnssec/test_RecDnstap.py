@@ -338,9 +338,13 @@ dnstapFrameStreamServer({"%s"}, {logQueries=false})
     """ % (DNSTapServerParameters.path)
 
     def testA(self):
-        # Empty whatever may be in the queue
+        print("Before test")
         while not DNSTapServerParameters.queue.empty():
-            DNSTapServerParameters.queue.get(False)
+            tap = DNSTapServerParameters.queue.get(False)
+            print("In queue:")
+            print(tap)
+        else:
+            print("Nothing in queue")
         name = "www.example.org."
         query = dns.message.make_query(name, "A", want_dnssec=True)
         query.flags |= dns.flags.RD
@@ -349,6 +353,11 @@ dnstapFrameStreamServer({"%s"}, {logQueries=false})
 
         # We don't expect anything more
         time.sleep(1)
+        print("After test")
+        while not DNSTapServerParameters.queue.empty():
+            tap = DNSTapServerParameters.queue.get(False)
+            print("In queue:")
+            print(tap)
         self.assertTrue(DNSTapServerParameters.queue.empty())
 
 
