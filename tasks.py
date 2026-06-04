@@ -896,7 +896,7 @@ def dev_rec_configure_meson(
 def ci_rec_configure_meson(c, features, build_dir):
     builder_version = os.getenv("BUILDER_VERSION")
     dist_dir = "/tmp/rec-meson-dist-build"
-    c.run(f"meson setup {dist_dir} && meson dist -C {dist_dir} --no-tests")
+    c.run(f". {repo_home}/.venv/bin/activate && meson setup {dist_dir} && meson dist -C {dist_dir} --no-tests")
     with c.cd(f"{dist_dir}/meson-dist"):
         c.run(f"tar xf pdns-recursor-{builder_version}.tar.xz")
     src_dir = f"{dist_dir}/meson-dist/pdns-recursor-{builder_version}"
@@ -922,66 +922,15 @@ def ci_rec_configure_meson(c, features, build_dir):
                 REC_CONFIGURE_MESON_FEATURE_SET_LEAST,
             ]
         )
-    res = c.run(configure_cmd, warn=True)
+    res = c.run(f". {repo_home}/.venv/bin/activate && {configure_cmd}", warn=True)
     if res.exited != 0:
         c.run(f"cat {build_dir}/meson-logs/meson-log.txt")
         raise UnexpectedExit(res)
 
 
-def ci_rec_configure_autotools(c, features, build_dir=None):
-    unittests = get_unit_tests()
-    out_of_tree_build = build_dir is not None
-    if features == "full":
-        configure_cmd = " ".join(
-            [
-                get_base_configure_cmd(out_of_tree_build=out_of_tree_build),
-                "--prefix=/opt/pdns-recursor",
-                "--enable-option-checking",
-                "--enable-verbose-logging",
-                "--enable-dns-over-tls",
-                "--enable-nod",
-                "--with-libcap",
-                "--with-lua=luajit",
-                "--with-net-snmp",
-                unittests,
-            ]
-        )
-    else:
-        configure_cmd = " ".join(
-            [
-                get_base_configure_cmd(out_of_tree_build=out_of_tree_build),
-                "--prefix=/opt/pdns-recursor",
-                "--enable-option-checking",
-                "--enable-verbose-logging",
-                "--disable-dns-over-tls",
-                "--disable-dnstap",
-                "--disable-nod",
-                "--disable-systemd",
-                "--with-lua=luajit",
-                "--without-libcap",
-                "--without-libcurl",
-                "--without-libsodium",
-                "--without-net-snmp",
-                unittests,
-            ]
-        )
-    res = c.run(configure_cmd, warn=True)
-    if res.exited != 0:
-        c.run("cat config.log")
-        raise UnexpectedExit(res)
-
-
 @task
-def ci_rec_configure(c, features, build_dir=None, meson=False):
-    if meson:
-        ci_rec_configure_meson(c, features, build_dir)
-    else:
-        if build_dir:
-            c.run(f"mkdir -p {build_dir}")
-            with c.cd(f"{build_dir}"):
-                ci_rec_configure_autotools(c, features, build_dir)
-        else:
-            ci_rec_configure_autotools(c, features)
+def ci_rec_configure(c, features, build_dir):
+    ci_rec_configure_meson(c, features, build_dir)
 
 
 DNSDIST_CONFIGURE_CXXFLAGS_LEAST = " ".join(
@@ -1236,17 +1185,8 @@ def ci_auth_build(c, meson=False):
 
 
 @task
-def ci_rec_make_bear(c):
-    # Assumed to be running under ./pdns/recursordist/
-    c.run(f"bear --append -- make -j{get_build_concurrency()} -k V=1")
-
-
-@task
-def ci_rec_build(c, meson=False):
-    if meson:
-        run_ninja(c)
-    else:
-        ci_rec_make_bear(c)
+def ci_rec_run_ninja(c, build_dir):
+    c.run(f". {repo_home}/.venv/bin/activate && meson compile -C {build_dir} -j{get_build_concurrency(4)} --verbose")
 
 
 @task
@@ -1278,14 +1218,10 @@ def ci_auth_run_unit_tests(c, meson=False):
 
 
 @task
-def ci_rec_run_unit_tests(c, meson=False):
-    if meson:
-        suite_timeout_sec = 120
-        logfile = "meson-logs/testlog.txt"
-        res = c.run(f"meson test --verbose -t {suite_timeout_sec}", warn=True)
-    else:
-        logfile = "test-suite.log"
-        res = c.run("make check", warn=True)
+def ci_rec_run_unit_tests(c):
+    suite_timeout_sec = 120
+    logfile = "meson-logs/testlog.txt"
+    res = c.run(f"meson test --verbose -t {suite_timeout_sec}", warn=True)
     if res.exited != 0:
         c.run(f"cat {logfile}", warn=True)
         raise UnexpectedExit(res)
@@ -1315,11 +1251,8 @@ def ci_auth_install(c, meson=False):
 
 
 @task
-def ci_rec_install(c, meson=False):
-    if meson:
-        c.sudo(f"bash -c 'source {repo_home}/.venv/bin/activate && meson install'")
-    else:
-        c.run("make install")
+def ci_rec_install(c):
+    c.sudo(f"bash -c 'source {repo_home}/.venv/bin/activate && meson install'")
 
 
 @task

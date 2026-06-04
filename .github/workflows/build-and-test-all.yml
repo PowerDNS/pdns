@@ -139,7 +139,6 @@ jobs:
     needs: get-runner-container-image
     strategy:
       matrix:
-        builder: [autotools, meson]
         sanitizers: [asan+ubsan, tsan]
         features: [least, full]
         exclude:
@@ -170,7 +169,7 @@ jobs:
       - name: set up build
         uses: ./.github/actions/cache
         with:
-          cache-key-base: recursor-ccache-${{ matrix.builder }}-${{ matrix.features }}-${{ matrix.sanitizers }}
+          cache-key-base: recursor-ccache-meson-${{ matrix.features }}-${{ matrix.sanitizers }}
       - name: install pip build dependencies
         uses: ./.github/actions/pip-build-dependencies
         with:
@@ -180,16 +179,15 @@ jobs:
         working-directory: ./pdns/recursordist/
       - run: ${{ env.INV_CMD }} ci-install-rust ${REPO_HOME}
         working-directory: ./pdns/recursordist/
-      - run: ${{ env.INV_CMD }} ci-autoconf ${{ matrix.builder == 'meson' && '--meson' || '' }}
+      - run: ${{ env.INV_CMD }} ci-rec-configure ${{ matrix.features }} pdns-recursor-${{ env.BUILDER_VERSION }}
         working-directory: ./pdns/recursordist/
-      - run: ${{ env.INV_CMD }} ci-rec-configure -f ${{ matrix.features }} -b pdns-recursor-${{ env.BUILDER_VERSION }} ${{ matrix.builder == 'meson' && '--meson' || '' }}
+      - run: ${{ env.INV_CMD }} ci-rec-run-ninja pdns-recursor-${{ env.BUILDER_VERSION }}
         working-directory: ./pdns/recursordist/
-      - run: ${{ env.INV_CMD }} ci-rec-build ${{ matrix.builder == 'meson' && '--meson' || '' }}
-      - run: ${{ env.INV_CMD }} ci-rec-run-unit-tests ${{ matrix.builder == 'meson' && '--meson' || '' }}
+      - run: ${{ env.INV_CMD }} ci-rec-run-unit-tests
       - run: ${{ env.INV_CMD }} generate-coverage-info ./testrunner 'recursor' $GITHUB_WORKSPACE
-        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' && matrix.builder == 'meson' }}
+        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
       - name: Coveralls Parallel rec unit
-        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' && matrix.builder == 'meson' }}
+        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
         uses: coverallsapp/github-action@5cbfd81b66ca5d10c19b062c04de0199c215fb6e
         with:
           flag-name: rec-unit-${{ matrix.features }}-${{ matrix.sanitizers }}
@@ -197,15 +195,13 @@ jobs:
           parallel: true
           allow-empty: true
           fail-on-error: false
-      - run: ${{ env.INV_CMD }} ci-rec-install ${{ matrix.builder == 'meson' && '--meson' || '' }}
+      - run: ${{ env.INV_CMD }} ci-rec-install
       - run: ccache -s
       - uses: ./.github/actions/normalize-branch-name
-        if: ${{ matrix.builder == 'meson' }}
-      - if: ${{ matrix.builder == 'meson' }}
-        name: Store the binaries
+      - name: Store the binaries
         uses: actions/upload-artifact@v7 # this takes 30 seconds, maybe we want to tar
         with:
-          name: pdns-recursor-${{ matrix.features }}-${{ matrix.sanitizers }}-${{ matrix.builder}}-${{ env.normalized-branch-name }}
+          name: pdns-recursor-${{ matrix.features }}-${{ matrix.sanitizers }}-meson-${{ env.normalized-branch-name }}
           path: /opt/pdns-recursor
           retention-days: 1
 

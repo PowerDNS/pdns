@@ -122,11 +122,11 @@ jobs:
       - run: inv coverity-clang-configure
       - run: inv ci-autoconf
         working-directory: ./pdns/recursordist/
-      - run: inv ci-rec-configure full
+      - run: inv ci-rec-configure full build
         working-directory: ./pdns/recursordist/
-      - run: inv coverity-make
+      - run: inv coverity-ninja
         working-directory: ./pdns/recursordist/
-      - run: inv coverity-tarball recursor.tar.bz2
+      - run: inv coverity-tarball build/recursor.tar.bz2
         working-directory: ./pdns/recursordist/
-      - run: inv coverity-upload ${{ secrets.COVERITY_EMAIL }} 'PowerDNS+Recursor' recursor.tar.bz2
+      - run: inv coverity-upload ${{ secrets.COVERITY_EMAIL }} 'PowerDNS+Recursor' build/recursor.tar.bz2
         working-directory: ./pdns/recursordist/

@@ -30,7 +30,6 @@ COPY build-aux /source/build-aux
 COPY m4 /source/m4
 COPY ext /source/ext
 COPY .git /source/.git
-COPY builder/helpers/set-configure-ac-version.sh /usr/local/bin
 
 COPY builder-support/helpers/install_rust.sh /source/install_rust.sh
 COPY builder-support/helpers/rust.json /source/rust.json
@@ -50,11 +49,6 @@ ENV DOCKER_FAKE_RELEASE=${DOCKER_FAKE_RELEASE}
 
 # Manpage prevent
 RUN touch pdns_recursor.1 rec_control.1 # avoid installing pandoc
-
-RUN if [ "${DOCKER_FAKE_RELEASE}" = "YES" ]; then \
-      BUILDER_VERSION="$(IS_RELEASE=YES BUILDER_MODULES=recursor ./builder-support/gen-version | sed 's/\([0-9]\+\.[0-9]\+\.[0-9]\+\(\(alpha|beta|rc\)\d\+\)\)?.*/\1/')" set-configure-ac-version.sh;\
-    fi && \
-    BUILDER_MODULES=recursor autoreconf -vfi
 
 RUN mkdir /build && \
     LUAVER=$([ -z "${NO_LUA_JIT##*$(dpkg --print-architecture)*}" ] && echo 'lua5.3' || echo 'luajit') && \

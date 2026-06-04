@@ -1,6 +1,9 @@
 Compiling :program:`PowerDNS Recursor`
 ======================================
 
+.. versionchanged:: 5.5.0
+   Support for autotools and make have been removed, use the ``meson`` instructions.
+
 As :program:`PowerDNS Recursor` is distributed with a configure script, compiling it is a matter of::
 
   tar xf pdns-recursor-$VERSION.tar.bz2
@@ -48,7 +51,7 @@ By default, the :program:`Recursor` requires the following libraries and headers
 * `Boost <https://boost.org/>`_ 1.54 or newer
 * `Lua <https://www.lua.org/>`_ 5.1+ or `LuaJit <https://luajit.org/>`_
 * `OpenSSL <https://openssl.org>`_
-* For :program:`Recursor` version 5 and higher, `cargo <https://www.rust-lang.org/tools/install>`_ version 1.64 or newer.
+* For :program:`Recursor` version 5 and higher, `cargo <https://www.rust-lang.org/tools/install>`_. Minimum version depends on the version of Recursor being build.
 
 .. note::
    On Debian and Ubuntu, the following will get you the dependencies::
@@ -123,7 +126,7 @@ Protobuf to emit DNS logs
 
 The :program:`Recursor` can log DNS query information over :doc:`Protocol Buffers <../lua-config/protobuf>`.
 
-This functionality from 4.5.0 and upwards, without needing any external library. Before 4.5.0, installing the  `protobuf <https://developers.google.com/protocol-buffers/>`_ library and compiler is required to enable this functionality. The configure script will automatically detect this and bump the Boost version dependency to 1.42. To disable building this functionality before 4.5.0, use ``--without-protobuf``.
+This functionality is available from 4.5.0 and upwards without needing any external library.
 
 ``systemd`` notify support
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
