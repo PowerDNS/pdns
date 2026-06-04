@@ -124,6 +124,7 @@ static std::vector<dnsdist::console::completion::ConsoleKeyword> s_consoleKeywor
   {"getQueryCounters", true, "[max=10]", "show current buffer of query counters, limited by 'max' if provided"},
   {"getResponseRing", true, "", "return the current content of the response ring"},
   {"getRespRing", true, "", "return the qname/rcode content of the response ring"},
+  {"getRingBuffersSamplingRate", true, "", "return current sampling rate of the in-memory ring buffers"},
   {"getServer", true, "id", "returns server with index 'n' or whose uuid matches if 'id' is an UUID string"},
   {"getServers", true, "", "returns a table with all defined servers"},
   {"getStatisticsCounters", true, "", "returns a map of statistic counters"},

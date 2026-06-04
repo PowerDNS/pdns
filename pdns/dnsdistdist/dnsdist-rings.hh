@@ -21,7 +21,7 @@
  */
 #pragma once
 
-#include <time.h>
+#include <ctime>
 #include <unordered_map>
 
 #include <boost/variant.hpp>
@@ -64,7 +64,7 @@ struct Rings
     // outgoing protocol
     dnsdist::Protocol protocol;
 
-    bool isACacheHit() const;
+    [[nodiscard]] bool isACacheHit() const;
   };
 
   struct Shard
@@ -89,17 +89,17 @@ struct Rings
   /* This function should only be called at configuration time before any query or response has been inserted */
   void init(const RingsConfiguration& config);
 
-  size_t getNumberOfShards() const
+  [[nodiscard]] size_t getNumberOfShards() const
   {
     return d_numberOfShards;
   }
 
-  size_t getNumberOfQueryEntries() const
+  [[nodiscard]] size_t getNumberOfQueryEntries() const
   {
     return d_nbQueryEntries;
   }
 
-  size_t getNumberOfResponseEntries() const
+  [[nodiscard]] size_t getNumberOfResponseEntries() const
   {
     return d_nbResponseEntries;
   }
@@ -229,22 +229,22 @@ struct Rings
      only useful for debugging purposes */
   size_t loadFromFile(const std::string& filepath, const struct timespec& now);
 
-  bool shouldRecordQueries() const
+  [[nodiscard]] bool shouldRecordQueries() const
   {
     return d_recordQueries;
   }
 
-  bool shouldRecordResponses() const
+  [[nodiscard]] bool shouldRecordResponses() const
   {
     return d_recordResponses;
   }
 
-  size_t getSamplingRate() const
+  [[nodiscard]] size_t getSamplingRate() const
   {
     return d_samplingRate;
   }
 
-  uint32_t adjustForSamplingRate(uint32_t count) const
+  [[nodiscard]] uint32_t adjustForSamplingRate(uint32_t count) const
   {
     const auto samplingRate = getSamplingRate();
     if (samplingRate > 0) {
@@ -271,9 +271,9 @@ private:
   }
 
 #if defined(DNSDIST_RINGS_WITH_MACADDRESS)
-  bool insertQueryLocked(boost::circular_buffer<Query>& ring, const struct timespec& when, const ComboAddress& requestor, DNSName&& name, uint16_t qtype, uint16_t size, const struct dnsheader& dh, dnsdist::Protocol protocol, const dnsdist::MacAddress& macaddress, const bool hasmac)
+  static bool insertQueryLocked(boost::circular_buffer<Query>& ring, const struct timespec& when, const ComboAddress& requestor, DNSName&& name, uint16_t qtype, uint16_t size, const struct dnsheader& dh, dnsdist::Protocol protocol, const dnsdist::MacAddress& macaddress, const bool hasmac)
 #else
-  bool insertQueryLocked(boost::circular_buffer<Query>& ring, const struct timespec& when, const ComboAddress& requestor, DNSName&& name, uint16_t qtype, uint16_t size, const struct dnsheader& dh, dnsdist::Protocol protocol)
+  static bool insertQueryLocked(boost::circular_buffer<Query>& ring, const struct timespec& when, const ComboAddress& requestor, DNSName&& name, uint16_t qtype, uint16_t size, const struct dnsheader& dh, dnsdist::Protocol protocol)
 #endif
   {
     bool wasFull = ring.full();
@@ -289,14 +289,14 @@ private:
     return wasFull;
   }
 
-  bool insertResponseLocked(boost::circular_buffer<Response>& ring, const struct timespec& when, const ComboAddress& requestor, DNSName&& name, uint16_t qtype, unsigned int usec, uint16_t size, const struct dnsheader& dh, const ComboAddress& backend, dnsdist::Protocol protocol)
+  static bool insertResponseLocked(boost::circular_buffer<Response>& ring, const struct timespec& when, const ComboAddress& requestor, DNSName&& name, uint16_t qtype, unsigned int usec, uint16_t size, const struct dnsheader& dh, const ComboAddress& backend, dnsdist::Protocol protocol)
   {
     bool wasFull = ring.full();
     ring.push_back({requestor, backend, std::move(name), when, dh, usec, size, qtype, protocol});
     return wasFull;
   }
 
-  bool shouldSkipQueryDueToSampling()
+  [[nodiscard]] bool shouldSkipQueryDueToSampling() const
   {
     if (d_samplingRate == 0) {
       return false;
@@ -305,7 +305,7 @@ private:
     return (counter % d_samplingRate) != 0;
   }
 
-  bool shouldSkipResponseDueToSampling()
+  [[nodiscard]] bool shouldSkipResponseDueToSampling() const
   {
     if (d_samplingRate == 0) {
       return false;
