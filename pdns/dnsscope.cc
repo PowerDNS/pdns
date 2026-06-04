@@ -116,13 +116,15 @@ static void visitor(const StatNode* node, const StatNode::Stat& /* selfstat */, 
 {
   // 20% servfails, >100 children, on average less than 2 copies of a query
   // >100 different subqueries
-  double dups=1.0*childstat.queries/node->size();
-  if(dups > 2.0)
+  auto dups = 1.0 * static_cast<double>(childstat.queries) / static_cast<double>(node->getNumberOfChildren());
+  if (dups > 2.0) {
     return;
-  if(1.0*childstat.servfails / childstat.queries > 0.2 && node->size()>100) {
-    cout<<node->fullname<<", servfails: "<<childstat.servfails<<", nxdomains: "<<childstat.nxdomains<<", remotes: "<<childstat.remotes.size()<<", children: "<<node->size()<<", childstat.queries: "<<childstat.queries;
+  }
+
+  if (1.0 * static_cast<double>(childstat.servfails) / static_cast<double>(childstat.queries) > 0.2 && node->getNumberOfChildren() > 100) {
+    cout<<node->fullname<<", servfails: "<<childstat.servfails<<", nxdomains: "<<childstat.nxdomains<<", remotes: "<<childstat.remotes.size()<<", children: "<<node->getNumberOfChildren()<<", childstat.queries: "<<childstat.queries;
     cout<<", dups2: "<<dups<<endl;
-    for(const StatNode::Stat::remotes_t::value_type& rem :  childstat.remotes) {
+    for (const auto& rem :  childstat.remotes) {
       cout<<"source: "<<node->fullname<<"\t"<<rem.first.toString()<<"\t"<<rem.second<<endl;
     }
   }

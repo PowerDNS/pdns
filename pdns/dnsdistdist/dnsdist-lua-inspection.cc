@@ -907,7 +907,7 @@ void setupLuaInspection(LuaContext& luaCtx)
   /* StatNode */
   luaCtx.registerFunction<unsigned int (StatNode::*)() const>("numChildren",
                                                               [](const StatNode& node) -> unsigned int {
-                                                                return node.size();
+                                                                return node.getNumberOfChildren();
                                                               });
   luaCtx.registerMember<std::string(StatNode::*)>(std::string("fullname"), [](const StatNode& node) -> std::string {
     /* we are not using toLogString() because we want:

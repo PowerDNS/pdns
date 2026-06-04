@@ -67,11 +67,11 @@ public:
   void submit(const DNSName& domain, int rcode, uint32_t bytes, bool hit, const std::optional<ComboAddress>& remote, size_t samplingRate);
   Stat print(unsigned int depth=0, Stat newstat=Stat(), bool silent=false) const;
   void visit(const visitor_t& visitor, Stat& newstat, unsigned int depth = 0) const;
-  bool empty() const
+  [[nodiscard]] bool empty() const
   {
     return children.empty() && s.remotes.empty();
   }
-  size_t size() const
+  [[nodiscard]] size_t getNumberOfChildren() const
   {
     return children.size();
   }
