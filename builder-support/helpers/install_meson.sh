@@ -5,8 +5,8 @@ set -e
 [ -e /tmp/.pdns_meson_installed ] && exit 0  # we already have meson, let's assume we put it there earlier
 
 readonly MESON_VERSION=$(jq -r .version < meson.json)
-readonly MESON_TARBALL="${MESON_VERSION}.tar.gz"
-readonly MESON_TARBALL_URL="https://github.com/mesonbuild/meson/archive/${MESON_TARBALL}"
+readonly MESON_TARBALL="meson-${MESON_VERSION}.tar.gz"
+readonly MESON_TARBALL_URL="https://github.com/mesonbuild/meson/releases/download/${MESON_VERSION}/${MESON_TARBALL}"
 readonly MESON_TARBALL_HASH=$(jq -r .SHA256SUM < meson.json)
 
 cd /tmp
