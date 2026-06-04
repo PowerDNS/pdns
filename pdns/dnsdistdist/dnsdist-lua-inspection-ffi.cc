@@ -75,7 +75,7 @@ void dnsdist_ffi_stat_node_get_full_name_raw(const dnsdist_ffi_stat_node_t* node
 
 unsigned int dnsdist_ffi_stat_node_get_children_count(const dnsdist_ffi_stat_node_t* node)
 {
-  return node->node.size();
+  return node->node.getNumberOfChildren(g_rings.getSamplingRate());
 }
 
 uint64_t dnsdist_ffi_stat_node_get_children_queries_count(const dnsdist_ffi_stat_node_t* node)

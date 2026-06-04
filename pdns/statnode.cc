@@ -132,3 +132,12 @@ void StatNode::submit(std::vector<string>::const_iterator end, std::vector<strin
     children[*end].submit(end, begin, fullname, rcode, bytes, remote, count+1, hit, samplingRate);
   }
 }
+
+size_t StatNode::getNumberOfChildren(size_t samplingRate) const
+{
+  // this might seem surprising, but all consumers are using this value
+  // to get some context for the other counters (number of queries,
+  // number of responses with specific response codes) that have all
+  // been adjusted for sampling
+  return adjustForSampling(children.size(), samplingRate);
+}
