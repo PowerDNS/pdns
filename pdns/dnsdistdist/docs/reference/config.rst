@@ -568,7 +568,7 @@ EDNS Client Subnet
 Ringbuffers
 ~~~~~~~~~~~
 
-.. function:: getRingBuffersSampingRate() -> int
+.. function:: getRingBuffersSamplingRate() -> int
 
   .. versionadded:: 2.1.0
 
