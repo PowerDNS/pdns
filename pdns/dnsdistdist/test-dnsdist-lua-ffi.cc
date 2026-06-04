@@ -1196,6 +1196,7 @@ BOOST_AUTO_TEST_CASE(test_set_altername_name)
   BOOST_CHECK(dnsdist_ffi_dnsquestion_set_alternate_name(&lightDQ, target.getStorage().data(), target.getStorage().size(), tag.data(), tag.size(), nullptr, 0, nullptr, 0));
 }
 
+#ifndef DISABLE_DYNBLOCKS
 BOOST_AUTO_TEST_CASE(stat_node)
 {
   StatNode node{};
@@ -1240,5 +1241,6 @@ BOOST_AUTO_TEST_CASE(stat_node)
   BOOST_REQUIRE(blockParameters.d_action.has_value());
   BOOST_CHECK(*blockParameters.d_action == DNSAction::Action::NoRecurse);
 }
+#endif /* DISABLE_DYNBLOCKS */
 
 BOOST_AUTO_TEST_SUITE_END();
