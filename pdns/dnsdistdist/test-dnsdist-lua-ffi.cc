@@ -1233,6 +1233,7 @@ BOOST_AUTO_TEST_CASE(query_response_pointer_mismatch)
   BOOST_CHECK_EQUAL(bufferSize, 0U);
 }
 
+#ifndef DISABLE_DYNBLOCKS
 BOOST_AUTO_TEST_CASE(stat_node)
 {
   StatNode node{};
@@ -1277,5 +1278,6 @@ BOOST_AUTO_TEST_CASE(stat_node)
   BOOST_REQUIRE(blockParameters.d_action.has_value());
   BOOST_CHECK(*blockParameters.d_action == DNSAction::Action::NoRecurse);
 }
+#endif /* DISABLE_DYNBLOCKS */
 
 BOOST_AUTO_TEST_SUITE_END();
