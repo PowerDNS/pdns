@@ -52,7 +52,7 @@ if dep_libssl.found()
   conf.set(
     'HAVE_SSL_CTX_SET1_ECHSTORE',
     has,
-    description: 'Have OpenSSL libssl HAVE_SSL_CTX_SET1_ECHSTORE',
+    description: 'Have OpenSSL libssl SSL_CTX_set1_echstore',
   )
 endif
 
