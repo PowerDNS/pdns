@@ -2432,8 +2432,15 @@ bool LMDBBackend::genChangeTransientDomain(domainid_t id, const std::function<vo
     writeDomainInfo(info);
   }
   else {
-    // No need to write the complete DomainInfo in this case
-    writeTransientDomainInfo(info);
+    // If the DomainInfo table is split, only update the extra table.
+    if (d_split_domains_table) {
+      writeTransientDomainInfo(info);
+    }
+    else {
+      auto txn = d_tdomains->getRWTransaction();
+      txn.put(info, info.id);
+      txn.commit();
+    }
   }
   return true;
 }
