@@ -358,7 +358,7 @@ private:
   bool findDomain(const ZoneName& domain, DomainInfo& info) const;
   bool findDomain(domainid_t domainid, DomainInfo& info) const;
   void consolidateDomainInfo(DomainInfo& info) const;
-  void writeDomainInfo(const DomainInfo& info);
+  void updateDomainInfo(const DomainInfo& info);
   void writeTransientDomainInfo(const DomainInfo& info);
 
   void setLastCheckTime(domainid_t domain_id, time_t last_check);
