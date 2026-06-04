@@ -8,6 +8,10 @@ When upgrading several versions, please read **all** notes applying to the upgra
 5.4.0 to master
 ---------------
 
+Building
+^^^^^^^^
+Building using autotools is no longer possible, use meson. See :doc:`appendices/compiling`.
+
 Changed Settings
 ^^^^^^^^^^^^^^^^
 The :ref:`incoming-ws-config` YAML struct has been extended to be able to specify an encrypted PKCS12 file to configure TLS key and certificate chain for the embedded web server.
