@@ -113,7 +113,7 @@ Listen Sockets
      ``enableProxyProtocol``, ``ktls``, ``library``, ``proxyProtocolOutsideTLS``, ``readAhead``, ``tlsAsyncMode`` options added.
 
   .. versionchanged:: 2.2.0
-     ``padResponses`` and "ecdheCurves" options added.
+     ``padResponses`` and ``ecdheCurves`` options added.
 
   Listen on the specified address and TCP port for incoming DNS over HTTPS connections, presenting the specified X.509 certificate. See :doc:`../advanced/tls-certificates-management` for details about the handling of TLS certificates and keys.
   If no certificate (or key) files are specified, listen for incoming DNS over HTTP connections instead.
@@ -235,7 +235,7 @@ Listen Sockets
   .. versionchanged:: 1.9.0
      ``enableProxyProtocol``, ``readAhead`` and ``proxyProtocolOutsideTLS`` options added.
   .. versionchanged:: 2.2.0
-     ``padResponses`` and "ecdheCurves" options added.
+     ``padResponses`` and ``ecdheCurves`` options added.
 
   Listen on the specified address and TCP port for incoming DNS over TLS connections, presenting the specified X.509 certificate. See :doc:`../advanced/tls-certificates-management` for details about the handling of TLS certificates and keys.
   More information is available at :doc:`../guides/dns-over-tls`.
