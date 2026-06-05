@@ -43,6 +43,17 @@ if dep_libssl.found()
     has,
     description: 'Have OpenSSL libssl SSL_CTX_set_min_proto_version',
   )
+
+  has = cxx.has_header_symbol(
+    'openssl/ech.h',
+    'SSL_CTX_set1_echstore',
+    dependencies: dep_libssl,
+  )
+  conf.set(
+    'HAVE_SSL_CTX_SET1_ECHSTORE',
+    has,
+    description: 'Have OpenSSL libssl SSL_CTX_set1_echstore',
+  )
 endif
 
 conf.set('HAVE_LIBSSL', dep_libssl.found(), description: 'OpenSSL libssl')

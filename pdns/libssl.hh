@@ -31,6 +31,7 @@ class TLSConfig
 public:
   std::vector<TLSCertKeyPair> d_certKeyPairs;
   std::vector<std::string> d_ocspFiles;
+  std::vector<std::string> d_echConfigurationFiles;
 
   std::string d_ciphers;
   std::string d_ciphers13;
@@ -191,5 +192,7 @@ std::pair<bool, std::string> libssl_load_provider(const std::string& engineName)
 #if defined(HAVE_LIBSSL) && !defined(HAVE_TLS_PROVIDERS)
 std::pair<bool, std::string> libssl_load_engine(const std::string& engineName, const std::optional<std::string>& defaultString);
 #endif /* HAVE_LIBSSL && !HAVE_TLS_PROVIDERS */
+
+bool libssl_load_ech_files([[maybe_unused]] SSL_CTX* ctx, [[maybe_unused]] const std::vector<std::string>& files);
 
 #endif /* HAVE_LIBSSL */

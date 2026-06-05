@@ -1191,6 +1191,10 @@ std::pair<std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>, std::vector<std::st
   }
 #endif /* HAVE_SSL_CTX_SET_CIPHERSUITES */
 
+  if (!config.d_echConfigurationFiles.empty()) {
+    libssl_load_ech_files(ctx.get(), config.d_echConfigurationFiles);
+  }
+
   return {std::move(ctx), std::move(warnings)};
 }
 
@@ -1409,4 +1413,47 @@ std::string libssl_get_error_string()
   BIO_free(mem);
   return msg;
 }
+
+#if defined(HAVE_SSL_CTX_SET1_ECHSTORE)
+#include <openssl/ech.h>
+#endif
+
+bool libssl_load_ech_files([[maybe_unused]] SSL_CTX* ctx, [[maybe_unused]] const std::vector<std::string>& files)
+{
+#if defined(HAVE_SSL_CTX_SET1_ECHSTORE)
+  auto store = std::unique_ptr<OSSL_ECHSTORE, decltype(&OSSL_ECHSTORE_free)>(OSSL_ECHSTORE_new(nullptr, nullptr), OSSL_ECHSTORE_free);
+  /* we only use the first file for ECH retry config, making it
+     easier to support keys rotation */
+  bool retry_config = true;
+  for (const auto& file : files) {
+    auto buffer = std::unique_ptr<BIO, decltype(&BIO_free)>(BIO_new_file(file.c_str(), "r"), BIO_free);
+    if (!buffer) {
+      throw std::runtime_error("Unable to open ECH configuration file '" + file + "': " + libssl_get_error_string());
+    }
+    auto ret = OSSL_ECHSTORE_read_pem(store.get(), buffer.get(), retry_config ? OSSL_ECH_FOR_RETRY : OSSL_ECH_NO_RETRY);
+    if (ret != 1) {
+      throw std::runtime_error("Unable to load ECH values from file '" + file + "': " + libssl_get_error_string());
+    }
+    if (retry_config) {
+      retry_config = false;
+    }
+  }
+  /* did we get at least one private key from the files? */
+  int numberOfLoadedKeys{0};
+  if (OSSL_ECHSTORE_num_keys(store.get(), &numberOfLoadedKeys) != 1) {
+    throw std::runtime_error("Unable to get the number of loaded ECH keys: " + libssl_get_error_string());
+  }
+  if (numberOfLoadedKeys <= 0) {
+    throw std::runtime_error("No valid keys found in the ECH configuration");
+  }
+  if (SSL_CTX_set1_echstore(ctx, store.get()) != 1) {
+    throw std::runtime_error("Unable to apply ECH configuration:" + libssl_get_error_string());
+
+  }
+  return true;
+#else /* defined(HAVE_SSL_CTX_SET1_ECHSTORE) */
+  return false;
+#endif /* defined(HAVE_SSL_CTX_SET1_ECHSTORE) */
+}
+
 #endif /* HAVE_LIBSSL */

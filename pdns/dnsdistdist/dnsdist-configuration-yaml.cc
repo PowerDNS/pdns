@@ -268,6 +268,9 @@ static TLSConfig getTLSConfigFromRustIncomingTLS([[maybe_unused]] const Context&
   for (const auto& ocspFile : incomingTLSConfig.ocsp_response_files) {
     out.d_ocspFiles.emplace_back(ocspFile);
   }
+  for (const auto& echConfigFile : incomingTLSConfig.ech_configuration_files) {
+    out.d_echConfigurationFiles.emplace_back(echConfigFile);
+  }
   out.d_ciphers = std::string(incomingTLSConfig.ciphers);
   out.d_ciphers13 = std::string(incomingTLSConfig.ciphers_tls_13);
 #if defined(HAVE_LIBSSL)
