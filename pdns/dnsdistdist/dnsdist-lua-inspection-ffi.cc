@@ -66,7 +66,7 @@ unsigned int dnsdist_ffi_stat_node_get_labels_count(const dnsdist_ffi_stat_node_
 
 void dnsdist_ffi_stat_node_get_full_name_raw(const dnsdist_ffi_stat_node_t* node, const char** name, size_t* nameSize)
 {
-  if (node->fullname.empty()) {
+  if (node->fullname.empty() && !node->node.fullname.empty()) {
     node->fullname = node->node.fullname.toString();
   }
   *name = node->fullname.c_str();
