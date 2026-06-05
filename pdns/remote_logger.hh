@@ -51,8 +51,10 @@ public:
 
   [[nodiscard]] bool hasRoomFor(const std::string& str) const;
   [[nodiscard]] bool tooBig(const std::string& str) const;
+  [[nodiscard]] bool isEmpty() const;
   bool write(const std::string& str);
   bool flush(int fileDesc);
+  void clear();
 
 private:
   boost::circular_buffer<char> d_buffer;
@@ -172,8 +174,13 @@ public:
   }
 
 private:
+  // if we have been trying to write for that long without any progress,
+  // the connection is dead
+  static constexpr time_t s_stalledTimeoutSeconds{5};
+
   bool reconnect();
   void maintenanceThread();
+  [[nodiscard]] bool connectionStalled();
 
   struct RuntimeData
   {
@@ -183,6 +190,7 @@ private:
   };
 
   ComboAddress d_remote;
+  time_t d_tryingToWriteSince{};
   uint16_t d_timeout;
   uint8_t d_reconnectWaitTime;
   std::atomic<bool> d_exiting{false};

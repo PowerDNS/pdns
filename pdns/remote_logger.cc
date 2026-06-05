@@ -44,6 +44,16 @@ bool CircularWriteBuffer::tooBig(const std::string& str) const
   return str.size() > (d_framesize == 2 ? std::numeric_limits<uint16_t>::max() : std::numeric_limits<uint32_t>::max());
 }
 
+bool CircularWriteBuffer::isEmpty() const
+{
+  return d_buffer.empty();
+}
+
+void CircularWriteBuffer::clear()
+{
+  d_buffer.clear();
+}
+
 bool CircularWriteBuffer::write(const std::string& str)
 {
   if (tooBig(str) || !hasRoomFor(str)) {
@@ -192,8 +202,18 @@ RemoteLoggerInterface::Result RemoteLogger::queueData(const std::string& data)
       if (!runtime->d_writer.flush(runtime->d_socket->getHandle())) {
         /* but failed, let's just drop */
         ++runtime->d_stats.d_pipeFull;
+        if (connectionStalled()) {
+          /* we have not been able to write for far too long,
+             something is wrong. */
+          runtime->d_socket.reset();
+          /* we can't be sure we haven't sent a partial message,
+             and we don't want to send the remaining part after reconnecting */
+          runtime->d_writer.clear();
+          ++runtime->d_stats.d_otherError;
+        }
         return Result::PipeFull;
       }
+      d_tryingToWriteSince = 0;
 
       /* see if we freed enough data */
       if (!runtime->d_writer.hasRoomFor(data)) {
@@ -253,7 +273,20 @@ void RemoteLogger::maintenanceThread()
             /* if flush() returns false, it means that we couldn't flush anything yet
                either because there is nothing to flush, or because the outgoing TCP
                buffer is full. That's fine by us */
-            runtime->d_writer.flush(runtime->d_socket->getHandle());
+            auto flushed = runtime->d_writer.flush(runtime->d_socket->getHandle());
+            if (flushed) {
+              d_tryingToWriteSince = 0;
+            }
+            else if (!runtime->d_writer.isEmpty() && connectionStalled()) {
+              /* we have not been able to write for far too long,
+                 something is wrong. */
+              runtime->d_socket.reset();
+              /* we can't be sure we haven't sent a partial message,
+                 and we don't want to send the remaining part after reconnecting */
+              runtime->d_writer.clear();
+              connected = false;
+              ++runtime->d_stats.d_otherError;
+            }
           }
           else {
             connected = false;
@@ -297,4 +330,15 @@ RemoteLogger::~RemoteLogger()
   d_exiting = true;
 
   d_thread.join();
+}
+
+bool RemoteLogger::connectionStalled()
+{
+  auto now = time(nullptr);
+  if (d_tryingToWriteSince == 0) {
+    d_tryingToWriteSince = now;
+    return false;
+  }
+
+  return (d_tryingToWriteSince < now && (now - d_tryingToWriteSince) > s_stalledTimeoutSeconds);
 }
