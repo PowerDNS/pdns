@@ -1354,6 +1354,13 @@ void LMDBBackend::consolidateDomainInfo(DomainInfo& info) const
   }
 }
 
+void LMDBBackend::writeDomainInfo(const DomainInfo& info)
+{
+  auto txn = d_tdomains->getRWTransaction();
+  txn.put(info, info.id);
+  txn.commit();
+}
+
 void LMDBBackend::writeTransientDomainInfo(const DomainInfo& info)
 {
   // If the DomainInfo table is split, write the TransientDomainInfo part
@@ -1368,7 +1375,7 @@ void LMDBBackend::writeTransientDomainInfo(const DomainInfo& info)
   }
 }
 
-void LMDBBackend::writeDomainInfo(const DomainInfo& info)
+void LMDBBackend::updateDomainInfo(const DomainInfo& info)
 {
   // Update the in-memory cache if we don't keep the database up to date.
   if (!d_write_notification_update) {
@@ -1384,9 +1391,7 @@ void LMDBBackend::writeDomainInfo(const DomainInfo& info)
     return;
   }
 
-  auto txn = d_tdomains->getRWTransaction();
-  txn.put(info, info.id);
-  txn.commit();
+  writeDomainInfo(info);
   writeTransientDomainInfo(info);
 }
 
@@ -2400,7 +2405,7 @@ bool LMDBBackend::genChangeDomain(const ZoneName& domain, const std::function<vo
   }
   consolidateDomainInfo(info);
   func(info);
-  writeDomainInfo(info);
+  updateDomainInfo(info);
   return true;
 }
 
@@ -2413,7 +2418,7 @@ bool LMDBBackend::genChangeDomain(domainid_t id, const std::function<void(Domain
   }
   consolidateDomainInfo(info);
   func(info);
-  writeDomainInfo(info);
+  updateDomainInfo(info);
   return true;
 }
 
@@ -2429,11 +2434,16 @@ bool LMDBBackend::genChangeTransientDomain(domainid_t id, const std::function<vo
   func(info);
   if (!d_write_notification_update) {
     // This won't write anything but update the in-memory cache
-    writeDomainInfo(info);
+    updateDomainInfo(info);
   }
   else {
-    // No need to write the complete DomainInfo in this case
-    writeTransientDomainInfo(info);
+    // If the DomainInfo table is split, only update the extra table.
+    if (d_split_domains_table) {
+      writeTransientDomainInfo(info);
+    }
+    else {
+      writeDomainInfo(info);
+    }
   }
   return true;
 }
@@ -3745,9 +3755,7 @@ void LMDBBackend::flush()
           writeTransientDomainInfo(info);
         }
         else {
-          auto txn = d_tdomains->getRWTransaction();
-          txn.put(info, info.id);
-          txn.commit();
+          writeDomainInfo(info);
         }
       }
       else {
