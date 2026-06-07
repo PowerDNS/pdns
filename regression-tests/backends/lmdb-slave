@@ -55,6 +55,18 @@ __EOF__
                 $PDNSUTIL --config-dir=. --config-name=lmdb2 set-catalog remove.invalid catalog.invalid
         fi
 
+        # search for a zone which has never been AXFR'd yet
+        axfrzone=
+        for zone in $(grep 'zone ' named.conf  | cut -f2 -d\" | grep -v '^nztest.com$')
+        do
+                notificationtime=$($PDNSUTIL --config-dir=. --config-name=lmdb2 zone show $zone | grep ^Last | cut -d: -f2-)
+                if [ "$notificationtime" = " Never" ]
+                then
+                        axfrzone=$zone
+                        break
+                fi
+        done
+
         port=$((port+100))
 
         $RUNWRAPPER $PDNS2 --daemon=no --local-port=$port --config-dir=. \
@@ -78,6 +90,18 @@ __EOF__
         done
         if [ $zones -ne $present ]
         then
-                echo "AXFR FAILED" >> failed_tests
+                echo "AXFR FAILED" | tee -a failed_tests
                 exit
+        fi
+
+        # If we had a zone which had never had its contents AXFR'd before,
+        # check the notification timestamp has been updated.
+        if [ -n "$axfrzone" ]
+        then
+                notificationtime=$($PDNSUTIL --config-dir=. --config-name=lmdb2 zone show $zone | grep ^Last | cut -d: -f2-)
+                if [ "$notificationtime" = " Never" ]
+                then
+                        echo "AXFR FAILED TO UPDATE NOTIFICATION TIMESTAMP" | tee -a failed_tests
+                        exit
+                fi
         fi

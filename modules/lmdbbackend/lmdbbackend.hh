@@ -358,6 +358,7 @@ private:
   bool findDomain(const ZoneName& domain, DomainInfo& info) const;
   bool findDomain(domainid_t domainid, DomainInfo& info) const;
   void consolidateDomainInfo(DomainInfo& info) const;
+  void updateDomainInfo(const DomainInfo& info);
   void writeDomainInfo(const DomainInfo& info);
   void writeTransientDomainInfo(const DomainInfo& info);
 
