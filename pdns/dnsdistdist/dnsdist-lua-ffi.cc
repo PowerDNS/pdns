@@ -1940,8 +1940,8 @@ size_t dnsdist_ffi_dnspacket_get_name_at_offset_raw(const char* packet, size_t p
     return storage.size();
   }
   catch (const std::exception& e) {
-    VERBOSESLOG(infolog("Error parsing DNSName via dnsdist_ffi_dnspacket_get_name_at_offset_raw: %s", e.what()),
-                getLogger(__func__)->error(Logr::Info, e.what(), "Error parsing DNS name", "packet_size", Logging::Loggable(packetSize), "offset", Logging::Loggable(offset)));
+    VERBOSESLOG(infolog("Error parsing DNSName from packet (%s) via dnsdist_ffi_dnspacket_get_name_at_offset_raw: %s", makeHexDump(std::string(packet, packetSize)), e.what()),
+                getLogger(__func__)->error(Logr::Info, e.what(), "Error parsing DNS name", "packet_size", Logging::Loggable(packetSize), "offset", Logging::Loggable(offset), "packet_bytes", Logging::Loggable(makeHexDump(std::string(packet, packetSize)))));
   }
   return 0;
 }
