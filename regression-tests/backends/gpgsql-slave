@@ -60,6 +60,6 @@ __EOF__
 	done
 	if [ $todo -ne 0 ]
 	then
-		echo "AXFR FAILED" >> failed_tests
+		echo "AXFR FAILED" | tee -a failed_tests
 		exit
 	fi

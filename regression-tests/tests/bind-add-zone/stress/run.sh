@@ -42,7 +42,7 @@ bindwait ()
 	done
 
 	if [ $done != $domcount ]; then
-		echo "Domain parsing failed" >> failed_tests
+		echo "Domain parsing failed" | tee -a failed_tests
 	fi
 }
 
