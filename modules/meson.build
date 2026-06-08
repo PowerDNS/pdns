@@ -56,7 +56,7 @@ foreach module_name: all_modules
 
   foreach resource: module_resources
     install_data(resource,
-      install_dir: get_option('datadir') / 'pdns'
+      install_dir: get_option('datadir') / 'doc' / 'pdns'
     )
   endforeach
 
