@@ -102,6 +102,6 @@ __EOF__
 	done
 	if [ $present -ne $zones ]
 	then
-		echo "AXFR FAILED" >> failed_tests
+		echo "AXFR FAILED" | tee -a failed_tests
 		exit
 	fi
