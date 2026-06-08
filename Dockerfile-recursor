@@ -38,8 +38,6 @@ WORKDIR /source
 
 COPY meson/ meson/
 COPY pdns/ pdns/
-COPY build-aux/ build-aux/
-COPY m4/ m4/
 COPY ext/ ext/
 COPY .git/ .git/
 
