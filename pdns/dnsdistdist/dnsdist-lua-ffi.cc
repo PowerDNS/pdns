@@ -57,7 +57,14 @@ uint16_t dnsdist_ffi_dnsquestion_get_id(const dnsdist_ffi_dnsquestion_t* dnsQues
   if (dnsQuestion == nullptr) {
     return 0;
   }
-  return ntohs(dnsQuestion->dq->getHeader()->id);
+  try {
+    return ntohs(dnsQuestion->dq->getHeader()->id);
+  }
+  catch (const std::exception& e) {
+    VERBOSESLOG(infolog("Error getting ID from packet: %s", e.what()),
+                getLogger(__func__)->error(Logr::Info, e.what(), "Error getting ID from packet"));
+    return 0;
+  }
 }
 
 static void dnsdist_ffi_comboaddress_to_raw(const ComboAddress& caAddr, const void** addr, size_t* addrSize)
@@ -96,13 +103,21 @@ size_t dnsdist_ffi_dnsquestion_get_mac_addr(const dnsdist_ffi_dnsquestion_t* dns
   if (dnsQuestion == nullptr) {
     return 0;
   }
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-  auto ret = dnsdist::MacAddressesCache::get(dnsQuestion->dq->ids.origRemote, reinterpret_cast<unsigned char*>(buffer), bufferSize);
-  if (ret != 0) {
+
+  try {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    auto ret = dnsdist::MacAddressesCache::get(dnsQuestion->dq->ids.origRemote, reinterpret_cast<unsigned char*>(buffer), bufferSize);
+    if (ret != 0) {
+      return 0;
+    }
+
+    return 6;
+  }
+  catch (const std::exception& e) {
+    VERBOSESLOG(infolog("Error getting MAC address: %s", e.what()),
+                getLogger(__func__)->error(Logr::Info, e.what(), "Error getting MAC address"));
     return 0;
   }
-
-  return 6;
 }
 
 uint64_t dnsdist_ffi_dnsquestion_get_elapsed_us(const dnsdist_ffi_dnsquestion_t* dnsQuestion)
@@ -177,12 +192,26 @@ size_t dnsdist_ffi_dnsquestion_get_qname_hash(const dnsdist_ffi_dnsquestion_t* d
 
 int dnsdist_ffi_dnsquestion_get_rcode(const dnsdist_ffi_dnsquestion_t* dnsQuestion)
 {
-  return dnsQuestion->dq->getHeader()->rcode;
+  try {
+    return dnsQuestion->dq->getHeader()->rcode;
+  }
+  catch (const std::exception& e) {
+    VERBOSESLOG(infolog("Error getting rcode from packet: %s", e.what()),
+                getLogger(__func__)->error(Logr::Info, e.what(), "Error getting rcode from packet"));
+    return 0;
+  }
 }
 
 void* dnsdist_ffi_dnsquestion_get_header(const dnsdist_ffi_dnsquestion_t* dnsQuestion)
 {
-  return dnsQuestion->dq->getMutableHeader();
+  try {
+    return dnsQuestion->dq->getMutableHeader();
+  }
+  catch (const std::exception& e) {
+    VERBOSESLOG(infolog("Error getting header from packet: %s", e.what()),
+                getLogger(__func__)->error(Logr::Info, e.what(), "Error getting header from packet"));
+    return nullptr;
+  }
 }
 
 const unsigned char* dnsdist_ffi_dnsquestion_get_data(const dnsdist_ffi_dnsquestion_t* dnsQuestion)
@@ -196,9 +225,16 @@ bool dnsdist_ffi_dnsquestion_get_header_copy(const dnsdist_ffi_dnsquestion_t* dn
     return false;
   }
 
-  const auto aligned = dnsQuestion->dq->getHeader();
-  memcpy(buffer, aligned.get(), sizeof(dnsheader));
-  return true;
+  try {
+    const auto aligned = dnsQuestion->dq->getHeader();
+    memcpy(buffer, aligned.get(), sizeof(dnsheader));
+    return true;
+  }
+  catch (const std::exception& e) {
+    VERBOSESLOG(infolog("Error getting header from packet: %s", e.what()),
+                getLogger(__func__)->error(Logr::Info, e.what(), "Error getting header from packet"));
+    return false;
+  }
 }
 
 bool dnsdist_ffi_dnsquestion_set_header(const dnsdist_ffi_dnsquestion_t* dnsQuestion, const char* buffer)
@@ -207,11 +243,18 @@ bool dnsdist_ffi_dnsquestion_set_header(const dnsdist_ffi_dnsquestion_t* dnsQues
     return false;
   }
 
-  dnsQuestion->dq->editHeader([&buffer](dnsheader& header) -> bool {
-    memcpy(&header, buffer, sizeof(dnsheader));
+  try {
+    dnsQuestion->dq->editHeader([&buffer](dnsheader& header) -> bool {
+      memcpy(&header, buffer, sizeof(dnsheader));
+      return true;
+    });
     return true;
-  });
-  return true;
+  }
+  catch (const std::exception& e) {
+    VERBOSESLOG(infolog("Error setting header in packet: %s", e.what()),
+                getLogger(__func__)->error(Logr::Info, e.what(), "Error setting header in packet"));
+    return false;
+  }
 }
 
 uint16_t dnsdist_ffi_dnsquestion_get_len(const dnsdist_ffi_dnsquestion_t* dnsQuestion)
@@ -231,13 +274,22 @@ bool dnsdist_ffi_dnsquestion_set_size(dnsdist_ffi_dnsquestion_t* dnsQuestion, si
     return true;
   }
   catch (const std::exception& e) {
+    VERBOSESLOG(infolog("Error setting packet size to %d: %s", newSize, e.what()),
+                getLogger(__func__)->error(Logr::Info, e.what(), "Error setting header in packet", "size", Logging::Loggable(newSize)));
     return false;
   }
 }
 
 uint8_t dnsdist_ffi_dnsquestion_get_opcode(const dnsdist_ffi_dnsquestion_t* dnsQuestion)
 {
-  return dnsQuestion->dq->getHeader()->opcode;
+  try {
+    return dnsQuestion->dq->getHeader()->opcode;
+  }
+  catch (const std::exception& e) {
+    VERBOSESLOG(infolog("Error getting opcode from packet: %s", e.what()),
+                getLogger(__func__)->error(Logr::Info, e.what(), "Error setting opcode from packet"));
+    return 0;
+  }
 }
 
 bool dnsdist_ffi_dnsquestion_get_tcp(const dnsdist_ffi_dnsquestion_t* dnsQuestion)
@@ -306,7 +358,14 @@ uint32_t dnsdist_ffi_dnsquestion_get_temp_failure_ttl(const dnsdist_ffi_dnsquest
 
 bool dnsdist_ffi_dnsquestion_get_do(const dnsdist_ffi_dnsquestion_t* dnsQuestion)
 {
-  return (dnsdist::getEDNSZ(*dnsQuestion->dq) & EDNS_HEADER_FLAG_DO) != 0;
+  try {
+    return (dnsdist::getEDNSZ(*dnsQuestion->dq) & EDNS_HEADER_FLAG_DO) != 0;
+  }
+  catch (const std::exception& e) {
+    VERBOSESLOG(infolog("Error getting DNSSEC OK from packet: %s", e.what()),
+                getLogger(__func__)->error(Logr::Info, e.what(), "Error setting DNSSEC OK from packet"));
+    return false;
+  }
 }
 
 uint8_t dnsdist_ffi_dnsquestion_get_edns_version(const dnsdist_ffi_dnsquestion_t* dnsQuestion)
@@ -478,35 +537,45 @@ size_t dnsdist_ffi_dnsquestion_get_edns_options(dnsdist_ffi_dnsquestion_t* dnsQu
     return 0U;
   }
 
-  auto ednsOptions = parseEDNSOptions(*(dnsQuestion->dq));
-  if (!ednsOptions) {
-    return 0;
-  }
-
-  size_t totalCount = 0;
-  for (const auto& option : *ednsOptions) {
-    totalCount += option.second.values.size();
-  }
-
-  if (!dnsQuestion->ednsOptionsVect) {
-    dnsQuestion->ednsOptionsVect = std::make_unique<std::vector<dnsdist_ffi_ednsoption_t>>();
-  }
-  dnsQuestion->ednsOptionsVect->clear();
-  dnsQuestion->ednsOptionsVect->resize(totalCount);
-  size_t pos = 0;
-  for (const auto& option : *ednsOptions) {
-    for (const auto& entry : option.second.values) {
-      fill_edns_option(entry, dnsQuestion->ednsOptionsVect->at(pos));
-      dnsQuestion->ednsOptionsVect->at(pos).optionCode = option.first;
-      pos++;
+  try {
+    auto ednsOptions = parseEDNSOptions(*(dnsQuestion->dq));
+    if (!ednsOptions) {
+      return 0;
     }
-  }
 
-  if (totalCount > 0) {
-    *out = dnsQuestion->ednsOptionsVect->data();
-  }
+    size_t totalCount = 0;
+    for (const auto& option : *ednsOptions) {
+      totalCount += option.second.values.size();
+    }
 
-  return totalCount;
+    if (!dnsQuestion->ednsOptionsVect) {
+      dnsQuestion->ednsOptionsVect = std::make_unique<std::vector<dnsdist_ffi_ednsoption_t>>();
+    }
+    dnsQuestion->ednsOptionsVect->clear();
+    dnsQuestion->ednsOptionsVect->resize(totalCount);
+    size_t pos = 0;
+    for (const auto& option : *ednsOptions) {
+      for (const auto& entry : option.second.values) {
+        fill_edns_option(entry, dnsQuestion->ednsOptionsVect->at(pos));
+        dnsQuestion->ednsOptionsVect->at(pos).optionCode = option.first;
+        pos++;
+      }
+    }
+
+    if (totalCount > 0) {
+      *out = dnsQuestion->ednsOptionsVect->data();
+    }
+
+    return totalCount;
+  }
+  catch (const std::exception& e) {
+    VERBOSESLOG(infolog("Error getting EDNS options from packet: %s", e.what()),
+                getLogger(__func__)->error(Logr::Info, e.what(), "Error getting EDNS options from packet"));
+    return 0U;
+  }
+  catch (...) {
+    return 0U;
+  }
 }
 
 size_t dnsdist_ffi_dnsquestion_get_http_headers([[maybe_unused]] dnsdist_ffi_dnsquestion_t* dnsQuestion, [[maybe_unused]] const dnsdist_ffi_http_header_t** out)
@@ -517,47 +586,52 @@ size_t dnsdist_ffi_dnsquestion_get_http_headers([[maybe_unused]] dnsdist_ffi_dns
     return 0U;
   }
 
-  const auto processHeaders = [&dnsQuestion](const std::unordered_map<std::string, std::string>& headers) {
-    if (headers.empty()) {
-      return;
-    }
-    dnsQuestion->httpHeaders = std::make_unique<std::unordered_map<std::string, std::string>>(headers);
-    if (!dnsQuestion->httpHeadersVect) {
-      dnsQuestion->httpHeadersVect = std::make_unique<std::vector<dnsdist_ffi_http_header_t>>();
-    }
-    dnsQuestion->httpHeadersVect->clear();
-    dnsQuestion->httpHeadersVect->resize(dnsQuestion->httpHeaders->size());
-    size_t pos = 0;
-    for (const auto& header : *dnsQuestion->httpHeaders) {
-      dnsQuestion->httpHeadersVect->at(pos).name = header.first.c_str();
-      dnsQuestion->httpHeadersVect->at(pos).value = header.second.c_str();
-      ++pos;
-    }
-  };
+  try {
+    const auto processHeaders = [&dnsQuestion](const std::unordered_map<std::string, std::string>& headers) {
+      if (headers.empty()) {
+        return;
+      }
+      dnsQuestion->httpHeaders = std::make_unique<std::unordered_map<std::string, std::string>>(headers);
+      if (!dnsQuestion->httpHeadersVect) {
+        dnsQuestion->httpHeadersVect = std::make_unique<std::vector<dnsdist_ffi_http_header_t>>();
+      }
+      dnsQuestion->httpHeadersVect->clear();
+      dnsQuestion->httpHeadersVect->resize(dnsQuestion->httpHeaders->size());
+      size_t pos = 0;
+      for (const auto& header : *dnsQuestion->httpHeaders) {
+        dnsQuestion->httpHeadersVect->at(pos).name = header.first.c_str();
+        dnsQuestion->httpHeadersVect->at(pos).value = header.second.c_str();
+        ++pos;
+      }
+    };
 
 #if defined(HAVE_DNS_OVER_HTTPS)
-  if (dnsQuestion->dq->ids.du) {
-    const auto& headers = dnsQuestion->dq->ids.du->getHTTPHeaders();
-    processHeaders(headers);
-  }
+    if (dnsQuestion->dq->ids.du) {
+      const auto& headers = dnsQuestion->dq->ids.du->getHTTPHeaders();
+      processHeaders(headers);
+    }
 #endif /* HAVE_DNS_OVER_HTTPS */
 #if defined(HAVE_DNS_OVER_HTTP3)
-  if (dnsQuestion->dq->ids.doh3u) {
-    const auto& headers = dnsQuestion->dq->ids.doh3u->getHTTPHeaders();
-    processHeaders(headers);
-  }
+    if (dnsQuestion->dq->ids.doh3u) {
+      const auto& headers = dnsQuestion->dq->ids.doh3u->getHTTPHeaders();
+      processHeaders(headers);
+    }
 #endif /* HAVE_DNS_OVER_HTTP3 */
 
-  if (!dnsQuestion->httpHeadersVect) {
-    return 0;
-  }
+    if (!dnsQuestion->httpHeadersVect) {
+      return 0U;
+    }
 
-  if (!dnsQuestion->httpHeadersVect->empty()) {
-    *out = dnsQuestion->httpHeadersVect->data();
+    if (!dnsQuestion->httpHeadersVect->empty()) {
+      *out = dnsQuestion->httpHeadersVect->data();
+    }
+    return dnsQuestion->httpHeadersVect->size();
   }
-  return dnsQuestion->httpHeadersVect->size();
+  catch (...) {
+    return 0U;
+  }
 #else /* HAVE_DNS_OVER_HTTPS || HAVE_DNS_OVER_HTTP3 */
-  return 0;
+  return 0U;
 #endif /* HAVE_DNS_OVER_HTTPS || HAVE_DNS_OVER_HTTP3 */
 }
 
@@ -656,16 +730,28 @@ void dnsdist_ffi_dnsquestion_add_extended_dns_error(dnsdist_ffi_dnsquestion_t* d
 
 void dnsdist_ffi_dnsquestion_set_rcode(dnsdist_ffi_dnsquestion_t* dnsQuestion, int rcode)
 {
-  dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion->dq->getMutableData(), [rcode](dnsheader& header) {
-    header.rcode = rcode;
-    header.qr = true;
-    return true;
-  });
+  try {
+    dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion->dq->getMutableData(), [rcode](dnsheader& header) {
+      header.rcode = rcode;
+      header.qr = true;
+      return true;
+    });
+  }
+  catch (const std::exception& e) {
+    VERBOSESLOG(infolog("Error setting rcode in packet: %s", e.what()),
+                getLogger(__func__)->error(Logr::Info, e.what(), "Error setting rcode in packet"));
+  }
 }
 
 void dnsdist_ffi_dnsquestion_set_len(dnsdist_ffi_dnsquestion_t* dnsQuestion, uint16_t len)
 {
-  dnsQuestion->dq->getMutableData().resize(len);
+  try {
+    dnsQuestion->dq->getMutableData().resize(len);
+  }
+  catch (const std::exception& e) {
+    VERBOSESLOG(infolog("Error setting packet size to %d: %s", len, e.what()),
+                getLogger(__func__)->error(Logr::Info, e.what(), "Error setting packet size", "size", Logging::Loggable(len)));
+  }
 }
 
 void dnsdist_ffi_dnsquestion_set_skip_cache(dnsdist_ffi_dnsquestion_t* dnsQuestion, bool skipCache)
@@ -849,7 +935,12 @@ size_t dnsdist_ffi_servers_list_get_count(const dnsdist_ffi_servers_list_t* list
 
 void dnsdist_ffi_servers_list_get_server(const dnsdist_ffi_servers_list_t* list, size_t idx, const dnsdist_ffi_server_t** out)
 {
-  *out = &list->ffiServers.at(idx);
+  try {
+    *out = &list->ffiServers.at(idx);
+  }
+  catch (...) {
+    *out = nullptr;
+  }
 }
 
 size_t dnsdist_ffi_servers_list_chashed(const dnsdist_ffi_servers_list_t* list, const dnsdist_ffi_dnsquestion_t* dnsQuestion, size_t hash)
@@ -857,7 +948,9 @@ size_t dnsdist_ffi_servers_list_chashed(const dnsdist_ffi_servers_list_t* list, 
   (void)dnsQuestion;
   auto serverPosition = chashedFromHash(list->servers, hash);
   if (!serverPosition) {
-    throw std::runtime_error("Unable to find servers in server list");
+    VERBOSESLOG(infolog("Unable to get a server in dnsdist_ffi_servers_list_chashed"),
+                getLogger(__func__)->info(Logr::Info, "Unable to get a server in dnsdist_ffi_servers_list_chashed"));
+    return std::numeric_limits<size_t>::max();
   }
   return *serverPosition;
 }
@@ -867,7 +960,9 @@ size_t dnsdist_ffi_servers_list_whashed(const dnsdist_ffi_servers_list_t* list, 
   (void)dnsQuestion;
   auto serverPosition = whashedFromHash(list->servers, hash);
   if (!serverPosition) {
-    throw std::runtime_error("Unable to find servers in server list");
+    VERBOSESLOG(infolog("Unable to get a server in dnsdist_ffi_servers_list_whashed"),
+                getLogger(__func__)->info(Logr::Info, "Unable to get a server in dnsdist_ffi_servers_list_whashed"));
+    return std::numeric_limits<size_t>::max();
   }
   return *serverPosition;
 }
