@@ -7,8 +7,6 @@ RUN apt-get update && \
 
 ENV NO_LUA_JIT="s390x arm64"
 
-# TODO: make sure /source looks roughly the same from git or tar
-
 # devscripts gives us mk-build-deps (and a lot of other stuff)
 RUN apt-get update && \
     apt-get install -y  --no-install-recommends \
@@ -16,6 +14,7 @@ RUN apt-get update && \
         equivs \
         git
 
+# TODO: make sure /source looks roughly the same from git or tar
 WORKDIR /source
 
 COPY builder-support/ builder-support/
@@ -24,15 +23,18 @@ COPY builder-support/ builder-support/
 RUN mk-build-deps -i -t 'apt-get -y -o Debug::pkgProblemResolver=yes --no-install-recommends' /source/builder-support/debian/dnsdist/debian-bookworm/control && \
     apt-get install -y meson
 
+WORKDIR /quiche
+RUN apt-get install -y cmake curl jq libclang-dev && \
+    cd /source/builder-support/helpers/ && \
+    ./install_rust.sh && \
+    ./install_quiche.sh
+
+WORKDIR /source
+
 COPY meson/ meson/
 COPY pdns/ pdns/
-COPY build-aux/ build-aux/
-COPY m4/ m4/
 COPY ext/ ext/
 COPY .git/ .git/
-
-# build and install (TODO: before we hit this line, rearrange /source structure if we are coming from a tarball)
-WORKDIR /source/pdns/dnsdistdist
 
 ARG MAKEFLAGS=
 ENV MAKEFLAGS=${MAKEFLAGS:--j2}
@@ -40,13 +42,9 @@ ENV MAKEFLAGS=${MAKEFLAGS:--j2}
 ARG DOCKER_FAKE_RELEASE=NO
 ENV DOCKER_FAKE_RELEASE=${DOCKER_FAKE_RELEASE}
 
-WORKDIR /quiche
-RUN apt-get install -y cmake curl jq libclang-dev && \
-    cd /source/builder-support/helpers/ && \
-    ./install_rust.sh && \
-    ./install_quiche.sh
-
+# build and install (TODO: before we hit this line, rearrange /source structure if we are coming from a tarball)
 WORKDIR /source/pdns/dnsdistdist
+
 RUN touch dnsdist.1 # avoid having to install pandoc and venv
 RUN mkdir /build && \
     LUAVER=$([ -z "${NO_LUA_JIT##*$(dpkg --print-architecture)*}" ] && echo 'lua5.3' || echo 'luajit') && \

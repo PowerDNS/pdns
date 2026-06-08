@@ -30,6 +30,12 @@ COPY builder-support/ builder-support/
 RUN mk-build-deps -i -t 'apt-get -y -o Debug::pkgProblemResolver=yes --no-install-recommends' builder-support/debian/recursor/debian-buster/control && \
     apt-get install -y meson
 
+WORKDIR /rust
+COPY builder-support/helpers/install_rust.sh  builder-support/helpers/rust.json .
+RUN ./install_rust.sh
+
+WORKDIR /source
+
 COPY meson/ meson/
 COPY pdns/ pdns/
 COPY build-aux/ build-aux/
@@ -37,17 +43,14 @@ COPY m4/ m4/
 COPY ext/ ext/
 COPY .git/ .git/
 
-COPY builder-support/helpers/install_rust.sh  builder-support/helpers/rust.json .
-RUN ./install_rust.sh
-
-# build and install (TODO: before we hit this line, rearrange /source structure if we are coming from a tarball)
-WORKDIR /source/pdns/recursordist
-
 ARG MAKEFLAGS=
 ENV MAKEFLAGS=${MAKEFLAGS:--j2}
 
 ARG DOCKER_FAKE_RELEASE=NO
 ENV DOCKER_FAKE_RELEASE=${DOCKER_FAKE_RELEASE}
+
+# build and install (TODO: before we hit this line, rearrange /source structure if we are coming from a tarball)
+WORKDIR /source/pdns/recursordist
 
 # Manpage deps
 # RUN apt-get install -y python3-venv && apt-get clean
