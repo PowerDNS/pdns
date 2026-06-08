@@ -73,7 +73,7 @@ bool encryptResponse(PacketBuffer& response, size_t maximumSize, bool tcp, std::
   }
   return true;
 #else
-  return false;
+  return true;
 #endif
 }
 
