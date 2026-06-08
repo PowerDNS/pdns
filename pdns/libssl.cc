@@ -1034,6 +1034,14 @@ static std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)> getNewServerContext(con
 #endif /* OPENSSL_VERSION_MAJOR < 4 */
 #endif
 
+#ifdef HAVE_SSL_CTX_SET1_GROUPS_LIST
+  if (!config.d_ecdheCurves.empty()) {
+    if (SSL_CTX_set1_groups_list(ctx.get(), config.d_ecdheCurves.c_str()) != 1) {
+      throw std::runtime_error("Failed to set the TLS ECDHE curve to '" + config.d_ecdheCurves + "': " + libssl_get_error_string());
+    }
+  }
+#endif /* HAVE_SSL_CTX_SET1_GROUPS_LIST */
+
   if (config.d_maxStoredSessions == 0) {
     /* disable stored sessions entirely */
     SSL_CTX_set_session_cache_mode(ctx.get(), SSL_SESS_CACHE_OFF);

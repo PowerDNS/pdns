@@ -217,6 +217,7 @@ static void parseTLSConfig(TLSConfig& config, const std::string& context, std::o
 {
   getOptionalValue<std::string>(vars, "ciphers", config.d_ciphers);
   getOptionalValue<std::string>(vars, "ciphersTLS13", config.d_ciphers13);
+  getOptionalValue<std::string>(vars, "ecdheCurves", config.d_ecdheCurves);
 
 #ifdef HAVE_LIBSSL
   std::string minVersion;
@@ -542,6 +543,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          std::shared_ptr<TLSCtx> tlsCtx;
                          getOptionalValue<std::string>(vars, "ciphers", config.d_tlsParams.d_ciphers);
                          getOptionalValue<std::string>(vars, "ciphers13", config.d_tlsParams.d_ciphers13);
+                         getOptionalValue<std::string>(vars, "ecdheCurves", config.d_tlsParams.d_ecdheCurves);
                          getOptionalValue<std::string>(vars, "caStore", config.d_tlsParams.d_caStore);
                          getOptionalValue<bool>(vars, "validateCertificates", config.d_tlsParams.d_validateCertificates);
                          getOptionalValue<bool>(vars, "releaseBuffers", config.d_tlsParams.d_releaseBuffers);

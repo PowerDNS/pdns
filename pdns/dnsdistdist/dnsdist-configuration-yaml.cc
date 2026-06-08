@@ -270,6 +270,7 @@ static TLSConfig getTLSConfigFromRustIncomingTLS([[maybe_unused]] const Context&
   }
   out.d_ciphers = std::string(incomingTLSConfig.ciphers);
   out.d_ciphers13 = std::string(incomingTLSConfig.ciphers_tls_13);
+  out.d_ecdheCurves = std::string(incomingTLSConfig.ecdhe_curves);
 #if defined(HAVE_LIBSSL)
   out.d_minTLSVersion = libssl_tls_version_from_string(std::string(incomingTLSConfig.minimum_version));
 #else /* HAVE_LIBSSL */
@@ -551,6 +552,7 @@ static std::shared_ptr<DownstreamState> createBackendFromConfiguration(const Con
     boost::algorithm::to_lower(backendConfig.d_tlsParams.d_provider);
     backendConfig.d_tlsParams.d_ciphers = std::string(tlsConf.ciphers);
     backendConfig.d_tlsParams.d_ciphers13 = std::string(tlsConf.ciphers_tls_13);
+    backendConfig.d_tlsParams.d_ecdheCurves = std::string(tlsConf.ecdhe_curves);
     backendConfig.d_tlsParams.d_caStore = std::string(tlsConf.ca_store);
     backendConfig.d_tlsParams.d_keyLogFile = std::string(tlsConf.key_log_file);
     backendConfig.d_tlsParams.d_validateCertificates = tlsConf.validate_certificate;

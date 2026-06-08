@@ -34,6 +34,7 @@ public:
 
   std::string d_ciphers;
   std::string d_ciphers13;
+  std::string d_ecdheCurves;
   std::string d_ticketKeyFile;
   std::string d_keyLogFile;
 
