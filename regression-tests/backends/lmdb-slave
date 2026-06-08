@@ -55,15 +55,15 @@ __EOF__
                 $PDNSUTIL --config-dir=. --config-name=lmdb2 set-catalog remove.invalid catalog.invalid
         fi
 
-        # search for a zone which has never been AXFR'd yet
-        axfrzone=
+        # make sure none of the zones has been AXFR'd yet
         for zone in $(grep 'zone ' named.conf  | cut -f2 -d\" | grep -v '^nztest.com$')
         do
                 notificationtime=$($PDNSUTIL --config-dir=. --config-name=lmdb2 zone show $zone | grep ^Last | cut -d: -f2-)
-                if [ "$notificationtime" = " Never" ]
+                # Will be empty if the zone does not exist yet
+                if [ -n "$notificationtime" -a  "$notificationtime" != " Never" ]
                 then
-                        axfrzone=$zone
-                        break
+                        echo "ZONE $zone EXISTS AND HAS BEEN AXFR'D IN SECONDARY ALREADY" | tee -a failed_tests
+                        exit
                 fi
         done
 
@@ -94,14 +94,13 @@ __EOF__
                 exit
         fi
 
-        # If we had a zone which had never had its contents AXFR'd before,
-        # check the notification timestamp has been updated.
-        if [ -n "$axfrzone" ]
-        then
+        # make sure all of the zones have been AXFR'd now
+        for zone in $(grep 'zone ' named.conf  | cut -f2 -d\" | grep -v '^nztest.com$')
+        do
                 notificationtime=$($PDNSUTIL --config-dir=. --config-name=lmdb2 zone show $zone | grep ^Last | cut -d: -f2-)
                 if [ "$notificationtime" = " Never" ]
                 then
-                        echo "AXFR FAILED TO UPDATE NOTIFICATION TIMESTAMP" | tee -a failed_tests
+                        echo "AXFR FAILED TO UPDATE NOTIFICATION TIMESTAMP FOR ZONE $zone" | tee -a failed_tests
                         exit
                 fi
-        fi
+        done
