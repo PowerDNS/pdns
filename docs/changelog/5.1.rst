@@ -2,6 +2,21 @@ Changelogs for 5.1.x
 ====================
 
 .. changelog::
+  :version: 5.1.1
+  :released: 8th of June 2026
+
+  This is release 5.1.1 of the Authoritative Server.
+  It contains an important bugfix for users of the LMDB backend.
+
+  Please review the :doc:`Upgrade Notes <../upgrading>` before upgrading from versions < 5.0.x.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17530
+
+    lmdb: correctly update timestamps in non-split domain table mode
+
+.. changelog::
   :version: 5.1.0
   :released: 3rd of June 2026
 
