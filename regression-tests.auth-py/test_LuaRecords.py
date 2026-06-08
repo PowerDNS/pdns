@@ -1456,16 +1456,25 @@ lua-health-checks-interval=5
         time.sleep(8)
 
         # Unfortunately, the above delay appears to be too tight for CI to
-        # pass reliably, so apply the good old workaround of putting our heads
-        # in the sand and sleep a bit longer, hoping that the failure rate will
-        # go down to acceptable "once in a blue moon" levels.
-        if os.environ.get("GITHUB_ACTIONS") == "true":
-            time.sleep(1 + 1)
-
-        res = self.sendUDPQuery(query)
-        self.assertRcodeEqual(res, dns.rcode.NOERROR)
-        self.assertAnyRRsetInAnswer(res, reachable_rrs)
-        self.assertNoneRRsetInAnswer(res, unreachable_rrs)
+        # pass reliably, so we try a few times...
+        for attempt in range(0, 5):
+            res = self.sendUDPQuery(query)
+            self.assertRcodeEqual(res, dns.rcode.NOERROR)
+            foundReachable = True
+            try:
+                self.assertAnyRRsetInAnswer(res, reachable_rrs)
+            except AssertionError:
+                foundReachable = False
+            foundUnreachable = True
+            try:
+                self.assertNoneRRsetInAnswer(res, unreachable_rrs)
+            except AssertionError:
+                foundUnreachable = False
+            if foundReachable and foundUnreachable:
+                break
+            time.sleep(3)
+        if attempt > 5:
+            self.fail()
 
     def testIfurlupInterval(self):
         """
