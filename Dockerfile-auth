@@ -1,19 +1,22 @@
 # our chosen base image
 FROM debian:trixie-slim AS builder
+RUN apt-get update && \
+    apt-get dist-upgrade -y && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 ENV NO_LUA_JIT="s390x arm64"
 
-# TODO: make sure /source looks roughly the same from git or tar
-
 # devscripts gives us mk-build-deps (and a lot of other stuff)
-RUN apt-get update && apt-get -y dist-upgrade && \
-    apt-get install -y  --no-install-recommends \
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
         devscripts \
         dpkg-dev \
         equivs \
         git \
         python3-venv
 
+# TODO: make sure /source looks roughly the same from git or tar
 WORKDIR /source
 
 # import everything - this could be pdns.git OR an auth tarball!
@@ -75,6 +78,10 @@ RUN mkdir /build/tmp/ && mkdir debian && \
 
 # Runtime
 FROM debian:trixie-slim
+RUN apt-get update && \
+    apt-get dist-upgrade -y && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # Copy build output
 COPY --from=builder /build /
@@ -87,7 +94,7 @@ RUN chmod 1777 /tmp # FIXME: better not use /build/tmp for equivs at all
 # - vim-tiny (for pdnsutil edit-zone)
 # - supervisor (for special use cases requiring advanced process management)
 # - adduser (for adding an unprivileged user)
-RUN apt-get update && apt-get -y dist-upgrade && \
+RUN apt-get update && \
     apt-get install -y \
         python3 python3-jinja2 \
         sqlite3 \
@@ -96,7 +103,8 @@ RUN apt-get update && apt-get -y dist-upgrade && \
         supervisor \
         adduser libcap2-bin \
         /tmp/equivs-dummy_1.0_all.deb && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # Create unprivileged pdns user and directories
 RUN adduser --system --disabled-password --disabled-login --no-create-home --group pdns --uid 953 && \
