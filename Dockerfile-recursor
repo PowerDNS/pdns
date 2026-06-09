@@ -39,11 +39,8 @@ COPY pdns/ pdns/
 COPY ext/ ext/
 COPY .git/ .git/
 
-ARG MAKEFLAGS=
-ENV MAKEFLAGS=${MAKEFLAGS:--j2}
-
+ARG MAKEFLAGS=-j2
 ARG DOCKER_FAKE_RELEASE=NO
-ENV DOCKER_FAKE_RELEASE=${DOCKER_FAKE_RELEASE}
 
 # build and install (TODO: before we hit this line, rearrange /source structure if we are coming from a tarball)
 WORKDIR /source/pdns/recursordist
