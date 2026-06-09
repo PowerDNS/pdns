@@ -6,7 +6,7 @@ RUN apt-get update && \
     apt-get dist-upgrade -y && \
     apt-get clean
 
-# devscripts gives us mk-build-deps (and a lot of other stuff)
+# devscripts provides mk-build-deps and more
 RUN apt-get install -y  --no-install-recommends \
         devscripts \
         equivs \
@@ -15,6 +15,7 @@ RUN apt-get install -y  --no-install-recommends \
 # TODO: make sure /source looks roughly the same from git or tar
 WORKDIR /source
 
+# import everything (could be pdns.git or a tarball)
 COPY builder-support/ builder-support/
 
 # TODO: control file is not in tarballs at all right now
@@ -40,7 +41,9 @@ ARG DOCKER_FAKE_RELEASE=NO
 # build and install (TODO: before we hit this line, rearrange /source structure if we are coming from a tarball)
 WORKDIR /source/pdns/dnsdistdist
 
-RUN touch dnsdist.1 # avoid having to install pandoc and venv
+# avoid installing pandoc and venv
+RUN touch dnsdist.1
+
 RUN mkdir /build && \
     LUAVER=$([ -z "${NO_LUA_JIT##*$(dpkg --print-architecture)*}" ] && echo 'lua5.3' || echo 'luajit') && \
     apt-get install -y lib${LUAVER}-*dev ninja-build && \
@@ -76,7 +79,8 @@ RUN mkdir /build && \
     meson compile -C ${BUILDDIR} && \
     meson install -C ${BUILDDIR} --destdir /build && \
     strip /build/usr/local/bin/* && \
-    rm -rf /build/lib # remove systemd unit files, we do not need them and copying /lib to the run-time image breaks it
+    # remove systemd unit files, we do not need them and copying /lib to the run-time image breaks it
+    rm -rf /build/lib
 
 RUN for tentative in "lib/x86_64-linux-gnu" "lib/aarch64-linux-gnu" "lib64" "lib"; do \
       if [ -f "/usr/${tentative}/libdnsdist-quiche.so" ]; then \
@@ -105,7 +109,9 @@ RUN apt-get update && \
 
 # Output from builder
 COPY --from=builder /build /
-RUN chmod 1777 /tmp # FIXME: better not use /build/tmp for equivs at all
+
+# FIXME: better not use /build/tmp for equivs at all
+RUN chmod 1777 /tmp
 
 # Install dependencies
 # - python3 + jinja2 (for startup script)
