@@ -358,7 +358,8 @@ static void declareArguments()
 
   ::arg().setSwitch("views", "Enable views (variants) of zones, for backends which support them") = "no";
 
-  // Needed by Lua backend
+  // explicitly declared outside of HAVE_LUA_RECORDS guard to prevent writes
+  // even when LUA is not currently used
   ::arg().setSwitch("enable-lua-record-updates", "Allow updates to Lua records") = "no";
 
   // FIXME520: remove when branching 5.2
