@@ -25,6 +25,7 @@
 #include "qtype.hh"
 #include "statbag.hh"
 
+// NOLINTNEXTLINE(readability-identifier-length)
 StatBag S{};
 
 bool g_slogStructured{false};
