@@ -6,7 +6,7 @@ RUN apt-get update && \
     apt-get -y dist-upgrade && \
     apt-get clean
 
-# devscripts gives us mk-build-deps (and a lot of other stuff)
+# devscripts provides mk-build-deps and more
 RUN apt-get install -y --no-install-recommends \
         devscripts \
         dpkg-dev \
@@ -17,7 +17,7 @@ RUN apt-get install -y --no-install-recommends \
 # TODO: make sure /source looks roughly the same from git or tar
 WORKDIR /source
 
-# import everything - this could be pdns.git OR an auth tarball!
+# import everything (could be pdns.git or a tarball)
 COPY builder-support/ builder-support/
 
 # TODO: control file is not in tarballs at all right now
@@ -44,7 +44,7 @@ RUN if [ "${DOCKER_FAKE_RELEASE}" = "YES" ]; then \
     fi && \
     BUILDER_MODULES=authoritative autoreconf -vfi
 
-# simplify repeated -C calls with SUBDIRS?
+# TODO: simplify repeated -C calls with SUBDIRS?
 RUN mkdir /build && \
     LUAVER=$([ -z "${NO_LUA_JIT##*$(dpkg --print-architecture)*}" ] && echo 'lua5.3' || echo 'luajit') && \
     apt-get install -y lib${LUAVER}-*dev && \
@@ -82,7 +82,9 @@ RUN apt-get update && \
 
 # Copy build output
 COPY --from=builder /build /
-RUN chmod 1777 /tmp # FIXME: better not use /build/tmp for equivs at all
+
+# FIXME: better not use /build/tmp for equivs at all
+RUN chmod 1777 /tmp
 
 # Install dependencies
 # - python3 + jinja2 (for startup script)
@@ -108,7 +110,8 @@ RUN adduser --system --disabled-password --disabled-login --no-create-home --gro
 COPY dockerdata/startup.py /usr/local/sbin/pdns_server-startup
 COPY dockerdata/pdns.conf /etc/powerdns/
 
-# Set up database - this needs to be smarter
+# Set up database
+# TODO: this needs to be done smarter
 RUN sqlite3 /var/lib/powerdns/pdns.sqlite3 < /usr/local/share/doc/pdns/schema.sqlite3.sql
 
 # Default DNS ports
