@@ -12,7 +12,7 @@ RUN apt-get update && \
     apt-get dist-upgrade -y && \
     apt-get clean
 
-# devscripts gives us mk-build-deps (and a lot of other stuff)
+# devscripts provides mk-build-deps and more
 RUN apt-get install -y --no-install-recommends \
         devscripts \
         equivs \
@@ -20,8 +20,10 @@ RUN apt-get install -y --no-install-recommends \
         curl \
         jq
 
+# TODO: make sure /source looks roughly the same from git or tar
 WORKDIR /source
 
+# import everything (could be pdns.git or a tarball)
 COPY builder-support/ builder-support/
 
 # TODO: control file is not in tarballs at all right now
@@ -48,8 +50,8 @@ WORKDIR /source/pdns/recursordist
 # Manpage deps
 # RUN apt-get install -y python3-venv && apt-get clean
 
-# Manpage prevent
-RUN touch pdns_recursor.1 rec_control.1 # avoid installing pandoc
+# avoid installing pandoc
+RUN touch pdns_recursor.1 rec_control.1
 
 RUN mkdir /build && \
     LUAVER=$([ -z "${NO_LUA_JIT##*$(dpkg --print-architecture)*}" ] && echo 'lua5.3' || echo 'luajit') && \
@@ -97,7 +99,9 @@ RUN apt-get update && \
 
 # Copy build output
 COPY --from=builder /build /
-RUN chmod 1777 /tmp # FIXME: better not use /build/tmp for equivs at all
+
+# FIXME: better not use /build/tmp for equivs at all
+RUN chmod 1777 /tmp
 
 # Install dependencies
 # - python3 + jinja2 (for startup script)
