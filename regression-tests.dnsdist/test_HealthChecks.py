@@ -391,7 +391,7 @@ class TestLazyHealthChecks(HealthCheckTest):
         return cls.HandleDNSQuery(request)
 
     @classmethod
-    def DoHCallback(cls, request, requestHeaders, fromQueue, toQueue):
+    def DoHCallback(cls, request, requestHeaders, fromQueue, toQueue, conn):
         global _dohHealthCheckQueries
         if str(request.question[0].name).startswith("a.root-servers.net"):
             _dohHealthCheckQueries = _dohHealthCheckQueries + 1

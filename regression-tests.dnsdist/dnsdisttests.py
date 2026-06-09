@@ -567,6 +567,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         callback,
         tlsContext,
         useProxyProtocol,
+        closeConnCallback,
     ):
         ignoreTrailing = trailingDataResponse is True
         try:
@@ -588,18 +589,24 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
             header = conn.recv(proxy.HEADER_SIZE)
             if not header:
                 print("unable to get header")
+                if closeConnCallback:
+                    closeConnCallback(conn)
                 conn.close()
                 return
 
             if not proxy.parseHeader(header):
                 print("unable to parse header")
                 print(header)
+                if closeConnCallback:
+                    closeConnCallback(conn)
                 conn.close()
                 return
 
             proxyContent = conn.recv(proxy.contentLen)
             if not proxyContent:
                 print("unable to get content")
+                if closeConnCallback:
+                    closeConnCallback(conn)
                 conn.close()
                 return
 
@@ -619,6 +626,8 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
 
             events = h2conn.receive_data(data)
             for event in events:
+                if isinstance(event, h2.events.ConnectionTerminated):
+                    break
                 if isinstance(event, h2.events.RequestReceived):
                     requestHeaders = event.headers
                 if isinstance(event, h2.events.DataReceived):
@@ -639,13 +648,15 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
                             forceRcode = trailingDataResponse
 
                         if callback:
-                            status, wire = callback(request, requestHeaders, fromQueue, toQueue)
+                            status, wire = callback(request, requestHeaders, fromQueue, toQueue, conn)
                         else:
                             response = cls._getResponse(request, fromQueue, toQueue, synthesize=forceRcode)
                             if response:
                                 wire = response.to_wire(max_size=65535)
 
                         if not wire:
+                            if closeConnCallback:
+                                closeConnCallback(conn)
                             conn.close()
                             conn = None
                             break
@@ -668,6 +679,8 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
                 break
 
         if conn is not None:
+            if closeConnCallback:
+                closeConnCallback(conn)
             conn.close()
 
     @classmethod
@@ -681,6 +694,8 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         callback=None,
         tlsContext=None,
         useProxyProtocol=False,
+        closeConnCallback=False,
+        connTimeout=5.0,
     ):
         cls._backgroundThreads[threading.get_native_id()] = True
         # trailingDataResponse=True means "ignore trailing data".
@@ -718,7 +733,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
                 else:
                     continue
 
-            conn.settimeout(5.0)
+            conn.settimeout(connTimeout)
             thread = threading.Thread(
                 name="DoH Connection Handler",
                 target=cls.handleDoHConnection,
@@ -732,6 +747,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
                     callback,
                     tlsContext,
                     useProxyProtocol,
+                    closeConnCallback,
                 ],
             )
             thread.daemon = True
