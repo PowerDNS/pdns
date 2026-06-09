@@ -965,6 +965,7 @@ if get_option('fuzz-targets')
     'proxyprotocol',
     'dnslabeltext-parseRFC1035CharString',
     'yahttp',
+    'recordcontent',
     'zoneparsertng',
   ]
 
