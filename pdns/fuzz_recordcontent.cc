@@ -25,11 +25,11 @@
 #include "qtype.hh"
 #include "statbag.hh"
 
-StatBag S;
+StatBag S{};
 
 bool g_slogStructured{false};
 
-static const uint16_t g_qtypes[] = {
+static const std::array<uint16_t, 48> g_qtypes{
   QType::A,      QType::AAAA,   QType::NS,     QType::CNAME,
   QType::SOA,    QType::MX,     QType::TXT,    QType::SRV,
   QType::PTR,    QType::HINFO,  QType::RP,     QType::AFSDB,
@@ -64,41 +64,49 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
     return 0;
   }
 
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
   const uint16_t selector = (static_cast<uint16_t>(data[0]) << 8) | static_cast<uint16_t>(data[1]);
-  const uint16_t qtype = g_qtypes[selector % (sizeof(g_qtypes) / sizeof(g_qtypes[0]))];
+  const uint16_t qtype = g_qtypes.at(selector % g_qtypes.size());
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
   const std::string rest(reinterpret_cast<const char*>(data + 2), size - 2);
   const DNSName qname(".");
 
   try {
-    auto content = DNSRecordContent::make(qtype, QClass::IN, rest);
+    const auto content = DNSRecordContent::make(qtype, QClass::IN, rest);
     if (content) {
-      auto wire = content->serialize(qname, true);
+      const auto wire = content->serialize(qname, true);
       (void)content->getZoneRepresentation();
       try {
-        auto reparsed = DNSRecordContent::deserialize(qname, qtype, wire);
+        const auto reparsed = DNSRecordContent::deserialize(qname, qtype, wire);
         if (reparsed) {
           (void)reparsed->getZoneRepresentation();
         }
       }
+      // NOLINTNEXTLINE(bugprone-empty-catch)
       catch (const std::exception& e) {
       }
+      // NOLINTNEXTLINE(bugprone-empty-catch)
       catch (const PDNSException& e) {
       }
     }
   }
+  // NOLINTNEXTLINE(bugprone-empty-catch)
   catch (const std::exception& e) {
   }
+  // NOLINTNEXTLINE(bugprone-empty-catch)
   catch (const PDNSException& e) {
   }
 
   try {
-    auto content = DNSRecordContent::deserialize(qname, qtype, rest);
+    const auto content = DNSRecordContent::deserialize(qname, qtype, rest);
     if (content) {
       (void)content->getZoneRepresentation();
     }
   }
+  // NOLINTNEXTLINE(bugprone-empty-catch)
   catch (const std::exception& e) {
   }
+  // NOLINTNEXTLINE(bugprone-empty-catch)
   catch (const PDNSException& e) {
   }
 
