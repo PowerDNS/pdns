@@ -156,7 +156,6 @@ deps = [
   dep_geoip,
   dep_mmdb,
   dep_cxx_fs,
-  dep_boost_test,
 ]
 
 if dep_systemd_prog.found()
@@ -932,6 +931,7 @@ if get_option('unit-tests')
     'pdns-auth-testrunner': {
       'main': src_dir / 'testrunner.cc',
       'deps-extra': [
+        dep_boost_test,
         libpdns_test,
         libpdns_signers_openssl,
         libpdns_signers_sodium,
