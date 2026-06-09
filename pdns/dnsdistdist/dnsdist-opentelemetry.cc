@@ -24,6 +24,7 @@
 #include "dnsdist-ecs.hh"
 #include "sanitizer.hh"
 
+#include <any>
 #include <memory>
 #include <vector>
 
@@ -436,12 +437,30 @@ void sendTracesToRemoteLoggers(const std::shared_ptr<Tracer>& tracer, [[maybe_un
 #ifndef DISABLE_PROTOBUF
   static thread_local string pbBuf;
   pbBuf.clear();
-  pdns::ProtoZero::Message minimalMsg{pbBuf};
-  minimalMsg.setType(pdns::ProtoZero::Message::MessageType::InternalType);
-  minimalMsg.setOpenTelemetryTraceID(tracer->getTraceID());
-  minimalMsg.setOpenTelemetryData(tracer->getOTProtobuf());
+  static thread_local string otlpBuf;
+  otlpBuf.clear();
+
+  bool haveNonOTLPLogger = false;
   for (const auto& remotelogger : remoteloggers) {
-    remotelogger->queueData(pbBuf);
+    haveNonOTLPLogger = haveNonOTLPLogger || remotelogger->name() != "OTLP";
+    if (haveNonOTLPLogger) {
+      break;
+    }
+  }
+
+  pdns::ProtoZero::Message minimalMsg{pbBuf};
+  if (haveNonOTLPLogger) {
+    minimalMsg.setType(pdns::ProtoZero::Message::MessageType::InternalType);
+    minimalMsg.setOpenTelemetryTraceID(tracer->getTraceID());
+    minimalMsg.setOpenTelemetryData(tracer->getOTProtobuf());
+  }
+
+  for (const auto& remotelogger : remoteloggers) {
+    if (remotelogger->name() != "OTLP") {
+      remotelogger->queueData(pbBuf);
+    } else {
+      remotelogger->queueData(tracer->getOTProtobuf());
+    }
   }
 #endif // DISABLE_PROTOBUF
 }

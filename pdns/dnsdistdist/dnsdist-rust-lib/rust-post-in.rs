@@ -54,6 +54,9 @@ fn register_remote_loggers(
   for logger in &config.dnstap_loggers {
     dnsdistsettings::registerDnstapLogger(logger);
   }
+  for logger in &config.otlp_loggers {
+    dnsdistsettings::registerOtlpLogger(logger);
+  }
 }
 
 fn get_global_configuration_from_serde(

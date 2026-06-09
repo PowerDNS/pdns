@@ -29,6 +29,7 @@
 #include "dnsdist-rule-chains.hh"
 #include "dnstap.hh"
 #include "dolog.hh"
+#include "otlp_logger.hh"
 #include "remote_logger.hh"
 #include <memory>
 #include <optional>
@@ -253,9 +254,9 @@ void setupLuaActions(LuaContext& luaCtx)
         if (remote_logger.second != nullptr) {
           // avoids potentially-evaluated-expression warning with clang.
           RemoteLoggerInterface& remoteLoggerRef = *remote_logger.second;
-          if (typeid(remoteLoggerRef) != typeid(RemoteLogger)) {
+          if (typeid(remoteLoggerRef) != typeid(RemoteLogger) && typeid(remoteLoggerRef) != typeid(OTLPLogger)) {
             // We could let the user do what he wants, but wrapping PowerDNS Protobuf inside a FrameStream tagged as dnstap is logically wrong.
-            throw std::runtime_error(std::string("SetTraceAction only takes RemoteLogger."));
+            throw std::runtime_error(std::string("SetTraceAction only takes RemoteLogger or OTLPLogger."));
           }
           loggers.push_back(remote_logger.second);
         }

@@ -46,6 +46,7 @@
 #include "dnsdist-web.hh"
 #include "dnsdist-xsk.hh"
 #include "fstrm_logger.hh"
+#include "otlp_logger.hh"
 #include "iputils.hh"
 #include "mmdb.hh"
 #include "remote_logger.hh"
@@ -2008,6 +2009,21 @@ void registerDnstapLogger([[maybe_unused]] const DnstapLoggerConfiguration& conf
   }
   dnsdist::configuration::yaml::registerType<RemoteLoggerInterface>(object, config.name);
 #endif
+}
+
+void registerOtlpLogger([[maybe_unused]] const OtlpLoggerConfiguration& config)
+{
+#if !defined(DISABLE_PROTOBUF) && defined(HAVE_LIBCURL)
+  if (dnsdist::configuration::yaml::s_inClientMode || dnsdist::configuration::yaml::s_inConfigCheckMode) {
+    auto object = std::shared_ptr<RemoteLoggerInterface>(nullptr);
+    dnsdist::configuration::yaml::registerType<RemoteLoggerInterface>(object, config.name);
+    return;
+  }
+  std::shared_ptr<RemoteLoggerInterface> object = std::make_shared<OTLPLogger>(std::string(config.address));
+  dnsdist::configuration::yaml::registerType<RemoteLoggerInterface>(object, config.name);
+#else
+  throw std::runtime_error("Unable to create OTLP logger: OTLP support is disabled");
+#endif /* !defined(DISABLE_PROTOBUF) && defined(HAVE_LIBCURL) */
 }
 
 void registerKVSObjects([[maybe_unused]] const KeyValueStoresConfiguration& config)
