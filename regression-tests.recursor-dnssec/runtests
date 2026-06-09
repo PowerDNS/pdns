@@ -43,7 +43,7 @@ if [ $(uname -s) = "Darwin" ]; then
   LIBAUTHBIND_DEFAULT=""
 fi
 if [ $(uname -s) = "OpenBSD" ]; then
-  # OpenBSD is not /really/ supported here; it works for some tests, and then you might need sudo.
+  # OpenBSD is not /really/ supported here; it works for some tests, and then you might need doas.
   LIBFAKETIME_DEFAULT=""
   LIBAUTHBIND_DEFAULT=""
 fi
