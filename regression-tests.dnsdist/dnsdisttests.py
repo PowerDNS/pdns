@@ -502,7 +502,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         sock.close()
 
     @classmethod
-    def handleDoHConnection(cls, config, conn, fromQueue, toQueue, trailingDataResponse, multipleResponses, callback, tlsContext, useProxyProtocol):
+    def handleDoHConnection(cls, config, conn, fromQueue, toQueue, trailingDataResponse, multipleResponses, callback, tlsContext, useProxyProtocol, closeConnCallback):
         ignoreTrailing = trailingDataResponse is True
         try:
           h2conn = h2.connection.H2Connection(config=config)
@@ -523,18 +523,24 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
             header = conn.recv(proxy.HEADER_SIZE)
             if not header:
                 print('unable to get header')
+                if closeConnCallback:
+                    closeConnCallback(conn)
                 conn.close()
                 return
 
             if not proxy.parseHeader(header):
                 print('unable to parse header')
                 print(header)
+                if closeConnCallback:
+                    closeConnCallback(conn)
                 conn.close()
                 return
 
             proxyContent = conn.recv(proxy.contentLen)
             if not proxyContent:
                 print('unable to get content')
+                if closeConnCallback:
+                    closeConnCallback(conn)
                 conn.close()
                 return
 
@@ -554,6 +560,8 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
 
             events = h2conn.receive_data(data)
             for event in events:
+                if isinstance(event, h2.events.ConnectionTerminated):
+                    break
                 if isinstance(event, h2.events.RequestReceived):
                     requestHeaders = event.headers
                 if isinstance(event, h2.events.DataReceived):
@@ -574,13 +582,15 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
                             forceRcode = trailingDataResponse
 
                         if callback:
-                            status, wire = callback(request, requestHeaders, fromQueue, toQueue)
+                            status, wire = callback(request, requestHeaders, fromQueue, toQueue, conn)
                         else:
                             response = cls._getResponse(request, fromQueue, toQueue, synthesize=forceRcode)
                             if response:
                                 wire = response.to_wire(max_size=65535)
 
                         if not wire:
+                            if closeConnCallback:
+                                closeConnCallback(conn)
                             conn.close()
                             conn = None
                             break
@@ -603,10 +613,12 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
                 break
 
         if conn is not None:
+            if closeConnCallback:
+                closeConnCallback(conn)
             conn.close()
 
     @classmethod
-    def DOHResponder(cls, port, fromQueue, toQueue, trailingDataResponse=False, multipleResponses=False, callback=None, tlsContext=None, useProxyProtocol=False):
+    def DOHResponder(cls, port, fromQueue, toQueue, trailingDataResponse=False, multipleResponses=False, callback=None, tlsContext=None, useProxyProtocol=False, closeConnCallback=False, connTimeout=5.0):
         cls._backgroundThreads[threading.get_native_id()] = True
         # trailingDataResponse=True means "ignore trailing data".
         # Other values are either False (meaning "raise an exception")
@@ -646,7 +658,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
             conn.settimeout(5.0)
             thread = threading.Thread(name='DoH Connection Handler',
                                       target=cls.handleDoHConnection,
-                                      args=[config, conn, fromQueue, toQueue, trailingDataResponse, multipleResponses, callback, tlsContext, useProxyProtocol])
+                                      args=[config, conn, fromQueue, toQueue, trailingDataResponse, multipleResponses, callback, tlsContext, useProxyProtocol, closeConnCallback])
             thread.daemon = True
             thread.start()
 
