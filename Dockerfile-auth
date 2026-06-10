@@ -1,19 +1,22 @@
 FROM debian:trixie-slim AS builder
-ARG NO_LUA_JIT="s390x"
-#DEBIAN_FRONTEND=noninteractive in line setzen
+ENV DEBIAN_FRONTEND=noninteractive
 
 # Reusable layer for base update
 RUN apt-get update && \
-    apt-get -y dist-upgrade && \
+    apt-get dist-upgrade -y && \
     apt-get clean
 
 # devscripts provides mk-build-deps and more
-RUN apt-get install -y --no-install-recommends \
+ARG NO_LUA_JIT="s390x arm64"
+RUN LUAVER=$([ -z "${NO_LUA_JIT##*$(dpkg --print-architecture)*}" ] && echo 'lua5.3' || echo 'luajit') && \
+    apt-get install -y --no-install-recommends \
         devscripts \
         dpkg-dev \
         equivs \
         git \
-        python3-venv
+        python3-venv \
+        lib${LUAVER}-*dev && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # TODO: make sure /source looks roughly the same from git or tar
 WORKDIR /source
@@ -22,7 +25,7 @@ WORKDIR /source
 COPY builder-support/ builder-support/
 
 # TODO: control file is not in tarballs at all right now
-RUN mk-build-deps -i -t 'apt-get -y -o Debug::pkgProblemResolver=yes --no-install-recommends' builder-support/debian/authoritative/debian-buster/control
+RUN mk-build-deps -i -t 'apt-get -o Debug::pkgProblemResolver=yes -y --no-install-recommends' builder-support/debian/authoritative/debian-buster/control
 
 # build and install
 
@@ -37,8 +40,8 @@ COPY .git/ .git/
 ADD configure.ac Makefile.am .
 COPY builder/helpers/set-configure-ac-version.sh /usr/local/bin
 
-ARG MAKEFLAGS=-j2
-ARG DOCKER_FAKE_RELEASE=NO
+ARG MAKEFLAGS="-j2"
+ARG DOCKER_FAKE_RELEASE="NO"
 
 RUN if [ "${DOCKER_FAKE_RELEASE}" = "YES" ]; then \
       BUILDER_VERSION="$(IS_RELEASE=YES BUILDER_MODULES=authoritative ./builder-support/gen-version | sed 's/\([0-9]\+\.[0-9]\+\.[0-9]\+\(\(alpha|beta|rc\)\d\+\)\)?.*/\1/')" set-configure-ac-version.sh;\
@@ -47,9 +50,6 @@ RUN if [ "${DOCKER_FAKE_RELEASE}" = "YES" ]; then \
 
 # TODO: simplify repeated -C calls with SUBDIRS?
 RUN mkdir /build && \
-    LUAVER=$([ -z "${NO_LUA_JIT##*$(dpkg --print-architecture)*}" ] && echo 'lua5.3' || echo 'luajit') && \
-    apt-get install -y lib${LUAVER}-*dev && \
-    apt-get clean && rm -rf /var/lib/apt/lists/* && \
     ./configure \
       --with-lua=${LUAVER} \
       --sysconfdir=/etc/powerdns \
@@ -64,12 +64,12 @@ RUN mkdir /build && \
     make -C pdns install DESTDIR=/build && make -C modules install DESTDIR=/build && make clean && \
     strip /build/usr/local/bin/* /build/usr/local/sbin/* /build/usr/local/lib/pdns/*.so
 
-WORKDIR /tmp
-RUN mkdir /build/tmp/ && mkdir debian && \
-    echo 'Source: docker-deps-for-pdns' > debian/control && \
+WORKDIR /tmp/debian
+RUN mkdir /build/tmp/ && \
+    echo 'Source: docker-deps-for-pdns' > ./control && \
     dpkg-shlibdeps /build/usr/local/bin/* /build/usr/local/sbin/* /build/usr/local/lib/pdns/*.so && \
-    sed 's/^shlibs:Depends=/Depends: /' debian/substvars >> debian/control && \
-    equivs-build debian/control && \
+    sed 's/^shlibs:Depends=/Depends: /' ./substvars >> ./control && \
+    equivs-build ./control && \
     dpkg-deb -I equivs-dummy_1.0_all.deb && cp equivs-dummy_1.0_all.deb /build/tmp/
 
 
@@ -78,7 +78,7 @@ FROM debian:trixie-slim
 
 # Reusable layer for base update
 RUN apt-get update && \
-    apt-get -y dist-upgrade && \
+    DEBIAN_FRONTEND=noninteractive apt-get dist-upgrade -y && \
     apt-get clean
 
 # Copy build output
@@ -94,7 +94,7 @@ RUN chmod 1777 /tmp
 # - vim-tiny (for pdnsutil edit-zone)
 # - supervisor (for special use cases requiring advanced process management)
 # - adduser (for adding an unprivileged user)
-RUN apt-get install -y \
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
         python3 python3-jinja2 \
         sqlite3 \
         tini \
