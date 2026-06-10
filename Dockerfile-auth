@@ -1,5 +1,6 @@
 FROM debian:trixie-slim AS builder
-ENV NO_LUA_JIT="s390x arm64"
+ARG NO_LUA_JIT="s390x"
+#DEBIAN_FRONTEND=noninteractive in line setzen
 
 # Reusable layer for base update
 RUN apt-get update && \
