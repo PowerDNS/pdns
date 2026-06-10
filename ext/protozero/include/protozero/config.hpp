@@ -37,6 +37,13 @@ documentation.
 # if (__BYTE_ORDER == __BIG_ENDIAN)
 #  define PROTOZERO_BYTE_ORDER PROTOZERO_BIG_ENDIAN
 # endif
+#elif defined(__BYTE_ORDER__)
+# if (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
+#  define PROTOZERO_BYTE_ORDER PROTOZERO_LITTLE_ENDIAN
+# endif
+# if (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
+#  define PROTOZERO_BYTE_ORDER PROTOZERO_BIG_ENDIAN
+# endif
 #else
 // This probably isn't a very good default, but might do until we figure
 // out something better.
