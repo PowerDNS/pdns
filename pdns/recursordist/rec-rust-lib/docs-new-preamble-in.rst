@@ -695,6 +695,26 @@ A :ref:`setting-yaml-logging.opentelemetry_trace_conditions` section contains a 
 
 See :ref:`opentelemetry_tracing` for an explanation how to use OpenTelemetry Trace Conditions.
 
+QNameAndQType
+^^^^^^^^^^^^^^
+
+As of version 5.5.0, a QNameAndType is defined as
+
+.. code-block:: yaml
+
+   qname: a DNS name
+   qtype: a text representation of aQType, default is A.
+
+A :ref:`setting-yaml-recordcache.keepwarm` section contains a sequence of `QNameAndQType`_, for example:
+
+.. code-block:: yaml
+
+  recordcache:
+    keepwarm:
+      - qname: www.example.com
+      - qname: www.example.com
+        qtype: AAAA
+
 The YAML settings
 -----------------
 
