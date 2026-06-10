@@ -47,9 +47,6 @@ ARG DOCKER_FAKE_RELEASE=NO
 # build and install (TODO: before we hit this line, rearrange /source structure if we are coming from a tarball)
 WORKDIR /source/pdns/recursordist
 
-# Manpage deps
-# RUN apt-get install -y python3-venv && apt-get clean
-
 # avoid installing pandoc
 RUN touch pdns_recursor.1 rec_control.1
 
