@@ -1177,7 +1177,7 @@ if get_option('unit-tests-backends')
       test(
         'pdns-auth-backend-' + module,
         start_test_stop,
-        env: {'PDNS_BUILD_PATH': meson.build_root()},
+        env: {'PDNS_BUILD_PATH': meson.project_build_root()},
         args: ['5300', module],
         workdir: product_source_dir / 'regression-tests',
         depends: [pdns_server, pdnsutil, sdig, saxfr, pdns_notify, nsec3dig],
