@@ -8,8 +8,7 @@ RUN apt-get update && \
 
 # devscripts provides mk-build-deps and more
 ARG NO_LUA_JIT="s390x arm64"
-RUN LUAVER=$([ -z "${NO_LUA_JIT##*$(dpkg --print-architecture)*}" ] && echo 'lua5.3' || echo 'luajit') && \
-    apt-get install -y --no-install-recommends \
+RUN apt-get install -y --no-install-recommends \
         devscripts \
         equivs \
         git \
@@ -18,7 +17,11 @@ RUN LUAVER=$([ -z "${NO_LUA_JIT##*$(dpkg --print-architecture)*}" ] && echo 'lua
         jq \
         libclang-dev \
         meson \
-        lib${LUAVER}-*dev ninja-build && \
+        ninja-build
+
+# Install Lua
+RUN LUAVER=$([ -z "${NO_LUA_JIT##*$(dpkg --print-architecture)*}" ] && echo 'lua5.3' || echo 'luajit') && \
+    apt-get install -y --no-install-recommends lib${LUAVER}-*dev && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # TODO: make sure /source looks roughly the same from git or tar
