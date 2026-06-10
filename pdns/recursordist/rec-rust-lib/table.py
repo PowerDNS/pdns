@@ -3708,8 +3708,11 @@ A DoT connection is matched against the subnets lists (using the remote IP) and 
         "default": "",
         "help": "Sequence of QNameAndQType",
         "doc": """
-        List of names to keep warm in the cache
-        """,
+List of names (optionally with type) to keep warm in the cache.
+The list is maintained on a best-effort basis using asynchronous tasks.
+If the number of names on the list is too high for :program:`Recursor` to maintain updated, the metric ``taskqueue-expired`` grows and ``taskqueue-size`` will never be zero.
+In that case try increasing :ref:`setting-taskthreads`.
+""",
         "skip-old": "No equivalent old style setting",
         "versionadded": "5.5.0",
         "runtime": ["reload-lua-config", "reload-yaml"],
