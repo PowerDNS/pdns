@@ -1,5 +1,5 @@
 FROM debian:trixie-slim AS builder
-ARG NO_LUA_JIT="s390x"
+ENV DEBIAN_FRONTEND=noninteractive
 
 # Reusable layer for base update
 RUN apt-get update && \
@@ -7,10 +7,19 @@ RUN apt-get update && \
     apt-get clean
 
 # devscripts provides mk-build-deps and more
-RUN apt-get install -y  --no-install-recommends \
+ARG NO_LUA_JIT="s390x arm64"
+RUN LUAVER=$([ -z "${NO_LUA_JIT##*$(dpkg --print-architecture)*}" ] && echo 'lua5.3' || echo 'luajit') && \
+    apt-get install -y --no-install-recommends \
         devscripts \
         equivs \
-        git
+        git \
+        cmake \
+        curl \
+        jq \
+        libclang-dev \
+        meson \
+        lib${LUAVER}-*dev ninja-build && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # TODO: make sure /source looks roughly the same from git or tar
 WORKDIR /source
@@ -19,24 +28,19 @@ WORKDIR /source
 COPY builder-support/ builder-support/
 
 # TODO: control file is not in tarballs at all right now
-RUN mk-build-deps -i -t 'apt-get -y -o Debug::pkgProblemResolver=yes --no-install-recommends' /source/builder-support/debian/dnsdist/debian-bookworm/control && \
-    apt-get install -y meson
+RUN mk-build-deps -i -t 'apt-get -o Debug::pkgProblemResolver=yes -y --no-install-recommends' builder-support/debian/dnsdist/debian-bookworm/control
 
-WORKDIR /quiche
-RUN apt-get install -y cmake curl jq libclang-dev && \
-    cd /source/builder-support/helpers/ && \
-    ./install_rust.sh && \
-    ./install_quiche.sh
+WORKDIR /source/builder-support/helpers/
+RUN ./install_rust.sh && ./install_quiche.sh
 
 WORKDIR /source
-
 COPY meson/ meson/
 COPY pdns/ pdns/
 COPY ext/ ext/
 COPY .git/ .git/
 
-ARG MAKEFLAGS=-j2
-ARG DOCKER_FAKE_RELEASE=NO
+ARG MAKEFLAGS="-j2"
+ARG DOCKER_FAKE_RELEASE="NO"
 
 # build and install (TODO: before we hit this line, rearrange /source structure if we are coming from a tarball)
 WORKDIR /source/pdns/dnsdistdist
@@ -45,9 +49,6 @@ WORKDIR /source/pdns/dnsdistdist
 RUN touch dnsdist.1
 
 RUN mkdir /build && \
-    LUAVER=$([ -z "${NO_LUA_JIT##*$(dpkg --print-architecture)*}" ] && echo 'lua5.3' || echo 'luajit') && \
-    apt-get install -y lib${LUAVER}-*dev ninja-build && \
-    apt-get clean && rm -rf /var/lib/apt/lists/* && \
     BUILDDIR=$(mktemp -d) && \
     IS_RELEASE="${DOCKER_FAKE_RELEASE}" \
     LDFLAGS="-latomic -fuse-ld=lld -Wl,--build-id=sha1 -ldl" \
@@ -90,12 +91,12 @@ RUN for tentative in "lib/x86_64-linux-gnu" "lib/aarch64-linux-gnu" "lib64" "lib
       fi; \
     done
 
-WORKDIR /tmp
-RUN mkdir /build/tmp/ && mkdir debian && \
-    echo 'Source: docker-deps-for-pdns' > debian/control && \
+WORKDIR /tmp/debian
+RUN echo 'Source: docker-deps-for-pdns' > control && \
     dpkg-shlibdeps /build/usr/local/bin/dnsdist && \
-    sed 's/^shlibs:Depends=/Depends: /' debian/substvars >> debian/control && \
-    equivs-build debian/control && \
+    sed 's/^shlibs:Depends=/Depends: /' substvars >> control && \
+    equivs-build ./control && \
+    mkdir /build/tmp/ && \
     dpkg-deb -I equivs-dummy_1.0_all.deb && cp equivs-dummy_1.0_all.deb /build/tmp/
 
 
@@ -104,7 +105,7 @@ FROM debian:trixie-slim
 
 # Reusable layer for base update
 RUN apt-get update && \
-    apt-get dist-upgrade -y && \
+    DEBIAN_FRONTEND=noninteractive apt-get dist-upgrade -y && \
     apt-get clean
 
 # Output from builder
@@ -118,7 +119,7 @@ RUN chmod 1777 /tmp
 # - tini (for signal management),
 # - ca-certificates (for verifying downstream DoH/DoT certificates)
 # - adduser (for adding an unprivileged user)
-RUN apt-get install -y --no-install-recommends \
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
         python3 \
         python3-jinja2 \
         tini \
