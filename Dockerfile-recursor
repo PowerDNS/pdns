@@ -5,7 +5,7 @@
 #   dig a www.example.com @0 -p 1053
 
 FROM debian:trixie-slim AS builder
-ENV NO_LUA_JIT="s390x"
+ARG NO_LUA_JIT="s390x"
 
 # Reusable layer for base update
 RUN apt-get update && \
