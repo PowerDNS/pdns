@@ -83,6 +83,9 @@ public:
           /* let's update the TTD ! */
           d_mplexer.setReadTTD(d_fd, *ttd, /* we pass 0 here because we already have a TTD */ 0);
         }
+        else {
+          d_mplexer.resetReadTTD(d_fd);
+        }
         return;
       }
 
@@ -95,6 +98,9 @@ public:
         if (ttd) {
           /* let's update the TTD ! */
           d_mplexer.setWriteTTD(d_fd, *ttd, /* we pass 0 here because we already have a TTD */ 0);
+        }
+        else {
+          d_mplexer.resetWriteTTD(d_fd);
         }
         return;
       }
@@ -125,6 +131,9 @@ public:
           /* let's update the TTD ! */
           d_mplexer.setReadTTD(d_fd, *ttd, /* we pass 0 here because we already have a TTD */ 0);
         }
+        else {
+          d_mplexer.resetReadTTD(d_fd);
+        }
         return;
       }
 
@@ -145,6 +154,9 @@ public:
         if (ttd) {
           /* let's update the TTD ! */
           d_mplexer.setWriteTTD(d_fd, *ttd, /* we pass 0 here because we already have a TTD */ 0);
+        }
+        else {
+          d_mplexer.resetWriteTTD(d_fd);
         }
         return;
       }
