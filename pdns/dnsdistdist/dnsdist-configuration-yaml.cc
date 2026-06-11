@@ -2125,6 +2125,24 @@ std::shared_ptr<DNSSelector> getByNameSelector(const ByNameSelectorConfiguration
   return ptr;
 }
 
+std::shared_ptr<DNSActionWrapper> getByNameAction(const ByNameActionConfiguration& config)
+{
+  auto ptr = dnsdist::configuration::yaml::getRegisteredTypeByName<DNSActionWrapper>(config.action_name);
+  if (!ptr) {
+    throw std::runtime_error("Unable to find an action named " + std::string(config.action_name));
+  }
+  return ptr;
+}
+
+std::shared_ptr<DNSResponseActionWrapper> getByNameResponseAction(const ByNameResponseActionConfiguration& config)
+{
+  auto ptr = dnsdist::configuration::yaml::getRegisteredTypeByName<DNSResponseActionWrapper>(config.action_name);
+  if (!ptr) {
+    throw std::runtime_error("Unable to find an action named " + std::string(config.action_name));
+  }
+  return ptr;
+}
+
 #include "dnsdist-rust-bridge-actions-generated-body.hh"
 #include "dnsdist-rust-bridge-selectors-generated-body.hh"
 }

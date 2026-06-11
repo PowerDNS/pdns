@@ -76,6 +76,23 @@ query_rules:
     action:
       type: "Pool"
       pool_name: "tcp-pool"
+  - name: "reply notimp to notimp1"
+    selector:
+      type: "QNameSet"
+      qnames:
+        - "notimp1.yaml.test.powerdns.com."
+    action:
+      name: "reply-with-notimp"
+      type: "RCode"
+      rcode: "NotImp"
+  - name: "reply notimp to notimp2"
+    selector:
+      type: "QNameSet"
+      qnames:
+        - "notimp2.yaml.test.powerdns.com."
+    action:
+      type: "ByName"
+      action_name: "reply-with-notimp"
 
 response_rules:
   - name: "inline RD=0 TCP gets cleared"
@@ -193,6 +210,17 @@ response_rules:
             self.assertEqual(receivedQuery, query)
             self.assertEqual(receivedResponse, response)
 
+    def testActionByName(self):
+        """
+        Yaml: Action by name
+        """
+        for name in ["notimp1.yaml.test.powerdns.com.", "notimp2.yaml.test.powerdns.com."]:
+            query = dns.message.make_query(name, "A", "IN")
+            query.flags &= ~dns.flags.RD
+            response = dns.message.make_response(query)
+            response.set_rcode(dns.rcode.NOTIMP)
+            (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+            self.assertEqual(receivedResponse, response)
 
 class TestMixingYamlWithLua(DNSDistTest):
     _yaml_config_template = """---

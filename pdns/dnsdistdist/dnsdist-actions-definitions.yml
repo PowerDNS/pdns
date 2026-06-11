@@ -1,6 +1,16 @@
 ---
 - name: "allow"
   description: "Let these packets go through"
+- name: "ByName"
+  skip-cpp: true
+  skip-rust: true
+  no-lua-equivalent: true
+  description: "References an already declared action by its name"
+  version_added: 2.2.0
+  parameters:
+    - name: "action_name"
+      type: "String"
+      descripton: "The action name"
 - name: "continue"
   description: "Execute the specified action and override its return with None, making it possible to continue the processing. Subsequent rules are processed after this action"
   skip-cpp: true
