@@ -3,6 +3,7 @@
 
 wheel==0.46.3
 dnspython
+cryptography>=43
 pytest
 Twisted>0.15.0
 requests>=2.18.4
