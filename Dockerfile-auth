@@ -67,12 +67,13 @@ RUN mkdir /build && \
     make -C pdns install DESTDIR=/build && make -C modules install DESTDIR=/build && make clean && \
     strip /build/usr/local/bin/* /build/usr/local/sbin/* /build/usr/local/lib/pdns/*.so
 
-WORKDIR /tmp/debian
-RUN mkdir /build/tmp/ && \
-    echo 'Source: docker-deps-for-pdns' > ./control && \
-    dpkg-shlibdeps /build/usr/local/bin/* /build/usr/local/sbin/* /build/usr/local/lib/pdns/*.so && \
-    sed 's/^shlibs:Depends=/Depends: /' ./substvars >> ./control && \
-    equivs-build ./control && \
+WORKDIR /tmp
+RUN mkdir debian && \
+    echo 'Source: docker-deps-for-pdns' > debian/control && \
+    dpkg-shlibdeps /build/usr/local/bin/dnsdist && \
+    sed 's/^shlibs:Depends=/Depends: /' debian/substvars >> debian/control && \
+    equivs-build debian/control && \
+    mkdir /build/tmp/ && \
     dpkg-deb -I equivs-dummy_1.0_all.deb && cp equivs-dummy_1.0_all.deb /build/tmp/
 
 

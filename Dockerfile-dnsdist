@@ -96,11 +96,12 @@ RUN for tentative in "lib/x86_64-linux-gnu" "lib/aarch64-linux-gnu" "lib64" "lib
       fi; \
     done
 
-WORKDIR /tmp/debian
-RUN echo 'Source: docker-deps-for-pdns' > control && \
+WORKDIR /tmp
+RUN mkdir debian && \
+    echo 'Source: docker-deps-for-pdns' > debian/control && \
     dpkg-shlibdeps /build/usr/local/bin/dnsdist && \
-    sed 's/^shlibs:Depends=/Depends: /' substvars >> control && \
-    equivs-build ./control && \
+    sed 's/^shlibs:Depends=/Depends: /' debian/substvars >> debian/control && \
+    equivs-build debian/control && \
     mkdir /build/tmp/ && \
     dpkg-deb -I equivs-dummy_1.0_all.deb && cp equivs-dummy_1.0_all.deb /build/tmp/
 
