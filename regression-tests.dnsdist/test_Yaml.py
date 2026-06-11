@@ -222,6 +222,7 @@ response_rules:
             (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
             self.assertEqual(receivedResponse, response)
 
+
 class TestMixingYamlWithLua(DNSDistTest):
     _yaml_config_template = """---
 binds:
