@@ -79,6 +79,10 @@ public:
   void release(bool removeFromCache) override
   {
     (void)removeFromCache;
+    if (d_ioState) {
+      d_ioState.reset();
+    }
+    nghttp2_session_terminate_session(d_session.get(), NGHTTP2_NO_ERROR);
   }
 
 private:
@@ -546,7 +550,7 @@ void DoHConnectionToBackend::updateIO(IOState newState, const FDMultiplexer::cal
 void DoHConnectionToBackend::watchForRemoteHostClosingConnection()
 {
   if (willBeReusable(false) && !d_healthCheckQuery) {
-    updateIO(IOState::NeedRead, handleReadableIOCallback, false);
+    updateIO(IOState::NeedRead, handleReadableIOCallback, true);
   }
 }
 
