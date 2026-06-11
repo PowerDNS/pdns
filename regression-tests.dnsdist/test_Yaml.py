@@ -67,6 +67,7 @@ query_rules:
   - name: "my-rule"
     selector:
       type: "And"
+      name: "tcp-and-not-rd-selector"
       selectors:
         - type: "ByName"
           selector_name: "is-tcp"
