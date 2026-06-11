@@ -234,12 +234,6 @@ std::shared_ptr<LOCRecordContent::DNSRecordContent> LOCRecordContent::make(const
 // convert this to d_version, d_size, d_horiz/vertpre, d_latitude, d_longitude, d_altitude
 LOCRecordContent::LOCRecordContent(const string& content, const string& /* zone */)
 {
-  d_version = 0;
-  d_altitude = 10000000;
-  d_horizpre = 0x16;     /* default = 1e6 cm = 10000.00m = 10km */
-  d_vertpre = 0x13;      /* default = 1e3 cm = 10.00m */
-  d_size = 0x12;         /* default = 1e2 cm = 1.00m */
-
   std::string::size_type pos{0};
 
   // Parse latitude and longitude, in any order
