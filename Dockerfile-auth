@@ -70,7 +70,7 @@ RUN mkdir /build && \
 WORKDIR /tmp
 RUN mkdir debian && \
     echo 'Source: docker-deps-for-pdns' > debian/control && \
-    dpkg-shlibdeps /build/usr/local/bin/dnsdist && \
+    dpkg-shlibdeps /build/usr/local/bin/* /build/usr/local/sbin/* /build/usr/local/lib/pdns/*.so && \
     sed 's/^shlibs:Depends=/Depends: /' debian/substvars >> debian/control && \
     equivs-build debian/control && \
     mkdir /build/tmp/ && \
