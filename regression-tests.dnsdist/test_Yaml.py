@@ -55,6 +55,15 @@ selectors:
     tcp: true
 
 query_rules:
+  - name: "test continue action with a name"
+    selector:
+      type: "All"
+    action:
+      name: "continue after allow"
+      type: "Continue"
+      action:
+        name: "simply allow"
+        type: "Allow"
   - name: "route inline-yaml to inline pool"
     selector:
       type: "QNameSet"

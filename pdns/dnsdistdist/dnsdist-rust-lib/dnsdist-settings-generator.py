@@ -666,6 +666,7 @@ def generate_rust_action_to_config(output, def_dir, response):
             enum_buffer += f'''        {suffix}::{name}(cont) => {{
              let mut config: dnsdistsettings::{name}{suffix}Configuration = Default::default();
              config.action = get_one_action_from_serde(&*cont.action)?;
+             config.name = cont.name.clone();
              return Ok(dnsdistsettings::SharedDNS{suffix} {{
                  action: dnsdistsettings::get{name}{suffix}(&config)?,
              }});

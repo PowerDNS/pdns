@@ -67,6 +67,8 @@ struct NotSelectorConfigurationSerde {
 #[serde(deny_unknown_fields)]
 struct ContinueActionConfigurationSerde {
     #[serde(default, skip_serializing_if = "crate::is_default")]
+    name: String,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
     action: Box<Action>,
 }
 
