@@ -71,7 +71,7 @@ RUN mkdir /build && \
       -Db_pie=true \
       -Dlibcap=enabled \
       -Dsigners-libsodium=enabled \
-      -Dlua=${LUAVER} \
+      -Dlua=auto \
       -Dsnmp=enabled \
       -Ddns-over-tls=enabled \
       -Ddnstap=enabled \
