@@ -1654,6 +1654,7 @@ static int initNet(Logr::log_t log)
 {
   checkLinuxIPv6Limits(log);
   try {
+    cerr << "ZZZZ" << endl;
     pdns::parseQueryLocalAddress(::arg()["query-local-address"]);
   }
   catch (std::exception& e) {

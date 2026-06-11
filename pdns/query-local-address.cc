@@ -19,6 +19,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+
+#include <net/if.h>
+
 #include "query-local-address.hh"
 #include "iputils.hh"
 #include "dns_random.hh"
@@ -79,8 +82,9 @@ namespace pdns
   void parseQueryLocalAddress(const std::string &qla) {
     vector<string> addrs;
     stringtok(addrs, qla, ", ;");
-    for(const string& addr : addrs) {
-      AddressAndInterface tmp{ComboAddress{addr}, std::nullopt};
+    for (const string& addr : addrs) {
+      cerr << "AAA" << addr << endl;
+      AddressAndInterface tmp{ComboAddress{addr}, Interface{ "en7", if_nametoindex("en7")} };
       if (tmp.d_address.isIPv4()) {
         g_localQueryAddresses4.emplace_back(std::move(tmp));
         continue;

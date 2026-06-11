@@ -153,7 +153,7 @@ extern DoneRunning g_doneRunning;
 class UDPClientSocks
 {
 public:
-  LWResult::Result getSocket(const ComboAddress& toaddr, const std::optional<pdns::AddressAndInterface>& localAddress, int* fileDesc);
+  LWResult::Result getSocket(const ComboAddress& toaddr, const std::optional<pdns::AddressAndInterface>& localAddress, std::optional<pdns::Interface>& interface, int* fileDesc);
 
   // return a socket to the pool, or simply erase it
   void returnSocket(int fileDesc);
@@ -161,7 +161,7 @@ public:
 private:
   unsigned int d_numsocks{0};
   // returns -1 for errors which might go away, throws for ones that won't
-  static int makeClientSocket(int family, const std::optional<pdns::AddressAndInterface>& localAddress);
+  static int makeClientSocket(int family, const std::optional<pdns::AddressAndInterface>& localAddress, std::optional<pdns::Interface>& interface);
 };
 
 enum class PaddingMode : uint8_t

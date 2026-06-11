@@ -100,9 +100,9 @@ GlobalStateHolder<NetmaskGroup> g_dontThrottleNetmasks;
 GlobalStateHolder<SuffixMatchNode> g_DoTToAuthNames;
 uint64_t g_latencyStatSize;
 
-LWResult::Result UDPClientSocks::getSocket(const ComboAddress& toaddr, const std::optional<pdns::AddressAndInterface>& localAddress, int* fileDesc)
+LWResult::Result UDPClientSocks::getSocket(const ComboAddress& toaddr, const std::optional<pdns::AddressAndInterface>& localAddress, std::optional<pdns::Interface>& interface, int* fileDesc)
 {
-  *fileDesc = makeClientSocket(toaddr.sin4.sin_family, localAddress);
+  *fileDesc = makeClientSocket(toaddr.sin4.sin_family, localAddress, interface);
   if (*fileDesc < 0) { // temporary error - receive exception otherwise
     return LWResult::Result::OSLimitError;
   }
@@ -148,7 +148,7 @@ void UDPClientSocks::returnSocket(int fileDesc)
 }
 
 // returns -1 for errors which might go away, throws for ones that won't
-int UDPClientSocks::makeClientSocket(int family, const std::optional<pdns::AddressAndInterface>& localAddress)
+int UDPClientSocks::makeClientSocket(int family, const std::optional<pdns::AddressAndInterface>& localAddress, std::optional<pdns::Interface>& interface)
 {
   int ret = socket(family, SOCK_DGRAM, 0); // turns out that setting CLO_EXEC and NONBLOCK from here is not a performance win on Linux (oddly enough)
 
@@ -167,7 +167,7 @@ int UDPClientSocks::makeClientSocket(int family, const std::optional<pdns::Addre
 #else
   int tries = 2; // hit the reliable kernel random case for OpenBSD immediately (because it will match tries==1 below), using sysctl net.inet.udp.baddynamic to exclude ports
 #endif
-  ComboAddress sin;
+  pdns::AddressAndInterface sin;
   while (--tries != 0) {
     in_port_t port = 0;
 
@@ -183,13 +183,18 @@ int UDPClientSocks::makeClientSocket(int family, const std::optional<pdns::Addre
     // localAddress is set if a cookie was involved, bind to the same address the cookie is
     // associated with (RFC 9018 section 3 last paragraph)
     if (localAddress) {
-      sin = localAddress->d_address;
-      sin.setPort(port);
+      sin = *localAddress;
+      sin.d_address.setPort(port);
     }
     else {
-      sin = pdns::getQueryLocalAddress(family, port).d_address; // does htons for us
+      sin = pdns::getQueryLocalAddress(family, port); // does htons for us
+      cerr << "SIN " << !!sin.d_interface << endl;
     }
-    if (::bind(ret, reinterpret_cast<struct sockaddr*>(&sin), sin.getSocklen()) >= 0) { // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    if (::bind(ret, reinterpret_cast<struct sockaddr*>(&sin.d_address), sin.d_address.getSocklen()) >= 0) { // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast
+      if (sin.d_interface) {
+        // BIND XXX
+        interface = sin.d_interface;
+      }
       break;
     }
   }
@@ -198,7 +203,7 @@ int UDPClientSocks::makeClientSocket(int family, const std::optional<pdns::Addre
 
   if (tries == 0) {
     closesocket(ret);
-    throw PDNSException("Resolver binding to local query client socket on " + sin.toString() + ": " + stringerror(err));
+    throw PDNSException("Resolver binding to local query client socket on " + sin.d_address.toString() + ": " + stringerror(err));
   }
 
   try {
@@ -325,7 +330,10 @@ LWResult::Result asendto(const void* data, size_t len,
     }
   }
 
-  auto ret = t_udpclientsocks->getSocket(toAddress, localAddress, fileDesc);
+  cerr << "XXX1" << endl;;
+  std::optional<pdns::Interface> interface;
+  auto ret = t_udpclientsocks->getSocket(toAddress, localAddress, interface, fileDesc);
+  cerr << "XXX2 " << !!interface << endl;
   if (ret != LWResult::Result::Success) {
     return ret;
   }
@@ -334,7 +342,14 @@ LWResult::Result asendto(const void* data, size_t len,
   pident->id = qid;
 
   t_fdm->addReadFD(*fileDesc, handleUDPServerResponse, pident);
-  ssize_t sent = send(*fileDesc, data, len, 0);
+  ssize_t sent{};
+  if (!interface) {
+    sent = send(*fileDesc, data, len, 0);
+  }
+  else {
+    cerr << "XXX " << interface->d_index << endl;
+    sent = sendMsgWithOptions(*fileDesc, data, len, nullptr, &localAddress->d_address, interface->d_index, 0);
+  }
   if (sent < 0) {
     int tmp = errno;
     t_udpclientsocks->returnSocket(*fileDesc);
