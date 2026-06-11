@@ -28,7 +28,7 @@ namespace pdns {
   struct Interface
   {
     std::string d_name;
-    int d_index{-1};
+    unsigned int d_index{0};
   };
   struct AddressAndInterface
   {

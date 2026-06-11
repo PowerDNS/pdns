@@ -21,6 +21,8 @@
  */
 #include "config.h"
 
+#include <net/if.h>
+
 #include "lwres.hh"
 #include "arguments.hh"
 #include "query-local-address.hh"
@@ -383,6 +385,14 @@ static bool tcpconnect(const OptLog& log, const ComboAddress& remote, const std:
 
   try {
     sock.bind(localip.d_address);
+    if (localip.d_interface) {
+      const auto& name = localip.d_interface->d_name;
+      int res = setsockopt(sock.getHandle(), SOL_SOCKET, SO_BINDTODEVICE, name.data(), name.length());
+      int err = errno;
+      if (res != 0) {
+        cerr << "SO_BINDTODEVICE " << res << stringerror(err) << endl;
+      }
+    }
   }
   catch (const NetworkError& e) {
     if (localBind) {
@@ -428,7 +438,7 @@ static bool tcpconnect(const OptLog& log, const ComboAddress& remote, const std:
 }
 
 static LWResult::Result tcpsendrecv(const ComboAddress& ip, TCPOutConnectionManager::Connection& connection,
-                                    ComboAddress& localip, const vector<uint8_t>& vpacket, size_t& len, PacketBuffer& buf,
+                                    pdns::AddressAndInterface& localip, const vector<uint8_t>& vpacket, size_t& len, PacketBuffer& buf,
                                     const std::string& nsName, const std::string& subjectName)
 {
   socklen_t slen = ip.getSocklen();
@@ -436,9 +446,17 @@ static LWResult::Result tcpsendrecv(const ComboAddress& ip, TCPOutConnectionMana
   const char* lenP = reinterpret_cast<const char*>(&tlen);
 
   len = 0; // in case of error
-  localip.sin4.sin_family = ip.sin4.sin_family;
-  if (getsockname(connection.d_handler->getDescriptor(), reinterpret_cast<sockaddr*>(&localip), &slen) != 0) {
+  localip.d_address.sin4.sin_family = ip.sin4.sin_family;
+  if (getsockname(connection.d_handler->getDescriptor(), reinterpret_cast<sockaddr*>(&localip.d_address), &slen) != 0) {
     return LWResult::Result::PermanentError;
+  }
+  std::array<char, IFNAMSIZ> name{};
+  socklen_t namelen = name.size();
+  if (getsockopt(connection.d_handler->getDescriptor(), SOL_SOCKET, SO_BINDTODEVICE, name.data(), &namelen) == 0) {
+    if (namelen > 0) {
+      unsigned int index = if_nametoindex(name.data());
+      localip.d_interface = pdns::Interface{std::string(name.data()), index};
+    }
   }
 
   PacketBuffer packet;
@@ -668,7 +686,7 @@ static LWResult::Result asyncresolve(const OptLog& log, const ComboAddress& addr
   srcmask = std::nullopt; // this is also our return value, even if EDNS0Level == 0
 
   // We only store the localip if needed for fstrm logging or cookie support
-  ComboAddress localip;
+  pdns::AddressAndInterface localip;
   bool fstrmQEnabled = false;
   bool fstrmREnabled = false;
 
@@ -705,13 +723,13 @@ static LWResult::Result asyncresolve(const OptLog& log, const ComboAddress& addr
 
     if (!*chained) {
       if (cookieSentOut || fstrmQEnabled || fstrmREnabled) {
-        localip.sin4.sin_family = address.sin4.sin_family;
+        localip.d_address.sin4.sin_family = address.sin4.sin_family;
         socklen_t slen = address.getSocklen();
-        (void)getsockname(queryfd, reinterpret_cast<sockaddr*>(&localip), &slen); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast))
+        (void)getsockname(queryfd, reinterpret_cast<sockaddr*>(&localip.d_address), &slen); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast))
       }
 #ifdef HAVE_FSTRM
       if (fstrmQEnabled) {
-        logFstreamQuery(fstrmLoggers, queryTime, localip, address, DnstapMessage::ProtocolType::DoUDP, context.d_auth, vpacket);
+        logFstreamQuery(fstrmLoggers, queryTime, localip.d_address, address, DnstapMessage::ProtocolType::DoUDP, context.d_auth, vpacket);
       }
 #endif
     }
@@ -733,7 +751,7 @@ static LWResult::Result asyncresolve(const OptLog& log, const ComboAddress& addr
         ret = tcpsendrecv(address, connection, localip, vpacket, len, buf, nsName, subjectName);
 #ifdef HAVE_FSTRM
         if (fstrmQEnabled) {
-          logFstreamQuery(fstrmLoggers, queryTime, localip, address, !dnsOverTLS ? DnstapMessage::ProtocolType::DoTCP : DnstapMessage::ProtocolType::DoT, context.d_auth, vpacket);
+          logFstreamQuery(fstrmLoggers, queryTime, localip.d_address, address, !dnsOverTLS ? DnstapMessage::ProtocolType::DoTCP : DnstapMessage::ProtocolType::DoT, context.d_auth, vpacket);
         }
 #endif /* HAVE_FSTRM */
         if (ret == LWResult::Result::Success) {
@@ -789,7 +807,7 @@ static LWResult::Result asyncresolve(const OptLog& log, const ComboAddress& addr
     if (dnsOverTLS) {
       protocol = DnstapMessage::ProtocolType::DoT;
     }
-    logFstreamResponse(fstrmLoggers, localip, address, protocol, context.d_auth, buf, queryTime, *now);
+    logFstreamResponse(fstrmLoggers, localip.d_address, address, protocol, context.d_auth, buf, queryTime, *now);
   }
 #endif /* HAVE_FSTRM */
 
@@ -874,7 +892,7 @@ static LWResult::Result asyncresolve(const OptLog& log, const ComboAddress& addr
         }
       }
       if (g_cookies && cookieSentOut && !*chained) {
-        auto [done, result] = incomingCookie(log, address, {localip, std::nullopt}, *now, cookieSentOut, edo, doTCP, *lwr, cookieFoundInReply);
+        auto [done, result] = incomingCookie(log, address, localip, *now, cookieSentOut, edo, doTCP, *lwr, cookieFoundInReply);
         if (done) {
           return result;
         }
