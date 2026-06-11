@@ -46,6 +46,7 @@
 
 #include "iputils.hh"
 #include "ednscookies.hh"
+#include "query-local-address.hh"
 
 using namespace ::boost::multi_index;
 
@@ -88,7 +89,7 @@ struct CookieEntry
   }
 
   ComboAddress d_address;
-  mutable ComboAddress d_localaddress; // The address we were bound to, see RFC 9018
+  mutable pdns::AddressAndInterface d_localaddress; // The address we were bound to, see RFC 9018
   mutable EDNSCookiesOpt d_cookie; // Contains both client and server cookie
   mutable time_t d_lastused{};
   mutable Support d_support{Support::Unsupported};

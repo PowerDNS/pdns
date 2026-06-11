@@ -24,6 +24,22 @@
 #include "iputils.hh"
 
 namespace pdns {
+
+  struct Interface
+  {
+    std::string d_name;
+    int d_index{-1};
+  };
+  struct AddressAndInterface
+  {
+    ComboAddress d_address;
+    std::optional<Interface> d_interface;
+    bool operator<(const AddressAndInterface& arg) const
+    {
+      return d_address < arg.d_address; // XXX
+    };
+  };
+
   /*! pick a random query local address for family
    *
    * Will always return a ComboAddress.
@@ -31,13 +47,13 @@ namespace pdns {
    * @param family Address Family, only AF_INET and AF_INET6 are supported
    * @param port   Port to set in the returned ComboAddress
    */
-  ComboAddress getQueryLocalAddress(const sa_family_t family, const in_port_t port);
+  AddressAndInterface getQueryLocalAddress(sa_family_t family, in_port_t port);
 
   /*! Returns a non-Any address QLA, or an empty QLA when the QLA is any
    *
    * @param family  Address Family
    */
-  ComboAddress getNonAnyQueryLocalAddress(const sa_family_t family);
+  AddressAndInterface getNonAnyQueryLocalAddress(sa_family_t family);
 
   /*! Populate the query local address vectors
    *
@@ -55,5 +71,5 @@ namespace pdns {
    *
    * @param family  Address Family, only AF_INET and AF_INET6 are supported
    */
-  bool isQueryLocalAddressFamilyEnabled(const sa_family_t family);
+  bool isQueryLocalAddressFamilyEnabled(sa_family_t family);
 } // namespace pdns

@@ -146,7 +146,7 @@ pdns::ZoneMD::Result ZoneData::getByAXFR(const RecZoneToCache::Config& config, p
   const TSIGTriplet tsigTriplet = config.d_tt;
   ComboAddress local = config.d_local;
   if (local == ComboAddress()) {
-    local = pdns::getQueryLocalAddress(primary.sin4.sin_family, 0);
+    local = pdns::getQueryLocalAddress(primary.sin4.sin_family, 0).d_address;
   }
 
   AXFRRetriever axfr(d_log, primary, d_zone, tsigTriplet, &local, maxReceivedBytes, axfrTimeout);

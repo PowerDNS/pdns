@@ -28,6 +28,7 @@
 #include "pdnsexception.hh"
 #include "noinitvector.hh"
 #include "remote_logger.hh"
+#include "query-local-address.hh"
 
 class FrameStreamLogger;
 struct DNSRecord;
@@ -81,7 +82,7 @@ public:
 class EDNSSubnetOpts;
 
 LWResult::Result asendto(const void* data, size_t len, const ComboAddress& toAddress,
-                         std::optional<ComboAddress>& localAddress, uint16_t qid,
+                         std::optional<pdns::AddressAndInterface>& localAddress, uint16_t qid,
                          const DNSName& domain, uint16_t qtype, const std::optional<EDNSSubnetOpts>& ecs, int* fileDesc, timeval& now);
 LWResult::Result arecvfrom(PacketBuffer& packet, const ComboAddress& fromAddr, size_t& len, uint16_t qid,
                            const DNSName& domain, uint16_t qtype, int fileDesc, const std::optional<EDNSSubnetOpts>& ecs, const struct timeval& now);

@@ -24,6 +24,7 @@
 
 #include "iputils.hh"
 #include "tcpiohandler.hh"
+#include "query-local-address.hh"
 
 namespace pdns::rust::settings::rec
 {
@@ -53,13 +54,13 @@ public:
     }
 
     std::shared_ptr<TCPIOHandler> d_handler;
-    std::optional<ComboAddress> d_local;
+    std::optional<pdns::AddressAndInterface> d_local;
     timeval d_last_used{0, 0};
     size_t d_numqueries{0};
     bool d_verboseLogging{false};
   };
 
-  using endpoints_t = std::pair<ComboAddress, std::optional<ComboAddress>>;
+  using endpoints_t = std::pair<ComboAddress, std::optional<pdns::AddressAndInterface>>;
 
   void store(const struct timeval& now, const endpoints_t& endpoints, Connection&& connection);
   Connection get(const endpoints_t& pair);

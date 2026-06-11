@@ -103,10 +103,10 @@ Resolver::Resolver(Logr::log_t slog) : d_slog(slog)
   locals["default6"] = -1;
   try {
     if (pdns::isQueryLocalAddressFamilyEnabled(AF_INET)) {
-      locals["default4"] = makeQuerySocket(pdns::getQueryLocalAddress(AF_INET, 0), true, ::arg().mustDo("non-local-bind"));
+      locals["default4"] = makeQuerySocket(pdns::getQueryLocalAddress(AF_INET, 0).d_address, true, ::arg().mustDo("non-local-bind"));
     }
     if (pdns::isQueryLocalAddressFamilyEnabled(AF_INET6)) {
-      locals["default6"] = makeQuerySocket(pdns::getQueryLocalAddress(AF_INET6, 0), true, ::arg().mustDo("non-local-bind"));
+      locals["default6"] = makeQuerySocket(pdns::getQueryLocalAddress(AF_INET6, 0).d_address, true, ::arg().mustDo("non-local-bind"));
     }
   }
   catch(...) {

@@ -358,7 +358,7 @@ class BindError
 {
 };
 
-static bool tcpconnect(const OptLog& log, const ComboAddress& remote, const std::optional<ComboAddress> localBind, TCPOutConnectionManager::Connection& connection, bool& dnsOverTLS, const std::string& nsName, std::string& subjectName)
+static bool tcpconnect(const OptLog& log, const ComboAddress& remote, const std::optional<pdns::AddressAndInterface> localBind, TCPOutConnectionManager::Connection& connection, bool& dnsOverTLS, const std::string& nsName, std::string& subjectName)
 {
   dnsOverTLS = SyncRes::s_dot_to_port_853 && remote.getPort() == 853;
 
@@ -373,16 +373,16 @@ static bool tcpconnect(const OptLog& log, const ComboAddress& remote, const std:
   sock.setNonBlocking();
   setTCPNoDelay(sock.getHandle());
   // Bind to the same address the cookie is associated with (RFC 9018 section 3 last paragraph)
-  ComboAddress localip = localBind ? *localBind : pdns::getQueryLocalAddress(remote.sin4.sin_family, 0);
+  pdns::AddressAndInterface localip = localBind ? *localBind : pdns::getQueryLocalAddress(remote.sin4.sin_family, 0);
   if (localBind) {
-    VLOG(log, "Connecting TCP to " << remote.toStringWithPortExcept(53) << " with specific local address " << localip.toString() << endl);
+    VLOG(log, "Connecting TCP to " << remote.toStringWithPortExcept(53) << " with specific local address " << localip.d_address.toString() << endl);
   }
   else {
     VLOG(log, "Connecting TCP to " << remote.toStringWithPortExcept(53) << " with no specific local address" << endl);
   }
 
   try {
-    sock.bind(localip);
+    sock.bind(localip.d_address);
   }
   catch (const NetworkError& e) {
     if (localBind) {
@@ -498,7 +498,7 @@ static void addPadding(const DNSPacketWriter& pw, size_t bufsize, DNSPacketWrite
   }
 }
 
-static void outgoingCookie(const OptLog& log, const ComboAddress& address, const timeval& now, DNSPacketWriter::optvect_t& opts, std::optional<EDNSCookiesOpt>& cookieSentOut, std::optional<ComboAddress>& addressToBindTo)
+static void outgoingCookie(const OptLog& log, const ComboAddress& address, const timeval& now, DNSPacketWriter::optvect_t& opts, std::optional<EDNSCookiesOpt>& cookieSentOut, std::optional<pdns::AddressAndInterface>& addressToBindTo)
 {
   auto lock = s_cookiestore.lock();
   if (auto found = lock->find(address); found != lock->end()) {
@@ -528,7 +528,7 @@ static void outgoingCookie(const OptLog& log, const ComboAddress& address, const
   VLOG(log, "Sending new client cookie info to " << address.toString() << ": " << entry.d_cookie.toDisplayString() << endl);
 }
 
-static std::pair<bool, LWResult::Result> incomingCookie(const OptLog& log, const ComboAddress& address, const ComboAddress& localip, const timeval& now, const std::optional<EDNSCookiesOpt>& cookieSentOut, const EDNSOpts& edo, bool doTCP, LWResult& lwr, bool& cookieFoundInReply)
+static std::pair<bool, LWResult::Result> incomingCookie(const OptLog& log, const ComboAddress& address, const pdns::AddressAndInterface& localip, const timeval& now, const std::optional<EDNSCookiesOpt>& cookieSentOut, const EDNSOpts& edo, bool doTCP, LWResult& lwr, bool& cookieFoundInReply)
 {
   auto lock = s_cookiestore.lock();
   auto found = lock->find(address);
@@ -548,10 +548,10 @@ static std::pair<bool, LWResult::Result> incomingCookie(const OptLog& log, const
       cookieFoundInReply = true;
       VLOG(log, "Received cookie info back from " << address.toString() << ": " << received.toDisplayString() << endl);
       if (cookieSentOut && received.getClient() == cookieSentOut->getClient()) {
-        VLOG(log, "Client cookie from " << address.toString() << " matched! Storing with localAddress " << localip.toString() << endl);
+        VLOG(log, "Client cookie from " << address.toString() << " matched! Storing with localAddress " << localip.d_address.toString() << endl);
         ++t_Counters.at(rec::Counter::cookieMatched);
         found->d_localaddress = localip;
-        found->d_localaddress.setPort(0);
+        found->d_localaddress.d_address.setPort(0);
         found->d_cookie = std::move(received);
         if (found->getSupport() == CookieEntry::Support::Probing) {
           ++t_Counters.at(rec::Counter::cookieProbeSupported);
@@ -562,20 +562,20 @@ static std::pair<bool, LWResult::Result> incomingCookie(const OptLog& log, const
         if (ercode == ERCode::BADCOOKIE) {
           lwr.d_validpacket = true;
           ++t_Counters.at(rec::Counter::cookieRetry);
-          VLOG(log, "Server " << localip.toString() << " returned BADCOOKIE " << endl);
+          VLOG(log, "Server " << localip.d_address.toString() << " returned BADCOOKIE " << endl);
           return {true, LWResult::Result::BadCookie}; // We did update the entry, retry should succeed
         }
       }
       else {
         if (!doTCP) {
           // Server responded with a wrong client cookie, fall back to TCP, RFC 7873 5.3
-          VLOG(log, "Server " << localip.toString() << " responded with wrong client cookie, fall back to TCP" << endl);
+          VLOG(log, "Server " << localip.d_address.toString() << " responded with wrong client cookie, fall back to TCP" << endl);
           lwr.d_validpacket = true;
           ++t_Counters.at(rec::Counter::cookieMismatchedOverUDP);
           return {true, LWResult::Result::Spoofed};
         }
         // mismatched cookie when already doing TCP, ignore that
-        VLOG(log, "Server " << localip.toString() << " responded with wrong client cookie over TCP, ignoring that" << endl);
+        VLOG(log, "Server " << localip.d_address.toString() << " responded with wrong client cookie over TCP, ignoring that" << endl);
         ++t_Counters.at(rec::Counter::cookieMismatchedOverTCP);
       }
     }
@@ -627,7 +627,7 @@ static LWResult::Result asyncresolve(const OptLog& log, const ComboAddress& addr
   pw.getHeader()->cd = (sendRDQuery && g_dnssecmode != DNSSECMode::Off);
 
   std::optional<EDNSSubnetOpts> subnetOpts = std::nullopt;
-  std::optional<ComboAddress> addressToBindTo;
+  std::optional<pdns::AddressAndInterface> addressToBindTo;
   std::optional<EDNSCookiesOpt> cookieSentOut;
 
   if (EDNS0Level > 0) {
@@ -745,7 +745,7 @@ static LWResult::Result asyncresolve(const OptLog& log, const ComboAddress& addr
         // Cookie info already has been added to packet, so we must retry from a higher level
         auto lock = s_cookiestore.lock();
         lock->erase(address);
-        VLOG(log, "BindError remote: " << address.toString() << " localAddress: " << (addressToBindTo ? addressToBindTo->toString() : "none") << endl);
+        VLOG(log, "BindError remote: " << address.toString() << " localAddress: " << (addressToBindTo ? addressToBindTo->d_address.toString() : "none") << endl);
         return LWResult::Result::BindError;
       }
       catch (const NetworkError& nwe) {
@@ -874,7 +874,7 @@ static LWResult::Result asyncresolve(const OptLog& log, const ComboAddress& addr
         }
       }
       if (g_cookies && cookieSentOut && !*chained) {
-        auto [done, result] = incomingCookie(log, address, localip, *now, cookieSentOut, edo, doTCP, *lwr, cookieFoundInReply);
+        auto [done, result] = incomingCookie(log, address, {localip, std::nullopt}, *now, cookieSentOut, edo, doTCP, *lwr, cookieFoundInReply);
         if (done) {
           return result;
         }
