@@ -43,7 +43,16 @@ void setupLuaBindingsKVS([[maybe_unused]] LuaContext& luaCtx, [[maybe_unused]] b
   });
 #endif /* HAVE_CDB */
 
-#if defined(HAVE_LMDB) || defined(HAVE_CDB)
+#ifdef HAVE_MMDB
+  luaCtx.writeFunction("newMMDBKVStore", [client](const std::shared_ptr<MMDB>& mmdb, const LuaTypeOrArrayOf<std::string>& queryParams) {
+    if (client) {
+      return std::shared_ptr<KeyValueStore>(nullptr);
+    }
+    return std::shared_ptr<KeyValueStore>(new MMDBKVStore(mmdb, queryParams));
+  });
+#endif // HAVE_MMDB
+
+#if defined(HAVE_LMDB) || defined(HAVE_CDB) || defined(HAVE_MMDB)
   /* Key Value Store objects */
   luaCtx.writeFunction("KeyValueLookupKeySourceIP", [](std::optional<uint8_t> v4Mask, std::optional<uint8_t> v6Mask, std::optional<bool> includePort) {
     return std::shared_ptr<KeyValueLookupKey>(new KeyValueLookupKeySourceIP(v4Mask ? *v4Mask : 32, v6Mask ? *v6Mask : 128, includePort ? *includePort : false));

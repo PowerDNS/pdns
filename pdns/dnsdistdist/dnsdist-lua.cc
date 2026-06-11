@@ -3380,6 +3380,7 @@ void setupLuaBindingsOnly(LuaContext& luaCtx, bool client, bool configCheck)
   setupLuaBindingsKVS(luaCtx, client);
   setupLuaBindingsLogging(luaCtx);
   setupLuaBindingsNetwork(luaCtx, client, configCheck);
+  setupLuaBindingsMMDB(luaCtx);
   setupLuaBindingsPacketCache(luaCtx, client);
   setupLuaBindingsProtoBuf(luaCtx, client, configCheck);
   setupLuaBindingsRings(luaCtx, client);

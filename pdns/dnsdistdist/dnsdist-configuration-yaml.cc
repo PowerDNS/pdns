@@ -28,6 +28,7 @@
 #include "dnsdist-configuration.hh"
 #include "logging.hh"
 #include "logr.hh"
+#include "mmdb.hh"
 
 #if defined(HAVE_YAML_CONFIGURATION)
 #include "base64.hh"
@@ -46,6 +47,7 @@
 #include "dnsdist-xsk.hh"
 #include "fstrm_logger.hh"
 #include "iputils.hh"
+#include "mmdb.hh"
 #include "remote_logger.hh"
 #include "remote_logger_pool.hh"
 #include "xsk.hh"
@@ -71,7 +73,7 @@ struct Context
 
 using XSKMap = std::vector<std::shared_ptr<XskSocket>>;
 
-using RegisteredTypes = std::variant<std::shared_ptr<DNSDistPacketCache>, std::shared_ptr<dnsdist::rust::settings::DNSSelector>, std::shared_ptr<dnsdist::rust::settings::DNSActionWrapper>, std::shared_ptr<dnsdist::rust::settings::DNSResponseActionWrapper>, std::shared_ptr<NetmaskGroup>, std::shared_ptr<KeyValueStore>, std::shared_ptr<KeyValueLookupKey>, std::shared_ptr<RemoteLoggerInterface>, std::shared_ptr<ServerPolicy>, std::shared_ptr<TimedIPSetRule>, std::shared_ptr<XSKMap>>;
+using RegisteredTypes = std::variant<std::shared_ptr<DNSDistPacketCache>, std::shared_ptr<dnsdist::rust::settings::DNSSelector>, std::shared_ptr<dnsdist::rust::settings::DNSActionWrapper>, std::shared_ptr<dnsdist::rust::settings::DNSResponseActionWrapper>, std::shared_ptr<NetmaskGroup>, std::shared_ptr<KeyValueStore>, std::shared_ptr<KeyValueLookupKey>, std::shared_ptr<RemoteLoggerInterface>, std::shared_ptr<ServerPolicy>, std::shared_ptr<TimedIPSetRule>, std::shared_ptr<XSKMap>, std::shared_ptr<MMDB>>;
 static LockGuarded<std::unordered_map<std::string, RegisteredTypes>> s_registeredTypesMap;
 static std::atomic<bool> s_inConfigCheckMode;
 static std::atomic<bool> s_inClientMode;
@@ -1394,7 +1396,7 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
 void addLuaBindingsForYAMLObjects([[maybe_unused]] LuaContext& luaCtx)
 {
 #if defined(HAVE_YAML_CONFIGURATION)
-  using ReturnValue = std::optional<boost::variant<std::shared_ptr<DNSDistPacketCache>, std::shared_ptr<DNSRule>, std::shared_ptr<DNSAction>, std::shared_ptr<DNSResponseAction>, std::shared_ptr<NetmaskGroup>, std::shared_ptr<KeyValueStore>, std::shared_ptr<KeyValueLookupKey>, std::shared_ptr<RemoteLoggerInterface>, std::shared_ptr<ServerPolicy>, std::shared_ptr<TimedIPSetRule>, std::shared_ptr<XSKMap>>>;
+  using ReturnValue = std::optional<boost::variant<std::shared_ptr<DNSDistPacketCache>, std::shared_ptr<DNSRule>, std::shared_ptr<DNSAction>, std::shared_ptr<DNSResponseAction>, std::shared_ptr<NetmaskGroup>, std::shared_ptr<KeyValueStore>, std::shared_ptr<KeyValueLookupKey>, std::shared_ptr<RemoteLoggerInterface>, std::shared_ptr<ServerPolicy>, std::shared_ptr<TimedIPSetRule>, std::shared_ptr<XSKMap>, std::shared_ptr<MMDB>>>;
 
   luaCtx.writeFunction("getObjectFromYAMLConfiguration", [](const std::string& name) -> ReturnValue {
     auto map = s_registeredTypesMap.lock();
@@ -1435,6 +1437,11 @@ void addLuaBindingsForYAMLObjects([[maybe_unused]] LuaContext& luaCtx)
     if (auto* ptr = std::get_if<std::shared_ptr<XSKMap>>(&item->second)) {
       return ReturnValue(*ptr);
     }
+#ifdef HAVE_MMDB
+    if (auto* ptr = std::get_if<std::shared_ptr<MMDB>>(&item->second)) {
+      return ReturnValue(*ptr);
+    }
+#endif
 
     return std::nullopt;
   });
@@ -1698,7 +1705,7 @@ std::shared_ptr<DNSSelector> getNetmaskGroupSelector(const NetmaskGroupSelectorC
 
 std::shared_ptr<DNSActionWrapper> getKeyValueStoreLookupAction([[maybe_unused]] const KeyValueStoreLookupActionConfiguration& config)
 {
-#if defined(HAVE_LMDB) || defined(HAVE_CDB)
+#if defined(HAVE_LMDB) || defined(HAVE_CDB) || defined(HAVE_MMDB)
   auto kvs = dnsdist::configuration::yaml::getRegisteredTypeByName<KeyValueStore>(std::string(config.kvs_name));
   if (!kvs && !(dnsdist::configuration::yaml::s_inClientMode || dnsdist::configuration::yaml::s_inConfigCheckMode)) {
     throw std::runtime_error("Unable to find the key-value store named '" + std::string(config.kvs_name) + "'");
@@ -1716,7 +1723,7 @@ std::shared_ptr<DNSActionWrapper> getKeyValueStoreLookupAction([[maybe_unused]] 
 
 std::shared_ptr<DNSActionWrapper> getKeyValueStoreRangeLookupAction([[maybe_unused]] const KeyValueStoreRangeLookupActionConfiguration& config)
 {
-#if defined(HAVE_LMDB) || defined(HAVE_CDB)
+#if defined(HAVE_LMDB) || defined(HAVE_CDB) || defined(HAVE_MMDB)
   auto kvs = dnsdist::configuration::yaml::getRegisteredTypeByName<KeyValueStore>(std::string(config.kvs_name));
   if (!kvs && !(dnsdist::configuration::yaml::s_inClientMode || dnsdist::configuration::yaml::s_inConfigCheckMode)) {
     throw std::runtime_error("Unable to find the key-value store named '" + std::string(config.kvs_name) + "'");
@@ -1734,7 +1741,7 @@ std::shared_ptr<DNSActionWrapper> getKeyValueStoreRangeLookupAction([[maybe_unus
 
 std::shared_ptr<DNSSelector> getKeyValueStoreLookupSelector([[maybe_unused]] const KeyValueStoreLookupSelectorConfiguration& config)
 {
-#if defined(HAVE_LMDB) || defined(HAVE_CDB)
+#if defined(HAVE_LMDB) || defined(HAVE_CDB) || defined(HAVE_MMDB)
   auto kvs = dnsdist::configuration::yaml::getRegisteredTypeByName<KeyValueStore>(std::string(config.kvs_name));
   if (!kvs && !(dnsdist::configuration::yaml::s_inClientMode || dnsdist::configuration::yaml::s_inConfigCheckMode)) {
     throw std::runtime_error("Unable to find the key-value store named '" + std::string(config.kvs_name) + "'");
@@ -1752,7 +1759,7 @@ std::shared_ptr<DNSSelector> getKeyValueStoreLookupSelector([[maybe_unused]] con
 
 std::shared_ptr<DNSSelector> getKeyValueStoreRangeLookupSelector([[maybe_unused]] const KeyValueStoreRangeLookupSelectorConfiguration& config)
 {
-#if defined(HAVE_LMDB) || defined(HAVE_CDB)
+#if defined(HAVE_LMDB) || defined(HAVE_CDB) || defined(HAVE_MMDB)
   auto kvs = dnsdist::configuration::yaml::getRegisteredTypeByName<KeyValueStore>(std::string(config.kvs_name));
   if (!kvs && !(dnsdist::configuration::yaml::s_inClientMode || dnsdist::configuration::yaml::s_inConfigCheckMode)) {
     throw std::runtime_error("Unable to find the key-value store named '" + std::string(config.kvs_name) + "'");
@@ -2005,7 +2012,7 @@ void registerDnstapLogger([[maybe_unused]] const DnstapLoggerConfiguration& conf
 
 void registerKVSObjects([[maybe_unused]] const KeyValueStoresConfiguration& config)
 {
-#if defined(HAVE_LMDB) || defined(HAVE_CDB)
+#if defined(HAVE_LMDB) || defined(HAVE_CDB) || defined(HAVE_MMDB)
   bool createObjects = !dnsdist::configuration::yaml::s_inClientMode && !dnsdist::configuration::yaml::s_inConfigCheckMode;
 #if defined(HAVE_LMDB)
   for (const auto& lmdb : config.lmdb) {
@@ -2019,6 +2026,29 @@ void registerKVSObjects([[maybe_unused]] const KeyValueStoresConfiguration& conf
     dnsdist::configuration::yaml::registerType<KeyValueStore>(store, cdb.name);
   }
 #endif /* defined(HAVE_CDB) */
+#if defined(HAVE_MMDB)
+  for (const auto& mmdb : config.mmdb) {
+    auto definedMmdb = dnsdist::configuration::yaml::getRegisteredTypeByName<MMDB>(mmdb.mmdb);
+    if (!definedMmdb) {
+      throw std::runtime_error("Unable to find a MMDB named " + std::string(mmdb.mmdb));
+    }
+    LuaTypeOrArrayOf<std::string> queryParams;
+    if (!mmdb.query_param.empty()) {
+      queryParams = std::string(mmdb.query_param);
+    }
+    else {
+      std::vector<std::pair<int, std::string>> params;
+      params.reserve(mmdb.query_params.size());
+      int idx = 1;
+      for (const auto& param : mmdb.query_params) {
+        params.emplace_back(idx++, param);
+      }
+      queryParams = params;
+    }
+    auto store = createObjects ? std::shared_ptr<KeyValueStore>(std::make_shared<MMDBKVStore>(definedMmdb, queryParams)) : std::shared_ptr<KeyValueStore>();
+    dnsdist::configuration::yaml::registerType<KeyValueStore>(store, mmdb.name);
+  }
+#endif /* defined(HAVE_MMDB) */
   for (const auto& key : config.lookup_keys.source_ip_keys) {
     auto lookup = createObjects ? std::shared_ptr<KeyValueLookupKey>(std::make_shared<KeyValueLookupKeySourceIP>(key.v4_mask, key.v6_mask, key.include_port)) : std::shared_ptr<KeyValueLookupKey>();
     dnsdist::configuration::yaml::registerType<KeyValueLookupKey>(lookup, key.name);
@@ -2035,7 +2065,16 @@ void registerKVSObjects([[maybe_unused]] const KeyValueStoresConfiguration& conf
     auto lookup = createObjects ? std::shared_ptr<KeyValueLookupKey>(std::make_shared<KeyValueLookupKeyTag>(std::string(key.tag))) : std::shared_ptr<KeyValueLookupKey>();
     dnsdist::configuration::yaml::registerType<KeyValueLookupKey>(lookup, key.name);
   }
-#endif /* defined(HAVE_LMDB) || defined(HAVE_CDB) */
+#endif /* defined(HAVE_LMDB) || defined(HAVE_CDB) || defined(HAVE_MMDB) */
+}
+
+void registerMMDBObjects([[maybe_unused]] const ::rust::Vec<MmdbConfiguration>& config)
+{
+#ifdef HAVE_MMDB
+  for (const auto& mmdb : config) {
+    dnsdist::configuration::yaml::registerType<MMDB>(std::make_shared<MMDB>(std::string(mmdb.file_name), mmdb.mmap ? "mmap" : ""), mmdb.name);
+  }
+#endif
 }
 
 void registerNMGObjects(const ::rust::Vec<NetmaskGroupConfiguration>& nmgs)

@@ -73,6 +73,10 @@ global:
       type: "MetricsConfiguration"
       default: true
       description: "Metrics-related settings"
+    - name: "mmdbs"
+      type: "Vec<MmdbConfiguration>"
+      default: true
+      description: "List of MMDB databases"
     - name: "netmask_groups"
       type: "Vec<NetmaskGroupConfiguration>"
       default: true
@@ -310,6 +314,38 @@ cdb_kv_store:
       type: "u32"
       description: "The delay in seconds between two checks of the database modification time. 0 means disabled"
 
+mmdb_kv_store:
+  description: "MMDB-based key-value store"
+  parameters:
+    - name: "name"
+      type: "String"
+      description: "The name of this object"
+    - name: "mmdb"
+      type: "String"
+      description: "Name of an existing MMDB database"
+    - name: "query_param"
+      type: "String"
+      default: ""
+      description: "Key to look up in the MMDB database associated with an IP - top level only."
+    - name: "query_params"
+      type: "Vec<String>"
+      default: true
+      description: "List of nested keys to look up in the MMDB database associated with an IP"
+
+mmdb:
+  description: "MMDB database"
+  parameters:
+    - name: "name"
+      type: "String"
+      description: "The name of this object"
+    - name: "file_name"
+      type: "String"
+      description: "The path to the MMDB file"
+    - name: "mmap"
+      type: "bool"
+      default: "false"
+      description: "Whether to open the MMDB in mmap mode"
+
 kvs_lookup_key_source_ip:
   description: "Lookup key that can be used with :ref:`yaml-settings-KeyValueStoreLookupAction` or :ref:`yaml-settings-KeyValueStoreLookupSelector`, will return the source IP of the client in network byte-order"
   parameters:
@@ -404,6 +440,10 @@ key_value_stores:
       type: "Vec<CdbKvStoreConfiguration>"
       default: true
       description: "List of CDB-based key-value stores"
+    - name: "mmdb"
+      type: "Vec<MmdbKvStoreConfiguration>"
+      default: true
+      description: "List of MMDB-based key-value stores"
     - name: "lookup_keys"
       type: "KvsLookupKeysConfiguration"
       default: true

@@ -20,3 +20,4 @@ aioquic
 async_timeout
 opentelemetry-proto>=1.7,<2
 setuptools<82
+mmdb_writer>=0.2.6

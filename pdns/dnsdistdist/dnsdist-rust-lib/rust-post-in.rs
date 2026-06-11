@@ -70,6 +70,7 @@ fn get_global_configuration_from_serde(
         ebpf: serde.ebpf,
         edns_client_subnet: serde.edns_client_subnet,
         general: serde.general,
+        mmdbs: serde.mmdbs,
         key_value_stores: serde.key_value_stores,
         load_balancing_policies: serde.load_balancing_policies,
         logging: serde.logging,
@@ -91,6 +92,8 @@ fn get_global_configuration_from_serde(
     };
     // this needs to be done before the rules so that they can refer to the loggers
     register_remote_loggers(&config.remote_logging);
+    // this needs to be done before the KVS so they can refer to the DBs
+    dnsdistsettings::registerMMDBObjects(&config.mmdbs);
     // this needs to be done before the rules so that they can refer to the KVS objects
     dnsdistsettings::registerKVSObjects(&config.key_value_stores);
     // this needs to be done before the rules so that they can refer to the NMG objects

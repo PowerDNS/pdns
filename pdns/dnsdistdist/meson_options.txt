@@ -41,3 +41,4 @@ option('yaml', type: 'feature', value: 'disabled', description: 'Enable YAML con
 option('man-pages', type: 'boolean', value: true, description: 'Generate man pages')
 option('clang-coverage-format', type: 'boolean', value: false, description: 'Whether to generate coverage data in clang format')
 option('benchmark', type: 'boolean', value: false, description: 'Whether to run microbenchmarks')
+option('mmdb', type: 'feature', value: 'disabled', description: 'MMDB key-value store support')

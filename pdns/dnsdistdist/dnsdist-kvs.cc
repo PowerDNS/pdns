@@ -20,10 +20,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include "dnsdist-kvs.hh"
-#include "dolog.hh"
-
+#include <climits>
 #include <sys/stat.h>
+
+#include "dnsdist-kvs.hh"
+#include "dnsdist-lua-types.hh"
+#include "dolog.hh"
 
 std::vector<std::string> KeyValueLookupKeySourceIP::getKeys(const ComboAddress& addr)
 {
@@ -302,3 +304,83 @@ bool CDBKVStore::keyExists(const std::string& key)
 }
 
 #endif /* HAVE_CDB */
+
+#ifdef HAVE_MMDB
+
+#include "ext/json11/json11.hpp"
+
+std::shared_ptr<const Logr::Logger> MMDBKVStore::getLogger() const
+{
+  return dnsdist::logging::getTopLogger("mmdb-key-value-store")->withValues("path", Logging::Loggable(d_mmdb->file_name()));
+}
+
+json11::Json MMDBKVStore::parseAny(const LuaAny& any)
+{
+  if (any.type() == typeid(std::string)) {
+    return boost::get<std::string>(any);
+  }
+  if (any.type() == typeid(int64_t)) {
+    auto val = boost::get<int64_t>(any);
+    if (val > static_cast<int64_t>(INT_MAX) || val < static_cast<int64_t>(INT_MIN)) {
+      VERBOSESLOG(warnlog("Error while retrieving a value from MMDB database: integer overflow. Returning null."),
+                  getLogger()->info(Logr::Warning, "Error while retrieving a value from MMDB database: integer overflow. Returning null."));
+      return {};
+    }
+    return static_cast<int>(val);
+  }
+  if (any.type() == typeid(uint64_t)) {
+    auto val = boost::get<uint64_t>(any);
+    if (val > static_cast<uint64_t>(INT_MAX)) {
+      VERBOSESLOG(warnlog("Error while retrieving a value from MMDB database: integer overflow. Returning null."),
+                  getLogger()->info(Logr::Warning, "Error while retrieving a value from MMDB database: integer overflow. Returning null."));
+      return {};
+    }
+    return static_cast<int>(val);
+  }
+  if (any.type() == typeid(double)) {
+    return boost::get<double>(any);
+  }
+  if (any.type() == typeid(bool)) {
+    return boost::get<bool>(any);
+  }
+  if (any.type() == typeid(LuaArray<LuaAny>)) {
+    auto luaArray = boost::get<LuaArray<LuaAny>>(any);
+    std::vector<json11::Json> array;
+    array.reserve(luaArray.size());
+    for (auto& keyValue : luaArray) {
+      array.emplace_back(parseAny(keyValue.second));
+    }
+    return array;
+  }
+  if (any.type() == typeid(LuaAssociativeTable<LuaAny>)) {
+    auto luaTable = boost::get<LuaAssociativeTable<LuaAny>>(any);
+    std::unordered_map<std::string, json11::Json> map(luaTable.size());
+    for (auto& [key, value] : luaTable) {
+      map.emplace(key, parseAny(value));
+    }
+    return map;
+  }
+  return {};
+}
+
+bool MMDBKVStore::keyExists(const std::string& key)
+{
+  auto addr = makeComboAddressFromRaw(key.size() == sizeof(in_addr) ? 4 : 6, key);
+  return d_mmdb->exists(addr);
+}
+bool MMDBKVStore::getValue(const std::string& key, std::string& value)
+{
+  auto addr = makeComboAddressFromRaw(key.size() == sizeof(in_addr) ? 4 : 6, key);
+  LuaAny ret;
+  bool result = d_mmdb->query(ret, d_queryParams, addr);
+  if (ret.type() == typeid(std::string)) {
+    value = boost::get<std::string>(ret);
+    return result;
+  }
+
+  json11::Json json = parseAny(ret);
+  json.dump(value);
+
+  return result;
+}
+#endif // HAVE_MMDB

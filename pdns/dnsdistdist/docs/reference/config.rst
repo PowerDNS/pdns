@@ -2539,6 +2539,40 @@ LuaRingEntry
 
 .. _timespec:
 
+MMDB
+~~~~
+
+.. class:: MMDB
+
+  .. versionadded:: 2.2.0
+
+  .. method:: query(queryParams, ip)
+
+     Queries the database for the specific IP, taking a specific key from the object based on the provided query params.
+
+     :param str-or-list queryParams: Key or list of keys to fetch from the retrieved object from the MMDB database. Use empty list to retrieve the whole object.
+     :param ComboAddress ip: IP to look for in the DB.
+
+  .. method:: exists(ip)
+
+     Checks if the specified IP exists in the database.
+
+     :param ComboAddress ip: IP to look for in the DB.
+
+.. function:: openMMDB(name [, options])
+
+  .. versionadded:: 2.2.0
+
+   Opens a MMDB database with the provided path.
+
+   :param string name: Path to the MMDB database file.
+   :param table options: A table with key: value pairs with options.
+   :returns:  The :class:`MMDB` object
+
+   Options:
+
+   * ``mmap``: bool - If set to true, opens the database in memory-map mode.
+
 timespec
 ~~~~~~~~
 

@@ -32,6 +32,7 @@
 #include "credentials.hh"
 #include "dnsdist-actions.hh"
 #include "dnsdist-carbon.hh"
+#include "dnsdist-lua-types.hh"
 #include "dnsdist-query-count.hh"
 #include "dnsdist-rule-chains.hh"
 #include "dnsdist-server-pool.hh"

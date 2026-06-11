@@ -30,6 +30,7 @@
 #include "dnsdist-configuration.hh"
 #include "dnsdist-frontend.hh"
 #include "dnsdist-metrics.hh"
+#include "dnsdist-lua-types.hh"
 
 #ifndef DISABLE_CARBON
 #include "dolog.hh"

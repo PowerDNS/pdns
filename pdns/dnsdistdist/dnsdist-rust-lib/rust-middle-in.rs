@@ -15,6 +15,7 @@
         fn registerProtobufLogger(config: &ProtobufLoggerConfiguration);
         fn registerDnstapLogger(config: &DnstapLoggerConfiguration);
         fn registerKVSObjects(config: &KeyValueStoresConfiguration);
+        fn registerMMDBObjects(config: &Vec<MmdbConfiguration>);
         fn registerNMGObjects(nmgs: &Vec<NetmaskGroupConfiguration>);
         fn registerTimedIPSetObjects(sets: &Vec<TimedIpSetConfiguration>);
     }
