@@ -34,7 +34,7 @@ class Ewma
 public:
   Ewma();
 
-  void submit(int val);
+  void submit(unsigned long val);
   [[nodiscard]] double get10() const;
   [[nodiscard]] double get5() const;
   [[nodiscard]] double get1() const;
@@ -42,7 +42,7 @@ public:
 
 private:
   DTime dt;
-  int d_last{};
+  unsigned long d_last{};
   double d_10{}, d_5{}, d_1{}, d_max{};
 };
 

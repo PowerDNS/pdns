@@ -59,9 +59,9 @@ using json11::Json;
 
 Ewma::Ewma() { dt.set(); }
 
-void Ewma::submit(int val)
+void Ewma::submit(unsigned long val)
 {
-  int rate = val - d_last;
+  unsigned long rate = val - d_last;
   double difft = dt.udiff() / 1000000.0;
   dt.set();
 
@@ -140,11 +140,11 @@ void AuthWebServer::statThread(Logr::log_t slog, StatBag& stats)
   try {
     setThreadName("pdns/statHelper");
     for (;;) {
-      d_queries.submit(static_cast<int>(stats.read("udp-queries")));
-      d_cachehits.submit(static_cast<int>(stats.read("packetcache-hit")));
-      d_cachemisses.submit(static_cast<int>(stats.read("packetcache-miss")));
-      d_qcachehits.submit(static_cast<int>(stats.read("query-cache-hit")));
-      d_qcachemisses.submit(static_cast<int>(stats.read("query-cache-miss")));
+      d_queries.submit(stats.read("udp-queries"));
+      d_cachehits.submit(stats.read("packetcache-hit"));
+      d_cachemisses.submit(stats.read("packetcache-miss"));
+      d_qcachehits.submit(stats.read("query-cache-hit"));
+      d_qcachemisses.submit(stats.read("query-cache-miss"));
       Utility::sleep(1);
     }
   }
