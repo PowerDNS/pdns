@@ -43,9 +43,6 @@ COPY pdns/ pdns/
 COPY ext/ ext/
 COPY .git/ .git/
 
-ARG MAKEFLAGS="-j2"
-ARG DOCKER_FAKE_RELEASE="NO"
-
 # build and install (TODO: before we hit this line, rearrange /source structure if we are coming from a tarball)
 WORKDIR /source/pdns/recursordist
 
@@ -58,6 +55,8 @@ RUN LUAVER=$([ -z "${NO_LUA_JIT##*$(dpkg --print-architecture)*}" ] && echo 'lua
     apt-get install -y --no-install-recommends lib${LUAVER}-*dev && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
+ARG DOCKER_FAKE_RELEASE="NO"
+ARG MAKEFLAGS="-j2"
 RUN mkdir /build && \
     BUILDDIR=$(mktemp -d) && \
     IS_RELEASE="${DOCKER_FAKE_RELEASE}" \

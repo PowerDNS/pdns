@@ -34,12 +34,10 @@ COPY build-aux/ build-aux/
 COPY m4/ m4/
 COPY ext/ ext/
 COPY .git/ .git/
-ADD configure.ac Makefile.am .
+COPY configure.ac Makefile.am .
 COPY builder/helpers/set-configure-ac-version.sh /usr/local/bin
 
-ARG MAKEFLAGS="-j2"
 ARG DOCKER_FAKE_RELEASE="NO"
-
 RUN if [ "${DOCKER_FAKE_RELEASE}" = "YES" ]; then \
       BUILDER_VERSION="$(IS_RELEASE=YES BUILDER_MODULES=authoritative ./builder-support/gen-version | sed 's/\([0-9]\+\.[0-9]\+\.[0-9]\+\(\(alpha|beta|rc\)\d\+\)\)?.*/\1/')" set-configure-ac-version.sh;\
     fi && \
@@ -48,6 +46,7 @@ RUN if [ "${DOCKER_FAKE_RELEASE}" = "YES" ]; then \
 # Lua install merged with build because Make seems to need the Lua installation name
 # TODO: simplify repeated -C calls with SUBDIRS?
 ARG NO_LUA_JIT="s390x arm64"
+ARG MAKEFLAGS="-j2"
 RUN LUAVER=$([ -z "${NO_LUA_JIT##*$(dpkg --print-architecture)*}" ] && echo 'lua5.3' || echo 'luajit') && \
     apt-get install -y --no-install-recommends lib${LUAVER}-*dev && \
     apt-get clean && rm -rf /var/lib/apt/lists/* && \
