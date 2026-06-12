@@ -949,7 +949,7 @@ static void mainthread()
     Utility::dropGroupPrivs(newuid, newgid);
   }
 
-  AuthWebServer webserver;
+  AuthWebServer webserver(S);
   Utility::dropUserPrivs(newuid);
 
   if (::arg().mustDo("resolver")) {
