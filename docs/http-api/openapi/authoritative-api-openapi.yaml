@@ -1,6 +1,6 @@
 openapi: 3.1.0
 info:
-  version: "0.0.18"
+  version: "0.0.19"
   title: PowerDNS Authoritative HTTP API
   license:
     name: MIT
@@ -627,14 +627,20 @@ paths:
           schema:
             type: boolean
             default: true
+        - name: record_count
+          in: query
+          description: "“true” or “false” (default), whether to include a count of the records returned in “rrsets” in the response Zone object."
+          schema:
+            type: boolean
+            default: false
         - name: rrset_name
           in: query
-          description: Limit output to RRsets for this name.
+          description: Limit output and/or count to RRsets for this name.
           schema:
             type: string
         - name: rrset_type
           in: query
-          description: Limit output to the RRset of this type. Can only be used together with rrset_name.
+          description: Limit output and/or count to the RRset of this type. Can only be used together with rrset_name.
           schema:
             type: string
         - name: include_disabled
@@ -642,6 +648,7 @@ paths:
           description: "“true” (default) or “false”, whether to include disabled RRsets in the response."
           schema:
             type: boolean
+            default: true
       responses:
         "200":
           description: A Zone
@@ -1047,6 +1054,9 @@ components:
             - "Producer"
             - "Consumer"
           description: "Zone kind, one of “Native”, “Master”, “Slave”, “Producer”, “Consumer”"
+        record_count:
+          type: integer
+          description: "The number of records in this zone (for zones/{zone_id} endpoint only; omitted during GET on the .../zones list endpoint)"
         rrsets:
           type: array
           items:

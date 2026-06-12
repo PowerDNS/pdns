@@ -3221,6 +3221,34 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         # check our record has appeared
         self.assertEqual(get_rrset(data, rrset["name"], "A")["records"], rrset["records"])
 
+    def test_record_count(self):
+        name, payload, zone = self.create_zone()
+        rrsets = []
+        count = 100
+        for record in range(count):
+            rrset = {
+                "changetype": "replace",
+                "name": "rec" + str(record) + "." + name,
+                "type": "A",
+                "ttl": 3600,
+                "records": [{"content": "192.168.0." + str(record), "disabled": False}],
+            }
+            rrsets.append(rrset)
+        payload = {"rrsets": rrsets}
+        r = self.session.patch(
+            self.url("/api/v1/servers/localhost/zones/" + name),
+            data=json.dumps(payload),
+            headers={"content-type": "application/json"},
+        )
+        self.assert_success(r)
+        # ask for a record count, without records
+        data = self.get_zone(name, rrsets="false", record_count="true")
+        self.assertEqual(data["record_count"], count + 3)  # SOA + 2 NS
+        self.assertEqual(data.get("rrsets"), None)
+        # ask for a filtered record count
+        data = self.get_zone(name, rrset_name="rec42." + name)
+        self.assertEqual(data["record_count"], 1)
+
 
 @unittest.skipIf(not is_auth(), "Not applicable")
 class AuthRootZone(ZonesApiTestCase, AuthZonesHelperMixin):
