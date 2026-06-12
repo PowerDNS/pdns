@@ -51,8 +51,12 @@ struct ExportTracePartialSuccess
   std::string error_message; // = 2
 
   void encode(protozero::pbf_writer& writer) const;
-  static ExportTracePartialSuccess decode(protozero::pbf_reader& reader) {
-    ExportTracePartialSuccess ret;
+  static ExportTracePartialSuccess decode(protozero::pbf_reader& reader)
+  {
+    ExportTracePartialSuccess ret{
+      .rejected_spans = 0,
+      .error_message = "",
+    };
     while (reader.next()) {
       switch (reader.tag()) {
       case 1:

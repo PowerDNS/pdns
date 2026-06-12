@@ -1067,16 +1067,23 @@ static void handleLoggingConfiguration(const Context& context, const dnsdist::ru
     for (const auto& internal_trace_config : settings.open_telemetry_tracing.internal_tracing) {
       dnsdist::configuration::updateRuntimeConfiguration([context, internal_trace_config](dnsdist::configuration::RuntimeConfiguration& config) {
         if (internal_trace_config.kind == "maintenance") {
+          config.d_opentelemetryMaintenanceInterval = internal_trace_config.sample_rate == 0 ? 60 : internal_trace_config.sample_rate;
           std::vector<std::shared_ptr<RemoteLoggerInterface>> loggers;
           for (const auto& logger_name : internal_trace_config.remote_loggers) {
             auto logger = dnsdist::configuration::yaml::getRegisteredTypeByName<RemoteLoggerInterface>(std::string(logger_name));
-            if (!logger && !(dnsdist::configuration::yaml::s_inClientMode || dnsdist::configuration::yaml::s_inConfigCheckMode)) {
-              throw std::runtime_error("Unable to find the protobuf logger named '" + std::string(logger_name) + "'");
+            if (!logger) {
+              if (!(dnsdist::configuration::yaml::s_inClientMode || dnsdist::configuration::yaml::s_inConfigCheckMode)) {
+                throw std::runtime_error("Unable to find the remote logger named '" + std::string(logger_name) + "'");
+              }
+              continue;
+            }
+            RemoteLoggerInterface& remoteLoggerRef = *logger;
+            if (typeid(remoteLoggerRef) != typeid(RemoteLogger) && typeid(remoteLoggerRef) != typeid(OTLPLogger)) {
+              throw std::runtime_error("The remote logger '" + std::string(logger_name) + "' is not a Protobuf or OTLP logger and can not be used for maintenance traces");
             }
             loggers.push_back(std::move(logger));
           }
           config.d_maintenanceRemoteLoggers = std::move(loggers);
-          config.d_opentelemetryMaintenanceInterval = internal_trace_config.sample_rate == 0 ? 60 : internal_trace_config.sample_rate;
         }
       });
     }

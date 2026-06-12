@@ -19,19 +19,27 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include <exception>
 #include <memory>
 #include <stdexcept>
+#include <thread>
 
 #include "otlp_logger.hh"
+#include "dnsdist-logging.hh"
+#include "logging.hh"
+#include "dolog.hh"
+#include "logr.hh"
+#include "misc.hh"
 #include "remote_logger.hh"
+#include "threadname.hh"
 
 #if !defined(DISABLE_PROTOBUF) && defined(HAVE_LIBCURL)
 #include "minicurl.hh"
 #include "protozero-trace.hh"
 #include "protozero-otlp.hh"
 
-OTLPLogger::OTLPLogger(std::string address) :
-  d_address(std::move(address))
+OTLPLogger::OTLPLogger(std::string address, const size_t interval, const size_t bufsize) :
+  d_address(std::move(address)), d_interval(interval)
 {
   LoggerType loggerType;
   if (d_address.find("http://") == 0 || d_address.find("https://") == 0) {
@@ -47,28 +55,35 @@ OTLPLogger::OTLPLogger(std::string address) :
   d_type = loggerType;
 
   switch (d_type) {
-    case LoggerType::HTTP:
-      d_httpConn = std::make_unique<MiniCurl>("dnsdist/" + std::string(PACKAGE_VERSION));
-      break;
-    case LoggerType::gRPC:
-      throw std::runtime_error("gRPC support is not implemented");
+  case LoggerType::HTTP:
+    d_miniCurl = std::make_unique<MiniCurl>("dnsdist/" + std::string(PACKAGE_VERSION));
+    break;
+  case LoggerType::gRPC:
+    throw std::runtime_error("gRPC support is not implemented in the OTLP logger");
   }
+
+  d_logger = dnsdist::logging::getTopLogger("OTLPLogger");
+  d_traces.lock()->reserve(bufsize);
+  d_thread = std::thread(&OTLPLogger::senderThread, this);
 }
 
-RemoteLoggerInterface::Result OTLPLogger::queueData(const pdns::trace::TracesData& data)
+// If we get some nice data, queue it
+RemoteLoggerInterface::Result OTLPLogger::queueData(const TracesData& data)
 {
-  pdns::trace::ExportTraceServiceRequest req = {
-    .resource_spans = data.resource_spans
-  };
-  std::string buf;
-  protozero::pbf_writer writer(buf);
-  req.encode(writer);
-  return queueData(buf);
+  auto lockedTraces = d_traces.lock();
+
+  if (lockedTraces->size() >= lockedTraces->capacity()) {
+    d_queueFullDrops++;
+    return RemoteLoggerInterface::Result::PipeFull;
+  }
+
+  lockedTraces->push_back(data);
+  return RemoteLoggerInterface::Result::Queued;
 }
 
+// When we get bytes (or whatever), send as-is
 RemoteLoggerInterface::Result OTLPLogger::queueData(const std::string& data)
 {
-  // TODO: Proper queuing, batching, and retries
   switch (d_type) {
   case LoggerType::HTTP:
     return queueHttpData(data);
@@ -80,13 +95,82 @@ RemoteLoggerInterface::Result OTLPLogger::queueData(const std::string& data)
 
 RemoteLoggerInterface::Result OTLPLogger::queueHttpData(const std::string& data)
 {
-  auto response = d_httpConn->postURL(d_address, data, d_httpHeaders);
-  std::cout<<response<<std::endl;
+  auto response = d_miniCurl->postURL(d_address, data, d_httpHeaders);
   protozero::pbf_reader reader(response);
   auto exportTraceServiceResponse = pdns::trace::ExportTraceServiceResponse::decode(reader);
   if (exportTraceServiceResponse.partial_success.rejected_spans == 0) {
     return RemoteLoggerInterface::Result::Queued;
   }
   return RemoteLoggerInterface::Result::OtherError;
+}
+
+// Returns the number of traces sent, 0 on empty, -1 on error
+// TODO: make it do size_t and throw otherwise
+int OTLPLogger::sendBatch()
+{
+  auto lockedTraces = d_traces.lock();
+  if (lockedTraces->empty()) {
+    return 0;
+  }
+
+  pdns::trace::ExportTraceServiceRequest etsr;
+
+  // TODO: find a *sane* number of elements to send at one time
+  auto sentNum = lockedTraces->size() > 100 ? 100 : lockedTraces->size();
+  etsr.resource_spans.reserve(sentNum);
+
+  auto endIt = lockedTraces->begin() + sentNum;
+  auto it = lockedTraces->begin();
+  while (it != endIt) {
+    etsr.resource_spans.insert(etsr.resource_spans.end(), it->resource_spans.begin(), it->resource_spans.end());
+    it++;
+  }
+
+  std::string buf;
+  protozero::pbf_writer writer{buf};
+  etsr.encode(writer);
+
+  switch (d_type) {
+  case LoggerType::HTTP:
+    if (queueHttpData(buf) == RemoteLoggerInterface::Result::Queued) {
+      d_framesSent += sentNum;
+      lockedTraces->erase(lockedTraces->begin(), endIt);
+      d_failedSends = 0;
+      return sentNum;
+    }
+    d_failedSends++;
+    if (d_failedSends >= 5) {
+      lockedTraces->erase(lockedTraces->begin(), endIt);
+      // Not really a queue full, but the best we got
+      d_queueFullDrops += sentNum;
+      d_failedSends = 0;
+    }
+    return -1;
+  case LoggerType::gRPC:
+    // Should never get here
+    throw std::runtime_error("gRPC support is not implemented");
+  }
+}
+
+void OTLPLogger::senderThread()
+{
+  // TODO: Support OTLP for recursor and auth
+  setThreadName("dnsdist/otlplog");
+
+  for (;;) {
+    try {
+      sendBatch();
+    }
+    catch (const std::exception& exp) {
+      SLOG(
+        errlog("Unable to send traces to OTLP receiver %s: %s", d_address, exp.what()),
+        d_logger->error(Logr::Error, exp.what(), "Unable to send traces to OTLP receiver", "server.address", Logging::Loggable{d_address}, "failure-count", Logging::Loggable{d_failedSends}));
+    }
+    if (d_exiting) {
+      while (sendBatch() != 0) {}
+      return;
+    }
+    std::this_thread::sleep_for(std::chrono::seconds(d_interval));
+  }
 }
 #endif /* !defined(DISABLE_PROTOBUF) && defined(HAVE_LIBCURL) */

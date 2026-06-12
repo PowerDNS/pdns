@@ -31,6 +31,7 @@
 #ifndef DISABLE_PROTOBUF
 #include "protozero.hh"
 #include "protozero-trace.hh"
+#include "otlp_logger.hh"
 #endif
 
 namespace pdns::trace::dnsdist
@@ -437,12 +438,10 @@ void sendTracesToRemoteLoggers(const std::shared_ptr<Tracer>& tracer, [[maybe_un
 #ifndef DISABLE_PROTOBUF
   static thread_local string pbBuf;
   pbBuf.clear();
-  static thread_local string otlpBuf;
-  otlpBuf.clear();
 
   bool haveNonOTLPLogger = false;
   for (const auto& remotelogger : remoteloggers) {
-    haveNonOTLPLogger = haveNonOTLPLogger || remotelogger->name() != "OTLP";
+    haveNonOTLPLogger = haveNonOTLPLogger || std::dynamic_pointer_cast<OTLPLogger>(remotelogger) == nullptr;
     if (haveNonOTLPLogger) {
       break;
     }
@@ -456,10 +455,11 @@ void sendTracesToRemoteLoggers(const std::shared_ptr<Tracer>& tracer, [[maybe_un
   }
 
   for (const auto& remotelogger : remoteloggers) {
-    if (remotelogger->name() != "OTLP") {
+    if (std::dynamic_pointer_cast<OTLPLogger>(remotelogger) != nullptr) {
+      std::dynamic_pointer_cast<OTLPLogger>(remotelogger)->queueData(tracer->getTracesData());
+    }
+    else {
       remotelogger->queueData(pbBuf);
-    } else {
-      remotelogger->queueData(tracer->getOTProtobuf());
     }
   }
 #endif // DISABLE_PROTOBUF

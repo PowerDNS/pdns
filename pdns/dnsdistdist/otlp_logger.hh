@@ -21,7 +21,7 @@
  */
 #pragma once
 #include "remote_logger.hh"
-#include <memory>
+#include "dnsdist-opentelemetry.hh"
 
 #if !defined(DISABLE_PROTOBUF) && defined(HAVE_LIBCURL)
 #include <memory>
@@ -37,15 +37,19 @@ public:
     gRPC,
   };
 
-  OTLPLogger(std::string address);
+  OTLPLogger(std::string address, const size_t interval = 5, const size_t bufsize = 5000);
   OTLPLogger(const OTLPLogger&) = delete;
   OTLPLogger(OTLPLogger&&) = delete;
   OTLPLogger& operator=(const OTLPLogger&) = delete;
   OTLPLogger& operator=(OTLPLogger&&) = delete;
-  ~OTLPLogger() override {};
+  ~OTLPLogger() override
+  {
+    d_exiting = true;
+    d_thread.join();
+  };
 
   [[nodiscard]] RemoteLoggerInterface::Result queueData(const std::string& data) override;
-  [[nodiscard]] RemoteLoggerInterface::Result queueData(const pdns::trace::TracesData& data);
+  RemoteLoggerInterface::Result queueData(const TracesData& data);
 
   [[nodiscard]] std::string address() const override
   {
@@ -64,19 +68,36 @@ public:
 
   [[nodiscard]] RemoteLoggerInterface::Stats getStats() override
   {
-    return Stats{.d_queued = 0,
-                 .d_pipeFull = 0,
-                 .d_tooLarge = 0,
-                 .d_otherError = 0};
+    return Stats{.d_queued = d_framesSent,
+                 .d_pipeFull = d_queueFullDrops,
+                 .d_tooLarge = d_tooLargeCount,
+                 .d_otherError = d_permanentFailures};
   }
 
 private:
   LoggerType d_type;
   std::string d_address;
+  size_t d_interval;
 
-  std::unique_ptr<MiniCurl> d_httpConn{nullptr};
+  std::unique_ptr<MiniCurl> d_miniCurl{nullptr};
   MiniCurl::MiniCurlHeaders d_httpHeaders{{"Content-Type", "application/x-protobuf"}};
+
   [[nodiscard]] RemoteLoggerInterface::Result queueHttpData(const std::string& data);
+  void senderThread();
+  int sendBatch();
+
+  LockGuarded<std::vector<TracesData>> d_traces;
+  size_t d_failedSends{0};
+
+  std::thread d_thread;
+  std::shared_ptr<const Logr::Logger> d_logger{nullptr};
+
+  std::atomic<uint64_t> d_framesSent{0};
+  std::atomic<uint64_t> d_queueFullDrops{0};
+  std::atomic<uint64_t> d_tooLargeCount{0};
+  std::atomic<uint64_t> d_permanentFailures{0};
+
+  bool d_exiting{false};
 };
 #else
 class OTLPLogger : public RemoteLoggerInterface
