@@ -56,7 +56,6 @@ public:
 private:
   void indexGET(HttpRequest* req, HttpResponse* resp);
   void indexPOST(HttpRequest* req, HttpResponse* resp);
-  void jsonstat(HttpRequest* req, HttpResponse* resp);
   void registerApiHandler(const string& url, std::function<void(HttpRequest*, HttpResponse*)> handler);
   void webThread(Logr::log_t slog);
   void statThread(Logr::log_t slog, StatBag& stats);
