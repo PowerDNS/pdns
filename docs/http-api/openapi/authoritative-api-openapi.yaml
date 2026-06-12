@@ -60,6 +60,68 @@ paths:
         default:
           $ref: "#/components/responses/Error"
 
+  "/servers/{server_id}/autoprimaries":
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+    get:
+      summary: "Get a list of autoprimaries"
+      operationId: getAutoprimaries
+      tags:
+        - autoprimary
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Autoprimary"
+        default:
+          $ref: "#/components/responses/Error"
+    post:
+      summary: "Add an autoprimary"
+      description: "This methods add a new autoprimary server."
+      operationId: createAutoprimary
+      tags:
+        - autoprimary
+      requestBody:
+        required: true
+        description: autoprimary entry to add
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Autoprimary"
+      responses:
+        "201":
+          description: Created
+        default:
+          $ref: "#/components/responses/Error"
+
+  "/servers/{server_id}/autoprimaries/{ip}/{nameserver}":
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+      - name: ip
+        in: path
+        required: true
+        description: "IP address of autoprimary"
+        schema:
+          type: string
+      - name: nameserver
+        in: path
+        required: true
+        description: "DNS name of the autoprimary"
+        schema:
+          type: string
+    delete:
+      summary: "Delete the autoprimary entry"
+      operationId: deleteAutoprimary
+      tags:
+        - autoprimary
+      responses:
+        "204":
+          description: "OK, key was deleted"
+        default:
+          $ref: "#/components/responses/Error"
+
   "/servers/{server_id}/cache/flush":
     parameters:
       - $ref: "#/components/parameters/server_id"
@@ -82,6 +144,405 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CacheFlushResult"
+        default:
+          $ref: "#/components/responses/Error"
+
+  "/servers/{server_id}/config":
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+    get:
+      summary: "Returns all ConfigSettings for a single server"
+      operationId: getConfig
+      tags:
+        - config
+      responses:
+        "200":
+          description: List of config values
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ConfigSetting"
+        default:
+          $ref: "#/components/responses/Error"
+
+  "/servers/{server_id}/config/{config_setting_name}":
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+      - name: config_setting_name
+        in: path
+        required: true
+        description: The name of the setting to retrieve
+        schema:
+          type: string
+    get:
+      summary: "Returns a specific ConfigSetting for a single server"
+      description: "NOT IMPLEMENTED"
+      operationId: getConfigSetting
+      tags:
+        - config
+      responses:
+        "200":
+          description: List of config values
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConfigSetting"
+        default:
+          $ref: "#/components/responses/Error"
+
+  "/servers/{server_id}/networks":
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+    get:
+      summary: List all registered networks and views in a server
+      operationId: listNetworks
+      tags:
+        - networks
+      responses:
+        "200":
+          description: An array of networks
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Networks"
+        default:
+          $ref: "#/components/responses/Error"
+
+  "/servers/{server_id}/networks/{ip}/{prefixlen}":
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+      - name: ip
+        schema:
+          type: string
+        in: path
+        required: true
+        description: The base address of the network
+      - name: prefixlen
+        schema:
+          type: string
+        in: path
+        required: true
+        description: The length of the network prefix
+    get:
+      summary: Return the view associated to the given network
+      operationId: getNetwork
+      tags:
+        - networks
+      responses:
+        "200":
+          description: A network
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Network"
+        default:
+          $ref: "#/components/responses/Error"
+
+    put:
+      summary: Sets the view associated to the given network
+      operationId: setNetwork
+      tags:
+        - networks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                view:
+                  type: string
+                  description: The name of the view to use for this network
+
+      responses:
+        "204":
+          description: "Returns 204 No Content on success."
+        default:
+          $ref: "#/components/responses/Error"
+
+  "/servers/{server_id}/search-data":
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+    get:
+      summary: "Search the data inside PowerDNS"
+      description: "Search the data inside PowerDNS for search_term and return at most max_results. This includes zones, records and comments. The * character can be used in search_term as a wildcard character and the ? character can be used as a wildcard for a single character."
+      operationId: searchData
+      tags:
+        - search
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: "The string to search for"
+          schema:
+            type: string
+        - name: max
+          in: query
+          required: true
+          description: "Maximum number of entries to return"
+          schema:
+            type: integer
+        - name: object_type
+          in: query
+          required: false
+          description: "Type of data to search for, one of “all”, “zone”, “record”, “comment”"
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Returns a JSON array with results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SearchResults"
+        default:
+          $ref: "#/components/responses/Error"
+
+  "/servers/{server_id}/statistics":
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+    get:
+      summary: "Query statistics."
+      description: "Query PowerDNS internal statistics."
+      operationId: getStats
+      tags:
+        - stats
+      parameters:
+        - name: statistic
+          in: query
+          required: false
+          schema:
+            type: string
+          description: |
+            When set to the name of a specific statistic, only this value is returned.
+            If no statistic with that name exists, the response has a 422 status and an error message.
+        - name: includerings
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: true
+          description: "“true” (default) or “false”, whether to include the Ring items, which can contain thousands of log messages or queried domains. Setting this to ”false” may make the response a lot smaller."
+      responses:
+        "200":
+          description: List of Statistic Items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  discriminator:
+                    propertyName: object_type
+                    mapping:
+                      StatisticItem: "#/components/schemas/StatisticItem"
+                      MapStatisticItem: "#/components/schemas/MapStatisticItem"
+                      RingStatisticItem: "#/components/schemas/RingStatisticItem"
+                  oneOf:
+                    - $ref: "#/components/schemas/StatisticItem"
+                    - $ref: "#/components/schemas/MapStatisticItem"
+                    - $ref: "#/components/schemas/RingStatisticItem"
+        "422":
+          description: "Returned when a non-existing statistic name has been requested. Contains an error message"
+        default:
+          $ref: "#/components/responses/Error"
+
+  "/servers/{server_id}/tsigkeys":
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+    get:
+      summary: "Get all TSIGKeys on the server, except the actual key"
+      operationId: listTSIGKeys
+      tags:
+        - tsigkey
+      responses:
+        "200":
+          description: List of TSIGKey objects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TSIGKey"
+        default:
+          $ref: "#/components/responses/Error"
+    post:
+      summary: "Add a TSIG key"
+      description: "This methods add a new TSIGKey. The actual key can be generated by the server or be provided by the client"
+      operationId: createTSIGKey
+      tags:
+        - tsigkey
+      requestBody:
+        required: true
+        description: The TSIGKey to add
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TSIGKey"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TSIGKey"
+        "409":
+          description: An item with this name already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          $ref: "#/components/responses/Error"
+
+  "/servers/{server_id}/tsigkeys/{tsigkey_id}":
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+      - name: tsigkey_id
+        in: path
+        required: true
+        description: 'The id of the TSIGkey. Should match the "id" field in the TSIGKey object'
+        schema:
+          type: string
+    get:
+      summary: "Get a specific TSIGKeys on the server, including the actual key"
+      operationId: getTSIGKey
+      tags:
+        - tsigkey
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TSIGKey"
+        default:
+          $ref: "#/components/responses/Error"
+    put:
+      description: |
+        The TSIGKey at tsigkey_id can be changed in multiple ways:
+         * Changing the Name, this will remove the key with tsigkey_id after adding.
+         * Changing the Algorithm
+         * Changing the Key
+
+        Only the relevant fields have to be provided in the request body.
+      operationId: putTSIGKey
+      tags:
+        - tsigkey
+      requestBody:
+        required: true
+        description: A (possibly stripped down) TSIGKey object with the new values
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TSIGKey"
+      responses:
+        "200":
+          description: OK. TSIGKey is changed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TSIGKey"
+        "409":
+          description: An item with this name already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          $ref: "#/components/responses/Error"
+    delete:
+      summary: "Delete the TSIGKey with tsigkey_id"
+      operationId: deleteTSIGKey
+      tags:
+        - tsigkey
+      responses:
+        "204":
+          description: "OK, key was deleted"
+        default:
+          $ref: "#/components/responses/Error"
+
+  "/servers/{server_id}/views":
+    get:
+      summary: List all views in a server
+      operationId: listViews
+      tags:
+        - views
+      parameters:
+        - $ref: "#/components/parameters/server_id"
+      responses:
+        "200":
+          description: An array of view names
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Views"
+        default:
+          $ref: "#/components/responses/Error"
+
+  "/servers/{server_id}/views/{view}":
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+      - $ref: "#/components/parameters/view"
+
+    get:
+      summary: List the contents of a given view
+      operationId: listView
+      tags:
+        - views
+      responses:
+        "200":
+          description: An array of zone names
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/View"
+        default:
+          $ref: "#/components/responses/Error"
+
+    post:
+      summary: Adds a zone to a given view, creating it if needed
+      operationId: addToView
+      tags:
+        - views
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                name:
+                  type: string
+                  description: The zone to add to the view
+      responses:
+        "204":
+          description: "Returns 204 No Content on success."
+        default:
+          $ref: "#/components/responses/Error"
+
+  "/servers/{server_id}/views/{view}/{id}":
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+      - $ref: "#/components/parameters/view"
+      - name: id
+        description: The zone to remove from the view
+        required: true
+        in: path
+        schema:
+          type: string
+    delete:
+      summary: Removes the given zone from the given view
+      operationId: deleteFromView
+      tags:
+        - views
+      responses:
+        "204":
+          description: "Returns 204 No Content on success."
         default:
           $ref: "#/components/responses/Error"
 
@@ -237,22 +698,6 @@ paths:
         default:
           $ref: "#/components/responses/Error"
 
-  "/servers/{server_id}/zones/{zone_id}/notify":
-    parameters:
-      - $ref: "#/components/parameters/server_id"
-      - $ref: "#/components/parameters/zone_id"
-    put:
-      summary: Send a DNS NOTIFY to all slaves.
-      description: "Fails when zone kind is not Master or Slave, or master and slave are disabled in the configuration. Only works for Slave if renotify is on. Clients MUST NOT send a body."
-      operationId: notifyZone
-      tags:
-        - zones
-      responses:
-        "200":
-          description: OK
-        default:
-          $ref: "#/components/responses/Error"
-
   "/servers/{server_id}/zones/{zone_id}/axfr-retrieve":
     parameters:
       - $ref: "#/components/parameters/server_id"
@@ -265,267 +710,6 @@ paths:
         - zones
       responses:
         "200":
-          description: OK
-        default:
-          $ref: "#/components/responses/Error"
-
-  "/servers/{server_id}/zones/{zone_id}/export":
-    parameters:
-      - $ref: "#/components/parameters/server_id"
-      - $ref: "#/components/parameters/zone_id"
-    get:
-      summary: "Returns the zone in AXFR format."
-      operationId: axfrExportZone
-      tags:
-        - zones
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: string
-        default:
-          $ref: "#/components/responses/Error"
-
-  "/servers/{server_id}/zones/{zone_id}/rectify":
-    parameters:
-      - $ref: "#/components/parameters/server_id"
-      - $ref: "#/components/parameters/zone_id"
-    put:
-      summary: "Rectify the zone data."
-      description: "This does not take into account the API-RECTIFY metadata. Fails on slave zones and zones that do not have DNSSEC."
-      operationId: rectifyZone
-      tags:
-        - zones
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: string
-        default:
-          $ref: "#/components/responses/Error"
-
-  "/servers/{server_id}/config":
-    parameters:
-      - $ref: "#/components/parameters/server_id"
-    get:
-      summary: "Returns all ConfigSettings for a single server"
-      operationId: getConfig
-      tags:
-        - config
-      responses:
-        "200":
-          description: List of config values
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/ConfigSetting"
-        default:
-          $ref: "#/components/responses/Error"
-
-  "/servers/{server_id}/config/{config_setting_name}":
-    parameters:
-      - $ref: "#/components/parameters/server_id"
-      - name: config_setting_name
-        in: path
-        required: true
-        description: The name of the setting to retrieve
-        schema:
-          type: string
-    get:
-      summary: "Returns a specific ConfigSetting for a single server"
-      description: "NOT IMPLEMENTED"
-      operationId: getConfigSetting
-      tags:
-        - config
-      responses:
-        "200":
-          description: List of config values
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ConfigSetting"
-        default:
-          $ref: "#/components/responses/Error"
-
-  "/servers/{server_id}/statistics":
-    parameters:
-      - $ref: "#/components/parameters/server_id"
-    get:
-      summary: "Query statistics."
-      description: "Query PowerDNS internal statistics."
-      operationId: getStats
-      tags:
-        - stats
-      parameters:
-        - name: statistic
-          in: query
-          required: false
-          schema:
-            type: string
-          description: |
-            When set to the name of a specific statistic, only this value is returned.
-            If no statistic with that name exists, the response has a 422 status and an error message.
-        - name: includerings
-          in: query
-          required: false
-          schema:
-            type: boolean
-            default: true
-          description: "“true” (default) or “false”, whether to include the Ring items, which can contain thousands of log messages or queried domains. Setting this to ”false” may make the response a lot smaller."
-      responses:
-        "200":
-          description: List of Statistic Items
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: object
-                  discriminator:
-                    propertyName: object_type
-                    mapping:
-                      StatisticItem: "#/components/schemas/StatisticItem"
-                      MapStatisticItem: "#/components/schemas/MapStatisticItem"
-                      RingStatisticItem: "#/components/schemas/RingStatisticItem"
-                  oneOf:
-                    - $ref: "#/components/schemas/StatisticItem"
-                    - $ref: "#/components/schemas/MapStatisticItem"
-                    - $ref: "#/components/schemas/RingStatisticItem"
-        "422":
-          description: "Returned when a non-existing statistic name has been requested. Contains an error message"
-        default:
-          $ref: "#/components/responses/Error"
-
-  "/servers/{server_id}/search-data":
-    parameters:
-      - $ref: "#/components/parameters/server_id"
-    get:
-      summary: "Search the data inside PowerDNS"
-      description: "Search the data inside PowerDNS for search_term and return at most max_results. This includes zones, records and comments. The * character can be used in search_term as a wildcard character and the ? character can be used as a wildcard for a single character."
-      operationId: searchData
-      tags:
-        - search
-      parameters:
-        - name: q
-          in: query
-          required: true
-          description: "The string to search for"
-          schema:
-            type: string
-        - name: max
-          in: query
-          required: true
-          description: "Maximum number of entries to return"
-          schema:
-            type: integer
-        - name: object_type
-          in: query
-          required: false
-          description: "Type of data to search for, one of “all”, “zone”, “record”, “comment”"
-          schema:
-            type: string
-      responses:
-        "200":
-          description: Returns a JSON array with results
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SearchResults"
-        default:
-          $ref: "#/components/responses/Error"
-
-  "/servers/{server_id}/zones/{zone_id}/metadata":
-    parameters:
-      - $ref: "#/components/parameters/server_id"
-      - $ref: "#/components/parameters/zone_id"
-    get:
-      summary: "Get all the Metadata associated with the zone."
-      operationId: listMetadata
-      tags:
-        - zonemetadata
-      responses:
-        "200":
-          description: List of Metadata objects
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Metadata"
-        default:
-          $ref: "#/components/responses/Error"
-    post:
-      summary: "Creates a set of metadata entries"
-      description: "Creates a set of metadata entries of given kind for the zone. Existing metadata entries for the zone with the same kind are not overwritten."
-      operationId: createMetadata
-      tags:
-        - zonemetadata
-
-      requestBody:
-        required: true
-        description: Metadata object with list of values to create
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/Metadata"
-      responses:
-        "204":
-          description: OK
-        default:
-          $ref: "#/components/responses/Error"
-
-  "/servers/{server_id}/zones/{zone_id}/metadata/{metadata_kind}":
-    parameters:
-      - $ref: "#/components/parameters/server_id"
-      - $ref: "#/components/parameters/zone_id"
-      - name: metadata_kind
-        schema:
-          type: string
-        in: path
-        required: true
-        description: The kind of metadata
-    get:
-      summary: "Get the content of a single kind of domain metadata as a Metadata object."
-      operationId: getMetadata
-      tags:
-        - zonemetadata
-      responses:
-        "200":
-          description: Metadata object with list of values
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Metadata"
-        default:
-          $ref: "#/components/responses/Error"
-    put:
-      summary: "Replace the content of a single kind of domain metadata."
-      description: "Creates a set of metadata entries of given kind for the zone. Existing metadata entries for the zone with the same kind are removed."
-      operationId: modifyMetadata
-      tags:
-        - zonemetadata
-      responses:
-        "200":
-          description: Metadata object with list of values
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Metadata"
-        default:
-          $ref: "#/components/responses/Error"
-    delete:
-      summary: "Delete all items of a single kind of domain metadata."
-      operationId: deleteMetadata
-      tags:
-        - zonemetadata
-      responses:
-        "204":
           description: OK
         default:
           $ref: "#/components/responses/Error"
@@ -619,332 +803,148 @@ paths:
         default:
           $ref: "#/components/responses/Error"
 
-  "/servers/{server_id}/tsigkeys":
+  "/servers/{server_id}/zones/{zone_id}/export":
     parameters:
       - $ref: "#/components/parameters/server_id"
+      - $ref: "#/components/parameters/zone_id"
     get:
-      summary: "Get all TSIGKeys on the server, except the actual key"
-      operationId: listTSIGKeys
+      summary: "Returns the zone in AXFR format."
+      operationId: axfrExportZone
       tags:
-        - tsigkey
+        - zones
       responses:
         "200":
-          description: List of TSIGKey objects
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: string
+        default:
+          $ref: "#/components/responses/Error"
+
+  "/servers/{server_id}/zones/{zone_id}/metadata":
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+      - $ref: "#/components/parameters/zone_id"
+    get:
+      summary: "Get all the Metadata associated with the zone."
+      operationId: listMetadata
+      tags:
+        - zonemetadata
+      responses:
+        "200":
+          description: List of Metadata objects
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/TSIGKey"
+                  $ref: "#/components/schemas/Metadata"
         default:
           $ref: "#/components/responses/Error"
     post:
-      summary: "Add a TSIG key"
-      description: "This methods add a new TSIGKey. The actual key can be generated by the server or be provided by the client"
-      operationId: createTSIGKey
+      summary: "Creates a set of metadata entries"
+      description: "Creates a set of metadata entries of given kind for the zone. Existing metadata entries for the zone with the same kind are not overwritten."
+      operationId: createMetadata
       tags:
-        - tsigkey
+        - zonemetadata
+
       requestBody:
         required: true
-        description: The TSIGKey to add
+        description: Metadata object with list of values to create
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/TSIGKey"
+              $ref: "#/components/schemas/Metadata"
       responses:
-        "201":
-          description: Created
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/TSIGKey"
-        "409":
-          description: An item with this name already exists
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
+        "204":
+          description: OK
         default:
           $ref: "#/components/responses/Error"
 
-  "/servers/{server_id}/tsigkeys/{tsigkey_id}":
+  "/servers/{server_id}/zones/{zone_id}/metadata/{metadata_kind}":
     parameters:
       - $ref: "#/components/parameters/server_id"
-      - name: tsigkey_id
-        in: path
-        required: true
-        description: 'The id of the TSIGkey. Should match the "id" field in the TSIGKey object'
+      - $ref: "#/components/parameters/zone_id"
+      - name: metadata_kind
         schema:
           type: string
+        in: path
+        required: true
+        description: The kind of metadata
     get:
-      summary: "Get a specific TSIGKeys on the server, including the actual key"
-      operationId: getTSIGKey
+      summary: "Get the content of a single kind of domain metadata as a Metadata object."
+      operationId: getMetadata
       tags:
-        - tsigkey
+        - zonemetadata
       responses:
         "200":
-          description: OK.
+          description: Metadata object with list of values
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/TSIGKey"
+                $ref: "#/components/schemas/Metadata"
         default:
           $ref: "#/components/responses/Error"
     put:
-      description: |
-        The TSIGKey at tsigkey_id can be changed in multiple ways:
-         * Changing the Name, this will remove the key with tsigkey_id after adding.
-         * Changing the Algorithm
-         * Changing the Key
-
-        Only the relevant fields have to be provided in the request body.
-      operationId: putTSIGKey
+      summary: "Replace the content of a single kind of domain metadata."
+      description: "Creates a set of metadata entries of given kind for the zone. Existing metadata entries for the zone with the same kind are removed."
+      operationId: modifyMetadata
       tags:
-        - tsigkey
-      requestBody:
-        required: true
-        description: A (possibly stripped down) TSIGKey object with the new values
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/TSIGKey"
+        - zonemetadata
       responses:
         "200":
-          description: OK. TSIGKey is changed.
+          description: Metadata object with list of values
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/TSIGKey"
-        "409":
-          description: An item with this name already exists
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
+                $ref: "#/components/schemas/Metadata"
         default:
           $ref: "#/components/responses/Error"
     delete:
-      summary: "Delete the TSIGKey with tsigkey_id"
-      operationId: deleteTSIGKey
+      summary: "Delete all items of a single kind of domain metadata."
+      operationId: deleteMetadata
       tags:
-        - tsigkey
+        - zonemetadata
       responses:
         "204":
-          description: "OK, key was deleted"
+          description: OK
         default:
           $ref: "#/components/responses/Error"
 
-  "/servers/{server_id}/autoprimaries":
+  "/servers/{server_id}/zones/{zone_id}/notify":
     parameters:
       - $ref: "#/components/parameters/server_id"
-    get:
-      summary: "Get a list of autoprimaries"
-      operationId: getAutoprimaries
-      tags:
-        - autoprimary
-      responses:
-        "200":
-          description: OK.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Autoprimary"
-        default:
-          $ref: "#/components/responses/Error"
-    post:
-      summary: "Add an autoprimary"
-      description: "This methods add a new autoprimary server."
-      operationId: createAutoprimary
-      tags:
-        - autoprimary
-      requestBody:
-        required: true
-        description: autoprimary entry to add
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/Autoprimary"
-      responses:
-        "201":
-          description: Created
-        default:
-          $ref: "#/components/responses/Error"
-
-  "/servers/{server_id}/autoprimaries/{ip}/{nameserver}":
-    parameters:
-      - $ref: "#/components/parameters/server_id"
-      - name: ip
-        in: path
-        required: true
-        description: "IP address of autoprimary"
-        schema:
-          type: string
-      - name: nameserver
-        in: path
-        required: true
-        description: "DNS name of the autoprimary"
-        schema:
-          type: string
-    delete:
-      summary: "Delete the autoprimary entry"
-      operationId: deleteAutoprimary
-      tags:
-        - autoprimary
-      responses:
-        "204":
-          description: "OK, key was deleted"
-        default:
-          $ref: "#/components/responses/Error"
-
-  "/servers/{server_id}/views":
-    get:
-      summary: List all views in a server
-      operationId: listViews
-      tags:
-        - views
-      parameters:
-        - $ref: "#/components/parameters/server_id"
-      responses:
-        "200":
-          description: An array of view names
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Views"
-        default:
-          $ref: "#/components/responses/Error"
-
-  "/servers/{server_id}/views/{view}":
-    parameters:
-      - $ref: "#/components/parameters/server_id"
-      - $ref: "#/components/parameters/view"
-
-    get:
-      summary: List the contents of a given view
-      operationId: listView
-      tags:
-        - views
-      responses:
-        "200":
-          description: An array of zone names
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/View"
-        default:
-          $ref: "#/components/responses/Error"
-
-    post:
-      summary: Adds a zone to a given view, creating it if needed
-      operationId: addToView
-      tags:
-        - views
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              additionalProperties: false
-              properties:
-                name:
-                  type: string
-                  description: The zone to add to the view
-      responses:
-        "204":
-          description: "Returns 204 No Content on success."
-        default:
-          $ref: "#/components/responses/Error"
-
-  "/servers/{server_id}/views/{view}/{id}":
-    parameters:
-      - $ref: "#/components/parameters/server_id"
-      - $ref: "#/components/parameters/view"
-      - name: id
-        description: The zone to remove from the view
-        required: true
-        in: path
-        schema:
-          type: string
-    delete:
-      summary: Removes the given zone from the given view
-      operationId: deleteFromView
-      tags:
-        - views
-      responses:
-        "204":
-          description: "Returns 204 No Content on success."
-        default:
-          $ref: "#/components/responses/Error"
-
-  "/servers/{server_id}/networks":
-    parameters:
-      - $ref: "#/components/parameters/server_id"
-    get:
-      summary: List all registered networks and views in a server
-      operationId: listNetworks
-      tags:
-        - networks
-      responses:
-        "200":
-          description: An array of networks
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Networks"
-        default:
-          $ref: "#/components/responses/Error"
-
-  "/servers/{server_id}/networks/{ip}/{prefixlen}":
-    parameters:
-      - $ref: "#/components/parameters/server_id"
-      - name: ip
-        schema:
-          type: string
-        in: path
-        required: true
-        description: The base address of the network
-      - name: prefixlen
-        schema:
-          type: string
-        in: path
-        required: true
-        description: The length of the network prefix
-    get:
-      summary: Return the view associated to the given network
-      operationId: getNetwork
-      tags:
-        - networks
-      responses:
-        "200":
-          description: A network
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Network"
-        default:
-          $ref: "#/components/responses/Error"
-
+      - $ref: "#/components/parameters/zone_id"
     put:
-      summary: Sets the view associated to the given network
-      operationId: setNetwork
+      summary: Send a DNS NOTIFY to all slaves.
+      description: "Fails when zone kind is not Master or Slave, or master and slave are disabled in the configuration. Only works for Slave if renotify is on. Clients MUST NOT send a body."
+      operationId: notifyZone
       tags:
-        - networks
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              additionalProperties: false
-              properties:
-                view:
-                  type: string
-                  description: The name of the view to use for this network
-
+        - zones
       responses:
-        "204":
-          description: "Returns 204 No Content on success."
+        "200":
+          description: OK
+        default:
+          $ref: "#/components/responses/Error"
+
+  "/servers/{server_id}/zones/{zone_id}/rectify":
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+      - $ref: "#/components/parameters/zone_id"
+    put:
+      summary: "Rectify the zone data."
+      description: "This does not take into account the API-RECTIFY metadata. Fails on slave zones and zones that do not have DNSSEC."
+      operationId: rectifyZone
+      tags:
+        - zones
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: string
         default:
           $ref: "#/components/responses/Error"
 
