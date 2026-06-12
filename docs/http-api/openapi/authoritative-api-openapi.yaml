@@ -1157,6 +1157,9 @@ components:
           description: "List of Comment. Must be empty when changetype is set to DELETE, EXTEND or PRUNE. An empty list results in deletion of all comments. modified_at is optional and defaults to the current server time."
           items:
             $ref: "#/components/schemas/Comment"
+        write_unchanged:
+          type: boolean
+          description: "In the case of a PRUNE or EXTEND operation, specifies whether a database update should be performed even if the operation does not change the RRSet, causing the modification timestamp to be updated if the backend supports it."
 
     Record:
       title: Record
