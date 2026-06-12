@@ -50,7 +50,7 @@ class AuthWebServer
 {
 public:
   AuthWebServer();
-  void go(Logr::log_t slog, StatBag& stats);
+  void go(Logr::log_t slog);
   static string makePercentage(const double& val);
 
 private:
@@ -58,7 +58,7 @@ private:
   void indexPOST(HttpRequest* req, HttpResponse* resp);
   void registerApiHandler(const string& url, std::function<void(HttpRequest*, HttpResponse*)> handler);
   void webThread(Logr::log_t slog);
-  void statThread(Logr::log_t slog, StatBag& stats);
+  void statThread(Logr::log_t slog);
 
   time_t d_start;
   double d_min10{0}, d_min5{0}, d_min1{0};

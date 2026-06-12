@@ -122,29 +122,31 @@ AuthWebServer::AuthWebServer() :
   }
 }
 
-void AuthWebServer::go(Logr::log_t slog, StatBag& stats)
+void AuthWebServer::go(Logr::log_t slog)
 {
   // Compute a unique random value used for indexPOST validation
   std::array<char, 32> buf{};
   dns_random(buf.data(), buf.size());
   d_unique = Base64Encode(std::string(buf.data(), buf.size()));
+
   S.doRings();
   std::thread webT([this, &slog]() { webThread(slog); });
   webT.detach();
-  std::thread statT([this, &slog, &stats]() { statThread(slog, stats); });
+
+  std::thread statT([this, &slog]() { statThread(slog); });
   statT.detach();
 }
 
-void AuthWebServer::statThread(Logr::log_t slog, StatBag& stats)
+void AuthWebServer::statThread(Logr::log_t slog)
 {
   try {
     setThreadName("pdns/statHelper");
     for (;;) {
-      d_queries.submit(stats.read("udp-queries"));
-      d_cachehits.submit(stats.read("packetcache-hit"));
-      d_cachemisses.submit(stats.read("packetcache-miss"));
-      d_qcachehits.submit(stats.read("query-cache-hit"));
-      d_qcachemisses.submit(stats.read("query-cache-miss"));
+      d_queries.submit(S.read("udp-queries"));
+      d_cachehits.submit(S.read("packetcache-hit"));
+      d_cachemisses.submit(S.read("packetcache-miss"));
+      d_qcachehits.submit(S.read("query-cache-hit"));
+      d_qcachemisses.submit(S.read("query-cache-miss"));
       Utility::sleep(1);
     }
   }

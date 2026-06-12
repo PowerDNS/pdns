@@ -1034,7 +1034,7 @@ static void mainthread()
   s_dynListener->go();
 
   if (::arg().mustDo("webserver") || ::arg().mustDo("api")) {
-    webserver.go(slog, S);
+    webserver.go(slog);
   }
 
   if (::arg().mustDo("primary") || ::arg().mustDo("secondary") || !::arg()["forward-notify"].empty())
