@@ -29,7 +29,6 @@
 #include "logging.hh"
 #include "dolog.hh"
 #include "logr.hh"
-#include "misc.hh"
 #include "remote_logger.hh"
 #include "threadname.hh"
 
@@ -38,8 +37,8 @@
 #include "protozero-trace.hh"
 #include "protozero-otlp.hh"
 
-OTLPLogger::OTLPLogger(std::string address, const size_t interval, const size_t bufsize) :
-  d_address(std::move(address)), d_interval(interval)
+OTLPLogger::OTLPLogger(std::string address, const size_t interval, const size_t queuesize, const size_t batchSize) :
+  d_address(std::move(address)), d_interval(interval), d_batchSize(batchSize)
 {
   LoggerType loggerType;
   if (d_address.find("http://") == 0 || d_address.find("https://") == 0) {
@@ -63,7 +62,7 @@ OTLPLogger::OTLPLogger(std::string address, const size_t interval, const size_t 
   }
 
   d_logger = dnsdist::logging::getTopLogger("OTLPLogger");
-  d_traces.lock()->reserve(bufsize);
+  d_traces.lock()->reserve(queuesize);
   d_thread = std::thread(&OTLPLogger::senderThread, this);
 }
 
@@ -115,8 +114,7 @@ int OTLPLogger::sendBatch()
 
   pdns::trace::ExportTraceServiceRequest etsr;
 
-  // TODO: find a *sane* number of elements to send at one time
-  auto sentNum = lockedTraces->size() > 100 ? 100 : lockedTraces->size();
+  auto sentNum = lockedTraces->size() > d_batchSize ? d_batchSize : lockedTraces->size();
   etsr.resource_spans.reserve(sentNum);
 
   auto endIt = lockedTraces->begin() + sentNum;

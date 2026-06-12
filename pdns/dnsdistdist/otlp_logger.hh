@@ -37,7 +37,7 @@ public:
     gRPC,
   };
 
-  OTLPLogger(std::string address, const size_t interval = 5, const size_t bufsize = 5000);
+  OTLPLogger(std::string address, const size_t interval = 5, const size_t queueSize = 500, const size_t batchSize = 100);
   OTLPLogger(const OTLPLogger&) = delete;
   OTLPLogger(OTLPLogger&&) = delete;
   OTLPLogger& operator=(const OTLPLogger&) = delete;
@@ -78,6 +78,7 @@ private:
   LoggerType d_type;
   std::string d_address;
   size_t d_interval;
+  size_t d_batchSize;
 
   std::unique_ptr<MiniCurl> d_miniCurl{nullptr};
   MiniCurl::MiniCurlHeaders d_httpHeaders{{"Content-Type", "application/x-protobuf"}};

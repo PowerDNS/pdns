@@ -2026,7 +2026,7 @@ void registerOtlpLogger([[maybe_unused]] const OtlpLoggerConfiguration& config)
     dnsdist::configuration::yaml::registerType<RemoteLoggerInterface>(object, config.name);
     return;
   }
-  std::shared_ptr<RemoteLoggerInterface> object = std::make_shared<OTLPLogger>(std::string(config.address));
+  std::shared_ptr<RemoteLoggerInterface> object = std::make_shared<OTLPLogger>(std::string(config.address), config.interval, config.queue_size, config.batch_size);
   dnsdist::configuration::yaml::registerType<RemoteLoggerInterface>(object, config.name);
 #else
   throw std::runtime_error("Unable to create OTLP logger: OTLP support is disabled");
