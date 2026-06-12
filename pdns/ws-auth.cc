@@ -93,15 +93,85 @@ double Ewma::getMax() const
   return d_max;
 }
 
-static void parseRecordNameAndType(const Json& rrset, DNSName& qname, QType& qtype);
+ApiWebServer::ApiWebServer(std::shared_ptr<ConcurrentConnectionManager> ccm, string listenaddress, int port) :
+  WebServer(std::move(ccm), std::move(listenaddress), port)
+{
+  bool doApi = arg().mustDo("api");
+
+  if (doApi) {
+    d_api_queries = &(*S.getPointer("api-queries"));
+    d_api_result_200 = &(*S.getPointer("api-result-200"));
+    d_api_result_201 = &(*S.getPointer("api-result-201"));
+    d_api_result_204 = &(*S.getPointer("api-result-204"));
+    d_api_result_409 = &(*S.getPointer("api-result-409"));
+    d_api_result_422 = &(*S.getPointer("api-result-422"));
+    d_api_result_500 = &(*S.getPointer("api-result-500"));
+  }
+}
+
+void ApiWebServer::registerApiHandler(const string& url, const HandlerFunction& handler, const std::string& method, bool allowPassword)
+{
+  auto func = [handler, allowPassword, this](HttpRequest* req, HttpResponse* resp) {
+    AtomicCounter* counter{nullptr};
+    try {
+      if (d_api_queries != nullptr) {
+        (*d_api_queries)++;
+      }
+      apiWrapper(handler, req, resp, allowPassword);
+      switch (resp->status) {
+      case 200:
+        counter = d_api_result_200;
+        break;
+      case 201:
+        counter = d_api_result_201;
+        break;
+      case 204:
+        counter = d_api_result_204;
+        break;
+      case 409:
+        counter = d_api_result_409;
+        break;
+      case 422:
+        counter = d_api_result_422;
+        break;
+      }
+      if (counter != nullptr) {
+        (*counter)++;
+      }
+    }
+    catch (HttpInternalServerErrorException&) {
+      counter = d_api_result_500;
+      if (counter != nullptr) {
+        (*counter)++;
+      }
+      throw;
+    }
+  };
+  registerBareHandler(url, func, method);
+}
+
 static void patchZone(UeberBackend& backend, const ZoneName& zonename, DomainInfo& domainInfo, const vector<Json>& rrsets, HttpResponse* resp);
+static void parseRecordNameAndType(const Json& rrset, DNSName& qname, QType& qtype);
 
 AuthWebServer::AuthWebServer() :
   d_start(time(nullptr))
 
 {
-  if (arg().mustDo("webserver") || arg().mustDo("api")) {
-    d_ws = std::make_unique<WebServer>(std::make_shared<ConcurrentConnectionManager>(arg().asNum("webserver-max-concurrent-connections")), arg()["webserver-address"], arg().asNum("webserver-port"));
+  d_doApi = arg().mustDo("api");
+
+  // Register API-specific statistics
+  if (d_doApi) {
+    S.declare("api-queries", "Number of API queries received");
+    S.declare("api-result-200", "Number of API queries returning HTTP status code 200");
+    S.declare("api-result-201", "Number of API queries returning HTTP status code 201");
+    S.declare("api-result-204", "Number of API queries returning HTTP status code 204");
+    S.declare("api-result-409", "Number of API queries returning HTTP status code 409");
+    S.declare("api-result-422", "Number of API queries returning HTTP status code 422");
+    S.declare("api-result-500", "Number of API queries returning HTTP status code 500");
+  }
+
+  if (arg().mustDo("webserver") || d_doApi) {
+    d_ws = std::make_unique<ApiWebServer>(std::make_shared<ConcurrentConnectionManager>(arg().asNum("webserver-max-concurrent-connections")), arg()["webserver-address"], arg().asNum("webserver-port"));
     if (g_slogStructured) {
       d_ws->setSLog(g_slog->withName("webserver"));
     }
@@ -147,6 +217,9 @@ void AuthWebServer::statThread(Logr::log_t slog)
       d_cachemisses.submit(S.read("packetcache-miss"));
       d_qcachehits.submit(S.read("query-cache-hit"));
       d_qcachemisses.submit(S.read("query-cache-miss"));
+      if (d_doApi) {
+        d_api_queries.submit(S.read("api-queries"));
+      }
       Utility::sleep(1);
     }
   }
@@ -303,7 +376,14 @@ void AuthWebServer::indexGET(HttpRequest* req, HttpResponse* resp)
 
   ret << "Backend query load, 1, 5, 10 minute averages: " << std::setprecision(3) << (int)d_qcachemisses.get1() << ", " << (int)d_qcachemisses.get5() << ", " << (int)d_qcachemisses.get10() << ". Max queries/second: " << (int)d_qcachemisses.getMax() << "<br>" << endl;
 
-  ret << "Total queries: " << S.read("udp-queries") << ". Question/answer latency: " << static_cast<double>(S.read("latency")) / 1000.0 << "ms</p><br>" << endl;
+  ret << "Total queries: " << S.read("udp-queries") << ". Question/answer latency: " << static_cast<double>(S.read("latency")) / 1000.0 << "ms<br>" << endl;
+
+  if (d_doApi) {
+    ret << "API Queries/second, 1, 5, 10 minute averages:  " << std::setprecision(3) << (int)d_api_queries.get1() << ", " << (int)d_api_queries.get5() << ", " << (int)d_api_queries.get10() << ". Max queries/second: " << (int)d_api_queries.getMax() << "<br>" << endl;
+  }
+
+  ret << "</p>" << endl;
+
   const auto& ringname = req->getvars["ring"];
   if (ringname.empty()) {
     auto entries = S.listRings();
