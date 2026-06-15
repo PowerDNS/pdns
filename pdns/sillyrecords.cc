@@ -7,153 +7,195 @@
 
 #include "utility.hh"
 #include <cstdio>
-#include <math.h>
+#include <cmath>
 #include <cstdlib>
 #include <sys/types.h>
 #include <string>
 #include <cerrno>
 #include "dnsrecords.hh"
 
-const static unsigned int poweroften[10] = {1, 10, 100, 1000, 10000, 100000,
-  1000000,10000000,100000000,1000000000};
+const static std::array<unsigned int,10> poweroften = {
+  1, 10, 100, 1000, 10000, 100000,
+  1000000,10000000,100000000,1000000000
+};
 
-/* converts ascii size/precision X * 10**Y(cm) to 0xXY. moves pointer.*/
-static uint8_t precsize_aton(const char **strptr)
+enum coordtype { LATITUDE, LONGITUDE };
+
+// Skip whitespace.
+static void
+skipspace(const std::string& content, std::string::size_type& pos)
 {
-  unsigned int mval = 0, cmval = 0;
-  uint8_t retval = 0;
-  const char *cp;
-  int exponent;
-  int mantissa;
-
-  cp = *strptr;
-
-  while (isdigit(*cp))
-    mval = mval * 10 + (*cp++ - '0');
-
-  if (*cp == '.') {               /* centimeters */
-    cp++;
-    if (isdigit(*cp)) {
-      cmval = (*cp++ - '0') * 10;
-      if (isdigit(*cp)) {
-        cmval += (*cp++ - '0');
-      }
-    }
+  while (pos < content.length() && std::isspace(content.at(pos)) != 0) {
+    ++pos;
   }
-  cmval = (mval * 100) + cmval;
-
-  for (exponent = 0; exponent < 9; exponent++)
-    if (cmval < poweroften[exponent+1])
-      break;
-
-  mantissa = cmval / poweroften[exponent];
-  mantissa = std::min(mantissa, 9);
-
-  retval = (mantissa << 4) | exponent;
-
-  *strptr = cp;
-
-  return (retval);
 }
 
-/* converts ascii lat/lon to unsigned encoded 32-bit number.
- *  moves pointer. */
-static uint32_t
-latlon2ul(const char **latlonstrptr, int *which)
+// Skip 'm' and following whitespace if present.
+static void
+skipm(const std::string& content, std::string::size_type& pos)
 {
-  const char *cp;
-  uint32_t retval;
-  int deg = 0, min = 0, secs = 0, secsfrac = 0;
+  if (pos < content.length()) {
+    switch (content.at(pos)) {
+    case 'M': case 'm':
+      ++pos;
+      skipspace(content, pos);
+      break;
+    default:
+      break;
+    }
+  }
+}
 
-  cp = *latlonstrptr;
 
-  while (isdigit(*cp))
-    deg = deg * 10 + (*cp++ - '0');
+// Parse an unsigned integer, and skip following whitespace if present.
+static bool
+parsenum(const std::string& content, std::string::size_type& pos, unsigned int& number)
+{
+  bool parsed{false};
 
-  while (isspace(*cp))
-    cp++;
+  number = 0;
+  while (pos < content.length() && std::isdigit(content.at(pos)) != 0) {
+    parsed = true;
+    number = number * 10 + (content.at(pos) - '0');
+    ++pos;
+  }
+  skipspace(content, pos);
+  return parsed;
+}
 
-  if (!(isdigit(*cp)))
-    goto fndhemi;
+// Parse the fractional part of an integer up to the given number of digits,
+// and skip following whitespace if present.
+static bool
+parsefrac(const std::string& content, std::string::size_type& pos, unsigned int digits, unsigned int& number)
+{
+  bool parsed{false};
 
-  while (isdigit(*cp))
-    min = min * 10 + (*cp++ - '0');
+  number = 0;
+  if (pos < content.length() && content.at(pos) == '.') {
+    ++pos;
+    while (digits-- != 0) {
+      number *= 10;
+      if (pos < content.length() && std::isdigit(content.at(pos)) != 0) {
+        parsed = true; // intentionally rejects '.' alone
+        number += (content.at(pos) - '0');
+        ++pos;
+      }
+    }
+    // skip any further digits
+    while (pos < content.length() && std::isdigit(content.at(pos)) != 0) {
+      ++pos;
+    }
+  }
+  skipspace(content, pos);
+  return parsed;
+}
 
-  while (isspace(*cp))
-    cp++;
+// Parse an integer with up to two fractional digits, convert it to
+// X * 10**Y, cap X and Y at 9, and return 0xXY.
+static uint8_t precsize_aton(const std::string& content, std::string::size_type& pos)
+{
+  unsigned int mval = 0;
+  unsigned int cmval = 0;
+  unsigned int exponent{};
+  unsigned int mantissa{};
 
-  if (*cp && !(isdigit(*cp)))
-    goto fndhemi;
+  if (!parsenum(content, pos, mval)) {
+    throw MOADNSException("Expecting a size or precision in LOC contents");
+  }
+  parsefrac(content, pos, 2, cmval);
+  skipm(content, pos);
 
-  while (isdigit(*cp))
-    secs = secs * 10 + (*cp++ - '0');
+  cmval = (mval * 100) + cmval;
+  // We could compute exponent and mantissa by repeatedly dividing by 10,
+  // this array search comes from RFC1876.
+  for (exponent = 0; exponent < 9; exponent++) {
+    if (cmval < poweroften.at(exponent+1)) {
+      break;
+    }
+  }
+  mantissa = cmval / poweroften.at(exponent);
+  mantissa = std::min(mantissa, 9U);
 
-  if (*cp == '.') {               /* decimal seconds */
-    cp++;
-    if (isdigit(*cp)) {
-      secsfrac = (*cp++ - '0') * 100;
-      if (isdigit(*cp)) {
-        secsfrac += (*cp++ - '0') * 10;
-        if (isdigit(*cp)) {
-          secsfrac += (*cp++ - '0');
-        }
+  return (mantissa << 4) | exponent;
+}
+
+// Converts text representation of latitude or longitude into an unsigned
+// encoded 32-bit number. Returns the type and updates the position within
+// the string.
+// Expected format: DEG [MIN [SEC[.FRAC]]] (N|S|E|W)
+static uint32_t
+latlon2ul(const std::string& content, std::string::size_type& pos, coordtype& type)
+{
+  unsigned int deg = 0;
+  unsigned int min = 0;
+  unsigned int secs = 0;
+  unsigned int secsfrac = 0;
+
+  if (!parsenum(content, pos, deg)) {
+    throw MOADNSException("Expecting a latitude or longitude in LOC contents");
+  }
+
+  if (parsenum(content, pos, min)) {
+    if (min >= 60) {
+      throw MOADNSException("Invalid latitude or longitude minutes in LOC contents");
+    }
+    if (parsenum(content, pos, secs)) {
+      parsefrac(content, pos, 3, secsfrac);
+      // According to RFC1876, we should reject 60.000, but records with such
+      // values appear in the unit tests, and there is probably a reason behind
+      // that, so allow this value for now. FIXME?
+      if (secs > 60 || (secs == 60 && secsfrac > 0)) {
+std::cerr << content << std::endl;
+        throw MOADNSException("Invalid latitude or longitude seconds in LOC contents");
       }
     }
   }
 
-  while (*cp && !isspace(*cp))   /* if any trailing garbage */
-    cp++;
-
-  while (isspace(*cp))
-    cp++;
-
- fndhemi:
-  switch (*cp) {
-  case 'N': case 'n':
-  case 'E': case 'e':
-    retval = ((unsigned)1<<31)
-      + (((((deg * 60) + min) * 60) + secs) * 1000)
-      + secsfrac;
-    break;
-  case 'S': case 's':
-  case 'W': case 'w':
-    retval = ((unsigned)1<<31)
-      - (((((deg * 60) + min) * 60) + secs) * 1000)
-      - secsfrac;
-    break;
-  default:
-    retval = 0;     /* invalid value -- indicates error */
-    break;
+  if (pos >= content.length()) {
+    throw MOADNSException("Expecting hemisphere in LOC contents");
   }
 
-  switch (*cp) {
+  bool add{true};
+  switch (content.at(pos)) {
   case 'N': case 'n':
-  case 'S': case 's':
-    *which = 1;     /* latitude */
+    type = LATITUDE;
+    add = true;
     break;
   case 'E': case 'e':
+    type = LONGITUDE;
+    add = true;
+    break;
+  case 'S': case 's':
+    type = LATITUDE;
+    add = false;
+    break;
   case 'W': case 'w':
-    *which = 2;     /* longitude */
+    type = LONGITUDE;
+    add = false;
     break;
   default:
-    *which = 0;     /* error */
-    break;
+    throw MOADNSException("Invalid hemisphere specification in LOC contents");
   }
 
-  if (!*cp)
-    return 0;
+  if (type == LATITUDE && deg > 90) {
+    throw MOADNSException("Invalid latitude degrees in LOC contents");
+  }
+  if (type == LONGITUDE && deg > 180) {
+    throw MOADNSException("Invalid longitude degrees in LOC contents");
+  }
 
-  cp++;                   /* skip the hemisphere */
+  uint32_t retval = (((((deg * 60) + min) * 60) + secs) * 1000) + secsfrac;
+  if (add) {
+    retval = (1U<<31) + retval;
+  }
+  else {
+    retval = (1U<<31) - retval;
+  }
 
-  while (*cp && !isspace(*cp))   /* if any trailing garbage */
-    cp++;
+  ++pos;
+  skipspace(content, pos);
 
-  while (isspace(*cp))    /* move to next field */
-    cp++;
-
-  *latlonstrptr = cp;
-
-  return (retval);
+  return retval;
 }
 
 void LOCRecordContent::report(const ReportIsOnlyCallableByReportAllTypes& /* unused */)
@@ -195,104 +237,59 @@ std::shared_ptr<LOCRecordContent::DNSRecordContent> LOCRecordContent::make(const
   return ret;
 }
 
+// 51 59 00.000 N 5 55 00.000 E 4.00m 1.00m 10000.00m 10.00m
+// convert this to d_version, d_size, d_horiz/vertpre, d_latitude, d_longitude, d_altitude
 LOCRecordContent::LOCRecordContent(const string& content, const string& /* zone */)
 {
-  // 51 59 00.000 N 5 55 00.000 E 4.00m 1.00m 10000.00m 10.00m
-  // convert this to d_version, d_size, d_horiz/vertpre, d_latitude, d_longitude, d_altitude
-  d_version = 0;
+  std::string::size_type pos{0};
 
-  const char *cp, *maxcp;
+  // Parse latitude and longitude, in any order
+  coordtype type1{};
+  auto lltemp1 = latlon2ul(content, pos, type1);
+  coordtype type2{};
+  auto lltemp2 = latlon2ul(content, pos, type2);
+  if (type1 == type2) {
+    throw MOADNSException("Expecting latitude and longitude in LOC contents");
+  }
+  if (type1 == LATITUDE) {
+    d_latitude = lltemp1;
+    d_longitude = lltemp2;
+  }
+  else {
+    d_longitude = lltemp1;
+    d_latitude = lltemp2;
+  }
 
-  uint32_t lltemp1 = 0, lltemp2 = 0;
-  int altmeters = 0, altfrac = 0, altsign = 1;
-  d_horizpre = 0x16;    /* default = 1e6 cm = 10000.00m = 10km */
-  d_vertpre = 0x13;    /* default = 1e3 cm = 10.00m */
-  d_size = 0x12;   /* default = 1e2 cm = 1.00m */
-  int which1 = 0, which2 = 0;
-
-  cp = content.c_str();
-  maxcp = cp + strlen(content.c_str());
-
-  lltemp1 = latlon2ul(&cp, &which1);
-  lltemp2 = latlon2ul(&cp, &which2);
-
-  switch (which1 + which2) {
-  case 3:                 /* 1 + 2, the only valid combination */
-    if ((which1 == 1) && (which2 == 2)) { /* normal case */
-      d_latitude = lltemp1;
-      d_longitude = lltemp2;
-    } else if ((which1 == 2) && (which2 == 1)) {/*reversed*/
-      d_latitude = lltemp1;
-      d_longitude = lltemp2;
-    } else {        /* some kind of brokenness */
-      return;
+  // Parse optional altitude
+  if (pos < content.length()) {
+    unsigned int altmeters = 0;
+    unsigned int altfrac = 0;
+    int altsign = 1;
+    if (content.at(pos) == '-') {
+      altsign = -1;
+      ++pos;
     }
-    break;
-  default:                /* we didn't get one of each */
-    throw MOADNSException("Error decoding LOC content");
-  }
-
-  /* altitude */
-  if (*cp == '-') {
-    altsign = -1;
-    cp++;
-  }
-
-  if (*cp == '+')
-    cp++;
-
-  while (isdigit(*cp))
-    altmeters = altmeters * 10 + (*cp++ - '0');
-
-  if (*cp == '.') {               /* decimal meters */
-    cp++;
-    if (isdigit(*cp)) {
-      altfrac = (*cp++ - '0') * 10;
-      if (isdigit(*cp)) {
-        altfrac += (*cp++ - '0');
-      }
+    else if (content.at(pos) == '+') {
+      ++pos;
     }
+    if (!parsenum(content, pos, altmeters)) {
+      throw MOADNSException("Expecting altitude in LOC contents");
+    }
+    parsefrac(content, pos, 2, altfrac);
+    skipm(content, pos);
+    d_altitude += altsign * (altmeters * 100 + altfrac);
   }
 
-  d_altitude = (10000000 + (altsign * (altmeters * 100 + altfrac)));
-
-  while (!isspace(*cp) && (cp < maxcp))
-    /* if trailing garbage or m */
-    cp++;
-
-  while (isspace(*cp) && (cp < maxcp))
-    cp++;
-
-
-  if (cp >= maxcp)
-    goto defaults;
-
-  d_size = precsize_aton(&cp);
-
-  while (!isspace(*cp) && (cp < maxcp))/*if trailing garbage or m*/
-    cp++;
-
-  while (isspace(*cp) && (cp < maxcp))
-    cp++;
-
-  if (cp >= maxcp)
-    goto defaults;
-
-  d_horizpre = precsize_aton(&cp);
-
-  while (!isspace(*cp) && (cp < maxcp))/*if trailing garbage or m*/
-    cp++;
-
-  while (isspace(*cp) && (cp < maxcp))
-    cp++;
-
-  if (cp >= maxcp)
-    goto defaults;
-
-  d_vertpre = precsize_aton(&cp);
-
- defaults:
-  ;
+  // Parse optional size and precision
+  if (pos < content.length()) {
+    d_size = precsize_aton(content, pos);
+  }
+  if (pos < content.length()) {
+    d_horizpre = precsize_aton(content, pos);
+  }
+  if (pos < content.length()) {
+    d_vertpre = precsize_aton(content, pos);
+  }
 }
 
 
@@ -301,22 +298,25 @@ string LOCRecordContent::getZoneRepresentation(bool /* noDot */) const
   // convert d_version, d_size, d_horiz/vertpre, d_latitude, d_longitude, d_altitude to:
   // 51 59 00.000 N 5 55 00.000 E 4.00m 1.00m 10000.00m 10.00m
 
-  double altitude= ((int32_t)d_altitude           )/100.0 - 100000;
+  double altitude= static_cast<int32_t>(d_altitude) / 100.0 - 100000;
 
   double size=0.01*((d_size>>4)&0xf);
-  int count=d_size & 0xf;
-  while(count--)
+  unsigned int count = d_size & 0xf;
+  while (count-- != 0) {
     size*=10;
+  }
 
   double horizpre=0.01*((d_horizpre>>4) & 0xf);
-  count=d_horizpre&0xf;
-  while(count--)
+  count = d_horizpre & 0xf;
+  while (count-- != 0) {
     horizpre*=10;
+  }
 
   double vertpre=0.01*((d_vertpre>>4)&0xf);
-  count=d_vertpre&0xf;
-  while(count--)
+  count = d_vertpre & 0xf;
+  while (count-- != 0) {
     vertpre*=10;
+  }
 
   char hemLat = 'N';
   uint32_t lat = d_latitude;
