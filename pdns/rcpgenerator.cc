@@ -494,8 +494,8 @@ void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val) // NOLINT(readabil
         }
         std::set<SvcParam::SvcParamKey> keys;
         for (size_t i=0; i < v.length(); i += 2) {
-          uint16_t mand = (v.at(i) << 8);
-          mand += v.at(i+1);
+          uint16_t mand = (static_cast<uint8_t>(v.at(i)) << 8);
+          mand += static_cast<uint8_t>(v.at(i+1));
           keys.insert(SvcParam::SvcParamKey(mand));
         }
         val.insert(SvcParam(key, std::move(keys)));
@@ -521,8 +521,8 @@ void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val) // NOLINT(readabil
         if (v.length() != 2) {
           throw RecordTextException("port in generic format has the wrong length, expected 2, got " + std::to_string(v.length()));
         }
-        port = (v.at(0) << 8);
-        port += v.at(1);
+        port = static_cast<uint8_t>(v.at(0)) << 8;
+        port += static_cast<uint8_t>(v.at(1));
       } else {
         string portstring;
         xfrRFC1035CharString(portstring);
