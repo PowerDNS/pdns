@@ -11,6 +11,7 @@ project(
     'cpp_std=c++17',
   ],
 )
+meson.add_dist_script('meson-dist-script.sh')
 
 add_project_arguments('-DPDNS_AUTH', language: 'cpp')
 
