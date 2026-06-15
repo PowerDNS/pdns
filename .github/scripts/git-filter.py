@@ -52,7 +52,12 @@ def main():
         # - files that live in pdns/ and are used by several products (but
         #   possibly not with the same compilation flags, so it is actually
         #   important that they are processed for all products: pdns/misc.cc
-        path = Path(patch.path)
+        if patch.path in (None, "/dev/null") and patch.target_file not in (None, "/dev/null"):
+            # if this is a rename, prefer the target filename
+            path = Path(patch.target_file)
+        else:
+            path = Path(patch.path)
+
         if product == "auth":
             path = Path(cwd).joinpath(path)
         else:
