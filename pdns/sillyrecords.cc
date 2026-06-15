@@ -155,24 +155,23 @@ std::cerr << content << std::endl;
     throw MOADNSException("Expecting hemisphere in LOC contents");
   }
 
-  uint32_t retval = (((((deg * 60) + min) * 60) + secs) * 1000) + secsfrac;
-
+  bool add{true};
   switch (content.at(pos)) {
   case 'N': case 'n':
     type = LATITUDE;
-    retval = (1U<<31) + retval;
+    add = true;
     break;
   case 'E': case 'e':
     type = LONGITUDE;
-    retval = (1U<<31) + retval;
+    add = true;
     break;
   case 'S': case 's':
     type = LATITUDE;
-    retval = (1U<<31) - retval;
+    add = false;
     break;
   case 'W': case 'w':
     type = LONGITUDE;
-    retval = (1U<<31) - retval;
+    add = false;
     break;
   default:
     throw MOADNSException("Invalid hemisphere specification in LOC contents");
@@ -183,6 +182,14 @@ std::cerr << content << std::endl;
   }
   if (type == LONGITUDE && deg > 180) {
     throw MOADNSException("Invalid longitude degrees in LOC contents");
+  }
+
+  uint32_t retval = (((((deg * 60) + min) * 60) + secs) * 1000) + secsfrac;
+  if (add) {
+    retval = (1U<<31) + retval;
+  }
+  else {
+    retval = (1U<<31) - retval;
   }
 
   ++pos;
