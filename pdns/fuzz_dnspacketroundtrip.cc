@@ -30,6 +30,7 @@
 #include "qtype.hh"
 #include "statbag.hh"
 
+// NOLINTNEXTLINE(readability-identifier-length,bugprone-throwing-static-initialization)
 StatBag S;
 
 bool g_slogStructured{false};
@@ -54,6 +55,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
     return 0;
   }
 
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
   const char* chars = reinterpret_cast<const char*>(data);
 
   try {
@@ -69,46 +71,54 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
     //    records, attacker rdata, name compression, EDNS OPT writing), the
     //    full-packet writer paths that the parse/record fuzzers never reach.
     size_t pos = 0;
-    auto u8 = [&]() -> uint8_t { return pos < size ? data[pos++] : 0; };
-    auto u16 = [&]() -> uint16_t {
-      const uint16_t hi = u8();
-      return static_cast<uint16_t>((hi << 8) | u8());
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    const auto getU8 = [&]() -> uint8_t { return pos < size ? data[pos++] : 0; };
+    const auto getU16 = [&]() -> uint16_t {
+      const uint16_t highV = getU8();
+      return static_cast<uint16_t>((highV << 8) | getU8());
     };
 
-    const uint16_t qtype = u16();
+    const uint16_t qtype = getU16();
     const DNSName qname(".");
     std::vector<uint8_t> packet;
-    DNSPacketWriter pw(packet, qname, qtype);
+    DNSPacketWriter writer(packet, qname, qtype);
 
     static const std::array<const char*, 4> suffixes{".", "example.com.", "a.example.com.", "powerdns.com."};
 
-    const unsigned int records = u8() % 8U;
+    const unsigned int records = getU8() % 8U;
     for (unsigned int i = 0; i < records && pos < size; ++i) {
       // A valid name sharing one of a few suffixes (so the name-compression
       // paths fire) with an attacker-controlled first label.
-      const uint8_t labelLen = u8() % 32U;
+      const uint8_t labelLen = getU8() % 32U;
       std::string label;
       for (uint8_t j = 0; j < labelLen && pos < size; ++j) {
-        label.push_back(static_cast<char>('a' + (u8() % 26)));
+        label.push_back(static_cast<char>('a' + (getU8() % 26)));
       }
-      const std::string suffix = suffixes.at(u8() % suffixes.size());
-      DNSName name(".");
+      const std::string suffix = suffixes.at(getU8() % suffixes.size());
+      DNSName name{};
       try {
-        name = label.empty() ? DNSName(suffix) : DNSName(label + "." + suffix);
+        if (label.empty()) {
+          name = DNSName(suffix);
+        }
+        else {
+          label.append(".");
+          label.append(suffix);
+          name = DNSName(label);
+        }
       }
       catch (...) {
         name = qname;
       }
 
-      const uint16_t rtype = u16();
-      const uint16_t rdlen = u16();
+      const uint16_t rtype = getU16();
+      const uint16_t rdlen = getU16();
       std::string rdata;
       for (uint16_t j = 0; j < rdlen && pos < size; ++j) {
-        rdata.push_back(static_cast<char>(u8()));
+        rdata.push_back(static_cast<char>(getU8()));
       }
 
-      pw.startRecord(name, rtype);
-      pw.xfrBlob(rdata);
+      writer.startRecord(name, rtype);
+      writer.xfrBlob(rdata);
     }
 
     // EDNS OPT writing fed with the attacker-parsed option vector.
@@ -117,17 +127,20 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
       for (const auto& option : options) {
         optvect.emplace_back(option.first, option.second);
       }
-      pw.addOpt(1232, 0, 0, optvect);
+      writer.addOpt(1232, 0, 0, optvect);
     }
-    pw.commit();
+    writer.commit();
 
     // Re-parse the writer's own output.
     if (!packet.empty()) {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
       MOADNSParser reparse(false, reinterpret_cast<const char*>(packet.data()), packet.size());
     }
   }
+  // NOLINTNEXTLINE(bugprone-empty-catch)
   catch (const std::exception& e) {
   }
+  // NOLINTNEXTLINE(bugprone-empty-catch)
   catch (const PDNSException& e) {
   }
 
