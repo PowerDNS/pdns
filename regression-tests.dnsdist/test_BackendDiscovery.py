@@ -117,9 +117,11 @@ class TestBackendDiscovery(DNSDistTest):
     """
     _verboseMode = True
 
+    @staticmethod
     def NoSVCCallback(request):
         return dns.message.make_response(request).to_wire()
 
+    @staticmethod
     def NoUpgradePathCallback(request):
         response = dns.message.make_response(request)
         rrset = dns.rrset.from_text(
@@ -128,6 +130,7 @@ class TestBackendDiscovery(DNSDistTest):
         response.answer.append(rrset)
         return response.to_wire()
 
+    @staticmethod
     def UpgradeDoTCallback(request):
         response = dns.message.make_response(request)
         rrset = dns.rrset.from_text(
@@ -151,6 +154,7 @@ class TestBackendDiscovery(DNSDistTest):
         response.additional.append(rrset)
         return response.to_wire()
 
+    @staticmethod
     def UpgradeDoHCallback(request):
         response = dns.message.make_response(request)
         rrset = dns.rrset.from_text(
@@ -163,6 +167,7 @@ class TestBackendDiscovery(DNSDistTest):
         response.answer.append(rrset)
         return response.to_wire()
 
+    @staticmethod
     def UpgradeDoTDifferentAddr1Callback(request):
         response = dns.message.make_response(request)
         rrset = dns.rrset.from_text(
@@ -175,6 +180,7 @@ class TestBackendDiscovery(DNSDistTest):
         response.answer.append(rrset)
         return response.to_wire()
 
+    @staticmethod
     def UpgradeDoTDifferentAddr2Callback(request):
         response = dns.message.make_response(request)
         rrset = dns.rrset.from_text(
@@ -187,6 +193,7 @@ class TestBackendDiscovery(DNSDistTest):
         response.answer.append(rrset)
         return response.to_wire()
 
+    @staticmethod
     def UpgradeDoTUnreachableCallback(request):
         response = dns.message.make_response(request)
         rrset = dns.rrset.from_text(
@@ -199,12 +206,14 @@ class TestBackendDiscovery(DNSDistTest):
         response.answer.append(rrset)
         return response.to_wire()
 
+    @staticmethod
     def BrokenResponseCallback(request):
         response = dns.message.make_response(request)
         response.use_edns(edns=False)
         response.question = []
         return response.to_wire()
 
+    @staticmethod
     def UpgradeDoHMissingPathCallback(request):
         response = dns.message.make_response(request)
         rrset = dns.rrset.from_text(
@@ -217,30 +226,36 @@ class TestBackendDiscovery(DNSDistTest):
         response.answer.append(rrset)
         return response.to_wire()
 
+    @staticmethod
     def EOFCallback(request):
         return None
 
+    @staticmethod
     def ServFailCallback(request):
         response = dns.message.make_response(request)
         response.set_rcode(dns.rcode.SERVFAIL)
         return response.to_wire()
 
+    @staticmethod
     def WrongNameCallback(request):
         query = dns.message.make_query("not-the-right-one.", dns.rdatatype.SVCB)
         response = dns.message.make_response(query)
         response.id = request.id
         return response.to_wire()
 
+    @staticmethod
     def WrongIDCallback(request):
         response = dns.message.make_response(request)
         response.id = request.id ^ 42
         return response.to_wire()
 
+    @staticmethod
     def TooManyQuestionsCallback(request):
         response = dns.message.make_response(request)
         response.question.append(response.question[0])
         return response.to_wire()
 
+    @staticmethod
     def BadQNameCallback(request):
         response = dns.message.make_response(request)
         wire = bytearray(response.to_wire())
@@ -248,6 +263,7 @@ class TestBackendDiscovery(DNSDistTest):
         wire[12] = 0xFF
         return wire
 
+    @staticmethod
     def UpgradeDoTNoPortCallback(request):
         response = dns.message.make_response(request)
         rrset = dns.rrset.from_text(
@@ -260,6 +276,7 @@ class TestBackendDiscovery(DNSDistTest):
         response.answer.append(rrset)
         return response.to_wire()
 
+    @staticmethod
     def UpgradeDoHNoPortCallback(request):
         response = dns.message.make_response(request)
         rrset = dns.rrset.from_text(

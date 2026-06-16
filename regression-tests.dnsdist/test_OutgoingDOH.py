@@ -617,6 +617,7 @@ class TestOutgoingDOHBrokenResponsesOpenSSL(DNSDistTest, OutgoingDOHBrokenRespon
     addAction(SuffixMatchNodeRule(smn), PoolAction('cache'))
     """
 
+    @staticmethod
     def callback(request, headers, fromQueue, toQueue, conn):
 
         if str(request.question[0].name) == "500-status.broken-responses.outgoing-doh.test.powerdns.com.":
@@ -672,6 +673,7 @@ class TestOutgoingDOHBrokenResponsesGnuTLS(DNSDistTest, OutgoingDOHBrokenRespons
     """
     _verboseMode = True
 
+    @staticmethod
     def callback(request, headers, fromQueue, toQueue, conn):
 
         if str(request.question[0].name) == "500-status.broken-responses.outgoing-doh.test.powerdns.com.":
@@ -776,6 +778,7 @@ class TestOutgoingDOHXForwarded(DNSDistTest):
     """
     _verboseMode = True
 
+    @staticmethod
     def callback(request, headersList, fromQueue, toQueue, conn):
         if str(request.question[0].name) == "a.root-servers.net.":
             # do not check headers on health-check queries

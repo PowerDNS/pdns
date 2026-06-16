@@ -307,6 +307,11 @@ jobs:
       with:
         fetch-depth: 0
         persist-credentials: false
-    - uses: astral-sh/ruff-action@v4.0.0
+    - name: Check Python formatting
+      uses: astral-sh/ruff-action@v4.0.0
       with:
         args: 'format --check --diff'
+    - name: Check method variables
+      uses: astral-sh/ruff-action@v4.0.0
+      with:
+        args: 'check --select N805'

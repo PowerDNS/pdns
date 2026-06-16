@@ -27,6 +27,7 @@ class ExtendedErrorOption(dns.edns.Option):
         file.write(data)
         return None
 
+    @classmethod
     def from_wire(cls, otype, wire, current, olen):
         """Read EDNS packet.
 
@@ -44,8 +45,6 @@ class ExtendedErrorOption(dns.edns.Option):
             extra = b""
 
         return cls(code, extra)
-
-    from_wire = classmethod(from_wire)
 
     # needed in 2.0.0
     @classmethod

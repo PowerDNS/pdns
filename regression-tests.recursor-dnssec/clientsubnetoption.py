@@ -149,7 +149,7 @@ class ClientSubnetOption(dns.edns.Option):
         file.write(data)
         return None
 
-    def from_wire(cls, otype, wire, current, olen):
+    def from_wire(self, otype, wire, current, olen):
         """Read EDNS packet as defined in draft-vandergaast-edns-client-subnet-01.
 
         Returns:
@@ -174,7 +174,7 @@ class ClientSubnetOption(dns.edns.Option):
         else:
             raise Exception("Returned a family other then IPv4 or IPv6")
 
-        return cls(ip, mask, scope, otype)
+        return self(ip, mask, scope, otype)
 
     from_wire = classmethod(from_wire)
 
