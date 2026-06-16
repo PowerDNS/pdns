@@ -1102,7 +1102,7 @@ static void handlePacketCacheConfiguration(const ::rust::Vec<dnsdist::rust::sett
 {
   for (const auto& cache : caches) {
     DNSDistPacketCache::CacheSettings settings{
-      .d_maxEntries = cache.size,
+      .d_maxEntries = static_cast<size_t>(cache.size),
       .d_maxTTL = cache.max_ttl,
       .d_minTTL = cache.min_ttl,
       .d_tempFailureTTL = cache.temporary_failure_ttl,
