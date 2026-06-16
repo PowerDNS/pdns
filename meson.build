@@ -960,6 +960,7 @@ if get_option('fuzz-targets')
   endif
 
   fuzz_targets = [
+    'dnspacketroundtrip',
     'moadnsparser',
     'packetcache',
     'proxyprotocol',
