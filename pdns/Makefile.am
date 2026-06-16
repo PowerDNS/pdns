@@ -1590,7 +1590,8 @@ fuzz_targets_programs =  \
 	fuzz_target_dnslabeltext_parseRFC1035CharString \
 	fuzz_target_yahttp \
 	fuzz_target_zoneparsertng \
-	fuzz_target_recordcontent
+	fuzz_target_recordcontent \
+	fuzz_target_dnspacketroundtrip
 
 fuzz_targets: $(ARC4RANDOM_LIBS) $(fuzz_targets_programs)
 
@@ -1633,6 +1634,32 @@ fuzz_target_moadnsparser_SOURCES = \
 fuzz_target_moadnsparser_DEPENDENCIES = $(fuzz_targets_deps)
 fuzz_target_moadnsparser_LDFLAGS = $(fuzz_targets_ldflags)
 fuzz_target_moadnsparser_LDADD = $(fuzz_targets_libs)
+
+fuzz_target_dnspacketroundtrip_SOURCES = \
+	base32.cc base32.hh \
+	base64.cc base64.hh \
+	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
+	dnsparser.cc dnsparser.hh \
+	dnsrecords.cc dnsrecords.hh \
+	dnswriter.cc dnswriter.hh \
+	ednsoptions.cc ednsoptions.hh \
+	fuzz_dnspacketroundtrip.cc \
+	logger.cc logger.hh \
+	logging.cc logging.hh \
+	misc.cc misc.hh \
+	nsecrecords.cc  \
+	qtype.cc qtype.hh \
+	rcpgenerator.cc rcpgenerator.hh \
+	sillyrecords.cc \
+	statbag.cc statbag.hh \
+	svc-records.cc svc-records.hh \
+	unix_utility.cc \
+	utility.hh
+
+fuzz_target_dnspacketroundtrip_DEPENDENCIES = $(fuzz_targets_deps)
+fuzz_target_dnspacketroundtrip_LDFLAGS = $(fuzz_targets_ldflags)
+fuzz_target_dnspacketroundtrip_LDADD = $(fuzz_targets_libs)
 
 fuzz_target_recordcontent_SOURCES = \
 	base32.cc base32.hh \
