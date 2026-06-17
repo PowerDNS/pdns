@@ -508,6 +508,15 @@ if get_option('fuzz-targets')
        ],
       'fuzzing-target': true,
     },
+    'fuzz-target-dnsdist-ecs' : {
+      'main': src_dir / 'fuzz_dnsdist_ecs.cc',
+      'link-args': fuzzer_ldflags,
+      'files-extra': fuzz_extra_sources,
+      'deps-extra': [
+         dep_libsystemd,
+       ],
+      'fuzzing-target': true,
+    },
   }
   if get_option('xsk').allowed() and dep_libbpf.found() and dep_libxdp.found()
     tools += {
