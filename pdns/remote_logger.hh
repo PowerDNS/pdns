@@ -136,11 +136,13 @@ public:
   RemoteLogger(RemoteLogger&&) = delete;
   RemoteLogger& operator=(const RemoteLogger&) = delete;
   RemoteLogger& operator=(RemoteLogger&&) = delete;
-  RemoteLogger(const ComboAddress& remote, uint16_t timeout = 2,
+  RemoteLogger(const ComboAddress& remote,
+               uint16_t timeout = 2,
                uint64_t maxQueuedBytes = 100000,
                uint8_t reconnectWaitTime = 1,
                bool asyncConnect = false,
-               FrameSize frame = FrameSize::Two);
+               FrameSize frame = FrameSize::Two,
+               time_t stalledWriteTimeoutSeconds = 5);
   ~RemoteLogger() override;
 
   std::string address() const override
@@ -174,10 +176,6 @@ public:
   }
 
 private:
-  // if we have been trying to write for that long without any progress,
-  // the connection is dead
-  static constexpr time_t s_stalledTimeoutSeconds{5};
-
   bool reconnect();
   void maintenanceThread();
   [[nodiscard]] bool connectionStalled();
@@ -190,13 +188,16 @@ private:
   };
 
   ComboAddress d_remote;
+  // if we have been trying to write for that long without any progress,
+  // the connection is dead
+  time_t d_stalledWriteTimeoutSeconds{};
   time_t d_tryingToWriteSince{};
-  uint16_t d_timeout;
-  uint8_t d_reconnectWaitTime;
+  uint16_t d_timeout{};
+  uint8_t d_reconnectWaitTime{};
   std::atomic<bool> d_exiting{false};
   bool d_asyncConnect{false};
 
   LockGuarded<RuntimeData> d_runtime;
   std::thread d_thread;
-  FrameSize d_framesize;
+  FrameSize d_framesize{};
 };

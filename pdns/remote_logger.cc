@@ -144,8 +144,8 @@ const std::string& RemoteLoggerInterface::toErrorString(Result result)
   return str.at(std::min(tmp, 4U));
 }
 
-RemoteLogger::RemoteLogger(const ComboAddress& remote, uint16_t timeout, uint64_t maxQueuedBytes, uint8_t reconnectWaitTime, bool asyncConnect, RemoteLogger::FrameSize frame) :
-  d_remote(remote), d_timeout(timeout), d_reconnectWaitTime(reconnectWaitTime), d_asyncConnect(asyncConnect), d_runtime({CircularWriteBuffer(maxQueuedBytes, frame == FrameSize::Two ? 2 : 4), nullptr}), d_framesize(frame)
+RemoteLogger::RemoteLogger(const ComboAddress& remote, uint16_t timeout, uint64_t maxQueuedBytes, uint8_t reconnectWaitTime, bool asyncConnect, RemoteLogger::FrameSize frame, time_t stalledWriteTimeoutSeconds) :
+  d_remote(remote), d_stalledWriteTimeoutSeconds(stalledWriteTimeoutSeconds), d_timeout(timeout), d_reconnectWaitTime(reconnectWaitTime), d_asyncConnect(asyncConnect), d_runtime({CircularWriteBuffer(maxQueuedBytes, frame == FrameSize::Two ? 2 : 4), nullptr}), d_framesize(frame)
 {
   if (!d_asyncConnect) {
     reconnect();
@@ -340,5 +340,5 @@ bool RemoteLogger::connectionStalled()
     return false;
   }
 
-  return (d_tryingToWriteSince < now && (now - d_tryingToWriteSince) > s_stalledTimeoutSeconds);
+  return (d_tryingToWriteSince < now && (now - d_tryingToWriteSince) > d_stalledWriteTimeoutSeconds);
 }
