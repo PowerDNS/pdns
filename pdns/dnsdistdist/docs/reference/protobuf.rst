@@ -1,10 +1,13 @@
 Protobuf Logging Reference
 ==========================
 
-.. function:: newRemoteLogger(address [, timeout=2[, maxQueuedEntries=100[, reconnectWaitTime=1[, connectionCount=1]]]])
+.. function:: newRemoteLogger(address [, timeout=2[, maxQueuedEntries=100[, reconnectWaitTime=1[, connectionCount=1, stalledWriteTimeout=5]]]])
 
   .. versionchanged:: 2.0.0
     Added the optional ``connectionCount`` parameter.
+
+  .. versionchanged:: 2.2.0
+    Added the optional ``stalledWriteTimeout`` parameter.
 
   Create a Remote Logger object, to use with :func:`RemoteLogAction` and :func:`RemoteLogResponseAction`.
 
@@ -13,6 +16,7 @@ Protobuf Logging Reference
   :param int maxQueuedEntries: Queue this many messages before dropping new ones (e.g. when the remote listener closes the connection)
   :param int reconnectWaitTime: Time in seconds between reconnection attempts
   :param int connectionCount: Number of connections to open to the socket
+  :param int stalledWriteTimeout: If we have been unable to write or buffer data on our side of the TCP socket for that long, in seconds, consider that the remote endpoint has died and reconnect
 
 .. class:: DNSDistProtoBufMessage
 

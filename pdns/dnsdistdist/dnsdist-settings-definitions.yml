@@ -225,6 +225,11 @@ protobuf_logger:
       type: "u64"
       default: 1
       description: "Number of connections to open to the endpoint"
+    - name: "stalled_write_timeout"
+      type: "u32"
+      default: 5
+      description: "If we have been unable to write or buffer data on our side of the TCP socket for that long, in seconds, consider that the remote endpoint has died and reconnect"
+      version_added: "2.2.0"
 
 dnstap_logger:
   description: "Endpoint to send queries and/or responses data to, using the dnstap format"

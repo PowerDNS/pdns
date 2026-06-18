@@ -121,7 +121,7 @@ void setupLuaBindingsProtoBuf(LuaContext& luaCtx, bool client, bool configCheck)
   });
 
   /* RemoteLogger */
-  luaCtx.writeFunction("newRemoteLogger", [client, configCheck](const std::string& remote, std::optional<uint16_t> timeout, std::optional<uint64_t> maxQueuedEntries, std::optional<uint8_t> reconnectWaitTime, std::optional<uint64_t> connectionCount) {
+  luaCtx.writeFunction("newRemoteLogger", [client, configCheck](const std::string& remote, std::optional<uint16_t> timeout, std::optional<uint64_t> maxQueuedEntries, std::optional<uint8_t> reconnectWaitTime, std::optional<uint64_t> connectionCount, std::optional<uint32_t> stalledWriteTimeout) {
     if (client || configCheck) {
       return std::shared_ptr<RemoteLoggerInterface>(nullptr);
     }
@@ -130,7 +130,7 @@ void setupLuaBindingsProtoBuf(LuaContext& luaCtx, bool client, bool configCheck)
       std::vector<std::shared_ptr<RemoteLoggerInterface>> loggers;
       loggers.reserve(count);
       for (uint64_t i = 0; i < count; i++) {
-        loggers.push_back(std::make_shared<RemoteLogger>(ComboAddress(remote), timeout ? *timeout : 2, maxQueuedEntries ? (*maxQueuedEntries * 100) : 10000, reconnectWaitTime ? *reconnectWaitTime : 1, client, RemoteLogger::FrameSize::Two));
+        loggers.push_back(std::make_shared<RemoteLogger>(ComboAddress(remote), timeout ? *timeout : 2, maxQueuedEntries ? (*maxQueuedEntries * 100) : 10000, reconnectWaitTime ? *reconnectWaitTime : 1, client, RemoteLogger::FrameSize::Two, stalledWriteTimeout ? *stalledWriteTimeout : 5));
       }
       return std::shared_ptr<RemoteLoggerInterface>(new RemoteLoggerPool(std::move(loggers)));
     }
