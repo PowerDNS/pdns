@@ -11,19 +11,35 @@ All `dnsdist` features are documented at [dnsdist.org](https://dnsdist.org).
 
 ## Compiling from git
 
-Make sure to `autoreconf -vi` before running `configure`.
+We are now using [Meson](https://mesonbuild.com/) to build dnsdist.
+
+Run `meson setup build`, then `meson compile -C build`.
+
+You can list meson options by running `meson configure`, then set them like this
+(for example for `yaml` option)
+
+`meson setup --reconfigure build -Dyaml=enabled`
+
+The default options for the various builds are in
+[builder-support/debian/dnsdist/](builder-support/debian/dnsdist) - for example
+[here for Debian bookworm](builder-support/debian/dnsdist/debian-bookworm/rules).
 
 ## macOS Notes
 
-Install dependencies from Homebrew:
+Install dependencies from Homebrew for the base build:
 
 ```sh
-brew install autoconf automake boost libedit libsodium libtool lua pkg-config protobuf
+brew install meson luajit pkg-config boost cmake libsodium ragel gnutls libnghttp2 cloudflare-quiche re2
 ```
 
-Let configure know where to find libedit, and openssl or libressl:
+You also need to install pyyaml globally (make sure you are using brew pip3, not the default system one)
 
 ```sh
-./configure 'PKG_CONFIG_PATH=/usr/local/opt/libedit/lib/pkgconfig:/usr/local/opt/libressl/lib/pkgconfig'
-make
+pip3 install pyyaml --break-system-packages
+```
+
+For yaml support (`-Dyaml=enabled`), you also need to install rust
+
+```sh
+brew install rust
 ```

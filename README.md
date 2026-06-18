@@ -116,7 +116,7 @@ See [README.md](pdns/recursordist/README.md) in `pdns/recursordist/`.
 
 Compiling dnsdist
 -----------------
-See [README-dnsdist.md](pdns/README-dnsdist.md) in `pdns/`.
+See [README.md](pdns/dnsdistdist/README.md) in `pdns/dnsdistdist`.
 
 Building the HTML documentation
 -------------------------------
