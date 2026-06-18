@@ -185,6 +185,18 @@ public:
     d_readCallbacks.replace(it, newEntry);
   }
 
+  void resetReadTTD(int fd)
+  {
+    const auto& it = d_readCallbacks.find(fd);
+    if (it == d_readCallbacks.end()) {
+      throw FDMultiplexerException("attempt to timestamp fd not in the multiplexer");
+    }
+
+    auto newEntry = *it;
+    memset(&newEntry.d_ttd, 0, sizeof(newEntry.d_ttd));
+    d_readCallbacks.replace(it, newEntry);
+  }
+
   void setWriteTTD(int fd, struct timeval tv, int timeout)
   {
     const auto& it = d_writeCallbacks.find(fd);
@@ -195,6 +207,18 @@ public:
     auto newEntry = *it;
     tv.tv_sec += timeout;
     newEntry.d_ttd = tv;
+    d_writeCallbacks.replace(it, newEntry);
+  }
+
+  void resetWriteTTD(int fd)
+  {
+    const auto& it = d_writeCallbacks.find(fd);
+    if (it == d_writeCallbacks.end()) {
+      throw FDMultiplexerException("attempt to timestamp fd not in the multiplexer");
+    }
+
+    auto newEntry = *it;
+    memset(&newEntry.d_ttd, 0, sizeof(newEntry.d_ttd));
     d_writeCallbacks.replace(it, newEntry);
   }
 

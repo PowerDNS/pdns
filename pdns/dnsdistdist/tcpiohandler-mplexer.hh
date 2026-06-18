@@ -74,37 +74,6 @@ public:
     return result;
   }
 
-  void add(IOState iostate, FDMultiplexer::callbackfunc_t callback, FDMultiplexer::funcparam_t callbackData, std::optional<struct timeval> ttd)
-  {
-    DEBUGLOG("in " << __PRETTY_FUNCTION__ << " for fd " << d_fd << ", last state was " << getState() << ", adding " << (int)iostate);
-    if (iostate == IOState::NeedRead) {
-      if (isWaitingForRead()) {
-        if (ttd) {
-          /* let's update the TTD ! */
-          d_mplexer.setReadTTD(d_fd, *ttd, /* we pass 0 here because we already have a TTD */ 0);
-        }
-        return;
-      }
-
-      d_mplexer.addReadFD(d_fd, callback, callbackData, ttd ? &*ttd : nullptr);
-      DEBUGLOG(__PRETTY_FUNCTION__ << ": add read FD " << d_fd);
-      d_isWaitingForRead = true;
-    }
-    else if (iostate == IOState::NeedWrite) {
-      if (isWaitingForWrite()) {
-        if (ttd) {
-          /* let's update the TTD ! */
-          d_mplexer.setWriteTTD(d_fd, *ttd, /* we pass 0 here because we already have a TTD */ 0);
-        }
-        return;
-      }
-
-      d_mplexer.addWriteFD(d_fd, callback, callbackData, ttd ? &*ttd : nullptr);
-      DEBUGLOG(__PRETTY_FUNCTION__ << ": add write FD " << d_fd);
-      d_isWaitingForWrite = true;
-    }
-  }
-
   void update(IOState iostate, FDMultiplexer::callbackfunc_t callback = FDMultiplexer::callbackfunc_t(), FDMultiplexer::funcparam_t callbackData = boost::any(), std::optional<struct timeval> ttd = std::nullopt)
   {
     DEBUGLOG("in " << __PRETTY_FUNCTION__ << " for fd " << d_fd << ", last state was " << getState() << " , new state is " << (int)iostate);
@@ -124,6 +93,9 @@ public:
         if (ttd) {
           /* let's update the TTD ! */
           d_mplexer.setReadTTD(d_fd, *ttd, /* we pass 0 here because we already have a TTD */ 0);
+        }
+        else {
+          d_mplexer.resetReadTTD(d_fd);
         }
         return;
       }
@@ -145,6 +117,9 @@ public:
         if (ttd) {
           /* let's update the TTD ! */
           d_mplexer.setWriteTTD(d_fd, *ttd, /* we pass 0 here because we already have a TTD */ 0);
+        }
+        else {
+          d_mplexer.resetWriteTTD(d_fd);
         }
         return;
       }
