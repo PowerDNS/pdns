@@ -622,7 +622,7 @@ Servers
     Removed ``addXPF`` from server_table.
 
   .. versionchanged:: 2.2.0
-    Added ``ecdheCurves`` to server_table.
+    Added ``ecdheCurves`` and ``maxOutstandingQueries`` to server_table.
 
   :param str server_string: A simple IP:PORT string.
   :param table server_table: A table with at least an ``address`` key
@@ -716,6 +716,7 @@ Servers
     ``MACAddr``                              ``str``               "When the ``xskSocket`` option is set, this parameter can be used to specify the destination MAC address to use to reach the backend. If this options is not specified, dnsdist will try to get it from the IP of the backend by looking into the system's MAC address table, but it will fail if the corresponding MAC address is not present."
     ``keyLogFile``                           ``str``               "Write the TLS keys in the specified file so that an external program can decrypt TLS exchanges, in the format described in https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Key_Log_Format. Note that this feature requires OpenSSL >= 1.1.1."
     ``dscp``                                 ``number``            "The DSCP marking value to be applied. Range 0-63. Default is 0 which means no action for DSCP marking."
+    ``maxOutstandingQueries``                ``number``            "Maximum number of outstanding queries assigned to this backend, no matter the protocol used. Default is 0 which means unlimited"
 
 .. function:: getServer(index) -> Server
 
