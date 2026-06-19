@@ -29,7 +29,7 @@ def create_argument_parser():
         "--database",
         type=str,
         required=False,
-        default='',
+        default="",
         help="Path to the directory where the compile_commands.json database can be found",
     )
     return parser.parse_args()
