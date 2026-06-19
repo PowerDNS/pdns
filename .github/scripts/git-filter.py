@@ -25,6 +25,13 @@ def create_argument_parser():
         required=True,
         help="Product (auth, dnsdist or rec)",
     )
+    parser.add_argument(
+        "--database",
+        type=str,
+        required=False,
+        default='',
+        help="Path to the directory where the compile_commands.json database can be found",
+    )
     return parser.parse_args()
 
 
@@ -32,8 +39,8 @@ def main():
     """Start the script."""
     args = create_argument_parser()
     product = args.product
-
-    compdb = helpers.load_compdb("compile_commands.json")
+    compdb_path = os.path.join(args.database, "compile_commands.json")
+    compdb = helpers.load_compdb(compdb_path)
     compdb = helpers.index_compdb(compdb)
 
     cwd = Path(os.getcwd())
