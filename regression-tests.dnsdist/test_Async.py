@@ -153,7 +153,7 @@ class AsyncTests(object):
             "sendDOQQueryWrapper",
         ):
             sender = getattr(self, method)
-            if method in ['sendUDPQuery', 'sendDOHWithNGHTTP2QueryWrapper']:
+            if method in ["sendUDPQuery", "sendDOHWithNGHTTP2QueryWrapper"]:
                 # first time to fill the cache
                 (receivedQuery, receivedResponse) = sender(query, response)
                 receivedQuery.id = query.id

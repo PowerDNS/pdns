@@ -764,6 +764,7 @@ class TestFirstAvailableQPSPacketCacheHits(DNSDistTest):
         if "TCP Responder 2" in self._responsesCounter:
             self.assertEqual(self._responsesCounter["TCP Responder 2"], 0)
 
+
 class TestRoutingNoServer(DNSDistTest):
     _config_template = """
     newServer{address="127.0.0.1:%d", pool="real"}

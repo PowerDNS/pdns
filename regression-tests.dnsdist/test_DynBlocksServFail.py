@@ -47,7 +47,7 @@ class TestDynBlockServFailsCached(DynBlocksTest):
             print(method, "()")
             sender = getattr(self, method)
 
-            if method == 'sendUDPQuery':
+            if method == "sendUDPQuery":
                 # fill the cache
                 (receivedQuery, receivedResponse) = sender(query, expectedResponse)
                 receivedQuery.id = query.id
