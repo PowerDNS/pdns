@@ -91,10 +91,11 @@ def main():
         print(f"{level}: {rel_filename}:{line}: {message} ({name})")
 
         if gh_step_summary:
-            print(
-                f"- **{rel_filename}:{line}** {message} (`{name}`)",
-                file=summary_fp,
-            )
+            with open(gh_step_summary, "a", encoding="utf-8") as summary_fp:
+                print(
+                    f"- **{rel_filename}:{line}** {message} (`{name}`)",
+                    file=summary_fp,
+                )
 
         have_warnings = True
 
