@@ -96,7 +96,7 @@ PowerDNS Version  LMDB Schema version
 5.1.x and up      6 [#]_
 ================  ===================
 
-.. [#] 5.1.x and up add two sub-databases (one for ``lmdb-split-domains-table`` and one for RRset comments).
+.. [#] 5.1.x and up add two sub-databases (one for ``lmdb-split-domains-table``, if enabled, and one for RRset comments).
        Downgrading back to 5.0.x is supported, but those sub-databases will be invisible to 5.0.x.
 
 .. _settings-lmdb-random-ids:
