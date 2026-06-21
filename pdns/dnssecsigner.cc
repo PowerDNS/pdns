@@ -115,14 +115,14 @@ static int getRRSIGsForRRSET(DNSSECKeeper& dsk, const ZoneName& signer, const DN
 {
   if(toSign.empty())
     return -1;
-  uint32_t startOfWeek = getStartOfWeek();
+  auto [startOfWeek, _] = getStartOfWeek();
   RRSIGRecordContent rrc;
   rrc.d_type=signQType;
 
   rrc.d_labels=signQName.countLabels()-signQName.isWildcard();
   rrc.d_originalttl=signTTL;
   rrc.d_siginception=startOfWeek - 7*86400; // XXX should come from zone metadata
-  rrc.d_sigexpire=startOfWeek + 14*86400;
+  rrc.d_sigexpire=startOfWeek + 14*86400 + g_rrsig_expiry_extend;
   rrc.d_signer = signer.operator const DNSName&();
   rrc.d_tag = 0;
 
