@@ -38,6 +38,13 @@ namespace pdns {
     {
       return d_address < arg.d_address; // XXX
     };
+    std::string toString()
+    {
+      if (d_interface) {
+        return d_address.toString() + '@' + d_interface->d_name;
+      }
+      return d_address.toString();
+    }
   };
 
   /*! pick a random query local address for family

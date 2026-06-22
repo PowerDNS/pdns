@@ -2369,7 +2369,7 @@ This value has precedence over :ref:`setting-qname-max-minimize-count`.
         "name": "source_address",
         "section": "outgoing",
         "oldname": "query-local-address",
-        "type": LType.ListSubnets,
+        "type": LType.ListAddressAndInterfaces,
         "default": "0.0.0.0",
         "help": "Source IP address for sending queries",
         "doc": """

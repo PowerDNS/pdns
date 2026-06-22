@@ -80,11 +80,22 @@ namespace pdns
   }
 
   void parseQueryLocalAddress(const std::string &qla) {
-    vector<string> addrs;
+    std::vector<std::string> addrs;
     stringtok(addrs, qla, ", ;");
-    for (const string& addr : addrs) {
-      cerr << "AAA" << addr << endl;
-      AddressAndInterface tmp{ComboAddress{addr}, Interface{ "en7", if_nametoindex("en7")} };
+    for (const string& word : addrs) {
+      vector<std::string> parts;
+      std::string addr;
+      std::optional<Interface> itf;
+      stringtok(parts, word, "@");
+      if (parts.empty()) {
+        continue;
+      }
+      addr = parts.at(0);
+      if (parts.size() >= 2) {
+        itf = Interface{ parts.at(1), if_nametoindex(parts.at(1).data())};
+      }
+
+      AddressAndInterface tmp{ComboAddress{addr}, itf};
       if (tmp.d_address.isIPv4()) {
         g_localQueryAddresses4.emplace_back(std::move(tmp));
         continue;

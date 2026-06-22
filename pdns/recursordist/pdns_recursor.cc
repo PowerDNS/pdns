@@ -188,11 +188,15 @@ int UDPClientSocks::makeClientSocket(int family, const std::optional<pdns::Addre
     }
     else {
       sin = pdns::getQueryLocalAddress(family, port); // does htons for us
-      cerr << "SIN " << !!sin.d_interface << endl;
     }
     if (::bind(ret, reinterpret_cast<struct sockaddr*>(&sin.d_address), sin.d_address.getSocklen()) >= 0) { // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast
       if (sin.d_interface) {
-        // BIND XXX
+        const auto& name = sin.d_interface->d_name;
+        int res = setsockopt(ret, SOL_SOCKET, SO_BINDTODEVICE, name.data(), name.length());
+        if (res != 0) {
+          int err = errno;
+          throw PDNSException("Resolver binding to interface " + name + ": " + stringerror(err));
+        }
         interface = sin.d_interface;
       }
       break;
@@ -330,10 +334,8 @@ LWResult::Result asendto(const void* data, size_t len,
     }
   }
 
-  cerr << "XXX1" << endl;;
   std::optional<pdns::Interface> interface;
   auto ret = t_udpclientsocks->getSocket(toAddress, localAddress, interface, fileDesc);
-  cerr << "XXX2 " << !!interface << endl;
   if (ret != LWResult::Result::Success) {
     return ret;
   }
@@ -347,8 +349,15 @@ LWResult::Result asendto(const void* data, size_t len,
     sent = send(*fileDesc, data, len, 0);
   }
   else {
-    cerr << "XXX " << interface->d_index << endl;
-    sent = sendMsgWithOptions(*fileDesc, data, len, nullptr, &localAddress->d_address, interface->d_index, 0);
+    ComboAddress local;
+    if (localAddress) {
+      local = localAddress->d_address;
+    }
+    else {
+      local.sin4.sin_family = toAddress.sin4.sin_family;
+    }
+    // XXX signedness!
+    sent = sendMsgWithOptions(*fileDesc, data, len, nullptr, &local, interface->d_index, 0);
   }
   if (sent < 0) {
     int tmp = errno;
