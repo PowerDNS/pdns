@@ -1266,4 +1266,11 @@ if python.found()
     # args mentioned in command line become auto-dependency
     command: ['echo', 'Generated', html_docs, docs_tarball, pdf_docs],
   )
+
+  run_target(
+    'html-docs',
+    # args mentioned in command line become auto-dependency
+    command: ['echo', 'Generated', html_docs, docs_tarball],
+  )
+
 endif
