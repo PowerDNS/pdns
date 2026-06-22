@@ -96,8 +96,9 @@ PowerDNS Version  LMDB Schema version
 5.1.x and up      6 [#]_
 ================  ===================
 
-.. [#] 5.1.x and up add two sub-databases (one for ``lmdb-split-domains-table``, if enabled, and one for RRset comments).
-       Downgrading back to 5.0.x is supported, but those sub-databases will be invisible to 5.0.x.
+.. [#] 5.1.x and up add two sub-databases tied to new features in 5.1 (one for ``lmdb-split-domains-table``, if enabled, and one for RRset comments).
+       Downgrading back to 5.0.x is supported, but those sub-databases will be invisible to 5.0.x as the older version doesn't have these features.
+       See :ref:`setting-lmdb-split-domains-table` for an explanation of pdns behavior when toggling that feature in particular.
 
 .. _settings-lmdb-random-ids:
 
@@ -175,6 +176,8 @@ This setting is also available in version 4.9.9.
 to be sent upon startup, unless a ``flush`` command is sent using
 :doc:`pdns_control <../manpages/pdns_control.1>` before stopping the
 PowerDNS Authoritative Server.
+
+.. _setting-lmdb-split-domains-table:
 
 ``lmdb-split-domains-table``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
