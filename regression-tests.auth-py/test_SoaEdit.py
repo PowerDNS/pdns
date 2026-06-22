@@ -42,7 +42,7 @@ PrivateKey: Lt0v0Gol3pRUFM7fDdcy0IWN0O/MnEmVPA+VylL8Y4U=
         """,
     }
 
-    _auth_env = {"LD_PRELOAD": os.environ.get("LIBFAKETIME"), "FAKETIME": "@2025-12-25 00:00:00", "TZ": "UTC"}
+    _auth_env = {"LD_PRELOAD": os.environ.get("LIBFAKETIME"), "FAKETIME": "@2025-12-24 23:59:55", "TZ": "UTC"}
 
     def testSOAQuery(self):
         """Test to verify SOA serials are served correctly"""
@@ -50,7 +50,7 @@ PrivateKey: Lt0v0Gol3pRUFM7fDdcy0IWN0O/MnEmVPA+VylL8Y4U=
         serials = collections.defaultdict(list)
         done = False
 
-        for i in range(15):
+        for i in range(20):
             for j in [1, 2]:
                 query = dns.message.make_query(f"{j}.example.org", "SOA", use_edns=True, want_dnssec=True)
                 res = self.sendUDPQuery(query)
@@ -64,9 +64,10 @@ PrivateKey: Lt0v0Gol3pRUFM7fDdcy0IWN0O/MnEmVPA+VylL8Y4U=
                 serials[j].append(soa[0].serial)
                 self.assertListEqual(serials[j], sorted(serials[j]))
                 print(rrsig[0].expiration)
-                self.assertEqual(
-                    rrsig[0].expiration, 1767830400 + self.extend
-                )  # 2026-01-08 00:00:00 UTC + self.extend, or two weeks plus self.extend seconds after our FAKETIME
+                self.assertIn(
+                    rrsig[0].expiration, (1767830400 + self.extend, 1767830400 + self.extend - 604800)
+                )  # 2026-01-08 00:00:00 UTC + self.extend, that is two weeks plus self.extend seconds after our FAKETIME
+                # or one week earlier since we start running a bit before midnight
 
             if set(serials[1]) == self.expected and set(serials[2]) == self.expected:
                 done = True
