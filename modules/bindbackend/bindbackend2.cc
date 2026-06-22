@@ -1459,13 +1459,16 @@ bool Bind2Backend::createSecondaryDomain(const string& ipAddress, const DNSName&
     throw PDNSException("Unauthorized characters in domain name for bind configuration file");
   }
 
-  string filename = getArg("autoprimary-destdir") + '/';
+  std::string filename = getArg("autoprimary-destdir") + '/';
+  std::string configname{};
   if (domainname.empty()) {
     filename.append("rootzone.");
+    configname = ".";
   }
   else {
     // Make sure the zone file name does not contain path separators.
     filename.append(boost::replace_all_copy(domainname, "/", "\\047"));
+    configname = domainname;
   }
 
   g_log << Logger::Warning << d_logprefix
@@ -1482,8 +1485,8 @@ bool Bind2Backend::createSecondaryDomain(const string& ipAddress, const DNSName&
     }
 
     c_of << endl;
-    c_of << "# AutoSecondary zone '" << domainname << "' (added: " << nowTime() << ") (account: " << account << ')' << endl;
-    c_of << "zone \"" << domainname << "\" {" << endl;
+    c_of << "# AutoSecondary zone '" << configname << "' (added: " << nowTime() << ") (account: " << account << ')' << endl;
+    c_of << "zone \"" << configname << "\" {" << endl;
     c_of << "\ttype secondary;" << endl;
     c_of << "\tfile \"" << filename << "\";" << endl;
     c_of << "\tprimaries { " << ipAddress << "; };" << endl;
