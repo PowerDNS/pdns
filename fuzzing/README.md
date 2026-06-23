@@ -63,6 +63,11 @@ The `corpus` directory contains several sub-directories:
 - `raw-dns-packets/` contains DNS queries and responses as captured on
   the wire. These are used by the `fuzz_target_dnsdistcache`,
   `fuzz_target_moadnsparser` and `fuzz_target_packetcache` targets ;
+- `raw-xsk-frames` contains Ethernet frames containing IP-encapsulated
+  DNS queries and responses, as parsed by dnsdist's `AF_XDP`/`XSK` code.
+  These are used by the `fuzz_xsk` target ;
+- `txt-records` contains DNS TXT records in zone format, and are used by the
+  `fuzz_target_dnslabeltext_parseRFC1035CharString` target ;
 - `zones/` contains DNS zones, used by the `fuzz_target_zoneparsertng`
   target.
 
