@@ -112,3 +112,19 @@ Then run the thing:
 ```
 
 The [LLVM docs](https://llvm.org/docs/LibFuzzer.html) have more info.
+
+
+Continuous fuzzing
+------------------
+
+PowerDNS fuzzing targets are regularly run on Google's OSS-Fuzz platform: https://google.github.io/oss-fuzz/
+
+The PowerDNS fuzzing project configuration can be found in the OSS-Fuzz repository: https://github.com/google/oss-fuzz/tree/master/projects/powerdns
+
+Issues uncovered on OSS-Fuzz are privately reported to the contacts listed in the `project.yaml` file, and are subject to a fixed 90-days disclosure timeline by default. A reproducer testcase is provided with the issue, and can be passed to the corresponding fuzzing target as its first argument on the command-line to reproduce the issue.
+Once an issue has been fixed in the public repository and confirmed fixed by OSS-Fuzz, the issue is automatically made public. See for example: https://issues.oss-fuzz.com/issues/523165457
+
+The current status of the project can be reviewed on OSS-Fuzz's introspector: https://introspector.oss-fuzz.com/project-profile?project=powerdns
+
+In addition to OSS-Fuzz, the fuzzing targets are also executed for each pull request opened against the public PowerDNS repository, using CI-Fuzz via the workflow defined in `.github/workflows/fuzz.yml`.
+On CI-Fuzz, only fuzzing targets related to code that has been modified by the current pull request are executed, the others are skipped. The fuzzer is executed for a short period: 600 seconds in our case, so it will not catch all issues, but it gives the fuzzer a chance to catch it early in the process, before a PR has been merged.
