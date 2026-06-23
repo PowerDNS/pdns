@@ -17,8 +17,10 @@ RUN apt-get install -y --no-install-recommends \
         devscripts \
         equivs \
         git \
+        cmake \
         curl \
         jq \
+        libclang-dev \
         meson \
         ninja-build
 
