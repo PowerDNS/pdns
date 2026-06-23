@@ -459,6 +459,22 @@ class AuthZones(ZonesApiTestCase, AuthZonesHelperMixin):
             ],
         )
 
+    def test_create_zone_with_generic_records(self):
+        name = unique_zone_name()
+        rrset = {
+            "name": name,
+            "type": "TYPE1234",
+            "ttl": 3600,
+            "records": [{
+                "content": "\\# 2 4142",
+                "disabled": False,
+            }],
+        }
+        name, payload, data = self.create_zone(name=name, rrsets=[rrset])
+        # check our record has appeared
+        self.assertEqual(get_rrset(data, name, 'TYPE1234')['records'], rrset['records'])
+
+
     def test_create_zone_with_wildcard_records(self):
         name = unique_zone_name()
         rrset = {
