@@ -2,24 +2,31 @@ Fuzzing the PowerDNS products
 -----------------------------
 
 This repository contains several fuzzing targets that can be used with generic
-fuzzing engines like AFL and libFuzzer.
+fuzzing engines like AFL and libFuzzer. Most targets are part of the authoritative
+server build, but there are also a few targets that are specific to dnsdist and are
+therefore built along with dnsdist.
 
-These targets are built by passing the `--enable-fuzz-targets` option to the
-configure of the authoritative server and dnsdist, then building them as usual.
-You can also build only these targets manually by going into the pdns/ directory
-and issuing a `make fuzz_targets` command for the authoritative server,
-or going into the pdns/dnsdistdist and issuing a `make fuzz_targets` command for
-dnsdist.
+The targets are built by passing the `fuzz-targets=true` option to `meson`,
+or the `--enable-fuzz-targets` option to `configure` when building with `autotools`,
+then building as usual.
+You can also build only these targets manually by:
+- issuing `meson compile fuzz-targets` when using `meson`, or going into the pdns/
+directory and issuing a `make fuzz_targets` command for the authoritative server targets,
+- going into the pdns/dnsdistdist directorty and issuing `meson compile -C ${build_dir} fuzz-targets`
+or a `make fuzz_targets` command for dnsdist targets.
 
 The current targets cover:
 - the auth and rec packet cache (`fuzz_target_packetcache`) ;
 - MOADNSParser (`fuzz_target_moadnsparser`) ;
+- getEDNSOptions, getEDNSOptionsFromContent, DNSPacketWriter and MOADNSParser (`fuzz_target_dnspacketroundtrip`) ;
+- DNSRecordContent (`fuzz_recordcontent`) ;
 - the Proxy Protocol parser (`fuzz_target_proxyprotocol`) ;
 - the HTTP parser we use (YaHTTP, `fuzz_target_yahttp`) ;
 - ZoneParserTNG (`fuzz_target_zoneparsertng`).
 - Parts of the ragel-generated parser (`parseRFC1035CharString` in
   `fuzz_target_dnslabeltext`) ;
-- the dnsdist packet cache (`fuzz_target_dnsdistcache`).
+- the dnsdist packet cache (`fuzz_target_dnsdistcache`) ;
+- EDNS Client Subnet handling in dnsdist (`fuzz_dnsdist_ecs`).
 
 By default the targets are linked against a standalone target,
 `standalone_fuzz_target_runner.cc`, which does no fuzzing but makes it easy
@@ -48,7 +55,7 @@ Corpus
 This directory contains a few files used for continuous fuzzing
 of the PowerDNS products.
 
-The `corpus` directory contains three sub-directories:
+The `corpus` directory contains several sub-directories:
 - `http-raw-payloads/` contains HTTP payloads of queries, used by
   `fuzz_target_yahttp` ;
 - `proxy-protocol-raw-packets/` contains DNS queries prefixed with a Proxy
