@@ -147,14 +147,24 @@ uint16_t QType::chartocode(const char *p)
   if (num != names.cend()) {
     return num->second;
   }
+
+  const char *digits{nullptr};
   if (*p == '#') {
-    return static_cast<uint16_t>(atoi(p + 1));
+    digits = p + 1; // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
   }
-
-  if (boost::starts_with(P, "TYPE")) {
-    return static_cast<uint16_t>(atoi(p + 4));
+  else if (boost::starts_with(P, "TYPE")) {
+    digits = p + 4; // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
   }
-
+  if (digits != nullptr) {
+   // We would ideally return pdns::checked_stoi<uint16_t>(digits) here, but
+   // not all callers are ready to handle exceptions arising here.
+   char *end{nullptr};
+   unsigned long typeno = strtoul(digits, &end, 10);
+   if (typeno <= std::numeric_limits<uint16_t>::max() && end != digits && (*end == '\0' || isspace(static_cast<int>(*end)) != 0)) {
+     return typeno;
+   }
+  }
+  // Similarly, we would ideally throw std::invalid_argument here, but won't yet.
   return 0;
 }
 
