@@ -4274,12 +4274,13 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
     }
 
     if (rec->d_type == QType::NSEC) {
-      if (auto* nsecRecord = getRR<NSECRecordContent>(*rec); nsecRecord != nullptr) {
+      if (auto nsecRecord = getRR<NSECRecordContent>(*rec); nsecRecord != nullptr) {
         if (!nsecRecord->d_next.isPartOf(auth)) {
           LOG(prefix << qname << ": Removing NSEC record '" << rec->toString() << "' in the " << DNSResourceRecord::placeString(rec->d_place) << " section received from " << auth << " whose next name does belong to a different zone" << endl);
           skipvec[counter] = true;
           ++skipCount;
           continue;
+        }
       }
     }
 
