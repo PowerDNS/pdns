@@ -1092,7 +1092,7 @@ vState validateWithKeySet(time_t now, const DNSName& name, const sortedRecords_t
       continue;
     }
     if (!isRRSIGLabelCountValid(*signature)) {
-      VLOG(log, name << ": Discarding invalid RRSIG whose label count is " << signature->d_labels << " while the signer has only " << signature->d_signer.countLabels() << endl);
+      VLOG(log, name << ": Discarding invalid RRSIG whose label count is " << signature->d_labels << ", not enough to match the signer which has " << signature->d_signer.countLabels() << endl);
       continue;
     }
     allDiscarded = false;
