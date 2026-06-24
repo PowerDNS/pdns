@@ -327,6 +327,11 @@ void AggressiveNSECCache::insertNSEC(const DNSName& zone, const DNSName& owner, 
         return;
       }
 
+      if (!next.isPartOf(zone)) {
+        /* the next name is not part of the zone, something is very wrong */
+        return;
+      }
+
       if (isMinimallyCoveringNSEC(owner, content)) {
         /* not accepting minimally covering answers since they only deny one name */
         return;
