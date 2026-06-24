@@ -234,6 +234,12 @@ bool denialProvesNoDelegation(const DNSName& zone, const std::vector<DNSRecord>&
   return false;
 }
 
+static bool isRRSIGLabelCountValid(const RRSIGRecordContent& sign)
+{
+  const auto signerLabelCount = sign.d_signer.countLabels();
+  return sign.d_labels >= signerLabelCount;
+}
+
 /* RFC 4035 section-5.3.4:
    "If the number of labels in an RRset's owner name is greater than the
    Labels field of the covering RRSIG RR, then the RRset and its
@@ -241,7 +247,7 @@ bool denialProvesNoDelegation(const DNSName& zone, const std::vector<DNSRecord>&
 */
 bool isWildcardExpanded(unsigned int labelCount, const RRSIGRecordContent& sign)
 {
-  return sign.d_labels < labelCount;
+  return sign.d_labels < labelCount && isRRSIGLabelCountValid(sign);
 }
 
 static bool isWildcardExpanded(const DNSName& owner, const std::vector<std::shared_ptr<const RRSIGRecordContent>>& signatures)
@@ -258,7 +264,7 @@ static bool isWildcardExpanded(const DNSName& owner, const std::vector<std::shar
 bool isWildcardExpandedOntoItself(const DNSName& owner, unsigned int labelCount, const RRSIGRecordContent& sign)
 {
   /* this is a wildcard alright, but it has not been expanded */
-  return owner.isWildcard() && (labelCount - 1) == sign.d_labels;
+  return owner.isWildcard() && (labelCount - 1) == sign.d_labels && isRRSIGLabelCountValid(sign);
 }
 
 static bool isWildcardExpandedOntoItself(const DNSName& owner, const std::vector<std::shared_ptr<const RRSIGRecordContent>>& signatures)
@@ -284,7 +290,7 @@ DNSName getNSECOwnerName(const DNSName& initialOwner, const std::vector<std::sha
 
   const auto& sign = signatures.at(0);
   unsigned int labelsCount = initialOwner.countLabels();
-  if (sign && sign->d_labels < labelsCount) {
+  if (sign && sign->d_labels < labelsCount && isRRSIGLabelCountValid(*sign)) {
     do {
       result.chopOff();
       labelsCount--;
@@ -1085,9 +1091,8 @@ vState validateWithKeySet(time_t now, const DNSName& name, const sortedRecords_t
       VLOG(log, name << ": Discarding invalid RRSIG whose label count is " << signature->d_labels << " while the RRset owner name has only " << labelCount << endl);
       continue;
     }
-    const auto signerLabelsCount = signature->d_signer.countLabels();
-    if (signature->d_labels < signerLabelsCount) {
-      VLOG(log, name << ": Discarding invalid RRSIG whose label count is " << signature->d_labels << " while the signer has only " << signerLabelsCount << endl);
+    if (!isRRSIGLabelCountValid(*signature)) {
+      VLOG(log, name << ": Discarding invalid RRSIG whose label count is " << signature->d_labels << " while the signer has only " << signature->d_signer.countLabels() << endl);
       continue;
     }
     allDiscarded = false;
