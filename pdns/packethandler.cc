@@ -701,7 +701,7 @@ void PacketHandler::computeNSECbitmap1(NSECBitmap& bitmap)
 
 // Common part to NSEC and NSEC3 to compute the QType bitmap in the NSEC
 // or NSEC3 response, part 2.
-void PacketHandler::computeNSECbitmap2(NSECBitmap& bitmap, const DNSName& name, bool includeENT)
+void PacketHandler::computeNSECbitmap2(NSECBitmap& bitmap, const DNSName& name)
 {
   DNSZoneRecord rec;
 #ifdef HAVE_LUA_RECORDS
@@ -736,11 +736,8 @@ void PacketHandler::computeNSECbitmap2(NSECBitmap& bitmap, const DNSName& name, 
     else if((rec.dr.d_type == QType::DNSKEY || rec.dr.d_type == QType::CDS || rec.dr.d_type == QType::CDNSKEY) && !isPresigned() && !::arg().mustDo("direct-dnskey")) {
       continue;
     }
-    else if (rec.dr.d_type == QType::NS || rec.auth) {
-      // skip empty non-terminals unless explicitly requested
-      if (rec.dr.d_type != QType::ENT || includeENT) {
-        bitmap.set(rec.dr.d_type);
-      }
+    else if (rec.dr.d_type == QType::NS || (rec.dr.d_type != QType::ENT && rec.auth)) { // skip empty non-terminals
+      bitmap.set(rec.dr.d_type);
     }
   }
 }
@@ -751,7 +748,7 @@ void PacketHandler::emitNSEC(std::unique_ptr<DNSPacket>& r, const DNSName& name,
   if (d_sd.qname() == name) {
     computeNSECbitmap1(bitmap);
   }
-  computeNSECbitmap2(bitmap, name, true);
+  computeNSECbitmap2(bitmap, name);
 
   NSECRecordContent nrc;
   nrc.d_next = next;
@@ -789,7 +786,7 @@ void PacketHandler::emitNSEC3(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const
         bitmap.set(QType::CDNSKEY);
       }
     }
-    computeNSECbitmap2(bitmap, name, false); // skip empty non-terminals
+    computeNSECbitmap2(bitmap, name);
   }
 
   NSEC3RecordContent n3rc;
