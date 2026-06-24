@@ -1075,6 +1075,7 @@ vState validateWithKeySet(time_t now, const DNSName& name, const sortedRecords_t
   bool missingKey = false;
   bool isValid = false;
   bool allExpired = true;
+  bool allDiscarded = true;
   bool noneIncepted = true;
   uint16_t signaturesConsidered = 0;
 
@@ -1084,6 +1085,12 @@ vState validateWithKeySet(time_t now, const DNSName& name, const sortedRecords_t
       VLOG(log, name << ": Discarding invalid RRSIG whose label count is " << signature->d_labels << " while the RRset owner name has only " << labelCount << endl);
       continue;
     }
+    const auto signerLabelsCount = signature->d_signer.countLabels();
+    if (signature->d_labels < signerLabelsCount) {
+      VLOG(log, name << ": Discarding invalid RRSIG whose label count is " << signature->d_labels << " while the signer has only " << signerLabelsCount << endl);
+      continue;
+    }
+    allDiscarded = false;
 
     vState ede = vState::Indeterminate;
     if (!DNSCryptoKeyEngine::isAlgorithmSupported(signature->d_algorithm)) {
@@ -1156,6 +1163,9 @@ vState validateWithKeySet(time_t now, const DNSName& name, const sortedRecords_t
     return vState::Secure;
   }
   if (missingKey) {
+    return vState::BogusNoValidRRSIG;
+  }
+  if (allDiscarded) {
     return vState::BogusNoValidRRSIG;
   }
   if (noneIncepted) {
