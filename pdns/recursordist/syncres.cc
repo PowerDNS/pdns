@@ -4273,6 +4273,16 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
       continue;
     }
 
+    if (rec->d_type == QType::NSEC) {
+      if (auto* nsecRecord = getRR<NSECRecordContent>(*rec); nsecRecord != nullptr) {
+        if (!nsecRecord->d_next.isPartOf(auth)) {
+          LOG(prefix << qname << ": Removing NSEC record '" << rec->toString() << "' in the " << DNSResourceRecord::placeString(rec->d_place) << " section received from " << auth << " whose next name does belong to a different zone" << endl);
+          skipvec[counter] = true;
+          ++skipCount;
+          continue;
+      }
+    }
+
     // Disallow QType DNAME in non-answer section or containing an answer that is not a parent of or equal to the question name
     // i.e. disallowed bar.example.com. DNAME bar.example.net. when asking foo.example.com
     // But allow it when asking for foo.bar.example.com.
