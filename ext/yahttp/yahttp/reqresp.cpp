@@ -181,7 +181,12 @@ namespace YaHTTP {
         if (chunk_size == 0) {
           char buf[100];
           // read chunk length
-          if ((pos = buffer.find('\n')) == std::string::npos) return false;
+          if ((pos = buffer.find('\n')) == std::string::npos) {
+            if (buffer.size() > 99) {
+              throw ParseError("Nonsensical chunk_size");
+            }
+            return false;
+          }
           if (pos > 99)
             throw ParseError("Impossible chunk_size");
           buffer.copy(buf, pos);
