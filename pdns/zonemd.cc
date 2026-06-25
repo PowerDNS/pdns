@@ -117,6 +117,9 @@ void pdns::ZoneMD::processRecord(const DNSRecord& record)
       }
       break;
     }
+    default:
+      // nothing
+      break;
     }
   }
 }
@@ -153,6 +156,9 @@ void pdns::ZoneMD::readRecord(const DNSRecord& record)
       }
       break;
     }
+    default:
+      // nothing
+      break;
     }
   }
   RRSetKey_t key = std::pair(record.d_name, record.d_type);
@@ -226,6 +232,9 @@ void pdns::ZoneMD::verify(bool& validationDone, bool& validationOK)
     for (auto& resourceRecord : rrset.second) {
       if (qtype == QType::RRSIG) {
         const auto rrsig = std::dynamic_pointer_cast<const RRSIGRecordContent>(resourceRecord);
+        if (rrsig == nullptr) {
+          continue;
+        }
         if (rrsig->d_type == QType::ZONEMD && qname == DNSName(d_zone)) {
           continue;
         }
@@ -248,7 +257,10 @@ void pdns::ZoneMD::verify(bool& validationDone, bool& validationOK)
       // RRSIG is special, since  original TTL depends on qtype covered by RRSIG
       // which can be different per record
       for (const auto& rrsig : sorted) {
-        auto rrsigc = std::dynamic_pointer_cast<const RRSIGRecordContent>(rrsig);
+        const auto rrsigc = std::dynamic_pointer_cast<const RRSIGRecordContent>(rrsig);
+        if (rrsigc == nullptr) {
+          continue;
+        }
         RRSIGRecordContent rrc;
         rrc.d_originalttl = d_resourceRecordSetTTLs[pair(rrset.first.first, rrsigc->d_type)];
         rrc.d_type = qtype;
@@ -259,8 +271,16 @@ void pdns::ZoneMD::verify(bool& validationDone, bool& validationOK)
   }
 
   // Final verify
-  for (const auto& [k, v] : d_zonemdRecords) {
-    auto [zonemd, duplicate] = v;
+  for (const auto& record : d_zonemdRecords) {
+    const auto scheme = record.first.first;
+    const auto duplicate = record.second.duplicate;
+    if (scheme != 1 || duplicate) {
+      continue;
+    }
+    const auto zonemd = record.second.record;
+    if (zonemd->d_serial != d_soaRecordContent->d_st.serial) {
+      continue;
+    }
     if (zonemd->d_hashalgo == 1 && sha384digest) {
       validationDone = true;
       auto computed = sha384digest->digest();
