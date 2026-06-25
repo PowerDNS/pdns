@@ -957,9 +957,10 @@ public:
       return Action::None;
     }
 
-    std::string optRData;
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    generateEDNSOption(d_code, reinterpret_cast<const char*>(mac.data()), optRData);
+    std::string macStr(reinterpret_cast<const char*>(mac.data()), mac.size());
+    std::string optRData;
+    generateEDNSOption(d_code, macStr, optRData);
 
     if (dnsquestion->getHeader()->arcount > 0) {
       bool ednsAdded = false;
