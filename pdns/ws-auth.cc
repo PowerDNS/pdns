@@ -2706,7 +2706,12 @@ static applyResult applyPruneOrExtend(const DomainInfo& domainInfo, const ZoneNa
     if (operationType == EXTEND && !seenRecord) {
       rrset.emplace_back(new_record);
     }
-    bool submitChanges = (operationType == EXTEND && !seenRecord) || (operationType == PRUNE && seenRecord);
+    // clang-format off
+    bool submitChanges =
+      boolFromJson(container, "write_unchanged", false) ||
+      (operationType == EXTEND && !seenRecord) ||
+      (operationType == PRUNE && seenRecord);
+    // clang-format on
     if (!submitChanges) {
       return NOP;
     }

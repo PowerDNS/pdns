@@ -1949,6 +1949,62 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         self.assertIn(a2, records)
         self.assertIn(a4, records)
 
+    @unittest.skipIf(not is_auth_lmdb(), "No rrset timestamps except with LMDB")
+    def test_zone_rr_update_with_forced_extend(self):
+        name, payload, zone = self.create_zone()
+        # add a record
+        rec = {"content": "1.2.3.4", "disabled": False}
+        rrset = {"changetype": "extend", "name": "a." + name, "type": "A", "ttl": 3600, "records": [rec]}
+        payload = {"rrsets": [rrset]}
+        r = self.session.patch(
+            self.url("/api/v1/servers/localhost/zones/" + name),
+            data=json.dumps(payload),
+            headers={"content-type": "application/json"},
+        )
+        self.assert_success(r)
+        data = self.get_zone(name)
+        self.assertEqual(get_rrset(data, "a." + name, "A")["records"], rrset["records"])
+        # reload the zone because get_rrset above has removed the timestamps
+        data = self.get_zone(name)
+        # force update of the record with a different timestamp
+        time.sleep(1)
+        rrset = {
+            "changetype": "extend",
+            "name": "a." + name,
+            "type": "A",
+            "ttl": 3600,
+            "records": [rec],
+            "write_unchanged": True,
+        }
+        payload = {"rrsets": [rrset]}
+        r = self.session.patch(
+            self.url("/api/v1/servers/localhost/zones/" + name),
+            data=json.dumps(payload),
+            headers={"content-type": "application/json"},
+        )
+        self.assert_success(r)
+        # verify the zone contents
+        data1 = self.get_zone(name)
+        # not using get_rrset() here so as NOT to remove timestamps
+        before = None
+        for rrset in data["rrsets"]:
+            if rrset["name"] == "a." + name:
+                before = rrset["records"]
+                break
+        after = None
+        for rrset in data1["rrsets"]:
+            if rrset["name"] == "a." + name:
+                after = rrset["records"]
+                break
+        self.assertEqual(len(before), 1)
+        self.assertEqual(len(after), 1)
+        before = before[0]
+        after = after[0]
+        self.assertNotEqual(before["modified_at"], after["modified_at"])
+        del before["modified_at"]
+        del after["modified_at"]
+        self.assertEqual(before, after)
+
     def test_zone_disable_reenable(self):
         # This also tests that SOA-EDIT-API works.
         name, payload, zone = self.create_zone(soa_edit_api="EPOCH")
