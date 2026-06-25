@@ -2,13 +2,28 @@ Changelogs for 5.0.x
 ====================
 
 .. changelog::
+  :version: 5.0.6
+  :released: 25th of June 2026
+
+  This is release 5.0.6 of the Authoritative Server.
+  It contains a security fix only.
+
+  Please review the :doc:`Upgrade Notes <../upgrading>` before upgrading from versions < 5.0.x.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17590
+
+    Fix PowerDNS Security Advisory 2026-07 for PowerDNS Authoritative Server
+
+.. changelog::
   :version: 5.0.5
   :released: 20th of May 2026
 
   This is release 5.0.5 of the Authoritative Server.
   It contains bug fixes and security fixes.
 
-  Please review the :doc:`Upgrade Notes <../upgrading>` before upgrading from versions < 4.9.x.
+  Please review the :doc:`Upgrade Notes <../upgrading>` before upgrading from versions < 5.0.x.
 
   .. change::
     :tags: Bug Fixes
@@ -107,7 +122,7 @@ Changelogs for 5.0.x
   This is release 5.0.4 of the Authoritative Server.
   It contains security fixes only.
 
-  Please review the :doc:`Upgrade Notes <../upgrading>` before upgrading from versions < 4.9.x.
+  Please review the :doc:`Upgrade Notes <../upgrading>` before upgrading from versions < 5.0.x.
 
   .. change::
     :tags: Bug Fixes
