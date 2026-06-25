@@ -108,10 +108,10 @@ The remedy is: upgrade to a patched version.
 
 We would like to thank Vitaly Simonovich for bringing this issue to our attention.
 
-CVE-2026-42390: Reject more queries with invalid header values
+CVE-2026-42389: Reject more queries with invalid header values
 --------------------------------------------------------------
 
-- CVE: CVE-2026-42390
+- CVE: CVE-2026-42389
 - Date: 2026-06-25T00:00:00+01:00
 - Discovery date: 2026-04-20T00:00:00+01:00
 - Affects: PowerDNS Recursor from 5.4.0 up to and including 5.4.2
