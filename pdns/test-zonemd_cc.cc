@@ -110,4 +110,9 @@ BOOST_AUTO_TEST_CASE(test_zonemd14)
   testZoneMD("example", "zonemd-invalidscheme.zone", false, true, false);
 }
 
+BOOST_AUTO_TEST_CASE(test_zonemd15)
+{
+  testZoneMD("example", "zonemd-scheme0.zone", false, true, false);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

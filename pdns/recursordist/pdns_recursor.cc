@@ -1576,6 +1576,10 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
   sendit:;
 
     if (g_useIncomingECS && comboWriter->d_ecsFound && !resolver.wasVariable() && !variableAnswer) {
+      // The moment we add an ECS option we should no longer packet cache this.  An alternative is to
+      // overwrite the ECS info after retrieval from the packet cache, but that is much more
+      // complicated.
+      variableAnswer = true;
       EDNSSubnetOpts ednsOptions;
       ednsOptions.setSource(comboWriter->d_ednssubnet.getSource());
       ComboAddress sourceAddr;
@@ -3026,6 +3030,12 @@ static void handleUDPServerResponse(int fileDesc, FDMultiplexer::funcparam_t& va
     if (g_logCommonErrors) {
       g_slogout->info(Logr::Error, "Not taking data from question on outgoing socket", "from", Logging::Loggable(fromaddr));
     }
+    t_Counters.at(rec::Counter::unexpectedCount)++;
+    return;
+  }
+
+  if (ntohs(dnsheader.qdcount) != 1 && (ntohs(dnsheader.ancount) > 0 || ntohs(dnsheader.nscount) > 0 || ntohs(dnsheader.arcount) > 0)) {
+    g_slogout->info(Logr::Error, "Invalid qdcount in answer", "from", Logging::Loggable(fromaddr));
     t_Counters.at(rec::Counter::unexpectedCount)++;
     return;
   }
