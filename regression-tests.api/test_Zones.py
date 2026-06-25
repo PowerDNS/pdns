@@ -461,7 +461,7 @@ class AuthZones(ZonesApiTestCase, AuthZonesHelperMixin):
 
     def test_create_zone_with_generic_records(self):
         name = unique_zone_name()
-        rrset = {
+        rrset1 = {
             "name": name,
             "type": "TYPE65420",
             "ttl": 3600,
@@ -472,9 +472,21 @@ class AuthZones(ZonesApiTestCase, AuthZonesHelperMixin):
                 }
             ],
         }
-        name, payload, data = self.create_zone(name=name, rrsets=[rrset])
+        rrset2 = {
+            "name": name,
+            "type": "TYPE65421",
+            "ttl": 3600,
+            "records": [
+                {
+                    "content": "\\# 0",
+                    "disabled": False,
+                }
+            ],
+        }
+        name, payload, data = self.create_zone(name=name, rrsets=[rrset1, rrset2])
         # check our record has appeared
-        self.assertEqual(get_rrset(data, name, "TYPE65420")["records"], rrset["records"])
+        self.assertEqual(get_rrset(data, name, "TYPE65420")["records"], rrset1["records"])
+        self.assertEqual(get_rrset(data, name, "TYPE65421")["records"][0]["content"], "\\# 0")
 
     def test_create_zone_with_wildcard_records(self):
         name = unique_zone_name()

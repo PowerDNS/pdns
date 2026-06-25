@@ -70,11 +70,14 @@ UnknownRecordContent::UnknownRecordContent(const string& zone)
 string UnknownRecordContent::getZoneRepresentation(bool /* noDot */) const
 {
   ostringstream str;
-  str<<"\\# "<<(unsigned int)d_record.size()<<" ";
-  char hex[4];
-  for (unsigned char n : d_record) {
-    snprintf(hex, sizeof(hex), "%02x", n);
-    str << hex;
+  str<<"\\# "<<(unsigned int)d_record.size();
+  if (!d_record.empty()) {
+    char hex[4];
+    str<<" ";
+    for (unsigned char n : d_record) {
+      snprintf(hex, sizeof(hex), "%02x", n);
+      str << hex;
+    }
   }
   return str.str();
 }
