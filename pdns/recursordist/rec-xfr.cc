@@ -225,6 +225,10 @@ static shared_ptr<const SOARecordContent> loadZoneFromServer(Logr::log_t plogger
     zone->clear();
     throw PDNSException("duplicate PTR values in catalog zone");
   }
+  if (!soaRecordContent) {
+    zone->clear();
+    throw PDNSException("No valid SOA found in catalog zone AXFR");
+  }
   logger->info(Logr::Info, "Zone load completed", "nrecords", Logging::Loggable(nrecords), "soa", Logging::Loggable(soaRecordContent->getZoneRepresentation()));
   return soaRecordContent;
 }
