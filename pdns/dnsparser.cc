@@ -72,11 +72,11 @@ string UnknownRecordContent::getZoneRepresentation(bool /* noDot */) const
   ostringstream str;
   str<<"\\# "<<(unsigned int)d_record.size();
   if (!d_record.empty()) {
-    char hex[4];
-    str<<" ";
-    for (unsigned char n : d_record) {
-      snprintf(hex, sizeof(hex), "%02x", n);
-      str << hex;
+    std::array<char,4> hex{};
+    str << " ";
+    for (auto byte : d_record) {
+      snprintf(hex.data(), hex.size(), "%02x", byte);
+      str << hex.data();
     }
   }
   return str.str();
