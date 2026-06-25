@@ -2,6 +2,98 @@ Changelog
 =========
 
 .. changelog::
+  :version: 2.0.7
+  :released: 25th of June 2026
+
+  .. change::
+    :tags: Bug Fixes, Security, Webserver
+    :pullreq: 17588
+
+    CVE-2026-42005: An attacker can send a web request that causes unlimited memory allocation in the internal web server, leading to a denial of service. The internal web server is disabled by default.
+
+  .. change::
+    :tags: Bug Fixes, Security, Metrics
+    :pullreq: 17600
+
+    CVE-2026-40011: An attacker sending a large number of crafted DNS queries might be able to trigger a dynamic block being inserted with a value causing invalid output to be produced in the prometheus endpoint. The prometheus endpoint will then be rejected by the scraper until the dynamic block expires.
+
+  .. change::
+    :tags: Bug Fixes, Security, DNS over HTTP3
+    :pullreq: 17601
+
+    CVE-2026-40211: An attacker can send crafted DNS over HTTP/3 queries, triggering an exception that prevents some buffer from being freed right away. The buffer will be freed at the end of the QUIC connection, but on some setups it might be possible to open enough concurrent DoH3 streams to trigger an out-of-memory condition, resulting in a denial of service.
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: 17603
+
+    CVE-2026-40210: An out-of-bounds read might happen when SetMacAddrAction is used, potentially resulting in uninitialized memory being sent over the network or a crash.
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: 17604
+
+    CVE-2026-40209: An attacker might be able to cause outgoing TCP connections to backend to be stuck until a timeout occurs instead of being released immediately by sending IXFR queries. This could be used to cause a denial of service if there is a limit to the number of concurrent connections to this backend, or if the process runs out of file descriptors.
+
+  .. change::
+    :tags: Bug Fixes, Security, DNS over HTTP3
+    :pullreq: 17606
+
+    CVE-2026-40208: An attacker might be able to delay the processing of DoH3 queries by sending DoH3 GET queries with an invalid DATA frame.
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: 17607
+
+    CVE-2026-42004: An attacker can send a crafted EDNS OPT record that will be ignored by DNSdist's filtering rules, but will be rewritten as a valid OPT record when EDNS Client Subnet is inserted, causing the backend to see the EDNS option(s) that DNSdist did not filter.
+
+.. changelog::
+  :version: 1.9.15
+  :released: 25th of June 2026
+
+  .. change::
+    :tags: Bug Fixes, Security, Webserver
+    :pullreq: 17588
+
+    CVE-2026-42005: An attacker can send a web request that causes unlimited memory allocation in the internal web server, leading to a denial of service. The internal web server is disabled by default.
+
+  .. change::
+    :tags: Bug Fixes, Security, Metrics
+    :pullreq: 17600
+
+    CVE-2026-40011: An attacker sending a large number of crafted DNS queries might be able to trigger a dynamic block being inserted with a value causing invalid output to be produced in the prometheus endpoint. The prometheus endpoint will then be rejected by the scraper until the dynamic block expires.
+
+  .. change::
+    :tags: Bug Fixes, Security, DNS over HTTP3
+    :pullreq: 17601
+
+    CVE-2026-40211: An attacker can send crafted DNS over HTTP/3 queries, triggering an exception that prevents some buffer from being freed right away. The buffer will be freed at the end of the QUIC connection, but on some setups it might be possible to open enough concurrent DoH3 streams to trigger an out-of-memory condition, resulting in a denial of service.
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: 17603
+
+    CVE-2026-40210: An out-of-bounds read might happen when SetMacAddrAction is used, potentially resulting in uninitialized memory being sent over the network or a crash.
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: 17604
+
+    CVE-2026-40209: An attacker might be able to cause outgoing TCP connections to backend to be stuck until a timeout occurs instead of being released immediately by sending IXFR queries. This could be used to cause a denial of service if there is a limit to the number of concurrent connections to this backend, or if the process runs out of file descriptors.
+
+  .. change::
+    :tags: Bug Fixes, Security, DNS over HTTP3
+    :pullreq: 17606
+
+    CVE-2026-40208: An attacker might be able to delay the processing of DoH3 queries by sending DoH3 GET queries with an invalid DATA frame.
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: 17607
+
+    CVE-2026-42004: An attacker can send a crafted EDNS OPT record that will be ignored by DNSdist's filtering rules, but will be rewritten as a valid OPT record when EDNS Client Subnet is inserted, causing the backend to see the EDNS option(s) that DNSdist did not filter.
+
+.. changelog::
   :version: 2.1.0-rc1
   :released: 2nd of June 2026
 
