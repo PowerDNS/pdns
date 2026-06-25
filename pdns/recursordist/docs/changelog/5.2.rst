@@ -4,6 +4,16 @@ Changelogs for 5.2.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
+  :version: 5.2.11
+  :released: 25th of June 2026
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17595
+
+    Fix PowerDNS Security Advisory 2026-08 for PowerDNS Recursor: Multiple Issues
+
+.. changelog::
   :version: 5.2.10
   :released: 3rd of June 2026
 
@@ -30,7 +40,7 @@ Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
   :version: 5.2.9
-  :released: 22th of April 2026
+  :released: 22nd of April 2026
 
   .. change::
     :tags: Bug Fixes
