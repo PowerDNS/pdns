@@ -93,6 +93,7 @@ double Ewma::getMax() const
   return d_max;
 }
 
+static void parseRecordNameAndType(const Json& rrset, DNSName& qname, QType& qtype);
 static void patchZone(UeberBackend& backend, const ZoneName& zonename, DomainInfo& domainInfo, const vector<Json>& rrsets, HttpResponse* resp);
 
 AuthWebServer::AuthWebServer() :
@@ -2047,13 +2048,9 @@ static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp)
   try {
     if (rrsets.is_array()) {
       for (const auto& rrset : rrsets.array_items()) {
-        DNSName qname = apiNameToDNSName(stringFromJson(rrset, "name"));
-        apiCheckQNameAllowedCharacters(qname.toString());
+        DNSName qname;
         QType qtype;
-        qtype = stringFromJson(rrset, "type");
-        if (qtype.getCode() == 0) {
-          throw ApiException("RRset " + qname.toString() + " IN " + stringFromJson(rrset, "type") + ": unknown type given");
-        }
+        parseRecordNameAndType(rrset, qname, qtype);
         if (rrset["records"].is_array()) {
           uint32_t ttl = uintFromJson(rrset, "ttl");
           gatherRecords(rrset, qname, qtype, ttl, new_records);
@@ -2276,13 +2273,9 @@ static void apiServerZoneDetailPUT(HttpRequest* req, HttpResponse* resp)
 
     try {
       for (const auto& rrset : rrsets.array_items()) {
-        DNSName qname = apiNameToDNSName(stringFromJson(rrset, "name"));
-        apiCheckQNameAllowedCharacters(qname.toString());
+        DNSName qname;
         QType qtype;
-        qtype = stringFromJson(rrset, "type");
-        if (qtype.getCode() == 0) {
-          throw ApiException("RRset " + qname.toString() + " IN " + stringFromJson(rrset, "type") + ": unknown type given");
-        }
+        parseRecordNameAndType(rrset, qname, qtype);
         if (rrset["records"].is_array()) {
           uint32_t ttl = uintFromJson(rrset, "ttl");
           gatherRecords(rrset, qname, qtype, ttl, new_records);
