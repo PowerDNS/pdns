@@ -2573,6 +2573,52 @@ MMDB
 
    * ``mmap``: bool - If set to true, opens the database in memory-map mode.
 
+Redis
+~~~~~
+
+.. class:: RedisClient
+
+  .. versionadded:: 2.2.0
+
+  .. method:: get(key)
+
+    Returns the (string) value of a key in Redis, if it exists (GET command).
+
+    :param str key: Key to look up.
+    :returns: The string value.
+
+  .. method:: exists(key)
+
+    Checks if the given key exists in Redis (EXISTS command).
+
+    :param str key: Key to look up.
+    :returns: true if the key exists, false otherwise.
+
+  .. method:: hget(hash_key, key)
+
+    Returns the value of a field in the hash stored at hash_key in Redis, if it exists (HGET command).
+
+    :param str hash_key: Key the hash is stored at.
+    :param str key: Field in hash to look up.
+    :returns: The string value.
+
+  .. method:: hexists(hash_key, key)
+
+    Checks if the given field exists in hash stored at hash_key in Redis (HEXISTS command).
+
+    :param str hash_key: Key the hash is stored at.
+    :param str key: Field in hash to look up.
+    :returns: true if the field exists, false otherwise.
+
+.. function:: newRedisClient(url)
+
+  .. versionadded:: 2.2.0
+
+  Creates a new Redis client, connecting to the instance at the provided url.
+
+  :param string url: URL to the Redis instance.
+  :returns:  The :class:`RedisClient` object
+
 timespec
 ~~~~~~~~
 

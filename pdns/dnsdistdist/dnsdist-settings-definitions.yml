@@ -102,6 +102,10 @@ global:
       default: true
       skip-serde: true
       description: "List of rules executed when a query is received"
+    - name: "redis_clients"
+      type: "Vec<RedisClientConfiguration>"
+      default: true
+      description: "List of Redis clients"
     - name: "remote_logging"
       type: "RemoteLoggingConfiguration"
       default: true
@@ -191,6 +195,16 @@ carbon:
       type: "String"
       default: ""
       description: "An optional string specifying the instance name that should be used"
+
+redis_client:
+  description: "Redis client settings"
+  parameters:
+    - name: "name"
+      type: "String"
+      description: "Name of this Redis client object"
+    - name: "url"
+      type: "String"
+      description: "URL of the Redis instance to connect to"
 
 remote_logging:
   description: "Queries and/or responses remote logging settings"
@@ -346,6 +360,22 @@ mmdb:
       default: "false"
       description: "Whether to open the MMDB in mmap mode"
 
+redis_kv_store:
+  description: "Redis-based key-value store"
+  parameters:
+    - name: "name"
+      type: "String"
+      description: "The name of this object"
+    - name: "redis_client"
+      type: "String"
+      description: "The name of the Redis client object to use"
+    - name: "lookup_action"
+      type: "String"
+      description: "The lookup action to use in redis (GET, HGET)"
+    - name: "data_name"
+      type: "String"
+      description: "Additional data to pass in the lookup action (needed for HGET - hash key)"
+
 kvs_lookup_key_source_ip:
   description: "Lookup key that can be used with :ref:`yaml-settings-KeyValueStoreLookupAction` or :ref:`yaml-settings-KeyValueStoreLookupSelector`, will return the source IP of the client in network byte-order"
   parameters:
@@ -444,6 +474,10 @@ key_value_stores:
       type: "Vec<MmdbKvStoreConfiguration>"
       default: true
       description: "List of MMDB-based key-value stores"
+    - name: "redis"
+      type: "Vec<RedisKvStoreConfiguration>"
+      default: true
+      description: "List of Redis-based key-value stores"
     - name: "lookup_keys"
       type: "KvsLookupKeysConfiguration"
       default: true

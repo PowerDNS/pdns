@@ -80,6 +80,7 @@ fn get_global_configuration_from_serde(
         pools: serde.pools,
         proxy_protocol: serde.proxy_protocol,
         query_count: serde.query_count,
+        redis_clients: serde.redis_clients,
         remote_logging: serde.remote_logging,
         ring_buffers: serde.ring_buffers,
         security_polling: serde.security_polling,
@@ -98,6 +99,7 @@ fn get_global_configuration_from_serde(
     dnsdistsettings::registerKVSObjects(&config.key_value_stores);
     // this needs to be done before the rules so that they can refer to the NMG objects
     dnsdistsettings::registerNMGObjects(&config.netmask_groups);
+    dnsdistsettings::registerRedisClientObjects(&config.redis_clients);
     // this needs to be done before the rules so that they can refer to the TimeIPSet objects
     dnsdistsettings::registerTimedIPSetObjects(&config.timed_ip_sets);
     // this needs to be done BEFORE the rules so that they can refer to the selectors

@@ -47,7 +47,7 @@
 #include "dnsdist-xsk.hh"
 #include "fstrm_logger.hh"
 #include "iputils.hh"
-#include "mmdb.hh"
+#include "redis.hh"
 #include "remote_logger.hh"
 #include "remote_logger_pool.hh"
 #include "xsk.hh"
@@ -73,7 +73,7 @@ struct Context
 
 using XSKMap = std::vector<std::shared_ptr<XskSocket>>;
 
-using RegisteredTypes = std::variant<std::shared_ptr<DNSDistPacketCache>, std::shared_ptr<dnsdist::rust::settings::DNSSelector>, std::shared_ptr<dnsdist::rust::settings::DNSActionWrapper>, std::shared_ptr<dnsdist::rust::settings::DNSResponseActionWrapper>, std::shared_ptr<NetmaskGroup>, std::shared_ptr<KeyValueStore>, std::shared_ptr<KeyValueLookupKey>, std::shared_ptr<RemoteLoggerInterface>, std::shared_ptr<ServerPolicy>, std::shared_ptr<TimedIPSetRule>, std::shared_ptr<XSKMap>, std::shared_ptr<MMDB>>;
+using RegisteredTypes = std::variant<std::shared_ptr<DNSDistPacketCache>, std::shared_ptr<dnsdist::rust::settings::DNSSelector>, std::shared_ptr<dnsdist::rust::settings::DNSActionWrapper>, std::shared_ptr<dnsdist::rust::settings::DNSResponseActionWrapper>, std::shared_ptr<NetmaskGroup>, std::shared_ptr<KeyValueStore>, std::shared_ptr<KeyValueLookupKey>, std::shared_ptr<RemoteLoggerInterface>, std::shared_ptr<ServerPolicy>, std::shared_ptr<TimedIPSetRule>, std::shared_ptr<XSKMap>, std::shared_ptr<MMDB>, std::shared_ptr<RedisClient>>;
 static LockGuarded<std::unordered_map<std::string, RegisteredTypes>> s_registeredTypesMap;
 static std::atomic<bool> s_inConfigCheckMode;
 static std::atomic<bool> s_inClientMode;
@@ -1396,7 +1396,7 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
 void addLuaBindingsForYAMLObjects([[maybe_unused]] LuaContext& luaCtx)
 {
 #if defined(HAVE_YAML_CONFIGURATION)
-  using ReturnValue = std::optional<boost::variant<std::shared_ptr<DNSDistPacketCache>, std::shared_ptr<DNSRule>, std::shared_ptr<DNSAction>, std::shared_ptr<DNSResponseAction>, std::shared_ptr<NetmaskGroup>, std::shared_ptr<KeyValueStore>, std::shared_ptr<KeyValueLookupKey>, std::shared_ptr<RemoteLoggerInterface>, std::shared_ptr<ServerPolicy>, std::shared_ptr<TimedIPSetRule>, std::shared_ptr<XSKMap>, std::shared_ptr<MMDB>>>;
+  using ReturnValue = std::optional<boost::variant<std::shared_ptr<DNSDistPacketCache>, std::shared_ptr<DNSRule>, std::shared_ptr<DNSAction>, std::shared_ptr<DNSResponseAction>, std::shared_ptr<NetmaskGroup>, std::shared_ptr<KeyValueStore>, std::shared_ptr<KeyValueLookupKey>, std::shared_ptr<RemoteLoggerInterface>, std::shared_ptr<ServerPolicy>, std::shared_ptr<TimedIPSetRule>, std::shared_ptr<XSKMap>, std::shared_ptr<MMDB>, std::shared_ptr<RedisClient>>>;
 
   luaCtx.writeFunction("getObjectFromYAMLConfiguration", [](const std::string& name) -> ReturnValue {
     auto map = s_registeredTypesMap.lock();
@@ -1437,11 +1437,12 @@ void addLuaBindingsForYAMLObjects([[maybe_unused]] LuaContext& luaCtx)
     if (auto* ptr = std::get_if<std::shared_ptr<XSKMap>>(&item->second)) {
       return ReturnValue(*ptr);
     }
-#ifdef HAVE_MMDB
     if (auto* ptr = std::get_if<std::shared_ptr<MMDB>>(&item->second)) {
       return ReturnValue(*ptr);
     }
-#endif
+    if (auto* ptr = std::get_if<std::shared_ptr<RedisClient>>(&item->second)) {
+      return ReturnValue(*ptr);
+    }
 
     return std::nullopt;
   });
@@ -1705,7 +1706,7 @@ std::shared_ptr<DNSSelector> getNetmaskGroupSelector(const NetmaskGroupSelectorC
 
 std::shared_ptr<DNSActionWrapper> getKeyValueStoreLookupAction([[maybe_unused]] const KeyValueStoreLookupActionConfiguration& config)
 {
-#if defined(HAVE_LMDB) || defined(HAVE_CDB) || defined(HAVE_MMDB)
+#if defined(HAVE_LMDB) || defined(HAVE_CDB) || defined(HAVE_MMDB) || defined(HAVE_REDIS)
   auto kvs = dnsdist::configuration::yaml::getRegisteredTypeByName<KeyValueStore>(std::string(config.kvs_name));
   if (!kvs && !(dnsdist::configuration::yaml::s_inClientMode || dnsdist::configuration::yaml::s_inConfigCheckMode)) {
     throw std::runtime_error("Unable to find the key-value store named '" + std::string(config.kvs_name) + "'");
@@ -1723,7 +1724,7 @@ std::shared_ptr<DNSActionWrapper> getKeyValueStoreLookupAction([[maybe_unused]] 
 
 std::shared_ptr<DNSActionWrapper> getKeyValueStoreRangeLookupAction([[maybe_unused]] const KeyValueStoreRangeLookupActionConfiguration& config)
 {
-#if defined(HAVE_LMDB) || defined(HAVE_CDB) || defined(HAVE_MMDB)
+#if defined(HAVE_LMDB) || defined(HAVE_CDB) || defined(HAVE_MMDB) || defined(HAVE_REDIS)
   auto kvs = dnsdist::configuration::yaml::getRegisteredTypeByName<KeyValueStore>(std::string(config.kvs_name));
   if (!kvs && !(dnsdist::configuration::yaml::s_inClientMode || dnsdist::configuration::yaml::s_inConfigCheckMode)) {
     throw std::runtime_error("Unable to find the key-value store named '" + std::string(config.kvs_name) + "'");
@@ -1741,7 +1742,7 @@ std::shared_ptr<DNSActionWrapper> getKeyValueStoreRangeLookupAction([[maybe_unus
 
 std::shared_ptr<DNSSelector> getKeyValueStoreLookupSelector([[maybe_unused]] const KeyValueStoreLookupSelectorConfiguration& config)
 {
-#if defined(HAVE_LMDB) || defined(HAVE_CDB) || defined(HAVE_MMDB)
+#if defined(HAVE_LMDB) || defined(HAVE_CDB) || defined(HAVE_MMDB) || defined(HAVE_REDIS)
   auto kvs = dnsdist::configuration::yaml::getRegisteredTypeByName<KeyValueStore>(std::string(config.kvs_name));
   if (!kvs && !(dnsdist::configuration::yaml::s_inClientMode || dnsdist::configuration::yaml::s_inConfigCheckMode)) {
     throw std::runtime_error("Unable to find the key-value store named '" + std::string(config.kvs_name) + "'");
@@ -1759,7 +1760,7 @@ std::shared_ptr<DNSSelector> getKeyValueStoreLookupSelector([[maybe_unused]] con
 
 std::shared_ptr<DNSSelector> getKeyValueStoreRangeLookupSelector([[maybe_unused]] const KeyValueStoreRangeLookupSelectorConfiguration& config)
 {
-#if defined(HAVE_LMDB) || defined(HAVE_CDB) || defined(HAVE_MMDB)
+#if defined(HAVE_LMDB) || defined(HAVE_CDB) || defined(HAVE_MMDB) || defined(HAVE_REDIS)
   auto kvs = dnsdist::configuration::yaml::getRegisteredTypeByName<KeyValueStore>(std::string(config.kvs_name));
   if (!kvs && !(dnsdist::configuration::yaml::s_inClientMode || dnsdist::configuration::yaml::s_inConfigCheckMode)) {
     throw std::runtime_error("Unable to find the key-value store named '" + std::string(config.kvs_name) + "'");
@@ -2012,7 +2013,7 @@ void registerDnstapLogger([[maybe_unused]] const DnstapLoggerConfiguration& conf
 
 void registerKVSObjects([[maybe_unused]] const KeyValueStoresConfiguration& config)
 {
-#if defined(HAVE_LMDB) || defined(HAVE_CDB) || defined(HAVE_MMDB)
+#if defined(HAVE_LMDB) || defined(HAVE_CDB) || defined(HAVE_MMDB) || defined(HAVE_REDIS)
   bool createObjects = !dnsdist::configuration::yaml::s_inClientMode && !dnsdist::configuration::yaml::s_inConfigCheckMode;
 #if defined(HAVE_LMDB)
   for (const auto& lmdb : config.lmdb) {
@@ -2049,6 +2050,36 @@ void registerKVSObjects([[maybe_unused]] const KeyValueStoresConfiguration& conf
     dnsdist::configuration::yaml::registerType<KeyValueStore>(store, mmdb.name);
   }
 #endif /* defined(HAVE_MMDB) */
+#if defined(HAVE_REDIS)
+  for (const auto& redis : config.redis) {
+    auto definedRedis = dnsdist::configuration::yaml::getRegisteredTypeByName<RedisClient>(redis.redis_client);
+    if (!definedRedis) {
+      throw std::runtime_error("Unable to find a Redis client named " + std::string(redis.redis_client));
+    }
+    std::optional<std::string> lookupAction;
+    std::optional<std::string> dataName;
+
+    if (!redis.lookup_action.empty()) {
+      lookupAction = std::string(redis.lookup_action);
+    }
+    if (!redis.data_name.empty()) {
+      dataName = std::string(redis.data_name);
+    }
+
+    std::string uniqueId = "url=" + definedRedis->getUrl().to_string() + ",action=" + lookupAction.value_or("GET") + ",data-name=" + dataName.value_or("") + ",";
+    std::string labels = "redis-server=" + definedRedis->getUrl().host + ":" + std::to_string(definedRedis->getUrl().port) + ",redis-action=" + lookupAction.value_or("GET") + ",data-name=" + dataName.value_or("");
+    std::shared_ptr<RedisStats> stats = std::make_shared<RedisStats>(labels);
+
+    dnsdist::configuration::updateRuntimeConfiguration([uniqueId, &stats](dnsdist::configuration::RuntimeConfiguration& runtimeConfig) {
+      if (runtimeConfig.d_redisStats.count(uniqueId) > 0) {
+        throw std::runtime_error("Duplicate redis instance. Combination of arguments has to be unique!");
+      }
+      runtimeConfig.d_redisStats.emplace(uniqueId, std::shared_ptr(stats));
+    });
+    auto store = createObjects ? std::shared_ptr<KeyValueStore>(std::make_shared<RedisKVStore>(definedRedis, lookupAction, dataName, stats)) : std::shared_ptr<KeyValueStore>();
+    dnsdist::configuration::yaml::registerType<KeyValueStore>(store, redis.name);
+  }
+#endif /* defined(HAVE_REDIS) */
   for (const auto& key : config.lookup_keys.source_ip_keys) {
     auto lookup = createObjects ? std::shared_ptr<KeyValueLookupKey>(std::make_shared<KeyValueLookupKeySourceIP>(key.v4_mask, key.v6_mask, key.include_port)) : std::shared_ptr<KeyValueLookupKey>();
     dnsdist::configuration::yaml::registerType<KeyValueLookupKey>(lookup, key.name);
@@ -2065,7 +2096,7 @@ void registerKVSObjects([[maybe_unused]] const KeyValueStoresConfiguration& conf
     auto lookup = createObjects ? std::shared_ptr<KeyValueLookupKey>(std::make_shared<KeyValueLookupKeyTag>(std::string(key.tag))) : std::shared_ptr<KeyValueLookupKey>();
     dnsdist::configuration::yaml::registerType<KeyValueLookupKey>(lookup, key.name);
   }
-#endif /* defined(HAVE_LMDB) || defined(HAVE_CDB) || defined(HAVE_MMDB) */
+#endif /* defined(HAVE_LMDB) || defined(HAVE_CDB) || defined(HAVE_MMDB) || defined(HAVE_REDIS) */
 }
 
 void registerMMDBObjects([[maybe_unused]] const ::rust::Vec<MmdbConfiguration>& config)
@@ -2094,6 +2125,15 @@ void registerNMGObjects(const ::rust::Vec<NetmaskGroupConfiguration>& nmgs)
       dnsdist::configuration::yaml::registerType<NetmaskGroup>(nmg, netmaskGroup.name);
     }
   }
+}
+
+void registerRedisClientObjects([[maybe_unused]] const ::rust::Vec<RedisClientConfiguration>& redisClients)
+{
+#ifdef HAVE_REDIS
+  for (const auto& redisClient : redisClients) {
+    dnsdist::configuration::yaml::registerType<RedisClient>(std::make_shared<RedisClient>(std::string(redisClient.url)), redisClient.name);
+  }
+#endif
 }
 
 void registerTimedIPSetObjects(const ::rust::Vec<TimedIpSetConfiguration>& sets)

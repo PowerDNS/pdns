@@ -35,6 +35,7 @@ struct DnstapLoggerConfiguration;
 struct KeyValueStoresConfiguration;
 struct MmdbConfiguration;
 struct NetmaskGroupConfiguration;
+struct RedisClientConfiguration;
 struct TimedIpSetConfiguration;
 
 void registerProtobufLogger(const ProtobufLoggerConfiguration& config);
@@ -42,6 +43,7 @@ void registerDnstapLogger(const DnstapLoggerConfiguration& config);
 void registerKVSObjects(const KeyValueStoresConfiguration& config);
 void registerMMDBObjects(const ::rust::Vec<MmdbConfiguration>& config);
 void registerNMGObjects(const ::rust::Vec<NetmaskGroupConfiguration>& nmgs);
+void registerRedisClientObjects(const ::rust::Vec<RedisClientConfiguration>& nmgs);
 void registerTimedIPSetObjects(const ::rust::Vec<TimedIpSetConfiguration>& sets);
 
 #include "dnsdist-rust-bridge-actions-generated.hh"

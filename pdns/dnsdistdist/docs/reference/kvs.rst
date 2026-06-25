@@ -12,6 +12,7 @@ The first step is to get a :class:`KeyValueStore` object via one of the followin
  * :func:`newCDBKVStore` for a CDB database ;
  * :func:`newLMDBKVStore` for a LMDB one.
  * :func:`newMMDBKVStore` for a MMDB one.
+ * :func:`newRedisKVStore` for a Redis client.
 
 Then the key used for the lookup can be selected via one of the following functions:
 
@@ -136,3 +137,22 @@ If the value found in the LMDB database for the key '\\8powerdns\\3com\\0' was '
 
   :param MMDB mmdb: The reference to an existing MMDB database created with :func:`openMMDB`.
   :param str-or-list queryParams: Key or list of keys to fetch from the retrieved object from the MMDB database. Use empty list to retrieve the whole object.
+
+.. function:: newRedisKVStore(redis[, options]) -> KeyValueStore
+
+  .. versionadded:: 2.2.0
+
+  Return a new KeyValueStore object associated to the provided Redis client. The client can be created using :func:`newRedisClient`.
+
+  :param RedisClient redis: The reference to an existing Redis client created with :func:`newRedisClient`.
+  :param table options: A table with key: value pairs with options.
+
+  Options:
+
+  * ``lookupAction``: str - Command to use when looking up keys in Redis. Check below for supported lookup actions.
+  * ``dataName``: str - Additional value with different behavior depending on the lookup action.
+
+  Lookup actions:
+
+  * ``get``: str - The default lookup action. Uses Redis GET command to look up keys. ``dataName`` can be used to define a prefix to be added to all keys before looking up.
+  * ``hget``: str - Uses Redis HGET command to look up keys as fields of a hash. ``dataName`` is required for this action and defines the key hash is stored at.
