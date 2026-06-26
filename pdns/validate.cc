@@ -1078,10 +1078,15 @@ namespace
 
 vState validateWithKeySet(time_t now, const DNSName& name, const sortedRecords_t& toSign, const vector<shared_ptr<const RRSIGRecordContent>>& signatures, const skeyset_t& keys, const OptLog& log, pdns::validation::ValidationContext& context, bool validateAllSigs)
 {
+  // whether we could not find the corresponding key in keys for at least one signature
   bool missingKey = false;
+  // whether we were able to validate at least one signature
   bool isValid = false;
+  // whether all signatures were expired (will be set to false if at least one signature is not expired)
   bool allExpired = true;
+  // whether we discarded all signatures (will be set to false if we accept, but not necessarily validate, at least one signature)
   bool allDiscarded = true;
+  // whether all signatures were not yet incepted (will be set to false if at least one signature is found to be incepted)
   bool noneIncepted = true;
   uint16_t signaturesConsidered = 0;
 
@@ -1095,6 +1100,8 @@ vState validateWithKeySet(time_t now, const DNSName& name, const sortedRecords_t
       VLOG(log, name << ": Discarding invalid RRSIG whose label count is " << signature->d_labels << ", not enough to match the signer which has " << signature->d_signer.countLabels() << endl);
       continue;
     }
+    // we don't have the information in this function at the moment, but it would be nice to validate that the signer is coherent with the zone we are validating
+
     allDiscarded = false;
 
     vState ede = vState::Indeterminate;
