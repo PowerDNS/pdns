@@ -600,6 +600,7 @@ cxx
 dadec
 daemonize
 DAFB
+Danial
 dasharray
 databuffer
 datafmt
@@ -765,6 +766,7 @@ dnsmaster
 dnsnameqtyperings
 dnsnameraw
 dnsp
+dnspacketroundtrip
 dnsperf
 dnspkt
 DNSPORT
@@ -1378,6 +1380,7 @@ habbie
 halen
 hardlimit
 Hartvigsen
+Haruki
 hasattr
 HASG
 hashedidx
@@ -1904,6 +1907,7 @@ lzrp
 MACBYTES
 maclen
 madname
+Mahadzir
 mailinglist
 mailserver
 mainfilter
@@ -1984,6 +1988,7 @@ memzero
 MERCHANTAPILITY
 mesg
 mesgsize
+mesonbuild
 messagebuf
 messageidstr
 metacache
@@ -2360,6 +2365,7 @@ NUMTESTS
 numthreads
 numwarnings
 numworkers
+nurmukhammyed
 nvect
 nwaiters
 nxdo
@@ -2790,6 +2796,7 @@ qesc
 qfonh
 qhash
 qids
+Qifan
 qkey
 qla
 qlass
@@ -3991,6 +3998,7 @@ waitstatus
 waitstatusenum
 waitval
 wantsnsid
+Waseda
 wastcp
 wattr
 wcard
