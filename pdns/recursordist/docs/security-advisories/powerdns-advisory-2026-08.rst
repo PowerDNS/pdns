@@ -118,7 +118,7 @@ CVE-2026-42389: Reject more queries with invalid header values
 - Not affected: PowerDNS Recursor 5.4.3
 - Severity: Medium
 - Impact: Cache poisoning
-- Exploit: Crafted replies from authoritative servers combined with massive spoofing can lead to cache poisening
+- Exploit: Crafted replies from authoritative servers combined with massive spoofing can lead to cache poisoning
 - Risk of system compromise: None
 - Solution: Upgrade to patched version
 - CWE: CWE-20
@@ -169,7 +169,7 @@ CVE-2026-42387: Insufficient input validation in ZoneToCache
 - Affects: PowerDNS Recursor from 5.2.0 up to and including 5.4.2
 - Not affected: PowerDNS Recursor 5.2.11, 5.3.8, 5.4.3
 - Severity: Medium
-- Impact: An invalid RRSIG record used in ZoneToCache might cause a crash of the Recusor
+- Impact: An invalid RRSIG record used in ZoneToCache might cause a crash of the Recursor
 - Exploit: When ZoneToCache is used, this problem can be triggered by an attacker sending a crafted zone.
 - Risk of system compromise: None
 - Solution: Upgrade to patched version
@@ -180,7 +180,7 @@ CVE-2026-42387: Insufficient input validation in ZoneToCache
 - Internal ID: 489
 
 A malicious authoritative server can send a crafted zone via the ZoneToCache function that leads to
-a crash of the Recursor due to insuffcient input validation.
+a crash of the Recursor due to insufficient input validation.
 
 `CVSS Score: 5.9 <https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:H>`__
 
@@ -208,7 +208,7 @@ CVE-2026-52690: Spoofed answers can mark an authoritative non-EDNS capable
 - Internal ID: 493
 
 Spoofing replies to Recursor might mark an IP of an authoritative server as not supporting EDNS,
-causing valdiation of DNSSEC records served by that server to fail.
+causing validation of DNSSEC records served by that server to fail.
 
 `CVSS Score: 5.9 <https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:H>`__
 

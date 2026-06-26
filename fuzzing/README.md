@@ -12,7 +12,7 @@ then building as usual.
 You can also build only these targets manually by:
 - issuing `meson compile fuzz-targets` when using `meson`, or going into the pdns/
 directory and issuing a `make fuzz_targets` command for the authoritative server targets,
-- going into the pdns/dnsdistdist directorty and issuing `meson compile -C ${build_dir} fuzz-targets`
+- going into the pdns/dnsdistdist directory and issuing `meson compile -C ${build_dir} fuzz-targets`
 or a `make fuzz_targets` command for dnsdist targets.
 
 The current targets cover:
