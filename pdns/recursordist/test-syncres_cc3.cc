@@ -1290,7 +1290,6 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_rd_dnssec_cname_wildcard_expanded
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
   generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(DNSName("zone."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
   g_luaconfs.setState(luaconfsCopy);
 
   const ComboAddress forwardedNS("192.0.2.42:53");
@@ -1320,10 +1319,10 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_rd_dnssec_cname_wildcard_expanded
       addRecordToLW(res, target, QType::CNAME, cnameTarget.toString());
       addRecordToLW(res, cnameTarget, QType::A, "192.0.2.1");
       /* the RRSIG proves that the cnameTarget was expanded from a wildcard */
-      addRRSIG(keys, res->d_records, DNSName("zone."), 300, false, boost::none, DNSName("*.zone"));
+      addRRSIG(keys, res->d_records, g_rootdnsname, 300, false, boost::none, DNSName("*"));
       /* we need to add the proof that this name does not exist, so the wildcard may apply */
-      addNSECRecordToLW(DNSName("cnamd.zone."), DNSName("cnamf.zone."), {QType::A, QType::NSEC, QType::RRSIG}, 60, res->d_records);
-      addRRSIG(keys, res->d_records, DNSName("zone."), 300);
+      addNSECRecordToLW(DNSName("cnamd."), DNSName("cnamf."), {QType::A, QType::NSEC, QType::RRSIG}, 60, res->d_records);
+      addRRSIG(keys, res->d_records, g_rootdnsname, 300);
 
       return LWResult::Result::Success;
     }
@@ -1335,7 +1334,7 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_rd_dnssec_cname_wildcard_expanded
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(testSR->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 5U);
-  BOOST_CHECK_EQUAL(queriesCount, 5U);
+  BOOST_CHECK_EQUAL(queriesCount, 3U);
 
   /* again, to test the cache */
   ret.clear();
@@ -1343,7 +1342,7 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_rd_dnssec_cname_wildcard_expanded
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(testSR->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 5U);
-  BOOST_CHECK_EQUAL(queriesCount, 5U);
+  BOOST_CHECK_EQUAL(queriesCount, 3U);
 }
 
 BOOST_AUTO_TEST_CASE(test_auth_zone_oob)
