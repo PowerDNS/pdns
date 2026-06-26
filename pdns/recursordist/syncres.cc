@@ -2706,8 +2706,14 @@ struct CacheEntry
 {
   vector<DNSRecord> records;
   MemRecursorCache::SigRecsVec signatures;
+  // for wildcard records, we need the real owner name for the aggressive cache
+  DNSName realOwner;
   time_t d_ttl_time{0};
   uint32_t signaturesTTL{std::numeric_limits<uint32_t>::max()};
+  vState validationState{vState::Indeterminate};
+  bool inserted{false};
+  bool isAuth{false};
+  bool expectSignature{false};
 };
 struct CacheKey
 {
@@ -4691,7 +4697,8 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
     }
   }
 
-  bool seenBogusRRSet = false;
+  std::optional<vState> seenBogusRRSet{std::nullopt};
+
   for (auto tCacheEntry = tcache.begin(); tCacheEntry != tcache.end(); ++tCacheEntry) {
 
     if (tCacheEntry->second.records.empty()) { // this happens when we did store signatures, but passed on the records themselves
@@ -4710,34 +4717,36 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
        dropping the RRSIG RRs.  If this happens, the name server MUST NOT
        set the TC bit solely because these RRSIG RRs didn't fit."
     */
-    bool isAA = lwr.d_aabit && tCacheEntry->first.place != DNSResourceRecord::ADDITIONAL;
+    tCacheEntry->second.isAuth = lwr.d_aabit && tCacheEntry->first.place != DNSResourceRecord::ADDITIONAL;
     /* if we forwarded the query to a recursor, we can expect the answer to be signed,
        even if the answer is not AA. Of course that's not only true inside a Secure
        zone, but we check that below. */
-    bool expectSignature = tCacheEntry->first.place == DNSResourceRecord::ANSWER || ((lwr.d_aabit || wasForwardRecurse) && tCacheEntry->first.place != DNSResourceRecord::ADDITIONAL);
+    tCacheEntry->second.expectSignature = tCacheEntry->first.place == DNSResourceRecord::ANSWER || ((lwr.d_aabit || wasForwardRecurse) && tCacheEntry->first.place != DNSResourceRecord::ADDITIONAL);
     /* in a non authoritative answer, we only care about the DS record (or lack of)  */
-    if (!isAA && (tCacheEntry->first.type == QType::DS || tCacheEntry->first.type == QType::NSEC || tCacheEntry->first.type == QType::NSEC3) && tCacheEntry->first.place == DNSResourceRecord::AUTHORITY) {
-      expectSignature = true;
+    if (!tCacheEntry->second.isAuth && (tCacheEntry->first.type == QType::DS || tCacheEntry->first.type == QType::NSEC || tCacheEntry->first.type == QType::NSEC3) && tCacheEntry->first.place == DNSResourceRecord::AUTHORITY) {
+      tCacheEntry->second.expectSignature = true;
     }
 
-    if (isCNAMEAnswer && (tCacheEntry->first.place != DNSResourceRecord::ANSWER || tCacheEntry->first.type != QType::CNAME || tCacheEntry->first.name != qname)) {
-      /*
-        rfc2181 states:
-        Note that the answer section of an authoritative answer normally
-        contains only authoritative data.  However when the name sought is an
-        alias (see section 10.1.1) only the record describing that alias is
-        necessarily authoritative.  Clients should assume that other records
-        may have come from the server's cache.  Where authoritative answers
-        are required, the client should query again, using the canonical name
-        associated with the alias.
-      */
-      isAA = false;
-      expectSignature = false;
-    }
-    if (isDNAMEAnswer && (tCacheEntry->first.place != DNSResourceRecord::ANSWER || tCacheEntry->first.type != QType::DNAME || !qname.isPartOf(tCacheEntry->first.name))) {
-      /* see above */
-      isAA = false;
-      expectSignature = false;
+    if (tCacheEntry->first.type != QType::NSEC && tCacheEntry->first.type != QType::NSEC3) {
+      if (isCNAMEAnswer && (tCacheEntry->first.place != DNSResourceRecord::ANSWER || tCacheEntry->first.type != QType::CNAME || tCacheEntry->first.name != qname)) {
+        /*
+          rfc2181 states:
+          Note that the answer section of an authoritative answer normally
+          contains only authoritative data.  However when the name sought is an
+          alias (see section 10.1.1) only the record describing that alias is
+          necessarily authoritative.  Clients should assume that other records
+          may have come from the server's cache.  Where authoritative answers
+          are required, the client should query again, using the canonical name
+          associated with the alias.
+        */
+        tCacheEntry->second.isAuth = false;
+        tCacheEntry->second.expectSignature = false;
+      }
+      if (isDNAMEAnswer && (tCacheEntry->first.place != DNSResourceRecord::ANSWER || tCacheEntry->first.type != QType::DNAME || !qname.isPartOf(tCacheEntry->first.name))) {
+        /* see above */
+        tCacheEntry->second.isAuth = false;
+        tCacheEntry->second.expectSignature = false;
+      }
     }
 
     if ((isCNAMEAnswer || isDNAMEAnswer) && tCacheEntry->first.place == DNSResourceRecord::AUTHORITY && tCacheEntry->first.type == QType::NS && auth == tCacheEntry->first.name) {
@@ -4765,12 +4774,12 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
      * don't validate the CNAME.
      */
     if (isDNAMEAnswer && tCacheEntry->first.type == QType::CNAME) {
-      expectSignature = false;
+      tCacheEntry->second.expectSignature = false;
     }
 
     vState recordState = vState::Indeterminate;
 
-    if (expectSignature && shouldValidate()) {
+    if (tCacheEntry->second.expectSignature && shouldValidate()) {
       vState initialState = getValidationStatus(tCacheEntry->first.name, !tCacheEntry->second.signatures.empty(), tCacheEntry->first.type == QType::DS, depth, prefix);
       LOG(prefix << qname << ": Got initial zone status " << initialState << " for record " << tCacheEntry->first.name << "|" << DNSRecordContent::NumberToType(tCacheEntry->first.type) << endl);
 
@@ -4790,13 +4799,14 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
       }
 
       LOG(prefix << qname << ": Validation result is " << recordState << ", current state is " << state << endl);
+      tCacheEntry->second.validationState = recordState;
       if (state != recordState) {
         updateValidationState(qname, state, recordState, prefix);
       }
     }
 
     if (vStateIsBogus(recordState)) {
-      seenBogusRRSet = true;
+      seenBogusRRSet = recordState;
       /* this is a TTD by now, be careful */
       for (auto& record : tCacheEntry->second.records) {
         auto newval = std::min(record.d_ttl, static_cast<uint32_t>(s_maxbogusttl + d_now.tv_sec));
@@ -4814,10 +4824,10 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
        - DS (special case)
        - NS, A and AAAA (used for infra queries)
     */
-    if (tCacheEntry->first.type != QType::NSEC3 && (tCacheEntry->first.type == QType::DS || tCacheEntry->first.type == QType::NS || tCacheEntry->first.type == QType::A || tCacheEntry->first.type == QType::AAAA || isAA || wasForwardRecurse)) {
+    if (tCacheEntry->first.type != QType::NSEC3 && (tCacheEntry->first.type == QType::DS || tCacheEntry->first.type == QType::NS || tCacheEntry->first.type == QType::A || tCacheEntry->first.type == QType::AAAA || tCacheEntry->second.isAuth || wasForwardRecurse)) {
 
       bool doCache = true;
-      if (!isAA && seenBogusRRSet) {
+      if (!tCacheEntry->second.isAuth && seenBogusRRSet) {
         LOG(prefix << qname << ": Not caching non-authoritative rrsets received with Bogus answer" << endl);
         doCache = false;
       }
@@ -4850,7 +4860,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
 
       if (doCache) {
         // Check if we are going to replace a non-auth (parent) NS recordset
-        if (isAA && tCacheEntry->first.type == QType::NS && s_save_parent_ns_set) {
+        if (tCacheEntry->second.isAuth && tCacheEntry->first.type == QType::NS && s_save_parent_ns_set) {
           rememberParentSetIfNeeded(tCacheEntry->first.name, tCacheEntry->second.records, depth, prefix);
         }
         bool thisRRNeedsWildcardProof = false;
@@ -4859,7 +4869,12 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
             thisRRNeedsWildcardProof = true;
           }
         }
-        g_recCache->replace(d_now.tv_sec, tCacheEntry->first.name, tCacheEntry->first.type, tCacheEntry->second.records, tCacheEntry->second.signatures, thisRRNeedsWildcardProof ? authorityRecs : *MemRecursorCache::s_emptyAuthRecs, tCacheEntry->first.type == QType::DS ? true : isAA, auth, tCacheEntry->first.place == DNSResourceRecord::ANSWER ? ednsmask : std::nullopt, d_routingTag, recordState, MemRecursorCache::Extra{remoteIP, overTCP}, d_refresh, tCacheEntry->second.d_ttl_time);
+
+        if (tCacheEntry->first.type == QType::DS) {
+          tCacheEntry->second.isAuth = true;
+        }
+        g_recCache->replace(d_now.tv_sec, tCacheEntry->first.name, tCacheEntry->first.type, tCacheEntry->second.records, tCacheEntry->second.signatures, thisRRNeedsWildcardProof ? authorityRecs : *MemRecursorCache::s_emptyAuthRecs, tCacheEntry->second.isAuth, auth, tCacheEntry->first.place == DNSResourceRecord::ANSWER ? ednsmask : std::nullopt, d_routingTag, recordState, MemRecursorCache::Extra{remoteIP, overTCP}, d_refresh, tCacheEntry->second.d_ttl_time);
+        tCacheEntry->second.inserted = true;
 
         // Delete potential negcache entry. When a record recovers with serve-stale the negcache entry can cause the wrong entry to
         // be served, as negcache entries are checked before record cache entries
@@ -4874,17 +4889,17 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
           const auto labelCount = tCacheEntry->first.name.countLabels();
 
           if (isWildcardExpanded(labelCount, *rrsig) && !isWildcardExpandedOntoItself(tCacheEntry->first.name, labelCount, *rrsig)) {
-            DNSName realOwner = getNSECOwnerName(tCacheEntry->first.name, tCacheEntry->second.signatures);
+            tCacheEntry->second.realOwner = getNSECOwnerName(tCacheEntry->first.name, tCacheEntry->second.signatures);
 
             std::vector<DNSRecord> content;
             content.reserve(tCacheEntry->second.records.size());
             for (const auto& record : tCacheEntry->second.records) {
               DNSRecord nonExpandedRecord(record);
-              nonExpandedRecord.d_name = realOwner;
+              nonExpandedRecord.d_name = tCacheEntry->second.realOwner;
               content.push_back(std::move(nonExpandedRecord));
             }
 
-            g_recCache->replace(d_now.tv_sec, realOwner, QType(tCacheEntry->first.type), content, tCacheEntry->second.signatures, /* no additional records in that case */ {}, tCacheEntry->first.type == QType::DS ? true : isAA, auth, std::nullopt, MemRecursorCache::NOTAG, recordState, MemRecursorCache::Extra{remoteIP, overTCP}, d_refresh, tCacheEntry->second.d_ttl_time);
+            g_recCache->replace(d_now.tv_sec, tCacheEntry->second.realOwner, QType(tCacheEntry->first.type), content, tCacheEntry->second.signatures, /* no additional records in that case */ {}, tCacheEntry->second.isAuth, auth, std::nullopt, MemRecursorCache::NOTAG, recordState, MemRecursorCache::Extra{remoteIP, overTCP}, d_refresh, tCacheEntry->second.d_ttl_time);
           }
         }
       }
@@ -4901,6 +4916,25 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
 
     if (tCacheEntry->first.place == DNSResourceRecord::ANSWER && ednsmask) {
       d_wasVariable = true;
+    }
+  }
+
+  if (seenBogusRRSet) {
+    /* We might have inserted RRSets with a Secure validation status then
+       later encountered a validation error, so let's go back and update
+       the status and TTD of previous records.
+       This is not ideal but the correct solution would be to move the validation
+       (including denial of existence) BEFORE dealing with the cache.
+    */
+    for (const auto& entry : tcache) {
+      if (!entry.second.inserted || !entry.second.expectSignature || vStateIsBogus(entry.second.validationState)) {
+        continue;
+      }
+
+      g_recCache->updateValidationStatus(d_now.tv_sec, entry.first.name, entry.first.type, d_cacheRemote, d_routingTag, entry.second.isAuth, *seenBogusRRSet, s_maxbogusttl + d_now.tv_sec);
+      if (!entry.second.realOwner.empty()) {
+        g_recCache->updateValidationStatus(d_now.tv_sec, entry.second.realOwner, entry.first.type, d_cacheRemote, MemRecursorCache::NOTAG, entry.second.isAuth, *seenBogusRRSet, s_maxbogusttl + d_now.tv_sec);
+      }
     }
   }
 
