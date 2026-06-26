@@ -438,6 +438,7 @@ bool PacketHandler::getBestWildcard(DNSPacket& p, const DNSName &target, DNSName
               if (rr.dr.d_type == QType::CNAME) {
                 haveCNAME = true;
                 *ret = {rr};
+                B.lookupEnd();
                 break;
               }
               ret->push_back(rr);
