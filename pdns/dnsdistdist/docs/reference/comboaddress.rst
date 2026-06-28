@@ -60,7 +60,21 @@ ComboAddresses can be IPv4 or IPv6, and unless you want to know, you don't need 
   .. method:: tostring() -> string
               toString() -> string
 
-    Returns in human-friendly format
+    Returns the IP address in human-friendly format
+
+  .. method:: toStringReversed() -> string
+
+    .. versionadded:: 2.2.0
+
+    Returns the IP address in human-friendly format, but in reverse notation
+    as used for PTR records.
+
+  .. method:: toStringNoInterface() -> string
+
+    .. versionadded:: 2.2.0
+
+    Returns the IP address in human-friendly format, but with any interface
+    suffix stripped.
 
   .. method:: getRaw() -> string
 
