@@ -714,12 +714,14 @@ static void gatherRecords(const Json& container, const DNSName& qname, const QTy
   const auto& items = container["records"].array_items();
   for (const auto& record : items) {
     string content = stringFromJson(record, "content");
-    switch (resourceRecord.qtype.getCode()) {
+    switch (qtype.getCode()) {
     case QType::LUA:
       // Keep LUA record contents unmodified
       break;
     default:
-      content = normalizeJsonString(content);
+      if (!DNSRecordContent::isUnknownType(DNSRecordContent::NumberToType(qtype.getCode()))) {
+        content = normalizeJsonString(content);
+      }
       break;
     }
     if (record.object_items().count("priority") > 0) {
