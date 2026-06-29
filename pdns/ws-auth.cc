@@ -407,9 +407,12 @@ static Json::object getZoneInfo(const DomainInfo& domainInfo, DNSSECKeeper* dnss
   return obj;
 }
 
-static bool boolFromHttpRequest(HttpRequest* req, const std::string& var)
+static bool boolFromHttpRequest(HttpRequest* req, const std::string& var, bool deflt)
 {
-  if (req->getvars.count(var) == 0 || req->getvars[var] == "true") {
+  if (req->getvars.count(var) == 0) {
+    return deflt;
+  }
+  if (req->getvars[var] == "true") {
     return true;
   }
   if (req->getvars[var] == "false") {
@@ -419,6 +422,7 @@ static bool boolFromHttpRequest(HttpRequest* req, const std::string& var)
   throw ApiException("'" + var + "' request parameter value '" + req->getvars[var] + "' is not supported");
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 static void fillZone(UeberBackend& backend, const ZoneName& zonename, HttpResponse* resp, HttpRequest* req)
 {
   DomainInfo domainInfo;
@@ -478,9 +482,12 @@ static void fillZone(UeberBackend& backend, const ZoneName& zonename, HttpRespon
   }
   doc["slave_tsig_key_ids"] = tsig_secondary_keys;
 
-  if (boolFromHttpRequest(req, "rrsets")) {
+  bool returnRRSets = boolFromHttpRequest(req, "rrsets", true);
+  bool countRecords = boolFromHttpRequest(req, "record_count", false);
+  if (returnRRSets || countRecords) {
     vector<DNSResourceRecord> records;
     vector<Comment> comments;
+    size_t recordCount{0};
 
     QType qType = QType::ANY;
     DNSName qName;
@@ -496,31 +503,36 @@ static void fillZone(UeberBackend& backend, const ZoneName& zonename, HttpRespon
         if (req->getvars.count("rrset_type") != 0) {
           qType = req->getvars["rrset_type"];
         }
-        bool include_disabled = boolFromHttpRequest(req, "include_disabled");
+        bool include_disabled = boolFromHttpRequest(req, "include_disabled", true);
         domainInfo.backend->APILookup(qType, qName, static_cast<int>(domainInfo.id), include_disabled);
       }
       while (domainInfo.backend->get(resourceRecord)) {
         if (resourceRecord.qtype.getCode() == 0) {
           continue; // skip empty non-terminals
         }
-        records.push_back(resourceRecord);
-      }
-      sort(records.begin(), records.end(), [](const DNSResourceRecord& rrA, const DNSResourceRecord& rrB) {
-        /* if you ever want to update this comparison function,
-           please be aware that you will also need to update the conditions in the code merging
-           the records and comments below */
-        if (rrA.qname == rrB.qname) {
-          if (rrA.qtype == rrB.qtype) {
-            return rrB.content > rrA.content;
-          }
-          return rrB.qtype < rrA.qtype;
+        ++recordCount;
+        if (returnRRSets) {
+          records.push_back(resourceRecord);
         }
-        return rrB.qname < rrA.qname;
-      });
+      }
+      if (returnRRSets) {
+        sort(records.begin(), records.end(), [](const DNSResourceRecord& rrA, const DNSResourceRecord& rrB) {
+          /* if you ever want to update this comparison function,
+             please be aware that you will also need to update the conditions in the code merging
+             the records and comments below */
+          if (rrA.qname == rrB.qname) {
+            if (rrA.qtype == rrB.qtype) {
+              return rrB.content > rrA.content;
+            }
+            return rrB.qtype < rrA.qtype;
+          }
+          return rrB.qname < rrA.qname;
+        });
+      }
     }
 
     // load all comments + sort
-    {
+    if (returnRRSets) {
       Comment comment;
       domainInfo.backend->listComments(domainInfo.id);
       while (domainInfo.backend->getComment(comment)) {
@@ -540,74 +552,76 @@ static void fillZone(UeberBackend& backend, const ZoneName& zonename, HttpRespon
         }
         return rrB.qname < rrA.qname;
       });
+
+      Json::array rrsets;
+      Json::object rrset;
+      Json::array rrset_records;
+      Json::array rrset_comments;
+      DNSName current_qname;
+      QType current_qtype;
+      uint32_t ttl = 0;
+      auto rit = records.begin();
+      auto cit = comments.begin();
+
+      while (rit != records.end() || cit != comments.end()) {
+        // if you think this should be rit < cit instead of cit < rit, note the b < a instead of a < b in the sort comparison functions above
+        if (cit == comments.end() || (rit != records.end() && (rit->qname == cit->qname ? (cit->qtype < rit->qtype || cit->qtype == rit->qtype) : cit->qname < rit->qname))) {
+          current_qname = rit->qname;
+          current_qtype = rit->qtype;
+          ttl = rit->ttl;
+        }
+        else {
+          current_qname = cit->qname;
+          current_qtype = cit->qtype;
+          ttl = 0;
+        }
+
+        while (rit != records.end() && rit->qname == current_qname && rit->qtype == current_qtype) {
+          ttl = min(ttl, rit->ttl);
+          std::string content;
+          try {
+            content = makeApiRecordContent(rit->qtype, rit->content);
+          }
+          catch (std::exception& e) {
+            // makeApiRecordContent may throw an exception if the backend data
+            // is not well-formed (e.g. corrupted bind zone file).
+            // The exception gets caught here and rethrown as ApiException in
+            // order to return a 422 error code with a (hopefully) useful error
+            // message instead of a 500 error.
+            throw ApiException("Ill-formed record contents found for " + current_qname.toString() + ": " + e.what());
+          }
+          auto object = Json::object{
+            {"disabled", rit->disabled},
+            {"content", content}};
+          if (rit->last_modified != 0) {
+            object["modified_at"] = (double)rit->last_modified;
+          }
+          rrset_records.push_back(object);
+          rit++;
+        }
+        while (cit != comments.end() && cit->qname == current_qname && cit->qtype == current_qtype) {
+          rrset_comments.push_back(Json::object{
+            {"modified_at", (double)cit->modified_at},
+            {"account", cit->account},
+            {"content", cit->content}});
+          cit++;
+        }
+
+        rrset["name"] = current_qname.toString();
+        rrset["type"] = current_qtype.toString();
+        rrset["records"] = rrset_records;
+        rrset["comments"] = rrset_comments;
+        rrset["ttl"] = (double)ttl;
+        rrsets.emplace_back(rrset);
+        rrset.clear();
+        rrset_records.clear();
+        rrset_comments.clear();
+      }
+
+      doc["rrsets"] = rrsets;
     }
 
-    Json::array rrsets;
-    Json::object rrset;
-    Json::array rrset_records;
-    Json::array rrset_comments;
-    DNSName current_qname;
-    QType current_qtype;
-    uint32_t ttl = 0;
-    auto rit = records.begin();
-    auto cit = comments.begin();
-
-    while (rit != records.end() || cit != comments.end()) {
-      // if you think this should be rit < cit instead of cit < rit, note the b < a instead of a < b in the sort comparison functions above
-      if (cit == comments.end() || (rit != records.end() && (rit->qname == cit->qname ? (cit->qtype < rit->qtype || cit->qtype == rit->qtype) : cit->qname < rit->qname))) {
-        current_qname = rit->qname;
-        current_qtype = rit->qtype;
-        ttl = rit->ttl;
-      }
-      else {
-        current_qname = cit->qname;
-        current_qtype = cit->qtype;
-        ttl = 0;
-      }
-
-      while (rit != records.end() && rit->qname == current_qname && rit->qtype == current_qtype) {
-        ttl = min(ttl, rit->ttl);
-        std::string content;
-        try {
-          content = makeApiRecordContent(rit->qtype, rit->content);
-        }
-        catch (std::exception& e) {
-          // makeApiRecordContent may throw an exception if the backend data
-          // is not well-formed (e.g. corrupted bind zone file).
-          // The exception gets caught here and rethrown as ApiException in
-          // order to return a 422 error code with a (hopefully) useful error
-          // message instead of a 500 error.
-          throw ApiException("Ill-formed record contents found for " + current_qname.toString() + ": " + e.what());
-        }
-        auto object = Json::object{
-          {"disabled", rit->disabled},
-          {"content", content}};
-        if (rit->last_modified != 0) {
-          object["modified_at"] = (double)rit->last_modified;
-        }
-        rrset_records.push_back(object);
-        rit++;
-      }
-      while (cit != comments.end() && cit->qname == current_qname && cit->qtype == current_qtype) {
-        rrset_comments.push_back(Json::object{
-          {"modified_at", (double)cit->modified_at},
-          {"account", cit->account},
-          {"content", cit->content}});
-        cit++;
-      }
-
-      rrset["name"] = current_qname.toString();
-      rrset["type"] = current_qtype.toString();
-      rrset["records"] = rrset_records;
-      rrset["comments"] = rrset_comments;
-      rrset["ttl"] = (double)ttl;
-      rrsets.emplace_back(rrset);
-      rrset.clear();
-      rrset_records.clear();
-      rrset_comments.clear();
-    }
-
-    doc["rrsets"] = rrsets;
+    doc["record_count"] = static_cast<double>(recordCount);
   }
 
   resp->setJsonBody(doc);

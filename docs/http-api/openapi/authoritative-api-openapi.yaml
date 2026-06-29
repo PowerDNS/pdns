@@ -1,6 +1,6 @@
 openapi: 3.1.0
 info:
-  version: "0.0.18"
+  version: "0.0.19"
   title: PowerDNS Authoritative HTTP API
   license:
     name: MIT
@@ -60,6 +60,68 @@ paths:
         default:
           $ref: "#/components/responses/Error"
 
+  "/servers/{server_id}/autoprimaries":
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+    get:
+      summary: "Get a list of autoprimaries"
+      operationId: getAutoprimaries
+      tags:
+        - autoprimary
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Autoprimary"
+        default:
+          $ref: "#/components/responses/Error"
+    post:
+      summary: "Add an autoprimary"
+      description: "This methods add a new autoprimary server."
+      operationId: createAutoprimary
+      tags:
+        - autoprimary
+      requestBody:
+        required: true
+        description: autoprimary entry to add
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Autoprimary"
+      responses:
+        "201":
+          description: Created
+        default:
+          $ref: "#/components/responses/Error"
+
+  "/servers/{server_id}/autoprimaries/{ip}/{nameserver}":
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+      - name: ip
+        in: path
+        required: true
+        description: "IP address of autoprimary"
+        schema:
+          type: string
+      - name: nameserver
+        in: path
+        required: true
+        description: "DNS name of the autoprimary"
+        schema:
+          type: string
+    delete:
+      summary: "Delete the autoprimary entry"
+      operationId: deleteAutoprimary
+      tags:
+        - autoprimary
+      responses:
+        "204":
+          description: "OK, key was deleted"
+        default:
+          $ref: "#/components/responses/Error"
+
   "/servers/{server_id}/cache/flush":
     parameters:
       - $ref: "#/components/parameters/server_id"
@@ -82,229 +144,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CacheFlushResult"
-        default:
-          $ref: "#/components/responses/Error"
-
-  "/servers/{server_id}/zones":
-    parameters:
-      - $ref: "#/components/parameters/server_id"
-    get:
-      summary: List all Zones in a server
-      operationId: listZones
-      tags:
-        - zones
-      parameters:
-        - name: zone
-          in: query
-          required: false
-          schema:
-            type: string
-          description: |
-            When set to the name of a zone, only this zone is returned.
-            If no zone with that name exists, the response is an empty array.
-            This can e.g. be used to check if a zone exists in the database without having to guess/encode the zone's id or to check if a zone exists.
-        - name: dnssec
-          in: query
-          required: false
-          schema:
-            type: boolean
-            default: true
-          description: "“true” (default) or “false”, whether to include the “dnssec” and “edited_serial” fields in the Zone objects. Setting this to ”false” will make the query a lot faster."
-      responses:
-        "200":
-          description: An array of Zones
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Zone"
-        default:
-          $ref: "#/components/responses/Error"
-    post:
-      summary: Creates a new domain, returns the Zone on creation.
-      operationId: createZone
-      tags:
-        - zones
-      parameters:
-        - name: rrsets
-          in: query
-          description: "“true” (default) or “false”, whether to include the “rrsets” in the response Zone object."
-          schema:
-            type: boolean
-            default: true
-      requestBody:
-        required: true
-        description: The zone struct to patch with
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/Zone"
-      responses:
-        "201":
-          description: A zone
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Zone"
-        default:
-          $ref: "#/components/responses/Error"
-
-  "/servers/{server_id}/zones/{zone_id}":
-    parameters:
-      - $ref: "#/components/parameters/server_id"
-      - $ref: "#/components/parameters/zone_id"
-    get:
-      summary: zone managed by a server
-      operationId: listZone
-      tags:
-        - zones
-      parameters:
-        - name: rrsets
-          in: query
-          description: "“true” (default) or “false”, whether to include the “rrsets” in the response Zone object."
-          schema:
-            type: boolean
-            default: true
-        - name: rrset_name
-          in: query
-          description: Limit output to RRsets for this name.
-          schema:
-            type: string
-        - name: rrset_type
-          in: query
-          description: Limit output to the RRset of this type. Can only be used together with rrset_name.
-          schema:
-            type: string
-        - name: include_disabled
-          in: query
-          description: "“true” (default) or “false”, whether to include disabled RRsets in the response."
-          schema:
-            type: boolean
-      responses:
-        "200":
-          description: A Zone
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Zone"
-        default:
-          $ref: "#/components/responses/Error"
-    delete:
-      summary: Deletes this zone, all attached metadata and rrsets.
-      operationId: deleteZone
-      tags:
-        - zones
-      responses:
-        "204":
-          description: "Returns 204 No Content on success."
-        default:
-          $ref: "#/components/responses/Error"
-    patch:
-      summary: "Creates/modifies/deletes RRsets present in the payload and their comments. Returns 204 No Content on success."
-      operationId: patchZone
-      tags:
-        - zones
-      requestBody:
-        required: true
-        description: The zone struct to patch with
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/Zone"
-      responses:
-        "204":
-          description: "Returns 204 No Content on success."
-        default:
-          $ref: "#/components/responses/Error"
-
-    put:
-      summary: Modifies basic zone data.
-      description: "The only fields in the zone structure which can be modified are: kind, masters, catalog, account, soa_edit, soa_edit_api, api_rectify, dnssec, and nsec3param. All other fields are ignored."
-      operationId: putZone
-      tags:
-        - zones
-      requestBody:
-        required: true
-        description: The zone struct to patch with
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/Zone"
-      responses:
-        "204":
-          description: "Returns 204 No Content on success."
-        default:
-          $ref: "#/components/responses/Error"
-
-  "/servers/{server_id}/zones/{zone_id}/notify":
-    parameters:
-      - $ref: "#/components/parameters/server_id"
-      - $ref: "#/components/parameters/zone_id"
-    put:
-      summary: Send a DNS NOTIFY to all slaves.
-      description: "Fails when zone kind is not Master or Slave, or master and slave are disabled in the configuration. Only works for Slave if renotify is on. Clients MUST NOT send a body."
-      operationId: notifyZone
-      tags:
-        - zones
-      responses:
-        "200":
-          description: OK
-        default:
-          $ref: "#/components/responses/Error"
-
-  "/servers/{server_id}/zones/{zone_id}/axfr-retrieve":
-    parameters:
-      - $ref: "#/components/parameters/server_id"
-      - $ref: "#/components/parameters/zone_id"
-    put:
-      summary: Retrieve slave zone from its master.
-      description: "Fails when zone kind is not Slave, or slave is disabled in the configuration. Clients MUST NOT send a body."
-      operationId: axfrRetrieveZone
-      tags:
-        - zones
-      responses:
-        "200":
-          description: OK
-        default:
-          $ref: "#/components/responses/Error"
-
-  "/servers/{server_id}/zones/{zone_id}/export":
-    parameters:
-      - $ref: "#/components/parameters/server_id"
-      - $ref: "#/components/parameters/zone_id"
-    get:
-      summary: "Returns the zone in AXFR format."
-      operationId: axfrExportZone
-      tags:
-        - zones
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: string
-        default:
-          $ref: "#/components/responses/Error"
-
-  "/servers/{server_id}/zones/{zone_id}/rectify":
-    parameters:
-      - $ref: "#/components/parameters/server_id"
-      - $ref: "#/components/parameters/zone_id"
-    put:
-      summary: "Rectify the zone data."
-      description: "This does not take into account the API-RECTIFY metadata. Fails on slave zones and zones that do not have DNSSEC."
-      operationId: rectifyZone
-      tags:
-        - zones
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: string
         default:
           $ref: "#/components/responses/Error"
 
@@ -350,6 +189,115 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ConfigSetting"
+        default:
+          $ref: "#/components/responses/Error"
+
+  "/servers/{server_id}/networks":
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+    get:
+      summary: List all registered networks and views in a server
+      operationId: listNetworks
+      tags:
+        - networks
+      responses:
+        "200":
+          description: An array of networks
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Networks"
+        default:
+          $ref: "#/components/responses/Error"
+
+  "/servers/{server_id}/networks/{ip}/{prefixlen}":
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+      - name: ip
+        schema:
+          type: string
+        in: path
+        required: true
+        description: The base address of the network
+      - name: prefixlen
+        schema:
+          type: string
+        in: path
+        required: true
+        description: The length of the network prefix
+    get:
+      summary: Return the view associated to the given network
+      operationId: getNetwork
+      tags:
+        - networks
+      responses:
+        "200":
+          description: A network
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Network"
+        default:
+          $ref: "#/components/responses/Error"
+
+    put:
+      summary: Sets the view associated to the given network
+      operationId: setNetwork
+      tags:
+        - networks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                view:
+                  type: string
+                  description: The name of the view to use for this network
+
+      responses:
+        "204":
+          description: "Returns 204 No Content on success."
+        default:
+          $ref: "#/components/responses/Error"
+
+  "/servers/{server_id}/search-data":
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+    get:
+      summary: "Search the data inside PowerDNS"
+      description: "Search the data inside PowerDNS for search_term and return at most max_results. This includes zones, records and comments. The * character can be used in search_term as a wildcard character and the ? character can be used as a wildcard for a single character."
+      operationId: searchData
+      tags:
+        - search
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: "The string to search for"
+          schema:
+            type: string
+        - name: max
+          in: query
+          required: true
+          description: "Maximum number of entries to return"
+          schema:
+            type: integer
+        - name: object_type
+          in: query
+          required: false
+          description: "Type of data to search for, one of “all”, “zone”, “record”, “comment”"
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Returns a JSON array with results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SearchResults"
         default:
           $ref: "#/components/responses/Error"
 
@@ -399,223 +347,6 @@ paths:
                     - $ref: "#/components/schemas/RingStatisticItem"
         "422":
           description: "Returned when a non-existing statistic name has been requested. Contains an error message"
-        default:
-          $ref: "#/components/responses/Error"
-
-  "/servers/{server_id}/search-data":
-    parameters:
-      - $ref: "#/components/parameters/server_id"
-    get:
-      summary: "Search the data inside PowerDNS"
-      description: "Search the data inside PowerDNS for search_term and return at most max_results. This includes zones, records and comments. The * character can be used in search_term as a wildcard character and the ? character can be used as a wildcard for a single character."
-      operationId: searchData
-      tags:
-        - search
-      parameters:
-        - name: q
-          in: query
-          required: true
-          description: "The string to search for"
-          schema:
-            type: string
-        - name: max
-          in: query
-          required: true
-          description: "Maximum number of entries to return"
-          schema:
-            type: integer
-        - name: object_type
-          in: query
-          required: false
-          description: "Type of data to search for, one of “all”, “zone”, “record”, “comment”"
-          schema:
-            type: string
-      responses:
-        "200":
-          description: Returns a JSON array with results
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SearchResults"
-        default:
-          $ref: "#/components/responses/Error"
-
-  "/servers/{server_id}/zones/{zone_id}/metadata":
-    parameters:
-      - $ref: "#/components/parameters/server_id"
-      - $ref: "#/components/parameters/zone_id"
-    get:
-      summary: "Get all the Metadata associated with the zone."
-      operationId: listMetadata
-      tags:
-        - zonemetadata
-      responses:
-        "200":
-          description: List of Metadata objects
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Metadata"
-        default:
-          $ref: "#/components/responses/Error"
-    post:
-      summary: "Creates a set of metadata entries"
-      description: "Creates a set of metadata entries of given kind for the zone. Existing metadata entries for the zone with the same kind are not overwritten."
-      operationId: createMetadata
-      tags:
-        - zonemetadata
-
-      requestBody:
-        required: true
-        description: Metadata object with list of values to create
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/Metadata"
-      responses:
-        "204":
-          description: OK
-        default:
-          $ref: "#/components/responses/Error"
-
-  "/servers/{server_id}/zones/{zone_id}/metadata/{metadata_kind}":
-    parameters:
-      - $ref: "#/components/parameters/server_id"
-      - $ref: "#/components/parameters/zone_id"
-      - name: metadata_kind
-        schema:
-          type: string
-        in: path
-        required: true
-        description: The kind of metadata
-    get:
-      summary: "Get the content of a single kind of domain metadata as a Metadata object."
-      operationId: getMetadata
-      tags:
-        - zonemetadata
-      responses:
-        "200":
-          description: Metadata object with list of values
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Metadata"
-        default:
-          $ref: "#/components/responses/Error"
-    put:
-      summary: "Replace the content of a single kind of domain metadata."
-      description: "Creates a set of metadata entries of given kind for the zone. Existing metadata entries for the zone with the same kind are removed."
-      operationId: modifyMetadata
-      tags:
-        - zonemetadata
-      responses:
-        "200":
-          description: Metadata object with list of values
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Metadata"
-        default:
-          $ref: "#/components/responses/Error"
-    delete:
-      summary: "Delete all items of a single kind of domain metadata."
-      operationId: deleteMetadata
-      tags:
-        - zonemetadata
-      responses:
-        "204":
-          description: OK
-        default:
-          $ref: "#/components/responses/Error"
-
-  "/servers/{server_id}/zones/{zone_id}/cryptokeys":
-    parameters:
-      - $ref: "#/components/parameters/server_id"
-      - $ref: "#/components/parameters/zone_id"
-    get:
-      summary: "Get all CryptoKeys for a zone, except the privatekey"
-      operationId: listCryptokeys
-      tags:
-        - zonecryptokey
-      responses:
-        "200":
-          description: List of Cryptokey objects
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Cryptokey"
-        default:
-          $ref: "#/components/responses/Error"
-    post:
-      summary: "Creates a Cryptokey"
-      description: "This method adds a new key to a zone. The key can either be generated or imported by supplying the content parameter. if content, bits and algo are null, a key will be generated based on the default-ksk-algorithm and default-ksk-size settings for a KSK and the default-zsk-algorithm and default-zsk-size options for a ZSK."
-      operationId: createCryptokey
-      tags:
-        - zonecryptokey
-
-      requestBody:
-        required: true
-        description: Add a Cryptokey
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/Cryptokey"
-      responses:
-        "201":
-          description: Created
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Cryptokey"
-        default:
-          $ref: "#/components/responses/Error"
-
-  "/servers/{server_id}/zones/{zone_id}/cryptokeys/{cryptokey_id}":
-    parameters:
-      - $ref: "#/components/parameters/server_id"
-      - $ref: "#/components/parameters/zone_id"
-      - name: cryptokey_id
-        schema:
-          type: string
-        in: path
-        required: true
-        description: "The id value of the CryptoKey"
-    get:
-      summary: "Returns all data about the CryptoKey, including the privatekey."
-      operationId: getCryptokey
-      tags:
-        - zonecryptokey
-      responses:
-        "200":
-          description: Cryptokey
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Cryptokey"
-        default:
-          $ref: "#/components/responses/Error"
-    put:
-      summary: "This method (de)activates a key from zone_name specified by cryptokey_id"
-      operationId: modifyCryptokey
-      tags:
-        - zonecryptokey
-      responses:
-        "204":
-          description: OK
-        default:
-          $ref: "#/components/responses/Error"
-    delete:
-      summary: "This method deletes a key specified by cryptokey_id."
-      operationId: deleteCryptokey
-      tags:
-        - zonecryptokey
-      responses:
-        "204":
-          description: OK
         default:
           $ref: "#/components/responses/Error"
 
@@ -734,68 +465,6 @@ paths:
         default:
           $ref: "#/components/responses/Error"
 
-  "/servers/{server_id}/autoprimaries":
-    parameters:
-      - $ref: "#/components/parameters/server_id"
-    get:
-      summary: "Get a list of autoprimaries"
-      operationId: getAutoprimaries
-      tags:
-        - autoprimary
-      responses:
-        "200":
-          description: OK.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Autoprimary"
-        default:
-          $ref: "#/components/responses/Error"
-    post:
-      summary: "Add an autoprimary"
-      description: "This methods add a new autoprimary server."
-      operationId: createAutoprimary
-      tags:
-        - autoprimary
-      requestBody:
-        required: true
-        description: autoprimary entry to add
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/Autoprimary"
-      responses:
-        "201":
-          description: Created
-        default:
-          $ref: "#/components/responses/Error"
-
-  "/servers/{server_id}/autoprimaries/{ip}/{nameserver}":
-    parameters:
-      - $ref: "#/components/parameters/server_id"
-      - name: ip
-        in: path
-        required: true
-        description: "IP address of autoprimary"
-        schema:
-          type: string
-      - name: nameserver
-        in: path
-        required: true
-        description: "DNS name of the autoprimary"
-        schema:
-          type: string
-    delete:
-      summary: "Delete the autoprimary entry"
-      operationId: deleteAutoprimary
-      tags:
-        - autoprimary
-      responses:
-        "204":
-          description: "OK, key was deleted"
-        default:
-          $ref: "#/components/responses/Error"
-
   "/servers/{server_id}/views":
     get:
       summary: List all views in a server
@@ -877,74 +546,412 @@ paths:
         default:
           $ref: "#/components/responses/Error"
 
-  "/servers/{server_id}/networks":
+  "/servers/{server_id}/zones":
     parameters:
       - $ref: "#/components/parameters/server_id"
     get:
-      summary: List all registered networks and views in a server
-      operationId: listNetworks
+      summary: List all Zones in a server
+      operationId: listZones
       tags:
-        - networks
+        - zones
+      parameters:
+        - name: zone
+          in: query
+          required: false
+          schema:
+            type: string
+          description: |
+            When set to the name of a zone, only this zone is returned.
+            If no zone with that name exists, the response is an empty array.
+            This can e.g. be used to check if a zone exists in the database without having to guess/encode the zone's id or to check if a zone exists.
+        - name: dnssec
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: true
+          description: "“true” (default) or “false”, whether to include the “dnssec” and “edited_serial” fields in the Zone objects. Setting this to ”false” will make the query a lot faster."
       responses:
         "200":
-          description: An array of networks
+          description: An array of Zones
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Networks"
+                type: array
+                items:
+                  $ref: "#/components/schemas/Zone"
+        default:
+          $ref: "#/components/responses/Error"
+    post:
+      summary: Creates a new domain, returns the Zone on creation.
+      operationId: createZone
+      tags:
+        - zones
+      parameters:
+        - name: rrsets
+          in: query
+          description: "“true” (default) or “false”, whether to include the “rrsets” in the response Zone object."
+          schema:
+            type: boolean
+            default: true
+      requestBody:
+        required: true
+        description: The zone struct to patch with
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Zone"
+      responses:
+        "201":
+          description: A zone
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Zone"
         default:
           $ref: "#/components/responses/Error"
 
-  "/servers/{server_id}/networks/{ip}/{prefixlen}":
+  "/servers/{server_id}/zones/{zone_id}":
     parameters:
       - $ref: "#/components/parameters/server_id"
-      - name: ip
-        schema:
-          type: string
-        in: path
-        required: true
-        description: The base address of the network
-      - name: prefixlen
-        schema:
-          type: string
-        in: path
-        required: true
-        description: The length of the network prefix
+      - $ref: "#/components/parameters/zone_id"
     get:
-      summary: Return the view associated to the given network
-      operationId: getNetwork
+      summary: zone managed by a server
+      operationId: listZone
       tags:
-        - networks
+        - zones
+      parameters:
+        - name: rrsets
+          in: query
+          description: "“true” (default) or “false”, whether to include the “rrsets” in the response Zone object."
+          schema:
+            type: boolean
+            default: true
+        - name: record_count
+          in: query
+          description: "“true” or “false” (default), whether to include a count of the records returned in “rrsets” in the response Zone object."
+          schema:
+            type: boolean
+            default: false
+        - name: rrset_name
+          in: query
+          description: Limit output and/or count to RRsets for this name.
+          schema:
+            type: string
+        - name: rrset_type
+          in: query
+          description: Limit output and/or count to the RRset of this type. Can only be used together with rrset_name.
+          schema:
+            type: string
+        - name: include_disabled
+          in: query
+          description: "“true” (default) or “false”, whether to include disabled RRsets in the response."
+          schema:
+            type: boolean
+            default: true
       responses:
         "200":
-          description: A network
+          description: A Zone
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Network"
+                $ref: "#/components/schemas/Zone"
+        default:
+          $ref: "#/components/responses/Error"
+    delete:
+      summary: Deletes this zone, all attached metadata and rrsets.
+      operationId: deleteZone
+      tags:
+        - zones
+      responses:
+        "204":
+          description: "Returns 204 No Content on success."
+        default:
+          $ref: "#/components/responses/Error"
+    patch:
+      summary: "Creates/modifies/deletes RRsets present in the payload and their comments. Returns 204 No Content on success."
+      operationId: patchZone
+      tags:
+        - zones
+      requestBody:
+        required: true
+        description: The zone struct to patch with
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Zone"
+      responses:
+        "204":
+          description: "Returns 204 No Content on success."
         default:
           $ref: "#/components/responses/Error"
 
     put:
-      summary: Sets the view associated to the given network
-      operationId: setNetwork
+      summary: Modifies basic zone data.
+      description: "The only fields in the zone structure which can be modified are: kind, masters, catalog, account, soa_edit, soa_edit_api, api_rectify, dnssec, and nsec3param. All other fields are ignored."
+      operationId: putZone
       tags:
-        - networks
+        - zones
       requestBody:
         required: true
+        description: The zone struct to patch with
         content:
           application/json:
             schema:
-              type: object
-              additionalProperties: false
-              properties:
-                view:
-                  type: string
-                  description: The name of the view to use for this network
-
+              $ref: "#/components/schemas/Zone"
       responses:
         "204":
           description: "Returns 204 No Content on success."
+        default:
+          $ref: "#/components/responses/Error"
+
+  "/servers/{server_id}/zones/{zone_id}/axfr-retrieve":
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+      - $ref: "#/components/parameters/zone_id"
+    put:
+      summary: Retrieve slave zone from its master.
+      description: "Fails when zone kind is not Slave, or slave is disabled in the configuration. Clients MUST NOT send a body."
+      operationId: axfrRetrieveZone
+      tags:
+        - zones
+      responses:
+        "200":
+          description: OK
+        default:
+          $ref: "#/components/responses/Error"
+
+  "/servers/{server_id}/zones/{zone_id}/cryptokeys":
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+      - $ref: "#/components/parameters/zone_id"
+    get:
+      summary: "Get all CryptoKeys for a zone, except the privatekey"
+      operationId: listCryptokeys
+      tags:
+        - zonecryptokey
+      responses:
+        "200":
+          description: List of Cryptokey objects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Cryptokey"
+        default:
+          $ref: "#/components/responses/Error"
+    post:
+      summary: "Creates a Cryptokey"
+      description: "This method adds a new key to a zone. The key can either be generated or imported by supplying the content parameter. if content, bits and algo are null, a key will be generated based on the default-ksk-algorithm and default-ksk-size settings for a KSK and the default-zsk-algorithm and default-zsk-size options for a ZSK."
+      operationId: createCryptokey
+      tags:
+        - zonecryptokey
+
+      requestBody:
+        required: true
+        description: Add a Cryptokey
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Cryptokey"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Cryptokey"
+        default:
+          $ref: "#/components/responses/Error"
+
+  "/servers/{server_id}/zones/{zone_id}/cryptokeys/{cryptokey_id}":
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+      - $ref: "#/components/parameters/zone_id"
+      - name: cryptokey_id
+        schema:
+          type: string
+        in: path
+        required: true
+        description: "The id value of the CryptoKey"
+    get:
+      summary: "Returns all data about the CryptoKey, including the privatekey."
+      operationId: getCryptokey
+      tags:
+        - zonecryptokey
+      responses:
+        "200":
+          description: Cryptokey
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Cryptokey"
+        default:
+          $ref: "#/components/responses/Error"
+    put:
+      summary: "This method (de)activates a key from zone_name specified by cryptokey_id"
+      operationId: modifyCryptokey
+      tags:
+        - zonecryptokey
+      responses:
+        "204":
+          description: OK
+        default:
+          $ref: "#/components/responses/Error"
+    delete:
+      summary: "This method deletes a key specified by cryptokey_id."
+      operationId: deleteCryptokey
+      tags:
+        - zonecryptokey
+      responses:
+        "204":
+          description: OK
+        default:
+          $ref: "#/components/responses/Error"
+
+  "/servers/{server_id}/zones/{zone_id}/export":
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+      - $ref: "#/components/parameters/zone_id"
+    get:
+      summary: "Returns the zone in AXFR format."
+      operationId: axfrExportZone
+      tags:
+        - zones
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: string
+        default:
+          $ref: "#/components/responses/Error"
+
+  "/servers/{server_id}/zones/{zone_id}/metadata":
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+      - $ref: "#/components/parameters/zone_id"
+    get:
+      summary: "Get all the Metadata associated with the zone."
+      operationId: listMetadata
+      tags:
+        - zonemetadata
+      responses:
+        "200":
+          description: List of Metadata objects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Metadata"
+        default:
+          $ref: "#/components/responses/Error"
+    post:
+      summary: "Creates a set of metadata entries"
+      description: "Creates a set of metadata entries of given kind for the zone. Existing metadata entries for the zone with the same kind are not overwritten."
+      operationId: createMetadata
+      tags:
+        - zonemetadata
+
+      requestBody:
+        required: true
+        description: Metadata object with list of values to create
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Metadata"
+      responses:
+        "204":
+          description: OK
+        default:
+          $ref: "#/components/responses/Error"
+
+  "/servers/{server_id}/zones/{zone_id}/metadata/{metadata_kind}":
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+      - $ref: "#/components/parameters/zone_id"
+      - name: metadata_kind
+        schema:
+          type: string
+        in: path
+        required: true
+        description: The kind of metadata
+    get:
+      summary: "Get the content of a single kind of domain metadata as a Metadata object."
+      operationId: getMetadata
+      tags:
+        - zonemetadata
+      responses:
+        "200":
+          description: Metadata object with list of values
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Metadata"
+        default:
+          $ref: "#/components/responses/Error"
+    put:
+      summary: "Replace the content of a single kind of domain metadata."
+      description: "Creates a set of metadata entries of given kind for the zone. Existing metadata entries for the zone with the same kind are removed."
+      operationId: modifyMetadata
+      tags:
+        - zonemetadata
+      responses:
+        "200":
+          description: Metadata object with list of values
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Metadata"
+        default:
+          $ref: "#/components/responses/Error"
+    delete:
+      summary: "Delete all items of a single kind of domain metadata."
+      operationId: deleteMetadata
+      tags:
+        - zonemetadata
+      responses:
+        "204":
+          description: OK
+        default:
+          $ref: "#/components/responses/Error"
+
+  "/servers/{server_id}/zones/{zone_id}/notify":
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+      - $ref: "#/components/parameters/zone_id"
+    put:
+      summary: Send a DNS NOTIFY to all slaves.
+      description: "Fails when zone kind is not Master or Slave, or master and slave are disabled in the configuration. Only works for Slave if renotify is on. Clients MUST NOT send a body."
+      operationId: notifyZone
+      tags:
+        - zones
+      responses:
+        "200":
+          description: OK
+        default:
+          $ref: "#/components/responses/Error"
+
+  "/servers/{server_id}/zones/{zone_id}/rectify":
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+      - $ref: "#/components/parameters/zone_id"
+    put:
+      summary: "Rectify the zone data."
+      description: "This does not take into account the API-RECTIFY metadata. Fails on slave zones and zones that do not have DNSSEC."
+      operationId: rectifyZone
+      tags:
+        - zones
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: string
         default:
           $ref: "#/components/responses/Error"
 
@@ -1047,6 +1054,9 @@ components:
             - "Producer"
             - "Consumer"
           description: "Zone kind, one of “Native”, “Master”, “Slave”, “Producer”, “Consumer”"
+        record_count:
+          type: integer
+          description: "The number of records in this zone (for zones/{zone_id} endpoint only; omitted during GET on the .../zones list endpoint)"
         rrsets:
           type: array
           items:
