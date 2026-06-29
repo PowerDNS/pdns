@@ -131,7 +131,7 @@ That requirement could be lifted a bit by the use of sampling, meaning that only
 Triggering Dynamic Blocks from an External System
 --------------------------------------------------
 
-In some deployments an external detection system (a traffic analyzer, SIEM, or similar) identifies abusive sources and needs to push blocks into dnsdist over the network.
+In some deployments an external detection system (a traffic analyzer, monitoring platform, or similar) identifies abusive sources and needs to push blocks into dnsdist over the network.
 The built-in webserver combined with :func:`registerWebHandler` makes this possible without any additional software.
 
 The following Lua snippet exposes two custom HTTP endpoints: one to add a dynamic block and one to remove it.

@@ -189,6 +189,7 @@ Chiavacci
 Christof
 chrooted
 chrooting
+cjson
 clangd
 Cloos
 closesocket
@@ -386,6 +387,7 @@ dynbpf
 dyndns
 dynhandler
 dynmodules
+dynunblock
 easydns
 ebpf
 ebpfblocklist
