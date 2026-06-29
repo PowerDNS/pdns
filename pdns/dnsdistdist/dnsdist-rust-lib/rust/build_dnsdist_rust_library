@@ -25,6 +25,7 @@ case "${CARGO_LTO_MODE:-unspecified}" in
         ;;
 esac
 
+# echo "RUSTFLAGS = ${RUSTFLAGS}"
 # echo "CARGO_PROFILE = ${CARGO_PROFILE}"
 # echo "CARGO_LTO_MODE = ${CARGO_LTO_MODE}"
 # echo "CARGO_CONFIG = ${CARGO_CONFIG}"
