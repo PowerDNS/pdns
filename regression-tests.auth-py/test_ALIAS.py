@@ -239,46 +239,29 @@ subnetwrong.example.org.     3600 IN ALIAS subnetwrong.example.com.
         raise AssertionError("No DNSKEY found for example.org")
 
     def testDNSSEC(self):
-        keys = self.getDNSKEYs()
-        expected_a = dns.rrset.from_text("noerror.example.org.", 0, dns.rdataclass.IN, "A", "192.0.2.1")
-        expected_aaaa = dns.rrset.from_text("noerror.example.org.", 0, dns.rdataclass.IN, "AAAA", "2001:DB8::1")
+        def test(send):
+            keys = self.getDNSKEYs()
+            expected_a = dns.rrset.from_text("noerror.example.org.", 0, dns.rdataclass.IN, "A", "192.0.2.1")
+            expected_aaaa = dns.rrset.from_text("noerror.example.org.", 0, dns.rdataclass.IN, "AAAA", "2001:DB8::1")
 
-        query = dns.message.make_query("noerror.example.org", "A", use_edns=True, want_dnssec=True)
-        res = self.sendUDPQuery(query)
-        self.assertRcodeEqual(res, dns.rcode.NOERROR)
-        self.assertMatchingRRSIGInAnswer(res, expected_a, keys)
+            query = dns.message.make_query("noerror.example.org", "A", use_edns=True, want_dnssec=True)
+            res = send(query)
+            self.assertRcodeEqual(res, dns.rcode.NOERROR)
+            self.assertMatchingRRSIGInAnswer(res, expected_a, keys)
 
-        query = dns.message.make_query("noerror.example.org", "AAAA", use_edns=True, want_dnssec=True)
-        res = self.sendUDPQuery(query)
-        self.assertRcodeEqual(res, dns.rcode.NOERROR)
-        self.assertMatchingRRSIGInAnswer(res, expected_aaaa, keys)
+            query = dns.message.make_query("noerror.example.org", "AAAA", use_edns=True, want_dnssec=True)
+            res = send(query)
+            self.assertRcodeEqual(res, dns.rcode.NOERROR)
+            self.assertMatchingRRSIGInAnswer(res, expected_aaaa, keys)
 
-        query = dns.message.make_query("noerror.example.org", "ANY", use_edns=True, want_dnssec=True)
-        res = self.sendUDPQuery(query)
-        self.assertRcodeEqual(res, dns.rcode.NOERROR)
-        self.assertMatchingRRSIGInAnswer(res, expected_a, keys)
-        self.assertMatchingRRSIGInAnswer(res, expected_aaaa, keys)
+            query = dns.message.make_query("noerror.example.org", "ANY", use_edns=True, want_dnssec=True)
+            res = send(query)
+            self.assertRcodeEqual(res, dns.rcode.NOERROR)
+            self.assertMatchingRRSIGInAnswer(res, expected_a, keys)
+            self.assertMatchingRRSIGInAnswer(res, expected_aaaa, keys)
 
-    def testDNSSECTCP(self):
-        keys = self.getDNSKEYs()
-        expected_a = dns.rrset.from_text("noerror.example.org.", 0, dns.rdataclass.IN, "A", "192.0.2.1")
-        expected_aaaa = dns.rrset.from_text("noerror.example.org.", 0, dns.rdataclass.IN, "AAAA", "2001:DB8::1")
-
-        query = dns.message.make_query("noerror.example.org", "A", use_edns=True, want_dnssec=True)
-        res = self.sendTCPQuery(query)
-        self.assertRcodeEqual(res, dns.rcode.NOERROR)
-        self.assertMatchingRRSIGInAnswer(res, expected_a, keys)
-
-        query = dns.message.make_query("noerror.example.org", "AAAA", use_edns=True, want_dnssec=True)
-        res = self.sendTCPQuery(query)
-        self.assertRcodeEqual(res, dns.rcode.NOERROR)
-        self.assertMatchingRRSIGInAnswer(res, expected_aaaa, keys)
-
-        query = dns.message.make_query("noerror.example.org", "ANY", use_edns=True, want_dnssec=True)
-        res = self.sendTCPQuery(query)
-        self.assertRcodeEqual(res, dns.rcode.NOERROR)
-        self.assertMatchingRRSIGInAnswer(res, expected_a, keys)
-        self.assertMatchingRRSIGInAnswer(res, expected_aaaa, keys)
+        test(self.sendUDPQuery)
+        test(self.sendTCPQuery)
 
     def testDNSSECServFail(self):
         query = dns.message.make_query("servfail.example.org", "A", use_edns=True, want_dnssec=True)

@@ -161,21 +161,7 @@ bool DNSProxy::completePacket(std::unique_ptr<DNSPacket>& reply, const DNSName& 
         reply->addRecord(std::move(ip));
       }
       if (doSign) {
-        try {
-          addRRSigs(dnssecKeeper, backend, authSet, reply->getRRS(), reply.get());
-        }
-        catch (const std::exception& e) {
-          SLOG(g_log << Logger::Error << "Error signing ALIAS answer for " << aname << " over TCP: " << e.what() << ", returning SERVFAIL" << endl,
-               d_slog->error(Logr::Error, e.what(), "Error signing ALIAS answer over TCP, returning SERVFAIL", "alias", Logging::Loggable(aname)));
-          reply->clearRecords();
-          reply->setRcode(RCode::ServFail);
-        }
-        catch (const PDNSException& e) {
-          SLOG(g_log << Logger::Error << "Error signing ALIAS answer for " << aname << " over TCP: " << e.reason << ", returning SERVFAIL" << endl,
-               d_slog->error(Logr::Error, e.reason, "Error signing ALIAS answer over TCP, returning SERVFAIL", "alias", Logging::Loggable(aname)));
-          reply->clearRecords();
-          reply->setRcode(RCode::ServFail);
-        }
+        addRRSigs(dnssecKeeper, backend, authSet, reply->getRRS(), reply.get());
       }
     }
 
@@ -256,8 +242,8 @@ void DNSProxy::mainloop()
 {
   setThreadName("pdns/dnsproxy");
   try {
-    UeberBackend db;
-    DNSSECKeeper dk(d_slog, &db);
+    UeberBackend db; // NOLINT(readability-identifier-length)
+    DNSSECKeeper dk(d_slog, &db); // NOLINT(readability-identifier-length)
 
     char buffer[1500];
     ssize_t len;
@@ -351,21 +337,7 @@ void DNSProxy::mainloop()
           iter->second.complete->setRcode(mdp.d_header.rcode);
 
           if (iter->second.doSign) {
-            try {
-              addRRSigs(dk, db, iter->second.authSet, iter->second.complete->getRRS(), iter->second.complete.get());
-            }
-            catch (const std::exception& e) {
-              SLOG(g_log << Logger::Error << "Error signing ALIAS answer for " << iter->second.aname << ": " << e.what() << ", returning SERVFAIL" << endl,
-                   d_slog->error(Logr::Error, e.what(), "Error signing ALIAS answer, returning SERVFAIL", "alias", Logging::Loggable(iter->second.aname)));
-              iter->second.complete->clearRecords();
-              iter->second.complete->setRcode(RCode::ServFail);
-            }
-            catch (const PDNSException& e) {
-              SLOG(g_log << Logger::Error << "Error signing ALIAS answer for " << iter->second.aname << ": " << e.reason << ", returning SERVFAIL" << endl,
-                   d_slog->error(Logr::Error, e.reason, "Error signing ALIAS answer, returning SERVFAIL", "alias", Logging::Loggable(iter->second.aname)));
-              iter->second.complete->clearRecords();
-              iter->second.complete->setRcode(RCode::ServFail);
-            }
+            addRRSigs(dk, db, iter->second.authSet, iter->second.complete->getRRS(), iter->second.complete.get());
           }
         }
         else {

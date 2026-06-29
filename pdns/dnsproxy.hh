@@ -59,7 +59,7 @@ public:
   DNSProxy(Logr::log_t slog, const string& remote, const string& udpPortRange); //!< creates socket
   ~DNSProxy(); //<! dtor for DNSProxy
   void go(); //!< launches the actual thread
-  // dnssecKeeper and backend are only used for the TCP path, where signing
+  // DNSSECKeeper and UeberBackend objects are only used in the TCP path, where signing
   // happens synchronously in the caller's thread; the UDP path signs later in
   // mainloop() using its own thread-local backend.
   bool completePacket(std::unique_ptr<DNSPacket>& reply, const DNSName& target, const DNSName& aname, uint8_t scopeMask, bool doSign, const std::set<ZoneName>& authSet, DNSSECKeeper& dnssecKeeper, UeberBackend& backend);
