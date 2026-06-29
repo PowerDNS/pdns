@@ -122,6 +122,7 @@ module-dir=$PDNS_MODULE_PATH
 launch=geoip
 geoip-zones-file=$testsdir/geo.yaml
 geoip-database-files=$geoipdatabase
+logging-structured
 EOF
 
 		if [ "$geoipdosec" = "yes" ]

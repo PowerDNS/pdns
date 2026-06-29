@@ -26,6 +26,7 @@ launch=gsqlite3
 gsqlite3-database=configs/auth/powerdns.sqlite
 gsqlite3-pragma-foreign-keys=yes
 gsqlite3-dnssec=yes
+logging-structured
 """
 
     @classmethod

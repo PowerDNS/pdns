@@ -29,6 +29,7 @@ enable-gss-tsig=yes
 allow-dnsupdate-from=0.0.0.0/0
 dnsupdate=yes
 dnsupdate-require-tsig=no
+logging-structured
 """
     _auth_env = {"KRB5_CONFIG": "./kerberos-client/krb5.conf", "KRB5_KTNAME": "./kerberos-client/kt.keytab"}
 
@@ -106,6 +107,7 @@ gsqlite3-dnssec=yes
 enable-gss-tsig=yes
 allow-dnsupdate-from=0.0.0.0/0
 dnsupdate=yes
+logging-structured
 """
 
     def testAllowedUpdate(self):
@@ -140,6 +142,7 @@ enable-gss-tsig=yes
 allow-dnsupdate-from=0.0.0.0/0
 dnsupdate=yes
 lua-dnsupdate-policy-script=kerberos-client/update-policy.lua
+logging-structured
 """
 
     def testDisallowedByLuaUpdate(self):
@@ -172,6 +175,7 @@ gsqlite3-dnssec=yes
 enable-gss-tsig=no
 allow-dnsupdate-from=0.0.0.0/0
 dnsupdate=yes
+logging-structured
 """
 
     def testNoAcceptor(self):
@@ -190,6 +194,7 @@ enable-gss-tsig=no
 allow-dnsupdate-from=0.0.0.0/0
 dnsupdate=yes
 dnsupdate-require-tsig=yes
+logging-structured
 """
 
     def testNoAcceptor(self):
@@ -207,6 +212,7 @@ enable-gss-tsig=yes
 allow-dnsupdate-from=0.0.0.0/0
 dnsupdate=yes
 dnsupdate-require-tsig=yes
+logging-structured
 """
 
     def testAllowedUpdate(self):

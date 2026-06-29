@@ -111,6 +111,7 @@ launch={backend}
 default-soa-edit=INCEPTION-INCREMENT
 soa-edit-spread=10
 rrsig-expiry-extend=20
+logging-structured
     """
 
     expected = {2025121801, 2025122501}
@@ -122,6 +123,7 @@ class TestSoaEditSpreadIncrementWeeks(TestSoaEditSpreadBase):
 launch={backend}
 default-soa-edit=INCREMENT-WEEKS
 soa-edit-spread=10
+logging-structured
     """
 
     expected = {2921, 2922}
@@ -133,6 +135,7 @@ class TestSoaEditSpreadInceptionEpoch(TestSoaEditSpreadBase):
 launch={backend}
 default-soa-edit=INCEPTION-EPOCH
 soa-edit-spread=10
+logging-structured
     """
 
     expected = {2920 * 604800, 2921 * 604800}

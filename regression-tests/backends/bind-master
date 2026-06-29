@@ -6,6 +6,7 @@ module-dir=$PDNS_MODULE_PATH
 launch=bind
 bind-config=./named.conf
 bind-ignore-broken-records=yes
+logging-structured
 __EOF__
 
         $RUNWRAPPER $PDNS --loglevel=7 --daemon=no --local-address=$address --local-port=$port --config-dir=. \
@@ -24,6 +25,7 @@ module-dir=$PDNS_MODULE_PATH
 launch=bind
 bind-config=./named.conf
 bind-ignore-broken-records=yes
+logging-structured
 __EOF__
         if [ $context = bind-hybrid-nsec3 ]
         then

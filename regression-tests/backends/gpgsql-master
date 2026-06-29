@@ -18,6 +18,7 @@ gpgsql-dbname=$GPGSQLDB
 gpgsql-user=$GPGSQLUSER
 
 zone-cache-refresh-interval=120
+logging-structured
 __EOF__
 
 		gsql_master gpgsql nodyndns

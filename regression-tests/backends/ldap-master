@@ -25,6 +25,7 @@ ldap-binddn=$LDAPUSER
 ldap-secret=$LDAPPASSWD
 ldap-method=$layout
 ldap-host=$LDAPHOST
+logging-structured
 __EOF__
 
 		$RUNWRAPPER $PDNS --loglevel=7 --daemon=no --local-address=$address --local-port=$port --config-dir=. \
