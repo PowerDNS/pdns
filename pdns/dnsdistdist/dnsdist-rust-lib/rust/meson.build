@@ -13,6 +13,18 @@ env.set('srcdir', meson.current_source_dir())
 env.append('RUST_TARGET', '', separator: '')
 env.append('RUSTC_TARGET_ARCH', '', separator: '')
 
+if get_option('rust-lto') and get_option('b_lto') and get_option('b_lto_mode') == 'default'
+  env.set('CARGO_LTO_MODE', 'fat')
+  summary('LTO', true, bool_yn: true, section: 'Rust')
+  summary('LTO mode', 'fat', section: 'Rust')
+elif get_option('rust-lto') and get_option('b_lto') and get_option('b_lto_mode') == 'thin'
+  env.set('CARGO_LTO_MODE', 'thin')
+  summary('LTO', true, bool_yn: true, section: 'Rust')
+  summary('LTO mode', 'thin', section: 'Rust')
+else
+  summary('LTO', false, bool_yn: true, section: 'Rust')
+endif
+
 lib_dnsdist_rust = custom_target('libdnsdist_rust.a',
   output: [outfile, 'cxx.h'],
   input: infile,
