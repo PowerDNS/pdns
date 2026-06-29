@@ -150,6 +150,31 @@ It expects the webserver to already be configured (see :doc:`webserver`) and use
     return tonumber(body:match('"' .. key .. '"%s*:%s*(%d+)'))
   end
 
+  -- Constant-time string comparison to prevent timing attacks on the
+  -- API key.  Iterates every byte regardless of where a mismatch occurs.
+  local API_KEY = 'your-secret-key-here'
+
+  local function safeEquals(a, b)
+    if #a ~= #b then return false end
+    local mismatch = 0
+    for i = 1, #a do
+      if string.byte(a, i) ~= string.byte(b, i) then
+        mismatch = mismatch + 1
+      end
+    end
+    return mismatch == 0
+  end
+
+  local function checkAuth(req, resp)
+    local key = req.headers['x-api-key'] or ''
+    if not safeEquals(key, API_KEY) then
+      resp.status = 403
+      resp.body   = '{"error":"forbidden"}'
+      return false
+    end
+    return true
+  end
+
   function blockHandler(req, resp)
     if req.method ~= 'POST' then
       resp.status = 405
@@ -157,12 +182,7 @@ It expects the webserver to already be configured (see :doc:`webserver`) and use
       return
     end
 
-    local headers = req.headers
-    if headers['x-api-key'] ~= 'your-secret-key-here' then
-      resp.status = 403
-      resp.body   = '{"error":"forbidden"}'
-      return
-    end
+    if not checkAuth(req, resp) then return end
 
     local cidr     = jsonValue(req.body, 'cidr')
     local duration = jsonNumberValue(req.body, 'duration')
@@ -187,12 +207,7 @@ It expects the webserver to already be configured (see :doc:`webserver`) and use
       return
     end
 
-    local headers = req.headers
-    if headers['x-api-key'] ~= 'your-secret-key-here' then
-      resp.status = 403
-      resp.body   = '{"error":"forbidden"}'
-      return
-    end
+    if not checkAuth(req, resp) then return end
 
     local cidr = jsonValue(req.body, 'cidr')
     if not cidr then
@@ -201,8 +216,22 @@ It expects the webserver to already be configured (see :doc:`webserver`) and use
       return
     end
 
-    -- Setting the block duration to 0 effectively removes it
-    addDynamicBlock(newCA(cidr), 'unblock', DNSAction.None, 0)
+    -- There is no per-entry removal function, so we snapshot active
+    -- blocks, clear all, and re-add every entry except the target.
+    -- The brief window between clear and re-add is normally sub-ms.
+    local now     = os.time()
+    local current = getDynamicBlocks()
+    clearDynBlocks()
+
+    for addr, block in pairs(current) do
+      if addr ~= cidr then
+        local remaining = block.until - now
+        if remaining > 0 then
+          addDynamicBlock(newCA(addr), block.reason, block.action, remaining)
+        end
+      end
+    end
+
     resp.status  = 200
     resp.body    = '{"status":"unblocked","cidr":"' .. cidr .. '"}'
     resp.headers = {['Content-Type']='application/json'}
@@ -231,5 +260,15 @@ And remove it early:
 
 .. note::
 
-  The ``X-API-Key`` check shown above is a minimal example.
-  In production you should also restrict access to the webserver itself using the ``acl`` option of :func:`setWebserverConfig` and consider placing dnsdist behind a reverse proxy that terminates TLS.
+  The ``safeEquals`` function above is a Lua workaround for constant-time comparison.
+  The standard ``~=`` operator returns early on the first mismatched byte, which can
+  theoretically leak the key via timing analysis.  Restricting access to the webserver
+  via the ``acl`` option of :func:`setWebserverConfig` and placing dnsdist behind a
+  TLS-terminating reverse proxy are still recommended for production deployments.
+
+.. note::
+
+  The unblock handler snapshots all active blocks with :func:`getDynamicBlocks`, clears
+  them with :func:`clearDynBlocks`, then re-adds every entry except the target.  There is
+  a brief window (typically sub-millisecond) where no blocks are enforced.  If this is
+  unacceptable, consider letting blocks expire naturally instead of removing them early.
