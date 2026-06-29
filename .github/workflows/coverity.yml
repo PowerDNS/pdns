@@ -19,6 +19,7 @@ permissions: # least privileges, see https://docs.github.com/en/actions/using-wo
 
 env:
   CLANG_VERSION: '12'
+  BUILDER_VERSION: '0.0.0-git1'
 
 jobs:
   coverity-auth:
