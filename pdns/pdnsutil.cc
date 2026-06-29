@@ -2306,13 +2306,16 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
     return EXIT_FAILURE;
   }
 
-  if (isatty(STDIN_FILENO) == 0) {
-    cerr << "zone edit requires a terminal" << endl;
-    return EXIT_FAILURE;
+  bool interactive = isatty(STDIN_FILENO) != 0;
+  if (!interactive) {
+    cout << "Editing in non-interactive mode" << endl;
   }
 
   if (info.isSecondaryType() && !g_force) {
     cout << "Zone '" << zone << "' is a secondary zone." << endl;
+    if (!interactive) {
+      return EXIT_FAILURE;
+    }
     while (true) {
       cout << "Edit the zone anyway? (N/y) " << std::flush;
       resp = ::tolower(read1char());
@@ -2354,9 +2357,16 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
   } deleter(static_cast<const char *>(tmpnam));
 
   int gotoline=0;
-  string editor="editor";
+  string editor;
   if(auto* envvar=getenv("EDITOR")) { // NOLINT(concurrency-mt-unsafe)
     editor=envvar;
+  }
+  if (editor.empty()) {
+    if (!interactive) {
+      cerr << "EDITOR environment variable not set, aborting" << endl;
+      return EXIT_FAILURE;
+    }
+    editor = "editor";
   }
 
   vector<DNSRecord> pre;
@@ -2401,7 +2411,11 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
       state = VALIDATE;
       break;
     case INVALIDZONE:
-      cerr << col.red() << col.bold() << "There was a problem with your zone" << col.rst() << "\nOptions are: (e)dit your changes, (r)etry with original zone, (a)pply change anyhow, (q)uit: " << std::flush;
+      cerr << col.red() << col.bold() << "There was a problem with your zone" << col.rst() << std::endl;
+      if (!interactive) {
+        return EXIT_FAILURE;
+      }
+      cerr << "Options are: (e)dit your changes, (r)etry with original zone, (a)pply change anyhow, (q)uit: " << std::flush;
       resp = ::tolower(read1char());
       if (resp != '\n') {
         cerr << endl;
@@ -2463,54 +2477,65 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
       }
       break;
     case ASKSOA:
-      cout<<endl<<"You have not updated the serial number in the SOA record!"<<endl<<"Would you like to increase-serial?"<<endl;
-      cout<<"(y)es - increase serial, (n)o - leave SOA record as is, (e)dit your changes, (q)uit: "<<std::flush;
-      resp = ::tolower(read1char());
-      if (resp != '\n') {
-        cout << endl;
-      }
-      switch (resp) {
-      case 'y':
-        {
-          if (increaseZoneSerial(dsk, info, post, col)) {
-            // Make sure to mark the SOA record as needing to be written.
-            changed[{info.zone.operator const DNSName&(), QType::SOA}] = "";
-            state = ASKAPPLY;
-          }
-          else {
-            cout << "SOA record is missing!" << endl;
-            state = INVALIDZONE;
-          }
-        }
-        break;
-      case 'q':
-        return EXIT_FAILURE;
-      case 'e':
-        state = EDITFILE;
-        break;
-      case 'n':
+      cout<<endl<<"You have not updated the serial number in the SOA record!"<<endl;
+      if (!interactive) {
         state = ASKAPPLY;
-        break;
+      }
+      else {
+        cout<<"Would you like to increase-serial?"<<endl;
+        cout<<"(y)es - increase serial, (n)o - leave SOA record as is, (e)dit your changes, (q)uit: "<<std::flush;
+        resp = ::tolower(read1char());
+        if (resp != '\n') {
+          cout << endl;
+        }
+        switch (resp) {
+        case 'y':
+          {
+            if (increaseZoneSerial(dsk, info, post, col)) {
+              // Make sure to mark the SOA record as needing to be written.
+              changed[{info.zone.operator const DNSName&(), QType::SOA}] = "";
+              state = ASKAPPLY;
+            }
+            else {
+              cout << "SOA record is missing!" << endl;
+              state = INVALIDZONE;
+            }
+          }
+          break;
+        case 'q':
+          return EXIT_FAILURE;
+        case 'e':
+          state = EDITFILE;
+          break;
+        case 'n':
+          state = ASKAPPLY;
+          break;
+        }
       }
       break;
     case ASKAPPLY:
-      cout<<endl<<"(a)pply these changes, (e)dit again, (r)etry with original zone, (q)uit: "<<std::flush;
-      resp = ::tolower(read1char());
-      if (resp != '\n') {
-        cout << endl;
-      }
-      switch (resp) {
-      case 'q':
-        return(EXIT_SUCCESS);
-      case 'e':
-        state = EDITFILE;
-        break;
-      case 'r':
-        state = CREATEZONEFILE;
-        break;
-      case 'a':
+      if (!interactive) {
         state = APPLY;
-        break;
+      }
+      else {
+        cout<<endl<<"(a)pply these changes, (e)dit again, (r)etry with original zone, (q)uit: "<<std::flush;
+        resp = ::tolower(read1char());
+        if (resp != '\n') {
+          cout << endl;
+        }
+        switch (resp) {
+        case 'q':
+          return(EXIT_SUCCESS);
+        case 'e':
+          state = EDITFILE;
+          break;
+        case 'r':
+          state = CREATEZONEFILE;
+          break;
+        case 'a':
+          state = APPLY;
+          break;
+        }
       }
       break;
     case APPLY:
