@@ -81,8 +81,6 @@ jobs:
       - run: inv install-dnsdist-build-deps --skipXDP
       - run: inv install-coverity-tools dnsdist
       - run: inv coverity-clang-configure
-      - run: inv ci-autoconf
-        working-directory: ./pdns/dnsdistdist/
       - run: inv ci-install-rust $REPO_HOME
         working-directory: ./pdns/dnsdistdist/
       - run: inv ci-build-and-install-quiche $REPO_HOME
@@ -120,8 +118,6 @@ jobs:
       - run: inv install-rec-build-deps
       - run: inv install-coverity-tools 'PowerDNS+Recursor'
       - run: inv coverity-clang-configure
-      - run: inv ci-autoconf
-        working-directory: ./pdns/recursordist/
       - run: inv ci-rec-configure full build
         working-directory: ./pdns/recursordist/
       - run: inv coverity-ninja
