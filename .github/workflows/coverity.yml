@@ -75,6 +75,12 @@ jobs:
       - name: Install python yaml
         run: |
           pip install pyyaml
+      - name: install pip build dependencies
+        if: matrix.product == 'dnsdist'
+        uses: ./.github/actions/pip-build-dependencies
+        with:
+          venv-parent: ${{ env.REPO_HOME }}
+          working-directory: .
       - run: build-scripts/gh-actions-setup-inv-no-dist-upgrade
       - run: inv install-clang
       - run: inv install-lld-linker-if-needed
@@ -113,11 +119,19 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: '3.13'
+      - name: install pip build dependencies
+        if: matrix.product == 'dnsdist'
+        uses: ./.github/actions/pip-build-dependencies
+        with:
+          venv-parent: ${{ env.REPO_HOME }}
+          working-directory: .
       - run: build-scripts/gh-actions-setup-inv-no-dist-upgrade
       - run: inv install-clang
       - run: inv install-rec-build-deps
       - run: inv install-coverity-tools 'PowerDNS+Recursor'
       - run: inv coverity-clang-configure
+      - run: inv ci-install-rust $REPO_HOME
+        working-directory: ./pdns/recursordist/
       - run: inv ci-rec-configure full build
         working-directory: ./pdns/recursordist/
       - run: inv coverity-ninja
