@@ -26,6 +26,7 @@ gmysql-password=$GMYSQLPASSWD
 
 any-to-tcp=no
 zone-cache-refresh-interval=0
+logging-structured
 __EOF__
 
 		# setup catalog zone

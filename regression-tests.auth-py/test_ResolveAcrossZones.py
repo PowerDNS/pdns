@@ -12,6 +12,7 @@ class CrossZoneResolveBase(AuthTest):
 any-to-tcp=no
 launch={backend}
 edns-subnet-processing=yes
+logging-structured
 """
     target_otherzone_ip = "192.0.2.2"
     target_subzone_ip = "192.0.2.3"

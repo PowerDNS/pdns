@@ -23,6 +23,7 @@ godbc-datasource=$GODBC_MSSQL_DSN
 godbc-username=$GODBC_MSSQL_USERNAME
 godbc-password=$GODBC_MSSQL_PASSWORD
 godbc-dnssec=yes
+logging-structured
 __EOF__
 
 		gsql_master godbc_mssql nodyndns

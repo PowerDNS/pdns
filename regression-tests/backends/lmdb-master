@@ -20,6 +20,7 @@ edns-subnet-processing
 views=yes
 any-to-tcp=no
 dnsupdate=yes
+logging-structured
 __EOF__
 
         rm -f pdns.lmdb*

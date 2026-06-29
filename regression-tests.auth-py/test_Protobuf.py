@@ -74,6 +74,7 @@ class TestAuthProtobuf(AuthTest):
 expand-alias=yes
 launch={backend}
 protobuf-servers=127.0.0.1:%s
+logging-structured
 """ % (protobufServersParameters[0].port,)
 
     _zones = {

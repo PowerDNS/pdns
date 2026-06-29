@@ -21,6 +21,7 @@ resolver=%s.1:5301
 any-to-tcp=no
 launch={backend}
 edns-subnet-processing=yes
+logging-structured
 """
 
     _config_params = ["_PREFIX"]

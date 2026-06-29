@@ -10,6 +10,7 @@ class TestEdnsCookies(AuthTest):
     _config_template = """
 launch={backend}
 edns-cookie-secret=aabbccddeeff11223344556677889900
+logging-structured
 """
 
     _zones = {
@@ -105,4 +106,5 @@ class TestEdnsRandomCookies(TestEdnsCookies):
     _config_template = """
 launch={backend}
 edns-cookie-secret=random
+logging-structured
 """

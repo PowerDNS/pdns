@@ -93,6 +93,7 @@ case $context in
 module-dir=$PDNS_MODULE_PATH
 launch=remote
 remote-connection-string=$connstr,timeout=10000
+logging-structured
 EOF
 
 		if [ "$remotedosec" = "yes" ]

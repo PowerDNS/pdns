@@ -58,6 +58,7 @@ any-to-tcp=no
 enable-lua-records
 lua-records-insert-whitespace=yes
 lua-health-checks-interval=1
+logging-structured
 """
 
     _zones = {
@@ -1370,6 +1371,7 @@ any-to-tcp=no
 enable-lua-records=shared
 lua-records-insert-whitespace=yes
 lua-health-checks-interval=1
+logging-structured
 """
 
     def testCounter(self):
@@ -1393,6 +1395,7 @@ any-to-tcp=no
 enable-lua-records
 lua-records-insert-whitespace=no
 lua-health-checks-interval=1
+logging-structured
 """
 
     def testWhitespace(self):
@@ -1410,6 +1413,7 @@ any-to-tcp=no
 enable-lua-records
 lua-records-insert-whitespace=yes
 lua-health-checks-interval=5
+logging-structured
 """
 
     def testIfurlupMinimumFailures(self):
@@ -1552,6 +1556,7 @@ any-to-tcp=no
 enable-lua-records
 lua-records-insert-whitespace=yes
 lua-records-exec-limit=1
+logging-structured
 """
 
     def testA(self):
