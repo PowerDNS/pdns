@@ -127,3 +127,109 @@ For this rule to trigger, dnsdist will need to scan the ring buffers and find 10
 This is even more obvious for the ratio-based rules, when they have a minimum number of responses set, because in that case they clearly require that number of responses to fit in the buffer.
 
 That requirement could be lifted a bit by the use of sampling, meaning that only one query out of 10 would be recorded, for example, and the total amount would be inferred from the queries present in the buffer. As of 1.7.0, sampling as unfortunately not been implemented yet.
+
+Triggering Dynamic Blocks from an External System
+--------------------------------------------------
+
+In some deployments an external detection system (a traffic analyzer, SIEM, or similar) identifies abusive sources and needs to push blocks into dnsdist over the network.
+The built-in webserver combined with :func:`registerWebHandler` makes this possible without any additional software.
+
+The following Lua snippet exposes two custom HTTP endpoints: one to add a dynamic block and one to remove it.
+It expects the webserver to already be configured (see :doc:`webserver`) and uses :func:`addDynamicBlock` which is available since dnsdist 1.9.0.
+
+.. code-block:: lua
+
+  -- Extract a quoted value for a given key from a JSON string.
+  -- This is intentionally minimal; for complex payloads consider
+  -- installing a Lua JSON library such as lua-cjson.
+  local function jsonValue(body, key)
+    return body:match('"' .. key .. '"%s*:%s*"([^"]+)"')
+  end
+
+  local function jsonNumberValue(body, key)
+    return tonumber(body:match('"' .. key .. '"%s*:%s*(%d+)'))
+  end
+
+  function blockHandler(req, resp)
+    if req.method ~= 'POST' then
+      resp.status = 405
+      resp.body   = '{"error":"method not allowed"}'
+      return
+    end
+
+    local headers = req.headers
+    if headers['x-api-key'] ~= 'your-secret-key-here' then
+      resp.status = 403
+      resp.body   = '{"error":"forbidden"}'
+      return
+    end
+
+    local cidr     = jsonValue(req.body, 'cidr')
+    local duration = jsonNumberValue(req.body, 'duration')
+    local reason   = jsonValue(req.body, 'reason') or 'external block'
+
+    if not cidr or not duration then
+      resp.status = 400
+      resp.body   = '{"error":"missing cidr or duration"}'
+      return
+    end
+
+    addDynamicBlock(newCA(cidr), reason, DNSAction.Refused, duration)
+    resp.status  = 200
+    resp.body    = '{"status":"blocked","cidr":"' .. cidr .. '"}'
+    resp.headers = {['Content-Type']='application/json'}
+  end
+
+  function unblockHandler(req, resp)
+    if req.method ~= 'POST' then
+      resp.status = 405
+      resp.body   = '{"error":"method not allowed"}'
+      return
+    end
+
+    local headers = req.headers
+    if headers['x-api-key'] ~= 'your-secret-key-here' then
+      resp.status = 403
+      resp.body   = '{"error":"forbidden"}'
+      return
+    end
+
+    local cidr = jsonValue(req.body, 'cidr')
+    if not cidr then
+      resp.status = 400
+      resp.body   = '{"error":"missing cidr"}'
+      return
+    end
+
+    -- Setting the block duration to 0 effectively removes it
+    addDynamicBlock(newCA(cidr), 'unblock', DNSAction.None, 0)
+    resp.status  = 200
+    resp.body    = '{"status":"unblocked","cidr":"' .. cidr .. '"}'
+    resp.headers = {['Content-Type']='application/json'}
+  end
+
+  registerWebHandler('/api/v1/dynblock', blockHandler)
+  registerWebHandler('/api/v1/dynunblock', unblockHandler)
+
+With the above in place, an external system can insert a 300-second block via a single HTTP call:
+
+.. code-block:: bash
+
+  curl -s -X POST http://192.0.2.1:8083/api/v1/dynblock \
+    -H 'X-API-Key: your-secret-key-here' \
+    -H 'Content-Type: application/json' \
+    -d '{"cidr": "198.51.100.0/24", "duration": 300, "reason": "DDoS source"}'
+
+And remove it early:
+
+.. code-block:: bash
+
+  curl -s -X POST http://192.0.2.1:8083/api/v1/dynunblock \
+    -H 'X-API-Key: your-secret-key-here' \
+    -H 'Content-Type: application/json' \
+    -d '{"cidr": "198.51.100.0/24"}'
+
+.. note::
+
+  The ``X-API-Key`` check shown above is a minimal example.
+  In production you should also restrict access to the webserver itself using the ``acl`` option of :func:`setWebserverConfig` and consider placing dnsdist behind a reverse proxy that terminates TLS.
