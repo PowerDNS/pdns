@@ -23,6 +23,7 @@
 #include "dnsrecords.hh"
 #include "dnspacket.hh"
 
+#include <cstddef>
 #include <string>
 #include <vector>
 #include <optional>
@@ -285,7 +286,8 @@ DSRecordContent makeDSFromDNSKey(Logr::log_t slog, const DNSName& qname, const D
 
 class DNSSECKeeper;
 
-uint32_t getStartOfWeek();
+std::pair<uint32_t, uint32_t> getStartOfWeek();
+uint32_t weekSpreadDelay(const ZoneName& zone);
 
 string hashQNameWithSalt(const NSEC3PARAMRecordContent& ns3prc, const DNSName& qname);
 string hashQNameWithSalt(const std::string& salt, unsigned int iterations, const DNSName& qname);
@@ -299,3 +301,6 @@ void addTSIG(Logr::log_t slog, DNSPacketWriter& pw, TSIGRecordContent& trc, cons
 bool validateTSIG(Logr::log_t slog, const std::string& packet, size_t sigPos, const TSIGTriplet& tt, const TSIGRecordContent& trc, const std::string& previousMAC, const std::string& theirMAC, bool timersOnly, unsigned int dnsHeaderOffset=0);
 
 uint64_t signatureCacheSize(const std::string& str);
+
+extern uint32_t g_rrsig_expiry_extend;
+extern uint32_t g_soa_edit_spread;
