@@ -2713,6 +2713,7 @@ struct CacheEntry
   vState validationState{vState::Indeterminate};
   bool inserted{false};
   bool isAuth{false};
+  bool expectSignature{false};
 };
 struct CacheKey
 {
@@ -4736,14 +4737,14 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
        dropping the RRSIG RRs.  If this happens, the name server MUST NOT
        set the TC bit solely because these RRSIG RRs didn't fit."
     */
-    bool isAA = lwr.d_aabit && tCacheEntry->first.place != DNSResourceRecord::ADDITIONAL;
+    tCacheEntry->second.isAuth = lwr.d_aabit && tCacheEntry->first.place != DNSResourceRecord::ADDITIONAL;
     /* if we forwarded the query to a recursor, we can expect the answer to be signed,
        even if the answer is not AA. Of course that's not only true inside a Secure
        zone, but we check that below. */
-    bool expectSignature = tCacheEntry->first.place == DNSResourceRecord::ANSWER || ((lwr.d_aabit || wasForwardRecurse) && tCacheEntry->first.place != DNSResourceRecord::ADDITIONAL);
+    tCacheEntry->second.expectSignature = tCacheEntry->first.place == DNSResourceRecord::ANSWER || ((lwr.d_aabit || wasForwardRecurse) && tCacheEntry->first.place != DNSResourceRecord::ADDITIONAL);
     /* in a non authoritative answer, we only care about the DS record (or lack of)  */
-    if (!isAA && (tCacheEntry->first.type == QType::DS || tCacheEntry->first.type == QType::NSEC || tCacheEntry->first.type == QType::NSEC3) && tCacheEntry->first.place == DNSResourceRecord::AUTHORITY) {
-      expectSignature = true;
+    if (!tCacheEntry->second.isAuth && (tCacheEntry->first.type == QType::DS || tCacheEntry->first.type == QType::NSEC || tCacheEntry->first.type == QType::NSEC3) && tCacheEntry->first.place == DNSResourceRecord::AUTHORITY) {
+      tCacheEntry->second.expectSignature = true;
     }
 
     if (tCacheEntry->first.type != QType::NSEC && tCacheEntry->first.type != QType::NSEC3) {
@@ -4758,13 +4759,13 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
           are required, the client should query again, using the canonical name
           associated with the alias.
         */
-        isAA = false;
-        expectSignature = false;
+        tCacheEntry->second.isAuth = false;
+        tCacheEntry->second.expectSignature = false;
       }
       if (isDNAMEAnswer && (tCacheEntry->first.place != DNSResourceRecord::ANSWER || tCacheEntry->first.type != QType::DNAME || !qname.isPartOf(tCacheEntry->first.name))) {
         /* see above */
-        isAA = false;
-        expectSignature = false;
+        tCacheEntry->second.isAuth = false;
+        tCacheEntry->second.expectSignature = false;
       }
     }
 
@@ -4793,12 +4794,12 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
      * don't validate the CNAME.
      */
     if (isDNAMEAnswer && tCacheEntry->first.type == QType::CNAME) {
-      expectSignature = false;
+      tCacheEntry->second.expectSignature = false;
     }
 
     vState recordState = vState::Indeterminate;
 
-    if (expectSignature && shouldValidate()) {
+    if (tCacheEntry->second.expectSignature && shouldValidate()) {
       vState initialState = getValidationStatus(tCacheEntry->first.name, !tCacheEntry->second.signatures.empty(), tCacheEntry->first.type == QType::DS, depth, prefix);
       LOG(prefix << qname << ": Got initial zone status " << initialState << " for record " << tCacheEntry->first.name << "|" << DNSRecordContent::NumberToType(tCacheEntry->first.type) << endl);
 
@@ -4843,10 +4844,10 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
        - DS (special case)
        - NS, A and AAAA (used for infra queries)
     */
-    if (tCacheEntry->first.type != QType::NSEC3 && (tCacheEntry->first.type == QType::DS || tCacheEntry->first.type == QType::NS || tCacheEntry->first.type == QType::A || tCacheEntry->first.type == QType::AAAA || isAA || wasForwardRecurse)) {
+    if (tCacheEntry->first.type != QType::NSEC3 && (tCacheEntry->first.type == QType::DS || tCacheEntry->first.type == QType::NS || tCacheEntry->first.type == QType::A || tCacheEntry->first.type == QType::AAAA || tCacheEntry->second.isAuth || wasForwardRecurse)) {
 
       bool doCache = true;
-      if (!isAA && seenBogusRRSet) {
+      if (!tCacheEntry->second.isAuth && seenBogusRRSet) {
         LOG(prefix << qname << ": Not caching non-authoritative rrsets received with Bogus answer" << endl);
         doCache = false;
       }
@@ -4879,7 +4880,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
 
       if (doCache) {
         // Check if we are going to replace a non-auth (parent) NS recordset
-        if (isAA && tCacheEntry->first.type == QType::NS && s_save_parent_ns_set) {
+        if (tCacheEntry->second.isAuth && tCacheEntry->first.type == QType::NS && s_save_parent_ns_set) {
           rememberParentSetIfNeeded(tCacheEntry->first.name, tCacheEntry->second.records, depth, prefix);
         }
         bool thisRRNeedsWildcardProof = false;
@@ -4889,7 +4890,9 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
           }
         }
 
-        tCacheEntry->second.isAuth = tCacheEntry->first.type == QType::DS ? true : isAA;
+        if (tCacheEntry->first.type == QType::DS) {
+          tCacheEntry->second.isAuth = true;
+        }
         g_recCache->replace(d_now.tv_sec, tCacheEntry->first.name, tCacheEntry->first.type, tCacheEntry->second.records, tCacheEntry->second.signatures, thisRRNeedsWildcardProof ? authorityRecs : *MemRecursorCache::s_emptyAuthRecs, tCacheEntry->second.isAuth, auth, tCacheEntry->first.place == DNSResourceRecord::ANSWER ? ednsmask : std::nullopt, d_routingTag, recordState, MemRecursorCache::Extra{remoteIP, overTCP}, d_refresh, tCacheEntry->second.d_ttl_time);
         tCacheEntry->second.inserted = true;
 
@@ -4958,7 +4961,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
        (including denial of existence) BEFORE dealing with the cache.
     */
     for (const auto& entry : tcache) {
-      if (!entry.second.inserted || vStateIsBogus(entry.second.validationState)) {
+      if (!entry.second.inserted || !entry.second.expectSignature || vStateIsBogus(entry.second.validationState)) {
         continue;
       }
 
