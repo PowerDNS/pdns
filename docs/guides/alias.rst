@@ -88,4 +88,4 @@ Starting with the PowerDNS Authoritative Server 4.0.0, DNSSEC 'washing' of
 ALIAS records is supported on AXFR. Set ``outgoing-axfr-expand-alias`` to
 'yes' and enable DNSSEC for the zone on the primary. PowerDNS will sign the
 A/AAAA records during the AXFR. Starting with PowerDNS Authoritative Server
-?.?.?, live-signing is also supported.
+5.2.0, live-signing is also supported.
