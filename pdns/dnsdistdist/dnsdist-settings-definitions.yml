@@ -563,7 +563,7 @@ edns_client_subnet:
       internal-field-name: "d_ECSSourcePrefixV4"
       runtime-configurable: true
       type: "u8"
-      default: 32
+      default: 24
       description: "When ``useClientSubnet`` in :func:`newServer()` or ``use_client_subnet`` in :ref:`yaml-settings-BackendConfiguration` are set, and :program:`dnsdist` adds an EDNS Client Subnet Client option to the query, truncate the requestor's IPv4 address to this number of bits"
     - name: "source_prefix_v6"
       lua-name: "setECSSourcePrefixV6"
