@@ -26,6 +26,9 @@
 
 #ifdef HAVE_DNS_OVER_QUIC
 
+#include "dnsdist.hh"
+#include "dnsdist-concurrent-connections.hh"
+
 #if 0
 #define DEBUGLOG_ENABLED
 #define DEBUGLOG(x) std::cerr << x << std::endl;
@@ -348,6 +351,52 @@ std::string getSNIFromQuicheConnection([[maybe_unused]] const QuicheConnection& 
 #endif /* HAVE_QUICHE_CONN_SERVER_NAME */
   return {};
 }
+
+QUICConnection::QUICConnection(ClientState& frontend, const ComboAddress& peer, const ComboAddress& localAddr, QuicheConfig config, QuicheConnection&& conn) :
+  d_frontend(frontend), d_peer(peer), d_localAddr(localAddr), d_conn(std::move(conn)), d_config(std::move(config))
+{
+  auto concurrentConnections = ++d_frontend.tcpCurrentConnections;
+  if (concurrentConnections > d_frontend.tcpMaxConcurrentConnections.load()) {
+    d_frontend.tcpMaxConcurrentConnections.store(concurrentConnections);
+  }
 }
 
+QUICConnection::~QUICConnection()
+{
+  try {
+    /* do not account if we have been moved! */
+    if (d_conn) {
+      --d_frontend.tcpCurrentConnections;
+
+      dnsdist::IncomingConcurrentTCPConnectionsManager::accountClosedTCPConnection(d_peer);
+
+      timeval now{};
+      gettimeofday(&now, nullptr);
+      auto diff = now - d_connectionStartTime;
+      d_frontend.updateTCPMetrics(d_queriesCount, (diff.tv_sec * 1000) + (diff.tv_usec / 1000), d_queriesCount > 0 ? d_readIOsTotal / d_queriesCount : d_readIOsTotal);
+
+      if (!quiche_conn_is_resumed(d_conn.get())) {
+        ++d_frontend.tlsNewSessions;
+        dnsdist::IncomingConcurrentTCPConnectionsManager::accountTLSNewSession(d_peer);
+      }
+      else {
+        ++d_frontend.tlsResumptions;
+        dnsdist::IncomingConcurrentTCPConnectionsManager::accountTLSResumedSession(d_peer);
+      }
+    }
+  }
+  catch (...) {
+    /* in theory it might raise an exception, and we cannot allow it to be uncaught in a dtor */
+  }
+}
+
+std::shared_ptr<const std::string> QUICConnection::getSNI()
+{
+  if (!d_sni) {
+    d_sni = std::make_shared<const std::string>(getSNIFromQuicheConnection(d_conn));
+  }
+  return d_sni;
+}
+
+}
 #endif
