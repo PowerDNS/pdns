@@ -204,3 +204,31 @@ class TestLuaError(DNSDistTest):
         """
         res = self.sendConsoleCommand('error("expected" .. " " .. "error")')
         self.assertIn('expected error', res)
+
+
+class TestLuaRingBuffersSamplingRates(DNSDistTest):
+    _consoleKey = DNSDistTest.generateConsoleKey()
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+
+    _config_params = ["_consoleKeyB64", "_consolePort", "_testServerPort"]
+    _config_template = """
+    setKey("%s")
+    controlSocket("127.0.0.1:%d")
+    newServer{address="127.0.0.1:%d"}
+
+    local samplingRate = 10
+    setRingBuffersOptions({samplingRate=samplingRate})
+
+    local got = getRingBuffersSamplingRate()
+    if got ~= samplingRate then
+      print("Invalid sampling rate, got "..got..", expected "..samplingRate)
+      os.exit(1)
+    end
+    """
+
+    def testRingBuffersSamplingRate(self):
+        """
+        Lua: Test ring buffers sampling rate
+        """
+        res = self.sendConsoleCommand("getRingBuffersSamplingRate()").rstrip()
+        self.assertEqual(res, "10")
