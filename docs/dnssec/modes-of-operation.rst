@@ -132,6 +132,9 @@ PowerDNS also serves the DNSKEY records in live-signing mode. Their TTL
 is derived from the SOA records *minimum* field. When using NSEC3, the
 TTL of the NSEC3PARAM record is also derived from that field.
 
+The :ref:`rrsig-expiry-extend <setting-rrsig-expiry-extend>` setting can be used to extend the expiry time to up to a year.
+This can be useful when secondaries are slow to update their zones, or when using :ref:`SOA Edit spreading <soa-edit-spread-info>`.
+
 .. _dnssec_presigned_records:
 
 Pre-signed records

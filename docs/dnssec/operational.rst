@@ -274,6 +274,22 @@ Ignore :ref:`setting-default-soa-edit` and/or
 :ref:`setting-default-soa-edit-signed`
 settings.
 
+.. _soa-edit-spread-info:
+
+Spreading SOA serial updates over time
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 5.1.3
+
+The SOA-edit updates happen at the same time the RRSIG rolls (:ref:`Thursday midnight UTC <dnssec-signatures>`).
+When serving a large number of zones on the primary, it can happen that the primary becomes overloaded when all secondaries start transferring all these zones at the same time.
+This usually happens the SOA REFRESH field is set to a low value.
+
+To prevent overloading the primary by secondaries, the :ref:`soa-edit-spread <setting-soa-edit-spread>` can be used to apply the serial increases over time (starting on Thursday midnight UTC).
+These increases happen within the amount of seconds for that setting based on the hash of the zone name.
+
+To prevent RRSIGs expiring on the secondaries when :ref:`soa-edit-spread <setting-soa-edit-spread>` is set to high value, the :ref:`rrsig-expiry-extend <setting-rrsig-expiry-extend>` setting ensures that the RRSIG expiry time is extended by the same amount by default.
+
 Security
 --------
 

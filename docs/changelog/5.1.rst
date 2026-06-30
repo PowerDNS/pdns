@@ -13,7 +13,7 @@ Changelogs for 5.1.x
     :tags: New Features
     :pullreq: 17582
 
-    implement SOA-EDIT spreading + RRSIG expiry extension
+    Implement ref:`SOA-EDIT spreading <setting-soa-edit-spread>` + ref:`RRSIG expiry extension <setting-rrsig-expiry-extend>` setting.
 
   .. change::
     :tags: Bug Fixes
