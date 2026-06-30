@@ -813,6 +813,7 @@ def generate_rust_action_to_config(output, def_dir, response):
             enum_buffer += f"""        {suffix}::{name}(cont) => {{
              let config = dnsdistsettings::{name}{suffix}Configuration {{
                  action: get_one_action_from_serde(&cont.action)?,
+                 name: cont.name.clone(),
                  ..Default::default()
              }};
              return Ok(dnsdistsettings::SharedDNS{suffix} {{
@@ -851,6 +852,7 @@ def generate_rust_selector_to_config(output, def_dir):
         if name in ["And", "Or"]:
             enum_buffer += f"""        {suffix}::{name}({var}) => {{
              let mut config: dnsdistsettings::{name}{suffix}Configuration = Default::default();
+             config.name = {var}.name.clone();
              for sub_selector in &{var}.selectors {{
                  config.selectors.push(get_one_selector_from_serde(sub_selector)?)
              }}
@@ -862,6 +864,7 @@ def generate_rust_selector_to_config(output, def_dir):
         elif name in ["Not"]:
             enum_buffer += f"""        {suffix}::{name}({var}) => {{
              let mut config: dnsdistsettings::{name}{suffix}Configuration = Default::default();
+             config.name = {var}.name.clone();
              match get_one_selector_from_serde(&{var}.selector) {{
                  Ok(sel) => config.selector = sel,
                  Err(e) => return Err(e),

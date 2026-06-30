@@ -40,12 +40,16 @@ impl Default for dnsdistsettings::SharedDNSSelector {
 #[serde(deny_unknown_fields)]
 struct AndSelectorConfigurationSerde {
     #[serde(default, skip_serializing_if = "crate::is_default")]
+    name: String,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
     selectors: Vec<Selector>,
 }
 
 #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
 #[serde(deny_unknown_fields)]
 struct OrSelectorConfigurationSerde {
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    name: String,
     #[serde(default, skip_serializing_if = "crate::is_default")]
     selectors: Vec<Selector>,
 }
@@ -54,12 +58,16 @@ struct OrSelectorConfigurationSerde {
 #[serde(deny_unknown_fields)]
 struct NotSelectorConfigurationSerde {
     #[serde(default, skip_serializing_if = "crate::is_default")]
+    name: String,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
     selector: Box<Selector>,
 }
 
 #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
 #[serde(deny_unknown_fields)]
 struct ContinueActionConfigurationSerde {
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    name: String,
     #[serde(default, skip_serializing_if = "crate::is_default")]
     action: Box<Action>,
 }
