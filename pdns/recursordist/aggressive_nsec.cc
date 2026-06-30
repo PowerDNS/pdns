@@ -366,7 +366,7 @@ void AggressiveNSECCache::insertNSEC(const DNSName& zone, const DNSName& owner, 
     if (!nsec3 && isWildcardExpanded(owner.countLabels(), *signatures.at(0))) {
       realOwner = getNSECOwnerName(owner, signatures);
     }
-    ZoneEntry::CacheEntry cacheEntry{record.getContent(), signatures, realOwner, next, qname, record.d_ttl, qtype};
+    ZoneEntry::CacheEntry cacheEntry{record.getContent(), signatures, std::move(realOwner), std::move(next), qname, record.d_ttl, qtype};
     if (s_maxEntrySize > 0 && cacheEntry.sizeEstimate() > s_maxEntrySize) {
       return;
     }
