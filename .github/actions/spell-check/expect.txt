@@ -379,6 +379,7 @@ Dufberg
 dumpluaraw
 dumresp
 dwarfstd
+dylibs
 dynblock
 dynblocklist
 dynblocksref

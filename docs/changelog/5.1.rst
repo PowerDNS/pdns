@@ -1,6 +1,50 @@
 Changelogs for 5.1.x
 ====================
 
+
+.. changelog::
+  :version: 5.1.3
+  :released: 30th of June 2026
+
+  This is release 5.1.3 of the Authoritative Server.
+  It contains one new double feature and a few bug fixes.
+
+  .. change::
+    :tags: New Features
+    :pullreq: 17582
+
+    implement SOA-EDIT spreading + RRSIG expiry extension
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17632
+
+    REST API: escaping issue with generic record syntax
+
+  .. change::
+    :tags: Bug Fixes, New Features
+    :pullreq: 17631
+
+    pdnsutil: non-interactive zone edit
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17630
+
+    set version in meson.build in autoconf make dist path
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17629
+
+    declare enable-lua-record-updates unconditionally
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17627
+
+    meson: fix missing symbols for backend dylibs
+
 .. changelog::
   :version: 5.1.2
   :released: 25th of June 2026
