@@ -1561,7 +1561,7 @@ def coverity_make(c):
 
 @task
 def coverity_ninja(c):
-    c.run("/usr/local/bin/cov-build --dir cov-int ninja -C build -k")
+    c.run("/usr/local/bin/cov-build --dir cov-int ninja -C build -k 0")
 
 
 @task
