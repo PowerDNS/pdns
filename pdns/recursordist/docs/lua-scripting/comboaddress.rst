@@ -67,6 +67,20 @@ To get only the port number, use :meth:`:getPort() <ComboAddress:getPort>`.
 
       Returns the IP address without the port number as a string.
 
+  .. method:: toStringReversed() -> string
+
+      .. versionadded:: 5.5.0
+
+      Returns the IP address in human-friendly format, but in reverse notation
+      as used for PTR records.
+
+  .. method:: toStringNoInterface() -> string
+
+      .. versionadded:: 5.5.0
+
+      Returns the IP address in human-friendly format, but with any interface
+      suffix stripped.
+
   .. method:: toStringWithPort() -> str
 
       Returns the IP address with the port number as a string.
