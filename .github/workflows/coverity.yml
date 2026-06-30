@@ -19,6 +19,7 @@ permissions: # least privileges, see https://docs.github.com/en/actions/using-wo
 
 env:
   CLANG_VERSION: '12'
+  BUILDER_VERSION: '0.0.0-git1'
 
 jobs:
   coverity-auth:
@@ -76,7 +77,6 @@ jobs:
         run: |
           pip install pyyaml
       - name: install pip build dependencies
-        if: matrix.product == 'dnsdist'
         uses: ./.github/actions/pip-build-dependencies
         with:
           venv-parent: ${{ env.REPO_HOME }}
@@ -109,6 +109,7 @@ jobs:
       SANITIZERS:
       UNIT_TESTS: no
       CARGO_USE_DEV: 1
+      REPO_HOME: ${{ github.workspace }}
     steps:
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
       - uses: actions/checkout@v6
@@ -120,7 +121,6 @@ jobs:
         with:
           python-version: '3.13'
       - name: install pip build dependencies
-        if: matrix.product == 'dnsdist'
         uses: ./.github/actions/pip-build-dependencies
         with:
           venv-parent: ${{ env.REPO_HOME }}
