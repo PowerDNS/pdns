@@ -2031,8 +2031,8 @@ size_t dnsdist_ffi_dnspacket_get_name_at_offset_raw(const char* packet, size_t p
     return storage.size();
   }
   catch (const std::exception& e) {
-    VERBOSESLOG(infolog("Error parsing DNSName via dnsdist_ffi_dnspacket_get_name_at_offset_raw: %s", e.what()),
-                getLogger(__func__)->error(Logr::Info, e.what(), "Error parsing DNS name", "packet_size", Logging::Loggable(packetSize), "offset", Logging::Loggable(offset)));
+    VERBOSESLOG(infolog("Error parsing DNSName from packet (%s) via dnsdist_ffi_dnspacket_get_name_at_offset_raw: %s", makeHexDump(std::string(packet, packetSize)), e.what()),
+                getLogger(__func__)->error(Logr::Info, e.what(), "Error parsing DNS name", "packet_size", Logging::Loggable(packetSize), "offset", Logging::Loggable(offset), "packet_bytes", Logging::Loggable(makeHexDump(std::string(packet, packetSize)))));
   }
   return 0;
 }
@@ -2110,12 +2110,19 @@ bool dnsdist_ffi_dnspacket_parse_cname_record(const char* raw, const dnsdist_ffi
     return false;
   }
 
-  DNSName parsed(raw, record.d_contentOffset + record.d_contentLength, record.d_contentOffset, true);
-  const auto& storage = parsed.getStorage();
-  memcpy(name, storage.data(), storage.size());
-  *nameSize = storage.size();
+  try {
+    DNSName parsed(raw, record.d_contentOffset + record.d_contentLength, record.d_contentOffset, true);
+    const auto& storage = parsed.getStorage();
+    memcpy(name, storage.data(), storage.size());
+    *nameSize = storage.size();
 
-  return true;
+    return true;
+  }
+  catch (const std::exception& e) {
+    VERBOSESLOG(infolog("Error parsing CNAME record: %s", e.what()),
+                getLogger(__func__)->error(Logr::Info, e.what(), "Error parsing CNAME record"));
+    return false;
+  }
 }
 
 void dnsdist_ffi_dnspacket_free(dnsdist_ffi_dnspacket_t* packet)
