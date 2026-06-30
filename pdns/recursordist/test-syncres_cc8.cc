@@ -1217,30 +1217,55 @@ BOOST_AUTO_TEST_CASE(test_nsec3_apex_hash_label_parent_impersonation)
   const unsigned int nbIterations = 10;
 
   DNSName tld("com.");
+  DNSName unrelatedDomain("unrelated-domain.com.");
   DNSName victim("victim.com.");
   // compute the hash of the TLD domain
   std::string hashedTLD = hashQNameWithSalt(salt, nbIterations, tld);
   DNSName attackDomain(DNSName(hashedTLD) + tld);
 
   testkeysset_t keys;
+  generateKeyMaterial(tld, DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
   generateKeyMaterial(attackDomain, DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
 
+  cspmap_t denialMap;
   vector<DNSRecord> records;
 
-  sortedRecords_t recordContents;
-  vector<shared_ptr<const RRSIGRecordContent>> signatureContents;
-  addNSEC3RecordToLW(attackDomain, hashedTLD, salt, nbIterations, {QType::NS, QType::SOA, QType::RRSIG}, 600, records);
+  {
+    sortedRecords_t recordContents;
+    vector<shared_ptr<const RRSIGRecordContent>> signatureContents;
+    addNSEC3RecordToLW(attackDomain, hashedTLD, salt, nbIterations, {QType::NS, QType::SOA, QType::RRSIG}, 600, records);
 
-  recordContents.insert(records.at(0).getContent());
-  addRRSIG(keys, records, attackDomain, 300);
-  signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
+    recordContents.insert(records.at(0).getContent());
+    addRRSIG(keys, records, attackDomain, 300);
+    signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
 
-  ContentSigPair pair;
-  pair.records = recordContents;
-  pair.signatures = signatureContents;
-  cspmap_t denialMap;
-  denialMap[std::pair(records.at(0).d_name, records.at(0).d_type)] = pair;
-  records.clear();
+    ContentSigPair pair;
+    pair.records = recordContents;
+    pair.signatures = signatureContents;
+    denialMap[std::pair(records.at(0).d_name, records.at(0).d_type)] = pair;
+    records.clear();
+  }
+
+  /* also include one legit NSEC3 from the tld zone, that does not prove
+     that the victim domain does not exist but gets us past the !nsec3Seen
+     gate of our validation code, reaching the closest encloser chase
+  */
+
+  {
+    sortedRecords_t recordContents;
+    vector<shared_ptr<const RRSIGRecordContent>> signatureContents;
+    addNSEC3NarrowRecordToLW(unrelatedDomain, tld, {QType::RRSIG, QType::NSEC3}, 600, records, nbIterations);
+
+    recordContents.insert(records.at(0).getContent());
+    addRRSIG(keys, records, tld, 300);
+    signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
+
+    ContentSigPair pair;
+    pair.records = recordContents;
+    pair.signatures = signatureContents;
+    denialMap[std::pair(records.at(0).d_name, records.at(0).d_type)] = pair;
+    records.clear();
+  }
 
   OptLog log;
   log = {std::string(__PRETTY_FUNCTION__), timeval{}, getLogger()};
