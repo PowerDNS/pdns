@@ -104,8 +104,7 @@ Insufficient Validation of Member Zone Data May Cause Catalog Zone Transfer to F
 - Not affected: PowerDNS Authoritative Server 4.9.15, 5.0.5
 - Severity: Medium
 - Impact: Denial of service
-- Exploit: AXFR of catalog zone with a member whose producer group option
-contains a double-quote character
+- Exploit: AXFR of catalog zone with a member whose producer group option contains a double-quote character
 - Risk of system compromise: None
 - Solution: Upgrade to patched version, or remove all double-quote characters from producer group names.
 - CWE: CWE-94
