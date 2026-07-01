@@ -96,7 +96,7 @@ DNSName::DNSName(const std::string_view sw)
         d_storage.append(begiter,iter);
         if(iter != pend)
           ++iter;
-        if(labellen > 63)
+        if(labellen > s_maxDNSLabelLength)
           throwSafeRangeError("label too long to append: ", p, length);
 
         if(iter-pbegin > static_cast<ptrdiff_t>(s_maxDNSNameLength - 1)) // reserve two bytes, one for length and one for the root label
@@ -134,7 +134,7 @@ static void checkLabelLength(uint8_t length)
   if (length == 0) {
     throw std::range_error("no such thing as an empty label to append");
   }
-  if (length > 63) {
+  if (length > DNSName::s_maxDNSLabelLength) {
     throw std::range_error("label too long to append");
   }
 }
@@ -361,7 +361,7 @@ bool DNSName::isPartOf(const DNSName& parent) const
       }
       return true;
     }
-    if (static_cast<uint8_t>(*us) > 63) {
+    if (static_cast<uint8_t>(*us) > s_maxDNSLabelLength) {
       throw std::out_of_range("illegal label length in DNSName");
     }
   }
