@@ -1792,6 +1792,7 @@ std::optional<std::string> visit_directory(const std::string& directory, const s
   return std::nullopt;
 }
 
+#ifndef DNSDIST
 std::vector<std::string> list_directory(const std::string& directory, const std::string& suffix, Logr::log_t d_log)
 {
   std::vector<std::string> results;
@@ -1835,6 +1836,7 @@ std::vector<std::string> list_directory(const std::string& directory, const std:
 
   return results;
 }
+#endif
 
 UniqueFilePtr openFileForWriting(const std::string& filePath, mode_t permissions, bool mustNotExist, bool appendIfExists)
 {

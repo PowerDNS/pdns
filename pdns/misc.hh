@@ -977,7 +977,9 @@ namespace pdns
 {
 [[nodiscard]] std::optional<std::string> visit_directory(const std::string& directory, const std::function<bool(ino_t inodeNumber, const std::string_view& name)>& visitor);
 
+#ifndef DNSDIST
 std::vector<std::string> list_directory(const std::string& directory, const std::string& suffix, Logr::log_t d_log);
+#endif
 
 struct FilePtrDeleter
 {
