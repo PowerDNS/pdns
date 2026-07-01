@@ -585,6 +585,7 @@ if get_option('unit-tests')
           # FFI files are directly added to the binary, because otherwise the visibility
           # is ignored and the functions that are not used in the binary are not exported
           src_dir / 'dnsdist-lua-ffi.cc',
+          src_dir / 'dnsdist-lua-inspection-ffi.cc',
         ],
         'deps-extra': [
           libdnsdist_test,
