@@ -20,6 +20,23 @@ if cargo.version().version_compare('>=1.88')
 env.set('features', '--features pkcs12')
 endif
 
+opt_rust_args = get_option('rust-args')
+if opt_rust_args != ''
+  env.set('RUSTFLAGS', opt_rust_args)
+endif
+
+if get_option('rust-lto') and get_option('b_lto') and get_option('b_lto_mode') == 'default'
+  env.set('CARGO_LTO_MODE', 'fat')
+  summary('LTO', true, bool_yn: true, section: 'Rust')
+  summary('LTO mode', 'fat', section: 'Rust')
+elif get_option('rust-lto') and get_option('b_lto') and get_option('b_lto_mode') == 'thin'
+  env.set('CARGO_LTO_MODE', 'thin')
+  summary('LTO', true, bool_yn: true, section: 'Rust')
+  summary('LTO mode', 'thin', section: 'Rust')
+else
+  summary('LTO', false, bool_yn: true, section: 'Rust')
+endif
+
 lib_recrust = custom_target('librecrust.a',
   output: [outfile, 'cxx.h', 'lib.rs.h', 'misc.rs.h', 'web.rs.h'],
   input: infile,

@@ -11,15 +11,26 @@ export CARGO="${CARGO:-$_defaultCARGO}"
 mytarget=${CARGO_TARGET_DIR-target}
 #echo "mytarget=${mytarget}"
 
-CARGO_PROFILE="--release"
+CARGO_PROFILE="release"
 if [ -n "${CARGO_USE_DEV}" ]; then
-    CARGO_PROFILE=""
+    CARGO_PROFILE="dev"
     if [ -n "${CARGO_USE_CLIPPY}" ]; then
         $CARGO clippy --manifest-path $srcdir/Cargo.toml
     fi
 fi
 
-$CARGO build ${CARGO_PROFILE} $RUST_TARGET --target-dir=$builddir/target --manifest-path $srcdir/Cargo.toml $features
+case "${CARGO_LTO_MODE:-unspecified}" in
+    "fat" | "thin")
+        CARGO_CONFIG="--config profile.${CARGO_PROFILE}.lto=\"${CARGO_LTO_MODE}\""
+        ;;
+esac
+
+# echo "RUSTFLAGS = ${RUSTFLAGS}"
+# echo "CARGO_PROFILE = ${CARGO_PROFILE}"
+# echo "CARGO_LTO_MODE = ${CARGO_LTO_MODE}"
+# echo "CARGO_CONFIG = ${CARGO_CONFIG}"
+
+$CARGO build --profile ${CARGO_PROFILE} ${CARGO_CONFIG} $RUST_TARGET --target-dir=$builddir/target --manifest-path $srcdir/Cargo.toml --locked $features
 
 if [ -n "${CARGO_USE_DEV}" ]; then
     cp -p target/$RUSTC_TARGET_ARCH/debug/librecrust.a $builddir/rec-rust-lib/rust/librecrust.a
