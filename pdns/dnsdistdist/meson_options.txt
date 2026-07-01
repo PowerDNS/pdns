@@ -41,3 +41,5 @@ option('yaml', type: 'feature', value: 'disabled', description: 'Enable YAML con
 option('man-pages', type: 'boolean', value: true, description: 'Generate man pages')
 option('clang-coverage-format', type: 'boolean', value: false, description: 'Whether to generate coverage data in clang format')
 option('benchmark', type: 'boolean', value: false, description: 'Whether to run microbenchmarks')
+option('rust-args', type: 'string', description: 'Rust compile arguments to use')
+option('rust-lto', type: 'boolean', value: true, description: 'Enable LTO for Rust according to b_lto, b_lto_mode settings')
