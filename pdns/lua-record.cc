@@ -1237,9 +1237,6 @@ static string lua_createReverse6(const string &format, boost::optional<opts_t> e
       return {"unknown"};
     }
 
-    boost::format fmt(format);
-    fmt.exceptions(boost::io::all_error_bits ^ (boost::io::too_many_args_bit | boost::io::too_few_args_bit));
-
     string together;
     vector<string> quads;
     for (int chunk = 0; chunk < 8; ++chunk) {
@@ -1248,8 +1245,18 @@ static string lua_createReverse6(const string &format, boost::optional<opts_t> e
       }
       string lquad;
       for (int quartet = 0; quartet < 4; ++quartet) {
-        lquad.append(1, labels[31 - chunk * 4 - quartet][0]);
-        together += labels[31 - chunk * 4 - quartet][0];
+        const std::string& label = labels[31 - chunk * 4 - quartet];
+        if (label.length() != 1) {
+          throw std::invalid_argument("invalid hex digit in label '" + label + "'");
+        }
+        auto digit = label[0];
+        if ((digit >= '0' && digit <= '9') || (digit >= 'a' && digit <= 'f') || (digit >= 'A' && digit <= 'F')) {
+          lquad.push_back(digit);
+          together.push_back(digit);
+        }
+        else {
+          throw std::out_of_range("invalid hex digit in label '" + label + "'");
+        }
       }
       quads.push_back(std::move(lquad));
     }
@@ -1277,6 +1284,9 @@ static string lua_createReverse6(const string &format, boost::optional<opts_t> e
       // "-a--a" -> "0-a--a"               "aa--a" -> "0aa--a"
       dashed.insert(0, "0");
     }
+
+    boost::format fmt(format);
+    fmt.exceptions(boost::io::all_error_bits ^ (boost::io::too_many_args_bit | boost::io::too_few_args_bit));
 
     for (int byte = 31; byte >= 0; --byte) {
       fmt % labels[byte];
