@@ -1269,7 +1269,11 @@ static void apiZoneMetadataKindGET(HttpRequest* req, HttpResponse* resp)
 {
   ZoneData zoneData{req};
 
-  string kind = req->parameters["kind"];
+  const string& kind = req->parameters["kind"];
+
+  if (!isValidMetadataKind(kind, true)) {
+    throw ApiException("Unsupported metadata kind '" + kind + "'");
+  }
 
   vector<string> metadata;
   Json::object document;
@@ -1277,9 +1281,6 @@ static void apiZoneMetadataKindGET(HttpRequest* req, HttpResponse* resp)
 
   if (!zoneData.backend.getDomainMetadata(zoneData.zoneName, kind, metadata)) {
     throw HttpNotFoundException();
-  }
-  if (!isValidMetadataKind(kind, true)) {
-    throw ApiException("Unsupported metadata kind '" + kind + "'");
   }
 
   document["type"] = "Metadata";
@@ -1297,15 +1298,14 @@ static void apiZoneMetadataKindPUT(HttpRequest* req, HttpResponse* resp)
 {
   ZoneData zoneData{req};
 
-  string kind = req->parameters["kind"];
-
-  const auto& document = req->json();
+  const string& kind = req->parameters["kind"];
 
   if (!isValidMetadataKind(kind, false)) {
     throw ApiException("Unsupported metadata kind '" + kind + "'");
   }
 
   vector<string> vecMetadata;
+  const auto& document = req->json();
   const auto& metadata = document["metadata"];
   if (!metadata.is_array()) {
     throw ApiException("metadata is not specified or not an array");
