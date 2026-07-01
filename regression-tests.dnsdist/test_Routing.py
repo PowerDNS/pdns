@@ -73,6 +73,107 @@ class TestRoutingPoolRouting(DNSDistTest):
             self.assertEqual(receivedResponse, None)
 
 
+class TestRoutingPoolFromLuaAction(DNSDistTest):
+    _config_template = """
+    newServer{address="127.0.0.1:%d", pool="real"}
+
+    function route_to_real(dq)
+      return DNSAction.Pool, "real"
+    end
+    function route_to_not_real(dq)
+      return DNSAction.Pool, "not-real"
+    end
+
+    addAction(SuffixMatchNodeRule("poolaction.routing.tests.powerdns.com"), LuaAction(route_to_real))
+    -- by default PoolAction stops the processing so the second rule should not be executed
+    addAction(SuffixMatchNodeRule("poolaction.routing.tests.powerdns.com"), LuaAction(route_to_not_real))
+    """
+
+    def testPolicyPoolAction(self):
+        """
+        Routing: Set pool by qname via Lua
+        """
+        name = "poolaction.routing.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
+        response.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            receivedQuery.id = query.id
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
+
+    def testDefaultPool(self):
+        """
+        Routing: Set pool by qname via Lua canary
+        """
+        name = "notpool.routing.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.assertEqual(receivedResponse, None)
+
+
+class TestRoutingPoolFromLuaFFIAction(DNSDistTest):
+    _config_template = """
+    newServer{address="127.0.0.1:%d", pool="real"}
+
+    local ffi = require("ffi")
+    local C = ffi.C
+
+    function route_to_pool(dq, poolName)
+      C.dnsdist_ffi_dnsquestion_set_result(dq, poolName, #poolName)
+      return DNSAction.Pool
+    end
+
+    function route_to_real(dq)
+      return route_to_pool(dq, "real")
+    end
+
+    function route_to_not_real(dq)
+      return route_to_pool(dq, "not-real")
+    end
+
+    addAction(SuffixMatchNodeRule("poolaction.routing.tests.powerdns.com"), LuaFFIAction(route_to_real))
+    -- by default PoolAction stops the processing so the second rule should not be executed
+    addAction(SuffixMatchNodeRule("poolaction.routing.tests.powerdns.com"), LuaFFIAction(route_to_not_real))
+    """
+
+    def testPolicyPoolAction(self):
+        """
+        Routing: Set pool by qname via Lua FFI
+        """
+        name = "poolaction.routing.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
+        response.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            receivedQuery.id = query.id
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
+
+    def testDefaultPool(self):
+        """
+        Routing: Set pool by qname via Lua FFI canary
+        """
+        name = "notpool.routing.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.assertEqual(receivedResponse, None)
+
+
 class TestRoutingQPSPoolRouting(DNSDistTest):
     _config_template = """
     newServer{address="127.0.0.1:%d", pool="regular"}
