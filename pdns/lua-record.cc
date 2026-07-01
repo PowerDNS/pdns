@@ -1052,6 +1052,27 @@ static string lua_createReverse(const string &format, boost::optional<opts_t> ex
       return {"unknown"};
     }
 
+    // Try to parse the first four labels as an IPv4 address, for we'll need
+    // these values both to search for an exception and to build the result
+    // otherwise.
+    std::array<unsigned long, 4> ip4part{};
+    for (int i = 3; i >= 0; --i) {
+      char *eptr;
+      auto number = strtoul(labels[i].c_str(), &eptr, 10);
+      if (*eptr != '\0') {
+        throw std::invalid_argument("invalid number in label '" + labels[i] + "'");
+      }
+      if (number > 255) {
+        throw std::out_of_range("invalid number in label '" + labels[i] + "'");
+      }
+      ip4part[i] = number;
+    }
+
+    // Note that the above checks have the side-effect of rejecting labels
+    // with non-digit bytes, so we do not need to check for possibly
+    // escaped dots or other bytes which may cause misinterpretation when
+    // labels are processed in ASCII form.
+
     // so, query comes in for 4.3.2.1.in-addr.arpa, zone is called 2.1.in-addr.arpa
     // exceptions["1.2.3.4"]="bert.powerdns.com" then provides an exception
     if (exceptions) {
@@ -1063,17 +1084,16 @@ static string lua_createReverse(const string &format, boost::optional<opts_t> ex
         }
       }
     }
+
     boost::format fmt(format);
     fmt.exceptions(boost::io::all_error_bits ^ (boost::io::too_many_args_bit | boost::io::too_few_args_bit));
     fmt % labels[3] % labels[2] % labels[1] % labels[0];
-
     fmt % (labels[3]+"-"+labels[2]+"-"+labels[1]+"-"+labels[0]);
 
     boost::format fmt2("%02x%02x%02x%02x");
     for (int i = 3; i >= 0; --i) {
-      fmt2 % atoi(labels[i].c_str());
+      fmt2 % ip4part[i];
     }
-
     fmt % (fmt2.str());
 
     return fmt.str();
