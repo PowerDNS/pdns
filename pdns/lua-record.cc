@@ -1057,7 +1057,7 @@ static string lua_createReverse(const string &format, boost::optional<opts_t> ex
     // otherwise.
     std::array<unsigned long, 4> ip4part{};
     for (int i = 3; i >= 0; --i) {
-      char *eptr;
+      char *eptr{nullptr};
       auto number = strtoul(labels[i].c_str(), &eptr, 10);
       if (*eptr != '\0') {
         throw std::invalid_argument("invalid number in label '" + labels[i] + "'");
@@ -1065,7 +1065,7 @@ static string lua_createReverse(const string &format, boost::optional<opts_t> ex
       if (number > 255) {
         throw std::out_of_range("invalid number in label '" + labels[i] + "'");
       }
-      ip4part[i] = number;
+      ip4part.at(i) = number;
     }
 
     // Note that the above checks have the side-effect of rejecting labels
@@ -1092,7 +1092,7 @@ static string lua_createReverse(const string &format, boost::optional<opts_t> ex
 
     boost::format fmt2("%02x%02x%02x%02x");
     for (int i = 3; i >= 0; --i) {
-      fmt2 % ip4part[i];
+      fmt2 % ip4part.at(i);
     }
     fmt % (fmt2.str());
 

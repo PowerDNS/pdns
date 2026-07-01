@@ -96,8 +96,9 @@ DNSName::DNSName(const std::string_view sw)
         d_storage.append(begiter,iter);
         if(iter != pend)
           ++iter;
-        if(labellen > s_maxDNSLabelLength)
+        if(labellen > s_maxDNSLabelLength) {
           throwSafeRangeError("label too long to append: ", p, length);
+        }
 
         if(iter-pbegin > static_cast<ptrdiff_t>(s_maxDNSNameLength - 1)) // reserve two bytes, one for length and one for the root label
           throwSafeRangeError("name too long to append: ", p, length);
@@ -924,7 +925,7 @@ std::string_view::size_type ZoneName::findVariantSeparator(std::string_view name
         ++slashes;
       }
       if ((slashes % 2) == 0) {
-	break;
+        break;
       }
     }
   }
