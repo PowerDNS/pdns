@@ -1266,7 +1266,7 @@ void CommunicatorClass::addSecondaryCheckRequest(const DomainInfo& di, const Com
     }
   }
   data->d_tocheck.erase(di);
-  data->d_tocheck.insert(ours);
+  data->d_tocheck.insert(std::move(ours));
   d_any_sem.post(); // kick the loop!
 }
 

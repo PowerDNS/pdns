@@ -196,7 +196,7 @@ void TinyDNSBackend::getAllDomains_locked(vector<DomainInfo>* domains, bool getS
       }
 
       di.notified_serial = di.serial;
-      domains->push_back(di);
+      domains->push_back(std::move(di));
     }
   }
 }

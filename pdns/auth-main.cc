@@ -1809,7 +1809,7 @@ int main(int argc, char** argv)
   }
 
   try {
-    auto defaultCatalog = ::arg()["default-catalog-zone"];
+    const auto& defaultCatalog = ::arg()["default-catalog-zone"];
     if (!defaultCatalog.empty()) {
       auto defCatalog = DNSName(defaultCatalog);
     }

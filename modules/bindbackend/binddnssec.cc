@@ -522,7 +522,7 @@ bool Bind2Backend::getTSIGKeys(std::vector<struct TSIGKey>& keys)
       key.name = DNSName(row[0]);
       key.algorithm = DNSName(row[1]);
       key.key = row[2];
-      keys.push_back(key);
+      keys.push_back(std::move(key));
     }
 
     d_getTSIGKeysQuery_stmt->reset();

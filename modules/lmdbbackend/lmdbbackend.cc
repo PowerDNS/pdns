@@ -883,7 +883,7 @@ LMDBBackend::~LMDBBackend()
 
 void LMDBBackend::openAllTheDatabases()
 {
-  auto filename = getArg("filename");
+  const auto& filename = getArg("filename");
   d_tdomains = std::make_shared<tdomains_t>(getMDBEnv(filename.c_str(), MDB_NOSUBDIR | MDB_NORDAHEAD | d_asyncFlag, 0600, d_mapsize_main), "domains_v5");
   d_tmeta = std::make_shared<tmeta_t>(d_tdomains->getEnv(), "metadata_v5");
   d_tkdb = std::make_shared<tkdb_t>(d_tdomains->getEnv(), "keydata_v5");
