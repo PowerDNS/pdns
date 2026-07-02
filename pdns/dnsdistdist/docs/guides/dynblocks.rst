@@ -127,3 +127,148 @@ For this rule to trigger, dnsdist will need to scan the ring buffers and find 10
 This is even more obvious for the ratio-based rules, when they have a minimum number of responses set, because in that case they clearly require that number of responses to fit in the buffer.
 
 That requirement could be lifted a bit by the use of sampling, meaning that only one query out of 10 would be recorded, for example, and the total amount would be inferred from the queries present in the buffer. As of 1.7.0, sampling as unfortunately not been implemented yet.
+
+Triggering Dynamic Blocks from an External System
+--------------------------------------------------
+
+In some deployments an external detection system (a traffic analyzer, monitoring platform, or similar) identifies abusive sources and needs to push blocks into dnsdist over the network.
+The built-in webserver combined with :func:`registerWebHandler` makes this possible without any additional software.
+
+The following Lua snippet exposes two custom HTTP endpoints: one to add a dynamic block and one to remove it.
+It expects the webserver to already be configured (see :doc:`webserver`) and uses :func:`addDynamicBlock` which is available since dnsdist 1.9.0.
+
+.. code-block:: lua
+
+  -- Extract a quoted value for a given key from a JSON string.
+  -- This is intentionally minimal; for complex payloads consider
+  -- installing a Lua JSON library such as lua-cjson.
+  local function jsonValue(body, key)
+    return body:match('"' .. key .. '"%s*:%s*"([^"]+)"')
+  end
+
+  local function jsonNumberValue(body, key)
+    return tonumber(body:match('"' .. key .. '"%s*:%s*(%d+)'))
+  end
+
+  -- Constant-time string comparison to prevent timing attacks on the
+  -- API key.  Iterates every byte regardless of where a mismatch occurs.
+  local API_KEY = 'your-secret-key-here'
+
+  local function safeEquals(a, b)
+    if #a ~= #b then return false end
+    local mismatch = 0
+    for i = 1, #a do
+      if string.byte(a, i) ~= string.byte(b, i) then
+        mismatch = mismatch + 1
+      end
+    end
+    return mismatch == 0
+  end
+
+  local function checkAuth(req, resp)
+    local key = req.headers['x-api-key'] or ''
+    if not safeEquals(key, API_KEY) then
+      resp.status = 403
+      resp.body   = '{"error":"forbidden"}'
+      return false
+    end
+    return true
+  end
+
+  function blockHandler(req, resp)
+    if req.method ~= 'POST' then
+      resp.status = 405
+      resp.body   = '{"error":"method not allowed"}'
+      return
+    end
+
+    if not checkAuth(req, resp) then return end
+
+    local cidr     = jsonValue(req.body, 'cidr')
+    local duration = jsonNumberValue(req.body, 'duration')
+    local reason   = jsonValue(req.body, 'reason') or 'external block'
+
+    if not cidr or not duration then
+      resp.status = 400
+      resp.body   = '{"error":"missing cidr or duration"}'
+      return
+    end
+
+    addDynamicBlock(newCA(cidr), reason, DNSAction.Refused, duration)
+    resp.status  = 200
+    resp.body    = '{"status":"blocked","cidr":"' .. cidr .. '"}'
+    resp.headers = {['Content-Type']='application/json'}
+  end
+
+  function unblockHandler(req, resp)
+    if req.method ~= 'POST' then
+      resp.status = 405
+      resp.body   = '{"error":"method not allowed"}'
+      return
+    end
+
+    if not checkAuth(req, resp) then return end
+
+    local cidr = jsonValue(req.body, 'cidr')
+    if not cidr then
+      resp.status = 400
+      resp.body   = '{"error":"missing cidr"}'
+      return
+    end
+
+    -- There is no per-entry removal function, so we snapshot active
+    -- blocks, clear all, and re-add every entry except the target.
+    -- The brief window between clear and re-add is normally sub-ms.
+    local now     = os.time()
+    local current = getDynamicBlocks()
+    clearDynBlocks()
+
+    for addr, block in pairs(current) do
+      if addr ~= cidr then
+        local remaining = block.until - now
+        if remaining > 0 then
+          addDynamicBlock(newCA(addr), block.reason, block.action, remaining)
+        end
+      end
+    end
+
+    resp.status  = 200
+    resp.body    = '{"status":"unblocked","cidr":"' .. cidr .. '"}'
+    resp.headers = {['Content-Type']='application/json'}
+  end
+
+  registerWebHandler('/api/v1/dynblock', blockHandler)
+  registerWebHandler('/api/v1/dynunblock', unblockHandler)
+
+With the above in place, an external system can insert a 300-second block via a single HTTP call:
+
+.. code-block:: bash
+
+  curl -s -X POST http://192.0.2.1:8083/api/v1/dynblock \
+    -H 'X-API-Key: your-secret-key-here' \
+    -H 'Content-Type: application/json' \
+    -d '{"cidr": "198.51.100.0/24", "duration": 300, "reason": "DDoS source"}'
+
+And remove it early:
+
+.. code-block:: bash
+
+  curl -s -X POST http://192.0.2.1:8083/api/v1/dynunblock \
+    -H 'X-API-Key: your-secret-key-here' \
+    -H 'Content-Type: application/json' \
+    -d '{"cidr": "198.51.100.0/24"}'
+
+.. note::
+
+  The ``safeEquals`` function above is a Lua workaround for constant-time comparison.
+  The standard ``~=`` operator returns early on the first mismatched byte, which can
+  theoretically leak the key via timing analysis.  Restricting access to the webserver
+  via the ``acl`` option of :func:`setWebserverConfig` and placing dnsdist behind a
+  TLS-terminating reverse proxy are still recommended for production deployments.
+
+.. note::
+
+  The unblock handler snapshots all active blocks with :func:`getDynamicBlocks`, clears
+  them with :func:`clearDynBlocks`, then re-adds every entry except the target.  There is
+  a brief window (typically sub-millisecond) where no blocks are enforced.  If this is
+  unacceptable, consider letting blocks expire naturally instead of removing them early.
