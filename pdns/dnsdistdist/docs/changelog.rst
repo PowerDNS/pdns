@@ -2,6 +2,82 @@ Changelog
 =========
 
 .. changelog::
+  :version: 2.1.0
+  :released: 2nd of July 2026
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: 17612
+
+    Backports for Security Advisory 2026-09
+
+  .. change::
+    :tags: Improvements, DNS over TLS, DNS over HTTPS
+    :pullreq: 17641
+
+    Add OpenSSL >= 4.0.0 compatibility
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 17642
+
+    Add a Lua accessor for the ring buffers sampling rate
+
+  .. change::
+    :tags: Bug Fixes, YAML
+    :pullreq: 17643
+
+    Fix the default value for IPv4 ECS source prefix
+
+  .. change::
+    :tags: Bug Fixes, YAML
+    :pullreq: 17644
+
+    Fix build error on 32 bits systems (armhf, ...) (Hector Cao)
+
+  .. change::
+    :tags: Bug Fixes, YAML
+    :pullreq: 17645
+
+    Fix naming And, Or and Not selectors, Continue action from YAML
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 17647
+
+    Don't close DoH on timeout, do on release (Karel Bilek)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17650
+
+    Do not let exceptions cross the FFI boundary
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17651
+
+    Catch exceptions when parsing CNAME via the Lua FFI API
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17652
+
+    ednsoptions.hh: ``#include <string>``
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17653
+
+    Prevent an exception when accessing an empty StatNode
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 17655
+
+    Set Rust LTO mode automatically, and allow setting RUSTFLAGS (Robert Edmonds)
+
+.. changelog::
   :version: 2.0.7
   :released: 25th of June 2026
 
