@@ -2211,7 +2211,7 @@ Other functions
   Register a Lua function to be called when a server state changed during the health check process.
   The function should not block for a long period of time, as it would otherwise delay the execution of the other functions registered for this hook, as well as the execution of the health check process.
 
-  :param function callback: The function to be called. It returns no value and takes two parameters: the first parameter is a string identifying the server, formatted as if returned by :func:`Server:getNameWithAddr()`, the second parameter is a boolean value indicating whether the server is up.
+  :param function callback: The function to be called. It returns no value and takes two parameters: the first parameter is a string identifying the server, formatted as if returned by :meth:`Server.getNameWithAddr`, the second parameter is a boolean value indicating whether the server is up.
 
   .. code-block:: lua
 
