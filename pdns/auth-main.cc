@@ -1015,7 +1015,7 @@ static void mainthread()
     stringtok(addrs, ::arg()["protobuf-servers"], ", ;");
 
     for (const string& addr : addrs) {
-      g_remote_loggers.emplace_back(make_unique<RemoteLogger>(ComboAddress(addr)));
+      g_remote_loggers.emplace_back(make_unique<RemoteLogger>(ComboAddress(addr), 2, 100000, 1, false, RemoteLogger::FrameSize::Two, 5));
     }
   }
 

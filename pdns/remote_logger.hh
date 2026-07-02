@@ -137,12 +137,12 @@ public:
   RemoteLogger& operator=(const RemoteLogger&) = delete;
   RemoteLogger& operator=(RemoteLogger&&) = delete;
   RemoteLogger(const ComboAddress& remote,
-               uint16_t timeout = 2,
-               uint64_t maxQueuedBytes = 100000,
-               uint8_t reconnectWaitTime = 1,
-               bool asyncConnect = false,
-               FrameSize frame = FrameSize::Two,
-               time_t stalledWriteTimeoutSeconds = 5);
+               uint16_t timeout, // typically 2
+               uint64_t maxQueuedBytes, // typically 100 * maxQueuedEntries
+               uint8_t reconnectWaitTime, // typically 1
+               bool asyncConnect, // typically false
+               FrameSize frame, // typically FrameSize::Two
+               time_t stalledWriteTimeoutSeconds); // typically 5
   ~RemoteLogger() override;
 
   std::string address() const override

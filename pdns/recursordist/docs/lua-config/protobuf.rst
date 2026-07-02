@@ -59,6 +59,9 @@ Protobuf export to a server is enabled using the ``protobufServer()`` directive:
     - ``'FirstAvailable'`` send to first server that has room in its queue.
     - ``'Hashed'`` send to a single server, indexed by a hash of the qname and client address.
 
+
+  * ``stalledWriteTimeout=5``: int - If we have been unable to write or buffer data on our side of the TCP socket for that long, in seconds, consider that the remote endpoint has died and reconnect
+
 .. function:: setProtobufMasks(maskv4, maskV6)
 
   .. versionadded:: 4.2.0
@@ -100,6 +103,20 @@ While :func:`protobufServer` only exports the queries sent to the recursor from 
   .. versionchanged:: 5.1.0
 
      Added support for the HTTPS, SVCB and NAPTR records types.
+
+  .. versionadded:: 5.5.0
+
+  * ``frame4=false``: bool - Whether to use 4 byte ints as framing value. Default is to use 2 bytes, which limits the message size to 64k.
+  * ``strategy='All'``: string - The strategy to use, possible values are:
+
+    - ``'All'`` send to all servers.
+    - ``'RoundRobin'`` alternate between servers in a cyclic way.
+    - ``'FirstAvailable'`` send to first server that has room in its queue.
+    - ``'Hashed'`` send to a single server, indexed by a hash of the qname and client address.
+
+
+  * ``stalledWriteTimeout=5``: int - If we have been unable to write or buffer data on our side of the TCP socket for that long, in seconds, consider that the remote endpoint has died and reconnect
+
 
 Protocol Buffers Definition
 ---------------------------

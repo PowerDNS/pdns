@@ -428,6 +428,7 @@ impl ProtobufServer {
         insertu(&mut map, "timeout", self.timeout);
         insertu(&mut map, "maxQueuedEntries", self.maxQueuedEntries);
         insertu(&mut map, "reconnectWaitTime", self.reconnectWaitTime);
+        insertu(&mut map, "stalledWriteTimeout", self.stalledWriteTimeout);
         insertb(&mut map, "taggedOnly", self.taggedOnly);
         insertb(&mut map, "asyncConnect", self.asyncConnect);
         insertb(&mut map, "logQueries", self.logQueries);

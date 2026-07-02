@@ -68,6 +68,7 @@ bool operator==(const ProtobufExportConfig& configA, const ProtobufExportConfig&
   return configA.exportTypes          == configB.exportTypes       &&
          configA.servers              == configB.servers           &&
          configA.maxQueuedEntries     == configB.maxQueuedEntries  &&
+         configA.stalledWriteTimeout  == configB.stalledWriteTimeout &&
          configA.timeout              == configB.timeout           &&
          configA.reconnectWaitTime    == configB.reconnectWaitTime &&
          configA.asyncConnect         == configB.asyncConnect      &&
@@ -249,6 +250,10 @@ static void parseProtobufOptions(const std::optional<protobufOptions_t>& vars, P
   if (have.count("strategy") != 0) {
     const auto& strategy = boost::get<string>(have.at("strategy"));
     config.strategy = ProtobufExportConfig::strategyFromString(strategy);
+  }
+
+  if (have.count("stalledWriteTimeout") != 0) {
+    config.stalledWriteTimeout = boost::get<uint64_t>(have.at("stalledWriteTimeout"));
   }
 
   if (have.count("exportTypes") != 0) {

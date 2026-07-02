@@ -76,6 +76,8 @@ pub struct ProtobufServer {
     frame4: bool,
     #[serde(default = "crate::def_pb_strategy", skip_serializing_if = "crate::def_value_equals_pb_strategy")]
     strategy: String,
+    #[serde(default = "crate::U64::<5>::value", skip_serializing_if = "crate::U64::<5>::is_equal", alias = "stalled_write_timeout")]
+    stalledWriteTimeout: u64,
 }
 
 // A dnstap logging server

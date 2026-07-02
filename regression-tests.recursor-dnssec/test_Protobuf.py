@@ -78,7 +78,7 @@ for param in protobufServersParameters:
 
 class TestRecursorProtobuf(RecursorTest):
     _lua_config_file = """
-    protobufServer({"127.0.0.1:%d", "127.0.0.1:%d"})
+    protobufServer({"127.0.0.1:%d", "127.0.0.1:%d"}, { stalledWriteTimeout = 10 })
     """ % (protobufServersParameters[0].port, protobufServersParameters[1].port)
 
     def getFirstProtobufMessage(self, retries=100, waitTime=0.01):
@@ -381,6 +381,7 @@ recursor:
 logging:
   protobuf_servers:
     - servers: [127.0.0.1:%s, 127.0.0.1:%s]
+      stalledWriteTimeout: 10
   opentelemetry_trace_conditions:
     - acls: ['0.0.0.0/0']
 """ % (_confdir, protobufServersParameters[0].port, protobufServersParameters[1].port)

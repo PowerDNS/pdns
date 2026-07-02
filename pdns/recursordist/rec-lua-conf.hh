@@ -47,6 +47,7 @@ struct ProtobufExportConfig
   std::set<uint16_t> exportTypes = {QType::A, QType::AAAA, QType::CNAME};
   std::vector<ComboAddress> servers;
   uint64_t maxQueuedEntries{100};
+  uint64_t stalledWriteTimeout{5};
   uint16_t timeout{2};
   uint16_t reconnectWaitTime{1};
   Strategy strategy{Strategy::All};

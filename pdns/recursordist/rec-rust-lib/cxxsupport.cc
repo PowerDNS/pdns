@@ -782,6 +782,7 @@ void fromLuaToRust(const ProtobufExportConfig& pbConfig, pdns::rust::settings::r
   pbServer.timeout = pbConfig.timeout;
   pbServer.maxQueuedEntries = pbConfig.maxQueuedEntries;
   pbServer.reconnectWaitTime = pbConfig.reconnectWaitTime;
+  pbServer.stalledWriteTimeout = pbConfig.stalledWriteTimeout;
   pbServer.taggedOnly = pbConfig.taggedOnly;
   pbServer.asyncConnect = pbConfig.asyncConnect;
   pbServer.logQueries = pbConfig.logQueries;
@@ -1142,6 +1143,7 @@ void fromRustToLuaConfig(const pdns::rust::settings::rec::ProtobufServer& pbServ
   exp.maxQueuedEntries = pbServer.maxQueuedEntries;
   exp.timeout = pbServer.timeout;
   exp.reconnectWaitTime = pbServer.reconnectWaitTime;
+  exp.stalledWriteTimeout = pbServer.stalledWriteTimeout;
   exp.asyncConnect = pbServer.asyncConnect;
   exp.logQueries = pbServer.logQueries;
   exp.logResponses = pbServer.logResponses;
