@@ -51,8 +51,10 @@ public:
 
   [[nodiscard]] bool hasRoomFor(const std::string& str) const;
   [[nodiscard]] bool tooBig(const std::string& str) const;
+  [[nodiscard]] bool isEmpty() const;
   bool write(const std::string& str);
   bool flush(int fileDesc);
+  void clear();
 
 private:
   boost::circular_buffer<char> d_buffer;
@@ -134,11 +136,13 @@ public:
   RemoteLogger(RemoteLogger&&) = delete;
   RemoteLogger& operator=(const RemoteLogger&) = delete;
   RemoteLogger& operator=(RemoteLogger&&) = delete;
-  RemoteLogger(const ComboAddress& remote, uint16_t timeout = 2,
+  RemoteLogger(const ComboAddress& remote,
+               uint16_t timeout = 2,
                uint64_t maxQueuedBytes = 100000,
                uint8_t reconnectWaitTime = 1,
                bool asyncConnect = false,
-               FrameSize frame = FrameSize::Two);
+               FrameSize frame = FrameSize::Two,
+               time_t stalledWriteTimeoutSeconds = 5);
   ~RemoteLogger() override;
 
   std::string address() const override
@@ -174,6 +178,7 @@ public:
 private:
   bool reconnect();
   void maintenanceThread();
+  [[nodiscard]] bool connectionStalled();
 
   struct RuntimeData
   {
@@ -183,12 +188,16 @@ private:
   };
 
   ComboAddress d_remote;
-  uint16_t d_timeout;
-  uint8_t d_reconnectWaitTime;
+  // if we have been trying to write for that long without any progress,
+  // the connection is dead
+  time_t d_stalledWriteTimeoutSeconds{};
+  time_t d_tryingToWriteSince{};
+  uint16_t d_timeout{};
+  uint8_t d_reconnectWaitTime{};
   std::atomic<bool> d_exiting{false};
   bool d_asyncConnect{false};
 
   LockGuarded<RuntimeData> d_runtime;
   std::thread d_thread;
-  FrameSize d_framesize;
+  FrameSize d_framesize{};
 };
