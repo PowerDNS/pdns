@@ -65,7 +65,7 @@ jobs:
     steps:
     - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
     - name: Checkout repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
       with:
         # We must fetch at least the immediate parents so that if this is
         # a pull request then we can checkout the head.
@@ -291,7 +291,7 @@ jobs:
     if: ${{ github.event_name == 'pull_request' }}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
       with:
         fetch-depth: 2
         persist-credentials: false
@@ -303,7 +303,7 @@ jobs:
     if: ${{ github.event_name == 'pull_request' }}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
       with:
         fetch-depth: 0
         persist-credentials: false

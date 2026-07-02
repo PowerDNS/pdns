@@ -23,7 +23,7 @@ jobs:
           - rel/rec-5.1.x
       fail-fast: false
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 1
           submodules: recursive
