@@ -2473,7 +2473,7 @@ string GSQLBackend::directBackendCmd(const string &query)
   }
 }
 
-string GSQLBackend::pattern2SQLPattern(const string &pattern)
+static string pattern2SQLPattern(const string &pattern)
 {
   string escaped_pattern = boost::replace_all_copy(pattern,"\\","\\\\");
   boost::replace_all(escaped_pattern,"_","\\_");
