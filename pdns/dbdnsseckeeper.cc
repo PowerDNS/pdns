@@ -649,7 +649,14 @@ void DNSSECKeeper::getPreRRSIGs(UeberBackend& db, vector<DNSZoneRecord>& rrs, ui
     return;
   }
 
-  const auto rr = *rrs.rbegin();
+  // This is an intentional copy of the last item in rrs.
+  // It looks like we could afford using a const auto& reference to that item,
+  // but if we do, as soon as the emplace_back call in the loop below causes
+  // a vector reallocation, that reference would be dangling.
+  // Despite callers performing a generous reserve() call to reduce the
+  // odds of reallocation occurring, this can (and will!) nevertheless happen.
+  // NOLINTNEXTLINE(readability-identifier-length)
+  const auto rr = *rrs.rbegin(); // coverity[auto_causes_copy] dear Coverity, you made me try and "fix" this twice, and I lost brain cells I will never recover trying to understand why this apparently innocent fix would burst in flames, please stop
 
   DNSZoneRecord dzr;
 
