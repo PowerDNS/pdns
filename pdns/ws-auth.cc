@@ -256,7 +256,7 @@ static void printargs(ostringstream& ret)
 
   vector<string> entries = arg().list();
   for (const auto& entry : entries) {
-    ret << "<tr><td>" << entry << "</td><td>" << arg()[entry] << "</td><td>" << arg().getHelp(entry) << "</td>" << endl;
+    ret << "<tr><td>" << entry << "</td><td>" << htmlescape(arg()[entry]) << "</td><td>" << arg().getHelp(entry) << "</td>" << endl;
   }
 }
 
