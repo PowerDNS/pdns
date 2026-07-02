@@ -1193,6 +1193,8 @@ class TestLuaRecords(BaseLuaTest):
                     "10.10.10.10": "quad10.example.com.",  # exception
                     # error: values not in the 0..255 range
                     "256.384.512.640": "error.",
+                    # error: trailing data after numbers
+                    "12a.34b.56c.78d": "error.",
                 },
             ),
             ".createforward6.example.org.": (

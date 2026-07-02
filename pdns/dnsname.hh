@@ -88,7 +88,8 @@ class ZoneName;
 class DNSName
 {
 public:
-  static const size_t s_maxDNSNameLength = 255;
+  static constexpr size_t s_maxDNSNameLength = 255;
+  static constexpr size_t s_maxDNSLabelLength = 63;
 
   DNSName() = default; //!< Constructs an *empty* DNSName, NOT the root!
   // Work around assertion in some boost versions that do not like self-assignment of boost::container::string
