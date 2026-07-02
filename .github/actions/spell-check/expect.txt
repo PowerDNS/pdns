@@ -48,6 +48,7 @@ arecvfrom
 Arentz
 Arjen
 Arjo
+armhf
 Arnoud
 arpa
 Arsen
@@ -164,6 +165,7 @@ cachekey
 Cairney
 calculatesoaserial
 calidns
+Cao
 capf
 catalogzone
 catzone
@@ -1223,6 +1225,7 @@ Rueckert
 rulesets
 runtimedir
 rustc
+RUSTFLAGS
 rustls
 Ruthensteiner
 Rvd
