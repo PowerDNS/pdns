@@ -120,7 +120,6 @@ public:
   bool searchComments(const string &pattern, size_t maxResults, vector<Comment>& result) override;
 
 protected:
-  string pattern2SQLPattern(const string& pattern);
   void extractRecord(SSqlStatement::row_t& row, DNSResourceRecord& rr);
   void extractComment(SSqlStatement::row_t& row, Comment& c);
   void setLastCheck(uint32_t domain_id, time_t lastcheck);
