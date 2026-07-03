@@ -1504,6 +1504,15 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& zone, co
           if (drr.qtype == QType::NS || drr.qtype == QType::DS) {
             continue;
           }
+          // ... presigned if RRSIG is for DS or NSEC
+          if (presigned && drr.qtype == QType::RRSIG) {
+            shared_ptr<DNSRecordContent> drc(DNSRecordContent::make(drr.qtype.getCode(), QClass::IN, drr.content));
+            auto rrsig = std::dynamic_pointer_cast<RRSIGRecordContent>(drc);
+            QType qtype = rrsig->d_type;
+            if (qtype == QType::DS || qtype == QType::NSEC) {
+              continue;
+            }
+          }
         }
         // a DNAME does not occlude itself
         if (qname.second == QType::DNAME && drr.qtype == QType::DNAME) {
