@@ -70,12 +70,15 @@ public:
     return res == Result::OSLimitError || res == Result::ChainLimitError;
   }
 
-  vector<DNSRecord> d_records;
+  std::vector<DNSRecord> d_records;
   uint32_t d_usec{0};
   uint32_t d_bytesReceived{0};
+  // this needs to be a signed integer because the Lua policies
+  // use negative values to stop processing of queries
   int d_rcode{0};
   bool d_validpacket{false};
-  bool d_aabit{false}, d_tcbit{false};
+  bool d_aabit{false};
+  bool d_tcbit{false};
   bool d_haveEDNS{false};
 };
 

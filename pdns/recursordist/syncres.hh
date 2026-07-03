@@ -133,7 +133,7 @@ public:
     [[nodiscard]] std::string print(const std::string& indent = "",
                                     const std::string& indentLevel = "  ") const;
 
-    int getRecords(const DNSName& qname, QType qtype, std::vector<DNSRecord>& records) const;
+    uint8_t getRecords(const DNSName& qname, QType qtype, std::vector<DNSRecord>& records) const;
     [[nodiscard]] bool isAuth() const
     {
       return d_servers.empty();

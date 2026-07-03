@@ -910,9 +910,9 @@ bool SyncRes::AuthDomain::operator==(const AuthDomain& rhs) const
   return outputsStream.str();
 }
 
-int SyncRes::AuthDomain::getRecords(const DNSName& qname, const QType qtype, std::vector<DNSRecord>& records) const
+uint8_t SyncRes::AuthDomain::getRecords(const DNSName& qname, const QType qtype, std::vector<DNSRecord>& records) const
 {
-  int result = RCode::NoError;
+  uint8_t result = RCode::NoError;
   records.clear();
 
   // partial lookup
