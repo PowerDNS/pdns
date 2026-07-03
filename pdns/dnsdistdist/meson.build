@@ -587,6 +587,7 @@ test_sources += files(
   src_dir / 'test-iputils_hh.cc',
   src_dir / 'test-luawrapper.cc',
   src_dir / 'test-mplexer.cc',
+  src_dir / 'test-protozero-otlp_cc.cc',
   src_dir / 'test-proxy_protocol_cc.cc',
   src_dir / 'test-sholder_hh.cc',
 )
