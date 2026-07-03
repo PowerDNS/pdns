@@ -505,16 +505,20 @@ namespace {
   };
 }
 
-class TCPNameserver::XFRContext : public boost::noncopyable
+class TCPNameserver::XFRContext
 {
 public:
   XFRContext(std::unique_ptr<DNSPacket>& qry, int sock, Logr::log_t log, bool isAXFR);
+  XFRContext(const XFRContext&) = delete;
+  XFRContext& operator=(const XFRContext&) = delete;
+
   void setupOutputPacket();
 
   // NOLINTBEGIN(cppcoreguidelines-non-private-member-variables-in-classes)
   const ZoneName& targetZone; // domain being XFR'ed
   DomainInfo info;
   SOAData soa;
+  bool soaValid{false};
 
   bool presignedZone{false};
   bool securedZone{false};
@@ -620,6 +624,7 @@ bool TCPNameserver::canDoAXFR(std::unique_ptr<DNSPacket>& q, XFRContext& ctx, st
   FindNS fns;
 
   if(packetHandler->getBackend()->getSOAUncached(ctx.targetZone,ctx.soa)) {
+    ctx.soaValid = true;
     vector<string> acl;
     packetHandler->getBackend()->getDomainMetadata(ctx.targetZone, "ALLOW-AXFR-FROM", acl);
     for (const auto & entry : acl) {
@@ -634,8 +639,7 @@ bool TCPNameserver::canDoAXFR(std::unique_ptr<DNSPacket>& q, XFRContext& ctx, st
         for(const auto & nameserver: nsset) {
           vector<string> nsips=fns.lookup(nameserver, packetHandler->getBackend());
           for(const auto & nsip : nsips) {
-            if(nsip == q->getInnerRemote().toString())
-            {
+            if(nsip == q->getInnerRemote().toString()) {
               SLOG(g_log<<Logger::Notice<<ctx.logPrefix<<"allowed: client IP is in NSset"<<endl,
                    ctx.slog->info(Logr::Notice, ctx.xfrType + " allowed: client IP is in NSset", "zone", Logging::Loggable(ctx.targetZone), "client", Logging::Loggable(ctx.client)));
               return true;
@@ -646,8 +650,7 @@ bool TCPNameserver::canDoAXFR(std::unique_ptr<DNSPacket>& q, XFRContext& ctx, st
       else
       {
         auto nm = Netmask(entry); // NOLINT(readability-identifier-length)
-        if(nm.match( q->getInnerRemote() ))
-        {
+        if(nm.match( q->getInnerRemote() )) {
           SLOG(g_log<<Logger::Notice<<ctx.logPrefix<<"allowed: client IP is in per-zone ACL"<<endl,
                ctx.slog->info(Logr::Notice, ctx.xfrType + " allowed: client IP is in per-zone ACL", "zone", Logging::Loggable(ctx.targetZone), "client", Logging::Loggable(ctx.client)));
           return true;
@@ -695,8 +698,8 @@ int TCPNameserver::doAXFR(std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_
       return 0;
     }
 
-    // ctx.soa has been computed by canDoAXFR above
-    if (!(*packetHandler)->getBackend()->getSOAUncached(ctx.targetZone, ctx.soa)) {
+    // ctx.soaValid has been computed by canDoAXFR above
+    if (!ctx.soaValid && !(*packetHandler)->getBackend()->getSOAUncached(ctx.targetZone, ctx.soa)) {
       SLOG(g_log<<Logger::Warning<<ctx.logPrefix<<"failed: not authoritative"<<endl,
            ctx.slog->info(Logr::Warning, "AXFR failed: not authoritative", "zone", Logging::Loggable(ctx.targetZone), "client", Logging::Loggable(ctx.client)));
       ctx.outpacket->setRcode(RCode::NotAuth);
@@ -1383,8 +1386,8 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_
       return 0;
     }
 
-    // ctx.soa has been computed by canDoAXFR above
-    if(!(*packetHandler)->getBackend()->getSOAUncached(ctx.targetZone, ctx.soa)) {
+    // ctx.soaValid has been computed by canDoAXFR above
+    if(!ctx.soaValid && !(*packetHandler)->getBackend()->getSOAUncached(ctx.targetZone, ctx.soa)) {
       SLOG(g_log<<Logger::Warning<<ctx.logPrefix<<"failed: not authoritative"<<endl,
            ctx.slog->info(Logr::Warning, "IXFR failed: not authoritative", "zone", Logging::Loggable(ctx.targetZone), "client", Logging::Loggable(ctx.client)));
       ctx.outpacket->setRcode(RCode::NotAuth);
