@@ -166,5 +166,17 @@ suite <https://cr.yp.to/djbdns/axfr-get.html>`__.
     *.example.com     A 198.51.100.1
     www.example.com   A 198.51.100.1
 
+
+PowerDNS and TinyDNS also handle name server records (the dot-prefixed lines in
+data files) differently. In TinyDNS it is possible to apply location
+restrictions to dot lines and the restrictions are respected accordingly.
+In PowerDNS, any location-restricted dot line (and its accompanying SOA record)
+is simply ignored, causing PowerDNS to not assume authority over the
+corresponding zone. This happens because in PowerDNS, internal SOA lookups
+are performed without knowledge about the source of the query.
+If you want to apply location restrictions to zones, apply the location
+restrictions on the rest of the zone data, but not on the name server line
+(dot-prefixed line), or disable :ref:`setting-tinydns-locations`.
+
 Compiling the TinyDNS backend requires you to have
 `tinycdb <https://www.corpit.ru/mjt/tinycdb.html>`__ version 0.77.
