@@ -4357,11 +4357,8 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
 
     /* dealing with the records in answer */
     if (rec->d_place == DNSResourceRecord::ANSWER) {
-      // Special case for Amazon CNAME records
       if (!(lwr.d_aabit || wasForwardRecurse)) {
-        /* for now we allow a CNAME for the exact qname in ANSWER with AA=0, because Amazon DNS servers
-           are sending such responses */
-        if (rec->d_type != QType::CNAME || qname != rec->d_name) {
+        if (qname != rec->d_name) {
           LOG(prefix << qname << ": Removing record '" << rec->toString() << "' in the ANSWER section without the AA bit set received from " << auth << endl);
           skipvec[counter] = true;
           ++skipCount;
