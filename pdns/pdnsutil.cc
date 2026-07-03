@@ -1497,10 +1497,18 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& zone, co
   for (const auto& qname : checkOcclusion) {
     for (const auto& drr : records) {
       // a name does not occlude itself in the following situations:
-      // NS does not occlude DS+NS
-      // a DNAME does not occlude itself
-      if (qname.first == drr.qname && (((drr.qtype == QType::NS || drr.qtype == QType::DS) && qname.second == QType::NS) || (drr.qtype == QType::DNAME && qname.second == QType::DNAME))) {
-        continue;
+      if (qname.first == drr.qname) {
+        // NS does not occlude
+        if (qname.second == QType::NS) {
+          // ... DS or NS
+          if (drr.qtype == QType::NS || drr.qtype == QType::DS) {
+            continue;
+          }
+        }
+        // a DNAME does not occlude itself
+        if (qname.second == QType::DNAME && drr.qtype == QType::DNAME) {
+          continue;
+        }
       }
 
       // for most types, X occludes X and (type-dependent) almost everything under X
