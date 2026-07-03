@@ -754,7 +754,7 @@ static vector<vector<ComboAddress>> convMultiComboAddressList(const boost::varia
 
   if(auto simple = boost::get<iplist_t>(&items)) {
     vector<ComboAddress> unit = convComboAddressList(*simple, port);
-    candidates.push_back(unit);
+    candidates.push_back(std::move(unit));
   } else {
     auto units = boost::get<ipunitlist_t>(items);
     for(const auto& u : units) {
@@ -1147,7 +1147,7 @@ static string lua_createForward()
         // 1-2-3-4 with any prefix (e.g. ip-foo-bar-1-2-3-4)
         string ret;
         for (size_t index=4; index > 0; index--) {
-          const auto octet = ip_parts.at(ip_parts.size() - index);
+          const auto& octet = ip_parts.at(ip_parts.size() - index);
           size_t octetLength{0};
           auto octetVal = pdns::checked_stoi<uint8_t>(octet, &octetLength); // may throw
 

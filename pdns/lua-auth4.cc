@@ -128,7 +128,7 @@ bool AuthLua4::axfrfilter(const ComboAddress& remote, const DNSName& zone, const
       }
       rec.setContent(boost::get<std::string>(map.at("content")));
 
-      out.push_back(rec);
+      out.push_back(std::move(rec));
     }
   }
   catch (const std::exception& e) {

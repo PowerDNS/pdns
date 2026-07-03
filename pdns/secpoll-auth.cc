@@ -73,7 +73,7 @@ bool doSecPoll(Logr::log_t slog, bool first)
 
 
   S.set("security-status", security_status);
-  g_security_message = security_message;
+  g_security_message = std::move(security_message);
 
   if(security_status == 1 && first) {
     SLOG(g_log<<Logger::Warning << "Polled security status of version "<<PACKAGEVERSION<<" at startup, no known issues reported: " <<g_security_message<<endl,

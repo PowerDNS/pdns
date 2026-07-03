@@ -191,7 +191,7 @@ public:
         SLOG(g_log << Logger::Debug << "[" << getPrefix() << "] Got result " << "'" << rec.qname << " IN " << rec.qtype.toString() << " " << rec.ttl << " " << rec.getZoneRepresentation() << "'" << endl,
              d_slog->info(Logr::Debug, "Got result", "name", Logging::Loggable(rec.qname), "type", Logging::Loggable(rec.qtype), "ttl", Logging::Loggable(rec.ttl), "data", Logging::Loggable(rec.getZoneRepresentation())));
       }
-      d_result.push_back(rec);
+      d_result.push_back(std::move(rec));
     }
     if (d_result.empty() && d_debug_log) {
       SLOG(g_log << Logger::Debug << "[" << getPrefix() << "] Got empty result" << endl,
@@ -384,7 +384,7 @@ public:
              d_slog->info(Logr::Debug, "Got result", "domain", Logging::Loggable(di.zone)));
       }
       parseDomainInfo(row.second, di);
-      domains->push_back(di);
+      domains->push_back(std::move(di));
     }
   }
 
@@ -525,13 +525,13 @@ public:
         value = DNSName(boost::get<DNSName>(item.second));
       }
       if (item.first == "unhashed") {
-        unhashed = value;
+        unhashed = std::move(value);
       }
       else if (item.first == "before") {
-        before = value;
+        before = std::move(value);
       }
       else if (item.first == "after") {
-        after = value;
+        after = std::move(value);
       }
       else {
         SLOG(g_log << Logger::Error << "Invalid result from dns_get_before_and_after_names_absolute, unexpected key " << item.first << endl,

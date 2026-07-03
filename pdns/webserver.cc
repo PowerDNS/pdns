@@ -600,7 +600,7 @@ void WebServer::serveConnection(const std::shared_ptr<Socket>& client) const
 }
 
 WebServer::WebServer(std::shared_ptr<ConcurrentConnectionManager> ccm, string listenaddress, int port) :
-  d_ccm(ccm),
+  d_ccm(std::move(ccm)),
   d_listenaddress(std::move(listenaddress)),
   d_port(port),
   d_server(nullptr),

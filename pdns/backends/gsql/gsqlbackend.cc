@@ -1306,7 +1306,7 @@ bool GSQLBackend::getTSIGKeys(std::vector< struct TSIGKey > &keys)
         continue;
       }
       key.key = row[2];
-      keys.push_back(key);
+      keys.push_back(std::move(key));
     }
 
     d_getTSIGKeysQuery_stmt->reset();
@@ -2396,7 +2396,7 @@ bool GSQLBackend::searchComments(const string &pattern, size_t maxResults, vecto
       ASSERT_ROW_COLUMNS("search-comments-query", row, 6);
       Comment comment;
       extractComment(row, comment);
-      result.push_back(comment);
+      result.push_back(std::move(comment));
     }
 
     d_SearchCommentsQuery_stmt->reset();
