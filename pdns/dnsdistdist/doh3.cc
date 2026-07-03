@@ -48,37 +48,18 @@
 
 using namespace dnsdist::doq;
 
-class H3Connection
+class H3Connection : public QUICConnection
 {
 public:
-  H3Connection(const ComboAddress& peer, const ComboAddress& localAddr, QuicheConfig config, QuicheConnection&& conn) :
-    d_peer(peer), d_localAddr(localAddr), d_conn(std::move(conn)), d_config(std::move(config))
+  H3Connection(const ComboAddress& peer, const ComboAddress& localAddr, QuicheConfig config, QuicheConnection&& conn, ClientState& frontend) :
+    QUICConnection(frontend, peer, localAddr, std::move(config), std::move(conn))
   {
   }
   H3Connection(const H3Connection&) = delete;
   H3Connection(H3Connection&&) = default;
   H3Connection& operator=(const H3Connection&) = delete;
-  H3Connection& operator=(H3Connection&&) = default;
-  ~H3Connection()
-  {
-    try {
-      /* do not account if we have been moved! */
-      if (d_conn) {
-        dnsdist::IncomingConcurrentTCPConnectionsManager::accountClosedTCPConnection(d_peer);
-      }
-    }
-    catch (...) {
-      /* in theory it might raise an exception, and we cannot allow it to be uncaught in a dtor */
-    }
-  }
-
-  std::shared_ptr<const std::string> getSNI()
-  {
-    if (!d_sni) {
-      d_sni = std::make_shared<const std::string>(getSNIFromQuicheConnection(d_conn));
-    }
-    return d_sni;
-  }
+  H3Connection& operator=(H3Connection&&) = delete;
+  ~H3Connection() = default;
 
   void removeTemporaryQueryContent(uint64_t streamID)
   {
@@ -86,16 +67,9 @@ public:
     d_streamBuffers.erase(streamID);
   }
 
-  ComboAddress d_peer;
-  ComboAddress d_localAddr;
-  QuicheConnection d_conn;
-  QuicheConfig d_config;
   QuicheHTTP3Connection d_http3{nullptr, quiche_h3_conn_free};
   // buffer request headers by streamID
   std::unordered_map<uint64_t, dnsdist::doh3::h3_headers_t> d_headersBuffers;
-  std::unordered_map<uint64_t, PacketBuffer> d_streamBuffers;
-  std::unordered_map<uint64_t, PacketBuffer> d_streamOutBuffers;
-  std::shared_ptr<const std::string> d_sni{nullptr};
 };
 
 static void sendBackDOH3Unit(DOH3UnitUniquePtr&& unit, const char* description);
@@ -475,7 +449,8 @@ static std::optional<std::reference_wrapper<H3Connection>> createConnection(DOH3
     quiche_conn_set_keylog_path(quicheConn.get(), config.df->d_quicheParams.d_keyLogFile.c_str());
   }
 
-  auto conn = H3Connection(peer, localAddr, std::move(quicheConfig), std::move(quicheConn));
+  auto conn = H3Connection(peer, localAddr, std::move(quicheConfig), std::move(quicheConn), *config.clientState);
+  gettimeofday(&conn.d_connectionStartTime, nullptr);
   auto pair = config.d_connections.emplace(serverSideID, std::move(conn));
   return pair.first->second;
 }
@@ -819,6 +794,7 @@ static void processH3HeaderEvent(ClientState& clientState, DOH3Frontend& fronten
         return;
       }
       DEBUGLOG("Dispatching GET query");
+      ++conn.d_queriesCount;
       doh3_dispatch_query(*(frontend.d_server_config), std::move(*payload), conn.d_localAddr, client, serverConnID, streamID, conn.getSNI(), std::move(headers));
       conn.removeTemporaryQueryContent(streamID);
       return;
@@ -908,6 +884,7 @@ static void processH3DataEvent(ClientState& clientState, DOH3Frontend& frontend,
     }
 
     DEBUGLOG("Dispatching POST query");
+    ++conn.d_queriesCount;
     doh3_dispatch_query(*(frontend.d_server_config), std::move(streamBuffer), conn.d_localAddr, client, serverConnID, streamID, conn.getSNI(), std::move(headers));
     conn.removeTemporaryQueryContent(streamID);
   }
@@ -1078,6 +1055,7 @@ static void handleSocketReadable(DOH3Frontend& frontend, ClientState& clientStat
         DEBUGLOG("Successfully created HTTP/3 connection");
       }
 
+      ++conn->get().d_readIOsTotal;
       processH3Events(clientState, frontend, conn->get(), client, serverConnID, buffer);
 
       flushEgress(sock, conn->get().d_conn, client, localAddr, buffer, clientState.local.isUnspecified());

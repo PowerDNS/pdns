@@ -48,47 +48,7 @@ using namespace dnsdist::doq;
 #define DEBUGLOG(x)
 #endif
 
-class Connection
-{
-public:
-  Connection(const ComboAddress& peer, const ComboAddress& localAddr, QuicheConfig config, QuicheConnection conn) :
-    d_peer(peer), d_localAddr(localAddr), d_conn(std::move(conn)), d_config(std::move(config))
-  {
-  }
-  Connection(const Connection&) = delete;
-  Connection(Connection&&) = default;
-  Connection& operator=(const Connection&) = delete;
-  Connection& operator=(Connection&&) = default;
-  ~Connection()
-  {
-    try {
-      /* do not account if we have been moved! */
-      if (d_conn) {
-        dnsdist::IncomingConcurrentTCPConnectionsManager::accountClosedTCPConnection(d_peer);
-      }
-    }
-    catch (...) {
-      /* in theory it might raise an exception, and we cannot allow it to be uncaught in a dtor */
-    }
-  }
-
-  std::shared_ptr<const std::string> getSNI()
-  {
-    if (!d_sni) {
-      d_sni = std::make_shared<const std::string>(getSNIFromQuicheConnection(d_conn));
-    }
-    return d_sni;
-  }
-
-  ComboAddress d_peer;
-  ComboAddress d_localAddr;
-  QuicheConnection d_conn;
-  QuicheConfig d_config;
-
-  std::unordered_map<uint64_t, PacketBuffer> d_streamBuffers;
-  std::unordered_map<uint64_t, PacketBuffer> d_streamOutBuffers;
-  std::shared_ptr<const std::string> d_sni{nullptr};
-};
+using Connection = QUICConnection;
 
 static void sendBackDOQUnit(DOQUnitUniquePtr&& unit, const char* description);
 
@@ -380,7 +340,8 @@ static std::optional<std::reference_wrapper<Connection>> createConnection(DOQSer
     quiche_conn_set_keylog_path(quicheConn.get(), config.df->d_quicheParams.d_keyLogFile.c_str());
   }
 
-  auto conn = Connection(peer, localAddr, std::move(quicheConfig), std::move(quicheConn));
+  auto conn = Connection(*config.clientState, peer, localAddr, std::move(quicheConfig), std::move(quicheConn));
+  gettimeofday(&conn.d_connectionStartTime, nullptr);
   auto pair = config.d_connections.emplace(serverSideID, std::move(conn));
   return pair.first->second;
 }
@@ -675,6 +636,7 @@ static void handleReadableStream(DOQFrontend& frontend, ClientState& clientState
       return;
     }
 
+    ++conn.d_readIOsTotal;
     streamBuffer.resize(existingLength + received);
     if (fin) {
       break;
@@ -699,6 +661,7 @@ static void handleReadableStream(DOQFrontend& frontend, ClientState& clientState
     return;
   }
   DEBUGLOG("Dispatching query");
+  ++conn.d_queriesCount;
   doq_dispatch_query(*(frontend.d_server_config), std::move(streamBuffer), conn.d_localAddr, client, serverConnID, streamID, conn.getSNI());
   conn.d_streamBuffers.erase(streamID);
 }
