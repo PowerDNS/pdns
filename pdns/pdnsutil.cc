@@ -1495,27 +1495,27 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& zone, co
   }
 
   for (const auto& qname : checkOcclusion) {
-    for (const auto& rr : records) {
+    for (const auto& drr : records) {
       // a name does not occlude itself in the following situations:
       // NS does not occlude DS+NS
       // a DNAME does not occlude itself
-      if (qname.first == rr.qname && (((rr.qtype == QType::NS || rr.qtype == QType::DS) && qname.second == QType::NS) || (rr.qtype == QType::DNAME && qname.second == QType::DNAME))) {
+      if (qname.first == drr.qname && (((drr.qtype == QType::NS || drr.qtype == QType::DS) && qname.second == QType::NS) || (drr.qtype == QType::DNAME && qname.second == QType::DNAME))) {
         continue;
       }
 
       // for most types, X occludes X and (type-dependent) almost everything under X
-      if (rr.qname.isPartOf(qname.first)) {
+      if (drr.qname.isPartOf(qname.first)) {
 
         // but a DNAME does not occlude anything at its name, only the things under it
-        if (qname.second == QType::DNAME && rr.qname == qname.first) {
+        if (qname.second == QType::DNAME && drr.qname == qname.first) {
           continue;
         }
 
         // the record under inspection is:
         // occluded by a DNAME, or
         // occluded by a delegation, and is not glue or ENTs leading towards that glue
-        if (qname.second == QType::DNAME || (rr.qtype != QType::ENT && rr.qtype.getCode() != QType::A && rr.qtype.getCode() != QType::AAAA)) {
-          cout << "[Warning] '" << rr.qname << "|" << rr.qtype.toString() << "' in zone '" << zone << "' is occluded by a ";
+        if (qname.second == QType::DNAME || (drr.qtype != QType::ENT && drr.qtype.getCode() != QType::A && drr.qtype.getCode() != QType::AAAA)) {
+          cout << "[Warning] '" << drr.qname << "|" << drr.qtype.toString() << "' in zone '" << zone << "' is occluded by a ";
           if (qname.second == QType::NS) {
             cout << "delegation";
           }
