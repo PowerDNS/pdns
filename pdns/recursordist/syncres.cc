@@ -4296,8 +4296,8 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
   std::unordered_map<DNSName, DNSName> cnameChain;
   bool cnameSeen = false;
   bool haveAnswers = false;
-  bool acceptDelegation = false;
   bool soaInAuth = false;
+  bool seenReferral = false;
 
   std::vector<bool> skipvec(lwr.d_records.size(), false);
   unsigned int counter = 0;
@@ -4390,6 +4390,7 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
       else if (rec->d_type == QType::DNAME) {
         // We have checked the DNAME rec->d_name above, the actual answer will be synthesized in a later step
         allowedAnswerNames.insert(rec->d_name);
+        lwr.d_isDNAMEAnswer = true;
       }
       allowAdditionalEntry(allowedAdditionals, *rec);
     }
@@ -4403,15 +4404,21 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
         ++skipCount;
         continue;
       }
-      if (rec->d_type == QType::NS && (!rec->d_name.isPartOf(auth) || (rec->d_name == auth && !d_updatingRootNS) || !qname.isPartOf(rec->d_name))) {
-        /*
-         * We don't want to pick up irrelevant NS records in AUTHORITY and their associated ADDITIONAL sections.
-         * So remove them and don't add them to allowedAdditionals.
-         */
-        LOG(prefix << qname << ": Removing NS record '" << rec->toString() << "' in the AUTHORITY section of a response received from " << auth << endl);
-        skipvec[counter] = true;
-        ++skipCount;
-        continue;
+      if (rec->d_type == QType::NS) {
+        if (!rec->d_name.isPartOf(auth) || (rec->d_name == auth && !d_updatingRootNS) || !qname.isPartOf(rec->d_name)) {
+          /*
+           * We don't want to pick up irrelevant NS records in AUTHORITY and their associated ADDITIONAL sections.
+           * So remove them and don't add them to allowedAdditionals.
+           */
+          LOG(prefix << qname << ": Removing NS record '" << rec->toString() << "' in the AUTHORITY section of a response received from " << auth << endl);
+          skipvec[counter] = true;
+          ++skipCount;
+          continue;
+        }
+
+        if (!haveAnswers) {
+          seenReferral = true;
+        }
       }
 
       if (rec->d_type == QType::SOA) {
@@ -4430,6 +4437,7 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
           continue;
         }
         soaInAuth = true;
+        lwr.d_seenSOA = rec->d_name;
       }
     }
     /* dealing with records in additional */
@@ -4443,6 +4451,7 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
     }
   } // end of first loop, handled answer and most of authority section
 
+  bool acceptDelegation = false;
   if (!haveAnswers && lwr.d_rcode == RCode::NoError) {
     acceptDelegation = true;
   }
@@ -4450,7 +4459,27 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
   if (cnameChain.size() > 0) {
     auto allowed = sanitizeCNAMEChain(qname, cnameChain);
     allowedAnswerNames.insert(allowed.begin(), allowed.end());
+    if (cnameSeen && !lwr.d_isDNAMEAnswer) {
+      lwr.d_isCNAMEAnswer = true;
+    }
   }
+
+  if ((haveAnswers && lwr.d_rcode == RCode::NoError) || (haveAnswers && (lwr.d_isCNAMEAnswer || lwr.d_isDNAMEAnswer) && lwr.d_rcode == RCode::NXDomain)) {
+    lwr.d_answerType = LWResult::AnswerType::PositiveAnswer;
+  }
+  else if (!haveAnswers && !lwr.d_aabit && lwr.d_rcode == RCode::NoError && seenReferral) {
+    lwr.d_answerType = LWResult::AnswerType::Referral;
+  }
+  else if (!haveAnswers && lwr.d_rcode == RCode::NoError && lwr.d_seenSOA) {
+    lwr.d_answerType = LWResult::AnswerType::NoData;
+  }
+  else if (!haveAnswers && lwr.d_rcode == RCode::NXDomain && lwr.d_seenSOA) {
+    lwr.d_answerType = LWResult::AnswerType::NXDomain;
+  }
+  else {
+    lwr.d_answerType = LWResult::AnswerType::Unknown;
+  }
+
   sanitizeRecordsPass2(prefix, lwr, qname, qtype, auth, allowedAnswerNames, allowedAdditionals, cnameSeen, acceptDelegation && !soaInAuth, skipvec, skipCount);
 }
 

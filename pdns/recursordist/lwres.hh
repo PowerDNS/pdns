@@ -65,21 +65,36 @@ public:
     BindError = 8,
   };
 
+  enum class AnswerType : uint8_t
+  {
+    Unknown = 0,
+    PositiveAnswer,
+    Referral,
+    NoData,
+    NXDomain,
+  };
+
   [[nodiscard]] static bool isLimitError(Result res)
   {
     return res == Result::OSLimitError || res == Result::ChainLimitError;
   }
 
   std::vector<DNSRecord> d_records;
+  std::optional<DNSName> d_seenSOA{std::nullopt};
   uint32_t d_usec{0};
   uint32_t d_bytesReceived{0};
   // this needs to be a signed integer because the Lua policies
   // use negative values to stop processing of queries
   int d_rcode{0};
+  AnswerType d_answerType{AnswerType::Unknown};
+  std::optional<uint8_t> d_synthesizedFromWildcard{std::nullopt};
+  bool d_isWildcardExpandedOntoItself{false};
   bool d_validpacket{false};
   bool d_aabit{false};
   bool d_tcbit{false};
   bool d_haveEDNS{false};
+  bool d_isCNAMEAnswer{false};
+  bool d_isDNAMEAnswer{false};
 };
 
 class EDNSSubnetOpts;
