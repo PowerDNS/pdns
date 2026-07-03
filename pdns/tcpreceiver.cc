@@ -512,6 +512,9 @@ public:
   XFRContext(std::unique_ptr<DNSPacket>& qry, int sock, Logr::log_t log, bool isAXFR);
   XFRContext(const XFRContext&) = delete;
   XFRContext& operator=(const XFRContext&) = delete;
+  XFRContext(XFRContext&&) = delete;
+  XFRContext& operator=(XFRContext&&) = delete;
+  ~XFRContext() = default;
 
   void setupOutputPacket();
   void sendIntermediatePacket(TSIGRecordContent &trc);
