@@ -514,6 +514,7 @@ public:
   XFRContext& operator=(const XFRContext&) = delete;
 
   void setupOutputPacket();
+  void sendIntermediatePacket(TSIGRecordContent &trc);
 
   // NOLINTBEGIN(cppcoreguidelines-non-private-member-variables-in-classes)
   const ZoneName& targetZone; // domain being XFR'ed
@@ -563,6 +564,19 @@ void TCPNameserver::XFRContext::setupOutputPacket()
   outpacket->setCompress(false);
   outpacket->d_dnssecOk=false; // RFC 5936, 2.2.5
   outpacket->d_tcp = true;
+}
+
+void TCPNameserver::XFRContext::sendIntermediatePacket(TSIGRecordContent &trc)
+{
+  try {
+    sendPacket(outpacket, outsock, false);
+  }
+  catch (PDNSException& pe) {
+    throw PDNSException("during " + xfrType + "-out of " + targetZone.toLogString() + ", this happened: "+pe.reason);
+  }
+  trc.d_mac = outpacket->d_trc.d_mac;
+
+  setupOutputPacket();
 }
 
 bool TCPNameserver::canDoAXFR(std::unique_ptr<DNSPacket>& q, XFRContext& ctx, std::unique_ptr<PacketHandler>& packetHandler) // NOLINT(readability-identifier-length)
@@ -799,10 +813,7 @@ int TCPNameserver::doAXFRinternal(std::unique_ptr<DNSPacket>& q, XFRContext& ctx
     ctx.outpacket->setTSIGDetails(trc, tsigkeyname, tsigsecret, trc.d_mac); // first answer is 'normal'
   }
 
-  sendPacket(ctx.outpacket, ctx.outsock, false);
-
-  trc.d_mac = ctx.outpacket->d_trc.d_mac;
-  ctx.setupOutputPacket();
+  ctx.sendIntermediatePacket(trc);
 
   DNSZoneRecord zrr;
   vector<DNSZoneRecord> zrrs;
@@ -926,9 +937,7 @@ int TCPNameserver::doAXFRinternal(std::unique_ptr<DNSPacket>& q, XFRContext& ctx
           if(haveTSIGDetails && !tsigkeyname.empty()) {
             ctx.outpacket->setTSIGDetails(trc, tsigkeyname, tsigsecret, trc.d_mac, true);
           }
-          sendPacket(ctx.outpacket, ctx.outsock, false);
-          trc.d_mac=ctx.outpacket->d_trc.d_mac;
-          ctx.setupOutputPacket();
+          ctx.sendIntermediatePacket(trc);
         }
         else {
           break;
@@ -977,9 +986,7 @@ int TCPNameserver::doAXFRinternal(std::unique_ptr<DNSPacket>& q, XFRContext& ctx
                 if(haveTSIGDetails && !tsigkeyname.empty()) {
                   ctx.outpacket->setTSIGDetails(trc, tsigkeyname, tsigsecret, trc.d_mac, true);
                 }
-                sendPacket(ctx.outpacket, ctx.outsock, false);
-                trc.d_mac=ctx.outpacket->d_trc.d_mac;
-                ctx.setupOutputPacket();
+                ctx.sendIntermediatePacket(trc);
               }
               else {
                 break;
@@ -1016,9 +1023,7 @@ int TCPNameserver::doAXFRinternal(std::unique_ptr<DNSPacket>& q, XFRContext& ctx
               if(haveTSIGDetails && !tsigkeyname.empty()) {
                 ctx.outpacket->setTSIGDetails(trc, tsigkeyname, tsigsecret, trc.d_mac, true);
               }
-              sendPacket(ctx.outpacket, ctx.outsock, false);
-              trc.d_mac=ctx.outpacket->d_trc.d_mac;
-              ctx.setupOutputPacket();
+              ctx.sendIntermediatePacket(trc);
             }
             else {
               break;
@@ -1034,14 +1039,7 @@ int TCPNameserver::doAXFRinternal(std::unique_ptr<DNSPacket>& q, XFRContext& ctx
       if(haveTSIGDetails && !tsigkeyname.empty()) {
         ctx.outpacket->setTSIGDetails(trc, tsigkeyname, tsigsecret, trc.d_mac, true); // first answer is 'normal'
       }
-      try {
-        sendPacket(ctx.outpacket, ctx.outsock, false);
-      }
-      catch (PDNSException& pe) {
-        throw PDNSException("during axfr-out of "+target.toString()+", this happened: "+pe.reason);
-      }
-      trc.d_mac=ctx.outpacket->d_trc.d_mac;
-      ctx.setupOutputPacket();
+      ctx.sendIntermediatePacket(trc);
     }
     else {
       break;
