@@ -747,6 +747,8 @@ UeberBackend::UeberBackend(const string& pname)
   d_negcache_ttl = ::arg().asNum("negquery-cache-ttl");
 
   backends = BackendMakers().all(pname == "key-only");
+
+  d_handle.setParent(this);
 }
 
 // returns -1 for miss, 0 for negative match, 1 for hit
@@ -844,11 +846,7 @@ void UeberBackend::lookup(const QType& qtype, const DNSName& qname, domainid_t z
 
   d_qtype = qtype.getCode();
 
-  d_handle.i = 0;
-  d_handle.qtype = s_doANYLookupsOnly ? QType::ANY : qtype;
-  d_handle.qname = qname;
-  d_handle.zoneId = zoneId;
-  d_handle.pkt_p = pkt_p;
+  d_handle.lookup(qtype, qname, zoneId, pkt_p);
 
   if (backends.empty()) {
     SLOG(g_log << Logger::Error << "No database backends available - unable to answer questions." << endl,
@@ -857,17 +855,14 @@ void UeberBackend::lookup(const QType& qtype, const DNSName& qname, domainid_t z
     throw PDNSException("We are stale, please recycle");
   }
 
-  d_question.qtype = d_handle.qtype;
-  d_question.qname = qname;
-  d_question.zoneId = d_handle.zoneId;
+  d_handle.setupQuestion(d_question);
 
   auto cacheResult = cacheHas(d_question, d_answers);
   if (cacheResult == CacheResult::Miss) { // nothing
     //      cout<<"UeberBackend::lookup("<<qname<<"|"<<DNSRecordContent::NumberToType(qtype.getCode())<<"): uncached"<<endl;
     d_negcached = d_cached = false;
     d_answers.clear();
-    (d_handle.d_hinterBackend = backends[d_handle.i++].get())->lookup(d_handle.qtype, d_handle.qname, d_handle.zoneId, d_handle.pkt_p);
-    ++(*s_backendQueries);
+    d_handle.selectNextBackend();
   }
   else if (cacheResult == CacheResult::NegativeMatch) {
     //      cout<<"UeberBackend::lookup("<<qname<<"|"<<DNSRecordContent::NumberToType(qtype.getCode())<<"): NEGcached"<<endl;
@@ -881,8 +876,6 @@ void UeberBackend::lookup(const QType& qtype, const DNSName& qname, domainid_t z
     d_cached = true;
     d_cachehandleiter = d_answers.begin();
   }
-
-  d_handle.parent = this;
 }
 
 void UeberBackend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled)
@@ -1104,39 +1097,53 @@ void UeberBackend::flush()
   }
 }
 
-AtomicCounter UeberBackend::handle::instances(0);
-
-UeberBackend::handle::handle()
+void UeberBackend::handle::lookup(const QType& qtype, const DNSName& qname, domainid_t zoneId, DNSPacket* pkt_p)
 {
-  ++instances;
+  d_backendIndex = 0;
+  d_qtype = s_doANYLookupsOnly ? QType::ANY : qtype;
+  d_qname = qname;
+  d_zoneId = zoneId;
+  d_pkt_p = pkt_p;
 }
 
-UeberBackend::handle::~handle()
+void UeberBackend::handle::setupQuestion(UeberBackend::Question& question) const
 {
-  --instances;
+  question.qtype = d_qtype;
+  question.qname = d_qname;
+  question.zoneId = d_zoneId;
+}
+
+// Set d_hinterBackend to the next available backend from the parents list,
+// reset it to nullptr if the whole list has been processed.
+// Invokes lookup on behalf of the newly picked backend if successful.
+void UeberBackend::handle::selectNextBackend()
+{
+  if (d_backendIndex < d_parent->backends.size()) {
+    d_hinterBackend = d_parent->backends[d_backendIndex++].get();
+    d_hinterBackend->lookup(d_qtype, d_qname, d_zoneId, d_pkt_p);
+    ++(*s_backendQueries);
+  }
+  else {
+    d_hinterBackend = nullptr;
+  }
 }
 
 bool UeberBackend::handle::get(DNSZoneRecord& record)
 {
-  DLOG(SLOG(g_log << "Ueber get() was called for a " << qtype << " record" << endl,
-            d_slog->info(Logr::Debug, "get called", "type", Logging::Loggable(qtype))));
-  bool isMore = false;
-  while (d_hinterBackend != nullptr && !(isMore = d_hinterBackend->get(record))) { // this backend out of answers
-    if (i < parent->backends.size()) {
-      DLOG(SLOG(g_log << "Backend #" << i << " of " << parent->backends.size()
-                      << " out of answers, taking next" << endl,
-                d_slog->info(Logr::Debug, "backend out of answers, taking next", "zero-based backend index", Logging::Loggable(i), "backend count", Logging::Loggable(parent->backends.size()))));
-
-      d_hinterBackend = parent->backends[i++].get();
-      d_hinterBackend->lookup(qtype, qname, zoneId, pkt_p);
-      ++(*s_backendQueries);
-    }
-    else {
-      break;
+  DLOG(SLOG(g_log << "Ueber get() was called for a " << d_qtype << " record" << endl,
+            d_slog->info(Logr::Debug, "get called", "type", Logging::Loggable(d_qtype))));
+  while (d_hinterBackend != nullptr && !(d_hinterBackend->get(record))) { // this backend is out of answers
+    DLOG(SLOG(g_log << "Backend #" << d_backendIndex << " of " << d_parent->backends.size()
+                    << " out of answers, trying next" << endl,
+              d_slog->info(Logr::Debug, "backend out of answers, taking next", "zero-based backend index", Logging::Loggable(d_backendIndex), "backend count", Logging::Loggable(d_parent->backends.size()))));
+    selectNextBackend();
+    if (d_hinterBackend != nullptr) {
+      DLOG(SLOG(g_log << "Now asking backend #" << d_backendIndex << endl,
+                d_slog->info(Logr::Debug, "Now asking backend", "index", Logging::Loggable(d_backendIndex))));
     }
   }
 
-  if (!isMore && i == parent->backends.size()) {
+  if (d_hinterBackend == nullptr) {
     DLOG(SLOG(g_log << "UeberBackend reached end of backends" << endl,
               d_slog->info(Logr::Debug, "end of backends reached")));
     return false;
@@ -1144,7 +1151,7 @@ bool UeberBackend::handle::get(DNSZoneRecord& record)
 
   DLOG(SLOG(g_log << "Found an answering backend - will not try another one" << endl,
             d_slog->info(Logr::Debug, "found an answering backend - will not try any other one")));
-  i = parent->backends.size(); // don't go on to the next backend
+  d_backendIndex = d_parent->backends.size(); // don't go on to the next backend
   return true;
 }
 
