@@ -660,6 +660,9 @@ void DNSSECKeeper::getPreRRSIGs(UeberBackend& db, vector<DNSZoneRecord>& rrs, ui
 
   DNSZoneRecord dzr;
 
+  if (rr.domain_id == UnknownDomainID) {
+    throw PDNSException("getPreRRSIGs invoked with partially initialized record");
+  }
   db.lookup(QType(QType::RRSIG), !rr.wildcardname.empty() ? rr.wildcardname : rr.dr.d_name, rr.domain_id, packet);
   while(db.get(dzr)) {
     auto rrsig = getRR<RRSIGRecordContent>(dzr.dr);

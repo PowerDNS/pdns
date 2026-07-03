@@ -186,23 +186,6 @@ void DNSPacket::addRecord(DNSZoneRecord&& rr)
   d_rrs.push_back(std::move(rr));
 }
 
-vector<DNSZoneRecord*> DNSPacket::getAPRecords()
-{
-  vector<DNSZoneRecord*> arrs;
-
-  for(auto & i : d_rrs)
-    {
-      if(i.dr.d_place!=DNSResourceRecord::ADDITIONAL &&
-         (i.dr.d_type==QType::MX ||
-          i.dr.d_type==QType::NS ||
-          i.dr.d_type==QType::SRV))
-        {
-          arrs.push_back(&i);
-        }
-    }
-  return arrs;
-}
-
 vector<DNSZoneRecord*> DNSPacket::getServiceRecords()
 {
   vector<DNSZoneRecord*> arrs;
@@ -215,19 +198,6 @@ vector<DNSZoneRecord*> DNSPacket::getServiceRecords()
   }
   return arrs;
 }
-
-vector<DNSZoneRecord*> DNSPacket::getAnswerRecords()
-{
-  vector<DNSZoneRecord*> arrs;
-
-  for(auto & rr : d_rrs)
-    {
-      if(rr.dr.d_place!=DNSResourceRecord::ADDITIONAL)
-        arrs.push_back(&rr);
-    }
-  return arrs;
-}
-
 
 void DNSPacket::setCompress(bool compress)
 {
