@@ -689,7 +689,7 @@ int TCPNameserver::doAXFR(std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_
 }
 
 /** do the actual zone transfer. Return 0 in case of error, 1 in case of success */
-int TCPNameserver::doAXFRinternal(std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_t slog, const std::string& logPrefix, std::unique_ptr<DNSPacket>& outpacket)  // NOLINT(readability-function-cognitive-complexity)
+int TCPNameserver::doAXFRinternal(std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_t slog, const std::string& logPrefix, std::unique_ptr<DNSPacket>& outpacket) // NOLINT(readability-function-cognitive-complexity)
 {
   const ZoneName& targetZone = q->qdomainzone;
   const DNSName& target = targetZone.operator const DNSName&();
@@ -856,242 +856,16 @@ int TCPNameserver::doAXFRinternal(std::unique_ptr<DNSPacket>& q, int outsock, Lo
     zrrs.push_back(zrr);
   }
 
-  const bool rectify = !(presignedZone || ::arg().mustDo("disable-axfr-rectify"));
-  set<DNSName> qnames, nsset, terms;
-
-  // Catalog zone start
-  if (di.kind == DomainInfo::Producer) {
-    // Ignore all records except NS at apex
-    sd.db->lookup(QType::NS, target, di.id);
-    while (sd.db->get(zrr)) {
-      zrrs.emplace_back(zrr);
-    }
-    if (zrrs.empty()) {
-      zrr.dr.d_name = target;
-      zrr.dr.d_ttl = 0;
-      zrr.dr.d_type = QType::NS;
-      zrr.dr.setContent(std::make_shared<NSRecordContent>("invalid."));
-      zrrs.emplace_back(zrr);
-    }
-
-    zrrs.emplace_back(CatalogInfo::getCatalogVersionRecord(targetZone));
-
-    vector<CatalogInfo> members;
-    if (!sd.db->getCatalogMembers(targetZone, members, CatalogInfo::CatalogType::Producer)) {
-      SLOG(g_log << Logger::Error << logPrefix << "getting catalog members failed, aborting AXFR" << endl,
-           slog->info(Logr::Error, "AXFR aborted: getting catalog members failed", "zone", Logging::Loggable(targetZone), "client", Logging::Loggable(q->getRemoteStringWithPort())));
-      outpacket->setRcode(RCode::ServFail);
-      sendPacket(outpacket, outsock);
+  if (di.kind == DomainInfo::Producer) { // Catalog zone
+    if (!axfrProducerZone(q, outsock, slog, logPrefix, outpacket, zrrs, di, sd)) {
       return 0;
     }
-    for (const auto& ci : members) {
-      ci.toDNSZoneRecords(targetZone, zrrs);
-    }
-    if (members.empty()) {
-      SLOG(g_log << Logger::Warning << logPrefix << "catalog zone '" << targetZone << "' has no members" << endl,
-           slog->info(Logr::Warning, "AXFR: Catalog zone has no members", "zone", Logging::Loggable(targetZone), "client", Logging::Loggable(q->getRemoteStringWithPort())));
-    }
-    goto send;
   }
-  // Catalog zone end
-
-  // now start list zone
-  if (!sd.db->list(targetZone, sd.domain_id, isCatalogZone)) {
-    SLOG(g_log<<Logger::Error<<logPrefix<<"backend signals error condition, aborting AXFR"<<endl,
-         slog->info(Logr::Error, "AXFR aborted: backend signals error condition", "zone", Logging::Loggable(targetZone), "client", Logging::Loggable(q->getRemoteStringWithPort())));
-    outpacket->setRcode(RCode::ServFail);
-    sendPacket(outpacket,outsock);
-    return 0;
-  }
-
-  while(sd.db->get(zrr)) {
-    if (!presignedZone) {
-      if (zrr.dr.d_type == QType::RRSIG) {
-        continue;
-      }
-      if (zrr.dr.d_type == QType::DNSKEY || zrr.dr.d_type == QType::CDNSKEY || zrr.dr.d_type == QType::CDS) {
-        if(!::arg().mustDo("direct-dnskey")) {
-          continue;
-        } else {
-          zrr.dr.d_ttl = sd.minimum;
-        }
-      }
-    }
-    zrr.dr.d_name.makeUsLowerCase();
-    if(zrr.dr.d_name.isPartOf(target)) {
-      if (zrr.dr.d_type == QType::ALIAS && (::arg().mustDo("outgoing-axfr-expand-alias") || ::arg()["outgoing-axfr-expand-alias"] == "ignore-errors")) {
-        vector<DNSZoneRecord> ips;
-        int ret1 = stubDoResolve(slog, getRR<ALIASRecordContent>(zrr.dr)->getContent(), QType::A, ips);
-        int ret2 = stubDoResolve(slog, getRR<ALIASRecordContent>(zrr.dr)->getContent(), QType::AAAA, ips);
-        if (ret1 != RCode::NoError || ret2 != RCode::NoError) {
-          if (::arg()["outgoing-axfr-expand-alias"] == "ignore-errors") {
-            if (ret1 != RCode::NoError) {
-              SLOG(g_log << Logger::Error << logPrefix << zrr.dr.d_name.toLogString() << ": error resolving A record for ALIAS target " << zrr.dr.getContent()->getZoneRepresentation() << ", continuing AXFR" << endl,
-                   slog->info(Logr::Error, "AXFR: Error resolving A record for ALIAS target, continuing", "zone", Logging::Loggable(targetZone), "client", Logging::Loggable(q->getRemoteStringWithPort()), "record", Logging::Loggable(zrr.dr.d_name), "content", Logging::Loggable(zrr.dr.getContent()->getZoneRepresentation())));
-            }
-            if (ret2 != RCode::NoError) {
-              SLOG(g_log << Logger::Error << logPrefix << zrr.dr.d_name.toLogString() << ": error resolving AAAA record for ALIAS target " << zrr.dr.getContent()->getZoneRepresentation() << ", continuing AXFR" << endl,
-                   slog->info(Logr::Error, "AXFR: Error resolving AAAA record for ALIAS target, continuing", "zone", Logging::Loggable(targetZone), "client", Logging::Loggable(q->getRemoteStringWithPort()), "record", Logging::Loggable(zrr.dr.d_name), "content", Logging::Loggable(zrr.dr.getContent()->getZoneRepresentation())));
-            }
-          }
-          else {
-            SLOG(g_log << Logger::Warning << logPrefix << zrr.dr.d_name.toLogString() << ": error resolving for ALIAS " << zrr.dr.getContent()->getZoneRepresentation() << ", aborting AXFR" << endl,
-                 slog->info(Logr::Error, "AXFR aborted: error resolving for ALIAS target", "zone", Logging::Loggable(targetZone), "client", Logging::Loggable(q->getRemoteStringWithPort()), "record", Logging::Loggable(zrr.dr.d_name), "content", Logging::Loggable(zrr.dr.getContent()->getZoneRepresentation())));
-            outpacket->setRcode(RCode::ServFail);
-            sendPacket(outpacket, outsock);
-            return 0;
-          }
-        }
-        for (auto& ip: ips) {
-          zrr.dr.d_type = ip.dr.d_type;
-          zrr.dr.setContent(ip.dr.getContent());
-          zrrs.push_back(zrr);
-        }
-        continue;
-      }
-
-      if (rectify) {
-        if (zrr.dr.d_type) {
-          qnames.insert(zrr.dr.d_name);
-          if(zrr.dr.d_type == QType::NS && zrr.dr.d_name!=target)
-            nsset.insert(zrr.dr.d_name);
-        } else {
-          // remove existing ents
-          continue;
-        }
-      }
-      zrrs.push_back(zrr);
-    } else {
-      if (zrr.dr.d_type != QType::ENT)
-        SLOG(g_log<<Logger::Warning<<logPrefix<<"zone contains out-of-zone data '"<<zrr.dr.d_name<<"|"<<DNSRecordContent::NumberToType(zrr.dr.d_type)<<"', ignoring"<<endl,
-             slog->info(Logr::Warning, "AXFR: ignoring out-of-zone data", "zone", Logging::Loggable(targetZone), "client", Logging::Loggable(q->getRemoteStringWithPort()), "record", Logging::Loggable(zrr.dr.d_name), "type", Logging::Loggable(zrr.dr.d_type)));
+  else {
+    if (!axfrRegularZone(q, outsock, slog, logPrefix, outpacket, zrrs, sd, presignedZone, securedZone, NSEC3Zone, isCatalogZone, ns3pr)) {
+      return 0;
     }
   }
-
-  for (auto& loopRR : zrrs) {
-    if ((loopRR.dr.d_type == QType::SVCB || loopRR.dr.d_type == QType::HTTPS)) {
-      // Process auto hints
-      // TODO this is an almost copy of the code in the packethandler
-      auto rrc = getRR<SVCBBaseRecordContent>(loopRR.dr);
-      if (rrc == nullptr) {
-        continue;
-      }
-      auto newRRC = rrc->clone();
-      if (!newRRC) {
-        continue;
-      }
-      DNSName svcTarget = newRRC->getTarget().isRoot() ? loopRR.dr.d_name : newRRC->getTarget();
-      if (newRRC->autoHint(SvcParam::ipv4hint)) {
-        sd.db->lookup(QType::A, svcTarget, sd.domain_id);
-        vector<ComboAddress> hints;
-        DNSZoneRecord rr;
-        while (sd.db->get(rr)) {
-          auto arrc = getRR<ARecordContent>(rr.dr);
-          hints.push_back(arrc->getCA());
-        }
-        if (hints.size() == 0) {
-          newRRC->removeParam(SvcParam::ipv4hint);
-        } else {
-          newRRC->setHints(SvcParam::ipv4hint, hints);
-        }
-      }
-
-      if (newRRC->autoHint(SvcParam::ipv6hint)) {
-        sd.db->lookup(QType::AAAA, svcTarget, sd.domain_id);
-        vector<ComboAddress> hints;
-        DNSZoneRecord rr;
-        while (sd.db->get(rr)) {
-          auto arrc = getRR<AAAARecordContent>(rr.dr);
-          hints.push_back(arrc->getCA());
-        }
-        if (hints.size() == 0) {
-          newRRC->removeParam(SvcParam::ipv6hint);
-        } else {
-          newRRC->setHints(SvcParam::ipv6hint, hints);
-        }
-      }
-
-      loopRR.dr.setContent(std::move(newRRC));
-    }
-  }
-
-  // Group records by name and type, signpipe stumbles over interrupted rrsets
-  if(securedZone && !presignedZone) {
-    sort(zrrs.begin(), zrrs.end(), [](const DNSZoneRecord& a, const DNSZoneRecord& b) {
-      return std::tie(a.dr.d_name, a.dr.d_type) < std::tie(b.dr.d_name, b.dr.d_type);
-    });
-  }
-
-  if(rectify) {
-    // set auth
-    for(DNSZoneRecord &loopZRR :  zrrs) {
-      loopZRR.auth=true;
-      if (loopZRR.dr.d_type != QType::NS || loopZRR.dr.d_name!=target) {
-        DNSName shorter(loopZRR.dr.d_name);
-        do {
-          if (shorter==target) // apex is always auth
-            break;
-          if(nsset.count(shorter) && !(loopZRR.dr.d_name==shorter && loopZRR.dr.d_type == QType::DS)) {
-            loopZRR.auth=false;
-            break;
-          }
-        } while(shorter.chopOff());
-      }
-    }
-
-    if(NSEC3Zone) {
-      // ents are only required for NSEC3 zones
-      uint32_t maxent = ::arg().asNum("max-ent-entries");
-      set<DNSName> nsec3set, nonterm;
-      for (auto &loopZRR: zrrs) {
-        bool skip=false;
-        DNSName shorter = loopZRR.dr.d_name;
-        if (shorter != target && shorter.chopOff() && shorter != target) {
-          do {
-            if(nsset.count(shorter)) {
-              skip=true;
-              break;
-            }
-          } while(shorter.chopOff() && shorter != target);
-        }
-        shorter = loopZRR.dr.d_name;
-        if(!skip && (loopZRR.dr.d_type != QType::NS || !ns3pr.d_flags)) {
-          do {
-            if(!nsec3set.count(shorter)) {
-              nsec3set.insert(shorter);
-            }
-          } while(shorter != target && shorter.chopOff());
-        }
-      }
-
-      for(DNSZoneRecord &loopZRR :  zrrs) {
-        DNSName shorter(loopZRR.dr.d_name);
-        while(shorter != target && shorter.chopOff()) {
-          if(!qnames.count(shorter) && !nonterm.count(shorter) && nsec3set.count(shorter)) {
-            if(!(maxent)) {
-              SLOG(g_log<<Logger::Warning<<logPrefix<<"zone has too many empty non terminals, aborting AXFR"<<endl,
-                   slog->info(Logr::Warning, "AXFR aborted, too many empty non-terminals in zone", "zone", Logging::Loggable(targetZone), "client", Logging::Loggable(q->getRemoteStringWithPort())));
-              outpacket->setRcode(RCode::ServFail);
-              sendPacket(outpacket,outsock);
-              return 0;
-            }
-            nonterm.insert(shorter);
-            --maxent;
-          }
-        }
-      }
-
-      for(const auto& nt :  nonterm) {
-        DNSZoneRecord tempRR;
-        tempRR.dr.d_name=nt;
-        tempRR.dr.d_type=QType::ENT;
-        tempRR.auth=true;
-        zrrs.push_back(tempRR);
-      }
-    }
-  }
-
-send:
 
   /* now write all other records */
 
@@ -1264,6 +1038,256 @@ send:
        slog->info(Logr::Notice, "AXFR completed", "zone", Logging::Loggable(targetZone), "client", Logging::Loggable(q->getRemoteStringWithPort())));
 
   return 1;
+}
+
+bool TCPNameserver::axfrProducerZone(std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_t slog, const std::string& logPrefix, std::unique_ptr<DNSPacket>& outpacket, vector<DNSZoneRecord> &zrrs, const DomainInfo& di, const SOAData& sd)
+{
+  const ZoneName& targetZone = q->qdomainzone;
+  const DNSName& target = targetZone.operator const DNSName&();
+
+  DNSZoneRecord zrr;
+
+  // Ignore all records except NS at apex
+  sd.db->lookup(QType::NS, target, di.id);
+  while (sd.db->get(zrr)) {
+    zrrs.emplace_back(zrr);
+  }
+  if (zrrs.empty()) {
+    zrr.dr.d_name = target;
+    zrr.dr.d_ttl = 0;
+    zrr.dr.d_type = QType::NS;
+    zrr.dr.setContent(std::make_shared<NSRecordContent>("invalid."));
+    zrrs.emplace_back(zrr);
+  }
+
+  zrrs.emplace_back(CatalogInfo::getCatalogVersionRecord(targetZone));
+
+  vector<CatalogInfo> members;
+  if (!sd.db->getCatalogMembers(targetZone, members, CatalogInfo::CatalogType::Producer)) {
+    SLOG(g_log << Logger::Error << logPrefix << "getting catalog members failed, aborting AXFR" << endl,
+         slog->info(Logr::Error, "AXFR aborted: getting catalog members failed", "zone", Logging::Loggable(targetZone), "client", Logging::Loggable(q->getRemoteStringWithPort())));
+    outpacket->setRcode(RCode::ServFail);
+    sendPacket(outpacket, outsock);
+    return false;
+  }
+  for (const auto& ci : members) {
+    ci.toDNSZoneRecords(targetZone, zrrs);
+  }
+  if (members.empty()) {
+    SLOG(g_log << Logger::Warning << logPrefix << "catalog zone '" << targetZone << "' has no members" << endl,
+         slog->info(Logr::Warning, "AXFR: Catalog zone has no members", "zone", Logging::Loggable(targetZone), "client", Logging::Loggable(q->getRemoteStringWithPort())));
+  }
+
+  return true;
+}
+
+bool TCPNameserver::axfrRegularZone(std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_t slog, const std::string& logPrefix, std::unique_ptr<DNSPacket>& outpacket, vector<DNSZoneRecord> &zrrs, const SOAData& sd, bool presignedZone, bool securedZone, bool NSEC3Zone, bool isCatalogZone, const NSEC3PARAMRecordContent& ns3pr) // NOLINT(readability-function-cognitive-complexity)
+{
+  const ZoneName& targetZone = q->qdomainzone;
+  const DNSName& target = targetZone.operator const DNSName&();
+
+  // now start list zone
+  if (!sd.db->list(targetZone, sd.domain_id, isCatalogZone)) {
+    SLOG(g_log<<Logger::Error<<logPrefix<<"backend signals error condition, aborting AXFR"<<endl,
+         slog->info(Logr::Error, "AXFR aborted: backend signals error condition", "zone", Logging::Loggable(targetZone), "client", Logging::Loggable(q->getRemoteStringWithPort())));
+    outpacket->setRcode(RCode::ServFail);
+    sendPacket(outpacket,outsock);
+    return false;
+  }
+
+  const bool rectify = !(presignedZone || ::arg().mustDo("disable-axfr-rectify"));
+  set<DNSName> qnames, nsset;
+
+  DNSZoneRecord zrr;
+
+  while(sd.db->get(zrr)) {
+    if (!presignedZone) {
+      if (zrr.dr.d_type == QType::RRSIG) {
+        continue;
+      }
+      if (zrr.dr.d_type == QType::DNSKEY || zrr.dr.d_type == QType::CDNSKEY || zrr.dr.d_type == QType::CDS) {
+        if(!::arg().mustDo("direct-dnskey")) {
+          continue;
+        } else {
+          zrr.dr.d_ttl = sd.minimum;
+        }
+      }
+    }
+    zrr.dr.d_name.makeUsLowerCase();
+    if(zrr.dr.d_name.isPartOf(target)) {
+      if (zrr.dr.d_type == QType::ALIAS && (::arg().mustDo("outgoing-axfr-expand-alias") || ::arg()["outgoing-axfr-expand-alias"] == "ignore-errors")) {
+        vector<DNSZoneRecord> ips;
+        int ret1 = stubDoResolve(slog, getRR<ALIASRecordContent>(zrr.dr)->getContent(), QType::A, ips);
+        int ret2 = stubDoResolve(slog, getRR<ALIASRecordContent>(zrr.dr)->getContent(), QType::AAAA, ips);
+        if (ret1 != RCode::NoError || ret2 != RCode::NoError) {
+          if (::arg()["outgoing-axfr-expand-alias"] == "ignore-errors") {
+            if (ret1 != RCode::NoError) {
+              SLOG(g_log << Logger::Error << logPrefix << zrr.dr.d_name.toLogString() << ": error resolving A record for ALIAS target " << zrr.dr.getContent()->getZoneRepresentation() << ", continuing AXFR" << endl,
+                   slog->info(Logr::Error, "AXFR: Error resolving A record for ALIAS target, continuing", "zone", Logging::Loggable(targetZone), "client", Logging::Loggable(q->getRemoteStringWithPort()), "record", Logging::Loggable(zrr.dr.d_name), "content", Logging::Loggable(zrr.dr.getContent()->getZoneRepresentation())));
+            }
+            if (ret2 != RCode::NoError) {
+              SLOG(g_log << Logger::Error << logPrefix << zrr.dr.d_name.toLogString() << ": error resolving AAAA record for ALIAS target " << zrr.dr.getContent()->getZoneRepresentation() << ", continuing AXFR" << endl,
+                   slog->info(Logr::Error, "AXFR: Error resolving AAAA record for ALIAS target, continuing", "zone", Logging::Loggable(targetZone), "client", Logging::Loggable(q->getRemoteStringWithPort()), "record", Logging::Loggable(zrr.dr.d_name), "content", Logging::Loggable(zrr.dr.getContent()->getZoneRepresentation())));
+            }
+          }
+          else {
+            SLOG(g_log << Logger::Warning << logPrefix << zrr.dr.d_name.toLogString() << ": error resolving for ALIAS " << zrr.dr.getContent()->getZoneRepresentation() << ", aborting AXFR" << endl,
+                 slog->info(Logr::Error, "AXFR aborted: error resolving for ALIAS target", "zone", Logging::Loggable(targetZone), "client", Logging::Loggable(q->getRemoteStringWithPort()), "record", Logging::Loggable(zrr.dr.d_name), "content", Logging::Loggable(zrr.dr.getContent()->getZoneRepresentation())));
+            outpacket->setRcode(RCode::ServFail);
+            sendPacket(outpacket, outsock);
+            return false;
+          }
+        }
+        for (auto& ip: ips) {
+          zrr.dr.d_type = ip.dr.d_type;
+          zrr.dr.setContent(ip.dr.getContent());
+          zrrs.push_back(zrr);
+        }
+        continue;
+      }
+
+      if (rectify) {
+        if (zrr.dr.d_type) {
+          qnames.insert(zrr.dr.d_name);
+          if(zrr.dr.d_type == QType::NS && zrr.dr.d_name!=target)
+            nsset.insert(zrr.dr.d_name);
+        } else {
+          // remove existing ents
+          continue;
+        }
+      }
+      zrrs.push_back(zrr);
+    } else {
+      if (zrr.dr.d_type != QType::ENT)
+        SLOG(g_log<<Logger::Warning<<logPrefix<<"zone contains out-of-zone data '"<<zrr.dr.d_name<<"|"<<DNSRecordContent::NumberToType(zrr.dr.d_type)<<"', ignoring"<<endl,
+             slog->info(Logr::Warning, "AXFR: ignoring out-of-zone data", "zone", Logging::Loggable(targetZone), "client", Logging::Loggable(q->getRemoteStringWithPort()), "record", Logging::Loggable(zrr.dr.d_name), "type", Logging::Loggable(zrr.dr.d_type)));
+    }
+  }
+
+  for (auto& loopRR : zrrs) {
+    if ((loopRR.dr.d_type == QType::SVCB || loopRR.dr.d_type == QType::HTTPS)) {
+      // Process auto hints
+      // TODO this is an almost copy of the code in the packethandler
+      auto rrc = getRR<SVCBBaseRecordContent>(loopRR.dr);
+      if (rrc == nullptr) {
+        continue;
+      }
+      auto newRRC = rrc->clone();
+      if (!newRRC) {
+        continue;
+      }
+      DNSName svcTarget = newRRC->getTarget().isRoot() ? loopRR.dr.d_name : newRRC->getTarget();
+      if (newRRC->autoHint(SvcParam::ipv4hint)) {
+        sd.db->lookup(QType::A, svcTarget, sd.domain_id);
+        vector<ComboAddress> hints;
+        DNSZoneRecord rr;
+        while (sd.db->get(rr)) {
+          auto arrc = getRR<ARecordContent>(rr.dr);
+          hints.push_back(arrc->getCA());
+        }
+        if (hints.size() == 0) {
+          newRRC->removeParam(SvcParam::ipv4hint);
+        } else {
+          newRRC->setHints(SvcParam::ipv4hint, hints);
+        }
+      }
+
+      if (newRRC->autoHint(SvcParam::ipv6hint)) {
+        sd.db->lookup(QType::AAAA, svcTarget, sd.domain_id);
+        vector<ComboAddress> hints;
+        DNSZoneRecord rr;
+        while (sd.db->get(rr)) {
+          auto arrc = getRR<AAAARecordContent>(rr.dr);
+          hints.push_back(arrc->getCA());
+        }
+        if (hints.size() == 0) {
+          newRRC->removeParam(SvcParam::ipv6hint);
+        } else {
+          newRRC->setHints(SvcParam::ipv6hint, hints);
+        }
+      }
+
+      loopRR.dr.setContent(std::move(newRRC));
+    }
+  }
+
+  // Group records by name and type, signpipe stumbles over interrupted rrsets
+  if(securedZone && !presignedZone) {
+    sort(zrrs.begin(), zrrs.end(), [](const DNSZoneRecord& a, const DNSZoneRecord& b) {
+      return std::tie(a.dr.d_name, a.dr.d_type) < std::tie(b.dr.d_name, b.dr.d_type);
+    });
+  }
+
+  if(rectify) {
+    // set auth
+    for(DNSZoneRecord &loopZRR :  zrrs) {
+      loopZRR.auth=true;
+      if (loopZRR.dr.d_type != QType::NS || loopZRR.dr.d_name!=target) {
+        DNSName shorter(loopZRR.dr.d_name);
+        do {
+          if (shorter==target) // apex is always auth
+            break;
+          if(nsset.count(shorter) && !(loopZRR.dr.d_name==shorter && loopZRR.dr.d_type == QType::DS)) {
+            loopZRR.auth=false;
+            break;
+          }
+        } while(shorter.chopOff());
+      }
+    }
+
+    if(NSEC3Zone) {
+      // ents are only required for NSEC3 zones
+      uint32_t maxent = ::arg().asNum("max-ent-entries");
+      set<DNSName> nsec3set, nonterm;
+      for (auto &loopZRR: zrrs) {
+        bool skip=false;
+        DNSName shorter = loopZRR.dr.d_name;
+        if (shorter != target && shorter.chopOff() && shorter != target) {
+          do {
+            if(nsset.count(shorter)) {
+              skip=true;
+              break;
+            }
+          } while(shorter.chopOff() && shorter != target);
+        }
+        shorter = loopZRR.dr.d_name;
+        if(!skip && (loopZRR.dr.d_type != QType::NS || !ns3pr.d_flags)) {
+          do {
+            if(!nsec3set.count(shorter)) {
+              nsec3set.insert(shorter);
+            }
+          } while(shorter != target && shorter.chopOff());
+        }
+      }
+
+      for(DNSZoneRecord &loopZRR :  zrrs) {
+        DNSName shorter(loopZRR.dr.d_name);
+        while(shorter != target && shorter.chopOff()) {
+          if(!qnames.count(shorter) && !nonterm.count(shorter) && nsec3set.count(shorter)) {
+            if(!(maxent)) {
+              SLOG(g_log<<Logger::Warning<<logPrefix<<"zone has too many empty non terminals, aborting AXFR"<<endl,
+                   slog->info(Logr::Warning, "AXFR aborted, too many empty non-terminals in zone", "zone", Logging::Loggable(targetZone), "client", Logging::Loggable(q->getRemoteStringWithPort())));
+              outpacket->setRcode(RCode::ServFail);
+              sendPacket(outpacket,outsock);
+              return false;
+            }
+            nonterm.insert(shorter);
+            --maxent;
+          }
+        }
+      }
+
+      for(const auto& nt :  nonterm) {
+        DNSZoneRecord tempRR;
+        tempRR.dr.d_name=nt;
+        tempRR.dr.d_type=QType::ENT;
+        tempRR.auth=true;
+        zrrs.push_back(tempRR);
+      }
+    }
+  }
+
+  return true;
 }
 
 int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_t slog)
