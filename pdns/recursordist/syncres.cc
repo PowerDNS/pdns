@@ -5864,15 +5864,12 @@ void SyncRes::handleNewTarget(const std::string& prefix, const DNSName& qname, c
   updateValidationState(qname, state, cnameContext.state, prefix);
 }
 
-bool SyncRes::processAnswer(unsigned int depth, const string& prefix, LWResult& lwr, const DNSName& qname, const QType qtype, DNSName& auth, bool wasForwarded, const std::optional<Netmask>& ednsmask, bool sendRDQuery, NsSet& nameservers, std::vector<DNSRecord>& ret, const DNSFilterEngine& dfe, bool* gotNewServers, int* rcode, vState& state, const ComboAddress& remoteIP, bool overTCP)
+static void normalizeTTLs(std::vector<DNSRecord>& records, bool updatingRootNS, bool ecsSpecific, unsigned int minimumTTL, unsigned int minimumECSTTL)
 {
-  fixupAnswer(prefix, lwr, qname, qtype, auth, wasForwarded, sendRDQuery);
-  sanitizeRecords(prefix, lwr, qname, qtype, auth, wasForwarded, sendRDQuery);
-
-  if (s_minimumTTL != 0) {
-    for (auto& rec : lwr.d_records) {
-      rec.d_ttl = std::max(rec.d_ttl, s_minimumTTL);
-      if (d_updatingRootNS && rec.d_type == QType::NS && rec.d_name.isRoot()) {
+  if (minimumTTL != 0) {
+    for (auto& rec : records) {
+      rec.d_ttl = std::max(rec.d_ttl, minimumTTL);
+      if (updatingRootNS && rec.d_type == QType::NS && rec.d_name.isRoot()) {
         // Enforce a higher minimum for root records with a silly TTL (only relevant in setups with
         // questionable root records).
         rec.d_ttl = std::max(rec.d_ttl, 3600U);
@@ -5882,13 +5879,21 @@ bool SyncRes::processAnswer(unsigned int depth, const string& prefix, LWResult& 
 
   /* if the answer is ECS-specific, a minimum TTL is set for this kind of answers
      and it's higher than the global minimum TTL */
-  if (ednsmask && s_minimumECSTTL > 0 && (s_minimumTTL == 0 || s_minimumECSTTL > s_minimumTTL)) {
-    for (auto& rec : lwr.d_records) {
+  if (ecsSpecific && minimumECSTTL > 0 && (minimumTTL == 0 || minimumECSTTL > minimumTTL)) {
+    for (auto& rec : records) {
       if (rec.d_place == DNSResourceRecord::ANSWER) {
-        rec.d_ttl = max(rec.d_ttl, s_minimumECSTTL);
+        rec.d_ttl = max(rec.d_ttl, minimumECSTTL);
       }
     }
   }
+}
+
+bool SyncRes::processAnswer(unsigned int depth, const string& prefix, LWResult& lwr, const DNSName& qname, const QType qtype, DNSName& auth, bool wasForwarded, const std::optional<Netmask>& ednsmask, bool sendRDQuery, NsSet& nameservers, std::vector<DNSRecord>& ret, const DNSFilterEngine& dfe, bool* gotNewServers, int* rcode, vState& state, const ComboAddress& remoteIP, bool overTCP)
+{
+  fixupAnswer(prefix, lwr, qname, qtype, auth, wasForwarded, sendRDQuery);
+  sanitizeRecords(prefix, lwr, qname, qtype, auth, wasForwarded, sendRDQuery);
+
+  normalizeTTLs(lwr.d_records, d_updatingRootNS, ednsmask.has_value(), s_minimumTTL, s_minimumECSTTL);
 
   bool needWildcardProof = false;
   bool gatherWildcardProof = false;
