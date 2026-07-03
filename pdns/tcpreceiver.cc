@@ -658,11 +658,11 @@ int TCPNameserver::doAXFR(std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_
        slog->info(Logr::Warning, "AXFR transfer initiated", "zone", Logging::Loggable(targetZone), "client", Logging::Loggable(q->getRemoteStringWithPort())));
 
   // determine if zone exists and AXFR is allowed using existing backend before spawning a new backend.
+  DLOG(SLOG(g_log<<logPrefix<<"looking for SOA"<<endl,
+            slog->info(Logr::Debug, "AXFR: looking for SOA", "zone", Logging::Loggable(targetZone), "client", Logging::Loggable(q->getRemoteStringWithPort()))));
   SOAData sd;
   {
     auto packetHandler = s_P.lock();
-    DLOG(SLOG(g_log<<logPrefix<<"looking for SOA"<<endl,
-              slog->info(Logr::Debug, "AXFR: looking for SOA", "zone", Logging::Loggable(targetZone), "client", Logging::Loggable(q->getRemoteStringWithPort()))));    // find domain_id via SOA and list complete domain. No SOA, no AXFR
     if(!*packetHandler) {
       SLOG(g_log<<Logger::Warning<<"TCP server is without backend connections in doAXFR, launching"<<endl,
            slog->info(Logr::Warning, "TCP server is without backend connections in doAXFR, launching", "zone", Logging::Loggable(targetZone), "client", Logging::Loggable(q->getRemoteStringWithPort())));
@@ -687,6 +687,7 @@ int TCPNameserver::doAXFR(std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_
     }
   }
 
+  // find domain_id via SOA and list complete domain. No SOA, no AXFR
   UeberBackend db;
   if(!db.getSOAUncached(targetZone, sd)) {
     SLOG(g_log<<Logger::Warning<<logPrefix<<"failed: not authoritative in second instance"<<endl,
@@ -1259,15 +1260,17 @@ send:
 
 int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_t slog)
 {
+  const ZoneName& targetZone = q->qdomainzone;
   string logPrefix;
 
   if (!g_slogStructured) {
-    logPrefix="IXFR-out zone '"+q->qdomainzone.toLogString()+"', client '"+q->getRemoteStringWithPort()+"', ";
+    logPrefix="IXFR-out zone '"+targetZone.toLogString()+"', client '"+q->getRemoteStringWithPort()+"', ";
   }
 
   std::unique_ptr<DNSPacket> outpacket=getFreshAXFRPacket(q);
-  if(q->d_dnssecOk)
+  if(q->d_dnssecOk) {
     outpacket->d_dnssecOk=true; // RFC 5936, 2.2.5 'SHOULD'
+  }
 
   uint32_t serial = 0;
   MOADNSParser mdp(false, q->getString());
@@ -1282,21 +1285,21 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_
         }
         catch(const std::logic_error& exc) {
           SLOG(g_log<<Logger::Warning<<logPrefix<<"invalid serial in IXFR query"<<endl,
-               slog->error(Logr::Warning, exc.what(), "IXFR: invalid serial in query", "zone", Logging::Loggable(q->qdomainzone), "client", Logging::Loggable(q->getRemoteStringWithPort())));
+               slog->error(Logr::Warning, exc.what(), "IXFR: invalid serial in query", "zone", Logging::Loggable(targetZone), "client", Logging::Loggable(q->getRemoteStringWithPort())));
           outpacket->setRcode(RCode::FormErr);
           sendPacket(outpacket,outsock);
           return 0;
         }
       } else {
         SLOG(g_log<<Logger::Warning<<logPrefix<<"no serial in IXFR query"<<endl,
-             slog->info(Logr::Warning, "IXFR: no serial in query", "zone", Logging::Loggable(q->qdomainzone), "client", Logging::Loggable(q->getRemoteStringWithPort())));
+             slog->info(Logr::Warning, "IXFR: no serial in query", "zone", Logging::Loggable(targetZone), "client", Logging::Loggable(q->getRemoteStringWithPort())));
         outpacket->setRcode(RCode::FormErr);
         sendPacket(outpacket,outsock);
         return 0;
       }
     } else if (dnsRecord->d_type != QType::TSIG && dnsRecord->d_type != QType::OPT) {
       SLOG(g_log<<Logger::Warning<<logPrefix<<"additional records in IXFR query, type: "<<QType(dnsRecord->d_type).toString()<<endl,
-             slog->info(Logr::Warning, "IXFR: additional record in query", "zone", Logging::Loggable(q->qdomainzone), "client", Logging::Loggable(q->getRemoteStringWithPort()), "type", Logging::Loggable(dnsRecord->d_type)));
+             slog->info(Logr::Warning, "IXFR: additional record in query", "zone", Logging::Loggable(targetZone), "client", Logging::Loggable(q->getRemoteStringWithPort()), "type", Logging::Loggable(dnsRecord->d_type)));
       outpacket->setRcode(RCode::FormErr);
       sendPacket(outpacket,outsock);
       return 0;
@@ -1304,40 +1307,47 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_
   }
 
   SLOG(g_log<<Logger::Warning<<logPrefix<<"transfer initiated with serial "<<serial<<endl,
-       slog->info(Logr::Warning, "IXFR: transfer initiated", "zone", Logging::Loggable(q->qdomainzone), "client", Logging::Loggable(q->getRemoteStringWithPort()), "serial", Logging::Loggable(serial)));
+       slog->info(Logr::Warning, "IXFR: transfer initiated", "zone", Logging::Loggable(targetZone), "client", Logging::Loggable(q->getRemoteStringWithPort()), "serial", Logging::Loggable(serial)));
 
   // determine if zone exists, XFR is allowed, and if IXFR can proceed using existing backend before spawning a new backend.
+  DLOG(SLOG(g_log<<logPrefix<<"Looking for SOA"<<endl,
+            slog->info(Logr::Warning, "IXFR: looking for SOA", "zone", Logging::Loggable(targetZone), "client", Logging::Loggable(q->getRemoteStringWithPort()))));
   SOAData sd;
   bool securedZone;
   bool serialPermitsIXFR;
   {
     auto packetHandler = s_P.lock();
-    // find domain_id via SOA and list complete domain. No SOA, no IXFR
-    DLOG(SLOG(g_log<<logPrefix<<"Looking for SOA"<<endl,
-              slog->info(Logr::Warning, "IXFR: looking for SOA", "zone", Logging::Loggable(q->qdomainzone), "client", Logging::Loggable(q->getRemoteStringWithPort()))));
     if(!*packetHandler) {
       SLOG(g_log<<Logger::Warning<<"TCP server is without backend connections in doIXFR, launching"<<endl,
-           slog->info(Logr::Warning, "IXFR: TCP server is without backend connections in doIXFR, launching", "zone", Logging::Loggable(q->qdomainzone), "client", Logging::Loggable(q->getRemoteStringWithPort())));
+           slog->info(Logr::Warning, "IXFR: TCP server is without backend connections in doIXFR, launching", "zone", Logging::Loggable(targetZone), "client", Logging::Loggable(q->getRemoteStringWithPort())));
       *packetHandler = make_unique<PacketHandler>(slog);
     }
 
     // canDoAXFR does all the ACL checks, and has the if(disable-axfr) shortcut, call it first.
-    if(!canDoAXFR(q, false, *packetHandler, slog) || !(*packetHandler)->getBackend()->getSOAUncached(q->qdomainzone, sd)) {
+    if(!canDoAXFR(q, false, *packetHandler, slog)) {
+      SLOG(g_log<<Logger::Warning<<logPrefix<<"failed: client may not request IXFR"<<endl,
+           slog->info(Logr::Warning, "IXFR failed: client may not request IXFR", "zone", Logging::Loggable(targetZone), "client", Logging::Loggable(q->getRemoteStringWithPort())));
+      outpacket->setRcode(RCode::NotAuth);
+      sendPacket(outpacket,outsock);
+      return 0;
+    }
+
+    if(!(*packetHandler)->getBackend()->getSOAUncached(targetZone, sd)) {
       SLOG(g_log<<Logger::Warning<<logPrefix<<"failed: not authoritative"<<endl,
-           slog->info(Logr::Warning, "IXFR failed: not authoritative", "zone", Logging::Loggable(q->qdomainzone), "client", Logging::Loggable(q->getRemoteStringWithPort())));
+           slog->info(Logr::Warning, "IXFR failed: not authoritative", "zone", Logging::Loggable(targetZone), "client", Logging::Loggable(q->getRemoteStringWithPort())));
       outpacket->setRcode(RCode::NotAuth);
       sendPacket(outpacket,outsock);
       return 0;
     }
 
     DNSSECKeeper dk(slog, (*packetHandler)->getBackend());
-    DNSSECKeeper::clearCaches(q->qdomainzone);
+    DNSSECKeeper::clearCaches(targetZone);
     bool narrow = false;
-    securedZone = dk.isSecuredZone(q->qdomainzone);
-    if(dk.getNSEC3PARAM(q->qdomainzone, nullptr, &narrow)) {
+    securedZone = dk.isSecuredZone(targetZone);
+    if(dk.getNSEC3PARAM(targetZone, nullptr, &narrow)) {
       if(narrow) {
         SLOG(g_log<<Logger::Warning<<logPrefix<<"not doing IXFR of an NSEC3 narrow zone"<<endl,
-           slog->info(Logr::Warning, "IXFR refused: not doing IXFR of an NSEC3 narrow zone", "zone", Logging::Loggable(q->qdomainzone), "client", Logging::Loggable(q->getRemoteStringWithPort())));
+           slog->info(Logr::Warning, "IXFR refused: not doing IXFR of an NSEC3 narrow zone", "zone", Logging::Loggable(targetZone), "client", Logging::Loggable(q->getRemoteStringWithPort())));
         outpacket->setRcode(RCode::Refused);
         sendPacket(outpacket,outsock);
         return 0;
@@ -1348,7 +1358,6 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_
   }
 
   if (serialPermitsIXFR) {
-    const ZoneName& target = q->qdomainzone;
     TSIGRecordContent trc;
     DNSName tsigkeyname;
     string tsigsecret;
@@ -1365,15 +1374,15 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_
         algorithm = g_hmacmd5dnsname;
       }
       if (!db.getTSIGKey(tsigkeyname, algorithm, tsig64)) {
-        SLOG(g_log << Logger::Error << "TSIG key '" << tsigkeyname << "' for domain '" << target << "' not found" << endl,
-           slog->info(Logr::Error, "IXFR refused: TSIG key not found", "zone", Logging::Loggable(target), "client", Logging::Loggable(q->getRemoteStringWithPort()), "key", Logging::Loggable(tsigkeyname), "algorithm", Logging::Loggable(algorithm)));
+        SLOG(g_log << Logger::Error << "TSIG key '" << tsigkeyname << "' for domain '" << targetZone << "' not found" << endl,
+           slog->info(Logr::Error, "IXFR refused: TSIG key not found", "zone", Logging::Loggable(targetZone), "client", Logging::Loggable(q->getRemoteStringWithPort()), "key", Logging::Loggable(tsigkeyname), "algorithm", Logging::Loggable(algorithm)));
         outpacket->setRcode(RCode::NotAuth);
         sendPacket(outpacket,outsock);
         return 0;
       }
       if (B64Decode(tsig64, tsigsecret) == -1) {
         SLOG(g_log<<Logger::Error<<logPrefix<<"unable to Base-64 decode TSIG key '"<<tsigkeyname<<"'"<<endl,
-             slog->info(Logr::Error, "IXFR: Unable to Base-64 decode TSIG key", "zone", Logging::Loggable(target), "client", Logging::Loggable(q->getRemoteStringWithPort()), "key", Logging::Loggable(tsigkeyname), "algorithm", Logging::Loggable(algorithm)));
+             slog->info(Logr::Error, "IXFR: Unable to Base-64 decode TSIG key", "zone", Logging::Loggable(targetZone), "client", Logging::Loggable(q->getRemoteStringWithPort()), "key", Logging::Loggable(tsigkeyname), "algorithm", Logging::Loggable(algorithm)));
         outpacket->setRcode(RCode::ServFail);
         sendPacket(outpacket,outsock);
         return 0;
@@ -1382,12 +1391,12 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_
 
     // SOA *must* go out first, our signing pipe might reorder
     DLOG(SLOG(g_log<<logPrefix<<"sending out SOA"<<endl,
-              slog->info(Logr::Debug, /*"I send an SOA to the world"*/"IXFR: sending out SOA", "zone", Logging::Loggable(target), "client", Logging::Loggable(q->getRemoteStringWithPort()))));
+              slog->info(Logr::Debug, /*"I send an SOA to the world"*/"IXFR: sending out SOA", "zone", Logging::Loggable(targetZone), "client", Logging::Loggable(q->getRemoteStringWithPort()))));
     DNSZoneRecord soa = makeEditedDNSZRFromSOAData(dk, sd, DNSResourceRecord::ANSWER, slog);
     outpacket->addRecord(std::move(soa));
     if(securedZone && outpacket->d_dnssecOk) {
       set<ZoneName> authSet;
-      authSet.insert(target);
+      authSet.insert(targetZone);
       addRRSigs(dk, db, authSet, outpacket->getRRS());
     }
 
@@ -1397,13 +1406,13 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_
     sendPacket(outpacket, outsock);
 
     SLOG(g_log<<Logger::Notice<<logPrefix<<"IXFR finished"<<endl,
-         slog->info(Logr::Notice, "IXFR finished", "zone", Logging::Loggable(target), "client", Logging::Loggable(q->getRemoteStringWithPort())));
+         slog->info(Logr::Notice, "IXFR finished", "zone", Logging::Loggable(targetZone), "client", Logging::Loggable(q->getRemoteStringWithPort())));
 
     return 1;
   }
 
   SLOG(g_log<<Logger::Notice<<logPrefix<<"IXFR fallback to AXFR"<<endl,
-       slog->info(Logr::Notice, "IXFR fallback to AXFR", "zone", Logging::Loggable(q->qdomainzone), "client", Logging::Loggable(q->getRemoteStringWithPort())));
+       slog->info(Logr::Notice, "IXFR fallback to AXFR", "zone", Logging::Loggable(targetZone), "client", Logging::Loggable(q->getRemoteStringWithPort())));
   return doAXFR(q, outsock, slog);
 }
 
