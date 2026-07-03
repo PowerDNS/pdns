@@ -4286,6 +4286,36 @@ static std::unordered_set<DNSName> sanitizeCNAMEChain(const DNSName& qname, std:
   return allowed;
 }
 
+static void processCNAMEChain(LWResult& lwr, const DNSName& qname, std::unordered_map<DNSName, DNSName>& cnameChain, std::unordered_set<DNSName>& allowedAnswerNames, bool cnameSeen)
+{
+  if (cnameChain.size() > 0) {
+    auto allowed = sanitizeCNAMEChain(qname, cnameChain);
+    allowedAnswerNames.insert(allowed.begin(), allowed.end());
+    if (cnameSeen && !lwr.d_isDNAMEAnswer) {
+      lwr.d_isCNAMEAnswer = true;
+    }
+  }
+}
+
+static void determineAnswerType(LWResult& lwr, bool haveAnswers, bool seenReferral)
+{
+  if ((haveAnswers && lwr.d_rcode == RCode::NoError) || (haveAnswers && (lwr.d_isCNAMEAnswer || lwr.d_isDNAMEAnswer) && lwr.d_rcode == RCode::NXDomain)) {
+    lwr.d_answerType = LWResult::AnswerType::PositiveAnswer;
+  }
+  else if (!haveAnswers && !lwr.d_aabit && lwr.d_rcode == RCode::NoError && seenReferral) {
+    lwr.d_answerType = LWResult::AnswerType::Referral;
+  }
+  else if (!haveAnswers && lwr.d_rcode == RCode::NoError && lwr.d_seenSOA) {
+    lwr.d_answerType = LWResult::AnswerType::NoData;
+  }
+  else if (!haveAnswers && lwr.d_rcode == RCode::NXDomain && lwr.d_seenSOA) {
+    lwr.d_answerType = LWResult::AnswerType::NXDomain;
+  }
+  else {
+    lwr.d_answerType = LWResult::AnswerType::Unknown;
+  }
+}
+
 void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DNSName& qname, const QType qtype, const DNSName& auth, bool wasForwarded, bool rdQuery)
 {
   const bool wasForwardRecurse = wasForwarded && rdQuery;
@@ -4456,29 +4486,9 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
     acceptDelegation = true;
   }
 
-  if (cnameChain.size() > 0) {
-    auto allowed = sanitizeCNAMEChain(qname, cnameChain);
-    allowedAnswerNames.insert(allowed.begin(), allowed.end());
-    if (cnameSeen && !lwr.d_isDNAMEAnswer) {
-      lwr.d_isCNAMEAnswer = true;
-    }
-  }
+  processCNAMEChain(lwr, qname, cnameChain, allowedAnswerNames, cnameSeen);
 
-  if ((haveAnswers && lwr.d_rcode == RCode::NoError) || (haveAnswers && (lwr.d_isCNAMEAnswer || lwr.d_isDNAMEAnswer) && lwr.d_rcode == RCode::NXDomain)) {
-    lwr.d_answerType = LWResult::AnswerType::PositiveAnswer;
-  }
-  else if (!haveAnswers && !lwr.d_aabit && lwr.d_rcode == RCode::NoError && seenReferral) {
-    lwr.d_answerType = LWResult::AnswerType::Referral;
-  }
-  else if (!haveAnswers && lwr.d_rcode == RCode::NoError && lwr.d_seenSOA) {
-    lwr.d_answerType = LWResult::AnswerType::NoData;
-  }
-  else if (!haveAnswers && lwr.d_rcode == RCode::NXDomain && lwr.d_seenSOA) {
-    lwr.d_answerType = LWResult::AnswerType::NXDomain;
-  }
-  else {
-    lwr.d_answerType = LWResult::AnswerType::Unknown;
-  }
+  determineAnswerType(lwr, haveAnswers, seenReferral);
 
   sanitizeRecordsPass2(prefix, lwr, qname, qtype, auth, allowedAnswerNames, allowedAdditionals, cnameSeen, acceptDelegation && !soaInAuth, skipvec, skipCount);
 }
