@@ -212,6 +212,7 @@ common_sources += files(
   src_dir / 'misc.cc',
   src_dir / 'otlp_logger.cc',
   src_dir / 'protozero.cc',
+  src_dir / 'protozero-otlp.cc',
   src_dir / 'protozero-trace.cc',
   src_dir / 'proxy-protocol.cc',
   src_dir / 'qtype.cc',

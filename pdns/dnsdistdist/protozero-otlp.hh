@@ -37,36 +37,19 @@ struct ExportTraceServiceRequest
   // This message is the same as TracesData
   std::vector<ResourceSpans> resource_spans; // = 1
 
-  void encode(protozero::pbf_writer& writer) const
-  {
-    pdns::trace::encode(writer, 1, resource_spans);
-  }
-
+  void encode(protozero::pbf_writer& writer) const;
   static ExportTraceServiceRequest decode(protozero::pbf_reader& reader);
+  bool operator==(const ExportTraceServiceRequest& rhs) const;
 };
 
 struct ExportTracePartialSuccess
 {
-  int64_t rejected_spans; // = 1
-  std::string error_message; // = 2
+  int64_t rejected_spans{0}; // = 1
+  std::string error_message{""}; // = 2
 
   void encode(protozero::pbf_writer& writer) const;
-  static ExportTracePartialSuccess decode(protozero::pbf_reader& reader)
-  {
-    ExportTracePartialSuccess ret{
-      .rejected_spans = 0,
-      .error_message = "",
-    };
-    while (reader.next()) {
-      switch (reader.tag()) {
-      case 1:
-        ret.rejected_spans = reader.get_int64();
-      case 2:
-        ret.error_message = reader.get_string();
-      }
-    }
-    return ret;
-  };
+  static ExportTracePartialSuccess decode(protozero::pbf_reader& reader);
+  bool operator==(const ExportTracePartialSuccess& rhs) const;
 };
 
 struct ExportTraceServiceResponse
@@ -74,18 +57,8 @@ struct ExportTraceServiceResponse
   ExportTracePartialSuccess partial_success; // = 1
 
   void encode(protozero::pbf_writer& writer) const;
-  static ExportTraceServiceResponse decode(protozero::pbf_reader& reader)
-  {
-    ExportTraceServiceResponse ret;
-    while (reader.next()) {
-      switch (reader.tag()) {
-      case 1:
-        auto sub = reader.get_message();
-        ret.partial_success = ExportTracePartialSuccess::decode(sub);
-      }
-    }
-    return ret;
-  }
+  static ExportTraceServiceResponse decode(protozero::pbf_reader& reader);
+  bool operator==(const ExportTraceServiceResponse& rhs) const;
 };
 
 } // namespace pdns::trace
