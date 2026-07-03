@@ -39,8 +39,6 @@
 #include "lock.hh"
 #include "namespaces.hh"
 
-class XFRContext;
-
 class TCPNameserver
 {
 public:
@@ -49,6 +47,8 @@ public:
   void go();
   unsigned int numTCPConnections();
 private:
+
+  class XFRContext;
 
   static void sendPacket(std::unique_ptr<DNSPacket>& p, int outsock, bool last=true);
   static void getQuestion(int fd, char *mesg, int pktlen, const ComboAddress& remote, unsigned int totalTime);
