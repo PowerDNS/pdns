@@ -4585,9 +4585,6 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
   bool wasForwardRecurse = wasForwarded && rdQuery;
   tcache_t tcache;
 
-  fixupAnswer(prefix, lwr, qname, qtype, auth, wasForwarded, rdQuery);
-  sanitizeRecords(prefix, lwr, qname, qtype, auth, wasForwarded, rdQuery);
-
   MemRecursorCache::AuthRecsVec authorityRecs;
   bool isCNAMEAnswer = false;
   bool isDNAMEAnswer = false;
@@ -5869,6 +5866,9 @@ void SyncRes::handleNewTarget(const std::string& prefix, const DNSName& qname, c
 
 bool SyncRes::processAnswer(unsigned int depth, const string& prefix, LWResult& lwr, const DNSName& qname, const QType qtype, DNSName& auth, bool wasForwarded, const std::optional<Netmask>& ednsmask, bool sendRDQuery, NsSet& nameservers, std::vector<DNSRecord>& ret, const DNSFilterEngine& dfe, bool* gotNewServers, int* rcode, vState& state, const ComboAddress& remoteIP, bool overTCP)
 {
+  fixupAnswer(prefix, lwr, qname, qtype, auth, wasForwarded, sendRDQuery);
+  sanitizeRecords(prefix, lwr, qname, qtype, auth, wasForwarded, sendRDQuery);
+
   if (s_minimumTTL != 0) {
     for (auto& rec : lwr.d_records) {
       rec.d_ttl = std::max(rec.d_ttl, s_minimumTTL);
@@ -6088,7 +6088,7 @@ int SyncRes::doResolveAt(NsSet& nameservers, DNSName auth, bool flawedNSSet, con
         cacheOnly = true;
       }
 
-      typedef vector<ComboAddress> remoteIPs_t;
+      using remoteIPs_t = std::vector<ComboAddress>;
       remoteIPs_t remoteIPs;
       remoteIPs_t::iterator remoteIP;
       bool pierceDontQuery = false;
