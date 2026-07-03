@@ -54,6 +54,8 @@ private:
   static int doAXFRinternal(std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_t slog, const std::string& logPrefix, std::unique_ptr<DNSPacket>& outpacket);
   static int doIXFR(std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_t slog);
   static bool canDoAXFR(std::unique_ptr<DNSPacket>& q, bool isAXFR, std::unique_ptr<PacketHandler>& packetHandler, Logr::log_t slog);
+  static bool axfrProducerZone(std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_t slog, const std::string& logPrefix, std::unique_ptr<DNSPacket>& outpacket, vector<DNSZoneRecord> &zrrs, const DomainInfo& di, const SOAData& sd);
+  static bool axfrRegularZone(std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_t slog, const std::string& logPrefix, std::unique_ptr<DNSPacket>& outpacket, vector<DNSZoneRecord> &zrrs, const SOAData& sd, bool presignedZone, bool securedZone, bool NSEC3Zone, bool isCatalogZone, const NSEC3PARAMRecordContent& ns3pr);
   static void doConnection(int fd, Logr::log_t slog);
   static void decrementClientCount(const ComboAddress& remote);
   void thread();
