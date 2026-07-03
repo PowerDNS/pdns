@@ -50,12 +50,13 @@ private:
 
   static void sendPacket(std::unique_ptr<DNSPacket>& p, int outsock, bool last=true);
   static void getQuestion(int fd, char *mesg, int pktlen, const ComboAddress& remote, unsigned int totalTime);
-  static int doAXFR(const ZoneName &target, std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_t slog);
+  static int doAXFR(std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_t slog);
   static int doIXFR(std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_t slog);
   static bool canDoAXFR(std::unique_ptr<DNSPacket>& q, bool isAXFR, std::unique_ptr<PacketHandler>& packetHandler, Logr::log_t slog);
   static void doConnection(int fd, Logr::log_t slog);
   static void decrementClientCount(const ComboAddress& remote);
   void thread();
+
   static LockGuarded<std::map<ComboAddress,size_t,ComboAddress::addressOnlyLessThan>> s_clientsCount;
   static LockGuarded<std::unique_ptr<PacketHandler>> s_P;
   static std::unique_ptr<Semaphore> d_connectionroom_sem;

@@ -383,7 +383,7 @@ void TCPNameserver::doConnection(int fd, Logr::log_t slog)
       if(packet->qtype.getCode()==QType::AXFR) {
         packet->d_xfr=true;
         g_zoneCache.setZoneVariant(*packet);
-        doAXFR(packet->qdomainzone, packet, fd, slog);
+        doAXFR(packet, fd, slog);
         continue;
       }
 
@@ -639,8 +639,9 @@ namespace {
 
 /** do the actual zone transfer. Return 0 in case of error, 1 in case of success */
 // NOLINTNEXTLINE(readability-identifier-length)
-int TCPNameserver::doAXFR(const ZoneName &targetZone, std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_t slog)  // NOLINT(readability-function-cognitive-complexity)
+int TCPNameserver::doAXFR(std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_t slog)  // NOLINT(readability-function-cognitive-complexity)
 {
+  const ZoneName& targetZone = q->qdomainzone;
   const DNSName& target = targetZone.operator const DNSName&();
   string logPrefix;
 
@@ -1403,7 +1404,7 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_
 
   SLOG(g_log<<Logger::Notice<<logPrefix<<"IXFR fallback to AXFR"<<endl,
        slog->info(Logr::Notice, "IXFR fallback to AXFR", "zone", Logging::Loggable(q->qdomainzone), "client", Logging::Loggable(q->getRemoteStringWithPort())));
-  return doAXFR(q->qdomainzone, q, outsock, slog);
+  return doAXFR(q, outsock, slog);
 }
 
 TCPNameserver::~TCPNameserver() = default;
