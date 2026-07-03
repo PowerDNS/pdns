@@ -179,6 +179,11 @@ EntityRef EntityRef::decode(protozero::pbf_reader& reader)
   return ret;
 }
 
+bool EntityRef::operator==(const EntityRef& rhs) const
+{
+  return (schema_url == rhs.schema_url && type == rhs.type && id_keys == rhs.id_keys && description_keys == rhs.description_keys);
+}
+
 void KeyValue::encode(protozero::pbf_writer& writer) const
 {
   pdns::trace::encode(writer, 1, key);
@@ -220,6 +225,11 @@ Resource Resource::decode(protozero::pbf_reader& reader)
   return ret;
 }
 
+bool Resource::operator==(const Resource& rhs) const
+{
+  return (attributes == rhs.attributes && dropped_attributes_count == rhs.dropped_attributes_count && entity_refs == rhs.entity_refs);
+}
+
 void InstrumentationScope::encode(protozero::pbf_writer& writer) const
 {
   pdns::trace::encode(writer, 1, name);
@@ -254,6 +264,11 @@ InstrumentationScope InstrumentationScope::decode(protozero::pbf_reader& reader)
   return ret;
 }
 
+bool InstrumentationScope::operator==(const InstrumentationScope& rhs) const
+{
+  return (name == rhs.name && version == rhs.version && attributes == rhs.attributes && dropped_attributes_count == rhs.dropped_attributes_count);
+}
+
 void Status::encode(protozero::pbf_writer& writer) const
 {
   pdns::trace::encode(writer, 2, message);
@@ -276,6 +291,11 @@ Status Status::decode(protozero::pbf_reader& reader)
     }
   }
   return ret;
+}
+
+bool Status::operator==(const Status& rhs) const
+{
+  return (message == rhs.message && code == rhs.code);
 }
 
 void Span::Event::encode(protozero::pbf_writer& writer) const
@@ -309,6 +329,11 @@ Span::Event Span::Event::decode(protozero::pbf_reader& reader)
     }
   }
   return ret;
+}
+
+bool Span::Event::operator==(const Span::Event& rhs) const
+{
+  return (time_unix_nano == rhs.time_unix_nano && name == rhs.name && attributes == rhs.attributes && dropped_attributes_count == rhs.dropped_attributes_count);
 }
 
 void Span::Link::encode(protozero::pbf_writer& writer) const
@@ -350,6 +375,11 @@ Span::Link Span::Link::decode(protozero::pbf_reader& reader)
     }
   }
   return ret;
+}
+
+bool Span::Link::operator==(const Span::Link& rhs) const
+{
+  return (trace_id == rhs.trace_id && span_id == rhs.span_id && trace_state == rhs.trace_state && attributes == rhs.attributes && dropped_attributes_count == rhs.dropped_attributes_count && flags == rhs.flags);
 }
 
 void Span::encode(protozero::pbf_writer& writer) const
@@ -443,6 +473,11 @@ Span Span::decode(protozero::pbf_reader& reader)
   return ret;
 }
 
+bool Span::operator==(const Span& rhs) const
+{
+  return (trace_id == rhs.trace_id && span_id == rhs.span_id && trace_state == rhs.trace_state && parent_span_id == rhs.parent_span_id && name == rhs.name && kind == rhs.kind && start_time_unix_nano == rhs.start_time_unix_nano && end_time_unix_nano == rhs.end_time_unix_nano && attributes == rhs.attributes && dropped_attributes_count == rhs.dropped_attributes_count && events == rhs.events && dropped_events_count == rhs.dropped_events_count && links == rhs.links && dropped_links_count == rhs.dropped_links_count && status == rhs.status && flags == rhs.flags);
+}
+
 void ScopeSpans::encode(protozero::pbf_writer& writer) const
 {
   {
@@ -477,6 +512,11 @@ ScopeSpans ScopeSpans::decode(protozero::pbf_reader& reader)
   return ret;
 }
 
+bool ScopeSpans::operator==(const ScopeSpans& rhs) const
+{
+  return (scope == rhs.scope && spans == rhs.spans && schema_url == rhs.schema_url);
+}
+
 void ResourceSpans::encode(protozero::pbf_writer& writer) const
 {
   {
@@ -509,6 +549,11 @@ ResourceSpans ResourceSpans::decode(protozero::pbf_reader& reader)
     }
   }
   return ret;
+}
+
+bool ResourceSpans::operator==(const ResourceSpans& rhs) const
+{
+  return (resource == rhs.resource && scope_spans == rhs.scope_spans && schema_url == rhs.schema_url);
 }
 
 void TracesData::encode(protozero::pbf_writer& writer) const
