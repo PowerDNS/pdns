@@ -51,6 +51,7 @@ private:
   static void sendPacket(std::unique_ptr<DNSPacket>& p, int outsock, bool last=true);
   static void getQuestion(int fd, char *mesg, int pktlen, const ComboAddress& remote, unsigned int totalTime);
   static int doAXFR(std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_t slog);
+  static int doAXFRinternal(std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_t slog, const std::string& logPrefix, std::unique_ptr<DNSPacket>& outpacket);
   static int doIXFR(std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_t slog);
   static bool canDoAXFR(std::unique_ptr<DNSPacket>& q, bool isAXFR, std::unique_ptr<PacketHandler>& packetHandler, Logr::log_t slog);
   static void doConnection(int fd, Logr::log_t slog);
