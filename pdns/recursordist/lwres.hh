@@ -79,6 +79,7 @@ public:
     return res == Result::OSLimitError || res == Result::ChainLimitError;
   }
 
+  std::vector<DNSRecord> d_records;
   // The names have been expanded from a wildcard, so we need to
   // 1/ check that the initial name did not exist (denial of existence) so
   //    that the wildcard could have been applied
@@ -89,7 +90,6 @@ public:
   // wildcard expanded onto itself (isWildcardExpandedOntoItself)
   // when consuming this
   std::unordered_map<DNSName, uint8_t> d_synthesizedFromWildcard;
-  std::vector<DNSRecord> d_records;
   std::optional<DNSName> d_seenSOA{std::nullopt};
   uint32_t d_usec{0};
   uint32_t d_bytesReceived{0};

@@ -4357,6 +4357,152 @@ static void determineAnswerType(LWResult& lwr, bool haveAnswers, bool seenReferr
   }
 }
 
+void SyncRes::validateSignatures(const std::string& prefix, LWResult& lwr, const DNSName& qname, QType qtype, const DNSName& auth, bool wasForwardRecurse, unsigned int depth)
+{
+  vState state{vState::Indeterminate};
+  tcache_t tcache;
+  MemRecursorCache::AuthRecsVec authorityRecs;
+
+  for (const auto& rec : lwr.d_records) {
+    if (rec.d_type == QType::OPT || rec.d_class != QClass::IN) {
+      continue;
+    }
+
+    if (!rec.d_name.isPartOf(auth)) {
+      continue;
+    }
+
+    if (rec.d_type == QType::RRSIG) {
+      auto rrsig = getRR<RRSIGRecordContent>(rec);
+      if (!rrsig) {
+        continue;
+      }
+
+      tcache[{rec.d_name, rrsig->d_type, rec.d_place}].signatures.push_back(rrsig);
+      tcache[{rec.d_name, rrsig->d_type, rec.d_place}].signaturesTTL = std::min(tcache[{rec.d_name, rrsig->d_type, rec.d_place}].signaturesTTL, rec.d_ttl);
+      continue;
+    }
+
+    if (rec.d_type == QType::DS && rec.d_name == auth) {
+      // DS provided by child zone!?
+      continue;
+    }
+
+    if (lwr.d_isDNAMEAnswer && rec.d_type == QType::CNAME) {
+      // NO - we already have a DNAME answer for this domain
+      continue;
+    }
+
+    DNSRecord dnsRecord(rec);
+    dnsRecord.d_place = DNSResourceRecord::ANSWER;
+    tcache[{rec.d_name, rec.d_type, rec.d_place}].records.push_back(std::move(dnsRecord));
+  }
+
+  for (const auto& tCacheEntry : tcache) {
+
+    if (tCacheEntry.second.records.empty()) { // this happens when we did store signatures, but passed on the records themselves
+      continue;
+    }
+
+    /* Even if the AA bit is set, additional data cannot be considered
+       as authoritative. This is especially important during validation
+       because keeping records in the additional section is allowed even
+       if the corresponding RRSIGs are not included, without setting the TC
+       bit, as stated in rfc4035's section 3.1.1.  Including RRSIG RRs in a Response:
+       "When placing a signed RRset in the Additional section, the name
+       server MUST also place its RRSIG RRs in the Additional section.
+       If space does not permit inclusion of both the RRset and its
+       associated RRSIG RRs, the name server MAY retain the RRset while
+       dropping the RRSIG RRs.  If this happens, the name server MUST NOT
+       set the TC bit solely because these RRSIG RRs didn't fit."
+    */
+    bool isAA = lwr.d_aabit && tCacheEntry.first.place != DNSResourceRecord::ADDITIONAL;
+    /* if we forwarded the query to a recursor, we can expect the answer to be signed,
+       even if the answer is not AA. Of course that's not only true inside a Secure
+       zone, but we check that below. */
+    bool expectSignature = tCacheEntry.first.place == DNSResourceRecord::ANSWER || ((lwr.d_aabit || wasForwardRecurse) && tCacheEntry.first.place != DNSResourceRecord::ADDITIONAL);
+    /* in a non authoritative answer, we only care about the DS record (or lack of)  */
+    if (!isAA && (tCacheEntry.first.type == QType::DS || tCacheEntry.first.type == QType::NSEC || tCacheEntry.first.type == QType::NSEC3) && tCacheEntry.first.place == DNSResourceRecord::AUTHORITY) {
+      expectSignature = true;
+    }
+
+    if (lwr.d_isCNAMEAnswer && (tCacheEntry.first.place != DNSResourceRecord::ANSWER || tCacheEntry.first.type != QType::CNAME || tCacheEntry.first.name != qname)) {
+      /*
+        rfc2181 states:
+        Note that the answer section of an authoritative answer normally
+        contains only authoritative data.  However when the name sought is an
+        alias (see section 10.1.1) only the record describing that alias is
+        necessarily authoritative.  Clients should assume that other records
+        may have come from the server's cache.  Where authoritative answers
+        are required, the client should query again, using the canonical name
+        associated with the alias.
+      */
+      isAA = false;
+      expectSignature = false;
+    }
+    if (lwr.d_isDNAMEAnswer && (tCacheEntry.first.place != DNSResourceRecord::ANSWER || tCacheEntry.first.type != QType::DNAME || !qname.isPartOf(tCacheEntry.first.name))) {
+      /* see above */
+      isAA = false;
+      expectSignature = false;
+    }
+
+    if ((lwr.d_isCNAMEAnswer || lwr.d_isDNAMEAnswer) && tCacheEntry.first.place == DNSResourceRecord::AUTHORITY && tCacheEntry.first.type == QType::NS && auth == tCacheEntry.first.name) {
+      /* These NS can't be authoritative since we have a CNAME/DNAME answer for which (see above) only the
+         record describing that alias is necessarily authoritative.
+         But if we allow the current auth, which might be serving the child zone, to raise the TTL
+         of non-authoritative NS in the cache, they might be able to keep a "ghost" zone alive forever,
+         even after the delegation is gone from the parent.
+         So let's just do nothing with them, we can fetch them directly if we need them.
+      */
+      continue;
+    }
+
+    /*
+     * RFC 6672 section 5.3.1
+     *  In any response, a signed DNAME RR indicates a non-terminal
+     *  redirection of the query.  There might or might not be a server-
+     *  synthesized CNAME in the answer section; if there is, the CNAME will
+     *  never be signed.  For a DNSSEC validator, verification of the DNAME
+     *  RR and then that the CNAME was properly synthesized is sufficient
+     *  proof.
+     *
+     * We do the synthesis check in processRecords, here we make sure we
+     * don't validate the CNAME.
+     */
+    if (lwr.d_isDNAMEAnswer && tCacheEntry.first.type == QType::CNAME) {
+      expectSignature = false;
+    }
+
+    vState recordState = vState::Indeterminate;
+
+    if (expectSignature && shouldValidate()) {
+      vState initialState = getValidationStatus(tCacheEntry.first.name, !tCacheEntry.second.signatures.empty(), tCacheEntry.first.type == QType::DS, depth, prefix);
+      LOG(prefix << qname << ": Got initial zone status " << initialState << " for record " << tCacheEntry.first.name << "|" << DNSRecordContent::NumberToType(tCacheEntry.first.type) << endl);
+
+      if (initialState == vState::Secure) {
+        if (tCacheEntry.first.type == QType::DNSKEY && tCacheEntry.first.place == DNSResourceRecord::ANSWER && tCacheEntry.first.name == getSigner(tCacheEntry.second.signatures)) {
+          LOG(prefix << qname << ": Validating DNSKEY for " << tCacheEntry.first.name << endl);
+          recordState = validateDNSKeys(tCacheEntry.first.name, tCacheEntry.second.records, tCacheEntry.second.signatures, depth, prefix);
+        }
+        else {
+          LOG(prefix << qname << ": Validating non-additional " << QType(tCacheEntry.first.type).toString() << " record for " << tCacheEntry.first.name << endl);
+          recordState = validateRecordsWithSigs(depth, prefix, qname, qtype, tCacheEntry.first.name, QType(tCacheEntry.first.type), tCacheEntry.second.records, tCacheEntry.second.signatures);
+        }
+      }
+      else {
+        recordState = initialState;
+        LOG(prefix << qname << ": Skipping validation because the current state is " << recordState << endl);
+      }
+
+      LOG(prefix << qname << ": Validation result is " << recordState << ", current state is " << state << endl);
+      if (state != recordState) {
+        updateValidationState(qname, state, recordState, prefix);
+      }
+    }
+
+  }
+}
+
 void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DNSName& qname, const QType qtype, const DNSName& auth, bool wasForwarded, bool rdQuery)
 {
   const bool wasForwardRecurse = wasForwarded && rdQuery;
@@ -5972,6 +6118,8 @@ bool SyncRes::processAnswer(unsigned int depth, const string& prefix, LWResult& 
 {
   fixupAnswer(prefix, lwr, qname, qtype, auth, wasForwarded, sendRDQuery);
   sanitizeRecords(prefix, lwr, qname, qtype, auth, wasForwarded, sendRDQuery);
+
+  validateSignatures(prefix, lwr, qname, qtype, auth, wasForwarded && sendRDQuery, depth);
 
   normalizeTTLs(lwr.d_records, d_updatingRootNS, ednsmask.has_value(), s_minimumTTL, s_minimumECSTTL);
 

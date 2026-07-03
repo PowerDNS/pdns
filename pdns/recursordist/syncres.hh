@@ -743,6 +743,8 @@ private:
 
   void checkWildcardProof(const DNSName& qname, const QType& qtype, DNSRecord& rec, const LWResult& lwr, vState& state, unsigned int depth, const std::string& prefix, unsigned int wildcardLabelsCount);
 
+  void validateSignatures(const std::string& prefix, LWResult& lwr, const DNSName& qname, QType qtype, const DNSName& auth, bool wasForwardRecurse, unsigned int depth);
+
   void setUpdatingRootNS()
   {
     d_updatingRootNS = true;
