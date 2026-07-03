@@ -637,12 +637,10 @@ namespace {
 }
 
 
-/** do the actual zone transfer. Return 0 in case of error, 1 in case of success */
 // NOLINTNEXTLINE(readability-identifier-length)
-int TCPNameserver::doAXFR(std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_t slog)  // NOLINT(readability-function-cognitive-complexity)
+int TCPNameserver::doAXFR(std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_t slog)
 {
   const ZoneName& targetZone = q->qdomainzone;
-  const DNSName& target = targetZone.operator const DNSName&();
   string logPrefix;
 
   if (!g_slogStructured) {
@@ -660,7 +658,6 @@ int TCPNameserver::doAXFR(std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_
   // determine if zone exists and AXFR is allowed using existing backend before spawning a new backend.
   DLOG(SLOG(g_log<<logPrefix<<"looking for SOA"<<endl,
             slog->info(Logr::Debug, "AXFR: looking for SOA", "zone", Logging::Loggable(targetZone), "client", Logging::Loggable(q->getRemoteStringWithPort()))));
-  SOAData sd;
   {
     auto packetHandler = s_P.lock();
     if(!*packetHandler) {
@@ -678,6 +675,7 @@ int TCPNameserver::doAXFR(std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_
       return 0;
     }
 
+    SOAData sd;
     if (!(*packetHandler)->getBackend()->getSOAUncached(targetZone, sd)) {
       SLOG(g_log<<Logger::Warning<<logPrefix<<"failed: not authoritative"<<endl,
            slog->info(Logr::Warning, "AXFR failed: not authoritative", "zone", Logging::Loggable(targetZone), "client", Logging::Loggable(q->getRemoteStringWithPort())));
@@ -687,8 +685,18 @@ int TCPNameserver::doAXFR(std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_
     }
   }
 
+  return doAXFRinternal(q, outsock, slog, logPrefix, outpacket);
+}
+
+/** do the actual zone transfer. Return 0 in case of error, 1 in case of success */
+int TCPNameserver::doAXFRinternal(std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_t slog, const std::string& logPrefix, std::unique_ptr<DNSPacket>& outpacket)  // NOLINT(readability-function-cognitive-complexity)
+{
+  const ZoneName& targetZone = q->qdomainzone;
+  const DNSName& target = targetZone.operator const DNSName&();
+
   // find domain_id via SOA and list complete domain. No SOA, no AXFR
   UeberBackend db;
+  SOAData sd;
   if(!db.getSOAUncached(targetZone, sd)) {
     SLOG(g_log<<Logger::Warning<<logPrefix<<"failed: not authoritative in second instance"<<endl,
          slog->info(Logr::Warning, "AXFR failed: not authoritative in second instance", "zone", Logging::Loggable(targetZone), "client", Logging::Loggable(q->getRemoteStringWithPort())));
@@ -1413,7 +1421,11 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_
 
   SLOG(g_log<<Logger::Notice<<logPrefix<<"IXFR fallback to AXFR"<<endl,
        slog->info(Logr::Notice, "IXFR fallback to AXFR", "zone", Logging::Loggable(targetZone), "client", Logging::Loggable(q->getRemoteStringWithPort())));
-  return doAXFR(q, outsock, slog);
+  // Update log prefix as well
+  if (!g_slogStructured) {
+    logPrefix.at(0) = 'A';
+  }
+  return doAXFRinternal(q, outsock, slog, logPrefix, outpacket);
 }
 
 TCPNameserver::~TCPNameserver() = default;
