@@ -79,6 +79,16 @@ public:
     return res == Result::OSLimitError || res == Result::ChainLimitError;
   }
 
+  // The names have been expanded from a wildcard, so we need to
+  // 1/ check that the initial name did not exist (denial of existence) so
+  //    that the wildcard could have been applied
+  // 2/ gather the corresponding NSEC/NSEC3 records and their RRSIGs to allow
+  //    downstream validators to do their thing
+  // The value is the number of labels of the wildcard (from the RRSIG)
+  // so that we can reconstruct it. Remember to check if this is a
+  // wildcard expanded onto itself (isWildcardExpandedOntoItself)
+  // when consuming this
+  std::unordered_map<DNSName, uint8_t> d_synthesizedFromWildcard;
   std::vector<DNSRecord> d_records;
   std::optional<DNSName> d_seenSOA{std::nullopt};
   uint32_t d_usec{0};
@@ -87,8 +97,6 @@ public:
   // use negative values to stop processing of queries
   int d_rcode{0};
   AnswerType d_answerType{AnswerType::Unknown};
-  std::optional<uint8_t> d_synthesizedFromWildcard{std::nullopt};
-  bool d_isWildcardExpandedOntoItself{false};
   bool d_validpacket{false};
   bool d_aabit{false};
   bool d_tcbit{false};

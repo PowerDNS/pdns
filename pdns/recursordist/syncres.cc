@@ -4267,6 +4267,43 @@ static bool isRedirection(QType qtype)
   return qtype == QType::CNAME || qtype == QType::DNAME;
 }
 
+static void checkIfAnswerContainsRecordsExpandedFromAWildcard(LWResult& lwr, const DNSName& qname, const std::unordered_set<DNSName>& cnames)
+{
+  // names that might be expanded from a wildcard, and thus require denial of existence proof
+  // this is the queried name and any part of the CNAME chain from the queried name
+  // the key is the name itself, the value is initially false and is set to true once we have
+  // confirmed it was actually expanded from a wildcard
+  std::unordered_set<DNSName> wildcardCandidates{{qname}};
+  for (const auto& cname : cnames) {
+    wildcardCandidates.emplace(cname);
+  }
+
+  for (const auto& rec : lwr.d_records) {
+    if (rec.d_type != QType::RRSIG) {
+      continue;
+    }
+
+    auto rrsig = getRR<RRSIGRecordContent>(rec);
+    if (!rrsig) {
+      continue;
+    }
+
+    const auto labelCount = rec.d_name.countLabels();
+    /* As illustrated in rfc4035's Appendix B.6, the RRSIG label
+       count can be lower than the name's label count if it was
+       synthesized from the wildcard. Note that the difference might
+       be > 1. */
+    if (auto wcIt = wildcardCandidates.find(rec.d_name); wcIt != wildcardCandidates.end() && isWildcardExpanded(labelCount, *rrsig)) {
+      /* if we have a wildcard expanded onto itself, we don't need to prove
+         that the exact name doesn't exist because it actually does.
+         We still want to gather the corresponding NSEC/NSEC3 records
+         to pass them to our client in case it wants to validate by itself.
+      */
+      lwr.d_synthesizedFromWildcard.emplace(rec.d_name, rrsig->d_labels);
+    }
+  }
+}
+
 // Walk the chain from qname, only adding names that can be reached
 static std::unordered_set<DNSName> sanitizeCNAMEChain(const DNSName& qname, std::unordered_map<DNSName, DNSName>& cnameChain)
 {
@@ -4294,6 +4331,10 @@ static void processCNAMEChain(LWResult& lwr, const DNSName& qname, std::unordere
     if (cnameSeen && !lwr.d_isDNAMEAnswer) {
       lwr.d_isCNAMEAnswer = true;
     }
+    checkIfAnswerContainsRecordsExpandedFromAWildcard(lwr, qname, allowed);
+  }
+  else {
+    checkIfAnswerContainsRecordsExpandedFromAWildcard(lwr, qname, {});
   }
 }
 
