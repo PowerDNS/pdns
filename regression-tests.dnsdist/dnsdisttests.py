@@ -230,7 +230,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         output_without_loading_lines = b""
         for line in output.splitlines():
             if not line.startswith(b"Loading configuration from ") and not line.startswith(
-                    b'msg=\"Loading configuration from '
+                b'msg=\"Loading configuration from '
             ):
                 output_without_loading_lines += line + b"\n"
         output = output_without_loading_lines
