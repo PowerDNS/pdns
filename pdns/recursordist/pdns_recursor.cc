@@ -356,7 +356,10 @@ LWResult::Result asendto(const void* data, size_t len,
     else {
       local.sin4.sin_family = toAddress.sin4.sin_family;
     }
-    // XXX signedness!
+    // sendMsgWithOptions returns size_t while send(2) returns ssize_t. sendMsgWithOption also
+    // fatals (with calling exit!) on some error conditions.  This all looks fragile, but there are
+    // existing callers, changing sendMsgWithOption() to return ssize_t to mkae it more sned(2) like
+    // needs to be done with extra care.
     sent = sendMsgWithOptions(*fileDesc, data, len, nullptr, &local, interface->d_index, 0);
   }
   if (sent < 0) {

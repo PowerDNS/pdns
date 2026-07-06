@@ -36,7 +36,9 @@ namespace pdns {
     std::optional<Interface> d_interface;
     bool operator<(const AddressAndInterface& arg) const
     {
-      return d_address < arg.d_address; // XXX
+      // We only compare the address parts. Having two equal addresses on the same interface is not
+      // a case I want to think about at the moment.
+      return d_address < arg.d_address;
     };
     std::string toString()
     {
