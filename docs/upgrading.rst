@@ -8,7 +8,15 @@ Please upgrade to the PowerDNS Authoritative Server 4.0.0 from 3.4.2+.
 See the `3.X <https://doc.powerdns.com/3/authoritative/upgrading/>`__
 upgrade notes if your version is older than 3.4.2.
 
-5.0.0 to 5.1.0
+5.1.x to master
+---------------
+
+NAPTR additional answers
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+Since version 5.0, the information of the `a` and `s` NAPTR records are added to the additional answers section. This behaviour can be disabled by setting :ref:`setting-naptr-additional-processing` to `no`.
+
+5.0.x to 5.1.x
 --------------
 
 Cross origin requests
