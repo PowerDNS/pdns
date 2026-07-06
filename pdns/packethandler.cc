@@ -526,11 +526,9 @@ DNSName PacketHandler::doAdditionalServiceProcessing(const DNSName &firstTarget,
 }
 
 
-// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void PacketHandler::doAdditionalProcessing(DNSPacket& p, std::unique_ptr<DNSPacket>& r)
 {
   DNSName content;
-  DNSZoneRecord dzr;
   std::unordered_set<DNSName> lookup;
   vector<DNSZoneRecord> extraRecords;
   const auto& rrs = r->getRRS();
@@ -561,32 +559,9 @@ void PacketHandler::doAdditionalProcessing(DNSPacket& p, std::unique_ptr<DNSPack
           }
           break;
         }
-        case QType::NAPTR: {
-          auto naptrContent = getRR<NAPTRRecordContent>(rr.dr);
-          auto flags = naptrContent->getFlags();
-          toLowerInPlace(flags);
-          if (flags.find('a') != string::npos) {
-            content = naptrContent->getReplacement();
-            DLOG(SLOG(g_log<<Logger::Debug<<"adding NAPTR replacement 'a'="<<content<<endl,
-                      d_slog->info(Logr::Debug, "adding NAPTR replacement", "a", Logging::Loggable(content))));
-          }
-          else if (flags.find('s') != string::npos) {
-            content = naptrContent->getReplacement();
-            DLOG(SLOG(g_log<<Logger::Debug<<"adding NAPTR replacement 's'="<<content<<endl,
-                      d_slog->info(Logr::Debug, "adding NAPTR replacement", "s", Logging::Loggable(content))));
-            B.lookup(QType(QType::SRV), content, d_sd.domain_id, &p);
-            while(B.get(dzr)) {
-              content=getRR<SRVRecordContent>(dzr.dr)->d_target;
-              if(content.isPartOf(d_sd.qname())) {
-                lookup.emplace(content);
-              }
-              dzr.dr.d_place=DNSResourceRecord::ADDITIONAL;
-              extraRecords.emplace_back(std::move(dzr));
-            }
-            content.clear();
-          }
-          break;
-        }
+        case QType::NAPTR:
+          doAdditionalNAPTRProcessing(p, rr, lookup, extraRecords);
+          continue;
         default:
           continue;
       }
@@ -645,12 +620,45 @@ void PacketHandler::doAdditionalProcessing(DNSPacket& p, std::unique_ptr<DNSPack
   }
 
   for(const auto& name : lookup) {
+    DNSZoneRecord dzr;
     B.lookup(QType(QType::ANY), name, d_sd.domain_id, &p);
     while(B.get(dzr)) {
       if(dzr.dr.d_type == QType::A || dzr.dr.d_type == QType::AAAA) {
         dzr.dr.d_place=DNSResourceRecord::ADDITIONAL;
         r->addRecord(std::move(dzr));
       }
+    }
+  }
+}
+
+void PacketHandler::doAdditionalNAPTRProcessing(DNSPacket&p, const DNSZoneRecord& rr, std::unordered_set<DNSName>& lookup, vector<DNSZoneRecord>& extraRecords) // NOLINT(readability-identifier-length)
+{
+  DNSName content;
+  auto naptrContent = getRR<NAPTRRecordContent>(rr.dr);
+  auto flags = naptrContent->getFlags();
+  toLowerInPlace(flags);
+
+  if (flags.find('a') != string::npos) {
+    content = naptrContent->getReplacement();
+    DLOG(SLOG(g_log<<Logger::Debug<<"adding NAPTR replacement 'a'="<<content<<endl,
+              d_slog->info(Logr::Debug, "adding NAPTR replacement", "a", Logging::Loggable(content))));
+    if(content.isPartOf(d_sd.qname())) {
+      lookup.emplace(content);
+    }
+  }
+  else if (flags.find('s') != string::npos) {
+    content = naptrContent->getReplacement();
+    DLOG(SLOG(g_log<<Logger::Debug<<"adding NAPTR replacement 's'="<<content<<endl,
+              d_slog->info(Logr::Debug, "adding NAPTR replacement", "s", Logging::Loggable(content))));
+    DNSZoneRecord dzr;
+    B.lookup(QType(QType::SRV), content, d_sd.domain_id, &p);
+    while(B.get(dzr)) {
+      content=getRR<SRVRecordContent>(dzr.dr)->d_target;
+      if(content.isPartOf(d_sd.qname())) {
+        lookup.emplace(content);
+      }
+      dzr.dr.d_place=DNSResourceRecord::ADDITIONAL;
+      extraRecords.emplace_back(std::move(dzr));
     }
   }
 }
