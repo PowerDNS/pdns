@@ -731,6 +731,37 @@ int TCPNameserver::doAXFR(std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_
   return doAXFRinternal(q, ctx);
 }
 
+bool TCPNameserver::axfrCheckTSIG(std::unique_ptr<DNSPacket>& q, XFRContext& ctx, UeberBackend& db, bool alwaysCheck)
+{
+  ctx.haveTSIGDetails = q->getTSIGDetails(&ctx.trc, &ctx.tsigkeyname);
+
+  if(ctx.haveTSIGDetails && !ctx.tsigkeyname.empty()) {
+    string tsig64;
+    DNSName algorithm=ctx.trc.d_algoName;
+    if (algorithm == g_hmacmd5dnsname_long) {
+      algorithm = g_hmacmd5dnsname;
+    }
+    if (algorithm != g_gsstsigdnsname || alwaysCheck) {
+      if(!db.getTSIGKey(ctx.tsigkeyname, algorithm, tsig64)) {
+        SLOG(g_log << Logger::Error << "TSIG key '" << ctx.tsigkeyname << "' for domain '" << ctx.targetZone << "' not found" << endl,
+             ctx.slog->info(Logr::Error, ctx.xfrType + " refused: TSIG key not found", "zone", Logging::Loggable(ctx.targetZone), "client", Logging::Loggable(ctx.client), "key", Logging::Loggable(ctx.tsigkeyname), "algorithm", Logging::Loggable(algorithm)));
+        ctx.outpacket->setRcode(RCode::NotAuth);
+        sendPacket(ctx.outpacket,ctx.outsock);
+        return false;
+      }
+      if (B64Decode(tsig64, ctx.tsigsecret) == -1) {
+        SLOG(g_log<<Logger::Error<<ctx.logPrefix<<"unable to Base-64 decode TSIG key '"<<ctx.tsigkeyname<<"'"<<endl,
+             ctx.slog->info(Logr::Error, "AXFR: Unable to Base-64 decode TSIG key", "zone", Logging::Loggable(ctx.targetZone), "client", Logging::Loggable(ctx.client), "key", Logging::Loggable(ctx.tsigkeyname), "algorithm", Logging::Loggable(algorithm)));
+        ctx.outpacket->setRcode(RCode::ServFail);
+        sendPacket(ctx.outpacket,ctx.outsock);
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
 /** do the actual zone transfer. Return 0 in case of error, 1 in case of success */
 int TCPNameserver::doAXFRinternal(std::unique_ptr<DNSPacket>& q, XFRContext& ctx)
 {
@@ -772,30 +803,8 @@ int TCPNameserver::doAXFRinternal(std::unique_ptr<DNSPacket>& q, XFRContext& ctx
     }
   }
 
-  ctx.haveTSIGDetails = q->getTSIGDetails(&ctx.trc, &ctx.tsigkeyname);
-
-  if(ctx.haveTSIGDetails && !ctx.tsigkeyname.empty()) {
-    string tsig64;
-    DNSName algorithm=ctx.trc.d_algoName;
-    if (algorithm == g_hmacmd5dnsname_long) {
-      algorithm = g_hmacmd5dnsname;
-    }
-    if (algorithm != g_gsstsigdnsname) {
-      if(!db.getTSIGKey(ctx.tsigkeyname, algorithm, tsig64)) {
-        SLOG(g_log<<Logger::Warning<<ctx.logPrefix<<"TSIG key not found"<<endl,
-             ctx.slog->info(Logr::Warning, "AXFR: TSIG key not found", "zone", Logging::Loggable(ctx.targetZone), "client", Logging::Loggable(ctx.client), "key", Logging::Loggable(ctx.tsigkeyname), "algorithm", Logging::Loggable(algorithm)));
-        ctx.outpacket->setRcode(RCode::NotAuth);
-        sendPacket(ctx.outpacket,ctx.outsock);
-        return 0;
-      }
-      if (B64Decode(tsig64, ctx.tsigsecret) == -1) {
-        SLOG(g_log<<Logger::Error<<ctx.logPrefix<<"unable to Base-64 decode TSIG key '"<<ctx.tsigkeyname<<"'"<<endl,
-             ctx.slog->info(Logr::Error, "AXFR: Unable to Base-64 decode TSIG key", "zone", Logging::Loggable(ctx.targetZone), "client", Logging::Loggable(ctx.client), "key", Logging::Loggable(ctx.tsigkeyname), "algorithm", Logging::Loggable(algorithm)));
-        ctx.outpacket->setRcode(RCode::ServFail);
-        sendPacket(ctx.outpacket,ctx.outsock);
-        return 0;
-      }
-    }
+  if (!axfrCheckTSIG(q, ctx, db, false)) {
+    return 0;
   }
 
   // SOA *must* go out first, our signing pipe might reorder
@@ -1461,28 +1470,8 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_
     UeberBackend db; // NOLINT(readability-identifier-length)
     DNSSECKeeper dk(ctx.slog, &db); // NOLINT(readability-identifier-length)
 
-    ctx.haveTSIGDetails = q->getTSIGDetails(&ctx.trc, &ctx.tsigkeyname);
-
-    if(ctx.haveTSIGDetails && !ctx.tsigkeyname.empty()) {
-      string tsig64;
-      DNSName algorithm=ctx.trc.d_algoName; // FIXME400: was toLowerCanonic, compare output
-      if (algorithm == g_hmacmd5dnsname_long) {
-        algorithm = g_hmacmd5dnsname;
-      }
-      if (!db.getTSIGKey(ctx.tsigkeyname, algorithm, tsig64)) {
-        SLOG(g_log << Logger::Error << "TSIG key '" << ctx.tsigkeyname << "' for domain '" << ctx.targetZone << "' not found" << endl,
-           ctx.slog->info(Logr::Error, "IXFR refused: TSIG key not found", "zone", Logging::Loggable(ctx.targetZone), "client", Logging::Loggable(ctx.client), "key", Logging::Loggable(ctx.tsigkeyname), "algorithm", Logging::Loggable(algorithm)));
-        ctx.outpacket->setRcode(RCode::NotAuth);
-        sendPacket(ctx.outpacket,ctx.outsock);
-        return 0;
-      }
-      if (B64Decode(tsig64, ctx.tsigsecret) == -1) {
-        SLOG(g_log<<Logger::Error<<ctx.logPrefix<<"unable to Base-64 decode TSIG key '"<<ctx.tsigkeyname<<"'"<<endl,
-             ctx.slog->info(Logr::Error, "IXFR: Unable to Base-64 decode TSIG key", "zone", Logging::Loggable(ctx.targetZone), "client", Logging::Loggable(ctx.client), "key", Logging::Loggable(ctx.tsigkeyname), "algorithm", Logging::Loggable(algorithm)));
-        ctx.outpacket->setRcode(RCode::ServFail);
-        sendPacket(ctx.outpacket,ctx.outsock);
-        return 0;
-      }
+    if (!axfrCheckTSIG(q, ctx, db, true)) {
+      return 0;
     }
 
     // SOA *must* go out first, our signing pipe might reorder

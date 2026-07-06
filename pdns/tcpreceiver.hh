@@ -58,6 +58,7 @@ private:
   static int doAXFRinternal(std::unique_ptr<DNSPacket>&q, XFRContext& ctx);
   static int doIXFR(std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_t slog);
   static bool canDoAXFR(std::unique_ptr<DNSPacket>& q, XFRContext& ctx, std::unique_ptr<PacketHandler>& packetHandler);
+  static bool axfrCheckTSIG(std::unique_ptr<DNSPacket>& q, XFRContext& ctx, UeberBackend& db, bool alwaysCheck);
   static bool axfrProducerZone(XFRContext& ctx, vector<DNSZoneRecord>& zrrs);
   static bool axfrRegularZone(XFRContext& ctx, vector<DNSZoneRecord>& zrrs);
   static bool axfrAlias(XFRContext& ctx, vector<DNSZoneRecord>& zrrs, DNSZoneRecord& zrr);
