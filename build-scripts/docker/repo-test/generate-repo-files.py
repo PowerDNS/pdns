@@ -31,6 +31,7 @@ g_verbose = False
 
 g_env = Environment(loader=FileSystemLoader("templates/"))
 
+g_docker_cmd = "docker"
 g_dockerfile = "Dockerfile."
 g_run_output = False
 
@@ -67,6 +68,7 @@ def init_argparser():
         ],
         help="the release to generate Docker files for: " + "%(choices)s",
     )
+    parser.add_argument("--podman", action="store_true", help="use Podman instead of Docker")
     parser.add_argument("--run-output", action="store_true", help="always show output from running a container")
     parser.add_argument("--test", action="store_true", help="test the release")
     parser.add_argument("--test-aarch64", action="store_true", help="test the release for ARM64")
@@ -256,14 +258,14 @@ def build(dockerfile, arch="x86_64"):
         print("  - tag = {}".format(tag))
     if arch == "x86_64":
         cp = subprocess.run(
-            ["docker", "build", "--no-cache", "--pull", "--file", dockerfile, "--tag", tag, "."],
+            [g_docker_cmd, "build", "--no-cache", "--pull", "--file", dockerfile, "--tag", tag, "."],
             capture_output=not (g_verbose),
         )
     # not very subtle
     elif arch == "aarch64":
         cp = subprocess.run(
             [
-                "docker",
+                g_docker_cmd,
                 "build",
                 "--platform",
                 "linux/arm64/v8",
@@ -291,11 +293,11 @@ def run(tag, arch="x86_64"):
         capture_run_output = not (g_verbose)
     print("Running Docker container tagged {}...".format(tag))
     if arch == "x86_64":
-        cp = subprocess.run(["docker", "run", tag], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        cp = subprocess.run([g_docker_cmd, "run", tag], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     # not very subtle
     elif arch == "aarch64":
         cp = subprocess.run(
-            ["docker", "run", "--platform", "linux/arm64/v8", tag], stdout=subprocess.PIPE, stderr=subprocess.STDOUT
+            [g_docker_cmd, "run", "--platform", "linux/arm64/v8", tag], stdout=subprocess.PIPE, stderr=subprocess.STDOUT
         )
     _version = re.search(
         r"(PowerDNS Authoritative Server|PowerDNS Recursor|" + r"dnsdist) (\d+\.\d+\.\d+(-\w+)?[^ ]*)",
@@ -400,6 +402,9 @@ if args.version:
 
 if args.verbose:
     g_verbose = True
+
+if args.podman:
+    g_docker_cmd = "podman"
 
 if args.run_output:
     g_run_output = True
