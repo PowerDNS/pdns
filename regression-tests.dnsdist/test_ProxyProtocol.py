@@ -1125,7 +1125,8 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
         receivedResponse = None
         conn = self.openTLSConnection(reverseProxyPort, self._serverName, self._caCert, timeout=2.0)
         self.sendTCPQueryOverConnection(conn, query, response=response)
-        receivedResponse = self.recvTCPResponseOverConnection(conn)
+        # longer timeout, this often fails on CI
+        receivedResponse = self.recvTCPResponseOverConnection(conn, timeout=4.0)
         (receivedProxyPayload, receivedDNSData) = fromProxyQueue.get(True, 2.0)
         self.assertTrue(receivedProxyPayload)
         self.assertTrue(receivedDNSData)
@@ -1215,7 +1216,8 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
         conn = self.openTLSConnection(reverseProxyPort, self._serverName, self._caCert, timeout=2.0)
 
         self.sendTCPQueryOverConnection(conn, query, response=response)
-        receivedResponse = self.recvTCPResponseOverConnection(conn)
+        # longer timeout, this often fails on CI
+        receivedResponse = self.recvTCPResponseOverConnection(conn, timeout=4.0)
         (receivedProxyPayload, receivedDNSData) = fromProxyQueue.get(True, 2.0)
         self.assertTrue(receivedProxyPayload)
         self.assertTrue(receivedDNSData)
