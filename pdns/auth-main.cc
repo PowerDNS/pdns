@@ -345,6 +345,7 @@ static void declareArguments()
   ::arg().set("max-include-depth", "Maximum number of nested $INCLUDE directives while processing a zone file") = "20";
   ::arg().setSwitch("upgrade-unknown-types", "Transparently upgrade known TYPExxx records. Recommended to keep off, except for PowerDNS upgrades until data sources are cleaned up") = "no";
   ::arg().setSwitch("svc-autohints", "Transparently fill ipv6hint=auto ipv4hint=auto SVC params with AAAA/A records for the target name of the record (if within the same zone)") = "no";
+  ::arg().setSwitch("naptr-additional-processing", "Add NAPTR a and s records to the additional section") = "yes";
 
   ::arg().setSwitch("consistent-backends", "Assume individual zones are not divided over backends. Send only ANY lookup operations to the backend to reduce the number of lookups") = "yes";
 
@@ -848,6 +849,7 @@ static void mainthread()
   DNSPacket::s_udpTruncationThreshold = std::max(512, ::arg().asNum("udp-truncation-threshold"));
   DNSPacket::s_doEDNSSubnetProcessing = ::arg().mustDo("edns-subnet-processing");
   PacketHandler::s_SVCAutohints = ::arg().mustDo("svc-autohints");
+  PacketHandler::s_NAPTRprocessing = ::arg().mustDo("naptr-additional-processing");
 
   g_proxyProtocolACL.toMasks(::arg()["proxy-protocol-from"]);
   g_proxyProtocolMaximumSize = ::arg().asNum("proxy-protocol-maximum-size");

@@ -60,6 +60,7 @@ AtomicCounter PacketHandler::s_count;
 NetmaskGroup PacketHandler::s_allowNotifyFrom;
 set<string> PacketHandler::s_forwardNotify;
 bool PacketHandler::s_SVCAutohints{false};
+bool PacketHandler::s_NAPTRprocessing{false};
 
 extern string g_programname;
 
@@ -554,7 +555,9 @@ void PacketHandler::doAdditionalProcessing(DNSPacket& p, std::unique_ptr<DNSPack
           break;
         }
         case QType::NAPTR:
-          doAdditionalNAPTRProcessing(p, rr, lookup, extraRecords);
+          if (s_NAPTRprocessing) {
+            doAdditionalNAPTRProcessing(p, rr, lookup, extraRecords);
+          }
           continue;
         default:
           continue;
