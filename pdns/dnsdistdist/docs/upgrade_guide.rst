@@ -41,7 +41,9 @@ support HTTP/2, but might be one in setups running dnsdist behind a reverse-prox
 
 Structured logging is now enabled by default, and can be disabled via :func:`setStructuredLogging` or the ``--structured-logging`` command-line switch.
 
-:program:`dnsdist` now looks by default for a configuration file named ``dnsdist.yml`` in the system configuration directory (determined by the ``SYSCONFDIR`` variable during compilation), instead of ``dnsdist.conf``. Please be aware that if a file named ``dnsdist.lua`` is present in the system configuration directory, it will also be loaded but without the ability to use configuration directives. Please see :doc:`the YAML settings reference <reference/yaml-settings>` for more information.
+:program:`dnsdist` now looks by default for a configuration file named ``dnsdist.yml`` in the system configuration directory (determined by the ``SYSCONFDIR`` variable during compilation), instead of ``dnsdist.conf``. If ``dnsdist.yml`` does not exist, it will automatically fall back to ``dnsdist.conf``. That means that if you are upgrading an existing setup using the ``Lua`` configuration format in a ``dnsdist.conf`` file, you should not have to edit your configuration as long as you don't have a ``dnsdist.yml`` file in the system configuration directory.
+
+Please be aware that after loading a ``dnsdist.yml`` file, :program:`dnsdist` will check whether a file named ``dnsdist.lua`` is present in the system configuration directory, and if so that file will also be loaded but without the ability to use configuration directives. Please see :doc:`the YAML settings reference <reference/yaml-settings>` for more information.
 
 The webserver no longer allows cross-origin HTTP requests by default, please have a look at ``webserver.allow_cross_origin_requests`` (:func:`setWebserverConfig`'s ``allowCrossOriginRequests`` for Lua-based configurations) if your setup requires them.
 
