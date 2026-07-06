@@ -525,6 +525,12 @@ string getMessageForRRSET(const DNSName& qname, const RRSIGRecordContent& rrc, c
     unsigned int fqdn_labels = qname.countLabels();
 
     if (rrsig_labels < fqdn_labels) {
+      const auto signer_labels = rrc.d_signer.countLabels();
+      if (rrsig_labels < signer_labels) {
+        // the RRSIG labels field is a lie (the wildcard would be
+        // out of the signer's zone) and thus the RRSIG can never be valid
+        return {};
+      }
       DNSName choppedQname(qname);
       while (choppedQname.countLabels() > rrsig_labels) {
         choppedQname.chopOff();
