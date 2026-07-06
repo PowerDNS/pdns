@@ -596,6 +596,7 @@ bool TCPNameserver::canDoAXFR(std::unique_ptr<DNSPacket>& q, XFRContext& ctx, st
     if (!packetHandler->checkForCorrectTSIG(*q, &ctx.tsigkeyname, &ctx.tsigsecret, &ctx.trc)) {
       return false;
     }
+    ctx.haveTSIGDetails = true;
     getTSIGHashEnum(ctx.trc.d_algoName, q->d_tsig_algo);
 #ifdef ENABLE_GSS_TSIG
     if (g_doGssTSIG && q->d_tsig_algo == TSIG_GSS) {
@@ -727,13 +728,13 @@ int TCPNameserver::doAXFR(std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_
     }
   }
 
-  return doAXFRinternal(q, ctx);
+  return doAXFRinternal(ctx);
 }
 
-bool TCPNameserver::axfrCheckTSIG(std::unique_ptr<DNSPacket>& q, XFRContext& ctx, UeberBackend& db, bool alwaysCheck)
+bool TCPNameserver::axfrCheckTSIG(XFRContext& ctx, UeberBackend& db, bool alwaysCheck) // NOLINT(readability-identifier-length)
 {
-  ctx.haveTSIGDetails = q->getTSIGDetails(&ctx.trc, &ctx.tsigkeyname);
-
+  // TSIG-related fields in ctx have been computed as part of the
+  // checkForCorrectTSIG() call in canDoAXFR
   if(ctx.haveTSIGDetails && !ctx.tsigkeyname.empty()) {
     string tsig64;
     DNSName algorithm=ctx.trc.d_algoName;
@@ -762,7 +763,7 @@ bool TCPNameserver::axfrCheckTSIG(std::unique_ptr<DNSPacket>& q, XFRContext& ctx
 }
 
 /** do the actual zone transfer. Return 0 in case of error, 1 in case of success */
-int TCPNameserver::doAXFRinternal(std::unique_ptr<DNSPacket>& q, XFRContext& ctx)
+int TCPNameserver::doAXFRinternal(XFRContext& ctx)
 {
   const DNSName& target = ctx.targetZone.operator const DNSName&();
 
@@ -802,7 +803,7 @@ int TCPNameserver::doAXFRinternal(std::unique_ptr<DNSPacket>& q, XFRContext& ctx
     }
   }
 
-  if (!axfrCheckTSIG(q, ctx, db, false)) {
+  if (!axfrCheckTSIG(ctx, db, false)) {
     return 0;
   }
 
@@ -894,7 +895,7 @@ int TCPNameserver::doAXFRinternal(std::unique_ptr<DNSPacket>& q, XFRContext& ctx
   return 1;
 }
 
-void TCPNameserver::axfrKeys(XFRContext& ctx, vector<DNSZoneRecord> &zrrs, DNSSECKeeper& dk)
+void TCPNameserver::axfrKeys(XFRContext& ctx, vector<DNSZoneRecord> &zrrs, DNSSECKeeper& dk) // NOLINT(readability-identifier-length)
 {
   const DNSName& target = ctx.targetZone.operator const DNSName&();
 
@@ -1469,7 +1470,7 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_
     UeberBackend db; // NOLINT(readability-identifier-length)
     DNSSECKeeper dk(ctx.slog, &db); // NOLINT(readability-identifier-length)
 
-    if (!axfrCheckTSIG(q, ctx, db, true)) {
+    if (!axfrCheckTSIG(ctx, db, true)) {
       return 0;
     }
 
@@ -1502,7 +1503,7 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_
   if (!g_slogStructured) {
     ctx.logPrefix.at(0) = 'A';
   }
-  return doAXFRinternal(q, ctx);
+  return doAXFRinternal(ctx);
 }
 
 TCPNameserver::~TCPNameserver() = default;
