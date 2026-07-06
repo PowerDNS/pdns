@@ -117,6 +117,16 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
     _consolePort = pickAvailablePort()
     _testServerPort = pickAvailablePort()
 
+    @staticmethod
+    def filterLoadedConfigurationFromLines(output):
+        output_without_loading_lines = b""
+        for line in output.splitlines():
+            print("got line:")
+            print(line)
+            if not b"Loading configuration from " in line:
+                output_without_loading_lines += line + b"\n"
+        return output_without_loading_lines
+
     @classmethod
     def waitForTCPSocket(cls, ipaddress, port):
         for try_number in range(0, 20):
@@ -225,15 +235,10 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         try:
             output = subprocess.check_output(testcmd, stderr=subprocess.STDOUT, close_fds=True)
         except subprocess.CalledProcessError as exc:
-            raise AssertionError("dnsdist --check-config failed (%d): %s" % (exc.returncode, exc.output))
+            output = cls.filterLoadedConfigurationFromLines(exc.output)
+            raise AssertionError("dnsdist --check-config failed (%d): %s" % (exc.returncode, output))
 
-        output_without_loading_lines = b""
-        for line in output.splitlines():
-            if not line.startswith(b"Loading configuration from ") and not line.startswith(
-                b'msg=\"Loading configuration from '
-            ):
-                output_without_loading_lines += line + b"\n"
-        output = output_without_loading_lines
+        output = cls.filterLoadedConfigurationFromLines(output)
 
         if cls._checkConfigExpectedOutputPrefix is not None:
             if not output.startswith(cls._checkConfigExpectedOutputPrefix):

@@ -278,4 +278,5 @@ class TestConsoleViaBuiltInClient(DNSDistTest):
         if process.returncode != 0:
             raise AssertionError("%s failed (%d): %s" % (testcmd, process.returncode, output))
 
-        self.assertTrue(output[0].startswith(b"dnsdist "))
+        consoleOutput = self.filterLoadedConfigurationFromLines(output[0])
+        self.assertTrue(consoleOutput.startswith(b"dnsdist "))
