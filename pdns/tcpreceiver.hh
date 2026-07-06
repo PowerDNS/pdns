@@ -39,6 +39,8 @@
 #include "lock.hh"
 #include "namespaces.hh"
 
+class ChunkedSigningPipe;
+
 class TCPNameserver
 {
 public:
@@ -51,13 +53,18 @@ private:
   class XFRContext;
 
   static void sendPacket(std::unique_ptr<DNSPacket>& p, int outsock, bool last=true);
-  static void getQuestion(int fd, char *mesg, int pktlen, const ComboAddress& remote, unsigned int totalTime);
+  static void getQuestion(int fd, char* mesg, int pktlen, const ComboAddress& remote, unsigned int totalTime);
   static int doAXFR(std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_t slog);
   static int doAXFRinternal(std::unique_ptr<DNSPacket>&q, XFRContext& ctx);
   static int doIXFR(std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_t slog);
   static bool canDoAXFR(std::unique_ptr<DNSPacket>& q, XFRContext& ctx, std::unique_ptr<PacketHandler>& packetHandler);
-  static bool axfrProducerZone(XFRContext& ctx, vector<DNSZoneRecord> &zrrs);
-  static bool axfrRegularZone(XFRContext& ctx, vector<DNSZoneRecord> &zrrs);
+  static bool axfrProducerZone(XFRContext& ctx, vector<DNSZoneRecord>& zrrs);
+  static bool axfrRegularZone(XFRContext& ctx, vector<DNSZoneRecord>& zrrs);
+  static bool axfrAlias(XFRContext& ctx, vector<DNSZoneRecord>& zrrs, DNSZoneRecord& zrr);
+  static void axfrHints(XFRContext& ctx, vector<DNSZoneRecord>& zrrs);
+  static void axfrKeys(XFRContext& ctx, vector<DNSZoneRecord>& zrrs, DNSSECKeeper& dk);
+  static bool axfrRectify(XFRContext& ctx, vector<DNSZoneRecord>& zrrs, const set<DNSName>& qnames, const set<DNSName>& nsset);
+  static void axfrSubmitRecords(XFRContext& ctx, vector<DNSZoneRecord>& zrrs, ChunkedSigningPipe& csp);
   static void doConnection(int fd, Logr::log_t slog);
   static void decrementClientCount(const ComboAddress& remote);
   void thread();
