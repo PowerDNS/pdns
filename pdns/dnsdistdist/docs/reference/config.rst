@@ -752,6 +752,14 @@ A server object returned by :func:`getServer` can be manipulated with these func
 
     :param str pool: The pool to add the server to
 
+  .. method:: canAcceptQueries([enforceQPS]) -> bool
+
+    .. versionadded:: 2.2.0
+
+    Return whether this backend can accept new queries. In order to accept new queries, a backend needs to be in the ``Up`` state, below the configured outstanding queries limit, if any (see ``maxOutstandingQueries`` on :func:`newServer`) and, if ``enforceQPS`` is true, below the configured QPS threshold (``qps`` on :func:`newServer`).
+
+    :param bool enforceQPS: Whether to enforce the QPS threshold configured on the backend, if any
+
   .. method:: getLatency() -> double
 
     Return the average latency of this server over the last 128 UDP queries, in microseconds.
