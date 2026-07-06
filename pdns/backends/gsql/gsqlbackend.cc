@@ -1605,7 +1605,7 @@ void GSQLBackend::lookup(const QType& qtype, const DNSName& qname, domainid_t do
     throw PDNSException("GSQLBackend unable to lookup '" + qname.toLogString() + "|" + qtype.toString() + "':"+e.txtReason());
   }
 
-  d_list=false;
+  d_currentQueryType = OTHER;
   d_qname=qname;
 }
 
@@ -1643,7 +1643,7 @@ void GSQLBackend::APILookup(const QType& qtype, const DNSName& qname, domainid_t
     throw PDNSException("GSQLBackend unable to APILookup '" + qname.toLogString() + "(" + std::to_string(domain_id) + ")|" + qtype.toString() + "':"+e.txtReason());
   }
 
-  d_list=false;
+  d_currentQueryType = OTHER;
   d_qname=qname;
 }
 
@@ -1667,7 +1667,7 @@ bool GSQLBackend::list(const ZoneName &target, domainid_t domain_id, bool includ
     throw PDNSException("GSQLBackend unable to list domain '" + target.toLogString() + "': "+e.txtReason());
   }
 
-  d_list=true;
+  d_currentQueryType = LIST;
   d_qname.clear();
 
   return true;
@@ -1694,7 +1694,7 @@ bool GSQLBackend::listSubZone(const ZoneName &zone, domainid_t domain_id) {
     throw PDNSException("GSQLBackend unable to list SubZones for domain '" + zone.toLogString() + "': "+e.txtReason());
   }
 
-  d_list=false;
+  d_currentQueryType = OTHER;
   d_qname.clear();
 
   return true;
@@ -1709,7 +1709,7 @@ skiprow:
   if((*d_query_stmt)->hasNextRow()) {
     try {
       (*d_query_stmt)->nextRow(row);
-      if (!d_list) {
+      if (d_currentQueryType != LIST) {
         ASSERT_ROW_COLUMNS(d_query_name, row, 8); // lookup(), listSubZone()
       }
       else {
