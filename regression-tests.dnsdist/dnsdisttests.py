@@ -227,6 +227,12 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         except subprocess.CalledProcessError as exc:
             raise AssertionError("dnsdist --check-config failed (%d): %s" % (exc.returncode, exc.output))
 
+        output_without_loading_lines = b""
+        for line in output.splitlines():
+            if not line.startswith(b"Loading configuration from ") and not line.startswith(b"msg=\"Loading configuration from "):
+                output_without_loading_lines += line + b"\n"
+        output = output_without_loading_lines
+
         if cls._checkConfigExpectedOutputPrefix is not None:
             if not output.startswith(cls._checkConfigExpectedOutputPrefix):
                 raise AssertionError(

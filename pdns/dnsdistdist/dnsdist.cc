@@ -2674,14 +2674,14 @@ static bool loadConfigurationFromFile(const std::string& configurationFile, bool
     dnsdist::lua::setupLuaBindingsOnly(*(g_lua.lock()), isClient, configCheck);
 
     if (auto tentativeLuaConfFile = lookForTentativeConfigurationFileWithExtension(configurationFile, "lua")) {
-      VERBOSESLOG(infolog("Loading configuration from auto-discovered Lua file %s", *tentativeLuaConfFile),
-                  logger->info(Logr::Info, "Loading configuration from auto-discovered Lua file", "path", Logging::Loggable(*tentativeLuaConfFile)));
+      SLOG(infolog("Loading configuration from auto-discovered Lua file %s", *tentativeLuaConfFile),
+           logger->info(Logr::Info, "Loading configuration from auto-discovered Lua file", "path", Logging::Loggable(*tentativeLuaConfFile)));
 
       dnsdist::configuration::lua::loadLuaConfigurationFile(*(g_lua.lock()), *tentativeLuaConfFile, configCheck);
     }
 
-    VERBOSESLOG(infolog("Loading configuration from YAML file %s", configurationFile),
-                logger->info(Logr::Info, "Loading configuration from YAML file", "path", Logging::Loggable(configurationFile)));
+    SLOG(infolog("Loading configuration from YAML file %s", configurationFile),
+         logger->info(Logr::Info, "Loading configuration from YAML file", "path", Logging::Loggable(configurationFile)));
 
     if (!dnsdist::configuration::yaml::loadConfigurationFromFile(configurationFile, isClient, configCheck)) {
       return false;
@@ -2694,19 +2694,19 @@ static bool loadConfigurationFromFile(const std::string& configurationFile, bool
 
   dnsdist::lua::setupLua(*(g_lua.lock()), isClient, configCheck);
   if (boost::ends_with(configurationFile, ".lua")) {
-    VERBOSESLOG(infolog("Loading configuration from Lua file %s", configurationFile),
-                logger->info(Logr::Info, "Loading configuration from Lua file", "path", Logging::Loggable(configurationFile)));
+    SLOG(infolog("Loading configuration from Lua file %s", configurationFile),
+         logger->info(Logr::Info, "Loading configuration from Lua file", "path", Logging::Loggable(configurationFile)));
 
     dnsdist::configuration::lua::loadLuaConfigurationFile(*(g_lua.lock()), configurationFile, configCheck);
     if (auto tentativeYamlConfFile = lookForTentativeConfigurationFileWithExtension(configurationFile, "yml")) {
-      VERBOSESLOG(infolog("Loading configuration from auto-discovered YAML file %s", *tentativeYamlConfFile),
-                  logger->info(Logr::Info, "Loading configuration from auto-discovered YAML file", "path", Logging::Loggable(*tentativeYamlConfFile)));
+      SLOG(infolog("Loading configuration from auto-discovered YAML file %s", *tentativeYamlConfFile),
+           logger->info(Logr::Info, "Loading configuration from auto-discovered YAML file", "path", Logging::Loggable(*tentativeYamlConfFile)));
       return dnsdist::configuration::yaml::loadConfigurationFromFile(*tentativeYamlConfFile, isClient, configCheck);
     }
   }
   else {
-    VERBOSESLOG(infolog("Loading configuration from Lua file %s", configurationFile),
-                logger->info(Logr::Info, "Loading configuration from Lua file", "path", Logging::Loggable(configurationFile)));
+    SLOG(infolog("Loading configuration from Lua file %s", configurationFile),
+         logger->info(Logr::Info, "Loading configuration from Lua file", "path", Logging::Loggable(configurationFile)));
 
     dnsdist::configuration::lua::loadLuaConfigurationFile(*(g_lua.lock()), configurationFile, configCheck);
   }
