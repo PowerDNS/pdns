@@ -589,6 +589,7 @@ dState getDenial(const cspmap_t& validrrsets, const DNSName& qname, const uint16
         const DNSName owner = getNSECOwnerName(validset.first.first, validset.second.signatures);
         const DNSName signer = getSigner(validset.second.signatures);
         if (!validset.first.first.isPartOf(signer) || !owner.isPartOf(signer) || !nameToDeny.isPartOf(signer) || !nsec->d_next.isPartOf(signer)) {
+          VLOG(log, nameToDeny << ": Initial owner (" << validset.first.first << "), reconstructed owner (" << owner << ") or name to deny (" << nameToDeny << ") are not part of the signer (" << signer << ")!" << endl);
           continue;
         }
 
@@ -741,6 +742,7 @@ dState getDenial(const cspmap_t& validrrsets, const DNSName& qname, const uint16
         numberOfLabelsOfParentZone = std::min(numberOfLabelsOfParentZone, static_cast<uint8_t>(signer.countLabels()));
 
         if (!qname.isPartOf(signer)) {
+          VLOG(log, qname << ": is not part of the signer (" << signer << ")!" << endl);
           continue;
         }
 
