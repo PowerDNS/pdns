@@ -60,7 +60,7 @@ Protobuf export to a server is enabled using the ``protobufServer()`` directive:
     - ``'Hashed'`` send to a single server, indexed by a hash of the qname and client address.
 
 
-  * ``stalledWriteTimeout=5``: int - If we have been unable to write or buffer data on our side of the TCP socket for that long, in seconds, consider that the remote endpoint has died and reconnect
+  * ``stalledWriteTimeout=5``: int - If we have been unable to write or buffer data on our side of the TCP socket for that long, in seconds, consider that the remote endpoint has died and reconnect.
 
 .. function:: setProtobufMasks(maskv4, maskV6)
 
@@ -115,7 +115,7 @@ While :func:`protobufServer` only exports the queries sent to the recursor from 
     - ``'Hashed'`` send to a single server, indexed by a hash of the qname and client address.
 
 
-  * ``stalledWriteTimeout=5``: int - If we have been unable to write or buffer data on our side of the TCP socket for that long, in seconds, consider that the remote endpoint has died and reconnect
+  * ``stalledWriteTimeout=5``: int - If we have been unable to write or buffer data on our side of the TCP socket for that long, in seconds, consider that the remote endpoint has died and reconnect.
 
 
 Protocol Buffers Definition
