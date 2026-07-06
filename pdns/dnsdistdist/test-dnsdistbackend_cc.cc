@@ -323,4 +323,23 @@ BOOST_AUTO_TEST_CASE(test_CheckAutoRestorePreviousHealthCheckMode)
   BOOST_CHECK(downstream.d_config.d_healthCheckMode == DownstreamState::HealthCheckMode::Active);
 }
 
+BOOST_AUTO_TEST_CASE(test_MaxOutstandingQueries)
+{
+  DownstreamState::Config config;
+  config.d_maxOutstandingQueries = 2U;
+  /* prevents a re-connection */
+  config.remote = ComboAddress("0.0.0.0");
+
+  DownstreamState downstream(std::move(config), nullptr, false);
+  BOOST_CHECK(downstream.d_config.d_availability == DownstreamState::Availability::Auto);
+  downstream.setUp();
+  BOOST_CHECK(downstream.canAcceptNewQueries(true));
+  downstream.outstanding.store(1U);
+  BOOST_CHECK(downstream.canAcceptNewQueries(true));
+  downstream.outstanding.store(2U);
+  BOOST_CHECK(!downstream.canAcceptNewQueries(true));
+  downstream.outstanding.store(1U);
+  BOOST_CHECK(downstream.canAcceptNewQueries(true));
+}
+
 BOOST_AUTO_TEST_SUITE_END()

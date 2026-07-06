@@ -622,7 +622,7 @@ Servers
     Removed ``addXPF`` from server_table.
 
   .. versionchanged:: 2.2.0
-    Added ``ecdheCurves`` to server_table.
+    Added ``ecdheCurves`` and ``maxOutstandingQueries`` to server_table.
 
   :param str server_string: A simple IP:PORT string.
   :param table server_table: A table with at least an ``address`` key
@@ -680,7 +680,7 @@ Servers
     ``rise``                                 ``number``               "Require ``number`` consecutive successful checks before declaring the backend up, default: 1"
     ``useProxyProtocol``                     ``bool``              "Add a proxy protocol header to the query, passing along the client's IP address and port along with the original destination address and port. Default is disabled."
     ``reconnectOnUp``                        ``bool``              "Close and reopen the sockets when a server transits from Down to Up. This helps when an interface is missing when dnsdist is started. Default is disabled."
-    ``maxInFlight``                          ``number``            "Maximum number of in-flight queries. The default is 0, which disables out-of-order processing. It should only be enabled if the backend does support out-of-order processing. As of 1.6.0, out-of-order processing needs to be enabled on the frontend as well, via :func:`addLocal` and/or :func:`addTLSLocal`. Note that out-of-order is always enabled on DoH frontends."
+    ``maxInFlight``                          ``number``            "Maximum number of in-flight queries. The default is 0, which disables out-of-order processing. It should only be enabled if the backend does support out-of-order processing. As of 1.6.0, out-of-order processing needs to be enabled on the frontend as well, via :func:`addLocal` and/or :func:`addTLSLocal`. Note that out-of-order is always enabled on DoH frontends. See also ``maxOutstandingQueries`` for the maximum number of outstanding queries assigned to this backend, over all connections."
     ``tcpOnly``                              ``bool``              "Always forward queries to that backend over TCP, never over UDP. Always enabled for TLS backends. Default is false."
     ``checkTCP``                             ``bool``              "Whether to do healthcheck queries over TCP, instead of UDP. Always enabled for DNS over TLS backend. Default is false."
     ``tls``                                  ``string``            "Enable DNS over TLS communications for this backend, or DNS over HTTPS if ``dohPath`` is set, using the TLS provider (``""openssl""`` or ``""gnutls""``) passed in parameter. Default is an empty string, which means this backend is used for plain UDP and TCP."
@@ -716,6 +716,7 @@ Servers
     ``MACAddr``                              ``str``               "When the ``xskSocket`` option is set, this parameter can be used to specify the destination MAC address to use to reach the backend. If this options is not specified, dnsdist will try to get it from the IP of the backend by looking into the system's MAC address table, but it will fail if the corresponding MAC address is not present."
     ``keyLogFile``                           ``str``               "Write the TLS keys in the specified file so that an external program can decrypt TLS exchanges, in the format described in https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Key_Log_Format. Note that this feature requires OpenSSL >= 1.1.1."
     ``dscp``                                 ``number``            "The DSCP marking value to be applied. Range 0-63. Default is 0 which means no action for DSCP marking."
+    ``maxOutstandingQueries``                ``number``            "Maximum number of outstanding queries assigned to this backend, no matter the protocol used and over all connections (see ``maxInFlight`` for the maximum number of outstanding queries per connection). Default is 0 which means unlimited"
 
 .. function:: getServer(index) -> Server
 
@@ -750,6 +751,14 @@ A server object returned by :func:`getServer` can be manipulated with these func
     Add this server to a pool.
 
     :param str pool: The pool to add the server to
+
+  .. method:: canAcceptQueries([enforceQPS]) -> bool
+
+    .. versionadded:: 2.2.0
+
+    Return whether this backend can accept new queries. In order to accept new queries, a backend needs to be in the ``Up`` state, below the configured outstanding queries limit, if any (see ``maxOutstandingQueries`` on :func:`newServer`) and, if ``enforceQPS`` is true, below the configured QPS threshold (``qps`` on :func:`newServer`).
+
+    :param bool enforceQPS: Whether to enforce the QPS threshold configured on the backend, if any
 
   .. method:: getLatency() -> double
 

@@ -230,6 +230,12 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
     }
     return 0U;
   });
+  luaCtx.registerFunction<bool (std::shared_ptr<DownstreamState>::*)(std::optional<bool>) const>("canAcceptQueries", [](const std::shared_ptr<DownstreamState>& state, std::optional<bool> enforceQPS) -> bool {
+    if (state) {
+      return state->canAcceptNewQueries(enforceQPS.value_or(false));
+    }
+    return false;
+  });
   luaCtx.registerFunction<double (std::shared_ptr<DownstreamState>::*)() const>("getLatency", [](const std::shared_ptr<DownstreamState>& state) -> double {
     if (state) {
       return state->getRelevantLatencyUsec();

@@ -519,6 +519,12 @@ class TestRoutingCustomLuaRoundRobinLB(RoundRobinTest, DNSDistTest):
     local counter = 0
     function luaroundrobin(servers_list, dq)
       counter = counter + 1
+      local index = (counter %% #servers_list) + 1
+      local server = servers_list[index]
+      if not server:isUp() or not server:canAcceptQueries(true) then
+        print("Something is wrong with the backend in luaroundrobin policy")
+        os.exit(1)
+      end
       return (counter %% #servers_list)+1
     end
     setServerPolicy(newServerPolicy("custom lua round robin policy", luaroundrobin))
