@@ -4,7 +4,7 @@ Running and Configuring dnsdist
 dnsdist is meant to run as a daemon.
 As such, distribution native packages know how to stop/start themselves using operating system services.
 
-It is configured with a configuration file called ``dnsdist.yml``
+It is configured with a configuration file called ``dnsdist.yml``. If that file does not exist, :program:`dnsdist` will attempt to fall back to a ``dnsdist.conf`` file, expecting a configuration in ``Lua`` instead of ``YAML``.
 The default path to this file is determined by the ``SYSCONFDIR`` variable during compilation.
 Most likely this path is ``/etc/dnsdist``,  ``/etc`` or ``/usr/local/etc/``, dnsdist will tell you on startup which file it reads.
 
