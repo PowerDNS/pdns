@@ -1694,8 +1694,8 @@ bool GSQLBackend::listSubZone(const ZoneName &zone, domainid_t domain_id) {
     throw PDNSException("GSQLBackend unable to list SubZones for domain '" + zone.toLogString() + "': "+e.txtReason());
   }
 
-  d_currentQueryType = OTHER;
-  d_qname.clear();
+  d_currentQueryType = LISTSUBZONE;
+  d_qname = zone.operator const DNSName&();
 
   return true;
 }
@@ -1705,8 +1705,7 @@ bool GSQLBackend::get(DNSResourceRecord &r)
   // g_log << "GSQLBackend get() was called for "<<qtype.toString() << " record: ";
   SSqlStatement::row_t row;
 
-skiprow:
-  if((*d_query_stmt)->hasNextRow()) {
+  while ((*d_query_stmt)->hasNextRow()) {
     try {
       (*d_query_stmt)->nextRow(row);
       if (d_currentQueryType != LIST) {
@@ -1721,11 +1720,22 @@ skiprow:
     try {
       extractRecord(row, r);
     } catch (...) {
-      goto skiprow;
+      continue; // skip this row
+    }
+    // Because not all backends allow for escaping in LIKE constructs (I'm
+    // looking at you, ODBC), the listSubZone query may return results which
+    // are not relevant to our needs, due to possible % or _ characters
+    // occurring in domain names and interpreted as wildcards by LIKE.
+    // We add a layer of filtering here.
+    if (d_currentQueryType == LISTSUBZONE) {
+      if (!r.qname.isPartOf(d_qname)) {
+        continue; // wrong result, skip this row
+      }
     }
     return true;
   }
 
+  // No more results
   try {
     (*d_query_stmt)->reset();
   } catch (SSqlException &e) {
@@ -2479,10 +2489,13 @@ void GSQLBackend::extractRecord(SSqlStatement::row_t& row, DNSResourceRecord& r)
   else
       pdns::checked_stoi_into(r.ttl, row[1]);
 
-  if(!d_qname.empty())
+  // d_qname is set for LISTSUBZONE queries for filtering, ignore it here
+  if (d_currentQueryType == OTHER && !d_qname.empty()) {
     r.qname=d_qname;
-  else
+  }
+  else {
     r.qname=DNSName(row[6]);
+  }
 
   r.qtype=row[3];
 
