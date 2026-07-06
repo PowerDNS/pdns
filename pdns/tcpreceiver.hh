@@ -55,10 +55,10 @@ private:
   static void sendPacket(std::unique_ptr<DNSPacket>& p, int outsock, bool last=true);
   static void getQuestion(int fd, char* mesg, int pktlen, const ComboAddress& remote, unsigned int totalTime);
   static int doAXFR(std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_t slog);
-  static int doAXFRinternal(std::unique_ptr<DNSPacket>&q, XFRContext& ctx);
+  static int doAXFRinternal(XFRContext& ctx);
   static int doIXFR(std::unique_ptr<DNSPacket>& q, int outsock, Logr::log_t slog);
   static bool canDoAXFR(std::unique_ptr<DNSPacket>& q, XFRContext& ctx, std::unique_ptr<PacketHandler>& packetHandler);
-  static bool axfrCheckTSIG(std::unique_ptr<DNSPacket>& q, XFRContext& ctx, UeberBackend& db, bool alwaysCheck);
+  static bool axfrCheckTSIG(XFRContext& ctx, UeberBackend& db, bool alwaysCheck);
   static bool axfrProducerZone(XFRContext& ctx, vector<DNSZoneRecord>& zrrs);
   static bool axfrRegularZone(XFRContext& ctx, vector<DNSZoneRecord>& zrrs);
   static bool axfrAlias(XFRContext& ctx, vector<DNSZoneRecord>& zrrs, DNSZoneRecord& zrr);
