@@ -705,11 +705,11 @@ if get_option('fuzz-targets')
 endif
 
 if get_option('unit-tests')
-  test('testrunner', testrunner)
+  test('testrunner', testrunner, timeout: 300)
 endif
 
 if get_option('benchmark')
-  benchmark('benchmarkrunner', benchmarkrunner, timeout:240)
+  benchmark('benchmarkrunner', benchmarkrunner, timeout: 300)
 endif
 
 # Man-pages.
