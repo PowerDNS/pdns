@@ -4,8 +4,8 @@ Running multiple instances
 Sometimes, it can be advantageous to run multiple instances of :program:`dnsdist`.
 Usecases can be:
 
- * Multiple inbound IP addresses with different rulesets
- * Taking advantage of more processes, using SO_REUSEPORT
+* Multiple inbound IP addresses with different rulesets
+* Taking advantage of more processes, using SO_REUSEPORT
 
 :program:`dnsdist` supports loading a different configuration file with the ``--config`` command line switch.
 

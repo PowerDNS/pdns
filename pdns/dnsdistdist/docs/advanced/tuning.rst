@@ -3,15 +3,15 @@ Performance Tuning
 
 First, a few words about :program:`dnsdist` architecture:
 
- * Each local bind has its own thread listening for incoming UDP queries
- * and its own thread listening for incoming TCP connections, dispatching them right away to a pool of TCP worker threads
- * Each backend has its own thread listening for UDP responses, including the ones triggered by DoH queries, if any
- * A maintenance thread calls the maintenance() Lua function every second if any, and is responsible for cleaning the cache
- * A health check thread checks the backends availability
- * A control thread handles console connections, plus one thread per connection
- * A carbon thread exports statistics to carbon servers if needed
- * One or more webserver threads handle queries to the internal webserver, plus one thread per HTTP connection
- * A SNMP thread handles SNMP operations, when enabled.
+* Each local bind has its own thread listening for incoming UDP queries
+* and its own thread listening for incoming TCP connections, dispatching them right away to a pool of TCP worker threads
+* Each backend has its own thread listening for UDP responses, including the ones triggered by DoH queries, if any
+* A maintenance thread calls the maintenance() Lua function every second if any, and is responsible for cleaning the cache
+* A health check thread checks the backends availability
+* A control thread handles console connections, plus one thread per connection
+* A carbon thread exports statistics to carbon servers if needed
+* One or more webserver threads handle queries to the internal webserver, plus one thread per HTTP connection
+* A SNMP thread handles SNMP operations, when enabled.
 
 UDP and incoming DNS over HTTPS
 -------------------------------
@@ -65,10 +65,10 @@ For DNS over HTTPS, every :func:`addDOHLocal`/:func:`addDOH3Local` directive add
 
 When dealing with a large traffic load, it might happen that the internal pipe used to pass queries between the threads handling the incoming connections and the one getting a response from the backend become full too quickly, degrading performance and causing timeouts. This can be prevented by increasing the size of the internal pipe buffer, via the `internalPipeBufferSize` option of :func:`addDOHLocal`. Setting a value of `1048576` is known to yield good results on Linux.
 
-`AF_XDP` / `XSK`
-----------------
+``AF_XDP`` / ``XSK``
+--------------------
 
-On recent versions of Linux (`>= 4.18`), DNSDist supports receiving UDP datagrams directly from the kernel, bypassing the usual network stack, via `AF_XDP`/`XSK`. This yields much better performance but comes with some limitations. Please see :doc:`xsk` for more information.
+On recent versions of Linux (``>= 4.18``), DNSDist supports receiving UDP datagrams directly from the kernel, bypassing the usual network stack, via ``AF_XDP``/``XSK``. This yields much better performance but comes with some limitations. Please see :doc:`xsk` for more information.
 
 UDP buffer sizes
 ----------------
@@ -118,8 +118,8 @@ Incoming DNS over TLS (since 1.8.0) and incoming DNS over HTTPS (since 1.9.0) mi
 
 Incoming and outgoing DNS over TLS, outgoing DNS over HTTPS, as well as incoming DNS over HTTPS with the ``nghttp2`` library (since 1.9.0), might benefit from experimental support kernel-accelerated TLS on Linux, when supported by the kernel and OpenSSL. See the `ktls` options on :func:`addTLSLocal`, :func:`addDOHLocal` and :func:`newServer` for more information. Kernel support for kTLS might be verified by looking at the counters in ``/proc/net/tls_stat``. Note that:
 
- * supported ciphers depend on the exact kernel version used. ``TLS_AES_128_GCM_SHA256`` might be a good option for testing purpose since it was supported pretty early
- * as of OpenSSL 3.0.7, kTLS can only be used for sending TLS 1.3 packets, not receiving them. Both sending and receiving packets should be working for TLS 1.2.
+* supported ciphers depend on the exact kernel version used. ``TLS_AES_128_GCM_SHA256`` might be a good option for testing purpose since it was supported pretty early
+* as of OpenSSL 3.0.7, kTLS can only be used for sending TLS 1.3 packets, not receiving them. Both sending and receiving packets should be working for TLS 1.2.
 
 TLS performance
 ---------------
@@ -140,8 +140,8 @@ Rules and Lua
 
 Most of the query processing is done in C++ for maximum performance, but some operations are executed in Lua for maximum flexibility:
 
- * Rules added by :func:`LuaAction`, :func:`LuaResponseAction`, :func:`LuaFFIAction` or :func:`LuaFFIResponseAction`
- * Server selection policies defined via :func:`setServerPolicyLua`, :func:`setServerPolicyLuaFFI`, :func:`setServerPolicyLuaFFIPerThread` or :func:`newServerPolicy`
+* Rules added by :func:`LuaAction`, :func:`LuaResponseAction`, :func:`LuaFFIAction` or :func:`LuaFFIResponseAction`
+* Server selection policies defined via :func:`setServerPolicyLua`, :func:`setServerPolicyLuaFFI`, :func:`setServerPolicyLuaFFIPerThread` or :func:`newServerPolicy`
 
 While Lua is fast, its use should be restricted to the strict necessary in order to achieve maximum performance, it might be worth considering using LuaJIT instead of Lua.
 When Lua inspection is needed, the best course of action is to restrict the queries sent to Lua inspection by using :func:`addLuaAction` with a selector.
@@ -181,12 +181,12 @@ Memory usage
 
 The main sources of memory usage in DNSDist are:
 
- * packet caches, when enabled
- * the number of outstanding UDP queries per backend, configured with :func:`setMaxUDPOutstanding` (see above)
- * the number of entries in the ring-buffers, configured with :func:`setRingBuffersSize`
- * the number of short-lived dynamic block entries
- * the number of user-defined rules and actions
- * the number of TCP, DoT and DoH connections
+* packet caches, when enabled
+* the number of outstanding UDP queries per backend, configured with :func:`setMaxUDPOutstanding` (see above)
+* the number of entries in the ring-buffers, configured with :func:`setRingBuffersSize`
+* the number of short-lived dynamic block entries
+* the number of user-defined rules and actions
+* the number of TCP, DoT and DoH connections
 
 Memory usage per connection for connected protocols:
 

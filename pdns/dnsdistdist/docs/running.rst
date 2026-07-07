@@ -40,9 +40,9 @@ Before 1.7.0, which introduced TCP fallback, that meant that there was a potenti
 
 In addition to TCP fallback for DoH, 1.7.0 introduced three new notions:
 
- * TCP-only backends, for which queries will always forwarded over a TCP connection (see the `tcpOnly` parameter of :func:`newServer`)
- * DNS over HTTPS backends, for which queries are forwarded over a DNS over HTTPS connection (see the `dohPath` parameter of :func:`newServer`)
- * and DNS over TLS backends, for which queries are forwarded over a DNS over TLS connection (see the `tls` parameter of :func:`newServer`)
+* TCP-only backends, for which queries will always forwarded over a TCP connection (see the `tcpOnly` parameter of :func:`newServer`)
+* DNS over HTTPS backends, for which queries are forwarded over a DNS over HTTPS connection (see the `dohPath` parameter of :func:`newServer`)
+* and DNS over TLS backends, for which queries are forwarded over a DNS over TLS connection (see the `tls` parameter of :func:`newServer`)
 
 To sum it up:
 

@@ -286,10 +286,10 @@ security-status
 ---------------
 The security status of :program:`dnsdist`. This is regularly polled.
 
- * 0 = Unknown status or unreleased version
- * 1 = OK
- * 2 = Upgrade recommended
- * 3 = Upgrade required (most likely because there is a known security issue)
+* 0 = Unknown status or unreleased version
+* 1 = OK
+* 2 = Upgrade recommended
+* 3 = Upgrade required (most likely because there is a known security issue)
 
 self-answered
 -------------
