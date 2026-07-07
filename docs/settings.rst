@@ -1401,6 +1401,18 @@ Catalog group used to signal that a member zone is a catalog.
 Directory for modules. Default depends on ``PKGLIBDIR`` during
 compile-time.
 
+.. _setting-naptr-additional-processing:
+
+``naptr-additional-processing``
+-------------------------------
+
+-  Boolean
+-  Default: yes
+
+.. versionadded:: 5.2.0
+
+Add NAPTR `a` and `s` records to the additional answer section.
+
 .. _setting-negquery-cache-ttl:
 
 ``negquery-cache-ttl``

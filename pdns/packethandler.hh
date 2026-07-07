@@ -67,6 +67,7 @@ public:
   static NetmaskGroup s_allowNotifyFrom;
   static set<string> s_forwardNotify;
   static bool s_SVCAutohints;
+  static bool s_NAPTRprocessing;
   static const std::shared_ptr<CDNSKEYRecordContent> s_deleteCDNSKEYContent;
   static const std::shared_ptr<CDSRecordContent> s_deleteCDSContent;
 
@@ -83,6 +84,7 @@ private:
   bool addCDS(DNSPacket& p, std::unique_ptr<DNSPacket>& r);
   bool addNSEC3PARAM(const DNSPacket& p, std::unique_ptr<DNSPacket>& r);
   void doAdditionalProcessing(DNSPacket& p, std::unique_ptr<DNSPacket>& r);
+  void doAdditionalNAPTRProcessing(DNSPacket& p, const DNSZoneRecord& rr, std::unordered_set<DNSName>& lookup, vector<DNSZoneRecord>& extraRecords);
   DNSName doAdditionalServiceProcessing(const DNSName &firstTarget, const uint16_t &qtype, std::unique_ptr<DNSPacket>& r, vector<DNSZoneRecord>& extraRecords);
 
   //! Get all IPv4 or IPv6 addresses (based on |qtype|) for |target|.
