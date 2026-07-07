@@ -184,7 +184,7 @@ template<class Answer, class Question, class Backend>MultiThreadDistributor<Answ
        d_slog->info(Logr::Warning, "About to create backend threads for UDP", "count", Logging::Loggable(numberOfThreads)));
 
   for (int distributorIdx = 0; distributorIdx < numberOfThreads; distributorIdx++) {
-    std::thread t([=](){distribute(distributorIdx);});
+    std::thread t([=, this](){distribute(distributorIdx);});
     t.detach();
     Utility::usleep(50000); // we've overloaded mysql in the past :-)
   }
