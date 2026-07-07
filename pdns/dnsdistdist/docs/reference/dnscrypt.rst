@@ -24,7 +24,7 @@ DNSCrypt objects and functions
   * ``tcpListenQueueSize=SOMAXCONN``: int - Set the size of the listen queue. Default is ``SOMAXCONN``.
   * ``maxInFlight=0``: int - Maximum number of in-flight queries. The default is 0, which disables out-of-order processing.
   * ``maxConcurrentTCPConnections=0``: int - Maximum number of concurrent incoming TCP connections. The default is 0 which means unlimited.
-  * ``randomReusePortPolicy=false``: bool - On Linux >= 4.6, and when ``reuseport` is set, randomly balances incoming queries between workers instead of the Linux default which is based on the source and destination addresses and ports.
+  * ``randomReusePortPolicy=false``: bool - On Linux >= 4.6, and when ``reuseport`` is set, randomly balances incoming queries between workers instead of the Linux default which is based on the source and destination addresses and ports.
 
 .. function:: generateDNSCryptProviderKeys(publicKey, privateKey)
 
