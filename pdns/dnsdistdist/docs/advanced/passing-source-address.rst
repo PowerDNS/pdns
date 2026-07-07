@@ -16,9 +16,9 @@ When the backend supports it (ISC Bind, Knot, Knot Resolver, PowerDNS Authoritat
 Proxy Protocol
 --------------
 
-.. note:
+.. note::
   The Proxy Protocol has been designed by the HAProxy folks for HTTP over TCP, but is generic enough to be used in other places, and is a de-facto standard with implementations in ISC Bind, Knot, Knot Resolver, PowerDNS Authoritative, PowerDNS Recursor, Unbound, HAProxy, nginx, postfix and many others.
-  It works by pre-pending a small header at the very beginning of a UDP datagram or TCP connection, which holds the initial source and destination addresses and ports, and can also contain several custom values in a Type-Length-Value format. More information about the Proxy Protocol can be found at https://www.haproxy.org/download/2.2/doc/proxy-protocol.txt
+  It works by pre-pending a small header at the very beginning of a UDP datagram or TCP connection, which holds the initial source and destination addresses and ports, and can also contain several custom values in a Type-Length-Value format. More information about the Proxy Protocol can be found at https://www.haproxy.org/download/2.2/doc/proxy-protocol.txt.
 
 From dnsdist to its backend
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -95,9 +95,9 @@ Advanced usage
 
 In addition to the global settings, rules and Lua bindings can alter this behavior per query:
 
- * calling :func:`SetDisableECSAction` or setting ``dq.useECS`` to ``false`` prevents the sending of the ECS option.
- * calling :func:`SetECSOverrideAction` or setting ``dq.ecsOverride`` will override the global :func:`setECSOverride` value.
- * calling :func:`SetECSPrefixLengthAction(v4, v6)` or setting ``dq.ecsPrefixLength`` will override the global :func:`setECSSourcePrefixV4()` and :func:`setECSSourcePrefixV6()` values.
+* calling :func:`SetDisableECSAction` or setting ``dq.useECS`` to ``false`` prevents the sending of the ECS option.
+* calling :func:`SetECSOverrideAction` or setting ``dq.ecsOverride`` will override the global :func:`setECSOverride` value.
+* calling :func:`SetECSPrefixLengthAction(v4, v6)` or setting ``dq.ecsPrefixLength`` will override the global :func:`setECSSourcePrefixV4()` and :func:`setECSSourcePrefixV6()` values.
 
 In effect this means that for the EDNS Client Subnet option to be added to the request, ``useClientSubnet`` should be set to ``true`` for the backend used (default to ``false``) and ECS should not have been disabled by calling :func:`SetDisableECSAction` or setting ``dq.useECS`` to ``false`` (default to true).
 

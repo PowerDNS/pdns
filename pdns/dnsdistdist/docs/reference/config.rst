@@ -1364,11 +1364,11 @@ Status, Statistics and More
   * ``levelPrefix=prefix``: string - Set the prefix for the log level. Default is ``prio``. No longer supported as of 2.1.0.
   * ``setInstanceFromServerID=false``: bool - Add the "instance" field with the value of the server ID (set with :func:`setServerID`) to each log line. Added in 2.1.0.
 
- Available backends:
+  Available backends:
 
- * ``default``: use the traditional logging system to output structured logging information.
- * ``systemd-journal``: use ``systemd-journal``. When using this backend, provide ``-o verbose`` or simular output option to ``journalctl`` to view the full information.
- * ``json``: JSON objects are written to the standard error stream.
+  * ``default``: use the traditional logging system to output structured logging information.
+  * ``systemd-journal``: use ``systemd-journal``. When using this backend, provide ``-o verbose`` or simular output option to ``journalctl`` to view the full information.
+  * ``json``: JSON objects are written to the standard error stream.
 
 .. function:: setOpenTelemetryTracing(value)
 
