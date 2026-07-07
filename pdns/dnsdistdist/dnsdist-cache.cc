@@ -33,23 +33,14 @@
 #include "qtype.hh"
 
 DNSDistPacketCache::DNSDistPacketCache(CacheSettings settings) :
+  d_cache({.d_ttlEnabled = false,
+           .d_ttl = 0,
+           .d_lruEnabled = false,
+           .d_shardCount = settings.d_shardCount == 0 ? 1 : settings.d_shardCount,
+           .d_maxEntries = settings.d_maxEntries,
+           .d_deferrableInsertLock = settings.d_deferrableInsertLock}),
   d_settings(std::move(settings))
 {
-  if (d_settings.d_maxEntries == 0) {
-    throw std::runtime_error("Trying to create a 0-sized packet-cache");
-  }
-
-  if (d_settings.d_shardCount == 0) {
-    d_settings.d_shardCount = 1;
-  }
-
-  d_shards.resize(d_settings.d_shardCount);
-
-  /* we reserve maxEntries + 1 to avoid rehashing from occurring
-     when we get to maxEntries, as it means a load factor of 1 */
-  for (auto& shard : d_shards) {
-    shard.setSize((d_settings.d_maxEntries / d_settings.d_shardCount) + 1);
-  }
 }
 
 bool DNSDistPacketCache::getClientSubnet(const PacketBuffer& packet, size_t qnameWireLength, std::optional<Netmask>& subnet)
@@ -177,9 +168,7 @@ void DNSDistPacketCache::insert(uint32_t key, const std::optional<Netmask>& subn
     }
   }
 
-  uint32_t shardIndex = getShardIndex(key);
-
-  if (d_shards.at(shardIndex).d_entriesCount >= (d_settings.d_maxEntries / d_settings.d_shardCount)) {
+  if (!d_cache.hasCapacityFor(key)) {
     return;
   }
 
@@ -198,26 +187,7 @@ void DNSDistPacketCache::insert(uint32_t key, const std::optional<Netmask>& subn
   newValue.value = std::string(response.begin(), response.end());
   newValue.subnet = subnet;
 
-  auto& shard = d_shards.at(shardIndex);
-
-  bool inserted = false;
-  if (d_settings.d_deferrableInsertLock) {
-    auto lock = shard.d_map.try_write_lock();
-
-    if (!lock.owns_lock()) {
-      ++d_deferredInserts;
-      return;
-    }
-    inserted = insertLocked(*lock, key, newValue);
-  }
-  else {
-    auto lock = shard.d_map.write_lock();
-
-    inserted = insertLocked(*lock, key, newValue);
-  }
-  if (inserted) {
-    ++shard.d_entriesCount;
-  }
+  d_cache.insert(key, newValue);
 }
 
 bool DNSDistPacketCache::get(DNSQuestion& dnsQuestion, uint16_t queryId, uint32_t* keyOut, std::optional<Netmask>& subnet, bool dnssecOK, bool receivedOverUDP, uint32_t allowExpired, bool skipAging, bool truncatedOK, bool recordMiss)
@@ -238,82 +208,70 @@ bool DNSDistPacketCache::get(DNSQuestion& dnsQuestion, uint16_t queryId, uint32_
     getClientSubnet(dnsQuestion.getData(), dnsQuestion.ids.qname.wirelength(), subnet);
   }
 
-  uint32_t shardIndex = getShardIndex(key);
   time_t now = time(nullptr);
   time_t age{0};
   bool stale = false;
   auto& response = dnsQuestion.getMutableData();
-  auto& shard = d_shards.at(shardIndex);
-  {
-    auto map = shard.d_map.try_read_lock();
-    if (!map.owns_lock()) {
-      ++d_deferredLookups;
-      return false;
-    }
 
-    auto mapIt = map->find(key);
-    if (mapIt == map->end()) {
+  CacheValue value;
+  bool found = d_cache.getValue(key, value, recordMiss);
+  if (!found) {
+    return false;
+  }
+
+  if (value.validity <= now) {
+    if ((now - value.validity) >= static_cast<time_t>(allowExpired)) {
       if (recordMiss) {
         ++d_misses;
       }
       return false;
     }
+    stale = true;
+  }
 
-    const CacheValue& value = mapIt->second;
-    if (value.validity <= now) {
-      if ((now - value.validity) >= static_cast<time_t>(allowExpired)) {
-        if (recordMiss) {
-          ++d_misses;
-        }
-        return false;
-      }
-      stale = true;
-    }
+  if (value.len < sizeof(dnsheader)) {
+    return false;
+  }
 
-    if (value.len < sizeof(dnsheader)) {
+  /* check for collision */
+  if (!cachedValueMatches(value, *(getFlagsFromDNSHeader(dnsQuestion.getHeader().get())), dnsQuestion.ids.qname, dnsQuestion.ids.qtype, dnsQuestion.ids.qclass, receivedOverUDP, dnssecOK, subnet)) {
+    ++d_lookupCollisions;
+    return false;
+  }
+
+  if (!truncatedOK) {
+    dnsheader_aligned dh_aligned(value.value.data());
+    if (dh_aligned->tc != 0) {
       return false;
     }
+  }
 
-    /* check for collision */
-    if (!cachedValueMatches(value, *(getFlagsFromDNSHeader(dnsQuestion.getHeader().get())), dnsQuestion.ids.qname, dnsQuestion.ids.qtype, dnsQuestion.ids.qclass, receivedOverUDP, dnssecOK, subnet)) {
-      ++d_lookupCollisions;
-      return false;
-    }
+  response.resize(value.len);
+  memcpy(&response.at(0), &queryId, sizeof(queryId));
+  memcpy(&response.at(sizeof(queryId)), &value.value.at(sizeof(queryId)), sizeof(dnsheader) - sizeof(queryId));
 
-    if (!truncatedOK) {
-      dnsheader_aligned dh_aligned(value.value.data());
-      if (dh_aligned->tc != 0) {
-        return false;
-      }
-    }
+  if (value.len == sizeof(dnsheader)) {
+    /* DNS header only, our work here is done */
+    ++d_hits;
+    return true;
+  }
 
-    response.resize(value.len);
-    memcpy(&response.at(0), &queryId, sizeof(queryId));
-    memcpy(&response.at(sizeof(queryId)), &value.value.at(sizeof(queryId)), sizeof(dnsheader) - sizeof(queryId));
+  const size_t dnsQNameLen = dnsQName.length();
+  if (value.len < (sizeof(dnsheader) + dnsQNameLen)) {
+    return false;
+  }
 
-    if (value.len == sizeof(dnsheader)) {
-      /* DNS header only, our work here is done */
-      ++d_hits;
-      return true;
-    }
+  memcpy(&response.at(sizeof(dnsheader)), dnsQName.c_str(), dnsQNameLen);
+  if (value.len > (sizeof(dnsheader) + dnsQNameLen)) {
+    memcpy(&response.at(sizeof(dnsheader) + dnsQNameLen), &value.value.at(sizeof(dnsheader) + dnsQNameLen), value.len - (sizeof(dnsheader) + dnsQNameLen));
+  }
 
-    const size_t dnsQNameLen = dnsQName.length();
-    if (value.len < (sizeof(dnsheader) + dnsQNameLen)) {
-      return false;
-    }
-
-    memcpy(&response.at(sizeof(dnsheader)), dnsQName.c_str(), dnsQNameLen);
-    if (value.len > (sizeof(dnsheader) + dnsQNameLen)) {
-      memcpy(&response.at(sizeof(dnsheader) + dnsQNameLen), &value.value.at(sizeof(dnsheader) + dnsQNameLen), value.len - (sizeof(dnsheader) + dnsQNameLen));
-    }
-
-    if (!stale) {
-      age = now - value.added;
-    }
-    else {
-      age = (value.validity - value.added) - d_settings.d_staleTTL;
-      dnsQuestion.ids.staleCacheHit = true;
-    }
+  if (!stale) {
+    age = now - value.added;
+  }
+  else {
+    age = (value.validity - value.added) - d_settings.d_staleTTL;
+    dnsQuestion.ids.staleCacheHit = true;
   }
 
   if (!d_settings.d_dontAge && !skipAging) {
@@ -347,35 +305,8 @@ bool DNSDistPacketCache::get(DNSQuestion& dnsQuestion, uint16_t queryId, uint32_
 */
 size_t DNSDistPacketCache::purgeExpired(size_t upTo, const time_t now)
 {
-  const size_t maxPerShard = upTo / d_settings.d_shardCount;
-
-  size_t removed = 0;
-
   ++d_cleanupCount;
-  for (auto& shard : d_shards) {
-    auto map = shard.d_map.write_lock();
-    if (map->size() <= maxPerShard) {
-      continue;
-    }
-
-    size_t toRemove = map->size() - maxPerShard;
-
-    for (auto it = map->begin(); toRemove > 0 && it != map->end();) {
-      const CacheValue& value = it->second;
-
-      if (value.validity <= now) {
-        it = map->erase(it);
-        --toRemove;
-        --shard.d_entriesCount;
-        ++removed;
-      }
-      else {
-        ++it;
-      }
-    }
-  }
-
-  return removed;
+  return d_cache.purgeExpired(upTo, now);
 }
 
 /* Remove all entries, keeping only upTo
@@ -385,89 +316,26 @@ size_t DNSDistPacketCache::purgeExpired(size_t upTo, const time_t now)
 */
 size_t DNSDistPacketCache::expunge(size_t upTo)
 {
-  const size_t maxPerShard = upTo / d_settings.d_shardCount;
-
-  size_t removed = 0;
-
-  for (auto& shard : d_shards) {
-    auto map = shard.d_map.write_lock();
-
-    if (map->size() <= maxPerShard) {
-      continue;
-    }
-
-    size_t toRemove = map->size() - maxPerShard;
-
-    auto beginIt = map->begin();
-    auto endIt = beginIt;
-
-    if (map->size() >= toRemove) {
-      std::advance(endIt, toRemove);
-      map->erase(beginIt, endIt);
-      shard.d_entriesCount -= toRemove;
-      removed += toRemove;
-    }
-    else {
-      removed += map->size();
-      map->clear();
-      shard.d_entriesCount = 0;
-    }
-  }
-
-  return removed;
+  return d_cache.expunge(upTo);
 }
 
 size_t DNSDistPacketCache::expungeByName(const DNSName& name, uint16_t qtype, bool suffixMatch)
 {
-  size_t removed = 0;
-
-  for (auto& shard : d_shards) {
-    auto map = shard.d_map.write_lock();
-
-    for (auto it = map->begin(); it != map->end();) {
-      const CacheValue& value = it->second;
-
-      if ((value.qname == name || (suffixMatch && value.qname.isPartOf(name))) && (qtype == QType::ANY || qtype == value.qtype)) {
-        it = map->erase(it);
-        --shard.d_entriesCount;
-        ++removed;
-      }
-      else {
-        ++it;
-      }
-    }
-  }
-
-  return removed;
+  return d_cache.expungeByCondition([&name, &qtype, &suffixMatch](const CacheValue& value) {
+    return ((value.qname == name || (suffixMatch && value.qname.isPartOf(name))) && (qtype == QType::ANY || qtype == value.qtype));
+  });
 }
 
 size_t DNSDistPacketCache::expungeByName(const std::vector<DNSName>& names, uint16_t qtype, bool suffixMatch)
 {
-  size_t removed = 0;
-
-  for (auto& shard : d_shards) {
-    auto map = shard.d_map.write_lock();
-
-    for (auto it = map->begin(); it != map->end();) {
-      const CacheValue& value = it->second;
-
-      if (std::find_if(names.cbegin(), names.cend(),
-                       [&value, &qtype, &suffixMatch](const DNSName& name) {
-                         return (
-                           (value.qname == name || (suffixMatch && value.qname.isPartOf(name))) && (qtype == QType::ANY || value.qtype == qtype));
-                       })
-          != names.cend()) {
-        it = map->erase(it);
-        --shard.d_entriesCount;
-        ++removed;
-      }
-      else {
-        ++it;
-      }
-    }
-  }
-
-  return removed;
+  return d_cache.expungeByCondition([&names, &qtype, &suffixMatch](const CacheValue& value) {
+    return (std::find_if(names.cbegin(), names.cend(),
+                         [&value, &qtype, &suffixMatch](const DNSName& name) {
+                           return (
+                             (value.qname == name || (suffixMatch && value.qname.isPartOf(name))) && (qtype == QType::ANY || value.qtype == qtype));
+                         })
+            != names.cend());
+  });
 }
 
 bool DNSDistPacketCache::isFull()
@@ -477,13 +345,7 @@ bool DNSDistPacketCache::isFull()
 
 uint64_t DNSDistPacketCache::getSize()
 {
-  uint64_t count = 0;
-
-  for (auto& shard : d_shards) {
-    count += shard.d_entriesCount;
-  }
-
-  return count;
+  return d_cache.getSize();
 }
 
 uint32_t DNSDistPacketCache::getMinTTL(const char* packet, uint16_t length, bool* seenNoDataSOA)
@@ -550,32 +412,27 @@ uint64_t DNSDistPacketCache::dump(int fileDesc, bool rawResponse)
 
   uint64_t count = 0;
   time_t now = time(nullptr);
-  for (auto& shard : d_shards) {
-    auto map = shard.d_map.read_lock();
-
-    for (const auto& entry : *map) {
-      const CacheValue& value = entry.second;
-      count++;
-
-      try {
-        uint8_t rcode = 0;
-        if (value.len >= sizeof(dnsheader)) {
-          dnsheader dnsHeader{};
-          memcpy(&dnsHeader, value.value.data(), sizeof(dnsheader));
-          rcode = dnsHeader.rcode;
-        }
-
-        fprintf(filePtr.get(), "%s %" PRId64 " %s %s ; ecs %s, rcode %" PRIu8 ", key %" PRIu32 ", length %" PRIu16 ", received over UDP %d, added %" PRId64 ", dnssecOK %d, raw query flags %" PRIu16, value.qname.toString().c_str(), static_cast<int64_t>(value.validity - now), QClass(value.qclass).toString().c_str(), QType(value.qtype).toString().c_str(), value.subnet ? value.subnet.value().toString().c_str() : "empty", rcode, entry.first, value.len, value.receivedOverUDP ? 1 : 0, static_cast<int64_t>(value.added), value.dnssecOK ? 1 : 0, value.queryFlags);
-
-        if (rawResponse) {
-          std::string rawDataResponse = Base64Encode(value.value);
-          fprintf(filePtr.get(), ", base64response %s", rawDataResponse.c_str());
-        }
-        fprintf(filePtr.get(), "\n");
+  for (auto it = d_cache.begin(); it != d_cache.end(); ++it) {
+    const CacheValue& value = (*it).value;
+    count++;
+    try {
+      uint8_t rcode = 0;
+      if (value.len >= sizeof(dnsheader)) {
+        dnsheader dnsHeader{};
+        memcpy(&dnsHeader, value.value.data(), sizeof(dnsheader));
+        rcode = dnsHeader.rcode;
       }
-      catch (...) {
-        fprintf(filePtr.get(), "; error printing '%s'\n", value.qname.empty() ? "EMPTY" : value.qname.toString().c_str());
+
+      fprintf(filePtr.get(), "%s %" PRId64 " %s %s ; ecs %s, rcode %" PRIu8 ", key %" PRIu32 ", length %" PRIu16 ", received over UDP %d, added %" PRId64 ", dnssecOK %d, raw query flags %" PRIu16, value.qname.toString().c_str(), static_cast<int64_t>(value.validity - now), QClass(value.qclass).toString().c_str(), QType(value.qtype).toString().c_str(), value.subnet ? value.subnet.value().toString().c_str() : "empty", rcode, (*it).key, value.len, value.receivedOverUDP ? 1 : 0, static_cast<int64_t>(value.added), value.dnssecOK ? 1 : 0, value.queryFlags);
+
+      if (rawResponse) {
+        std::string rawDataResponse = Base64Encode(value.value);
+        fprintf(filePtr.get(), ", base64response %s", rawDataResponse.c_str());
       }
+      fprintf(filePtr.get(), "\n");
+    }
+    catch (...) {
+      fprintf(filePtr.get(), "; error printing '%s'\n", value.qname.empty() ? "EMPTY" : value.qname.toString().c_str());
     }
   }
 
@@ -586,53 +443,49 @@ std::set<DNSName> DNSDistPacketCache::getDomainsContainingRecords(const ComboAdd
 {
   std::set<DNSName> domains;
 
-  for (auto& shard : d_shards) {
-    auto map = shard.d_map.read_lock();
+  for (auto it = d_cache.begin(); it != d_cache.end(); ++it) {
+    const CacheValue& value = (*it).value;
 
-    for (const auto& entry : *map) {
-      const CacheValue& value = entry.second;
-
-      try {
-        if (value.len < sizeof(dnsheader)) {
-          continue;
-        }
-
-        dnsheader_aligned dnsHeader(value.value.data());
-        if (dnsHeader->rcode != RCode::NoError || (dnsHeader->ancount == 0 && dnsHeader->nscount == 0 && dnsHeader->arcount == 0)) {
-          continue;
-        }
-
-        bool found = false;
-        bool valid = visitDNSPacket(value.value, [addr, &found](uint8_t /* section */, uint16_t qclass, uint16_t qtype, uint32_t /* ttl */, uint16_t rdatalength, const char* rdata) {
-          if (qtype == QType::A && qclass == QClass::IN && addr.isIPv4() && rdatalength == 4 && rdata != nullptr) {
-            ComboAddress parsed;
-            parsed.sin4.sin_family = AF_INET;
-            memcpy(&parsed.sin4.sin_addr.s_addr, rdata, rdatalength);
-            if (parsed == addr) {
-              found = true;
-              return true;
-            }
-          }
-          else if (qtype == QType::AAAA && qclass == QClass::IN && addr.isIPv6() && rdatalength == 16 && rdata != nullptr) {
-            ComboAddress parsed;
-            parsed.sin6.sin6_family = AF_INET6;
-            memcpy(&parsed.sin6.sin6_addr.s6_addr, rdata, rdatalength);
-            if (parsed == addr) {
-              found = true;
-              return true;
-            }
-          }
-
-          return false;
-        });
-
-        if (valid && found) {
-          domains.insert(value.qname);
-        }
-      }
-      catch (...) {
+    try {
+      if (value.len < sizeof(dnsheader)) {
         continue;
       }
+
+      dnsheader_aligned dnsHeader(value.value.data());
+      if (dnsHeader->rcode != RCode::NoError || (dnsHeader->ancount == 0 && dnsHeader->nscount == 0 && dnsHeader->arcount == 0)) {
+        continue;
+      }
+
+      bool found = false;
+      bool valid = visitDNSPacket(value.value, [addr, &found](uint8_t /* section */, uint16_t qclass, uint16_t qtype, uint32_t /* ttl */, uint16_t rdatalength, const char* rdata) {
+        if (qtype == QType::A && qclass == QClass::IN && addr.isIPv4() && rdatalength == 4 && rdata != nullptr) {
+          ComboAddress parsed;
+          parsed.sin4.sin_family = AF_INET;
+          memcpy(&parsed.sin4.sin_addr.s_addr, rdata, rdatalength);
+          if (parsed == addr) {
+            found = true;
+            return true;
+          }
+        }
+        else if (qtype == QType::AAAA && qclass == QClass::IN && addr.isIPv6() && rdatalength == 16 && rdata != nullptr) {
+          ComboAddress parsed;
+          parsed.sin6.sin6_family = AF_INET6;
+          memcpy(&parsed.sin6.sin6_addr.s6_addr, rdata, rdatalength);
+          if (parsed == addr) {
+            found = true;
+            return true;
+          }
+        }
+
+        return false;
+      });
+
+      if (valid && found) {
+        domains.insert(value.qname);
+      }
+    }
+    catch (...) {
+      continue;
     }
   }
 
@@ -643,46 +496,42 @@ std::set<ComboAddress> DNSDistPacketCache::getRecordsForDomain(const DNSName& do
 {
   std::set<ComboAddress> addresses;
 
-  for (auto& shard : d_shards) {
-    auto map = shard.d_map.read_lock();
+  for (auto it = d_cache.begin(); it != d_cache.end(); ++it) {
+    const CacheValue& value = (*it).value;
 
-    for (const auto& entry : *map) {
-      const CacheValue& value = entry.second;
-
-      try {
-        if (value.qname != domain) {
-          continue;
-        }
-
-        if (value.len < sizeof(dnsheader)) {
-          continue;
-        }
-
-        dnsheader_aligned dnsHeader(value.value.data());
-        if (dnsHeader->rcode != RCode::NoError || (dnsHeader->ancount == 0 && dnsHeader->nscount == 0 && dnsHeader->arcount == 0)) {
-          continue;
-        }
-
-        visitDNSPacket(value.value, [&addresses](uint8_t /* section */, uint16_t qclass, uint16_t qtype, uint32_t /* ttl */, uint16_t rdatalength, const char* rdata) {
-          if (qtype == QType::A && qclass == QClass::IN && rdatalength == 4 && rdata != nullptr) {
-            ComboAddress parsed;
-            parsed.sin4.sin_family = AF_INET;
-            memcpy(&parsed.sin4.sin_addr.s_addr, rdata, rdatalength);
-            addresses.insert(parsed);
-          }
-          else if (qtype == QType::AAAA && qclass == QClass::IN && rdatalength == 16 && rdata != nullptr) {
-            ComboAddress parsed;
-            parsed.sin6.sin6_family = AF_INET6;
-            memcpy(&parsed.sin6.sin6_addr.s6_addr, rdata, rdatalength);
-            addresses.insert(parsed);
-          }
-
-          return false;
-        });
-      }
-      catch (...) {
+    try {
+      if (value.qname != domain) {
         continue;
       }
+
+      if (value.len < sizeof(dnsheader)) {
+        continue;
+      }
+
+      dnsheader_aligned dnsHeader(value.value.data());
+      if (dnsHeader->rcode != RCode::NoError || (dnsHeader->ancount == 0 && dnsHeader->nscount == 0 && dnsHeader->arcount == 0)) {
+        continue;
+      }
+
+      visitDNSPacket(value.value, [&addresses](uint8_t /* section */, uint16_t qclass, uint16_t qtype, uint32_t /* ttl */, uint16_t rdatalength, const char* rdata) {
+        if (qtype == QType::A && qclass == QClass::IN && rdatalength == 4 && rdata != nullptr) {
+          ComboAddress parsed;
+          parsed.sin4.sin_family = AF_INET;
+          memcpy(&parsed.sin4.sin_addr.s_addr, rdata, rdatalength);
+          addresses.insert(parsed);
+        }
+        else if (qtype == QType::AAAA && qclass == QClass::IN && rdatalength == 16 && rdata != nullptr) {
+          ComboAddress parsed;
+          parsed.sin6.sin6_family = AF_INET6;
+          memcpy(&parsed.sin6.sin6_addr.s6_addr, rdata, rdatalength);
+          addresses.insert(parsed);
+        }
+
+        return false;
+      });
+    }
+    catch (...) {
+      continue;
     }
   }
 

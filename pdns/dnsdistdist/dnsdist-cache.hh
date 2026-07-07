@@ -24,6 +24,7 @@
 #include <atomic>
 #include <unordered_map>
 
+#include "generic-cache.hh"
 #include "iputils.hh"
 #include "lock.hh"
 #include "noinitvector.hh"
@@ -67,9 +68,9 @@ public:
   [[nodiscard]] string toString();
   [[nodiscard]] uint64_t getSize();
   [[nodiscard]] uint64_t getHits() const { return d_hits.load(); }
-  [[nodiscard]] uint64_t getMisses() const { return d_misses.load(); }
-  [[nodiscard]] uint64_t getDeferredLookups() const { return d_deferredLookups.load(); }
-  [[nodiscard]] uint64_t getDeferredInserts() const { return d_deferredInserts.load(); }
+  [[nodiscard]] uint64_t getMisses() const { return d_cache.getStats().d_misses.load() + d_misses.load(); }
+  [[nodiscard]] uint64_t getDeferredLookups() const { return d_cache.getStats().d_deferredLookups.load(); }
+  [[nodiscard]] uint64_t getDeferredInserts() const { return d_cache.getStats().d_deferredInserts.load(); }
   [[nodiscard]] uint64_t getLookupCollisions() const { return d_lookupCollisions.load(); }
   [[nodiscard]] uint64_t getInsertCollisions() const { return d_insertCollisions.load(); }
   [[nodiscard]] uint64_t getMaxEntries() const { return d_settings.d_maxEntries; }
@@ -114,43 +115,11 @@ private:
     bool dnssecOK{false};
   };
 
-  class CacheShard
-  {
-  public:
-    CacheShard() = default;
-    CacheShard(CacheShard&& /* old */) noexcept
-    {
-    }
-    CacheShard(const CacheShard& /* old */)
-    {
-    }
-    CacheShard& operator=(CacheShard&& /* old */) noexcept
-    {
-      return *this;
-    }
-    CacheShard& operator=(const CacheShard& /* old */)
-    {
-      return *this;
-    }
-    ~CacheShard() = default;
-
-    void setSize(size_t maxSize)
-    {
-      d_map.write_lock()->reserve(maxSize);
-    }
-
-    SharedLockGuarded<std::unordered_map<uint32_t, CacheValue>> d_map{};
-    std::atomic<uint64_t> d_entriesCount{0};
-  };
-
   [[nodiscard]] bool cachedValueMatches(const CacheValue& cachedValue, uint16_t queryFlags, const DNSName& qname, uint16_t qtype, uint16_t qclass, bool receivedOverUDP, bool dnssecOK, const std::optional<Netmask>& subnet) const;
   [[nodiscard]] uint32_t getShardIndex(uint32_t key) const;
   bool insertLocked(std::unordered_map<uint32_t, CacheValue>& map, uint32_t key, CacheValue& newValue);
 
-  std::vector<CacheShard> d_shards{};
-
-  pdns::stat_t d_deferredLookups{0};
-  pdns::stat_t d_deferredInserts{0};
+  GenericCache<uint32_t, CacheValue, std::hash<uint32_t>, &CacheValue::validity> d_cache;
   pdns::stat_t d_hits{0};
   pdns::stat_t d_misses{0};
   pdns::stat_t d_insertCollisions{0};

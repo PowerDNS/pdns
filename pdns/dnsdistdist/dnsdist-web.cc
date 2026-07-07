@@ -1000,10 +1000,12 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp,
 
     output << genericcachebase << "memory_used" << label << " " << stats.d_memoryUsed << "\n";
     output << genericcachebase << "entries" << label << " " << stats.d_entriesCount << "\n";
-    output << genericcachebase << "cache_hits" << label << " " << stats.d_cacheHits << "\n";
-    output << genericcachebase << "cache_misses" << label << " " << stats.d_cacheMisses << "\n";
+    output << genericcachebase << "cache_hits" << label << " " << stats.d_hits << "\n";
+    output << genericcachebase << "cache_misses" << label << " " << stats.d_misses << "\n";
     output << genericcachebase << "expired" << label << " " << stats.d_expiredItems << "\n";
     output << genericcachebase << "kicked" << label << " " << stats.d_kickedItems << "\n";
+    output << genericcachebase << "deferred_lookups" << label << " " <<  stats.d_deferredLookups << "\n";
+    output << genericcachebase << "deferred_inserts" << label << " " <<  stats.d_deferredInserts << "\n";
   }
 
   output << "# HELP dnsdist_rule_hits " << "Number of hits of that rule" << "\n";

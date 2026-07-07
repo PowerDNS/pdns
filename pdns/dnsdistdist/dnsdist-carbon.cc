@@ -247,13 +247,17 @@ static bool doOneCarbonExport(const Carbon::Endpoint& endpoint, const Logr::Logg
       str << base << "entries"
           << " " << stats.d_entriesCount << " " << now << "\r\n";
       str << base << "cache-hits"
-          << " " << stats.d_cacheHits << " " << now << "\r\n";
+          << " " << stats.d_hits << " " << now << "\r\n";
       str << base << "cache-misses"
-          << " " << stats.d_cacheMisses << " " << now << "\r\n";
+          << " " << stats.d_misses << " " << now << "\r\n";
       str << base << "expired"
           << " " << stats.d_expiredItems << " " << now << "\r\n";
       str << base << "kicked"
           << " " << stats.d_kickedItems << " " << now << "\r\n";
+      str << base << "deferred-lookups"
+          << " " << stats.d_deferredLookups << " " << now << "\r\n";
+      str << base << "deferred-inserts"
+          << " " << stats.d_deferredInserts << " " << now << "\r\n";
     }
 #ifdef HAVE_DNS_OVER_HTTPS
     {
