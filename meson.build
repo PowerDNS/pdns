@@ -1097,6 +1097,7 @@ if get_option('unit-tests')
       'BOOST_TEST_LOG_LEVEL': 'message',
     },
     is_parallel: false,
+    timeout: 300,
   )
 endif
 
@@ -1149,6 +1150,7 @@ if get_option('unit-tests-backends')
         workdir: product_source_dir / fs.parent(module_remotebackend_testrunner),
         is_parallel: false,
         depends: get_variable(exec_var_name),
+        timeout: 300,
       )
     endforeach
   endif
@@ -1172,6 +1174,7 @@ if get_option('unit-tests-backends')
         workdir: product_source_dir / 'regression-tests',
         depends: [pdns_server, pdnsutil, sdig, saxfr, pdns_notify, nsec3dig],
         is_parallel: false,
+        timeout: 300,
       )
     endif
   endforeach
