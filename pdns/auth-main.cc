@@ -44,6 +44,7 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <fstream>
+#include <vector>
 #include <boost/algorithm/string.hpp>
 #ifdef HAVE_LIBSODIUM
 #include <sodium.h>
@@ -858,24 +859,42 @@ static void mainthread()
     // User wants cookie processing
 #ifdef HAVE_CRYPTO_SHORTHASH // we can do siphash-based cookies
     DNSPacket::s_doEDNSCookieProcessing = true;
-    const std::string& secret = ::arg()["edns-cookie-secret"];
-    if (secret == "random") {
-      std::array<char, EDNSCookiesOpt::EDNSCookieSecretSize / 2> key{};
-      dns_random(key.data(), key.size());
-      DNSPacket::s_EDNSCookieKey = std::string(key.data(), key.size());
-    }
-    else {
-      try {
-        if (secret.size() != EDNSCookiesOpt::EDNSCookieSecretSize) {
-          throw std::range_error("wrong size (" + std::to_string(secret.size()) + "), must be " + std::to_string(EDNSCookiesOpt::EDNSCookieSecretSize));
+    std::vector<std::string> secrets;
+    stringtok(secrets, ::arg()["edns-cookie-secret"], ",");
+    DNSPacket::s_OldEDNSCookieKeys.reserve(secrets.size() - 1);
+
+    bool first{true};
+    for (const auto& secret : secrets) {
+      if (secret == "random") {
+        if (!first) {
+          SLOG(g_log << Logger::Error << "only the first edns-cookie-secret can be 'random'" << endl,
+               slog->info(Logr::Error, "only the first edns-cookie-secret can be 'random'"));
+          exit(1); // NOLINT(concurrency-mt-unsafe) we're single threaded at this point
         }
-        DNSPacket::s_EDNSCookieKey = makeBytesFromHex(secret);
+        std::array<char, EDNSCookiesOpt::EDNSCookieSecretSize / 2> key{};
+        dns_random(key.data(), key.size());
+        DNSPacket::s_EDNSCookieKey = std::string(key.data(), key.size());
       }
-      catch (const std::range_error& e) {
-        SLOG(g_log << Logger::Error << "edns-cookie-secret invalid: " << e.what() << endl,
-             slog->error(Logr::Error, e.what(), "edns-cookie-secret is ill-formed"));
-        exit(1); // NOLINT(concurrency-mt-unsafe) we're single threaded at this point
+      else {
+        try {
+          if (secret.size() != EDNSCookiesOpt::EDNSCookieSecretSize) {
+            throw std::range_error("wrong size (" + std::to_string(secret.size()) + "), must be " + std::to_string(EDNSCookiesOpt::EDNSCookieSecretSize));
+          }
+          auto secretBytes = makeBytesFromHex(secret);
+          if (first) {
+            DNSPacket::s_EDNSCookieKey = std::move(secretBytes);
+          }
+          else {
+            DNSPacket::s_OldEDNSCookieKeys.emplace_back(std::move(secretBytes));
+          }
+        }
+        catch (const std::range_error& e) {
+          SLOG(g_log << Logger::Error << "edns-cookie-secret invalid: " << e.what() << endl,
+               slog->error(Logr::Error, e.what(), "edns-cookie-secret is ill-formed"));
+          exit(1); // NOLINT(concurrency-mt-unsafe) we're single threaded at this point
+        }
       }
+      first = false;
     }
 #else
     SLOG(g_log << Logger::Error << "Support for EDNS Cookies is not available because of missing cryptographic functions (libsodium support should be enabled, with the crypto_shorthash() function available)" << endl,
